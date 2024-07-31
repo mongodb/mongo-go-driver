@@ -145,7 +145,7 @@ func TestSDAMProse(t *testing.T) {
 		})
 	})
 
-	mt.RunOpts("client waits between failed Hellos", mtest.NewOptions().MinServerVersion("4.9").Topologies(mtest.Single), func(mt *mtest.T) {
+	mt.RunOpts("client waits between failed Hellos", mtest.NewOptions().MinServerVersion("4.9"), func(mt *mtest.T) {
 		// Force hello requests to fail 5 times.
 		mt.SetFailPoint(mtest.FailPoint{
 			ConfigureFailPoint: "failCommand",
@@ -237,52 +237,32 @@ func TestServerHeartbeatStartedEvent(t *testing.T) {
 	mt := mtest.New(t)
 
 	mt.Run("polling must await frequency", func(mt *mtest.T) {
-		// Create a client with  heartbeatFrequency=100ms,
-		// serverMonitoringMode=poll. Use SDAM to record the number of times the
-		// a heartbeat is started.
 		var heartbeatStartedCount atomic.Int64
+		servers := map[string]bool{}
 
 		serverMonitor := &event.ServerMonitor{
 			ServerHeartbeatStarted: func(*event.ServerHeartbeatStartedEvent) {
 				heartbeatStartedCount.Add(1)
 			},
+			TopologyDescriptionChanged: func(evt *event.TopologyDescriptionChangedEvent) {
+				for _, srv := range evt.NewDescription.Servers {
+					servers[srv.Addr.String()] = true
+				}
+			},
 		}
 
-		// Set the heartbeatInterval to a value so that 1/4 * value is long enough
-		// to ensure that the driver makes it's initial handshake with all servers
-		// in the deployment.
-		const heartbeatInterval = 200 * time.Millisecond
-
+		// Create a client with  heartbeatFrequency=100ms,
+		// serverMonitoringMode=poll. Use SDAM to record the number of times the
+		// a heartbeat is started and the number of servers discovered.
 		mt.ResetClient(options.Client().
 			SetServerMonitor(serverMonitor).
-			SetHeartbeatInterval(heartbeatInterval).
 			SetServerMonitoringMode(options.ServerMonitoringModePoll))
 
-		// Check on the count 4 times.
-		ticker := time.NewTicker(heartbeatInterval / 4)
-		t.Cleanup(ticker.Stop)
+		// Per specifications, minHeartbeatFrequencyMS=500ms. So, within the first
+		// 500ms the heartbeatStartedCount should be LEQ to the number of discovered
+		// servers.
+		time.Sleep(500 * time.Millisecond)
 
-		timer := time.NewTimer(heartbeatInterval - 1)
-
-		// Repeatedly check the heartbeat count at intervals defined by the ticker.
-		// Initialize the first heartbeat count, which should be equal to the
-		// number of servers in the deployment. Subtract this value from the
-		// count on each successive tick. This sum should be zero, indicating that
-		// all servers in the deployment are still awaiting their second check.
-		var serverCount int64
-
-		for {
-			select {
-			case <-ticker.C:
-				if serverCount == 0 {
-					serverCount = heartbeatStartedCount.Load()
-				}
-
-				extraHeartbeats := heartbeatStartedCount.Load() - serverCount
-				assert.Equal(mt, int64(0), extraHeartbeats)
-			case <-timer.C:
-				return
-			}
-		}
+		assert.LessOrEqual(mt, heartbeatStartedCount.Load(), int64(len(servers)))
 	})
 }
