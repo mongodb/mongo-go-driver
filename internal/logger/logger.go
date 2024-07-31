@@ -240,7 +240,7 @@ func FormatDocument(msg bson.Raw, width uint) string {
 		return "{}"
 	}
 
-	return bsoncore.Document(msg).StringN(n) + TruncationSuffix
+	return bsoncore.Document(msg).StringN(int(width)) + TruncationSuffix
 }
 
 // FormatString formats a String for logging. The string is truncated
@@ -251,5 +251,5 @@ func FormatString(str string, width uint) string {
 		Value: bsoncore.AppendString(nil, str),
 	}
 
-	return bsoncore.Value(rawValue).StringN(int(width)) + TruncationSuffix
+	return bson.convertToCoreValue(rawValue).StringN(int(width)) + TruncationSuffix
 }
