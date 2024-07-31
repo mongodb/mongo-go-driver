@@ -11,6 +11,7 @@ import (
 	"net"
 	"os"
 	"runtime"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -145,7 +146,7 @@ func TestSDAMProse(t *testing.T) {
 		})
 	})
 
-	mt.RunOpts("client waits between failed Hellos", mtest.NewOptions().MinServerVersion("4.9"), func(mt *mtest.T) {
+	mt.RunOpts("client waits between failed Hellos", mtest.NewOptions().MinServerVersion("4.9").Topologies(mtest.Single), func(mt *mtest.T) {
 		// Force hello requests to fail 5 times.
 		mt.SetFailPoint(mtest.FailPoint{
 			ConfigureFailPoint: "failCommand",
@@ -238,13 +239,18 @@ func TestServerHeartbeatStartedEvent(t *testing.T) {
 
 	mt.Run("polling must await frequency", func(mt *mtest.T) {
 		var heartbeatStartedCount atomic.Int64
+
 		servers := map[string]bool{}
+		serversMu := sync.RWMutex{} // Guard writing to the servers set
 
 		serverMonitor := &event.ServerMonitor{
 			ServerHeartbeatStarted: func(*event.ServerHeartbeatStartedEvent) {
 				heartbeatStartedCount.Add(1)
 			},
 			TopologyDescriptionChanged: func(evt *event.TopologyDescriptionChangedEvent) {
+				serversMu.Lock()
+				defer serversMu.Unlock()
+
 				for _, srv := range evt.NewDescription.Servers {
 					servers[srv.Addr.String()] = true
 				}
