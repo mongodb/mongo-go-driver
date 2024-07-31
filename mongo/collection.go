@@ -1227,7 +1227,6 @@ func (coll *Collection) find(
 
 	f, err := marshal(filter, coll.bsonOpts, coll.registry)
 	if err != nil {
-		fmt.Println(err)
 		return nil, err
 	}
 
