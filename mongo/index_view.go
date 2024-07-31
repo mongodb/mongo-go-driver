@@ -383,7 +383,7 @@ func (iv IndexView) createOptionsDoc(opts options.Lister[options.IndexOptions]) 
 	return optsDoc, nil
 }
 
-func (iv IndexView) drop(ctx context.Context, name string, _ ...options.Lister[options.DropIndexesOptions]) error {
+func (iv IndexView) drop(ctx context.Context, index any, _ ...options.Lister[options.DropIndexesOptions]) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -409,8 +409,7 @@ func (iv IndexView) drop(ctx context.Context, name string, _ ...options.Lister[o
 
 	selector := makePinnedSelector(sess, iv.coll.writeSelector)
 
-	op := operation.NewDropIndexes(name).
-		Session(sess).WriteConcern(wc).CommandMonitor(iv.coll.client.monitor).
+	op := operation.NewDropIndexes(index).Session(sess).WriteConcern(wc).CommandMonitor(iv.coll.client.monitor).
 		ServerSelector(selector).ClusterClock(iv.coll.client.clock).
 		Database(iv.coll.db.name).Collection(iv.coll.name).
 		Deployment(iv.coll.client.deployment).ServerAPI(iv.coll.client.serverAPI).
@@ -448,8 +447,19 @@ func (iv IndexView) DropOne(
 	return iv.drop(ctx, name, opts...)
 }
 
-// DropAll executes a dropIndexes operation to drop all indexes on the
-// collection.
+// DropWithKey drops a collection index by key using the dropIndexes operation.
+//
+// This function is useful to drop an index using its key specification instead of its name.
+func (iv IndexView) DropWithKey(ctx context.Context, keySpecDocument interface{}, opts ...options.Lister[options.DropIndexesOptions]) error {
+	doc, err := marshal(keySpecDocument, iv.coll.bsonOpts, iv.coll.registry)
+	if err != nil {
+		return err
+	}
+
+	return iv.drop(ctx, doc, opts...)
+}
+
+// DropAll executes a dropIndexes operation to drop all indexes on the collection.
 //
 // The opts parameter can be used to specify options for this operation (see the
 // options.DropIndexesOptions documentation).

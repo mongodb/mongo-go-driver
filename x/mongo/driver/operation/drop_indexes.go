@@ -23,7 +23,7 @@ import (
 
 // DropIndexes performs an dropIndexes operation.
 type DropIndexes struct {
-	index        *string
+	index        any
 	session      *session.Client
 	clock        *session.ClusterClock
 	collection   string
@@ -64,9 +64,9 @@ func buildDropIndexesResult(response bsoncore.Document) (DropIndexesResult, erro
 }
 
 // NewDropIndexes constructs and returns a new DropIndexes.
-func NewDropIndexes(index string) *DropIndexes {
+func NewDropIndexes(index any) *DropIndexes {
 	return &DropIndexes{
-		index: &index,
+		index: index,
 	}
 }
 
@@ -105,19 +105,26 @@ func (di *DropIndexes) Execute(ctx context.Context) error {
 
 func (di *DropIndexes) command(dst []byte, _ description.SelectedServer) ([]byte, error) {
 	dst = bsoncore.AppendStringElement(dst, "dropIndexes", di.collection)
-	if di.index != nil {
-		dst = bsoncore.AppendStringElement(dst, "index", *di.index)
+
+	switch di.index.(type) {
+	case string:
+		dst = bsoncore.AppendStringElement(dst, "index", di.index.(string))
+	case bsoncore.Document:
+		if di.index != nil {
+			dst = bsoncore.AppendDocumentElement(dst, "index", di.index.(bsoncore.Document))
+		}
 	}
+
 	return dst, nil
 }
 
 // Index specifies the name of the index to drop. If '*' is specified, all indexes will be dropped.
-func (di *DropIndexes) Index(index string) *DropIndexes {
+func (di *DropIndexes) Index(index any) *DropIndexes {
 	if di == nil {
 		di = new(DropIndexes)
 	}
 
-	di.index = &index
+	di.index = index
 	return di
 }
 
