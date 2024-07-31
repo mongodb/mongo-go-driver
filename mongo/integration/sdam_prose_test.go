@@ -270,7 +270,9 @@ func TestServerHeartbeatStartedEvent(t *testing.T) {
 		time.Sleep(500 * time.Millisecond)
 
 		serversMu.Lock()
-		assert.LessOrEqual(mt, heartbeatStartedCount.Load(), int64(len(servers)))
+		serverCount := int64(len(servers))
 		serversMu.Unlock()
+
+		assert.LessOrEqual(mt, heartbeatStartedCount.Load(), serverCount)
 	})
 }
