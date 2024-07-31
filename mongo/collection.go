@@ -1305,7 +1305,6 @@ func (coll *Collection) find(ctx context.Context, filter interface{},
 
 	f, err := marshal(filter, coll.bsonOpts, coll.registry)
 	if err != nil {
-		fmt.Println(err)
 		return nil, err
 	}
 
