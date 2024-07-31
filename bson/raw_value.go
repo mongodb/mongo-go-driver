@@ -121,9 +121,6 @@ func (rv RawValue) IsNumber() bool { return convertToCoreValue(rv).IsNumber() }
 // format. If the value is not valid, this returns an empty string
 func (rv RawValue) String() string { return convertToCoreValue(rv).String() }
 
-// StringN returns the BSON RawValue encoded as Extended JSON that will stringify a document upto N bytes.
-func (rv RawValue) StringN(n int) string { return convertToCoreValue(rv).StringN(n) }
-
 // DebugString outputs a human readable version of Document. It will attempt to stringify the
 // valid components of the document even if the entire document is not valid.
 func (rv RawValue) DebugString() string { return convertToCoreValue(rv).DebugString() }

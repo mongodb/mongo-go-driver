@@ -91,6 +91,3 @@ func (r Raw) IndexErr(index uint) (RawElement, error) {
 
 // String returns the BSON document encoded as Extended JSON.
 func (r Raw) String() string { return bsoncore.Document(r).String() }
-
-// StringN returns the BSON Document encoded as Extended JSON that will stringify a document upto N bytes.
-func (r Raw) StringN(n int) string { return bsoncore.Document(r).StringN(n) }
