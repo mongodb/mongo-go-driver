@@ -23,19 +23,20 @@ import (
 
 // DropIndexes performs an dropIndexes operation.
 type DropIndexes struct {
-	index        any
-	session      *session.Client
-	clock        *session.ClusterClock
-	collection   string
-	monitor      *event.CommandMonitor
-	crypt        driver.Crypt
-	database     string
-	deployment   driver.Deployment
-	selector     description.ServerSelector
-	writeConcern *writeconcern.WriteConcern
-	result       DropIndexesResult
-	serverAPI    *driver.ServerAPIOptions
-	timeout      *time.Duration
+	authenticator driver.Authenticator
+	index         any
+	session       *session.Client
+	clock         *session.ClusterClock
+	collection    string
+	monitor       *event.CommandMonitor
+	crypt         driver.Crypt
+	database      string
+	deployment    driver.Deployment
+	selector      description.ServerSelector
+	writeConcern  *writeconcern.WriteConcern
+	result        DropIndexesResult
+	serverAPI     *driver.ServerAPIOptions
+	timeout       *time.Duration
 }
 
 // DropIndexesResult represents a dropIndexes result returned by the server.
@@ -99,6 +100,7 @@ func (di *DropIndexes) Execute(ctx context.Context) error {
 		ServerAPI:         di.serverAPI,
 		Timeout:           di.timeout,
 		Name:              driverutil.DropIndexesOp,
+		Authenticator:     di.authenticator,
 	}.Execute(ctx)
 
 }
@@ -235,5 +237,15 @@ func (di *DropIndexes) Timeout(timeout *time.Duration) *DropIndexes {
 	}
 
 	di.timeout = timeout
+	return di
+}
+
+// Authenticator sets the authenticator to use for this operation.
+func (di *DropIndexes) Authenticator(authenticator driver.Authenticator) *DropIndexes {
+	if di == nil {
+		di = new(DropIndexes)
+	}
+
+	di.authenticator = authenticator
 	return di
 }
