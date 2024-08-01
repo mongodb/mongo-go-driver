@@ -48,8 +48,7 @@ func buildDropSearchIndexResult(response bsoncore.Document) (DropSearchIndexResu
 	}
 	dsir := DropSearchIndexResult{}
 	for _, element := range elements {
-		switch element.Key() {
-		case "ok":
+		if element.Key() == "ok" {
 			var ok bool
 			dsir.Ok, ok = element.Value().AsInt32OK()
 			if !ok {

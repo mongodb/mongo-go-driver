@@ -24,17 +24,17 @@ func main() {
 	client, err := mongo.Connect(
 		options.Client().ApplyURI(uri).SetCompressors([]string{compressor}))
 	if err != nil {
-		log.Fatalf("Error connecting client: %v", err)
+		log.Panicf("Error connecting client: %v", err)
 	}
 
 	// Use the defaultauthdb (i.e. the database name after the "/") specified in the connection
 	// string to run the count operation.
 	cs, err := connstring.Parse(uri)
 	if err != nil {
-		log.Fatalf("Error parsing connection string: %v", err)
+		log.Panicf("Error parsing connection string: %v", err)
 	}
 	if cs.Database == "" {
-		log.Fatal("Connection string must contain a defaultauthdb.")
+		log.Panic("Connection string must contain a defaultauthdb.")
 	}
 
 	coll := client.Database(cs.Database).Collection("test")
@@ -44,7 +44,7 @@ func main() {
 
 	count, err := coll.EstimatedDocumentCount(ctx)
 	if err != nil {
-		log.Fatalf("failed executing count command: %v", err)
+		log.Panicf("failed executing count command: %v", err)
 	}
 	log.Println("Count of test collection:", count)
 }

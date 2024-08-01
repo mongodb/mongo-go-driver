@@ -570,7 +570,7 @@ func TestOperation(t *testing.T) {
 		mnetconn := mnet.NewConnection(conn)
 
 		op := Operation{
-			CommandFn: func(dst []byte, desc description.SelectedServer) ([]byte, error) {
+			CommandFn: func(dst []byte, _ description.SelectedServer) ([]byte, error) {
 				return bsoncore.AppendInt32Element(dst, handshake.LegacyHello, 1), nil
 			},
 			Database:   "admin",
@@ -632,7 +632,7 @@ func TestOperation(t *testing.T) {
 		op := Operation{
 			Database:   "foobar",
 			Deployment: SingleConnectionDeployment{C: conn},
-			CommandFn: func(dst []byte, desc description.SelectedServer) ([]byte, error) {
+			CommandFn: func(dst []byte, _ description.SelectedServer) ([]byte, error) {
 				dst = bsoncore.AppendInt32Element(dst, "ping", 1)
 				return dst, nil
 			},

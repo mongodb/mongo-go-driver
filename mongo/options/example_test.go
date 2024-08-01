@@ -56,7 +56,7 @@ func ExampleClientOptionsBuilder_SetLoggerOptions_customLogger() {
 	client, err := mongo.Connect(clientOptions)
 
 	if err != nil {
-		log.Fatalf("error connecting to MongoDB: %v", err)
+		log.Panicf("error connecting to MongoDB: %v", err)
 	}
 
 	defer func() { _ = client.Disconnect(context.TODO()) }()
@@ -66,7 +66,7 @@ func ExampleClientOptionsBuilder_SetLoggerOptions_customLogger() {
 
 	_, err = coll.InsertOne(context.TODO(), map[string]string{"foo": "bar"})
 	if err != nil {
-		log.Fatalf("InsertOne failed: %v", err)
+		log.Panicf("InsertOne failed: %v", err)
 	}
 
 	// Print the logs.

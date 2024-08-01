@@ -242,7 +242,7 @@ func TestRetryableWritesProse(t *testing.T) {
 			// shutdownInProgressErrorCode actually configures the "NoWritablePrimary" fail command.
 			var secondFailPointConfigured bool
 
-			//Set a command monitor on the client that configures a failpoint with a "NoWritesPerformed"
+			// Set a command monitor on the client that configures a failpoint with a "NoWritesPerformed"
 			monitor.Succeeded = func(_ context.Context, evt *event.CommandSucceededEvent) {
 				var errorCode int32
 				if wce := evt.Reply.Lookup("writeConcernError"); wce.Type == bson.TypeEmbeddedDocument {

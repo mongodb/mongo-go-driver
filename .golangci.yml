@@ -1,12 +1,5 @@
 run:
   timeout: 5m
-  skip-dirs-use-default: false
-  skip-dirs:
-    - (^|/)vendor($|/)
-    - (^|/)testdata($|/)
-    - (^|/)etc($|/)
-    # Disable all linters for "golang.org/x/exp/rand" package in internal/rand.
-    - internal/rand
 
 linters:
   disable-all: true
@@ -35,11 +28,7 @@ linters:
 
 linters-settings:
   errcheck:
-    exclude: .errcheck-excludes
-  gocritic:
-    enabled-checks:
-      # Detects suspicious append result assignments. E.g. "b := append(a, 1, 2, 3)"
-      - appendAssign
+    exclude-functions: .errcheck-excludes
   govet:
     disable:
       - cgocall
@@ -55,6 +44,14 @@ linters-settings:
     ]
 
 issues:
+  exclude-dirs-use-default: false
+  exclude-dirs:
+    - (^|/)testdata($|/)
+    - (^|/)etc($|/)
+    # Disable all linters for copied third-party code.
+    - internal/rand
+    - internal/aws
+    - internal/assert
   exclude-use-default: false
   exclude:
     # Add all default excluded issues except issues related to exported types/functions not having

@@ -79,7 +79,7 @@ func jsonToBytes(ej, ejType, testDesc string) ([]byte, error) {
 func seedExtJSON(zw *zip.Writer, extJSON string, extJSONType string, desc string) {
 	jbytes, err := jsonToBytes(extJSON, extJSONType, desc)
 	if err != nil {
-		log.Fatalf("failed to convert JSON to bytes: %v", err)
+		log.Panicf("failed to convert JSON to bytes: %v", err)
 	}
 
 	// Use a SHA256 hash of the BSON bytes for the filename. This isn't an oss-fuzz requirement, it
@@ -88,12 +88,12 @@ func seedExtJSON(zw *zip.Writer, extJSON string, extJSONType string, desc string
 
 	f, err := zw.Create(zipFile)
 	if err != nil {
-		log.Fatalf("error creating zip file: %v", err)
+		log.Panicf("error creating zip file: %v", err)
 	}
 
 	_, err = f.Write(jbytes)
 	if err != nil {
-		log.Fatalf("failed to write file: %s into zip file: %v", zipFile, err)
+		log.Panicf("failed to write file: %s into zip file: %v", zipFile, err)
 	}
 }
 
@@ -125,7 +125,7 @@ func seedTestCase(zw *zip.Writer, tcase []*validityTestCase) {
 func seedBSONCorpus(zw *zip.Writer) {
 	fileNames, err := findJSONFilesInDir(dataDir)
 	if err != nil {
-		log.Fatalf("failed to find JSON files in directory %q: %v", dataDir, err)
+		log.Panicf("failed to find JSON files in directory %q: %v", dataDir, err)
 	}
 
 	for _, fileName := range fileNames {
@@ -133,7 +133,7 @@ func seedBSONCorpus(zw *zip.Writer) {
 
 		file, err := os.Open(filePath)
 		if err != nil {
-			log.Fatalf("failed to open file %q: %v", filePath, err)
+			log.Panicf("failed to open file %q: %v", filePath, err)
 		}
 
 		tc := struct {
@@ -141,7 +141,7 @@ func seedBSONCorpus(zw *zip.Writer) {
 		}{}
 
 		if err := json.NewDecoder(file).Decode(&tc); err != nil {
-			log.Fatalf("failed to decode file %q: %v", filePath, err)
+			log.Panicf("failed to decode file %q: %v", filePath, err)
 		}
 
 		seedTestCase(zw, tc.Valid)
@@ -153,18 +153,18 @@ func seedBSONCorpus(zw *zip.Writer) {
 func main() {
 	seedCorpus := os.Args[1]
 	if filepath.Ext(seedCorpus) != ".zip" {
-		log.Fatalf("expected zip file <corpus>.zip, got %s", seedCorpus)
+		log.Panicf("expected zip file <corpus>.zip, got %s", seedCorpus)
 	}
 
 	zipFile, err := os.Create(seedCorpus)
 	if err != nil {
-		log.Fatalf("failed creating zip file: %v", err)
+		log.Panicf("failed creating zip file: %v", err)
 	}
 
 	defer func() {
 		err := zipFile.Close()
 		if err != nil {
-			log.Fatalf("failed to close zip file: %v", err)
+			log.Panicf("failed to close zip file: %v", err)
 		}
 	}()
 
@@ -172,6 +172,6 @@ func main() {
 	seedBSONCorpus(zipWriter)
 
 	if err := zipWriter.Close(); err != nil {
-		log.Fatalf("failed to close zip writer: %v", err)
+		log.Panicf("failed to close zip writer: %v", err)
 	}
 }

@@ -29,11 +29,11 @@ var uriSingle = os.Getenv("MONGODB_URI_SINGLE")
 // var uriMulti = os.Getenv("MONGODB_URI_MULTI")
 var oidcTokenDir = os.Getenv("OIDC_TOKEN_DIR")
 
-//var oidcDomain = os.Getenv("OIDC_DOMAIN")
+// var oidcDomain = os.Getenv("OIDC_DOMAIN")
 
-//func explicitUser(user string) string {
-//	return fmt.Sprintf("%s@%s", user, oidcDomain)
-//}
+// func explicitUser(user string) string {
+// 	return fmt.Sprintf("%s@%s", user, oidcDomain)
+// }
 
 func tokenFile(user string) string {
 	return path.Join(oidcTokenDir, user)
@@ -99,7 +99,7 @@ func machine11callbackIsCalled() error {
 	var callbackFailed error
 	countMutex := sync.Mutex{}
 
-	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithMachineCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -141,7 +141,7 @@ func machine12callbackIsCalledOnlyOneForMultipleConnections() error {
 	var callbackFailed error
 	countMutex := sync.Mutex{}
 
-	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithMachineCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -253,7 +253,7 @@ func machine23oidcCallbackReturnMissingData() error {
 	callbackCount := 0
 	countMutex := sync.Mutex{}
 
-	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithMachineCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -286,7 +286,7 @@ func machine23oidcCallbackReturnMissingData() error {
 }
 
 func machine24invalidClientConfigurationWithCallback() error {
-	_, err := connectWithMachineCBAndProperties(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	_, err := connectWithMachineCBAndProperties(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		t := time.Now().Add(time.Hour)
 		return &options.OIDCCredential{
 			AccessToken:  "",
@@ -307,7 +307,7 @@ func machine31failureWithCachedTokensFetchANewTokenAndRetryAuth() error {
 	var callbackFailed error
 	countMutex := sync.Mutex{}
 
-	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithMachineCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -359,7 +359,7 @@ func machine32authFailuresWithoutCachedTokensReturnsAnError() error {
 	var callbackFailed error
 	countMutex := sync.Mutex{}
 
-	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithMachineCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -403,7 +403,7 @@ func machine33UnexpectedErrorCodeDoesNotClearTheCache() error {
 		return fmt.Errorf("machine_3_3: failed connecting admin client: %v", err)
 	}
 
-	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithMachineCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -478,7 +478,7 @@ func machine41ReauthenticationSucceeds() error {
 		return fmt.Errorf("machine_4_1: failed connecting admin client: %v", err)
 	}
 
-	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithMachineCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -544,7 +544,7 @@ func machine42ReadCommandsFailIfReauthenticationFails() error {
 		return fmt.Errorf("machine_4_2: failed connecting admin client: %v", err)
 	}
 
-	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithMachineCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -625,7 +625,7 @@ func machine43WriteCommandsFailIfReauthenticationFails() error {
 		return fmt.Errorf("machine_4_3: failed connecting admin client: %v", err)
 	}
 
-	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithMachineCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++

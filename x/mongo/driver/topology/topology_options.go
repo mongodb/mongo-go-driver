@@ -196,11 +196,11 @@ func NewConfigFromOptionsWithAuthenticator(opts *options.ClientOptions, clock *s
 		for _, comp := range comps {
 			switch comp {
 			case "zlib":
-				connOpts = append(connOpts, WithZlibLevel(func(level *int) *int {
+				connOpts = append(connOpts, WithZlibLevel(func(*int) *int {
 					return opts.ZlibLevel
 				}))
 			case "zstd":
-				connOpts = append(connOpts, WithZstdLevel(func(level *int) *int {
+				connOpts = append(connOpts, WithZstdLevel(func(*int) *int {
 					return opts.ZstdLevel
 				}))
 			}
@@ -340,7 +340,7 @@ func NewConfigFromOptionsWithAuthenticator(opts *options.ClientOptions, clock *s
 	if opts.ServerSelectionTimeout != nil {
 		cfgp.ServerSelectionTimeout = *opts.ServerSelectionTimeout
 	}
-	//ConnectionTimeout
+	// ConnectionTimeout
 	if opts.ConnectTimeout != nil {
 		cfgp.ConnectTimeout = *opts.ConnectTimeout
 	}
