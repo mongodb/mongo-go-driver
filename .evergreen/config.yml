@@ -1982,7 +1982,7 @@ tasks:
           export AZUREOIDC_DRIVERS_TAR_FILE=/tmp/mongo-go-driver.tar.gz
           # we need to statically link libc to avoid the situation where the VM has a different
           # version of libc
-          go build -tags osusergo,netgo -ldflags '-w -extldflags "-static -lgcc -lc"' -o test ./cmd/testoidcauth/main.go
+          go build -tags osusergo,netgo -ldflags '-w -extldflags "-static -lgcc -lc"' -o test ./cmd/internal/testoidcauth/main.go
           rm "$AZUREOIDC_DRIVERS_TAR_FILE" || true
           tar -cf $AZUREOIDC_DRIVERS_TAR_FILE ./test
           tar -uf $AZUREOIDC_DRIVERS_TAR_FILE ./etc
