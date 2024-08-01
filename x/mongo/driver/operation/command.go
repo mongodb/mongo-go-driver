@@ -79,7 +79,7 @@ func (c *Command) Execute(ctx context.Context) error {
 	}
 
 	return driver.Operation{
-		CommandFn: func(dst []byte, desc description.SelectedServer) ([]byte, error) {
+		CommandFn: func(dst []byte, _ description.SelectedServer) ([]byte, error) {
 			return append(dst, c.command[4:len(c.command)-1]...), nil
 		},
 		ProcessResponseFn: func(info driver.ResponseInfo) error {

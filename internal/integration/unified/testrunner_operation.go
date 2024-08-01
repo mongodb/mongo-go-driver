@@ -104,7 +104,8 @@ func executeTestRunnerOperation(ctx context.Context, op *operation, loopDone <-c
 		if err := mtest.SetRawFailPoint(fpDoc, client.Client); err != nil {
 			return err
 		}
-		return addFailPoint(ctx, fpDoc.Index(0).Value().StringValue(), client.Client)
+		addFailPoint(ctx, fpDoc.Index(0).Value().StringValue(), client.Client)
+		return nil
 	case "targetedFailPoint":
 		sessID := lookupString(args, "session")
 		sess, err := entities(ctx).session(sessID)
@@ -119,7 +120,7 @@ func executeTestRunnerOperation(ctx context.Context, op *operation, loopDone <-c
 
 		targetHost := clientSession.PinnedServerAddr.String()
 		fpDoc := args.Lookup("failPoint").Document()
-		commandFn := func(ctx context.Context, client *mongo.Client) error {
+		commandFn := func(_ context.Context, client *mongo.Client) error {
 			return mtest.SetRawFailPoint(fpDoc, client)
 		}
 

@@ -50,7 +50,7 @@ func (e Element) KeyErr() (string, error) {
 // KeyBytesErr returns the key for this element as a []byte, returning an error if the element is
 // not valid.
 func (e Element) KeyBytesErr() ([]byte, error) {
-	if len(e) <= 0 {
+	if len(e) == 0 {
 		return nil, ErrElementMissingType
 	}
 	idx := bytes.IndexByte(e[1:], 0x00)
@@ -98,7 +98,7 @@ func (e Element) Value() Value {
 
 // ValueErr returns the value for this element, returning an error if the element is not valid.
 func (e Element) ValueErr() (Value, error) {
-	if len(e) <= 0 {
+	if len(e) == 0 {
 		return Value{}, ErrElementMissingType
 	}
 	idx := bytes.IndexByte(e[1:], 0x00)
@@ -120,7 +120,7 @@ func (e Element) String() string {
 
 // StringN implements the fmt.String interface for upto N bytes. The output will be in extended JSON format.
 func (e Element) StringN(n int) string {
-	if len(e) <= 0 {
+	if len(e) == 0 {
 		return ""
 	}
 	t := Type(e[0])
@@ -149,7 +149,7 @@ func (e Element) StringN(n int) string {
 // DebugString outputs a human readable version of RawElement. It will attempt to stringify the
 // valid components of the element even if the entire element is not valid.
 func (e Element) DebugString() string {
-	if len(e) <= 0 {
+	if len(e) == 0 {
 		return "<malformed>"
 	}
 	t := Type(e[0])

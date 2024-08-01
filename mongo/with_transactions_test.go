@@ -120,7 +120,7 @@ func TestConvenientTransactions(t *testing.T) {
 				"expected error with label %v, got %v", driver.TransientTransactionError, cmdErr)
 		})
 		t.Run("unknown transaction commit result", func(t *testing.T) {
-			//set failpoint
+			// set failpoint
 			failpoint := bson.D{{"configureFailPoint", "failCommand"},
 				{"mode", "alwaysOn"},
 				{"data", bson.D{
@@ -153,7 +153,7 @@ func TestConvenientTransactions(t *testing.T) {
 				"expected error with label %v, got %v", driver.UnknownTransactionCommitResult, cmdErr)
 		})
 		t.Run("commit transient transaction error", func(t *testing.T) {
-			//set failpoint
+			// set failpoint
 			failpoint := bson.D{{"configureFailPoint", "failCommand"},
 				{"mode", "alwaysOn"},
 				{"data", bson.D{
@@ -271,7 +271,7 @@ func TestConvenientTransactions(t *testing.T) {
 		var abortSucceeded []*event.CommandSucceededEvent
 		var abortFailed []*event.CommandFailedEvent
 		monitor := &event.CommandMonitor{
-			Started: func(ctx context.Context, evt *event.CommandStartedEvent) {
+			Started: func(_ context.Context, evt *event.CommandStartedEvent) {
 				if evt.CommandName == "abortTransaction" {
 					abortStarted = append(abortStarted, evt)
 				}
@@ -349,7 +349,7 @@ func TestConvenientTransactions(t *testing.T) {
 		var abortSucceeded []*event.CommandSucceededEvent
 		var abortFailed []*event.CommandFailedEvent
 		monitor := &event.CommandMonitor{
-			Started: func(ctx context.Context, evt *event.CommandStartedEvent) {
+			Started: func(_ context.Context, evt *event.CommandStartedEvent) {
 				if evt.CommandName == "abortTransaction" {
 					abortStarted = append(abortStarted, evt)
 				}

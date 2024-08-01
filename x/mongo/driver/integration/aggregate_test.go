@@ -30,13 +30,13 @@ func setUpMonitor() (*event.CommandMonitor, chan *event.CommandStartedEvent, cha
 	failed := make(chan *event.CommandFailedEvent, 1)
 
 	return &event.CommandMonitor{
-		Started: func(ctx context.Context, e *event.CommandStartedEvent) {
+		Started: func(_ context.Context, e *event.CommandStartedEvent) {
 			started <- e
 		},
-		Succeeded: func(ctx context.Context, e *event.CommandSucceededEvent) {
+		Succeeded: func(_ context.Context, e *event.CommandSucceededEvent) {
 			succeeded <- e
 		},
-		Failed: func(ctx context.Context, e *event.CommandFailedEvent) {
+		Failed: func(_ context.Context, e *event.CommandFailedEvent) {
 			failed <- e
 		},
 	}, started, succeeded, failed

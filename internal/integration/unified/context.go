@@ -48,11 +48,9 @@ func newTestContext(
 	return ctx
 }
 
-func addFailPoint(ctx context.Context, failPoint string, client *mongo.Client) error {
+func addFailPoint(ctx context.Context, failPoint string, client *mongo.Client) {
 	failPoints := ctx.Value(failPointsKey).(map[string]*mongo.Client)
-
 	failPoints[failPoint] = client
-	return nil
 }
 
 func addTargetedFailPoint(ctx context.Context, failPoint string, host string) error {
