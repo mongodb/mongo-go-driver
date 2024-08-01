@@ -297,7 +297,6 @@ func (d Document) StringN(n int) string {
 				return ""
 			}
 
-			// TODO: Performance Improvement
 			str := elem.StringN(n)
 			if buf.Len()+len(str) > n {
 				truncatedStr := bsoncoreutil.Truncate(str, n-buf.Len())

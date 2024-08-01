@@ -755,13 +755,21 @@ func TestValue_StringN(t *testing.T) {
 				AppendStringElement(nil, "key", "value"))}, `{"key": "v`},
 
 		{"n>0, TypeArray", 10, Value{
-			Type: TypeArray, Data: AppendArray(nil, Array([]byte{
-				0x1A, 0x00, 0x00, 0x00,
-				0x02, '0', 0x00, 0x05,
-				0x00, 0x00, 0x00, 'a',
-				'b', 'c', 0x00, 0x10, '1',
-				0x00, 0x7B, 0x00, 0x00,
-				0x00, 0x08, '2', 0x00, 0x01, 0x00, 0x00}))}, ``},
+			Type: TypeArray,
+			Data: BuildArray(nil,
+				Value{
+					Type: TypeString,
+					Data: AppendString(nil, "abc"),
+				},
+				Value{
+					Type: TypeInt32,
+					Data: AppendInt32(nil, 123),
+				},
+				Value{
+					Type: TypeBoolean,
+					Data: AppendBoolean(nil, true),
+				},
+			)}, `["abc",{"$`},
 
 		{"n>0, TypeDouble", 10, Value{
 			Type: TypeDouble, Data: AppendDouble(nil, 123.456)}, `{"$numberD`},

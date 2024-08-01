@@ -352,111 +352,228 @@ func TestArray_StringN(t *testing.T) {
 	testCases := []struct {
 		description string
 		n           int
-		arr         Array
+		values      []Value
 		want        string
 	}{
 		// n = 0 cases
-		{"n=0, array with 1 element", 0, Array([]byte{
-			0x13, 0x00, 0x00, 0x00,
-			0x02, '0', 0x00, 0x04,
-			0x00, 0x00, 0x00, 'a',
-			'b', 'c', 0x00, 0x00}), ""},
-
-		{"n=0, empty array", 0, Array([]byte{
-			0x05, 0x00, 0x00, 0x00, 0x00}), ""},
-
-		{"n=0, nested array", 0, Array([]byte{
-			0x10, 0x00, 0x00, 0x00,
-			0x04, '0', 0x00, 0x08,
-			0x00, 0x00, 0x00, 0x02,
-			'0', 0x00, 0x05, 0x00,
-			0x00, 0x00, 'a', 'b', 'c', 0x00, 0x00, 0x00}), ""},
-
-		{"n=0, array with mixed types", 0, Array([]byte{
-			0x1A, 0x00, 0x00, 0x00,
-			0x02, '0', 0x00, 0x05,
-			0x00, 0x00, 0x00, 'a',
-			'b', 'c', 0x00, 0x10, '1',
-			0x00, 0x7B, 0x00, 0x00,
-			0x00, 0x08, '2', 0x00, 0x01, 0x00, 0x00}), ""},
+		{
+			description: "n=0, array with 1 element",
+			n:           0,
+			values: []Value{
+				{
+					Type: TypeString,
+					Data: AppendString(nil, "abc"),
+				},
+			},
+			want: "",
+		},
+		{
+			description: "n=0, empty array",
+			n:           0,
+			values:      []Value{},
+			want:        "",
+		},
+		{
+			description: "n=0, nested array",
+			n:           0,
+			values: []Value{
+				{
+					Type: TypeArray,
+					Data: BuildArray(nil, Value{
+						Type: TypeString,
+						Data: AppendString(nil, "abc"),
+					}),
+				},
+			},
+			want: "",
+		},
+		{
+			description: "n=0, array with mixed types",
+			n:           0,
+			values: []Value{
+				{
+					Type: TypeString,
+					Data: AppendString(nil, "abc"),
+				},
+				{
+					Type: TypeInt32,
+					Data: AppendInt32(nil, 123),
+				},
+				{
+					Type: TypeBoolean,
+					Data: AppendBoolean(nil, true),
+				},
+			},
+			want: "",
+		},
 
 		// n < 0 cases
-		{"n<0, array with 1 element", -1, Array([]byte{
-			0x13, 0x00, 0x00, 0x00,
-			0x02, '0', 0x00, 0x04,
-			0x00, 0x00, 0x00, 'a', 'b', 'c', 0x00, 0x00}), ""},
-
-		{"n<0, empty array", -1, Array([]byte{
-			0x05, 0x00, 0x00, 0x00, 0x00}), ""},
-
-		{"n<0, nested array", -1, Array([]byte{
-			0x10, 0x00, 0x00, 0x00,
-			0x04, '0', 0x00, 0x08,
-			0x00, 0x00, 0x00, 0x02,
-			'0', 0x00, 0x05, 0x00,
-			0x00, 0x00, 'a', 'b', 'c', 0x00, 0x00, 0x00}), ""},
-
-		{"n<0, array with mixed types", -1, Array([]byte{
-			0x1A, 0x00, 0x00, 0x00,
-			0x02, '0', 0x00, 0x05,
-			0x00, 0x00, 0x00, 'a',
-			'b', 'c', 0x00, 0x10, '1',
-			0x00, 0x7B, 0x00, 0x00,
-			0x00, 0x08, '2', 0x00, 0x01, 0x00, 0x00}), ""},
+		{
+			description: "n<0, array with 1 element",
+			n:           -1,
+			values: []Value{
+				{
+					Type: TypeString,
+					Data: AppendString(nil, "abc"),
+				},
+			},
+			want: "",
+		},
+		{
+			description: "n<0, empty array",
+			n:           -1,
+			values:      []Value{},
+			want:        "",
+		},
+		{
+			description: "n<0, nested array",
+			n:           -1,
+			values: []Value{
+				{
+					Type: TypeArray,
+					Data: BuildArray(nil, Value{
+						Type: TypeString,
+						Data: AppendString(nil, "abc"),
+					}),
+				},
+			},
+			want: "",
+		},
+		{
+			description: "n<0, array with mixed types",
+			n:           -1,
+			values: []Value{
+				{
+					Type: TypeString,
+					Data: AppendString(nil, "abc"),
+				},
+				{
+					Type: TypeInt32,
+					Data: AppendInt32(nil, 123),
+				},
+				{
+					Type: TypeBoolean,
+					Data: AppendBoolean(nil, true),
+				},
+			},
+			want: "",
+		},
 
 		// n > 0 cases
-		{"n>0, array LT n", 1, Array([]byte{
-			0x0c, 0x00, 0x00, 0x00,
-			0x10, '0', 0x00, 0x02, 0x00, 0x00, 0x00, 0x00}), `[`},
-
-		{"n>0, array LT n", 2, Array([]byte{
-			0x0c, 0x00, 0x00, 0x00,
-			0x10, '0', 0x00, 0x02, 0x00, 0x00, 0x00, 0x00}), `[{`},
-
-		{"n>0, array LT n", 14, Array([]byte{
-			0x0c, 0x00, 0x00, 0x00,
-			0x10, '0', 0x00, 0x02, 0x00, 0x00, 0x00, 0x00}), `[{"$numberInt"`},
-
-		{"n>0, array GT n", 30, Array([]byte{
-			0x0c, 0x00, 0x00, 0x00,
-			0x10, '0', 0x00, 0x02, 0x00, 0x00, 0x00, 0x00}), `[{"$numberInt":"2"}]`},
-
-		{"n>0, array EQ n", 22, Array([]byte{
-			0x0c, 0x00, 0x00, 0x00,
-			0x10, '0', 0x00, 0x02, 0x00, 0x00, 0x00, 0x00}), `[{"$numberInt":"2"}]`},
-
-		{"n>0, mixed array", 24, Array([]byte{
-			0x17, 0x00, 0x00, 0x00,
-			0x10, 0x30, 0x00, 0x01,
-			0x00, 0x00, 0x00, 0x02,
-			0x31, 0x00, 0x04, 0x00,
-			0x00, 0x00, 0x66, 0x6F,
-			0x6F, 0x00, 0x00}), "[{\"$numberInt\":\"1\"},\"foo"},
-
-		{"n>0, empty array", 10, Array([]byte{
-			0x05, 0x00, 0x00, 0x00, 0x00}), "[]"},
-
-		{"n>0, nested array", 10, Array([]byte{
-			0x10, 0x00, 0x00, 0x00,
-			0x04, '0', 0x00, 0x08,
-			0x00, 0x00, 0x00, 0x02,
-			'0', 0x00, 0x05, 0x00,
-			0x00, 0x00, 'a', 'b', 'c', 0x00, 0x00, 0x00}), "[]"},
-
-		{"n>0, array with mixed types", 32, Array([]byte{
-			0x1B, 0x00, 0x00, 0x00,
-			0x02, 0x30, 0x00,
-			0x04, 0x00, 0x00, 0x00,
-			0x61, 0x62, 0x63, 0x00,
-			0x10, 0x31, 0x00,
-			0x7B, 0x00, 0x00, 0x00,
-			0x08, 0x32, 0x00,
-			0x01, 0x00}), "[\"abc\",{\"$numberInt\":\"123\"},true"},
+		{
+			description: "n>0, array LT n",
+			n:           1,
+			values: []Value{
+				{
+					Type: TypeInt32,
+					Data: AppendInt32(nil, 2),
+				},
+			},
+			want: "[",
+		},
+		{
+			description: "n>0, array LT n",
+			n:           2,
+			values: []Value{
+				{
+					Type: TypeInt32,
+					Data: AppendInt32(nil, 2),
+				},
+			},
+			want: "[{",
+		},
+		{
+			description: "n>0, array LT n",
+			n:           14,
+			values: []Value{
+				{
+					Type: TypeInt32,
+					Data: AppendInt32(nil, 2),
+				},
+			},
+			want: `[{"$numberInt"`,
+		},
+		{
+			description: "n>0, array GT n",
+			n:           30,
+			values: []Value{
+				{
+					Type: TypeInt32,
+					Data: AppendInt32(nil, 2),
+				},
+			},
+			want: `[{"$numberInt":"2"}]`,
+		},
+		{
+			description: "n>0, array EQ n",
+			n:           22,
+			values: []Value{
+				{
+					Type: TypeInt32,
+					Data: AppendInt32(nil, 2),
+				},
+			},
+			want: `[{"$numberInt":"2"}]`,
+		},
+		{
+			description: "n>0, mixed array",
+			n:           24,
+			values: []Value{
+				{
+					Type: TypeInt32,
+					Data: AppendInt32(nil, 1),
+				},
+				{
+					Type: TypeString,
+					Data: AppendString(nil, "foo"),
+				},
+			},
+			want: `[{"$numberInt":"1"},"foo`,
+		},
+		{
+			description: "n>0, empty array",
+			n:           10,
+			values:      []Value{},
+			want:        "[]",
+		},
+		{
+			description: "n>0, nested array",
+			n:           10,
+			values: []Value{
+				{
+					Type: TypeArray,
+					Data: BuildArray(nil, Value{
+						Type: TypeString,
+						Data: AppendString(nil, "abc"),
+					}),
+				},
+			},
+			want: `[["abc"]]`,
+		},
+		{
+			description: "n>0, array with mixed types",
+			n:           32,
+			values: []Value{
+				{
+					Type: TypeString,
+					Data: AppendString(nil, "abc"),
+				},
+				{
+					Type: TypeInt32,
+					Data: AppendInt32(nil, 123),
+				},
+				{
+					Type: TypeBoolean,
+					Data: AppendBoolean(nil, true),
+				},
+			},
+			want: `["abc",{"$numberInt":"123"},true`,
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
-			got := tc.arr.StringN(tc.n)
+			got := Array(BuildArray(nil, tc.values...)).StringN(tc.n)
 			assert.Equal(t, tc.want, got)
 			if tc.n >= 0 {
 				assert.LessOrEqual(t, len(got), tc.n)

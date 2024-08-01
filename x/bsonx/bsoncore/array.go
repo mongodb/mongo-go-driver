@@ -104,6 +104,7 @@ func (a Array) StringN(n int) string {
 	if n > 0 {
 		for length > 1 {
 			elem, rem, ok = ReadElement(rem)
+
 			length -= int32(len(elem))
 			if !ok {
 				return ""
@@ -112,6 +113,10 @@ func (a Array) StringN(n int) string {
 			str := elem.Value().StringN(n - buf.Len())
 
 			buf.WriteString(str)
+
+			if buf.Len() == n {
+				return buf.String()
+			}
 
 			if length > 1 {
 				buf.WriteByte(',')
