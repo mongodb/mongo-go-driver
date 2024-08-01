@@ -26,7 +26,7 @@ import (
 
 var (
 	poolEventTypesMap = map[string]string{
-		"PoolClearedEvent": event.PoolCleared,
+		"PoolClearedEvent": event.ConnectionPoolCleared,
 	}
 	defaultCallbackTimeout = 10 * time.Second
 )

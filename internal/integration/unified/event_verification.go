@@ -352,7 +352,7 @@ func verifyCMAPEvents(client *clientEntity, expectedEvents *expectedEvents) erro
 			}
 		case evt.PoolClearedEvent != nil:
 			var actual *event.PoolEvent
-			if actual, pooled, err = getNextPoolEvent(pooled, event.PoolCleared); err != nil {
+			if actual, pooled, err = getNextPoolEvent(pooled, event.ConnectionPoolCleared); err != nil {
 				return newEventVerificationError(idx, client, err.Error())
 			}
 			if expectServiceID := evt.PoolClearedEvent.HasServiceID; expectServiceID != nil {
