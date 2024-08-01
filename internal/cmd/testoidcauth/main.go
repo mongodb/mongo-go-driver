@@ -703,14 +703,14 @@ func machine43WriteCommandsFailIfReauthenticationFails() error {
 
 func machine51azureWithNoUsername() error {
 	opts := options.Client().ApplyURI(uriSingle)
-	if opts == nil || opts.Auth == nil {
+	if opts == nil {
 		return fmt.Errorf("machine_5_1: failed parsing uri: %q", uriSingle)
 	}
-	client, err := mongo.Connect(context.Background(), opts)
+	client, err := mongo.Connect(opts)
 	if err != nil {
 		return fmt.Errorf("machine_5_1: failed connecting client: %v", err)
 	}
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	coll := client.Database("test").Collection("test")
 
@@ -723,15 +723,19 @@ func machine51azureWithNoUsername() error {
 
 func machine52azureWithBadUsername() error {
 	opts := options.Client().ApplyURI(uriSingle)
-	if opts == nil || opts.Auth == nil {
+	cred := options.Credential{
+		AuthMechanism: "MONGODB-OIDC",
+		Username:      "bad",
+	}
+	opts.SetAuth(cred)
+	if opts == nil {
 		return fmt.Errorf("machine_5_2: failed parsing uri: %q", uriSingle)
 	}
-	opts.Auth.Username = "bad"
-	client, err := mongo.Connect(context.Background(), opts)
+	client, err := mongo.Connect(opts)
 	if err != nil {
 		return fmt.Errorf("machine_5_2: failed connecting client: %v", err)
 	}
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	coll := client.Database("test").Collection("test")
 
