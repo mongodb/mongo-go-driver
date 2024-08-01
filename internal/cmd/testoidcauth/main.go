@@ -396,7 +396,8 @@ func machine33UnexpectedErrorCodeDoesNotClearTheCache() error {
 	countMutex := sync.Mutex{}
 
 	adminClient, err := connectAdminClinet()
-	defer adminClient.Disconnect(context.Background())
+
+	defer func() { _ = adminClient.Disconnect(context.Background()) }()
 
 	if err != nil {
 		return fmt.Errorf("machine_3_3: failed connecting admin client: %v", err)
@@ -471,7 +472,7 @@ func machine41ReauthenticationSucceeds() error {
 	countMutex := sync.Mutex{}
 
 	adminClient, err := connectAdminClinet()
-	defer adminClient.Disconnect(context.Background())
+	defer func() { _ = adminClient.Disconnect(context.Background()) }()
 
 	if err != nil {
 		return fmt.Errorf("machine_4_1: failed connecting admin client: %v", err)
@@ -537,7 +538,7 @@ func machine42ReadCommandsFailIfReauthenticationFails() error {
 	countMutex := sync.Mutex{}
 
 	adminClient, err := connectAdminClinet()
-	defer adminClient.Disconnect(context.Background())
+	defer func() { _ = adminClient.Disconnect(context.Background()) }()
 
 	if err != nil {
 		return fmt.Errorf("machine_4_2: failed connecting admin client: %v", err)
@@ -618,7 +619,7 @@ func machine43WriteCommandsFailIfReauthenticationFails() error {
 	countMutex := sync.Mutex{}
 
 	adminClient, err := connectAdminClinet()
-	defer adminClient.Disconnect(context.Background())
+	defer func() { _ = adminClient.Disconnect(context.Background()) }()
 
 	if err != nil {
 		return fmt.Errorf("machine_4_3: failed connecting admin client: %v", err)
