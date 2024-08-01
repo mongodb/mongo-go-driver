@@ -96,6 +96,30 @@ func NewConfig(opts *options.ClientOptionsBuilder, clock *session.ClusterClock) 
 // config for building non-default deployments. Server and topology options are
 // not honored if a custom deployment is used.
 func NewConfigFromOptions(opts *options.ClientOptions, clock *session.ClusterClock) (*Config, error) {
+	// Auth & Database & Password & Username
+	if opts.Auth != nil {
+		cred := &auth.Cred{
+			Username:    opts.Auth.Username,
+			Password:    opts.Auth.Password,
+			PasswordSet: opts.Auth.PasswordSet,
+			Props:       opts.Auth.AuthMechanismProperties,
+			Source:      opts.Auth.AuthSource,
+		}
+		mechanism := opts.Auth.AuthMechanism
+		authenticator, err := auth.CreateAuthenticator(mechanism, cred, opts.HTTPClient)
+		if err != nil {
+			return nil, err
+		}
+		return NewConfigFromOptionsWithAuthenticator(opts, clock, authenticator)
+	}
+	return NewConfigFromOptionsWithAuthenticator(opts, clock, nil)
+}
+
+// NewConfigFromOptionsWithAuthenticator will translate data from client options into a topology config for building non-default deployments.
+// Server and topology options are not honored if a custom deployment is used. It uses a passed in
+// authenticator to authenticate the connection.
+func NewConfigFromOptionsWithAuthenticator(opts *options.ClientOptions, clock *session.ClusterClock, authenticator driver.Authenticator) (*Config, error) {
+
 	var serverAPI *driver.ServerAPIOptions
 
 	clientOptsBldr := options.ClientOptionsBuilder{
@@ -217,11 +241,6 @@ func NewConfigFromOptions(opts *options.ClientOptions, clock *session.ClusterClo
 			}
 		}
 
-		authenticator, err := auth.CreateAuthenticator(mechanism, cred)
-		if err != nil {
-			return nil, err
-		}
-
 		handshakeOpts := &auth.HandshakeOptions{
 			AppName:       appName,
 			Authenticator: authenticator,
@@ -229,7 +248,6 @@ func NewConfigFromOptions(opts *options.ClientOptions, clock *session.ClusterClo
 			ServerAPI:     serverAPI,
 			LoadBalanced:  loadBalanced,
 			ClusterClock:  clock,
-			HTTPClient:    opts.HTTPClient,
 		}
 
 		if mechanism == "" {

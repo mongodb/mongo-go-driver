@@ -24,6 +24,7 @@ import (
 
 // Find performs a find operation.
 type Find struct {
+	authenticator       driver.Authenticator
 	allowDiskUse        *bool
 	allowPartialResults *bool
 	awaitData           *bool
@@ -107,6 +108,7 @@ func (f *Find) Execute(ctx context.Context) error {
 		Timeout:           f.timeout,
 		Logger:            f.logger,
 		Name:              driverutil.FindOp,
+		Authenticator:     f.authenticator,
 	}.Execute(ctx)
 }
 
@@ -545,5 +547,15 @@ func (f *Find) Logger(logger *logger.Logger) *Find {
 	}
 
 	f.logger = logger
+	return f
+}
+
+// Authenticator sets the authenticator to use for this operation.
+func (f *Find) Authenticator(authenticator driver.Authenticator) *Find {
+	if f == nil {
+		f = new(Find)
+	}
+
+	f.authenticator = authenticator
 	return f
 }

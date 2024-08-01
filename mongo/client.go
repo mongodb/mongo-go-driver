@@ -27,6 +27,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/auth"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mongocrypt"
 	mcopts "go.mongodb.org/mongo-driver/v2/x/mongo/driver/mongocrypt/options"
@@ -81,6 +82,7 @@ type Client struct {
 	metadataClientFLE  *Client
 	internalClientFLE  *Client
 	encryptedFieldsMap map[string]interface{}
+	authenticator      driver.Authenticator
 }
 
 // Connect creates a new Client and then initializes it using the Connect method.
@@ -212,7 +214,39 @@ func newClient(opts ...options.Lister[options.ClientOptions]) (*Client, error) {
 		args.MaxPoolSize = &defaultMaxPoolSize
 	}
 
-	cfg, err := topology.NewConfigFromOptions(args, client.clock)
+	if args.Auth != nil {
+		var oidcMachineCallback auth.OIDCCallback
+		if args.Auth.OIDCMachineCallback != nil {
+			oidcMachineCallback = func(ctx context.Context, oargs *driver.OIDCArgs) (*driver.OIDCCredential, error) {
+				cred, err := args.Auth.OIDCMachineCallback(ctx, convertOIDCArgs(oargs))
+				return (*driver.OIDCCredential)(cred), err
+			}
+		}
+
+		var oidcHumanCallback auth.OIDCCallback
+		if args.Auth.OIDCHumanCallback != nil {
+			oidcHumanCallback = func(ctx context.Context, oargs *driver.OIDCArgs) (*driver.OIDCCredential, error) {
+				cred, err := args.Auth.OIDCHumanCallback(ctx, convertOIDCArgs(oargs))
+				return (*driver.OIDCCredential)(cred), err
+			}
+		}
+
+		// Create an authenticator for the client
+		client.authenticator, err = auth.CreateAuthenticator(args.Auth.AuthMechanism, &auth.Cred{
+			Source:              args.Auth.AuthSource,
+			Username:            args.Auth.Username,
+			Password:            args.Auth.Password,
+			PasswordSet:         args.Auth.PasswordSet,
+			Props:               args.Auth.AuthMechanismProperties,
+			OIDCMachineCallback: oidcMachineCallback,
+			OIDCHumanCallback:   oidcHumanCallback,
+		}, args.HTTPClient)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	cfg, err := topology.NewConfigFromOptionsWithAuthenticator(args, client.clock, client.authenticator)
 	if err != nil {
 		return nil, err
 	}
@@ -238,6 +272,19 @@ func newClient(opts ...options.Lister[options.ClientOptions]) (*Client, error) {
 	}
 
 	return client, nil
+}
+
+// convertOIDCArgs converts the internal *driver.OIDCArgs into the equivalent
+// public type *options.OIDCArgs.
+func convertOIDCArgs(args *driver.OIDCArgs) *options.OIDCArgs {
+	if args == nil {
+		return nil
+	}
+	return &options.OIDCArgs{
+		Version:      args.Version,
+		IDPInfo:      (*options.IDPInfo)(args.IDPInfo),
+		RefreshToken: args.RefreshToken,
+	}
 }
 
 // connect initializes the Client by starting background monitoring goroutines.
@@ -740,7 +787,7 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 	op := operation.NewListDatabases(filterDoc).
 		Session(sess).ReadPreference(c.readPreference).CommandMonitor(c.monitor).
 		ServerSelector(selector).ClusterClock(c.clock).Database("admin").Deployment(c.deployment).Crypt(c.cryptFLE).
-		ServerAPI(c.serverAPI).Timeout(c.timeout)
+		ServerAPI(c.serverAPI).Timeout(c.timeout).Authenticator(c.authenticator)
 
 	if lda.NameOnly != nil {
 		op = op.NameOnly(*lda.NameOnly)
