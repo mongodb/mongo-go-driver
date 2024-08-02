@@ -30,13 +30,13 @@ func TestCreatePatternsForGlobs(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t,
 			[]*regexp.Regexp{
-				regexp.MustCompile("^.*[.]mongodb[.]net(:\\d+)?$"),
-				regexp.MustCompile("^.*[.]mongodb-qa[.]net(:\\d+)?$"),
-				regexp.MustCompile("^.*[.]mongodb-dev[.]net(:\\d+)?$"),
-				regexp.MustCompile("^.*[.]mongodbgov[.]net(:\\d+)?$"),
-				regexp.MustCompile("^localhost(:\\d+)?$"),
-				regexp.MustCompile("^127[.]0[.]0[.]1(:\\d+)?$"),
-				regexp.MustCompile("^::1(:\\d+)?$"),
+				regexp.MustCompile(`^.*[.]mongodb[.]net(:\d+)?$`),
+				regexp.MustCompile(`^.*[.]mongodb-qa[.]net(:\d+)?$`),
+				regexp.MustCompile(`^.*[.]mongodb-dev[.]net(:\d+)?$`),
+				regexp.MustCompile(`^.*[.]mongodbgov[.]net(:\d+)?$`),
+				regexp.MustCompile(`^localhost(:\d+)?$`),
+				regexp.MustCompile(`^127[.]0[.]0[.]1(:\d+)?$`),
+				regexp.MustCompile(`^::1(:\d+)?$`),
 			},
 			check,
 		)
