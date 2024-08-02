@@ -2027,81 +2027,81 @@ axes:
   - id: os-ssl-32
     display_name: OS
     values:
-      - id: "windows-64-go-1-20"
+      - id: "windows-64"
         display_name: "Windows 64-bit"
         run_on:
           - windows-vsCurrent-small
         variables:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
-          GO_DIST: "C:\\golang\\go1.20"
+          GO_DIST: "C:\\golang\\go1.22"
           VENV_BIN_DIR: "Scripts"
-      - id: "rhel87-64-go-1-20"
+      - id: "rhel87-64"
         display_name: "RHEL 8.7"
         run_on: rhel8.7-large
         variables:
-          GO_DIST: "/opt/golang/go1.20"
-      - id: "macos11-go-1-20"
+          GO_DIST: "/opt/golang/go1.22"
+      - id: "macos11"
         display_name: "MacOS 11.0"
         run_on: macos-1100
         batchtime: 1440 # Run at most once per 24 hours.
         variables:
-          GO_DIST: "/opt/golang/go1.20"
+          GO_DIST: "/opt/golang/go1.22"
 
   # OSes that require >= 4.0 for SSL
   - id: os-ssl-40
     display_name: OS
     values:
-      - id: "windows-64-go-1-20"
+      - id: "windows-64"
         display_name: "Windows 64-bit"
         run_on:
           - windows-vsCurrent-small
         variables:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
-          GO_DIST: "C:\\golang\\go1.20"
+          GO_DIST: "C:\\golang\\go1.22"
           VENV_BIN_DIR: "Scripts"
-      - id: "rhel87-64-go-1-20"
+      - id: "rhel87-64"
         display_name: "RHEL 8.7"
         run_on: rhel8.7-large
         variables:
-          GO_DIST: "/opt/golang/go1.20"
-      - id: "macos11-go-1-20"
+          GO_DIST: "/opt/golang/go1.22"
+      - id: "macos11"
         display_name: "MacOS 11.0"
         run_on: macos-1100
         batchtime: 1440 # Run at most once per 24 hours.
         variables:
-          GO_DIST: "/opt/golang/go1.20"
+          GO_DIST: "/opt/golang/go1.22"
 
   - id: ocsp-rhel-87
     display_name: OS
     values:
-      - id: "rhel87-go-1-20"
+      - id: "rhel87"
         display_name: "RHEL 8.7"
         run_on: rhel8.7-large
         variables:
-          GO_DIST: "/opt/golang/go1.20"
+          GO_DIST: "/opt/golang/go1.22"
 
   - id: os-aws-auth
     display_name: OS
     values:
-      - id: "windows-64-vsCurrent-latest-small-go-1-20"
+      - id: "windows-64-vsCurrent-latest-small"
         display_name: "Windows 64-bit"
         run_on:
           - windows-vsCurrent-small
         variables:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
-          GO_DIST: "C:\\golang\\go1.20"
+          GO_DIST: "C:\\golang\\go1.22"
           SKIP_ECS_AUTH_TEST: true
-      - id: "ubuntu2004-64-go-1-20"
+      - id: "ubuntu2004-64"
         display_name: "Ubuntu 20.04"
         run_on: ubuntu2004-test
         variables:
-          GO_DIST: "/opt/golang/go1.20"
-      - id: "macos11-go-1-20"
+          GO_DIST: "/opt/golang/go1.22"
+      - id: "macos11"
         display_name: "MacOS 11.0"
         run_on: macos-1100
         batchtime: 1440 # Run at most once per 24 hours.
         variables:
-          GO_DIST: "/opt/golang/go1.20"
+          GO_DIST: "/opt/golang/go1.22"
           SKIP_ECS_AUTH_TEST: true
           SKIP_EC2_AUTH_TEST: true
           SKIP_WEB_IDENTITY_AUTH_TEST: true
@@ -2109,20 +2109,20 @@ axes:
   - id: os-faas-80
     display_name: OS
     values:
-      - id: "rhel87-large-go-1-20"
+      - id: "rhel87-large"
         display_name: "RHEL 8.7"
         run_on: rhel8.7-large
         variables:
-          GO_DIST: "/opt/golang/go1.20"
+          GO_DIST: "/opt/golang/go1.22"
 
   - id: os-serverless
     display_name: OS
     values:
-      - id: "rhel87-go-1-20"
+      - id: "rhel87"
         display_name: "RHEL 8.7"
         run_on: rhel8.7-small
         variables:
-          GO_DIST: "/opt/golang/go1.20"
+          GO_DIST: "/opt/golang/go1.22"
 
 task_groups:
   - name: serverless_task_group
@@ -2358,7 +2358,7 @@ buildvariants:
     run_on:
       - rhel8.7-large
     expansions:
-      GO_DIST: "/opt/golang/go1.20"
+      GO_DIST: "/opt/golang/go1.22"
     tasks:
       - name: ".static-analysis"
 
@@ -2368,7 +2368,7 @@ buildvariants:
     run_on:
       - rhel8.7-small
     expansions:
-      GO_DIST: "/opt/golang/go1.20"
+      GO_DIST: "/opt/golang/go1.22"
     tasks:
       - name: "pull-request-helpers"
 
@@ -2377,7 +2377,7 @@ buildvariants:
     run_on:
       - rhel8.7-large
     expansions:
-      GO_DIST: "/opt/golang/go1.20"
+      GO_DIST: "/opt/golang/go1.22"
     tasks:
       - name: ".performance"
 
@@ -2387,7 +2387,7 @@ buildvariants:
     run_on:
       - rhel8.7-large
     expansions:
-      GO_DIST: "/opt/golang/go1.20"
+      GO_DIST: "/opt/golang/go1.22"
     tasks:
       - name: ".compile-check"
 
@@ -2397,7 +2397,7 @@ buildvariants:
     run_on:
       - rhel8.7-large
     expansions:
-      GO_DIST: "/opt/golang/go1.20"
+      GO_DIST: "/opt/golang/go1.22"
     tasks:
       - name: "atlas-test"
 
@@ -2407,7 +2407,7 @@ buildvariants:
     run_on:
       - ubuntu2004-large
     expansions:
-      GO_DIST: "/opt/golang/go1.20"
+      GO_DIST: "/opt/golang/go1.22"
     tasks:
       - name: "test-atlas-data-lake"
 
@@ -2417,58 +2417,58 @@ buildvariants:
     run_on:
       - ubuntu2204-large
     expansions:
-      GO_DIST: "/opt/golang/go1.20"
+      GO_DIST: "/opt/golang/go1.22"
     tasks:
       - name: "test-docker-runner"
 
   - matrix_name: "tests-rhel-36-with-zlib-support"
     tags: ["pullrequest"]
-    matrix_spec: { version: ["3.6"], os-ssl-32: ["rhel87-64-go-1-20"] }
+    matrix_spec: { version: ["3.6"], os-ssl-32: ["rhel87-64"] }
     display_name: "${version} ${os-ssl-32}"
     tasks:
       - name: ".test !.enterprise-auth !.snappy !.zstd"
 
   - matrix_name: "tests-windows-36-with-zlib-support"
-    matrix_spec: { version: ["3.6"], os-ssl-32: ["windows-64-go-1-20"] }
+    matrix_spec: { version: ["3.6"], os-ssl-32: ["windows-64"] }
     display_name: "${version} ${os-ssl-32}"
     tasks:
       - name: ".test !.enterprise-auth !.snappy !.zstd"
 
   - matrix_name: "tests-rhel-40-with-zlib-support"
     tags: ["pullrequest"]
-    matrix_spec: { version: ["4.0"], os-ssl-40: ["rhel87-64-go-1-20"] }
+    matrix_spec: { version: ["4.0"], os-ssl-40: ["rhel87-64"] }
     display_name: "${version} ${os-ssl-40}"
     tasks:
       - name: ".test !.enterprise-auth !.snappy !.zstd"
 
   - matrix_name: "tests-windows-40-with-zlib-support"
-    matrix_spec: { version: ["4.0"], os-ssl-40: ["windows-64-go-1-20"] }
+    matrix_spec: { version: ["4.0"], os-ssl-40: ["windows-64"] }
     display_name: "${version} ${os-ssl-40}"
     tasks:
       - name: ".test !.enterprise-auth !.snappy !.zstd"
 
   - matrix_name: "tests-rhel-42-plus-zlib-zstd-support"
     tags: ["pullrequest"]
-    matrix_spec: { version: ["4.2", "4.4", "5.0", "6.0", "7.0", "8.0"], os-ssl-40: ["rhel87-64-go-1-20"] }
+    matrix_spec: { version: ["4.2", "4.4", "5.0", "6.0", "7.0", "8.0"], os-ssl-40: ["rhel87-64"] }
     display_name: "${version} ${os-ssl-40}"
     tasks:
       - name: ".test !.enterprise-auth !.snappy"
 
   - matrix_name: "tests-windows-42-plus-zlib-zstd-support"
-    matrix_spec: { version: ["4.2", "4.4", "5.0", "6.0", "7.0"], os-ssl-40: ["windows-64-go-1-20"] }
+    matrix_spec: { version: ["4.2", "4.4", "5.0", "6.0", "7.0"], os-ssl-40: ["windows-64"] }
     display_name: "${version} ${os-ssl-40}"
     tasks:
       - name: ".test !.enterprise-auth !.snappy"
 
   - matrix_name: "tests-windows-80-zlib-zstd-support"
     tags: ["pullrequest"]
-    matrix_spec: { version: ["8.0"], os-ssl-40: ["windows-64-go-1-20"] }
+    matrix_spec: { version: ["8.0"], os-ssl-40: ["windows-64"] }
     display_name: "${version} ${os-ssl-40}"
     tasks:
       - name: ".test !.enterprise-auth !.snappy"
 
   - matrix_name: "tests-latest-zlib-zstd-support"
-    matrix_spec: { version: ["latest"], os-ssl-40: ["windows-64-go-1-20", "rhel87-64-go-1-20"] }
+    matrix_spec: { version: ["latest"], os-ssl-40: ["windows-64", "rhel87-64"] }
     display_name: "${version} ${os-ssl-40}"
     tasks:
       - name: ".test !.enterprise-auth !.snappy"
@@ -2486,14 +2486,14 @@ buildvariants:
       - name: "aws-auth-test"
 
   - matrix_name: "ocsp-test"
-    matrix_spec: { version: ["4.4", "5.0", "6.0", "7.0", "8.0", "latest"], ocsp-rhel-87: ["rhel87-go-1-20"] }
+    matrix_spec: { version: ["4.4", "5.0", "6.0", "7.0", "8.0", "latest"], ocsp-rhel-87: ["rhel87"] }
     display_name: "OCSP ${version} ${ocsp-rhel-87}"
     batchtime: 20160 # Use a batchtime of 14 days as suggested by the OCSP test README
     tasks:
       - name: ".ocsp"
 
   - matrix_name: "ocsp-test-windows"
-    matrix_spec: { version: ["4.4", "5.0", "6.0", "7.0", "8.0", "latest"], os-ssl-40: ["windows-64-go-1-20"] }
+    matrix_spec: { version: ["4.4", "5.0", "6.0", "7.0", "8.0", "latest"], os-ssl-40: ["windows-64"] }
     display_name: "OCSP ${version} ${os-ssl-40}"
     batchtime: 20160 # Use a batchtime of 14 days as suggested by the OCSP test README
     tasks:
@@ -2501,7 +2501,7 @@ buildvariants:
       - name: ".ocsp-rsa !.ocsp-staple"
 
   - matrix_name: "ocsp-test-macos"
-    matrix_spec: { version: ["4.4", "5.0", "6.0", "7.0", "8.0", "latest"], os-ssl-40: ["macos11-go-1-20"] }
+    matrix_spec: { version: ["4.4", "5.0", "6.0", "7.0", "8.0", "latest"], os-ssl-40: ["macos11"] }
     display_name: "OCSP ${version} ${os-ssl-40}"
     batchtime: 20160 # Use a batchtime of 14 days as suggested by the OCSP test README
     tasks:
@@ -2510,39 +2510,39 @@ buildvariants:
 
   - matrix_name: "race-test"
     tags: ["pullrequest"]
-    matrix_spec: { version: ["7.0"], os-ssl-40: ["rhel87-64-go-1-20"] }
+    matrix_spec: { version: ["7.0"], os-ssl-40: ["rhel87-64"] }
     display_name: "Race Detector Test"
     tasks:
       - name: ".race"
 
   - matrix_name: "versioned-api-test"
     tags: ["pullrequest"]
-    matrix_spec: { version: ["5.0", "6.0", "7.0", "8.0"], os-ssl-40: ["windows-64-go-1-20", "rhel87-64-go-1-20"] }
+    matrix_spec: { version: ["5.0", "6.0", "7.0", "8.0"], os-ssl-40: ["windows-64", "rhel87-64"] }
     display_name: "API Version ${version} ${os-ssl-40}"
     tasks:
       - name: ".versioned-api"
 
   - matrix_name: "versioned-api-latest-test"
-    matrix_spec: { version: ["latest"], os-ssl-40: ["windows-64-go-1-20", "rhel87-64-go-1-20"] }
+    matrix_spec: { version: ["latest"], os-ssl-40: ["windows-64", "rhel87-64"] }
     display_name: "API Version ${version} ${os-ssl-40}"
     tasks:
       - name: ".versioned-api"
 
   - matrix_name: "kms-tls-test"
-    matrix_spec: { version: ["7.0"], os-ssl-40: ["rhel87-64-go-1-20"] }
+    matrix_spec: { version: ["7.0"], os-ssl-40: ["rhel87-64"] }
     display_name: "KMS TLS ${os-ssl-40}"
     tasks:
       - name: ".kms-tls"
 
   - matrix_name: "load-balancer-test"
     tags: ["pullrequest"]
-    matrix_spec: { version: ["5.0", "6.0", "7.0", "8.0"], os-ssl-40: ["rhel87-64-go-1-20"] }
+    matrix_spec: { version: ["5.0", "6.0", "7.0", "8.0"], os-ssl-40: ["rhel87-64"] }
     display_name: "Load Balancer Support ${version} ${os-ssl-40}"
     tasks:
       - name: ".load-balancer"
 
   - matrix_name: "load-balancer-latest-test"
-    matrix_spec: { version: ["latest"], os-ssl-40: ["rhel87-64-go-1-20"] }
+    matrix_spec: { version: ["latest"], os-ssl-40: ["rhel87-64"] }
     display_name: "Load Balancer Support ${version} ${os-ssl-40}"
     tasks:
       - name: ".load-balancer"
@@ -2555,26 +2555,26 @@ buildvariants:
       - "serverless_task_group"
 
   - matrix_name: "kms-kmip-test"
-    matrix_spec: { version: ["7.0"], os-ssl-40: ["rhel87-64-go-1-20"] }
+    matrix_spec: { version: ["7.0"], os-ssl-40: ["rhel87-64"] }
     display_name: "KMS KMIP ${os-ssl-40}"
     tasks:
       - name: ".kms-kmip"
 
   - matrix_name: "fuzz-test"
-    matrix_spec: { version: ["5.0"], os-ssl-40: ["rhel87-64-go-1-20"] }
+    matrix_spec: { version: ["5.0"], os-ssl-40: ["rhel87-64"] }
     display_name: "Fuzz ${version} ${os-ssl-40}"
     tasks:
       - name: "test-fuzz"
         batchtime: 1440 # Run at most once per 24 hours.
 
   - matrix_name: "faas-test"
-    matrix_spec: { version: ["7.0"], os-faas-80: ["rhel87-large-go-1-20"] }
+    matrix_spec: { version: ["7.0"], os-faas-80: ["rhel87-large"] }
     display_name: "FaaS ${version} ${os-faas-80}"
     tasks:
       - test-aws-lambda-task-group
 
   - matrix_name: "searchindex-test"
-    matrix_spec: { version: ["7.0"], os-faas-80: ["rhel87-large-go-1-20"] }
+    matrix_spec: { version: ["7.0"], os-faas-80: ["rhel87-large"] }
     display_name: "Search Index ${version} ${os-faas-80}"
     tasks:
       - test-search-index-task-group
@@ -2584,7 +2584,7 @@ buildvariants:
     run_on:
       - rhel8.7-small
     expansions:
-      GO_DIST: "/opt/golang/go1.20"
+      GO_DIST: "/opt/golang/go1.22"
     tasks:
       - name: testgcpkms_task_group
         batchtime: 20160 # Use a batchtime of 14 days as suggested by the CSFLE test README
@@ -2595,7 +2595,7 @@ buildvariants:
     run_on:
       - rhel8.7-small
     expansions:
-      GO_DIST: "/opt/golang/go1.20"
+      GO_DIST: "/opt/golang/go1.22"
     tasks:
       - testawskms-task
       - testawskms-fail-task
@@ -2605,7 +2605,7 @@ buildvariants:
     run_on:
       - rhel8.7-small
     expansions:
-      GO_DIST: "/opt/golang/go1.20"
+      GO_DIST: "/opt/golang/go1.22"
     tasks:
       - name: testazurekms_task_group
         batchtime: 20160 # Use a batchtime of 14 days as suggested by the CSFLE test README
@@ -2616,7 +2616,7 @@ buildvariants:
     run_on:
       - ubuntu2204-large
     expansions:
-      GO_DIST: "/opt/golang/go1.20"
+      GO_DIST: "/opt/golang/go1.22"
     tasks:
       - name: testoidc_task_group
         batchtime: 20160 # Use a batchtime of 14 days as suggested by the CSFLE test README
