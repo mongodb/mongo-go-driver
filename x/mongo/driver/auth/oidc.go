@@ -45,14 +45,14 @@ const invalidateSleepTimeout = 100 * time.Millisecond
 const machineCallbackTimeout = time.Minute
 const humanCallbackTimeout = 5 * time.Minute
 
-var defaultAllowedHosts = []string{
-	"*.mongodb.net",
-	"*.mongodb-qa.net",
-	"*.mongodb-dev.net",
-	"*.mongodbgov.net",
-	"localhost",
-	"127.0.0.1",
-	"::1",
+var defaultAllowedHosts = []*regexp.Regexp{
+	regexp.MustCompile("^.*[.]mongodb[.]net(:\\d+)?$"),
+	regexp.MustCompile("^.*[.]mongodb-qa[.]net(:\\d+)?$"),
+	regexp.MustCompile("^.*[.]mongodb-dev[.]net(:\\d+)?$"),
+	regexp.MustCompile("^.*[.]mongodbgov[.]net(:\\d+)?$"),
+	regexp.MustCompile("^localhost(:\\d+)?$"),
+	regexp.MustCompile("^127[.]0[.]0[.]1(:\\d+)?$"),
+	regexp.MustCompile("^::1(:\\d+)?$"),
 }
 
 // OIDCCallback is a function that takes a context and OIDCArgs and returns an OIDCCredential.
@@ -82,7 +82,7 @@ type OIDCAuthenticator struct {
 	OIDCMachineCallback     OIDCCallback
 	OIDCHumanCallback       OIDCCallback
 
-	allowedHosts *[]string
+	allowedHosts *[]*regexp.Regexp
 	userName     string
 	httpClient   *http.Client
 	accessToken  string
@@ -127,48 +127,55 @@ func newOIDCAuthenticator(cred *Cred, httpClient *http.Client) (Authenticator, e
 		OIDCMachineCallback:     cred.OIDCMachineCallback,
 		OIDCHumanCallback:       cred.OIDCHumanCallback,
 	}
+	oa.setAllowedHosts()
 	return oa, nil
 }
 
-func createAllowedHostsPatterns(hosts []string) []string {
+func createPatternsForGlobs(hosts []string) ([]*regexp.Regexp, error) {
+	var err error
+	ret := make([]*regexp.Regexp, len(hosts))
 	for i := range hosts {
 		hosts[i] = strings.ReplaceAll(hosts[i], ".", "[.]")
 		hosts[i] = strings.ReplaceAll(hosts[i], "*", ".*")
 		hosts[i] = "^" + hosts[i] + "(:\\d+)?$"
+		ret[i], err = regexp.Compile(hosts[i])
+		if err != nil {
+			return nil, err
+		}
 	}
-	return hosts
+	return ret, nil
 }
 
-func (oa *OIDCAuthenticator) getAllowedHosts() []string {
-	// we cache allowed hosts so that we do not need to convert globs to patterns
-	// every time we authenticate.
-	if oa.allowedHosts != nil {
-		return *oa.allowedHosts
+func (oa *OIDCAuthenticator) setAllowedHosts() error {
+	if oa.AuthMechanismProperties == nil {
+		oa.allowedHosts = &defaultAllowedHosts
+		return nil
 	}
-	var ret []string
 	allowedHosts, ok := oa.AuthMechanismProperties[allowedHostsProp]
-	if ok {
-		ret = strings.Split(allowedHosts, ",")
-	} else {
-		ret = make([]string, len(defaultAllowedHosts))
-		copy(ret, defaultAllowedHosts)
+	if !ok {
+		oa.allowedHosts = &defaultAllowedHosts
+		return nil
 	}
-	ret = createAllowedHostsPatterns(ret)
+	globs := strings.Split(allowedHosts, ",")
+	ret, err := createPatternsForGlobs(globs)
+	if err != nil {
+		return err
+	}
 	oa.allowedHosts = &ret
-	return ret
+	return nil
 }
 
 func (oa *OIDCAuthenticator) validateConnectionAddressWithAllowedHosts(conn driver.Connection) error {
-	allowedHosts := oa.getAllowedHosts()
+	if oa.allowedHosts == nil {
+		// should be unreachable, but this is a safety check.
+		return newAuthError(fmt.Sprintf("%q missing", allowedHostsProp), nil)
+	}
+	allowedHosts := *oa.allowedHosts
 	if len(allowedHosts) == 0 {
 		return newAuthError(fmt.Sprintf("empty %q specified", allowedHostsProp), nil)
 	}
 	for _, pattern := range allowedHosts {
-		matches, err := regexp.MatchString(pattern, string(conn.Address()))
-		if err != nil {
-			return newAuthError(fmt.Sprintf("error matching %q with %q", conn.Address(), pattern), err)
-		}
-		if matches {
+		if pattern.MatchString(string(conn.Address())) {
 			return nil
 		}
 	}
@@ -234,7 +241,7 @@ func (ots *oidcTwoStep) Next(ctx context.Context, msg []byte) ([]byte, error) {
 		// two-step callbacks are always human callbacks.
 		ots.oa.OIDCHumanCallback)
 
-	return jwtStepRequest(accessToken), nil
+	return jwtStepRequest(accessToken), err
 }
 
 func (*oidcTwoStep) Completed() bool {
