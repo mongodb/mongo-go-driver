@@ -19,7 +19,7 @@ import (
 // SaslClient is the client piece of a sasl conversation.
 type SaslClient interface {
 	Start() (string, []byte, error)
-	Next(challenge []byte) ([]byte, error)
+	Next(ctx context.Context, challenge []byte) ([]byte, error)
 	Completed() bool
 }
 
@@ -118,7 +118,7 @@ func (sc *saslConversation) Finish(ctx context.Context, cfg *driver.AuthConfig, 
 			return nil
 		}
 
-		payload, err = sc.client.Next(saslResp.Payload)
+		payload, err = sc.client.Next(ctx, saslResp.Payload)
 		if err != nil {
 			return newError(err, sc.mechanism)
 		}

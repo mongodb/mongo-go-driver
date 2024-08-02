@@ -54,7 +54,7 @@ func (c *plainSaslClient) Start() (string, []byte, error) {
 	return PLAIN, b, nil
 }
 
-func (c *plainSaslClient) Next([]byte) ([]byte, error) {
+func (c *plainSaslClient) Next(context.Context, []byte) ([]byte, error) {
 	return nil, newAuthError("unexpected server challenge", nil)
 }
 
