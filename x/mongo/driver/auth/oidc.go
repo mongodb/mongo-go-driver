@@ -127,8 +127,8 @@ func newOIDCAuthenticator(cred *Cred, httpClient *http.Client) (Authenticator, e
 		OIDCMachineCallback:     cred.OIDCMachineCallback,
 		OIDCHumanCallback:       cred.OIDCHumanCallback,
 	}
-	oa.setAllowedHosts()
-	return oa, nil
+	err := oa.setAllowedHosts()
+	return oa, err
 }
 
 func createPatternsForGlobs(hosts []string) ([]*regexp.Regexp, error) {
