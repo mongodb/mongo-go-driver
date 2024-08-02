@@ -75,10 +75,10 @@ const (
 
 // strings for pool command monitoring types
 const (
-	PoolCreated               = "ConnectionPoolCreated"
-	PoolReady                 = "ConnectionPoolReady"
-	PoolCleared               = "ConnectionPoolCleared"
-	PoolClosedEvent           = "ConnectionPoolClosed"
+	ConnectionPoolCreated     = "ConnectionPoolCreated"
+	ConnectionPoolReady       = "ConnectionPoolReady"
+	ConnectionPoolCleared     = "ConnectionPoolCleared"
+	ConnectionPoolClosed      = "ConnectionPoolClosed"
 	ConnectionCreated         = "ConnectionCreated"
 	ConnectionReady           = "ConnectionReady"
 	ConnectionClosed          = "ConnectionClosed"
