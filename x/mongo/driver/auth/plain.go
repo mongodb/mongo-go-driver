@@ -8,12 +8,15 @@ package auth
 
 import (
 	"context"
+	"net/http"
+
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 )
 
 // PLAIN is the mechanism name for PLAIN.
 const PLAIN = "PLAIN"
 
-func newPlainAuthenticator(cred *Cred) (Authenticator, error) {
+func newPlainAuthenticator(cred *Cred, _ *http.Client) (Authenticator, error) {
 	return &PlainAuthenticator{
 		Username: cred.Username,
 		Password: cred.Password,
@@ -27,11 +30,16 @@ type PlainAuthenticator struct {
 }
 
 // Auth authenticates the connection.
-func (a *PlainAuthenticator) Auth(ctx context.Context, cfg *Config) error {
+func (a *PlainAuthenticator) Auth(ctx context.Context, cfg *driver.AuthConfig) error {
 	return ConductSaslConversation(ctx, cfg, "$external", &plainSaslClient{
 		username: a.Username,
 		password: a.Password,
 	})
+}
+
+// Reauth reauthenticates the connection.
+func (a *PlainAuthenticator) Reauth(_ context.Context, _ *driver.AuthConfig) error {
+	return newAuthError("Plain authentication does not support reauthentication", nil)
 }
 
 type plainSaslClient struct {

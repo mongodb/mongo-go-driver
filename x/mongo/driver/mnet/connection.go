@@ -30,6 +30,8 @@ type Describer interface {
 	DriverConnectionID() int64
 	Address() address.Address
 	Stale() bool
+	OIDCTokenGenID() uint64
+	SetOIDCTokenGenID(uint64)
 }
 
 // Streamer represents a Connection that supports streaming wire protocol

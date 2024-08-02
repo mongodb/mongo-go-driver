@@ -26,6 +26,16 @@ type ChannelConn struct {
 	Desc     description.Server
 }
 
+// OIDCTokenGenID implements the driver.Connection interface by returning the OIDCToken generation
+// (which is always 0)
+func (c *ChannelConn) OIDCTokenGenID() uint64 {
+	return 0
+}
+
+// SetOIDCTokenGenID implements the driver.Connection interface by setting the OIDCToken generation
+// (which is always 0)
+func (c *ChannelConn) SetOIDCTokenGenID(uint64) {}
+
 // WriteWireMessage implements the driver.Connection interface.
 func (c *ChannelConn) Write(ctx context.Context, wm []byte) error {
 	// Copy wm in case it came from a buffer pool.

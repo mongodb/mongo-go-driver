@@ -304,7 +304,7 @@ func (coll *Collection) insert(
 		ServerSelector(selector).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).Ordered(true).
-		ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).Logger(coll.client.logger)
+		ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).Logger(coll.client.logger).Authenticator(coll.client.authenticator)
 
 	args, err := mongoutil.NewOptions[options.InsertManyOptions](opts...)
 	if err != nil {
@@ -521,7 +521,7 @@ func (coll *Collection) delete(
 		ServerSelector(selector).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).Ordered(true).
-		ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).Logger(coll.client.logger)
+		ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).Logger(coll.client.logger).Authenticator(coll.client.authenticator)
 	if args.Comment != nil {
 		comment, err := marshalValue(args.Comment, coll.bsonOpts, coll.registry)
 		if err != nil {
@@ -655,7 +655,7 @@ func (coll *Collection) updateOrReplace(
 		Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).Hint(args.Hint != nil).
 		ArrayFilters(args.ArrayFilters != nil).Ordered(true).ServerAPI(coll.client.serverAPI).
-		Timeout(coll.client.timeout).Logger(coll.client.logger)
+		Timeout(coll.client.timeout).Logger(coll.client.logger).Authenticator(coll.client.authenticator)
 	if args.Let != nil {
 		let, err := marshal(args.Let, coll.bsonOpts, coll.registry)
 		if err != nil {
@@ -948,7 +948,8 @@ func aggregate(a aggregateParams, opts ...options.Lister[options.AggregateOption
 		Crypt(a.client.cryptFLE).
 		ServerAPI(a.client.serverAPI).
 		HasOutputStage(hasOutputStage).
-		Timeout(a.client.timeout)
+		Timeout(a.client.timeout).
+		Authenticator(a.client.authenticator)
 
 	if args.AllowDiskUse != nil {
 		op.AllowDiskUse(*args.AllowDiskUse)
@@ -1071,7 +1072,7 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 	op := operation.NewAggregate(pipelineArr).Session(sess).ReadConcern(rc).ReadPreference(coll.readPreference).
 		CommandMonitor(coll.client.monitor).ServerSelector(selector).ClusterClock(coll.client.clock).Database(coll.db.name).
 		Collection(coll.name).Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI).
-		Timeout(coll.client.timeout)
+		Timeout(coll.client.timeout).Authenticator(coll.client.authenticator)
 	if args.Collation != nil {
 		op.Collation(bsoncore.Document(toDocument(args.Collation)))
 	}
@@ -1165,7 +1166,7 @@ func (coll *Collection) EstimatedDocumentCount(
 		Database(coll.db.name).Collection(coll.name).CommandMonitor(coll.client.monitor).
 		Deployment(coll.client.deployment).ReadConcern(rc).ReadPreference(coll.readPreference).
 		ServerSelector(selector).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI).
-		Timeout(coll.client.timeout)
+		Timeout(coll.client.timeout).Authenticator(coll.client.authenticator)
 
 	if args.Comment != nil {
 		comment, err := marshalValue(args.Comment, coll.bsonOpts, coll.registry)
@@ -1241,7 +1242,7 @@ func (coll *Collection) Distinct(
 		Database(coll.db.name).Collection(coll.name).CommandMonitor(coll.client.monitor).
 		Deployment(coll.client.deployment).ReadConcern(rc).ReadPreference(coll.readPreference).
 		ServerSelector(selector).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI).
-		Timeout(coll.client.timeout)
+		Timeout(coll.client.timeout).Authenticator(coll.client.authenticator)
 
 	if args.Collation != nil {
 		op.Collation(bsoncore.Document(toDocument(args.Collation)))
@@ -1334,7 +1335,7 @@ func (coll *Collection) find(ctx context.Context, filter interface{},
 		CommandMonitor(coll.client.monitor).ServerSelector(selector).
 		ClusterClock(coll.client.clock).Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI).
-		Timeout(coll.client.timeout).Logger(coll.client.logger)
+		Timeout(coll.client.timeout).Logger(coll.client.logger).Authenticator(coll.client.authenticator)
 
 	cursorOpts := coll.client.createBaseCursorOptions()
 
@@ -1592,7 +1593,7 @@ func (coll *Collection) FindOneAndDelete(
 		return &SingleResult{err: fmt.Errorf("failed to construct options from builder: %w", err)}
 	}
 
-	op := operation.NewFindAndModify(f).Remove(true).ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout)
+	op := operation.NewFindAndModify(f).Remove(true).ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).Authenticator(coll.client.authenticator)
 	if args.Collation != nil {
 		op = op.Collation(bsoncore.Document(toDocument(args.Collation)))
 	}
@@ -1680,7 +1681,7 @@ func (coll *Collection) FindOneAndReplace(
 	}
 
 	op := operation.NewFindAndModify(f).Update(bsoncore.Value{Type: bsoncore.TypeEmbeddedDocument, Data: r}).
-		ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout)
+		ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).Authenticator(coll.client.authenticator)
 	if args.BypassDocumentValidation != nil && *args.BypassDocumentValidation {
 		op = op.BypassDocumentValidation(*args.BypassDocumentValidation)
 	}
@@ -1773,7 +1774,7 @@ func (coll *Collection) FindOneAndUpdate(
 		return &SingleResult{err: fmt.Errorf("failed to construct options from builder: %w", err)}
 	}
 
-	op := operation.NewFindAndModify(f).ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout)
+	op := operation.NewFindAndModify(f).ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).Authenticator(coll.client.authenticator)
 
 	u, err := marshalUpdateValue(update, coll.bsonOpts, coll.registry, true)
 	if err != nil {
@@ -1982,7 +1983,8 @@ func (coll *Collection) drop(ctx context.Context) error {
 		ServerSelector(selector).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).
-		ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout)
+		ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).
+		Authenticator(coll.client.authenticator)
 	err = op.Execute(ctx)
 
 	// ignore namespace not found errors
