@@ -13,10 +13,12 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 )
@@ -24,14 +26,10 @@ import (
 // MongoDBOIDC is the string constant for the MONGODB-OIDC authentication mechanism.
 const MongoDBOIDC = "MONGODB-OIDC"
 
-// TODO GODRIVER-2728: Automatic token acquisition for Azure Identity Provider
 // const tokenResourceProp = "TOKEN_RESOURCE"
 const environmentProp = "ENVIRONMENT"
-
 const resourceProp = "TOKEN_RESOURCE"
-
-// GODRIVER-3249	OIDC: Handle all possible OIDC configuration errors
-//const allowedHostsProp = "ALLOWED_HOSTS"
+const allowedHostsProp = "ALLOWED_HOSTS"
 
 const azureEnvironmentValue = "azure"
 const gcpEnvironmentValue = "gcp"
@@ -44,18 +42,18 @@ const invalidateSleepTimeout = 100 * time.Millisecond
 // ambiguous for the v1.x Go Driver because it could mean either "no timeout provided" or "CSOT not
 // enabled". Always use a maximum timeout duration of 1 minute, allowing us to ignore the ambiguity.
 // Contexts with a shorter timeout are unaffected.
-const machineCallbackTimeout = 60 * time.Second
+const machineCallbackTimeout = time.Minute
+const humanCallbackTimeout = 5 * time.Minute
 
-//GODRIVER-3246	OIDC: Implement Human Callback Mechanism
-//var defaultAllowedHosts = []string{
-//	"*.mongodb.net",
-//	"*.mongodb-qa.net",
-//	"*.mongodb-dev.net",
-//	"*.mongodbgov.net",
-//	"localhost",
-//	"127.0.0.1",
-//	"::1",
-//}
+var defaultAllowedHosts = []*regexp.Regexp{
+	regexp.MustCompile(`^.*[.]mongodb[.]net(:\d+)?$`),
+	regexp.MustCompile(`^.*[.]mongodb-qa[.]net(:\d+)?$`),
+	regexp.MustCompile(`^.*[.]mongodb-dev[.]net(:\d+)?$`),
+	regexp.MustCompile(`^.*[.]mongodbgov[.]net(:\d+)?$`),
+	regexp.MustCompile(`^localhost(:\d+)?$`),
+	regexp.MustCompile(`^127[.]0[.]0[.]1(:\d+)?$`),
+	regexp.MustCompile(`^::1(:\d+)?$`),
+}
 
 // OIDCCallback is a function that takes a context and OIDCArgs and returns an OIDCCredential.
 type OIDCCallback = driver.OIDCCallback
@@ -72,6 +70,7 @@ type IDPInfo = driver.IDPInfo
 var _ driver.Authenticator = (*OIDCAuthenticator)(nil)
 var _ SpeculativeAuthenticator = (*OIDCAuthenticator)(nil)
 var _ SaslClient = (*oidcOneStep)(nil)
+var _ SaslClient = (*oidcTwoStep)(nil)
 
 // OIDCAuthenticator is synchronized and handles caching of the access token, refreshToken,
 // and IDPInfo. It also provides a mechanism to refresh the access token, but this functionality
@@ -83,6 +82,7 @@ type OIDCAuthenticator struct {
 	OIDCMachineCallback     OIDCCallback
 	OIDCHumanCallback       OIDCCallback
 
+	allowedHosts *[]*regexp.Regexp
 	userName     string
 	httpClient   *http.Client
 	accessToken  string
@@ -127,12 +127,69 @@ func newOIDCAuthenticator(cred *Cred, httpClient *http.Client) (Authenticator, e
 		OIDCMachineCallback:     cred.OIDCMachineCallback,
 		OIDCHumanCallback:       cred.OIDCHumanCallback,
 	}
-	return oa, nil
+	err := oa.setAllowedHosts()
+	return oa, err
+}
+
+func createPatternsForGlobs(hosts []string) ([]*regexp.Regexp, error) {
+	var err error
+	ret := make([]*regexp.Regexp, len(hosts))
+	for i := range hosts {
+		hosts[i] = strings.ReplaceAll(hosts[i], ".", "[.]")
+		hosts[i] = strings.ReplaceAll(hosts[i], "*", ".*")
+		hosts[i] = "^" + hosts[i] + "(:\\d+)?$"
+		ret[i], err = regexp.Compile(hosts[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return ret, nil
+}
+
+func (oa *OIDCAuthenticator) setAllowedHosts() error {
+	if oa.AuthMechanismProperties == nil {
+		oa.allowedHosts = &defaultAllowedHosts
+		return nil
+	}
+	allowedHosts, ok := oa.AuthMechanismProperties[allowedHostsProp]
+	if !ok {
+		oa.allowedHosts = &defaultAllowedHosts
+		return nil
+	}
+	globs := strings.Split(allowedHosts, ",")
+	ret, err := createPatternsForGlobs(globs)
+	if err != nil {
+		return err
+	}
+	oa.allowedHosts = &ret
+	return nil
+}
+
+func (oa *OIDCAuthenticator) validateConnectionAddressWithAllowedHosts(conn driver.Connection) error {
+	if oa.allowedHosts == nil {
+		// should be unreachable, but this is a safety check.
+		return newAuthError(fmt.Sprintf("%q missing", allowedHostsProp), nil)
+	}
+	allowedHosts := *oa.allowedHosts
+	if len(allowedHosts) == 0 {
+		return newAuthError(fmt.Sprintf("empty %q specified", allowedHostsProp), nil)
+	}
+	for _, pattern := range allowedHosts {
+		if pattern.MatchString(string(conn.Address())) {
+			return nil
+		}
+	}
+	return newAuthError(fmt.Sprintf("address %q not allowed by %q: %v", conn.Address(), allowedHostsProp, allowedHosts), nil)
 }
 
 type oidcOneStep struct {
 	userName    string
 	accessToken string
+}
+
+type oidcTwoStep struct {
+	conn driver.Connection
+	oa   *OIDCAuthenticator
 }
 
 func jwtStepRequest(accessToken string) []byte {
@@ -141,24 +198,53 @@ func jwtStepRequest(accessToken string) []byte {
 		Build()
 }
 
-// TODO GODRIVER-3246: Implement OIDC human flow
-//func principalStepRequest(principal string) []byte {
-//	doc := bsoncore.NewDocumentBuilder()
-//	if principal != "" {
-//		doc.AppendString("n", principal)
-//	}
-//	return doc.Build()
-//}
+func principalStepRequest(principal string) []byte {
+	doc := bsoncore.NewDocumentBuilder()
+	if principal != "" {
+		doc.AppendString("n", principal)
+	}
+	return doc.Build()
+}
 
 func (oos *oidcOneStep) Start() (string, []byte, error) {
 	return MongoDBOIDC, jwtStepRequest(oos.accessToken), nil
 }
 
-func (oos *oidcOneStep) Next([]byte) ([]byte, error) {
+func (oos *oidcOneStep) Next(context.Context, []byte) ([]byte, error) {
 	return nil, newAuthError("unexpected step in OIDC authentication", nil)
 }
 
 func (*oidcOneStep) Completed() bool {
+	return true
+}
+
+func (ots *oidcTwoStep) Start() (string, []byte, error) {
+	return MongoDBOIDC, principalStepRequest(ots.oa.userName), nil
+}
+
+func (ots *oidcTwoStep) Next(ctx context.Context, msg []byte) ([]byte, error) {
+	var idpInfo IDPInfo
+	err := bson.Unmarshal(msg, &idpInfo)
+	if err != nil {
+		return nil, fmt.Errorf("error unmarshaling BSON document: %w", err)
+	}
+
+	accessToken, err := ots.oa.getAccessToken(ctx,
+		ots.conn,
+		&OIDCArgs{
+			Version: apiVersion,
+			// idpInfo is nil for machine callbacks in the current spec.
+			IDPInfo: &idpInfo,
+			// there is no way there could be a refresh token when there is no IDPInfo.
+			RefreshToken: nil,
+		},
+		// two-step callbacks are always human callbacks.
+		ots.oa.OIDCHumanCallback)
+
+	return jwtStepRequest(accessToken), err
+}
+
+func (*oidcTwoStep) Completed() bool {
 	return true
 }
 
@@ -273,42 +359,39 @@ func (oa *OIDCAuthenticator) getAccessToken(
 		return oa.accessToken, nil
 	}
 
+	// Attempt to refresh the access token if a refresh token is available.
+	if args.RefreshToken != nil {
+		cred, err := callback(ctx, args)
+		if err == nil && cred != nil {
+			oa.accessToken = cred.AccessToken
+			oa.tokenGenID++
+			conn.SetOIDCTokenGenID(oa.tokenGenID)
+			oa.refreshToken = cred.RefreshToken
+			return cred.AccessToken, nil
+		}
+		oa.refreshToken = nil
+		args.RefreshToken = nil
+	}
+	// If we get here this means there either was no refresh token or the refresh token failed.
 	cred, err := callback(ctx, args)
 	if err != nil {
 		return "", err
+	}
+	// This line should never occur, if go conventions are followed, but it is a safety check such
+	// that we do not throw nil pointer errors to our users if they abuse the API.
+	if cred == nil {
+		return "", newAuthError("OIDC callback returned nil credential with no specified error", nil)
 	}
 
 	oa.accessToken = cred.AccessToken
 	oa.tokenGenID++
 	conn.SetOIDCTokenGenID(oa.tokenGenID)
-	if cred.RefreshToken != nil {
-		oa.refreshToken = cred.RefreshToken
-	}
+	oa.refreshToken = cred.RefreshToken
+	// always set the IdPInfo, in most cases, this should just be recopying the same pointer, or nil
+	// in the machine flow.
+	oa.idpInfo = args.IDPInfo
 	return cred.AccessToken, nil
 }
-
-// TODO GODRIVER-3246: Implement OIDC human flow
-// This should only be called with the Mutex held.
-//func (oa *OIDCAuthenticator) getAccessTokenWithRefresh(
-//	ctx context.Context,
-//	callback OIDCCallback,
-//	refreshToken string,
-//) (string, error) {
-//
-//	cred, err := callback(ctx, &OIDCArgs{
-//		Version:      apiVersion,
-//		IDPInfo:      oa.idpInfo,
-//		RefreshToken: &refreshToken,
-//	})
-//	if err != nil {
-//		return "", err
-//	}
-//
-//	oa.accessToken = cred.AccessToken
-//	oa.tokenGenID++
-//	oa.cfg.Connection.SetOIDCTokenGenID(oa.tokenGenID)
-//	return cred.AccessToken, nil
-//}
 
 // invalidateAccessToken invalidates the access token, if the force flag is set to true (which is
 // only on a Reauth call) or if the tokenGenID of the connection is greater than or equal to the
@@ -346,6 +429,8 @@ func (oa *OIDCAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 
 	oa.mu.Lock()
 	cachedAccessToken := oa.accessToken
+	cachedRefreshToken := oa.refreshToken
+	cachedIDPInfo := oa.idpInfo
 	oa.mu.Unlock()
 
 	if cachedAccessToken != "" {
@@ -364,7 +449,7 @@ func (oa *OIDCAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 	}
 
 	if oa.OIDCHumanCallback != nil {
-		return oa.doAuthHuman(ctx, cfg, oa.OIDCHumanCallback)
+		return oa.doAuthHuman(ctx, cfg, oa.OIDCHumanCallback, cachedIDPInfo, cachedRefreshToken)
 	}
 
 	// Handle user provided or automatic provider machine callback.
@@ -384,9 +469,41 @@ func (oa *OIDCAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 	return newAuthError("no OIDC callback provided", nil)
 }
 
-func (oa *OIDCAuthenticator) doAuthHuman(_ context.Context, _ *Config, _ OIDCCallback) error {
-	// TODO GODRIVER-3246: Implement OIDC human flow
-	return newAuthError("OIDC", fmt.Errorf("human flow not implemented yet, %v", oa.idpInfo))
+func (oa *OIDCAuthenticator) doAuthHuman(ctx context.Context, cfg *Config, humanCallback OIDCCallback, idpInfo *IDPInfo, refreshToken *string) error {
+	// Ensure that the connection address is allowed by the allowed hosts.
+	err := oa.validateConnectionAddressWithAllowedHosts(cfg.Connection)
+	if err != nil {
+		return err
+	}
+	subCtx, cancel := context.WithTimeout(ctx, humanCallbackTimeout)
+	defer cancel()
+	// If the idpInfo exists, we can just do one step
+	if idpInfo != nil {
+		accessToken, err := oa.getAccessToken(subCtx,
+			cfg.Connection,
+			&OIDCArgs{
+				Version: apiVersion,
+				// idpInfo is nil for machine callbacks in the current spec.
+				IDPInfo:      idpInfo,
+				RefreshToken: refreshToken,
+			},
+			humanCallback)
+		if err != nil {
+			return err
+		}
+		return ConductSaslConversation(
+			subCtx,
+			cfg,
+			"$external",
+			&oidcOneStep{accessToken: accessToken},
+		)
+	}
+	// otherwise, we need the two step where we ask the server for the IdPInfo first.
+	ots := &oidcTwoStep{
+		conn: cfg.Connection,
+		oa:   oa,
+	}
+	return ConductSaslConversation(subCtx, cfg, "$external", ots)
 }
 
 func (oa *OIDCAuthenticator) doAuthMachine(ctx context.Context, cfg *Config, machineCallback OIDCCallback) error {
@@ -412,7 +529,7 @@ func (oa *OIDCAuthenticator) doAuthMachine(ctx context.Context, cfg *Config, mac
 	)
 }
 
-// CreateSpeculativeConversation creates a speculative conversation for SCRAM authentication.
+// CreateSpeculativeConversation creates a speculative conversation for OIDC authentication.
 func (oa *OIDCAuthenticator) CreateSpeculativeConversation() (SpeculativeConversation, error) {
 	oa.mu.Lock()
 	defer oa.mu.Unlock()
