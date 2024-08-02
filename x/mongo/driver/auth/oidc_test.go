@@ -7,12 +7,13 @@
 package auth
 
 import (
+	"regexp"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/internal/assert"
 )
 
-func TestGetAllowedHosts(t *testing.T) {
+func TestCreatePatternsForGlobs(t *testing.T) {
 	t.Run("transform allowedHosts patterns", func(t *testing.T) {
 
 		hosts := []string{
@@ -25,17 +26,19 @@ func TestGetAllowedHosts(t *testing.T) {
 			"::1",
 		}
 
+		check, err := createPatternsForGlobs(hosts)
+		assert.NoError(t, err)
 		assert.Equal(t,
-			[]string{
-				"^.*[.]mongodb[.]net(:\\d+)?$",
-				"^.*[.]mongodb-qa[.]net(:\\d+)?$",
-				"^.*[.]mongodb-dev[.]net(:\\d+)?$",
-				"^.*[.]mongodbgov[.]net(:\\d+)?$",
-				"^localhost(:\\d+)?$",
-				"^127[.]0[.]0[.]1(:\\d+)?$",
-				"^::1(:\\d+)?$",
+			[]*regexp.Regexp{
+				regexp.MustCompile("^.*[.]mongodb[.]net(:\\d+)?$"),
+				regexp.MustCompile("^.*[.]mongodb-qa[.]net(:\\d+)?$"),
+				regexp.MustCompile("^.*[.]mongodb-dev[.]net(:\\d+)?$"),
+				regexp.MustCompile("^.*[.]mongodbgov[.]net(:\\d+)?$"),
+				regexp.MustCompile("^localhost(:\\d+)?$"),
+				regexp.MustCompile("^127[.]0[.]0[.]1(:\\d+)?$"),
+				regexp.MustCompile("^::1(:\\d+)?$"),
 			},
-			createAllowedHostsPatterns(hosts),
+			check,
 		)
 	})
 }
