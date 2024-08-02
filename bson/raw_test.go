@@ -436,6 +436,7 @@ func BenchmarkRawString(b *testing.B) {
 			bs, err := Marshal(tc.value)
 			require.NoError(b, err)
 
+			b.ReportAllocs()
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
 				_ = Raw(bs).String()
@@ -446,6 +447,7 @@ func BenchmarkRawString(b *testing.B) {
 			bs, err := Marshal(tc.value)
 			require.NoError(b, err)
 
+			b.ReportAllocs()
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
 				_ = bsoncore.Document(bs).StringN(1024) // Assuming you want to limit to 1024 bytes for this benchmark
@@ -461,9 +463,9 @@ func TestComplexDocuments_StringN(t *testing.T) {
 		doc         any
 	}{
 		{"n>0, massive array documents", 1000, createMassiveArraysDocument(1000)},
-		{"n>0, voluminous document with unique values", 1000, createUniqueVoluminousDocument(1000, t)},
+		{"n>0, voluminous document with unique values", 1000, createUniqueVoluminousDocument(t, 1000)},
 		{"n>0, large single document", 1000, createLargeSingleDoc(t)},
-		{"n>0, voluminous document with arrays containing documents", 1000, createVoluminousArrayDocuments(1000, t)},
+		{"n>0, voluminous document with arrays containing documents", 1000, createVoluminousArrayDocuments(t, 1000)},
 	}
 
 	for _, tc := range testCases {
@@ -513,7 +515,7 @@ func createMassiveArraysDocument(arraySize int) D {
 }
 
 // createUniqueVoluminousDocument creates a BSON document with multiple key value pairs and unique value types.
-func createUniqueVoluminousDocument(size int, t *testing.T) bsoncore.Document {
+func createUniqueVoluminousDocument(t *testing.T, size int) bsoncore.Document {
 	t.Helper()
 
 	docs := make(D, size)
@@ -556,7 +558,7 @@ func createLargeSingleDoc(t *testing.T) bsoncore.Document {
 }
 
 // createVoluminousArrayDocuments creates a volumninous BSON document with arrays containing documents.
-func createVoluminousArrayDocuments(size int, t *testing.T) bsoncore.Document {
+func createVoluminousArrayDocuments(t *testing.T, size int) bsoncore.Document {
 	t.Helper()
 
 	docs := make(D, size)

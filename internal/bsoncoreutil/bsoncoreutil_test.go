@@ -6,7 +6,11 @@
 
 package bsoncoreutil
 
-import "testing"
+import (
+	"testing"
+
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+)
 
 func TestTruncate(t *testing.T) {
 	t.Parallel()
@@ -48,9 +52,7 @@ func TestTruncate(t *testing.T) {
 			t.Parallel()
 
 			actual := Truncate(tcase.arg, tcase.width)
-			if actual != tcase.expected {
-				t.Errorf("expected %q, got %q", tcase.expected, actual)
-			}
+			assert.Equal(t, tcase.expected, actual)
 		})
 	}
 
