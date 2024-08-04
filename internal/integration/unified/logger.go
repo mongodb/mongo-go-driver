@@ -70,7 +70,7 @@ func (log *Logger) Info(level int, msg string, args ...interface{}) {
 
 	// Add the Diff back to the level, as there is no need to create a
 	// logging offset.
-	level = level + logger.DiffToInfo
+	level += logger.DiffToInfo
 
 	logMessage, err := newLogMessage(level, msg, args...)
 	if err != nil {

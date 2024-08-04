@@ -113,12 +113,12 @@ func NewCursorResponse(info ResponseInfo) (CursorResponse, error) {
 			if !ok {
 				return CursorResponse{}, fmt.Errorf("ns should be a string but is a BSON %s", elem.Value().Type)
 			}
-			index := strings.Index(ns, ".")
-			if index == -1 {
+			database, collection, ok := strings.Cut(ns, ".")
+			if !ok {
 				return CursorResponse{}, errors.New("ns field must contain a valid namespace, but is missing '.'")
 			}
-			curresp.Database = ns[:index]
-			curresp.Collection = ns[index+1:]
+			curresp.Database = database
+			curresp.Collection = collection
 		case "id":
 			curresp.ID, ok = elem.Value().Int64OK()
 			if !ok {
@@ -144,7 +144,6 @@ func NewCursorResponse(info ResponseInfo) (CursorResponse, error) {
 
 		refConn := info.Connection.Pinner
 		if refConn == nil {
-			//debug.PrintStack()
 			return CursorResponse{}, fmt.Errorf("expected Connection used to establish a cursor to implement PinnedConnection, but got %T", info.Connection)
 		}
 		if err := refConn.PinToCursor(); err != nil {
@@ -320,7 +319,7 @@ func (bc *BatchCursor) KillCursor(ctx context.Context) error {
 	}
 
 	return Operation{
-		CommandFn: func(dst []byte, desc description.SelectedServer) ([]byte, error) {
+		CommandFn: func(dst []byte, _ description.SelectedServer) ([]byte, error) {
 			dst = bsoncore.AppendStringElement(dst, "killCursors", bc.collection)
 			dst = bsoncore.BuildArrayElement(dst, "cursors", bsoncore.Value{Type: bsoncore.TypeInt64, Data: bsoncore.AppendInt64(nil, bc.id)})
 			return dst, nil
@@ -514,8 +513,7 @@ func (bc *BatchCursor) getOperationDeployment() Deployment {
 // handled for these commands in this mode.
 type loadBalancedCursorDeployment struct {
 	errorProcessor ErrorProcessor
-	//conn           PinnedConnection
-	conn *mnet.Connection
+	conn           *mnet.Connection
 }
 
 var _ Deployment = (*loadBalancedCursorDeployment)(nil)

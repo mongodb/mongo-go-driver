@@ -1951,7 +1951,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			assert.True(t, correctError, "expected error to contain %q, got: %v", e110000, err)
 		})
 
-		mt.Run("case 2: addKeyAltName()", func(t *mtest.T) {
+		mt.Run("case 2: addKeyAltName()", func(mt *mtest.T) {
 			defKeyID := initialize()
 
 			var someNewKeyID bson.Binary

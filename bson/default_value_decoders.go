@@ -1286,7 +1286,8 @@ func decodeDefault(dc DecodeContext, vr ValueReader, val reflect.Value) ([]refle
 		var elem reflect.Value
 		if vDecoder == nil {
 			elem = val.Index(idx).Elem()
-			if elem.Kind() != reflect.Ptr || elem.IsNil() {
+			switch {
+			case elem.Kind() != reflect.Ptr || elem.IsNil():
 				valueDecoder, err := dc.LookupDecoder(elem.Type())
 				if err != nil {
 					return nil, err
@@ -1295,12 +1296,12 @@ func decodeDefault(dc DecodeContext, vr ValueReader, val reflect.Value) ([]refle
 				if err != nil {
 					return nil, newDecodeError(strconv.Itoa(idx), err)
 				}
-			} else if vr.Type() == TypeNull {
+			case vr.Type() == TypeNull:
 				if err = vr.ReadNull(); err != nil {
 					return nil, err
 				}
 				elem = reflect.Zero(val.Index(idx).Type())
-			} else {
+			default:
 				e := elem.Elem()
 				valueDecoder, err := dc.LookupDecoder(e.Type())
 				if err != nil {

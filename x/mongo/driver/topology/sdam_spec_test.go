@@ -320,7 +320,7 @@ func applyErrors(t *testing.T, topo *Topology, errors []applicationError) {
 		if appErr.Generation != nil {
 			generation = *appErr.Generation
 		}
-		//use generation number to check conn stale
+		// use generation number to check conn stale
 		innerConn := connection{
 			desc:       desc,
 			generation: generation,

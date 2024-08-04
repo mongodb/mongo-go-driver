@@ -72,7 +72,6 @@ func EqualServers(srv1, srv2 description.Server) bool {
 		}
 	}
 
-	//if !s.WireVersion.Equals(other.WireVersion) {
 	if !equalWireVersion(srv1.WireVersion, srv2.WireVersion) {
 		return false
 	}
@@ -99,8 +98,6 @@ func EqualServers(srv1, srv2 description.Server) bool {
 	if srv1.TopologyVersion == nil && srv2.TopologyVersion == nil {
 		return true
 	}
-
-	//return s.TopologyVersion.CompareToIncoming(other.TopologyVersion) == 0
 
 	return CompareTopologyVersions(srv1.TopologyVersion, srv2.TopologyVersion) == 0
 }
@@ -451,21 +448,23 @@ func NewServerDescription(addr address.Address, response bson.Raw) description.S
 
 	desc.Kind = description.ServerKindStandalone
 
-	if isReplicaSet {
+	switch {
+	case isReplicaSet:
 		desc.Kind = description.ServerKindRSGhost
-	} else if desc.SetName != "" {
-		if isWritablePrimary {
+	case desc.SetName != "":
+		switch {
+		case isWritablePrimary:
 			desc.Kind = description.ServerKindRSPrimary
-		} else if hidden {
+		case hidden:
 			desc.Kind = description.ServerKindRSMember
-		} else if secondary {
+		case secondary:
 			desc.Kind = description.ServerKindRSSecondary
-		} else if arbiterOnly {
+		case arbiterOnly:
 			desc.Kind = description.ServerKindRSArbiter
-		} else {
+		default:
 			desc.Kind = description.ServerKindRSMember
 		}
-	} else if msg == "isdbgrid" {
+	case msg == "isdbgrid":
 		desc.Kind = description.ServerKindMongos
 	}
 

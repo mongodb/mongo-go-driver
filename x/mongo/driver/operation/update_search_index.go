@@ -49,8 +49,7 @@ func buildUpdateSearchIndexResult(response bsoncore.Document) (UpdateSearchIndex
 	}
 	usir := UpdateSearchIndexResult{}
 	for _, element := range elements {
-		switch element.Key() {
-		case "ok":
+		if element.Key() == "ok" {
 			var ok bool
 			usir.Ok, ok = element.Value().AsInt32OK()
 			if !ok {

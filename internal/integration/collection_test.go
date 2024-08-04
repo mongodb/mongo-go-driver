@@ -1496,7 +1496,7 @@ func TestCollection(t *testing.T) {
 			assert.False(mt, res.Acknowledged)
 		})
 
-		mt.Run("insert many", func(t *mtest.T) {
+		mt.Run("insert many", func(mt *mtest.T) {
 			docs := []interface{}{
 				bson.D{{"x", 1}},
 				bson.D{{"y", 1}},
@@ -1515,7 +1515,7 @@ func TestCollection(t *testing.T) {
 			assert.False(mt, res.Acknowledged)
 		})
 
-		mt.Run("update", func(t *mtest.T) {
+		mt.Run("update", func(mt *mtest.T) {
 			res, err := mt.Coll.UpdateOne(context.Background(), bson.D{{"x", 1}}, bson.D{{"$set", bson.D{{"x", "2"}}}})
 
 			assert.NoError(mt, err)
@@ -1573,7 +1573,7 @@ func TestCollection(t *testing.T) {
 			assert.NoError(mt, err)
 		})
 
-		mt.Run("dropping an index", func(t *mtest.T) {
+		mt.Run("dropping an index", func(mt *mtest.T) {
 			indexModel := mongo.IndexModel{
 				Keys:    bson.M{"username": 1},
 				Options: options.Index().SetUnique(true).SetName("username_1"),

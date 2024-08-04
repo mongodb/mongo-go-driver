@@ -29,7 +29,7 @@ const environmentProp = "ENVIRONMENT"
 const resourceProp = "TOKEN_RESOURCE"
 
 // GODRIVER-3249	OIDC: Handle all possible OIDC configuration errors
-//const allowedHostsProp = "ALLOWED_HOSTS"
+// const allowedHostsProp = "ALLOWED_HOSTS"
 
 const azureEnvironmentValue = "azure"
 const gcpEnvironmentValue = "gcp"
@@ -44,16 +44,16 @@ const invalidateSleepTimeout = 100 * time.Millisecond
 // Contexts with a shorter timeout are unaffected.
 const machineCallbackTimeout = 60 * time.Second
 
-//GODRIVER-3246	OIDC: Implement Human Callback Mechanism
-//var defaultAllowedHosts = []string{
-//	"*.mongodb.net",
-//	"*.mongodb-qa.net",
-//	"*.mongodb-dev.net",
-//	"*.mongodbgov.net",
-//	"localhost",
-//	"127.0.0.1",
-//	"::1",
-//}
+// GODRIVER-3246	OIDC: Implement Human Callback Mechanism
+// var defaultAllowedHosts = []string{
+// 	"*.mongodb.net",
+// 	"*.mongodb-qa.net",
+// 	"*.mongodb-dev.net",
+// 	"*.mongodbgov.net",
+// 	"localhost",
+// 	"127.0.0.1",
+// 	"::1",
+// }
 
 // OIDCCallback is a function that takes a context and OIDCArgs and returns an OIDCCredential.
 type OIDCCallback = driver.OIDCCallback
@@ -140,13 +140,13 @@ func jwtStepRequest(accessToken string) []byte {
 }
 
 // TODO GODRIVER-3246: Implement OIDC human flow
-//func principalStepRequest(principal string) []byte {
-//	doc := bsoncore.NewDocumentBuilder()
-//	if principal != "" {
-//		doc.AppendString("n", principal)
-//	}
-//	return doc.Build()
-//}
+// func principalStepRequest(principal string) []byte {
+// 	doc := bsoncore.NewDocumentBuilder()
+// 	if principal != "" {
+// 		doc.AppendString("n", principal)
+// 	}
+// 	return doc.Build()
+// }
 
 func (oos *oidcOneStep) Start() (string, []byte, error) {
 	return MongoDBOIDC, jwtStepRequest(oos.accessToken), nil
@@ -171,7 +171,7 @@ func (oa *OIDCAuthenticator) providerCallback() (OIDCCallback, error) {
 	// TODO GODRIVER-2806: Automatic token acquisition for GCP Identity Provider
 	// This is here just to pass the linter, it will be fixed in one of the above tickets.
 	case azureEnvironmentValue, gcpEnvironmentValue:
-		return func(ctx context.Context, args *OIDCArgs) (*OIDCCredential, error) {
+		return func(context.Context, *OIDCArgs) (*OIDCCredential, error) {
 			return nil, fmt.Errorf("automatic token acquisition for %q not implemented yet", env)
 		}, fmt.Errorf("automatic token acquisition for %q not implemented yet", env)
 	}
@@ -208,26 +208,26 @@ func (oa *OIDCAuthenticator) getAccessToken(
 
 // TODO GODRIVER-3246: Implement OIDC human flow
 // This should only be called with the Mutex held.
-//func (oa *OIDCAuthenticator) getAccessTokenWithRefresh(
-//	ctx context.Context,
-//	callback OIDCCallback,
-//	refreshToken string,
-//) (string, error) {
-//
-//	cred, err := callback(ctx, &OIDCArgs{
-//		Version:      apiVersion,
-//		IDPInfo:      oa.idpInfo,
-//		RefreshToken: &refreshToken,
-//	})
-//	if err != nil {
-//		return "", err
-//	}
-//
-//	oa.accessToken = cred.AccessToken
-//	oa.tokenGenID++
-//	oa.cfg.Connection.SetOIDCTokenGenID(oa.tokenGenID)
-//	return cred.AccessToken, nil
-//}
+// func (oa *OIDCAuthenticator) getAccessTokenWithRefresh(
+// 	ctx context.Context,
+// 	callback OIDCCallback,
+// 	refreshToken string,
+// ) (string, error) {
+
+// 	cred, err := callback(ctx, &OIDCArgs{
+// 		Version:      apiVersion,
+// 		IDPInfo:      oa.idpInfo,
+// 		RefreshToken: &refreshToken,
+// 	})
+// 	if err != nil {
+// 		return "", err
+// 	}
+
+// 	oa.accessToken = cred.AccessToken
+// 	oa.tokenGenID++
+// 	oa.cfg.Connection.SetOIDCTokenGenID(oa.tokenGenID)
+// 	return cred.AccessToken, nil
+// }
 
 // invalidateAccessToken invalidates the access token, if the force flag is set to true (which is
 // only on a Reauth call) or if the tokenGenID of the connection is greater than or equal to the

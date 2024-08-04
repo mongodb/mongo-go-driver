@@ -26,10 +26,10 @@ func TestMain(m *testing.M) {
 	}
 
 	if err := mtest.Setup(); err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	defer os.Exit(m.Run())
 	if err := mtest.Teardown(); err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 }

@@ -139,17 +139,21 @@ func TestConnection(t *testing.T) {
 					)
 
 					// Call connect in a goroutine because it will block.
-					var wg sync.WaitGroup
-					wg.Add(1)
+					var done atomic.Value
 					go func() {
-						defer wg.Done()
+						defer done.Store(true)
 						_ = conn.connect(context.Background())
 					}()
 
 					// Simulate cancelling connection establishment and assert that this clears the CancelFunc.
 					conn.closeConnectContext()
 					close(doneChan)
-					wg.Wait()
+
+					assert.Eventually(t,
+						func() bool { return done.Load().(bool) },
+						100*time.Millisecond,
+						1*time.Millisecond,
+						"TODO")
 				})
 			})
 			t.Run("tls", func(t *testing.T) {
@@ -626,7 +630,7 @@ func TestConnection(t *testing.T) {
 			makeMultipleConnections := func(t *testing.T, numConns int) (*pool, []*Connection, func()) {
 				t.Helper()
 
-				addr := bootstrapConnections(t, numConns, func(nc net.Conn) {})
+				addr := bootstrapConnections(t, numConns, func(net.Conn) {})
 				pool := newPool(poolConfig{
 					Address:        address.Address(addr.String()),
 					ConnectTimeout: defaultConnectionTimeout,

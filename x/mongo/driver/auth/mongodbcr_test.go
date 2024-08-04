@@ -14,7 +14,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
-	. "go.mongodb.org/mongo-driver/v2/x/mongo/driver/auth"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/auth"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/drivertest"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
@@ -23,7 +23,7 @@ import (
 func TestMongoDBCRAuthenticator_Fails(t *testing.T) {
 	t.Parallel()
 
-	authenticator := MongoDBCRAuthenticator{
+	authenticator := auth.MongoDBCRAuthenticator{
 		DB:       "source",
 		Username: "user",
 		Password: "pencil",
@@ -64,7 +64,7 @@ func TestMongoDBCRAuthenticator_Fails(t *testing.T) {
 func TestMongoDBCRAuthenticator_Succeeds(t *testing.T) {
 	t.Parallel()
 
-	authenticator := MongoDBCRAuthenticator{
+	authenticator := auth.MongoDBCRAuthenticator{
 		DB:       "source",
 		Username: "user",
 		Password: "pencil",

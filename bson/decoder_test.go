@@ -508,7 +508,7 @@ func TestDecoderConfiguration(t *testing.T) {
 		// independent of the top-level Go value type.
 		{
 			description: "DocumentD nested by default",
-			configure:   func(dec *Decoder) {},
+			configure:   func(_ *Decoder) {},
 			input: bsoncore.NewDocumentBuilder().
 				AppendDocument("myDocument", bsoncore.NewDocumentBuilder().
 					AppendString("myString", "test value").
