@@ -16,44 +16,72 @@ import (
 
 var errInvalidReadPreference = errors.New("can not specify tags, max staleness, or hedge with mode primary")
 
-// Options defines the options for constructing a read preference.
-type Options struct {
-	// Maximum amount of time to allow a server to be considered eligible for
-	// selection. The second return value indicates if this value has been set.
-	MaxStaleness *time.Duration
-
-	// Tag sets indicating which servers should be considered.
-	TagSets []TagSet
-
-	// Specify whether or not hedged reads are enabled for this read preference.
-	HedgeEnabled *bool
-}
-
-func optionsExist(opts *Options) bool {
-	return opts != nil && (opts.MaxStaleness != nil || len(opts.TagSets) > 0 || opts.HedgeEnabled != nil)
-}
-
 // ReadPref determines which servers are considered suitable for read operations.
 type ReadPref struct {
 	Mode Mode
-	opts Options
+
+	maxStaleness *time.Duration
+	tagSets      []TagSet
+	hedgeEnabled *bool
 }
 
-// New creates a new ReadPref.
-func New(mode Mode, opts *Options) (*ReadPref, error) {
-	if mode == PrimaryMode && optionsExist(opts) {
-		return nil, errInvalidReadPreference
+type ReadPrefBuilder struct {
+	opts []func(*ReadPref)
+}
+
+func Options() *ReadPrefBuilder {
+	return &ReadPrefBuilder{}
+}
+
+func (bldr *ReadPrefBuilder) List() []func(*ReadPref) {
+	return bldr.opts
+}
+
+func (bldr *ReadPrefBuilder) SetMaxStaleness(dur time.Duration) *ReadPrefBuilder {
+	bldr.opts = append(bldr.opts, func(opts *ReadPref) {
+		opts.maxStaleness = &dur
+	})
+
+	return bldr
+}
+
+func (bldr *ReadPrefBuilder) SetTagSets(sets []TagSet) *ReadPrefBuilder {
+	bldr.opts = append(bldr.opts, func(opts *ReadPref) {
+		opts.tagSets = sets
+	})
+
+	return bldr
+}
+
+func (bldr *ReadPrefBuilder) SetHedgeEnabled(hedgeEnabled bool) *ReadPrefBuilder {
+	bldr.opts = append(bldr.opts, func(opts *ReadPref) {
+		opts.hedgeEnabled = &hedgeEnabled
+	})
+
+	return bldr
+}
+
+func validOpts(mode Mode, opts *ReadPref) bool {
+	if opts == nil || mode != PrimaryMode {
+		return true
 	}
 
-	rp := &ReadPref{
-		Mode: mode,
+	return opts.maxStaleness == nil && len(opts.tagSets) == 0 && opts.hedgeEnabled == nil
+}
+
+func mergeBuilders(builders ...*ReadPrefBuilder) *ReadPref {
+	opts := new(ReadPref)
+	for _, bldr := range builders {
+		if bldr == nil {
+			continue
+		}
+
+		for _, setterFn := range bldr.List() {
+			setterFn(opts)
+		}
 	}
 
-	if opts != nil {
-		rp.opts = *opts
-	}
-
-	return rp, nil
+	return opts
 }
 
 // Primary constructs a read preference with a PrimaryMode.
@@ -61,23 +89,63 @@ func Primary() *ReadPref {
 	return &ReadPref{Mode: PrimaryMode}
 }
 
+// PrimaryPreferred constructs a read preference with a PrimaryPreferredMode.
+func PrimaryPreferred(opts ...*ReadPrefBuilder) *ReadPref {
+	// New only returns an error with a mode of Primary
+	rp, _ := New(PrimaryPreferredMode, opts...)
+	return rp
+}
+
+// SecondaryPreferred constructs a read preference with a SecondaryPreferredMode.
+func SecondaryPreferred(opts ...*ReadPrefBuilder) *ReadPref {
+	// New only returns an error with a mode of Primary
+	rp, _ := New(SecondaryPreferredMode, opts...)
+	return rp
+}
+
+// Secondary constructs a read preference with a SecondaryMode.
+func Secondary(opts ...*ReadPrefBuilder) *ReadPref {
+	// New only returns an error with a mode of Primary
+	rp, _ := New(SecondaryMode, opts...)
+	return rp
+}
+
+// Nearest constructs a read preference with a NearestMode.
+func Nearest(opts ...*ReadPrefBuilder) *ReadPref {
+	// New only returns an error with a mode of Primary
+	rp, _ := New(NearestMode, opts...)
+	return rp
+}
+
+// New creates a new ReadPref.
+func New(mode Mode, builders ...*ReadPrefBuilder) (*ReadPref, error) {
+	rp := mergeBuilders(builders...)
+	rp.Mode = mode
+
+	if !validOpts(mode, rp) {
+		return nil, errInvalidReadPreference
+	}
+
+	return rp, nil
+}
+
 // MaxStaleness is the maximum amount of time to allow
 // a server to be considered eligible for selection. The
 // second return value indicates if this value has been set.
 func (r *ReadPref) MaxStaleness() *time.Duration {
-	return r.opts.MaxStaleness
+	return r.maxStaleness
 }
 
 // TagSets are multiple tag sets indicating
 // which servers should be considered.
 func (r *ReadPref) TagSets() []TagSet {
-	return r.opts.TagSets
+	return r.tagSets
 }
 
 // HedgeEnabled returns whether or not hedged reads are enabled for this read preference. If this option was not
 // specified during read preference construction, nil is returned.
 func (r *ReadPref) HedgeEnabled() *bool {
-	return r.opts.HedgeEnabled
+	return r.hedgeEnabled
 }
 
 // String returns a human-readable description of the read preference.
@@ -86,7 +154,7 @@ func (r *ReadPref) String() string {
 	b.WriteString(r.Mode.String())
 	delim := "("
 	if r.MaxStaleness() != nil {
-		fmt.Fprintf(&b, "%smaxStaleness=%v", delim, r.MaxStaleness())
+		fmt.Fprintf(&b, "%smaxStaleness=%v", delim, *r.MaxStaleness())
 		delim = " "
 	}
 	for _, tagSet := range r.TagSets() {
