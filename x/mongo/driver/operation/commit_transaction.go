@@ -10,17 +10,18 @@ import (
 	"context"
 	"errors"
 
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/driverutil"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
 // CommitTransaction attempts to commit a transaction.
 type CommitTransaction struct {
+	authenticator driver.Authenticator
 	recoveryToken bsoncore.Document
 	session       *session.Client
 	clock         *session.ClusterClock
@@ -65,6 +66,7 @@ func (ct *CommitTransaction) Execute(ctx context.Context) error {
 		WriteConcern:      ct.writeConcern,
 		ServerAPI:         ct.serverAPI,
 		Name:              driverutil.CommitTransactionOp,
+		Authenticator:     ct.authenticator,
 	}.Execute(ctx)
 
 }
@@ -186,5 +188,15 @@ func (ct *CommitTransaction) ServerAPI(serverAPI *driver.ServerAPIOptions) *Comm
 	}
 
 	ct.serverAPI = serverAPI
+	return ct
+}
+
+// Authenticator sets the authenticator to use for this operation.
+func (ct *CommitTransaction) Authenticator(authenticator driver.Authenticator) *CommitTransaction {
+	if ct == nil {
+		ct = new(CommitTransaction)
+	}
+
+	ct.authenticator = authenticator
 	return ct
 }

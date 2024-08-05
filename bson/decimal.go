@@ -18,7 +18,7 @@ import (
 	"strconv"
 	"strings"
 
-	"go.mongodb.org/mongo-driver/internal/decimal128"
+	"go.mongodb.org/mongo-driver/v2/internal/decimal128"
 )
 
 // These constants are the maximum and minimum values for the exponent field in a decimal128 value.

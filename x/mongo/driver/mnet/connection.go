@@ -10,8 +10,8 @@ import (
 	"context"
 	"io"
 
-	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/mongo/address"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
 )
 
 // ReadWriteCloser represents a Connection where server operations
@@ -30,6 +30,8 @@ type Describer interface {
 	DriverConnectionID() int64
 	Address() address.Address
 	Stale() bool
+	OIDCTokenGenID() uint64
+	SetOIDCTokenGenID(uint64)
 }
 
 // Streamer represents a Connection that supports streaming wire protocol

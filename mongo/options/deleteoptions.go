@@ -6,7 +6,8 @@
 
 package options
 
-// DeleteOptions represents options that can be used to configure DeleteOne and DeleteMany operations.
+// DeleteOptions represents arguments that can be used to configure DeleteOne
+// and DeleteMany operations.
 type DeleteOptions struct {
 	// Specifies a collation to use for string comparisons during the operation. This option is only valid for MongoDB
 	// versions >= 3.4. For previous server versions, the driver will return an error if this option is used. The
@@ -32,31 +33,63 @@ type DeleteOptions struct {
 	Let interface{}
 }
 
+// DeleteOptionsBuilder contains options to configure delete operations. Each
+// option can be set through setter functions. See documentation for each setter
+// function for an explanation of the option.
+type DeleteOptionsBuilder struct {
+	Opts []func(*DeleteOptions) error
+}
+
 // Delete creates a new DeleteOptions instance.
-func Delete() *DeleteOptions {
-	return &DeleteOptions{}
+func Delete() *DeleteOptionsBuilder {
+	return &DeleteOptionsBuilder{}
+}
+
+// List returns a list of DeleteOptions setter functions.
+func (do *DeleteOptionsBuilder) List() []func(*DeleteOptions) error {
+	return do.Opts
 }
 
 // SetCollation sets the value for the Collation field.
-func (do *DeleteOptions) SetCollation(c *Collation) *DeleteOptions {
-	do.Collation = c
+func (do *DeleteOptionsBuilder) SetCollation(c *Collation) *DeleteOptionsBuilder {
+	do.Opts = append(do.Opts, func(opts *DeleteOptions) error {
+		opts.Collation = c
+
+		return nil
+	})
+
 	return do
 }
 
 // SetComment sets the value for the Comment field.
-func (do *DeleteOptions) SetComment(comment interface{}) *DeleteOptions {
-	do.Comment = comment
+func (do *DeleteOptionsBuilder) SetComment(comment interface{}) *DeleteOptionsBuilder {
+	do.Opts = append(do.Opts, func(opts *DeleteOptions) error {
+		opts.Comment = comment
+
+		return nil
+	})
+
 	return do
 }
 
 // SetHint sets the value for the Hint field.
-func (do *DeleteOptions) SetHint(hint interface{}) *DeleteOptions {
-	do.Hint = hint
+func (do *DeleteOptionsBuilder) SetHint(hint interface{}) *DeleteOptionsBuilder {
+	do.Opts = append(do.Opts, func(opts *DeleteOptions) error {
+		opts.Hint = hint
+
+		return nil
+	})
+
 	return do
 }
 
 // SetLet sets the value for the Let field.
-func (do *DeleteOptions) SetLet(let interface{}) *DeleteOptions {
-	do.Let = let
+func (do *DeleteOptionsBuilder) SetLet(let interface{}) *DeleteOptionsBuilder {
+	do.Opts = append(do.Opts, func(opts *DeleteOptions) error {
+		opts.Let = let
+
+		return nil
+	})
+
 	return do
 }

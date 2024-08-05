@@ -15,17 +15,19 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/csfle"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/csfle"
+	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 )
 
 var (
@@ -110,13 +112,13 @@ type T struct {
 	enterprise        *bool
 	dataLake          *bool
 	ssl               *bool
-	collCreateOpts    *options.CreateCollectionOptions
+	collCreateOpts    *options.CreateCollectionOptionsBuilder
 	requireAPIVersion *bool
 
 	// options copied to sub-tests
 	clientType  ClientType
-	clientOpts  *options.ClientOptions
-	collOpts    *options.CollectionOptions
+	clientOpts  *options.ClientOptionsBuilder
+	collOpts    *options.CollectionOptionsBuilder
 	shareClient *bool
 
 	baseOpts *Options // used to create subtests
@@ -393,7 +395,7 @@ func (t *T) ClearEvents() {
 // If t.Coll is not-nil, it will be reset to use the new client. Should only be called if the existing client is
 // not nil. This will Disconnect the existing client but will not drop existing collections. To do so, ClearCollections
 // must be called before calling ResetClient.
-func (t *T) ResetClient(opts *options.ClientOptions) {
+func (t *T) ResetClient(opts *options.ClientOptionsBuilder) {
 	if opts != nil {
 		t.clientOpts = opts
 	}
@@ -425,8 +427,8 @@ type Collection struct {
 	Name               string
 	DB                 string        // defaults to mt.DB.Name() if not specified
 	Client             *mongo.Client // defaults to mt.Client if not specified
-	Opts               *options.CollectionOptions
-	CreateOpts         *options.CreateCollectionOptions
+	Opts               *options.CollectionOptionsBuilder
+	CreateOpts         *options.CreateCollectionOptionsBuilder
 	ViewOn             string
 	ViewPipeline       interface{}
 	hasDifferentClient bool
@@ -447,11 +449,14 @@ func (t *T) CreateCollection(coll Collection, createOnServer bool) *mongo.Collec
 
 	db := coll.Client.Database(coll.DB)
 
-	if coll.CreateOpts != nil && coll.CreateOpts.EncryptedFields != nil {
+	opts, err := mongoutil.NewOptions[options.CreateCollectionOptions](coll.CreateOpts)
+	require.NoError(t, err, "failed to construct options from builder")
+
+	if coll.CreateOpts != nil && opts.EncryptedFields != nil {
 		// An encrypted collection consists of a data collection and three state collections.
 		// Aborted test runs may leave these collections.
 		// Drop all four collections to avoid a quiet failure to create all collections.
-		DropEncryptedCollection(t, db.Collection(coll.Name), coll.CreateOpts.EncryptedFields)
+		DropEncryptedCollection(t, db.Collection(coll.Name), opts.EncryptedFields)
 	}
 
 	if createOnServer && t.clientType != Mock {
@@ -510,21 +515,20 @@ func (t *T) ClearCollections() {
 	// Collections should not be dropped when testing against Atlas Data Lake because the data is pre-inserted.
 	if !testContext.dataLake {
 		for _, coll := range t.createdColls {
-			if coll.CreateOpts != nil && coll.CreateOpts.EncryptedFields != nil {
-				DropEncryptedCollection(t, coll.created, coll.CreateOpts.EncryptedFields)
+			opts, err := mongoutil.NewOptions[options.CreateCollectionOptions](coll.CreateOpts)
+			require.NoError(t, err, "failed to construct options from builder")
+
+			if coll.CreateOpts != nil && opts.EncryptedFields != nil {
+				DropEncryptedCollection(t, coll.created, opts.EncryptedFields)
 			}
 
-			err := coll.created.Drop(context.Background())
-			if errors.Is(err, mongo.ErrUnacknowledgedWrite) || errors.Is(err, driver.ErrUnacknowledgedWrite) {
-				// It's possible that a collection could have an unacknowledged write concern, which
-				// could prevent it from being dropped for sharded clusters. We can resolve this by
-				// re-instantiating the collection with a majority write concern before dropping.
-				collname := coll.created.Name()
-				wcm := writeconcern.Majority()
-				wccoll := t.DB.Collection(collname, options.Collection().SetWriteConcern(wcm))
-				_ = wccoll.Drop(context.Background())
+			// It's possible that a collection could have an unacknowledged write
+			// concern, which could prevent it from being dropped for sharded
+			// clusters. We can resolve this by  re-instantiating the collection with
+			// a majority write concern before dropping.
+			clonedColl := coll.created.Clone(options.Collection().SetWriteConcern(writeconcern.Majority()))
 
-			}
+			_ = clonedColl.Drop(context.Background())
 		}
 	}
 	t.createdColls = t.createdColls[:0]
@@ -594,12 +598,12 @@ func (t *T) ClearFailPoints() {
 }
 
 // CloneDatabase modifies the default database for this test to match the given options.
-func (t *T) CloneDatabase(opts *options.DatabaseOptions) {
+func (t *T) CloneDatabase(opts *options.DatabaseOptionsBuilder) {
 	t.DB = t.Client.Database(t.dbName, opts)
 }
 
 // CloneCollection modifies the default collection for this test to match the given options.
-func (t *T) CloneCollection(opts *options.CollectionOptions) {
+func (t *T) CloneCollection(opts *options.CollectionOptionsBuilder) {
 	t.Coll = t.Coll.Clone(opts)
 }
 
@@ -618,17 +622,24 @@ func sanitizeCollectionName(db string, coll string) string {
 
 func (t *T) createTestClient() {
 	clientOpts := t.clientOpts
-	if clientOpts == nil {
+
+	if t.clientOpts == nil {
 		// default opts
 		clientOpts = options.Client().SetWriteConcern(MajorityWc).SetReadPreference(PrimaryRp)
 	}
+
+	args, err := mongoutil.NewOptions[options.ClientOptions](clientOpts)
+	if err != nil {
+		t.Fatalf("failed to construct options from builder: %v", err)
+	}
+
 	// set ServerAPIOptions to latest version if required
-	if clientOpts.Deployment == nil && t.clientType != Mock && clientOpts.ServerAPIOptions == nil && testContext.requireAPIVersion {
+	if args.Deployment == nil && t.clientType != Mock && args.ServerAPIOptions == nil && testContext.requireAPIVersion {
 		clientOpts.SetServerAPIOptions(options.ServerAPI(driver.TestServerAPIVersion))
 	}
 
 	// Setup command monitor
-	var customMonitor = clientOpts.Monitor
+	var customMonitor = args.Monitor
 	clientOpts.SetMonitor(&event.CommandMonitor{
 		Started: func(_ context.Context, cse *event.CommandStartedEvent) {
 			if customMonitor != nil && customMonitor.Started != nil {
@@ -656,8 +667,8 @@ func (t *T) createTestClient() {
 		},
 	})
 	// only specify connection pool monitor if no deployment is given
-	if clientOpts.Deployment == nil {
-		previousPoolMonitor := clientOpts.PoolMonitor
+	if args.Deployment == nil {
+		previousPoolMonitor := args.PoolMonitor
 
 		clientOpts.SetPoolMonitor(&event.PoolMonitor{
 			Event: func(evt *event.PoolEvent) {
@@ -675,7 +686,6 @@ func (t *T) createTestClient() {
 		})
 	}
 
-	var err error
 	switch t.clientType {
 	case Pinned:
 		// pin to first mongos
@@ -684,10 +694,15 @@ func (t *T) createTestClient() {
 		t.Client, err = mongo.Connect(uriOpts, clientOpts)
 	case Mock:
 		// clear pool monitor to avoid configuration error
-		clientOpts.PoolMonitor = nil
+		args, _ = mongoutil.NewOptions[options.ClientOptions](clientOpts)
+
+		args.PoolMonitor = nil
+
 		t.mockDeployment = newMockDeployment()
-		clientOpts.Deployment = t.mockDeployment
-		t.Client, err = mongo.Connect(clientOpts)
+		args.Deployment = t.mockDeployment
+
+		opts := mongoutil.NewOptionsLister(args, nil)
+		t.Client, err = mongo.Connect(opts)
 	case Proxy:
 		t.proxyDialer = newProxyDialer()
 		clientOpts.SetDialer(t.proxyDialer)
@@ -697,14 +712,13 @@ func (t *T) createTestClient() {
 	case Default:
 		// Use a different set of options to specify the URI because clientOpts may already have a URI or host seedlist
 		// specified.
-		var uriOpts *options.ClientOptions
-		if clientOpts.Deployment == nil {
+		var uriOpts *options.ClientOptionsBuilder
+		if args.Deployment == nil {
 			// Only specify URI if the deployment is not set to avoid setting topology/server options along with the
 			// deployment.
 			uriOpts = options.Client().ApplyURI(testContext.connString.Original)
 		}
 
-		// Pass in uriOpts first so clientOpts wins if there are any conflicting settings.
 		t.Client, err = mongo.Connect(uriOpts, clientOpts)
 	}
 	if err != nil {

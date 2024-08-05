@@ -11,7 +11,7 @@ import (
 	"context"
 	"errors"
 
-	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func BSONFlatStructDecoding(_ context.Context, tm TimerManager, iters int) error {
@@ -76,7 +76,7 @@ func BSONFlatStructTagsEncoding(_ context.Context, tm TimerManager, iters int) e
 	tm.ResetTimer()
 	for i := 0; i < iters; i++ {
 		buf.Reset()
-		vw := bson.NewValueWriter(buf)
+		vw := bson.NewDocumentWriter(buf)
 		err = bson.NewEncoder(vw).Encode(doc)
 		if err != nil {
 			return err

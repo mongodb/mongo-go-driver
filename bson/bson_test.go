@@ -17,9 +17,9 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/require"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 func noerr(t *testing.T, err error) {
@@ -535,7 +535,7 @@ func TestMapCodec(t *testing.T) {
 				mapRegistry := NewRegistry()
 				mapRegistry.RegisterKindEncoder(reflect.Map, tc.mapCodec)
 				buf := new(bytes.Buffer)
-				vw := NewValueWriter(buf)
+				vw := NewDocumentWriter(buf)
 				enc := NewEncoder(vw)
 				enc.SetRegistry(mapRegistry)
 				err := enc.Encode(mapObj)

@@ -12,11 +12,12 @@ import (
 
 	"strings"
 
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	. "go.mongodb.org/mongo-driver/x/mongo/driver/auth"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/drivertest"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	. "go.mongodb.org/mongo-driver/v2/x/mongo/driver/auth"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/drivertest"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
 )
 
 func TestMongoDBCRAuthenticator_Fails(t *testing.T) {
@@ -49,7 +50,7 @@ func TestMongoDBCRAuthenticator_Fails(t *testing.T) {
 
 	mnetconn := mnet.NewConnection(c)
 
-	err := authenticator.Auth(context.Background(), &Config{Connection: mnetconn})
+	err := authenticator.Auth(context.Background(), &driver.AuthConfig{Connection: mnetconn})
 	if err == nil {
 		t.Fatalf("expected an error but got none")
 	}
@@ -90,7 +91,7 @@ func TestMongoDBCRAuthenticator_Succeeds(t *testing.T) {
 
 	mnetconn := mnet.NewConnection(c)
 
-	err := authenticator.Auth(context.Background(), &Config{Connection: mnetconn})
+	err := authenticator.Auth(context.Background(), &driver.AuthConfig{Connection: mnetconn})
 	if err != nil {
 		t.Fatalf("expected no error but got \"%s\"", err)
 	}

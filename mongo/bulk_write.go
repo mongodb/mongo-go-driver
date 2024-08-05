@@ -10,14 +10,14 @@ import (
 	"context"
 	"errors"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
 type bulkWriteBatch struct {
@@ -87,10 +87,14 @@ func (bw *bulkWrite) execute(ctx context.Context) error {
 	}
 
 	bw.result.MatchedCount -= bw.result.UpsertedCount
-	if lastErr != nil {
-		_, lastErr = processWriteError(lastErr)
-		return lastErr
+
+	rr, err := processWriteError(lastErr)
+	if err != nil {
+		return err
 	}
+
+	bw.result.Acknowledged = rr.isAcknowledged()
+
 	if len(bwErr.WriteErrors) > 0 || bwErr.WriteConcernError != nil {
 		return bwErr
 	}
@@ -185,7 +189,7 @@ func (bw *bulkWrite) runInsert(ctx context.Context, batch bulkWriteBatch) (opera
 		Database(bw.collection.db.name).Collection(bw.collection.name).
 		Deployment(bw.collection.client.deployment).Crypt(bw.collection.client.cryptFLE).
 		ServerAPI(bw.collection.client.serverAPI).Timeout(bw.collection.client.timeout).
-		Logger(bw.collection.client.logger)
+		Logger(bw.collection.client.logger).Authenticator(bw.collection.client.authenticator)
 	if bw.comment != nil {
 		comment, err := marshalValue(bw.comment, bw.collection.bsonOpts, bw.collection.registry)
 		if err != nil {
@@ -255,7 +259,7 @@ func (bw *bulkWrite) runDelete(ctx context.Context, batch bulkWriteBatch) (opera
 		Database(bw.collection.db.name).Collection(bw.collection.name).
 		Deployment(bw.collection.client.deployment).Crypt(bw.collection.client.cryptFLE).Hint(hasHint).
 		ServerAPI(bw.collection.client.serverAPI).Timeout(bw.collection.client.timeout).
-		Logger(bw.collection.client.logger)
+		Logger(bw.collection.client.logger).Authenticator(bw.collection.client.authenticator)
 	if bw.comment != nil {
 		comment, err := marshalValue(bw.comment, bw.collection.bsonOpts, bw.collection.registry)
 		if err != nil {
@@ -305,7 +309,7 @@ func createDeleteDoc(
 	doc = bsoncore.AppendDocumentElement(doc, "q", f)
 	doc = bsoncore.AppendInt32Element(doc, "limit", limit)
 	if collation != nil {
-		doc = bsoncore.AppendDocumentElement(doc, "collation", collation.ToDocument())
+		doc = bsoncore.AppendDocumentElement(doc, "collation", toDocument(collation))
 	}
 	if hint != nil {
 		if isUnorderedMap(hint) {
@@ -386,7 +390,8 @@ func (bw *bulkWrite) runUpdate(ctx context.Context, batch bulkWriteBatch) (opera
 		Database(bw.collection.db.name).Collection(bw.collection.name).
 		Deployment(bw.collection.client.deployment).Crypt(bw.collection.client.cryptFLE).Hint(hasHint).
 		ArrayFilters(hasArrayFilters).ServerAPI(bw.collection.client.serverAPI).
-		Timeout(bw.collection.client.timeout).Logger(bw.collection.client.logger)
+		Timeout(bw.collection.client.timeout).Logger(bw.collection.client.logger).
+		Authenticator(bw.collection.client.authenticator)
 	if bw.comment != nil {
 		comment, err := marshalValue(bw.comment, bw.collection.bsonOpts, bw.collection.registry)
 		if err != nil {
@@ -422,7 +427,7 @@ func createUpdateDoc(
 	filter interface{},
 	update interface{},
 	hint interface{},
-	arrayFilters *options.ArrayFilters,
+	arrayFilters []interface{},
 	collation *options.Collation,
 	upsert *bool,
 	multi bool,
@@ -451,10 +456,7 @@ func createUpdateDoc(
 
 	if arrayFilters != nil {
 		reg := registry
-		if arrayFilters.Registry != nil {
-			reg = arrayFilters.Registry
-		}
-		arr, err := marshalValue(arrayFilters.Filters, bsonOpts, reg)
+		arr, err := marshalValue(arrayFilters, bsonOpts, reg)
 		if err != nil {
 			return nil, err
 		}
@@ -462,7 +464,7 @@ func createUpdateDoc(
 	}
 
 	if collation != nil {
-		updateDoc = bsoncore.AppendDocumentElement(updateDoc, "collation", bsoncore.Document(collation.ToDocument()))
+		updateDoc = bsoncore.AppendDocumentElement(updateDoc, "collation", bsoncore.Document(toDocument(collation)))
 	}
 
 	if upsert != nil {

@@ -12,28 +12,29 @@ import (
 	"fmt"
 	"time"
 
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
 // UpdateSearchIndex performs a updateSearchIndex operation.
 type UpdateSearchIndex struct {
-	index      string
-	definition bsoncore.Document
-	session    *session.Client
-	clock      *session.ClusterClock
-	collection string
-	monitor    *event.CommandMonitor
-	crypt      driver.Crypt
-	database   string
-	deployment driver.Deployment
-	selector   description.ServerSelector
-	result     UpdateSearchIndexResult
-	serverAPI  *driver.ServerAPIOptions
-	timeout    *time.Duration
+	authenticator driver.Authenticator
+	index         string
+	definition    bsoncore.Document
+	session       *session.Client
+	clock         *session.ClusterClock
+	collection    string
+	monitor       *event.CommandMonitor
+	crypt         driver.Crypt
+	database      string
+	deployment    driver.Deployment
+	selector      description.ServerSelector
+	result        UpdateSearchIndexResult
+	serverAPI     *driver.ServerAPIOptions
+	timeout       *time.Duration
 }
 
 // UpdateSearchIndexResult represents a single index in the updateSearchIndexResult result.
@@ -95,6 +96,7 @@ func (usi *UpdateSearchIndex) Execute(ctx context.Context) error {
 		Selector:          usi.selector,
 		ServerAPI:         usi.serverAPI,
 		Timeout:           usi.timeout,
+		Authenticator:     usi.authenticator,
 	}.Execute(ctx)
 
 }
@@ -223,5 +225,15 @@ func (usi *UpdateSearchIndex) Timeout(timeout *time.Duration) *UpdateSearchIndex
 	}
 
 	usi.timeout = timeout
+	return usi
+}
+
+// Authenticator sets the authenticator to use for this operation.
+func (usi *UpdateSearchIndex) Authenticator(authenticator driver.Authenticator) *UpdateSearchIndex {
+	if usi == nil {
+		usi = new(UpdateSearchIndex)
+	}
+
+	usi.authenticator = authenticator
 	return usi
 }

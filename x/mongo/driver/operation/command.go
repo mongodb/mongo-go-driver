@@ -11,17 +11,18 @@ import (
 	"errors"
 	"time"
 
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/logger"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/logger"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
 // Command is used to run a generic operation.
 type Command struct {
+	authenticator  driver.Authenticator
 	command        bsoncore.Document
 	database       string
 	deployment     driver.Deployment
@@ -107,6 +108,7 @@ func (c *Command) Execute(ctx context.Context) error {
 		ServerAPI:      c.serverAPI,
 		Timeout:        c.timeout,
 		Logger:         c.logger,
+		Authenticator:  c.authenticator,
 	}.Execute(ctx)
 }
 
@@ -217,5 +219,15 @@ func (c *Command) Logger(logger *logger.Logger) *Command {
 	}
 
 	c.logger = logger
+	return c
+}
+
+// Authenticator sets the authenticator to use for this operation.
+func (c *Command) Authenticator(authenticator driver.Authenticator) *Command {
+	if c == nil {
+		c = new(Command)
+	}
+
+	c.authenticator = authenticator
 	return c
 }

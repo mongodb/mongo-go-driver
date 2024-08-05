@@ -6,7 +6,8 @@
 
 package options
 
-// ListCollectionsOptions represents options that can be used to configure a ListCollections operation.
+// ListCollectionsOptions represents arguments that can be used to configure a
+// ListCollections operation.
 type ListCollectionsOptions struct {
 	// If true, each collection document will only contain a field for the collection name. The default value is false.
 	NameOnly *bool
@@ -19,26 +20,53 @@ type ListCollectionsOptions struct {
 	AuthorizedCollections *bool
 }
 
+// ListCollectionsOptionsBuilder contains options to configure list collection
+// operations. Each option can be set through setter functions. See
+// documentation for each setter function for an explanation of the option.
+type ListCollectionsOptionsBuilder struct {
+	Opts []func(*ListCollectionsOptions) error
+}
+
 // ListCollections creates a new ListCollectionsOptions instance.
-func ListCollections() *ListCollectionsOptions {
-	return &ListCollectionsOptions{}
+func ListCollections() *ListCollectionsOptionsBuilder {
+	return &ListCollectionsOptionsBuilder{}
+}
+
+// List returns a list of CountOptions setter functions.
+func (lc *ListCollectionsOptionsBuilder) List() []func(*ListCollectionsOptions) error {
+	return lc.Opts
 }
 
 // SetNameOnly sets the value for the NameOnly field.
-func (lc *ListCollectionsOptions) SetNameOnly(b bool) *ListCollectionsOptions {
-	lc.NameOnly = &b
+func (lc *ListCollectionsOptionsBuilder) SetNameOnly(b bool) *ListCollectionsOptionsBuilder {
+	lc.Opts = append(lc.Opts, func(opts *ListCollectionsOptions) error {
+		opts.NameOnly = &b
+
+		return nil
+	})
+
 	return lc
 }
 
 // SetBatchSize sets the value for the BatchSize field.
-func (lc *ListCollectionsOptions) SetBatchSize(size int32) *ListCollectionsOptions {
-	lc.BatchSize = &size
+func (lc *ListCollectionsOptionsBuilder) SetBatchSize(size int32) *ListCollectionsOptionsBuilder {
+	lc.Opts = append(lc.Opts, func(opts *ListCollectionsOptions) error {
+		opts.BatchSize = &size
+
+		return nil
+	})
+
 	return lc
 }
 
 // SetAuthorizedCollections sets the value for the AuthorizedCollections field. This option is only valid for MongoDB server versions >= 4.0. Server
 // versions < 4.0 ignore this option.
-func (lc *ListCollectionsOptions) SetAuthorizedCollections(b bool) *ListCollectionsOptions {
-	lc.AuthorizedCollections = &b
+func (lc *ListCollectionsOptionsBuilder) SetAuthorizedCollections(b bool) *ListCollectionsOptionsBuilder {
+	lc.Opts = append(lc.Opts, func(opts *ListCollectionsOptions) error {
+		opts.AuthorizedCollections = &b
+
+		return nil
+	})
+
 	return lc
 }

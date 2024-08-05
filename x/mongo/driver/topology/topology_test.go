@@ -16,15 +16,15 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/require"
-	"go.mongodb.org/mongo-driver/internal/serverselector"
-	"go.mongodb.org/mongo-driver/internal/spectest"
-	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
+	"go.mongodb.org/mongo-driver/v2/internal/spectest"
+	"go.mongodb.org/mongo-driver/v2/mongo/address"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
 )
 
 const testTimeout = 2 * time.Second
@@ -560,7 +560,7 @@ func TestTopologyConstructionLogging(t *testing.T) {
 		documentDBMsg = `You appear to be connected to a DocumentDB cluster. For more information regarding feature compatibility and support please visit https://www.mongodb.com/supportability/documentdb`
 	)
 
-	newLoggerOptions := func(sink options.LogSink) *options.LoggerOptions {
+	newLoggerOptionsBldr := func(sink options.LogSink) *options.LoggerOptionsBuilder {
 		return options.
 			Logger().
 			SetSink(sink).
@@ -603,7 +603,7 @@ func TestTopologyConstructionLogging(t *testing.T) {
 				t.Parallel()
 
 				sink := &mockLogSink{}
-				cfg, err := NewConfig(options.Client().ApplyURI(tc.uri).SetLoggerOptions(newLoggerOptions(sink)), nil)
+				cfg, err := NewConfig(options.Client().ApplyURI(tc.uri).SetLoggerOptions(newLoggerOptionsBldr(sink)), nil)
 				require.Nil(t, err, "error constructing topology config: %v", err)
 
 				topo, err := New(cfg)
@@ -667,7 +667,7 @@ func TestTopologyConstructionLogging(t *testing.T) {
 				t.Parallel()
 
 				sink := &mockLogSink{}
-				cfg, err := NewConfig(options.Client().ApplyURI(tc.uri).SetLoggerOptions(newLoggerOptions(sink)), nil)
+				cfg, err := NewConfig(options.Client().ApplyURI(tc.uri).SetLoggerOptions(newLoggerOptionsBldr(sink)), nil)
 				require.Nil(t, err, "error constructing topology config: %v", err)
 
 				topo, err := New(cfg)
@@ -701,7 +701,7 @@ func TestTopologyConstructionLogging(t *testing.T) {
 				t.Parallel()
 
 				sink := &mockLogSink{}
-				cfg, err := NewConfig(options.Client().ApplyURI(tc.uri).SetLoggerOptions(newLoggerOptions(sink)), nil)
+				cfg, err := NewConfig(options.Client().ApplyURI(tc.uri).SetLoggerOptions(newLoggerOptionsBldr(sink)), nil)
 				require.Nil(t, err, "error constructing topology config: %v", err)
 
 				topo, err := New(cfg)
@@ -765,7 +765,7 @@ func TestTopologyConstructionLogging(t *testing.T) {
 				t.Parallel()
 
 				sink := &mockLogSink{}
-				cfg, err := NewConfig(options.Client().ApplyURI(tc.uri).SetLoggerOptions(newLoggerOptions(sink)), nil)
+				cfg, err := NewConfig(options.Client().ApplyURI(tc.uri).SetLoggerOptions(newLoggerOptionsBldr(sink)), nil)
 				require.Nil(t, err, "error constructing topology config: %v", err)
 
 				topo, err := New(cfg)

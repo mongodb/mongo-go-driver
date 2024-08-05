@@ -18,14 +18,14 @@ import (
 	"sync/atomic"
 	"time"
 
-	"go.mongodb.org/mongo-driver/internal/driverutil"
-	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/ocsp"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
+	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/mongo/address"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/ocsp"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage"
 )
 
 // Connection state constants.
@@ -76,6 +76,9 @@ type connection struct {
 
 	driverConnectionID int64
 	generation         uint64
+	// oidcTokenGenID is the monotonic generation ID for OIDC tokens, used to invalidate
+	// accessTokens in the OIDC authenticator cache.
+	oidcTokenGenID uint64
 }
 
 // newConnection handles the creation of a connection. It does not connect the connection.
@@ -558,6 +561,8 @@ type Connection struct {
 	refCount      int
 	cleanupPoolFn func()
 
+	oidcTokenGenID uint64
+
 	// cleanupServerFn resets the server state when a connection is returned to the connection pool
 	// via Close() or expired via Expire().
 	cleanupServerFn func()
@@ -811,4 +816,22 @@ func configureTLS(ctx context.Context,
 		}
 	}
 	return client, nil
+}
+
+// OIDCTokenGenID returns the OIDC token generation ID.
+func (c *Connection) OIDCTokenGenID() uint64 {
+	return c.oidcTokenGenID
+}
+
+// SetOIDCTokenGenID sets the OIDC token generation ID.
+func (c *Connection) SetOIDCTokenGenID(genID uint64) {
+	c.oidcTokenGenID = genID
+}
+
+func (c *connection) OIDCTokenGenID() uint64 {
+	return c.oidcTokenGenID
+}
+
+func (c *connection) SetOIDCTokenGenID(genID uint64) {
+	c.oidcTokenGenID = genID
 }

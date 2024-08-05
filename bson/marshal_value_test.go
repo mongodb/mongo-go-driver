@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
 )
 
 func TestMarshalValue(t *testing.T) {

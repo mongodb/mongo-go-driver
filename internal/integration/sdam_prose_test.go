@@ -14,16 +14,17 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/handshake"
-	"go.mongodb.org/mongo-driver/internal/integration/mtest"
-	"go.mongodb.org/mongo-driver/internal/require"
-	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/handshake"
+	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/mongo/address"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/topology"
 )
 
 func TestSDAMProse(t *testing.T) {
@@ -68,7 +69,10 @@ func TestSDAMProse(t *testing.T) {
 		messages := mt.GetProxiedMessages()
 		duration := time.Since(start)
 
-		numNodes := len(options.Client().ApplyURI(mtest.ClusterURI()).Hosts)
+		hosts, err := mongoutil.HostsFromURI(mtest.ClusterURI())
+		require.NoError(mt, err)
+
+		numNodes := len(hosts)
 		maxExpected := numNodes * (2 + 2*int(duration/heartbeatInterval))
 		minExpected := numNodes * (2 + 2*int(duration/(heartbeatInterval*2)))
 

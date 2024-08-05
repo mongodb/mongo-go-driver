@@ -14,21 +14,21 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/csot"
-	"go.mongodb.org/mongo-driver/internal/handshake"
-	"go.mongodb.org/mongo-driver/internal/require"
-	"go.mongodb.org/mongo-driver/internal/uuid"
-	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/csot"
+	"go.mongodb.org/mongo-driver/v2/internal/handshake"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/internal/uuid"
+	"go.mongodb.org/mongo-driver/v2/mongo/address"
+	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage"
 )
 
 func noerr(t *testing.T, err error) {
@@ -438,19 +438,19 @@ func TestOperation(t *testing.T) {
 			{"primary/single", readpref.Primary(), description.ServerKindRSPrimary, description.TopologyKindSingle, false, rpPrimaryPreferred},
 			{"primary/primary", readpref.Primary(), description.ServerKindRSPrimary, description.TopologyKindReplicaSet, false, nil},
 			{"primaryPreferred", &readpref.ReadPref{Mode: readpref.PrimaryPreferredMode}, description.ServerKindRSSecondary, description.TopologyKindReplicaSet, false, rpPrimaryPreferred},
-			{"secondaryPreferred/mongos/opquery", &readpref.ReadPref{Mode: readpref.SecondaryMode}, description.ServerKindMongos, description.TopologyKindSharded, true, nil},
-			{"secondaryPreferred", &readpref.ReadPref{Mode: readpref.SecondaryMode}, description.ServerKindRSSecondary, description.TopologyKindReplicaSet, false, rpSecondaryPreferred},
+			{"secondaryPreferred/mongos/opquery", &readpref.ReadPref{Mode: readpref.SecondaryPreferredMode}, description.ServerKindMongos, description.TopologyKindSharded, true, nil},
+			{"secondaryPreferred", &readpref.ReadPref{Mode: readpref.SecondaryPreferredMode}, description.ServerKindRSSecondary, description.TopologyKindReplicaSet, false, rpSecondaryPreferred},
 			{"secondary", &readpref.ReadPref{Mode: readpref.SecondaryMode}, description.ServerKindRSSecondary, description.TopologyKindReplicaSet, false, rpSecondary},
 			{"nearest", &readpref.ReadPref{Mode: readpref.NearestMode}, description.ServerKindRSSecondary, description.TopologyKindReplicaSet, false, rpNearest},
 			{
 				"secondaryPreferred/withTags",
 				func() *readpref.ReadPref {
-					rpOpts := &readpref.Options{}
+					rpOpts := readpref.Options()
 
 					tagSet, err := readpref.NewTagSet("disk", "ssd", "use", "reporting")
 					assert.NoError(t, err)
 
-					rpOpts.TagSets = []readpref.TagSet{tagSet}
+					rpOpts.SetTagSets([]readpref.TagSet{tagSet})
 
 					rp, _ := readpref.New(readpref.SecondaryPreferredMode, rpOpts)
 
@@ -464,12 +464,12 @@ func TestOperation(t *testing.T) {
 			{
 				"secondaryPreferred/withTags/emptyTagSet",
 				func() *readpref.ReadPref {
-					rpOpts := &readpref.Options{}
+					rpOpts := readpref.Options()
 
-					rpOpts.TagSets = []readpref.TagSet{
+					rpOpts.SetTagSets([]readpref.TagSet{
 						readpref.TagSet{{Name: "disk", Value: "ssd"}},
 						readpref.TagSet{},
-					}
+					})
 
 					rp, _ := readpref.New(readpref.SecondaryPreferredMode, rpOpts)
 
@@ -489,10 +489,10 @@ func TestOperation(t *testing.T) {
 			{
 				"secondaryPreferred/withMaxStaleness",
 				func() *readpref.ReadPref {
-					rpOpts := &readpref.Options{}
+					rpOpts := readpref.Options()
 
 					maxStaleness := 25 * time.Second
-					rpOpts.MaxStaleness = &maxStaleness
+					rpOpts.SetMaxStaleness(maxStaleness)
 
 					rp, _ := readpref.New(readpref.SecondaryPreferredMode, rpOpts)
 
@@ -504,10 +504,10 @@ func TestOperation(t *testing.T) {
 				// A read preference document is generated for SecondaryPreferred if the hedge document is non-nil.
 				"secondaryPreferred with hedge to mongos using OP_QUERY",
 				func() *readpref.ReadPref {
-					rpOpts := &readpref.Options{}
+					rpOpts := readpref.Options()
 
 					he := true
-					rpOpts.HedgeEnabled = &he
+					rpOpts.SetHedgeEnabled(he)
 
 					rp, _ := readpref.New(readpref.SecondaryPreferredMode, rpOpts)
 
@@ -524,15 +524,15 @@ func TestOperation(t *testing.T) {
 					tagSet, err := readpref.NewTagSet("disk", "ssd", "use", "reporting")
 					assert.NoError(t, err)
 
-					rpOpts := &readpref.Options{}
+					rpOpts := readpref.Options()
 
-					rpOpts.TagSets = []readpref.TagSet{tagSet}
+					rpOpts.SetTagSets([]readpref.TagSet{tagSet})
 
 					maxStaleness := 25 * time.Second
-					rpOpts.MaxStaleness = &maxStaleness
+					rpOpts.SetMaxStaleness(maxStaleness)
 
 					he := false
-					rpOpts.HedgeEnabled = &he
+					rpOpts.SetHedgeEnabled(he)
 
 					rp, _ := readpref.New(readpref.SecondaryPreferredMode, rpOpts)
 
@@ -785,6 +785,8 @@ func (m *mockConnection) SupportsStreaming() bool         { return m.rCanStream 
 func (m *mockConnection) CurrentlyStreaming() bool        { return m.rStreaming }
 func (m *mockConnection) SetStreaming(streaming bool)     { m.rStreaming = streaming }
 func (m *mockConnection) Stale() bool                     { return false }
+func (m *mockConnection) OIDCTokenGenID() uint64          { return 0 }
+func (m *mockConnection) SetOIDCTokenGenID(uint64)        {}
 
 func (m *mockConnection) DriverConnectionID() int64 { return 0 }
 
@@ -1043,7 +1045,7 @@ func TestMarshalBSONWriteConcern(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			gotBSONType, gotBSON, gotErr := marshalBSONWriteConcern(test.writeConcern, test.wtimeout)
+			gotBSONType, gotBSON, gotErr := MarshalBSONWriteConcern(&test.writeConcern, test.wtimeout)
 			assert.Equal(t, test.wantBSONType, gotBSONType)
 
 			wantBSON := []byte(nil)

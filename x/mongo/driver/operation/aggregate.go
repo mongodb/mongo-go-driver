@@ -11,19 +11,20 @@ import (
 	"errors"
 	"time"
 
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/driverutil"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
 // Aggregate represents an aggregate operation.
 type Aggregate struct {
+	authenticator            driver.Authenticator
 	allowDiskUse             *bool
 	batchSize                *int32
 	bypassDocumentValidation *bool
@@ -110,6 +111,7 @@ func (a *Aggregate) Execute(ctx context.Context) error {
 		IsOutputAggregate:              a.hasOutputStage,
 		Timeout:                        a.timeout,
 		Name:                           driverutil.AggregateOp,
+		Authenticator:                  a.authenticator,
 	}.Execute(ctx)
 
 }
@@ -402,5 +404,15 @@ func (a *Aggregate) Timeout(timeout *time.Duration) *Aggregate {
 	}
 
 	a.timeout = timeout
+	return a
+}
+
+// Authenticator sets the authenticator to use for this operation.
+func (a *Aggregate) Authenticator(authenticator driver.Authenticator) *Aggregate {
+	if a == nil {
+		a = new(Aggregate)
+	}
+
+	a.authenticator = authenticator
 	return a
 }

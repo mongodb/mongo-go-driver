@@ -11,17 +11,18 @@ import (
 	"errors"
 	"time"
 
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/driverutil"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
 // ListCollections performs a listCollections operation.
 type ListCollections struct {
+	authenticator         driver.Authenticator
 	filter                bsoncore.Document
 	nameOnly              *bool
 	authorizedCollections *bool
@@ -83,6 +84,7 @@ func (lc *ListCollections) Execute(ctx context.Context) error {
 		ServerAPI:         lc.serverAPI,
 		Timeout:           lc.timeout,
 		Name:              driverutil.ListCollectionsOp,
+		Authenticator:     lc.authenticator,
 	}.Execute(ctx)
 
 }
@@ -257,5 +259,15 @@ func (lc *ListCollections) Timeout(timeout *time.Duration) *ListCollections {
 	}
 
 	lc.timeout = timeout
+	return lc
+}
+
+// Authenticator sets the authenticator to use for this operation.
+func (lc *ListCollections) Authenticator(authenticator driver.Authenticator) *ListCollections {
+	if lc == nil {
+		lc = new(ListCollections)
+	}
+
+	lc.authenticator = authenticator
 	return lc
 }

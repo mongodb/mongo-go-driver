@@ -10,10 +10,10 @@ import (
 	"context"
 	"errors"
 
-	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
+	"go.mongodb.org/mongo-driver/v2/mongo/address"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage"
 )
 
 // ChannelConn implements the driver.Connection interface by reading and writing wire messages
@@ -25,6 +25,16 @@ type ChannelConn struct {
 	ReadErr  chan error
 	Desc     description.Server
 }
+
+// OIDCTokenGenID implements the driver.Connection interface by returning the OIDCToken generation
+// (which is always 0)
+func (c *ChannelConn) OIDCTokenGenID() uint64 {
+	return 0
+}
+
+// SetOIDCTokenGenID implements the driver.Connection interface by setting the OIDCToken generation
+// (which is always 0)
+func (c *ChannelConn) SetOIDCTokenGenID(uint64) {}
 
 // WriteWireMessage implements the driver.Connection interface.
 func (c *ChannelConn) Write(ctx context.Context, wm []byte) error {

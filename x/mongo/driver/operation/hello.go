@@ -14,17 +14,17 @@ import (
 	"strconv"
 	"strings"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/bsonutil"
-	"go.mongodb.org/mongo-driver/internal/driverutil"
-	"go.mongodb.org/mongo-driver/internal/handshake"
-	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/version"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/bsonutil"
+	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/internal/handshake"
+	"go.mongodb.org/mongo-driver/v2/mongo/address"
+	"go.mongodb.org/mongo-driver/v2/version"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
 // maxClientMetadataSize is the maximum size of the client metadata document
@@ -37,6 +37,7 @@ const driverName = "mongo-go-driver"
 
 // Hello is used to run the handshake operation.
 type Hello struct {
+	authenticator      driver.Authenticator
 	appname            string
 	compressors        []string
 	saslSupportedMechs string
@@ -659,8 +660,16 @@ func (h *Hello) OmitMaxTimeMS(val bool) *Hello {
 	if h == nil {
 		h = new(Hello)
 	}
-
 	h.omitMaxTimeMS = val
+	return h
+}
 
+// Authenticator sets the authenticator to use for this operation.
+func (h *Hello) Authenticator(authenticator driver.Authenticator) *Hello {
+	if h == nil {
+		h = new(Hello)
+	}
+
+	h.authenticator = authenticator
 	return h
 }

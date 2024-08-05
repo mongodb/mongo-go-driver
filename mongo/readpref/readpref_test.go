@@ -18,7 +18,7 @@ func TestNew(t *testing.T) {
 	tests := []struct {
 		name    string
 		mode    Mode
-		opts    []*ReadPrefBuilder
+		opts    []*Builder
 		want    *ReadPref
 		wantErr error
 	}{
@@ -32,21 +32,21 @@ func TestNew(t *testing.T) {
 		{
 			name:    "primary with maxStaleness",
 			mode:    PrimaryMode,
-			opts:    []*ReadPrefBuilder{Options().SetMaxStaleness(1)},
+			opts:    []*Builder{Options().SetMaxStaleness(1)},
 			want:    nil,
 			wantErr: errInvalidReadPreference,
 		},
 		{
 			name:    "primary with tags",
 			mode:    PrimaryMode,
-			opts:    []*ReadPrefBuilder{Options().SetTagSets([]TagSet{{}})},
+			opts:    []*Builder{Options().SetTagSets([]TagSet{{}})},
 			want:    nil,
 			wantErr: errInvalidReadPreference,
 		},
 		{
 			name:    "primary with hedgeEnabled",
 			mode:    PrimaryMode,
-			opts:    []*ReadPrefBuilder{Options().SetHedgeEnabled(false)},
+			opts:    []*Builder{Options().SetHedgeEnabled(false)},
 			want:    nil,
 			wantErr: errInvalidReadPreference,
 		},

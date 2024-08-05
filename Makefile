@@ -127,6 +127,11 @@ evg-test-atlas-data-lake:
 evg-test-enterprise-auth:
 	go run -tags gssapi ./internal/cmd/testentauth/main.go
 
+.PHONY: evg-test-oidc-auth
+evg-test-oidc-auth:
+	go run ./internal/cmd/testoidcauth/main.go
+	go run -race ./internal/cmd/testoidcauth/main.go
+
 .PHONY: evg-test-kmip
 evg-test-kmip:
 	go test -exec "env PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) DYLD_LIBRARY_PATH=$(MACOS_LIBRARY_PATH)" $(BUILD_TAGS) -v -timeout $(TEST_TIMEOUT)s ./internal/integration -run TestClientSideEncryptionSpec/kmipKMS >> test.suite
@@ -202,7 +207,7 @@ benchmark:perf
 
 .PHONY: driver-benchmark
 driver-benchmark:perf
-	@go run internal/cmd/benchmark/main.go | tee perf.suite
+	@go run ./internal/cmd/benchmark | tee perf.suite
 
 perf:driver-test-data.tar.gz
 	tar -zxf $< $(if $(eq $(UNAME_S),Darwin),-s , --transform=s)/testdata/perf/

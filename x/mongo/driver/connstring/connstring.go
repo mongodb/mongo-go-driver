@@ -22,10 +22,9 @@ import (
 	"strings"
 	"time"
 
-	"go.mongodb.org/mongo-driver/internal/randutil"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/dns"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
+	"go.mongodb.org/mongo-driver/v2/internal/randutil"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/dns"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage"
 )
 
 const (
@@ -217,7 +216,7 @@ func (u *ConnString) Validate() error {
 
 	// Check for invalid write concern (i.e. w=0 and j=true)
 	if u.WNumberSet && u.WNumber == 0 && u.JSet && u.J {
-		return writeconcern.ErrInconsistent
+		return errors.New("a write concern cannot have both w=0 and j=true")
 	}
 
 	// Check for invalid use of direct connections.
@@ -296,6 +295,13 @@ func (u *ConnString) setDefaultAuthParams(dbName string) error {
 			u.AuthSource = dbName
 			if u.AuthSource == "" {
 				u.AuthSource = "admin"
+			}
+		}
+	case "mongodb-oidc":
+		if u.AuthSource == "" {
+			u.AuthSource = dbName
+			if u.AuthSource == "" {
+				u.AuthSource = "$external"
 			}
 		}
 	case "":
@@ -758,6 +764,10 @@ func (u *ConnString) validateAuth() error {
 		}
 		if u.AuthMechanismProperties != nil {
 			return fmt.Errorf("SCRAM-SHA-256 cannot have mechanism properties")
+		}
+	case "mongodb-oidc":
+		if u.Password != "" {
+			return fmt.Errorf("password cannot be specified for MONGODB-OIDC")
 		}
 	case "":
 		if u.UsernameSet && u.Username == "" {

@@ -14,11 +14,11 @@ import (
 	"sync"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
 )
 
 // Client examples
@@ -622,7 +622,8 @@ func ExampleWithSession() {
 	// The DefaultReadPreference and DefaultWriteConcern options aren't
 	// specified so they will be inheritied from client and be set to primary
 	// and majority, respectively.
-	opts := options.Session().SetDefaultReadConcern(readconcern.Majority())
+	txnOpts := options.Transaction().SetReadConcern(readconcern.Majority())
+	opts := options.Session().SetDefaultTransactionOptions(txnOpts)
 	sess, err := client.StartSession(opts)
 	if err != nil {
 		log.Fatal(err)
@@ -686,7 +687,8 @@ func ExampleClient_UseSessionWithOptions() {
 	// The DefaultReadPreference and DefaultWriteConcern options aren't
 	// specified so they will be inheritied from client and be set to primary
 	// and majority, respectively.
-	opts := options.Session().SetDefaultReadConcern(readconcern.Majority())
+	txnOpts := options.Transaction().SetReadConcern(readconcern.Majority())
+	opts := options.Session().SetDefaultTransactionOptions(txnOpts)
 	err := client.UseSessionWithOptions(
 		context.TODO(),
 		opts,
@@ -746,7 +748,8 @@ func ExampleClient_StartSession_withTransaction() {
 	// The DefaultReadPreference and DefaultWriteConcern options aren't
 	// specified so they will be inheritied from client and be set to primary
 	// and majority, respectively.
-	opts := options.Session().SetDefaultReadConcern(readconcern.Majority())
+	txnOpts := options.Transaction().SetReadConcern(readconcern.Majority())
+	opts := options.Session().SetDefaultTransactionOptions(txnOpts)
 	sess, err := client.StartSession(opts)
 	if err != nil {
 		log.Fatal(err)
@@ -755,9 +758,7 @@ func ExampleClient_StartSession_withTransaction() {
 
 	// Specify the ReadPreference option to set the read preference to primary
 	// preferred for this transaction.
-	rp := &readpref.ReadPref{Mode: readpref.PrimaryPreferredMode}
-	txnOpts := options.Transaction().SetReadPreference(rp)
-
+	txnOpts.SetReadPreference(readpref.PrimaryPreferred())
 	result, err := sess.WithTransaction(
 		context.TODO(),
 		func(ctx context.Context) (interface{}, error) {

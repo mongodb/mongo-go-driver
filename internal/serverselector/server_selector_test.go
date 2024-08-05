@@ -14,14 +14,14 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/driverutil"
-	"go.mongodb.org/mongo-driver/internal/require"
-	"go.mongodb.org/mongo-driver/internal/spectest"
-	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/internal/spectest"
+	"go.mongodb.org/mongo-driver/v2/mongo/address"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
 )
 
 type lastWriteDate struct {
@@ -242,20 +242,22 @@ func selectServers(t *testing.T, test *testCase) error {
 		return err
 	}
 
-	rpOpts := &readpref.Options{}
+	rpOpts := readpref.Options()
 
 	tagSets := readpref.NewTagSetsFromMaps(test.ReadPreference.TagSets)
 	if anyTagsInSets(tagSets) {
-		rpOpts.TagSets = tagSets
+		rpOpts.SetTagSets(tagSets)
 	}
 
 	if test.ReadPreference.MaxStaleness != nil {
 		s := time.Duration(*test.ReadPreference.MaxStaleness) * time.Second
-		rpOpts.MaxStaleness = &s
+		rpOpts.SetMaxStaleness(s)
 	}
 
 	rp, err := readpref.New(readprefMode, rpOpts)
-	assert.NoError(t, err)
+	if err != nil {
+		return err
+	}
 
 	var selector description.ServerSelector
 
@@ -765,12 +767,12 @@ func TestSelector_PrimaryPreferred(t *testing.T) {
 func TestSelector_PrimaryPreferred_ignores_tags(t *testing.T) {
 	t.Parallel()
 
-	rpOpts := &readpref.Options{}
+	rpOpts := readpref.Options()
 
 	tagSet, err := readpref.NewTagSet("a", "2")
 	assert.NoError(t, err)
 
-	rpOpts.TagSets = []readpref.TagSet{tagSet}
+	rpOpts.SetTagSets([]readpref.TagSet{tagSet})
 
 	subject, err := readpref.New(readpref.PrimaryPreferredMode, rpOpts)
 	assert.NoError(t, err)
@@ -800,12 +802,12 @@ func TestSelector_PrimaryPreferred_with_no_primary(t *testing.T) {
 func TestSelector_PrimaryPreferred_with_no_primary_and_tags(t *testing.T) {
 	t.Parallel()
 
-	rpOpts := &readpref.Options{}
+	rpOpts := readpref.Options()
 
 	tagSet, err := readpref.NewTagSet("a", "2")
 	assert.NoError(t, err)
 
-	rpOpts.TagSets = []readpref.TagSet{tagSet}
+	rpOpts.SetTagSets([]readpref.TagSet{tagSet})
 
 	subject, err := readpref.New(readpref.PrimaryPreferredMode, rpOpts)
 	assert.NoError(t, err)
@@ -821,10 +823,10 @@ func TestSelector_PrimaryPreferred_with_no_primary_and_tags(t *testing.T) {
 func TestSelector_PrimaryPreferred_with_maxStaleness(t *testing.T) {
 	t.Parallel()
 
-	rpOpts := &readpref.Options{}
+	rpOpts := readpref.Options()
 
 	maxStaleness := 90 * time.Second
-	rpOpts.MaxStaleness = &maxStaleness
+	rpOpts.SetMaxStaleness(maxStaleness)
 
 	subject, err := readpref.New(readpref.PrimaryPreferredMode, rpOpts)
 	assert.NoError(t, err)
@@ -840,10 +842,10 @@ func TestSelector_PrimaryPreferred_with_maxStaleness(t *testing.T) {
 func TestSelector_PrimaryPreferred_with_maxStaleness_and_no_primary(t *testing.T) {
 	t.Parallel()
 
-	rpOpts := &readpref.Options{}
+	rpOpts := readpref.Options()
 
 	maxStaleness := 90 * time.Second
-	rpOpts.MaxStaleness = &maxStaleness
+	rpOpts.SetMaxStaleness(maxStaleness)
 
 	subject, err := readpref.New(readpref.PrimaryPreferredMode, rpOpts)
 	assert.NoError(t, err)
@@ -872,12 +874,12 @@ func TestSelector_SecondaryPreferred(t *testing.T) {
 func TestSelector_SecondaryPreferred_with_tags(t *testing.T) {
 	t.Parallel()
 
-	rpOpts := &readpref.Options{}
+	rpOpts := readpref.Options()
 
 	tagSet, err := readpref.NewTagSet("a", "2")
 	assert.NoError(t, err)
 
-	rpOpts.TagSets = []readpref.TagSet{tagSet}
+	rpOpts.SetTagSets([]readpref.TagSet{tagSet})
 
 	subject, err := readpref.New(readpref.SecondaryPreferredMode, rpOpts)
 	assert.NoError(t, err)
@@ -892,12 +894,12 @@ func TestSelector_SecondaryPreferred_with_tags(t *testing.T) {
 func TestSelector_SecondaryPreferred_with_tags_that_do_not_match(t *testing.T) {
 	t.Parallel()
 
-	rpOpts := &readpref.Options{}
+	rpOpts := readpref.Options()
 
 	tagSet, err := readpref.NewTagSet("a", "3")
 	assert.NoError(t, err)
 
-	rpOpts.TagSets = []readpref.TagSet{tagSet}
+	rpOpts.SetTagSets([]readpref.TagSet{tagSet})
 
 	subject, err := readpref.New(readpref.SecondaryPreferredMode, rpOpts)
 	assert.NoError(t, err)
@@ -912,12 +914,12 @@ func TestSelector_SecondaryPreferred_with_tags_that_do_not_match(t *testing.T) {
 func TestSelector_SecondaryPreferred_with_tags_that_do_not_match_and_no_primary(t *testing.T) {
 	t.Parallel()
 
-	rpOpts := &readpref.Options{}
+	rpOpts := readpref.Options()
 
 	tagSet, err := readpref.NewTagSet("a", "3")
 	assert.NoError(t, err)
 
-	rpOpts.TagSets = []readpref.TagSet{tagSet}
+	rpOpts.SetTagSets([]readpref.TagSet{tagSet})
 
 	subject, err := readpref.New(readpref.SecondaryPreferredMode, rpOpts)
 	assert.NoError(t, err)
@@ -955,10 +957,10 @@ func TestSelector_SecondaryPreferred_with_no_secondaries_or_primary(t *testing.T
 func TestSelector_SecondaryPreferred_with_maxStaleness(t *testing.T) {
 	t.Parallel()
 
-	rpOpts := &readpref.Options{}
+	rpOpts := readpref.Options()
 
 	maxStaleness := 90 * time.Second
-	rpOpts.MaxStaleness = &maxStaleness
+	rpOpts.SetMaxStaleness(maxStaleness)
 
 	subject, err := readpref.New(readpref.SecondaryPreferredMode, rpOpts)
 	assert.NoError(t, err)
@@ -973,10 +975,10 @@ func TestSelector_SecondaryPreferred_with_maxStaleness(t *testing.T) {
 func TestSelector_SecondaryPreferred_with_maxStaleness_and_no_primary(t *testing.T) {
 	t.Parallel()
 
-	rpOpts := &readpref.Options{}
+	rpOpts := readpref.Options()
 
 	maxStaleness := 90 * time.Second
-	rpOpts.MaxStaleness = &maxStaleness
+	rpOpts.SetMaxStaleness(maxStaleness)
 
 	subject, err := readpref.New(readpref.SecondaryPreferredMode, rpOpts)
 	assert.NoError(t, err)
@@ -1003,10 +1005,10 @@ func TestSelector_Secondary(t *testing.T) {
 func TestSelector_Secondary_with_tags(t *testing.T) {
 	t.Parallel()
 
-	rpOpts := &readpref.Options{}
+	rpOpts := readpref.Options()
 
 	maxStaleness := 90 * time.Second
-	rpOpts.MaxStaleness = &maxStaleness
+	rpOpts.SetMaxStaleness(maxStaleness)
 
 	subject, _ := readpref.New(readpref.SecondaryMode, rpOpts)
 
@@ -1045,8 +1047,8 @@ func TestSelector_Secondary_with_empty_tag_set(t *testing.T) {
 	}
 	emptyTagSet := readpref.TagSet{}
 
-	rpOpts := &readpref.Options{}
-	rpOpts.TagSets = []readpref.TagSet{nonMatchingSet, emptyTagSet}
+	rpOpts := readpref.Options()
+	rpOpts.SetTagSets([]readpref.TagSet{nonMatchingSet, emptyTagSet})
 
 	rp, _ := readpref.New(readpref.SecondaryPreferredMode, rpOpts)
 
@@ -1062,8 +1064,8 @@ func TestSelector_Secondary_with_tags_that_do_not_match(t *testing.T) {
 	tagSet, err := readpref.NewTagSet("a", "3")
 	assert.NoError(t, err)
 
-	rpOpts := &readpref.Options{}
-	rpOpts.TagSets = []readpref.TagSet{tagSet}
+	rpOpts := readpref.Options()
+	rpOpts.SetTagSets([]readpref.TagSet{tagSet})
 
 	subject, _ := readpref.New(readpref.SecondaryMode, rpOpts)
 
@@ -1087,10 +1089,10 @@ func TestSelector_Secondary_with_no_secondaries(t *testing.T) {
 func TestSelector_Secondary_with_maxStaleness(t *testing.T) {
 	t.Parallel()
 
-	rpOpts := &readpref.Options{}
+	rpOpts := readpref.Options()
 
 	maxStaleness := 90 * time.Second
-	rpOpts.MaxStaleness = &maxStaleness
+	rpOpts.SetMaxStaleness(maxStaleness)
 
 	subject, _ := readpref.New(readpref.SecondaryMode, rpOpts)
 
@@ -1104,10 +1106,10 @@ func TestSelector_Secondary_with_maxStaleness(t *testing.T) {
 func TestSelector_Secondary_with_maxStaleness_and_no_primary(t *testing.T) {
 	t.Parallel()
 
-	rpOpts := &readpref.Options{}
+	rpOpts := readpref.Options()
 
 	maxStaleness := 90 * time.Second
-	rpOpts.MaxStaleness = &maxStaleness
+	rpOpts.SetMaxStaleness(maxStaleness)
 
 	subject, _ := readpref.New(readpref.SecondaryMode, rpOpts)
 
@@ -1133,12 +1135,12 @@ func TestSelector_Nearest(t *testing.T) {
 func TestSelector_Nearest_with_tags(t *testing.T) {
 	t.Parallel()
 
-	rpOpts := &readpref.Options{}
+	rpOpts := readpref.Options()
 
 	tagSet, err := readpref.NewTagSet("a", "1")
 	assert.NoError(t, err)
 
-	rpOpts.TagSets = []readpref.TagSet{tagSet}
+	rpOpts.SetTagSets([]readpref.TagSet{tagSet})
 
 	subject, _ := readpref.New(readpref.NearestMode, rpOpts)
 
@@ -1152,12 +1154,12 @@ func TestSelector_Nearest_with_tags(t *testing.T) {
 func TestSelector_Nearest_with_tags_that_do_not_match(t *testing.T) {
 	t.Parallel()
 
-	rpOpts := &readpref.Options{}
+	rpOpts := readpref.Options()
 
 	tagSet, err := readpref.NewTagSet("a", "3")
 	assert.NoError(t, err)
 
-	rpOpts.TagSets = []readpref.TagSet{tagSet}
+	rpOpts.SetTagSets([]readpref.TagSet{tagSet})
 
 	subject, _ := readpref.New(readpref.NearestMode, rpOpts)
 
@@ -1194,10 +1196,10 @@ func TestSelector_Nearest_with_no_secondaries(t *testing.T) {
 func TestSelector_Nearest_with_maxStaleness(t *testing.T) {
 	t.Parallel()
 
-	rpOpts := &readpref.Options{}
+	rpOpts := readpref.Options()
 
 	maxStaleness := 90 * time.Second
-	rpOpts.MaxStaleness = &maxStaleness
+	rpOpts.SetMaxStaleness(maxStaleness)
 
 	subject, _ := readpref.New(readpref.NearestMode, rpOpts)
 
@@ -1211,10 +1213,10 @@ func TestSelector_Nearest_with_maxStaleness(t *testing.T) {
 func TestSelector_Nearest_with_maxStaleness_and_no_primary(t *testing.T) {
 	t.Parallel()
 
-	rpOpts := &readpref.Options{}
+	rpOpts := readpref.Options()
 
 	maxStaleness := 90 * time.Second
-	rpOpts.MaxStaleness = &maxStaleness
+	rpOpts.SetMaxStaleness(maxStaleness)
 
 	subject, _ := readpref.New(readpref.NearestMode, rpOpts)
 
@@ -1228,10 +1230,10 @@ func TestSelector_Nearest_with_maxStaleness_and_no_primary(t *testing.T) {
 func TestSelector_Max_staleness_is_less_than_90_seconds(t *testing.T) {
 	t.Parallel()
 
-	rpOpts := &readpref.Options{}
+	rpOpts := readpref.Options()
 
 	maxStaleness := 50 * time.Second
-	rpOpts.MaxStaleness = &maxStaleness
+	rpOpts.SetMaxStaleness(maxStaleness)
 
 	subject, _ := readpref.New(readpref.NearestMode, rpOpts)
 
@@ -1256,10 +1258,10 @@ func TestSelector_Max_staleness_is_less_than_90_seconds(t *testing.T) {
 func TestSelector_Max_staleness_is_too_low(t *testing.T) {
 	t.Parallel()
 
-	rpOpts := &readpref.Options{}
+	rpOpts := readpref.Options()
 
 	maxStaleness := 100 * time.Second
-	rpOpts.MaxStaleness = &maxStaleness
+	rpOpts.SetMaxStaleness(maxStaleness)
 
 	subject, _ := readpref.New(readpref.NearestMode, rpOpts)
 

@@ -11,9 +11,9 @@ import (
 	"fmt"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/bsonutil"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/bsonutil"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 // This file contains helpers to execute database operations.
@@ -25,7 +25,7 @@ func executeCreateView(ctx context.Context, operation *operation) (*operationRes
 	}
 
 	var collName string
-	var cvo options.CreateViewOptions
+	var cvo options.CreateViewOptionsBuilder
 	var viewOn string
 	pipeline := make([]interface{}, 0)
 
@@ -77,7 +77,7 @@ func executeCreateCollection(ctx context.Context, operation *operation) (*operat
 	}
 
 	var collName string
-	var cco options.CreateCollectionOptions
+	var cco options.CreateCollectionOptionsBuilder
 	elems, _ := operation.Arguments.Elements()
 	for _, elem := range elems {
 		key := elem.Key()

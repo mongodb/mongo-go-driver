@@ -9,15 +9,16 @@ package auth
 import (
 	"bytes"
 	"context"
+	"net/http"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/handshake"
-	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/drivertest"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/handshake"
+	"go.mongodb.org/mongo-driver/v2/mongo/address"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/drivertest"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
 )
 
 var (
@@ -64,7 +65,7 @@ func TestSpeculativeSCRAM(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				// Create a SCRAM authenticator and overwrite the nonce generator to make the conversation
 				// deterministic.
-				authenticator, err := CreateAuthenticator(tc.mechanism, cred)
+				authenticator, err := CreateAuthenticator(tc.mechanism, cred, &http.Client{})
 				assert.Nil(t, err, "CreateAuthenticator error: %v", err)
 				setNonce(t, authenticator, tc.nonce)
 
@@ -151,7 +152,7 @@ func TestSpeculativeSCRAM(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.mechanism, func(t *testing.T) {
-				authenticator, err := CreateAuthenticator(tc.mechanism, cred)
+				authenticator, err := CreateAuthenticator(tc.mechanism, cred, &http.Client{})
 				assert.Nil(t, err, "CreateAuthenticator error: %v", err)
 				setNonce(t, authenticator, tc.nonce)
 

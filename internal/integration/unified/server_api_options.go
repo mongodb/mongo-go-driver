@@ -9,14 +9,14 @@ package unified
 import (
 	"fmt"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 // serverAPIOptions is a wrapper for *options.ServerAPIOptions. This type implements the bson.Unmarshaler interface
 // to convert BSON documents to a serverAPIOptions instance.
 type serverAPIOptions struct {
-	*options.ServerAPIOptions
+	*options.ServerAPIOptionsBuilder
 }
 
 type serverAPIVersion = options.ServerAPIVersion
@@ -37,7 +37,7 @@ func (s *serverAPIOptions) UnmarshalBSON(data []byte) error {
 		return fmt.Errorf("unrecognized fields for serverAPIOptions: %v", mapKeys(temp.Extra))
 	}
 
-	s.ServerAPIOptions = options.ServerAPI(temp.ServerAPIVersion)
+	s.ServerAPIOptionsBuilder = options.ServerAPI(temp.ServerAPIVersion)
 	if temp.DeprecationErrors != nil {
 		s.SetDeprecationErrors(*temp.DeprecationErrors)
 	}

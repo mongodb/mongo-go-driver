@@ -11,14 +11,14 @@ import (
 	"errors"
 	"fmt"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 // parseDataKeyOptions will parse an options document and return an options.DataKeyOptions instance.
-func parseDataKeyOptions(opts bson.Raw) (*options.DataKeyOptions, error) {
+func parseDataKeyOptions(opts bson.Raw) (*options.DataKeyOptionsBuilder, error) {
 	elems, err := opts.Elements()
 	if err != nil {
 		return nil, err
@@ -100,7 +100,7 @@ func executeCreateDataKey(ctx context.Context, operation *operation) (*operation
 	}
 
 	var kmsProvider string
-	var dko *options.DataKeyOptions
+	var dko *options.DataKeyOptionsBuilder
 
 	elems, err := operation.Arguments.Elements()
 	if err != nil {
@@ -302,7 +302,7 @@ func executeRemoveKeyAltName(ctx context.Context, operation *operation) (*operat
 
 // parseRewrapManyDataKeyOptions will parse an options document and return an
 // options.RewrapManyDataKeyOptions instance.
-func parseRewrapManyDataKeyOptions(opts bson.Raw) (*options.RewrapManyDataKeyOptions, error) {
+func parseRewrapManyDataKeyOptions(opts bson.Raw) (*options.RewrapManyDataKeyOptionsBuilder, error) {
 	elems, err := opts.Elements()
 	if err != nil {
 		return nil, err
@@ -357,7 +357,7 @@ func executeRewrapManyDataKey(ctx context.Context, operation *operation) (*opera
 	}
 
 	var filter bson.Raw
-	var rmdko *options.RewrapManyDataKeyOptions
+	var rmdko *options.RewrapManyDataKeyOptionsBuilder
 
 	elems, err := operation.Arguments.Elements()
 	if err != nil {

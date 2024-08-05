@@ -11,19 +11,20 @@ import (
 	"errors"
 	"time"
 
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/driverutil"
-	"go.mongodb.org/mongo-driver/internal/logger"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/internal/logger"
+	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
 // Find performs a find operation.
 type Find struct {
+	authenticator       driver.Authenticator
 	allowDiskUse        *bool
 	allowPartialResults *bool
 	awaitData           *bool
@@ -107,6 +108,7 @@ func (f *Find) Execute(ctx context.Context) error {
 		Timeout:           f.timeout,
 		Logger:            f.logger,
 		Name:              driverutil.FindOp,
+		Authenticator:     f.authenticator,
 	}.Execute(ctx)
 }
 
@@ -545,5 +547,15 @@ func (f *Find) Logger(logger *logger.Logger) *Find {
 	}
 
 	f.logger = logger
+	return f
+}
+
+// Authenticator sets the authenticator to use for this operation.
+func (f *Find) Authenticator(authenticator driver.Authenticator) *Find {
+	if f == nil {
+		f = new(Find)
+	}
+
+	f.authenticator = authenticator
 	return f
 }

@@ -14,7 +14,6 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -24,17 +23,18 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/httputil"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/ptrutil"
+	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
 )
 
-var tClientOptions = reflect.TypeOf(&ClientOptions{})
+var tClientOptions = reflect.TypeOf(&ClientOptionsBuilder{})
+var tClientopts = reflect.TypeOf(&ClientOptions{})
 
 func TestClientOptions(t *testing.T) {
 	t.Run("ApplyURI/doesn't overwrite previous errors", func(t *testing.T) {
@@ -48,14 +48,6 @@ func TestClientOptions(t *testing.T) {
 			t.Errorf("Did not received expected error. got %v; want %v", got, want)
 		}
 	})
-	t.Run("Validate/returns error", func(t *testing.T) {
-		want := errors.New("validate error")
-		co := &ClientOptions{err: want}
-		got := co.Validate()
-		if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
-			t.Errorf("Did not receive expected error. got %v; want %v", got, want)
-		}
-	})
 	t.Run("Set", func(t *testing.T) {
 		testCases := []struct {
 			name        string
@@ -64,32 +56,32 @@ func TestClientOptions(t *testing.T) {
 			field       string      // field to be set
 			dereference bool        // Should we compare a pointer or the field
 		}{
-			{"AppName", (*ClientOptions).SetAppName, "example-application", "AppName", true},
-			{"Auth", (*ClientOptions).SetAuth, Credential{Username: "foo", Password: "bar"}, "Auth", true},
-			{"Compressors", (*ClientOptions).SetCompressors, []string{"zstd", "snappy", "zlib"}, "Compressors", true},
-			{"ConnectTimeout", (*ClientOptions).SetConnectTimeout, 5 * time.Second, "ConnectTimeout", true},
-			{"Dialer", (*ClientOptions).SetDialer, testDialer{Num: 12345}, "Dialer", true},
-			{"HeartbeatInterval", (*ClientOptions).SetHeartbeatInterval, 5 * time.Second, "HeartbeatInterval", true},
-			{"Hosts", (*ClientOptions).SetHosts, []string{"localhost:27017", "localhost:27018", "localhost:27019"}, "Hosts", true},
-			{"LocalThreshold", (*ClientOptions).SetLocalThreshold, 5 * time.Second, "LocalThreshold", true},
-			{"MaxConnIdleTime", (*ClientOptions).SetMaxConnIdleTime, 5 * time.Second, "MaxConnIdleTime", true},
-			{"MaxPoolSize", (*ClientOptions).SetMaxPoolSize, uint64(250), "MaxPoolSize", true},
-			{"MinPoolSize", (*ClientOptions).SetMinPoolSize, uint64(10), "MinPoolSize", true},
-			{"MaxConnecting", (*ClientOptions).SetMaxConnecting, uint64(10), "MaxConnecting", true},
-			{"PoolMonitor", (*ClientOptions).SetPoolMonitor, &event.PoolMonitor{}, "PoolMonitor", false},
-			{"Monitor", (*ClientOptions).SetMonitor, &event.CommandMonitor{}, "Monitor", false},
-			{"ReadConcern", (*ClientOptions).SetReadConcern, readconcern.Majority(), "ReadConcern", false},
-			{"ReadPreference", (*ClientOptions).SetReadPreference, &readpref.ReadPref{Mode: readpref.SecondaryPreferredMode}, "ReadPreference", false},
-			{"Registry", (*ClientOptions).SetRegistry, bson.NewRegistry(), "Registry", false},
-			{"ReplicaSet", (*ClientOptions).SetReplicaSet, "example-replicaset", "ReplicaSet", true},
-			{"RetryWrites", (*ClientOptions).SetRetryWrites, true, "RetryWrites", true},
-			{"ServerSelectionTimeout", (*ClientOptions).SetServerSelectionTimeout, 5 * time.Second, "ServerSelectionTimeout", true},
-			{"Direct", (*ClientOptions).SetDirect, true, "Direct", true},
-			{"TLSConfig", (*ClientOptions).SetTLSConfig, &tls.Config{}, "TLSConfig", false},
-			{"WriteConcern", (*ClientOptions).SetWriteConcern, writeconcern.Majority(), "WriteConcern", false},
-			{"ZlibLevel", (*ClientOptions).SetZlibLevel, 6, "ZlibLevel", true},
-			{"DisableOCSPEndpointCheck", (*ClientOptions).SetDisableOCSPEndpointCheck, true, "DisableOCSPEndpointCheck", true},
-			{"LoadBalanced", (*ClientOptions).SetLoadBalanced, true, "LoadBalanced", true},
+			{"AppName", (*ClientOptionsBuilder).SetAppName, "example-application", "AppName", true},
+			{"Auth", (*ClientOptionsBuilder).SetAuth, Credential{Username: "foo", Password: "bar"}, "Auth", true},
+			{"Compressors", (*ClientOptionsBuilder).SetCompressors, []string{"zstd", "snappy", "zlib"}, "Compressors", true},
+			{"ConnectTimeout", (*ClientOptionsBuilder).SetConnectTimeout, 5 * time.Second, "ConnectTimeout", true},
+			{"Dialer", (*ClientOptionsBuilder).SetDialer, testDialer{Num: 12345}, "Dialer", true},
+			{"HeartbeatInterval", (*ClientOptionsBuilder).SetHeartbeatInterval, 5 * time.Second, "HeartbeatInterval", true},
+			{"Hosts", (*ClientOptionsBuilder).SetHosts, []string{"localhost:27017", "localhost:27018", "localhost:27019"}, "Hosts", true},
+			{"LocalThreshold", (*ClientOptionsBuilder).SetLocalThreshold, 5 * time.Second, "LocalThreshold", true},
+			{"MaxConnIdleTime", (*ClientOptionsBuilder).SetMaxConnIdleTime, 5 * time.Second, "MaxConnIdleTime", true},
+			{"MaxPoolSize", (*ClientOptionsBuilder).SetMaxPoolSize, uint64(250), "MaxPoolSize", true},
+			{"MinPoolSize", (*ClientOptionsBuilder).SetMinPoolSize, uint64(10), "MinPoolSize", true},
+			{"MaxConnecting", (*ClientOptionsBuilder).SetMaxConnecting, uint64(10), "MaxConnecting", true},
+			{"PoolMonitor", (*ClientOptionsBuilder).SetPoolMonitor, &event.PoolMonitor{}, "PoolMonitor", false},
+			{"Monitor", (*ClientOptionsBuilder).SetMonitor, &event.CommandMonitor{}, "Monitor", false},
+			{"ReadConcern", (*ClientOptionsBuilder).SetReadConcern, readconcern.Majority(), "ReadConcern", false},
+			{"ReadPreference", (*ClientOptionsBuilder).SetReadPreference, readpref.SecondaryPreferred(), "ReadPreference", false},
+			{"Registry", (*ClientOptionsBuilder).SetRegistry, bson.NewRegistry(), "Registry", false},
+			{"ReplicaSet", (*ClientOptionsBuilder).SetReplicaSet, "example-replicaset", "ReplicaSet", true},
+			{"RetryWrites", (*ClientOptionsBuilder).SetRetryWrites, true, "RetryWrites", true},
+			{"ServerSelectionTimeout", (*ClientOptionsBuilder).SetServerSelectionTimeout, 5 * time.Second, "ServerSelectionTimeout", true},
+			{"Direct", (*ClientOptionsBuilder).SetDirect, true, "Direct", true},
+			{"TLSConfig", (*ClientOptionsBuilder).SetTLSConfig, &tls.Config{}, "TLSConfig", false},
+			{"WriteConcern", (*ClientOptionsBuilder).SetWriteConcern, writeconcern.Majority(), "WriteConcern", false},
+			{"ZlibLevel", (*ClientOptionsBuilder).SetZlibLevel, 6, "ZlibLevel", true},
+			{"DisableOCSPEndpointCheck", (*ClientOptionsBuilder).SetDisableOCSPEndpointCheck, true, "DisableOCSPEndpointCheck", true},
+			{"LoadBalanced", (*ClientOptionsBuilder).SetLoadBalanced, true, "LoadBalanced", true},
 		}
 
 		opt1, opt2, optResult := Client(), Client(), Client()
@@ -102,20 +94,19 @@ func TestClientOptions(t *testing.T) {
 				if fn.Type().NumIn() < 2 || fn.Type().In(0) != tClientOptions {
 					t.Fatal("fn argument must have a *ClientOptions as the first argument and one other argument")
 				}
-				if _, exists := tClientOptions.Elem().FieldByName(tc.field); !exists {
+				if _, exists := tClientopts.Elem().FieldByName(tc.field); !exists {
 					t.Fatalf("field (%s) does not exist in ClientOptions", tc.field)
 				}
-				args := make([]reflect.Value, 2)
-				client := reflect.New(tClientOptions.Elem())
-				args[0] = client
+				opts := make([]reflect.Value, 2)
+				opts[0] = reflect.New(tClientOptions.Elem())
 				want := reflect.ValueOf(tc.arg)
-				args[1] = want
+				opts[1] = want
 
 				if !want.IsValid() || !want.CanInterface() {
 					t.Fatal("arg property of test case must be valid")
 				}
 
-				_ = fn.Call(args)
+				_ = fn.Call(opts)
 
 				// To avoid duplication we're piggybacking on the Set* tests to make the
 				// MergeClientOptions test simpler and more thorough.
@@ -124,17 +115,42 @@ func TestClientOptions(t *testing.T) {
 				// the result option. This gives us coverage of options set by the first option, by
 				// the second, and by both.
 				if idx%2 != 0 {
-					args[0] = reflect.ValueOf(opt1)
-					_ = fn.Call(args)
+					opts[0] = reflect.ValueOf(opt1)
+					_ = fn.Call(opts)
 				}
 				if idx%2 == 0 || idx%3 == 0 {
-					args[0] = reflect.ValueOf(opt2)
-					_ = fn.Call(args)
+					opts[0] = reflect.ValueOf(opt2)
+					_ = fn.Call(opts)
 				}
-				args[0] = reflect.ValueOf(optResult)
-				_ = fn.Call(args)
+				opts[0] = reflect.ValueOf(optResult)
+				_ = fn.Call(opts)
 
-				got := client.Elem().FieldByName(tc.field)
+				optsValue := opts[0].Elem().FieldByName("Opts")
+
+				// Ensure the value is a slice
+				if optsValue.Kind() != reflect.Slice {
+					t.Fatalf("expected the options to be a slice")
+				}
+
+				setters := make([]func(*ClientOptions) error, optsValue.Len())
+
+				// Iterate over the reflect.Value and extract each function
+				for i := 0; i < optsValue.Len(); i++ {
+					elem := optsValue.Index(i)
+					if elem.Kind() != reflect.Func {
+						t.Fatalf("expected all elements of opts to be functions")
+					}
+
+					setters[i] = elem.Interface().(func(*ClientOptions) error)
+				}
+
+				clientopts := &ClientOptions{}
+				for _, set := range setters {
+					err := set(clientopts)
+					assert.NoError(t, err)
+				}
+
+				got := reflect.ValueOf(clientopts).Elem().FieldByName(tc.field)
 				if !got.IsValid() || !got.CanInterface() {
 					t.Fatal("cannot create concrete instance from retrieved field")
 				}
@@ -154,444 +170,6 @@ func TestClientOptions(t *testing.T) {
 				}
 			})
 		}
-		t.Run("MergeClientOptions/all set", func(t *testing.T) {
-			want := optResult
-			got := MergeClientOptions(nil, opt1, opt2)
-			if diff := cmp.Diff(
-				got, want,
-				cmp.AllowUnexported(readconcern.ReadConcern{}, writeconcern.WriteConcern{}, readpref.ReadPref{}),
-				cmp.Comparer(func(r1, r2 *bson.Registry) bool { return r1 == r2 }),
-				cmp.Comparer(func(cfg1, cfg2 *tls.Config) bool { return cfg1 == cfg2 }),
-				cmp.Comparer(func(fp1, fp2 *event.PoolMonitor) bool { return fp1 == fp2 }),
-				cmp.AllowUnexported(ClientOptions{}),
-				cmpopts.IgnoreFields(http.Client{}, "Transport"),
-			); diff != "" {
-				t.Errorf("diff:\n%s", diff)
-				t.Errorf("Merged client options do not match. got %v; want %v", got, want)
-			}
-		})
-
-		// go-cmp dont support error comparisons (https://github.com/google/go-cmp/issues/24)
-		// Use specifique test for this
-		t.Run("MergeClientOptions/err", func(t *testing.T) {
-			opt1, opt2 := Client(), Client()
-			opt1.err = errors.New("Test error")
-
-			got := MergeClientOptions(nil, opt1, opt2)
-			if got.err.Error() != "Test error" {
-				t.Errorf("Merged client options do not match. got %v; want %v", got.err.Error(), opt1.err.Error())
-			}
-		})
-	})
-	t.Run("ApplyURI", func(t *testing.T) {
-		baseClient := func() *ClientOptions {
-			return Client().SetHosts([]string{"localhost"})
-		}
-		testCases := []struct {
-			name   string
-			uri    string
-			result *ClientOptions
-		}{
-			{
-				"ParseError",
-				"not-mongo-db-uri://",
-				&ClientOptions{
-					err: fmt.Errorf(
-						"error parsing uri: %w",
-						errors.New(`scheme must be "mongodb" or "mongodb+srv"`)),
-					HTTPClient: httputil.DefaultHTTPClient,
-				},
-			},
-			{
-				"ReadPreference Invalid Mode",
-				"mongodb://localhost/?maxStaleness=200",
-				&ClientOptions{
-					err:        fmt.Errorf("unknown read preference %v", ""),
-					Hosts:      []string{"localhost"},
-					HTTPClient: httputil.DefaultHTTPClient,
-				},
-			},
-			{
-				"TLS addCertFromFile error",
-				"mongodb://localhost/?ssl=true&sslCertificateAuthorityFile=testdata/doesntexist",
-				&ClientOptions{
-					err:        &os.PathError{Op: "open", Path: "testdata/doesntexist"},
-					Hosts:      []string{"localhost"},
-					HTTPClient: httputil.DefaultHTTPClient,
-				},
-			},
-			{
-				"TLS ClientCertificateKey",
-				"mongodb://localhost/?ssl=true&sslClientCertificateKeyFile=testdata/doesntexist",
-				&ClientOptions{
-					err:        &os.PathError{Op: "open", Path: "testdata/doesntexist"},
-					Hosts:      []string{"localhost"},
-					HTTPClient: httputil.DefaultHTTPClient,
-				},
-			},
-			{
-				"AppName",
-				"mongodb://localhost/?appName=awesome-example-application",
-				baseClient().SetAppName("awesome-example-application"),
-			},
-			{
-				"AuthMechanism",
-				"mongodb://localhost/?authMechanism=mongodb-x509",
-				baseClient().SetAuth(Credential{AuthSource: "$external", AuthMechanism: "mongodb-x509"}),
-			},
-			{
-				"AuthMechanismProperties",
-				"mongodb://foo@localhost/?authMechanism=gssapi&authMechanismProperties=SERVICE_NAME:mongodb-fake",
-				baseClient().SetAuth(Credential{
-					AuthSource:              "$external",
-					AuthMechanism:           "gssapi",
-					AuthMechanismProperties: map[string]string{"SERVICE_NAME": "mongodb-fake"},
-					Username:                "foo",
-				}),
-			},
-			{
-				"AuthSource",
-				"mongodb://foo@localhost/?authSource=random-database-example",
-				baseClient().SetAuth(Credential{AuthSource: "random-database-example", Username: "foo"}),
-			},
-			{
-				"Username",
-				"mongodb://foo@localhost/",
-				baseClient().SetAuth(Credential{AuthSource: "admin", Username: "foo"}),
-			},
-			{
-				"Unescaped slash in username",
-				"mongodb:///:pwd@localhost",
-				&ClientOptions{
-					err: fmt.Errorf(
-						"error parsing uri: %w",
-						errors.New("unescaped slash in username")),
-					HTTPClient: httputil.DefaultHTTPClient,
-				},
-			},
-			{
-				"Password",
-				"mongodb://foo:bar@localhost/",
-				baseClient().SetAuth(Credential{
-					AuthSource: "admin", Username: "foo",
-					Password: "bar", PasswordSet: true,
-				}),
-			},
-			{
-				"Single character username and password",
-				"mongodb://f:b@localhost/",
-				baseClient().SetAuth(Credential{
-					AuthSource: "admin", Username: "f",
-					Password: "b", PasswordSet: true,
-				}),
-			},
-			{
-				"Connect",
-				"mongodb://localhost/?connect=direct",
-				baseClient().SetDirect(true),
-			},
-			{
-				"ConnectTimeout",
-				"mongodb://localhost/?connectTimeoutms=5000",
-				baseClient().SetConnectTimeout(5 * time.Second),
-			},
-			{
-				"Compressors",
-				"mongodb://localhost/?compressors=zlib,snappy",
-				baseClient().SetCompressors([]string{"zlib", "snappy"}).SetZlibLevel(6),
-			},
-			{
-				"DatabaseNoAuth",
-				"mongodb://localhost/example-database",
-				baseClient(),
-			},
-			{
-				"DatabaseAsDefault",
-				"mongodb://foo@localhost/example-database",
-				baseClient().SetAuth(Credential{AuthSource: "example-database", Username: "foo"}),
-			},
-			{
-				"HeartbeatInterval",
-				"mongodb://localhost/?heartbeatIntervalms=12000",
-				baseClient().SetHeartbeatInterval(12 * time.Second),
-			},
-			{
-				"Hosts",
-				"mongodb://localhost:27017,localhost:27018,localhost:27019/",
-				baseClient().SetHosts([]string{"localhost:27017", "localhost:27018", "localhost:27019"}),
-			},
-			{
-				"LocalThreshold",
-				"mongodb://localhost/?localThresholdMS=200",
-				baseClient().SetLocalThreshold(200 * time.Millisecond),
-			},
-			{
-				"MaxConnIdleTime",
-				"mongodb://localhost/?maxIdleTimeMS=300000",
-				baseClient().SetMaxConnIdleTime(5 * time.Minute),
-			},
-			{
-				"MaxPoolSize",
-				"mongodb://localhost/?maxPoolSize=256",
-				baseClient().SetMaxPoolSize(256),
-			},
-			{
-				"MinPoolSize",
-				"mongodb://localhost/?minPoolSize=256",
-				baseClient().SetMinPoolSize(256),
-			},
-			{
-				"MaxConnecting",
-				"mongodb://localhost/?maxConnecting=10",
-				baseClient().SetMaxConnecting(10),
-			},
-			{
-				"ReadConcern",
-				"mongodb://localhost/?readConcernLevel=linearizable",
-				baseClient().SetReadConcern(readconcern.Linearizable()),
-			},
-			{
-				"ReadPreference",
-				"mongodb://localhost/?readPreference=secondaryPreferred",
-				baseClient().SetReadPreference(&readpref.ReadPref{Mode: readpref.SecondaryPreferredMode}),
-			},
-			{
-				"ReadPreferenceTagSets",
-				"mongodb://localhost/?readPreference=secondaryPreferred&readPreferenceTags=foo:bar",
-				baseClient().SetReadPreference(func() *readpref.ReadPref {
-					tagSet, _ := readpref.NewTagSet("foo", "bar")
-
-					rp, _ := readpref.New(readpref.SecondaryPreferredMode, &readpref.Options{
-						TagSets: []readpref.TagSet{tagSet},
-					})
-
-					return rp
-				}()),
-			},
-			{
-				"MaxStaleness",
-				"mongodb://localhost/?readPreference=secondaryPreferred&maxStaleness=250",
-				baseClient().SetReadPreference(func() *readpref.ReadPref {
-					maxStaleness := 250 * time.Second
-
-					rp, _ := readpref.New(readpref.SecondaryPreferredMode, &readpref.Options{
-						MaxStaleness: &maxStaleness,
-					})
-
-					return rp
-				}()),
-			},
-			{
-				"RetryWrites",
-				"mongodb://localhost/?retryWrites=true",
-				baseClient().SetRetryWrites(true),
-			},
-			{
-				"ReplicaSet",
-				"mongodb://localhost/?replicaSet=rs01",
-				baseClient().SetReplicaSet("rs01"),
-			},
-			{
-				"ServerSelectionTimeout",
-				"mongodb://localhost/?serverSelectionTimeoutMS=45000",
-				baseClient().SetServerSelectionTimeout(45 * time.Second),
-			},
-			{
-				"TLS CACertificate",
-				"mongodb://localhost/?ssl=true&sslCertificateAuthorityFile=testdata/ca.pem",
-				baseClient().SetTLSConfig(&tls.Config{
-					RootCAs: createCertPool(t, "testdata/ca.pem"),
-				}),
-			},
-			{
-				"TLS Insecure",
-				"mongodb://localhost/?ssl=true&sslInsecure=true",
-				baseClient().SetTLSConfig(&tls.Config{InsecureSkipVerify: true}),
-			},
-			{
-				"TLS ClientCertificateKey",
-				"mongodb://localhost/?ssl=true&sslClientCertificateKeyFile=testdata/nopass/certificate.pem",
-				baseClient().SetTLSConfig(&tls.Config{Certificates: make([]tls.Certificate, 1)}),
-			},
-			{
-				"TLS ClientCertificateKey with password",
-				"mongodb://localhost/?ssl=true&sslClientCertificateKeyFile=testdata/certificate.pem&sslClientCertificateKeyPassword=passphrase",
-				baseClient().SetTLSConfig(&tls.Config{Certificates: make([]tls.Certificate, 1)}),
-			},
-			{
-				"TLS Username",
-				"mongodb://localhost/?ssl=true&authMechanism=mongodb-x509&sslClientCertificateKeyFile=testdata/nopass/certificate.pem",
-				baseClient().SetAuth(Credential{
-					AuthMechanism: "mongodb-x509", AuthSource: "$external",
-					Username: `C=US,ST=New York,L=New York City, Inc,O=MongoDB\,OU=WWW`,
-				}),
-			},
-			{
-				"WriteConcern J",
-				"mongodb://localhost/?journal=true",
-				baseClient().SetWriteConcern(writeconcern.Journaled()),
-			},
-			{
-				"WriteConcern WString",
-				"mongodb://localhost/?w=majority",
-				baseClient().SetWriteConcern(writeconcern.Majority()),
-			},
-			{
-				"WriteConcern W",
-				"mongodb://localhost/?w=3",
-				baseClient().SetWriteConcern(&writeconcern.WriteConcern{W: 3}),
-			},
-			{
-				"ZLibLevel",
-				"mongodb://localhost/?zlibCompressionLevel=4",
-				baseClient().SetZlibLevel(4),
-			},
-			{
-				"TLS tlsCertificateFile and tlsPrivateKeyFile",
-				"mongodb://localhost/?tlsCertificateFile=testdata/nopass/cert.pem&tlsPrivateKeyFile=testdata/nopass/key.pem",
-				baseClient().SetTLSConfig(&tls.Config{Certificates: make([]tls.Certificate, 1)}),
-			},
-			{
-				"TLS only tlsCertificateFile",
-				"mongodb://localhost/?tlsCertificateFile=testdata/nopass/cert.pem",
-				&ClientOptions{
-					err: fmt.Errorf(
-						"error validating uri: %w",
-						errors.New("the tlsPrivateKeyFile URI option must be provided if the tlsCertificateFile option is specified")),
-					HTTPClient: httputil.DefaultHTTPClient,
-				},
-			},
-			{
-				"TLS only tlsPrivateKeyFile",
-				"mongodb://localhost/?tlsPrivateKeyFile=testdata/nopass/key.pem",
-				&ClientOptions{
-					err: fmt.Errorf(
-						"error validating uri: %w",
-						errors.New("the tlsCertificateFile URI option must be provided if the tlsPrivateKeyFile option is specified")),
-					HTTPClient: httputil.DefaultHTTPClient,
-				},
-			},
-			{
-				"TLS tlsCertificateFile and tlsPrivateKeyFile and tlsCertificateKeyFile",
-				"mongodb://localhost/?tlsCertificateFile=testdata/nopass/cert.pem&tlsPrivateKeyFile=testdata/nopass/key.pem&tlsCertificateKeyFile=testdata/nopass/certificate.pem",
-				&ClientOptions{
-					err: fmt.Errorf(
-						"error validating uri: %w",
-						errors.New("the sslClientCertificateKeyFile/tlsCertificateKeyFile URI option cannot be provided "+
-							"along with tlsCertificateFile or tlsPrivateKeyFile")),
-					HTTPClient: httputil.DefaultHTTPClient,
-				},
-			},
-			{
-				"disable OCSP endpoint check",
-				"mongodb://localhost/?tlsDisableOCSPEndpointCheck=true",
-				baseClient().SetDisableOCSPEndpointCheck(true),
-			},
-			{
-				"directConnection",
-				"mongodb://localhost/?directConnection=true",
-				baseClient().SetDirect(true),
-			},
-			{
-				"TLS CA file with multiple certificiates",
-				"mongodb://localhost/?tlsCAFile=testdata/ca-with-intermediates.pem",
-				baseClient().SetTLSConfig(&tls.Config{
-					RootCAs: createCertPool(t, "testdata/ca-with-intermediates-first.pem",
-						"testdata/ca-with-intermediates-second.pem", "testdata/ca-with-intermediates-third.pem"),
-				}),
-			},
-			{
-				"TLS empty CA file",
-				"mongodb://localhost/?tlsCAFile=testdata/empty-ca.pem",
-				&ClientOptions{
-					Hosts:      []string{"localhost"},
-					HTTPClient: httputil.DefaultHTTPClient,
-					err:        errors.New("the specified CA file does not contain any valid certificates"),
-				},
-			},
-			{
-				"TLS CA file with no certificates",
-				"mongodb://localhost/?tlsCAFile=testdata/ca-key.pem",
-				&ClientOptions{
-					Hosts:      []string{"localhost"},
-					HTTPClient: httputil.DefaultHTTPClient,
-					err:        errors.New("the specified CA file does not contain any valid certificates"),
-				},
-			},
-			{
-				"TLS malformed CA file",
-				"mongodb://localhost/?tlsCAFile=testdata/malformed-ca.pem",
-				&ClientOptions{
-					Hosts:      []string{"localhost"},
-					HTTPClient: httputil.DefaultHTTPClient,
-					err:        errors.New("the specified CA file does not contain any valid certificates"),
-				},
-			},
-			{
-				"loadBalanced=true",
-				"mongodb://localhost/?loadBalanced=true",
-				baseClient().SetLoadBalanced(true),
-			},
-			{
-				"loadBalanced=false",
-				"mongodb://localhost/?loadBalanced=false",
-				baseClient().SetLoadBalanced(false),
-			},
-			{
-				"srvServiceName",
-				"mongodb+srv://test22.test.build.10gen.cc/?srvServiceName=customname",
-				baseClient().SetSRVServiceName("customname").
-					SetHosts([]string{"localhost.test.build.10gen.cc:27017", "localhost.test.build.10gen.cc:27018"}),
-			},
-			{
-				"srvMaxHosts",
-				"mongodb+srv://test1.test.build.10gen.cc/?srvMaxHosts=2",
-				baseClient().SetSRVMaxHosts(2).
-					SetHosts([]string{"localhost.test.build.10gen.cc:27017", "localhost.test.build.10gen.cc:27018"}),
-			},
-			{
-				"GODRIVER-2263 regression test",
-				"mongodb://localhost/?tlsCertificateKeyFile=testdata/one-pk-multiple-certs.pem",
-				baseClient().SetTLSConfig(&tls.Config{Certificates: make([]tls.Certificate, 1)}),
-			},
-			{
-				"GODRIVER-2650 X509 certificate",
-				"mongodb://localhost/?ssl=true&authMechanism=mongodb-x509&sslClientCertificateKeyFile=testdata/one-pk-multiple-certs.pem",
-				baseClient().SetAuth(Credential{
-					AuthMechanism: "mongodb-x509", AuthSource: "$external",
-					// Subject name in the first certificate is used as the username for X509 auth.
-					Username: `C=US,ST=New York,L=New York City,O=MongoDB,OU=Drivers,CN=localhost`,
-				}).SetTLSConfig(&tls.Config{Certificates: make([]tls.Certificate, 1)}),
-			},
-		}
-
-		for _, tc := range testCases {
-			t.Run(tc.name, func(t *testing.T) {
-				result := Client().ApplyURI(tc.uri)
-
-				// Manually add the URI and ConnString to the test expectations to avoid adding them in each test
-				// definition. The ConnString should only be recorded if there was no error while parsing.
-				cs, err := connstring.ParseAndValidate(tc.uri)
-				if err == nil {
-					tc.result.cs = cs
-				}
-
-				// We have to sort string slices in comparison, as Hosts resolved from SRV URIs do not have a set order.
-				stringLess := func(a, b string) bool { return a < b }
-				if diff := cmp.Diff(
-					tc.result, result,
-					cmp.AllowUnexported(ClientOptions{}, readconcern.ReadConcern{}, writeconcern.WriteConcern{}, readpref.ReadPref{}),
-					cmp.Comparer(func(r1, r2 *bson.Registry) bool { return r1 == r2 }),
-					cmp.Comparer(compareTLSConfig),
-					cmp.Comparer(compareErrors),
-					cmpopts.SortSlices(stringLess),
-					cmpopts.IgnoreFields(connstring.ConnString{}, "SSLClientCertificateKeyPassword"),
-					cmpopts.IgnoreFields(http.Client{}, "Transport"),
-				); diff != "" {
-					t.Errorf("URI did not apply correctly: (-want +got)\n%s", diff)
-				}
-			})
-		}
 	})
 	t.Run("direct connection validation", func(t *testing.T) {
 		t.Run("multiple hosts", func(t *testing.T) {
@@ -599,7 +177,7 @@ func TestClientOptions(t *testing.T) {
 
 			testCases := []struct {
 				name string
-				opts *ClientOptions
+				opts *ClientOptionsBuilder
 			}{
 				{"hosts in URI", Client().ApplyURI("mongodb://localhost,localhost2")},
 				{"hosts in options", Client().SetHosts([]string{"localhost", "localhost2"})},
@@ -615,10 +193,21 @@ func TestClientOptions(t *testing.T) {
 		t.Run("srv", func(t *testing.T) {
 			expectedErr := errors.New("a direct connection cannot be made if an SRV URI is used")
 			// Use a non-SRV URI and manually set the scheme because using an SRV URI would force an SRV lookup.
-			opts := Client().ApplyURI("mongodb://localhost:27017")
-			opts.cs.Scheme = connstring.SchemeMongoDBSRV
+			optsBldr := Client().ApplyURI("mongodb://localhost:27017")
 
-			err := opts.SetDirect(true).Validate()
+			args, err := getOptions[ClientOptions](optsBldr)
+			assert.NoError(t, err)
+
+			args.connString.Scheme = connstring.SchemeMongoDBSRV
+
+			newOpts := &ClientOptionsBuilder{}
+			newOpts.Opts = append(newOpts.Opts, func(ca *ClientOptions) error {
+				*ca = *args
+
+				return nil
+			})
+
+			err = newOpts.SetDirect(true).Validate()
 			assert.NotNil(t, err, "expected error, got nil")
 			assert.Equal(t, expectedErr.Error(), err.Error(), "expected error %v, got %v", expectedErr, err)
 		})
@@ -626,7 +215,7 @@ func TestClientOptions(t *testing.T) {
 	t.Run("loadBalanced validation", func(t *testing.T) {
 		testCases := []struct {
 			name string
-			opts *ClientOptions
+			opts *ClientOptionsBuilder
 			err  error
 		}{
 			{"multiple hosts in URI", Client().ApplyURI("mongodb://foo,bar"), connstring.ErrLoadBalancedWithMultipleHosts},
@@ -653,7 +242,7 @@ func TestClientOptions(t *testing.T) {
 	t.Run("minPoolSize validation", func(t *testing.T) {
 		testCases := []struct {
 			name string
-			opts *ClientOptions
+			opts *ClientOptionsBuilder
 			err  error
 		}{
 			{
@@ -687,7 +276,7 @@ func TestClientOptions(t *testing.T) {
 	t.Run("srvMaxHosts validation", func(t *testing.T) {
 		testCases := []struct {
 			name string
-			opts *ClientOptions
+			opts *ClientOptionsBuilder
 			err  error
 		}{
 			{"replica set name", Client().SetReplicaSet("foo"), connstring.ErrSRVMaxHostsWithReplicaSet},
@@ -714,7 +303,7 @@ func TestClientOptions(t *testing.T) {
 
 		testCases := []struct {
 			name string
-			opts *ClientOptions
+			opts *ClientOptionsBuilder
 			err  error
 		}{
 			{
@@ -749,7 +338,7 @@ func TestClientOptions(t *testing.T) {
 
 		testCases := []struct {
 			name string
-			opts *ClientOptions
+			opts *ClientOptionsBuilder
 			err  error
 		}{
 			{
@@ -813,7 +402,7 @@ func loadCert(t *testing.T, file string) *x509.Certificate {
 }
 
 func readFile(t *testing.T, path string) []byte {
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	assert.Nil(t, err, "ReadFile error for %s: %v", path, err)
 	return data
 }
@@ -883,4 +472,674 @@ func compareErrors(err1, err2 error) bool {
 	}
 
 	return true
+}
+
+func TestSetURIopts(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name     string
+		uri      string
+		wantopts *ClientOptions
+
+		// A list of possible errors that can be returned, required to account for
+		// OS-specific errors.
+		wantErrs []error
+	}{
+		{
+			name:     "ParseError",
+			uri:      "not-mongo-db-uri://",
+			wantopts: &ClientOptions{},
+			wantErrs: []error{
+				fmt.Errorf(
+					"error parsing uri: %w",
+					errors.New(`scheme must be "mongodb" or "mongodb+srv"`)),
+			},
+		},
+		{
+			name: "ReadPreference Invalid Mode",
+			uri:  "mongodb://localhost/?maxStaleness=200",
+			wantopts: &ClientOptions{
+				Hosts: []string{"localhost"},
+			},
+			wantErrs: []error{
+				fmt.Errorf("unknown read preference %v", ""),
+			},
+		},
+		{
+			name: "ReadPreference Primary With Options",
+			uri:  "mongodb://localhost/?readPreference=Primary&maxStaleness=200",
+			wantopts: &ClientOptions{
+				Hosts: []string{"localhost"},
+			},
+			wantErrs: []error{
+				errors.New("can not specify tags, max staleness, or hedge with mode primary"),
+			},
+		},
+		{
+			name: "TLS addCertFromFile error",
+			uri:  "mongodb://localhost/?ssl=true&sslCertificateAuthorityFile=testdata/doesntexist",
+			wantopts: &ClientOptions{
+				Hosts: []string{"localhost"},
+			},
+			wantErrs: []error{
+				&os.PathError{
+					Op:   "open",
+					Path: "testdata/doesntexist",
+					Err:  errors.New("no such file or directory"),
+				},
+				&os.PathError{
+					Op:   "open",
+					Path: "testdata/doesntexist",
+					// Windows error
+					Err: errors.New("The system cannot find the file specified."), //nolint:revive
+				},
+			},
+		},
+		{
+			name: "TLS ClientCertificateKey",
+			uri:  "mongodb://localhost/?ssl=true&sslClientCertificateKeyFile=testdata/doesntexist",
+			wantopts: &ClientOptions{
+				Hosts: []string{"localhost"},
+			},
+			wantErrs: []error{
+				&os.PathError{
+					Op:   "open",
+					Path: "testdata/doesntexist",
+					Err:  errors.New("no such file or directory"),
+				},
+				&os.PathError{
+					Op:   "open",
+					Path: "testdata/doesntexist",
+					// Windows error
+					Err: errors.New("The system cannot find the file specified."), //nolint:revive
+				},
+			},
+		},
+		{
+			name: "AppName",
+			uri:  "mongodb://localhost/?appName=awesome-example-application",
+			wantopts: &ClientOptions{
+				Hosts:   []string{"localhost"},
+				AppName: ptrutil.Ptr[string]("awesome-example-application"),
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "AuthMechanism",
+			uri:  "mongodb://localhost/?authMechanism=mongodb-x509",
+			wantopts: &ClientOptions{
+				Hosts: []string{"localhost"},
+				Auth:  &Credential{AuthSource: "$external", AuthMechanism: "mongodb-x509"},
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "AuthMechanismProperties",
+			uri:  "mongodb://foo@localhost/?authMechanism=gssapi&authMechanismProperties=SERVICE_NAME:mongodb-fake",
+			wantopts: &ClientOptions{
+				Hosts: []string{"localhost"},
+				Auth: &Credential{
+					AuthSource:              "$external",
+					AuthMechanism:           "gssapi",
+					AuthMechanismProperties: map[string]string{"SERVICE_NAME": "mongodb-fake"},
+					Username:                "foo",
+				},
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "AuthSource",
+			uri:  "mongodb://foo@localhost/?authSource=random-database-example",
+			wantopts: &ClientOptions{
+				Hosts: []string{"localhost"},
+				Auth:  &Credential{AuthSource: "random-database-example", Username: "foo"},
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "Username",
+			uri:  "mongodb://foo@localhost/",
+			wantopts: &ClientOptions{
+				Hosts: []string{"localhost"},
+				Auth:  &Credential{AuthSource: "admin", Username: "foo"},
+			},
+			wantErrs: nil,
+		},
+		{
+			name:     "Unescaped slash in username",
+			uri:      "mongodb:///:pwd@localhost",
+			wantopts: &ClientOptions{},
+			wantErrs: []error{
+				fmt.Errorf("error parsing uri: %w", errors.New("unescaped slash in username")),
+			},
+		},
+		{
+			name: "Password",
+			uri:  "mongodb://foo:bar@localhost/",
+			wantopts: &ClientOptions{
+				Hosts: []string{"localhost"},
+				Auth: &Credential{
+					AuthSource: "admin", Username: "foo",
+					Password: "bar", PasswordSet: true,
+				},
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "Single character username and password",
+			uri:  "mongodb://f:b@localhost/",
+			wantopts: &ClientOptions{
+				Hosts: []string{"localhost"},
+				Auth: &Credential{
+					AuthSource: "admin", Username: "f",
+					Password: "b", PasswordSet: true,
+				},
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "Connect",
+			uri:  "mongodb://localhost/?connect=direct",
+			wantopts: &ClientOptions{
+				Hosts:  []string{"localhost"},
+				Direct: ptrutil.Ptr[bool](true),
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "ConnectTimeout",
+			uri:  "mongodb://localhost/?connectTimeoutms=5000",
+			wantopts: &ClientOptions{
+				Hosts:          []string{"localhost"},
+				ConnectTimeout: ptrutil.Ptr[time.Duration](5 * time.Second),
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "Compressors",
+			uri:  "mongodb://localhost/?compressors=zlib,snappy",
+			wantopts: &ClientOptions{
+				Hosts:       []string{"localhost"},
+				Compressors: []string{"zlib", "snappy"},
+				ZlibLevel:   ptrutil.Ptr[int](6),
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "DatabaseNoAuth",
+			uri:  "mongodb://localhost/example-database",
+			wantopts: &ClientOptions{
+				Hosts: []string{"localhost"},
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "DatabaseAsDefault",
+			uri:  "mongodb://foo@localhost/example-database",
+			wantopts: &ClientOptions{
+				Hosts: []string{"localhost"},
+				Auth:  &Credential{AuthSource: "example-database", Username: "foo"},
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "HeartbeatInterval",
+			uri:  "mongodb://localhost/?heartbeatIntervalms=12000",
+			wantopts: &ClientOptions{
+				Hosts:             []string{"localhost"},
+				HeartbeatInterval: ptrutil.Ptr[time.Duration](12 * time.Second),
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "Hosts",
+			uri:  "mongodb://localhost:27017,localhost:27018,localhost:27019/",
+			wantopts: &ClientOptions{
+				Hosts: []string{"localhost:27017", "localhost:27018", "localhost:27019"},
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "LocalThreshold",
+			uri:  "mongodb://localhost/?localThresholdMS=200",
+			wantopts: &ClientOptions{
+				Hosts:          []string{"localhost"},
+				LocalThreshold: ptrutil.Ptr[time.Duration](200 * time.Millisecond),
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "MaxConnIdleTime",
+			uri:  "mongodb://localhost/?maxIdleTimeMS=300000",
+			wantopts: &ClientOptions{
+				Hosts:           []string{"localhost"},
+				MaxConnIdleTime: ptrutil.Ptr[time.Duration](5 * time.Minute),
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "MaxPoolSize",
+			uri:  "mongodb://localhost/?maxPoolSize=256",
+			wantopts: &ClientOptions{
+				Hosts:       []string{"localhost"},
+				MaxPoolSize: ptrutil.Ptr[uint64](256),
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "MinPoolSize",
+			uri:  "mongodb://localhost/?minPoolSize=256",
+			wantopts: &ClientOptions{
+				Hosts:       []string{"localhost"},
+				MinPoolSize: ptrutil.Ptr[uint64](256),
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "MaxConnecting",
+			uri:  "mongodb://localhost/?maxConnecting=10",
+			wantopts: &ClientOptions{
+				Hosts:         []string{"localhost"},
+				MaxConnecting: ptrutil.Ptr[uint64](10),
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "ReadConcern",
+			uri:  "mongodb://localhost/?readConcernLevel=linearizable",
+			wantopts: &ClientOptions{
+				Hosts:       []string{"localhost"},
+				ReadConcern: readconcern.Linearizable(),
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "ReadPreference",
+			uri:  "mongodb://localhost/?readPreference=secondaryPreferred",
+			wantopts: &ClientOptions{
+				Hosts:          []string{"localhost"},
+				ReadPreference: readpref.SecondaryPreferred(),
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "ReadPreferenceTagSets",
+			uri:  "mongodb://localhost/?readPreference=secondaryPreferred&readPreferenceTags=foo:bar",
+			wantopts: &ClientOptions{
+				Hosts: []string{"localhost"},
+				ReadPreference: func() *readpref.ReadPref {
+					tagSet, _ := readpref.NewTagSet("foo", "bar")
+					return readpref.SecondaryPreferred(readpref.Options().SetTagSets([]readpref.TagSet{tagSet}))
+				}(),
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "MaxStaleness",
+			uri:  "mongodb://localhost/?readPreference=secondaryPreferred&maxStaleness=250",
+			wantopts: &ClientOptions{
+				Hosts:          []string{"localhost"},
+				ReadPreference: readpref.SecondaryPreferred(readpref.Options().SetMaxStaleness(250 * time.Second)),
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "RetryWrites",
+			uri:  "mongodb://localhost/?retryWrites=true",
+			wantopts: &ClientOptions{
+				Hosts:       []string{"localhost"},
+				RetryWrites: ptrutil.Ptr[bool](true),
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "ReplicaSet",
+			uri:  "mongodb://localhost/?replicaSet=rs01",
+			wantopts: &ClientOptions{
+				Hosts:      []string{"localhost"},
+				ReplicaSet: ptrutil.Ptr[string]("rs01"),
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "ServerSelectionTimeout",
+			uri:  "mongodb://localhost/?serverSelectionTimeoutMS=45000",
+			wantopts: &ClientOptions{
+				Hosts:                  []string{"localhost"},
+				ServerSelectionTimeout: ptrutil.Ptr[time.Duration](45 * time.Second),
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "SocketTimeout",
+			uri:  "mongodb://localhost/?socketTimeoutMS=15000",
+			wantopts: &ClientOptions{
+				Hosts: []string{"localhost"},
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "TLS CACertificate",
+			uri:  "mongodb://localhost/?ssl=true&sslCertificateAuthorityFile=testdata/ca.pem",
+			wantopts: &ClientOptions{
+				Hosts: []string{"localhost"},
+				TLSConfig: &tls.Config{
+					RootCAs: createCertPool(t, "testdata/ca.pem"),
+				},
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "TLS Insecure",
+			uri:  "mongodb://localhost/?ssl=true&sslInsecure=true",
+			wantopts: &ClientOptions{
+				Hosts: []string{"localhost"},
+				TLSConfig: &tls.Config{
+					InsecureSkipVerify: true,
+				},
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "TLS ClientCertificateKey",
+			uri:  "mongodb://localhost/?ssl=true&sslClientCertificateKeyFile=testdata/nopass/certificate.pem",
+			wantopts: &ClientOptions{
+				Hosts: []string{"localhost"},
+				TLSConfig: &tls.Config{
+					Certificates: make([]tls.Certificate, 1),
+				},
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "TLS ClientCertificateKey with password",
+			uri:  "mongodb://localhost/?ssl=true&sslClientCertificateKeyFile=testdata/certificate.pem&sslClientCertificateKeyPassword=passphrase",
+			wantopts: &ClientOptions{
+				Hosts: []string{"localhost"},
+				TLSConfig: &tls.Config{
+					Certificates: make([]tls.Certificate, 1),
+				},
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "TLS Username",
+			uri:  "mongodb://localhost/?ssl=true&authMechanism=mongodb-x509&sslClientCertificateKeyFile=testdata/nopass/certificate.pem",
+			wantopts: &ClientOptions{
+				Hosts: []string{"localhost"},
+				Auth: &Credential{
+					AuthMechanism: "mongodb-x509", AuthSource: "$external",
+					Username: `C=US,ST=New York,L=New York City, Inc,O=MongoDB\,OU=WWW`,
+				},
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "WriteConcern J",
+			uri:  "mongodb://localhost/?journal=true",
+			wantopts: &ClientOptions{
+				Hosts:        []string{"localhost"},
+				WriteConcern: writeconcern.Journaled(),
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "WriteConcern WString",
+			uri:  "mongodb://localhost/?w=majority",
+			wantopts: &ClientOptions{
+				Hosts:        []string{"localhost"},
+				WriteConcern: writeconcern.Majority(),
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "WriteConcern W",
+			uri:  "mongodb://localhost/?w=3",
+			wantopts: &ClientOptions{
+				Hosts:        []string{"localhost"},
+				WriteConcern: &writeconcern.WriteConcern{W: 3},
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "WriteConcern WTimeout",
+			uri:  "mongodb://localhost/?wTimeoutMS=45000",
+			wantopts: &ClientOptions{
+				Hosts: []string{"localhost"},
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "ZLibLevel",
+			uri:  "mongodb://localhost/?zlibCompressionLevel=4",
+			wantopts: &ClientOptions{
+				Hosts:     []string{"localhost"},
+				ZlibLevel: ptrutil.Ptr[int](4),
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "TLS tlsCertificateFile and tlsPrivateKeyFile",
+			uri:  "mongodb://localhost/?tlsCertificateFile=testdata/nopass/cert.pem&tlsPrivateKeyFile=testdata/nopass/key.pem",
+			wantopts: &ClientOptions{
+				Hosts: []string{"localhost"},
+				TLSConfig: &tls.Config{
+					Certificates: make([]tls.Certificate, 1),
+				},
+			},
+			wantErrs: nil,
+		},
+		{
+			name:     "TLS only tlsCertificateFile",
+			uri:      "mongodb://localhost/?tlsCertificateFile=testdata/nopass/cert.pem",
+			wantopts: &ClientOptions{},
+			wantErrs: []error{
+				fmt.Errorf(
+					"error validating uri: %w",
+					errors.New("the tlsPrivateKeyFile URI option must be provided if the tlsCertificateFile option is specified")),
+			},
+		},
+		{
+			name:     "TLS only tlsPrivateKeyFile",
+			uri:      "mongodb://localhost/?tlsPrivateKeyFile=testdata/nopass/key.pem",
+			wantopts: &ClientOptions{},
+			wantErrs: []error{
+				fmt.Errorf(
+					"error validating uri: %w",
+					errors.New("the tlsCertificateFile URI option must be provided if the tlsPrivateKeyFile option is specified")),
+			},
+		},
+		{
+			name:     "TLS tlsCertificateFile and tlsPrivateKeyFile and tlsCertificateKeyFile",
+			uri:      "mongodb://localhost/?tlsCertificateFile=testdata/nopass/cert.pem&tlsPrivateKeyFile=testdata/nopass/key.pem&tlsCertificateKeyFile=testdata/nopass/certificate.pem",
+			wantopts: &ClientOptions{},
+			wantErrs: []error{
+				fmt.Errorf(
+					"error validating uri: %w",
+					errors.New("the sslClientCertificateKeyFile/tlsCertificateKeyFile URI option cannot be provided "+
+						"along with tlsCertificateFile or tlsPrivateKeyFile")),
+			},
+		},
+		{
+			name: "disable OCSP endpoint check",
+			uri:  "mongodb://localhost/?tlsDisableOCSPEndpointCheck=true",
+			wantopts: &ClientOptions{
+				Hosts:                    []string{"localhost"},
+				DisableOCSPEndpointCheck: ptrutil.Ptr[bool](true),
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "directConnection",
+			uri:  "mongodb://localhost/?directConnection=true",
+			wantopts: &ClientOptions{
+				Hosts:  []string{"localhost"},
+				Direct: ptrutil.Ptr[bool](true),
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "TLS CA file with multiple certificiates",
+			uri:  "mongodb://localhost/?tlsCAFile=testdata/ca-with-intermediates.pem",
+			wantopts: &ClientOptions{
+				Hosts: []string{"localhost"},
+				TLSConfig: &tls.Config{
+					RootCAs: createCertPool(t, "testdata/ca-with-intermediates-first.pem",
+						"testdata/ca-with-intermediates-second.pem", "testdata/ca-with-intermediates-third.pem"),
+				},
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "TLS empty CA file",
+			uri:  "mongodb://localhost/?tlsCAFile=testdata/empty-ca.pem",
+			wantopts: &ClientOptions{
+				Hosts: []string{"localhost"},
+			},
+			wantErrs: []error{
+				errors.New("the specified CA file does not contain any valid certificates"),
+			},
+		},
+		{
+			name: "TLS CA file with no certificates",
+			uri:  "mongodb://localhost/?tlsCAFile=testdata/ca-key.pem",
+			wantopts: &ClientOptions{
+				Hosts: []string{"localhost"},
+			},
+			wantErrs: []error{
+				errors.New("the specified CA file does not contain any valid certificates"),
+			},
+		},
+		{
+			name: "TLS malformed CA file",
+			uri:  "mongodb://localhost/?tlsCAFile=testdata/malformed-ca.pem",
+			wantopts: &ClientOptions{
+				Hosts: []string{"localhost"},
+			},
+			wantErrs: []error{
+				errors.New("the specified CA file does not contain any valid certificates"),
+			},
+		},
+		{
+			name: "loadBalanced=true",
+			uri:  "mongodb://localhost/?loadBalanced=true",
+			wantopts: &ClientOptions{
+				Hosts:        []string{"localhost"},
+				LoadBalanced: ptrutil.Ptr[bool](true),
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "loadBalanced=false",
+			uri:  "mongodb://localhost/?loadBalanced=false",
+			wantopts: &ClientOptions{
+				Hosts:        []string{"localhost"},
+				LoadBalanced: ptrutil.Ptr[bool](false),
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "srvServiceName",
+			uri:  "mongodb+srv://test22.test.build.10gen.cc/?srvServiceName=customname",
+			wantopts: &ClientOptions{
+				Hosts:          []string{"localhost.test.build.10gen.cc:27017", "localhost.test.build.10gen.cc:27018"},
+				SRVServiceName: ptrutil.Ptr[string]("customname"),
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "srvMaxHosts",
+			uri:  "mongodb+srv://test1.test.build.10gen.cc/?srvMaxHosts=2",
+			wantopts: &ClientOptions{
+				Hosts:       []string{"localhost.test.build.10gen.cc:27017", "localhost.test.build.10gen.cc:27018"},
+				SRVMaxHosts: ptrutil.Ptr[int](2),
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "GODRIVER-2263 regression test",
+			uri:  "mongodb://localhost/?tlsCertificateKeyFile=testdata/one-pk-multiple-certs.pem",
+			wantopts: &ClientOptions{
+				Hosts:     []string{"localhost"},
+				TLSConfig: &tls.Config{Certificates: make([]tls.Certificate, 1)},
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "GODRIVER-2650 X509 certificate",
+			uri:  "mongodb://localhost/?ssl=true&authMechanism=mongodb-x509&sslClientCertificateKeyFile=testdata/one-pk-multiple-certs.pem",
+			wantopts: &ClientOptions{
+				Hosts: []string{"localhost"},
+				Auth: &Credential{
+					AuthMechanism: "mongodb-x509", AuthSource: "$external",
+					// Subject name in the first certificate is used as the username for X509 auth.
+					Username: `C=US,ST=New York,L=New York City,O=MongoDB,OU=Drivers,CN=localhost`,
+				},
+				TLSConfig: &tls.Config{Certificates: make([]tls.Certificate, 1)},
+			},
+			wantErrs: nil,
+		},
+	}
+
+	for _, test := range testCases {
+		test := test
+
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			// Manually add the URI and ConnString to the test expectations to avoid
+			// adding them in each test definition. The ConnString should only be
+			// recorded if there was no error while parsing.
+			connString, err := connstring.ParseAndValidate(test.uri)
+			if err == nil {
+				test.wantopts.connString = connString
+			}
+
+			// Also manually add the default HTTP client if one does not exist.
+			if test.wantopts.HTTPClient == nil {
+				test.wantopts.HTTPClient = http.DefaultClient
+			}
+
+			// Use the setURIopts to just test that a correct error is returned.
+			if gotErr := setURIOpts(test.uri, &ClientOptions{}); test.wantErrs != nil {
+				var foundError bool
+
+				for _, err := range test.wantErrs {
+					if err.Error() == gotErr.Error() {
+						foundError = true
+
+						break
+					}
+				}
+
+				assert.True(t, foundError, "expected error to be one of %v, got: %v", test.wantErrs, gotErr)
+			}
+
+			// Run this test through the client.ApplyURI method to ensure that it
+			// remains a naive wrapper.
+			opts := Client().ApplyURI(test.uri)
+
+			gotopts := &ClientOptions{}
+			for _, setter := range opts.Opts {
+				_ = setter(gotopts)
+			}
+
+			// We have to sort string slices in comparison, as Hosts resolved from SRV
+			// URIs do not have a set order.
+			stringLess := func(a, b string) bool { return a < b }
+			if diff := cmp.Diff(
+				test.wantopts, gotopts,
+				cmp.AllowUnexported(ClientOptions{}, readconcern.ReadConcern{}, writeconcern.WriteConcern{}, readpref.ReadPref{}),
+				// cmp.Comparer(func(r1, r2 *bsoncodec.Registry) bool { return r1 == r2 }),
+				cmp.Comparer(compareTLSConfig),
+				cmp.Comparer(compareErrors),
+				cmpopts.SortSlices(stringLess),
+				cmpopts.IgnoreFields(connstring.ConnString{}, "SSLClientCertificateKeyPassword"),
+				cmpopts.IgnoreFields(http.Client{}, "Transport"),
+			); diff != "" {
+				t.Errorf("URI did not apply correctly: (-want +got)\n%s", diff)
+			}
+		})
+	}
 }

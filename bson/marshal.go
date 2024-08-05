@@ -74,11 +74,11 @@ func Marshal(val interface{}) ([]byte, error) {
 		}
 	}()
 	sw.Reset()
-	vw := NewValueWriter(sw)
+	vw := NewDocumentWriter(sw)
 	enc := encPool.Get().(*Encoder)
 	defer encPool.Put(enc)
 	enc.Reset(vw)
-	enc.SetRegistry(DefaultRegistry)
+	enc.SetRegistry(defaultRegistry)
 	err := enc.Encode(val)
 	if err != nil {
 		return nil, err
@@ -89,7 +89,7 @@ func Marshal(val interface{}) ([]byte, error) {
 
 // MarshalValue returns the BSON encoding of val.
 //
-// MarshalValue will use bson.DefaultRegistry to transform val into a BSON value. If val is a struct, this function will
+// MarshalValue will use bson.NewRegistry() to transform val into a BSON value. If val is a struct, this function will
 // inspect struct tags and alter the marshalling process accordingly.
 func MarshalValue(val interface{}) (Type, []byte, error) {
 	sw := bufPool.Get().(*bytes.Buffer)
@@ -111,7 +111,7 @@ func MarshalValue(val interface{}) (Type, []byte, error) {
 		}
 	}()
 	sw.Reset()
-	vwFlusher := NewValueWriter(sw).(*valueWriter)
+	vwFlusher := newDocumentWriter(sw)
 	vw, err := vwFlusher.WriteDocumentElement("")
 	if err != nil {
 		return 0, nil, err
@@ -121,7 +121,7 @@ func MarshalValue(val interface{}) (Type, []byte, error) {
 	enc := encPool.Get().(*Encoder)
 	defer encPool.Put(enc)
 	enc.Reset(vw)
-	enc.SetRegistry(DefaultRegistry)
+	enc.SetRegistry(defaultRegistry)
 	if err := enc.Encode(val); err != nil {
 		return 0, nil, err
 	}
@@ -152,7 +152,7 @@ func MarshalExtJSON(val interface{}, canonical, escapeHTML bool) ([]byte, error)
 	defer encPool.Put(enc)
 
 	enc.Reset(ejvw)
-	enc.ec = EncodeContext{Registry: DefaultRegistry}
+	enc.ec = EncodeContext{Registry: defaultRegistry}
 
 	err := enc.Encode(val)
 	if err != nil {

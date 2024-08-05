@@ -25,19 +25,27 @@ type ReadPref struct {
 	hedgeEnabled *bool
 }
 
-type ReadPrefBuilder struct {
+// Builder contains options to configure a ReadPref object. Each option
+// can be set through setter functions. See documentation for each setter
+// function for an explanation of the option.
+type Builder struct {
 	opts []func(*ReadPref)
 }
 
-func Options() *ReadPrefBuilder {
-	return &ReadPrefBuilder{}
+// Options creates a new Builder instance.
+func Options() *Builder {
+	return &Builder{}
 }
 
-func (bldr *ReadPrefBuilder) List() []func(*ReadPref) {
+// List returns a list of ReadPref setter functions.
+func (bldr *Builder) List() []func(*ReadPref) {
 	return bldr.opts
 }
 
-func (bldr *ReadPrefBuilder) SetMaxStaleness(dur time.Duration) *ReadPrefBuilder {
+// SetMaxStaleness sets the value for the MaxStaleness field which is the
+// maximum amount of time to allow a server to be considered eligible for
+// selection.
+func (bldr *Builder) SetMaxStaleness(dur time.Duration) *Builder {
 	bldr.opts = append(bldr.opts, func(opts *ReadPref) {
 		opts.maxStaleness = &dur
 	})
@@ -45,7 +53,9 @@ func (bldr *ReadPrefBuilder) SetMaxStaleness(dur time.Duration) *ReadPrefBuilder
 	return bldr
 }
 
-func (bldr *ReadPrefBuilder) SetTagSets(sets []TagSet) *ReadPrefBuilder {
+// SetTagSets sets the multiple tag sets indicating which servers should be
+// considered.
+func (bldr *Builder) SetTagSets(sets []TagSet) *Builder {
 	bldr.opts = append(bldr.opts, func(opts *ReadPref) {
 		opts.tagSets = sets
 	})
@@ -53,7 +63,9 @@ func (bldr *ReadPrefBuilder) SetTagSets(sets []TagSet) *ReadPrefBuilder {
 	return bldr
 }
 
-func (bldr *ReadPrefBuilder) SetHedgeEnabled(hedgeEnabled bool) *ReadPrefBuilder {
+// SetHedgeEnabled sets whether or not hedged reads are enabled for this read
+// preference.
+func (bldr *Builder) SetHedgeEnabled(hedgeEnabled bool) *Builder {
 	bldr.opts = append(bldr.opts, func(opts *ReadPref) {
 		opts.hedgeEnabled = &hedgeEnabled
 	})
@@ -69,7 +81,7 @@ func validOpts(mode Mode, opts *ReadPref) bool {
 	return opts.maxStaleness == nil && len(opts.tagSets) == 0 && opts.hedgeEnabled == nil
 }
 
-func mergeBuilders(builders ...*ReadPrefBuilder) *ReadPref {
+func mergeBuilders(builders ...*Builder) *ReadPref {
 	opts := new(ReadPref)
 	for _, bldr := range builders {
 		if bldr == nil {
@@ -90,35 +102,35 @@ func Primary() *ReadPref {
 }
 
 // PrimaryPreferred constructs a read preference with a PrimaryPreferredMode.
-func PrimaryPreferred(opts ...*ReadPrefBuilder) *ReadPref {
+func PrimaryPreferred(opts ...*Builder) *ReadPref {
 	// New only returns an error with a mode of Primary
 	rp, _ := New(PrimaryPreferredMode, opts...)
 	return rp
 }
 
 // SecondaryPreferred constructs a read preference with a SecondaryPreferredMode.
-func SecondaryPreferred(opts ...*ReadPrefBuilder) *ReadPref {
+func SecondaryPreferred(opts ...*Builder) *ReadPref {
 	// New only returns an error with a mode of Primary
 	rp, _ := New(SecondaryPreferredMode, opts...)
 	return rp
 }
 
 // Secondary constructs a read preference with a SecondaryMode.
-func Secondary(opts ...*ReadPrefBuilder) *ReadPref {
+func Secondary(opts ...*Builder) *ReadPref {
 	// New only returns an error with a mode of Primary
 	rp, _ := New(SecondaryMode, opts...)
 	return rp
 }
 
 // Nearest constructs a read preference with a NearestMode.
-func Nearest(opts ...*ReadPrefBuilder) *ReadPref {
+func Nearest(opts ...*Builder) *ReadPref {
 	// New only returns an error with a mode of Primary
 	rp, _ := New(NearestMode, opts...)
 	return rp
 }
 
 // New creates a new ReadPref.
-func New(mode Mode, builders ...*ReadPrefBuilder) (*ReadPref, error) {
+func New(mode Mode, builders ...*Builder) (*ReadPref, error) {
 	rp := mergeBuilders(builders...)
 	rp.Mode = mode
 

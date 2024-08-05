@@ -14,8 +14,8 @@ import (
 	"log"
 	"sync"
 
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 type CustomLogger struct {
@@ -37,7 +37,7 @@ func (logger *CustomLogger) Error(err error, msg string, _ ...interface{}) {
 	fmt.Fprintf(logger, "err=%v msg=%s\n", err, msg)
 }
 
-func ExampleClientOptions_SetLoggerOptions_customLogger() {
+func ExampleClientOptionsBuilder_SetLoggerOptions_customLogger() {
 	buf := bytes.NewBuffer(nil)
 	sink := &CustomLogger{Writer: buf}
 

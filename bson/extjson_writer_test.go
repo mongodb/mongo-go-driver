@@ -13,7 +13,7 @@ import (
 	"strings"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
 )
 
 func TestExtJSONValueWriter(t *testing.T) {

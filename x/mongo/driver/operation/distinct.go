@@ -11,18 +11,19 @@ import (
 	"errors"
 	"time"
 
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/driverutil"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
 // Distinct performs a distinct operation.
 type Distinct struct {
+	authenticator  driver.Authenticator
 	collation      bsoncore.Document
 	key            *string
 	query          bsoncore.Document
@@ -104,6 +105,7 @@ func (d *Distinct) Execute(ctx context.Context) error {
 		ServerAPI:         d.serverAPI,
 		Timeout:           d.timeout,
 		Name:              driverutil.DistinctOp,
+		Authenticator:     d.authenticator,
 	}.Execute(ctx)
 
 }
@@ -296,5 +298,15 @@ func (d *Distinct) Timeout(timeout *time.Duration) *Distinct {
 	}
 
 	d.timeout = timeout
+	return d
+}
+
+// Authenticator sets the authenticator to use for this operation.
+func (d *Distinct) Authenticator(authenticator driver.Authenticator) *Distinct {
+	if d == nil {
+		d = new(Distinct)
+	}
+
+	d.authenticator = authenticator
 	return d
 }

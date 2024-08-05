@@ -18,22 +18,22 @@ import (
 	"sync"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/csot"
-	"go.mongodb.org/mongo-driver/internal/driverutil"
-	"go.mongodb.org/mongo-driver/internal/handshake"
-	"go.mongodb.org/mongo-driver/internal/logger"
-	"go.mongodb.org/mongo-driver/internal/serverselector"
-	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/csot"
+	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/internal/handshake"
+	"go.mongodb.org/mongo-driver/v2/internal/logger"
+	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
+	"go.mongodb.org/mongo-driver/v2/mongo/address"
+	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage"
 )
 
 const defaultLocalThreshold = 15 * time.Millisecond
@@ -47,10 +47,12 @@ var (
 	ErrReplyDocumentMismatch = errors.New("number of documents returned does not match numberReturned field")
 	// ErrNonPrimaryReadPref is returned when a read is attempted in a transaction with a non-primary read preference.
 	ErrNonPrimaryReadPref = errors.New("read preference in a transaction must be primary")
+	// ErrEmptyReadConcern indicates that a read concern has no fields set.
+	ErrEmptyReadConcern = errors.New("a read concern must have at least one field set")
+	// ErrEmptyWriteConcern indicates that a write concern has no fields set.
+	ErrEmptyWriteConcern = errors.New("a write concern must have at least one field set")
 	// errDatabaseNameEmpty occurs when a database name is not provided.
 	errDatabaseNameEmpty = errors.New("database name cannot be empty")
-	// errEmptyWriteConcern indicates that a write concern has no fields set.
-	errEmptyWriteConcern = errors.New("a write concern must have at least one field set")
 	// errNegativeW indicates that a negative integer `w` field was specified.
 	errNegativeW = errors.New("write concern `w` field cannot be a negative number")
 	// errInconsistent indicates that an inconsistent write concern was specified.
@@ -300,6 +302,10 @@ type Operation struct {
 	// OmitMaxTimeMS will ensure that wire messages sent to the server in service
 	// of the operation do not contain a maxTimeMS field.
 	OmitMaxTimeMS bool
+
+	// Authenticator is the authenticator to use for this operation when a reauthentication is
+	// required.
+	Authenticator Authenticator
 
 	// omitReadPreference is a boolean that indicates whether to omit the
 	// read preference from the command. This omition includes the case
@@ -895,6 +901,28 @@ func (op Operation) Execute(ctx context.Context) error {
 			operationErr.Labels = tt.Labels
 			operationErr.Raw = tt.Raw
 		case Error:
+			// 391 is the reauthentication required error code, so we will attempt a reauth and
+			// retry the operation, if it is successful.
+			if tt.Code == 391 {
+				if op.Authenticator != nil {
+					cfg := AuthConfig{
+						Description:  conn.Description(),
+						Connection:   conn,
+						ClusterClock: op.Clock,
+						ServerAPI:    op.ServerAPI,
+					}
+					if err := op.Authenticator.Reauth(ctx, &cfg); err != nil {
+						return fmt.Errorf("error reauthenticating: %w", err)
+					}
+					if op.Client != nil && op.Client.Committing {
+						// Apply majority write concern for retries
+						op.Client.UpdateCommitTransactionWriteConcern()
+						op.WriteConcern = op.Client.CurrentWc
+					}
+					resetForRetry(tt)
+					continue
+				}
+			}
 			if tt.HasErrorLabel(TransientTransactionError) || tt.HasErrorLabel(UnknownTransactionCommitResult) {
 				if err := op.Client.ClearPinnedResources(); err != nil {
 					return err
@@ -1426,6 +1454,20 @@ func (op Operation) addServerAPI(dst []byte) []byte {
 	return dst
 }
 
+// MarshalBSONReadConcern marshals a ReadConcern.
+func MarshalBSONReadConcern(rc *readconcern.ReadConcern) (bson.Type, []byte, error) {
+	if rc == nil {
+		return 0, nil, ErrEmptyReadConcern
+	}
+
+	var elems []byte
+	if len(rc.Level) > 0 {
+		elems = bsoncore.AppendStringElement(elems, "level", rc.Level)
+	}
+
+	return bson.TypeEmbeddedDocument, bsoncore.BuildDocument(nil, elems), nil
+}
+
 func (op Operation) addReadConcern(dst []byte, desc description.SelectedServer) ([]byte, error) {
 	if op.MinimumReadConcernWireVersion > 0 && (desc.WireVersion == nil ||
 		!driverutil.VersionRangeIncludes(*desc.WireVersion, op.MinimumReadConcernWireVersion)) {
@@ -1451,11 +1493,11 @@ func (op Operation) addReadConcern(dst []byte, desc description.SelectedServer) 
 		rc = readconcern.Snapshot()
 	}
 
-	if rc == nil {
+	_, data, err := MarshalBSONReadConcern(rc) // always returns a document
+	if errors.Is(err, ErrEmptyReadConcern) {
 		return dst, nil
 	}
 
-	_, data, err := rc.MarshalBSONValue() // always returns a document
 	if err != nil {
 		return dst, err
 	}
@@ -1479,7 +1521,12 @@ func (op Operation) addReadConcern(dst []byte, desc description.SelectedServer) 
 	return bsoncore.AppendDocumentElement(dst, "readConcern", data), nil
 }
 
-func marshalBSONWriteConcern(wc writeconcern.WriteConcern, wtimeout time.Duration) (bson.Type, []byte, error) {
+// MarshalBSONWriteConcern marshals a WriteConcern.
+func MarshalBSONWriteConcern(wc *writeconcern.WriteConcern, wtimeout time.Duration) (bson.Type, []byte, error) {
+	if wc == nil {
+		return 0, nil, ErrEmptyWriteConcern
+	}
+
 	var elems []byte
 	if wc.W != nil {
 		// Only support string or int values for W. That aligns with the
@@ -1520,7 +1567,7 @@ func marshalBSONWriteConcern(wc writeconcern.WriteConcern, wtimeout time.Duratio
 	}
 
 	if len(elems) == 0 {
-		return 0, nil, errEmptyWriteConcern
+		return 0, nil, ErrEmptyWriteConcern
 	}
 
 	return bson.TypeEmbeddedDocument, bsoncore.BuildDocument(nil, elems), nil
@@ -1548,8 +1595,8 @@ func (op Operation) addWriteConcern(ctx context.Context, dst []byte, desc descri
 		wtimeout = op.Client.CurrentWTimeout
 	}
 
-	typ, wcBSON, err := marshalBSONWriteConcern(*wc, wtimeout)
-	if errors.Is(err, errEmptyWriteConcern) {
+	typ, wcBSON, err := MarshalBSONWriteConcern(wc, wtimeout)
+	if errors.Is(err, ErrEmptyWriteConcern) {
 		return dst, nil
 	}
 

@@ -10,10 +10,10 @@ import (
 	"fmt"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 )
 
 // This file defines helper types to convert BSON documents to ReadConcern, WriteConcern, and ReadPref objects.
@@ -69,7 +69,7 @@ func (rp *ReadPreference) ToReadPrefOption() (*readpref.ReadPref, error) {
 		return nil, fmt.Errorf("invalid read preference mode %q", rp.Mode)
 	}
 
-	rpOpts := &readpref.Options{}
+	rpOpts := readpref.Options()
 
 	if rp.TagSets != nil {
 		// Each item in the TagSets slice is a document that represents one set.
@@ -82,12 +82,11 @@ func (rp *ReadPreference) ToReadPrefOption() (*readpref.ReadPref, error) {
 			sets = append(sets, parsed)
 		}
 
-		rpOpts.TagSets = sets
+		rpOpts.SetTagSets(sets)
 	}
 	if rp.MaxStalenessSeconds != nil {
 		maxStaleness := time.Duration(*rp.MaxStalenessSeconds) * time.Second
-		rpOpts.MaxStaleness = &maxStaleness
-
+		rpOpts.SetMaxStaleness(maxStaleness)
 	}
 	if rp.Hedge != nil {
 		if len(rp.Hedge) > 1 {
@@ -95,7 +94,7 @@ func (rp *ReadPreference) ToReadPrefOption() (*readpref.ReadPref, error) {
 		}
 		if enabled, ok := rp.Hedge["enabled"]; ok {
 			hedgeEnabled := enabled.(bool)
-			rpOpts.HedgeEnabled = &hedgeEnabled
+			rpOpts.SetHedgeEnabled(hedgeEnabled)
 		}
 	}
 

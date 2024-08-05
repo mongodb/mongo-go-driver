@@ -10,25 +10,26 @@ import (
 	"context"
 	"errors"
 
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/driverutil"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
 // EndSessions performs an endSessions operation.
 type EndSessions struct {
-	sessionIDs bsoncore.Document
-	session    *session.Client
-	clock      *session.ClusterClock
-	monitor    *event.CommandMonitor
-	crypt      driver.Crypt
-	database   string
-	deployment driver.Deployment
-	selector   description.ServerSelector
-	serverAPI  *driver.ServerAPIOptions
+	authenticator driver.Authenticator
+	sessionIDs    bsoncore.Document
+	session       *session.Client
+	clock         *session.ClusterClock
+	monitor       *event.CommandMonitor
+	crypt         driver.Crypt
+	database      string
+	deployment    driver.Deployment
+	selector      description.ServerSelector
+	serverAPI     *driver.ServerAPIOptions
 }
 
 // NewEndSessions constructs and returns a new EndSessions.
@@ -61,6 +62,7 @@ func (es *EndSessions) Execute(ctx context.Context) error {
 		Selector:          es.selector,
 		ServerAPI:         es.serverAPI,
 		Name:              driverutil.EndSessionsOp,
+		Authenticator:     es.authenticator,
 	}.Execute(ctx)
 
 }
@@ -159,5 +161,15 @@ func (es *EndSessions) ServerAPI(serverAPI *driver.ServerAPIOptions) *EndSession
 	}
 
 	es.serverAPI = serverAPI
+	return es
+}
+
+// Authenticator sets the authenticator to use for this operation.
+func (es *EndSessions) Authenticator(authenticator driver.Authenticator) *EndSessions {
+	if es == nil {
+		es = new(EndSessions)
+	}
+
+	es.authenticator = authenticator
 	return es
 }

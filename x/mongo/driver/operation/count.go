@@ -12,18 +12,19 @@ import (
 	"fmt"
 	"time"
 
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/driverutil"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
 // Count represents a count operation.
 type Count struct {
+	authenticator  driver.Authenticator
 	query          bsoncore.Document
 	session        *session.Client
 	clock          *session.ClusterClock
@@ -125,6 +126,7 @@ func (c *Count) Execute(ctx context.Context) error {
 		ServerAPI:         c.serverAPI,
 		Timeout:           c.timeout,
 		Name:              driverutil.CountOp,
+		Authenticator:     c.authenticator,
 	}.Execute(ctx)
 
 	// Swallow error if NamespaceNotFound(26) is returned from aggregate on non-existent namespace
@@ -296,5 +298,15 @@ func (c *Count) Timeout(timeout *time.Duration) *Count {
 	}
 
 	c.timeout = timeout
+	return c
+}
+
+// Authenticator sets the authenticator to use for this operation.
+func (c *Count) Authenticator(authenticator driver.Authenticator) *Count {
+	if c == nil {
+		c = new(Count)
+	}
+
+	c.authenticator = authenticator
 	return c
 }

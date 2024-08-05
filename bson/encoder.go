@@ -25,21 +25,12 @@ var encPool = sync.Pool{
 type Encoder struct {
 	ec EncodeContext
 	vw ValueWriter
-
-	errorOnInlineDuplicates bool
-	intMinSize              bool
-	stringifyMapKeysWithFmt bool
-	nilMapAsEmpty           bool
-	nilSliceAsEmpty         bool
-	nilByteSliceAsEmpty     bool
-	omitZeroStruct          bool
-	useJSONStructTags       bool
 }
 
-// NewEncoder returns a new encoder that uses the DefaultRegistry to write to vw.
+// NewEncoder returns a new encoder that writes to vw.
 func NewEncoder(vw ValueWriter) *Encoder {
 	return &Encoder{
-		ec: EncodeContext{Registry: DefaultRegistry},
+		ec: EncodeContext{Registry: defaultRegistry},
 		vw: vw,
 	}
 }
@@ -62,33 +53,6 @@ func (e *Encoder) Encode(val interface{}) error {
 		return err
 	}
 
-	// Copy the configurations applied to the Encoder over to the EncodeContext, which actually
-	// communicates those configurations to the default ValueEncoders.
-	if e.errorOnInlineDuplicates {
-		e.ec.ErrorOnInlineDuplicates()
-	}
-	if e.intMinSize {
-		e.ec.MinSize = true
-	}
-	if e.stringifyMapKeysWithFmt {
-		e.ec.StringifyMapKeysWithFmt()
-	}
-	if e.nilMapAsEmpty {
-		e.ec.NilMapAsEmpty()
-	}
-	if e.nilSliceAsEmpty {
-		e.ec.NilSliceAsEmpty()
-	}
-	if e.nilByteSliceAsEmpty {
-		e.ec.NilByteSliceAsEmpty()
-	}
-	if e.omitZeroStruct {
-		e.ec.OmitZeroStruct()
-	}
-	if e.useJSONStructTags {
-		e.ec.UseJSONStructTags()
-	}
-
 	return encoder.EncodeValue(e.ec, e.vw, reflect.ValueOf(val))
 }
 
@@ -106,38 +70,38 @@ func (e *Encoder) SetRegistry(r *Registry) {
 // ErrorOnInlineDuplicates causes the Encoder to return an error if there is a duplicate field in
 // the marshaled BSON when the "inline" struct tag option is set.
 func (e *Encoder) ErrorOnInlineDuplicates() {
-	e.errorOnInlineDuplicates = true
+	e.ec.errorOnInlineDuplicates = true
 }
 
 // IntMinSize causes the Encoder to marshal Go integer values (int, int8, int16, int32, int64, uint,
 // uint8, uint16, uint32, or uint64) as the minimum BSON int size (either 32 or 64 bits) that can
 // represent the integer value.
 func (e *Encoder) IntMinSize() {
-	e.intMinSize = true
+	e.ec.minSize = true
 }
 
 // StringifyMapKeysWithFmt causes the Encoder to convert Go map keys to BSON document field name
 // strings using fmt.Sprint instead of the default string conversion logic.
 func (e *Encoder) StringifyMapKeysWithFmt() {
-	e.stringifyMapKeysWithFmt = true
+	e.ec.stringifyMapKeysWithFmt = true
 }
 
 // NilMapAsEmpty causes the Encoder to marshal nil Go maps as empty BSON documents instead of BSON
 // null.
 func (e *Encoder) NilMapAsEmpty() {
-	e.nilMapAsEmpty = true
+	e.ec.nilMapAsEmpty = true
 }
 
 // NilSliceAsEmpty causes the Encoder to marshal nil Go slices as empty BSON arrays instead of BSON
 // null.
 func (e *Encoder) NilSliceAsEmpty() {
-	e.nilSliceAsEmpty = true
+	e.ec.nilSliceAsEmpty = true
 }
 
 // NilByteSliceAsEmpty causes the Encoder to marshal nil Go byte slices as empty BSON binary values
 // instead of BSON null.
 func (e *Encoder) NilByteSliceAsEmpty() {
-	e.nilByteSliceAsEmpty = true
+	e.ec.nilByteSliceAsEmpty = true
 }
 
 // TODO(GODRIVER-2820): Update the description to remove the note about only examining exported
@@ -149,11 +113,11 @@ func (e *Encoder) NilByteSliceAsEmpty() {
 // Note that the Encoder only examines exported struct fields when determining if a struct is the
 // zero value. It considers pointers to a zero struct value (e.g. &MyStruct{}) not empty.
 func (e *Encoder) OmitZeroStruct() {
-	e.omitZeroStruct = true
+	e.ec.omitZeroStruct = true
 }
 
 // UseJSONStructTags causes the Encoder to fall back to using the "json" struct tag if a "bson"
 // struct tag is not specified.
 func (e *Encoder) UseJSONStructTags() {
-	e.useJSONStructTags = true
+	e.ec.useJSONStructTags = true
 }

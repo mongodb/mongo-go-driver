@@ -11,12 +11,13 @@ import (
 	"fmt"
 	"strconv"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
 // SearchIndexView is a type that can be used to create, drop, list and update search indexes on a collection. A SearchIndexView for
@@ -32,7 +33,7 @@ type SearchIndexModel struct {
 	Definition interface{}
 
 	// The search index options.
-	Options *options.SearchIndexesOptions
+	Options *options.SearchIndexesOptionsBuilder
 }
 
 // List executes a listSearchIndexes command and returns a cursor over the search indexes in the collection.
@@ -43,24 +44,31 @@ type SearchIndexModel struct {
 // documentation).
 func (siv SearchIndexView) List(
 	ctx context.Context,
-	searchIdxOpts *options.SearchIndexesOptions,
-	opts ...*options.ListSearchIndexesOptions,
+	searchIdxOpts options.Lister[options.SearchIndexesOptions],
+	opts ...options.Lister[options.ListSearchIndexesOptions],
 ) (*Cursor, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
+	searchIdxArgs, err := mongoutil.NewOptions[options.SearchIndexesOptions](searchIdxOpts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
+	}
+
 	index := bson.D{}
-	if searchIdxOpts != nil && searchIdxOpts.Name != nil {
-		index = bson.D{{"name", *searchIdxOpts.Name}}
+	if searchIdxArgs != nil && searchIdxArgs.Name != nil {
+		index = bson.D{{"name", *searchIdxArgs.Name}}
 	}
 
-	aggregateOpts := make([]*options.AggregateOptions, len(opts))
-	for i, opt := range opts {
-		aggregateOpts[i] = opt.AggregateOpts
+	args, err := mongoutil.NewOptions[options.ListSearchIndexesOptions](opts...)
+	if err != nil {
+		return nil, err
 	}
 
-	return siv.coll.Aggregate(ctx, Pipeline{{{"$listSearchIndexes", index}}}, aggregateOpts...)
+	aggregateOpts := mongoutil.NewOptionsLister(args.AggregateOptions, nil)
+
+	return siv.coll.Aggregate(ctx, Pipeline{{{"$listSearchIndexes", index}}}, aggregateOpts)
 }
 
 // CreateOne executes a createSearchIndexes command to create a search index on the collection and returns the name of the new
@@ -68,7 +76,7 @@ func (siv SearchIndexView) List(
 func (siv SearchIndexView) CreateOne(
 	ctx context.Context,
 	model SearchIndexModel,
-	opts ...*options.CreateSearchIndexesOptions,
+	opts ...options.Lister[options.CreateSearchIndexesOptions],
 ) (string, error) {
 	names, err := siv.CreateMany(ctx, []SearchIndexModel{model}, opts...)
 	if err != nil {
@@ -88,7 +96,7 @@ func (siv SearchIndexView) CreateOne(
 func (siv SearchIndexView) CreateMany(
 	ctx context.Context,
 	models []SearchIndexModel,
-	_ ...*options.CreateSearchIndexesOptions,
+	_ ...options.Lister[options.CreateSearchIndexesOptions],
 ) ([]string, error) {
 	var indexes bsoncore.Document
 	aidx, indexes := bsoncore.AppendArrayStart(indexes)
@@ -104,12 +112,20 @@ func (siv SearchIndexView) CreateMany(
 		}
 
 		var iidx int32
-		iidx, indexes = bsoncore.AppendDocumentElementStart(indexes, strconv.Itoa(i))
-		if model.Options != nil && model.Options.Name != nil {
-			indexes = bsoncore.AppendStringElement(indexes, "name", *model.Options.Name)
-		}
-		if model.Options != nil && model.Options.Type != nil {
-			indexes = bsoncore.AppendStringElement(indexes, "type", *model.Options.Type)
+		if model.Options != nil {
+			searchIndexArgs, err := mongoutil.NewOptions[options.SearchIndexesOptions](model.Options)
+			if err != nil {
+				return nil, fmt.Errorf("failed to construct options from builder: %w", err)
+			}
+
+			iidx, indexes = bsoncore.AppendDocumentElementStart(indexes, strconv.Itoa(i))
+			if searchIndexArgs.Name != nil {
+				indexes = bsoncore.AppendStringElement(indexes, "name", *searchIndexArgs.Name)
+			}
+
+			if searchIndexArgs.Type != nil {
+				indexes = bsoncore.AppendStringElement(indexes, "type", *searchIndexArgs.Type)
+			}
 		}
 		indexes = bsoncore.AppendDocumentElement(indexes, "definition", definition)
 
@@ -143,7 +159,7 @@ func (siv SearchIndexView) CreateMany(
 		ServerSelector(selector).ClusterClock(siv.coll.client.clock).
 		Collection(siv.coll.name).Database(siv.coll.db.name).
 		Deployment(siv.coll.client.deployment).ServerAPI(siv.coll.client.serverAPI).
-		Timeout(siv.coll.client.timeout)
+		Timeout(siv.coll.client.timeout).Authenticator(siv.coll.client.authenticator)
 
 	err = op.Execute(ctx)
 	if err != nil {
@@ -170,7 +186,7 @@ func (siv SearchIndexView) CreateMany(
 func (siv SearchIndexView) DropOne(
 	ctx context.Context,
 	name string,
-	_ ...*options.DropSearchIndexOptions,
+	_ ...options.Lister[options.DropSearchIndexOptions],
 ) error {
 	if name == "*" {
 		return ErrMultipleIndexDrop
@@ -198,7 +214,7 @@ func (siv SearchIndexView) DropOne(
 		ServerSelector(selector).ClusterClock(siv.coll.client.clock).
 		Collection(siv.coll.name).Database(siv.coll.db.name).
 		Deployment(siv.coll.client.deployment).ServerAPI(siv.coll.client.serverAPI).
-		Timeout(siv.coll.client.timeout)
+		Timeout(siv.coll.client.timeout).Authenticator(siv.coll.client.authenticator)
 
 	err = op.Execute(ctx)
 	if de, ok := err.(driver.Error); ok && de.NamespaceNotFound() {
@@ -219,7 +235,7 @@ func (siv SearchIndexView) UpdateOne(
 	ctx context.Context,
 	name string,
 	definition interface{},
-	_ ...*options.UpdateSearchIndexOptions,
+	_ ...options.Lister[options.UpdateSearchIndexOptions],
 ) error {
 	if definition == nil {
 		return fmt.Errorf("search index definition cannot be nil")
@@ -252,7 +268,7 @@ func (siv SearchIndexView) UpdateOne(
 		ServerSelector(selector).ClusterClock(siv.coll.client.clock).
 		Collection(siv.coll.name).Database(siv.coll.db.name).
 		Deployment(siv.coll.client.deployment).ServerAPI(siv.coll.client.serverAPI).
-		Timeout(siv.coll.client.timeout)
+		Timeout(siv.coll.client.timeout).Authenticator(siv.coll.client.authenticator)
 
 	return op.Execute(ctx)
 }

@@ -7,11 +7,12 @@
 package bson
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
 
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 // copyDocument handles copying one document from the src to the dst.
@@ -179,10 +180,7 @@ func copyValueFromBytes(dst ValueWriter, t Type, src []byte) error {
 		return wvb.writeValueBytes(t, src)
 	}
 
-	vr := vrPool.Get().(*valueReader)
-	defer vrPool.Put(vr)
-
-	vr.reset(src)
+	vr := newDocumentReader(bytes.NewReader(src))
 	vr.pushElement(t)
 
 	return copyValue(dst, vr)
