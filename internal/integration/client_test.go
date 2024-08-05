@@ -897,7 +897,7 @@ func TestClientStress(t *testing.T) {
 				defer func() {
 					created := len(tpm.Events(func(e *event.PoolEvent) bool { return e.Type == event.ConnectionCreated }))
 					closed := len(tpm.Events(func(e *event.PoolEvent) bool { return e.Type == event.ConnectionClosed }))
-					poolCleared := len(tpm.Events(func(e *event.PoolEvent) bool { return e.Type == event.PoolCleared }))
+					poolCleared := len(tpm.Events(func(e *event.PoolEvent) bool { return e.Type == event.ConnectionPoolCleared }))
 					mt.Logf("Connections created: %d, connections closed: %d, pool clears: %d", created, closed, poolCleared)
 				}()
 

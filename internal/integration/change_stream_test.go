@@ -589,7 +589,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 			assert.NotNil(mt, err, "expected Watch error, got nil")
 
 			clearedEvents := tpm.Events(func(evt *event.PoolEvent) bool {
-				return evt.Type == event.PoolCleared
+				return evt.Type == event.ConnectionPoolCleared
 			})
 			assert.Equal(mt, 2, len(clearedEvents), "expected two PoolCleared events, got %d", len(clearedEvents))
 		})

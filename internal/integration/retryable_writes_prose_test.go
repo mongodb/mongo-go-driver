@@ -192,7 +192,7 @@ func TestRetryableWritesProse(t *testing.T) {
 		events := tpm.Events(func(e *event.PoolEvent) bool {
 			connectionCheckedOut := e.Type == event.ConnectionCheckedOut
 			connectionCheckOutFailed := e.Type == event.ConnectionCheckOutFailed
-			poolCleared := e.Type == event.PoolCleared
+			poolCleared := e.Type == event.ConnectionPoolCleared
 			return connectionCheckedOut || connectionCheckOutFailed || poolCleared
 		})
 
@@ -201,7 +201,7 @@ func TestRetryableWritesProse(t *testing.T) {
 		assert.True(mt, len(events) >= 3, "expected at least 3 events, got %v", len(events))
 		assert.Equal(mt, event.ConnectionCheckedOut, events[0].Type,
 			"expected ConnectionCheckedOut event, got %v", events[0].Type)
-		assert.Equal(mt, event.PoolCleared, events[1].Type,
+		assert.Equal(mt, event.ConnectionPoolCleared, events[1].Type,
 			"expected ConnectionPoolCleared event, got %v", events[1].Type)
 		assert.Equal(mt, event.ConnectionCheckOutFailed, events[2].Type,
 			"expected ConnectionCheckedOutFailed event, got %v", events[2].Type)
