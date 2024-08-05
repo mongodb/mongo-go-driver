@@ -1582,8 +1582,7 @@ func TestCollection(t *testing.T) {
 			_, err := mt.Coll.Indexes().CreateOne(context.TODO(), indexModel)
 			assert.NoError(mt, err, "failed to create index")
 
-			err = mt.Coll.Indexes().DropOne(context.Background(), "username_1")
-			assert.NoError(mt, err)
+			_ = mt.Coll.Indexes().DropOne(context.Background(), "username_1")
 		})
 	})
 

@@ -21,7 +21,7 @@ import (
 )
 
 // AuthenticatorFactory constructs an authenticator.
-type AuthenticatorFactory func(cred *Cred) (Authenticator, error)
+type AuthenticatorFactory func(*Cred, *http.Client) (Authenticator, error)
 
 var authFactories = make(map[string]AuthenticatorFactory)
 
@@ -34,12 +34,13 @@ func init() {
 	RegisterAuthenticatorFactory(GSSAPI, newGSSAPIAuthenticator)
 	RegisterAuthenticatorFactory(MongoDBX509, newMongoDBX509Authenticator)
 	RegisterAuthenticatorFactory(MongoDBAWS, newMongoDBAWSAuthenticator)
+	RegisterAuthenticatorFactory(MongoDBOIDC, newOIDCAuthenticator)
 }
 
 // CreateAuthenticator creates an authenticator.
-func CreateAuthenticator(name string, cred *Cred) (Authenticator, error) {
+func CreateAuthenticator(name string, cred *Cred, httpClient *http.Client) (Authenticator, error) {
 	if f, ok := authFactories[name]; ok {
-		return f(cred)
+		return f(cred, httpClient)
 	}
 
 	return nil, newAuthError(fmt.Sprintf("unknown authenticator: %s", name), nil)
@@ -62,7 +63,6 @@ type HandshakeOptions struct {
 	ClusterClock          *session.ClusterClock
 	ServerAPI             *driver.ServerAPIOptions
 	LoadBalanced          bool
-	HTTPClient            *http.Client
 }
 
 type authHandshaker struct {
@@ -102,12 +102,17 @@ func (ah *authHandshaker) GetHandshakeInformation(
 				return driver.HandshakeInformation{}, newAuthError("failed to create conversation", err)
 			}
 
-			firstMsg, err := ah.conversation.FirstMessage()
-			if err != nil {
-				return driver.HandshakeInformation{}, newAuthError("failed to create speculative authentication message", err)
-			}
+			// It is possible for the speculative conversation to be nil even without error if the authenticator
+			// cannot perform speculative authentication. An example of this is MONGODB-OIDC when there is
+			// no AccessToken in the cache.
+			if ah.conversation != nil {
+				firstMsg, err := ah.conversation.FirstMessage()
+				if err != nil {
+					return driver.HandshakeInformation{}, newAuthError("failed to create speculative authentication message", err)
+				}
 
-			op = op.SpeculativeAuthenticate(firstMsg)
+				op = op.SpeculativeAuthenticate(firstMsg)
+			}
 		}
 	}
 
@@ -130,12 +135,11 @@ func (ah *authHandshaker) FinishHandshake(ctx context.Context, conn *mnet.Connec
 	}
 
 	if performAuth(conn.Description()) && ah.options.Authenticator != nil {
-		cfg := &Config{
+		cfg := &driver.AuthConfig{
 			Connection:    conn,
 			ClusterClock:  ah.options.ClusterClock,
 			HandshakeInfo: ah.handshakeInfo,
 			ServerAPI:     ah.options.ServerAPI,
-			HTTPClient:    ah.options.HTTPClient,
 		}
 
 		if err := ah.authenticate(ctx, cfg); err != nil {
@@ -149,7 +153,7 @@ func (ah *authHandshaker) FinishHandshake(ctx context.Context, conn *mnet.Connec
 	return ah.wrapped.FinishHandshake(ctx, conn)
 }
 
-func (ah *authHandshaker) authenticate(ctx context.Context, cfg *Config) error {
+func (ah *authHandshaker) authenticate(ctx context.Context, cfg *driver.AuthConfig) error {
 	// If the initial hello reply included a response to the speculative authentication attempt, we only need to
 	// conduct the remainder of the conversation.
 	if speculativeResponse := ah.handshakeInfo.SpeculativeAuthenticate; speculativeResponse != nil {
@@ -183,10 +187,7 @@ type Config struct {
 }
 
 // Authenticator handles authenticating a connection.
-type Authenticator interface {
-	// Auth authenticates the connection.
-	Auth(context.Context, *Config) error
-}
+type Authenticator = driver.Authenticator
 
 func newAuthError(msg string, inner error) error {
 	return &Error{

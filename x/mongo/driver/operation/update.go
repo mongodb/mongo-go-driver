@@ -25,6 +25,7 @@ import (
 
 // Update performs an update operation.
 type Update struct {
+	authenticator            driver.Authenticator
 	bypassDocumentValidation *bool
 	comment                  bsoncore.Value
 	ordered                  *bool
@@ -166,6 +167,7 @@ func (u *Update) Execute(ctx context.Context) error {
 		Timeout:           u.timeout,
 		Logger:            u.logger,
 		Name:              driverutil.UpdateOp,
+		Authenticator:     u.authenticator,
 	}.Execute(ctx)
 
 }
@@ -411,5 +413,15 @@ func (u *Update) Logger(logger *logger.Logger) *Update {
 	}
 
 	u.logger = logger
+	return u
+}
+
+// Authenticator sets the authenticator to use for this operation.
+func (u *Update) Authenticator(authenticator driver.Authenticator) *Update {
+	if u == nil {
+		u = new(Update)
+	}
+
+	u.authenticator = authenticator
 	return u
 }

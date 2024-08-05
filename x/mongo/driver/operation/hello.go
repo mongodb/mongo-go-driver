@@ -37,6 +37,7 @@ const driverName = "mongo-go-driver"
 
 // Hello is used to run the handshake operation.
 type Hello struct {
+	authenticator      driver.Authenticator
 	appname            string
 	compressors        []string
 	saslSupportedMechs string
@@ -659,8 +660,16 @@ func (h *Hello) OmitMaxTimeMS(val bool) *Hello {
 	if h == nil {
 		h = new(Hello)
 	}
-
 	h.omitMaxTimeMS = val
+	return h
+}
 
+// Authenticator sets the authenticator to use for this operation.
+func (h *Hello) Authenticator(authenticator driver.Authenticator) *Hello {
+	if h == nil {
+		h = new(Hello)
+	}
+
+	h.authenticator = authenticator
 	return h
 }
