@@ -375,17 +375,17 @@ func (c *ClientOptions) validate() error {
 				fallthrough
 			case auth.AzureEnvironmentValue:
 				if c.Auth.OIDCMachineCallback != nil {
-					return fmt.Errorf("OIDCMachineCallback cannot be specified with the the %s %q", env, auth.EnvironmentProp)
+					return fmt.Errorf("OIDCMachineCallback cannot be specified with the %s %q", env, auth.EnvironmentProp)
 				}
 				if c.Auth.OIDCHumanCallback != nil {
-					return fmt.Errorf("OIDCHumanCallback cannot be specified with the the %s %q", env, auth.EnvironmentProp)
+					return fmt.Errorf("OIDCHumanCallback cannot be specified with the %s %q", env, auth.EnvironmentProp)
 				}
 				if c.Auth.AuthMechanismProperties[auth.ResourceProp] == "" {
-					return fmt.Errorf("resource must be set for the %s %q", env, auth.EnvironmentProp)
+					return fmt.Errorf("%q must be set for the %s %q", auth.ResourceProp, env, auth.EnvironmentProp)
 				}
 			default:
 				if c.Auth.AuthMechanismProperties[auth.ResourceProp] != "" {
-					return fmt.Errorf("resource must not be set for the %s %q", env, auth.EnvironmentProp)
+					return fmt.Errorf("%q must not be set for the %s %q", auth.ResourceProp, env, auth.EnvironmentProp)
 				}
 			}
 		}
