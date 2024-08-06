@@ -9,6 +9,7 @@ package bsoncore
 import (
 	"bytes"
 	"fmt"
+	"math"
 )
 
 // MalformedElementError represents a class of errors that RawElement methods return.
@@ -114,6 +115,11 @@ func (e Element) ValueErr() (Value, error) {
 
 // String implements the fmt.String interface. The output will be in extended JSON format.
 func (e Element) String() string {
+	return e.StringN(math.MaxInt)
+}
+
+// StringN implements the fmt.String interface for upto N bytes. The output will be in extended JSON format.
+func (e Element) StringN(n int) string {
 	if len(e) <= 0 {
 		return ""
 	}
@@ -127,7 +133,17 @@ func (e Element) String() string {
 	if !valid {
 		return ""
 	}
-	return "\"" + string(key) + "\": " + val.String()
+
+	var str string
+	if _, ok := val.StringValueOK(); ok {
+		str = val.StringN(n)
+	} else if arr, ok := val.ArrayOK(); ok {
+		str = arr.StringN(n)
+	} else {
+		str = val.String()
+	}
+
+	return "\"" + string(key) + "\": " + str
 }
 
 // DebugString outputs a human readable version of RawElement. It will attempt to stringify the
