@@ -26,14 +26,24 @@ import (
 // MongoDBOIDC is the string constant for the MONGODB-OIDC authentication mechanism.
 const MongoDBOIDC = "MONGODB-OIDC"
 
+// EnvironmentProp is the property key name that specifies the environment for the OIDC authenticator.
 const EnvironmentProp = "ENVIRONMENT"
+
+// ResourceProp is the property key name that specifies the token resource for GCP and AZURE OIDC auth.
 const ResourceProp = "TOKEN_RESOURCE"
+
+// AllowedHostsProp is the property key name that specifies the allowed hosts for the OIDC authenticator.
 const AllowedHostsProp = "ALLOWED_HOSTS"
 
+// Environment values for the OIDC authenticator.
+// AzureEnvironmentValue is the value for the Azure environment.
 const AzureEnvironmentValue = "azure"
-const GCPEnvironmentValue = "gcp"
-const TestEnvironmentValue = "test"
 
+// GCPEnvironmentValue is the value for the GCP environment.
+const GCPEnvironmentValue = "gcp"
+
+// TestEnvironmentValue is the value for the test environment.
+const TestEnvironmentValue = "test"
 
 const apiVersion = 1
 const invalidateSleepTimeout = 100 * time.Millisecond
