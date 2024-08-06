@@ -26,7 +26,6 @@ import (
 // MongoDBOIDC is the string constant for the MONGODB-OIDC authentication mechanism.
 const MongoDBOIDC = "MONGODB-OIDC"
 
-// const tokenResourceProp = "TOKEN_RESOURCE"
 const EnvironmentProp = "ENVIRONMENT"
 const ResourceProp = "TOKEN_RESOURCE"
 const AllowedHostsProp = "ALLOWED_HOSTS"
@@ -34,6 +33,7 @@ const AllowedHostsProp = "ALLOWED_HOSTS"
 const AzureEnvironmentValue = "azure"
 const GCPEnvironmentValue = "gcp"
 const TestEnvironmentValue = "test"
+
 
 const apiVersion = 1
 const invalidateSleepTimeout = 100 * time.Millisecond
@@ -151,6 +151,7 @@ func (oa *OIDCAuthenticator) setAllowedHosts() error {
 		oa.allowedHosts = &defaultAllowedHosts
 		return nil
 	}
+
 	allowedHosts, ok := oa.AuthMechanismProperties[AllowedHostsProp]
 	if !ok {
 		oa.allowedHosts = &defaultAllowedHosts
