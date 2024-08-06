@@ -29,7 +29,7 @@ const MongoDBOIDC = "MONGODB-OIDC"
 // const tokenResourceProp = "TOKEN_RESOURCE"
 const EnvironmentProp = "ENVIRONMENT"
 const ResourceProp = "TOKEN_RESOURCE"
-const allowedHostsProp = "ALLOWED_HOSTS"
+const AllowedHostsProp = "ALLOWED_HOSTS"
 
 const AzureEnvironmentValue = "azure"
 const GCPEnvironmentValue = "gcp"
@@ -151,7 +151,7 @@ func (oa *OIDCAuthenticator) setAllowedHosts() error {
 		oa.allowedHosts = &defaultAllowedHosts
 		return nil
 	}
-	allowedHosts, ok := oa.AuthMechanismProperties[allowedHostsProp]
+	allowedHosts, ok := oa.AuthMechanismProperties[AllowedHostsProp]
 	if !ok {
 		oa.allowedHosts = &defaultAllowedHosts
 		return nil
@@ -168,18 +168,18 @@ func (oa *OIDCAuthenticator) setAllowedHosts() error {
 func (oa *OIDCAuthenticator) validateConnectionAddressWithAllowedHosts(conn driver.Connection) error {
 	if oa.allowedHosts == nil {
 		// should be unreachable, but this is a safety check.
-		return newAuthError(fmt.Sprintf("%q missing", allowedHostsProp), nil)
+		return newAuthError(fmt.Sprintf("%q missing", AllowedHostsProp), nil)
 	}
 	allowedHosts := *oa.allowedHosts
 	if len(allowedHosts) == 0 {
-		return newAuthError(fmt.Sprintf("empty %q specified", allowedHostsProp), nil)
+		return newAuthError(fmt.Sprintf("empty %q specified", AllowedHostsProp), nil)
 	}
 	for _, pattern := range allowedHosts {
 		if pattern.MatchString(string(conn.Address())) {
 			return nil
 		}
 	}
-	return newAuthError(fmt.Sprintf("address %q not allowed by %q: %v", conn.Address(), allowedHostsProp, allowedHosts), nil)
+	return newAuthError(fmt.Sprintf("address %q not allowed by %q: %v", conn.Address(), AllowedHostsProp, allowedHosts), nil)
 }
 
 type oidcOneStep struct {
