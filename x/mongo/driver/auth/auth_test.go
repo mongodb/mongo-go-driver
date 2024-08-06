@@ -7,6 +7,7 @@
 package auth_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -39,7 +40,7 @@ func TestCreateAuthenticator(t *testing.T) {
 				PasswordSet: true,
 			}
 
-			a, err := CreateAuthenticator(test.name, cred)
+			a, err := CreateAuthenticator(test.name, cred, &http.Client{})
 			require.NoError(t, err)
 			require.IsType(t, test.auth, a)
 		})

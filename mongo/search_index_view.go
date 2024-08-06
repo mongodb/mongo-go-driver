@@ -108,6 +108,9 @@ func (siv SearchIndexView) CreateMany(
 		if model.Options != nil && model.Options.Name != nil {
 			indexes = bsoncore.AppendStringElement(indexes, "name", *model.Options.Name)
 		}
+		if model.Options != nil && model.Options.Type != nil {
+			indexes = bsoncore.AppendStringElement(indexes, "type", *model.Options.Type)
+		}
 		indexes = bsoncore.AppendDocumentElement(indexes, "definition", definition)
 
 		indexes, err = bsoncore.AppendDocumentEnd(indexes, iidx)
@@ -140,7 +143,7 @@ func (siv SearchIndexView) CreateMany(
 		ServerSelector(selector).ClusterClock(siv.coll.client.clock).
 		Collection(siv.coll.name).Database(siv.coll.db.name).
 		Deployment(siv.coll.client.deployment).ServerAPI(siv.coll.client.serverAPI).
-		Timeout(siv.coll.client.timeout)
+		Timeout(siv.coll.client.timeout).Authenticator(siv.coll.client.authenticator)
 
 	err = op.Execute(ctx)
 	if err != nil {
@@ -195,7 +198,7 @@ func (siv SearchIndexView) DropOne(
 		ServerSelector(selector).ClusterClock(siv.coll.client.clock).
 		Collection(siv.coll.name).Database(siv.coll.db.name).
 		Deployment(siv.coll.client.deployment).ServerAPI(siv.coll.client.serverAPI).
-		Timeout(siv.coll.client.timeout)
+		Timeout(siv.coll.client.timeout).Authenticator(siv.coll.client.authenticator)
 
 	err = op.Execute(ctx)
 	if de, ok := err.(driver.Error); ok && de.NamespaceNotFound() {
@@ -249,7 +252,7 @@ func (siv SearchIndexView) UpdateOne(
 		ServerSelector(selector).ClusterClock(siv.coll.client.clock).
 		Collection(siv.coll.name).Database(siv.coll.db.name).
 		Deployment(siv.coll.client.deployment).ServerAPI(siv.coll.client.serverAPI).
-		Timeout(siv.coll.client.timeout)
+		Timeout(siv.coll.client.timeout).Authenticator(siv.coll.client.authenticator)
 
 	return op.Execute(ctx)
 }

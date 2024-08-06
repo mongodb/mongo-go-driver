@@ -61,6 +61,13 @@ func (c *connection) WriteWireMessage(context.Context, []byte) error {
 	return nil
 }
 
+func (c *connection) OIDCTokenGenID() uint64 {
+	return 0
+}
+
+func (c *connection) SetOIDCTokenGenID(uint64) {
+}
+
 // ReadWireMessage returns the next response in the connection's list of responses.
 func (c *connection) ReadWireMessage(_ context.Context) ([]byte, error) {
 	var dst []byte

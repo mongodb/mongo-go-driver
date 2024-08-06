@@ -15,6 +15,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"net"
 	"net/http"
 	"strings"
@@ -110,6 +111,34 @@ type Credential struct {
 	Username                string
 	Password                string
 	PasswordSet             bool
+	OIDCMachineCallback     OIDCCallback
+	OIDCHumanCallback       OIDCCallback
+}
+
+// OIDCCallback is the type for both Human and Machine Callback flows.
+// RefreshToken will always be nil in the OIDCArgs for the Machine flow.
+type OIDCCallback func(context.Context, *OIDCArgs) (*OIDCCredential, error)
+
+// OIDCArgs contains the arguments for the OIDC callback.
+type OIDCArgs struct {
+	Version      int
+	IDPInfo      *IDPInfo
+	RefreshToken *string
+}
+
+// OIDCCredential contains the access token and refresh token.
+type OIDCCredential struct {
+	AccessToken  string
+	ExpiresAt    *time.Time
+	RefreshToken *string
+}
+
+// IDPInfo contains the information needed to perform OIDC authentication with
+// an Identity Provider.
+type IDPInfo struct {
+	Issuer        string
+	ClientID      string
+	RequestScopes []string
 }
 
 // BSONOptions are optional BSON marshaling and unmarshaling behaviors.
@@ -1177,7 +1206,19 @@ func addClientCertFromSeparateFiles(cfg *tls.Config, keyFile, certFile, keyPassw
 		return "", err
 	}
 
-	data := make([]byte, 0, len(keyData)+len(certData)+1)
+	keySize := len(keyData)
+	if keySize > 64*1024*1024 {
+		return "", errors.New("X.509 key must be less than 64 MiB")
+	}
+	certSize := len(certData)
+	if certSize > 64*1024*1024 {
+		return "", errors.New("X.509 certificate must be less than 64 MiB")
+	}
+	dataSize := keySize + certSize + 1
+	if dataSize > math.MaxInt {
+		return "", errors.New("size overflow")
+	}
+	data := make([]byte, 0, dataSize)
 	data = append(data, keyData...)
 	data = append(data, '\n')
 	data = append(data, certData...)

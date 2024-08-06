@@ -14,10 +14,12 @@ package auth
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/xdg-go/scram"
 	"github.com/xdg-go/stringprep"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 )
 
 const (
@@ -35,7 +37,7 @@ var (
 	)
 )
 
-func newScramSHA1Authenticator(cred *Cred) (Authenticator, error) {
+func newScramSHA1Authenticator(cred *Cred, _ *http.Client) (Authenticator, error) {
 	passdigest := mongoPasswordDigest(cred.Username, cred.Password)
 	client, err := scram.SHA1.NewClientUnprepped(cred.Username, passdigest, "")
 	if err != nil {
@@ -49,7 +51,7 @@ func newScramSHA1Authenticator(cred *Cred) (Authenticator, error) {
 	}, nil
 }
 
-func newScramSHA256Authenticator(cred *Cred) (Authenticator, error) {
+func newScramSHA256Authenticator(cred *Cred, _ *http.Client) (Authenticator, error) {
 	passprep, err := stringprep.SASLprep.Prepare(cred.Password)
 	if err != nil {
 		return nil, newAuthError("error SASLprepping password", err)
@@ -84,6 +86,11 @@ func (a *ScramAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 	return nil
 }
 
+// Reauth reauthenticates the connection.
+func (a *ScramAuthenticator) Reauth(_ context.Context, _ *driver.AuthConfig) error {
+	return newAuthError("SCRAM does not support reauthentication", nil)
+}
+
 // CreateSpeculativeConversation creates a speculative conversation for SCRAM authentication.
 func (a *ScramAuthenticator) CreateSpeculativeConversation() (SpeculativeConversation, error) {
 	return newSaslConversation(a.createSaslClient(), a.source, true), nil
@@ -112,7 +119,7 @@ func (a *scramSaslAdapter) Start() (string, []byte, error) {
 	return a.mechanism, []byte(step), nil
 }
 
-func (a *scramSaslAdapter) Next(challenge []byte) ([]byte, error) {
+func (a *scramSaslAdapter) Next(_ context.Context, challenge []byte) ([]byte, error) {
 	step, err := a.conversation.Step(string(challenge))
 	if err != nil {
 		return nil, err

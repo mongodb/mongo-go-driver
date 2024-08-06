@@ -315,6 +315,10 @@ type Operation struct {
 	// [Operation.MaxTime].
 	OmitCSOTMaxTimeMS bool
 
+	// Authenticator is the authenticator to use for this operation when a reauthentication is
+	// required.
+	Authenticator Authenticator
+
 	// omitReadPreference is a boolean that indicates whether to omit the
 	// read preference from the command. This omition includes the case
 	// where a default read preference is used when the operation
@@ -912,6 +916,28 @@ func (op Operation) Execute(ctx context.Context) error {
 			operationErr.Labels = tt.Labels
 			operationErr.Raw = tt.Raw
 		case Error:
+			// 391 is the reauthentication required error code, so we will attempt a reauth and
+			// retry the operation, if it is successful.
+			if tt.Code == 391 {
+				if op.Authenticator != nil {
+					cfg := AuthConfig{
+						Description:  conn.Description(),
+						Connection:   conn,
+						ClusterClock: op.Clock,
+						ServerAPI:    op.ServerAPI,
+					}
+					if err := op.Authenticator.Reauth(ctx, &cfg); err != nil {
+						return fmt.Errorf("error reauthenticating: %w", err)
+					}
+					if op.Client != nil && op.Client.Committing {
+						// Apply majority write concern for retries
+						op.Client.UpdateCommitTransactionWriteConcern()
+						op.WriteConcern = op.Client.CurrentWc
+					}
+					resetForRetry(tt)
+					continue
+				}
+			}
 			if tt.HasErrorLabel(TransientTransactionError) || tt.HasErrorLabel(UnknownTransactionCommitResult) {
 				if err := op.Client.ClearPinnedResources(); err != nil {
 					return err
@@ -1574,11 +1600,17 @@ func (op Operation) addClusterTime(dst []byte, desc description.SelectedServer) 
 // operation's MaxTimeMS if set. If no MaxTimeMS is set on the operation, and context is
 // not a Timeout context, calculateMaxTimeMS returns 0.
 func (op Operation) calculateMaxTimeMS(ctx context.Context, mon RTTMonitor) (uint64, error) {
-	if csot.IsTimeoutContext(ctx) {
-		if op.OmitCSOTMaxTimeMS {
-			return 0, nil
-		}
-
+	// If CSOT is enabled and we're not omitting the CSOT-calculated maxTimeMS
+	// value, then calculate maxTimeMS.
+	//
+	// This allows commands that do not currently send CSOT-calculated maxTimeMS
+	// (e.g. Find and Aggregate) to still use a manually-provided maxTimeMS
+	// value.
+	//
+	// TODO(GODRIVER-2944): Remove or refactor this logic when we add the
+	// "timeoutMode" option, which will allow users to opt-in to the
+	// CSOT-calculated maxTimeMS values if that's the behavior they want.
+	if csot.IsTimeoutContext(ctx) && !op.OmitCSOTMaxTimeMS {
 		if deadline, ok := ctx.Deadline(); ok {
 			remainingTimeout := time.Until(deadline)
 			rtt90 := mon.P90()
@@ -1893,7 +1925,6 @@ func (op Operation) decodeResult(ctx context.Context, opcode wiremessage.OpCode,
 					return nil, errors.New("malformed wire message: insufficient bytes to read single document")
 				}
 			case wiremessage.DocumentSequence:
-				// TODO(GODRIVER-617): Implement document sequence returns.
 				_, _, wm, ok = wiremessage.ReadMsgSectionDocumentSequence(wm)
 				if !ok {
 					return nil, errors.New("malformed wire message: insufficient bytes to read document sequence")
