@@ -163,7 +163,7 @@ func (r *ReadPref) HedgeEnabled() *bool {
 // String returns a human-readable description of the read preference.
 func (r *ReadPref) String() string {
 	var b bytes.Buffer
-	b.WriteString(r.Mode.String())
+	b.WriteString(string(r.Mode))
 	delim := "("
 	if r.MaxStaleness() != nil {
 		fmt.Fprintf(&b, "%smaxStaleness=%v", delim, *r.MaxStaleness())
