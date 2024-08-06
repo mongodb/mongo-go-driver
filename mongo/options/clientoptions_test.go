@@ -568,6 +568,16 @@ func TestClientOptions(t *testing.T) {
 					Username: `C=US,ST=New York,L=New York City,O=MongoDB,OU=Drivers,CN=localhost`,
 				}).SetTLSConfig(&tls.Config{Certificates: make([]tls.Certificate, 1)}),
 			},
+			{
+				"ALLOWED_HOSTS cannot be specified in URI connection",
+				"mongodb://localhost/?authMechanism=MONGODB-OIDC&authMechanismProperties=ALLOWED_HOSTS:example.com",
+				&ClientOptions{
+					err: fmt.Errorf(
+						`error validating uri: ALLOWED_HOSTS cannot be specified in the URI connection string for the "MONGODB-OIDC" auth mechanism, it must be specified through the ClientOptions directly`,
+					),
+					HTTPClient: httputil.DefaultHTTPClient,
+				},
+			},
 		}
 
 		for _, tc := range testCases {
