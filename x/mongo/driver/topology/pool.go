@@ -264,7 +264,7 @@ func newPool(config poolConfig, connOpts ...ConnectionOption) *pool {
 
 	if pool.monitor != nil {
 		pool.monitor.Event(&event.PoolEvent{
-			Type: event.PoolCreated,
+			Type: event.ConnectionPoolCreated,
 			PoolOptions: &event.MonitorPoolOptions{
 				MaxPoolSize: config.MaxPoolSize,
 				MinPoolSize: config.MinPoolSize,
@@ -307,7 +307,7 @@ func (p *pool) ready() error {
 	// "pool ready" event is always sent before maintain() starts creating connections.
 	if p.monitor != nil {
 		p.monitor.Event(&event.PoolEvent{
-			Type:    event.PoolReady,
+			Type:    event.ConnectionPoolReady,
 			Address: p.address.String(),
 		})
 	}
@@ -418,7 +418,7 @@ func (p *pool) close(ctx context.Context) {
 
 	if p.monitor != nil {
 		p.monitor.Event(&event.PoolEvent{
-			Type:    event.PoolClosedEvent,
+			Type:    event.ConnectionPoolClosed,
 			Address: p.address.String(),
 		})
 	}
@@ -919,7 +919,7 @@ func (p *pool) clearImpl(err error, serviceID *bson.ObjectID, interruptAllConnec
 
 	if sendEvent && p.monitor != nil {
 		event := &event.PoolEvent{
-			Type:         event.PoolCleared,
+			Type:         event.ConnectionPoolCleared,
 			Address:      p.address.String(),
 			ServiceID:    serviceID,
 			Interruption: interruptAllConnections,

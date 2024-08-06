@@ -356,7 +356,7 @@ func BenchmarkRawString(b *testing.B) {
 	// Create 1KiB and 128B strings to exercise the string-heavy call paths in
 	// the "Raw.String" method.
 	var buf strings.Builder
-	for i := 0; i < 128; i++ {
+	for i := 0; i < 16000000; i++ {
 		buf.WriteString("abcdefgh")
 	}
 	str1k := buf.String()
@@ -405,14 +405,29 @@ func BenchmarkRawString(b *testing.B) {
 					Nested string
 				}
 				Key2 string
-				Key3 int64
+				Key3 []string
 				Key4 float64
 			}{
 				Key1: struct{ Nested string }{Nested: str1k},
 				Key2: str1k,
-				Key3: 1234567890,
+				Key3: []string{str1k, str1k, str1k, str1k},
 				Key4: 1234567890.123456789,
 			},
+		},
+		// Very voluminous document with hundreds of thousands of keys
+		{
+			description: "very_voluminous_document",
+			value:       createVoluminousDocument(100000),
+		},
+		// Document containing large strings and values
+		{
+			description: "large_strings_and_values",
+			value:       createLargeStringsDocument(10),
+		},
+		// Document with massive arrays that are large
+		{
+			description: "massive_arrays",
+			value:       createMassiveArraysDocument(100000),
 		},
 	}
 
@@ -421,10 +436,144 @@ func BenchmarkRawString(b *testing.B) {
 			bs, err := Marshal(tc.value)
 			require.NoError(b, err)
 
+			b.ReportAllocs()
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
 				_ = Raw(bs).String()
 			}
 		})
+
+		b.Run(tc.description+"_StringN", func(b *testing.B) {
+			bs, err := Marshal(tc.value)
+			require.NoError(b, err)
+
+			b.ReportAllocs()
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				_ = bsoncore.Document(bs).StringN(1024) // Assuming you want to limit to 1024 bytes for this benchmark
+			}
+		})
 	}
+}
+
+func TestComplexDocuments_StringN(t *testing.T) {
+	testCases := []struct {
+		description string
+		n           int
+		doc         any
+	}{
+		{"n>0, massive array documents", 1000, createMassiveArraysDocument(1000)},
+		{"n>0, voluminous document with unique values", 1000, createUniqueVoluminousDocument(t, 1000)},
+		{"n>0, large single document", 1000, createLargeSingleDoc(t)},
+		{"n>0, voluminous document with arrays containing documents", 1000, createVoluminousArrayDocuments(t, 1000)},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.description, func(t *testing.T) {
+			bson, _ := Marshal(tc.doc)
+			bsonDoc := bsoncore.Document(bson)
+
+			got := bsonDoc.StringN(tc.n)
+			assert.Equal(t, tc.n, len(got))
+		})
+	}
+}
+
+// createVoluminousDocument generates a document with a specified number of keys, simulating a very large document in terms of the number of keys.
+func createVoluminousDocument(numKeys int) D {
+	d := make(D, numKeys)
+	for i := 0; i < numKeys; i++ {
+		d = append(d, E{Key: fmt.Sprintf("key%d", i), Value: "value"})
+	}
+	return d
+}
+
+// createLargeStringsDocument generates a document with large string values, simulating a document with very large data values.
+func createLargeStringsDocument(sizeMB int) D {
+	largeString := strings.Repeat("a", sizeMB*1024*1024)
+	return D{
+		{Key: "largeString1", Value: largeString},
+		{Key: "largeString2", Value: largeString},
+		{Key: "largeString3", Value: largeString},
+		{Key: "largeString4", Value: largeString},
+	}
+}
+
+// createMassiveArraysDocument generates a document with massive arrays, simulating a document that contains large arrays of data.
+func createMassiveArraysDocument(arraySize int) D {
+	massiveArray := make([]string, arraySize)
+	for i := 0; i < arraySize; i++ {
+		massiveArray[i] = "value"
+	}
+
+	return D{
+		{Key: "massiveArray1", Value: massiveArray},
+		{Key: "massiveArray2", Value: massiveArray},
+		{Key: "massiveArray3", Value: massiveArray},
+		{Key: "massiveArray4", Value: massiveArray},
+	}
+}
+
+// createUniqueVoluminousDocument creates a BSON document with multiple key value pairs and unique value types.
+func createUniqueVoluminousDocument(t *testing.T, size int) bsoncore.Document {
+	t.Helper()
+
+	docs := make(D, size)
+
+	for i := 0; i < size; i++ {
+		docs = append(docs, E{
+			Key: "x", Value: NewObjectID(),
+		})
+		docs = append(docs, E{
+			Key: "z", Value: "y",
+		})
+	}
+
+	bsonData, err := Marshal(docs)
+	assert.NoError(t, err)
+
+	return bsoncore.Document(bsonData)
+}
+
+// createLargeSingleDoc creates a large single BSON document.
+func createLargeSingleDoc(t *testing.T) bsoncore.Document {
+	t.Helper()
+
+	var b strings.Builder
+	b.Grow(1048577)
+
+	for i := 0; i < 1048577; i++ {
+		b.WriteByte(0)
+	}
+	s := b.String()
+
+	doc := D{
+		{Key: "x", Value: s},
+	}
+
+	bsonData, err := Marshal(doc)
+	assert.NoError(t, err)
+
+	return bsoncore.Document(bsonData)
+}
+
+// createVoluminousArrayDocuments creates a volumninous BSON document with arrays containing documents.
+func createVoluminousArrayDocuments(t *testing.T, size int) bsoncore.Document {
+	t.Helper()
+
+	docs := make(D, size)
+
+	for i := 0; i < size; i++ {
+		docs = append(docs, E{
+			Key: "x", Value: NewObjectID(),
+		})
+		docs = append(docs, E{
+			Key: "z", Value: A{D{{Key: "x", Value: "y"}}},
+		})
+	}
+
+	bsonData, err := Marshal(docs)
+	assert.NoError(t, err)
+
+	return bsoncore.Document(bsonData)
 }
