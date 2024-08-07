@@ -512,7 +512,7 @@ func machine41ReauthenticationSucceeds() error {
 	if err != nil {
 		return fmt.Errorf("machine_4_1: failed connecting admin client: %v", err)
 	}
-	defer adminClient.Disconnect(context.Background())
+	defer func() { _ = adminClient.Disconnect(context.Background()) }()
 
 	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
@@ -579,7 +579,7 @@ func machine42ReadCommandsFailIfReauthenticationFails() error {
 	if err != nil {
 		return fmt.Errorf("machine_4_2: failed connecting admin client: %v", err)
 	}
-	defer adminClient.Disconnect(context.Background())
+	defer func() { _ = adminClient.Disconnect(context.Background()) }()
 
 	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
@@ -661,7 +661,7 @@ func machine43WriteCommandsFailIfReauthenticationFails() error {
 	if err != nil {
 		return fmt.Errorf("machine_4_3: failed connecting admin client: %v", err)
 	}
-	defer adminClient.Disconnect(context.Background())
+	defer func() { _ = adminClient.Disconnect(context.Background()) }()
 
 	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
@@ -1119,7 +1119,7 @@ func human23RefreshTokenIsPassedToCallback() error {
 	if err != nil {
 		return fmt.Errorf("human_2_3: failed connecting admin client: %v", err)
 	}
-	defer adminClient.Disconnect(context.Background())
+	defer func() { _ = adminClient.Disconnect(context.Background()) }()
 
 	client, err := connectWithHumanCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
@@ -1187,7 +1187,7 @@ func human31usesSpeculativeAuth() error {
 	if err != nil {
 		return fmt.Errorf("human_3_1: failed connecting admin client: %v", err)
 	}
-	defer adminClient.Disconnect(context.Background())
+	defer func() { _ = adminClient.Disconnect(context.Background()) }()
 
 	client, err := connectWithHumanCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
 		// the callback should not even be called due to spec auth.
@@ -1248,7 +1248,7 @@ func human32doesNotUseSpecualtiveAuth() error {
 	if err != nil {
 		return fmt.Errorf("human_3_2: failed connecting admin client: %v", err)
 	}
-	defer adminClient.Disconnect(context.Background())
+	defer func() { _ = adminClient.Disconnect(context.Background()) }()
 
 	client, err := connectWithHumanCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
 		t := time.Now().Add(time.Hour)
@@ -1309,7 +1309,7 @@ func human42ReauthenticationSucceedsNoRefreshToken() error {
 	if err != nil {
 		return fmt.Errorf("human_4_2: failed connecting admin client: %v", err)
 	}
-	defer adminClient.Disconnect(context.Background())
+	defer func() { _ = adminClient.Disconnect(context.Background()) }()
 
 	client, err := connectWithHumanCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
@@ -1386,7 +1386,7 @@ func human43ReauthenticationSucceedsAfterRefreshFails() error {
 	if err != nil {
 		return fmt.Errorf("human_4_3: failed connecting admin client: %v", err)
 	}
-	defer adminClient.Disconnect(context.Background())
+	defer func() { _ = adminClient.Disconnect(context.Background()) }()
 
 	client, err := connectWithHumanCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
@@ -1464,7 +1464,7 @@ func human44ReauthenticationFails() error {
 	if err != nil {
 		return fmt.Errorf("human_4_4: failed connecting admin client: %v", err)
 	}
-	defer adminClient.Disconnect(context.Background())
+	defer func() { _ = adminClient.Disconnect(context.Background()) }()
 
 	client, err := connectWithHumanCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
