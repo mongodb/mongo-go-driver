@@ -371,9 +371,7 @@ func (c *ClientOptions) validate() error {
 		}
 		if env, ok := c.Auth.AuthMechanismProperties[auth.EnvironmentProp]; ok {
 			switch env {
-			case auth.GCPEnvironmentValue:
-				fallthrough
-			case auth.AzureEnvironmentValue:
+			case auth.GCPEnvironmentValue, auth.AzureEnvironmentValue:
 				if c.Auth.OIDCMachineCallback != nil {
 					return fmt.Errorf("OIDCMachineCallback cannot be specified with the %s %q", env, auth.EnvironmentProp)
 				}
