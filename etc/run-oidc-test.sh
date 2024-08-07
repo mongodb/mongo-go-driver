@@ -30,4 +30,4 @@ export TEST_AUTH_OIDC=1
 export COVERAGE=1
 export AUTH="auth"
 
-make -s evg-test-oidc-auth
+$1

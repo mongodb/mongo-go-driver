@@ -365,7 +365,7 @@ functions:
         script: |
           ${PREPARE_SHELL}
           export OIDC="oidc"
-          bash ${PROJECT_DIRECTORY}/etc/run-oidc-test.sh
+          bash ${PROJECT_DIRECTORY}/etc/run-oidc-test.sh 'make -s evg-test-oidc-auth'
 
   run-make:
     - command: shell.exec
@@ -1970,6 +1970,31 @@ tasks:
     commands:
       - func: "run-oidc-auth-test-with-test-credentials"
 
+  - name: "oidc-auth-test-azure-latest"
+    commands:
+    - command: shell.exec
+      params:
+        working_dir: src/go.mongodb.org/mongo-driver
+        shell: bash
+        script: |-
+          set -o errexit
+          ${PREPARE_SHELL}
+          export AZUREOIDC_DRIVERS_TAR_FILE=/tmp/mongo-go-driver.tar.gz
+          # we need to statically link libc to avoid the situation where the VM has a different
+          # version of libc
+          go build -tags osusergo,netgo -ldflags '-w -extldflags "-static -lgcc -lc"' -o test ./internal/cmd/testoidcauth/main.go
+          rm "$AZUREOIDC_DRIVERS_TAR_FILE" || true
+          tar -cf $AZUREOIDC_DRIVERS_TAR_FILE ./test
+          tar -uf $AZUREOIDC_DRIVERS_TAR_FILE ./etc
+          rm "$AZUREOIDC_DRIVERS_TAR_FILE".gz || true
+          gzip $AZUREOIDC_DRIVERS_TAR_FILE
+          export AZUREOIDC_DRIVERS_TAR_FILE=/tmp/mongo-go-driver.tar.gz
+          # Define the command to run on the azure VM.
+          # Ensure that we source the environment file created for us, set up any other variables we need,
+          # and then run our test suite on the vm.
+          export AZUREOIDC_TEST_CMD="PROJECT_DIRECTORY='.' OIDC_ENV=azure OIDC=oidc ./etc/run-oidc-test.sh ./test"
+          bash $DRIVERS_TOOLS/.evergreen/auth_oidc/azure/run-driver-test.sh
+
   - name: "test-search-index"
     commands:
       - func: "bootstrap-mongo-orchestration"
@@ -2276,6 +2301,30 @@ task_groups:
     setup_group_timeout_secs: 1800
     tasks:
       - oidc-auth-test-latest
+
+  - name: testazureoidc_task_group
+    setup_group:
+      - func: fetch-source
+      - func: prepare-resources
+      - func: fix-absolute-paths
+      - func: make-files-executable
+      - command: subprocess.exec
+        params:
+          binary: bash
+          env:
+            AZUREOIDC_VMNAME_PREFIX: "GO_DRIVER"
+          args:
+            - ${DRIVERS_TOOLS}/.evergreen/auth_oidc/azure/create-and-setup-vm.sh
+    teardown_task:
+      - command: subprocess.exec
+        params:
+          binary: bash
+          args:
+            - ${DRIVERS_TOOLS}/.evergreen/auth_oidc/azure/delete-vm.sh
+    setup_group_can_fail_task: true
+    setup_group_timeout_secs: 1800
+    tasks:
+      - oidc-auth-test-azure-latest
 
   - name: test-aws-lambda-task-group
     setup_group:
@@ -2619,4 +2668,6 @@ buildvariants:
       GO_DIST: "/opt/golang/go1.20"
     tasks:
       - name: testoidc_task_group
+        batchtime: 20160 # Use a batchtime of 14 days as suggested by the CSFLE test README
+      - name: testazureoidc_task_group
         batchtime: 20160 # Use a batchtime of 14 days as suggested by the CSFLE test README
