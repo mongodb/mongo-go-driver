@@ -57,7 +57,7 @@ func connectWithHumanCB(uri string, cb options.OIDCCallback) (*mongo.Client, err
 		OIDCHumanCallback: cb,
 	}
 	opts := options.Client().ApplyURI(uri).SetAuth(cred)
-	return mongo.Connect(context.Background(), opts)
+	return mongo.Connect(opts)
 }
 
 func connectWithMachineCBAndProperties(uri string, cb options.OIDCCallback, props map[string]string) (*mongo.Client, error) {
@@ -799,7 +799,7 @@ func human12singlePrincipalExplicitUsername() error {
 		Username:          explicitUser("test_user1"),
 	}
 	opts := options.Client().ApplyURI(uriSingle).SetAuth(cred)
-	client, err := mongo.Connect(context.Background(), opts)
+	client, err := mongo.Connect(opts)
 	if err != nil {
 		return fmt.Errorf("human_1_2: failed connecting client: %v", err)
 	}
@@ -845,7 +845,7 @@ func human13mulitplePrincipalUser1() error {
 		Username:          explicitUser("test_user1"),
 	}
 	opts := options.Client().ApplyURI(uriMulti).SetAuth(cred)
-	client, err := mongo.Connect(context.Background(), opts)
+	client, err := mongo.Connect(opts)
 	if err != nil {
 		return fmt.Errorf("human_1_3: failed connecting client: %v", err)
 	}
@@ -891,7 +891,7 @@ func human14mulitplePrincipalUser2() error {
 		Username:          explicitUser("test_user2"),
 	}
 	opts := options.Client().ApplyURI(uriMulti).SetAuth(cred)
-	client, err := mongo.Connect(context.Background(), opts)
+	client, err := mongo.Connect(opts)
 	if err != nil {
 		return fmt.Errorf("human_1_4: failed connecting client: %v", err)
 	}
@@ -973,7 +973,7 @@ func human16allowedHostsBlocked() error {
 			AuthMechanismProperties: map[string]string{"ALLOWED_HOSTS": ""},
 		}
 		opts := options.Client().ApplyURI(uriMulti).SetAuth(cred)
-		client, err := mongo.Connect(context.Background(), opts)
+		client, err := mongo.Connect(opts)
 		if err != nil {
 			return fmt.Errorf("human_1_4: failed connecting client: %v", err)
 		}
@@ -1006,7 +1006,7 @@ func human16allowedHostsBlocked() error {
 			AuthMechanismProperties: map[string]string{"ALLOWED_HOSTS": "example.com"},
 		}
 		opts := options.Client().ApplyURI("mongodb://localhost/?authMechanism=MONGODB-OIDC&ignored=example.com").SetAuth(cred)
-		client, err := mongo.Connect(context.Background(), opts)
+		client, err := mongo.Connect(opts)
 		if err != nil {
 			return fmt.Errorf("human_1_4: failed connecting client: %v", err)
 		}
