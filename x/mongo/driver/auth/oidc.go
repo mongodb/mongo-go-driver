@@ -35,7 +35,6 @@ const ResourceProp = "TOKEN_RESOURCE"
 // AllowedHostsProp is the property key name that specifies the allowed hosts for the OIDC authenticator.
 const AllowedHostsProp = "ALLOWED_HOSTS"
 
-// Environment values for the OIDC authenticator.
 // AzureEnvironmentValue is the value for the Azure environment.
 const AzureEnvironmentValue = "azure"
 
