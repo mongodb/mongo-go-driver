@@ -21,9 +21,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/topology"
 )
 
-// ErrUnacknowledgedWrite is returned by operations that have an unacknowledged write concern.
-var ErrUnacknowledgedWrite = errors.New("unacknowledged write")
-
 // ErrClientDisconnected is returned when disconnected Client is used to run an operation.
 var ErrClientDisconnected = errors.New("client is disconnected")
 
