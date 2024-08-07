@@ -639,25 +639,25 @@ func (t *T) createTestClient() {
 	// Setup command monitor
 	var customMonitor = clientOpts.Monitor
 	clientOpts.SetMonitor(&event.CommandMonitor{
-		Started: func(_ context.Context, cse *event.CommandStartedEvent) {
+		Started: func(ctx context.Context, cse *event.CommandStartedEvent) {
 			if customMonitor != nil && customMonitor.Started != nil {
-				customMonitor.Started(context.Background(), cse)
+				customMonitor.Started(ctx, cse)
 			}
 			t.monitorLock.Lock()
 			defer t.monitorLock.Unlock()
 			t.started = append(t.started, cse)
 		},
-		Succeeded: func(_ context.Context, cse *event.CommandSucceededEvent) {
+		Succeeded: func(ctx context.Context, cse *event.CommandSucceededEvent) {
 			if customMonitor != nil && customMonitor.Succeeded != nil {
-				customMonitor.Succeeded(context.Background(), cse)
+				customMonitor.Succeeded(ctx, cse)
 			}
 			t.monitorLock.Lock()
 			defer t.monitorLock.Unlock()
 			t.succeeded = append(t.succeeded, cse)
 		},
-		Failed: func(_ context.Context, cfe *event.CommandFailedEvent) {
+		Failed: func(ctx context.Context, cfe *event.CommandFailedEvent) {
 			if customMonitor != nil && customMonitor.Failed != nil {
-				customMonitor.Failed(context.Background(), cfe)
+				customMonitor.Failed(ctx, cfe)
 			}
 			t.monitorLock.Lock()
 			defer t.monitorLock.Unlock()
