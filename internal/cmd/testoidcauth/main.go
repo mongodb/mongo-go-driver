@@ -437,7 +437,6 @@ func machine33UnexpectedErrorCodeDoesNotClearTheCache() error {
 	if err != nil {
 		return fmt.Errorf("machine_3_3: failed connecting admin client: %v", err)
 	}
-	defer adminClient.Disconnect(context.Background())
 
 	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
@@ -753,7 +752,7 @@ func human11singlePrincipalImplictUsername() error {
 		}, nil
 	})
 
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	if err != nil {
 		return fmt.Errorf("human_1_1: failed connecting client: %v", err)
@@ -803,7 +802,7 @@ func human12singlePrincipalExplicitUsername() error {
 	if err != nil {
 		return fmt.Errorf("human_1_2: failed connecting client: %v", err)
 	}
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	coll := client.Database("test").Collection("test")
 
@@ -849,7 +848,7 @@ func human13mulitplePrincipalUser1() error {
 	if err != nil {
 		return fmt.Errorf("human_1_3: failed connecting client: %v", err)
 	}
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	coll := client.Database("test").Collection("test")
 
@@ -895,7 +894,7 @@ func human14mulitplePrincipalUser2() error {
 	if err != nil {
 		return fmt.Errorf("human_1_4: failed connecting client: %v", err)
 	}
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	coll := client.Database("test").Collection("test")
 
@@ -935,7 +934,7 @@ func human15mulitplePrincipalNoUser() error {
 	if err != nil {
 		return fmt.Errorf("human_1_5: failed connecting client: %v", err)
 	}
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	coll := client.Database("test").Collection("test")
 
@@ -977,7 +976,7 @@ func human16allowedHostsBlocked() error {
 		if err != nil {
 			return fmt.Errorf("human_1_4: failed connecting client: %v", err)
 		}
-		defer client.Disconnect(context.Background())
+		defer func() { _ = client.Disconnect(context.Background()) }()
 
 		coll := client.Database("test").Collection("test")
 
@@ -1010,7 +1009,7 @@ func human16allowedHostsBlocked() error {
 		if err != nil {
 			return fmt.Errorf("human_1_4: failed connecting client: %v", err)
 		}
-		defer client.Disconnect(context.Background())
+		defer func() { _ = client.Disconnect(context.Background()) }()
 
 		coll := client.Database("test").Collection("test")
 
@@ -1060,7 +1059,7 @@ func human21validCallbackInputs() error {
 		}, nil
 	})
 
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	if err != nil {
 		return fmt.Errorf("human_2_1: failed connecting client: %v", err)
@@ -1091,7 +1090,7 @@ func human22CallbackReturnsMissingData() error {
 		return &options.OIDCCredential{}, nil
 	})
 
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	if err != nil {
 		return fmt.Errorf("human_2_2: failed connecting client: %v", err)
@@ -1146,7 +1145,7 @@ func human23RefreshTokenIsPassedToCallback() error {
 		}, nil
 	})
 
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	if err != nil {
 		return fmt.Errorf("human_2_3: failed connecting client: %v", err)
@@ -1198,7 +1197,7 @@ func human31usesSpeculativeAuth() error {
 	if err != nil {
 		return fmt.Errorf("human_3_1: failed connecting client: %v", err)
 	}
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	// We deviate from the Prose test since the failPoint on find with no error code does not seem to
 	// work. Rather we put an access token in the cache to force speculative auth.
@@ -1265,7 +1264,7 @@ func human32doesNotUseSpecualtiveAuth() error {
 		}, nil
 	})
 
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	if err != nil {
 		return fmt.Errorf("human_3_2: failed connecting client: %v", err)
@@ -1329,7 +1328,7 @@ func human42ReauthenticationSucceedsNoRefreshToken() error {
 		}, nil
 	})
 
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	if err != nil {
 		return fmt.Errorf("human_4_2: failed connecting client: %v", err)
@@ -1407,7 +1406,7 @@ func human43ReauthenticationSucceedsAfterRefreshFails() error {
 		}, nil
 	})
 
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	if err != nil {
 		return fmt.Errorf("human_4_3: failed connecting client: %v", err)
@@ -1492,7 +1491,7 @@ func human44ReauthenticationFails() error {
 		}, fmt.Errorf("failed to refresh token")
 	})
 
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	if err != nil {
 		return fmt.Errorf("human_4_4: failed connecting client: %v", err)
