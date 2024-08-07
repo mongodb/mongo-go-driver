@@ -548,7 +548,7 @@ func ReadCompressedCompressorID(src []byte) (id CompressorID, rem []byte, ok boo
 
 // ReadCompressedCompressedMessage reads the compressed wiremessage to dst.
 func ReadCompressedCompressedMessage(src []byte, length int32) (msg []byte, rem []byte, ok bool) {
-	if len(src) < int(length) || length-4 < 0 {
+	if len(src) < int(length) || length < 0 {
 		return nil, src, false
 	}
 	return src[:length], src[length:], true
