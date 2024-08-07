@@ -262,10 +262,10 @@ func (u *ConnString) Validate() error {
 	// Check for OIDC auth mechanism properties that cannot be set in the ConnString.
 	if u.AuthMechanism == auth.MongoDBOIDC {
 		if _, ok := u.AuthMechanismProperties[auth.AllowedHostsProp]; ok {
-			return errors.New(fmt.Sprintf(
+			return fmt.Errorf(
 				"ALLOWED_HOSTS cannot be specified in the URI connection string for the %q auth mechanism, it must be specified through the ClientOptions directly",
 				auth.MongoDBOIDC,
-			))
+			)
 		}
 	}
 
