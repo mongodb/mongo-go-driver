@@ -578,6 +578,26 @@ func TestClientOptions(t *testing.T) {
 					HTTPClient: httputil.DefaultHTTPClient,
 				},
 			},
+			{
+				"colon in TOKEN_RESOURCE works as expected",
+				"mongodb://example.com/?authMechanism=MONGODB-OIDC&authMechanismProperties=TOKEN_RESOURCE:mongodb://test-cluster",
+				&ClientOptions{
+					Hosts:      []string{"example.com"},
+					Auth:       &Credential{AuthMechanism: "MONGODB-OIDC", AuthSource: "$external", AuthMechanismProperties: map[string]string{"TOKEN_RESOURCE": "mongodb://test-cluster"}},
+					err:        nil,
+					HTTPClient: httputil.DefaultHTTPClient,
+				},
+			},
+			{
+				"comma in key:value pair causes error",
+				"mongodb://example.com/?authMechanismProperties=TOKEN_RESOURCE:mongodb://host1%2Chost2",
+				&ClientOptions{
+					err: fmt.Errorf(
+						`error parsing uri: invalid authMechanism property`,
+					),
+					HTTPClient: httputil.DefaultHTTPClient,
+				},
+			},
 		}
 
 		for _, tc := range testCases {
