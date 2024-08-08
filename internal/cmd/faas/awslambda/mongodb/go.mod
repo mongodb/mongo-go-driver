@@ -1,6 +1,6 @@
 module go.mongodb.go/mongo-driver/internal/test/mongodb
 
-go 1.20
+go 1.22
 
 replace go.mongodb.org/mongo-driver/v2 => ../../../../../
 
