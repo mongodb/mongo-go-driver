@@ -388,7 +388,7 @@ func TestClientOptions(t *testing.T) {
 
 		testCases := []struct {
 			name string
-			opts *ClientOptions
+			opts *ClientOptionsBuilder
 			err  error
 		}{
 			{
@@ -473,7 +473,7 @@ func TestClientOptions(t *testing.T) {
 
 		testCases := []struct {
 			name string
-			opts *ClientOptions
+			opts *ClientOptionsBuilder
 			err  error
 		}{
 			{

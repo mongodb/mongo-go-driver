@@ -509,27 +509,27 @@ func setURIOpts(uri string, opts *ClientOptions) error {
 	}
 
 	// OIDC Validation
-	if c.Auth != nil && c.Auth.AuthMechanism == auth.MongoDBOIDC {
-		if c.Auth.Password != "" {
+	if opts.Auth != nil && opts.Auth.AuthMechanism == auth.MongoDBOIDC {
+		if opts.Auth.Password != "" {
 			return fmt.Errorf("password must not be set for the %s auth mechanism", auth.MongoDBOIDC)
 		}
-		if c.Auth.OIDCMachineCallback != nil && c.Auth.OIDCHumanCallback != nil {
+		if opts.Auth.OIDCMachineCallback != nil && opts.Auth.OIDCHumanCallback != nil {
 			return fmt.Errorf("cannot set both OIDCMachineCallback and OIDCHumanCallback, only one may be specified")
 		}
-		if env, ok := c.Auth.AuthMechanismProperties[auth.EnvironmentProp]; ok {
+		if env, ok := opts.Auth.AuthMechanismProperties[auth.EnvironmentProp]; ok {
 			switch env {
 			case auth.GCPEnvironmentValue, auth.AzureEnvironmentValue:
-				if c.Auth.OIDCMachineCallback != nil {
+				if opts.Auth.OIDCMachineCallback != nil {
 					return fmt.Errorf("OIDCMachineCallback cannot be specified with the %s %q", env, auth.EnvironmentProp)
 				}
-				if c.Auth.OIDCHumanCallback != nil {
+				if opts.Auth.OIDCHumanCallback != nil {
 					return fmt.Errorf("OIDCHumanCallback cannot be specified with the %s %q", env, auth.EnvironmentProp)
 				}
-				if c.Auth.AuthMechanismProperties[auth.ResourceProp] == "" {
+				if opts.Auth.AuthMechanismProperties[auth.ResourceProp] == "" {
 					return fmt.Errorf("%q must be set for the %s %q", auth.ResourceProp, env, auth.EnvironmentProp)
 				}
 			default:
-				if c.Auth.AuthMechanismProperties[auth.ResourceProp] != "" {
+				if opts.Auth.AuthMechanismProperties[auth.ResourceProp] != "" {
 					return fmt.Errorf("%q must not be set for the %s %q", auth.ResourceProp, env, auth.EnvironmentProp)
 				}
 			}
