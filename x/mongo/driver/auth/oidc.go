@@ -27,14 +27,23 @@ import (
 // MongoDBOIDC is the string constant for the MONGODB-OIDC authentication mechanism.
 const MongoDBOIDC = "MONGODB-OIDC"
 
-// const tokenResourceProp = "TOKEN_RESOURCE"
-const environmentProp = "ENVIRONMENT"
-const resourceProp = "TOKEN_RESOURCE"
-const allowedHostsProp = "ALLOWED_HOSTS"
+// EnvironmentProp is the property key name that specifies the environment for the OIDC authenticator.
+const EnvironmentProp = "ENVIRONMENT"
 
-const azureEnvironmentValue = "azure"
-const gcpEnvironmentValue = "gcp"
-const testEnvironmentValue = "test"
+// ResourceProp is the property key name that specifies the token resource for GCP and AZURE OIDC auth.
+const ResourceProp = "TOKEN_RESOURCE"
+
+// AllowedHostsProp is the property key name that specifies the allowed hosts for the OIDC authenticator.
+const AllowedHostsProp = "ALLOWED_HOSTS"
+
+// AzureEnvironmentValue is the value for the Azure environment.
+const AzureEnvironmentValue = "azure"
+
+// GCPEnvironmentValue is the value for the GCP environment.
+const GCPEnvironmentValue = "gcp"
+
+// TestEnvironmentValue is the value for the test environment.
+const TestEnvironmentValue = "test"
 
 const apiVersion = 1
 const invalidateSleepTimeout = 100 * time.Millisecond
@@ -105,18 +114,18 @@ func newOIDCAuthenticator(cred *Cred, httpClient *http.Client) (Authenticator, e
 		return nil, fmt.Errorf("password cannot be specified for %q", MongoDBOIDC)
 	}
 	if cred.Props != nil {
-		if env, ok := cred.Props[environmentProp]; ok {
+		if env, ok := cred.Props[EnvironmentProp]; ok {
 			switch strings.ToLower(env) {
-			case azureEnvironmentValue:
+			case AzureEnvironmentValue:
 				fallthrough
-			case gcpEnvironmentValue:
-				if _, ok := cred.Props[resourceProp]; !ok {
-					return nil, fmt.Errorf("%q must be specified for %q %q", resourceProp, env, environmentProp)
+			case GCPEnvironmentValue:
+				if _, ok := cred.Props[ResourceProp]; !ok {
+					return nil, fmt.Errorf("%q must be specified for %q %q", ResourceProp, env, EnvironmentProp)
 				}
 				fallthrough
-			case testEnvironmentValue:
+			case TestEnvironmentValue:
 				if cred.OIDCMachineCallback != nil || cred.OIDCHumanCallback != nil {
-					return nil, fmt.Errorf("OIDC callbacks are not allowed for %q %q", env, environmentProp)
+					return nil, fmt.Errorf("OIDC callbacks are not allowed for %q %q", env, EnvironmentProp)
 				}
 			}
 		}
@@ -152,7 +161,8 @@ func (oa *OIDCAuthenticator) setAllowedHosts() error {
 		oa.allowedHosts = &defaultAllowedHosts
 		return nil
 	}
-	allowedHosts, ok := oa.AuthMechanismProperties[allowedHostsProp]
+
+	allowedHosts, ok := oa.AuthMechanismProperties[AllowedHostsProp]
 	if !ok {
 		oa.allowedHosts = &defaultAllowedHosts
 		return nil
@@ -169,18 +179,18 @@ func (oa *OIDCAuthenticator) setAllowedHosts() error {
 func (oa *OIDCAuthenticator) validateConnectionAddressWithAllowedHosts(conn *mnet.Connection) error {
 	if oa.allowedHosts == nil {
 		// should be unreachable, but this is a safety check.
-		return newAuthError(fmt.Sprintf("%q missing", allowedHostsProp), nil)
+		return newAuthError(fmt.Sprintf("%q missing", AllowedHostsProp), nil)
 	}
 	allowedHosts := *oa.allowedHosts
 	if len(allowedHosts) == 0 {
-		return newAuthError(fmt.Sprintf("empty %q specified", allowedHostsProp), nil)
+		return newAuthError(fmt.Sprintf("empty %q specified", AllowedHostsProp), nil)
 	}
 	for _, pattern := range allowedHosts {
 		if pattern.MatchString(string(conn.Address())) {
 			return nil
 		}
 	}
-	return newAuthError(fmt.Sprintf("address %q not allowed by %q: %v", conn.Address(), allowedHostsProp, allowedHosts), nil)
+	return newAuthError(fmt.Sprintf("address %q not allowed by %q: %v", conn.Address(), AllowedHostsProp, allowedHosts), nil)
 }
 
 type oidcOneStep struct {
@@ -250,27 +260,27 @@ func (*oidcTwoStep) Completed() bool {
 }
 
 func (oa *OIDCAuthenticator) providerCallback() (OIDCCallback, error) {
-	env, ok := oa.AuthMechanismProperties[environmentProp]
+	env, ok := oa.AuthMechanismProperties[EnvironmentProp]
 	if !ok {
 		return nil, nil
 	}
 
 	switch env {
-	case azureEnvironmentValue:
-		resource, ok := oa.AuthMechanismProperties[resourceProp]
+	case AzureEnvironmentValue:
+		resource, ok := oa.AuthMechanismProperties[ResourceProp]
 		if !ok {
-			return nil, newAuthError(fmt.Sprintf("%q must be specified for Azure OIDC", resourceProp), nil)
+			return nil, newAuthError(fmt.Sprintf("%q must be specified for Azure OIDC", ResourceProp), nil)
 		}
 		return getAzureOIDCCallback(oa.userName, resource, oa.httpClient), nil
-	case gcpEnvironmentValue:
-		resource, ok := oa.AuthMechanismProperties[resourceProp]
+	case GCPEnvironmentValue:
+		resource, ok := oa.AuthMechanismProperties[ResourceProp]
 		if !ok {
-			return nil, newAuthError(fmt.Sprintf("%q must be specified for GCP OIDC", resourceProp), nil)
+			return nil, newAuthError(fmt.Sprintf("%q must be specified for GCP OIDC", ResourceProp), nil)
 		}
 		return getGCPOIDCCallback(resource, oa.httpClient), nil
 	}
 
-	return nil, fmt.Errorf("%q %q not supported for MONGODB-OIDC", environmentProp, env)
+	return nil, fmt.Errorf("%q %q not supported for MONGODB-OIDC", EnvironmentProp, env)
 }
 
 // getAzureOIDCCallback returns the callback for the Azure Identity Provider.
