@@ -119,7 +119,7 @@ func (a *scramSaslAdapter) Start() (string, []byte, error) {
 	return a.mechanism, []byte(step), nil
 }
 
-func (a *scramSaslAdapter) Next(challenge []byte) ([]byte, error) {
+func (a *scramSaslAdapter) Next(_ context.Context, challenge []byte) ([]byte, error) {
 	step, err := a.conversation.Step(string(challenge))
 	if err != nil {
 		return nil, err
