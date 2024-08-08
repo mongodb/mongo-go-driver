@@ -79,6 +79,10 @@ type connection struct {
 	// oidcTokenGenID is the monotonic generation ID for OIDC tokens, used to invalidate
 	// accessTokens in the OIDC authenticator cache.
 	oidcTokenGenID uint64
+
+	// awaitingResponse indicates that the server response was not completely
+	// read before returning the connection to the pool.
+	awaitingResponse bool
 }
 
 // newConnection handles the creation of a connection. It does not connect the connection.
@@ -373,8 +377,16 @@ func (c *connection) readWireMessage(ctx context.Context) ([]byte, error) {
 
 	dst, errMsg, err := c.read(ctx)
 	if err != nil {
-		// We closeConnection the connection because we don't know if there are other bytes left to read.
-		c.close()
+		if nerr := net.Error(nil); errors.As(err, &nerr) && nerr.Timeout() {
+			// If the error was a timeout error, instead of closing the
+			// connection mark it as awaiting response so the pool can read the
+			// response before making it available to other operations.
+			c.awaitingResponse = true
+		} else {
+			// Otherwise, and close the connection because we don't know what
+			// the connection state is.
+			c.close()
+		}
 		message := errMsg
 		if errors.Is(err, io.EOF) {
 			message = "socket was unexpectedly closed"

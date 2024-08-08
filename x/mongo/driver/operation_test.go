@@ -286,7 +286,7 @@ func TestOperation(t *testing.T) {
 			rtt      RTTMonitor
 			rttMin   time.Duration
 			rttStats string
-			want     uint64
+			want     int64
 			err      error
 		}{
 			{
@@ -644,6 +644,35 @@ func TestOperation(t *testing.T) {
 		// the TransientTransactionError label.
 		assert.Equal(t, err, context.Canceled, "expected context.Canceled error, got %v", err)
 	})
+	t.Run("ErrDeadlineWouldBeExceeded wraps context.DeadlineExceeded", func(t *testing.T) {
+		// Create a deployment that returns a server that reports a 90th
+		// percentile RTT of 1 minute.
+		d := new(mockDeployment)
+		d.returns.server = mockServer{
+			conn:       mnet.NewConnection(&mockConnection{}),
+			rttMonitor: mockRTTMonitor{min: 1 * time.Minute},
+		}
+
+		// Create an operation with a Timeout specified to enable CSOT behavior.
+		var dur time.Duration
+		op := Operation{
+			Database:   "foobar",
+			Deployment: d,
+			CommandFn: func(dst []byte, desc description.SelectedServer) ([]byte, error) {
+				return dst, nil
+			},
+			Timeout: &dur,
+		}
+
+		// Call the operation with a context with a deadline less than the 90th
+		// percentile RTT configured above.
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		defer cancel()
+		err := op.Execute(ctx)
+
+		assert.ErrorIs(t, err, ErrDeadlineWouldBeExceeded)
+		assert.ErrorIs(t, err, context.DeadlineExceeded)
+	})
 }
 
 func createExhaustServerResponse(response bsoncore.Document, moreToCome bool) []byte {
@@ -708,6 +737,25 @@ func (m *mockServerSelector) SelectServer(description.Topology, []description.Se
 func (m *mockServerSelector) String() string {
 	panic("not implemented")
 }
+
+type mockServer struct {
+	conn       *mnet.Connection
+	err        error
+	rttMonitor RTTMonitor
+}
+
+func (ms mockServer) Connection(context.Context) (*mnet.Connection, error) { return ms.conn, ms.err }
+func (ms mockServer) RTTMonitor() RTTMonitor                               { return ms.rttMonitor }
+
+type mockRTTMonitor struct {
+	ewma  time.Duration
+	min   time.Duration
+	stats string
+}
+
+func (mrm mockRTTMonitor) EWMA() time.Duration { return mrm.ewma }
+func (mrm mockRTTMonitor) Min() time.Duration  { return mrm.min }
+func (mrm mockRTTMonitor) Stats() string       { return mrm.stats }
 
 type mockConnection struct {
 	// parameters

@@ -949,7 +949,12 @@ func aggregate(a aggregateParams, opts ...options.Lister[options.AggregateOption
 		ServerAPI(a.client.serverAPI).
 		HasOutputStage(hasOutputStage).
 		Timeout(a.client.timeout).
-		Authenticator(a.client.authenticator)
+		Authenticator(a.client.authenticator).
+		// Omit "maxTimeMS" from operations that return a user-managed cursor to
+		// prevent confusing "cursor not found" errors.
+		//
+		// See DRIVERS-2722 for more detail.
+		OmitMaxTimeMS(true)
 
 	if args.AllowDiskUse != nil {
 		op.AllowDiskUse(*args.AllowDiskUse)
@@ -1293,11 +1298,20 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 	if err != nil {
 		return nil, err
 	}
-	return coll.find(ctx, filter, args)
+
+	// Omit "maxTimeMS" from operations that return a user-managed cursor to
+	// prevent confusing "cursor not found" errors.
+	//
+	// See DRIVERS-2722 for more detail.
+	return coll.find(ctx, filter, true, args)
 }
 
-func (coll *Collection) find(ctx context.Context, filter interface{},
-	args *options.FindOptions) (cur *Cursor, err error) {
+func (coll *Collection) find(
+	ctx context.Context,
+	filter interface{},
+	omitMaxTimeMS bool,
+	args *options.FindOptions,
+) (cur *Cursor, err error) {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -1335,7 +1349,8 @@ func (coll *Collection) find(ctx context.Context, filter interface{},
 		CommandMonitor(coll.client.monitor).ServerSelector(selector).
 		ClusterClock(coll.client.clock).Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI).
-		Timeout(coll.client.timeout).Logger(coll.client.logger).Authenticator(coll.client.authenticator)
+		Timeout(coll.client.timeout).Logger(coll.client.logger).Authenticator(coll.client.authenticator).
+		OmitMaxTimeMS(omitMaxTimeMS)
 
 	cursorOpts := coll.client.createBaseCursorOptions()
 
@@ -1500,7 +1515,7 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 	if err != nil {
 		return nil
 	}
-	cursor, err := coll.find(ctx, filter, newFindArgsFromFindOneArgs(args))
+	cursor, err := coll.find(ctx, filter, false, newFindArgsFromFindOneArgs(args))
 	return &SingleResult{
 		ctx:      ctx,
 		cur:      cursor,

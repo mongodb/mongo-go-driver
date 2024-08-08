@@ -49,6 +49,7 @@ type Aggregate struct {
 	hasOutputStage           bool
 	customOptions            map[string]bsoncore.Value
 	timeout                  *time.Duration
+	omitMaxTimeMS            bool
 
 	result driver.CursorResponse
 }
@@ -112,6 +113,7 @@ func (a *Aggregate) Execute(ctx context.Context) error {
 		Timeout:                        a.timeout,
 		Name:                           driverutil.AggregateOp,
 		Authenticator:                  a.authenticator,
+		OmitMaxTimeMS:                  a.omitMaxTimeMS,
 	}.Execute(ctx)
 
 }
@@ -414,5 +416,16 @@ func (a *Aggregate) Authenticator(authenticator driver.Authenticator) *Aggregate
 	}
 
 	a.authenticator = authenticator
+	return a
+}
+
+// OmitMaxTimeMS omits the automatically-calculated "maxTimeMS" from the
+// command.
+func (a *Aggregate) OmitMaxTimeMS(omit bool) *Aggregate {
+	if a == nil {
+		a = new(Aggregate)
+	}
+
+	a.omitMaxTimeMS = omit
 	return a
 }
