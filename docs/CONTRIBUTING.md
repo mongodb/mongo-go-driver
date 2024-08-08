@@ -61,7 +61,12 @@ If a Pull Request needs to be cherry-picked to a new branch, get the sha of the 
 bash etc/cherry-picker.sh <sha>
 ```
 
-The cherry-picker script is configured to use `v1` as the base branch and `master` as the target branch.
+By default it will use `master` as the target branch.  The branch can be specified as the second argument, e.g.
+
+```bash
+bash etc/cherry-picker.sh <sha> branch
+```
+
 It will create a new checkout in a temp dir, create a new branch, perform the cherry-pick, and then
 prompt before creating a PR to the target branch.
 

@@ -2,8 +2,7 @@
 set -e
 
 sha=$1
-base=v1
-target=master
+target=${2:-master}
 dirname=$(mktemp -d)
 user=$(git config github.user)
 
@@ -32,8 +31,7 @@ fi
 gh repo set-default mongodb/mongo-go-driver
 branch="cherry-pick-$sha"
 head="$user:$branch"
-git fetch origin $base
-git fetch origin $target
+git fetch origin
 git checkout -b $branch origin/$target
 git cherry-pick -x $sha || true
 
@@ -56,7 +54,7 @@ text=$(echo $old_title | sed -r 's/([A-Z]+-[0-9]+) (.*) \(#[0-9]*\)/\2/')
 pr_number=$(echo $old_title| sed -r 's/.*(#[0-9]*)\)/\1/')
 
 title="$ticket [$target] $text"
-body="Cherry-pick of $pr_number from $base to $target"
+body="Cherry-pick of $pr_number to $target"
 
 echo
 echo "Creating PR..."
