@@ -1,6 +1,6 @@
 module go.mongodb.go/mongo-driver/examples/logger/zerolog
 
-go 1.20
+go 1.22
 
 replace go.mongodb.org/mongo-driver/v2 => ../../../
 
