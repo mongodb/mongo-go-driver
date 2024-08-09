@@ -141,21 +141,27 @@ type operation struct {
 }
 
 type expectation struct {
-	CommandStartedEvent *struct {
-		CommandName  string                 `bson:"command_name"`
-		DatabaseName string                 `bson:"database_name"`
-		Command      bson.Raw               `bson:"command"`
-		Extra        map[string]interface{} `bson:",inline"`
-	} `bson:"command_started_event"`
-	CommandSucceededEvent *struct {
-		CommandName string                 `bson:"command_name"`
-		Reply       bson.Raw               `bson:"reply"`
-		Extra       map[string]interface{} `bson:",inline"`
-	} `bson:"command_succeeded_event"`
-	CommandFailedEvent *struct {
-		CommandName string                 `bson:"command_name"`
-		Extra       map[string]interface{} `bson:",inline"`
-	} `bson:"command_failed_event"`
+	CommandStartedEvent   *cmdStartedEvt   `bson:"command_started_event"`
+	CommandSucceededEvent *cmdSucceededEvt `bson:"command_succeeded_event"`
+	CommandFailedEvent    *cmdFailedEvt    `bson:"command_failed_event"`
+}
+
+type cmdStartedEvt struct {
+	CommandName  string                 `bson:"command_name"`
+	DatabaseName string                 `bson:"database_name"`
+	Command      bson.Raw               `bson:"command"`
+	Extra        map[string]interface{} `bson:",inline"`
+}
+
+type cmdSucceededEvt struct {
+	CommandName string                 `bson:"command_name"`
+	Reply       bson.Raw               `bson:"reply"`
+	Extra       map[string]interface{} `bson:",inline"`
+}
+
+type cmdFailedEvt struct {
+	CommandName string                 `bson:"command_name"`
+	Extra       map[string]interface{} `bson:",inline"`
 }
 
 type outcome struct {
