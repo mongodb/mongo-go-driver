@@ -382,7 +382,7 @@ func ReadMsgSectionSingleDocument(src []byte) (doc bsoncore.Document, rem []byte
 // data parsed into a slice of BSON documents.
 func ReadMsgSectionDocumentSequence(src []byte) (identifier string, docs []bsoncore.Document, rem []byte, ok bool) {
 	length, rem, ok := readi32(src)
-	if !ok || int(length) > len(src) {
+	if !ok || int(length) > len(src) || length-4 < 0 {
 		return "", nil, rem, false
 	}
 
@@ -413,7 +413,7 @@ func ReadMsgSectionDocumentSequence(src []byte) (identifier string, docs []bsonc
 // sequence data.
 func ReadMsgSectionRawDocumentSequence(src []byte) (identifier string, data []byte, rem []byte, ok bool) {
 	length, rem, ok := readi32(src)
-	if !ok || int(length) > len(src) {
+	if !ok || int(length) > len(src) || length-4 < 0 {
 		return "", nil, rem, false
 	}
 
@@ -548,7 +548,7 @@ func ReadCompressedCompressorID(src []byte) (id CompressorID, rem []byte, ok boo
 
 // ReadCompressedCompressedMessage reads the compressed wiremessage to dst.
 func ReadCompressedCompressedMessage(src []byte, length int32) (msg []byte, rem []byte, ok bool) {
-	if len(src) < int(length) {
+	if len(src) < int(length) || length < 0 {
 		return nil, src, false
 	}
 	return src[:length], src[length:], true
