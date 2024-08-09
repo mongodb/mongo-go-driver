@@ -736,7 +736,6 @@ func (s *Server) update() {
 		// If the server supports streaming or we're already streaming, we want to move to streaming the next response
 		// without waiting. If the server has transitioned to Unknown from a network error, we want to do another
 		// check without waiting in case it was a transient error and the server isn't actually down.
-		serverSupportsStreaming := desc.Kind != description.Unknown && desc.TopologyVersion != nil
 		connectionIsStreaming := s.conn != nil && s.conn.getCurrentlyStreaming()
 		transitionedFromNetworkError := desc.LastError != nil && unwrapConnectionError(desc.LastError) != nil &&
 			previousDescription.Kind != description.Unknown
@@ -745,7 +744,7 @@ func (s *Server) update() {
 			s.monitorOnce.Do(s.rttMonitor.connect)
 		}
 
-		if isStreamable(s) && (serverSupportsStreaming || connectionIsStreaming) || transitionedFromNetworkError {
+		if isStreamingEnabled(s) && (isStreamable(s) || connectionIsStreaming) || transitionedFromNetworkError {
 			continue
 		}
 
