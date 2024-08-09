@@ -227,22 +227,16 @@ functions:
         display_name: "test_suite.tgz"
 
   bootstrap-mongohoused:
-    - command: shell.exec
+    - command: subprocess.exec
       params:
-        shell: "bash"
-        script: |
-          ${PREPARE_SHELL}
-
-          cd $DRIVERS_TOOLS/.evergreen/atlas_data_lake
-          DRIVERS_TOOLS="${DRIVERS_TOOLS}" bash pull-mongohouse-image.sh
-    - command: shell.exec
+        binary: "bash"
+        args: 
+          - ${DRIVERS_TOOLS}/.evergreen/atlas_data_lake/pull-mongohouse-image.sh
+    - command: subprocess.exec
       params:
-        shell: "bash"
-        script: |
-          ${PREPARE_SHELL}
-
-          cd $DRIVERS_TOOLS/.evergreen/atlas_data_lake
-          DRIVERS_TOOLS="${DRIVERS_TOOLS}" bash run-mongohouse-image.sh
+        binary: "bash"
+        args: 
+          - ${DRIVERS_TOOLS}/.evergreen/atlas_data_lake/run-mongohouse-image.sh
 
   bootstrap-mongo-orchestration:
     - command: shell.exec
