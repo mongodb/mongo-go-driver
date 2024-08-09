@@ -130,6 +130,9 @@
             "command": {
               "compactStructuredEncryptionData": "default"
             }
+          },
+          "result": {
+            "ok": 1
           }
         }
       ],

@@ -2465,8 +2465,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		}
 	})
 
-	// GODRIVER-3123.  When we implement this feature, lower the min server version to 8.0.1
-	qeRunOpts22 := qeRunOpts.MaxServerVersion("7.99.99")
+	qeRunOpts22 := qeRunOpts.MinServerVersion("8.0")
 	mt.RunOpts("22. range explicit encryption", qeRunOpts22, func(mt *mtest.T) {
 		type testcase struct {
 			typeStr       string
@@ -2480,6 +2479,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			twoHundredOne bson.RawValue
 		}
 
+		trimFactor := int32(1)
+		sparsity := int64(1)
 		precision := int32(2)
 
 		d128_0, err := primitive.ParseDecimal128("0")
@@ -2499,7 +2500,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				field:    "encryptedDecimalNoPrecision",
 				typeBson: bson.TypeDecimal128,
 				rangeOpts: options.RangeOptions{
-					Sparsity: 1,
+					TrimFactor: &trimFactor,
+					Sparsity:   &sparsity,
 				},
 				zero:          bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_0)},
 				six:           bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_6)},
@@ -2512,10 +2514,11 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				field:    "encryptedDecimalPrecision",
 				typeBson: bson.TypeDecimal128,
 				rangeOpts: options.RangeOptions{
-					Min:       &bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_0)},
-					Max:       &bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_200)},
-					Sparsity:  1,
-					Precision: &precision,
+					Min:        &bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_0)},
+					Max:        &bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_200)},
+					TrimFactor: &trimFactor,
+					Sparsity:   &sparsity,
+					Precision:  &precision,
 				},
 				zero:          bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_0)},
 				six:           bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_6)},
@@ -2528,7 +2531,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				field:    "encryptedDoubleNoPrecision",
 				typeBson: bson.TypeDouble,
 				rangeOpts: options.RangeOptions{
-					Sparsity: 1,
+					TrimFactor: &trimFactor,
+					Sparsity:   &sparsity,
 				},
 				zero:          bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 0)},
 				six:           bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 6)},
@@ -2541,10 +2545,11 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				field:    "encryptedDoublePrecision",
 				typeBson: bson.TypeDouble,
 				rangeOpts: options.RangeOptions{
-					Min:       &bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 0)},
-					Max:       &bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 200)},
-					Sparsity:  1,
-					Precision: &precision,
+					Min:        &bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 0)},
+					Max:        &bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 200)},
+					TrimFactor: &trimFactor,
+					Sparsity:   &sparsity,
+					Precision:  &precision,
 				},
 				zero:          bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 0)},
 				six:           bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 6)},
@@ -2557,9 +2562,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				field:    "encryptedDate",
 				typeBson: bson.TypeDateTime,
 				rangeOpts: options.RangeOptions{
-					Min:      &bson.RawValue{Type: bson.TypeDateTime, Value: bsoncore.AppendDateTime(nil, 0)},
-					Max:      &bson.RawValue{Type: bson.TypeDateTime, Value: bsoncore.AppendDateTime(nil, 200)},
-					Sparsity: 1,
+					Min:        &bson.RawValue{Type: bson.TypeDateTime, Value: bsoncore.AppendDateTime(nil, 0)},
+					Max:        &bson.RawValue{Type: bson.TypeDateTime, Value: bsoncore.AppendDateTime(nil, 200)},
+					TrimFactor: &trimFactor,
+					Sparsity:   &sparsity,
 				},
 				zero:          bson.RawValue{Type: bson.TypeDateTime, Value: bsoncore.AppendDateTime(nil, 0)},
 				six:           bson.RawValue{Type: bson.TypeDateTime, Value: bsoncore.AppendDateTime(nil, 6)},
@@ -2572,9 +2578,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				field:    "encryptedInt",
 				typeBson: bson.TypeInt32,
 				rangeOpts: options.RangeOptions{
-					Min:      &bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 0)},
-					Max:      &bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 200)},
-					Sparsity: 1,
+					Min:        &bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 0)},
+					Max:        &bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 200)},
+					TrimFactor: &trimFactor,
+					Sparsity:   &sparsity,
 				},
 				zero:          bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 0)},
 				six:           bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 6)},
@@ -2587,9 +2594,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				field:    "encryptedLong",
 				typeBson: bson.TypeInt64,
 				rangeOpts: options.RangeOptions{
-					Min:      &bson.RawValue{Type: bson.TypeInt64, Value: bsoncore.AppendInt64(nil, 0)},
-					Max:      &bson.RawValue{Type: bson.TypeInt64, Value: bsoncore.AppendInt64(nil, 200)},
-					Sparsity: 1,
+					Min:        &bson.RawValue{Type: bson.TypeInt64, Value: bsoncore.AppendInt64(nil, 0)},
+					Max:        &bson.RawValue{Type: bson.TypeInt64, Value: bsoncore.AppendInt64(nil, 200)},
+					TrimFactor: &trimFactor,
+					Sparsity:   &sparsity,
 				},
 				zero:          bson.RawValue{Type: bson.TypeInt64, Value: bsoncore.AppendInt64(nil, 0)},
 				six:           bson.RawValue{Type: bson.TypeInt64, Value: bsoncore.AppendInt64(nil, 6)},
@@ -2645,7 +2653,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					// Insert 0, 6, 30, and 200.
 					coll := encryptedClient.Database("db").Collection("explicit_encryption")
 					eo := options.Encrypt().
-						SetAlgorithm("RangePreview").
+						SetAlgorithm("Range").
 						SetKeyID(key1ID).
 						SetContentionFactor(0).
 						SetRangeOptions(test.rangeOpts)
@@ -2692,7 +2700,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					defer clientEncryption.Close(context.Background())
 					defer encryptedClient.Disconnect(context.Background())
 					eo := options.Encrypt().
-						SetAlgorithm("RangePreview").
+						SetAlgorithm("Range").
 						SetKeyID(key1ID).
 						SetContentionFactor(0).
 						SetRangeOptions(test.rangeOpts)
@@ -2708,10 +2716,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					defer clientEncryption.Close(context.Background())
 					defer encryptedClient.Disconnect(context.Background())
 					eo := options.Encrypt().
-						SetAlgorithm("RangePreview").
+						SetAlgorithm("Range").
 						SetKeyID(key1ID).
 						SetContentionFactor(0).
-						SetQueryType("rangePreview").
+						SetQueryType("range").
 						SetRangeOptions(test.rangeOpts)
 
 					expr := bson.M{
@@ -2750,10 +2758,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					defer clientEncryption.Close(context.Background())
 					defer encryptedClient.Disconnect(context.Background())
 					eo := options.Encrypt().
-						SetAlgorithm("RangePreview").
+						SetAlgorithm("Range").
 						SetKeyID(key1ID).
 						SetContentionFactor(0).
-						SetQueryType("rangePreview").
+						SetQueryType("range").
 						SetRangeOptions(test.rangeOpts)
 
 					expr := bson.M{
@@ -2792,10 +2800,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					defer clientEncryption.Close(context.Background())
 					defer encryptedClient.Disconnect(context.Background())
 					eo := options.Encrypt().
-						SetAlgorithm("RangePreview").
+						SetAlgorithm("Range").
 						SetKeyID(key1ID).
 						SetContentionFactor(0).
-						SetQueryType("rangePreview").
+						SetQueryType("range").
 						SetRangeOptions(test.rangeOpts)
 
 					expr := bson.M{
@@ -2829,10 +2837,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					defer clientEncryption.Close(context.Background())
 					defer encryptedClient.Disconnect(context.Background())
 					eo := options.Encrypt().
-						SetAlgorithm("RangePreview").
+						SetAlgorithm("Range").
 						SetKeyID(key1ID).
 						SetContentionFactor(0).
-						SetQueryType("rangePreview").
+						SetQueryType("range").
 						SetRangeOptions(test.rangeOpts)
 
 					expr := bson.M{
@@ -2868,7 +2876,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 						defer clientEncryption.Close(context.Background())
 						defer encryptedClient.Disconnect(context.Background())
 						eo := options.Encrypt().
-							SetAlgorithm("RangePreview").
+							SetAlgorithm("Range").
 							SetKeyID(key1ID).
 							SetContentionFactor(0).
 							SetRangeOptions(test.rangeOpts)
@@ -2882,7 +2890,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 						defer clientEncryption.Close(context.Background())
 						defer encryptedClient.Disconnect(context.Background())
 						eo := options.Encrypt().
-							SetAlgorithm("RangePreview").
+							SetAlgorithm("Range").
 							SetKeyID(key1ID).
 							SetContentionFactor(0).
 							SetRangeOptions(test.rangeOpts)
@@ -2909,7 +2917,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 						ro := test.rangeOpts
 						ro.SetPrecision(2)
 						eo := options.Encrypt().
-							SetAlgorithm("RangePreview").
+							SetAlgorithm("Range").
 							SetKeyID(key1ID).
 							SetContentionFactor(0).
 							SetRangeOptions(ro)
@@ -2920,6 +2928,71 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				}
 			})
 		}
+	})
+
+	mt.RunOpts("22. range explicit encryption applies defaults", qeRunOpts22, func(mt *mtest.T) {
+		err := mt.Client.Database("keyvault").Collection("datakeys").Drop(context.Background())
+		assert.Nil(mt, err, "error on Drop: %v", err)
+
+		testVal := bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 123)}
+
+		keyVaultClient, err := mongo.Connect(context.Background(), options.Client().ApplyURI(mtest.ClusterURI()))
+		assert.Nil(mt, err, "error on Connect: %v", err)
+
+		ceo := options.ClientEncryption().
+			SetKeyVaultNamespace("keyvault.datakeys").
+			SetKmsProviders(fullKmsProvidersMap)
+		clientEncryption, err := mongo.NewClientEncryption(keyVaultClient, ceo)
+		assert.Nil(mt, err, "error on NewClientEncryption: %v", err)
+
+		dkOpts := options.DataKey()
+		keyID, err := clientEncryption.CreateDataKey(context.Background(), "local", dkOpts)
+		assert.Nil(mt, err, "error in CreateDataKey: %v", err)
+
+		eo := options.Encrypt().
+			SetAlgorithm("Range").
+			SetKeyID(keyID).
+			SetContentionFactor(0).
+			SetRangeOptions(options.RangeOptions{
+				Min: &bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 0)},
+				Max: &bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 1000)},
+			})
+		payloadDefaults, err := clientEncryption.Encrypt(context.Background(), testVal, eo)
+		assert.Nil(mt, err, "error in Encrypt: %v", err)
+
+		mt.Run("Case 1: uses libmongocrypt defaults", func(mt *mtest.T) {
+			trimFactor := int32(6)
+			sparsity := int64(2)
+			eo := options.Encrypt().
+				SetAlgorithm("Range").
+				SetKeyID(keyID).
+				SetContentionFactor(0).
+				SetRangeOptions(options.RangeOptions{
+					Min:        &bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 0)},
+					Max:        &bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 1000)},
+					TrimFactor: &trimFactor,
+					Sparsity:   &sparsity,
+				})
+			payload, err := clientEncryption.Encrypt(context.Background(), testVal, eo)
+			assert.Nil(mt, err, "error in Encrypt: %v", err)
+			assert.Equalf(mt, len(payload.Data), len(payloadDefaults.Data), "the returned payload size is expected to be %d", len(payloadDefaults.Data))
+		})
+
+		mt.Run("Case 2: accepts trimFactor 0", func(mt *mtest.T) {
+			trimFactor := int32(0)
+			eo := options.Encrypt().
+				SetAlgorithm("Range").
+				SetKeyID(keyID).
+				SetContentionFactor(0).
+				SetRangeOptions(options.RangeOptions{
+					Min:        &bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 0)},
+					Max:        &bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 1000)},
+					TrimFactor: &trimFactor,
+				})
+			payload, err := clientEncryption.Encrypt(context.Background(), testVal, eo)
+			assert.Nil(mt, err, "error in Encrypt: %v", err)
+			assert.Greater(t, len(payload.Data), len(payloadDefaults.Data), "the returned payload size is expected to be greater than %d", len(payloadDefaults.Data))
+		})
 	})
 }
 

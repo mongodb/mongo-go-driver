@@ -17,13 +17,14 @@ const (
 	QueryTypeEquality string = "equality"
 )
 
-// RangeOptions specifies index options for a Queryable Encryption field supporting "rangePreview" queries.
+// RangeOptions specifies index options for a Queryable Encryption field supporting "range" queries.
 // Beta: The Range algorithm is experimental only. It is not intended for public use. It is subject to breaking changes.
 type RangeOptions struct {
-	Min       *bson.RawValue
-	Max       *bson.RawValue
-	Sparsity  int64
-	Precision *int32
+	Min        *bson.RawValue
+	Max        *bson.RawValue
+	Sparsity   *int64
+	TrimFactor *int32
+	Precision  *int32
 }
 
 // EncryptOptions represents options to explicitly encrypt a value.
@@ -81,7 +82,7 @@ func (e *EncryptOptions) SetContentionFactor(contentionFactor int64) *EncryptOpt
 	return e
 }
 
-// SetRangeOptions specifies the options to use for explicit encryption with range. It is only valid to set if algorithm is "rangePreview".
+// SetRangeOptions specifies the options to use for explicit encryption with range. It is only valid to set if algorithm is "range".
 // Beta: The Range algorithm is experimental only. It is not intended for public use. It is subject to breaking changes.
 func (e *EncryptOptions) SetRangeOptions(ro RangeOptions) *EncryptOptions {
 	e.RangeOptions = &ro
@@ -105,7 +106,14 @@ func (ro *RangeOptions) SetMax(max bson.RawValue) *RangeOptions {
 // SetSparsity sets the range index sparsity.
 // Beta: The Range algorithm is experimental only. It is not intended for public use. It is subject to breaking changes.
 func (ro *RangeOptions) SetSparsity(sparsity int64) *RangeOptions {
-	ro.Sparsity = sparsity
+	ro.Sparsity = &sparsity
+	return ro
+}
+
+// SetTrimFactor sets the range index trim factor.
+// Beta: The Range algorithm is experimental only. It is not intended for public use. It is subject to breaking changes.
+func (ro *RangeOptions) SetTrimFactor(trimFactor int32) *RangeOptions {
+	ro.TrimFactor = &trimFactor
 	return ro
 }
 
