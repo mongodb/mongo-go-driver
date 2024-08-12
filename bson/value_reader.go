@@ -345,19 +345,16 @@ func (vr *valueReader) ReadBinary() (b []byte, btype byte, err error) {
 		}
 	}
 
-	b, err = vr.readBytes(length)
+	b = make([]byte, length)
+	err = vr.read(b)
 	if err != nil {
 		return nil, 0, err
 	}
-	// Make a copy of the returned byte slice because it's just a subslice from the valueReader's
-	// buffer and is not safe to return in the unmarshaled value.
-	cp := make([]byte, len(b))
-	copy(cp, b)
 
 	if err := vr.pop(); err != nil {
 		return nil, 0, err
 	}
-	return cp, btype, nil
+	return b, btype, nil
 }
 
 func (vr *valueReader) ReadBoolean() (bool, error) {
@@ -425,7 +422,8 @@ func (vr *valueReader) ReadCodeWithScope() (code string, dr DocumentReader, err 
 	if strLength <= 0 {
 		return "", nil, fmt.Errorf("invalid string length: %d", strLength)
 	}
-	strBytes, err := vr.readBytes(strLength)
+	strBytes := make([]byte, strLength)
+	err = vr.read(strBytes)
 	if err != nil {
 		return "", nil, err
 	}
@@ -458,12 +456,10 @@ func (vr *valueReader) ReadDBPointer() (ns string, oid ObjectID, err error) {
 		return "", oid, err
 	}
 
-	oidbytes, err := vr.readBytes(12)
+	err = vr.read(oid[:])
 	if err != nil {
 		return "", ObjectID{}, err
 	}
-
-	copy(oid[:], oidbytes)
 
 	if err := vr.pop(); err != nil {
 		return "", ObjectID{}, err
@@ -492,7 +488,8 @@ func (vr *valueReader) ReadDecimal128() (Decimal128, error) {
 		return Decimal128{}, err
 	}
 
-	b, err := vr.readBytes(16)
+	var b [16]byte
+	err := vr.read(b[:])
 	if err != nil {
 		return Decimal128{}, err
 	}
@@ -584,13 +581,11 @@ func (vr *valueReader) ReadObjectID() (ObjectID, error) {
 		return ObjectID{}, err
 	}
 
-	oidbytes, err := vr.readBytes(12)
+	var oid ObjectID
+	err := vr.read(oid[:])
 	if err != nil {
 		return ObjectID{}, err
 	}
-
-	var oid ObjectID
-	copy(oid[:], oidbytes)
 
 	if err := vr.pop(); err != nil {
 		return ObjectID{}, err
@@ -729,29 +724,20 @@ func (vr *valueReader) ReadValue() (ValueReader, error) {
 	return vr, nil
 }
 
-// readBytes reads length bytes from the valueReader starting at the current offset. Note that the
-// returned byte slice is a subslice from the valueReader buffer and must be converted or copied
-// before returning in an unmarshaled value.
-func (vr *valueReader) readBytes(length int32) ([]byte, error) {
-	if length < 0 {
-		return nil, fmt.Errorf("invalid length: %d", length)
-	}
-
-	buf := make([]byte, length)
-	_, err := io.ReadFull(vr.r, buf)
+func (vr *valueReader) read(p []byte) error {
+	n, err := io.ReadFull(vr.r, p)
 	if errors.Is(err, io.ErrUnexpectedEOF) {
-		return nil, io.EOF
+		return io.EOF
 	} else if err != nil {
-		return nil, err
+		return err
 	}
-
-	vr.offset += int64(length)
-
-	return buf, nil
+	vr.offset += int64(n)
+	return nil
 }
 
 func (vr *valueReader) appendBytes(dst []byte, length int32) ([]byte, error) {
-	buf, err := vr.readBytes(length)
+	buf := make([]byte, length)
+	err := vr.read(buf)
 	if err != nil {
 		return nil, err
 	}
@@ -786,7 +772,8 @@ func (vr *valueReader) readString() (string, error) {
 		return "", fmt.Errorf("invalid string length: %d", length)
 	}
 
-	buf, err := vr.readBytes(length)
+	buf := make([]byte, length)
+	err = vr.read(buf)
 	if err != nil {
 		return "", err
 	}
@@ -810,37 +797,41 @@ func (vr *valueReader) peekLength() (int32, error) {
 func (vr *valueReader) readLength() (int32, error) { return vr.readi32() }
 
 func (vr *valueReader) readi32() (int32, error) {
-	buf, err := vr.readBytes(4)
+	var buf [4]byte
+	err := vr.read(buf[:])
 	if err != nil {
 		return 0, err
 	}
 
-	return int32(binary.LittleEndian.Uint32(buf)), nil
+	return int32(binary.LittleEndian.Uint32(buf[:])), nil
 }
 
 func (vr *valueReader) readu32() (uint32, error) {
-	buf, err := vr.readBytes(4)
+	var buf [4]byte
+	err := vr.read(buf[:])
 	if err != nil {
 		return 0, err
 	}
 
-	return binary.LittleEndian.Uint32(buf), nil
+	return binary.LittleEndian.Uint32(buf[:]), nil
 }
 
 func (vr *valueReader) readi64() (int64, error) {
-	buf, err := vr.readBytes(8)
+	var buf [8]byte
+	err := vr.read(buf[:])
 	if err != nil {
 		return 0, err
 	}
 
-	return int64(binary.LittleEndian.Uint64(buf)), nil
+	return int64(binary.LittleEndian.Uint64(buf[:])), nil
 }
 
 func (vr *valueReader) readu64() (uint64, error) {
-	buf, err := vr.readBytes(8)
+	var buf [8]byte
+	err := vr.read(buf[:])
 	if err != nil {
 		return 0, err
 	}
 
-	return binary.LittleEndian.Uint64(buf), nil
+	return binary.LittleEndian.Uint64(buf[:]), nil
 }
