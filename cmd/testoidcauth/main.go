@@ -101,6 +101,7 @@ func main() {
 		aux("human_1_5_multiplPrincipalNoUser", human15mulitplePrincipalNoUser)
 		aux("human_1_6_allowedHostsBlocked", human16allowedHostsBlocked)
 		aux("human_1_7_allowedHostsInConnectionStringIgnored", human17AllowedHostsInConnectionStringIgnored)
+		aux("human_1_8_machineIDPHumanCallback", human18MachineIDPHumanCallback)
 		aux("human_2_1_validCallbackInputs", human21validCallbackInputs)
 		aux("human_2_2_CallbackReturnsMissingData", human22CallbackReturnsMissingData)
 		aux("human_2_3_RefreshTokenIsPassedToCallback", human23RefreshTokenIsPassedToCallback)
@@ -111,6 +112,7 @@ func main() {
 		aux("human_4_3_reauthenticationSucceedsAfterRefreshFails", human43ReauthenticationSucceedsAfterRefreshFails)
 		aux("human_4_4_reauthenticationFails", human44ReauthenticationFails)
 	case "azure":
+		aux("machine_2_5_InvalidUseofAllowedHosts", machine25InvalidUseofAllowedHosts)
 		aux("machine_5_1_azureWithNoUsername", machine51azureWithNoUsername)
 		aux("machine_5_2_azureWithNoUsername", machine52azureWithBadUsername)
 	case "gcp":
@@ -327,6 +329,26 @@ func machine24invalidClientConfigurationWithCallback() error {
 	)
 	if err == nil {
 		return fmt.Errorf("machine_2_4: succeeded building client when it should fail")
+	}
+	return nil
+}
+
+func machine25InvalidUseofAllowedHosts() error {
+	_, err := connectWithMachineCBAndProperties(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+		t := time.Now().Add(time.Hour)
+		return &options.OIDCCredential{
+			AccessToken:  "",
+			ExpiresAt:    &t,
+			RefreshToken: nil,
+		}, nil
+	},
+		map[string]string{
+			"ENVIRONMENT":   "azure",
+			"ALLOWED_HOSTS": "",
+		},
+	)
+	if err == nil {
+		return fmt.Errorf("machine_2_5: succeeded building client when it should fail")
 	}
 	return nil
 }
@@ -1000,6 +1022,42 @@ func human17AllowedHostsInConnectionStringIgnored() error {
 	return nil
 }
 
+func human18MachineIDPHumanCallback() error {
+	//if _, ok := os.LookupEnv("OIDC_IS_LOCAL"); !ok {
+	//	return nil
+	//}
+
+	var callbackFailed error
+
+	client, err := connectWithHumanCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+		t := time.Now().Add(time.Hour)
+		tokenFile := tokenFile("test_machine")
+		accessToken, err := os.ReadFile(tokenFile)
+		if err != nil {
+			callbackFailed = fmt.Errorf("human_1_8: failed reading token file: %v", err)
+		}
+		return &options.OIDCCredential{
+			AccessToken:  string(accessToken),
+			ExpiresAt:    &t,
+			RefreshToken: nil,
+		}, nil
+	})
+
+	defer client.Disconnect(context.Background())
+
+	if err != nil {
+		return fmt.Errorf("human_1_1: failed connecting client: %v", err)
+	}
+
+	coll := client.Database("test").Collection("test")
+
+	_, err = coll.Find(context.Background(), bson.D{})
+	if err != nil {
+		return fmt.Errorf("human_1_1: failed executing Find: %v", err)
+	}
+	return callbackFailed
+}
+
 func human21validCallbackInputs() error {
 	callbackCount := 0
 	var callbackFailed error
@@ -1266,6 +1324,7 @@ func human32doesNotUseSpecualtiveAuth() error {
 }
 
 func human41ReauthenticationSucceeds() error {
+	// TODO
 	return nil
 }
 
