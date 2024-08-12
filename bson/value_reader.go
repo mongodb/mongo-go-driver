@@ -794,7 +794,16 @@ func (vr *valueReader) peekLength() (int32, error) {
 	return int32(binary.LittleEndian.Uint32(buf)), nil
 }
 
-func (vr *valueReader) readLength() (int32, error) { return vr.readi32() }
+func (vr *valueReader) readLength() (int32, error) {
+	l, err := vr.readi32()
+	if err != nil {
+		return 0, err
+	}
+	if l < 0 {
+		return 0, fmt.Errorf("invalid negative length: %d", l)
+	}
+	return l, nil
+}
 
 func (vr *valueReader) readi32() (int32, error) {
 	var buf [4]byte
