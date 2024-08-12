@@ -616,9 +616,11 @@ func (t *T) ClearFailPoints() {
 		if err != nil {
 			t.Fatalf("error clearing fail point %s: %v", fp.name, err)
 		}
-		if fp.client != t.Client {
-			_ = fp.client.Disconnect(context.Background())
-			t.fpClients[fp.client] = false
+		t.fpClients[fp.client] = false
+	}
+	for client, active := range t.fpClients {
+		if !active && client != t.Client {
+			_ = client.Disconnect(context.Background())
 		}
 	}
 	t.failPoints = t.failPoints[:0]
