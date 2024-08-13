@@ -18,6 +18,7 @@ import (
 	"unsafe"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
@@ -38,7 +39,7 @@ func tokenFile(user string) string {
 	return path.Join(oidcTokenDir, user)
 }
 
-func connectAdminClinet() (*mongo.Client, error) {
+func connectAdminClient() (*mongo.Client, error) {
 	return mongo.Connect(context.Background(), options.Client().ApplyURI(uriAdmin))
 }
 
@@ -52,6 +53,13 @@ func connectWithMachineCB(uri string, cb options.OIDCCallback) (*mongo.Client, e
 func connectWithHumanCB(uri string, cb options.OIDCCallback) (*mongo.Client, error) {
 	opts := options.Client().ApplyURI(uri)
 
+	opts.Auth.OIDCHumanCallback = cb
+	return mongo.Connect(context.Background(), opts)
+}
+
+func connectWithHumanCBAndMonitor(uri string, cb options.OIDCCallback, m *event.CommandMonitor) (*mongo.Client, error) {
+	opts := options.Client().ApplyURI(uri)
+	opts.Monitor = m
 	opts.Auth.OIDCHumanCallback = cb
 	return mongo.Connect(context.Background(), opts)
 }
@@ -446,7 +454,7 @@ func machine33UnexpectedErrorCodeDoesNotClearTheCache() error {
 	var callbackFailed error
 	countMutex := sync.Mutex{}
 
-	adminClient, err := connectAdminClinet()
+	adminClient, err := connectAdminClient()
 	if err != nil {
 		return fmt.Errorf("machine_3_3: failed connecting admin client: %v", err)
 	}
@@ -520,7 +528,7 @@ func machine41ReauthenticationSucceeds() error {
 	var callbackFailed error
 	countMutex := sync.Mutex{}
 
-	adminClient, err := connectAdminClinet()
+	adminClient, err := connectAdminClient()
 	if err != nil {
 		return fmt.Errorf("machine_4_1: failed connecting admin client: %v", err)
 	}
@@ -585,7 +593,7 @@ func machine42ReadCommandsFailIfReauthenticationFails() error {
 	firstCall := true
 	countMutex := sync.Mutex{}
 
-	adminClient, err := connectAdminClinet()
+	adminClient, err := connectAdminClient()
 	if err != nil {
 		return fmt.Errorf("machine_4_2: failed connecting admin client: %v", err)
 	}
@@ -665,7 +673,7 @@ func machine43WriteCommandsFailIfReauthenticationFails() error {
 	firstCall := true
 	countMutex := sync.Mutex{}
 
-	adminClient, err := connectAdminClinet()
+	adminClient, err := connectAdminClient()
 	if err != nil {
 		return fmt.Errorf("machine_4_3: failed connecting admin client: %v", err)
 	}
@@ -1023,13 +1031,14 @@ func human17AllowedHostsInConnectionStringIgnored() error {
 }
 
 func human18MachineIDPHumanCallback() error {
-	//if _, ok := os.LookupEnv("OIDC_IS_LOCAL"); !ok {
-	//	return nil
-	//}
+	if _, ok := os.LookupEnv("OIDC_IS_LOCAL"); !ok {
+		return nil
+	}
 
 	var callbackFailed error
 
-	client, err := connectWithHumanCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	opts := options.Client().ApplyURI(uriMulti)
+	opts.Auth.OIDCHumanCallback = func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
 		t := time.Now().Add(time.Hour)
 		tokenFile := tokenFile("test_machine")
 		accessToken, err := os.ReadFile(tokenFile)
@@ -1041,19 +1050,19 @@ func human18MachineIDPHumanCallback() error {
 			ExpiresAt:    &t,
 			RefreshToken: nil,
 		}, nil
-	})
-
-	defer client.Disconnect(context.Background())
-
-	if err != nil {
-		return fmt.Errorf("human_1_1: failed connecting client: %v", err)
 	}
+	opts.Auth.Username = explicitUser("test_machine")
+	client, err := mongo.Connect(context.Background(), opts)
+	if err != nil {
+		return fmt.Errorf("human_1_8: failed connecting client: %v", err)
+	}
+	defer client.Disconnect(context.Background())
 
 	coll := client.Database("test").Collection("test")
 
 	_, err = coll.Find(context.Background(), bson.D{})
 	if err != nil {
-		return fmt.Errorf("human_1_1: failed executing Find: %v", err)
+		return fmt.Errorf("human_1_8: failed executing Find: %v", err)
 	}
 	return callbackFailed
 }
@@ -1142,7 +1151,7 @@ func human23RefreshTokenIsPassedToCallback() error {
 	var callbackFailed error
 	countMutex := sync.Mutex{}
 
-	adminClient, err := connectAdminClinet()
+	adminClient, err := connectAdminClient()
 	if err != nil {
 		return fmt.Errorf("human_2_3: failed connecting admin client: %v", err)
 	}
@@ -1210,7 +1219,7 @@ func human23RefreshTokenIsPassedToCallback() error {
 }
 
 func human31usesSpeculativeAuth() error {
-	adminClient, err := connectAdminClinet()
+	adminClient, err := connectAdminClient()
 	if err != nil {
 		return fmt.Errorf("human_3_1: failed connecting admin client: %v", err)
 	}
@@ -1271,7 +1280,7 @@ func human31usesSpeculativeAuth() error {
 func human32doesNotUseSpecualtiveAuth() error {
 	var callbackFailed error
 
-	adminClient, err := connectAdminClinet()
+	adminClient, err := connectAdminClient()
 	if err != nil {
 		return fmt.Errorf("human_3_2: failed connecting admin client: %v", err)
 	}
@@ -1324,8 +1333,134 @@ func human32doesNotUseSpecualtiveAuth() error {
 }
 
 func human41ReauthenticationSucceeds() error {
-	// TODO
-	return nil
+	callbackCount := 0
+	var callbackFailed error
+	countMutex := sync.Mutex{}
+
+	adminClient, err := connectAdminClient()
+	if err != nil {
+		return fmt.Errorf("human_4_1: failed connecting admin client: %v", err)
+	}
+	defer adminClient.Disconnect(context.Background())
+
+	clearChannels := func(s chan *event.CommandStartedEvent, succ chan *event.CommandSucceededEvent, f chan *event.CommandFailedEvent) {
+		for len(s) > 0 {
+			<-s
+		}
+		for len(succ) > 0 {
+			<-succ
+		}
+		for len(f) > 0 {
+			<-f
+		}
+	}
+
+	started := make(chan *event.CommandStartedEvent, 100)
+	succeeded := make(chan *event.CommandSucceededEvent, 100)
+	failed := make(chan *event.CommandFailedEvent, 100)
+
+	monitor := event.CommandMonitor{
+		Started: func(ctx context.Context, e *event.CommandStartedEvent) {
+			started <- e
+		},
+		Succeeded: func(ctx context.Context, e *event.CommandSucceededEvent) {
+			succeeded <- e
+		},
+		Failed: func(ctx context.Context, e *event.CommandFailedEvent) {
+			failed <- e
+		},
+	}
+
+	client, err := connectWithHumanCBAndMonitor(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+		countMutex.Lock()
+		defer countMutex.Unlock()
+		callbackCount += 1
+		t := time.Now().Add(time.Hour)
+		tokenFile := tokenFile("test_user1")
+		accessToken, err := os.ReadFile(tokenFile)
+		if err != nil {
+			callbackFailed = fmt.Errorf("human_4_1: failed reading token file: %v", err)
+		}
+		return &options.OIDCCredential{
+			AccessToken:  string(accessToken),
+			ExpiresAt:    &t,
+			RefreshToken: nil,
+		}, nil
+	}, &monitor)
+	if err != nil {
+		return fmt.Errorf("human_4_1: failed connecting client: %v", err)
+	}
+	defer client.Disconnect(context.Background())
+	clearChannels(started, succeeded, failed)
+
+	coll := client.Database("test").Collection("test")
+	_, err = coll.Find(context.Background(), bson.D{})
+	if err != nil {
+		return fmt.Errorf("human_4_1: Find failed when it should succeed")
+	}
+	countMutex.Lock()
+	if callbackCount != 1 {
+		return fmt.Errorf("human_4_1: expected callback count to be 1, got %d", callbackCount)
+	}
+	countMutex.Unlock()
+	clearChannels(started, succeeded, failed)
+
+	res := adminClient.Database("admin").RunCommand(context.Background(), bson.D{
+		{Key: "configureFailPoint", Value: "failCommand"},
+		{Key: "mode", Value: bson.D{
+			{Key: "times", Value: 1},
+		}},
+		{Key: "data", Value: bson.D{
+			{Key: "failCommands", Value: bson.A{
+				"find",
+			}},
+			{Key: "errorCode", Value: 391},
+		}},
+	})
+
+	if res.Err() != nil {
+		return fmt.Errorf("machine_4_1: failed setting failpoint: %v", res.Err())
+	}
+
+	_, err = coll.Find(context.Background(), bson.D{})
+	if err != nil {
+		return fmt.Errorf("human_4_1: Second find failed when it should succeed")
+	}
+	countMutex.Lock()
+	if callbackCount != 2 {
+		return fmt.Errorf("human_4_1: expected callback count to be 2, got %d", callbackCount)
+	}
+	countMutex.Unlock()
+
+	if len(started) != 2 {
+		return fmt.Errorf("human_4_1: expected 2 finds started, found %d", len(started))
+	}
+	for len(started) > 0 {
+		ste := <-started
+		if ste.CommandName != "find" {
+			return fmt.Errorf("human_4_1: found unexpected command started %s", ste.CommandName)
+		}
+	}
+	if len(succeeded) != 1 {
+		return fmt.Errorf("human_4_1: expected 1 finds succeed, found %d", len(succeeded))
+	}
+	for len(succeeded) > 0 {
+		sue := <-succeeded
+		if sue.CommandName != "find" {
+			return fmt.Errorf("human_4_1: found unexpected command succeeded %s", sue.CommandName)
+		}
+	}
+	if len(failed) != 1 {
+		return fmt.Errorf("human_4_1: expected 1 finds succeed, found %d", len(failed))
+	}
+	for len(failed) > 0 {
+		fe := <-failed
+		if fe.CommandName != "find" {
+			return fmt.Errorf("human_4_1: found unexpected command failed %s", fe.CommandName)
+		}
+	}
+
+	return callbackFailed
 }
 
 func human42ReauthenticationSucceedsNoRefreshToken() error {
@@ -1333,7 +1468,7 @@ func human42ReauthenticationSucceedsNoRefreshToken() error {
 	var callbackFailed error
 	countMutex := sync.Mutex{}
 
-	adminClient, err := connectAdminClinet()
+	adminClient, err := connectAdminClient()
 	if err != nil {
 		return fmt.Errorf("human_4_2: failed connecting admin client: %v", err)
 	}
@@ -1410,7 +1545,7 @@ func human43ReauthenticationSucceedsAfterRefreshFails() error {
 	var callbackFailed error
 	countMutex := sync.Mutex{}
 
-	adminClient, err := connectAdminClinet()
+	adminClient, err := connectAdminClient()
 	if err != nil {
 		return fmt.Errorf("human_4_3: failed connecting admin client: %v", err)
 	}
@@ -1488,7 +1623,7 @@ func human44ReauthenticationFails() error {
 	var callbackFailed error
 	countMutex := sync.Mutex{}
 
-	adminClient, err := connectAdminClinet()
+	adminClient, err := connectAdminClient()
 	if err != nil {
 		return fmt.Errorf("human_4_4: failed connecting admin client: %v", err)
 	}
