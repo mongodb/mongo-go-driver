@@ -379,6 +379,176 @@ func TestClientOptions(t *testing.T) {
 			})
 		}
 	})
+	t.Run("OIDC auth configuration validation", func(t *testing.T) {
+		t.Parallel()
+
+		emptyCb := func(_ context.Context, _ *OIDCArgs) (*OIDCCredential, error) {
+			return nil, nil
+		}
+
+		testCases := []struct {
+			name string
+			opts *ClientOptionsBuilder
+			err  error
+		}{
+			{
+				name: "password must not be set",
+				opts: Client().SetAuth(Credential{AuthMechanism: "MONGODB-OIDC", Password: "password"}),
+				err:  fmt.Errorf("password must not be set for the MONGODB-OIDC auth mechanism"),
+			},
+			{
+				name: "cannot set both OIDCMachineCallback and OIDCHumanCallback simultaneously",
+				opts: Client().SetAuth(Credential{AuthMechanism: "MONGODB-OIDC",
+					OIDCMachineCallback: emptyCb, OIDCHumanCallback: emptyCb}),
+				err: fmt.Errorf("cannot set both OIDCMachineCallback and OIDCHumanCallback, only one may be specified"),
+			},
+			{
+				name: "cannot set OIDCMachineCallback in GCP Environment",
+				opts: Client().SetAuth(Credential{
+					AuthMechanism:           "MONGODB-OIDC",
+					OIDCMachineCallback:     emptyCb,
+					AuthMechanismProperties: map[string]string{"ENVIRONMENT": "gcp"},
+				}),
+				err: fmt.Errorf(`OIDCMachineCallback cannot be specified with the gcp "ENVIRONMENT"`),
+			},
+			{
+				name: "cannot set OIDCMachineCallback in AZURE Environment",
+				opts: Client().SetAuth(Credential{
+					AuthMechanism:           "MONGODB-OIDC",
+					OIDCMachineCallback:     emptyCb,
+					AuthMechanismProperties: map[string]string{"ENVIRONMENT": "azure"},
+				}),
+				err: fmt.Errorf(`OIDCMachineCallback cannot be specified with the azure "ENVIRONMENT"`),
+			},
+			{
+				name: "TOKEN_RESOURCE must be set in GCP Environment",
+				opts: Client().SetAuth(Credential{
+					AuthMechanism:           "MONGODB-OIDC",
+					AuthMechanismProperties: map[string]string{"ENVIRONMENT": "gcp"},
+				}),
+				err: fmt.Errorf(`"TOKEN_RESOURCE" must be set for the gcp "ENVIRONMENT"`),
+			},
+			{
+				name: "TOKEN_RESOURCE must be set in AZURE Environment",
+				opts: Client().SetAuth(Credential{
+					AuthMechanism:           "MONGODB-OIDC",
+					AuthMechanismProperties: map[string]string{"ENVIRONMENT": "azure"},
+				}),
+				err: fmt.Errorf(`"TOKEN_RESOURCE" must be set for the azure "ENVIRONMENT"`),
+			},
+			{
+				name: "TOKEN_RESOURCE must not be set in TEST Environment",
+				opts: Client().SetAuth(Credential{
+					AuthMechanism:           "MONGODB-OIDC",
+					AuthMechanismProperties: map[string]string{"ENVIRONMENT": "test", "TOKEN_RESOURCE": "stuff"},
+				}),
+				err: fmt.Errorf(`"TOKEN_RESOURCE" must not be set for the test "ENVIRONMENT"`),
+			},
+			{
+				name: "TOKEN_RESOURCE must not be set in any other Environment",
+				opts: Client().SetAuth(Credential{
+					AuthMechanism:           "MONGODB-OIDC",
+					AuthMechanismProperties: map[string]string{"ENVIRONMENT": "random env!", "TOKEN_RESOURCE": "stuff"},
+				}),
+				err: fmt.Errorf(`"TOKEN_RESOURCE" must not be set for the random env! "ENVIRONMENT"`),
+			},
+		}
+		for _, tc := range testCases {
+			tc := tc // Capture range variable.
+
+			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
+
+				err := tc.opts.Validate()
+				assert.Equal(t, tc.err, err, "want error %v, got error %v", tc.err, err)
+			})
+		}
+	})
+	t.Run("OIDC auth configuration validation", func(t *testing.T) {
+		t.Parallel()
+
+		emptyCb := func(_ context.Context, _ *OIDCArgs) (*OIDCCredential, error) {
+			return nil, nil
+		}
+
+		testCases := []struct {
+			name string
+			opts *ClientOptionsBuilder
+			err  error
+		}{
+			{
+				name: "password must not be set",
+				opts: Client().SetAuth(Credential{AuthMechanism: "MONGODB-OIDC", Password: "password"}),
+				err:  fmt.Errorf("password must not be set for the MONGODB-OIDC auth mechanism"),
+			},
+			{
+				name: "cannot set both OIDCMachineCallback and OIDCHumanCallback simultaneously",
+				opts: Client().SetAuth(Credential{AuthMechanism: "MONGODB-OIDC",
+					OIDCMachineCallback: emptyCb, OIDCHumanCallback: emptyCb}),
+				err: fmt.Errorf("cannot set both OIDCMachineCallback and OIDCHumanCallback, only one may be specified"),
+			},
+			{
+				name: "cannot set OIDCMachineCallback in GCP Environment",
+				opts: Client().SetAuth(Credential{
+					AuthMechanism:           "MONGODB-OIDC",
+					OIDCMachineCallback:     emptyCb,
+					AuthMechanismProperties: map[string]string{"ENVIRONMENT": "gcp"},
+				}),
+				err: fmt.Errorf(`OIDCMachineCallback cannot be specified with the gcp "ENVIRONMENT"`),
+			},
+			{
+				name: "cannot set OIDCMachineCallback in AZURE Environment",
+				opts: Client().SetAuth(Credential{
+					AuthMechanism:           "MONGODB-OIDC",
+					OIDCMachineCallback:     emptyCb,
+					AuthMechanismProperties: map[string]string{"ENVIRONMENT": "azure"},
+				}),
+				err: fmt.Errorf(`OIDCMachineCallback cannot be specified with the azure "ENVIRONMENT"`),
+			},
+			{
+				name: "TOKEN_RESOURCE must be set in GCP Environment",
+				opts: Client().SetAuth(Credential{
+					AuthMechanism:           "MONGODB-OIDC",
+					AuthMechanismProperties: map[string]string{"ENVIRONMENT": "gcp"},
+				}),
+				err: fmt.Errorf(`"TOKEN_RESOURCE" must be set for the gcp "ENVIRONMENT"`),
+			},
+			{
+				name: "TOKEN_RESOURCE must be set in AZURE Environment",
+				opts: Client().SetAuth(Credential{
+					AuthMechanism:           "MONGODB-OIDC",
+					AuthMechanismProperties: map[string]string{"ENVIRONMENT": "azure"},
+				}),
+				err: fmt.Errorf(`"TOKEN_RESOURCE" must be set for the azure "ENVIRONMENT"`),
+			},
+			{
+				name: "TOKEN_RESOURCE must not be set in TEST Environment",
+				opts: Client().SetAuth(Credential{
+					AuthMechanism:           "MONGODB-OIDC",
+					AuthMechanismProperties: map[string]string{"ENVIRONMENT": "test", "TOKEN_RESOURCE": "stuff"},
+				}),
+				err: fmt.Errorf(`"TOKEN_RESOURCE" must not be set for the test "ENVIRONMENT"`),
+			},
+			{
+				name: "TOKEN_RESOURCE must not be set in any other Environment",
+				opts: Client().SetAuth(Credential{
+					AuthMechanism:           "MONGODB-OIDC",
+					AuthMechanismProperties: map[string]string{"ENVIRONMENT": "random env!", "TOKEN_RESOURCE": "stuff"},
+				}),
+				err: fmt.Errorf(`"TOKEN_RESOURCE" must not be set for the random env! "ENVIRONMENT"`),
+			},
+		}
+		for _, tc := range testCases {
+			tc := tc // Capture range variable.
+
+			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
+
+				err := tc.opts.Validate()
+				assert.Equal(t, tc.err, err, "want error %v, got error %v", tc.err, err)
+			})
+		}
+	})
 }
 
 func createCertPool(t *testing.T, paths ...string) *x509.CertPool {

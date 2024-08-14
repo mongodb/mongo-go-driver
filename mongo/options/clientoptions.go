@@ -30,6 +30,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/v2/tag"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/auth"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage"
 )
@@ -588,6 +589,34 @@ func (c *ClientOptionsBuilder) Validate() error {
 
 	if to := args.Timeout; to != nil && *to < 0 {
 		return fmt.Errorf(`invalid value %q for "Timeout": value must be positive`, *to)
+	}
+
+	// OIDC Validation
+	if args.Auth != nil && args.Auth.AuthMechanism == auth.MongoDBOIDC {
+		if args.Auth.Password != "" {
+			return fmt.Errorf("password must not be set for the %s auth mechanism", auth.MongoDBOIDC)
+		}
+		if args.Auth.OIDCMachineCallback != nil && args.Auth.OIDCHumanCallback != nil {
+			return fmt.Errorf("cannot set both OIDCMachineCallback and OIDCHumanCallback, only one may be specified")
+		}
+		if env, ok := args.Auth.AuthMechanismProperties[auth.EnvironmentProp]; ok {
+			switch env {
+			case auth.GCPEnvironmentValue, auth.AzureEnvironmentValue:
+				if args.Auth.OIDCMachineCallback != nil {
+					return fmt.Errorf("OIDCMachineCallback cannot be specified with the %s %q", env, auth.EnvironmentProp)
+				}
+				if args.Auth.OIDCHumanCallback != nil {
+					return fmt.Errorf("OIDCHumanCallback cannot be specified with the %s %q", env, auth.EnvironmentProp)
+				}
+				if args.Auth.AuthMechanismProperties[auth.ResourceProp] == "" {
+					return fmt.Errorf("%q must be set for the %s %q", auth.ResourceProp, env, auth.EnvironmentProp)
+				}
+			default:
+				if args.Auth.AuthMechanismProperties[auth.ResourceProp] != "" {
+					return fmt.Errorf("%q must not be set for the %s %q", auth.ResourceProp, env, auth.EnvironmentProp)
+				}
+			}
+		}
 	}
 
 	return nil
@@ -1315,7 +1344,10 @@ func addClientCertFromBytes(cfg *tls.Config, data []byte, keyPasswd string) (str
 					}
 				}
 				var encoded bytes.Buffer
-				pem.Encode(&encoded, &pem.Block{Type: currentBlock.Type, Bytes: keyBytes})
+				err = pem.Encode(&encoded, &pem.Block{Type: currentBlock.Type, Bytes: keyBytes})
+				if err != nil {
+					return "", fmt.Errorf("error encoding private key as PEM: %w", err)
+				}
 				keyBlock := encoded.Bytes()
 				keyBlocks = append(keyBlocks, keyBlock)
 				start = len(data) - len(remaining)

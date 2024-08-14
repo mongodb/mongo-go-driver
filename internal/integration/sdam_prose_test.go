@@ -11,6 +11,8 @@ import (
 	"net"
 	"os"
 	"runtime"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -212,10 +214,10 @@ func TestServerHeartbeatStartedEvent(t *testing.T) {
 			1*time.Second,
 			topology.WithServerMonitor(func(*event.ServerMonitor) *event.ServerMonitor {
 				return &event.ServerMonitor{
-					ServerHeartbeatStarted: func(e *event.ServerHeartbeatStartedEvent) {
+					ServerHeartbeatStarted: func(*event.ServerHeartbeatStartedEvent) {
 						events <- "serverHeartbeatStartedEvent"
 					},
-					ServerHeartbeatFailed: func(e *event.ServerHeartbeatFailedEvent) {
+					ServerHeartbeatFailed: func(*event.ServerHeartbeatFailedEvent) {
 						events <- "serverHeartbeatFailedEvent"
 					},
 				}
@@ -236,5 +238,46 @@ func TestServerHeartbeatStartedEvent(t *testing.T) {
 			}
 		}
 		assert.Equal(t, expectedEvents, actualEvents)
+	})
+
+	mt := mtest.New(t)
+
+	mt.Run("polling must await frequency", func(mt *mtest.T) {
+		var heartbeatStartedCount atomic.Int64
+
+		servers := map[string]bool{}
+		serversMu := sync.RWMutex{} // Guard the servers set
+
+		serverMonitor := &event.ServerMonitor{
+			ServerHeartbeatStarted: func(*event.ServerHeartbeatStartedEvent) {
+				heartbeatStartedCount.Add(1)
+			},
+			TopologyDescriptionChanged: func(evt *event.TopologyDescriptionChangedEvent) {
+				serversMu.Lock()
+				defer serversMu.Unlock()
+
+				for _, srv := range evt.NewDescription.Servers {
+					servers[srv.Addr.String()] = true
+				}
+			},
+		}
+
+		// Create a client with  heartbeatFrequency=100ms,
+		// serverMonitoringMode=poll. Use SDAM to record the number of times the
+		// a heartbeat is started and the number of servers discovered.
+		mt.ResetClient(options.Client().
+			SetServerMonitor(serverMonitor).
+			SetServerMonitoringMode(options.ServerMonitoringModePoll))
+
+		// Per specifications, minHeartbeatFrequencyMS=500ms. So, within the first
+		// 500ms the heartbeatStartedCount should be LEQ to the number of discovered
+		// servers.
+		time.Sleep(500 * time.Millisecond)
+
+		serversMu.Lock()
+		serverCount := int64(len(servers))
+		serversMu.Unlock()
+
+		assert.LessOrEqual(mt, heartbeatStartedCount.Load(), serverCount)
 	})
 }

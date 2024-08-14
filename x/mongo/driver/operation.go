@@ -564,19 +564,18 @@ func (op Operation) Execute(ctx context.Context) error {
 
 		// Set the previous indefinite error to be returned in any case where a retryable write error does not have a
 		// NoWritesPerfomed label (the definite case).
-		switch err := err.(type) {
-		case labeledError:
+		if lerr, ok := err.(labeledError); ok {
 			// If the "prevIndefiniteErr" is nil, then the current error is the first error encountered
 			// during the retry attempt cycle. We must persist the first error in the case where all
 			// following errors are labeled "NoWritesPerformed", which would otherwise raise nil as the
 			// error.
 			if prevIndefiniteErr == nil {
-				prevIndefiniteErr = err
+				prevIndefiniteErr = lerr
 			}
 
 			// If the error is not labeled NoWritesPerformed and is retryable, then set the previous
 			// indefinite error to be the current error.
-			if !err.HasErrorLabel(NoWritesPerformed) && err.HasErrorLabel(RetryableWriteError) {
+			if !lerr.HasErrorLabel(NoWritesPerformed) && lerr.HasErrorLabel(RetryableWriteError) {
 				prevIndefiniteErr = err
 			}
 		}
@@ -2040,8 +2039,9 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 	if op.canLogCommandMessage() {
 		host, port, _ := net.SplitHostPort(info.serverAddress.String())
 
-		redactedCmd := redactStartedInformationCmd(op, info).String()
-		formattedCmd := logger.FormatMessage(redactedCmd, op.Logger.MaxDocumentLength)
+		redactedCmd := redactStartedInformationCmd(op, info)
+
+		formattedCmd := logger.FormatDocument(redactedCmd, op.Logger.MaxDocumentLength)
 
 		op.Logger.Print(logger.LevelDebug,
 			logger.ComponentCommand,
@@ -2092,8 +2092,9 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 	if op.canLogCommandMessage() && info.success() {
 		host, port, _ := net.SplitHostPort(info.serverAddress.String())
 
-		redactedReply := redactFinishedInformationResponse(info).String()
-		formattedReply := logger.FormatMessage(redactedReply, op.Logger.MaxDocumentLength)
+		redactedReply := redactFinishedInformationResponse(info)
+
+		formattedReply := logger.FormatDocument(redactedReply, op.Logger.MaxDocumentLength)
 
 		op.Logger.Print(logger.LevelDebug,
 			logger.ComponentCommand,
@@ -2116,7 +2117,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 	if op.canLogCommandMessage() && !info.success() {
 		host, port, _ := net.SplitHostPort(info.serverAddress.String())
 
-		formattedReply := logger.FormatMessage(info.cmdErr.Error(), op.Logger.MaxDocumentLength)
+		formattedReply := logger.FormatString(info.cmdErr.Error(), op.Logger.MaxDocumentLength)
 
 		op.Logger.Print(logger.LevelDebug,
 			logger.ComponentCommand,

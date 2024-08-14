@@ -23,7 +23,7 @@ func main() {
 	// open file to read
 	fRead, err := os.Open("api-report.txt")
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	// remember to close the file at the end of the program
 	defer fRead.Close()
@@ -31,7 +31,7 @@ func main() {
 	// open file to write
 	fWrite, err := os.Create("api-report.md")
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	// remember to close the file at the end of the program
 	defer fWrite.Close()
@@ -57,7 +57,7 @@ func main() {
 		}
 
 		if strings.Contains(line, "go.mongodb.org/mongo-driver") {
-			line = strings.Replace(line, "go.mongodb.org/mongo-driver", ".", -1)
+			line = strings.ReplaceAll(line, "go.mongodb.org/mongo-driver", ".")
 			line = "##" + line
 		}
 		if !suppress {
@@ -74,10 +74,10 @@ func main() {
 	}
 
 	if !foundSummary {
-		log.Fatal("Could not parse api summary")
+		log.Panic("Could not parse api summary")
 	}
 
 	if err := scanner.Err(); err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 }

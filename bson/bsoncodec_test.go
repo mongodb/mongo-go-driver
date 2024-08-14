@@ -23,7 +23,7 @@ func ExampleValueEncoder() {
 }
 
 func ExampleValueDecoder() {
-	var _ ValueDecoderFunc = func(dc DecodeContext, vr ValueReader, val reflect.Value) error {
+	var _ ValueDecoderFunc = func(_ DecodeContext, vr ValueReader, val reflect.Value) error {
 		if !val.CanSet() || val.Kind() != reflect.String {
 			return ValueDecoderError{Name: "StringDecodeValue", Kinds: []reflect.Kind{reflect.String}, Received: val}
 		}

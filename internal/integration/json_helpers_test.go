@@ -495,9 +495,9 @@ func extractErrorDetails(err error) (errorDetails, bool) {
 
 // verify that an error returned by an operation matches the expected error.
 func verifyError(expected *operationError, actual error) error {
-	// The spec test format doesn't treat ErrNoDocuments or ErrUnacknowledgedWrite as errors, so set actual to nil
+	// The spec test format doesn't treat ErrNoDocuments as an errors, so set actual to nil
 	// to indicate that no error occurred.
-	if errors.Is(actual, mongo.ErrNoDocuments) || errors.Is(actual, mongo.ErrUnacknowledgedWrite) {
+	if errors.Is(actual, mongo.ErrNoDocuments) {
 		actual = nil
 	}
 

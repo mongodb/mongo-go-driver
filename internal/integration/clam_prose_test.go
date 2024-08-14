@@ -346,7 +346,7 @@ func TestCommandLoggingAndMonitoringProse(t *testing.T) {
 			sinkCtx, sinkCancel := context.WithDeadline(ctx, time.Now().Add(deadline))
 			defer sinkCancel()
 
-			validator := func(order int, level int, msg string, keysAndValues ...interface{}) error {
+			validator := func(order int, _ int, _ string, keysAndValues ...interface{}) error {
 				// If the order exceeds the length of the
 				// "orderedCaseValidators," then throw an error.
 				if order >= len(tcase.orderedLogValidators) {

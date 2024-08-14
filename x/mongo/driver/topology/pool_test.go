@@ -19,8 +19,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/eventtest"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo/address"
-	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
 )
 
@@ -1211,21 +1209,19 @@ func TestPool_PoolMonitor(t *testing.T) {
 		})
 
 		tpm := eventtest.NewTestPoolMonitor()
+		dialer := &net.Dialer{}
 		p := newPool(
 			poolConfig{
 				Address:     address.Address(addr.String()),
 				PoolMonitor: tpm.PoolMonitor,
 			},
-			// Add a 10ms delay in the handshake so the test is reliable on
-			// operating systems that can't measure very short durations (e.g.
-			// Windows).
-			WithHandshaker(func(Handshaker) Handshaker {
-				return &testHandshaker{
-					getHandshakeInformation: func(context.Context, address.Address, *mnet.Connection) (driver.HandshakeInformation, error) {
-						time.Sleep(10 * time.Millisecond)
-						return driver.HandshakeInformation{}, nil
-					},
-				}
+			// Add a 10ms delay to dialing so the test is reliable on operating
+			// systems that can't measure very short durations (e.g. Windows).
+			WithDialer(func(Dialer) Dialer {
+				return DialerFunc(func(ctx context.Context, n, a string) (net.Conn, error) {
+					time.Sleep(10 * time.Millisecond)
+					return dialer.DialContext(ctx, n, a)
+				})
 			}))
 
 		err := p.ready()
