@@ -31,7 +31,7 @@ func ExampleClient_ListDatabaseNames() {
 		context.TODO(),
 		bson.D{{"empty", false}})
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	for _, db := range result {
@@ -52,7 +52,7 @@ func ExampleClient_Watch() {
 		mongo.Pipeline{matchStage},
 		opts)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	// Print out all change stream events in the order they're received.
@@ -95,7 +95,7 @@ func ExampleDatabase_CreateCollection() {
 
 	err := db.CreateCollection(context.TODO(), "users", opts)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 }
 
@@ -123,7 +123,7 @@ func ExampleDatabase_CreateView() {
 
 	err := db.CreateView(context.TODO(), "usernames", "users", pipeline, opts)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 }
 
@@ -135,7 +135,7 @@ func ExampleDatabase_ListCollectionNames() {
 		context.TODO(),
 		bson.D{{"options.capped", true}})
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	for _, coll := range result {
@@ -155,7 +155,7 @@ func ExampleDatabase_RunCommand() {
 	var result bson.M
 	err := db.RunCommand(context.TODO(), command, opts).Decode(&result)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	fmt.Println(result)
 }
@@ -173,7 +173,7 @@ func ExampleDatabase_Watch() {
 		mongo.Pipeline{matchStage},
 		opts)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	// Print out all change stream events in the order they're received.
@@ -207,14 +207,14 @@ func ExampleCollection_Aggregate() {
 		mongo.Pipeline{groupStage},
 		opts)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	// Get a list of all returned documents and print them out.
 	// See the mongo.Cursor documentation for more examples of using cursors.
 	var results []bson.M
 	if err = cursor.All(context.TODO(), &results); err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	for _, result := range results {
 		fmt.Printf(
@@ -252,7 +252,7 @@ func ExampleCollection_BulkWrite() {
 	opts := options.BulkWrite().SetOrdered(false)
 	res, err := coll.BulkWrite(context.TODO(), models, opts)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	fmt.Printf(
@@ -272,7 +272,7 @@ func ExampleCollection_CountDocuments() {
 	// Count the number of times the name "Bob" appears in the collection.
 	count, err := coll.CountDocuments(ctx, bson.D{{"name", "Bob"}}, nil)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	fmt.Printf("name Bob appears in %v documents", count)
 }
@@ -290,7 +290,7 @@ func ExampleCollection_DeleteMany() {
 	})
 	res, err := coll.DeleteMany(context.TODO(), bson.D{{"name", "bob"}}, opts)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	fmt.Printf("deleted %v documents\n", res.DeletedCount)
 }
@@ -308,7 +308,7 @@ func ExampleCollection_DeleteOne() {
 	})
 	res, err := coll.DeleteOne(context.TODO(), bson.D{{"name", "bob"}}, opts)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	fmt.Printf("deleted %v documents\n", res.DeletedCount)
 }
@@ -326,12 +326,12 @@ func ExampleCollection_Distinct() {
 	filter := bson.D{{"age", bson.D{{"$gt", 25}}}}
 	res := coll.Distinct(ctx, "name", filter)
 	if err := res.Err(); err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	values, err := res.Raw()
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	for _, value := range values {
@@ -350,7 +350,7 @@ func ExampleCollection_EstimatedDocumentCount() {
 	// Get and print an estimated of the number of documents in the collection.
 	count, err := coll.EstimatedDocumentCount(ctx, nil)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	fmt.Printf("estimated document count: %v", count)
 }
@@ -364,14 +364,14 @@ func ExampleCollection_Find() {
 	opts := options.Find().SetSort(bson.D{{"age", 1}})
 	cursor, err := coll.Find(context.TODO(), bson.D{{"name", "Bob"}}, opts)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	// Get a list of all returned documents and print them out.
 	// See the mongo.Cursor documentation for more examples of using cursors.
 	var results []bson.M
 	if err = cursor.All(context.TODO(), &results); err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	for _, result := range results {
 		fmt.Println(result)
@@ -398,7 +398,7 @@ func ExampleCollection_FindOne() {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return
 		}
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	fmt.Printf("found document %v", result)
 }
@@ -424,7 +424,7 @@ func ExampleCollection_FindOneAndDelete() {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return
 		}
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	fmt.Printf("deleted document %v", deletedDocument)
 }
@@ -453,7 +453,7 @@ func ExampleCollection_FindOneAndReplace() {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return
 		}
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	fmt.Printf("replaced document %v", replacedDocument)
 }
@@ -482,7 +482,7 @@ func ExampleCollection_FindOneAndUpdate() {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return
 		}
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	fmt.Printf("updated document %v", updatedDocument)
 }
@@ -500,7 +500,7 @@ func ExampleCollection_InsertMany() {
 	opts := options.InsertMany().SetOrdered(false)
 	res, err := coll.InsertMany(context.TODO(), docs, opts)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	fmt.Printf("inserted documents with IDs %v\n", res.InsertedIDs)
 }
@@ -511,7 +511,7 @@ func ExampleCollection_InsertOne() {
 	// Insert the document {name: "Alice"}.
 	res, err := coll.InsertOne(context.TODO(), bson.D{{"name", "Alice"}})
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	fmt.Printf("inserted document with ID %v\n", res.InsertedID)
 }
@@ -529,7 +529,7 @@ func ExampleCollection_ReplaceOne() {
 	replacement := bson.D{{"location", "NYC"}}
 	result, err := coll.ReplaceOne(context.TODO(), filter, replacement, opts)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	if result.MatchedCount != 0 {
@@ -551,7 +551,7 @@ func ExampleCollection_UpdateMany() {
 
 	result, err := coll.UpdateMany(context.TODO(), filter, update)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	if result.MatchedCount != 0 {
@@ -574,7 +574,7 @@ func ExampleCollection_UpdateOne() {
 
 	result, err := coll.UpdateOne(context.TODO(), filter, update, opts)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	if result.MatchedCount != 0 {
@@ -599,7 +599,7 @@ func ExampleCollection_Watch() {
 		mongo.Pipeline{matchStage},
 		opts)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	// Print out all change stream events in the order they're received.
@@ -626,7 +626,7 @@ func ExampleWithSession() {
 	opts := options.Session().SetDefaultTransactionOptions(txnOpts)
 	sess, err := client.StartSession(opts)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	defer sess.EndSession(context.TODO())
 
@@ -675,7 +675,7 @@ func ExampleWithSession() {
 			return sess.CommitTransaction(context.Background())
 		})
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 }
 
@@ -734,7 +734,7 @@ func ExampleClient_UseSessionWithOptions() {
 			return sess.CommitTransaction(context.Background())
 		})
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 }
 
@@ -752,7 +752,7 @@ func ExampleClient_StartSession_withTransaction() {
 	opts := options.Session().SetDefaultTransactionOptions(txnOpts)
 	sess, err := client.StartSession(opts)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	defer sess.EndSession(context.TODO())
 
@@ -784,7 +784,7 @@ func ExampleClient_StartSession_withTransaction() {
 		},
 		txnOpts)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	fmt.Printf("result: %v\n", result)
 }
@@ -847,7 +847,7 @@ func ExampleCursor_All() {
 
 	var results []bson.M
 	if err := cursor.All(context.TODO(), &results); err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	fmt.Println(results)
 }
@@ -862,12 +862,12 @@ func ExampleCursor_Next() {
 		// A new result variable should be declared for each document.
 		var result bson.M
 		if err := cursor.Decode(&result); err != nil {
-			log.Fatal(err)
+			log.Panic(err)
 		}
 		fmt.Println(result)
 	}
 	if err := cursor.Err(); err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 }
 
@@ -882,7 +882,7 @@ func ExampleCursor_TryNext() {
 			// A new result variable should be declared for each document.
 			var result bson.M
 			if err := cursor.Decode(&result); err != nil {
-				log.Fatal(err)
+				log.Panic(err)
 			}
 			fmt.Println(result)
 			continue
@@ -892,7 +892,7 @@ func ExampleCursor_TryNext() {
 		// cursor was exhausted and was closed, or an error occurred. TryNext
 		// should only be called again for the empty batch case.
 		if err := cursor.Err(); err != nil {
-			log.Fatal(err)
+			log.Panic(err)
 		}
 		if cursor.ID() == 0 {
 			break
@@ -955,12 +955,12 @@ func ExampleChangeStream_Next() {
 		// A new event variable should be declared for each event.
 		var event bson.M
 		if err := stream.Decode(&event); err != nil {
-			log.Fatal(err)
+			log.Panic(err)
 		}
 		fmt.Println(event)
 	}
 	if err := stream.Err(); err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 }
 
@@ -976,7 +976,7 @@ func ExampleChangeStream_TryNext() {
 			// A new event variable should be declared for each event.
 			var event bson.M
 			if err := stream.Decode(&event); err != nil {
-				log.Fatal(err)
+				log.Panic(err)
 			}
 			fmt.Println(event)
 			continue
@@ -986,7 +986,7 @@ func ExampleChangeStream_TryNext() {
 		// change stream was closed by the server, or an error occurred. TryNext
 		// should only be called again for the empty batch case.
 		if err := stream.Err(); err != nil {
-			log.Fatal(err)
+			log.Panic(err)
 		}
 		if stream.ID() == 0 {
 			break
@@ -1031,7 +1031,7 @@ func ExampleChangeStream_ResumeToken() {
 	opts := options.ChangeStream().SetResumeAfter(resumeToken)
 	newStream, err := newClient.Watch(context.TODO(), mongo.Pipeline{}, opts)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	defer newStream.Close(context.TODO())
 }
@@ -1060,7 +1060,7 @@ func ExampleIndexView_CreateMany() {
 	// run on the server
 	names, err := indexView.CreateMany(context.TODO(), models, nil)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	fmt.Printf("created indexes %v\n", names)
@@ -1076,13 +1076,13 @@ func ExampleIndexView_List() {
 
 	cursor, err := indexView.List(ctx, nil)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	// Get a slice of all indexes returned and print them out.
 	var results []bson.M
 	if err = cursor.All(ctx, &results); err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	fmt.Println(results)
 }

@@ -75,13 +75,12 @@ func (d Decimal128) BigInt() (*big.Int, int, error) {
 		// Bits: 1*sign 2*ignored 14*exponent 111*significand.
 		// Implicit 0b100 prefix in significand.
 		exp = int(high >> 47 & (1<<14 - 1))
-		//high = 4<<47 | d.h&(1<<47-1)
 		// Spec says all of these values are out of range.
 		high, low = 0, 0
 	} else {
 		// Bits: 1*sign 14*exponent 113*significand
 		exp = int(high >> 49 & (1<<14 - 1))
-		high = high & (1<<49 - 1)
+		high &= (1<<49 - 1)
 	}
 	exp += MinDecimal128Exp
 
@@ -258,7 +257,7 @@ var (
 
 // ParseDecimal128FromBigInt attempts to parse the given significand and exponent into a valid Decimal128 value.
 func ParseDecimal128FromBigInt(bi *big.Int, exp int) (Decimal128, bool) {
-	//copy
+	// copy
 	bi = new(big.Int).Set(bi)
 
 	q := new(big.Int)

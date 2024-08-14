@@ -88,7 +88,7 @@ func TestCSOTProse(t *testing.T) {
 		mtOpts := mtest.NewOptions().ClientOptions(cliOpts).CreateCollection(false)
 		mt.RunOpts("serverSelectionTimeoutMS honored if timeoutMS is not set", mtOpts, func(mt *mtest.T) {
 			// TODO(GODRIVER-3266): Why do parallel tests fail on windows builds?
-			//mt.Parallel()
+			// mt.Parallel()
 
 			callback := func() bool {
 				err := mt.Client.Ping(context.Background(), nil)

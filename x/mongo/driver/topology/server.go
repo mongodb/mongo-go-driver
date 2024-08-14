@@ -806,7 +806,7 @@ func (s *Server) updateDescription(desc description.Server) {
 func (s *Server) createConnection() *connection {
 	opts := copyConnectionOpts(s.cfg.connectionOpts)
 	opts = append(opts,
-		WithHandshaker(func(h Handshaker) Handshaker {
+		WithHandshaker(func(Handshaker) Handshaker {
 			return operation.NewHello().AppName(s.cfg.appname).Compressors(s.cfg.compressionOpts).
 				ServerAPI(s.cfg.serverAPI)
 		}),

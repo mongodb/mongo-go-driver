@@ -1217,7 +1217,7 @@ func TestPool_PoolMonitor(t *testing.T) {
 			},
 			// Add a 10ms delay to dialing so the test is reliable on operating
 			// systems that can't measure very short durations (e.g. Windows).
-			WithDialer(func(d Dialer) Dialer {
+			WithDialer(func(Dialer) Dialer {
 				return DialerFunc(func(ctx context.Context, n, a string) (net.Conn, error) {
 					time.Sleep(10 * time.Millisecond)
 					return dialer.DialContext(ctx, n, a)

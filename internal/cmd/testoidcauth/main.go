@@ -134,7 +134,7 @@ func machine11callbackIsCalled() error {
 	var callbackFailed error
 	countMutex := sync.Mutex{}
 
-	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithMachineCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -176,7 +176,7 @@ func machine12callbackIsCalledOnlyOneForMultipleConnections() error {
 	var callbackFailed error
 	countMutex := sync.Mutex{}
 
-	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithMachineCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -288,7 +288,7 @@ func machine23oidcCallbackReturnMissingData() error {
 	callbackCount := 0
 	countMutex := sync.Mutex{}
 
-	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithMachineCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -321,7 +321,7 @@ func machine23oidcCallbackReturnMissingData() error {
 }
 
 func machine24invalidClientConfigurationWithCallback() error {
-	_, err := connectWithMachineCBAndProperties(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	_, err := connectWithMachineCBAndProperties(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		t := time.Now().Add(time.Hour)
 		return &options.OIDCCredential{
 			AccessToken:  "",
@@ -342,7 +342,7 @@ func machine31failureWithCachedTokensFetchANewTokenAndRetryAuth() error {
 	var callbackFailed error
 	countMutex := sync.Mutex{}
 
-	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithMachineCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -394,7 +394,7 @@ func machine32authFailuresWithoutCachedTokensReturnsAnError() error {
 	var callbackFailed error
 	countMutex := sync.Mutex{}
 
-	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithMachineCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -438,7 +438,7 @@ func machine33UnexpectedErrorCodeDoesNotClearTheCache() error {
 		return fmt.Errorf("machine_3_3: failed connecting admin client: %v", err)
 	}
 
-	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithMachineCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -514,7 +514,7 @@ func machine41ReauthenticationSucceeds() error {
 	}
 	defer func() { _ = adminClient.Disconnect(context.Background()) }()
 
-	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithMachineCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -581,7 +581,7 @@ func machine42ReadCommandsFailIfReauthenticationFails() error {
 	}
 	defer func() { _ = adminClient.Disconnect(context.Background()) }()
 
-	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithMachineCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -663,7 +663,7 @@ func machine43WriteCommandsFailIfReauthenticationFails() error {
 	}
 	defer func() { _ = adminClient.Disconnect(context.Background()) }()
 
-	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithMachineCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -735,7 +735,7 @@ func human11singlePrincipalImplictUsername() error {
 	var callbackFailed error
 	countMutex := sync.Mutex{}
 
-	client, err := connectWithHumanCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithHumanCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -776,7 +776,7 @@ func human12singlePrincipalExplicitUsername() error {
 	callbackCount := 0
 	var callbackFailed error
 	countMutex := sync.Mutex{}
-	cb := func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	cb := func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -822,7 +822,7 @@ func human13mulitplePrincipalUser1() error {
 	callbackCount := 0
 	var callbackFailed error
 	countMutex := sync.Mutex{}
-	cb := func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	cb := func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -868,7 +868,7 @@ func human14mulitplePrincipalUser2() error {
 	callbackCount := 0
 	var callbackFailed error
 	countMutex := sync.Mutex{}
-	cb := func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	cb := func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -915,7 +915,7 @@ func human15mulitplePrincipalNoUser() error {
 	var callbackFailed error
 	countMutex := sync.Mutex{}
 
-	client, err := connectWithHumanCB(uriMulti, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithHumanCB(uriMulti, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -953,7 +953,7 @@ func human15mulitplePrincipalNoUser() error {
 func human16allowedHostsBlocked() error {
 	var callbackFailed error
 	{
-		cb := func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+		cb := func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 			t := time.Now().Add(time.Hour)
 			tokenFile := tokenFile("test_user1")
 			accessToken, err := os.ReadFile(tokenFile)
@@ -986,7 +986,7 @@ func human16allowedHostsBlocked() error {
 		}
 	}
 	{
-		cb := func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+		cb := func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 			t := time.Now().Add(time.Hour)
 			tokenFile := tokenFile("test_user1")
 			accessToken, err := os.ReadFile(tokenFile)
@@ -1036,7 +1036,7 @@ func human21validCallbackInputs() error {
 	var callbackFailed error
 	countMutex := sync.Mutex{}
 
-	client, err := connectWithHumanCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithHumanCB(uriSingle, func(_ context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -1083,7 +1083,7 @@ func human22CallbackReturnsMissingData() error {
 	callbackCount := 0
 	countMutex := sync.Mutex{}
 
-	client, err := connectWithHumanCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithHumanCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -1121,7 +1121,7 @@ func human23RefreshTokenIsPassedToCallback() error {
 	}
 	defer func() { _ = adminClient.Disconnect(context.Background()) }()
 
-	client, err := connectWithHumanCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithHumanCB(uriSingle, func(_ context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -1189,7 +1189,7 @@ func human31usesSpeculativeAuth() error {
 	}
 	defer func() { _ = adminClient.Disconnect(context.Background()) }()
 
-	client, err := connectWithHumanCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithHumanCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		// the callback should not even be called due to spec auth.
 		return &options.OIDCCredential{}, nil
 	})
@@ -1250,7 +1250,7 @@ func human32doesNotUseSpecualtiveAuth() error {
 	}
 	defer func() { _ = adminClient.Disconnect(context.Background()) }()
 
-	client, err := connectWithHumanCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithHumanCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		t := time.Now().Add(time.Hour)
 		tokenFile := tokenFile("test_user1")
 		accessToken, err := os.ReadFile(tokenFile)
@@ -1311,7 +1311,7 @@ func human42ReauthenticationSucceedsNoRefreshToken() error {
 	}
 	defer func() { _ = adminClient.Disconnect(context.Background()) }()
 
-	client, err := connectWithHumanCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithHumanCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -1388,7 +1388,7 @@ func human43ReauthenticationSucceedsAfterRefreshFails() error {
 	}
 	defer func() { _ = adminClient.Disconnect(context.Background()) }()
 
-	client, err := connectWithHumanCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithHumanCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -1466,7 +1466,7 @@ func human44ReauthenticationFails() error {
 	}
 	defer func() { _ = adminClient.Disconnect(context.Background()) }()
 
-	client, err := connectWithHumanCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithHumanCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++

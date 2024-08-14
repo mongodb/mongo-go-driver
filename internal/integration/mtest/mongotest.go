@@ -609,7 +609,7 @@ func (t *T) CloneCollection(opts *options.CollectionOptionsBuilder) {
 
 func sanitizeCollectionName(db string, coll string) string {
 	// Collections can't have "$" in their names, so we substitute it with "%".
-	coll = strings.Replace(coll, "$", "%", -1)
+	coll = strings.ReplaceAll(coll, "$", "%")
 
 	// Namespaces can only have 120 bytes max.
 	if len(db+"."+coll) >= 120 {

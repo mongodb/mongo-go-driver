@@ -137,7 +137,7 @@ var allItems = []testItemType{
 	{M{"_": Undefined{}}, // Obsolete, but still seen in the wild.
 		"\x06_\x00"},
 	{M{"_": ObjectID{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B}},
-		"\x07_\x00\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B"}, //technically this is not the same as the original mgo test
+		"\x07_\x00\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B"}, // technically this is not the same as the original mgo test
 	{M{"_": DBPointer{DB: "testnamespace", Pointer: ObjectID{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B}}},
 		"\x0C_\x00\x0e\x00\x00\x00testnamespace\x00\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B"},
 	{M{"_": false},
@@ -1678,6 +1678,8 @@ var jsonIDTests = []struct {
 
 func TestObjectIdJSONMarshaling(t *testing.T) {
 	for i, test := range jsonIDTests {
+		test := test // Capture range variable.
+
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			if test.marshal {
 				data, err := json.Marshal(&test.value)

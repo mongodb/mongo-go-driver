@@ -214,10 +214,10 @@ func TestServerHeartbeatStartedEvent(t *testing.T) {
 			1*time.Second,
 			topology.WithServerMonitor(func(*event.ServerMonitor) *event.ServerMonitor {
 				return &event.ServerMonitor{
-					ServerHeartbeatStarted: func(e *event.ServerHeartbeatStartedEvent) {
+					ServerHeartbeatStarted: func(*event.ServerHeartbeatStartedEvent) {
 						events <- "serverHeartbeatStartedEvent"
 					},
-					ServerHeartbeatFailed: func(e *event.ServerHeartbeatFailedEvent) {
+					ServerHeartbeatFailed: func(*event.ServerHeartbeatFailedEvent) {
 						events <- "serverHeartbeatFailedEvent"
 					},
 				}

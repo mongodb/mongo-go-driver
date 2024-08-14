@@ -1066,7 +1066,7 @@ func executeWithTransaction(mt *mtest.T, sess *mongo.Session, args bson.Raw) err
 	assert.Nil(mt, err, "error creating withTransactionArgs: %v", err)
 	opts := createTransactionOptions(mt, testArgs.Options)
 
-	_, err = sess.WithTransaction(context.Background(), func(sc context.Context) (interface{}, error) {
+	_, err = sess.WithTransaction(context.Background(), func(_ context.Context) (interface{}, error) {
 		err := runWithTransactionOperations(mt, testArgs.Callback.Operations, sess)
 		return nil, err
 	}, opts)
@@ -1616,11 +1616,11 @@ func verifyInsertManyResult(mt *mtest.T, actualResult *mongo.InsertManyResult, e
 	}
 
 	assert.NotNil(mt, actualResult, "expected InsertMany result %v but got nil", expectedResult)
-	var expected struct{ InsertedIds map[string]interface{} }
+	var expected struct{ InsertedIDs map[string]interface{} }
 	err := bson.Unmarshal(expectedResult.(bson.Raw), &expected)
 	assert.Nil(mt, err, "error creating expected InsertMany result: %v", err)
 
-	for _, val := range expected.InsertedIds {
+	for _, val := range expected.InsertedIDs {
 		var found bool
 		for _, inserted := range actualResult.InsertedIDs {
 			if val == inserted {
