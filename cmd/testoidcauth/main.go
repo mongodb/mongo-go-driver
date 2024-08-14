@@ -1392,7 +1392,7 @@ func human41ReauthenticationSucceeds() error {
 	client, err := connectWithHumanCBAndMonitor(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
-		callbackCount += 1
+		callbackCount++
 		t := time.Now().Add(time.Hour)
 		tokenFile := tokenFile("test_user1")
 		accessToken, err := os.ReadFile(tokenFile)
