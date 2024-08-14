@@ -57,6 +57,17 @@ func connectWithHumanCB(uri string, cb options.OIDCCallback) (*mongo.Client, err
 	return mongo.Connect(context.Background(), opts)
 }
 
+func connectWithHumanCBAndUser(uri string, principal string, useExplicit bool, cb options.OIDCCallback) (*mongo.Client, error) {
+	opts := options.Client().ApplyURI(uri)
+	if useExplicit {
+		opts.Auth.Username = explicitUser(principal)
+	} else {
+		opts.Auth.Username = principal
+	}
+	opts.Auth.OIDCHumanCallback = cb
+	return mongo.Connect(context.Background(), opts)
+}
+
 func connectWithHumanCBAndMonitor(uri string, cb options.OIDCCallback, m *event.CommandMonitor) (*mongo.Client, error) {
 	opts := options.Client().ApplyURI(uri)
 	opts.Monitor = m
@@ -793,8 +804,7 @@ func human12singlePrincipalExplicitUsername() error {
 	var callbackFailed error
 	countMutex := sync.Mutex{}
 
-	opts := options.Client().ApplyURI(uriSingle)
-	opts.Auth.OIDCHumanCallback = func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithHumanCBAndUser(uriSingle, "test_user1", true, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -809,9 +819,7 @@ func human12singlePrincipalExplicitUsername() error {
 			ExpiresAt:    &t,
 			RefreshToken: nil,
 		}, nil
-	}
-	opts.Auth.Username = explicitUser("test_user1")
-	client, err := mongo.Connect(context.Background(), opts)
+	})
 	if err != nil {
 		return fmt.Errorf("human_1_2: failed connecting client: %v", err)
 	}
@@ -1034,11 +1042,15 @@ func human18MachineIDPHumanCallback() error {
 	if _, ok := os.LookupEnv("OIDC_IS_LOCAL"); !ok {
 		return nil
 	}
+	callbackCount := 0
 
 	var callbackFailed error
+	countMutex := sync.Mutex{}
 
-	opts := options.Client().ApplyURI(uriMulti)
-	opts.Auth.OIDCHumanCallback = func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithHumanCBAndUser(uriSingle, "test_machine", false, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+		countMutex.Lock()
+		defer countMutex.Unlock()
+		callbackCount++
 		t := time.Now().Add(time.Hour)
 		tokenFile := tokenFile("test_machine")
 		accessToken, err := os.ReadFile(tokenFile)
@@ -1050,13 +1062,13 @@ func human18MachineIDPHumanCallback() error {
 			ExpiresAt:    &t,
 			RefreshToken: nil,
 		}, nil
-	}
-	opts.Auth.Username = explicitUser("test_machine")
-	client, err := mongo.Connect(context.Background(), opts)
+	})
+
+	defer client.Disconnect(context.Background())
+
 	if err != nil {
 		return fmt.Errorf("human_1_8: failed connecting client: %v", err)
 	}
-	defer client.Disconnect(context.Background())
 
 	coll := client.Database("test").Collection("test")
 
@@ -1064,7 +1076,13 @@ func human18MachineIDPHumanCallback() error {
 	if err != nil {
 		return fmt.Errorf("human_1_8: failed executing Find: %v", err)
 	}
+	countMutex.Lock()
+	defer countMutex.Unlock()
+	if callbackCount != 1 {
+		return fmt.Errorf("human_1_8: expected callback count to be 1, got %d", callbackCount)
+	}
 	return callbackFailed
+
 }
 
 func human21validCallbackInputs() error {

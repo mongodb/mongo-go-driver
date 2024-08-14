@@ -400,6 +400,7 @@ func (oa *OIDCAuthenticator) getAccessToken(
 	// always set the IdPInfo, in most cases, this should just be recopying the same pointer, or nil
 	// in the machine flow.
 	oa.idpInfo = args.IDPInfo
+
 	return cred.AccessToken, nil
 }
 
