@@ -406,7 +406,7 @@ func machine31failureWithCachedTokensFetchANewTokenAndRetryAuth() error {
 	authenticatorField = reflect.NewAt(
 		authenticatorField.Type(),
 		unsafe.Pointer(authenticatorField.UnsafeAddr())).Elem()
-	// this is the only usage of the x packages in the test, showing the the public interface is
+	// this is the only usage of the x packages in the test, showing the public interface is
 	// correct.
 	authenticatorField.Interface().(*auth.OIDCAuthenticator).SetAccessToken("some random happy sunshine string")
 
@@ -1265,7 +1265,7 @@ func human31usesSpeculativeAuth() error {
 	authenticatorField = reflect.NewAt(
 		authenticatorField.Type(),
 		unsafe.Pointer(authenticatorField.UnsafeAddr())).Elem()
-	// This is the only usage of the x packages in the test, showing the the public interface is
+	// This is the only usage of the x packages in the test, showing the public interface is
 	// correct.
 	authenticatorField.Interface().(*auth.OIDCAuthenticator).SetAccessToken(string(accessToken))
 
