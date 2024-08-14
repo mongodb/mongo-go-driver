@@ -381,16 +381,9 @@ func ReadMsgSectionSingleDocument(src []byte) (doc bsoncore.Document, rem []byte
 // ReadMsgSectionDocumentSequence reads an identifier and document sequence from src and returns the document sequence
 // data parsed into a slice of BSON documents.
 func ReadMsgSectionDocumentSequence(src []byte) (identifier string, docs []bsoncore.Document, rem []byte, ok bool) {
-	length, rem, ok := readi32(src)
-	if !ok || int(length) > len(src) || length-4 < 0 {
-		return "", nil, rem, false
-	}
-
-	rem, ret := rem[:length-4], rem[length-4:] // reslice so we can just iterate a loop later
-
-	identifier, rem, ok = readcstring(rem)
+	identifier, rem, ret, ok := ReadMsgSectionRawDocumentSequence(src)
 	if !ok {
-		return "", nil, rem, false
+		return "", nil, ret, false
 	}
 
 	docs = make([]bsoncore.Document, 0)
@@ -544,14 +537,6 @@ func ReadCompressedCompressorID(src []byte) (id CompressorID, rem []byte, ok boo
 		return 0, src, false
 	}
 	return CompressorID(src[0]), src[1:], true
-}
-
-// ReadCompressedCompressedMessage reads the compressed wiremessage to dst.
-func ReadCompressedCompressedMessage(src []byte, length int32) (msg []byte, rem []byte, ok bool) {
-	if len(src) < int(length) || length < 0 {
-		return nil, src, false
-	}
-	return src[:length], src[length:], true
 }
 
 // ReadKillCursorsZero reads the zero field from src.
