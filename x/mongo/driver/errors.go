@@ -509,7 +509,7 @@ func ExtractErrorFromServerResponse(doc bsoncore.Document) error {
 			errmsg = "command failed"
 		}
 
-		return Error{
+		err := Error{
 			Code:            code,
 			Message:         errmsg,
 			Name:            codeName,
@@ -517,6 +517,20 @@ func ExtractErrorFromServerResponse(doc bsoncore.Document) error {
 			TopologyVersion: tv,
 			Raw:             doc,
 		}
+
+		// If we get a MaxTimeMSExpired error, assume that the error was caused
+		// by setting "maxTimeMS" on the command based on the context deadline
+		// or on "timeoutMS". In that case, make the error wrap
+		// context.DeadlineExceeded so that users can always check
+		//
+		//  errors.Is(err, context.DeadlineExceeded)
+		//
+		// for either client-side or server-side timeouts.
+		if err.Code == 50 {
+			err.Wrapped = context.DeadlineExceeded
+		}
+
+		return err
 	}
 
 	if len(wcError.WriteErrors) > 0 || wcError.WriteConcernError != nil {
