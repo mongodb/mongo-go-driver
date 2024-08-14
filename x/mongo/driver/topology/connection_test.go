@@ -546,6 +546,23 @@ func TestConnection(t *testing.T) {
 					}
 					listener.assertCalledOnce(t)
 				})
+				t.Run("size too small errors", func(t *testing.T) {
+					err := errors.New("malformatted message length: 3")
+					tnc := &testNetConn{readerr: err, buf: []byte{0x03, 0x00, 0x00, 0x00}}
+					conn := &connection{id: "foobar", nc: tnc, state: connConnected}
+					listener := newTestCancellationListener(false)
+					conn.cancellationListener = listener
+
+					want := ConnectionError{ConnectionID: "foobar", Wrapped: err, message: err.Error()}
+					_, got := conn.readWireMessage(context.Background())
+					if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
+						t.Errorf("errors do not match. got %v; want %v", got, want)
+					}
+					if !tnc.closed {
+						t.Errorf("failed to closeConnection net.Conn after error writing bytes.")
+					}
+					listener.assertCalledOnce(t)
+				})
 				t.Run("full message read errors", func(t *testing.T) {
 					err := errors.New("Read error")
 					tnc := &testNetConn{readerr: err, buf: []byte{0x11, 0x00, 0x00, 0x00}}

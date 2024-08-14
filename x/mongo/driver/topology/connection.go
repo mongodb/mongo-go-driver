@@ -476,6 +476,10 @@ func (c *connection) read(ctx context.Context) (bytesRead []byte, errMsg string,
 	// read the length as an int32
 	size := (int32(sizeBuf[0])) | (int32(sizeBuf[1]) << 8) | (int32(sizeBuf[2]) << 16) | (int32(sizeBuf[3]) << 24)
 
+	if size < 4 {
+		err = fmt.Errorf("malformatted message length: %d", size)
+		return nil, err.Error(), err
+	}
 	// In the case of a hello response where MaxMessageSize has not yet been set, use the hard-coded
 	// defaultMaxMessageSize instead.
 	maxMessageSize := c.desc.MaxMessageSize
