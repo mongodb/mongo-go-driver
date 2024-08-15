@@ -567,7 +567,8 @@ func ExampleConnect_oIDC() {
 	{
 		eksCallback := func(_ context.Context,
 			_ *options.OIDCArgs) (*options.OIDCCredential, error) {
-			accessToken, err := os.ReadFile(os.Getenv("AWS_WEB_IDENTITY_TOKEN_FILE"))
+			accessToken, err := os.ReadFile(
+				os.Getenv("AWS_WEB_IDENTITY_TOKEN_FILE"))
 			if err != nil {
 				return nil, err
 			}
