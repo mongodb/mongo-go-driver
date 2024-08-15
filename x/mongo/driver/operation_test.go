@@ -658,7 +658,7 @@ func TestOperation(t *testing.T) {
 		op := Operation{
 			Database:   "foobar",
 			Deployment: d,
-			CommandFn: func(dst []byte, desc description.SelectedServer) ([]byte, error) {
+			CommandFn: func(dst []byte, _ description.SelectedServer) ([]byte, error) {
 				return dst, nil
 			},
 			Timeout: &dur,
