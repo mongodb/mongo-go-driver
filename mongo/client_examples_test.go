@@ -471,7 +471,7 @@ func ExampleConnect_bSONOptions() {
 }
 
 func ExampleConnect_oIDC() {
-	// The `MONGODB-OIDC authentication mechanism`_ is available in MongoDB 7.0+ on Linux platforms.
+	// The `MONGODB-OIDC authentication mechanism` is available in MongoDB 7.0+ on Linux platforms.
 	//
 	// The MONGODB-OIDC mechanism authenticates using an OpenID Connect (OIDC) access token.
 	// The driver supports OIDC for workload identity, defined as an identity you assign to a software workload
@@ -485,12 +485,12 @@ func ExampleConnect_oIDC() {
 
 	// Built-in Support
 	// The driver has built-in support for Azure IMDS and GCP IMDS environments.  Other environments
-	// are supported with `Custom Callbacks`_.
+	// are supported with `Custom Callbacks`.
 
 	// Azure IMDS
-	// For an application running on an Azure VM or otherwise using the `Azure Internal Metadata Service`_,
+	// For an application running on an Azure VM or otherwise using the `Azure Internal Metadata Service`,
 	// you can use the built-in support for Azure, where "<client_id>" below is the client id of the Azure
-	// managed identity, and ``<audience>`` is the url-encoded ``audience`` `configured on your MongoDB deployment`_.
+	// managed identity, and ``<audience>`` is the url-encoded ``audience`` `configured on your MongoDB deployment`.
 	{
 		uri := os.Getenv("MONGODB_URI")
 		props := map[string]string{"ENVIRONMENT": "azure", "TOKEN_RESOURCE": "<audience>"}
@@ -517,7 +517,7 @@ func ExampleConnect_oIDC() {
 
 	// For an application running on an GCP VM or otherwise using the `GCP Internal Metadata Service`_,
 	// you can use the built-in support for GCP, where "<audience>" below is the url-encoded "audience"
-	// `configured on your MongoDB deployment`_.
+	// `configured on your MongoDB deployment`.
 	{
 		uri := os.Getenv("MONGODB_URI")
 		props := map[string]string{"ENVIRONMENT": "gcp", "TOKEN_RESOURCE": "<audience>"}
@@ -544,7 +544,7 @@ func ExampleConnect_oIDC() {
 
 	// AWS EKS
 
-	// For an EKS Cluster with a configured `IAM OIDC provider`_, the token can be read from a path given by
+	// For an EKS Cluster with a configured `IAM OIDC provider`, the token can be read from a path given by
 	// the "AWS_WEB_IDENTITY_TOKEN_FILE" environment variable.
 	{
 		eksCallback := func(_ context.Context, _ *options.OIDCArgs) (*options.OIDCCredential, error) {
@@ -584,7 +584,7 @@ func ExampleConnect_oIDC() {
 
 	// GCP GKE
 
-	// For a Google Kubernetes Engine cluster with a `configured service account`_, the token can be read from the standard
+	// For a Google Kubernetes Engine cluster with a `configured service account`, the token can be read from the standard
 	// service account token file location.
 	{
 		gkeCallback := func(_ context.Context, _ *options.OIDCArgs) (*options.OIDCCredential, error) {
