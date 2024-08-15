@@ -57,11 +57,12 @@ func connectWithHumanCB(uri string, cb options.OIDCCallback) (*mongo.Client, err
 	return mongo.Connect(context.Background(), opts)
 }
 
-func connectWithHumanCBAndUser(uri string, principal string, useExplicit bool, cb options.OIDCCallback) (*mongo.Client, error) {
+func connectWithHumanCBAndUser(uri string, principal string, cb options.OIDCCallback) (*mongo.Client, error) {
 	opts := options.Client().ApplyURI(uri)
-	if useExplicit {
+	switch principal {
+	case "test_user1", "test_user2":
 		opts.Auth.Username = explicitUser(principal)
-	} else {
+	default:
 		opts.Auth.Username = principal
 	}
 	opts.Auth.OIDCHumanCallback = cb
@@ -804,7 +805,7 @@ func human12singlePrincipalExplicitUsername() error {
 	var callbackFailed error
 	countMutex := sync.Mutex{}
 
-	client, err := connectWithHumanCBAndUser(uriSingle, "test_user1", true, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithHumanCBAndUser(uriSingle, "test_user1", func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -1047,7 +1048,7 @@ func human18MachineIDPHumanCallback() error {
 	var callbackFailed error
 	countMutex := sync.Mutex{}
 
-	client, err := connectWithHumanCBAndUser(uriSingle, "test_machine", false, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithHumanCBAndUser(uriSingle, "test_machine", func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
