@@ -617,7 +617,7 @@ func ExampleConnect_oIDC() {
 	// For workforce identity, the Client must be configured with the OIDCHumanCallback rather than
 	// the OIDCMachineCallback. The OIDCHumanCallback is used by the driver in a process that is
 	// two step. In the first step, the driver retrieves the Identity Prodiver (IDP) Information (IDPInfo) for the
-	// passed username. The OIDCHumanCallback then needs negotiate with the IDP in order to obtain
+	// passed username. The OIDCHumanCallback then needs to negotiate with the IDP in order to obtain
 	// an AccessToken, possible RefreshToken, any timeouts, and return them, similar to the OIDCMachineCallbacks seen above.
 	// See https://docs.hidglobal.com/dev/auth-service/integration/openid-authentication-flows.html
 	// for more information on various OIDC authentication flows.
