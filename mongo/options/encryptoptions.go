@@ -16,14 +16,13 @@ const (
 	QueryTypeEquality string = "equality"
 )
 
-// RangeOptions specifies index options for a Queryable Encryption field
-// supporting "rangePreview" queries. Beta: The Range algorithm is experimental
-// only. It is not intended for public use. It is subject to breaking changes.
+// RangeOptions specifies index options for a Queryable Encryption field supporting "range" queries.
 type RangeOptions struct {
-	Min       *bson.RawValue
-	Max       *bson.RawValue
-	Sparsity  int64
-	Precision *int32
+	Min        *bson.RawValue
+	Max        *bson.RawValue
+	Sparsity   *int64
+	TrimFactor *int32
+	Precision  *int32
 }
 
 // RangeOptionsBuilder contains options to configure Rangeopts for queryeable
@@ -96,6 +95,7 @@ func (e *EncryptOptionsBuilder) SetKeyAltName(keyAltName string) *EncryptOptions
 // - AEAD_AES_256_CBC_HMAC_SHA_512-Random
 // - Indexed
 // - Unindexed
+// - Range
 // This is required.
 // Indexed and Unindexed are used for Queryable Encryption.
 func (e *EncryptOptionsBuilder) SetAlgorithm(algorithm string) *EncryptOptionsBuilder {
@@ -134,8 +134,7 @@ func (e *EncryptOptionsBuilder) SetContentionFactor(contentionFactor int64) *Enc
 	return e
 }
 
-// SetRangeOptions specifies the options to use for explicit encryption with range. It is only valid to set if algorithm is "rangePreview".
-// Beta: The Range algorithm is experimental only. It is not intended for public use. It is subject to breaking changes.
+// SetRangeOptions specifies the options to use for explicit encryption with range. It is only valid to set if algorithm is "range".
 func (e *EncryptOptionsBuilder) SetRangeOptions(ro *RangeOptionsBuilder) *EncryptOptionsBuilder {
 	e.Opts = append(e.Opts, func(opts *EncryptOptions) error {
 		opts.RangeOptions = ro
@@ -147,7 +146,6 @@ func (e *EncryptOptionsBuilder) SetRangeOptions(ro *RangeOptionsBuilder) *Encryp
 }
 
 // SetMin sets the range index minimum value.
-// Beta: The Range algorithm is experimental only. It is not intended for public use. It is subject to breaking changes.
 func (ro *RangeOptionsBuilder) SetMin(min bson.RawValue) *RangeOptionsBuilder {
 	ro.Opts = append(ro.Opts, func(opts *RangeOptions) error {
 		opts.Min = &min
@@ -159,7 +157,6 @@ func (ro *RangeOptionsBuilder) SetMin(min bson.RawValue) *RangeOptionsBuilder {
 }
 
 // SetMax sets the range index maximum value.
-// Beta: The Range algorithm is experimental only. It is not intended for public use. It is subject to breaking changes.
 func (ro *RangeOptionsBuilder) SetMax(max bson.RawValue) *RangeOptionsBuilder {
 	ro.Opts = append(ro.Opts, func(opts *RangeOptions) error {
 		opts.Max = &max
@@ -171,10 +168,20 @@ func (ro *RangeOptionsBuilder) SetMax(max bson.RawValue) *RangeOptionsBuilder {
 }
 
 // SetSparsity sets the range index sparsity.
-// Beta: The Range algorithm is experimental only. It is not intended for public use. It is subject to breaking changes.
 func (ro *RangeOptionsBuilder) SetSparsity(sparsity int64) *RangeOptionsBuilder {
 	ro.Opts = append(ro.Opts, func(opts *RangeOptions) error {
-		opts.Sparsity = sparsity
+		opts.Sparsity = &sparsity
+
+		return nil
+	})
+
+	return ro
+}
+
+// SetTrimFactor sets the range index trim factor.
+func (ro *RangeOptionsBuilder) SetTrimFactor(trimFactor int32) *RangeOptionsBuilder {
+	ro.Opts = append(ro.Opts, func(opts *RangeOptions) error {
+		opts.TrimFactor = &trimFactor
 
 		return nil
 	})
@@ -183,7 +190,6 @@ func (ro *RangeOptionsBuilder) SetSparsity(sparsity int64) *RangeOptionsBuilder 
 }
 
 // SetPrecision sets the range index precision.
-// Beta: The Range algorithm is experimental only. It is not intended for public use. It is subject to breaking changes.
 func (ro *RangeOptionsBuilder) SetPrecision(precision int32) *RangeOptionsBuilder {
 	ro.Opts = append(ro.Opts, func(opts *RangeOptions) error {
 		opts.Precision = &precision
