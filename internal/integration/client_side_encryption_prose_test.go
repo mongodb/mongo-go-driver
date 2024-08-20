@@ -2510,10 +2510,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				field:    "encryptedDecimalPrecision",
 				typeBson: bson.TypeDecimal128,
 				rangeOpts: options.Range().
-					SetMin(bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_0)}).
-					SetMax(bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_200)}).
+					SetMin(bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_0h, d128_0l)}).
+					SetMax(bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_200h, d128_200l)}).
 					SetTrimFactor(trimFactor).
-					SetSparcity(sparcity).
+					SetSparsity(sparsity).
 					SetPrecision(precision),
 				zero:          bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_0h, d128_0l)},
 				six:           bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_6h, d128_6l)},
@@ -2525,7 +2525,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				typeStr:       "DoubleNoPrecision",
 				field:         "encryptedDoubleNoPrecision",
 				typeBson:      bson.TypeDouble,
-				rangeOpts:     options.Range().SetTrimFactor(trimFactor).SetSparcity(sparcity),
+				rangeOpts:     options.Range().SetTrimFactor(trimFactor).SetSparsity(sparsity),
 				zero:          bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 0)},
 				six:           bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 6)},
 				thirty:        bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 30)},
@@ -2924,7 +2924,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 		testVal := bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 123)}
 
-		keyVaultClient, err := mongo.Connect(context.Background(), options.Client().ApplyURI(mtest.ClusterURI()))
+		keyVaultClient, err := mongo.Connect(options.Client().ApplyURI(mtest.ClusterURI()))
 		assert.Nil(mt, err, "error on Connect: %v", err)
 
 		ceo := options.ClientEncryption().
@@ -2941,10 +2941,9 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			SetAlgorithm("Range").
 			SetKeyID(keyID).
 			SetContentionFactor(0).
-			SetRangeOptions(options.RangeOptions{
-				Min: &bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 0)},
-				Max: &bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 1000)},
-			})
+			SetRangeOptions(options.Range().
+				SetMin(bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 0)}).
+				SetMax(bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 1000)}))
 		payloadDefaults, err := clientEncryption.Encrypt(context.Background(), testVal, eo)
 		assert.Nil(mt, err, "error in Encrypt: %v", err)
 
@@ -2955,12 +2954,11 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				SetAlgorithm("Range").
 				SetKeyID(keyID).
 				SetContentionFactor(0).
-				SetRangeOptions(options.RangeOptions{
-					Min:        &bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 0)},
-					Max:        &bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 1000)},
-					TrimFactor: &trimFactor,
-					Sparsity:   &sparsity,
-				})
+				SetRangeOptions(options.Range().
+					SetMin(bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 0)}).
+					SetMax(bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 1000)}).
+					SetTrimFactor(trimFactor).
+					SetSparsity(sparsity))
 			payload, err := clientEncryption.Encrypt(context.Background(), testVal, eo)
 			assert.Nil(mt, err, "error in Encrypt: %v", err)
 			assert.Equalf(mt, len(payload.Data), len(payloadDefaults.Data), "the returned payload size is expected to be %d", len(payloadDefaults.Data))
@@ -2972,11 +2970,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				SetAlgorithm("Range").
 				SetKeyID(keyID).
 				SetContentionFactor(0).
-				SetRangeOptions(options.RangeOptions{
-					Min:        &bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 0)},
-					Max:        &bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 1000)},
-					TrimFactor: &trimFactor,
-				})
+				SetRangeOptions(options.Range().
+					SetMin(bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 0)}).
+					SetMax(bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 1000)}).
+					SetTrimFactor(trimFactor))
 			payload, err := clientEncryption.Encrypt(context.Background(), testVal, eo)
 			assert.Nil(mt, err, "error in Encrypt: %v", err)
 			assert.Greater(t, len(payload.Data), len(payloadDefaults.Data), "the returned payload size is expected to be greater than %d", len(payloadDefaults.Data))
