@@ -652,9 +652,12 @@ func ExampleConnect_OIDC() {
 			panic(err)
 		}
 		defer c.Disconnect(context.TODO())
-		c.Database("test").
+		_, err = c.Database("test").
 			Collection("test").
 			InsertOne(context.TODO(), bson.D{})
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	// For workforce identity, the Client must be configured with the
@@ -682,7 +685,7 @@ func ExampleConnect_OIDC() {
 				return nil, err
 			}
 			return &options.OIDCCredential{
-				AccessToken: string(accessToken),
+				AccessToken: accessToken,
 			}, nil
 		}
 		uri := os.Getenv("MONGODB_URI")
