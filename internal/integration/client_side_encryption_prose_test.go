@@ -2495,10 +2495,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 		tests := []testcase{
 			{
-				typeStr:  "DecimalNoPrecision",
-				field:    "encryptedDecimalNoPrecision",
-				typeBson: bson.TypeDecimal128,
-				rangeOpts: options.Range().SetTrimFactor(trimFactor).SetSparsity(sparsity),
+				typeStr:       "DecimalNoPrecision",
+				field:         "encryptedDecimalNoPrecision",
+				typeBson:      bson.TypeDecimal128,
+				rangeOpts:     options.Range().SetTrimFactor(trimFactor).SetSparsity(sparsity),
 				zero:          bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_0h, d128_0l)},
 				six:           bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_6h, d128_6l)},
 				thirty:        bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_30h, d128_30l)},
@@ -2522,10 +2522,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				twoHundredOne: bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_201h, d128_201l)},
 			},
 			{
-				typeStr:  "DoubleNoPrecision",
-				field:    "encryptedDoubleNoPrecision",
-				typeBson: bson.TypeDouble,
-				rangeOpts: options.Range().SetTrimFactor(trimFactor).SetSparcity(sparcity),
+				typeStr:       "DoubleNoPrecision",
+				field:         "encryptedDoubleNoPrecision",
+				typeBson:      bson.TypeDouble,
+				rangeOpts:     options.Range().SetTrimFactor(trimFactor).SetSparcity(sparcity),
 				zero:          bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 0)},
 				six:           bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 6)},
 				thirty:        bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 30)},
@@ -2541,7 +2541,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					SetMax(bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 200)}).
 					SetTrimFactor(trimFactor).
 					SetSparsity(sparsity).
-					SetPrecision(precision)),
+					SetPrecision(precision),
 				zero:          bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 0)},
 				six:           bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 6)},
 				thirty:        bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 30)},
