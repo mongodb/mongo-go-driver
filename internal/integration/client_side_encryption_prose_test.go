@@ -2498,10 +2498,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				typeStr:  "DecimalNoPrecision",
 				field:    "encryptedDecimalNoPrecision",
 				typeBson: bson.TypeDecimal128,
-				rangeOpts: options.RangeOptions{
-					TrimFactor: &trimFactor,
-					Sparsity:   &sparsity,
-				},
+				rangeOpts: options.Range().SetTrimFactor(trimFactor).SetSparsity(sparsity),
 				zero:          bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_0h, d128_0l)},
 				six:           bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_6h, d128_6l)},
 				thirty:        bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_30h, d128_30l)},
@@ -2512,12 +2509,12 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				typeStr:  "DecimalPrecision",
 				field:    "encryptedDecimalPrecision",
 				typeBson: bson.TypeDecimal128,
-				rangeOpts: options.RangeOptions{
-					Min:        &bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_0)},
-					Max:        &bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_200)},
-					TrimFactor: &trimFactor,
-					Sparsity:   &sparsity,
-					Precision:  &precision,
+				rangeOpts: options.Range()
+					.SetMin(bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_0)})
+					.SetMax(bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_200)})
+					.SetTrimFactor(trimFactor)
+					.SetSparcity(sparcity)
+					.SetPrecision(trimFactor)
 				},
 				zero:          bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_0h, d128_0l)},
 				six:           bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_6h, d128_6l)},
@@ -2529,10 +2526,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				typeStr:  "DoubleNoPrecision",
 				field:    "encryptedDoubleNoPrecision",
 				typeBson: bson.TypeDouble,
-				rangeOpts: options.RangeOptions{
-					TrimFactor: &trimFactor,
-					Sparsity:   &sparsity,
-				},
+				rangeOpts: options.Range().SetTrimFactor(trimFactor).SetSparcity(sparcity),
 				zero:          bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 0)},
 				six:           bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 6)},
 				thirty:        bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 30)},
@@ -2543,13 +2537,12 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				typeStr:  "DoublePrecision",
 				field:    "encryptedDoublePrecision",
 				typeBson: bson.TypeDouble,
-				rangeOpts: options.RangeOptions{
-					Min:        &bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 0)},
-					Max:        &bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 200)},
-					TrimFactor: &trimFactor,
-					Sparsity:   &sparsity,
-					Precision:  &precision,
-				},
+				rangeOpts: options.Range()
+					.SetMin(bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 0)})
+					.SetMax(bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 200)})
+					.SetTrimFactor(trimFactor)
+					.SetSparsity(sparsity)
+					.SetPrecision(precision),
 				zero:          bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 0)},
 				six:           bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 6)},
 				thirty:        bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 30)},
@@ -2560,12 +2553,11 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				typeStr:  "Date",
 				field:    "encryptedDate",
 				typeBson: bson.TypeDateTime,
-				rangeOpts: options.RangeOptions{
-					Min:        &bson.RawValue{Type: bson.TypeDateTime, Value: bsoncore.AppendDateTime(nil, 0)},
-					Max:        &bson.RawValue{Type: bson.TypeDateTime, Value: bsoncore.AppendDateTime(nil, 200)},
-					TrimFactor: &trimFactor,
-					Sparsity:   &sparsity,
-				},
+				rangeOpts: options.Range()
+					.SetMin(bson.RawValue{Type: bson.TypeDateTime, Value: bsoncore.AppendDateTime(nil, 0)})
+					.SetMax(bson.RawValue{Type: bson.TypeDateTime, Value: bsoncore.AppendDateTime(nil, 200)})
+					.SetTrimFactor(trimFactor)
+					.SetSparsity(sparsity),
 				zero:          bson.RawValue{Type: bson.TypeDateTime, Value: bsoncore.AppendDateTime(nil, 0)},
 				six:           bson.RawValue{Type: bson.TypeDateTime, Value: bsoncore.AppendDateTime(nil, 6)},
 				thirty:        bson.RawValue{Type: bson.TypeDateTime, Value: bsoncore.AppendDateTime(nil, 30)},
@@ -2576,12 +2568,11 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				typeStr:  "Int",
 				field:    "encryptedInt",
 				typeBson: bson.TypeInt32,
-				rangeOpts: options.RangeOptions{
-					Min:        &bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 0)},
-					Max:        &bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 200)},
-					TrimFactor: &trimFactor,
-					Sparsity:   &sparsity,
-				},
+				rangeOpts: options.Range()
+					.SetMin(bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 0)})
+					.SetMax(bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 200)})
+					.SetTrimFactor(trimFactor)
+					.SetSparsity(sparsity),
 				zero:          bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 0)},
 				six:           bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 6)},
 				thirty:        bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 30)},
@@ -2592,12 +2583,11 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				typeStr:  "Long",
 				field:    "encryptedLong",
 				typeBson: bson.TypeInt64,
-				rangeOpts: options.RangeOptions{
-					Min:        &bson.RawValue{Type: bson.TypeInt64, Value: bsoncore.AppendInt64(nil, 0)},
-					Max:        &bson.RawValue{Type: bson.TypeInt64, Value: bsoncore.AppendInt64(nil, 200)},
-					TrimFactor: &trimFactor,
-					Sparsity:   &sparsity,
-				},
+				rangeOpts: options.Range()
+					.SetMin(bson.RawValue{Type: bson.TypeInt64, Value: bsoncore.AppendInt64(nil, 0)})
+					.SetMax(bson.RawValue{Type: bson.TypeInt64, Value: bsoncore.AppendInt64(nil, 200)})
+					.SetTrimFactor(trimFactor)
+					.SetSparsity(sparsity),
 				zero:          bson.RawValue{Type: bson.TypeInt64, Value: bsoncore.AppendInt64(nil, 0)},
 				six:           bson.RawValue{Type: bson.TypeInt64, Value: bsoncore.AppendInt64(nil, 6)},
 				thirty:        bson.RawValue{Type: bson.TypeInt64, Value: bsoncore.AppendInt64(nil, 30)},
