@@ -221,7 +221,12 @@ func transformExplicitEncryptionOptions(opts ...options.Lister[options.EncryptOp
 		if rangeArgs.Precision != nil {
 			transformedRange.Precision = rangeArgs.Precision
 		}
-		transformedRange.Sparsity = rangeArgs.Sparsity
+		if rangeArgs.Sparsity != nil {
+			transformedRange.Sparsity = rangeArgs.Sparsity
+		}
+		if rangeArgs.TrimFactor != nil {
+			transformedRange.TrimFactor = rangeArgs.TrimFactor
+		}
 		transformed.SetRangeOptions(transformedRange)
 	}
 	return transformed
@@ -250,14 +255,8 @@ func (ce *ClientEncryption) Encrypt(
 // 2. An Aggregate Expression of this form:
 // {$and: [{$gt: [<fieldpath>, <value1>]}, {$lt: [<fieldpath>, <value2>]}]
 // $gt may also be $gte. $lt may also be $lte.
-// Only supported for queryType "rangePreview"
-// Beta: The Range algorithm is experimental only. It is not intended for public use. It is subject to breaking changes.
-func (ce *ClientEncryption) EncryptExpression(
-	ctx context.Context,
-	expr interface{},
-	result interface{},
-	opts ...options.Lister[options.EncryptOptions],
-) error {
+// Only supported for queryType "range"
+func (ce *ClientEncryption) EncryptExpression(ctx context.Context, expr interface{}, result interface{}, opts ...options.Lister[options.EncryptOptions]) error {
 	transformed := transformExplicitEncryptionOptions(opts...)
 
 	exprDoc, err := marshal(expr, nil, nil)
