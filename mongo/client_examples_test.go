@@ -470,7 +470,7 @@ func ExampleConnect_bSONOptions() {
 	}
 }
 
-func ExampleConnect_OIDC() {
+func ExampleConnect_oIDC() {
 	// The `MONGODB-OIDC authentication mechanism` is available in MongoDB 7.0+
 	// on Linux platforms.
 	//
