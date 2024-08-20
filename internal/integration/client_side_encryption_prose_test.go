@@ -2514,7 +2514,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					.SetMax(bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_200)})
 					.SetTrimFactor(trimFactor)
 					.SetSparcity(sparcity)
-					.SetPrecision(trimFactor),
+					.SetPrecision(precision),
 				zero:          bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_0h, d128_0l)},
 				six:           bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_6h, d128_6l)},
 				thirty:        bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_30h, d128_30l)},
