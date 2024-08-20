@@ -517,9 +517,12 @@ func ExampleConnect_OIDC() {
 			panic(err)
 		}
 		defer c.Disconnect(context.TODO())
-		c.Database("test").
+		_, err = c.Database("test").
 			Collection("test").
 			InsertOne(context.TODO(), bson.D{})
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	// If the application is running on an Azure VM and only one managed
@@ -549,9 +552,12 @@ func ExampleConnect_OIDC() {
 			panic(err)
 		}
 		defer c.Disconnect(context.TODO())
-		c.Database("test").
+		_, err = c.Database("test").
 			Collection("test").
 			InsertOne(context.TODO(), bson.D{})
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	// Custom Callbacks
@@ -594,9 +600,12 @@ func ExampleConnect_OIDC() {
 			panic(err)
 		}
 		defer c.Disconnect(context.TODO())
-		c.Database("test").
+		_, err = c.Database("test").
 			Collection("test").
 			InsertOne(context.TODO(), bson.D{})
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	// Other Azure Environments
@@ -694,9 +703,12 @@ func ExampleConnect_OIDC() {
 			panic(err)
 		}
 		defer c.Disconnect(context.TODO())
-		c.Database("test").
+		_, err = c.Database("test").
 			Collection("test").
 			InsertOne(context.TODO(), bson.D{})
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	// * MONGODB-OIDC authentication mechanism:
