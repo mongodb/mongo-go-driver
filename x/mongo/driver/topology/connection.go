@@ -79,9 +79,9 @@ type connection struct {
 	driverConnectionID uint64
 	generation         uint64
 
-	// awaitingResponse indicates that the server response was not completely
+	// awaitingResponse indicates the size of server response that was not completely
 	// read before returning the connection to the pool.
-	awaitingResponse bool
+	awaitingResponse *int32
 
 	// oidcTokenGenID is the monotonic generation ID for OIDC tokens, used to invalidate
 	// accessTokens in the OIDC authenticator cache.
@@ -423,15 +423,10 @@ func (c *connection) readWireMessage(ctx context.Context) ([]byte, error) {
 
 	dst, errMsg, err := c.read(ctx)
 	if err != nil {
-		if nerr := net.Error(nil); errors.As(err, &nerr) && nerr.Timeout() && csot.IsTimeoutContext(ctx) {
-			// If the error was a timeout error and CSOT is enabled, instead of
-			// closing the connection mark it as awaiting response so the pool
-			// can read the response before making it available to other
-			// operations.
-			c.awaitingResponse = true
-		} else {
-			// Otherwise, use the pre-CSOT behavior and close the connection
-			// because we don't know if there are other bytes left to read.
+		if c.awaitingResponse == nil {
+			// If the connection was not marked as awaiting response, use the
+			// pre-CSOT behavior and close the connection because we don't know
+			// if there are other bytes left to read.
 			c.close()
 		}
 		message := errMsg
@@ -461,6 +456,15 @@ func (c *connection) read(ctx context.Context) (bytesRead []byte, errMsg string,
 		}
 	}()
 
+	needToWait := func(err error) bool {
+		// If the error was a timeout error and CSOT is enabled, instead of
+		// closing the connection mark it as awaiting response so the pool
+		// can read the response before making it available to other
+		// operations.
+		nerr := net.Error(nil)
+		return errors.As(err, &nerr) && nerr.Timeout() && csot.IsTimeoutContext(ctx)
+	}
+
 	// We use an array here because it only costs 4 bytes on the stack and means we'll only need to
 	// reslice dst once instead of twice.
 	var sizeBuf [4]byte
@@ -468,8 +472,11 @@ func (c *connection) read(ctx context.Context) (bytesRead []byte, errMsg string,
 	// We do a ReadFull into an array here instead of doing an opportunistic ReadAtLeast into dst
 	// because there might be more than one wire message waiting to be read, for example when
 	// reading messages from an exhaust cursor.
-	_, err = io.ReadFull(c.nc, sizeBuf[:])
+	n, err := io.ReadFull(c.nc, sizeBuf[:])
 	if err != nil {
+		if l := int32(n); l == 0 && needToWait(err) {
+			c.awaitingResponse = &l
+		}
 		return nil, "incomplete read of message header", err
 	}
 
@@ -493,8 +500,11 @@ func (c *connection) read(ctx context.Context) (bytesRead []byte, errMsg string,
 	dst := make([]byte, size)
 	copy(dst, sizeBuf[:])
 
-	_, err = io.ReadFull(c.nc, dst[4:])
+	n, err = io.ReadFull(c.nc, dst[4:])
 	if err != nil {
+		if l := size - 4 - int32(n); l > 0 && needToWait(err) {
+			c.awaitingResponse = &l
+		}
 		return dst, "incomplete read of full message", err
 	}
 

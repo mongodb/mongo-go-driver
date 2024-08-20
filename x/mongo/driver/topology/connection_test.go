@@ -547,7 +547,7 @@ func TestConnection(t *testing.T) {
 					listener.assertCalledOnce(t)
 				})
 				t.Run("size too small errors", func(t *testing.T) {
-					err := errors.New("malformatted message length: 3")
+					err := errors.New("malformed message length: 3")
 					tnc := &testNetConn{readerr: err, buf: []byte{0x03, 0x00, 0x00, 0x00}}
 					conn := &connection{id: "foobar", nc: tnc, state: connConnected}
 					listener := newTestCancellationListener(false)
