@@ -17,9 +17,14 @@ import (
 const PLAIN = "PLAIN"
 
 func newPlainAuthenticator(cred *Cred, _ *http.Client) (Authenticator, error) {
+	source := cred.Source
+	if source == "" {
+		source = "$external"
+	}
 	return &PlainAuthenticator{
 		Username: cred.Username,
 		Password: cred.Password,
+		Source:   source,
 	}, nil
 }
 
@@ -27,11 +32,12 @@ func newPlainAuthenticator(cred *Cred, _ *http.Client) (Authenticator, error) {
 type PlainAuthenticator struct {
 	Username string
 	Password string
+	Source   string
 }
 
 // Auth authenticates the connection.
 func (a *PlainAuthenticator) Auth(ctx context.Context, cfg *Config) error {
-	return ConductSaslConversation(ctx, cfg, "$external", &plainSaslClient{
+	return ConductSaslConversation(ctx, cfg, a.Source, &plainSaslClient{
 		username: a.Username,
 		password: a.Password,
 	})

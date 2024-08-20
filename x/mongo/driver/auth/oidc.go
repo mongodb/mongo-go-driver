@@ -109,6 +109,9 @@ func (oa *OIDCAuthenticator) SetAccessToken(accessToken string) {
 }
 
 func newOIDCAuthenticator(cred *Cred, httpClient *http.Client) (Authenticator, error) {
+	if cred.Source != "" && cred.Source != "$external" {
+		return nil, newAuthError("MONGODB-OIDC source must be empty or $external", nil)
+	}
 	if cred.Password != "" {
 		return nil, fmt.Errorf("password cannot be specified for %q", MongoDBOIDC)
 	}

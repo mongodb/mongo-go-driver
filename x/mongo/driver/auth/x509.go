@@ -19,6 +19,9 @@ import (
 const MongoDBX509 = "MONGODB-X509"
 
 func newMongoDBX509Authenticator(cred *Cred, _ *http.Client) (Authenticator, error) {
+	// TODO(GODRIVER-3309): Validate that cred.Source is either empty or
+	// "$external" to make validation uniform with other auth mechanisms that
+	// require Source to be "$external" (e.g. MONGODB-AWS, MONGODB-OIDC, etc).
 	return &MongoDBX509Authenticator{User: cred.Username}, nil
 }
 

@@ -8,10 +8,9 @@ package auth_test
 
 import (
 	"context"
+	"encoding/base64"
 	"strings"
 	"testing"
-
-	"encoding/base64"
 
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo/description"
@@ -26,6 +25,7 @@ func TestPlainAuthenticator_Fails(t *testing.T) {
 	authenticator := PlainAuthenticator{
 		Username: "user",
 		Password: "pencil",
+		Source:   "$external",
 	}
 
 	resps := make(chan []byte, 1)
@@ -65,6 +65,7 @@ func TestPlainAuthenticator_Extra_server_message(t *testing.T) {
 	authenticator := PlainAuthenticator{
 		Username: "user",
 		Password: "pencil",
+		Source:   "$external",
 	}
 
 	resps := make(chan []byte, 2)
@@ -108,6 +109,7 @@ func TestPlainAuthenticator_Succeeds(t *testing.T) {
 	authenticator := PlainAuthenticator{
 		Username: "user",
 		Password: "pencil",
+		Source:   "$external",
 	}
 
 	resps := make(chan []byte, 1)
@@ -153,6 +155,7 @@ func TestPlainAuthenticator_SucceedsBoolean(t *testing.T) {
 	authenticator := PlainAuthenticator{
 		Username: "user",
 		Password: "pencil",
+		Source:   "$external",
 	}
 
 	resps := make(chan []byte, 1)
