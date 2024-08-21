@@ -383,7 +383,7 @@ func ReadMsgSectionSingleDocument(src []byte) (doc bsoncore.Document, rem []byte
 func ReadMsgSectionDocumentSequence(src []byte) (identifier string, docs []bsoncore.Document, rem []byte, ok bool) {
 	identifier, rem, ret, ok := ReadMsgSectionRawDocumentSequence(src)
 	if !ok {
-		return "", nil, ret, false
+		return "", nil, src, false
 	}
 
 	docs = make([]bsoncore.Document, 0)
@@ -396,7 +396,7 @@ func ReadMsgSectionDocumentSequence(src []byte) (identifier string, docs []bsonc
 		docs = append(docs, doc)
 	}
 	if len(rem) > 0 {
-		return "", nil, append(rem, ret...), false
+		return "", nil, src, false
 	}
 
 	return identifier, docs, ret, true
@@ -407,7 +407,7 @@ func ReadMsgSectionDocumentSequence(src []byte) (identifier string, docs []bsonc
 func ReadMsgSectionRawDocumentSequence(src []byte) (identifier string, data []byte, rem []byte, ok bool) {
 	length, rem, ok := readi32(src)
 	if !ok || int(length) > len(src) || length-4 < 0 {
-		return "", nil, rem, false
+		return "", nil, src, false
 	}
 
 	// After these assignments, rem will be the data containing the identifier string + the document sequence bytes and
@@ -416,7 +416,7 @@ func ReadMsgSectionRawDocumentSequence(src []byte) (identifier string, data []by
 
 	identifier, rem, ok = readcstring(rem)
 	if !ok {
-		return "", nil, rem, false
+		return "", nil, src, false
 	}
 
 	return identifier, rem, rest, true
