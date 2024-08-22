@@ -1,6 +1,6 @@
 <p align="center"><img src="etc/assets/mongo-gopher.png" width="250"></p>
 <p align="center">
-  <a href="https://goreportcard.com/report/go.mongodb.org/mongo-driver"><img src="https://goreportcard.com/badge/go.mongodb.org/mongo-driver/v2"></a>
+  <a href="https://goreportcard.com/report/go.mongodb.org/mongo-driver/v2"><img src="https://goreportcard.com/badge/go.mongodb.org/mongo-driver/v2"></a>
   <a href="https://pkg.go.dev/go.mongodb.org/mongo-driver/v2/mongo"><img src="etc/assets/godev-mongo-blue.svg" alt="docs"></a>
   <a href="https://pkg.go.dev/go.mongodb.org/mongo-driver/v2/bson"><img src="etc/assets/godev-bson-blue.svg" alt="docs"></a>
   <a href="https://www.mongodb.com/docs/drivers/go/current/"><img src="etc/assets/docs-mongodb-green.svg"></a>
