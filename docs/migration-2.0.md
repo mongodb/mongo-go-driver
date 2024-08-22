@@ -152,7 +152,7 @@ if err := res.Err(); err != nil {
 
 var people []string
 if err := res.Decode(&people); err != nil {
-  log.Fatal("failed to decode distint result: %v", err)
+  log.Fatal("failed to decode distinct result: %v", err)
 }
 
 fmt.Printf("car-renting persons: %v\n", people)
@@ -197,55 +197,48 @@ The `documents` parameter in the `Collection.InsertMany` function signature has 
 // v1
 
 books := []book{
-	{
-		Name:   "Don Quixote de la Mancha",
-		Author: "Miguel de Cervantes",
-	},
-	{
-		Name:   "Cien años de soledad",
-		Author: "Gabriel García Márquez",
-	},
-	{
-		Name:   "Crónica de una muerte anunciada",
-		Author: "Gabriel García Márquez",
-	},
+  {
+    Name:   "Don Quixote de la Mancha",
+    Author: "Miguel de Cervantes",
+  },
+  {
+    Name:   "Cien años de soledad",
+    Author: "Gabriel García Márquez",
+  },
+  {
+    Name:   "Crónica de una muerte anunciada",
+    Author: "Gabriel García Márquez",
+  },
 }
 
 booksi := make([]interface{}, len(books))
 for i, book := range books {
-	booksi[i] = book
+  booksi[i] = book
 }
 
 _, err = collection.InsertMany(ctx, booksi)
 if err != nil {
-	log.Fatalf("could not insert Spanish authors: %v", err)
+  log.Fatalf("could not insert Spanish authors: %v", err)
 }
 ```
 
-```go
+````go
 // v2
 
 books := []book{
-	{
-		Name:   "Don Quixote de la Mancha",
-		Author: "Miguel de Cervantes",
-	},
-	{
-		Name:   "Cien años de soledad",
-		Author: "Gabriel García Márquez",
-	},
-	{
-		Name:   "Crónica de una muerte anunciada",
-		Author: "Gabriel García Márquez",
-	},
+  {
+    Name:   "Don Quixote de la Mancha",
+    Author: "Miguel de Cervantes",
+  },
+  {
+    Name:   "Cien años de soledad",
+    Author: "Gabriel García Márquez",
+  },
+  {
+    Name:   "Crónica de una muerte anunciada",
+    Author: "Gabriel García Márquez",
+  },
 }
-
-
-_, err = collection.InsertMany(ctx, books)
-if err != nil {
-	log.Fatalf("could not insert Spanish authors: %v", err)
-}
-```
 
 ### Database
 
@@ -258,7 +251,7 @@ Updated to return a slice of structs instead of a slice of pointers.
 
 var specs []*mongo.CollectionSpecification
 specs, _ = db.ListCollectionSpecifications(context.TODO(), bson.D{})
-```
+````
 
 ```go
 // v2
@@ -283,7 +276,7 @@ This sentinel error has been removed from the `mongo` package. Users that need t
 
 res, err := coll.InsertMany(context.TODO(), books)
 if errors.Is(err, mongo.ErrUnacknowledgedWrite) {
-	// Do something
+  // Do something
 }
 ```
 
@@ -292,7 +285,7 @@ if errors.Is(err, mongo.ErrUnacknowledgedWrite) {
 
 res, err := coll.InsertMany(context.TODO(), books)
 if !res.Acknowledged {
-	// Do something
+  // Do something
 }
 ```
 
@@ -329,7 +322,7 @@ bucket, _ = db.GridFSBucket(opts)
 
 n, err := source.Read(buf)
 if errors.Is(err, gridfs.ErrWrongIndex) {
-	// Do something
+  // Do something
 }
 ```
 
@@ -338,7 +331,7 @@ if errors.Is(err, gridfs.ErrWrongIndex) {
 
 n, err := source.Read(buf)
 if errors.Is(err, mongo.ErrMissingChunk) {
-	// Do something
+  // Do something
 }
 ```
 
@@ -379,16 +372,16 @@ Dropping an index replies with a superset of the following message: `{nIndexesWa
 
 res, err := coll.Indexes().DropAll(context.TODO())
 if err != nil {
-	log.Fatalf("failed to drop indexes: %v", err)
+  log.Fatalf("failed to drop indexes: %v", err)
 }
 
 type dropResult struct {
-	NIndexesWas int
+  NIndexesWas int
 }
 
 dres := dropResult{}
 if err := bson.Unmarshal(res, &dres); err != nil {
-	log.Fatalf("failed to decode: %v", err)
+  log.Fatalf("failed to decode: %v", err)
 }
 
 numDropped := dres.NIndexWas
@@ -402,22 +395,22 @@ numDropped := dres.NIndexWas
 // List the indexes
 cur, err := coll.Indexes().List(context.TODO())
 if err != nil {
-	log.Fatalf("failed to list indexes: %v", err)
+  log.Fatalf("failed to list indexes: %v", err)
 }
 
 numDropped := 0
 for cur.Next(context.TODO()) {
-numDropped++
+  numDropped++
 }
 
 if err := coll.Indexes().DropAll(context.TODO()); err != nil {
-	log.Fatalf("failed to drop indexes: %v", err)
+  log.Fatalf("failed to drop indexes: %v", err)
 }
 
 // List the indexes
 cur, err := coll.Indexes().List(context.TODO())
 if err != nil {
-	log.Fatalf("failed to list indexes: %v", err)
+  log.Fatalf("failed to list indexes: %v", err)
 }
 
 // Use numDropped
@@ -438,18 +431,18 @@ Updated to return a slice of structs instead of a slice of pointers. See the [da
 ```go
 client, err := mongo.NewClient(options.Client())
 if err != nil {
-	log.Fatalf("failed to create client: %v", err)
+  log.Fatalf("failed to create client: %v", err)
 }
 
 if err := client.Connect(context.TODO()); err != nil {
-	log.Fatalf("failed to connect to server: %v", err)
+  log.Fatalf("failed to connect to server: %v", err)
 }
 ```
 
 ```go
 client, err := mongo.Connect(options.Client())
 if err != nil {
-	log.Fatalf("failed to connect to server: %v", err)
+  log.Fatalf("failed to connect to server: %v", err)
 }
 ```
 
@@ -521,17 +514,17 @@ The following fields were removed because they are no longer supported by the se
 
 The Go driver offers users the ability to pass multiple options objects to operations in a last-on-wins algorithm, merging data at a field level:
 
-```psuedo
+```pseudo
 function MergeOptions(target, optionsList):
-	for each options in optionsList:
-		if options is null or undefined:
-			continue
+  for each options in optionsList:
+    if options is null or undefined:
+      continue
 
-	for each key, value in options:
-		if value is not null or undefined:
-			target[key] = value
+  for each key, value in options:
+    if value is not null or undefined:
+      target[key] = value
 
-	return target
+  return target
 ```
 
 Currently, the driver maintains this logic for every options type, e.g. [MergeClientOptions](https://github.com/mongodb/mongo-go-driver/blob/2e7cb372b05cba29facd58aac7e715c3cec4e377/mongo/options/clientoptions.go#L1065). For v2, we’ve decided to abstract the merge functions by changing the options builder pattern to maintain a slice of setter functions, rather than setting data directly to an options object. Typical usage of options should not change, for example the following is still honored:
