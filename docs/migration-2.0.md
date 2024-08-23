@@ -222,7 +222,7 @@ if err != nil {
 }
 ```
 
-````go
+```go
 // v2
 
 books := []book{
