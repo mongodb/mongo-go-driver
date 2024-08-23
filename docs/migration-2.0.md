@@ -709,7 +709,7 @@ The `WTimeout` field has been removed from the `WriteConcern` struct. Instead, u
 
 `*Codec` structs and `New*Codec` methods have been removed. Additionally, the correlated `bson/bsonoptions` package has been removed, so codecs are not directly configurable using `*CodecOptions` structs in Go Driver 2.0. To configure the encode and decode behavior, use the configuration methods on a `bson.Encoder` or `bson.Decoder`. To configure the encode and decode behavior for a `mongo.Client`, use `options.ClientOptionsBuilder.SetBSONOptions` with `BSONOptions`.
 
-This example shows how to set ObjectIDAsHex.
+This example shows how to set `ObjectIDAsHex`.
 
 ```go
 // v1
