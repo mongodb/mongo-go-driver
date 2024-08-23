@@ -1171,7 +1171,7 @@ A new `RawArray` type has been added to the `bson` package as a primitive type t
 
 ### ValueMarshaler
 
-The `MarshalBSONValue` method of the `ValueMarshaler` interface is only required to return a byte type value representing the BSON type to avoid importing the Go driver package.
+The `MarshalBSONValue` method of the `ValueMarshaler` interface is only required to return a byte type value representing the BSON type to avoid importing the `bsontype` package.
 
 ### ValueUnmarshaler
 
