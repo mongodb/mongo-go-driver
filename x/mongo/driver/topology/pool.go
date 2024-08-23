@@ -10,7 +10,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"sync"
 	"sync/atomic"
@@ -833,22 +832,13 @@ func bgRead(pool *pool, conn *connection, size int32) {
 			err = fmt.Errorf("error reading the message size: %w", err)
 			return
 		}
-		size = (int32(sizeBuf[0])) | (int32(sizeBuf[1]) << 8) | (int32(sizeBuf[2]) << 16) | (int32(sizeBuf[3]) << 24)
-		if size < 4 {
-			err = fmt.Errorf("malformed message length: %d", size)
-			return
-		}
-		maxMessageSize := conn.desc.MaxMessageSize
-		if maxMessageSize == 0 {
-			maxMessageSize = defaultMaxMessageSize
-		}
-		if uint32(size) > maxMessageSize {
-			err = errResponseTooLarge
+		size, err = conn.parseWmSizeBytes(sizeBuf)
+		if err != nil {
 			return
 		}
 		size -= 4
 	}
-	_, err = io.CopyN(ioutil.Discard, conn.nc, int64(size))
+	_, err = io.CopyN(io.Discard, conn.nc, int64(size))
 	if err != nil {
 		err = fmt.Errorf("error reading message of %d: %w", size, err)
 	}
@@ -901,9 +891,9 @@ func (p *pool) checkInNoEvent(conn *connection) error {
 	// means that connections in "awaiting response" state are checked in but
 	// not usable, which is not covered by the current pool events. We may need
 	// to add pool event information in the future to communicate that.
-	if conn.awaitingResponse != nil {
-		size := *conn.awaitingResponse
-		conn.awaitingResponse = nil
+	if conn.awaitRemainingBytes != nil {
+		size := *conn.awaitRemainingBytes
+		conn.awaitRemainingBytes = nil
 		go bgRead(p, conn, size)
 		return nil
 	}

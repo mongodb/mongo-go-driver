@@ -1197,7 +1197,7 @@ func TestPool(t *testing.T) {
 				`^connection\(.*\[-\d+\]\) incomplete read of message header: context deadline exceeded: read unix .*->\.\/test.sock: i\/o timeout$`,
 			)
 			assert.True(t, regex.MatchString(err.Error()), "mismatched err: %v", err)
-			assert.Nil(t, conn.awaitingResponse, "conn.awaitingResponse should be nil")
+			assert.Nil(t, conn.awaitRemainingBytes, "conn.awaitingResponse should be nil")
 			wg.Wait()
 			p.close(context.Background())
 			close(errCh)
