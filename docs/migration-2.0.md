@@ -252,7 +252,7 @@ Updated to return a slice of structs instead of a slice of pointers.
 
 var specs []*mongo.CollectionSpecification
 specs, _ = db.ListCollectionSpecifications(context.TODO(), bson.D{})
-````
+```
 
 ```go
 // v2
@@ -1048,6 +1048,7 @@ The signature of `NewEncoder` has been updated without an error being returned.
 `NewEncoderWithContext` has been removed in favor of using the `SetRegistry` method to set a registry.
 
 Correspondingly, the following methods have been removed:
+
 - `MarshalWithRegistry`
 - `MarshalWithContext`
 - `MarshalAppend`
