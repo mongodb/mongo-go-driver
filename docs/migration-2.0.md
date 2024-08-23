@@ -660,7 +660,7 @@ This example illustrates how to define an operation-level timeout using v2, with
 
 ### SessionOptions
 
-`DefaultReadConcern`, `DefaultReadPreference`, and `DefaultWriteConcern` are all specific to transactions started by the session. Rather than maintain three fields on the Session struct, v2 has combined these options into `DefaultTransactionOptions` which specifies a `TransactionOptions` object.
+`DefaultReadConcern`, `DefaultReadPreference`, and `DefaultWriteConcern` are all specific to transactions started by the session. Rather than maintain three fields on the `Session` struct, v2 has combined these options into `DefaultTransactionOptions` which specifies a `TransactionOptions` object.
 
 ```go
 // v1
