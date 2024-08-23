@@ -80,6 +80,20 @@ func createHint(mt *mtest.T, val bson.RawValue) interface{} {
 	return hint
 }
 
+// create a sort document from a bson.RawValue
+func createSort(mt *mtest.T, val bson.RawValue) interface{} {
+	mt.Helper()
+
+	var sort interface{}
+	switch val.Type {
+	case bsontype.EmbeddedDocument:
+		sort = val.Document()
+	default:
+		mt.Fatalf("unrecognized sort value type: %s\n", val.Type)
+	}
+	return sort
+}
+
 // returns true if err is a mongo.CommandError containing a code that is expected from a killAllSessions command.
 func isExpectedKillAllSessionsError(err error) bool {
 	cmdErr, ok := err.(mongo.CommandError)
@@ -890,6 +904,8 @@ func executeUpdateOne(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.Up
 			opts = opts.SetCollation(createCollation(mt, val.Document()))
 		case "hint":
 			opts = opts.SetHint(createHint(mt, val))
+		case "sort":
+			opts = opts.SetSort(createSort(mt, val))
 		case "session":
 		default:
 			mt.Fatalf("unrecognized updateOne option: %v", key)
@@ -938,6 +954,8 @@ func executeUpdateMany(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.U
 			opts = opts.SetCollation(createCollation(mt, val.Document()))
 		case "hint":
 			opts = opts.SetHint(createHint(mt, val))
+		case "sort":
+			opts = opts.SetSort(createSort(mt, val))
 		case "session":
 		default:
 			mt.Fatalf("unrecognized updateMany option: %v", key)
@@ -982,6 +1000,8 @@ func executeReplaceOne(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.U
 			opts = opts.SetCollation(createCollation(mt, val.Document()))
 		case "hint":
 			opts = opts.SetHint(createHint(mt, val))
+		case "sort":
+			opts = opts.SetSort(createSort(mt, val))
 		case "session":
 		default:
 			mt.Fatalf("unrecognized replaceOne option: %v", key)

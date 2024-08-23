@@ -598,7 +598,13 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 		}
 		op = op.Let(let)
 	}
-
+	if !multi && uo.Sort != nil {
+		sort, err := marshal(uo.Sort, coll.bsonOpts, coll.registry)
+		if err != nil {
+			return nil, err
+		}
+		op = op.Sort(sort)
+	}
 	if uo.BypassDocumentValidation != nil && *uo.BypassDocumentValidation {
 		op = op.BypassDocumentValidation(*uo.BypassDocumentValidation)
 	}
@@ -759,6 +765,7 @@ func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
 		uOpts.Upsert = opt.Upsert
 		uOpts.Hint = opt.Hint
 		uOpts.Let = opt.Let
+		uOpts.Sort = opt.Sort
 		uOpts.Comment = opt.Comment
 		updateOptions = append(updateOptions, uOpts)
 	}

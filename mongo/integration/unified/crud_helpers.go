@@ -63,6 +63,8 @@ func createUpdateArguments(args bson.Raw) (*updateArguments, error) {
 			ua.opts.SetHint(hint)
 		case "let":
 			ua.opts.SetLet(val.Document())
+		case "sort":
+			ua.opts.SetSort(val.Document())
 		case "update":
 			ua.update, err = createUpdateValue(val)
 			if err != nil {

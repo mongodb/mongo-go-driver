@@ -45,6 +45,12 @@ type UpdateOptions struct {
 	// Values must be constant or closed expressions that do not reference document fields. Parameters can then be
 	// accessed as variables in an aggregate expression context (e.g. "$$var").
 	Let interface{}
+
+	// A document specifying which document should be updated if the filter used by the operation matches multiple
+	// documents in the collection. If set, the first document in the sorted order will be updated. This option is
+	// only valid for MongoDB versions >= 8.0. The driver will return an error if the sort parameter is a multi-key
+	// map. The default value is nil.
+	Sort interface{}
 }
 
 // Update creates a new UpdateOptions instance.
@@ -94,6 +100,12 @@ func (uo *UpdateOptions) SetLet(l interface{}) *UpdateOptions {
 	return uo
 }
 
+// SetSort sets the value for the Sort field.
+func (uo *UpdateOptions) SetSort(s interface{}) *UpdateOptions {
+	uo.Sort = s
+	return uo
+}
+
 // MergeUpdateOptions combines the given UpdateOptions instances into a single UpdateOptions in a last-one-wins fashion.
 //
 // Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
@@ -124,6 +136,9 @@ func MergeUpdateOptions(opts ...*UpdateOptions) *UpdateOptions {
 		}
 		if uo.Let != nil {
 			uOpts.Let = uo.Let
+		}
+		if uo.Sort != nil {
+			uOpts.Sort = uo.Sort
 		}
 	}
 
