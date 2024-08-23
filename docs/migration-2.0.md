@@ -1063,7 +1063,7 @@ Correspondingly, the following methods have been removed:
 - `MarshalExtJSONAppendWithRegistry`
 - `MarshalExtJSONAppendWithContext`
 
-Here is an example of a registry that multiplies the input value by -1 when encoding for a `negatedInt.`
+Here is an example of a registry that multiplies the input value by -1 when encoding for a `negatedInt`.
 
 ```go
 type negatedInt int
