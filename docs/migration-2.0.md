@@ -189,7 +189,7 @@ for _, value := range values {
 fmt.Printf("car-renting persons: %v\n", people)
 ```
 
-### InsertMany
+#### InsertMany
 
 The `documents` parameter in the `Collection.InsertMany` function signature has been changed from an `[]interface{}` type to an `any` type. This API no longer requires users to copy existing slice of documents to an `[]interface{}` slice.
 
