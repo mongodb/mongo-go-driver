@@ -366,7 +366,7 @@ Additionally, `Bucket.DeleteContext()`, `Bucket.FindContext()`, `Bucket.DropCont
 
 #### DropAll
 
-Dropping an index replies with a superset of the following message: `{nIndexesWas: n}`, where n indicates the number of indexes there were prior to removing whichever index(es) were dropped. In the case of DropAll this number is always `m - 1`, where m is the total number of indexes. Thus, we can simplify the DropAll method by removing the server response.
+Dropping an index replies with a superset of the following message: `{nIndexesWas: n}`, where n indicates the number of indexes there were prior to removing whichever index(es) were dropped. In the case of `DropAll` this number is always `m - 1`, where m is the total number of indexes. Thus, we can simplify the `DropAll` method by removing the server response.
 
 ```go
 // v1
