@@ -703,3 +703,474 @@ The `ReadConcernGetLevel()` method has been removed. Use the `ReadConcern.Level`
 ### WTimeout
 
 The `WTimeout` field has been removed from the `WriteConcern` struct. Instead, users should define a timeout at the operation-level using a context object.
+
+## Bsoncodecs / Bsonoptions Package
+
+`*Codec` structs and `New*Codec` methods have been removed. Additionally, the correlated `bson/bsonoptions` package has been removed, so codecs are not directly configurable using `*CodecOptions` structs in Go Driver 2.0. To configure the encode and decode behavior, use the configuration methods on a `bson.Encoder` or `bson.Decoder`. To configure the encode and decode behavior for a `mongo.Client`, use `options.ClientOptionsBuilder.SetBSONOptions` with `BSONOptions`.
+
+This example shows how to set ObjectIDAsHex.
+
+```go
+// v1
+
+var res struct {
+	ID string
+}
+
+codecOpt := bsonoptions.StringCodec().SetDecodeObjectIDAsHex(true)
+strCodec := bsoncodec.NewStringCodec(codecOpt)
+reg := bson.NewRegistryBuilder().RegisterDefaultDecoder(reflect.String, strCodec).Build()
+dc := bsoncodec.DecodeContext{Registry: reg}
+dec, err := bson.NewDecoderWithContext(dc, bsonrw.NewBSONDocumentReader(DOCUMENT))
+if err != nil {
+	panic(err)
+}
+err = dec.Decode(&res)
+if err != nil {
+	panic(err)
+}
+```
+
+```go
+// v2
+
+var res struct {
+	ID string
+}
+
+decoder := bson.NewDecoder(bson.NewDocumentReader(bytes.NewReader(DOCUMENT)))
+decoder.ObjectIDAsHexString()
+err := decoder.Decode(&res)
+if err != nil {
+	panic(err)
+}
+```
+
+### RegistryBuilder
+
+The `RegistryBuilder` struct and the `bson.NewRegistryBuilder` function have been removed in favor of `(*bson.Decoder).SetRegistry` and `(*bson.Encoder).SetRegistry`.
+
+### StructTag / StructTagParserFunc
+
+The `StructTag` struct as well as the `StructTagParserFunc` type have been removed. Therefore, users have to specify BSON tags manually rather than define custom BSON tag parsers.
+
+### TransitionError
+
+The `TransitionError` struct has been merged into the bson package.
+
+### Other interfaces removed from bsoncodes package
+
+`CodecZeroer` and `Proxy` have been removed.
+
+## Bsonrw Package
+
+The `bson/bsonrw` package has been merged into the `bson` package.
+
+As a result, interfaces `ArrayReader`, `ArrayWriter`, `DocumentReader`, `DocumentWriter`, `ValueReader`, and `ValueWriter` are located in the `bson` package now.
+
+Interfaces `BytesReader`, `BytesWriter`, and `ValueWriterFlusher` have been removed.
+
+Functions `NewExtJSONValueReader` and `NewExtJSONValueWriter` have been moved to the bson package as well.
+
+Moreover, the `ErrInvalidJSON` variable has been merged into the bson package.
+
+### NewBSONDocumentReader / NewBSONValueReader
+
+The `bsonrw.NewBSONDocumentReader` has been renamed to `NewDocumentReader`, which reads from an `io.Reader`, in the `bson` package.
+
+The `NewBSONValueReader` has been removed.
+
+This example creates a `Decoder` that reads from a byte slice.
+
+```go
+// v1
+
+b, _ := bson.Marshal(bson.M{"isOK": true})
+decoder, err := bson.NewDecoder(bsonrw.NewBSONDocumentReader(b))
+```
+
+```go
+// v2
+
+b, _ := bson.Marshal(bson.M{"isOK": true})
+decoder := bson.NewDecoder(bson.NewDocumentReader(bytes.NewReader(b)))
+```
+
+### NewBSONValueWriter
+
+The `bsonrw.NewBSONValueWriter` function has been renamed to `NewDocumentWriter` in the `bson` package.
+
+This example creates an `Encoder` that writes BSON values to a `bytes.Buffer`.
+
+```go
+// v1
+
+buf := new(bytes.Buffer)
+vw, err := bsonrw.NewBSONValueWriter(buf)
+encoder, err := bson.NewEncoder(vw)
+```
+
+```go
+// v2
+
+buf := new(bytes.Buffer)
+vw := bson.NewDocumentWriter(buf)
+encoder := bson.NewEncoder(vw)
+```
+
+## Mgocompat Package
+
+The `bson/mgocompat` has been simplified. Its implementation has been merged into the `bson` package.
+
+`ErrSetZero` has been renamed to `ErrMgoSetZero` in the `bson` package.
+
+`NewRegistryBuilder` function has been simplified to `NewMgoRegistry` in the `bson` package.
+
+Similarly, `NewRespectNilValuesRegistryBuilder` function has been simplified to `NewRespectNilValuesMgoRegistry` in the `bson` package.
+
+## Primitive Package
+
+The `bson/primitive` package has been merged into the `bson` package.
+
+Additionally, the `bson.D` has implemented the `json.Marshaler` and `json.Unmarshaler` interfaces, where it uses a key-value representation in "regular" (i.e. non-Extended) JSON.
+
+The `bson.D.String` and `bson.M.String` methods return a relaxed Extended JSON representation of the document.
+
+```go
+// v2
+
+d := D{{"a", 1}, {"b", 2}}
+fmt.Printf("%s\n", d)
+// Output: {"a":{"$numberInt":"1"},"b":{"$numberInt":"2"}}
+```
+
+## Bson Package
+
+### DefaultRegistry / NewRegistryBuilder
+
+`DefaultRegistry` has been removed. Using `bson.DefaultRegistry` to either access the default registry behavior or to globally modify the default registry, will be impacted by this change and will need to configure their registry using another mechanism.
+
+The `NewRegistryBuilder` function has been removed along with the `bsoncodec.RegistryBuilder` struct as mentioned above.
+
+### Decoder
+
+#### NewDecoder
+
+The signature of `NewDecoder` has been updated without an error being returned.
+
+#### NewDecoderWithContext
+
+`NewDecoderWithContext` has been removed in favor of using the `SetRegistry` method to set a registry.
+
+Correspondingly, the following methods have been removed:
+
+- `UnmarshalWithRegistry`
+- `UnmarshalWithContext`
+- `UnmarshalValueWithRegistry`
+- `UnmarshalExtJSONWithRegistry`
+- `UnmarshalExtJSONWithContext`
+
+For example, a boolean type can be stored in the database as a BSON boolean, int32, or int64. Given a registry:
+
+```go
+type lenientBool bool
+
+lenientBoolType := reflect.TypeOf(lenientBool(true))
+
+lenientBoolDecoder := func(
+	dc bsoncodec.DecodeContext,
+	vr bsonrw.ValueReader,
+	val reflect.Value,
+) error {
+	// All decoder implementations should check that val is valid, settable,
+	// and is of the correct kind before proceeding.
+	if !val.IsValid() || !val.CanSet() || val.Type() != lenientBoolType {
+		return bsoncodec.ValueDecoderError{
+			Name:     "lenientBoolDecoder",
+			Types:    []reflect.Type{lenientBoolType},
+			Received: val,
+		}
+	}
+
+	var result bool
+	switch vr.Type() {
+	case bsontype.Boolean:
+		b, err := vr.ReadBoolean()
+		if err != nil {
+			return err
+		}
+		result = b
+	case bsontype.Int32:
+		i32, err := vr.ReadInt32()
+		if err != nil {
+			return err
+		}
+		result = i32 != 0
+	case bsontype.Int64:
+		i64, err := vr.ReadInt64()
+		if err != nil {
+			return err
+		}
+		result = i64 != 0
+	default:
+		return fmt.Errorf(
+			"received invalid BSON type to decode into lenientBool: %s",
+			vr.Type())
+	}
+
+	val.SetBool(result)
+	return nil
+}
+
+// Create the registry
+reg := bson.NewRegistry()
+reg.RegisterTypeDecoder(
+	lenientBoolType,
+	bsoncodec.ValueDecoderFunc(lenientBoolDecoder))
+```
+
+For our custom decoder with such a registry, BSON int32 or int64 values are considered "true" if they are non-zero.
+
+```go
+// v1
+// Use UnmarshalWithRegistry
+
+// Marshal a BSON document with a single field "isOK" that is a non-zero
+// integer value.
+b, err := bson.Marshal(bson.M{"isOK": 1})
+if err != nil {
+	panic(err)
+}
+
+// Now try to decode the BSON document to a struct with a field "IsOK" that
+// is type lenientBool. Expect that the non-zero integer value is decoded
+// as boolean true.
+type MyDocument struct {
+	IsOK lenientBool `bson:"isOK"`
+}
+var doc MyDocument
+err = bson.UnmarshalWithRegistry(reg, b, &doc)
+if err != nil {
+	panic(err)
+}
+fmt.Printf("%+v\n", doc)
+// Output: {IsOK:true}
+```
+
+```go
+// v1
+// Use NewDecoderWithContext
+
+// Marshal a BSON document with a single field "isOK" that is a non-zero
+// integer value.
+b, err := bson.Marshal(bson.M{"isOK": 1})
+if err != nil {
+	panic(err)
+}
+
+// Now try to decode the BSON document to a struct with a field "IsOK" that
+// is type lenientBool. Expect that the non-zero integer value is decoded
+// as boolean true.
+type MyDocument struct {
+	IsOK lenientBool `bson:"isOK"`
+}
+var doc MyDocument
+dc := bsoncodec.DecodeContext{Registry: reg}
+dec, err := bson.NewDecoderWithContext(dc, bsonrw.NewBSONDocumentReader(b))
+if err != nil {
+	panic(err)
+}
+err = dec.Decode(&doc)
+if err != nil {
+	panic(err)
+}
+fmt.Printf("%+v\n", doc)
+// Output: {IsOK:true}
+```
+
+```go
+// v2
+// Use SetRegistry
+
+// Marshal a BSON document with a single field "isOK" that is a non-zero
+// integer value.
+b, err := bson.Marshal(bson.M{"isOK": 1})
+if err != nil {
+	panic(err)
+}
+
+// Now try to decode the BSON document to a struct with a field "IsOK" that
+// is type lenientBool. Expect that the non-zero integer value is decoded
+// as boolean true.
+type MyDocument struct {
+	IsOK lenientBool `bson:"isOK"`
+}
+var doc MyDocument
+dec := bson.NewDecoder(bson.NewDocumentReader(bytes.NewReader(b)))
+dec.SetRegistry(reg)
+err = dec.Decode(&doc)
+if err != nil {
+	panic(err)
+}
+fmt.Printf("%+v\n", doc)
+// Output: {IsOK:true}
+```
+
+#### SetContext
+
+The `SetContext` method has been removed in favor of using `SetRegistry` to set the registry of a decoder.
+
+#### SetRegistry
+
+The signature of `SetRegistry` has been updated without an error being returned.
+
+#### Reset
+
+The signature of `Reset` has been updated without an error being returned.
+
+#### DefaultDocumentD / DefaultDocumentM
+
+`Decoder.DefaultDocumentD` has been removed since a document, including a top-level value (e.g. you pass in an empty interface value to Decode), is always decoded into a `bson.D` by default. Therefore, use `Decoder.DefaultDocumentM` to always decode a document into a `bson.M` to avoid unexpected decode results.
+
+#### ObjectIDAsHexString
+
+`Decoder.ObjectIDAsHexString` method enables decoding a BSON Object ID as a hexadecimal string. Otherwise, the decoder returns an error by default instead of decoding as the UTF-8 representation of the raw Object ID bytes, which results in a garbled and unusable string.
+
+### Encoder
+
+#### NewEncoder
+
+The signature of `NewEncoder` has been updated without an error being returned.
+
+#### NewEncoderWithContext
+
+`NewEncoderWithContext` has been removed in favor of using the `SetRegistry` method to set a registry.
+
+Correspondingly, the following methods have been removed:
+- `MarshalWithRegistry`
+- `MarshalWithContext`
+- `MarshalAppend`
+- `MarshalAppendWithRegistry`
+- `MarshalAppendWithContext`
+- `MarshalValueWithRegistry`
+- `MarshalValueWithContext`
+- `MarshalValueAppendWithRegistry`
+- `MarshalValueAppendWithContext`
+- `MarshalExtJSONWithRegistry`
+- `MarshalExtJSONWithContext`
+- `MarshalExtJSONAppendWithRegistry`
+- `MarshalExtJSONAppendWithContext`
+
+Here is an example of a registry that multiplies the input value by -1 when encoding for a `negatedInt.`
+
+```go
+type negatedInt int
+
+negatedIntType := reflect.TypeOf(negatedInt(0))
+
+negatedIntEncoder := func(
+	ec bsoncodec.EncodeContext,
+	vw bsonrw.ValueWriter,
+	val reflect.Value,
+) error {
+	// All encoder implementations should check that val is valid and is of
+	// the correct type before proceeding.
+	if !val.IsValid() || val.Type() != negatedIntType {
+		return bsoncodec.ValueEncoderError{
+			Name:     "negatedIntEncoder",
+			Types:    []reflect.Type{negatedIntType},
+			Received: val,
+		}
+	}
+
+	// Negate val and encode as a BSON int32 if it can fit in 32 bits and a
+	// BSON int64 otherwise.
+	negatedVal := val.Int() * -1
+	if math.MinInt32 <= negatedVal && negatedVal <= math.MaxInt32 {
+		return vw.WriteInt32(int32(negatedVal))
+	}
+	return vw.WriteInt64(negatedVal)
+}
+
+// Create the registry.
+reg := bson.NewRegistry()
+reg.RegisterTypeEncoder(
+	negatedIntType,
+	bsoncodec.ValueEncoderFunc(negatedIntEncoder))
+```
+
+Encode by creating a custom encoder with the registry:
+
+```go
+// v1
+// Use MarshalWithRegistry
+
+b, err := bson.MarshalWithRegistry(reg, bson.D{{"negatedInt", negatedInt(1)}})
+if err != nil {
+	panic(err)
+}
+fmt.Println(bson.Raw(b).String())
+// Output: {"negatedint": {"$numberInt":"-1"}}
+```
+
+```go
+// v1
+// Use NewEncoderWithContext
+
+buf := new(bytes.Buffer)
+vw, err := bsonrw.NewBSONValueWriter(buf)
+if err != nil {
+	panic(err)
+}
+ec := bsoncodec.EncodeContext{Registry: reg}
+enc, err := bson.NewEncoderWithContext(ec, vw)
+if err != nil {
+	panic(err)
+}
+err = enc.Encode(bson.D{{"negatedInt", negatedInt(1)}})
+if err != nil {
+	panic(err)
+}
+fmt.Println(bson.Raw(buf.Bytes()).String())
+// Output: {"negatedint": {"$numberInt":"-1"}}
+```
+
+```go
+// v2
+// Use SetRegistry
+
+buf := new(bytes.Buffer)
+vw := bson.NewDocumentWriter(buf)
+enc := bson.NewEncoder(vw)
+enc.SetRegistry(reg)
+err := enc.Encode(bson.D{{"negatedInt", negatedInt(1)}})
+if err != nil {
+	panic(err)
+}
+fmt.Println(bson.Raw(buf.Bytes()).String())
+// Output: {"negatedint": {"$numberInt":"-1"}}
+```
+
+#### SetContext
+
+The `SetContext` method has been removed in favor of using `SetRegistry` to set the registry of an encoder.
+
+#### SetRegistry
+
+The signature of `SetRegistry` has been updated without an error being returned.
+
+#### Reset
+
+The signature of `Reset` has been updated without an error being returned.
+
+### RawArray Type
+
+A new `RawArray` type has been added to the `bson` package as a primitive type to ​​represent a BSON array. Correspondingly, `RawValue.Array()` returns a `RawArray` instead of `Raw`.
+
+### ValueMarshaler
+
+The `MarshalBSONValue` method of the `ValueMarshaler` interface is only required to return a byte type value representing the BSON type to avoid importing the Go driver package.
+
+### ValueUnmarshaler
+
+The `UnmarshalBSONValue` method of the `ValueUnmarshaler` interface is only required to take a byte type argument representing the BSON type to avoid importing the Go driver package.
