@@ -513,7 +513,7 @@ The following fields were removed because they are no longer supported by the se
 
 ### Options
 
-The Go driver offers users the ability to pass multiple options objects to operations in a last-on-wins algorithm, merging data at a field level:
+The Go Driver offers users the ability to pass multiple options objects to operations in a last-on-wins algorithm, merging data at a field level:
 
 ```pseudo
 function MergeOptions(target, optionsList):
