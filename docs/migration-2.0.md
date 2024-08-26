@@ -634,7 +634,7 @@ The following types are not valid for a `findOne` operation and have been remove
 
 ### Merge\*Options
 
-All functions that merge options have been removed in favor of a generic solution. See [GODRIVER-2696 ](https://jira.mongodb.org/browse/GODRIVER-2696)for more information.
+All functions that merge options have been removed in favor of a generic solution. See [GODRIVER-2696](https://jira.mongodb.org/browse/GODRIVER-2696) for more information.
 
 ### MaxTime
 
