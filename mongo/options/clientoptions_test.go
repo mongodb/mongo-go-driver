@@ -26,6 +26,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/httputil"
 	"go.mongodb.org/mongo-driver/v2/internal/ptrutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
@@ -403,6 +404,14 @@ func TestClientOptions(t *testing.T) {
 				err: fmt.Errorf("cannot set both OIDCMachineCallback and OIDCHumanCallback, only one may be specified"),
 			},
 			{
+				name: "cannot set ALLOWED_HOSTS without OIDCHumanCallback",
+				opts: Client().SetAuth(Credential{AuthMechanism: "MONGODB-OIDC",
+					OIDCMachineCallback:     emptyCb,
+					AuthMechanismProperties: map[string]string{"ALLOWED_HOSTS": "www.example.com"},
+				}),
+				err: fmt.Errorf("Cannot specify ALLOWED_HOSTS without an OIDCHumanCallback"),
+			},
+			{
 				name: "cannot set OIDCMachineCallback in GCP Environment",
 				opts: Client().SetAuth(Credential{
 					AuthMechanism:           "MONGODB-OIDC",
@@ -486,6 +495,14 @@ func TestClientOptions(t *testing.T) {
 				opts: Client().SetAuth(Credential{AuthMechanism: "MONGODB-OIDC",
 					OIDCMachineCallback: emptyCb, OIDCHumanCallback: emptyCb}),
 				err: fmt.Errorf("cannot set both OIDCMachineCallback and OIDCHumanCallback, only one may be specified"),
+			},
+			{
+				name: "cannot set ALLOWED_HOSTS without OIDCHumanCallback",
+				opts: Client().SetAuth(Credential{AuthMechanism: "MONGODB-OIDC",
+					OIDCMachineCallback:     emptyCb,
+					AuthMechanismProperties: map[string]string{"ALLOWED_HOSTS": "www.example.com"},
+				}),
+				err: fmt.Errorf("Cannot specify ALLOWED_HOSTS without an OIDCHumanCallback"),
 			},
 			{
 				name: "cannot set OIDCMachineCallback in GCP Environment",
@@ -1246,6 +1263,48 @@ func TestSetURIopts(t *testing.T) {
 				TLSConfig: &tls.Config{Certificates: make([]tls.Certificate, 1)},
 			},
 			wantErrs: nil,
+		},
+		{
+			name: "ALLOWED_HOSTS cannot be specified in URI connection",
+			uri:  "mongodb://localhost/?authMechanism=MONGODB-OIDC&authMechanismProperties=ALLOWED_HOSTS:example.com",
+			wantopts: &ClientOptions{
+				HTTPClient: httputil.DefaultHTTPClient,
+			},
+			wantErrs: []error{
+				errors.New(`error validating uri: ALLOWED_HOSTS cannot be specified in the URI connection string for the "MONGODB-OIDC" auth mechanism, it must be specified through the ClientOptions directly`),
+			},
+		},
+		{
+			name: "colon in TOKEN_RESOURCE works as expected",
+			uri:  "mongodb://example.com/?authMechanism=MONGODB-OIDC&authMechanismProperties=TOKEN_RESOURCE:mongodb://test-cluster",
+			wantopts: &ClientOptions{
+				Hosts:      []string{"example.com"},
+				Auth:       &Credential{AuthMechanism: "MONGODB-OIDC", AuthSource: "$external", AuthMechanismProperties: map[string]string{"TOKEN_RESOURCE": "mongodb://test-cluster"}},
+				HTTPClient: httputil.DefaultHTTPClient,
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "tmp",
+			uri:  "mongodb://example.com/?authMechanism=MONGODB-OIDC&authMechanismProperties=TOKEN_RESOURCE:mongodb://test-cluster,ENVIRONMENT:azureManagedIdentities",
+			wantopts: &ClientOptions{
+				Hosts: []string{"example.com"},
+				Auth: &Credential{AuthMechanism: "MONGODB-OIDC", AuthSource: "$external", AuthMechanismProperties: map[string]string{
+					"ENVIRONMENT":    "azureManagedIdentities",
+					"TOKEN_RESOURCE": "mongodb://test-cluster"}},
+				HTTPClient: httputil.DefaultHTTPClient,
+			},
+			wantErrs: nil,
+		},
+		{
+			name: "comma in key:value pair causes error",
+			uri:  "mongodb://example.com/?authMechanismProperties=TOKEN_RESOURCE:mongodb://host1%2Chost2",
+			wantopts: &ClientOptions{
+				HTTPClient: httputil.DefaultHTTPClient,
+			},
+			wantErrs: []error{
+				errors.New(`rror parsing uri: invalid authMechanism property`),
+			},
 		},
 	}
 
