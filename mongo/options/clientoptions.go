@@ -369,6 +369,9 @@ func (c *ClientOptions) validate() error {
 		if c.Auth.OIDCMachineCallback != nil && c.Auth.OIDCHumanCallback != nil {
 			return fmt.Errorf("cannot set both OIDCMachineCallback and OIDCHumanCallback, only one may be specified")
 		}
+		if c.Auth.OIDCHumanCallback == nil && c.Auth.AuthMechanismProperties[auth.AllowedHostsProp] != "" {
+			return fmt.Errorf("Cannot specify ALLOWED_HOSTS without an OIDCHumanCallback")
+		}
 		if env, ok := c.Auth.AuthMechanismProperties[auth.EnvironmentProp]; ok {
 			switch env {
 			case auth.GCPEnvironmentValue, auth.AzureEnvironmentValue:

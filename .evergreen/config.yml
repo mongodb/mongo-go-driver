@@ -1963,11 +1963,11 @@ tasks:
             popd
             ./.evergreen/run-deployed-lambda-aws-tests.sh
 
-  - name: "oidc-auth-test-latest"
+  - name: "oidc-auth-test"
     commands:
       - func: "run-oidc-auth-test-with-test-credentials"
 
-  - name: "oidc-auth-test-azure-latest"
+  - name: "oidc-auth-test-azure"
     commands:
     - command: shell.exec
       params:
@@ -1992,7 +1992,7 @@ tasks:
           export AZUREOIDC_TEST_CMD="PROJECT_DIRECTORY='.' OIDC_ENV=azure OIDC=oidc ./etc/run-oidc-test.sh ./test"
           bash $DRIVERS_TOOLS/.evergreen/auth_oidc/azure/run-driver-test.sh
 
-  - name: "oidc-auth-test-gcp-latest"
+  - name: "oidc-auth-test-gcp"
     commands:
     - command: shell.exec
       params:
@@ -2306,13 +2306,14 @@ task_groups:
       - func: fix-absolute-paths
       - func: make-files-executable
       - func: assume-ec2-role
-      - command: shell.exec
+      - command: subprocess.exec
         params:
-          shell: bash
+          binary: bash
           include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
-          script: |
-            ${PREPARE_SHELL}
-            ${DRIVERS_TOOLS}/.evergreen/auth_oidc/setup.sh
+          env:
+            MONGODB_VERSION: "8.0"
+          args:
+            - ${DRIVERS_TOOLS}/.evergreen/auth_oidc/setup.sh
     teardown_task:
       - command: subprocess.exec
         params:
@@ -2322,7 +2323,7 @@ task_groups:
     setup_group_can_fail_task: true
     setup_group_timeout_secs: 1800
     tasks:
-      - oidc-auth-test-latest
+      - oidc-auth-test
 
   - name: testazureoidc_task_group
     setup_group:
@@ -2346,7 +2347,7 @@ task_groups:
     setup_group_can_fail_task: true
     setup_group_timeout_secs: 1800
     tasks:
-      - oidc-auth-test-azure-latest
+      - oidc-auth-test-azure
 
   - name: testgcpoidc_task_group
     setup_group:
@@ -2370,7 +2371,7 @@ task_groups:
     setup_group_can_fail_task: true
     setup_group_timeout_secs: 1800
     tasks:
-      - oidc-auth-test-gcp-latest
+      - oidc-auth-test-gcp
 
   - name: test-aws-lambda-task-group
     setup_group:
