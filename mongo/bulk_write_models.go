@@ -125,6 +125,7 @@ type ReplaceOneModel struct {
 	Filter      interface{}
 	Replacement interface{}
 	Hint        interface{}
+	Sort        interface{}
 }
 
 // NewReplaceOneModel creates a new ReplaceOneModel.
@@ -183,6 +184,7 @@ type UpdateOneModel struct {
 	Update       interface{}
 	ArrayFilters *options.ArrayFilters
 	Hint         interface{}
+	Sort         interface{}
 }
 
 // NewUpdateOneModel creates a new UpdateOneModel.
