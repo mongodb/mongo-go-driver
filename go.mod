@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/davecgh/go-spew v1.1.1
-	github.com/golang/snappy v0.0.1
+	github.com/golang/snappy v0.0.4
 	github.com/google/go-cmp v0.5.2
 	github.com/klauspost/compress v1.13.6
 	github.com/xdg-go/scram v1.1.2
