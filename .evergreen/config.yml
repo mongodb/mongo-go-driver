@@ -418,6 +418,14 @@ functions:
           export SCRIPT="$DRIVERS_TOOLS/.evergreen/github_app/assign-reviewer.sh"
           bash $SCRIPT -p $CONFIG -h ${github_commit} -o "mongodb" -n "mongo-go-driver"
 
+  "backport pr":
+    - command: subprocess.exec
+      type: test
+      params:
+        binary: bash
+        args:
+          - ${DRIVERS}/.evergreen/github_app/backport-pr.sh mongodb mongo-go-driver ${github_commit}
+
   send-perf-data:
     - command: perf.send
       params:
@@ -908,6 +916,11 @@ tasks:
       - func: "add PR reviewer"  
       - func: "add PR labels"
       - func: "create-api-report"
+
+  - name: backport-pr
+    allowed_requesters: ["commit"]
+    commands:
+      - func: "backport pr"  
 
   - name: perf
     tags: ["performance"]
@@ -2486,6 +2499,13 @@ buildvariants:
       GO_DIST: "/opt/golang/go1.20"
     tasks:
       - name: ".compile-check"
+
+  - name: backport-pr
+    display_name: "Backport PR"
+    run_on:
+      - rhel8.7-large
+    tasks: 
+      - name: "backport-pr"
 
   - name: atlas-test
     tags: ["pullrequest"]
