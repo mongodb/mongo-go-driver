@@ -871,7 +871,7 @@ Correspondingly, the following methods have been removed:
 - `UnmarshalExtJSONWithRegistry`
 - `UnmarshalExtJSONWithContext`
 
-For example, a boolean type can be stored in the database as a BSON boolean or 32/64-bit integer Given a registry:
+For example, a boolean type can be stored in the database as a BSON boolean or 32/64-bit integer. Given a registry:
 
 ```go
 type lenientBool bool
