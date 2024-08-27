@@ -84,11 +84,11 @@ func convertOIDCArgs(args *driver.OIDCArgs) *options.OIDCArgs {
 	}
 }
 
-// NewAuthenticator returns a [driver.Authenticator] configured with the given
-// credential and HTTP client. It returns nil if cred is nil.
-func NewAuthenticator(cred *options.Credential, httpClient *http.Client) (driver.Authenticator, error) {
+// ConvertCreds takes an [options.Credential] and returns the equivalent
+// [driver.Cred].
+func ConvertCreds(cred *options.Credential) *driver.Cred {
 	if cred == nil {
-		return nil, nil
+		return nil
 	}
 
 	var oidcMachineCallback auth.OIDCCallback
@@ -107,27 +107,31 @@ func NewAuthenticator(cred *options.Credential, httpClient *http.Client) (driver
 		}
 	}
 
-	// Create an authenticator for the client
-	return auth.CreateAuthenticator(
-		cred.AuthMechanism,
-		&auth.Cred{
-			Source:              cred.AuthSource,
-			Username:            cred.Username,
-			Password:            cred.Password,
-			PasswordSet:         cred.PasswordSet,
-			Props:               cred.AuthMechanismProperties,
-			OIDCMachineCallback: oidcMachineCallback,
-			OIDCHumanCallback:   oidcHumanCallback,
-		},
-		httpClient)
+	return &auth.Cred{
+		Source:              cred.AuthSource,
+		Username:            cred.Username,
+		Password:            cred.Password,
+		PasswordSet:         cred.PasswordSet,
+		Props:               cred.AuthMechanismProperties,
+		OIDCMachineCallback: oidcMachineCallback,
+		OIDCHumanCallback:   oidcHumanCallback,
+	}
 }
 
 // NewConfig will translate data from client options into a topology config for
 // building non-default deployments.
 func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config, error) {
-	authenticator, err := NewAuthenticator(co.Auth, co.HTTPClient)
-	if err != nil {
-		return nil, fmt.Errorf("error creating authenticator: %w", err)
+	var authenticator driver.Authenticator
+	var err error
+	if co.Auth != nil {
+		authenticator, err = auth.CreateAuthenticator(
+			co.Auth.AuthMechanism,
+			ConvertCreds(co.Auth),
+			co.HTTPClient,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error creating authenticator: %w", err)
+		}
 	}
 	return NewConfigWithAuthenticator(co, clock, authenticator)
 }

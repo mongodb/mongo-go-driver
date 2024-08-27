@@ -21,7 +21,7 @@ import (
 const MongoDBAWS = "MONGODB-AWS"
 
 func newMongoDBAWSAuthenticator(cred *Cred, httpClient *http.Client) (Authenticator, error) {
-	if cred.Source != "" && cred.Source != "$external" {
+	if cred.Source != "" && cred.Source != sourceExternal {
 		return nil, newAuthError("MONGODB-AWS source must be empty or $external", nil)
 	}
 	if httpClient == nil {
@@ -53,7 +53,7 @@ func (a *MongoDBAWSAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 			credentials: providers.Cred,
 		},
 	}
-	err := ConductSaslConversation(ctx, cfg, "$external", adapter)
+	err := ConductSaslConversation(ctx, cfg, sourceExternal, adapter)
 	if err != nil {
 		return newAuthError("sasl conversation error", err)
 	}

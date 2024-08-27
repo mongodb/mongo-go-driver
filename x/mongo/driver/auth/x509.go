@@ -69,7 +69,7 @@ func (a *MongoDBX509Authenticator) Auth(ctx context.Context, cfg *Config) error 
 	requestDoc := createFirstX509Message()
 	authCmd := operation.
 		NewCommand(requestDoc).
-		Database("$external").
+		Database(sourceExternal).
 		Deployment(driver.SingleConnectionDeployment{cfg.Connection}).
 		ClusterClock(cfg.ClusterClock).
 		ServerAPI(cfg.ServerAPI)

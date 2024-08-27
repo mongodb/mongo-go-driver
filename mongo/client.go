@@ -26,6 +26,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt"
 	mcopts "go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt/options"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
@@ -210,9 +211,15 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 		clientOpt.SetMaxPoolSize(defaultMaxPoolSize)
 	}
 
-	client.authenticator, err = topology.NewAuthenticator(clientOpt.Auth, clientOpt.HTTPClient)
-	if err != nil {
-		return nil, fmt.Errorf("error creating authenticator: %w", err)
+	if clientOpt.Auth != nil {
+		client.authenticator, err = auth.CreateAuthenticator(
+			clientOpt.Auth.AuthMechanism,
+			topology.ConvertCreds(clientOpt.Auth),
+			clientOpt.HTTPClient,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error creating authenticator: %w", err)
+		}
 	}
 
 	cfg, err := topology.NewConfigWithAuthenticator(clientOpt, client.clock, client.authenticator)

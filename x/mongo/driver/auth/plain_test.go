@@ -25,7 +25,6 @@ func TestPlainAuthenticator_Fails(t *testing.T) {
 	authenticator := PlainAuthenticator{
 		Username: "user",
 		Password: "pencil",
-		Source:   "$external",
 	}
 
 	resps := make(chan []byte, 1)
@@ -65,7 +64,6 @@ func TestPlainAuthenticator_Extra_server_message(t *testing.T) {
 	authenticator := PlainAuthenticator{
 		Username: "user",
 		Password: "pencil",
-		Source:   "$external",
 	}
 
 	resps := make(chan []byte, 2)
@@ -109,7 +107,6 @@ func TestPlainAuthenticator_Succeeds(t *testing.T) {
 	authenticator := PlainAuthenticator{
 		Username: "user",
 		Password: "pencil",
-		Source:   "$external",
 	}
 
 	resps := make(chan []byte, 1)
@@ -155,7 +152,6 @@ func TestPlainAuthenticator_SucceedsBoolean(t *testing.T) {
 	authenticator := PlainAuthenticator{
 		Username: "user",
 		Password: "pencil",
-		Source:   "$external",
 	}
 
 	resps := make(chan []byte, 1)
