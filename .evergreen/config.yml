@@ -141,61 +141,28 @@ functions:
         script: |
           ${PREPARE_SHELL}
           rm -rf $DRIVERS_TOOLS
-          if [ "${project}" = "drivers-tools" ]; then
-            # If this was a patch build, doing a fresh clone would not actually test the patch
-            cp -R ${PROJECT_DIRECTORY}/ $DRIVERS_TOOLS
-          else
-            git clone https://github.com/mongodb-labs/drivers-evergreen-tools.git $DRIVERS_TOOLS
-          fi
-          echo "{ \"releases\": { \"default\": \"$MONGODB_BINARIES\" }}" > $MONGO_ORCHESTRATION_HOME/orchestration.config
-    - command: shell.exec
+          git clone https://github.com/mongodb-labs/drivers-evergreen-tools.git $DRIVERS_TOOLS
+    - command: subprocess.exec
       params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
-        script: |
-          ${PREPARE_SHELL}
-
-          # initialize submodules
-          git submodule init
-          git submodule update
-    - command: shell.exec
-      params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
-        script: |
-          . ${DRIVERS_TOOLS}/.evergreen/venv-utils.sh
-          . ${DRIVERS_TOOLS}/.evergreen/find-python3.sh
-
-          export PYTHON3_BINARY="$(find_python3 2>/dev/null)"
-          venvcreate "$PYTHON3_BINARY" venv
-
-          echo "PYTHON3_BINARY: $PYTHON3_BINARY" >>expansion.yml
-    # Load the expansion file to make an evergreen variable with the current unique version
-    - command: expansions.update
-      params:
-        file: src/go.mongodb.org/mongo-driver/expansion.yml
+        binary: "bash"
+        args:
+          - ${DRIVERS_TOOLS}/.evergreen/setup.sh
 
   handle-test-artifacts:
     - command: gotest.parse_files
       params:
         files:
           - "src/go.mongodb.org/mongo-driver/*.suite"
-    - command: shell.exec
-      params:
-        shell: "bash"
-        script: |
-          ${PREPARE_SHELL}
-          find $MONGO_ORCHESTRATION_HOME -name \*.log | xargs tar czf mongodb-logs.tar.gz
     - command: s3.put
       params:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
-        local_file: mongodb-logs.tar.gz
-        remote_file: ${UPLOAD_BUCKET}/${build_variant}/${revision}/${version_id}/${build_id}/logs/${task_id}-${execution}-mongodb-logs.tar.gz
+        local_file: ${DRIVERS_TOOLS}/.evergreen/test_logs.tar.gz
+        remote_file: ${UPLOAD_BUCKET}/${build_variant}/${revision}/${version_id}/${build_id}/logs/${task_id}-${execution}-drivers-tools-logs.tar.gz
         bucket: mciuploads
         permissions: public-read
         content_type: ${content_type|application/x-gzip}
-        display_name: "mongodb-logs.tar.gz"
+        display_name: "drivers-tools-logs.tar.gz"
     - command: s3.put
       params:
         aws_key: ${aws_key}
@@ -275,74 +242,23 @@ functions:
       params:
         file: mo-expansion.yml
 
-  cleanup:
-    - command: shell.exec
+  teardown:
+    - command: subprocess.exec
       params:
-        shell: "bash"
-        script: |
+        binary: "bash"
+        args: 
           # Ensure the instance profile is reassigned for aws tests.
-          cd "${DRIVERS_TOOLS}/.evergreen/auth_aws"
-          if [ -f "./aws_e2e_setup.json" ]; then
-            . ./activate-authawsvenv.sh
-            python ./lib/aws_assign_instance_profile.py
-          fi
-    - command: shell.exec
+          - ${DRIVERS_TOOLS}/.evergreen/auth_aws/teardown.sh
+    - command: subprocess.exec
       params:
-        shell: "bash"
-        script: |
-          # Attempt to shut down a running load balancer. Ignore any errors that happen if the load
-          # balancer is not running.
-          DRIVERS_TOOLS=${DRIVERS_TOOLS} MONGODB_URI=${MONGODB_URI} bash ${DRIVERS_TOOLS}/.evergreen/run-load-balancer.sh stop || echo "Ignoring load balancer stop error"
-    - command: shell.exec
+        binary: "bash"
+        args: 
+          - ${DRIVERS_TOOLS}/.evergreen/csfle/teardown.sh
+    - command: subprocess.exec
       params:
-        shell: "bash"
-        script: |
-          ${PREPARE_SHELL}
-          # Clean up cse servers
-          bash ${DRIVERS_TOOLS}/.evergreen/csfle/stop-servers.sh
-    - command: shell.exec
-      params:
-        shell: "bash"
-        script: |
-          ${PREPARE_SHELL}
-          # Stop orchestration and remove drivers tools.
-          bash ${DRIVERS_TOOLS}/.evergreen/stop-orchestration.sh
-          cd -
-          rm -rf $DRIVERS_TOOLS || true
-
-
-  fix-absolute-paths:
-    - command: shell.exec
-      params:
-        shell: "bash"
-        script: |
-          ${PREPARE_SHELL}
-          for filename in $(find ${DRIVERS_TOOLS} -name \*.json); do
-            perl -p -i -e "s|ABSOLUTE_PATH_REPLACEMENT_TOKEN|${DRIVERS_TOOLS}|g" $filename
-          done
-
-  windows-fix:
-    - command: shell.exec
-      params:
-        shell: "bash"
-        script: |
-          ${PREPARE_SHELL}
-          for i in $(find ${DRIVERS_TOOLS}/.evergreen ${PROJECT_DIRECTORY} -name \*.sh); do
-            cat $i | tr -d '\r' > $i.new
-            mv $i.new $i
-          done
-          # Copy client certificate because symlinks do not work on Windows. Ignore any copy errors.
-          cp ${DRIVERS_TOOLS}/.evergreen/x509gen/client.pem ${MONGO_ORCHESTRATION_HOME}/lib/client.pem || echo "Ignoring copy error"
-
-  make-files-executable:
-    - command: shell.exec
-      params:
-        shell: "bash"
-        script: |
-          ${PREPARE_SHELL}
-          for i in $(find ${DRIVERS_TOOLS}/.evergreen ${PROJECT_DIRECTORY} -name \*.sh); do
-            chmod +x $i
-          done
+        binary: "bash"
+        args: 
+          - ${DRIVERS_TOOLS}/.evergreen/teardown.sh
 
   assume-ec2-role:
     - command: ec2.assume_role
@@ -883,13 +799,10 @@ functions:
 pre:
   - func: fetch-source
   - func: prepare-resources
-  - func: windows-fix
-  - func: fix-absolute-paths
-  - func: make-files-executable
 
 post:
+  - func: teardown
   - func: handle-test-artifacts
-  - func: cleanup
 
 tasks:
   - name: static-analysis
@@ -2175,16 +2088,12 @@ task_groups:
     setup_group:
       - func: fetch-source
       - func: prepare-resources
-      - func: fix-absolute-paths
-      - func: make-files-executable
       - func: start-cse-servers
-      - command: shell.exec
+      - command: subprocess.exec
         params:
-          shell: "bash"
-          script: |
-            ${PREPARE_SHELL}
-            bash ${DRIVERS_TOOLS}/.evergreen/serverless/setup-secrets.sh ${VAULT_NAME}
-            bash ${DRIVERS_TOOLS}/.evergreen/serverless/create-instance.sh
+          binary: "bash"
+          args: 
+            - ${DRIVERS_TOOLS}/.evergreen/serverless/setup.sh
       - command: expansions.update
         params:
           file: serverless-expansion.yml
@@ -2215,14 +2124,14 @@ task_groups:
           file: crypt-expansion.yml
 
     teardown_group:
-      - command: shell.exec
+      - command: subprocess.exec
         params:
-          shell: "bash"
-          script: |
-            ${PREPARE_SHELL}
-            bash ${DRIVERS_TOOLS}/.evergreen/serverless/delete-instance.sh
+          binary: "bash"
+          args:
+            - ${DRIVERS_TOOLS}/.evergreen/serverless/teardown.sh
+      - func: teardown
       - func: handle-test-artifacts
-      - func: cleanup
+      
     tasks:
       - ".serverless"
 
@@ -2232,27 +2141,19 @@ task_groups:
     setup_group:
       - func: fetch-source
       - func: prepare-resources
-      - func: fix-absolute-paths
-      - func: make-files-executable
-      - command: shell.exec
+      - command: subprocess.exec
         params:
-          shell: "bash"
-          script: |
-            ${PREPARE_SHELL}
-            $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/create-and-setup-instance.sh
-      # Load the GCPKMS_GCLOUD, GCPKMS_INSTANCE, GCPKMS_REGION, and GCPKMS_ZONE expansions.
-      - command: expansions.update
-        params:
-          file: testgcpkms-expansions.yml
+          binary: "bash"
+          args: 
+            - ${DRIVERS_TOOLS}/.evergreen/csfle/gcpkms/setup.sh
     teardown_group:
-      - command: shell.exec
+      - command: subprocess.exec
         params:
-          shell: "bash"
-          script: |
-            ${PREPARE_SHELL}
-            $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/delete-instance.sh
+          binary: "bash"
+          args: 
+            - ${DRIVERS_TOOLS}/.evergreen/csfle/gcpkms/teardown.sh
+      - func: teardown
       - func: handle-test-artifacts
-      - func: cleanup
     tasks:
       - testgcpkms-task
 
@@ -2263,8 +2164,6 @@ task_groups:
     setup_group:
       - func: fetch-source
       - func: prepare-resources
-      - func: fix-absolute-paths
-      - func: make-files-executable
       - command: shell.exec
         params:
           shell: "bash"
@@ -2275,24 +2174,15 @@ task_groups:
             # Get azurekms credentials from the vault.
             . ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/setup-secrets.sh
             ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/create-and-setup-vm.sh
-      - command: expansions.update
-        params:
-          file: testazurekms-expansions.yml
     teardown_group:
-      # setup_group may have failed before updating expansions. Try to update again to clean up resources on setup failure.
-      - command: expansions.update
+      - command: subprocess.exec
         params:
-          file: testazurekms-expansions.yml
-      - command: shell.exec
-        params:
-          shell: "bash"
-          script: |
-            ${PREPARE_SHELL}
-            export AZUREKMS_SCOPE=${AZUREKMS_SCOPE}
-            export AZUREKMS_RESOURCEGROUP=${AZUREKMS_RESOURCEGROUP}
-            $DRIVERS_TOOLS/.evergreen/csfle/azurekms/delete-vm.sh
+          binary: "bash"
+          args: 
+           - ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/teardown.sh
+      - func: teardown
       - func: handle-test-artifacts
-      - func: cleanup
+      
     tasks:
       - testazurekms-task
 
@@ -2300,22 +2190,21 @@ task_groups:
     setup_group:
       - func: fetch-source
       - func: prepare-resources
-      - func: fix-absolute-paths
-      - func: make-files-executable
       - func: assume-ec2-role
-      - command: shell.exec
+      - command: subprocess.exec
         params:
-          shell: bash
+          binary: bash
           include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
-          script: |
-            ${PREPARE_SHELL}
-            ${DRIVERS_TOOLS}/.evergreen/auth_oidc/setup.sh
+          args:
+            - ${DRIVERS_TOOLS}/.evergreen/auth_oidc/setup.sh
     teardown_task:
       - command: subprocess.exec
         params:
           binary: bash
           args:
             - ${DRIVERS_TOOLS}/.evergreen/auth_oidc/teardown.sh
+      - func: teardown
+      - func: handle-test-artifacts
     setup_group_can_fail_task: true
     setup_group_timeout_secs: 1800
     tasks:
@@ -2325,21 +2214,21 @@ task_groups:
     setup_group:
       - func: fetch-source
       - func: prepare-resources
-      - func: fix-absolute-paths
-      - func: make-files-executable
       - command: subprocess.exec
         params:
           binary: bash
           env:
             AZUREOIDC_VMNAME_PREFIX: "GO_DRIVER"
           args:
-            - ${DRIVERS_TOOLS}/.evergreen/auth_oidc/azure/create-and-setup-vm.sh
+            - ${DRIVERS_TOOLS}/.evergreen/auth_oidc/azure/setup.sh
     teardown_task:
       - command: subprocess.exec
         params:
           binary: bash
           args:
-            - ${DRIVERS_TOOLS}/.evergreen/auth_oidc/azure/delete-vm.sh
+            - ${DRIVERS_TOOLS}/.evergreen/auth_oidc/azure/teardown.sh
+      - func: teardown
+      - func: handle-test-artifacts
     setup_group_can_fail_task: true
     setup_group_timeout_secs: 1800
     tasks:
@@ -2349,8 +2238,6 @@ task_groups:
     setup_group:
       - func: fetch-source
       - func: prepare-resources
-      - func: fix-absolute-paths
-      - func: make-files-executable
       - command: subprocess.exec
         params:
           binary: bash
@@ -2364,6 +2251,8 @@ task_groups:
           binary: bash
           args:
             - ${DRIVERS_TOOLS}/.evergreen/auth_oidc/gcp/teardown.sh
+      - func: teardown
+      - func: handle-test-artifacts
     setup_group_can_fail_task: true
     setup_group_timeout_secs: 1800
     tasks:
@@ -2379,11 +2268,8 @@ task_groups:
           binary: bash
           env:
             LAMBDA_STACK_NAME: dbx-go-lambda
-            AWS_REGION: us-east-1
-            task_id: ${task_id}
-            execution: ${execution}
           args:
-            - ${DRIVERS_TOOLS}/.evergreen/atlas/setup-atlas-cluster.sh
+            - ${DRIVERS_TOOLS}/.evergreen/atlas/setup.sh
     teardown_group:
       - command: subprocess.exec
         params:
@@ -2393,9 +2279,9 @@ task_groups:
             LAMBDA_STACK_NAME: dbx-go-lambda
             AWS_REGION: us-east-1
           args:
-            - ${DRIVERS_TOOLS}/.evergreen/atlas/teardown-atlas-cluster.sh
+            - ${DRIVERS_TOOLS}/.evergreen/atlas/teardown.sh
+      - func: teardown
       - func: handle-test-artifacts
-      - func: cleanup
     setup_group_can_fail_task: true
     setup_group_timeout_secs: 1800
     tasks:
@@ -2412,11 +2298,8 @@ task_groups:
           env:
             MONGODB_VERSION: "7.0"
             LAMBDA_STACK_NAME: dbx-go-lambda
-            AWS_REGION: us-east-1
-            task_id: ${task_id}
-            execution: ${execution}
           args:
-            - ${DRIVERS_TOOLS}/.evergreen/atlas/setup-atlas-cluster.sh
+            - ${DRIVERS_TOOLS}/.evergreen/atlas/setup.sh
       - command: expansions.update
         params:
           file: src/go.mongodb.org/mongo-driver/atlas-expansion.yml
@@ -2435,9 +2318,9 @@ task_groups:
           working_dir: src/go.mongodb.org/mongo-driver
           binary: bash
           args:
-            - ${DRIVERS_TOOLS}/.evergreen/atlas/teardown-atlas-cluster.sh
+            - ${DRIVERS_TOOLS}/.evergreen/atlas/teardown.sh
+      - func: teardown
       - func: handle-test-artifacts
-      - func: cleanup
     setup_group_can_fail_task: true
     setup_group_timeout_secs: 1800
     tasks:
