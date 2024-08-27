@@ -871,7 +871,7 @@ Correspondingly, the following methods have been removed:
 - `UnmarshalExtJSONWithRegistry`
 - `UnmarshalExtJSONWithContext`
 
-For example, a boolean type can be stored in the database as a BSON boolean, int32, or int64. Given a registry:
+For example, a boolean type can be stored in the database as a BSON boolean or 32/64-bit integer Given a registry:
 
 ```go
 type lenientBool bool
@@ -930,7 +930,7 @@ reg.RegisterTypeDecoder(
 	bsoncodec.ValueDecoderFunc(lenientBoolDecoder))
 ```
 
-For our custom decoder with such a registry, BSON int32 or int64 values are considered "true" if they are non-zero.
+For our custom decoder with such a registry, BSON 32/64-bit integer values are considered "true" if they are non-zero.
 
 ```go
 // v1
@@ -1035,7 +1035,7 @@ The signature of `Reset` has been updated without an error being returned.
 
 #### ObjectIDAsHexString
 
-`Decoder.ObjectIDAsHexString` method enables decoding a BSON Object ID as a hexadecimal string. Otherwise, the decoder returns an error by default instead of decoding as the UTF-8 representation of the raw Object ID bytes, which results in a garbled and unusable string.
+`Decoder.ObjectIDAsHexString` method enables decoding a BSON ObjectId as a hexadecimal string. Otherwise, the decoder returns an error by default instead of decoding as the UTF-8 representation of the raw ObjectId bytes, which results in a garbled and unusable string.
 
 ### Encoder
 
