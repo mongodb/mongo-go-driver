@@ -930,7 +930,7 @@ reg.RegisterTypeDecoder(
 	bsoncodec.ValueDecoderFunc(lenientBoolDecoder))
 ```
 
-For our custom decoder with such a registry, BSON 32/64-bit integer values are considered "true" if they are non-zero.
+For our custom decoder with such a registry, BSON 32/64-bit integer values are considered `true` if they are non-zero.
 
 ```go
 // v1
