@@ -145,6 +145,7 @@ functions:
     - command: subprocess.exec
       params:
         binary: "bash"
+        include_expansions_in_env: ["PROJECT_DIRECTORY"]
         args:
           - ${DRIVERS_TOOLS}/.evergreen/setup.sh
 
