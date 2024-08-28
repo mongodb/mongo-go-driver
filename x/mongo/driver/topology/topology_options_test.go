@@ -111,6 +111,7 @@ func TestTopologyNewConfig(t *testing.T) {
 // Test that convertOIDCArgs exhaustively copies all fields of a driver.OIDCArgs
 // into an options.OIDCArgs.
 func TestConvertOIDCArgs(t *testing.T) {
+	t.Parallel()
 	refreshToken := "test refresh token"
 
 	testCases := []struct {
