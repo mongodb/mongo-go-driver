@@ -109,6 +109,9 @@ func (oa *OIDCAuthenticator) SetAccessToken(accessToken string) {
 }
 
 func newOIDCAuthenticator(cred *Cred, httpClient *http.Client) (Authenticator, error) {
+	if cred.Source != "" && cred.Source != sourceExternal {
+		return nil, newAuthError("MONGODB-OIDC source must be empty or $external", nil)
+	}
 	if cred.Password != "" {
 		return nil, fmt.Errorf("password cannot be specified for %q", MongoDBOIDC)
 	}
@@ -445,7 +448,7 @@ func (oa *OIDCAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 	oa.mu.Unlock()
 
 	if cachedAccessToken != "" {
-		err = ConductSaslConversation(ctx, cfg, "$external", &oidcOneStep{
+		err = ConductSaslConversation(ctx, cfg, sourceExternal, &oidcOneStep{
 			userName:    oa.userName,
 			accessToken: cachedAccessToken,
 		})
@@ -505,7 +508,7 @@ func (oa *OIDCAuthenticator) doAuthHuman(ctx context.Context, cfg *Config, human
 		return ConductSaslConversation(
 			subCtx,
 			cfg,
-			"$external",
+			sourceExternal,
 			&oidcOneStep{accessToken: accessToken},
 		)
 	}
@@ -514,7 +517,7 @@ func (oa *OIDCAuthenticator) doAuthHuman(ctx context.Context, cfg *Config, human
 		conn: cfg.Connection,
 		oa:   oa,
 	}
-	return ConductSaslConversation(subCtx, cfg, "$external", ots)
+	return ConductSaslConversation(subCtx, cfg, sourceExternal, ots)
 }
 
 func (oa *OIDCAuthenticator) doAuthMachine(ctx context.Context, cfg *Config, machineCallback OIDCCallback) error {
@@ -535,7 +538,7 @@ func (oa *OIDCAuthenticator) doAuthMachine(ctx context.Context, cfg *Config, mac
 	return ConductSaslConversation(
 		ctx,
 		cfg,
-		"$external",
+		sourceExternal,
 		&oidcOneStep{accessToken: accessToken},
 	)
 }
@@ -549,5 +552,5 @@ func (oa *OIDCAuthenticator) CreateSpeculativeConversation() (SpeculativeConvers
 		return nil, nil // Skip speculative auth.
 	}
 
-	return newSaslConversation(&oidcOneStep{accessToken: accessToken}, "$external", true), nil
+	return newSaslConversation(&oidcOneStep{accessToken: accessToken}, sourceExternal, true), nil
 }

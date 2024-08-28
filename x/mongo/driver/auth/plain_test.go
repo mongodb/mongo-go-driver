@@ -8,10 +8,9 @@ package auth_test
 
 import (
 	"context"
+	"encoding/base64"
 	"strings"
 	"testing"
-
-	"encoding/base64"
 
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo/description"
