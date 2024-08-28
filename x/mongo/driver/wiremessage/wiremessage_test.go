@@ -176,6 +176,22 @@ func TestReadMsgSectionDocumentSequence(t *testing.T) {
 			wantOK:         false,
 		},
 		{
+			desc:           "incorrect size",
+			src:            []byte{3, 0, 0},
+			wantIdentifier: "",
+			wantDocs:       nil,
+			wantRem:        []byte{3, 0, 0},
+			wantOK:         false,
+		},
+		{
+			desc:           "insufficient size",
+			src:            []byte{4, 0, 0},
+			wantIdentifier: "",
+			wantDocs:       nil,
+			wantRem:        []byte{4, 0, 0},
+			wantOK:         false,
+		},
+		{
 			desc:           "nil",
 			src:            nil,
 			wantIdentifier: "",
