@@ -59,7 +59,7 @@ The type for `ServerConnectionID` has been changed to `*int64` to prevent an `in
 
 `Client.Connect()` has been removed in favor of `mongo.Connect()`. See the section on `NewClient` for more details.
 
-The `context.Context` parameter has been removed from `mongo.Connect()` since [deployment connector](https://github.com/mongodb/mongo-go-driver/blob/a76687682f080c9612295b646a00650d00dd16e1/x/mongo/driver/driver.go#L91) doesn’t accept a context, so the context passed to `mongo.Connect` doesn’t actually do anything.
+The `context.Context` parameter has been removed from `mongo.Connect()` because the [deployment connector](https://github.com/mongodb/mongo-go-driver/blob/a76687682f080c9612295b646a00650d00dd16e1/x/mongo/driver/driver.go#L91) doesn’t accept a context, meaning that the context passed to `mongo.Connect()` in previous versions didn't serve a purpose.
 
 #### UseSession\[WithOptions\]
 
