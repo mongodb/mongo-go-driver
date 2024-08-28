@@ -245,7 +245,7 @@ books := []book{
 
 #### ListCollectionSpecifications
 
-Updated to return a slice of structs instead of a slice of pointers.
+`ListCollectionSpecifications()` returns a slice of structs instead of a slice of pointers.
 
 ```go
 // v1
