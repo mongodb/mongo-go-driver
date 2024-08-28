@@ -10,7 +10,10 @@
 
 The MongoDB supported driver for Go.
 
-See [here](docs/migration-2.0.md) for the migration guide for upgrading from version 1.x to 2.0.
+See the following resources to learn more about upgrading from version 1.x to 2.0.:
+
+- [v2.0 Migration Guide](docs/migration-2.0.md)
+- [v2.0 What's New](https://www.mongodb.com/docs/drivers/go/upcoming/whats-new/#what-s-new-in-2.0)
 
 ## Requirements
 
