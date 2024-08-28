@@ -424,7 +424,7 @@ functions:
       params:
         binary: bash
         args:
-          - ${DRIVERS}/.evergreen/github_app/backport-pr.sh mongodb mongo-go-driver ${github_commit}
+          - ${DRIVERS_TOOLS}/.evergreen/github_app/backport-pr.sh mongodb mongo-go-driver ${github_commit}
 
   send-perf-data:
     - command: perf.send
