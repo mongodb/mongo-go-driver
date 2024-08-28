@@ -118,7 +118,7 @@ clonedColl := coll.Clone(options.Collection())
 
 #### Distinct
 
-As of v2, the Distinct collection method will return a struct that can be decoded, similar to `Collection.FindOne`. Instead of iterating through an untyped slice, users can decode same-type data using conventional Go syntax.
+The `Distinct()` collection method returns a struct that can be decoded, similar to `Collection.FindOne`. Instead of iterating through an untyped slice, users can decode same-type data using conventional Go syntax.
 
 If the data returned is not same-type (i.e. `name` is not always a string) a user can iterate through the result directly as a `bson.RawArray` type:
 
