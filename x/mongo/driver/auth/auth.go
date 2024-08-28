@@ -20,6 +20,11 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
+const sourceExternal = "$external"
+
+// Config contains the configuration for an Authenticator.
+type Config = driver.AuthConfig
+
 // AuthenticatorFactory constructs an authenticator.
 type AuthenticatorFactory func(*Cred, *http.Client) (Authenticator, error)
 

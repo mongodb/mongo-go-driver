@@ -8,6 +8,7 @@ package auth_test
 
 import (
 	"context"
+	"encoding/base64"
 	"strings"
 	"testing"
 

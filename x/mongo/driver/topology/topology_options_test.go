@@ -9,11 +9,14 @@ package topology
 import (
 	"fmt"
 	"net/url"
+	"reflect"
 	"testing"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 )
 
 func TestDirectConnectionFromConnString(t *testing.T) {
@@ -103,4 +106,78 @@ func TestTopologyNewConfig(t *testing.T) {
 		assert.Nil(t, err, "error constructing topology config: %v", err)
 		assert.Equal(t, []string{"localhost:27018"}, cfg.SeedList)
 	})
+}
+
+// Test that convertOIDCArgs exhaustively copies all fields of a driver.OIDCArgs
+// into an options.OIDCArgs.
+func TestConvertOIDCArgs(t *testing.T) {
+	t.Parallel()
+	refreshToken := "test refresh token"
+
+	testCases := []struct {
+		desc string
+		args *driver.OIDCArgs
+	}{
+		{
+			desc: "populated args",
+			args: &driver.OIDCArgs{
+				Version: 9,
+				IDPInfo: &driver.IDPInfo{
+					Issuer:        "test issuer",
+					ClientID:      "test client ID",
+					RequestScopes: []string{"test scope 1", "test scope 2"},
+				},
+				RefreshToken: &refreshToken,
+			},
+		},
+		{
+			desc: "nil",
+			args: nil,
+		},
+		{
+			desc: "nil IDPInfo and RefreshToken",
+			args: &driver.OIDCArgs{
+				Version:      9,
+				IDPInfo:      nil,
+				RefreshToken: nil,
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc // Capture range variable.
+
+		t.Run(tc.desc, func(t *testing.T) {
+			t.Parallel()
+
+			got := convertOIDCArgs(tc.args)
+
+			if tc.args == nil {
+				assert.Nil(t, got, "expected nil when input is nil")
+				return
+			}
+
+			require.Equal(t,
+				3,
+				reflect.ValueOf(*tc.args).NumField(),
+				"expected the driver.OIDCArgs struct to have exactly 3 fields")
+			require.Equal(t,
+				3,
+				reflect.ValueOf(*got).NumField(),
+				"expected the options.OIDCArgs struct to have exactly 3 fields")
+
+			assert.Equal(t,
+				tc.args.Version,
+				got.Version,
+				"expected Version field to be equal")
+			assert.EqualValues(t,
+				tc.args.IDPInfo,
+				got.IDPInfo,
+				"expected IDPInfo field to be convertible to equal values")
+			assert.Equal(t,
+				tc.args.RefreshToken,
+				got.RefreshToken,
+				"expected RefreshToken field to be equal")
+		})
+	}
 }
