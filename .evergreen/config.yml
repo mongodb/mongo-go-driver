@@ -2504,6 +2504,8 @@ buildvariants:
     display_name: "Backport PR"
     run_on:
       - rhel8.7-large
+    expansions:
+      GO_DIST: "/opt/golang/go1.20"
     tasks: 
       - name: "backport-pr"
 
