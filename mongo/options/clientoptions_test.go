@@ -1303,7 +1303,7 @@ func TestSetURIopts(t *testing.T) {
 				HTTPClient: httputil.DefaultHTTPClient,
 			},
 			wantErrs: []error{
-				errors.New(`rror parsing uri: invalid authMechanism property`),
+				errors.New(`error parsing uri: invalid authMechanism property`),
 			},
 		},
 	}
