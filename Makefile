@@ -60,7 +60,7 @@ check-fmt: install-lll
 check-modules:
 	go mod tidy -v
 	go mod vendor
-	git diff --exit-code go.mod go.sum ./vendor
+	git diff --exit-code go.mod go.sum ./vendor # Compare to the PR / WF Branch.
 
 .PHONY: doc
 doc:
