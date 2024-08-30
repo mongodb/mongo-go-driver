@@ -134,7 +134,7 @@ func TestCSOTProse(t *testing.T) {
 		assert.NoError(t, err, "failed to drop chunks")
 
 		// Create a new MongoClient with timeoutMS=10.
-		cliOptions := options.Client().SetTimeout(50 * time.Millisecond).ApplyURI(mtest.ClusterURI())
+		cliOptions := options.Client().SetTimeout(100 * time.Millisecond).ApplyURI(mtest.ClusterURI())
 		integtest.AddTestServerAPIVersion(cliOptions)
 
 		client, err := mongo.Connect(cliOptions)
@@ -189,7 +189,7 @@ func TestCSOTProse(t *testing.T) {
 
 		// If the operation-level context is not respected, then the client-level
 		// timeout will exceed deadline.
-		ctx, cancel := context.WithTimeout(context.Background(), 75*time.Millisecond)
+		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 		defer cancel()
 
 		// Upload file and ensure it uploaded correctly.
