@@ -634,12 +634,13 @@ func (t *T) createTestClient() {
 	}
 
 	// set ServerAPIOptions to latest version if required
-	if args.Deployment == nil && t.clientType != Mock && args.ServerAPIOptions == nil && testContext.requireAPIVersion {
+	if t.clientType != Mock && args.ServerAPIOptions == nil && testContext.requireAPIVersion {
 		clientOpts.SetServerAPIOptions(options.ServerAPI(driver.TestServerAPIVersion))
 	}
 
 	// Setup command monitor
-	var customMonitor = args.Monitor
+	customMonitor := args.Monitor
+	previousPoolMonitor := args.PoolMonitor
 	clientOpts.SetMonitor(&event.CommandMonitor{
 		Started: func(ctx context.Context, cse *event.CommandStartedEvent) {
 			if customMonitor != nil && customMonitor.Started != nil {
@@ -665,26 +666,20 @@ func (t *T) createTestClient() {
 			defer t.monitorLock.Unlock()
 			t.failed = append(t.failed, cfe)
 		},
+	}).SetPoolMonitor(&event.PoolMonitor{
+		Event: func(evt *event.PoolEvent) {
+			if previousPoolMonitor != nil {
+				previousPoolMonitor.Event(evt)
+			}
+
+			switch evt.Type {
+			case event.ConnectionCheckedOut:
+				atomic.AddInt64(&t.connsCheckedOut, 1)
+			case event.ConnectionCheckedIn:
+				atomic.AddInt64(&t.connsCheckedOut, -1)
+			}
+		},
 	})
-	// only specify connection pool monitor if no deployment is given
-	if args.Deployment == nil {
-		previousPoolMonitor := args.PoolMonitor
-
-		clientOpts.SetPoolMonitor(&event.PoolMonitor{
-			Event: func(evt *event.PoolEvent) {
-				if previousPoolMonitor != nil {
-					previousPoolMonitor.Event(evt)
-				}
-
-				switch evt.Type {
-				case event.ConnectionCheckedOut:
-					atomic.AddInt64(&t.connsCheckedOut, 1)
-				case event.ConnectionCheckedIn:
-					atomic.AddInt64(&t.connsCheckedOut, -1)
-				}
-			},
-		})
-	}
 
 	switch t.clientType {
 	case Pinned:
@@ -699,7 +694,6 @@ func (t *T) createTestClient() {
 		args.PoolMonitor = nil
 
 		t.mockDeployment = newMockDeployment()
-		args.Deployment = t.mockDeployment
 
 		opts := mongoutil.NewOptionsLister(args, nil)
 		t.Client, err = mongo.Connect(opts)
@@ -712,12 +706,7 @@ func (t *T) createTestClient() {
 	case Default:
 		// Use a different set of options to specify the URI because clientOpts may already have a URI or host seedlist
 		// specified.
-		var uriOpts *options.ClientOptionsBuilder
-		if args.Deployment == nil {
-			// Only specify URI if the deployment is not set to avoid setting topology/server options along with the
-			// deployment.
-			uriOpts = options.Client().ApplyURI(testContext.connString.Original)
-		}
+		uriOpts := options.Client().ApplyURI(testContext.connString.Original)
 
 		t.Client, err = mongo.Connect(uriOpts, clientOpts)
 	}

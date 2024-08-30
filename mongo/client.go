@@ -199,13 +199,6 @@ func newClient(opts ...options.Lister[options.ClientOptions]) (*Client, error) {
 		if err := client.configureAutoEncryption(args); err != nil {
 			return nil, err
 		}
-	} else {
-		client.cryptFLE = args.Crypt
-	}
-
-	// Deployment
-	if args.Deployment != nil {
-		client.deployment = args.Deployment
 	}
 
 	// Set default options

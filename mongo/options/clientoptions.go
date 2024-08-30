@@ -29,7 +29,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/v2/tag"
-	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/auth"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage"
@@ -261,19 +260,6 @@ type ClientOptions struct {
 	WriteConcern             *writeconcern.WriteConcern
 	ZlibLevel                *int
 	ZstdLevel                *int
-
-	// Crypt specifies a custom driver.Crypt to be used to encrypt and decrypt documents. The default is no
-	// encryption.
-	//
-	// Deprecated: This option is for internal use only and should not be set (see GODRIVER-2149). It may be
-	// changed or removed in any release.
-	Crypt driver.Crypt
-
-	// Deployment specifies a custom deployment to use for the new Client.
-	//
-	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
-	// release.
-	Deployment driver.Deployment
 
 	connString *connstring.ConnString
 }
