@@ -46,7 +46,6 @@ type Update struct {
 	crypt                    driver.Crypt
 	serverAPI                *driver.ServerAPIOptions
 	let                      bsoncore.Document
-	sort                     bsoncore.Document
 	timeout                  *time.Duration
 	logger                   *logger.Logger
 }
@@ -204,9 +203,6 @@ func (u *Update) command(dst []byte, desc description.SelectedServer) ([]byte, e
 	}
 	if u.let != nil {
 		dst = bsoncore.AppendDocumentElement(dst, "let", u.let)
-	}
-	if u.sort != nil {
-		dst = bsoncore.AppendDocumentElement(dst, "sort", u.sort)
 	}
 
 	return dst, nil
@@ -398,17 +394,6 @@ func (u *Update) Let(let bsoncore.Document) *Update {
 	}
 
 	u.let = let
-	return u
-}
-
-// Sort determines which document the operation updates if the query matches multiple documents.
-// The first document matched by the sort order will be updated.
-func (u *Update) Sort(sort bsoncore.Document) *Update {
-	if u == nil {
-		u = new(Update)
-	}
-
-	u.sort = sort
 	return u
 }
 

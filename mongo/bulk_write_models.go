@@ -125,7 +125,6 @@ type ReplaceOneModel struct {
 	Filter      interface{}
 	Replacement interface{}
 	Hint        interface{}
-	Sort        interface{}
 }
 
 // NewReplaceOneModel creates a new ReplaceOneModel.
@@ -237,6 +236,13 @@ func (uom *UpdateOneModel) SetCollation(collation *options.Collation) *UpdateOne
 // BulkWriteResult.
 func (uom *UpdateOneModel) SetUpsert(upsert bool) *UpdateOneModel {
 	uom.Upsert = &upsert
+	return uom
+}
+
+// SetSort specifies which document the operation updates if the query matches multiple documents.
+// The first document matched by the sort order will be updated.
+func (uom *UpdateOneModel) SetSort(sort interface{}) *UpdateOneModel {
+	uom.Sort = sort
 	return uom
 }
 

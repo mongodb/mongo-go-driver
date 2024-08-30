@@ -1000,8 +1000,6 @@ func executeReplaceOne(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.U
 			opts = opts.SetCollation(createCollation(mt, val.Document()))
 		case "hint":
 			opts = opts.SetHint(createHint(mt, val))
-		case "sort":
-			opts = opts.SetSort(createSort(mt, val))
 		case "session":
 		default:
 			mt.Fatalf("unrecognized replaceOne option: %v", key)
@@ -1141,6 +1139,9 @@ func createBulkWriteModel(mt *mtest.T, rawModel bson.Raw) mongo.WriteModel {
 		}
 		if hintVal, err := args.LookupErr("hint"); err == nil {
 			uom.SetHint(createHint(mt, hintVal))
+		}
+		if sortVal, err := args.LookupErr("sort"); err == nil {
+			uom.SetSort(createSort(mt, sortVal))
 		}
 		if uom.Upsert == nil {
 			uom.SetUpsert(false)
