@@ -76,8 +76,7 @@ tests:
             x: 1
   - description: BulkWrite updateOne with sort option unsupported (server-side error)
     runOnRequirements:
-      - minServerVersion: 4.2.0
-        maxServerVersion: "7.99"
+      - maxServerVersion: "7.99"
     operations:
       - object: collection0
         name: bulkWrite
