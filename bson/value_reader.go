@@ -255,9 +255,7 @@ func (vr *valueReader) appendNextElement(dst []byte) ([]byte, error) {
 
 	buf := make([]byte, length)
 	_, err = io.ReadFull(vr.r, buf)
-	if errors.Is(err, io.ErrUnexpectedEOF) {
-		return nil, io.EOF
-	} else if err != nil {
+	if err != nil {
 		return nil, err
 	}
 	dst = append(dst, buf...)
@@ -682,7 +680,7 @@ func (vr *valueReader) ReadElement() (string, ValueReader, error) {
 			return "", nil, vr.invalidDocumentLengthError()
 		}
 
-		_ = vr.pop()
+		_ = vr.pop() // Ignore the error because the call here never reads from the underlying reader.
 		return "", nil, ErrEOD
 	}
 
@@ -712,7 +710,7 @@ func (vr *valueReader) ReadValue() (ValueReader, error) {
 			return nil, vr.invalidDocumentLengthError()
 		}
 
-		_ = vr.pop()
+		_ = vr.pop() // Ignore the error because the call here never reads from the underlying reader.
 		return nil, ErrEOA
 	}
 
@@ -726,9 +724,7 @@ func (vr *valueReader) ReadValue() (ValueReader, error) {
 
 func (vr *valueReader) read(p []byte) error {
 	n, err := io.ReadFull(vr.r, p)
-	if errors.Is(err, io.ErrUnexpectedEOF) {
-		return io.EOF
-	} else if err != nil {
+	if err != nil {
 		return err
 	}
 	vr.offset += int64(n)

@@ -178,8 +178,8 @@ func TestValueReader(t *testing.T) {
 			// invalid length
 			vr.r = bufio.NewReader(bytes.NewReader([]byte{0x00, 0x00}))
 			_, err := vr.ReadDocument()
-			if !errors.Is(err, io.EOF) {
-				t.Errorf("Expected io.EOF with document length too small. got %v; want %v", err, io.EOF)
+			if !errors.Is(err, io.ErrUnexpectedEOF) {
+				t.Errorf("Expected io.ErrUnexpectedEOF with document length too small. got %v; want %v", err, io.EOF)
 			}
 			if vr.offset != 0 {
 				t.Errorf("Expected 0 offset. got %d", vr.offset)
@@ -234,7 +234,7 @@ func TestValueReader(t *testing.T) {
 
 			vr.frame--
 			_, err = vr.ReadDocument()
-			if !errors.Is(err, io.EOF) {
+			if !errors.Is(err, io.ErrUnexpectedEOF) {
 				t.Errorf("Should return error when attempting to read length with not enough bytes. got %v; want %v", err, io.EOF)
 			}
 		})
@@ -778,7 +778,7 @@ func TestValueReader(t *testing.T) {
 				append([]byte{0x40, 0x27, 0x00, 0x00}, testcstring...),
 				(*valueReader).ReadString,
 				"",
-				io.EOF,
+				io.ErrUnexpectedEOF,
 				TypeString,
 			},
 			{
@@ -1417,7 +1417,7 @@ func TestValueReader(t *testing.T) {
 					"append bytes",
 					[]byte{0x01, 0x02, 0x03, 0x04},
 					Type(0),
-					io.EOF,
+					io.ErrUnexpectedEOF,
 				},
 			}
 
