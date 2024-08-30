@@ -107,7 +107,8 @@ func TestCSOTProse(t *testing.T) {
 		})
 
 		// Create a new MongoClient with timeoutMS=10.
-		cliOptions := options.Client().SetTimeout(10)
+		cliOptions := options.Client().SetTimeout(10).ApplyURI(mtest.ClusterURI())
+		integtest.AddTestServerAPIVersion(cliOptions)
 
 		client, err := mongo.Connect(cliOptions)
 		assert.NoError(t, err, "failed to connect to server")
@@ -133,7 +134,8 @@ func TestCSOTProse(t *testing.T) {
 		assert.NoError(t, err, "failed to drop chunks")
 
 		// Create a new MongoClient with timeoutMS=10.
-		cliOptions := options.Client().SetTimeout(50 * time.Millisecond)
+		cliOptions := options.Client().SetTimeout(50 * time.Millisecond).ApplyURI(mtest.ClusterURI())
+		integtest.AddTestServerAPIVersion(cliOptions)
 
 		client, err := mongo.Connect(cliOptions)
 		assert.NoError(t, err, "failed to connect to server")
@@ -176,7 +178,8 @@ func TestCSOTProse(t *testing.T) {
 		})
 
 		// Create a new MongoClient with timeoutMS=10.
-		cliOptions := options.Client().SetTimeout(10 * time.Second)
+		cliOptions := options.Client().SetTimeout(10 * time.Second).ApplyURI(mtest.ClusterURI())
+		integtest.AddTestServerAPIVersion(cliOptions)
 
 		client, err := mongo.Connect(cliOptions)
 		assert.NoError(t, err, "failed to connect to server")
