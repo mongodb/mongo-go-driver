@@ -59,8 +59,7 @@ func buildDistinctResult(response bsoncore.Document) (DistinctResult, error) {
 	}
 	dr := DistinctResult{}
 	for _, element := range elements {
-		switch element.Key() {
-		case "values":
+		if element.Key() == "values" {
 			dr.Values = element.Value()
 		}
 	}

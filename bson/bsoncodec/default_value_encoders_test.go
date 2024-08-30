@@ -1159,7 +1159,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				},
 				{
 					"WriteArrayElement Error",
-					bsoncore.Array(buildDocumentArray(func(doc []byte) []byte {
+					bsoncore.Array(buildDocumentArray(func([]byte) []byte {
 						return bsoncore.AppendNullElement(nil, "foo")
 					})),
 					nil,
@@ -1169,7 +1169,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				},
 				{
 					"encodeValue error",
-					bsoncore.Array(buildDocumentArray(func(doc []byte) []byte {
+					bsoncore.Array(buildDocumentArray(func([]byte) []byte {
 						return bsoncore.AppendNullElement(nil, "foo")
 					})),
 					nil,

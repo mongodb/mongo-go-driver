@@ -80,7 +80,7 @@ func executeTestRunnerOperation(ctx context.Context, op *operation, loopDone <-c
 
 		targetHost := clientSession.PinnedServer.Addr.String()
 		fpDoc := args.Lookup("failPoint").Document()
-		commandFn := func(ctx context.Context, client *mongo.Client) error {
+		commandFn := func(_ context.Context, client *mongo.Client) error {
 			return mtest.SetRawFailPoint(fpDoc, client)
 		}
 

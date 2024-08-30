@@ -902,15 +902,16 @@ func (p *parser) parse(original string) (*ConnString, error) {
 	uri := original
 
 	var err error
-	if strings.HasPrefix(uri, SchemeMongoDBSRV+"://") {
+	switch {
+	case strings.HasPrefix(uri, SchemeMongoDBSRV+"://"):
 		connStr.Scheme = SchemeMongoDBSRV
 		// remove the scheme
 		uri = uri[len(SchemeMongoDBSRV)+3:]
-	} else if strings.HasPrefix(uri, SchemeMongoDB+"://") {
+	case strings.HasPrefix(uri, SchemeMongoDB+"://"):
 		connStr.Scheme = SchemeMongoDB
 		// remove the scheme
 		uri = uri[len(SchemeMongoDB)+3:]
-	} else {
+	default:
 		return nil, errors.New(`scheme must be "mongodb" or "mongodb+srv"`)
 	}
 
@@ -921,9 +922,9 @@ func (p *parser) parse(original string) (*ConnString, error) {
 		username := userInfo
 		var password string
 
-		if idx := strings.Index(userInfo, ":"); idx != -1 {
-			username = userInfo[:idx]
-			password = userInfo[idx+1:]
+		if u, p, ok := strings.Cut(userInfo, ":"); ok {
+			username = u
+			password = p
 			connStr.PasswordSet = true
 		}
 

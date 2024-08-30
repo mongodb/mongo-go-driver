@@ -236,7 +236,7 @@ func BenchmarkLatencySelector(b *testing.B) {
 	}{
 		{
 			name:        "AllFit",
-			serversHook: func(servers []Server) {},
+			serversHook: func([]Server) {},
 		},
 		{
 			name: "AllButOneFit",
@@ -279,8 +279,8 @@ func BenchmarkLatencySelector(b *testing.B) {
 				servers[i] = s
 			}
 			bcase.serversHook(servers)
-			//this will make base 1 sec latency < min (0.5) + conf (1)
-			//and high latency 2 higher than the threshold
+			// this will make base 1 sec latency < min (0.5) + conf (1)
+			// and high latency 2 higher than the threshold
 			servers[99].AverageRTT = 500 * time.Millisecond
 			c := Topology{
 				Kind:    Sharded,
@@ -305,7 +305,7 @@ func BenchmarkSelector_Sharded(b *testing.B) {
 	}{
 		{
 			name:        "AllFit",
-			serversHook: func(servers []Server) {},
+			serversHook: func([]Server) {},
 		},
 		{
 			name: "AllButOneFit",

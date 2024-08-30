@@ -289,7 +289,7 @@ func (oa *OIDCAuthenticator) providerCallback() (OIDCCallback, error) {
 func getAzureOIDCCallback(clientID string, resource string, httpClient *http.Client) OIDCCallback {
 	// return the callback parameterized by the clientID and resource, also passing in the user
 	// configured httpClient.
-	return func(ctx context.Context, args *OIDCArgs) (*OIDCCredential, error) {
+	return func(ctx context.Context, _ *OIDCArgs) (*OIDCCredential, error) {
 		resource = url.QueryEscape(resource)
 		var uri string
 		if clientID != "" {
@@ -332,7 +332,7 @@ func getAzureOIDCCallback(clientID string, resource string, httpClient *http.Cli
 func getGCPOIDCCallback(resource string, httpClient *http.Client) OIDCCallback {
 	// return the callback parameterized by the clientID and resource, also passing in the user
 	// configured httpClient.
-	return func(ctx context.Context, args *OIDCArgs) (*OIDCCredential, error) {
+	return func(ctx context.Context, _ *OIDCArgs) (*OIDCCredential, error) {
 		resource = url.QueryEscape(resource)
 		uri := fmt.Sprintf("http://metadata/computeMetadata/v1/instance/service-accounts/default/identity?audience=%s", resource)
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, uri, nil)
