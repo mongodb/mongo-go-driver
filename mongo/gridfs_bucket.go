@@ -135,6 +135,9 @@ func (b *GridFSBucket) UploadFromStreamWithID(
 	source io.Reader,
 	opts ...options.Lister[options.GridFSUploadOptions],
 ) error {
+	ctx, cancel := csot.WithTimeout(ctx, b.db.client.timeout)
+	defer cancel()
+
 	us, err := b.OpenUploadStreamWithID(ctx, fileID, filename, opts...)
 	if err != nil {
 		return err
