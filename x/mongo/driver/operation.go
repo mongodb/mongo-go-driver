@@ -1183,18 +1183,12 @@ func (Operation) decompressWireMessage(wm []byte) (wiremessage.OpCode, []byte, e
 	if !ok {
 		return 0, nil, errors.New("malformed OP_COMPRESSED: missing compressor ID")
 	}
-	compressedSize := len(wm) - 9 // original opcode (4) + uncompressed size (4) + compressor ID (1)
-	// return the original wiremessage
-	msg, _, ok := wiremessage.ReadCompressedCompressedMessage(rem, int32(compressedSize))
-	if !ok {
-		return 0, nil, errors.New("malformed OP_COMPRESSED: insufficient bytes for compressed wiremessage")
-	}
 
 	opts := CompressionOpts{
 		Compressor:       compressorID,
 		UncompressedSize: uncompressedSize,
 	}
-	uncompressed, err := DecompressPayload(msg, opts)
+	uncompressed, err := DecompressPayload(rem, opts)
 	if err != nil {
 		return 0, nil, err
 	}
