@@ -103,12 +103,12 @@ func TestCSOTProse(t *testing.T) {
 			Data: mtest.FailPointData{
 				FailCommands:    []string{"insert"},
 				BlockConnection: true,
-				BlockTimeMS:     15,
+				BlockTimeMS:     250,
 			},
 		})
 
 		// Create a new MongoClient with timeoutMS=10.
-		cliOptions := options.Client().SetTimeout(10 * time.Millisecond).ApplyURI(mtest.ClusterURI())
+		cliOptions := options.Client().SetTimeout(200 * time.Millisecond).ApplyURI(mtest.ClusterURI())
 		integtest.AddTestServerAPIVersion(cliOptions)
 
 		client, err := mongo.Connect(cliOptions)
