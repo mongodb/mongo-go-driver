@@ -136,8 +136,8 @@ func TestCSOTProse(t *testing.T) {
 		err = mt.Client.Database("db").Collection("fs.chunks").Drop(context.Background())
 		assert.NoError(mt, err, "failed to drop chunks")
 
-		// Create a new MongoClient with timeoutMS=10.
-		cliOptions := options.Client().SetTimeout(10 * time.Millisecond).ApplyURI(mtest.ClusterURI())
+		// Create a new MongoClient with timeoutMS=500.
+		cliOptions := options.Client().SetTimeout(500 * time.Millisecond).ApplyURI(mtest.ClusterURI())
 		integtest.AddTestServerAPIVersion(cliOptions)
 
 		client, err := mongo.Connect(cliOptions)
