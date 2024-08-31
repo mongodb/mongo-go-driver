@@ -202,7 +202,7 @@ func TestCSOTProse(t *testing.T) {
 		})
 
 		// Create a new MongoClient with timeoutMS=10.
-		cliOptions := options.Client().SetTimeout(10 * time.Second).ApplyURI(mtest.ClusterURI())
+		cliOptions := options.Client().SetTimeout(10 * time.Millisecond).ApplyURI(mtest.ClusterURI())
 		integtest.AddTestServerAPIVersion(cliOptions)
 
 		client, err := mongo.Connect(cliOptions)
