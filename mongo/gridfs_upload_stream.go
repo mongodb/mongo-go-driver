@@ -40,11 +40,13 @@ type GridFSUploadStream struct {
 	bufferIndex int
 	fileLen     int64
 	ctx         context.Context
+	cancel      context.CancelFunc
 }
 
 // NewUploadStream creates a new upload stream.
 func newUploadStream(
 	ctx context.Context,
+	cancel context.CancelFunc,
 	up *upload,
 	fileID interface{},
 	filename string,
@@ -59,11 +61,18 @@ func newUploadStream(
 		filesColl:  files,
 		buffer:     make([]byte, uploadBufferSize),
 		ctx:        ctx,
+		cancel:     cancel,
 	}
 }
 
 // Close writes file metadata to the files collection and cleans up any resources associated with the UploadStream.
 func (us *GridFSUploadStream) Close() error {
+	defer func() {
+		if us.cancel != nil {
+			us.cancel()
+		}
+	}()
+
 	if us.closed {
 		return ErrStreamClosed
 	}
@@ -111,6 +120,12 @@ func (us *GridFSUploadStream) Write(p []byte) (int, error) {
 
 // Abort closes the stream and deletes all file chunks that have already been written.
 func (us *GridFSUploadStream) Abort() error {
+	defer func() {
+		if us.cancel != nil {
+			us.cancel()
+		}
+	}()
+
 	if us.closed {
 		return ErrStreamClosed
 	}

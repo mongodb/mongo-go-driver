@@ -85,7 +85,6 @@ func (b *GridFSBucket) OpenUploadStreamWithID(
 	opts ...options.Lister[options.GridFSUploadOptions],
 ) (*GridFSUploadStream, error) {
 	ctx, cancel := csot.WithTimeout(ctx, b.db.client.timeout)
-	defer cancel()
 
 	if err := b.checkFirstWrite(ctx); err != nil {
 		return nil, err
@@ -96,7 +95,7 @@ func (b *GridFSBucket) OpenUploadStreamWithID(
 		return nil, err
 	}
 
-	return newUploadStream(ctx, upload, fileID, filename, b.chunksColl, b.filesColl), nil
+	return newUploadStream(ctx, cancel, upload, fileID, filename, b.chunksColl, b.filesColl), nil
 }
 
 // UploadFromStream creates a fileID and uploads a file given a source stream.
@@ -353,7 +352,6 @@ func (b *GridFSBucket) openDownloadStream(
 	opts ...options.Lister[options.FindOneOptions],
 ) (*GridFSDownloadStream, error) {
 	ctx, cancel := csot.WithTimeout(ctx, b.db.client.timeout)
-	defer cancel()
 
 	result := b.filesColl.FindOne(ctx, filter, opts...)
 
@@ -372,7 +370,7 @@ func (b *GridFSBucket) openDownloadStream(
 	foundFile := newFileFromResponse(resp)
 
 	if foundFile.Length == 0 {
-		return newGridFSDownloadStream(ctx, nil, foundFile.ChunkSize, foundFile), nil
+		return newGridFSDownloadStream(ctx, cancel, nil, foundFile.ChunkSize, foundFile), nil
 	}
 
 	// For a file with non-zero length, chunkSize must exist so we know what size to expect when downloading chunks.
@@ -387,7 +385,7 @@ func (b *GridFSBucket) openDownloadStream(
 
 	// The chunk size can be overridden for individual files, so the expected chunk size should be the "chunkSize"
 	// field from the files collection document, not the bucket's chunk size.
-	return newGridFSDownloadStream(ctx, chunksCursor, foundFile.ChunkSize, foundFile), nil
+	return newGridFSDownloadStream(ctx, cancel, chunksCursor, foundFile.ChunkSize, foundFile), nil
 }
 
 func (b *GridFSBucket) downloadToStream(ds *GridFSDownloadStream, stream io.Writer) (int64, error) {
