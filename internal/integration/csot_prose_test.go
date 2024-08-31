@@ -183,10 +183,10 @@ func TestCSOTProse(t *testing.T) {
 	mt.RunOpts(test62, mtest.NewOptions().MinServerVersion("4.4"), func(mt *mtest.T) {
 		// Drop and re-create the db.fs.files and db.fs.chunks collections.
 		err := mt.Client.Database("db").Collection("fs.files").Drop(context.Background())
-		assert.NoError(t, err, "failed to drop files")
+		assert.NoError(mt, err, "failed to drop files")
 
 		err = mt.Client.Database("db").Collection("fs.chunks").Drop(context.Background())
-		assert.NoError(t, err, "failed to drop chunks")
+		assert.NoError(mt, err, "failed to drop chunks")
 
 		// Set a blocking "insert" fail point.
 		mt.SetFailPoint(mtest.FailPoint{
@@ -259,10 +259,10 @@ func TestCSOTProse(t *testing.T) {
 	mt.RunOpts(test63, mtest.NewOptions().MinServerVersion("4.4"), func(mt *mtest.T) {
 		// Drop and re-create the db.fs.files and db.fs.chunks collections.
 		err := mt.Client.Database("db").Collection("fs.files").Drop(context.Background())
-		assert.NoError(t, err, "failed to drop files")
+		assert.NoError(mt, err, "failed to drop files")
 
 		err = mt.Client.Database("db").Collection("fs.chunks").Drop(context.Background())
-		assert.NoError(t, err, "failed to drop chunks")
+		assert.NoError(mt, err, "failed to drop chunks")
 
 		// Create a new MongoClient with timeoutMS=10.
 		cliOptions := options.Client().ApplyURI(mtest.ClusterURI())
@@ -282,7 +282,7 @@ func TestCSOTProse(t *testing.T) {
 			_ = uploadStream.Close()
 
 			_, err = uploadStream.Write([]byte{0x13})
-			assert.Error(t, err, context.Canceled)
+			assert.Error(mt, err, context.Canceled)
 		})
 
 		mt.Run("Upload#Abort", func(mt *mtest.T) {
@@ -293,7 +293,7 @@ func TestCSOTProse(t *testing.T) {
 			_ = uploadStream.Abort()
 
 			_, err = uploadStream.Write([]byte{0x13})
-			assert.Error(t, err, context.Canceled)
+			assert.Error(mt, err, context.Canceled)
 		})
 
 		mt.Run("Download#Close", func(mt *mtest.T) {
@@ -302,12 +302,12 @@ func TestCSOTProse(t *testing.T) {
 			require.NoError(mt, err, "failed to upload stream")
 
 			downloadStream, err := bucket.OpenDownloadStream(context.Background(), fileID)
-			assert.NoError(t, err)
+			assert.NoError(mt, err)
 
 			_ = downloadStream.Close()
 
 			_, err = downloadStream.Read([]byte{})
-			assert.Error(t, err, context.Canceled)
+			assert.Error(mt, err, context.Canceled)
 		})
 	})
 
