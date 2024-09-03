@@ -917,6 +917,11 @@ tasks:
       - func: "add PR labels"
       - func: "create-api-report"
 
+  - name: backport-pr
+    allowed_requesters: ["commit"]
+    commands:
+      - func: "backport pr"  
+
   - name: perf
     tags: ["performance"]
     exec_timeout_secs: 7200
@@ -2494,6 +2499,15 @@ buildvariants:
       GO_DIST: "/opt/golang/go1.22"
     tasks:
       - name: ".compile-check"
+
+  - name: backport-pr
+    display_name: "Backport PR"
+    run_on:
+      - rhel8.7-large
+    expansions:
+      GO_DIST: "/opt/golang/go1.20"
+    tasks: 
+      - name: "backport-pr"
 
   - name: atlas-test
     tags: ["pullrequest"]
