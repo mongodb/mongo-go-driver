@@ -104,12 +104,12 @@ func TestCSOTProse(t *testing.T) {
 				Data: mtest.FailPointData{
 					FailCommands:    []string{"insert"},
 					BlockConnection: true,
-					BlockTimeMS:     250,
+					BlockTimeMS:     500,
 				},
 			})
 
-			// Create a new MongoClient with timeoutMS=100.
-			cliOptions := options.Client().SetTimeout(150 * time.Millisecond).ApplyURI(mtest.ClusterURI())
+			// Create a new MongoClient with timeoutMS=250.
+			cliOptions := options.Client().SetTimeout(250 * time.Millisecond).ApplyURI(mtest.ClusterURI())
 			integtest.AddTestServerAPIVersion(cliOptions)
 
 			client, err := mongo.Connect(cliOptions)
@@ -145,12 +145,12 @@ func TestCSOTProse(t *testing.T) {
 				Data: mtest.FailPointData{
 					FailCommands:    []string{"delete"},
 					BlockConnection: true,
-					BlockTimeMS:     250,
+					BlockTimeMS:     500,
 				},
 			})
 
-			// Create a new MongoClient with timeoutMS=150.
-			cliOptions := options.Client().SetTimeout(150 * time.Millisecond).ApplyURI(mtest.ClusterURI())
+			// Create a new MongoClient with timeoutMS=250.
+			cliOptions := options.Client().SetTimeout(250 * time.Millisecond).ApplyURI(mtest.ClusterURI())
 			integtest.AddTestServerAPIVersion(cliOptions)
 
 			client, err := mongo.Connect(cliOptions)
