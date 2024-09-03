@@ -87,44 +87,90 @@ func TestCSOTProse(t *testing.T) {
 	})
 
 	mt.RunOpts("6. gridfs - upload", mtest.NewOptions().MinServerVersion("4.4"), func(mt *mtest.T) {
-		// Drop and re-create the db.fs.files and db.fs.chunks collections.
-		err := mt.Client.Database("db").Collection("fs.files").Drop(context.Background())
-		assert.NoError(mt, err, "failed to drop files")
+		mt.Run("uploads via openUploadStream can be timed out", func(mt *mtest.T) {
+			// Drop and re-create the db.fs.files and db.fs.chunks collections.
+			err := mt.Client.Database("db").Collection("fs.files").Drop(context.Background())
+			assert.NoError(mt, err, "failed to drop files")
 
-		err = mt.Client.Database("db").Collection("fs.chunks").Drop(context.Background())
-		assert.NoError(mt, err, "failed to drop chunks")
+			err = mt.Client.Database("db").Collection("fs.chunks").Drop(context.Background())
+			assert.NoError(mt, err, "failed to drop chunks")
 
-		// Set a blocking "insert" fail point.
-		mt.SetFailPoint(mtest.FailPoint{
-			ConfigureFailPoint: "failCommand",
-			Mode: mtest.FailPointMode{
-				Times: 1,
-			},
-			Data: mtest.FailPointData{
-				FailCommands:    []string{"insert"},
-				BlockConnection: true,
-				BlockTimeMS:     250,
-			},
+			// Set a blocking "insert" fail point.
+			mt.SetFailPoint(mtest.FailPoint{
+				ConfigureFailPoint: "failCommand",
+				Mode: mtest.FailPointMode{
+					Times: 1,
+				},
+				Data: mtest.FailPointData{
+					FailCommands:    []string{"insert"},
+					BlockConnection: true,
+					BlockTimeMS:     250,
+				},
+			})
+
+			// Create a new MongoClient with timeoutMS=100.
+			cliOptions := options.Client().SetTimeout(150 * time.Millisecond).ApplyURI(mtest.ClusterURI())
+			integtest.AddTestServerAPIVersion(cliOptions)
+
+			client, err := mongo.Connect(cliOptions)
+			assert.NoError(mt, err, "failed to connect to server")
+
+			// Create a GridFS bucket that wraps the db database.
+			bucket := client.Database("db").GridFSBucket()
+
+			uploadStream, err := bucket.OpenUploadStream(context.Background(), "filename")
+			require.NoError(mt, err, "failed to open upload stream")
+
+			_, err = uploadStream.Write([]byte{0x12})
+			require.NoError(mt, err, "failed to write to upload stream")
+
+			err = uploadStream.Close()
+			assert.Error(t, err, context.DeadlineExceeded)
 		})
 
-		// Create a new MongoClient with timeoutMS=10.
-		cliOptions := options.Client().SetTimeout(200 * time.Millisecond).ApplyURI(mtest.ClusterURI())
-		integtest.AddTestServerAPIVersion(cliOptions)
+		mt.Run("Aborting an upload stream can be timed out", func(mt *mtest.T) {
+			// Drop and re-create the db.fs.files and db.fs.chunks collections.
+			err := mt.Client.Database("db").Collection("fs.files").Drop(context.Background())
+			assert.NoError(mt, err, "failed to drop files")
 
-		client, err := mongo.Connect(cliOptions)
-		assert.NoError(mt, err, "failed to connect to server")
+			err = mt.Client.Database("db").Collection("fs.chunks").Drop(context.Background())
+			assert.NoError(mt, err, "failed to drop chunks")
 
-		// Create a GridFS bucket that wraps the db database.
-		bucket := client.Database("db").GridFSBucket()
+			// Set a blocking "delete" fail point.
+			mt.SetFailPoint(mtest.FailPoint{
+				ConfigureFailPoint: "failCommand",
+				Mode: mtest.FailPointMode{
+					Times: 1,
+				},
+				Data: mtest.FailPointData{
+					FailCommands:    []string{"delete"},
+					BlockConnection: true,
+					BlockTimeMS:     250,
+				},
+			})
 
-		uploadStream, err := bucket.OpenUploadStream(context.Background(), "filename")
-		require.NoError(mt, err)
+			// Create a new MongoClient with timeoutMS=150.
+			cliOptions := options.Client().SetTimeout(150 * time.Millisecond).ApplyURI(mtest.ClusterURI())
+			integtest.AddTestServerAPIVersion(cliOptions)
 
-		_, err = uploadStream.Write([]byte{0x12})
-		require.NoError(mt, err)
+			client, err := mongo.Connect(cliOptions)
+			assert.NoError(mt, err, "failed to connect to server")
 
-		err = uploadStream.Close()
-		assert.Error(t, err, context.DeadlineExceeded)
+			// Create a GridFS bucket that wraps the db database.
+			bucket := client.Database("db").GridFSBucket(options.GridFSBucket().SetChunkSizeBytes(2))
+
+			// Call bucket.open_upload_stream() with the filename filename to create
+			// an upload stream (referred to as uploadStream).
+			uploadStream, err := bucket.OpenUploadStream(context.Background(), "filename")
+			require.NoError(mt, err)
+
+			// Using uploadStream, upload the bytes [0x01, 0x02, 0x03, 0x04].
+			_, err = uploadStream.Write([]byte{0x01, 0x02, 0x03, 0x04})
+			require.NoError(mt, err)
+
+			err = uploadStream.Abort()
+			assert.Error(t, err, context.DeadlineExceeded)
+		})
 	})
 
 	const test61 = "6.1 gridfs - upload and download with non-expiring client-level timeout"
