@@ -318,6 +318,10 @@ func (ce *ClientEncryption) Decrypt(ctx context.Context, val bson.Binary) (bson.
 // Close cleans up any resources associated with the ClientEncryption instance. This includes disconnecting the
 // key-vault Client instance.
 func (ce *ClientEncryption) Close(ctx context.Context) error {
+	if ce.closed {
+		return ErrClientDisconnected
+	}
+
 	ce.crypt.Close()
 	err := ce.keyVaultClient.Disconnect(ctx)
 	if err == nil {
