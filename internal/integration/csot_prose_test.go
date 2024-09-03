@@ -169,7 +169,7 @@ func TestCSOTProse(t *testing.T) {
 			require.NoError(mt, err)
 
 			err = uploadStream.Abort()
-			assert.Error(t, err, context.DeadlineExceeded)
+			assert.Error(mt, err, context.DeadlineExceeded)
 		})
 	})
 
