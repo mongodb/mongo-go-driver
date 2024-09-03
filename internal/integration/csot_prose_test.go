@@ -321,7 +321,6 @@ func TestCSOTProse(t *testing.T) {
 		bucket := client.Database("db").GridFSBucket()
 
 		mt.Run("Upload#Close", func(mt *mtest.T) {
-			// Upload file and ensure it uploaded correctly.
 			uploadStream, err := bucket.OpenUploadStream(context.Background(), "filename")
 			require.NoError(mt, err)
 
@@ -332,7 +331,6 @@ func TestCSOTProse(t *testing.T) {
 		})
 
 		mt.Run("Upload#Abort", func(mt *mtest.T) {
-			// Upload file and ensure it uploaded correctly.
 			uploadStream, err := bucket.OpenUploadStream(context.Background(), "filename2")
 			require.NoError(mt, err)
 
@@ -343,7 +341,6 @@ func TestCSOTProse(t *testing.T) {
 		})
 
 		mt.Run("Download#Close", func(mt *mtest.T) {
-			// Upload file and ensure it uploaded correctly.
 			fileID, err := bucket.UploadFromStream(context.Background(), "filename3", bytes.NewReader([]byte{0x12}))
 			require.NoError(mt, err, "failed to upload stream")
 
