@@ -51,6 +51,21 @@ pre-commit run --all-files
 
 ### Cherry-picking between branches
 
+#### Using the GitHub App
+
+Within a PR, you can make the comment:
+
+```
+drivers-pr-bot please backport to {target_branch}
+```
+
+The preferred workflow is to make the comment and then merge the PR.
+
+If you merge the PR and the "backport-pr" task runs before you make the comment, you can
+make the comment and then re-run the "backport-pr" task for that commit.
+
+#### Manually
+
 You must first install the `gh` cli (`brew install gh`), then set your GitHub username:
 
 ```bash
