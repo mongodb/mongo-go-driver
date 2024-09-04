@@ -113,7 +113,7 @@ func TestCSOTProse(t *testing.T) {
 				Data: mtest.FailPointData{
 					FailCommands:    []string{"insert"},
 					BlockConnection: true,
-					BlockTimeMS:     200,
+					BlockTimeMS:     250,
 				},
 			})
 
@@ -126,8 +126,8 @@ func TestCSOTProse(t *testing.T) {
 				mt.ClearFailPoints()
 			}()
 
-			// Create a new MongoClient with timeoutMS=150.
-			cliOptions := options.Client().SetTimeout(150 * time.Millisecond).ApplyURI(mtest.ClusterURI()).
+			// Create a new MongoClient with timeoutMS=200.
+			cliOptions := options.Client().SetTimeout(200 * time.Millisecond).ApplyURI(mtest.ClusterURI()).
 				SetHosts([]string{failpointHost})
 
 			integtest.AddTestServerAPIVersion(cliOptions)
@@ -173,7 +173,7 @@ func TestCSOTProse(t *testing.T) {
 				Data: mtest.FailPointData{
 					FailCommands:    []string{"delete"},
 					BlockConnection: true,
-					BlockTimeMS:     200,
+					BlockTimeMS:     250,
 				},
 			})
 
@@ -186,8 +186,8 @@ func TestCSOTProse(t *testing.T) {
 				mt.ClearFailPoints()
 			}()
 
-			// Create a new MongoClient with timeoutMS=150.
-			cliOptions := options.Client().SetTimeout(150 * time.Millisecond).ApplyURI(mtest.ClusterURI()).
+			// Create a new MongoClient with timeoutMS=200.
+			cliOptions := options.Client().SetTimeout(200 * time.Millisecond).ApplyURI(mtest.ClusterURI()).
 				SetHosts([]string{failpointHost})
 			integtest.AddTestServerAPIVersion(cliOptions)
 
