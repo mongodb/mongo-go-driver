@@ -48,14 +48,9 @@ install-lll:
 check-fmt: install-lll
 	etc/check_fmt.sh
 
-# check-modules runs "go mod tidy"  and exits with a non-zero exit code if there
-# are any module changes. The intent is to confirm that exactly the required
-# modules are declared as dependencies. We should always be able to run "go mod
-# tidy" and expect that no unrelated changes are made to the "go.mod" file.
 .PHONY: check-modules
 check-modules:
-	go mod tidy -v
-	git diff --exit-code go.mod go.sum
+	etc/check_modules.sh
 
 .PHONY: doc
 doc:
