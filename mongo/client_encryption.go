@@ -38,7 +38,6 @@ func NewClientEncryption(keyVaultClient *Client, opts ...options.Lister[options.
 
 	ce := &ClientEncryption{
 		keyVaultClient: keyVaultClient,
-		closed:         false,
 	}
 	cea, err := mongoutil.NewOptions(opts...)
 	if err != nil {
@@ -83,12 +82,12 @@ func NewClientEncryption(keyVaultClient *Client, opts ...options.Lister[options.
 func (ce *ClientEncryption) CreateEncryptedCollection(ctx context.Context,
 	db *Database, coll string, createOpts options.Lister[options.CreateCollectionOptions],
 	kmsProvider string, masterKey interface{}) (*Collection, bson.M, error) {
-	if createOpts == nil {
-		return nil, nil, errors.New("nil CreateCollectionOptions")
-	}
-
 	if ce.closed {
 		return nil, nil, ErrClientDisconnected
+	}
+
+	if createOpts == nil {
+		return nil, nil, errors.New("nil CreateCollectionOptions")
 	}
 
 	createArgs, err := mongoutil.NewOptions[options.CreateCollectionOptions](createOpts)
