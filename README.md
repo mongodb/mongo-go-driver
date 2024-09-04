@@ -10,6 +10,12 @@
 
 The MongoDB supported driver for Go.
 
+> \[!NOTE\]
+>
+> Go Driver 1.17.0 is the last planned 1.x version.
+> It will receive critical bug fixes, but future development and features
+> will be in the 2.x version of the driver.
+
 ______________________________________________________________________
 
 ## Requirements
