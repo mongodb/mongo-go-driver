@@ -113,7 +113,7 @@ func TestCSOTProse(t *testing.T) {
 				Data: mtest.FailPointData{
 					FailCommands:    []string{"insert"},
 					BlockConnection: true,
-					BlockTimeMS:     1500,
+					BlockTimeMS:     200,
 				},
 			})
 
@@ -126,8 +126,8 @@ func TestCSOTProse(t *testing.T) {
 				mt.ClearFailPoints()
 			}()
 
-			// Create a new MongoClient with timeoutMS=250.
-			cliOptions := options.Client().SetTimeout(1000 * time.Millisecond).ApplyURI(mtest.ClusterURI()).
+			// Create a new MongoClient with timeoutMS=150.
+			cliOptions := options.Client().SetTimeout(150 * time.Millisecond).ApplyURI(mtest.ClusterURI()).
 				SetHosts([]string{failpointHost})
 
 			integtest.AddTestServerAPIVersion(cliOptions)
@@ -173,7 +173,7 @@ func TestCSOTProse(t *testing.T) {
 				Data: mtest.FailPointData{
 					FailCommands:    []string{"delete"},
 					BlockConnection: true,
-					BlockTimeMS:     1500,
+					BlockTimeMS:     200,
 				},
 			})
 
@@ -186,8 +186,8 @@ func TestCSOTProse(t *testing.T) {
 				mt.ClearFailPoints()
 			}()
 
-			// Create a new MongoClient with timeoutMS=250.
-			cliOptions := options.Client().SetTimeout(1000 * time.Millisecond).ApplyURI(mtest.ClusterURI()).
+			// Create a new MongoClient with timeoutMS=150.
+			cliOptions := options.Client().SetTimeout(150 * time.Millisecond).ApplyURI(mtest.ClusterURI()).
 				SetHosts([]string{failpointHost})
 			integtest.AddTestServerAPIVersion(cliOptions)
 
@@ -272,6 +272,14 @@ func TestCSOTProse(t *testing.T) {
 		err = mt.Client.Database("db").Collection("fs.chunks").Drop(context.Background())
 		assert.NoError(mt, err, "failed to drop chunks")
 
+		hosts, err := mongoutil.HostsFromURI(mtest.ClusterURI())
+		require.NoError(mt, err)
+
+		failpointHost := hosts[0]
+
+		mt.ResetClient(options.Client().
+			SetHosts([]string{failpointHost}))
+
 		// Set a blocking "insert" fail point.
 		mt.SetFailPoint(mtest.FailPoint{
 			ConfigureFailPoint: "failCommand",
@@ -281,12 +289,21 @@ func TestCSOTProse(t *testing.T) {
 			Data: mtest.FailPointData{
 				FailCommands:    []string{"insert"},
 				BlockConnection: true,
-				BlockTimeMS:     15,
+				BlockTimeMS:     200,
 			},
 		})
 
-		// Create a new MongoClient with timeoutMS=10.
-		cliOptions := options.Client().SetTimeout(10 * time.Millisecond).ApplyURI(mtest.ClusterURI())
+		// The automatic failpoint clearing may not clear failpoints set on
+		// specific hosts, so manually clear the failpoint we set on the specific
+		// mongos when the test is done.
+		defer func() {
+			mt.ResetClient(options.Client().
+				SetHosts([]string{failpointHost}))
+			mt.ClearFailPoints()
+		}()
+
+		// Create a new MongoClient with timeoutMS=150.
+		cliOptions := options.Client().SetTimeout(150 * time.Millisecond).ApplyURI(mtest.ClusterURI())
 		integtest.AddTestServerAPIVersion(cliOptions)
 
 		client, err := mongo.Connect(cliOptions)
