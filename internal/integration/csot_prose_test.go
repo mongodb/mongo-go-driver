@@ -18,6 +18,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/internal/integtest"
+	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -95,6 +96,14 @@ func TestCSOTProse(t *testing.T) {
 			err = mt.Client.Database("db").Collection("fs.chunks").Drop(context.Background())
 			assert.NoError(mt, err, "failed to drop chunks")
 
+			hosts, err := mongoutil.HostsFromURI(mtest.ClusterURI())
+			require.NoError(mt, err)
+
+			failpointHost := hosts[0]
+
+			mt.ResetClient(options.Client().
+				SetHosts([]string{failpointHost}))
+
 			// Set a blocking "insert" fail point.
 			mt.SetFailPoint(mtest.FailPoint{
 				ConfigureFailPoint: "failCommand",
@@ -104,12 +113,23 @@ func TestCSOTProse(t *testing.T) {
 				Data: mtest.FailPointData{
 					FailCommands:    []string{"insert"},
 					BlockConnection: true,
-					BlockTimeMS:     500,
+					BlockTimeMS:     1500,
 				},
 			})
 
+			// The automatic failpoint clearing may not clear failpoints set on
+			// specific hosts, so manually clear the failpoint we set on the specific
+			// mongos when the test is done.
+			defer func() {
+				mt.ResetClient(options.Client().
+					SetHosts([]string{failpointHost}))
+				mt.ClearFailPoints()
+			}()
+
 			// Create a new MongoClient with timeoutMS=250.
-			cliOptions := options.Client().SetTimeout(250 * time.Millisecond).ApplyURI(mtest.ClusterURI())
+			cliOptions := options.Client().SetTimeout(1000 * time.Millisecond).ApplyURI(mtest.ClusterURI()).
+				SetHosts([]string{failpointHost})
+
 			integtest.AddTestServerAPIVersion(cliOptions)
 
 			client, err := mongo.Connect(cliOptions)
@@ -136,6 +156,14 @@ func TestCSOTProse(t *testing.T) {
 			err = mt.Client.Database("db").Collection("fs.chunks").Drop(context.Background())
 			assert.NoError(mt, err, "failed to drop chunks")
 
+			hosts, err := mongoutil.HostsFromURI(mtest.ClusterURI())
+			require.NoError(mt, err)
+
+			failpointHost := hosts[0]
+
+			mt.ResetClient(options.Client().
+				SetHosts([]string{failpointHost}))
+
 			// Set a blocking "delete" fail point.
 			mt.SetFailPoint(mtest.FailPoint{
 				ConfigureFailPoint: "failCommand",
@@ -145,12 +173,22 @@ func TestCSOTProse(t *testing.T) {
 				Data: mtest.FailPointData{
 					FailCommands:    []string{"delete"},
 					BlockConnection: true,
-					BlockTimeMS:     500,
+					BlockTimeMS:     1500,
 				},
 			})
 
+			// The automatic failpoint clearing may not clear failpoints set on
+			// specific hosts, so manually clear the failpoint we set on the specific
+			// mongos when the test is done.
+			defer func() {
+				mt.ResetClient(options.Client().
+					SetHosts([]string{failpointHost}))
+				mt.ClearFailPoints()
+			}()
+
 			// Create a new MongoClient with timeoutMS=250.
-			cliOptions := options.Client().SetTimeout(250 * time.Millisecond).ApplyURI(mtest.ClusterURI())
+			cliOptions := options.Client().SetTimeout(1000 * time.Millisecond).ApplyURI(mtest.ClusterURI()).
+				SetHosts([]string{failpointHost})
 			integtest.AddTestServerAPIVersion(cliOptions)
 
 			client, err := mongo.Connect(cliOptions)
