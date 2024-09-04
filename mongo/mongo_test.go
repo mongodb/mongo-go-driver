@@ -9,6 +9,7 @@ package mongo
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -604,6 +605,36 @@ func TestMarshalValue(t *testing.T) {
 			got, err := marshalValue(tc.value, tc.bsonOpts, tc.registry)
 			assert.EqualBSON(t, tc.want, got)
 			assert.Equal(t, tc.wantErr, err, "expected and actual error do not match")
+		})
+	}
+}
+
+func TestGetEncoder(t *testing.T) {
+	encT := reflect.TypeOf((*bson.Encoder)(nil))
+	ctxT := reflect.TypeOf(bson.EncodeContext{})
+	for i := 0; i < encT.NumMethod(); i++ {
+		m := encT.Method(i)
+		// Test methods with no input/output parameter.
+		if m.Type.NumIn() != 1 || m.Type.NumOut() != 0 {
+			continue
+		}
+		t.Run(m.Name, func(t *testing.T) {
+			var opts options.BSONOptions
+			optsV := reflect.ValueOf(&opts).Elem()
+			f, ok := optsV.Type().FieldByName(m.Name)
+			require.True(t, ok, "expected %s field in %s", m.Name, optsV.Type())
+
+			wantEnc := reflect.ValueOf(bson.NewEncoder(nil))
+			_ = wantEnc.Method(i).Call(nil)
+			wantCtx := wantEnc.Elem().Field(0)
+			require.Equal(t, ctxT, wantCtx.Type())
+
+			optsV.FieldByIndex(f.Index).SetBool(true)
+			gotEnc := getEncoder(nil, &opts, nil)
+			gotCtx := reflect.ValueOf(gotEnc).Elem().Field(0)
+			require.Equal(t, ctxT, gotCtx.Type())
+
+			assert.True(t, gotCtx.Equal(wantCtx), "expected %v: %v, got: %v", ctxT, wantCtx, gotCtx)
 		})
 	}
 }
