@@ -87,6 +87,92 @@ func TestCSOTProse(t *testing.T) {
 			"insert", "expected a second insert event, got %v", started[1].CommandName)
 	})
 
+	mt.Run("8. server selection", func(mt *mtest.T) {
+		cliOpts := options.Client().ApplyURI("mongodb://invalid/?serverSelectionTimeoutMS=100")
+		mtOpts := mtest.NewOptions().ClientOptions(cliOpts).CreateCollection(false)
+		mt.RunOpts("serverSelectionTimeoutMS honored if timeoutMS is not set", mtOpts, func(mt *mtest.T) {
+			// TODO(GODRIVER-3266): Why do parallel tests fail on windows builds?
+			// mt.Parallel()
+
+			callback := func() bool {
+				err := mt.Client.Ping(context.Background(), nil)
+				assert.Error(mt, err, "expected Ping error, got nil")
+				return true
+			}
+
+			// Assert that Ping fails within 150ms due to server selection timeout.
+			assert.Eventually(t,
+				callback,
+				150*time.Millisecond,
+				time.Millisecond,
+				"expected ping to fail within 150ms")
+		})
+
+		cliOpts = options.Client().ApplyURI("mongodb://invalid/?timeoutMS=100&serverSelectionTimeoutMS=200")
+		mtOpts = mtest.NewOptions().ClientOptions(cliOpts).CreateCollection(false)
+		mt.RunOpts("timeoutMS honored for server selection if it's lower than serverSelectionTimeoutMS", mtOpts, func(mt *mtest.T) {
+			// TODO(GODRIVER-3266): Why do parallel tests fail on windows builds?
+			// mt.Parallel()
+
+			callback := func() bool {
+				err := mt.Client.Ping(context.Background(), nil)
+				assert.Error(mt, err, "expected Ping error, got nil")
+				return true
+			}
+
+			// Assert that Ping fails within 150ms due to timeout.
+			assert.Eventually(t,
+				callback,
+				150*time.Millisecond,
+				time.Millisecond,
+				"expected ping to fail within 150ms")
+		})
+
+		cliOpts = options.Client().ApplyURI("mongodb://invalid/?timeoutMS=200&serverSelectionTimeoutMS=100")
+		mtOpts = mtest.NewOptions().ClientOptions(cliOpts).CreateCollection(false)
+		mt.RunOpts("serverSelectionTimeoutMS honored for server selection if it's lower than timeoutMS", mtOpts, func(mt *mtest.T) {
+			// TODO(GODRIVER-3266): Why do parallel tests fail on windows builds?
+			// mt.Parallel()
+
+			callback := func() bool {
+				err := mt.Client.Ping(context.Background(), nil)
+				assert.Error(mt, err, "expected Ping error, got nil")
+				return true
+			}
+
+			// Assert that Ping fails within 150ms due to server selection timeout.
+			assert.Eventually(t,
+				callback,
+				150*time.Millisecond,
+				time.Millisecond,
+				"expected ping to fail within 150ms")
+		})
+
+		cliOpts = options.Client().ApplyURI("mongodb://invalid/?timeoutMS=0&serverSelectionTimeoutMS=100")
+		mtOpts = mtest.NewOptions().ClientOptions(cliOpts).CreateCollection(false)
+		mt.RunOpts("serverSelectionTimeoutMS honored for server selection if timeoutMS=0", mtOpts, func(mt *mtest.T) {
+			// TODO(GODRIVER-3266): Why do parallel tests fail on windows builds?
+			// mt.Parallel()
+
+			callback := func() bool {
+				err := mt.Client.Ping(context.Background(), nil)
+				assert.Error(mt, err, "expected Ping error, got nil")
+				return true
+			}
+
+			// Assert that Ping fails within 150ms due to server selection timeout.
+			assert.Eventually(t,
+				callback,
+				150*time.Millisecond,
+				time.Millisecond,
+				"expected ping to fail within 150ms")
+		})
+	})
+}
+
+func TestCSOTProse_GridFS(t *testing.T) {
+	mt := mtest.New(t, mtest.NewOptions().CreateClient(false))
+
 	mt.RunOpts("6. gridfs - upload", mtest.NewOptions().MinServerVersion("4.4"), func(mt *mtest.T) {
 		mt.Run("uploads via openUploadStream can be timed out", func(mt *mtest.T) {
 			// Drop and re-create the db.fs.files and db.fs.chunks collections.
@@ -405,88 +491,6 @@ func TestCSOTProse(t *testing.T) {
 
 			_, err = downloadStream.Read([]byte{})
 			assert.Error(mt, err, context.Canceled)
-		})
-	})
-
-	mt.Run("8. server selection", func(mt *mtest.T) {
-		cliOpts := options.Client().ApplyURI("mongodb://invalid/?serverSelectionTimeoutMS=100")
-		mtOpts := mtest.NewOptions().ClientOptions(cliOpts).CreateCollection(false)
-		mt.RunOpts("serverSelectionTimeoutMS honored if timeoutMS is not set", mtOpts, func(mt *mtest.T) {
-			// TODO(GODRIVER-3266): Why do parallel tests fail on windows builds?
-			// mt.Parallel()
-
-			callback := func() bool {
-				err := mt.Client.Ping(context.Background(), nil)
-				assert.Error(mt, err, "expected Ping error, got nil")
-				return true
-			}
-
-			// Assert that Ping fails within 150ms due to server selection timeout.
-			assert.Eventually(t,
-				callback,
-				150*time.Millisecond,
-				time.Millisecond,
-				"expected ping to fail within 150ms")
-		})
-
-		cliOpts = options.Client().ApplyURI("mongodb://invalid/?timeoutMS=100&serverSelectionTimeoutMS=200")
-		mtOpts = mtest.NewOptions().ClientOptions(cliOpts).CreateCollection(false)
-		mt.RunOpts("timeoutMS honored for server selection if it's lower than serverSelectionTimeoutMS", mtOpts, func(mt *mtest.T) {
-			// TODO(GODRIVER-3266): Why do parallel tests fail on windows builds?
-			// mt.Parallel()
-
-			callback := func() bool {
-				err := mt.Client.Ping(context.Background(), nil)
-				assert.Error(mt, err, "expected Ping error, got nil")
-				return true
-			}
-
-			// Assert that Ping fails within 150ms due to timeout.
-			assert.Eventually(t,
-				callback,
-				150*time.Millisecond,
-				time.Millisecond,
-				"expected ping to fail within 150ms")
-		})
-
-		cliOpts = options.Client().ApplyURI("mongodb://invalid/?timeoutMS=200&serverSelectionTimeoutMS=100")
-		mtOpts = mtest.NewOptions().ClientOptions(cliOpts).CreateCollection(false)
-		mt.RunOpts("serverSelectionTimeoutMS honored for server selection if it's lower than timeoutMS", mtOpts, func(mt *mtest.T) {
-			// TODO(GODRIVER-3266): Why do parallel tests fail on windows builds?
-			// mt.Parallel()
-
-			callback := func() bool {
-				err := mt.Client.Ping(context.Background(), nil)
-				assert.Error(mt, err, "expected Ping error, got nil")
-				return true
-			}
-
-			// Assert that Ping fails within 150ms due to server selection timeout.
-			assert.Eventually(t,
-				callback,
-				150*time.Millisecond,
-				time.Millisecond,
-				"expected ping to fail within 150ms")
-		})
-
-		cliOpts = options.Client().ApplyURI("mongodb://invalid/?timeoutMS=0&serverSelectionTimeoutMS=100")
-		mtOpts = mtest.NewOptions().ClientOptions(cliOpts).CreateCollection(false)
-		mt.RunOpts("serverSelectionTimeoutMS honored for server selection if timeoutMS=0", mtOpts, func(mt *mtest.T) {
-			// TODO(GODRIVER-3266): Why do parallel tests fail on windows builds?
-			// mt.Parallel()
-
-			callback := func() bool {
-				err := mt.Client.Ping(context.Background(), nil)
-				assert.Error(mt, err, "expected Ping error, got nil")
-				return true
-			}
-
-			// Assert that Ping fails within 150ms due to server selection timeout.
-			assert.Eventually(t,
-				callback,
-				150*time.Millisecond,
-				time.Millisecond,
-				"expected ping to fail within 150ms")
 		})
 	})
 }
