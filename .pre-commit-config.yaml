@@ -54,3 +54,11 @@ repos:
   rev: v1.59.1
   hooks:
   - id: golangci-lint
+
+- repo: local
+  hooks:
+  - id: executable-shell
+    name: executable-shell
+    entry: chmod +x
+    language: system
+    types: [shell]
