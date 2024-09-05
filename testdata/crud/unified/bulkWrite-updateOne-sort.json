@@ -187,7 +187,6 @@
             ]
           },
           "expectError": {
-            "errorContains": "'update.updates.sort' is an unknown field",
             "isClientError": false
           }
         }

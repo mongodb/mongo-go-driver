@@ -125,6 +125,7 @@ type ReplaceOneModel struct {
 	Filter      interface{}
 	Replacement interface{}
 	Hint        interface{}
+	Sort        interface{}
 }
 
 // NewReplaceOneModel creates a new ReplaceOneModel.
@@ -170,6 +171,14 @@ func (rom *ReplaceOneModel) SetCollation(collation *options.Collation) *ReplaceO
 // BulkWriteResult.
 func (rom *ReplaceOneModel) SetUpsert(upsert bool) *ReplaceOneModel {
 	rom.Upsert = &upsert
+	return rom
+}
+
+// SetSort specifies which document the operation replaces if the query matches multiple documents. The first document
+// matched by the sort order will be replaced. This option is only valid for MongoDB versions >= 8.0. The driver will
+// return an error if the sort parameter is a multi-key map. The default value is nil.
+func (rom *ReplaceOneModel) SetSort(sort interface{}) *ReplaceOneModel {
+	rom.Sort = &sort
 	return rom
 }
 

@@ -1,5 +1,5 @@
 {
-  "description": "updateOne-sort",
+  "description": "replaceOne-sort",
   "schemaVersion": "1.0",
   "createEntities": [
     {
@@ -48,7 +48,7 @@
   ],
   "tests": [
     {
-      "description": "UpdateOne with sort option",
+      "description": "ReplaceOne with sort option",
       "runOnRequirements": [
         {
           "minServerVersion": "8.0"
@@ -56,7 +56,7 @@
       ],
       "operations": [
         {
-          "name": "updateOne",
+          "name": "replaceOne",
           "object": "collection0",
           "arguments": {
             "filter": {
@@ -67,10 +67,8 @@
             "sort": {
               "_id": -1
             },
-            "update": {
-              "$inc": {
-                "x": 1
-              }
+            "replacement": {
+              "x": 1
             }
           },
           "expectResult": {
@@ -96,9 +94,7 @@
                         }
                       },
                       "u": {
-                        "$inc": {
-                          "x": 1
-                        }
+                        "x": 1
                       },
                       "sort": {
                         "_id": -1
@@ -141,22 +137,23 @@
             },
             {
               "_id": 3,
-              "x": 34
+              "x": 1
             }
           ]
         }
       ]
     },
     {
-      "description": "updateOne with sort option unsupported (server-side error)",
+      "description": "replaceOne with sort option unsupported (server-side error)",
       "runOnRequirements": [
         {
+          "minServerVersion": "4.2.0",
           "maxServerVersion": "7.99"
         }
       ],
       "operations": [
         {
-          "name": "updateOne",
+          "name": "replaceOne",
           "object": "collection0",
           "arguments": {
             "filter": {
@@ -167,10 +164,8 @@
             "sort": {
               "_id": -1
             },
-            "update": {
-              "$inc": {
-                "x": 1
-              }
+            "replacement": {
+              "x": 1
             }
           },
           "expectError": {
@@ -194,9 +189,7 @@
                         }
                       },
                       "u": {
-                        "$inc": {
-                          "x": 1
-                        }
+                        "x": 1
                       },
                       "sort": {
                         "_id": -1

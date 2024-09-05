@@ -40,6 +40,12 @@ type ReplaceOptions struct {
 	// Values must be constant or closed expressions that do not reference document fields. Parameters can then be
 	// accessed as variables in an aggregate expression context (e.g. "$$var").
 	Let interface{}
+
+	// A document specifying which document should be replaced if the filter used by the operation matches multiple
+	// documents in the collection. If set, the first document in the sorted order will be replaced. This option is
+	// only valid for MongoDB versions >= 8.0. The driver will return an error if the sort parameter is a multi-key
+	// map. The default value is nil.
+	Sort interface{}
 }
 
 // Replace creates a new ReplaceOptions instance.
@@ -83,6 +89,12 @@ func (ro *ReplaceOptions) SetLet(l interface{}) *ReplaceOptions {
 	return ro
 }
 
+// SetSort sets the value for the Sort field.
+func (ro *ReplaceOptions) SetSort(s interface{}) *ReplaceOptions {
+	ro.Sort = s
+	return ro
+}
+
 // MergeReplaceOptions combines the given ReplaceOptions instances into a single ReplaceOptions in a last-one-wins
 // fashion.
 //
@@ -111,6 +123,9 @@ func MergeReplaceOptions(opts ...*ReplaceOptions) *ReplaceOptions {
 		}
 		if ro.Let != nil {
 			rOpts.Let = ro.Let
+		}
+		if ro.Sort != nil {
+			rOpts.Sort = ro.Sort
 		}
 	}
 
