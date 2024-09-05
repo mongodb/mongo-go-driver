@@ -22,7 +22,7 @@ import (
 
 func TestClientEncryption_ErrClientDisconnected(t *testing.T) {
 	t.Parallel()
-	
+
 	client, _ := Connect(options.Client().ApplyURI("mongodb://test"))
 	crypt := driver.NewCrypt(&driver.CryptOptions{MongoCrypt: &mongocrypt.MongoCrypt{}})
 
