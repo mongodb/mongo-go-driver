@@ -59,8 +59,7 @@ func buildInsertResult(response bsoncore.Document) (InsertResult, error) {
 	}
 	ir := InsertResult{}
 	for _, element := range elements {
-		switch element.Key() {
-		case "n":
+		if element.Key() == "n" {
 			var ok bool
 			ir.N, ok = element.Value().AsInt64OK()
 			if !ok {

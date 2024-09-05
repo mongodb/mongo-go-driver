@@ -206,11 +206,11 @@ func NewConfigWithAuthenticator(
 		for _, comp := range comps {
 			switch comp {
 			case "zlib":
-				connOpts = append(connOpts, WithZlibLevel(func(level *int) *int {
+				connOpts = append(connOpts, WithZlibLevel(func(*int) *int {
 					return co.ZlibLevel
 				}))
 			case "zstd":
-				connOpts = append(connOpts, WithZstdLevel(func(level *int) *int {
+				connOpts = append(connOpts, WithZstdLevel(func(*int) *int {
 					return co.ZstdLevel
 				}))
 			}
@@ -244,7 +244,7 @@ func NewConfigWithAuthenticator(
 		}
 		if co.AuthenticateToAnything != nil && *co.AuthenticateToAnything {
 			// Authenticate arbiters
-			handshakeOpts.PerformAuthentication = func(serv description.Server) bool {
+			handshakeOpts.PerformAuthentication = func(description.Server) bool {
 				return true
 			}
 		}

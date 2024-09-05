@@ -60,8 +60,7 @@ func buildDeleteResult(response bsoncore.Document) (DeleteResult, error) {
 	}
 	dr := DeleteResult{}
 	for _, element := range elements {
-		switch element.Key() {
-		case "n":
+		if element.Key() == "n" {
 			var ok bool
 			dr.N, ok = element.Value().AsInt64OK()
 			if !ok {

@@ -24,18 +24,18 @@ func ExampleClient() {
 		context.TODO(),
 		options.Client().ApplyURI("mongodb://localhost:27017"))
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	defer func() {
 		if err = client.Disconnect(context.TODO()); err != nil {
-			log.Fatal(err)
+			log.Panic(err)
 		}
 	}()
 
 	collection := client.Database("db").Collection("coll")
 	result, err := collection.InsertOne(context.TODO(), bson.D{{"x", 1}})
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	fmt.Printf("inserted ID: %v\n", result.InsertedID)
 }
@@ -47,11 +47,11 @@ func ExampleConnect_ping() {
 	clientOpts := options.Client().ApplyURI("mongodb://localhost:27017")
 	client, err := mongo.Connect(context.TODO(), clientOpts)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	defer func() {
 		if err = client.Disconnect(context.TODO()); err != nil {
-			log.Fatal(err)
+			log.Panic(err)
 		}
 	}()
 
@@ -60,7 +60,7 @@ func ExampleConnect_ping() {
 	// reduces application resiliency as the server may be temporarily
 	// unavailable when Ping is called.
 	if err = client.Ping(context.TODO(), readpref.Primary()); err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 }
 
@@ -76,7 +76,7 @@ func ExampleConnect_replicaSet() {
 		"mongodb://localhost:27017,localhost:27018/?replicaSet=replset")
 	client, err := mongo.Connect(context.TODO(), clientOpts)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	_ = client
 }
@@ -90,7 +90,7 @@ func ExampleConnect_sharded() {
 		"mongodb://localhost:27017,localhost:27018")
 	client, err := mongo.Connect(context.TODO(), clientOpts)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	_ = client
 }
@@ -108,7 +108,7 @@ func ExampleConnect_sRV() {
 	clientOpts := options.Client().ApplyURI("mongodb+srv://mongodb.example.com")
 	client, err := mongo.Connect(context.TODO(), clientOpts)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	_ = client
 }
@@ -122,7 +122,7 @@ func ExampleConnect_direct() {
 		"mongodb://localhost:27017/?connect=direct")
 	client, err := mongo.Connect(context.TODO(), clientOpts)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	_ = client
 }
@@ -145,7 +145,7 @@ func ExampleConnect_sCRAM() {
 		SetAuth(credential)
 	client, err := mongo.Connect(context.TODO(), clientOpts)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	_ = client
 }
@@ -181,7 +181,7 @@ func ExampleConnect_x509() {
 
 	client, err := mongo.Connect(context.TODO(), clientOpts)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	_ = client
 }
@@ -206,7 +206,7 @@ func ExampleConnect_pLAIN() {
 
 	client, err := mongo.Connect(context.TODO(), clientOpts)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	_ = client
 }
@@ -241,7 +241,7 @@ func ExampleConnect_kerberos() {
 
 	client, err := mongo.Connect(context.TODO(), clientOpts)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	_ = client
 }

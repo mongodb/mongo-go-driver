@@ -23,7 +23,7 @@ func Example_clientSideEncryption() {
 	// encryption key.
 	localKey := make([]byte, 96)
 	if _, err := rand.Read(localKey); err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	kmsProviders := map[string]map[string]interface{}{
 		"local": {
@@ -41,28 +41,28 @@ func Example_clientSideEncryption() {
 		SetAutoEncryptionOptions(autoEncryptionOpts)
 	client, err := Connect(context.TODO(), clientOpts)
 	if err != nil {
-		log.Fatalf("Connect error: %v", err)
+		log.Panicf("Connect error: %v", err)
 	}
 	defer func() {
 		if err = client.Disconnect(context.TODO()); err != nil {
-			log.Fatalf("Disconnect error: %v", err)
+			log.Panicf("Disconnect error: %v", err)
 		}
 	}()
 
 	collection := client.Database("test").Collection("coll")
 	if err := collection.Drop(context.TODO()); err != nil {
-		log.Fatalf("Collection.Drop error: %v", err)
+		log.Panicf("Collection.Drop error: %v", err)
 	}
 
 	_, err = collection.InsertOne(
 		context.TODO(),
 		bson.D{{"encryptedField", "123456789"}})
 	if err != nil {
-		log.Fatalf("InsertOne error: %v", err)
+		log.Panicf("InsertOne error: %v", err)
 	}
 	res, err := collection.FindOne(context.TODO(), bson.D{}).Raw()
 	if err != nil {
-		log.Fatalf("FindOne error: %v", err)
+		log.Panicf("FindOne error: %v", err)
 	}
 	fmt.Println(res)
 }
@@ -82,23 +82,23 @@ func Example_clientSideEncryptionCreateKey() {
 		context.TODO(),
 		options.Client().ApplyURI(uri))
 	if err != nil {
-		log.Fatalf("Connect error for keyVaultClient: %v", err)
+		log.Panicf("Connect error for keyVaultClient: %v", err)
 	}
 	clientEnc, err := NewClientEncryption(keyVaultClient, clientEncryptionOpts)
 	if err != nil {
-		log.Fatalf("NewClientEncryption error: %v", err)
+		log.Panicf("NewClientEncryption error: %v", err)
 	}
 	defer func() {
 		// this will disconnect the keyVaultClient as well
 		if err = clientEnc.Close(context.TODO()); err != nil {
-			log.Fatalf("Close error: %v", err)
+			log.Panicf("Close error: %v", err)
 		}
 	}()
 
 	// Create a new data key and encode it as base64
 	dataKeyID, err := clientEnc.CreateDataKey(context.TODO(), "local")
 	if err != nil {
-		log.Fatalf("CreateDataKey error: %v", err)
+		log.Panicf("CreateDataKey error: %v", err)
 	}
 	dataKeyBase64 := base64.StdEncoding.EncodeToString(dataKeyID.Data)
 
@@ -125,7 +125,7 @@ func Example_clientSideEncryptionCreateKey() {
 	var schemaDoc bson.Raw
 	err = bson.UnmarshalExtJSON([]byte(schema), true, &schemaDoc)
 	if err != nil {
-		log.Fatalf("UnmarshalExtJSON error: %v", err)
+		log.Panicf("UnmarshalExtJSON error: %v", err)
 	}
 
 	// Configure a Client with auto encryption using the new schema
@@ -144,7 +144,7 @@ func Example_clientSideEncryptionCreateKey() {
 		SetAutoEncryptionOptions(autoEncryptionOpts)
 	client, err := Connect(context.TODO(), clientOptions)
 	if err != nil {
-		log.Fatalf("Connect error for encrypted client: %v", err)
+		log.Panicf("Connect error for encrypted client: %v", err)
 	}
 	defer func() {
 		_ = client.Disconnect(context.TODO())
