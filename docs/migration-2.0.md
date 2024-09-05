@@ -423,7 +423,11 @@ Dropping an index replies with a superset of the following message: `{nIndexesWa
 
 #### ListSpecifications
 
+<!-- markdown-link-check-disable -->
+
 Updated to return a slice of structs instead of a slice of pointers. See the [database analogue](#ListCollectionSpecifications) for migration guide.
+
+<!-- markdown-link-check-enable -->
 
 ### NewClient
 
