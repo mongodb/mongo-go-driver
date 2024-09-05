@@ -433,7 +433,8 @@ func TestCSOTProse(t *testing.T) {
 		cliOpts = options.Client().ApplyURI("mongodb://invalid/?timeoutMS=100&serverSelectionTimeoutMS=200")
 		mtOpts = mtest.NewOptions().ClientOptions(cliOpts).CreateCollection(false)
 		mt.RunOpts("timeoutMS honored for server selection if it's lower than serverSelectionTimeoutMS", mtOpts, func(mt *mtest.T) {
-			mt.Parallel()
+			// TODO(GODRIVER-3266): Why do parallel tests fail on windows builds?
+			// mt.Parallel()
 
 			callback := func() bool {
 				err := mt.Client.Ping(context.Background(), nil)
@@ -452,7 +453,8 @@ func TestCSOTProse(t *testing.T) {
 		cliOpts = options.Client().ApplyURI("mongodb://invalid/?timeoutMS=200&serverSelectionTimeoutMS=100")
 		mtOpts = mtest.NewOptions().ClientOptions(cliOpts).CreateCollection(false)
 		mt.RunOpts("serverSelectionTimeoutMS honored for server selection if it's lower than timeoutMS", mtOpts, func(mt *mtest.T) {
-			mt.Parallel()
+			// TODO(GODRIVER-3266): Why do parallel tests fail on windows builds?
+			// mt.Parallel()
 
 			callback := func() bool {
 				err := mt.Client.Ping(context.Background(), nil)
@@ -471,7 +473,8 @@ func TestCSOTProse(t *testing.T) {
 		cliOpts = options.Client().ApplyURI("mongodb://invalid/?timeoutMS=0&serverSelectionTimeoutMS=100")
 		mtOpts = mtest.NewOptions().ClientOptions(cliOpts).CreateCollection(false)
 		mt.RunOpts("serverSelectionTimeoutMS honored for server selection if timeoutMS=0", mtOpts, func(mt *mtest.T) {
-			mt.Parallel()
+			// TODO(GODRIVER-3266): Why do parallel tests fail on windows builds?
+			// mt.Parallel()
 
 			callback := func() bool {
 				err := mt.Client.Ping(context.Background(), nil)
