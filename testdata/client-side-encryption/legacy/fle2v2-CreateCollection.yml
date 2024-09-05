@@ -100,10 +100,6 @@ tests:
             command:
               create: *encrypted_collection_name
               encryptedFields: &encrypted_fields_expectation {
-                # Expect state collections are not included in the encryptedFields sent to the server.
-                "escCollection": null,
-                "ecocCollection": null,
-                "eccCollection": null,
                 "fields": [
                     {
                         "path": "firstName",
