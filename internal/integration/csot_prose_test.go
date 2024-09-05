@@ -302,8 +302,7 @@ func TestCSOTProse(t *testing.T) {
 			mt.ClearFailPoints()
 		}()
 
-		// Create a new MongoClient with timeoutMS=150.
-		cliOptions := options.Client().SetTimeout(150 * time.Millisecond).ApplyURI(mtest.ClusterURI())
+		cliOptions := options.Client().SetTimeout(100 * time.Millisecond).ApplyURI(mtest.ClusterURI())
 		integtest.AddTestServerAPIVersion(cliOptions)
 
 		client, err := mongo.Connect(cliOptions)
@@ -316,7 +315,7 @@ func TestCSOTProse(t *testing.T) {
 
 			// If the operation-level context is not respected, then the client-level
 			// timeout will exceed deadline.
-			ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+			ctx, cancel := context.WithTimeout(context.Background(), 1000*time.Millisecond)
 			defer cancel()
 
 			// Upload file and ensure it uploaded correctly.
@@ -334,7 +333,7 @@ func TestCSOTProse(t *testing.T) {
 		mt.Run("OpenUploadStream", func(mt *mtest.T) {
 			// If the operation-level context is not respected, then the client-level
 			// timeout will exceed deadline.
-			ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+			ctx, cancel := context.WithTimeout(context.Background(), 1000*time.Millisecond)
 			defer cancel()
 
 			// Upload file and ensure it uploaded correctly.
