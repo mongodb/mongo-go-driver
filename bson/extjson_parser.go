@@ -61,10 +61,10 @@ type extJSONParser struct {
 	k  string
 	v  *extJSONValue
 
-	err       error
-	canonical bool
-	depth     int
-	maxDepth  int
+	err           error
+	canonicalOnly bool
+	depth         int
+	maxDepth      int
 
 	emptyObject bool
 	relaxedUUID bool
@@ -74,13 +74,13 @@ type extJSONParser struct {
 // parsing from the first character of the argued json input. It will not
 // perform any read-ahead and will therefore not report any errors about
 // malformed JSON at this point.
-func newExtJSONParser(r io.Reader, canonical bool) *extJSONParser {
+func newExtJSONParser(r io.Reader, canonicalOnly bool) *extJSONParser {
 	return &extJSONParser{
-		js:        &jsonScanner{r: r},
-		s:         jpsStartState,
-		m:         []jsonParseMode{},
-		canonical: canonical,
-		maxDepth:  maxNestingDepth,
+		js:            &jsonScanner{r: r},
+		s:             jpsStartState,
+		m:             []jsonParseMode{},
+		canonicalOnly: canonicalOnly,
+		maxDepth:      maxNestingDepth,
 	}
 }
 
@@ -413,12 +413,12 @@ func (ejp *extJSONParser) readValue(t Type) (*extJSONValue, error) {
 				}
 				v = &extJSONValue{t: TypeEmbeddedDocument, v: &extJSONObject{keys: keys, values: vals}}
 			case jpsSawValue:
-				if ejp.canonical {
+				if ejp.canonicalOnly {
 					return nil, invalidJSONError("{")
 				}
 				v = ejp.v
 			default:
-				if ejp.canonical {
+				if ejp.canonicalOnly {
 					return nil, invalidJSONErrorForType("object", t)
 				}
 				return nil, invalidJSONErrorForType("ISO-8601 Internet Date/Time Format as described in RFC-3339", t)

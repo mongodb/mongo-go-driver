@@ -58,8 +58,8 @@ func UnmarshalValue(t Type, data []byte, val interface{}) error {
 // UnmarshalExtJSON parses the extended JSON-encoded data and stores the result
 // in the value pointed to by val. If val is nil or not a pointer, UnmarshalExtJSON
 // returns an error.
-func UnmarshalExtJSON(data []byte, canonical bool, val interface{}) error {
-	ejvr, err := NewExtJSONValueReader(bytes.NewReader(data), canonical)
+func UnmarshalExtJSON(data []byte, canonicalOnly bool, val interface{}) error {
+	ejvr, err := NewExtJSONValueReader(bytes.NewReader(data), canonicalOnly)
 	if err != nil {
 		return err
 	}

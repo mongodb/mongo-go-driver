@@ -27,19 +27,19 @@ type extJSONValueReader struct {
 }
 
 // NewExtJSONValueReader creates a new ValueReader from a given io.Reader
-// It will interpret the JSON of r as canonical or relaxed according to the
-// given canonical flag
-func NewExtJSONValueReader(r io.Reader, canonical bool) (ValueReader, error) {
-	return newExtJSONValueReader(r, canonical)
+// It will interpret the JSON of r as canonical only, or allow both
+// canonical and relaxed according to the given canonicalOnly flag
+func NewExtJSONValueReader(r io.Reader, canonicalOnly bool) (ValueReader, error) {
+	return newExtJSONValueReader(r, canonicalOnly)
 }
 
-func newExtJSONValueReader(r io.Reader, canonical bool) (*extJSONValueReader, error) {
+func newExtJSONValueReader(r io.Reader, canonicalOnly bool) (*extJSONValueReader, error) {
 	ejvr := new(extJSONValueReader)
-	return ejvr.reset(r, canonical)
+	return ejvr.reset(r, canonicalOnly)
 }
 
-func (ejvr *extJSONValueReader) reset(r io.Reader, canonical bool) (*extJSONValueReader, error) {
-	p := newExtJSONParser(r, canonical)
+func (ejvr *extJSONValueReader) reset(r io.Reader, canonicalOnly bool) (*extJSONValueReader, error) {
+	p := newExtJSONParser(r, canonicalOnly)
 	typ, err := p.peekType()
 
 	if err != nil {
