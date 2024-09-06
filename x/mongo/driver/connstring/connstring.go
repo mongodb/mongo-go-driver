@@ -296,7 +296,7 @@ func (u *ConnString) setDefaultAuthParams(dbName string) error {
 			u.AuthMechanismProperties["SERVICE_NAME"] = "mongodb"
 		}
 		fallthrough
-	case "mongodb-aws", "mongodb-x509", "mongodb-oidc":
+	case "mongodb-aws", "mongodb-x509":
 		if u.AuthSource == "" {
 			u.AuthSource = "$external"
 		} else if u.AuthSource != "$external" {
@@ -311,6 +311,13 @@ func (u *ConnString) setDefaultAuthParams(dbName string) error {
 			u.AuthSource = dbName
 			if u.AuthSource == "" {
 				u.AuthSource = "admin"
+			}
+		}
+	case "mongodb-oidc":
+		if u.AuthSource == "" {
+			u.AuthSource = dbName
+			if u.AuthSource == "" {
+				u.AuthSource = "$external"
 			}
 		}
 	case "":
@@ -902,16 +909,15 @@ func (p *parser) parse(original string) (*ConnString, error) {
 	uri := original
 
 	var err error
-	switch {
-	case strings.HasPrefix(uri, SchemeMongoDBSRV+"://"):
+	if strings.HasPrefix(uri, SchemeMongoDBSRV+"://") {
 		connStr.Scheme = SchemeMongoDBSRV
 		// remove the scheme
 		uri = uri[len(SchemeMongoDBSRV)+3:]
-	case strings.HasPrefix(uri, SchemeMongoDB+"://"):
+	} else if strings.HasPrefix(uri, SchemeMongoDB+"://") {
 		connStr.Scheme = SchemeMongoDB
 		// remove the scheme
 		uri = uri[len(SchemeMongoDB)+3:]
-	default:
+	} else {
 		return nil, errors.New(`scheme must be "mongodb" or "mongodb+srv"`)
 	}
 
@@ -922,9 +928,9 @@ func (p *parser) parse(original string) (*ConnString, error) {
 		username := userInfo
 		var password string
 
-		if u, p, ok := strings.Cut(userInfo, ":"); ok {
-			username = u
-			password = p
+		if idx := strings.Index(userInfo, ":"); idx != -1 {
+			username = userInfo[:idx]
+			password = userInfo[idx+1:]
 			connStr.PasswordSet = true
 		}
 
