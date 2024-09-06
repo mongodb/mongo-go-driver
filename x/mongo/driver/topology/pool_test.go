@@ -818,6 +818,79 @@ func TestPool(t *testing.T) {
 
 			p.close(context.Background())
 		})
+		t.Run("discards connections closed by the server side", func(t *testing.T) {
+			t.Parallel()
+
+			cleanup := make(chan struct{})
+			defer close(cleanup)
+
+			ncs := make(chan net.Conn, 2)
+			addr := bootstrapConnections(t, 2, func(nc net.Conn) {
+				// Send all "server-side" connections to a channel so we can
+				// interact with them during the test.
+				ncs <- nc
+
+				<-cleanup
+				_ = nc.Close()
+			})
+
+			d := newdialer(&net.Dialer{})
+			p := newPool(poolConfig{
+				Address: address.Address(addr.String()),
+			}, WithDialer(func(Dialer) Dialer { return d }))
+			err := p.ready()
+			noerr(t, err)
+
+			// Add 1 idle connection to the pool by checking-out and checking-in
+			// a connection.
+			conn, err := p.checkOut(context.Background())
+			noerr(t, err)
+			err = p.checkIn(conn)
+			noerr(t, err)
+			assertConnectionsOpened(t, d, 1)
+			assert.Equalf(t, 1, p.availableConnectionCount(), "should be 1 idle connections in pool")
+			assert.Equalf(t, 1, p.totalConnectionCount(), "should be 1 total connection in pool")
+
+			// Make that connection appear as if it's been idle for a minute.
+			conn.idleStart.Store(time.Now().Add(-1 * time.Minute))
+
+			// Close the "server-side" of the connection we just created. The idle
+			// connection in the pool is now unusable because the "server-side"
+			// closed it.
+			nc := <-ncs
+			err = nc.Close()
+			noerr(t, err)
+
+			// In a separate goroutine, write a valid wire message to the 2nd
+			// connection that's about to be created. Stop waiting for a 2nd
+			// connection after 100ms to prevent leaking a goroutine.
+			go func() {
+				select {
+				case nc := <-ncs:
+					_, err = nc.Write([]byte{5, 0, 0, 0, 0})
+					noerr(t, err)
+				case <-time.After(100 * time.Millisecond):
+				}
+			}()
+
+			// Check out a connection and try to read from it. Expect the pool to
+			// discard the connection that was closed by the "server-side" and
+			// return a newly created connection instead.
+			conn, err = p.checkOut(context.Background())
+			noerr(t, err)
+			msg, err := conn.readWireMessage(context.Background())
+			noerr(t, err)
+			assert.Equal(t, []byte{5, 0, 0, 0, 0}, msg)
+
+			err = p.checkIn(conn)
+			noerr(t, err)
+
+			assertConnectionsOpened(t, d, 2)
+			assert.Equalf(t, 1, p.availableConnectionCount(), "should be 1 idle connections in pool")
+			assert.Equalf(t, 1, p.totalConnectionCount(), "should be 1 total connection in pool")
+
+			p.close(context.Background())
+		})
 	})
 	t.Run("checkIn", func(t *testing.T) {
 		t.Parallel()
@@ -1076,7 +1149,7 @@ func TestPool(t *testing.T) {
 			p.idleMu.Lock()
 			for i := 0; i < 2; i++ {
 				p.idleConns[i].idleTimeout = time.Millisecond
-				p.idleConns[i].idleDeadline.Store(time.Now().Add(-1 * time.Hour))
+				p.idleConns[i].idleStart.Store(time.Now().Add(-1 * time.Hour))
 			}
 			p.idleMu.Unlock()
 			assertConnectionsClosed(t, d, 2)
@@ -1111,7 +1184,7 @@ func TestPool(t *testing.T) {
 			p.idleMu.Lock()
 			for i := 0; i < 2; i++ {
 				p.idleConns[i].idleTimeout = time.Millisecond
-				p.idleConns[i].idleDeadline.Store(time.Now().Add(-1 * time.Hour))
+				p.idleConns[i].idleStart.Store(time.Now().Add(-1 * time.Hour))
 			}
 			p.idleMu.Unlock()
 			assertConnectionsClosed(t, d, 2)

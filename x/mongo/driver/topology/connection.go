@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -54,7 +55,7 @@ type connection struct {
 	nc                   net.Conn // When nil, the connection is closed.
 	addr                 address.Address
 	idleTimeout          time.Duration
-	idleDeadline         atomic.Value // Stores a time.Time
+	idleStart            atomic.Value // Stores a time.Time
 	readTimeout          time.Duration
 	writeTimeout         time.Duration
 	desc                 description.Server
@@ -512,24 +513,53 @@ func (c *connection) close() error {
 }
 
 func (c *connection) closed() bool {
-	return atomic.LoadInt64(&c.state) == connDisconnected
-}
-
-func (c *connection) idleTimeoutExpired() bool {
-	now := time.Now()
-	if c.idleTimeout > 0 {
-		idleDeadline, ok := c.idleDeadline.Load().(time.Time)
-		if ok && now.After(idleDeadline) {
-			return true
-		}
+	if atomic.LoadInt64(&c.state) == connDisconnected {
+		return true
 	}
+
+	// If the connection has been idle for less than 10 seconds, skip the liveness
+	// check.
+	idleStart, ok := c.idleStart.Load().(time.Time)
+	if !ok || idleStart.Add(10*time.Second).After(time.Now()) {
+		return false
+	}
+
+	// Set a 1ms read deadline and attempt to read 1 byte from the wire. Expect
+	// it to block for 1ms then return a deadline exceeded error. If it returns
+	// any other error, the connection is not usable, so close it and return
+	// true. If it doesn't return an error and actually reads data, the
+	// connection is also not usable, so close it and return true.
+	err := c.nc.SetReadDeadline(time.Now().Add(1 * time.Millisecond))
+	if err != nil {
+		_ = c.close()
+		return true
+	}
+
+	var b [1]byte
+	_, err = c.nc.Read(b[:])
+	if !errors.Is(err, os.ErrDeadlineExceeded) {
+		_ = c.close()
+		return true
+	}
+
+	// We don't need to un-set the read deadline because the "read" and "write"
+	// methods always reset the deadlines.
 
 	return false
 }
 
-func (c *connection) bumpIdleDeadline() {
+func (c *connection) idleTimeoutExpired() bool {
+	if c.idleTimeout == 0 {
+		return false
+	}
+
+	idleStart, ok := c.idleStart.Load().(time.Time)
+	return ok && idleStart.Add(c.idleTimeout).Before(time.Now())
+}
+
+func (c *connection) bumpIdleStart() {
 	if c.idleTimeout > 0 {
-		c.idleDeadline.Store(time.Now().Add(c.idleTimeout))
+		c.idleStart.Store(time.Now())
 	}
 }
 
