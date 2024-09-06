@@ -26,9 +26,9 @@ type extJSONValueReader struct {
 	frame int
 }
 
-// NewExtJSONValueReader creates a new ValueReader from a given io.Reader
-// It will interpret the JSON of r as canonical only, or allow both
-// canonical and relaxed according to the given canonicalOnly flag
+// NewExtJSONValueReader returns a ValueReader that reads Extended JSON values
+// from r. If canonicalOnly is true, reading values from the ValueReader returns
+// an error if the Extended JSON was not marshaled in canonical mode.
 func NewExtJSONValueReader(r io.Reader, canonicalOnly bool) (ValueReader, error) {
 	return newExtJSONValueReader(r, canonicalOnly)
 }
