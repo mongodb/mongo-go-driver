@@ -218,6 +218,7 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 			clientOpt.HTTPClient,
 		)
 		if err != nil {
+			fmt.Printf("error creating authenticator: %w", err)
 			return nil, fmt.Errorf("error creating authenticator: %w", err)
 		}
 	}
