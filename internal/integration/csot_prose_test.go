@@ -450,7 +450,6 @@ func TestCSOTProse_GridFS(t *testing.T) {
 		err = mt.Client.Database("db").Collection("fs.chunks").Drop(context.Background())
 		assert.NoError(mt, err, "failed to drop chunks")
 
-		// Create a new MongoClient with timeoutMS=10.
 		cliOptions := options.Client().ApplyURI(mtest.ClusterURI())
 		integtest.AddTestServerAPIVersion(cliOptions)
 
