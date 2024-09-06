@@ -610,6 +610,8 @@ func TestMarshalValue(t *testing.T) {
 }
 
 func TestGetEncoder(t *testing.T) {
+	t.Parallel()
+
 	encT := reflect.TypeOf((*bson.Encoder)(nil))
 	ctxT := reflect.TypeOf(bson.EncodeContext{})
 	for i := 0; i < encT.NumMethod(); i++ {

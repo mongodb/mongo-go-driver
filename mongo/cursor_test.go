@@ -266,6 +266,8 @@ func TestNewCursorFromDocuments(t *testing.T) {
 }
 
 func TestGetDecoder(t *testing.T) {
+	t.Parallel()
+
 	decT := reflect.TypeOf((*bson.Decoder)(nil))
 	ctxT := reflect.TypeOf(bson.DecodeContext{})
 	for i := 0; i < decT.NumMethod(); i++ {

@@ -54,6 +54,12 @@ func (e *negateCodec) DecodeValue(_ bson.DecodeContext, vr bson.ValueReader, val
 	return nil
 }
 
+type intKey int
+
+func (i intKey) MarshalKey() (string, error) {
+	return fmt.Sprintf("key_%d", i), nil
+}
+
 var _ options.ContextDialer = &slowConnDialer{}
 
 // A slowConnDialer dials connections that delay network round trips by the given delay duration.
@@ -724,6 +730,20 @@ func TestClient_BSONOptions(t *testing.T) {
 		C string `json:"y" bson:"3"`
 	}
 
+	type omitemptyTest struct {
+		X jsonTagsTest `bson:"x,omitempty"`
+	}
+
+	type truncatingDoublesTest struct {
+		X int
+	}
+
+	type timeZoneTest struct {
+		X time.Time
+	}
+
+	timestamp, _ := time.Parse(time.RFC3339, "2006-01-02T15:04:05+07:00")
+
 	testCases := []struct {
 		name       string
 		bsonOpts   *options.BSONOptions
@@ -767,6 +787,88 @@ func TestClient_BSONOptions(t *testing.T) {
 				Build()),
 		},
 		{
+			name: "NilMapAsEmpty",
+			bsonOpts: &options.BSONOptions{
+				NilMapAsEmpty: true,
+			},
+			doc:        bson.D{{Key: "x", Value: map[string]string(nil)}},
+			decodeInto: func() interface{} { return &bson.D{} },
+			want:       &bson.D{{Key: "x", Value: bson.D{}}},
+			wantRaw: bson.Raw(bsoncore.NewDocumentBuilder().
+				AppendDocument("x", bsoncore.NewDocumentBuilder().Build()).
+				Build()),
+		},
+		{
+			name: "NilSliceAsEmpty",
+			bsonOpts: &options.BSONOptions{
+				NilSliceAsEmpty: true,
+			},
+			doc:        bson.D{{Key: "x", Value: []int(nil)}},
+			decodeInto: func() interface{} { return &bson.D{} },
+			want:       &bson.D{{Key: "x", Value: bson.A{}}},
+			wantRaw: bson.Raw(bsoncore.NewDocumentBuilder().
+				AppendArray("x", bsoncore.NewDocumentBuilder().Build()).
+				Build()),
+		},
+		{
+			name: "NilByteSliceAsEmpty",
+			bsonOpts: &options.BSONOptions{
+				NilByteSliceAsEmpty: true,
+			},
+			doc:        bson.D{{Key: "x", Value: []byte(nil)}},
+			decodeInto: func() interface{} { return &bson.D{} },
+			want:       &bson.D{{Key: "x", Value: bson.Binary{Data: []byte{}}}},
+			wantRaw: bson.Raw(bsoncore.NewDocumentBuilder().
+				AppendBinary("x", 0, nil).
+				Build()),
+		},
+		{
+			name: "OmitZeroStruct",
+			bsonOpts: &options.BSONOptions{
+				OmitZeroStruct: true,
+			},
+			doc:        omitemptyTest{},
+			decodeInto: func() interface{} { return &bson.D{} },
+			want:       &bson.D{},
+			wantRaw:    bson.Raw(bsoncore.NewDocumentBuilder().Build()),
+		},
+		{
+			name: "StringifyMapKeysWithFmt",
+			bsonOpts: &options.BSONOptions{
+				StringifyMapKeysWithFmt: true,
+			},
+			doc:        map[intKey]string{intKey(42): "foo"},
+			decodeInto: func() interface{} { return &bson.D{} },
+			want:       &bson.D{{"42", "foo"}},
+			wantRaw: bson.Raw(bsoncore.NewDocumentBuilder().
+				AppendString("42", "foo").
+				Build()),
+		},
+		{
+			name: "AllowTruncatingDoubles",
+			bsonOpts: &options.BSONOptions{
+				AllowTruncatingDoubles: true,
+			},
+			doc:        bson.D{{Key: "x", Value: 3.14}},
+			decodeInto: func() interface{} { return &truncatingDoublesTest{} },
+			want:       &truncatingDoublesTest{3},
+			wantRaw: bson.Raw(bsoncore.NewDocumentBuilder().
+				AppendDouble("x", 3.14).
+				Build()),
+		},
+		{
+			name: "BinaryAsSlice",
+			bsonOpts: &options.BSONOptions{
+				BinaryAsSlice: true,
+			},
+			doc:        bson.D{{Key: "x", Value: []byte{42}}},
+			decodeInto: func() interface{} { return &bson.D{} },
+			want:       &bson.D{{Key: "x", Value: []byte{42}}},
+			wantRaw: bson.Raw(bsoncore.NewDocumentBuilder().
+				AppendBinary("x", 0, []byte{42}).
+				Build()),
+		},
+		{
 			name: "DefaultDocumentM",
 			bsonOpts: &options.BSONOptions{
 				DefaultDocumentM: true,
@@ -774,6 +876,50 @@ func TestClient_BSONOptions(t *testing.T) {
 			doc:        bson.D{{Key: "doc", Value: bson.D{{Key: "a", Value: int64(1)}}}},
 			decodeInto: func() interface{} { return &bson.D{} },
 			want:       &bson.D{{Key: "doc", Value: bson.M{"a": int64(1)}}},
+		},
+		{
+			name: "UseLocalTimeZone",
+			bsonOpts: &options.BSONOptions{
+				UseLocalTimeZone: true,
+			},
+			doc:        bson.D{{Key: "x", Value: timestamp}},
+			decodeInto: func() interface{} { return &timeZoneTest{} },
+			want:       &timeZoneTest{timestamp.In(time.Local)},
+		},
+		{
+			name: "ZeroMaps",
+			bsonOpts: &options.BSONOptions{
+				ZeroMaps: true,
+			},
+			doc: bson.D{{"a", "apple"}, {"b", "banana"}},
+			decodeInto: func() interface{} {
+				return &map[string]string{
+					"b": "berry",
+					"c": "carrot",
+				}
+			},
+			want: &map[string]string{
+				"a": "apple",
+				"b": "banana",
+			},
+		},
+		{
+			name: "ZeroStructs",
+			bsonOpts: &options.BSONOptions{
+				ZeroStructs: true,
+			},
+			doc: bson.D{{"a", "apple"}, {"x", "broccoli"}},
+			decodeInto: func() interface{} {
+				return &jsonTagsTest{
+					B: "banana",
+					C: "carrot",
+				}
+			},
+			want: &jsonTagsTest{
+				A: "apple",
+				B: "broccoli",
+				C: "",
+			},
 		},
 	}
 
@@ -809,6 +955,35 @@ func TestClient_BSONOptions(t *testing.T) {
 	}
 
 	opts := mtest.NewOptions().ClientOptions(
+		options.Client().SetBSONOptions(&options.BSONOptions{
+			ObjectIDAsHexString: true,
+		}))
+	mt.RunOpts("ObjectIDAsHexString", opts, func(mt *mtest.T) {
+		res, err := mt.Coll.InsertOne(context.Background(), bson.D{{"x", 42}})
+		require.NoError(mt, err, "InsertOne error")
+
+		sr := mt.Coll.FindOne(
+			context.Background(),
+			bson.D{{Key: "_id", Value: res.InsertedID}},
+		)
+
+		type data struct {
+			ID string `bson:"_id"`
+			X  int    `bson:"x"`
+		}
+		var got data
+
+		err = sr.Decode(&got)
+		require.NoError(mt, err, "Decode error")
+
+		want := data{
+			ID: res.InsertedID.(bson.ObjectID).Hex(),
+			X:  42,
+		}
+		assert.Equal(mt, want, got, "expected and actual decoded result are different")
+	})
+
+	opts = mtest.NewOptions().ClientOptions(
 		options.Client().SetBSONOptions(&options.BSONOptions{
 			ErrorOnInlineDuplicates: true,
 		}))
