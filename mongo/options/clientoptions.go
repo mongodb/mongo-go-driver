@@ -298,6 +298,7 @@ type ClientOptions struct {
 
 // Client creates a new ClientOptions instance.
 func Client() *ClientOptions {
+	fmt.Println("In client!\n")
 	return &ClientOptions{
 		HTTPClient: httputil.DefaultHTTPClient,
 	}
