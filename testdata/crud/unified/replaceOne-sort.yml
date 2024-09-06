@@ -1,4 +1,4 @@
-description: BulkWrite updateOne-sort
+description: replaceOne-sort
 
 schemaVersion: "1.0"
 
@@ -24,18 +24,20 @@ initialData:
       - { _id: 3, x: 33 }
 
 tests:
-  - description: BulkWrite updateOne with sort option
+  - description: ReplaceOne with sort option
     runOnRequirements:
       - minServerVersion: "8.0"
     operations:
-      - object: collection0
-        name: bulkWrite
+      - name: replaceOne
+        object: collection0
         arguments:
-          requests:
-            - updateOne:
-                filter: { _id: { $gt: 1 } }
-                sort: { _id: -1 }
-                update: [ $set: { x: 1 } ]
+          filter: { _id: { $gt: 1 } }
+          sort: { _id: -1 }
+          replacement: { x: 1 }
+        expectResult:
+          matchedCount: 1
+          modifiedCount: 1
+          upsertedCount: 0
     expectEvents:
       - client: client0
         events:
@@ -44,7 +46,7 @@ tests:
                 update: coll0
                 updates:
                   - q: { _id: { $gt: 1 } }
-                    u: [ $set: { x: 1 } ]
+                    u: { x: 1 }
                     sort: { _id: -1 }
                     multi: { $$unsetOrMatches: false }
                     upsert: { $$unsetOrMatches: false }
@@ -59,18 +61,16 @@ tests:
           - { _id: 2, x: 22 }
           - { _id: 3, x: 1 }
 
-  - description: BulkWrite updateOne with sort option unsupported (server-side error)
+  - description: replaceOne with sort option unsupported (server-side error)
     runOnRequirements:
       - maxServerVersion: "7.99"
     operations:
-      - object: collection0
-        name: bulkWrite
+      - name: replaceOne
+        object: collection0
         arguments:
-          requests:
-            - updateOne:
-                filter: { _id: { $gt: 1 } }
-                sort: { _id: -1 }
-                update: [ $set: { x: 1 } ]
+          filter: { _id: { $gt: 1 } }
+          sort: { _id: -1 }
+          replacement: { x: 1 }
         expectError:
           isClientError: false
     expectEvents:
@@ -81,7 +81,7 @@ tests:
                 update: coll0
                 updates:
                   - q: { _id: { $gt: 1 } }
-                    u: [ $set: { x: 1 } ]
+                    u: { x: 1 }
                     sort: { _id: -1 }
                     multi: { $$unsetOrMatches: false }
                     upsert: { $$unsetOrMatches: false }

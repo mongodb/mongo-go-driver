@@ -1,5 +1,7 @@
 description: updateOne-sort
+
 schemaVersion: "1.0"
+
 createEntities:
   - client:
       id: client0
@@ -14,16 +16,15 @@ createEntities:
       id: collection0
       database: database0
       collectionName: coll0
+
 initialData:
   - collectionName: coll0
     databaseName: crud-tests
     documents:
-      - _id: 1
-        x: 11
-      - _id: 2
-        x: 22
-      - _id: 3
-        x: 33
+      - { _id: 1, x: 11 }
+      - { _id: 2, x: 22 }
+      - { _id: 3, x: 33 }
+
 tests:
   - description: UpdateOne with sort option
     runOnRequirements:
@@ -32,14 +33,9 @@ tests:
       - name: updateOne
         object: collection0
         arguments:
-          filter:
-            _id:
-              $gt: 1
-          sort:
-            _id: -1
-          update:
-            $inc:
-              x: 1
+          filter: { _id: { $gt: 1 } }
+          sort: { _id: -1 }
+          update: { $inc: { x: 1 } }
         expectResult:
           matchedCount: 1
           modifiedCount: 1
@@ -51,18 +47,11 @@ tests:
               command:
                 update: coll0
                 updates:
-                  - q:
-                      _id:
-                        $gt: 1
-                    u:
-                      $inc:
-                        x: 1
-                    sort:
-                      _id: -1
-                    multi:
-                      $$unsetOrMatches: false
-                    upsert:
-                      $$unsetOrMatches: false
+                  - q: { _id: { $gt: 1 } }
+                    u: { $inc: { x: 1 } }
+                    sort: { _id: -1 }
+                    multi: { $$unsetOrMatches: false }
+                    upsert: { $$unsetOrMatches: false }
           - commandSucceededEvent:
               reply: { ok: 1, n: 1 }
               commandName: update
@@ -70,12 +59,10 @@ tests:
       - collectionName: coll0
         databaseName: crud-tests
         documents:
-          - _id: 1
-            x: 11
-          - _id: 2
-            x: 22
-          - _id: 3
-            x: 34
+          - { _id: 1, x: 11 }
+          - { _id: 2, x: 22 }
+          - { _id: 3, x: 34 }
+
   - description: updateOne with sort option unsupported (server-side error)
     runOnRequirements:
       - maxServerVersion: "7.99"
@@ -83,16 +70,10 @@ tests:
       - name: updateOne
         object: collection0
         arguments:
-          filter:
-            _id:
-              $gt: 1
-          sort:
-            _id: -1
-          update:
-            $inc:
-              x: 1
+          filter: { _id: { $gt: 1 } }
+          sort: { _id: -1 }
+          update: { $inc: { x: 1 } }
         expectError:
-          errorContains: "'update.updates.sort' is an unknown field"
           isClientError: false
     expectEvents:
       - client: client0
@@ -101,25 +82,15 @@ tests:
               command:
                 update: coll0
                 updates:
-                  - q:
-                      _id:
-                        $gt: 1
-                    u:
-                      $inc:
-                        x: 1
-                    sort:
-                      _id: -1
-                    multi:
-                      $$unsetOrMatches: false
-                    upsert:
-                      $$unsetOrMatches: false
+                  - q: { _id: { $gt: 1 } }
+                    u: { $inc: { x: 1 } }
+                    sort: { _id: -1 }
+                    multi: { $$unsetOrMatches: false }
+                    upsert: { $$unsetOrMatches: false }
     outcome:
       - collectionName: coll0
         databaseName: crud-tests
         documents:
-          - _id: 1
-            x: 11
-          - _id: 2
-            x: 22
-          - _id: 3
-            x: 33
+          - { _id: 1, x: 11 }
+          - { _id: 2, x: 22 }
+          - { _id: 3, x: 33 }

@@ -147,7 +147,6 @@
       "description": "replaceOne with sort option unsupported (server-side error)",
       "runOnRequirements": [
         {
-          "minServerVersion": "4.2.0",
           "maxServerVersion": "7.99"
         }
       ],
