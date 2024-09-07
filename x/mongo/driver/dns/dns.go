@@ -48,6 +48,7 @@ func (r *Resolver) GetConnectionArgsFromTXT(host string) ([]string, error) {
 	// error ignored because not finding a TXT record should not be
 	// considered an error.
 	recordsFromTXT, _ := r.LookupTXT(host)
+	fmt.Printf("recordsFromTXT %s\n", recordsFromTXT)
 
 	// This is a temporary fix to get around bug https://github.com/golang/go/issues/21472.
 	// It will currently incorrectly concatenate multiple TXT records to one
@@ -61,8 +62,9 @@ func (r *Resolver) GetConnectionArgsFromTXT(host string) ([]string, error) {
 	}
 	if len(recordsFromTXT) > 0 {
 		connectionArgsFromTXT = strings.FieldsFunc(recordsFromTXT[0], func(r rune) bool { return r == ';' || r == '&' })
-
+		fmt.Printf("connectionArgsFromTXT 1: %s\n", connectionArgsFromTXT)
 		err := validateTXTResult(connectionArgsFromTXT)
+		fmt.Printf("connectionArgsFromTXT 2; %s\n", connectionArgsFromTXT)
 		if err != nil {
 			return nil, err
 		}
