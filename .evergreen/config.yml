@@ -1804,7 +1804,7 @@ tasks:
   - name: "testgcpkms-task"
     commands:
     - command: shell.exec
-      type: setup
+      type: test
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
@@ -1893,7 +1893,7 @@ tasks:
   - name: "testazurekms-task"
     commands:
     - command: shell.exec
-      type: setup
+      type: test
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
@@ -1964,6 +1964,7 @@ tasks:
           role_arn: ${LAMBDA_AWS_ROLE_ARN}
           duration_seconds: 3600
       - command: shell.exec
+        type: test
         params:
           working_dir: src/go.mongodb.org/mongo-driver
           shell: bash
@@ -1986,6 +1987,7 @@ tasks:
   - name: "oidc-auth-test-azure"
     commands:
     - command: shell.exec
+      type: test
       params:
         working_dir: src/go.mongodb.org/mongo-driver
         shell: bash
@@ -2011,6 +2013,7 @@ tasks:
   - name: "oidc-auth-test-gcp"
     commands:
     - command: shell.exec
+      type: test
       params:
         working_dir: src/go.mongodb.org/mongo-driver
         shell: bash
