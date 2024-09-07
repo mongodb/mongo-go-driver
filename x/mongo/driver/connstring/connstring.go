@@ -993,8 +993,6 @@ func (p *parser) parse(original string) (*ConnString, error) {
 
 	// grab connection arguments from URI
 	connectionArgsFromQueryString, err := extractQueryArgsFromURI(uri)
-	fmt.Printf("connectionArgsFromTXT:%s\n", connectionArgsFromTXT)
-	fmt.Printf("connectionArgsFromQueryString:%s\n", connectionArgsFromQueryString)
 	if err != nil {
 		return nil, err
 	}
@@ -1011,6 +1009,8 @@ func (p *parser) parse(original string) (*ConnString, error) {
 		connStr.SSL = true
 		connStr.SSLSet = true
 	}
+	fmt.Printf("connectionArgsFromTXT:%s\n", connectionArgsFromTXT)
+	fmt.Printf("connectionArgsFromQueryString:%s\n", connectionArgsFromQueryString)
 
 	// add connection arguments from URI and TXT records to connstring
 	connectionArgPairs := make([]string, 0, len(connectionArgsFromTXT)+len(connectionArgsFromQueryString))
