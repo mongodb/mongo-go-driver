@@ -61,6 +61,7 @@ func (r *Resolver) GetConnectionArgsFromTXT(host string) ([]string, error) {
 	}
 	if len(recordsFromTXT) > 0 {
 		connectionArgsFromTXT = strings.FieldsFunc(recordsFromTXT[0], func(r rune) bool { return r == ';' || r == '&' })
+
 		err := validateTXTResult(connectionArgsFromTXT)
 		if err != nil {
 			return nil, err
