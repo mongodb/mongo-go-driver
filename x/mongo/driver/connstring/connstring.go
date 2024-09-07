@@ -297,6 +297,7 @@ func (u *ConnString) setDefaultAuthParams(dbName string) error {
 		}
 		fallthrough
 	case "mongodb-aws", "mongodb-x509", "mongodb-oidc":
+		fmt.Println("auth source was %s", u.AuthSource)
 		if u.AuthSource == "" {
 			u.AuthSource = "$external"
 		} else if u.AuthSource != "$external" {
