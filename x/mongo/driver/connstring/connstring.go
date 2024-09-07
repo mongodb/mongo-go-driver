@@ -367,7 +367,7 @@ func (u *ConnString) addOptions(connectionArgPairs []string) error {
 			}
 			u.AuthMechanismPropertiesSet = true
 		case "authsource":
-			fmt.Print("in AddOptions: %s\n", value)
+			fmt.Printf("in AddOptions: %s\n", value)
 			u.AuthSource = value
 			u.AuthSourceSet = true
 		case "compressors":
@@ -906,6 +906,8 @@ func (p *parser) parse(original string) (*ConnString, error) {
 	connStr.Original = original
 	uri := original
 
+	fmt.Printf("original:%s\n", original)
+
 	var err error
 	switch {
 	case strings.HasPrefix(uri, SchemeMongoDBSRV+"://"):
@@ -987,8 +989,12 @@ func (p *parser) parse(original string) (*ConnString, error) {
 	uri = extractedDatabase.uri
 	connStr.Database = extractedDatabase.db
 
+	fmt.Printf("db:%s\n", extractedDatabase.db)
+
 	// grab connection arguments from URI
 	connectionArgsFromQueryString, err := extractQueryArgsFromURI(uri)
+	fmt.Printf("connectionArgsFromTXT:%s\n", connectionArgsFromTXT)
+	fmt.Printf("connectionArgsFromQueryString:%s\n", connectionArgsFromQueryString)
 	if err != nil {
 		return nil, err
 	}
