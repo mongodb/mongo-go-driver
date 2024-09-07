@@ -426,6 +426,7 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 	cs, err := connstring.ParseAndValidate(uri)
 	if err != nil {
 		c.err = err
+		fmt.Printf("here was the error %s", err)
 		return c
 	}
 	c.cs = cs

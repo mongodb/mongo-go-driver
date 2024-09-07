@@ -84,10 +84,12 @@ var random = randutil.NewLockedRand()
 func ParseAndValidate(s string) (*ConnString, error) {
 	connStr, err := Parse(s)
 	if err != nil {
+		fmt.Print("parse error: %s", err)
 		return nil, err
 	}
 	err = connStr.Validate()
 	if err != nil {
+		fmt.Print("validate error: %s", err)
 		return nil, fmt.Errorf("error validating uri: %w", err)
 	}
 	return connStr, nil
