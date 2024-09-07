@@ -219,8 +219,6 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 		)
 		if err != nil {
 			return nil, fmt.Errorf("error creating authenticator: %w", err)
-		} else {
-			fmt.Printf("created authenticator\n")
 		}
 	}
 

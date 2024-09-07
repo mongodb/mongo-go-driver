@@ -426,7 +426,6 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 	cs, err := connstring.ParseAndValidate(uri)
 	if err != nil {
 		c.err = err
-		fmt.Printf("here was the error %s", err)
 		return c
 	}
 	c.cs = cs
@@ -436,9 +435,7 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 	}
 
 	// Only create a Credential if there is a request for authentication via non-empty credentials in the URI.
-	fmt.Printf("in apply uri\n")
 	if cs.HasAuthParameters() {
-		fmt.Printf("has auth parameters\n")
 		c.Auth = &Credential{
 			AuthMechanism:           cs.AuthMechanism,
 			AuthMechanismProperties: cs.AuthMechanismProperties,

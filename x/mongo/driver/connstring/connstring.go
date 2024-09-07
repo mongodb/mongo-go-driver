@@ -84,12 +84,10 @@ var random = randutil.NewLockedRand()
 func ParseAndValidate(s string) (*ConnString, error) {
 	connStr, err := Parse(s)
 	if err != nil {
-		fmt.Print("parse error: %s", err)
 		return nil, err
 	}
 	err = connStr.Validate()
 	if err != nil {
-		fmt.Print("validate error: %s", err)
 		return nil, fmt.Errorf("error validating uri: %w", err)
 	}
 	return connStr, nil
@@ -281,7 +279,6 @@ func (u *ConnString) setDefaultAuthParams(dbName string) error {
 		return errors.New("authSource must be non-empty when supplied in a URI")
 	}
 
-	fmt.Printf("\nauth source before: %s\n", u.AuthSource)
 	switch strings.ToLower(u.AuthMechanism) {
 	case "plain":
 		if u.AuthSource == "" {
@@ -331,7 +328,6 @@ func (u *ConnString) setDefaultAuthParams(dbName string) error {
 	default:
 		return fmt.Errorf("invalid auth mechanism")
 	}
-	fmt.Printf("\nauth source after: %s\n", u.AuthSource)
 	return nil
 }
 
@@ -371,7 +367,6 @@ func (u *ConnString) addOptions(connectionArgPairs []string) error {
 			}
 			u.AuthMechanismPropertiesSet = true
 		case "authsource":
-			fmt.Printf("in AddOptions: %s\n", value)
 			u.AuthSource = value
 			u.AuthSourceSet = true
 		case "compressors":
@@ -910,8 +905,6 @@ func (p *parser) parse(original string) (*ConnString, error) {
 	connStr.Original = original
 	uri := original
 
-	fmt.Printf("original:%s\n", original)
-
 	var err error
 	switch {
 	case strings.HasPrefix(uri, SchemeMongoDBSRV+"://"):
@@ -993,8 +986,6 @@ func (p *parser) parse(original string) (*ConnString, error) {
 	uri = extractedDatabase.uri
 	connStr.Database = extractedDatabase.db
 
-	fmt.Printf("db:%s\n", extractedDatabase.db)
-
 	// grab connection arguments from URI
 	connectionArgsFromQueryString, err := extractQueryArgsFromURI(uri)
 	if err != nil {
@@ -1013,8 +1004,6 @@ func (p *parser) parse(original string) (*ConnString, error) {
 		connStr.SSL = true
 		connStr.SSLSet = true
 	}
-	fmt.Printf("connectionArgsFromTXT:%s\n", connectionArgsFromTXT)
-	fmt.Printf("connectionArgsFromQueryString:%s\n", connectionArgsFromQueryString)
 
 	// add connection arguments from URI and TXT records to connstring
 	connectionArgPairs := make([]string, 0, len(connectionArgsFromTXT)+len(connectionArgsFromQueryString))
@@ -1058,7 +1047,6 @@ func (p *parser) parse(original string) (*ConnString, error) {
 		return nil, fmt.Errorf("must have at least 1 host")
 	}
 
-	fmt.Print("checking set default auth params\n")
 	err = connStr.setDefaultAuthParams(extractedDatabase.db)
 	if err != nil {
 		return nil, err

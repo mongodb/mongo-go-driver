@@ -682,7 +682,7 @@ func TestTopologyConstruction(t *testing.T) {
 				name:            "normal",
 				uri:             "mongodb://localhost:27017",
 				pollingRequired: false,
-			}
+			},
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
