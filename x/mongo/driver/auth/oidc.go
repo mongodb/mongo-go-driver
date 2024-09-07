@@ -110,7 +110,6 @@ func (oa *OIDCAuthenticator) SetAccessToken(accessToken string) {
 
 func newOIDCAuthenticator(cred *Cred, httpClient *http.Client) (Authenticator, error) {
 	if cred.Source != "" && cred.Source != sourceExternal {
-		fmt.Println("source was: %s", cred.Source)
 		return nil, newAuthError("MONGODB-OIDC source must be empty or $external", nil)
 	}
 	if cred.Password != "" {

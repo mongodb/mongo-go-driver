@@ -279,6 +279,7 @@ func (u *ConnString) setDefaultAuthParams(dbName string) error {
 		return errors.New("authSource must be non-empty when supplied in a URI")
 	}
 
+	fmt.Printf("\nauth source before: %s\n", u.AuthSource)
 	switch strings.ToLower(u.AuthMechanism) {
 	case "plain":
 		if u.AuthSource == "" {
@@ -297,7 +298,6 @@ func (u *ConnString) setDefaultAuthParams(dbName string) error {
 		}
 		fallthrough
 	case "mongodb-aws", "mongodb-x509", "mongodb-oidc":
-		fmt.Println("auth source was %s", u.AuthSource)
 		if u.AuthSource == "" {
 			u.AuthSource = "$external"
 		} else if u.AuthSource != "$external" {
@@ -325,6 +325,7 @@ func (u *ConnString) setDefaultAuthParams(dbName string) error {
 	default:
 		return fmt.Errorf("invalid auth mechanism")
 	}
+	fmt.Printf("\nauth source after: %s\n", u.AuthSource)
 	return nil
 }
 
