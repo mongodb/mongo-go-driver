@@ -589,12 +589,24 @@ func TestClientOptions(t *testing.T) {
 				},
 			},
 			{
-				"tmp",
+				"oidc azure",
 				"mongodb://example.com/?authMechanism=MONGODB-OIDC&authMechanismProperties=TOKEN_RESOURCE:mongodb://test-cluster,ENVIRONMENT:azureManagedIdentities",
 				&ClientOptions{
 					Hosts: []string{"example.com"},
 					Auth: &Credential{AuthMechanism: "MONGODB-OIDC", AuthSource: "$external", AuthMechanismProperties: map[string]string{
 						"ENVIRONMENT":    "azureManagedIdentities",
+						"TOKEN_RESOURCE": "mongodb://test-cluster"}},
+					err:        nil,
+					HTTPClient: httputil.DefaultHTTPClient,
+				},
+			},
+			{
+				"oidc gcp",
+				"mongodb://test.mongodb.net/?authMechanism=MONGODB-OIDC&authMechanismProperties=ENVIRONMENT:gcp,TOKEN_RESOURCE:mongodb://test-cluster",
+				&ClientOptions{
+					Hosts: []string{"test.mongodb.net"},
+					Auth: &Credential{AuthMechanism: "MONGODB-OIDC", AuthSource: "$external", AuthMechanismProperties: map[string]string{
+						"ENVIRONMENT":    "gcp",
 						"TOKEN_RESOURCE": "mongodb://test-cluster"}},
 					err:        nil,
 					HTTPClient: httputil.DefaultHTTPClient,

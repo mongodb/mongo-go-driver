@@ -298,7 +298,6 @@ type ClientOptions struct {
 
 // Client creates a new ClientOptions instance.
 func Client() *ClientOptions {
-	fmt.Println("In client!\n")
 	return &ClientOptions{
 		HTTPClient: httputil.DefaultHTTPClient,
 	}
@@ -427,7 +426,6 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 	cs, err := connstring.ParseAndValidate(uri)
 	if err != nil {
 		c.err = err
-		fmt.Printf("here was the error: %w\n", err)
 		return c
 	}
 	c.cs = cs
