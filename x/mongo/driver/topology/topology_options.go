@@ -90,6 +90,7 @@ func ConvertCreds(cred *options.Credential) *driver.Cred {
 	if cred == nil {
 		return nil
 	}
+	fmt.Printf("convert creds: %s", cred.AuthSource)
 
 	var oidcMachineCallback auth.OIDCCallback
 	if cred.OIDCMachineCallback != nil {
