@@ -367,6 +367,7 @@ func (u *ConnString) addOptions(connectionArgPairs []string) error {
 			}
 			u.AuthMechanismPropertiesSet = true
 		case "authsource":
+			fmt.Print("in AddOptions: %s\n", value)
 			u.AuthSource = value
 			u.AuthSourceSet = true
 		case "compressors":
@@ -1047,6 +1048,7 @@ func (p *parser) parse(original string) (*ConnString, error) {
 		return nil, fmt.Errorf("must have at least 1 host")
 	}
 
+	fmt.Print("checking set default auth params\n")
 	err = connStr.setDefaultAuthParams(extractedDatabase.db)
 	if err != nil {
 		return nil, err
