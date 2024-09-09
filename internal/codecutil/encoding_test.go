@@ -17,11 +17,9 @@ import (
 func testEncFn(t *testing.T) EncoderFn {
 	t.Helper()
 
-	return func(w io.Writer) (*bson.Encoder, error) {
+	return func(w io.Writer) *bson.Encoder {
 		rw := bson.NewDocumentWriter(w)
-		enc := bson.NewEncoder(rw)
-
-		return enc, nil
+		return bson.NewEncoder(rw)
 	}
 }
 
