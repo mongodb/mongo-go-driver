@@ -58,8 +58,14 @@ func UnmarshalValue(t Type, data []byte, val interface{}) error {
 // UnmarshalExtJSON parses the extended JSON-encoded data and stores the result
 // in the value pointed to by val. If val is nil or not a pointer, UnmarshalExtJSON
 // returns an error.
-func UnmarshalExtJSON(data []byte, canonical bool, val interface{}) error {
-	ejvr, err := NewExtJSONValueReader(bytes.NewReader(data), canonical)
+//
+// If canonicalOnly is true, UnmarshalExtJSON returns an error if the Extended
+// JSON was not marshaled in canonical mode.
+//
+// For more information about Extended JSON, see
+// https://www.mongodb.com/docs/manual/reference/mongodb-extended-json/
+func UnmarshalExtJSON(data []byte, canonicalOnly bool, val interface{}) error {
+	ejvr, err := NewExtJSONValueReader(bytes.NewReader(data), canonicalOnly)
 	if err != nil {
 		return err
 	}

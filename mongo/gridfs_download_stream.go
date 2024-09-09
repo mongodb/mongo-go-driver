@@ -39,6 +39,7 @@ type GridFSDownloadStream struct {
 	expectedChunk int32 // index of next expected chunk
 	fileLen       int64
 	ctx           context.Context
+	cancel        context.CancelFunc
 
 	// The pointer returned by GetFile. This should not be used in the actual GridFSDownloadStream code outside of the
 	// newGridFSDownloadStream constructor because the values can be mutated by the user after calling GetFile. Instead,
@@ -95,7 +96,13 @@ func newFileFromResponse(resp findFileResponse) *GridFSFile {
 	}
 }
 
-func newGridFSDownloadStream(ctx context.Context, cursor *Cursor, chunkSize int32, file *GridFSFile) *GridFSDownloadStream {
+func newGridFSDownloadStream(
+	ctx context.Context,
+	cancel context.CancelFunc,
+	cursor *Cursor,
+	chunkSize int32,
+	file *GridFSFile,
+) *GridFSDownloadStream {
 	numChunks := int32(math.Ceil(float64(file.Length) / float64(chunkSize)))
 
 	return &GridFSDownloadStream{
@@ -107,11 +114,18 @@ func newGridFSDownloadStream(ctx context.Context, cursor *Cursor, chunkSize int3
 		fileLen:   file.Length,
 		file:      file,
 		ctx:       ctx,
+		cancel:    cancel,
 	}
 }
 
 // Close closes this download stream.
 func (ds *GridFSDownloadStream) Close() error {
+	defer func() {
+		if ds.cancel != nil {
+			ds.cancel()
+		}
+	}()
+
 	if ds.closed {
 		return ErrStreamClosed
 	}
