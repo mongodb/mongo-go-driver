@@ -61,12 +61,14 @@
           }
         },
         {
-          "name": "modifyCollection",
+          "name": "runCommand",
           "object": "database0",
           "arguments": {
-            "collection": "test",
-            "changeStreamPreAndPostImages": {
-              "enabled": true
+            "command": {
+              "collMod": "test",
+              "changeStreamPreAndPostImages": {
+                "enabled": true
+              }
             }
           }
         }

@@ -46,12 +46,13 @@ tests:
     runOnRequirements:
       - minServerVersion: "5.0"
     operations:
-      - name: modifyCollection
+      - name: runCommand
         object: *database0
         arguments:
-          collection: *collection0Name
-          validator:
-            x: { $type: "string" }
+          command:
+            collMod: *collection0Name
+            validator:
+              x: { $type: "string" }
       - name: findOneAndUpdate
         object: *collection0
         arguments:
