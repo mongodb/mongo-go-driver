@@ -125,6 +125,7 @@ type ReplaceOneModel struct {
 	Filter      interface{}
 	Replacement interface{}
 	Hint        interface{}
+	Sort        interface{}
 }
 
 // NewReplaceOneModel creates a new ReplaceOneModel.
@@ -173,6 +174,14 @@ func (rom *ReplaceOneModel) SetUpsert(upsert bool) *ReplaceOneModel {
 	return rom
 }
 
+// SetSort specifies which document the operation replaces if the query matches multiple documents. The first document
+// matched by the sort order will be replaced. This option is only valid for MongoDB versions >= 8.0. The driver will
+// return an error if the sort parameter is a multi-key map. The default value is nil.
+func (rom *ReplaceOneModel) SetSort(sort interface{}) *ReplaceOneModel {
+	rom.Sort = &sort
+	return rom
+}
+
 func (*ReplaceOneModel) writeModel() {}
 
 // UpdateOneModel is used to update at most one document in a BulkWrite operation.
@@ -183,6 +192,7 @@ type UpdateOneModel struct {
 	Update       interface{}
 	ArrayFilters []interface{}
 	Hint         interface{}
+	Sort         interface{}
 }
 
 // NewUpdateOneModel creates a new UpdateOneModel.
@@ -235,6 +245,14 @@ func (uom *UpdateOneModel) SetCollation(collation *options.Collation) *UpdateOne
 // BulkWriteResult.
 func (uom *UpdateOneModel) SetUpsert(upsert bool) *UpdateOneModel {
 	uom.Upsert = &upsert
+	return uom
+}
+
+// SetSort specifies which document the operation updates if the query matches multiple documents. The first document
+// matched by the sort order will be updated. This option is only valid for MongoDB versions >= 8.0. The driver will
+// return an error if the sort parameter is a multi-key map. The default value is nil.
+func (uom *UpdateOneModel) SetSort(sort interface{}) *UpdateOneModel {
+	uom.Sort = sort
 	return uom
 }
 

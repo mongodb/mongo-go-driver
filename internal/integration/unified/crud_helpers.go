@@ -8,6 +8,8 @@ package unified
 
 import (
 	"fmt"
+	"reflect"
+	"strings"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/bsonutil"
@@ -20,38 +22,43 @@ func newMissingArgumentError(arg string) error {
 	return fmt.Errorf("operation arguments document is missing required field %q", arg)
 }
 
-type updateArguments struct {
+type updateArguments[Options options.UpdateManyOptions | options.UpdateOneOptions] struct {
 	filter bson.Raw
 	update interface{}
-	opts   *options.UpdateOptionsBuilder
+	opts   options.Lister[Options]
 }
 
-func createUpdateArguments(args bson.Raw) (*updateArguments, error) {
-	ua := &updateArguments{
-		opts: options.Update(),
+func createUpdateArguments[Options options.UpdateManyOptions | options.UpdateOneOptions](args bson.Raw) (*updateArguments[Options], error) {
+	ua := &updateArguments[Options]{}
+	var builder reflect.Value
+	switch any((*Options)(nil)).(type) {
+	case *options.UpdateManyOptions:
+		builder = reflect.ValueOf(options.UpdateMany())
+	case *options.UpdateOneOptions:
+		builder = reflect.ValueOf(options.UpdateOne())
 	}
-	var err error
 
 	elems, _ := args.Elements()
 	for _, elem := range elems {
 		key := elem.Key()
 		val := elem.Value()
 
+		var arg reflect.Value
 		switch key {
 		case "arrayFilters":
-			ua.opts.SetArrayFilters(
+			arg = reflect.ValueOf(
 				bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...),
 			)
 		case "bypassDocumentValidation":
-			ua.opts.SetBypassDocumentValidation(val.Boolean())
+			arg = reflect.ValueOf(val.Boolean())
 		case "collation":
 			collation, err := createCollation(val.Document())
 			if err != nil {
 				return nil, fmt.Errorf("error creating collation: %w", err)
 			}
-			ua.opts.SetCollation(collation)
+			arg = reflect.ValueOf(collation)
 		case "comment":
-			ua.opts.SetComment(val)
+			arg = reflect.ValueOf(val)
 		case "filter":
 			ua.filter = val.Document()
 		case "hint":
@@ -59,18 +66,28 @@ func createUpdateArguments(args bson.Raw) (*updateArguments, error) {
 			if err != nil {
 				return nil, fmt.Errorf("error creating hint: %w", err)
 			}
-			ua.opts.SetHint(hint)
-		case "let":
-			ua.opts.SetLet(val.Document())
+			arg = reflect.ValueOf(hint)
+		case "let", "sort":
+			arg = reflect.ValueOf(val.Document())
 		case "update":
+			var err error
 			ua.update, err = createUpdateValue(val)
 			if err != nil {
 				return nil, fmt.Errorf("error processing update value: %w", err)
 			}
 		case "upsert":
-			ua.opts.SetUpsert(val.Boolean())
+			arg = reflect.ValueOf(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized update option %q", key)
+		}
+		if arg.IsValid() {
+			fn := builder.MethodByName(
+				fmt.Sprintf("Set%s%s", strings.ToUpper(string(key[0])), key[1:]),
+			)
+			if !fn.IsValid() {
+				return nil, fmt.Errorf("unrecognized update option %q", key)
+			}
+			fn.Call([]reflect.Value{arg})
 		}
 	}
 	if ua.filter == nil {
@@ -79,6 +96,7 @@ func createUpdateArguments(args bson.Raw) (*updateArguments, error) {
 	if ua.update == nil {
 		return nil, newMissingArgumentError("update")
 	}
+	ua.opts = builder.Interface().(options.Lister[Options])
 
 	return ua, nil
 }
@@ -157,4 +175,16 @@ func createHint(val bson.RawValue) (interface{}, error) {
 		return nil, fmt.Errorf("unrecognized hint value type %s", val.Type)
 	}
 	return hint, nil
+}
+
+func createSort(val bson.RawValue) (interface{}, error) {
+	var sort interface{}
+
+	switch val.Type {
+	case bson.TypeEmbeddedDocument:
+		sort = val.Document()
+	default:
+		return nil, fmt.Errorf("unrecognized sort value type %s", val.Type)
+	}
+	return sort, nil
 }

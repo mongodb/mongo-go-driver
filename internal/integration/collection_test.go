@@ -451,7 +451,7 @@ func TestCollection(t *testing.T) {
 			filter := bson.D{{"x", 0}}
 			update := bson.D{{"$inc", bson.D{{"x", 1}}}}
 
-			res, err := mt.Coll.UpdateOne(context.Background(), filter, update, options.Update().SetUpsert(true))
+			res, err := mt.Coll.UpdateOne(context.Background(), filter, update, options.UpdateOne().SetUpsert(true))
 			assert.Nil(mt, err, "UpdateOne error: %v", err)
 			assert.Equal(mt, int64(0), res.MatchedCount, "expected matched count 0, got %v", res.MatchedCount)
 			assert.Equal(mt, int64(0), res.ModifiedCount, "expected matched count 0, got %v", res.ModifiedCount)
@@ -570,7 +570,7 @@ func TestCollection(t *testing.T) {
 			update := bson.D{{"$inc", bson.D{{"x", 1}}}}
 
 			id := "blah"
-			res, err := mt.Coll.UpdateByID(context.Background(), id, update, options.Update().SetUpsert(true))
+			res, err := mt.Coll.UpdateByID(context.Background(), id, update, options.UpdateOne().SetUpsert(true))
 			assert.Nil(mt, err, "UpdateByID error: %v", err)
 			assert.Equal(mt, int64(0), res.MatchedCount, "expected matched count 0, got %v", res.MatchedCount)
 			assert.Equal(mt, int64(0), res.ModifiedCount, "expected modified count 0, got %v", res.ModifiedCount)
@@ -633,7 +633,7 @@ func TestCollection(t *testing.T) {
 			filter := bson.D{{"x", bson.D{{"$lt", 1}}}}
 			update := bson.D{{"$inc", bson.D{{"x", 1}}}}
 
-			res, err := mt.Coll.UpdateMany(context.Background(), filter, update, options.Update().SetUpsert(true))
+			res, err := mt.Coll.UpdateMany(context.Background(), filter, update, options.UpdateMany().SetUpsert(true))
 			assert.Nil(mt, err, "UpdateMany error: %v", err)
 			assert.Equal(mt, int64(0), res.MatchedCount, "expected matched count 0, got %v", res.MatchedCount)
 			assert.Equal(mt, int64(0), res.ModifiedCount, "expected modified count 0, got %v", res.ModifiedCount)

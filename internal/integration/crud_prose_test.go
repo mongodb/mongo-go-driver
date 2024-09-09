@@ -296,7 +296,7 @@ func TestHintErrors(t *testing.T) {
 	mt.Run("UpdateMany", func(mt *mtest.T) {
 
 		_, got := mt.Coll.UpdateMany(context.Background(), bson.D{{"a", 1}}, bson.D{{"$inc", bson.D{{"a", 1}}}},
-			options.Update().SetHint("_id_"))
+			options.UpdateMany().SetHint("_id_"))
 		assert.NotNil(mt, got, "expected non-nil error, got nil")
 		assert.Equal(mt, got, expected, "expected: %v got: %v", expected, got)
 	})

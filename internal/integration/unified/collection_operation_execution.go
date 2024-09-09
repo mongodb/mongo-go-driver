@@ -1291,6 +1291,12 @@ func executeReplaceOne(ctx context.Context, operation *operation) (*operationRes
 				return nil, fmt.Errorf("error creating hint: %w", err)
 			}
 			opts.SetHint(hint)
+		case "sort":
+			sort, err := createSort(val)
+			if err != nil {
+				return nil, fmt.Errorf("error creating sort: %w", err)
+			}
+			opts.SetSort(sort)
 		case "replacement":
 			replacement = val.Document()
 		case "upsert":
@@ -1316,7 +1322,7 @@ func executeUpdateOne(ctx context.Context, operation *operation) (*operationResu
 		return nil, err
 	}
 
-	updateArgs, err := createUpdateArguments(operation.Arguments)
+	updateArgs, err := createUpdateArguments[options.UpdateOneOptions](operation.Arguments)
 	if err != nil {
 		return nil, err
 	}
@@ -1335,7 +1341,7 @@ func executeUpdateMany(ctx context.Context, operation *operation) (*operationRes
 		return nil, err
 	}
 
-	updateArgs, err := createUpdateArguments(operation.Arguments)
+	updateArgs, err := createUpdateArguments[options.UpdateManyOptions](operation.Arguments)
 	if err != nil {
 		return nil, err
 	}
