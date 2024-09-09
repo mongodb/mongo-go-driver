@@ -205,6 +205,10 @@ type BSONOptions struct {
 	// "interface{}" or "map[string]interface{}".
 	DefaultDocumentM bool
 
+	// ObjectIDAsHexString causes the Decoder to decode object IDs to their hex
+	// representation.
+	ObjectIDAsHexString bool
+
 	// UseLocalTimeZone causes the driver to unmarshal time.Time values in the
 	// local timezone instead of the UTC timezone.
 	UseLocalTimeZone bool
@@ -598,6 +602,9 @@ func (c *ClientOptionsBuilder) Validate() error {
 		}
 		if args.Auth.OIDCMachineCallback != nil && args.Auth.OIDCHumanCallback != nil {
 			return fmt.Errorf("cannot set both OIDCMachineCallback and OIDCHumanCallback, only one may be specified")
+		}
+		if args.Auth.OIDCHumanCallback == nil && args.Auth.AuthMechanismProperties[auth.AllowedHostsProp] != "" {
+			return fmt.Errorf("Cannot specify ALLOWED_HOSTS without an OIDCHumanCallback")
 		}
 		if env, ok := args.Auth.AuthMechanismProperties[auth.EnvironmentProp]; ok {
 			switch env {

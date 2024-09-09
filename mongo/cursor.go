@@ -250,6 +250,9 @@ func getDecoder(
 		if opts.DefaultDocumentM {
 			dec.DefaultDocumentM()
 		}
+		if opts.ObjectIDAsHexString {
+			dec.ObjectIDAsHexString()
+		}
 		if opts.UseJSONStructTags {
 			dec.UseJSONStructTags()
 		}

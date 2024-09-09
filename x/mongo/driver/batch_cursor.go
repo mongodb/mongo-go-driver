@@ -163,7 +163,7 @@ type CursorOptions struct {
 	CommandMonitor        *event.CommandMonitor
 	Crypt                 Crypt
 	ServerAPI             *ServerAPIOptions
-	MarshalValueEncoderFn func(io.Writer) (*bson.Encoder, error)
+	MarshalValueEncoderFn func(io.Writer) *bson.Encoder
 
 	// MaxAwaitTime is only valid for tailable awaitData cursors. If this option
 	// is set, it will be used as the "maxTimeMS" field on getMore commands.
