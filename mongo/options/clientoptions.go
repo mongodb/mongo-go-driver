@@ -205,6 +205,10 @@ type BSONOptions struct {
 	// "interface{}" or "map[string]interface{}".
 	DefaultDocumentM bool
 
+	// ObjectIDAsHexString causes the Decoder to decode object IDs to their hex
+	// representation.
+	ObjectIDAsHexString bool
+
 	// UseLocalTimeZone causes the driver to unmarshal time.Time values in the
 	// local timezone instead of the UTC timezone.
 	UseLocalTimeZone bool

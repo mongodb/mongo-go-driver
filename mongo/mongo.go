@@ -60,7 +60,7 @@ func getEncoder(
 	w io.Writer,
 	opts *options.BSONOptions,
 	reg *bson.Registry,
-) (*bson.Encoder, error) {
+) *bson.Encoder {
 	vw := bson.NewDocumentWriter(w)
 	enc := bson.NewEncoder(vw)
 
@@ -95,13 +95,13 @@ func getEncoder(
 		enc.SetRegistry(reg)
 	}
 
-	return enc, nil
+	return enc
 }
 
 // newEncoderFn will return a function for constructing an encoder based on the
 // provided codec options.
 func newEncoderFn(opts *options.BSONOptions, registry *bson.Registry) codecutil.EncoderFn {
-	return func(w io.Writer) (*bson.Encoder, error) {
+	return func(w io.Writer) *bson.Encoder {
 		return getEncoder(w, opts, registry)
 	}
 }
@@ -128,12 +128,8 @@ func marshal(
 	}
 
 	buf := new(bytes.Buffer)
-	enc, err := getEncoder(buf, bsonOpts, registry)
-	if err != nil {
-		return nil, fmt.Errorf("error configuring BSON encoder: %w", err)
-	}
-
-	err = enc.Encode(val)
+	enc := getEncoder(buf, bsonOpts, registry)
+	err := enc.Encode(val)
 	if err != nil {
 		return nil, MarshalError{Value: val, Err: err}
 	}
