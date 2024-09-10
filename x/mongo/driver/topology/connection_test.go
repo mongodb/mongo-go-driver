@@ -783,7 +783,7 @@ func TestConnection(t *testing.T) {
 			makeMultipleConnections := func(t *testing.T, numConns int) (*pool, []*Connection, func()) {
 				t.Helper()
 
-				addr := bootstrapConnections(t, numConns, func(nc net.Conn) {})
+				addr := bootstrapConnections(t, numConns, func(net.Conn) {})
 				pool := newPool(poolConfig{
 					Address: address.Address(addr.String()),
 				})

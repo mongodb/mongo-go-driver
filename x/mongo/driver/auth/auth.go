@@ -19,6 +19,8 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
+const sourceExternal = "$external"
+
 // Config contains the configuration for an Authenticator.
 type Config = driver.AuthConfig
 

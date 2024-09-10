@@ -338,7 +338,7 @@ func TestRegistryBuilder(t *testing.T) {
 			}
 
 			allowunexported := cmp.AllowUnexported(fakeCodec{}, fakeStructCodec{}, fakeSliceCodec{}, fakeMapCodec{})
-			comparepc := func(pc1, pc2 *PointerCodec) bool { return true }
+			comparepc := func(pc1, pc2 *PointerCodec) bool { return pc1 == pc2 }
 			for _, tc := range testCases {
 				t.Run(tc.name, func(t *testing.T) {
 					t.Run("Encoder", func(t *testing.T) {
@@ -754,7 +754,7 @@ func TestRegistry(t *testing.T) {
 			}
 
 			allowunexported := cmp.AllowUnexported(fakeCodec{}, fakeStructCodec{}, fakeSliceCodec{}, fakeMapCodec{})
-			comparepc := func(pc1, pc2 *PointerCodec) bool { return true }
+			comparepc := func(pc1, pc2 *PointerCodec) bool { return pc1 == pc2 }
 			for _, tc := range testCases {
 				tc := tc
 
