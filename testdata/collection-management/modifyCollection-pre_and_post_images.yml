@@ -36,12 +36,11 @@ tests:
         arguments:
           databaseName: *database0Name
           collectionName: *collection0Name
-      - name: runCommand
+      - name: modifyCollection
         object: *database0
-        arguments: &enablePreAndPostImages
-          command:
-            collMod: *collection0Name
-            changeStreamPreAndPostImages: { enabled: true }
+        arguments:
+          collection: *collection0Name
+          changeStreamPreAndPostImages: { enabled: true }
     expectEvents:
       - client: *client0
         events:

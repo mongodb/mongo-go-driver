@@ -90,15 +90,13 @@
       ],
       "operations": [
         {
-          "name": "runCommand",
+          "name": "modifyCollection",
           "object": "database0",
           "arguments": {
-            "command": {
-              "collMod": "test",
-              "validator": {
-                "x": {
-                  "$type": "string"
-                }
+            "collection": "test",
+            "validator": {
+              "x": {
+                "$type": "string"
               }
             }
           }
