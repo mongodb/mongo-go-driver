@@ -19,7 +19,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/auth"
-	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/ocsp"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
@@ -148,9 +147,9 @@ func NewConfigFromOptions(opts *options.ClientOptions, clock *session.ClusterClo
 	var err error
 	if opts.Auth != nil {
 		authenticator, err = auth.CreateAuthenticator(
-			co.Auth.AuthMechanism,
-			ConvertCreds(co.Auth),
-			co.HTTPClient,
+			opts.Auth.AuthMechanism,
+			ConvertCreds(opts.Auth),
+			opts.HTTPClient,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("error creating authenticator: %w", err)
@@ -273,16 +272,9 @@ func NewConfigFromOptionsWithAuthenticator(opts *options.ClientOptions, clock *s
 			ClusterClock:  clock,
 		}
 
-		if co.Auth.AuthMechanism == "" {
+		if opts.Auth.AuthMechanism == "" {
 			// Required for SASL mechanism negotiation during handshake
-			handshakeOpts.DBUser = co.Auth.AuthSource + "." + co.Auth.Username
-		}
-
-		if co.AuthenticateToAnything != nil && *co.AuthenticateToAnything {
-			// Authenticate arbiters
-			handshakeOpts.PerformAuthentication = func(serv description.Server) bool {
-				return true
-			}
+			handshakeOpts.DBUser = opts.Auth.AuthSource + "." + opts.Auth.Username
 		}
 
 		handshaker = func(driver.Handshaker) driver.Handshaker {

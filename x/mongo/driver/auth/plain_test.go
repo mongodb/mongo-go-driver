@@ -12,8 +12,6 @@ import (
 	"strings"
 	"testing"
 
-	"encoding/base64"
-
 	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
