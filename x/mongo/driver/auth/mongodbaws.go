@@ -21,17 +21,15 @@ import (
 const MongoDBAWS = "MONGODB-AWS"
 
 func newMongoDBAWSAuthenticator(cred *Cred, httpClient *http.Client) (Authenticator, error) {
-	if cred.Source != "" && cred.Source != "$external" {
+	if cred.Source != "" && cred.Source != sourceExternal {
 		return nil, newAuthError("MONGODB-AWS source must be empty or $external", nil)
 	}
 	if httpClient == nil {
 		return nil, errors.New("httpClient must not be nil")
 	}
 	return &MongoDBAWSAuthenticator{
-		source: cred.Source,
 		credentials: &credproviders.StaticProvider{
 			Value: credentials.Value{
-				ProviderName:    cred.Source,
 				AccessKeyID:     cred.Username,
 				SecretAccessKey: cred.Password,
 				SessionToken:    cred.Props["AWS_SESSION_TOKEN"],
@@ -43,7 +41,6 @@ func newMongoDBAWSAuthenticator(cred *Cred, httpClient *http.Client) (Authentica
 
 // MongoDBAWSAuthenticator uses AWS-IAM credentials over SASL to authenticate a connection.
 type MongoDBAWSAuthenticator struct {
-	source      string
 	credentials *credproviders.StaticProvider
 	httpClient  *http.Client
 }
@@ -56,7 +53,7 @@ func (a *MongoDBAWSAuthenticator) Auth(ctx context.Context, cfg *driver.AuthConf
 			credentials: providers.Cred,
 		},
 	}
-	err := ConductSaslConversation(ctx, cfg, a.source, adapter)
+	err := ConductSaslConversation(ctx, cfg, sourceExternal, adapter)
 	if err != nil {
 		return newAuthError("sasl conversation error", err)
 	}
