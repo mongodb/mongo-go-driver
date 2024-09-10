@@ -243,6 +243,8 @@ func executeModifyCollection(ctx context.Context, operation *operation) (*operat
 			collModCmd = append(collModCmd, bson.E{"changeStreamPreAndPostImages", val.Document()})
 		case "validator":
 			collModCmd = append(collModCmd, bson.E{"validator", val.Document()})
+		case "index":
+			collModCmd = append(collModCmd, bson.E{"index", val.Document()})
 		default:
 			return nil, fmt.Errorf("unrecognized modifyCollection option %q", key)
 		}
