@@ -154,10 +154,14 @@ functions:
       params:
         files:
           - "src/go.mongodb.org/mongo-driver/*.suite"
+    - command: ec2.assume_role
+      params:
+        role_arn: ${assume_role_arn}
     - command: s3.put
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        aws_key: ${AWS_ACCESS_KEY_ID}
+        aws_secret: ${AWS_SECRET_ACCESS_KEY}
+        aws_session_token: ${AWS_SESSION_TOKEN}
         local_file: ${DRIVERS_TOOLS}/.evergreen/test_logs.tar.gz
         remote_file: ${UPLOAD_BUCKET}/${build_variant}/${revision}/${version_id}/${build_id}/logs/${task_id}-${execution}-drivers-tools-logs.tar.gz
         bucket: mciuploads
@@ -166,8 +170,9 @@ functions:
         display_name: "drivers-tools-logs.tar.gz"
     - command: s3.put
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        aws_key: ${AWS_ACCESS_KEY_ID}
+        aws_secret: ${AWS_SECRET_ACCESS_KEY}
+        aws_session_token: ${AWS_SESSION_TOKEN}
         optional: true
         local_file: ${PROJECT_DIRECTORY}/fuzz.tgz
         remote_file: ${UPLOAD_BUCKET}/${build_variant}/${revision}/${version_id}/${build_id}/${task_id}-${execution}-fuzz.tgz
@@ -184,8 +189,9 @@ functions:
           find . -name \*.suite | xargs tar czf test_suite.tgz
     - command: s3.put
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        aws_key: ${AWS_ACCESS_KEY_ID}
+        aws_secret: ${AWS_SECRET_ACCESS_KEY}
+        aws_session_token: ${AWS_SESSION_TOKEN}
         local_file: src/go.mongodb.org/mongo-driver/test_suite.tgz
         optional: true
         remote_file: ${UPLOAD_BUCKET}/${build_variant}/${revision}/${version_id}/${build_id}/logs/${task_id}-${execution}-test_suite.tgz
