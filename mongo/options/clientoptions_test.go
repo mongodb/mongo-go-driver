@@ -1306,7 +1306,7 @@ func TestSetURIopts(t *testing.T) {
 					"TOKEN_RESOURCE": "mongodb://test-cluster"}},
 				HTTPClient: httputil.DefaultHTTPClient,
 			},
-			wantErrs: nil
+			wantErrs: nil,
 		},
 		{
 			name: "comma in key:value pair causes error",
