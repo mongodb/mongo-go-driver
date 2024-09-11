@@ -1285,7 +1285,7 @@ func TestSetURIopts(t *testing.T) {
 			wantErrs: nil,
 		},
 		{
-			name: "tmp",
+			name: "oidc azure",
 			uri:  "mongodb://example.com/?authMechanism=MONGODB-OIDC&authMechanismProperties=TOKEN_RESOURCE:mongodb://test-cluster,ENVIRONMENT:azureManagedIdentities",
 			wantopts: &ClientOptions{
 				Hosts: []string{"example.com"},
@@ -1295,6 +1295,18 @@ func TestSetURIopts(t *testing.T) {
 				HTTPClient: httputil.DefaultHTTPClient,
 			},
 			wantErrs: nil,
+		},
+		{
+			name: "oidc gcp",
+			uri:  "mongodb://test.mongodb.net/?authMechanism=MONGODB-OIDC&authMechanismProperties=ENVIRONMENT:gcp,TOKEN_RESOURCE:mongodb://test-cluster",
+			wantopts: &ClientOptions{
+				Hosts: []string{"test.mongodb.net"},
+				Auth: &Credential{AuthMechanism: "MONGODB-OIDC", AuthSource: "$external", AuthMechanismProperties: map[string]string{
+					"ENVIRONMENT":    "gcp",
+					"TOKEN_RESOURCE": "mongodb://test-cluster"}},
+				HTTPClient: httputil.DefaultHTTPClient,
+			},
+			wantErrs: nil
 		},
 		{
 			name: "comma in key:value pair causes error",
