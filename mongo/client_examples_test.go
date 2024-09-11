@@ -516,7 +516,7 @@ func ExampleConnect_oIDC() {
 		if err != nil {
 			panic(err)
 		}
-		defer c.Disconnect(context.TODO())
+		defer func() { _ = c.Disconnect(context.TODO()) }()
 		_, err = c.Database("test").
 			Collection("test").
 			InsertOne(context.TODO(), bson.D{})
@@ -551,7 +551,7 @@ func ExampleConnect_oIDC() {
 		if err != nil {
 			panic(err)
 		}
-		defer c.Disconnect(context.TODO())
+		defer func() { _ = c.Disconnect(context.TODO()) }()
 		_, err = c.Database("test").
 			Collection("test").
 			InsertOne(context.TODO(), bson.D{})
@@ -599,7 +599,7 @@ func ExampleConnect_oIDC() {
 		if err != nil {
 			panic(err)
 		}
-		defer c.Disconnect(context.TODO())
+		defer func() { _ = c.Disconnect(context.TODO()) }()
 		_, err = c.Database("test").
 			Collection("test").
 			InsertOne(context.TODO(), bson.D{})
@@ -651,7 +651,7 @@ func ExampleConnect_oIDC() {
 		if err != nil {
 			panic(err)
 		}
-		defer c.Disconnect(context.TODO())
+		defer func() { _ = c.Disconnect(context.TODO()) }()
 		_, err = c.Database("test").
 			Collection("test").
 			InsertOne(context.TODO(), bson.D{})
@@ -705,7 +705,7 @@ func ExampleConnect_oIDC() {
 		if err != nil {
 			panic(err)
 		}
-		defer c.Disconnect(context.TODO())
+		defer func() { _ = c.Disconnect(context.TODO()) }()
 		_, err = c.Database("test").
 			Collection("test").
 			InsertOne(context.TODO(), bson.D{})
