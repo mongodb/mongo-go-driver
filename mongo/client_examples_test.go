@@ -503,7 +503,7 @@ func ExampleConnect_oIDC() {
 				AuthMechanismProperties: props,
 			},
 		)
-		c, err := mongo.Connect(context.TODO(), opts)
+		c, err := mongo.Connect(opts)
 		if err != nil {
 			panic(err)
 		}
@@ -538,7 +538,7 @@ func ExampleConnect_oIDC() {
 				AuthMechanismProperties: props,
 			},
 		)
-		c, err := mongo.Connect(context.TODO(), opts)
+		c, err := mongo.Connect(opts)
 		if err != nil {
 			panic(err)
 		}
@@ -586,7 +586,7 @@ func ExampleConnect_oIDC() {
 				OIDCMachineCallback:     eksCallback,
 			},
 		)
-		c, err := mongo.Connect(context.TODO(), opts)
+		c, err := mongo.Connect(opts)
 		if err != nil {
 			panic(err)
 		}
@@ -638,7 +638,7 @@ func ExampleConnect_oIDC() {
 				OIDCMachineCallback:     gkeCallback,
 			},
 		)
-		c, err := mongo.Connect(context.TODO(), opts)
+		c, err := mongo.Connect(opts)
 		if err != nil {
 			panic(err)
 		}
@@ -692,7 +692,7 @@ func ExampleConnect_oIDC() {
 				OIDCHumanCallback:       humanCallback,
 			},
 		)
-		c, err := mongo.Connect(context.TODO(), opts)
+		c, err := mongo.Connect(opts)
 		if err != nil {
 			panic(err)
 		}
