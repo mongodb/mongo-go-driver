@@ -224,6 +224,37 @@ func executeListCollectionNames(ctx context.Context, operation *operation) (*ope
 	return newValueResult(bsontype.Array, data, nil), nil
 }
 
+func executeModifyCollection(ctx context.Context, operation *operation) (*operationResult, error) {
+	db, err := entities(ctx).database(operation.Object)
+	if err != nil {
+		return nil, err
+	}
+
+	collModCmd := bson.D{}
+
+	elems, _ := operation.Arguments.Elements()
+	for _, elem := range elems {
+		key := elem.Key()
+		val := elem.Value()
+
+		switch key {
+		case "collection":
+			collModCmd = append(collModCmd, bson.E{"collMod", val.StringValue()})
+		case "changeStreamPreAndPostImages":
+			collModCmd = append(collModCmd, bson.E{"changeStreamPreAndPostImages", val.Document()})
+		case "validator":
+			collModCmd = append(collModCmd, bson.E{"validator", val.Document()})
+		case "index":
+			collModCmd = append(collModCmd, bson.E{"index", val.Document()})
+		default:
+			return nil, fmt.Errorf("unrecognized modifyCollection option %q", key)
+		}
+	}
+
+	res, err := db.RunCommand(ctx, collModCmd).Raw()
+	return newDocumentResult(res, err), nil
+}
+
 func executeRunCommand(ctx context.Context, operation *operation) (*operationResult, error) {
 	db, err := entities(ctx).database(operation.Object)
 	if err != nil {
