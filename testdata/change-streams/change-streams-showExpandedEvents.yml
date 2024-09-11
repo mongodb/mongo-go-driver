@@ -2,8 +2,7 @@ description: "change-streams-showExpandedEvents"
 schemaVersion: "1.7"
 runOnRequirements:
   - minServerVersion: "6.0.0"
-    topologies: [ replicaset, sharded ]
-    serverless: forbid
+    topologies: [ replicaset, sharded-replicaset, sharded ]
 createEntities:
   - client:
       id: &client0 client0
@@ -276,8 +275,7 @@ tests:
 
   - description: "when showExpandedEvents is true, shardCollection events are reported"
     runOnRequirements:
-      # Note: minServerVersion is specified in top-level runOnRequirements
-      - topologies: [ sharded ]
+      - topologies: [ sharded-replicaset, sharded ]
     operations:
       - name: dropCollection
         object: *shardedDb
