@@ -11,7 +11,6 @@ package mongocrypt
 
 /*
 #include <stdlib.h>
-#include <string.h> // Include for memcpy
 #include <mongocrypt.h>
 */
 import "C"
@@ -32,6 +31,7 @@ func newBinary() *binary {
 	}
 }
 
+// newBinaryFromBytes creates a binary instance from a byte buffer.
 func newBinaryFromBytes(data []byte) *binary {
 	if len(data) == 0 {
 		return newBinary()
