@@ -2340,7 +2340,7 @@ buildvariants:
     tags: ["pullrequest"]
     display_name: "Static Analysis"
     run_on:
-      - rhel8.7-large
+      - rhel8.7-small
     expansions:
       GO_DIST: "/opt/golang/go1.22"
     tasks:
@@ -2369,7 +2369,7 @@ buildvariants:
     tags: ["pullrequest"]
     display_name: "Compile Only Checks"
     run_on:
-      - rhel8.7-large
+      - rhel8.7-small
     expansions:
       GO_DIST: "/opt/golang/go1.22"
     tasks:
