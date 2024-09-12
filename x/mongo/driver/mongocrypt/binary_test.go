@@ -163,16 +163,10 @@ func BenchmarkBulkDecryption(b *testing.B) {
 	// ... with the algorithm AEAD_AES_256_CBC_HMAC_SHA_512-Deterministic.
 	encryptedDoc := createEncryptedDocForBulkDecryptionBench(b, crypt, numKeys)
 
-	// Create a handle to mongocrypt_t, decrypt the document repeatedly for one
-	// second to warm up the benchmark.
-	repeatDecrypt := func(b *testing.B, dur time.Duration) {
-		for start := time.Now(); time.Since(start) < dur; {
-			decryptDocForBench(b, crypt, encryptedDoc)
-		}
+	// decrypt the document repeatedly for one to warm up the benchmark.
+	for start := time.Now(); time.Since(start) < time.Second; {
+		decryptDocForBench(b, crypt, encryptedDoc)
 	}
-
-	// Warm up the benchmark.
-	repeatDecrypt(b, time.Second)
 
 	benchmarks := []struct {
 		threads int
@@ -186,19 +180,28 @@ func BenchmarkBulkDecryption(b *testing.B) {
 	// Run the benchmark. Repeat benchmark for thread counts: (1, 2, 8, 64).
 	// Repeat 10 times.
 	for _, bench := range benchmarks {
-		for i := 0; i < repeatCount; i++ {
-			b.Run(fmt.Sprintf("threadCount=%v iter=%v", bench.threads, i), func(b *testing.B) {
-				runtime.GOMAXPROCS(bench.threads)
+		var totalOpsPerSec float64
 
+		b.Run(fmt.Sprintf("threadCount=%v", bench.threads), func(b *testing.B) {
+			runtime.GOMAXPROCS(bench.threads)
+
+			for i := 0; i < repeatCount; i++ {
 				b.ResetTimer()
 				b.ReportAllocs()
 
+				startTime := time.Now()
+
 				b.RunParallel(func(pb *testing.PB) {
 					for pb.Next() {
-						repeatDecrypt(b, time.Second)
+						decryptDocForBench(b, crypt, encryptedDoc)
 					}
 				})
-			})
-		}
+
+				totalOpsPerSec += float64(b.N) / time.Now().Sub(startTime).Seconds()
+			}
+		})
+
+		avgOpsPerSec := totalOpsPerSec / float64(repeatCount)
+		b.Logf("thread count: %v, ops/sec: %.2f\n", bench.threads, avgOpsPerSec)
 	}
 }
