@@ -11,7 +11,7 @@ package mongocrypt
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path"
 	"runtime"
 	"testing"
@@ -28,7 +28,7 @@ import (
 func resourceToDocumentForBench(b *testing.B, filename string) bsoncore.Document {
 	b.Helper()
 
-	content, err := ioutil.ReadFile(path.Join(resourcesDir, filename))
+	content, err := os.ReadFile(path.Join(resourcesDir, filename))
 	require.NoError(b, err)
 
 	var doc bsoncore.Document
