@@ -113,12 +113,12 @@ func NewCursorResponse(info ResponseInfo) (CursorResponse, error) {
 			if !ok {
 				return CursorResponse{}, fmt.Errorf("ns should be a string but is a BSON %s", elem.Value().Type)
 			}
-			index := strings.Index(ns, ".")
-			if index == -1 {
+			database, collection, ok := strings.Cut(ns, ".")
+			if !ok {
 				return CursorResponse{}, errors.New("ns field must contain a valid namespace, but is missing '.'")
 			}
-			curresp.Database = ns[:index]
-			curresp.Collection = ns[index+1:]
+			curresp.Database = database
+			curresp.Collection = collection
 		case "id":
 			curresp.ID, ok = elem.Value().Int64OK()
 			if !ok {
@@ -144,7 +144,6 @@ func NewCursorResponse(info ResponseInfo) (CursorResponse, error) {
 
 		refConn := info.Connection.Pinner
 		if refConn == nil {
-			//debug.PrintStack()
 			return CursorResponse{}, fmt.Errorf("expected Connection used to establish a cursor to implement PinnedConnection, but got %T", info.Connection)
 		}
 		if err := refConn.PinToCursor(); err != nil {
@@ -164,7 +163,7 @@ type CursorOptions struct {
 	CommandMonitor        *event.CommandMonitor
 	Crypt                 Crypt
 	ServerAPI             *ServerAPIOptions
-	MarshalValueEncoderFn func(io.Writer) (*bson.Encoder, error)
+	MarshalValueEncoderFn func(io.Writer) *bson.Encoder
 
 	// MaxAwaitTime is only valid for tailable awaitData cursors. If this option
 	// is set, it will be used as the "maxTimeMS" field on getMore commands.
@@ -320,7 +319,7 @@ func (bc *BatchCursor) KillCursor(ctx context.Context) error {
 	}
 
 	return Operation{
-		CommandFn: func(dst []byte, desc description.SelectedServer) ([]byte, error) {
+		CommandFn: func(dst []byte, _ description.SelectedServer) ([]byte, error) {
 			dst = bsoncore.AppendStringElement(dst, "killCursors", bc.collection)
 			dst = bsoncore.BuildArrayElement(dst, "cursors", bsoncore.Value{Type: bsoncore.TypeInt64, Data: bsoncore.AppendInt64(nil, bc.id)})
 			return dst, nil
@@ -442,6 +441,12 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 		Crypt:          bc.crypt,
 		ServerAPI:      bc.serverAPI,
 
+		// Omit the automatically-calculated maxTimeMS because setting maxTimeMS
+		// on a non-awaitData cursor causes a server error. For awaitData
+		// cursors, maxTimeMS is set when maxAwaitTime is specified by the above
+		// CommandFn.
+		OmitMaxTimeMS: true,
+
 		// No read preference is passed to the getMore command,
 		// resulting in the default read preference: "primaryPreferred".
 		// Since this could be confusing, and there is no requirement
@@ -514,8 +519,7 @@ func (bc *BatchCursor) getOperationDeployment() Deployment {
 // handled for these commands in this mode.
 type loadBalancedCursorDeployment struct {
 	errorProcessor ErrorProcessor
-	//conn           PinnedConnection
-	conn *mnet.Connection
+	conn           *mnet.Connection
 }
 
 var _ Deployment = (*loadBalancedCursorDeployment)(nil)

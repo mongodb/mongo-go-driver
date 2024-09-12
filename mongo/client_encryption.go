@@ -27,6 +27,7 @@ type ClientEncryption struct {
 	crypt          driver.Crypt
 	keyVaultClient *Client
 	keyVaultColl   *Collection
+	closed         bool
 }
 
 // NewClientEncryption creates a new ClientEncryption instance configured with the given options.
@@ -81,6 +82,10 @@ func NewClientEncryption(keyVaultClient *Client, opts ...options.Lister[options.
 func (ce *ClientEncryption) CreateEncryptedCollection(ctx context.Context,
 	db *Database, coll string, createOpts options.Lister[options.CreateCollectionOptions],
 	kmsProvider string, masterKey interface{}) (*Collection, bson.M, error) {
+	if ce.closed {
+		return nil, nil, ErrClientDisconnected
+	}
+
 	if createOpts == nil {
 		return nil, nil, errors.New("nil CreateCollectionOptions")
 	}
@@ -141,6 +146,10 @@ func (ce *ClientEncryption) CreateEncryptedCollection(ctx context.Context,
 // AddKeyAltName adds a keyAltName to the keyAltNames array of the key document in the key vault collection with the
 // given UUID (BSON binary subtype 0x04). Returns the previous version of the key document.
 func (ce *ClientEncryption) AddKeyAltName(ctx context.Context, id bson.Binary, keyAltName string) *SingleResult {
+	if ce.closed {
+		return &SingleResult{err: ErrClientDisconnected}
+	}
+
 	filter := bsoncore.NewDocumentBuilder().AppendBinary("_id", id.Subtype, id.Data).Build()
 	keyAltNameDoc := bsoncore.NewDocumentBuilder().AppendString("keyAltNames", keyAltName).Build()
 	update := bsoncore.NewDocumentBuilder().AppendDocument("$addToSet", keyAltNameDoc).Build()
@@ -154,6 +163,10 @@ func (ce *ClientEncryption) CreateDataKey(
 	kmsProvider string,
 	opts ...options.Lister[options.DataKeyOptions],
 ) (bson.Binary, error) {
+	if ce.closed {
+		return bson.Binary{}, ErrClientDisconnected
+	}
+
 	args, err := mongoutil.NewOptions[options.DataKeyOptions](opts...)
 	if err != nil {
 		return bson.Binary{}, fmt.Errorf("failed to construct options from builder: %w", err)
@@ -221,7 +234,12 @@ func transformExplicitEncryptionOptions(opts ...options.Lister[options.EncryptOp
 		if rangeArgs.Precision != nil {
 			transformedRange.Precision = rangeArgs.Precision
 		}
-		transformedRange.Sparsity = rangeArgs.Sparsity
+		if rangeArgs.Sparsity != nil {
+			transformedRange.Sparsity = rangeArgs.Sparsity
+		}
+		if rangeArgs.TrimFactor != nil {
+			transformedRange.TrimFactor = rangeArgs.TrimFactor
+		}
 		transformed.SetRangeOptions(transformedRange)
 	}
 	return transformed
@@ -233,6 +251,9 @@ func (ce *ClientEncryption) Encrypt(
 	val bson.RawValue,
 	opts ...options.Lister[options.EncryptOptions],
 ) (bson.Binary, error) {
+	if ce.closed {
+		return bson.Binary{}, ErrClientDisconnected
+	}
 
 	transformed := transformExplicitEncryptionOptions(opts...)
 	subtype, data, err := ce.crypt.EncryptExplicit(ctx, bsoncore.Value{Type: bsoncore.Type(val.Type), Data: val.Value}, transformed)
@@ -250,14 +271,12 @@ func (ce *ClientEncryption) Encrypt(
 // 2. An Aggregate Expression of this form:
 // {$and: [{$gt: [<fieldpath>, <value1>]}, {$lt: [<fieldpath>, <value2>]}]
 // $gt may also be $gte. $lt may also be $lte.
-// Only supported for queryType "rangePreview"
-// Beta: The Range algorithm is experimental only. It is not intended for public use. It is subject to breaking changes.
-func (ce *ClientEncryption) EncryptExpression(
-	ctx context.Context,
-	expr interface{},
-	result interface{},
-	opts ...options.Lister[options.EncryptOptions],
-) error {
+// Only supported for queryType "range"
+func (ce *ClientEncryption) EncryptExpression(ctx context.Context, expr interface{}, result interface{}, opts ...options.Lister[options.EncryptOptions]) error {
+	if ce.closed {
+		return ErrClientDisconnected
+	}
+
 	transformed := transformExplicitEncryptionOptions(opts...)
 
 	exprDoc, err := marshal(expr, nil, nil)
@@ -283,6 +302,10 @@ func (ce *ClientEncryption) EncryptExpression(
 
 // Decrypt decrypts an encrypted value (BSON binary of subtype 6) and returns the original BSON value.
 func (ce *ClientEncryption) Decrypt(ctx context.Context, val bson.Binary) (bson.RawValue, error) {
+	if ce.closed {
+		return bson.RawValue{}, ErrClientDisconnected
+	}
+
 	decrypted, err := ce.crypt.DecryptExplicit(ctx, val.Subtype, val.Data)
 	if err != nil {
 		return bson.RawValue{}, err
@@ -294,19 +317,35 @@ func (ce *ClientEncryption) Decrypt(ctx context.Context, val bson.Binary) (bson.
 // Close cleans up any resources associated with the ClientEncryption instance. This includes disconnecting the
 // key-vault Client instance.
 func (ce *ClientEncryption) Close(ctx context.Context) error {
+	if ce.closed {
+		return ErrClientDisconnected
+	}
+
 	ce.crypt.Close()
-	return ce.keyVaultClient.Disconnect(ctx)
+	err := ce.keyVaultClient.Disconnect(ctx)
+	if err == nil {
+		ce.closed = true
+	}
+	return err
 }
 
 // DeleteKey removes the key document with the given UUID (BSON binary subtype 0x04) from the key vault collection.
 // Returns the result of the internal deleteOne() operation on the key vault collection.
 func (ce *ClientEncryption) DeleteKey(ctx context.Context, id bson.Binary) (*DeleteResult, error) {
+	if ce.closed {
+		return nil, ErrClientDisconnected
+	}
+
 	filter := bsoncore.NewDocumentBuilder().AppendBinary("_id", id.Subtype, id.Data).Build()
 	return ce.keyVaultColl.DeleteOne(ctx, filter)
 }
 
 // GetKeyByAltName returns a key document in the key vault collection with the given keyAltName.
 func (ce *ClientEncryption) GetKeyByAltName(ctx context.Context, keyAltName string) *SingleResult {
+	if ce.closed {
+		return &SingleResult{err: ErrClientDisconnected}
+	}
+
 	filter := bsoncore.NewDocumentBuilder().AppendString("keyAltNames", keyAltName).Build()
 	return ce.keyVaultColl.FindOne(ctx, filter)
 }
@@ -314,6 +353,10 @@ func (ce *ClientEncryption) GetKeyByAltName(ctx context.Context, keyAltName stri
 // GetKey finds a single key document with the given UUID (BSON binary subtype 0x04). Returns the result of the
 // internal find() operation on the key vault collection.
 func (ce *ClientEncryption) GetKey(ctx context.Context, id bson.Binary) *SingleResult {
+	if ce.closed {
+		return &SingleResult{err: ErrClientDisconnected}
+	}
+
 	filter := bsoncore.NewDocumentBuilder().AppendBinary("_id", id.Subtype, id.Data).Build()
 	return ce.keyVaultColl.FindOne(ctx, filter)
 }
@@ -321,12 +364,20 @@ func (ce *ClientEncryption) GetKey(ctx context.Context, id bson.Binary) *SingleR
 // GetKeys finds all documents in the key vault collection. Returns the result of the internal find() operation on the
 // key vault collection.
 func (ce *ClientEncryption) GetKeys(ctx context.Context) (*Cursor, error) {
+	if ce.closed {
+		return nil, ErrClientDisconnected
+	}
+
 	return ce.keyVaultColl.Find(ctx, bson.D{})
 }
 
 // RemoveKeyAltName removes a keyAltName from the keyAltNames array of the key document in the key vault collection with
 // the given UUID (BSON binary subtype 0x04). Returns the previous version of the key document.
 func (ce *ClientEncryption) RemoveKeyAltName(ctx context.Context, id bson.Binary, keyAltName string) *SingleResult {
+	if ce.closed {
+		return &SingleResult{err: ErrClientDisconnected}
+	}
+
 	filter := bsoncore.NewDocumentBuilder().AppendBinary("_id", id.Subtype, id.Data).Build()
 	update := bson.A{bson.D{{"$set", bson.D{{"keyAltNames", bson.D{{"$cond", bson.A{bson.D{{"$eq",
 		bson.A{"$keyAltNames", bson.A{keyAltName}}}}, "$$REMOVE", bson.D{{"$filter",
@@ -397,6 +448,10 @@ func (ce *ClientEncryption) RewrapManyDataKey(
 ) (*RewrapManyDataKeyResult, error) {
 	// libmongocrypt versions 1.5.0 and 1.5.1 have a severe bug in RewrapManyDataKey.
 	// Check if the version string starts with 1.5.0 or 1.5.1. This accounts for pre-release versions, like 1.5.0-rc0.
+	if ce.closed {
+		return nil, ErrClientDisconnected
+	}
+
 	libmongocryptVersion := mongocrypt.Version()
 	if strings.HasPrefix(libmongocryptVersion, "1.5.0") || strings.HasPrefix(libmongocryptVersion, "1.5.1") {
 		return nil, fmt.Errorf("RewrapManyDataKey requires libmongocrypt 1.5.2 or newer. Detected version: %v", libmongocryptVersion)

@@ -215,34 +215,13 @@ func newClient(opts ...options.Lister[options.ClientOptions]) (*Client, error) {
 	}
 
 	if args.Auth != nil {
-		var oidcMachineCallback auth.OIDCCallback
-		if args.Auth.OIDCMachineCallback != nil {
-			oidcMachineCallback = func(ctx context.Context, oargs *driver.OIDCArgs) (*driver.OIDCCredential, error) {
-				cred, err := args.Auth.OIDCMachineCallback(ctx, convertOIDCArgs(oargs))
-				return (*driver.OIDCCredential)(cred), err
-			}
-		}
-
-		var oidcHumanCallback auth.OIDCCallback
-		if args.Auth.OIDCHumanCallback != nil {
-			oidcHumanCallback = func(ctx context.Context, oargs *driver.OIDCArgs) (*driver.OIDCCredential, error) {
-				cred, err := args.Auth.OIDCHumanCallback(ctx, convertOIDCArgs(oargs))
-				return (*driver.OIDCCredential)(cred), err
-			}
-		}
-
-		// Create an authenticator for the client
-		client.authenticator, err = auth.CreateAuthenticator(args.Auth.AuthMechanism, &auth.Cred{
-			Source:              args.Auth.AuthSource,
-			Username:            args.Auth.Username,
-			Password:            args.Auth.Password,
-			PasswordSet:         args.Auth.PasswordSet,
-			Props:               args.Auth.AuthMechanismProperties,
-			OIDCMachineCallback: oidcMachineCallback,
-			OIDCHumanCallback:   oidcHumanCallback,
-		}, args.HTTPClient)
+		client.authenticator, err = auth.CreateAuthenticator(
+			args.Auth.AuthMechanism,
+			topology.ConvertCreds(args.Auth),
+			args.HTTPClient,
+		)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error creating authenticator: %w", err)
 		}
 	}
 
@@ -274,20 +253,7 @@ func newClient(opts ...options.Lister[options.ClientOptions]) (*Client, error) {
 	return client, nil
 }
 
-// convertOIDCArgs converts the internal *driver.OIDCArgs into the equivalent
-// public type *options.OIDCArgs.
-func convertOIDCArgs(args *driver.OIDCArgs) *options.OIDCArgs {
-	if args == nil {
-		return nil
-	}
-	return &options.OIDCArgs{
-		Version:      args.Version,
-		IDPInfo:      (*options.IDPInfo)(args.IDPInfo),
-		RefreshToken: args.RefreshToken,
-	}
-}
-
-// connect initializes the Client by starting background monitoring goroutines.
+// Connect initializes the Client by starting background monitoring goroutines.
 // If the Client was created using the NewClient function, this method must be called before a Client can be used.
 //
 // Connect starts background goroutines to monitor the state of the deployment and does not do any I/O in the main

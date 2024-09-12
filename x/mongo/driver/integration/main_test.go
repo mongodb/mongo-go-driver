@@ -119,13 +119,13 @@ func addCompressorToURI(uri string) string {
 	return uri + "compressors=" + comp
 }
 
-// runCommand runs an arbitrary command on a given database of target server
-func runCommand(s driver.Server, db string, cmd bsoncore.Document) (bsoncore.Document, error) {
+// runCommand runs an arbitrary command on a given database of the target
+// server.
+func runCommand(s driver.Server, db string, cmd bsoncore.Document) error {
 	op := operation.NewCommand(cmd).
-		Database(db).Deployment(driver.SingleServerDeployment{Server: s})
-	err := op.Execute(context.Background())
-	res := op.Result()
-	return res, err
+		Database(db).
+		Deployment(driver.SingleServerDeployment{Server: s})
+	return op.Execute(context.Background())
 }
 
 // dropCollection drops the collection in the test cluster.

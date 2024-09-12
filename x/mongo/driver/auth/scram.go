@@ -38,6 +38,10 @@ var (
 )
 
 func newScramSHA1Authenticator(cred *Cred, _ *http.Client) (Authenticator, error) {
+	source := cred.Source
+	if source == "" {
+		source = "admin"
+	}
 	passdigest := mongoPasswordDigest(cred.Username, cred.Password)
 	client, err := scram.SHA1.NewClientUnprepped(cred.Username, passdigest, "")
 	if err != nil {
@@ -46,12 +50,16 @@ func newScramSHA1Authenticator(cred *Cred, _ *http.Client) (Authenticator, error
 	client.WithMinIterations(4096)
 	return &ScramAuthenticator{
 		mechanism: SCRAMSHA1,
-		source:    cred.Source,
+		source:    source,
 		client:    client,
 	}, nil
 }
 
 func newScramSHA256Authenticator(cred *Cred, _ *http.Client) (Authenticator, error) {
+	source := cred.Source
+	if source == "" {
+		source = "admin"
+	}
 	passprep, err := stringprep.SASLprep.Prepare(cred.Password)
 	if err != nil {
 		return nil, newAuthError("error SASLprepping password", err)
@@ -63,7 +71,7 @@ func newScramSHA256Authenticator(cred *Cred, _ *http.Client) (Authenticator, err
 	client.WithMinIterations(4096)
 	return &ScramAuthenticator{
 		mechanism: SCRAMSHA256,
-		source:    cred.Source,
+		source:    source,
 		client:    client,
 	}, nil
 }
@@ -119,7 +127,7 @@ func (a *scramSaslAdapter) Start() (string, []byte, error) {
 	return a.mechanism, []byte(step), nil
 }
 
-func (a *scramSaslAdapter) Next(challenge []byte) ([]byte, error) {
+func (a *scramSaslAdapter) Next(_ context.Context, challenge []byte) ([]byte, error) {
 	step, err := a.conversation.Step(string(challenge))
 	if err != nil {
 		return nil, err

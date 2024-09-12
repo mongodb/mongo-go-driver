@@ -636,7 +636,7 @@ func TestUnmarshalByteSlicesUseDistinctArrays(t *testing.T) {
 				Foo: []byte{0, 1, 2, 3, 4, 5},
 			},
 			getByteSlice: func(val interface{}) []byte {
-				return (*(val.(*fooBytes))).Foo
+				return (val.(*fooBytes)).Foo
 			},
 		},
 		{
@@ -662,7 +662,7 @@ func TestUnmarshalByteSlicesUseDistinctArrays(t *testing.T) {
 				Foo: myBytes{0, 1, 2, 3, 4, 5},
 			},
 			getByteSlice: func(val interface{}) []byte {
-				return (*(val.(*fooMyBytes))).Foo
+				return (val.(*fooMyBytes)).Foo
 			},
 		},
 		{
@@ -688,7 +688,7 @@ func TestUnmarshalByteSlicesUseDistinctArrays(t *testing.T) {
 				Foo: Binary{Subtype: 0, Data: []byte{0, 1, 2, 3, 4, 5}},
 			},
 			getByteSlice: func(val interface{}) []byte {
-				return (*(val.(*fooBinary))).Foo.Data
+				return (val.(*fooBinary)).Foo.Data
 			},
 		},
 		{
@@ -714,7 +714,7 @@ func TestUnmarshalByteSlicesUseDistinctArrays(t *testing.T) {
 				Foo: ObjectID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
 			},
 			getByteSlice: func(val interface{}) []byte {
-				return (*(val.(*fooObjectID))).Foo[:]
+				return (val.(*fooObjectID)).Foo[:]
 			},
 		},
 		{
@@ -747,7 +747,7 @@ func TestUnmarshalByteSlicesUseDistinctArrays(t *testing.T) {
 				},
 			},
 			getByteSlice: func(val interface{}) []byte {
-				return (*(val.(*fooDBPointer))).Foo.Pointer[:]
+				return (val.(*fooDBPointer)).Foo.Pointer[:]
 			},
 		},
 		{

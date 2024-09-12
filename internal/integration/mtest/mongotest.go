@@ -208,7 +208,7 @@ func (t *T) cleanup() {
 // Run creates a new T instance for a sub-test and runs the given callback. It also creates a new collection using the
 // given name which is available to the callback through the T.Coll variable and is dropped after the callback
 // returns.
-func (t *T) Run(name string, callback func(*T)) {
+func (t *T) Run(name string, callback func(mt *T)) {
 	t.RunOpts(name, NewOptions(), callback)
 }
 
@@ -216,7 +216,7 @@ func (t *T) Run(name string, callback func(*T)) {
 // constraints specified in the options, the new sub-test will be skipped automatically. If the test is not skipped,
 // the callback will be run with the new T instance. RunOpts creates a new collection with the given name which is
 // available to the callback through the T.Coll variable and is dropped after the callback returns.
-func (t *T) RunOpts(name string, opts *Options, callback func(*T)) {
+func (t *T) RunOpts(name string, opts *Options, callback func(mt *T)) {
 	t.T.Run(name, func(wrapped *testing.T) {
 		sub := newT(wrapped, t.baseOpts, opts)
 
@@ -609,7 +609,7 @@ func (t *T) CloneCollection(opts *options.CollectionOptionsBuilder) {
 
 func sanitizeCollectionName(db string, coll string) string {
 	// Collections can't have "$" in their names, so we substitute it with "%".
-	coll = strings.Replace(coll, "$", "%", -1)
+	coll = strings.ReplaceAll(coll, "$", "%")
 
 	// Namespaces can only have 120 bytes max.
 	if len(db+"."+coll) >= 120 {
@@ -641,25 +641,25 @@ func (t *T) createTestClient() {
 	// Setup command monitor
 	var customMonitor = args.Monitor
 	clientOpts.SetMonitor(&event.CommandMonitor{
-		Started: func(_ context.Context, cse *event.CommandStartedEvent) {
+		Started: func(ctx context.Context, cse *event.CommandStartedEvent) {
 			if customMonitor != nil && customMonitor.Started != nil {
-				customMonitor.Started(context.Background(), cse)
+				customMonitor.Started(ctx, cse)
 			}
 			t.monitorLock.Lock()
 			defer t.monitorLock.Unlock()
 			t.started = append(t.started, cse)
 		},
-		Succeeded: func(_ context.Context, cse *event.CommandSucceededEvent) {
+		Succeeded: func(ctx context.Context, cse *event.CommandSucceededEvent) {
 			if customMonitor != nil && customMonitor.Succeeded != nil {
-				customMonitor.Succeeded(context.Background(), cse)
+				customMonitor.Succeeded(ctx, cse)
 			}
 			t.monitorLock.Lock()
 			defer t.monitorLock.Unlock()
 			t.succeeded = append(t.succeeded, cse)
 		},
-		Failed: func(_ context.Context, cfe *event.CommandFailedEvent) {
+		Failed: func(ctx context.Context, cfe *event.CommandFailedEvent) {
 			if customMonitor != nil && customMonitor.Failed != nil {
-				customMonitor.Failed(context.Background(), cfe)
+				customMonitor.Failed(ctx, cfe)
 			}
 			t.monitorLock.Lock()
 			defer t.monitorLock.Unlock()

@@ -564,19 +564,18 @@ func (op Operation) Execute(ctx context.Context) error {
 
 		// Set the previous indefinite error to be returned in any case where a retryable write error does not have a
 		// NoWritesPerfomed label (the definite case).
-		switch err := err.(type) {
-		case labeledError:
+		if lerr, ok := err.(labeledError); ok {
 			// If the "prevIndefiniteErr" is nil, then the current error is the first error encountered
 			// during the retry attempt cycle. We must persist the first error in the case where all
 			// following errors are labeled "NoWritesPerformed", which would otherwise raise nil as the
 			// error.
 			if prevIndefiniteErr == nil {
-				prevIndefiniteErr = err
+				prevIndefiniteErr = lerr
 			}
 
 			// If the error is not labeled NoWritesPerformed and is retryable, then set the previous
 			// indefinite error to be the current error.
-			if !err.HasErrorLabel(NoWritesPerformed) && err.HasErrorLabel(RetryableWriteError) {
+			if !lerr.HasErrorLabel(NoWritesPerformed) && lerr.HasErrorLabel(RetryableWriteError) {
 				prevIndefiniteErr = err
 			}
 		}
@@ -1184,18 +1183,12 @@ func (Operation) decompressWireMessage(wm []byte) (wiremessage.OpCode, []byte, e
 	if !ok {
 		return 0, nil, errors.New("malformed OP_COMPRESSED: missing compressor ID")
 	}
-	compressedSize := len(wm) - 9 // original opcode (4) + uncompressed size (4) + compressor ID (1)
-	// return the original wiremessage
-	msg, _, ok := wiremessage.ReadCompressedCompressedMessage(rem, int32(compressedSize))
-	if !ok {
-		return 0, nil, errors.New("malformed OP_COMPRESSED: insufficient bytes for compressed wiremessage")
-	}
 
 	opts := CompressionOpts{
 		Compressor:       compressorID,
 		UncompressedSize: uncompressedSize,
 	}
-	uncompressed, err := DecompressPayload(msg, opts)
+	uncompressed, err := DecompressPayload(rem, opts)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -1214,7 +1207,7 @@ func (op Operation) addBatchArray(dst []byte) []byte {
 
 func (op Operation) createLegacyHandshakeWireMessage(
 	ctx context.Context,
-	maxTimeMS uint64,
+	maxTimeMS int64,
 	dst []byte,
 	desc description.SelectedServer,
 ) ([]byte, startedInformation, error) {
@@ -1273,7 +1266,7 @@ func (op Operation) createLegacyHandshakeWireMessage(
 	// If maxTimeMS is greater than 0 append it to wire message. A maxTimeMS value of 0 only explicitly
 	// specifies the default behavior of no timeout server-side.
 	if maxTimeMS > 0 {
-		dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", int64(maxTimeMS))
+		dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", maxTimeMS)
 	}
 
 	dst, _ = bsoncore.AppendDocumentEnd(dst, idx)
@@ -1294,7 +1287,7 @@ func (op Operation) createLegacyHandshakeWireMessage(
 
 func (op Operation) createMsgWireMessage(
 	ctx context.Context,
-	maxTimeMS uint64,
+	maxTimeMS int64,
 	dst []byte,
 	desc description.SelectedServer,
 	conn *mnet.Connection,
@@ -1344,7 +1337,7 @@ func (op Operation) createMsgWireMessage(
 	// If maxTimeMS is greater than 0 append it to wire message. A maxTimeMS value of 0 only explicitly
 	// specifies the default behavior of no timeout server-side.
 	if maxTimeMS > 0 {
-		dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", int64(maxTimeMS))
+		dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", maxTimeMS)
 	}
 
 	dst = bsoncore.AppendStringElement(dst, "$db", op.Database)
@@ -1390,7 +1383,7 @@ func isLegacyHandshake(op Operation, desc description.SelectedServer) bool {
 
 func (op Operation) createWireMessage(
 	ctx context.Context,
-	maxTimeMS uint64,
+	maxTimeMS int64,
 	dst []byte,
 	desc description.SelectedServer,
 	conn *mnet.Connection,
@@ -1667,7 +1660,7 @@ func (op Operation) addClusterTime(dst []byte, desc description.SelectedServer) 
 // if the ctx is a Timeout context. If the context is not a Timeout context, it uses the
 // operation's MaxTimeMS if set. If no MaxTimeMS is set on the operation, and context is
 // not a Timeout context, calculateMaxTimeMS returns 0.
-func (op Operation) calculateMaxTimeMS(ctx context.Context, rttMin time.Duration, rttStats string) (uint64, error) {
+func (op Operation) calculateMaxTimeMS(ctx context.Context, rttMin time.Duration, rttStats string) (int64, error) {
 	if op.OmitMaxTimeMS {
 		return 0, nil
 	}
@@ -1684,13 +1677,23 @@ func (op Operation) calculateMaxTimeMS(ctx context.Context, rttMin time.Duration
 	maxTimeMS := int64((remainingTimeout - rttMin + time.Millisecond - 1) / time.Millisecond)
 	if maxTimeMS <= 0 {
 		return 0, fmt.Errorf(
-			"remaining time %v until context deadline is less than or equal to rtt minimum: %w\n%v",
+			"remaining time %v until context deadline is less than or equal to min network round-trip time %v (%v): %w",
 			remainingTimeout,
-			ErrDeadlineWouldBeExceeded,
-			rttStats)
+			rttMin,
+			rttStats,
+			ErrDeadlineWouldBeExceeded)
 	}
 
-	return uint64(maxTimeMS), nil
+	// The server will return a "BadValue" error if maxTimeMS is greater
+	// than the maximum positive int32 value (about 24.9 days). If the
+	// user specified a timeout value greater than that,  omit maxTimeMS
+	// and let the client-side timeout handle cancelling the op if the
+	// timeout is ever reached.
+	if maxTimeMS > math.MaxInt32 {
+		return 0, nil
+	}
+
+	return maxTimeMS, nil
 }
 
 // updateClusterTimes updates the cluster times for the session and cluster clock attached to this
@@ -2030,8 +2033,9 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 	if op.canLogCommandMessage() {
 		host, port, _ := net.SplitHostPort(info.serverAddress.String())
 
-		redactedCmd := redactStartedInformationCmd(op, info).String()
-		formattedCmd := logger.FormatMessage(redactedCmd, op.Logger.MaxDocumentLength)
+		redactedCmd := redactStartedInformationCmd(op, info)
+
+		formattedCmd := logger.FormatDocument(redactedCmd, op.Logger.MaxDocumentLength)
 
 		op.Logger.Print(logger.LevelDebug,
 			logger.ComponentCommand,
@@ -2082,8 +2086,9 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 	if op.canLogCommandMessage() && info.success() {
 		host, port, _ := net.SplitHostPort(info.serverAddress.String())
 
-		redactedReply := redactFinishedInformationResponse(info).String()
-		formattedReply := logger.FormatMessage(redactedReply, op.Logger.MaxDocumentLength)
+		redactedReply := redactFinishedInformationResponse(info)
+
+		formattedReply := logger.FormatDocument(redactedReply, op.Logger.MaxDocumentLength)
 
 		op.Logger.Print(logger.LevelDebug,
 			logger.ComponentCommand,
@@ -2106,7 +2111,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 	if op.canLogCommandMessage() && !info.success() {
 		host, port, _ := net.SplitHostPort(info.serverAddress.String())
 
-		formattedReply := logger.FormatMessage(info.cmdErr.Error(), op.Logger.MaxDocumentLength)
+		formattedReply := logger.FormatString(info.cmdErr.Error(), op.Logger.MaxDocumentLength)
 
 		op.Logger.Print(logger.LevelDebug,
 			logger.ComponentCommand,

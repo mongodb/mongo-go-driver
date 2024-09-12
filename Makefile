@@ -48,14 +48,9 @@ install-lll:
 check-fmt: install-lll
 	etc/check_fmt.sh
 
-# check-modules runs "go mod tidy"  and exits with a non-zero exit code if there
-# are any module changes. The intent is to confirm that exactly the required
-# modules are declared as dependencies. We should always be able to run "go mod
-# tidy" and expect that no unrelated changes are made to the "go.mod" file.
 .PHONY: check-modules
 check-modules:
-	go mod tidy -v
-	git diff --exit-code go.mod go.sum
+	etc/check_modules.sh
 
 .PHONY: doc
 doc:
@@ -65,9 +60,11 @@ doc:
 fmt:
 	go fmt ./...
 
+# NOTE: A golangci-lint version is also pinned in .pre-commit-config.yaml. Make
+# sure to change it there to keep it in-sync with what's used here!
 .PHONY: install-golangci-lint
 install-golangci-lint:
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.52.2
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.59.1
 
 # Lint with various GOOS and GOARCH targets to catch static analysis failures that may only affect
 # specific operating systems or architectures. For example, staticcheck will only check for 64-bit

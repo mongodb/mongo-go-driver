@@ -55,7 +55,6 @@ func String(h, l uint64) string {
 		// Bits: 1*sign 2*ignored 14*exponent 111*significand.
 		// Implicit 0b100 prefix in significand.
 		exp = int(h >> 47 & (1<<14 - 1))
-		//high = 4<<47 | d.h&(1<<47-1)
 		// Spec says all of these values are out of range.
 		high, low = 0, 0
 	} else {

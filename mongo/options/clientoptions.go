@@ -30,6 +30,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/v2/tag"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/auth"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage"
 )
@@ -89,9 +90,9 @@ type ContextDialer interface {
 // The SERVICE_HOST and CANONICALIZE_HOST_NAME properties must not be used at the same time on Linux and Darwin
 // systems.
 //
-// AuthSource: the name of the database to use for authentication. This defaults to "$external" for MONGODB-X509,
-// GSSAPI, and PLAIN and "admin" for all other mechanisms. This can also be set through the "authSource" URI option
-// (e.g. "authSource=otherDb").
+// AuthSource: the name of the database to use for authentication. This defaults to "$external" for MONGODB-AWS,
+// MONGODB-OIDC, MONGODB-X509, GSSAPI, and PLAIN. It defaults to  "admin" for all other auth mechanisms. This can
+// also be set through the "authSource" URI option (e.g. "authSource=otherDb").
 //
 // Username: the username for authentication. This can also be set through the URI as a username:password pair before
 // the first @ character. For example, a URI for user "user", password "pwd", and host "localhost:27017" would be
@@ -203,6 +204,10 @@ type BSONOptions struct {
 	// primitive.M type. This behavior is restricted to data typed as
 	// "interface{}" or "map[string]interface{}".
 	DefaultDocumentM bool
+
+	// ObjectIDAsHexString causes the Decoder to decode object IDs to their hex
+	// representation.
+	ObjectIDAsHexString bool
 
 	// UseLocalTimeZone causes the driver to unmarshal time.Time values in the
 	// local timezone instead of the UTC timezone.
@@ -588,6 +593,37 @@ func (c *ClientOptionsBuilder) Validate() error {
 
 	if to := args.Timeout; to != nil && *to < 0 {
 		return fmt.Errorf(`invalid value %q for "Timeout": value must be positive`, *to)
+	}
+
+	// OIDC Validation
+	if args.Auth != nil && args.Auth.AuthMechanism == auth.MongoDBOIDC {
+		if args.Auth.Password != "" {
+			return fmt.Errorf("password must not be set for the %s auth mechanism", auth.MongoDBOIDC)
+		}
+		if args.Auth.OIDCMachineCallback != nil && args.Auth.OIDCHumanCallback != nil {
+			return fmt.Errorf("cannot set both OIDCMachineCallback and OIDCHumanCallback, only one may be specified")
+		}
+		if args.Auth.OIDCHumanCallback == nil && args.Auth.AuthMechanismProperties[auth.AllowedHostsProp] != "" {
+			return fmt.Errorf("Cannot specify ALLOWED_HOSTS without an OIDCHumanCallback")
+		}
+		if env, ok := args.Auth.AuthMechanismProperties[auth.EnvironmentProp]; ok {
+			switch env {
+			case auth.GCPEnvironmentValue, auth.AzureEnvironmentValue:
+				if args.Auth.OIDCMachineCallback != nil {
+					return fmt.Errorf("OIDCMachineCallback cannot be specified with the %s %q", env, auth.EnvironmentProp)
+				}
+				if args.Auth.OIDCHumanCallback != nil {
+					return fmt.Errorf("OIDCHumanCallback cannot be specified with the %s %q", env, auth.EnvironmentProp)
+				}
+				if args.Auth.AuthMechanismProperties[auth.ResourceProp] == "" {
+					return fmt.Errorf("%q must be set for the %s %q", auth.ResourceProp, env, auth.EnvironmentProp)
+				}
+			default:
+				if args.Auth.AuthMechanismProperties[auth.ResourceProp] != "" {
+					return fmt.Errorf("%q must not be set for the %s %q", auth.ResourceProp, env, auth.EnvironmentProp)
+				}
+			}
+		}
 	}
 
 	return nil
@@ -1315,7 +1351,10 @@ func addClientCertFromBytes(cfg *tls.Config, data []byte, keyPasswd string) (str
 					}
 				}
 				var encoded bytes.Buffer
-				pem.Encode(&encoded, &pem.Block{Type: currentBlock.Type, Bytes: keyBytes})
+				err = pem.Encode(&encoded, &pem.Block{Type: currentBlock.Type, Bytes: keyBytes})
+				if err != nil {
+					return "", fmt.Errorf("error encoding private key as PEM: %w", err)
+				}
 				keyBlock := encoded.Bytes()
 				keyBlocks = append(keyBlocks, keyBlock)
 				start = len(data) - len(remaining)

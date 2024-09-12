@@ -147,8 +147,7 @@ func runScramAuthTest(t *testing.T, credential options.Credential) error {
 	noerr(t, err)
 
 	cmd := bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "dbstats", 1))
-	_, err = runCommand(server, integtest.DBName(t), cmd)
-	return err
+	return runCommand(server, integtest.DBName(t), cmd)
 }
 
 func createScramUsers(t *testing.T, s driver.Server, cases []scramTestCase) error {
@@ -169,7 +168,7 @@ func createScramUsers(t *testing.T, s driver.Server, cases []scramTestCase) erro
 			)),
 			bsoncore.AppendArrayElement(nil, "mechanisms", bsoncore.BuildArray(nil, values...)),
 		)
-		_, err := runCommand(s, db, newUserCmd)
+		err := runCommand(s, db, newUserCmd)
 		if err != nil {
 			return fmt.Errorf("Couldn't create user '%s' on db '%s': %w", c.username, integtest.DBName(t), err)
 		}

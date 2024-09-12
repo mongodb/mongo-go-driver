@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/internal/randutil"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/auth"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/dns"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage"
 )
@@ -253,6 +254,16 @@ func (u *ConnString) Validate() error {
 		}
 	}
 
+	// Check for OIDC auth mechanism properties that cannot be set in the ConnString.
+	if u.AuthMechanism == auth.MongoDBOIDC {
+		if _, ok := u.AuthMechanismProperties[auth.AllowedHostsProp]; ok {
+			return fmt.Errorf(
+				"ALLOWED_HOSTS cannot be specified in the URI connection string for the %q auth mechanism, it must be specified through the ClientOptions directly",
+				auth.MongoDBOIDC,
+			)
+		}
+	}
+
 	return nil
 }
 
@@ -280,7 +291,7 @@ func (u *ConnString) setDefaultAuthParams(dbName string) error {
 			u.AuthMechanismProperties["SERVICE_NAME"] = "mongodb"
 		}
 		fallthrough
-	case "mongodb-aws", "mongodb-x509":
+	case "mongodb-aws", "mongodb-x509", "mongodb-oidc":
 		if u.AuthSource == "" {
 			u.AuthSource = "$external"
 		} else if u.AuthSource != "$external" {
@@ -295,13 +306,6 @@ func (u *ConnString) setDefaultAuthParams(dbName string) error {
 			u.AuthSource = dbName
 			if u.AuthSource == "" {
 				u.AuthSource = "admin"
-			}
-		}
-	case "mongodb-oidc":
-		if u.AuthSource == "" {
-			u.AuthSource = dbName
-			if u.AuthSource == "" {
-				u.AuthSource = "$external"
 			}
 		}
 	case "":
@@ -875,15 +879,16 @@ func (p *parser) parse(original string) (*ConnString, error) {
 	uri := original
 
 	var err error
-	if strings.HasPrefix(uri, SchemeMongoDBSRV+"://") {
+	switch {
+	case strings.HasPrefix(uri, SchemeMongoDBSRV+"://"):
 		connStr.Scheme = SchemeMongoDBSRV
 		// remove the scheme
 		uri = uri[len(SchemeMongoDBSRV)+3:]
-	} else if strings.HasPrefix(uri, SchemeMongoDB+"://") {
+	case strings.HasPrefix(uri, SchemeMongoDB+"://"):
 		connStr.Scheme = SchemeMongoDB
 		// remove the scheme
 		uri = uri[len(SchemeMongoDB)+3:]
-	} else {
+	default:
 		return nil, errors.New(`scheme must be "mongodb" or "mongodb+srv"`)
 	}
 
@@ -894,9 +899,9 @@ func (p *parser) parse(original string) (*ConnString, error) {
 		username := userInfo
 		var password string
 
-		if idx := strings.Index(userInfo, ":"); idx != -1 {
-			username = userInfo[:idx]
-			password = userInfo[idx+1:]
+		if u, p, ok := strings.Cut(userInfo, ":"); ok {
+			username = u
+			password = p
 			connStr.PasswordSet = true
 		}
 

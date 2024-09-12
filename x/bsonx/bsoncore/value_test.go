@@ -8,10 +8,12 @@ package bsoncore
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
 )
 
 func TestValue(t *testing.T) {
@@ -670,6 +672,167 @@ func TestValue(t *testing.T) {
 				if !cmp.Equal(gotv, wantv) {
 					t.Errorf("return values at index %d are not equal. got %v; want %v", idx, gotv, wantv)
 				}
+			}
+		})
+	}
+}
+
+func TestValue_StringN(t *testing.T) {
+	var buf strings.Builder
+	for i := 0; i < 16000000; i++ {
+		buf.WriteString("abcdefgh")
+	}
+	str1k := buf.String()
+	str128 := str1k[:128]
+	testObjectID := [12]byte{0x60, 0xd4, 0xc2, 0x1f, 0x4e, 0x60, 0x4a, 0x0c, 0x8b, 0x2e, 0x9c, 0x3f}
+
+	testCases := []struct {
+		description string
+		n           int
+		val         Value
+		want        string
+	}{
+		// n = 0 cases
+		{"n=0, single value", 0, Value{
+			Type: TypeString, Data: AppendString(nil, "abcdefgh")}, ""},
+
+		{"n=0, large string value", 0, Value{
+			Type: TypeString, Data: AppendString(nil, "abcdefgh")}, ""},
+
+		{"n=0, value with special characters", 0, Value{
+			Type: TypeString, Data: AppendString(nil, "!@#$%^&*()")}, ""},
+
+		// n < 0 cases
+		{"n<0, single value", -1, Value{
+			Type: TypeString, Data: AppendString(nil, "abcdefgh")}, ""},
+
+		{"n<0, large string value", -1, Value{
+			Type: TypeString, Data: AppendString(nil, "abcdefgh")}, ""},
+
+		{"n<0, value with special characters", -1, Value{
+			Type: TypeString, Data: AppendString(nil, "!@#$%^&*()")}, ""},
+
+		// n > 0 cases
+		{"n>0, string LT n", 4, Value{
+			Type: TypeString, Data: AppendString(nil, "foo")}, `"foo`},
+
+		{"n>0, string GT n", 10, Value{
+			Type: TypeString, Data: AppendString(nil, "foo")}, `"foo"`},
+
+		{"n>0, string EQ n", 5, Value{
+			Type: TypeString, Data: AppendString(nil, "foo")}, `"foo"`},
+
+		{"n>0, multi-byte string LT n", 10, Value{
+			Type: TypeString, Data: AppendString(nil, "𨉟呐㗂越")}, `"𨉟呐`},
+
+		{"n>0, multi-byte string GT n", 21, Value{
+			Type: TypeString, Data: AppendString(nil, "𨉟呐㗂越")}, `"𨉟呐㗂越"`},
+
+		{"n>0, multi-byte string EQ n", 15, Value{
+			Type: TypeString, Data: AppendString(nil, "𨉟呐㗂越")}, `"𨉟呐㗂越"`},
+
+		{"n>0, multi-byte string exact character boundary", 6, Value{
+			Type: TypeString, Data: AppendString(nil, "𨉟呐㗂越")}, `"𨉟`},
+
+		{"n>0, multi-byte string mid character", 8, Value{
+			Type: TypeString, Data: AppendString(nil, "𨉟呐㗂越")}, `"𨉟`},
+
+		{"n>0, multi-byte string edge case", 10, Value{
+			Type: TypeString, Data: AppendString(nil, "𨉟呐㗂越")}, `"𨉟呐`},
+
+		{"n>0, single value", 10, Value{
+			Type: TypeString, Data: AppendString(nil, str128)}, `"abcdefgha`},
+
+		{"n>0, large string value", 10, Value{
+			Type: TypeString, Data: AppendString(nil, str1k)}, `"abcdefgha`},
+
+		{"n>0, value with special characters", 5, Value{
+			Type: TypeString, Data: AppendString(nil, "!@#$%^&*()")}, `"!@#$`},
+
+		// Extended cases for each type
+		{"n>0, TypeEmbeddedDocument", 10, Value{
+			Type: TypeEmbeddedDocument, Data: BuildDocument(nil,
+				AppendStringElement(nil, "key", "value"))}, `{"key": "v`},
+
+		{"n>0, TypeArray", 10, Value{
+			Type: TypeArray,
+			Data: BuildArray(nil,
+				Value{
+					Type: TypeString,
+					Data: AppendString(nil, "abc"),
+				},
+				Value{
+					Type: TypeInt32,
+					Data: AppendInt32(nil, 123),
+				},
+				Value{
+					Type: TypeBoolean,
+					Data: AppendBoolean(nil, true),
+				},
+			)}, `["abc",{"$`},
+
+		{"n>0, TypeDouble", 10, Value{
+			Type: TypeDouble, Data: AppendDouble(nil, 123.456)}, `{"$numberD`},
+
+		{"n>0, TypeBinary", 10, Value{
+			Type: TypeBinary, Data: AppendBinary(nil, 0x00, []byte{0x01, 0x02, 0x03})}, `{"$binary"`},
+
+		{"n>0, TypeUndefined", 10, Value{
+			Type: TypeUndefined}, `{"$undefin`},
+
+		{"n>0, TypeObjectID", 10, Value{
+			Type: TypeObjectID, Data: AppendObjectID(nil, testObjectID)}, `{"$oid":"6`},
+
+		{"n>0, TypeBoolean", 3, Value{
+			Type: TypeBoolean, Data: AppendBoolean(nil, true)}, `tru`},
+
+		{"n>0, TypeDateTime", 10, Value{
+			Type: TypeDateTime, Data: AppendDateTime(nil, 1234567890)}, `{"$date":{`},
+
+		{"n>0, TypeNull", 3, Value{
+			Type: TypeNull}, `nul`},
+
+		{"n>0, TypeRegex", 10, Value{
+			Type: TypeRegex, Data: AppendRegex(nil, "pattern", "options")}, `{"$regular`},
+
+		{"n>0, TypeDBPointer", 15, Value{
+			Type: TypeDBPointer, Data: AppendDBPointer(nil, "namespace", testObjectID)}, `{"$dbPointer":{`},
+
+		{"n>0, TypeJavaScript", 15, Value{
+			Type: TypeJavaScript, Data: AppendJavaScript(nil, "code")}, `{"$code":"code"`},
+
+		{"n>0, TypeSymbol", 10, Value{
+			Type: TypeSymbol, Data: AppendSymbol(nil, "symbol")}, `{"$symbol"`},
+
+		{"n>0, TypeCodeWithScope", 10, Value{
+			Type: TypeCodeWithScope, Data: AppendCodeWithScope(nil, "code", BuildDocument(nil,
+				AppendStringElement(nil, "key", "value")))}, `{"$code":c`},
+
+		{"n>0, TypeInt32", 10, Value{
+			Type: TypeInt32, Data: AppendInt32(nil, 123)}, `{"$numberI`},
+
+		{"n>0, TypeTimestamp", 10, Value{
+			Type: TypeTimestamp, Data: AppendTimestamp(nil, 123, 456)}, `{"$timesta`},
+
+		{"n>0, TypeInt64", 10, Value{
+			Type: TypeInt64, Data: AppendInt64(nil, 1234567890)}, `{"$numberL`},
+
+		{"n>0, TypeDecimal128", 10, Value{
+			Type: TypeDecimal128, Data: AppendDecimal128(nil, 0x3040000000000000, 0x0000000000000000)}, `{"$numberD`},
+
+		{"n>0, TypeMinKey", 10, Value{
+			Type: TypeMinKey}, `{"$minKey"`},
+
+		{"n>0, TypeMaxKey", 10, Value{
+			Type: TypeMaxKey}, `{"$maxKey"`},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.description, func(t *testing.T) {
+			got := tc.val.StringN(tc.n)
+			assert.Equal(t, tc.want, got)
+			if tc.n >= 0 {
+				assert.LessOrEqual(t, len(got), tc.n)
 			}
 		})
 	}

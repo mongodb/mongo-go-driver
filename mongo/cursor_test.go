@@ -9,6 +9,7 @@ package mongo
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"testing"
 	"time"
 
@@ -100,11 +101,6 @@ func (tbc *testBatchCursor) SetComment(interface{})        {}
 func (tbc *testBatchCursor) SetMaxAwaitTime(time.Duration) {}
 
 func TestCursor(t *testing.T) {
-	t.Run("loops until docs available", func(t *testing.T) {})
-	t.Run("returns false on context cancellation", func(t *testing.T) {})
-	t.Run("returns false if error occurred", func(t *testing.T) {})
-	t.Run("returns false if ID is zero and no more docs", func(t *testing.T) {})
-
 	t.Run("TestAll", func(t *testing.T) {
 		t.Run("errors if argument is not pointer to slice", func(t *testing.T) {
 			cursor, err := newCursor(newTestBatchCursor(1, 5), nil, nil)
@@ -267,6 +263,38 @@ func TestNewCursorFromDocuments(t *testing.T) {
 		assert.Equal(t, mockErr, cur.Err(), "expected Cursor error %v, got %v",
 			mockErr, cur.Err())
 	})
+}
+
+func TestGetDecoder(t *testing.T) {
+	t.Parallel()
+
+	decT := reflect.TypeOf((*bson.Decoder)(nil))
+	ctxT := reflect.TypeOf(bson.DecodeContext{})
+	for i := 0; i < decT.NumMethod(); i++ {
+		m := decT.Method(i)
+		// Test methods with no input/output parameter.
+		if m.Type.NumIn() != 1 || m.Type.NumOut() != 0 {
+			continue
+		}
+		t.Run(m.Name, func(t *testing.T) {
+			var opts options.BSONOptions
+			optsV := reflect.ValueOf(&opts).Elem()
+			f, ok := optsV.Type().FieldByName(m.Name)
+			require.True(t, ok, "expected %s field in %s", m.Name, optsV.Type())
+
+			wantDec := reflect.ValueOf(bson.NewDecoder(nil))
+			_ = wantDec.Method(i).Call(nil)
+			wantCtx := wantDec.Elem().Field(0)
+			require.Equal(t, ctxT, wantCtx.Type())
+
+			optsV.FieldByIndex(f.Index).SetBool(true)
+			gotDec := getDecoder(nil, &opts, nil)
+			gotCtx := reflect.ValueOf(gotDec).Elem().Field(0)
+			require.Equal(t, ctxT, gotCtx.Type())
+
+			assert.True(t, gotCtx.Equal(wantCtx), "expected %v: %v, got: %v", ctxT, wantCtx, gotCtx)
+		})
+	}
 }
 
 func BenchmarkNewCursorFromDocuments(b *testing.B) {

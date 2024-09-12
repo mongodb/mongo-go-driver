@@ -6,7 +6,7 @@ We are building this software together and strongly encourage contributions from
 
 ## Requirements
 
-Go 1.20 or higher is required to run the driver test suite.
+Go 1.22 or higher is required to run the driver test suite.
 
 ## Bug Fixes and New Features
 
@@ -17,7 +17,7 @@ Before starting to write code, look for existing [tickets](https://jira.mongodb.
 The Go Driver team uses GitHub to manage and review all code changes. Patches should generally be made against the master (default) branch and include relevant tests, if
 applicable.
 
-Code should compile and tests should pass under all Go versions which the driver currently supports. Currently the Go Driver supports a minimum version of Go 1.18 and requires Go 1.20 for development. Please run the following Make targets to validate your changes:
+Code should compile and tests should pass under all Go versions which the driver currently supports. Currently the Go Driver supports a minimum version of Go 1.18 and requires Go 1.22 for development. Please run the following Make targets to validate your changes:
 
 - `make fmt`
 - `make lint` (requires [golangci-lint](https://github.com/golangci/golangci-lint) and [lll](https://github.com/walle/lll) to be installed and available in the `PATH`)
@@ -51,6 +51,21 @@ pre-commit run --all-files
 
 ### Cherry-picking between branches
 
+#### Using the GitHub App
+
+Within a PR, you can make the comment:
+
+```
+drivers-pr-bot please backport to {target_branch}
+```
+
+The preferred workflow is to make the comment and then merge the PR.
+
+If you merge the PR and the "backport-pr" task runs before you make the comment, you can
+make the comment and then re-run the "backport-pr" task for that commit.
+
+#### Manually
+
 You must first install the `gh` cli (`brew install gh`), then set your GitHub username:
 
 ```bash
@@ -63,7 +78,12 @@ If a Pull Request needs to be cherry-picked to a new branch, get the sha of the 
 bash etc/cherry-picker.sh <sha>
 ```
 
-The cherry-picker script is configured to use `v1` as the base branch and `master` as the target branch.
+By default it will use `master` as the target branch.  The branch can be specified as the second argument, e.g.
+
+```bash
+bash etc/cherry-picker.sh <sha> branch
+```
+
 It will create a new checkout in a temp dir, create a new branch, perform the cherry-pick, and then
 prompt before creating a PR to the target branch.
 

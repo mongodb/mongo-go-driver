@@ -40,8 +40,8 @@ repos:
   rev: "v2.2.6"
   hooks:
   - id: codespell
-    args: ["-L", "te,fo,fle,alo,nin,compres,wil,collone,asess,sav,ot,wll,dne,nulll,hellow"]
-    exclude: ^(vendor/|internal/cmd/benchmark/operation_test.go|bson/testdata/lorem.txt)
+    args: ["-L", "te,fo,fle,alo,nin,compres,wil,collone,asess,sav,ot,wll,dne,nulll,hellow,aks"]
+    exclude: ^(vendor/|internal/cmd/benchmark/operation_test.go|bson/testdata/)
     exclude_types: [json,yaml,pem]
 
 - repo: https://github.com/tcort/markdown-link-check
@@ -51,6 +51,14 @@ repos:
       exclude: ^(vendor)
 
 - repo: https://github.com/golangci/golangci-lint
-  rev: v1.55.1
+  rev: v1.59.1
   hooks:
   - id: golangci-lint
+
+- repo: local
+  hooks:
+  - id: executable-shell
+    name: executable-shell
+    entry: chmod +x
+    language: system
+    types: [shell]
