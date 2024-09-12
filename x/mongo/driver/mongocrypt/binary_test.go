@@ -24,7 +24,8 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mongocrypt/options"
 )
 
-func resourceToDocumentB(b *testing.B, filename string) bsoncore.Document {
+// load JSON for benchmark
+func resourceToDocumentForBench(b *testing.B, filename string) bsoncore.Document {
 	b.Helper()
 
 	content, err := ioutil.ReadFile(path.Join(resourcesDir, filename))
@@ -38,7 +39,8 @@ func resourceToDocumentB(b *testing.B, filename string) bsoncore.Document {
 	return doc
 }
 
-func addMongoKeysForBenchmark(b *testing.B, encryptCtx *Context) {
+// Add encryption key to the encryption context.
+func addMongoKeysForBench(b *testing.B, encryptCtx *Context) {
 	b.Helper()
 
 	if encryptCtx.State() != NeedMongoKeys {
@@ -49,19 +51,18 @@ func addMongoKeysForBenchmark(b *testing.B, encryptCtx *Context) {
 	require.NoError(b, err)
 
 	// feed result and finish op
-	err = encryptCtx.AddOperationResult(resourceToDocumentB(b, "local-key-document.json"))
+	err = encryptCtx.AddOperationResult(resourceToDocumentForBench(b, "local-key-document.json"))
 	require.NoError(b, err)
 
 	err = encryptCtx.CompleteOperation()
 	require.NoError(b, err)
 }
 
-// Encrypt 1500 string values of the form "value <iter>".
-func encryptBenchmarkDoc(b *testing.B, crypt *MongoCrypt, iter int) bsoncore.Document {
+// encrypt a document for benchmarking
+func createEncryptedDocForBench(b *testing.B, crypt *MongoCrypt, iter int) bsoncore.Document {
 	b.Helper()
 
 	const algorithm = "AEAD_AES_256_CBC_HMAC_SHA_512-Deterministic"
-	const numOfKeys = 1500
 
 	// create explicit encryption context and check initial state
 	keyID := bson.Binary{
@@ -77,7 +78,7 @@ func encryptBenchmarkDoc(b *testing.B, crypt *MongoCrypt, iter int) bsoncore.Doc
 
 	defer encryptCtx.Close()
 
-	addMongoKeysForBenchmark(b, encryptCtx)
+	addMongoKeysForBench(b, encryptCtx)
 
 	// perform final encryption
 	encryptedDoc, err := encryptCtx.Finish()
@@ -86,7 +87,8 @@ func encryptBenchmarkDoc(b *testing.B, crypt *MongoCrypt, iter int) bsoncore.Doc
 	return encryptedDoc
 }
 
-func decryptBenchmarkDoc(b *testing.B, crypt *MongoCrypt, encryptedDoc bsoncore.Document) bsoncore.Document {
+// decrypt an encrypted document for benchmarking.
+func decryptDocForBench(b *testing.B, crypt *MongoCrypt, encryptedDoc bsoncore.Document) bsoncore.Document {
 	b.Helper()
 
 	// create explicit decryption context and check initial state
@@ -104,11 +106,11 @@ func decryptBenchmarkDoc(b *testing.B, crypt *MongoCrypt, encryptedDoc bsoncore.
 
 // create a document of the form:
 // { "key1": <encrypted "value1">, "key2": <encrypted "value2">, ... }
-func makeFullEncryptBenchmarkDocs(b *testing.B, crypt *MongoCrypt, count int) bsoncore.Document {
+func createEncryptedDocForBulkDecryptionBench(b *testing.B, crypt *MongoCrypt, count int) bsoncore.Document {
 	bldr := bsoncore.NewDocumentBuilder()
 
 	for i := 0; i < count; i++ {
-		encDoc := encryptBenchmarkDoc(b, crypt, i)
+		encDoc := createEncryptedDocForBench(b, crypt, i)
 		bldr.AppendValue(fmt.Sprintf("key%v", i), encDoc.Lookup("v"))
 	}
 
@@ -116,7 +118,7 @@ func makeFullEncryptBenchmarkDocs(b *testing.B, crypt *MongoCrypt, count int) bs
 }
 
 // Create a MongoCrypt object for benchmarking bulk decryption.
-func newBenchmarkCrypt(b *testing.B) *MongoCrypt {
+func newCryptForBench(b *testing.B) *MongoCrypt {
 	key := []byte{
 		0x9d, 0x94, 0x4b, 0x0d, 0x93, 0xd0, 0xc5, 0x44,
 		0xa5, 0x72, 0xfd, 0x32, 0x1b, 0x94, 0x30, 0x90,
@@ -150,19 +152,26 @@ func newBenchmarkCrypt(b *testing.B) *MongoCrypt {
 }
 
 func BenchmarkBulkDecryption(b *testing.B) {
-	crypt := newBenchmarkCrypt(b)
+	const numKeys = 1500
+	const repeatCount = 10
+
+	// Create crypt that uses a data key with the "local" KMS provider.
+	crypt := newCryptForBench(b)
 	defer crypt.Close()
 
-	// Set up the benchmark data:
-	encryptedDoc := makeFullEncryptBenchmarkDocs(b, crypt, 2)
+	// Encrypt 1500 string values of the form value 0001, value 0002, value 0003,
+	// ... with the algorithm AEAD_AES_256_CBC_HMAC_SHA_512-Deterministic.
+	encryptedDoc := createEncryptedDocForBulkDecryptionBench(b, crypt, numKeys)
 
+	// Create a handle to mongocrypt_t, decrypt the document repeatedly for one
+	// second to warm up the benchmark.
 	repeatDecrypt := func(b *testing.B, dur time.Duration) {
 		for start := time.Now(); time.Since(start) < dur; {
-			decryptBenchmarkDoc(b, crypt, encryptedDoc)
+			decryptDocForBench(b, crypt, encryptedDoc)
 		}
 	}
 
-	// Warm up the benchmark
+	// Warm up the benchmark.
 	repeatDecrypt(b, time.Second)
 
 	benchmarks := []struct {
@@ -174,18 +183,22 @@ func BenchmarkBulkDecryption(b *testing.B) {
 		{threads: 64},
 	}
 
+	// Run the benchmark. Repeat benchmark for thread counts: (1, 2, 8, 64).
+	// Repeat 10 times.
 	for _, bench := range benchmarks {
-		b.Run(fmt.Sprintf("%v threads", bench.threads), func(b *testing.B) {
-			runtime.GOMAXPROCS(bench.threads)
+		for i := 0; i < repeatCount; i++ {
+			b.Run(fmt.Sprintf("threadCount=%v iter=%v", bench.threads, i), func(b *testing.B) {
+				runtime.GOMAXPROCS(bench.threads)
 
-			b.ResetTimer()
-			b.ReportAllocs()
+				b.ResetTimer()
+				b.ReportAllocs()
 
-			b.RunParallel(func(pb *testing.PB) {
-				for pb.Next() {
-					repeatDecrypt(b, time.Second)
-				}
+				b.RunParallel(func(pb *testing.PB) {
+					for pb.Next() {
+						repeatDecrypt(b, time.Second)
+					}
+				})
 			})
-		})
+		}
 	}
 }
