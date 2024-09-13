@@ -11,7 +11,6 @@ import (
 	"errors"
 	"io"
 	"net"
-	"os"
 	"regexp"
 	"sync"
 	"testing"
@@ -1126,212 +1125,207 @@ func TestPool(t *testing.T) {
 			p.close(context.Background())
 		})
 	})
-	t.Run("bgRead", func(t *testing.T) {
-		t.Parallel()
+}
 
-		var errCh chan error
-		BGReadCallback = func(addr string, start, read time.Time, errs []error, connClosed bool) {
+func TestBackgroundRead(t *testing.T) {
+	t.Parallel()
+
+	newBGReadCallback := func(errCh chan error) func(string, time.Time, time.Time, []error, bool) {
+		return func(_ string, _, _ time.Time, errs []error, _ bool) {
 			defer close(errCh)
 
 			for _, err := range errs {
 				errCh <- err
 			}
 		}
+	}
 
-		const sockPath = "./test.sock"
+	t.Run("incomplete read of message header", func(t *testing.T) {
+		errCh := make(chan error)
+		var originalCallback func(string, time.Time, time.Time, []error, bool)
+		originalCallback, BGReadCallback = BGReadCallback, newBGReadCallback(errCh)
+		t.Cleanup(func() {
+			BGReadCallback = originalCallback
+		})
 
-		var socket net.Listener
-
-		setup := func(t *testing.T) {
+		wg := &sync.WaitGroup{}
+		wg.Add(1)
+		addr := bootstrapConnections(t, 1, func(nc net.Conn) {
 			t.Helper()
 
-			errCh = make(chan error)
+			defer func() {
+				_ = nc.Close()
+				wg.Done()
+			}()
+
+			_, err := nc.Write([]byte{10, 0, 0})
+			noerr(t, err)
+			time.Sleep(1500 * time.Millisecond)
+		})
+
+		p := newPool(
+			poolConfig{},
+			WithDialer(func(Dialer) Dialer {
+				return DialerFunc(func(context.Context, string, string) (net.Conn, error) {
+					return net.Dial("tcp", addr.String())
+				})
+			}),
+		)
+		err := p.ready()
+		noerr(t, err)
+
+		conn, err := p.checkOut(context.Background())
+		noerr(t, err)
+		ctx, cancel := csot.MakeTimeoutContext(context.Background(), time.Second)
+		defer cancel()
+		_, err = conn.readWireMessage(ctx)
+		regex := regexp.MustCompile(
+			`^connection\(.*\[-\d+\]\) incomplete read of message header: context deadline exceeded: read tcp 127.0.0.1:.*->127.0.0.1:.*: i\/o timeout$`,
+		)
+		assert.True(t, regex.MatchString(err.Error()), "mismatched err: %v", err)
+		assert.Nil(t, conn.awaitRemainingBytes, "conn.awaitRemainingBytes should be nil")
+		wg.Wait()
+		p.close(context.Background())
+		close(errCh)
+	})
+	t.Run("timeout on reading the message header", func(t *testing.T) {
+		errCh := make(chan error)
+		var originalCallback func(string, time.Time, time.Time, []error, bool)
+		originalCallback, BGReadCallback = BGReadCallback, newBGReadCallback(errCh)
+		t.Cleanup(func() {
+			BGReadCallback = originalCallback
+		})
+
+		wg := &sync.WaitGroup{}
+		wg.Add(1)
+		addr := bootstrapConnections(t, 1, func(nc net.Conn) {
+			t.Helper()
+
+			defer func() {
+				_ = nc.Close()
+				wg.Done()
+			}()
+
+			time.Sleep(1500 * time.Millisecond)
+			_, err := nc.Write([]byte{10, 0, 0, 0, 0, 0, 0, 0})
+			noerr(t, err)
+			time.Sleep(1500 * time.Millisecond)
+		})
+		go func(t *testing.T) {
+		}(t)
+
+		p := newPool(
+			poolConfig{},
+			WithDialer(func(Dialer) Dialer {
+				return DialerFunc(func(context.Context, string, string) (net.Conn, error) {
+					return net.Dial("tcp", addr.String())
+				})
+			}),
+		)
+		err := p.ready()
+		noerr(t, err)
+
+		conn, err := p.checkOut(context.Background())
+		noerr(t, err)
+		ctx, cancel := csot.MakeTimeoutContext(context.Background(), time.Second)
+		defer cancel()
+		_, err = conn.readWireMessage(ctx)
+		regex := regexp.MustCompile(
+			`^connection\(.*\[-\d+\]\) incomplete read of message header: context deadline exceeded: read tcp 127.0.0.1:.*->127.0.0.1:.*: i\/o timeout$`,
+		)
+		assert.True(t, regex.MatchString(err.Error()), "mismatched err: %v", err)
+		err = p.checkIn(conn)
+		noerr(t, err)
+		wg.Wait()
+		p.close(context.Background())
+		errs := []*regexp.Regexp{
+			regexp.MustCompile(
+				`^error discarding 6 byte message: read tcp 127.0.0.1:.*->127.0.0.1:.*: i\/o timeout$`,
+			),
+		}
+		for i := 0; true; i++ {
+			err, ok := <-errCh
+			if !ok {
+				if i != len(errs) {
+					assert.Fail(t, "expected more errors")
+				}
+				break
+			} else if i < len(errs) {
+				assert.True(t, errs[i].MatchString(err.Error()), "mismatched err: %v", err)
+			} else {
+				assert.Fail(t, "unexpected error", "got unexpected error: %v", err)
+			}
+		}
+	})
+	t.Run("timeout on reading the full message", func(t *testing.T) {
+		errCh := make(chan error)
+		var originalCallback func(string, time.Time, time.Time, []error, bool)
+		originalCallback, BGReadCallback = BGReadCallback, newBGReadCallback(errCh)
+		t.Cleanup(func() {
+			BGReadCallback = originalCallback
+		})
+
+		wg := &sync.WaitGroup{}
+		wg.Add(1)
+		addr := bootstrapConnections(t, 1, func(nc net.Conn) {
+			t.Helper()
+
+			defer func() {
+				_ = nc.Close()
+				wg.Done()
+			}()
 
 			var err error
-			socket, err = net.Listen("unix", sockPath)
+			_, err = nc.Write([]byte{12, 0, 0, 0, 0, 0, 0, 0, 1})
 			noerr(t, err)
+			time.Sleep(1500 * time.Millisecond)
+			_, err = nc.Write([]byte{2, 3, 4})
+			noerr(t, err)
+			time.Sleep(1500 * time.Millisecond)
+		})
+
+		p := newPool(
+			poolConfig{},
+			WithDialer(func(Dialer) Dialer {
+				return DialerFunc(func(context.Context, string, string) (net.Conn, error) {
+					conn, err := net.Dial("tcp", addr.String())
+					noerr(t, err)
+					return newLimitConn(conn, 10), nil
+				})
+			}),
+		)
+		err := p.ready()
+		noerr(t, err)
+
+		conn, err := p.checkOut(context.Background())
+		noerr(t, err)
+		ctx, cancel := csot.MakeTimeoutContext(context.Background(), 1*time.Second)
+		defer cancel()
+		_, err = conn.readWireMessage(ctx)
+		regex := regexp.MustCompile(
+			`^connection\(.*\[-\d+\]\) incomplete read of full message: context deadline exceeded: read tcp 127.0.0.1:.*->127.0.0.1:.*: i\/o timeout$`,
+		)
+		assert.True(t, regex.MatchString(err.Error()), "mismatched err: %v", err)
+		err = p.checkIn(conn)
+		noerr(t, err)
+		wg.Wait()
+		p.close(context.Background())
+		errs := []string{
+			"error discarding 3 byte message: EOF",
 		}
-		teardown := func(t *testing.T) {
-			t.Helper()
-
-			os.Remove(sockPath)
+		for i := 0; true; i++ {
+			err, ok := <-errCh
+			if !ok {
+				if i != len(errs) {
+					assert.Fail(t, "expected more errors")
+				}
+				break
+			} else if i < len(errs) {
+				assert.EqualError(t, err, errs[i], "mismatched err: %v", err)
+			} else {
+				assert.Fail(t, "unexpected error", "got unexpected error: %v", err)
+			}
 		}
-
-		t.Run("incomplete read of message header", func(t *testing.T) {
-			setup(t)
-			defer teardown(t)
-
-			wg := &sync.WaitGroup{}
-			wg.Add(1)
-			go func(t *testing.T) {
-				t.Helper()
-
-				defer wg.Done()
-
-				conn, err := socket.Accept()
-				noerr(t, err)
-				defer conn.Close()
-
-				_, err = conn.Write([]byte{10, 0, 0})
-				noerr(t, err)
-				time.Sleep(1500 * time.Millisecond)
-			}(t)
-
-			p := newPool(
-				poolConfig{},
-				WithDialer(func(Dialer) Dialer {
-					return DialerFunc(func(context.Context, string, string) (net.Conn, error) {
-						return net.Dial("unix", sockPath)
-					})
-				}),
-			)
-			err := p.ready()
-			noerr(t, err)
-
-			conn, err := p.checkOut(context.Background())
-			noerr(t, err)
-			ctx, cancel := csot.MakeTimeoutContext(context.Background(), time.Second)
-			defer cancel()
-			_, err = conn.readWireMessage(ctx)
-			regex := regexp.MustCompile(
-				`^connection\(.*\[-\d+\]\) incomplete read of message header: context deadline exceeded: read unix .*->\.\/test.sock: i\/o timeout$`,
-			)
-			assert.True(t, regex.MatchString(err.Error()), "mismatched err: %v", err)
-			assert.Nil(t, conn.awaitRemainingBytes, "conn.awaitingResponse should be nil")
-			wg.Wait()
-			p.close(context.Background())
-			close(errCh)
-		})
-		t.Run("timeout on reading the message header", func(t *testing.T) {
-			setup(t)
-			defer teardown(t)
-
-			wg := &sync.WaitGroup{}
-			wg.Add(1)
-			go func(t *testing.T) {
-				t.Helper()
-
-				defer wg.Done()
-
-				conn, err := socket.Accept()
-				noerr(t, err)
-				defer conn.Close()
-
-				time.Sleep(1500 * time.Millisecond)
-				_, err = conn.Write([]byte{10, 0, 0, 0, 0, 0, 0, 0})
-				noerr(t, err)
-				time.Sleep(1500 * time.Millisecond)
-			}(t)
-
-			p := newPool(
-				poolConfig{},
-				WithDialer(func(Dialer) Dialer {
-					return DialerFunc(func(context.Context, string, string) (net.Conn, error) {
-						return net.Dial("unix", sockPath)
-					})
-				}),
-			)
-			err := p.ready()
-			noerr(t, err)
-
-			conn, err := p.checkOut(context.Background())
-			noerr(t, err)
-			ctx, cancel := csot.MakeTimeoutContext(context.Background(), time.Second)
-			defer cancel()
-			_, err = conn.readWireMessage(ctx)
-			regex := regexp.MustCompile(
-				`^connection\(.*\[-\d+\]\) incomplete read of message header: context deadline exceeded: read unix .*->\.\/test.sock: i\/o timeout$`,
-			)
-			assert.True(t, regex.MatchString(err.Error()), "mismatched err: %v", err)
-			err = p.checkIn(conn)
-			noerr(t, err)
-			wg.Wait()
-			p.close(context.Background())
-			errs := []*regexp.Regexp{
-				regexp.MustCompile(
-					`^error reading message of 6: read unix .*->\.\/test.sock: i\/o timeout$`,
-				),
-			}
-			for i := 0; true; i++ {
-				err, ok := <-errCh
-				if !ok {
-					if i != len(errs) {
-						assert.Fail(t, "expected more errors")
-					}
-					break
-				} else if i < len(errs) {
-					assert.True(t, errs[i].MatchString(err.Error()), "mismatched err: %v", err)
-				} else {
-					assert.Fail(t, "unexpected error", "got unexpected error: %v", err)
-				}
-			}
-		})
-		t.Run("timeout on reading the full message", func(t *testing.T) {
-			setup(t)
-			defer teardown(t)
-
-			wg := &sync.WaitGroup{}
-			wg.Add(1)
-			go func(t *testing.T) {
-				t.Helper()
-
-				defer wg.Done()
-
-				conn, err := socket.Accept()
-				noerr(t, err)
-				defer conn.Close()
-
-				_, err = conn.Write([]byte{12, 0, 0, 0, 0, 0, 0, 0, 1})
-				noerr(t, err)
-				time.Sleep(1500 * time.Millisecond)
-				_, err = conn.Write([]byte{2, 3, 4})
-				noerr(t, err)
-				time.Sleep(1500 * time.Millisecond)
-			}(t)
-
-			p := newPool(
-				poolConfig{},
-				WithDialer(func(Dialer) Dialer {
-					return DialerFunc(func(context.Context, string, string) (net.Conn, error) {
-						conn, err := net.Dial("unix", sockPath)
-						noerr(t, err)
-						return newLimitConn(conn, 10), nil
-					})
-				}),
-			)
-			err := p.ready()
-			noerr(t, err)
-
-			conn, err := p.checkOut(context.Background())
-			noerr(t, err)
-			ctx, cancel := csot.MakeTimeoutContext(context.Background(), 1*time.Second)
-			defer cancel()
-			_, err = conn.readWireMessage(ctx)
-			regex := regexp.MustCompile(
-				`^connection\(.*\[-\d+\]\) incomplete read of full message: context deadline exceeded: read unix .*->\.\/test.sock: i\/o timeout$`,
-			)
-			assert.True(t, regex.MatchString(err.Error()), "mismatched err: %v", err)
-			err = p.checkIn(conn)
-			noerr(t, err)
-			wg.Wait()
-			p.close(context.Background())
-			errs := []string{
-				"error reading message of 3: EOF",
-			}
-			for i := 0; true; i++ {
-				err, ok := <-errCh
-				if !ok {
-					if i != len(errs) {
-						assert.Fail(t, "expected more errors")
-					}
-					break
-				} else if i < len(errs) {
-					assert.EqualError(t, err, errs[i], "mismatched err: %v", err)
-				} else {
-					assert.Fail(t, "unexpected error", "got unexpected error: %v", err)
-				}
-			}
-		})
 	})
 }
 

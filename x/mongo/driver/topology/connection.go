@@ -9,6 +9,7 @@ package topology
 import (
 	"context"
 	"crypto/tls"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -472,10 +473,7 @@ func (c *connection) readWireMessage(ctx context.Context) ([]byte, error) {
 
 func (c *connection) parseWmSizeBytes(wmSizeBytes [4]byte) (int32, error) {
 	// read the length as an int32
-	size := (int32(wmSizeBytes[0])) |
-		(int32(wmSizeBytes[1]) << 8) |
-		(int32(wmSizeBytes[2]) << 16) |
-		(int32(wmSizeBytes[3]) << 24)
+	size := int32(binary.LittleEndian.Uint32(wmSizeBytes[:]))
 
 	if size < 4 {
 		return 0, fmt.Errorf("malformed message length: %d", size)
@@ -506,7 +504,7 @@ func (c *connection) read(ctx context.Context) (bytesRead []byte, errMsg string,
 		}
 	}()
 
-	needToWait := func(err error) bool {
+	isCSOTTimeout := func(err error) bool {
 		// If the error was a timeout error and CSOT is enabled, instead of
 		// closing the connection mark it as awaiting response so the pool
 		// can read the response before making it available to other
@@ -524,7 +522,7 @@ func (c *connection) read(ctx context.Context) (bytesRead []byte, errMsg string,
 	// reading messages from an exhaust cursor.
 	n, err := io.ReadFull(c.nc, sizeBuf[:])
 	if err != nil {
-		if l := int32(n); l == 0 && needToWait(err) {
+		if l := int32(n); l == 0 && isCSOTTimeout(err) {
 			c.awaitRemainingBytes = &l
 		}
 		return nil, "incomplete read of message header", err
@@ -540,7 +538,7 @@ func (c *connection) read(ctx context.Context) (bytesRead []byte, errMsg string,
 	n, err = io.ReadFull(c.nc, dst[4:])
 	if err != nil {
 		remainingBytes := size - 4 - int32(n)
-		if remainingBytes > 0 && needToWait(err) {
+		if remainingBytes > 0 && isCSOTTimeout(err) {
 			c.awaitRemainingBytes = &remainingBytes
 		}
 		return dst, "incomplete read of full message", err

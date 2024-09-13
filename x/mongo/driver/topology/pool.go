@@ -840,7 +840,7 @@ func bgRead(pool *pool, conn *connection, size int32) {
 	}
 	_, err = io.CopyN(io.Discard, conn.nc, int64(size))
 	if err != nil {
-		err = fmt.Errorf("error reading message of %d: %w", size, err)
+		err = fmt.Errorf("error discarding %d byte message: %w", size, err)
 	}
 }
 
