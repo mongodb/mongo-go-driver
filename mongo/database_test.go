@@ -85,9 +85,8 @@ func TestDatabase(t *testing.T) {
 	})
 	t.Run("TransientTransactionError label", func(t *testing.T) {
 		client := setupClient(options.Client().ApplyURI("mongodb://nonexistent").SetServerSelectionTimeout(3 * time.Second))
-		err := client.connect()
+		assert.Equal(t, false, client.closed.Load().(bool), "expected value %v, got %v", false, client.closed.Load().(bool))
 		defer func() { _ = client.Disconnect(bgCtx) }()
-		assert.Nil(t, err, "expected nil, got %v", err)
 
 		t.Run("negative case of non-transaction", func(t *testing.T) {
 			var sse topology.ServerSelectionError
