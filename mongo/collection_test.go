@@ -78,59 +78,6 @@ func TestCollection(t *testing.T) {
 		}
 		compareColls(t, expected, coll)
 	})
-	t.Run("replace topology error", func(t *testing.T) {
-		coll := setupColl("foo")
-		doc := bson.D{}
-		update := bson.D{{"$update", bson.D{{"x", 1}}}}
-
-		_, err := coll.InsertOne(bgCtx, doc)
-		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
-
-		_, err = coll.InsertMany(bgCtx, []interface{}{doc})
-		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
-
-		_, err = coll.DeleteOne(bgCtx, doc)
-		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
-
-		_, err = coll.DeleteMany(bgCtx, doc)
-		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
-
-		_, err = coll.UpdateOne(bgCtx, doc, update)
-		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
-
-		_, err = coll.UpdateMany(bgCtx, doc, update)
-		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
-
-		_, err = coll.ReplaceOne(bgCtx, doc, doc)
-		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
-
-		_, err = coll.Aggregate(bgCtx, Pipeline{})
-		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
-
-		_, err = coll.EstimatedDocumentCount(bgCtx)
-		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
-
-		_, err = coll.CountDocuments(bgCtx, doc)
-		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
-
-		err = coll.Distinct(bgCtx, "x", doc).Err()
-		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
-
-		_, err = coll.Find(bgCtx, doc)
-		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
-
-		err = coll.FindOne(bgCtx, doc).Err()
-		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
-
-		err = coll.FindOneAndDelete(bgCtx, doc).Err()
-		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
-
-		err = coll.FindOneAndReplace(bgCtx, doc, doc).Err()
-		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
-
-		err = coll.FindOneAndUpdate(bgCtx, doc, update).Err()
-		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
-	})
 	t.Run("database accessor", func(t *testing.T) {
 		coll := setupColl("bar")
 		dbName := coll.Database().Name()

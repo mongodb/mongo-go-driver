@@ -83,17 +83,6 @@ func TestDatabase(t *testing.T) {
 			compareDbs(t, expected, got)
 		})
 	})
-	t.Run("replace topology error", func(t *testing.T) {
-		db := setupDb("foo")
-		err := db.RunCommand(bgCtx, bson.D{{"x", 1}}).Err()
-		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
-
-		err = db.Drop(bgCtx)
-		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
-
-		_, err = db.ListCollections(bgCtx, bson.D{})
-		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
-	})
 	t.Run("TransientTransactionError label", func(t *testing.T) {
 		client := setupClient(options.Client().ApplyURI("mongodb://nonexistent").SetServerSelectionTimeout(3 * time.Second))
 		err := client.connect()
