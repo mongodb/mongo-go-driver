@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sync/atomic"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -73,6 +74,7 @@ type Client struct {
 	timeout        *time.Duration
 	httpClient     *http.Client
 	logger         *logger.Logger
+	closed         atomic.Value
 
 	// client-side encryption fields
 	keyVaultClientFLE  *Client
@@ -250,6 +252,8 @@ func newClient(opts ...options.Lister[options.ClientOptions]) (*Client, error) {
 		return nil, fmt.Errorf("invalid logger options: %w", err)
 	}
 
+	client.closed.Store(false)
+
 	return client, nil
 }
 
@@ -311,6 +315,10 @@ func (c *Client) connect() error {
 // or write operations. If this method returns with no errors, all connections
 // associated with this Client have been closed.
 func (c *Client) Disconnect(ctx context.Context) error {
+	if c.closed.Load().(bool) {
+		return ErrClientDisconnected
+	}
+
 	if c.logger != nil {
 		defer c.logger.Close()
 	}
@@ -350,6 +358,8 @@ func (c *Client) Disconnect(ctx context.Context) error {
 		c.cryptFLE.Close()
 	}
 
+	c.closed.Store(true)
+
 	if disconnector, ok := c.deployment.(driver.Disconnector); ok {
 		return replaceErrors(disconnector.Disconnect(ctx))
 	}
@@ -369,6 +379,10 @@ func (c *Client) Disconnect(ctx context.Context) error {
 // Using Ping reduces application resilience because applications starting up will error if the server is temporarily
 // unavailable or is failing over (e.g. during autoscaling due to a load spike).
 func (c *Client) Ping(ctx context.Context, rp *readpref.ReadPref) error {
+	if c.closed.Load().(bool) {
+		return ErrClientDisconnected
+	}
+
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -396,10 +410,6 @@ func (c *Client) Ping(ctx context.Context, rp *readpref.ReadPref) error {
 // If the DefaultReadConcern, DefaultWriteConcern, or DefaultReadPreference options are not set, the client's read
 // concern, write concern, or read preference will be used, respectively.
 func (c *Client) StartSession(opts ...options.Lister[options.SessionOptions]) (*Session, error) {
-	if c.sessionPool == nil {
-		return nil, ErrClientDisconnected
-	}
-
 	sessArgs, err := mongoutil.NewOptions(opts...)
 	if err != nil {
 		return nil, err
@@ -454,10 +464,6 @@ func (c *Client) StartSession(opts ...options.Lister[options.SessionOptions]) (*
 }
 
 func (c *Client) endSessions(ctx context.Context) {
-	if c.sessionPool == nil {
-		return
-	}
-
 	sessionIDs := c.sessionPool.IDSlice()
 	op := operation.NewEndSessions(nil).ClusterClock(c.clock).Deployment(c.deployment).
 		ServerSelector(&serverselector.ReadPref{ReadPref: readpref.PrimaryPreferred()}).
@@ -872,7 +878,7 @@ func (c *Client) UseSessionWithOptions(
 // documentation).
 func (c *Client) Watch(ctx context.Context, pipeline interface{},
 	opts ...options.Lister[options.ChangeStreamOptions]) (*ChangeStream, error) {
-	if c.sessionPool == nil {
+	if c.closed.Load().(bool) {
 		return nil, ErrClientDisconnected
 	}
 

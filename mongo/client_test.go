@@ -25,7 +25,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/v2/tag"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mongocrypt"
-	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/topology"
 )
 
@@ -37,7 +36,7 @@ func setupClient(opts ...options.Lister[options.ClientOptions]) *Client {
 		integtest.AddTestServerAPIVersion(clientOpts)
 		opts = append(opts, clientOpts)
 	}
-	client, _ := newClient(opts...)
+	client, _ := Connect(opts...)
 	return client
 }
 
@@ -53,28 +52,22 @@ func TestClient(t *testing.T) {
 		assert.Equal(t, dbName, db.Name(), "expected db name %v, got %v", dbName, db.Name())
 		assert.Equal(t, client, db.Client(), "expected client %v, got %v", client, db.Client())
 	})
-	t.Run("replace topology error", func(t *testing.T) {
+	t.Run("client disconnect error", func(t *testing.T) {
 		client := setupClient()
+		assert.Equal(t, false, client.closed.Load().(bool), "expected value %v, got %v", false, client.closed.Load().(bool))
 
-		_, err := client.StartSession()
-		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
-
-		_, err = client.ListDatabases(bgCtx, bson.D{})
-		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
+		err := client.Disconnect(bgCtx)
+		assert.Equal(t, nil, err, "expected nil, got %v", err)
+		assert.Equal(t, true, client.closed.Load().(bool), "expected error %v, got %v", true, client.closed.Load().(bool))
 
 		err = client.Ping(bgCtx, nil)
 		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
 
-		err = client.Disconnect(bgCtx)
-		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
-
-		_, err = client.Watch(bgCtx, []bson.D{})
+		_, err = client.Watch(bgCtx, nil, nil)
 		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
 	})
 	t.Run("nil document error", func(t *testing.T) {
-		// manually set session pool to non-nil because Watch will return ErrClientDisconnected
 		client := setupClient()
-		client.sessionPool = &session.Pool{}
 
 		_, err := client.Watch(bgCtx, nil)
 		watchErr := errors.New("can only marshal slices and arrays into aggregation pipelines, but got invalid")
