@@ -574,16 +574,11 @@ func ExampleConnect_oIDC() {
 			}, nil
 		}
 		uri := os.Getenv("MONGODB_URI")
-		props := map[string]string{
-			"ENVIRONMENT":    "gcp",
-			"TOKEN_RESOURCE": "<audience>",
-		}
 		opts := options.Client().ApplyURI(uri)
 		opts.SetAuth(
 			options.Credential{
-				AuthMechanism:           "MONGODB-OIDC",
-				AuthMechanismProperties: props,
-				OIDCMachineCallback:     eksCallback,
+				AuthMechanism:       "MONGODB-OIDC",
+				OIDCMachineCallback: eksCallback,
 			},
 		)
 		c, err := mongo.Connect(opts)
