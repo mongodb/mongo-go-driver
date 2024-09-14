@@ -1827,7 +1827,7 @@ tasks:
         script: |
           ${PREPARE_SHELL}
           source $DRIVERS_TOOLS/.evergreen/csfle/azurekms/secrets-export.sh
-          AZUREKMS_CMD="LD_LIBRARY_PATH=./install/libmongocrypt/lib64 MONGODB_URI='mongodb://localhost:27017' PROVIDER='azure' AZUREKMS_KEY_NAME=$AZUREKMS_KEY_NAME AZUREKMS_KEY_VAULT_ENDPOINT=$AZUREKMS_KEY_VAULT_ENDPOINT ./testkms" $DRIVERS_TOOLS/.evergreen/csfle/azurekms/run-command.sh
+          AZUREKMS_CMD="LD_LIBRARY_PATH=./install/libmongocrypt/lib64 MONGODB_URI='mongodb://localhost:27017' PROVIDER='azure' AZUREKMS_KEY_NAME=$AZUREKMS_KEYNAME AZUREKMS_KEY_VAULT_ENDPOINT=$AZUREKMS_KEYVAULTENDPOINT ./testkms" $DRIVERS_TOOLS/.evergreen/csfle/azurekms/run-command.sh
 
   - name: "testazurekms-fail-task"
     # testazurekms-fail-task runs without environment variables.
@@ -1850,7 +1850,7 @@ tasks:
           LD_LIBRARY_PATH=./install/libmongocrypt/lib64 \
           MONGODB_URI='mongodb://localhost:27017' \
           EXPECT_ERROR='unable to retrieve azure credentials' \
-          PROVIDER='azure' AZUREKMS_KEY_NAME=$AZUREKMS_KEY_NAME AZUREKMS_KEY_VAULT_ENDPOINT=$AZUREKMS_KEY_VAULT_ENDPOINT} \
+          PROVIDER='azure' AZUREKMS_KEY_NAME=$AZUREKMS_KEYNAME AZUREKMS_KEY_VAULT_ENDPOINT=$AZUREKMS_KEYVAULTENDPOINT \
             ./testkms
 
   - name: "test-fuzz"
