@@ -33,9 +33,11 @@ jobs:
         languages: go
         build-mode: manual
 
+    - name: Install Taskfile support
+      uses: arduino/setup-task@v2
+
     - shell: bash
-      run: |
-        make build
+      run: task build
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3

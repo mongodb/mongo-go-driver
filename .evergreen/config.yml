@@ -394,7 +394,7 @@ functions:
         include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
         script: |
           ${PREPARE_SHELL}
-          task run-atlas
+          task test-atlas
 
   run-ocsp-test:
     - command: shell.exec

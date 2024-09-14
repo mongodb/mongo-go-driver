@@ -11,9 +11,9 @@ tasks:
   default: 
     deps: [build, check-license, check-fmt, check-modules, lint, test-short]
 
-  add-license: etc/check_license.sh -a
+  add-license: bash etc/check_license.sh -a
 
-  check-license: etc/check_license.sh
+  check-license: bash etc/check_license.sh
 
   build:
     deps: [cross-compile, build-tests, build-compile-check]
@@ -23,7 +23,7 @@ tasks:
 
   build-tests: go test -short ${BUILD_TAGS} -run ^$$ ./...
 
-  build-compile-check: etc/compile_check.sh
+  build-compile-check: bash etc/compile_check.sh
 
   cross-compile: 
     - GOOS=linux GOARCH=386 go build ./...
@@ -36,21 +36,21 @@ tasks:
   check-fmt: 
     deps: [install-lll]
     cmds:
-      - etc/check_fmt.sh
+      - bash etc/check_fmt.sh
 
-  check-modules: etc/check_modules.sh
+  check-modules: bash etc/check_modules.sh
 
   doc: godoc -http=:6060 -index
 
   fmt: go fmt ./...
 
-  api-report: etc/api_report.sh
+  api-report: bash etc/api_report.sh
 
-  install-libmongocrypt: etc/install-libmongocrypt.sh
+  install-libmongocrypt: bash etc/install-libmongocrypt.sh
 
-  run-docker: etc/run_docker.sh
+  run-docker: bash etc/run_docker.sh
 
-  cherry-picker: etc/cherry-picker.sh
+  cherry-picker: bash etc/cherry-picker.sh
 
   # Lint with various GOOS and GOARCH tasks to catch static analysis failures that may only affect
   # specific operating systems or architectures. For example, staticcheck will only check for 64-bit
@@ -66,7 +66,7 @@ tasks:
       - GOOS=linux GOARCH=ppc64le golangci-lint run --config .golangci.yml ./...
       - GOOS=linux GOARCH=s390x golangci-lint run --config .golangci.yml ./...
 
-  update-notices: etc/generate_notices.pl > THIRD-PARTY-NOTICES
+  update-notices: bash etc/generate_notices.pl > THIRD-PARTY-NOTICES
 
   ### Local testing tasks. ###
   test: go test ${BUILD_TAGS} -timeout {{.TEST_TIMEOUT}}s -p 1 ./...
@@ -79,11 +79,11 @@ tasks:
 
   test-short: go test ${BUILD_TAGS} -timeout 60s -short ./...
 
-  test-oidc: etc/run-oidc-test.sh 'task --silent evg-test-oidc-auth'
+  test-oidc: bash etc/run-oidc-test.sh 'task --silent evg-test-oidc-auth'
 
-  test-atlas: etc/run-atlas-test.sh
+  test-atlas: bash etc/run-atlas-test.sh
 
-  test-awskms: etc/run-awskms-test.sh
+  test-awskms: bash etc/run-awskms-test.sh
 
   ### Local FaaS tasks. ###
   build-faas-awslambda:
@@ -182,7 +182,7 @@ tasks:
   perf-files: 
     internal: true
     cmds:
-      - etc/prep-perf.sh
+      - bash etc/prep-perf.sh
 
   install-lll: 
     internal: true
