@@ -1,3 +1,4 @@
+# See https://taskfile.dev/usage/
 version: '3'
 
 env:

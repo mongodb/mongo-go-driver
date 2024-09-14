@@ -9,7 +9,7 @@ cd /src
 rm -f test.suite
 cp -r $HOME/install ./install
 
-export PATH="$MONGODB_BINARIES:$PATH"
+export PATH="$MONGODB_BINARIES:$GOPATH/bin:$PATH"
 
 # Run the test.
 bash ./.evergreen/run-tests.sh
