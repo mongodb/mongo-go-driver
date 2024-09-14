@@ -1932,12 +1932,11 @@ tasks:
           PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
             make build-kms-test
           echo "Building build-kms-test ... end"
-          source $DRIVERS_TOOLS/.evergreen/csfle/azurekms/secrets-export.sh
           
           LD_LIBRARY_PATH=./install/libmongocrypt/lib64 \
           MONGODB_URI='mongodb://localhost:27017' \
           EXPECT_ERROR='unable to retrieve azure credentials' \
-          PROVIDER='azure' AZUREKMS_KEY_NAME='${AZUREKMS_KEY_NAME}' AZUREKMS_KEY_VAULT_ENDPOINT='${AZUREKMS_KEY_VAULT_ENDPOINT}' \
+          PROVIDER='azure' AZUREKMS_KEY_NAME='' AZUREKMS_KEY_VAULT_ENDPOINT='' \
             ./testkms
 
   - name: "test-fuzz"
@@ -2249,18 +2248,14 @@ task_groups:
           shell: "bash"
           script: |
             ${PREPARE_SHELL}
-            $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/create-and-setup-instance.sh
-      # Load the GCPKMS_GCLOUD, GCPKMS_INSTANCE, GCPKMS_REGION, and GCPKMS_ZONE expansions.
-      - command: expansions.update
-        params:
-          file: testgcpkms-expansions.yml
+            $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/setup.sh
     teardown_group:
       - command: shell.exec
         params:
           shell: "bash"
           script: |
             ${PREPARE_SHELL}
-            $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/delete-instance.sh
+            $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/teardown.sh
       - func: handle-test-artifacts
       - func: cleanup
     tasks:
@@ -2281,10 +2276,7 @@ task_groups:
           script: |
             ${PREPARE_SHELL}
             export AZUREKMS_VMNAME_PREFIX="GODRIVER"
-            export AZUREKMS_DRIVERS_TOOLS=$DRIVERS_TOOLS
-            # Get azurekms credentials from the vault.
-            . ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/setup-secrets.sh
-            ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/create-and-setup-vm.sh
+            . ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/setup.sh
       - command: expansions.update
         params:
           file: testazurekms-expansions.yml
@@ -2298,9 +2290,7 @@ task_groups:
           shell: "bash"
           script: |
             ${PREPARE_SHELL}
-            export AZUREKMS_SCOPE=${AZUREKMS_SCOPE}
-            export AZUREKMS_RESOURCEGROUP=${AZUREKMS_RESOURCEGROUP}
-            $DRIVERS_TOOLS/.evergreen/csfle/azurekms/delete-vm.sh
+            $DRIVERS_TOOLS/.evergreen/csfle/azurekms/teardown.sh
       - func: handle-test-artifacts
       - func: cleanup
     tasks:
