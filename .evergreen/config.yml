@@ -1913,7 +1913,7 @@ tasks:
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
-          source ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/setup-secrets.sh
+          source ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/secrets-export.sh
           AZUREKMS_CMD="LD_LIBRARY_PATH=./install/libmongocrypt/lib64 MONGODB_URI='mongodb://localhost:27017' PROVIDER='azure' AZUREKMS_KEY_NAME=${AZUREKMS_KEY_NAME} AZUREKMS_KEY_VAULT_ENDPOINT=${AZUREKMS_KEY_VAULT_ENDPOINT} ./testkms" $DRIVERS_TOOLS/.evergreen/csfle/azurekms/run-command.sh
 
   - name: "testazurekms-fail-task"
@@ -1933,7 +1933,8 @@ tasks:
             make build-kms-test
           echo "Building build-kms-test ... end"
 
-          . ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/setup-secrets.sh
+          bash ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/setup-secrets.sh
+          source ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/secrets-export.sh
           
           LD_LIBRARY_PATH=./install/libmongocrypt/lib64 \
           MONGODB_URI='mongodb://localhost:27017' \
