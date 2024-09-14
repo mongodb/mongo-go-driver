@@ -589,6 +589,30 @@ func TestClientOptions(t *testing.T) {
 				},
 			},
 			{
+				"oidc azure",
+				"mongodb://example.com/?authMechanism=MONGODB-OIDC&authMechanismProperties=TOKEN_RESOURCE:mongodb://test-cluster,ENVIRONMENT:azureManagedIdentities",
+				&ClientOptions{
+					Hosts: []string{"example.com"},
+					Auth: &Credential{AuthMechanism: "MONGODB-OIDC", AuthSource: "$external", AuthMechanismProperties: map[string]string{
+						"ENVIRONMENT":    "azureManagedIdentities",
+						"TOKEN_RESOURCE": "mongodb://test-cluster"}},
+					err:        nil,
+					HTTPClient: httputil.DefaultHTTPClient,
+				},
+			},
+			{
+				"oidc gcp",
+				"mongodb://test.mongodb.net/?authMechanism=MONGODB-OIDC&authMechanismProperties=ENVIRONMENT:gcp,TOKEN_RESOURCE:mongodb://test-cluster",
+				&ClientOptions{
+					Hosts: []string{"test.mongodb.net"},
+					Auth: &Credential{AuthMechanism: "MONGODB-OIDC", AuthSource: "$external", AuthMechanismProperties: map[string]string{
+						"ENVIRONMENT":    "gcp",
+						"TOKEN_RESOURCE": "mongodb://test-cluster"}},
+					err:        nil,
+					HTTPClient: httputil.DefaultHTTPClient,
+				},
+			},
+			{
 				"comma in key:value pair causes error",
 				"mongodb://example.com/?authMechanismProperties=TOKEN_RESOURCE:mongodb://host1%2Chost2",
 				&ClientOptions{
@@ -847,6 +871,14 @@ func TestClientOptions(t *testing.T) {
 				opts: Client().SetAuth(Credential{AuthMechanism: "MONGODB-OIDC",
 					OIDCMachineCallback: emptyCb, OIDCHumanCallback: emptyCb}),
 				err: fmt.Errorf("cannot set both OIDCMachineCallback and OIDCHumanCallback, only one may be specified"),
+			},
+			{
+				name: "cannot set ALLOWED_HOSTS without OIDCHumanCallback",
+				opts: Client().SetAuth(Credential{AuthMechanism: "MONGODB-OIDC",
+					OIDCMachineCallback:     emptyCb,
+					AuthMechanismProperties: map[string]string{"ALLOWED_HOSTS": "www.example.com"},
+				}),
+				err: fmt.Errorf("Cannot specify ALLOWED_HOSTS without an OIDCHumanCallback"),
 			},
 			{
 				name: "cannot set OIDCMachineCallback in GCP Environment",

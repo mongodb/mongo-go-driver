@@ -13,7 +13,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	. "go.mongodb.org/mongo-driver/x/mongo/driver/auth"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
@@ -22,25 +22,25 @@ func TestCreateAuthenticator(t *testing.T) {
 	tests := []struct {
 		name   string
 		source string
-		auth   Authenticator
+		auth   auth.Authenticator
 	}{
-		{name: "", auth: &DefaultAuthenticator{}},
-		{name: "SCRAM-SHA-1", auth: &ScramAuthenticator{}},
-		{name: "SCRAM-SHA-256", auth: &ScramAuthenticator{}},
-		{name: "MONGODB-CR", auth: &MongoDBCRAuthenticator{}},
-		{name: "PLAIN", auth: &PlainAuthenticator{}},
-		{name: "MONGODB-X509", auth: &MongoDBX509Authenticator{}},
+		{name: "", auth: &auth.DefaultAuthenticator{}},
+		{name: "SCRAM-SHA-1", auth: &auth.ScramAuthenticator{}},
+		{name: "SCRAM-SHA-256", auth: &auth.ScramAuthenticator{}},
+		{name: "MONGODB-CR", auth: &auth.MongoDBCRAuthenticator{}},
+		{name: "PLAIN", auth: &auth.PlainAuthenticator{}},
+		{name: "MONGODB-X509", auth: &auth.MongoDBX509Authenticator{}},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			cred := &Cred{
+			cred := &auth.Cred{
 				Username:    "user",
 				Password:    "pencil",
 				PasswordSet: true,
 			}
 
-			a, err := CreateAuthenticator(test.name, cred, &http.Client{})
+			a, err := auth.CreateAuthenticator(test.name, cred, &http.Client{})
 			require.NoError(t, err)
 			require.IsType(t, test.auth, a)
 		})
@@ -53,8 +53,7 @@ func compareResponses(t *testing.T, wm []byte, expectedPayload bsoncore.Document
 		t.Fatalf("wiremessage is too short to unmarshal")
 	}
 	var actualPayload bsoncore.Document
-	switch opcode {
-	case wiremessage.OpMsg:
+	if opcode == wiremessage.OpMsg {
 		// Append the $db field.
 		elems, err := expectedPayload.Elements()
 		if err != nil {

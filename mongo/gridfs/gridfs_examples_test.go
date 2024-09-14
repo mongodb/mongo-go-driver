@@ -30,11 +30,11 @@ func ExampleBucket_OpenUploadStream() {
 		SetMetadata(bson.D{{"metadata tag", "tag"}})
 	uploadStream, err := bucket.OpenUploadStream("filename", uploadOpts)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	defer func() {
 		if err = uploadStream.Close(); err != nil {
-			log.Fatal(err)
+			log.Panic(err)
 		}
 	}()
 
@@ -42,11 +42,11 @@ func ExampleBucket_OpenUploadStream() {
 	// 2 seconds.
 	err = uploadStream.SetWriteDeadline(time.Now().Add(2 * time.Second))
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	if _, err = uploadStream.Write(fileContent); err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 }
 
@@ -63,7 +63,7 @@ func ExampleBucket_UploadFromStream() {
 		bytes.NewBuffer(fileContent),
 		uploadOpts)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	fmt.Printf("new file created with ID %s", fileID)
@@ -75,11 +75,11 @@ func ExampleBucket_OpenDownloadStream() {
 
 	downloadStream, err := bucket.OpenDownloadStream(fileID)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	defer func() {
 		if err := downloadStream.Close(); err != nil {
-			log.Fatal(err)
+			log.Panic(err)
 		}
 	}()
 
@@ -87,12 +87,12 @@ func ExampleBucket_OpenDownloadStream() {
 	// in 2 seconds.
 	err = downloadStream.SetReadDeadline(time.Now().Add(2 * time.Second))
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	fileBuffer := bytes.NewBuffer(nil)
 	if _, err := io.Copy(fileBuffer, downloadStream); err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 }
 
@@ -102,7 +102,7 @@ func ExampleBucket_DownloadToStream() {
 
 	fileBuffer := bytes.NewBuffer(nil)
 	if _, err := bucket.DownloadToStream(fileID, fileBuffer); err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 }
 
@@ -111,7 +111,7 @@ func ExampleBucket_Delete() {
 	var fileID primitive.ObjectID
 
 	if err := bucket.Delete(fileID); err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 }
 
@@ -124,11 +124,11 @@ func ExampleBucket_Find() {
 	}
 	cursor, err := bucket.Find(filter)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	defer func() {
 		if err := cursor.Close(context.TODO()); err != nil {
-			log.Fatal(err)
+			log.Panic(err)
 		}
 	}()
 
@@ -138,7 +138,7 @@ func ExampleBucket_Find() {
 	}
 	var foundFiles []gridfsFile
 	if err = cursor.All(context.TODO(), &foundFiles); err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	for _, file := range foundFiles {
@@ -151,7 +151,7 @@ func ExampleBucket_Rename() {
 	var fileID primitive.ObjectID
 
 	if err := bucket.Rename(fileID, "new file name"); err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 }
 
@@ -159,6 +159,6 @@ func ExampleBucket_Drop() {
 	var bucket *gridfs.Bucket
 
 	if err := bucket.Drop(); err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 }

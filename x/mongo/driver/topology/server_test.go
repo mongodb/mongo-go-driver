@@ -170,19 +170,19 @@ func TestServerHeartbeatTimeout(t *testing.T) {
 				}),
 				WithConnectionOptions(func(opts ...ConnectionOption) []ConnectionOption {
 					return append(opts,
-						WithDialer(func(d Dialer) Dialer {
+						WithDialer(func(Dialer) Dialer {
 							var dialer net.Dialer
 							return &timeoutDialer{&dialer, errors}
 						}))
 				}),
 				WithServerMonitor(func(*event.ServerMonitor) *event.ServerMonitor {
 					return &event.ServerMonitor{
-						ServerHeartbeatSucceeded: func(e *event.ServerHeartbeatSucceededEvent) {
+						ServerHeartbeatSucceeded: func(*event.ServerHeartbeatSucceededEvent) {
 							if !errors.dequeue() {
 								wg.Done()
 							}
 						},
-						ServerHeartbeatFailed: func(e *event.ServerHeartbeatFailedEvent) {
+						ServerHeartbeatFailed: func(*event.ServerHeartbeatFailedEvent) {
 							if !errors.dequeue() {
 								wg.Done()
 							}
@@ -600,10 +600,10 @@ func TestServer(t *testing.T) {
 		d := newdialer(&net.Dialer{})
 		s := NewServer(address.Address(addr.String()),
 			primitive.NewObjectID(),
-			WithConnectionOptions(func(option ...ConnectionOption) []ConnectionOption {
+			WithConnectionOptions(func(...ConnectionOption) []ConnectionOption {
 				return []ConnectionOption{WithDialer(func(_ Dialer) Dialer { return d })}
 			}),
-			WithMaxConnections(func(u uint64) uint64 {
+			WithMaxConnections(func(uint64) uint64 {
 				return 1
 			}))
 		s.state = serverConnected

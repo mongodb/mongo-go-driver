@@ -18,7 +18,7 @@ import (
 )
 
 func ExampleValueEncoder() {
-	var _ ValueEncoderFunc = func(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+	var _ ValueEncoderFunc = func(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 		if val.Kind() != reflect.String {
 			return ValueEncoderError{Name: "StringEncodeValue", Kinds: []reflect.Kind{reflect.String}, Received: val}
 		}
@@ -28,7 +28,7 @@ func ExampleValueEncoder() {
 }
 
 func ExampleValueDecoder() {
-	var _ ValueDecoderFunc = func(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
+	var _ ValueDecoderFunc = func(_ DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 		if !val.CanSet() || val.Kind() != reflect.String {
 			return ValueDecoderError{Name: "StringDecodeValue", Kinds: []reflect.Kind{reflect.String}, Received: val}
 		}

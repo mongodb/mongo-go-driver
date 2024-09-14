@@ -534,7 +534,7 @@ func numericalIndexDocsEqual(expected, actual bsoncore.Document) (bool, error) {
 		actualInt, actualOK := actualVal.AsInt64OK()
 		expectedInt, expectedOK := expectedVal.AsInt64OK()
 
-		//GridFS indexes always have numeric values
+		// GridFS indexes always have numeric values
 		if !actualOK || !expectedOK {
 			return false, nil
 		}

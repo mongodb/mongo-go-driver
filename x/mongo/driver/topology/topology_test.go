@@ -1150,7 +1150,7 @@ func BenchmarkSelectServerFromDescription(b *testing.B) {
 	}{
 		{
 			name:        "AllFit",
-			serversHook: func(servers []description.Server) {},
+			serversHook: func([]description.Server) {},
 		},
 		{
 			name: "AllButOneFit",

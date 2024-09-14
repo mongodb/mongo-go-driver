@@ -25,7 +25,7 @@ func ExampleRegistry_customEncoder() {
 	negatedIntType := reflect.TypeOf(negatedInt(0))
 
 	negatedIntEncoder := func(
-		ec bsoncodec.EncodeContext,
+		_ bsoncodec.EncodeContext,
 		vw bsonrw.ValueWriter,
 		val reflect.Value,
 	) error {
@@ -83,7 +83,7 @@ func ExampleRegistry_customDecoder() {
 	lenientBoolType := reflect.TypeOf(lenientBool(true))
 
 	lenientBoolDecoder := func(
-		dc bsoncodec.DecodeContext,
+		_ bsoncodec.DecodeContext,
 		vr bsonrw.ValueReader,
 		val reflect.Value,
 	) error {
@@ -160,7 +160,7 @@ func ExampleRegistry_RegisterKindEncoder() {
 	// encoder for kind reflect.Int32. That way, even user-defined types with
 	// underlying type int32 will be encoded as a BSON int64.
 	int32To64Encoder := func(
-		ec bsoncodec.EncodeContext,
+		_ bsoncodec.EncodeContext,
 		vw bsonrw.ValueWriter,
 		val reflect.Value,
 	) error {
@@ -215,7 +215,7 @@ func ExampleRegistry_RegisterKindDecoder() {
 	// "kind" decoder for kind reflect.Int64. That way, we can even decode to
 	// user-defined types with underlying type int64.
 	flexibleInt64KindDecoder := func(
-		dc bsoncodec.DecodeContext,
+		_ bsoncodec.DecodeContext,
 		vr bsonrw.ValueReader,
 		val reflect.Value,
 	) error {

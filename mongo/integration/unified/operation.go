@@ -136,6 +136,8 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 		return executeListCollections(ctx, op)
 	case "listCollectionNames":
 		return executeListCollectionNames(ctx, op)
+	case "modifyCollection":
+		return executeModifyCollection(ctx, op)
 	case "runCommand":
 		return executeRunCommand(ctx, op)
 	case "runCursorCommand":
@@ -259,7 +261,7 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 		return executeAddKeyAltName(ctx, op)
 
 	// Unsupported operations
-	case "count", "listIndexNames", "modifyCollection":
+	case "count", "listIndexNames":
 		return nil, newSkipTestError(fmt.Sprintf("the %q operation is not supported", op.Name))
 	default:
 		return nil, fmt.Errorf("unrecognized entity operation %q", op.Name)

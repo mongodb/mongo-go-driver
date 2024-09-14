@@ -393,27 +393,27 @@ func TestDocumentSequence(t *testing.T) {
 				t.Errorf("Unexpected panic. got %v; want <nil>", err)
 			}
 		}
-		t.Run("DocumentCount", func(t *testing.T) {
+		t.Run("DocumentCount", func(*testing.T) {
 			defer capturePanic()
 			var ds *DocumentSequence
 			_ = ds.DocumentCount()
 		})
-		t.Run("Empty", func(t *testing.T) {
+		t.Run("Empty", func(*testing.T) {
 			defer capturePanic()
 			var ds *DocumentSequence
 			_ = ds.Empty()
 		})
-		t.Run("ResetIterator", func(t *testing.T) {
+		t.Run("ResetIterator", func(*testing.T) {
 			defer capturePanic()
 			var ds *DocumentSequence
 			ds.ResetIterator()
 		})
-		t.Run("Documents", func(t *testing.T) {
+		t.Run("Documents", func(*testing.T) {
 			defer capturePanic()
 			var ds *DocumentSequence
 			_, _ = ds.Documents()
 		})
-		t.Run("Next", func(t *testing.T) {
+		t.Run("Next", func(*testing.T) {
 			defer capturePanic()
 			var ds *DocumentSequence
 			_, _ = ds.Next()

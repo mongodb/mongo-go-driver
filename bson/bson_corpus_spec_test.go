@@ -187,13 +187,14 @@ func unescapeUnicode(s, bsonType string) string {
 
 func formatDouble(f float64) string {
 	var s string
-	if math.IsInf(f, 1) {
+	switch {
+	case math.IsInf(f, 1):
 		s = "Infinity"
-	} else if math.IsInf(f, -1) {
+	case math.IsInf(f, -1):
 		s = "-Infinity"
-	} else if math.IsNaN(f) {
+	case math.IsNaN(f):
 		s = "NaN"
-	} else {
+	default:
 		// Print exactly one decimalType place for integers; otherwise, print as many are necessary to
 		// perfectly represent it.
 		s = strconv.FormatFloat(f, 'G', -1, 64)
