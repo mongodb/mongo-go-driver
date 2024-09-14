@@ -1,0 +1,173 @@
+version: '3'
+
+env:
+  TEST_TIMEOUT: 1800
+  LONG_TEST_TIMEOUT: 3600
+
+tasks:
+
+  ### Utility targets. ###
+  default: 
+    deps: [build, check-license, check-fmt, check-modules, lint, test-short]
+
+  add-license: etc/check_license.sh -a
+
+  check-license: etc/check_license.sh
+
+  build:
+    deps: [cross-compile, build-tests, build-compile-check]
+    cmds:
+      - go build ./...
+      - go build ${BUILD_TAGS} ./...
+
+  build-tests: go test -short ${BUILD_TAGS} -run ^$$ ./...
+
+  build-compile-check: etc/compile_check.sh
+
+  cross-compile: 
+    - GOOS=linux GOARCH=386 go build ./...
+    - GOOS=linux GOARCH=arm go build ./...
+    - GOOS=linux GOARCH=arm64 go build ./...
+    - GOOS=linux GOARCH=amd64 go build ./...
+    - GOOS=linux GOARCH=ppc64le go build ./...
+    - GOOS=linux GOARCH=s390x go build ./...
+
+  install-lll: go install github.com/walle/lll/...@latest
+
+  check-fmt: 
+    deps: [install-lll]
+    cmds:
+      - etc/check_fmt.sh
+
+  check-modules: etc/check_modules.sh
+
+  doc: godoc -http=:6060 -index
+
+  fmt: go fmt ./...
+
+  # NOTE: A golangci-lint version is also pinned in .pre-commit-config.yaml. Make
+  # sure to change it there to keep it in-sync with what's used here!
+  install-golangci-lint:
+    - go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.59.1
+
+  # Lint with various GOOS and GOARCH targets to catch static analysis failures that may only affect
+  # specific operating systems or architectures. For example, staticcheck will only check for 64-bit
+  # alignment of atomically accessed variables on 32-bit architectures (see
+  # https://staticcheck.io/docs/checks#SA1027)
+  lint: 
+    deps: [install-golangci-lint]
+    cmds:
+      - GOOS=linux GOARCH=386 golangci-lint run --config .golangci.yml ./...
+      - GOOS=linux GOARCH=arm golangci-lint run --config .golangci.yml ./...
+      - GOOS=linux GOARCH=arm64 golangci-lint run --config .golangci.yml ./...
+      - GOOS=linux GOARCH=amd64 golangci-lint run --config .golangci.yml ./...
+      - GOOS=linux GOARCH=ppc64le golangci-lint run --config .golangci.yml ./...
+      - GOOS=linux GOARCH=s390x golangci-lint run --config .golangci.yml ./...
+
+  update-notices: etc/generate_notices.pl > THIRD-PARTY-NOTICES
+
+  ### Local testing targets. ###
+  test: go test ${BUILD_TAGS} -timeout {{.TEST_TIMEOUT}}s -p 1 ./...
+
+  test-cover:
+    - go test ${BUILD_TAGS} -timeout {{.TEST_TIMEOUT}}s -cover ${COVER_ARGS} -p 1 ./...
+
+  test-race:
+    - go test ${BUILD_TAGS} -timeout {{.TEST_TIMEOUT}}s -race -p 1 ./...
+
+  test-short: go test ${BUILD_TAGS} -timeout 60s -short ./...
+
+  ### Local FaaS targets. ###
+  build-faas-awslambda:
+    requires: 
+      vars: [MONGODB_URI]
+    cmds: 
+      - make -c internal/cmd/faas/awslambda
+
+  ### Evergreen specific targets. ###
+  build-aws-ecs-test: go build ${BUILD_TAGS} ./internal/cmd/testaws/main.go
+
+  evg-test:
+    - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=$MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s -p 1 ./... >> test.suite
+
+  evg-test-atlas-data-lake:
+    - ATLAS_DATA_LAKE_INTEGRATION_TEST=true go test -v ./internal/integration -run TestUnifiedSpecs/atlas-data-lake-testing >> spec_test.suite
+    - ATLAS_DATA_LAKE_INTEGRATION_TEST=true go test -v ./internal/integration -run TestAtlasDataLake >> spec_test.suite
+
+  evg-test-enterprise-auth: go run -tags gssapi ./internal/cmd/testentauth/main.go
+
+  evg-test-oidc-auth:
+    - go run ./internal/cmd/testoidcauth/main.go
+    - go run -race ./internal/cmd/testoidcauth/main.go
+
+  evg-test-kmip:
+    - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./internal/integration -run TestClientSideEncryptionSpec/kmipKMS >> test.suite
+    - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./internal/integration -run TestClientSideEncryptionProse/data_key_and_double_encryption >> test.suite
+    - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./internal/integration -run TestClientSideEncryptionProse/corpus >> test.suite
+    - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./internal/integration -run TestClientSideEncryptionProse/custom_endpoint >> test.suite
+    - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./internal/integration -run TestClientSideEncryptionProse/kms_tls_options_test >> test.suite
+
+  evg-test-kms:
+    - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./internal/integration -run TestClientSideEncryptionProse/kms_tls_tests >> test.suite
+
+  evg-test-load-balancers:
+    # Load balancer should be tested with all unified tests as well as tests in the following
+    # components: retryable reads, retryable writes, change streams, initial DNS seedlist discovery.
+    - go test ${BUILD_TAGS} ./internal/integration -run TestUnifiedSpecs/retryable-reads -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./internal/integration -run TestRetryableWritesSpec -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./internal/integration -run TestChangeStreamSpec -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./internal/integration -run TestInitialDNSSeedlistDiscoverySpec/load_balanced -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./internal/integration -run TestLoadBalancerSupport -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./internal/integration -run TestLoadBalancedConnectionHandshake -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./internal/integration/unified -run TestUnifiedSpec -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+
+  evg-test-search-index:
+    # Use the long timeout to wait for the responses from the server.
+    - go test ./internal/integration -run TestSearchIndexProse -v -timeout {{.LONG_TEST_TIMEOUT}}s >> test.suite
+
+  evg-test-ocsp:
+    - go test -v ./mongo -run TestOCSP ${OCSP_TLS_SHOULD_SUCCEED} >> test.suite
+
+  evg-test-serverless:
+    # Serverless should be tested with all unified tests as well as tests in the following components: CRUD, load balancer,
+    # retryable reads, retryable writes, sessions, transactions and cursor behavior.
+    - go test ${BUILD_TAGS} ./internal/integration -run TestCrudSpec -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./internal/integration -run TestWriteErrorsWithLabels -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./internal/integration -run TestWriteErrorsDetails -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./internal/integration -run TestHintErrors -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./internal/integration -run TestWriteConcernError -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./internal/integration -run TestErrorsCodeNamePropagated -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./internal/integration -run TestLoadBalancerSupport -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./internal/integration -run TestUnifiedSpecs/retryable-reads -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./internal/integration -run TestRetryableReadsProse -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./internal/integration -run TestRetryableWritesSpec -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./internal/integration -run TestRetryableWritesProse -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./internal/integration -run TestUnifiedSpecs/sessions -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./internal/integration -run TestSessionsProse -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./internal/integration -run TestUnifiedSpecs/transactions/legacy -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./internal/integration -run TestConvenientTransactions -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./internal/integration -run TestCursor -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./internal/integration/unified -run TestUnifiedSpec -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./internal/integration -run TestClientSideEncryptionSpec >> test.suite
+    - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./internal/integration -run TestClientSideEncryptionProse >> test.suite
+
+  evg-test-versioned-api:
+    # Versioned API related tests are in the mongo, integration and unified packages.
+    - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./mongo >> test.suite
+    - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./internal/integration >> test.suite
+    - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./internal/integration/unified >> test.suite
+
+  build-kms-test: go build ${BUILD_TAGS} ./internal/cmd/testkms
+
+  ### Benchmark specific targets and support. ###
+  benchmark:
+    deps: [perf]
+    cmds: 
+      - go test ${BUILD_TAGS} -benchmem -bench=. ./benchmark | test benchmark.suite
+
+  driver-benchmark: 
+    deps: [perf]
+    cmds: 
+      - go run ./internal/cmd/benchmark | tee perf.suite
+
+  perf: etc/prep-perf.sh
