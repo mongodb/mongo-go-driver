@@ -75,13 +75,13 @@ git config --global github.user <github_handle>
 If a Pull Request needs to be cherry-picked to a new branch, get the sha of the commit in the base branch, and then run
 
 ```bash
-bash etc/cherry-picker.sh <sha>
+task cherry-picker -- <sha>
 ```
 
 By default it will use `master` as the target branch.  The branch can be specified as the second argument, e.g.
 
 ```bash
-bash etc/cherry-picker.sh <sha> branch
+task cherry-picker -- <sha> branch
 ```
 
 It will create a new checkout in a temp dir, create a new branch, perform the cherry-pick, and then
@@ -91,7 +91,7 @@ prompt before creating a PR to the target branch.
 
 The driver tests can be run against several database configurations. The most simple configuration is a standalone mongod with no auth, no ssl, and no compression. To run these basic driver tests, make sure a standalone MongoDB server instance is running at localhost:27017. To run the tests, you can run `task`. This will run coverage, run go-lint, run go-vet, and build the examples.
 
-You can install `libmongocrypt` locally by running `bash etc/build-libmongocrypt.sh`, which will create an `install` directory
+You can install `libmongocrypt` locally by running `task install-libmongocrypt`, which will create an `install` directory
 in the repository top level directory.  On Windows you will also need to add `c:/libmongocrypt/` to your `PATH`.
 
 ### Testing Different Topologies
@@ -227,7 +227,7 @@ See the readme in `$DRIVERS_TOOLS/.evergreen/docker` for more information on usa
 1. Finally, run the Go Driver tests using the following script in this repo:
 
 ```bash
-bash etc/run_docker.sh
+make run-docker
 ```
 
 The script takes an optional argument for the `TASKFILE_TARGET` and allows for some environment variable overrides.
@@ -238,7 +238,7 @@ For example, to test against a sharded cluster (make sure you started the server
 using enterprise auth, run:
 
 ```bash
-TOPOLOGY=sharded_cluster bash etc/run_docker.sh evg-test-enterprise-auth
+TOPOLOGY=sharded_cluster task run-docker -- evg-test-enterprise-auth
 ```
 
 ## Talk To Us

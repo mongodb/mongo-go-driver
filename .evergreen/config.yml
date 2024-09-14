@@ -101,7 +101,7 @@ functions:
           go install github.com/go-task/task/v3/cmd/task@latest
 
           # Install libmongocrypt.
-          bash etc/install-libmongocrypt.sh
+          task install-libmongocrypt
           if [ "Windows_NT" = "$OS" ]; then
             export PATH=$PATH:/cygdrive/c/libmongocrypt/bin
           fi
@@ -279,7 +279,7 @@ functions:
         script: |
           ${PREPARE_SHELL}
           export OIDC="oidc"
-          bash ${PROJECT_DIRECTORY}/etc/run-oidc-test.sh 'task --silent evg-test-oidc-auth'
+          task test-oidc
 
   run-task:
     - command: shell.exec
@@ -312,7 +312,7 @@ functions:
           ${PREPARE_SHELL}
           export BASE_SHA=${revision}
           export HEAD_SHA=${github_commit}
-          bash etc/api_report.sh
+          task api-report
 
   "add PR labels":
     - command: shell.exec
@@ -394,7 +394,7 @@ functions:
         include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
         script: |
           ${PREPARE_SHELL}
-          bash etc/run-atlas-test.sh
+          task run-atlas
 
   run-ocsp-test:
     - command: shell.exec
@@ -525,8 +525,8 @@ functions:
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
-          bash etc/run_docker.sh
-          TOPOLOGY=sharded_cluster bash etc/run_docker.sh test-short
+          task run-docker
+          TOPOLOGY=sharded_cluster task run-docker -- test-short
 
   run-valid-ocsp-server:
     - command: shell.exec
@@ -1780,7 +1780,7 @@ tasks:
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
-          bash etc/run-awskms-test.sh
+          task test-awskms
 
   - name: "testawskms-fail-task"
     # testawskms-fail-task runs without environment variables.
@@ -1794,7 +1794,7 @@ tasks:
         script: |
           ${PREPARE_SHELL}
           export EXPECT_ERROR='status=400'
-          bash etc/run-awskms-test.sh
+          task test-awskms
 
   - name: "testazurekms-task"
     commands:

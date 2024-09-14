@@ -7,7 +7,7 @@ env:
 
 tasks:
 
-  ### Utility targets. ###
+  ### Utility tasks. ###
   default: 
     deps: [build, check-license, check-fmt, check-modules, lint, test-short]
 
@@ -33,8 +33,6 @@ tasks:
     - GOOS=linux GOARCH=ppc64le go build ./...
     - GOOS=linux GOARCH=s390x go build ./...
 
-  install-lll: go install github.com/walle/lll/...@latest
-
   check-fmt: 
     deps: [install-lll]
     cmds:
@@ -46,12 +44,15 @@ tasks:
 
   fmt: go fmt ./...
 
-  # NOTE: A golangci-lint version is also pinned in .pre-commit-config.yaml. Make
-  # sure to change it there to keep it in-sync with what's used here!
-  install-golangci-lint:
-    - go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.59.1
+  api-report: etc/api_report.sh
 
-  # Lint with various GOOS and GOARCH targets to catch static analysis failures that may only affect
+  install-libmongocrypt: etc/install-libmongocrypt.sh
+
+  run-docker: etc/run_docker.sh
+
+  cherry-picker: etc/cherry-picker.sh
+
+  # Lint with various GOOS and GOARCH tasks to catch static analysis failures that may only affect
   # specific operating systems or architectures. For example, staticcheck will only check for 64-bit
   # alignment of atomically accessed variables on 32-bit architectures (see
   # https://staticcheck.io/docs/checks#SA1027)
@@ -67,7 +68,7 @@ tasks:
 
   update-notices: etc/generate_notices.pl > THIRD-PARTY-NOTICES
 
-  ### Local testing targets. ###
+  ### Local testing tasks. ###
   test: go test ${BUILD_TAGS} -timeout {{.TEST_TIMEOUT}}s -p 1 ./...
 
   test-cover:
@@ -78,14 +79,20 @@ tasks:
 
   test-short: go test ${BUILD_TAGS} -timeout 60s -short ./...
 
-  ### Local FaaS targets. ###
+  test-oidc: etc/run-oidc-test.sh 'task --silent evg-test-oidc-auth'
+
+  test-atlas: etc/run-atlas-test.sh
+
+  test-awskms: etc/run-awskms-test.sh
+
+  ### Local FaaS tasks. ###
   build-faas-awslambda:
     requires: 
       vars: [MONGODB_URI]
     cmds: 
       - make -c internal/cmd/faas/awslambda
 
-  ### Evergreen specific targets. ###
+  ### Evergreen specific tasks. ###
   build-aws-ecs-test: go build ${BUILD_TAGS} ./internal/cmd/testaws/main.go
 
   evg-test:
@@ -160,15 +167,31 @@ tasks:
 
   build-kms-test: go build ${BUILD_TAGS} ./internal/cmd/testkms
 
-  ### Benchmark specific targets and support. ###
+  ### Benchmark specific tasks and support. ###
   benchmark:
-    deps: [perf]
+    deps: [perf-files]
     cmds: 
       - go test ${BUILD_TAGS} -benchmem -bench=. ./benchmark | test benchmark.suite
 
   driver-benchmark: 
-    deps: [perf]
+    deps: [perf-files]
     cmds: 
       - go run ./internal/cmd/benchmark | tee perf.suite
 
-  perf: etc/prep-perf.sh
+  ### Internal tasks. ###
+  perf-files: 
+    internal: true
+    cmds:
+      - etc/prep-perf.sh
+
+  install-lll: 
+    internal: true
+    cmds:
+      - go install github.com/walle/lll/...@latest
+
+  # NOTE: A golangci-lint version is also pinned in .pre-commit-config.yaml. Make
+  # sure to change it there to keep it in-sync with what's used here!
+  install-golangci-lint:
+    internal: true
+    cmds:
+      - go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.59.1
