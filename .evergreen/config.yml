@@ -2276,21 +2276,17 @@ task_groups:
           script: |
             ${PREPARE_SHELL}
             export AZUREKMS_VMNAME_PREFIX="GODRIVER"
-            . ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/setup.sh
-      - command: expansions.update
-        params:
-          file: testazurekms-expansions.yml
+            export AZUREKMS_DRIVERS_TOOLS=$DRIVERS_TOOLS
+            # Get azurekms credentials from the vault.
+            . ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/setup-secrets.sh
+            ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/create-and-setup-vm.sh
     teardown_group:
-      # setup_group may have failed before updating expansions. Try to update again to clean up resources on setup failure.
-      - command: expansions.update
+      - command: subprocess.exec
         params:
-          file: testazurekms-expansions.yml
-      - command: shell.exec
-        params:
-          shell: "bash"
-          script: |
-            ${PREPARE_SHELL}
-            $DRIVERS_TOOLS/.evergreen/csfle/azurekms/teardown.sh
+          binary: "bash"
+          args:
+           - ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/teardown.sh
+
       - func: handle-test-artifacts
       - func: cleanup
     tasks:
