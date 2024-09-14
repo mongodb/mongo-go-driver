@@ -1938,7 +1938,7 @@ tasks:
           LD_LIBRARY_PATH=./install/libmongocrypt/lib64 \
           MONGODB_URI='mongodb://localhost:27017' \
           EXPECT_ERROR='unable to retrieve azure credentials' \
-          PROVIDER='azure' AZUREKMS_KEY_NAME=$AZUREKMS_KEYNAME AZUREKMS_KEY_VAULT_ENDPOINT=AZUREKMS_KEYVAULTENDPOINT \
+          PROVIDER='azure' AZUREKMS_KEY_NAME=$AZUREKMS_KEYNAME AZUREKMS_KEY_VAULT_ENDPOINT=$AZUREKMS_KEYVAULTENDPOINT \
             ./testkms
 
   - name: "test-fuzz"
