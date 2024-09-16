@@ -1817,10 +1817,6 @@ tasks:
           echo "Building build-kms-test ... end"
           source $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/secrets-export.sh
           echo "Copying files ... begin"
-          export GCPKMS_GCLOUD=${GCPKMS_GCLOUD}
-          export GCPKMS_PROJECT=${GCPKMS_PROJECT}
-          export GCPKMS_ZONE=${GCPKMS_ZONE}
-          export GCPKMS_INSTANCENAME=${GCPKMS_INSTANCENAME}
           tar czf testgcpkms.tgz ./testkms ./install/libmongocrypt/lib64/libmongocrypt.*
           GCPKMS_SRC=testgcpkms.tgz GCPKMS_DST=$GCPKMS_INSTANCENAME: $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/copy-file.sh
           echo "Copying files ... end"
@@ -1837,10 +1833,6 @@ tasks:
         script: |
           ${PREPARE_SHELL}
           source $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/secrets-export.sh
-          export GCPKMS_GCLOUD=${GCPKMS_GCLOUD}
-          export GCPKMS_PROJECT=${GCPKMS_PROJECT}
-          export GCPKMS_ZONE=${GCPKMS_ZONE}
-          export GCPKMS_INSTANCENAME=${GCPKMS_INSTANCENAME}
           GCPKMS_CMD="LD_LIBRARY_PATH=./install/libmongocrypt/lib64 MONGODB_URI='mongodb://localhost:27017' PROVIDER='gcp' ./testkms" $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/run-command.sh
 
   - name: "testgcpkms-fail-task"
@@ -1906,9 +1898,7 @@ tasks:
           echo "Building build-kms-test ... end"
 
           echo "Copying files ... begin"
-          export AZUREKMS_RESOURCEGROUP=${AZUREKMS_RESOURCEGROUP}
-          export AZUREKMS_VMNAME=${AZUREKMS_VMNAME}
-          export AZUREKMS_PRIVATEKEYPATH=/tmp/testazurekms_privatekey
+          source $DRIVERS_TOOLS/.evergreen/csfle/azurekms/secrets-export.sh
           tar czf testazurekms.tgz ./testkms ./install/libmongocrypt/lib64/libmongocrypt.*
           AZUREKMS_SRC=testazurekms.tgz AZUREKMS_DST=/tmp $DRIVERS_TOOLS/.evergreen/csfle/azurekms/copy-file.sh
           echo "Copying files ... end"
@@ -1923,11 +1913,8 @@ tasks:
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
-          source ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/setup-secrets.sh
-          export AZUREKMS_RESOURCEGROUP=${AZUREKMS_RESOURCEGROUP}
-          export AZUREKMS_VMNAME=${AZUREKMS_VMNAME}
-          export AZUREKMS_PRIVATEKEYPATH=/tmp/testazurekms_privatekey
-          AZUREKMS_CMD="LD_LIBRARY_PATH=./install/libmongocrypt/lib64 MONGODB_URI='mongodb://localhost:27017' PROVIDER='azure' AZUREKMS_KEY_NAME='${AZUREKMS_KEY_NAME}' AZUREKMS_KEY_VAULT_ENDPOINT='${AZUREKMS_KEY_VAULT_ENDPOINT}' ./testkms" $DRIVERS_TOOLS/.evergreen/csfle/azurekms/run-command.sh
+          source ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/secrets-export.sh
+          AZUREKMS_CMD="LD_LIBRARY_PATH=./install/libmongocrypt/lib64 MONGODB_URI='mongodb://localhost:27017' PROVIDER='azure' AZUREKMS_KEY_NAME=$AZUREKMS_KEYNAME AZUREKMS_KEY_VAULT_ENDPOINT=$AZUREKMS_KEYVAULTENDPOINT ./testkms" $DRIVERS_TOOLS/.evergreen/csfle/azurekms/run-command.sh
 
   - name: "testazurekms-fail-task"
     # testazurekms-fail-task runs without environment variables.
@@ -1946,10 +1933,12 @@ tasks:
             make build-kms-test
           echo "Building build-kms-test ... end"
 
+          . ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/setup-secrets.sh
+          
           LD_LIBRARY_PATH=./install/libmongocrypt/lib64 \
           MONGODB_URI='mongodb://localhost:27017' \
           EXPECT_ERROR='unable to retrieve azure credentials' \
-          PROVIDER='azure' AZUREKMS_KEY_NAME='${AZUREKMS_KEY_NAME}' AZUREKMS_KEY_VAULT_ENDPOINT='${AZUREKMS_KEY_VAULT_ENDPOINT}' \
+          PROVIDER='azure' AZUREKMS_KEY_NAME=$AZUREKMS_KEYNAME AZUREKMS_KEY_VAULT_ENDPOINT=$AZUREKMS_KEYVAULTENDPOINT \
             ./testkms
 
   - name: "test-fuzz"
@@ -2261,18 +2250,14 @@ task_groups:
           shell: "bash"
           script: |
             ${PREPARE_SHELL}
-            $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/create-and-setup-instance.sh
-      # Load the GCPKMS_GCLOUD, GCPKMS_INSTANCE, GCPKMS_REGION, and GCPKMS_ZONE expansions.
-      - command: expansions.update
-        params:
-          file: testgcpkms-expansions.yml
+            $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/setup.sh
     teardown_group:
       - command: shell.exec
         params:
           shell: "bash"
           script: |
             ${PREPARE_SHELL}
-            $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/delete-instance.sh
+            $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/teardown.sh
       - func: handle-test-artifacts
       - func: cleanup
     tasks:
@@ -2297,22 +2282,13 @@ task_groups:
             # Get azurekms credentials from the vault.
             . ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/setup-secrets.sh
             ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/create-and-setup-vm.sh
-      - command: expansions.update
-        params:
-          file: testazurekms-expansions.yml
     teardown_group:
-      # setup_group may have failed before updating expansions. Try to update again to clean up resources on setup failure.
-      - command: expansions.update
+      - command: subprocess.exec
         params:
-          file: testazurekms-expansions.yml
-      - command: shell.exec
-        params:
-          shell: "bash"
-          script: |
-            ${PREPARE_SHELL}
-            export AZUREKMS_SCOPE=${AZUREKMS_SCOPE}
-            export AZUREKMS_RESOURCEGROUP=${AZUREKMS_RESOURCEGROUP}
-            $DRIVERS_TOOLS/.evergreen/csfle/azurekms/delete-vm.sh
+          binary: "bash"
+          args:
+           - ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/teardown.sh
+
       - func: handle-test-artifacts
       - func: cleanup
     tasks:
