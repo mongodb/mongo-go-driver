@@ -163,7 +163,7 @@ func BenchmarkBulkDecryption(b *testing.B) {
 	// ... with the algorithm AEAD_AES_256_CBC_HMAC_SHA_512-Deterministic.
 	encryptedDoc := createEncryptedDocForBulkDecryptionBench(b, crypt, numKeys)
 
-	// decrypt the document repeatedly for one to warm up the benchmark.
+	// decrypt the document repeatedly for one second to warm up the benchmark.
 	for start := time.Now(); time.Since(start) < time.Second; {
 		decryptDocForBench(b, crypt, encryptedDoc)
 	}
