@@ -5,7 +5,7 @@
 echo "Building build-kms-test ... begin"
 BUILD_TAGS="-tags=cse" \
     PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
-    make build-kms-test
+    task build-kms-test
 echo "Building build-kms-test ... end"
 
 . ${DRIVERS_TOOLS}/.evergreen/secrets_handling/setup-secrets.sh drivers/atlas_connect

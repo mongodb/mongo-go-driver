@@ -6,5 +6,5 @@ AUTH="auth" \
     SSL="ssl" \
     MONGODB_URI="${SERVERLESS_URI}" \
     SERVERLESS="serverless" \
-    MAKEFILE_TARGET=evg-test-serverless \
+    TASKFILE_TARGET=evg-test-serverless \
     sh ${PROJECT_DIRECTORY}/.evergreen/run-tests.sh

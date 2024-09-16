@@ -34,7 +34,7 @@ add_copyright() {
         return
     fi
 
-    echo "Missing copyright notice in \"$file\". Run \"make add-license\" to add missing licenses."
+    echo "Missing copyright notice in \"$file\". Run \"task add-license\" to add missing licenses."
     exit 1
 }
 
