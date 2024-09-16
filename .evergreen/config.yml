@@ -58,7 +58,6 @@ functions:
           export PROJECT_DIRECTORY="$(pwd)"
           export MONGO_ORCHESTRATION_HOME="$DRIVERS_TOOLS/.evergreen/orchestration"
           export MONGODB_BINARIES="$DRIVERS_TOOLS/mongodb/bin"
-          export UPLOAD_BUCKET="${project}"
           export PROJECT="${project}"
 
           # If on Windows, convert paths with cygpath. GOROOT should not be converted as Windows expects it
@@ -70,7 +69,6 @@ functions:
              export PROJECT_DIRECTORY=$(cygpath -m $PROJECT_DIRECTORY)
              export MONGO_ORCHESTRATION_HOME=$(cygpath -m $MONGO_ORCHESTRATION_HOME)
              export MONGODB_BINARIES=$(cygpath -m $MONGODB_BINARIES)
-             export UPLOAD_BUCKET=$(cygpath -m $UPLOAD_BUCKET)
              export PROJECT=$(cygpath -m $PROJECT)
 
              # Set home variables for Windows, too.
@@ -108,7 +106,6 @@ functions:
           DRIVERS_TOOLS: "$DRIVERS_TOOLS"
           MONGO_ORCHESTRATION_HOME: "$MONGO_ORCHESTRATION_HOME"
           MONGODB_BINARIES: "$MONGODB_BINARIES"
-          UPLOAD_BUCKET: "$UPLOAD_BUCKET"
           PROJECT_DIRECTORY: "$PROJECT_DIRECTORY"
           PREPARE_SHELL: |
              set -o errexit
@@ -120,7 +117,6 @@ functions:
              export PROJECT_DIRECTORY="$PROJECT_DIRECTORY"
              export MONGO_ORCHESTRATION_HOME="$MONGO_ORCHESTRATION_HOME"
              export MONGODB_BINARIES="$MONGODB_BINARIES"
-             export UPLOAD_BUCKET="$UPLOAD_BUCKET"
              export PROJECT="$PROJECT"
              export TMPDIR="$MONGO_ORCHESTRATION_HOME/db"
              export PKG_CONFIG_PATH=$(pwd)/install/libmongocrypt/lib64/pkgconfig
@@ -154,24 +150,29 @@ functions:
       params:
         files:
           - "src/go.mongodb.org/mongo-driver/*.suite"
+    - command: ec2.assume_role
+      params:
+        role_arn: ${assume_role_arn}
     - command: s3.put
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        aws_key: ${AWS_ACCESS_KEY_ID}
+        aws_secret: ${AWS_SECRET_ACCESS_KEY}
+        aws_session_token: ${AWS_SESSION_TOKEN}
         local_file: ${DRIVERS_TOOLS}/.evergreen/test_logs.tar.gz
-        remote_file: ${UPLOAD_BUCKET}/${build_variant}/${revision}/${version_id}/${build_id}/logs/${task_id}-${execution}-drivers-tools-logs.tar.gz
-        bucket: mciuploads
+        remote_file: ${build_variant}/${revision}/${version_id}/${build_id}/logs/${task_id}-${execution}-drivers-tools-logs.tar.gz
+        bucket: ${aws_bucket}
         permissions: public-read
         content_type: ${content_type|application/x-gzip}
         display_name: "drivers-tools-logs.tar.gz"
     - command: s3.put
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        aws_key: ${AWS_ACCESS_KEY_ID}
+        aws_secret: ${AWS_SECRET_ACCESS_KEY}
+        aws_session_token: ${AWS_SESSION_TOKEN}
         optional: true
         local_file: ${PROJECT_DIRECTORY}/fuzz.tgz
-        remote_file: ${UPLOAD_BUCKET}/${build_variant}/${revision}/${version_id}/${build_id}/${task_id}-${execution}-fuzz.tgz
-        bucket: mciuploads
+        remote_file: ${build_variant}/${revision}/${version_id}/${build_id}/${task_id}-${execution}-fuzz.tgz
+        bucket: ${aws_bucket}
         permissions: public-read
         content_type: application/x-gzip
         display_name: "fuzz.tgz"
@@ -184,12 +185,13 @@ functions:
           find . -name \*.suite | xargs tar czf test_suite.tgz
     - command: s3.put
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        aws_key: ${AWS_ACCESS_KEY_ID}
+        aws_secret: ${AWS_SECRET_ACCESS_KEY}
+        aws_session_token: ${AWS_SESSION_TOKEN}
         local_file: src/go.mongodb.org/mongo-driver/test_suite.tgz
         optional: true
-        remote_file: ${UPLOAD_BUCKET}/${build_variant}/${revision}/${version_id}/${build_id}/logs/${task_id}-${execution}-test_suite.tgz
-        bucket: mciuploads
+        remote_file: ${build_variant}/${revision}/${version_id}/${build_id}/logs/${task_id}-${execution}-test_suite.tgz
+        bucket: ${aws_bucket}
         permissions: public-read
         content_type: ${content_type|text/plain}
         display_name: "test_suite.tgz"
@@ -1825,7 +1827,7 @@ tasks:
         script: |
           ${PREPARE_SHELL}
           source $DRIVERS_TOOLS/.evergreen/csfle/azurekms/secrets-export.sh
-          AZUREKMS_CMD="LD_LIBRARY_PATH=./install/libmongocrypt/lib64 MONGODB_URI='mongodb://localhost:27017' PROVIDER='azure' AZUREKMS_KEY_NAME='${AZUREKMS_KEY_NAME}' AZUREKMS_KEY_VAULT_ENDPOINT='${AZUREKMS_KEY_VAULT_ENDPOINT}' ./testkms" $DRIVERS_TOOLS/.evergreen/csfle/azurekms/run-command.sh
+          AZUREKMS_CMD="LD_LIBRARY_PATH=./install/libmongocrypt/lib64 MONGODB_URI='mongodb://localhost:27017' PROVIDER='azure' AZUREKMS_KEY_NAME=$AZUREKMS_KEYNAME AZUREKMS_KEY_VAULT_ENDPOINT=$AZUREKMS_KEYVAULTENDPOINT ./testkms" $DRIVERS_TOOLS/.evergreen/csfle/azurekms/run-command.sh
 
   - name: "testazurekms-fail-task"
     # testazurekms-fail-task runs without environment variables.
@@ -1844,10 +1846,11 @@ tasks:
             make build-kms-test
           echo "Building build-kms-test ... end"
 
+          . ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/setup-secrets.sh
           LD_LIBRARY_PATH=./install/libmongocrypt/lib64 \
           MONGODB_URI='mongodb://localhost:27017' \
           EXPECT_ERROR='unable to retrieve azure credentials' \
-          PROVIDER='azure' AZUREKMS_KEY_NAME='${AZUREKMS_KEY_NAME}' AZUREKMS_KEY_VAULT_ENDPOINT='${AZUREKMS_KEY_VAULT_ENDPOINT}' \
+          PROVIDER='azure' AZUREKMS_KEY_NAME=$AZUREKMS_KEYNAME AZUREKMS_KEY_VAULT_ENDPOINT=$AZUREKMS_KEYVAULTENDPOINT \
             ./testkms
 
   - name: "test-fuzz"
