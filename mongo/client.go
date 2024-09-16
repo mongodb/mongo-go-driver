@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"sync/atomic"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -74,7 +73,6 @@ type Client struct {
 	timeout        *time.Duration
 	httpClient     *http.Client
 	logger         *logger.Logger
-	closed         atomic.Value
 
 	// client-side encryption fields
 	keyVaultClientFLE  *Client
@@ -252,8 +250,6 @@ func newClient(opts ...options.Lister[options.ClientOptions]) (*Client, error) {
 		return nil, fmt.Errorf("invalid logger options: %w", err)
 	}
 
-	client.closed.Store(false)
-
 	return client, nil
 }
 
@@ -315,10 +311,6 @@ func (c *Client) connect() error {
 // or write operations. If this method returns with no errors, all connections
 // associated with this Client have been closed.
 func (c *Client) Disconnect(ctx context.Context) error {
-	if c.closed.Load().(bool) {
-		return ErrClientDisconnected
-	}
-
 	if c.logger != nil {
 		defer c.logger.Close()
 	}
@@ -358,8 +350,6 @@ func (c *Client) Disconnect(ctx context.Context) error {
 		c.cryptFLE.Close()
 	}
 
-	c.closed.Store(true)
-
 	if disconnector, ok := c.deployment.(driver.Disconnector); ok {
 		return replaceErrors(disconnector.Disconnect(ctx))
 	}
@@ -379,10 +369,6 @@ func (c *Client) Disconnect(ctx context.Context) error {
 // Using Ping reduces application resilience because applications starting up will error if the server is temporarily
 // unavailable or is failing over (e.g. during autoscaling due to a load spike).
 func (c *Client) Ping(ctx context.Context, rp *readpref.ReadPref) error {
-	if c.closed.Load().(bool) {
-		return ErrClientDisconnected
-	}
-
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -878,10 +864,6 @@ func (c *Client) UseSessionWithOptions(
 // documentation).
 func (c *Client) Watch(ctx context.Context, pipeline interface{},
 	opts ...options.Lister[options.ChangeStreamOptions]) (*ChangeStream, error) {
-	if c.closed.Load().(bool) {
-		return nil, ErrClientDisconnected
-	}
-
 	csConfig := changeStreamConfig{
 		readConcern:    c.readConcern,
 		readPreference: c.readPreference,

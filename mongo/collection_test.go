@@ -8,17 +8,20 @@ package mongo
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/ptrutil"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/topology"
 )
 
 const (
@@ -77,6 +80,65 @@ func TestCollection(t *testing.T) {
 			writeConcern:   wc1,
 		}
 		compareColls(t, expected, coll)
+	})
+	t.Run("replaceErrors for disconnected topology", func(t *testing.T) {
+		coll := setupColl("foo")
+		doc := bson.D{}
+		update := bson.D{{"$update", bson.D{{"x", 1}}}}
+
+		topo, ok := coll.client.deployment.(*topology.Topology)
+		require.True(t, ok, "client deployment is not a topology")
+
+		err := topo.Disconnect(context.Background())
+		require.NoError(t, err)
+
+		_, err = coll.InsertOne(bgCtx, doc)
+		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
+
+		_, err = coll.InsertMany(bgCtx, []interface{}{doc})
+		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
+
+		_, err = coll.DeleteOne(bgCtx, doc)
+		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
+
+		_, err = coll.DeleteMany(bgCtx, doc)
+		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
+
+		_, err = coll.UpdateOne(bgCtx, doc, update)
+		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
+
+		_, err = coll.UpdateMany(bgCtx, doc, update)
+		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
+
+		_, err = coll.ReplaceOne(bgCtx, doc, doc)
+		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
+
+		_, err = coll.Aggregate(bgCtx, Pipeline{})
+		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
+
+		_, err = coll.EstimatedDocumentCount(bgCtx)
+		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
+
+		_, err = coll.CountDocuments(bgCtx, doc)
+		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
+
+		err = coll.Distinct(bgCtx, "x", doc).Err()
+		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
+
+		_, err = coll.Find(bgCtx, doc)
+		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
+
+		err = coll.FindOne(bgCtx, doc).Err()
+		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
+
+		err = coll.FindOneAndDelete(bgCtx, doc).Err()
+		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
+
+		err = coll.FindOneAndReplace(bgCtx, doc, doc).Err()
+		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
+
+		err = coll.FindOneAndUpdate(bgCtx, doc, update).Err()
+		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
 	})
 	t.Run("database accessor", func(t *testing.T) {
 		coll := setupColl("bar")

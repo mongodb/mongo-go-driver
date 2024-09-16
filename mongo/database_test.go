@@ -14,6 +14,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
@@ -83,9 +84,26 @@ func TestDatabase(t *testing.T) {
 			compareDbs(t, expected, got)
 		})
 	})
+	t.Run("replaceErrors for disconnected topology", func(t *testing.T) {
+		db := setupDb("foo")
+
+		topo, ok := db.client.deployment.(*topology.Topology)
+		require.True(t, ok, "client deployment is not a topology")
+
+		err := topo.Disconnect(context.Background())
+		require.NoError(t, err)
+
+		err = db.RunCommand(bgCtx, bson.D{{"x", 1}}).Err()
+		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
+
+		err = db.Drop(bgCtx)
+		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
+
+		_, err = db.ListCollections(bgCtx, bson.D{})
+		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
+	})
 	t.Run("TransientTransactionError label", func(t *testing.T) {
 		client := setupClient(options.Client().ApplyURI("mongodb://nonexistent").SetServerSelectionTimeout(3 * time.Second))
-		assert.Equal(t, false, client.closed.Load().(bool), "expected value %v, got %v", false, client.closed.Load().(bool))
 		defer func() { _ = client.Disconnect(bgCtx) }()
 
 		t.Run("negative case of non-transaction", func(t *testing.T) {

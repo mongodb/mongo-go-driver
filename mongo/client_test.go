@@ -19,6 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/integtest"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
@@ -52,18 +53,25 @@ func TestClient(t *testing.T) {
 		assert.Equal(t, dbName, db.Name(), "expected db name %v, got %v", dbName, db.Name())
 		assert.Equal(t, client, db.Client(), "expected client %v, got %v", client, db.Client())
 	})
-	t.Run("client disconnect error", func(t *testing.T) {
+	t.Run("replaceErrors for disconnected topology", func(t *testing.T) {
 		client := setupClient()
-		assert.Equal(t, false, client.closed.Load().(bool), "expected value %v, got %v", false, client.closed.Load().(bool))
 
-		err := client.Disconnect(bgCtx)
-		assert.Equal(t, nil, err, "expected nil, got %v", err)
-		assert.Equal(t, true, client.closed.Load().(bool), "expected error %v, got %v", true, client.closed.Load().(bool))
+		topo, ok := client.deployment.(*topology.Topology)
+		require.True(t, ok, "client deployment is not a topology")
+
+		err := topo.Disconnect(context.Background())
+		require.NoError(t, err)
+
+		_, err = client.ListDatabases(bgCtx, bson.D{})
+		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
 
 		err = client.Ping(bgCtx, nil)
 		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
 
-		_, err = client.Watch(bgCtx, nil, nil)
+		err = client.Disconnect(bgCtx)
+		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
+
+		_, err = client.Watch(bgCtx, []bson.D{})
 		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
 	})
 	t.Run("nil document error", func(t *testing.T) {
