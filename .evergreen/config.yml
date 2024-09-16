@@ -1715,7 +1715,7 @@ tasks:
   - name: "testgcpkms-task"
     commands:
     - command: shell.exec
-      type: setup
+      type: test
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
@@ -1796,7 +1796,7 @@ tasks:
   - name: "testazurekms-task"
     commands:
     - command: shell.exec
-      type: setup
+      type: test
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
@@ -1862,6 +1862,7 @@ tasks:
           role_arn: ${LAMBDA_AWS_ROLE_ARN}
           duration_seconds: 3600
       - command: shell.exec
+        type: test
         params:
           working_dir: src/go.mongodb.org/mongo-driver
           shell: bash
@@ -1884,6 +1885,7 @@ tasks:
   - name: "oidc-auth-test-azure"
     commands:
     - command: shell.exec
+      type: test
       params:
         working_dir: src/go.mongodb.org/mongo-driver
         shell: bash
@@ -1909,6 +1911,7 @@ tasks:
   - name: "oidc-auth-test-gcp"
     commands:
     - command: shell.exec
+      type: test
       params:
         working_dir: src/go.mongodb.org/mongo-driver
         shell: bash
@@ -2337,7 +2340,7 @@ buildvariants:
     tags: ["pullrequest"]
     display_name: "Static Analysis"
     run_on:
-      - rhel8.7-large
+      - rhel8.7-small
     expansions:
       GO_DIST: "/opt/golang/go1.22"
     tasks:
@@ -2366,7 +2369,7 @@ buildvariants:
     tags: ["pullrequest"]
     display_name: "Compile Only Checks"
     run_on:
-      - rhel8.7-large
+      - rhel8.7-small
     expansions:
       GO_DIST: "/opt/golang/go1.22"
     tasks:
@@ -2604,7 +2607,7 @@ buildvariants:
   - name: testoidc-variant
     display_name: "OIDC"
     run_on:
-      - ubuntu2204-large
+      - ubuntu2204-small
     expansions:
       GO_DIST: "/opt/golang/go1.22"
     tasks:

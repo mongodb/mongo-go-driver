@@ -7,10 +7,10 @@
 package topology
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/event"
@@ -81,6 +81,53 @@ func newLogger(opts options.Lister[options.LoggerOptions]) (*logger.Logger, erro
 	return log, nil
 }
 
+// convertOIDCArgs converts the internal *driver.OIDCArgs into the equivalent
+// public type *options.OIDCArgs.
+func convertOIDCArgs(args *driver.OIDCArgs) *options.OIDCArgs {
+	if args == nil {
+		return nil
+	}
+	return &options.OIDCArgs{
+		Version:      args.Version,
+		IDPInfo:      (*options.IDPInfo)(args.IDPInfo),
+		RefreshToken: args.RefreshToken,
+	}
+}
+
+// ConvertCreds takes an [options.Credential] and returns the equivalent
+// [driver.Cred].
+func ConvertCreds(cred *options.Credential) *driver.Cred {
+	if cred == nil {
+		return nil
+	}
+
+	var oidcMachineCallback auth.OIDCCallback
+	if cred.OIDCMachineCallback != nil {
+		oidcMachineCallback = func(ctx context.Context, args *driver.OIDCArgs) (*driver.OIDCCredential, error) {
+			cred, err := cred.OIDCMachineCallback(ctx, convertOIDCArgs(args))
+			return (*driver.OIDCCredential)(cred), err
+		}
+	}
+
+	var oidcHumanCallback auth.OIDCCallback
+	if cred.OIDCHumanCallback != nil {
+		oidcHumanCallback = func(ctx context.Context, args *driver.OIDCArgs) (*driver.OIDCCredential, error) {
+			cred, err := cred.OIDCHumanCallback(ctx, convertOIDCArgs(args))
+			return (*driver.OIDCCredential)(cred), err
+		}
+	}
+
+	return &auth.Cred{
+		Source:              cred.AuthSource,
+		Username:            cred.Username,
+		Password:            cred.Password,
+		PasswordSet:         cred.PasswordSet,
+		Props:               cred.AuthMechanismProperties,
+		OIDCMachineCallback: oidcMachineCallback,
+		OIDCHumanCallback:   oidcHumanCallback,
+	}
+}
+
 // NewConfig behaves like NewConfigFromOptions by extracting arguments from a
 // list of ClientOptions setters.
 func NewConfig(opts *options.ClientOptionsBuilder, clock *session.ClusterClock) (*Config, error) {
@@ -96,27 +143,24 @@ func NewConfig(opts *options.ClientOptionsBuilder, clock *session.ClusterClock) 
 // config for building non-default deployments. Server and topology options are
 // not honored if a custom deployment is used.
 func NewConfigFromOptions(opts *options.ClientOptions, clock *session.ClusterClock) (*Config, error) {
-	// Auth & Database & Password & Username
+	var authenticator driver.Authenticator
+	var err error
 	if opts.Auth != nil {
-		cred := &auth.Cred{
-			Username:    opts.Auth.Username,
-			Password:    opts.Auth.Password,
-			PasswordSet: opts.Auth.PasswordSet,
-			Props:       opts.Auth.AuthMechanismProperties,
-			Source:      opts.Auth.AuthSource,
-		}
-		mechanism := opts.Auth.AuthMechanism
-		authenticator, err := auth.CreateAuthenticator(mechanism, cred, opts.HTTPClient)
+		authenticator, err = auth.CreateAuthenticator(
+			opts.Auth.AuthMechanism,
+			ConvertCreds(opts.Auth),
+			opts.HTTPClient,
+		)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error creating authenticator: %w", err)
 		}
-		return NewConfigFromOptionsWithAuthenticator(opts, clock, authenticator)
 	}
-	return NewConfigFromOptionsWithAuthenticator(opts, clock, nil)
+	return NewConfigFromOptionsWithAuthenticator(opts, clock, authenticator)
 }
 
-// NewConfigFromOptionsWithAuthenticator will translate data from client options into a topology config for building non-default deployments.
-// Server and topology options are not honored if a custom deployment is used. It uses a passed in
+// NewConfigFromOptionsWithAuthenticator will translate data from client options into a
+// topology config for building non-default deployments. Server and topology
+// options are not honored if a custom deployment is used. It uses a passed in
 // authenticator to authenticate the connection.
 func NewConfigFromOptionsWithAuthenticator(opts *options.ClientOptions, clock *session.ClusterClock, authenticator driver.Authenticator) (*Config, error) {
 
@@ -217,30 +261,8 @@ func NewConfigFromOptionsWithAuthenticator(opts *options.ClientOptions, clock *s
 	}
 
 	// Handshaker
-	var handshaker = func(driver.Handshaker) driver.Handshaker {
-		return operation.NewHello().AppName(appName).Compressors(comps).ClusterClock(clock).
-			ServerAPI(serverAPI).LoadBalanced(loadBalanced)
-	}
-	// Auth & Database & Password & Username
-	if opts.Auth != nil {
-		cred := &auth.Cred{
-			Username:    opts.Auth.Username,
-			Password:    opts.Auth.Password,
-			PasswordSet: opts.Auth.PasswordSet,
-			Props:       opts.Auth.AuthMechanismProperties,
-			Source:      opts.Auth.AuthSource,
-		}
-		mechanism := opts.Auth.AuthMechanism
-
-		if len(cred.Source) == 0 {
-			switch strings.ToUpper(mechanism) {
-			case auth.MongoDBX509, auth.GSSAPI, auth.PLAIN:
-				cred.Source = "$external"
-			default:
-				cred.Source = "admin"
-			}
-		}
-
+	var handshaker func(driver.Handshaker) driver.Handshaker
+	if authenticator != nil {
 		handshakeOpts := &auth.HandshakeOptions{
 			AppName:       appName,
 			Authenticator: authenticator,
@@ -250,15 +272,26 @@ func NewConfigFromOptionsWithAuthenticator(opts *options.ClientOptions, clock *s
 			ClusterClock:  clock,
 		}
 
-		if mechanism == "" {
+		if opts.Auth.AuthMechanism == "" {
 			// Required for SASL mechanism negotiation during handshake
-			handshakeOpts.DBUser = cred.Source + "." + cred.Username
+			handshakeOpts.DBUser = opts.Auth.AuthSource + "." + opts.Auth.Username
 		}
 
 		handshaker = func(driver.Handshaker) driver.Handshaker {
 			return auth.Handshaker(nil, handshakeOpts)
 		}
+
+	} else {
+		handshaker = func(driver.Handshaker) driver.Handshaker {
+			return operation.NewHello().
+				AppName(appName).
+				Compressors(comps).
+				ClusterClock(clock).
+				ServerAPI(serverAPI).
+				LoadBalanced(loadBalanced)
+		}
 	}
+
 	connOpts = append(connOpts, WithHandshaker(handshaker))
 
 	// Dialer
