@@ -109,7 +109,7 @@ func TestCursor(t *testing.T) {
 
 		t.Run("fills slice with all documents", func(t *testing.T) {
 			cursor, err := newCursor(newTestBatchCursor(1, 5), nil, nil)
-			assert.NoError(t, err, "newCursor error: %v", err)
+			require.NoError(t, err, "newCursor error: %v", err)
 
 			var docs []bson.D
 			err = cursor.All(context.Background(), &docs)
@@ -124,7 +124,7 @@ func TestCursor(t *testing.T) {
 
 		t.Run("nil slice", func(t *testing.T) {
 			cursor, err := newCursor(newTestBatchCursor(0, 0), nil, nil)
-			assert.NoError(t, err, "newCursor error: %v", err)
+			require.NoError(t, err, "newCursor error: %v", err)
 
 			var docs []bson.D
 			err = cursor.All(context.Background(), &docs)
@@ -134,17 +134,29 @@ func TestCursor(t *testing.T) {
 
 		t.Run("empty slice", func(t *testing.T) {
 			cursor, err := newCursor(newTestBatchCursor(0, 0), nil, nil)
-			assert.NoError(t, err, "newCursor error: %v", err)
+			require.NoError(t, err, "newCursor error: %v", err)
+
+			docs := []bson.D{}
+			err = cursor.All(context.Background(), &docs)
+			assert.NoError(t, err, "All error: %v", err)
+			assert.NotNil(t, docs, "expected non-nil docs")
+			assert.Len(t, docs, 0, "expected 0 docs, got %v", len(docs))
+		})
+
+		t.Run("empty slice overwritten", func(t *testing.T) {
+			cursor, err := newCursor(newTestBatchCursor(0, 0), nil, nil)
+			require.NoError(t, err, "newCursor error: %v", err)
 
 			docs := []bson.D{{{"foo", "bar"}}, {{"hello", "world"}, {"pi", 3.14159}}}
 			err = cursor.All(context.Background(), &docs)
+			assert.NoError(t, err, "All error: %v", err)
 			assert.NotNil(t, docs, "expected non-nil docs")
 			assert.Len(t, docs, 0, "expected 0 docs, got %v", len(docs))
 		})
 
 		t.Run("decodes each document into slice type", func(t *testing.T) {
 			cursor, err := newCursor(newTestBatchCursor(1, 5), nil, nil)
-			assert.NoError(t, err, "newCursor error: %v", err)
+			require.NoError(t, err, "newCursor error: %v", err)
 
 			type Document struct {
 				Foo int32 `bson:"foo"`
@@ -162,7 +174,7 @@ func TestCursor(t *testing.T) {
 
 		t.Run("multiple batches are included", func(t *testing.T) {
 			cursor, err := newCursor(newTestBatchCursor(2, 5), nil, nil)
-			assert.NoError(t, err, "newCursor error: %v", err)
+			require.NoError(t, err, "newCursor error: %v", err)
 			var docs []bson.D
 			err = cursor.All(context.Background(), &docs)
 			assert.NoError(t, err, "All error: %v", err)
@@ -179,7 +191,7 @@ func TestCursor(t *testing.T) {
 
 			tbc := newTestBatchCursor(1, 5)
 			cursor, err := newCursor(tbc, nil, nil)
-			assert.NoError(t, err, "newCursor error: %v", err)
+			require.NoError(t, err, "newCursor error: %v", err)
 
 			err = cursor.All(context.Background(), &docs)
 			assert.NoError(t, err, "All error: %v", err)
@@ -190,7 +202,7 @@ func TestCursor(t *testing.T) {
 			var docs interface{} = []bson.D{}
 
 			cursor, err := newCursor(newTestBatchCursor(1, 5), nil, nil)
-			assert.NoError(t, err, "newCursor error: %v", err)
+			require.NoError(t, err, "newCursor error: %v", err)
 
 			err = cursor.All(context.Background(), &docs)
 			assert.NoError(t, err, "All error: %v", err)
@@ -200,7 +212,7 @@ func TestCursor(t *testing.T) {
 			var docs interface{} = "test"
 
 			cursor, err := newCursor(newTestBatchCursor(1, 5), nil, nil)
-			assert.NoError(t, err, "newCursor error: %v", err)
+			require.NoError(t, err, "newCursor error: %v", err)
 
 			err = cursor.All(context.Background(), &docs)
 			assert.Error(t, err, "expected error, got: %v", err)
@@ -238,13 +250,13 @@ func TestNewCursorFromDocuments(t *testing.T) {
 			bson.D{{"_id", 2}, {"quux", "quuz"}},
 		}
 		cur, err := NewCursorFromDocuments(findResult, nil, nil)
-		assert.NoError(t, err, "NewCursorFromDocuments error: %v", err)
+		require.NoError(t, err, "NewCursorFromDocuments error: %v", err)
 
 		// Assert that decoded documents are as expected.
 		var i int
 		for cur.Next(context.Background()) {
 			docBytes, err := bson.Marshal(findResult[i])
-			assert.NoError(t, err, "Marshal error: %v", err)
+			require.NoError(t, err, "Marshal error: %v", err)
 			expectedDecoded := bson.Raw(docBytes)
 
 			var decoded bson.Raw
@@ -270,7 +282,7 @@ func TestNewCursorFromDocuments(t *testing.T) {
 		mockErr := fmt.Errorf("mock error")
 		findResult := []interface{}{bson.D{{"_id", 0}, {"foo", "bar"}}}
 		cur, err := NewCursorFromDocuments(findResult, mockErr, nil)
-		assert.NoError(t, err, "NewCursorFromDocuments error: %v", err)
+		require.NoError(t, err, "NewCursorFromDocuments error: %v", err)
 
 		// Assert that a call to Next will return false because of existing error.
 		next := cur.Next(context.Background())
