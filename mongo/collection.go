@@ -454,7 +454,7 @@ func (coll *Collection) delete(
 	filter interface{},
 	deleteOne bool,
 	expectedRr returnResult,
-	opts ...options.Lister[options.DeleteOptions],
+	args *options.DeleteManyOptions,
 ) (*DeleteResult, error) {
 
 	if ctx == nil {
@@ -490,11 +490,6 @@ func (coll *Collection) delete(
 	var limit int32
 	if deleteOne {
 		limit = 1
-	}
-
-	args, err := mongoutil.NewOptions[options.DeleteOptions](opts...)
-	if err != nil {
-		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 
 	didx, doc := bsoncore.AppendDocumentStart(nil)
@@ -569,9 +564,20 @@ func (coll *Collection) delete(
 func (coll *Collection) DeleteOne(
 	ctx context.Context,
 	filter interface{},
-	opts ...options.Lister[options.DeleteOptions],
+	opts ...options.Lister[options.DeleteOneOptions],
 ) (*DeleteResult, error) {
-	return coll.delete(ctx, filter, true, rrOne, opts...)
+	args, err := mongoutil.NewOptions[options.DeleteOneOptions](opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
+	}
+	deleteOptions := &options.DeleteManyOptions{
+		Collation: args.Collation,
+		Comment:   args.Comment,
+		Hint:      args.Hint,
+		Let:       args.Let,
+	}
+
+	return coll.delete(ctx, filter, true, rrOne, deleteOptions)
 }
 
 // DeleteMany executes a delete command to delete documents from the collection.
@@ -587,9 +593,14 @@ func (coll *Collection) DeleteOne(
 func (coll *Collection) DeleteMany(
 	ctx context.Context,
 	filter interface{},
-	opts ...options.Lister[options.DeleteOptions],
+	opts ...options.Lister[options.DeleteManyOptions],
 ) (*DeleteResult, error) {
-	return coll.delete(ctx, filter, false, rrMany, opts...)
+	args, err := mongoutil.NewOptions[options.DeleteManyOptions](opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
+	}
+
+	return coll.delete(ctx, filter, false, rrMany, args)
 }
 
 func (coll *Collection) updateOrReplace(
@@ -599,31 +610,25 @@ func (coll *Collection) updateOrReplace(
 	multi bool,
 	expectedRr returnResult,
 	checkDollarKey bool,
-	opts ...options.Lister[options.UpdateOptions],
+	args *options.UpdateManyOptions,
 ) (*UpdateResult, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	args, err := mongoutil.NewOptions[options.UpdateOptions](opts...)
-	if err != nil {
-		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
-	}
-
 	// collation, arrayFilters, upsert, and hint are included on the individual update documents rather than as part of the
 	// command
-	updateDoc, err := createUpdateDoc(
-		filter,
-		update,
-		args.Hint,
-		args.ArrayFilters,
-		args.Collation,
-		args.Upsert,
-		multi,
-		checkDollarKey,
-		coll.bsonOpts,
-		coll.registry)
+	updateDoc, err := updateDoc{
+		filter:         filter,
+		update:         update,
+		hint:           args.Hint,
+		arrayFilters:   args.ArrayFilters,
+		collation:      args.Collation,
+		upsert:         args.Upsert,
+		multi:          multi,
+		checkDollarKey: checkDollarKey,
+	}.marshal(coll.bsonOpts, coll.registry)
 	if err != nil {
 		return nil, err
 	}
@@ -719,7 +724,7 @@ func (coll *Collection) UpdateByID(
 	ctx context.Context,
 	id interface{},
 	update interface{},
-	opts ...options.Lister[options.UpdateOptions],
+	opts ...options.Lister[options.UpdateOneOptions],
 ) (*UpdateResult, error) {
 	if id == nil {
 		return nil, ErrNilValue
@@ -745,7 +750,7 @@ func (coll *Collection) UpdateOne(
 	ctx context.Context,
 	filter interface{},
 	update interface{},
-	opts ...options.Lister[options.UpdateOptions],
+	opts ...options.Lister[options.UpdateOneOptions],
 ) (*UpdateResult, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -756,7 +761,21 @@ func (coll *Collection) UpdateOne(
 		return nil, err
 	}
 
-	return coll.updateOrReplace(ctx, f, update, false, rrOne, true, opts...)
+	args, err := mongoutil.NewOptions[options.UpdateOneOptions](opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
+	}
+	updateOptions := &options.UpdateManyOptions{
+		ArrayFilters:             args.ArrayFilters,
+		BypassDocumentValidation: args.BypassDocumentValidation,
+		Collation:                args.Collation,
+		Comment:                  args.Comment,
+		Hint:                     args.Hint,
+		Upsert:                   args.Upsert,
+		Let:                      args.Let,
+	}
+
+	return coll.updateOrReplace(ctx, f, update, false, rrOne, true, updateOptions)
 }
 
 // UpdateMany executes an update command to update documents in the collection.
@@ -776,7 +795,7 @@ func (coll *Collection) UpdateMany(
 	ctx context.Context,
 	filter interface{},
 	update interface{},
-	opts ...options.Lister[options.UpdateOptions],
+	opts ...options.Lister[options.UpdateManyOptions],
 ) (*UpdateResult, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -787,7 +806,12 @@ func (coll *Collection) UpdateMany(
 		return nil, err
 	}
 
-	return coll.updateOrReplace(ctx, f, update, true, rrMany, true, opts...)
+	args, err := mongoutil.NewOptions[options.UpdateManyOptions](opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
+	}
+
+	return coll.updateOrReplace(ctx, f, update, true, rrMany, true, args)
 }
 
 // ReplaceOne executes an update command to replace at most one document in the collection.
@@ -832,7 +856,7 @@ func (coll *Collection) ReplaceOne(
 		return nil, err
 	}
 
-	updateArgs := &options.UpdateOptions{
+	updateOptions := &options.UpdateManyOptions{
 		BypassDocumentValidation: args.BypassDocumentValidation,
 		Collation:                args.Collation,
 		Upsert:                   args.Upsert,
@@ -840,8 +864,6 @@ func (coll *Collection) ReplaceOne(
 		Let:                      args.Let,
 		Comment:                  args.Comment,
 	}
-
-	updateOptions := mongoutil.NewOptionsLister(updateArgs, nil)
 
 	return coll.updateOrReplace(ctx, f, r, false, rrOne, false, updateOptions)
 }

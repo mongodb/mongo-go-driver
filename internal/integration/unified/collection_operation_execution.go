@@ -403,7 +403,7 @@ func executeDeleteOne(ctx context.Context, operation *operation) (*operationResu
 	}
 
 	var filter bson.Raw
-	opts := options.Delete()
+	opts := options.DeleteOne()
 
 	elems, err := operation.Arguments.Elements()
 	if err != nil {
@@ -457,7 +457,7 @@ func executeDeleteMany(ctx context.Context, operation *operation) (*operationRes
 	}
 
 	var filter bson.Raw
-	opts := options.Delete()
+	opts := options.DeleteMany()
 
 	elems, err := operation.Arguments.Elements()
 	if err != nil {
@@ -1316,7 +1316,7 @@ func executeUpdateOne(ctx context.Context, operation *operation) (*operationResu
 		return nil, err
 	}
 
-	updateArgs, err := createUpdateArguments(operation.Arguments)
+	updateArgs, err := createUpdateArguments[options.UpdateOneOptions](operation.Arguments)
 	if err != nil {
 		return nil, err
 	}
@@ -1335,7 +1335,7 @@ func executeUpdateMany(ctx context.Context, operation *operation) (*operationRes
 		return nil, err
 	}
 
-	updateArgs, err := createUpdateArguments(operation.Arguments)
+	updateArgs, err := createUpdateArguments[options.UpdateManyOptions](operation.Arguments)
 	if err != nil {
 		return nil, err
 	}
