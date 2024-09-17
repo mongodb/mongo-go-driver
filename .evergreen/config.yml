@@ -2010,9 +2010,9 @@ axes:
         run_on: rhel8.7-large
         variables:
           GO_DIST: "/opt/golang/go1.22"
-      - id: "macos11"
-        display_name: "MacOS 11.0"
-        run_on: macos-1100
+      - id: "macos"
+        display_name: "MacOS 14.0"
+        run_on: macos-14
         batchtime: 1440 # Run at most once per 24 hours.
         variables:
           GO_DIST: "/opt/golang/go1.22"
@@ -2034,9 +2034,9 @@ axes:
         run_on: rhel8.7-large
         variables:
           GO_DIST: "/opt/golang/go1.22"
-      - id: "macos11"
-        display_name: "MacOS 11.0"
-        run_on: macos-1100
+      - id: "macos"
+        display_name: "MacOS 14.0"
+        run_on: macos-14
         batchtime: 1440 # Run at most once per 24 hours.
         variables:
           GO_DIST: "/opt/golang/go1.22"
@@ -2066,9 +2066,9 @@ axes:
         run_on: ubuntu2004-test
         variables:
           GO_DIST: "/opt/golang/go1.22"
-      - id: "macos11"
-        display_name: "MacOS 11.0"
-        run_on: macos-1100
+      - id: "macos"
+        display_name: "MacOS 14.0"
+        run_on: macos-14
         batchtime: 1440 # Run at most once per 24 hours.
         variables:
           GO_DIST: "/opt/golang/go1.22"
@@ -2500,7 +2500,7 @@ buildvariants:
       - name: ".ocsp-rsa !.ocsp-staple"
 
   - matrix_name: "ocsp-test-macos"
-    matrix_spec: { version: ["4.4", "5.0", "6.0", "7.0", "8.0", "latest"], os-ssl-40: ["macos11"] }
+    matrix_spec: { version: ["4.4", "5.0", "6.0", "7.0", "8.0", "latest"], os-ssl-40: ["macos"] }
     display_name: "OCSP ${version} ${os-ssl-40}"
     batchtime: 20160 # Use a batchtime of 14 days as suggested by the OCSP test README
     tasks:
