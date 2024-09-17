@@ -16,4 +16,4 @@ else
 fi
 export MONGO_GO_DRIVER_COMPRESSOR="${MONGO_GO_DRIVER_COMPRESSOR:-}"
 
-make -s evg-test-enterprise-auth
+task --silent evg-test-enterprise-auth

@@ -76,12 +76,12 @@ else
   echo "crypt_shared library will be loaded from path: $CRYPT_SHARED_LIB_PATH"
 fi
 
-if [ -z ${MAKEFILE_TARGET+x} ]; then
+if [ -z ${TASKFILE_TARGET+x} ]; then
   if [ "$(uname -s)" = "Darwin" ]; then
       # Run a subset of the tests on Darwin
-      MAKEFILE_TARGET="evg-test-load-balancers"
+      TASKFILE_TARGET="evg-test-load-balancers"
   else
-    MAKEFILE_TARGET="evg-test"
+    TASKFILE_TARGET="evg-test"
   fi
 fi
 
@@ -99,4 +99,4 @@ CRYPT_SHARED_LIB_PATH=$CRYPT_SHARED_LIB_PATH \
 PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
 LD_LIBRARY_PATH=$LD_LIBRARY_PATH \
 MACOS_LIBRARY_PATH=$DYLD_FALLBACK_LIBRARY_PATH \
-make $MAKEFILE_TARGET
+task $TASKFILE_TARGET
