@@ -71,7 +71,7 @@ func createEncryptedDocForBench(b *testing.B, crypt *MongoCrypt, iter int) bsonc
 	}
 
 	encryptOpts := options.ExplicitEncryption().SetAlgorithm(algorithm).SetKeyID(keyID)
-	doc := bsoncore.NewDocumentBuilder().AppendString("v", fmt.Sprintf("value %v", iter)).Build()
+	doc := bsoncore.NewDocumentBuilder().AppendString("v", fmt.Sprintf("value %04v", iter)).Build()
 
 	encryptCtx, err := crypt.CreateExplicitEncryptionContext(doc, encryptOpts)
 	require.NoError(b, err)
