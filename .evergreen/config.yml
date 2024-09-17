@@ -207,7 +207,7 @@ functions:
       params:
         working_dir: src/go.mongodb.org/mongo-driver
         shell: bash
-        add_to_path: ${EXTRA_PATH}
+        add_to_path: ["${EXTRA_PATH}"]
         include_expansions_in_env: ["DRIVERS_TOOLS", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
         script: |
           OIDC="oidc" task test-oidc
@@ -218,7 +218,7 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ${EXTRA_PATH}
+        add_to_path: ["${EXTRA_PATH}"]
         script: |
           ${BUILD_ENV|} BUILD_TAGS=${BUILD_TAGS|-tags=cse,gssapi} task ${targets}
 
@@ -228,7 +228,7 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ${EXTRA_PATH}
+        add_to_path: ["${EXTRA_PATH}"]
         include_expansions_in_env: ["TOPOLOGY", "AUTH", "SSL", "MONGODB_URI", "CRYPT_SHARED_LIB_PATH", "SKIP_CRYPT_SHARED_LIB", "RACE", "MONGO_GO_DRIVER_COMPRESSOR", "REQUIRE_API_VERSION", "LOAD_BALANCER"]
         script: |
           task setup-test
@@ -244,7 +244,7 @@ functions:
       type: test
       params:
         shell: "bash"
-        add_to_path: ${EXTRA_PATH}
+        add_to_path: ["${EXTRA_PATH}"]
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           export BASE_SHA=${revision}
@@ -298,7 +298,7 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ${EXTRA_PATH}
+        add_to_path: ["${EXTRA_PATH}"]
         include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
         script: |
           task setup-test -- enterprise-auth
@@ -313,7 +313,7 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ${EXTRA_PATH}
+        add_to_path: ["${EXTRA_PATH}"]
         include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
         script: |
           task setup-test -- enterprise-gssapi
@@ -328,7 +328,7 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ${EXTRA_PATH}
+        add_to_path: ["${EXTRA_PATH}"]
         include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
         script: |
           task setup-test -- atlas-connect
@@ -340,7 +340,7 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ${EXTRA_PATH}
+        add_to_path: ["${EXTRA_PATH}"]
         script: |
           export MONGO_GO_DRIVER_CA_FILE="${DRIVERS_TOOLS}/.evergreen/ocsp/${OCSP_ALGORITHM}/ca.pem"
           if [ "Windows_NT" = "$OS" ]; then # Magic variable in cygwin
@@ -360,7 +360,7 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ${EXTRA_PATH}
+        add_to_path: ["${EXTRA_PATH}"]
         script: |
           AUTH="${AUTH}" \
           SSL="${SSL}" \
@@ -381,7 +381,7 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ${EXTRA_PATH}
+        add_to_path: ["${EXTRA_PATH}"]
         script: |
           # Verify that the required LB URI expansions are set to ensure that the test runner can correctly connect to
           # the LBs.
@@ -413,7 +413,7 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ${EXTRA_PATH}
+        add_to_path: ["${EXTRA_PATH}"]
         script: |
           task setup-test -- serverless
           task evg-test-serverless
@@ -424,7 +424,7 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ${EXTRA_PATH}
+        add_to_path: ["${EXTRA_PATH}"]
         script: |
           AUTH="auth" \
           SSL="nossl" \
@@ -440,7 +440,7 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ${EXTRA_PATH}
+        add_to_path: ["${EXTRA_PATH}"]
         script: |
           task run-docker
           TOPOLOGY=sharded_cluster task run-docker -- test-short
@@ -525,7 +525,7 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ${EXTRA_PATH}
+        add_to_path: ["${EXTRA_PATH}"]
         script: |
           TEST_INDEX_URI="${TEST_INDEX_URI}" \
           task evg-test-search-index
@@ -548,7 +548,7 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ${EXTRA_PATH}
+        add_to_path: ["${EXTRA_PATH}"]
         script: |
           task test-evg-aws -- regular
 
@@ -558,7 +558,7 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ${EXTRA_PATH}
+        add_to_path: ["${EXTRA_PATH}"]
         script: |
           task test-evg-aws -- assume-role
 
@@ -568,7 +568,7 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ${EXTRA_PATH}
+        add_to_path: ["${EXTRA_PATH}"]
         script: |
           if [ "${SKIP_EC2_AUTH_TEST}" = "true" ]; then
             echo "This platform does not support the EC2 auth test, skipping..."
@@ -582,7 +582,7 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ${EXTRA_PATH}
+        add_to_path: ["${EXTRA_PATH}"]
         script: |
           task test-evg-aws -- env-creds
 
@@ -591,7 +591,7 @@ functions:
       type: test
       params:
         shell: "bash"
-        add_to_path: ${EXTRA_PATH}
+        add_to_path: ["${EXTRA_PATH}"]
         script: |
           task test-evg-aws -- session-creds
 
@@ -601,7 +601,7 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ${EXTRA_PATH}
+        add_to_path: ["${EXTRA_PATH}"]
         script: |
           if [ "${SKIP_ECS_AUTH_TEST}" = "true" ]; then
             echo "This platform does not support the ECS auth test, skipping..."
@@ -634,7 +634,7 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ${EXTRA_PATH}
+        add_to_path: ["${EXTRA_PATH}"]
         script: |
           if [ "${SKIP_WEB_IDENTITY_AUTH_TEST}" = "true" ]; then
              echo "This platform does not support the web identity auth test, skipping..."
@@ -646,7 +646,7 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ${EXTRA_PATH}
+        add_to_path: ["${EXTRA_PATH}"]
         script: |
           if [ "${SKIP_WEB_IDENTITY_AUTH_TEST}" = "true" ]; then
              echo "This platform does not support the web identity auth test, skipping..."
@@ -680,7 +680,7 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ${EXTRA_PATH}
+        add_to_path: ["${EXTRA_PATH}"]
         script: |
           AUTH="${AUTH}" \
           SSL="${SSL}" \
@@ -698,7 +698,7 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ${EXTRA_PATH}
+        add_to_path: ["${EXTRA_PATH}"]
         script: |
           AUTH="${AUTH}" \
           SSL="${SSL}" \
@@ -716,7 +716,7 @@ functions:
       params:
         shell: "bash"
         working_dir: "src"
-        add_to_path: ${EXTRA_PATH}
+        add_to_path: ["${EXTRA_PATH}"]
         script: |
           task run-fuzz
 
@@ -1631,7 +1631,7 @@ tasks:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ${EXTRA_PATH}
+        add_to_path: ["${EXTRA_PATH}"]
         script: |
           echo "Building build-kms-test ... begin"
           BUILD_TAGS="-tags=cse" \
@@ -1653,7 +1653,7 @@ tasks:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ${EXTRA_PATH}
+        add_to_path: ["${EXTRA_PATH}"]
         script: |
           source ${DRIVERS_TOOLS}/.evergreen/csfle/gcpkms/secrets-export.sh
           GCPKMS_CMD="LD_LIBRARY_PATH=./install/libmongocrypt/lib64 MONGODB_URI='mongodb://localhost:27017' PROVIDER='gcp' ./testkms" ${DRIVERS_TOOLS}/.evergreen/csfle/gcpkms/run-command.sh
@@ -1667,7 +1667,7 @@ tasks:
         params:
           shell: "bash"
           working_dir: src/go.mongodb.org/mongo-driver
-          add_to_path: ${EXTRA_PATH}
+          add_to_path: ["${EXTRA_PATH}"]
           script: |
             echo "Building build-kms-test ... begin"
             BUILD_TAGS="-tags=cse" \
@@ -1688,7 +1688,7 @@ tasks:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ${EXTRA_PATH}
+        add_to_path: ["${EXTRA_PATH}"]
         script: |
           task test-awskms
 
@@ -1701,7 +1701,7 @@ tasks:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ${EXTRA_PATH}
+        add_to_path: ["${EXTRA_PATH}"]
         script: |
           export EXPECT_ERROR='status=400'
           task test-awskms
@@ -1713,7 +1713,7 @@ tasks:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ${EXTRA_PATH}
+        add_to_path: ["${EXTRA_PATH}"]
         script: |
           echo "Building build-kms-test ... begin"
           BUILD_TAGS="-tags=cse" \
@@ -1748,7 +1748,7 @@ tasks:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ${EXTRA_PATH}
+        add_to_path: ["${EXTRA_PATH}"]
         script: |
           echo "Building build-kms-test ... begin"
           BUILD_TAGS="-tags=cse" \
@@ -1779,7 +1779,7 @@ tasks:
         params:
           working_dir: src/go.mongodb.org/mongo-driver
           shell: bash
-          add_to_path: ${EXTRA_PATH}
+          add_to_path: ["${EXTRA_PATH}"]
           env:
             TEST_LAMBDA_DIRECTORY: ${PROJECT_DIRECTORY}/internal/cmd/faas/awslambda
             LAMBDA_STACK_NAME: dbx-go-lambda
@@ -1798,7 +1798,7 @@ tasks:
       type: test
       params:
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ${EXTRA_PATH}
+        add_to_path: ["${EXTRA_PATH}"]
         shell: bash
         script: |-
           set -o errexit
@@ -1824,7 +1824,7 @@ tasks:
       type: test
       params:
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ${EXTRA_PATH}
+        add_to_path: ["${EXTRA_PATH}"]
         shell: bash
         script: |-
           set -o errexit
