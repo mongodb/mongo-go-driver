@@ -7,8 +7,7 @@ set -eu
 if [ "Windows_NT" = "${OS:-}" ]; then
     export MONGODB_URI="mongodb://${PRINCIPAL/@/%40}:${SASL_PASS}@${SASL_HOST}:${SASL_PORT}/kerberos?authMechanism=GSSAPI"
 else
-    echo "${KEYTAB_BASE64}" > /tmp/drivers.keytab.base64
-    base64 --decode /tmp/drivers.keytab.base64 > ${PROJECT_DIRECTORY}/.evergreen/drivers.keytab
+    echo ${KEYTAB_BASE64} | base64 -d > ${PROJECT_DIRECTORY}/.evergreen/drivers.keytab
     mkdir -p ~/.krb5
     cat .evergreen/krb5.config | tee -a ~/.krb5/config
     kinit -k -t ${PROJECT_DIRECTORY}/.evergreen/drivers.keytab -p "${PRINCIPAL}"
