@@ -105,7 +105,7 @@ func decryptDocForBench(b *testing.B, crypt *MongoCrypt, encryptedDoc bsoncore.D
 }
 
 // create a document of the form:
-// { "key1": <encrypted "value1">, "key2": <encrypted "value2">, ... }
+// { "key0001": <encrypted "value 0001">, "key0002": <encrypted "value 0002">, ... }
 func createEncryptedDocForBulkDecryptionBench(b *testing.B, crypt *MongoCrypt, count int) bsoncore.Document {
 	bldr := bsoncore.NewDocumentBuilder()
 
