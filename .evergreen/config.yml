@@ -58,7 +58,6 @@ functions:
           export PROJECT_DIRECTORY="$(pwd)"
           export MONGO_ORCHESTRATION_HOME="$DRIVERS_TOOLS/.evergreen/orchestration"
           export MONGODB_BINARIES="$DRIVERS_TOOLS/mongodb/bin"
-          export UPLOAD_BUCKET="${project}"
           export PROJECT="${project}"
 
           # If on Windows, convert paths with cygpath. GOROOT should not be converted as Windows expects it
@@ -70,7 +69,6 @@ functions:
              export PROJECT_DIRECTORY=$(cygpath -m $PROJECT_DIRECTORY)
              export MONGO_ORCHESTRATION_HOME=$(cygpath -m $MONGO_ORCHESTRATION_HOME)
              export MONGODB_BINARIES=$(cygpath -m $MONGODB_BINARIES)
-             export UPLOAD_BUCKET=$(cygpath -m $UPLOAD_BUCKET)
              export PROJECT=$(cygpath -m $PROJECT)
 
              # Set home variables for Windows, too.
@@ -97,8 +95,11 @@ functions:
           go version
           go env
 
+          # Install taskfile.
+          go install github.com/go-task/task/v3/cmd/task@latest
+
           # Install libmongocrypt.
-          bash etc/install-libmongocrypt.sh
+          task install-libmongocrypt
           if [ "Windows_NT" = "$OS" ]; then
             export PATH=$PATH:/cygdrive/c/libmongocrypt/bin
           fi
@@ -108,7 +109,6 @@ functions:
           DRIVERS_TOOLS: "$DRIVERS_TOOLS"
           MONGO_ORCHESTRATION_HOME: "$MONGO_ORCHESTRATION_HOME"
           MONGODB_BINARIES: "$MONGODB_BINARIES"
-          UPLOAD_BUCKET: "$UPLOAD_BUCKET"
           PROJECT_DIRECTORY: "$PROJECT_DIRECTORY"
           PREPARE_SHELL: |
              set -o errexit
@@ -120,7 +120,6 @@ functions:
              export PROJECT_DIRECTORY="$PROJECT_DIRECTORY"
              export MONGO_ORCHESTRATION_HOME="$MONGO_ORCHESTRATION_HOME"
              export MONGODB_BINARIES="$MONGODB_BINARIES"
-             export UPLOAD_BUCKET="$UPLOAD_BUCKET"
              export PROJECT="$PROJECT"
              export TMPDIR="$MONGO_ORCHESTRATION_HOME/db"
              export PKG_CONFIG_PATH=$(pwd)/install/libmongocrypt/lib64/pkgconfig
@@ -154,24 +153,29 @@ functions:
       params:
         files:
           - "src/go.mongodb.org/mongo-driver/*.suite"
+    - command: ec2.assume_role
+      params:
+        role_arn: ${assume_role_arn}
     - command: s3.put
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        aws_key: ${AWS_ACCESS_KEY_ID}
+        aws_secret: ${AWS_SECRET_ACCESS_KEY}
+        aws_session_token: ${AWS_SESSION_TOKEN}
         local_file: ${DRIVERS_TOOLS}/.evergreen/test_logs.tar.gz
-        remote_file: ${UPLOAD_BUCKET}/${build_variant}/${revision}/${version_id}/${build_id}/logs/${task_id}-${execution}-drivers-tools-logs.tar.gz
-        bucket: mciuploads
+        remote_file: ${build_variant}/${revision}/${version_id}/${build_id}/logs/${task_id}-${execution}-drivers-tools-logs.tar.gz
+        bucket: ${aws_bucket}
         permissions: public-read
         content_type: ${content_type|application/x-gzip}
         display_name: "drivers-tools-logs.tar.gz"
     - command: s3.put
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        aws_key: ${AWS_ACCESS_KEY_ID}
+        aws_secret: ${AWS_SECRET_ACCESS_KEY}
+        aws_session_token: ${AWS_SESSION_TOKEN}
         optional: true
         local_file: ${PROJECT_DIRECTORY}/fuzz.tgz
-        remote_file: ${UPLOAD_BUCKET}/${build_variant}/${revision}/${version_id}/${build_id}/${task_id}-${execution}-fuzz.tgz
-        bucket: mciuploads
+        remote_file: ${build_variant}/${revision}/${version_id}/${build_id}/${task_id}-${execution}-fuzz.tgz
+        bucket: ${aws_bucket}
         permissions: public-read
         content_type: application/x-gzip
         display_name: "fuzz.tgz"
@@ -184,12 +188,13 @@ functions:
           find . -name \*.suite | xargs tar czf test_suite.tgz
     - command: s3.put
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        aws_key: ${AWS_ACCESS_KEY_ID}
+        aws_secret: ${AWS_SECRET_ACCESS_KEY}
+        aws_session_token: ${AWS_SESSION_TOKEN}
         local_file: src/go.mongodb.org/mongo-driver/test_suite.tgz
         optional: true
-        remote_file: ${UPLOAD_BUCKET}/${build_variant}/${revision}/${version_id}/${build_id}/logs/${task_id}-${execution}-test_suite.tgz
-        bucket: mciuploads
+        remote_file: ${build_variant}/${revision}/${version_id}/${build_id}/logs/${task_id}-${execution}-test_suite.tgz
+        bucket: ${aws_bucket}
         permissions: public-read
         content_type: ${content_type|text/plain}
         display_name: "test_suite.tgz"
@@ -276,9 +281,9 @@ functions:
         script: |
           ${PREPARE_SHELL}
           export OIDC="oidc"
-          bash ${PROJECT_DIRECTORY}/etc/run-oidc-test.sh 'make -s evg-test-oidc-auth'
+          task test-oidc
 
-  run-make:
+  run-task:
     - command: shell.exec
       type: test
       params:
@@ -286,7 +291,7 @@ functions:
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
-          ${BUILD_ENV|} BUILD_TAGS=${BUILD_TAGS|-tags=cse,gssapi} make ${targets}
+          ${BUILD_ENV|} BUILD_TAGS=${BUILD_TAGS|-tags=cse,gssapi} task ${targets}
 
   run-tests:
     - command: shell.exec
@@ -309,7 +314,7 @@ functions:
           ${PREPARE_SHELL}
           export BASE_SHA=${revision}
           export HEAD_SHA=${github_commit}
-          bash etc/api_report.sh
+          task api-report
 
   "add PR labels":
     - command: shell.exec
@@ -391,7 +396,7 @@ functions:
         include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
         script: |
           ${PREPARE_SHELL}
-          bash etc/run-atlas-test.sh
+          task test-atlas
 
   run-ocsp-test:
     - command: shell.exec
@@ -411,7 +416,7 @@ functions:
           TOPOLOGY="server" \
           MONGODB_URI="${MONGODB_URI}" \
           OCSP_TLS_SHOULD_SUCCEED="${OCSP_TLS_SHOULD_SUCCEED}" \
-          make evg-test-ocsp
+          task evg-test-ocsp
 
   run-versioned-api-test:
     - command: shell.exec
@@ -441,7 +446,7 @@ functions:
           BUILD_TAGS="-tags=cse" \
           REQUIRE_API_VERSION="${REQUIRE_API_VERSION}" \
           CRYPT_SHARED_LIB_PATH="$CRYPT_SHARED_LIB_PATH" \
-          make evg-test-versioned-api \
+          task evg-test-versioned-api \
           PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
           LD_LIBRARY_PATH=$LD_LIBRARY_PATH
 
@@ -488,7 +493,7 @@ functions:
           MULTI_MONGOS_LB_URI="${MULTI_MONGOS_LB_URI}" \
           TOPOLOGY="${TOPOLOGY}" \
           MONGO_GO_DRIVER_COMPRESSOR=${MONGO_GO_DRIVER_COMPRESSOR} \
-          make evg-test-load-balancers
+          task evg-test-load-balancers
 
   run-serverless-tests:
     - command: shell.exec
@@ -512,7 +517,7 @@ functions:
           SSL="nossl" \
           TOPOLOGY="server" \
           MONGODB_URI="mongodb://mhuser:pencil@localhost" \
-          make evg-test-atlas-data-lake
+          task evg-test-atlas-data-lake
 
   run-docker-test:
     - command: shell.exec
@@ -522,8 +527,8 @@ functions:
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
-          bash etc/run_docker.sh
-          TOPOLOGY=sharded_cluster bash etc/run_docker.sh test-short
+          task run-docker
+          TOPOLOGY=sharded_cluster task run-docker -- test-short
 
   run-valid-ocsp-server:
     - command: shell.exec
@@ -608,7 +613,7 @@ functions:
         script: |
           ${PREPARE_SHELL}
           TEST_INDEX_URI="${TEST_INDEX_URI}" \
-          make evg-test-search-index
+          task evg-test-search-index
 
   add-aws-auth-variables-to-file:
     - command: ec2.assume_role
@@ -688,7 +693,7 @@ functions:
             echo "This platform does not support the ECS auth test, skipping..."
             exit 0
           fi
-          make build-aws-ecs-test
+          task build-aws-ecs-test
     - command: shell.exec
       type: test
       params:
@@ -773,7 +778,7 @@ functions:
           TOPOLOGY="${TOPOLOGY}" \
           MONGO_GO_DRIVER_COMPRESSOR=${MONGO_GO_DRIVER_COMPRESSOR} \
           BUILD_TAGS="-tags=cse" \
-          make evg-test-kms \
+          task evg-test-kms \
           PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
           LD_LIBRARY_PATH=$LD_LIBRARY_PATH
 
@@ -794,7 +799,7 @@ functions:
           TOPOLOGY="${TOPOLOGY}" \
           MONGO_GO_DRIVER_COMPRESSOR=${MONGO_GO_DRIVER_COMPRESSOR} \
           BUILD_TAGS="-tags=cse" \
-          make evg-test-kmip \
+          task evg-test-kmip \
           PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
           LD_LIBRARY_PATH=$LD_LIBRARY_PATH
 
@@ -820,7 +825,7 @@ tasks:
   - name: static-analysis
     tags: ["static-analysis"]
     commands:
-      - func: run-make
+      - func: run-task
         vars:
           targets: "check-fmt check-license check-modules lint"
 
@@ -845,7 +850,7 @@ tasks:
           TOPOLOGY: "server"
           AUTH: "noauth"
           SSL: "nossl"
-      - func: run-make
+      - func: run-task
         vars:
           targets: driver-benchmark
       - func: send-perf-data
@@ -1591,7 +1596,7 @@ tasks:
   - name: go1.18-build
     tags: ["compile-check"]
     commands:
-      - func: run-make
+      - func: run-task
         vars:
           targets: "build-compile-check"
           BUILD_ENV: "PATH=/opt/golang/go1.18/bin:$PATH GOROOT=/opt/golang/go1.18"
@@ -1600,7 +1605,7 @@ tasks:
   - name: build
     tags: ["compile-check"]
     commands:
-      - func: run-make
+      - func: run-task
         vars:
           targets: "build"
 
@@ -1724,7 +1729,7 @@ tasks:
           echo "Building build-kms-test ... begin"
           BUILD_TAGS="-tags=cse" \
           PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
-            make build-kms-test
+            task build-kms-test
           echo "Building build-kms-test ... end"
           source $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/secrets-export.sh
           echo "Copying files ... begin"
@@ -1760,7 +1765,7 @@ tasks:
             echo "Building build-kms-test ... begin"
             BUILD_TAGS="-tags=cse" \
             PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
-              make build-kms-test
+              task build-kms-test
             echo "Building build-kms-test ... end"
             LD_LIBRARY_PATH=./install/libmongocrypt/lib64 \
             MONGODB_URI='mongodb://localhost:27017/' \
@@ -1777,7 +1782,7 @@ tasks:
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
-          bash etc/run-awskms-test.sh
+          task test-awskms
 
   - name: "testawskms-fail-task"
     # testawskms-fail-task runs without environment variables.
@@ -1791,7 +1796,7 @@ tasks:
         script: |
           ${PREPARE_SHELL}
           export EXPECT_ERROR='status=400'
-          bash etc/run-awskms-test.sh
+          task test-awskms
 
   - name: "testazurekms-task"
     commands:
@@ -1805,7 +1810,7 @@ tasks:
           echo "Building build-kms-test ... begin"
           BUILD_TAGS="-tags=cse" \
           PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
-            make build-kms-test
+            task build-kms-test
           echo "Building build-kms-test ... end"
 
           echo "Copying files ... begin"
@@ -1825,7 +1830,7 @@ tasks:
         script: |
           ${PREPARE_SHELL}
           source $DRIVERS_TOOLS/.evergreen/csfle/azurekms/secrets-export.sh
-          AZUREKMS_CMD="LD_LIBRARY_PATH=./install/libmongocrypt/lib64 MONGODB_URI='mongodb://localhost:27017' PROVIDER='azure' AZUREKMS_KEY_NAME='${AZUREKMS_KEY_NAME}' AZUREKMS_KEY_VAULT_ENDPOINT='${AZUREKMS_KEY_VAULT_ENDPOINT}' ./testkms" $DRIVERS_TOOLS/.evergreen/csfle/azurekms/run-command.sh
+          AZUREKMS_CMD="LD_LIBRARY_PATH=./install/libmongocrypt/lib64 MONGODB_URI='mongodb://localhost:27017' PROVIDER='azure' AZUREKMS_KEY_NAME=$AZUREKMS_KEYNAME AZUREKMS_KEY_VAULT_ENDPOINT=$AZUREKMS_KEYVAULTENDPOINT ./testkms" $DRIVERS_TOOLS/.evergreen/csfle/azurekms/run-command.sh
 
   - name: "testazurekms-fail-task"
     # testazurekms-fail-task runs without environment variables.
@@ -1841,13 +1846,14 @@ tasks:
           echo "Building build-kms-test ... begin"
           BUILD_TAGS="-tags=cse" \
           PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
-            make build-kms-test
+            task build-kms-test
           echo "Building build-kms-test ... end"
 
+          . ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/setup-secrets.sh
           LD_LIBRARY_PATH=./install/libmongocrypt/lib64 \
           MONGODB_URI='mongodb://localhost:27017' \
           EXPECT_ERROR='unable to retrieve azure credentials' \
-          PROVIDER='azure' AZUREKMS_KEY_NAME='${AZUREKMS_KEY_NAME}' AZUREKMS_KEY_VAULT_ENDPOINT='${AZUREKMS_KEY_VAULT_ENDPOINT}' \
+          PROVIDER='azure' AZUREKMS_KEY_NAME=$AZUREKMS_KEYNAME AZUREKMS_KEY_VAULT_ENDPOINT=$AZUREKMS_KEYVAULTENDPOINT \
             ./testkms
 
   - name: "test-fuzz"
