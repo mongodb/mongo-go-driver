@@ -63,7 +63,9 @@ done
 # If the fuzz directory exists, then tar it up in preparation to upload to S3.
 if [ -d $PROJECT_DIRECTORY/fuzz ]; then
 	echo "Tarring up fuzz directory"
-	tar -czf $PROJECT_DIRECTORY/fuzz.tgz $PROJECT_DIRECTORY/fuzz
+
+  	cd $PROJECT_DIRECTORY
+  	tar cfz fuzz.tgz ./fuzz
 
 	# Exit with code 1 to indicate that errors occurred in fuzz tests, resulting in corpus files being generated.
 	# This will trigger a notification to be sent to the Go Driver team.
