@@ -14,6 +14,7 @@ import (
 	"os"
 	"path"
 	"runtime"
+	"sort"
 	"testing"
 	"time"
 
@@ -151,6 +152,17 @@ func newCryptForBench(b *testing.B) *MongoCrypt {
 	return crypt
 }
 
+func calcMedian(values []float64) float64 {
+	sort.Float64s(values)
+
+	n := len(values)
+	if n%2 == 0 {
+		return (values[n/2-1] + values[n/2]) / 2.0
+	}
+
+	return values[(n-1)/2]
+}
+
 func BenchmarkBulkDecryption(b *testing.B) {
 	const numKeys = 1500
 	const repeatCount = 10
@@ -180,7 +192,7 @@ func BenchmarkBulkDecryption(b *testing.B) {
 	// Run the benchmark. Repeat benchmark for thread counts: (1, 2, 8, 64).
 	// Repeat 10 times.
 	for _, bench := range benchmarks {
-		var totalOpsPerSec float64
+		var opsPerSec []float64
 
 		b.Run(fmt.Sprintf("threadCount=%v", bench.threads), func(b *testing.B) {
 			runtime.GOMAXPROCS(bench.threads)
@@ -197,11 +209,10 @@ func BenchmarkBulkDecryption(b *testing.B) {
 					}
 				})
 
-				totalOpsPerSec += float64(b.N) / time.Now().Sub(startTime).Seconds()
+				opsPerSec = append(opsPerSec, float64(b.N)/time.Now().Sub(startTime).Seconds())
 			}
 		})
 
-		avgOpsPerSec := totalOpsPerSec / float64(repeatCount)
-		b.Logf("thread count: %v, ops/sec: %.2f\n", bench.threads, avgOpsPerSec)
+		b.Logf("thread count: %v, median ops/sec: %.2f\n", bench.threads, calcMedian(opsPerSec))
 	}
 }
