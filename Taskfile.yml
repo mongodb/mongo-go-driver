@@ -5,6 +5,8 @@ env:
   TEST_TIMEOUT: 1800
   LONG_TEST_TIMEOUT: 3600
 
+dotenv: ['.env', '.test.env']
+
 tasks:
 
   ### Utility tasks. ###
@@ -50,6 +52,8 @@ tasks:
 
   run-docker: bash etc/run_docker.sh
 
+  run-fuzz: bash etc/run-fuzz.sh
+
   cherry-picker: bash etc/cherry-picker.sh
 
   # Lint with various GOOS and GOARCH tasks to catch static analysis failures that may only affect
@@ -81,7 +85,8 @@ tasks:
 
   test-oidc: bash etc/run-oidc-test.sh 'task --silent evg-test-oidc-auth'
 
-  test-atlas: bash etc/run-atlas-test.sh
+  test-atlas-connect: 
+    - go test -v -run ^TestAtlas$ go.mongodb.org/mongo-driver/v2/internal/cmd/testatlas -args "$ATLAS_REPL" "$ATLAS_SHRD" "$ATLAS_FREE" "$ATLAS_TLS11" "$ATLAS_TLS12" "$ATLAS_SERVERLESS" "$ATLAS_SRV_REPL" "$ATLAS_SRV_SHRD" "$ATLAS_SRV_FREE" "$ATLAS_SRV_TLS11" "$ATLAS_SRV_TLS12" "$ATLAS_SRV_SERVERLESS" >> test.suite
 
   test-awskms: bash etc/run-awskms-test.sh
 
@@ -93,6 +98,8 @@ tasks:
       - make -c internal/cmd/faas/awslambda
 
   ### Evergreen specific tasks. ###
+  setup-test: bash etc/setup-test.sh
+
   build-aws-ecs-test: go build ${BUILD_TAGS} ./internal/cmd/testaws/main.go
 
   evg-test:
@@ -164,6 +171,10 @@ tasks:
     - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./mongo >> test.suite
     - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./internal/integration >> test.suite
     - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./internal/integration/unified >> test.suite
+
+  evg-test-aws: bash etc/run-mongodb-aws-test.sh
+
+  evg-test-deployed-lambda-aws: bash ${DRIVERS_TOOLS}/.evergreen/aws_lambda/run-deployed-lambda-aws-tests.sh
 
   build-kms-test: go build ${BUILD_TAGS} ./internal/cmd/testkms
 
