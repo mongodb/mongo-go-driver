@@ -111,7 +111,7 @@ func createEncryptedDocForBulkDecryptionBench(b *testing.B, crypt *MongoCrypt, c
 
 	for i := 0; i < count; i++ {
 		encDoc := createEncryptedDocForBench(b, crypt, i)
-		bldr.AppendValue(fmt.Sprintf("key%v", i), encDoc.Lookup("v"))
+		bldr.AppendValue(fmt.Sprintf("key%04v", i), encDoc.Lookup("v"))
 	}
 
 	return bldr.Build()
