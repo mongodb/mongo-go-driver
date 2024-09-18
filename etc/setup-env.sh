@@ -12,7 +12,6 @@ fi
 
 GOPATH="$(dirname "$(dirname "$(dirname "`pwd`")")")"
 export GOPATH
-GOCACHE="$(pwd)/.cache"
 OS="${OS:-""}"
 EXTRA_PATH="$GOROOT/bin:$GOPATH/bin:${GCC_PATH:-}"
 
@@ -67,7 +66,6 @@ fi
 cat <<EOT > .env
 GOROOT="$GOROOT"
 GOPATH="$GOPATH"
-GOCACHE="$GOCACHE"
 DRIVERS_TOOLS="$DRIVERS_TOOLS"
 PROJECT_DIRECTORY="$PROJECT_DIRECTORY"
 PKG_CONFIG_PATH="$PKG_CONFIG_PATH"
