@@ -303,7 +303,7 @@ functions:
         add_to_path: ["${EXTRA_PATH}"]
         include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
         script: |
-          task setup-test -- enterprise-auth
+          task setup-test -- enterprise-plain
           task --silent evg-test-enterprise-auth
 
   run-enterprise-gssapi-auth-tests:

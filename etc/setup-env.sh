@@ -14,6 +14,7 @@ GOPATH="$(dirname "$(dirname "$(dirname "`pwd`")")")"
 export GOPATH
 GOCACHE="$(pwd)/.cache"
 OS="${OS:-""}"
+EXTRA_PATH="$GOROOT/bin:$$GOPATH/bin:${GCC_PATH:-}::$EXTRA_PATH"
 
 # Set other relevant variables for Evergreen processes.
 DRIVERS_TOOLS_DEFAULT="$(dirname "$(dirname "$(dirname "`pwd`")")")/drivers-tools"
@@ -23,30 +24,16 @@ PROJECT_DIRECTORY="$(pwd)"
 # If on Windows, convert paths with cygpath. GOROOT should not be converted as Windows expects it
 # to be separated with '\'.
 if [ "Windows_NT" = "$OS" ]; then
-    GOPATH=$(cygpath -m $GOPATH)
+    GOPATH=$(cygpath -w $GOPATH)
     GOCACHE=$(cygpath -m $GOCACHE)
     DRIVERS_TOOLS=$(cygpath -m $DRIVERS_TOOLS)
     PROJECT_DIRECTORY=$(cygpath -m $PROJECT_DIRECTORY)
+    # Use the --path option to convert the path on Windows.
+    EXTRA_PATH=$(cypath -mp $EXTRA_PATH)
 
     # Set home variables for Windows, too.
     USERPROFILE=$(cygpath -w "$(dirname "$(dirname "$(dirname "`pwd`")")")")
     HOME=$USERPROFILE
-fi
-
-# Set up extra path needed for running executables
-EXTRA_PATH=""
-GOROOTBIN="$GOROOT/bin"
-GOPATHBIN="$GOPATH/bin"
-if [ "Windows_NT" = "$OS" ]; then
-    # Convert all Windows-style paths (e.g. C:/) to Bash-style Cygwin paths
-    # (e.g. /cygdrive/c/...) because PATH is interpreted by Bash, which uses ":" as a
-    # separator so doesn't support Windows-style paths. Other scripts or binaries that
-    # aren't part of Cygwin still need the environment variables to use Windows-style
-    # paths, so only convert them when setting PATH. Note that GCC_PATH is already a
-    # Bash-style Cygwin path for all Windows tasks.
-    EXTRA_PATH="$(cygpath $GOROOTBIN):$(cygpath $GOPATHBIN):${GCC_PATH:-}:$EXTRA_PATH"
-else
-    EXTRA_PATH="$GOROOTBIN:$GOPATHBIN:${GCC_PATH:-}::$EXTRA_PATH"
 fi
 
 # Prepend the path.
@@ -83,3 +70,6 @@ LD_LIBRARY_PATH="$LD_LIBRARY_PATH"
 MACOS_LIBRARY_PATH="${DYLD_FALLBACK_LIBRARY_PATH:-}"
 EXTRA_PATH="$EXTRA_PATH"
 EOT
+
+# TODO REMOVE
+cat .test.env
