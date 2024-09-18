@@ -47,13 +47,15 @@ functions:
              CURRENT_VERSION=latest
           fi
 
-          # Setu up the environment and write the .env file.
-          GOROOT="${GO_DIST}" bash etc/setup-env.sh
+          # We have to handle GOCACHE separately so it stays as a Windows paths.
           GOCACHE="$(pwd)/.cache"
           if [ "Windows_NT" = "$OS" ]; then
             GOCACHE=$(cygpath -m $GOCACHE)
           fi
 
+          # Set up the environment and write the .env file.
+          GOROOT="${GO_DIST}" GOCACHE=$GOCACHE bash etc/setup-env.sh
+          
           # source the .env file and write the expansion file.
           cat .env
           set -a
