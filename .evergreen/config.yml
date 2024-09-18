@@ -552,7 +552,7 @@ functions:
         working_dir: src/go.mongodb.org/mongo-driver
         add_to_path: ["${EXTRA_PATH}"]
         script: |
-          task test-evg-aws -- regular
+          task evg-test-aws -- regular
 
   run-aws-auth-test-with-assume-role-credentials:
     - command: shell.exec
@@ -562,7 +562,7 @@ functions:
         working_dir: src/go.mongodb.org/mongo-driver
         add_to_path: ["${EXTRA_PATH}"]
         script: |
-          task test-evg-aws -- assume-role
+          task evg-test-aws -- assume-role
 
   run-aws-auth-test-with-aws-EC2-credentials:
     - command: shell.exec
@@ -576,7 +576,7 @@ functions:
             echo "This platform does not support the EC2 auth test, skipping..."
             exit 0
           fi
-          task test-evg-aws -- ec2
+          task evg-test-aws -- ec2
 
   run-aws-auth-test-with-aws-credentials-as-environment-variables:
     - command: shell.exec
@@ -586,7 +586,7 @@ functions:
         working_dir: src/go.mongodb.org/mongo-driver
         add_to_path: ["${EXTRA_PATH}"]
         script: |
-          task test-evg-aws -- env-creds
+          task evg-test-aws -- env-creds
 
   run-aws-auth-test-with-aws-credentials-and-session-token-as-environment-variables:
     - command: shell.exec
@@ -595,7 +595,7 @@ functions:
         shell: "bash"
         add_to_path: ["${EXTRA_PATH}"]
         script: |
-          task test-evg-aws -- session-creds
+          task evg-test-aws -- session-creds
 
   run-aws-ECS-auth-test:
     - command: shell.exec
@@ -642,7 +642,7 @@ functions:
              echo "This platform does not support the web identity auth test, skipping..."
              exit 0
           fi
-          task test-evg-aws -- web-identity
+          task evg-test-aws -- web-identity
     - command: shell.exec
       type: test
       params:
@@ -655,7 +655,7 @@ functions:
              exit 0
           fi
           export AWS_ROLE_SESSION_NAME="test"
-          task test-evg-aws -- web-identity
+          task evg-test-aws -- web-identity
 
   start-cse-servers:
     - command: ec2.assume_role
@@ -717,7 +717,7 @@ functions:
       type: test
       params:
         shell: "bash"
-        working_dir: "src"
+        working_dir: src/go.mongodb.org/mongo-driver
         add_to_path: ["${EXTRA_PATH}"]
         script: |
           task run-fuzz
