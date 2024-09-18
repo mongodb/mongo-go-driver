@@ -24,12 +24,12 @@ PROJECT_DIRECTORY="$(pwd)"
 # If on Windows, convert paths with cygpath. GOROOT should not be converted as Windows expects it
 # to be separated with '\'.
 if [ "Windows_NT" = "$OS" ]; then
-    GOPATH=$(cygpath -w $GOPATH)
-    GOCACHE=$(cygpath -m $GOCACHE)
+    GOPATH=$(cygpath -m $GOPATH)
+    GOCACHE=$(cygpath -w $GOCACHE)
     DRIVERS_TOOLS=$(cygpath -m $DRIVERS_TOOLS)
     PROJECT_DIRECTORY=$(cygpath -m $PROJECT_DIRECTORY)
     # Use the --path option to convert the path on Windows.
-    EXTRA_PATH=$(cypath -mp $EXTRA_PATH)
+    EXTRA_PATH=$(cygpath -mp $EXTRA_PATH)
 
     # Set home variables for Windows, too.
     USERPROFILE=$(cygpath -w "$(dirname "$(dirname "$(dirname "`pwd`")")")")
