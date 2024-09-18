@@ -31,7 +31,6 @@ if [ "${SKIP_CRYPT_SHARED_LIB:-''}" = "true" ]; then
 elif [ -z "${CRYPT_SHARED_LIB_PATH:-''}" ]; then
   echo "crypt_shared library path is empty"
 else
-  CRYPT_SHARED_LIB_PATH=${CRYPT_SHARED_LIB_PATH}
   echo "crypt_shared library will be loaded from path: $CRYPT_SHARED_LIB_PATH"
 fi
 
@@ -39,7 +38,7 @@ case ${1:-} in
     enterprise-plain)
         . ${DRIVERS_TOOLS}/.evergreen/secrets_handling/setup-secrets.sh drivers/enterprise_auth
         MONGODB_URI="mongodb://${SASL_USER}:${SASL_PASS}@${SASL_HOST}:${SASL_PORT}/ldap?authMechanism=PLAIN"
-        rm setup-secrets.sh
+        rm secrets-export.sh
         ;;
     enterprise-gssapi)
         . ${DRIVERS_TOOLS}/.evergreen/secrets_handling/setup-secrets.sh drivers/enterprise_auth
@@ -53,7 +52,7 @@ case ${1:-} in
             kinit -k -t .evergreen/drivers.keytab -p "${PRINCIPAL}"
             MONGODB_URI="mongodb://${PRINCIPAL/@/%40}@${SASL_HOST}:${SASL_PORT}/kerberos?authMechanism=GSSAPI"
         fi
-         rm setup-secrets.sh
+         rm secrets-export.sh
         ;;
     serverless)
         . ${DRIVERS_TOOLS}/.evergreen/serverless/secrets-export.sh
@@ -69,17 +68,18 @@ esac
 cat <<EOT > .test.env
 AUTH="${AUTH}:-"
 SSL="${SSL}"
-MONGO_GO_DRIVER_CA_FILE="${MONGO_GO_DRIVER_CA_FILE}"
-MONGO_GO_DRIVER_KEY_FILE="${MONGO_GO_DRIVER_KEY_FILE}"
-MONGO_GO_DRIVER_PKCS8_ENCRYPTED_KEY_FILE="${MONGO_GO_DRIVER_PKCS8_ENCRYPTED_KEY_FILE}"
-MONGO_GO_DRIVER_PKCS8_UNENCRYPTED_KEY_FILE="${MONGO_GO_DRIVER_PKCS8_UNENCRYPTED_KEY_FILE}"
+MONGO_GO_DRIVER_CA_FILE="${MONGO_GO_DRIVER_CA_FILE:-}"
+MONGO_GO_DRIVER_KEY_FILE="${MONGO_GO_DRIVER_KEY_FILE:-}"
+MONGO_GO_DRIVER_PKCS8_ENCRYPTED_KEY_FILE="${MONGO_GO_DRIVER_PKCS8_ENCRYPTED_KEY_FILE:-}"
+MONGO_GO_DRIVER_PKCS8_UNENCRYPTED_KEY_FILE="${MONGO_GO_DRIVER_PKCS8_UNENCRYPTED_KEY_FILE:-}"
 MONGODB_URI="${MONGODB_URI:-}"
 TOPOLOGY="${TOPOLOGY:-}"
+SERVERLESS="${SERVERLESS:-}"
 REQUIRE_API_VERSION="${REQUIRE_API_VERSION:-}"
-LOAD_BALANCER="${LOAD_BALANCER}"
+LOAD_BALANCER="${LOAD_BALANCER:-}"
 MONGO_GO_DRIVER_COMPRESSOR="${MONGO_GO_DRIVER_COMPRESSOR:-}"
 BUILD_TAGS="${RACE:-} -tags=${GO_BUILD_TAGS:-}"
-CRYPT_SHARED_LIB_PATH="${CRYPT_SHARED_LIB_PATH}"
+CRYPT_SHARED_LIB_PATH="${CRYPT_SHARED_LIB_PATH:-}"
 EOT
 
 # Add secrets to the test file.
