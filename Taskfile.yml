@@ -98,7 +98,7 @@ tasks:
       - make -c internal/cmd/faas/awslambda
 
   ### Evergreen specific tasks. ###
-  setup-test: bash etc/setup-test.sh
+  setup-test: bash etc/setup-test.sh {{.CLI_ARGS}}
 
   build-aws-ecs-test: go build ${BUILD_TAGS} ./internal/cmd/testaws/main.go
 
@@ -112,6 +112,7 @@ tasks:
   evg-test-enterprise-auth: 
     - cat .env
     - echo "GOCACHE=$GOCACHE"
+    - env
     - go run -tags gssapi ./internal/cmd/testentauth/main.go
 
   evg-test-oidc-auth:

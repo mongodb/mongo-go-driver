@@ -34,8 +34,6 @@ else
   echo "crypt_shared library will be loaded from path: $CRYPT_SHARED_LIB_PATH"
 fi
 
-echo "HELLO $1"
-
 case ${1:-} in
     enterprise-plain)
         . ${DRIVERS_TOOLS}/.evergreen/secrets_handling/setup-secrets.sh drivers/enterprise_auth
