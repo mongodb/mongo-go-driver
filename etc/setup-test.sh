@@ -3,6 +3,7 @@
 # Set up test environment and write .test.env file.
 set -eux
 
+OS=${OS:-""}
 SSL=${SSL:-nossl}
 if [ "$SSL" != "nossl" ] && [ -z "${SERVERLESS+x}" ]; then
     MONGO_GO_DRIVER_CA_FILE="${DRIVERS_TOOLS}/.evergreen/x509gen/ca.pem"
