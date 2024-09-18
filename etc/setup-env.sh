@@ -12,6 +12,7 @@ fi
 
 GOPATH="$(dirname "$(dirname "$(dirname "`pwd`")")")"
 GOCACHE="$(pwd)/.cache"
+OS="${OS:-""}"
 
 # Set other relevant variables for Evergreen processes.
 DRIVERS_TOOLS_DEFAULT="$(dirname "$(dirname "$(dirname "`pwd`")")")/drivers-tools"
