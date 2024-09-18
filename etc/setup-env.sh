@@ -48,6 +48,9 @@ else
     EXTRA_PATH="$GOROOTBIN:$GOPATHBIN:${GCC_PATH:-}::$EXTRA_PATH"
 fi
 
+# Prepend the path.
+PATH="$EXTRA_PATH:$PATH"
+
 # Check Go installation.
 go version
 go env
