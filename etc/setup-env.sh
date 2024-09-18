@@ -14,7 +14,7 @@ GOPATH="$(dirname "$(dirname "$(dirname "`pwd`")")")"
 export GOPATH
 GOCACHE="$(pwd)/.cache"
 OS="${OS:-""}"
-EXTRA_PATH="$GOROOT/bin:$$GOPATH/bin:${GCC_PATH:-}"
+EXTRA_PATH="$GOROOT/bin:$GOPATH/bin:${GCC_PATH:-}"
 
 # Set other relevant variables for Evergreen processes.
 DRIVERS_TOOLS_DEFAULT="$(dirname "$(dirname "$(dirname "`pwd`")")")/drivers-tools"
