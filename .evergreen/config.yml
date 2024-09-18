@@ -51,13 +51,14 @@ functions:
           GOROOT="${GO_DIST}" bash etc/setup-env.sh
 
           # source the .env file and write the expansion file.
+          cat .env
           set -a
           source .env
           set +a
 
           cat <<EOT > expansion.yml
           CURRENT_VERSION: "$CURRENT_VERSION"
-          DRIVERS_TOOLS: "${DRIVERS_TOOLS}"
+          DRIVERS_TOOLS: "$DRIVERS_TOOLS"
           PROJECT_DIRECTORY: "$PROJECT_DIRECTORY"
           EXTRA_PATH: "$EXTRA_PATH"
           EOT
