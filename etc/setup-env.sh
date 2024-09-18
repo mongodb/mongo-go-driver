@@ -11,6 +11,7 @@ if [ -z "${GOROOT:-}" ]; then
 fi
 
 GOPATH="$(dirname "$(dirname "$(dirname "`pwd`")")")"
+export GOPATH
 GOCACHE="$(pwd)/.cache"
 OS="${OS:-""}"
 
@@ -35,7 +36,7 @@ fi
 # Set up extra path needed for running executables
 EXTRA_PATH=""
 GOROOTBIN="$GOROOT/bin"
- GOPATHBIN="$GOPATH/bin"
+GOPATHBIN="$GOPATH/bin"
 if [ "Windows_NT" = "$OS" ]; then
     # Convert all Windows-style paths (e.g. C:/) to Bash-style Cygwin paths
     # (e.g. /cygdrive/c/...) because PATH is interpreted by Bash, which uses ":" as a
