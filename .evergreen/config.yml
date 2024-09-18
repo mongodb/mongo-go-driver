@@ -52,6 +52,7 @@ functions:
           GOCACHE="$(pwd)/.cache"
           if [ "Windows_NT" = "$OS" ]; then
             GOCACHE=$(cygpath -m $GOCACHE)
+          fi
 
           # source the .env file and write the expansion file.
           cat .env
