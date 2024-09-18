@@ -72,4 +72,4 @@ EXTRA_PATH="$EXTRA_PATH"
 EOT
 
 # TODO REMOVE
-cat .test.env
+cat .env
