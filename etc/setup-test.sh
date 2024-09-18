@@ -66,7 +66,7 @@ case ${1:-} in
 esac
 
 cat <<EOT > .test.env
-AUTH="${AUTH}:-"
+AUTH="${AUTH:-}"
 SSL="${SSL}"
 MONGO_GO_DRIVER_CA_FILE="${MONGO_GO_DRIVER_CA_FILE:-}"
 MONGO_GO_DRIVER_KEY_FILE="${MONGO_GO_DRIVER_KEY_FILE:-}"
