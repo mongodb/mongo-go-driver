@@ -596,7 +596,7 @@ func (db *Database) CreateCollection(ctx context.Context, name string, opts ...o
 		return fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 
-	// Follow Client-Side Encryption specification to check for encryptedFields.
+	// Follow In-Use Encryption specification to check for encryptedFields.
 	// Check for encryptedFields from create options.
 	ef := args.EncryptedFields
 	// Check for encryptedFields from the client EncryptedFieldsMap.

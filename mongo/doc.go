@@ -102,16 +102,16 @@
 // using a different DNS server (8.8.8.8 is the common default), and, if that's not possible, avoiding the "mongodb+srv"
 // scheme.
 //
-// # Client Side Encryption
+// # Client-Side Field Level Encryption
 //
-// Client-side encryption is a new feature in MongoDB 4.2 that allows specific data fields to be encrypted. Using this
+// Client-side field level encryption is a new feature in MongoDB 4.2 that allows specific data fields to be encrypted. Using this
 // feature requires specifying the "cse" build tag during compilation:
 //
 //	go build -tags cse
 //
 // Note: Auto encryption is an enterprise- and Atlas-only feature.
 //
-// The libmongocrypt C library is required when using client-side encryption. Specific versions of libmongocrypt
+// The libmongocrypt C library is required when using client-side field level encryption. Specific versions of libmongocrypt
 // are required for different versions of the Go Driver:
 //
 // - Go Driver v1.2.0 requires libmongocrypt v1.0.0 or higher
