@@ -34,6 +34,8 @@ else
   echo "crypt_shared library will be loaded from path: $CRYPT_SHARED_LIB_PATH"
 fi
 
+echo "HELLO $1"
+
 case ${1:-} in
     enterprise-plain)
         . ${DRIVERS_TOOLS}/.evergreen/secrets_handling/setup-secrets.sh drivers/enterprise_auth
@@ -72,7 +74,6 @@ MONGO_GO_DRIVER_CA_FILE="${MONGO_GO_DRIVER_CA_FILE:-}"
 MONGO_GO_DRIVER_KEY_FILE="${MONGO_GO_DRIVER_KEY_FILE:-}"
 MONGO_GO_DRIVER_PKCS8_ENCRYPTED_KEY_FILE="${MONGO_GO_DRIVER_PKCS8_ENCRYPTED_KEY_FILE:-}"
 MONGO_GO_DRIVER_PKCS8_UNENCRYPTED_KEY_FILE="${MONGO_GO_DRIVER_PKCS8_UNENCRYPTED_KEY_FILE:-}"
-MONGODB_URI="${MONGODB_URI:-}"
 TOPOLOGY="${TOPOLOGY:-}"
 SERVERLESS="${SERVERLESS:-}"
 REQUIRE_API_VERSION="${REQUIRE_API_VERSION:-}"
@@ -81,6 +82,10 @@ MONGO_GO_DRIVER_COMPRESSOR="${MONGO_GO_DRIVER_COMPRESSOR:-}"
 BUILD_TAGS="${RACE:-} -tags=${GO_BUILD_TAGS:-}"
 CRYPT_SHARED_LIB_PATH="${CRYPT_SHARED_LIB_PATH:-}"
 EOT
+
+if [ -n "${MONGODB_URI:-}" ]; then 
+    echo "MONGODB_URI=\"${MONGODB_URI}\"" >> .test.env
+fi
 
 # Add secrets to the test file.
 if [ -f "secrets-export.sh" ]; then

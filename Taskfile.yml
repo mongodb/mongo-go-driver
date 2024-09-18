@@ -110,6 +110,7 @@ tasks:
     - ATLAS_DATA_LAKE_INTEGRATION_TEST=true go test -v ./internal/integration -run TestAtlasDataLake >> spec_test.suite
 
   evg-test-enterprise-auth: 
+    - cat .env
     - echo "GOCACHE=$GOCACHE"
     - go run -tags gssapi ./internal/cmd/testentauth/main.go
 
