@@ -28,8 +28,13 @@ if [ "Windows_NT" = "$OS" ]; then
     GOCACHE=$(cygpath -w $GOCACHE)
     DRIVERS_TOOLS=$(cygpath -m $DRIVERS_TOOLS)
     PROJECT_DIRECTORY=$(cygpath -m $PROJECT_DIRECTORY)
-    # Use the --path option to convert the path on Windows.
-    EXTRA_PATH=$(cygpath -mp $EXTRA_PATH)
+    # Convert all Windows-style paths (e.g. C:/) to Bash-style Cygwin paths
+    # (e.g. /cygdrive/c/...) because PATH is interpreted by Bash, which uses ":" as a
+    # separator so doesn't support Windows-style paths. Other scripts or binaries that
+    # aren't part of Cygwin still need the environment variables to use Windows-style
+    # paths, so only convert them when setting PATH. Note that GCC_PATH is already a
+    # Bash-style Cygwin path for all Windows tasks.
+    EXTRA_PATH="$(cygpath $GOROOT/bin):$(cygpath $GOPATH/bin):${GCC_PATH}"
 
     # Set home variables for Windows, too.
     USERPROFILE=$(cygpath -w "$(dirname "$(dirname "$(dirname "`pwd`")")")")
