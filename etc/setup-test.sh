@@ -90,3 +90,6 @@ if [ -f "secrets-export.sh" ]; then
         fi
     done <secrets-export.sh
 fi
+
+# TODO REMOVE
+cat .test.env
