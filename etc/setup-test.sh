@@ -25,10 +25,10 @@ if [ -z ${GO_BUILD_TAGS+x} ]; then
   GO_BUILD_TAGS="cse"
 fi
 
-if [ "${SKIP_CRYPT_SHARED_LIB}" = "true" ]; then
+if [ "${SKIP_CRYPT_SHARED_LIB:-''}" = "true" ]; then
   CRYPT_SHARED_LIB_PATH=""
   echo "crypt_shared library is skipped"
-elif [ -z "${CRYPT_SHARED_LIB_PATH}" ]; then
+elif [ -z "${CRYPT_SHARED_LIB_PATH:-''}" ]; then
   echo "crypt_shared library path is empty"
 else
   CRYPT_SHARED_LIB_PATH=${CRYPT_SHARED_LIB_PATH}
