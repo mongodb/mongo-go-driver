@@ -4,4 +4,7 @@
 set -eu
 
 source ./env.sh
+
+cat env.sh
+echo "GOCACHE=$GOCACHE"
 task "$@"
