@@ -103,7 +103,7 @@ tasks:
   build-aws-ecs-test: go build ${BUILD_TAGS} ./internal/cmd/testaws/main.go
 
   evg-test:
-    - echo "GOCACHE2=$GOCACHE"
+    - echo "GOCACHE3=$GOCACHE"
     - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=$MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s -p 1 ./... >> test.suite
 
   evg-test-atlas-data-lake:

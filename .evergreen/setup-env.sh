@@ -61,6 +61,7 @@ go install github.com/go-task/task/v3/cmd/task@v3.39.1
 cat <<EOT > env.sh
 export GOROOT="$GOROOT"
 export GOPATH="$GOPATH"
+export GOCACHE="$GOCACHE"
 export DRIVERS_TOOLS="$DRIVERS_TOOLS"
 export PROJECT_DIRECTORY="$PROJECT_DIRECTORY"
 export PATH="$PATH"
