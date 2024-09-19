@@ -47,6 +47,10 @@ do
     case "${flag}" in
         a) add=1;;
         v) verbose=1;;
+        *) 
+            echo "flag not recognized"
+            exit 1
+            ;;
     esac
 done
 

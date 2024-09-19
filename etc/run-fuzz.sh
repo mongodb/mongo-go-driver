@@ -44,6 +44,7 @@ do
 			for CORPUS_FILE in $PARENTDIR/testdata/fuzz/$FUNC/*
 			do
 				# Check to see if the value for CORPUS_FILE is in cset.
+				# shellcheck disable=SC2076
 				if [[ ! " ${cset[*]} " =~ " ${CORPUS_FILE} " ]]; then
 					# Create the directory if it doesn't exist.
 					if [ ! -d $PROJECT_DIRECTORY/fuzz/$FUNC ]; then

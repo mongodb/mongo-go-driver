@@ -28,7 +28,7 @@ if [ -z ${GO_BUILD_TAGS+x} ]; then
 fi
 
 # Install libmongocrypt if needed.
-if [[ "$GO_BUILD_FLAGS" ~= "cse" ]]; then 
+if [[ "$GO_BUILD_FLAGS" =~ "cse" ]]; then 
     if [ "Windows_NT" = "$OS" ]; then
         if [ ! -d "/cygdrive/c/libmongocrypt/bin" ]; then
             task install-libmongocrypt

@@ -4,6 +4,7 @@ set -x # show all commands being run
 
 GC=go
 COMPILE_CHECK_DIR="internal/cmd/compilecheck"
+# shellcheck disable=SC2034
 DEV_MIN_VERSION=1.19
 
 # version will flatten a version string of upto 4 components for inequality
