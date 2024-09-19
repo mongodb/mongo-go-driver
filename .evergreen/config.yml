@@ -47,27 +47,17 @@ functions:
              CURRENT_VERSION=latest
           fi
 
-          # We have to handle GOCACHE separately so it stays as a Windows paths.
-          GOCACHE="$(pwd)/.cache"
-          if [ "Windows_NT" = "$OS" ]; then
-            GOCACHE=$(cygpath -m $GOCACHE)
-          fi
-
-          # Set up the environment and write the .env file.
-          GOROOT="${GO_DIST}" GOCACHE=$GOCACHE bash etc/setup-env.sh
+          # Set up the environment and write the env.sh file.
+          GOROOT="${GO_DIST}" bash etc/setup-env.sh
           
-          # source the .env file and write the expansion file.
-          cat .env
-          set -a
-          source .env
-          set +a
+          # source the env.sh file and write the expansion file.
+          source env.sh
 
           cat <<EOT > expansion.yml
           CURRENT_VERSION: "$CURRENT_VERSION"
           DRIVERS_TOOLS: "$DRIVERS_TOOLS"
           PROJECT_DIRECTORY: "$PROJECT_DIRECTORY"
-          EXTRA_PATH: "$EXTRA_PATH"
-          GOCACHE: "$GOCACHE"
+          RUN_TASK: "$(pwd)/.evergreen/run-task.sh"
           EOT
 
           # See what we variables we've set.
@@ -215,10 +205,9 @@ functions:
       params:
         working_dir: src/go.mongodb.org/mongo-driver
         shell: bash
-        add_to_path: ["${EXTRA_PATH}"]
-        include_expansions_in_env: ["DRIVERS_TOOLS", "GOCACHE", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
+        include_expansions_in_env: ["DRIVERS_TOOLS", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
         script: |
-          OIDC="oidc" task test-oidc
+          OIDC="oidc" ${RUN_TASK} test-oidc
 
   run-task:
     - command: shell.exec
@@ -226,9 +215,8 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ["${EXTRA_PATH}"]
         script: |
-          ${BUILD_ENV|} BUILD_TAGS=${BUILD_TAGS|-tags=cse,gssapi} GOCACHE=${GOCACHE} task ${targets}
+          ${BUILD_ENV|} BUILD_TAGS=${BUILD_TAGS|-tags=cse,gssapi} ${RUN_TASK} ${targets}
 
   run-tests:
     - command: shell.exec
@@ -236,16 +224,15 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ["${EXTRA_PATH}"]
-        include_expansions_in_env: ["GOCACHE", "TOPOLOGY", "AUTH", "SSL", "MONGODB_URI", "CRYPT_SHARED_LIB_PATH", "SKIP_CRYPT_SHARED_LIB", "RACE", "MONGO_GO_DRIVER_COMPRESSOR", "REQUIRE_API_VERSION", "LOAD_BALANCER"]
+        include_expansions_in_env: ["TOPOLOGY", "AUTH", "SSL", "MONGODB_URI", "CRYPT_SHARED_LIB_PATH", "SKIP_CRYPT_SHARED_LIB", "RACE", "MONGO_GO_DRIVER_COMPRESSOR", "REQUIRE_API_VERSION", "LOAD_BALANCER"]
         script: |
           set -e
-          task setup-test
+          ${RUN_TASK} setup-test
           if [ "$(uname -s)" = "Darwin" ]; then
               # Run a subset of the tests on Darwin
-              task evg-test-load-balancers
+              ${RUN_TASK} evg-test-load-balancers
           else
-              task evg-test
+              ${RUN_TASK} evg-test
           fi
 
   create-api-report:
@@ -253,12 +240,11 @@ functions:
       type: test
       params:
         shell: "bash"
-        add_to_path: ["${EXTRA_PATH}"]
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           export BASE_SHA=${revision}
           export HEAD_SHA=${github_commit}
-          task api-report
+          ${RUN_TASK} api-report
 
   "add PR labels":
     - command: shell.exec
@@ -307,11 +293,10 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ["${EXTRA_PATH}"]
-        include_expansions_in_env: ["GOCACHE", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
+        include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
         script: |
-          task setup-test -- enterprise-plain
-          task --silent evg-test-enterprise-auth
+          ${RUN_TASK} setup-test -- enterprise-plain
+          ${RUN_TASK} --silent evg-test-enterprise-auth
 
   run-enterprise-gssapi-auth-tests:
     - command: ec2.assume_role
@@ -322,11 +307,10 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ["${EXTRA_PATH}"]
-        include_expansions_in_env: ["GOCACHE", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
+        include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
         script: |
-          task setup-test -- enterprise-gssapi
-          task --silent evg-test-enterprise-auth
+          ${RUN_TASK} setup-test -- enterprise-gssapi
+          ${RUN_TASK} --silent evg-test-enterprise-auth
 
   run-atlas-test:
     - command: ec2.assume_role
@@ -337,11 +321,10 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ["${EXTRA_PATH}"]
-        include_expansions_in_env: ["GOCACHE", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
+        include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
         script: |
-          task setup-test -- atlas-connect
-          task test-atlas-connect
+          ${RUN_TASK} setup-test -- atlas-connect
+          ${RUN_TASK} test-atlas-connect
 
   run-ocsp-test:
     - command: shell.exec
@@ -349,7 +332,6 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ["${EXTRA_PATH}"]
         script: |
           export MONGO_GO_DRIVER_CA_FILE="${DRIVERS_TOOLS}/.evergreen/ocsp/${OCSP_ALGORITHM}/ca.pem"
           if [ "Windows_NT" = "$OS" ]; then # Magic variable in cygwin
@@ -360,9 +342,8 @@ functions:
           SSL="ssl" \
           TOPOLOGY="server" \
           MONGODB_URI="${MONGODB_URI}" \
-          GOCACHE="${GOCACHE}" \
           OCSP_TLS_SHOULD_SUCCEED="${OCSP_TLS_SHOULD_SUCCEED}" \
-          task evg-test-ocsp
+          ${RUN_TASK} evg-test-ocsp
 
   run-versioned-api-test:
     - command: shell.exec
@@ -370,7 +351,6 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ["${EXTRA_PATH}"]
         script: |
           AUTH="${AUTH}" \
           SSL="${SSL}" \
@@ -381,9 +361,9 @@ functions:
           REQUIRE_API_VERSION="${REQUIRE_API_VERSION}" \
           SKIP_CRYPT_SHARED_LIB=${SKIP_CRYPT_SHARED_LIB} \
           CRYPT_SHARED_LIB_PATH="$CRYPT_SHARED_LIB_PATH" \
-          task setup-test
+          ${RUN_TASK} setup-test
 
-          GOCACHE="${GOCACHE}" task evg-test-versioned-api
+          ${RUN_TASK} evg-test-versioned-api
 
   run-load-balancer-tests:
     - command: shell.exec
@@ -391,7 +371,6 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ["${EXTRA_PATH}"]
         script: |
           # Verify that the required LB URI expansions are set to ensure that the test runner can correctly connect to
           # the LBs.
@@ -411,12 +390,11 @@ functions:
           MONGODB_URI="${SINGLE_MONGOS_LB_URI}" \
           TOPOLOGY="${TOPOLOGY}" \
           MONGO_GO_DRIVER_COMPRESSOR=${MONGO_GO_DRIVER_COMPRESSOR} \
-          task setup-test
+          ${RUN_TASK} setup-test
 
           SINGLE_MONGOS_LB_URI="${SINGLE_MONGOS_LB_URI}" \
           MULTI_MONGOS_LB_URI="${MULTI_MONGOS_LB_URI}" \
-          GOCACHE="${GOCACHE}" \
-          task evg-test-load-balancers
+          ${RUN_TASK} evg-test-load-balancers
 
   run-serverless-tests:
     - command: shell.exec
@@ -424,10 +402,9 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ["${EXTRA_PATH}"]
         script: |
-          task setup-test -- serverless
-          GOCACHE="${GOCACHE}" task evg-test-serverless
+          ${RUN_TASK} setup-test -- serverless
+          ${RUN_TASK} evg-test-serverless
 
   run-atlas-data-lake-test:
     - command: shell.exec
@@ -435,15 +412,14 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ["${EXTRA_PATH}"]
         script: |
           AUTH="auth" \
           SSL="nossl" \
           TOPOLOGY="server" \
           MONGODB_URI="mongodb://mhuser:pencil@localhost" \
-          task setup-test
+          ${RUN_TASK} setup-test
 
-          GOCACHE="${GOCACHE}" task evg-test-atlas-data-lake
+          ${RUN_TASK} evg-test-atlas-data-lake
 
   run-docker-test:
     - command: shell.exec
@@ -451,10 +427,9 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ["${EXTRA_PATH}"]
         script: |
-          task run-docker
-          TOPOLOGY=sharded_cluster task run-docker -- test-short
+          ${RUN_TASK} run-docker
+          TOPOLOGY=sharded_cluster ${RUN_TASK} run-docker -- test-short
 
   run-valid-ocsp-server:
     - command: shell.exec
@@ -536,10 +511,9 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ["${EXTRA_PATH}"]
         script: |
           TEST_INDEX_URI="${TEST_INDEX_URI}" \
-          task evg-test-search-index
+          ${RUN_TASK} evg-test-search-index
 
   add-aws-auth-variables-to-file:
     - command: ec2.assume_role
@@ -559,9 +533,8 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ["${EXTRA_PATH}"]
         script: |
-          GOCACHE="${GOCACHE}" task evg-test-aws -- regular
+          ${RUN_TASK} evg-test-aws -- regular
 
   run-aws-auth-test-with-assume-role-credentials:
     - command: shell.exec
@@ -569,9 +542,8 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ["${EXTRA_PATH}"]
         script: |
-          GOCACHE="${GOCACHE}" task evg-test-aws -- assume-role
+          ${RUN_TASK} evg-test-aws -- assume-role
 
   run-aws-auth-test-with-aws-EC2-credentials:
     - command: shell.exec
@@ -579,13 +551,12 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ["${EXTRA_PATH}"]
         script: |
           if [ "${SKIP_EC2_AUTH_TEST}" = "true" ]; then
             echo "This platform does not support the EC2 auth test, skipping..."
             exit 0
           fi
-          GOCACHE="${GOCACHE}" task evg-test-aws -- ec2
+          ${RUN_TASK} evg-test-aws -- ec2
 
   run-aws-auth-test-with-aws-credentials-as-environment-variables:
     - command: shell.exec
@@ -593,18 +564,16 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ["${EXTRA_PATH}"]
         script: |
-          tGOCACHE="${GOCACHE}" ask evg-test-aws -- env-creds
+          ${RUN_TASK} evg-test-aws -- env-creds
 
   run-aws-auth-test-with-aws-credentials-and-session-token-as-environment-variables:
     - command: shell.exec
       type: test
       params:
         shell: "bash"
-        add_to_path: ["${EXTRA_PATH}"]
         script: |
-          GOCACHE="${GOCACHE}" task evg-test-aws -- session-creds
+          ${RUN_TASK} evg-test-aws -- session-creds
 
   run-aws-ECS-auth-test:
     - command: shell.exec
@@ -612,13 +581,12 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ["${EXTRA_PATH}"]
         script: |
           if [ "${SKIP_ECS_AUTH_TEST}" = "true" ]; then
             echo "This platform does not support the ECS auth test, skipping..."
             exit 0
           fi
-          GOCACHE="${GOCACHE}" task build-aws-ecs-test
+          ${RUN_TASK} build-aws-ecs-test
     - command: shell.exec
       type: test
       params:
@@ -645,26 +613,24 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ["${EXTRA_PATH}"]
         script: |
           if [ "${SKIP_WEB_IDENTITY_AUTH_TEST}" = "true" ]; then
              echo "This platform does not support the web identity auth test, skipping..."
              exit 0
           fi
-          GOCACHE="${GOCACHE}" task evg-test-aws -- web-identity
+          ${RUN_TASK} evg-test-aws -- web-identity
     - command: shell.exec
       type: test
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ["${EXTRA_PATH}"]
         script: |
           if [ "${SKIP_WEB_IDENTITY_AUTH_TEST}" = "true" ]; then
              echo "This platform does not support the web identity auth test, skipping..."
              exit 0
           fi
           export AWS_ROLE_SESSION_NAME="test"
-          GOCACHE="${GOCACHE}" task evg-test-aws -- web-identity
+          ${RUN_TASK} evg-test-aws -- web-identity
 
   start-cse-servers:
     - command: ec2.assume_role
@@ -691,7 +657,6 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ["${EXTRA_PATH}"]
         script: |
           AUTH="${AUTH}" \
           SSL="${SSL}" \
@@ -699,9 +664,9 @@ functions:
           TOPOLOGY="${TOPOLOGY}" \
           MONGO_GO_DRIVER_COMPRESSOR=${MONGO_GO_DRIVER_COMPRESSOR} \
           BUILD_TAGS="-tags=cse" \
-          task setup-test 
+          ${RUN_TASK} setup-test 
 
-          KMS_TLS_TESTCASE="${KMS_TLS_TESTCASE}" GOCACHE="${GOCACHE}" task evg-test-kms
+          KMS_TLS_TESTCASE="${KMS_TLS_TESTCASE}" ${RUN_TASK} evg-test-kms
 
   run-kmip-tests:
     - command: shell.exec
@@ -709,7 +674,6 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ["${EXTRA_PATH}"]
         script: |
           AUTH="${AUTH}" \
           SSL="${SSL}" \
@@ -717,9 +681,9 @@ functions:
           TOPOLOGY="${TOPOLOGY}" \
           MONGO_GO_DRIVER_COMPRESSOR=${MONGO_GO_DRIVER_COMPRESSOR} \
           BUILD_TAGS="-tags=cse" \
-          task setup-test 
+          ${RUN_TASK} setup-test 
 
-          KMS_MOCK_SERVERS_RUNNING="true" GOCACHE="${GOCACHE}" task evg-test-kmip
+          KMS_MOCK_SERVERS_RUNNING="true" ${RUN_TASK} evg-test-kmip
 
   run-fuzz-tests:
     - command: shell.exec
@@ -727,9 +691,8 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ["${EXTRA_PATH}"]
         script: |
-          task run-fuzz
+          ${RUN_TASK} run-fuzz
 
 pre:
   - func: fetch-source
@@ -1642,13 +1605,11 @@ tasks:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ["${EXTRA_PATH}"]
         script: |
-          export GOCACHE="${GOCACHE}"
           echo "Building build-kms-test ... begin"
           BUILD_TAGS="-tags=cse" \
           PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
-            task build-kms-test
+            ${RUN_TASK} build-kms-test
           echo "Building build-kms-test ... end"
           source ${DRIVERS_TOOLS}/.evergreen/csfle/gcpkms/secrets-export.sh
           echo "Copying files ... begin"
@@ -1665,7 +1626,6 @@ tasks:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ["${EXTRA_PATH}"]
         script: |
           source ${DRIVERS_TOOLS}/.evergreen/csfle/gcpkms/secrets-export.sh
           GCPKMS_CMD="LD_LIBRARY_PATH=./install/libmongocrypt/lib64 MONGODB_URI='mongodb://localhost:27017' PROVIDER='gcp' ./testkms" ${DRIVERS_TOOLS}/.evergreen/csfle/gcpkms/run-command.sh
@@ -1679,13 +1639,11 @@ tasks:
         params:
           shell: "bash"
           working_dir: src/go.mongodb.org/mongo-driver
-          add_to_path: ["${EXTRA_PATH}"]
           script: |
-            export GOCACHE="${GOCACHE}"
             echo "Building build-kms-test ... begin"
             BUILD_TAGS="-tags=cse" \
             PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
-              task build-kms-test
+              ${RUN_TASK} build-kms-test
             echo "Building build-kms-test ... end"
 
             LD_LIBRARY_PATH=./install/libmongocrypt/lib64 \
@@ -1701,9 +1659,8 @@ tasks:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ["${EXTRA_PATH}"]
         script: |
-          GOCACHE="${GOCACHE}" task test-awskms
+          ${RUN_TASK} test-awskms
 
   - name: "testawskms-fail-task"
     # testawskms-fail-task runs without environment variables.
@@ -1714,10 +1671,9 @@ tasks:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ["${EXTRA_PATH}"]
         script: |
           export EXPECT_ERROR='status=400'
-          GOCACHE="${GOCACHE}" task test-awskms
+          ${RUN_TASK} test-awskms
 
   - name: "testazurekms-task"
     commands:
@@ -1726,13 +1682,11 @@ tasks:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ["${EXTRA_PATH}"]
         script: |
-          export GOCACHE="${GOCACHE}"
           echo "Building build-kms-test ... begin"
           BUILD_TAGS="-tags=cse" \
           PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
-            task build-kms-test
+            ${RUN_TASK} build-kms-test
           echo "Building build-kms-test ... end"
 
           echo "Copying files ... begin"
@@ -1762,13 +1716,11 @@ tasks:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ["${EXTRA_PATH}"]
         script: |
-          export GOCACHE="${GOCACHE}"
           echo "Building build-kms-test ... begin"
           BUILD_TAGS="-tags=cse" \
           PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
-            task build-kms-test
+            ${RUN_TASK} build-kms-test
           echo "Building build-kms-test ... end"
 
           . ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/setup-secrets.sh
@@ -1794,14 +1746,13 @@ tasks:
         params:
           working_dir: src/go.mongodb.org/mongo-driver
           shell: bash
-          add_to_path: ["${EXTRA_PATH}"]
           env:
             TEST_LAMBDA_DIRECTORY: ${PROJECT_DIRECTORY}/internal/cmd/faas/awslambda
             LAMBDA_STACK_NAME: dbx-go-lambda
             AWS_REGION: us-east-1
           include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
           script: |
-            task evg-test-deployed-lambda-aws
+            ${RUN_TASK} evg-test-deployed-lambda-aws
 
   - name: "oidc-auth-test"
     commands:
@@ -1813,7 +1764,6 @@ tasks:
       type: test
       params:
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ["${EXTRA_PATH}"]
         shell: bash
         script: |-
           set -o errexit
@@ -1839,7 +1789,6 @@ tasks:
       type: test
       params:
         working_dir: src/go.mongodb.org/mongo-driver
-        add_to_path: ["${EXTRA_PATH}"]
         shell: bash
         script: |-
           set -o errexit

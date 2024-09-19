@@ -20,7 +20,8 @@ libmongocrypt
 venv
 test.suite
 go.work.sum
-.*env
+.test.env
+env.sh
 
 # AWS SAM-generated files
 internal/cmd/faas/awslambda/.aws-sam

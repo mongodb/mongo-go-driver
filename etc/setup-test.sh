@@ -5,11 +5,13 @@ set -eux
 
 OS=${OS:-""}
 SSL=${SSL:-nossl}
+
+# Handle certificates.
 if [ "$SSL" != "nossl" ] && [ -z "${SERVERLESS+x}" ]; then
-    MONGO_GO_DRIVER_CA_FILE="${DRIVERS_TOOLS}/.evergreen/x509gen/ca.pem"
-    MONGO_GO_DRIVER_KEY_FILE="${DRIVERS_TOOLS}/.evergreen/x509gen/client.pem"
-    MONGO_GO_DRIVER_PKCS8_ENCRYPTED_KEY_FILE="${DRIVERS_TOOLS}/.evergreen/x509gen/client-pkcs8-encrypted.pem"
-    MONGO_GO_DRIVER_PKCS8_UNENCRYPTED_KEY_FILE="${DRIVERS_TOOLS}/.evergreen/x509gen/client-pkcs8-unencrypted.pem"
+    MONGO_GO_DRIVER_CA_FILE="$DRIVERS_TOOLS/.evergreen/x509gen/ca.pem"
+    MONGO_GO_DRIVER_KEY_FILE="$DRIVERS_TOOLS/.evergreen/x509gen/client.pem"
+    MONGO_GO_DRIVER_PKCS8_ENCRYPTED_KEY_FILE="$DRIVERS_TOOLS/.evergreen/x509gen/client-pkcs8-encrypted.pem"
+    MONGO_GO_DRIVER_PKCS8_UNENCRYPTED_KEY_FILE="$DRIVERS_TOOLS/.evergreen/x509gen/client-pkcs8-unencrypted.pem"
 
     if [ "Windows_NT" = "$OS" ]; then
         MONGO_GO_DRIVER_CA_FILE=$(cygpath -m $MONGO_GO_DRIVER_CA_FILE)
@@ -25,23 +27,44 @@ if [ -z ${GO_BUILD_TAGS+x} ]; then
   GO_BUILD_TAGS="cse"
 fi
 
-if [ "${SKIP_CRYPT_SHARED_LIB:-''}" = "true" ]; then
-  CRYPT_SHARED_LIB_PATH=""
-  echo "crypt_shared library is skipped"
-elif [ -z "${CRYPT_SHARED_LIB_PATH:-}" ]; then
-  echo "crypt_shared library path is empty"
-else
-  echo "crypt_shared library will be loaded from path: $CRYPT_SHARED_LIB_PATH"
+# Install libmongocrypt if needed.
+if [[ "$GO_BUILD_FLAGS" ~= "cse" ]]; then 
+    if [ "Windows_NT" = "$OS" ]; then
+        if [ ! -d "/cygdrive/c/libmongocrypt/bin" ]; then
+            task install-libmongocrypt
+        fi
+    elif [ ! -d "$(pwd)/install" ]; then 
+        task install-libmongocrypt
+    fi
+
+    # Handle libmongocrypt paths.
+    PKG_CONFIG_PATH=$(pwd)/install/libmongocrypt/lib64/pkgconfig
+    LD_LIBRARY_PATH=$(pwd)/install/libmongocrypt/lib64
+
+    if [ "$(uname -s)" = "Darwin" ]; then
+    PKG_CONFIG_PATH=$(pwd)/install/libmongocrypt/lib/pkgconfig
+    DYLD_FALLBACK_LIBRARY_PATH=$(pwd)/install/libmongocrypt/lib
+    fi
+
+    if [ "${SKIP_CRYPT_SHARED_LIB:-''}" = "true" ]; then
+        CRYPT_SHARED_LIB_PATH=""
+        echo "crypt_shared library is skipped"
+    elif [ -z "${CRYPT_SHARED_LIB_PATH:-}" ]; then
+        echo "crypt_shared library path is empty"
+    else
+        echo "crypt_shared library will be loaded from path: $CRYPT_SHARED_LIB_PATH"
+    fi
 fi
 
+# Handle special cases.
 case ${1:-} in
     enterprise-plain)
-        . ${DRIVERS_TOOLS}/.evergreen/secrets_handling/setup-secrets.sh drivers/enterprise_auth
+        . $DRIVERS_TOOLS/.evergreen/secrets_handling/setup-secrets.sh drivers/enterprise_auth
         MONGODB_URI="mongodb://${SASL_USER}:${SASL_PASS}@${SASL_HOST}:${SASL_PORT}/ldap?authMechanism=PLAIN"
         rm secrets-export.sh
         ;;
     enterprise-gssapi)
-        . ${DRIVERS_TOOLS}/.evergreen/secrets_handling/setup-secrets.sh drivers/enterprise_auth
+        . $DRIVERS_TOOLS/.evergreen/secrets_handling/setup-secrets.sh drivers/enterprise_auth
         if [ "Windows_NT" = "${OS:-}" ]; then
             MONGODB_URI="mongodb://${PRINCIPAL/@/%40}:${SASL_PASS}@${SASL_HOST}:${SASL_PORT}/kerberos?authMechanism=GSSAPI"
         else
@@ -55,14 +78,13 @@ case ${1:-} in
          rm secrets-export.sh
         ;;
     serverless)
-        . ${DRIVERS_TOOLS}/.evergreen/serverless/secrets-export.sh
+        . $DRIVERS_TOOLS/.evergreen/serverless/secrets-export.sh
         MONGODB_URI="${SERVERLESS_URI}"
         SERVERLESS="serverless"
         ;;
     atlas-connect)
-        . ${DRIVERS_TOOLS}/.evergreen/secrets_handling/setup-secrets.sh drivers/atlas_connect
+        . $DRIVERS_TOOLS/.evergreen/secrets_handling/setup-secrets.sh drivers/atlas_connect
         ;;
-
 esac
 
 cat <<EOT > .test.env
@@ -79,6 +101,9 @@ LOAD_BALANCER="${LOAD_BALANCER:-}"
 MONGO_GO_DRIVER_COMPRESSOR="${MONGO_GO_DRIVER_COMPRESSOR:-}"
 BUILD_TAGS="${RACE:-} -tags=${GO_BUILD_TAGS:-}"
 CRYPT_SHARED_LIB_PATH="${CRYPT_SHARED_LIB_PATH:-}"
+PKG_CONFIG_PATH="${PKG_CONFIG_PATH:-}"
+LD_LIBRARY_PATH="${LD_LIBRARY_PATH:-}"
+MACOS_LIBRARY_PATH="${DYLD_FALLBACK_LIBRARY_PATH:-}"
 EOT
 
 if [ -n "${MONGODB_URI:-}" ]; then 
@@ -93,6 +118,3 @@ if [ -f "secrets-export.sh" ]; then
         fi
     done <secrets-export.sh
 fi
-
-# TODO REMOVE
-cat .test.env

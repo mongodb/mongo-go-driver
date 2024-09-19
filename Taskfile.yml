@@ -5,7 +5,7 @@ env:
   TEST_TIMEOUT: 1800
   LONG_TEST_TIMEOUT: 3600
 
-dotenv: ['.env', '.test.env']
+dotenv: ['.test.env']
 
 tasks:
 

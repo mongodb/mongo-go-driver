@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # 
-# Set up environment and write .env file.
+# Set up environment and write env.sh file.
 set -eux
 
 # Set Golang environment vars. GOROOT is wherever current Go distribution is; GOPATH is always 3
@@ -9,9 +9,11 @@ if [ -z "${GOROOT:-}" ]; then
     echo "Must set $GOROOT!"
     exit 1
 fi
-
+   
 GOPATH="$(dirname "$(dirname "$(dirname "`pwd`")")")"
 export GOPATH
+GOCACHE="$(pwd)/.cache"
+export GOCACHE
 OS="${OS:-""}"
 EXTRA_PATH="$GOROOT/bin:$GOPATH/bin:${GCC_PATH:-}"
 
@@ -33,7 +35,7 @@ if [ "Windows_NT" = "$OS" ]; then
     # aren't part of Cygwin still need the environment variables to use Windows-style
     # paths, so only convert them when setting PATH. Note that GCC_PATH is already a
     # Bash-style Cygwin path for all Windows tasks.
-    EXTRA_PATH="$(cygpath $GOROOT/bin):$(cygpath $GOPATH/bin):${GCC_PATH:-}"
+    EXTRA_PATH="$(cygpath $GOROOT/bin):$(cygpath $GOPATH/bin):${GCC_PATH:-}:/cygdrive/c/libmongocrypt/bin"
 
     # Set home variables for Windows, too.
     USERPROFILE=$(cygpath -w "$(dirname "$(dirname "$(dirname "`pwd`")")")")
@@ -50,29 +52,15 @@ go env
 # Install taskfile.
 go install github.com/go-task/task/v3/cmd/task@latest
 
-# Setup libmongocrypt.
-task install-libmongocrypt
-if [ "Windows_NT" = "$OS" ]; then
-    EXTRA_PATH=$EXTRA_PATH:/cygdrive/c/libmongocrypt/bin
-fi
-PKG_CONFIG_PATH=$(pwd)/install/libmongocrypt/lib64/pkgconfig
-LD_LIBRARY_PATH=$(pwd)/install/libmongocrypt/lib64
-
-if [ "$(uname -s)" = "Darwin" ]; then
-  PKG_CONFIG_PATH=$(pwd)/install/libmongocrypt/lib/pkgconfig
-  DYLD_FALLBACK_LIBRARY_PATH=$(pwd)/install/libmongocrypt/lib
-fi
-
-cat <<EOT > .env
+cat <<EOT > env.sh
 GOROOT="$GOROOT"
 GOPATH="$GOPATH"
 DRIVERS_TOOLS="$DRIVERS_TOOLS"
 PROJECT_DIRECTORY="$PROJECT_DIRECTORY"
-PKG_CONFIG_PATH="$PKG_CONFIG_PATH"
-LD_LIBRARY_PATH="$LD_LIBRARY_PATH"
-MACOS_LIBRARY_PATH="${DYLD_FALLBACK_LIBRARY_PATH:-}"
-EXTRA_PATH="$EXTRA_PATH"
+PATH="$PATH"
 EOT
 
-# TODO REMOVE
-cat .env
+if [ "Windows_NT" = "$OS" ]; then
+    echo "USERPROFILE=$USERPROFILE" >> env.sh
+    echo "HOME=$HOME" >> env.sh
+fi
