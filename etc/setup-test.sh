@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # 
 # Set up test environment and write .test.env file.
-set -eux
+set -eu
 
 OS=${OS:-""}
 SSL=${SSL:-nossl}

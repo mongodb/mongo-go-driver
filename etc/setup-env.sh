@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # 
 # Set up environment and write env.sh file.
-set -eux
+set -eu
 
 # Set Golang environment vars. GOROOT is wherever current Go distribution is; GOPATH is always 3
 # directories up from pwd; GOCACHE is under .cache in the pwd.
