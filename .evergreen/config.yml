@@ -32,37 +32,17 @@ functions:
       type: system
       params:
         directory: src/go.mongodb.org/mongo-driver
-    # Make an evergreen expansion file with dynamic values
-    - command: shell.exec
+    # Make an env.sh and evergreen expansion file with dynamic values
+    - command: subprocess.exec
       params:
-        shell: "bash"
+        binary: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        script: |
-          set -o errexit
-
-          # Get the current unique version of this checkout.
-          if [ "${is_patch}" = "true" ]; then
-             CURRENT_VERSION=$(git describe)-patch-${version_id}
-          else
-             CURRENT_VERSION=latest
-          fi
-
-          # Set up the environment and write the env.sh file.
-          GOROOT="${GO_DIST}" bash etc/setup-env.sh
-          
-          # source the env.sh file and write the expansion file.
-          source env.sh
-
-          cat <<EOT > expansion.yml
-          CURRENT_VERSION: "$CURRENT_VERSION"
-          DRIVERS_TOOLS: "$DRIVERS_TOOLS"
-          PROJECT_DIRECTORY: "$PROJECT_DIRECTORY"
-          RUN_TASK: "$(pwd)/.evergreen/run-task.sh"
-          EOT
-
-          # See what we variables we've set.
-          cat expansion.yml
-    # Load the expansion file to make an evergreen variable with the current unique version
+        env:
+          GOROOT: ${GO_DIST}
+          IS_PATCH: ${is_patch}
+          VERSION_ID: ${version_id}
+        args: 
+          - .evergreen/setup-env.sh
     - command: expansions.update
       params:
         file: src/go.mongodb.org/mongo-driver/expansion.yml
