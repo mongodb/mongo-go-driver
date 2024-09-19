@@ -4,4 +4,4 @@
 set -eux
 
 source ./env.sh
-task @$
+task "$@"
