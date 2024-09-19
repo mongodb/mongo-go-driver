@@ -102,16 +102,24 @@
 // using a different DNS server (8.8.8.8 is the common default), and, if that's not possible, avoiding the "mongodb+srv"
 // scheme.
 //
-// # Client-Side Field Level Encryption
+// # In-Use Encryption
 //
-// Client-side field level encryption is a new feature in MongoDB 4.2 that allows specific data fields to be encrypted. Using this
+// MongoDB provides two approaches to In-Use Encryption: Queryable Encryption (QE) and Client-Side Field Level Encryption (CSFLE).
+//
+// The Queryable Encryption and CSFLE features share much of the same API with some exceptions.
+//
+// - The supported algorithms documented in autoencryptionoptions.go do not apply to both features.
+// - SetEncryptedFieldsMap only applies to Queryable Encryption.
+// - SetSchemaMap only applies to CSFLE.
+//
+// In-use encryption is a new feature in MongoDB 4.2 that allows specific data fields to be encrypted. Using this
 // feature requires specifying the "cse" build tag during compilation:
 //
 //	go build -tags cse
 //
 // Note: Auto encryption is an enterprise- and Atlas-only feature.
 //
-// The libmongocrypt C library is required when using client-side field level encryption. Specific versions of libmongocrypt
+// The libmongocrypt C library is required when using in-use encryption. Specific versions of libmongocrypt
 // are required for different versions of the Go Driver:
 //
 // - Go Driver v1.2.0 requires libmongocrypt v1.0.0 or higher
