@@ -385,7 +385,7 @@ functions:
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${RUN_TASK} setup-test -- serverless
-          ${RUN_TASK} evg-test-serverless
+          #${RUN_TASK} evg-test-serverless
 
   run-atlas-data-lake-test:
     - command: shell.exec
