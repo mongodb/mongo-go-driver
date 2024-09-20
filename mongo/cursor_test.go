@@ -102,7 +102,7 @@ func TestCursor(t *testing.T) {
 	t.Run("TestAll", func(t *testing.T) {
 		t.Run("errors if argument is not pointer to slice", func(t *testing.T) {
 			cursor, err := newCursor(newTestBatchCursor(1, 5), nil, nil)
-			assert.NoError(t, err, "newCursor error: %v", err)
+			require.NoError(t, err, "newCursor error: %v", err)
 			err = cursor.All(context.Background(), []bson.D{})
 			assert.Error(t, err, "expected error, got nil")
 		})
