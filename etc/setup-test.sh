@@ -8,20 +8,36 @@ SSL=${SSL:-nossl}
 GO_BUILD_TAGS=${GO_BUILD_TAGS:-}
 RACE=${RACE:-}
 
-# Handle certificates.
-if [ "$SSL" != "nossl" ] && [ -z "${SERVERLESS+x}" ]; then
-    MONGO_GO_DRIVER_CA_FILE="$DRIVERS_TOOLS/.evergreen/x509gen/ca.pem"
-    MONGO_GO_DRIVER_KEY_FILE="$DRIVERS_TOOLS/.evergreen/x509gen/client.pem"
-    MONGO_GO_DRIVER_PKCS8_ENCRYPTED_KEY_FILE="$DRIVERS_TOOLS/.evergreen/x509gen/client-pkcs8-encrypted.pem"
-    MONGO_GO_DRIVER_PKCS8_UNENCRYPTED_KEY_FILE="$DRIVERS_TOOLS/.evergreen/x509gen/client-pkcs8-unencrypted.pem"
-
-    if [ "Windows_NT" = "$OS" ]; then
-        MONGO_GO_DRIVER_CA_FILE=$(cygpath -m $MONGO_GO_DRIVER_CA_FILE)
-        MONGO_GO_DRIVER_KEY_FILE=$(cygpath -m $MONGO_GO_DRIVER_KEY_FILE)
-        MONGO_GO_DRIVER_PKCS8_ENCRYPTED_KEY_FILE=$(cygpath -m $MONGO_GO_DRIVER_PKCS8_ENCRYPTED_KEY_FILE)
-        MONGO_GO_DRIVER_PKCS8_UNENCRYPTED_KEY_FILE=$(cygpath -m $MONGO_GO_DRIVER_PKCS8_UNENCRYPTED_KEY_FILE)
-    fi
-fi
+# Handle special cases first.
+case ${1:-} in
+    enterprise-plain)
+        . $DRIVERS_TOOLS/.evergreen/secrets_handling/setup-secrets.sh drivers/enterprise_auth
+        MONGODB_URI="mongodb://${SASL_USER}:${SASL_PASS}@${SASL_HOST}:${SASL_PORT}/ldap?authMechanism=PLAIN"
+        rm secrets-export.sh
+        ;;
+    enterprise-gssapi)
+        . $DRIVERS_TOOLS/.evergreen/secrets_handling/setup-secrets.sh drivers/enterprise_auth
+        if [ "Windows_NT" = "${OS:-}" ]; then
+            MONGODB_URI="mongodb://${PRINCIPAL/@/%40}:${SASL_PASS}@${SASL_HOST}:${SASL_PORT}/kerberos?authMechanism=GSSAPI"
+        else
+            echo "${KEYTAB_BASE64}" > /tmp/drivers.keytab.base64
+            base64 --decode /tmp/drivers.keytab.base64 > .evergreen/drivers.keytab
+            mkdir -p ~/.krb5
+            cat .evergreen/krb5.config | tee -a ~/.krb5/config
+            kinit -k -t .evergreen/drivers.keytab -p "${PRINCIPAL}"
+            MONGODB_URI="mongodb://${PRINCIPAL/@/%40}@${SASL_HOST}:${SASL_PORT}/kerberos?authMechanism=GSSAPI"
+        fi
+         rm secrets-export.sh
+        ;;
+    serverless)
+        . $DRIVERS_TOOLS/.evergreen/serverless/secrets-export.sh
+        MONGODB_URI="${SERVERLESS_URI}"
+        SERVERLESS="serverless"
+        ;;
+    atlas-connect)
+        . $DRIVERS_TOOLS/.evergreen/secrets_handling/setup-secrets.sh drivers/atlas_connect
+        ;;
+esac
 
 # Handle encryption.
 if [[ "${GO_BUILD_TAGS}" =~ cse ]]; then
@@ -54,36 +70,20 @@ else
     BUILD_TAGS="${RACE}"
 fi
 
-# Handle special cases.
-case ${1:-} in
-    enterprise-plain)
-        . $DRIVERS_TOOLS/.evergreen/secrets_handling/setup-secrets.sh drivers/enterprise_auth
-        MONGODB_URI="mongodb://${SASL_USER}:${SASL_PASS}@${SASL_HOST}:${SASL_PORT}/ldap?authMechanism=PLAIN"
-        rm secrets-export.sh
-        ;;
-    enterprise-gssapi)
-        . $DRIVERS_TOOLS/.evergreen/secrets_handling/setup-secrets.sh drivers/enterprise_auth
-        if [ "Windows_NT" = "${OS:-}" ]; then
-            MONGODB_URI="mongodb://${PRINCIPAL/@/%40}:${SASL_PASS}@${SASL_HOST}:${SASL_PORT}/kerberos?authMechanism=GSSAPI"
-        else
-            echo "${KEYTAB_BASE64}" > /tmp/drivers.keytab.base64
-            base64 --decode /tmp/drivers.keytab.base64 > .evergreen/drivers.keytab
-            mkdir -p ~/.krb5
-            cat .evergreen/krb5.config | tee -a ~/.krb5/config
-            kinit -k -t .evergreen/drivers.keytab -p "${PRINCIPAL}"
-            MONGODB_URI="mongodb://${PRINCIPAL/@/%40}@${SASL_HOST}:${SASL_PORT}/kerberos?authMechanism=GSSAPI"
-        fi
-         rm secrets-export.sh
-        ;;
-    serverless)
-        . $DRIVERS_TOOLS/.evergreen/serverless/secrets-export.sh
-        MONGODB_URI="${SERVERLESS_URI}"
-        SERVERLESS="serverless"
-        ;;
-    atlas-connect)
-        . $DRIVERS_TOOLS/.evergreen/secrets_handling/setup-secrets.sh drivers/atlas_connect
-        ;;
-esac
+# Handle certificates.
+if [ "$SSL" != "nossl" ] && [ -z "${SERVERLESS+x}" ]; then
+    MONGO_GO_DRIVER_CA_FILE="$DRIVERS_TOOLS/.evergreen/x509gen/ca.pem"
+    MONGO_GO_DRIVER_KEY_FILE="$DRIVERS_TOOLS/.evergreen/x509gen/client.pem"
+    MONGO_GO_DRIVER_PKCS8_ENCRYPTED_KEY_FILE="$DRIVERS_TOOLS/.evergreen/x509gen/client-pkcs8-encrypted.pem"
+    MONGO_GO_DRIVER_PKCS8_UNENCRYPTED_KEY_FILE="$DRIVERS_TOOLS/.evergreen/x509gen/client-pkcs8-unencrypted.pem"
+
+    if [ "Windows_NT" = "$OS" ]; then
+        MONGO_GO_DRIVER_CA_FILE=$(cygpath -m $MONGO_GO_DRIVER_CA_FILE)
+        MONGO_GO_DRIVER_KEY_FILE=$(cygpath -m $MONGO_GO_DRIVER_KEY_FILE)
+        MONGO_GO_DRIVER_PKCS8_ENCRYPTED_KEY_FILE=$(cygpath -m $MONGO_GO_DRIVER_PKCS8_ENCRYPTED_KEY_FILE)
+        MONGO_GO_DRIVER_PKCS8_UNENCRYPTED_KEY_FILE=$(cygpath -m $MONGO_GO_DRIVER_PKCS8_UNENCRYPTED_KEY_FILE)
+    fi
+fi
 
 cat <<EOT > .test.env
 AUTH="${AUTH:-}"
@@ -108,10 +108,10 @@ if [ -n "${MONGODB_URI:-}" ]; then
     echo "MONGODB_URI=\"${MONGODB_URI}\"" >> .test.env
 fi
 
-# if [ -n "${SERVERLESS:-}" ]; then
-#     echo "SERVERLESS_ATLAS_USER=$SERVERLESS_ATLAS_USER" >> .test.env
-#     echo "SERVERLESS_ATLAS_PASSWORD=$SERVERLESS_ATLAS_PASSWORD" >> .test.env
-# fi
+if [ -n "${SERVERLESS:-}" ]; then
+    echo "SERVERLESS_ATLAS_USER=$SERVERLESS_ATLAS_USER" >> .test.env
+    echo "SERVERLESS_ATLAS_PASSWORD=$SERVERLESS_ATLAS_PASSWORD" >> .test.env
+fi
 
 # Add secrets to the test file.
 if [ -f "secrets-export.sh" ]; then
