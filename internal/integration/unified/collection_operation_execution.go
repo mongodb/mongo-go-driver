@@ -1316,7 +1316,7 @@ func executeUpdateOne(ctx context.Context, operation *operation) (*operationResu
 		return nil, err
 	}
 
-	updateArgs, err := createUpdateArguments[options.UpdateOneOptions](operation.Arguments)
+	updateArgs, err := createUpdateOneArguments(operation.Arguments)
 	if err != nil {
 		return nil, err
 	}
@@ -1335,7 +1335,7 @@ func executeUpdateMany(ctx context.Context, operation *operation) (*operationRes
 		return nil, err
 	}
 
-	updateArgs, err := createUpdateArguments[options.UpdateManyOptions](operation.Arguments)
+	updateArgs, err := createUpdateManyArguments(operation.Arguments)
 	if err != nil {
 		return nil, err
 	}

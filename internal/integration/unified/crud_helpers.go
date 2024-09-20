@@ -8,8 +8,6 @@ package unified
 
 import (
 	"fmt"
-	"reflect"
-	"strings"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/bsonutil"
@@ -22,22 +20,15 @@ func newMissingArgumentError(arg string) error {
 	return fmt.Errorf("operation arguments document is missing required field %q", arg)
 }
 
-type updateArguments[Options options.UpdateManyOptions | options.UpdateOneOptions] struct {
+type updateManyArguments struct {
 	filter bson.Raw
 	update interface{}
-	opts   options.Lister[Options]
+	opts   *options.UpdateManyOptionsBuilder
 }
 
-func createUpdateArguments[Options options.UpdateManyOptions | options.UpdateOneOptions](
-	args bson.Raw,
-) (*updateArguments[Options], error) {
-	ua := &updateArguments[Options]{}
-	var builder reflect.Value
-	switch any((*Options)(nil)).(type) {
-	case *options.UpdateManyOptions:
-		builder = reflect.ValueOf(options.UpdateMany())
-	case *options.UpdateOneOptions:
-		builder = reflect.ValueOf(options.UpdateOne())
+func createUpdateManyArguments(args bson.Raw) (*updateManyArguments, error) {
+	ua := &updateManyArguments{
+		opts: options.UpdateMany(),
 	}
 
 	elems, _ := args.Elements()
@@ -45,22 +36,21 @@ func createUpdateArguments[Options options.UpdateManyOptions | options.UpdateOne
 		key := elem.Key()
 		val := elem.Value()
 
-		var arg reflect.Value
 		switch key {
 		case "arrayFilters":
-			arg = reflect.ValueOf(
+			ua.opts.SetArrayFilters(
 				bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...),
 			)
 		case "bypassDocumentValidation":
-			arg = reflect.ValueOf(val.Boolean())
+			ua.opts.SetBypassDocumentValidation(val.Boolean())
 		case "collation":
 			collation, err := createCollation(val.Document())
 			if err != nil {
 				return nil, fmt.Errorf("error creating collation: %w", err)
 			}
-			arg = reflect.ValueOf(collation)
+			ua.opts.SetCollation(collation)
 		case "comment":
-			arg = reflect.ValueOf(val)
+			ua.opts.SetComment(val)
 		case "filter":
 			ua.filter = val.Document()
 		case "hint":
@@ -68,9 +58,9 @@ func createUpdateArguments[Options options.UpdateManyOptions | options.UpdateOne
 			if err != nil {
 				return nil, fmt.Errorf("error creating hint: %w", err)
 			}
-			arg = reflect.ValueOf(hint)
+			ua.opts.SetHint(hint)
 		case "let":
-			arg = reflect.ValueOf(val.Document())
+			ua.opts.SetLet(val.Document())
 		case "update":
 			var err error
 			ua.update, err = createUpdateValue(val)
@@ -78,18 +68,9 @@ func createUpdateArguments[Options options.UpdateManyOptions | options.UpdateOne
 				return nil, fmt.Errorf("error processing update value: %w", err)
 			}
 		case "upsert":
-			arg = reflect.ValueOf(val.Boolean())
+			ua.opts.SetUpsert(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized update option %q", key)
-		}
-		if arg.IsValid() {
-			fn := builder.MethodByName(
-				fmt.Sprintf("Set%s%s", strings.ToUpper(string(key[0])), key[1:]),
-			)
-			if !fn.IsValid() {
-				return nil, fmt.Errorf("unrecognized update option %q", key)
-			}
-			fn.Call([]reflect.Value{arg})
 		}
 	}
 	if ua.filter == nil {
@@ -98,7 +79,69 @@ func createUpdateArguments[Options options.UpdateManyOptions | options.UpdateOne
 	if ua.update == nil {
 		return nil, newMissingArgumentError("update")
 	}
-	ua.opts = builder.Interface().(options.Lister[Options])
+
+	return ua, nil
+}
+
+type updateOneArguments struct {
+	filter bson.Raw
+	update interface{}
+	opts   *options.UpdateOneOptionsBuilder
+}
+
+func createUpdateOneArguments(args bson.Raw) (*updateOneArguments, error) {
+	ua := &updateOneArguments{
+		opts: options.UpdateOne(),
+	}
+
+	elems, _ := args.Elements()
+	for _, elem := range elems {
+		key := elem.Key()
+		val := elem.Value()
+
+		switch key {
+		case "arrayFilters":
+			ua.opts.SetArrayFilters(
+				bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...),
+			)
+		case "bypassDocumentValidation":
+			ua.opts.SetBypassDocumentValidation(val.Boolean())
+		case "collation":
+			collation, err := createCollation(val.Document())
+			if err != nil {
+				return nil, fmt.Errorf("error creating collation: %w", err)
+			}
+			ua.opts.SetCollation(collation)
+		case "comment":
+			ua.opts.SetComment(val)
+		case "filter":
+			ua.filter = val.Document()
+		case "hint":
+			hint, err := createHint(val)
+			if err != nil {
+				return nil, fmt.Errorf("error creating hint: %w", err)
+			}
+			ua.opts.SetHint(hint)
+		case "let":
+			ua.opts.SetLet(val.Document())
+		case "update":
+			var err error
+			ua.update, err = createUpdateValue(val)
+			if err != nil {
+				return nil, fmt.Errorf("error processing update value: %w", err)
+			}
+		case "upsert":
+			ua.opts.SetUpsert(val.Boolean())
+		default:
+			return nil, fmt.Errorf("unrecognized update option %q", key)
+		}
+	}
+	if ua.filter == nil {
+		return nil, newMissingArgumentError("filter")
+	}
+	if ua.update == nil {
+		return nil, newMissingArgumentError("update")
+	}
 
 	return ua, nil
 }
