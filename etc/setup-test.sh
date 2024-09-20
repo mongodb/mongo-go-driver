@@ -121,5 +121,3 @@ if [ -f "secrets-export.sh" ]; then
         fi
     done <secrets-export.sh
 fi
-
-cat .test.env
