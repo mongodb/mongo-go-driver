@@ -25,12 +25,6 @@ fi
 
 # Handle encryption.
 if [[ "${GO_BUILD_TAGS}" =~ cse ]]; then
-    # Ensure that encryption servers have been started and we have the test secrets.
-    if [ ! -f "./secrets-export.sh" ]; then 
-        echo "Please run setup-encryption first!"
-        exit 1
-    fi
-
     # Install libmongocrypt if needed.
     task install-libmongocrypt
 
