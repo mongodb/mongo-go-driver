@@ -14,6 +14,7 @@ case ${1:-} in
         . $DRIVERS_TOOLS/.evergreen/secrets_handling/setup-secrets.sh drivers/enterprise_auth
         MONGODB_URI="mongodb://${SASL_USER}:${SASL_PASS}@${SASL_HOST}:${SASL_PORT}/ldap?authMechanism=PLAIN"
         rm secrets-export.sh
+        AUTH="auth"
         ;;
     enterprise-gssapi)
         . $DRIVERS_TOOLS/.evergreen/secrets_handling/setup-secrets.sh drivers/enterprise_auth
@@ -27,12 +28,14 @@ case ${1:-} in
             kinit -k -t .evergreen/drivers.keytab -p "${PRINCIPAL}"
             MONGODB_URI="mongodb://${PRINCIPAL/@/%40}@${SASL_HOST}:${SASL_PORT}/kerberos?authMechanism=GSSAPI"
         fi
-         rm secrets-export.sh
+        rm secrets-export.sh
+        AUTH="auth"
         ;;
     serverless)
         . $DRIVERS_TOOLS/.evergreen/serverless/secrets-export.sh
         MONGODB_URI="${SERVERLESS_URI}"
         SERVERLESS="serverless"
+        AUTH="auth"
         ;;
     atlas-connect)
         . $DRIVERS_TOOLS/.evergreen/secrets_handling/setup-secrets.sh drivers/atlas_connect
