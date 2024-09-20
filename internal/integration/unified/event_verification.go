@@ -302,6 +302,7 @@ func verifyCommandEvents(ctx context.Context, client *clientEntity, expectedEven
 	return nil
 }
 
+//nolint:govet
 func verifyCMAPEvents(client *clientEntity, expectedEvents *expectedEvents) error {
 	pooled := client.poolEvents()
 	if len(expectedEvents.CMAPEvents) == 0 && len(pooled) != 0 {
@@ -491,6 +492,7 @@ func getNextTopologyDescriptionChangedEvent(
 	return events[0], events[:1], nil
 }
 
+//nolint:govet
 func verifySDAMEvents(client *clientEntity, expectedEvents *expectedEvents) error {
 	var (
 		changed   = client.serverDescriptionChanged
