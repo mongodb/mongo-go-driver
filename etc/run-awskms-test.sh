@@ -3,6 +3,9 @@
 # Runs the awskms test.
 set -eu
 
+# Wait for the cse servers to finish starting.
+bash ${DRIVERS_TOOLS}/.evergreen/csfle/await-servers.sh
+
 GO_BUILD_TAGS="cse" task setup-test
 task build-kms-test
 
