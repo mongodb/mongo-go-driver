@@ -544,7 +544,7 @@ func verifySDAMEvents(client *clientEntity, expectedEvents *expectedEvents) erro
 		case evt.ServerHeartbeatStartedEvent != nil:
 			var got *event.ServerHeartbeatStartedEvent
 			if got, started, err = getNextServerHeartbeatStartedEvent(started); err != nil {
-				return newEventVerificationError(idx, client, "failed to get next server heartbeat event: %v", err.Error())
+				return newEventVerificationError(idx, client, "failed to get next server heartbeat started event: %v", err.Error())
 			}
 
 			if want := evt.ServerHeartbeatStartedEvent.Awaited; want != nil && *want != got.Awaited {
@@ -553,7 +553,7 @@ func verifySDAMEvents(client *clientEntity, expectedEvents *expectedEvents) erro
 		case evt.ServerHeartbeatSucceededEvent != nil:
 			var got *event.ServerHeartbeatSucceededEvent
 			if got, succeeded, err = getNextServerHeartbeatSucceededEvent(succeeded); err != nil {
-				return newEventVerificationError(idx, client, "failed to get next server heartbeat event: %v", err.Error())
+				return newEventVerificationError(idx, client, "failed to get next server heartbeat succeeded event: %v", err.Error())
 			}
 
 			if want := evt.ServerHeartbeatSucceededEvent.Awaited; want != nil && *want != got.Awaited {
@@ -562,7 +562,7 @@ func verifySDAMEvents(client *clientEntity, expectedEvents *expectedEvents) erro
 		case evt.ServerHeartbeatFailedEvent != nil:
 			var got *event.ServerHeartbeatFailedEvent
 			if got, failed, err = getNextServerHeartbeatFailedEvent(failed); err != nil {
-				return newEventVerificationError(idx, client, "failed to get next server heartbeat event: %v", err.Error())
+				return newEventVerificationError(idx, client, "failed to get next server heartbeat failed event: %v", err.Error())
 			}
 
 			if want := evt.ServerHeartbeatFailedEvent.Awaited; want != nil && *want != got.Awaited {
