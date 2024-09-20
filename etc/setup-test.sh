@@ -114,6 +114,11 @@ if [ -n "${MONGODB_URI:-}" ]; then
     echo "MONGODB_URI=\"${MONGODB_URI}\"" >> .test.env
 fi
 
+if [ -n "${SERVERLESS:-}" ]; then
+    echo "SERVERLESS_ATLAS_USER=$SERVERLESS_ATLAS_USER" >> .test.env
+    echo "SERVERLESS_ATLAS_PASSWORD=$SERVERLESS_ATLAS_PASSWORD" >> .test.env
+fi
+
 # Add secrets to the test file.
 if [ -f "secrets-export.sh" ]; then
     while read p; do
