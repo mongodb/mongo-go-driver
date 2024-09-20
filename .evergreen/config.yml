@@ -1749,6 +1749,7 @@ tasks:
         shell: bash
         script: |-
           set -o errexit
+          source env.sh
           export AZUREOIDC_DRIVERS_TAR_FILE=/tmp/mongo-go-driver.tar.gz
           # we need to statically link libc to avoid the situation where the VM has a different
           # version of libc
@@ -1774,6 +1775,7 @@ tasks:
         shell: bash
         script: |-
           set -o errexit
+          source env.sh
           export GCPOIDC_DRIVERS_TAR_FILE=/tmp/mongo-go-driver.tar.gz
           # we need to statically link libc to avoid the situation where the VM has a different
           # version of libc
@@ -1951,7 +1953,6 @@ task_groups:
     setup_group:
       - func: fetch-source
       - func: prepare-resources
-      - func: start-cse-servers
       - command: subprocess.exec
         params:
           binary: "bash"

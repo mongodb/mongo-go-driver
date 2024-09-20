@@ -180,7 +180,10 @@ tasks:
 
   evg-test-deployed-lambda-aws: bash ${DRIVERS_TOOLS}/.evergreen/aws_lambda/run-deployed-lambda-aws-tests.sh
 
-  build-kms-test: go build ${BUILD_TAGS} ./internal/cmd/testkms
+  build-kms-test: 
+    deps: [build-kms-test]
+    cmds: 
+      - go build ${BUILD_TAGS} ./internal/cmd/testkms
 
   ### Benchmark specific tasks and support. ###
   benchmark:
