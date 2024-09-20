@@ -7,6 +7,7 @@ set -eu
 bash ${DRIVERS_TOOLS}/.evergreen/csfle/await-servers.sh
 
 GO_BUILD_TAGS="cse" task setup-test
+cat .test.env
 task build-kms-test
 
 . ${DRIVERS_TOOLS}/.evergreen/secrets_handling/setup-secrets.sh drivers/atlas_connect
