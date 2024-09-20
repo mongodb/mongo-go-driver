@@ -32,7 +32,6 @@ func TestClientEncryption_ErrClientDisconnected(t *testing.T) {
 	t.Run("CreateEncryptedCollection", func(t *testing.T) {
 		t.Parallel()
 		_, _, err := ce.CreateEncryptedCollection(context.Background(), nil, "", options.CreateCollection(), "", nil)
-		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
 		assert.ErrorIs(t, err, ErrClientDisconnected)
 	})
 	t.Run("AddKeyAltName", func(t *testing.T) {
