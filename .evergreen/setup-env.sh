@@ -39,13 +39,13 @@ if [ "Windows_NT" = "$OS" ]; then
     # aren't part of Cygwin still need the environment variables to use Windows-style
     # paths, so only convert them when setting PATH. Note that GCC_PATH is already a
     # Bash-style Cygwin path for all Windows tasks.
-    EXTRA_PATH="$(cygpath $GOROOT/bin):$(cygpath $GOPATH/bin):${GCC_PATH:-}:/cygdrive/c/libmongocrypt/bin"
+    EXTRA_PATH="$(cygpath $GOROOT/bin):$(cygpath $GOPATH/bin):$(cygpath -m $DRIVERS_TOOLS/mongodb/bin)/${GCC_PATH:-}:/cygdrive/c/libmongocrypt/bin"
 
     # Set home variables for Windows, too.
     USERPROFILE=$(cygpath -w "$ROOT_PATH")
     HOME=$USERPROFILE
 else 
-    EXTRA_PATH="$GOROOT/bin:$GOPATH/bin:${GCC_PATH:-}"
+    EXTRA_PATH="$GOROOT/bin:$GOPATH/bin:$DRIVERS_TOOLS/mongodb/bin:${GCC_PATH:-}"
 fi
 
 # Prepend the path.

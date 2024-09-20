@@ -196,7 +196,8 @@ functions:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
-          ${BUILD_ENV|} BUILD_TAGS=${BUILD_TAGS|-tags=cse,gssapi} ${RUN_TASK} ${targets}
+          ${BUILD_ENV|} BUILD_TAGS=${BUILD_TAGS|-tags=cse,gssapi} ${RUN_TASK} setup-test
+          ${RUN_TASK} ${targets}
 
   run-tests:
     - command: shell.exec
