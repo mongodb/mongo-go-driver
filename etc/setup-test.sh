@@ -5,6 +5,8 @@ set -eu
 
 OS=${OS:-""}
 SSL=${SSL:-nossl}
+GO_BUILD_TAGS=${GO_BUILD_TAGS:-}
+RACE=${RACE:-}
 
 # Handle certificates.
 if [ "$SSL" != "nossl" ] && [ -z "${SERVERLESS+x}" ]; then
@@ -21,21 +23,16 @@ if [ "$SSL" != "nossl" ] && [ -z "${SERVERLESS+x}" ]; then
     fi
 fi
 
-# If GO_BUILD_TAGS is not set, set the default Go build tags to "cse" to enable
-# client-side encryption, which requires linking the libmongocrypt C library.
-if [ -z ${GO_BUILD_TAGS+x} ]; then
-  GO_BUILD_TAGS="cse"
-fi
-
-# Install libmongocrypt if needed.
-if [[ "$GO_BUILD_TAGS" =~ "cse" ]]; then 
-    if [ "Windows_NT" = "$OS" ]; then
-        if [ ! -d "/cygdrive/c/libmongocrypt/bin" ]; then
-            task install-libmongocrypt
-        fi
-    elif [ ! -d "$(pwd)/install" ]; then 
-        task install-libmongocrypt
+# Handle encryption.
+if [[ "${GO_BUILD_TAGS}" =~ cse ]]; then
+    # Ensure that encryption servers have been started and we have the test secrets.
+    if [ ! -f "./secrets-export.sh" ]; then 
+        echo "Please run setup-encryption first!"
+        exit 1
     fi
+
+    # Install libmongocrypt if needed.
+    task install-libmongocrypt
 
     # Handle libmongocrypt paths.
     PKG_CONFIG_PATH=$(pwd)/install/libmongocrypt/lib64/pkgconfig
@@ -54,6 +51,13 @@ if [[ "$GO_BUILD_TAGS" =~ "cse" ]]; then
     else
         echo "crypt_shared library will be loaded from path: $CRYPT_SHARED_LIB_PATH"
     fi
+fi
+
+# Handle the build tags argument.
+if [ -n "${GO_BUILD_TAGS}" ];
+    BUILD_TAGS="${RACE} --tags=${GO_BUILD_TAGS}"
+else
+    BUILD_TAGS="${RACE}"
 fi
 
 # Handle special cases.
@@ -99,7 +103,7 @@ SERVERLESS="${SERVERLESS:-}"
 REQUIRE_API_VERSION="${REQUIRE_API_VERSION:-}"
 LOAD_BALANCER="${LOAD_BALANCER:-}"
 MONGO_GO_DRIVER_COMPRESSOR="${MONGO_GO_DRIVER_COMPRESSOR:-}"
-BUILD_TAGS="${RACE:-} -tags=${GO_BUILD_TAGS:-}"
+BUILD_TAGS="${BUILD_TAGS}"
 CRYPT_SHARED_LIB_PATH="${CRYPT_SHARED_LIB_PATH:-}"
 PKG_CONFIG_PATH="${PKG_CONFIG_PATH:-}"
 LD_LIBRARY_PATH="${LD_LIBRARY_PATH:-}"

@@ -207,7 +207,7 @@ functions:
         include_expansions_in_env: ["TOPOLOGY", "AUTH", "SSL", "MONGODB_URI", "CRYPT_SHARED_LIB_PATH", "SKIP_CRYPT_SHARED_LIB", "RACE", "MONGO_GO_DRIVER_COMPRESSOR", "REQUIRE_API_VERSION", "LOAD_BALANCER"]
         script: |
           set -e
-          ${RUN_TASK} setup-test
+          GO_BUILD_TAGS="cse" ${RUN_TASK} setup-test
           if [ "$(uname -s)" = "Darwin" ]; then
               # Run a subset of the tests on Darwin
               ${RUN_TASK} evg-test-load-balancers
@@ -337,7 +337,7 @@ functions:
           MONGODB_URI="${MONGODB_URI}" \
           TOPOLOGY="${TOPOLOGY}" \
           MONGO_GO_DRIVER_COMPRESSOR=${MONGO_GO_DRIVER_COMPRESSOR} \
-          BUILD_TAGS="-tags=cse" \
+          GO_BUILD_TAGS="cse" \
           REQUIRE_API_VERSION="${REQUIRE_API_VERSION}" \
           SKIP_CRYPT_SHARED_LIB=${SKIP_CRYPT_SHARED_LIB} \
           CRYPT_SHARED_LIB_PATH="$CRYPT_SHARED_LIB_PATH" \
@@ -552,6 +552,7 @@ functions:
       type: test
       params:
         shell: "bash"
+        working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${RUN_TASK} evg-test-aws -- session-creds
 
@@ -643,7 +644,7 @@ functions:
           MONGODB_URI="${MONGODB_URI}" \
           TOPOLOGY="${TOPOLOGY}" \
           MONGO_GO_DRIVER_COMPRESSOR=${MONGO_GO_DRIVER_COMPRESSOR} \
-          BUILD_TAGS="-tags=cse" \
+          GO_BUILD_TAGS="cse" \
           ${RUN_TASK} setup-test 
 
           KMS_TLS_TESTCASE="${KMS_TLS_TESTCASE}" ${RUN_TASK} evg-test-kms
@@ -660,7 +661,7 @@ functions:
           MONGODB_URI="${MONGODB_URI}" \
           TOPOLOGY="${TOPOLOGY}" \
           MONGO_GO_DRIVER_COMPRESSOR=${MONGO_GO_DRIVER_COMPRESSOR} \
-          BUILD_TAGS="-tags=cse" \
+          GO_BUILD_TAGS="cse" \
           ${RUN_TASK} setup-test 
 
           KMS_MOCK_SERVERS_RUNNING="true" ${RUN_TASK} evg-test-kmip

@@ -18,7 +18,7 @@ tasks:
   check-license: bash etc/check_license.sh
 
   build:
-    deps: [cross-compile, build-tests, build-compile-check]
+    deps: [cross-compile, build-tests, build-compile-check, install-libmongocrypt]
     cmds:
       - go build ./...
       - go build ${BUILD_TAGS} ./...
@@ -48,7 +48,10 @@ tasks:
 
   api-report: bash etc/api_report.sh
 
-  install-libmongocrypt: bash etc/install-libmongocrypt.sh
+  install-libmongocrypt: 
+    cmds: [bash etc/install-libmongocrypt.sh]
+    status: 
+      - test -d install || test -d /cygdrive/c/libmongocrypt/bin
 
   run-docker: bash etc/run_docker.sh
 
@@ -103,7 +106,6 @@ tasks:
   build-aws-ecs-test: go build ${BUILD_TAGS} ./internal/cmd/testaws/main.go
 
   evg-test:
-    - echo "GOCACHE3=$GOCACHE"
     - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=$MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s -p 1 ./... >> test.suite
 
   evg-test-atlas-data-lake:
@@ -111,9 +113,6 @@ tasks:
     - ATLAS_DATA_LAKE_INTEGRATION_TEST=true go test -v ./internal/integration -run TestAtlasDataLake >> spec_test.suite
 
   evg-test-enterprise-auth: 
-    - cat .env
-    - echo "GOCACHE=$GOCACHE"
-    - env
     - go run -tags gssapi ./internal/cmd/testentauth/main.go
 
   evg-test-oidc-auth:

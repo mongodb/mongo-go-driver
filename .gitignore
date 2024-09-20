@@ -20,7 +20,7 @@ libmongocrypt
 venv
 test.suite
 go.work.sum
-.test.env
+.task
 env.sh
 
 # AWS SAM-generated files
@@ -38,3 +38,4 @@ api-report.txt
 # Ignore secrets files
 secrets-expansion.yml
 secrets-export.sh
+.test.env
