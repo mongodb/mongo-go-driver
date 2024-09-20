@@ -54,7 +54,7 @@ if [[ "${GO_BUILD_TAGS}" =~ cse ]]; then
 fi
 
 # Handle the build tags argument.
-if [ -n "${GO_BUILD_TAGS}" ];
+if [ -n "${GO_BUILD_TAGS}" ]; then
     BUILD_TAGS="${RACE} --tags=${GO_BUILD_TAGS}"
 else
     BUILD_TAGS="${RACE}"
