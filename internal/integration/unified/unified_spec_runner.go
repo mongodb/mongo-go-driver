@@ -10,6 +10,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path"
 	"strings"
 	"testing"
@@ -170,6 +171,13 @@ func runTestFile(t *testing.T, filepath string, expectValidFail bool, opts ...*O
 			CreateClient(false)
 
 		mt.RunOpts(testCase.Description, mtOpts, func(mt *mtest.T) {
+			// Skip CSOT spec tests when SKIP_CSOT_TESTS=true. In Evergreen, we
+			// typically set that environment variable on Windows and macOS
+			// because the CSOT spec tests are unreliable on those hosts.
+			if os.Getenv("SKIP_CSOT_TESTS") == "true" && strings.Contains(filepath, "client-side-operations-timeout") {
+				mt.Skip("Skipping CSOT spec test because SKIP_CSOT_TESTS=true")
+			}
+
 			defer func() {
 				// catch panics from looking up elements and fail if it's unexpected
 				if r := recover(); r != nil {

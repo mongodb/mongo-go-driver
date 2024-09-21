@@ -9,6 +9,7 @@ package integration
 import (
 	"context"
 	"errors"
+	"os"
 	"testing"
 	"time"
 
@@ -26,6 +27,13 @@ import (
 
 // Test automatic "maxTimeMS" appending and connection closing behavior.
 func TestCSOT_maxTimeMS(t *testing.T) {
+	// Skip CSOT tests when SKIP_CSOT_TESTS=true. In Evergreen, we typically set
+	// that environment variable on Windows and macOS because the CSOT spec
+	// tests are unreliable on those hosts.
+	if os.Getenv("SKIP_CSOT_TESTS") == "true" {
+		t.Skip("Skipping CSOT test because SKIP_CSOT_TESTS=true")
+	}
+
 	mt := mtest.New(t, mtest.NewOptions().CreateClient(false))
 
 	testCases := []struct {
@@ -409,6 +417,13 @@ func TestCSOT_maxTimeMS(t *testing.T) {
 }
 
 func TestCSOT_errors(t *testing.T) {
+	// Skip CSOT tests when SKIP_CSOT_TESTS=true. In Evergreen, we typically set
+	// that environment variable on Windows and macOS because the CSOT spec
+	// tests are unreliable on those hosts.
+	if os.Getenv("SKIP_CSOT_TESTS") == "true" {
+		t.Skip("Skipping CSOT test because SKIP_CSOT_TESTS=true")
+	}
+
 	mt := mtest.New(t, mtest.NewOptions().
 		CreateClient(false).
 		// Blocking failpoints don't work on pre-4.2 and sharded clusters.
