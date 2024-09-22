@@ -42,7 +42,7 @@ functions:
           IS_PATCH: ${is_patch}
           VERSION_ID: ${version_id}
         args: 
-          - .evergreen/setup-env.sh
+          - .evergreen/setup-system.sh
     - command: expansions.update
       params:
         file: src/go.mongodb.org/mongo-driver/expansion.yml

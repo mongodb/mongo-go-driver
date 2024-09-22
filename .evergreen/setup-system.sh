@@ -4,7 +4,7 @@
 set -eu
 
 # Get the current unique version of this checkout.
-if [ "${IS_PATCH}" = "true" ]; then
+if [ "${IS_PATCH:-}" = "true" ]; then
     CURRENT_VERSION=$(git describe)-patch-${VERSION_ID}
 else
     CURRENT_VERSION=latest
@@ -14,10 +14,12 @@ fi
 HERE=$(pwd)
 ROOT_PATH="$(dirname "$(dirname "$(dirname "$HERE")")")"
 OS="${OS:-""}"
+GOROOT=${GOROOT:-$(dirname $(dirname $(which go)))}
+export GOMODCACHE=""
 
 # Set Golang environment vars. GOROOT is wherever current Go distribution is, and is set in evergreen config.
-# GOPATH is always 3 directories up from pwd; GOCACHE is under .cache in the pwd.
-GOPATH=$ROOT_PATH
+# GOPATH is always 3 directories up from pwd on EVG; GOCACHE is under .cache in the pwd.
+GOPATH=${GOPATH:-ROOT_PATH}
 export GOPATH
 GOCACHE="$HERE/.cache"
 export GOCACHE

@@ -22,6 +22,7 @@ test.suite
 go.work.sum
 .task
 env.sh
+expansion.yml
 
 # AWS SAM-generated files
 internal/cmd/faas/awslambda/.aws-sam
