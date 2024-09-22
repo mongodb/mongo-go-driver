@@ -35,19 +35,22 @@ functions:
     # Make an env.sh and evergreen expansion file with dynamic values
     - command: subprocess.exec
       params:
-        binary: ".evergreen/setup-system.sh"
-        working_dir: src/go.mongodb.org/mongo-driver
+        binary: bash
         env:
           GOROOT: ${GO_DIST}
           IS_PATCH: ${is_patch}
           VERSION_ID: ${version_id}
+        args: 
+          - "src/go.mongodb.org/mongo-driver/.evergreen/setup-system.sh"
     - command: expansions.update
       params:
         file: src/go.mongodb.org/mongo-driver/expansion.yml
     - command: subprocess.exec
       params:
-        binary: "${DRIVERS_TOOLS}/.evergreen/setup.sh"
+        binary: bash
         include_expansions_in_env: ["PROJECT_DIRECTORY"]
+        args:
+          - "${DRIVERS_TOOLS}/.evergreen/setup.sh"
 
   handle-test-artifacts:
     - command: gotest.parse_files
