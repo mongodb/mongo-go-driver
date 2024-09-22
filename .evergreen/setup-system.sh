@@ -3,6 +3,40 @@
 # Set up environment and write env.sh and expansion.yml files.
 set -eu
 
+# Set up default environment variables.
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+PROJECT_DIRECTORY=$(dirname $SCRIPT_DIR)
+ROOT_DIR=$(dirname $PROJECT_DIRECTORY)
+DRIVERS_TOOLS=${DRIVERS_TOOLS:-${ROOT_DIR}/drivers-evergreen-tools}
+MONGO_ORCHESTRATION_HOME="${DRIVERS_TOOLS}/.evergreen/orchestration"
+MONGODB_BINARIES="${DRIVERS_TOOLS}/mongodb/bin"
+OS="${OS:-""}"
+
+# Set Golang environment vars. GOROOT is wherever current Go distribution is, and is set in evergreen config.
+# GOPATH is always 3 directories up from pwd on EVG; GOCACHE is under .cache in the pwd.
+GOROOT=${GOROOT:-$(dirname $(dirname $(which go)))}
+GOPATH=${GOPATH:-ROOT_DIR}
+export GOPATH
+GOCACHE="$PROJECT_DIRECTORY/.cache"
+export GOCACHE
+
+# Handle paths on Windows.
+if [ "Windows_NT" = "${OS:-}" ]; then # Magic variable in cygwin
+  GOPATH=$(cygpath -m $GOPATH)
+  GOCACHE=$(cygpath -w $GOCACHE)
+  DRIVERS_TOOLS=$(cygpath -m $DRIVERS_TOOLS)
+  PROJECT_DIRECTORY=$(cygpath -m $PROJECT_DIRECTORY)
+  EXTRA_PATH=/cygdrive/c/libmongocrypt/bin
+  # Set home variables for Windows, too.
+  USERPROFILE=$(cygpath -w "$ROOT_DIR")
+  HOME=$USERPROFILE
+else
+  EXTRA_PATH=${GCC:-}
+fi
+
+# Add binaries to the path.
+PATH="${GOROOT}/bin:${GOPATH}/bin:${MONGODB_BINARIES}:${EXTRA_PATH}:${PATH}"
+
 # Get the current unique version of this checkout.
 if [ "${IS_PATCH:-}" = "true" ]; then
     CURRENT_VERSION=$(git describe)-patch-${VERSION_ID}
@@ -10,48 +44,20 @@ else
     CURRENT_VERSION=latest
 fi
 
-# Set general variables.
-HERE=$(pwd)
-ROOT_PATH="$(dirname "$(dirname "$(dirname "$HERE")")")"
-OS="${OS:-""}"
-GOROOT=${GOROOT:-$(dirname $(dirname $(which go)))}
-export GOMODCACHE=""
-
-# Set Golang environment vars. GOROOT is wherever current Go distribution is, and is set in evergreen config.
-# GOPATH is always 3 directories up from pwd on EVG; GOCACHE is under .cache in the pwd.
-GOPATH=${GOPATH:-ROOT_PATH}
-export GOPATH
-GOCACHE="$HERE/.cache"
-export GOCACHE
-
-# Set other relevant variables for Evergreen processes.
-DRIVERS_TOOLS="$ROOT_PATH/drivers-tools"
-PROJECT_DIRECTORY="$HERE"
-
-# If on Windows, convert paths with cygpath. GOROOT should not be converted as Windows expects it
-# to be separated with '\'.
-if [ "Windows_NT" = "$OS" ]; then
-    GOPATH=$(cygpath -m $GOPATH)
-    GOCACHE=$(cygpath -w $GOCACHE)
-    DRIVERS_TOOLS=$(cygpath -m $DRIVERS_TOOLS)
-    PROJECT_DIRECTORY=$(cygpath -m $PROJECT_DIRECTORY)
-    # Convert all Windows-style paths (e.g. C:/) to Bash-style Cygwin paths
-    # (e.g. /cygdrive/c/...) because PATH is interpreted by Bash, which uses ":" as a
-    # separator so doesn't support Windows-style paths. Other scripts or binaries that
-    # aren't part of Cygwin still need the environment variables to use Windows-style
-    # paths, so only convert them when setting PATH. Note that GCC_PATH is already a
-    # Bash-style Cygwin path for all Windows tasks.
-    EXTRA_PATH="$(cygpath $GOROOT/bin):$(cygpath $GOPATH/bin):$(cygpath -m $DRIVERS_TOOLS/mongodb/bin)/${GCC_PATH:-}:/cygdrive/c/libmongocrypt/bin"
-
-    # Set home variables for Windows, too.
-    USERPROFILE=$(cygpath -w "$ROOT_PATH")
-    HOME=$USERPROFILE
-else 
-    EXTRA_PATH="$GOROOT/bin:$GOPATH/bin:$DRIVERS_TOOLS/mongodb/bin:${GCC_PATH:-}"
+# Ensure a checkout of drivers-tools.
+if [ ! -d "$DRIVERS_TOOLS" ]; then
+  git clone https://github.com/mongodb-labs/drivers-evergreen-tools $DRIVERS_TOOLS
 fi
 
-# Prepend the path.
-PATH="$EXTRA_PATH:$PATH"
+# Write the .env file for drivers-tools.
+cat <<EOT > ${DRIVERS_TOOLS}/.env
+PROJECT_DIRECTORY="$PROJECT_DIRECTORY"
+SKIP_LEGACY_SHELL=1
+DRIVERS_TOOLS="$DRIVERS_TOOLS"
+MONGO_ORCHESTRATION_HOME="$MONGO_ORCHESTRATION_HOME"
+MONGODB_BINARIES="$MONGODB_BINARIES"
+TMPDIR="$MONGO_ORCHESTRATION_HOME/db"
+EOT
 
 # Check Go installation.
 go version
@@ -60,6 +66,7 @@ go env
 # Install taskfile.
 go install github.com/go-task/task/v3/cmd/task@v3.39.1
 
+# Write our own env file.
 cat <<EOT > env.sh
 export GOROOT="$GOROOT"
 export GOPATH="$GOPATH"
@@ -79,7 +86,7 @@ cat <<EOT > expansion.yml
 CURRENT_VERSION: "$CURRENT_VERSION"
 DRIVERS_TOOLS: "$DRIVERS_TOOLS"
 PROJECT_DIRECTORY: "$PROJECT_DIRECTORY"
-RUN_TASK: "$HERE/.evergreen/run-task.sh"
+RUN_TASK: "$PROJECT_DIRECTORY/.evergreen/run-task.sh"
 EOT
 
 cat env.sh

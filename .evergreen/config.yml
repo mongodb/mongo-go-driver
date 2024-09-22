@@ -26,7 +26,7 @@ timeout:
       script: |
         ls -la
 functions:
-  fetch-source:
+  setup-system:
     # Executes clone and applies the submitted patch, if any
     - command: git.get_project
       type: system
@@ -35,31 +35,19 @@ functions:
     # Make an env.sh and evergreen expansion file with dynamic values
     - command: subprocess.exec
       params:
-        binary: "bash"
+        binary: ".evergreen/setup-system.sh"
         working_dir: src/go.mongodb.org/mongo-driver
         env:
           GOROOT: ${GO_DIST}
           IS_PATCH: ${is_patch}
           VERSION_ID: ${version_id}
-        args: 
-          - .evergreen/setup-system.sh
     - command: expansions.update
       params:
         file: src/go.mongodb.org/mongo-driver/expansion.yml
-
-  prepare-resources:
-    - command: shell.exec
-      params:
-        shell: "bash"
-        script: |
-          rm -rf ${DRIVERS_TOOLS}
-          git clone https://github.com/mongodb-labs/drivers-evergreen-tools.git ${DRIVERS_TOOLS}
     - command: subprocess.exec
       params:
-        binary: "bash"
+        binary: "${DRIVERS_TOOLS}/.evergreen/setup.sh"
         include_expansions_in_env: ["PROJECT_DIRECTORY"]
-        args:
-          - ${DRIVERS_TOOLS}/.evergreen/setup.sh
 
   handle-test-artifacts:
     - command: gotest.parse_files
@@ -677,8 +665,7 @@ functions:
           ${RUN_TASK} run-fuzz
 
 pre:
-  - func: fetch-source
-  - func: prepare-resources
+  - func: setup-system
 
 post:
   - func: teardown
@@ -1937,8 +1924,7 @@ task_groups:
     setup_group_can_fail_task: true
     setup_group_timeout_secs: 1800 # 30 minutes
     setup_group:
-      - func: fetch-source
-      - func: prepare-resources
+      - func: setup-system
       - command: subprocess.exec
         params:
           binary: "bash"
@@ -1987,8 +1973,7 @@ task_groups:
     setup_group_can_fail_task: true
     setup_group_timeout_secs: 1800 # 30 minutes
     setup_group:
-      - func: fetch-source
-      - func: prepare-resources
+      - func: setup-system
       - command: subprocess.exec
         params:
           binary: "bash"
@@ -2010,8 +1995,7 @@ task_groups:
     teardown_group_can_fail_task: true
     setup_group_timeout_secs: 1800 # 30 minutes
     setup_group:
-      - func: fetch-source
-      - func: prepare-resources
+      - func: setup-system
       - command: shell.exec
         params:
           shell: "bash"
@@ -2034,8 +2018,7 @@ task_groups:
 
   - name: testoidc_task_group
     setup_group:
-      - func: fetch-source
-      - func: prepare-resources
+      - func: setup-system
       - func: assume-ec2-role
       - command: subprocess.exec
         params:
@@ -2060,8 +2043,7 @@ task_groups:
 
   - name: testazureoidc_task_group
     setup_group:
-      - func: fetch-source
-      - func: prepare-resources
+      - func: setup-system
       - command: subprocess.exec
         params:
           binary: bash
@@ -2084,8 +2066,7 @@ task_groups:
 
   - name: testgcpoidc_task_group
     setup_group:
-      - func: fetch-source
-      - func: prepare-resources
+      - func: setup-system
       - command: subprocess.exec
         params:
           binary: bash
@@ -2108,8 +2089,7 @@ task_groups:
 
   - name: test-aws-lambda-task-group
     setup_group:
-      - func: fetch-source
-      - func: prepare-resources
+      - func: setup-system
       - command: subprocess.exec
         params:
           working_dir: src/go.mongodb.org/mongo-driver
@@ -2137,8 +2117,7 @@ task_groups:
 
   - name: test-search-index-task-group
     setup_group:
-      - func: fetch-source
-      - func: prepare-resources
+      - func: setup-system
       - command: subprocess.exec
         params:
           working_dir: src/go.mongodb.org/mongo-driver
