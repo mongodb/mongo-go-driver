@@ -27,6 +27,8 @@ if [ "Windows_NT" = "${OS:-}" ]; then # Magic variable in cygwin
   DRIVERS_TOOLS=$(cygpath -m $DRIVERS_TOOLS)
   PROJECT_DIRECTORY=$(cygpath -m $PROJECT_DIRECTORY)
   EXTRA_PATH=/cygdrive/c/libmongocrypt/bin
+  MONGO_ORCHESTRATION_HOME=$(cygpath -m $MONGO_ORCHESTRATION_HOME)
+  MONGODB_BINARIES=$(cygpath -m $MONGODB_BINARIES)
   # Set home variables for Windows, too.
   USERPROFILE=$(cygpath -w "$ROOT_DIR")
   HOME=$USERPROFILE
