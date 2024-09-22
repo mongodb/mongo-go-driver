@@ -36,12 +36,13 @@ functions:
     - command: subprocess.exec
       params:
         binary: bash
+        working_dir: src/go.mongodb.org/mongo-driver
         env:
           GOROOT: ${GO_DIST}
           IS_PATCH: ${is_patch}
           VERSION_ID: ${version_id}
         args: 
-          - "src/go.mongodb.org/mongo-driver/.evergreen/setup-system.sh"
+          - ".evergreen/setup-system.sh"
     - command: expansions.update
       params:
         file: src/go.mongodb.org/mongo-driver/expansion.yml
