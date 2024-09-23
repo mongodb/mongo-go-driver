@@ -12,6 +12,10 @@ AUTH_AWS_DIR=${DRIVERS_TOOLS}/.evergreen/auth_aws
 ECS_SRC_DIR=$AUTH_AWS_DIR/src
 
 # pack up project directory to ssh it to the container
-mkdir -p $ECS_SRC_DIR
+mkdir -p $ECS_SRC_DIR/.evergreen
+cp ${PROJECT_DIRECTORY}/main $ECS_SRC_DIR
+cp ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-ecs-test.sh $ECS_SRC_DIR/.evergreen
 tar -czf $ECS_SRC_DIR/src.tgz -C ${PROJECT_DIRECTORY} .
-PROJECT_DIRECTORY="${ECS_SRC_DIR}" $AUTH_AWS_DIR/aws_setup.sh ecs
+
+export PROJECT_DIRECTORY="$ECS_SRC_DIR"
+$AUTH_AWS_DIR/aws_setup.sh ecs
