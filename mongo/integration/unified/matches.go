@@ -207,8 +207,7 @@ func compareDocumentToString(expected, actual bson.RawValue) error {
 // evaluateMixedTypeComparison compares an expected document with an actual string.  If this comparison occurs, then
 // the function will return `true` along with any resulting error.
 func evaluateMixedTypeComparison(expectedKey string, expected, actual bson.RawValue) (bool, error) {
-	switch expectedKey {
-	case "comment":
+	if expectedKey == "comment" {
 		if expected.Type == bsontype.EmbeddedDocument && actual.Type == bsontype.String {
 			return true, compareDocumentToString(expected, actual)
 		}

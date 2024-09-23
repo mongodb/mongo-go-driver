@@ -10,16 +10,17 @@ import (
 	"context"
 	"errors"
 	"net"
+	"regexp"
 	"sync"
 	"testing"
 	"time"
 
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/csot"
 	"go.mongodb.org/mongo-driver/internal/eventtest"
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 )
 
@@ -1124,6 +1125,310 @@ func TestPool(t *testing.T) {
 	})
 }
 
+func TestBackgroundRead(t *testing.T) {
+	t.Parallel()
+
+	newBGReadCallback := func(errsCh chan []error) func(string, time.Time, time.Time, []error, bool) {
+		return func(_ string, _, _ time.Time, errs []error, _ bool) {
+			errsCh <- errs
+			close(errsCh)
+		}
+	}
+
+	t.Run("incomplete read of message header", func(t *testing.T) {
+		errsCh := make(chan []error)
+		var originalCallback func(string, time.Time, time.Time, []error, bool)
+		originalCallback, BGReadCallback = BGReadCallback, newBGReadCallback(errsCh)
+		t.Cleanup(func() {
+			BGReadCallback = originalCallback
+		})
+
+		const timeout = 10 * time.Millisecond
+
+		cleanup := make(chan struct{})
+		defer close(cleanup)
+		addr := bootstrapConnections(t, 1, func(nc net.Conn) {
+			defer func() {
+				<-cleanup
+				_ = nc.Close()
+			}()
+
+			_, err := nc.Write([]byte{10, 0, 0})
+			noerr(t, err)
+		})
+
+		p := newPool(
+			poolConfig{Address: address.Address(addr.String())},
+		)
+		defer p.close(context.Background())
+		err := p.ready()
+		noerr(t, err)
+
+		conn, err := p.checkOut(context.Background())
+		noerr(t, err)
+		ctx, cancel := csot.MakeTimeoutContext(context.Background(), timeout)
+		defer cancel()
+		_, err = conn.readWireMessage(ctx)
+		regex := regexp.MustCompile(
+			`^connection\(.*\[-\d+\]\) incomplete read of message header: context deadline exceeded: read tcp 127.0.0.1:.*->127.0.0.1:.*: i\/o timeout$`,
+		)
+		assert.True(t, regex.MatchString(err.Error()), "error %q does not match pattern %q", err, regex)
+		assert.Nil(t, conn.awaitRemainingBytes, "conn.awaitRemainingBytes should be nil")
+		close(errsCh) // this line causes a double close if BGReadCallback is ever called.
+	})
+	t.Run("timeout reading message header, successful background read", func(t *testing.T) {
+		errsCh := make(chan []error)
+		var originalCallback func(string, time.Time, time.Time, []error, bool)
+		originalCallback, BGReadCallback = BGReadCallback, newBGReadCallback(errsCh)
+		t.Cleanup(func() {
+			BGReadCallback = originalCallback
+		})
+
+		const timeout = 10 * time.Millisecond
+
+		addr := bootstrapConnections(t, 1, func(nc net.Conn) {
+			defer func() {
+				_ = nc.Close()
+			}()
+
+			// Wait until the operation times out, then write an full message.
+			time.Sleep(timeout * 2)
+			_, err := nc.Write([]byte{10, 0, 0, 0, 0, 0, 0, 0, 0, 0})
+			noerr(t, err)
+		})
+
+		p := newPool(
+			poolConfig{Address: address.Address(addr.String())},
+		)
+		defer p.close(context.Background())
+		err := p.ready()
+		noerr(t, err)
+
+		conn, err := p.checkOut(context.Background())
+		noerr(t, err)
+		ctx, cancel := csot.MakeTimeoutContext(context.Background(), timeout)
+		defer cancel()
+		_, err = conn.readWireMessage(ctx)
+		regex := regexp.MustCompile(
+			`^connection\(.*\[-\d+\]\) incomplete read of message header: context deadline exceeded: read tcp 127.0.0.1:.*->127.0.0.1:.*: i\/o timeout$`,
+		)
+		assert.True(t, regex.MatchString(err.Error()), "error %q does not match pattern %q", err, regex)
+		err = p.checkIn(conn)
+		noerr(t, err)
+		var bgErrs []error
+		select {
+		case bgErrs = <-errsCh:
+		case <-time.After(3 * time.Second):
+			assert.Fail(t, "did not receive expected error after waiting for 3 seconds")
+		}
+		require.Len(t, bgErrs, 0, "expected no error from bgRead()")
+	})
+	t.Run("timeout reading message header, incomplete head during background read", func(t *testing.T) {
+		errsCh := make(chan []error)
+		var originalCallback func(string, time.Time, time.Time, []error, bool)
+		originalCallback, BGReadCallback = BGReadCallback, newBGReadCallback(errsCh)
+		t.Cleanup(func() {
+			BGReadCallback = originalCallback
+		})
+
+		const timeout = 10 * time.Millisecond
+
+		addr := bootstrapConnections(t, 1, func(nc net.Conn) {
+			defer func() {
+				_ = nc.Close()
+			}()
+
+			// Wait until the operation times out, then write an incomplete head.
+			time.Sleep(timeout * 2)
+			_, err := nc.Write([]byte{10, 0, 0})
+			noerr(t, err)
+		})
+
+		p := newPool(
+			poolConfig{Address: address.Address(addr.String())},
+		)
+		defer p.close(context.Background())
+		err := p.ready()
+		noerr(t, err)
+
+		conn, err := p.checkOut(context.Background())
+		noerr(t, err)
+		ctx, cancel := csot.MakeTimeoutContext(context.Background(), timeout)
+		defer cancel()
+		_, err = conn.readWireMessage(ctx)
+		regex := regexp.MustCompile(
+			`^connection\(.*\[-\d+\]\) incomplete read of message header: context deadline exceeded: read tcp 127.0.0.1:.*->127.0.0.1:.*: i\/o timeout$`,
+		)
+		assert.True(t, regex.MatchString(err.Error()), "error %q does not match pattern %q", err, regex)
+		err = p.checkIn(conn)
+		noerr(t, err)
+		var bgErrs []error
+		select {
+		case bgErrs = <-errsCh:
+		case <-time.After(3 * time.Second):
+			assert.Fail(t, "did not receive expected error after waiting for 3 seconds")
+		}
+		require.Len(t, bgErrs, 1, "expected 1 error from bgRead()")
+		assert.EqualError(t, bgErrs[0], "error reading the message size: unexpected EOF")
+	})
+	t.Run("timeout reading message header, background read timeout", func(t *testing.T) {
+		errsCh := make(chan []error)
+		var originalCallback func(string, time.Time, time.Time, []error, bool)
+		originalCallback, BGReadCallback = BGReadCallback, newBGReadCallback(errsCh)
+		t.Cleanup(func() {
+			BGReadCallback = originalCallback
+		})
+
+		const timeout = 10 * time.Millisecond
+
+		cleanup := make(chan struct{})
+		defer close(cleanup)
+		addr := bootstrapConnections(t, 1, func(nc net.Conn) {
+			defer func() {
+				<-cleanup
+				_ = nc.Close()
+			}()
+
+			// Wait until the operation times out, then write an incomplete
+			// message.
+			time.Sleep(timeout * 2)
+			_, err := nc.Write([]byte{10, 0, 0, 0, 0, 0, 0, 0})
+			noerr(t, err)
+		})
+
+		p := newPool(
+			poolConfig{Address: address.Address(addr.String())},
+		)
+		defer p.close(context.Background())
+		err := p.ready()
+		noerr(t, err)
+
+		conn, err := p.checkOut(context.Background())
+		noerr(t, err)
+		ctx, cancel := csot.MakeTimeoutContext(context.Background(), timeout)
+		defer cancel()
+		_, err = conn.readWireMessage(ctx)
+		regex := regexp.MustCompile(
+			`^connection\(.*\[-\d+\]\) incomplete read of message header: context deadline exceeded: read tcp 127.0.0.1:.*->127.0.0.1:.*: i\/o timeout$`,
+		)
+		assert.True(t, regex.MatchString(err.Error()), "error %q does not match pattern %q", err, regex)
+		err = p.checkIn(conn)
+		noerr(t, err)
+		var bgErrs []error
+		select {
+		case bgErrs = <-errsCh:
+		case <-time.After(3 * time.Second):
+			assert.Fail(t, "did not receive expected error after waiting for 3 seconds")
+		}
+		require.Len(t, bgErrs, 1, "expected 1 error from bgRead()")
+		wantErr := regexp.MustCompile(
+			`^error discarding 6 byte message: read tcp 127.0.0.1:.*->127.0.0.1:.*: i\/o timeout$`,
+		)
+		assert.True(t, wantErr.MatchString(bgErrs[0].Error()), "error %q does not match pattern %q", bgErrs[0], wantErr)
+	})
+	t.Run("timeout reading full message, successful background read", func(t *testing.T) {
+		errsCh := make(chan []error)
+		var originalCallback func(string, time.Time, time.Time, []error, bool)
+		originalCallback, BGReadCallback = BGReadCallback, newBGReadCallback(errsCh)
+		t.Cleanup(func() {
+			BGReadCallback = originalCallback
+		})
+
+		const timeout = 10 * time.Millisecond
+
+		addr := bootstrapConnections(t, 1, func(nc net.Conn) {
+			defer func() {
+				_ = nc.Close()
+			}()
+
+			var err error
+			_, err = nc.Write([]byte{12, 0, 0, 0, 0, 0, 0, 0, 1})
+			noerr(t, err)
+			time.Sleep(timeout * 2)
+			// write a complete message
+			_, err = nc.Write([]byte{2, 3, 4})
+			noerr(t, err)
+		})
+
+		p := newPool(
+			poolConfig{Address: address.Address(addr.String())},
+		)
+		defer p.close(context.Background())
+		err := p.ready()
+		noerr(t, err)
+
+		conn, err := p.checkOut(context.Background())
+		noerr(t, err)
+		ctx, cancel := csot.MakeTimeoutContext(context.Background(), timeout)
+		defer cancel()
+		_, err = conn.readWireMessage(ctx)
+		regex := regexp.MustCompile(
+			`^connection\(.*\[-\d+\]\) incomplete read of full message: context deadline exceeded: read tcp 127.0.0.1:.*->127.0.0.1:.*: i\/o timeout$`,
+		)
+		assert.True(t, regex.MatchString(err.Error()), "error %q does not match pattern %q", err, regex)
+		err = p.checkIn(conn)
+		noerr(t, err)
+		var bgErrs []error
+		select {
+		case bgErrs = <-errsCh:
+		case <-time.After(3 * time.Second):
+			assert.Fail(t, "did not receive expected error after waiting for 3 seconds")
+		}
+		require.Len(t, bgErrs, 0, "expected no error from bgRead()")
+	})
+	t.Run("timeout reading full message, background read EOF", func(t *testing.T) {
+		errsCh := make(chan []error)
+		var originalCallback func(string, time.Time, time.Time, []error, bool)
+		originalCallback, BGReadCallback = BGReadCallback, newBGReadCallback(errsCh)
+		t.Cleanup(func() {
+			BGReadCallback = originalCallback
+		})
+
+		const timeout = 10 * time.Millisecond
+
+		addr := bootstrapConnections(t, 1, func(nc net.Conn) {
+			defer func() {
+				_ = nc.Close()
+			}()
+
+			var err error
+			_, err = nc.Write([]byte{12, 0, 0, 0, 0, 0, 0, 0, 1})
+			noerr(t, err)
+			time.Sleep(timeout * 2)
+			// write an incomplete message
+			_, err = nc.Write([]byte{2})
+			noerr(t, err)
+		})
+
+		p := newPool(
+			poolConfig{Address: address.Address(addr.String())},
+		)
+		defer p.close(context.Background())
+		err := p.ready()
+		noerr(t, err)
+
+		conn, err := p.checkOut(context.Background())
+		noerr(t, err)
+		ctx, cancel := csot.MakeTimeoutContext(context.Background(), timeout)
+		defer cancel()
+		_, err = conn.readWireMessage(ctx)
+		regex := regexp.MustCompile(
+			`^connection\(.*\[-\d+\]\) incomplete read of full message: context deadline exceeded: read tcp 127.0.0.1:.*->127.0.0.1:.*: i\/o timeout$`,
+		)
+		assert.True(t, regex.MatchString(err.Error()), "error %q does not match pattern %q", err, regex)
+		err = p.checkIn(conn)
+		noerr(t, err)
+		var bgErrs []error
+		select {
+		case bgErrs = <-errsCh:
+		case <-time.After(3 * time.Second):
+			assert.Fail(t, "did not receive expected error after waiting for 3 seconds")
+		}
+		require.Len(t, bgErrs, 1, "expected 1 error from bgRead()")
+		assert.EqualError(t, bgErrs[0], "error discarding 3 byte message: EOF")
+	})
+}
+
 func assertConnectionsClosed(t *testing.T, dialer *dialer, count int) {
 	t.Helper()
 
@@ -1179,21 +1484,19 @@ func TestPool_PoolMonitor(t *testing.T) {
 		})
 
 		tpm := eventtest.NewTestPoolMonitor()
+		dialer := &net.Dialer{}
 		p := newPool(
 			poolConfig{
 				Address:     address.Address(addr.String()),
 				PoolMonitor: tpm.PoolMonitor,
 			},
-			// Add a 10ms delay in the handshake so the test is reliable on
-			// operating systems that can't measure very short durations (e.g.
-			// Windows).
-			WithHandshaker(func(Handshaker) Handshaker {
-				return &testHandshaker{
-					getHandshakeInformation: func(context.Context, address.Address, driver.Connection) (driver.HandshakeInformation, error) {
-						time.Sleep(10 * time.Millisecond)
-						return driver.HandshakeInformation{}, nil
-					},
-				}
+			// Add a 10ms delay to dialing so the test is reliable on operating
+			// systems that can't measure very short durations (e.g. Windows).
+			WithDialer(func(Dialer) Dialer {
+				return DialerFunc(func(ctx context.Context, n, a string) (net.Conn, error) {
+					time.Sleep(10 * time.Millisecond)
+					return dialer.DialContext(ctx, n, a)
+				})
 			}))
 
 		err := p.ready()

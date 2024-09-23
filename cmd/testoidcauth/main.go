@@ -18,6 +18,7 @@ import (
 	"unsafe"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
@@ -38,7 +39,7 @@ func tokenFile(user string) string {
 	return path.Join(oidcTokenDir, user)
 }
 
-func connectAdminClinet() (*mongo.Client, error) {
+func connectAdminClient() (*mongo.Client, error) {
 	return mongo.Connect(context.Background(), options.Client().ApplyURI(uriAdmin))
 }
 
@@ -52,6 +53,25 @@ func connectWithMachineCB(uri string, cb options.OIDCCallback) (*mongo.Client, e
 func connectWithHumanCB(uri string, cb options.OIDCCallback) (*mongo.Client, error) {
 	opts := options.Client().ApplyURI(uri)
 
+	opts.Auth.OIDCHumanCallback = cb
+	return mongo.Connect(context.Background(), opts)
+}
+
+func connectWithHumanCBAndUser(uri string, principal string, cb options.OIDCCallback) (*mongo.Client, error) {
+	opts := options.Client().ApplyURI(uri)
+	switch principal {
+	case "test_user1", "test_user2":
+		opts.Auth.Username = explicitUser(principal)
+	default:
+		opts.Auth.Username = principal
+	}
+	opts.Auth.OIDCHumanCallback = cb
+	return mongo.Connect(context.Background(), opts)
+}
+
+func connectWithHumanCBAndMonitor(uri string, cb options.OIDCCallback, m *event.CommandMonitor) (*mongo.Client, error) {
+	opts := options.Client().ApplyURI(uri)
+	opts.Monitor = m
 	opts.Auth.OIDCHumanCallback = cb
 	return mongo.Connect(context.Background(), opts)
 }
@@ -101,6 +121,7 @@ func main() {
 		aux("human_1_5_multiplPrincipalNoUser", human15mulitplePrincipalNoUser)
 		aux("human_1_6_allowedHostsBlocked", human16allowedHostsBlocked)
 		aux("human_1_7_allowedHostsInConnectionStringIgnored", human17AllowedHostsInConnectionStringIgnored)
+		aux("human_1_8_machineIDPHumanCallback", human18MachineIDPHumanCallback)
 		aux("human_2_1_validCallbackInputs", human21validCallbackInputs)
 		aux("human_2_2_CallbackReturnsMissingData", human22CallbackReturnsMissingData)
 		aux("human_2_3_RefreshTokenIsPassedToCallback", human23RefreshTokenIsPassedToCallback)
@@ -111,6 +132,7 @@ func main() {
 		aux("human_4_3_reauthenticationSucceedsAfterRefreshFails", human43ReauthenticationSucceedsAfterRefreshFails)
 		aux("human_4_4_reauthenticationFails", human44ReauthenticationFails)
 	case "azure":
+		aux("machine_2_5_InvalidUseofAllowedHosts", machine25InvalidUseofAllowedHosts)
 		aux("machine_5_1_azureWithNoUsername", machine51azureWithNoUsername)
 		aux("machine_5_2_azureWithNoUsername", machine52azureWithBadUsername)
 	case "gcp":
@@ -128,7 +150,7 @@ func machine11callbackIsCalled() error {
 	var callbackFailed error
 	countMutex := sync.Mutex{}
 
-	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithMachineCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -145,7 +167,7 @@ func machine11callbackIsCalled() error {
 		}, nil
 	})
 
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	if err != nil {
 		return fmt.Errorf("machine_1_1: failed connecting client: %v", err)
@@ -170,7 +192,7 @@ func machine12callbackIsCalledOnlyOneForMultipleConnections() error {
 	var callbackFailed error
 	countMutex := sync.Mutex{}
 
-	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithMachineCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -187,7 +209,7 @@ func machine12callbackIsCalledOnlyOneForMultipleConnections() error {
 		}, nil
 	})
 
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	if err != nil {
 		return fmt.Errorf("machine_1_2: failed connecting client: %v", err)
@@ -258,7 +280,7 @@ func machine21validCallbackInputs() error {
 		}, nil
 	})
 
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	if err != nil {
 		return fmt.Errorf("machine_2_1: failed connecting client: %v", err)
@@ -282,7 +304,7 @@ func machine23oidcCallbackReturnMissingData() error {
 	callbackCount := 0
 	countMutex := sync.Mutex{}
 
-	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithMachineCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -294,7 +316,7 @@ func machine23oidcCallbackReturnMissingData() error {
 		}, nil
 	})
 
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	if err != nil {
 		return fmt.Errorf("machine_2_3: failed connecting client: %v", err)
@@ -315,7 +337,7 @@ func machine23oidcCallbackReturnMissingData() error {
 }
 
 func machine24invalidClientConfigurationWithCallback() error {
-	_, err := connectWithMachineCBAndProperties(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	_, err := connectWithMachineCBAndProperties(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		t := time.Now().Add(time.Hour)
 		return &options.OIDCCredential{
 			AccessToken:  "",
@@ -331,12 +353,32 @@ func machine24invalidClientConfigurationWithCallback() error {
 	return nil
 }
 
+func machine25InvalidUseofAllowedHosts() error {
+	_, err := connectWithMachineCBAndProperties(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
+		t := time.Now().Add(time.Hour)
+		return &options.OIDCCredential{
+			AccessToken:  "",
+			ExpiresAt:    &t,
+			RefreshToken: nil,
+		}, nil
+	},
+		map[string]string{
+			"ENVIRONMENT":   "azure",
+			"ALLOWED_HOSTS": "",
+		},
+	)
+	if err == nil {
+		return fmt.Errorf("machine_2_5: succeeded building client when it should fail")
+	}
+	return nil
+}
+
 func machine31failureWithCachedTokensFetchANewTokenAndRetryAuth() error {
 	callbackCount := 0
 	var callbackFailed error
 	countMutex := sync.Mutex{}
 
-	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithMachineCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -353,7 +395,7 @@ func machine31failureWithCachedTokensFetchANewTokenAndRetryAuth() error {
 		}, nil
 	})
 
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	if err != nil {
 		return fmt.Errorf("machine_3_1: failed connecting client: %v", err)
@@ -365,7 +407,7 @@ func machine31failureWithCachedTokensFetchANewTokenAndRetryAuth() error {
 	authenticatorField = reflect.NewAt(
 		authenticatorField.Type(),
 		unsafe.Pointer(authenticatorField.UnsafeAddr())).Elem()
-	// this is the only usage of the x packages in the test, showing the the public interface is
+	// this is the only usage of the x packages in the test, showing the public interface is
 	// correct.
 	authenticatorField.Interface().(*auth.OIDCAuthenticator).SetAccessToken("some random happy sunshine string")
 
@@ -388,7 +430,7 @@ func machine32authFailuresWithoutCachedTokensReturnsAnError() error {
 	var callbackFailed error
 	countMutex := sync.Mutex{}
 
-	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithMachineCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -400,7 +442,7 @@ func machine32authFailuresWithoutCachedTokensReturnsAnError() error {
 		}, nil
 	})
 
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	if err != nil {
 		return fmt.Errorf("machine_3_2: failed connecting client: %v", err)
@@ -424,13 +466,13 @@ func machine33UnexpectedErrorCodeDoesNotClearTheCache() error {
 	var callbackFailed error
 	countMutex := sync.Mutex{}
 
-	adminClient, err := connectAdminClinet()
+	adminClient, err := connectAdminClient()
 	if err != nil {
 		return fmt.Errorf("machine_3_3: failed connecting admin client: %v", err)
 	}
-	defer adminClient.Disconnect(context.Background())
+	defer func() { _ = adminClient.Disconnect(context.Background()) }()
 
-	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithMachineCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -447,7 +489,7 @@ func machine33UnexpectedErrorCodeDoesNotClearTheCache() error {
 		}, nil
 	})
 
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	if err != nil {
 		return fmt.Errorf("machine_3_3: failed connecting client: %v", err)
@@ -498,13 +540,13 @@ func machine41ReauthenticationSucceeds() error {
 	var callbackFailed error
 	countMutex := sync.Mutex{}
 
-	adminClient, err := connectAdminClinet()
+	adminClient, err := connectAdminClient()
 	if err != nil {
 		return fmt.Errorf("machine_4_1: failed connecting admin client: %v", err)
 	}
-	defer adminClient.Disconnect(context.Background())
+	defer func() { _ = adminClient.Disconnect(context.Background()) }()
 
-	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithMachineCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -521,7 +563,7 @@ func machine41ReauthenticationSucceeds() error {
 		}, nil
 	})
 
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	if err != nil {
 		return fmt.Errorf("machine_4_1: failed connecting client: %v", err)
@@ -563,13 +605,13 @@ func machine42ReadCommandsFailIfReauthenticationFails() error {
 	firstCall := true
 	countMutex := sync.Mutex{}
 
-	adminClient, err := connectAdminClinet()
+	adminClient, err := connectAdminClient()
 	if err != nil {
 		return fmt.Errorf("machine_4_2: failed connecting admin client: %v", err)
 	}
-	defer adminClient.Disconnect(context.Background())
+	defer func() { _ = adminClient.Disconnect(context.Background()) }()
 
-	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithMachineCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -595,7 +637,7 @@ func machine42ReadCommandsFailIfReauthenticationFails() error {
 
 	})
 
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	if err != nil {
 		return fmt.Errorf("machine_4_2: failed connecting client: %v", err)
@@ -643,13 +685,13 @@ func machine43WriteCommandsFailIfReauthenticationFails() error {
 	firstCall := true
 	countMutex := sync.Mutex{}
 
-	adminClient, err := connectAdminClinet()
+	adminClient, err := connectAdminClient()
 	if err != nil {
 		return fmt.Errorf("machine_4_3: failed connecting admin client: %v", err)
 	}
-	defer adminClient.Disconnect(context.Background())
+	defer func() { _ = adminClient.Disconnect(context.Background()) }()
 
-	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithMachineCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -674,7 +716,7 @@ func machine43WriteCommandsFailIfReauthenticationFails() error {
 		}, nil
 	})
 
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	if err != nil {
 		return fmt.Errorf("machine_4_3: failed connecting client: %v", err)
@@ -721,7 +763,7 @@ func human11singlePrincipalImplictUsername() error {
 	var callbackFailed error
 	countMutex := sync.Mutex{}
 
-	client, err := connectWithHumanCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithHumanCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -738,7 +780,7 @@ func human11singlePrincipalImplictUsername() error {
 		}, nil
 	})
 
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	if err != nil {
 		return fmt.Errorf("human_1_1: failed connecting client: %v", err)
@@ -763,8 +805,7 @@ func human12singlePrincipalExplicitUsername() error {
 	var callbackFailed error
 	countMutex := sync.Mutex{}
 
-	opts := options.Client().ApplyURI(uriSingle)
-	opts.Auth.OIDCHumanCallback = func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithHumanCBAndUser(uriSingle, "test_user1", func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -779,13 +820,11 @@ func human12singlePrincipalExplicitUsername() error {
 			ExpiresAt:    &t,
 			RefreshToken: nil,
 		}, nil
-	}
-	opts.Auth.Username = explicitUser("test_user1")
-	client, err := mongo.Connect(context.Background(), opts)
+	})
 	if err != nil {
 		return fmt.Errorf("human_1_2: failed connecting client: %v", err)
 	}
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	coll := client.Database("test").Collection("test")
 
@@ -807,7 +846,7 @@ func human13mulitplePrincipalUser1() error {
 	countMutex := sync.Mutex{}
 
 	opts := options.Client().ApplyURI(uriMulti)
-	opts.Auth.OIDCHumanCallback = func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	opts.Auth.OIDCHumanCallback = func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -828,7 +867,7 @@ func human13mulitplePrincipalUser1() error {
 	if err != nil {
 		return fmt.Errorf("human_1_3: failed connecting client: %v", err)
 	}
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	coll := client.Database("test").Collection("test")
 
@@ -850,7 +889,7 @@ func human14mulitplePrincipalUser2() error {
 	countMutex := sync.Mutex{}
 
 	opts := options.Client().ApplyURI(uriMulti)
-	opts.Auth.OIDCHumanCallback = func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	opts.Auth.OIDCHumanCallback = func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -871,7 +910,7 @@ func human14mulitplePrincipalUser2() error {
 	if err != nil {
 		return fmt.Errorf("human_1_4: failed connecting client: %v", err)
 	}
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	coll := client.Database("test").Collection("test")
 
@@ -892,7 +931,7 @@ func human15mulitplePrincipalNoUser() error {
 	var callbackFailed error
 	countMutex := sync.Mutex{}
 
-	client, err := connectWithHumanCB(uriMulti, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithHumanCB(uriMulti, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -911,7 +950,7 @@ func human15mulitplePrincipalNoUser() error {
 	if err != nil {
 		return fmt.Errorf("human_1_5: failed connecting client: %v", err)
 	}
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	coll := client.Database("test").Collection("test")
 
@@ -931,7 +970,7 @@ func human16allowedHostsBlocked() error {
 	var callbackFailed error
 	{
 		opts := options.Client().ApplyURI(uriSingle)
-		opts.Auth.OIDCHumanCallback = func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+		opts.Auth.OIDCHumanCallback = func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 			t := time.Now().Add(time.Hour)
 			tokenFile := tokenFile("test_user1")
 			accessToken, err := os.ReadFile(tokenFile)
@@ -949,7 +988,7 @@ func human16allowedHostsBlocked() error {
 		if err != nil {
 			return fmt.Errorf("human_1_4: failed connecting client: %v", err)
 		}
-		defer client.Disconnect(context.Background())
+		defer func() { _ = client.Disconnect(context.Background()) }()
 
 		coll := client.Database("test").Collection("test")
 
@@ -960,7 +999,7 @@ func human16allowedHostsBlocked() error {
 	}
 	{
 		opts := options.Client().ApplyURI("mongodb://localhost/?authMechanism=MONGODB-OIDC&ignored=example.com")
-		opts.Auth.OIDCHumanCallback = func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+		opts.Auth.OIDCHumanCallback = func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 			t := time.Now().Add(time.Hour)
 			tokenFile := tokenFile("test_user1")
 			accessToken, err := os.ReadFile(tokenFile)
@@ -978,7 +1017,7 @@ func human16allowedHostsBlocked() error {
 		if err != nil {
 			return fmt.Errorf("human_1_4: failed connecting client: %v", err)
 		}
-		defer client.Disconnect(context.Background())
+		defer func() { _ = client.Disconnect(context.Background()) }()
 
 		coll := client.Database("test").Collection("test")
 
@@ -1000,12 +1039,59 @@ func human17AllowedHostsInConnectionStringIgnored() error {
 	return nil
 }
 
+func human18MachineIDPHumanCallback() error {
+	if _, ok := os.LookupEnv("OIDC_IS_LOCAL"); !ok {
+		return nil
+	}
+	callbackCount := 0
+
+	var callbackFailed error
+	countMutex := sync.Mutex{}
+
+	client, err := connectWithHumanCBAndUser(uriSingle, "test_machine", func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
+		countMutex.Lock()
+		defer countMutex.Unlock()
+		callbackCount++
+		t := time.Now().Add(time.Hour)
+		tokenFile := tokenFile("test_machine")
+		accessToken, err := os.ReadFile(tokenFile)
+		if err != nil {
+			callbackFailed = fmt.Errorf("human_1_8: failed reading token file: %v", err)
+		}
+		return &options.OIDCCredential{
+			AccessToken:  string(accessToken),
+			ExpiresAt:    &t,
+			RefreshToken: nil,
+		}, nil
+	})
+
+	defer func() { _ = client.Disconnect(context.Background()) }()
+
+	if err != nil {
+		return fmt.Errorf("human_1_8: failed connecting client: %v", err)
+	}
+
+	coll := client.Database("test").Collection("test")
+
+	_, err = coll.Find(context.Background(), bson.D{})
+	if err != nil {
+		return fmt.Errorf("human_1_8: failed executing Find: %v", err)
+	}
+	countMutex.Lock()
+	defer countMutex.Unlock()
+	if callbackCount != 1 {
+		return fmt.Errorf("human_1_8: expected callback count to be 1, got %d", callbackCount)
+	}
+	return callbackFailed
+
+}
+
 func human21validCallbackInputs() error {
 	callbackCount := 0
 	var callbackFailed error
 	countMutex := sync.Mutex{}
 
-	client, err := connectWithHumanCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithHumanCB(uriSingle, func(_ context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -1028,7 +1114,7 @@ func human21validCallbackInputs() error {
 		}, nil
 	})
 
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	if err != nil {
 		return fmt.Errorf("human_2_1: failed connecting client: %v", err)
@@ -1052,14 +1138,14 @@ func human22CallbackReturnsMissingData() error {
 	callbackCount := 0
 	countMutex := sync.Mutex{}
 
-	client, err := connectWithHumanCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithHumanCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
 		return &options.OIDCCredential{}, nil
 	})
 
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	if err != nil {
 		return fmt.Errorf("human_2_2: failed connecting client: %v", err)
@@ -1084,13 +1170,13 @@ func human23RefreshTokenIsPassedToCallback() error {
 	var callbackFailed error
 	countMutex := sync.Mutex{}
 
-	adminClient, err := connectAdminClinet()
+	adminClient, err := connectAdminClient()
 	if err != nil {
 		return fmt.Errorf("human_2_3: failed connecting admin client: %v", err)
 	}
-	defer adminClient.Disconnect(context.Background())
+	defer func() { _ = adminClient.Disconnect(context.Background()) }()
 
-	client, err := connectWithHumanCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithHumanCB(uriSingle, func(_ context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -1114,7 +1200,7 @@ func human23RefreshTokenIsPassedToCallback() error {
 		}, nil
 	})
 
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	if err != nil {
 		return fmt.Errorf("human_2_3: failed connecting client: %v", err)
@@ -1152,13 +1238,13 @@ func human23RefreshTokenIsPassedToCallback() error {
 }
 
 func human31usesSpeculativeAuth() error {
-	adminClient, err := connectAdminClinet()
+	adminClient, err := connectAdminClient()
 	if err != nil {
 		return fmt.Errorf("human_3_1: failed connecting admin client: %v", err)
 	}
-	defer adminClient.Disconnect(context.Background())
+	defer func() { _ = adminClient.Disconnect(context.Background()) }()
 
-	client, err := connectWithHumanCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithHumanCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		// the callback should not even be called due to spec auth.
 		return &options.OIDCCredential{}, nil
 	})
@@ -1166,7 +1252,7 @@ func human31usesSpeculativeAuth() error {
 	if err != nil {
 		return fmt.Errorf("human_3_1: failed connecting client: %v", err)
 	}
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	// We deviate from the Prose test since the failPoint on find with no error code does not seem to
 	// work. Rather we put an access token in the cache to force speculative auth.
@@ -1180,7 +1266,7 @@ func human31usesSpeculativeAuth() error {
 	authenticatorField = reflect.NewAt(
 		authenticatorField.Type(),
 		unsafe.Pointer(authenticatorField.UnsafeAddr())).Elem()
-	// This is the only usage of the x packages in the test, showing the the public interface is
+	// This is the only usage of the x packages in the test, showing the public interface is
 	// correct.
 	authenticatorField.Interface().(*auth.OIDCAuthenticator).SetAccessToken(string(accessToken))
 
@@ -1213,13 +1299,13 @@ func human31usesSpeculativeAuth() error {
 func human32doesNotUseSpecualtiveAuth() error {
 	var callbackFailed error
 
-	adminClient, err := connectAdminClinet()
+	adminClient, err := connectAdminClient()
 	if err != nil {
 		return fmt.Errorf("human_3_2: failed connecting admin client: %v", err)
 	}
-	defer adminClient.Disconnect(context.Background())
+	defer func() { _ = adminClient.Disconnect(context.Background()) }()
 
-	client, err := connectWithHumanCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithHumanCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		t := time.Now().Add(time.Hour)
 		tokenFile := tokenFile("test_user1")
 		accessToken, err := os.ReadFile(tokenFile)
@@ -1233,7 +1319,7 @@ func human32doesNotUseSpecualtiveAuth() error {
 		}, nil
 	})
 
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	if err != nil {
 		return fmt.Errorf("human_3_2: failed connecting client: %v", err)
@@ -1266,7 +1352,134 @@ func human32doesNotUseSpecualtiveAuth() error {
 }
 
 func human41ReauthenticationSucceeds() error {
-	return nil
+	callbackCount := 0
+	var callbackFailed error
+	countMutex := sync.Mutex{}
+
+	adminClient, err := connectAdminClient()
+	if err != nil {
+		return fmt.Errorf("human_4_1: failed connecting admin client: %v", err)
+	}
+	defer func() { _ = adminClient.Disconnect(context.Background()) }()
+
+	clearChannels := func(s chan *event.CommandStartedEvent, succ chan *event.CommandSucceededEvent, f chan *event.CommandFailedEvent) {
+		for len(s) > 0 {
+			<-s
+		}
+		for len(succ) > 0 {
+			<-succ
+		}
+		for len(f) > 0 {
+			<-f
+		}
+	}
+
+	started := make(chan *event.CommandStartedEvent, 100)
+	succeeded := make(chan *event.CommandSucceededEvent, 100)
+	failed := make(chan *event.CommandFailedEvent, 100)
+
+	monitor := event.CommandMonitor{
+		Started: func(_ context.Context, e *event.CommandStartedEvent) {
+			started <- e
+		},
+		Succeeded: func(_ context.Context, e *event.CommandSucceededEvent) {
+			succeeded <- e
+		},
+		Failed: func(_ context.Context, e *event.CommandFailedEvent) {
+			failed <- e
+		},
+	}
+
+	client, err := connectWithHumanCBAndMonitor(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
+		countMutex.Lock()
+		defer countMutex.Unlock()
+		callbackCount++
+		t := time.Now().Add(time.Hour)
+		tokenFile := tokenFile("test_user1")
+		accessToken, err := os.ReadFile(tokenFile)
+		if err != nil {
+			callbackFailed = fmt.Errorf("human_4_1: failed reading token file: %v", err)
+		}
+		return &options.OIDCCredential{
+			AccessToken:  string(accessToken),
+			ExpiresAt:    &t,
+			RefreshToken: nil,
+		}, nil
+	}, &monitor)
+	if err != nil {
+		return fmt.Errorf("human_4_1: failed connecting client: %v", err)
+	}
+	defer func() { _ = client.Disconnect(context.Background()) }()
+	clearChannels(started, succeeded, failed)
+
+	coll := client.Database("test").Collection("test")
+	_, err = coll.Find(context.Background(), bson.D{})
+	if err != nil {
+		return fmt.Errorf("human_4_1: Find failed when it should succeed")
+	}
+	countMutex.Lock()
+	if callbackCount != 1 {
+		return fmt.Errorf("human_4_1: expected callback count to be 1, got %d", callbackCount)
+	}
+	countMutex.Unlock()
+	clearChannels(started, succeeded, failed)
+
+	res := adminClient.Database("admin").RunCommand(context.Background(), bson.D{
+		{Key: "configureFailPoint", Value: "failCommand"},
+		{Key: "mode", Value: bson.D{
+			{Key: "times", Value: 1},
+		}},
+		{Key: "data", Value: bson.D{
+			{Key: "failCommands", Value: bson.A{
+				"find",
+			}},
+			{Key: "errorCode", Value: 391},
+		}},
+	})
+
+	if res.Err() != nil {
+		return fmt.Errorf("machine_4_1: failed setting failpoint: %v", res.Err())
+	}
+
+	_, err = coll.Find(context.Background(), bson.D{})
+	if err != nil {
+		return fmt.Errorf("human_4_1: Second find failed when it should succeed")
+	}
+	countMutex.Lock()
+	if callbackCount != 2 {
+		return fmt.Errorf("human_4_1: expected callback count to be 2, got %d", callbackCount)
+	}
+	countMutex.Unlock()
+
+	if len(started) != 2 {
+		return fmt.Errorf("human_4_1: expected 2 finds started, found %d", len(started))
+	}
+	for len(started) > 0 {
+		ste := <-started
+		if ste.CommandName != "find" {
+			return fmt.Errorf("human_4_1: found unexpected command started %s", ste.CommandName)
+		}
+	}
+	if len(succeeded) != 1 {
+		return fmt.Errorf("human_4_1: expected 1 finds succeed, found %d", len(succeeded))
+	}
+	for len(succeeded) > 0 {
+		sue := <-succeeded
+		if sue.CommandName != "find" {
+			return fmt.Errorf("human_4_1: found unexpected command succeeded %s", sue.CommandName)
+		}
+	}
+	if len(failed) != 1 {
+		return fmt.Errorf("human_4_1: expected 1 finds succeed, found %d", len(failed))
+	}
+	for len(failed) > 0 {
+		fe := <-failed
+		if fe.CommandName != "find" {
+			return fmt.Errorf("human_4_1: found unexpected command failed %s", fe.CommandName)
+		}
+	}
+
+	return callbackFailed
 }
 
 func human42ReauthenticationSucceedsNoRefreshToken() error {
@@ -1274,13 +1487,13 @@ func human42ReauthenticationSucceedsNoRefreshToken() error {
 	var callbackFailed error
 	countMutex := sync.Mutex{}
 
-	adminClient, err := connectAdminClinet()
+	adminClient, err := connectAdminClient()
 	if err != nil {
 		return fmt.Errorf("human_4_2: failed connecting admin client: %v", err)
 	}
-	defer adminClient.Disconnect(context.Background())
+	defer func() { _ = adminClient.Disconnect(context.Background()) }()
 
-	client, err := connectWithHumanCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithHumanCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -1297,7 +1510,7 @@ func human42ReauthenticationSucceedsNoRefreshToken() error {
 		}, nil
 	})
 
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	if err != nil {
 		return fmt.Errorf("human_4_2: failed connecting client: %v", err)
@@ -1351,13 +1564,13 @@ func human43ReauthenticationSucceedsAfterRefreshFails() error {
 	var callbackFailed error
 	countMutex := sync.Mutex{}
 
-	adminClient, err := connectAdminClinet()
+	adminClient, err := connectAdminClient()
 	if err != nil {
 		return fmt.Errorf("human_4_3: failed connecting admin client: %v", err)
 	}
-	defer adminClient.Disconnect(context.Background())
+	defer func() { _ = adminClient.Disconnect(context.Background()) }()
 
-	client, err := connectWithHumanCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithHumanCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -1375,7 +1588,7 @@ func human43ReauthenticationSucceedsAfterRefreshFails() error {
 		}, nil
 	})
 
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	if err != nil {
 		return fmt.Errorf("human_4_3: failed connecting client: %v", err)
@@ -1429,13 +1642,13 @@ func human44ReauthenticationFails() error {
 	var callbackFailed error
 	countMutex := sync.Mutex{}
 
-	adminClient, err := connectAdminClinet()
+	adminClient, err := connectAdminClient()
 	if err != nil {
 		return fmt.Errorf("human_4_4: failed connecting admin client: %v", err)
 	}
-	defer adminClient.Disconnect(context.Background())
+	defer func() { _ = adminClient.Disconnect(context.Background()) }()
 
-	client, err := connectWithHumanCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithHumanCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -1460,7 +1673,7 @@ func human44ReauthenticationFails() error {
 		}, fmt.Errorf("failed to refresh token")
 	})
 
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	if err != nil {
 		return fmt.Errorf("human_4_4: failed connecting client: %v", err)
@@ -1518,7 +1731,7 @@ func machine51azureWithNoUsername() error {
 	if err != nil {
 		return fmt.Errorf("machine_5_1: failed connecting client: %v", err)
 	}
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	coll := client.Database("test").Collection("test")
 
@@ -1539,7 +1752,7 @@ func machine52azureWithBadUsername() error {
 	if err != nil {
 		return fmt.Errorf("machine_5_2: failed connecting client: %v", err)
 	}
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	coll := client.Database("test").Collection("test")
 
@@ -1559,7 +1772,7 @@ func machine61gcpWithNoUsername() error {
 	if err != nil {
 		return fmt.Errorf("machine_6_1: failed connecting client: %v", err)
 	}
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	coll := client.Database("test").Collection("test")
 

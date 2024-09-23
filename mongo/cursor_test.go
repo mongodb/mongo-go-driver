@@ -94,11 +94,6 @@ func (tbc *testBatchCursor) SetComment(interface{})   {}
 func (tbc *testBatchCursor) SetMaxTime(time.Duration) {}
 
 func TestCursor(t *testing.T) {
-	t.Run("loops until docs available", func(t *testing.T) {})
-	t.Run("returns false on context cancellation", func(t *testing.T) {})
-	t.Run("returns false if error occurred", func(t *testing.T) {})
-	t.Run("returns false if ID is zero and no more docs", func(t *testing.T) {})
-
 	t.Run("TestAll", func(t *testing.T) {
 		t.Run("errors if argument is not pointer to slice", func(t *testing.T) {
 			cursor, err := newCursor(newTestBatchCursor(1, 5), nil, nil)

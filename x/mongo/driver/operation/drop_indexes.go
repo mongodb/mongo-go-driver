@@ -53,8 +53,7 @@ func buildDropIndexesResult(response bsoncore.Document) (DropIndexesResult, erro
 	}
 	dir := DropIndexesResult{}
 	for _, element := range elements {
-		switch element.Key() {
-		case "nIndexesWas":
+		if element.Key() == "nIndexesWas" {
 			var ok bool
 			dir.NIndexesWas, ok = element.Value().AsInt32OK()
 			if !ok {
@@ -110,12 +109,12 @@ func (di *DropIndexes) Execute(ctx context.Context) error {
 func (di *DropIndexes) command(dst []byte, _ description.SelectedServer) ([]byte, error) {
 	dst = bsoncore.AppendStringElement(dst, "dropIndexes", di.collection)
 
-	switch di.index.(type) {
+	switch t := di.index.(type) {
 	case string:
-		dst = bsoncore.AppendStringElement(dst, "index", di.index.(string))
+		dst = bsoncore.AppendStringElement(dst, "index", t)
 	case bsoncore.Document:
 		if di.index != nil {
-			dst = bsoncore.AppendDocumentElement(dst, "index", di.index.(bsoncore.Document))
+			dst = bsoncore.AppendDocumentElement(dst, "index", t)
 		}
 	}
 

@@ -24,7 +24,7 @@ import (
 const GSSAPI = "GSSAPI"
 
 func newGSSAPIAuthenticator(cred *Cred, _ *http.Client) (Authenticator, error) {
-	if cred.Source != "" && cred.Source != "$external" {
+	if cred.Source != "" && cred.Source != sourceExternal {
 		return nil, newAuthError("GSSAPI source must be empty or $external", nil)
 	}
 
@@ -57,7 +57,7 @@ func (a *GSSAPIAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 	if err != nil {
 		return newAuthError("error creating gssapi", err)
 	}
-	return ConductSaslConversation(ctx, cfg, "$external", client)
+	return ConductSaslConversation(ctx, cfg, sourceExternal, client)
 }
 
 // Reauth reauthenticates the connection.
