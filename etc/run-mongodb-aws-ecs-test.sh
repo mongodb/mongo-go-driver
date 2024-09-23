@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eu
+set -eux
 
 if [ "${SKIP_ECS_AUTH_TEST:-}" = "true" ]; then
     echo "This platform does not support the ECS auth test, skipping..."
@@ -10,6 +10,8 @@ task build-aws-ecs-test
     
 AUTH_AWS_DIR=${DRIVERS_TOOLS}/.evergreen/auth_aws
 ECS_SRC_DIR=$AUTH_AWS_DIR/src
+
+ls $AUTH_AWS_DIR
 
 # pack up project directory to ssh it to the container
 mkdir -p $ECS_SRC_DIR/src
