@@ -6,7 +6,7 @@ if [ "${SKIP_ECS_AUTH_TEST}" = "true" ]; then
     exit 0
 fi
 
-go build ${BUILD_TAGS} ./internal/cmd/testaws/main.go
+task build-aws-ecs-test
     
 AUTH_AWS_DIR=${DRIVERS_TOOLS}/.evergreen/auth_aws
 ECS_SRC_DIR=$AUTH_AWS_DIR/src
