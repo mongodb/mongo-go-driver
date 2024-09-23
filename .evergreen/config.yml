@@ -553,7 +553,7 @@ functions:
     - command: subprocess.exec
       type: test
       params:
-        shell: "bash"
+        binary: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
         include_expansions_in_env: [SKIP_ECS_AUTH_TEST]
         args: 
