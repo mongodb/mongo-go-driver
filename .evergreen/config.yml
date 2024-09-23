@@ -571,9 +571,9 @@ functions:
             exit 0
           fi
           AUTH_AWS_DIR=${DRIVERS_TOOLS}/.evergreen/auth_aws
-          ECS_SRC_DIR=$AUTH_AWS_DIR
+          ECS_SRC_DIR=$AUTH_AWS_DIR/src
           # pack up project directory to ssh it to the container
-          mkdir -p $ECS_SRC_DIR/.evergreen
+          mkdir -p $ECS_SRC_DIR/src
           tar -czf $ECS_SRC_DIR/src/src.tgz -C ${PROJECT_DIRECTORY} .
           export PROJECT_DIRECTORY="${ECS_SRC_DIR}"
           $AUTH_AWS_DIR/aws_setup.sh ecs
