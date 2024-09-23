@@ -113,7 +113,7 @@ func TestCursor(t *testing.T) {
 
 			var docs []bson.D
 			err = cursor.All(context.Background(), &docs)
-			assert.NoError(t, err, "All error: %v", err)
+			require.NoError(t, err, "All error: %v", err)
 			assert.Len(t, docs, 5, "expected 5 docs, got %v", len(docs))
 
 			for index, doc := range docs {
@@ -128,7 +128,7 @@ func TestCursor(t *testing.T) {
 
 			var docs []bson.D
 			err = cursor.All(context.Background(), &docs)
-			assert.NoError(t, err, "All error: %v", err)
+			require.NoError(t, err, "All error: %v", err)
 			assert.Nil(t, docs, "expected nil docs")
 		})
 
@@ -138,7 +138,7 @@ func TestCursor(t *testing.T) {
 
 			docs := []bson.D{}
 			err = cursor.All(context.Background(), &docs)
-			assert.NoError(t, err, "All error: %v", err)
+			require.NoError(t, err, "All error: %v", err)
 			assert.NotNil(t, docs, "expected non-nil docs")
 			assert.Len(t, docs, 0, "expected 0 docs, got %v", len(docs))
 		})
@@ -149,7 +149,7 @@ func TestCursor(t *testing.T) {
 
 			docs := []bson.D{{{"foo", "bar"}}, {{"hello", "world"}, {"pi", 3.14159}}}
 			err = cursor.All(context.Background(), &docs)
-			assert.NoError(t, err, "All error: %v", err)
+			require.NoError(t, err, "All error: %v", err)
 			assert.NotNil(t, docs, "expected non-nil docs")
 			assert.Len(t, docs, 0, "expected 0 docs, got %v", len(docs))
 		})
@@ -163,7 +163,7 @@ func TestCursor(t *testing.T) {
 			}
 			var docs []Document
 			err = cursor.All(context.Background(), &docs)
-			assert.NoError(t, err, "All error: %v", err)
+			require.NoError(t, err, "All error: %v", err)
 			assert.Len(t, docs, 5, "expected 5 documents, got %v", len(docs))
 
 			for index, doc := range docs {
@@ -177,7 +177,7 @@ func TestCursor(t *testing.T) {
 			require.NoError(t, err, "newCursor error: %v", err)
 			var docs []bson.D
 			err = cursor.All(context.Background(), &docs)
-			assert.NoError(t, err, "All error: %v", err)
+			require.NoError(t, err, "All error: %v", err)
 			assert.Len(t, docs, 10, "expected 10 docs, got %v", len(docs))
 
 			for index, doc := range docs {
@@ -194,7 +194,7 @@ func TestCursor(t *testing.T) {
 			require.NoError(t, err, "newCursor error: %v", err)
 
 			err = cursor.All(context.Background(), &docs)
-			assert.NoError(t, err, "All error: %v", err)
+			require.NoError(t, err, "All error: %v", err)
 			assert.True(t, tbc.closed, "expected batch cursor to be closed but was not")
 		})
 
@@ -205,7 +205,7 @@ func TestCursor(t *testing.T) {
 			require.NoError(t, err, "newCursor error: %v", err)
 
 			err = cursor.All(context.Background(), &docs)
-			assert.NoError(t, err, "All error: %v", err)
+			require.NoError(t, err, "All error: %v", err)
 			assert.Len(t, docs.([]bson.D), 5, "expected 5 documents, got %v", len(docs.([]bson.D)))
 		})
 		t.Run("errors when not given pointer to slice", func(t *testing.T) {
@@ -261,7 +261,7 @@ func TestNewCursorFromDocuments(t *testing.T) {
 
 			var decoded bson.Raw
 			err = cur.Decode(&decoded)
-			assert.NoError(t, err, "Decode error: %v", err)
+			require.NoError(t, err, "Decode error: %v", err)
 			assert.Equal(t, expectedDecoded, decoded,
 				"expected decoded document %v of Cursor to be %v, got %v",
 				i, expectedDecoded, decoded)
@@ -270,11 +270,11 @@ func TestNewCursorFromDocuments(t *testing.T) {
 		assert.Equal(t, 3, i, "expected 3 calls to cur.Next, got %v", i)
 
 		// Check for error on Cursor.
-		assert.NoError(t, cur.Err(), "Cursor error: %v", cur.Err())
+		require.NoError(t, cur.Err(), "Cursor error: %v", cur.Err())
 
 		// Assert that a call to cur.Close will not fail.
 		err = cur.Close(context.Background())
-		assert.NoError(t, err, "Close error: %v", err)
+		require.NoError(t, err, "Close error: %v", err)
 	})
 
 	// Mock an error in a Cursor.
