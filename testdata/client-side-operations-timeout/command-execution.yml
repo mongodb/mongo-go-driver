@@ -4,7 +4,7 @@ schemaVersion: "1.9"
 
 runOnRequirements:
   # Require SERVER-49336 for failCommand + appName on the initial handshake.
-  - minServerVersion: "4.4.7"
+  - minServerVersion: "4.9"
     # Skip load-balanced and serverless which do not support RTT measurements.
     topologies: [ single, replicaset, sharded ]
     serverless: forbid
