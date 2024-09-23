@@ -1,0 +1,110 @@
+description: "timeoutMS behaves correctly for the withTransaction API"
+
+schemaVersion: "1.9"
+
+runOnRequirements:
+  - minServerVersion: "4.4"
+    topologies: ["replicaset", "sharded"]
+
+createEntities:
+  - client:
+      id: &failPointClient failPointClient
+      useMultipleMongoses: false
+  - client:
+      id: &client client
+      uriOptions:
+        timeoutMS: 500
+      useMultipleMongoses: false
+      observeEvents:
+        - commandStartedEvent
+  - database:
+      id: &database database
+      client: *client
+      databaseName: &databaseName test
+  - collection:
+      id: &collection collection
+      database: *database
+      collectionName: &collectionName coll
+  - session:
+      id: &session session
+      client: *client
+
+initialData:
+  - collectionName: *collectionName
+    databaseName: *databaseName
+    documents: []
+
+tests:
+  - description: "withTransaction raises a client-side error if timeoutMS is overridden inside the callback"
+    operations:
+      - name: withTransaction
+        object: *session
+        arguments:
+          callback:
+            - name: insertOne
+              object: *collection
+              arguments:
+                document: { _id: 1 }
+                session: *session
+                timeoutMS: 100
+              expectError:
+                isClientError: true
+        expectError:
+          isClientError: true
+    expectEvents:
+      # The only operation run fails with a client-side error, so there should be no events for the client.
+      - client: *client
+        events: []
+
+  - description: "timeoutMS is not refreshed for each operation in the callback"
+    operations:
+      - name: failPoint
+        object: testRunner
+        arguments:
+          client: *failPointClient
+          failPoint:
+            configureFailPoint: failCommand
+            mode: { times: 2 }
+            data:
+              failCommands: ["insert"]
+              blockConnection: true
+              blockTimeMS: 300
+      - name: withTransaction
+        object: *session
+        arguments:
+          callback:
+            - name: insertOne
+              object: *collection
+              arguments:
+                document: { _id: 1 }
+                session: *session
+            - name: insertOne
+              object: *collection
+              arguments:
+                document: { _id: 2 }
+                session: *session
+              expectError:
+                isTimeoutError: true
+        expectError:
+          isTimeoutError: true
+    expectEvents:
+      - client: *client
+        events:
+          - commandStartedEvent:
+              commandName: insert
+              databaseName: *databaseName
+              command:
+                insert: *collectionName
+                maxTimeMS: { $$type: ["int", "long"] }
+          - commandStartedEvent:
+              commandName: insert
+              databaseName: *databaseName
+              command:
+                insert: *collectionName
+                maxTimeMS: { $$type: ["int", "long"] }
+          - commandStartedEvent:
+              commandName: abortTransaction
+              databaseName: admin
+              command:
+                abortTransaction: 1
+                maxTimeMS: { $$type: [ "int", "long" ] }
