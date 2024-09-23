@@ -3,7 +3,8 @@ description: "timeoutMS behaves correctly during command execution"
 schemaVersion: "1.9"
 
 runOnRequirements:
-  # Require SERVER-49336 for failCommand + appName on the initial handshake.
+  # The appName filter cannot be used to set a fail point on connection handshakes until server version 4.9 due to
+  # SERVER-49220/SERVER-49336.
   - minServerVersion: "4.9"
     # Skip load-balanced and serverless which do not support RTT measurements.
     topologies: [ single, replicaset, sharded ]
@@ -95,7 +96,8 @@ tests:
               databaseName: *databaseName
               command:
                 insert: *timeoutCollectionName
-                maxTimeMS: { $$lte: 450 }
+                # GODRIVER-3106: Add a 1 millisecond buffer on the expected 450ms.
+                maxTimeMS: { $$lte: 451 }
 
   - description: "command is not sent if RTT is greater than timeoutMS"
     operations:
