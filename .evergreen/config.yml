@@ -208,7 +208,7 @@ functions:
         optional: true
         local_file: ${PROJECT_DIRECTORY}/fuzz.tgz
         remote_file: ${build_variant}/${revision}/${version_id}/${build_id}/${task_id}-${execution}-fuzz.tgz
-        bucket: ${aws_buckeet}
+        bucket: ${aws_bucket}
         permissions: public-read
         content_type: application/x-gzip
         display_name: "fuzz.tgz"
