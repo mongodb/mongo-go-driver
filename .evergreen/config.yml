@@ -575,8 +575,7 @@ functions:
           # pack up project directory to ssh it to the container
           mkdir -p $ECS_SRC_DIR/src
           tar -czf $ECS_SRC_DIR/src/src.tgz -C ${PROJECT_DIRECTORY} .
-          export PROJECT_DIRECTORY="${ECS_SRC_DIR}"
-          $AUTH_AWS_DIR/aws_setup.sh ecs
+          PROJECT_DIRECTORY="${ECS_SRC_DIR}" $AUTH_AWS_DIR/aws_setup.sh ecs
 
   run-aws-auth-test-with-aws-web-identity-credentials:
     - command: shell.exec
