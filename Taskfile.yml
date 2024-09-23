@@ -103,8 +103,6 @@ tasks:
   ### Evergreen specific tasks. ###
   setup-test: bash etc/setup-test.sh {{.CLI_ARGS}}
 
-  build-aws-ecs-test: go build ${BUILD_TAGS} ./internal/cmd/testaws/main.go
-
   evg-test:
     - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=$MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s -p 1 ./... >> test.suite
 
@@ -177,6 +175,8 @@ tasks:
     - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./internal/integration/unified >> test.suite
 
   evg-test-aws: bash etc/run-mongodb-aws-test.sh {{.CLI_ARGS}}
+
+  evg-test-aws-ecs: bash etc/run-mongodb-aws-ecs-test.sh
 
   evg-test-deployed-lambda-aws: bash ${DRIVERS_TOOLS}/.evergreen/aws_lambda/run-deployed-lambda-aws-tests.sh
 

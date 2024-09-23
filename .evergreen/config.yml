@@ -550,32 +550,14 @@ functions:
           ${RUN_TASK} evg-test-aws -- session-creds
 
   run-aws-ECS-auth-test:
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        script: |
-          if [ "${SKIP_ECS_AUTH_TEST}" = "true" ]; then
-            echo "This platform does not support the ECS auth test, skipping..."
-            exit 0
-          fi
-          ${RUN_TASK} build-aws-ecs-test
-    - command: shell.exec
-      type: test
-      params:
-        shell: "bash"
-        working_dir: "src"
-        script: |
-          if [ "${SKIP_ECS_AUTH_TEST}" = "true" ]; then
-            exit 0
-          fi
-          AUTH_AWS_DIR=${DRIVERS_TOOLS}/.evergreen/auth_aws
-          ECS_SRC_DIR=$AUTH_AWS_DIR/src
-          # pack up project directory to ssh it to the container
-          mkdir -p $ECS_SRC_DIR/src
-          tar -czf $ECS_SRC_DIR/src/src.tgz -C ${PROJECT_DIRECTORY} .
-          PROJECT_DIRECTORY="${ECS_SRC_DIR}" $AUTH_AWS_DIR/aws_setup.sh ecs
+        include_expansions_in_env: [SKIP_ECS_AUTH_TEST]
+        args: 
+          - ${RUN_TASK} evg-test-aws-ecs
 
   run-aws-auth-test-with-aws-web-identity-credentials:
     - command: shell.exec
