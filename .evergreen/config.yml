@@ -565,12 +565,11 @@ functions:
       type: test
       params:
         shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
+        working_dir: "src"
         script: |
           if [ "${SKIP_ECS_AUTH_TEST}" = "true" ]; then
             exit 0
           fi
-          set -eux
           AUTH_AWS_DIR=${DRIVERS_TOOLS}/.evergreen/auth_aws
           ECS_SRC_DIR=$AUTH_AWS_DIR/src
           # pack up project directory to ssh it to the container

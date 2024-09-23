@@ -14,11 +14,9 @@ OS="${OS:-""}"
 
 # Set Golang environment vars. GOROOT is wherever current Go distribution is, and is set in evergreen config.
 # GOPATH is always 3 directories up from pwd on EVG; GOCACHE is under .cache in the pwd.
-GOROOT=${GOROOT:-$(dirname $(dirname $(which go)))}
-GOPATH=${GOPATH:-$ROOT_DIR}
-export GOPATH
-GOCACHE="$PROJECT_DIRECTORY/.cache"
-export GOCACHE
+GOROOT=${GOROOT:-$(dirname "$(dirname "$(which go)")")}
+export GOPATH=${GOPATH:-$ROOT_DIR}
+export GOCACHE="${GO_CACHE:-$PROJECT_DIRECTORY/.cache}"
 
 # Handle paths on Windows.
 if [ "Windows_NT" = "${OS:-}" ]; then # Magic variable in cygwin
