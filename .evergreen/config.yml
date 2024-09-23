@@ -565,7 +565,7 @@ functions:
       type: test
       params:
         shell: "bash"
-        working_dir: "src/go.mongodb.org/mongo-driver"
+        working_dir: "src"
         script: |
           if [ "${SKIP_ECS_AUTH_TEST}" = "true" ]; then
             exit 0
@@ -575,7 +575,7 @@ functions:
           # pack up project directory to ssh it to the container
           mkdir -p $ECS_SRC_DIR/.evergreen
           tar -czf $ECS_SRC_DIR/src.tgz -C ${PROJECT_DIRECTORY} .
-          export PROJECT_DIRECTORY="${PROJECT_DIRECTORY}"
+          export PROJECT_DIRECTORY="${ECS_SRC_DIR}"
           $AUTH_AWS_DIR/aws_setup.sh ecs
 
   run-aws-auth-test-with-aws-web-identity-credentials:
