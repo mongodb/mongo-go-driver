@@ -1316,12 +1316,12 @@ func executeUpdateOne(ctx context.Context, operation *operation) (*operationResu
 		return nil, err
 	}
 
-	updateArgs, err := createUpdateOneArguments(operation.Arguments)
+	updateArgs, updateOpts, err := createUpdateOneArguments(operation.Arguments)
 	if err != nil {
 		return nil, err
 	}
 
-	res, err := coll.UpdateOne(ctx, updateArgs.filter, updateArgs.update, updateArgs.opts)
+	res, err := coll.UpdateOne(ctx, updateArgs.filter, updateArgs.update, updateOpts)
 	raw, buildErr := buildUpdateResultDocument(res)
 	if buildErr != nil {
 		return nil, buildErr
@@ -1335,12 +1335,12 @@ func executeUpdateMany(ctx context.Context, operation *operation) (*operationRes
 		return nil, err
 	}
 
-	updateArgs, err := createUpdateManyArguments(operation.Arguments)
+	updateArgs, updateOpts, err := createUpdateManyArguments(operation.Arguments)
 	if err != nil {
 		return nil, err
 	}
 
-	res, err := coll.UpdateMany(ctx, updateArgs.filter, updateArgs.update, updateArgs.opts)
+	res, err := coll.UpdateMany(ctx, updateArgs.filter, updateArgs.update, updateOpts)
 	raw, buildErr := buildUpdateResultDocument(res)
 	if buildErr != nil {
 		return nil, buildErr
