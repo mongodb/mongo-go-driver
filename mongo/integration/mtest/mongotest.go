@@ -211,7 +211,7 @@ func (t *T) cleanup() {
 	_ = t.Client.Disconnect(context.Background())
 	for client, v := range t.fpClients {
 		if v {
-			client.Disconnect(context.Background())
+			_ = client.Disconnect(context.Background())
 		}
 	}
 	t.fpClients = nil
