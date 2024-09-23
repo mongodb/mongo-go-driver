@@ -46,12 +46,11 @@ fi
 
 # Ensure a checkout of drivers-tools.
 if [ ! -d "$DRIVERS_TOOLS" ]; then
-  git clone --branch debug-aws-ecs https://github.com/blink1073/drivers-evergreen-tools $DRIVERS_TOOLS
+  git clone https://github.com/mongodb-labs/drivers-evergreen-tools $DRIVERS_TOOLS
 fi
 
 # Write the .env file for drivers-tools.
 cat <<EOT > ${DRIVERS_TOOLS}/.env
-PROJECT_DIRECTORY="$PROJECT_DIRECTORY"
 SKIP_LEGACY_SHELL=1
 DRIVERS_TOOLS="$DRIVERS_TOOLS"
 MONGO_ORCHESTRATION_HOME="$MONGO_ORCHESTRATION_HOME"
