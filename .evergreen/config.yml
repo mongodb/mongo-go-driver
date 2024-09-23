@@ -555,7 +555,7 @@ functions:
       params:
         binary: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        include_expansions_in_env: [SKIP_ECS_AUTH_TEST]
+        include_expansions_in_env: ["SKIP_ECS_AUTH_TEST"]
         args: 
           - ${RUN_TASK} 
           - evg-test-aws-ecs

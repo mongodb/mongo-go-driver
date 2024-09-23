@@ -1,7 +1,7 @@
 #!/bin/bash
 set -eu
 
-if [ "${SKIP_ECS_AUTH_TEST}" = "true" ]; then
+if [ "${SKIP_ECS_AUTH_TEST:-}" = "true" ]; then
     echo "This platform does not support the ECS auth test, skipping..."
     exit 0
 fi
