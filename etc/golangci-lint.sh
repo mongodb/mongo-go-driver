@@ -4,7 +4,7 @@ set -ex
 go install golang.org/dl/go1.22.7@latest
 # Prepend the cross-platform path if necessary.
 if [ -n "$GOOS" ]; then
-    export PATH="$GOPATH/bin/$GOOS_$GOGOARCH:$PATH"
+    export PATH="$GOPATH/bin/$GOOS_$GOGOARCH/bin:$PATH"
 fi
 go1.22.7 download
 export PATH="$(go1.22.7 env GOROOT)/bin:$PATH"
