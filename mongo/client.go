@@ -74,7 +74,7 @@ type Client struct {
 	httpClient     *http.Client
 	logger         *logger.Logger
 
-	// client-side encryption fields
+	// in-use encryption fields
 	keyVaultClientFLE  *Client
 	keyVaultCollFLE    *Collection
 	mongocryptdFLE     *mongocryptdClient
