@@ -60,7 +60,7 @@ tasks:
     cmds:
       - GOOS=linux GOARCH=386 etc/golangci-lint.sh
       - GOOS=linux GOARCH=arm etc/golangci-lint.sh
-      - GOOS=linux GOARCH=arm64 etc/golangci-lint.sh.
+      - GOOS=linux GOARCH=arm64 etc/golangci-lint.sh
       - GOOS=linux GOARCH=amd64 etc/golangci-lint.sh
       - GOOS=linux GOARCH=ppc64le etc/golangci-lint.sh
       - GOOS=linux GOARCH=s390x etc/golangci-lint.sh
