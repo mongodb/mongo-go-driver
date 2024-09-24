@@ -909,9 +909,7 @@ func newLogger(opts options.Lister[options.LoggerOptions]) (*logger.Logger, erro
 
 	// If there are no component-level options and the environment does not
 	// contain component variables, then do nothing.
-	if (args.ComponentLevels == nil || len(args.ComponentLevels) == 0) &&
-		!logger.EnvHasComponentVariables() {
-
+	if len(args.ComponentLevels) == 0 && !logger.EnvHasComponentVariables() {
 		return nil, nil
 	}
 
