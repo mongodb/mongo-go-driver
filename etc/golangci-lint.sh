@@ -5,6 +5,7 @@ set -ex
 # ls $GOROOT
 go install golang.org/dl/go1.22.7@latest
 # ls $GOPATH/bin
+env
 ls $GOPATH/bin/linux_386
 # ls $GOROOT
 go1.22.7 download
