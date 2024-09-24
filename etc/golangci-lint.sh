@@ -6,6 +6,7 @@ go install golang.org/dl/go1.22.7@latest
 if [ -n "$GOOS" ]; then
     export PATH="$GOPATH/bin/${GOOS}_${GOARCH}:$PATH"
 fi
+export GOROOT=
 go1.22.7 download
 export PATH="$(go1.22.7 env GOROOT)/bin:$PATH"
 go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.60.1
