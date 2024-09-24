@@ -827,8 +827,7 @@ tasks:
     commands:
       - func: run-task
         vars:
-          # TODO: restore previous before merging
-          targets: "lint"
+          targets: "check-fmt check-license check-modules lint"
 
   - name: pull-request-helpers
     allowed_requesters: ["patch", "github_pr"]
