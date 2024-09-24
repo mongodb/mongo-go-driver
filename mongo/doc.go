@@ -108,9 +108,8 @@
 //
 // The Queryable Encryption and CSFLE features share much of the same API with some exceptions.
 //
-// - The supported algorithms documented in autoencryptionoptions.go do not apply to both features.
-// - SetEncryptedFieldsMap only applies to Queryable Encryption.
-// - SetSchemaMap only applies to CSFLE.
+// - AutoEncryptionOptions.SetEncryptedFieldsMap only applies to Queryable Encryption.
+// - AutoEncryptionOptions.SetSchemaMap only applies to CSFLE.
 //
 // In-use encryption is a new feature in MongoDB 4.2 that allows specific data fields to be encrypted. Using this
 // feature requires specifying the "cse" build tag during compilation:
