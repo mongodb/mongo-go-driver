@@ -546,6 +546,11 @@ func (c *ClientOptionsBuilder) Validate() error {
 		}
 	}
 
+	if args.HeartbeatInterval != nil && *args.HeartbeatInterval < (500*time.Millisecond) {
+		return fmt.Errorf("HeartbeatFrequencyMS cannot be less than minHeartbeatFrequencyMS (500ms), got HeartbeatFrequencyMS=%q",
+			*args.HeartbeatInterval)
+	}
+
 	if args.MaxPoolSize != nil && args.MinPoolSize != nil && *args.MaxPoolSize != 0 &&
 		*args.MinPoolSize > *args.MaxPoolSize {
 		return fmt.Errorf("minPoolSize must be less than or equal to maxPoolSize, got minPoolSize=%d maxPoolSize=%d",
