@@ -7,7 +7,6 @@
       "topologies": [
         "single",
         "replicaset",
-        "sharded-replicaset",
         "sharded"
       ],
       "serverless": "forbid"

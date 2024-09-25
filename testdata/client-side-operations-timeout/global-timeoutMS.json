@@ -1,12 +1,12 @@
 {
   "description": "timeoutMS can be configured on a MongoClient",
-  "schemaVersion": "1.5",
+  "schemaVersion": "1.9",
   "runOnRequirements": [
     {
       "minServerVersion": "4.4",
       "topologies": [
         "replicaset",
-        "sharded-replicaset"
+        "sharded"
       ]
     }
   ],
@@ -38,7 +38,7 @@
                 "client": {
                   "id": "client",
                   "uriOptions": {
-                    "timeoutMS": 50
+                    "timeoutMS": 250
                   },
                   "useMultipleMongoses": false,
                   "observeEvents": [
@@ -71,14 +71,14 @@
             "failPoint": {
               "configureFailPoint": "failCommand",
               "mode": {
-                "times": 1
+                "times": 2
               },
               "data": {
                 "failCommands": [
                   "listDatabases"
                 ],
                 "blockConnection": true,
-                "blockTimeMS": 60
+                "blockTimeMS": 350
               }
             }
           }
@@ -217,7 +217,7 @@
                 "client": {
                   "id": "client",
                   "uriOptions": {
-                    "timeoutMS": 50
+                    "timeoutMS": 250
                   },
                   "useMultipleMongoses": false,
                   "observeEvents": [
@@ -250,14 +250,14 @@
             "failPoint": {
               "configureFailPoint": "failCommand",
               "mode": {
-                "times": 1
+                "times": 2
               },
               "data": {
                 "failCommands": [
                   "listDatabases"
                 ],
                 "blockConnection": true,
-                "blockTimeMS": 60
+                "blockTimeMS": 350
               }
             }
           }
@@ -265,9 +265,6 @@
         {
           "name": "listDatabaseNames",
           "object": "client",
-          "arguments": {
-            "filter": {}
-          },
           "expectError": {
             "isTimeoutError": true
           }
@@ -358,10 +355,7 @@
         },
         {
           "name": "listDatabaseNames",
-          "object": "client",
-          "arguments": {
-            "filter": {}
-          }
+          "object": "client"
         }
       ],
       "expectEvents": [
@@ -396,7 +390,7 @@
                 "client": {
                   "id": "client",
                   "uriOptions": {
-                    "timeoutMS": 50
+                    "timeoutMS": 250
                   },
                   "useMultipleMongoses": false,
                   "observeEvents": [
@@ -429,14 +423,14 @@
             "failPoint": {
               "configureFailPoint": "failCommand",
               "mode": {
-                "times": 1
+                "times": 2
               },
               "data": {
                 "failCommands": [
                   "aggregate"
                 ],
                 "blockConnection": true,
-                "blockTimeMS": 60
+                "blockTimeMS": 350
               }
             }
           }
@@ -575,7 +569,7 @@
                 "client": {
                   "id": "client",
                   "uriOptions": {
-                    "timeoutMS": 50
+                    "timeoutMS": 250
                   },
                   "useMultipleMongoses": false,
                   "observeEvents": [
@@ -608,14 +602,14 @@
             "failPoint": {
               "configureFailPoint": "failCommand",
               "mode": {
-                "times": 1
+                "times": 2
               },
               "data": {
                 "failCommands": [
                   "aggregate"
                 ],
                 "blockConnection": true,
-                "blockTimeMS": 60
+                "blockTimeMS": 350
               }
             }
           }
@@ -768,7 +762,7 @@
                 "client": {
                   "id": "client",
                   "uriOptions": {
-                    "timeoutMS": 50
+                    "timeoutMS": 250
                   },
                   "useMultipleMongoses": false,
                   "observeEvents": [
@@ -801,14 +795,14 @@
             "failPoint": {
               "configureFailPoint": "failCommand",
               "mode": {
-                "times": 1
+                "times": 2
               },
               "data": {
                 "failCommands": [
                   "listCollections"
                 ],
                 "blockConnection": true,
-                "blockTimeMS": 60
+                "blockTimeMS": 350
               }
             }
           }
@@ -947,7 +941,7 @@
                 "client": {
                   "id": "client",
                   "uriOptions": {
-                    "timeoutMS": 50
+                    "timeoutMS": 250
                   },
                   "useMultipleMongoses": false,
                   "observeEvents": [
@@ -980,14 +974,14 @@
             "failPoint": {
               "configureFailPoint": "failCommand",
               "mode": {
-                "times": 1
+                "times": 2
               },
               "data": {
                 "failCommands": [
                   "listCollections"
                 ],
                 "blockConnection": true,
-                "blockTimeMS": 60
+                "blockTimeMS": 350
               }
             }
           }
@@ -1126,7 +1120,7 @@
                 "client": {
                   "id": "client",
                   "uriOptions": {
-                    "timeoutMS": 50
+                    "timeoutMS": 250
                   },
                   "useMultipleMongoses": false,
                   "observeEvents": [
@@ -1159,14 +1153,14 @@
             "failPoint": {
               "configureFailPoint": "failCommand",
               "mode": {
-                "times": 1
+                "times": 2
               },
               "data": {
                 "failCommands": [
                   "ping"
                 ],
                 "blockConnection": true,
-                "blockTimeMS": 60
+                "blockTimeMS": 350
               }
             }
           }
@@ -1177,7 +1171,8 @@
           "arguments": {
             "command": {
               "ping": 1
-            }
+            },
+            "commandName": "ping"
           },
           "expectError": {
             "isTimeoutError": true
@@ -1273,7 +1268,8 @@
           "arguments": {
             "command": {
               "ping": 1
-            }
+            },
+            "commandName": "ping"
           }
         }
       ],
@@ -1309,7 +1305,7 @@
                 "client": {
                   "id": "client",
                   "uriOptions": {
-                    "timeoutMS": 50
+                    "timeoutMS": 250
                   },
                   "useMultipleMongoses": false,
                   "observeEvents": [
@@ -1342,14 +1338,14 @@
             "failPoint": {
               "configureFailPoint": "failCommand",
               "mode": {
-                "times": 1
+                "times": 2
               },
               "data": {
                 "failCommands": [
                   "aggregate"
                 ],
                 "blockConnection": true,
-                "blockTimeMS": 60
+                "blockTimeMS": 350
               }
             }
           }
@@ -1488,7 +1484,7 @@
                 "client": {
                   "id": "client",
                   "uriOptions": {
-                    "timeoutMS": 50
+                    "timeoutMS": 250
                   },
                   "useMultipleMongoses": false,
                   "observeEvents": [
@@ -1521,14 +1517,14 @@
             "failPoint": {
               "configureFailPoint": "failCommand",
               "mode": {
-                "times": 1
+                "times": 2
               },
               "data": {
                 "failCommands": [
                   "aggregate"
                 ],
                 "blockConnection": true,
-                "blockTimeMS": 60
+                "blockTimeMS": 350
               }
             }
           }
@@ -1667,7 +1663,7 @@
                 "client": {
                   "id": "client",
                   "uriOptions": {
-                    "timeoutMS": 50
+                    "timeoutMS": 250
                   },
                   "useMultipleMongoses": false,
                   "observeEvents": [
@@ -1700,14 +1696,14 @@
             "failPoint": {
               "configureFailPoint": "failCommand",
               "mode": {
-                "times": 1
+                "times": 2
               },
               "data": {
                 "failCommands": [
                   "count"
                 ],
                 "blockConnection": true,
-                "blockTimeMS": 60
+                "blockTimeMS": 350
               }
             }
           }
@@ -1846,7 +1842,7 @@
                 "client": {
                   "id": "client",
                   "uriOptions": {
-                    "timeoutMS": 50
+                    "timeoutMS": 250
                   },
                   "useMultipleMongoses": false,
                   "observeEvents": [
@@ -1879,14 +1875,14 @@
             "failPoint": {
               "configureFailPoint": "failCommand",
               "mode": {
-                "times": 1
+                "times": 2
               },
               "data": {
                 "failCommands": [
                   "aggregate"
                 ],
                 "blockConnection": true,
-                "blockTimeMS": 60
+                "blockTimeMS": 350
               }
             }
           }
@@ -2025,7 +2021,7 @@
                 "client": {
                   "id": "client",
                   "uriOptions": {
-                    "timeoutMS": 50
+                    "timeoutMS": 250
                   },
                   "useMultipleMongoses": false,
                   "observeEvents": [
@@ -2058,14 +2054,14 @@
             "failPoint": {
               "configureFailPoint": "failCommand",
               "mode": {
-                "times": 1
+                "times": 2
               },
               "data": {
                 "failCommands": [
                   "count"
                 ],
                 "blockConnection": true,
-                "blockTimeMS": 60
+                "blockTimeMS": 350
               }
             }
           }
@@ -2198,7 +2194,7 @@
                 "client": {
                   "id": "client",
                   "uriOptions": {
-                    "timeoutMS": 50
+                    "timeoutMS": 250
                   },
                   "useMultipleMongoses": false,
                   "observeEvents": [
@@ -2231,14 +2227,14 @@
             "failPoint": {
               "configureFailPoint": "failCommand",
               "mode": {
-                "times": 1
+                "times": 2
               },
               "data": {
                 "failCommands": [
                   "distinct"
                 ],
                 "blockConnection": true,
-                "blockTimeMS": 60
+                "blockTimeMS": 350
               }
             }
           }
@@ -2379,7 +2375,7 @@
                 "client": {
                   "id": "client",
                   "uriOptions": {
-                    "timeoutMS": 50
+                    "timeoutMS": 250
                   },
                   "useMultipleMongoses": false,
                   "observeEvents": [
@@ -2412,14 +2408,14 @@
             "failPoint": {
               "configureFailPoint": "failCommand",
               "mode": {
-                "times": 1
+                "times": 2
               },
               "data": {
                 "failCommands": [
                   "find"
                 ],
                 "blockConnection": true,
-                "blockTimeMS": 60
+                "blockTimeMS": 350
               }
             }
           }
@@ -2558,7 +2554,7 @@
                 "client": {
                   "id": "client",
                   "uriOptions": {
-                    "timeoutMS": 50
+                    "timeoutMS": 250
                   },
                   "useMultipleMongoses": false,
                   "observeEvents": [
@@ -2591,14 +2587,14 @@
             "failPoint": {
               "configureFailPoint": "failCommand",
               "mode": {
-                "times": 1
+                "times": 2
               },
               "data": {
                 "failCommands": [
                   "find"
                 ],
                 "blockConnection": true,
-                "blockTimeMS": 60
+                "blockTimeMS": 350
               }
             }
           }
@@ -2737,7 +2733,7 @@
                 "client": {
                   "id": "client",
                   "uriOptions": {
-                    "timeoutMS": 50
+                    "timeoutMS": 250
                   },
                   "useMultipleMongoses": false,
                   "observeEvents": [
@@ -2770,14 +2766,14 @@
             "failPoint": {
               "configureFailPoint": "failCommand",
               "mode": {
-                "times": 1
+                "times": 2
               },
               "data": {
                 "failCommands": [
                   "listIndexes"
                 ],
                 "blockConnection": true,
-                "blockTimeMS": 60
+                "blockTimeMS": 350
               }
             }
           }
@@ -2910,7 +2906,7 @@
                 "client": {
                   "id": "client",
                   "uriOptions": {
-                    "timeoutMS": 50
+                    "timeoutMS": 250
                   },
                   "useMultipleMongoses": false,
                   "observeEvents": [
@@ -2943,14 +2939,14 @@
             "failPoint": {
               "configureFailPoint": "failCommand",
               "mode": {
-                "times": 1
+                "times": 2
               },
               "data": {
                 "failCommands": [
                   "listIndexes"
                 ],
                 "blockConnection": true,
-                "blockTimeMS": 60
+                "blockTimeMS": 350
               }
             }
           }
@@ -3083,7 +3079,7 @@
                 "client": {
                   "id": "client",
                   "uriOptions": {
-                    "timeoutMS": 50
+                    "timeoutMS": 250
                   },
                   "useMultipleMongoses": false,
                   "observeEvents": [
@@ -3116,14 +3112,14 @@
             "failPoint": {
               "configureFailPoint": "failCommand",
               "mode": {
-                "times": 1
+                "times": 2
               },
               "data": {
                 "failCommands": [
                   "aggregate"
                 ],
                 "blockConnection": true,
-                "blockTimeMS": 60
+                "blockTimeMS": 350
               }
             }
           }
@@ -3262,7 +3258,7 @@
                 "client": {
                   "id": "client",
                   "uriOptions": {
-                    "timeoutMS": 50
+                    "timeoutMS": 250
                   },
                   "useMultipleMongoses": false,
                   "observeEvents": [
@@ -3295,14 +3291,14 @@
             "failPoint": {
               "configureFailPoint": "failCommand",
               "mode": {
-                "times": 1
+                "times": 2
               },
               "data": {
                 "failCommands": [
                   "insert"
                 ],
                 "blockConnection": true,
-                "blockTimeMS": 60
+                "blockTimeMS": 350
               }
             }
           }
@@ -3445,7 +3441,7 @@
                 "client": {
                   "id": "client",
                   "uriOptions": {
-                    "timeoutMS": 50
+                    "timeoutMS": 250
                   },
                   "useMultipleMongoses": false,
                   "observeEvents": [
@@ -3478,14 +3474,14 @@
             "failPoint": {
               "configureFailPoint": "failCommand",
               "mode": {
-                "times": 1
+                "times": 2
               },
               "data": {
                 "failCommands": [
                   "insert"
                 ],
                 "blockConnection": true,
-                "blockTimeMS": 60
+                "blockTimeMS": 350
               }
             }
           }
@@ -3632,7 +3628,7 @@
                 "client": {
                   "id": "client",
                   "uriOptions": {
-                    "timeoutMS": 50
+                    "timeoutMS": 250
                   },
                   "useMultipleMongoses": false,
                   "observeEvents": [
@@ -3665,14 +3661,14 @@
             "failPoint": {
               "configureFailPoint": "failCommand",
               "mode": {
-                "times": 1
+                "times": 2
               },
               "data": {
                 "failCommands": [
                   "delete"
                 ],
                 "blockConnection": true,
-                "blockTimeMS": 60
+                "blockTimeMS": 350
               }
             }
           }
@@ -3811,7 +3807,7 @@
                 "client": {
                   "id": "client",
                   "uriOptions": {
-                    "timeoutMS": 50
+                    "timeoutMS": 250
                   },
                   "useMultipleMongoses": false,
                   "observeEvents": [
@@ -3844,14 +3840,14 @@
             "failPoint": {
               "configureFailPoint": "failCommand",
               "mode": {
-                "times": 1
+                "times": 2
               },
               "data": {
                 "failCommands": [
                   "delete"
                 ],
                 "blockConnection": true,
-                "blockTimeMS": 60
+                "blockTimeMS": 350
               }
             }
           }
@@ -3990,7 +3986,7 @@
                 "client": {
                   "id": "client",
                   "uriOptions": {
-                    "timeoutMS": 50
+                    "timeoutMS": 250
                   },
                   "useMultipleMongoses": false,
                   "observeEvents": [
@@ -4023,14 +4019,14 @@
             "failPoint": {
               "configureFailPoint": "failCommand",
               "mode": {
-                "times": 1
+                "times": 2
               },
               "data": {
                 "failCommands": [
                   "update"
                 ],
                 "blockConnection": true,
-                "blockTimeMS": 60
+                "blockTimeMS": 350
               }
             }
           }
@@ -4175,7 +4171,7 @@
                 "client": {
                   "id": "client",
                   "uriOptions": {
-                    "timeoutMS": 50
+                    "timeoutMS": 250
                   },
                   "useMultipleMongoses": false,
                   "observeEvents": [
@@ -4208,14 +4204,14 @@
             "failPoint": {
               "configureFailPoint": "failCommand",
               "mode": {
-                "times": 1
+                "times": 2
               },
               "data": {
                 "failCommands": [
                   "update"
                 ],
                 "blockConnection": true,
-                "blockTimeMS": 60
+                "blockTimeMS": 350
               }
             }
           }
@@ -4364,7 +4360,7 @@
                 "client": {
                   "id": "client",
                   "uriOptions": {
-                    "timeoutMS": 50
+                    "timeoutMS": 250
                   },
                   "useMultipleMongoses": false,
                   "observeEvents": [
@@ -4397,14 +4393,14 @@
             "failPoint": {
               "configureFailPoint": "failCommand",
               "mode": {
-                "times": 1
+                "times": 2
               },
               "data": {
                 "failCommands": [
                   "update"
                 ],
                 "blockConnection": true,
-                "blockTimeMS": 60
+                "blockTimeMS": 350
               }
             }
           }
@@ -4553,7 +4549,7 @@
                 "client": {
                   "id": "client",
                   "uriOptions": {
-                    "timeoutMS": 50
+                    "timeoutMS": 250
                   },
                   "useMultipleMongoses": false,
                   "observeEvents": [
@@ -4586,14 +4582,14 @@
             "failPoint": {
               "configureFailPoint": "failCommand",
               "mode": {
-                "times": 1
+                "times": 2
               },
               "data": {
                 "failCommands": [
                   "findAndModify"
                 ],
                 "blockConnection": true,
-                "blockTimeMS": 60
+                "blockTimeMS": 350
               }
             }
           }
@@ -4732,7 +4728,7 @@
                 "client": {
                   "id": "client",
                   "uriOptions": {
-                    "timeoutMS": 50
+                    "timeoutMS": 250
                   },
                   "useMultipleMongoses": false,
                   "observeEvents": [
@@ -4765,14 +4761,14 @@
             "failPoint": {
               "configureFailPoint": "failCommand",
               "mode": {
-                "times": 1
+                "times": 2
               },
               "data": {
                 "failCommands": [
                   "findAndModify"
                 ],
                 "blockConnection": true,
-                "blockTimeMS": 60
+                "blockTimeMS": 350
               }
             }
           }
@@ -4917,7 +4913,7 @@
                 "client": {
                   "id": "client",
                   "uriOptions": {
-                    "timeoutMS": 50
+                    "timeoutMS": 250
                   },
                   "useMultipleMongoses": false,
                   "observeEvents": [
@@ -4950,14 +4946,14 @@
             "failPoint": {
               "configureFailPoint": "failCommand",
               "mode": {
-                "times": 1
+                "times": 2
               },
               "data": {
                 "failCommands": [
                   "findAndModify"
                 ],
                 "blockConnection": true,
-                "blockTimeMS": 60
+                "blockTimeMS": 350
               }
             }
           }
@@ -5106,7 +5102,7 @@
                 "client": {
                   "id": "client",
                   "uriOptions": {
-                    "timeoutMS": 50
+                    "timeoutMS": 250
                   },
                   "useMultipleMongoses": false,
                   "observeEvents": [
@@ -5139,14 +5135,14 @@
             "failPoint": {
               "configureFailPoint": "failCommand",
               "mode": {
-                "times": 1
+                "times": 2
               },
               "data": {
                 "failCommands": [
                   "insert"
                 ],
                 "blockConnection": true,
-                "blockTimeMS": 60
+                "blockTimeMS": 350
               }
             }
           }
@@ -5301,7 +5297,7 @@
                 "client": {
                   "id": "client",
                   "uriOptions": {
-                    "timeoutMS": 50
+                    "timeoutMS": 250
                   },
                   "useMultipleMongoses": false,
                   "observeEvents": [
@@ -5334,14 +5330,14 @@
             "failPoint": {
               "configureFailPoint": "failCommand",
               "mode": {
-                "times": 1
+                "times": 2
               },
               "data": {
                 "failCommands": [
                   "createIndexes"
                 ],
                 "blockConnection": true,
-                "blockTimeMS": 60
+                "blockTimeMS": 350
               }
             }
           }
@@ -5486,7 +5482,7 @@
                 "client": {
                   "id": "client",
                   "uriOptions": {
-                    "timeoutMS": 50
+                    "timeoutMS": 250
                   },
                   "useMultipleMongoses": false,
                   "observeEvents": [
@@ -5519,14 +5515,14 @@
             "failPoint": {
               "configureFailPoint": "failCommand",
               "mode": {
-                "times": 1
+                "times": 2
               },
               "data": {
                 "failCommands": [
                   "dropIndexes"
                 ],
                 "blockConnection": true,
-                "blockTimeMS": 60
+                "blockTimeMS": 350
               }
             }
           }
@@ -5669,7 +5665,7 @@
                 "client": {
                   "id": "client",
                   "uriOptions": {
-                    "timeoutMS": 50
+                    "timeoutMS": 250
                   },
                   "useMultipleMongoses": false,
                   "observeEvents": [
@@ -5702,14 +5698,14 @@
             "failPoint": {
               "configureFailPoint": "failCommand",
               "mode": {
-                "times": 1
+                "times": 2
               },
               "data": {
                 "failCommands": [
                   "dropIndexes"
                 ],
                 "blockConnection": true,
-                "blockTimeMS": 60
+                "blockTimeMS": 350
               }
             }
           }

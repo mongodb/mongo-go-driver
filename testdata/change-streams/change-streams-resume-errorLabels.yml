@@ -5,7 +5,7 @@ schemaVersion: "1.7"
 
 runOnRequirements:
   - minServerVersion: "4.3.1"
-    topologies: [ replicaset, sharded-replicaset, load-balanced ]
+    topologies: [ replicaset, sharded, load-balanced ]
     serverless: forbid
 
 createEntities:
@@ -744,8 +744,8 @@ tests:
 
   - description: change stream resumes after StaleShardVersion
     runOnRequirements:
-       # StaleShardVersion is obsolete as of 6.1 and is no longer marked as resumable.
-       - maxServerVersion: "6.0.99"
+      # StaleShardVersion is obsolete as of 6.1 and is no longer marked as resumable.
+      - maxServerVersion: "6.0.99"
     operations:
       - name: failPoint
         object: testRunner
