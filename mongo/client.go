@@ -74,7 +74,7 @@ type Client struct {
 	httpClient     *http.Client
 	logger         *logger.Logger
 
-	// client-side encryption fields
+	// in-use encryption fields
 	keyVaultClientFLE  *Client
 	keyVaultCollFLE    *Collection
 	mongocryptdFLE     *mongocryptdClient
@@ -396,10 +396,6 @@ func (c *Client) Ping(ctx context.Context, rp *readpref.ReadPref) error {
 // If the DefaultReadConcern, DefaultWriteConcern, or DefaultReadPreference options are not set, the client's read
 // concern, write concern, or read preference will be used, respectively.
 func (c *Client) StartSession(opts ...options.Lister[options.SessionOptions]) (*Session, error) {
-	if c.sessionPool == nil {
-		return nil, ErrClientDisconnected
-	}
-
 	sessArgs, err := mongoutil.NewOptions(opts...)
 	if err != nil {
 		return nil, err
@@ -454,10 +450,6 @@ func (c *Client) StartSession(opts ...options.Lister[options.SessionOptions]) (*
 }
 
 func (c *Client) endSessions(ctx context.Context) {
-	if c.sessionPool == nil {
-		return
-	}
-
 	sessionIDs := c.sessionPool.IDSlice()
 	op := operation.NewEndSessions(nil).ClusterClock(c.clock).Deployment(c.deployment).
 		ServerSelector(&serverselector.ReadPref{ReadPref: readpref.PrimaryPreferred()}).
@@ -872,10 +864,6 @@ func (c *Client) UseSessionWithOptions(
 // documentation).
 func (c *Client) Watch(ctx context.Context, pipeline interface{},
 	opts ...options.Lister[options.ChangeStreamOptions]) (*ChangeStream, error) {
-	if c.sessionPool == nil {
-		return nil, ErrClientDisconnected
-	}
-
 	csConfig := changeStreamConfig{
 		readConcern:    c.readConcern,
 		readPreference: c.readPreference,
@@ -921,9 +909,7 @@ func newLogger(opts options.Lister[options.LoggerOptions]) (*logger.Logger, erro
 
 	// If there are no component-level options and the environment does not
 	// contain component variables, then do nothing.
-	if (args.ComponentLevels == nil || len(args.ComponentLevels) == 0) &&
-		!logger.EnvHasComponentVariables() {
-
+	if len(args.ComponentLevels) == 0 && !logger.EnvHasComponentVariables() {
 		return nil, nil
 	}
 

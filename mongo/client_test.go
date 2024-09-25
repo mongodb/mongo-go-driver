@@ -19,13 +19,13 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/integtest"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/v2/tag"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mongocrypt"
-	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/topology"
 )
 
@@ -37,7 +37,7 @@ func setupClient(opts ...options.Lister[options.ClientOptions]) *Client {
 		integtest.AddTestServerAPIVersion(clientOpts)
 		opts = append(opts, clientOpts)
 	}
-	client, _ := newClient(opts...)
+	client, _ := Connect(opts...)
 	return client
 }
 
@@ -53,11 +53,14 @@ func TestClient(t *testing.T) {
 		assert.Equal(t, dbName, db.Name(), "expected db name %v, got %v", dbName, db.Name())
 		assert.Equal(t, client, db.Client(), "expected client %v, got %v", client, db.Client())
 	})
-	t.Run("replace topology error", func(t *testing.T) {
+	t.Run("replaceErrors for disconnected topology", func(t *testing.T) {
 		client := setupClient()
 
-		_, err := client.StartSession()
-		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
+		topo, ok := client.deployment.(*topology.Topology)
+		require.True(t, ok, "client deployment is not a topology")
+
+		err := topo.Disconnect(context.Background())
+		require.NoError(t, err)
 
 		_, err = client.ListDatabases(bgCtx, bson.D{})
 		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
@@ -72,9 +75,7 @@ func TestClient(t *testing.T) {
 		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
 	})
 	t.Run("nil document error", func(t *testing.T) {
-		// manually set session pool to non-nil because Watch will return ErrClientDisconnected
 		client := setupClient()
-		client.sessionPool = &session.Pool{}
 
 		_, err := client.Watch(bgCtx, nil)
 		watchErr := errors.New("can only marshal slices and arrays into aggregation pipelines, but got invalid")
