@@ -240,6 +240,40 @@ func TestClientOptions(t *testing.T) {
 			})
 		}
 	})
+	t.Run("HeartbeatFrequencyMS validation", func(t *testing.T) {
+		testCases := []struct {
+			name string
+			opts *ClientOptionsBuilder
+			err  error
+		}{
+			{
+				"HeartbeatFrequencyMS > minHeartbeatFrequencyMS (500ms)",
+				Client().SetHeartbeatInterval(10000 * time.Millisecond),
+				nil,
+			},
+			{
+				"HeartbeatFrequencyMS == minHeartbeatFrequencyMS (500ms)",
+				Client().SetHeartbeatInterval(500 * time.Millisecond),
+				nil,
+			},
+			{
+				"HeartbeatFrequencyMS < minHeartbeatFrequencyMS (500ms)",
+				Client().SetHeartbeatInterval(10 * time.Millisecond),
+				errors.New("HeartbeatFrequencyMS cannot be less than minHeartbeatFrequencyMS (500ms), got HeartbeatFrequencyMS=10"),
+			},
+			{
+				"HeartbeatFrequencyMS == 0",
+				Client().SetHeartbeatInterval(0 * time.Millisecond),
+				errors.New("HeartbeatFrequencyMS cannot be less than minHeartbeatFrequencyMS (500ms), got HeartbeatFrequencyMS=0"),
+			},
+		}
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				err := tc.opts.Validate()
+				assert.Equal(t, tc.err, err, "expected error %v, got %v", tc.err, err)
+			})
+		}
+	})
 	t.Run("minPoolSize validation", func(t *testing.T) {
 		testCases := []struct {
 			name string
