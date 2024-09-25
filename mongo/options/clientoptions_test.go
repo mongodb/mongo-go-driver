@@ -259,12 +259,12 @@ func TestClientOptions(t *testing.T) {
 			{
 				"HeartbeatFrequencyMS < minHeartbeatFrequencyMS (500ms)",
 				Client().SetHeartbeatInterval(10 * time.Millisecond),
-				errors.New("HeartbeatFrequencyMS cannot be less than minHeartbeatFrequencyMS (500ms), got HeartbeatFrequencyMS=10"),
+				errors.New("HeartbeatFrequencyMS cannot be less than minHeartbeatFrequencyMS (500ms), got HeartbeatFrequencyMS=\"10ms\""),
 			},
 			{
 				"HeartbeatFrequencyMS == 0",
 				Client().SetHeartbeatInterval(0 * time.Millisecond),
-				errors.New("HeartbeatFrequencyMS cannot be less than minHeartbeatFrequencyMS (500ms), got HeartbeatFrequencyMS=0"),
+				errors.New("HeartbeatFrequencyMS cannot be less than minHeartbeatFrequencyMS (500ms), got HeartbeatFrequencyMS=\"0s\""),
 			},
 		}
 		for _, tc := range testCases {
