@@ -15,6 +15,7 @@ import (
 	"go.mongodb.org/mongo-driver/internal/logger"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
@@ -23,10 +24,12 @@ import (
 // Command is used to run a generic operation.
 type Command struct {
 	authenticator  driver.Authenticator
-	command        bsoncore.Document
+	commandFn      func([]byte, description.SelectedServer) ([]byte, error)
+	batches        *driver.Batches
 	database       string
 	deployment     driver.Deployment
 	selector       description.ServerSelector
+	writeConcern   *writeconcern.WriteConcern
 	readPreference *readpref.ReadPref
 	clock          *session.ClusterClock
 	session        *session.Client
@@ -45,7 +48,15 @@ type Command struct {
 // the Result() function.
 func NewCommand(command bsoncore.Document) *Command {
 	return &Command{
-		command: command,
+		commandFn: func(dst []byte, _ description.SelectedServer) ([]byte, error) {
+			return append(dst, command[4:len(command)-1]...), nil
+		},
+	}
+}
+
+func NewCommandFn(commandFn func([]byte, description.SelectedServer) ([]byte, error)) *Command {
+	return &Command{
+		commandFn: commandFn,
 	}
 }
 
@@ -53,7 +64,9 @@ func NewCommand(command bsoncore.Document) *Command {
 // construct a cursor, which can be accessed via the ResultCursor() function.
 func NewCursorCommand(command bsoncore.Document, cursorOpts driver.CursorOptions) *Command {
 	return &Command{
-		command:      command,
+		commandFn: func(dst []byte, _ description.SelectedServer) ([]byte, error) {
+			return append(dst, command[4:len(command)-1]...), nil
+		},
 		cursorOpts:   cursorOpts,
 		createCursor: true,
 	}
@@ -79,9 +92,8 @@ func (c *Command) Execute(ctx context.Context) error {
 	}
 
 	return driver.Operation{
-		CommandFn: func(dst []byte, _ description.SelectedServer) ([]byte, error) {
-			return append(dst, c.command[4:len(c.command)-1]...), nil
-		},
+		CommandFn: c.commandFn,
+		Batches:   c.batches,
 		ProcessResponseFn: func(info driver.ResponseInfo) error {
 			c.resultResponse = info.ServerResponse
 
@@ -104,6 +116,7 @@ func (c *Command) Execute(ctx context.Context) error {
 		Deployment:     c.deployment,
 		ReadPreference: c.readPreference,
 		Selector:       c.selector,
+		WriteConcern:   c.writeConcern,
 		Crypt:          c.crypt,
 		ServerAPI:      c.serverAPI,
 		Timeout:        c.timeout,
@@ -139,6 +152,16 @@ func (c *Command) CommandMonitor(monitor *event.CommandMonitor) *Command {
 	}
 
 	c.monitor = monitor
+	return c
+}
+
+// Batches sets the batches for this operation.
+func (c *Command) Batches(batches *driver.Batches) *Command {
+	if c == nil {
+		c = new(Command)
+	}
+
+	c.batches = batches
 	return c
 }
 
@@ -179,6 +202,16 @@ func (c *Command) ServerSelector(selector description.ServerSelector) *Command {
 	}
 
 	c.selector = selector
+	return c
+}
+
+// WriteConcern sets the write concern for this operation.
+func (c *Command) WriteConcern(writeConcern *writeconcern.WriteConcern) *Command {
+	if c == nil {
+		c = new(Command)
+	}
+
+	c.writeConcern = writeConcern
 	return c
 }
 

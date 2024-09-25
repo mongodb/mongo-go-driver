@@ -609,6 +609,53 @@ func (bwe BulkWriteException) HasErrorCodeWithMessage(code int, message string) 
 // serverError implements the ServerError interface.
 func (bwe BulkWriteException) serverError() {}
 
+// ClientBulkWriteException is the error type returned by ClientBulkWrite operations.
+type ClientBulkWriteException struct {
+	TopLevelError *error
+
+	// The write concern errors that occurred.
+	WriteConcernErrors []WriteConcernError
+
+	// The write errors that occurred during individual operation execution.
+	WriteErrors map[int64]WriteError
+
+	PartialResult *ClientBulkWriteResult
+}
+
+// Error implements the error interface.
+func (bwe ClientBulkWriteException) Error() string {
+	causes := make([]string, 0, 4)
+	if bwe.TopLevelError != nil {
+		causes = append(causes, "top level error: "+(*bwe.TopLevelError).Error())
+	}
+	if len(bwe.WriteConcernErrors) > 0 {
+		errs := make([]error, len(bwe.WriteConcernErrors))
+		for i := 0; i < len(bwe.WriteConcernErrors); i++ {
+			errs[i] = &bwe.WriteConcernErrors[i]
+		}
+		causes = append(causes, "write concern errors: "+joinBatchErrors(errs))
+	}
+	if len(bwe.WriteErrors) > 0 {
+		errs := make([]error, 0, len(bwe.WriteErrors))
+		for _, v := range bwe.WriteErrors {
+			errs = append(errs, &v)
+		}
+		causes = append(causes, "write errors: "+joinBatchErrors(errs))
+	}
+	if bwe.PartialResult != nil {
+		causes = append(causes, "top level error: "+bwe.PartialResult.String())
+	}
+
+	message := "bulk write exception: "
+	if len(causes) == 0 {
+		return message + "no causes"
+	}
+	return "bulk write exception: " + strings.Join(causes, ", ")
+}
+
+// serverError implements the ServerError interface.
+func (bwe ClientBulkWriteException) serverError() {}
+
 // returnResult is used to determine if a function calling processWriteError should return
 // the result or return nil. Since the processWriteError function is used by many different
 // methods, both *One and *Many, we need a way to differentiate if the method should return

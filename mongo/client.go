@@ -73,14 +73,15 @@ type Client struct {
 	logger         *logger.Logger
 
 	// client-side encryption fields
-	keyVaultClientFLE  *Client
-	keyVaultCollFLE    *Collection
-	mongocryptdFLE     *mongocryptdClient
-	cryptFLE           driver.Crypt
-	metadataClientFLE  *Client
-	internalClientFLE  *Client
-	encryptedFieldsMap map[string]interface{}
-	authenticator      driver.Authenticator
+	isAutoEncryptionSet bool
+	keyVaultClientFLE   *Client
+	keyVaultCollFLE     *Collection
+	mongocryptdFLE      *mongocryptdClient
+	cryptFLE            driver.Crypt
+	metadataClientFLE   *Client
+	internalClientFLE   *Client
+	encryptedFieldsMap  map[string]interface{}
+	authenticator       driver.Authenticator
 }
 
 // Connect creates a new Client and then initializes it using the Connect method. This is equivalent to calling
@@ -194,6 +195,7 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 	}
 	// AutoEncryptionOptions
 	if clientOpt.AutoEncryptionOptions != nil {
+		client.isAutoEncryptionSet = true
 		if err := client.configureAutoEncryption(clientOpt); err != nil {
 			return nil, err
 		}
@@ -849,6 +851,61 @@ func (c *Client) createBaseCursorOptions() driver.CursorOptions {
 		Crypt:          c.cryptFLE,
 		ServerAPI:      c.serverAPI,
 	}
+}
+
+// BulkWrite performs a client-levelbulk write operation.
+func (c *Client) BulkWrite(ctx context.Context, models *ClientWriteModels,
+	opts ...*options.ClientBulkWriteOptions) (*ClientBulkWriteResult, error) {
+	if c.isAutoEncryptionSet {
+		return nil, errors.New("bulkWrite does not currently support automatic encryption")
+	}
+	bwo := options.MergeClientBulkWriteOptions(opts...)
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	sess := sessionFromContext(ctx)
+	if sess == nil && c.sessionPool != nil {
+		sess = session.NewImplicitClientSession(c.sessionPool, c.id)
+		defer sess.EndSession()
+	}
+
+	err := c.validSession(sess)
+	if err != nil {
+		return nil, err
+	}
+
+	wc := c.writeConcern
+	if sess.TransactionRunning() {
+		wc = nil
+	}
+	if !writeconcern.AckWrite(wc) {
+		sess = nil
+	}
+
+	writeSelector := description.CompositeSelector([]description.ServerSelector{
+		description.WriteSelector(),
+		description.LatencySelector(c.localThreshold),
+	})
+	selector := makePinnedSelector(sess, writeSelector)
+
+	op := clientBulkWrite{
+		models:                   models.models,
+		ordered:                  bwo.Ordered,
+		bypassDocumentValidation: bwo.BypassDocumentValidation,
+		comment:                  bwo.Comment,
+		let:                      bwo.Let,
+		session:                  sess,
+		client:                   c,
+		selector:                 selector,
+		writeConcern:             wc,
+	}
+	if bwo.VerboseResults == nil || !(*bwo.VerboseResults) {
+		op.errorsOnly = true
+	}
+	err = op.execute(ctx)
+	return op.result, replaceErrors(err)
 }
 
 // newLogger will use the LoggerOptions to create an internal logger and publish
