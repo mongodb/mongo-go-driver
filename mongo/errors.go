@@ -643,7 +643,7 @@ func (bwe ClientBulkWriteException) Error() string {
 		causes = append(causes, "write errors: "+joinBatchErrors(errs))
 	}
 	if bwe.PartialResult != nil {
-		causes = append(causes, "top level error: "+bwe.PartialResult.String())
+		causes = append(causes, fmt.Sprintf("result: %v", bwe.PartialResult))
 	}
 
 	message := "bulk write exception: "

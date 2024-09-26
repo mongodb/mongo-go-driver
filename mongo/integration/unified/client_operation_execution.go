@@ -9,8 +9,10 @@ package unified
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/bsonutil"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -166,4 +168,324 @@ func executeListDatabases(ctx context.Context, operation *operation, nameOnly bo
 		AppendInt64("totalSize", res.TotalSize).
 		Build()
 	return newDocumentResult(raw, nil), nil
+}
+
+func executeClientBulkWrite(ctx context.Context, operation *operation) (*operationResult, error) {
+	client, err := entities(ctx).client(operation.Object)
+	if err != nil {
+		return nil, err
+	}
+
+	wirteModels := &mongo.ClientWriteModels{}
+	opts := options.ClientBulkWrite()
+
+	elems, err := operation.Arguments.Elements()
+	if err != nil {
+		return nil, err
+	}
+	for _, elem := range elems {
+		key := elem.Key()
+		val := elem.Value()
+
+		switch key {
+		case "models":
+			models, err := val.Array().Values()
+			if err != nil {
+				return nil, err
+			}
+			for _, m := range models {
+				model := m.Document().Index(0)
+				err = appendClientBulkWriteModel(model.Key(), model.Value().Document(), wirteModels)
+				if err != nil {
+					return nil, err
+				}
+			}
+		case "bypassDocumentValidation":
+			opts.SetBypassDocumentValidation(val.Boolean())
+		case "comment":
+			opts.SetComment(val)
+		case "let":
+			opts.SetLet(val.Document())
+		case "ordered":
+			opts.SetOrdered(val.Boolean())
+		case "verboseResults":
+			opts.SetVerboseResults(val.Boolean())
+		case "writeConcern":
+			var wc writeConcern
+			bson.Unmarshal(val.Value, &wc)
+			c, err := wc.toWriteConcernOption()
+			if err != nil {
+				return nil, err
+			}
+			opts.SetWriteConcern(c)
+		default:
+			return nil, fmt.Errorf("unrecognized bulkWrite option %q", key)
+		}
+	}
+
+	res, err := client.BulkWrite(ctx, wirteModels, opts)
+	raw := emptyCoreDocument
+	if res != nil {
+		rawBuilder := bsoncore.NewDocumentBuilder().
+			AppendInt64("deletedCount", res.DeletedCount).
+			AppendInt64("insertedCount", res.InsertedCount).
+			AppendInt64("matchedCount", res.MatchedCount).
+			AppendInt64("modifiedCount", res.ModifiedCount).
+			AppendInt64("upsertedCount", res.UpsertedCount)
+
+		var resBuilder *bsoncore.DocumentBuilder
+
+		resBuilder = bsoncore.NewDocumentBuilder()
+		for k, v := range res.DeleteResults {
+			resBuilder.AppendDocument(strconv.Itoa(int(k)),
+				bsoncore.NewDocumentBuilder().
+					AppendInt64("deletedCount", v.DeletedCount).
+					Build(),
+			)
+		}
+		rawBuilder.AppendDocument("deleteResults", resBuilder.Build())
+
+		resBuilder = bsoncore.NewDocumentBuilder()
+		for k, v := range res.InsertResults {
+			t, d, err := bson.MarshalValue(v.InsertedID)
+			if err != nil {
+				return nil, err
+			}
+			resBuilder.AppendDocument(strconv.Itoa(int(k)),
+				bsoncore.NewDocumentBuilder().
+					AppendValue("insertedId", bsoncore.Value{Type: t, Data: d}).
+					Build(),
+			)
+		}
+		rawBuilder.AppendDocument("insertResults", resBuilder.Build())
+
+		resBuilder = bsoncore.NewDocumentBuilder()
+		for k, v := range res.UpdateResults {
+			b := bsoncore.NewDocumentBuilder().
+				AppendInt64("matchedCount", v.MatchedCount).
+				AppendInt64("modifiedCount", v.ModifiedCount)
+			if v.UpsertedID != nil {
+				t, d, err := bson.MarshalValue(v.UpsertedID)
+				if err != nil {
+					return nil, err
+				}
+				b.AppendValue("upsertedId", bsoncore.Value{Type: t, Data: d})
+			}
+			resBuilder.AppendDocument(strconv.Itoa(int(k)), b.Build())
+		}
+		rawBuilder.AppendDocument("updateResults", resBuilder.Build())
+
+		raw = rawBuilder.Build()
+	}
+	return newDocumentResult(raw, err), nil
+}
+
+func appendClientBulkWriteModel(key string, value bson.Raw, model *mongo.ClientWriteModels) error {
+	switch key {
+	case "insertOne":
+		m, err := createClientInsertOneModel(value)
+		if err != nil {
+			return err
+		}
+		model.AppendInsertOne(m)
+	case "updateOne":
+		m, err := createClientUpdateOneModel(value)
+		if err != nil {
+			return err
+		}
+		model.AppendUpdateOne(m)
+	case "updateMany":
+		m, err := createClientUpdateManyModel(value)
+		if err != nil {
+			return err
+		}
+		model.AppendUpdateMany(m)
+	case "replaceOne":
+		m, err := createClientReplaceOneModel(value)
+		if err != nil {
+			return err
+		}
+		model.AppendReplaceOne(m)
+	case "deleteOne":
+		m, err := createClientDeleteOneModel(value)
+		if err != nil {
+			return err
+		}
+		model.AppendDeleteOne(m)
+	case "deleteMany":
+		m, err := createClientDeleteManyModel(value)
+		if err != nil {
+			return err
+		}
+		model.AppendDeleteMany(m)
+	}
+	return nil
+}
+
+func createClientInsertOneModel(value bson.Raw) (*mongo.ClientInsertOneModel, error) {
+	var v struct {
+		Namespace string
+		Document  bson.Raw
+	}
+	err := bson.Unmarshal(value, &v)
+	if err != nil {
+		return nil, err
+	}
+	return &mongo.ClientInsertOneModel{
+		Namespace: v.Namespace,
+		Document:  v.Document,
+	}, nil
+}
+
+func createClientUpdateOneModel(value bson.Raw) (*mongo.ClientUpdateOneModel, error) {
+	var v struct {
+		Namespace    string
+		Filter       bson.Raw
+		Update       interface{}
+		ArrayFilters []interface{}
+		Collation    *options.Collation
+		Hint         *bson.RawValue
+		Upsert       *bool
+	}
+	err := bson.Unmarshal(value, &v)
+	if err != nil {
+		return nil, err
+	}
+	var hint interface{}
+	if v.Hint != nil {
+		hint, err = createHint(*v.Hint)
+		if err != nil {
+			return nil, err
+		}
+	}
+	model := &mongo.ClientUpdateOneModel{
+		Namespace: v.Namespace,
+		Filter:    v.Filter,
+		Update:    v.Update,
+		Collation: v.Collation,
+		Hint:      hint,
+		Upsert:    v.Upsert,
+	}
+	if len(v.ArrayFilters) > 0 {
+		model.ArrayFilters = &options.ArrayFilters{Filters: v.ArrayFilters}
+	}
+	return model, nil
+
+}
+
+func createClientUpdateManyModel(value bson.Raw) (*mongo.ClientUpdateManyModel, error) {
+	var v struct {
+		Namespace    string
+		Filter       bson.Raw
+		Update       interface{}
+		ArrayFilters []interface{}
+		Collation    *options.Collation
+		Hint         *bson.RawValue
+		Upsert       *bool
+	}
+	err := bson.Unmarshal(value, &v)
+	if err != nil {
+		return nil, err
+	}
+	var hint interface{}
+	if v.Hint != nil {
+		hint, err = createHint(*v.Hint)
+		if err != nil {
+			return nil, err
+		}
+	}
+	model := &mongo.ClientUpdateManyModel{
+		Namespace: v.Namespace,
+		Filter:    v.Filter,
+		Update:    v.Update,
+		Collation: v.Collation,
+		Hint:      hint,
+		Upsert:    v.Upsert,
+	}
+	if len(v.ArrayFilters) > 0 {
+		model.ArrayFilters = &options.ArrayFilters{Filters: v.ArrayFilters}
+	}
+	return model, nil
+}
+
+func createClientReplaceOneModel(value bson.Raw) (*mongo.ClientReplaceOneModel, error) {
+	var v struct {
+		Namespace   string
+		Filter      bson.Raw
+		Replacement bson.Raw
+		Collation   *options.Collation
+		Hint        *bson.RawValue
+		Upsert      *bool
+	}
+	err := bson.Unmarshal(value, &v)
+	if err != nil {
+		return nil, err
+	}
+	var hint interface{}
+	if v.Hint != nil {
+		hint, err = createHint(*v.Hint)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return &mongo.ClientReplaceOneModel{
+		Namespace:   v.Namespace,
+		Filter:      v.Filter,
+		Replacement: v.Replacement,
+		Collation:   v.Collation,
+		Hint:        hint,
+		Upsert:      v.Upsert,
+	}, nil
+}
+
+func createClientDeleteOneModel(value bson.Raw) (*mongo.ClientDeleteOneModel, error) {
+	var v struct {
+		Namespace string
+		Filter    bson.Raw
+		Collation *options.Collation
+		Hint      *bson.RawValue
+	}
+	err := bson.Unmarshal(value, &v)
+	if err != nil {
+		return nil, err
+	}
+	var hint interface{}
+	if v.Hint != nil {
+		hint, err = createHint(*v.Hint)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return &mongo.ClientDeleteOneModel{
+		Namespace: v.Namespace,
+		Filter:    v.Filter,
+		Collation: v.Collation,
+		Hint:      hint,
+	}, nil
+}
+
+func createClientDeleteManyModel(value bson.Raw) (*mongo.ClientDeleteManyModel, error) {
+	var v struct {
+		Namespace string
+		Filter    bson.Raw
+		Collation *options.Collation
+		Hint      *bson.RawValue
+	}
+	err := bson.Unmarshal(value, &v)
+	if err != nil {
+		return nil, err
+	}
+	var hint interface{}
+	if v.Hint != nil {
+		hint, err = createHint(*v.Hint)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return &mongo.ClientDeleteManyModel{
+		Namespace: v.Namespace,
+		Filter:    v.Filter,
+		Collation: v.Collation,
+		Hint:      hint,
+	}, nil
 }

@@ -148,6 +148,8 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 		return executeAggregate(ctx, op)
 	case "bulkWrite":
 		return executeBulkWrite(ctx, op)
+	case "clientBulkWrite":
+		return executeClientBulkWrite(ctx, op)
 	case "countDocuments":
 		return executeCountDocuments(ctx, op)
 	case "createFindCursor":

@@ -15,7 +15,7 @@ type ClientWriteModels struct {
 	models []interface{}
 }
 
-func (m *ClientWriteModels) AppendInsertOne(models ...ClientInsertOneModel) *ClientWriteModels {
+func (m *ClientWriteModels) AppendInsertOne(models ...*ClientInsertOneModel) *ClientWriteModels {
 	if m == nil {
 		m = &ClientWriteModels{}
 	}
@@ -25,7 +25,7 @@ func (m *ClientWriteModels) AppendInsertOne(models ...ClientInsertOneModel) *Cli
 	return m
 }
 
-func (m *ClientWriteModels) AppendUpdateOne(models ...ClientUpdateOneModel) *ClientWriteModels {
+func (m *ClientWriteModels) AppendUpdateOne(models ...*ClientUpdateOneModel) *ClientWriteModels {
 	if m == nil {
 		m = &ClientWriteModels{}
 	}
@@ -35,7 +35,7 @@ func (m *ClientWriteModels) AppendUpdateOne(models ...ClientUpdateOneModel) *Cli
 	return m
 }
 
-func (m *ClientWriteModels) AppendUpdateMany(models ...ClientUpdateManyModel) *ClientWriteModels {
+func (m *ClientWriteModels) AppendUpdateMany(models ...*ClientUpdateManyModel) *ClientWriteModels {
 	if m == nil {
 		m = &ClientWriteModels{}
 	}
@@ -45,7 +45,7 @@ func (m *ClientWriteModels) AppendUpdateMany(models ...ClientUpdateManyModel) *C
 	return m
 }
 
-func (m *ClientWriteModels) AppendReplaceOne(models ...ClientReplaceOneModel) *ClientWriteModels {
+func (m *ClientWriteModels) AppendReplaceOne(models ...*ClientReplaceOneModel) *ClientWriteModels {
 	if m == nil {
 		m = &ClientWriteModels{}
 	}
@@ -55,7 +55,7 @@ func (m *ClientWriteModels) AppendReplaceOne(models ...ClientReplaceOneModel) *C
 	return m
 }
 
-func (m *ClientWriteModels) AppendDeleteOne(models ...ClientDeleteOneModel) *ClientWriteModels {
+func (m *ClientWriteModels) AppendDeleteOne(models ...*ClientDeleteOneModel) *ClientWriteModels {
 	if m == nil {
 		m = &ClientWriteModels{}
 	}
@@ -65,7 +65,7 @@ func (m *ClientWriteModels) AppendDeleteOne(models ...ClientDeleteOneModel) *Cli
 	return m
 }
 
-func (m *ClientWriteModels) AppendDeleteMany(models ...ClientDeleteManyModel) *ClientWriteModels {
+func (m *ClientWriteModels) AppendDeleteMany(models ...*ClientDeleteManyModel) *ClientWriteModels {
 	if m == nil {
 		m = &ClientWriteModels{}
 	}

@@ -877,6 +877,9 @@ func (c *Client) BulkWrite(ctx context.Context, models *ClientWriteModels,
 	}
 
 	wc := c.writeConcern
+	if bwo.WriteConcern != nil {
+		wc = bwo.WriteConcern
+	}
 	if sess.TransactionRunning() {
 		wc = nil
 	}
@@ -905,7 +908,7 @@ func (c *Client) BulkWrite(ctx context.Context, models *ClientWriteModels,
 		op.errorsOnly = true
 	}
 	err = op.execute(ctx)
-	return op.result, replaceErrors(err)
+	return &op.result, replaceErrors(err)
 }
 
 // newLogger will use the LoggerOptions to create an internal logger and publish

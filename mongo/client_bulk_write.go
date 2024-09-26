@@ -10,6 +10,7 @@ import (
 	"context"
 	"strconv"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/description"
@@ -35,27 +36,11 @@ type clientBulkWrite struct {
 	selector     description.ServerSelector
 	writeConcern *writeconcern.WriteConcern
 
-	result *ClientBulkWriteResult
+	result ClientBulkWriteResult
 }
 
 func (bw *clientBulkWrite) execute(ctx context.Context) error {
-	batches := &driver.Batches{
-		Ordered: bw.ordered,
-	}
-	op := operation.NewCommandFn(bw.command).Batches(batches).
-		Session(bw.session).WriteConcern(bw.writeConcern).CommandMonitor(bw.client.monitor).
-		ServerSelector(bw.selector).ClusterClock(bw.client.clock).
-		Database("admin").
-		Deployment(bw.client.deployment).Crypt(bw.client.cryptFLE).
-		ServerAPI(bw.client.serverAPI).Timeout(bw.client.timeout).
-		Logger(bw.client.logger).Authenticator(bw.client.authenticator)
-	err := op.Execute(ctx)
-	bw.result = newClientBulkWriteResult(op.Result())
-	return err
-}
-
-func (bw *clientBulkWrite) command(dst []byte, desc description.SelectedServer) ([]byte, error) {
-	dst = bsoncore.AppendInt32Element(dst, "bulkWrite", 1)
+	docs := make([]bsoncore.Document, len(bw.models))
 	nsMap := make(map[string]int)
 	var nsList []string
 	getNsIndex := func(namespace string) int {
@@ -68,22 +53,31 @@ func (bw *clientBulkWrite) command(dst []byte, desc description.SelectedServer) 
 			return nsIdx
 		}
 	}
-	var err error
-	var idx int32
-	idx, dst = bsoncore.AppendArrayElementStart(dst, "ops")
+	resMap := make([]interface{}, len(bw.models))
+	insIdMap := make(map[int]interface{})
 	for i, v := range bw.models {
 		var doc bsoncore.Document
+		var err error
 		var nsIdx int
 		switch model := v.(type) {
-		case ClientInsertOneModel:
+		case *ClientInsertOneModel:
 			nsIdx = getNsIndex(model.Namespace)
-			doc, err = createClientInsertDoc(int32(nsIdx), model.Document, bw.client.bsonOpts, bw.client.registry)
+			if bw.result.InsertResults == nil {
+				bw.result.InsertResults = make(map[int64]ClientInsertResult)
+			}
+			resMap[i] = bw.result.InsertResults
+			var id interface{}
+			id, doc, err = createClientInsertDoc(int32(nsIdx), model.Document, bw.client.bsonOpts, bw.client.registry)
 			if err != nil {
 				break
 			}
-			doc, _, err = ensureID(doc, primitive.NilObjectID, bw.client.bsonOpts, bw.client.registry)
-		case ClientUpdateOneModel:
+			insIdMap[i] = id
+		case *ClientUpdateOneModel:
 			nsIdx = getNsIndex(model.Namespace)
+			if bw.result.UpdateResults == nil {
+				bw.result.UpdateResults = make(map[int64]ClientUpdateResult)
+			}
+			resMap[i] = bw.result.UpdateResults
 			doc, err = createClientUpdateDoc(
 				int32(nsIdx),
 				model.Filter,
@@ -96,8 +90,12 @@ func (bw *clientBulkWrite) command(dst []byte, desc description.SelectedServer) 
 				true,
 				bw.client.bsonOpts,
 				bw.client.registry)
-		case ClientUpdateManyModel:
+		case *ClientUpdateManyModel:
 			nsIdx = getNsIndex(model.Namespace)
+			if bw.result.UpdateResults == nil {
+				bw.result.UpdateResults = make(map[int64]ClientUpdateResult)
+			}
+			resMap[i] = bw.result.UpdateResults
 			doc, err = createClientUpdateDoc(
 				int32(nsIdx),
 				model.Filter,
@@ -110,8 +108,12 @@ func (bw *clientBulkWrite) command(dst []byte, desc description.SelectedServer) 
 				true,
 				bw.client.bsonOpts,
 				bw.client.registry)
-		case ClientReplaceOneModel:
+		case *ClientReplaceOneModel:
 			nsIdx = getNsIndex(model.Namespace)
+			if bw.result.UpdateResults == nil {
+				bw.result.UpdateResults = make(map[int64]ClientUpdateResult)
+			}
+			resMap[i] = bw.result.UpdateResults
 			doc, err = createClientUpdateDoc(
 				int32(nsIdx),
 				model.Filter,
@@ -124,18 +126,12 @@ func (bw *clientBulkWrite) command(dst []byte, desc description.SelectedServer) 
 				false,
 				bw.client.bsonOpts,
 				bw.client.registry)
-		case ClientDeleteOneModel:
+		case *ClientDeleteOneModel:
 			nsIdx = getNsIndex(model.Namespace)
-			doc, err = createClientDeleteDoc(
-				int32(nsIdx),
-				model.Filter,
-				model.Collation,
-				model.Hint,
-				true,
-				bw.client.bsonOpts,
-				bw.client.registry)
-		case ClientDeleteManyModel:
-			nsIdx = getNsIndex(model.Namespace)
+			if bw.result.DeleteResults == nil {
+				bw.result.DeleteResults = make(map[int64]ClientDeleteResult)
+			}
+			resMap[i] = bw.result.DeleteResults
 			doc, err = createClientDeleteDoc(
 				int32(nsIdx),
 				model.Filter,
@@ -144,56 +140,125 @@ func (bw *clientBulkWrite) command(dst []byte, desc description.SelectedServer) 
 				false,
 				bw.client.bsonOpts,
 				bw.client.registry)
+		case *ClientDeleteManyModel:
+			nsIdx = getNsIndex(model.Namespace)
+			if bw.result.DeleteResults == nil {
+				bw.result.DeleteResults = make(map[int64]ClientDeleteResult)
+			}
+			resMap[i] = bw.result.DeleteResults
+			doc, err = createClientDeleteDoc(
+				int32(nsIdx),
+				model.Filter,
+				model.Collation,
+				model.Hint,
+				true,
+				bw.client.bsonOpts,
+				bw.client.registry)
 		}
+		if err != nil {
+			return err
+		}
+		docs[i] = doc
+	}
+	batches := &driver.Batches{
+		Identifier: "ops",
+		Documents:  docs,
+		Ordered:    bw.ordered,
+	}
+	op := operation.NewCommandFn(bw.newCommand(nsList)).Batches(batches).
+		Session(bw.session).WriteConcern(bw.writeConcern).CommandMonitor(bw.client.monitor).
+		ServerSelector(bw.selector).ClusterClock(bw.client.clock).
+		Database("admin").
+		Deployment(bw.client.deployment).Crypt(bw.client.cryptFLE).
+		ServerAPI(bw.client.serverAPI).Timeout(bw.client.timeout).
+		Logger(bw.client.logger).Authenticator(bw.client.authenticator)
+	err := op.Execute(ctx)
+	if err != nil {
+		return err
+	}
+	var res struct {
+		Cursor struct {
+			FirstBatch []bson.Raw
+		}
+		NDeleted  int32
+		NInserted int32
+		NMatched  int32
+		NModified int32
+		NUpserted int32
+	}
+	rawRes := op.Result()
+	err = bson.Unmarshal(rawRes, &res)
+	if err != nil {
+		return err
+	}
+	bw.result.DeletedCount = int64(res.NDeleted)
+	bw.result.InsertedCount = int64(res.NInserted)
+	bw.result.MatchedCount = int64(res.NMatched)
+	bw.result.ModifiedCount = int64(res.NModified)
+	bw.result.UpsertedCount = int64(res.NUpserted)
+	for i, cur := range res.Cursor.FirstBatch {
+		switch res := resMap[i].(type) {
+		case map[int64]ClientDeleteResult:
+			if err = appendDeleteResult(cur, res); err != nil {
+				return err
+			}
+		case map[int64]ClientInsertResult:
+			if err = appendInsertResult(cur, res, insIdMap); err != nil {
+				return err
+			}
+		case map[int64]ClientUpdateResult:
+			if err = appendUpdateResult(cur, res); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (bw *clientBulkWrite) newCommand(nsList []string) func([]byte, description.SelectedServer) ([]byte, error) {
+	return func(dst []byte, desc description.SelectedServer) ([]byte, error) {
+		dst = bsoncore.AppendInt32Element(dst, "bulkWrite", 1)
+
+		var idx int32
+		var err error
+		idx, dst = bsoncore.AppendArrayElementStart(dst, "nsInfo")
+		for i, v := range nsList {
+			doc, err := marshal(struct {
+				Namespace string `bson:"ns"`
+			}{v}, bw.client.bsonOpts, bw.client.registry)
+			if err != nil {
+				return nil, err
+			}
+			dst = bsoncore.AppendDocumentElement(dst, strconv.Itoa(i), doc)
+		}
+		dst, err = bsoncore.AppendArrayEnd(dst, idx)
 		if err != nil {
 			return nil, err
 		}
-		dst = bsoncore.AppendDocumentElement(dst, strconv.Itoa(i), doc)
-	}
-	dst, err = bsoncore.AppendArrayEnd(dst, idx)
-	if err != nil {
-		return nil, err
-	}
 
-	idx, dst = bsoncore.AppendArrayElementStart(dst, "nsInfo")
-	for i, v := range nsList {
-		doc, err := marshal(struct {
-			Namespace string `bson:"ns"`
-		}{v}, bw.client.bsonOpts, bw.client.registry)
-		if err != nil {
-			return nil, err
-		}
-		dst = bsoncore.AppendDocumentElement(dst, strconv.Itoa(i), doc)
-	}
-	dst, err = bsoncore.AppendArrayEnd(dst, idx)
-	if err != nil {
-		return nil, err
-	}
-
-	if bw.errorsOnly {
 		dst = bsoncore.AppendBooleanElement(dst, "errorsOnly", bw.errorsOnly)
-	}
-	if bw.bypassDocumentValidation != nil && (desc.WireVersion != nil && desc.WireVersion.Includes(4)) {
-		dst = bsoncore.AppendBooleanElement(dst, "bypassDocumentValidation", *bw.bypassDocumentValidation)
-	}
-	if bw.comment != nil {
-		comment, err := marshalValue(bw.comment, bw.client.bsonOpts, bw.client.registry)
-		if err != nil {
-			return nil, err
+		if bw.bypassDocumentValidation != nil && (desc.WireVersion != nil && desc.WireVersion.Includes(4)) {
+			dst = bsoncore.AppendBooleanElement(dst, "bypassDocumentValidation", *bw.bypassDocumentValidation)
 		}
-		dst = bsoncore.AppendValueElement(dst, "comment", comment)
-	}
-	if bw.ordered != nil {
-		dst = bsoncore.AppendBooleanElement(dst, "ordered", *bw.ordered)
-	}
-	if bw.let != nil {
-		let, err := marshal(bw.let, bw.client.bsonOpts, bw.client.registry)
-		if err != nil {
-			return nil, err
+		if bw.comment != nil {
+			comment, err := marshalValue(bw.comment, bw.client.bsonOpts, bw.client.registry)
+			if err != nil {
+				return nil, err
+			}
+			dst = bsoncore.AppendValueElement(dst, "comment", comment)
 		}
-		dst = bsoncore.AppendDocumentElement(dst, "let", let)
+		if bw.ordered != nil {
+			dst = bsoncore.AppendBooleanElement(dst, "ordered", *bw.ordered)
+		}
+		if bw.let != nil {
+			let, err := marshal(bw.let, bw.client.bsonOpts, bw.client.registry)
+			if err != nil {
+				return nil, err
+			}
+			dst = bsoncore.AppendDocumentElement(dst, "let", let)
+		}
+		return dst, nil
 	}
-	return dst, nil
 }
 
 func createClientInsertDoc(
@@ -201,17 +266,22 @@ func createClientInsertDoc(
 	document interface{},
 	bsonOpts *options.BSONOptions,
 	registry *bsoncodec.Registry,
-) (bsoncore.Document, error) {
-	uidx, insertDoc := bsoncore.AppendDocumentStart(nil)
+) (interface{}, bsoncore.Document, error) {
+	uidx, doc := bsoncore.AppendDocumentStart(nil)
 
-	insertDoc = bsoncore.AppendInt32Element(insertDoc, "update", namespace)
+	doc = bsoncore.AppendInt32Element(doc, "insert", namespace)
 	f, err := marshal(document, bsonOpts, registry)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	insertDoc = bsoncore.AppendDocumentElement(insertDoc, "document", f)
-
-	return bsoncore.AppendDocumentEnd(insertDoc, uidx)
+	var id interface{}
+	f, id, err = ensureID(f, primitive.NilObjectID, bsonOpts, registry)
+	if err != nil {
+		return nil, nil, err
+	}
+	doc = bsoncore.AppendDocumentElement(doc, "document", f)
+	doc, err = bsoncore.AppendDocumentEnd(doc, uidx)
+	return id, doc, err
 }
 
 func createClientUpdateDoc(
@@ -242,10 +312,7 @@ func createClientUpdateDoc(
 		return nil, err
 	}
 	doc = bsoncore.AppendValueElement(doc, "updateMods", u)
-
-	if multi {
-		doc = bsoncore.AppendBooleanElement(doc, "multi", multi)
-	}
+	doc = bsoncore.AppendBooleanElement(doc, "multi", multi)
 
 	if arrayFilters != nil {
 		reg := registry
@@ -299,10 +366,7 @@ func createClientDeleteDoc(
 		return nil, err
 	}
 	doc = bsoncore.AppendDocumentElement(doc, "filter", f)
-
-	if multi {
-		doc = bsoncore.AppendBooleanElement(doc, "multi", multi)
-	}
+	doc = bsoncore.AppendBooleanElement(doc, "multi", multi)
 
 	if collation != nil {
 		doc = bsoncore.AppendDocumentElement(doc, "collation", collation.ToDocument())
@@ -318,4 +382,47 @@ func createClientDeleteDoc(
 		doc = bsoncore.AppendValueElement(doc, "hint", hintVal)
 	}
 	return bsoncore.AppendDocumentEnd(doc, didx)
+}
+
+func appendDeleteResult(cur bson.Raw, m map[int64]ClientDeleteResult) error {
+	var res struct {
+		Idx int32
+		N   int32
+	}
+	if err := bson.Unmarshal(cur, &res); err != nil {
+		return err
+	}
+	m[int64(res.Idx)] = ClientDeleteResult{int64(res.N)}
+	return nil
+}
+
+func appendInsertResult(cur bson.Raw, m map[int64]ClientInsertResult, insIdMap map[int]interface{}) error {
+	var res struct {
+		Idx int32
+	}
+	if err := bson.Unmarshal(cur, &res); err != nil {
+		return err
+	}
+	m[int64(res.Idx)] = ClientInsertResult{insIdMap[int(res.Idx)]}
+	return nil
+}
+
+func appendUpdateResult(cur bson.Raw, m map[int64]ClientUpdateResult) error {
+	var res struct {
+		Idx       int32
+		N         int32
+		NModified int32
+		Upserted  struct {
+			Id interface{} `bson:"_id"`
+		}
+	}
+	if err := bson.Unmarshal(cur, &res); err != nil {
+		return err
+	}
+	m[int64(res.Idx)] = ClientUpdateResult{
+		MatchedCount:  int64(res.N),
+		ModifiedCount: int64(res.NModified),
+		UpsertedID:    res.Upserted.Id,
+	}
+	return nil
 }
