@@ -512,40 +512,41 @@ func (c *connection) close() error {
 	return err
 }
 
+// closed returns true if the connection has been closed by the driver.
 func (c *connection) closed() bool {
-	if atomic.LoadInt64(&c.state) == connDisconnected {
-		return true
-	}
+	return atomic.LoadInt64(&c.state) == connDisconnected
+}
 
-	// If the connection has been idle for less than 10 seconds, skip the liveness
-	// check.
+// isAlive returns true if the connection is alive and ready to be used for an
+// operation.
+//
+// Note that the liveness check can be slow (at least 1ms), so isAlive only
+// checks the liveness of the connection if it's been idle for at least 10
+// seconds. For frequently in-use connections, a network error during an
+// operation will be the first indication of a dead connection.
+func (c *connection) isAlive() bool {
+	// If the connection has been idle for less than 10 seconds, skip the
+	// liveness check.
 	idleStart, ok := c.idleStart.Load().(time.Time)
 	if !ok || idleStart.Add(10*time.Second).After(time.Now()) {
-		return false
+		return true
 	}
 
-	// Set a 1ms read deadline and attempt to read 1 byte from the wire. Expect
-	// it to block for 1ms then return a deadline exceeded error. If it returns
-	// any other error, the connection is not usable, so close it and return
-	// true. If it doesn't return an error and actually reads data, the
-	// connection is also not usable, so close it and return true.
+	// Set a 1ms read deadline and attempt to read 1 byte from the connection.
+	// Expect it to block for 1ms then return a deadline exceeded error. If it
+	// returns any other error, the connection is not usable, so return false.
+	// If it doesn't return an error and actually reads data, the connection is
+	// also not usable, so return false.
+	//
+	// Note that we don't need to un-set the read deadline because the "read"
+	// and "write" methods always reset the deadlines.
 	err := c.nc.SetReadDeadline(time.Now().Add(1 * time.Millisecond))
 	if err != nil {
-		_ = c.close()
-		return true
+		return false
 	}
-
 	var b [1]byte
 	_, err = c.nc.Read(b[:])
-	if !errors.Is(err, os.ErrDeadlineExceeded) {
-		_ = c.close()
-		return true
-	}
-
-	// We don't need to un-set the read deadline because the "read" and "write"
-	// methods always reset the deadlines.
-
-	return false
+	return errors.Is(err, os.ErrDeadlineExceeded)
 }
 
 func (c *connection) idleTimeoutExpired() bool {

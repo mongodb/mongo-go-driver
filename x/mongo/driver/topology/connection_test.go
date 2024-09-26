@@ -19,6 +19,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
@@ -427,7 +428,7 @@ func TestConnection(t *testing.T) {
 
 					want := []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A}
 					err := conn.writeWireMessage(context.Background(), want)
-					noerr(t, err)
+					require.NoError(t, err)
 					got := tnc.buf
 					if !cmp.Equal(got, want) {
 						t.Errorf("writeWireMessage did not write the proper bytes. got %v; want %v", got, want)
@@ -607,7 +608,7 @@ func TestConnection(t *testing.T) {
 					conn.cancellationListener = listener
 
 					got, err := conn.readWireMessage(context.Background())
-					noerr(t, err)
+					require.NoError(t, err)
 					if !cmp.Equal(got, want) {
 						t.Errorf("did not read full wire message. got %v; want %v", got, want)
 					}

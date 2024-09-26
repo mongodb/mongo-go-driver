@@ -608,11 +608,11 @@ func TestServer(t *testing.T) {
 			}))
 		s.state = serverConnected
 		err := s.pool.ready()
-		noerr(t, err)
+		require.NoError(t, err)
 		defer s.pool.close(context.Background())
 
 		conn, err := s.Connection(context.Background())
-		noerr(t, err)
+		require.NoError(t, err)
 		if d.lenopened() != 1 {
 			t.Errorf("Should have opened 1 connections, but didn't. got %d; want %d", d.lenopened(), 1)
 		}
@@ -634,7 +634,7 @@ func TestServer(t *testing.T) {
 		<-ch
 		runtime.Gosched()
 		err = conn.Close()
-		noerr(t, err)
+		require.NoError(t, err)
 		wg.Wait()
 		close(cleanup)
 	})
