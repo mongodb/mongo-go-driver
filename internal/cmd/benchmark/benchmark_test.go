@@ -27,8 +27,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
-	"go.mongodb.org/mongo-driver/v2/mongo/options"
-	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
 )
 
 const (
@@ -51,6 +49,11 @@ const (
 	tweetData             = "tweet.json"
 	smallData             = "small_doc.json"
 	largeData             = "large_doc.json"
+
+	// Reusable metric names
+	opsPerSecondMaxName = "ops_per_second_max"
+	opsPerSecondMinName = "ops_per_second_min"
+	opsPerSecondMedName = "ops_per_second_med"
 )
 
 // When running in the CI, we want to fail a benchmark when it errors in the
@@ -61,133 +64,6 @@ var failOnErr bool
 
 func init() {
 	flag.BoolVar(&failOnErr, "failOnErr", false, "fail TestRunAllBenchmarks on err")
-}
-
-// Helpers to interact with MongoDB to run the benchmarks.
-
-// addOptionsToURI appends connection string options to a URI.
-func addOptionsToURI(uri string, opts ...string) string {
-	if !strings.ContainsRune(uri, '?') {
-		if uri[len(uri)-1] != '/' {
-			uri += "/"
-		}
-
-		uri += "?"
-	} else {
-		uri += "&"
-	}
-
-	for _, opt := range opts {
-		uri += opt
-	}
-
-	return uri
-}
-
-// addTLSConfigToURI checks for the environmental variable indicating that the
-// tests are being run on an SSL-enabled server, and if so, returns a new URI
-// with the necessary configuration.
-func addTLSConfigToURI(uri string) string {
-	caFile := os.Getenv("MONGO_GO_DRIVER_CA_FILE")
-	if len(caFile) == 0 {
-		return uri
-	}
-
-	return addOptionsToURI(uri, "ssl=true&sslCertificateAuthorityFile=", caFile)
-}
-
-func getConnString() (*connstring.ConnString, error) {
-	mongodbURI := os.Getenv("MONGODB_URI")
-	if mongodbURI == "" {
-		mongodbURI = "mongodb://localhost:27017"
-	}
-
-	mongodbURI = addTLSConfigToURI(mongodbURI)
-
-	cs, err := connstring.ParseAndValidate(mongodbURI)
-	if err != nil {
-		return nil, err
-	}
-
-	return cs, nil
-}
-
-func getDBName(cs *connstring.ConnString) string {
-	if cs.Database != "" {
-		return cs.Database
-	}
-
-	return fmt.Sprintf("mongo-go-driver-%d", os.Getpid())
-}
-
-func getClientDB() (*mongo.Database, error) {
-	cs, err := getConnString()
-	if err != nil {
-		return nil, err
-	}
-	client, err := mongo.Connect(options.Client().ApplyURI(cs.String()))
-	if err != nil {
-		return nil, err
-	}
-
-	db := client.Database(getDBName(cs))
-	return db, nil
-}
-
-// run the benchmark and return the resulting test result for calculating the
-// H Score.
-func runBenchmark(name string, fn func(*testing.B)) (poplar.Test, error) {
-	test := poplar.Test{
-		ID:        fmt.Sprintf("%d", time.Now().UnixMilli()),
-		CreatedAt: time.Now(),
-	}
-
-	result := testing.Benchmark(fn)
-
-	if result.N == 0 {
-		return test, fmt.Errorf("benchmark failed to run")
-	}
-
-	test.CompletedAt = test.CreatedAt.Add(result.T)
-
-	megaBytesPerOp := (float64(result.Bytes) / 1024 / 1024) / float64(result.NsPerOp()) * 1e9
-
-	test.Metrics = []poplar.TestMetrics{
-		{Name: "total_time_seconds", Type: "SUM", Value: result.T.Seconds()},
-		{Name: "iterations", Type: "SUM", Value: result.N},
-		{Name: "allocated_bytes_per_op", Type: "MEAN", Value: result.AllocedBytesPerOp()},
-		{Name: "allocs_per_op", Type: "MEAN", Value: result.AllocsPerOp()},
-		{Name: "total_mem_allocs", Type: "SUM", Value: result.MemAllocs},
-		{Name: "total_bytes_allocated", Type: "SUM", Value: result.MemBytes},
-		{Name: "ns_per_op", Type: "MEAN", Value: result.NsPerOp()},
-	}
-
-	// Only tests that set bytes in the benchmark will have this metric.
-	if megaBytesPerOp != 0 {
-		test.Metrics = append(test.Metrics,
-			poplar.TestMetrics{Name: "megabytes_per_second", Type: "THROUGHPUT", Value: megaBytesPerOp})
-	}
-
-	if opsPerSecondMin := result.Extra["ops_per_second_min"]; opsPerSecondMin != 0 {
-		test.Metrics = append(test.Metrics,
-			poplar.TestMetrics{Name: "ops_per_second_min", Type: "THROUGHPUT", Value: opsPerSecondMin})
-	}
-
-	if opsPerSecondMax := result.Extra["ops_per_second_max"]; opsPerSecondMax != 0 {
-		test.Metrics = append(test.Metrics,
-			poplar.TestMetrics{Name: "ops_per_second_max", Type: "THROUGHPUT", Value: opsPerSecondMax})
-	}
-
-	if opsPerSecondMed := result.Extra["ops_per_second_med"]; opsPerSecondMed != 0 {
-		test.Metrics = append(test.Metrics,
-			poplar.TestMetrics{Name: "ops_per_second_mex", Type: "THROUGHPUT", Value: opsPerSecondMed})
-	}
-
-	test.Info = poplar.TestInfo{
-		TestName: name,
-	}
-
-	return test, nil
 }
 
 type metrics struct {
@@ -207,11 +83,11 @@ func recordMetrics(b *testing.B, throughput *metrics, fn func(*testing.B)) {
 
 // calculate min, max, and median operations per second and report the metric
 // on the benchmark object.
-func reportTimingStats(b *testing.B, times []float64) {
+func reportThroughputStats(b *testing.B, times []float64) {
 	sort.Float64s(times)
 
-	b.ReportMetric(times[0], "ops_per_second_min")
-	b.ReportMetric(times[len(times)-1], "ops_per_second_max")
+	b.ReportMetric(times[0], opsPerSecondMinName)
+	b.ReportMetric(times[len(times)-1], opsPerSecondMaxName)
 
 	var median float64
 	if len(times)%2 == 0 {
@@ -220,100 +96,74 @@ func reportTimingStats(b *testing.B, times []float64) {
 		median = times[len(times)/2]
 	}
 
-	b.ReportMetric(median, "ops_per_second_med")
+	b.ReportMetric(median, opsPerSecondMedName)
 }
 
 func reportMetrics(b *testing.B, metrics *metrics) {
 	b.Helper()
 
-	reportTimingStats(b, metrics.opsPerSecond)
+	reportThroughputStats(b, metrics.opsPerSecond)
 }
 
 // find the testdata directory. We do this instead of hardcoding a relative path
 // (i.e. ../../../testdata) so that these benchmarks can be run from both the
 // root as a taskfile as well as from the benchmark directory.
-func testdataDir() (string, error) {
-	wd, err := os.Getwd()
-	if err != nil {
-		return "", err
-	}
+func testdataDir(tb testing.TB) string {
+	tb.Helper()
+
+	wd, _ := os.Getwd()
 
 	for {
 		tdPath := filepath.Join(wd, "testdata")
 		if _, err := os.Stat(tdPath); !os.IsNotExist(err) {
-			return tdPath, nil
+			return tdPath
 		}
 
 		wd = filepath.Dir(wd)
 		if filepath.Base(wd) == "mongodb-go-driver" {
-			return "", fmt.Errorf("testdir not found")
+			tb.Fatal("'testdata' directory not found")
 		}
 	}
 }
 
 // where to download the tarball
-func testdataTarFileName() string {
-	tdPath, _ := testdataDir()
-
-	return filepath.Join(tdPath, tarFile)
+func testdataTarFileName(tb testing.TB) string {
+	return filepath.Join(testdataDir(tb), tarFile)
 }
 
 // where to extract the tarball
-func testdataPerfDir() string {
-	tdPath, _ := testdataDir()
-
-	return filepath.Join(tdPath, perfDir)
-}
-
-// check if the testdata exists
-func testdataPerDirExists() bool {
-	_, err := os.Stat(testdataPerfDir())
-
-	return !os.IsNotExist(err)
+func testdataPerfDir(tb testing.TB) string {
+	return filepath.Join(testdataDir(tb), perfDir)
 }
 
 // download the tarball of test data to testdata/perf
-func downloadTestDataTgz() error {
+func downloadTestDataTgz(tb testing.TB) {
 	resp, err := http.Get(testdataURL)
-	if err != nil {
-		return fmt.Errorf("failed to get response from %q", testdataURL)
-	}
+	require.NoError(tb, err, "failed to get response from %q", testdataURL)
 
 	defer resp.Body.Close()
 
-	out, err := os.Create(testdataTarFileName())
-	if err != nil {
-		return fmt.Errorf("failed to open testdata perf dir: %w", err)
-	}
+	out, err := os.Create(testdataTarFileName(tb))
+	require.NoError(tb, err, "failed to open testdata perf dir")
 
 	defer out.Close()
 
-	if _, err := io.Copy(out, resp.Body); err != nil {
-		return fmt.Errorf("failed to copy response body to testdata perf dir: %w", err)
-	}
-
-	return nil
+	_, err = io.Copy(out, resp.Body)
+	require.NoError(tb, err, "failed to copy response body to testdata perf dir")
 }
 
 // extract the tarball to the perf dir.
-func extractTestDataTgz() error {
-	tarPath := testdataTarFileName()
-
-	defer func() {
-		_ = os.Remove(tarPath)
-	}()
+func extractTestDataTgz(tb testing.TB) {
+	tarPath := testdataTarFileName(tb)
+	defer func() { _ = os.Remove(tarPath) }()
 
 	file, err := os.Open(tarPath)
-	if err != nil {
-		return fmt.Errorf("failed to open tar file: %w", err)
-	}
+	require.NoError(tb, err, "failed to open tar file")
 
 	defer file.Close()
 
 	gzipReader, err := gzip.NewReader(file)
-	if err != nil {
-		return fmt.Errorf("failed to create a gzip reader: %w", err)
-	}
+	require.NoError(tb, err, "failed to create a gzip reader")
 
 	defer gzipReader.Close()
 
@@ -324,32 +174,24 @@ func extractTestDataTgz() error {
 			break
 		}
 
-		if err != nil {
-			return fmt.Errorf("failed to advance tar entry: %w", err)
-		}
+		require.NoError(tb, err, "failed to advance tar entry")
 
-		targetPath := filepath.Join(testdataPerfDir(), strings.TrimPrefix(header.Name, "data/"))
+		targetPath := filepath.Join(testdataPerfDir(tb), strings.TrimPrefix(header.Name, "data/"))
 
 		switch header.Typeflag {
 		case tar.TypeDir:
-			if err := os.MkdirAll(targetPath, 0755); err != nil {
-				return fmt.Errorf("failed to extract dir from tgz: %w", err)
-			}
+			err := os.MkdirAll(targetPath, 0755)
+			require.NoError(tb, err, "failed to extract dir from tgz")
 		case tar.TypeReg:
 			outFile, err := os.Create(targetPath)
-			if err != nil {
-				return fmt.Errorf("failed to create path to extract file from tgz: %w", err)
-			}
+			require.NoError(tb, err, "failed to create path to extract file from tgz")
 
-			if _, err := io.Copy(outFile, tarReader); err != nil {
-				return fmt.Errorf("failed to extract file from tgz: %w", err)
-			}
+			_, err = io.Copy(outFile, tarReader)
+			require.NoError(tb, err, "failed to extract file from tgz")
 
 			outFile.Close()
 		}
 	}
-
-	return nil
 }
 
 func loadSourceDocument(b *testing.B, canonicalOnly bool, pathParts ...string) bson.D {
@@ -359,16 +201,17 @@ func loadSourceDocument(b *testing.B, canonicalOnly bool, pathParts ...string) b
 	require.NoError(b, err, "failed to load source document")
 
 	var doc bson.D
-	err = bson.UnmarshalExtJSON(data, canonicalOnly, &doc)
 
+	err = bson.UnmarshalExtJSON(data, canonicalOnly, &doc)
 	require.NoError(b, err, "failed to unmarshal source document")
+
 	require.NotEmpty(b, doc)
 
 	return doc
 }
 
 func benchmarkBSONEncoding(b *testing.B, canonicalOnly bool, source string) {
-	doc := loadSourceDocument(b, canonicalOnly, testdataPerfDir(), bsonDataDir, source)
+	doc := loadSourceDocument(b, canonicalOnly, testdataPerfDir(b), bsonDataDir, source)
 
 	b.ResetTimer()
 
@@ -377,8 +220,8 @@ func benchmarkBSONEncoding(b *testing.B, canonicalOnly bool, source string) {
 	for i := 0; i < b.N; i++ {
 		recordMetrics(b, metrics, func(b *testing.B) {
 			out, err := bson.Marshal(doc)
-
 			require.NoError(b, err, "failed to encode flat bson data")
+
 			require.NotEmpty(b, out)
 		})
 	}
@@ -387,7 +230,7 @@ func benchmarkBSONEncoding(b *testing.B, canonicalOnly bool, source string) {
 }
 
 func benchmarkBSONDecoding(b *testing.B, canonicalOnly bool, source string) {
-	doc := loadSourceDocument(b, canonicalOnly, testdataPerfDir(), bsonDataDir, source)
+	doc := loadSourceDocument(b, canonicalOnly, testdataPerfDir(b), bsonDataDir, source)
 
 	raw, err := bson.Marshal(doc)
 	require.NoError(b, err, "failed to encode bson data")
@@ -399,8 +242,8 @@ func benchmarkBSONDecoding(b *testing.B, canonicalOnly bool, source string) {
 	for i := 0; i < b.N; i++ {
 		recordMetrics(b, metrics, func(b *testing.B) {
 			var out bson.D
-			err := bson.Unmarshal(raw, &out)
 
+			err := bson.Unmarshal(raw, &out)
 			require.NoError(b, err, "failed to encode flat bson data")
 		})
 	}
@@ -447,15 +290,10 @@ func BenchmarkBSONFullDocumentDecoding(b *testing.B) {
 // Test driver performance sending a command to the database and reading a
 // response.
 func BenchmarkSingleRunCommand(b *testing.B) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	db, err := getClientDB()
-	require.NoError(b, err)
+	coll, teardown := setupBench(b)
+	defer teardown(b)
 
 	b.SetBytes(1024 * 1024) // 1 MB per operation
-
-	defer func() { _ = db.Client().Disconnect(ctx) }()
 
 	cmd := bson.D{{Key: legacyHelloLowercase, Value: true}}
 
@@ -468,7 +306,7 @@ func BenchmarkSingleRunCommand(b *testing.B) {
 			b.Helper()
 
 			var doc bson.D
-			err := db.RunCommand(ctx, cmd).Decode(&doc)
+			err := coll.Database().RunCommand(context.Background(), cmd).Decode(&doc)
 			require.NoError(b, err)
 
 			// read the document and then throw it away to prevent
@@ -481,21 +319,46 @@ func BenchmarkSingleRunCommand(b *testing.B) {
 	reportMetrics(b, metrics)
 }
 
+func setupBench(b *testing.B) (*mongo.Collection, func(b *testing.B)) {
+	b.Helper()
+
+	client, err := mongo.Connect()
+	require.NoError(b, err, "failed to connect to server")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+
+	err = client.Ping(ctx, nil)
+	require.NoError(b, err, "failed to ping the server")
+
+	ctx, cancel = context.WithCancel(context.Background())
+	defer cancel()
+
+	db := client.Database(perftestDB)
+
+	err = db.Drop(ctx)
+	require.NoError(b, err, "failed to drop %q database", perftestDB)
+
+	err = db.Collection(corpusColl).Drop(ctx)
+	require.NoError(b, err, "failed to drop %q", corpusColl)
+
+	err = db.CreateCollection(ctx, corpusColl)
+	require.NoError(b, err, "failed to create %q collection", corpusColl)
+
+	coll := db.Collection(corpusColl)
+
+	return coll, func(b *testing.B) {
+		err := client.Disconnect(context.Background())
+		require.NoError(b, err, "failed to disconnect client")
+	}
+}
+
 // Test driver performance sending an indexed query to the database and reading
 // a single document in response.
 func BenchmarkSingleFindOneByID(b *testing.B) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	coll, teardown := setupBench(b)
+	defer teardown(b)
 
-	db, err := getClientDB()
-	require.NoError(b, err, "failed to get client")
-
-	db = db.Client().Database("perftest")
-
-	err = db.Drop(ctx)
-	require.NoError(b, err, "failed to drop 'perftest' database")
-
-	doc := loadSourceDocument(b, true, testdataPerfDir(), singleAndMultiDataDir, tweetData)
+	doc := loadSourceDocument(b, true, testdataPerfDir(b), singleAndMultiDataDir, tweetData)
 
 	// Insert 10_000 documents into the corpus.
 	const docCount = 10_000
@@ -507,9 +370,7 @@ func BenchmarkSingleFindOneByID(b *testing.B) {
 		docsToInsert[i] = append(docsToInsert[i], doc...)
 	}
 
-	coll := db.Collection(corpusColl)
-
-	_, err = coll.InsertMany(ctx, docsToInsert)
+	_, err := coll.InsertMany(context.Background(), docsToInsert)
 	require.NoError(b, err, "failed to insert corpus")
 
 	metrics := new(metrics)
@@ -518,9 +379,7 @@ func BenchmarkSingleFindOneByID(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		recordMetrics(b, metrics, func(b *testing.B) {
-			b.Helper()
-
-			err := coll.FindOne(ctx, bson.D{{Key: "_id", Value: i % docCount}}).Decode(&bson.D{})
+			err := coll.FindOne(context.Background(), bson.D{{Key: "_id", Value: i % docCount}}).Decode(&bson.D{})
 			require.NoError(b, err, "failed to find one")
 		})
 	}
@@ -531,34 +390,17 @@ func BenchmarkSingleFindOneByID(b *testing.B) {
 func benchmarkSingleInsert(b *testing.B, source string) {
 	b.Helper()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	coll, teardown := setupBench(b)
+	defer teardown(b)
 
-	db, err := getClientDB()
-	require.NoError(b, err, "failed to get client")
-
-	db = db.Client().Database(perftestDB)
-
-	err = db.Drop(ctx)
-	require.NoError(b, err, "failed to drop %q database", perftestDB)
-
-	doc := loadSourceDocument(b, true, testdataPerfDir(), singleAndMultiDataDir, smallData)
-	require.NoError(b, err, "failed to load documents")
-
-	err = db.Collection(corpusColl).Drop(ctx)
-	require.NoError(b, err, "failed to drop %q", corpusColl)
-
-	err = db.CreateCollection(ctx, corpusColl)
-	require.NoError(b, err, "failed to create corpus collection")
-
-	coll := db.Collection(corpusColl)
+	doc := loadSourceDocument(b, true, testdataPerfDir(b), singleAndMultiDataDir, smallData)
 
 	metrics := new(metrics)
 
 	for i := 0; i < b.N; i++ {
 		recordMetrics(b, metrics, func(b *testing.B) {
 			b.Helper()
-			_, err = coll.InsertOne(ctx, doc)
+			_, err := coll.InsertOne(context.Background(), doc)
 			require.NoError(b, err, "failed to insert small doc")
 		})
 	}
@@ -578,47 +420,30 @@ func BenchmarkLargeDocInsertOne(b *testing.B) {
 
 // Test driver performance retrieving multiple documents from a query.
 func BenchmarkMultiFindMany(b *testing.B) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	coll, teardown := setupBench(b)
+	defer teardown(b)
 
-	db, err := getClientDB()
-	require.NoError(b, err, "failed to get client")
-
-	db = db.Client().Database(perftestDB)
-
-	err = db.Drop(ctx)
-	require.NoError(b, err, "failed to drop %q database", perftestDB)
-
-	doc := loadSourceDocument(b, true, testdataPerfDir(), singleAndMultiDataDir, tweetData)
-	require.NoError(b, err, "failed to load documents")
-
-	err = db.Collection(corpusColl).Drop(ctx)
-	require.NoError(b, err, "failed to drop %q", corpusColl)
-
-	err = db.CreateCollection(ctx, corpusColl)
-	require.NoError(b, err, "failed to create corpus collection")
-
-	coll := db.Collection(corpusColl)
+	doc := loadSourceDocument(b, true, testdataPerfDir(b), singleAndMultiDataDir, tweetData)
 
 	docsToInsert := make([]bson.D, b.N)
 	for i := range docsToInsert {
 		docsToInsert[i] = doc
 	}
 
-	_, err = coll.InsertMany(ctx, docsToInsert)
+	_, err := coll.InsertMany(context.Background(), docsToInsert)
 	require.NoError(b, err, "failed to insert docs")
 
 	b.ResetTimer()
 
-	cursor, err := coll.Find(ctx, bson.D{})
+	cursor, err := coll.Find(context.Background(), bson.D{})
 	require.NoError(b, err, "failed to find data")
 
-	defer cursor.Close(ctx)
+	defer cursor.Close(context.Background())
 
 	metrics := new(metrics)
 
 	counter := 0
-	for cursor.Next(ctx) {
+	for cursor.Next(context.Background()) {
 		recordMetrics(b, metrics, func(b *testing.B) {
 			err = cursor.Err()
 			require.NoError(b, err, "failed to advance cursor")
@@ -635,7 +460,7 @@ func BenchmarkMultiFindMany(b *testing.B) {
 		b.Fatalf("problem iterating cursors")
 	}
 
-	err = cursor.Close(ctx)
+	err = cursor.Close(context.Background())
 	require.NoError(b, err, "failed to close cursor")
 
 	reportMetrics(b, metrics)
@@ -644,27 +469,10 @@ func BenchmarkMultiFindMany(b *testing.B) {
 func benchmarkMultiInsert(b *testing.B, source string) {
 	b.Helper()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	coll, teardown := setupBench(b)
+	defer teardown(b)
 
-	db, err := getClientDB()
-	require.NoError(b, err, "failed to get client")
-
-	db = db.Client().Database(perftestDB)
-
-	err = db.Drop(ctx)
-	require.NoError(b, err, "failed to drop %q database", perftestDB)
-
-	doc := loadSourceDocument(b, true, testdataPerfDir(), singleAndMultiDataDir, source)
-	require.NoError(b, err, "failed to load documents")
-
-	err = db.Collection(corpusColl).Drop(ctx)
-	require.NoError(b, err, "failed to drop %q", corpusColl)
-
-	err = db.CreateCollection(ctx, corpusColl)
-	require.NoError(b, err, "failed to create corpus collection")
-
-	coll := db.Collection(corpusColl)
+	doc := loadSourceDocument(b, true, testdataPerfDir(b), singleAndMultiDataDir, source)
 
 	docsToInsert := make([]bson.D, b.N)
 	for i := range docsToInsert {
@@ -673,7 +481,7 @@ func benchmarkMultiInsert(b *testing.B, source string) {
 
 	b.ResetTimer()
 
-	res, err := coll.InsertMany(ctx, docsToInsert)
+	res, err := coll.InsertMany(context.Background(), docsToInsert)
 	require.NoError(b, err, "failed to insert many")
 
 	require.Len(b, res.InsertedIDs, b.N)
@@ -689,16 +497,67 @@ func BenchmarkMultiInsertLargeDocument(b *testing.B) {
 	benchmarkMultiInsert(b, largeData)
 }
 
+func runBenchmark(name string, fn func(*testing.B)) (poplar.Test, error) {
+	test := poplar.Test{
+		ID:        fmt.Sprintf("%d", time.Now().UnixMilli()),
+		CreatedAt: time.Now(),
+	}
+
+	result := testing.Benchmark(fn)
+
+	if result.N == 0 {
+		return test, fmt.Errorf("benchmark failed to run")
+	}
+
+	test.CompletedAt = test.CreatedAt.Add(result.T)
+
+	test.Metrics = []poplar.TestMetrics{
+		{Name: "total_time_seconds", Type: "SUM", Value: result.T.Seconds()},
+		{Name: "iterations", Type: "SUM", Value: result.N},
+		{Name: "allocated_bytes_per_op", Type: "MEAN", Value: result.AllocedBytesPerOp()},
+		{Name: "allocs_per_op", Type: "MEAN", Value: result.AllocsPerOp()},
+		{Name: "total_mem_allocs", Type: "SUM", Value: result.MemAllocs},
+		{Name: "total_bytes_allocated", Type: "SUM", Value: result.MemBytes},
+		{Name: "ns_per_op", Type: "MEAN", Value: result.NsPerOp()},
+	}
+
+	// Only tests that set bytes in the benchmark will have this metric.
+	if result.Bytes != 0 {
+		megaBytesPerOp := (float64(result.Bytes) / 1024 / 1024) / float64(result.NsPerOp()) * 1e9
+
+		test.Metrics = append(test.Metrics,
+			poplar.TestMetrics{Name: "megabytes_per_second", Type: "THROUGHPUT", Value: megaBytesPerOp})
+	}
+
+	if opsPerSecondMin := result.Extra[opsPerSecondMinName]; opsPerSecondMin != 0 {
+		test.Metrics = append(test.Metrics,
+			poplar.TestMetrics{Name: opsPerSecondMinName, Type: "THROUGHPUT", Value: opsPerSecondMin})
+	}
+
+	if opsPerSecondMax := result.Extra[opsPerSecondMaxName]; opsPerSecondMax != 0 {
+		test.Metrics = append(test.Metrics,
+			poplar.TestMetrics{Name: opsPerSecondMaxName, Type: "THROUGHPUT", Value: opsPerSecondMax})
+	}
+
+	if opsPerSecondMed := result.Extra[opsPerSecondMedName]; opsPerSecondMed != 0 {
+		test.Metrics = append(test.Metrics,
+			poplar.TestMetrics{Name: opsPerSecondMedName, Type: "THROUGHPUT", Value: opsPerSecondMed})
+	}
+
+	test.Info = poplar.TestInfo{
+		TestName: name,
+	}
+
+	return test, nil
+}
+
 func TestRunAllBenchmarks(t *testing.T) {
 	flag.Parse()
 
 	// Download and extract the data if it doesn't exist.
-	if !testdataPerDirExists() {
-		err := downloadTestDataTgz()
-		require.NoError(t, err, "failed to download tarball")
-
-		err = extractTestDataTgz()
-		require.NoError(t, err, "failed to extract tarball")
+	if _, err := os.Stat(testdataPerfDir(t)); os.IsNotExist(err) {
+		downloadTestDataTgz(t)
+		extractTestDataTgz(t)
 	}
 
 	// Run the cases and accumulate the results.
@@ -743,11 +602,9 @@ func TestRunAllBenchmarks(t *testing.T) {
 
 	evgOutput = append(evgOutput, []byte("\n")...)
 
-	tdPath, _ := testdataDir()
-
 	// Ignore gosec warning "Expect WriteFile permissions to be 0600 or less" for
 	// benchmark result file.
 	/* #nosec G306 */
-	err = os.WriteFile(filepath.Join(filepath.Dir(tdPath), defaultOutputFileName), evgOutput, 0644)
+	err = os.WriteFile(filepath.Join(filepath.Dir(testdataDir(t)), defaultOutputFileName), evgOutput, 0644)
 	require.NoError(t, err, "failed to write results")
 }
