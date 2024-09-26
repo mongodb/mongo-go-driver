@@ -137,33 +137,33 @@ func testdataPerfDir(tb testing.TB) string {
 }
 
 // download the tarball of test data to testdata/perf
-func downloadTestDataTgz(tb testing.TB) {
+func downloadTestDataTgz(t *testing.T) {
 	resp, err := http.Get(testdataURL)
-	require.NoError(tb, err, "failed to get response from %q", testdataURL)
+	require.NoError(t, err, "failed to get response from %q", testdataURL)
 
 	defer resp.Body.Close()
 
-	out, err := os.Create(testdataTarFileName(tb))
-	require.NoError(tb, err, "failed to open testdata perf dir")
+	out, err := os.Create(testdataTarFileName(t))
+	require.NoError(t, err, "failed to open testdata perf dir")
 
 	defer out.Close()
 
 	_, err = io.Copy(out, resp.Body)
-	require.NoError(tb, err, "failed to copy response body to testdata perf dir")
+	require.NoError(t, err, "failed to copy response body to testdata perf dir")
 }
 
 // extract the tarball to the perf dir.
-func extractTestDataTgz(tb testing.TB) {
-	tarPath := testdataTarFileName(tb)
+func extractTestDataTgz(t *testing.T) {
+	tarPath := testdataTarFileName(t)
 	defer func() { _ = os.Remove(tarPath) }()
 
 	file, err := os.Open(tarPath)
-	require.NoError(tb, err, "failed to open tar file")
+	require.NoError(t, err, "failed to open tar file")
 
 	defer file.Close()
 
 	gzipReader, err := gzip.NewReader(file)
-	require.NoError(tb, err, "failed to create a gzip reader")
+	require.NoError(t, err, "failed to create a gzip reader")
 
 	defer gzipReader.Close()
 
@@ -174,20 +174,20 @@ func extractTestDataTgz(tb testing.TB) {
 			break
 		}
 
-		require.NoError(tb, err, "failed to advance tar entry")
+		require.NoError(t, err, "failed to advance tar entry")
 
-		targetPath := filepath.Join(testdataPerfDir(tb), strings.TrimPrefix(header.Name, "data/"))
+		targetPath := filepath.Join(testdataPerfDir(t), strings.TrimPrefix(header.Name, "data/"))
 
 		switch header.Typeflag {
 		case tar.TypeDir:
 			err := os.MkdirAll(targetPath, 0755)
-			require.NoError(tb, err, "failed to extract dir from tgz")
+			require.NoError(t, err, "failed to extract dir from tgz")
 		case tar.TypeReg:
 			outFile, err := os.Create(targetPath)
-			require.NoError(tb, err, "failed to create path to extract file from tgz")
+			require.NoError(t, err, "failed to create path to extract file from tgz")
 
 			_, err = io.Copy(outFile, tarReader)
-			require.NoError(tb, err, "failed to extract file from tgz")
+			require.NoError(t, err, "failed to extract file from tgz")
 
 			outFile.Close()
 		}
@@ -292,8 +292,6 @@ func BenchmarkBSONFullDocumentDecoding(b *testing.B) {
 func BenchmarkSingleRunCommand(b *testing.B) {
 	coll, teardown := setupBench(b)
 	defer teardown(b)
-
-	b.SetBytes(1024 * 1024) // 1 MB per operation
 
 	cmd := bson.D{{Key: legacyHelloLowercase, Value: true}}
 
