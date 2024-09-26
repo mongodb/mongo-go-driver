@@ -212,7 +212,10 @@ func executeClientBulkWrite(ctx context.Context, operation *operation) (*operati
 			opts.SetVerboseResults(val.Boolean())
 		case "writeConcern":
 			var wc writeConcern
-			bson.Unmarshal(val.Value, &wc)
+			err := bson.Unmarshal(val.Value, &wc)
+			if err != nil {
+				return nil, err
+			}
 			c, err := wc.toWriteConcernOption()
 			if err != nil {
 				return nil, err

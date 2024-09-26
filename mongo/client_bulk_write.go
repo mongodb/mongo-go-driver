@@ -46,15 +46,14 @@ func (bw *clientBulkWrite) execute(ctx context.Context) error {
 	getNsIndex := func(namespace string) int {
 		if v, ok := nsMap[namespace]; ok {
 			return v
-		} else {
-			nsIdx := len(nsList)
-			nsMap[namespace] = nsIdx
-			nsList = append(nsList, namespace)
-			return nsIdx
 		}
+		nsIdx := len(nsList)
+		nsMap[namespace] = nsIdx
+		nsList = append(nsList, namespace)
+		return nsIdx
 	}
 	resMap := make([]interface{}, len(bw.models))
-	insIdMap := make(map[int]interface{})
+	insIDMap := make(map[int]interface{})
 	for i, v := range bw.models {
 		var doc bsoncore.Document
 		var err error
@@ -71,7 +70,7 @@ func (bw *clientBulkWrite) execute(ctx context.Context) error {
 			if err != nil {
 				break
 			}
-			insIdMap[i] = id
+			insIDMap[i] = id
 		case *ClientUpdateOneModel:
 			nsIdx = getNsIndex(model.Namespace)
 			if bw.result.UpdateResults == nil {
@@ -203,7 +202,7 @@ func (bw *clientBulkWrite) execute(ctx context.Context) error {
 				return err
 			}
 		case map[int64]ClientInsertResult:
-			if err = appendInsertResult(cur, res, insIdMap); err != nil {
+			if err = appendInsertResult(cur, res, insIDMap); err != nil {
 				return err
 			}
 		case map[int64]ClientUpdateResult:
@@ -413,7 +412,7 @@ func appendUpdateResult(cur bson.Raw, m map[int64]ClientUpdateResult) error {
 		N         int32
 		NModified int32
 		Upserted  struct {
-			Id interface{} `bson:"_id"`
+			ID interface{} `bson:"_id"`
 		}
 	}
 	if err := bson.Unmarshal(cur, &res); err != nil {
@@ -422,7 +421,7 @@ func appendUpdateResult(cur bson.Raw, m map[int64]ClientUpdateResult) error {
 	m[int64(res.Idx)] = ClientUpdateResult{
 		MatchedCount:  int64(res.N),
 		ModifiedCount: int64(res.NModified),
-		UpsertedID:    res.Upserted.Id,
+		UpsertedID:    res.Upserted.ID,
 	}
 	return nil
 }

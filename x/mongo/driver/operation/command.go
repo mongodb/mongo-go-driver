@@ -54,6 +54,7 @@ func NewCommand(command bsoncore.Document) *Command {
 	}
 }
 
+// NewCommandFn constructs and returns a new Command.
 func NewCommandFn(commandFn func([]byte, description.SelectedServer) ([]byte, error)) *Command {
 	return &Command{
 		commandFn: commandFn,

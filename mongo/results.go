@@ -14,7 +14,7 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 )
 
-// BulkWriteResult is the result type returned by a client-level BulkWrite operation.
+// ClientBulkWriteResult is the result type returned by a client-level BulkWrite operation.
 type ClientBulkWriteResult struct {
 	// The number of documents inserted.
 	InsertedCount int64

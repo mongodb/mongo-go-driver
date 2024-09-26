@@ -15,6 +15,7 @@ type ClientWriteModels struct {
 	models []interface{}
 }
 
+// AppendInsertOne appends ClientInsertOneModels.
 func (m *ClientWriteModels) AppendInsertOne(models ...*ClientInsertOneModel) *ClientWriteModels {
 	if m == nil {
 		m = &ClientWriteModels{}
@@ -25,6 +26,7 @@ func (m *ClientWriteModels) AppendInsertOne(models ...*ClientInsertOneModel) *Cl
 	return m
 }
 
+// AppendUpdateOne appends ClientUpdateOneModels.
 func (m *ClientWriteModels) AppendUpdateOne(models ...*ClientUpdateOneModel) *ClientWriteModels {
 	if m == nil {
 		m = &ClientWriteModels{}
@@ -35,6 +37,7 @@ func (m *ClientWriteModels) AppendUpdateOne(models ...*ClientUpdateOneModel) *Cl
 	return m
 }
 
+// AppendUpdateMany appends ClientUpdateManyModels.
 func (m *ClientWriteModels) AppendUpdateMany(models ...*ClientUpdateManyModel) *ClientWriteModels {
 	if m == nil {
 		m = &ClientWriteModels{}
@@ -45,6 +48,7 @@ func (m *ClientWriteModels) AppendUpdateMany(models ...*ClientUpdateManyModel) *
 	return m
 }
 
+// AppendReplaceOne appends ClientReplaceOneModels.
 func (m *ClientWriteModels) AppendReplaceOne(models ...*ClientReplaceOneModel) *ClientWriteModels {
 	if m == nil {
 		m = &ClientWriteModels{}
@@ -55,6 +59,7 @@ func (m *ClientWriteModels) AppendReplaceOne(models ...*ClientReplaceOneModel) *
 	return m
 }
 
+// AppendDeleteOne appends ClientDeleteOneModels.
 func (m *ClientWriteModels) AppendDeleteOne(models ...*ClientDeleteOneModel) *ClientWriteModels {
 	if m == nil {
 		m = &ClientWriteModels{}
@@ -65,6 +70,7 @@ func (m *ClientWriteModels) AppendDeleteOne(models ...*ClientDeleteOneModel) *Cl
 	return m
 }
 
+// AppendDeleteMany appends ClientDeleteManyModels.
 func (m *ClientWriteModels) AppendDeleteMany(models ...*ClientDeleteManyModel) *ClientWriteModels {
 	if m == nil {
 		m = &ClientWriteModels{}

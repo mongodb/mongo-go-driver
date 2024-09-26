@@ -638,7 +638,7 @@ func (bwe ClientBulkWriteException) Error() string {
 	if len(bwe.WriteErrors) > 0 {
 		errs := make([]error, 0, len(bwe.WriteErrors))
 		for _, v := range bwe.WriteErrors {
-			errs = append(errs, &v)
+			errs = append(errs, v)
 		}
 		causes = append(causes, "write errors: "+joinBatchErrors(errs))
 	}
