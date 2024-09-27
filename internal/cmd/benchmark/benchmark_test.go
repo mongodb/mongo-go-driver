@@ -111,7 +111,8 @@ func reportMetrics(b *testing.B, metrics *metrics) {
 func testdataDir(tb testing.TB) string {
 	tb.Helper()
 
-	wd, _ := os.Getwd()
+	wd, err := os.Getwd()
+	require.NoError(tb, err, "failed to source working directory")
 
 	for {
 		tdPath := filepath.Join(wd, "testdata")
@@ -310,6 +311,7 @@ func BenchmarkSingleRunCommand(b *testing.B) {
 			// read the document and then throw it away to prevent
 			out, err := bson.Marshal(doc)
 			require.NoError(b, err)
+
 			require.NotEmpty(b, out)
 		})
 	}
