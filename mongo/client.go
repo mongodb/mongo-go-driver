@@ -876,12 +876,16 @@ func (c *Client) BulkWrite(ctx context.Context, models *ClientWriteModels,
 		return nil, err
 	}
 
+	transactionRunning := sess.TransactionRunning()
 	wc := c.writeConcern
-	if bwo.WriteConcern != nil {
-		wc = bwo.WriteConcern
-	}
-	if sess.TransactionRunning() {
+	if transactionRunning {
 		wc = nil
+	}
+	if bwo.WriteConcern != nil {
+		if transactionRunning {
+			return nil, errors.New("cannot set write concern after starting a transaction")
+		}
+		wc = bwo.WriteConcern
 	}
 	if !writeconcern.AckWrite(wc) {
 		sess = nil

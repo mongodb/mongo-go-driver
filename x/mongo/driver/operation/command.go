@@ -23,6 +23,7 @@ import (
 
 // Command is used to run a generic operation.
 type Command struct {
+	name           string
 	authenticator  driver.Authenticator
 	commandFn      func([]byte, description.SelectedServer) ([]byte, error)
 	batches        *driver.Batches
@@ -123,6 +124,7 @@ func (c *Command) Execute(ctx context.Context) error {
 		Timeout:        c.timeout,
 		Logger:         c.logger,
 		Authenticator:  c.authenticator,
+		Name:           c.name,
 	}.Execute(ctx)
 }
 
@@ -263,5 +265,15 @@ func (c *Command) Authenticator(authenticator driver.Authenticator) *Command {
 	}
 
 	c.authenticator = authenticator
+	return c
+}
+
+// Name sets the name for this operation.
+func (c *Command) Name(name string) *Command {
+	if c == nil {
+		c = new(Command)
+	}
+
+	c.name = name
 	return c
 }

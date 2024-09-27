@@ -8,6 +8,7 @@ package mongo
 
 import (
 	"context"
+	"errors"
 	"strconv"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -40,6 +41,9 @@ type clientBulkWrite struct {
 }
 
 func (bw *clientBulkWrite) execute(ctx context.Context) error {
+	if len(bw.models) == 0 {
+		return errors.New("empty write models")
+	}
 	docs := make([]bsoncore.Document, len(bw.models))
 	nsMap := make(map[string]int)
 	var nsList []string
@@ -170,12 +174,21 @@ func (bw *clientBulkWrite) execute(ctx context.Context) error {
 		Database("admin").
 		Deployment(bw.client.deployment).Crypt(bw.client.cryptFLE).
 		ServerAPI(bw.client.serverAPI).Timeout(bw.client.timeout).
-		Logger(bw.client.logger).Authenticator(bw.client.authenticator)
-	err := op.Execute(ctx)
-	if err != nil {
-		return err
+		Logger(bw.client.logger).Authenticator(bw.client.authenticator).Name("bulkWrite")
+	opErr := op.Execute(ctx)
+	var wcErrs []*WriteConcernError
+	if opErr != nil {
+		if errors.Is(opErr, driver.ErrUnacknowledgedWrite) {
+			return nil
+		}
+		var writeErr driver.WriteCommandError
+		if errors.As(opErr, &writeErr) {
+			wcErr := convertDriverWriteConcernError(writeErr.WriteConcernError)
+			wcErrs = append(wcErrs, wcErr)
+		}
 	}
 	var res struct {
+		Ok     bool
 		Cursor struct {
 			FirstBatch []bson.Raw
 		}
@@ -184,10 +197,12 @@ func (bw *clientBulkWrite) execute(ctx context.Context) error {
 		NMatched  int32
 		NModified int32
 		NUpserted int32
+		NErrors   int32
+		Code      int32
+		Errmsg    string
 	}
 	rawRes := op.Result()
-	err = bson.Unmarshal(rawRes, &res)
-	if err != nil {
+	if err := bson.Unmarshal(rawRes, &res); err != nil {
 		return err
 	}
 	bw.result.DeletedCount = int64(res.NDeleted)
@@ -195,20 +210,33 @@ func (bw *clientBulkWrite) execute(ctx context.Context) error {
 	bw.result.MatchedCount = int64(res.NMatched)
 	bw.result.ModifiedCount = int64(res.NModified)
 	bw.result.UpsertedCount = int64(res.NUpserted)
+	errors := make(map[int64]WriteError)
 	for i, cur := range res.Cursor.FirstBatch {
 		switch res := resMap[i].(type) {
 		case map[int64]ClientDeleteResult:
-			if err = appendDeleteResult(cur, res); err != nil {
+			if err := appendDeleteResult(cur, res, errors); err != nil {
 				return err
 			}
 		case map[int64]ClientInsertResult:
-			if err = appendInsertResult(cur, res, insIDMap); err != nil {
+			if err := appendInsertResult(cur, res, errors, insIDMap); err != nil {
 				return err
 			}
 		case map[int64]ClientUpdateResult:
-			if err = appendUpdateResult(cur, res); err != nil {
+			if err := appendUpdateResult(cur, res, errors); err != nil {
 				return err
 			}
+		}
+	}
+	if !res.Ok || res.NErrors > 0 || opErr != nil {
+		return ClientBulkWriteException{
+			TopLevelError: &WriteError{
+				Code:    int(res.Code),
+				Message: res.Errmsg,
+				Raw:     bson.Raw(rawRes),
+			},
+			WriteConcernErrors: wcErrs,
+			WriteErrors:        errors,
+			PartialResult:      &bw.result,
 		}
 	}
 	return nil
@@ -383,45 +411,75 @@ func createClientDeleteDoc(
 	return bsoncore.AppendDocumentEnd(doc, didx)
 }
 
-func appendDeleteResult(cur bson.Raw, m map[int64]ClientDeleteResult) error {
+func appendDeleteResult(cur bson.Raw, m map[int64]ClientDeleteResult, e map[int64]WriteError) error {
 	var res struct {
-		Idx int32
-		N   int32
+		Ok     bool
+		Idx    int32
+		N      int32
+		Code   int32
+		Errmsg string
 	}
 	if err := bson.Unmarshal(cur, &res); err != nil {
 		return err
 	}
-	m[int64(res.Idx)] = ClientDeleteResult{int64(res.N)}
+	if res.Ok {
+		m[int64(res.Idx)] = ClientDeleteResult{int64(res.N)}
+	} else {
+		e[int64(res.Idx)] = WriteError{
+			Code:    int(res.Code),
+			Message: res.Errmsg,
+		}
+	}
 	return nil
 }
 
-func appendInsertResult(cur bson.Raw, m map[int64]ClientInsertResult, insIdMap map[int]interface{}) error {
+func appendInsertResult(cur bson.Raw, m map[int64]ClientInsertResult, e map[int64]WriteError, insIDMap map[int]interface{}) error {
 	var res struct {
-		Idx int32
+		Ok     bool
+		Idx    int32
+		Code   int32
+		Errmsg string
 	}
 	if err := bson.Unmarshal(cur, &res); err != nil {
 		return err
 	}
-	m[int64(res.Idx)] = ClientInsertResult{insIdMap[int(res.Idx)]}
+	if res.Ok {
+		m[int64(res.Idx)] = ClientInsertResult{insIDMap[int(res.Idx)]}
+	} else {
+		e[int64(res.Idx)] = WriteError{
+			Code:    int(res.Code),
+			Message: res.Errmsg,
+		}
+	}
 	return nil
 }
 
-func appendUpdateResult(cur bson.Raw, m map[int64]ClientUpdateResult) error {
+func appendUpdateResult(cur bson.Raw, m map[int64]ClientUpdateResult, e map[int64]WriteError) error {
 	var res struct {
+		Ok        bool
 		Idx       int32
 		N         int32
 		NModified int32
 		Upserted  struct {
 			ID interface{} `bson:"_id"`
 		}
+		Code   int32
+		Errmsg string
 	}
 	if err := bson.Unmarshal(cur, &res); err != nil {
 		return err
 	}
-	m[int64(res.Idx)] = ClientUpdateResult{
-		MatchedCount:  int64(res.N),
-		ModifiedCount: int64(res.NModified),
-		UpsertedID:    res.Upserted.ID,
+	if res.Ok {
+		m[int64(res.Idx)] = ClientUpdateResult{
+			MatchedCount:  int64(res.N),
+			ModifiedCount: int64(res.NModified),
+			UpsertedID:    res.Upserted.ID,
+		}
+	} else {
+		e[int64(res.Idx)] = WriteError{
+			Code:    int(res.Code),
+			Message: res.Errmsg,
+		}
 	}
 	return nil
 }

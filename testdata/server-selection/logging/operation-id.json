@@ -345,7 +345,7 @@
           }
         },
         {
-          "name": "bulkWrite",
+          "name": "clientBulkWrite",
           "object": "client",
           "arguments": {
             "models": [

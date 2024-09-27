@@ -611,10 +611,10 @@ func (bwe BulkWriteException) serverError() {}
 
 // ClientBulkWriteException is the error type returned by ClientBulkWrite operations.
 type ClientBulkWriteException struct {
-	TopLevelError *error
+	TopLevelError *WriteError
 
 	// The write concern errors that occurred.
-	WriteConcernErrors []WriteConcernError
+	WriteConcernErrors []*WriteConcernError
 
 	// The write errors that occurred during individual operation execution.
 	WriteErrors map[int64]WriteError
@@ -626,12 +626,12 @@ type ClientBulkWriteException struct {
 func (bwe ClientBulkWriteException) Error() string {
 	causes := make([]string, 0, 4)
 	if bwe.TopLevelError != nil {
-		causes = append(causes, "top level error: "+(*bwe.TopLevelError).Error())
+		causes = append(causes, "top level error: "+bwe.TopLevelError.Error())
 	}
 	if len(bwe.WriteConcernErrors) > 0 {
 		errs := make([]error, len(bwe.WriteConcernErrors))
 		for i := 0; i < len(bwe.WriteConcernErrors); i++ {
-			errs[i] = &bwe.WriteConcernErrors[i]
+			errs[i] = bwe.WriteConcernErrors[i]
 		}
 		causes = append(causes, "write concern errors: "+joinBatchErrors(errs))
 	}
@@ -643,7 +643,7 @@ func (bwe ClientBulkWriteException) Error() string {
 		causes = append(causes, "write errors: "+joinBatchErrors(errs))
 	}
 	if bwe.PartialResult != nil {
-		causes = append(causes, fmt.Sprintf("result: %v", bwe.PartialResult))
+		causes = append(causes, fmt.Sprintf("result: %v", *bwe.PartialResult))
 	}
 
 	message := "bulk write exception: "
@@ -652,9 +652,6 @@ func (bwe ClientBulkWriteException) Error() string {
 	}
 	return "bulk write exception: " + strings.Join(causes, ", ")
 }
-
-// serverError implements the ServerError interface.
-func (bwe ClientBulkWriteException) serverError() {}
 
 // returnResult is used to determine if a function calling processWriteError should return
 // the result or return nil. Since the processWriteError function is used by many different
