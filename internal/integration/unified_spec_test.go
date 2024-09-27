@@ -24,6 +24,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/bsonutil"
+	"go.mongodb.org/mongo-driver/v2/internal/failpoint"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/internal/integtest"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
@@ -472,7 +473,7 @@ func executeTestRunnerOperation(mt *mtest.T, testCase *testCase, op *operation, 
 	case "targetedFailPoint":
 		fpDoc := op.Arguments.Lookup("failPoint")
 
-		var fp mtest.FailPoint
+		var fp failpoint.FailPoint
 		if err := bson.Unmarshal(fpDoc.Document(), &fp); err != nil {
 			return fmt.Errorf("Unmarshal error: %w", err)
 		}

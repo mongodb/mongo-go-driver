@@ -16,6 +16,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/failpoint"
 	"go.mongodb.org/mongo-driver/v2/internal/handshake"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -90,14 +91,14 @@ func TestDatabase(t *testing.T) {
 		})
 		failpointOpts := mtest.NewOptions().MinServerVersion("4.0").Topologies(mtest.ReplicaSet)
 		mt.RunOpts("gets result and error", failpointOpts, func(mt *mtest.T) {
-			mt.SetFailPoint(mtest.FailPoint{
+			mt.SetFailPoint(failpoint.FailPoint{
 				ConfigureFailPoint: "failCommand",
-				Mode: mtest.FailPointMode{
+				Mode: failpoint.Mode{
 					Times: 1,
 				},
-				Data: mtest.FailPointData{
+				Data: failpoint.Data{
 					FailCommands: []string{"insert"},
-					WriteConcernError: &mtest.WriteConcernErrorData{
+					WriteConcernError: &failpoint.WriteConcernError{
 						Code: 100,
 					},
 				},

@@ -16,6 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/eventtest"
+	"go.mongodb.org/mongo-driver/v2/internal/failpoint"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
@@ -46,12 +47,12 @@ func TestRetryableReadsProse(t *testing.T) {
 		assert.Nil(mt, err, "InsertOne error: %v", err)
 
 		// Force Find to block for 1 second once.
-		mt.SetFailPoint(mtest.FailPoint{
+		mt.SetFailPoint(failpoint.FailPoint{
 			ConfigureFailPoint: "failCommand",
-			Mode: mtest.FailPointMode{
+			Mode: failpoint.Mode{
 				Times: 1,
 			},
-			Data: mtest.FailPointData{
+			Data: failpoint.Data{
 				FailCommands:    []string{"find"},
 				ErrorCode:       91,
 				BlockConnection: true,
@@ -144,12 +145,12 @@ func TestRetryableReadsProse(t *testing.T) {
 					"test cluster must have at least %v mongos hosts", tc.hostCount)
 
 				// Configure the failpoint options for each mongos.
-				failPoint := mtest.FailPoint{
+				failPoint := failpoint.FailPoint{
 					ConfigureFailPoint: "failCommand",
-					Mode: mtest.FailPointMode{
+					Mode: failpoint.Mode{
 						Times: 1,
 					},
-					Data: mtest.FailPointData{
+					Data: failpoint.Data{
 						FailCommands:    []string{"find"},
 						ErrorCode:       tc.failpointErrorCode,
 						CloseConnection: false,

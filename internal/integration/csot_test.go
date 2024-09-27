@@ -16,6 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/eventtest"
+	"go.mongodb.org/mongo-driver/v2/internal/failpoint"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -351,10 +352,10 @@ func TestCSOT_maxTimeMS(t *testing.T) {
 					require.NoError(mt, err)
 				}
 
-				mt.SetFailPoint(mtest.FailPoint{
+				mt.SetFailPoint(failpoint.FailPoint{
 					ConfigureFailPoint: "failCommand",
-					Mode:               "alwaysOn",
-					Data: mtest.FailPointData{
+					Mode:               failpoint.ModeAlwaysOn,
+					Data: failpoint.Data{
 						FailCommands:    []string{tc.commandName},
 						BlockConnection: true,
 						// Note that some operations (currently Find and
@@ -424,12 +425,12 @@ func TestCSOT_errors(t *testing.T) {
 		_, err := mt.Coll.InsertOne(context.Background(), bson.D{})
 		require.NoError(mt, err, "InsertOne error")
 
-		mt.SetFailPoint(mtest.FailPoint{
+		mt.SetFailPoint(failpoint.FailPoint{
 			ConfigureFailPoint: "failCommand",
-			Mode: mtest.FailPointMode{
+			Mode: failpoint.Mode{
 				Times: 1,
 			},
-			Data: mtest.FailPointData{
+			Data: failpoint.Data{
 				FailCommands: []string{"find"},
 				ErrorCode:    50, // MaxTimeMSExceeded
 			},
@@ -454,12 +455,12 @@ func TestCSOT_errors(t *testing.T) {
 		_, err := mt.Coll.InsertOne(context.Background(), bson.D{})
 		require.NoError(mt, err, "InsertOne error")
 
-		mt.SetFailPoint(mtest.FailPoint{
+		mt.SetFailPoint(failpoint.FailPoint{
 			ConfigureFailPoint: "failCommand",
-			Mode: mtest.FailPointMode{
+			Mode: failpoint.Mode{
 				Times: 1,
 			},
-			Data: mtest.FailPointData{
+			Data: failpoint.Data{
 				FailCommands:    []string{"find"},
 				BlockConnection: true,
 				BlockTimeMS:     500,
@@ -488,12 +489,12 @@ func TestCSOT_errors(t *testing.T) {
 		_, err := mt.Coll.InsertOne(context.Background(), bson.D{})
 		require.NoError(mt, err, "InsertOne error")
 
-		mt.SetFailPoint(mtest.FailPoint{
+		mt.SetFailPoint(failpoint.FailPoint{
 			ConfigureFailPoint: "failCommand",
-			Mode: mtest.FailPointMode{
+			Mode: failpoint.Mode{
 				Times: 1,
 			},
-			Data: mtest.FailPointData{
+			Data: failpoint.Data{
 				FailCommands:    []string{"find"},
 				BlockConnection: true,
 				BlockTimeMS:     100,
