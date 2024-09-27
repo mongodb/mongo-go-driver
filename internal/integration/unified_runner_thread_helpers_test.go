@@ -13,7 +13,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
-	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/integration/mtest"
 )
 
 // Helper functions for the operations in the unified spec test runner that require creating and synchronizing

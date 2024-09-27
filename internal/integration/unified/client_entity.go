@@ -17,7 +17,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/handshake"
-	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/internal/integtest"
 	"go.mongodb.org/mongo-driver/v2/internal/logger"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
@@ -25,6 +24,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/integration/mtest"
 )
 
 // There are no automated tests for truncation. Given that, setting the

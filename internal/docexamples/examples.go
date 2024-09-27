@@ -18,12 +18,12 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
-	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/integration/mtest"
 )
 
 func requireCursorLength(t *testing.T, cursor *mongo.Cursor, length int) {

@@ -16,8 +16,8 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
-	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/integration/mtest"
 )
 
 // Helper functions to compare BSON values and command monitoring expectations.
