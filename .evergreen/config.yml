@@ -2348,6 +2348,7 @@ buildvariants:
     run_on:
       - rhel8.7-small
     expansions:
+      # Keep this in sync with go version used in etc/golangci-lint.sh
       GO_DIST: "/opt/golang/go1.22"
     tasks:
       - name: ".static-analysis"
