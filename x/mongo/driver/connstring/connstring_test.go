@@ -90,6 +90,28 @@ func TestAuthSource(t *testing.T) {
 			}
 		})
 	}
+
+	tests = []struct {
+		s        string
+		expected string
+		err      bool
+	}{
+		{s: "authMechanismProperties=ENVIRONMENT:gcp,TOKEN_RESOURCE:mongodb://test-cluster", expected: "$external"},
+	}
+
+	for _, test := range tests {
+		s := fmt.Sprintf("mongodb://test.mongodb.net/?authMechanism=MONGODB-OIDC&/%s", test.s)
+		t.Run(s, func(t *testing.T) {
+			cs, err := connstring.ParseAndValidate(s)
+			if test.err {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, test.expected, cs.AuthSource)
+			}
+		})
+	}
+
 }
 
 func TestConnect(t *testing.T) {

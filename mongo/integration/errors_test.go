@@ -398,7 +398,7 @@ func TestErrors(t *testing.T) {
 		})
 	})
 	mt.Run("error helpers", func(mt *mtest.T) {
-		//IsDuplicateKeyError
+		// IsDuplicateKeyError
 		mt.Run("IsDuplicateKeyError", func(mt *mtest.T) {
 			testCases := []struct {
 				name   string
@@ -477,7 +477,7 @@ func TestErrors(t *testing.T) {
 				})
 			}
 		})
-		//IsNetworkError
+		// IsNetworkError
 		mt.Run("IsNetworkError", func(mt *mtest.T) {
 			const networkLabel = "NetworkError"
 			const otherLabel = "other"
@@ -498,7 +498,7 @@ func TestErrors(t *testing.T) {
 				})
 			}
 		})
-		//IsTimeout
+		// IsTimeout
 		mt.Run("IsTimeout", func(mt *mtest.T) {
 			testCases := []struct {
 				name   string

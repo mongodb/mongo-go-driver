@@ -1318,7 +1318,10 @@ func addClientCertFromBytes(cfg *tls.Config, data []byte, keyPasswd string) (str
 					}
 				}
 				var encoded bytes.Buffer
-				pem.Encode(&encoded, &pem.Block{Type: currentBlock.Type, Bytes: keyBytes})
+				err = pem.Encode(&encoded, &pem.Block{Type: currentBlock.Type, Bytes: keyBytes})
+				if err != nil {
+					return "", fmt.Errorf("error encoding private key as PEM: %w", err)
+				}
 				keyBlock := encoded.Bytes()
 				keyBlocks = append(keyBlocks, keyBlock)
 				start = len(data) - len(remaining)

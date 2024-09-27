@@ -201,7 +201,7 @@ func runCMAPTest(t *testing.T, testFileName string) {
 					return msc, nil
 				})
 			}),
-			WithHandshaker(func(h Handshaker) Handshaker {
+			WithHandshaker(func(Handshaker) Handshaker {
 				return operation.NewHello()
 			}),
 		}
