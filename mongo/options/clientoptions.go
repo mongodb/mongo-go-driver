@@ -547,7 +547,7 @@ func (c *ClientOptionsBuilder) Validate() error {
 	}
 
 	if args.HeartbeatInterval != nil && *args.HeartbeatInterval < (500*time.Millisecond) {
-		return fmt.Errorf("HeartbeatFrequencyMS cannot be less than minHeartbeatFrequencyMS (500ms), got HeartbeatFrequencyMS=%q",
+		return fmt.Errorf("heartbeatFrequencyMS must exceed the minimum heartbeat interval of 500ms, got heartbeatFrequencyMS=%q",
 			*args.HeartbeatInterval)
 	}
 
@@ -760,7 +760,8 @@ func (c *ClientOptionsBuilder) SetDirect(b bool) *ClientOptionsBuilder {
 }
 
 // SetHeartbeatInterval specifies the amount of time to wait between periodic background server checks. This can also be
-// set through the "heartbeatIntervalMS" URI option (e.g. "heartbeatIntervalMS=10000"). The default is 10 seconds.
+// set through the "heartbeatFrequencyMS" URI option (e.g. "heartbeatFrequencyMS=10000"). The default is 10 seconds.
+// The minimum is 500ms.
 func (c *ClientOptionsBuilder) SetHeartbeatInterval(d time.Duration) *ClientOptionsBuilder {
 	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
 		opts.HeartbeatInterval = &d
