@@ -8,17 +8,20 @@ package mongo
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/ptrutil"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/topology"
 )
 
 const (
@@ -78,12 +81,18 @@ func TestCollection(t *testing.T) {
 		}
 		compareColls(t, expected, coll)
 	})
-	t.Run("replace topology error", func(t *testing.T) {
+	t.Run("replaceErrors for disconnected topology", func(t *testing.T) {
 		coll := setupColl("foo")
 		doc := bson.D{}
 		update := bson.D{{"$update", bson.D{{"x", 1}}}}
 
-		_, err := coll.InsertOne(bgCtx, doc)
+		topo, ok := coll.client.deployment.(*topology.Topology)
+		require.True(t, ok, "client deployment is not a topology")
+
+		err := topo.Disconnect(context.Background())
+		require.NoError(t, err)
+
+		_, err = coll.InsertOne(bgCtx, doc)
 		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
 
 		_, err = coll.InsertMany(bgCtx, []interface{}{doc})

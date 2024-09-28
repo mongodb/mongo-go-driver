@@ -19,6 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/failpoint"
 	"go.mongodb.org/mongo-driver/v2/internal/handshake"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
@@ -118,12 +119,12 @@ func TestSDAMProse(t *testing.T) {
 			}
 
 			// Force hello requests to block for 500ms and wait until a server's average RTT goes over 250ms.
-			mt.SetFailPoint(mtest.FailPoint{
+			mt.SetFailPoint(failpoint.FailPoint{
 				ConfigureFailPoint: "failCommand",
-				Mode: mtest.FailPointMode{
+				Mode: failpoint.Mode{
 					Times: 1000,
 				},
-				Data: mtest.FailPointData{
+				Data: failpoint.Data{
 					FailCommands:    []string{handshake.LegacyHello, "hello"},
 					BlockConnection: true,
 					BlockTimeMS:     500,
@@ -152,12 +153,12 @@ func TestSDAMProse(t *testing.T) {
 
 	mt.RunOpts("client waits between failed Hellos", mtest.NewOptions().MinServerVersion("4.9").Topologies(mtest.Single), func(mt *mtest.T) {
 		// Force hello requests to fail 5 times.
-		mt.SetFailPoint(mtest.FailPoint{
+		mt.SetFailPoint(failpoint.FailPoint{
 			ConfigureFailPoint: "failCommand",
-			Mode: mtest.FailPointMode{
+			Mode: failpoint.Mode{
 				Times: 5,
 			},
-			Data: mtest.FailPointData{
+			Data: failpoint.Data{
 				FailCommands: []string{handshake.LegacyHello, "hello"},
 				ErrorCode:    1234,
 				AppName:      "SDAMMinHeartbeatFrequencyTest",

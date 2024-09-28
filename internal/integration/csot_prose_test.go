@@ -9,6 +9,7 @@ package integration
 import (
 	"bytes"
 	"context"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -16,6 +17,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/failpoint"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/internal/integtest"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
@@ -25,6 +27,13 @@ import (
 )
 
 func TestCSOTProse(t *testing.T) {
+	// Skip CSOT tests when SKIP_CSOT_TESTS=true. In Evergreen, we typically set
+	// that environment variable on Windows and macOS because the CSOT spec
+	// tests are unreliable on those hosts.
+	if os.Getenv("SKIP_CSOT_TESTS") == "true" {
+		t.Skip("Skipping CSOT test because SKIP_CSOT_TESTS=true")
+	}
+
 	mt := mtest.New(t, mtest.NewOptions().CreateClient(false))
 
 	mt.RunOpts("1. multi-batch writes", mtest.NewOptions().MinServerVersion("4.4").
@@ -35,12 +44,12 @@ func TestCSOTProse(t *testing.T) {
 		assert.Nil(mt, err, "Drop error: %v", err)
 
 		// Configure a fail point to block both inserts of the multi-write for 1010ms (2020ms total).
-		mt.SetFailPoint(mtest.FailPoint{
+		mt.SetFailPoint(failpoint.FailPoint{
 			ConfigureFailPoint: "failCommand",
-			Mode: mtest.FailPointMode{
+			Mode: failpoint.Mode{
 				Times: 2,
 			},
-			Data: mtest.FailPointData{
+			Data: failpoint.Data{
 				FailCommands:    []string{"insert"},
 				BlockConnection: true,
 				BlockTimeMS:     1010,
@@ -191,12 +200,12 @@ func TestCSOTProse_GridFS(t *testing.T) {
 				SetHosts([]string{failpointHost}))
 
 			// Set a blocking "insert" fail point.
-			mt.SetFailPoint(mtest.FailPoint{
+			mt.SetFailPoint(failpoint.FailPoint{
 				ConfigureFailPoint: "failCommand",
-				Mode: mtest.FailPointMode{
+				Mode: failpoint.Mode{
 					Times: 1,
 				},
-				Data: mtest.FailPointData{
+				Data: failpoint.Data{
 					FailCommands:    []string{"insert"},
 					BlockConnection: true,
 					BlockTimeMS:     1250,
@@ -251,12 +260,12 @@ func TestCSOTProse_GridFS(t *testing.T) {
 				SetHosts([]string{failpointHost}))
 
 			// Set a blocking "delete" fail point.
-			mt.SetFailPoint(mtest.FailPoint{
+			mt.SetFailPoint(failpoint.FailPoint{
 				ConfigureFailPoint: "failCommand",
-				Mode: mtest.FailPointMode{
+				Mode: failpoint.Mode{
 					Times: 1,
 				},
-				Data: mtest.FailPointData{
+				Data: failpoint.Data{
 					FailCommands:    []string{"delete"},
 					BlockConnection: true,
 					BlockTimeMS:     1250,
@@ -367,12 +376,12 @@ func TestCSOTProse_GridFS(t *testing.T) {
 			SetHosts([]string{failpointHost}))
 
 		// Set a blocking "insert" fail point.
-		mt.SetFailPoint(mtest.FailPoint{
+		mt.SetFailPoint(failpoint.FailPoint{
 			ConfigureFailPoint: "failCommand",
-			Mode: mtest.FailPointMode{
+			Mode: failpoint.Mode{
 				Times: 1,
 			},
-			Data: mtest.FailPointData{
+			Data: failpoint.Data{
 				FailCommands:    []string{"insert"},
 				BlockConnection: true,
 				BlockTimeMS:     200,

@@ -60,7 +60,7 @@ var (
 )
 
 const (
-	// maximum BSON object size when client side encryption is enabled
+	// maximum BSON object size when in-use encryption is enabled
 	cryptMaxBsonObjectSize uint32 = 2097152
 	// minimum wire version necessary to use automatic encryption
 	cryptMinWireVersion int32 = 8
@@ -279,7 +279,7 @@ type Operation struct {
 	// no events will be reported.
 	CommandMonitor *event.CommandMonitor
 
-	// Crypt specifies a Crypt object to use for automatic client side encryption and decryption.
+	// Crypt specifies a Crypt object to use for automatic in-use encryption and decryption.
 	Crypt Crypt
 
 	// ServerAPI specifies options used to configure the API version sent to the server.
@@ -706,7 +706,7 @@ func (op Operation) Execute(ctx context.Context) error {
 			targetBatchSize := desc.MaxDocumentSize
 			maxDocSize := desc.MaxDocumentSize
 			if op.shouldEncrypt() {
-				// For client-side encryption, we want the batch to be split at 2 MiB instead of 16MiB.
+				// For in-use encryption, we want the batch to be split at 2 MiB instead of 16MiB.
 				// If there's only one document in the batch, it can be up to 16MiB, so we set target batch size to
 				// 2MiB but max document size to 16MiB. This will allow the AdvanceBatch call to create a batch
 				// with a single large document.
@@ -1126,7 +1126,7 @@ func (op Operation) readWireMessage(ctx context.Context, conn *mnet.Connection) 
 		return res, err
 	}
 
-	// If there is no error, automatically attempt to decrypt all results if client side encryption is enabled.
+	// If there is no error, automatically attempt to decrypt all results if in-use encryption is enabled.
 	if op.Crypt != nil {
 		res, err = op.Crypt.Decrypt(ctx, res)
 	}

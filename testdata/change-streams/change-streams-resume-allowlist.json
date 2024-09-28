@@ -6,7 +6,7 @@
       "minServerVersion": "3.6",
       "topologies": [
         "replicaset",
-        "sharded-replicaset",
+        "sharded",
         "load-balanced"
       ],
       "serverless": "forbid"

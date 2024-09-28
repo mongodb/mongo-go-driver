@@ -19,6 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/csfle"
+	"go.mongodb.org/mongo-driver/v2/internal/failpoint"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -46,44 +47,6 @@ var (
 const (
 	namespaceExistsErrCode int32 = 48
 )
-
-// FailPoint is a representation of a server fail point.
-// See https://github.com/mongodb/specifications/tree/HEAD/source/transactions/tests#server-fail-point
-// for more information regarding fail points.
-type FailPoint struct {
-	ConfigureFailPoint string `bson:"configureFailPoint"`
-	// Mode should be a string, FailPointMode, or map[string]interface{}
-	Mode interface{}   `bson:"mode"`
-	Data FailPointData `bson:"data"`
-}
-
-// FailPointMode is a representation of the Failpoint.Mode field.
-type FailPointMode struct {
-	Times int32 `bson:"times"`
-	Skip  int32 `bson:"skip"`
-}
-
-// FailPointData is a representation of the FailPoint.Data field.
-type FailPointData struct {
-	FailCommands                  []string               `bson:"failCommands,omitempty"`
-	CloseConnection               bool                   `bson:"closeConnection,omitempty"`
-	ErrorCode                     int32                  `bson:"errorCode,omitempty"`
-	FailBeforeCommitExceptionCode int32                  `bson:"failBeforeCommitExceptionCode,omitempty"`
-	ErrorLabels                   *[]string              `bson:"errorLabels,omitempty"`
-	WriteConcernError             *WriteConcernErrorData `bson:"writeConcernError,omitempty"`
-	BlockConnection               bool                   `bson:"blockConnection,omitempty"`
-	BlockTimeMS                   int32                  `bson:"blockTimeMS,omitempty"`
-	AppName                       string                 `bson:"appName,omitempty"`
-}
-
-// WriteConcernErrorData is a representation of the FailPoint.Data.WriteConcern field.
-type WriteConcernErrorData struct {
-	Code        int32     `bson:"code"`
-	Name        string    `bson:"codeName"`
-	Errmsg      string    `bson:"errmsg"`
-	ErrorLabels *[]string `bson:"errorLabels,omitempty"`
-	ErrInfo     bson.Raw  `bson:"errInfo,omitempty"`
-}
 
 // T is a wrapper around testing.T.
 type T struct {
@@ -536,7 +499,7 @@ func (t *T) ClearCollections() {
 
 // SetFailPoint sets a fail point for the client associated with T. Commands to create the failpoint will appear
 // in command monitoring channels. The fail point will automatically be disabled after this test has run.
-func (t *T) SetFailPoint(fp FailPoint) {
+func (t *T) SetFailPoint(fp failpoint.FailPoint) {
 	// ensure mode fields are int32
 	if modeMap, ok := fp.Mode.(map[string]interface{}); ok {
 		var key string
@@ -585,9 +548,9 @@ func (t *T) TrackFailPoint(fpName string) {
 func (t *T) ClearFailPoints() {
 	db := t.Client.Database("admin")
 	for _, fp := range t.failPointNames {
-		cmd := bson.D{
-			{"configureFailPoint", fp},
-			{"mode", "off"},
+		cmd := failpoint.FailPoint{
+			ConfigureFailPoint: fp,
+			Mode:               failpoint.ModeOff,
 		}
 		err := db.RunCommand(context.Background(), cmd).Err()
 		if err != nil {

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 
+#
 # Set up test environment and write .test.env file.
 set -eu
 
@@ -21,8 +21,7 @@ case ${1:-} in
         if [ "Windows_NT" = "${OS:-}" ]; then
             MONGODB_URI="mongodb://${PRINCIPAL/@/%40}:${SASL_PASS}@${SASL_HOST}:${SASL_PORT}/kerberos?authMechanism=GSSAPI"
         else
-            echo "${KEYTAB_BASE64}" > /tmp/drivers.keytab.base64
-            base64 --decode /tmp/drivers.keytab.base64 > .evergreen/drivers.keytab
+            echo ${KEYTAB_BASE64} | base64 -d > ${PROJECT_DIRECTORY}/.evergreen/drivers.keytab
             mkdir -p ~/.krb5
             cat .evergreen/krb5.config | tee -a ~/.krb5/config
             kinit -k -t .evergreen/drivers.keytab -p "${PRINCIPAL}"
@@ -105,9 +104,10 @@ CRYPT_SHARED_LIB_PATH="${CRYPT_SHARED_LIB_PATH:-}"
 PKG_CONFIG_PATH="${PKG_CONFIG_PATH:-}"
 LD_LIBRARY_PATH="${LD_LIBRARY_PATH:-}"
 MACOS_LIBRARY_PATH="${DYLD_FALLBACK_LIBRARY_PATH:-}"
+SKIP_CSOT_TESTS=${SKIP_CSOT_TESTS}
 EOT
 
-if [ -n "${MONGODB_URI:-}" ]; then 
+if [ -n "${MONGODB_URI:-}" ]; then
     echo "MONGODB_URI=\"${MONGODB_URI}\"" >> .test.env
 fi
 

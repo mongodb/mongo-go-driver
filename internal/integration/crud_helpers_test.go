@@ -93,7 +93,7 @@ func isExpectedKillAllSessionsError(err error) bool {
 }
 
 // kill all open sessions on the server. This function uses mt.GlobalClient() because killAllSessions is not allowed
-// for clients configured with specific options (e.g. client side encryption).
+// for clients configured with specific options (e.g. in-use encryption).
 func killSessions(mt *mtest.T) {
 	mt.Helper()
 

@@ -1,5 +1,5 @@
 ============================
-Client Side Encryption Tests
+In-Use Encryption Tests
 ============================
 
 .. contents::

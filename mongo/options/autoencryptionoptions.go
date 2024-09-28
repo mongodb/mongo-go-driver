@@ -23,7 +23,7 @@ import (
 // If automatic encryption fails on an operation, use a MongoClient configured with bypassAutoEncryption=true and use
 // ClientEncryption.encrypt() to manually encrypt values.
 //
-// Enabling Client Side Encryption reduces the maximum document and message size (using a maxBsonObjectSize of 2MiB and
+// Enabling In-Use Encryption reduces the maximum document and message size (using a maxBsonObjectSize of 2MiB and
 // maxMessageSizeBytes of 6MB) and may have a negative performance impact.
 type AutoEncryptionOptions struct {
 	KeyVaultClientOptions Lister[ClientOptions]
@@ -105,8 +105,8 @@ func (a *AutoEncryptionOptionsBuilder) SetKmsProviders(providers map[string]map[
 }
 
 // SetSchemaMap specifies a map from namespace to local schema document. Schemas supplied in the schemaMap only apply
-// to configuring automatic encryption for client side encryption. Other validation rules in the JSON schema will not
-// be enforced by the driver and will result in an error.
+// to configuring automatic encryption for Client-Side Field Level Encryption. Other validation rules in the JSON schema
+// will not be enforced by the driver and will result in an error.
 //
 // Supplying a schemaMap provides more security than relying on JSON Schemas obtained from the server. It protects
 // against a malicious server advertising a false JSON Schema, which could trick the client into sending unencrypted

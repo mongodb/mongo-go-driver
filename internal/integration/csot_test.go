@@ -9,6 +9,7 @@ package integration
 import (
 	"context"
 	"errors"
+	"os"
 	"testing"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/eventtest"
+	"go.mongodb.org/mongo-driver/v2/internal/failpoint"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -26,6 +28,13 @@ import (
 
 // Test automatic "maxTimeMS" appending and connection closing behavior.
 func TestCSOT_maxTimeMS(t *testing.T) {
+	// Skip CSOT tests when SKIP_CSOT_TESTS=true. In Evergreen, we typically set
+	// that environment variable on Windows and macOS because the CSOT spec
+	// tests are unreliable on those hosts.
+	if os.Getenv("SKIP_CSOT_TESTS") == "true" {
+		t.Skip("Skipping CSOT test because SKIP_CSOT_TESTS=true")
+	}
+
 	mt := mtest.New(t, mtest.NewOptions().CreateClient(false))
 
 	testCases := []struct {
@@ -351,10 +360,10 @@ func TestCSOT_maxTimeMS(t *testing.T) {
 					require.NoError(mt, err)
 				}
 
-				mt.SetFailPoint(mtest.FailPoint{
+				mt.SetFailPoint(failpoint.FailPoint{
 					ConfigureFailPoint: "failCommand",
-					Mode:               "alwaysOn",
-					Data: mtest.FailPointData{
+					Mode:               failpoint.ModeAlwaysOn,
+					Data: failpoint.Data{
 						FailCommands:    []string{tc.commandName},
 						BlockConnection: true,
 						// Note that some operations (currently Find and
@@ -409,6 +418,13 @@ func TestCSOT_maxTimeMS(t *testing.T) {
 }
 
 func TestCSOT_errors(t *testing.T) {
+	// Skip CSOT tests when SKIP_CSOT_TESTS=true. In Evergreen, we typically set
+	// that environment variable on Windows and macOS because the CSOT spec
+	// tests are unreliable on those hosts.
+	if os.Getenv("SKIP_CSOT_TESTS") == "true" {
+		t.Skip("Skipping CSOT test because SKIP_CSOT_TESTS=true")
+	}
+
 	mt := mtest.New(t, mtest.NewOptions().
 		CreateClient(false).
 		// Blocking failpoints don't work on pre-4.2 and sharded clusters.
@@ -424,12 +440,12 @@ func TestCSOT_errors(t *testing.T) {
 		_, err := mt.Coll.InsertOne(context.Background(), bson.D{})
 		require.NoError(mt, err, "InsertOne error")
 
-		mt.SetFailPoint(mtest.FailPoint{
+		mt.SetFailPoint(failpoint.FailPoint{
 			ConfigureFailPoint: "failCommand",
-			Mode: mtest.FailPointMode{
+			Mode: failpoint.Mode{
 				Times: 1,
 			},
-			Data: mtest.FailPointData{
+			Data: failpoint.Data{
 				FailCommands: []string{"find"},
 				ErrorCode:    50, // MaxTimeMSExceeded
 			},
@@ -454,12 +470,12 @@ func TestCSOT_errors(t *testing.T) {
 		_, err := mt.Coll.InsertOne(context.Background(), bson.D{})
 		require.NoError(mt, err, "InsertOne error")
 
-		mt.SetFailPoint(mtest.FailPoint{
+		mt.SetFailPoint(failpoint.FailPoint{
 			ConfigureFailPoint: "failCommand",
-			Mode: mtest.FailPointMode{
+			Mode: failpoint.Mode{
 				Times: 1,
 			},
-			Data: mtest.FailPointData{
+			Data: failpoint.Data{
 				FailCommands:    []string{"find"},
 				BlockConnection: true,
 				BlockTimeMS:     500,
@@ -488,12 +504,12 @@ func TestCSOT_errors(t *testing.T) {
 		_, err := mt.Coll.InsertOne(context.Background(), bson.D{})
 		require.NoError(mt, err, "InsertOne error")
 
-		mt.SetFailPoint(mtest.FailPoint{
+		mt.SetFailPoint(failpoint.FailPoint{
 			ConfigureFailPoint: "failCommand",
-			Mode: mtest.FailPointMode{
+			Mode: failpoint.Mode{
 				Times: 1,
 			},
-			Data: mtest.FailPointData{
+			Data: failpoint.Data{
 				FailCommands:    []string{"find"},
 				BlockConnection: true,
 				BlockTimeMS:     100,

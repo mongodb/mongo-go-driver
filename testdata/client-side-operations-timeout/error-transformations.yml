@@ -7,7 +7,7 @@ runOnRequirements:
   - minServerVersion: "4.0"
     topologies: ["replicaset"]
   - minServerVersion: "4.2"
-    topologies: ["replicaset", "sharded"]
+    topologies: ["sharded"]
 
 createEntities:
   - client:
@@ -16,7 +16,7 @@ createEntities:
   - client:
       id: &client client
       uriOptions:
-        timeoutMS: 50
+        timeoutMS: 250
       useMultipleMongoses: false
       observeEvents:
         - commandStartedEvent

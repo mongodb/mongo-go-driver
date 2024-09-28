@@ -1,0 +1,24 @@
+{
+  "_id": {
+    "$binary": {
+      "base64": "YWFhYWFhYWFhYWFhYWFhYQ==",
+      "subType": "04"
+    }
+  },
+  "keyMaterial": {
+    "$binary": {
+      "base64": "ACR7Hm33dDOAAD7l2ubZhSpSUWK8BkALUY+qW3UgBAEcTV8sBwZnaAWnzDsmrX55dgmYHWfynDlJogC/e33u6pbhyXvFTs5ow9OLCuCWBJ39T/Ivm3kMaZJybkejY0V+uc4UEdHvVVz/SbitVnzs2WXdMGmo1/HmDRrxGYZjewFslquv8wtUHF5pyB+QDlQBd/al9M444/8bJZFbMSmtIg==",
+      "subType": "00"
+    }
+  },
+  "creationDate": {
+    "$date": "2023-08-21T14:28:20.875Z"
+  },
+  "updateDate": {
+    "$date": "2023-08-21T14:28:20.875Z"
+  },
+  "status": 0,
+  "masterKey": {
+    "provider": "local"
+  }
+}

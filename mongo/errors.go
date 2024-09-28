@@ -192,7 +192,7 @@ func IsNetworkError(err error) bool {
 	return errorHasLabel(err, "NetworkError")
 }
 
-// MongocryptError represents an libmongocrypt error during client-side encryption.
+// MongocryptError represents an libmongocrypt error during in-use encryption.
 type MongocryptError struct {
 	Code    int32
 	Message string
@@ -203,7 +203,7 @@ func (m MongocryptError) Error() string {
 	return fmt.Sprintf("mongocrypt error %d: %v", m.Code, m.Message)
 }
 
-// EncryptionKeyVaultError represents an error while communicating with the key vault collection during client-side
+// EncryptionKeyVaultError represents an error while communicating with the key vault collection during in-use
 // encryption.
 type EncryptionKeyVaultError struct {
 	Wrapped error
@@ -219,7 +219,7 @@ func (ekve EncryptionKeyVaultError) Unwrap() error {
 	return ekve.Wrapped
 }
 
-// MongocryptdError represents an error while communicating with mongocryptd during client-side encryption.
+// MongocryptdError represents an error while communicating with mongocryptd during in-use encryption.
 type MongocryptdError struct {
 	Wrapped error
 }
