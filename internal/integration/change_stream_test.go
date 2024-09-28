@@ -17,6 +17,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/eventtest"
+	"go.mongodb.org/mongo-driver/v2/internal/failpoint"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -523,12 +524,12 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 				SetReadConcern(mtest.MajorityRc).
 				SetRetryReads(false))
 
-			mt.SetFailPoint(mtest.FailPoint{
+			mt.SetFailPoint(failpoint.FailPoint{
 				ConfigureFailPoint: "failCommand",
-				Mode: mtest.FailPointMode{
+				Mode: failpoint.Mode{
 					Times: 1,
 				},
-				Data: mtest.FailPointData{
+				Data: failpoint.Data{
 					FailCommands:    []string{"aggregate"},
 					CloseConnection: true,
 				},
@@ -546,12 +547,12 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 				SetReadConcern(mtest.MajorityRc).
 				SetRetryReads(false))
 
-			mt.SetFailPoint(mtest.FailPoint{
+			mt.SetFailPoint(failpoint.FailPoint{
 				ConfigureFailPoint: "failCommand",
-				Mode: mtest.FailPointMode{
+				Mode: failpoint.Mode{
 					Times: 1,
 				},
-				Data: mtest.FailPointData{
+				Data: failpoint.Data{
 					FailCommands:    []string{"getMore"},
 					CloseConnection: true,
 				},
@@ -574,12 +575,12 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 				SetPoolMonitor(tpm.PoolMonitor).
 				SetRetryReads(true))
 
-			mt.SetFailPoint(mtest.FailPoint{
+			mt.SetFailPoint(failpoint.FailPoint{
 				ConfigureFailPoint: "failCommand",
-				Mode: mtest.FailPointMode{
+				Mode: failpoint.Mode{
 					Times: 2,
 				},
-				Data: mtest.FailPointData{
+				Data: failpoint.Data{
 					FailCommands:    []string{"aggregate"},
 					CloseConnection: true,
 				},

@@ -21,6 +21,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/failpoint"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/internal/integtest"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -72,12 +73,12 @@ func TestErrors(t *testing.T) {
 
 		authOpts := mtest.NewOptions().Auth(true).Topologies(mtest.ReplicaSet, mtest.Single).MinServerVersion("4.0")
 		mt.RunOpts("network error during auth", authOpts, func(mt *mtest.T) {
-			mt.SetFailPoint(mtest.FailPoint{
+			mt.SetFailPoint(failpoint.FailPoint{
 				ConfigureFailPoint: "failCommand",
-				Mode: mtest.FailPointMode{
+				Mode: failpoint.Mode{
 					Times: 1,
 				},
-				Data: mtest.FailPointData{
+				Data: failpoint.Data{
 					// Set the fail point for saslContinue rather than saslStart because the driver will use speculative
 					// auth on 4.4+ so there won't be an explicit saslStart command.
 					FailCommands:    []string{"saslContinue"},
@@ -316,12 +317,12 @@ func TestErrors(t *testing.T) {
 		mt.RunOpts("Raw response", mtOpts, func(mt *mtest.T) {
 			mt.Run("CommandError", func(mt *mtest.T) {
 				// Mock a CommandError via failpoint with an arbitrary code.
-				mt.SetFailPoint(mtest.FailPoint{
+				mt.SetFailPoint(failpoint.FailPoint{
 					ConfigureFailPoint: "failCommand",
-					Mode: mtest.FailPointMode{
+					Mode: failpoint.Mode{
 						Times: 1,
 					},
-					Data: mtest.FailPointData{
+					Data: failpoint.Data{
 						FailCommands: []string{"find"},
 						ErrorCode:    123,
 					},
@@ -364,14 +365,14 @@ func TestErrors(t *testing.T) {
 			})
 			mt.Run("WriteException", func(mt *mtest.T) {
 				// Mock a WriteException via failpoint with an arbitrary WriteConcernError.
-				mt.SetFailPoint(mtest.FailPoint{
+				mt.SetFailPoint(failpoint.FailPoint{
 					ConfigureFailPoint: "failCommand",
-					Mode: mtest.FailPointMode{
+					Mode: failpoint.Mode{
 						Times: 1,
 					},
-					Data: mtest.FailPointData{
+					Data: failpoint.Data{
 						FailCommands: []string{"delete"},
-						WriteConcernError: &mtest.WriteConcernErrorData{
+						WriteConcernError: &failpoint.WriteConcernError{
 							Code: 123,
 						},
 					},

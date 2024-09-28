@@ -19,6 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/eventtest"
+	"go.mongodb.org/mongo-driver/v2/internal/failpoint"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -57,12 +58,12 @@ func TestSDAMErrorHandling(t *testing.T) {
 				appName := "authConnectTimeoutTest"
 				// Set failpoint on saslContinue instead of saslStart because saslStart isn't done when using
 				// speculative auth.
-				mt.SetFailPoint(mtest.FailPoint{
+				mt.SetFailPoint(failpoint.FailPoint{
 					ConfigureFailPoint: "failCommand",
-					Mode: mtest.FailPointMode{
+					Mode: failpoint.Mode{
 						Times: 1,
 					},
-					Data: mtest.FailPointData{
+					Data: failpoint.Data{
 						FailCommands:    []string{"saslContinue"},
 						BlockConnection: true,
 						BlockTimeMS:     150,
@@ -101,12 +102,12 @@ func TestSDAMErrorHandling(t *testing.T) {
 					// routine encounters a non-timeout network error during handshaking.
 					appName := "authNetworkErrorTestBackground"
 
-					mt.SetFailPoint(mtest.FailPoint{
+					mt.SetFailPoint(failpoint.FailPoint{
 						ConfigureFailPoint: "failCommand",
-						Mode: mtest.FailPointMode{
+						Mode: failpoint.Mode{
 							Times: 1,
 						},
-						Data: mtest.FailPointData{
+						Data: failpoint.Data{
 							FailCommands:    []string{"saslContinue"},
 							CloseConnection: true,
 							AppName:         appName,
@@ -134,12 +135,12 @@ func TestSDAMErrorHandling(t *testing.T) {
 					// checkout encounters a non-timeout network error during handshaking.
 					appName := "authNetworkErrorTestForeground"
 
-					mt.SetFailPoint(mtest.FailPoint{
+					mt.SetFailPoint(failpoint.FailPoint{
 						ConfigureFailPoint: "failCommand",
-						Mode: mtest.FailPointMode{
+						Mode: failpoint.Mode{
 							Times: 1,
 						},
-						Data: mtest.FailPointData{
+						Data: failpoint.Data{
 							FailCommands:    []string{"saslContinue"},
 							CloseConnection: true,
 							AppName:         appName,
@@ -169,12 +170,12 @@ func TestSDAMErrorHandling(t *testing.T) {
 			mt.Run("pool cleared on non-timeout network error", func(mt *mtest.T) {
 				appName := "afterHandshakeNetworkError"
 
-				mt.SetFailPoint(mtest.FailPoint{
+				mt.SetFailPoint(failpoint.FailPoint{
 					ConfigureFailPoint: "failCommand",
-					Mode: mtest.FailPointMode{
+					Mode: failpoint.Mode{
 						Times: 1,
 					},
-					Data: mtest.FailPointData{
+					Data: failpoint.Data{
 						FailCommands:    []string{"insert"},
 						CloseConnection: true,
 						AppName:         appName,
@@ -268,12 +269,12 @@ func TestSDAMErrorHandling(t *testing.T) {
 					appName := fmt.Sprintf("command_error_%s", tc.name)
 
 					// Cause the next insert to fail with an ok:0 response.
-					mt.SetFailPoint(mtest.FailPoint{
+					mt.SetFailPoint(failpoint.FailPoint{
 						ConfigureFailPoint: "failCommand",
-						Mode: mtest.FailPointMode{
+						Mode: failpoint.Mode{
 							Times: 1,
 						},
-						Data: mtest.FailPointData{
+						Data: failpoint.Data{
 							FailCommands: []string{"insert"},
 							ErrorCode:    tc.errorCode,
 							AppName:      appName,
@@ -290,14 +291,14 @@ func TestSDAMErrorHandling(t *testing.T) {
 					appName := fmt.Sprintf("write_concern_error_%s", tc.name)
 
 					// Cause the next insert to fail with a write concern error.
-					mt.SetFailPoint(mtest.FailPoint{
+					mt.SetFailPoint(failpoint.FailPoint{
 						ConfigureFailPoint: "failCommand",
-						Mode: mtest.FailPointMode{
+						Mode: failpoint.Mode{
 							Times: 1,
 						},
-						Data: mtest.FailPointData{
+						Data: failpoint.Data{
 							FailCommands: []string{"insert"},
-							WriteConcernError: &mtest.WriteConcernErrorData{
+							WriteConcernError: &failpoint.WriteConcernError{
 								Code: tc.errorCode,
 							},
 							AppName: appName,

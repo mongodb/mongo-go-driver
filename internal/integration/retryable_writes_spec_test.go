@@ -14,6 +14,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/failpoint"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 )
 
@@ -26,12 +27,12 @@ type retryableWritesTestFile struct {
 }
 
 type retryableWritesTest struct {
-	Description         string           `bson:"description"`
-	ClientOptions       bson.Raw         `bson:"clientOptions"`
-	UseMultipleMongoses bool             `bson:"useMultipleMongoses"`
-	FailPoint           *mtest.FailPoint `bson:"failPoint"`
-	Operation           crudOperation    `bson:"operation"`
-	Outcome             crudOutcome      `bson:"outcome"`
+	Description         string               `bson:"description"`
+	ClientOptions       bson.Raw             `bson:"clientOptions"`
+	UseMultipleMongoses bool                 `bson:"useMultipleMongoses"`
+	FailPoint           *failpoint.FailPoint `bson:"failPoint"`
+	Operation           crudOperation        `bson:"operation"`
+	Outcome             crudOutcome          `bson:"outcome"`
 }
 
 func TestRetryableWritesSpec(t *testing.T) {

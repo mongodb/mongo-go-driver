@@ -15,6 +15,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/failpoint"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -180,13 +181,13 @@ func TestCursor(t *testing.T) {
 	mt.RunOpts("all", noClientOpts, func(mt *mtest.T) {
 		failpointOpts := mtest.NewOptions().Topologies(mtest.ReplicaSet).MinServerVersion("4.0")
 		mt.RunOpts("getMore error", failpointOpts, func(mt *mtest.T) {
-			failpointData := mtest.FailPointData{
+			failpointData := failpoint.Data{
 				FailCommands: []string{"getMore"},
 				ErrorCode:    100,
 			}
-			mt.SetFailPoint(mtest.FailPoint{
+			mt.SetFailPoint(failpoint.FailPoint{
 				ConfigureFailPoint: "failCommand",
-				Mode:               "alwaysOn",
+				Mode:               failpoint.ModeAlwaysOn,
 				Data:               failpointData,
 			})
 			initCollection(mt, mt.Coll)
@@ -252,13 +253,13 @@ func TestCursor(t *testing.T) {
 	mt.RunOpts("close", noClientOpts, func(mt *mtest.T) {
 		failpointOpts := mtest.NewOptions().Topologies(mtest.ReplicaSet).MinServerVersion("4.0")
 		mt.RunOpts("killCursors error", failpointOpts, func(mt *mtest.T) {
-			failpointData := mtest.FailPointData{
+			failpointData := failpoint.Data{
 				FailCommands: []string{"killCursors"},
 				ErrorCode:    100,
 			}
-			mt.SetFailPoint(mtest.FailPoint{
+			mt.SetFailPoint(failpoint.FailPoint{
 				ConfigureFailPoint: "failCommand",
-				Mode:               "alwaysOn",
+				Mode:               failpoint.ModeAlwaysOn,
 				Data:               failpointData,
 			})
 			initCollection(mt, mt.Coll)
