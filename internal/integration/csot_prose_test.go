@@ -9,6 +9,7 @@ package integration
 import (
 	"bytes"
 	"context"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -26,6 +27,13 @@ import (
 )
 
 func TestCSOTProse(t *testing.T) {
+	// Skip CSOT tests when SKIP_CSOT_TESTS=true. In Evergreen, we typically set
+	// that environment variable on Windows and macOS because the CSOT spec
+	// tests are unreliable on those hosts.
+	if os.Getenv("SKIP_CSOT_TESTS") == "true" {
+		t.Skip("Skipping CSOT test because SKIP_CSOT_TESTS=true")
+	}
+
 	mt := mtest.New(t, mtest.NewOptions().CreateClient(false))
 
 	mt.RunOpts("1. multi-batch writes", mtest.NewOptions().MinServerVersion("4.4").
