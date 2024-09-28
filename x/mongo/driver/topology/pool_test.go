@@ -1227,7 +1227,7 @@ func TestBackgroundRead(t *testing.T) {
 			}()
 
 			_, err := nc.Write([]byte{10, 0, 0})
-			noerr(t, err)
+			require.NoError(t, err)
 		})
 
 		p := newPool(
@@ -1235,10 +1235,10 @@ func TestBackgroundRead(t *testing.T) {
 		)
 		defer p.close(context.Background())
 		err := p.ready()
-		noerr(t, err)
+		require.NoError(t, err)
 
 		conn, err := p.checkOut(context.Background())
-		noerr(t, err)
+		require.NoError(t, err)
 		ctx, cancel := csot.MakeTimeoutContext(context.Background(), timeout)
 		defer cancel()
 		_, err = conn.readWireMessage(ctx)
@@ -1267,7 +1267,7 @@ func TestBackgroundRead(t *testing.T) {
 			// Wait until the operation times out, then write an full message.
 			time.Sleep(timeout * 2)
 			_, err := nc.Write([]byte{10, 0, 0, 0, 0, 0, 0, 0, 0, 0})
-			noerr(t, err)
+			require.NoError(t, err)
 		})
 
 		p := newPool(
@@ -1275,10 +1275,10 @@ func TestBackgroundRead(t *testing.T) {
 		)
 		defer p.close(context.Background())
 		err := p.ready()
-		noerr(t, err)
+		require.NoError(t, err)
 
 		conn, err := p.checkOut(context.Background())
-		noerr(t, err)
+		require.NoError(t, err)
 		ctx, cancel := csot.MakeTimeoutContext(context.Background(), timeout)
 		defer cancel()
 		_, err = conn.readWireMessage(ctx)
@@ -1287,7 +1287,7 @@ func TestBackgroundRead(t *testing.T) {
 		)
 		assert.True(t, regex.MatchString(err.Error()), "error %q does not match pattern %q", err, regex)
 		err = p.checkIn(conn)
-		noerr(t, err)
+		require.NoError(t, err)
 		var bgErrs []error
 		select {
 		case bgErrs = <-errsCh:
@@ -1314,7 +1314,7 @@ func TestBackgroundRead(t *testing.T) {
 			// Wait until the operation times out, then write an incomplete head.
 			time.Sleep(timeout * 2)
 			_, err := nc.Write([]byte{10, 0, 0})
-			noerr(t, err)
+			require.NoError(t, err)
 		})
 
 		p := newPool(
@@ -1322,10 +1322,10 @@ func TestBackgroundRead(t *testing.T) {
 		)
 		defer p.close(context.Background())
 		err := p.ready()
-		noerr(t, err)
+		require.NoError(t, err)
 
 		conn, err := p.checkOut(context.Background())
-		noerr(t, err)
+		require.NoError(t, err)
 		ctx, cancel := csot.MakeTimeoutContext(context.Background(), timeout)
 		defer cancel()
 		_, err = conn.readWireMessage(ctx)
@@ -1334,7 +1334,7 @@ func TestBackgroundRead(t *testing.T) {
 		)
 		assert.True(t, regex.MatchString(err.Error()), "error %q does not match pattern %q", err, regex)
 		err = p.checkIn(conn)
-		noerr(t, err)
+		require.NoError(t, err)
 		var bgErrs []error
 		select {
 		case bgErrs = <-errsCh:
@@ -1366,7 +1366,7 @@ func TestBackgroundRead(t *testing.T) {
 			// message.
 			time.Sleep(timeout * 2)
 			_, err := nc.Write([]byte{10, 0, 0, 0, 0, 0, 0, 0})
-			noerr(t, err)
+			require.NoError(t, err)
 		})
 
 		p := newPool(
@@ -1374,10 +1374,10 @@ func TestBackgroundRead(t *testing.T) {
 		)
 		defer p.close(context.Background())
 		err := p.ready()
-		noerr(t, err)
+		require.NoError(t, err)
 
 		conn, err := p.checkOut(context.Background())
-		noerr(t, err)
+		require.NoError(t, err)
 		ctx, cancel := csot.MakeTimeoutContext(context.Background(), timeout)
 		defer cancel()
 		_, err = conn.readWireMessage(ctx)
@@ -1386,7 +1386,7 @@ func TestBackgroundRead(t *testing.T) {
 		)
 		assert.True(t, regex.MatchString(err.Error()), "error %q does not match pattern %q", err, regex)
 		err = p.checkIn(conn)
-		noerr(t, err)
+		require.NoError(t, err)
 		var bgErrs []error
 		select {
 		case bgErrs = <-errsCh:
@@ -1416,11 +1416,11 @@ func TestBackgroundRead(t *testing.T) {
 
 			var err error
 			_, err = nc.Write([]byte{12, 0, 0, 0, 0, 0, 0, 0, 1})
-			noerr(t, err)
+			require.NoError(t, err)
 			time.Sleep(timeout * 2)
 			// write a complete message
 			_, err = nc.Write([]byte{2, 3, 4})
-			noerr(t, err)
+			require.NoError(t, err)
 		})
 
 		p := newPool(
@@ -1428,10 +1428,10 @@ func TestBackgroundRead(t *testing.T) {
 		)
 		defer p.close(context.Background())
 		err := p.ready()
-		noerr(t, err)
+		require.NoError(t, err)
 
 		conn, err := p.checkOut(context.Background())
-		noerr(t, err)
+		require.NoError(t, err)
 		ctx, cancel := csot.MakeTimeoutContext(context.Background(), timeout)
 		defer cancel()
 		_, err = conn.readWireMessage(ctx)
@@ -1440,7 +1440,7 @@ func TestBackgroundRead(t *testing.T) {
 		)
 		assert.True(t, regex.MatchString(err.Error()), "error %q does not match pattern %q", err, regex)
 		err = p.checkIn(conn)
-		noerr(t, err)
+		require.NoError(t, err)
 		var bgErrs []error
 		select {
 		case bgErrs = <-errsCh:
@@ -1466,11 +1466,11 @@ func TestBackgroundRead(t *testing.T) {
 
 			var err error
 			_, err = nc.Write([]byte{12, 0, 0, 0, 0, 0, 0, 0, 1})
-			noerr(t, err)
+			require.NoError(t, err)
 			time.Sleep(timeout * 2)
 			// write an incomplete message
 			_, err = nc.Write([]byte{2})
-			noerr(t, err)
+			require.NoError(t, err)
 		})
 
 		p := newPool(
@@ -1478,10 +1478,10 @@ func TestBackgroundRead(t *testing.T) {
 		)
 		defer p.close(context.Background())
 		err := p.ready()
-		noerr(t, err)
+		require.NoError(t, err)
 
 		conn, err := p.checkOut(context.Background())
-		noerr(t, err)
+		require.NoError(t, err)
 		ctx, cancel := csot.MakeTimeoutContext(context.Background(), timeout)
 		defer cancel()
 		_, err = conn.readWireMessage(ctx)
@@ -1490,7 +1490,7 @@ func TestBackgroundRead(t *testing.T) {
 		)
 		assert.True(t, regex.MatchString(err.Error()), "error %q does not match pattern %q", err, regex)
 		err = p.checkIn(conn)
-		noerr(t, err)
+		require.NoError(t, err)
 		var bgErrs []error
 		select {
 		case bgErrs = <-errsCh:
