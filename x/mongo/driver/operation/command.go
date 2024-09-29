@@ -26,13 +26,15 @@ type Command struct {
 	name           string
 	authenticator  driver.Authenticator
 	commandFn      func([]byte, description.SelectedServer) ([]byte, error)
-	batches        *driver.Batches
 	database       string
 	deployment     driver.Deployment
 	selector       description.ServerSelector
 	writeConcern   *writeconcern.WriteConcern
 	readPreference *readpref.ReadPref
 	clock          *session.ClusterClock
+	retry          *driver.RetryMode
+	opType         driver.Type
+	batches        *driver.Batches
 	session        *session.Client
 	monitor        *event.CommandMonitor
 	resultResponse bsoncore.Document
@@ -95,7 +97,6 @@ func (c *Command) Execute(ctx context.Context) error {
 
 	return driver.Operation{
 		CommandFn: c.commandFn,
-		Batches:   c.batches,
 		ProcessResponseFn: func(info driver.ResponseInfo) error {
 			c.resultResponse = info.ServerResponse
 
@@ -113,6 +114,9 @@ func (c *Command) Execute(ctx context.Context) error {
 		},
 		Client:         c.session,
 		Clock:          c.clock,
+		RetryMode:      c.retry,
+		Type:           c.opType,
+		Batches:        c.batches,
 		CommandMonitor: c.monitor,
 		Database:       c.database,
 		Deployment:     c.deployment,
@@ -165,6 +169,26 @@ func (c *Command) Batches(batches *driver.Batches) *Command {
 	}
 
 	c.batches = batches
+	return c
+}
+
+// RetryMode sets the RetryMode for this operation.
+func (c *Command) RetryMode(retry driver.RetryMode) *Command {
+	if c == nil {
+		c = new(Command)
+	}
+
+	c.retry = &retry
+	return c
+}
+
+// Type sets the opType for this operation.
+func (c *Command) Type(t driver.Type) *Command {
+	if c == nil {
+		c = new(Command)
+	}
+
+	c.opType = t
 	return c
 }
 

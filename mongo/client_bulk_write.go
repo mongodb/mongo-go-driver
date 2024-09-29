@@ -58,6 +58,7 @@ func (bw *clientBulkWrite) execute(ctx context.Context) error {
 	}
 	resMap := make([]interface{}, len(bw.models))
 	insIDMap := make(map[int]interface{})
+	canRetry := true
 	for i, v := range bw.models {
 		var doc bsoncore.Document
 		var err error
@@ -94,6 +95,7 @@ func (bw *clientBulkWrite) execute(ctx context.Context) error {
 				bw.client.bsonOpts,
 				bw.client.registry)
 		case *ClientUpdateManyModel:
+			canRetry = false
 			nsIdx = getNsIndex(model.Namespace)
 			if bw.result.UpdateResults == nil {
 				bw.result.UpdateResults = make(map[int64]ClientUpdateResult)
@@ -144,6 +146,7 @@ func (bw *clientBulkWrite) execute(ctx context.Context) error {
 				bw.client.bsonOpts,
 				bw.client.registry)
 		case *ClientDeleteManyModel:
+			canRetry = false
 			nsIdx = getNsIndex(model.Namespace)
 			if bw.result.DeleteResults == nil {
 				bw.result.DeleteResults = make(map[int64]ClientDeleteResult)
@@ -168,23 +171,21 @@ func (bw *clientBulkWrite) execute(ctx context.Context) error {
 		Documents:  docs,
 		Ordered:    bw.ordered,
 	}
+	retry := driver.RetryNone
+	if bw.client.retryWrites && canRetry {
+		retry = driver.RetryOncePerCommand
+	}
 	op := operation.NewCommandFn(bw.newCommand(nsList)).Batches(batches).
 		Session(bw.session).WriteConcern(bw.writeConcern).CommandMonitor(bw.client.monitor).
 		ServerSelector(bw.selector).ClusterClock(bw.client.clock).
-		Database("admin").
+		Database("admin").Type(driver.Write).RetryMode(retry).
 		Deployment(bw.client.deployment).Crypt(bw.client.cryptFLE).
 		ServerAPI(bw.client.serverAPI).Timeout(bw.client.timeout).
 		Logger(bw.client.logger).Authenticator(bw.client.authenticator).Name("bulkWrite")
 	opErr := op.Execute(ctx)
-	var wcErrs []*WriteConcernError
 	if opErr != nil {
 		if errors.Is(opErr, driver.ErrUnacknowledgedWrite) {
 			return nil
-		}
-		var writeErr driver.WriteCommandError
-		if errors.As(opErr, &writeErr) {
-			wcErr := convertDriverWriteConcernError(writeErr.WriteConcernError)
-			wcErrs = append(wcErrs, wcErr)
 		}
 	}
 	var res struct {
@@ -202,6 +203,9 @@ func (bw *clientBulkWrite) execute(ctx context.Context) error {
 		Errmsg    string
 	}
 	rawRes := op.Result()
+	if len(rawRes) == 0 {
+		return opErr
+	}
 	if err := bson.Unmarshal(rawRes, &res); err != nil {
 		return err
 	}
@@ -212,31 +216,32 @@ func (bw *clientBulkWrite) execute(ctx context.Context) error {
 	bw.result.UpsertedCount = int64(res.NUpserted)
 	errors := make(map[int64]WriteError)
 	for i, cur := range res.Cursor.FirstBatch {
-		switch res := resMap[i].(type) {
+		switch r := resMap[i].(type) {
 		case map[int64]ClientDeleteResult:
-			if err := appendDeleteResult(cur, res, errors); err != nil {
+			if err := appendDeleteResult(cur, r, errors); err != nil {
 				return err
 			}
 		case map[int64]ClientInsertResult:
-			if err := appendInsertResult(cur, res, errors, insIDMap); err != nil {
+			if err := appendInsertResult(cur, r, errors, insIDMap); err != nil {
 				return err
 			}
 		case map[int64]ClientUpdateResult:
-			if err := appendUpdateResult(cur, res, errors); err != nil {
+			if err := appendUpdateResult(cur, r, errors); err != nil {
 				return err
 			}
 		}
 	}
-	if !res.Ok || res.NErrors > 0 || opErr != nil {
+	if opErr != nil {
+		return opErr
+	} else if !res.Ok || res.NErrors > 0 {
 		return ClientBulkWriteException{
 			TopLevelError: &WriteError{
 				Code:    int(res.Code),
 				Message: res.Errmsg,
 				Raw:     bson.Raw(rawRes),
 			},
-			WriteConcernErrors: wcErrs,
-			WriteErrors:        errors,
-			PartialResult:      &bw.result,
+			WriteErrors:   errors,
+			PartialResult: &bw.result,
 		}
 	}
 	return nil
