@@ -15,7 +15,9 @@ for mod in $mods; do
   echo "Checking $mod..."
   go mod tidy -v
   go mod edit -toolchain=none
-  if [ "$(dirname $mod)" == "." ]; then
+  echo "hello $(dirname $mod)"
+  if [ "$(dirname $mod)" == "." ] || [ "$(dirname $mod)" == "./internal/cmd/compilecheck" ]; then
+    echo "replacing!"
     go mod edit -go=${base_version}
   fi
   git diff --exit-code go.mod go.sum || {
