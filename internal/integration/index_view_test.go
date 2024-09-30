@@ -13,6 +13,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/failpoint"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -249,10 +250,10 @@ func TestIndexView(t *testing.T) {
 		})
 		// Needs to run on these versions for failpoints
 		mt.RunOpts("replace error", mtest.NewOptions().Topologies(mtest.ReplicaSet).MinServerVersion("4.0"), func(mt *mtest.T) {
-			mt.SetFailPoint(mtest.FailPoint{
+			mt.SetFailPoint(failpoint.FailPoint{
 				ConfigureFailPoint: "failCommand",
-				Mode:               "alwaysOn",
-				Data: mtest.FailPointData{
+				Mode:               failpoint.ModeAlwaysOn,
+				Data: failpoint.Data{
 					FailCommands: []string{"createIndexes"},
 					ErrorCode:    100,
 				},
@@ -395,10 +396,10 @@ func TestIndexView(t *testing.T) {
 		})
 		// Needs to run on these versions for failpoints
 		mt.RunOpts("replace error", mtest.NewOptions().Topologies(mtest.ReplicaSet).MinServerVersion("4.0"), func(mt *mtest.T) {
-			mt.SetFailPoint(mtest.FailPoint{
+			mt.SetFailPoint(failpoint.FailPoint{
 				ConfigureFailPoint: "failCommand",
-				Mode:               "alwaysOn",
-				Data: mtest.FailPointData{
+				Mode:               failpoint.ModeAlwaysOn,
+				Data: failpoint.Data{
 					FailCommands: []string{"createIndexes"},
 					ErrorCode:    100,
 				},

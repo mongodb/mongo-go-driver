@@ -16,6 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/eventtest"
+	"go.mongodb.org/mongo-driver/v2/internal/failpoint"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
@@ -126,12 +127,12 @@ func TestServerSelectionProse(t *testing.T) {
 		failpointHost := hosts[0]
 		mt.ResetClient(options.Client().
 			SetHosts([]string{failpointHost}))
-		mt.SetFailPoint(mtest.FailPoint{
+		mt.SetFailPoint(failpoint.FailPoint{
 			ConfigureFailPoint: "failCommand",
-			Mode: mtest.FailPointMode{
+			Mode: failpoint.Mode{
 				Times: 10000,
 			},
-			Data: mtest.FailPointData{
+			Data: failpoint.Data{
 				FailCommands:    []string{"find"},
 				BlockConnection: true,
 				BlockTimeMS:     500,
