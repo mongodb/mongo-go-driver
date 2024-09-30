@@ -568,7 +568,7 @@ func ExampleCollection_UpdateOne() {
 	// "newemail@example.com".
 	// Specify the Upsert option to insert a new document if a document matching
 	// the filter isn't found.
-	opts := options.Update().SetUpsert(true)
+	opts := options.UpdateOne().SetUpsert(true)
 	filter := bson.D{{"_id", id}}
 	update := bson.D{{"$set", bson.D{{"email", "newemail@example.com"}}}}
 

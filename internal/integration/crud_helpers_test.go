@@ -874,7 +874,7 @@ func executeUpdateOne(mt *mtest.T, sess *mongo.Session, args bson.Raw) (*mongo.U
 
 	filter := emptyDoc
 	var update interface{} = emptyDoc
-	opts := options.Update()
+	opts := options.UpdateOne()
 
 	elems, _ := args.Elements()
 	for _, elem := range elems {
@@ -902,7 +902,7 @@ func executeUpdateOne(mt *mtest.T, sess *mongo.Session, args bson.Raw) (*mongo.U
 		}
 	}
 
-	updateArgs, err := mongoutil.NewOptions[options.UpdateOptions](opts)
+	updateArgs, err := mongoutil.NewOptions[options.UpdateOneOptions](opts)
 	require.NoError(mt, err, "failed to construct options from builder")
 
 	if updateArgs.Upsert == nil {
@@ -926,7 +926,7 @@ func executeUpdateMany(mt *mtest.T, sess *mongo.Session, args bson.Raw) (*mongo.
 
 	filter := emptyDoc
 	var update interface{} = emptyDoc
-	opts := options.Update()
+	opts := options.UpdateMany()
 
 	elems, _ := args.Elements()
 	for _, elem := range elems {
@@ -954,7 +954,7 @@ func executeUpdateMany(mt *mtest.T, sess *mongo.Session, args bson.Raw) (*mongo.
 		}
 	}
 
-	updateArgs, err := mongoutil.NewOptions[options.UpdateOptions](opts)
+	updateArgs, err := mongoutil.NewOptions[options.UpdateManyOptions](opts)
 	require.NoError(mt, err, "failed to construct options from builder")
 
 	if updateArgs.Upsert == nil {
