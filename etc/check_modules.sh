@@ -5,6 +5,11 @@
 # tidy" and expect that no unrelated changes are made to the "go.mod" file.
 set -eu
 
+# Keep this in sync with go version used in go.mod.
+go install golang.org/dl/go1.18@latest
+go1.18 download
+export PATH="$(go1.18 env GOROOT)/bin:$PATH"
+
 mods=$(find . -name go.mod)
 exit_code=0
 for mod in $mods; do

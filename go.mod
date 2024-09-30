@@ -1,8 +1,6 @@
 module go.mongodb.org/mongo-driver/v2
 
-go 1.21
-
-toolchain go1.22.1
+go 1.18
 
 require (
 	github.com/davecgh/go-spew v1.1.1

@@ -1,8 +1,6 @@
 module go.mongodb.go/mongo-driver/internal/cmd/compilecheck
 
-go 1.21
-
-toolchain go1.22.1
+go 1.18
 
 replace go.mongodb.org/mongo-driver/v2 => ../../../
 
