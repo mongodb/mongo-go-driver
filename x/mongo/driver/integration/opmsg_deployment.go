@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package mtest
+package integration
 
 import (
 	"context"
@@ -122,60 +122,60 @@ func (*connection) Stale() bool {
 	return false
 }
 
-// mockDeployment wraps a connection and implements the driver.Deployment interface.
-type mockDeployment struct {
+// MockDeployment wraps a connection and implements the driver.Deployment interface.
+type MockDeployment struct {
 	conn    *connection
 	updates chan description.Topology
 }
 
-var _ driver.Deployment = &mockDeployment{}
-var _ driver.Server = &mockDeployment{}
-var _ driver.Connector = &mockDeployment{}
-var _ driver.Disconnector = &mockDeployment{}
-var _ driver.Subscriber = &mockDeployment{}
+var _ driver.Deployment = &MockDeployment{}
+var _ driver.Server = &MockDeployment{}
+var _ driver.Connector = &MockDeployment{}
+var _ driver.Disconnector = &MockDeployment{}
+var _ driver.Subscriber = &MockDeployment{}
 
 // SelectServer implements the Deployment interface. This method does not use the
 // description.SelectedServer provided and instead returns itself. The Connections returned from the
 // Connection method have a no-op Close method.
-func (md *mockDeployment) SelectServer(context.Context, description.ServerSelector) (driver.Server, error) {
+func (md *MockDeployment) SelectServer(context.Context, description.ServerSelector) (driver.Server, error) {
 	return md, nil
 }
 
 // GetServerSelectionTimeout returns zero as a server selection timeout is not
 // applicable for mock deployments.
-func (*mockDeployment) GetServerSelectionTimeout() time.Duration {
+func (*MockDeployment) GetServerSelectionTimeout() time.Duration {
 	return 0
 }
 
 // Kind implements the Deployment interface. It always returns description.TopologyKindSingle.
-func (md *mockDeployment) Kind() description.TopologyKind {
+func (md *MockDeployment) Kind() description.TopologyKind {
 	return description.TopologyKindSingle
 }
 
 // Connection implements the driver.Server interface.
-func (md *mockDeployment) Connection(context.Context) (*mnet.Connection, error) {
+func (md *MockDeployment) Connection(context.Context) (*mnet.Connection, error) {
 	return mnet.NewConnection(md.conn), nil
 }
 
 // RTTMonitor implements the driver.Server interface.
-func (md *mockDeployment) RTTMonitor() driver.RTTMonitor {
+func (md *MockDeployment) RTTMonitor() driver.RTTMonitor {
 	return &csot.ZeroRTTMonitor{}
 }
 
 // Connect is a no-op method which implements the driver.Connector interface.
-func (md *mockDeployment) Connect() error {
+func (md *MockDeployment) Connect() error {
 	return nil
 }
 
 // Disconnect is a no-op method which implements the driver.Disconnector interface {
-func (md *mockDeployment) Disconnect(context.Context) error {
+func (md *MockDeployment) Disconnect(context.Context) error {
 	close(md.updates)
 	return nil
 }
 
 // Subscribe returns a subscription from which new topology descriptions can be retrieved.
 // Subscribe implements the driver.Subscriber interface.
-func (md *mockDeployment) Subscribe() (*driver.Subscription, error) {
+func (md *MockDeployment) Subscribe() (*driver.Subscription, error) {
 	if md.updates == nil {
 		md.updates = make(chan description.Topology, 1)
 
@@ -190,23 +190,23 @@ func (md *mockDeployment) Subscribe() (*driver.Subscription, error) {
 }
 
 // Unsubscribe is a no-op method which implements the driver.Subscriber interface.
-func (md *mockDeployment) Unsubscribe(*driver.Subscription) error {
+func (md *MockDeployment) Unsubscribe(*driver.Subscription) error {
 	return nil
 }
 
-// addResponses adds responses to this mock deployment.
-func (md *mockDeployment) addResponses(responses ...bson.D) {
+// AddResponses adds responses to this mock deployment.
+func (md *MockDeployment) AddResponses(responses ...bson.D) {
 	md.conn.responses = append(md.conn.responses, responses...)
 }
 
-// clearResponses clears all remaining responses in this mock deployment.
-func (md *mockDeployment) clearResponses() {
+// ClearResponses clears all remaining responses in this mock deployment.
+func (md *MockDeployment) ClearResponses() {
 	md.conn.responses = md.conn.responses[:0]
 }
 
-// newMockDeployment returns a mock driver.Deployment that responds with OP_MSG wire messages.
-func newMockDeployment(responses ...bson.D) *mockDeployment {
-	return &mockDeployment{
+// NewMockDeployment returns a mock driver.Deployment that responds with OP_MSG wire messages.
+func NewMockDeployment(responses ...bson.D) *MockDeployment {
+	return &MockDeployment{
 		conn: &connection{
 			responses: responses,
 		},

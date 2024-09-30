@@ -19,6 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/integration"
 )
 
 const (
@@ -1819,7 +1820,7 @@ func TestCollection(t *testing.T) {
 		})
 		mt.RunOpts("insert and delete with batches", mtest.NewOptions().ClientType(mtest.Mock), func(mt *mtest.T) {
 			// grouped together because delete requires the documents to be inserted
-			maxBatchCount := int(mtest.MockDescription.MaxBatchCount)
+			maxBatchCount := int(integration.MockDescription.MaxBatchCount)
 			numDocs := maxBatchCount + 50
 			var insertModels []mongo.WriteModel
 			var deleteModels []mongo.WriteModel
@@ -1870,7 +1871,7 @@ func TestCollection(t *testing.T) {
 			assert.True(mt, deletes > 1, "expected multiple batches, got %v", deletes)
 		})
 		mt.RunOpts("update with batches", mtest.NewOptions().ClientType(mtest.Mock), func(mt *mtest.T) {
-			maxBatchCount := int(mtest.MockDescription.MaxBatchCount)
+			maxBatchCount := int(integration.MockDescription.MaxBatchCount)
 			numModels := maxBatchCount + 50
 			var models []mongo.WriteModel
 
