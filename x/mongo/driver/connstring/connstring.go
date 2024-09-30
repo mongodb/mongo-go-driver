@@ -297,10 +297,6 @@ func (u *ConnString) setDefaultAuthParams(dbName string) error {
 		}
 		fallthrough
 	case "mongodb-aws", "mongodb-x509", "mongodb-oidc":
-		// dns.LookupTXT will get "authSource=admin" from Atlas hosts.
-		if u.AuthSource == "admin" {
-			u.AuthSource = "$external"
-		}
 		if u.AuthSource == "" {
 			u.AuthSource = "$external"
 		} else if u.AuthSource != "$external" {
