@@ -383,7 +383,7 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        include_expansions_in_env: ["TOPOLOGY", "AUTH", "SSL", "MONGODB_URI", "CRYPT_SHARED_LIB_PATH", "SKIP_CRYPT_SHARED_LIB", "RACE", "MONGO_GO_DRIVER_COMPRESSOR", "REQUIRE_API_VERSION", "LOAD_BALANCER"]
+        include_expansions_in_env: ["TOPOLOGY", "AUTH", "SSL", "SKIP_CSOT_TESTS", "MONGODB_URI", "CRYPT_SHARED_LIB_PATH", "SKIP_CRYPT_SHARED_LIB", "RACE", "MONGO_GO_DRIVER_COMPRESSOR", "REQUIRE_API_VERSION", "LOAD_BALANCER"]
         script: |
           ${PREPARE_SHELL}
           bash ${PROJECT_DIRECTORY}/.evergreen/run-tests.sh
@@ -2096,6 +2096,8 @@ axes:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
           GO_DIST: "C:\\golang\\go1.22"
           VENV_BIN_DIR: "Scripts"
+          # CSOT tests are unreliable on our slow Windows hosts.
+          SKIP_CSOT_TESTS: true
       - id: "rhel87-64"
         display_name: "RHEL 8.7"
         run_on: rhel8.7-large
@@ -2107,6 +2109,8 @@ axes:
         batchtime: 1440 # Run at most once per 24 hours.
         variables:
           GO_DIST: "/opt/golang/go1.22"
+          # CSOT tests are unreliable on our slow macOS hosts.
+          SKIP_CSOT_TESTS: true
 
   # OSes that require >= 4.0 for SSL
   - id: os-ssl-40
@@ -2120,6 +2124,8 @@ axes:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
           GO_DIST: "C:\\golang\\go1.22"
           VENV_BIN_DIR: "Scripts"
+          # CSOT tests are unreliable on our slow Windows hosts.
+          SKIP_CSOT_TESTS: true
       - id: "rhel87-64"
         display_name: "RHEL 8.7"
         run_on: rhel8.7-large
@@ -2131,6 +2137,8 @@ axes:
         batchtime: 1440 # Run at most once per 24 hours.
         variables:
           GO_DIST: "/opt/golang/go1.22"
+          # CSOT tests are unreliable on our slow macOS hosts.
+          SKIP_CSOT_TESTS: true
 
   - id: ocsp-rhel-87
     display_name: OS
@@ -2152,6 +2160,8 @@ axes:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
           GO_DIST: "C:\\golang\\go1.22"
           SKIP_ECS_AUTH_TEST: true
+          # CSOT tests are unreliable on our slow Windows hosts.
+          SKIP_CSOT_TESTS: true
       - id: "ubuntu2004-64"
         display_name: "Ubuntu 20.04"
         run_on: ubuntu2004-test
@@ -2166,6 +2176,8 @@ axes:
           SKIP_ECS_AUTH_TEST: true
           SKIP_EC2_AUTH_TEST: true
           SKIP_WEB_IDENTITY_AUTH_TEST: true
+          # CSOT tests are unreliable on our slow macOS hosts.
+          SKIP_CSOT_TESTS: true
 
   - id: os-faas-80
     display_name: OS
