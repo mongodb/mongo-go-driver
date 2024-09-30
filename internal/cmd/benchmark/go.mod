@@ -1,6 +1,8 @@
 module go.mongodb.go/mongo-driver/internal/cmd/benchmark
 
-go 1.18
+go 1.21
+
+toolchain go1.22.1
 
 replace go.mongodb.org/mongo-driver/v2 => ../../../
 
@@ -16,7 +18,7 @@ require (
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/klauspost/compress v1.13.6 // indirect
+	github.com/klauspost/compress v1.17.10 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect
