@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -55,7 +56,7 @@ type connection struct {
 	nc                   net.Conn // When nil, the connection is closed.
 	addr                 address.Address
 	idleTimeout          time.Duration
-	idleDeadline         atomic.Value // Stores a time.Time
+	idleStart            atomic.Value // Stores a time.Time
 	readTimeout          time.Duration
 	writeTimeout         time.Duration
 	desc                 description.Server
@@ -561,25 +562,65 @@ func (c *connection) close() error {
 	return err
 }
 
+// closed returns true if the connection has been closed by the driver.
 func (c *connection) closed() bool {
 	return atomic.LoadInt64(&c.state) == connDisconnected
 }
 
-func (c *connection) idleTimeoutExpired() bool {
-	now := time.Now()
-	if c.idleTimeout > 0 {
-		idleDeadline, ok := c.idleDeadline.Load().(time.Time)
-		if ok && now.After(idleDeadline) {
-			return true
-		}
+// isAlive returns true if the connection is alive and ready to be used for an
+// operation.
+//
+// Note that the liveness check can be slow (at least 1ms), so isAlive only
+// checks the liveness of the connection if it's been idle for at least 10
+// seconds. For frequently in-use connections, a network error during an
+// operation will be the first indication of a dead connection.
+func (c *connection) isAlive() bool {
+	if c.nc == nil {
+		return false
 	}
 
-	return false
+	// If the connection has been idle for less than 10 seconds, skip the
+	// liveness check.
+	//
+	// The 10-seconds idle bypass is based on the liveness check implementation
+	// in the Python Driver. That implementation uses 1 second as the idle
+	// threshold, but we chose to be more conservative in the Go Driver because
+	// this is new behavior with unknown side-effects. See
+	// https://github.com/mongodb/mongo-python-driver/blob/e6b95f65953e01e435004af069a6976473eaf841/pymongo/synchronous/pool.py#L983-L985
+	idleStart, ok := c.idleStart.Load().(time.Time)
+	if !ok || idleStart.Add(10*time.Second).After(time.Now()) {
+		return true
+	}
+
+	// Set a 1ms read deadline and attempt to read 1 byte from the connection.
+	// Expect it to block for 1ms then return a deadline exceeded error. If it
+	// returns any other error, the connection is not usable, so return false.
+	// If it doesn't return an error and actually reads data, the connection is
+	// also not usable, so return false.
+	//
+	// Note that we don't need to un-set the read deadline because the "read"
+	// and "write" methods always reset the deadlines.
+	err := c.nc.SetReadDeadline(time.Now().Add(1 * time.Millisecond))
+	if err != nil {
+		return false
+	}
+	var b [1]byte
+	_, err = c.nc.Read(b[:])
+	return errors.Is(err, os.ErrDeadlineExceeded)
 }
 
-func (c *connection) bumpIdleDeadline() {
+func (c *connection) idleTimeoutExpired() bool {
+	if c.idleTimeout == 0 {
+		return false
+	}
+
+	idleStart, ok := c.idleStart.Load().(time.Time)
+	return ok && idleStart.Add(c.idleTimeout).Before(time.Now())
+}
+
+func (c *connection) bumpIdleStart() {
 	if c.idleTimeout > 0 {
-		c.idleDeadline.Store(time.Now().Add(c.idleTimeout))
+		c.idleStart.Store(time.Now())
 	}
 }
 

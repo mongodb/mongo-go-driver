@@ -167,8 +167,11 @@ type reason struct {
 // connectionPerished checks if a given connection is perished and should be removed from the pool.
 func connectionPerished(conn *connection) (reason, bool) {
 	switch {
-	case conn.closed():
-		// A connection would only be closed if it encountered a network error during an operation and closed itself.
+	case conn.closed() || !conn.isAlive():
+		// A connection would only be closed if it encountered a network error
+		// during an operation and closed itself. If a connection is not alive
+		// (e.g. the connection was closed by the server-side), it's also
+		// considered a network error.
 		return reason{
 			loggerConn: logger.ReasonConnClosedError,
 			event:      event.ReasonError,
@@ -898,13 +901,15 @@ func (p *pool) checkInNoEvent(conn *connection) error {
 		return nil
 	}
 
-	// Bump the connection idle deadline here because we're about to make the connection "available".
-	// The idle deadline is used to determine when a connection has reached its max idle time and
-	// should be closed. A connection reaches its max idle time when it has been "available" in the
-	// idle connections stack for more than the configured duration (maxIdleTimeMS). Set it before
-	// we call connectionPerished(), which checks the idle deadline, because a newly "available"
-	// connection should never be perished due to max idle time.
-	conn.bumpIdleDeadline()
+	// Bump the connection idle start time here because we're about to make the
+	// connection "available". The idle start time is used to determine how long
+	// a connection has been idle and when it has reached its max idle time and
+	// should be closed. A connection reaches its max idle time when it has been
+	// "available" in the idle connections stack for more than the configured
+	// duration (maxIdleTimeMS). Set it before we call connectionPerished(),
+	// which checks the idle deadline, because a newly "available" connection
+	// should never be perished due to max idle time.
+	conn.bumpIdleStart()
 
 	r, perished := connectionPerished(conn)
 	if !perished && conn.pool.getState() == poolClosed {
