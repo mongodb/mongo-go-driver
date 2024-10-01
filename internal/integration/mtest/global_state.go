@@ -11,6 +11,7 @@ import (
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/failpoint"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/topology"
@@ -76,7 +77,7 @@ func ServerVersion() string {
 }
 
 // SetFailPoint configures the provided fail point on the cluster under test using the provided Client.
-func SetFailPoint(fp FailPoint, client *mongo.Client) error {
+func SetFailPoint(fp failpoint.FailPoint, client *mongo.Client) error {
 	admin := client.Database("admin")
 	if err := admin.RunCommand(context.Background(), fp).Err(); err != nil {
 		return fmt.Errorf("error creating fail point: %w", err)
