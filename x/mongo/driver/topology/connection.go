@@ -575,8 +575,18 @@ func (c *connection) closed() bool {
 // seconds. For frequently in-use connections, a network error during an
 // operation will be the first indication of a dead connection.
 func (c *connection) isAlive() bool {
+	if c.nc == nil {
+		return false
+	}
+
 	// If the connection has been idle for less than 10 seconds, skip the
 	// liveness check.
+	//
+	// The 10-seconds idle bypass is based on the liveness check implementation
+	// in the Python Driver. That implementation uses 1 second as the idle
+	// threshold, but we chose to be more conservative in the Go Driver because
+	// this is new behavior with unknown side-effects. See
+	// https://github.com/mongodb/mongo-python-driver/blob/e6b95f65953e01e435004af069a6976473eaf841/pymongo/synchronous/pool.py#L983-L985
 	idleStart, ok := c.idleStart.Load().(time.Time)
 	if !ok || idleStart.Add(10*time.Second).After(time.Now()) {
 		return true
