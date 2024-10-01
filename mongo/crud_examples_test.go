@@ -283,7 +283,7 @@ func ExampleCollection_DeleteMany() {
 	// Delete all documents in which the "name" field is "Bob" or "bob".
 	// Specify the Collation option to provide a collation that will ignore case
 	// for string comparisons.
-	opts := options.Delete().SetCollation(&options.Collation{
+	opts := options.DeleteMany().SetCollation(&options.Collation{
 		Locale:    "en_US",
 		Strength:  1,
 		CaseLevel: false,
@@ -301,7 +301,7 @@ func ExampleCollection_DeleteOne() {
 	// Delete at most one document in which the "name" field is "Bob" or "bob".
 	// Specify the SetCollation option to provide a collation that will ignore
 	// case for string comparisons.
-	opts := options.Delete().SetCollation(&options.Collation{
+	opts := options.DeleteOne().SetCollation(&options.Collation{
 		Locale:    "en_US",
 		Strength:  1,
 		CaseLevel: false,
@@ -568,7 +568,7 @@ func ExampleCollection_UpdateOne() {
 	// "newemail@example.com".
 	// Specify the Upsert option to insert a new document if a document matching
 	// the filter isn't found.
-	opts := options.Update().SetUpsert(true)
+	opts := options.UpdateOne().SetUpsert(true)
 	filter := bson.D{{"_id", id}}
 	update := bson.D{{"$set", bson.D{{"email", "newemail@example.com"}}}}
 
