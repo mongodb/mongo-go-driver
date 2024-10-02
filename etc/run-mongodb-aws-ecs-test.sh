@@ -7,7 +7,7 @@ if [ "${SKIP_ECS_AUTH_TEST:-}" = "true" ]; then
 fi
 
 task build-aws-ecs-test
-    
+
 AUTH_AWS_DIR=${DRIVERS_TOOLS}/.evergreen/auth_aws
 ECS_SRC_DIR=$AUTH_AWS_DIR/src
 
