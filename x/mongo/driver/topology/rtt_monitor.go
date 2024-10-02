@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/montanaflynn/stats"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
@@ -41,11 +42,14 @@ type rttMonitor struct {
 	// connMu guards connecting and disconnecting. This is necessary since
 	// disconnecting will await the cancellation of a started connection. The
 	// use case for rttMonitor.connect needs to be goroutine safe.
-	connMu        sync.Mutex
-	averageRTT    time.Duration
-	averageRTTSet bool
-	movingMin     *list.List
-	minRTT        time.Duration
+	connMu                 sync.Mutex
+	averageRTT             time.Duration
+	averageRTTSet          bool
+	movingMin              *list.List
+	minRTT                 time.Duration
+	stddevRTT              time.Duration
+	stddevSum              float64
+	callsToAppendMovingMin int
 
 	closeWg  sync.WaitGroup
 	cfg      *rttConfig
@@ -190,9 +194,22 @@ func (r *rttMonitor) reset() {
 	r.averageRTTSet = false
 }
 
+func calcStddev(l *list.List) (float64, error) {
+	// Convert Durations to float64s.
+	floatSamples := make([]float64, 0, l.Len())
+	for element := l.Front(); element != nil; element = element.Next() {
+		sample := float64(element.Value.(time.Duration))
+
+		floatSamples = append(floatSamples, sample)
+	}
+	return stats.StandardDeviation(floatSamples)
+}
+
 // appendMovingMin will append the RTT to the movingMin list which tracks a
 // minimum RTT within the last "minRTTSamplesForMovingMin" RTT samples.
 func (r *rttMonitor) appendMovingMin(rtt time.Duration) {
+	defer func() { r.callsToAppendMovingMin++ }()
+
 	if r.movingMin == nil || rtt < 0 {
 		return
 	}
@@ -202,6 +219,12 @@ func (r *rttMonitor) appendMovingMin(rtt time.Duration) {
 	}
 
 	r.movingMin.PushBack(rtt)
+
+	// Collect a sum of stddevs over maxRTTSamplesForMovingMin calls
+	if r.callsToAppendMovingMin >= maxRTTSamplesForMovingMin {
+		stddev, _ := calcStddev(r.movingMin)
+		r.stddevSum += stddev
+	}
 }
 
 // min will return the minimum value in the movingMin list.
@@ -238,6 +261,10 @@ func (r *rttMonitor) addSample(rtt time.Duration) {
 	}
 
 	r.averageRTT = time.Duration(rttAlphaValue*float64(rtt) + (1-rttAlphaValue)*float64(r.averageRTT))
+
+	// Get the number of times stddev was updated and calculate the average stddev
+	frequency := r.callsToAppendMovingMin / maxRTTSamplesForMovingMin
+	r.stddevRTT = time.Duration(r.stddevSum / float64(frequency))
 }
 
 // EWMA returns the exponentially weighted moving average observed round-trip time.
@@ -262,7 +289,8 @@ func (r *rttMonitor) Stats() string {
 	defer r.mu.RUnlock()
 
 	return fmt.Sprintf(
-		"network round-trip time stats: moving avg: %v, min: %v",
+		"network round-trip time stats: moving avg: %v, min: %v, moving stddev: %v",
 		r.averageRTT,
-		r.minRTT)
+		r.minRTT,
+		r.stddevRTT)
 }
