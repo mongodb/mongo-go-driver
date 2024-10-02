@@ -10,10 +10,10 @@ import (
 	"container/list"
 	"context"
 	"fmt"
+	"math"
 	"sync"
 	"time"
 
-	"github.com/montanaflynn/stats"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
@@ -183,8 +183,8 @@ func (r *rttMonitor) runHellos(conn *connection) {
 	}
 }
 
-// reset sets the average and min RTT to 0. This should only be called from the server monitor when an error
-// occurs during a server check. Errors in the RTT monitor should not reset the RTTs.
+// reset sets the average, min, and stddev RTT to 0. This should only be called from the server monitor
+// when an error occurs during a server check. Errors in the RTT monitor should not reset the RTTs.
 func (r *rttMonitor) reset() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -192,17 +192,20 @@ func (r *rttMonitor) reset() {
 	r.movingMin = list.New()
 	r.averageRTT = 0
 	r.averageRTTSet = false
+	r.stddevSum = 0
+	r.callsToAppendMovingMin = 0
 }
 
-func calcStddev(l *list.List) (float64, error) {
-	// Convert Durations to float64s.
-	floatSamples := make([]float64, 0, l.Len())
-	for element := l.Front(); element != nil; element = element.Next() {
-		sample := float64(element.Value.(time.Duration))
+func (r *rttMonitor) calcStddev() float64 {
+	var stddev float64
 
-		floatSamples = append(floatSamples, sample)
+	for element := r.movingMin.Front(); element != nil; element = element.Next() {
+		sample := element.Value.(float64)
+		stddev += math.Pow(sample-float64(r.averageRTT), 2)
 	}
-	return stats.StandardDeviation(floatSamples)
+	stddev = math.Sqrt(stddev / float64(r.movingMin.Len()))
+
+	return stddev
 }
 
 // appendMovingMin will append the RTT to the movingMin list which tracks a
@@ -222,7 +225,7 @@ func (r *rttMonitor) appendMovingMin(rtt time.Duration) {
 
 	// Collect a sum of stddevs over maxRTTSamplesForMovingMin calls
 	if r.callsToAppendMovingMin >= maxRTTSamplesForMovingMin {
-		stddev, _ := calcStddev(r.movingMin)
+		stddev := r.calcStddev()
 		r.stddevSum += stddev
 	}
 }
