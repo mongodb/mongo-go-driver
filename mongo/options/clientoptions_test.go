@@ -247,44 +247,44 @@ func TestClientOptions(t *testing.T) {
 			err  error
 		}{
 			{
-				"heartbeatFrequencyMS > minimum (500ms)",
-				Client().SetHeartbeatInterval(10000 * time.Millisecond),
-				nil,
+				name: "heartbeatFrequencyMS > minimum (500ms)",
+				opts: Client().SetHeartbeatInterval(10000 * time.Millisecond),
+				err:  nil,
 			},
 			{
-				"heartbeatFrequencyMS == minimum (500ms)",
-				Client().SetHeartbeatInterval(500 * time.Millisecond),
-				nil,
+				name: "heartbeatFrequencyMS == minimum (500ms)",
+				opts: Client().SetHeartbeatInterval(500 * time.Millisecond),
+				err:  nil,
 			},
 			{
-				"heartbeatFrequencyMS < minimum (500ms)",
-				Client().SetHeartbeatInterval(10 * time.Millisecond),
-				errors.New("heartbeatFrequencyMS must exceed the minimum heartbeat interval of 500ms, got heartbeatFrequencyMS=\"10ms\""),
+				name: "heartbeatFrequencyMS < minimum (500ms)",
+				opts: Client().SetHeartbeatInterval(10 * time.Millisecond),
+				err:  errors.New("heartbeatFrequencyMS must exceed the minimum heartbeat interval of 500ms, got heartbeatFrequencyMS=\"10ms\""),
 			},
 			{
-				"heartbeatFrequencyMS == 0",
-				Client().SetHeartbeatInterval(0 * time.Millisecond),
-				errors.New("heartbeatFrequencyMS must exceed the minimum heartbeat interval of 500ms, got heartbeatFrequencyMS=\"0s\""),
+				name: "heartbeatFrequencyMS == 0",
+				opts: Client().SetHeartbeatInterval(0 * time.Millisecond),
+				err:  errors.New("heartbeatFrequencyMS must exceed the minimum heartbeat interval of 500ms, got heartbeatFrequencyMS=\"0s\""),
 			},
 			{
-				"heartbeatFrequencyMS > minimum (500ms) from URI",
-				Client().ApplyURI("mongodb://localhost:27017/?heartbeatFrequencyMS=10000"),
-				nil,
+				name: "heartbeatFrequencyMS > minimum (500ms) from URI",
+				opts: Client().ApplyURI("mongodb://localhost:27017/?heartbeatFrequencyMS=10000"),
+				err:  nil,
 			},
 			{
-				"heartbeatFrequencyMS == minimum (500ms) from URI",
-				Client().ApplyURI("mongodb://localhost:27017/?heartbeatFrequencyMS=500"),
-				nil,
+				name: "heartbeatFrequencyMS == minimum (500ms) from URI",
+				opts: Client().ApplyURI("mongodb://localhost:27017/?heartbeatFrequencyMS=500"),
+				err:  nil,
 			},
 			{
-				"heartbeatFrequencyMS < minimum (500ms) from URI",
-				Client().ApplyURI("mongodb://localhost:27017/?heartbeatFrequencyMS=10"),
-				errors.New("heartbeatFrequencyMS must exceed the minimum heartbeat interval of 500ms, got heartbeatFrequencyMS=\"10ms\""),
+				name: "heartbeatFrequencyMS < minimum (500ms) from URI",
+				opts: Client().ApplyURI("mongodb://localhost:27017/?heartbeatFrequencyMS=10"),
+				err:  errors.New("heartbeatFrequencyMS must exceed the minimum heartbeat interval of 500ms, got heartbeatFrequencyMS=\"10ms\""),
 			},
 			{
-				"heartbeatFrequencyMS == 0 from URI",
-				Client().ApplyURI("mongodb://localhost:27017/?heartbeatFrequencyMS=0"),
-				errors.New("heartbeatFrequencyMS must exceed the minimum heartbeat interval of 500ms, got heartbeatFrequencyMS=\"0s\""),
+				name: "heartbeatFrequencyMS == 0 from URI",
+				opts: Client().ApplyURI("mongodb://localhost:27017/?heartbeatFrequencyMS=0"),
+				err:  errors.New("heartbeatFrequencyMS must exceed the minimum heartbeat interval of 500ms, got heartbeatFrequencyMS=\"0s\""),
 			},
 		}
 		for _, tc := range testCases {
