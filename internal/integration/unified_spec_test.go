@@ -46,7 +46,7 @@ const (
 )
 
 var (
-	defaultHeartbeatInterval = 50 * time.Millisecond
+	defaultHeartbeatInterval = 500 * time.Millisecond
 	skippedTestDescriptions  = map[string]string{
 		// SPEC-1403: This test checks to see if the correct error is thrown when auto encrypting with a server < 4.2.
 		// Currently, the test will fail because a server < 4.2 wouldn't have mongocryptd, so Client construction

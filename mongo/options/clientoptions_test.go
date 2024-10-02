@@ -240,6 +240,60 @@ func TestClientOptions(t *testing.T) {
 			})
 		}
 	})
+	t.Run("heartbeatFrequencyMS validation", func(t *testing.T) {
+		testCases := []struct {
+			name string
+			opts *ClientOptionsBuilder
+			err  error
+		}{
+			{
+				name: "heartbeatFrequencyMS > minimum (500ms)",
+				opts: Client().SetHeartbeatInterval(10000 * time.Millisecond),
+				err:  nil,
+			},
+			{
+				name: "heartbeatFrequencyMS == minimum (500ms)",
+				opts: Client().SetHeartbeatInterval(500 * time.Millisecond),
+				err:  nil,
+			},
+			{
+				name: "heartbeatFrequencyMS < minimum (500ms)",
+				opts: Client().SetHeartbeatInterval(10 * time.Millisecond),
+				err:  errors.New("heartbeatFrequencyMS must exceed the minimum heartbeat interval of 500ms, got heartbeatFrequencyMS=\"10ms\""),
+			},
+			{
+				name: "heartbeatFrequencyMS == 0",
+				opts: Client().SetHeartbeatInterval(0 * time.Millisecond),
+				err:  errors.New("heartbeatFrequencyMS must exceed the minimum heartbeat interval of 500ms, got heartbeatFrequencyMS=\"0s\""),
+			},
+			{
+				name: "heartbeatFrequencyMS > minimum (500ms) from URI",
+				opts: Client().ApplyURI("mongodb://localhost:27017/?heartbeatFrequencyMS=10000"),
+				err:  nil,
+			},
+			{
+				name: "heartbeatFrequencyMS == minimum (500ms) from URI",
+				opts: Client().ApplyURI("mongodb://localhost:27017/?heartbeatFrequencyMS=500"),
+				err:  nil,
+			},
+			{
+				name: "heartbeatFrequencyMS < minimum (500ms) from URI",
+				opts: Client().ApplyURI("mongodb://localhost:27017/?heartbeatFrequencyMS=10"),
+				err:  errors.New("heartbeatFrequencyMS must exceed the minimum heartbeat interval of 500ms, got heartbeatFrequencyMS=\"10ms\""),
+			},
+			{
+				name: "heartbeatFrequencyMS == 0 from URI",
+				opts: Client().ApplyURI("mongodb://localhost:27017/?heartbeatFrequencyMS=0"),
+				err:  errors.New("heartbeatFrequencyMS must exceed the minimum heartbeat interval of 500ms, got heartbeatFrequencyMS=\"0s\""),
+			},
+		}
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				err := tc.opts.Validate()
+				assert.Equal(t, tc.err, err)
+			})
+		}
+	})
 	t.Run("minPoolSize validation", func(t *testing.T) {
 		testCases := []struct {
 			name string
