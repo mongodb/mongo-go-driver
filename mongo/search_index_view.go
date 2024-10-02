@@ -20,8 +20,14 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
-// SearchIndexView is a type that can be used to create, drop, list and update search indexes on a collection. A SearchIndexView for
-// a collection can be created by a call to Collection.SearchIndexes().
+// SearchIndexView is a type that can be used to create, drop, list and update
+// search indexes on a collection. A SearchIndexView for a collection can be
+// created by a call to Collection.SearchIndexes().
+//
+// Search index commands are asynchronous and return from the server before
+// the index is successfully updated, created or dropped. In order to determine
+// when an index has been created / updated, users are expected to run the
+// listSearchIndexes repeatedly until index changes appear.
 type SearchIndexView struct {
 	coll *Collection
 }
@@ -73,6 +79,8 @@ func (siv SearchIndexView) List(
 
 // CreateOne executes a createSearchIndexes command to create a search index on the collection and returns the name of the new
 // search index. See the SearchIndexView.CreateMany documentation for more information and an example.
+//
+// This is an asynchronous operation.
 func (siv SearchIndexView) CreateOne(
 	ctx context.Context,
 	model SearchIndexModel,
@@ -93,6 +101,8 @@ func (siv SearchIndexView) CreateOne(
 //
 // The opts parameter can be used to specify options for this operation (see the options.CreateSearchIndexesOptions
 // documentation).
+//
+// This is an asynchronous operation.
 func (siv SearchIndexView) CreateMany(
 	ctx context.Context,
 	models []SearchIndexModel,
@@ -183,6 +193,8 @@ func (siv SearchIndexView) CreateMany(
 //
 // The opts parameter can be used to specify options for this operation (see the options.DropSearchIndexOptions
 // documentation).
+//
+// This is an asynchronous operation.
 func (siv SearchIndexView) DropOne(
 	ctx context.Context,
 	name string,
@@ -231,6 +243,8 @@ func (siv SearchIndexView) DropOne(
 //
 // The opts parameter can be used to specify options for this operation (see the options.UpdateSearchIndexOptions
 // documentation).
+//
+// This is an asynchronous operation.
 func (siv SearchIndexView) UpdateOne(
 	ctx context.Context,
 	name string,
