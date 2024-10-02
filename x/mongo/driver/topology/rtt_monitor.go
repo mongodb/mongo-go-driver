@@ -200,7 +200,7 @@ func (r *rttMonitor) calcStddev() float64 {
 	var stddev float64
 
 	for element := r.movingMin.Front(); element != nil; element = element.Next() {
-		sample := element.Value.(float64)
+		sample := float64(element.Value.(time.Duration))
 		stddev += math.Pow(sample-float64(r.averageRTT), 2)
 	}
 	stddev = math.Sqrt(stddev / float64(r.movingMin.Len()))
