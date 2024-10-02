@@ -23,14 +23,11 @@ func newMissingArgumentError(arg string) error {
 type updateArguments struct {
 	filter bson.Raw
 	update interface{}
-	opts   *options.UpdateOptionsBuilder
 }
 
-func createUpdateArguments(args bson.Raw) (*updateArguments, error) {
-	ua := &updateArguments{
-		opts: options.Update(),
-	}
-	var err error
+func createUpdateManyArguments(args bson.Raw) (*updateArguments, *options.UpdateManyOptionsBuilder, error) {
+	ua := &updateArguments{}
+	opts := options.UpdateMany()
 
 	elems, _ := args.Elements()
 	for _, elem := range elems {
@@ -39,48 +36,105 @@ func createUpdateArguments(args bson.Raw) (*updateArguments, error) {
 
 		switch key {
 		case "arrayFilters":
-			ua.opts.SetArrayFilters(
+			opts.SetArrayFilters(
 				bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...),
 			)
 		case "bypassDocumentValidation":
-			ua.opts.SetBypassDocumentValidation(val.Boolean())
+			opts.SetBypassDocumentValidation(val.Boolean())
 		case "collation":
 			collation, err := createCollation(val.Document())
 			if err != nil {
-				return nil, fmt.Errorf("error creating collation: %w", err)
+				return nil, nil, fmt.Errorf("error creating collation: %w", err)
 			}
-			ua.opts.SetCollation(collation)
+			opts.SetCollation(collation)
 		case "comment":
-			ua.opts.SetComment(val)
+			opts.SetComment(val)
 		case "filter":
 			ua.filter = val.Document()
 		case "hint":
 			hint, err := createHint(val)
 			if err != nil {
-				return nil, fmt.Errorf("error creating hint: %w", err)
+				return nil, nil, fmt.Errorf("error creating hint: %w", err)
 			}
-			ua.opts.SetHint(hint)
+			opts.SetHint(hint)
 		case "let":
-			ua.opts.SetLet(val.Document())
+			opts.SetLet(val.Document())
 		case "update":
+			var err error
 			ua.update, err = createUpdateValue(val)
 			if err != nil {
-				return nil, fmt.Errorf("error processing update value: %w", err)
+				return nil, nil, fmt.Errorf("error processing update value: %w", err)
 			}
 		case "upsert":
-			ua.opts.SetUpsert(val.Boolean())
+			opts.SetUpsert(val.Boolean())
 		default:
-			return nil, fmt.Errorf("unrecognized update option %q", key)
+			return nil, nil, fmt.Errorf("unrecognized update option %q", key)
 		}
 	}
 	if ua.filter == nil {
-		return nil, newMissingArgumentError("filter")
+		return nil, nil, newMissingArgumentError("filter")
 	}
 	if ua.update == nil {
-		return nil, newMissingArgumentError("update")
+		return nil, nil, newMissingArgumentError("update")
 	}
 
-	return ua, nil
+	return ua, opts, nil
+}
+
+func createUpdateOneArguments(args bson.Raw) (*updateArguments, *options.UpdateOneOptionsBuilder, error) {
+	ua := &updateArguments{}
+	opts := options.UpdateOne()
+
+	elems, _ := args.Elements()
+	for _, elem := range elems {
+		key := elem.Key()
+		val := elem.Value()
+
+		switch key {
+		case "arrayFilters":
+			opts.SetArrayFilters(
+				bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...),
+			)
+		case "bypassDocumentValidation":
+			opts.SetBypassDocumentValidation(val.Boolean())
+		case "collation":
+			collation, err := createCollation(val.Document())
+			if err != nil {
+				return nil, nil, fmt.Errorf("error creating collation: %w", err)
+			}
+			opts.SetCollation(collation)
+		case "comment":
+			opts.SetComment(val)
+		case "filter":
+			ua.filter = val.Document()
+		case "hint":
+			hint, err := createHint(val)
+			if err != nil {
+				return nil, nil, fmt.Errorf("error creating hint: %w", err)
+			}
+			opts.SetHint(hint)
+		case "let":
+			opts.SetLet(val.Document())
+		case "update":
+			var err error
+			ua.update, err = createUpdateValue(val)
+			if err != nil {
+				return nil, nil, fmt.Errorf("error processing update value: %w", err)
+			}
+		case "upsert":
+			opts.SetUpsert(val.Boolean())
+		default:
+			return nil, nil, fmt.Errorf("unrecognized update option %q", key)
+		}
+	}
+	if ua.filter == nil {
+		return nil, nil, newMissingArgumentError("filter")
+	}
+	if ua.update == nil {
+		return nil, nil, newMissingArgumentError("update")
+	}
+
+	return ua, opts, nil
 }
 
 type listCollectionsArguments struct {

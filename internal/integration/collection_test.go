@@ -296,7 +296,7 @@ func TestCollection(t *testing.T) {
 		})
 		mt.RunOpts("not found with options", mtest.NewOptions().MinServerVersion("3.4"), func(mt *mtest.T) {
 			initCollection(mt, mt.Coll)
-			opts := options.Delete().SetCollation(&options.Collation{Locale: "en_US"})
+			opts := options.DeleteOne().SetCollation(&options.Collation{Locale: "en_US"})
 			res, err := mt.Coll.DeleteOne(context.Background(), bson.D{{"x", 0}}, opts)
 			assert.Nil(mt, err, "DeleteOne error: %v", err)
 			assert.Equal(mt, int64(0), res.DeletedCount, "expected DeletedCount 0, got %v", res.DeletedCount)
@@ -339,13 +339,13 @@ func TestCollection(t *testing.T) {
 			})
 			assert.Nil(mt, err, "CreateOne error: %v", err)
 
-			opts := options.Delete().SetHint(bson.M{"x": 1})
+			opts := options.DeleteOne().SetHint(bson.M{"x": 1})
 			res, err := mt.Coll.DeleteOne(context.Background(), bson.D{{"x", 1}}, opts)
 			assert.Nil(mt, err, "DeleteOne error: %v", err)
 			assert.Equal(mt, int64(1), res.DeletedCount, "expected DeletedCount 1, got %v", res.DeletedCount)
 		})
 		mt.RunOpts("multikey map index", mtest.NewOptions().MinServerVersion("4.4"), func(mt *mtest.T) {
-			opts := options.Delete().SetHint(bson.M{"x": 1, "y": 1})
+			opts := options.DeleteOne().SetHint(bson.M{"x": 1, "y": 1})
 			_, err := mt.Coll.DeleteOne(context.Background(), bson.D{{"x", 0}}, opts)
 			assert.Equal(mt, mongo.ErrMapForOrderedArgument{"hint"}, err, "expected error %v, got %v", mongo.ErrMapForOrderedArgument{"hint"}, err)
 		})
@@ -365,7 +365,7 @@ func TestCollection(t *testing.T) {
 		})
 		mt.RunOpts("not found with options", mtest.NewOptions().MinServerVersion("3.4"), func(mt *mtest.T) {
 			initCollection(mt, mt.Coll)
-			opts := options.Delete().SetCollation(&options.Collation{Locale: "en_US"})
+			opts := options.DeleteMany().SetCollation(&options.Collation{Locale: "en_US"})
 			res, err := mt.Coll.DeleteMany(context.Background(), bson.D{{"x", bson.D{{"$lt", 1}}}}, opts)
 			assert.Nil(mt, err, "DeleteMany error: %v", err)
 			assert.Equal(mt, int64(0), res.DeletedCount, "expected DeletedCount 0, got %v", res.DeletedCount)
@@ -408,13 +408,13 @@ func TestCollection(t *testing.T) {
 			})
 			assert.Nil(mt, err, "index CreateOne error: %v", err)
 
-			opts := options.Delete().SetHint(bson.M{"x": 1})
+			opts := options.DeleteOne().SetHint(bson.M{"x": 1})
 			res, err := mt.Coll.DeleteOne(context.Background(), bson.D{{"x", 1}}, opts)
 			assert.Nil(mt, err, "DeleteOne error: %v", err)
 			assert.Equal(mt, int64(1), res.DeletedCount, "expected DeletedCount 1, got %v", res.DeletedCount)
 		})
 		mt.RunOpts("multikey map index", mtest.NewOptions().MinServerVersion("4.4"), func(mt *mtest.T) {
-			opts := options.Delete().SetHint(bson.M{"x": 1, "y": 1})
+			opts := options.DeleteMany().SetHint(bson.M{"x": 1, "y": 1})
 			_, err := mt.Coll.DeleteMany(context.Background(), bson.D{{"x", 0}}, opts)
 			assert.Equal(mt, mongo.ErrMapForOrderedArgument{"hint"}, err, "expected error %v, got %v", mongo.ErrMapForOrderedArgument{"hint"}, err)
 		})
@@ -451,7 +451,7 @@ func TestCollection(t *testing.T) {
 			filter := bson.D{{"x", 0}}
 			update := bson.D{{"$inc", bson.D{{"x", 1}}}}
 
-			res, err := mt.Coll.UpdateOne(context.Background(), filter, update, options.Update().SetUpsert(true))
+			res, err := mt.Coll.UpdateOne(context.Background(), filter, update, options.UpdateOne().SetUpsert(true))
 			assert.Nil(mt, err, "UpdateOne error: %v", err)
 			assert.Equal(mt, int64(0), res.MatchedCount, "expected matched count 0, got %v", res.MatchedCount)
 			assert.Equal(mt, int64(0), res.ModifiedCount, "expected matched count 0, got %v", res.ModifiedCount)
@@ -570,7 +570,7 @@ func TestCollection(t *testing.T) {
 			update := bson.D{{"$inc", bson.D{{"x", 1}}}}
 
 			id := "blah"
-			res, err := mt.Coll.UpdateByID(context.Background(), id, update, options.Update().SetUpsert(true))
+			res, err := mt.Coll.UpdateByID(context.Background(), id, update, options.UpdateOne().SetUpsert(true))
 			assert.Nil(mt, err, "UpdateByID error: %v", err)
 			assert.Equal(mt, int64(0), res.MatchedCount, "expected matched count 0, got %v", res.MatchedCount)
 			assert.Equal(mt, int64(0), res.ModifiedCount, "expected modified count 0, got %v", res.ModifiedCount)
@@ -633,7 +633,7 @@ func TestCollection(t *testing.T) {
 			filter := bson.D{{"x", bson.D{{"$lt", 1}}}}
 			update := bson.D{{"$inc", bson.D{{"x", 1}}}}
 
-			res, err := mt.Coll.UpdateMany(context.Background(), filter, update, options.Update().SetUpsert(true))
+			res, err := mt.Coll.UpdateMany(context.Background(), filter, update, options.UpdateMany().SetUpsert(true))
 			assert.Nil(mt, err, "UpdateMany error: %v", err)
 			assert.Equal(mt, int64(0), res.MatchedCount, "expected matched count 0, got %v", res.MatchedCount)
 			assert.Equal(mt, int64(0), res.ModifiedCount, "expected modified count 0, got %v", res.ModifiedCount)
