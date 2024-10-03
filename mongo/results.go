@@ -32,13 +32,13 @@ type ClientBulkWriteResult struct {
 	UpsertedCount int64
 
 	// A map of operation index to the _id of each inserted document.
-	InsertResults map[int64]ClientInsertResult
+	InsertResults map[int]ClientInsertResult
 
 	// A map of operation index to the _id of each updated document.
-	UpdateResults map[int64]ClientUpdateResult
+	UpdateResults map[int]ClientUpdateResult
 
 	// A map of operation index to the _id of each deleted document.
-	DeleteResults map[int64]ClientDeleteResult
+	DeleteResults map[int]ClientDeleteResult
 }
 
 // ClientInsertResult is the result type returned by a client-level bulk write of InsertOne operation.

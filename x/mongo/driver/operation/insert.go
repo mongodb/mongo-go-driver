@@ -80,7 +80,7 @@ func NewInsert(documents ...bsoncore.Document) *Insert {
 // Result returns the result of executing this operation.
 func (i *Insert) Result() InsertResult { return i.result }
 
-func (i *Insert) processResponse(info driver.ResponseInfo) error {
+func (i *Insert) processResponse(_ context.Context, info driver.ResponseInfo) error {
 	ir, err := buildInsertResult(info.ServerResponse)
 	i.result.N += ir.N
 	return err
@@ -91,31 +91,32 @@ func (i *Insert) Execute(ctx context.Context) error {
 	if i.deployment == nil {
 		return errors.New("the Insert operation must have a Deployment set before Execute can be called")
 	}
-	batches := &driver.Batches{
-		Identifier: "documents",
-		Documents:  i.documents,
-		Ordered:    i.ordered,
-	}
 
 	return driver.Operation{
 		CommandFn:         i.command,
 		ProcessResponseFn: i.processResponse,
-		Batches:           batches,
-		RetryMode:         i.retry,
-		Type:              driver.Write,
-		Client:            i.session,
-		Clock:             i.clock,
-		CommandMonitor:    i.monitor,
-		Crypt:             i.crypt,
-		Database:          i.database,
-		Deployment:        i.deployment,
-		Selector:          i.selector,
-		WriteConcern:      i.writeConcern,
-		ServerAPI:         i.serverAPI,
-		Timeout:           i.timeout,
-		Logger:            i.logger,
-		Name:              driverutil.InsertOp,
-		Authenticator:     i.authenticator,
+		Batches: []driver.Batches{
+			{
+				Identifier: "documents",
+				Documents:  i.documents,
+				Ordered:    i.ordered,
+			},
+		},
+		RetryMode:      i.retry,
+		Type:           driver.Write,
+		Client:         i.session,
+		Clock:          i.clock,
+		CommandMonitor: i.monitor,
+		Crypt:          i.crypt,
+		Database:       i.database,
+		Deployment:     i.deployment,
+		Selector:       i.selector,
+		WriteConcern:   i.writeConcern,
+		ServerAPI:      i.serverAPI,
+		Timeout:        i.timeout,
+		Logger:         i.logger,
+		Name:           driverutil.InsertOp,
+		Authenticator:  i.authenticator,
 	}.Execute(ctx)
 
 }

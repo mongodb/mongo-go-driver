@@ -74,7 +74,7 @@ func NewDropIndexes(index any) *DropIndexes {
 // Result returns the result of executing this operation.
 func (di *DropIndexes) Result() DropIndexesResult { return di.result }
 
-func (di *DropIndexes) processResponse(info driver.ResponseInfo) error {
+func (di *DropIndexes) processResponse(_ context.Context, info driver.ResponseInfo) error {
 	var err error
 	di.result, err = buildDropIndexesResult(info.ServerResponse)
 	return err

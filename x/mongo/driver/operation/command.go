@@ -15,7 +15,6 @@ import (
 	"go.mongodb.org/mongo-driver/internal/logger"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
@@ -23,18 +22,13 @@ import (
 
 // Command is used to run a generic operation.
 type Command struct {
-	name           string
 	authenticator  driver.Authenticator
-	commandFn      func([]byte, description.SelectedServer) ([]byte, error)
+	command        bsoncore.Document
 	database       string
 	deployment     driver.Deployment
 	selector       description.ServerSelector
-	writeConcern   *writeconcern.WriteConcern
 	readPreference *readpref.ReadPref
 	clock          *session.ClusterClock
-	retry          *driver.RetryMode
-	opType         driver.Type
-	batches        *driver.Batches
 	session        *session.Client
 	monitor        *event.CommandMonitor
 	resultResponse bsoncore.Document
@@ -51,16 +45,7 @@ type Command struct {
 // the Result() function.
 func NewCommand(command bsoncore.Document) *Command {
 	return &Command{
-		commandFn: func(dst []byte, _ description.SelectedServer) ([]byte, error) {
-			return append(dst, command[4:len(command)-1]...), nil
-		},
-	}
-}
-
-// NewCommandFn constructs and returns a new Command.
-func NewCommandFn(commandFn func([]byte, description.SelectedServer) ([]byte, error)) *Command {
-	return &Command{
-		commandFn: commandFn,
+		command: command,
 	}
 }
 
@@ -68,9 +53,7 @@ func NewCommandFn(commandFn func([]byte, description.SelectedServer) ([]byte, er
 // construct a cursor, which can be accessed via the ResultCursor() function.
 func NewCursorCommand(command bsoncore.Document, cursorOpts driver.CursorOptions) *Command {
 	return &Command{
-		commandFn: func(dst []byte, _ description.SelectedServer) ([]byte, error) {
-			return append(dst, command[4:len(command)-1]...), nil
-		},
+		command:      command,
 		cursorOpts:   cursorOpts,
 		createCursor: true,
 	}
@@ -96,8 +79,10 @@ func (c *Command) Execute(ctx context.Context) error {
 	}
 
 	return driver.Operation{
-		CommandFn: c.commandFn,
-		ProcessResponseFn: func(info driver.ResponseInfo) error {
+		CommandFn: func(dst []byte, _ description.SelectedServer) ([]byte, error) {
+			return append(dst, c.command[4:len(c.command)-1]...), nil
+		},
+		ProcessResponseFn: func(_ context.Context, info driver.ResponseInfo) error {
 			c.resultResponse = info.ServerResponse
 
 			if c.createCursor {
@@ -114,21 +99,16 @@ func (c *Command) Execute(ctx context.Context) error {
 		},
 		Client:         c.session,
 		Clock:          c.clock,
-		RetryMode:      c.retry,
-		Type:           c.opType,
-		Batches:        c.batches,
 		CommandMonitor: c.monitor,
 		Database:       c.database,
 		Deployment:     c.deployment,
 		ReadPreference: c.readPreference,
 		Selector:       c.selector,
-		WriteConcern:   c.writeConcern,
 		Crypt:          c.crypt,
 		ServerAPI:      c.serverAPI,
 		Timeout:        c.timeout,
 		Logger:         c.logger,
 		Authenticator:  c.authenticator,
-		Name:           c.name,
 	}.Execute(ctx)
 }
 
@@ -159,36 +139,6 @@ func (c *Command) CommandMonitor(monitor *event.CommandMonitor) *Command {
 	}
 
 	c.monitor = monitor
-	return c
-}
-
-// Batches sets the batches for this operation.
-func (c *Command) Batches(batches *driver.Batches) *Command {
-	if c == nil {
-		c = new(Command)
-	}
-
-	c.batches = batches
-	return c
-}
-
-// RetryMode sets the RetryMode for this operation.
-func (c *Command) RetryMode(retry driver.RetryMode) *Command {
-	if c == nil {
-		c = new(Command)
-	}
-
-	c.retry = &retry
-	return c
-}
-
-// Type sets the opType for this operation.
-func (c *Command) Type(t driver.Type) *Command {
-	if c == nil {
-		c = new(Command)
-	}
-
-	c.opType = t
 	return c
 }
 
@@ -229,16 +179,6 @@ func (c *Command) ServerSelector(selector description.ServerSelector) *Command {
 	}
 
 	c.selector = selector
-	return c
-}
-
-// WriteConcern sets the write concern for this operation.
-func (c *Command) WriteConcern(writeConcern *writeconcern.WriteConcern) *Command {
-	if c == nil {
-		c = new(Command)
-	}
-
-	c.writeConcern = writeConcern
 	return c
 }
 
@@ -289,15 +229,5 @@ func (c *Command) Authenticator(authenticator driver.Authenticator) *Command {
 	}
 
 	c.authenticator = authenticator
-	return c
-}
-
-// Name sets the name for this operation.
-func (c *Command) Name(name string) *Command {
-	if c == nil {
-		c = new(Command)
-	}
-
-	c.name = name
 	return c
 }

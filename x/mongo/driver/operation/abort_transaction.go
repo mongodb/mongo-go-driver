@@ -41,7 +41,7 @@ func NewAbortTransaction() *AbortTransaction {
 	return &AbortTransaction{}
 }
 
-func (at *AbortTransaction) processResponse(driver.ResponseInfo) error {
+func (at *AbortTransaction) processResponse(context.Context, driver.ResponseInfo) error {
 	var err error
 	return err
 }

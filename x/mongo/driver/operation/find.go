@@ -80,7 +80,7 @@ func (f *Find) Result(opts driver.CursorOptions) (*driver.BatchCursor, error) {
 	return driver.NewBatchCursor(f.result, f.session, f.clock, opts)
 }
 
-func (f *Find) processResponse(info driver.ResponseInfo) error {
+func (f *Find) processResponse(_ context.Context, info driver.ResponseInfo) error {
 	var err error
 	f.result, err = driver.NewCursorResponse(info)
 	return err

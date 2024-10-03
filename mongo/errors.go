@@ -614,10 +614,10 @@ type ClientBulkWriteException struct {
 	TopLevelError *WriteError
 
 	// The write concern errors that occurred.
-	WriteConcernErrors []*WriteConcernError
+	WriteConcernErrors []WriteConcernError
 
 	// The write errors that occurred during individual operation execution.
-	WriteErrors map[int64]WriteError
+	WriteErrors map[int]WriteError
 
 	PartialResult *ClientBulkWriteResult
 }

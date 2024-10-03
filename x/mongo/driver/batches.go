@@ -25,10 +25,6 @@ type Batches struct {
 	Ordered    *bool
 }
 
-// Valid returns true if Batches contains both an identifier and the length of Documents is greater
-// than zero.
-func (b *Batches) Valid() bool { return b != nil && b.Identifier != "" && len(b.Documents) > 0 }
-
 // ClearBatch clears the Current batch. This must be called before AdvanceBatch will advance to the
 // next batch.
 func (b *Batches) ClearBatch() { b.Current = b.Current[:0] }

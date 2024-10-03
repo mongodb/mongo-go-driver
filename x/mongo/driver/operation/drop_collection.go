@@ -79,7 +79,7 @@ func NewDropCollection() *DropCollection {
 // Result returns the result of executing this operation.
 func (dc *DropCollection) Result() DropCollectionResult { return dc.result }
 
-func (dc *DropCollection) processResponse(info driver.ResponseInfo) error {
+func (dc *DropCollection) processResponse(_ context.Context, info driver.ResponseInfo) error {
 	var err error
 	dc.result, err = buildDropCollectionResult(info.ServerResponse)
 	return err
