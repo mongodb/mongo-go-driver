@@ -65,8 +65,8 @@ if [[ "${GO_BUILD_TAGS}" =~ cse ]]; then
     LD_LIBRARY_PATH=$(pwd)/install/libmongocrypt/lib64
 
     if [ "$(uname -s)" = "Darwin" ]; then
-    PKG_CONFIG_PATH=$(pwd)/install/libmongocrypt/lib/pkgconfig
-    DYLD_FALLBACK_LIBRARY_PATH=$(pwd)/install/libmongocrypt/lib
+      PKG_CONFIG_PATH=$(pwd)/install/libmongocrypt/lib/pkgconfig
+      DYLD_FALLBACK_LIBRARY_PATH=$(pwd)/install/libmongocrypt/lib
     fi
 
     if [ "${SKIP_CRYPT_SHARED_LIB:-''}" = "true" ]; then
@@ -76,7 +76,12 @@ if [[ "${GO_BUILD_TAGS}" =~ cse ]]; then
         # Find the crypt_shared library file in the current directory and set the CRYPT_SHARED_LIB_PATH to
         # the path of that file. Only look for .so, .dll, or .dylib files to prevent matching any other
         # downloaded files.
-        CRYPT_SHARED_LIB_PATH="$(find "$(pwd)" -maxdepth 1 -type f \
+        if [ "Windows_NT" = "$OS" ]; then
+            BASE_PATH="c:/libmongocrypt"
+        else
+            BASE_PATH="$(pwd)/install"
+        fi
+        CRYPT_SHARED_LIB_PATH="$(find "$BASE_PATH" -maxdepth 1 -type f \
             -name 'mongo_crypt_v1.so' -o \
             -name 'mongo_crypt_v1.dll' -o \
             -name 'mongo_crypt_v1.dylib')"
