@@ -1878,29 +1878,6 @@ task_groups:
       - command: expansions.update
         params:
           file: serverless-expansion.yml
-      - command: shell.exec
-        params:
-          shell: "bash"
-          script: |
-            # Find the crypt_shared library file in the current directory and set the CRYPT_SHARED_LIB_PATH to
-            # the path of that file. Only look for .so, .dll, or .dylib files to prevent matching any other
-            # downloaded files.
-            CRYPT_SHARED_LIB_PATH="$(find $(pwd) -maxdepth 1 -type f \
-              -name 'mongo_crypt_v1.so' -o \
-              -name 'mongo_crypt_v1.dll' -o \
-              -name 'mongo_crypt_v1.dylib')"
-
-            # If we're on Windows, convert the "cygdrive" path to Windows-style paths.
-            if [ "Windows_NT" = "$OS" ]; then
-                CRYPT_SHARED_LIB_PATH=$(cygpath -m $CRYPT_SHARED_LIB_PATH)
-            fi
-
-            echo "CRYPT_SHARED_LIB_PATH: $CRYPT_SHARED_LIB_PATH" >> crypt-expansion.yml
-
-      # Load the expansion file to make an evergreen variable with the current unique version
-      - command: expansions.update
-        params:
-          file: crypt-expansion.yml
     teardown_group:
       - command: subprocess.exec
         params:
