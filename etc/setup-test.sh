@@ -72,19 +72,9 @@ if [[ "${GO_BUILD_TAGS}" =~ cse ]]; then
     if [ "${SKIP_CRYPT_SHARED_LIB:-''}" = "true" ]; then
         CRYPT_SHARED_LIB_PATH=""
         echo "crypt_shared library is skipped"
+    elif [ -z "${CRYPT_SHARED_LIB_PATH:-}" ]; then
+        echo "crypt_shared library path is empty"
     else
-        # Find the crypt_shared library file and set the CRYPT_SHARED_LIB_PATH to
-        # the path of that file. Only look for .so, .dll, or .dylib files to prevent matching any other
-        # downloaded files.
-        CRYPT_SHARED_LIB_PATH="$(find "$MONGODB_BINARIES" -maxdepth 1 -type f \
-            -name 'mongo_crypt_v1.so' -o \
-            -name 'mongo_crypt_v1.dll' -o \
-            -name 'mongo_crypt_v1.dylib')"
-
-        # If we're on Windows, convert the "cygdrive" path to Windows-style paths.
-        if [ "Windows_NT" = "$OS" ]; then
-            CRYPT_SHARED_LIB_PATH=$(cygpath -m $CRYPT_SHARED_LIB_PATH)
-        fi
         echo "crypt_shared library will be loaded from path: $CRYPT_SHARED_LIB_PATH"
     fi
 fi
