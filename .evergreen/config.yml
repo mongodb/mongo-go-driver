@@ -375,14 +375,15 @@ functions:
       type: test
       params:
         binary: "bash"
-        args: ["${RUN_TASK}", run-docker, --, test-short]
+        args: ["${RUN_TASK}", run-docker]
     - command: subprocess.exec
       type: test
       params:
         binary: "bash"
         env: 
           TOPOLOGY: sharded_cluster
-        args: ["${RUN_TASK}", run-docker, --, test-short]
+          TASKFILE_TARGET: test-short
+        args: ["${RUN_TASK}", run-docker]
 
   run-valid-ocsp-server:
     - command: shell.exec
