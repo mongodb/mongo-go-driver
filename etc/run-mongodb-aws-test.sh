@@ -13,6 +13,16 @@ set -o errexit  # Exit the script with error if any of the commands fail
 
 echo "Running MONGODB-AWS authentication tests"
 
+if [ $1 == "ec2" ] && [ ${SKIP_EC2_AUTH_TEST:-} == "true" ]; then
+  echo "This platform does not support the EC2 auth test, skipping..."
+  exit 0
+fi
+
+if [ $1 == "web-identity" ] && [ ${SKIP_WEB_IDENTITY_AUTH_TEST:-} == "true" ]; then
+  echo "This platform does not support the EC2 auth test, skipping..."
+  exit 0
+fi
+
 # Handle credentials and environment setup.
 . $DRIVERS_TOOLS/.evergreen/auth_aws/aws_setup.sh $1
 

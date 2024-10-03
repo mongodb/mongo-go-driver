@@ -39,6 +39,20 @@ case ${1:-} in
     atlas-connect)
         . $DRIVERS_TOOLS/.evergreen/secrets_handling/setup-secrets.sh drivers/atlas_connect
         ;;
+    load-balancer)
+        # Verify that the required LB URI expansions are set to ensure that the test runner can correctly connect to
+        # the LBs.
+        if [ -z "${SINGLE_MONGOS_LB_URI}" ]; then
+            echo "SINGLE_MONGOS_LB_URI must be set for testing against LBs"
+            exit 1
+        fi
+        if [ -z "${MULTI_MONGOS_LB_URI}" ]; then
+            echo "MULTI_MONGOS_LB_URI must be set for testing against LBs"
+            exit 1
+        fi
+        MONGODB_URI="${SINGLE_MONGOS_LB_URI}"
+        LOAD_BALANCER="true"
+        ;;
 esac
 
 # Handle encryption.
@@ -58,9 +72,19 @@ if [[ "${GO_BUILD_TAGS}" =~ cse ]]; then
     if [ "${SKIP_CRYPT_SHARED_LIB:-''}" = "true" ]; then
         CRYPT_SHARED_LIB_PATH=""
         echo "crypt_shared library is skipped"
-    elif [ -z "${CRYPT_SHARED_LIB_PATH:-}" ]; then
-        echo "crypt_shared library path is empty"
     else
+        # Find the crypt_shared library file in the current directory and set the CRYPT_SHARED_LIB_PATH to
+        # the path of that file. Only look for .so, .dll, or .dylib files to prevent matching any other
+        # downloaded files.
+        CRYPT_SHARED_LIB_PATH="$(find "$(pwd)" -maxdepth 1 -type f \
+            -name 'mongo_crypt_v1.so' -o \
+            -name 'mongo_crypt_v1.dll' -o \
+            -name 'mongo_crypt_v1.dylib')"
+
+        # If we're on Windows, convert the "cygdrive" path to Windows-style paths.
+        if [ "Windows_NT" = "$OS" ]; then
+            CRYPT_SHARED_LIB_PATH=$(cygpath -m $CRYPT_SHARED_LIB_PATH)
+        fi
         echo "crypt_shared library will be loaded from path: $CRYPT_SHARED_LIB_PATH"
     fi
 fi
@@ -114,6 +138,11 @@ fi
 if [ -n "${SERVERLESS:-}" ]; then
     echo "SERVERLESS_ATLAS_USER=$SERVERLESS_ATLAS_USER" >> .test.env
     echo "SERVERLESS_ATLAS_PASSWORD=$SERVERLESS_ATLAS_PASSWORD" >> .test.env
+fi
+
+if [ -n "${LOAD_BALANCER:-}" ];then
+    echo "SINGLE_MONGOS_LB_URI=${SINGLE_MONGOS_LB_URI}" >> .test.env
+    echo "MULTI_MONGOS_LB_URI=${MULTI_MONGOS_LB_URI}" >> .test.env
 fi
 
 # Add secrets to the test file.
