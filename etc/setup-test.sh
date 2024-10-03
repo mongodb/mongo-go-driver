@@ -73,15 +73,10 @@ if [[ "${GO_BUILD_TAGS}" =~ cse ]]; then
         CRYPT_SHARED_LIB_PATH=""
         echo "crypt_shared library is skipped"
     else
-        # Find the crypt_shared library file in the current directory and set the CRYPT_SHARED_LIB_PATH to
+        # Find the crypt_shared library file and set the CRYPT_SHARED_LIB_PATH to
         # the path of that file. Only look for .so, .dll, or .dylib files to prevent matching any other
         # downloaded files.
-        if [ "Windows_NT" = "$OS" ]; then
-            BASE_PATH="c:/libmongocrypt"
-        else
-            BASE_PATH="$(pwd)/install"
-        fi
-        CRYPT_SHARED_LIB_PATH="$(find "$BASE_PATH" -maxdepth 1 -type f \
+        CRYPT_SHARED_LIB_PATH="$(find "$MONGODB_BINARIES" -maxdepth 1 -type f \
             -name 'mongo_crypt_v1.so' -o \
             -name 'mongo_crypt_v1.dll' -o \
             -name 'mongo_crypt_v1.dylib')"
