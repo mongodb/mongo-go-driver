@@ -375,7 +375,8 @@ functions:
       type: test
       params:
         binary: "bash"
-        TASKFILE_TARGET: test-short
+        env:
+          TASKFILE_TARGET: test-short
         args: ["${RUN_TASK}", run-docker]
     - command: subprocess.exec
       type: test
