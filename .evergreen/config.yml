@@ -172,14 +172,16 @@ functions:
         role_arn: ${aws_test_secrets_role}
 
   run-oidc-auth-test-with-test-credentials:
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        working_dir: src/go.mongodb.org/mongo-driver
-        shell: bash
+        binary: bash
+        env: 
+          OIDC: oidc
         include_expansions_in_env: ["DRIVERS_TOOLS", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
-        script: |
-          OIDC="oidc" ${RUN_TASK} test-oidc
+        args: 
+          - ${RUN_TASK} 
+          - test-oidc
 
   run-task:
     - command: shell.exec
