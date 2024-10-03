@@ -42,7 +42,7 @@ func NewCommitTransaction() *CommitTransaction {
 	return &CommitTransaction{}
 }
 
-func (ct *CommitTransaction) processResponse(driver.ResponseInfo) error {
+func (ct *CommitTransaction) processResponse(context.Context, driver.ResponseInfo) error {
 	var err error
 	return err
 }

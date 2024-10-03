@@ -124,7 +124,7 @@ func NewUpdate(updates ...bsoncore.Document) *Update {
 // Result returns the result of executing this operation.
 func (u *Update) Result() UpdateResult { return u.result }
 
-func (u *Update) processResponse(info driver.ResponseInfo) error {
+func (u *Update) processResponse(_ context.Context, info driver.ResponseInfo) error {
 	ur, err := buildUpdateResult(info.ServerResponse)
 
 	u.result.N += ur.N
@@ -144,31 +144,32 @@ func (u *Update) Execute(ctx context.Context) error {
 	if u.deployment == nil {
 		return errors.New("the Update operation must have a Deployment set before Execute can be called")
 	}
-	batches := &driver.Batches{
-		Identifier: "updates",
-		Documents:  u.updates,
-		Ordered:    u.ordered,
-	}
 
 	return driver.Operation{
 		CommandFn:         u.command,
 		ProcessResponseFn: u.processResponse,
-		Batches:           batches,
-		RetryMode:         u.retry,
-		Type:              driver.Write,
-		Client:            u.session,
-		Clock:             u.clock,
-		CommandMonitor:    u.monitor,
-		Database:          u.database,
-		Deployment:        u.deployment,
-		Selector:          u.selector,
-		WriteConcern:      u.writeConcern,
-		Crypt:             u.crypt,
-		ServerAPI:         u.serverAPI,
-		Timeout:           u.timeout,
-		Logger:            u.logger,
-		Name:              driverutil.UpdateOp,
-		Authenticator:     u.authenticator,
+		Batches: []driver.Batches{
+			{
+				Identifier: "updates",
+				Documents:  u.updates,
+				Ordered:    u.ordered,
+			},
+		},
+		RetryMode:      u.retry,
+		Type:           driver.Write,
+		Client:         u.session,
+		Clock:          u.clock,
+		CommandMonitor: u.monitor,
+		Database:       u.database,
+		Deployment:     u.deployment,
+		Selector:       u.selector,
+		WriteConcern:   u.writeConcern,
+		Crypt:          u.crypt,
+		ServerAPI:      u.serverAPI,
+		Timeout:        u.timeout,
+		Logger:         u.logger,
+		Name:           driverutil.UpdateOp,
+		Authenticator:  u.authenticator,
 	}.Execute(ctx)
 
 }

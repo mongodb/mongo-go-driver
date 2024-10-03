@@ -81,7 +81,7 @@ func NewDelete(deletes ...bsoncore.Document) *Delete {
 // Result returns the result of executing this operation.
 func (d *Delete) Result() DeleteResult { return d.result }
 
-func (d *Delete) processResponse(info driver.ResponseInfo) error {
+func (d *Delete) processResponse(_ context.Context, info driver.ResponseInfo) error {
 	dr, err := buildDeleteResult(info.ServerResponse)
 	d.result.N += dr.N
 	return err
@@ -92,31 +92,32 @@ func (d *Delete) Execute(ctx context.Context) error {
 	if d.deployment == nil {
 		return errors.New("the Delete operation must have a Deployment set before Execute can be called")
 	}
-	batches := &driver.Batches{
-		Identifier: "deletes",
-		Documents:  d.deletes,
-		Ordered:    d.ordered,
-	}
 
 	return driver.Operation{
 		CommandFn:         d.command,
 		ProcessResponseFn: d.processResponse,
-		Batches:           batches,
-		RetryMode:         d.retry,
-		Type:              driver.Write,
-		Client:            d.session,
-		Clock:             d.clock,
-		CommandMonitor:    d.monitor,
-		Crypt:             d.crypt,
-		Database:          d.database,
-		Deployment:        d.deployment,
-		Selector:          d.selector,
-		WriteConcern:      d.writeConcern,
-		ServerAPI:         d.serverAPI,
-		Timeout:           d.timeout,
-		Logger:            d.logger,
-		Name:              driverutil.DeleteOp,
-		Authenticator:     d.authenticator,
+		Batches: []driver.Batches{
+			{
+				Identifier: "deletes",
+				Documents:  d.deletes,
+				Ordered:    d.ordered,
+			},
+		},
+		RetryMode:      d.retry,
+		Type:           driver.Write,
+		Client:         d.session,
+		Clock:          d.clock,
+		CommandMonitor: d.monitor,
+		Crypt:          d.crypt,
+		Database:       d.database,
+		Deployment:     d.deployment,
+		Selector:       d.selector,
+		WriteConcern:   d.writeConcern,
+		ServerAPI:      d.serverAPI,
+		Timeout:        d.timeout,
+		Logger:         d.logger,
+		Name:           driverutil.DeleteOp,
+		Authenticator:  d.authenticator,
 	}.Execute(ctx)
 
 }

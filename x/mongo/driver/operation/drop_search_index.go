@@ -69,7 +69,7 @@ func NewDropSearchIndex(index string) *DropSearchIndex {
 // Result returns the result of executing this operation.
 func (dsi *DropSearchIndex) Result() DropSearchIndexResult { return dsi.result }
 
-func (dsi *DropSearchIndex) processResponse(info driver.ResponseInfo) error {
+func (dsi *DropSearchIndex) processResponse(_ context.Context, info driver.ResponseInfo) error {
 	var err error
 	dsi.result, err = buildDropSearchIndexResult(info.ServerResponse)
 	return err

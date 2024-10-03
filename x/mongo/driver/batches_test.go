@@ -15,28 +15,6 @@ import (
 )
 
 func TestBatches(t *testing.T) {
-	t.Run("Valid", func(t *testing.T) {
-		testCases := []struct {
-			name    string
-			batches *Batches
-			want    bool
-		}{
-			{"nil", nil, false},
-			{"missing identifier", &Batches{}, false},
-			{"no documents", &Batches{Identifier: "documents"}, false},
-			{"valid", &Batches{Identifier: "documents", Documents: make([]bsoncore.Document, 5)}, true},
-		}
-
-		for _, tc := range testCases {
-			t.Run(tc.name, func(t *testing.T) {
-				want := tc.want
-				got := tc.batches.Valid()
-				if got != want {
-					t.Errorf("Did not get expected result from Valid. got %t; want %t", got, want)
-				}
-			})
-		}
-	})
 	t.Run("ClearBatch", func(t *testing.T) {
 		batches := &Batches{Identifier: "documents", Current: make([]bsoncore.Document, 2, 10)}
 		if len(batches.Current) != 2 {

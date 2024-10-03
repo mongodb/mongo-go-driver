@@ -56,7 +56,7 @@ func NewCreate(collectionName string) *Create {
 	}
 }
 
-func (c *Create) processResponse(driver.ResponseInfo) error {
+func (c *Create) processResponse(context.Context, driver.ResponseInfo) error {
 	return nil
 }
 

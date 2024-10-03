@@ -393,7 +393,7 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 		},
 		Database:   bc.database,
 		Deployment: bc.getOperationDeployment(),
-		ProcessResponseFn: func(info ResponseInfo) error {
+		ProcessResponseFn: func(_ context.Context, info ResponseInfo) error {
 			response := info.ServerResponse
 			id, ok := response.Lookup("cursor", "id").Int64OK()
 			if !ok {

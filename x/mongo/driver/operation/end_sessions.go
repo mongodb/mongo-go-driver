@@ -39,7 +39,7 @@ func NewEndSessions(sessionIDs bsoncore.Document) *EndSessions {
 	}
 }
 
-func (es *EndSessions) processResponse(driver.ResponseInfo) error {
+func (es *EndSessions) processResponse(context.Context, driver.ResponseInfo) error {
 	var err error
 	return err
 }

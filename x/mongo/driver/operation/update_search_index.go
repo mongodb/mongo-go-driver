@@ -71,7 +71,7 @@ func NewUpdateSearchIndex(index string, definition bsoncore.Document) *UpdateSea
 // Result returns the result of executing this operation.
 func (usi *UpdateSearchIndex) Result() UpdateSearchIndexResult { return usi.result }
 
-func (usi *UpdateSearchIndex) processResponse(info driver.ResponseInfo) error {
+func (usi *UpdateSearchIndex) processResponse(_ context.Context, info driver.ResponseInfo) error {
 	var err error
 	usi.result, err = buildUpdateSearchIndexResult(info.ServerResponse)
 	return err
