@@ -316,7 +316,7 @@ functions:
     - command: subprocess.exec
       type: test
       params:
-        shell: "bash"
+        binary: "bash"
         env: 
           GO_BUILD_TAGS: "cse"
         include_expansions_in_env: ["AUTH", "SSL", "MONGODB_URI", "TOPOLOGY", 
@@ -471,7 +471,7 @@ functions:
     - command: subprocess.exec
       params:
         binary: "bash"
-        include_expansions_in_env: ["MONGODB-AWS"]
+        include_expansions_in_env: ["MONGODB-AWS", "MONGODB_URI"]
         args: ["${DRIVERS_TOOLS}/.evergreen/run-load-balancer.sh", start]
     - command: expansions.update
       params:
@@ -1600,7 +1600,7 @@ tasks:
     - command: subprocess.exec
       type: test
       params:
-        shell: "bash"
+        binary: "bash"
         env: 
           EXPECT_ERROR: 'status=400'
         args: ["${RUN_TASK}", test-awskms]
