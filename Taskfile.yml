@@ -55,7 +55,7 @@ tasks:
     status: 
       - test -d install || test -d /cygdrive/c/libmongocrypt/bin
 
-  run-docker: bash etc/run_docker.sh
+  run-docker: bash etc/run_docker.sh {{.CLI_ARGS}}
 
   run-fuzz: bash etc/run-fuzz.sh
 
