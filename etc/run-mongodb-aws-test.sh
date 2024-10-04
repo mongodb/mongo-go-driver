@@ -19,7 +19,7 @@ if [ "$1" == "ec2" ] && [ "${SKIP_EC2_AUTH_TEST:-}" == "true" ]; then
 fi
 
 if [ "$1" == "web-identity" ] && [ "${SKIP_WEB_IDENTITY_AUTH_TEST:-}" == "true" ]; then
-  echo "This platform does not support the EC2 auth test, skipping..."
+  echo "This platform does not support the web identity auth test, skipping..."
   exit 0
 fi
 
