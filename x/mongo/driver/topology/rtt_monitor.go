@@ -10,10 +10,10 @@ import (
 	"container/list"
 	"context"
 	"fmt"
-	"math"
 	"sync"
 	"time"
 
+	"go.mongodb.org/mongo-driver/v2/internal/stats"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
@@ -196,23 +196,6 @@ func (r *rttMonitor) reset() {
 	r.callsToAppendMovingMin = 0
 }
 
-func (r *rttMonitor) calcStddev() float64 {
-	var mean, stddev float64
-
-	for element := r.movingMin.Front(); element != nil; element = element.Next() {
-		mean += float64(element.Value.(time.Duration))
-	}
-	mean /= float64(r.movingMin.Len())
-
-	for element := r.movingMin.Front(); element != nil; element = element.Next() {
-		sample := float64(element.Value.(time.Duration))
-		stddev += math.Pow(sample-mean, 2)
-	}
-	stddev = math.Sqrt(stddev / float64(r.movingMin.Len()))
-
-	return stddev
-}
-
 // appendMovingMin will append the RTT to the movingMin list which tracks a
 // minimum RTT within the last "minRTTSamplesForMovingMin" RTT samples.
 func (r *rttMonitor) appendMovingMin(rtt time.Duration) {
@@ -230,7 +213,7 @@ func (r *rttMonitor) appendMovingMin(rtt time.Duration) {
 
 	// Collect a sum of stddevs over maxRTTSamplesForMovingMin calls, ignore if calls are less than max
 	if r.callsToAppendMovingMin >= maxRTTSamplesForMovingMin {
-		stddev := r.calcStddev()
+		stddev := stats.StandardDeviationList[time.Duration](r.movingMin)
 		r.stddevSum += stddev
 	}
 }
