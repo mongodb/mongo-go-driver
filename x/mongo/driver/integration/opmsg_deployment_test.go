@@ -7,25 +7,37 @@
 package integration
 
 import (
+	"context"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 func TestOPMSGMockDeployment(t *testing.T) {
-	var md *MockDeployment
+	md := NewMockDeployment()
 
-	t.Run("NewMockDeployment", func(t *testing.T) {
-		md = NewMockDeployment()
-		require.NotNil(t, md, "unexpected error from NewMockDeployment")
+	opts := options.Client()
+	opts.Opts = append(opts.Opts, func(co *options.ClientOptions) error {
+		co.Deployment = md
+
+		return nil
+	})
+	client, err := mongo.Connect(opts)
+
+	t.Run("NewMockDeployment connect to client", func(t *testing.T) {
+		require.NoError(t, err, "unexpected error from connect to mockdeployment")
 	})
 	t.Run("AddResponses with one", func(t *testing.T) {
 		res := bson.D{{"ok", 1}}
 		md.AddResponses(res)
 		assert.NotNil(t, md.conn.responses, "expected non-nil responses")
 		assert.Len(t, md.conn.responses, 1, "expected 1 response, got %v", len(md.conn.responses))
+		err = client.Ping(context.Background(), nil)
+		require.NoError(t, err)
 	})
 	t.Run("AddResponses with multiple", func(t *testing.T) {
 		res1 := bson.D{{"ok", 1}}
@@ -33,11 +45,15 @@ func TestOPMSGMockDeployment(t *testing.T) {
 		res3 := bson.D{{"ok", 3}}
 		md.AddResponses(res1, res2, res3)
 		assert.NotNil(t, md.conn.responses, "expected non-nil responses")
-		assert.Len(t, md.conn.responses, 4, "expected 4 responses, got %v", len(md.conn.responses))
+		assert.Len(t, md.conn.responses, 3, "expected 3 responses, got %v", len(md.conn.responses))
+		err = client.Ping(context.Background(), nil)
+		require.NoError(t, err)
 	})
 	t.Run("ClearResponses", func(t *testing.T) {
 		md.ClearResponses()
 		assert.NotNil(t, md.conn.responses, "expected non-nil responses")
 		assert.Len(t, md.conn.responses, 0, "expected 0 responses, got %v", len(md.conn.responses))
+		err = client.Ping(context.Background(), nil)
+		require.Error(t, err, "expected Ping error, got nil")
 	})
 }
