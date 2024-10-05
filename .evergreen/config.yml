@@ -25,13 +25,17 @@ timeout:
       binary: bash
       args: [ls, -la]
 
+aliases:
+  working-dir: &working-dir src/go.mongodb.org/mongo-driver
+  run-task: &run-task src/go.mongodb.org/mongo-driver/.evergreen/run-task.sh
+
 functions:
   setup-system:
     # Executes clone and applies the submitted patch, if any
     - command: git.get_project
       type: system
       params:
-        directory: src/go.mongodb.org/mongo-driver
+        directory: *working-dir
     # Make an env.sh and evergreen expansion file with dynamic values
     - command: subprocess.exec
       params:
@@ -41,7 +45,6 @@ functions:
           GOROOT: ${GO_DIST}
           IS_PATCH: ${is_patch}
           VERSION_ID: ${version_id}
-          RUN_TASK: &run-task src/go.mongodb.org/mongo-driver/.evergreen/run-task.sh
         args: 
           - ".evergreen/setup-system.sh"
     - command: expansions.update
