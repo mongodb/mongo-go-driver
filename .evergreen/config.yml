@@ -42,7 +42,7 @@ functions:
           IS_PATCH: ${is_patch}
           VERSION_ID: ${version_id}
           # Define an alias for the task runner script.
-          RUN_TASK_ALIAS: &run-task src/go.mongodb.org/mongo-driver/.evergreen/run-task.sh
+          TASK_RUNNER_ALIAS: &task_runner src/go.mongodb.org/mongo-driver/.evergreen/run-task.sh
         args: 
           - ".evergreen/setup-system.sh"
     - command: expansions.update
@@ -173,7 +173,7 @@ functions:
         env: 
           OIDC: oidc
         include_expansions_in_env: [DRIVERS_TOOLS, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN]
-        args: [*run-task, test-oidc]
+        args: [*task-runner, test-oidc]
 
   run-task:
     - command: shell.exec
@@ -210,7 +210,7 @@ functions:
         env:
           BASE_SHA: "${revision}"
           HEAD_SHA: "${github_commit}"
-        args: [*run-task, api-report]
+        args: [*task-runner, api-report]
 
   "add PR labels":
     - command: subprocess.exec
@@ -220,7 +220,7 @@ functions:
         env:
           COMMIT: "${github_commit}"
           PR_TASK: apply-labels
-        args: [*run-task, pr-task]
+        args: [*task-runner, pr-task]
 
   "add PR reviewer":
     - command: subprocess.exec
@@ -230,7 +230,7 @@ functions:
         env:
           COMMIT: "${github_commit}"
           PR_TASK: assign-reviewer
-        args: [*run-task, pr-task]
+        args: [*task-runner, pr-task]
 
   "backport pr":
     - command: subprocess.exec
@@ -240,7 +240,7 @@ functions:
         env:
           COMMIT: "${github_commit}"
           PR_TASK: backport-pr
-        args: [*run-task, pr-task]
+        args: [*task-runner, pr-task]
 
   send-perf-data:
     - command: perf.send
@@ -256,12 +256,12 @@ functions:
       params:
         binary: bash
         include_expansions_in_env: [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN]
-        args: [*run-task, setup-test, --, enterprise-plain]
+        args: [*task-runner, setup-test, --, enterprise-plain]
     - command: subprocess.exec
       type: test
       params:
         binary: bash
-        args: [*run-task, --silent, evg-test-enterprise-auth]
+        args: [*task-runner, --silent, evg-test-enterprise-auth]
 
   run-enterprise-gssapi-auth-tests:
     - command: ec2.assume_role
@@ -272,12 +272,12 @@ functions:
       params:
         binary: bash
         include_expansions_in_env: [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN]
-        args: [*run-task, setup-test, --, enterprise-gssapi]
+        args: [*task-runner, setup-test, --, enterprise-gssapi]
     - command: subprocess.exec
       type: test
       params:
         binary: bash
-        args: [*run-task, --silent, evg-test-enterprise-auth]
+        args: [*task-runner, --silent, evg-test-enterprise-auth]
 
   run-atlas-test:
     - command: ec2.assume_role
@@ -288,12 +288,12 @@ functions:
       params:
         binary: bash
         include_expansions_in_env: [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN]
-        args: [*run-task, setup-test, --, atlas-connect]
+        args: [*task-runner, setup-test, --, atlas-connect]
     - command: subprocess.exec
       type: test
       params:
         binary: bash
-        args: [*run-task, test-atlas-connect]
+        args: [*task-runner, test-atlas-connect]
 
   run-ocsp-test:
     - command: shell.exec
@@ -323,12 +323,12 @@ functions:
           GO_BUILD_TAGS: cse
         include_expansions_in_env: [AUTH, SSL, MONGODB_URI, TOPOLOGY, MONGO_GO_DRIVER_COMPRESSOR, 
           REQUIRE_API_VERSION, SKIP_CRYPT_SHARED_LIB, CRYPT_SHARED_LIB_PATH]
-        args: [*run-task, setup-test]
+        args: [*task-runner, setup-test]
     - command: subprocess.exec
       type: test
       params:
         binary: bash
-        args: [*run-task, evg-test-versioned-api]
+        args: [*task-runner, evg-test-versioned-api]
 
   run-load-balancer-tests:
     - command: subprocess.exec
@@ -336,24 +336,24 @@ functions:
       params:
         binary: bash
         include_expansions_in_env: [SINGLE_MONGOS_LB_URI, MULTI_MONGOS_LB_URI, AUTH, SSL, MONGO_GO_DRIVER_COMPRESSOR]
-        args: [*run-task, setup-test, --, load-balancer]
+        args: [*task-runner, setup-test, --, load-balancer]
     - command: subprocess.exec
       type: test
       params:
         binary: bash
-        args: [*run-task, evg-test-load-balancers]
+        args: [*task-runner, evg-test-load-balancers]
 
   run-serverless-tests:
     - command: subprocess.exec
       type: test
       params:
         binary: "bash"
-        args: [*run-task, setup-test, --, serverless]
+        args: [*task-runner, setup-test, --, serverless]
     - command: subprocess.exec
       type: test
       params:
         binary: "bash"
-        args: [*run-task, evg-test-serverless]
+        args: [*task-runner, evg-test-serverless]
 
   run-atlas-data-lake-test:
     - command: subprocess.exec
@@ -365,26 +365,26 @@ functions:
           SSL: nossl
           TOPOLOGY: server
           MONGODB_URI: "mongodb://mhuser:pencil@localhost"
-        args: [*run-task, setup-test]
+        args: [*task-runner, setup-test]
     - command: subprocess.exec
       type: test
       params:
         binary: "bash"
-        args: [*run-task, evg-test-atlas-data-lake]
+        args: [*task-runner, evg-test-atlas-data-lake]
 
   run-docker-test:
     - command: subprocess.exec
       type: test
       params:
         binary: "bash"
-        args: [*run-task, run-docker, --, test-short]
+        args: [*task-runner, run-docker, --, test-short]
     - command: subprocess.exec
       type: test
       params:
         binary: "bash"
         env: 
           TOPOLOGY: sharded_cluster
-        args: [*run-task, run-docker, --, test-short]
+        args: [*task-runner, run-docker, --, test-short]
 
   run-valid-ocsp-server:
     - command: shell.exec
@@ -467,7 +467,7 @@ functions:
         binary: "bash"
         env:
           TEST_SEARCH_INDEX: "${MONGODB_URI}"
-        args: [*run-task, evg-test-search-index]
+        args: [*task-runner, evg-test-search-index]
 
   add-aws-auth-variables-to-file:
     - command: ec2.assume_role
@@ -486,14 +486,14 @@ functions:
       type: test
       params:
         binary: "bash"
-        args: [*run-task, evg-test-aws, --, regular]
+        args: [*task-runner, evg-test-aws, --, regular]
 
   run-aws-auth-test-with-assume-role-credentials:
     - command: subprocess.exec
       type: test
       params:
         binary: "bash"
-        args: [*run-task, evg-test-aws, --, assume-role]
+        args: [*task-runner, evg-test-aws, --, assume-role]
 
   run-aws-auth-test-with-aws-EC2-credentials:
     - command: subprocess.exec
@@ -501,21 +501,21 @@ functions:
       params:
         binary: bash 
         include_expansions_in_env: [SKIP_EC2_AUTH_TEST]
-        args: [*run-task, evg-test-aws, --, ec2]
+        args: [*task-runner, evg-test-aws, --, ec2]
 
   run-aws-auth-test-with-aws-credentials-as-environment-variables:
     - command: subprocess.exec
       type: test
       params:
         binary: "bash"
-        args: [*run-task, evg-test-aws, --, env-creds]
+        args: [*task-runner, evg-test-aws, --, env-creds]
 
   run-aws-auth-test-with-aws-credentials-and-session-token-as-environment-variables:
     - command: subprocess.exec
       type: test
       params:
         binary: "bash"
-        args: [*run-task, evg-test-aws, --, session-creds]
+        args: [*task-runner, evg-test-aws, --, session-creds]
 
   run-aws-ECS-auth-test:
     - command: subprocess.exec
@@ -524,7 +524,7 @@ functions:
         binary: "bash"
         working_dir: src
         include_expansions_in_env: [SKIP_ECS_AUTH_TEST]
-        args: [*run-task, evg-test-aws-ecs]
+        args: [*task-runner, evg-test-aws-ecs]
 
   run-aws-auth-test-with-aws-web-identity-credentials:
     - command: subprocess.exec
@@ -532,7 +532,7 @@ functions:
       params:
         binary: bash
         include_expansions_in_env: [SKIP_WEB_IDENTITY_AUTH_TEST]
-        args: [*run-task, evg-test-aws, --, web-identity]
+        args: [*task-runner, evg-test-aws, --, web-identity]
     - command: subprocess.exec
       type: test
       params:
@@ -540,7 +540,7 @@ functions:
         env: 
           AWS_ROLE_SESSION_NAME: test
         include_expansions_in_env: [SKIP_WEB_IDENTITY_AUTH_TEST]
-        args: [*run-task, evg-test-aws, --, web-identity]
+        args: [*task-runner, evg-test-aws, --, web-identity]
 
   start-cse-servers:
     - command: ec2.assume_role
@@ -570,13 +570,13 @@ functions:
           GO_BUILD_TAGS: cse
         include_expansions_in_env: [AUTH, SSL, MONGODB_URI, TOPOLOGY, 
           MONGO_GO_DRIVER_COMPRESSOR]
-        args: [*run-task, setup-test]
+        args: [*task-runner, setup-test]
     - command: subprocess.exec
       type: test
       params:
         binary: "bash"
         include_expansions_in_env: [KMS_TLS_TESTCASE]
-        args: [*run-task, evg-test-kms]
+        args: [*task-runner, evg-test-kms]
 
   run-kmip-tests:
     - command: subprocess.exec
@@ -587,21 +587,21 @@ functions:
           GO_BUILD_TAGS: cse
         include_expansions_in_env: [AUTH, SSL, MONGODB_URI, TOPOLOGY, 
           MONGO_GO_DRIVER_COMPRESSOR]
-        args: [*run-task, setup-test]
+        args: [*task-runner, setup-test]
     - command: subprocess.exec
       type: test
       params:
         binary: "bash"
         env:
           KMS_MOCK_SERVERS_RUNNING: "true"
-        args: [*run-task, evg-test-kmip]
+        args: [*task-runner, evg-test-kmip]
 
   run-fuzz-tests:
     - command: subprocess.exec
       type: test
       params:
         binary: "bash"
-        args: [*run-task, run-fuzz]
+        args: [*task-runner, run-fuzz]
 
 pre:
   - func: setup-system
@@ -1560,7 +1560,7 @@ tasks:
       type: test
       params:
         binary: "bash"
-        args: [*run-task, test-awskms]
+        args: [*task-runner, test-awskms]
 
   - name: "testawskms-fail-task"
     # testawskms-fail-task runs without environment variables.
@@ -1572,7 +1572,7 @@ tasks:
         binary: "bash"
         env: 
           EXPECT_ERROR: 'status=400'
-        args: [*run-task, test-awskms]
+        args: [*task-runner, test-awskms]
 
   - name: "testazurekms-task"
     commands:
@@ -1641,7 +1641,7 @@ tasks:
             LAMBDA_STACK_NAME: dbx-go-lambda
             AWS_REGION: us-east-1
           include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
-          args: [*run-task, evg-test-deployed-lambda-aws]
+          args: [*task-runner, evg-test-deployed-lambda-aws]
 
   - name: "oidc-auth-test"
     commands:
