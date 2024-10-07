@@ -14,7 +14,8 @@ import (
 
 // AggregateOptions represents arguments that can be used to configure an
 // Aggregate operation.
-// See corresponding setter method for documentation
+//
+// See corresponding setter methods for documentation.
 type AggregateOptions struct {
 	AllowDiskUse             *bool
 	BatchSize                *int32

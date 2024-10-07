@@ -25,6 +25,8 @@ import (
 //
 // Enabling In-Use Encryption reduces the maximum document and message size (using a maxBsonObjectSize of 2MiB and
 // maxMessageSizeBytes of 6MB) and may have a negative performance impact.
+//
+// See corresponding setter methods for documentation.
 type AutoEncryptionOptions struct {
 	KeyVaultClientOptions Lister[ClientOptions]
 	KeyVaultNamespace     string
