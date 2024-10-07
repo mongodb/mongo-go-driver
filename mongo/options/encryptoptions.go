@@ -43,6 +43,8 @@ func (ro *RangeOptionsBuilder) List() []func(*RangeOptions) error {
 }
 
 // EncryptOptions represents arguments to explicitly encrypt a value.
+//
+// See corresponding setter methods for documentation.
 type EncryptOptions struct {
 	KeyID            *bson.Binary
 	KeyAltName       *string
