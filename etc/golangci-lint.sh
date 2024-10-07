@@ -10,9 +10,9 @@ export GOARCH=
 # Keep this in sync with go version used in static-analysis Evergreen build variant.
 go install golang.org/dl/go1.22.7@latest
 go1.22.7 download
-GOPATH="$(go1.22.7 env GOROOT)"
+GOROOT="$(go1.22.7 env GOROOT)"
 PATH="$GOPATH/bin:$PATH"
-export GOPATH
+export GOROOT
 export PATH
 go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.60.1
 
