@@ -11,7 +11,7 @@ export GOARCH=
 go install golang.org/dl/go1.22.7@latest
 go1.22.7 download
 GOROOT="$(go1.22.7 env GOROOT)"
-PATH="$GOPATH/bin:$PATH"
+PATH="$GOROOT/bin:$PATH"
 export GOROOT
 export PATH
 go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.60.1
