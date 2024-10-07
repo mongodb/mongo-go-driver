@@ -640,6 +640,17 @@ func TestCollection(t *testing.T) {
 			assert.Equal(mt, int64(0), res.ModifiedCount, "expected modified count 0, got %v", res.ModifiedCount)
 			assert.NotNil(mt, res.UpsertedID, "expected upserted ID, got nil")
 		})
+		// Require 8.0 servers for sort support.
+		mt.RunOpts("error with sort", mtest.NewOptions().MinServerVersion("8.0"), func(mt *mtest.T) {
+			filter := bson.D{{"x", bson.D{{"$gte", 3}}}}
+			update := bson.D{{"$inc", bson.D{{"x", 1}}}}
+
+			_, err := mt.Coll.UpdateMany(context.Background(),
+				filter, update,
+				&options.UpdateOptions{Sort: bson.D{{"_id", -1}}},
+			)
+			assert.ErrorContains(t, err, "Cannot specify sort with multi=true", "expected an error on UpdateMany with sort")
+		})
 		mt.Run("write error", func(mt *mtest.T) {
 			filter := bson.D{{"_id", "foo"}}
 			update := bson.D{{"$set", bson.D{{"_id", 3.14159}}}}

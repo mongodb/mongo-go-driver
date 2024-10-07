@@ -548,17 +548,17 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 
 	// collation, arrayFilters, upsert, and hint are included on the individual update documents rather than as part of the
 	// command
-	updateDoc, err := createUpdateDoc(
-		filter,
-		update,
-		uo.Hint,
-		uo.ArrayFilters,
-		uo.Collation,
-		uo.Upsert,
-		multi,
-		checkDollarKey,
-		coll.bsonOpts,
-		coll.registry)
+	updateDoc, err := updateDoc{
+		filter:         filter,
+		update:         update,
+		hint:           uo.Hint,
+		sort:           uo.Sort,
+		arrayFilters:   uo.ArrayFilters,
+		collation:      uo.Collation,
+		upsert:         uo.Upsert,
+		multi:          multi,
+		checkDollarKey: checkDollarKey,
+	}.marshal(coll.bsonOpts, coll.registry)
 	if err != nil {
 		return nil, err
 	}
@@ -598,7 +598,6 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 		}
 		op = op.Let(let)
 	}
-
 	if uo.BypassDocumentValidation != nil && *uo.BypassDocumentValidation {
 		op = op.BypassDocumentValidation(*uo.BypassDocumentValidation)
 	}
@@ -760,6 +759,7 @@ func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
 		uOpts.Hint = opt.Hint
 		uOpts.Let = opt.Let
 		uOpts.Comment = opt.Comment
+		uOpts.Sort = opt.Sort
 		updateOptions = append(updateOptions, uOpts)
 	}
 
