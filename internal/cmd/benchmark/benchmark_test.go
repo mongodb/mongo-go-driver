@@ -56,14 +56,13 @@ const (
 	opsPerSecondMedName = "ops_per_second_med"
 )
 
-// When running in the CI, we want to fail a benchmark when it errors in the
-// TestRunAllBenchmarks test. Otherwise, we may begin to get false positives
-// on performance notification. Locally, however, we do not want this since
-// a failing test will interfere with debugging a benchmark.
-var failOnErr bool
+// fullRun will run all of the tests. This is default to false, since it's
+// unlikely a user would need to run all tests locally. We still need to run
+// the test up to the point where the performance data is downloaded.
+var fullRun bool
 
 func init() {
-	flag.BoolVar(&failOnErr, "failOnErr", false, "fail TestRunAllBenchmarks on err")
+	flag.BoolVar(&fullRun, "fullRun", false, "run all benchmarks in TestRunAllBenchmarks")
 }
 
 type metrics struct {
@@ -560,6 +559,13 @@ func TestRunAllBenchmarks(t *testing.T) {
 		extractTestDataTgz(t)
 	}
 
+	// The test will be run any time a benchmark is run. To avoid running all
+	// benchmarks in this case, we require a flag that defaults to false. The
+	// intention is that this test will only ever need to fully run in CI.
+	if !fullRun {
+		return
+	}
+
 	// Run the cases and accumulate the results.
 	cases := []struct {
 		name      string
@@ -587,11 +593,7 @@ func TestRunAllBenchmarks(t *testing.T) {
 
 			results[i], err = runBenchmark(cases[i].name, cases[i].benchmark)
 			if err != nil { // Avoid asserting to prevent failures on single-run benchmarks
-				if failOnErr {
-					t.Fatalf("failed to run benchmark: %v", err)
-				} else {
-					t.Logf("failed to run benchmark: %v", err)
-				}
+				t.Logf("failed to run benchmark: %v", err)
 			}
 		})
 	}

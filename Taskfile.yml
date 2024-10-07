@@ -175,7 +175,7 @@ tasks:
 
   driver-benchmark: 
     cmds: 
-      - go test ./internal/cmd/benchmark -v --failOnErr | tee perf.suite
+      - go test ./internal/cmd/benchmark -v --fullRun | tee perf.suite
 
   ### Internal tasks. ###
   install-lll: 
