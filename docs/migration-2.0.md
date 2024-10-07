@@ -627,6 +627,10 @@ for _, set := range options.Client().ApplyURI(uri).Opts {
 return clientOptionAdder{option: &opts}
 ```
 
+### DeleteManyOptions / DeleteOneOptions
+
+The `DeleteOptions` has been separated into `DeleteManyOptions` and `DeleteOneOptions` to configure the corresponding `DeleteMany` and `DeleteOne` operations.
+
 ### FindOneOptions
 
 The following types are not valid for a `findOne` operation and have been removed:
@@ -635,6 +639,10 @@ The following types are not valid for a `findOne` operation and have been remove
 - `CursorType`
 - `MaxAwaitTime`
 - `NoCursorTimeout`
+
+### UpdateManyOptions / UpdateOneOptions
+
+The `UpdateOptions` has been separated into `UpdateManyOptions` and `UpdateOneOptions` to configure the corresponding `UpdateMany` and `UpdateOne` operations.
 
 ### Merge\*Options
 

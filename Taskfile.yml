@@ -5,6 +5,8 @@ env:
   TEST_TIMEOUT: 1800
   LONG_TEST_TIMEOUT: 3600
 
+dotenv: ['.test.env']
+
 tasks:
 
   ### Utility tasks. ###
@@ -16,7 +18,7 @@ tasks:
   check-license: bash etc/check_license.sh
 
   build:
-    deps: [cross-compile, build-tests, build-compile-check]
+    deps: [cross-compile, build-tests, build-compile-check, install-libmongocrypt]
     cmds:
       - go build ./...
       - go build ${BUILD_TAGS} ./...
@@ -24,6 +26,8 @@ tasks:
   build-tests: go test -short ${BUILD_TAGS} -run ^$$ ./...
 
   build-compile-check: bash etc/compile_check.sh
+
+  build-aws-ecs-test: go build ${BUILD_TAGS} ./internal/cmd/testaws/main.go
 
   cross-compile: 
     - GOOS=linux GOARCH=386 go build ./...
@@ -46,9 +50,14 @@ tasks:
 
   api-report: bash etc/api_report.sh
 
-  install-libmongocrypt: bash etc/install-libmongocrypt.sh
+  install-libmongocrypt: 
+    cmds: [bash etc/install-libmongocrypt.sh]
+    status: 
+      - test -d install || test -d /cygdrive/c/libmongocrypt/bin
 
   run-docker: bash etc/run_docker.sh
+
+  run-fuzz: bash etc/run-fuzz.sh
 
   cherry-picker: bash etc/cherry-picker.sh
 
@@ -80,7 +89,8 @@ tasks:
 
   test-oidc: bash etc/run-oidc-test.sh 'task --silent evg-test-oidc-auth'
 
-  test-atlas: bash etc/run-atlas-test.sh
+  test-atlas-connect: 
+    - go test -v -run ^TestAtlas$ go.mongodb.org/mongo-driver/v2/internal/cmd/testatlas -args "$ATLAS_REPL" "$ATLAS_SHRD" "$ATLAS_FREE" "$ATLAS_TLS11" "$ATLAS_TLS12" "$ATLAS_SERVERLESS" "$ATLAS_SRV_REPL" "$ATLAS_SRV_SHRD" "$ATLAS_SRV_FREE" "$ATLAS_SRV_TLS11" "$ATLAS_SRV_TLS12" "$ATLAS_SRV_SERVERLESS" >> test.suite
 
   test-awskms: bash etc/run-awskms-test.sh
 
@@ -92,7 +102,7 @@ tasks:
       - make -c internal/cmd/faas/awslambda
 
   ### Evergreen specific tasks. ###
-  build-aws-ecs-test: go build ${BUILD_TAGS} ./internal/cmd/testaws/main.go
+  setup-test: bash etc/setup-test.sh {{.CLI_ARGS}}
 
   evg-test:
     - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=$MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s -p 1 ./... >> test.suite
@@ -101,7 +111,8 @@ tasks:
     - ATLAS_DATA_LAKE_INTEGRATION_TEST=true go test -v ./internal/integration -run TestUnifiedSpecs/atlas-data-lake-testing >> spec_test.suite
     - ATLAS_DATA_LAKE_INTEGRATION_TEST=true go test -v ./internal/integration -run TestAtlasDataLake >> spec_test.suite
 
-  evg-test-enterprise-auth: go run -tags gssapi ./internal/cmd/testentauth/main.go
+  evg-test-enterprise-auth: 
+    - go run -tags gssapi ./internal/cmd/testentauth/main.go
 
   evg-test-oidc-auth:
     - go run ./internal/cmd/testoidcauth/main.go
@@ -163,6 +174,12 @@ tasks:
     - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./mongo >> test.suite
     - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./internal/integration >> test.suite
     - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./internal/integration/unified >> test.suite
+
+  evg-test-aws: bash etc/run-mongodb-aws-test.sh {{.CLI_ARGS}}
+
+  evg-test-aws-ecs: bash etc/run-mongodb-aws-ecs-test.sh
+
+  evg-test-deployed-lambda-aws: bash ${DRIVERS_TOOLS}/.evergreen/aws_lambda/run-deployed-lambda-aws-tests.sh
 
   build-kms-test: go build ${BUILD_TAGS} ./internal/cmd/testkms
 

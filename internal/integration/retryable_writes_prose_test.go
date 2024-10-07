@@ -18,6 +18,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/eventtest"
+	"go.mongodb.org/mongo-driver/v2/internal/failpoint"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
@@ -157,12 +158,12 @@ func TestRetryableWritesProse(t *testing.T) {
 		Topologies(mtest.ReplicaSet, mtest.Sharded)
 	mt.RunOpts("PoolClearedError retryability", mtPceOpts, func(mt *mtest.T) {
 		// Force Find to block for 1 second once.
-		mt.SetFailPoint(mtest.FailPoint{
+		mt.SetFailPoint(failpoint.FailPoint{
 			ConfigureFailPoint: "failCommand",
-			Mode: mtest.FailPointMode{
+			Mode: failpoint.Mode{
 				Times: 1,
 			},
-			Data: mtest.FailPointData{
+			Data: failpoint.Data{
 				FailCommands:    []string{"insert"},
 				ErrorCode:       91,
 				BlockConnection: true,
@@ -227,11 +228,11 @@ func TestRetryableWritesProse(t *testing.T) {
 			mt.ResetClient(options.Client().SetRetryWrites(true).SetMonitor(monitor))
 
 			// Configure a fail point for a "ShutdownInProgress" error.
-			mt.SetFailPoint(mtest.FailPoint{
+			mt.SetFailPoint(failpoint.FailPoint{
 				ConfigureFailPoint: "failCommand",
-				Mode:               mtest.FailPointMode{Times: 1},
-				Data: mtest.FailPointData{
-					WriteConcernError: &mtest.WriteConcernErrorData{
+				Mode:               failpoint.Mode{Times: 1},
+				Data: failpoint.Data{
+					WriteConcernError: &failpoint.WriteConcernError{
 						Code: shutdownInProgressErrorCode,
 					},
 					FailCommands: []string{"insert"},
@@ -261,10 +262,10 @@ func TestRetryableWritesProse(t *testing.T) {
 					return
 				}
 
-				mt.SetFailPoint(mtest.FailPoint{
+				mt.SetFailPoint(failpoint.FailPoint{
 					ConfigureFailPoint: "failCommand",
-					Mode:               mtest.FailPointMode{Times: 1},
-					Data: mtest.FailPointData{
+					Mode:               failpoint.Mode{Times: 1},
+					Data: failpoint.Data{
 						ErrorCode: notWritablePrimaryErrorCode,
 						ErrorLabels: &[]string{
 							driver.NoWritesPerformed,
@@ -324,12 +325,12 @@ func TestRetryableWritesProse(t *testing.T) {
 					"test cluster must have at least %v mongos hosts", tc.hostCount)
 
 				// Configure the failpoint options for each mongos.
-				failPoint := mtest.FailPoint{
+				failPoint := failpoint.FailPoint{
 					ConfigureFailPoint: "failCommand",
-					Mode: mtest.FailPointMode{
+					Mode: failpoint.Mode{
 						Times: 1,
 					},
-					Data: mtest.FailPointData{
+					Data: failpoint.Data{
 						FailCommands:    []string{"insert"},
 						ErrorLabels:     &[]string{"RetryableWriteError"},
 						ErrorCode:       tc.failpointErrorCode,

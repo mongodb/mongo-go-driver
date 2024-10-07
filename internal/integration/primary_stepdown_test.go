@@ -13,6 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/eventtest"
+	"go.mongodb.org/mongo-driver/v2/internal/failpoint"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -81,12 +82,12 @@ func TestConnectionsSurvivePrimaryStepDown(t *testing.T) {
 					// failpoints that cause SDAM state changes.
 					SetHeartbeatInterval(defaultHeartbeatInterval))
 
-				mt.SetFailPoint(mtest.FailPoint{
+				mt.SetFailPoint(failpoint.FailPoint{
 					ConfigureFailPoint: "failCommand",
-					Mode: mtest.FailPointMode{
+					Mode: failpoint.Mode{
 						Times: 1,
 					},
-					Data: mtest.FailPointData{
+					Data: failpoint.Data{
 						FailCommands: []string{"insert"},
 						ErrorCode:    tc.errCode,
 					},

@@ -183,7 +183,9 @@ However, some of the tests require secrets handling.  Please see the team [Wiki]
 The test suite can be run with or without the secrets as follows:
 
 ```bash
-TASKFILE_TARGET=evg-test-versioned-api bash .evergreen/run-tests.sh
+task setup-env
+task setup-test
+task evg-test-versioned-api
 ```
 
 ### Load Balancer

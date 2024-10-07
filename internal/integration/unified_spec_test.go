@@ -24,6 +24,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/bsonutil"
+	"go.mongodb.org/mongo-driver/v2/internal/failpoint"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/internal/integtest"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
@@ -45,7 +46,7 @@ const (
 )
 
 var (
-	defaultHeartbeatInterval = 50 * time.Millisecond
+	defaultHeartbeatInterval = 500 * time.Millisecond
 	skippedTestDescriptions  = map[string]string{
 		// SPEC-1403: This test checks to see if the correct error is thrown when auto encrypting with a server < 4.2.
 		// Currently, the test will fail because a server < 4.2 wouldn't have mongocryptd, so Client construction
@@ -472,7 +473,7 @@ func executeTestRunnerOperation(mt *mtest.T, testCase *testCase, op *operation, 
 	case "targetedFailPoint":
 		fpDoc := op.Arguments.Lookup("failPoint")
 
-		var fp mtest.FailPoint
+		var fp failpoint.FailPoint
 		if err := bson.Unmarshal(fpDoc.Document(), &fp); err != nil {
 			return fmt.Errorf("Unmarshal error: %w", err)
 		}
