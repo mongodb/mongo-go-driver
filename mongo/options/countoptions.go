@@ -8,6 +8,8 @@ package options
 
 // CountOptions represents arguments that can be used to configure a
 // CountDocuments operation.
+//
+// See corresponding setter methods for documentation.
 type CountOptions struct {
 	Collation *Collation
 	Comment   interface{}
