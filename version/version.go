@@ -8,4 +8,4 @@
 package version // import "go.mongodb.org/mongo-driver/version"
 
 // Driver is the current version of the driver.
-var Driver = "cloud-1.17-cloud2"
+var Driver = "1.17.1-cloud1"
