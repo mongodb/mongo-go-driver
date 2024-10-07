@@ -205,6 +205,7 @@ func (md *MockDeployment) ClearResponses() {
 }
 
 // NewMockDeployment returns a mock driver.Deployment that responds with OP_MSG wire messages.
+// However, for most use cases, we suggest testing with an actual database.
 func NewMockDeployment(responses ...bson.D) *MockDeployment {
 	return &MockDeployment{
 		conn: &connection{
