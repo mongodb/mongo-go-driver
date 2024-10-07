@@ -7,12 +7,11 @@
 package options
 
 // DataKeyOptions represents all possible options used to create a new data key.
+//
+// See corresponding setter methods for documentation.
 type DataKeyOptions struct {
 	MasterKey   interface{}
 	KeyAltNames []string
-
-	// KeyMaterial is used to encrypt data. If omitted, keyMaterial is generated form a cryptographically secure random
-	// source. "Key Material" is used interchangeably with "dataKey" and "Data Encryption Key" (DEK).
 	KeyMaterial []byte
 }
 
@@ -94,7 +93,9 @@ func (dk *DataKeyOptionsBuilder) SetKeyAltNames(keyAltNames []string) *DataKeyOp
 	return dk
 }
 
-// SetKeyMaterial will set a custom keyMaterial to DataKeyOptions which can be used to encrypt data.
+// SetKeyMaterial will set a custom keyMaterial to DataKeyOptions which can be used to encrypt data. If omitted,
+// keyMaterial is generated form a cryptographically secure random source. "Key Material" is used interchangeably
+// with "dataKey" and "Data Encryption Key" (DEK).
 func (dk *DataKeyOptionsBuilder) SetKeyMaterial(keyMaterial []byte) *DataKeyOptionsBuilder {
 	dk.Opts = append(dk.Opts, func(opts *DataKeyOptions) error {
 		opts.KeyMaterial = keyMaterial
