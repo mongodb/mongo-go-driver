@@ -56,8 +56,8 @@ func (ao *AggregateOptionsBuilder) SetAllowDiskUse(b bool) *AggregateOptionsBuil
 	return ao
 }
 
-// SetBatchSize sets the value for the BatchSize field. The maximum number of documents to be included
-// in each batch returned by the server.
+// SetBatchSize sets the value for the BatchSize field. Specifies the maximum number of documents
+// to be included in each batch returned by the server.
 func (ao *AggregateOptionsBuilder) SetBatchSize(i int32) *AggregateOptionsBuilder {
 	ao.Opts = append(ao.Opts, func(opts *AggregateOptions) error {
 		opts.BatchSize = &i
@@ -97,9 +97,9 @@ func (ao *AggregateOptionsBuilder) SetCollation(c *Collation) *AggregateOptionsB
 	return ao
 }
 
-// SetMaxAwaitTime sets the value for the MaxAwaitTime field. The maximum amount of time that the
-// server should wait for new documents to satisfy a tailable cursor query. This option is only valid
-// for MongoDB versions >= 3.2 and is ignored for previous server versions.
+// SetMaxAwaitTime sets the value for the MaxAwaitTime field. Specifies maximum amount of time
+// that the server should wait for new documents to satisfy a tailable cursor query. This option is
+// only valid for MongoDB versions >= 3.2 and is ignored for previous server versions.
 func (ao *AggregateOptionsBuilder) SetMaxAwaitTime(d time.Duration) *AggregateOptionsBuilder {
 	ao.Opts = append(ao.Opts, func(opts *AggregateOptions) error {
 		opts.MaxAwaitTime = &d
@@ -110,7 +110,7 @@ func (ao *AggregateOptionsBuilder) SetMaxAwaitTime(d time.Duration) *AggregateOp
 	return ao
 }
 
-// SetComment sets the value for the Comment field. A string or document that will be included in
+// SetComment sets the value for the Comment field. Specifies a string or document that will be included in
 // server logs, profiling logs, and currentOp queries to help trace the operation. The default is nil,
 // which means that no comment will be included in the logs.
 func (ao *AggregateOptionsBuilder) SetComment(comment interface{}) *AggregateOptionsBuilder {
@@ -123,8 +123,8 @@ func (ao *AggregateOptionsBuilder) SetComment(comment interface{}) *AggregateOpt
 	return ao
 }
 
-// SetHint sets the value for the Hint field. The index to use for the aggregation. This should either
-// be the index name as a string or the index specification as a document. The hint does not apply to
+// SetHint sets the value for the Hint field. Specifies the index to use for the aggregation. This should
+// either be the index name as a string or the index specification as a document. The hint does not apply to
 // $lookup and $graphLookup aggregation stages. The driver will return an error if the hint parameter
 // is a multi-key map. The default value is nil, which means that no hint will be sent.
 func (ao *AggregateOptionsBuilder) SetHint(h interface{}) *AggregateOptionsBuilder {
