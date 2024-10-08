@@ -190,16 +190,10 @@ tasks:
       - go test ${BUILD_TAGS} -benchmem -bench=. ./benchmark | test benchmark.suite
 
   driver-benchmark: 
-    deps: [perf-files]
     cmds: 
-      - go run ./internal/cmd/benchmark | tee perf.suite
+      - go test ./internal/cmd/benchmark -v --fullRun | tee perf.suite
 
   ### Internal tasks. ###
-  perf-files: 
-    internal: true
-    cmds:
-      - bash etc/prep-perf.sh
-
   install-lll: 
     internal: true
     cmds:
