@@ -13,7 +13,6 @@ import (
 	"sync"
 	"time"
 
-	"go.mongodb.org/mongo-driver/v2/internal/stats"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
@@ -213,7 +212,7 @@ func (r *rttMonitor) appendMovingMin(rtt time.Duration) {
 
 	// Collect a sum of stddevs over maxRTTSamplesForMovingMin calls, ignore if calls are less than max
 	if r.callsToAppendMovingMin >= maxRTTSamplesForMovingMin {
-		stddev := stats.StandardDeviationList[time.Duration](r.movingMin)
+		stddev := standardDeviationList(r.movingMin)
 		r.stddevSum += stddev
 	}
 }

@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package stats
+package topology
 
 import (
 	"container/list"
@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-func StandardDeviationList[T time.Duration | float64](l *list.List) float64 {
+func standardDeviationList(l *list.List) float64 {
 	if l.Len() == 0 {
 		return 0
 	}
@@ -22,7 +22,7 @@ func StandardDeviationList[T time.Duration | float64](l *list.List) float64 {
 
 	for el := l.Front(); el != nil; el = el.Next() {
 		count++
-		sample := float64(el.Value.(T))
+		sample := float64(el.Value.(time.Duration))
 
 		delta := sample - mean
 		mean += delta / count
