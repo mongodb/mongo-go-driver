@@ -14,4 +14,4 @@ export PATH="$MONGODB_BINARIES:$HOME/go/bin:$PATH"
 task setup-test
 
 # Run the test.
-task evg-test
+task $TASKFILE_TARGET
