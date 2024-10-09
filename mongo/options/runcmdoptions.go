@@ -12,9 +12,9 @@ import (
 
 // RunCmdOptions represents arguments that can be used to configure a RunCommand
 // operation.
+//
+// See corresponding setter methods for documentation.
 type RunCmdOptions struct {
-	// The read preference to use for the operation. The default value is nil, which means that the primary read
-	// preference will be used.
 	ReadPreference *readpref.ReadPref
 }
 
@@ -35,7 +35,9 @@ func (rc *RunCmdOptionsBuilder) List() []func(*RunCmdOptions) error {
 	return rc.Opts
 }
 
-// SetReadPreference sets value for the ReadPreference field.
+// SetReadPreference sets value for the ReadPreference field. Specifies the read preference
+// to use for the operation. The default value is nil, which means that the primary read
+// preference will be used.
 func (rc *RunCmdOptionsBuilder) SetReadPreference(rp *readpref.ReadPref) *RunCmdOptionsBuilder {
 	rc.Opts = append(rc.Opts, func(opts *RunCmdOptions) error {
 		opts.ReadPreference = rp
