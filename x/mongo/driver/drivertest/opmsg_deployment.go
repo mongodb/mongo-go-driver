@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package integration
+package drivertest
 
 import (
 	"context"
@@ -18,7 +18,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
-	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/topology"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage"
 )
 
@@ -41,9 +40,6 @@ var (
 		MaxBatchCount:         maxBatchCount,
 		SessionTimeoutMinutes: &sessionTimeoutMinutes,
 		Kind:                  description.ServerKindRSPrimary,
-		WireVersion: &description.VersionRange{
-			Max: topology.SupportedWireVersions.Max,
-		},
 	}
 )
 

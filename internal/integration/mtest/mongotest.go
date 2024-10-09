@@ -29,7 +29,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/integration"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/drivertest"
 )
 
 var (
@@ -63,7 +63,7 @@ type T struct {
 	createClient      *bool
 	createCollection  *bool
 	runOn             []RunOnBlock
-	mockDeployment    *integration.MockDeployment // nil if the test is not being run against a mock
+	mockDeployment    *drivertest.MockDeployment // nil if the test is not being run against a mock
 	mockResponses     []bson.D
 	createdColls      []*Collection // collections created in this test
 	proxyDialer       *proxyDialer
@@ -662,7 +662,7 @@ func (t *T) createTestClient() {
 
 		args.PoolMonitor = nil
 
-		t.mockDeployment = integration.NewMockDeployment()
+		t.mockDeployment = drivertest.NewMockDeployment()
 		args.Deployment = t.mockDeployment
 
 		opts := mongoutil.NewOptionsLister(args, nil)
