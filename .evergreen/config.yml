@@ -509,11 +509,13 @@ functions:
       params:
         binary: bash
         background: true
+        working_dir: src/go.mongodb.org/mongo-driver
         include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN", "DRIVERS_TOOLS"]
         args: [*task-runner, setup-encryption]
     - command: subprocess.exec
       params:
         binary: bash
+        working_dir: src/go.mongodb.org/mongo-driver
         args:
           - ${DRIVERS_TOOLS}/.evergreen/csfle/await-servers.sh
 
