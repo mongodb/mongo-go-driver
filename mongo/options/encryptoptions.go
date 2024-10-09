@@ -17,6 +17,8 @@ const (
 )
 
 // RangeOptions specifies index options for a Queryable Encryption field supporting "range" queries.
+//
+// See corresponding setter methods for documentation.
 type RangeOptions struct {
 	Min        *bson.RawValue
 	Max        *bson.RawValue
@@ -40,6 +42,61 @@ func Range() *RangeOptionsBuilder {
 // List returns a list of RangeOptions setter functions.
 func (ro *RangeOptionsBuilder) List() []func(*RangeOptions) error {
 	return ro.Opts
+}
+
+// SetMin sets the range index minimum value.
+func (ro *RangeOptionsBuilder) SetMin(min bson.RawValue) *RangeOptionsBuilder {
+	ro.Opts = append(ro.Opts, func(opts *RangeOptions) error {
+		opts.Min = &min
+
+		return nil
+	})
+
+	return ro
+}
+
+// SetMax sets the range index maximum value.
+func (ro *RangeOptionsBuilder) SetMax(max bson.RawValue) *RangeOptionsBuilder {
+	ro.Opts = append(ro.Opts, func(opts *RangeOptions) error {
+		opts.Max = &max
+
+		return nil
+	})
+
+	return ro
+}
+
+// SetSparsity sets the range index sparsity.
+func (ro *RangeOptionsBuilder) SetSparsity(sparsity int64) *RangeOptionsBuilder {
+	ro.Opts = append(ro.Opts, func(opts *RangeOptions) error {
+		opts.Sparsity = &sparsity
+
+		return nil
+	})
+
+	return ro
+}
+
+// SetTrimFactor sets the range index trim factor.
+func (ro *RangeOptionsBuilder) SetTrimFactor(trimFactor int32) *RangeOptionsBuilder {
+	ro.Opts = append(ro.Opts, func(opts *RangeOptions) error {
+		opts.TrimFactor = &trimFactor
+
+		return nil
+	})
+
+	return ro
+}
+
+// SetPrecision sets the range index precision.
+func (ro *RangeOptionsBuilder) SetPrecision(precision int32) *RangeOptionsBuilder {
+	ro.Opts = append(ro.Opts, func(opts *RangeOptions) error {
+		opts.Precision = &precision
+
+		return nil
+	})
+
+	return ro
 }
 
 // EncryptOptions represents arguments to explicitly encrypt a value.
@@ -145,59 +202,4 @@ func (e *EncryptOptionsBuilder) SetRangeOptions(ro *RangeOptionsBuilder) *Encryp
 	})
 
 	return e
-}
-
-// SetMin sets the range index minimum value.
-func (ro *RangeOptionsBuilder) SetMin(min bson.RawValue) *RangeOptionsBuilder {
-	ro.Opts = append(ro.Opts, func(opts *RangeOptions) error {
-		opts.Min = &min
-
-		return nil
-	})
-
-	return ro
-}
-
-// SetMax sets the range index maximum value.
-func (ro *RangeOptionsBuilder) SetMax(max bson.RawValue) *RangeOptionsBuilder {
-	ro.Opts = append(ro.Opts, func(opts *RangeOptions) error {
-		opts.Max = &max
-
-		return nil
-	})
-
-	return ro
-}
-
-// SetSparsity sets the range index sparsity.
-func (ro *RangeOptionsBuilder) SetSparsity(sparsity int64) *RangeOptionsBuilder {
-	ro.Opts = append(ro.Opts, func(opts *RangeOptions) error {
-		opts.Sparsity = &sparsity
-
-		return nil
-	})
-
-	return ro
-}
-
-// SetTrimFactor sets the range index trim factor.
-func (ro *RangeOptionsBuilder) SetTrimFactor(trimFactor int32) *RangeOptionsBuilder {
-	ro.Opts = append(ro.Opts, func(opts *RangeOptions) error {
-		opts.TrimFactor = &trimFactor
-
-		return nil
-	})
-
-	return ro
-}
-
-// SetPrecision sets the range index precision.
-func (ro *RangeOptionsBuilder) SetPrecision(precision int32) *RangeOptionsBuilder {
-	ro.Opts = append(ro.Opts, func(opts *RangeOptions) error {
-		opts.Precision = &precision
-
-		return nil
-	})
-
-	return ro
 }
