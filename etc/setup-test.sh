@@ -7,12 +7,15 @@ OS=${OS:-""}
 SSL=${SSL:-nossl}
 GO_BUILD_TAGS=${GO_BUILD_TAGS:-}
 RACE=${RACE:-}
+SERVERLESS=${SERVERLESS:-}
+LOAD_BALANCER=${LOAD_BALANCER:-}
+MONGODB_URI=${MONGODB_URI:-}
 
 # Handle special cases first.
-if [ -n "${TEST_ENTERPRISE}" ]; then
+if [ -n "${TEST_ENTERPRISE_AUTH:-}" ]; then
     . $DRIVERS_TOOLS/.evergreen/secrets_handling/setup-secrets.sh drivers/enterprise_auth
     AUTH="auth"
-    case $TEST_ENTERPRISE in
+    case $TEST_ENTERPRISE_AUTH in
         plain)
             MONGODB_URI="mongodb://${SASL_USER}:${SASL_PASS}@${SASL_HOST}:${SASL_PORT}/ldap?authMechanism=PLAIN"
             ;;
@@ -37,7 +40,7 @@ if [ -n "${SERVERLESS}" ]; then
     AUTH="auth"
 fi
 
-if [ -n "${TEST_ATLAS_CONNECT}" ]; then
+if [ -n "${TEST_ATLAS_CONNECT:-}" ]; then
     . $DRIVERS_TOOLS/.evergreen/secrets_handling/setup-secrets.sh drivers/atlas_connect
 fi
 
@@ -94,7 +97,7 @@ else
 fi
 
 # Handle certificates.
-if [ "$SSL" != "nossl" ] && [ -z "${SERVERLESS:-}" ] && [ -z "${OCSP_ALGORITHM:-}" ]; then
+if [ "$SSL" != "nossl" ] && [ -z "${SERVERLESS}" ] && [ -z "${OCSP_ALGORITHM:-}" ]; then
     MONGO_GO_DRIVER_CA_FILE="$DRIVERS_TOOLS/.evergreen/x509gen/ca.pem"
     MONGO_GO_DRIVER_KEY_FILE="$DRIVERS_TOOLS/.evergreen/x509gen/client.pem"
     MONGO_GO_DRIVER_PKCS8_ENCRYPTED_KEY_FILE="$DRIVERS_TOOLS/.evergreen/x509gen/client-pkcs8-encrypted.pem"
@@ -116,9 +119,9 @@ MONGO_GO_DRIVER_KEY_FILE="${MONGO_GO_DRIVER_KEY_FILE:-}"
 MONGO_GO_DRIVER_PKCS8_ENCRYPTED_KEY_FILE="${MONGO_GO_DRIVER_PKCS8_ENCRYPTED_KEY_FILE:-}"
 MONGO_GO_DRIVER_PKCS8_UNENCRYPTED_KEY_FILE="${MONGO_GO_DRIVER_PKCS8_UNENCRYPTED_KEY_FILE:-}"
 TOPOLOGY="${TOPOLOGY:-}"
-SERVERLESS="${SERVERLESS:-}"
+SERVERLESS="${SERVERLESS}"
 REQUIRE_API_VERSION="${REQUIRE_API_VERSION:-}"
-LOAD_BALANCER="${LOAD_BALANCER:-}"
+LOAD_BALANCER="${LOAD_BALANCER}"
 MONGO_GO_DRIVER_COMPRESSOR="${MONGO_GO_DRIVER_COMPRESSOR:-}"
 BUILD_TAGS="${BUILD_TAGS}"
 CRYPT_SHARED_LIB_PATH="${CRYPT_SHARED_LIB_PATH:-}"
@@ -128,16 +131,16 @@ MACOS_LIBRARY_PATH="${DYLD_FALLBACK_LIBRARY_PATH:-}"
 SKIP_CSOT_TESTS=${SKIP_CSOT_TESTS:-}
 EOT
 
-if [ -n "${MONGODB_URI:-}" ]; then
+if [ -n "${MONGODB_URI}" ]; then
     echo "MONGODB_URI=\"${MONGODB_URI}\"" >> .test.env
 fi
 
-if [ -n "${SERVERLESS:-}" ]; then
+if [ -n "${SERVERLESS}" ]; then
     echo "SERVERLESS_ATLAS_USER=$SERVERLESS_ATLAS_USER" >> .test.env
     echo "SERVERLESS_ATLAS_PASSWORD=$SERVERLESS_ATLAS_PASSWORD" >> .test.env
 fi
 
-if [ -n "${LOAD_BALANCER:-}" ];then
+if [ -n "${LOAD_BALANCER}" ];then
     echo "SINGLE_MONGOS_LB_URI=${SINGLE_MONGOS_LB_URI}" >> .test.env
     echo "MULTI_MONGOS_LB_URI=${MULTI_MONGOS_LB_URI}" >> .test.env
 fi

@@ -247,7 +247,7 @@ functions:
         binary: bash
         include_expansions_in_env: [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN]
         env: 
-          TEST_ENTERPRISE: plain
+          TEST_ENTERPRISE_AUTH: plain
         args: [*task-runner, setup-test]
     - command: subprocess.exec
       type: test
@@ -265,7 +265,7 @@ functions:
         binary: bash
         include_expansions_in_env: [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN]
         env: 
-          TEST_ENTERPRISE: gssapi
+          TEST_ENTERPRISE_AUTH: gssapi
         args: [*task-runner, setup-test]
     - command: subprocess.exec
       type: test
