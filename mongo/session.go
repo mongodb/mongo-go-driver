@@ -106,17 +106,9 @@ func (s *Session) EndSession(ctx context.Context) {
 // for any operations that should be part of the transaction. If the ctx
 // parameter already has a Session attached to it, it will be replaced by this
 // session. The fn callback may be run multiple times during WithTransaction due
-// to retry attempts, so it must be idempotent.
-// If a command inside the callback fn fails, it may cause the transaction on the
-// server to be aborted. This situation is normally handled transparently by the
-// driver. However, if the application does not return that error from the fn,
-// the driver will not be able to determine whether the transaction was aborted or
-// not. The driver will then retry the block indefinitely.
-// To avoid this situation, the application MUST NOT silently handle errors within
-// the callback fn. If the application needs to handle errors within the block,
-// it MUST return them after doing so.
-// Non-retryable operation errors or any operation errors that occur after the timeout
-// expires will be returned without retrying. If the callback fails, the driver will call
+// to retry attempts, so it must be idempotent. Non-retryable operation errors
+// or any operation errors that occur after the timeout expires will be returned
+// without retrying. If the callback fails, the driver will call
 // AbortTransaction. Because this method must succeed to ensure that server-side
 // resources are properly cleaned up, context deadlines and cancellations will
 // not be respected during this call. For a usage example, see the
