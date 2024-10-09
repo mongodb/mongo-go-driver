@@ -541,7 +541,7 @@ tasks:
       - command: subprocess.exec
         params:
           binary: bash
-          args: [*task-runner, "check-fmt check-license check-modules lint"]
+          args: [*task-runner, check-fmt, check-license, check-modules, lint]
 
   - name: pull-request-helpers
     allowed_requesters: ["patch", "github_pr"]
