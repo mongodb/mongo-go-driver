@@ -13,6 +13,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/csot"
+	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/address"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
@@ -40,6 +41,9 @@ var (
 		MaxBatchCount:         maxBatchCount,
 		SessionTimeoutMinutes: &sessionTimeoutMinutes,
 		Kind:                  description.ServerKindRSPrimary,
+		WireVersion: &description.VersionRange{
+			Max: driverutil.MaxWireVersion,
+		},
 	}
 )
 
