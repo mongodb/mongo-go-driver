@@ -372,10 +372,11 @@ functions:
 
   run-ocsp-server:
     - command: subprocess.exec
-      binary: bash
-      include_expansions_in_env: [SERVER_TYPE, OCSP_ALGORITHM]
-      args:
-        - ${DRIVERS_TOOLS}/.evergreen/ocsp/setup.sh
+      params:
+        binary: bash
+        include_expansions_in_env: [SERVER_TYPE, OCSP_ALGORITHM]
+        args:
+          - ${DRIVERS_TOOLS}/.evergreen/ocsp/setup.sh
 
   run-load-balancer:
     - command: subprocess.exec
@@ -540,7 +541,7 @@ tasks:
       - command: subprocess.exec
         params:
           binary: bash
-        args: [*task-runner, "check-fmt check-license check-modules lint"]
+          args: [*task-runner, "check-fmt check-license check-modules lint"]
 
   - name: pull-request-helpers
     allowed_requesters: ["patch", "github_pr"]
@@ -568,7 +569,7 @@ tasks:
       - command: subprocess.exec
         params:
           binary: bash
-        args: [*task-runner, driver-benchmark]
+          args: [*task-runner, driver-benchmark]
       - func: send-perf-data
 
   - name: test-standalone-noauth-nossl
@@ -1474,7 +1475,7 @@ tasks:
       params:
         binary: bash
         env:
-          EXPECT_ERROR: 1
+          EXPECT_ERROR: "1"
         args: [*task-runner, test-gcpkms]
 
   - name: "testawskms-task"
@@ -1514,7 +1515,7 @@ tasks:
       params:
         binary: bash
         env:
-          EXPECT_ERROR: 1
+          EXPECT_ERROR: "1"
         args: [*task-runner, test-azurekms]
 
   - name: "test-fuzz"
@@ -1545,7 +1546,7 @@ tasks:
 
   - name: "oidc-auth-test-azure"
     commands:
-    - command: suprocess.exec
+    - command: subprocess.exec
       type: test
       params:
         binary: bash
@@ -1555,7 +1556,7 @@ tasks:
 
   - name: "oidc-auth-test-gcp"
     commands:
-    - command: suprocess.exec
+    - command: subprocess.exec
       type: test
       params:
         binary: bash
