@@ -39,6 +39,20 @@ case ${1:-} in
     atlas-connect)
         . $DRIVERS_TOOLS/.evergreen/secrets_handling/setup-secrets.sh drivers/atlas_connect
         ;;
+    load-balancer)
+        # Verify that the required LB URI expansions are set to ensure that the test runner can correctly connect to
+        # the LBs.
+        if [ -z "${SINGLE_MONGOS_LB_URI}" ]; then
+            echo "SINGLE_MONGOS_LB_URI must be set for testing against LBs"
+            exit 1
+        fi
+        if [ -z "${MULTI_MONGOS_LB_URI}" ]; then
+            echo "MULTI_MONGOS_LB_URI must be set for testing against LBs"
+            exit 1
+        fi
+        MONGODB_URI="${SINGLE_MONGOS_LB_URI}"
+        LOAD_BALANCER="true"
+        ;;
 esac
 
 # Handle encryption.
@@ -51,8 +65,8 @@ if [[ "${GO_BUILD_TAGS}" =~ cse ]]; then
     LD_LIBRARY_PATH=$(pwd)/install/libmongocrypt/lib64
 
     if [ "$(uname -s)" = "Darwin" ]; then
-    PKG_CONFIG_PATH=$(pwd)/install/libmongocrypt/lib/pkgconfig
-    DYLD_FALLBACK_LIBRARY_PATH=$(pwd)/install/libmongocrypt/lib
+      PKG_CONFIG_PATH=$(pwd)/install/libmongocrypt/lib/pkgconfig
+      DYLD_FALLBACK_LIBRARY_PATH=$(pwd)/install/libmongocrypt/lib
     fi
 
     if [ "${SKIP_CRYPT_SHARED_LIB:-''}" = "true" ]; then
@@ -114,6 +128,11 @@ fi
 if [ -n "${SERVERLESS:-}" ]; then
     echo "SERVERLESS_ATLAS_USER=$SERVERLESS_ATLAS_USER" >> .test.env
     echo "SERVERLESS_ATLAS_PASSWORD=$SERVERLESS_ATLAS_PASSWORD" >> .test.env
+fi
+
+if [ -n "${LOAD_BALANCER:-}" ];then
+    echo "SINGLE_MONGOS_LB_URI=${SINGLE_MONGOS_LB_URI}" >> .test.env
+    echo "MULTI_MONGOS_LB_URI=${MULTI_MONGOS_LB_URI}" >> .test.env
 fi
 
 # Add secrets to the test file.

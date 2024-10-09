@@ -55,11 +55,13 @@ tasks:
     status: 
       - test -d install || test -d /cygdrive/c/libmongocrypt/bin
 
-  run-docker: bash etc/run_docker.sh
+  run-docker: bash etc/run_docker.sh {{.CLI_ARGS}}
 
   run-fuzz: bash etc/run-fuzz.sh
 
   cherry-picker: bash etc/cherry-picker.sh
+
+  pr-task: bash etc/pr-task.sh
 
   # Lint with various GOOS and GOARCH tasks to catch static analysis failures that may only affect
   # specific operating systems or architectures. For example, staticcheck will only check for 64-bit
@@ -190,16 +192,10 @@ tasks:
       - go test ${BUILD_TAGS} -benchmem -bench=. ./benchmark | test benchmark.suite
 
   driver-benchmark: 
-    deps: [perf-files]
     cmds: 
-      - go run ./internal/cmd/benchmark | tee perf.suite
+      - go test ./internal/cmd/benchmark -v --fullRun | tee perf.suite
 
   ### Internal tasks. ###
-  perf-files: 
-    internal: true
-    cmds:
-      - bash etc/prep-perf.sh
-
   install-lll: 
     internal: true
     cmds:

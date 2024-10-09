@@ -9,6 +9,8 @@ debug
 *.sublime-workspace
 driver-test-data.tar.gz
 perf
+perf.json
+perf.suite
 **mongocryptd.pid
 *.test
 .DS_Store
