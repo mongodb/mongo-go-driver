@@ -154,9 +154,6 @@ tasks:
     - go test ./internal/integration -run TestSearchIndexProse -v -timeout {{.LONG_TEST_TIMEOUT}}s >> test.suite
 
   evg-test-ocsp:
-    - cat env.sh
-    - cat .test.env
-    - echo "SHOULD SUCCEED=${OCSP_TLS_SHOULD_SUCCEED}"
     - go test -v ./mongo -run TestOCSP ${OCSP_TLS_SHOULD_SUCCEED} >> test.suite
 
   evg-test-serverless:

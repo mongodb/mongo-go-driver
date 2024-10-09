@@ -93,7 +93,7 @@ else
 fi
 
 # Handle certificates.
-if [ "$SSL" != "nossl" ] && [ -z "${SERVERLESS+x}" ]; then
+if [ "$SSL" != "nossl" ] && [ -z "${SERVERLESS+x}" ] && [ -z "${OCSP_ALGORITHM:-}" ]; then
     MONGO_GO_DRIVER_CA_FILE="$DRIVERS_TOOLS/.evergreen/x509gen/ca.pem"
     MONGO_GO_DRIVER_KEY_FILE="$DRIVERS_TOOLS/.evergreen/x509gen/client.pem"
     MONGO_GO_DRIVER_PKCS8_ENCRYPTED_KEY_FILE="$DRIVERS_TOOLS/.evergreen/x509gen/client-pkcs8-encrypted.pem"
