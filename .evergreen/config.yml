@@ -36,13 +36,14 @@ functions:
     - command: subprocess.exec
       params:
         binary: bash
+        working_dir: src/go.mongodb.org/mongo-driver
         env:
           GOROOT: ${GO_DIST}
           IS_PATCH: ${is_patch}
           VERSION_ID: ${version_id}
           # Define an alias for the task runner script.
           TASK_RUNNER_ALIAS: &task-runner src/go.mongodb.org/mongo-driver/.evergreen/run-task.sh
-        args: [src/go.mongodb.org/mongo-driver/.evergreen/setup-system.sh]
+        args: [.evergreen/setup-system.sh]
     - command: expansions.update
       params:
         file: src/go.mongodb.org/mongo-driver/expansion.yml
@@ -1473,7 +1474,7 @@ tasks:
       params:
         binary: bash
         env:
-          EXPECT_ERROR: "1"
+          EXPECT_ERROR: 1
         args: [*task-runner, test-gcpkms]
 
   - name: "testawskms-task"
@@ -1513,7 +1514,7 @@ tasks:
       params:
         binary: bash
         env:
-          EXPECT_ERROR: "1"
+          EXPECT_ERROR: 1
         args: [*task-runner, test-azurekms]
 
   - name: "test-fuzz"
@@ -1544,7 +1545,7 @@ tasks:
 
   - name: "oidc-auth-test-azure"
     commands:
-    - command: subprocess.exec
+    - command: suprocess.exec
       type: test
       params:
         binary: bash
@@ -1554,7 +1555,7 @@ tasks:
 
   - name: "oidc-auth-test-gcp"
     commands:
-    - command: subprocess.exec
+    - command: suprocess.exec
       type: test
       params:
         binary: bash
@@ -1886,6 +1887,7 @@ task_groups:
       - func: setup-system
       - command: subprocess.exec
         params:
+          working_dir: src/go.mongodb.org/mongo-driver
           binary: bash
           env:
             LAMBDA_STACK_NAME: dbx-go-lambda
@@ -1894,6 +1896,7 @@ task_groups:
     teardown_group:
       - command: subprocess.exec
         params:
+          working_dir: src/go.mongodb.org/mongo-driver
           binary: bash
           env:
             LAMBDA_STACK_NAME: dbx-go-lambda
@@ -1912,6 +1915,7 @@ task_groups:
       - func: setup-system
       - command: subprocess.exec
         params:
+          working_dir: src/go.mongodb.org/mongo-driver
           binary: bash
           env:
             MONGODB_VERSION: "7.0"
@@ -1924,6 +1928,7 @@ task_groups:
     teardown_group:
       - command: subprocess.exec
         params:
+          working_dir: src/go.mongodb.org/mongo-driver
           binary: bash
           args:
             - ${DRIVERS_TOOLS}/.evergreen/atlas/teardown.sh
