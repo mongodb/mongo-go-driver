@@ -17,6 +17,8 @@ type CreateIndexesOptions struct {
 // CreateIndexesOptionsBuilder contains options to create indexes. Each option
 // can be set through setter functions. See documentation for each setter
 // function for an explanation of the option.
+//
+// See corresponding setter methods for documentation.
 type CreateIndexesOptionsBuilder struct {
 	Opts []func(*CreateIndexesOptions) error
 }
@@ -34,7 +36,9 @@ func (c *CreateIndexesOptionsBuilder) List() []func(*CreateIndexesOptions) error
 // SetCommitQuorumInt sets the value for the CommitQuorum field as an int32.
 // Specifies the number of data-bearing members of a replica set, including the primary,
 // that must complete the index builds successfully before the primary marks the indexes
-// as ready. Semantics for int: the number of members that must complete the build.
+// as ready.
+//
+// Semantics for int: the number of members that must complete the build.
 //
 // This option is only available on MongoDB versions >= 4.4. A client-side error will
 // be returned if the option is specified for MongoDB versions <= 4.2. The default
@@ -53,8 +57,9 @@ func (c *CreateIndexesOptionsBuilder) SetCommitQuorumInt(quorum int32) *CreateIn
 // SetCommitQuorumString sets the value for the CommitQuorum field as a string.
 // Specifies the number of data-bearing members of a replica set, including the primary,
 // that must complete the index builds successfully before the primary marks the indexes
-// as ready. Semantics for String: specifies a tag. All members with that tag must
-// complete the build.
+// as ready.
+//
+// Semantics for String: specifies a tag. All members with that tag must complete the build.
 //
 // This option is only available on MongoDB versions >= 4.4. A client-side error will
 // be returned if the option is specified for MongoDB versions <= 4.2. The default
@@ -73,8 +78,10 @@ func (c *CreateIndexesOptionsBuilder) SetCommitQuorumString(quorum string) *Crea
 // SetCommitQuorumMajority sets the value for the CommitQuorum to special "majority" value.
 // Specifies the number of data-bearing members of a replica set, including the primary,
 // that must complete the index builds successfully before the primary marks the indexes
-// as ready. Semantics for "majority": A special value to indicate that more than half the
-// nodes must complete the build.
+// as ready.
+//
+// Semantics for "majority": A special value to indicate that more than half the nodes
+// must complete the build.
 //
 // This option is only available on MongoDB versions >= 4.4. A client-side error will
 // be returned if the option is specified for MongoDB versions <= 4.2. The default
@@ -93,8 +100,10 @@ func (c *CreateIndexesOptionsBuilder) SetCommitQuorumMajority() *CreateIndexesOp
 // SetCommitQuorumVotingMembers sets the value for the CommitQuorum to special "votingMembers" value.
 // Specifies the number of data-bearing members of a replica set, including the primary,
 // that must complete the index builds successfully before the primary marks the indexes
-// as ready. Semantics for "votingMembers": A special value to indicate that all voting
-// data-bearing nodes must complete.
+// as ready.
+//
+// Semantics for "votingMembers": A special value to indicate that all voting data-bearing
+// nodes must complete.
 //
 // This option is only available on MongoDB versions >= 4.4. A client-side error will
 // be returned if the option is specified for MongoDB versions <= 4.2. The default
