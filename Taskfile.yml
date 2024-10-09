@@ -155,6 +155,7 @@ tasks:
 
   evg-test-ocsp:
     - cat env.sh
+    - cat .test.env
     - echo "SHOULD SUCCEED=${OCSP_TLS_SHOULD_SUCCEED}"
     - go test -v ./mongo -run TestOCSP ${OCSP_TLS_SHOULD_SUCCEED} >> test.suite
 
