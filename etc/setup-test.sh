@@ -53,6 +53,12 @@ case ${1:-} in
         MONGODB_URI="${SINGLE_MONGOS_LB_URI}"
         LOAD_BALANCER="true"
         ;;
+    ocsp)
+        MONGO_GO_DRIVER_CA_FILE="${DRIVERS_TOOLS}/.evergreen/ocsp/${OCSP_ALGORITHM}/ca.pem"
+        if [ "Windows_NT" = "$OS" ]; then
+            MONGO_GO_DRIVER_CA_FILE=$(cygpath -m $MONGO_GO_DRIVER_CA_FILE)
+        fi
+        ;;
 esac
 
 # Handle encryption.
