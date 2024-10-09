@@ -70,7 +70,7 @@ type slowConnDialer struct {
 }
 
 var slowConnDialerDelay = 300 * time.Millisecond
-var reducedHeartbeatInterval = 100 * time.Millisecond
+var reducedHeartbeatInterval = 500 * time.Millisecond
 
 func newSlowConnDialer(delay time.Duration) *slowConnDialer {
 	return &slowConnDialer{
@@ -517,7 +517,7 @@ func TestClient(t *testing.T) {
 		mt.Parallel()
 
 		// Reset the client with a dialer that delays all network round trips by 300ms and set the
-		// heartbeat interval to 100ms to reduce the time it takes to collect RTT samples.
+		// heartbeat interval to 500ms to reduce the time it takes to collect RTT samples.
 		mt.ResetClient(options.Client().
 			SetDialer(newSlowConnDialer(slowConnDialerDelay)).
 			SetHeartbeatInterval(reducedHeartbeatInterval))
@@ -555,7 +555,7 @@ func TestClient(t *testing.T) {
 		assert.Nil(mt, err, "Ping error: %v", err)
 
 		// Reset the client with a dialer that delays all network round trips by 300ms and set the
-		// heartbeat interval to 100ms to reduce the time it takes to collect RTT samples.
+		// heartbeat interval to 500ms to reduce the time it takes to collect RTT samples.
 		tpm := eventtest.NewTestPoolMonitor()
 		mt.ResetClient(options.Client().
 			SetPoolMonitor(tpm.PoolMonitor).

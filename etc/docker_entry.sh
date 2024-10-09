@@ -11,5 +11,7 @@ cp -r $HOME/install ./install
 
 export PATH="$MONGODB_BINARIES:$HOME/go/bin:$PATH"
 
+task setup-test
+
 # Run the test.
-bash ./.evergreen/run-tests.sh
+task $TASKFILE_TARGET

@@ -4,6 +4,7 @@ set -x # show all commands being run
 
 GC=go
 COMPILE_CHECK_DIR="internal/cmd/compilecheck"
+# shellcheck disable=SC2034
 DEV_MIN_VERSION=1.19
 
 # version will flatten a version string of upto 4 components for inequality
@@ -23,7 +24,7 @@ function compile_check {
 	MACHINE_VERSION=`${GC} version | { read _ _ v _; echo ${v#go}; }`
 
 	# If the version is not 1.13, then run "go mod tidy"
-	if [ $(version $MACHINE_VERSION) -ge $(version 1.15) ]; then
+	if [ "$(version $MACHINE_VERSION)" -ge "$(version 1.15)" ]; then
 		go mod tidy
 	fi
 

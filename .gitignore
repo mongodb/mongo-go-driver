@@ -9,6 +9,8 @@ debug
 *.sublime-workspace
 driver-test-data.tar.gz
 perf
+perf.json
+perf.suite
 **mongocryptd.pid
 *.test
 .DS_Store
@@ -20,6 +22,9 @@ libmongocrypt
 venv
 test.suite
 go.work.sum
+.task
+env.sh
+expansion.yml
 
 # AWS SAM-generated files
 internal/cmd/faas/awslambda/.aws-sam
@@ -36,3 +41,4 @@ api-report.txt
 # Ignore secrets files
 secrets-expansion.yml
 secrets-export.sh
+.test.env
