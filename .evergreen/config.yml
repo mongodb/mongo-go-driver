@@ -155,6 +155,11 @@ functions:
       params:
         binary: bash
         args: 
+          - ${DRIVERS_TOOLS}/.evergreen/ocsp/teardown.sh
+    - command: subprocess.exec
+      params:
+        binary: bash
+        args: 
           - ${DRIVERS_TOOLS}/.evergreen/teardown.sh
 
   assume-ec2-role:
