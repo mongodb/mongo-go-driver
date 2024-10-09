@@ -1544,7 +1544,7 @@ tasks:
 
   - name: "oidc-auth-test-azure"
     commands:
-    - command: subrocess.exec
+    - command: subprocess.exec
       type: test
       params:
         binary: bash
@@ -1554,7 +1554,7 @@ tasks:
 
   - name: "oidc-auth-test-gcp"
     commands:
-    - command: subrocess.exec
+    - command: subprocess.exec
       type: test
       params:
         binary: bash
