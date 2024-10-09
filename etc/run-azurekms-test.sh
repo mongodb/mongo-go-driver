@@ -13,6 +13,7 @@ if [ -n "${EXPECT_ERROR:-}" ]; then
   EXPECT_ERROR='unable to retrieve azure credentials' \
   PROVIDER='azure' AZUREKMS_KEY_NAME=$AZUREKMS_KEYNAME AZUREKMS_KEY_VAULT_ENDPOINT=$AZUREKMS_KEYVAULTENDPOINT \
     ./testkms
+  exit 0
 fi
 
 echo "Copying files ... begin"
