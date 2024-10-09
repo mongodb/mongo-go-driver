@@ -246,7 +246,9 @@ functions:
       params:
         binary: bash
         include_expansions_in_env: [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN]
-        args: [*task-runner, setup-test, --, enterprise-plain]
+        env: 
+          TEST_ENTERPRISE: plain
+        args: [*task-runner, setup-test]
     - command: subprocess.exec
       type: test
       params:
@@ -262,7 +264,9 @@ functions:
       params:
         binary: bash
         include_expansions_in_env: [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN]
-        args: [*task-runner, setup-test, --, enterprise-gssapi]
+        env: 
+          TEST_ENTERPRISE: gssapi
+        args: [*task-runner, setup-test]
     - command: subprocess.exec
       type: test
       params:
@@ -278,7 +282,9 @@ functions:
       params:
         binary: bash
         include_expansions_in_env: [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN]
-        args: [*task-runner, setup-test, --, atlas-connect]
+        env:
+          TEST_ATLAS_CONNECT: 1
+        args: [*task-runner, setup-test]
     - command: subprocess.exec
       type: test
       params:
@@ -295,7 +301,7 @@ functions:
           AUTH: auth
           SSL: ssl
         include_expansions_in_env: [OCSP_ALGORITHM, MONGODB_URI]
-        args: [*task-runner, setup-test, --, ocsp]
+        args: [*task-runner, setup-test]
     - command: subprocess.exec
       type: test
       params:
@@ -325,7 +331,9 @@ functions:
       params:
         binary: bash
         include_expansions_in_env: [SINGLE_MONGOS_LB_URI, MULTI_MONGOS_LB_URI, AUTH, SSL, MONGO_GO_DRIVER_COMPRESSOR]
-        args: [*task-runner, setup-test, --, load-balancer]
+        env: 
+          LOAD_BALANCER: true
+        args: [*task-runner, setup-test]
     - command: subprocess.exec
       type: test
       params:
@@ -337,7 +345,9 @@ functions:
       type: test
       params:
         binary: "bash"
-        args: [*task-runner, setup-test, --, serverless]
+        env:
+          SERVERLESS: true
+        args: [*task-runner, setup-test]
     - command: subprocess.exec
       type: test
       params:
@@ -366,14 +376,17 @@ functions:
       type: test
       params:
         binary: "bash"
-        args: [*task-runner, run-docker, --, test-short]
+        env:
+          TASKFILE_TARGET: test-short
+        args: [*task-runner, run-docker]
     - command: subprocess.exec
       type: test
       params:
         binary: "bash"
         env: 
           TOPOLOGY: sharded_cluster
-        args: [*task-runner, run-docker, --, test-short]
+          TASKFILE_TARGET: test-short
+        args: [*task-runner, run-docker]
 
   run-ocsp-server:
     - command: subprocess.exec
@@ -420,14 +433,18 @@ functions:
       type: test
       params:
         binary: "bash"
-        args: [*task-runner, evg-test-aws, --, regular]
+        env:
+          AWS_TEST: regular
+        args: [*task-runner, evg-test-aws]
 
   run-aws-auth-test-with-assume-role-credentials:
     - command: subprocess.exec
       type: test
       params:
         binary: "bash"
-        args: [*task-runner, evg-test-aws, --, assume-role]
+        env:
+          AWS_TEST: assume-role
+        args: [*task-runner, evg-test-aws]
 
   run-aws-auth-test-with-aws-EC2-credentials:
     - command: subprocess.exec
@@ -435,21 +452,27 @@ functions:
       params:
         binary: bash 
         include_expansions_in_env: [SKIP_EC2_AUTH_TEST]
-        args: [*task-runner, evg-test-aws, --, ec2]
+        env:
+          AWS_TEST: ec2
+        args: [*task-runner, evg-test-aws]
 
   run-aws-auth-test-with-aws-credentials-as-environment-variables:
     - command: subprocess.exec
       type: test
       params:
         binary: "bash"
-        args: [*task-runner, evg-test-aws, --, env-creds]
+        env:
+          AWS_TEST: env-creds
+        args: [*task-runner, evg-test-aws]
 
   run-aws-auth-test-with-aws-credentials-and-session-token-as-environment-variables:
     - command: subprocess.exec
       type: test
       params:
         binary: "bash"
-        args: [*task-runner, evg-test-aws, --, session-creds]
+        env:
+          AWS_TEST: session-creds
+        args: [*task-runner, evg-test-aws]
 
   run-aws-ECS-auth-test:
     - command: subprocess.exec
@@ -465,15 +488,18 @@ functions:
       params:
         binary: bash
         include_expansions_in_env: [SKIP_WEB_IDENTITY_AUTH_TEST]
-        args: [*task-runner, evg-test-aws, --, web-identity]
+        env:
+          AWS_TEST: web-identity
+        args: [*task-runner, evg-test-aws]
     - command: subprocess.exec
       type: test
       params:
         binary: bash
         env: 
           AWS_ROLE_SESSION_NAME: test
+          AWS_TEST: web-identity
         include_expansions_in_env: [SKIP_WEB_IDENTITY_AUTH_TEST]
-        args: [*task-runner, evg-test-aws, --, web-identity]
+        args: [*task-runner, evg-test-aws]
 
   start-cse-servers:
     - command: ec2.assume_role

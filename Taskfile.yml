@@ -55,7 +55,7 @@ tasks:
     status: 
       - test -d install || test -d /cygdrive/c/libmongocrypt/bin
 
-  run-docker: bash etc/run_docker.sh {{.CLI_ARGS}}
+  run-docker: bash etc/run_docker.sh
 
   run-fuzz: bash etc/run-fuzz.sh
 
@@ -110,7 +110,7 @@ tasks:
       - make -c internal/cmd/faas/awslambda
 
   ### Evergreen specific tasks. ###
-  setup-test: bash etc/setup-test.sh {{.CLI_ARGS}}
+  setup-test: bash etc/setup-test.sh
 
   setup-encryption: bash etc/setup-encryption.sh
 
@@ -185,7 +185,7 @@ tasks:
     - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./internal/integration >> test.suite
     - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./internal/integration/unified >> test.suite
 
-  evg-test-aws: bash etc/run-mongodb-aws-test.sh {{.CLI_ARGS}}
+  evg-test-aws: bash etc/run-mongodb-aws-test.sh
 
   evg-test-aws-ecs: bash etc/run-mongodb-aws-ecs-test.sh
 

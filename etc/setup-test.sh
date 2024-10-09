@@ -9,57 +9,58 @@ GO_BUILD_TAGS=${GO_BUILD_TAGS:-}
 RACE=${RACE:-}
 
 # Handle special cases first.
-case ${1:-} in
-    enterprise-plain)
-        . $DRIVERS_TOOLS/.evergreen/secrets_handling/setup-secrets.sh drivers/enterprise_auth
-        MONGODB_URI="mongodb://${SASL_USER}:${SASL_PASS}@${SASL_HOST}:${SASL_PORT}/ldap?authMechanism=PLAIN"
-        rm secrets-export.sh
-        AUTH="auth"
-        ;;
-    enterprise-gssapi)
-        . $DRIVERS_TOOLS/.evergreen/secrets_handling/setup-secrets.sh drivers/enterprise_auth
-        if [ "Windows_NT" = "${OS:-}" ]; then
-            MONGODB_URI="mongodb://${PRINCIPAL/@/%40}:${SASL_PASS}@${SASL_HOST}:${SASL_PORT}/kerberos?authMechanism=GSSAPI"
-        else
-            echo ${KEYTAB_BASE64} | base64 -d > ${PROJECT_DIRECTORY}/.evergreen/drivers.keytab
-            mkdir -p ~/.krb5
-            cat .evergreen/krb5.config | tee -a ~/.krb5/config
-            kinit -k -t .evergreen/drivers.keytab -p "${PRINCIPAL}"
-            MONGODB_URI="mongodb://${PRINCIPAL/@/%40}@${SASL_HOST}:${SASL_PORT}/kerberos?authMechanism=GSSAPI"
-        fi
-        rm secrets-export.sh
-        AUTH="auth"
-        ;;
-    serverless)
-        . $DRIVERS_TOOLS/.evergreen/serverless/secrets-export.sh
-        MONGODB_URI="${SERVERLESS_URI}"
-        SERVERLESS="serverless"
-        AUTH="auth"
-        ;;
-    atlas-connect)
-        . $DRIVERS_TOOLS/.evergreen/secrets_handling/setup-secrets.sh drivers/atlas_connect
-        ;;
-    load-balancer)
-        # Verify that the required LB URI expansions are set to ensure that the test runner can correctly connect to
-        # the LBs.
-        if [ -z "${SINGLE_MONGOS_LB_URI}" ]; then
-            echo "SINGLE_MONGOS_LB_URI must be set for testing against LBs"
-            exit 1
-        fi
-        if [ -z "${MULTI_MONGOS_LB_URI}" ]; then
-            echo "MULTI_MONGOS_LB_URI must be set for testing against LBs"
-            exit 1
-        fi
-        MONGODB_URI="${SINGLE_MONGOS_LB_URI}"
-        LOAD_BALANCER="true"
-        ;;
-    ocsp)
-        MONGO_GO_DRIVER_CA_FILE="${DRIVERS_TOOLS}/.evergreen/ocsp/${OCSP_ALGORITHM}/ca.pem"
-        if [ "Windows_NT" = "$OS" ]; then
-            MONGO_GO_DRIVER_CA_FILE=$(cygpath -m $MONGO_GO_DRIVER_CA_FILE)
-        fi
-        ;;
-esac
+if [ -n "${TEST_ENTERPRISE+x}" ]; then
+    . $DRIVERS_TOOLS/.evergreen/secrets_handling/setup-secrets.sh drivers/enterprise_auth
+    AUTH="auth"
+    case $TEST_ENTERPRISE in
+        plain)
+            MONGODB_URI="mongodb://${SASL_USER}:${SASL_PASS}@${SASL_HOST}:${SASL_PORT}/ldap?authMechanism=PLAIN"
+            ;;
+        gssapi)
+            if [ "Windows_NT" = "${OS:-}" ]; then
+                MONGODB_URI="mongodb://${PRINCIPAL/@/%40}:${SASL_PASS}@${SASL_HOST}:${SASL_PORT}/kerberos?authMechanism=GSSAPI"
+            else
+                echo ${KEYTAB_BASE64} | base64 -d > ${PROJECT_DIRECTORY}/.evergreen/drivers.keytab
+                mkdir -p ~/.krb5
+                cat .evergreen/krb5.config | tee -a ~/.krb5/config
+                kinit -k -t .evergreen/drivers.keytab -p "${PRINCIPAL}"
+                MONGODB_URI="mongodb://${PRINCIPAL/@/%40}@${SASL_HOST}:${SASL_PORT}/kerberos?authMechanism=GSSAPI"
+            fi
+            ;;
+    esac
+    rm secrets-export.sh
+fi
+
+if [ -n "${SERVERLESS+x}" ]; then
+    . $DRIVERS_TOOLS/.evergreen/serverless/secrets-export.sh
+    MONGODB_URI="${SERVERLESS_URI}"
+    AUTH="auth"
+fi
+
+if [ -n "${TEST_ATLAS_CONNECT+x}" ]; then
+    . $DRIVERS_TOOLS/.evergreen/secrets_handling/setup-secrets.sh drivers/atlas_connect
+fi
+
+if [ -n "${LOAD_BALANCER+x}" ]; then
+    # Verify that the required LB URI expansions are set to ensure that the test runner can correctly connect to
+    # the LBs.
+    if [ -z "${SINGLE_MONGOS_LB_URI}" ]; then
+        echo "SINGLE_MONGOS_LB_URI must be set for testing against LBs"
+        exit 1
+    fi
+    if [ -z "${MULTI_MONGOS_LB_URI}" ]; then
+        echo "MULTI_MONGOS_LB_URI must be set for testing against LBs"
+        exit 1
+    fi
+    MONGODB_URI="${SINGLE_MONGOS_LB_URI}"
+fi
+
+if [ -n "${OCSP_ALGORITHM+x}" ]; then
+    MONGO_GO_DRIVER_CA_FILE="${DRIVERS_TOOLS}/.evergreen/ocsp/${OCSP_ALGORITHM}/ca.pem"
+    if [ "Windows_NT" = "$OS" ]; then
+        MONGO_GO_DRIVER_CA_FILE=$(cygpath -m $MONGO_GO_DRIVER_CA_FILE)
+    fi
+fi
 
 # Handle encryption.
 if [[ "${GO_BUILD_TAGS}" =~ cse ]]; then
