@@ -1473,7 +1473,7 @@ tasks:
       params:
         binary: bash
         env:
-          EXPECT_ERROR: 1
+          EXPECT_ERROR: "1"
         args: [*task-runner, test-gcpkms]
 
   - name: "testawskms-task"
@@ -1513,7 +1513,7 @@ tasks:
       params:
         binary: bash
         env:
-          EXPECT_ERROR: 1
+          EXPECT_ERROR: "1"
         args: [*task-runner, test-azurekms]
 
   - name: "test-fuzz"
@@ -1544,7 +1544,7 @@ tasks:
 
   - name: "oidc-auth-test-azure"
     commands:
-    - command: suprocess.exec
+    - command: subrocess.exec
       type: test
       params:
         binary: bash
@@ -1554,7 +1554,7 @@ tasks:
 
   - name: "oidc-auth-test-gcp"
     commands:
-    - command: suprocess.exec
+    - command: subrocess.exec
       type: test
       params:
         binary: bash
