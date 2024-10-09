@@ -346,7 +346,7 @@ functions:
       params:
         binary: "bash"
         env:
-          SERVERLESS: "true"
+          SERVERLESS: "serverless"
         args: [*task-runner, setup-test]
     - command: subprocess.exec
       type: test
