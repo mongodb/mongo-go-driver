@@ -374,6 +374,7 @@ functions:
     - command: subprocess.exec
       params:
         binary: bash
+        background: true
         include_expansions_in_env: [SERVER_TYPE, OCSP_ALGORITHM]
         args:
           - ${DRIVERS_TOOLS}/.evergreen/ocsp/setup.sh
