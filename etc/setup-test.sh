@@ -9,7 +9,7 @@ GO_BUILD_TAGS=${GO_BUILD_TAGS:-}
 RACE=${RACE:-}
 
 # Handle special cases first.
-if [ -n "${TEST_ENTERPRISE+x}" ]; then
+if [ -n "${TEST_ENTERPRISE}" ]; then
     . $DRIVERS_TOOLS/.evergreen/secrets_handling/setup-secrets.sh drivers/enterprise_auth
     AUTH="auth"
     case $TEST_ENTERPRISE in
@@ -31,17 +31,17 @@ if [ -n "${TEST_ENTERPRISE+x}" ]; then
     rm secrets-export.sh
 fi
 
-if [ -n "${SERVERLESS+x}" ]; then
+if [ -n "${SERVERLESS}" ]; then
     . $DRIVERS_TOOLS/.evergreen/serverless/secrets-export.sh
     MONGODB_URI="${SERVERLESS_URI}"
     AUTH="auth"
 fi
 
-if [ -n "${TEST_ATLAS_CONNECT+x}" ]; then
+if [ -n "${TEST_ATLAS_CONNECT}" ]; then
     . $DRIVERS_TOOLS/.evergreen/secrets_handling/setup-secrets.sh drivers/atlas_connect
 fi
 
-if [ -n "${LOAD_BALANCER+x}" ]; then
+if [ -n "${LOAD_BALANCER}" ]; then
     # Verify that the required LB URI expansions are set to ensure that the test runner can correctly connect to
     # the LBs.
     if [ -z "${SINGLE_MONGOS_LB_URI}" ]; then
@@ -55,7 +55,7 @@ if [ -n "${LOAD_BALANCER+x}" ]; then
     MONGODB_URI="${SINGLE_MONGOS_LB_URI}"
 fi
 
-if [ -n "${OCSP_ALGORITHM+x}" ]; then
+if [ -n "${OCSP_ALGORITHM:-}" ]; then
     MONGO_GO_DRIVER_CA_FILE="${DRIVERS_TOOLS}/.evergreen/ocsp/${OCSP_ALGORITHM}/ca.pem"
     if [ "Windows_NT" = "$OS" ]; then
         MONGO_GO_DRIVER_CA_FILE=$(cygpath -m $MONGO_GO_DRIVER_CA_FILE)
@@ -94,7 +94,7 @@ else
 fi
 
 # Handle certificates.
-if [ "$SSL" != "nossl" ] && [ -z "${SERVERLESS+x}" ] && [ -z "${OCSP_ALGORITHM:-}" ]; then
+if [ "$SSL" != "nossl" ] && [ -z "${SERVERLESS:-}" ] && [ -z "${OCSP_ALGORITHM:-}" ]; then
     MONGO_GO_DRIVER_CA_FILE="$DRIVERS_TOOLS/.evergreen/x509gen/ca.pem"
     MONGO_GO_DRIVER_KEY_FILE="$DRIVERS_TOOLS/.evergreen/x509gen/client.pem"
     MONGO_GO_DRIVER_PKCS8_ENCRYPTED_KEY_FILE="$DRIVERS_TOOLS/.evergreen/x509gen/client-pkcs8-encrypted.pem"
