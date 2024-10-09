@@ -512,7 +512,7 @@ functions:
         background: true
         include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN", "DRIVERS_TOOLS"]
         # This cannot use task because it will hang on Windows.
-        args: [etc/setup-encryption.sh"]
+        args: [etc/setup-encryption.sh]
     - command: subprocess.exec
       params:
         binary: bash
