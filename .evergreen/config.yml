@@ -43,8 +43,7 @@ functions:
           VERSION_ID: ${version_id}
           # Define an alias for the task runner script.
           TASK_RUNNER_ALIAS: &task-runner src/go.mongodb.org/mongo-driver/.evergreen/run-task.sh
-        args: 
-          - ".evergreen/setup-system.sh"
+        args: [.evergreen/setup-system.sh]
     - command: expansions.update
       params:
         file: src/go.mongodb.org/mongo-driver/expansion.yml
@@ -86,12 +85,10 @@ functions:
         permissions: public-read
         content_type: application/x-gzip
         display_name: "fuzz.tgz"
-    - command: shell.exec
+    - command: subprocess.exec
       params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
-        script: |
-          find . -name \*.suite | xargs tar czf test_suite.tgz
+        binary: bash
+        args: [*task-runner, evg-gather-test-suites]
     - command: s3.put
       params:
         aws_key: ${AWS_ACCESS_KEY_ID}
@@ -158,6 +155,11 @@ functions:
       params:
         binary: bash
         args: 
+          - ${DRIVERS_TOOLS}/.evergreen/ocsp/teardown.sh
+    - command: subprocess.exec
+      params:
+        binary: bash
+        args: 
           - ${DRIVERS_TOOLS}/.evergreen/teardown.sh
 
   assume-ec2-role:
@@ -175,32 +177,20 @@ functions:
         include_expansions_in_env: [DRIVERS_TOOLS, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN]
         args: [*task-runner, test-oidc]
 
-  run-task:
-    - command: shell.exec
-      type: test
-      params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
-        script: |
-          ${BUILD_ENV|} BUILD_TAGS=${BUILD_TAGS|-tags=cse,gssapi} ${RUN_TASK} setup-test
-          ${RUN_TASK} ${targets}
-
   run-tests:
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
+        binary: bash
+        env:
+          GO_BUILD_TAGS: cse
         include_expansions_in_env: ["TOPOLOGY", "AUTH", "SSL", "SKIP_CSOT_TESTS", "MONGODB_URI", "CRYPT_SHARED_LIB_PATH", "SKIP_CRYPT_SHARED_LIB", "RACE", "MONGO_GO_DRIVER_COMPRESSOR", "REQUIRE_API_VERSION", "LOAD_BALANCER"]
-        script: |
-          set -e
-          GO_BUILD_TAGS="cse" ${RUN_TASK} setup-test
-          if [ "$(uname -s)" = "Darwin" ]; then
-              # Run a subset of the tests on Darwin
-              ${RUN_TASK} evg-test-load-balancers
-          else
-              ${RUN_TASK} evg-test
-          fi
+        args: [*task-runner, setup-test]
+    - command: subprocess.exec
+      type: test
+      params:
+        binary: bash
+        args: [*task-runner, "${DEFAULT_TASK}" ]
 
   create-api-report:
     - command: subprocess.exec
@@ -256,7 +246,9 @@ functions:
       params:
         binary: bash
         include_expansions_in_env: [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN]
-        args: [*task-runner, setup-test, --, enterprise-plain]
+        env: 
+          TEST_ENTERPRISE_AUTH: plain
+        args: [*task-runner, setup-test]
     - command: subprocess.exec
       type: test
       params:
@@ -272,7 +264,9 @@ functions:
       params:
         binary: bash
         include_expansions_in_env: [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN]
-        args: [*task-runner, setup-test, --, enterprise-gssapi]
+        env: 
+          TEST_ENTERPRISE_AUTH: gssapi
+        args: [*task-runner, setup-test]
     - command: subprocess.exec
       type: test
       params:
@@ -288,7 +282,9 @@ functions:
       params:
         binary: bash
         include_expansions_in_env: [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN]
-        args: [*task-runner, setup-test, --, atlas-connect]
+        env:
+          TEST_ATLAS_CONNECT: "1"
+        args: [*task-runner, setup-test]
     - command: subprocess.exec
       type: test
       params:
@@ -296,23 +292,22 @@ functions:
         args: [*task-runner, test-atlas-connect]
 
   run-ocsp-test:
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
-        script: |
-          export MONGO_GO_DRIVER_CA_FILE="${DRIVERS_TOOLS}/.evergreen/ocsp/${OCSP_ALGORITHM}/ca.pem"
-          if [ "Windows_NT" = "$OS" ]; then # Magic variable in cygwin
-            export MONGO_GO_DRIVER_CA_FILE=$(cygpath -m $MONGO_GO_DRIVER_CA_FILE)
-          fi
-
-          AUTH="auth" \
-          SSL="ssl" \
-          TOPOLOGY="server" \
-          MONGODB_URI="${MONGODB_URI}" \
-          OCSP_TLS_SHOULD_SUCCEED="${OCSP_TLS_SHOULD_SUCCEED}" \
-          ${RUN_TASK} evg-test-ocsp
+        binary: bash
+        env: 
+          TOPOLOGY: server
+          AUTH: auth
+          SSL: ssl
+        include_expansions_in_env: [OCSP_ALGORITHM, MONGODB_URI]
+        args: [*task-runner, setup-test]
+    - command: subprocess.exec
+      type: test
+      params:
+        binary: bash
+        include_expansions_in_env: [OCSP_TLS_SHOULD_SUCCEED]
+        args: [*task-runner, evg-test-ocsp]
 
   run-versioned-api-test:
     - command: subprocess.exec
@@ -336,7 +331,9 @@ functions:
       params:
         binary: bash
         include_expansions_in_env: [SINGLE_MONGOS_LB_URI, MULTI_MONGOS_LB_URI, AUTH, SSL, MONGO_GO_DRIVER_COMPRESSOR]
-        args: [*task-runner, setup-test, --, load-balancer]
+        env: 
+          LOAD_BALANCER: "true"
+        args: [*task-runner, setup-test]
     - command: subprocess.exec
       type: test
       params:
@@ -348,7 +345,9 @@ functions:
       type: test
       params:
         binary: "bash"
-        args: [*task-runner, setup-test, --, serverless]
+        env:
+          SERVERLESS: "serverless"
+        args: [*task-runner, setup-test]
     - command: subprocess.exec
       type: test
       params:
@@ -377,78 +376,26 @@ functions:
       type: test
       params:
         binary: "bash"
-        args: [*task-runner, run-docker, --, test-short]
+        env:
+          TASKFILE_TARGET: test-short
+        args: [*task-runner, run-docker]
     - command: subprocess.exec
       type: test
       params:
         binary: "bash"
         env: 
           TOPOLOGY: sharded_cluster
-        args: [*task-runner, run-docker, --, test-short]
+          TASKFILE_TARGET: test-short
+        args: [*task-runner, run-docker]
 
-  run-valid-ocsp-server:
-    - command: shell.exec
+  run-ocsp-server:
+    - command: subprocess.exec
       params:
-        shell: "bash"
+        binary: bash
         background: true
-        script: |
-          cd ${DRIVERS_TOOLS}/.evergreen/ocsp
-          . ./activate-ocspvenv.sh
-
-          python ocsp_mock.py \
-          --ca_file ${OCSP_ALGORITHM}/ca.pem \
-          --ocsp_responder_cert ${OCSP_ALGORITHM}/ca.crt \
-          --ocsp_responder_key ${OCSP_ALGORITHM}/ca.key \
-          -p 8100 -v
-
-  run-revoked-ocsp-server:
-    - command: shell.exec
-      params:
-        shell: "bash"
-        background: true
-        script: |
-          cd ${DRIVERS_TOOLS}/.evergreen/ocsp
-          . ./activate-ocspvenv.sh
-
-          python ocsp_mock.py \
-          --ca_file ${OCSP_ALGORITHM}/ca.pem \
-          --ocsp_responder_cert ${OCSP_ALGORITHM}/ca.crt \
-          --ocsp_responder_key ${OCSP_ALGORITHM}/ca.key \
-          -p 8100 \
-          -v \
-          --fault revoked
-
-  run-valid-delegate-ocsp-server:
-    - command: shell.exec
-      params:
-        shell: "bash"
-        background: true
-        script: |
-          cd ${DRIVERS_TOOLS}/.evergreen/ocsp
-          . ./activate-ocspvenv.sh
-
-          python ocsp_mock.py \
-          --ca_file ${OCSP_ALGORITHM}/ca.pem \
-          --ocsp_responder_cert ${OCSP_ALGORITHM}/ocsp-responder.crt \
-          --ocsp_responder_key ${OCSP_ALGORITHM}/ocsp-responder.key \
-          -p 8100 -v
-
-  run-revoked-delegate-ocsp-server:
-    - command: shell.exec
-      params:
-        shell: "bash"
-        background: true
-        script: |
-          cd ${DRIVERS_TOOLS}/.evergreen/ocsp
-          . ./activate-ocspvenv.sh
-
-          python ocsp_mock.py \
-          --ca_file ${OCSP_ALGORITHM}/ca.pem \
-          --ocsp_responder_cert ${OCSP_ALGORITHM}/ocsp-responder.crt \
-          --ocsp_responder_key ${OCSP_ALGORITHM}/ocsp-responder.key \
-          -p 8100 \
-          -v \
-          --fault revoked
+        include_expansions_in_env: [SERVER_TYPE, OCSP_ALGORITHM]
+        args:
+          - ${DRIVERS_TOOLS}/.evergreen/ocsp/setup.sh
 
   run-load-balancer:
     - command: subprocess.exec
@@ -486,14 +433,18 @@ functions:
       type: test
       params:
         binary: "bash"
-        args: [*task-runner, evg-test-aws, --, regular]
+        env:
+          AWS_TEST: regular
+        args: [*task-runner, evg-test-aws]
 
   run-aws-auth-test-with-assume-role-credentials:
     - command: subprocess.exec
       type: test
       params:
         binary: "bash"
-        args: [*task-runner, evg-test-aws, --, assume-role]
+        env:
+          AWS_TEST: assume-role
+        args: [*task-runner, evg-test-aws]
 
   run-aws-auth-test-with-aws-EC2-credentials:
     - command: subprocess.exec
@@ -501,28 +452,33 @@ functions:
       params:
         binary: bash 
         include_expansions_in_env: [SKIP_EC2_AUTH_TEST]
-        args: [*task-runner, evg-test-aws, --, ec2]
+        env:
+          AWS_TEST: ec2
+        args: [*task-runner, evg-test-aws]
 
   run-aws-auth-test-with-aws-credentials-as-environment-variables:
     - command: subprocess.exec
       type: test
       params:
         binary: "bash"
-        args: [*task-runner, evg-test-aws, --, env-creds]
+        env:
+          AWS_TEST: env-creds
+        args: [*task-runner, evg-test-aws]
 
   run-aws-auth-test-with-aws-credentials-and-session-token-as-environment-variables:
     - command: subprocess.exec
       type: test
       params:
         binary: "bash"
-        args: [*task-runner, evg-test-aws, --, session-creds]
+        env:
+          AWS_TEST: session-creds
+        args: [*task-runner, evg-test-aws]
 
   run-aws-ECS-auth-test:
     - command: subprocess.exec
       type: test
       params:
         binary: "bash"
-        working_dir: src
         include_expansions_in_env: [SKIP_ECS_AUTH_TEST]
         args: [*task-runner, evg-test-aws-ecs]
 
@@ -532,15 +488,18 @@ functions:
       params:
         binary: bash
         include_expansions_in_env: [SKIP_WEB_IDENTITY_AUTH_TEST]
-        args: [*task-runner, evg-test-aws, --, web-identity]
+        env:
+          AWS_TEST: web-identity
+        args: [*task-runner, evg-test-aws]
     - command: subprocess.exec
       type: test
       params:
         binary: bash
         env: 
           AWS_ROLE_SESSION_NAME: test
+          AWS_TEST: web-identity
         include_expansions_in_env: [SKIP_WEB_IDENTITY_AUTH_TEST]
-        args: [*task-runner, evg-test-aws, --, web-identity]
+        args: [*task-runner, evg-test-aws]
 
   start-cse-servers:
     - command: ec2.assume_role
@@ -552,14 +511,12 @@ functions:
         binary: bash
         background: true
         include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN", "DRIVERS_TOOLS"]
-        args:
-          - etc/setup-encryption.sh
+        # This cannot use task because it will hang on Windows.
+        args: [etc/setup-encryption.sh]
     - command: subprocess.exec
       params:
-        working_dir: src/go.mongodb.org/mongo-driver
         binary: bash
-        args:
-          - ${DRIVERS_TOOLS}/.evergreen/csfle/await-servers.sh
+        args: ["${DRIVERS_TOOLS}/.evergreen/csfle/await-servers.sh"]
 
   run-kms-tls-test:
     - command: subprocess.exec
@@ -614,9 +571,10 @@ tasks:
   - name: static-analysis
     tags: ["static-analysis"]
     commands:
-      - func: run-task
-        vars:
-          targets: "check-fmt check-license check-modules lint"
+      - command: subprocess.exec
+        params:
+          binary: bash
+          args: [*task-runner, check-fmt, check-license, check-modules, lint]
 
   - name: pull-request-helpers
     allowed_requesters: ["patch", "github_pr"]
@@ -641,9 +599,10 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
           SKIP_LEGACY_SHELL: "true"
-      - func: run-task
-        vars:
-          targets: driver-benchmark
+      - command: subprocess.exec
+        params:
+          binary: bash
+          args: [*task-runner, driver-benchmark]
       - func: send-perf-data
 
   - name: test-standalone-noauth-nossl
@@ -790,9 +749,10 @@ tasks:
   - name: test-ocsp-rsa-valid-cert-server-staples
     tags: ["ocsp", "ocsp-rsa", "ocsp-staple"]
     commands:
-      - func: run-valid-ocsp-server
+      - func: run-ocsp-server
         vars:
           OCSP_ALGORITHM: "rsa"
+          SERVER_TYPE: valid
       - func: ocsp-bootstrap-mongo-orchestration
         vars:
           ORCHESTRATION_FILE: "rsa-basic-tls-ocsp-mustStaple.json"
@@ -804,9 +764,10 @@ tasks:
   - name: test-ocsp-rsa-invalid-cert-server-staples
     tags: ["ocsp", "ocsp-rsa", "ocsp-staple"]
     commands:
-      - func: run-revoked-ocsp-server
+      - func: run-ocsp-server
         vars:
           OCSP_ALGORITHM: "rsa"
+          SERVER_TYPE: revoked
       - func: ocsp-bootstrap-mongo-orchestration
         vars:
           ORCHESTRATION_FILE: "rsa-basic-tls-ocsp-mustStaple.json"
@@ -818,9 +779,10 @@ tasks:
   - name: test-ocsp-rsa-valid-cert-server-does-not-staple
     tags: ["ocsp", "ocsp-rsa"]
     commands:
-      - func: run-valid-ocsp-server
+      - func: run-ocsp-server
         vars:
           OCSP_ALGORITHM: "rsa"
+          SERVER_TYPE: valid
       - func: ocsp-bootstrap-mongo-orchestration
         vars:
           ORCHESTRATION_FILE: "rsa-basic-tls-ocsp-disableStapling.json"
@@ -832,9 +794,10 @@ tasks:
   - name: test-ocsp-rsa-invalid-cert-server-does-not-staple
     tags: ["ocsp", "ocsp-rsa"]
     commands:
-      - func: run-revoked-ocsp-server
+      - func: run-ocsp-server
         vars:
           OCSP_ALGORITHM: "rsa"
+          SERVER_TYPE: revoked
       - func: ocsp-bootstrap-mongo-orchestration
         vars:
           ORCHESTRATION_FILE: "rsa-basic-tls-ocsp-disableStapling.json"
@@ -857,9 +820,10 @@ tasks:
   - name: test-ocsp-rsa-malicious-invalid-cert-mustStaple-server-does-not-staple
     tags: ["ocsp", "ocsp-rsa"]
     commands:
-      - func: run-revoked-ocsp-server
+      - func: run-ocsp-server
         vars:
           OCSP_ALGORITHM: "rsa"
+          SERVER_TYPE: revoked
       - func: ocsp-bootstrap-mongo-orchestration
         vars:
           ORCHESTRATION_FILE: "rsa-basic-tls-ocsp-mustStaple-disableStapling.json"
@@ -882,9 +846,10 @@ tasks:
   - name: test-ocsp-rsa-delegate-valid-cert-server-staples
     tags: ["ocsp", "ocsp-rsa", "ocsp-staple"]
     commands:
-      - func: run-valid-delegate-ocsp-server
+      - func: run-ocsp-server
         vars:
           OCSP_ALGORITHM: "rsa"
+          SERVER_TYPE: valid-delegate
       - func: ocsp-bootstrap-mongo-orchestration
         vars:
           ORCHESTRATION_FILE: "rsa-basic-tls-ocsp-mustStaple.json"
@@ -896,9 +861,10 @@ tasks:
   - name: test-ocsp-rsa-delegate-invalid-cert-server-staples
     tags: ["ocsp", "ocsp-rsa", "ocsp-staple"]
     commands:
-      - func: run-revoked-delegate-ocsp-server
+      - func: run-ocsp-server
         vars:
           OCSP_ALGORITHM: "rsa"
+          SERVER_TYPE: revoked-delegate
       - func: ocsp-bootstrap-mongo-orchestration
         vars:
           ORCHESTRATION_FILE: "rsa-basic-tls-ocsp-mustStaple.json"
@@ -910,9 +876,10 @@ tasks:
   - name: test-ocsp-rsa-delegate-valid-cert-server-does-not-staple
     tags: ["ocsp", "ocsp-rsa"]
     commands:
-      - func: run-valid-delegate-ocsp-server
+      - func: run-ocsp-server
         vars:
           OCSP_ALGORITHM: "rsa"
+          SERVER_TYPE: valid-delegate
       - func: ocsp-bootstrap-mongo-orchestration
         vars:
           ORCHESTRATION_FILE: "rsa-basic-tls-ocsp-disableStapling.json"
@@ -924,9 +891,10 @@ tasks:
   - name: test-ocsp-rsa-delegate-invalid-cert-server-does-not-staple
     tags: ["ocsp", "ocsp-rsa"]
     commands:
-      - func: run-revoked-delegate-ocsp-server
+      - func: run-ocsp-server
         vars:
           OCSP_ALGORITHM: "rsa"
+          SERVER_TYPE: revoked-delegate
       - func: ocsp-bootstrap-mongo-orchestration
         vars:
           ORCHESTRATION_FILE: "rsa-basic-tls-ocsp-disableStapling.json"
@@ -938,9 +906,10 @@ tasks:
   - name: test-ocsp-rsa-delegate-malicious-invalid-cert-mustStaple-server-does-not-staple
     tags: ["ocsp", "ocsp-rsa"]
     commands:
-      - func: run-revoked-delegate-ocsp-server
+      - func: run-ocsp-server
         vars:
           OCSP_ALGORITHM: "rsa"
+          SERVER_TYPE: revoked-delegate
       - func: ocsp-bootstrap-mongo-orchestration
         vars:
           ORCHESTRATION_FILE: "rsa-basic-tls-ocsp-mustStaple-disableStapling.json"
@@ -952,9 +921,10 @@ tasks:
   - name: test-ocsp-ecdsa-valid-cert-server-staples
     tags: ["ocsp", "ocsp-ecdsa", "ocsp-staple"]
     commands:
-      - func: run-valid-ocsp-server
+      - func: run-ocsp-server
         vars:
           OCSP_ALGORITHM: "ecdsa"
+          SERVER_TYPE: valid
       - func: ocsp-bootstrap-mongo-orchestration
         vars:
           ORCHESTRATION_FILE: "ecdsa-basic-tls-ocsp-mustStaple.json"
@@ -966,9 +936,10 @@ tasks:
   - name: test-ocsp-ecdsa-invalid-cert-server-staples
     tags: ["ocsp", "ocsp-ecdsa", "ocsp-staple"]
     commands:
-      - func: run-revoked-ocsp-server
+      - func: run-ocsp-server
         vars:
           OCSP_ALGORITHM: "ecdsa"
+          SERVER_TYPE: revoked
       - func: ocsp-bootstrap-mongo-orchestration
         vars:
           ORCHESTRATION_FILE: "ecdsa-basic-tls-ocsp-mustStaple.json"
@@ -980,9 +951,10 @@ tasks:
   - name: test-ocsp-ecdsa-valid-cert-server-does-not-staple
     tags: ["ocsp", "ocsp-ecdsa"]
     commands:
-      - func: run-valid-ocsp-server
+      - func: run-ocsp-server
         vars:
           OCSP_ALGORITHM: "ecdsa"
+          SERVER_TYPE: valid
       - func: ocsp-bootstrap-mongo-orchestration
         vars:
           ORCHESTRATION_FILE: "ecdsa-basic-tls-ocsp-disableStapling.json"
@@ -994,9 +966,10 @@ tasks:
   - name: test-ocsp-ecdsa-invalid-cert-server-does-not-staple
     tags: ["ocsp", "ocsp-ecdsa"]
     commands:
-      - func: run-revoked-ocsp-server
+      - func: run-ocsp-server
         vars:
           OCSP_ALGORITHM: "ecdsa"
+          SERVER_TYPE: revoked
       - func: ocsp-bootstrap-mongo-orchestration
         vars:
           ORCHESTRATION_FILE: "ecdsa-basic-tls-ocsp-disableStapling.json"
@@ -1019,9 +992,10 @@ tasks:
   - name: test-ocsp-ecdsa-malicious-invalid-cert-mustStaple-server-does-not-staple
     tags: ["ocsp", "ocsp-ecdsa"]
     commands:
-      - func: run-revoked-ocsp-server
+      - func: run-ocsp-server
         vars:
           OCSP_ALGORITHM: "ecdsa"
+          SERVER_TYPE: revoked
       - func: ocsp-bootstrap-mongo-orchestration
         vars:
           ORCHESTRATION_FILE: "ecdsa-basic-tls-ocsp-mustStaple-disableStapling.json"
@@ -1044,9 +1018,10 @@ tasks:
   - name: test-ocsp-ecdsa-delegate-valid-cert-server-staples
     tags: ["ocsp", "ocsp-ecdsa", "ocsp-staple"]
     commands:
-      - func: run-valid-delegate-ocsp-server
+      - func: run-ocsp-server
         vars:
           OCSP_ALGORITHM: "ecdsa"
+          SERVER_TYPE: valid-delegate
       - func: ocsp-bootstrap-mongo-orchestration
         vars:
           ORCHESTRATION_FILE: "ecdsa-basic-tls-ocsp-mustStaple.json"
@@ -1058,9 +1033,10 @@ tasks:
   - name: test-ocsp-ecdsa-delegate-invalid-cert-server-staples
     tags: ["ocsp", "ocsp-ecdsa", "ocsp-staple"]
     commands:
-      - func: run-revoked-delegate-ocsp-server
+      - func: run-ocsp-server
         vars:
           OCSP_ALGORITHM: "ecdsa"
+          SERVER_TYPE: revoked-delegate
       - func: ocsp-bootstrap-mongo-orchestration
         vars:
           ORCHESTRATION_FILE: "ecdsa-basic-tls-ocsp-mustStaple.json"
@@ -1072,9 +1048,10 @@ tasks:
   - name: test-ocsp-ecdsa-delegate-valid-cert-server-does-not-staple
     tags: ["ocsp", "ocsp-ecdsa"]
     commands:
-      - func: run-valid-delegate-ocsp-server
+      - func: run-ocsp-server
         vars:
           OCSP_ALGORITHM: "ecdsa"
+          SERVER_TYPE: valid-delegate
       - func: ocsp-bootstrap-mongo-orchestration
         vars:
           ORCHESTRATION_FILE: "ecdsa-basic-tls-ocsp-disableStapling.json"
@@ -1086,9 +1063,10 @@ tasks:
   - name: test-ocsp-ecdsa-delegate-invalid-cert-server-does-not-staple
     tags: ["ocsp", "ocsp-ecdsa"]
     commands:
-      - func: run-revoked-delegate-ocsp-server
+      - func: run-ocsp-server
         vars:
           OCSP_ALGORITHM: "ecdsa"
+          SERVER_TYPE: revoked-delegate
       - func: ocsp-bootstrap-mongo-orchestration
         vars:
           ORCHESTRATION_FILE: "ecdsa-basic-tls-ocsp-disableStapling.json"
@@ -1100,9 +1078,10 @@ tasks:
   - name: test-ocsp-ecdsa-delegate-malicious-invalid-cert-mustStaple-server-does-not-staple
     tags: ["ocsp", "ocsp-ecdsa"]
     commands:
-      - func: run-revoked-delegate-ocsp-server
+      - func: run-ocsp-server
         vars:
           OCSP_ALGORITHM: "ecdsa"
+          SERVER_TYPE: revoked-delegate
       - func: ocsp-bootstrap-mongo-orchestration
         vars:
           ORCHESTRATION_FILE: "ecdsa-basic-tls-ocsp-mustStaple-disableStapling.json"
@@ -1387,18 +1366,22 @@ tasks:
   - name: go1.18-build
     tags: ["compile-check"]
     commands:
-      - func: run-task
-        vars:
-          targets: "build-compile-check"
-          BUILD_ENV: "PATH=/opt/golang/go1.18/bin:$PATH GOROOT=/opt/golang/go1.18"
+      - command: subprocess.exec
+        params:
+          binary: bash
+          env:
+            GOROOT: /opt/golang/go1.18
+          add_to_path: [/opt/golang/go1.18/bin]
+          args: [*task-runner, build-compile-check]
 
   # Build with the same Go version that we're using for tests.
   - name: build
     tags: ["compile-check"]
     commands:
-      - func: run-task
-        vars:
-          targets: "build"
+      - command: subprocess.exec
+        params:
+          binary: bash
+          args: [*task-runner, build]
 
   - name: "atlas-test"
     commands:
@@ -1510,51 +1493,23 @@ tasks:
 
   - name: "testgcpkms-task"
     commands:
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
-        script: |
-          GO_BUILD_TAGS="cse" ${RUN_TASK} setup-test
-          ${RUN_TASK} build-kms-test
-          source ${DRIVERS_TOOLS}/.evergreen/csfle/gcpkms/secrets-export.sh
-          echo "Copying files ... begin"
-          tar czf testgcpkms.tgz ./testkms ./install/libmongocrypt/lib64/libmongocrypt.*
-          GCPKMS_SRC=testgcpkms.tgz GCPKMS_DST=$GCPKMS_INSTANCENAME: ${DRIVERS_TOOLS}/.evergreen/csfle/gcpkms/copy-file.sh
-          echo "Copying files ... end"
-
-          echo "Untarring file ... begin"
-          GCPKMS_CMD="tar xf testgcpkms.tgz" ${DRIVERS_TOOLS}/.evergreen/csfle/gcpkms/run-command.sh
-          echo "Untarring file ... end"
-
-    - command: shell.exec
-      type: test
-      params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
-        script: |
-          source ${DRIVERS_TOOLS}/.evergreen/csfle/gcpkms/secrets-export.sh
-          GCPKMS_CMD="LD_LIBRARY_PATH=./install/libmongocrypt/lib64 MONGODB_URI='mongodb://localhost:27017' PROVIDER='gcp' ./testkms" ${DRIVERS_TOOLS}/.evergreen/csfle/gcpkms/run-command.sh
+        binary: bash
+        args: [*task-runner, test-gcpkms]
 
   - name: "testgcpkms-fail-task"
     # testgcpkms-fail-task runs in a non-GCE environment.
     # It is expected to fail to obtain GCE credentials.
     commands:
-      - command: shell.exec
-        type: test
-        params:
-          shell: "bash"
-          working_dir: src/go.mongodb.org/mongo-driver
-          script: |
-            GO_BUILD_TAGS="cse" ${RUN_TASK} setup-test
-            ${RUN_TASK} build-kms-test
-
-            LD_LIBRARY_PATH=./install/libmongocrypt/lib64 \
-            MONGODB_URI='mongodb://localhost:27017/' \
-            EXPECT_ERROR='unable to retrieve GCP credentials' \
-            PROVIDER='gcp' \
-              ./testkms
+    - command: subprocess.exec
+      type: test
+      params:
+        binary: bash
+        env:
+          EXPECT_ERROR: "1"
+        args: [*task-runner, test-gcpkms]
 
   - name: "testawskms-task"
     commands:
@@ -1578,50 +1533,23 @@ tasks:
 
   - name: "testazurekms-task"
     commands:
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
-        script: |
-          GO_BUILD_TAGS="cse" ${RUN_TASK} setup-test
-          ${RUN_TASK} build-kms-test
-          echo "Copying files ... begin"
-          source ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/secrets-export.sh
-          tar czf testazurekms.tgz ./testkms ./install/libmongocrypt/lib64/libmongocrypt.*
-          AZUREKMS_SRC=testazurekms.tgz AZUREKMS_DST=/tmp ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/copy-file.sh
-          echo "Copying files ... end"
-          echo "Untarring file ... begin"
-          AZUREKMS_CMD="tar xf /tmp/testazurekms.tgz" ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/run-command.sh
-          echo "Untarring file ... end"
-
-    - command: shell.exec
-      type: test
-      params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
-        script: |
-          source ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/secrets-export.sh
-          AZUREKMS_CMD="LD_LIBRARY_PATH=./install/libmongocrypt/lib64 MONGODB_URI='mongodb://localhost:27017' PROVIDER='azure' AZUREKMS_KEY_NAME=$AZUREKMS_KEYNAME AZUREKMS_KEY_VAULT_ENDPOINT=$AZUREKMS_KEYVAULTENDPOINT ./testkms" ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/run-command.sh
+        binary: bash
+        args: [*task-runner, test-azurekms]
 
   - name: "testazurekms-fail-task"
     # testazurekms-fail-task runs without environment variables.
     # It is expected to fail to obtain credentials.
     commands:
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
-        script: |
-          GO_BUILD_TAGS="cse" ${RUN_TASK} setup-test
-          ${RUN_TASK} build-kms-test
-          . ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/setup-secrets.sh
-          LD_LIBRARY_PATH=./install/libmongocrypt/lib64 \
-          MONGODB_URI='mongodb://localhost:27017' \
-          EXPECT_ERROR='unable to retrieve azure credentials' \
-          PROVIDER='azure' AZUREKMS_KEY_NAME=$AZUREKMS_KEYNAME AZUREKMS_KEY_VAULT_ENDPOINT=$AZUREKMS_KEYVAULTENDPOINT \
-            ./testkms
+        binary: bash
+        env:
+          EXPECT_ERROR: "1"
+        args: [*task-runner, test-azurekms]
 
   - name: "test-fuzz"
     commands:
@@ -1651,55 +1579,23 @@ tasks:
 
   - name: "oidc-auth-test-azure"
     commands:
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        working_dir: src/go.mongodb.org/mongo-driver
-        shell: bash
-        script: |-
-          set -o errexit
-          source env.sh
-          export AZUREOIDC_DRIVERS_TAR_FILE=/tmp/mongo-go-driver.tar.gz
-          # we need to statically link libc to avoid the situation where the VM has a different
-          # version of libc
-          go build -tags osusergo,netgo -ldflags '-w -extldflags "-static -lgcc -lc"' -o test ./internal/cmd/testoidcauth/main.go
-          rm "$AZUREOIDC_DRIVERS_TAR_FILE" || true
-          tar -cf $AZUREOIDC_DRIVERS_TAR_FILE ./test
-          tar -uf $AZUREOIDC_DRIVERS_TAR_FILE ./etc
-          rm "$AZUREOIDC_DRIVERS_TAR_FILE".gz || true
-          gzip $AZUREOIDC_DRIVERS_TAR_FILE
-          export AZUREOIDC_DRIVERS_TAR_FILE=/tmp/mongo-go-driver.tar.gz
-          # Define the command to run on the azure VM.
-          # Ensure that we source the environment file created for us, set up any other variables we need,
-          # and then run our test suite on the vm.
-          export AZUREOIDC_TEST_CMD="PROJECT_DIRECTORY='.' OIDC_ENV=azure OIDC=oidc ./etc/run-oidc-test.sh ./test"
-          bash ${DRIVERS_TOOLS}/.evergreen/auth_oidc/azure/run-driver-test.sh
+        binary: bash
+        env:
+          OIDC_ENV: azure
+        args: [*task-runner, test-oidc-remote]
 
   - name: "oidc-auth-test-gcp"
     commands:
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        working_dir: src/go.mongodb.org/mongo-driver
-        shell: bash
-        script: |-
-          set -o errexit
-          source env.sh
-          export GCPOIDC_DRIVERS_TAR_FILE=/tmp/mongo-go-driver.tar.gz
-          # we need to statically link libc to avoid the situation where the VM has a different
-          # version of libc
-          go build -tags osusergo,netgo -ldflags '-w -extldflags "-static -lgcc -lc"' -o test ./internal/cmd/testoidcauth/main.go
-          rm "$GCPOIDC_DRIVERS_TAR_FILE" || true
-          tar -cf $GCPOIDC_DRIVERS_TAR_FILE ./test
-          tar -uf $GCPOIDC_DRIVERS_TAR_FILE ./etc
-          rm "$GCPOIDC_DRIVERS_TAR_FILE".gz || true
-          gzip $GCPOIDC_DRIVERS_TAR_FILE
-          export GCPOIDC_DRIVERS_TAR_FILE=/tmp/mongo-go-driver.tar.gz
-          # Define the command to run on the gcp VM.
-          # Ensure that we source the environment file created for us, set up any other variables we need,
-          # and then run our test suite on the vm.
-          export GCPOIDC_TEST_CMD="PROJECT_DIRECTORY='.' OIDC_ENV=gcp OIDC=oidc ./etc/run-oidc-test.sh ./test"
-          bash ${DRIVERS_TOOLS}/.evergreen/auth_oidc/gcp/run-driver-test.sh
+        binary: bash
+        env:
+          OIDC_ENV: gcp
+        args: [*task-runner, test-oidc-remote]
 
   - name: "test-search-index"
     commands:
@@ -1766,6 +1662,7 @@ axes:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
           GO_DIST: "C:\\golang\\go1.22"
           VENV_BIN_DIR: "Scripts"
+          DEFAULT_TASK: evg-test
           # CSOT tests are unreliable on our slow Windows hosts.
           SKIP_CSOT_TESTS: true
       - id: "rhel87-64"
@@ -1773,12 +1670,14 @@ axes:
         run_on: rhel8.7-large
         variables:
           GO_DIST: "/opt/golang/go1.22"
+          DEFAULT_TASK: evg-test
       - id: "macos"
         display_name: "MacOS 14.0"
         run_on: macos-14
         batchtime: 1440 # Run at most once per 24 hours.
         variables:
           GO_DIST: "/opt/golang/go1.22"
+          DEFAULT_TASK: evg-test-load-balancers
           # CSOT tests are unreliable on our slow macOS hosts.
           SKIP_CSOT_TESTS: true
 
@@ -1794,6 +1693,7 @@ axes:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
           GO_DIST: "C:\\golang\\go1.22"
           VENV_BIN_DIR: "Scripts"
+          DEFAULT_TASK: evg-test
           # CSOT tests are unreliable on our slow Windows hosts.
           SKIP_CSOT_TESTS: true
       - id: "rhel87-64"
@@ -1801,12 +1701,14 @@ axes:
         run_on: rhel8.7-large
         variables:
           GO_DIST: "/opt/golang/go1.22"
+          DEFAULT_TASK: evg-test
       - id: "macos"
         display_name: "MacOS 14.0"
         run_on: macos-14
         batchtime: 1440 # Run at most once per 24 hours.
         variables:
           GO_DIST: "/opt/golang/go1.22"
+          DEFAULT_TASK: evg-test-load-balancers
           # CSOT tests are unreliable on our slow macOS hosts.
           SKIP_CSOT_TESTS: true
 
@@ -1818,6 +1720,7 @@ axes:
         run_on: rhel8.7-large
         variables:
           GO_DIST: "/opt/golang/go1.22"
+          DEFAULT_TASK: evg-test
 
   - id: os-aws-auth
     display_name: OS
@@ -1830,6 +1733,7 @@ axes:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
           GO_DIST: "C:\\golang\\go1.22"
           SKIP_ECS_AUTH_TEST: true
+          DEFAULT_TASK: evg-test
           # CSOT tests are unreliable on our slow Windows hosts.
           SKIP_CSOT_TESTS: true
       - id: "ubuntu2004-64"
@@ -1837,6 +1741,7 @@ axes:
         run_on: ubuntu2004-test
         variables:
           GO_DIST: "/opt/golang/go1.22"
+          DEFAULT_TASK: evg-test
       - id: "macos"
         display_name: "MacOS 14.0"
         run_on: macos-14
@@ -1846,6 +1751,7 @@ axes:
           SKIP_ECS_AUTH_TEST: true
           SKIP_EC2_AUTH_TEST: true
           SKIP_WEB_IDENTITY_AUTH_TEST: true
+          DEFAULT_TASK: evg-test-load-balancers
           # CSOT tests are unreliable on our slow macOS hosts.
           SKIP_CSOT_TESTS: true
 

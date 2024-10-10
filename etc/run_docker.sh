@@ -11,7 +11,8 @@ PLATFORM=${DOCKER_PLATFORM:-}
 docker build $PLATFORM -t go-test .
 
 # Handle environment variables and optional positional arg for the taskfile target.
-TASKFILE_TARGET=${1:-evg-test-versioned-api}
+TASKFILE_TARGET=${TASKFILE_TARGET:-$1}
+TASKFILE_TARGET=${TASKFILE_TARGET:-evg-test-versioned-api}
 GO_BUILD_TAGS=${GO_BUILD_TAGS:-""}
 
 ARGS=" -e TASKFILE_TARGET=$TASKFILE_TARGET"

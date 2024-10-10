@@ -6,6 +6,7 @@ set -eu
 # Set up default environment variables.
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 PROJECT_DIRECTORY=$(dirname $SCRIPT_DIR)
+pushd $PROJECT_DIRECTORY
 ROOT_DIR=$(dirname $PROJECT_DIRECTORY)
 DRIVERS_TOOLS=${DRIVERS_TOOLS:-${ROOT_DIR}/drivers-evergreen-tools}
 MONGO_ORCHESTRATION_HOME="${DRIVERS_TOOLS}/.evergreen/orchestration"
@@ -90,3 +91,4 @@ RUN_TASK: "$PROJECT_DIRECTORY/.evergreen/run-task.sh"
 EOT
 
 cat env.sh
+popd
