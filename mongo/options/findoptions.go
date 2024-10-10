@@ -12,86 +12,27 @@ import (
 
 // FindOptions represents arguments that can be used to configure a Find
 // operation.
+//
+// See corresponding setter methods for documentation.
 type FindOptions struct {
-	// AllowPartial results specifies whether the Find operation on a sharded cluster can return partial results if some
-	// shards are down rather than returning an error. The default value is false.
 	AllowPartialResults *bool
-
-	// Collation specifies a collation to use for string comparisons during the operation. This option is only valid for
-	// MongoDB versions >= 3.4. For previous server versions, the driver will return an error if this option is used. The
-	// default value is nil, which means the default collation of the collection will be used.
-	Collation *Collation
-
-	// A string or document that will be included in server logs, profiling logs,
-	// and currentOp queries to help trace the operation. The default is nil,
-	// which means that no comment will be included in the logs.
-	Comment interface{}
-
-	// Hint is the index to use for the Find operation. This should either be the index name as a string or the index
-	// specification as a document. The driver will return an error if the hint parameter is a multi-key map. The default
-	// value is nil, which means that no hint will be sent.
-	Hint interface{}
-
-	// Max is a document specifying the exclusive upper bound for a specific index. The default value is nil, which means that
-	// there is no maximum value.
-	Max interface{}
-
-	// MaxAwaitTime is the maximum amount of time that the server should wait for new documents to satisfy a tailable cursor
-	// query. This option is only valid for tailable await cursors (see the CursorType option for more information) and
-	// MongoDB versions >= 3.2. For other cursor types or previous server versions, this option is ignored.
-	MaxAwaitTime *time.Duration
-
-	// Min is a document specifying the inclusive lower bound for a specific index. The default value is 0, which means that
-	// there is no minimum value.
-	Min interface{}
-
-	// Project is a document describing which fields will be included in the documents returned by the Find operation. The
-	// default value is nil, which means all fields will be included.
-	Projection interface{}
-
-	// ReturnKey specifies whether the documents returned by the Find operation will only contain fields corresponding to the
-	// index used. The default value is false.
-	ReturnKey *bool
-
-	// ShowRecordID specifies whether a $recordId field with a record identifier will be included in the documents returned by
-	// the Find operation. The default value is false.
-	ShowRecordID *bool
-
-	// Skip is the number of documents to skip before adding documents to the result. The default value is 0.
-	Skip *int64
-
-	// Sort is a document specifying the order in which documents should be returned.  The driver will return an error if the
-	// sort parameter is a multi-key map.
-	Sort interface{}
-
+	Collation           *Collation
+	Comment             interface{}
+	Hint                interface{}
+	Max                 interface{}
+	MaxAwaitTime        *time.Duration
+	Min                 interface{}
+	Projection          interface{}
+	ReturnKey           *bool
+	ShowRecordID        *bool
+	Skip                *int64
+	Sort                interface{}
 	// The above are in common with FindOneopts.
-
-	// AllowDiskUse specifies whether the server can write temporary data to disk while executing the Find operation.
-	// This option is only valid for MongoDB versions >= 4.4. Server versions >= 3.2 will report an error if this option
-	// is specified. For server versions < 3.2, the driver will return a client-side error if this option is specified.
-	// The default value is false.
-	AllowDiskUse *bool
-
-	// BatchSize is the maximum number of documents to be included in each batch returned by the server.
-	BatchSize *int32
-
-	// CursorType specifies the type of cursor that should be created for the operation. The default is NonTailable, which
-	// means that the cursor will be closed by the server when the last batch of documents is retrieved.
-	CursorType *CursorType
-
-	// Let specifies parameters for the find expression. This option is only valid for MongoDB versions >= 5.0. Older
-	// servers will report an error for using this option. This must be a document mapping parameter names to values.
-	// Values must be constant or closed expressions that do not reference document fields. Parameters can then be
-	// accessed as variables in an aggregate expression context (e.g. "$$var").
-	Let interface{}
-
-	// Limit is the maximum number of documents to return. The default value is 0, which means that all documents matching the
-	// filter will be returned. A negative limit specifies that the resulting documents should be returned in a single
-	// batch. The default value is 0.
-	Limit *int64
-
-	// NoCursorTimeout specifies whether the cursor created by the operation will not timeout after a period of inactivity.
-	// The default value is false.
+	AllowDiskUse    *bool
+	BatchSize       *int32
+	CursorType      *CursorType
+	Let             interface{}
+	Limit           *int64
 	NoCursorTimeout *bool
 }
 
@@ -110,7 +51,11 @@ func (f *FindOptionsBuilder) List() []func(*FindOptions) error {
 	return f.Opts
 }
 
-// SetAllowDiskUse sets the value for the AllowDiskUse field.
+// SetAllowDiskUse sets the value for the AllowDiskUse field. AllowDiskUse specifies whether the
+// server can write temporary data to disk while executing the Find operation. This option is only
+// valid for MongoDB versions >= 4.4. Server versions >= 3.2 will report an error if this option
+// is specified. For server versions < 3.2, the driver will return a client-side error if this
+// option is specified. The default value is false.
 func (f *FindOptionsBuilder) SetAllowDiskUse(b bool) *FindOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOptions) error {
 		opts.AllowDiskUse = &b
@@ -119,7 +64,9 @@ func (f *FindOptionsBuilder) SetAllowDiskUse(b bool) *FindOptionsBuilder {
 	return f
 }
 
-// SetAllowPartialResults sets the value for the AllowPartialResults field.
+// SetAllowPartialResults sets the value for the AllowPartialResults field. AllowPartial results
+// specifies whether the Find operation on a sharded cluster can return partial results if some
+// shards are down rather than returning an error. The default value is false.
 func (f *FindOptionsBuilder) SetAllowPartialResults(b bool) *FindOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOptions) error {
 		opts.AllowPartialResults = &b
@@ -128,7 +75,8 @@ func (f *FindOptionsBuilder) SetAllowPartialResults(b bool) *FindOptionsBuilder 
 	return f
 }
 
-// SetBatchSize sets the value for the BatchSize field.
+// SetBatchSize sets the value for the BatchSize field. BatchSize is the maximum number of documents
+// to be included in each batch returned by the server.
 func (f *FindOptionsBuilder) SetBatchSize(i int32) *FindOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOptions) error {
 		opts.BatchSize = &i
@@ -137,7 +85,10 @@ func (f *FindOptionsBuilder) SetBatchSize(i int32) *FindOptionsBuilder {
 	return f
 }
 
-// SetCollation sets the value for the Collation field.
+// SetCollation sets the value for the Collation field. Collation specifies a collation to use for
+// string comparisons during the operation. This option is only valid for MongoDB versions >= 3.4.
+// For previous server versions, the driver will return an error if this option is used. The
+// default value is nil, which means the default collation of the collection will be used.
 func (f *FindOptionsBuilder) SetCollation(collation *Collation) *FindOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOptions) error {
 		opts.Collation = collation
@@ -146,7 +97,9 @@ func (f *FindOptionsBuilder) SetCollation(collation *Collation) *FindOptionsBuil
 	return f
 }
 
-// SetComment sets the value for the Comment field.
+// SetComment sets the value for the Comment field. Specifies a string or document that will be
+// included in server logs, profiling logs, and currentOp queries to help trace the operation.
+// The default is nil, which means that no comment will be included in the logs.
 func (f *FindOptionsBuilder) SetComment(comment interface{}) *FindOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOptions) error {
 		opts.Comment = &comment
@@ -155,7 +108,9 @@ func (f *FindOptionsBuilder) SetComment(comment interface{}) *FindOptionsBuilder
 	return f
 }
 
-// SetCursorType sets the value for the CursorType field.
+// SetCursorType sets the value for the CursorType field. CursorType specifies the type of cursor
+// that should be created for the operation. The default is NonTailable, which means that the
+// cursor will be closed by the server when the last batch of documents is retrieved.
 func (f *FindOptionsBuilder) SetCursorType(ct CursorType) *FindOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOptions) error {
 		opts.CursorType = &ct
@@ -164,7 +119,10 @@ func (f *FindOptionsBuilder) SetCursorType(ct CursorType) *FindOptionsBuilder {
 	return f
 }
 
-// SetHint sets the value for the Hint field.
+// SetHint sets the value for the Hint field. Hint is the index to use for the Find operation.
+// This should either be the index name as a string or the index specification as a document.
+// The driver will return an error if the hint parameter is a multi-key map. The default
+// value is nil, which means that no hint will be sent.
 func (f *FindOptionsBuilder) SetHint(hint interface{}) *FindOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOptions) error {
 		opts.Hint = hint
@@ -173,7 +131,11 @@ func (f *FindOptionsBuilder) SetHint(hint interface{}) *FindOptionsBuilder {
 	return f
 }
 
-// SetLet sets the value for the Let field.
+// SetLet sets the value for the Let field. Let specifies parameters for the find expression.
+// This option is only valid for MongoDB versions >= 5.0. Older servers will report an error
+// for using this option. This must be a document mapping parameter names to values. Values
+// must be constant or closed expressions that do not reference document fields. Parameters
+// can then be accessed as variables in an aggregate expression context (e.g. "$$var").
 func (f *FindOptionsBuilder) SetLet(let interface{}) *FindOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOptions) error {
 		opts.Let = let
@@ -182,7 +144,10 @@ func (f *FindOptionsBuilder) SetLet(let interface{}) *FindOptionsBuilder {
 	return f
 }
 
-// SetLimit sets the value for the Limit field.
+// SetLimit sets the value for the Limit field. Limit is the maximum number of documents to return.
+// The default value is 0, which means that all documents matching the filter will be returned.
+// A negative limit specifies that the resulting documents should be returned in a single batch.
+// The default value is 0.
 func (f *FindOptionsBuilder) SetLimit(i int64) *FindOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOptions) error {
 		opts.Limit = &i
@@ -191,7 +156,8 @@ func (f *FindOptionsBuilder) SetLimit(i int64) *FindOptionsBuilder {
 	return f
 }
 
-// SetMax sets the value for the Max field.
+// SetMax sets the value for the Max field. Max is a document specifying the exclusive upper bound
+// for a specific index. The default value is nil, which means that there is no maximum value.
 func (f *FindOptionsBuilder) SetMax(max interface{}) *FindOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOptions) error {
 		opts.Max = max
@@ -200,7 +166,11 @@ func (f *FindOptionsBuilder) SetMax(max interface{}) *FindOptionsBuilder {
 	return f
 }
 
-// SetMaxAwaitTime sets the value for the MaxAwaitTime field.
+// SetMaxAwaitTime sets the value for the MaxAwaitTime field. MaxAwaitTime is the maximum amount of
+// time that the server should wait for new documents to satisfy a tailable cursor query. This
+// option is only valid for tailable await cursors (see the CursorType option for more information)
+// and MongoDB versions >= 3.2. For other cursor types or previous server versions, this option
+// is ignored.
 func (f *FindOptionsBuilder) SetMaxAwaitTime(d time.Duration) *FindOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOptions) error {
 		opts.MaxAwaitTime = &d
@@ -209,7 +179,8 @@ func (f *FindOptionsBuilder) SetMaxAwaitTime(d time.Duration) *FindOptionsBuilde
 	return f
 }
 
-// SetMin sets the value for the Min field.
+// SetMin sets the value for the Min field. Min is a document specifying the inclusive lower bound
+// for a specific index. The default value is 0, which means that there is no minimum value.
 func (f *FindOptionsBuilder) SetMin(min interface{}) *FindOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOptions) error {
 		opts.Min = min
@@ -218,7 +189,9 @@ func (f *FindOptionsBuilder) SetMin(min interface{}) *FindOptionsBuilder {
 	return f
 }
 
-// SetNoCursorTimeout sets the value for the NoCursorTimeout field.
+// SetNoCursorTimeout sets the value for the NoCursorTimeout field. NoCursorTimeout specifies
+// whether the cursor created by the operation will not timeout after a period of inactivity.
+// The default value is false.
 func (f *FindOptionsBuilder) SetNoCursorTimeout(b bool) *FindOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOptions) error {
 		opts.NoCursorTimeout = &b
@@ -227,7 +200,9 @@ func (f *FindOptionsBuilder) SetNoCursorTimeout(b bool) *FindOptionsBuilder {
 	return f
 }
 
-// SetProjection sets the value for the Projection field.
+// SetProjection sets the value for the Projection field. Projection is a document describing
+// which fields will be included in the documents returned by the Find operation. The
+// default value is nil, which means all fields will be included.
 func (f *FindOptionsBuilder) SetProjection(projection interface{}) *FindOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOptions) error {
 		opts.Projection = projection
@@ -236,7 +211,9 @@ func (f *FindOptionsBuilder) SetProjection(projection interface{}) *FindOptionsB
 	return f
 }
 
-// SetReturnKey sets the value for the ReturnKey field.
+// SetReturnKey sets the value for the ReturnKey field. ReturnKey specifies whether the
+// documents returned by the Find operation will only contain fields corresponding to the
+// index used. The default value is false.
 func (f *FindOptionsBuilder) SetReturnKey(b bool) *FindOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOptions) error {
 		opts.ReturnKey = &b
@@ -245,7 +222,9 @@ func (f *FindOptionsBuilder) SetReturnKey(b bool) *FindOptionsBuilder {
 	return f
 }
 
-// SetShowRecordID sets the value for the ShowRecordID field.
+// SetShowRecordID sets the value for the ShowRecordID field. ShowRecordID specifies whether
+// a $recordId field with a record identifier will be included in the documents returned by
+// the Find operation. The default value is false.
 func (f *FindOptionsBuilder) SetShowRecordID(b bool) *FindOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOptions) error {
 		opts.ShowRecordID = &b
@@ -254,7 +233,8 @@ func (f *FindOptionsBuilder) SetShowRecordID(b bool) *FindOptionsBuilder {
 	return f
 }
 
-// SetSkip sets the value for the Skip field.
+// SetSkip sets the value for the Skip field. Skip is the number of documents to skip before
+// adding documents to the result. The default value is 0.
 func (f *FindOptionsBuilder) SetSkip(i int64) *FindOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOptions) error {
 		opts.Skip = &i
@@ -263,7 +243,9 @@ func (f *FindOptionsBuilder) SetSkip(i int64) *FindOptionsBuilder {
 	return f
 }
 
-// SetSort sets the value for the Sort field.
+// SetSort sets the value for the Sort field. Sort is a document specifying the order in which
+// documents should be returned.  The driver will return an error if the sort parameter is a
+// multi-key map.
 func (f *FindOptionsBuilder) SetSort(sort interface{}) *FindOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOptions) error {
 		opts.Sort = sort
@@ -274,52 +256,20 @@ func (f *FindOptionsBuilder) SetSort(sort interface{}) *FindOptionsBuilder {
 
 // FindOneOptions represents arguments that can be used to configure a FindOne
 // operation.
+//
+// See corresponding setter methods for documentation.
 type FindOneOptions struct {
-	// If true, an operation on a sharded cluster can return partial results if some shards are down rather than
-	// returning an error. The default value is false.
 	AllowPartialResults *bool
-
-	// Specifies a collation to use for string comparisons during the operation. This option is only valid for MongoDB
-	// versions >= 3.4. For previous server versions, the driver will return an error if this option is used. The
-	// default value is nil, which means the default collation of the collection will be used.
-	Collation *Collation
-
-	// A string or document that will be included in server logs, profiling logs,
-	// and currentOp queries to help trace the operation. The default is nil,
-	// which means that no comment will be included in the logs.
-	Comment interface{}
-
-	// The index to use for the aggregation. This should either be the index name as a string or the index specification
-	// as a document. The driver will return an error if the hint parameter is a multi-key map. The default value is nil,
-	// which means that no hint will be sent.
-	Hint interface{}
-
-	// A document specifying the exclusive upper bound for a specific index. The default value is nil, which means that
-	// there is no maximum value.
-	Max interface{}
-
-	// A document specifying the inclusive lower bound for a specific index. The default value is 0, which means that
-	// there is no minimum value.
-	Min interface{}
-
-	// A document describing which fields will be included in the document returned by the operation. The default value
-	// is nil, which means all fields will be included.
-	Projection interface{}
-
-	// If true, the document returned by the operation will only contain fields corresponding to the index used. The
-	// default value is false.
-	ReturnKey *bool
-
-	// If true, a $recordId field with a record identifier will be included in the document returned by the operation.
-	// The default value is false.
-	ShowRecordID *bool
-
-	// The number of documents to skip before selecting the document to be returned. The default value is 0.
-	Skip *int64
-
-	// A document specifying the sort order to apply to the query. The first document in the sorted order will be
-	// returned. The driver will return an error if the sort parameter is a multi-key map.
-	Sort interface{}
+	Collation           *Collation
+	Comment             interface{}
+	Hint                interface{}
+	Max                 interface{}
+	Min                 interface{}
+	Projection          interface{}
+	ReturnKey           *bool
+	ShowRecordID        *bool
+	Skip                *int64
+	Sort                interface{}
 }
 
 // FindOneOptionsBuilder represents functional options that configure an
@@ -338,7 +288,9 @@ func (f *FindOneOptionsBuilder) List() []func(*FindOneOptions) error {
 	return f.Opts
 }
 
-// SetAllowPartialResults sets the value for the AllowPartialResults field.
+// SetAllowPartialResults sets the value for the AllowPartialResults field. If true, an operation
+// on a sharded cluster can return partial results if some shards are down rather than returning
+// an error. The default value is false.
 func (f *FindOneOptionsBuilder) SetAllowPartialResults(b bool) *FindOneOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneOptions) error {
 		opts.AllowPartialResults = &b
@@ -347,7 +299,10 @@ func (f *FindOneOptionsBuilder) SetAllowPartialResults(b bool) *FindOneOptionsBu
 	return f
 }
 
-// SetCollation sets the value for the Collation field.
+// SetCollation sets the value for the Collation field. Specifies a collation to use for string
+// comparisons during the operation. This option is only valid for MongoDB versions >= 3.4. For
+// previous server versions, the driver will return an error if this option is used. The
+// default value is nil, which means the default collation of the collection will be used.
 func (f *FindOneOptionsBuilder) SetCollation(collation *Collation) *FindOneOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneOptions) error {
 		opts.Collation = collation
@@ -356,7 +311,9 @@ func (f *FindOneOptionsBuilder) SetCollation(collation *Collation) *FindOneOptio
 	return f
 }
 
-// SetComment sets the value for the Comment field.
+// SetComment sets the value for the Comment field. Specifies a string or document that will be
+// included in server logs, profiling logs, and currentOp queries to help trace the operation.
+// The default is nil, which means that no comment will be included in the logs.
 func (f *FindOneOptionsBuilder) SetComment(comment interface{}) *FindOneOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneOptions) error {
 		opts.Comment = &comment
@@ -365,7 +322,10 @@ func (f *FindOneOptionsBuilder) SetComment(comment interface{}) *FindOneOptionsB
 	return f
 }
 
-// SetHint sets the value for the Hint field.
+// SetHint sets the value for the Hint field. Specifies the index to use for the aggregation.
+// This should either be the index name as a string or the index specification as a document.
+// The driver will return an error if the hint parameter is a multi-key map. The default value
+// is nil, which means that no hint will be sent.
 func (f *FindOneOptionsBuilder) SetHint(hint interface{}) *FindOneOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneOptions) error {
 		opts.Hint = hint
@@ -374,7 +334,8 @@ func (f *FindOneOptionsBuilder) SetHint(hint interface{}) *FindOneOptionsBuilder
 	return f
 }
 
-// SetMax sets the value for the Max field.
+// SetMax sets the value for the Max field. Sets a document specifying the exclusive upper bound
+// for a specific index. The default value is nil, which means that there is no maximum value.
 func (f *FindOneOptionsBuilder) SetMax(max interface{}) *FindOneOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneOptions) error {
 		opts.Max = max
@@ -383,7 +344,8 @@ func (f *FindOneOptionsBuilder) SetMax(max interface{}) *FindOneOptionsBuilder {
 	return f
 }
 
-// SetMin sets the value for the Min field.
+// SetMin sets the value for the Min field. Sets a document specifying the inclusive lower bound
+// for a specific index. The default value is 0, which means that there is no minimum value.
 func (f *FindOneOptionsBuilder) SetMin(min interface{}) *FindOneOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneOptions) error {
 		opts.Min = min
@@ -392,7 +354,9 @@ func (f *FindOneOptionsBuilder) SetMin(min interface{}) *FindOneOptionsBuilder {
 	return f
 }
 
-// SetProjection sets the value for the Projection field.
+// SetProjection sets the value for the Projection field. Sets a document describing which fields
+// will be included in the document returned by the operation. The default value is nil, which
+// means all fields will be included.
 func (f *FindOneOptionsBuilder) SetProjection(projection interface{}) *FindOneOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneOptions) error {
 		opts.Projection = projection
@@ -401,7 +365,9 @@ func (f *FindOneOptionsBuilder) SetProjection(projection interface{}) *FindOneOp
 	return f
 }
 
-// SetReturnKey sets the value for the ReturnKey field.
+// SetReturnKey sets the value for the ReturnKey field. If true, the document returned by the
+// operation will only contain fields corresponding to the index used. The default value
+// is false.
 func (f *FindOneOptionsBuilder) SetReturnKey(b bool) *FindOneOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneOptions) error {
 		opts.ReturnKey = &b
@@ -410,7 +376,9 @@ func (f *FindOneOptionsBuilder) SetReturnKey(b bool) *FindOneOptionsBuilder {
 	return f
 }
 
-// SetShowRecordID sets the value for the ShowRecordID field.
+// SetShowRecordID sets the value for the ShowRecordID field. If true, a $recordId field with
+// a record identifier will be included in the document returned by the operation. The default
+// value is false.
 func (f *FindOneOptionsBuilder) SetShowRecordID(b bool) *FindOneOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneOptions) error {
 		opts.ShowRecordID = &b
@@ -419,7 +387,8 @@ func (f *FindOneOptionsBuilder) SetShowRecordID(b bool) *FindOneOptionsBuilder {
 	return f
 }
 
-// SetSkip sets the value for the Skip field.
+// SetSkip sets the value for the Skip field. Specifies the number of documents to skip before
+// selecting the document to be returned. The default value is 0.
 func (f *FindOneOptionsBuilder) SetSkip(i int64) *FindOneOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneOptions) error {
 		opts.Skip = &i
@@ -428,7 +397,9 @@ func (f *FindOneOptionsBuilder) SetSkip(i int64) *FindOneOptionsBuilder {
 	return f
 }
 
-// SetSort sets the value for the Sort field.
+// SetSort sets the value for the Sort field. Sets a document specifying the sort order to
+// apply to the query. The first document in the sorted order will be returned. The driver
+// will return an error if the sort parameter is a multi-key map.
 func (f *FindOneOptionsBuilder) SetSort(sort interface{}) *FindOneOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneOptions) error {
 		opts.Sort = sort
@@ -439,52 +410,18 @@ func (f *FindOneOptionsBuilder) SetSort(sort interface{}) *FindOneOptionsBuilder
 
 // FindOneAndReplaceOptions represents arguments that can be used to configure a
 // FindOneAndReplace instance.
+//
+// See corresponding setter methods for documentation.
 type FindOneAndReplaceOptions struct {
-	// If true, writes executed as part of the operation will opt out of document-level validation on the server. This
-	// option is valid for MongoDB versions >= 3.2 and is ignored for previous server versions. The default value is
-	// false. See https://www.mongodb.com/docs/manual/core/schema-validation/ for more information about document
-	// validation.
 	BypassDocumentValidation *bool
-
-	// Specifies a collation to use for string comparisons during the operation. This option is only valid for MongoDB
-	// versions >= 3.4. For previous server versions, the driver will return an error if this option is used. The
-	// default value is nil, which means the default collation of the collection will be used.
-	Collation *Collation
-
-	// A string or document that will be included in server logs, profiling logs, and currentOp queries to help trace
-	// the operation.  The default value is nil, which means that no comment will be included in the logs.
-	Comment interface{}
-
-	// A document describing which fields will be included in the document returned by the operation. The default value
-	// is nil, which means all fields will be included.
-	Projection interface{}
-
-	// Specifies whether the original or replaced document should be returned by the operation. The default value is
-	// Before, which means the original document will be returned from before the replacement is performed.
-	ReturnDocument *ReturnDocument
-
-	// A document specifying which document should be replaced if the filter used by the operation matches multiple
-	// documents in the collection. If set, the first document in the sorted order will be replaced. The driver will
-	// return an error if the sort parameter is a multi-key map. The default value is nil.
-	Sort interface{}
-
-	// If true, a new document will be inserted if the filter does not match any documents in the collection. The
-	// default value is false.
-	Upsert *bool
-
-	// The index to use for the operation. This should either be the index name as a string or the index specification
-	// as a document. This option is only valid for MongoDB versions >= 4.4. MongoDB version 4.2 will report an error if
-	// this option is specified. For server versions < 4.2, the driver will return an error if this option is specified.
-	// The driver will return an error if this option is used with during an unacknowledged write operation. The driver
-	// will return an error if the hint parameter is a multi-key map. The default value is nil, which means that no hint
-	// will be sent.
-	Hint interface{}
-
-	// Specifies parameters for the find one and replace expression. This option is only valid for MongoDB versions >= 5.0. Older
-	// servers will report an error for using this option. This must be a document mapping parameter names to values.
-	// Values must be constant or closed expressions that do not reference document fields. Parameters can then be
-	// accessed as variables in an aggregate expression context (e.g. "$$var").
-	Let interface{}
+	Collation                *Collation
+	Comment                  interface{}
+	Projection               interface{}
+	ReturnDocument           *ReturnDocument
+	Sort                     interface{}
+	Upsert                   *bool
+	Hint                     interface{}
+	Let                      interface{}
 }
 
 // FindOneAndReplaceOptionsBuilder contains options to perform a findAndModify
@@ -504,7 +441,11 @@ func (f *FindOneAndReplaceOptionsBuilder) List() []func(*FindOneAndReplaceOption
 	return f.Opts
 }
 
-// SetBypassDocumentValidation sets the value for the BypassDocumentValidation field.
+// SetBypassDocumentValidation sets the value for the BypassDocumentValidation field. If true, writes
+// executed as part of the operation will opt out of document-level validation on the server. This
+// option is valid for MongoDB versions >= 3.2 and is ignored for previous server versions. The
+// default value is false. See https://www.mongodb.com/docs/manual/core/schema-validation/ for more
+// information about document validation.
 func (f *FindOneAndReplaceOptionsBuilder) SetBypassDocumentValidation(b bool) *FindOneAndReplaceOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndReplaceOptions) error {
 		opts.BypassDocumentValidation = &b
@@ -515,7 +456,10 @@ func (f *FindOneAndReplaceOptionsBuilder) SetBypassDocumentValidation(b bool) *F
 	return f
 }
 
-// SetCollation sets the value for the Collation field.
+// SetCollation sets the value for the Collation field. Specifies a collation to use for string
+// comparisons during the operation. This option is only valid for MongoDB versions >= 3.4.
+// For previous server versions, the driver will return an error if this option is used. The
+// default value is nil, which means the default collation of the collection will be used.
 func (f *FindOneAndReplaceOptionsBuilder) SetCollation(collation *Collation) *FindOneAndReplaceOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndReplaceOptions) error {
 		opts.Collation = collation
@@ -526,7 +470,9 @@ func (f *FindOneAndReplaceOptionsBuilder) SetCollation(collation *Collation) *Fi
 	return f
 }
 
-// SetComment sets the value for the Comment field.
+// SetComment sets the value for the Comment field. Specifies a string or document that will be
+// included in server logs, profiling logs, and currentOp queries to help trace the operation.
+// The default value is nil, which means that no comment will be included in the logs.
 func (f *FindOneAndReplaceOptionsBuilder) SetComment(comment interface{}) *FindOneAndReplaceOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndReplaceOptions) error {
 		opts.Comment = comment
@@ -537,7 +483,9 @@ func (f *FindOneAndReplaceOptionsBuilder) SetComment(comment interface{}) *FindO
 	return f
 }
 
-// SetProjection sets the value for the Projection field.
+// SetProjection sets the value for the Projection field. Sets a document describing which fields
+// will be included in the document returned by the operation. The default value is nil, which
+// means all fields will be included.
 func (f *FindOneAndReplaceOptionsBuilder) SetProjection(projection interface{}) *FindOneAndReplaceOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndReplaceOptions) error {
 		opts.Projection = projection
@@ -548,7 +496,9 @@ func (f *FindOneAndReplaceOptionsBuilder) SetProjection(projection interface{}) 
 	return f
 }
 
-// SetReturnDocument sets the value for the ReturnDocument field.
+// SetReturnDocument sets the value for the ReturnDocument field. Specifies whether the original
+// or replaced document should be returned by the operation. The default value is Before, which
+// means the original document will be returned from before the replacement is performed.
 func (f *FindOneAndReplaceOptionsBuilder) SetReturnDocument(rd ReturnDocument) *FindOneAndReplaceOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndReplaceOptions) error {
 		opts.ReturnDocument = &rd
@@ -559,7 +509,10 @@ func (f *FindOneAndReplaceOptionsBuilder) SetReturnDocument(rd ReturnDocument) *
 	return f
 }
 
-// SetSort sets the value for the Sort field.
+// SetSort sets the value for the Sort field. Sets a document specifying which document should
+// be replaced if the filter used by the operation matches multiple documents in the collection.
+// If set, the first document in the sorted order will be replaced. The driver will return an
+// error if the sort parameter is a multi-key map. The default value is nil.
 func (f *FindOneAndReplaceOptionsBuilder) SetSort(sort interface{}) *FindOneAndReplaceOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndReplaceOptions) error {
 		opts.Sort = sort
@@ -570,7 +523,8 @@ func (f *FindOneAndReplaceOptionsBuilder) SetSort(sort interface{}) *FindOneAndR
 	return f
 }
 
-// SetUpsert sets the value for the Upsert field.
+// SetUpsert sets the value for the Upsert field. If true, a new document will be inserted if
+// the filter does not match any documents in the collection. The default value is false.
 func (f *FindOneAndReplaceOptionsBuilder) SetUpsert(b bool) *FindOneAndReplaceOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndReplaceOptions) error {
 		opts.Upsert = &b
@@ -581,7 +535,14 @@ func (f *FindOneAndReplaceOptionsBuilder) SetUpsert(b bool) *FindOneAndReplaceOp
 	return f
 }
 
-// SetHint sets the value for the Hint field.
+// SetHint sets the value for the Hint field. Specifies the index to use for the operation.
+// This should either be the index name as a string or the index specification as a document.
+// This option is only valid for MongoDB versions >= 4.4. MongoDB version 4.2 will report an
+// error if this option is specified. For server versions < 4.2, the driver will return an
+// error if this option is specified. The driver will return an error if this option is used
+// with during an unacknowledged write operation. The driver will return an error if the
+// hint parameter is a multi-key map. The default value is nil, which means that no hint
+// will be sent.
 func (f *FindOneAndReplaceOptionsBuilder) SetHint(hint interface{}) *FindOneAndReplaceOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndReplaceOptions) error {
 		opts.Hint = hint
@@ -592,7 +553,12 @@ func (f *FindOneAndReplaceOptionsBuilder) SetHint(hint interface{}) *FindOneAndR
 	return f
 }
 
-// SetLet sets the value for the Let field.
+// SetLet sets the value for the Let field. Specifies parameters for the find one and
+// replace expression. This option is only valid for MongoDB versions >= 5.0. Older
+// servers will report an error for using this option. This must be a document mapping
+// parameter names to values. Values must be constant or closed expressions that do not
+// reference document fields. Parameters can then be accessed as variables in an
+// aggregate expression context (e.g. "$$var").
 func (f *FindOneAndReplaceOptionsBuilder) SetLet(let interface{}) *FindOneAndReplaceOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndReplaceOptions) error {
 		opts.Let = let
@@ -605,57 +571,19 @@ func (f *FindOneAndReplaceOptionsBuilder) SetLet(let interface{}) *FindOneAndRep
 
 // FindOneAndUpdateOptions represents arguments that can be used to configure a
 // FindOneAndUpdate options.
+//
+// See corresponding setter methods for documentation.
 type FindOneAndUpdateOptions struct {
-	// A set of filters specifying to which array elements an update should apply. This option is only valid for MongoDB
-	// versions >= 3.6. For previous server versions, the driver will return an error if this option is used. The
-	// default value is nil, which means the update will apply to all array elements.
-	ArrayFilters []interface{}
-
-	// If true, writes executed as part of the operation will opt out of document-level validation on the server. This
-	// option is valid for MongoDB versions >= 3.2 and is ignored for previous server versions. The default value is
-	// false. See https://www.mongodb.com/docs/manual/core/schema-validation/ for more information about document
-	// validation.
+	ArrayFilters             []interface{}
 	BypassDocumentValidation *bool
-
-	// Specifies a collation to use for string comparisons during the operation. This option is only valid for MongoDB
-	// versions >= 3.4. For previous server versions, the driver will return an error if this option is used. The
-	// default value is nil, which means the default collation of the collection will be used.
-	Collation *Collation
-
-	// A string or document that will be included in server logs, profiling logs, and currentOp queries to help trace
-	// the operation.  The default value is nil, which means that no comment will be included in the logs.
-	Comment interface{}
-
-	// A document describing which fields will be included in the document returned by the operation. The default value
-	// is nil, which means all fields will be included.
-	Projection interface{}
-
-	// Specifies whether the original or replaced document should be returned by the operation. The default value is
-	// Before, which means the original document will be returned before the replacement is performed.
-	ReturnDocument *ReturnDocument
-
-	// A document specifying which document should be updated if the filter used by the operation matches multiple
-	// documents in the collection. If set, the first document in the sorted order will be updated. The driver will
-	// return an error if the sort parameter is a multi-key map. The default value is nil.
-	Sort interface{}
-
-	// If true, a new document will be inserted if the filter does not match any documents in the collection. The
-	// default value is false.
-	Upsert *bool
-
-	// The index to use for the operation. This should either be the index name as a string or the index specification
-	// as a document. This option is only valid for MongoDB versions >= 4.4. MongoDB version 4.2 will report an error if
-	// this option is specified. For server versions < 4.2, the driver will return an error if this option is specified.
-	// The driver will return an error if this option is used with during an unacknowledged write operation. The driver
-	// will return an error if the hint parameter is a multi-key map. The default value is nil, which means that no hint
-	// will be sent.
-	Hint interface{}
-
-	// Specifies parameters for the find one and update expression. This option is only valid for MongoDB versions >= 5.0. Older
-	// servers will report an error for using this option. This must be a document mapping parameter names to values.
-	// Values must be constant or closed expressions that do not reference document fields. Parameters can then be
-	// accessed as variables in an aggregate expression context (e.g. "$$var").
-	Let interface{}
+	Collation                *Collation
+	Comment                  interface{}
+	Projection               interface{}
+	ReturnDocument           *ReturnDocument
+	Sort                     interface{}
+	Upsert                   *bool
+	Hint                     interface{}
+	Let                      interface{}
 }
 
 // FindOneAndUpdateOptionsBuilder contains options to configure a
@@ -675,18 +603,11 @@ func (f *FindOneAndUpdateOptionsBuilder) List() []func(*FindOneAndUpdateOptions)
 	return f.Opts
 }
 
-// SetBypassDocumentValidation sets the value for the BypassDocumentValidation field.
-func (f *FindOneAndUpdateOptionsBuilder) SetBypassDocumentValidation(b bool) *FindOneAndUpdateOptionsBuilder {
-	f.Opts = append(f.Opts, func(opts *FindOneAndUpdateOptions) error {
-		opts.BypassDocumentValidation = &b
-
-		return nil
-	})
-
-	return f
-}
-
-// SetArrayFilters sets the value for the ArrayFilters field.
+// SetArrayFilters sets the value for the ArrayFilters field. ArrayFilters is a set of filters
+// specifying to which array elements an update should apply. This option is only valid for
+// MongoDB versions >= 3.6. For previous server versions, the driver will return an error if
+// this option is used. The default value is nil, which means the update will apply to all
+// array elements.
 func (f *FindOneAndUpdateOptionsBuilder) SetArrayFilters(filters []interface{}) *FindOneAndUpdateOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndUpdateOptions) error {
 		opts.ArrayFilters = filters
@@ -697,7 +618,25 @@ func (f *FindOneAndUpdateOptionsBuilder) SetArrayFilters(filters []interface{}) 
 	return f
 }
 
-// SetCollation sets the value for the Collation field.
+// SetBypassDocumentValidation sets the value for the BypassDocumentValidation field. If true,
+// writes executed as part of the operation will opt out of document-level validation on the server.
+// This option is valid for MongoDB versions >= 3.2 and is ignored for previous server versions.
+// The default value is false. See https://www.mongodb.com/docs/manual/core/schema-validation/
+// for more information about document validation.
+func (f *FindOneAndUpdateOptionsBuilder) SetBypassDocumentValidation(b bool) *FindOneAndUpdateOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOneAndUpdateOptions) error {
+		opts.BypassDocumentValidation = &b
+
+		return nil
+	})
+
+	return f
+}
+
+// SetCollation sets the value for the Collation field. Specifies a collation to use for string
+// comparisons during the operation. This option is only valid for MongoDB versions >= 3.4. For
+// previous server versions, the driver will return an error if this option is used. The default
+// value is nil, which means the default collation of the collection will be used.
 func (f *FindOneAndUpdateOptionsBuilder) SetCollation(collation *Collation) *FindOneAndUpdateOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndUpdateOptions) error {
 		opts.Collation = collation
@@ -708,7 +647,9 @@ func (f *FindOneAndUpdateOptionsBuilder) SetCollation(collation *Collation) *Fin
 	return f
 }
 
-// SetComment sets the value for the Comment field.
+// SetComment sets the value for the Comment field. Specifies a string or document that will be
+// included in server logs, profiling logs, and currentOp queries to help trace the operation.
+// The default value is nil, which means that no comment will be included in the logs.
 func (f *FindOneAndUpdateOptionsBuilder) SetComment(comment interface{}) *FindOneAndUpdateOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndUpdateOptions) error {
 		opts.Comment = comment
@@ -719,7 +660,9 @@ func (f *FindOneAndUpdateOptionsBuilder) SetComment(comment interface{}) *FindOn
 	return f
 }
 
-// SetProjection sets the value for the Projection field.
+// SetProjection sets the value for the Projection field. Sets a document describing which fields
+// will be included in the document returned by the operation. The default value is nil, which
+// means all fields will be included.
 func (f *FindOneAndUpdateOptionsBuilder) SetProjection(projection interface{}) *FindOneAndUpdateOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndUpdateOptions) error {
 		opts.Projection = projection
@@ -730,7 +673,9 @@ func (f *FindOneAndUpdateOptionsBuilder) SetProjection(projection interface{}) *
 	return f
 }
 
-// SetReturnDocument sets the value for the ReturnDocument field.
+// SetReturnDocument sets the value for the ReturnDocument field. Specifies whether the original
+// or replaced document should be returned by the operation. The default value is Before, which
+// means the original document will be returned before the replacement is performed.
 func (f *FindOneAndUpdateOptionsBuilder) SetReturnDocument(rd ReturnDocument) *FindOneAndUpdateOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndUpdateOptions) error {
 		opts.ReturnDocument = &rd
@@ -741,7 +686,10 @@ func (f *FindOneAndUpdateOptionsBuilder) SetReturnDocument(rd ReturnDocument) *F
 	return f
 }
 
-// SetSort sets the value for the Sort field.
+// SetSort sets the value for the Sort field. Sets a document specifying which document should
+// be updated if the filter used by the operation matches multiple documents in the collection.
+// If set, the first document in the sorted order will be updated. The driver will return an
+// error if the sort parameter is a multi-key map. The default value is nil.
 func (f *FindOneAndUpdateOptionsBuilder) SetSort(sort interface{}) *FindOneAndUpdateOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndUpdateOptions) error {
 		opts.Sort = sort
@@ -752,7 +700,8 @@ func (f *FindOneAndUpdateOptionsBuilder) SetSort(sort interface{}) *FindOneAndUp
 	return f
 }
 
-// SetUpsert sets the value for the Upsert field.
+// SetUpsert sets the value for the Upsert field. If true, a new document will be inserted if
+// the filter does not match any documents in the collection. The default value is false.
 func (f *FindOneAndUpdateOptionsBuilder) SetUpsert(b bool) *FindOneAndUpdateOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndUpdateOptions) error {
 		opts.Upsert = &b
@@ -763,7 +712,14 @@ func (f *FindOneAndUpdateOptionsBuilder) SetUpsert(b bool) *FindOneAndUpdateOpti
 	return f
 }
 
-// SetHint sets the value for the Hint field.
+// SetHint sets the value for the Hint field. Specifies the index to use for the operation.
+// This should either be the index name as a string or the index specification as a document.
+// This option is only valid for MongoDB versions >= 4.4. MongoDB version 4.2 will report an
+// error if this option is specified. For server versions < 4.2, the driver will return an
+// error if this option is specified. The driver will return an error if this option is used
+// with during an unacknowledged write operation. The driver will return an error if the
+// hint parameter is a multi-key map. The default value is nil, which means that no hint
+// will be sent.
 func (f *FindOneAndUpdateOptionsBuilder) SetHint(hint interface{}) *FindOneAndUpdateOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndUpdateOptions) error {
 		opts.Hint = hint
@@ -774,7 +730,12 @@ func (f *FindOneAndUpdateOptionsBuilder) SetHint(hint interface{}) *FindOneAndUp
 	return f
 }
 
-// SetLet sets the value for the Let field.
+// SetLet sets the value for the Let field. Specifies parameters for the find one and update
+// expression. This option is only valid for MongoDB versions >= 5.0. Older servers will
+// report an error for using this option. This must be a document mapping parameter names
+// to values. Values must be constant or closed expressions that do not reference document
+// fields. Parameters can then be accessed as variables in an aggregate expression context
+// (e.g. "$$var").
 func (f *FindOneAndUpdateOptionsBuilder) SetLet(let interface{}) *FindOneAndUpdateOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndUpdateOptions) error {
 		opts.Let = let
@@ -787,38 +748,15 @@ func (f *FindOneAndUpdateOptionsBuilder) SetLet(let interface{}) *FindOneAndUpda
 
 // FindOneAndDeleteOptions represents arguments that can be used to configure a
 // FindOneAndDelete operation.
+//
+// See corresponding setter methods for documentation.
 type FindOneAndDeleteOptions struct {
-	// Specifies a collation to use for string comparisons during the operation. This option is only valid for MongoDB
-	// versions >= 3.4. For previous server versions, the driver will return an error if this option is used. The
-	// default value is nil, which means the default collation of the collection will be used.
-	Collation *Collation
-
-	// A string or document that will be included in server logs, profiling logs, and currentOp queries to help trace
-	// the operation.  The default value is nil, which means that no comment will be included in the logs.
-	Comment interface{}
-
-	// A document describing which fields will be included in the document returned by the operation. The default value
-	// is nil, which means all fields will be included.
+	Collation  *Collation
+	Comment    interface{}
 	Projection interface{}
-
-	// A document specifying which document should be replaced if the filter used by the operation matches multiple
-	// documents in the collection. If set, the first document in the sorted order will be selected for replacement.
-	// The driver will return an error if the sort parameter is a multi-key map. The default value is nil.
-	Sort interface{}
-
-	// The index to use for the operation. This should either be the index name as a string or the index specification
-	// as a document. This option is only valid for MongoDB versions >= 4.4. MongoDB version 4.2 will report an error if
-	// this option is specified. For server versions < 4.2, the driver will return an error if this option is specified.
-	// The driver will return an error if this option is used with during an unacknowledged write operation. The driver
-	// will return an error if the hint parameter is a multi-key map. The default value is nil, which means that no hint
-	// will be sent.
-	Hint interface{}
-
-	// Specifies parameters for the find one and delete expression. This option is only valid for MongoDB versions >= 5.0. Older
-	// servers will report an error for using this option. This must be a document mapping parameter names to values.
-	// Values must be constant or closed expressions that do not reference document fields. Parameters can then be
-	// accessed as variables in an aggregate expression context (e.g. "$$var").
-	Let interface{}
+	Sort       interface{}
+	Hint       interface{}
+	Let        interface{}
 }
 
 // FindOneAndDeleteOptionsBuilder contains options to configure delete
@@ -838,7 +776,10 @@ func (f *FindOneAndDeleteOptionsBuilder) List() []func(*FindOneAndDeleteOptions)
 	return f.Opts
 }
 
-// SetCollation sets the value for the Collation field.
+// SetCollation sets the value for the Collation field. Specifies a collation to use for string
+// comparisons during the operation. This option is only valid for MongoDB versions >= 3.4.
+// For previous server versions, the driver will return an error if this option is used. The
+// default value is nil, which means the default collation of the collection will be used.
 func (f *FindOneAndDeleteOptionsBuilder) SetCollation(collation *Collation) *FindOneAndDeleteOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndDeleteOptions) error {
 		opts.Collation = collation
@@ -849,7 +790,9 @@ func (f *FindOneAndDeleteOptionsBuilder) SetCollation(collation *Collation) *Fin
 	return f
 }
 
-// SetComment sets the value for the Comment field.
+// SetComment sets the value for the Comment field. Specifies a string or document that will be
+// included in server logs, profiling logs, and currentOp queries to help trace the operation.
+// The default value is nil, which means that no comment will be included in the logs.
 func (f *FindOneAndDeleteOptionsBuilder) SetComment(comment interface{}) *FindOneAndDeleteOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndDeleteOptions) error {
 		opts.Comment = comment
@@ -860,7 +803,9 @@ func (f *FindOneAndDeleteOptionsBuilder) SetComment(comment interface{}) *FindOn
 	return f
 }
 
-// SetProjection sets the value for the Projection field.
+// SetProjection sets the value for the Projection field. Sets a document describing which fields
+// will be included in the document returned by the operation. The default value is nil, which
+// means all fields will be included.
 func (f *FindOneAndDeleteOptionsBuilder) SetProjection(projection interface{}) *FindOneAndDeleteOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndDeleteOptions) error {
 		opts.Projection = projection
@@ -871,7 +816,10 @@ func (f *FindOneAndDeleteOptionsBuilder) SetProjection(projection interface{}) *
 	return f
 }
 
-// SetSort sets the value for the Sort field.
+// SetSort sets the value for the Sort field. Sets a document specifying which document should
+// be replaced if the filter used by the operation matches multiple documents in the collection.
+// If set, the first document in the sorted order will be selected for replacement. The driver
+// will return an error if the sort parameter is a multi-key map. The default value is nil.
 func (f *FindOneAndDeleteOptionsBuilder) SetSort(sort interface{}) *FindOneAndDeleteOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndDeleteOptions) error {
 		opts.Sort = sort
@@ -882,7 +830,13 @@ func (f *FindOneAndDeleteOptionsBuilder) SetSort(sort interface{}) *FindOneAndDe
 	return f
 }
 
-// SetHint sets the value for the Hint field.
+// SetHint sets the value for the Hint field. Specifies the index to use for the operation.
+// This should either be the index name as a string or the index specification as a document.
+// This option is only valid for MongoDB versions >= 4.4. MongoDB version 4.2 will report an
+// error if this option is specified. For server versions < 4.2, the driver will return an
+// error if this option is specified. The driver will return an error if this option is used
+// with during an unacknowledged write operation. The driver will return an error if the hint
+// parameter is a multi-key map. The default value is nil, which means that no hint will be sent.
 func (f *FindOneAndDeleteOptionsBuilder) SetHint(hint interface{}) *FindOneAndDeleteOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndDeleteOptions) error {
 		opts.Hint = hint
@@ -893,7 +847,11 @@ func (f *FindOneAndDeleteOptionsBuilder) SetHint(hint interface{}) *FindOneAndDe
 	return f
 }
 
-// SetLet sets the value for the Let field.
+// SetLet sets the value for the Let field. Specifies parameters for the find one and delete
+// expression. This option is only valid for MongoDB versions >= 5.0. Older servers will
+// report an error for using this option. This must be a document mapping parameter names to
+// values. Values must be constant or closed expressions that do not reference document fields.
+// Parameters can then be accessed as variables in an aggregate expression context (e.g. "$$var").
 func (f *FindOneAndDeleteOptionsBuilder) SetLet(let interface{}) *FindOneAndDeleteOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndDeleteOptions) error {
 		opts.Let = let

@@ -15,6 +15,8 @@ import (
 )
 
 // ClientEncryptionOptions represents all possible arguments used to configure a ClientEncryption instance.
+//
+// See corresponding setter methods for documentation.
 type ClientEncryptionOptions struct {
 	KeyVaultNamespace string
 	KmsProviders      map[string]map[string]interface{}

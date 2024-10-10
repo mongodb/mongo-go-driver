@@ -8,14 +8,10 @@ package options
 
 // ListDatabasesOptions represents arguments that can be used to configure a
 // ListDatabases operation.
+//
+// See corresponding setter methods for documentation.
 type ListDatabasesOptions struct {
-	// If true, only the Name field of the returned DatabaseSpecification objects will be populated. The default value
-	// is false.
-	NameOnly *bool
-
-	// If true, only the databases which the user is authorized to see will be returned. For more information about
-	// the behavior of this option, see https://www.mongodb.com/docs/manual/reference/privilege-actions/#find. The default
-	// value is true.
+	NameOnly            *bool
 	AuthorizedDatabases *bool
 }
 
@@ -35,7 +31,8 @@ func (ld *ListDatabasesOptionsBuilder) List() []func(*ListDatabasesOptions) erro
 	return ld.Opts
 }
 
-// SetNameOnly sets the value for the NameOnly field.
+// SetNameOnly sets the value for the NameOnly field. If true, only the Name field of the returned
+// DatabaseSpecification objects will be populated. The default value is false.
 func (ld *ListDatabasesOptionsBuilder) SetNameOnly(b bool) *ListDatabasesOptionsBuilder {
 	ld.Opts = append(ld.Opts, func(opts *ListDatabasesOptions) error {
 		opts.NameOnly = &b
@@ -44,7 +41,10 @@ func (ld *ListDatabasesOptionsBuilder) SetNameOnly(b bool) *ListDatabasesOptions
 	return ld
 }
 
-// SetAuthorizedDatabases sets the value for the AuthorizedDatabases field.
+// SetAuthorizedDatabases sets the value for the AuthorizedDatabases field. If true, only the
+// databases which the user is authorized to see will be returned. For more information about the
+// behavior of this option, see https://www.mongodb.com/docs/manual/reference/privilege-actions/#find.
+// The default value is true.
 func (ld *ListDatabasesOptionsBuilder) SetAuthorizedDatabases(b bool) *ListDatabasesOptionsBuilder {
 	ld.Opts = append(ld.Opts, func(opts *ListDatabasesOptions) error {
 		opts.AuthorizedDatabases = &b

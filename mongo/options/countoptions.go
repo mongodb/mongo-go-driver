@@ -8,27 +8,14 @@ package options
 
 // CountOptions represents arguments that can be used to configure a
 // CountDocuments operation.
+//
+// See corresponding setter methods for documentation.
 type CountOptions struct {
-	// Specifies a collation to use for string comparisons during the operation. This option is only valid for MongoDB
-	// versions >= 3.4. For previous server versions, the driver will return an error if this option is used. The
-	// default value is nil, which means the default collation of the collection will be used.
 	Collation *Collation
-
-	// A string or document that will be included in server logs, profiling logs, and currentOp queries to help trace
-	// the operation.  The default is nil, which means that no comment will be included in the logs.
-	Comment interface{}
-
-	// The index to use for the aggregation. This should either be the index name as a string or the index specification
-	// as a document. The driver will return an error if the hint parameter is a multi-key map. The default value is nil,
-	// which means that no hint will be sent.
-	Hint interface{}
-
-	// The maximum number of documents to count. The default value is 0, which means that there is no limit and all
-	// documents matching the filter will be counted.
-	Limit *int64
-
-	// The number of documents to skip before counting. The default value is 0.
-	Skip *int64
+	Comment   interface{}
+	Hint      interface{}
+	Limit     *int64
+	Skip      *int64
 }
 
 // CountOptionsBuilder contains options to configure count operations. Each
@@ -48,7 +35,10 @@ func (co *CountOptionsBuilder) List() []func(*CountOptions) error {
 	return co.Opts
 }
 
-// SetCollation sets the value for the Collation field.
+// SetCollation sets the value for the Collation field. Specifies a collation to use for string comparisons
+// during the operation. This option is only valid for MongoDB versions >= 3.4. For previous server versions,
+// the driver will return an error if this option is used. The default value is nil, which means the default
+// collation of the collection will be used.
 func (co *CountOptionsBuilder) SetCollation(c *Collation) *CountOptionsBuilder {
 	co.Opts = append(co.Opts, func(opts *CountOptions) error {
 		opts.Collation = c
@@ -59,7 +49,9 @@ func (co *CountOptionsBuilder) SetCollation(c *Collation) *CountOptionsBuilder {
 	return co
 }
 
-// SetComment sets the value for the Comment field.
+// SetComment sets the value for the Comment field. Specifies a string or document that will be included
+// in server logs, profiling logs, and currentOp queries to help trace the operation. The default is nil,
+// which means that no comment will be included in the logs.
 func (co *CountOptionsBuilder) SetComment(comment interface{}) *CountOptionsBuilder {
 	co.Opts = append(co.Opts, func(opts *CountOptions) error {
 		opts.Comment = comment
@@ -70,7 +62,10 @@ func (co *CountOptionsBuilder) SetComment(comment interface{}) *CountOptionsBuil
 	return co
 }
 
-// SetHint sets the value for the Hint field.
+// SetHint sets the value for the Hint field. Specifies the index to use for the aggregation. This should
+// either be the index name as a string or the index specification as a document. The driver will return
+// an error if the hint parameter is a multi-key map. The default value is nil, which means that no hint
+// will be sent.
 func (co *CountOptionsBuilder) SetHint(h interface{}) *CountOptionsBuilder {
 	co.Opts = append(co.Opts, func(opts *CountOptions) error {
 		opts.Hint = h
@@ -81,7 +76,9 @@ func (co *CountOptionsBuilder) SetHint(h interface{}) *CountOptionsBuilder {
 	return co
 }
 
-// SetLimit sets the value for the Limit field.
+// SetLimit sets the value for the Limit field. Specifies the maximum number of documents to count. The
+// default value is 0, which means that there is no limit and all documents matching the filter will be
+// counted.
 func (co *CountOptionsBuilder) SetLimit(i int64) *CountOptionsBuilder {
 	co.Opts = append(co.Opts, func(opts *CountOptions) error {
 		opts.Limit = &i
@@ -92,7 +89,8 @@ func (co *CountOptionsBuilder) SetLimit(i int64) *CountOptionsBuilder {
 	return co
 }
 
-// SetSkip sets the value for the Skip field.
+// SetSkip sets the value for the Skip field. Specifies the number of documents to skip before counting.
+// The default value is 0.
 func (co *CountOptionsBuilder) SetSkip(i int64) *CountOptionsBuilder {
 	co.Opts = append(co.Opts, func(opts *CountOptions) error {
 		opts.Skip = &i

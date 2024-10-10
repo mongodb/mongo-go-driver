@@ -8,9 +8,9 @@ package options
 
 // EstimatedDocumentCountOptions represents arguments that can be used to configure
 // an EstimatedDocumentCount operation.
+//
+// See corresponding setter methods for documentation.
 type EstimatedDocumentCountOptions struct {
-	// A string or document that will be included in server logs, profiling logs, and currentOp queries to help trace
-	// the operation.  The default is nil, which means that no comment will be included in the logs.
 	Comment interface{}
 }
 
@@ -31,7 +31,10 @@ func (eco *EstimatedDocumentCountOptionsBuilder) List() []func(*EstimatedDocumen
 	return eco.Opts
 }
 
-// SetComment sets the value for the Comment field.
+// SetComment sets the value for the Comment field. Specifies a string or document
+// that will be included in server logs, profiling logs, and currentOp queries to help
+// trace the operation.  The default is nil, which means that no comment will be
+// included in the logs.
 func (eco *EstimatedDocumentCountOptionsBuilder) SetComment(comment interface{}) *EstimatedDocumentCountOptionsBuilder {
 	eco.Opts = append(eco.Opts, func(opts *EstimatedDocumentCountOptions) error {
 		opts.Comment = comment

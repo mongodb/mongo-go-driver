@@ -8,29 +8,13 @@ package options
 
 // DeleteOneOptions represents arguments that can be used to configure DeleteOne
 // operations.
+//
+// See corresponding setter methods for documentation.
 type DeleteOneOptions struct {
-	// Specifies a collation to use for string comparisons during the operation. This option is only valid for MongoDB
-	// versions >= 3.4. For previous server versions, the driver will return an error if this option is used. The
-	// default value is nil, which means the default collation of the collection will be used.
 	Collation *Collation
-
-	// A string or document that will be included in server logs, profiling logs, and currentOp queries to help trace
-	// the operation.  The default value is nil, which means that no comment will be included in the logs.
-	Comment interface{}
-
-	// The index to use for the operation. This should either be the index name as a string or the index specification
-	// as a document. This option is only valid for MongoDB versions >= 4.4. Server versions >= 3.4 will return an error
-	// if this option is specified. For server versions < 3.4, the driver will return a client-side error if this option
-	// is specified. The driver will return an error if this option is specified during an unacknowledged write
-	// operation. The driver will return an error if the hint parameter is a multi-key map. The default value is nil,
-	// which means that no hint will be sent.
-	Hint interface{}
-
-	// Specifies parameters for the delete expression. This option is only valid for MongoDB versions >= 5.0. Older
-	// servers will report an error for using this option. This must be a document mapping parameter names to values.
-	// Values must be constant or closed expressions that do not reference document fields. Parameters can then be
-	// accessed as variables in an aggregate expression context (e.g. "$$var").
-	Let interface{}
+	Comment   interface{}
+	Hint      interface{}
+	Let       interface{}
 }
 
 // DeleteOneOptionsBuilder contains options to configure DeleteOne operations. Each
@@ -50,7 +34,11 @@ func (do *DeleteOneOptionsBuilder) List() []func(*DeleteOneOptions) error {
 	return do.Opts
 }
 
-// SetCollation sets the value for the Collation field.
+// SetCollation sets the value for the Collation field. Specifies a collation to use for
+// string comparisons during the operation. This option is only valid for MongoDB
+// versions >= 3.4. For previous server versions, the driver will return an error if this
+// option is used. The default value is nil, which means the default collation of the
+// collection will be used.
 func (do *DeleteOneOptionsBuilder) SetCollation(c *Collation) *DeleteOneOptionsBuilder {
 	do.Opts = append(do.Opts, func(opts *DeleteOneOptions) error {
 		opts.Collation = c
@@ -61,7 +49,9 @@ func (do *DeleteOneOptionsBuilder) SetCollation(c *Collation) *DeleteOneOptionsB
 	return do
 }
 
-// SetComment sets the value for the Comment field.
+// SetComment sets the value for the Comment field. Specifies a string or document that will
+// be included in server logs, profiling logs, and currentOp queries to help trace the operation.
+// The default value is nil, which means that no comment will be included in the logs.
 func (do *DeleteOneOptionsBuilder) SetComment(comment interface{}) *DeleteOneOptionsBuilder {
 	do.Opts = append(do.Opts, func(opts *DeleteOneOptions) error {
 		opts.Comment = comment
@@ -72,7 +62,13 @@ func (do *DeleteOneOptionsBuilder) SetComment(comment interface{}) *DeleteOneOpt
 	return do
 }
 
-// SetHint sets the value for the Hint field.
+// SetHint sets the value for the Hint field. Specifies the index to use for the operation. This
+// should either be the index name as a string or the index specification as a document. This option
+// is only valid for MongoDB versions >= 4.4. Server versions >= 3.4 will return an error if this
+// option is specified. For server versions < 3.4, the driver will return a client-side error if this
+// option is specified. The driver will return an error if this option is specified during an
+// unacknowledged write operation. The driver will return an error if the hint parameter is a
+// multi-key map. The default value is nil, which means that no hint will be sent.
 func (do *DeleteOneOptionsBuilder) SetHint(hint interface{}) *DeleteOneOptionsBuilder {
 	do.Opts = append(do.Opts, func(opts *DeleteOneOptions) error {
 		opts.Hint = hint
@@ -83,7 +79,11 @@ func (do *DeleteOneOptionsBuilder) SetHint(hint interface{}) *DeleteOneOptionsBu
 	return do
 }
 
-// SetLet sets the value for the Let field.
+// SetLet sets the value for the Let field. Specifies parameters for the delete expression. This
+// option is only valid for MongoDB versions >= 5.0. Older servers will report an error for using
+// this option. This must be a document mapping parameter names to values. Values must be constant
+// or closed expressions that do not reference document fields. Parameters can then be accessed as
+// variables in an aggregate expression context (e.g. "$$var").
 func (do *DeleteOneOptionsBuilder) SetLet(let interface{}) *DeleteOneOptionsBuilder {
 	do.Opts = append(do.Opts, func(opts *DeleteOneOptions) error {
 		opts.Let = let
@@ -96,29 +96,13 @@ func (do *DeleteOneOptionsBuilder) SetLet(let interface{}) *DeleteOneOptionsBuil
 
 // DeleteManyOptions represents arguments that can be used to configure DeleteMany
 // operations.
+//
+// See corresponding setter methods for documentation.
 type DeleteManyOptions struct {
-	// Specifies a collation to use for string comparisons during the operation. This option is only valid for MongoDB
-	// versions >= 3.4. For previous server versions, the driver will return an error if this option is used. The
-	// default value is nil, which means the default collation of the collection will be used.
 	Collation *Collation
-
-	// A string or document that will be included in server logs, profiling logs, and currentOp queries to help trace
-	// the operation.  The default value is nil, which means that no comment will be included in the logs.
-	Comment interface{}
-
-	// The index to use for the operation. This should either be the index name as a string or the index specification
-	// as a document. This option is only valid for MongoDB versions >= 4.4. Server versions >= 3.4 will return an error
-	// if this option is specified. For server versions < 3.4, the driver will return a client-side error if this option
-	// is specified. The driver will return an error if this option is specified during an unacknowledged write
-	// operation. The driver will return an error if the hint parameter is a multi-key map. The default value is nil,
-	// which means that no hint will be sent.
-	Hint interface{}
-
-	// Specifies parameters for the delete expression. This option is only valid for MongoDB versions >= 5.0. Older
-	// servers will report an error for using this option. This must be a document mapping parameter names to values.
-	// Values must be constant or closed expressions that do not reference document fields. Parameters can then be
-	// accessed as variables in an aggregate expression context (e.g. "$$var").
-	Let interface{}
+	Comment   interface{}
+	Hint      interface{}
+	Let       interface{}
 }
 
 // DeleteManyOptionsBuilder contains options to configure DeleteMany operations.
@@ -138,7 +122,10 @@ func (do *DeleteManyOptionsBuilder) List() []func(*DeleteManyOptions) error {
 	return do.Opts
 }
 
-// SetCollation sets the value for the Collation field.
+// SetCollation sets the value for the Collation field. Specifies a collation to use for string
+// comparisons during the operation. This option is only valid for MongoDB versions >= 3.4.
+// For previous server versions, the driver will return an error if this option is used. The
+// default value is nil, which means the default collation of the collection will be used.
 func (do *DeleteManyOptionsBuilder) SetCollation(c *Collation) *DeleteManyOptionsBuilder {
 	do.Opts = append(do.Opts, func(opts *DeleteManyOptions) error {
 		opts.Collation = c
@@ -149,7 +136,9 @@ func (do *DeleteManyOptionsBuilder) SetCollation(c *Collation) *DeleteManyOption
 	return do
 }
 
-// SetComment sets the value for the Comment field.
+// SetComment sets the value for the Comment field. Specifies a string or document that will be
+// included in server logs, profiling logs, and currentOp queries to help trace the operation.
+// The default value is nil, which means that no comment will be included in the logs.
 func (do *DeleteManyOptionsBuilder) SetComment(comment interface{}) *DeleteManyOptionsBuilder {
 	do.Opts = append(do.Opts, func(opts *DeleteManyOptions) error {
 		opts.Comment = comment
@@ -160,7 +149,14 @@ func (do *DeleteManyOptionsBuilder) SetComment(comment interface{}) *DeleteManyO
 	return do
 }
 
-// SetHint sets the value for the Hint field.
+// SetHint sets the value for the Hint field. Specifies the index to use for the operation.
+// This should either be the index name as a string or the index specification as a document.
+// This option is only valid for MongoDB versions >= 4.4. Server versions >= 3.4 will return an
+// error if this option is specified. For server versions < 3.4, the driver will return a
+// client-side error if this option is specified. The driver will return an error if this option
+// is specified during an unacknowledged write operation. The driver will return an error if the
+// hint parameter is a multi-key map. The default value is nil, which means that no hint will
+// be sent.
 func (do *DeleteManyOptionsBuilder) SetHint(hint interface{}) *DeleteManyOptionsBuilder {
 	do.Opts = append(do.Opts, func(opts *DeleteManyOptions) error {
 		opts.Hint = hint
@@ -171,7 +167,11 @@ func (do *DeleteManyOptionsBuilder) SetHint(hint interface{}) *DeleteManyOptions
 	return do
 }
 
-// SetLet sets the value for the Let field.
+// SetLet sets the value for the Let field. Specifies parameters for the delete expression.
+// This option is only valid for MongoDB versions >= 5.0. Older servers will report an error
+// for using this option. This must be a document mapping parameter names to values. Values
+// must be constant or closed expressions that do not reference document fields. Parameters
+// can then be accessed as variables in an aggregate expression context (e.g. "$$var").
 func (do *DeleteManyOptionsBuilder) SetLet(let interface{}) *DeleteManyOptionsBuilder {
 	do.Opts = append(do.Opts, func(opts *DeleteManyOptions) error {
 		opts.Let = let
