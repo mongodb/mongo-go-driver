@@ -23,7 +23,7 @@ var (
 	MinSupportedMongoDBVersion = "3.6"
 
 	// SupportedWireVersions is the range of wire versions supported by the driver.
-	SupportedWireVersions = driverutil.NewVersionRange(6, 25)
+	SupportedWireVersions = driverutil.NewVersionRange(driverutil.MinWireVersion, driverutil.MaxWireVersion)
 )
 
 type fsm struct {

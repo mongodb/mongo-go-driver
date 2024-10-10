@@ -29,6 +29,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/drivertest"
 )
 
 var (
@@ -62,7 +63,7 @@ type T struct {
 	createClient      *bool
 	createCollection  *bool
 	runOn             []RunOnBlock
-	mockDeployment    *mockDeployment // nil if the test is not being run against a mock
+	mockDeployment    *drivertest.MockDeployment // nil if the test is not being run against a mock
 	mockResponses     []bson.D
 	createdColls      []*Collection // collections created in this test
 	proxyDialer       *proxyDialer
@@ -235,12 +236,12 @@ func (t *T) RunOpts(name string, opts *Options, callback func(mt *T)) {
 // AddMockResponses adds responses to be returned by the mock deployment. This should only be used if T is being run
 // against a mock deployment.
 func (t *T) AddMockResponses(responses ...bson.D) {
-	t.mockDeployment.addResponses(responses...)
+	t.mockDeployment.AddResponses(responses...)
 }
 
 // ClearMockResponses clears all responses in the mock deployment.
 func (t *T) ClearMockResponses() {
-	t.mockDeployment.clearResponses()
+	t.mockDeployment.ClearResponses()
 }
 
 // GetStartedEvent returns the least recent CommandStartedEvent, or nil if one is not present.
@@ -661,7 +662,7 @@ func (t *T) createTestClient() {
 
 		args.PoolMonitor = nil
 
-		t.mockDeployment = newMockDeployment()
+		t.mockDeployment = drivertest.NewMockDeployment()
 		args.Deployment = t.mockDeployment
 
 		opts := mongoutil.NewOptionsLister(args, nil)
