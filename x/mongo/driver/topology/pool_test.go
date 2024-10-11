@@ -890,7 +890,7 @@ func TestPool(t *testing.T) {
 			go func() {
 				select {
 				case nc := <-ncs:
-					_, err = nc.Write([]byte{5, 0, 0, 0, 0})
+					_, err := nc.Write([]byte{5, 0, 0, 0, 0})
 					require.NoError(t, err, "Write error")
 				case <-time.After(100 * time.Millisecond):
 				}
