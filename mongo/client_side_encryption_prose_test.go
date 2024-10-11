@@ -7,7 +7,7 @@
 //go:build cse
 // +build cse
 
-package integration
+package mongo_test
 
 import (
 	"bytes"
