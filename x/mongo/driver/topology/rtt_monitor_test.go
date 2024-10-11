@@ -416,3 +416,71 @@ func TestRTTMonitor_min(t *testing.T) {
 		})
 	}
 }
+
+func TestRTTMonitor_stddev(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		samples []time.Duration
+		want    float64
+	}{
+		{
+			name:    "empty",
+			samples: []time.Duration{},
+			want:    0,
+		},
+		{
+			name:    "one",
+			samples: makeArithmeticSamples(1, 1),
+			want:    0,
+		},
+		{
+			name:    "below maxRTTSamples",
+			samples: makeArithmeticSamples(1, 5),
+			want:    0,
+		},
+		{
+			name:    "equal maxRTTSamples",
+			samples: makeArithmeticSamples(1, 10),
+			want:    2.872281e+06,
+		},
+		{
+			name:    "exceed maxRTTSamples",
+			samples: makeArithmeticSamples(1, 15),
+			want:    2.872281e+06,
+		},
+		{
+			name: "non-sequential",
+			samples: []time.Duration{
+				2 * time.Millisecond,
+				1 * time.Millisecond,
+				4 * time.Millisecond,
+				3 * time.Millisecond,
+				7 * time.Millisecond,
+				12 * time.Millisecond,
+				6 * time.Millisecond,
+				8 * time.Millisecond,
+				5 * time.Millisecond,
+				13 * time.Millisecond,
+			},
+			want: 3.806573e+06,
+		},
+	}
+
+	for _, test := range tests {
+		test := test // capture the range variable
+
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			rtt := &rttMonitor{
+				movingMin: list.New(),
+			}
+			for _, sample := range test.samples {
+				rtt.appendMovingMin(sample)
+			}
+			assert.Equal(t, test.want, float64(rtt.stddev()))
+		})
+	}
+}

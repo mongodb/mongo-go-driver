@@ -20,6 +20,11 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
 )
 
+const (
+	MinWireVersion = 6
+	MaxWireVersion = 25
+)
+
 func equalWireVersion(wv1, wv2 *description.VersionRange) bool {
 	if wv1 == nil && wv2 == nil {
 		return true
