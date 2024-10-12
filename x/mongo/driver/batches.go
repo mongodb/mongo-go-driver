@@ -7,66 +7,99 @@
 package driver
 
 import (
-	"errors"
+	"io"
+	"strconv"
 
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
-
-// ErrDocumentTooLarge occurs when a document that is larger than the maximum size accepted by a
-// server is passed to an insert command.
-var ErrDocumentTooLarge = errors.New("an inserted document is too large")
 
 // Batches contains the necessary information to batch split an operation. This is only used for write
 // operations.
 type Batches struct {
 	Identifier string
 	Documents  []bsoncore.Document
-	Current    []bsoncore.Document
 	Ordered    *bool
+
+	offset int
 }
 
-// ClearBatch clears the Current batch. This must be called before AdvanceBatch will advance to the
-// next batch.
-func (b *Batches) ClearBatch() { b.Current = b.Current[:0] }
-
-// AdvanceBatch splits the next batch using maxCount and targetBatchSize. This method will do nothing if
-// the current batch has not been cleared. We do this so that when this is called during execute we
-// can call it without first needing to check if we already have a batch, which makes the code
-// simpler and makes retrying easier.
-// The maxDocSize parameter is used to check that any one document is not too large. If the first document is bigger
-// than targetBatchSize but smaller than maxDocSize, a batch of size 1 containing that document will be created.
-func (b *Batches) AdvanceBatch(maxCount, targetBatchSize, maxDocSize int) error {
-	if len(b.Current) > 0 {
-		return nil
+func (b *Batches) AppendBatchSequence(dst []byte, maxCount, maxDocSize, totalSize int) (int, []byte, error) {
+	if b.End() {
+		return 0, dst, io.EOF
 	}
-
-	if maxCount <= 0 {
-		maxCount = 1
-	}
-
-	splitAfter := 0
-	size := 0
-	for i, doc := range b.Documents {
-		if i == maxCount {
+	l := len(dst)
+	var idx int32
+	dst = wiremessage.AppendMsgSectionType(dst, wiremessage.DocumentSequence)
+	idx, dst = bsoncore.ReserveLength(dst)
+	dst = append(dst, b.Identifier...)
+	dst = append(dst, 0x00)
+	size := len(dst) - l
+	var n int
+	for i := b.offset; i < len(b.Documents); i++ {
+		if n == maxCount {
 			break
 		}
+		doc := b.Documents[i]
 		if len(doc) > maxDocSize {
-			return ErrDocumentTooLarge
-		}
-		if size+len(doc) > targetBatchSize {
 			break
 		}
-
 		size += len(doc)
-		splitAfter++
+		if size >= totalSize {
+			break
+		}
+		dst = append(dst, doc...)
+		n++
 	}
-
-	// if there are no documents, take the first one.
-	// this can happen if there is a document that is smaller than maxDocSize but greater than targetBatchSize.
-	if splitAfter == 0 {
-		splitAfter = 1
+	if n == 0 {
+		return 0, dst[:l], nil
 	}
+	dst = bsoncore.UpdateLength(dst, idx, int32(len(dst[idx:])))
+	return n, dst, nil
+}
 
-	b.Current, b.Documents = b.Documents[:splitAfter], b.Documents[splitAfter:]
-	return nil
+func (b *Batches) AppendBatchArray(dst []byte, maxCount, maxDocSize, totalSize int) (int, []byte, error) {
+	if b.End() {
+		return 0, dst, io.EOF
+	}
+	l := len(dst)
+	aidx, dst := bsoncore.AppendArrayElementStart(dst, b.Identifier)
+	size := len(dst) - l
+	var n int
+	for i := b.offset; i < len(b.Documents); i++ {
+		if n == maxCount {
+			break
+		}
+		doc := b.Documents[i]
+		if len(doc) > maxDocSize {
+			break
+		}
+		size += len(doc)
+		if size >= totalSize {
+			break
+		}
+		dst = bsoncore.AppendDocumentElement(dst, strconv.Itoa(n), doc)
+		n++
+	}
+	if n == 0 {
+		return 0, dst[:l], nil
+	}
+	var err error
+	dst, err = bsoncore.AppendArrayEnd(dst, aidx)
+	if err != nil {
+		return 0, nil, err
+	}
+	return n, dst, nil
+}
+
+func (b *Batches) IsOrdered() *bool {
+	return b.Ordered
+}
+
+func (b *Batches) AdvanceBatches(n int) {
+	b.offset += n
+}
+
+func (b *Batches) End() bool {
+	return len(b.Documents) <= b.offset
 }

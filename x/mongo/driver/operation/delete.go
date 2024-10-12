@@ -81,8 +81,8 @@ func NewDelete(deletes ...bsoncore.Document) *Delete {
 // Result returns the result of executing this operation.
 func (d *Delete) Result() DeleteResult { return d.result }
 
-func (d *Delete) processResponse(_ context.Context, info driver.ResponseInfo) error {
-	dr, err := buildDeleteResult(info.ServerResponse)
+func (d *Delete) processResponse(_ context.Context, resp bsoncore.Document, _ driver.ResponseInfo) error {
+	dr, err := buildDeleteResult(resp)
 	d.result.N += dr.N
 	return err
 }
@@ -96,12 +96,10 @@ func (d *Delete) Execute(ctx context.Context) error {
 	return driver.Operation{
 		CommandFn:         d.command,
 		ProcessResponseFn: d.processResponse,
-		Batches: []driver.Batches{
-			{
-				Identifier: "deletes",
-				Documents:  d.deletes,
-				Ordered:    d.ordered,
-			},
+		Batches: &driver.Batches{
+			Identifier: "deletes",
+			Documents:  d.deletes,
+			Ordered:    d.ordered,
 		},
 		RetryMode:      d.retry,
 		Type:           driver.Write,

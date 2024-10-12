@@ -80,8 +80,8 @@ func NewInsert(documents ...bsoncore.Document) *Insert {
 // Result returns the result of executing this operation.
 func (i *Insert) Result() InsertResult { return i.result }
 
-func (i *Insert) processResponse(_ context.Context, info driver.ResponseInfo) error {
-	ir, err := buildInsertResult(info.ServerResponse)
+func (i *Insert) processResponse(_ context.Context, resp bsoncore.Document, _ driver.ResponseInfo) error {
+	ir, err := buildInsertResult(resp)
 	i.result.N += ir.N
 	return err
 }
@@ -95,12 +95,10 @@ func (i *Insert) Execute(ctx context.Context) error {
 	return driver.Operation{
 		CommandFn:         i.command,
 		ProcessResponseFn: i.processResponse,
-		Batches: []driver.Batches{
-			{
-				Identifier: "documents",
-				Documents:  i.documents,
-				Ordered:    i.ordered,
-			},
+		Batches: &driver.Batches{
+			Identifier: "documents",
+			Documents:  i.documents,
+			Ordered:    i.ordered,
 		},
 		RetryMode:      i.retry,
 		Type:           driver.Write,

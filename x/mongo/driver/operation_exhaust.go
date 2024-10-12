@@ -25,10 +25,9 @@ func (op Operation) ExecuteExhaust(ctx context.Context, conn StreamerConnection)
 	if op.ProcessResponseFn != nil {
 		// Server, ConnectionDescription, and CurrentIndex are unused in this mode.
 		info := ResponseInfo{
-			ServerResponse: res,
-			Connection:     conn,
+			Connection: conn,
 		}
-		if err = op.ProcessResponseFn(ctx, info); err != nil {
+		if err = op.ProcessResponseFn(ctx, res, info); err != nil {
 			return err
 		}
 	}

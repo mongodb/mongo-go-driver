@@ -124,8 +124,8 @@ func NewUpdate(updates ...bsoncore.Document) *Update {
 // Result returns the result of executing this operation.
 func (u *Update) Result() UpdateResult { return u.result }
 
-func (u *Update) processResponse(_ context.Context, info driver.ResponseInfo) error {
-	ur, err := buildUpdateResult(info.ServerResponse)
+func (u *Update) processResponse(_ context.Context, resp bsoncore.Document, info driver.ResponseInfo) error {
+	ur, err := buildUpdateResult(resp)
 
 	u.result.N += ur.N
 	u.result.NModified += ur.NModified
@@ -148,12 +148,10 @@ func (u *Update) Execute(ctx context.Context) error {
 	return driver.Operation{
 		CommandFn:         u.command,
 		ProcessResponseFn: u.processResponse,
-		Batches: []driver.Batches{
-			{
-				Identifier: "updates",
-				Documents:  u.updates,
-				Ordered:    u.ordered,
-			},
+		Batches: &driver.Batches{
+			Identifier: "updates",
+			Documents:  u.updates,
+			Ordered:    u.ordered,
 		},
 		RetryMode:      u.retry,
 		Type:           driver.Write,
