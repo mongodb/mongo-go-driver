@@ -24,8 +24,11 @@ type Batches struct {
 	offset int
 }
 
-func (b *Batches) AppendBatchSequence(dst []byte, maxCount, maxDocSize, totalSize int) (int, []byte, error) {
-	if b.End() {
+// AppendBatchSequence appends dst with document sequence of batches as long as the limits of max count, max
+// document size, or total size allows. It returns the number of batches appended, the new appended slice, and
+// any error raised. It returns the origenal input slice if nothing can be appends within the limits.
+func (b *Batches) AppendBatchSequence(dst []byte, maxCount, maxDocSize, _ int) (int, []byte, error) {
+	if b.Size() == 0 {
 		return 0, dst, io.EOF
 	}
 	l := len(dst)
@@ -34,7 +37,7 @@ func (b *Batches) AppendBatchSequence(dst []byte, maxCount, maxDocSize, totalSiz
 	idx, dst = bsoncore.ReserveLength(dst)
 	dst = append(dst, b.Identifier...)
 	dst = append(dst, 0x00)
-	size := len(dst) - l
+	var size int
 	var n int
 	for i := b.offset; i < len(b.Documents); i++ {
 		if n == maxCount {
@@ -45,7 +48,7 @@ func (b *Batches) AppendBatchSequence(dst []byte, maxCount, maxDocSize, totalSiz
 			break
 		}
 		size += len(doc)
-		if size >= totalSize {
+		if size > maxDocSize {
 			break
 		}
 		dst = append(dst, doc...)
@@ -58,13 +61,16 @@ func (b *Batches) AppendBatchSequence(dst []byte, maxCount, maxDocSize, totalSiz
 	return n, dst, nil
 }
 
-func (b *Batches) AppendBatchArray(dst []byte, maxCount, maxDocSize, totalSize int) (int, []byte, error) {
-	if b.End() {
+// AppendBatchArray appends dst with array of batches as long as the limits of max count, max document size, or
+// total size allows. It returns the number of batches appended, the new appended slice, and any error raised. It
+// returns the origenal input slice if nothing can be appends within the limits.
+func (b *Batches) AppendBatchArray(dst []byte, maxCount, maxDocSize, _ int) (int, []byte, error) {
+	if b.Size() == 0 {
 		return 0, dst, io.EOF
 	}
 	l := len(dst)
 	aidx, dst := bsoncore.AppendArrayElementStart(dst, b.Identifier)
-	size := len(dst) - l
+	var size int
 	var n int
 	for i := b.offset; i < len(b.Documents); i++ {
 		if n == maxCount {
@@ -75,7 +81,7 @@ func (b *Batches) AppendBatchArray(dst []byte, maxCount, maxDocSize, totalSize i
 			break
 		}
 		size += len(doc)
-		if size >= totalSize {
+		if size > maxDocSize {
 			break
 		}
 		dst = bsoncore.AppendDocumentElement(dst, strconv.Itoa(n), doc)
@@ -92,14 +98,23 @@ func (b *Batches) AppendBatchArray(dst []byte, maxCount, maxDocSize, totalSize i
 	return n, dst, nil
 }
 
+// IsOrdered indicates if the batches are ordered.
 func (b *Batches) IsOrdered() *bool {
 	return b.Ordered
 }
 
+// AdvanceBatches advances the batches with the given input.
 func (b *Batches) AdvanceBatches(n int) {
 	b.offset += n
+	if b.offset > len(b.Documents) {
+		b.offset = len(b.Documents)
+	}
 }
 
-func (b *Batches) End() bool {
-	return len(b.Documents) <= b.offset
+// Size returns the size of batches remained.
+func (b *Batches) Size() int {
+	if b.offset > len(b.Documents) {
+		return 0
+	}
+	return len(b.Documents) - b.offset
 }

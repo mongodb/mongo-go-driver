@@ -161,10 +161,16 @@ func (mb *modelBatches) IsOrdered() *bool {
 
 func (mb *modelBatches) AdvanceBatches(n int) {
 	mb.offset += n
+	if mb.offset > len(mb.models) {
+		mb.offset = len(mb.models)
+	}
 }
 
-func (mb *modelBatches) End() bool {
-	return len(mb.models) <= mb.offset
+func (mb *modelBatches) Size() int {
+	if mb.offset > len(mb.models) {
+		return 0
+	}
+	return len(mb.models) - mb.offset
 }
 
 func (mb *modelBatches) AppendBatchSequence(dst []byte, maxCount, maxDocSize, totalSize int) (int, []byte, error) {
@@ -181,7 +187,7 @@ func (mb *modelBatches) AppendBatchSequence(dst []byte, maxCount, maxDocSize, to
 			dst = append(dst, doc...)
 			return dst
 		},
-		appendEnd: func(dst []byte, idx, length int32) []byte {
+		updateLength: func(dst []byte, idx, length int32) []byte {
 			dst = bsoncore.UpdateLength(dst, idx, length)
 			return dst
 		},
@@ -193,7 +199,7 @@ func (mb *modelBatches) AppendBatchArray(dst []byte, maxCount, maxDocSize, total
 	fn := functionSet{
 		appendStart:    bsoncore.AppendArrayElementStart,
 		appendDocument: bsoncore.AppendDocumentElement,
-		appendEnd: func(dst []byte, idx, _ int32) []byte {
+		updateLength: func(dst []byte, idx, _ int32) []byte {
 			dst, _ = bsoncore.AppendArrayEnd(dst, idx)
 			return dst
 		},
@@ -204,11 +210,11 @@ func (mb *modelBatches) AppendBatchArray(dst []byte, maxCount, maxDocSize, total
 type functionSet struct {
 	appendStart    func([]byte, string) (int32, []byte)
 	appendDocument func([]byte, string, []byte) []byte
-	appendEnd      func([]byte, int32, int32) []byte
+	updateLength   func([]byte, int32, int32) []byte
 }
 
 func (mb *modelBatches) appendBatches(fn functionSet, dst []byte, maxCount, maxDocSize, totalSize int) (int, []byte, error) {
-	if mb.End() {
+	if mb.Size() == 0 {
 		return 0, dst, io.EOF
 	}
 
@@ -344,8 +350,8 @@ func (mb *modelBatches) appendBatches(fn functionSet, dst []byte, maxCount, maxD
 		return 0, dst[:l], nil
 	}
 
-	dst = fn.appendEnd(dst, opsIdx, int32(len(dst[opsIdx:])))
-	nsDst = fn.appendEnd(nsDst, nsIdx, int32(len(nsDst[nsIdx:])))
+	dst = fn.updateLength(dst, opsIdx, int32(len(dst[opsIdx:])))
+	nsDst = fn.updateLength(nsDst, nsIdx, int32(len(nsDst[nsIdx:])))
 	dst = append(dst, nsDst...)
 
 	mb.retryMode = driver.RetryNone
@@ -417,7 +423,10 @@ func (mb *modelBatches) processResponse(ctx context.Context, resp bsoncore.Docum
 	ok := true
 	for cursor.Next(ctx) {
 		var cur cursorInfo
-		cursor.Decode(&cur)
+		err = cursor.Decode(&cur)
+		if err != nil {
+			return err
+		}
 		if int(cur.Idx) >= len(mb.cursorHandlers) {
 			continue
 		}
@@ -483,7 +492,7 @@ func (mb *modelBatches) appendUpdateResult(cur *cursorInfo, raw bson.Raw) bool {
 		result.ModifiedCount = int64(*cur.NModified)
 	}
 	if cur.Upserted != nil {
-		result.UpsertedID = (*cur.Upserted).ID
+		result.UpsertedID = cur.Upserted.ID
 	}
 	mb.result.UpdateResults[int(cur.Idx)] = result
 	if err := cur.extractError(); err != nil {

@@ -420,7 +420,7 @@ func TestClientBulkWrite(t *testing.T) {
 	mt.Run("input with greater than maxWriteBatchSize", func(mt *mtest.T) {
 		var opsCnt []int
 		monitor := &event.CommandMonitor{
-			Started: func(ctx context.Context, e *event.CommandStartedEvent) {
+			Started: func(_ context.Context, e *event.CommandStartedEvent) {
 				if e.CommandName == "bulkWrite" {
 					v := e.Command.Lookup("ops")
 					elems, err := v.Array().Elements()
@@ -453,7 +453,7 @@ func TestClientBulkWrite(t *testing.T) {
 	mt.Run("input with greater than maxMessageSizeBytes", func(mt *mtest.T) {
 		var opsCnt []int
 		monitor := &event.CommandMonitor{
-			Started: func(ctx context.Context, e *event.CommandStartedEvent) {
+			Started: func(_ context.Context, e *event.CommandStartedEvent) {
 				if e.CommandName == "bulkWrite" {
 					v := e.Command.Lookup("ops")
 					elems, err := v.Array().Elements()
@@ -533,7 +533,7 @@ func TestClientBulkWrite(t *testing.T) {
 
 		var eventCnt int
 		monitor := &event.CommandMonitor{
-			Started: func(ctx context.Context, e *event.CommandStartedEvent) {
+			Started: func(_ context.Context, e *event.CommandStartedEvent) {
 				if e.CommandName == "bulkWrite" {
 					eventCnt++
 				}
@@ -578,11 +578,12 @@ func TestClientBulkWrite(t *testing.T) {
 
 	mt.Run("bulkWrite handles a cursor requiring a getMore", func(mt *mtest.T) {
 		coll := mt.CreateCollection(mtest.Collection{DB: "db", Name: "coll"}, true)
-		coll.Drop(context.Background())
+		err := coll.Drop(context.Background())
+		require.NoError(mt, err, "Drop error")
 
 		var getMoreCalled bool
 		monitor := &event.CommandMonitor{
-			Started: func(ctx context.Context, e *event.CommandStartedEvent) {
+			Started: func(_ context.Context, e *event.CommandStartedEvent) {
 				if e.CommandName == "getMore" {
 					getMoreCalled = true
 				}
@@ -592,7 +593,8 @@ func TestClientBulkWrite(t *testing.T) {
 		var hello struct {
 			MaxBsonObjectSize int
 		}
-		require.NoError(mt, mt.DB.RunCommand(context.Background(), bson.D{{"hello", 1}}).Decode(&hello), "Hello error")
+		err = mt.DB.RunCommand(context.Background(), bson.D{{"hello", 1}}).Decode(&hello)
+		require.NoError(mt, err, "Hello error")
 		upsert := true
 		models := (&mongo.ClientWriteModels{}).
 			AppendUpdateOne(&mongo.ClientUpdateOneModel{
@@ -616,11 +618,12 @@ func TestClientBulkWrite(t *testing.T) {
 
 	mt.Run("bulkWrite handles a cursor requiring a getMore within a transaction", func(mt *mtest.T) {
 		coll := mt.CreateCollection(mtest.Collection{DB: "db", Name: "coll"}, true)
-		coll.Drop(context.Background())
+		err := coll.Drop(context.Background())
+		require.NoError(mt, err, "Drop error")
 
 		var getMoreCalled bool
 		monitor := &event.CommandMonitor{
-			Started: func(ctx context.Context, e *event.CommandStartedEvent) {
+			Started: func(_ context.Context, e *event.CommandStartedEvent) {
 				if e.CommandName == "getMore" {
 					getMoreCalled = true
 				}
@@ -630,7 +633,8 @@ func TestClientBulkWrite(t *testing.T) {
 		var hello struct {
 			MaxBsonObjectSize int
 		}
-		require.NoError(mt, mt.DB.RunCommand(context.Background(), bson.D{{"hello", 1}}).Decode(&hello), "Hello error")
+		err = mt.DB.RunCommand(context.Background(), bson.D{{"hello", 1}}).Decode(&hello)
+		require.NoError(mt, err, "Hello error")
 		session, err := mt.Client.StartSession()
 		require.NoError(mt, err, "StartSession error")
 		defer session.EndSession(context.Background())
@@ -648,7 +652,7 @@ func TestClientBulkWrite(t *testing.T) {
 				Update:    bson.D{{"$set", bson.D{{"x", 1}}}},
 				Upsert:    &upsert,
 			})
-		result, err := session.WithTransaction(context.TODO(), func(ctx mongo.SessionContext) (interface{}, error) {
+		result, err := session.WithTransaction(context.Background(), func(mongo.SessionContext) (interface{}, error) {
 			return mt.Client.BulkWrite(context.Background(), models, options.ClientBulkWrite().SetVerboseResults(true))
 		})
 		require.NoError(mt, err, "BulkWrite error")
@@ -659,7 +663,7 @@ func TestClientBulkWrite(t *testing.T) {
 		assert.True(mt, getMoreCalled, "the getMore was not called")
 	})
 
-	mt.Run("bulkWrite handles a getMore error", func(mt *mtest.T) {
+	mt.Run("bulkWrite handles a getMore error", func(_ *mtest.T) {
 	})
 
 	mt.Run("bulkWrite returns error for unacknowledged too-large insert", func(mt *mtest.T) {

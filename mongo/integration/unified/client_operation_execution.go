@@ -240,7 +240,7 @@ func executeClientBulkWrite(ctx context.Context, operation *operation) (*operati
 
 		resBuilder = bsoncore.NewDocumentBuilder()
 		for k, v := range res.DeleteResults {
-			resBuilder.AppendDocument(strconv.Itoa(int(k)),
+			resBuilder.AppendDocument(strconv.Itoa(k),
 				bsoncore.NewDocumentBuilder().
 					AppendInt64("deletedCount", v.DeletedCount).
 					Build(),
@@ -254,7 +254,7 @@ func executeClientBulkWrite(ctx context.Context, operation *operation) (*operati
 			if err != nil {
 				return nil, err
 			}
-			resBuilder.AppendDocument(strconv.Itoa(int(k)),
+			resBuilder.AppendDocument(strconv.Itoa(k),
 				bsoncore.NewDocumentBuilder().
 					AppendValue("insertedId", bsoncore.Value{Type: t, Data: d}).
 					Build(),
@@ -274,7 +274,7 @@ func executeClientBulkWrite(ctx context.Context, operation *operation) (*operati
 				}
 				b.AppendValue("upsertedId", bsoncore.Value{Type: t, Data: d})
 			}
-			resBuilder.AppendDocument(strconv.Itoa(int(k)), b.Build())
+			resBuilder.AppendDocument(strconv.Itoa(k), b.Build())
 		}
 		rawBuilder.AppendDocument("updateResults", resBuilder.Build())
 
