@@ -110,8 +110,8 @@ tasks:
     - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=$MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s -p 1 ./... >> test.suite
 
   evg-test-atlas-data-lake:
-    - ATLAS_DATA_LAKE_INTEGRATION_TEST=true go test -v ./internal/integration -run TestUnifiedSpecs/atlas-data-lake-testing >> spec_test.suite
-    - ATLAS_DATA_LAKE_INTEGRATION_TEST=true go test -v ./internal/integration -run TestAtlasDataLake >> spec_test.suite
+    - ATLAS_DATA_LAKE_INTEGRATION_TEST=true go test -v ./mongo -run TestUnifiedSpecs/atlas-data-lake-testing >> spec_test.suite
+    - ATLAS_DATA_LAKE_INTEGRATION_TEST=true go test -v ./mongo -run TestAtlasDataLake >> spec_test.suite
 
   evg-test-enterprise-auth: 
     - go run -tags gssapi ./internal/cmd/testentauth/main.go
@@ -121,29 +121,29 @@ tasks:
     - go run -race ./internal/cmd/testoidcauth/main.go
 
   evg-test-kmip:
-    - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./internal/integration -run TestClientSideEncryptionSpec/kmipKMS >> test.suite
-    - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./internal/integration -run TestClientSideEncryptionProse/data_key_and_double_encryption >> test.suite
-    - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./internal/integration -run TestClientSideEncryptionProse/corpus >> test.suite
-    - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./internal/integration -run TestClientSideEncryptionProse/custom_endpoint >> test.suite
-    - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./internal/integration -run TestClientSideEncryptionProse/kms_tls_options_test >> test.suite
+    - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./mongo -run TestClientSideEncryptionSpec/kmipKMS >> test.suite
+    - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./mongo -run TestClientSideEncryptionProse/data_key_and_double_encryption >> test.suite
+    - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./mongo -run TestClientSideEncryptionProse/corpus >> test.suite
+    - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./mongo -run TestClientSideEncryptionProse/custom_endpoint >> test.suite
+    - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./mongo -run TestClientSideEncryptionProse/kms_tls_options_test >> test.suite
 
   evg-test-kms:
-    - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./internal/integration -run TestClientSideEncryptionProse/kms_tls_tests >> test.suite
+    - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./mongo -run TestClientSideEncryptionProse/kms_tls_tests >> test.suite
 
   evg-test-load-balancers:
     # Load balancer should be tested with all unified tests as well as tests in the following
     # components: retryable reads, retryable writes, change streams, initial DNS seedlist discovery.
-    - go test ${BUILD_TAGS} ./internal/integration -run TestUnifiedSpecs/retryable-reads -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
-    - go test ${BUILD_TAGS} ./internal/integration -run TestRetryableWritesSpec -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
-    - go test ${BUILD_TAGS} ./internal/integration -run TestChangeStreamSpec -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
-    - go test ${BUILD_TAGS} ./internal/integration -run TestInitialDNSSeedlistDiscoverySpec/load_balanced -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
-    - go test ${BUILD_TAGS} ./internal/integration -run TestLoadBalancerSupport -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
-    - go test ${BUILD_TAGS} ./internal/integration -run TestLoadBalancedConnectionHandshake -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
-    - go test ${BUILD_TAGS} ./internal/integration/unified -run TestUnifiedSpec -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./mongo -run TestUnifiedSpecs/retryable-reads -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./mongo -run TestRetryableWritesSpec -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./mongo -run TestChangeStreamSpec -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./mongo -run TestInitialDNSSeedlistDiscoverySpec/load_balanced -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./mongo -run TestLoadBalancerSupport -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./mongo -run TestLoadBalancedConnectionHandshake -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./mongo/unified -run TestUnifiedSpec -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
 
   evg-test-search-index:
     # Use the long timeout to wait for the responses from the server.
-    - go test ./internal/integration -run TestSearchIndexProse -v -timeout {{.LONG_TEST_TIMEOUT}}s >> test.suite
+    - go test ./mongo -run TestSearchIndexProse -v -timeout {{.LONG_TEST_TIMEOUT}}s >> test.suite
 
   evg-test-ocsp:
     - go test -v ./mongo -run TestOCSP ${OCSP_TLS_SHOULD_SUCCEED} >> test.suite
@@ -151,31 +151,31 @@ tasks:
   evg-test-serverless:
     # Serverless should be tested with all unified tests as well as tests in the following components: CRUD, load balancer,
     # retryable reads, retryable writes, sessions, transactions and cursor behavior.
-    - go test ${BUILD_TAGS} ./internal/integration -run TestCrudSpec -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
-    - go test ${BUILD_TAGS} ./internal/integration -run TestWriteErrorsWithLabels -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
-    - go test ${BUILD_TAGS} ./internal/integration -run TestWriteErrorsDetails -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
-    - go test ${BUILD_TAGS} ./internal/integration -run TestHintErrors -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
-    - go test ${BUILD_TAGS} ./internal/integration -run TestWriteConcernError -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
-    - go test ${BUILD_TAGS} ./internal/integration -run TestErrorsCodeNamePropagated -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
-    - go test ${BUILD_TAGS} ./internal/integration -run TestLoadBalancerSupport -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
-    - go test ${BUILD_TAGS} ./internal/integration -run TestUnifiedSpecs/retryable-reads -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
-    - go test ${BUILD_TAGS} ./internal/integration -run TestRetryableReadsProse -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
-    - go test ${BUILD_TAGS} ./internal/integration -run TestRetryableWritesSpec -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
-    - go test ${BUILD_TAGS} ./internal/integration -run TestRetryableWritesProse -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
-    - go test ${BUILD_TAGS} ./internal/integration -run TestUnifiedSpecs/sessions -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
-    - go test ${BUILD_TAGS} ./internal/integration -run TestSessionsProse -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
-    - go test ${BUILD_TAGS} ./internal/integration -run TestUnifiedSpecs/transactions/legacy -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
-    - go test ${BUILD_TAGS} ./internal/integration -run TestConvenientTransactions -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
-    - go test ${BUILD_TAGS} ./internal/integration -run TestCursor -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
-    - go test ${BUILD_TAGS} ./internal/integration/unified -run TestUnifiedSpec -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
-    - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./internal/integration -run TestClientSideEncryptionSpec >> test.suite
-    - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./internal/integration -run TestClientSideEncryptionProse >> test.suite
+    - go test ${BUILD_TAGS} ./mongo -run TestCrudSpec -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./mongo -run TestWriteErrorsWithLabels -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./mongo -run TestWriteErrorsDetails -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./mongo -run TestHintErrors -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./mongo -run TestWriteConcernError -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./mongo -run TestErrorsCodeNamePropagated -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./mongo -run TestLoadBalancerSupport -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./mongo -run TestUnifiedSpecs/retryable-reads -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./mongo -run TestRetryableReadsProse -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./mongo -run TestRetryableWritesSpec -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./mongo -run TestRetryableWritesProse -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./mongo -run TestUnifiedSpecs/sessions -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./mongo -run TestSessionsProse -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./mongo -run TestUnifiedSpecs/transactions/legacy -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./mongo -run TestConvenientTransactions -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./mongo -run TestCursor -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./mongo/unified -run TestUnifiedSpec -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./mongo -run TestClientSideEncryptionSpec >> test.suite
+    - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./mongo -run TestClientSideEncryptionProse >> test.suite
 
   evg-test-versioned-api:
     # Versioned API related tests are in the mongo, integration and unified packages.
     - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./mongo >> test.suite
-    - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./internal/integration >> test.suite
-    - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./internal/integration/unified >> test.suite
+    - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./mongo >> test.suite
+    - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./mongo/unified >> test.suite
 
   evg-test-aws: bash etc/run-mongodb-aws-test.sh {{.CLI_ARGS}}
 
