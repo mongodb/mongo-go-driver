@@ -18,7 +18,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 )
 
-const retryableWritesTestDir = "../../testdata/retryable-writes/legacy"
+const retryableWritesTestDir = "../testdata/retryable-writes/legacy"
 
 type retryableWritesTestFile struct {
 	RunOn []mtest.RunOnBlock    `bson:"runOn"`
