@@ -2090,6 +2090,7 @@ buildvariants:
       - name: "pull-request-helpers"
 
   - name: perf
+    tags: ["pullrequest"]
     display_name: "Performance"
     run_on: rhel90-dbx-perf-large
     expansions:
