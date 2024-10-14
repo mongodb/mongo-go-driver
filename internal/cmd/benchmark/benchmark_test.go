@@ -23,7 +23,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/evergreen-ci/poplar"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -496,8 +495,8 @@ func BenchmarkMultiInsertLargeDocument(b *testing.B) {
 	benchmarkMultiInsert(b, largeData)
 }
 
-func runBenchmark(name string, fn func(*testing.B)) (poplar.Test, error) {
-	test := poplar.Test{
+func runBenchmark(name string, fn func(*testing.B)) (poplarTest, error) {
+	test := poplarTest{
 		ID:        fmt.Sprintf("%d", time.Now().UnixMilli()),
 		CreatedAt: time.Now(),
 	}
@@ -510,7 +509,7 @@ func runBenchmark(name string, fn func(*testing.B)) (poplar.Test, error) {
 
 	test.CompletedAt = test.CreatedAt.Add(result.T)
 
-	test.Metrics = []poplar.TestMetrics{
+	test.Metrics = []poplarTestMetrics{
 		{Name: "total_time_seconds", Type: "SUM", Value: result.T.Seconds()},
 		{Name: "iterations", Type: "SUM", Value: result.N},
 		{Name: "allocated_bytes_per_op", Type: "MEAN", Value: result.AllocedBytesPerOp()},
@@ -525,25 +524,25 @@ func runBenchmark(name string, fn func(*testing.B)) (poplar.Test, error) {
 		megaBytesPerOp := (float64(result.Bytes) / 1024 / 1024) / float64(result.NsPerOp()) * 1e9
 
 		test.Metrics = append(test.Metrics,
-			poplar.TestMetrics{Name: "megabytes_per_second", Type: "THROUGHPUT", Value: megaBytesPerOp})
+			poplarTestMetrics{Name: "megabytes_per_second", Type: "THROUGHPUT", Value: megaBytesPerOp})
 	}
 
 	if opsPerSecondMin := result.Extra[opsPerSecondMinName]; opsPerSecondMin != 0 {
 		test.Metrics = append(test.Metrics,
-			poplar.TestMetrics{Name: opsPerSecondMinName, Type: "THROUGHPUT", Value: opsPerSecondMin})
+			poplarTestMetrics{Name: opsPerSecondMinName, Type: "THROUGHPUT", Value: opsPerSecondMin})
 	}
 
 	if opsPerSecondMax := result.Extra[opsPerSecondMaxName]; opsPerSecondMax != 0 {
 		test.Metrics = append(test.Metrics,
-			poplar.TestMetrics{Name: opsPerSecondMaxName, Type: "THROUGHPUT", Value: opsPerSecondMax})
+			poplarTestMetrics{Name: opsPerSecondMaxName, Type: "THROUGHPUT", Value: opsPerSecondMax})
 	}
 
 	if opsPerSecondMed := result.Extra[opsPerSecondMedName]; opsPerSecondMed != 0 {
 		test.Metrics = append(test.Metrics,
-			poplar.TestMetrics{Name: opsPerSecondMedName, Type: "THROUGHPUT", Value: opsPerSecondMed})
+			poplarTestMetrics{Name: opsPerSecondMedName, Type: "THROUGHPUT", Value: opsPerSecondMed})
 	}
 
-	test.Info = poplar.TestInfo{
+	test.Info = poplarTestInfo{
 		TestName: name,
 	}
 
@@ -586,7 +585,7 @@ func TestRunAllBenchmarks(t *testing.T) {
 		{name: "BenchmarkMultiInsertLargeDocument", benchmark: BenchmarkMultiInsertLargeDocument},
 	}
 
-	results := make([]poplar.Test, len(cases))
+	results := make([]poplarTest, len(cases))
 	for i := range cases {
 		t.Run(cases[i].name, func(t *testing.T) {
 			var err error
@@ -609,4 +608,63 @@ func TestRunAllBenchmarks(t *testing.T) {
 	/* #nosec G306 */
 	err = os.WriteFile(filepath.Join(filepath.Dir(testdataDir(t)), defaultOutputFileName), evgOutput, 0644)
 	require.NoError(t, err, "failed to write results")
+}
+
+// poplarTest was copied from
+// https://github.com/evergreen-ci/poplar/blob/8d03d2bacde0897cedd73ed79ddc167ed1ed4c77/report.go#L38
+type poplarTest struct {
+	ID          string               `bson:"_id" json:"id" yaml:"id"`
+	Info        poplarTestInfo       `bson:"info" json:"info" yaml:"info"`
+	CreatedAt   time.Time            `bson:"created_at" json:"created_at" yaml:"created_at"`
+	CompletedAt time.Time            `bson:"completed_at" json:"completed_at" yaml:"completed_at"`
+	Artifacts   []poplarTestArtifact `bson:"artifacts" json:"artifacts" yaml:"artifacts"`
+	Metrics     []poplarTestMetrics  `bson:"metrics" json:"metrics" yaml:"metrics"`
+	SubTests    []poplarTest         `bson:"sub_tests" json:"sub_tests" yaml:"sub_tests"`
+}
+
+// poplarTestInfo was copied from
+// https://github.com/evergreen-ci/poplar/blob/8d03d2bacde0897cedd73ed79ddc167ed1ed4c77/report.go#L52
+type poplarTestInfo struct {
+	TestName  string           `bson:"test_name" json:"test_name" yaml:"test_name"`
+	Trial     int              `bson:"trial" json:"trial" yaml:"trial"`
+	Parent    string           `bson:"parent" json:"parent" yaml:"parent"`
+	Tags      []string         `bson:"tags" json:"tags" yaml:"tags"`
+	Arguments map[string]int32 `bson:"args" json:"args" yaml:"args"`
+}
+
+// poplarTestArtifact was copied from
+// https://github.com/evergreen-ci/poplar/blob/8d03d2bacde0897cedd73ed79ddc167ed1ed4c77/report.go#L62
+type poplarTestArtifact struct {
+	Bucket                string    `bson:"bucket" json:"bucket" yaml:"bucket"`
+	Prefix                string    `bson:"prefix" json:"prefix" yaml:"prefix"`
+	Permissions           string    `bson:"permissions" json:"permissions" yaml:"permissions"`
+	Path                  string    `bson:"path" json:"path" yaml:"path"`
+	Tags                  []string  `bson:"tags" json:"tags" yaml:"tags"`
+	CreatedAt             time.Time `bson:"created_at" json:"created_at" yaml:"created_at"`
+	LocalFile             string    `bson:"local_path,omitempty" json:"local_path,omitempty" yaml:"local_path,omitempty"`
+	PayloadTEXT           bool      `bson:"is_text,omitempty" json:"is_text,omitempty" yaml:"is_text,omitempty"`
+	PayloadFTDC           bool      `bson:"is_ftdc,omitempty" json:"is_ftdc,omitempty" yaml:"is_ftdc,omitempty"`
+	PayloadBSON           bool      `bson:"is_bson,omitempty" json:"is_bson,omitempty" yaml:"is_bson,omitempty"`
+	PayloadJSON           bool      `bson:"is_json,omitempty" json:"is_json,omitempty" yaml:"is_json,omitempty"`
+	PayloadCSV            bool      `bson:"is_csv,omitempty" json:"is_csv,omitempty" yaml:"is_csv,omitempty"`
+	DataUncompressed      bool      `bson:"is_uncompressed" json:"is_uncompressed" yaml:"is_uncompressed"`
+	DataGzipped           bool      `bson:"is_gzip,omitempty" json:"is_gzip,omitempty" yaml:"is_gzip,omitempty"`
+	DataTarball           bool      `bson:"is_tarball,omitempty" json:"is_tarball,omitempty" yaml:"is_tarball,omitempty"`
+	EventsRaw             bool      `bson:"events_raw,omitempty" json:"events_raw,omitempty" yaml:"events_raw,omitempty"`
+	EventsHistogram       bool      `bson:"events_histogram,omitempty" json:"events_histogram,omitempty" yaml:"events_histogram,omitempty"`
+	EventsIntervalSummary bool      `bson:"events_interval_summary,omitempty" json:"events_interval_summary,omitempty" yaml:"events_interval_summary,omitempty"`
+	EventsCollapsed       bool      `bson:"events_collapsed,omitempty" json:"events_collapsed,omitempty" yaml:"events_collapsed,omitempty"`
+	ConvertGzip           bool      `bson:"convert_gzip,omitempty" json:"convert_gzip,omitempty" yaml:"convert_gzip,omitempty"`
+	ConvertBSON2FTDC      bool      `bson:"convert_bson_to_ftdc,omitempty" json:"convert_bson_to_ftdc,omitempty" yaml:"convert_bson_to_ftdc,omitempty"`
+	ConvertJSON2FTDC      bool      `bson:"convert_json_to_ftdc" json:"convert_json_to_ftdc" yaml:"convert_json_to_ftdc"`
+	ConvertCSV2FTDC       bool      `bson:"convert_csv_to_ftdc" json:"convert_csv_to_ftdc" yaml:"convert_csv_to_ftdc"`
+}
+
+// poplarTestMetrics was copied from
+// https://github.com/evergreen-ci/poplar/blob/8d03d2bacde0897cedd73ed79ddc167ed1ed4c77/report.go#L124
+type poplarTestMetrics struct {
+	Name    string      `bson:"name" json:"name" yaml:"name"`
+	Version int         `bson:"version,omitempty" json:"version,omitempty" yaml:"version,omitempty"`
+	Type    string      `bson:"type" json:"type" yaml:"type"`
+	Value   interface{} `bson:"value" json:"value" yaml:"value"`
 }
