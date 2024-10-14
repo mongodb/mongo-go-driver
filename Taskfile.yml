@@ -55,7 +55,7 @@ tasks:
     status: 
       - test -d install || test -d /cygdrive/c/libmongocrypt/bin
 
-  run-docker: bash etc/run_docker.sh {{.CLI_ARGS}}
+  run-docker: bash etc/run_docker.sh
 
   run-fuzz: bash etc/run-fuzz.sh
 
@@ -91,10 +91,16 @@ tasks:
 
   test-oidc: bash etc/run-oidc-test.sh 'task --silent evg-test-oidc-auth'
 
+  test-oidc-remote: bash etc/run-oidc-remote-test.sh
+
   test-atlas-connect: 
     - go test -v -run ^TestAtlas$ go.mongodb.org/mongo-driver/v2/internal/cmd/testatlas -args "$ATLAS_REPL" "$ATLAS_SHRD" "$ATLAS_FREE" "$ATLAS_TLS11" "$ATLAS_TLS12" "$ATLAS_SERVERLESS" "$ATLAS_SRV_REPL" "$ATLAS_SRV_SHRD" "$ATLAS_SRV_FREE" "$ATLAS_SRV_TLS11" "$ATLAS_SRV_TLS12" "$ATLAS_SRV_SERVERLESS" >> test.suite
 
   test-awskms: bash etc/run-awskms-test.sh
+
+  test-azurekms: bash etc/run-azurekms-test.sh
+
+  test-gcpkms: bash etc/run-gcpkms-test.sh
 
   ### Local FaaS tasks. ###
   build-faas-awslambda:
@@ -104,7 +110,9 @@ tasks:
       - make -c internal/cmd/faas/awslambda
 
   ### Evergreen specific tasks. ###
-  setup-test: bash etc/setup-test.sh {{.CLI_ARGS}}
+  setup-test: bash etc/setup-test.sh
+
+  setup-encryption: bash etc/setup-encryption.sh
 
   evg-test:
     - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=$MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s -p 1 ./... >> test.suite
@@ -177,11 +185,13 @@ tasks:
     - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./internal/integration >> test.suite
     - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./internal/integration/unified >> test.suite
 
-  evg-test-aws: bash etc/run-mongodb-aws-test.sh {{.CLI_ARGS}}
+  evg-test-aws: bash etc/run-mongodb-aws-test.sh
 
   evg-test-aws-ecs: bash etc/run-mongodb-aws-ecs-test.sh
 
   evg-test-deployed-lambda-aws: bash ${DRIVERS_TOOLS}/.evergreen/aws_lambda/run-deployed-lambda-aws-tests.sh
+
+  evg-gather-test-suites: find . -name \*.suite | xargs tar czf test_suite.tgz
 
   build-kms-test: go build ${BUILD_TAGS} ./internal/cmd/testkms
 
