@@ -14,18 +14,12 @@ import (
 
 // TransactionOptions represents arguments that can be used to configure a
 // transaction.
+//
+// See corresponding setter methods for documentation.
 type TransactionOptions struct {
-	// The read concern for operations in the transaction. The default value is nil, which means that the default
-	// read concern of the session used to start the transaction will be used.
-	ReadConcern *readconcern.ReadConcern
-
-	// The read preference for operations in the transaction. The default value is nil, which means that the default
-	// read preference of the session used to start the transaction will be used.
+	ReadConcern    *readconcern.ReadConcern
 	ReadPreference *readpref.ReadPref
-
-	// The write concern for operations in the transaction. The default value is nil, which means that the default
-	// write concern of the session used to start the transaction will be used.
-	WriteConcern *writeconcern.WriteConcern
+	WriteConcern   *writeconcern.WriteConcern
 }
 
 // TransactionOptionsBuilder contains arguments to configure count operations.
@@ -45,7 +39,9 @@ func (t *TransactionOptionsBuilder) List() []func(*TransactionOptions) error {
 	return t.Opts
 }
 
-// SetReadConcern sets the value for the ReadConcern field.
+// SetReadConcern sets the value for the ReadConcern field. Specifies the read concern for operations
+// in the transaction. The default value is nil, which means that the default read concern of the
+// session used to start the transaction will be used.
 func (t *TransactionOptionsBuilder) SetReadConcern(rc *readconcern.ReadConcern) *TransactionOptionsBuilder {
 	t.Opts = append(t.Opts, func(opts *TransactionOptions) error {
 		opts.ReadConcern = rc
@@ -56,7 +52,9 @@ func (t *TransactionOptionsBuilder) SetReadConcern(rc *readconcern.ReadConcern) 
 	return t
 }
 
-// SetReadPreference sets the value for the ReadPreference field.
+// SetReadPreference sets the value for the ReadPreference field. Specifies the read preference for
+// operations in the transaction. The default value is nil, which means that the default read
+// preference of the session used to start the transaction will be used.
 func (t *TransactionOptionsBuilder) SetReadPreference(rp *readpref.ReadPref) *TransactionOptionsBuilder {
 	t.Opts = append(t.Opts, func(opts *TransactionOptions) error {
 		opts.ReadPreference = rp
@@ -67,7 +65,9 @@ func (t *TransactionOptionsBuilder) SetReadPreference(rp *readpref.ReadPref) *Tr
 	return t
 }
 
-// SetWriteConcern sets the value for the WriteConcern field.
+// SetWriteConcern sets the value for the WriteConcern field. Specifies the write concern for
+// operations in the transaction. The default value is nil, which means that the default
+// write concern of the session used to start the transaction will be used.
 func (t *TransactionOptionsBuilder) SetWriteConcern(wc *writeconcern.WriteConcern) *TransactionOptionsBuilder {
 	t.Opts = append(t.Opts, func(opts *TransactionOptions) error {
 		opts.WriteConcern = wc

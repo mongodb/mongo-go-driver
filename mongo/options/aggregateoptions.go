@@ -14,49 +14,18 @@ import (
 
 // AggregateOptions represents arguments that can be used to configure an
 // Aggregate operation.
+//
+// See corresponding setter methods for documentation.
 type AggregateOptions struct {
-	// If true, the operation can write to temporary files in the _tmp subdirectory of the database directory path on
-	// the server. The default value is false.
-	AllowDiskUse *bool
-
-	// The maximum number of documents to be included in each batch returned by the server.
-	BatchSize *int32
-
-	// If true, writes executed as part of the operation will opt out of document-level validation on the server. This
-	// option is valid for MongoDB versions >= 3.2 and is ignored for previous server versions. The default value is
-	// false. See https://www.mongodb.com/docs/manual/core/schema-validation/ for more information about document
-	// validation.
+	AllowDiskUse             *bool
+	BatchSize                *int32
 	BypassDocumentValidation *bool
-
-	// Specifies a collation to use for string comparisons during the operation. This option is only valid for MongoDB
-	// versions >= 3.4. For previous server versions, the driver will return an error if this option is used. The
-	// default value is nil, which means the default collation of the collection will be used.
-	Collation *Collation
-
-	// The maximum amount of time that the server should wait for new documents to satisfy a tailable cursor query.
-	// This option is only valid for MongoDB versions >= 3.2 and is ignored for previous server versions.
-	MaxAwaitTime *time.Duration
-
-	// A string or document that will be included in server logs, profiling logs,
-	// and currentOp queries to help trace the operation. The default is nil,
-	// which means that no comment will be included in the logs.
-	Comment interface{}
-
-	// The index to use for the aggregation. This should either be the index name as a string or the index specification
-	// as a document. The hint does not apply to $lookup and $graphLookup aggregation stages. The driver will return an
-	// error if the hint parameter is a multi-key map. The default value is nil, which means that no hint will be sent.
-	Hint interface{}
-
-	// Specifies parameters for the aggregate expression. This option is only valid for MongoDB versions >= 5.0. Older
-	// servers will report an error for using this option. This must be a document mapping parameter names to values.
-	// Values must be constant or closed expressions that do not reference document fields. Parameters can then be
-	// accessed as variables in an aggregate expression context (e.g. "$$var").
-	Let interface{}
-
-	// Custom options to be added to aggregate expression. Key-value pairs of the BSON map should correlate with desired
-	// option names and values. Values must be Marshalable. Custom options may conflict with non-custom options, and custom
-	// options bypass client-side validation. Prefer using non-custom options where possible.
-	Custom bson.M
+	Collation                *Collation
+	MaxAwaitTime             *time.Duration
+	Comment                  interface{}
+	Hint                     interface{}
+	Let                      interface{}
+	Custom                   bson.M
 }
 
 // AggregateOptionsBuilder contains options to configure aggregate operations.
@@ -76,7 +45,8 @@ func (ao *AggregateOptionsBuilder) List() []func(*AggregateOptions) error {
 	return ao.Opts
 }
 
-// SetAllowDiskUse sets the value for the AllowDiskUse field.
+// SetAllowDiskUse sets the value for the AllowDiskUse field. If true, the operation can write to temporary
+// files in the _tmp subdirectory of the database directory path on the server. The default value is false.
 func (ao *AggregateOptionsBuilder) SetAllowDiskUse(b bool) *AggregateOptionsBuilder {
 	ao.Opts = append(ao.Opts, func(opts *AggregateOptions) error {
 		opts.AllowDiskUse = &b
@@ -87,7 +57,8 @@ func (ao *AggregateOptionsBuilder) SetAllowDiskUse(b bool) *AggregateOptionsBuil
 	return ao
 }
 
-// SetBatchSize sets the value for the BatchSize field.
+// SetBatchSize sets the value for the BatchSize field. Specifies the maximum number of documents
+// to be included in each batch returned by the server.
 func (ao *AggregateOptionsBuilder) SetBatchSize(i int32) *AggregateOptionsBuilder {
 	ao.Opts = append(ao.Opts, func(opts *AggregateOptions) error {
 		opts.BatchSize = &i
@@ -98,7 +69,11 @@ func (ao *AggregateOptionsBuilder) SetBatchSize(i int32) *AggregateOptionsBuilde
 	return ao
 }
 
-// SetBypassDocumentValidation sets the value for the BypassDocumentValidation field.
+// SetBypassDocumentValidation sets the value for the BypassDocumentValidation field. If true, writes
+// executed as part of the operation will opt out of document-level validation on the server. This
+// option is valid for MongoDB versions >= 3.2 and is ignored for previous server versions. The default value
+// is false. See https://www.mongodb.com/docs/manual/core/schema-validation/ for more information about
+// document validation.
 func (ao *AggregateOptionsBuilder) SetBypassDocumentValidation(b bool) *AggregateOptionsBuilder {
 	ao.Opts = append(ao.Opts, func(opts *AggregateOptions) error {
 		opts.BypassDocumentValidation = &b
@@ -109,7 +84,10 @@ func (ao *AggregateOptionsBuilder) SetBypassDocumentValidation(b bool) *Aggregat
 	return ao
 }
 
-// SetCollation sets the value for the Collation field.
+// SetCollation sets the value for the Collation field. Specifies a collation to use for string
+// comparisons during the operation. This option is only valid for MongoDB versions >= 3.4. For previous
+// server versions, the driver will return an error if this option is used. The default value is nil,
+// which means the default collation of the collection will be used.
 func (ao *AggregateOptionsBuilder) SetCollation(c *Collation) *AggregateOptionsBuilder {
 	ao.Opts = append(ao.Opts, func(opts *AggregateOptions) error {
 		opts.Collation = c
@@ -120,7 +98,9 @@ func (ao *AggregateOptionsBuilder) SetCollation(c *Collation) *AggregateOptionsB
 	return ao
 }
 
-// SetMaxAwaitTime sets the value for the MaxAwaitTime field.
+// SetMaxAwaitTime sets the value for the MaxAwaitTime field. Specifies maximum amount of time
+// that the server should wait for new documents to satisfy a tailable cursor query. This option is
+// only valid for MongoDB versions >= 3.2 and is ignored for previous server versions.
 func (ao *AggregateOptionsBuilder) SetMaxAwaitTime(d time.Duration) *AggregateOptionsBuilder {
 	ao.Opts = append(ao.Opts, func(opts *AggregateOptions) error {
 		opts.MaxAwaitTime = &d
@@ -131,7 +111,9 @@ func (ao *AggregateOptionsBuilder) SetMaxAwaitTime(d time.Duration) *AggregateOp
 	return ao
 }
 
-// SetComment sets the value for the Comment field.
+// SetComment sets the value for the Comment field. Specifies a string or document that will be included in
+// server logs, profiling logs, and currentOp queries to help trace the operation. The default is nil,
+// which means that no comment will be included in the logs.
 func (ao *AggregateOptionsBuilder) SetComment(comment interface{}) *AggregateOptionsBuilder {
 	ao.Opts = append(ao.Opts, func(opts *AggregateOptions) error {
 		opts.Comment = comment
@@ -142,7 +124,10 @@ func (ao *AggregateOptionsBuilder) SetComment(comment interface{}) *AggregateOpt
 	return ao
 }
 
-// SetHint sets the value for the Hint field.
+// SetHint sets the value for the Hint field. Specifies the index to use for the aggregation. This should
+// either be the index name as a string or the index specification as a document. The hint does not apply to
+// $lookup and $graphLookup aggregation stages. The driver will return an error if the hint parameter
+// is a multi-key map. The default value is nil, which means that no hint will be sent.
 func (ao *AggregateOptionsBuilder) SetHint(h interface{}) *AggregateOptionsBuilder {
 	ao.Opts = append(ao.Opts, func(opts *AggregateOptions) error {
 		opts.Hint = h
@@ -153,7 +138,11 @@ func (ao *AggregateOptionsBuilder) SetHint(h interface{}) *AggregateOptionsBuild
 	return ao
 }
 
-// SetLet sets the value for the Let field.
+// SetLet sets the value for the Let field. Specifies parameters for the aggregate expression. This
+// option is only valid for MongoDB versions >= 5.0. Older servers will report an error for using this
+// option. This must be a document mapping parameter names to values. Values must be constant or closed
+// expressions that do not reference document fields. Parameters can then be accessed as variables in
+// an aggregate expression context (e.g. "$$var").
 func (ao *AggregateOptionsBuilder) SetLet(let interface{}) *AggregateOptionsBuilder {
 	ao.Opts = append(ao.Opts, func(opts *AggregateOptions) error {
 		opts.Let = let

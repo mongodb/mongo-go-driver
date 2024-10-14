@@ -24,23 +24,13 @@ var DefaultRevision int32 = -1
 
 // BucketOptions represents arguments that can be used to configure GridFS
 // bucket.
+//
+// See corresponding setter methods for documentation.
 type BucketOptions struct {
-	// The name of the bucket. The default value is "fs".
-	Name *string
-
-	// The number of bytes in each chunk in the bucket. The default value is 255 KiB.
+	Name           *string
 	ChunkSizeBytes *int32
-
-	// The write concern for the bucket. The default value is the write concern of the database from which the bucket
-	// is created.
-	WriteConcern *writeconcern.WriteConcern
-
-	// The read concern for the bucket. The default value is the read concern of the database from which the bucket
-	// is created.
-	ReadConcern *readconcern.ReadConcern
-
-	// The read preference for the bucket. The default value is the read preference of the database from which the
-	// bucket is created.
+	WriteConcern   *writeconcern.WriteConcern
+	ReadConcern    *readconcern.ReadConcern
 	ReadPreference *readpref.ReadPref
 }
 
@@ -64,7 +54,8 @@ func (b *BucketOptionsBuilder) List() []func(*BucketOptions) error {
 	return b.Opts
 }
 
-// SetName sets the value for the Name field.
+// SetName sets the value for the Name field. Specifies the name of the bucket.
+// The default value is "fs".
 func (b *BucketOptionsBuilder) SetName(name string) *BucketOptionsBuilder {
 	b.Opts = append(b.Opts, func(opts *BucketOptions) error {
 		opts.Name = &name
@@ -75,7 +66,8 @@ func (b *BucketOptionsBuilder) SetName(name string) *BucketOptionsBuilder {
 	return b
 }
 
-// SetChunkSizeBytes sets the value for the ChunkSize field.
+// SetChunkSizeBytes sets the value for the ChunkSize field. Specifies the number
+// of bytes in each chunk in the bucket. The default value is 255 KiB.
 func (b *BucketOptionsBuilder) SetChunkSizeBytes(i int32) *BucketOptionsBuilder {
 	b.Opts = append(b.Opts, func(opts *BucketOptions) error {
 		opts.ChunkSizeBytes = &i
@@ -86,7 +78,9 @@ func (b *BucketOptionsBuilder) SetChunkSizeBytes(i int32) *BucketOptionsBuilder 
 	return b
 }
 
-// SetWriteConcern sets the value for the WriteConcern field.
+// SetWriteConcern sets the value for the WriteConcern field. Specifies the write
+// concern for the bucket. The default value is the write concern of the database
+// from which the bucket is created.
 func (b *BucketOptionsBuilder) SetWriteConcern(wc *writeconcern.WriteConcern) *BucketOptionsBuilder {
 	b.Opts = append(b.Opts, func(opts *BucketOptions) error {
 		opts.WriteConcern = wc
@@ -97,7 +91,9 @@ func (b *BucketOptionsBuilder) SetWriteConcern(wc *writeconcern.WriteConcern) *B
 	return b
 }
 
-// SetReadConcern sets the value for the ReadConcern field.
+// SetReadConcern sets the value for the ReadConcern field. Specifies the read
+// concern for the bucket. The default value is the read concern of the database
+// from which the bucket is created.
 func (b *BucketOptionsBuilder) SetReadConcern(rc *readconcern.ReadConcern) *BucketOptionsBuilder {
 	b.Opts = append(b.Opts, func(opts *BucketOptions) error {
 		opts.ReadConcern = rc
@@ -108,7 +104,9 @@ func (b *BucketOptionsBuilder) SetReadConcern(rc *readconcern.ReadConcern) *Buck
 	return b
 }
 
-// SetReadPreference sets the value for the ReadPreference field.
+// SetReadPreference sets the value for the ReadPreference field. Specifies the
+// read preference for the bucket. The default value is the read preference of
+// the database from which the bucket is created.
 func (b *BucketOptionsBuilder) SetReadPreference(rp *readpref.ReadPref) *BucketOptionsBuilder {
 	b.Opts = append(b.Opts, func(opts *BucketOptions) error {
 		opts.ReadPreference = rp
@@ -121,17 +119,12 @@ func (b *BucketOptionsBuilder) SetReadPreference(rp *readpref.ReadPref) *BucketO
 
 // GridFSUploadOptions represents arguments that can be used to configure a GridFS
 // upload operation.
+//
+// See corresponding setter methods for documentation.
 type GridFSUploadOptions struct {
-	// The number of bytes in each chunk in the bucket. The default value is DefaultChunkSize (255 KiB).
 	ChunkSizeBytes *int32
-
-	// Additional application data that will be stored in the "metadata" field of the document in the files collection.
-	// The default value is nil, which means that the document in the files collection will not contain a "metadata"
-	// field.
-	Metadata interface{}
-
-	// The BSON registry to use for converting filters to BSON documents. The default value is bson.NewRegistry().
-	Registry *bson.Registry
+	Metadata       interface{}
+	Registry       *bson.Registry
 }
 
 // GridFSUploadOptionsBuilder contains options to configure a GridFS Upload.
@@ -154,7 +147,8 @@ func (u *GridFSUploadOptionsBuilder) List() []func(*GridFSUploadOptions) error {
 	return u.Opts
 }
 
-// SetChunkSizeBytes sets the value for the ChunkSize field.
+// SetChunkSizeBytes sets the value for the ChunkSize field. Specifies the number of
+// bytes in each chunk in the bucket. The default value is DefaultChunkSize (255 KiB).
 func (u *GridFSUploadOptionsBuilder) SetChunkSizeBytes(i int32) *GridFSUploadOptionsBuilder {
 	u.Opts = append(u.Opts, func(opts *GridFSUploadOptions) error {
 		opts.ChunkSizeBytes = &i
@@ -165,7 +159,10 @@ func (u *GridFSUploadOptionsBuilder) SetChunkSizeBytes(i int32) *GridFSUploadOpt
 	return u
 }
 
-// SetMetadata sets the value for the Metadata field.
+// SetMetadata sets the value for the Metadata field. Specifies additional application data
+// that will be stored in the "metadata" field of the document in the files collection.
+// The default value is nil, which means that the document in the files collection will
+// not contain a "metadata" field.
 func (u *GridFSUploadOptionsBuilder) SetMetadata(doc interface{}) *GridFSUploadOptionsBuilder {
 	u.Opts = append(u.Opts, func(opts *GridFSUploadOptions) error {
 		opts.Metadata = doc
@@ -176,7 +173,9 @@ func (u *GridFSUploadOptionsBuilder) SetMetadata(doc interface{}) *GridFSUploadO
 	return u
 }
 
-// SetRegistry sets the bson codec registry for the Registry field.
+// SetRegistry sets the bson codec registry for the Registry field. Specifies the BSON
+// registry to use for converting filters to BSON documents. The default value is
+// bson.NewRegistry().
 func (u *GridFSUploadOptionsBuilder) SetRegistry(registry *bson.Registry) *GridFSUploadOptionsBuilder {
 	u.Opts = append(u.Opts, func(opts *GridFSUploadOptions) error {
 		opts.Registry = registry
@@ -189,17 +188,9 @@ func (u *GridFSUploadOptionsBuilder) SetRegistry(registry *bson.Registry) *GridF
 
 // GridFSNameOptions represents arguments that can be used to configure a GridFS
 // DownloadByName operation.
+//
+// See corresponding setter methods for documentation.
 type GridFSNameOptions struct {
-	// Specifies the revision of the file to retrieve. Revision numbers are defined as follows:
-	//
-	// * 0 = the original stored file
-	// * 1 = the first revision
-	// * 2 = the second revision
-	// * etc..
-	// * -2 = the second most recent revision
-	// * -1 = the most recent revision.
-	//
-	// The default value is -1
 	Revision *int32
 }
 
@@ -220,7 +211,17 @@ func (n *GridFSNameOptionsBuilder) List() []func(*GridFSNameOptions) error {
 	return n.Opts
 }
 
-// SetRevision sets the value for the Revision field.
+// SetRevision sets the value for the Revision field. Specifies the revision
+// of the file to retrieve. Revision numbers are defined as follows:
+//
+// * 0 = the original stored file
+// * 1 = the first revision
+// * 2 = the second revision
+// * etc..
+// * -2 = the second most recent revision
+// * -1 = the most recent revision.
+//
+// The default value is -1
 func (n *GridFSNameOptionsBuilder) SetRevision(r int32) *GridFSNameOptionsBuilder {
 	n.Opts = append(n.Opts, func(opts *GridFSNameOptions) error {
 		opts.Revision = &r
@@ -233,30 +234,15 @@ func (n *GridFSNameOptionsBuilder) SetRevision(r int32) *GridFSNameOptionsBuilde
 
 // GridFSFindOptions represents arguments that can be used to configure a GridFS
 // Find operation.
+//
+// See corresponding setter methods for documentation.
 type GridFSFindOptions struct {
-	// If true, the server can write temporary data to disk while executing the find operation. The default value
-	// is false. This option is only valid for MongoDB versions >= 4.4. For previous server versions, the server will
-	// return an error if this option is used.
-	AllowDiskUse *bool
-
-	// The maximum number of documents to be included in each batch returned by the server.
-	BatchSize *int32
-
-	// The maximum number of documents to return. The default value is 0, which means that all documents matching the
-	// filter will be returned. A negative limit specifies that the resulting documents should be returned in a single
-	// batch. The default value is 0.
-	Limit *int32
-
-	// If true, the cursor created by the operation will not timeout after a period of inactivity. The default value
-	// is false.
+	AllowDiskUse    *bool
+	BatchSize       *int32
+	Limit           *int32
 	NoCursorTimeout *bool
-
-	// The number of documents to skip before adding documents to the result. The default value is 0.
-	Skip *int32
-
-	// A document specifying the order in which documents should be returned.  The driver will return an error if the
-	// sort parameter is a multi-key map.
-	Sort interface{}
+	Skip            *int32
+	Sort            interface{}
 }
 
 // GridFSFindOptionsBuilder contains options to configure find operations. Each
@@ -276,7 +262,10 @@ func (f *GridFSFindOptionsBuilder) List() []func(*GridFSFindOptions) error {
 	return f.Opts
 }
 
-// SetAllowDiskUse sets the value for the AllowDiskUse field.
+// SetAllowDiskUse sets the value for the AllowDiskUse field. If true, the server can
+// write temporary data to disk while executing the find operation. The default value
+// is false. This option is only valid for MongoDB versions >= 4.4. For previous server
+// versions, the server will return an error if this option is used.
 func (f *GridFSFindOptionsBuilder) SetAllowDiskUse(b bool) *GridFSFindOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *GridFSFindOptions) error {
 		opts.AllowDiskUse = &b
@@ -287,7 +276,8 @@ func (f *GridFSFindOptionsBuilder) SetAllowDiskUse(b bool) *GridFSFindOptionsBui
 	return f
 }
 
-// SetBatchSize sets the value for the BatchSize field.
+// SetBatchSize sets the value for the BatchSize field. Specifies the maximum number
+// of documents to be included in each batch returned by the server.
 func (f *GridFSFindOptionsBuilder) SetBatchSize(i int32) *GridFSFindOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *GridFSFindOptions) error {
 		opts.BatchSize = &i
@@ -298,7 +288,10 @@ func (f *GridFSFindOptionsBuilder) SetBatchSize(i int32) *GridFSFindOptionsBuild
 	return f
 }
 
-// SetLimit sets the value for the Limit field.
+// SetLimit sets the value for the Limit field. Specifies the maximum number of
+// documents to return. The default value is 0, which means that all documents
+// matching the filter will be returned. A negative limit specifies that the
+// resulting documents should be returned in a single batch. The default value is 0.
 func (f *GridFSFindOptionsBuilder) SetLimit(i int32) *GridFSFindOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *GridFSFindOptions) error {
 		opts.Limit = &i
@@ -309,7 +302,9 @@ func (f *GridFSFindOptionsBuilder) SetLimit(i int32) *GridFSFindOptionsBuilder {
 	return f
 }
 
-// SetNoCursorTimeout sets the value for the NoCursorTimeout field.
+// SetNoCursorTimeout sets the value for the NoCursorTimeout field. If true, the
+// cursor created by the operation will not timeout after a period of inactivity.
+// The default value is false.
 func (f *GridFSFindOptionsBuilder) SetNoCursorTimeout(b bool) *GridFSFindOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *GridFSFindOptions) error {
 		opts.NoCursorTimeout = &b
@@ -320,7 +315,8 @@ func (f *GridFSFindOptionsBuilder) SetNoCursorTimeout(b bool) *GridFSFindOptions
 	return f
 }
 
-// SetSkip sets the value for the Skip field.
+// SetSkip sets the value for the Skip field. Specifies the number of documents
+// to skip before adding documents to the result. The default value is 0.
 func (f *GridFSFindOptionsBuilder) SetSkip(i int32) *GridFSFindOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *GridFSFindOptions) error {
 		opts.Skip = &i
@@ -331,7 +327,9 @@ func (f *GridFSFindOptionsBuilder) SetSkip(i int32) *GridFSFindOptionsBuilder {
 	return f
 }
 
-// SetSort sets the value for the Sort field.
+// SetSort sets the value for the Sort field. Sets a document specifying the order
+// in which documents should be returned. The driver will return an error if the
+// sort parameter is a multi-key map.
 func (f *GridFSFindOptionsBuilder) SetSort(sort interface{}) *GridFSFindOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *GridFSFindOptions) error {
 		opts.Sort = sort
