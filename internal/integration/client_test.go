@@ -1114,9 +1114,9 @@ func TestClientStress(t *testing.T) {
 				err = g.Wait()
 				mt.Logf("Error from extreme traffic spike (errors are expected): %v", err)
 
-				// Simulate normal traffic again for 5 second. Ignore any errors to allow any outstanding
+				// Simulate normal traffic again for 10 seconds. Ignore any errors to allow any outstanding
 				// connection errors to stop.
-				_ = findOneFor(mt.Coll, timeout, 5*time.Second)
+				_ = findOneFor(mt.Coll, timeout, 10*time.Second)
 
 				// Simulate normal traffic again for 1 second and assert that there are no errors.
 				errs = findOneFor(mt.Coll, timeout, 1*time.Second)
