@@ -91,7 +91,8 @@
                   }
                 }
               }
-            ]
+            ],
+            "ordered": false
           },
           "expectResult": {
             "insertedCount": {
@@ -158,7 +159,7 @@
                 "command": {
                   "bulkWrite": 1,
                   "errorsOnly": true,
-                  "ordered": true,
+                  "ordered": false,
                   "ops": [
                     {
                       "insert": 0,

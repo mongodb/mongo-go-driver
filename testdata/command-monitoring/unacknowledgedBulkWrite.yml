@@ -50,6 +50,7 @@ tests:
                 namespace: *namespace
                 filter: { _id: 3 }
                 update: { $set: { x: 333 } }
+          ordered: false
         expectResult:
           insertedCount:
             $$unsetOrMatches: 0
@@ -89,7 +90,7 @@ tests:
               command:
                 bulkWrite: 1
                 errorsOnly: true
-                ordered: true
+                ordered: false
                 ops:
                   - insert: 0
                     document: { _id: 4, x: 44 }

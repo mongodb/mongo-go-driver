@@ -554,12 +554,12 @@ func (op Operation) Execute(ctx context.Context) error {
 				retries = -1
 			}
 		}
-	}
-	// If context is a Timeout context, automatically set retries to -1 (infinite) if retrying is
-	// enabled.
-	retryEnabled := op.RetryMode != nil && op.RetryMode.Enabled()
-	if csot.IsTimeoutContext(ctx) && retryEnabled {
-		retries = -1
+
+		// If context is a Timeout context, automatically set retries to -1 (infinite) if retrying is
+		// enabled.
+		if csot.IsTimeoutContext(ctx) && op.RetryMode.Enabled() {
+			retries = -1
+		}
 	}
 
 	var srvr Server
@@ -693,14 +693,10 @@ func (op Operation) Execute(ctx context.Context) error {
 			// Calling IncrementTxnNumber() for server descriptions or topologies that do not
 			// support retries (e.g. standalone topologies) will cause server errors. Only do this
 			// check for the first attempt to keep retried writes in the same transaction.
-			if retrySupported && op.RetryMode != nil && op.Type == Write && op.Client != nil {
-				op.Client.RetryWrite = false
-				if op.RetryMode.Enabled() {
-					op.Client.RetryWrite = true
-					if !op.Client.Committing && !op.Client.Aborting {
-						op.Client.IncrementTxnNumber()
-					}
-				}
+			retryEnabled := op.RetryMode != nil && op.RetryMode.Enabled()
+			needToIncrease := op.Client != nil && !op.Client.Committing && !op.Client.Aborting
+			if retrySupported && op.Type == Write && retryEnabled && needToIncrease {
+				op.Client.IncrementTxnNumber()
 			}
 
 			first = false
@@ -726,6 +722,7 @@ func (op Operation) Execute(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
+		retryEnabled := op.RetryMode != nil && op.RetryMode.Enabled()
 
 		// set extra data and send event if possible
 		startedInfo.connID = conn.ID()
@@ -835,7 +832,7 @@ func (op Operation) Execute(ctx context.Context) error {
 			// If retries are supported for the current operation on the first server description,
 			// the error is considered retryable, and there are retries remaining (negative retries
 			// means retry indefinitely), then retry the operation.
-			if retrySupported && retryableErr && retries != 0 {
+			if retrySupported && retryEnabled && retryableErr && retries != 0 {
 				if op.Client != nil && op.Client.Committing {
 					// Apply majority write concern for retries
 					op.Client.UpdateCommitTransactionWriteConcern()
@@ -958,7 +955,7 @@ func (op Operation) Execute(ctx context.Context) error {
 			// If retries are supported for the current operation on the first server description,
 			// the error is considered retryable, and there are retries remaining (negative retries
 			// means retry indefinitely), then retry the operation.
-			if retrySupported && retryableErr && retries != 0 {
+			if retrySupported && retryEnabled && retryableErr && retries != 0 {
 				if op.Client != nil && op.Client.Committing {
 					// Apply majority write concern for retries
 					op.Client.UpdateCommitTransactionWriteConcern()
@@ -1037,10 +1034,9 @@ func (op Operation) Execute(ctx context.Context) error {
 			// the session isn't nil, and client retries are enabled, increment the txn number.
 			// Calling IncrementTxnNumber() for server descriptions or topologies that do not
 			// support retries (e.g. standalone topologies) will cause server errors.
-			if retrySupported && op.Client != nil && op.RetryMode != nil {
-				if op.RetryMode.Enabled() {
-					op.Client.IncrementTxnNumber()
-				}
+			if retrySupported && op.Client != nil && retryEnabled {
+				op.Client.IncrementTxnNumber()
+
 				// Reset the retries number for RetryOncePerCommand unless context is a Timeout context, in
 				// which case retries should remain as -1 (as many times as possible).
 				if *op.RetryMode == RetryOncePerCommand && !csot.IsTimeoutContext(ctx) {
@@ -1049,9 +1045,7 @@ func (op Operation) Execute(ctx context.Context) error {
 			}
 			currIndex += startedInfo.processedBatches
 			op.Batches.AdvanceBatches(startedInfo.processedBatches)
-			if op.Batches.Size() > 0 {
-				continue
-			}
+			continue
 		}
 		break
 	}
@@ -1250,7 +1244,7 @@ func (op Operation) createLegacyHandshakeWireMessage(
 		return dst, nil, err
 	}
 
-	dst, err = op.addSession(dst, desc)
+	dst, err = op.addSession(dst, desc, false)
 	if err != nil {
 		return dst, nil, err
 	}
@@ -1266,9 +1260,10 @@ func (op Operation) createLegacyHandshakeWireMessage(
 	dst, _ = bsoncore.AppendDocumentEnd(dst, idx)
 
 	if len(rp) > 0 {
+		idx = wrapper
 		var err error
 		dst = bsoncore.AppendDocumentElement(dst, "$readPreference", rp)
-		dst, err = bsoncore.AppendDocumentEnd(dst, wrapper)
+		dst, err = bsoncore.AppendDocumentEnd(dst, idx)
 		if err != nil {
 			return dst, nil, err
 		}
@@ -1309,7 +1304,11 @@ func (op Operation) createMsgWireMessage(
 	if err != nil {
 		return dst, nil, err
 	}
-	dst, err = op.addSession(dst, desc)
+	retryWrite := false
+	if op.retryable(conn.Description()) && op.RetryMode != nil && op.RetryMode.Enabled() {
+		retryWrite = true
+	}
+	dst, err = op.addSession(dst, desc, retryWrite)
 	if err != nil {
 		return dst, nil, err
 	}
@@ -1356,9 +1355,10 @@ func (op Operation) createWireMessage(
 	var wmindex int32
 	var err error
 
-	fIdx := len(dst)
+	fIdx := -1
 	isLegacy := isLegacyHandshake(op, desc)
-	if isLegacy {
+	switch {
+	case isLegacy:
 		cmdFn := func(dst []byte, desc description.SelectedServer) ([]byte, error) {
 			info.processedBatches, dst, err = op.addLegacyCommandFields(dst, desc)
 			return dst, err
@@ -1366,7 +1366,7 @@ func (op Operation) createWireMessage(
 		requestID := wiremessage.NextRequestID()
 		wmindex, dst = wiremessage.AppendHeaderStart(dst, requestID, 0, wiremessage.OpQuery)
 		dst, info.cmd, err = op.createLegacyHandshakeWireMessage(maxTimeMS, dst, desc, cmdFn)
-	} else if op.shouldEncrypt() {
+	case op.shouldEncrypt():
 		if desc.WireVersion.Max < cryptMinWireVersion {
 			return dst, false, info, errors.New("auto-encryption requires a MongoDB version of 4.2")
 		}
@@ -1375,26 +1375,47 @@ func (op Operation) createWireMessage(
 			return dst, err
 		}
 		wmindex, dst = wiremessage.AppendHeaderStart(dst, requestID, 0, wiremessage.OpMsg)
+		fIdx = len(dst)
 		dst, info.cmd, err = op.createMsgWireMessage(maxTimeMS, dst, desc, conn, cmdFn)
-	} else {
+	default:
 		wmindex, dst = wiremessage.AppendHeaderStart(dst, requestID, 0, wiremessage.OpMsg)
-		dst, info.cmd, err = op.createMsgWireMessage(maxTimeMS, dst, desc, conn, op.CommandFn)
-		if err == nil && op.Batches != nil {
+		fIdx = len(dst)
+		appendBatches := func(dst []byte) ([]byte, error) {
 			var processedBatches int
 			dsOffset := len(dst)
 			processedBatches, dst, err = op.Batches.AppendBatchSequence(dst, int(desc.MaxBatchCount), int(desc.MaxDocumentSize), int(desc.MaxMessageSize))
-			if err == nil {
-				info.processedBatches = processedBatches
-				info.documentSequence = make([]byte, 0)
-				for b := dst[dsOffset:]; len(b) > 0; /* nothing */ {
-					var seq []byte
-					var ok bool
-					seq, b, ok = wiremessage.DocumentSequenceToArray(b)
-					if !ok {
-						break
-					}
-					info.documentSequence = append(info.documentSequence, seq...)
+			if err != nil {
+				return dst, err
+			}
+			info.processedBatches = processedBatches
+			info.documentSequence = make([]byte, 0)
+			for b := dst[dsOffset:]; len(b) > 0; /* nothing */ {
+				var seq []byte
+				var ok bool
+				seq, b, ok = wiremessage.DocumentSequenceToArray(b)
+				if !ok {
+					break
 				}
+				info.documentSequence = append(info.documentSequence, seq...)
+			}
+			return dst, nil
+		}
+		switch op.Batches.(type) {
+		case *Batches:
+			dst, info.cmd, err = op.createMsgWireMessage(maxTimeMS, dst, desc, conn, op.CommandFn)
+			if err == nil && op.Batches != nil {
+				dst, err = appendBatches(dst)
+			}
+		default:
+			var batches []byte
+			if op.Batches != nil {
+				batches, err = appendBatches(batches)
+			}
+			if err == nil {
+				dst, info.cmd, err = op.createMsgWireMessage(maxTimeMS, dst, desc, conn, op.CommandFn)
+			}
+			if err == nil && len(batches) > 0 {
+				dst = append(dst, batches...)
 			}
 		}
 	}
@@ -1407,7 +1428,7 @@ func (op Operation) createWireMessage(
 	// aren't batching or we are encoding the last batch.
 	unacknowledged := op.WriteConcern != nil && !writeconcern.AckWrite(op.WriteConcern)
 	batching := op.Batches != nil && op.Batches.Size() > info.processedBatches
-	if !isLegacy && unacknowledged && !batching {
+	if fIdx > 0 && unacknowledged && !batching {
 		dst[fIdx] |= byte(wiremessage.MoreToCome)
 		moreToCome = true
 	}
@@ -1562,7 +1583,7 @@ func (op Operation) addWriteConcern(dst []byte, desc description.SelectedServer)
 	return append(bsoncore.AppendHeader(dst, t, "writeConcern"), data...), nil
 }
 
-func (op Operation) addSession(dst []byte, desc description.SelectedServer) ([]byte, error) {
+func (op Operation) addSession(dst []byte, desc description.SelectedServer, retryWrite bool) ([]byte, error) {
 	client := op.Client
 
 	// If the operation is defined for an explicit session but the server
@@ -1580,7 +1601,7 @@ func (op Operation) addSession(dst []byte, desc description.SelectedServer) ([]b
 	dst = bsoncore.AppendDocumentElement(dst, "lsid", client.SessionID)
 
 	var addedTxnNumber bool
-	if op.Type == Write && client.RetryWrite {
+	if op.Type == Write && retryWrite {
 		addedTxnNumber = true
 		dst = bsoncore.AppendInt64Element(dst, "txnNumber", op.Client.TxnNumber)
 	}

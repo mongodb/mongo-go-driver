@@ -437,9 +437,8 @@ func TestClientBulkWrite(t *testing.T) {
 		models := &mongo.ClientWriteModels{}
 		for i := 0; i < hello.MaxWriteBatchSize+1; i++ {
 			models.
-				AppendInsertOne(&mongo.ClientInsertOneModel{
-					Namespace: "db.coll",
-					Document:  bson.D{{"a", "b"}},
+				AppendInsertOne("db", "coll", &mongo.ClientInsertOneModel{
+					Document: bson.D{{"a", "b"}},
 				})
 		}
 		result, err := mt.Client.BulkWrite(context.Background(), models)
@@ -472,9 +471,8 @@ func TestClientBulkWrite(t *testing.T) {
 		numModels := hello.MaxMessageSizeBytes/hello.MaxBsonObjectSize + 1
 		for i := 0; i < numModels; i++ {
 			models.
-				AppendInsertOne(&mongo.ClientInsertOneModel{
-					Namespace: "db.coll",
-					Document:  bson.D{{"a", strings.Repeat("b", hello.MaxBsonObjectSize-500)}},
+				AppendInsertOne("db", "coll", &mongo.ClientInsertOneModel{
+					Document: bson.D{{"a", strings.Repeat("b", hello.MaxBsonObjectSize-500)}},
 				})
 		}
 		result, err := mt.Client.BulkWrite(context.Background(), models)
@@ -509,9 +507,8 @@ func TestClientBulkWrite(t *testing.T) {
 		models := &mongo.ClientWriteModels{}
 		for i := 0; i < hello.MaxWriteBatchSize+1; i++ {
 			models.
-				AppendInsertOne(&mongo.ClientInsertOneModel{
-					Namespace: "db.coll",
-					Document:  bson.D{{"a", "b"}},
+				AppendInsertOne("db", "coll", &mongo.ClientInsertOneModel{
+					Document: bson.D{{"a", "b"}},
 				})
 		}
 		_, err := mt.Client.BulkWrite(context.Background(), models)
@@ -548,9 +545,8 @@ func TestClientBulkWrite(t *testing.T) {
 		models := &mongo.ClientWriteModels{}
 		for i := 0; i < hello.MaxWriteBatchSize+1; i++ {
 			models.
-				AppendInsertOne(&mongo.ClientInsertOneModel{
-					Namespace: "db.coll",
-					Document:  bson.D{{"_id", 1}},
+				AppendInsertOne("db", "coll", &mongo.ClientInsertOneModel{
+					Document: bson.D{{"_id", 1}},
 				})
 		}
 
@@ -597,17 +593,15 @@ func TestClientBulkWrite(t *testing.T) {
 		require.NoError(mt, err, "Hello error")
 		upsert := true
 		models := (&mongo.ClientWriteModels{}).
-			AppendUpdateOne(&mongo.ClientUpdateOneModel{
-				Namespace: "db.coll",
-				Filter:    bson.D{{"_id", strings.Repeat("a", hello.MaxBsonObjectSize/2)}},
-				Update:    bson.D{{"$set", bson.D{{"x", 1}}}},
-				Upsert:    &upsert,
+			AppendUpdateOne("db", "coll", &mongo.ClientUpdateOneModel{
+				Filter: bson.D{{"_id", strings.Repeat("a", hello.MaxBsonObjectSize/2)}},
+				Update: bson.D{{"$set", bson.D{{"x", 1}}}},
+				Upsert: &upsert,
 			}).
-			AppendUpdateOne(&mongo.ClientUpdateOneModel{
-				Namespace: "db.coll",
-				Filter:    bson.D{{"_id", strings.Repeat("b", hello.MaxBsonObjectSize/2)}},
-				Update:    bson.D{{"$set", bson.D{{"x", 1}}}},
-				Upsert:    &upsert,
+			AppendUpdateOne("db", "coll", &mongo.ClientUpdateOneModel{
+				Filter: bson.D{{"_id", strings.Repeat("b", hello.MaxBsonObjectSize/2)}},
+				Update: bson.D{{"$set", bson.D{{"x", 1}}}},
+				Upsert: &upsert,
 			})
 		result, err := mt.Client.BulkWrite(context.Background(), models, options.ClientBulkWrite().SetVerboseResults(true))
 		require.NoError(mt, err, "BulkWrite error")
@@ -640,17 +634,15 @@ func TestClientBulkWrite(t *testing.T) {
 		defer session.EndSession(context.Background())
 		upsert := true
 		models := (&mongo.ClientWriteModels{}).
-			AppendUpdateOne(&mongo.ClientUpdateOneModel{
-				Namespace: "db.coll",
-				Filter:    bson.D{{"_id", strings.Repeat("a", hello.MaxBsonObjectSize/2)}},
-				Update:    bson.D{{"$set", bson.D{{"x", 1}}}},
-				Upsert:    &upsert,
+			AppendUpdateOne("db", "coll", &mongo.ClientUpdateOneModel{
+				Filter: bson.D{{"_id", strings.Repeat("a", hello.MaxBsonObjectSize/2)}},
+				Update: bson.D{{"$set", bson.D{{"x", 1}}}},
+				Upsert: &upsert,
 			}).
-			AppendUpdateOne(&mongo.ClientUpdateOneModel{
-				Namespace: "db.coll",
-				Filter:    bson.D{{"_id", strings.Repeat("b", hello.MaxBsonObjectSize/2)}},
-				Update:    bson.D{{"$set", bson.D{{"x", 1}}}},
-				Upsert:    &upsert,
+			AppendUpdateOne("db", "coll", &mongo.ClientUpdateOneModel{
+				Filter: bson.D{{"_id", strings.Repeat("b", hello.MaxBsonObjectSize/2)}},
+				Update: bson.D{{"$set", bson.D{{"x", 1}}}},
+				Upsert: &upsert,
 			})
 		result, err := session.WithTransaction(context.Background(), func(mongo.SessionContext) (interface{}, error) {
 			return mt.Client.BulkWrite(context.Background(), models, options.ClientBulkWrite().SetVerboseResults(true))
@@ -673,9 +665,8 @@ func TestClientBulkWrite(t *testing.T) {
 		}
 		require.NoError(mt, mt.DB.RunCommand(context.Background(), bson.D{{"hello", 1}}).Decode(&hello), "Hello error")
 		models := (&mongo.ClientWriteModels{}).
-			AppendInsertOne(&mongo.ClientInsertOneModel{
-				Namespace: "db.coll",
-				Document:  bson.D{{"a", strings.Repeat("b", hello.MaxBsonObjectSize)}},
+			AppendInsertOne("db", "coll", &mongo.ClientInsertOneModel{
+				Document: bson.D{{"a", strings.Repeat("b", hello.MaxBsonObjectSize)}},
 			})
 		result, err := mt.Client.BulkWrite(context.Background(), models, options.ClientBulkWrite().SetWriteConcern(writeconcern.Unacknowledged()))
 		require.NoError(mt, err, "BulkWrite error")

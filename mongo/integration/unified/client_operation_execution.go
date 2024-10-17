@@ -10,6 +10,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -286,61 +287,66 @@ func executeClientBulkWrite(ctx context.Context, operation *operation) (*operati
 func appendClientBulkWriteModel(key string, value bson.Raw, model *mongo.ClientWriteModels) error {
 	switch key {
 	case "insertOne":
-		m, err := createClientInsertOneModel(value)
+		namespace, m, err := createClientInsertOneModel(value)
 		if err != nil {
 			return err
 		}
-		model.AppendInsertOne(m)
+		ns := strings.SplitN(namespace, ".", 2)
+		model.AppendInsertOne(ns[0], ns[1], m)
 	case "updateOne":
-		m, err := createClientUpdateOneModel(value)
+		namespace, m, err := createClientUpdateOneModel(value)
 		if err != nil {
 			return err
 		}
-		model.AppendUpdateOne(m)
+		ns := strings.SplitN(namespace, ".", 2)
+		model.AppendUpdateOne(ns[0], ns[1], m)
 	case "updateMany":
-		m, err := createClientUpdateManyModel(value)
+		namespace, m, err := createClientUpdateManyModel(value)
 		if err != nil {
 			return err
 		}
-		model.AppendUpdateMany(m)
+		ns := strings.SplitN(namespace, ".", 2)
+		model.AppendUpdateMany(ns[0], ns[1], m)
 	case "replaceOne":
-		m, err := createClientReplaceOneModel(value)
+		namespace, m, err := createClientReplaceOneModel(value)
 		if err != nil {
 			return err
 		}
-		model.AppendReplaceOne(m)
+		ns := strings.SplitN(namespace, ".", 2)
+		model.AppendReplaceOne(ns[0], ns[1], m)
 	case "deleteOne":
-		m, err := createClientDeleteOneModel(value)
+		namespace, m, err := createClientDeleteOneModel(value)
 		if err != nil {
 			return err
 		}
-		model.AppendDeleteOne(m)
+		ns := strings.SplitN(namespace, ".", 2)
+		model.AppendDeleteOne(ns[0], ns[1], m)
 	case "deleteMany":
-		m, err := createClientDeleteManyModel(value)
+		namespace, m, err := createClientDeleteManyModel(value)
 		if err != nil {
 			return err
 		}
-		model.AppendDeleteMany(m)
+		ns := strings.SplitN(namespace, ".", 2)
+		model.AppendDeleteMany(ns[0], ns[1], m)
 	}
 	return nil
 }
 
-func createClientInsertOneModel(value bson.Raw) (*mongo.ClientInsertOneModel, error) {
+func createClientInsertOneModel(value bson.Raw) (string, *mongo.ClientInsertOneModel, error) {
 	var v struct {
 		Namespace string
 		Document  bson.Raw
 	}
 	err := bson.Unmarshal(value, &v)
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
-	return &mongo.ClientInsertOneModel{
-		Namespace: v.Namespace,
-		Document:  v.Document,
+	return v.Namespace, &mongo.ClientInsertOneModel{
+		Document: v.Document,
 	}, nil
 }
 
-func createClientUpdateOneModel(value bson.Raw) (*mongo.ClientUpdateOneModel, error) {
+func createClientUpdateOneModel(value bson.Raw) (string, *mongo.ClientUpdateOneModel, error) {
 	var v struct {
 		Namespace    string
 		Filter       bson.Raw
@@ -352,17 +358,16 @@ func createClientUpdateOneModel(value bson.Raw) (*mongo.ClientUpdateOneModel, er
 	}
 	err := bson.Unmarshal(value, &v)
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 	var hint interface{}
 	if v.Hint != nil {
 		hint, err = createHint(*v.Hint)
 		if err != nil {
-			return nil, err
+			return "", nil, err
 		}
 	}
 	model := &mongo.ClientUpdateOneModel{
-		Namespace: v.Namespace,
 		Filter:    v.Filter,
 		Update:    v.Update,
 		Collation: v.Collation,
@@ -372,11 +377,11 @@ func createClientUpdateOneModel(value bson.Raw) (*mongo.ClientUpdateOneModel, er
 	if len(v.ArrayFilters) > 0 {
 		model.ArrayFilters = &options.ArrayFilters{Filters: v.ArrayFilters}
 	}
-	return model, nil
+	return v.Namespace, model, nil
 
 }
 
-func createClientUpdateManyModel(value bson.Raw) (*mongo.ClientUpdateManyModel, error) {
+func createClientUpdateManyModel(value bson.Raw) (string, *mongo.ClientUpdateManyModel, error) {
 	var v struct {
 		Namespace    string
 		Filter       bson.Raw
@@ -388,17 +393,16 @@ func createClientUpdateManyModel(value bson.Raw) (*mongo.ClientUpdateManyModel, 
 	}
 	err := bson.Unmarshal(value, &v)
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 	var hint interface{}
 	if v.Hint != nil {
 		hint, err = createHint(*v.Hint)
 		if err != nil {
-			return nil, err
+			return "", nil, err
 		}
 	}
 	model := &mongo.ClientUpdateManyModel{
-		Namespace: v.Namespace,
 		Filter:    v.Filter,
 		Update:    v.Update,
 		Collation: v.Collation,
@@ -408,10 +412,10 @@ func createClientUpdateManyModel(value bson.Raw) (*mongo.ClientUpdateManyModel, 
 	if len(v.ArrayFilters) > 0 {
 		model.ArrayFilters = &options.ArrayFilters{Filters: v.ArrayFilters}
 	}
-	return model, nil
+	return v.Namespace, model, nil
 }
 
-func createClientReplaceOneModel(value bson.Raw) (*mongo.ClientReplaceOneModel, error) {
+func createClientReplaceOneModel(value bson.Raw) (string, *mongo.ClientReplaceOneModel, error) {
 	var v struct {
 		Namespace   string
 		Filter      bson.Raw
@@ -422,17 +426,16 @@ func createClientReplaceOneModel(value bson.Raw) (*mongo.ClientReplaceOneModel, 
 	}
 	err := bson.Unmarshal(value, &v)
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 	var hint interface{}
 	if v.Hint != nil {
 		hint, err = createHint(*v.Hint)
 		if err != nil {
-			return nil, err
+			return "", nil, err
 		}
 	}
-	return &mongo.ClientReplaceOneModel{
-		Namespace:   v.Namespace,
+	return v.Namespace, &mongo.ClientReplaceOneModel{
 		Filter:      v.Filter,
 		Replacement: v.Replacement,
 		Collation:   v.Collation,
@@ -441,7 +444,7 @@ func createClientReplaceOneModel(value bson.Raw) (*mongo.ClientReplaceOneModel, 
 	}, nil
 }
 
-func createClientDeleteOneModel(value bson.Raw) (*mongo.ClientDeleteOneModel, error) {
+func createClientDeleteOneModel(value bson.Raw) (string, *mongo.ClientDeleteOneModel, error) {
 	var v struct {
 		Namespace string
 		Filter    bson.Raw
@@ -450,24 +453,23 @@ func createClientDeleteOneModel(value bson.Raw) (*mongo.ClientDeleteOneModel, er
 	}
 	err := bson.Unmarshal(value, &v)
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 	var hint interface{}
 	if v.Hint != nil {
 		hint, err = createHint(*v.Hint)
 		if err != nil {
-			return nil, err
+			return "", nil, err
 		}
 	}
-	return &mongo.ClientDeleteOneModel{
-		Namespace: v.Namespace,
+	return v.Namespace, &mongo.ClientDeleteOneModel{
 		Filter:    v.Filter,
 		Collation: v.Collation,
 		Hint:      hint,
 	}, nil
 }
 
-func createClientDeleteManyModel(value bson.Raw) (*mongo.ClientDeleteManyModel, error) {
+func createClientDeleteManyModel(value bson.Raw) (string, *mongo.ClientDeleteManyModel, error) {
 	var v struct {
 		Namespace string
 		Filter    bson.Raw
@@ -476,17 +478,16 @@ func createClientDeleteManyModel(value bson.Raw) (*mongo.ClientDeleteManyModel, 
 	}
 	err := bson.Unmarshal(value, &v)
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 	var hint interface{}
 	if v.Hint != nil {
 		hint, err = createHint(*v.Hint)
 		if err != nil {
-			return nil, err
+			return "", nil, err
 		}
 	}
-	return &mongo.ClientDeleteManyModel{
-		Namespace: v.Namespace,
+	return v.Namespace, &mongo.ClientDeleteManyModel{
 		Filter:    v.Filter,
 		Collation: v.Collation,
 		Hint:      hint,

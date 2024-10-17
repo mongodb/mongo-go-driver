@@ -126,6 +126,8 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 		return executeListDatabases(ctx, op, false)
 	case "listDatabaseNames":
 		return executeListDatabases(ctx, op, true)
+	case "clientBulkWrite":
+		return executeClientBulkWrite(ctx, op)
 
 	// Database operations
 	case "createCollection":
@@ -148,8 +150,6 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 		return executeAggregate(ctx, op)
 	case "bulkWrite":
 		return executeBulkWrite(ctx, op)
-	case "clientBulkWrite":
-		return executeClientBulkWrite(ctx, op)
 	case "countDocuments":
 		return executeCountDocuments(ctx, op)
 	case "createFindCursor":
