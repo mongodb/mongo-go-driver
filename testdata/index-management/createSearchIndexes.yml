@@ -30,9 +30,8 @@ tests:
         expectError:
           # This test always errors in a non-Atlas environment.  The test functions as a unit test  by asserting
           # that the driver constructs and sends the correct command.
-          # The expected error message was changed in SERVER-83003. Check for the substring "Atlas" shared by both error messages.
           isError: true
-          errorContains: Atlas
+          errorContains: Search index commands are only supported with Atlas
     expectEvents:
       - client: *client0
         events:
@@ -48,20 +47,19 @@ tests:
       - name: createSearchIndexes
         object: *collection0
         arguments:
-          models: [ { definition: &definition { mappings: { dynamic: true } } , type: 'search' } ]
+          models: [ { definition: &definition { mappings: { dynamic: true } } } ]
         expectError:
           # This test always errors in a non-Atlas environment.  The test functions as a unit test  by asserting
           # that the driver constructs and sends the correct command.
-          # The expected error message was changed in SERVER-83003. Check for the substring "Atlas" shared by both error messages.
           isError: true
-          errorContains: Atlas
+          errorContains: Search index commands are only supported with Atlas
     expectEvents:
       - client: *client0
         events:
           - commandStartedEvent:
               command:
                 createSearchIndexes: *collection0
-                indexes: [ { definition: *definition, type: 'search'} ]
+                indexes: [ { definition: *definition } ]
                 $db: *database0
 
   - description: "name provided for an index definition"
@@ -69,40 +67,17 @@ tests:
       - name: createSearchIndexes
         object: *collection0
         arguments: 
-          models: [ { definition: &definition { mappings: { dynamic: true } } , name: 'test index' , type: 'search' } ]
+          models: [ { definition: &definition { mappings: { dynamic: true } } , name: 'test index' } ]
         expectError:
           # This test always errors in a non-Atlas environment.  The test functions as a unit test  by asserting
           # that the driver constructs and sends the correct command.
-          # The expected error message was changed in SERVER-83003. Check for the substring "Atlas" shared by both error messages.
           isError: true
-          errorContains: Atlas
+          errorContains: Search index commands are only supported with Atlas
     expectEvents:
       - client: *client0
         events:
           - commandStartedEvent:
               command:
                 createSearchIndexes: *collection0
-                indexes: [ { definition: *definition, name: 'test index', type: 'search' } ]
-                $db: *database0
-
-  - description: "create a vector search index"
-    operations:
-      - name: createSearchIndexes
-        object: *collection0
-        arguments:
-          models: [ { definition: &definition { fields: [ {"type": "vector", "path": "plot_embedding", "numDimensions": 1536, "similarity": "euclidean"} ] },
-                                                name: 'test index' , type: 'vectorSearch' } ]
-        expectError:
-          # This test always errors in a non-Atlas environment.  The test functions as a unit test  by asserting
-          # that the driver constructs and sends the correct command.
-          # The expected error message was changed in SERVER-83003. Check for the substring "Atlas" shared by both error messages.
-          isError: true
-          errorContains: Atlas
-    expectEvents:
-      - client: *client0
-        events:
-          - commandStartedEvent:
-              command:
-                createSearchIndexes: *collection0
-                indexes: [ { definition: *definition, name: 'test index', type: 'vectorSearch' } ]
+                indexes: [ { definition: *definition, name: 'test index' } ]
                 $db: *database0
