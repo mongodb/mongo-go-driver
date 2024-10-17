@@ -5,28 +5,15 @@ set -x # show all commands being run
 GC=go
 COMPILE_CHECK_DIR="internal/cmd/compilecheck"
 # shellcheck disable=SC2034
-DEV_MIN_VERSION=1.19
-
-# version will flatten a version string of upto 4 components for inequality
-# comparison.
-function version {
-	echo "$@" | awk -F. '{ printf("%d%03d%03d%03d\n", $1,$2,$3,$4); }';
-}
 
 # compile_check will attempt to build the internal/test/compilecheck project
 # using the provided Go version. This is to simulate an end-to-end use case.
-# This check will only run on environments where the Go version is greater than
-# or equal to the given version.
 function compile_check {
 	# Change the directory to the compilecheck test directory.
-	cd ${COMPILE_CHECK_DIR}
+	pushd ${COMPILE_CHECK_DIR}
 
-	MACHINE_VERSION=`${GC} version | { read _ _ v _; echo ${v#go}; }`
-
-	# If the version is not 1.13, then run "go mod tidy"
-	if [ "$(version $MACHINE_VERSION)" -ge "$(version 1.15)" ]; then
-		go mod tidy
-	fi
+	${GC} version
+	${GC} mod tidy
 
 	# Check simple build.
 	${GC} build ./...
@@ -35,7 +22,7 @@ function compile_check {
 	${GC} build -buildmode=plugin
 
 	# Check build with tags.
-	go build $BUILD_TAGS ./...
+	${GC} build $BUILD_TAGS ./...
 
 	# Check build with various architectures.
 	GOOS=linux GOARCH=386 ${GC} build ./...
@@ -50,7 +37,7 @@ function compile_check {
 	rm compilecheck.so
 
 	# Change the directory back to the working directory.
-	cd -
+	popd
 }
 
 compile_check
