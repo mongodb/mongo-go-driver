@@ -18,14 +18,22 @@ tasks:
   check-license: bash etc/check_license.sh
 
   build:
-    deps: [cross-compile, build-tests, build-compile-check, install-libmongocrypt]
+    deps: [install-libmongocrypt]
     cmds:
       - go build ./...
       - go build ${BUILD_TAGS} ./...
+      - task: cross-compile
+      - task: build-tests
 
   build-tests: go test -short ${BUILD_TAGS} -run ^$$ ./...
 
-  build-compile-check: bash etc/compile_check.sh
+  # Build the compilecheck submodule, both with the system version of Go and
+  # with the minimum supported version of Go (Go 1.18).
+  build-compile-check:
+    deps: [install-go118]
+    cmds:
+      - bash etc/compile_check.sh
+      - PATH=$(go1.18 env GOROOT)/bin:$PATH GOROOT=$(go1.18 env GOROOT) bash etc/compile_check.sh
 
   build-aws-ecs-test: go build ${BUILD_TAGS} ./internal/cmd/testaws/main.go
 
@@ -210,3 +218,9 @@ tasks:
     internal: true
     cmds:
       - go install github.com/walle/lll/...@latest
+
+  install-go118:
+    internal: true
+    cmds:
+      - go install golang.org/dl/go1.18@latest
+      - go1.18 download
