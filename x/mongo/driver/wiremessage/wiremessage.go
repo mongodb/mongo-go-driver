@@ -541,7 +541,7 @@ func ReadCompressedCompressorID(src []byte) (id CompressorID, rem []byte, ok boo
 
 // ReadCompressedCompressedMessage reads the compressed wiremessage to dst.
 //
-// Deprecated: This function is not required by the Go Driver and will not be
+// Deprecated: This function is not required by the Go Driver and will be
 // removed in the 2.0 release.
 func ReadCompressedCompressedMessage(src []byte, length int32) (msg []byte, rem []byte, ok bool) {
 	if len(src) < int(length) || length < 0 {
