@@ -182,6 +182,11 @@ func extractErrorDetails(err error) (errorDetails, bool) {
 			details.raw = we.Raw
 		}
 		details.labels = converted.Labels
+	case mongo.ClientBulkWriteException:
+		if converted.TopLevelError != nil {
+			details.raw = converted.TopLevelError.Raw
+			details.codes = append(details.codes, int32(converted.TopLevelError.Code))
+		}
 	default:
 		return errorDetails{}, false
 	}
