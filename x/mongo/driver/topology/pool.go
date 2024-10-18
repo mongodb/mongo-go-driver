@@ -128,6 +128,8 @@ type pool struct {
 	idleConns      []*connection // idleConns holds all idle connections.
 	idleConnWait   wantConnQueue // idleConnWait holds all wantConn requests for idle connections.
 	connectTimeout time.Duration
+
+	bgReadMu sync.Mutex
 }
 
 // getState returns the current state of the pool. Callers must not hold the stateMu lock.
@@ -576,6 +578,10 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 			return nil, w.err
 		}
 
+		if err := awaitPendingRead(p, w.conn); err != nil {
+			return p.checkOut(ctx) // Retry the checkout if the read fails.
+		}
+
 		duration = time.Since(start)
 		if mustLogPoolMessage(p) {
 			keysAndValues := logger.KeyValues{
@@ -650,6 +656,11 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 				Duration:     duration,
 			})
 		}
+
+		if err := awaitPendingRead(p, w.conn); err != nil {
+			return p.checkOut(ctx) // Retry the checkout if the read fails.
+		}
+
 		return w.conn, nil
 	case <-ctx.Done():
 		waitQueueDuration := time.Since(waitQueueStart)
@@ -788,65 +799,64 @@ var (
 	BGReadCallback func(addr string, start, read time.Time, errs []error, connClosed bool)
 )
 
-// bgRead sets a new read deadline on the provided connection and tries to read
-// any bytes returned by the server. If successful, it checks the connection
-// into the provided pool. If there are any errors, it closes the connection.
-//
-// It calls the package-global BGReadCallback function, if set, with the
-// address, timings, and any errors that occurred.
-func bgRead(pool *pool, conn *connection, size int32) {
-	var err error
-	start := time.Now()
+// awaitPendingRead sets a new read deadline on the provided connection and
+// tries to read any bytes returned by the server. If there are any errors, the
+// connection will be checked back into the pool to be retried.
+func awaitPendingRead(pool *pool, conn *connection) error {
+	pool.bgReadMu.Lock()
+	defer pool.bgReadMu.Unlock()
+
+	// If there are no bytes pending read, do nothing.
+	if conn.awaitRemainingBytes == nil {
+		return nil
+	}
+
+	size := *conn.awaitRemainingBytes
+
+	var checkIn bool
 
 	defer func() {
-		read := time.Now()
-		errs := make([]error, 0)
-		connClosed := false
-		if err != nil {
-			errs = append(errs, err)
-			connClosed = true
-			err = conn.close()
-			if err != nil {
-				errs = append(errs, fmt.Errorf("error closing conn after reading: %w", err))
-			}
+		if !checkIn {
+			return
 		}
-
 		// No matter what happens, always check the connection back into the
 		// pool, which will either make it available for other operations or
 		// remove it from the pool if it was closed.
-		err = pool.checkInNoEvent(conn)
+		err := pool.checkInNoEvent(conn)
 		if err != nil {
-			errs = append(errs, fmt.Errorf("error checking in: %w", err))
-		}
-
-		if BGReadCallback != nil {
-			BGReadCallback(conn.addr.String(), start, read, errs, connClosed)
+			panic(err)
 		}
 	}()
 
-	err = conn.nc.SetReadDeadline(time.Now().Add(BGReadTimeout))
+	err := conn.nc.SetReadDeadline(time.Now().Add(BGReadTimeout))
 	if err != nil {
-		err = fmt.Errorf("error setting a read deadline: %w", err)
-		return
+		checkIn = true
+		return fmt.Errorf("error setting a read deadline: %w", err)
 	}
 
 	if size == 0 {
 		var sizeBuf [4]byte
 		_, err = io.ReadFull(conn.nc, sizeBuf[:])
 		if err != nil {
-			err = fmt.Errorf("error reading the message size: %w", err)
-			return
+			checkIn = true
+			return fmt.Errorf("error reading the message size: %w", err)
 		}
 		size, err = conn.parseWmSizeBytes(sizeBuf)
 		if err != nil {
-			return
+			checkIn = true
+			return err
 		}
 		size -= 4
 	}
 	_, err = io.CopyN(io.Discard, conn.nc, int64(size))
 	if err != nil {
-		err = fmt.Errorf("error discarding %d byte message: %w", size, err)
+		checkIn = true
+		return fmt.Errorf("error discarding %d byte message: %w", size, err)
 	}
+
+	conn.awaitRemainingBytes = nil
+
+	return nil
 }
 
 // checkIn returns an idle connection to the pool. If the connection is perished or the pool is
@@ -886,21 +896,6 @@ func (p *pool) checkInNoEvent(conn *connection) error {
 	}
 	if conn.pool != p {
 		return ErrWrongPool
-	}
-
-	// If the connection has an awaiting server response, try to read the
-	// response in another goroutine before checking it back into the pool.
-	//
-	// Do this here because we want to publish checkIn events when the operation
-	// is done with the connection, not when it's ready to be used again. That
-	// means that connections in "awaiting response" state are checked in but
-	// not usable, which is not covered by the current pool events. We may need
-	// to add pool event information in the future to communicate that.
-	if conn.awaitRemainingBytes != nil {
-		size := *conn.awaitRemainingBytes
-		conn.awaitRemainingBytes = nil
-		go bgRead(p, conn, size)
-		return nil
 	}
 
 	// Bump the connection idle start time here because we're about to make the
