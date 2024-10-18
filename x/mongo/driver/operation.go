@@ -862,9 +862,6 @@ func (op Operation) Execute(ctx context.Context) error {
 					Error:                 tt,
 				}
 				_ = op.ProcessResponseFn(ctx, res, info)
-				// if perr != nil {
-				// 	return perr
-				// }
 			}
 
 			// If batching is enabled and either ordered is the default (which is true) or
@@ -985,9 +982,6 @@ func (op Operation) Execute(ctx context.Context) error {
 					Error:                 tt,
 				}
 				_ = op.ProcessResponseFn(ctx, res, info)
-				// if perr != nil {
-				// 	return perr
-				// }
 			}
 
 			if op.Client != nil && op.Client.Committing && (retryableErr || tt.Code == 50) {
@@ -1385,7 +1379,10 @@ func (op Operation) createWireMessage(
 			dsOffset := len(dst)
 			processedBatches, dst, err = op.Batches.AppendBatchSequence(dst, int(desc.MaxBatchCount), int(desc.MaxDocumentSize), int(desc.MaxMessageSize))
 			if err != nil {
-				return dst, err
+				return nil, err
+			}
+			if processedBatches == 0 {
+				return nil, ErrDocumentTooLarge
 			}
 			info.processedBatches = processedBatches
 			info.documentSequence = make([]byte, 0)
@@ -1491,6 +1488,9 @@ func (op Operation) addLegacyCommandFields(dst []byte, desc description.Selected
 	n, dst, err = op.Batches.AppendBatchArray(dst, int(desc.MaxBatchCount), maxDocumentSize, maxDocumentSize)
 	if err != nil {
 		return 0, nil, err
+	}
+	if n == 0 {
+		return 0, nil, ErrDocumentTooLarge
 	}
 	return n, dst, nil
 }
