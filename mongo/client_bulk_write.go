@@ -9,7 +9,6 @@ package mongo
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"strconv"
 
@@ -96,7 +95,16 @@ func (bw *clientBulkWrite) execute(ctx context.Context) error {
 		exception.WriteErrors = batches.writeErrors
 	}
 	if exception != nil {
-		exception.PartialResult = batches.result
+		var hasSuccess bool
+		if bw.ordered == nil || *bw.ordered {
+			_, ok := batches.writeErrors[0]
+			hasSuccess = !ok
+		} else {
+			hasSuccess = len(batches.writeErrors) < len(bw.models)
+		}
+		if hasSuccess {
+			exception.PartialResult = batches.result
+		}
 		return *exception
 	}
 	return err
@@ -390,7 +398,6 @@ func (mb *modelBatches) appendBatches(fn functionSet, dst []byte, maxCount, maxD
 }
 
 func (mb *modelBatches) processResponse(ctx context.Context, resp bsoncore.Document, info driver.ResponseInfo) error {
-	fmt.Println("ProcessResponse", info.Error)
 	var writeCmdErr driver.WriteCommandError
 	if errors.As(info.Error, &writeCmdErr) && writeCmdErr.WriteConcernError != nil {
 		wce := convertDriverWriteConcernError(writeCmdErr.WriteConcernError)
@@ -464,14 +471,13 @@ func (mb *modelBatches) processResponse(ctx context.Context, resp bsoncore.Docum
 		return err
 	}
 	isOrdered := mb.ordered == nil || *mb.ordered
-	fmt.Println("ProcessResponse toplevelerror", res.Ok, res.NErrors, res.Code, res.Errmsg)
 	if isOrdered && (writeCmdErr.WriteConcernError != nil || !ok || !res.Ok || res.NErrors > 0) {
 		exception := ClientBulkWriteException{
 			WriteConcernErrors: mb.writeConcernErrors,
 			WriteErrors:        mb.writeErrors,
 			PartialResult:      mb.result,
 		}
-		if !res.Ok || res.NErrors > 0 {
+		if !res.Ok {
 			exception.TopLevelError = &WriteError{
 				Code:    int(res.Code),
 				Message: res.Errmsg,

@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"os"
 	"strings"
 	"testing"
 
@@ -415,7 +416,7 @@ func TestErrorsCodeNamePropagated(t *testing.T) {
 }
 
 func TestClientBulkWrite(t *testing.T) {
-	mtOpts := mtest.NewOptions().MinServerVersion("8.0").AtlasDataLake(false).CreateClient(false)
+	mtOpts := mtest.NewOptions().MinServerVersion("8.0").AtlasDataLake(false).CreateClient(false).ClientType(mtest.Pinned)
 	mt := mtest.New(t, mtOpts)
 
 	mt.Run("input with greater than maxWriteBatchSize", func(mt *mtest.T) {
@@ -423,10 +424,12 @@ func TestClientBulkWrite(t *testing.T) {
 		monitor := &event.CommandMonitor{
 			Started: func(_ context.Context, e *event.CommandStartedEvent) {
 				if e.CommandName == "bulkWrite" {
-					v := e.Command.Lookup("ops")
-					elems, err := v.Array().Elements()
-					require.NoError(mt, err, "monitor error")
-					opsCnt = append(opsCnt, len(elems))
+					var c struct {
+						Ops []bson.D
+					}
+					err := bson.Unmarshal(e.Command, &c)
+					require.NoError(mt, err)
+					opsCnt = append(opsCnt, len(c.Ops))
 				}
 			},
 		}
@@ -455,10 +458,12 @@ func TestClientBulkWrite(t *testing.T) {
 		monitor := &event.CommandMonitor{
 			Started: func(_ context.Context, e *event.CommandStartedEvent) {
 				if e.CommandName == "bulkWrite" {
-					v := e.Command.Lookup("ops")
-					elems, err := v.Array().Elements()
-					require.NoError(mt, err, "monitor error")
-					opsCnt = append(opsCnt, len(elems))
+					var c struct {
+						Ops []bson.D
+					}
+					err := bson.Unmarshal(e.Command, &c)
+					require.NoError(mt, err)
+					opsCnt = append(opsCnt, len(c.Ops))
 				}
 			},
 		}
@@ -744,11 +749,20 @@ func TestClientBulkWrite(t *testing.T) {
 	})
 
 	mt.Run("bulkWrite batch splits when the addition of a new namespace exceeds the maximum message size", func(mt *mtest.T) {
-		var bwCmd []bsoncore.Document
+		type cmd struct {
+			Ops    []bson.D
+			NsInfo []struct {
+				Ns string
+			}
+		}
+		var bwCmd []cmd
 		monitor := &event.CommandMonitor{
 			Started: func(_ context.Context, e *event.CommandStartedEvent) {
 				if e.CommandName == "bulkWrite" {
-					bwCmd = append(bwCmd, bsoncore.Document(e.Command))
+					var c cmd
+					err := bson.Unmarshal(e.Command, &c)
+					require.NoError(mt, err)
+					bwCmd = append(bwCmd, c)
 				}
 			},
 		}
@@ -794,17 +808,9 @@ func TestClientBulkWrite(t *testing.T) {
 			assert.Equal(mt, numModels+1, int(result.InsertedCount), "expected insertedCound: %d, got: %d", numModels+1, result.InsertedCount)
 			require.Len(mt, bwCmd, 1, "expected %d bulkWrite call, got %d", 1, len(bwCmd))
 
-			var cmd struct {
-				Ops    []bson.D
-				NsInfo []struct {
-					Ns string
-				}
-			}
-			err = bson.Unmarshal(bwCmd[0], &cmd)
-			require.NoError(mt, err)
-			assert.Len(mt, cmd.Ops, numModels+1, "expected ops: %d, got: %d", numModels+1, len(cmd.Ops))
-			require.Len(mt, cmd.NsInfo, 1, "expected %d nsInfo, got: %d", 1, len(cmd.NsInfo))
-			assert.Equal(mt, "db.coll", cmd.NsInfo[0].Ns, "expected namespace: %s, got: %s", "db.coll", cmd.NsInfo[0].Ns)
+			assert.Len(mt, bwCmd[0].Ops, numModels+1, "expected ops: %d, got: %d", numModels+1, len(bwCmd[0].Ops))
+			require.Len(mt, bwCmd[0].NsInfo, 1, "expected %d nsInfo, got: %d", 1, len(bwCmd[0].NsInfo))
+			assert.Equal(mt, "db.coll", bwCmd[0].NsInfo[0].Ns, "expected namespace: %s, got: %s", "db.coll", bwCmd[0].NsInfo[0].Ns)
 		})
 		mt.Run("batch-splitting required", func(mt *mtest.T) {
 			bwCmd = bwCmd[:0]
@@ -818,27 +824,15 @@ func TestClientBulkWrite(t *testing.T) {
 			result, err := mt.Client.BulkWrite(context.Background(), models, options.ClientBulkWrite())
 			require.NoError(mt, err)
 			assert.Equal(mt, numModels+1, int(result.InsertedCount), "expected insertedCound: %d, got: %d", numModels+1, result.InsertedCount)
-			require.Len(mt, bwCmd, 2, "expected %d bulkWrite call, got %d", 2, len(bwCmd))
+			require.Len(mt, bwCmd, 2, "expected %d bulkWrite calls, got %d", 2, len(bwCmd))
 
-			type cmd struct {
-				Ops    []bson.D
-				NsInfo []struct {
-					Ns string
-				}
-			}
-			var c1 cmd
-			err = bson.Unmarshal(bwCmd[0], &c1)
-			require.NoError(mt, err)
-			assert.Len(mt, c1.Ops, numModels, "expected ops: %d, got: %d", numModels, len(c1.Ops))
-			require.Len(mt, c1.NsInfo, 1, "expected %d nsInfo, got: %d", 1, len(c1.NsInfo))
-			assert.Equal(mt, "db.coll", c1.NsInfo[0].Ns, "expected namespace: %s, got: %s", "db.coll", c1.NsInfo[0].Ns)
+			assert.Len(mt, bwCmd[0].Ops, numModels, "expected ops: %d, got: %d", numModels, len(bwCmd[0].Ops))
+			require.Len(mt, bwCmd[0].NsInfo, 1, "expected %d nsInfo, got: %d", 1, len(bwCmd[0].NsInfo))
+			assert.Equal(mt, "db.coll", bwCmd[0].NsInfo[0].Ns, "expected namespace: %s, got: %s", "db.coll", bwCmd[0].NsInfo[0].Ns)
 
-			var c2 cmd
-			err = bson.Unmarshal(bwCmd[1], &c2)
-			require.NoError(mt, err)
-			assert.Len(mt, c2.Ops, 1, "expected ops: %d, got: %d", 1, len(c2.Ops))
-			require.Len(mt, c2.NsInfo, 1, "expected %d nsInfo, got: %d", 1, len(c2.NsInfo))
-			assert.Equal(mt, "db."+coll, c2.NsInfo[0].Ns, "expected namespace: %s, got: %s", "db."+coll, c2.NsInfo[0].Ns)
+			assert.Len(mt, bwCmd[1].Ops, 1, "expected ops: %d, got: %d", 1, len(bwCmd[1].Ops))
+			require.Len(mt, bwCmd[1].NsInfo, 1, "expected %d nsInfo, got: %d", 1, len(bwCmd[1].NsInfo))
+			assert.Equal(mt, "db."+coll, bwCmd[1].NsInfo[0].Ns, "expected namespace: %s, got: %s", "db."+coll, bwCmd[1].NsInfo[0].Ns)
 		})
 	})
 
@@ -867,6 +861,10 @@ func TestClientBulkWrite(t *testing.T) {
 	})
 
 	mt.Run("bulkWrite returns an error if auto-encryption is configured", func(mt *mtest.T) {
+		if os.Getenv("DOCKER_RUNNING") != "" {
+			mt.Skip("skipping test in docker environment")
+		}
+
 		autoEncryptionOpts := options.AutoEncryption().
 			SetKeyVaultNamespace("db.coll").
 			SetKmsProviders(map[string]map[string]interface{}{
@@ -882,5 +880,60 @@ func TestClientBulkWrite(t *testing.T) {
 			})
 		_, err := mt.Client.BulkWrite(context.Background(), models, options.ClientBulkWrite().SetOrdered(false).SetWriteConcern(writeconcern.Unacknowledged()))
 		require.ErrorContains(mt, err, "bulkWrite does not currently support automatic encryption")
+	})
+
+	mt.Run("bulkWrite with unacknowledged write concern uses w:0 for all batches", func(mt *mtest.T) {
+		type cmd struct {
+			Ops          []bson.D
+			WriteConcern struct {
+				W interface{}
+			}
+		}
+		var bwCmd []cmd
+		monitor := &event.CommandMonitor{
+			Started: func(_ context.Context, e *event.CommandStartedEvent) {
+				if e.CommandName == "bulkWrite" {
+					var c cmd
+					err := bson.Unmarshal(e.Command, &c)
+					require.NoError(mt, err)
+
+					bwCmd = append(bwCmd, c)
+				}
+			},
+		}
+		var hello struct {
+			MaxBsonObjectSize   int
+			MaxMessageSizeBytes int
+		}
+		err := mt.DB.RunCommand(context.Background(), bson.D{{"hello", 1}}).Decode(&hello)
+		require.NoError(mt, err, "Hello error")
+
+		mt.ResetClient(options.Client().SetMonitor(monitor))
+
+		coll := mt.CreateCollection(mtest.Collection{DB: "db", Name: "coll"}, true)
+		err = coll.Drop(context.Background())
+		require.NoError(mt, err, "Drop error")
+
+		numModels := hello.MaxMessageSizeBytes / hello.MaxBsonObjectSize
+		models := &mongo.ClientWriteModels{}
+		for i := 0; i < numModels+1; i++ {
+			models.
+				AppendInsertOne("db", "coll", &mongo.ClientInsertOneModel{
+					Document: bson.D{{"a", strings.Repeat("b", hello.MaxBsonObjectSize-500)}},
+				})
+		}
+		_, err = mt.Client.BulkWrite(context.Background(), models, options.ClientBulkWrite().SetOrdered(false).SetWriteConcern(writeconcern.Unacknowledged()))
+		require.NoError(mt, err)
+		require.Len(mt, bwCmd, 2, "expected %d bulkWrite calls, got %d", 2, len(bwCmd))
+
+		assert.Len(mt, bwCmd[0].Ops, numModels, "expected ops: %d, got: %d", numModels, len(bwCmd[0].Ops))
+		assert.Equal(mt, int32(0), bwCmd[0].WriteConcern.W, "expected writeConcern: %d, got: %v", 0, bwCmd[0].WriteConcern.W)
+
+		assert.Len(mt, bwCmd[1].Ops, 1, "expected ops: %d, got: %d", 1, len(bwCmd[1].Ops))
+		assert.Equal(mt, int32(0), bwCmd[1].WriteConcern.W, "expected writeConcern: %d, got: %v", 0, bwCmd[1].WriteConcern.W)
+
+		n, err := coll.CountDocuments(context.Background(), bson.D{})
+		require.NoError(mt, err)
+		assert.Equal(mt, numModels+1, int(n), "expected %d documents, got %d", numModels+1, n)
 	})
 }

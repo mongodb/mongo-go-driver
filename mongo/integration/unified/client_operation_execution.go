@@ -8,6 +8,7 @@ package unified
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -228,60 +229,63 @@ func executeClientBulkWrite(ctx context.Context, operation *operation) (*operati
 	}
 
 	res, err := client.BulkWrite(ctx, wirteModels, opts)
-	raw := emptyCoreDocument
-	if res != nil {
-		rawBuilder := bsoncore.NewDocumentBuilder().
-			AppendInt64("deletedCount", res.DeletedCount).
-			AppendInt64("insertedCount", res.InsertedCount).
-			AppendInt64("matchedCount", res.MatchedCount).
-			AppendInt64("modifiedCount", res.ModifiedCount).
-			AppendInt64("upsertedCount", res.UpsertedCount)
-
-		var resBuilder *bsoncore.DocumentBuilder
-
-		resBuilder = bsoncore.NewDocumentBuilder()
-		for k, v := range res.DeleteResults {
-			resBuilder.AppendDocument(strconv.Itoa(k),
-				bsoncore.NewDocumentBuilder().
-					AppendInt64("deletedCount", v.DeletedCount).
-					Build(),
-			)
+	if res == nil {
+		var bwe mongo.ClientBulkWriteException
+		if !errors.As(err, &bwe) || bwe.PartialResult == nil {
+			return newDocumentResult(emptyCoreDocument, err), nil
 		}
-		rawBuilder.AppendDocument("deleteResults", resBuilder.Build())
+		res = bwe.PartialResult
+	}
+	rawBuilder := bsoncore.NewDocumentBuilder().
+		AppendInt64("deletedCount", res.DeletedCount).
+		AppendInt64("insertedCount", res.InsertedCount).
+		AppendInt64("matchedCount", res.MatchedCount).
+		AppendInt64("modifiedCount", res.ModifiedCount).
+		AppendInt64("upsertedCount", res.UpsertedCount)
 
-		resBuilder = bsoncore.NewDocumentBuilder()
-		for k, v := range res.InsertResults {
-			t, d, err := bson.MarshalValue(v.InsertedID)
+	var resBuilder *bsoncore.DocumentBuilder
+
+	resBuilder = bsoncore.NewDocumentBuilder()
+	for k, v := range res.DeleteResults {
+		resBuilder.AppendDocument(strconv.Itoa(k),
+			bsoncore.NewDocumentBuilder().
+				AppendInt64("deletedCount", v.DeletedCount).
+				Build(),
+		)
+	}
+	rawBuilder.AppendDocument("deleteResults", resBuilder.Build())
+
+	resBuilder = bsoncore.NewDocumentBuilder()
+	for k, v := range res.InsertResults {
+		t, d, err := bson.MarshalValue(v.InsertedID)
+		if err != nil {
+			return nil, err
+		}
+		resBuilder.AppendDocument(strconv.Itoa(k),
+			bsoncore.NewDocumentBuilder().
+				AppendValue("insertedId", bsoncore.Value{Type: t, Data: d}).
+				Build(),
+		)
+	}
+	rawBuilder.AppendDocument("insertResults", resBuilder.Build())
+
+	resBuilder = bsoncore.NewDocumentBuilder()
+	for k, v := range res.UpdateResults {
+		b := bsoncore.NewDocumentBuilder().
+			AppendInt64("matchedCount", v.MatchedCount).
+			AppendInt64("modifiedCount", v.ModifiedCount)
+		if v.UpsertedID != nil {
+			t, d, err := bson.MarshalValue(v.UpsertedID)
 			if err != nil {
 				return nil, err
 			}
-			resBuilder.AppendDocument(strconv.Itoa(k),
-				bsoncore.NewDocumentBuilder().
-					AppendValue("insertedId", bsoncore.Value{Type: t, Data: d}).
-					Build(),
-			)
+			b.AppendValue("upsertedId", bsoncore.Value{Type: t, Data: d})
 		}
-		rawBuilder.AppendDocument("insertResults", resBuilder.Build())
-
-		resBuilder = bsoncore.NewDocumentBuilder()
-		for k, v := range res.UpdateResults {
-			b := bsoncore.NewDocumentBuilder().
-				AppendInt64("matchedCount", v.MatchedCount).
-				AppendInt64("modifiedCount", v.ModifiedCount)
-			if v.UpsertedID != nil {
-				t, d, err := bson.MarshalValue(v.UpsertedID)
-				if err != nil {
-					return nil, err
-				}
-				b.AppendValue("upsertedId", bsoncore.Value{Type: t, Data: d})
-			}
-			resBuilder.AppendDocument(strconv.Itoa(k), b.Build())
-		}
-		rawBuilder.AppendDocument("updateResults", resBuilder.Build())
-
-		raw = rawBuilder.Build()
+		resBuilder.AppendDocument(strconv.Itoa(k), b.Build())
 	}
-	return newDocumentResult(raw, err), nil
+	rawBuilder.AppendDocument("updateResults", resBuilder.Build())
+
+	return newDocumentResult(rawBuilder.Build(), err), nil
 }
 
 func appendClientBulkWriteModel(key string, value bson.Raw, model *mongo.ClientWriteModels) error {

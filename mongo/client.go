@@ -909,8 +909,10 @@ func (c *Client) BulkWrite(ctx context.Context, models *ClientWriteModels,
 	if bwo.VerboseResults == nil || !(*bwo.VerboseResults) {
 		op.errorsOnly = true
 	}
-	err = op.execute(ctx)
-	return &op.result, replaceErrors(err)
+	if err = op.execute(ctx); err != nil {
+		return nil, replaceErrors(err)
+	}
+	return &op.result, nil
 }
 
 // newLogger will use the LoggerOptions to create an internal logger and publish
