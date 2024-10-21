@@ -8,6 +8,7 @@ package topology
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -18,6 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/logger"
+	"go.mongodb.org/mongo-driver/v2/internal/ptrutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/address"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 )
@@ -803,6 +805,7 @@ var (
 // tries to read any bytes returned by the server. If there are any errors, the
 // connection will be checked back into the pool to be retried.
 func awaitPendingRead(pool *pool, conn *connection) error {
+	fmt.Println("awaitRemainingBytes", conn.awaitRemainingBytes)
 	pool.bgReadMu.Lock()
 	defer pool.bgReadMu.Unlock()
 
@@ -836,8 +839,14 @@ func awaitPendingRead(pool *pool, conn *connection) error {
 
 	if size == 0 {
 		var sizeBuf [4]byte
-		_, err = io.ReadFull(conn.nc, sizeBuf[:])
+		n, err := io.ReadFull(conn.nc, sizeBuf[:])
 		if err != nil {
+			// If the read times out, record the bytes left to read before exiting.
+			nerr := net.Error(nil)
+			if l := int32(n); l == 0 && errors.As(err, &nerr) && nerr.Timeout() {
+				conn.awaitRemainingBytes = ptrutil.Ptr(l + *conn.awaitRemainingBytes)
+			}
+
 			checkIn = true
 			return fmt.Errorf("error reading the message size: %w", err)
 		}
