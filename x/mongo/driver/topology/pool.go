@@ -805,7 +805,6 @@ var (
 // tries to read any bytes returned by the server. If there are any errors, the
 // connection will be checked back into the pool to be retried.
 func awaitPendingRead(pool *pool, conn *connection) error {
-	fmt.Println("awaitRemainingBytes", conn.awaitRemainingBytes)
 	pool.bgReadMu.Lock()
 	defer pool.bgReadMu.Unlock()
 
@@ -839,14 +838,7 @@ func awaitPendingRead(pool *pool, conn *connection) error {
 
 	if size == 0 {
 		var sizeBuf [4]byte
-		n, err := io.ReadFull(conn.nc, sizeBuf[:])
-		if err != nil {
-			// If the read times out, record the bytes left to read before exiting.
-			nerr := net.Error(nil)
-			if l := int32(n); l == 0 && errors.As(err, &nerr) && nerr.Timeout() {
-				conn.awaitRemainingBytes = ptrutil.Ptr(l + *conn.awaitRemainingBytes)
-			}
-
+		if _, err := io.ReadFull(conn.nc, sizeBuf[:]); err != nil {
 			checkIn = true
 			return fmt.Errorf("error reading the message size: %w", err)
 		}
@@ -857,8 +849,14 @@ func awaitPendingRead(pool *pool, conn *connection) error {
 		}
 		size -= 4
 	}
-	_, err = io.CopyN(io.Discard, conn.nc, int64(size))
+	n, err := io.CopyN(io.Discard, conn.nc, int64(size))
 	if err != nil {
+		// If the read times out, record the bytes left to read before exiting.
+		nerr := net.Error(nil)
+		if l := int32(n); l == 0 && errors.As(err, &nerr) && nerr.Timeout() {
+			conn.awaitRemainingBytes = ptrutil.Ptr(l + *conn.awaitRemainingBytes)
+		}
+
 		checkIn = true
 		return fmt.Errorf("error discarding %d byte message: %w", size, err)
 	}
