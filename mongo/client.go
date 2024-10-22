@@ -851,9 +851,10 @@ func (c *Client) createBaseCursorOptions() driver.CursorOptions {
 	}
 }
 
-// BulkWrite performs a client-levelbulk write operation.
+// BulkWrite performs a client-level bulk write operation.
 func (c *Client) BulkWrite(ctx context.Context, models *ClientWriteModels,
 	opts ...*options.ClientBulkWriteOptions) (*ClientBulkWriteResult, error) {
+	// TODO: Remove once DRIVERS-2888 is implemented.
 	if c.isAutoEncryptionSet {
 		return nil, errors.New("bulkWrite does not currently support automatic encryption")
 	}
@@ -886,6 +887,9 @@ func (c *Client) BulkWrite(ctx context.Context, models *ClientWriteModels,
 		wc = bwo.WriteConcern
 	}
 	if !writeconcern.AckWrite(wc) {
+		if bwo.Ordered == nil || *bwo.Ordered {
+			return nil, errors.New("cannot request unacknowledged write concern and ordered writes")
+		}
 		sess = nil
 	}
 
@@ -908,6 +912,8 @@ func (c *Client) BulkWrite(ctx context.Context, models *ClientWriteModels,
 	}
 	if bwo.VerboseResults == nil || !(*bwo.VerboseResults) {
 		op.errorsOnly = true
+	} else if !writeconcern.AckWrite(wc) {
+		return nil, errors.New("cannot request unacknowledged write concern and verbose results")
 	}
 	if err = op.execute(ctx); err != nil {
 		return nil, replaceErrors(err)

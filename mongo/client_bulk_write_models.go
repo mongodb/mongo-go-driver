@@ -16,7 +16,6 @@ import (
 type ClientWriteModels struct {
 	models []clientWriteModel
 }
-
 type clientWriteModel struct {
 	namespace string
 	model     interface{}
@@ -106,7 +105,7 @@ func (m *ClientWriteModels) AppendDeleteMany(database, collection string, models
 	return m
 }
 
-// ClientInsertOneModel is used to insert a single document in a BulkWrite operation.
+// ClientInsertOneModel is used to insert a single document in a client-level BulkWrite operation.
 type ClientInsertOneModel struct {
 	Document interface{}
 }
@@ -166,7 +165,7 @@ func (uom *ClientUpdateOneModel) SetCollation(collation *options.Collation) *Cli
 }
 
 // SetUpsert specifies whether or not a new document should be inserted if no document matching the filter is found. If
-// an upsert is performed, the _id of the upserted document can be retrieved from the UpsertedIDs field of the
+// an upsert is performed, the _id of the upserted document can be retrieved from the UpdateResults field of the
 // ClientBulkWriteResult.
 func (uom *ClientUpdateOneModel) SetUpsert(upsert bool) *ClientUpdateOneModel {
 	uom.Upsert = &upsert
@@ -219,7 +218,7 @@ func (umm *ClientUpdateManyModel) SetCollation(collation *options.Collation) *Cl
 }
 
 // SetUpsert specifies whether or not a new document should be inserted if no document matching the filter is found. If
-// an upsert is performed, the _id of the upserted document can be retrieved from the UpsertedIDs field of the
+// an upsert is performed, the _id of the upserted document can be retrieved from the UpdateResults field of the
 // ClientBulkWriteResult.
 func (umm *ClientUpdateManyModel) SetUpsert(upsert bool) *ClientUpdateManyModel {
 	umm.Upsert = &upsert
@@ -265,7 +264,7 @@ func (rom *ClientReplaceOneModel) SetCollation(collation *options.Collation) *Cl
 }
 
 // SetUpsert specifies whether or not the replacement document should be inserted if no document matching the filter is
-// found. If an upsert is performed, the _id of the upserted document can be retrieved from the UpsertedIDs field of the
+// found. If an upsert is performed, the _id of the upserted document can be retrieved from the UpdateResults field of the
 // BulkWriteResult.
 func (rom *ClientReplaceOneModel) SetUpsert(upsert bool) *ClientReplaceOneModel {
 	rom.Upsert = &upsert

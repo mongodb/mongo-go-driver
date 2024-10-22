@@ -611,14 +611,20 @@ func (bwe BulkWriteException) serverError() {}
 
 // ClientBulkWriteException is the error type returned by ClientBulkWrite operations.
 type ClientBulkWriteException struct {
+	// A top-level error that occurred when attempting to communicate with the server
+	// or execute the bulk write. This value may not be populated if the exception was
+	// thrown due to errors occurring on individual writes.
 	TopLevelError *WriteError
 
 	// The write concern errors that occurred.
 	WriteConcernErrors []WriteConcernError
 
 	// The write errors that occurred during individual operation execution.
+	// This map will contain at most one entry if the bulk write was ordered.
 	WriteErrors map[int]WriteError
 
+	// The results of any successful operations that were performed before the error
+	// was encountered.
 	PartialResult *ClientBulkWriteResult
 }
 

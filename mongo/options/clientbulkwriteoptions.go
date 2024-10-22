@@ -12,21 +12,19 @@ import (
 
 // ClientBulkWriteOptions represents options that can be used to configure a client-level BulkWrite operation.
 type ClientBulkWriteOptions struct {
-	// If true, writes executed as part of the operation will opt out of document-level validation on the server. This
-	// option is valid for MongoDB versions >= 3.2 and is ignored for previous server versions. The default value is
-	// false. See https://www.mongodb.com/docs/manual/core/schema-validation/ for more information about document
-	// validation.
+	// If true, writes executed as part of the operation will opt out of document-level validation on the server. The
+	// default value is false. See https://www.mongodb.com/docs/manual/core/schema-validation/ for more information
+	// about document validation.
 	BypassDocumentValidation *bool
 
 	// A string or document that will be included in server logs, profiling logs, and currentOp queries to help trace
-	// the operation.  The default value is nil, which means that no comment will be included in the logs.
+	// the operation. The default value is nil, which means that no comment will be included in the logs.
 	Comment interface{}
 
 	// If true, no writes will be executed after one fails. The default value is true.
 	Ordered *bool
 
-	// Specifies parameters for all update and delete commands in the BulkWrite. This option is only valid for MongoDB
-	// versions >= 5.0. Older servers will report an error for using this option. This must be a document mapping
+	// Specifies parameters for all update and delete commands in the BulkWrite. This must be a document mapping
 	// parameter names to values. Values must be constant or closed expressions that do not reference document fields.
 	// Parameters can then be accessed as variables in an aggregate expression context (e.g. "$$var").
 	Let interface{}
@@ -63,8 +61,7 @@ func (b *ClientBulkWriteOptions) SetBypassDocumentValidation(bypass bool) *Clien
 	return b
 }
 
-// SetLet sets the value for the Let field. Let specifies parameters for all update and delete commands in the BulkWrite.
-// This option is only valid for MongoDB versions >= 5.0. Older servers will report an error for using this option.
+// SetLet sets the value for the Let field. Let specifies parameters for all update and delete commands in the ClientBulkWrite.
 // This must be a document mapping parameter names to values. Values must be constant or closed expressions that do not
 // reference document fields. Parameters can then be accessed as variables in an aggregate expression context (e.g. "$$var").
 func (b *ClientBulkWriteOptions) SetLet(let interface{}) *ClientBulkWriteOptions {
@@ -84,8 +81,8 @@ func (b *ClientBulkWriteOptions) SetVerboseResults(verboseResults bool) *ClientB
 	return b
 }
 
-// MergeClientBulkWriteOptions combines the given BulkWriteOptions instances into a single BulkWriteOptions in a last-one-wins
-// fashion.
+// MergeClientBulkWriteOptions combines the given ClientBulkWriteOptions instances into a single
+// ClientBulkWriteOptions in a last-one-wins fashion.
 //
 // Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
 // single options struct instead.

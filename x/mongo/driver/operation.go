@@ -1349,6 +1349,8 @@ func (op Operation) createWireMessage(
 	var wmindex int32
 	var err error
 
+	unacknowledged := op.WriteConcern != nil && !writeconcern.AckWrite(op.WriteConcern)
+
 	fIdx := -1
 	isLegacy := isLegacyHandshake(op, desc)
 	switch {
@@ -1374,10 +1376,10 @@ func (op Operation) createWireMessage(
 	default:
 		wmindex, dst = wiremessage.AppendHeaderStart(dst, requestID, 0, wiremessage.OpMsg)
 		fIdx = len(dst)
-		appendBatches := func(dst []byte) ([]byte, error) {
+		appendBatches := func(dst []byte, maxCount, maxDocSize, totalSize int) ([]byte, error) {
 			var processedBatches int
 			dsOffset := len(dst)
-			processedBatches, dst, err = op.Batches.AppendBatchSequence(dst, int(desc.MaxBatchCount), int(desc.MaxDocumentSize), int(desc.MaxMessageSize))
+			processedBatches, dst, err = op.Batches.AppendBatchSequence(dst, maxCount, maxDocSize, totalSize)
 			if err != nil {
 				return nil, err
 			}
@@ -1401,12 +1403,16 @@ func (op Operation) createWireMessage(
 		case *Batches:
 			dst, info.cmd, err = op.createMsgWireMessage(maxTimeMS, dst, desc, conn, op.CommandFn)
 			if err == nil && op.Batches != nil {
-				dst, err = appendBatches(dst)
+				dst, err = appendBatches(dst, int(desc.MaxBatchCount), int(desc.MaxDocumentSize), int(desc.MaxDocumentSize))
 			}
 		default:
 			var batches []byte
 			if op.Batches != nil {
-				batches, err = appendBatches(batches)
+				maxDocSize := -1
+				if unacknowledged {
+					maxDocSize = int(desc.MaxDocumentSize)
+				}
+				batches, err = appendBatches(batches, int(desc.MaxBatchCount), maxDocSize, int(desc.MaxMessageSize))
 			}
 			if err == nil {
 				dst, info.cmd, err = op.createMsgWireMessage(maxTimeMS, dst, desc, conn, op.CommandFn)
@@ -1423,7 +1429,6 @@ func (op Operation) createWireMessage(
 	var moreToCome bool
 	// We set the MoreToCome bit if we have a write concern, it's unacknowledged, and we either
 	// aren't batching or we are encoding the last batch.
-	unacknowledged := op.WriteConcern != nil && !writeconcern.AckWrite(op.WriteConcern)
 	batching := op.Batches != nil && op.Batches.Size() > info.processedBatches
 	if fIdx > 0 && unacknowledged && !batching {
 		dst[fIdx] |= byte(wiremessage.MoreToCome)

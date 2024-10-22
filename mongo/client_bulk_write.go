@@ -15,6 +15,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
@@ -22,6 +23,10 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
+)
+
+const (
+	database = "admin"
 )
 
 // bulkWrite performs a bulkwrite operation
@@ -42,12 +47,17 @@ type clientBulkWrite struct {
 
 func (bw *clientBulkWrite) execute(ctx context.Context) error {
 	if len(bw.models) == 0 {
-		return errors.New("empty write models")
+		return ErrEmptySlice
+	}
+	for _, m := range bw.models {
+		if m.model == nil {
+			return ErrNilDocument
+		}
 	}
 	batches := &modelBatches{
 		session:   bw.session,
 		client:    bw.client,
-		ordered:   bw.ordered,
+		ordered:   bw.ordered == nil || *bw.ordered,
 		models:    bw.models,
 		result:    &bw.result,
 		retryMode: driver.RetryOnce,
@@ -61,7 +71,7 @@ func (bw *clientBulkWrite) execute(ctx context.Context) error {
 		Type:              driver.Write,
 		Batches:           batches,
 		CommandMonitor:    bw.client.monitor,
-		Database:          "admin",
+		Database:          database,
 		Deployment:        bw.client.deployment,
 		Selector:          bw.selector,
 		WriteConcern:      bw.writeConcern,
@@ -70,7 +80,7 @@ func (bw *clientBulkWrite) execute(ctx context.Context) error {
 		Timeout:           bw.client.timeout,
 		Logger:            bw.client.logger,
 		Authenticator:     bw.client.authenticator,
-		Name:              "bulkWrite",
+		Name:              driverutil.BulkWriteOp,
 	}.Execute(ctx)
 	var exception *ClientBulkWriteException
 	switch tt := err.(type) {
@@ -96,7 +106,7 @@ func (bw *clientBulkWrite) execute(ctx context.Context) error {
 	}
 	if exception != nil {
 		var hasSuccess bool
-		if bw.ordered == nil || *bw.ordered {
+		if batches.ordered {
 			_, ok := batches.writeErrors[0]
 			hasSuccess = !ok
 		} else {
@@ -125,9 +135,7 @@ func (bw *clientBulkWrite) newCommand() func([]byte, description.SelectedServer)
 			}
 			dst = bsoncore.AppendValueElement(dst, "comment", comment)
 		}
-		if bw.ordered != nil {
-			dst = bsoncore.AppendBooleanElement(dst, "ordered", *bw.ordered)
-		}
+		dst = bsoncore.AppendBooleanElement(dst, "ordered", bw.ordered == nil || *bw.ordered)
 		if bw.let != nil {
 			let, err := marshal(bw.let, bw.client.bsonOpts, bw.client.registry)
 			if err != nil {
@@ -173,7 +181,7 @@ type modelBatches struct {
 	session *session.Client
 	client  *Client
 
-	ordered *bool
+	ordered bool
 	models  []clientWriteModel
 
 	offset int
@@ -188,7 +196,7 @@ type modelBatches struct {
 }
 
 func (mb *modelBatches) IsOrdered() *bool {
-	return mb.ordered
+	return &mb.ordered
 }
 
 func (mb *modelBatches) AdvanceBatches(n int) {
@@ -265,6 +273,7 @@ func (mb *modelBatches) appendBatches(fn functionSet, dst []byte, maxCount, maxD
 	}
 
 	canRetry := true
+	checkSize := true
 
 	l := len(dst)
 
@@ -272,7 +281,7 @@ func (mb *modelBatches) appendBatches(fn functionSet, dst []byte, maxCount, maxD
 	nsIdx, nsDst := fn.appendStart(nil, "nsInfo")
 
 	totalSize -= 1000
-	size := (len(dst) - l) * 2
+	size := len(dst) + len(nsDst)
 	var n int
 	for i := mb.offset; i < len(mb.models); i++ {
 		if n == maxCount {
@@ -286,11 +295,13 @@ func (mb *modelBatches) appendBatches(fn functionSet, dst []byte, maxCount, maxD
 		var err error
 		switch model := mb.models[i].model.(type) {
 		case *ClientInsertOneModel:
+			checkSize = false
 			mb.cursorHandlers = append(mb.cursorHandlers, mb.appendInsertResult)
 			var id interface{}
 			id, doc, err = (&clientInsertDoc{
 				namespace: nsIdx,
 				document:  model.Document,
+				sizeLimit: maxDocSize,
 			}).marshal(mb.client.bsonOpts, mb.client.registry)
 			if err != nil {
 				break
@@ -324,6 +335,7 @@ func (mb *modelBatches) appendBatches(fn functionSet, dst []byte, maxCount, maxD
 				checkDollarKey: true,
 			}).marshal(mb.client.bsonOpts, mb.client.registry)
 		case *ClientReplaceOneModel:
+			checkSize = false
 			mb.cursorHandlers = append(mb.cursorHandlers, mb.appendUpdateResult)
 			doc, err = (&clientUpdateDoc{
 				namespace:      nsIdx,
@@ -335,6 +347,7 @@ func (mb *modelBatches) appendBatches(fn functionSet, dst []byte, maxCount, maxD
 				upsert:         model.Upsert,
 				multi:          false,
 				checkDollarKey: false,
+				sizeLimit:      maxDocSize,
 			}).marshal(mb.client.bsonOpts, mb.client.registry)
 		case *ClientDeleteOneModel:
 			mb.cursorHandlers = append(mb.cursorHandlers, mb.appendDeleteResult)
@@ -362,8 +375,8 @@ func (mb *modelBatches) appendBatches(fn functionSet, dst []byte, maxCount, maxD
 			return 0, nil, err
 		}
 		length := len(doc)
-		if length > maxDocSize {
-			break
+		if maxDocSize > 0 && length > maxDocSize+16*1024 {
+			return 0, nil, driver.ErrDocumentTooLarge
 		}
 		if !exists {
 			length += len(ns)
@@ -389,6 +402,9 @@ func (mb *modelBatches) appendBatches(fn functionSet, dst []byte, maxCount, maxD
 	dst = fn.updateLength(dst, opsIdx, int32(len(dst[opsIdx:])))
 	nsDst = fn.updateLength(nsDst, nsIdx, int32(len(nsDst[nsIdx:])))
 	dst = append(dst, nsDst...)
+	if checkSize && maxDocSize > 0 && len(dst)-l > maxDocSize+16*1024 {
+		return 0, nil, driver.ErrDocumentTooLarge
+	}
 
 	mb.retryMode = driver.RetryNone
 	if mb.client.retryWrites && canRetry {
@@ -424,6 +440,19 @@ func (mb *modelBatches) processResponse(ctx context.Context, resp bsoncore.Docum
 	if err != nil {
 		return err
 	}
+	if !res.Ok {
+		return ClientBulkWriteException{
+			TopLevelError: &WriteError{
+				Code:    int(res.Code),
+				Message: res.Errmsg,
+				Raw:     bson.Raw(resp),
+			},
+			WriteConcernErrors: mb.writeConcernErrors,
+			WriteErrors:        mb.writeErrors,
+			PartialResult:      mb.result,
+		}
+	}
+
 	mb.result.DeletedCount += int64(res.NDeleted)
 	mb.result.InsertedCount += int64(res.NInserted)
 	mb.result.MatchedCount += int64(res.NMatched)
@@ -470,21 +499,12 @@ func (mb *modelBatches) processResponse(ctx context.Context, resp bsoncore.Docum
 	if err != nil {
 		return err
 	}
-	isOrdered := mb.ordered == nil || *mb.ordered
-	if isOrdered && (writeCmdErr.WriteConcernError != nil || !ok || !res.Ok || res.NErrors > 0) {
-		exception := ClientBulkWriteException{
+	if mb.ordered && (writeCmdErr.WriteConcernError != nil || !ok || !res.Ok || res.NErrors > 0) {
+		return ClientBulkWriteException{
 			WriteConcernErrors: mb.writeConcernErrors,
 			WriteErrors:        mb.writeErrors,
 			PartialResult:      mb.result,
 		}
-		if !res.Ok {
-			exception.TopLevelError = &WriteError{
-				Code:    int(res.Code),
-				Message: res.Errmsg,
-				Raw:     bson.Raw(resp),
-			}
-		}
-		return exception
 	}
 	return nil
 }
@@ -558,6 +578,8 @@ func (mb *modelBatches) appendUpdateResult(cur *cursorInfo, raw bson.Raw) bool {
 type clientInsertDoc struct {
 	namespace int
 	document  interface{}
+
+	sizeLimit int
 }
 
 func (d *clientInsertDoc) marshal(bsonOpts *options.BSONOptions, registry *bsoncodec.Registry) (interface{}, bsoncore.Document, error) {
@@ -567,6 +589,9 @@ func (d *clientInsertDoc) marshal(bsonOpts *options.BSONOptions, registry *bsonc
 	f, err := marshal(d.document, bsonOpts, registry)
 	if err != nil {
 		return nil, nil, err
+	}
+	if d.sizeLimit > 0 && len(f) > d.sizeLimit {
+		return nil, nil, driver.ErrDocumentTooLarge
 	}
 	var id interface{}
 	f, id, err = ensureID(f, primitive.NilObjectID, bsonOpts, registry)
@@ -588,6 +613,8 @@ type clientUpdateDoc struct {
 	upsert         *bool
 	multi          bool
 	checkDollarKey bool
+
+	sizeLimit int
 }
 
 func (d *clientUpdateDoc) marshal(bsonOpts *options.BSONOptions, registry *bsoncodec.Registry) (bsoncore.Document, error) {
@@ -604,6 +631,9 @@ func (d *clientUpdateDoc) marshal(bsonOpts *options.BSONOptions, registry *bsonc
 	u, err := marshalUpdateValue(d.update, bsonOpts, registry, d.checkDollarKey)
 	if err != nil {
 		return nil, err
+	}
+	if d.sizeLimit > 0 && len(u.Data) > d.sizeLimit {
+		return nil, driver.ErrDocumentTooLarge
 	}
 	doc = bsoncore.AppendValueElement(doc, "updateMods", u)
 	doc = bsoncore.AppendBooleanElement(doc, "multi", d.multi)
