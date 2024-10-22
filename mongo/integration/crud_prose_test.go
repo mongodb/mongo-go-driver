@@ -529,7 +529,7 @@ func TestClientBulkWrite(t *testing.T) {
 	})
 
 	mt.Run("bulkWrite handles individual WriteErrors across batches", func(mt *mtest.T) {
-		coll := mt.CreateCollection(mtest.Collection{DB: "db", Name: "coll"}, true)
+		coll := mt.CreateCollection(mtest.Collection{DB: "db", Name: "coll"}, false)
 		err := coll.Drop(context.Background())
 		require.NoError(mt, err, "Drop error")
 		_, err = coll.InsertOne(context.Background(), bson.D{{"_id", 1}})
@@ -580,7 +580,7 @@ func TestClientBulkWrite(t *testing.T) {
 	})
 
 	mt.Run("bulkWrite handles a cursor requiring a getMore", func(mt *mtest.T) {
-		coll := mt.CreateCollection(mtest.Collection{DB: "db", Name: "coll"}, true)
+		coll := mt.CreateCollection(mtest.Collection{DB: "db", Name: "coll"}, false)
 		err := coll.Drop(context.Background())
 		require.NoError(mt, err, "Drop error")
 
@@ -618,7 +618,7 @@ func TestClientBulkWrite(t *testing.T) {
 	})
 
 	mt.Run("bulkWrite handles a cursor requiring a getMore within a transaction", func(mt *mtest.T) {
-		coll := mt.CreateCollection(mtest.Collection{DB: "db", Name: "coll"}, true)
+		coll := mt.CreateCollection(mtest.Collection{DB: "db", Name: "coll"}, false)
 		err := coll.Drop(context.Background())
 		require.NoError(mt, err, "Drop error")
 
@@ -693,7 +693,7 @@ func TestClientBulkWrite(t *testing.T) {
 			},
 		})
 
-		coll := mt.CreateCollection(mtest.Collection{DB: "db", Name: "coll"}, true)
+		coll := mt.CreateCollection(mtest.Collection{DB: "db", Name: "coll"}, false)
 		err = coll.Drop(context.Background())
 		require.NoError(mt, err, "Drop error")
 
@@ -910,7 +910,7 @@ func TestClientBulkWrite(t *testing.T) {
 
 		mt.ResetClient(options.Client().SetMonitor(monitor))
 
-		coll := mt.CreateCollection(mtest.Collection{DB: "db", Name: "coll"}, true)
+		coll := mt.CreateCollection(mtest.Collection{DB: "db", Name: "coll"}, false)
 		err = coll.Drop(context.Background())
 		require.NoError(mt, err, "Drop error")
 
