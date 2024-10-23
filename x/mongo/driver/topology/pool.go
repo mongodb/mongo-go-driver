@@ -580,7 +580,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 			return nil, w.err
 		}
 
-		if err := awaitPendingRead(p, w.conn); err != nil {
+		if err := awaitPendingRead(ctx, p, w.conn); err != nil {
 			return p.checkOut(ctx) // Retry the checkout if the read fails.
 		}
 
@@ -650,6 +650,10 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 			logPoolMessage(p, logger.ConnectionCheckedOut, keysAndValues...)
 		}
 
+		if err := awaitPendingRead(ctx, p, w.conn); err != nil {
+			return p.checkOut(ctx) // Retry the checkout if the read fails.
+		}
+
 		if p.monitor != nil {
 			p.monitor.Event(&event.PoolEvent{
 				Type:         event.ConnectionCheckedOut,
@@ -657,10 +661,6 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 				ConnectionID: w.conn.driverConnectionID,
 				Duration:     duration,
 			})
-		}
-
-		if err := awaitPendingRead(p, w.conn); err != nil {
-			return p.checkOut(ctx) // Retry the checkout if the read fails.
 		}
 
 		return w.conn, nil
@@ -804,7 +804,7 @@ var (
 // awaitPendingRead sets a new read deadline on the provided connection and
 // tries to read any bytes returned by the server. If there are any errors, the
 // connection will be checked back into the pool to be retried.
-func awaitPendingRead(pool *pool, conn *connection) error {
+func awaitPendingRead(ctx context.Context, pool *pool, conn *connection) error {
 	pool.bgReadMu.Lock()
 	defer pool.bgReadMu.Unlock()
 
@@ -815,12 +815,20 @@ func awaitPendingRead(pool *pool, conn *connection) error {
 
 	size := *conn.awaitRemainingBytes
 
-	var checkIn bool
-
 	defer func() {
-		if !checkIn {
+		if conn.awaitRemainingBytes == nil {
 			return
 		}
+
+		if *conn.remainingTime < 0 {
+			err := conn.close()
+			if err != nil {
+				panic(err)
+			}
+
+			return
+		}
+
 		// No matter what happens, always check the connection back into the
 		// pool, which will either make it available for other operations or
 		// remove it from the pool if it was closed.
@@ -830,21 +838,24 @@ func awaitPendingRead(pool *pool, conn *connection) error {
 		}
 	}()
 
-	err := conn.nc.SetReadDeadline(time.Now().Add(BGReadTimeout))
+	dl, ok := ctx.Deadline()
+	if !ok {
+		dl = time.Now().Add(BGReadTimeout)
+	}
+
+	err := conn.nc.SetReadDeadline(dl)
 	if err != nil {
-		checkIn = true
 		return fmt.Errorf("error setting a read deadline: %w", err)
 	}
 
 	if size == 0 {
 		var sizeBuf [4]byte
 		if _, err := io.ReadFull(conn.nc, sizeBuf[:]); err != nil {
-			checkIn = true
+			conn.remainingTime = ptrutil.Ptr(*conn.remainingTime - time.Since(dl))
 			return fmt.Errorf("error reading the message size: %w", err)
 		}
 		size, err = conn.parseWmSizeBytes(sizeBuf)
 		if err != nil {
-			checkIn = true
 			return err
 		}
 		size -= 4
@@ -855,13 +866,14 @@ func awaitPendingRead(pool *pool, conn *connection) error {
 		nerr := net.Error(nil)
 		if l := int32(n); l == 0 && errors.As(err, &nerr) && nerr.Timeout() {
 			conn.awaitRemainingBytes = ptrutil.Ptr(l + *conn.awaitRemainingBytes)
+			conn.remainingTime = ptrutil.Ptr(*conn.remainingTime - time.Since(dl))
 		}
 
-		checkIn = true
 		return fmt.Errorf("error discarding %d byte message: %w", size, err)
 	}
 
 	conn.awaitRemainingBytes = nil
+	conn.remainingTime = nil
 
 	return nil
 }

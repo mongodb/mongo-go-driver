@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/internal/ptrutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/address"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
@@ -85,6 +86,7 @@ type connection struct {
 	// awaitRemainingBytes indicates the size of server response that was not completely
 	// read before returning the connection to the pool.
 	awaitRemainingBytes *int32
+	remainingTime       *time.Duration
 }
 
 // newConnection handles the creation of a connection. It does not connect the connection.
@@ -478,6 +480,7 @@ func (c *connection) read(ctx context.Context) (bytesRead []byte, errMsg string,
 	if err != nil {
 		if l := int32(n); l == 0 && isCSOTTimeout(err) {
 			c.awaitRemainingBytes = &l
+			c.remainingTime = ptrutil.Ptr(BGReadTimeout)
 		}
 		return nil, "incomplete read of message header", err
 	}
@@ -494,6 +497,7 @@ func (c *connection) read(ctx context.Context) (bytesRead []byte, errMsg string,
 		remainingBytes := size - 4 - int32(n)
 		if remainingBytes > 0 && isCSOTTimeout(err) {
 			c.awaitRemainingBytes = &remainingBytes
+			c.remainingTime = ptrutil.Ptr(BGReadTimeout)
 		}
 		return dst, "incomplete read of full message", err
 	}
