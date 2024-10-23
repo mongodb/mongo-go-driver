@@ -63,6 +63,8 @@ func createUpdateArguments(args bson.Raw) (*updateArguments, error) {
 			ua.opts.SetHint(hint)
 		case "let":
 			ua.opts.SetLet(val.Document())
+		case "sort":
+			ua.opts.SetSort(val.Document())
 		case "update":
 			ua.update, err = createUpdateValue(val)
 			if err != nil {
@@ -158,6 +160,18 @@ func createHint(val bson.RawValue) (interface{}, error) {
 		return nil, fmt.Errorf("unrecognized hint value type %s", val.Type)
 	}
 	return hint, nil
+}
+
+func createSort(val bson.RawValue) (interface{}, error) {
+	var sort interface{}
+
+	switch val.Type {
+	case bsontype.EmbeddedDocument:
+		sort = val.Document()
+	default:
+		return nil, fmt.Errorf("unrecognized sort value type %s", val.Type)
+	}
+	return sort, nil
 }
 
 func createCommentString(val bson.RawValue) (string, error) {
