@@ -2,7 +2,12 @@
 set -e # exit when any command fails
 set -x # show all commands being run
 
-GC=go$GO_VERSION
+# Default to Go 1.18 if GO_VERSION is not set.
+#
+# Use the "=" operator (instead of the more common ":-" operator) so that it
+# allows setting GO_VERSION="" to use the Go installation in the PATH, and it
+# sets the GO_VERSION variable if the default is used.
+GC=go${GO_VERSION="1.18"}
 COMPILE_CHECK_DIR="internal/cmd/compilecheck"
 
 # compile_check will attempt to build the internal/test/compilecheck project

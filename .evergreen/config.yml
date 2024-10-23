@@ -1380,6 +1380,10 @@ tasks:
       - command: subprocess.exec
         params:
           binary: bash
+          # Set the GO_VERSION to empty string to use the Go installation in the
+          # PATH.
+          env:
+            GO_VERSION: ""
           args: [*task-runner, build]
 
   - name: "atlas-test"
