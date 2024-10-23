@@ -106,7 +106,7 @@ test-race:
 
 .PHONY: test-short
 test-short:
-	go test $(BUILD_TAGS) -timeout 60s -short ./...
+	go test $(BUILD_TAGS) -timeout 60s -short -race ./...
 
 ### Local FaaS targets. ###
 .PHONY: build-faas-awslambda
