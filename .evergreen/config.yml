@@ -387,6 +387,15 @@ functions:
         script: |
           ${PREPARE_SHELL}
           bash ${PROJECT_DIRECTORY}/.evergreen/run-tests.sh
+    - command: shell.exec
+      type: test
+      params:
+        shell: "bash"
+        working_dir: src/go.mongodb.org/mongo-driver
+        include_expansions_in_env: ["MONGODB_URI"]
+        script: |
+          ${PREPARE_SHELL}
+          bash etc/run-goleak-test.sh
 
   create-api-report:
     - command: shell.exec
