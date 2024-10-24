@@ -316,16 +316,16 @@ func verifyCMAPEvents(client *clientEntity, expectedEvents *expectedEvents) erro
 		switch {
 		case evt.ConnectionCreatedEvent != nil:
 			if _, pooled, err = getNextPoolEvent(pooled, event.ConnectionCreated); err != nil {
-				return newEventVerificationError(idx, client, err.Error())
+				return newEventVerificationError(idx, client, "failed to get next pool event: %v", err.Error())
 			}
 		case evt.ConnectionReadyEvent != nil:
 			if _, pooled, err = getNextPoolEvent(pooled, event.ConnectionReady); err != nil {
-				return newEventVerificationError(idx, client, err.Error())
+				return newEventVerificationError(idx, client, "failed to get next pool event: %v", err.Error())
 			}
 		case evt.ConnectionClosedEvent != nil:
 			var actual *event.PoolEvent
 			if actual, pooled, err = getNextPoolEvent(pooled, event.ConnectionClosed); err != nil {
-				return newEventVerificationError(idx, client, err.Error())
+				return newEventVerificationError(idx, client, "failed to get next pool event: %v", err.Error())
 			}
 
 			if expectedReason := evt.ConnectionClosedEvent.Reason; expectedReason != nil {
@@ -335,12 +335,12 @@ func verifyCMAPEvents(client *clientEntity, expectedEvents *expectedEvents) erro
 			}
 		case evt.ConnectionCheckedOutEvent != nil:
 			if _, pooled, err = getNextPoolEvent(pooled, event.GetSucceeded); err != nil {
-				return newEventVerificationError(idx, client, err.Error())
+				return newEventVerificationError(idx, client, "failed to get next pool event: %v", err.Error())
 			}
 		case evt.ConnectionCheckOutFailedEvent != nil:
 			var actual *event.PoolEvent
 			if actual, pooled, err = getNextPoolEvent(pooled, event.GetFailed); err != nil {
-				return newEventVerificationError(idx, client, err.Error())
+				return newEventVerificationError(idx, client, "failed to get next pool event: %v", err.Error())
 			}
 
 			if expectedReason := evt.ConnectionCheckOutFailedEvent.Reason; expectedReason != nil {
@@ -350,12 +350,12 @@ func verifyCMAPEvents(client *clientEntity, expectedEvents *expectedEvents) erro
 			}
 		case evt.ConnectionCheckedInEvent != nil:
 			if _, pooled, err = getNextPoolEvent(pooled, event.ConnectionReturned); err != nil {
-				return newEventVerificationError(idx, client, err.Error())
+				return newEventVerificationError(idx, client, "failed to get next pool event: %v", err.Error())
 			}
 		case evt.PoolClearedEvent != nil:
 			var actual *event.PoolEvent
 			if actual, pooled, err = getNextPoolEvent(pooled, event.PoolCleared); err != nil {
-				return newEventVerificationError(idx, client, err.Error())
+				return newEventVerificationError(idx, client, "failed to get next pool event: %v", err.Error())
 			}
 			if expectServiceID := evt.PoolClearedEvent.HasServiceID; expectServiceID != nil {
 				if err := verifyServiceID(*expectServiceID, actual.ServiceID); err != nil {
@@ -515,7 +515,7 @@ func verifySDAMEvents(client *clientEntity, expectedEvents *expectedEvents) erro
 		case evt.ServerDescriptionChangedEvent != nil:
 			var got *event.ServerDescriptionChangedEvent
 			if got, changed, err = getNextServerDescriptionChangedEvent(changed); err != nil {
-				return newEventVerificationError(idx, client, err.Error())
+				return newEventVerificationError(idx, client, "failed to get next server description changed event: %v", err.Error())
 			}
 
 			prevDesc := evt.ServerDescriptionChangedEvent.NewDescription
@@ -546,7 +546,7 @@ func verifySDAMEvents(client *clientEntity, expectedEvents *expectedEvents) erro
 		case evt.ServerHeartbeatStartedEvent != nil:
 			var got *event.ServerHeartbeatStartedEvent
 			if got, started, err = getNextServerHeartbeatStartedEvent(started); err != nil {
-				return newEventVerificationError(idx, client, err.Error())
+				return newEventVerificationError(idx, client, "failed to get next server heartbeat started event: %v", err.Error())
 			}
 
 			if want := evt.ServerHeartbeatStartedEvent.Awaited; want != nil && *want != got.Awaited {
@@ -555,7 +555,7 @@ func verifySDAMEvents(client *clientEntity, expectedEvents *expectedEvents) erro
 		case evt.ServerHeartbeatSucceededEvent != nil:
 			var got *event.ServerHeartbeatSucceededEvent
 			if got, succeeded, err = getNextServerHeartbeatSucceededEvent(succeeded); err != nil {
-				return newEventVerificationError(idx, client, err.Error())
+				return newEventVerificationError(idx, client, "failed to get next server heartbeat succeeded event: %v", err.Error())
 			}
 
 			if want := evt.ServerHeartbeatSucceededEvent.Awaited; want != nil && *want != got.Awaited {
@@ -564,7 +564,7 @@ func verifySDAMEvents(client *clientEntity, expectedEvents *expectedEvents) erro
 		case evt.ServerHeartbeatFailedEvent != nil:
 			var got *event.ServerHeartbeatFailedEvent
 			if got, failed, err = getNextServerHeartbeatFailedEvent(failed); err != nil {
-				return newEventVerificationError(idx, client, err.Error())
+				return newEventVerificationError(idx, client, "failed to get next server heartbeat failed event: %v", err.Error())
 			}
 
 			if want := evt.ServerHeartbeatFailedEvent.Awaited; want != nil && *want != got.Awaited {
@@ -572,7 +572,7 @@ func verifySDAMEvents(client *clientEntity, expectedEvents *expectedEvents) erro
 			}
 		case evt.TopologyDescriptionChangedEvent != nil:
 			if _, tchanged, err = getNextTopologyDescriptionChangedEvent(tchanged); err != nil {
-				return newEventVerificationError(idx, client, err.Error())
+				return newEventVerificationError(idx, client, "failed to get next description changed event: %v", err.Error())
 			}
 		}
 	}
