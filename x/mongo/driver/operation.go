@@ -1376,34 +1376,22 @@ func (op Operation) createWireMessage(
 	default:
 		wmindex, dst = wiremessage.AppendHeaderStart(dst, requestID, 0, wiremessage.OpMsg)
 		fIdx = len(dst)
-		appendBatches := func(dst []byte, maxCount, maxDocSize, totalSize int) ([]byte, error) {
-			var processedBatches int
-			dsOffset := len(dst)
-			processedBatches, dst, err = op.Batches.AppendBatchSequence(dst, maxCount, maxDocSize, totalSize)
-			if err != nil {
-				return nil, err
-			}
-			if processedBatches == 0 {
-				return nil, ErrDocumentTooLarge
-			}
-			info.processedBatches = processedBatches
-			info.documentSequence = make([]byte, 0)
-			for b := dst[dsOffset:]; len(b) > 0; /* nothing */ {
-				var seq []byte
-				var ok bool
-				seq, b, ok = wiremessage.DocumentSequenceToArray(b)
-				if !ok {
-					break
-				}
-				info.documentSequence = append(info.documentSequence, seq...)
-			}
-			return dst, nil
-		}
+
+		batchOffset := -1
 		switch op.Batches.(type) {
 		case *Batches:
 			dst, info.cmd, err = op.createMsgWireMessage(maxTimeMS, dst, desc, conn, op.CommandFn)
 			if err == nil && op.Batches != nil {
-				dst, err = appendBatches(dst, int(desc.MaxBatchCount), int(desc.MaxDocumentSize), int(desc.MaxDocumentSize))
+				batchOffset = len(dst)
+				info.processedBatches, dst, err = op.Batches.AppendBatchSequence(dst,
+					int(desc.MaxBatchCount), int(desc.MaxDocumentSize), int(desc.MaxDocumentSize),
+				)
+				if err != nil {
+					break
+				}
+				if info.processedBatches == 0 {
+					err = ErrDocumentTooLarge
+				}
 			}
 		default:
 			var batches []byte
@@ -1412,13 +1400,32 @@ func (op Operation) createWireMessage(
 				if unacknowledged {
 					maxDocSize = int(desc.MaxDocumentSize)
 				}
-				batches, err = appendBatches(batches, int(desc.MaxBatchCount), maxDocSize, int(desc.MaxMessageSize))
+				info.processedBatches, batches, err = op.Batches.AppendBatchSequence(batches,
+					int(desc.MaxBatchCount), maxDocSize, int(desc.MaxMessageSize),
+				)
+				if err != nil {
+					break
+				}
+				if info.processedBatches == 0 {
+					err = ErrDocumentTooLarge
+					break
+				}
 			}
-			if err == nil {
-				dst, info.cmd, err = op.createMsgWireMessage(maxTimeMS, dst, desc, conn, op.CommandFn)
-			}
+			dst, info.cmd, err = op.createMsgWireMessage(maxTimeMS, dst, desc, conn, op.CommandFn)
 			if err == nil && len(batches) > 0 {
+				batchOffset = len(dst)
 				dst = append(dst, batches...)
+			}
+		}
+		if err == nil && batchOffset > 0 {
+			for b := dst[batchOffset:]; len(b) > 0; /* nothing */ {
+				var seq []byte
+				var ok bool
+				seq, b, ok = wiremessage.DocumentSequenceToArray(b)
+				if !ok {
+					break
+				}
+				info.documentSequence = append(info.documentSequence, seq...)
 			}
 		}
 	}

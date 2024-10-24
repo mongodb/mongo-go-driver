@@ -886,7 +886,8 @@ func (c *Client) BulkWrite(ctx context.Context, models *ClientWriteModels,
 		}
 		wc = bwo.WriteConcern
 	}
-	if !writeconcern.AckWrite(wc) {
+	acknowledged := writeconcern.AckWrite(wc)
+	if !acknowledged {
 		if bwo.Ordered == nil || *bwo.Ordered {
 			return nil, errors.New("cannot request unacknowledged write concern and ordered writes")
 		}
@@ -912,13 +913,17 @@ func (c *Client) BulkWrite(ctx context.Context, models *ClientWriteModels,
 	}
 	if bwo.VerboseResults == nil || !(*bwo.VerboseResults) {
 		op.errorsOnly = true
-	} else if !writeconcern.AckWrite(wc) {
+	} else if !acknowledged {
 		return nil, errors.New("cannot request unacknowledged write concern and verbose results")
 	}
 	if err = op.execute(ctx); err != nil {
 		return nil, replaceErrors(err)
 	}
-	return &op.result, nil
+	var results *ClientBulkWriteResult
+	if acknowledged {
+		results = &op.result
+	}
+	return results, nil
 }
 
 // newLogger will use the LoggerOptions to create an internal logger and publish

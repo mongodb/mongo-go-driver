@@ -150,7 +150,7 @@ func verifyOperationError(ctx context.Context, expected *expectedError, result *
 	if expected.WriteErrors != nil {
 		var exception mongo.ClientBulkWriteException
 		if !errors.As(result.Err, &exception) {
-			return fmt.Errorf("expected a ClientBulkWriteException, got %T", result.Err)
+			return fmt.Errorf("expected a ClientBulkWriteException, got %T: %v", result.Err, result.Err)
 		}
 		if len(expected.WriteErrors) != len(exception.WriteErrors) {
 			return fmt.Errorf("expected errors: %v, got: %v", expected.WriteErrors, exception.WriteErrors)
@@ -167,7 +167,7 @@ func verifyOperationError(ctx context.Context, expected *expectedError, result *
 	if expected.WriteConcernErrors != nil {
 		var exception mongo.ClientBulkWriteException
 		if !errors.As(result.Err, &exception) {
-			return fmt.Errorf("expected a ClientBulkWriteException, got %T", result.Err)
+			return fmt.Errorf("expected a ClientBulkWriteException, got %T: %v", result.Err, result.Err)
 		}
 		if len(expected.WriteConcernErrors) != len(exception.WriteConcernErrors) {
 			return fmt.Errorf("expected errors: %v, got: %v", expected.WriteConcernErrors, exception.WriteConcernErrors)

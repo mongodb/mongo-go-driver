@@ -29,7 +29,6 @@ const (
 	database = "admin"
 )
 
-// bulkWrite performs a bulkwrite operation
 type clientBulkWrite struct {
 	models                   []clientWriteModel
 	errorsOnly               bool

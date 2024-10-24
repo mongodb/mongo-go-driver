@@ -423,8 +423,8 @@ func ReadMsgSectionRawDocumentSequence(src []byte) (identifier string, data []by
 	return identifier, rem, rest, true
 }
 
-// DocumentSequenceToArray converts a document sequence in byte slice to a bsoncore.Array.
-func DocumentSequenceToArray(src []byte) (data bsoncore.Array, rem []byte, ok bool) {
+// DocumentSequenceToArray converts a document sequence in byte slice to an array.
+func DocumentSequenceToArray(src []byte) (dst, rem []byte, ok bool) {
 	stype, rem, ok := ReadMsgSectionType(src)
 	if !ok || stype != DocumentSequence {
 		return nil, src, false
