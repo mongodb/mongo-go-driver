@@ -72,7 +72,7 @@ fmt:
 
 .PHONY: install-golangci-lint
 install-golangci-lint:
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.59.1
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.60.1
 
 # Lint with various GOOS and GOARCH targets to catch static analysis failures that may only affect
 # specific operating systems or architectures. For example, staticcheck will only check for 64-bit
