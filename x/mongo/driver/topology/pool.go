@@ -581,7 +581,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 		}
 
 		if err := awaitPendingRead(ctx, p, w.conn); err != nil {
-			return p.checkOut(ctx) // Retry the checkout if the read fails.
+			return nil, err
 		}
 
 		duration = time.Since(start)
@@ -640,6 +640,10 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 			return nil, w.err
 		}
 
+		if err := awaitPendingRead(ctx, p, w.conn); err != nil {
+			return nil, err
+		}
+
 		duration := time.Since(start)
 		if mustLogPoolMessage(p) {
 			keysAndValues := logger.KeyValues{
@@ -648,10 +652,6 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 			}
 
 			logPoolMessage(p, logger.ConnectionCheckedOut, keysAndValues...)
-		}
-
-		if err := awaitPendingRead(ctx, p, w.conn); err != nil {
-			return p.checkOut(ctx) // Retry the checkout if the read fails.
 		}
 
 		if p.monitor != nil {
@@ -805,8 +805,8 @@ var (
 // tries to read any bytes returned by the server. If there are any errors, the
 // connection will be checked back into the pool to be retried.
 func awaitPendingRead(ctx context.Context, pool *pool, conn *connection) error {
-	pool.bgReadMu.Lock()
-	defer pool.bgReadMu.Unlock()
+	conn.pendingReadMU.Lock()
+	defer conn.pendingReadMU.Unlock()
 
 	// If there are no bytes pending read, do nothing.
 	if conn.awaitRemainingBytes == nil {
@@ -815,12 +815,11 @@ func awaitPendingRead(ctx context.Context, pool *pool, conn *connection) error {
 
 	size := *conn.awaitRemainingBytes
 
-	defer func() {
-		if conn.awaitRemainingBytes == nil {
-			return
-		}
+	checkIn := false
 
-		if *conn.remainingTime < 0 {
+	defer func() {
+		// If we have exceeded the time limit, then close the connection.
+		if conn.remainingTime != nil && *conn.remainingTime < 0 {
 			err := conn.close()
 			if err != nil {
 				panic(err)
@@ -829,33 +828,49 @@ func awaitPendingRead(ctx context.Context, pool *pool, conn *connection) error {
 			return
 		}
 
+		if !checkIn {
+			return
+		}
+
 		// No matter what happens, always check the connection back into the
 		// pool, which will either make it available for other operations or
 		// remove it from the pool if it was closed.
-		err := pool.checkInNoEvent(conn)
-		if err != nil {
-			panic(err)
-		}
+		//
+		// TODO(GODRIVER-3385): Figure out how to handle this error. It's possible
+		// that a single connection can be checked out to handle multiple concurrent
+		// operations. This is likely a bug in the Go Driver. So it's possible that
+		// the connection is idle at the point of check-in.
+		_ = pool.checkInNoEvent(conn)
 	}()
 
-	dl, ok := ctx.Deadline()
-	if !ok {
+	dl, contextDeadlineUsed := ctx.Deadline()
+	if !contextDeadlineUsed {
 		dl = time.Now().Add(BGReadTimeout)
 	}
 
 	err := conn.nc.SetReadDeadline(dl)
 	if err != nil {
+		checkIn = true
 		return fmt.Errorf("error setting a read deadline: %w", err)
 	}
+
+	st := time.Now()
 
 	if size == 0 {
 		var sizeBuf [4]byte
 		if _, err := io.ReadFull(conn.nc, sizeBuf[:]); err != nil {
-			conn.remainingTime = ptrutil.Ptr(*conn.remainingTime - time.Since(dl))
+			conn.remainingTime = ptrutil.Ptr(*conn.remainingTime - time.Since(st))
+			checkIn = true
+
+			err = transformNetworkError(ctx, err, contextDeadlineUsed)
+
 			return fmt.Errorf("error reading the message size: %w", err)
 		}
 		size, err = conn.parseWmSizeBytes(sizeBuf)
 		if err != nil {
+			checkIn = true
+			err = transformNetworkError(ctx, err, contextDeadlineUsed)
+
 			return err
 		}
 		size -= 4
@@ -866,8 +881,12 @@ func awaitPendingRead(ctx context.Context, pool *pool, conn *connection) error {
 		nerr := net.Error(nil)
 		if l := int32(n); l == 0 && errors.As(err, &nerr) && nerr.Timeout() {
 			conn.awaitRemainingBytes = ptrutil.Ptr(l + *conn.awaitRemainingBytes)
-			conn.remainingTime = ptrutil.Ptr(*conn.remainingTime - time.Since(dl))
+			conn.remainingTime = ptrutil.Ptr(*conn.remainingTime - time.Since(st))
 		}
+
+		checkIn = true
+
+		err = transformNetworkError(ctx, err, contextDeadlineUsed)
 
 		return fmt.Errorf("error discarding %d byte message: %w", size, err)
 	}
@@ -905,6 +924,16 @@ func (p *pool) checkIn(conn *connection) error {
 	}
 
 	return p.checkInNoEvent(conn)
+}
+
+func isIdleConnection(p *pool, conn *connection) bool {
+	for _, idle := range p.idleConns {
+		if idle == conn {
+			return true
+		}
+	}
+
+	return false
 }
 
 // checkInNoEvent returns a connection to the pool. It behaves identically to checkIn except it does
@@ -956,10 +985,8 @@ func (p *pool) checkInNoEvent(conn *connection) error {
 		}
 	}
 
-	for _, idle := range p.idleConns {
-		if idle == conn {
-			return fmt.Errorf("duplicate idle conn %p in idle connections stack", conn)
-		}
+	if isIdleConnection(p, conn) {
+		return fmt.Errorf("duplicate idle conn %p in idle connections stack", conn)
 	}
 
 	p.idleConns = append(p.idleConns, conn)

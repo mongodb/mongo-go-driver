@@ -108,7 +108,7 @@ tests:
           client: *failPointClient
           failPoint:
             configureFailPoint: failCommand
-            mode: { times: 2 }
+            mode: { times: 1 }
             data:
               failCommands: ["insert"]
               blockConnection: true
@@ -127,7 +127,7 @@ tests:
       - name: insertOne
         object: *collection
         arguments:
-          timeoutMS: 50
+          timeoutMS: 500
           document: { _id: 3, x: 1 }
         expectError:
           isTimeoutError: true
@@ -142,6 +142,67 @@ tests:
         events: 
           - connectionClosedEvent:
               reason: error
+
+  - description: "read op with successful pending read"
+    operations:
+      - name: createEntities
+        object: testRunner
+        arguments:
+          entities:
+            - client:
+                id: &client client
+                uriOptions:  
+                  maxPoolSize: 1
+                useMultipleMongoses: false
+                observeEvents:
+                  - commandFailedEvent
+                  - connectionClosedEvent
+            - database:
+                id: &database database
+                client: *client
+                databaseName: *databaseName
+            - collection:
+                id: &collection collection
+                database: *database
+                collectionName: *collectionName
+
+      # Create a failpoint to block first op 
+      - name: failPoint
+        object: testRunner
+        arguments:
+          client: *failPointClient
+          failPoint:
+            configureFailPoint: failCommand
+            mode: { times: 1 }
+            data:
+              failCommands: ["insert"]
+              blockConnection: true
+              blockTimeMS: 750
+
+      # Execute op with timeout < block time 
+      - name: insertOne
+        object: *collection
+        arguments:
+          timeoutMS: 500
+          document: { _id: 3, x: 1 }
+        expectError:
+          isTimeoutError: true
+
+      # Execute a subsequent operation to complete the read when checking out 
+      # the single available connection.
+      - name: findOne
+        object: *collection
+        arguments:
+          filter: { _id: 1 }
+
+    expectEvents:
+      - client: *client
+        events:
+          - commandFailedEvent:
+              commandName: insert
+      - client: *client
+        eventType: cmap
+        events: [] # Expect no connection closure.
 
   - description: "read op with successful pending read"
     operations:
@@ -255,135 +316,7 @@ tests:
       - name: insertOne
         object: *collection
         arguments:
-          timeoutMS: 50
-          document: { _id: 3, x: 1 }
-        expectError:
-          isTimeoutError: true
-
-    expectEvents:
-      - client: *client
-        events:
-          - commandFailedEvent:
-              commandName: insert
-      - client: *client
-        eventType: cmap
-        events: 
-          - connectionClosedEvent:
-              reason: error
-
-  - description: "read op with successful pending read"
-    operations:
-      - name: createEntities
-        object: testRunner
-        arguments:
-          entities:
-            - client:
-                id: &client client
-                uriOptions:  
-                  maxPoolSize: 1
-                useMultipleMongoses: false
-                observeEvents:
-                  - commandFailedEvent
-                  - connectionClosedEvent
-            - database:
-                id: &database database
-                client: *client
-                databaseName: *databaseName
-            - collection:
-                id: &collection collection
-                database: *database
-                collectionName: *collectionName
-
-      # Create a failpoint to block first op 
-      - name: failPoint
-        object: testRunner
-        arguments:
-          client: *failPointClient
-          failPoint:
-            configureFailPoint: failCommand
-            mode: { times: 1 }
-            data:
-              failCommands: ["insert"]
-              blockConnection: true
-              blockTimeMS: 750
-
-      # Execute op with timeout < block time 
-      - name: insertOne
-        object: *collection
-        arguments:
           timeoutMS: 500
-          document: { _id: 3, x: 1 }
-        expectError:
-          isTimeoutError: true
-
-      # Execute a subsequent operation to complete the read when checking out 
-      # the single available connection.
-      - name: findOne
-        object: *collection
-        arguments:
-          filter: { _id: 1 }
-
-    expectEvents:
-      - client: *client
-        events:
-          - commandFailedEvent:
-              commandName: insert
-      - client: *client
-        eventType: cmap
-        events: [] # Expect no connection closure.
-
-  - description: "write op with unsuccessful pending read"
-    operations:
-      - name: createEntities
-        object: testRunner
-        arguments:
-          entities:
-            - client:
-                id: &client client
-                uriOptions:  
-                  # For single-threaded drivers, ensure the operating connection
-                  # is checked out to complete the read.
-                  maxPoolSize: 1
-                useMultipleMongoses: false
-                observeEvents:
-                  - commandFailedEvent
-                  - connectionClosedEvent
-            - database:
-                id: &database database
-                client: *client
-                databaseName: *databaseName
-            - collection:
-                id: &collection collection
-                database: *database
-                collectionName: *collectionName
-
-      # Create a failpoint to block first op 
-      - name: failPoint
-        object: testRunner
-        arguments:
-          client: *failPointClient
-          failPoint:
-            configureFailPoint: failCommand
-            mode: { times: 2 }
-            data:
-              failCommands: ["insert"]
-              blockConnection: true
-              blockTimeMS: 750
-
-      # Execute op with timeout < block time 
-      - name: insertOne
-        object: *collection
-        arguments:
-          timeoutMS: 50
-          document: { _id: 3, x: 1 }
-        expectError:
-          isTimeoutError: true
-
-      # The pending read should fail.
-      - name: insertOne
-        object: *collection
-        arguments:
-          timeoutMS: 50
           document: { _id: 3, x: 1 }
         expectError:
           isTimeoutError: true

@@ -87,6 +87,7 @@ type connection struct {
 	// read before returning the connection to the pool.
 	awaitRemainingBytes *int32
 	remainingTime       *time.Duration
+	pendingReadMU       sync.Mutex
 }
 
 // newConnection handles the creation of a connection. It does not connect the connection.
@@ -104,6 +105,7 @@ func newConnection(addr address.Address, opts ...ConnectionOption) *connection {
 		connectContextMade:   make(chan struct{}),
 		cancellationListener: newContextDoneListener(),
 		connectListener:      newNonBlockingContextDoneListener(),
+		pendingReadMU:        sync.Mutex{},
 	}
 	// Connections to non-load balanced deployments should eagerly set the generation numbers so errors encountered
 	// at any point during connection establishment can be processed without the connection being considered stale.
@@ -409,11 +411,13 @@ func (c *connection) readWireMessage(ctx context.Context) ([]byte, error) {
 
 	dst, errMsg, err := c.read(ctx)
 	if err != nil {
+		c.pendingReadMU.Lock()
 		if c.awaitRemainingBytes == nil {
 			// If the connection was not marked as awaiting response, close the
 			// connection because we don't know what the connection state is.
 			c.close()
 		}
+		c.pendingReadMU.Unlock()
 		message := errMsg
 		if errors.Is(err, io.EOF) {
 			message = "socket was unexpectedly closed"
@@ -479,8 +483,10 @@ func (c *connection) read(ctx context.Context) (bytesRead []byte, errMsg string,
 	n, err := io.ReadFull(c.nc, sizeBuf[:])
 	if err != nil {
 		if l := int32(n); l == 0 && isCSOTTimeout(err) {
+			c.pendingReadMU.Lock()
 			c.awaitRemainingBytes = &l
 			c.remainingTime = ptrutil.Ptr(BGReadTimeout)
+			c.pendingReadMU.Unlock()
 		}
 		return nil, "incomplete read of message header", err
 	}
@@ -496,8 +502,10 @@ func (c *connection) read(ctx context.Context) (bytesRead []byte, errMsg string,
 	if err != nil {
 		remainingBytes := size - 4 - int32(n)
 		if remainingBytes > 0 && isCSOTTimeout(err) {
+			c.pendingReadMU.Lock()
 			c.awaitRemainingBytes = &remainingBytes
 			c.remainingTime = ptrutil.Ptr(BGReadTimeout)
+			c.pendingReadMU.Unlock()
 		}
 		return dst, "incomplete read of full message", err
 	}
