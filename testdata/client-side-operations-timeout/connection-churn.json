@@ -16,6 +16,36 @@
         "id": "failPointClient",
         "useMultipleMongoses": false
       }
+    },
+    {
+      "client": {
+        "id": "client",
+        "uriOptions": {
+          "maxPoolSize": 1
+        },
+        "useMultipleMongoses": false,
+        "observeEvents": [
+          "commandFailedEvent",
+          "commandSucceededEvent",
+          "connectionCheckedOutEvent",
+          "connectionCheckedInEvent",
+          "connectionClosedEvent"
+        ]
+      }
+    },
+    {
+      "database": {
+        "id": "test",
+        "client": "client",
+        "databaseName": "test"
+      }
+    },
+    {
+      "collection": {
+        "id": "coll",
+        "database": "test",
+        "collectionName": "coll"
+      }
     }
   ],
   "initialData": [
@@ -30,41 +60,6 @@
       "description": "write op with successful pending read",
       "operations": [
         {
-          "name": "createEntities",
-          "object": "testRunner",
-          "arguments": {
-            "entities": [
-              {
-                "client": {
-                  "id": "client",
-                  "uriOptions": {
-                    "maxPoolSize": 1
-                  },
-                  "useMultipleMongoses": false,
-                  "observeEvents": [
-                    "commandFailedEvent",
-                    "connectionClosedEvent"
-                  ]
-                }
-              },
-              {
-                "database": {
-                  "id": "database",
-                  "client": "client",
-                  "databaseName": "test"
-                }
-              },
-              {
-                "collection": {
-                  "id": "collection",
-                  "database": "database",
-                  "collectionName": "coll"
-                }
-              }
-            ]
-          }
-        },
-        {
           "name": "failPoint",
           "object": "testRunner",
           "arguments": {
@@ -86,7 +81,7 @@
         },
         {
           "name": "insertOne",
-          "object": "collection",
+          "object": "coll",
           "arguments": {
             "timeoutMS": 500,
             "document": {
@@ -100,7 +95,7 @@
         },
         {
           "name": "findOne",
-          "object": "collection",
+          "object": "coll",
           "arguments": {
             "filter": {
               "_id": 1
@@ -116,54 +111,37 @@
               "commandFailedEvent": {
                 "commandName": "insert"
               }
+            },
+            {
+              "commandSucceededEvent": {
+                "commandName": "find"
+              }
             }
           ]
         },
         {
           "client": "client",
           "eventType": "cmap",
-          "events": []
+          "events": [
+            {
+              "connectionCheckedOutEvent": {}
+            },
+            {
+              "connectionCheckedInEvent": {}
+            },
+            {
+              "connectionCheckedOutEvent": {}
+            },
+            {
+              "connectionCheckedInEvent": {}
+            }
+          ]
         }
       ]
     },
     {
       "description": "write op with unsuccessful pending read",
       "operations": [
-        {
-          "name": "createEntities",
-          "object": "testRunner",
-          "arguments": {
-            "entities": [
-              {
-                "client": {
-                  "id": "client",
-                  "uriOptions": {
-                    "maxPoolSize": 1
-                  },
-                  "useMultipleMongoses": false,
-                  "observeEvents": [
-                    "commandFailedEvent",
-                    "connectionClosedEvent"
-                  ]
-                }
-              },
-              {
-                "database": {
-                  "id": "database",
-                  "client": "client",
-                  "databaseName": "test"
-                }
-              },
-              {
-                "collection": {
-                  "id": "collection",
-                  "database": "database",
-                  "collectionName": "coll"
-                }
-              }
-            ]
-          }
-        },
         {
           "name": "failPoint",
           "object": "testRunner",
@@ -186,7 +164,7 @@
         },
         {
           "name": "insertOne",
-          "object": "collection",
+          "object": "coll",
           "arguments": {
             "timeoutMS": 50,
             "document": {
@@ -200,7 +178,7 @@
         },
         {
           "name": "insertOne",
-          "object": "collection",
+          "object": "coll",
           "arguments": {
             "timeoutMS": 500,
             "document": {
@@ -228,6 +206,12 @@
           "client": "client",
           "eventType": "cmap",
           "events": [
+            {
+              "connectionCheckedOutEvent": {}
+            },
+            {
+              "connectionCheckedInEvent": {}
+            },
             {
               "connectionClosedEvent": {
                 "reason": "error"
@@ -241,41 +225,6 @@
       "description": "read op with successful pending read",
       "operations": [
         {
-          "name": "createEntities",
-          "object": "testRunner",
-          "arguments": {
-            "entities": [
-              {
-                "client": {
-                  "id": "client",
-                  "uriOptions": {
-                    "maxPoolSize": 1
-                  },
-                  "useMultipleMongoses": false,
-                  "observeEvents": [
-                    "commandFailedEvent",
-                    "connectionClosedEvent"
-                  ]
-                }
-              },
-              {
-                "database": {
-                  "id": "database",
-                  "client": "client",
-                  "databaseName": "test"
-                }
-              },
-              {
-                "collection": {
-                  "id": "collection",
-                  "database": "database",
-                  "collectionName": "coll"
-                }
-              }
-            ]
-          }
-        },
-        {
           "name": "failPoint",
           "object": "testRunner",
           "arguments": {
@@ -287,222 +236,21 @@
               },
               "data": {
                 "failCommands": [
-                  "insert"
+                  "find"
                 ],
                 "blockConnection": true,
                 "blockTimeMS": 750
               }
             }
-          }
-        },
-        {
-          "name": "insertOne",
-          "object": "collection",
-          "arguments": {
-            "timeoutMS": 500,
-            "document": {
-              "_id": 3,
-              "x": 1
-            }
-          },
-          "expectError": {
-            "isTimeoutError": true
           }
         },
         {
           "name": "findOne",
-          "object": "collection",
-          "arguments": {
-            "filter": {
-              "_id": 1
-            }
-          }
-        }
-      ],
-      "expectEvents": [
-        {
-          "client": "client",
-          "events": [
-            {
-              "commandFailedEvent": {
-                "commandName": "insert"
-              }
-            }
-          ]
-        },
-        {
-          "client": "client",
-          "eventType": "cmap",
-          "events": []
-        }
-      ]
-    },
-    {
-      "description": "read op with successful pending read",
-      "operations": [
-        {
-          "name": "createEntities",
-          "object": "testRunner",
-          "arguments": {
-            "entities": [
-              {
-                "client": {
-                  "id": "client",
-                  "uriOptions": {
-                    "maxPoolSize": 1
-                  },
-                  "useMultipleMongoses": false,
-                  "observeEvents": [
-                    "commandFailedEvent",
-                    "connectionClosedEvent"
-                  ]
-                }
-              },
-              {
-                "database": {
-                  "id": "database",
-                  "client": "client",
-                  "databaseName": "test"
-                }
-              },
-              {
-                "collection": {
-                  "id": "collection",
-                  "database": "database",
-                  "collectionName": "coll"
-                }
-              }
-            ]
-          }
-        },
-        {
-          "name": "failPoint",
-          "object": "testRunner",
-          "arguments": {
-            "client": "failPointClient",
-            "failPoint": {
-              "configureFailPoint": "failCommand",
-              "mode": {
-                "times": 1
-              },
-              "data": {
-                "failCommands": [
-                  "insert"
-                ],
-                "blockConnection": true,
-                "blockTimeMS": 750
-              }
-            }
-          }
-        },
-        {
-          "name": "insertOne",
-          "object": "collection",
-          "arguments": {
-            "timeoutMS": 500,
-            "document": {
-              "_id": 3,
-              "x": 1
-            }
-          },
-          "expectError": {
-            "isTimeoutError": true
-          }
-        },
-        {
-          "name": "findOne",
-          "object": "collection",
-          "arguments": {
-            "filter": {
-              "_id": 1
-            }
-          }
-        }
-      ],
-      "expectEvents": [
-        {
-          "client": "client",
-          "events": [
-            {
-              "commandFailedEvent": {
-                "commandName": "insert"
-              }
-            }
-          ]
-        },
-        {
-          "client": "client",
-          "eventType": "cmap",
-          "events": []
-        }
-      ]
-    },
-    {
-      "description": "write op with unsuccessful pending read",
-      "operations": [
-        {
-          "name": "createEntities",
-          "object": "testRunner",
-          "arguments": {
-            "entities": [
-              {
-                "client": {
-                  "id": "client",
-                  "uriOptions": {
-                    "maxPoolSize": 1
-                  },
-                  "useMultipleMongoses": false,
-                  "observeEvents": [
-                    "commandFailedEvent",
-                    "connectionClosedEvent"
-                  ]
-                }
-              },
-              {
-                "database": {
-                  "id": "database",
-                  "client": "client",
-                  "databaseName": "test"
-                }
-              },
-              {
-                "collection": {
-                  "id": "collection",
-                  "database": "database",
-                  "collectionName": "coll"
-                }
-              }
-            ]
-          }
-        },
-        {
-          "name": "failPoint",
-          "object": "testRunner",
-          "arguments": {
-            "client": "failPointClient",
-            "failPoint": {
-              "configureFailPoint": "failCommand",
-              "mode": {
-                "times": 2
-              },
-              "data": {
-                "failCommands": [
-                  "insert"
-                ],
-                "blockConnection": true,
-                "blockTimeMS": 750
-              }
-            }
-          }
-        },
-        {
-          "name": "insertOne",
-          "object": "collection",
+          "object": "coll",
           "arguments": {
             "timeoutMS": 50,
-            "document": {
-              "_id": 3,
-              "x": 1
+            "filter": {
+              "_id": 1
             }
           },
           "expectError": {
@@ -510,13 +258,94 @@
           }
         },
         {
-          "name": "insertOne",
-          "object": "collection",
+          "name": "findOne",
+          "object": "coll",
+          "arguments": {
+            "filter": {
+              "_id": 1
+            }
+          }
+        }
+      ],
+      "expectEvents": [
+        {
+          "client": "client",
+          "events": [
+            {
+              "commandFailedEvent": {
+                "commandName": "find"
+              }
+            },
+            {
+              "commandSucceededEvent": {
+                "commandName": "find"
+              }
+            }
+          ]
+        },
+        {
+          "client": "client",
+          "eventType": "cmap",
+          "events": [
+            {
+              "connectionCheckedOutEvent": {}
+            },
+            {
+              "connectionCheckedInEvent": {}
+            },
+            {
+              "connectionCheckedOutEvent": {}
+            },
+            {
+              "connectionCheckedInEvent": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "read op with unsuccessful pending read",
+      "operations": [
+        {
+          "name": "failPoint",
+          "object": "testRunner",
+          "arguments": {
+            "client": "failPointClient",
+            "failPoint": {
+              "configureFailPoint": "failCommand",
+              "mode": {
+                "times": 1
+              },
+              "data": {
+                "failCommands": [
+                  "find"
+                ],
+                "blockConnection": true,
+                "blockTimeMS": 750
+              }
+            }
+          }
+        },
+        {
+          "name": "findOne",
+          "object": "coll",
+          "arguments": {
+            "timeoutMS": 50,
+            "filter": {
+              "_id": 1
+            }
+          },
+          "expectError": {
+            "isTimeoutError": true
+          }
+        },
+        {
+          "name": "findOne",
+          "object": "coll",
           "arguments": {
             "timeoutMS": 500,
-            "document": {
-              "_id": 3,
-              "x": 1
+            "filter": {
+              "_id": 1
             }
           },
           "expectError": {
@@ -530,7 +359,7 @@
           "events": [
             {
               "commandFailedEvent": {
-                "commandName": "insert"
+                "commandName": "find"
               }
             }
           ]
@@ -539,6 +368,12 @@
           "client": "client",
           "eventType": "cmap",
           "events": [
+            {
+              "connectionCheckedOutEvent": {}
+            },
+            {
+              "connectionCheckedInEvent": {}
+            },
             {
               "connectionClosedEvent": {
                 "reason": "error"
