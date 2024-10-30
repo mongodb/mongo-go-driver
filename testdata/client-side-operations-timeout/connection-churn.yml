@@ -4,7 +4,11 @@ schemaVersion: "1.9"
 
 runOnRequirements:
   - minServerVersion: "4.4"
-    topologies: ["replicaset", "sharded"]
+    # TODO(SERVER-96344): when using failpoints mongos returns MaxTimeMSExpired 
+    # after maxTimeMS, whereas mongod returns MaxTimeMSExpired after 
+    # max(blockTimeMS, maxTimeMS). Until this ticket is resolved, these tests 
+    # will not pass on sharded clusters.
+    topologies: ["standalone", "replicaset"]
 
 createEntities:
   - client:
