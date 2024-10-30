@@ -1,5 +1,5 @@
 {
-  "description": "operation timeouts do not cause connection churn",
+  "description": "Operation timeouts do not cause connection churn",
   "schemaVersion": "1.9",
   "runOnRequirements": [
     {
@@ -57,7 +57,7 @@
   ],
   "tests": [
     {
-      "description": "write op with successful pending read",
+      "description": "Write operation with successful pending read",
       "operations": [
         {
           "name": "failPoint",
@@ -140,7 +140,7 @@
       ]
     },
     {
-      "description": "write op with unsuccessful pending read",
+      "description": "Write operation with unsuccessful pending read",
       "operations": [
         {
           "name": "failPoint",
@@ -222,7 +222,7 @@
       ]
     },
     {
-      "description": "read op with successful pending read",
+      "description": "Read operation with successful pending read",
       "operations": [
         {
           "name": "failPoint",
@@ -304,7 +304,7 @@
       ]
     },
     {
-      "description": "read op with unsuccessful pending read",
+      "description": "Read operation with unsuccessful pending read",
       "operations": [
         {
           "name": "failPoint",
