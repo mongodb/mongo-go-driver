@@ -83,7 +83,7 @@
           "name": "insertOne",
           "object": "coll",
           "arguments": {
-            "timeoutMS": 500,
+            "timeoutMS": 50,
             "document": {
               "_id": 3,
               "x": 1
@@ -115,6 +115,138 @@
             {
               "commandSucceededEvent": {
                 "commandName": "find"
+              }
+            }
+          ]
+        },
+        {
+          "client": "client",
+          "eventType": "cmap",
+          "events": [
+            {
+              "connectionCheckedOutEvent": {}
+            },
+            {
+              "connectionCheckedInEvent": {}
+            },
+            {
+              "connectionCheckedOutEvent": {}
+            },
+            {
+              "connectionCheckedInEvent": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "Concurrent write operation with successful pending read",
+      "operations": [
+        {
+          "name": "failPoint",
+          "object": "testRunner",
+          "arguments": {
+            "client": "failPointClient",
+            "failPoint": {
+              "configureFailPoint": "failCommand",
+              "mode": {
+                "times": 1
+              },
+              "data": {
+                "failCommands": [
+                  "insert"
+                ],
+                "blockConnection": true,
+                "blockTimeMS": 750
+              }
+            }
+          }
+        },
+        {
+          "name": "createEntities",
+          "object": "testRunner",
+          "arguments": {
+            "entities": [
+              {
+                "thread": {
+                  "id": "thread0"
+                }
+              },
+              {
+                "thread": {
+                  "id": "thread1"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "runOnThread",
+          "object": "testRunner",
+          "arguments": {
+            "thread": "thread0",
+            "operation": {
+              "name": "insertOne",
+              "object": "coll",
+              "arguments": {
+                "timeoutMS": 500,
+                "document": {
+                  "_id": 2
+                }
+              }
+            },
+            "expectError": {
+              "isTimeoutError": true
+            }
+          }
+        },
+        {
+          "name": "waitForEvent",
+          "object": "testRunner",
+          "arguments": {
+            "client": "client",
+            "event": {
+              "connectionCheckedOutEvent": {}
+            },
+            "count": 1
+          }
+        },
+        {
+          "name": "runOnThread",
+          "object": "testRunner",
+          "arguments": {
+            "thread": "thread1",
+            "operation": {
+              "name": "insertOne",
+              "object": "coll",
+              "arguments": {
+                "document": {
+                  "_id": 3
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "waitForThread",
+          "object": "testRunner",
+          "arguments": {
+            "thread": "thread1"
+          }
+        }
+      ],
+      "expectEvents": [
+        {
+          "client": "client",
+          "events": [
+            {
+              "commandFailedEvent": {
+                "commandName": "insert"
+              }
+            },
+            {
+              "commandSucceededEvent": {
+                "commandName": "insert"
               }
             }
           ]
