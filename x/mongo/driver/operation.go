@@ -422,10 +422,10 @@ func (op Operation) getServerAndConnection(
 	requestID int32,
 	deprioritized []description.Server,
 ) (Server, *mnet.Connection, error) {
-	ctx, cancel := csot.WithServerSelectionTimeout(ctx, op.Deployment.GetServerSelectionTimeout())
+	serverSelectionCtx, cancel := csot.WithServerSelectionTimeout(ctx, op.Deployment.GetServerSelectionTimeout())
 	defer cancel()
 
-	server, err := op.selectServer(ctx, requestID, deprioritized)
+	server, err := op.selectServer(serverSelectionCtx, requestID, deprioritized)
 	if err != nil {
 		if op.Client != nil &&
 			!(op.Client.Committing || op.Client.Aborting) && op.Client.TransactionRunning() {
