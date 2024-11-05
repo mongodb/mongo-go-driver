@@ -398,7 +398,7 @@ func TestClientSideEncryptionCustomCrypt(t *testing.T) {
 			"expected 0 calls to DecryptExplicit, got %v", cc.numDecryptExplicitCalls)
 		assert.Equal(mt, cc.numCloseCalls, 0,
 			"expected 0 calls to Close, got %v", cc.numCloseCalls)
-		assert.Equal(mt, cc.numBypassAutoEncryptionCalls, 2,
+		assert.Equal(mt, cc.numBypassAutoEncryptionCalls, 1,
 			"expected 2 calls to BypassAutoEncryption, got %v", cc.numBypassAutoEncryptionCalls)
 	})
 }

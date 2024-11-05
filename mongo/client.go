@@ -75,14 +75,15 @@ type Client struct {
 	logger         *logger.Logger
 
 	// in-use encryption fields
-	keyVaultClientFLE  *Client
-	keyVaultCollFLE    *Collection
-	mongocryptdFLE     *mongocryptdClient
-	cryptFLE           driver.Crypt
-	metadataClientFLE  *Client
-	internalClientFLE  *Client
-	encryptedFieldsMap map[string]interface{}
-	authenticator      driver.Authenticator
+	isAutoEncryptionSet bool
+	keyVaultClientFLE   *Client
+	keyVaultCollFLE     *Collection
+	mongocryptdFLE      *mongocryptdClient
+	cryptFLE            driver.Crypt
+	metadataClientFLE   *Client
+	internalClientFLE   *Client
+	encryptedFieldsMap  map[string]interface{}
+	authenticator       driver.Authenticator
 }
 
 // Connect creates a new Client and then initializes it using the Connect method.
@@ -196,6 +197,7 @@ func newClient(opts ...options.Lister[options.ClientOptions]) (*Client, error) {
 	}
 	// AutoEncryptionOptions
 	if args.AutoEncryptionOptions != nil {
+		client.isAutoEncryptionSet = true
 		if err := client.configureAutoEncryption(args); err != nil {
 			return nil, err
 		}
@@ -437,10 +439,6 @@ func (c *Client) StartSession(opts ...options.Lister[options.SessionOptions]) (*
 	if err != nil {
 		return nil, replaceErrors(err)
 	}
-
-	// Writes are not retryable on standalones, so let operation determine whether to retry
-	sess.RetryWrite = false
-	sess.RetryRead = c.retryReads
 
 	return &Session{
 		clientSession: sess,
@@ -892,6 +890,86 @@ func (c *Client) createBaseCursorOptions() driver.CursorOptions {
 		Crypt:          c.cryptFLE,
 		ServerAPI:      c.serverAPI,
 	}
+}
+
+// BulkWrite performs a client-level bulk write operation.
+func (c *Client) BulkWrite(ctx context.Context, models *ClientWriteModels,
+	opts ...options.Lister[options.ClientBulkWriteOptions]) (*ClientBulkWriteResult, error) {
+	// TODO: Remove once DRIVERS-2888 is implemented.
+	if c.isAutoEncryptionSet {
+		return nil, errors.New("bulkWrite does not currently support automatic encryption")
+	}
+	bwo, err := mongoutil.NewOptions(opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	sess := sessionFromContext(ctx)
+	if sess == nil && c.sessionPool != nil {
+		sess = session.NewImplicitClientSession(c.sessionPool, c.id)
+		defer sess.EndSession()
+	}
+
+	err = c.validSession(sess)
+	if err != nil {
+		return nil, err
+	}
+
+	transactionRunning := sess.TransactionRunning()
+	wc := c.writeConcern
+	if transactionRunning {
+		wc = nil
+	}
+	if bwo.WriteConcern != nil {
+		if transactionRunning {
+			return nil, errors.New("cannot set write concern after starting a transaction")
+		}
+		wc = bwo.WriteConcern
+	}
+	acknowledged := wc.Acknowledged()
+	if !acknowledged {
+		if bwo.Ordered == nil || *bwo.Ordered {
+			return nil, errors.New("cannot request unacknowledged write concern and ordered writes")
+		}
+		sess = nil
+	}
+
+	writeSelector := &serverselector.Composite{
+		Selectors: []description.ServerSelector{
+			&serverselector.Write{},
+			&serverselector.Latency{Latency: c.localThreshold},
+		},
+	}
+	selector := makePinnedSelector(sess, writeSelector)
+
+	op := clientBulkWrite{
+		models:                   models.models,
+		ordered:                  bwo.Ordered,
+		bypassDocumentValidation: bwo.BypassDocumentValidation,
+		comment:                  bwo.Comment,
+		let:                      bwo.Let,
+		session:                  sess,
+		client:                   c,
+		selector:                 selector,
+		writeConcern:             wc,
+	}
+	if bwo.VerboseResults == nil || !(*bwo.VerboseResults) {
+		op.errorsOnly = true
+	} else if !acknowledged {
+		return nil, errors.New("cannot request unacknowledged write concern and verbose results")
+	}
+	if err = op.execute(ctx); err != nil {
+		return nil, replaceErrors(err)
+	}
+	var results *ClientBulkWriteResult
+	if acknowledged {
+		results = &op.result
+	}
+	return results, nil
 }
 
 // newLogger will use the LoggerOptions to create an internal logger and publish
