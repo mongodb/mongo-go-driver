@@ -8,15 +8,11 @@ package options
 
 // DistinctOptions represents arguments that can be used to configure a Distinct
 // operation.
+//
+// See corresponding setter methods for documentation.
 type DistinctOptions struct {
-	// Specifies a collation to use for string comparisons during the operation. This option is only valid for MongoDB
-	// versions >= 3.4. For previous server versions, the driver will return an error if this option is used. The
-	// default value is nil, which means the default collation of the collection will be used.
 	Collation *Collation
-
-	// A string or document that will be included in server logs, profiling logs, and currentOp queries to help trace
-	// the operation. The default value is nil, which means that no comment will be included in the logs.
-	Comment interface{}
+	Comment   interface{}
 }
 
 // DistinctOptionsBuilder contains options to configure distinct operations. Each
@@ -36,7 +32,11 @@ func (do *DistinctOptionsBuilder) List() []func(*DistinctOptions) error {
 	return do.Opts
 }
 
-// SetCollation sets the value for the Collation field.
+// SetCollation sets the value for the Collation field. Specifies a collation to use
+// for string comparisons during the operation. This option is only valid for MongoDB
+// versions >= 3.4. For previous server versions, the driver will return an error if
+// this option is used. The default value is nil, which means the default collation
+// of the collection will be used.
 func (do *DistinctOptionsBuilder) SetCollation(c *Collation) *DistinctOptionsBuilder {
 	do.Opts = append(do.Opts, func(opts *DistinctOptions) error {
 		opts.Collation = c
@@ -47,7 +47,10 @@ func (do *DistinctOptionsBuilder) SetCollation(c *Collation) *DistinctOptionsBui
 	return do
 }
 
-// SetComment sets the value for the Comment field.
+// SetComment sets the value for the Comment field. Specifies a string or document that
+// will be included in server logs, profiling logs, and currentOp queries to help trace
+// the operation. The default value is nil, which means that no comment will be included
+// in the logs.
 func (do *DistinctOptionsBuilder) SetComment(comment interface{}) *DistinctOptionsBuilder {
 	do.Opts = append(do.Opts, func(opts *DistinctOptions) error {
 		opts.Comment = comment

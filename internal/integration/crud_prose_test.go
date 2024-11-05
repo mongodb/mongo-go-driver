@@ -14,6 +14,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/failpoint"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -29,14 +30,14 @@ func TestWriteErrorsWithLabels(t *testing.T) {
 
 	label := "ExampleError"
 	mt.Run("InsertMany errors with label", func(mt *mtest.T) {
-		mt.SetFailPoint(mtest.FailPoint{
+		mt.SetFailPoint(failpoint.FailPoint{
 			ConfigureFailPoint: "failCommand",
-			Mode: mtest.FailPointMode{
+			Mode: failpoint.Mode{
 				Times: 1,
 			},
-			Data: mtest.FailPointData{
+			Data: failpoint.Data{
 				FailCommands: []string{"insert"},
-				WriteConcernError: &mtest.WriteConcernErrorData{
+				WriteConcernError: &failpoint.WriteConcernError{
 					Code:        100,
 					ErrorLabels: &[]string{label},
 				},
@@ -60,14 +61,14 @@ func TestWriteErrorsWithLabels(t *testing.T) {
 	})
 
 	mt.Run("WriteException with label", func(mt *mtest.T) {
-		mt.SetFailPoint(mtest.FailPoint{
+		mt.SetFailPoint(failpoint.FailPoint{
 			ConfigureFailPoint: "failCommand",
-			Mode: mtest.FailPointMode{
+			Mode: failpoint.Mode{
 				Times: 1,
 			},
-			Data: mtest.FailPointData{
+			Data: failpoint.Data{
 				FailCommands: []string{"delete"},
-				WriteConcernError: &mtest.WriteConcernErrorData{
+				WriteConcernError: &failpoint.WriteConcernError{
 					Code:        100,
 					ErrorLabels: &[]string{label},
 				},
@@ -83,14 +84,14 @@ func TestWriteErrorsWithLabels(t *testing.T) {
 	})
 
 	mt.Run("BulkWriteException with label", func(mt *mtest.T) {
-		mt.SetFailPoint(mtest.FailPoint{
+		mt.SetFailPoint(failpoint.FailPoint{
 			ConfigureFailPoint: "failCommand",
-			Mode: mtest.FailPointMode{
+			Mode: failpoint.Mode{
 				Times: 1,
 			},
-			Data: mtest.FailPointData{
+			Data: failpoint.Data{
 				FailCommands: []string{"delete"},
-				WriteConcernError: &mtest.WriteConcernErrorData{
+				WriteConcernError: &failpoint.WriteConcernError{
 					Code:        100,
 					ErrorLabels: &[]string{label},
 				},
@@ -333,14 +334,14 @@ func TestWriteConcernError(t *testing.T) {
 		errInfoDoc := bsoncore.BuildDocumentFromElements(nil,
 			bsoncore.AppendDocumentElement(nil, "writeConcern", wcDoc),
 		)
-		fp := mtest.FailPoint{
+		fp := failpoint.FailPoint{
 			ConfigureFailPoint: "failCommand",
-			Mode: mtest.FailPointMode{
+			Mode: failpoint.Mode{
 				Times: 1,
 			},
-			Data: mtest.FailPointData{
+			Data: failpoint.Data{
 				FailCommands: []string{"insert"},
-				WriteConcernError: &mtest.WriteConcernErrorData{
+				WriteConcernError: &failpoint.WriteConcernError{
 					Code:    100,
 					Name:    "UnsatisfiableWriteConcern",
 					Errmsg:  "Not enough data-bearing nodes",

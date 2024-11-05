@@ -8,45 +8,16 @@ package options
 
 // ReplaceOptions represents arguments that can be used to configure a ReplaceOne
 // operation.
+//
+// See corresponding setter methods for documentation.
 type ReplaceOptions struct {
-	// If true, writes executed as part of the operation will opt out of document-level validation on the server. This
-	// option is valid for MongoDB versions >= 3.2 and is ignored for previous server versions. The default value is
-	// false. See https://www.mongodb.com/docs/manual/core/schema-validation/ for more information about document
-	// validation.
 	BypassDocumentValidation *bool
-
-	// Specifies a collation to use for string comparisons during the operation. This option is only valid for MongoDB
-	// versions >= 3.4. For previous server versions, the driver will return an error if this option is used. The
-	// default value is nil, which means the default collation of the collection will be used.
-	Collation *Collation
-
-	// A string or document that will be included in server logs, profiling logs, and currentOp queries to help trace
-	// the operation.  The default value is nil, which means that no comment will be included in the logs.
-	Comment interface{}
-
-	// The index to use for the operation. This should either be the index name as a string or the index specification
-	// as a document. This option is only valid for MongoDB versions >= 4.2. Server versions >= 3.4 will return an error
-	// if this option is specified. For server versions < 3.4, the driver will return a client-side error if this option
-	// is specified. The driver will return an error if this option is specified during an unacknowledged write
-	// operation. The driver will return an error if the hint parameter is a multi-key map. The default value is nil,
-	// which means that no hint will be sent.
-	Hint interface{}
-
-	// If true, a new document will be inserted if the filter does not match any documents in the collection. The
-	// default value is false.
-	Upsert *bool
-
-	// Specifies parameters for the aggregate expression. This option is only valid for MongoDB versions >= 5.0. Older
-	// servers will report an error for using this option. This must be a document mapping parameter names to values.
-	// Values must be constant or closed expressions that do not reference document fields. Parameters can then be
-	// accessed as variables in an aggregate expression context (e.g. "$$var").
-	Let interface{}
-
-	// A document specifying which document should be replaced if the filter used by the operation matches multiple
-	// documents in the collection. If set, the first document in the sorted order will be replaced. This option is
-	// only valid for MongoDB versions >= 8.0. The driver will return an error if the sort parameter is a multi-key
-	// map. The default value is nil.
-	Sort interface{}
+	Collation                *Collation
+	Comment                  interface{}
+	Hint                     interface{}
+	Upsert                   *bool
+	Let                      interface{}
+	Sort                     interface{}
 }
 
 // ReplaceOptionsBuilder contains options to configure replace operations. Each
@@ -66,7 +37,11 @@ func (ro *ReplaceOptionsBuilder) List() []func(*ReplaceOptions) error {
 	return ro.Opts
 }
 
-// SetBypassDocumentValidation sets the value for the BypassDocumentValidation field.
+// SetBypassDocumentValidation sets the value for the BypassDocumentValidation field. If true,
+// writes executed as part of the operation will opt out of document-level validation on the server.
+// This option is valid for MongoDB versions >= 3.2 and is ignored for previous server versions.
+// The default value is false. See https://www.mongodb.com/docs/manual/core/schema-validation/ for
+// more information about document validation.
 func (ro *ReplaceOptionsBuilder) SetBypassDocumentValidation(b bool) *ReplaceOptionsBuilder {
 	ro.Opts = append(ro.Opts, func(opts *ReplaceOptions) error {
 		opts.BypassDocumentValidation = &b
@@ -77,7 +52,10 @@ func (ro *ReplaceOptionsBuilder) SetBypassDocumentValidation(b bool) *ReplaceOpt
 	return ro
 }
 
-// SetCollation sets the value for the Collation field.
+// SetCollation sets the value for the Collation field. Specifies a collation to use for string
+// comparisons during the operation. This option is only valid for MongoDB versions >= 3.4. For
+// previous server versions, the driver will return an error if this option is used. The
+// default value is nil, which means the default collation of the collection will be used.
 func (ro *ReplaceOptionsBuilder) SetCollation(c *Collation) *ReplaceOptionsBuilder {
 	ro.Opts = append(ro.Opts, func(opts *ReplaceOptions) error {
 		opts.Collation = c
@@ -88,7 +66,9 @@ func (ro *ReplaceOptionsBuilder) SetCollation(c *Collation) *ReplaceOptionsBuild
 	return ro
 }
 
-// SetComment sets the value for the Comment field.
+// SetComment sets the value for the Comment field. Specifies a string or document that will
+// be included in server logs, profiling logs, and currentOp queries to help trace the operation.
+// The default value is nil, which means that no comment will be included in the logs.
 func (ro *ReplaceOptionsBuilder) SetComment(comment interface{}) *ReplaceOptionsBuilder {
 	ro.Opts = append(ro.Opts, func(opts *ReplaceOptions) error {
 		opts.Comment = comment
@@ -99,7 +79,14 @@ func (ro *ReplaceOptionsBuilder) SetComment(comment interface{}) *ReplaceOptions
 	return ro
 }
 
-// SetHint sets the value for the Hint field.
+// SetHint sets the value for the Hint field. Specifies the index to use for the operation.
+// This should either be the index name as a string or the index specification as a document.
+// This option is only valid for MongoDB versions >= 4.2. Server versions >= 3.4 will return
+// an error if this option is specified. For server versions < 3.4, the driver will return a
+// client-side error if this option is specified. The driver will return an error if this option
+// is specified during an unacknowledged write operation. The driver will return an error if
+// the hint parameter is a multi-key map. The default value is nil, which means that no hint
+// will be sent.
 func (ro *ReplaceOptionsBuilder) SetHint(h interface{}) *ReplaceOptionsBuilder {
 	ro.Opts = append(ro.Opts, func(opts *ReplaceOptions) error {
 		opts.Hint = h
@@ -110,7 +97,8 @@ func (ro *ReplaceOptionsBuilder) SetHint(h interface{}) *ReplaceOptionsBuilder {
 	return ro
 }
 
-// SetUpsert sets the value for the Upsert field.
+// SetUpsert sets the value for the Upsert field. If true, a new document will be inserted
+// if the filter does not match any documents in the collection. The default value is false.
 func (ro *ReplaceOptionsBuilder) SetUpsert(b bool) *ReplaceOptionsBuilder {
 	ro.Opts = append(ro.Opts, func(opts *ReplaceOptions) error {
 		opts.Upsert = &b
@@ -121,7 +109,11 @@ func (ro *ReplaceOptionsBuilder) SetUpsert(b bool) *ReplaceOptionsBuilder {
 	return ro
 }
 
-// SetLet sets the value for the Let field.
+// SetLet sets the value for the Let field. Specifies parameters for the aggregate expression.
+// This option is only valid for MongoDB versions >= 5.0. Older servers will report an error
+// for using this option. This must be a document mapping parameter names to values. Values
+// must be constant or closed expressions that do not reference document fields. Parameters
+// can then be accessed as variables in an aggregate expression context (e.g. "$$var").
 func (ro *ReplaceOptionsBuilder) SetLet(l interface{}) *ReplaceOptionsBuilder {
 	ro.Opts = append(ro.Opts, func(opts *ReplaceOptions) error {
 		opts.Let = l
@@ -132,7 +124,11 @@ func (ro *ReplaceOptionsBuilder) SetLet(l interface{}) *ReplaceOptionsBuilder {
 	return ro
 }
 
-// SetSort sets the value for the Sort field.
+// SetSort sets the value for the Sort field. Specifies a document specifying which document should
+// be replaced if the filter used by the operation matches multiple documents in the collection. If
+// set, the first document in the sorted order will be replaced. This option is only valid for MongoDB
+// versions >= 8.0. The driver will return an error if the sort parameter is a multi-key map. The
+// default value is nil.
 func (ro *ReplaceOptionsBuilder) SetSort(s interface{}) *ReplaceOptionsBuilder {
 	ro.Opts = append(ro.Opts, func(opts *ReplaceOptions) error {
 		opts.Sort = s

@@ -4,7 +4,7 @@ schemaVersion: "1.0"
 
 runOnRequirements:
   - minServerVersion: "5.0"
-    topologies: [replicaset, sharded-replicaset]
+    topologies: [replicaset, sharded]
 
 createEntities:
   - client:
@@ -378,7 +378,7 @@ tests:
       fieldName: x
       filter: {}
       session: session0
-    expectResult: [ 11 ]
+    expectResult: [ 11 ] 
   expectEvents:
   - client: client0
     events:

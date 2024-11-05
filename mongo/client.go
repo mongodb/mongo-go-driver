@@ -74,7 +74,7 @@ type Client struct {
 	httpClient     *http.Client
 	logger         *logger.Logger
 
-	// client-side encryption fields
+	// in-use encryption fields
 	keyVaultClientFLE  *Client
 	keyVaultCollFLE    *Collection
 	mongocryptdFLE     *mongocryptdClient
@@ -215,34 +215,13 @@ func newClient(opts ...options.Lister[options.ClientOptions]) (*Client, error) {
 	}
 
 	if args.Auth != nil {
-		var oidcMachineCallback auth.OIDCCallback
-		if args.Auth.OIDCMachineCallback != nil {
-			oidcMachineCallback = func(ctx context.Context, oargs *driver.OIDCArgs) (*driver.OIDCCredential, error) {
-				cred, err := args.Auth.OIDCMachineCallback(ctx, convertOIDCArgs(oargs))
-				return (*driver.OIDCCredential)(cred), err
-			}
-		}
-
-		var oidcHumanCallback auth.OIDCCallback
-		if args.Auth.OIDCHumanCallback != nil {
-			oidcHumanCallback = func(ctx context.Context, oargs *driver.OIDCArgs) (*driver.OIDCCredential, error) {
-				cred, err := args.Auth.OIDCHumanCallback(ctx, convertOIDCArgs(oargs))
-				return (*driver.OIDCCredential)(cred), err
-			}
-		}
-
-		// Create an authenticator for the client
-		client.authenticator, err = auth.CreateAuthenticator(args.Auth.AuthMechanism, &auth.Cred{
-			Source:              args.Auth.AuthSource,
-			Username:            args.Auth.Username,
-			Password:            args.Auth.Password,
-			PasswordSet:         args.Auth.PasswordSet,
-			Props:               args.Auth.AuthMechanismProperties,
-			OIDCMachineCallback: oidcMachineCallback,
-			OIDCHumanCallback:   oidcHumanCallback,
-		}, args.HTTPClient)
+		client.authenticator, err = auth.CreateAuthenticator(
+			args.Auth.AuthMechanism,
+			topology.ConvertCreds(args.Auth),
+			args.HTTPClient,
+		)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error creating authenticator: %w", err)
 		}
 	}
 
@@ -274,20 +253,7 @@ func newClient(opts ...options.Lister[options.ClientOptions]) (*Client, error) {
 	return client, nil
 }
 
-// convertOIDCArgs converts the internal *driver.OIDCArgs into the equivalent
-// public type *options.OIDCArgs.
-func convertOIDCArgs(args *driver.OIDCArgs) *options.OIDCArgs {
-	if args == nil {
-		return nil
-	}
-	return &options.OIDCArgs{
-		Version:      args.Version,
-		IDPInfo:      (*options.IDPInfo)(args.IDPInfo),
-		RefreshToken: args.RefreshToken,
-	}
-}
-
-// connect initializes the Client by starting background monitoring goroutines.
+// Connect initializes the Client by starting background monitoring goroutines.
 // If the Client was created using the NewClient function, this method must be called before a Client can be used.
 //
 // Connect starts background goroutines to monitor the state of the deployment and does not do any I/O in the main
@@ -430,10 +396,6 @@ func (c *Client) Ping(ctx context.Context, rp *readpref.ReadPref) error {
 // If the DefaultReadConcern, DefaultWriteConcern, or DefaultReadPreference options are not set, the client's read
 // concern, write concern, or read preference will be used, respectively.
 func (c *Client) StartSession(opts ...options.Lister[options.SessionOptions]) (*Session, error) {
-	if c.sessionPool == nil {
-		return nil, ErrClientDisconnected
-	}
-
 	sessArgs, err := mongoutil.NewOptions(opts...)
 	if err != nil {
 		return nil, err
@@ -488,10 +450,6 @@ func (c *Client) StartSession(opts ...options.Lister[options.SessionOptions]) (*
 }
 
 func (c *Client) endSessions(ctx context.Context) {
-	if c.sessionPool == nil {
-		return
-	}
-
 	sessionIDs := c.sessionPool.IDSlice()
 	op := operation.NewEndSessions(nil).ClusterClock(c.clock).Deployment(c.deployment).
 		ServerSelector(&serverselector.ReadPref{ReadPref: readpref.PrimaryPreferred()}).
@@ -906,10 +864,6 @@ func (c *Client) UseSessionWithOptions(
 // documentation).
 func (c *Client) Watch(ctx context.Context, pipeline interface{},
 	opts ...options.Lister[options.ChangeStreamOptions]) (*ChangeStream, error) {
-	if c.sessionPool == nil {
-		return nil, ErrClientDisconnected
-	}
-
 	csConfig := changeStreamConfig{
 		readConcern:    c.readConcern,
 		readPreference: c.readPreference,
@@ -955,9 +909,7 @@ func newLogger(opts options.Lister[options.LoggerOptions]) (*logger.Logger, erro
 
 	// If there are no component-level options and the environment does not
 	// contain component variables, then do nothing.
-	if (args.ComponentLevels == nil || len(args.ComponentLevels) == 0) &&
-		!logger.EnvHasComponentVariables() {
-
+	if len(args.ComponentLevels) == 0 && !logger.EnvHasComponentVariables() {
 		return nil, nil
 	}
 

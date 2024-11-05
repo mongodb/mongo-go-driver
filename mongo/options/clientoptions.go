@@ -90,9 +90,9 @@ type ContextDialer interface {
 // The SERVICE_HOST and CANONICALIZE_HOST_NAME properties must not be used at the same time on Linux and Darwin
 // systems.
 //
-// AuthSource: the name of the database to use for authentication. This defaults to "$external" for MONGODB-X509,
-// GSSAPI, and PLAIN and "admin" for all other mechanisms. This can also be set through the "authSource" URI option
-// (e.g. "authSource=otherDb").
+// AuthSource: the name of the database to use for authentication. This defaults to "$external" for MONGODB-AWS,
+// MONGODB-OIDC, MONGODB-X509, GSSAPI, and PLAIN. It defaults to  "admin" for all other auth mechanisms. This can
+// also be set through the "authSource" URI option (e.g. "authSource=otherDb").
 //
 // Username: the username for authentication. This can also be set through the URI as a username:password pair before
 // the first @ character. For example, a URI for user "user", password "pwd", and host "localhost:27017" would be
@@ -204,6 +204,10 @@ type BSONOptions struct {
 	// primitive.M type. This behavior is restricted to data typed as
 	// "interface{}" or "map[string]interface{}".
 	DefaultDocumentM bool
+
+	// ObjectIDAsHexString causes the Decoder to decode object IDs to their hex
+	// representation.
+	ObjectIDAsHexString bool
 
 	// UseLocalTimeZone causes the driver to unmarshal time.Time values in the
 	// local timezone instead of the UTC timezone.
@@ -542,6 +546,11 @@ func (c *ClientOptionsBuilder) Validate() error {
 		}
 	}
 
+	if args.HeartbeatInterval != nil && *args.HeartbeatInterval < (500*time.Millisecond) {
+		return fmt.Errorf("heartbeatFrequencyMS must exceed the minimum heartbeat interval of 500ms, got heartbeatFrequencyMS=%q",
+			*args.HeartbeatInterval)
+	}
+
 	if args.MaxPoolSize != nil && args.MinPoolSize != nil && *args.MaxPoolSize != 0 &&
 		*args.MinPoolSize > *args.MaxPoolSize {
 		return fmt.Errorf("minPoolSize must be less than or equal to maxPoolSize, got minPoolSize=%d maxPoolSize=%d",
@@ -751,7 +760,8 @@ func (c *ClientOptionsBuilder) SetDirect(b bool) *ClientOptionsBuilder {
 }
 
 // SetHeartbeatInterval specifies the amount of time to wait between periodic background server checks. This can also be
-// set through the "heartbeatIntervalMS" URI option (e.g. "heartbeatIntervalMS=10000"). The default is 10 seconds.
+// set through the "heartbeatFrequencyMS" URI option (e.g. "heartbeatFrequencyMS=10000"). The default is 10 seconds.
+// The minimum is 500ms.
 func (c *ClientOptionsBuilder) SetHeartbeatInterval(d time.Duration) *ClientOptionsBuilder {
 	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
 		opts.HeartbeatInterval = &d

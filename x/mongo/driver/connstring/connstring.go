@@ -291,7 +291,7 @@ func (u *ConnString) setDefaultAuthParams(dbName string) error {
 			u.AuthMechanismProperties["SERVICE_NAME"] = "mongodb"
 		}
 		fallthrough
-	case "mongodb-aws", "mongodb-x509":
+	case "mongodb-aws", "mongodb-x509", "mongodb-oidc":
 		if u.AuthSource == "" {
 			u.AuthSource = "$external"
 		} else if u.AuthSource != "$external" {
@@ -306,13 +306,6 @@ func (u *ConnString) setDefaultAuthParams(dbName string) error {
 			u.AuthSource = dbName
 			if u.AuthSource == "" {
 				u.AuthSource = "admin"
-			}
-		}
-	case "mongodb-oidc":
-		if u.AuthSource == "" {
-			u.AuthSource = dbName
-			if u.AuthSource == "" {
-				u.AuthSource = "$external"
 			}
 		}
 	case "":

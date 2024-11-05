@@ -10,7 +10,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"io"
 	"testing"
 
@@ -462,12 +461,10 @@ func TestRawArray_Values(t *testing.T) {
 			t.Parallel()
 
 			values, err := tcase.arr.Values()
-			fmt.Println("values: ", values)
 			require.NoError(t, err, "failed to turn array into values")
 			require.Len(t, values, len(tcase.want), "got len does not match want")
 
 			for idx, want := range tcase.want {
-				fmt.Println(want.Value, values[idx].Value)
 				assert.True(t, want.Equal(values[idx]), "want: %v, got: %v", want, values[idx])
 			}
 		})

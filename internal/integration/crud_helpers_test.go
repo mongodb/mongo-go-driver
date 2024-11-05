@@ -93,7 +93,7 @@ func isExpectedKillAllSessionsError(err error) bool {
 }
 
 // kill all open sessions on the server. This function uses mt.GlobalClient() because killAllSessions is not allowed
-// for clients configured with specific options (e.g. client side encryption).
+// for clients configured with specific options (e.g. in-use encryption).
 func killSessions(mt *mtest.T) {
 	mt.Helper()
 
@@ -801,7 +801,7 @@ func executeDeleteOne(mt *mtest.T, sess *mongo.Session, args bson.Raw) (*mongo.D
 	mt.Helper()
 
 	filter := emptyDoc
-	opts := options.Delete()
+	opts := options.DeleteOne()
 
 	elems, _ := args.Elements()
 	for _, elem := range elems {
@@ -837,7 +837,7 @@ func executeDeleteMany(mt *mtest.T, sess *mongo.Session, args bson.Raw) (*mongo.
 	mt.Helper()
 
 	filter := emptyDoc
-	opts := options.Delete()
+	opts := options.DeleteMany()
 
 	elems, _ := args.Elements()
 	for _, elem := range elems {

@@ -28,7 +28,6 @@
       "minServerVersion": "4.0.0",
       "topologies": [
         "replicaset",
-        "sharded-replicaset",
         "load-balanced",
         "sharded"
       ],

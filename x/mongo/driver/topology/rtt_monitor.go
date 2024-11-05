@@ -41,11 +41,14 @@ type rttMonitor struct {
 	// connMu guards connecting and disconnecting. This is necessary since
 	// disconnecting will await the cancellation of a started connection. The
 	// use case for rttMonitor.connect needs to be goroutine safe.
-	connMu        sync.Mutex
-	averageRTT    time.Duration
-	averageRTTSet bool
-	movingMin     *list.List
-	minRTT        time.Duration
+	connMu                 sync.Mutex
+	averageRTT             time.Duration
+	averageRTTSet          bool
+	movingMin              *list.List
+	minRTT                 time.Duration
+	stddevRTT              time.Duration
+	stddevSum              float64
+	callsToAppendMovingMin int
 
 	closeWg  sync.WaitGroup
 	cfg      *rttConfig
@@ -179,8 +182,8 @@ func (r *rttMonitor) runHellos(conn *connection) {
 	}
 }
 
-// reset sets the average and min RTT to 0. This should only be called from the server monitor when an error
-// occurs during a server check. Errors in the RTT monitor should not reset the RTTs.
+// reset sets the average, min, and stddev RTT to 0. This should only be called from the server monitor
+// when an error occurs during a server check. Errors in the RTT monitor should not reset the RTTs.
 func (r *rttMonitor) reset() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -188,11 +191,15 @@ func (r *rttMonitor) reset() {
 	r.movingMin = list.New()
 	r.averageRTT = 0
 	r.averageRTTSet = false
+	r.stddevSum = 0
+	r.callsToAppendMovingMin = 0
 }
 
 // appendMovingMin will append the RTT to the movingMin list which tracks a
 // minimum RTT within the last "minRTTSamplesForMovingMin" RTT samples.
 func (r *rttMonitor) appendMovingMin(rtt time.Duration) {
+	r.callsToAppendMovingMin++
+
 	if r.movingMin == nil || rtt < 0 {
 		return
 	}
@@ -202,6 +209,12 @@ func (r *rttMonitor) appendMovingMin(rtt time.Duration) {
 	}
 
 	r.movingMin.PushBack(rtt)
+
+	// Collect a sum of stddevs over maxRTTSamplesForMovingMin calls, ignore if calls are less than max
+	if r.callsToAppendMovingMin >= maxRTTSamplesForMovingMin {
+		stddev := standardDeviationList(r.movingMin)
+		r.stddevSum += stddev
+	}
 }
 
 // min will return the minimum value in the movingMin list.
@@ -222,6 +235,21 @@ func (r *rttMonitor) min() time.Duration {
 	return min
 }
 
+// stddev will return the current moving stddev.
+func (r *rttMonitor) stddev() time.Duration {
+	var stddev time.Duration
+
+	if r.callsToAppendMovingMin < maxRTTSamplesForMovingMin {
+		return 0
+	}
+
+	// Get the number of times stddev was updated and calculate the average stddev
+	frequency := (r.callsToAppendMovingMin + 1) - maxRTTSamplesForMovingMin
+	stddev = time.Duration(r.stddevSum / float64(frequency))
+
+	return stddev
+}
+
 func (r *rttMonitor) addSample(rtt time.Duration) {
 	// Lock for the duration of this method. We're doing compuationally inexpensive work very infrequently, so lock
 	// contention isn't expected.
@@ -230,6 +258,7 @@ func (r *rttMonitor) addSample(rtt time.Duration) {
 
 	r.appendMovingMin(rtt)
 	r.minRTT = r.min()
+	r.stddevRTT = r.stddev()
 
 	if !r.averageRTTSet {
 		r.averageRTT = rtt
@@ -262,7 +291,8 @@ func (r *rttMonitor) Stats() string {
 	defer r.mu.RUnlock()
 
 	return fmt.Sprintf(
-		"network round-trip time stats: moving avg: %v, min: %v",
+		"network round-trip time stats: moving avg: %v, min: %v, moving stddev: %v",
 		r.averageRTT,
-		r.minRTT)
+		r.minRTT,
+		r.stddevRTT)
 }

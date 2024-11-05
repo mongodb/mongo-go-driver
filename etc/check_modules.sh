@@ -6,11 +6,15 @@
 set -eu
 
 mods=$(find . -name go.mod)
+exit_code=0
 for mod in $mods; do
-  pushd $(dirname $mod) > /dev/null
+  pushd "$(dirname $mod)" > /dev/null
   echo "Checking $mod..."
   go mod tidy -v
-  git diff --exit-code go.mod go.sum
+  git diff --exit-code go.mod go.sum || {
+    exit_code=$?
+  }
   echo "Checking $mod... done"
   popd > /dev/null
 done
+exit $exit_code

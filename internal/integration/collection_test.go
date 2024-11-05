@@ -19,6 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/drivertest"
 )
 
 const (
@@ -296,7 +297,7 @@ func TestCollection(t *testing.T) {
 		})
 		mt.RunOpts("not found with options", mtest.NewOptions().MinServerVersion("3.4"), func(mt *mtest.T) {
 			initCollection(mt, mt.Coll)
-			opts := options.Delete().SetCollation(&options.Collation{Locale: "en_US"})
+			opts := options.DeleteOne().SetCollation(&options.Collation{Locale: "en_US"})
 			res, err := mt.Coll.DeleteOne(context.Background(), bson.D{{"x", 0}}, opts)
 			assert.Nil(mt, err, "DeleteOne error: %v", err)
 			assert.Equal(mt, int64(0), res.DeletedCount, "expected DeletedCount 0, got %v", res.DeletedCount)
@@ -339,13 +340,13 @@ func TestCollection(t *testing.T) {
 			})
 			assert.Nil(mt, err, "CreateOne error: %v", err)
 
-			opts := options.Delete().SetHint(bson.M{"x": 1})
+			opts := options.DeleteOne().SetHint(bson.M{"x": 1})
 			res, err := mt.Coll.DeleteOne(context.Background(), bson.D{{"x", 1}}, opts)
 			assert.Nil(mt, err, "DeleteOne error: %v", err)
 			assert.Equal(mt, int64(1), res.DeletedCount, "expected DeletedCount 1, got %v", res.DeletedCount)
 		})
 		mt.RunOpts("multikey map index", mtest.NewOptions().MinServerVersion("4.4"), func(mt *mtest.T) {
-			opts := options.Delete().SetHint(bson.M{"x": 1, "y": 1})
+			opts := options.DeleteOne().SetHint(bson.M{"x": 1, "y": 1})
 			_, err := mt.Coll.DeleteOne(context.Background(), bson.D{{"x", 0}}, opts)
 			assert.Equal(mt, mongo.ErrMapForOrderedArgument{"hint"}, err, "expected error %v, got %v", mongo.ErrMapForOrderedArgument{"hint"}, err)
 		})
@@ -365,7 +366,7 @@ func TestCollection(t *testing.T) {
 		})
 		mt.RunOpts("not found with options", mtest.NewOptions().MinServerVersion("3.4"), func(mt *mtest.T) {
 			initCollection(mt, mt.Coll)
-			opts := options.Delete().SetCollation(&options.Collation{Locale: "en_US"})
+			opts := options.DeleteMany().SetCollation(&options.Collation{Locale: "en_US"})
 			res, err := mt.Coll.DeleteMany(context.Background(), bson.D{{"x", bson.D{{"$lt", 1}}}}, opts)
 			assert.Nil(mt, err, "DeleteMany error: %v", err)
 			assert.Equal(mt, int64(0), res.DeletedCount, "expected DeletedCount 0, got %v", res.DeletedCount)
@@ -408,13 +409,13 @@ func TestCollection(t *testing.T) {
 			})
 			assert.Nil(mt, err, "index CreateOne error: %v", err)
 
-			opts := options.Delete().SetHint(bson.M{"x": 1})
+			opts := options.DeleteOne().SetHint(bson.M{"x": 1})
 			res, err := mt.Coll.DeleteOne(context.Background(), bson.D{{"x", 1}}, opts)
 			assert.Nil(mt, err, "DeleteOne error: %v", err)
 			assert.Equal(mt, int64(1), res.DeletedCount, "expected DeletedCount 1, got %v", res.DeletedCount)
 		})
 		mt.RunOpts("multikey map index", mtest.NewOptions().MinServerVersion("4.4"), func(mt *mtest.T) {
-			opts := options.Delete().SetHint(bson.M{"x": 1, "y": 1})
+			opts := options.DeleteMany().SetHint(bson.M{"x": 1, "y": 1})
 			_, err := mt.Coll.DeleteMany(context.Background(), bson.D{{"x", 0}}, opts)
 			assert.Equal(mt, mongo.ErrMapForOrderedArgument{"hint"}, err, "expected error %v, got %v", mongo.ErrMapForOrderedArgument{"hint"}, err)
 		})
@@ -1819,7 +1820,7 @@ func TestCollection(t *testing.T) {
 		})
 		mt.RunOpts("insert and delete with batches", mtest.NewOptions().ClientType(mtest.Mock), func(mt *mtest.T) {
 			// grouped together because delete requires the documents to be inserted
-			maxBatchCount := int(mtest.MockDescription.MaxBatchCount)
+			maxBatchCount := int(drivertest.MockDescription.MaxBatchCount)
 			numDocs := maxBatchCount + 50
 			var insertModels []mongo.WriteModel
 			var deleteModels []mongo.WriteModel
@@ -1870,7 +1871,7 @@ func TestCollection(t *testing.T) {
 			assert.True(mt, deletes > 1, "expected multiple batches, got %v", deletes)
 		})
 		mt.RunOpts("update with batches", mtest.NewOptions().ClientType(mtest.Mock), func(mt *mtest.T) {
-			maxBatchCount := int(mtest.MockDescription.MaxBatchCount)
+			maxBatchCount := int(drivertest.MockDescription.MaxBatchCount)
 			numModels := maxBatchCount + 50
 			var models []mongo.WriteModel
 

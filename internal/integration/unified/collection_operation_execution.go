@@ -403,7 +403,7 @@ func executeDeleteOne(ctx context.Context, operation *operation) (*operationResu
 	}
 
 	var filter bson.Raw
-	opts := options.Delete()
+	opts := options.DeleteOne()
 
 	elems, err := operation.Arguments.Elements()
 	if err != nil {
@@ -457,7 +457,7 @@ func executeDeleteMany(ctx context.Context, operation *operation) (*operationRes
 	}
 
 	var filter bson.Raw
-	opts := options.Delete()
+	opts := options.DeleteMany()
 
 	elems, err := operation.Arguments.Elements()
 	if err != nil {
@@ -1322,12 +1322,12 @@ func executeUpdateOne(ctx context.Context, operation *operation) (*operationResu
 		return nil, err
 	}
 
-	updateArgs, err := createUpdateArguments[options.UpdateOneOptions](operation.Arguments)
+	updateArgs, updateOpts, err := createUpdateOneArguments(operation.Arguments)
 	if err != nil {
 		return nil, err
 	}
 
-	res, err := coll.UpdateOne(ctx, updateArgs.filter, updateArgs.update, updateArgs.opts)
+	res, err := coll.UpdateOne(ctx, updateArgs.filter, updateArgs.update, updateOpts)
 	raw, buildErr := buildUpdateResultDocument(res)
 	if buildErr != nil {
 		return nil, buildErr
@@ -1341,12 +1341,12 @@ func executeUpdateMany(ctx context.Context, operation *operation) (*operationRes
 		return nil, err
 	}
 
-	updateArgs, err := createUpdateArguments[options.UpdateManyOptions](operation.Arguments)
+	updateArgs, updateOpts, err := createUpdateManyArguments(operation.Arguments)
 	if err != nil {
 		return nil, err
 	}
 
-	res, err := coll.UpdateMany(ctx, updateArgs.filter, updateArgs.update, updateArgs.opts)
+	res, err := coll.UpdateMany(ctx, updateArgs.filter, updateArgs.update, updateOpts)
 	raw, buildErr := buildUpdateResultDocument(res)
 	if buildErr != nil {
 		return nil, buildErr

@@ -30,8 +30,12 @@ import (
 const MONGODBCR = "MONGODB-CR"
 
 func newMongoDBCRAuthenticator(cred *Cred, _ *http.Client) (Authenticator, error) {
+	source := cred.Source
+	if source == "" {
+		source = "admin"
+	}
 	return &MongoDBCRAuthenticator{
-		DB:       cred.Source,
+		DB:       source,
 		Username: cred.Username,
 		Password: cred.Password,
 	}, nil

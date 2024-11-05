@@ -8,16 +8,11 @@ package options
 
 // InsertOneOptions represents arguments that can be used to configure an InsertOne
 // operation.
+//
+// See corresponding setter methods for documentation.
 type InsertOneOptions struct {
-	// If true, writes executed as part of the operation will opt out of document-level validation on the server. This
-	// option is valid for MongoDB versions >= 3.2 and is ignored for previous server versions. The default value is
-	// false. See https://www.mongodb.com/docs/manual/core/schema-validation/ for more information about document
-	// validation.
 	BypassDocumentValidation *bool
-
-	// A string or document that will be included in server logs, profiling logs, and currentOp queries to help trace
-	// the operation.  The default value is nil, which means that no comment will be included in the logs.
-	Comment interface{}
+	Comment                  interface{}
 }
 
 // InsertOneOptionsBuilder represents functional options that configure an
@@ -36,7 +31,11 @@ func (ioo *InsertOneOptionsBuilder) List() []func(*InsertOneOptions) error {
 	return ioo.Opts
 }
 
-// SetBypassDocumentValidation sets the value for the BypassDocumentValidation field.
+// SetBypassDocumentValidation sets the value for the BypassDocumentValidation field. If true,
+// writes executed as part of the operation will opt out of document-level validation on the
+// server. This option is valid for MongoDB versions >= 3.2 and is ignored for previous server
+// versions. The default value is false. See https://www.mongodb.com/docs/manual/core/schema-validation/
+// for more information about document validation.
 func (ioo *InsertOneOptionsBuilder) SetBypassDocumentValidation(b bool) *InsertOneOptionsBuilder {
 	ioo.Opts = append(ioo.Opts, func(opts *InsertOneOptions) error {
 		opts.BypassDocumentValidation = &b
@@ -45,7 +44,8 @@ func (ioo *InsertOneOptionsBuilder) SetBypassDocumentValidation(b bool) *InsertO
 	return ioo
 }
 
-// SetComment sets the value for the Comment field.
+// SetComment sets the value for the Comment field. Specifies a string or document that will be included in server logs, profiling logs, and currentOp queries to help trace
+// the operation.  The default value is nil, which means that no comment will be included in the logs.
 func (ioo *InsertOneOptionsBuilder) SetComment(comment interface{}) *InsertOneOptionsBuilder {
 	ioo.Opts = append(ioo.Opts, func(opts *InsertOneOptions) error {
 		opts.Comment = &comment
@@ -56,19 +56,12 @@ func (ioo *InsertOneOptionsBuilder) SetComment(comment interface{}) *InsertOneOp
 
 // InsertManyOptions represents arguments that can be used to configure an
 // InsertMany operation.
+//
+// See corresponding setter methods for documentation.
 type InsertManyOptions struct {
-	// If true, writes executed as part of the operation will opt out of document-level validation on the server. This
-	// option is valid for MongoDB versions >= 3.2 and is ignored for previous server versions. The default value is
-	// false. See https://www.mongodb.com/docs/manual/core/schema-validation/ for more information about document
-	// validation.
 	BypassDocumentValidation *bool
-
-	// A string or document that will be included in server logs, profiling logs, and currentOp queries to help trace
-	// the operation.  The default value is nil, which means that no comment will be included in the logs.
-	Comment interface{}
-
-	// If true, no writes will be executed after one fails. The default value is true.
-	Ordered *bool
+	Comment                  interface{}
+	Ordered                  *bool
 }
 
 // InsertManyOptionsBuilder contains options to configure insert operations.
@@ -91,7 +84,11 @@ func (imo *InsertManyOptionsBuilder) List() []func(*InsertManyOptions) error {
 	return imo.Opts
 }
 
-// SetBypassDocumentValidation sets the value for the BypassDocumentValidation field.
+// SetBypassDocumentValidation sets the value for the BypassDocumentValidation field. If true,
+// writes executed as part of the operation will opt out of document-level validation on the
+// server. This option is valid for MongoDB versions >= 3.2 and is ignored for previous server
+// versions. The default value is false. See https://www.mongodb.com/docs/manual/core/schema-validation/
+// for more information about document validation.
 func (imo *InsertManyOptionsBuilder) SetBypassDocumentValidation(b bool) *InsertManyOptionsBuilder {
 	imo.Opts = append(imo.Opts, func(opts *InsertManyOptions) error {
 		opts.BypassDocumentValidation = &b
@@ -102,7 +99,9 @@ func (imo *InsertManyOptionsBuilder) SetBypassDocumentValidation(b bool) *Insert
 	return imo
 }
 
-// SetComment sets the value for the Comment field.
+// SetComment sets the value for the Comment field. Specifies a string or document that will be
+// included in server logs, profiling logs, and currentOp queries to help trace the operation.
+// The default value is nil, which means that no comment will be included in the logs.
 func (imo *InsertManyOptionsBuilder) SetComment(comment interface{}) *InsertManyOptionsBuilder {
 	imo.Opts = append(imo.Opts, func(opts *InsertManyOptions) error {
 		opts.Comment = comment
@@ -113,7 +112,8 @@ func (imo *InsertManyOptionsBuilder) SetComment(comment interface{}) *InsertMany
 	return imo
 }
 
-// SetOrdered sets the value for the Ordered field.
+// SetOrdered sets the value for the Ordered field. If true, no writes will be executed after
+// one fails. The default value is true.
 func (imo *InsertManyOptionsBuilder) SetOrdered(b bool) *InsertManyOptionsBuilder {
 	imo.Opts = append(imo.Opts, func(opts *InsertManyOptions) error {
 		opts.Ordered = &b

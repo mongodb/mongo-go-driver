@@ -454,7 +454,7 @@ func (coll *Collection) delete(
 	filter interface{},
 	deleteOne bool,
 	expectedRr returnResult,
-	opts ...options.Lister[options.DeleteOptions],
+	args *options.DeleteManyOptions,
 ) (*DeleteResult, error) {
 
 	if ctx == nil {
@@ -490,11 +490,6 @@ func (coll *Collection) delete(
 	var limit int32
 	if deleteOne {
 		limit = 1
-	}
-
-	args, err := mongoutil.NewOptions[options.DeleteOptions](opts...)
-	if err != nil {
-		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 
 	didx, doc := bsoncore.AppendDocumentStart(nil)
@@ -569,9 +564,20 @@ func (coll *Collection) delete(
 func (coll *Collection) DeleteOne(
 	ctx context.Context,
 	filter interface{},
-	opts ...options.Lister[options.DeleteOptions],
+	opts ...options.Lister[options.DeleteOneOptions],
 ) (*DeleteResult, error) {
-	return coll.delete(ctx, filter, true, rrOne, opts...)
+	args, err := mongoutil.NewOptions[options.DeleteOneOptions](opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
+	}
+	deleteOptions := &options.DeleteManyOptions{
+		Collation: args.Collation,
+		Comment:   args.Comment,
+		Hint:      args.Hint,
+		Let:       args.Let,
+	}
+
+	return coll.delete(ctx, filter, true, rrOne, deleteOptions)
 }
 
 // DeleteMany executes a delete command to delete documents from the collection.
@@ -587,9 +593,14 @@ func (coll *Collection) DeleteOne(
 func (coll *Collection) DeleteMany(
 	ctx context.Context,
 	filter interface{},
-	opts ...options.Lister[options.DeleteOptions],
+	opts ...options.Lister[options.DeleteManyOptions],
 ) (*DeleteResult, error) {
-	return coll.delete(ctx, filter, false, rrMany, opts...)
+	args, err := mongoutil.NewOptions[options.DeleteManyOptions](opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
+	}
+
+	return coll.delete(ctx, filter, false, rrMany, args)
 }
 
 func (coll *Collection) updateOrReplace(
@@ -756,7 +767,7 @@ func (coll *Collection) UpdateOne(
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
-	updateOptions := options.UpdateManyOptions{
+	updateOptions := &options.UpdateManyOptions{
 		ArrayFilters:             args.ArrayFilters,
 		BypassDocumentValidation: args.BypassDocumentValidation,
 		Collation:                args.Collation,
@@ -766,7 +777,7 @@ func (coll *Collection) UpdateOne(
 		Let:                      args.Let,
 	}
 
-	return coll.updateOrReplace(ctx, f, update, false, rrOne, true, args.Sort, &updateOptions)
+	return coll.updateOrReplace(ctx, f, update, false, rrOne, true, args.Sort, updateOptions)
 }
 
 // UpdateMany executes an update command to update documents in the collection.
