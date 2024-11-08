@@ -28,7 +28,17 @@
   ],
   "runOnRequirements": [
     {
-      "minServerVersion": "7.0.0",
+      "minServerVersion": "7.0.5",
+      "maxServerVersion": "7.0.99",
+      "topologies": [
+        "replicaset",
+        "load-balanced",
+        "sharded"
+      ],
+      "serverless": "forbid"
+    },
+    {
+      "minServerVersion": "7.2.0",
       "topologies": [
         "replicaset",
         "load-balanced",
@@ -49,7 +59,7 @@
           },
           "expectError": {
             "isError": true,
-            "errorContains": "Search index commands are only supported with Atlas"
+            "errorContains": "Atlas"
           }
         }
       ],
@@ -83,13 +93,14 @@
                   "mappings": {
                     "dynamic": true
                   }
-                }
+                },
+                "type": "search"
               }
             ]
           },
           "expectError": {
             "isError": true,
-            "errorContains": "Search index commands are only supported with Atlas"
+            "errorContains": "Atlas"
           }
         }
       ],
@@ -107,7 +118,8 @@
                         "mappings": {
                           "dynamic": true
                         }
-                      }
+                      },
+                      "type": "search"
                     }
                   ],
                   "$db": "database0"
@@ -132,13 +144,14 @@
                     "dynamic": true
                   }
                 },
-                "name": "test index"
+                "name": "test index",
+                "type": "search"
               }
             ]
           },
           "expectError": {
             "isError": true,
-            "errorContains": "Search index commands are only supported with Atlas"
+            "errorContains": "Atlas"
           }
         }
       ],
@@ -157,7 +170,70 @@
                           "dynamic": true
                         }
                       },
-                      "name": "test index"
+                      "name": "test index",
+                      "type": "search"
+                    }
+                  ],
+                  "$db": "database0"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "create a vector search index",
+      "operations": [
+        {
+          "name": "createSearchIndexes",
+          "object": "collection0",
+          "arguments": {
+            "models": [
+              {
+                "definition": {
+                  "fields": [
+                    {
+                      "type": "vector",
+                      "path": "plot_embedding",
+                      "numDimensions": 1536,
+                      "similarity": "euclidean"
+                    }
+                  ]
+                },
+                "name": "test index",
+                "type": "vectorSearch"
+              }
+            ]
+          },
+          "expectError": {
+            "isError": true,
+            "errorContains": "Atlas"
+          }
+        }
+      ],
+      "expectEvents": [
+        {
+          "client": "client0",
+          "events": [
+            {
+              "commandStartedEvent": {
+                "command": {
+                  "createSearchIndexes": "collection0",
+                  "indexes": [
+                    {
+                      "definition": {
+                        "fields": [
+                          {
+                            "type": "vector",
+                            "path": "plot_embedding",
+                            "numDimensions": 1536,
+                            "similarity": "euclidean"
+                          }
+                        ]
+                      },
+                      "name": "test index",
+                      "type": "vectorSearch"
                     }
                   ],
                   "$db": "database0"
