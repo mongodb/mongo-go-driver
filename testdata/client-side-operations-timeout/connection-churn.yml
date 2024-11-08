@@ -183,7 +183,7 @@ tests:
             data:
               failCommands: ["insert"]
               blockConnection: true
-              blockTimeMS: 750
+              blockTimeMS: 1100
 
       # Execute operation with timeout less than block time
       - name: insertOne
@@ -198,7 +198,7 @@ tests:
       - name: insertOne
         object: *collection
         arguments:
-          timeoutMS: 500
+          timeoutMS: 1000
           document: { _id: 3, x: 1 }
         expectError:
           isTimeoutError: true
@@ -276,7 +276,7 @@ tests:
             data:
               failCommands: ["find"]
               blockConnection: true
-              blockTimeMS: 750
+              blockTimeMS: 1100
 
       # Execute operation with timeout less than block time
       - name: findOne
@@ -291,7 +291,7 @@ tests:
       - name: findOne
         object: *collection
         arguments:
-          timeoutMS: 500
+          timeoutMS: 1000
           filter: { _id: 1 }
         expectError:
           isTimeoutError: true

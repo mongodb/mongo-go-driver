@@ -784,22 +784,14 @@ func (p *pool) removeConnection(conn *connection, reason reason, err error) erro
 	return nil
 }
 
-var (
-	// BGReadTimeout is the maximum amount of the to wait when trying to read
-	// the server reply on a connection after an operation timed out. The
-	// default is 400ms.
-	//
-	// Deprecated: BGReadTimeout is intended for internal use only and may be
-	// removed or modified at any time.
-	BGReadTimeout = 400 * time.Millisecond
+// PendingReadTimeout is the maximum amount of the to wait when trying to read
+// the server reply on a connection after an operation timed out. The
+// default is 1 second.
+//
+// Deprecated: PendingReadTimeout is intended for internal use only and may be
+// removed or modified at any time.
 
-	// BGReadCallback is a callback for monitoring the behavior of the
-	// background-read-on-timeout connection preserving mechanism.
-	//
-	// Deprecated: BGReadCallback is intended for internal use only and may be
-	// removed or modified at any time.
-	BGReadCallback func(addr string, start, read time.Time, errs []error, connClosed bool)
-)
+var PendingReadTimeout = 1 * time.Second
 
 // awaitPendingRead sets a new read deadline on the provided connection and
 // tries to read any bytes returned by the server. If there are any errors, the
@@ -813,6 +805,13 @@ func awaitPendingRead(ctx context.Context, pool *pool, conn *connection) error {
 		return nil
 	}
 
+	//if pool.monitor != nil {
+	//	pool.monitor.Event(&event.PoolEvent{
+	//		Type:         event.ConnectionPendingReadStarted,
+	//		ConnectionID: conn.driverConnectionID,
+	//	})
+	//}
+
 	size := *conn.awaitRemainingBytes
 
 	checkIn := false
@@ -820,8 +819,7 @@ func awaitPendingRead(ctx context.Context, pool *pool, conn *connection) error {
 	defer func() {
 		// If we have exceeded the time limit, then close the connection.
 		if conn.remainingTime != nil && *conn.remainingTime < 0 {
-			err := conn.close()
-			if err != nil {
+			if err := conn.close(); err != nil {
 				panic(err)
 			}
 
@@ -831,6 +829,14 @@ func awaitPendingRead(ctx context.Context, pool *pool, conn *connection) error {
 		if !checkIn {
 			return
 		}
+
+		//if pool.monitor != nil {
+		//	pool.monitor.Event(&event.PoolEvent{
+		//		Type:         event.ConnectionPendingReadFailed,
+		//		ConnectionID: conn.driverConnectionID,
+		//		//Reason:       readErr.Error(),
+		//	})
+		//}
 
 		// No matter what happens, always check the connection back into the
 		// pool, which will either make it available for other operations or
@@ -845,7 +851,7 @@ func awaitPendingRead(ctx context.Context, pool *pool, conn *connection) error {
 
 	dl, contextDeadlineUsed := ctx.Deadline()
 	if !contextDeadlineUsed {
-		dl = time.Now().Add(BGReadTimeout)
+		dl = time.Now().Add(PendingReadTimeout)
 	}
 
 	err := conn.nc.SetReadDeadline(dl)
@@ -890,6 +896,14 @@ func awaitPendingRead(ctx context.Context, pool *pool, conn *connection) error {
 
 		return fmt.Errorf("error discarding %d byte message: %w", size, err)
 	}
+
+	//if pool.monitor != nil {
+	//	pool.monitor.Event(&event.PoolEvent{
+	//		Type:         event.ConnectionPendingReadSucceeded,
+	//		ConnectionID: conn.driverConnectionID,
+	//		//Reason:       readErr.Error(),
+	//	})
+	//}
 
 	conn.awaitRemainingBytes = nil
 	conn.remainingTime = nil

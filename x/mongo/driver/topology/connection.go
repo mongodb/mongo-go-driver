@@ -485,7 +485,7 @@ func (c *connection) read(ctx context.Context) (bytesRead []byte, errMsg string,
 		if l := int32(n); l == 0 && isCSOTTimeout(err) {
 			c.pendingReadMU.Lock()
 			c.awaitRemainingBytes = &l
-			c.remainingTime = ptrutil.Ptr(BGReadTimeout)
+			c.remainingTime = ptrutil.Ptr(PendingReadTimeout)
 			c.pendingReadMU.Unlock()
 		}
 		return nil, "incomplete read of message header", err
@@ -504,7 +504,7 @@ func (c *connection) read(ctx context.Context) (bytesRead []byte, errMsg string,
 		if remainingBytes > 0 && isCSOTTimeout(err) {
 			c.pendingReadMU.Lock()
 			c.awaitRemainingBytes = &remainingBytes
-			c.remainingTime = ptrutil.Ptr(BGReadTimeout)
+			c.remainingTime = ptrutil.Ptr(PendingReadTimeout)
 			c.pendingReadMU.Unlock()
 		}
 		return dst, "incomplete read of full message", err

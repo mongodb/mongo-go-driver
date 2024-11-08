@@ -75,17 +75,20 @@ const (
 
 // strings for pool command monitoring types
 const (
-	ConnectionPoolCreated     = "ConnectionPoolCreated"
-	ConnectionPoolReady       = "ConnectionPoolReady"
-	ConnectionPoolCleared     = "ConnectionPoolCleared"
-	ConnectionPoolClosed      = "ConnectionPoolClosed"
-	ConnectionCreated         = "ConnectionCreated"
-	ConnectionReady           = "ConnectionReady"
-	ConnectionClosed          = "ConnectionClosed"
-	ConnectionCheckOutStarted = "ConnectionCheckOutStarted"
-	ConnectionCheckOutFailed  = "ConnectionCheckOutFailed"
-	ConnectionCheckedOut      = "ConnectionCheckedOut"
-	ConnectionCheckedIn       = "ConnectionCheckedIn"
+	ConnectionPoolCreated          = "ConnectionPoolCreated"
+	ConnectionPoolReady            = "ConnectionPoolReady"
+	ConnectionPoolCleared          = "ConnectionPoolCleared"
+	ConnectionPoolClosed           = "ConnectionPoolClosed"
+	ConnectionCreated              = "ConnectionCreated"
+	ConnectionReady                = "ConnectionReady"
+	ConnectionClosed               = "ConnectionClosed"
+	ConnectionCheckOutStarted      = "ConnectionCheckOutStarted"
+	ConnectionCheckOutFailed       = "ConnectionCheckOutFailed"
+	ConnectionCheckedOut           = "ConnectionCheckedOut"
+	ConnectionCheckedIn            = "ConnectionCheckedIn"
+	ConnectionPendingReadStarted   = "ConnectionPendingReadStarted"
+	ConnectionPendingReadSucceeded = "ConnectionPendingReadSucceeded"
+	ConnectionPendingReadFailed    = "ConnectionPendingReadFailed"
 )
 
 // MonitorPoolOptions contains pool options as formatted in pool events

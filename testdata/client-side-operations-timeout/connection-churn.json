@@ -289,7 +289,7 @@
                   "insert"
                 ],
                 "blockConnection": true,
-                "blockTimeMS": 750
+                "blockTimeMS": 1100
               }
             }
           }
@@ -312,7 +312,7 @@
           "name": "insertOne",
           "object": "coll",
           "arguments": {
-            "timeoutMS": 500,
+            "timeoutMS": 1000,
             "document": {
               "_id": 3,
               "x": 1
@@ -453,7 +453,7 @@
                   "find"
                 ],
                 "blockConnection": true,
-                "blockTimeMS": 750
+                "blockTimeMS": 1100
               }
             }
           }
@@ -475,7 +475,7 @@
           "name": "findOne",
           "object": "coll",
           "arguments": {
-            "timeoutMS": 500,
+            "timeoutMS": 1000,
             "filter": {
               "_id": 1
             }
