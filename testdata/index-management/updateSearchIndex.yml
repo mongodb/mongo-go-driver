@@ -1,5 +1,5 @@
-schemaVersion: "1.4"
 description: "updateSearchIndex"
+schemaVersion: "1.4"
 createEntities:
   - client:
       id: &client0 client0
