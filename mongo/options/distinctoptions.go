@@ -13,6 +13,7 @@ package options
 type DistinctOptions struct {
 	Collation *Collation
 	Comment   interface{}
+	Hint      interface{}
 }
 
 // DistinctOptionsBuilder contains options to configure distinct operations. Each
@@ -54,6 +55,20 @@ func (do *DistinctOptionsBuilder) SetCollation(c *Collation) *DistinctOptionsBui
 func (do *DistinctOptionsBuilder) SetComment(comment interface{}) *DistinctOptionsBuilder {
 	do.Opts = append(do.Opts, func(opts *DistinctOptions) error {
 		opts.Comment = comment
+
+		return nil
+	})
+
+	return do
+}
+
+// SetHint sets the value for the Comment field. Specifies a string or document that
+// will be included in server logs, profiling logs, and currentOp queries to help trace
+// the operation. The default value is nil, which means that no comment will be included
+// in the logs.
+func (do *DistinctOptionsBuilder) SetHint(hint interface{}) *DistinctOptionsBuilder {
+	do.Opts = append(do.Opts, func(opts *DistinctOptions) error {
+		opts.Hint = hint
 
 		return nil
 	})

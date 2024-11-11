@@ -1281,6 +1281,13 @@ func (coll *Collection) Distinct(
 		}
 		op.Comment(comment)
 	}
+	if args.Hint != nil {
+		hint, err := marshalValue(args.Hint, coll.bsonOpts, coll.registry)
+		if err != nil {
+			return &DistinctResult{err: err}
+		}
+		op.Hint(hint)
+	}
 	retry := driver.RetryNone
 	if coll.client.retryReads {
 		retry = driver.RetryOncePerCommand
