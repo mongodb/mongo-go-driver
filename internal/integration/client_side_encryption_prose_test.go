@@ -13,7 +13,9 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -30,6 +32,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/handshake"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/internal/integtest"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
@@ -2918,7 +2921,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		}
 	})
 
-	mt.RunOpts("22. range explicit encryption applies defaults", qeRunOpts22, func(mt *mtest.T) {
+	mt.RunOpts("23. range explicit encryption applies defaults", qeRunOpts22, func(mt *mtest.T) {
 		err := mt.Client.Database("keyvault").Collection("datakeys").Drop(context.Background())
 		assert.Nil(mt, err, "error on Drop: %v", err)
 
@@ -2978,6 +2981,67 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			assert.Nil(mt, err, "error in Encrypt: %v", err)
 			assert.Greater(t, len(payload.Data), len(payloadDefaults.Data), "the returned payload size is expected to be greater than %d", len(payloadDefaults.Data))
 		})
+	})
+
+	mt.RunOpts("24. KMS Retry Tests", qeRunOpts22, func(mt *mtest.T) {
+		setFailPoint := func(failure string, count int) error {
+			url := fmt.Sprintf("https://localhost:9003/set_failpoint/%s", failure)
+			var payloadBuf bytes.Buffer
+			body := map[string]int{"count": count}
+			json.NewEncoder(&payloadBuf).Encode(body)
+			req, err := http.NewRequest(http.MethodPost, url, &payloadBuf)
+			if err != nil {
+				return err
+			}
+
+			cert, err := ioutil.ReadFile(os.Getenv("CSFLE_TLS_CA_FILE"))
+			if err != nil {
+				return err
+			}
+
+			certPool := x509.NewCertPool()
+			certPool.AppendCertsFromPEM(cert)
+
+			client := &http.Client{
+				Transport: &http.Transport{
+					TLSClientConfig: &tls.Config{
+						RootCAs: certPool,
+					},
+				},
+			}
+			_, err = client.Do(req)
+			return err
+		}
+
+		keyVaultClient, err := mongo.Connect(options.Client().ApplyURI(mtest.ClusterURI()))
+		require.NoError(mt, err, "error on Connect: %v", err)
+
+		ceo := options.ClientEncryption().
+			SetKeyVaultNamespace("keyvault.datakeys").
+			SetKmsProviders(fullKmsProvidersMap)
+		clientEncryption, err := mongo.NewClientEncryption(keyVaultClient, ceo)
+		require.NoError(mt, err, "error on NewClientEncryption: %v", err)
+
+		err = setFailPoint("http", 1)
+		require.NoError(mt, err, "mock server error: %v", err)
+
+		dkOpts := options.DataKey().SetMasterKey(
+			bson.D{
+				{"region", "foo"},
+				{"key", "bar"},
+				{"endpoint", "127.0.0.1:9003"},
+			},
+		)
+		var keyID bson.Binary
+		keyID, err = clientEncryption.CreateDataKey(context.Background(), "aws", dkOpts)
+		require.NoError(mt, err, "error in CreateDataKey: %v", err)
+
+		testVal := bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 123)}
+		eo := options.Encrypt().
+			SetKeyID(keyID).
+			SetAlgorithm("AEAD_AES_256_CBC_HMAC_SHA_512-Deterministic")
+		_, err = clientEncryption.Encrypt(context.Background(), testVal, eo)
+		assert.NoError(mt, err, "error in Encrypt: %v", err)
 	})
 }
 
