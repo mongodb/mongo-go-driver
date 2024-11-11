@@ -22,55 +22,51 @@ import (
 
 var dbName = fmt.Sprintf("goleak-%d", time.Now().Unix())
 
-func TestMain(m *testing.M) {
-	goleak.VerifyTestMain(m)
-}
-
 // TestGoroutineLeak creates clients with various client configurations, runs
 // some operations with each one, then disconnects the client. It asserts that
 // no goroutines were leaked after the client is disconnected.
 func TestGoroutineLeak(t *testing.T) {
-	uri := "mongodb://localhost:27017"
-	if u := os.Getenv("MONGODB_URI"); u != "" {
-		uri = u
-	}
-
 	testCases := []struct {
 		desc string
 		opts *options.ClientOptions
 	}{
 		{
 			desc: "base",
-			opts: options.Client().ApplyURI(uri),
+			opts: options.Client(),
 		},
 		{
 			desc: "compressors=snappy",
-			opts: options.Client().ApplyURI(uri).SetCompressors([]string{"snappy"}),
+			opts: options.Client().SetCompressors([]string{"snappy"}),
 		},
 		{
 			desc: "compressors=zlib",
-			opts: options.Client().ApplyURI(uri).SetCompressors([]string{"zlib"}),
+			opts: options.Client().SetCompressors([]string{"zlib"}),
 		},
 		{
 			desc: "compressors=zstd",
-			opts: options.Client().ApplyURI(uri).SetCompressors([]string{"zstd"}),
+			opts: options.Client().SetCompressors([]string{"zstd"}),
 		},
 		{
 			desc: "minPoolSize=10",
-			opts: options.Client().ApplyURI(uri).SetMinPoolSize(10),
+			opts: options.Client().SetMinPoolSize(10),
 		},
 		{
 			desc: "serverMonitoringMode=poll",
-			opts: options.Client().ApplyURI(uri).SetServerMonitoringMode(options.ServerMonitoringModePoll),
+			opts: options.Client().SetServerMonitoringMode(options.ServerMonitoringModePoll),
 		},
 	}
+
 	for _, tc := range testCases {
 		// These can't be run in parallel because goleak currently can't filter
 		// out goroutines from other parallel subtests.
 		t.Run(tc.desc, func(t *testing.T) {
 			defer goleak.VerifyNone(t)
 
-			client, err := mongo.Connect(context.Background(), tc.opts)
+			base := options.Client()
+			if u := os.Getenv("MONGODB_URI"); u != "" {
+				base.ApplyURI(u)
+			}
+			client, err := mongo.Connect(context.Background(), base, tc.opts)
 			require.NoError(t, err)
 
 			defer func() {
@@ -78,21 +74,45 @@ func TestGoroutineLeak(t *testing.T) {
 				require.NoError(t, err)
 			}()
 
-			coll := client.Database(dbName).Collection(collectionName(t))
+			db := client.Database(dbName)
 			defer func() {
-				err := coll.Drop(context.Background())
+				err := db.Drop(context.Background())
 				require.NoError(t, err)
 			}()
 
-			_, err = coll.InsertOne(context.Background(), bson.M{"x": 123})
-			require.NoError(t, err)
+			coll := db.Collection(collectionName(t))
 
-			for i := 0; i < 20; i++ {
+			// Start a change stream to simulate a change listener workload.
+			cs, err := coll.Watch(context.Background(), mongo.Pipeline{})
+			require.NoError(t, err)
+			defer cs.Close(context.Background())
+
+			// Run some Insert and FindOne operations to simulate a writing and
+			// reading workload. Run 50 iterations to increase the probability
+			// that a goroutine leak will happen if a problem exists.
+			for i := 0; i < 50; i++ {
+				_, err = coll.InsertOne(context.Background(), bson.M{"x": 123})
+				require.NoError(t, err)
+
 				var res bson.D
 				err = coll.FindOne(context.Background(), bson.D{}).Decode(&res)
 				require.NoError(t, err)
-				time.Sleep(50 * time.Millisecond)
 			}
+
+			// Intentionally cause some timeouts. Ignore any errors.
+			for i := 0; i < 50; i++ {
+				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Microsecond)
+				coll.FindOne(ctx, bson.D{}).Err()
+				cancel()
+			}
+
+			// Finish simulating the change listener workload. Use "Next" to
+			// fetch at least one change stream document batch and decode the
+			// first document.
+			cs.Next(context.Background())
+			var res bson.D
+			err = cs.Decode(&res)
+			require.NoError(t, err)
 		})
 	}
 }

@@ -1431,11 +1431,22 @@ tasks:
       - func: bootstrap-mongo-orchestration
       - func: run-docker-test
 
-  - name: test-goroutine-leaks
+  - name: test-goroutine-leaks-replicaset
+    tags: ["goleak"]
     commands:
       - func: bootstrap-mongo-orchestration
         vars:
           TOPOLOGY: "replica_set"
+          AUTH: "noauth"
+          SSL: "nossl"
+      - func: run-goleak-test
+
+  - name: test-goroutine-leaks-sharded
+    tags: ["goleak"]
+    commands:
+      - func: bootstrap-mongo-orchestration
+        vars:
+          TOPOLOGY: "sharded_cluster"
           AUTH: "noauth"
           SSL: "nossl"
       - func: run-goleak-test
@@ -2567,7 +2578,7 @@ buildvariants:
     expansions:
       GO_DIST: "/opt/golang/go1.22"
     tasks:
-      - name: "test-goroutine-leaks"
+      - name: ".goleak"
 
   - matrix_name: "tests-rhel-36-with-zlib-support"
     tags: ["pullrequest"]
