@@ -388,6 +388,17 @@ functions:
           TASKFILE_TARGET: test-short
         args: [*task-runner, run-docker]
 
+  run-goleak-test:
+    - command: shell.exec
+      type: test
+      params:
+        shell: "bash"
+        working_dir: src/go.mongodb.org/mongo-driver
+        include_expansions_in_env: ["MONGODB_URI"]
+        script: |
+          ${PREPARE_SHELL}
+          bash etc/run-goleak-test.sh
+
   run-ocsp-server:
     - command: subprocess.exec
       params:
@@ -1099,6 +1110,26 @@ tasks:
     commands:
       - func: bootstrap-mongo-orchestration
       - func: run-docker-test
+
+  - name: test-goroutine-leaks-replicaset
+    tags: ["goleak"]
+    commands:
+      - func: bootstrap-mongo-orchestration
+        vars:
+          TOPOLOGY: "replica_set"
+          AUTH: "noauth"
+          SSL: "nossl"
+      - func: run-goleak-test
+
+  - name: test-goroutine-leaks-sharded
+    tags: ["goleak"]
+    commands:
+      - func: bootstrap-mongo-orchestration
+        vars:
+          TOPOLOGY: "sharded_cluster"
+          AUTH: "noauth"
+          SSL: "nossl"
+      - func: run-goleak-test
 
   - name: test-load-balancer-noauth-nossl
     tags: ["load-balancer"]
@@ -2055,6 +2086,16 @@ buildvariants:
       GO_DIST: "/opt/golang/go1.22"
     tasks:
       - name: "test-docker-runner"
+
+  - name: goroutine-leaks-test
+    tags: ["pullrequest"]
+    display_name: "Goroutine Leaks Test"
+    run_on:
+      - ubuntu2204-large
+    expansions:
+      GO_DIST: "/opt/golang/go1.22"
+    tasks:
+      - name: ".goleak"
 
   - matrix_name: "tests-rhel-36-with-zlib-support"
     tags: ["pullrequest"]
