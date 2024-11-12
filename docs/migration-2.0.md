@@ -1183,8 +1183,20 @@ A new `RawArray` type has been added to the `bson` package as a primitive type t
 
 ### ValueMarshaler
 
-The `MarshalBSONValue` method of the `ValueMarshaler` interface is only required to return a byte type value representing the BSON type to avoid importing the `bsontype` package.
+The `MarshalBSONValue` method of the `ValueMarshaler` interface is only required to return a byte type value representing the BSON type to avoid importing the `bsontype` package. Comparison can be achieved by type asserting with `bson.Type`. For example:
+
+```go
+btype, _, _ := m.MarshalBSONValue()
+fmt.Println("type of data: %s: ", bson.Type(btype))
+fmt.Println("type of data is an array: %v", bson.Type(btype) == bson.TypeArray)
+```
 
 ### ValueUnmarshaler
 
-The `UnmarshalBSONValue` method of the `ValueUnmarshaler` interface is only required to take a byte type argument representing the BSON type to avoid importing the Go driver package.
+The `UnmarshalBSONValue` method of the `ValueUnmarshaler` interface is only required to take a byte type argument representing the BSON type to avoid importing the Go driver package. For example:
+
+```go
+if err := m.UnmarshalBSONValue(bson.TypeEmbeddedDocument, bytes); err != nil {
+    log.Fatalf("failed to decode embedded document: %v", err)
+}
+```
