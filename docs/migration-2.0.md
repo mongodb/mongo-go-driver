@@ -1183,7 +1183,7 @@ A new `RawArray` type has been added to the `bson` package as a primitive type t
 
 ### ValueMarshaler
 
-The `MarshalBSONValue` method of the `ValueMarshaler` interface is only required to return a byte type value representing the BSON type to avoid importing the `bsontype` package. Comparison can be achieved by type asserting with `bson.Type`. For example:
+The `MarshalBSONValue` method of the `ValueMarshaler` interface is only required to return a byte type value representing the BSON type to avoid importing the `bsontype` package. Comparison can be achieved by type converting with `bson.Type`. For example:
 
 ```go
 btype, _, _ := m.MarshalBSONValue()
