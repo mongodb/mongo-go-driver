@@ -16,7 +16,13 @@ createEntities:
       collectionName: *collection0
 
 runOnRequirements:
-  - minServerVersion: "7.0.0"
+  # Skip server versions without fix of SERVER-83107 to avoid error message "BSON field 'createSearchIndexes.indexes.type' is an unknown field."
+  # SERVER-83107 was not backported to 7.1.
+  - minServerVersion: "7.0.5"
+    maxServerVersion: "7.0.99"
+    topologies: [ replicaset, load-balanced, sharded ]
+    serverless: forbid
+  - minServerVersion: "7.2.0"
     topologies: [ replicaset, load-balanced, sharded ]
     serverless: forbid
 
