@@ -1282,6 +1282,9 @@ func (coll *Collection) Distinct(
 		op.Comment(comment)
 	}
 	if args.Hint != nil {
+		if isUnorderedMap(args.Hint) {
+			return &DistinctResult{err: ErrMapForOrderedArgument{"hint"}}
+		}
 		hint, err := marshalValue(args.Hint, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return &DistinctResult{err: err}
