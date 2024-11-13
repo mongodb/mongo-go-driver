@@ -553,6 +553,42 @@ functions:
           KMS_MOCK_SERVERS_RUNNING: "true"
         args: [*task-runner, evg-test-kmip]
 
+  start-kms-failpoint-server:
+    - command: ec2.assume_role
+      params:
+        role_arn: ${aws_test_secrets_role}
+    - command: subprocess.exec
+      params:
+        working_dir: src/go.mongodb.org/mongo-driver
+        binary: bash
+        background: true
+        include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN", "DRIVERS_TOOLS"]
+        # This cannot use task because it will hang on Windows.
+        args: [etc/setup-encryption.sh]
+    - command: subprocess.exec
+      params:
+        binary: python3
+        background: true
+        args: ["-u", "${DRIVERS_TOOLS}/.evergreen/csfle/kms_failpoint_server.py", "--port", "9003"]
+
+  run-retry-kms-requests:
+    - command: subprocess.exec
+      type: test
+      params:
+        binary: "bash"
+        env: 
+          GO_BUILD_TAGS: cse
+        include_expansions_in_env: [AUTH, SSL, MONGODB_URI, TOPOLOGY, 
+          MONGO_GO_DRIVER_COMPRESSOR]
+        args: [*task-runner, setup-test]
+    - command: subprocess.exec
+      type: test
+      params:
+        binary: "bash"
+        env:
+          KMS_FAILPOINT_SERVERS_RUNNING: "true"
+        args: [*task-runner, evg-test-retry-kms-requests]
+
   run-fuzz-tests:
     - command: subprocess.exec
       type: test
@@ -1486,6 +1522,21 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
 
+  - name: "test-retry-kms-requests"
+    tags: ["retry-kms-requests"]
+    commands:
+      - func: bootstrap-mongo-orchestration
+        vars:
+          TOPOLOGY: "server"
+          AUTH: "noauth"
+          SSL: "nossl"
+      - func: start-kms-failpoint-server
+      - func: run-retry-kms-requests
+        vars:
+          TOPOLOGY: "server"
+          AUTH: "noauth"
+          SSL: "nossl"
+
   - name: "test-serverless"
     tags: ["serverless"]
     commands:
@@ -2194,6 +2245,12 @@ buildvariants:
     display_name: "KMS KMIP ${os-ssl-40}"
     tasks:
       - name: ".kms-kmip"
+
+  - matrix_name: "retry-kms-requests-test"
+    matrix_spec: { version: ["7.0"], os-ssl-40: ["rhel87-64"] }
+    display_name: "Retry KMS Requests ${os-ssl-40}"
+    tasks:
+      - name: ".retry-kms-requests"
 
   - matrix_name: "fuzz-test"
     matrix_spec: { version: ["5.0"], os-ssl-40: ["rhel87-64"] }

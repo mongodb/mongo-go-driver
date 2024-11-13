@@ -13,7 +13,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
-	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -2983,7 +2982,12 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		})
 	})
 
-	mt.RunOpts("24. KMS Retry Tests", qeRunOpts22, func(mt *mtest.T) {
+	mt.RunOpts("24. kms retry tests", noClientOpts, func(mt *mtest.T) {
+		kmsTlsTestcase := os.Getenv("KMS_FAILPOINT_SERVERS_RUNNING")
+		if kmsTlsTestcase == "" {
+			mt.Skipf("Skipping test as KMS_FAILPOINT_SERVERS_RUNNING is not set")
+		}
+
 		setFailPoint := func(failure string, count int) error {
 			url := fmt.Sprintf("https://localhost:9003/set_failpoint/%s", failure)
 			var payloadBuf bytes.Buffer
@@ -2994,18 +2998,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				return err
 			}
 
-			cert, err := ioutil.ReadFile(os.Getenv("CSFLE_TLS_CA_FILE"))
-			if err != nil {
-				return err
-			}
-
-			certPool := x509.NewCertPool()
-			certPool.AppendCertsFromPEM(cert)
-
 			client := &http.Client{
 				Transport: &http.Transport{
 					TLSClientConfig: &tls.Config{
-						RootCAs: certPool,
+						InsecureSkipVerify: true,
 					},
 				},
 			}
@@ -3035,6 +3031,9 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		var keyID bson.Binary
 		keyID, err = clientEncryption.CreateDataKey(context.Background(), "aws", dkOpts)
 		require.NoError(mt, err, "error in CreateDataKey: %v", err)
+
+		err = setFailPoint("http", 1)
+		require.NoError(mt, err, "mock server error: %v", err)
 
 		testVal := bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 123)}
 		eo := options.Encrypt().
