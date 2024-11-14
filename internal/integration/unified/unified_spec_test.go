@@ -25,6 +25,7 @@ var (
 		"command-monitoring/logging",
 		"connection-monitoring-and-pooling/logging",
 		"sessions",
+		"retryable-reads/unified",
 		"retryable-writes/unified",
 		"client-side-encryption/unified",
 		"client-side-operations-timeout",
