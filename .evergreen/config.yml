@@ -392,12 +392,9 @@ functions:
     - command: shell.exec
       type: test
       params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
+        binary: "bash"
         include_expansions_in_env: ["MONGODB_URI"]
-        script: |
-          ${PREPARE_SHELL}
-          bash etc/run-goleak-test.sh
+        args: [*task-runner, test-goleak]
 
   run-ocsp-server:
     - command: subprocess.exec
