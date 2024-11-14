@@ -389,7 +389,7 @@ functions:
         args: [*task-runner, run-docker]
 
   run-goleak-test:
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
         binary: "bash"
