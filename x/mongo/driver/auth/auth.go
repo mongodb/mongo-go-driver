@@ -65,6 +65,11 @@ type HandshakeOptions struct {
 	ClusterClock          *session.ClusterClock
 	ServerAPI             *driver.ServerAPIOptions
 	LoadBalanced          bool
+
+	// Fields provided by a library that wraps the Go Driver.
+	OuterLibraryName     string
+	OuterLibraryVersion  string
+	OuterLibraryPlatform string
 }
 
 type authHandshaker struct {
@@ -94,7 +99,10 @@ func (ah *authHandshaker) GetHandshakeInformation(
 		SASLSupportedMechs(ah.options.DBUser).
 		ClusterClock(ah.options.ClusterClock).
 		ServerAPI(ah.options.ServerAPI).
-		LoadBalanced(ah.options.LoadBalanced)
+		LoadBalanced(ah.options.LoadBalanced).
+		OuterLibraryName(ah.options.OuterLibraryName).
+		OuterLibraryVersion(ah.options.OuterLibraryVersion).
+		OuterLibraryPlatform(ah.options.OuterLibraryPlatform)
 
 	if ah.options.Authenticator != nil {
 		if speculativeAuth, ok := ah.options.Authenticator.(SpeculativeAuthenticator); ok {

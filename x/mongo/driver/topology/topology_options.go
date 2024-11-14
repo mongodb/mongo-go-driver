@@ -226,6 +226,26 @@ func NewConfigFromOptionsWithAuthenticator(opts *options.ClientOptions, clock *s
 			return appName
 		}))
 	}
+
+	var outerLibraryName, outerLibraryVersion, outerLibraryPlatform string
+	if opts.DriverInfo != nil {
+		outerLibraryName = opts.DriverInfo.Name
+		outerLibraryVersion = opts.DriverInfo.Version
+		outerLibraryPlatform = opts.DriverInfo.Platform
+
+		serverOpts = append(serverOpts, WithOuterLibraryName(func(string) string {
+			return outerLibraryName
+		}))
+
+		serverOpts = append(serverOpts, WithOuterLibraryVersion(func(string) string {
+			return outerLibraryVersion
+		}))
+
+		serverOpts = append(serverOpts, WithOuterLibraryPlatform(func(string) string {
+			return outerLibraryPlatform
+		}))
+	}
+
 	// Compressors & ZlibLevel
 	var comps []string
 	if len(opts.Compressors) > 0 {
@@ -264,12 +284,15 @@ func NewConfigFromOptionsWithAuthenticator(opts *options.ClientOptions, clock *s
 	var handshaker func(driver.Handshaker) driver.Handshaker
 	if authenticator != nil {
 		handshakeOpts := &auth.HandshakeOptions{
-			AppName:       appName,
-			Authenticator: authenticator,
-			Compressors:   comps,
-			ServerAPI:     serverAPI,
-			LoadBalanced:  loadBalanced,
-			ClusterClock:  clock,
+			AppName:              appName,
+			Authenticator:        authenticator,
+			Compressors:          comps,
+			ServerAPI:            serverAPI,
+			LoadBalanced:         loadBalanced,
+			ClusterClock:         clock,
+			OuterLibraryName:     outerLibraryName,
+			OuterLibraryVersion:  outerLibraryVersion,
+			OuterLibraryPlatform: outerLibraryPlatform,
 		}
 
 		if opts.Auth.AuthMechanism == "" {
@@ -288,7 +311,10 @@ func NewConfigFromOptionsWithAuthenticator(opts *options.ClientOptions, clock *s
 				Compressors(comps).
 				ClusterClock(clock).
 				ServerAPI(serverAPI).
-				LoadBalanced(loadBalanced)
+				LoadBalanced(loadBalanced).
+				OuterLibraryName(outerLibraryName).
+				OuterLibraryVersion(outerLibraryVersion).
+				OuterLibraryPlatform(outerLibraryPlatform)
 		}
 	}
 
