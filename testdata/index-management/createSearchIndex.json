@@ -28,7 +28,17 @@
   ],
   "runOnRequirements": [
     {
-      "minServerVersion": "7.0.0",
+      "minServerVersion": "7.0.5",
+      "maxServerVersion": "7.0.99",
+      "topologies": [
+        "replicaset",
+        "load-balanced",
+        "sharded"
+      ],
+      "serverless": "forbid"
+    },
+    {
+      "minServerVersion": "7.2.0",
       "topologies": [
         "replicaset",
         "load-balanced",
