@@ -15,7 +15,11 @@ import (
 )
 
 func TestBatches(t *testing.T) {
+	t.Parallel()
+
 	t.Run("test Addvancing", func(t *testing.T) {
+		t.Parallel()
+
 		batches := &modelBatches{
 			models: make([]clientWriteModel, 2),
 		}
@@ -24,6 +28,8 @@ func TestBatches(t *testing.T) {
 		assert.Equal(t, 0, size, "expected: %d, got: %d", 1, size)
 	})
 	t.Run("test appendBatches", func(t *testing.T) {
+		t.Parallel()
+
 		client, err := newClient()
 		require.NoError(t, err, "NewClient error: %v", err)
 		batches := &modelBatches{
@@ -42,7 +48,9 @@ func TestBatches(t *testing.T) {
 				}},
 			},
 			offset: 1,
-			result: &ClientBulkWriteResult{},
+			result: &ClientBulkWriteResult{
+				Acknowledged: true,
+			},
 		}
 		var n int
 		n, _, err = batches.AppendBatchSequence(nil, 4, 16_000, 16_000)

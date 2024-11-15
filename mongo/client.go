@@ -895,9 +895,13 @@ func (c *Client) createBaseCursorOptions() driver.CursorOptions {
 // BulkWrite performs a client-level bulk write operation.
 func (c *Client) BulkWrite(ctx context.Context, models *ClientWriteModels,
 	opts ...options.Lister[options.ClientBulkWriteOptions]) (*ClientBulkWriteResult, error) {
-	// TODO: Remove once DRIVERS-2888 is implemented.
+	// TODO(GODRIVER-3403): Remove after support for QE with Client.bulkWrite.
 	if c.isAutoEncryptionSet {
 		return nil, errors.New("bulkWrite does not currently support automatic encryption")
+	}
+
+	if models == nil {
+		return nil, ErrNilValue
 	}
 	bwo, err := mongoutil.NewOptions(opts...)
 	if err != nil {
@@ -962,14 +966,9 @@ func (c *Client) BulkWrite(ctx context.Context, models *ClientWriteModels,
 	} else if !acknowledged {
 		return nil, errors.New("cannot request unacknowledged write concern and verbose results")
 	}
-	if err = op.execute(ctx); err != nil {
-		return nil, replaceErrors(err)
-	}
-	var results *ClientBulkWriteResult
-	if acknowledged {
-		results = &op.result
-	}
-	return results, nil
+	op.result.Acknowledged = acknowledged
+	err = op.execute(ctx)
+	return &op.result, replaceErrors(err)
 }
 
 // newLogger will use the LoggerOptions to create an internal logger and publish

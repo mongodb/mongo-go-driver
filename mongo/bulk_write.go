@@ -9,6 +9,7 @@ package mongo
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -296,6 +297,9 @@ func createDeleteDoc(
 ) (bsoncore.Document, error) {
 	f, err := marshal(filter, bsonOpts, registry)
 	if err != nil {
+		if filter == nil {
+			return nil, fmt.Errorf("%w: filter is required", err)
+		}
 		return nil, err
 	}
 
@@ -428,6 +432,9 @@ type updateDoc struct {
 func (doc updateDoc) marshal(bsonOpts *options.BSONOptions, registry *bson.Registry) (bsoncore.Document, error) {
 	f, err := marshal(doc.filter, bsonOpts, registry)
 	if err != nil {
+		if doc.filter == nil {
+			return nil, fmt.Errorf("%w: filter is required", err)
+		}
 		return nil, err
 	}
 

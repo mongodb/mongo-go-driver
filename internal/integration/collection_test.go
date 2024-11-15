@@ -1713,6 +1713,41 @@ func TestCollection(t *testing.T) {
 				})
 			}
 		})
+		mt.Run("error on nil filter", func(mt *mtest.T) {
+			mt.Parallel()
+
+			testCases := []struct {
+				name  string
+				model mongo.WriteModel
+			}{
+				{
+					name:  "DeleteOne",
+					model: mongo.NewDeleteOneModel(),
+				},
+				{
+					name:  "DeleteMany",
+					model: mongo.NewDeleteManyModel(),
+				},
+				{
+					name:  "UpdateOne",
+					model: mongo.NewUpdateOneModel().SetUpdate(bson.D{{"$set", bson.D{{"x", 1}}}}),
+				},
+				{
+					name:  "UpdateMany",
+					model: mongo.NewUpdateManyModel().SetUpdate(bson.D{{"$set", bson.D{{"x", 1}}}}),
+				},
+			}
+			for _, tc := range testCases {
+				tc := tc
+
+				mt.Run(tc.name, func(mt *mtest.T) {
+					mt.Parallel()
+
+					_, err := mt.Coll.BulkWrite(context.Background(), []mongo.WriteModel{tc.model})
+					assert.ErrorContains(mt, err, "filter is required")
+				})
+			}
+		})
 		mt.Run("correct model in errors", func(mt *mtest.T) {
 			models := []mongo.WriteModel{
 				mongo.NewUpdateOneModel().SetFilter(bson.M{}).SetUpdate(bson.M{

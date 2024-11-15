@@ -35,8 +35,13 @@ func (m *ClientWriteModels) AppendInsertOne(database, collection string, models 
 	return m
 }
 
-// AppendUpdateOne appends ClientUpdateOneModels.
-func (m *ClientWriteModels) AppendUpdateOne(database, collection string, models ...*ClientUpdateOneModel) *ClientWriteModels {
+// appendModels is a helper function to append models to ClientWriteModels.
+func appendModels[T ClientUpdateOneModel |
+	ClientUpdateManyModel |
+	ClientReplaceOneModel |
+	ClientDeleteOneModel |
+	ClientDeleteManyModel](
+	m *ClientWriteModels, database, collection string, models []*T) *ClientWriteModels {
 	if m == nil {
 		m = &ClientWriteModels{}
 	}
@@ -47,65 +52,36 @@ func (m *ClientWriteModels) AppendUpdateOne(database, collection string, models 
 		})
 	}
 	return m
+}
+
+// AppendUpdateOne appends ClientUpdateOneModels.
+func (m *ClientWriteModels) AppendUpdateOne(database, collection string, models ...*ClientUpdateOneModel) *ClientWriteModels {
+	return appendModels(m, database, collection, models)
 }
 
 // AppendUpdateMany appends ClientUpdateManyModels.
 func (m *ClientWriteModels) AppendUpdateMany(database, collection string, models ...*ClientUpdateManyModel) *ClientWriteModels {
-	if m == nil {
-		m = &ClientWriteModels{}
-	}
-	for _, model := range models {
-		m.models = append(m.models, clientWriteModel{
-			namespace: fmt.Sprintf("%s.%s", database, collection),
-			model:     model,
-		})
-	}
-	return m
+	return appendModels(m, database, collection, models)
 }
 
 // AppendReplaceOne appends ClientReplaceOneModels.
 func (m *ClientWriteModels) AppendReplaceOne(database, collection string, models ...*ClientReplaceOneModel) *ClientWriteModels {
-	if m == nil {
-		m = &ClientWriteModels{}
-	}
-	for _, model := range models {
-		m.models = append(m.models, clientWriteModel{
-			namespace: fmt.Sprintf("%s.%s", database, collection),
-			model:     model,
-		})
-	}
-	return m
+	return appendModels(m, database, collection, models)
 }
 
 // AppendDeleteOne appends ClientDeleteOneModels.
 func (m *ClientWriteModels) AppendDeleteOne(database, collection string, models ...*ClientDeleteOneModel) *ClientWriteModels {
-	if m == nil {
-		m = &ClientWriteModels{}
-	}
-	for _, model := range models {
-		m.models = append(m.models, clientWriteModel{
-			namespace: fmt.Sprintf("%s.%s", database, collection),
-			model:     model,
-		})
-	}
-	return m
+	return appendModels(m, database, collection, models)
 }
 
 // AppendDeleteMany appends ClientDeleteManyModels.
 func (m *ClientWriteModels) AppendDeleteMany(database, collection string, models ...*ClientDeleteManyModel) *ClientWriteModels {
-	if m == nil {
-		m = &ClientWriteModels{}
-	}
-	for _, model := range models {
-		m.models = append(m.models, clientWriteModel{
-			namespace: fmt.Sprintf("%s.%s", database, collection),
-			model:     model,
-		})
-	}
-	return m
+	return appendModels(m, database, collection, models)
 }
 
 // ClientInsertOneModel is used to insert a single document in a client-level BulkWrite operation.
+//
+// See corresponding setter methods for documentation.
 type ClientInsertOneModel struct {
 	Document interface{}
 }
@@ -124,6 +100,8 @@ func (iom *ClientInsertOneModel) SetDocument(doc interface{}) *ClientInsertOneMo
 }
 
 // ClientUpdateOneModel is used to update at most one document in a client-level BulkWrite operation.
+//
+// See corresponding setter methods for documentation.
 type ClientUpdateOneModel struct {
 	Collation    *options.Collation
 	Upsert       *bool
@@ -183,6 +161,8 @@ func (uom *ClientUpdateOneModel) SetUpsert(upsert bool) *ClientUpdateOneModel {
 }
 
 // ClientUpdateManyModel is used to update multiple documents in a client-level BulkWrite operation.
+//
+// See corresponding setter methods for documentation.
 type ClientUpdateManyModel struct {
 	Collation    *options.Collation
 	Upsert       *bool
@@ -241,6 +221,8 @@ func (umm *ClientUpdateManyModel) SetUpsert(upsert bool) *ClientUpdateManyModel 
 }
 
 // ClientReplaceOneModel is used to replace at most one document in a client-level BulkWrite operation.
+//
+// See corresponding setter methods for documentation.
 type ClientReplaceOneModel struct {
 	Collation   *options.Collation
 	Upsert      *bool
@@ -292,6 +274,8 @@ func (rom *ClientReplaceOneModel) SetUpsert(upsert bool) *ClientReplaceOneModel 
 }
 
 // ClientDeleteOneModel is used to delete at most one document in a client-level BulkWriteOperation.
+//
+// See corresponding setter methods for documentation.
 type ClientDeleteOneModel struct {
 	Filter    interface{}
 	Collation *options.Collation
@@ -326,6 +310,8 @@ func (dom *ClientDeleteOneModel) SetHint(hint interface{}) *ClientDeleteOneModel
 }
 
 // ClientDeleteManyModel is used to delete multiple documents in a client-level BulkWrite operation.
+//
+// See corresponding setter methods for documentation.
 type ClientDeleteManyModel struct {
 	Filter    interface{}
 	Collation *options.Collation

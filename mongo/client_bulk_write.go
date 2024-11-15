@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"strconv"
 
@@ -81,18 +82,15 @@ func (bw *clientBulkWrite) execute(ctx context.Context) error {
 		Name:              driverutil.BulkWriteOp,
 	}.Execute(ctx)
 	var exception *ClientBulkWriteException
-	switch tt := err.(type) {
-	case CommandError:
+
+	var ce CommandError
+	if errors.As(err, &ce) {
 		exception = &ClientBulkWriteException{
 			TopLevelError: &WriteError{
-				Code:    int(tt.Code),
-				Message: tt.Message,
-				Raw:     tt.Raw,
+				Code:    int(ce.Code),
+				Message: ce.Message,
+				Raw:     ce.Raw,
 			},
-		}
-	default:
-		if errors.Is(err, driver.ErrUnacknowledgedWrite) {
-			err = nil
 		}
 	}
 	if len(batches.writeConcernErrors) > 0 || len(batches.writeErrors) > 0 {
@@ -453,11 +451,13 @@ func (mb *modelBatches) processResponse(ctx context.Context, resp bsoncore.Docum
 		}
 	}
 
-	mb.result.DeletedCount += int64(res.NDeleted)
-	mb.result.InsertedCount += int64(res.NInserted)
-	mb.result.MatchedCount += int64(res.NMatched)
-	mb.result.ModifiedCount += int64(res.NModified)
-	mb.result.UpsertedCount += int64(res.NUpserted)
+	if mb.result.Acknowledged {
+		mb.result.DeletedCount += int64(res.NDeleted)
+		mb.result.InsertedCount += int64(res.NInserted)
+		mb.result.MatchedCount += int64(res.NMatched)
+		mb.result.ModifiedCount += int64(res.NModified)
+		mb.result.UpsertedCount += int64(res.NUpserted)
+	}
 
 	var cursorRes driver.CursorResponse
 	cursorRes, err = driver.NewCursorResponse(res.Cursor, info)
@@ -520,10 +520,12 @@ func (mb *modelBatches) appendDeleteResult(cur *cursorInfo, raw bson.Raw) bool {
 		return false
 	}
 
-	if mb.result.DeleteResults == nil {
-		mb.result.DeleteResults = make(map[int]ClientDeleteResult)
+	if mb.result.Acknowledged {
+		if mb.result.DeleteResults == nil {
+			mb.result.DeleteResults = make(map[int]ClientBulkWriteDeleteResult)
+		}
+		mb.result.DeleteResults[idx] = ClientBulkWriteDeleteResult{int64(cur.N)}
 	}
-	mb.result.DeleteResults[idx] = ClientDeleteResult{int64(cur.N)}
 
 	return true
 }
@@ -539,10 +541,12 @@ func (mb *modelBatches) appendInsertResult(cur *cursorInfo, raw bson.Raw) bool {
 		return false
 	}
 
-	if mb.result.InsertResults == nil {
-		mb.result.InsertResults = make(map[int]ClientInsertResult)
+	if mb.result.Acknowledged {
+		if mb.result.InsertResults == nil {
+			mb.result.InsertResults = make(map[int]ClientBulkWriteInsertResult)
+		}
+		mb.result.InsertResults[idx] = ClientBulkWriteInsertResult{mb.newIDMap[idx]}
 	}
-	mb.result.InsertResults[idx] = ClientInsertResult{mb.newIDMap[idx]}
 
 	return true
 }
@@ -558,19 +562,21 @@ func (mb *modelBatches) appendUpdateResult(cur *cursorInfo, raw bson.Raw) bool {
 		return false
 	}
 
-	if mb.result.UpdateResults == nil {
-		mb.result.UpdateResults = make(map[int]ClientUpdateResult)
+	if mb.result.Acknowledged {
+		if mb.result.UpdateResults == nil {
+			mb.result.UpdateResults = make(map[int]ClientBulkWriteUpdateResult)
+		}
+		result := ClientBulkWriteUpdateResult{
+			MatchedCount: int64(cur.N),
+		}
+		if cur.NModified != nil {
+			result.ModifiedCount = int64(*cur.NModified)
+		}
+		if cur.Upserted != nil {
+			result.UpsertedID = cur.Upserted.ID
+		}
+		mb.result.UpdateResults[idx] = result
 	}
-	result := ClientUpdateResult{
-		MatchedCount: int64(cur.N),
-	}
-	if cur.NModified != nil {
-		result.ModifiedCount = int64(*cur.NModified)
-	}
-	if cur.Upserted != nil {
-		result.UpsertedID = cur.Upserted.ID
-	}
-	mb.result.UpdateResults[idx] = result
 
 	return true
 }
@@ -624,6 +630,9 @@ func (d *clientUpdateDoc) marshal(bsonOpts *options.BSONOptions, registry *bson.
 
 	f, err := marshal(d.filter, bsonOpts, registry)
 	if err != nil {
+		if d.filter == nil {
+			return nil, fmt.Errorf("%w: filter is required", err)
+		}
 		return nil, err
 	}
 	doc = bsoncore.AppendDocumentElement(doc, "filter", f)
@@ -684,6 +693,9 @@ func (d *clientDeleteDoc) marshal(bsonOpts *options.BSONOptions, registry *bson.
 
 	f, err := marshal(d.filter, bsonOpts, registry)
 	if err != nil {
+		if d.filter == nil {
+			return nil, fmt.Errorf("%w: filter is required", err)
+		}
 		return nil, err
 	}
 	doc = bsoncore.AppendDocumentElement(doc, "filter", f)

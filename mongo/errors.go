@@ -260,6 +260,8 @@ var _ ServerError = WriteError{}
 var _ ServerError = WriteException{}
 var _ ServerError = BulkWriteException{}
 
+var _ error = ClientBulkWriteException{}
+
 // CommandError represents a server error during execution of a command. This can be returned by any operation.
 type CommandError struct {
 	Code    int32

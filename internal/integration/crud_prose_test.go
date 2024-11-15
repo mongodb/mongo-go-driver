@@ -948,7 +948,7 @@ func TestClientBulkWrite(t *testing.T) {
 		}
 		result, err := mt.Client.BulkWrite(context.Background(), models, options.ClientBulkWrite().SetOrdered(false).SetWriteConcern(writeconcern.Unacknowledged()))
 		require.NoError(mt, err, "BulkWrite error: %v", err)
-		assert.Nil(mt, result, "expected a nil result, got: %v", result)
+		assert.False(mt, result.Acknowledged)
 		require.Len(mt, bwCmd, 2, "expected %d bulkWrite calls, got: %d", 2, len(bwCmd))
 
 		assert.Len(mt, bwCmd[0].Ops, numModels-1, "expected %d ops, got: %d", numModels-1, len(bwCmd[0].Ops))

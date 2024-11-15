@@ -28,6 +28,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage"
@@ -715,6 +716,77 @@ func TestClient(t *testing.T) {
 						i)
 					mt.ClearEvents()
 				}
+			})
+		}
+	})
+	mtBulkWriteOpts := mtest.NewOptions().MinServerVersion("8.0").AtlasDataLake(false).ClientType(mtest.Pinned)
+	mt.RunOpts("bulk write with nil filter", mtBulkWriteOpts, func(mt *mtest.T) {
+		mt.Parallel()
+
+		testCases := []struct {
+			name   string
+			models *mongo.ClientWriteModels
+		}{
+			{
+				name:   "DeleteOne",
+				models: (&mongo.ClientWriteModels{}).AppendDeleteOne("foo", "bar", mongo.NewClientDeleteOneModel()),
+			},
+			{
+				name:   "DeleteMany",
+				models: (&mongo.ClientWriteModels{}).AppendDeleteMany("foo", "bar", mongo.NewClientDeleteManyModel()),
+			},
+			{
+				name:   "UpdateOne",
+				models: (&mongo.ClientWriteModels{}).AppendUpdateOne("foo", "bar", mongo.NewClientUpdateOneModel()),
+			},
+			{
+				name:   "UpdateMany",
+				models: (&mongo.ClientWriteModels{}).AppendUpdateMany("foo", "bar", mongo.NewClientUpdateManyModel()),
+			},
+		}
+		for _, tc := range testCases {
+			tc := tc
+
+			mt.Run(tc.name, func(mt *mtest.T) {
+				mt.Parallel()
+
+				_, err := mt.Client.BulkWrite(context.Background(), tc.models)
+				require.ErrorContains(mt, err, "filter is required")
+			})
+		}
+	})
+	mt.RunOpts("bulk write with write concern", mtBulkWriteOpts, func(mt *mtest.T) {
+		mt.Parallel()
+
+		testCases := []struct {
+			name string
+			opts *options.ClientBulkWriteOptionsBuilder
+			want bool
+		}{
+			{
+				name: "unacknowledged",
+				opts: options.ClientBulkWrite().SetWriteConcern(writeconcern.Unacknowledged()).SetOrdered(false),
+				want: false,
+			},
+			{
+				name: "acknowledged",
+				want: true,
+			},
+		}
+		for _, tc := range testCases {
+			tc := tc
+
+			mt.Run(tc.name, func(mt *mtest.T) {
+				mt.Parallel()
+
+				var models *mongo.ClientWriteModels
+
+				insertOneModel := mongo.NewClientInsertOneModel().SetDocument(bson.D{{"x", 1}})
+				models = (&mongo.ClientWriteModels{}).AppendInsertOne("foo", "bar", insertOneModel)
+				res, err := mt.Client.BulkWrite(context.Background(), models, tc.opts)
+				require.NoError(mt, err, "BulkWrite error: %v", err)
+				require.NotNil(mt, res, "expected a ClientBulkWriteResult")
+				assert.Equal(mt, res.Acknowledged, tc.want, "expected Acknowledged: %v, got: %v", tc.want, res.Acknowledged)
 			})
 		}
 	})

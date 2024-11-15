@@ -224,12 +224,12 @@ func executeClientBulkWrite(ctx context.Context, operation *operation) (*operati
 	}
 
 	res, err := client.BulkWrite(ctx, wirteModels, opts)
-	if res == nil {
-		var bwe mongo.ClientBulkWriteException
-		if !errors.As(err, &bwe) || bwe.PartialResult == nil {
-			return newDocumentResult(emptyCoreDocument, err), nil
-		}
+	var bwe mongo.ClientBulkWriteException
+	if errors.As(err, &bwe) {
 		res = bwe.PartialResult
+	}
+	if res == nil || !res.Acknowledged {
+		return newDocumentResult(emptyCoreDocument, err), nil
 	}
 	rawBuilder := bsoncore.NewDocumentBuilder().
 		AppendInt64("deletedCount", res.DeletedCount).
