@@ -1193,7 +1193,7 @@ fmt.Println("type of data is an array: %v", bson.Type(btype) == bson.TypeArray)
 
 ### ValueUnmarshaler
 
-The `UnmarshalBSONValue` method of the `ValueUnmarshaler` interface is only required to take a byte type argument representing the BSON type to avoid importing the Go driver package. For example:
+The `UnmarshalBSONValue` method of the [ValueUnmarshaler](https://pkg.go.dev/go.mongodb.org/mongo-driver/v2/bson#ValueUnmarshaler) interface now accepts a `byte` value representing the [BSON type](https://pkg.go.dev/go.mongodb.org/mongo-driver/v2/bson#Type) for the first argument. That allows packages to implement `ValueUnmarshaler` without having to import the `bson` package. For example:
 
 ```go
 if err := m.UnmarshalBSONValue(bson.TypeEmbeddedDocument, bytes); err != nil {
