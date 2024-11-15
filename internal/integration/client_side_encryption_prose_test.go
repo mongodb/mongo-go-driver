@@ -1381,8 +1381,9 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		}
 	})
 
-	// These tests only run when 3 KMS HTTP servers and 1 KMS KMIP server are running. See specification for port numbers and necessary arguments:
-	// https://github.com/mongodb/specifications/blob/master/source/client-side-encryption/tests/README.rst#kms-tls-options-tests
+	// These tests only run when 3 KMS HTTP servers and 1 KMS KMIP server are
+	// running. See specification for port numbers and necessary arguments:
+	// https://github.com/mongodb/specifications/blob/master/source/client-side-encryption/tests/README.md#10-kms-tls-tests
 	mt.RunOpts("10. kms tls tests", noClientOpts, func(mt *mtest.T) {
 		kmsTlsTestcase := os.Getenv("KMS_TLS_TESTCASE")
 		if kmsTlsTestcase == "" {
@@ -1436,8 +1437,9 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		}
 	})
 
-	// These tests only run when 3 KMS HTTP servers and 1 KMS KMIP server are running. See specification for port numbers and necessary arguments:
-	// https://github.com/mongodb/specifications/blob/master/source/client-side-encryption/tests/README.rst#kms-tls-options-tests
+	// These tests only run when 3 KMS HTTP servers and 1 KMS KMIP server are
+	// running. See specification for port numbers and necessary arguments:
+	// https://github.com/mongodb/specifications/blob/master/source/client-side-encryption/tests/README.md#11-kms-tls-options-tests
 	mt.RunOpts("11. kms tls options tests", noClientOpts, func(mt *mtest.T) {
 		if os.Getenv("KMS_MOCK_SERVERS_RUNNING") == "" {
 			mt.Skipf("Skipping test as KMS_MOCK_SERVERS_RUNNING is not set")
