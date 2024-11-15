@@ -523,6 +523,8 @@ func executeDistinct(ctx context.Context, operation *operation) (*operationResul
 		val := elem.Value()
 
 		switch key {
+		case "hint":
+			opts.SetHint(val)
 		case "collation":
 			collation, err := createCollation(val.Document())
 			if err != nil {
