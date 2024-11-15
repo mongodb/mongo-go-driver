@@ -1183,7 +1183,7 @@ A new `RawArray` type has been added to the `bson` package as a primitive type t
 
 ### ValueMarshaler
 
-The `MarshalBSONValue` method of the `ValueMarshaler` interface is only required to return a byte type value representing the BSON type to avoid importing the `bsontype` package. Comparison can be achieved by type converting with `bson.Type`. For example:
+The `MarshalBSONValue` method of the [ValueMarshaler](https://pkg.go.dev/go.mongodb.org/mongo-driver/v2/bson#ValueMarshaler) interface now returns a `byte` value representing the [BSON type](https://pkg.go.dev/go.mongodb.org/mongo-driver/v2/bson#Type). That allows external packages to implement the `ValueMarshaler` interface without having to import the `bson` package. Convert a returned `byte` value to [bson.Type](https://pkg.go.dev/go.mongodb.org/mongo-driver/v2/bson#Type) to compare with the BSON type constants. For example:
 
 ```go
 btype, _, _ := m.MarshalBSONValue()
