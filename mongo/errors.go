@@ -245,13 +245,10 @@ type LabeledError interface {
 // interface should not be used in production.
 type ServerError interface {
 	LabeledError
-
 	// HasErrorCode returns true if the error has the specified code.
 	HasErrorCode(int) bool
-
 	// HasErrorMessage returns true if the error contains the specified message.
 	HasErrorMessage(string) bool
-
 	// HasErrorCodeWithMessage returns true if any of the contained errors have the specified code and message.
 	HasErrorCodeWithMessage(int, string) bool
 
@@ -307,7 +304,6 @@ func (e CommandError) HasErrorCode(code int) bool {
 
 // ErrorCodes returns a list of error codes returned by the server.
 func (e CommandError) ErrorCodes() []int {
-	fmt.Println(e.Code)
 	return []int{int(e.Code)}
 }
 
