@@ -1,7 +1,7 @@
 # Dockerfile for Go Driver local development.
 
 # Build libmongocrypt in a separate build stage.
-FROM ubuntu:20.04 as libmongocrypt
+FROM artifactory.corp.mongodb.com/dockerhub/ubuntu:20.04 as libmongocrypt
 
 RUN apt-get -qq update && \
   apt-get -qqy install --no-install-recommends \
@@ -17,7 +17,7 @@ RUN cd /root && bash ./install-libmongocrypt.sh
 
 
 # Copy in the files from the libmongocrypt build stage.
-FROM ubuntu:20.04
+FROM artifactory.corp.mongodb.com/dockerhub/ubuntu:20.04
 
 # Install common deps.
 RUN export DEBIAN_FRONTEND=noninteractive && \
