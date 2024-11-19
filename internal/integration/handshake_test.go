@@ -18,6 +18,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/handshake"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/version"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage"
@@ -34,11 +35,23 @@ func TestHandshakeProse(t *testing.T) {
 		CreateCollection(false).
 		ClientType(mtest.Proxy)
 
-	clientMetadata := func(env bson.D) bson.D {
+	clientMetadata := func(env bson.D, info *options.DriverInfo) bson.D {
+		var (
+			driverName    = "mongo-go-driver"
+			driverVersion = version.Driver
+			platform      = runtime.Version()
+		)
+
+		if info != nil {
+			driverName = driverName + "|" + info.Name
+			driverVersion = driverVersion + "|" + info.Version
+			platform = platform + "|" + info.Platform
+		}
+
 		elems := bson.D{
 			{Key: "driver", Value: bson.D{
-				{Key: "name", Value: "mongo-go-driver"},
-				{Key: "version", Value: version.Driver},
+				{Key: "name", Value: driverName},
+				{Key: "version", Value: driverVersion},
 			}},
 			{Key: "os", Value: bson.D{
 				{Key: "type", Value: runtime.GOOS},
@@ -46,7 +59,7 @@ func TestHandshakeProse(t *testing.T) {
 			}},
 		}
 
-		elems = append(elems, bson.E{Key: "platform", Value: runtime.Version()})
+		elems = append(elems, bson.E{Key: "platform", Value: platform})
 
 		// If env is empty, don't include it in the metadata.
 		if env != nil && !reflect.DeepEqual(env, bson.D{}) {
@@ -54,6 +67,12 @@ func TestHandshakeProse(t *testing.T) {
 		}
 
 		return elems
+	}
+
+	driverInfo := &options.DriverInfo{
+		Name:     "outer-library-name",
+		Version:  "outer-library-version",
+		Platform: "outer-library-platform",
 	}
 
 	// Reset the environment variables to avoid environment namespace
@@ -72,6 +91,7 @@ func TestHandshakeProse(t *testing.T) {
 	for _, test := range []struct {
 		name string
 		env  map[string]string
+		opts *options.ClientOptionsBuilder
 		want bson.D
 	}{
 		{
@@ -81,20 +101,22 @@ func TestHandshakeProse(t *testing.T) {
 				"AWS_REGION":                      "us-east-2",
 				"AWS_LAMBDA_FUNCTION_MEMORY_SIZE": "1024",
 			},
+			opts: nil,
 			want: clientMetadata(bson.D{
 				{Key: "name", Value: "aws.lambda"},
 				{Key: "memory_mb", Value: 1024},
 				{Key: "region", Value: "us-east-2"},
-			}),
+			}, nil),
 		},
 		{
 			name: "2. valid Azure",
 			env: map[string]string{
 				"FUNCTIONS_WORKER_RUNTIME": "node",
 			},
+			opts: nil,
 			want: clientMetadata(bson.D{
 				{Key: "name", Value: "azure.func"},
-			}),
+			}, nil),
 		},
 		{
 			name: "3. valid GCP",
@@ -104,12 +126,13 @@ func TestHandshakeProse(t *testing.T) {
 				"FUNCTION_TIMEOUT_SEC": "60",
 				"FUNCTION_REGION":      "us-central1",
 			},
+			opts: nil,
 			want: clientMetadata(bson.D{
 				{Key: "name", Value: "gcp.func"},
 				{Key: "memory_mb", Value: 1024},
 				{Key: "region", Value: "us-central1"},
 				{Key: "timeout_sec", Value: 60},
-			}),
+			}, nil),
 		},
 		{
 			name: "4. valid Vercel",
@@ -117,10 +140,11 @@ func TestHandshakeProse(t *testing.T) {
 				"VERCEL":        "1",
 				"VERCEL_REGION": "cdg1",
 			},
+			opts: nil,
 			want: clientMetadata(bson.D{
 				{Key: "name", Value: "vercel"},
 				{Key: "region", Value: "cdg1"},
-			}),
+			}, nil),
 		},
 		{
 			name: "5. invalid multiple providers",
@@ -128,7 +152,8 @@ func TestHandshakeProse(t *testing.T) {
 				"AWS_EXECUTION_ENV":        "AWS_Lambda_java8",
 				"FUNCTIONS_WORKER_RUNTIME": "node",
 			},
-			want: clientMetadata(nil),
+			opts: nil,
+			want: clientMetadata(nil, nil),
 		},
 		{
 			name: "6. invalid long string",
@@ -142,9 +167,10 @@ func TestHandshakeProse(t *testing.T) {
 					return s
 				}(),
 			},
+			opts: nil,
 			want: clientMetadata(bson.D{
 				{Key: "name", Value: "aws.lambda"},
-			}),
+			}, nil),
 		},
 		{
 			name: "7. invalid wrong types",
@@ -152,16 +178,23 @@ func TestHandshakeProse(t *testing.T) {
 				"AWS_EXECUTION_ENV":               "AWS_Lambda_java8",
 				"AWS_LAMBDA_FUNCTION_MEMORY_SIZE": "big",
 			},
+			opts: nil,
 			want: clientMetadata(bson.D{
 				{Key: "name", Value: "aws.lambda"},
-			}),
+			}, nil),
 		},
 		{
 			name: "8. Invalid - AWS_EXECUTION_ENV does not start with \"AWS_Lambda_\"",
 			env: map[string]string{
 				"AWS_EXECUTION_ENV": "EC2",
 			},
-			want: clientMetadata(nil),
+			opts: nil,
+			want: clientMetadata(nil, nil),
+		},
+		{
+			name: "driver info included",
+			opts: options.Client().SetDriverInfo(driverInfo),
+			want: clientMetadata(nil, driverInfo),
 		},
 	} {
 		test := test
@@ -169,6 +202,10 @@ func TestHandshakeProse(t *testing.T) {
 		mt.RunOpts(test.name, opts, func(mt *mtest.T) {
 			for k, v := range test.env {
 				mt.Setenv(k, v)
+			}
+
+			if test.opts != nil {
+				mt.ResetClient(test.opts)
 			}
 
 			// Ping the server to ensure the handshake has completed.
