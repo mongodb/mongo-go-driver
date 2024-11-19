@@ -105,6 +105,8 @@ tasks:
 
   test-gcpkms: bash etc/run-gcpkms-test.sh
 
+  test-goleak: bash etc/run-goleak-test.sh
+
   ### Local FaaS tasks. ###
   build-faas-awslambda:
     requires: 
