@@ -58,8 +58,8 @@ func (sc *stringCodec) decodeType(dc DecodeContext, vr ValueReader, t reflect.Ty
 			}
 			str = oid.Hex()
 		} else {
-			msg := "decoding an object ID into a plain string is not supported " +
-				"(set Decoder.ObjectIDAsHexString to enable decoding as a hexadecimal representation)"
+			const msg = "decoding an object ID into a string is not supported by default " +
+				"(set Decoder.ObjectIDAsHexString to enable decoding as a hexadecimal string)"
 			return emptyValue, errors.New(msg)
 		}
 	case TypeSymbol:
