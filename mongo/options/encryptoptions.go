@@ -128,7 +128,7 @@ func Encrypt() *EncryptOptionsBuilder {
 	return &EncryptOptionsBuilder{}
 }
 
-// SetKeyID specifies an _id of a data key. This should be a UUID (a primitive.Binary with subtype 4).
+// SetKeyID specifies an _id of a data key. This should be a UUID (a bson.Binary with subtype 4).
 func (e *EncryptOptionsBuilder) SetKeyID(keyID bson.Binary) *EncryptOptionsBuilder {
 	e.Opts = append(e.Opts, func(opts *EncryptOptions) error {
 		opts.KeyID = &keyID

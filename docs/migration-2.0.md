@@ -867,6 +867,34 @@ The `NewRegistryBuilder` function has been removed along with the `bsoncodec.Reg
 
 ### Decoder
 
+The BSON decoding logic has changed to decode into a `bson.D` by default.
+
+The example shows the behavior change.
+
+```go
+// v1
+
+b1 := bson.M{"a": 1, "b": bson.M{"c": 2}}
+b2, _ := bson.Marshal(b1)
+b3 := bson.M{}
+bson.Unmarshal(b2, &b3)
+fmt.Printf("b3.b type: %T\n", b3["b"])
+// Output: b3.b type: primitive.M
+```
+
+```go
+// v2
+
+b1 := bson.M{"a": 1, "b": bson.M{"c": 2}}
+b2, _ := bson.Marshal(b1)
+b3 := bson.M{}
+bson.Unmarshal(b2, &b3)
+fmt.Printf("b3.b type: %T\n", b3["b"])
+// Output: b3.b type: bson.D
+```
+
+Use `Decoder.DefaultDocumentM()` or set the `DefaultDocumentM` field of `options.BSONOptions` to always decode documents into the `bson.M` type.
+
 #### NewDecoder
 
 The signature of `NewDecoder` has been updated without an error being returned.
@@ -1043,11 +1071,11 @@ The signature of `Reset` has been updated without an error being returned.
 
 #### DefaultDocumentD / DefaultDocumentM
 
-`Decoder.DefaultDocumentD` has been removed since a document, including a top-level value (e.g. you pass in an empty interface value to Decode), is always decoded into a `bson.D` by default. Therefore, use `Decoder.DefaultDocumentM` to always decode a document into a `bson.M` to avoid unexpected decode results.
+`Decoder.DefaultDocumentD()` has been removed since a document, including a top-level value (e.g. you pass in an empty interface value to Decode), is always decoded into a `bson.D` by default. Therefore, use `Decoder.DefaultDocumentM()` to always decode a document into a `bson.M` to avoid unexpected decode results.
 
 #### ObjectIDAsHexString
 
-`Decoder.ObjectIDAsHexString` method enables decoding a BSON ObjectId as a hexadecimal string. Otherwise, the decoder returns an error by default instead of decoding as the UTF-8 representation of the raw ObjectId bytes, which results in a garbled and unusable string.
+`Decoder.ObjectIDAsHexString()` method enables decoding a BSON ObjectId as a hexadecimal string. Otherwise, the decoder returns an error by default instead of decoding as the UTF-8 representation of the raw ObjectId bytes, which results in a garbled and unusable string.
 
 ### Encoder
 

@@ -197,11 +197,11 @@ type BSONOptions struct {
 
 	// BinaryAsSlice causes the driver to unmarshal BSON binary field values
 	// that are the "Generic" or "Old" BSON binary subtype as a Go byte slice
-	// instead of a primitive.Binary.
+	// instead of a bson.Binary.
 	BinaryAsSlice bool
 
 	// DefaultDocumentM causes the driver to always unmarshal documents into the
-	// primitive.M type. This behavior is restricted to data typed as
+	// bson.M type. This behavior is restricted to data typed as
 	// "interface{}" or "map[string]interface{}".
 	DefaultDocumentM bool
 
