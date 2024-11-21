@@ -18,6 +18,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/httputil"
 	"go.mongodb.org/mongo-driver/v2/internal/logger"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
+	"go.mongodb.org/mongo-driver/v2/internal/ptrutil"
 	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
 	"go.mongodb.org/mongo-driver/v2/internal/uuid"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -479,6 +480,7 @@ func (c *Client) configureAutoEncryption(args *options.ClientOptions) error {
 	if err := c.configureKeyVaultClientFLE(args); err != nil {
 		return err
 	}
+
 	if err := c.configureMetadataClientFLE(args); err != nil {
 		return err
 	}
@@ -506,12 +508,13 @@ func (c *Client) getOrCreateInternalClient(args *options.ClientOptions) (*Client
 		return c.internalClientFLE, nil
 	}
 
-	internalClientOpts := options.MergeClientOptions(args)
-	internalClientOpts.AutoEncryptionOptions = nil
-	internalClientOpts.SetMinPoolSize(0)
+	argsCopy := *args
+
+	argsCopy.AutoEncryptionOptions = nil
+	argsCopy.MinPoolSize = ptrutil.Ptr[uint64](0)
 
 	var err error
-	c.internalClientFLE, err = newClient(internalClientOpts)
+	c.internalClientFLE, err = newClient(&argsCopy)
 
 	return c.internalClientFLE, err
 }
