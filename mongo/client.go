@@ -131,7 +131,7 @@ func Connect(opts ...*options.ClientOptions) (*Client, error) {
 // set in the Auth field for the first option, and Password is set for the second but with no
 // Username, after the merge the Username field will be empty.
 func newClient(opts ...*options.ClientOptions) (*Client, error) {
-	clientOpts := options.MergeClientOptions(opts...)
+	args := options.MergeClientOptions(opts...) // TODO: Rename from args to opts
 
 	id, err := uuid.New()
 	if err != nil {
@@ -144,91 +144,91 @@ func newClient(opts ...*options.ClientOptions) (*Client, error) {
 
 	// LocalThreshold
 	client.localThreshold = defaultLocalThreshold
-	if clientOpts.LocalThreshold != nil {
-		client.localThreshold = *clientOpts.LocalThreshold
+	if args.LocalThreshold != nil {
+		client.localThreshold = *args.LocalThreshold
 	}
 	// Monitor
-	if clientOpts.Monitor != nil {
-		client.monitor = clientOpts.Monitor
+	if args.Monitor != nil {
+		client.monitor = args.Monitor
 	}
 	// ServerMonitor
-	if clientOpts.ServerMonitor != nil {
-		client.serverMonitor = clientOpts.ServerMonitor
+	if args.ServerMonitor != nil {
+		client.serverMonitor = args.ServerMonitor
 	}
 	// ReadConcern
 	client.readConcern = &readconcern.ReadConcern{}
-	if clientOpts.ReadConcern != nil {
-		client.readConcern = clientOpts.ReadConcern
+	if args.ReadConcern != nil {
+		client.readConcern = args.ReadConcern
 	}
 	// ReadPreference
 	client.readPreference = readpref.Primary()
-	if clientOpts.ReadPreference != nil {
-		client.readPreference = clientOpts.ReadPreference
+	if args.ReadPreference != nil {
+		client.readPreference = args.ReadPreference
 	}
 	// BSONOptions
-	if clientOpts.BSONOptions != nil {
-		client.bsonOpts = clientOpts.BSONOptions
+	if args.BSONOptions != nil {
+		client.bsonOpts = args.BSONOptions
 	}
 	// Registry
 	client.registry = defaultRegistry
-	if clientOpts.Registry != nil {
-		client.registry = clientOpts.Registry
+	if args.Registry != nil {
+		client.registry = args.Registry
 	}
 	// RetryWrites
 	client.retryWrites = true // retry writes on by default
-	if clientOpts.RetryWrites != nil {
-		client.retryWrites = *clientOpts.RetryWrites
+	if args.RetryWrites != nil {
+		client.retryWrites = *args.RetryWrites
 	}
 	client.retryReads = true
-	if clientOpts.RetryReads != nil {
-		client.retryReads = *clientOpts.RetryReads
+	if args.RetryReads != nil {
+		client.retryReads = *args.RetryReads
 	}
 	// Timeout
-	client.timeout = clientOpts.Timeout
-	client.httpClient = clientOpts.HTTPClient
+	client.timeout = args.Timeout
+	client.httpClient = args.HTTPClient
 	// WriteConcern
-	if clientOpts.WriteConcern != nil {
-		client.writeConcern = clientOpts.WriteConcern
+	if args.WriteConcern != nil {
+		client.writeConcern = args.WriteConcern
 	}
 	// AutoEncryptionOptions
-	if clientOpts.AutoEncryptionOptions != nil {
-		if err := client.configureAutoEncryption(clientOpts); err != nil {
+	if args.AutoEncryptionOptions != nil {
+		if err := client.configureAutoEncryption(args); err != nil {
 			return nil, err
 		}
 	} else {
-		client.cryptFLE = clientOpts.Crypt
+		client.cryptFLE = args.Crypt
 	}
 
 	// Deployment
-	if clientOpts.Deployment != nil {
-		client.deployment = clientOpts.Deployment
+	if args.Deployment != nil {
+		client.deployment = args.Deployment
 	}
 
 	// Set default options
-	if clientOpts.MaxPoolSize == nil {
+	if args.MaxPoolSize == nil {
 		defaultMaxPoolSize := uint64(defaultMaxPoolSize)
-		clientOpts.MaxPoolSize = &defaultMaxPoolSize
+		args.MaxPoolSize = &defaultMaxPoolSize
 	}
 
-	if clientOpts.Auth != nil {
+	if args.Auth != nil {
 		client.authenticator, err = auth.CreateAuthenticator(
-			clientOpts.Auth.AuthMechanism,
-			topology.ConvertCreds(clientOpts.Auth),
-			clientOpts.HTTPClient,
+			args.Auth.AuthMechanism,
+			topology.ConvertCreds(args.Auth),
+			args.HTTPClient,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("error creating authenticator: %w", err)
 		}
 	}
 
-	cfg, err := topology.NewConfigFromOptionsWithAuthenticator(clientOpts, client.clock, client.authenticator)
+	cfg, err := topology.NewConfigFromOptionsWithAuthenticator(args, client.clock, client.authenticator)
 	if err != nil {
 		return nil, err
 	}
 
 	var connectTimeout time.Duration
-	if clientOpts.ConnectTimeout != nil {
-		connectTimeout = *clientOpts.ConnectTimeout
+	if args.ConnectTimeout != nil {
+		connectTimeout = *args.ConnectTimeout
 	}
 
 	client.serverAPI = topology.ServerAPIFromServerOptions(connectTimeout, cfg.ServerOpts)
@@ -241,7 +241,7 @@ func newClient(opts ...*options.ClientOptions) (*Client, error) {
 	}
 
 	// Create a logger for the client.
-	client.logger, err = newLogger(clientOpts.LoggerOptions)
+	client.logger, err = newLogger(args.LoggerOptions)
 	if err != nil {
 		return nil, fmt.Errorf("invalid logger options: %w", err)
 	}
