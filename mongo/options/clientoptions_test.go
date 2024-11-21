@@ -34,8 +34,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
 )
 
-var tClientOptions = reflect.TypeOf(&ClientOptionsBuilder{})
-var tClientopts = reflect.TypeOf(&ClientOptions{})
+var tClientOptions = reflect.TypeOf(&ClientOptions{})
 
 func TestClientOptions(t *testing.T) {
 	t.Run("ApplyURI/doesn't overwrite previous errors", func(t *testing.T) {
@@ -57,32 +56,32 @@ func TestClientOptions(t *testing.T) {
 			field       string      // field to be set
 			dereference bool        // Should we compare a pointer or the field
 		}{
-			{"AppName", (*ClientOptionsBuilder).SetAppName, "example-application", "AppName", true},
-			{"Auth", (*ClientOptionsBuilder).SetAuth, Credential{Username: "foo", Password: "bar"}, "Auth", true},
-			{"Compressors", (*ClientOptionsBuilder).SetCompressors, []string{"zstd", "snappy", "zlib"}, "Compressors", true},
-			{"ConnectTimeout", (*ClientOptionsBuilder).SetConnectTimeout, 5 * time.Second, "ConnectTimeout", true},
-			{"Dialer", (*ClientOptionsBuilder).SetDialer, testDialer{Num: 12345}, "Dialer", true},
-			{"HeartbeatInterval", (*ClientOptionsBuilder).SetHeartbeatInterval, 5 * time.Second, "HeartbeatInterval", true},
-			{"Hosts", (*ClientOptionsBuilder).SetHosts, []string{"localhost:27017", "localhost:27018", "localhost:27019"}, "Hosts", true},
-			{"LocalThreshold", (*ClientOptionsBuilder).SetLocalThreshold, 5 * time.Second, "LocalThreshold", true},
-			{"MaxConnIdleTime", (*ClientOptionsBuilder).SetMaxConnIdleTime, 5 * time.Second, "MaxConnIdleTime", true},
-			{"MaxPoolSize", (*ClientOptionsBuilder).SetMaxPoolSize, uint64(250), "MaxPoolSize", true},
-			{"MinPoolSize", (*ClientOptionsBuilder).SetMinPoolSize, uint64(10), "MinPoolSize", true},
-			{"MaxConnecting", (*ClientOptionsBuilder).SetMaxConnecting, uint64(10), "MaxConnecting", true},
-			{"PoolMonitor", (*ClientOptionsBuilder).SetPoolMonitor, &event.PoolMonitor{}, "PoolMonitor", false},
-			{"Monitor", (*ClientOptionsBuilder).SetMonitor, &event.CommandMonitor{}, "Monitor", false},
-			{"ReadConcern", (*ClientOptionsBuilder).SetReadConcern, readconcern.Majority(), "ReadConcern", false},
-			{"ReadPreference", (*ClientOptionsBuilder).SetReadPreference, readpref.SecondaryPreferred(), "ReadPreference", false},
-			{"Registry", (*ClientOptionsBuilder).SetRegistry, bson.NewRegistry(), "Registry", false},
-			{"ReplicaSet", (*ClientOptionsBuilder).SetReplicaSet, "example-replicaset", "ReplicaSet", true},
-			{"RetryWrites", (*ClientOptionsBuilder).SetRetryWrites, true, "RetryWrites", true},
-			{"ServerSelectionTimeout", (*ClientOptionsBuilder).SetServerSelectionTimeout, 5 * time.Second, "ServerSelectionTimeout", true},
-			{"Direct", (*ClientOptionsBuilder).SetDirect, true, "Direct", true},
-			{"TLSConfig", (*ClientOptionsBuilder).SetTLSConfig, &tls.Config{}, "TLSConfig", false},
-			{"WriteConcern", (*ClientOptionsBuilder).SetWriteConcern, writeconcern.Majority(), "WriteConcern", false},
-			{"ZlibLevel", (*ClientOptionsBuilder).SetZlibLevel, 6, "ZlibLevel", true},
-			{"DisableOCSPEndpointCheck", (*ClientOptionsBuilder).SetDisableOCSPEndpointCheck, true, "DisableOCSPEndpointCheck", true},
-			{"LoadBalanced", (*ClientOptionsBuilder).SetLoadBalanced, true, "LoadBalanced", true},
+			{"AppName", (*ClientOptions).SetAppName, "example-application", "AppName", true},
+			{"Auth", (*ClientOptions).SetAuth, Credential{Username: "foo", Password: "bar"}, "Auth", true},
+			{"Compressors", (*ClientOptions).SetCompressors, []string{"zstd", "snappy", "zlib"}, "Compressors", true},
+			{"ConnectTimeout", (*ClientOptions).SetConnectTimeout, 5 * time.Second, "ConnectTimeout", true},
+			{"Dialer", (*ClientOptions).SetDialer, testDialer{Num: 12345}, "Dialer", true},
+			{"HeartbeatInterval", (*ClientOptions).SetHeartbeatInterval, 5 * time.Second, "HeartbeatInterval", true},
+			{"Hosts", (*ClientOptions).SetHosts, []string{"localhost:27017", "localhost:27018", "localhost:27019"}, "Hosts", true},
+			{"LocalThreshold", (*ClientOptions).SetLocalThreshold, 5 * time.Second, "LocalThreshold", true},
+			{"MaxConnIdleTime", (*ClientOptions).SetMaxConnIdleTime, 5 * time.Second, "MaxConnIdleTime", true},
+			{"MaxPoolSize", (*ClientOptions).SetMaxPoolSize, uint64(250), "MaxPoolSize", true},
+			{"MinPoolSize", (*ClientOptions).SetMinPoolSize, uint64(10), "MinPoolSize", true},
+			{"MaxConnecting", (*ClientOptions).SetMaxConnecting, uint64(10), "MaxConnecting", true},
+			{"PoolMonitor", (*ClientOptions).SetPoolMonitor, &event.PoolMonitor{}, "PoolMonitor", false},
+			{"Monitor", (*ClientOptions).SetMonitor, &event.CommandMonitor{}, "Monitor", false},
+			{"ReadConcern", (*ClientOptions).SetReadConcern, readconcern.Majority(), "ReadConcern", false},
+			{"ReadPreference", (*ClientOptions).SetReadPreference, readpref.SecondaryPreferred(), "ReadPreference", false},
+			{"Registry", (*ClientOptions).SetRegistry, bson.NewRegistry(), "Registry", false},
+			{"ReplicaSet", (*ClientOptions).SetReplicaSet, "example-replicaset", "ReplicaSet", true},
+			{"RetryWrites", (*ClientOptions).SetRetryWrites, true, "RetryWrites", true},
+			{"ServerSelectionTimeout", (*ClientOptions).SetServerSelectionTimeout, 5 * time.Second, "ServerSelectionTimeout", true},
+			{"Direct", (*ClientOptions).SetDirect, true, "Direct", true},
+			{"TLSConfig", (*ClientOptions).SetTLSConfig, &tls.Config{}, "TLSConfig", false},
+			{"WriteConcern", (*ClientOptions).SetWriteConcern, writeconcern.Majority(), "WriteConcern", false},
+			{"ZlibLevel", (*ClientOptions).SetZlibLevel, 6, "ZlibLevel", true},
+			{"DisableOCSPEndpointCheck", (*ClientOptions).SetDisableOCSPEndpointCheck, true, "DisableOCSPEndpointCheck", true},
+			{"LoadBalanced", (*ClientOptions).SetLoadBalanced, true, "LoadBalanced", true},
 		}
 
 		opt1, opt2, optResult := Client(), Client(), Client()
@@ -95,19 +94,20 @@ func TestClientOptions(t *testing.T) {
 				if fn.Type().NumIn() < 2 || fn.Type().In(0) != tClientOptions {
 					t.Fatal("fn argument must have a *ClientOptions as the first argument and one other argument")
 				}
-				if _, exists := tClientopts.Elem().FieldByName(tc.field); !exists {
+				if _, exists := tClientOptions.Elem().FieldByName(tc.field); !exists {
 					t.Fatalf("field (%s) does not exist in ClientOptions", tc.field)
 				}
-				opts := make([]reflect.Value, 2)
-				opts[0] = reflect.New(tClientOptions.Elem())
+				args := make([]reflect.Value, 2)
+				client := reflect.New(tClientOptions.Elem())
+				args[0] = client
 				want := reflect.ValueOf(tc.arg)
-				opts[1] = want
+				args[1] = want
 
 				if !want.IsValid() || !want.CanInterface() {
 					t.Fatal("arg property of test case must be valid")
 				}
 
-				_ = fn.Call(opts)
+				_ = fn.Call(args)
 
 				// To avoid duplication we're piggybacking on the Set* tests to make the
 				// MergeClientOptions test simpler and more thorough.
@@ -116,42 +116,17 @@ func TestClientOptions(t *testing.T) {
 				// the result option. This gives us coverage of options set by the first option, by
 				// the second, and by both.
 				if idx%2 != 0 {
-					opts[0] = reflect.ValueOf(opt1)
-					_ = fn.Call(opts)
+					args[0] = reflect.ValueOf(opt1)
+					_ = fn.Call(args)
 				}
 				if idx%2 == 0 || idx%3 == 0 {
-					opts[0] = reflect.ValueOf(opt2)
-					_ = fn.Call(opts)
+					args[0] = reflect.ValueOf(opt2)
+					_ = fn.Call(args)
 				}
-				opts[0] = reflect.ValueOf(optResult)
-				_ = fn.Call(opts)
+				args[0] = reflect.ValueOf(optResult)
+				_ = fn.Call(args)
 
-				optsValue := opts[0].Elem().FieldByName("Opts")
-
-				// Ensure the value is a slice
-				if optsValue.Kind() != reflect.Slice {
-					t.Fatalf("expected the options to be a slice")
-				}
-
-				setters := make([]func(*ClientOptions) error, optsValue.Len())
-
-				// Iterate over the reflect.Value and extract each function
-				for i := 0; i < optsValue.Len(); i++ {
-					elem := optsValue.Index(i)
-					if elem.Kind() != reflect.Func {
-						t.Fatalf("expected all elements of opts to be functions")
-					}
-
-					setters[i] = elem.Interface().(func(*ClientOptions) error)
-				}
-
-				clientopts := &ClientOptions{}
-				for _, set := range setters {
-					err := set(clientopts)
-					assert.NoError(t, err)
-				}
-
-				got := reflect.ValueOf(clientopts).Elem().FieldByName(tc.field)
+				got := client.Elem().FieldByName(tc.field)
 				if !got.IsValid() || !got.CanInterface() {
 					t.Fatal("cannot create concrete instance from retrieved field")
 				}
@@ -178,7 +153,7 @@ func TestClientOptions(t *testing.T) {
 
 			testCases := []struct {
 				name string
-				opts *ClientOptionsBuilder
+				opts *ClientOptions
 			}{
 				{"hosts in URI", Client().ApplyURI("mongodb://localhost,localhost2")},
 				{"hosts in options", Client().SetHosts([]string{"localhost", "localhost2"})},
@@ -194,21 +169,11 @@ func TestClientOptions(t *testing.T) {
 		t.Run("srv", func(t *testing.T) {
 			expectedErr := errors.New("a direct connection cannot be made if an SRV URI is used")
 			// Use a non-SRV URI and manually set the scheme because using an SRV URI would force an SRV lookup.
-			optsBldr := Client().ApplyURI("mongodb://localhost:27017")
+			opts := Client().ApplyURI("mongodb://localhost:27017")
 
-			args, err := getOptions[ClientOptions](optsBldr)
-			assert.NoError(t, err)
+			opts.connString.Scheme = connstring.SchemeMongoDBSRV
 
-			args.connString.Scheme = connstring.SchemeMongoDBSRV
-
-			newOpts := &ClientOptionsBuilder{}
-			newOpts.Opts = append(newOpts.Opts, func(ca *ClientOptions) error {
-				*ca = *args
-
-				return nil
-			})
-
-			err = newOpts.SetDirect(true).Validate()
+			err := opts.SetDirect(true).Validate()
 			assert.NotNil(t, err, "expected error, got nil")
 			assert.Equal(t, expectedErr.Error(), err.Error(), "expected error %v, got %v", expectedErr, err)
 		})
@@ -216,7 +181,7 @@ func TestClientOptions(t *testing.T) {
 	t.Run("loadBalanced validation", func(t *testing.T) {
 		testCases := []struct {
 			name string
-			opts *ClientOptionsBuilder
+			opts *ClientOptions
 			err  error
 		}{
 			{"multiple hosts in URI", Client().ApplyURI("mongodb://foo,bar"), connstring.ErrLoadBalancedWithMultipleHosts},
@@ -243,7 +208,7 @@ func TestClientOptions(t *testing.T) {
 	t.Run("heartbeatFrequencyMS validation", func(t *testing.T) {
 		testCases := []struct {
 			name string
-			opts *ClientOptionsBuilder
+			opts *ClientOptions
 			err  error
 		}{
 			{
@@ -297,7 +262,7 @@ func TestClientOptions(t *testing.T) {
 	t.Run("minPoolSize validation", func(t *testing.T) {
 		testCases := []struct {
 			name string
-			opts *ClientOptionsBuilder
+			opts *ClientOptions
 			err  error
 		}{
 			{
@@ -331,7 +296,7 @@ func TestClientOptions(t *testing.T) {
 	t.Run("srvMaxHosts validation", func(t *testing.T) {
 		testCases := []struct {
 			name string
-			opts *ClientOptionsBuilder
+			opts *ClientOptions
 			err  error
 		}{
 			{"replica set name", Client().SetReplicaSet("foo"), connstring.ErrSRVMaxHostsWithReplicaSet},
@@ -358,7 +323,7 @@ func TestClientOptions(t *testing.T) {
 
 		testCases := []struct {
 			name string
-			opts *ClientOptionsBuilder
+			opts *ClientOptions
 			err  error
 		}{
 			{
@@ -393,7 +358,7 @@ func TestClientOptions(t *testing.T) {
 
 		testCases := []struct {
 			name string
-			opts *ClientOptionsBuilder
+			opts *ClientOptions
 			err  error
 		}{
 			{
@@ -443,7 +408,7 @@ func TestClientOptions(t *testing.T) {
 
 		testCases := []struct {
 			name string
-			opts *ClientOptionsBuilder
+			opts *ClientOptions
 			err  error
 		}{
 			{
@@ -536,7 +501,7 @@ func TestClientOptions(t *testing.T) {
 
 		testCases := []struct {
 			name string
-			opts *ClientOptionsBuilder
+			opts *ClientOptions
 			err  error
 		}{
 			{
@@ -715,24 +680,19 @@ func compareErrors(err1, err2 error) bool {
 	return true
 }
 
-func TestSetURIopts(t *testing.T) {
+func TestApplyURI(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
 		name     string
 		uri      string
 		wantopts *ClientOptions
-
-		// A list of possible errors that can be returned, required to account for
-		// OS-specific errors.
-		wantErrs []error
 	}{
 		{
-			name:     "ParseError",
-			uri:      "not-mongo-db-uri://",
-			wantopts: &ClientOptions{},
-			wantErrs: []error{
-				fmt.Errorf(
+			name: "ParseError",
+			uri:  "not-mongo-db-uri://",
+			wantopts: &ClientOptions{
+				err: fmt.Errorf(
 					"error parsing uri: %w",
 					errors.New(`scheme must be "mongodb" or "mongodb+srv"`)),
 			},
@@ -742,9 +702,7 @@ func TestSetURIopts(t *testing.T) {
 			uri:  "mongodb://localhost/?maxStaleness=200",
 			wantopts: &ClientOptions{
 				Hosts: []string{"localhost"},
-			},
-			wantErrs: []error{
-				fmt.Errorf("unknown read preference %v", ""),
+				err:   fmt.Errorf("unknown read preference %v", ""),
 			},
 		},
 		{
@@ -752,9 +710,7 @@ func TestSetURIopts(t *testing.T) {
 			uri:  "mongodb://localhost/?readPreference=Primary&maxStaleness=200",
 			wantopts: &ClientOptions{
 				Hosts: []string{"localhost"},
-			},
-			wantErrs: []error{
-				errors.New("can not specify tags, max staleness, or hedge with mode primary"),
+				err:   errors.New("can not specify tags, max staleness, or hedge with mode primary"),
 			},
 		},
 		{
@@ -762,19 +718,7 @@ func TestSetURIopts(t *testing.T) {
 			uri:  "mongodb://localhost/?ssl=true&sslCertificateAuthorityFile=testdata/doesntexist",
 			wantopts: &ClientOptions{
 				Hosts: []string{"localhost"},
-			},
-			wantErrs: []error{
-				&os.PathError{
-					Op:   "open",
-					Path: "testdata/doesntexist",
-					Err:  errors.New("no such file or directory"),
-				},
-				&os.PathError{
-					Op:   "open",
-					Path: "testdata/doesntexist",
-					// Windows error
-					Err: errors.New("The system cannot find the file specified."), //nolint:revive
-				},
+				err:   &os.PathError{Op: "open", Path: "testdata/doesntexist"},
 			},
 		},
 		{
@@ -782,19 +726,7 @@ func TestSetURIopts(t *testing.T) {
 			uri:  "mongodb://localhost/?ssl=true&sslClientCertificateKeyFile=testdata/doesntexist",
 			wantopts: &ClientOptions{
 				Hosts: []string{"localhost"},
-			},
-			wantErrs: []error{
-				&os.PathError{
-					Op:   "open",
-					Path: "testdata/doesntexist",
-					Err:  errors.New("no such file or directory"),
-				},
-				&os.PathError{
-					Op:   "open",
-					Path: "testdata/doesntexist",
-					// Windows error
-					Err: errors.New("The system cannot find the file specified."), //nolint:revive
-				},
+				err:   &os.PathError{Op: "open", Path: "testdata/doesntexist"},
 			},
 		},
 		{
@@ -803,8 +735,8 @@ func TestSetURIopts(t *testing.T) {
 			wantopts: &ClientOptions{
 				Hosts:   []string{"localhost"},
 				AppName: ptrutil.Ptr[string]("awesome-example-application"),
+				err:     nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "AuthMechanism",
@@ -812,8 +744,8 @@ func TestSetURIopts(t *testing.T) {
 			wantopts: &ClientOptions{
 				Hosts: []string{"localhost"},
 				Auth:  &Credential{AuthSource: "$external", AuthMechanism: "mongodb-x509"},
+				err:   nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "AuthMechanismProperties",
@@ -826,8 +758,8 @@ func TestSetURIopts(t *testing.T) {
 					AuthMechanismProperties: map[string]string{"SERVICE_NAME": "mongodb-fake"},
 					Username:                "foo",
 				},
+				err: nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "AuthSource",
@@ -835,8 +767,8 @@ func TestSetURIopts(t *testing.T) {
 			wantopts: &ClientOptions{
 				Hosts: []string{"localhost"},
 				Auth:  &Credential{AuthSource: "random-database-example", Username: "foo"},
+				err:   nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "Username",
@@ -844,15 +776,14 @@ func TestSetURIopts(t *testing.T) {
 			wantopts: &ClientOptions{
 				Hosts: []string{"localhost"},
 				Auth:  &Credential{AuthSource: "admin", Username: "foo"},
+				err:   nil,
 			},
-			wantErrs: nil,
 		},
 		{
-			name:     "Unescaped slash in username",
-			uri:      "mongodb:///:pwd@localhost",
-			wantopts: &ClientOptions{},
-			wantErrs: []error{
-				fmt.Errorf("error parsing uri: %w", errors.New("unescaped slash in username")),
+			name: "Unescaped slash in username",
+			uri:  "mongodb:///:pwd@localhost",
+			wantopts: &ClientOptions{
+				err: fmt.Errorf("error parsing uri: %w", errors.New("unescaped slash in username")),
 			},
 		},
 		{
@@ -864,8 +795,8 @@ func TestSetURIopts(t *testing.T) {
 					AuthSource: "admin", Username: "foo",
 					Password: "bar", PasswordSet: true,
 				},
+				err: nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "Single character username and password",
@@ -876,8 +807,8 @@ func TestSetURIopts(t *testing.T) {
 					AuthSource: "admin", Username: "f",
 					Password: "b", PasswordSet: true,
 				},
+				err: nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "Connect",
@@ -885,8 +816,8 @@ func TestSetURIopts(t *testing.T) {
 			wantopts: &ClientOptions{
 				Hosts:  []string{"localhost"},
 				Direct: ptrutil.Ptr[bool](true),
+				err:    nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "ConnectTimeout",
@@ -894,8 +825,8 @@ func TestSetURIopts(t *testing.T) {
 			wantopts: &ClientOptions{
 				Hosts:          []string{"localhost"},
 				ConnectTimeout: ptrutil.Ptr[time.Duration](5 * time.Second),
+				err:            nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "Compressors",
@@ -904,16 +835,16 @@ func TestSetURIopts(t *testing.T) {
 				Hosts:       []string{"localhost"},
 				Compressors: []string{"zlib", "snappy"},
 				ZlibLevel:   ptrutil.Ptr[int](6),
+				err:         nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "DatabaseNoAuth",
 			uri:  "mongodb://localhost/example-database",
 			wantopts: &ClientOptions{
 				Hosts: []string{"localhost"},
+				err:   nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "DatabaseAsDefault",
@@ -921,8 +852,8 @@ func TestSetURIopts(t *testing.T) {
 			wantopts: &ClientOptions{
 				Hosts: []string{"localhost"},
 				Auth:  &Credential{AuthSource: "example-database", Username: "foo"},
+				err:   nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "HeartbeatInterval",
@@ -930,16 +861,16 @@ func TestSetURIopts(t *testing.T) {
 			wantopts: &ClientOptions{
 				Hosts:             []string{"localhost"},
 				HeartbeatInterval: ptrutil.Ptr[time.Duration](12 * time.Second),
+				err:               nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "Hosts",
 			uri:  "mongodb://localhost:27017,localhost:27018,localhost:27019/",
 			wantopts: &ClientOptions{
 				Hosts: []string{"localhost:27017", "localhost:27018", "localhost:27019"},
+				err:   nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "LocalThreshold",
@@ -947,8 +878,8 @@ func TestSetURIopts(t *testing.T) {
 			wantopts: &ClientOptions{
 				Hosts:          []string{"localhost"},
 				LocalThreshold: ptrutil.Ptr[time.Duration](200 * time.Millisecond),
+				err:            nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "MaxConnIdleTime",
@@ -956,8 +887,8 @@ func TestSetURIopts(t *testing.T) {
 			wantopts: &ClientOptions{
 				Hosts:           []string{"localhost"},
 				MaxConnIdleTime: ptrutil.Ptr[time.Duration](5 * time.Minute),
+				err:             nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "MaxPoolSize",
@@ -965,8 +896,8 @@ func TestSetURIopts(t *testing.T) {
 			wantopts: &ClientOptions{
 				Hosts:       []string{"localhost"},
 				MaxPoolSize: ptrutil.Ptr[uint64](256),
+				err:         nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "MinPoolSize",
@@ -974,8 +905,8 @@ func TestSetURIopts(t *testing.T) {
 			wantopts: &ClientOptions{
 				Hosts:       []string{"localhost"},
 				MinPoolSize: ptrutil.Ptr[uint64](256),
+				err:         nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "MaxConnecting",
@@ -983,8 +914,8 @@ func TestSetURIopts(t *testing.T) {
 			wantopts: &ClientOptions{
 				Hosts:         []string{"localhost"},
 				MaxConnecting: ptrutil.Ptr[uint64](10),
+				err:           nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "ReadConcern",
@@ -992,8 +923,8 @@ func TestSetURIopts(t *testing.T) {
 			wantopts: &ClientOptions{
 				Hosts:       []string{"localhost"},
 				ReadConcern: readconcern.Linearizable(),
+				err:         nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "ReadPreference",
@@ -1001,8 +932,8 @@ func TestSetURIopts(t *testing.T) {
 			wantopts: &ClientOptions{
 				Hosts:          []string{"localhost"},
 				ReadPreference: readpref.SecondaryPreferred(),
+				err:            nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "ReadPreferenceTagSets",
@@ -1010,8 +941,8 @@ func TestSetURIopts(t *testing.T) {
 			wantopts: &ClientOptions{
 				Hosts:          []string{"localhost"},
 				ReadPreference: readpref.SecondaryPreferred(readpref.WithTags("foo", "bar")),
+				err:            nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "MaxStaleness",
@@ -1019,8 +950,8 @@ func TestSetURIopts(t *testing.T) {
 			wantopts: &ClientOptions{
 				Hosts:          []string{"localhost"},
 				ReadPreference: readpref.SecondaryPreferred(readpref.WithMaxStaleness(250 * time.Second)),
+				err:            nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "RetryWrites",
@@ -1028,8 +959,8 @@ func TestSetURIopts(t *testing.T) {
 			wantopts: &ClientOptions{
 				Hosts:       []string{"localhost"},
 				RetryWrites: ptrutil.Ptr[bool](true),
+				err:         nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "ReplicaSet",
@@ -1037,8 +968,8 @@ func TestSetURIopts(t *testing.T) {
 			wantopts: &ClientOptions{
 				Hosts:      []string{"localhost"},
 				ReplicaSet: ptrutil.Ptr[string]("rs01"),
+				err:        nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "ServerSelectionTimeout",
@@ -1046,16 +977,16 @@ func TestSetURIopts(t *testing.T) {
 			wantopts: &ClientOptions{
 				Hosts:                  []string{"localhost"},
 				ServerSelectionTimeout: ptrutil.Ptr[time.Duration](45 * time.Second),
+				err:                    nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "SocketTimeout",
 			uri:  "mongodb://localhost/?socketTimeoutMS=15000",
 			wantopts: &ClientOptions{
 				Hosts: []string{"localhost"},
+				err:   nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "TLS CACertificate",
@@ -1065,8 +996,8 @@ func TestSetURIopts(t *testing.T) {
 				TLSConfig: &tls.Config{
 					RootCAs: createCertPool(t, "testdata/ca.pem"),
 				},
+				err: nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "TLS Insecure",
@@ -1076,8 +1007,8 @@ func TestSetURIopts(t *testing.T) {
 				TLSConfig: &tls.Config{
 					InsecureSkipVerify: true,
 				},
+				err: nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "TLS ClientCertificateKey",
@@ -1087,8 +1018,8 @@ func TestSetURIopts(t *testing.T) {
 				TLSConfig: &tls.Config{
 					Certificates: make([]tls.Certificate, 1),
 				},
+				err: nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "TLS ClientCertificateKey with password",
@@ -1098,8 +1029,8 @@ func TestSetURIopts(t *testing.T) {
 				TLSConfig: &tls.Config{
 					Certificates: make([]tls.Certificate, 1),
 				},
+				err: nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "TLS Username",
@@ -1110,8 +1041,8 @@ func TestSetURIopts(t *testing.T) {
 					AuthMechanism: "mongodb-x509", AuthSource: "$external",
 					Username: `C=US,ST=New York,L=New York City, Inc,O=MongoDB\,OU=WWW`,
 				},
+				err: nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "WriteConcern J",
@@ -1119,8 +1050,8 @@ func TestSetURIopts(t *testing.T) {
 			wantopts: &ClientOptions{
 				Hosts:        []string{"localhost"},
 				WriteConcern: writeconcern.Journaled(),
+				err:          nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "WriteConcern WString",
@@ -1128,8 +1059,8 @@ func TestSetURIopts(t *testing.T) {
 			wantopts: &ClientOptions{
 				Hosts:        []string{"localhost"},
 				WriteConcern: writeconcern.Majority(),
+				err:          nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "WriteConcern W",
@@ -1137,16 +1068,16 @@ func TestSetURIopts(t *testing.T) {
 			wantopts: &ClientOptions{
 				Hosts:        []string{"localhost"},
 				WriteConcern: &writeconcern.WriteConcern{W: 3},
+				err:          nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "WriteConcern WTimeout",
 			uri:  "mongodb://localhost/?wTimeoutMS=45000",
 			wantopts: &ClientOptions{
 				Hosts: []string{"localhost"},
+				err:   nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "ZLibLevel",
@@ -1154,8 +1085,8 @@ func TestSetURIopts(t *testing.T) {
 			wantopts: &ClientOptions{
 				Hosts:     []string{"localhost"},
 				ZlibLevel: ptrutil.Ptr[int](4),
+				err:       nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "TLS tlsCertificateFile and tlsPrivateKeyFile",
@@ -1165,35 +1096,32 @@ func TestSetURIopts(t *testing.T) {
 				TLSConfig: &tls.Config{
 					Certificates: make([]tls.Certificate, 1),
 				},
+				err: nil,
 			},
-			wantErrs: nil,
 		},
 		{
-			name:     "TLS only tlsCertificateFile",
-			uri:      "mongodb://localhost/?tlsCertificateFile=testdata/nopass/cert.pem",
-			wantopts: &ClientOptions{},
-			wantErrs: []error{
-				fmt.Errorf(
+			name: "TLS only tlsCertificateFile",
+			uri:  "mongodb://localhost/?tlsCertificateFile=testdata/nopass/cert.pem",
+			wantopts: &ClientOptions{
+				err: fmt.Errorf(
 					"error validating uri: %w",
 					errors.New("the tlsPrivateKeyFile URI option must be provided if the tlsCertificateFile option is specified")),
 			},
 		},
 		{
-			name:     "TLS only tlsPrivateKeyFile",
-			uri:      "mongodb://localhost/?tlsPrivateKeyFile=testdata/nopass/key.pem",
-			wantopts: &ClientOptions{},
-			wantErrs: []error{
-				fmt.Errorf(
+			name: "TLS only tlsPrivateKeyFile",
+			uri:  "mongodb://localhost/?tlsPrivateKeyFile=testdata/nopass/key.pem",
+			wantopts: &ClientOptions{
+				err: fmt.Errorf(
 					"error validating uri: %w",
 					errors.New("the tlsCertificateFile URI option must be provided if the tlsPrivateKeyFile option is specified")),
 			},
 		},
 		{
-			name:     "TLS tlsCertificateFile and tlsPrivateKeyFile and tlsCertificateKeyFile",
-			uri:      "mongodb://localhost/?tlsCertificateFile=testdata/nopass/cert.pem&tlsPrivateKeyFile=testdata/nopass/key.pem&tlsCertificateKeyFile=testdata/nopass/certificate.pem",
-			wantopts: &ClientOptions{},
-			wantErrs: []error{
-				fmt.Errorf(
+			name: "TLS tlsCertificateFile and tlsPrivateKeyFile and tlsCertificateKeyFile",
+			uri:  "mongodb://localhost/?tlsCertificateFile=testdata/nopass/cert.pem&tlsPrivateKeyFile=testdata/nopass/key.pem&tlsCertificateKeyFile=testdata/nopass/certificate.pem",
+			wantopts: &ClientOptions{
+				err: fmt.Errorf(
 					"error validating uri: %w",
 					errors.New("the sslClientCertificateKeyFile/tlsCertificateKeyFile URI option cannot be provided "+
 						"along with tlsCertificateFile or tlsPrivateKeyFile")),
@@ -1205,8 +1133,8 @@ func TestSetURIopts(t *testing.T) {
 			wantopts: &ClientOptions{
 				Hosts:                    []string{"localhost"},
 				DisableOCSPEndpointCheck: ptrutil.Ptr[bool](true),
+				err:                      nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "directConnection",
@@ -1214,8 +1142,8 @@ func TestSetURIopts(t *testing.T) {
 			wantopts: &ClientOptions{
 				Hosts:  []string{"localhost"},
 				Direct: ptrutil.Ptr[bool](true),
+				err:    nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "TLS CA file with multiple certificiates",
@@ -1226,17 +1154,15 @@ func TestSetURIopts(t *testing.T) {
 					RootCAs: createCertPool(t, "testdata/ca-with-intermediates-first.pem",
 						"testdata/ca-with-intermediates-second.pem", "testdata/ca-with-intermediates-third.pem"),
 				},
+				err: nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "TLS empty CA file",
 			uri:  "mongodb://localhost/?tlsCAFile=testdata/empty-ca.pem",
 			wantopts: &ClientOptions{
 				Hosts: []string{"localhost"},
-			},
-			wantErrs: []error{
-				errors.New("the specified CA file does not contain any valid certificates"),
+				err:   errors.New("the specified CA file does not contain any valid certificates"),
 			},
 		},
 		{
@@ -1244,9 +1170,7 @@ func TestSetURIopts(t *testing.T) {
 			uri:  "mongodb://localhost/?tlsCAFile=testdata/ca-key.pem",
 			wantopts: &ClientOptions{
 				Hosts: []string{"localhost"},
-			},
-			wantErrs: []error{
-				errors.New("the specified CA file does not contain any valid certificates"),
+				err:   errors.New("the specified CA file does not contain any valid certificates"),
 			},
 		},
 		{
@@ -1254,9 +1178,7 @@ func TestSetURIopts(t *testing.T) {
 			uri:  "mongodb://localhost/?tlsCAFile=testdata/malformed-ca.pem",
 			wantopts: &ClientOptions{
 				Hosts: []string{"localhost"},
-			},
-			wantErrs: []error{
-				errors.New("the specified CA file does not contain any valid certificates"),
+				err:   errors.New("the specified CA file does not contain any valid certificates"),
 			},
 		},
 		{
@@ -1265,8 +1187,8 @@ func TestSetURIopts(t *testing.T) {
 			wantopts: &ClientOptions{
 				Hosts:        []string{"localhost"},
 				LoadBalanced: ptrutil.Ptr[bool](true),
+				err:          nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "loadBalanced=false",
@@ -1274,8 +1196,8 @@ func TestSetURIopts(t *testing.T) {
 			wantopts: &ClientOptions{
 				Hosts:        []string{"localhost"},
 				LoadBalanced: ptrutil.Ptr[bool](false),
+				err:          nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "srvServiceName",
@@ -1283,8 +1205,8 @@ func TestSetURIopts(t *testing.T) {
 			wantopts: &ClientOptions{
 				Hosts:          []string{"localhost.test.build.10gen.cc:27017", "localhost.test.build.10gen.cc:27018"},
 				SRVServiceName: ptrutil.Ptr[string]("customname"),
+				err:            nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "srvMaxHosts",
@@ -1292,8 +1214,8 @@ func TestSetURIopts(t *testing.T) {
 			wantopts: &ClientOptions{
 				Hosts:       []string{"localhost.test.build.10gen.cc:27017", "localhost.test.build.10gen.cc:27018"},
 				SRVMaxHosts: ptrutil.Ptr[int](2),
+				err:         nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "GODRIVER-2263 regression test",
@@ -1301,8 +1223,8 @@ func TestSetURIopts(t *testing.T) {
 			wantopts: &ClientOptions{
 				Hosts:     []string{"localhost"},
 				TLSConfig: &tls.Config{Certificates: make([]tls.Certificate, 1)},
+				err:       nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "GODRIVER-2650 X509 certificate",
@@ -1315,17 +1237,15 @@ func TestSetURIopts(t *testing.T) {
 					Username: `C=US,ST=New York,L=New York City,O=MongoDB,OU=Drivers,CN=localhost`,
 				},
 				TLSConfig: &tls.Config{Certificates: make([]tls.Certificate, 1)},
+				err:       nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "ALLOWED_HOSTS cannot be specified in URI connection",
 			uri:  "mongodb://localhost/?authMechanism=MONGODB-OIDC&authMechanismProperties=ALLOWED_HOSTS:example.com",
 			wantopts: &ClientOptions{
 				HTTPClient: httputil.DefaultHTTPClient,
-			},
-			wantErrs: []error{
-				errors.New(`error validating uri: ALLOWED_HOSTS cannot be specified in the URI connection string for the "MONGODB-OIDC" auth mechanism, it must be specified through the ClientOptions directly`),
+				err:        errors.New(`error validating uri: ALLOWED_HOSTS cannot be specified in the URI connection string for the "MONGODB-OIDC" auth mechanism, it must be specified through the ClientOptions directly`),
 			},
 		},
 		{
@@ -1335,8 +1255,8 @@ func TestSetURIopts(t *testing.T) {
 				Hosts:      []string{"example.com"},
 				Auth:       &Credential{AuthMechanism: "MONGODB-OIDC", AuthSource: "$external", AuthMechanismProperties: map[string]string{"TOKEN_RESOURCE": "mongodb://test-cluster"}},
 				HTTPClient: httputil.DefaultHTTPClient,
+				err:        nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "oidc azure",
@@ -1347,8 +1267,8 @@ func TestSetURIopts(t *testing.T) {
 					"ENVIRONMENT":    "azureManagedIdentities",
 					"TOKEN_RESOURCE": "mongodb://test-cluster"}},
 				HTTPClient: httputil.DefaultHTTPClient,
+				err:        nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "oidc gcp",
@@ -1359,71 +1279,40 @@ func TestSetURIopts(t *testing.T) {
 					"ENVIRONMENT":    "gcp",
 					"TOKEN_RESOURCE": "mongodb://test-cluster"}},
 				HTTPClient: httputil.DefaultHTTPClient,
+				err:        nil,
 			},
-			wantErrs: nil,
 		},
 		{
 			name: "comma in key:value pair causes error",
 			uri:  "mongodb://example.com/?authMechanismProperties=TOKEN_RESOURCE:mongodb://host1%2Chost2",
 			wantopts: &ClientOptions{
 				HTTPClient: httputil.DefaultHTTPClient,
-			},
-			wantErrs: []error{
-				errors.New(`error parsing uri: invalid authMechanism property`),
+				err:        errors.New(`error parsing uri: invalid authMechanism property`),
 			},
 		},
 	}
 
 	for _, test := range testCases {
-		test := test
-
 		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
+			result := Client().ApplyURI(test.uri)
 
-			// Manually add the URI and ConnString to the test expectations to avoid
-			// adding them in each test definition. The ConnString should only be
-			// recorded if there was no error while parsing.
-			connString, err := connstring.ParseAndValidate(test.uri)
+			// Manually add the URI and ConnString to the test expectations to avoid adding them in each test
+			// definition. The ConnString should only be recorded if there was no error while parsing.
+			cs, err := connstring.ParseAndValidate(test.uri)
 			if err == nil {
-				test.wantopts.connString = connString
+				test.wantopts.connString = cs
 			}
 
-			// Also manually add the default HTTP client if one does not exist.
 			if test.wantopts.HTTPClient == nil {
-				test.wantopts.HTTPClient = http.DefaultClient
+				test.wantopts.HTTPClient = httputil.DefaultHTTPClient
 			}
 
-			// Use the setURIopts to just test that a correct error is returned.
-			if gotErr := setURIOpts(test.uri, &ClientOptions{}); test.wantErrs != nil {
-				var foundError bool
-
-				for _, err := range test.wantErrs {
-					if err.Error() == gotErr.Error() {
-						foundError = true
-
-						break
-					}
-				}
-
-				assert.True(t, foundError, "expected error to be one of %v, got: %v", test.wantErrs, gotErr)
-			}
-
-			// Run this test through the client.ApplyURI method to ensure that it
-			// remains a naive wrapper.
-			opts := Client().ApplyURI(test.uri)
-
-			gotopts := &ClientOptions{}
-			for _, setter := range opts.Opts {
-				_ = setter(gotopts)
-			}
-
-			// We have to sort string slices in comparison, as Hosts resolved from SRV
-			// URIs do not have a set order.
+			// We have to sort string slices in comparison, as Hosts resolved from SRV URIs do not have a set order.
 			stringLess := func(a, b string) bool { return a < b }
 			if diff := cmp.Diff(
-				test.wantopts, gotopts,
+				test.wantopts, result,
 				cmp.AllowUnexported(ClientOptions{}, readconcern.ReadConcern{}, writeconcern.WriteConcern{}, readpref.ReadPref{}),
-				// cmp.Comparer(func(r1, r2 *bsoncodec.Registry) bool { return r1 == r2 }),
+				cmp.Comparer(func(r1, r2 *bson.Registry) bool { return r1 == r2 }),
 				cmp.Comparer(compareTLSConfig),
 				cmp.Comparer(compareErrors),
 				cmpopts.SortSlices(stringLess),

@@ -28,7 +28,7 @@ import (
 //
 // See corresponding setter methods for documentation.
 type AutoEncryptionOptions struct {
-	KeyVaultClientOptions Lister[ClientOptions]
+	KeyVaultClientOptions *ClientOptions
 	KeyVaultNamespace     string
 	KmsProviders          map[string]map[string]interface{}
 	SchemaMap             map[string]interface{}
@@ -74,7 +74,7 @@ func (a *AutoEncryptionOptionsBuilder) List() []func(*AutoEncryptionOptions) err
 // (and created if necessary). The internal mongo.Client may be shared during automatic encryption (if
 // BypassAutomaticEncryption is false). The internal mongo.Client is configured with the same options as the target
 // mongo.Client except minPoolSize is set to 0 and AutoEncryptionOptions is omitted.
-func (a *AutoEncryptionOptionsBuilder) SetKeyVaultClientOptions(opts Lister[ClientOptions]) *AutoEncryptionOptionsBuilder {
+func (a *AutoEncryptionOptionsBuilder) SetKeyVaultClientOptions(opts *ClientOptions) *AutoEncryptionOptionsBuilder {
 	a.Opts = append(a.Opts, func(args *AutoEncryptionOptions) error {
 		args.KeyVaultClientOptions = opts
 

@@ -589,7 +589,7 @@ func (c *clientEntity) getRecordEvents() bool {
 	return c.recordEvents.Load().(bool)
 }
 
-func setClientOptionsFromURIOptions(clientOpts *options.ClientOptionsBuilder, uriOpts bson.M) error {
+func setClientOptionsFromURIOptions(clientOpts *options.ClientOptions, uriOpts bson.M) error {
 	// A write concern can be constructed across multiple URI options (e.g. "w", "j", and "wTimeoutMS") so we declare an
 	// empty writeConcern instance here that can be populated in the loop below.
 	var wc writeConcern
@@ -654,7 +654,7 @@ func setClientOptionsFromURIOptions(clientOpts *options.ClientOptionsBuilder, ur
 	return nil
 }
 
-func evaluateUseMultipleMongoses(clientOpts *options.ClientOptionsBuilder, useMultipleMongoses bool) error {
+func evaluateUseMultipleMongoses(clientOpts *options.ClientOptions, useMultipleMongoses bool) error {
 	hosts := mtest.ClusterConnString().Hosts
 
 	if !useMultipleMongoses {

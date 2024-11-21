@@ -28,7 +28,7 @@ var dbName = fmt.Sprintf("goleak-%d", time.Now().Unix())
 func TestGoroutineLeak(t *testing.T) {
 	testCases := []struct {
 		desc string
-		opts options.Lister[options.ClientOptions]
+		opts *options.ClientOptions
 	}{
 		{
 			desc: "base",

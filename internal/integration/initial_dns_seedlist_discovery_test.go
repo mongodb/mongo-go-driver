@@ -74,7 +74,7 @@ func runSeedlistDiscoveryDirectory(mt *mtest.T, subdirectory string) {
 }
 
 // runSeedlistDiscoveryPingTest will create a new connection using the test URI and attempt to "ping" the server.
-func runSeedlistDiscoveryPingTest(mt *mtest.T, clientOpts *options.ClientOptionsBuilder) {
+func runSeedlistDiscoveryPingTest(mt *mtest.T, clientOpts *options.ClientOptions) {
 	ctx := context.Background()
 
 	client, err := mongo.Connect(clientOpts)

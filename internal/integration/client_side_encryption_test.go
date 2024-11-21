@@ -1,5 +1,5 @@
-// Copyright (C) MongoDB, Inc. 2021-present.
 //
+// Copyright (C) MongoDB, Inc. 2021-present.
 // Licensed under the Apache License, Version 2.0 (the "License"); you may
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -356,11 +356,7 @@ func TestClientSideEncryptionCustomCrypt(t *testing.T) {
 			ApplyURI(mtest.ClusterURI()).
 			SetAutoEncryptionOptions(aeOpts)
 		cc := &customCrypt{}
-		clientOpts.Opts = append(clientOpts.Opts, func(args *options.ClientOptions) error {
-			args.Crypt = cc
-
-			return nil
-		})
+		clientOpts.Crypt = cc
 		integtest.AddTestServerAPIVersion(clientOpts)
 
 		client, err := mongo.Connect(clientOpts)
@@ -683,11 +679,7 @@ func TestFLEIndexView(t *testing.T) {
 		SetReadPreference(mtest.PrimaryRp)
 
 	cc := &customCrypt{}
-	opts.Opts = append(opts.Opts, func(args *options.ClientOptions) error {
-		args.Crypt = cc
-
-		return nil
-	})
+	opts.Crypt = cc
 
 	integtest.AddTestServerAPIVersion(opts)
 

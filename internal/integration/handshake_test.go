@@ -91,7 +91,7 @@ func TestHandshakeProse(t *testing.T) {
 	for _, test := range []struct {
 		name string
 		env  map[string]string
-		opts *options.ClientOptionsBuilder
+		opts *options.ClientOptions
 		want bson.D
 	}{
 		{

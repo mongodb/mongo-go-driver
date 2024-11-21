@@ -9,161 +9,13 @@ package mongoutil
 import (
 	"strings"
 	"testing"
-	"time"
 
-	"go.mongodb.org/mongo-driver/v2/internal/assert"
-	"go.mongodb.org/mongo-driver/v2/internal/ptrutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
-func TestNewOptions(t *testing.T) {
-	t.Parallel()
-
-	// For simplicity, we just chose one options type to test on. This should be
-	// WLOG since (1) a user cannot merge mixed options, and (2) exported data in
-	// the options package cannot be backwards breaking. If
-	// options-package-specific  functionality needs to be tested, it should be
-	// done in a separate test.
-	clientTests := []struct {
-		name string
-		opts []options.Lister[options.ClientOptions]
-		want options.ClientOptions
-	}{
-		{
-			name: "nil options",
-			opts: nil,
-			want: options.ClientOptions{},
-		},
-		{
-			name: "no options",
-			opts: []options.Lister[options.ClientOptions]{},
-			want: options.ClientOptions{},
-		},
-		{
-			name: "one option",
-			opts: []options.Lister[options.ClientOptions]{
-				options.Client().SetAppName("testApp"),
-			},
-			want: options.ClientOptions{AppName: ptrutil.Ptr[string]("testApp")},
-		},
-		{
-			name: "one nil option",
-			opts: []options.Lister[options.ClientOptions]{nil},
-			want: options.ClientOptions{},
-		},
-		{
-			name: "many same options",
-			opts: []options.Lister[options.ClientOptions]{
-				options.Client().SetAppName("testApp"),
-				options.Client().SetAppName("testApp"),
-			},
-			want: options.ClientOptions{AppName: ptrutil.Ptr[string]("testApp")},
-		},
-		{
-			name: "many different options (last one wins)",
-			opts: []options.Lister[options.ClientOptions]{
-				options.Client().SetAppName("testApp1"),
-				options.Client().SetAppName("testApp2"),
-			},
-			want: options.ClientOptions{AppName: ptrutil.Ptr[string]("testApp2")},
-		},
-		{
-			name: "many nil options",
-			opts: []options.Lister[options.ClientOptions]{nil, nil},
-			want: options.ClientOptions{},
-		},
-		{
-			name: "many options where last is nil (non-nil wins)",
-			opts: []options.Lister[options.ClientOptions]{
-				options.Client().SetAppName("testApp"),
-				nil,
-			},
-			want: options.ClientOptions{AppName: ptrutil.Ptr[string]("testApp")},
-		},
-		{
-			name: "many nil options where first is nil (non-nil wins)",
-			opts: []options.Lister[options.ClientOptions]{
-				nil,
-				options.Client().SetAppName("testApp"),
-			},
-			want: options.ClientOptions{AppName: ptrutil.Ptr[string]("testApp")},
-		},
-		{
-			name: "many nil options where middle is non-nil (non-nil wins)",
-			opts: []options.Lister[options.ClientOptions]{
-				nil,
-				options.Client().SetAppName("testApp"),
-				nil,
-			},
-			want: options.ClientOptions{AppName: ptrutil.Ptr[string]("testApp")},
-		},
-	}
-
-	for _, test := range clientTests {
-		test := test
-
-		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
-
-			got, err := NewOptions[options.ClientOptions](test.opts...)
-			assert.NoError(t, err)
-
-			// WLOG it should be enough to test a small subset of arguments.
-			assert.Equal(t, test.want.AppName, got.AppName)
-		})
-	}
-}
-
-func TestNewOptionsLister(t *testing.T) {
-	t.Parallel()
-
-	// For simplicity, we just chose one options type to test on. This should be
-	// WLOG since (1) a user cannot merge mixed options, and (2) exported data in
-	// the options package cannot be backwards breaking. If
-	// options-package-specific  functionality needs to be tested, it should be
-	// done in a separate test.
-	clientTests := []struct {
-		name string
-		args *options.ClientOptions
-		want options.ClientOptions
-	}{
-		{
-			name: "nil args",
-			args: nil,
-			want: options.ClientOptions{},
-		},
-		{
-			name: "no args",
-			args: &options.ClientOptions{},
-			want: options.ClientOptions{},
-		},
-		{
-			name: "args",
-			args: &options.ClientOptions{AppName: ptrutil.Ptr[string]("testApp")},
-			want: options.ClientOptions{AppName: ptrutil.Ptr[string]("testApp")},
-		},
-	}
-
-	for _, test := range clientTests {
-		test := test
-
-		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
-
-			opts := NewOptionsLister(test.args, nil)
-
-			got, err := NewOptions[options.ClientOptions](opts)
-			assert.NoError(t, err)
-
-			// WLOG it should be enough to test a small subset of arguments.
-			assert.Equal(t, test.want.AppName, got.AppName)
-		})
-	}
-}
-
 func BenchmarkNewOptions(b *testing.B) {
 	b.Run("reflect.ValueOf is always called", func(b *testing.B) {
-		opts := make([]options.Lister[options.ClientOptions], b.N)
+		opts := make([]options.Lister[options.FindOptions], b.N)
 
 		// Create a huge string to see if we can force reflect.ValueOf to use heap
 		// over stack.
@@ -171,14 +23,12 @@ func BenchmarkNewOptions(b *testing.B) {
 		str := strings.Repeat("a", size)
 
 		for i := 0; i < b.N; i++ {
-			opts[i] = options.Client().ApplyURI("x").SetAppName(str).
-				SetAuth(options.Credential{}).SetHosts([]string{"x", "y"}).
-				SetDirect(true).SetTimeout(time.Second)
+			opts[i] = options.Find().SetComment(str).SetHint("y").SetMin(1).SetMax(2)
 		}
 
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			_, _ = NewOptions[options.ClientOptions](opts...)
+			_, _ = NewOptions[options.FindOptions](opts...)
 		}
 	})
 

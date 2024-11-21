@@ -13,7 +13,6 @@ import (
 	"path"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/internal/spectest"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -59,14 +58,12 @@ func runTestsInFile(t *testing.T, dirname string, filename string) {
 
 func runTest(t *testing.T, filename string, test testCase) {
 	t.Run(filename+":"+test.Description, func(t *testing.T) {
-		clientOptsBldr := options.Client().ApplyURI(test.URI)
-
-		opts, _ := mongoutil.NewOptions[options.ClientOptions](clientOptsBldr)
+		opts := options.Client().ApplyURI(test.URI)
 
 		if test.Valid {
-			require.NoError(t, clientOptsBldr.Validate())
+			require.NoError(t, opts.Validate())
 		} else {
-			require.Error(t, clientOptsBldr.Validate())
+			require.Error(t, opts.Validate())
 
 			return
 		}

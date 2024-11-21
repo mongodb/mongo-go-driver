@@ -128,21 +128,10 @@ func ConvertCreds(cred *options.Credential) *driver.Cred {
 	}
 }
 
-// NewConfig behaves like NewConfigFromOptions by extracting arguments from a
-// list of ClientOptions setters.
-func NewConfig(opts *options.ClientOptionsBuilder, clock *session.ClusterClock) (*Config, error) {
-	args, err := mongoutil.NewOptions[options.ClientOptions](opts)
-	if err != nil {
-		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
-	}
-
-	return NewConfigFromOptions(args, clock)
-}
-
-// NewConfigFromOptions will translate data from client options into a topology
-// config for building non-default deployments. Server and topology options are
-// not honored if a custom deployment is used.
-func NewConfigFromOptions(opts *options.ClientOptions, clock *session.ClusterClock) (*Config, error) {
+// NewConfig will translate data from client options into a topology config for
+// building non-default deployments. Server and topology options are not honored
+// if a custom deployment is used.
+func NewConfig(opts *options.ClientOptions, clock *session.ClusterClock) (*Config, error) {
 	var authenticator driver.Authenticator
 	var err error
 	if opts.Auth != nil {
@@ -163,20 +152,9 @@ func NewConfigFromOptions(opts *options.ClientOptions, clock *session.ClusterClo
 // options are not honored if a custom deployment is used. It uses a passed in
 // authenticator to authenticate the connection.
 func NewConfigFromOptionsWithAuthenticator(opts *options.ClientOptions, clock *session.ClusterClock, authenticator driver.Authenticator) (*Config, error) {
-
 	var serverAPI *driver.ServerAPIOptions
 
-	clientOptsBldr := options.ClientOptionsBuilder{
-		Opts: []func(*options.ClientOptions) error{
-			func(copts *options.ClientOptions) error {
-				*copts = *opts
-
-				return nil
-			},
-		},
-	}
-
-	if err := clientOptsBldr.Validate(); err != nil {
+	if err := opts.Validate(); err != nil {
 		return nil, err
 	}
 

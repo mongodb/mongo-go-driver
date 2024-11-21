@@ -18,7 +18,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/httputil"
 	"go.mongodb.org/mongo-driver/v2/internal/logger"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
-	"go.mongodb.org/mongo-driver/v2/internal/ptrutil"
 	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
 	"go.mongodb.org/mongo-driver/v2/internal/uuid"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -106,7 +105,7 @@ type Client struct {
 //
 // The Client.Ping method can be used to verify that the deployment is successfully connected and the
 // Client was correctly configured.
-func Connect(opts ...options.Lister[options.ClientOptions]) (*Client, error) {
+func Connect(opts ...*options.ClientOptions) (*Client, error) {
 	c, err := newClient(opts...)
 	if err != nil {
 		return nil, err
@@ -131,11 +130,8 @@ func Connect(opts ...options.Lister[options.ClientOptions]) (*Client, error) {
 // option fields of previous options, there is no partial overwriting. For example, if Username is
 // set in the Auth field for the first option, and Password is set for the second but with no
 // Username, after the merge the Username field will be empty.
-func newClient(opts ...options.Lister[options.ClientOptions]) (*Client, error) {
-	args, err := mongoutil.NewOptions(opts...)
-	if err != nil {
-		return nil, err
-	}
+func newClient(opts ...*options.ClientOptions) (*Client, error) {
+	args := options.MergeClientOptions(opts...) // TODO: Rename from args to opts
 
 	id, err := uuid.New()
 	if err != nil {
@@ -510,15 +506,12 @@ func (c *Client) getOrCreateInternalClient(args *options.ClientOptions) (*Client
 		return c.internalClientFLE, nil
 	}
 
-	argsCopy := *args
-
-	argsCopy.AutoEncryptionOptions = nil
-	argsCopy.MinPoolSize = ptrutil.Ptr[uint64](0)
-
-	opts := mongoutil.NewOptionsLister(&argsCopy, nil)
+	internalClientOpts := options.MergeClientOptions(args)
+	internalClientOpts.AutoEncryptionOptions = nil
+	internalClientOpts.SetMinPoolSize(0)
 
 	var err error
-	c.internalClientFLE, err = newClient(opts)
+	c.internalClientFLE, err = newClient(internalClientOpts)
 
 	return c.internalClientFLE, err
 }
