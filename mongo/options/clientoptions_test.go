@@ -146,6 +146,35 @@ func TestClientOptions(t *testing.T) {
 				}
 			})
 		}
+
+		t.Run("MergeClientOptions/all set", func(t *testing.T) {
+			want := optResult
+			got := MergeClientOptions(nil, opt1, opt2)
+			if diff := cmp.Diff(
+				got, want,
+				cmp.AllowUnexported(readconcern.ReadConcern{}, writeconcern.WriteConcern{}, readpref.ReadPref{}),
+				cmp.Comparer(func(r1, r2 *bson.Registry) bool { return r1 == r2 }),
+				cmp.Comparer(func(cfg1, cfg2 *tls.Config) bool { return cfg1 == cfg2 }),
+				cmp.Comparer(func(fp1, fp2 *event.PoolMonitor) bool { return fp1 == fp2 }),
+				cmp.AllowUnexported(ClientOptions{}),
+				cmpopts.IgnoreFields(http.Client{}, "Transport"),
+			); diff != "" {
+				t.Errorf("diff:\n%s", diff)
+				t.Errorf("Merged client options do not match. got %v; want %v", got, want)
+			}
+		})
+
+		// go-cmp dont support error comparisons (https://github.com/google/go-cmp/issues/24)
+		// Use specifique test for this
+		t.Run("MergeClientOptions/err", func(t *testing.T) {
+			opt1, opt2 := Client(), Client()
+			opt1.err = errors.New("Test error")
+
+			got := MergeClientOptions(nil, opt1, opt2)
+			if got.err.Error() != "Test error" {
+				t.Errorf("Merged client options do not match. got %v; want %v", got.err.Error(), opt1.err.Error())
+			}
+		})
 	})
 	t.Run("direct connection validation", func(t *testing.T) {
 		t.Run("multiple hosts", func(t *testing.T) {
