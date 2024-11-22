@@ -791,7 +791,7 @@ func (p *pool) removeConnection(conn *connection, reason reason, err error) erro
 // Deprecated: PendingReadTimeout is intended for internal use only and may be
 // removed or modified at any time.
 
-var PendingReadTimeout = 1 * time.Second
+var PendingReadTimeout = 400 * time.Millisecond
 
 // awaitPendingRead sets a new read deadline on the provided connection and
 // tries to read any bytes returned by the server. If there are any errors, the
@@ -805,18 +805,32 @@ func awaitPendingRead(ctx context.Context, pool *pool, conn *connection) error {
 		return nil
 	}
 
-	//if pool.monitor != nil {
-	//	pool.monitor.Event(&event.PoolEvent{
-	//		Type:         event.ConnectionPendingReadStarted,
-	//		ConnectionID: conn.driverConnectionID,
-	//	})
-	//}
+	if mustLogPoolMessage(pool) {
+		keysAndValues := logger.KeyValues{
+			logger.KeyDriverConnectionID, conn.driverConnectionID,
+			logger.KeyRequestID, conn.requestID,
+		}
+
+		logPoolMessage(pool, logger.ConnectionPendingReadStarted, keysAndValues...)
+	}
 
 	size := *conn.awaitRemainingBytes
 
 	checkIn := false
+	var someErr error
 
 	defer func() {
+		if mustLogPoolMessage(pool) && someErr != nil {
+			keysAndValues := logger.KeyValues{
+				logger.KeyDriverConnectionID, conn.driverConnectionID,
+				logger.KeyRequestID, conn.requestID,
+				logger.KeyReason, someErr.Error(),
+				logger.KeyRemainingTimeMS, *conn.remainingTime,
+			}
+
+			logPoolMessage(pool, logger.ConnectionPendingReadFailed, keysAndValues...)
+		}
+
 		// If we have exceeded the time limit, then close the connection.
 		if conn.remainingTime != nil && *conn.remainingTime < 0 {
 			if err := conn.close(); err != nil {
@@ -829,14 +843,6 @@ func awaitPendingRead(ctx context.Context, pool *pool, conn *connection) error {
 		if !checkIn {
 			return
 		}
-
-		//if pool.monitor != nil {
-		//	pool.monitor.Event(&event.PoolEvent{
-		//		Type:         event.ConnectionPendingReadFailed,
-		//		ConnectionID: conn.driverConnectionID,
-		//		//Reason:       readErr.Error(),
-		//	})
-		//}
 
 		// No matter what happens, always check the connection back into the
 		// pool, which will either make it available for other operations or
@@ -857,7 +863,10 @@ func awaitPendingRead(ctx context.Context, pool *pool, conn *connection) error {
 	err := conn.nc.SetReadDeadline(dl)
 	if err != nil {
 		checkIn = true
-		return fmt.Errorf("error setting a read deadline: %w", err)
+
+		someErr = fmt.Errorf("error setting a read deadline: %w", err)
+
+		return someErr
 	}
 
 	st := time.Now()
@@ -869,15 +878,16 @@ func awaitPendingRead(ctx context.Context, pool *pool, conn *connection) error {
 			checkIn = true
 
 			err = transformNetworkError(ctx, err, contextDeadlineUsed)
+			someErr = fmt.Errorf("error reading the message size: %w", err)
 
-			return fmt.Errorf("error reading the message size: %w", err)
+			return someErr
 		}
 		size, err = conn.parseWmSizeBytes(sizeBuf)
 		if err != nil {
 			checkIn = true
-			err = transformNetworkError(ctx, err, contextDeadlineUsed)
+			someErr = transformNetworkError(ctx, err, contextDeadlineUsed)
 
-			return err
+			return someErr
 		}
 		size -= 4
 	}
@@ -893,17 +903,19 @@ func awaitPendingRead(ctx context.Context, pool *pool, conn *connection) error {
 		checkIn = true
 
 		err = transformNetworkError(ctx, err, contextDeadlineUsed)
+		someErr = fmt.Errorf("error discarding %d byte message: %w", size, err)
 
-		return fmt.Errorf("error discarding %d byte message: %w", size, err)
+		return someErr
 	}
 
-	//if pool.monitor != nil {
-	//	pool.monitor.Event(&event.PoolEvent{
-	//		Type:         event.ConnectionPendingReadSucceeded,
-	//		ConnectionID: conn.driverConnectionID,
-	//		//Reason:       readErr.Error(),
-	//	})
-	//}
+	if mustLogPoolMessage(pool) {
+		keysAndValues := logger.KeyValues{
+			logger.KeyDriverConnectionID, conn.driverConnectionID,
+			logger.KeyRequestID, conn.requestID,
+		}
+
+		logPoolMessage(pool, logger.ConnectionPendingReadSucceeded, keysAndValues...)
+	}
 
 	conn.awaitRemainingBytes = nil
 	conn.remainingTime = nil

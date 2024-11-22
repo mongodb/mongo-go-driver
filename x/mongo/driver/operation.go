@@ -792,7 +792,18 @@ func (op Operation) Execute(ctx context.Context) error {
 			if moreToCome {
 				roundTrip = op.moreToComeRoundTrip
 			}
-			res, err = roundTrip(ctx, conn, *wm)
+
+			readOpts := []mnet.ReadOption{}
+			if maxTimeMS != 0 {
+				readOpts = append(readOpts, mnet.WithReadMaxTimeMS())
+				readOpts = append(readOpts, mnet.WithRequestID(startedInfo.requestID))
+			}
+
+			// Inform the roundTrip if maxTimeMS is set. If it is and the operation
+			// times out, then the connection should be put into a "pending" state
+			// so that the next time it is checked out it attempts to finish the read
+			// which is almost certainly a server error noting a timeout.
+			res, err = roundTrip(ctx, conn, *wm, readOpts)
 
 			if ep, ok := srvr.(ErrorProcessor); ok {
 				_ = ep.ProcessError(err, conn)
@@ -1076,16 +1087,25 @@ func (op Operation) retryable(desc description.Server) bool {
 
 // roundTrip writes a wiremessage to the connection and then reads a wiremessage. The wm parameter
 // is reused when reading the wiremessage.
-func (op Operation) roundTrip(ctx context.Context, conn *mnet.Connection, wm []byte) ([]byte, error) {
+func (op Operation) roundTrip(
+	ctx context.Context,
+	conn *mnet.Connection,
+	wm []byte,
+	readOpts []mnet.ReadOption,
+) ([]byte, error) {
 	err := conn.Write(ctx, wm)
 	if err != nil {
 		return nil, op.networkError(err)
 	}
-	return op.readWireMessage(ctx, conn)
+	return op.readWireMessage(ctx, conn, readOpts...)
 }
 
-func (op Operation) readWireMessage(ctx context.Context, conn *mnet.Connection) (result []byte, err error) {
-	wm, err := conn.Read(ctx)
+func (op Operation) readWireMessage(
+	ctx context.Context,
+	conn *mnet.Connection,
+	opts ...mnet.ReadOption,
+) (result []byte, err error) {
+	wm, err := conn.Read(ctx, opts...)
 	if err != nil {
 		return nil, op.networkError(err)
 	}
@@ -1156,7 +1176,12 @@ func (op Operation) networkError(err error) error {
 
 // moreToComeRoundTrip writes a wiremessage to the provided connection. This is used when an OP_MSG is
 // being sent with  the moreToCome bit set.
-func (op *Operation) moreToComeRoundTrip(ctx context.Context, conn *mnet.Connection, wm []byte) (result []byte, err error) {
+func (op *Operation) moreToComeRoundTrip(
+	ctx context.Context,
+	conn *mnet.Connection,
+	wm []byte,
+	_ []mnet.ReadOption,
+) (result []byte, err error) {
 	err = conn.Write(ctx, wm)
 	if err != nil {
 		if op.Client != nil {
