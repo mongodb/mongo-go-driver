@@ -11,6 +11,7 @@ package mongocrypt
 
 // #include <mongocrypt.h>
 import "C"
+import "time"
 
 // KmsContext represents a mongocrypt_kms_ctx_t handle.
 type KmsContext struct {
@@ -41,6 +42,8 @@ func (kc *KmsContext) KMSProvider() string {
 
 // Message returns the message to send to the KMS.
 func (kc *KmsContext) Message() ([]byte, error) {
+	time.Sleep(time.Duration(C.mongocrypt_kms_ctx_usleep(kc.wrapped)) * time.Microsecond)
+
 	msgBinary := newBinary()
 	defer msgBinary.close()
 
@@ -73,4 +76,9 @@ func (kc *KmsContext) createErrorFromStatus() error {
 	defer C.mongocrypt_status_destroy(status)
 	C.mongocrypt_kms_ctx_status(kc.wrapped, status)
 	return errorFromStatus(status)
+}
+
+// Fail returns a boolean indicating whether the failed request may be retried.
+func (kc *KmsContext) Fail() bool {
+	return bool(C.mongocrypt_kms_ctx_fail(kc.wrapped))
 }

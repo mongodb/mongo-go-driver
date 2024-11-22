@@ -53,6 +53,7 @@ func NewMongoCrypt(opts *options.MongoCryptOptions) (*MongoCrypt, error) {
 	if wrapped == nil {
 		return nil, errors.New("could not create new mongocrypt object")
 	}
+	C.mongocrypt_setopt_retry_kms(wrapped, true)
 	httpClient := opts.HTTPClient
 	if httpClient == nil {
 		httpClient = httputil.DefaultHTTPClient
@@ -85,7 +86,7 @@ func NewMongoCrypt(opts *options.MongoCryptOptions) (*MongoCrypt, error) {
 	}
 
 	if opts.BypassQueryAnalysis {
-		C.mongocrypt_setopt_bypass_query_analysis(wrapped)
+		C.mongocrypt_setopt_bypass_query_analysis(crypt.wrapped)
 	}
 
 	// If loading the crypt_shared library isn't disabled, set the default library search path "$SYSTEM"

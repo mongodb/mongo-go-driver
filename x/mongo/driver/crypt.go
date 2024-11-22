@@ -9,9 +9,7 @@ package driver
 import (
 	"context"
 	"crypto/tls"
-	"errors"
 	"fmt"
-	"io"
 	"strings"
 	"time"
 
@@ -399,7 +397,10 @@ func (c *crypt) decryptKey(kmsCtx *mongocrypt.KmsContext) error {
 
 		res := make([]byte, bytesNeeded)
 		bytesRead, err := conn.Read(res)
-		if err != nil && !errors.Is(err, io.EOF) {
+		if err != nil {
+			if kmsCtx.Fail() {
+				err = nil
+			}
 			return err
 		}
 

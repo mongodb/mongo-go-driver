@@ -37,3 +37,8 @@ func (kc *KmsContext) BytesNeeded() int32 {
 func (kc *KmsContext) FeedResponse([]byte) error {
 	panic(cseNotSupportedMsg)
 }
+
+// Fail returns a boolean indicating whether the failed request may be retried.
+func (kc *KmsContext) Fail() bool {
+	panic(cseNotSupportedMsg)
+}

@@ -2988,6 +2988,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			mt.Skipf("Skipping test as KMS_FAILPOINT_SERVERS_RUNNING is not set")
 		}
 
+		tlsCfg := &tls.Config{
+			InsecureSkipVerify: true,
+		}
+
 		setFailPoint := func(failure string, count int) error {
 			url := fmt.Sprintf("https://localhost:9003/set_failpoint/%s", failure)
 			var payloadBuf bytes.Buffer
@@ -2999,14 +3003,13 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			}
 
 			client := &http.Client{
-				Transport: &http.Transport{
-					TLSClientConfig: &tls.Config{
-						InsecureSkipVerify: true,
-					},
-				},
+				Transport: &http.Transport{TLSClientConfig: tlsCfg},
 			}
-			_, err = client.Do(req)
-			return err
+			res, err := client.Do(req)
+			if err != nil {
+				return err
+			}
+			return res.Body.Close()
 		}
 
 		keyVaultClient, err := mongo.Connect(options.Client().ApplyURI(mtest.ClusterURI()))
@@ -3014,11 +3017,12 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 		ceo := options.ClientEncryption().
 			SetKeyVaultNamespace("keyvault.datakeys").
-			SetKmsProviders(fullKmsProvidersMap)
+			SetKmsProviders(fullKmsProvidersMap).
+			SetTLSConfig(map[string]*tls.Config{"aws": tlsCfg})
 		clientEncryption, err := mongo.NewClientEncryption(keyVaultClient, ceo)
 		require.NoError(mt, err, "error on NewClientEncryption: %v", err)
 
-		err = setFailPoint("http", 1)
+		err = setFailPoint("network", 1)
 		require.NoError(mt, err, "mock server error: %v", err)
 
 		dkOpts := options.DataKey().SetMasterKey(
@@ -3032,7 +3036,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		keyID, err = clientEncryption.CreateDataKey(context.Background(), "aws", dkOpts)
 		require.NoError(mt, err, "error in CreateDataKey: %v", err)
 
-		err = setFailPoint("http", 1)
+		err = setFailPoint("network", 1)
 		require.NoError(mt, err, "mock server error: %v", err)
 
 		testVal := bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 123)}
