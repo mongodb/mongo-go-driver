@@ -71,18 +71,22 @@ func (c *ClientEncryptionOptionsBuilder) SetKmsProviders(providers map[string]ma
 //
 // This should only be used to set custom TLS configurations. By default, the connection will use an empty tls.Config{} with MinVersion set to tls.VersionTLS12.
 func (c *ClientEncryptionOptionsBuilder) SetTLSConfig(tlsOpts map[string]*tls.Config) *ClientEncryptionOptionsBuilder {
-	c.Opts = append(c.Opts, func(opts *ClientEncryptionOptions) error {
-		tlsConfigs := make(map[string]*tls.Config)
-		for provider, config := range tlsOpts {
-			// use TLS min version 1.2 to enforce more secure hash algorithms and advanced cipher suites
-			if config.MinVersion == 0 {
-				config.MinVersion = tls.VersionTLS12
-			}
-			tlsConfigs[provider] = config
+	tlsConfigs := make(map[string]*tls.Config)
+	for provider, config := range tlsOpts {
+		// Use TLS min version 1.2 to enforce more secure hash algorithms and
+		// advanced cipher suites.
+		if config.MinVersion == 0 {
+			config.MinVersion = tls.VersionTLS12
 		}
+		tlsConfigs[provider] = config
+	}
+
+	c.Opts = append(c.Opts, func(opts *ClientEncryptionOptions) error {
 		opts.TLSConfig = tlsConfigs
+
 		return nil
 	})
+
 	return c
 }
 
