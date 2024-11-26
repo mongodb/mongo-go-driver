@@ -1535,7 +1535,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			SetKeyVaultNamespace(kvNamespace).
 			SetTLSConfig(tlsConfig)
 
-			// make TLS opts containing only CA file
+		// make TLS opts containing only CA file
 		caTlsMap := map[string]interface{}{
 			"tlsCAFile": tlsCAFileKMIP,
 		}
