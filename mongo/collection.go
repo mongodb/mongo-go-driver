@@ -1465,6 +1465,9 @@ func (coll *Collection) find(
 	if args.NoCursorTimeout != nil {
 		op.NoCursorTimeout(*args.NoCursorTimeout)
 	}
+	if args.OplogReplay != nil {
+		op.OplogReplay(*args.OplogReplay)
+	}
 	if args.Projection != nil {
 		proj, err := marshal(args.Projection, coll.bsonOpts, coll.registry)
 		if err != nil {
@@ -1518,6 +1521,7 @@ func newFindArgsFromFindOneArgs(args *options.FindOneOptions) *options.FindOptio
 		v.Hint = args.Hint
 		v.Max = args.Max
 		v.Min = args.Min
+		v.OplogReplay = args.OplogReplay
 		v.Projection = args.Projection
 		v.ReturnKey = args.ReturnKey
 		v.ShowRecordID = args.ShowRecordID
