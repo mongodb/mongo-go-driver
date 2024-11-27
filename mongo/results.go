@@ -42,6 +42,9 @@ type ClientBulkWriteResult struct {
 	// Operation performed with an acknowledged write. Values for other fields may
 	// not be deterministic if the write operation was unacknowledged.
 	Acknowledged bool
+
+	// HasVerboseResults indicates whether this result contains verbose results.
+	HasVerboseResults bool
 }
 
 // ClientBulkWriteInsertResult is the result type returned by a client-level bulk write of InsertOne operation.

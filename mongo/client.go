@@ -967,6 +967,7 @@ func (c *Client) BulkWrite(ctx context.Context, models *ClientWriteModels,
 		return nil, errors.New("cannot request unacknowledged write concern and verbose results")
 	}
 	op.result.Acknowledged = acknowledged
+	op.result.HasVerboseResults = !op.errorsOnly
 	err = op.execute(ctx)
 	return &op.result, replaceErrors(err)
 }
