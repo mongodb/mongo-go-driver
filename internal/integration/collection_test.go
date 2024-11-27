@@ -1165,6 +1165,7 @@ func TestCollection(t *testing.T) {
 				SetHint(indexName).
 				SetMax(bson.D{{"x", int32(5)}}).
 				SetMin(bson.D{{"x", int32(0)}}).
+				SetOplogReplay(false).
 				SetProjection(bson.D{{"x", int32(1)}}).
 				SetReturnKey(false).
 				SetShowRecordID(false).
@@ -1186,6 +1187,7 @@ func TestCollection(t *testing.T) {
 				AppendString("hint", indexName).
 				StartDocument("max").AppendInt32("x", 5).FinishDocument().
 				StartDocument("min").AppendInt32("x", 0).FinishDocument().
+				AppendBoolean("oplogReplay", false).
 				StartDocument("projection").AppendInt32("x", 1).FinishDocument().
 				AppendBoolean("returnKey", false).
 				AppendBoolean("showRecordId", false).
