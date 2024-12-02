@@ -554,9 +554,6 @@ functions:
         args: [*task-runner, evg-test-kmip]
 
   start-kms-failpoint-server:
-    - command: ec2.assume_role
-      params:
-        role_arn: ${aws_test_secrets_role}
     - command: subprocess.exec
       params:
         working_dir: src/go.mongodb.org/mongo-driver
@@ -578,15 +575,15 @@ functions:
         binary: "bash"
         env: 
           GO_BUILD_TAGS: cse
-        include_expansions_in_env: [AUTH, SSL, MONGODB_URI, TOPOLOGY, 
-          MONGO_GO_DRIVER_COMPRESSOR]
+        include_expansions_in_env: [AUTH, SSL, MONGODB_URI, TOPOLOGY, MONGO_GO_DRIVER_COMPRESSOR]
         args: [*task-runner, setup-test]
     - command: subprocess.exec
       type: test
       params:
         binary: "bash"
         env:
-          KMS_FAILPOINT_SERVERS_RUNNING: "true"
+          KMS_FAILPOINT_CA_FILE: "${DRIVERS_TOOLS}/.evergreen/x509gen/ca.pem"
+          KMS_FAILPOINT_SERVER_RUNNING: "true"
         args: [*task-runner, evg-test-retry-kms-requests]
 
   run-fuzz-tests:
@@ -1532,10 +1529,6 @@ tasks:
           SSL: "nossl"
       - func: start-kms-failpoint-server
       - func: run-retry-kms-requests
-        vars:
-          TOPOLOGY: "server"
-          AUTH: "noauth"
-          SSL: "nossl"
 
   - name: "test-serverless"
     tags: ["serverless"]

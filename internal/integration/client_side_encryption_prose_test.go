@@ -2983,13 +2983,23 @@ func TestClientSideEncryptionProse(t *testing.T) {
 	})
 
 	mt.RunOpts("24. kms retry tests", noClientOpts, func(mt *mtest.T) {
-		kmsTlsTestcase := os.Getenv("KMS_FAILPOINT_SERVERS_RUNNING")
+		kmsTlsTestcase := os.Getenv("KMS_FAILPOINT_SERVER_RUNNING")
 		if kmsTlsTestcase == "" {
-			mt.Skipf("Skipping test as KMS_FAILPOINT_SERVERS_RUNNING is not set")
+			mt.Skipf("Skipping test as KMS_FAILPOINT_SERVER_RUNNING is not set")
 		}
 
-		tlsCfg := &tls.Config{
-			InsecureSkipVerify: true,
+		mt.Parallel()
+
+		var tlsCfg *tls.Config
+		if tlsCAFile := os.Getenv("KMS_FAILPOINT_CA_FILE"); tlsCAFile == "" {
+			require.Fail(mt, "failed to load CA file")
+		} else {
+			var err error
+			clientAndCATlsMap := map[string]interface{}{
+				"tlsCAFile": tlsCAFile,
+			}
+			tlsCfg, err = options.BuildTLSConfig(clientAndCATlsMap)
+			require.Nil(mt, err, "BuildTLSConfig error: %v", err)
 		}
 
 		setFailPoint := func(failure string, count int) error {
@@ -3012,39 +3022,109 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			return res.Body.Close()
 		}
 
-		keyVaultClient, err := mongo.Connect(options.Client().ApplyURI(mtest.ClusterURI()))
-		require.NoError(mt, err, "error on Connect: %v", err)
+		kmsProviders := map[string]map[string]interface{}{
+			"aws": {
+				"accessKeyId":     awsAccessKeyID,
+				"secretAccessKey": awsSecretAccessKey,
+			},
+			"azure": {
+				"tenantId":                 azureTenantID,
+				"clientId":                 azureClientID,
+				"clientSecret":             azureClientSecret,
+				"identityPlatformEndpoint": "127.0.0.1:9003",
+			},
+			"gcp": {
+				"email":      gcpEmail,
+				"privateKey": gcpPrivateKey,
+				"endpoint":   "127.0.0.1:9003",
+			},
+		}
 
-		ceo := options.ClientEncryption().
-			SetKeyVaultNamespace("keyvault.datakeys").
-			SetKmsProviders(fullKmsProvidersMap).
-			SetTLSConfig(map[string]*tls.Config{"aws": tlsCfg})
-		clientEncryption, err := mongo.NewClientEncryption(keyVaultClient, ceo)
-		require.NoError(mt, err, "error on NewClientEncryption: %v", err)
-
-		err = setFailPoint("network", 1)
-		require.NoError(mt, err, "mock server error: %v", err)
-
-		dkOpts := options.DataKey().SetMasterKey(
-			bson.D{
+		dataKeys := []struct {
+			provider  string
+			masterKey interface{}
+		}{
+			{"aws", bson.D{
 				{"region", "foo"},
 				{"key", "bar"},
 				{"endpoint", "127.0.0.1:9003"},
-			},
-		)
-		var keyID bson.Binary
-		keyID, err = clientEncryption.CreateDataKey(context.Background(), "aws", dkOpts)
-		require.NoError(mt, err, "error in CreateDataKey: %v", err)
+			}},
+			{"azure", bson.D{
+				{"keyVaultEndpoint", "127.0.0.1:9003"},
+				{"keyName", "foo"},
+			}},
+			{"gcp", bson.D{
+				{"projectId", "foo"},
+				{"location", "bar"},
+				{"keyRing", "baz"},
+				{"keyName", "qux"},
+				{"endpoint", "127.0.0.1:9003"},
+			}},
+		}
 
-		err = setFailPoint("network", 1)
-		require.NoError(mt, err, "mock server error: %v", err)
+		testCases := []struct {
+			name    string
+			failure string
+		}{
+			{"Case 1: createDataKey and encrypt with TCP retry", "network"},
+			{"Case 2: createDataKey and encrypt with HTTP retry", "http"},
+		}
 
-		testVal := bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 123)}
-		eo := options.Encrypt().
-			SetKeyID(keyID).
-			SetAlgorithm("AEAD_AES_256_CBC_HMAC_SHA_512-Deterministic")
-		_, err = clientEncryption.Encrypt(context.Background(), testVal, eo)
-		assert.NoError(mt, err, "error in Encrypt: %v", err)
+		for _, tc := range testCases {
+			for _, dataKey := range dataKeys {
+				mt.Run(fmt.Sprintf("%s_%s", tc.name, dataKey.provider), func(mt *mtest.T) {
+					keyVaultClient, err := mongo.Connect(options.Client().ApplyURI(mtest.ClusterURI()))
+					require.NoError(mt, err, "error on Connect: %v", err)
+
+					ceo := options.ClientEncryption().
+						SetKeyVaultNamespace(kvNamespace).
+						SetKmsProviders(kmsProviders).
+						SetTLSConfig(map[string]*tls.Config{dataKey.provider: tlsCfg})
+					clientEncryption, err := mongo.NewClientEncryption(keyVaultClient, ceo)
+					require.NoError(mt, err, "error on NewClientEncryption: %v", err)
+
+					err = setFailPoint(tc.failure, 1)
+					require.NoError(mt, err, "mock server error: %v", err)
+
+					dkOpts := options.DataKey().SetMasterKey(dataKey.masterKey)
+					var keyID bson.Binary
+					keyID, err = clientEncryption.CreateDataKey(context.Background(), dataKey.provider, dkOpts)
+					require.NoError(mt, err, "error in CreateDataKey: %v", err)
+
+					err = setFailPoint(tc.failure, 1)
+					require.NoError(mt, err, "mock server error: %v", err)
+
+					testVal := bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 123)}
+					eo := options.Encrypt().
+						SetKeyID(keyID).
+						SetAlgorithm("AEAD_AES_256_CBC_HMAC_SHA_512-Deterministic")
+					_, err = clientEncryption.Encrypt(context.Background(), testVal, eo)
+					assert.NoError(mt, err, "error in Encrypt: %v", err)
+				})
+			}
+		}
+
+		for _, dataKey := range dataKeys {
+			mt.Run(fmt.Sprintf("Case 3: createDataKey fails after too many retries_%s", dataKey.provider), func(mt *mtest.T) {
+				keyVaultClient, err := mongo.Connect(options.Client().ApplyURI(mtest.ClusterURI()))
+				require.NoError(mt, err, "error on Connect: %v", err)
+
+				ceo := options.ClientEncryption().
+					SetKeyVaultNamespace(kvNamespace).
+					SetKmsProviders(fullKmsProvidersMap).
+					SetTLSConfig(map[string]*tls.Config{dataKey.provider: tlsCfg})
+				clientEncryption, err := mongo.NewClientEncryption(keyVaultClient, ceo)
+				require.NoError(mt, err, "error on NewClientEncryption: %v", err)
+
+				err = setFailPoint("network", 4)
+				require.NoError(mt, err, "mock server error: %v", err)
+
+				dkOpts := options.DataKey().SetMasterKey(dataKey.masterKey)
+				_, err = clientEncryption.CreateDataKey(context.Background(), dataKey.provider, dkOpts)
+				require.Error(mt, err)
+				mt.Logf("CreateDataKey error: %v", err)
+			})
+		}
 	})
 }
 
