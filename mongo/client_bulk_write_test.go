@@ -53,7 +53,9 @@ func TestBatches(t *testing.T) {
 			},
 		}
 		var n int
-		n, _, err = batches.AppendBatchSequence(nil, 4, 16_000, 16_000)
+		const limitBigEnough = 16_000
+		// test the "maxCount" that truncates the output
+		n, _, err = batches.AppendBatchSequence(nil, 4, limitBigEnough, limitBigEnough)
 		require.NoError(t, err, "AppendBatchSequence error: %v", err)
 		assert.Equal(t, 3, n, "expected %d appendings, got: %d", 3, n)
 
