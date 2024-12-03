@@ -7,6 +7,7 @@
 package topology
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -857,7 +858,15 @@ func awaitPendingRead(ctx context.Context, pool *pool, conn *connection) error {
 
 	dl, contextDeadlineUsed := ctx.Deadline()
 	if !contextDeadlineUsed {
-		dl = time.Now().Add(PendingReadTimeout)
+		// If there is a remainingTime, use that. If not, use the static
+		// PendingReadTimeout. This is required since a user could provide a timeout
+		// for the first try that does not exceed the pending read timeout, fail,
+		// and then not use a timeout for a subsequent try.
+		if conn.remainingTime != nil {
+			dl = time.Now().Add(*conn.remainingTime)
+		} else {
+			dl = time.Now().Add(PendingReadTimeout)
+		}
 	}
 
 	err := conn.nc.SetReadDeadline(dl)
@@ -871,7 +880,7 @@ func awaitPendingRead(ctx context.Context, pool *pool, conn *connection) error {
 
 	st := time.Now()
 
-	if size == 0 {
+	if size == 0 { // Question: Would this alawys equal to zero?
 		var sizeBuf [4]byte
 		if _, err := io.ReadFull(conn.nc, sizeBuf[:]); err != nil {
 			conn.remainingTime = ptrutil.Ptr(*conn.remainingTime - time.Since(st))
@@ -891,7 +900,10 @@ func awaitPendingRead(ctx context.Context, pool *pool, conn *connection) error {
 		}
 		size -= 4
 	}
-	n, err := io.CopyN(io.Discard, conn.nc, int64(size))
+
+	buf := bytes.NewBuffer(nil)
+	n, err := io.CopyN(buf, conn.nc, int64(size))
+	fmt.Println("buf: ", buf)
 	if err != nil {
 		// If the read times out, record the bytes left to read before exiting.
 		nerr := net.Error(nil)
