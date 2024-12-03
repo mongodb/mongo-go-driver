@@ -1517,46 +1517,52 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			SetKeyVaultNamespace(kvNamespace)
 
 		// make TLS opts containing client certificate and CA file
-		tlsConfig := make(map[string]*tls.Config)
 		clientAndCATlsMap := map[string]interface{}{
 			"tlsCertificateKeyFile": tlsClientCertificateKeyFileKMIP,
 			"tlsCAFile":             tlsCAFileKMIP,
 		}
-		certConfig, err := options.BuildTLSConfig(clientAndCATlsMap)
+		clientAndCATLSConfig, err := options.BuildTLSConfig(clientAndCATlsMap)
 		assert.Nil(mt, err, "BuildTLSConfig error: %v", err)
-		tlsConfig["aws"] = certConfig
-		tlsConfig["azure"] = certConfig
-		tlsConfig["gcp"] = certConfig
-		tlsConfig["kmip"] = certConfig
 
 		// create valid Client Encryption options and set valid TLS options
 		validClientEncryptionOptionsWithTLS := options.ClientEncryption().
 			SetKmsProviders(validKmsProviders).
 			SetKeyVaultNamespace(kvNamespace).
-			SetTLSConfig(tlsConfig)
+			SetTLSConfig(map[string]*tls.Config{
+				"aws":   clientAndCATLSConfig,
+				"azure": clientAndCATLSConfig,
+				"gcp":   clientAndCATLSConfig,
+				"kmip":  clientAndCATLSConfig,
+			})
 
 		// make TLS opts containing only CA file
-		caTlsMap := map[string]interface{}{
+		caTlSMap := map[string]interface{}{
 			"tlsCAFile": tlsCAFileKMIP,
 		}
-		certConfig, err = options.BuildTLSConfig(caTlsMap)
+		caTLSConfig, err := options.BuildTLSConfig(caTlSMap)
 		assert.Nil(mt, err, "BuildTLSConfig error: %v", err)
-		tlsConfig["aws"] = certConfig
-		tlsConfig["azure"] = certConfig
-		tlsConfig["gcp"] = certConfig
-		tlsConfig["kmip"] = certConfig
 
 		// create invalid Client Encryption options with expired credentials
 		expiredClientEncryptionOptions := options.ClientEncryption().
 			SetKmsProviders(expiredKmsProviders).
 			SetKeyVaultNamespace(kvNamespace).
-			SetTLSConfig(tlsConfig)
+			SetTLSConfig(map[string]*tls.Config{
+				"aws":   caTLSConfig,
+				"azure": caTLSConfig,
+				"gcp":   caTLSConfig,
+				"kmip":  caTLSConfig,
+			})
 
 		// create invalid Client Encryption options with invalid hostnames
 		invalidHostnameClientEncryptionOptions := options.ClientEncryption().
 			SetKmsProviders(invalidKmsProviders).
 			SetKeyVaultNamespace(kvNamespace).
-			SetTLSConfig(tlsConfig)
+			SetTLSConfig(map[string]*tls.Config{
+				"aws":   caTLSConfig,
+				"azure": caTLSConfig,
+				"gcp":   caTLSConfig,
+				"kmip":  caTLSConfig,
+			})
 
 		awsMasterKeyNoClientCert := map[string]interface{}{
 			"region":   "us-east-1",
