@@ -184,17 +184,9 @@ func (a *AutoEncryptionOptionsBuilder) SetExtraOptions(extraOpts map[string]inte
 // to the KMS provider.
 //
 // This should only be used to set custom TLS configurations. By default, the connection will use an empty tls.Config{} with MinVersion set to tls.VersionTLS12.
-func (a *AutoEncryptionOptionsBuilder) SetTLSConfig(tlsOpts map[string]*tls.Config) *AutoEncryptionOptionsBuilder {
+func (a *AutoEncryptionOptionsBuilder) SetTLSConfig(cfg map[string]*tls.Config) *AutoEncryptionOptionsBuilder {
 	a.Opts = append(a.Opts, func(args *AutoEncryptionOptions) error {
-		tlsConfigs := make(map[string]*tls.Config)
-		for provider, config := range tlsOpts {
-			// use TLS min version 1.2 to enforce more secure hash algorithms and advanced cipher suites
-			if config.MinVersion == 0 {
-				config.MinVersion = tls.VersionTLS12
-			}
-			tlsConfigs[provider] = config
-		}
-		args.TLSConfig = tlsConfigs
+		args.TLSConfig = cfg
 
 		return nil
 	})
