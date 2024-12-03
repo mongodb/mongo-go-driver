@@ -1517,11 +1517,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			SetKeyVaultNamespace(kvNamespace)
 
 		// make TLS opts containing client certificate and CA file
-		clientAndCATlsMap := map[string]interface{}{
+		clientAndCATLSConfig, err := options.BuildTLSConfig(map[string]interface{}{
 			"tlsCertificateKeyFile": tlsClientCertificateKeyFileKMIP,
 			"tlsCAFile":             tlsCAFileKMIP,
-		}
-		clientAndCATLSConfig, err := options.BuildTLSConfig(clientAndCATlsMap)
+		})
 		assert.Nil(mt, err, "BuildTLSConfig error: %v", err)
 
 		// create valid Client Encryption options and set valid TLS options
@@ -1536,10 +1535,9 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			})
 
 		// make TLS opts containing only CA file
-		caTlSMap := map[string]interface{}{
+		caTLSConfig, err := options.BuildTLSConfig(map[string]interface{}{
 			"tlsCAFile": tlsCAFileKMIP,
-		}
-		caTLSConfig, err := options.BuildTLSConfig(caTlSMap)
+		})
 		assert.Nil(mt, err, "BuildTLSConfig error: %v", err)
 
 		// create invalid Client Encryption options with expired credentials
