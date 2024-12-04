@@ -30,7 +30,7 @@ type ServerAPIOptions struct {
 }
 
 // ServerAPI creates a new ServerAPIOptions configured with the provided
-// serverAPIversion.// ServerAPI creates a new ServerAPIOptions configured with the provided serverAPIversion.
+// serverAPIversion.
 func ServerAPI(serverAPIVersion ServerAPIVersion) *ServerAPIOptions {
 	return &ServerAPIOptions{ServerAPIVersion: serverAPIVersion}
 }
