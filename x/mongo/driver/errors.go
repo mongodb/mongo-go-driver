@@ -25,7 +25,22 @@ import (
 const LegacyNotPrimaryErrMsg = "not master"
 
 var (
-	retryableCodes          = []int32{11600, 11602, 10107, 13435, 13436, 189, 91, 7, 6, 89, 9001, 262}
+	retryableCodes = []int32{
+		6,     // HostUnreachable
+		7,     // HostNotFound
+		89,    // NetworkTimeout
+		91,    // ShutdownInProgress
+		134,   // ReadConcernMajorityNotAvailableYet
+		189,   // PrimarySteppedDown
+		262,   // ExceededTimeLimit
+		9001,  // SocketException
+		10107, // NotWritablePrimary
+		11600, // InterruptedAtShutdown
+		11602, // InterruptedDueToReplStateChange
+		13435, // NotPrimaryNoSecondaryOk
+		13436, // NotPrimaryOrSecondary
+	}
+
 	nodeIsRecoveringCodes   = []int32{11600, 11602, 13436, 189, 91}
 	notPrimaryCodes         = []int32{10107, 13435, 10058}
 	nodeIsShuttingDownCodes = []int32{11600, 91}

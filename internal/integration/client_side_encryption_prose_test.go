@@ -1444,6 +1444,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		if os.Getenv("KMS_MOCK_SERVERS_RUNNING") == "" {
 			mt.Skipf("Skipping test as KMS_MOCK_SERVERS_RUNNING is not set")
 		}
+		if tlsCAFileKMIP == "" || tlsClientCertificateKeyFileKMIP == "" {
+			mt.Fatal("Env vars CSFLE_TLS_CA_FILE and CSFLE_TLS_CLIENT_CERT_FILE must be set")
+		}
+
 		validKmsProviders := map[string]map[string]interface{}{
 			"aws": {
 				"accessKeyId":     awsAccessKeyID,
@@ -1513,50 +1517,50 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			SetKeyVaultNamespace(kvNamespace)
 
 		// make TLS opts containing client certificate and CA file
-		tlsConfig := make(map[string]*tls.Config)
-		if tlsCAFileKMIP != "" && tlsClientCertificateKeyFileKMIP != "" {
-			clientAndCATlsMap := map[string]interface{}{
-				"tlsCertificateKeyFile": tlsClientCertificateKeyFileKMIP,
-				"tlsCAFile":             tlsCAFileKMIP,
-			}
-			certConfig, err := options.BuildTLSConfig(clientAndCATlsMap)
-			assert.Nil(mt, err, "BuildTLSConfig error: %v", err)
-			tlsConfig["aws"] = certConfig
-			tlsConfig["azure"] = certConfig
-			tlsConfig["gcp"] = certConfig
-			tlsConfig["kmip"] = certConfig
-		}
+		clientAndCATLSConfig, err := options.BuildTLSConfig(map[string]interface{}{
+			"tlsCertificateKeyFile": tlsClientCertificateKeyFileKMIP,
+			"tlsCAFile":             tlsCAFileKMIP,
+		})
+		assert.Nil(mt, err, "BuildTLSConfig error: %v", err)
 
 		// create valid Client Encryption options and set valid TLS options
 		validClientEncryptionOptionsWithTLS := options.ClientEncryption().
 			SetKmsProviders(validKmsProviders).
 			SetKeyVaultNamespace(kvNamespace).
-			SetTLSConfig(tlsConfig)
+			SetTLSConfig(map[string]*tls.Config{
+				"aws":   clientAndCATLSConfig,
+				"azure": clientAndCATLSConfig,
+				"gcp":   clientAndCATLSConfig,
+				"kmip":  clientAndCATLSConfig,
+			})
 
 		// make TLS opts containing only CA file
-		if tlsCAFileKMIP != "" {
-			caTlsMap := map[string]interface{}{
-				"tlsCAFile": tlsCAFileKMIP,
-			}
-			certConfig, err := options.BuildTLSConfig(caTlsMap)
-			assert.Nil(mt, err, "BuildTLSConfig error: %v", err)
-			tlsConfig["aws"] = certConfig
-			tlsConfig["azure"] = certConfig
-			tlsConfig["gcp"] = certConfig
-			tlsConfig["kmip"] = certConfig
-		}
+		caTLSConfig, err := options.BuildTLSConfig(map[string]interface{}{
+			"tlsCAFile": tlsCAFileKMIP,
+		})
+		assert.Nil(mt, err, "BuildTLSConfig error: %v", err)
 
 		// create invalid Client Encryption options with expired credentials
 		expiredClientEncryptionOptions := options.ClientEncryption().
 			SetKmsProviders(expiredKmsProviders).
 			SetKeyVaultNamespace(kvNamespace).
-			SetTLSConfig(tlsConfig)
+			SetTLSConfig(map[string]*tls.Config{
+				"aws":   caTLSConfig,
+				"azure": caTLSConfig,
+				"gcp":   caTLSConfig,
+				"kmip":  caTLSConfig,
+			})
 
 		// create invalid Client Encryption options with invalid hostnames
 		invalidHostnameClientEncryptionOptions := options.ClientEncryption().
 			SetKmsProviders(invalidKmsProviders).
 			SetKeyVaultNamespace(kvNamespace).
-			SetTLSConfig(tlsConfig)
+			SetTLSConfig(map[string]*tls.Config{
+				"aws":   caTLSConfig,
+				"azure": caTLSConfig,
+				"gcp":   caTLSConfig,
+				"kmip":  caTLSConfig,
+			})
 
 		awsMasterKeyNoClientCert := map[string]interface{}{
 			"region":   "us-east-1",
@@ -1622,7 +1626,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 				possibleErrors := []string{
 					"x509: certificate signed by unknown authority",                   // Windows
-					"x509: “valid.testing.golang.invalid” certificate is not trusted", // MacOS
+					"x509: “valid.testing.golang.invalid” certificate is not trusted", // macOS
+					"x509: “server” certificate is not standards compliant",           // macOS
 					"x509: certificate is not authorized to sign other certificates",  // All others
 				}
 
