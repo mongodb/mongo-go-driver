@@ -15,7 +15,6 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/logger"
-	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/auth"
@@ -44,36 +43,30 @@ type Config struct {
 	logger                 *logger.Logger
 }
 
-// ConvertToDriverAPIOptions converts a options.ServerAPIOptions instance to a driver.ServerAPIOptions.
-func ConvertToDriverAPIOptions(opts options.Lister[options.ServerAPIOptions]) *driver.ServerAPIOptions {
-	args, _ := mongoutil.NewOptions[options.ServerAPIOptions](opts)
-
-	driverOpts := driver.NewServerAPIOptions(string(args.ServerAPIVersion))
-	if args.Strict != nil {
-		driverOpts.SetStrict(*args.Strict)
+// ConvertToDriverAPIOptions converts a given ServerAPIOptions object from the
+// options package to a ServerAPIOptions object from the driver package.
+func ConvertToDriverAPIOptions(opts *options.ServerAPIOptions) *driver.ServerAPIOptions {
+	driverOpts := driver.NewServerAPIOptions(string(opts.ServerAPIVersion))
+	if opts.Strict != nil {
+		driverOpts.SetStrict(*opts.Strict)
 	}
-	if args.DeprecationErrors != nil {
-		driverOpts.SetDeprecationErrors(*args.DeprecationErrors)
+	if opts.DeprecationErrors != nil {
+		driverOpts.SetDeprecationErrors(*opts.DeprecationErrors)
 	}
 	return driverOpts
 }
 
-func newLogger(opts options.Lister[options.LoggerOptions]) (*logger.Logger, error) {
+func newLogger(opts *options.LoggerOptions) (*logger.Logger, error) {
 	if opts == nil {
 		opts = options.Logger()
 	}
 
-	args, err := mongoutil.NewOptions[options.LoggerOptions](opts)
-	if err != nil {
-		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
-	}
-
 	componentLevels := make(map[logger.Component]logger.Level)
-	for component, level := range args.ComponentLevels {
+	for component, level := range opts.ComponentLevels {
 		componentLevels[logger.Component(component)] = logger.Level(level)
 	}
 
-	log, err := logger.New(args.Sink, args.MaxDocumentLength, componentLevels)
+	log, err := logger.New(opts.Sink, opts.MaxDocumentLength, componentLevels)
 	if err != nil {
 		return nil, fmt.Errorf("error creating logger: %w", err)
 	}

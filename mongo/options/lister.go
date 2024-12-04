@@ -11,19 +11,3 @@ package options
 type Lister[T any] interface {
 	List() []func(*T) error
 }
-
-func getOptions[T any](mopts Lister[T]) (*T, error) {
-	opts := new(T)
-
-	for _, setterFn := range mopts.List() {
-		if setterFn == nil {
-			continue
-		}
-
-		if err := setterFn(opts); err != nil {
-			return nil, err
-		}
-	}
-
-	return opts, nil
-}

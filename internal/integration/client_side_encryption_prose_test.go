@@ -527,7 +527,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			tlsConfig["kmip"] = kmipConfig
 		}
 
-		getBaseAutoEncryptionOpts := func() *options.AutoEncryptionOptionsBuilder {
+		getBaseAutoEncryptionOpts := func() *options.AutoEncryptionOptions {
 			return options.AutoEncryption().
 				SetKmsProviders(fullKmsProvidersMap).
 				SetKeyVaultNamespace(kvNamespace).
@@ -537,7 +537,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 		testCases := []struct {
 			name   string
-			aeo    *options.AutoEncryptionOptionsBuilder
+			aeo    *options.AutoEncryptionOptions
 			schema bson.Raw // the schema to create the collection. if nil, the collection won't be explicitly created
 		}{
 			{"remote schema", getBaseAutoEncryptionOpts(), corpusSchema},
@@ -3014,7 +3014,7 @@ type cseProseTest struct {
 	cseStarted   []*event.CommandStartedEvent
 }
 
-func setup(mt *mtest.T, aeo *options.AutoEncryptionOptionsBuilder, kvClientOpts *options.ClientOptions,
+func setup(mt *mtest.T, aeo *options.AutoEncryptionOptions, kvClientOpts *options.ClientOptions,
 	ceo options.Lister[options.ClientEncryptionOptions]) *cseProseTest {
 	mt.Helper()
 	var cpt cseProseTest

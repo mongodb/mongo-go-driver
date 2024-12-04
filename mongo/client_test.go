@@ -413,7 +413,7 @@ func TestClient(t *testing.T) {
 		}
 	})
 	t.Run("serverAPI version", func(t *testing.T) {
-		getServerAPIOptions := func() *options.ServerAPIOptionsBuilder {
+		getServerAPIOptions := func() *options.ServerAPIOptions {
 			return options.ServerAPI(options.ServerAPIVersion1).
 				SetStrict(false).SetDeprecationErrors(false)
 		}

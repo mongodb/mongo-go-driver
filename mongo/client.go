@@ -1,5 +1,5 @@
-// Copyright (C) MongoDB, Inc. 2017-present.
 //
+// Copyright (C) MongoDB, Inc. 2017-present.
 // Licensed under the Apache License, Version 2.0 (the "License"); you may
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -471,12 +471,7 @@ func (c *Client) endSessions(ctx context.Context) {
 }
 
 func (c *Client) configureAutoEncryption(args *options.ClientOptions) error {
-	aeArgs, err := mongoutil.NewOptions[options.AutoEncryptionOptions](args.AutoEncryptionOptions)
-	if err != nil {
-		return fmt.Errorf("failed to construct options from builder: %w", err)
-	}
-
-	c.encryptedFieldsMap = aeArgs.EncryptedFieldsMap
+	c.encryptedFieldsMap = args.AutoEncryptionOptions.EncryptedFieldsMap
 	if err := c.configureKeyVaultClientFLE(args); err != nil {
 		return err
 	}
@@ -519,60 +514,51 @@ func (c *Client) getOrCreateInternalClient(args *options.ClientOptions) (*Client
 	return c.internalClientFLE, err
 }
 
-func (c *Client) configureKeyVaultClientFLE(clientArgs *options.ClientOptions) error {
-	// parse key vault options and create new key vault client
-	aeArgs, err := mongoutil.NewOptions[options.AutoEncryptionOptions](clientArgs.AutoEncryptionOptions)
-	if err != nil {
-		return fmt.Errorf("failed to construct options from builder: %w", err)
-	}
+func (c *Client) configureKeyVaultClientFLE(clientOpts *options.ClientOptions) error {
+	aeOpts := clientOpts.AutoEncryptionOptions
+
+	var err error
 
 	switch {
-	case aeArgs.KeyVaultClientOptions != nil:
-		c.keyVaultClientFLE, err = newClient(aeArgs.KeyVaultClientOptions)
-	case clientArgs.MaxPoolSize != nil && *clientArgs.MaxPoolSize == 0:
+	case aeOpts.KeyVaultClientOptions != nil:
+		c.keyVaultClientFLE, err = newClient(aeOpts.KeyVaultClientOptions)
+	case clientOpts.MaxPoolSize != nil && *clientOpts.MaxPoolSize == 0:
 		c.keyVaultClientFLE = c
 	default:
-		c.keyVaultClientFLE, err = c.getOrCreateInternalClient(clientArgs)
+		c.keyVaultClientFLE, err = c.getOrCreateInternalClient(clientOpts)
 	}
 
 	if err != nil {
 		return err
 	}
 
-	dbName, collName := splitNamespace(aeArgs.KeyVaultNamespace)
+	dbName, collName := splitNamespace(aeOpts.KeyVaultNamespace)
 	c.keyVaultCollFLE = c.keyVaultClientFLE.Database(dbName).Collection(collName, keyVaultCollOpts)
 	return nil
 }
 
-func (c *Client) configureMetadataClientFLE(clientArgs *options.ClientOptions) error {
-	// parse key vault options and create new key vault client
-	aeArgs, err := mongoutil.NewOptions[options.AutoEncryptionOptions](clientArgs.AutoEncryptionOptions)
-	if err != nil {
-		return fmt.Errorf("failed to construct options from builder: %w", err)
-	}
+func (c *Client) configureMetadataClientFLE(clientOpts *options.ClientOptions) error {
+	aeOpts := clientOpts.AutoEncryptionOptions
 
-	if aeArgs.BypassAutoEncryption != nil && *aeArgs.BypassAutoEncryption {
+	if aeOpts.BypassAutoEncryption != nil && *aeOpts.BypassAutoEncryption {
 		// no need for a metadata client.
 		return nil
 	}
-	if clientArgs.MaxPoolSize != nil && *clientArgs.MaxPoolSize == 0 {
+	if clientOpts.MaxPoolSize != nil && *clientOpts.MaxPoolSize == 0 {
 		c.metadataClientFLE = c
 		return nil
 	}
 
-	c.metadataClientFLE, err = c.getOrCreateInternalClient(clientArgs)
+	var err error
+	c.metadataClientFLE, err = c.getOrCreateInternalClient(clientOpts)
+
 	return err
 }
 
-func (c *Client) newMongoCrypt(opts options.Lister[options.AutoEncryptionOptions]) (*mongocrypt.MongoCrypt, error) {
-	args, err := mongoutil.NewOptions[options.AutoEncryptionOptions](opts)
-	if err != nil {
-		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
-	}
-
+func (c *Client) newMongoCrypt(opts *options.AutoEncryptionOptions) (*mongocrypt.MongoCrypt, error) {
 	// convert schemas in SchemaMap to bsoncore documents
 	cryptSchemaMap := make(map[string]bsoncore.Document)
-	for k, v := range args.SchemaMap {
+	for k, v := range opts.SchemaMap {
 		schema, err := marshal(v, c.bsonOpts, c.registry)
 		if err != nil {
 			return nil, err
@@ -582,7 +568,7 @@ func (c *Client) newMongoCrypt(opts options.Lister[options.AutoEncryptionOptions
 
 	// convert schemas in EncryptedFieldsMap to bsoncore documents
 	cryptEncryptedFieldsMap := make(map[string]bsoncore.Document)
-	for k, v := range args.EncryptedFieldsMap {
+	for k, v := range opts.EncryptedFieldsMap {
 		encryptedFields, err := marshal(v, c.bsonOpts, c.registry)
 		if err != nil {
 			return nil, err
@@ -590,7 +576,7 @@ func (c *Client) newMongoCrypt(opts options.Lister[options.AutoEncryptionOptions
 		cryptEncryptedFieldsMap[k] = encryptedFields
 	}
 
-	kmsProviders, err := marshal(args.KmsProviders, c.bsonOpts, c.registry)
+	kmsProviders, err := marshal(opts.KmsProviders, c.bsonOpts, c.registry)
 	if err != nil {
 		return nil, fmt.Errorf("error creating KMS providers document: %w", err)
 	}
@@ -598,7 +584,7 @@ func (c *Client) newMongoCrypt(opts options.Lister[options.AutoEncryptionOptions
 	// Set the crypt_shared library override path from the "cryptSharedLibPath" extra option if one
 	// was set.
 	cryptSharedLibPath := ""
-	if val, ok := args.ExtraOptions["cryptSharedLibPath"]; ok {
+	if val, ok := opts.ExtraOptions["cryptSharedLibPath"]; ok {
 		str, ok := val.(string)
 		if !ok {
 			return nil, fmt.Errorf(
@@ -611,12 +597,12 @@ func (c *Client) newMongoCrypt(opts options.Lister[options.AutoEncryptionOptions
 	// intended for use from tests; there is no supported public API for explicitly disabling
 	// loading the crypt_shared library.
 	cryptSharedLibDisabled := false
-	if v, ok := args.ExtraOptions["__cryptSharedLibDisabledForTestOnly"]; ok {
+	if v, ok := opts.ExtraOptions["__cryptSharedLibDisabledForTestOnly"]; ok {
 		cryptSharedLibDisabled = v.(bool)
 	}
 
-	bypassAutoEncryption := args.BypassAutoEncryption != nil && *args.BypassAutoEncryption
-	bypassQueryAnalysis := args.BypassQueryAnalysis != nil && *args.BypassQueryAnalysis
+	bypassAutoEncryption := opts.BypassAutoEncryption != nil && *opts.BypassAutoEncryption
+	bypassQueryAnalysis := opts.BypassQueryAnalysis != nil && *opts.BypassQueryAnalysis
 
 	mc, err := mongocrypt.NewMongoCrypt(mcopts.MongoCrypt().
 		SetKmsProviders(kmsProviders).
@@ -625,13 +611,13 @@ func (c *Client) newMongoCrypt(opts options.Lister[options.AutoEncryptionOptions
 		SetEncryptedFieldsMap(cryptEncryptedFieldsMap).
 		SetCryptSharedLibDisabled(cryptSharedLibDisabled || bypassAutoEncryption).
 		SetCryptSharedLibOverridePath(cryptSharedLibPath).
-		SetHTTPClient(args.HTTPClient))
+		SetHTTPClient(opts.HTTPClient))
 	if err != nil {
 		return nil, err
 	}
 
 	var cryptSharedLibRequired bool
-	if val, ok := args.ExtraOptions["cryptSharedLibRequired"]; ok {
+	if val, ok := opts.ExtraOptions["cryptSharedLibRequired"]; ok {
 		b, ok := val.(bool)
 		if !ok {
 			return nil, fmt.Errorf(
@@ -652,10 +638,8 @@ func (c *Client) newMongoCrypt(opts options.Lister[options.AutoEncryptionOptions
 }
 
 //nolint:unused // the unused linter thinks that this function is unreachable because "c.newMongoCrypt" always panics without the "cse" build tag set.
-func (c *Client) configureCryptFLE(mc *mongocrypt.MongoCrypt, opts options.Lister[options.AutoEncryptionOptions]) {
-	args, _ := mongoutil.NewOptions[options.AutoEncryptionOptions](opts)
-
-	bypass := args.BypassAutoEncryption != nil && *args.BypassAutoEncryption
+func (c *Client) configureCryptFLE(mc *mongocrypt.MongoCrypt, opts *options.AutoEncryptionOptions) {
+	bypass := opts.BypassAutoEncryption != nil && *opts.BypassAutoEncryption
 	kr := keyRetriever{coll: c.keyVaultCollFLE}
 	var cir collInfoRetriever
 	// If bypass is true, c.metadataClientFLE is nil and the collInfoRetriever
@@ -670,7 +654,7 @@ func (c *Client) configureCryptFLE(mc *mongocrypt.MongoCrypt, opts options.Liste
 		CollInfoFn:           cir.cryptCollInfo,
 		KeyFn:                kr.cryptKeys,
 		MarkFn:               c.mongocryptdFLE.markCommand,
-		TLSConfig:            args.TLSConfig,
+		TLSConfig:            opts.TLSConfig,
 		BypassAutoEncryption: bypass,
 	})
 }
@@ -892,28 +876,23 @@ func (c *Client) createBaseCursorOptions() driver.CursorOptions {
 
 // newLogger will use the LoggerOptions to create an internal logger and publish
 // messages using a LogSink.
-func newLogger(opts options.Lister[options.LoggerOptions]) (*logger.Logger, error) {
+func newLogger(opts *options.LoggerOptions) (*logger.Logger, error) {
 	// If there are no logger options, then create a default logger.
 	if opts == nil {
 		opts = options.Logger()
 	}
 
-	args, err := mongoutil.NewOptions[options.LoggerOptions](opts)
-	if err != nil {
-		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
-	}
-
 	// If there are no component-level options and the environment does not
 	// contain component variables, then do nothing.
-	if len(args.ComponentLevels) == 0 && !logger.EnvHasComponentVariables() {
+	if len(opts.ComponentLevels) == 0 && !logger.EnvHasComponentVariables() {
 		return nil, nil
 	}
 
 	// Otherwise, collect the component-level options and create a logger.
 	componentLevels := make(map[logger.Component]logger.Level)
-	for component, level := range args.ComponentLevels {
+	for component, level := range opts.ComponentLevels {
 		componentLevels[logger.Component(component)] = logger.Level(level)
 	}
 
-	return logger.New(args.Sink, args.MaxDocumentLength, componentLevels)
+	return logger.New(opts.Sink, opts.MaxDocumentLength, componentLevels)
 }

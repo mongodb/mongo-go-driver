@@ -27,8 +27,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/failpoint"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/internal/integtest"
-	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
-	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/address"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -291,30 +289,19 @@ func runSpecTestCase(mt *mtest.T, test *testCase, testFile testFile) {
 		// bypassAutoEncryption nor bypassQueryAnalysis are true), then add extra options to load
 		// the crypt_shared library.
 		if testClientOpts.AutoEncryptionOptions != nil {
-			aeArgs, err := mongoutil.NewOptions[options.AutoEncryptionOptions](testClientOpts.AutoEncryptionOptions)
-			require.NoError(mt, err, "failed to construct options from builder")
+			aeOpts := testClientOpts.AutoEncryptionOptions
 
-			bypassAutoEncryption := aeArgs.BypassAutoEncryption != nil && *aeArgs.BypassAutoEncryption
-			bypassQueryAnalysis := aeArgs.BypassQueryAnalysis != nil && *aeArgs.BypassQueryAnalysis
+			bypassAutoEncryption := aeOpts.BypassAutoEncryption != nil && *aeOpts.BypassAutoEncryption
+			bypassQueryAnalysis := aeOpts.BypassQueryAnalysis != nil && *aeOpts.BypassQueryAnalysis
 
 			if !bypassAutoEncryption && !bypassQueryAnalysis {
-				if aeArgs.ExtraOptions == nil {
-					aeArgs.ExtraOptions = make(map[string]interface{})
+				if aeOpts.ExtraOptions == nil {
+					aeOpts.ExtraOptions = make(map[string]interface{})
 				}
 
 				for k, v := range getCryptSharedLibExtraOptions() {
-					aeArgs.ExtraOptions[k] = v
+					aeOpts.ExtraOptions[k] = v
 				}
-			}
-
-			testClientOpts.AutoEncryptionOptions = &options.AutoEncryptionOptionsBuilder{
-				Opts: []func(*options.AutoEncryptionOptions) error{
-					func(args *options.AutoEncryptionOptions) error {
-						*args = *aeArgs
-
-						return nil
-					},
-				},
 			}
 		}
 

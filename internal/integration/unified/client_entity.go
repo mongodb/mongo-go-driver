@@ -20,7 +20,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/internal/integtest"
 	"go.mongodb.org/mongo-driver/v2/internal/logger"
-	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
@@ -184,15 +183,10 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 		}
 	}
 	if entityOptions.ServerAPIOptions != nil {
-		args, err := mongoutil.NewOptions[options.ServerAPIOptions](entityOptions.ServerAPIOptions)
-		if err != nil {
-			return nil, fmt.Errorf("failed to construct options from builder: %w", err)
-		}
-
-		if err := args.ServerAPIVersion.Validate(); err != nil {
+		if err := entityOptions.ServerAPIOptions.ServerAPIVersion.Validate(); err != nil {
 			return nil, err
 		}
-		clientOpts.SetServerAPIOptions(entityOptions.ServerAPIOptions.ServerAPIOptionsBuilder)
+		clientOpts.SetServerAPIOptions(entityOptions.ServerAPIOptions.ServerAPIOptions)
 	} else {
 		integtest.AddTestServerAPIVersion(clientOpts)
 	}

@@ -125,7 +125,7 @@ func createClientOptions(t testing.TB, opts bson.Raw) *options.ClientOptions {
 	return clientOpts
 }
 
-func createAutoEncryptionOptions(t testing.TB, opts bson.Raw) *options.AutoEncryptionOptionsBuilder {
+func createAutoEncryptionOptions(t testing.TB, opts bson.Raw) *options.AutoEncryptionOptions {
 	t.Helper()
 
 	aeo := options.AutoEncryption()

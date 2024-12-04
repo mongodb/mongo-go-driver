@@ -31,18 +31,4 @@ func BenchmarkNewOptions(b *testing.B) {
 			_, _ = NewOptions[options.FindOptions](opts...)
 		}
 	})
-
-	b.Run("reflect.ValuOf is never called", func(b *testing.B) {
-		opts := make([]options.Lister[options.LoggerOptions], b.N)
-
-		for i := 0; i < b.N; i++ {
-			var lo *options.LoggerOptionsBuilder
-			opts[i] = lo
-		}
-
-		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
-			_, _ = NewOptions[options.LoggerOptions](opts...)
-		}
-	})
 }
