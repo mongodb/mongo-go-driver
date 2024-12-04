@@ -17,8 +17,6 @@ import (
 func TestBatches(t *testing.T) {
 	t.Parallel()
 
-	t.Parallel()
-
 	batches := &modelBatches{
 		models: make([]clientWriteModel, 2),
 	}

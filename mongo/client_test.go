@@ -528,11 +528,19 @@ func TestClient(t *testing.T) {
 		}
 		cs := integtest.ConnString(t)
 		clientOpts := options.Client().ApplyURI(cs.Original).SetMonitor(cmdMonitor)
+		integtest.AddTestServerAPIVersion(clientOpts)
 		client, err := Connect(clientOpts)
 		assert.Nil(t, err, "Connect error: %v", err)
 		defer func() {
 			_ = client.Disconnect(bgCtx)
 		}()
+
+		serverVersion, err := getServerVersion(client.Database("admin"))
+		require.NoError(t, err)
+		if compareVersions(serverVersion, "8.0.0") < 1 {
+			t.Skip("skipping server version < 8.0")
+		}
+
 		document := bson.D{{"largeField", strings.Repeat("a", 16777216-100)}} // Adjust size to account for BSON overhead
 		models := &ClientWriteModels{}
 		models = models.AppendInsertOne("db", "x", NewClientInsertOneModel().SetDocument(document))
