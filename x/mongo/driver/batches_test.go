@@ -33,69 +33,41 @@ func TestAdvancing(t *testing.T) {
 }
 
 func TestAppendBatchSequence(t *testing.T) {
-	t.Run("Append 0", func(t *testing.T) {
-		batches := newTestBatches(t)
+	batches := newTestBatches(t)
 
-		got := []byte{42}
-		var n int
-		var err error
-		n, got, err = batches.AppendBatchSequence(got, 2, len(batches.Documents[0])-1, 0)
-		assert.NoError(t, err)
-		assert.Equal(t, 0, n)
+	got := []byte{42}
+	var n int
+	var err error
+	n, got, err = batches.AppendBatchSequence(got, 2, len(batches.Documents[0]))
+	assert.NoError(t, err)
+	assert.Equal(t, 1, n)
 
-		assert.Equal(t, []byte{42}, got)
-	})
-	t.Run("Append 1", func(t *testing.T) {
-		batches := newTestBatches(t)
-
-		got := []byte{42}
-		var n int
-		var err error
-		n, got, err = batches.AppendBatchSequence(got, 2, len(batches.Documents[0]), 0)
-		assert.NoError(t, err)
-		assert.Equal(t, 1, n)
-
-		var idx int32
-		dst := []byte{42}
-		dst = wiremessage.AppendMsgSectionType(dst, wiremessage.DocumentSequence)
-		idx, dst = bsoncore.ReserveLength(dst)
-		dst = append(dst, "foobar"...)
-		dst = append(dst, 0x00)
-		dst = append(dst, "Lorem ipsum dolor sit amet"...)
-		dst = bsoncore.UpdateLength(dst, idx, int32(len(dst[idx:])))
-		assert.Equal(t, dst, got)
-	})
+	var idx int32
+	dst := []byte{42}
+	dst = wiremessage.AppendMsgSectionType(dst, wiremessage.DocumentSequence)
+	idx, dst = bsoncore.ReserveLength(dst)
+	dst = append(dst, "foobar"...)
+	dst = append(dst, 0x00)
+	dst = append(dst, "Lorem ipsum dolor sit amet"...)
+	dst = bsoncore.UpdateLength(dst, idx, int32(len(dst[idx:])))
+	assert.Equal(t, dst, got)
 }
 
 func TestAppendBatchArray(t *testing.T) {
-	t.Run("Append 0", func(t *testing.T) {
-		batches := newTestBatches(t)
+	batches := newTestBatches(t)
 
-		got := []byte{42}
-		var n int
-		var err error
-		n, got, err = batches.AppendBatchArray(got, 2, len(batches.Documents[0])-1, 0)
-		assert.NoError(t, err)
-		assert.Equal(t, 0, n)
+	got := []byte{42}
+	var n int
+	var err error
+	n, got, err = batches.AppendBatchArray(got, 2, len(batches.Documents[0]))
+	assert.NoError(t, err)
+	assert.Equal(t, 1, n)
 
-		assert.Equal(t, []byte{42}, got)
-	})
-	t.Run("Append 1", func(t *testing.T) {
-		batches := newTestBatches(t)
-
-		got := []byte{42}
-		var n int
-		var err error
-		n, got, err = batches.AppendBatchArray(got, 2, len(batches.Documents[0]), 0)
-		assert.NoError(t, err)
-		assert.Equal(t, 1, n)
-
-		var idx int32
-		dst := []byte{42}
-		idx, dst = bsoncore.AppendArrayElementStart(dst, "foobar")
-		dst = bsoncore.AppendDocumentElement(dst, "0", []byte("Lorem ipsum dolor sit amet"))
-		dst, err = bsoncore.AppendArrayEnd(dst, idx)
-		assert.NoError(t, err)
-		assert.Equal(t, dst, got)
-	})
+	var idx int32
+	dst := []byte{42}
+	idx, dst = bsoncore.AppendArrayElementStart(dst, "foobar")
+	dst = bsoncore.AppendDocumentElement(dst, "0", []byte("Lorem ipsum dolor sit amet"))
+	dst, err = bsoncore.AppendArrayEnd(dst, idx)
+	assert.NoError(t, err)
+	assert.Equal(t, dst, got)
 }

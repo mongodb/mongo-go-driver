@@ -191,6 +191,8 @@ type modelBatches struct {
 	writeErrors        map[int]WriteError
 }
 
+var _ driver.OperationBatches = &modelBatches{}
+
 func (mb *modelBatches) IsOrdered() *bool {
 	return &mb.ordered
 }
@@ -209,7 +211,7 @@ func (mb *modelBatches) Size() int {
 	return len(mb.models) - mb.offset
 }
 
-func (mb *modelBatches) AppendBatchSequence(dst []byte, maxCount, maxDocSize, totalSize int) (int, []byte, error) {
+func (mb *modelBatches) AppendBatchSequence(dst []byte, maxCount, totalSize int) (int, []byte, error) {
 	fn := functionSet{
 		appendStart: func(dst []byte, identifier string) (int32, []byte) {
 			var idx int32
@@ -228,10 +230,10 @@ func (mb *modelBatches) AppendBatchSequence(dst []byte, maxCount, maxDocSize, to
 			return dst
 		},
 	}
-	return mb.appendBatches(fn, dst, maxCount, maxDocSize, totalSize)
+	return mb.appendBatches(fn, dst, maxCount, totalSize)
 }
 
-func (mb *modelBatches) AppendBatchArray(dst []byte, maxCount, maxDocSize, totalSize int) (int, []byte, error) {
+func (mb *modelBatches) AppendBatchArray(dst []byte, maxCount, totalSize int) (int, []byte, error) {
 	fn := functionSet{
 		appendStart:    bsoncore.AppendArrayElementStart,
 		appendDocument: bsoncore.AppendDocumentElement,
@@ -240,7 +242,7 @@ func (mb *modelBatches) AppendBatchArray(dst []byte, maxCount, maxDocSize, total
 			return dst
 		},
 	}
-	return mb.appendBatches(fn, dst, maxCount, maxDocSize, totalSize)
+	return mb.appendBatches(fn, dst, maxCount, totalSize)
 }
 
 type functionSet struct {
@@ -249,7 +251,7 @@ type functionSet struct {
 	updateLength   func([]byte, int32, int32) []byte
 }
 
-func (mb *modelBatches) appendBatches(fn functionSet, dst []byte, maxCount, maxDocSize, totalSize int) (int, []byte, error) {
+func (mb *modelBatches) appendBatches(fn functionSet, dst []byte, maxCount, totalSize int) (int, []byte, error) {
 	if mb.Size() == 0 {
 		return 0, dst, io.EOF
 	}
@@ -269,8 +271,6 @@ func (mb *modelBatches) appendBatches(fn functionSet, dst []byte, maxCount, maxD
 	}
 
 	canRetry := true
-	checkSize := true
-
 	l := len(dst)
 
 	opsIdx, dst := fn.appendStart(dst, "ops")
@@ -291,13 +291,11 @@ func (mb *modelBatches) appendBatches(fn functionSet, dst []byte, maxCount, maxD
 		var err error
 		switch model := mb.models[i].model.(type) {
 		case *ClientInsertOneModel:
-			checkSize = false
 			mb.cursorHandlers = append(mb.cursorHandlers, mb.appendInsertResult)
 			var id interface{}
 			id, doc, err = (&clientInsertDoc{
 				namespace: nsIdx,
 				document:  model.Document,
-				sizeLimit: maxDocSize,
 			}).marshal(mb.client.bsonOpts, mb.client.registry)
 			if err != nil {
 				break
@@ -331,7 +329,6 @@ func (mb *modelBatches) appendBatches(fn functionSet, dst []byte, maxCount, maxD
 				checkDollarKey: true,
 			}).marshal(mb.client.bsonOpts, mb.client.registry)
 		case *ClientReplaceOneModel:
-			checkSize = false
 			mb.cursorHandlers = append(mb.cursorHandlers, mb.appendUpdateResult)
 			doc, err = (&clientUpdateDoc{
 				namespace:      nsIdx,
@@ -343,7 +340,6 @@ func (mb *modelBatches) appendBatches(fn functionSet, dst []byte, maxCount, maxD
 				upsert:         model.Upsert,
 				multi:          false,
 				checkDollarKey: false,
-				sizeLimit:      maxDocSize,
 			}).marshal(mb.client.bsonOpts, mb.client.registry)
 		case *ClientDeleteOneModel:
 			mb.cursorHandlers = append(mb.cursorHandlers, mb.appendDeleteResult)
@@ -371,9 +367,6 @@ func (mb *modelBatches) appendBatches(fn functionSet, dst []byte, maxCount, maxD
 			return 0, nil, err
 		}
 		length := len(doc)
-		if maxDocSize > 0 && length > maxDocSize+16*1024 {
-			return 0, nil, driver.ErrDocumentTooLarge
-		}
 		if !exists {
 			length += len(ns)
 		}
@@ -398,9 +391,6 @@ func (mb *modelBatches) appendBatches(fn functionSet, dst []byte, maxCount, maxD
 	dst = fn.updateLength(dst, opsIdx, int32(len(dst[opsIdx:])))
 	nsDst = fn.updateLength(nsDst, nsIdx, int32(len(nsDst[nsIdx:])))
 	dst = append(dst, nsDst...)
-	if checkSize && maxDocSize > 0 && len(dst)-l > maxDocSize+16*1024 {
-		return 0, nil, driver.ErrDocumentTooLarge
-	}
 
 	mb.retryMode = driver.RetryNone
 	if mb.client.retryWrites && canRetry {
@@ -584,8 +574,6 @@ func (mb *modelBatches) appendUpdateResult(cur *cursorInfo, raw bson.Raw) bool {
 type clientInsertDoc struct {
 	namespace int
 	document  interface{}
-
-	sizeLimit int
 }
 
 func (d *clientInsertDoc) marshal(bsonOpts *options.BSONOptions, registry *bson.Registry) (interface{}, bsoncore.Document, error) {
@@ -595,9 +583,6 @@ func (d *clientInsertDoc) marshal(bsonOpts *options.BSONOptions, registry *bson.
 	f, err := marshal(d.document, bsonOpts, registry)
 	if err != nil {
 		return nil, nil, err
-	}
-	if d.sizeLimit > 0 && len(f) > d.sizeLimit {
-		return nil, nil, driver.ErrDocumentTooLarge
 	}
 	var id interface{}
 	f, id, err = ensureID(f, bson.NilObjectID, bsonOpts, registry)
@@ -619,8 +604,6 @@ type clientUpdateDoc struct {
 	upsert         *bool
 	multi          bool
 	checkDollarKey bool
-
-	sizeLimit int
 }
 
 func (d *clientUpdateDoc) marshal(bsonOpts *options.BSONOptions, registry *bson.Registry) (bsoncore.Document, error) {
@@ -640,9 +623,6 @@ func (d *clientUpdateDoc) marshal(bsonOpts *options.BSONOptions, registry *bson.
 	u, err := marshalUpdateValue(d.update, bsonOpts, registry, d.checkDollarKey)
 	if err != nil {
 		return nil, err
-	}
-	if d.sizeLimit > 0 && len(u.Data) > d.sizeLimit {
-		return nil, driver.ErrDocumentTooLarge
 	}
 	doc = bsoncore.AppendValueElement(doc, "updateMods", u)
 	doc = bsoncore.AppendBooleanElement(doc, "multi", d.multi)

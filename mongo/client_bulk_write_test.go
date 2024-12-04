@@ -17,22 +17,23 @@ import (
 func TestBatches(t *testing.T) {
 	t.Parallel()
 
-	t.Run("test Addvancing", func(t *testing.T) {
-		t.Parallel()
+	t.Parallel()
 
-		batches := &modelBatches{
-			models: make([]clientWriteModel, 2),
-		}
-		batches.AdvanceBatches(3)
-		size := batches.Size()
-		assert.Equal(t, 0, size, "expected: %d, got: %d", 1, size)
-	})
-	t.Run("test appendBatches", func(t *testing.T) {
-		t.Parallel()
+	batches := &modelBatches{
+		models: make([]clientWriteModel, 2),
+	}
+	batches.AdvanceBatches(3)
+	size := batches.Size()
+	assert.Equal(t, 0, size, "expected: %d, got: %d", 1, size)
+}
 
+func TestAppendBatchSequence(t *testing.T) {
+	t.Parallel()
+
+	newBatches := func(t *testing.T) *modelBatches {
 		client, err := newClient()
 		require.NoError(t, err, "NewClient error: %v", err)
-		batches := &modelBatches{
+		return &modelBatches{
 			client: client,
 			models: []clientWriteModel{
 				{"ns0", nil},
@@ -52,12 +53,15 @@ func TestBatches(t *testing.T) {
 				Acknowledged: true,
 			},
 		}
-		var n int
+	}
+	t.Run("test appendBatches", func(t *testing.T) {
+		t.Parallel()
+
+		batches := newBatches(t)
 		const limitBigEnough = 16_000
-		// test the "maxCount" that truncates the output
-		n, _, err = batches.AppendBatchSequence(nil, 4, limitBigEnough, limitBigEnough)
+		n, _, err := batches.AppendBatchSequence(nil, 4, limitBigEnough)
 		require.NoError(t, err, "AppendBatchSequence error: %v", err)
-		assert.Equal(t, 3, n, "expected %d appendings, got: %d", 3, n)
+		require.Equal(t, 3, n, "expected %d appendings, got: %d", 3, n)
 
 		_ = batches.cursorHandlers[0](&cursorInfo{Ok: true, Idx: 0}, nil)
 		_ = batches.cursorHandlers[1](&cursorInfo{Ok: true, Idx: 1}, nil)
@@ -71,6 +75,50 @@ func TestBatches(t *testing.T) {
 		assert.True(t, ok, "expected an insert results")
 
 		_, ok = batches.result.DeleteResults[3]
+		assert.True(t, ok, "expected an delete results")
+	})
+	t.Run("test appendBatches with maxCount", func(t *testing.T) {
+		t.Parallel()
+
+		batches := newBatches(t)
+		const limitBigEnough = 16_000
+		n, _, err := batches.AppendBatchSequence(nil, 2, limitBigEnough)
+		require.NoError(t, err, "AppendBatchSequence error: %v", err)
+		require.Equal(t, 2, n, "expected %d appendings, got: %d", 2, n)
+
+		_ = batches.cursorHandlers[0](&cursorInfo{Ok: true, Idx: 0}, nil)
+		_ = batches.cursorHandlers[1](&cursorInfo{Ok: true, Idx: 1}, nil)
+
+		ins, ok := batches.result.InsertResults[1]
 		assert.True(t, ok, "expected an insert results")
+		assert.NotNil(t, ins.InsertedID, "expected an ID")
+
+		_, ok = batches.result.UpdateResults[2]
+		assert.True(t, ok, "expected an insert results")
+
+		_, ok = batches.result.DeleteResults[3]
+		assert.False(t, ok, "expected an delete results")
+	})
+	t.Run("test appendBatches with totalSize", func(t *testing.T) {
+		t.Parallel()
+
+		batches := newBatches(t)
+		const limit = 1200 // > ( 166 first two batches + 1000 overhead )
+		n, _, err := batches.AppendBatchSequence(nil, 4, limit)
+		require.NoError(t, err, "AppendBatchSequence error: %v", err)
+		require.Equal(t, 2, n, "expected %d appendings, got: %d", 2, n)
+
+		_ = batches.cursorHandlers[0](&cursorInfo{Ok: true, Idx: 0}, nil)
+		_ = batches.cursorHandlers[1](&cursorInfo{Ok: true, Idx: 1}, nil)
+
+		ins, ok := batches.result.InsertResults[1]
+		assert.True(t, ok, "expected an insert results")
+		assert.NotNil(t, ins.InsertedID, "expected an ID")
+
+		_, ok = batches.result.UpdateResults[2]
+		assert.True(t, ok, "expected an insert results")
+
+		_, ok = batches.result.DeleteResults[3]
+		assert.False(t, ok, "expected an delete results")
 	})
 }

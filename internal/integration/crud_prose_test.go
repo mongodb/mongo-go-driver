@@ -745,32 +745,6 @@ func TestClientBulkWrite(t *testing.T) {
 		assert.Equal(mt, 1, killCursorsCalled, "expected %d killCursors call, got: %d", 1, killCursorsCalled)
 	})
 
-	mt.Run("bulkWrite returns error for unacknowledged too-large insert", func(mt *mtest.T) {
-		mt.ResetClient(options.Client())
-		var hello struct {
-			MaxBsonObjectSize int
-		}
-		err := mt.DB.RunCommand(context.Background(), bson.D{{"hello", 1}}).Decode(&hello)
-		require.NoError(mt, err, "Hello error: %v", err)
-		mt.Run("insert", func(mt *mtest.T) {
-			models := (&mongo.ClientWriteModels{}).
-				AppendInsertOne("db", "coll", &mongo.ClientInsertOneModel{
-					Document: bson.D{{"a", strings.Repeat("b", hello.MaxBsonObjectSize)}},
-				})
-			_, err := mt.Client.BulkWrite(context.Background(), models, options.ClientBulkWrite().SetOrdered(false).SetWriteConcern(writeconcern.Unacknowledged()))
-			require.EqualError(mt, err, driver.ErrDocumentTooLarge.Error())
-		})
-		mt.Run("replace", func(mt *mtest.T) {
-			models := (&mongo.ClientWriteModels{}).
-				AppendReplaceOne("db", "coll", &mongo.ClientReplaceOneModel{
-					Filter:      bson.D{},
-					Replacement: bson.D{{"a", strings.Repeat("b", hello.MaxBsonObjectSize)}},
-				})
-			_, err := mt.Client.BulkWrite(context.Background(), models, options.ClientBulkWrite().SetOrdered(false).SetWriteConcern(writeconcern.Unacknowledged()))
-			require.EqualError(mt, err, driver.ErrDocumentTooLarge.Error())
-		})
-	})
-
 	mt.Run("bulkWrite batch splits when the addition of a new namespace exceeds the maximum message size", func(mt *mtest.T) {
 		type cmd struct {
 			Ops    []bson.D

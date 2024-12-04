@@ -167,7 +167,7 @@ func TestCollection(t *testing.T) {
 		mt.Run("large document batches", func(mt *mtest.T) {
 			mt.Parallel()
 
-			docs := []interface{}{create16MBDocument(mt), create16MBDocument(mt)}
+			docs := []interface{}{create16MBDocument(mt), create16MBDocument(mt), create16MBDocument(mt)}
 			_, err := mt.Coll.InsertMany(context.Background(), docs)
 			assert.Nil(mt, err, "InsertMany error: %v", err)
 			evt := mt.GetStartedEvent()

@@ -11,6 +11,7 @@ import (
 	"errors"
 	"math"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -515,5 +516,31 @@ func TestClient(t *testing.T) {
 
 		errmsg := `invalid value "-1s" for "Timeout": value must be positive`
 		assert.Equal(t, errmsg, err.Error(), "expected error %v, got %v", errmsg, err.Error())
+	})
+	t.Run("bulkWrite with large messages", func(t *testing.T) {
+		var bulkWrites int
+		cmdMonitor := &event.CommandMonitor{
+			Started: func(_ context.Context, evt *event.CommandStartedEvent) {
+				if evt.CommandName == "bulkWrite" {
+					bulkWrites++
+				}
+			},
+		}
+		cs := integtest.ConnString(t)
+		clientOpts := options.Client().ApplyURI(cs.Original).SetMonitor(cmdMonitor)
+		client, err := Connect(clientOpts)
+		assert.Nil(t, err, "Connect error: %v", err)
+		defer func() {
+			_ = client.Disconnect(bgCtx)
+		}()
+		document := bson.D{{"largeField", strings.Repeat("a", 16777216-100)}} // Adjust size to account for BSON overhead
+		models := &ClientWriteModels{}
+		models = models.AppendInsertOne("db", "x", NewClientInsertOneModel().SetDocument(document))
+		models = models.AppendInsertOne("db", "x", NewClientInsertOneModel().SetDocument(document))
+		models = models.AppendInsertOne("db", "x", NewClientInsertOneModel().SetDocument(document))
+
+		_, err = client.BulkWrite(context.Background(), models)
+		require.NoError(t, err)
+		assert.Equal(t, 2, bulkWrites, "expected %d bulkWrites, got %d", 2, bulkWrites)
 	})
 }

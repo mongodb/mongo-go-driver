@@ -24,10 +24,12 @@ type Batches struct {
 	offset int
 }
 
+var _ OperationBatches = &Batches{}
+
 // AppendBatchSequence appends dst with document sequence of batches as long as the limits of max count, max
 // document size, or total size allows. It returns the number of batches appended, the new appended slice, and
 // any error raised. It returns the origenal input slice if nothing can be appends within the limits.
-func (b *Batches) AppendBatchSequence(dst []byte, maxCount, maxDocSize, _ int) (int, []byte, error) {
+func (b *Batches) AppendBatchSequence(dst []byte, maxCount, totalSize int) (int, []byte, error) {
 	if b.Size() == 0 {
 		return 0, dst, io.EOF
 	}
@@ -44,11 +46,8 @@ func (b *Batches) AppendBatchSequence(dst []byte, maxCount, maxDocSize, _ int) (
 			break
 		}
 		doc := b.Documents[i]
-		if len(doc) > maxDocSize {
-			break
-		}
 		size += len(doc)
-		if size > maxDocSize {
+		if size > totalSize {
 			break
 		}
 		dst = append(dst, doc...)
@@ -64,7 +63,7 @@ func (b *Batches) AppendBatchSequence(dst []byte, maxCount, maxDocSize, _ int) (
 // AppendBatchArray appends dst with array of batches as long as the limits of max count, max document size, or
 // total size allows. It returns the number of batches appended, the new appended slice, and any error raised. It
 // returns the origenal input slice if nothing can be appends within the limits.
-func (b *Batches) AppendBatchArray(dst []byte, maxCount, maxDocSize, _ int) (int, []byte, error) {
+func (b *Batches) AppendBatchArray(dst []byte, maxCount, totalSize int) (int, []byte, error) {
 	if b.Size() == 0 {
 		return 0, dst, io.EOF
 	}
@@ -77,11 +76,8 @@ func (b *Batches) AppendBatchArray(dst []byte, maxCount, maxDocSize, _ int) (int
 			break
 		}
 		doc := b.Documents[i]
-		if len(doc) > maxDocSize {
-			break
-		}
 		size += len(doc)
-		if size > maxDocSize {
+		if size > totalSize {
 			break
 		}
 		dst = bsoncore.AppendDocumentElement(dst, strconv.Itoa(n), doc)

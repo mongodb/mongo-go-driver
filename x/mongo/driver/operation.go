@@ -184,6 +184,16 @@ func redactFinishedInformationResponse(info finishedInformation) bson.Raw {
 	return bson.Raw{}
 }
 
+// OperationBatches contains the documents that are split when executing a write command that potentially
+// has more documents than can fit in a single command.
+type OperationBatches interface {
+	AppendBatchSequence(dst []byte, maxCount int, totalSize int) (int, []byte, error)
+	AppendBatchArray(dst []byte, maxCount int, totalSize int) (int, []byte, error)
+	IsOrdered() *bool
+	AdvanceBatches(n int)
+	Size() int
+}
+
 // Operation is used to execute an operation. It contains all of the common code required to
 // select a server, transform an operation into a command, write the command to a connection from
 // the selected server, read a response from that connection, process the response, and potentially
@@ -269,15 +279,8 @@ type Operation struct {
 
 	// Batches contains the documents that are split when executing a write command that potentially
 	// has more documents than can fit in a single command. This should only be specified for
-	// commands that are batch compatible. For more information, please refer to the definition of
-	// Batches.
-	Batches interface {
-		AppendBatchSequence(dst []byte, maxCount int, maxDocSize int, totalSize int) (int, []byte, error)
-		AppendBatchArray(dst []byte, maxCount int, maxDocSize int, totalSize int) (int, []byte, error)
-		IsOrdered() *bool
-		AdvanceBatches(n int)
-		Size() int
-	}
+	// commands that are batch compatible.
+	Batches OperationBatches
 
 	// Legacy sets the legacy type for this operation. There are only 3 types that require legacy
 	// support: find, getMore, and killCursors. For more information about LegacyOperationKind,
@@ -1371,7 +1374,7 @@ func (op Operation) createWireMessage(
 			if err == nil && op.Batches != nil {
 				batchOffset = len(dst)
 				info.processedBatches, dst, err = op.Batches.AppendBatchSequence(dst,
-					int(desc.MaxBatchCount), int(desc.MaxDocumentSize), int(desc.MaxDocumentSize),
+					int(desc.MaxBatchCount), int(desc.MaxMessageSize),
 				)
 				if err != nil {
 					break
@@ -1383,12 +1386,8 @@ func (op Operation) createWireMessage(
 		default:
 			var batches []byte
 			if op.Batches != nil {
-				maxDocSize := -1
-				if unacknowledged {
-					maxDocSize = int(desc.MaxDocumentSize)
-				}
 				info.processedBatches, batches, err = op.Batches.AppendBatchSequence(batches,
-					int(desc.MaxBatchCount), maxDocSize, int(desc.MaxMessageSize),
+					int(desc.MaxBatchCount), int(desc.MaxMessageSize),
 				)
 				if err != nil {
 					break
@@ -1443,14 +1442,13 @@ func (op Operation) addEncryptCommandFields(ctx context.Context, dst []byte, des
 	var n int
 	if op.Batches != nil {
 		if maxBatchCount := int(desc.MaxBatchCount); maxBatchCount > 1 {
-			n, cmdDst, err = op.Batches.AppendBatchArray(cmdDst, maxBatchCount, cryptMaxBsonObjectSize, cryptMaxBsonObjectSize)
+			n, cmdDst, err = op.Batches.AppendBatchArray(cmdDst, maxBatchCount, cryptMaxBsonObjectSize)
 			if err != nil {
 				return 0, nil, err
 			}
 		}
 		if n == 0 {
-			maxDocumentSize := int(desc.MaxDocumentSize)
-			n, cmdDst, err = op.Batches.AppendBatchArray(cmdDst, 1, maxDocumentSize, maxDocumentSize)
+			n, cmdDst, err = op.Batches.AppendBatchArray(cmdDst, 1, int(desc.MaxMessageSize))
 			if err != nil {
 				return 0, nil, err
 			}
@@ -1483,8 +1481,7 @@ func (op Operation) addLegacyCommandFields(dst []byte, desc description.Selected
 		return 0, dst, nil
 	}
 	var n int
-	maxDocumentSize := int(desc.MaxDocumentSize)
-	n, dst, err = op.Batches.AppendBatchArray(dst, int(desc.MaxBatchCount), maxDocumentSize, maxDocumentSize)
+	n, dst, err = op.Batches.AppendBatchArray(dst, int(desc.MaxBatchCount), int(desc.MaxMessageSize))
 	if err != nil {
 		return 0, nil, err
 	}
