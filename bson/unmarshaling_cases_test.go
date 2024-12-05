@@ -176,7 +176,7 @@ func unmarshalingTestCases() []unmarshalingTestCase {
 			data:  docToBytes(valNonPtrStruct),
 		},
 		{
-			name:  "meep",
+			name:  "do not initialize null-literal data for custom type and unmarshaler",
 			sType: reflect.TypeOf(unmarshalerPtrStruct{}),
 			want:  &unmarshalerPtrStruct{},
 			data:  docWithNullValueBytes("I"),
