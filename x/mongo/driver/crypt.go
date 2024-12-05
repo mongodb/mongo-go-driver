@@ -398,10 +398,7 @@ func (c *crypt) decryptKey(kmsCtx *mongocrypt.KmsContext) error {
 		res := make([]byte, bytesNeeded)
 		bytesRead, err := conn.Read(res)
 		if err != nil {
-			if kmsCtx.Fail() {
-				err = nil
-			}
-			return err
+			return kmsCtx.RequestError()
 		}
 
 		if err = kmsCtx.FeedResponse(res[:bytesRead]); err != nil {

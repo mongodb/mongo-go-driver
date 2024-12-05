@@ -38,7 +38,7 @@ func (kc *KmsContext) FeedResponse([]byte) error {
 	panic(cseNotSupportedMsg)
 }
 
-// Fail returns a boolean indicating whether the failed request may be retried.
-func (kc *KmsContext) Fail() bool {
+// RequestError returns the source of the network error for KMS requests.
+func (kc *KmsContext) RequestError() error {
 	panic(cseNotSupportedMsg)
 }

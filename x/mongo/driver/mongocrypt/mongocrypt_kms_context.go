@@ -78,7 +78,10 @@ func (kc *KmsContext) createErrorFromStatus() error {
 	return errorFromStatus(status)
 }
 
-// Fail returns a boolean indicating whether the failed request may be retried.
-func (kc *KmsContext) Fail() bool {
-	return bool(C.mongocrypt_kms_ctx_fail(kc.wrapped))
+// RequestError returns the source of the network error for KMS requests.
+func (kc *KmsContext) RequestError() error {
+	if bool(C.mongocrypt_kms_ctx_fail(kc.wrapped)) {
+		return nil
+	}
+	return kc.createErrorFromStatus()
 }

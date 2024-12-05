@@ -3111,7 +3111,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 				ceo := options.ClientEncryption().
 					SetKeyVaultNamespace(kvNamespace).
-					SetKmsProviders(fullKmsProvidersMap).
+					SetKmsProviders(kmsProviders).
 					SetTLSConfig(map[string]*tls.Config{dataKey.provider: tlsCfg})
 				clientEncryption, err := mongo.NewClientEncryption(keyVaultClient, ceo)
 				require.NoError(mt, err, "error on NewClientEncryption: %v", err)
@@ -3121,8 +3121,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 				dkOpts := options.DataKey().SetMasterKey(dataKey.masterKey)
 				_, err = clientEncryption.CreateDataKey(context.Background(), dataKey.provider, dkOpts)
-				require.Error(mt, err)
-				mt.Logf("CreateDataKey error: %v", err)
+				require.ErrorContains(mt, err, "KMS request failed after 3 retries due to a network error")
 			})
 		}
 	})
