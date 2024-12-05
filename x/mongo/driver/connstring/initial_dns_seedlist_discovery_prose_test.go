@@ -7,6 +7,7 @@
 package connstring
 
 import (
+	"fmt"
 	"net"
 	"testing"
 
@@ -78,9 +79,10 @@ func TestInitialDNSSeedlistDiscoveryProse(t *testing.T) {
 		cases := []struct {
 			record string
 			uri    string
+			labels int
 		}{
-			{"localhost", "mongodb+srv://localhost"},
-			{"mongo.local", "mongodb+srv://mongo.local"},
+			{"localhost", "mongodb+srv://localhost", 2},
+			{"mongo.local", "mongodb+srv://mongo.local", 3},
 		}
 		for _, c := range cases {
 			c := c
@@ -88,7 +90,7 @@ func TestInitialDNSSeedlistDiscoveryProse(t *testing.T) {
 				t.Parallel()
 
 				_, err := newTestParser(c.record).parse(c.uri)
-				assert.ErrorContains(t, err, "DNS name must contain at least")
+				assert.ErrorContains(t, err, fmt.Sprintf("DNS name must contain at least %d labels", c.labels))
 			})
 		}
 	})
