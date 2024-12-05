@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo/description"
 )
 
@@ -28,7 +29,7 @@ func TestTopologyErrors(t *testing.T) {
 	t.Run("errors are wrapped", func(t *testing.T) {
 		t.Run("server selection error", func(t *testing.T) {
 			topo, err := New(nil)
-			noerr(t, err)
+			require.NoError(t, err)
 
 			atomic.StoreInt64(&topo.state, topologyConnected)
 			desc := description.Topology{

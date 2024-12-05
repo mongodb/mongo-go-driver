@@ -186,24 +186,29 @@ functions:
         script: |
           ${PREPARE_SHELL}
           find $MONGO_ORCHESTRATION_HOME -name \*.log | xargs tar czf mongodb-logs.tar.gz
+    - command: ec2.assume_role
+      params:
+        role_arn: ${assume_role_arn}
     - command: s3.put
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        aws_key: ${AWS_ACCESS_KEY_ID}
+        aws_secret: ${AWS_SECRET_ACCESS_KEY}
+        aws_session_token: ${AWS_SESSION_TOKEN}
         local_file: mongodb-logs.tar.gz
-        remote_file: ${UPLOAD_BUCKET}/${build_variant}/${revision}/${version_id}/${build_id}/logs/${task_id}-${execution}-mongodb-logs.tar.gz
-        bucket: mciuploads
+        remote_file: ${build_variant}/${revision}/${version_id}/${build_id}/logs/${task_id}-${execution}-mongodb-logs.tar.gz
+        bucket: ${aws_bucket}
         permissions: public-read
         content_type: ${content_type|application/x-gzip}
         display_name: "mongodb-logs.tar.gz"
     - command: s3.put
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        aws_key: ${AWS_ACCESS_KEY_ID}
+        aws_secret: ${AWS_SECRET_ACCESS_KEY}
+        aws_session_token: ${AWS_SESSION_TOKEN}
         optional: true
         local_file: ${PROJECT_DIRECTORY}/fuzz.tgz
-        remote_file: ${UPLOAD_BUCKET}/${build_variant}/${revision}/${version_id}/${build_id}/${task_id}-${execution}-fuzz.tgz
-        bucket: mciuploads
+        remote_file: ${build_variant}/${revision}/${version_id}/${build_id}/${task_id}-${execution}-fuzz.tgz
+        bucket: ${aws_bucket}
         permissions: public-read
         content_type: application/x-gzip
         display_name: "fuzz.tgz"
@@ -216,12 +221,13 @@ functions:
           find . -name \*.suite | xargs tar czf test_suite.tgz
     - command: s3.put
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        aws_key: ${AWS_ACCESS_KEY_ID}
+        aws_secret: ${AWS_SECRET_ACCESS_KEY}
+        aws_session_token: ${AWS_SESSION_TOKEN}
         local_file: src/go.mongodb.org/mongo-driver/test_suite.tgz
         optional: true
-        remote_file: ${UPLOAD_BUCKET}/${build_variant}/${revision}/${version_id}/${build_id}/logs/${task_id}-${execution}-test_suite.tgz
-        bucket: mciuploads
+        remote_file: ${build_variant}/${revision}/${version_id}/${build_id}/logs/${task_id}-${execution}-test_suite.tgz
+        bucket: ${aws_bucket}
         permissions: public-read
         content_type: ${content_type|text/plain}
         display_name: "test_suite.tgz"
@@ -608,6 +614,17 @@ functions:
           ${PREPARE_SHELL}
           bash etc/run_docker.sh
           TOPOLOGY=sharded_cluster bash etc/run_docker.sh test-short
+
+  run-goleak-test:
+    - command: shell.exec
+      type: test
+      params:
+        shell: "bash"
+        working_dir: src/go.mongodb.org/mongo-driver
+        include_expansions_in_env: ["MONGODB_URI"]
+        script: |
+          ${PREPARE_SHELL}
+          bash etc/run-goleak-test.sh
 
   run-valid-ocsp-server:
     - command: shell.exec
@@ -1413,6 +1430,26 @@ tasks:
     commands:
       - func: bootstrap-mongo-orchestration
       - func: run-docker-test
+
+  - name: test-goroutine-leaks-replicaset
+    tags: ["goleak"]
+    commands:
+      - func: bootstrap-mongo-orchestration
+        vars:
+          TOPOLOGY: "replica_set"
+          AUTH: "noauth"
+          SSL: "nossl"
+      - func: run-goleak-test
+
+  - name: test-goroutine-leaks-sharded
+    tags: ["goleak"]
+    commands:
+      - func: bootstrap-mongo-orchestration
+        vars:
+          TOPOLOGY: "sharded_cluster"
+          AUTH: "noauth"
+          SSL: "nossl"
+      - func: run-goleak-test
 
   - name: test-load-balancer-noauth-nossl
     tags: ["load-balancer"]
@@ -2532,6 +2569,16 @@ buildvariants:
       GO_DIST: "/opt/golang/go1.22"
     tasks:
       - name: "test-docker-runner"
+
+  - name: goroutine-leaks-test
+    tags: ["pullrequest"]
+    display_name: "Goroutine Leaks Test"
+    run_on:
+      - ubuntu2204-large
+    expansions:
+      GO_DIST: "/opt/golang/go1.22"
+    tasks:
+      - name: ".goleak"
 
   - matrix_name: "tests-rhel-36-with-zlib-support"
     tags: ["pullrequest"]
