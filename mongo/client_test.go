@@ -18,7 +18,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/integtest"
-	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
@@ -31,7 +30,7 @@ import (
 
 var bgCtx = context.Background()
 
-func setupClient(opts ...options.Lister[options.ClientOptions]) *Client {
+func setupClient(opts ...*options.ClientOptions) *Client {
 	if len(opts) == 0 {
 		clientOpts := options.Client().ApplyURI("mongodb://localhost:27017")
 		integtest.AddTestServerAPIVersion(clientOpts)
@@ -128,7 +127,7 @@ func TestClient(t *testing.T) {
 	t.Run("localThreshold", func(t *testing.T) {
 		testCases := []struct {
 			name              string
-			opts              *options.ClientOptionsBuilder
+			opts              *options.ClientOptions
 			expectedThreshold time.Duration
 		}{
 			{"default", options.Client(), defaultLocalThreshold},
@@ -150,7 +149,7 @@ func TestClient(t *testing.T) {
 	t.Run("min pool size from Set*PoolSize()", func(t *testing.T) {
 		testCases := []struct {
 			name string
-			opts *options.ClientOptionsBuilder
+			opts *options.ClientOptions
 			err  error
 		}{
 			{
@@ -194,7 +193,7 @@ func TestClient(t *testing.T) {
 	t.Run("min pool size from ApplyURI()", func(t *testing.T) {
 		testCases := []struct {
 			name string
-			opts *options.ClientOptionsBuilder
+			opts *options.ClientOptions
 			err  error
 		}{
 			{
@@ -241,7 +240,7 @@ func TestClient(t *testing.T) {
 
 		testCases := []struct {
 			name          string
-			opts          *options.ClientOptionsBuilder
+			opts          *options.ClientOptions
 			expectErr     bool
 			expectedRetry bool
 		}{
@@ -269,7 +268,7 @@ func TestClient(t *testing.T) {
 
 		testCases := []struct {
 			name          string
-			opts          *options.ClientOptionsBuilder
+			opts          *options.ClientOptions
 			expectErr     bool
 			expectedRetry bool
 		}{
@@ -317,8 +316,7 @@ func TestClient(t *testing.T) {
 			uri := "mongodb://localhost:27017/foobar"
 			opts := options.Client().ApplyURI(uri)
 
-			args, _ := mongoutil.NewOptions[options.ClientOptions](opts)
-			got := args.GetURI()
+			got := opts.GetURI()
 
 			assert.Equal(t, uri, got, "expected GetURI to return %v, got %v", uri, got)
 		})
@@ -415,7 +413,7 @@ func TestClient(t *testing.T) {
 		}
 	})
 	t.Run("serverAPI version", func(t *testing.T) {
-		getServerAPIOptions := func() *options.ServerAPIOptionsBuilder {
+		getServerAPIOptions := func() *options.ServerAPIOptions {
 			return options.ServerAPI(options.ServerAPIVersion1).
 				SetStrict(false).SetDeprecationErrors(false)
 		}

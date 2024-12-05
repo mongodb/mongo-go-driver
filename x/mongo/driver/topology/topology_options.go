@@ -15,7 +15,6 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/logger"
-	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/auth"
@@ -44,36 +43,30 @@ type Config struct {
 	logger                 *logger.Logger
 }
 
-// ConvertToDriverAPIOptions converts a options.ServerAPIOptions instance to a driver.ServerAPIOptions.
-func ConvertToDriverAPIOptions(opts options.Lister[options.ServerAPIOptions]) *driver.ServerAPIOptions {
-	args, _ := mongoutil.NewOptions[options.ServerAPIOptions](opts)
-
-	driverOpts := driver.NewServerAPIOptions(string(args.ServerAPIVersion))
-	if args.Strict != nil {
-		driverOpts.SetStrict(*args.Strict)
+// ConvertToDriverAPIOptions converts a given ServerAPIOptions object from the
+// options package to a ServerAPIOptions object from the driver package.
+func ConvertToDriverAPIOptions(opts *options.ServerAPIOptions) *driver.ServerAPIOptions {
+	driverOpts := driver.NewServerAPIOptions(string(opts.ServerAPIVersion))
+	if opts.Strict != nil {
+		driverOpts.SetStrict(*opts.Strict)
 	}
-	if args.DeprecationErrors != nil {
-		driverOpts.SetDeprecationErrors(*args.DeprecationErrors)
+	if opts.DeprecationErrors != nil {
+		driverOpts.SetDeprecationErrors(*opts.DeprecationErrors)
 	}
 	return driverOpts
 }
 
-func newLogger(opts options.Lister[options.LoggerOptions]) (*logger.Logger, error) {
+func newLogger(opts *options.LoggerOptions) (*logger.Logger, error) {
 	if opts == nil {
 		opts = options.Logger()
 	}
 
-	args, err := mongoutil.NewOptions[options.LoggerOptions](opts)
-	if err != nil {
-		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
-	}
-
 	componentLevels := make(map[logger.Component]logger.Level)
-	for component, level := range args.ComponentLevels {
+	for component, level := range opts.ComponentLevels {
 		componentLevels[logger.Component(component)] = logger.Level(level)
 	}
 
-	log, err := logger.New(args.Sink, args.MaxDocumentLength, componentLevels)
+	log, err := logger.New(opts.Sink, opts.MaxDocumentLength, componentLevels)
 	if err != nil {
 		return nil, fmt.Errorf("error creating logger: %w", err)
 	}
@@ -128,21 +121,10 @@ func ConvertCreds(cred *options.Credential) *driver.Cred {
 	}
 }
 
-// NewConfig behaves like NewConfigFromOptions by extracting arguments from a
-// list of ClientOptions setters.
-func NewConfig(opts *options.ClientOptionsBuilder, clock *session.ClusterClock) (*Config, error) {
-	args, err := mongoutil.NewOptions[options.ClientOptions](opts)
-	if err != nil {
-		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
-	}
-
-	return NewConfigFromOptions(args, clock)
-}
-
-// NewConfigFromOptions will translate data from client options into a topology
-// config for building non-default deployments. Server and topology options are
-// not honored if a custom deployment is used.
-func NewConfigFromOptions(opts *options.ClientOptions, clock *session.ClusterClock) (*Config, error) {
+// NewConfig will translate data from client options into a topology config for
+// building non-default deployments. Server and topology options are not honored
+// if a custom deployment is used.
+func NewConfig(opts *options.ClientOptions, clock *session.ClusterClock) (*Config, error) {
 	var authenticator driver.Authenticator
 	var err error
 	if opts.Auth != nil {
@@ -163,20 +145,9 @@ func NewConfigFromOptions(opts *options.ClientOptions, clock *session.ClusterClo
 // options are not honored if a custom deployment is used. It uses a passed in
 // authenticator to authenticate the connection.
 func NewConfigFromOptionsWithAuthenticator(opts *options.ClientOptions, clock *session.ClusterClock, authenticator driver.Authenticator) (*Config, error) {
-
 	var serverAPI *driver.ServerAPIOptions
 
-	clientOptsBldr := options.ClientOptionsBuilder{
-		Opts: []func(*options.ClientOptions) error{
-			func(copts *options.ClientOptions) error {
-				*copts = *opts
-
-				return nil
-			},
-		},
-	}
-
-	if err := clientOptsBldr.Validate(); err != nil {
+	if err := opts.Validate(); err != nil {
 		return nil, err
 	}
 

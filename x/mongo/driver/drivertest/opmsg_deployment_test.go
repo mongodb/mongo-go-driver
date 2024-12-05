@@ -21,11 +21,8 @@ func TestOPMSGMockDeployment(t *testing.T) {
 	md := NewMockDeployment()
 
 	opts := options.Client()
-	opts.Opts = append(opts.Opts, func(co *options.ClientOptions) error {
-		co.Deployment = md
+	opts.Deployment = md
 
-		return nil
-	})
 	client, err := mongo.Connect(opts)
 
 	t.Run("NewMockDeployment connect to client", func(t *testing.T) {

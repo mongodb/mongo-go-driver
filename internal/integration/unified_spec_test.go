@@ -27,8 +27,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/failpoint"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/internal/integtest"
-	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
-	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/address"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -287,37 +285,23 @@ func runSpecTestCase(mt *mtest.T, test *testCase, testFile testFile) {
 		// Reset the client using the client options specified in the test.
 		testClientOpts := createClientOptions(mt, test.ClientOptions)
 
-		args, err := mongoutil.NewOptions[options.ClientOptions](testClientOpts)
-		require.NoError(mt, err, "failed to construct options from builder")
-
 		// If AutoEncryptionOptions is set and AutoEncryption isn't disabled (neither
 		// bypassAutoEncryption nor bypassQueryAnalysis are true), then add extra options to load
 		// the crypt_shared library.
-		if args.AutoEncryptionOptions != nil {
-			aeArgs, err := mongoutil.NewOptions[options.AutoEncryptionOptions](args.AutoEncryptionOptions)
-			require.NoError(mt, err, "failed to construct options from builder")
+		if testClientOpts.AutoEncryptionOptions != nil {
+			aeOpts := testClientOpts.AutoEncryptionOptions
 
-			bypassAutoEncryption := aeArgs.BypassAutoEncryption != nil && *aeArgs.BypassAutoEncryption
-			bypassQueryAnalysis := aeArgs.BypassQueryAnalysis != nil && *aeArgs.BypassQueryAnalysis
+			bypassAutoEncryption := aeOpts.BypassAutoEncryption != nil && *aeOpts.BypassAutoEncryption
+			bypassQueryAnalysis := aeOpts.BypassQueryAnalysis != nil && *aeOpts.BypassQueryAnalysis
 
 			if !bypassAutoEncryption && !bypassQueryAnalysis {
-				if aeArgs.ExtraOptions == nil {
-					aeArgs.ExtraOptions = make(map[string]interface{})
+				if aeOpts.ExtraOptions == nil {
+					aeOpts.ExtraOptions = make(map[string]interface{})
 				}
 
 				for k, v := range getCryptSharedLibExtraOptions() {
-					aeArgs.ExtraOptions[k] = v
+					aeOpts.ExtraOptions[k] = v
 				}
-			}
-
-			args.AutoEncryptionOptions = &options.AutoEncryptionOptionsBuilder{
-				Opts: []func(*options.AutoEncryptionOptions) error{
-					func(args *options.AutoEncryptionOptions) error {
-						*args = *aeArgs
-
-						return nil
-					},
-				},
 			}
 		}
 
@@ -326,7 +310,7 @@ func runSpecTestCase(mt *mtest.T, test *testCase, testFile testFile) {
 			Event: test.monitor.handlePoolEvent,
 		})
 		testClientOpts.SetServerMonitor(test.monitor.sdamMonitor)
-		if args.HeartbeatInterval == nil {
+		if testClientOpts.HeartbeatInterval == nil {
 			// If one isn't specified in the test, use a low heartbeat frequency so the Client will quickly recover when
 			// using failpoints that cause SDAM state changes.
 			testClientOpts.SetHeartbeatInterval(defaultHeartbeatInterval)
