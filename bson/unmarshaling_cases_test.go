@@ -11,6 +11,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson/bsonrw"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
 type unmarshalingTestCase struct {
@@ -174,6 +175,12 @@ func unmarshalingTestCases() []unmarshalingTestCase {
 			want:  &valNonPtrStruct,
 			data:  docToBytes(valNonPtrStruct),
 		},
+		{
+			name:  "meep",
+			sType: reflect.TypeOf(unmarshalerPtrStruct{}),
+			want:  &unmarshalerPtrStruct{},
+			data:  docWithNullValueBytes("I"),
+		},
 	}
 }
 
@@ -249,4 +256,15 @@ func (ms *myString) UnmarshalBSON(bytes []byte) error {
 	}
 	*ms = myString(s)
 	return nil
+}
+
+// create a byte slice that represents BSON with a variable key value that is
+// null, e.g. {<key>: null}.
+func docWithNullValueBytes(key string) []byte {
+	idx, doc := bsoncore.AppendDocumentStart(nil)
+	doc = bsoncore.AppendNullElement(doc, key)
+
+	doc, _ = bsoncore.AppendDocumentEnd(doc, idx)
+
+	return Raw(doc)
 }
