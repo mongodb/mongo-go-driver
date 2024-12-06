@@ -214,15 +214,3 @@ func createHint(val bson.RawValue) (interface{}, error) {
 	}
 	return hint, nil
 }
-
-func createSort(val bson.RawValue) (interface{}, error) {
-	var sort interface{}
-
-	switch val.Type {
-	case bson.TypeEmbeddedDocument:
-		sort = val.Document()
-	default:
-		return nil, fmt.Errorf("unrecognized sort value type %s", val.Type)
-	}
-	return sort, nil
-}

@@ -178,7 +178,7 @@ func (rom *ReplaceOneModel) SetUpsert(upsert bool) *ReplaceOneModel {
 // matched by the sort order will be replaced. This option is only valid for MongoDB versions >= 8.0. The driver will
 // return an error if the sort parameter is a multi-key map. The default value is nil.
 func (rom *ReplaceOneModel) SetSort(sort interface{}) *ReplaceOneModel {
-	rom.Sort = &sort
+	rom.Sort = sort
 	return rom
 }
 
