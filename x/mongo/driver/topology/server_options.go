@@ -41,6 +41,11 @@ type serverConfig struct {
 	logger               *logger.Logger
 	poolMaxIdleTime      time.Duration
 	poolMaintainInterval time.Duration
+
+	// Fields provided by a library that wraps the Go Driver.
+	outerLibraryName     string
+	outerLibraryVersion  string
+	outerLibraryPlatform string
 }
 
 func newServerConfig(connectTimeout time.Duration, opts ...ServerOption) *serverConfig {
@@ -93,6 +98,30 @@ func WithCompressionOptions(fn func(...string) []string) ServerOption {
 func WithServerAppName(fn func(string) string) ServerOption {
 	return func(cfg *serverConfig) {
 		cfg.appname = fn(cfg.appname)
+	}
+}
+
+// WithOuterLibraryName configures the name for the outer library to include
+// in the drivers section of the handshake metadata.
+func WithOuterLibraryName(fn func(string) string) ServerOption {
+	return func(cfg *serverConfig) {
+		cfg.outerLibraryName = fn(cfg.outerLibraryName)
+	}
+}
+
+// WithOuterLibraryVersion configures the version for the outer library to
+// include in the drivers section of the handshake metadata.
+func WithOuterLibraryVersion(fn func(string) string) ServerOption {
+	return func(cfg *serverConfig) {
+		cfg.outerLibraryVersion = fn(cfg.outerLibraryVersion)
+	}
+}
+
+// WithOuterLibraryPlatform configures the platform for the outer library to
+// include in the platform section of the handshake metadata.
+func WithOuterLibraryPlatform(fn func(string) string) ServerOption {
+	return func(cfg *serverConfig) {
+		cfg.outerLibraryPlatform = fn(cfg.outerLibraryPlatform)
 	}
 }
 

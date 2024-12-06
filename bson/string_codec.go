@@ -7,6 +7,7 @@
 package bson
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 )
@@ -50,14 +51,16 @@ func (sc *stringCodec) decodeType(dc DecodeContext, vr ValueReader, t reflect.Ty
 			return emptyValue, err
 		}
 	case TypeObjectID:
-		oid, err := vr.ReadObjectID()
-		if err != nil {
-			return emptyValue, err
-		}
 		if dc.objectIDAsHexString {
+			oid, err := vr.ReadObjectID()
+			if err != nil {
+				return emptyValue, err
+			}
 			str = oid.Hex()
 		} else {
-			return emptyValue, fmt.Errorf("decoding an object ID to a non-hexadecimal string representation is not supported")
+			const msg = "decoding an object ID into a string is not supported by default " +
+				"(set Decoder.ObjectIDAsHexString to enable decoding as a hexadecimal string)"
+			return emptyValue, errors.New(msg)
 		}
 	case TypeSymbol:
 		str, err = vr.ReadSymbol()

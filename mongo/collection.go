@@ -1281,6 +1281,16 @@ func (coll *Collection) Distinct(
 		}
 		op.Comment(comment)
 	}
+	if args.Hint != nil {
+		if isUnorderedMap(args.Hint) {
+			return &DistinctResult{err: ErrMapForOrderedArgument{"hint"}}
+		}
+		hint, err := marshalValue(args.Hint, coll.bsonOpts, coll.registry)
+		if err != nil {
+			return &DistinctResult{err: err}
+		}
+		op.Hint(hint)
+	}
 	retry := driver.RetryNone
 	if coll.client.retryReads {
 		retry = driver.RetryOncePerCommand
@@ -1455,6 +1465,9 @@ func (coll *Collection) find(
 	if args.NoCursorTimeout != nil {
 		op.NoCursorTimeout(*args.NoCursorTimeout)
 	}
+	if args.OplogReplay != nil {
+		op.OplogReplay(*args.OplogReplay)
+	}
 	if args.Projection != nil {
 		proj, err := marshal(args.Projection, coll.bsonOpts, coll.registry)
 		if err != nil {
@@ -1508,6 +1521,7 @@ func newFindArgsFromFindOneArgs(args *options.FindOneOptions) *options.FindOptio
 		v.Hint = args.Hint
 		v.Max = args.Max
 		v.Min = args.Min
+		v.OplogReplay = args.OplogReplay
 		v.Projection = args.Projection
 		v.ReturnKey = args.ReturnKey
 		v.ShowRecordID = args.ShowRecordID

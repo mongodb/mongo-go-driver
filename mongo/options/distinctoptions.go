@@ -13,6 +13,7 @@ package options
 type DistinctOptions struct {
 	Collation *Collation
 	Comment   interface{}
+	Hint      interface{}
 }
 
 // DistinctOptionsBuilder contains options to configure distinct operations. Each
@@ -54,6 +55,24 @@ func (do *DistinctOptionsBuilder) SetCollation(c *Collation) *DistinctOptionsBui
 func (do *DistinctOptionsBuilder) SetComment(comment interface{}) *DistinctOptionsBuilder {
 	do.Opts = append(do.Opts, func(opts *DistinctOptions) error {
 		opts.Comment = comment
+
+		return nil
+	})
+
+	return do
+}
+
+// SetHint specifies the index to use for the operation. This should either be
+// the index name as a string or the index specification as a document. This
+// option is only valid for MongoDB versions >= 7.1. Previous server versions
+// will return an error if an index hint is specified. Distinct returns an error
+// if the hint parameter is a multi-key map. The default value is nil, which
+// means that no index hint will be sent.
+//
+// SetHint sets the Hint field.
+func (do *DistinctOptionsBuilder) SetHint(hint interface{}) *DistinctOptionsBuilder {
+	do.Opts = append(do.Opts, func(opts *DistinctOptions) error {
+		opts.Hint = hint
 
 		return nil
 	})

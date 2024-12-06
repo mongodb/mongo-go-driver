@@ -808,7 +808,8 @@ func (s *Server) createConnection() *connection {
 	opts = append(opts,
 		WithHandshaker(func(Handshaker) Handshaker {
 			return operation.NewHello().AppName(s.cfg.appname).Compressors(s.cfg.compressionOpts).
-				ServerAPI(s.cfg.serverAPI)
+				ServerAPI(s.cfg.serverAPI).OuterLibraryName(s.cfg.outerLibraryName).
+				OuterLibraryVersion(s.cfg.outerLibraryVersion).OuterLibraryPlatform(s.cfg.outerLibraryPlatform)
 		}),
 		// Override any monitors specified in options with nil to avoid monitoring heartbeats.
 		WithMonitor(func(*event.CommandMonitor) *event.CommandMonitor { return nil }),

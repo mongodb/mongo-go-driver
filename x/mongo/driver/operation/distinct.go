@@ -31,6 +31,7 @@ type Distinct struct {
 	clock          *session.ClusterClock
 	collection     string
 	comment        bsoncore.Value
+	hint           bsoncore.Value
 	monitor        *event.CommandMonitor
 	crypt          driver.Crypt
 	database       string
@@ -120,6 +121,9 @@ func (d *Distinct) command(dst []byte, desc description.SelectedServer) ([]byte,
 	if d.comment.Type != bsoncore.Type(0) {
 		dst = bsoncore.AppendValueElement(dst, "comment", d.comment)
 	}
+	if d.hint.Type != bsoncore.Type(0) {
+		dst = bsoncore.AppendValueElement(dst, "hint", d.hint)
+	}
 	if d.key != nil {
 		dst = bsoncore.AppendStringElement(dst, "key", *d.key)
 	}
@@ -196,6 +200,16 @@ func (d *Distinct) Comment(comment bsoncore.Value) *Distinct {
 	}
 
 	d.comment = comment
+	return d
+}
+
+// Hint sets a value to help trace an operation.
+func (d *Distinct) Hint(hint bsoncore.Value) *Distinct {
+	if d == nil {
+		d = new(Distinct)
+	}
+
+	d.hint = hint
 	return d
 }
 

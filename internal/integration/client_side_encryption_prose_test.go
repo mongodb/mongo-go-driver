@@ -527,7 +527,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			tlsConfig["kmip"] = kmipConfig
 		}
 
-		getBaseAutoEncryptionOpts := func() *options.AutoEncryptionOptionsBuilder {
+		getBaseAutoEncryptionOpts := func() *options.AutoEncryptionOptions {
 			return options.AutoEncryption().
 				SetKmsProviders(fullKmsProvidersMap).
 				SetKeyVaultNamespace(kvNamespace).
@@ -537,7 +537,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 		testCases := []struct {
 			name   string
-			aeo    *options.AutoEncryptionOptionsBuilder
+			aeo    *options.AutoEncryptionOptions
 			schema bson.Raw // the schema to create the collection. if nil, the collection won't be explicitly created
 		}{
 			{"remote schema", getBaseAutoEncryptionOpts(), corpusSchema},
@@ -1381,8 +1381,9 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		}
 	})
 
-	// These tests only run when 3 KMS HTTP servers and 1 KMS KMIP server are running. See specification for port numbers and necessary arguments:
-	// https://github.com/mongodb/specifications/blob/master/source/client-side-encryption/tests/README.rst#kms-tls-options-tests
+	// These tests only run when 3 KMS HTTP servers and 1 KMS KMIP server are
+	// running. See specification for port numbers and necessary arguments:
+	// https://github.com/mongodb/specifications/blob/master/source/client-side-encryption/tests/README.md#10-kms-tls-tests
 	mt.RunOpts("10. kms tls tests", noClientOpts, func(mt *mtest.T) {
 		kmsTlsTestcase := os.Getenv("KMS_TLS_TESTCASE")
 		if kmsTlsTestcase == "" {
@@ -1436,12 +1437,17 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		}
 	})
 
-	// These tests only run when 3 KMS HTTP servers and 1 KMS KMIP server are running. See specification for port numbers and necessary arguments:
-	// https://github.com/mongodb/specifications/blob/master/source/client-side-encryption/tests/README.rst#kms-tls-options-tests
+	// These tests only run when 3 KMS HTTP servers and 1 KMS KMIP server are
+	// running. See specification for port numbers and necessary arguments:
+	// https://github.com/mongodb/specifications/blob/master/source/client-side-encryption/tests/README.md#11-kms-tls-options-tests
 	mt.RunOpts("11. kms tls options tests", noClientOpts, func(mt *mtest.T) {
 		if os.Getenv("KMS_MOCK_SERVERS_RUNNING") == "" {
 			mt.Skipf("Skipping test as KMS_MOCK_SERVERS_RUNNING is not set")
 		}
+		if tlsCAFileKMIP == "" || tlsClientCertificateKeyFileKMIP == "" {
+			mt.Fatal("Env vars CSFLE_TLS_CA_FILE and CSFLE_TLS_CLIENT_CERT_FILE must be set")
+		}
+
 		validKmsProviders := map[string]map[string]interface{}{
 			"aws": {
 				"accessKeyId":     awsAccessKeyID,
@@ -1511,50 +1517,50 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			SetKeyVaultNamespace(kvNamespace)
 
 		// make TLS opts containing client certificate and CA file
-		tlsConfig := make(map[string]*tls.Config)
-		if tlsCAFileKMIP != "" && tlsClientCertificateKeyFileKMIP != "" {
-			clientAndCATlsMap := map[string]interface{}{
-				"tlsCertificateKeyFile": tlsClientCertificateKeyFileKMIP,
-				"tlsCAFile":             tlsCAFileKMIP,
-			}
-			certConfig, err := options.BuildTLSConfig(clientAndCATlsMap)
-			assert.Nil(mt, err, "BuildTLSConfig error: %v", err)
-			tlsConfig["aws"] = certConfig
-			tlsConfig["azure"] = certConfig
-			tlsConfig["gcp"] = certConfig
-			tlsConfig["kmip"] = certConfig
-		}
+		clientAndCATLSConfig, err := options.BuildTLSConfig(map[string]interface{}{
+			"tlsCertificateKeyFile": tlsClientCertificateKeyFileKMIP,
+			"tlsCAFile":             tlsCAFileKMIP,
+		})
+		assert.Nil(mt, err, "BuildTLSConfig error: %v", err)
 
 		// create valid Client Encryption options and set valid TLS options
 		validClientEncryptionOptionsWithTLS := options.ClientEncryption().
 			SetKmsProviders(validKmsProviders).
 			SetKeyVaultNamespace(kvNamespace).
-			SetTLSConfig(tlsConfig)
+			SetTLSConfig(map[string]*tls.Config{
+				"aws":   clientAndCATLSConfig,
+				"azure": clientAndCATLSConfig,
+				"gcp":   clientAndCATLSConfig,
+				"kmip":  clientAndCATLSConfig,
+			})
 
 		// make TLS opts containing only CA file
-		if tlsCAFileKMIP != "" {
-			caTlsMap := map[string]interface{}{
-				"tlsCAFile": tlsCAFileKMIP,
-			}
-			certConfig, err := options.BuildTLSConfig(caTlsMap)
-			assert.Nil(mt, err, "BuildTLSConfig error: %v", err)
-			tlsConfig["aws"] = certConfig
-			tlsConfig["azure"] = certConfig
-			tlsConfig["gcp"] = certConfig
-			tlsConfig["kmip"] = certConfig
-		}
+		caTLSConfig, err := options.BuildTLSConfig(map[string]interface{}{
+			"tlsCAFile": tlsCAFileKMIP,
+		})
+		assert.Nil(mt, err, "BuildTLSConfig error: %v", err)
 
 		// create invalid Client Encryption options with expired credentials
 		expiredClientEncryptionOptions := options.ClientEncryption().
 			SetKmsProviders(expiredKmsProviders).
 			SetKeyVaultNamespace(kvNamespace).
-			SetTLSConfig(tlsConfig)
+			SetTLSConfig(map[string]*tls.Config{
+				"aws":   caTLSConfig,
+				"azure": caTLSConfig,
+				"gcp":   caTLSConfig,
+				"kmip":  caTLSConfig,
+			})
 
 		// create invalid Client Encryption options with invalid hostnames
 		invalidHostnameClientEncryptionOptions := options.ClientEncryption().
 			SetKmsProviders(invalidKmsProviders).
 			SetKeyVaultNamespace(kvNamespace).
-			SetTLSConfig(tlsConfig)
+			SetTLSConfig(map[string]*tls.Config{
+				"aws":   caTLSConfig,
+				"azure": caTLSConfig,
+				"gcp":   caTLSConfig,
+				"kmip":  caTLSConfig,
+			})
 
 		awsMasterKeyNoClientCert := map[string]interface{}{
 			"region":   "us-east-1",
@@ -1620,7 +1626,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 				possibleErrors := []string{
 					"x509: certificate signed by unknown authority",                   // Windows
-					"x509: “valid.testing.golang.invalid” certificate is not trusted", // MacOS
+					"x509: “valid.testing.golang.invalid” certificate is not trusted", // macOS
+					"x509: “server” certificate is not standards compliant",           // macOS
 					"x509: certificate is not authorized to sign other certificates",  // All others
 				}
 
@@ -3007,7 +3014,7 @@ type cseProseTest struct {
 	cseStarted   []*event.CommandStartedEvent
 }
 
-func setup(mt *mtest.T, aeo *options.AutoEncryptionOptionsBuilder, kvClientOpts options.Lister[options.ClientOptions],
+func setup(mt *mtest.T, aeo *options.AutoEncryptionOptions, kvClientOpts *options.ClientOptions,
 	ceo options.Lister[options.ClientEncryptionOptions]) *cseProseTest {
 	mt.Helper()
 	var cpt cseProseTest
@@ -3086,7 +3093,7 @@ func rawValueToCoreValue(rv bson.RawValue) bsoncore.Value {
 
 type deadlockTest struct {
 	clientTest           *mongo.Client
-	clientKeyVaultOpts   *options.ClientOptionsBuilder
+	clientKeyVaultOpts   *options.ClientOptions
 	clientKeyVaultEvents []startedEvent
 	clientEncryption     *mongo.ClientEncryption
 	ciphertext           bson.Binary

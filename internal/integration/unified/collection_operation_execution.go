@@ -523,6 +523,8 @@ func executeDistinct(ctx context.Context, operation *operation) (*operationResul
 		val := elem.Value()
 
 		switch key {
+		case "hint":
+			opts.SetHint(val)
 		case "collation":
 			collation, err := createCollation(val.Document())
 			if err != nil {
@@ -1469,6 +1471,8 @@ func createFindCursor(ctx context.Context, operation *operation) (*cursorResult,
 			opts.SetMin(val.Document())
 		case "noCursorTimeout":
 			opts.SetNoCursorTimeout(val.Boolean())
+		case "oplogReplay":
+			opts.SetOplogReplay(val.Boolean())
 		case "projection":
 			opts.SetProjection(val.Document())
 		case "returnKey":

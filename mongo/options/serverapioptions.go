@@ -29,50 +29,22 @@ type ServerAPIOptions struct {
 	DeprecationErrors *bool
 }
 
-// ServerAPIOptionsBuilder contains options to configure serverAPI operations.
-// Each option can be set through setter functions. See documentation for each
-// setter function for an explanation of the option.
-type ServerAPIOptionsBuilder struct {
-	Opts []func(*ServerAPIOptions) error
-}
-
 // ServerAPI creates a new ServerAPIOptions configured with the provided
 // serverAPIversion.
-func ServerAPI(serverAPIVersion ServerAPIVersion) *ServerAPIOptionsBuilder {
-	opts := &ServerAPIOptionsBuilder{}
-
-	opts.Opts = append(opts.Opts, func(opts *ServerAPIOptions) error {
-		opts.ServerAPIVersion = serverAPIVersion
-
-		return nil
-	})
-
-	return opts
-}
-
-// List returns a list of ServerAPIOptions setter functions.
-func (s *ServerAPIOptionsBuilder) List() []func(*ServerAPIOptions) error {
-	return s.Opts
+func ServerAPI(serverAPIVersion ServerAPIVersion) *ServerAPIOptions {
+	return &ServerAPIOptions{ServerAPIVersion: serverAPIVersion}
 }
 
 // SetStrict specifies whether the server should return errors for features that are not part of the API version.
-func (s *ServerAPIOptionsBuilder) SetStrict(strict bool) *ServerAPIOptionsBuilder {
-	s.Opts = append(s.Opts, func(opts *ServerAPIOptions) error {
-		opts.Strict = &strict
-
-		return nil
-	})
+func (s *ServerAPIOptions) SetStrict(strict bool) *ServerAPIOptions {
+	s.Strict = &strict
 
 	return s
 }
 
 // SetDeprecationErrors specifies whether the server should return errors for deprecated features.
-func (s *ServerAPIOptionsBuilder) SetDeprecationErrors(deprecationErrors bool) *ServerAPIOptionsBuilder {
-	s.Opts = append(s.Opts, func(opts *ServerAPIOptions) error {
-		opts.DeprecationErrors = &deprecationErrors
-
-		return nil
-	})
+func (s *ServerAPIOptions) SetDeprecationErrors(deprecationErrors bool) *ServerAPIOptions {
+	s.DeprecationErrors = &deprecationErrors
 
 	return s
 }

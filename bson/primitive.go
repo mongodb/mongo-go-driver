@@ -60,7 +60,7 @@ func (d DateTime) MarshalJSON() ([]byte, error) {
 	return d.Time().UTC().MarshalJSON()
 }
 
-// UnmarshalJSON creates a primitive.DateTime from a JSON string.
+// UnmarshalJSON creates a bson.DateTime from a JSON string.
 func (d *DateTime) UnmarshalJSON(data []byte) error {
 	// Ignore "null" so that we can distinguish between a "null" value and
 	// valid value that is the zero time (as reported by time.Time.IsZero).
