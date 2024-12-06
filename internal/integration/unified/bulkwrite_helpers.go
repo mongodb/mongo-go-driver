@@ -102,6 +102,8 @@ func createBulkWriteModel(rawModel bson.Raw) (mongo.WriteModel, error) {
 				if err != nil {
 					return nil, fmt.Errorf("error creating update: %w", err)
 				}
+			case "sort":
+				uom.SetSort(val.Document())
 			case "upsert":
 				uom.SetUpsert(val.Boolean())
 			default:
@@ -249,6 +251,8 @@ func createBulkWriteModel(rawModel bson.Raw) (mongo.WriteModel, error) {
 					return nil, fmt.Errorf("error creating hint: %w", err)
 				}
 				rom.SetHint(hint)
+			case "sort":
+				rom.SetSort(val.Document())
 			case "replacement":
 				replacement = val.Document()
 			case "upsert":

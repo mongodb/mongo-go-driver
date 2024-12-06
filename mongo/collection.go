@@ -610,6 +610,7 @@ func (coll *Collection) updateOrReplace(
 	multi bool,
 	expectedRr returnResult,
 	checkDollarKey bool,
+	sort interface{},
 	args *options.UpdateManyOptions,
 ) (*UpdateResult, error) {
 
@@ -623,6 +624,7 @@ func (coll *Collection) updateOrReplace(
 		filter:         filter,
 		update:         update,
 		hint:           args.Hint,
+		sort:           sort,
 		arrayFilters:   args.ArrayFilters,
 		collation:      args.Collation,
 		upsert:         args.Upsert,
@@ -775,7 +777,7 @@ func (coll *Collection) UpdateOne(
 		Let:                      args.Let,
 	}
 
-	return coll.updateOrReplace(ctx, f, update, false, rrOne, true, updateOptions)
+	return coll.updateOrReplace(ctx, f, update, false, rrOne, true, args.Sort, updateOptions)
 }
 
 // UpdateMany executes an update command to update documents in the collection.
@@ -811,7 +813,7 @@ func (coll *Collection) UpdateMany(
 		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 
-	return coll.updateOrReplace(ctx, f, update, true, rrMany, true, args)
+	return coll.updateOrReplace(ctx, f, update, true, rrMany, true, nil, args)
 }
 
 // ReplaceOne executes an update command to replace at most one document in the collection.
@@ -865,7 +867,7 @@ func (coll *Collection) ReplaceOne(
 		Comment:                  args.Comment,
 	}
 
-	return coll.updateOrReplace(ctx, f, r, false, rrOne, false, updateOptions)
+	return coll.updateOrReplace(ctx, f, r, false, rrOne, false, args.Sort, updateOptions)
 }
 
 // Aggregate executes an aggregate command against the collection and returns a cursor over the resulting documents.

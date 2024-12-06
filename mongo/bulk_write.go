@@ -340,6 +340,7 @@ func (bw *bulkWrite) runUpdate(ctx context.Context, batch bulkWriteBatch) (opera
 				filter:    converted.Filter,
 				update:    converted.Replacement,
 				hint:      converted.Hint,
+				sort:      converted.Sort,
 				collation: converted.Collation,
 				upsert:    converted.Upsert,
 			}.marshal(bw.collection.bsonOpts, bw.collection.registry)
@@ -349,6 +350,7 @@ func (bw *bulkWrite) runUpdate(ctx context.Context, batch bulkWriteBatch) (opera
 				filter:         converted.Filter,
 				update:         converted.Update,
 				hint:           converted.Hint,
+				sort:           converted.Sort,
 				arrayFilters:   converted.ArrayFilters,
 				collation:      converted.Collation,
 				upsert:         converted.Upsert,
@@ -420,6 +422,7 @@ type updateDoc struct {
 	filter         interface{}
 	update         interface{}
 	hint           interface{}
+	sort           interface{}
 	arrayFilters   []interface{}
 	collation      *options.Collation
 	upsert         *bool
@@ -445,6 +448,16 @@ func (doc updateDoc) marshal(bsonOpts *options.BSONOptions, registry *bson.Regis
 
 	if doc.multi {
 		updateDoc = bsoncore.AppendBooleanElement(updateDoc, "multi", doc.multi)
+	}
+	if doc.sort != nil {
+		if isUnorderedMap(doc.sort) {
+			return nil, ErrMapForOrderedArgument{"sort"}
+		}
+		s, err := marshal(doc.sort, bsonOpts, registry)
+		if err != nil {
+			return nil, err
+		}
+		updateDoc = bsoncore.AppendDocumentElement(updateDoc, "sort", s)
 	}
 
 	if doc.arrayFilters != nil {
