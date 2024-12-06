@@ -53,10 +53,12 @@ func (li *ListIndexes) Result(opts driver.CursorOptions) (*driver.BatchCursor, e
 	return driver.NewBatchCursor(li.result, clientSession, clock, opts)
 }
 
-func (li *ListIndexes) processResponse(info driver.ResponseInfo) error {
-	var err error
-
-	li.result, err = driver.NewCursorResponse(info)
+func (li *ListIndexes) processResponse(_ context.Context, resp bsoncore.Document, info driver.ResponseInfo) error {
+	curDoc, err := driver.ExtractCursorDocument(resp)
+	if err != nil {
+		return err
+	}
+	li.result, err = driver.NewCursorResponse(curDoc, info)
 	return err
 
 }

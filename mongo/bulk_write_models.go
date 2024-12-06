@@ -20,6 +20,8 @@ type WriteModel interface {
 }
 
 // InsertOneModel is used to insert a single document in a BulkWrite operation.
+//
+// See corresponding setter methods for documentation.
 type InsertOneModel struct {
 	Document interface{}
 }
@@ -40,6 +42,8 @@ func (iom *InsertOneModel) SetDocument(doc interface{}) *InsertOneModel {
 func (*InsertOneModel) writeModel() {}
 
 // DeleteOneModel is used to delete at most one document in a BulkWriteOperation.
+//
+// See corresponding setter methods for documentation.
 type DeleteOneModel struct {
 	Filter    interface{}
 	Collation *options.Collation
@@ -80,6 +84,8 @@ func (dom *DeleteOneModel) SetHint(hint interface{}) *DeleteOneModel {
 func (*DeleteOneModel) writeModel() {}
 
 // DeleteManyModel is used to delete multiple documents in a BulkWrite operation.
+//
+// See corresponding setter methods for documentation.
 type DeleteManyModel struct {
 	Filter    interface{}
 	Collation *options.Collation
@@ -119,6 +125,8 @@ func (dmm *DeleteManyModel) SetHint(hint interface{}) *DeleteManyModel {
 func (*DeleteManyModel) writeModel() {}
 
 // ReplaceOneModel is used to replace at most one document in a BulkWrite operation.
+//
+// See corresponding setter methods for documentation.
 type ReplaceOneModel struct {
 	Collation   *options.Collation
 	Upsert      *bool
@@ -176,6 +184,8 @@ func (rom *ReplaceOneModel) SetUpsert(upsert bool) *ReplaceOneModel {
 func (*ReplaceOneModel) writeModel() {}
 
 // UpdateOneModel is used to update at most one document in a BulkWrite operation.
+//
+// See corresponding setter methods for documentation.
 type UpdateOneModel struct {
 	Collation    *options.Collation
 	Upsert       *bool
@@ -241,6 +251,8 @@ func (uom *UpdateOneModel) SetUpsert(upsert bool) *UpdateOneModel {
 func (*UpdateOneModel) writeModel() {}
 
 // UpdateManyModel is used to update multiple documents in a BulkWrite operation.
+//
+// See corresponding setter methods for documentation.
 type UpdateManyModel struct {
 	Collation    *options.Collation
 	Upsert       *bool

@@ -77,10 +77,12 @@ func (a *Aggregate) ResultCursorResponse() driver.CursorResponse {
 	return a.result
 }
 
-func (a *Aggregate) processResponse(info driver.ResponseInfo) error {
-	var err error
-
-	a.result, err = driver.NewCursorResponse(info)
+func (a *Aggregate) processResponse(_ context.Context, resp bsoncore.Document, info driver.ResponseInfo) error {
+	curDoc, err := driver.ExtractCursorDocument(resp)
+	if err != nil {
+		return err
+	}
+	a.result, err = driver.NewCursorResponse(curDoc, info)
 	return err
 
 }

@@ -631,8 +631,8 @@ func (h *Hello) createOperation() driver.Operation {
 		CommandFn:  h.command,
 		Database:   "admin",
 		Deployment: h.d,
-		ProcessResponseFn: func(info driver.ResponseInfo) error {
-			h.res = info.ServerResponse
+		ProcessResponseFn: func(_ context.Context, resp bsoncore.Document, _ driver.ResponseInfo) error {
+			h.res = resp
 			return nil
 		},
 		ServerAPI:     h.serverAPI,
@@ -656,8 +656,8 @@ func (h *Hello) GetHandshakeInformation(ctx context.Context, _ address.Address, 
 		CommandFn:  h.handshakeCommand,
 		Deployment: deployment,
 		Database:   "admin",
-		ProcessResponseFn: func(info driver.ResponseInfo) error {
-			h.res = info.ServerResponse
+		ProcessResponseFn: func(_ context.Context, resp bsoncore.Document, _ driver.ResponseInfo) error {
+			h.res = resp
 			return nil
 		},
 		ServerAPI: h.serverAPI,
