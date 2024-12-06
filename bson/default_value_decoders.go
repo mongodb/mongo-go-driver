@@ -1166,6 +1166,12 @@ func valueUnmarshalerDecodeValue(_ DecodeContext, vr ValueReader, val reflect.Va
 		return ValueDecoderError{Name: "ValueUnmarshalerDecodeValue", Types: []reflect.Type{tValueUnmarshaler}, Received: val}
 	}
 
+	if vr.Type() == TypeNull {
+		val.Set(reflect.Zero(val.Type()))
+
+		return vr.ReadNull()
+	}
+
 	if val.Kind() == reflect.Ptr && val.IsNil() {
 		if !val.CanSet() {
 			return ValueDecoderError{Name: "ValueUnmarshalerDecodeValue", Types: []reflect.Type{tValueUnmarshaler}, Received: val}
