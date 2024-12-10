@@ -75,25 +75,29 @@ type CursorResponse struct {
 	postBatchResumeToken bsoncore.Document
 }
 
-// NewCursorResponse constructs a cursor response from the given response and
-// server. If the provided database response does not contain a cursor, it
-// returns ErrNoCursor.
-//
-// NewCursorResponse can be used within the ProcessResponse method for an operation.
-func NewCursorResponse(info ResponseInfo) (CursorResponse, error) {
-	response := info.ServerResponse
+// ExtractCursorDocument retrieves cursor document from a database response. If the
+// provided response does not contain a cursor, it returns ErrNoCursor.
+func ExtractCursorDocument(response bsoncore.Document) (bsoncore.Document, error) {
 	cur, err := response.LookupErr("cursor")
 	if errors.Is(err, bsoncore.ErrElementNotFound) {
-		return CursorResponse{}, ErrNoCursor
+		return nil, ErrNoCursor
 	}
 	if err != nil {
-		return CursorResponse{}, fmt.Errorf("error getting cursor from database response: %w", err)
+		return nil, fmt.Errorf("error getting cursor from database response: %w", err)
 	}
 	curDoc, ok := cur.DocumentOK()
 	if !ok {
-		return CursorResponse{}, fmt.Errorf("cursor should be an embedded document but is BSON type %s", cur.Type)
+		return nil, fmt.Errorf("cursor should be an embedded document but is BSON type %s", cur.Type)
 	}
-	elems, err := curDoc.Elements()
+	return curDoc, nil
+}
+
+// NewCursorResponse constructs a cursor response from the given cursor document
+// extracted from a database response.
+//
+// NewCursorResponse can be used within the ProcessResponse method for an operation.
+func NewCursorResponse(response bsoncore.Document, info ResponseInfo) (CursorResponse, error) {
+	elems, err := response.Elements()
 	if err != nil {
 		return CursorResponse{}, fmt.Errorf("error getting elements from cursor: %w", err)
 	}
@@ -120,15 +124,17 @@ func NewCursorResponse(info ResponseInfo) (CursorResponse, error) {
 			curresp.Database = database
 			curresp.Collection = collection
 		case "id":
-			curresp.ID, ok = elem.Value().Int64OK()
+			id, ok := elem.Value().Int64OK()
 			if !ok {
 				return CursorResponse{}, fmt.Errorf("id should be an int64 but it is a BSON %s", elem.Value().Type)
 			}
+			curresp.ID = id
 		case "postBatchResumeToken":
-			curresp.postBatchResumeToken, ok = elem.Value().DocumentOK()
+			token, ok := elem.Value().DocumentOK()
 			if !ok {
 				return CursorResponse{}, fmt.Errorf("post batch resume token should be a document but it is a BSON %s", elem.Value().Type)
 			}
+			curresp.postBatchResumeToken = token
 		}
 	}
 
@@ -399,8 +405,7 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 		},
 		Database:   bc.database,
 		Deployment: bc.getOperationDeployment(),
-		ProcessResponseFn: func(info ResponseInfo) error {
-			response := info.ServerResponse
+		ProcessResponseFn: func(_ context.Context, response bsoncore.Document, _ ResponseInfo) error {
 			id, ok := response.Lookup("cursor", "id").Int64OK()
 			if !ok {
 				return fmt.Errorf("cursor.id should be an int64 but is a BSON %s", response.Lookup("cursor", "id").Type)

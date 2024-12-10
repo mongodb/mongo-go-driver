@@ -167,7 +167,7 @@ func TestCollection(t *testing.T) {
 		mt.Run("large document batches", func(mt *mtest.T) {
 			mt.Parallel()
 
-			docs := []interface{}{create16MBDocument(mt), create16MBDocument(mt)}
+			docs := []interface{}{create16MBDocument(mt), create16MBDocument(mt), create16MBDocument(mt)}
 			_, err := mt.Coll.InsertMany(context.Background(), docs)
 			assert.Nil(mt, err, "InsertMany error: %v", err)
 			evt := mt.GetStartedEvent()
@@ -1712,6 +1712,41 @@ func TestCollection(t *testing.T) {
 						"expected %v write errors, got %v", tc.numWriteErrors, numWriteErrors)
 					gotCode := bwe.WriteErrors[0].Code
 					assert.Equal(mt, errorModifiedID, gotCode, "expected error code %v, got %v", errorModifiedID, gotCode)
+				})
+			}
+		})
+		mt.Run("error on nil filter", func(mt *mtest.T) {
+			mt.Parallel()
+
+			testCases := []struct {
+				name  string
+				model mongo.WriteModel
+			}{
+				{
+					name:  "DeleteOne",
+					model: mongo.NewDeleteOneModel(),
+				},
+				{
+					name:  "DeleteMany",
+					model: mongo.NewDeleteManyModel(),
+				},
+				{
+					name:  "UpdateOne",
+					model: mongo.NewUpdateOneModel().SetUpdate(bson.D{{"$set", bson.D{{"x", 1}}}}),
+				},
+				{
+					name:  "UpdateMany",
+					model: mongo.NewUpdateManyModel().SetUpdate(bson.D{{"$set", bson.D{{"x", 1}}}}),
+				},
+			}
+			for _, tc := range testCases {
+				tc := tc
+
+				mt.Run(tc.name, func(mt *mtest.T) {
+					mt.Parallel()
+
+					_, err := mt.Coll.BulkWrite(context.Background(), []mongo.WriteModel{tc.model})
+					assert.ErrorContains(mt, err, "filter is required")
 				})
 			}
 		})
