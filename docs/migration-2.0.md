@@ -573,7 +573,7 @@ maxAwaitTimeSetter := func(opts *options.FindOptions) error {
   return nil
 }
 
-opts.Opts = append(opts.Opts, maxAwiatTimeSetter)
+opts.Opts = append(opts.Opts, maxAwaitTimeSetter)
 ```
 
 #### Creating a Slice of Options
