@@ -1569,7 +1569,7 @@ func (op Operation) addSession(dst []byte, desc description.SelectedServer) ([]b
 
 func (op Operation) addClusterTime(dst []byte, desc description.SelectedServer) []byte {
 	client, clock := op.Client, op.Clock
-	if (clock == nil && client == nil) || !sessionsSupported(desc.WireVersion) {
+	if (clock == nil && client == nil) || clock == nil || !sessionsSupported(desc.WireVersion) {
 		return dst
 	}
 	clusterTime := clock.GetClusterTime()
@@ -1584,7 +1584,6 @@ func (op Operation) addClusterTime(dst []byte, desc description.SelectedServer) 
 		return dst
 	}
 	return append(bsoncore.AppendHeader(dst, val.Type, "$clusterTime"), val.Value...)
-	// return bsoncore.AppendDocumentElement(dst, "$clusterTime", clusterTime)
 }
 
 // calculateMaxTimeMS calculates the value of the 'maxTimeMS' field to potentially append

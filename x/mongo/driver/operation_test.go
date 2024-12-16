@@ -1058,3 +1058,16 @@ func TestFilterDeprioritizedServers(t *testing.T) {
 		})
 	}
 }
+
+func TestOperation_addClusterTime_panic(t *testing.T) {
+	op := Operation{
+		Client: &session.Client{},
+		Clock:  nil,
+	}
+
+	op.addClusterTime(nil, description.SelectedServer{
+		Server: description.Server{
+			WireVersion: &description.VersionRange{},
+		},
+	})
+}
