@@ -532,7 +532,7 @@ function MergeOptions(target, optionsList):
   return target
 ```
 
-Currently, the driver maintains this logic for every options type, e.g. [MergeClientOptions](https://github.com/mongodb/mongo-go-driver/blob/2e7cb372b05cba29facd58aac7e715c3cec4e377/mongo/options/clientoptions.go#L1065). For v2, we’ve decided to abstract the merge functions by changing the options builder pattern to maintain a slice of setter functions, rather than setting data directly to an options object. Typical usage of options should not change, for example the following is still honored:
+Currently, the driver maintains this logic for every options type, e.g. [MergeFindOptions](https://github.com/mongodb/mongo-go-driver/blob/2e7cb372b05cba29facd58aac7e715c3cec4e377/mongo/options/findoptions.go#L257). For v2, we’ve decided to abstract the merge functions by changing the options builder pattern to maintain a slice of setter functions, rather than setting data directly to an options object. Typical usage of options should not change, for example the following is still honored:
 
 ```go
 opts1 := options.Find().SetBatchSize(1)
