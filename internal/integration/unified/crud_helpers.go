@@ -123,6 +123,8 @@ func createUpdateOneArguments(args bson.Raw) (*updateArguments, *options.UpdateO
 			}
 		case "upsert":
 			opts.SetUpsert(val.Boolean())
+		case "sort":
+			opts.SetSort(val.Document())
 		default:
 			return nil, nil, fmt.Errorf("unrecognized update option %q", key)
 		}
