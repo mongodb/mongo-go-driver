@@ -79,8 +79,8 @@ func NewInsert(documents ...bsoncore.Document) *Insert {
 // Result returns the result of executing this operation.
 func (i *Insert) Result() InsertResult { return i.result }
 
-func (i *Insert) processResponse(info driver.ResponseInfo) error {
-	ir, err := buildInsertResult(info.ServerResponse)
+func (i *Insert) processResponse(_ context.Context, resp bsoncore.Document, _ driver.ResponseInfo) error {
+	ir, err := buildInsertResult(resp)
 	i.result.N += ir.N
 	return err
 }
