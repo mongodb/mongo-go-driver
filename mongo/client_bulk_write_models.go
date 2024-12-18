@@ -7,76 +7,17 @@
 package mongo
 
 import (
-	"fmt"
-
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
-// ClientWriteModels is a struct that can be used in a client-level BulkWrite operation.
-type ClientWriteModels struct {
-	models []clientWriteModel
-}
-type clientWriteModel struct {
-	namespace string
-	model     interface{}
-}
-
-// AppendInsertOne appends ClientInsertOneModels.
-func (m *ClientWriteModels) AppendInsertOne(database, collection string, models ...*ClientInsertOneModel) *ClientWriteModels {
-	if m == nil {
-		m = &ClientWriteModels{}
-	}
-	for _, model := range models {
-		m.models = append(m.models, clientWriteModel{
-			namespace: fmt.Sprintf("%s.%s", database, collection),
-			model:     model,
-		})
-	}
-	return m
-}
-
-// appendModels is a helper function to append models to ClientWriteModels.
-func appendModels[T ClientUpdateOneModel |
-	ClientUpdateManyModel |
-	ClientReplaceOneModel |
-	ClientDeleteOneModel |
-	ClientDeleteManyModel](
-	m *ClientWriteModels, database, collection string, models []*T) *ClientWriteModels {
-	if m == nil {
-		m = &ClientWriteModels{}
-	}
-	for _, model := range models {
-		m.models = append(m.models, clientWriteModel{
-			namespace: fmt.Sprintf("%s.%s", database, collection),
-			model:     model,
-		})
-	}
-	return m
-}
-
-// AppendUpdateOne appends ClientUpdateOneModels.
-func (m *ClientWriteModels) AppendUpdateOne(database, collection string, models ...*ClientUpdateOneModel) *ClientWriteModels {
-	return appendModels(m, database, collection, models)
-}
-
-// AppendUpdateMany appends ClientUpdateManyModels.
-func (m *ClientWriteModels) AppendUpdateMany(database, collection string, models ...*ClientUpdateManyModel) *ClientWriteModels {
-	return appendModels(m, database, collection, models)
-}
-
-// AppendReplaceOne appends ClientReplaceOneModels.
-func (m *ClientWriteModels) AppendReplaceOne(database, collection string, models ...*ClientReplaceOneModel) *ClientWriteModels {
-	return appendModels(m, database, collection, models)
-}
-
-// AppendDeleteOne appends ClientDeleteOneModels.
-func (m *ClientWriteModels) AppendDeleteOne(database, collection string, models ...*ClientDeleteOneModel) *ClientWriteModels {
-	return appendModels(m, database, collection, models)
-}
-
-// AppendDeleteMany appends ClientDeleteManyModels.
-func (m *ClientWriteModels) AppendDeleteMany(database, collection string, models ...*ClientDeleteManyModel) *ClientWriteModels {
-	return appendModels(m, database, collection, models)
+// ClientWriteModel is an interface implemented by models that can be used in a client-level BulkWrite operation. Each
+// ClientWriteModel represents a write.
+//
+// This interface is implemented by ClientDeleteOneModel, ClientDeleteManyModel, ClientInsertOneModel,
+// ClientReplaceOneModel, ClientUpdateOneModel, and ClientUpdateManyModel. Custom implementations of this interface must
+// not be used.
+type ClientWriteModel interface {
+	clientWriteModel()
 }
 
 // ClientInsertOneModel is used to insert a single document in a client-level BulkWrite operation.
@@ -90,6 +31,8 @@ type ClientInsertOneModel struct {
 func NewClientInsertOneModel() *ClientInsertOneModel {
 	return &ClientInsertOneModel{}
 }
+
+func (*ClientInsertOneModel) clientWriteModel() {}
 
 // SetDocument specifies the document to be inserted. The document cannot be nil. If it does not have an _id field when
 // transformed into BSON, one will be added automatically to the marshalled document. The original document will not be
@@ -115,6 +58,8 @@ type ClientUpdateOneModel struct {
 func NewClientUpdateOneModel() *ClientUpdateOneModel {
 	return &ClientUpdateOneModel{}
 }
+
+func (*ClientUpdateOneModel) clientWriteModel() {}
 
 // SetHint specifies the index to use for the operation. This should either be the index name as a string or the index
 // specification as a document. The default value is nil, which means that no hint will be sent.
@@ -177,6 +122,8 @@ func NewClientUpdateManyModel() *ClientUpdateManyModel {
 	return &ClientUpdateManyModel{}
 }
 
+func (*ClientUpdateManyModel) clientWriteModel() {}
+
 // SetHint specifies the index to use for the operation. This should either be the index name as a string or the index
 // specification as a document. The default value is nil, which means that no hint will be sent.
 func (umm *ClientUpdateManyModel) SetHint(hint interface{}) *ClientUpdateManyModel {
@@ -236,6 +183,8 @@ func NewClientReplaceOneModel() *ClientReplaceOneModel {
 	return &ClientReplaceOneModel{}
 }
 
+func (*ClientReplaceOneModel) clientWriteModel() {}
+
 // SetHint specifies the index to use for the operation. This should either be the index name as a string or the index
 // specification as a document. The default value is nil, which means that no hint will be sent.
 func (rom *ClientReplaceOneModel) SetHint(hint interface{}) *ClientReplaceOneModel {
@@ -287,6 +236,8 @@ func NewClientDeleteOneModel() *ClientDeleteOneModel {
 	return &ClientDeleteOneModel{}
 }
 
+func (*ClientDeleteOneModel) clientWriteModel() {}
+
 // SetFilter specifies a filter to use to select the document to delete. The filter must be a document containing query
 // operators. It cannot be nil. If the filter matches multiple documents, one will be selected from the matching
 // documents.
@@ -322,6 +273,8 @@ type ClientDeleteManyModel struct {
 func NewClientDeleteManyModel() *ClientDeleteManyModel {
 	return &ClientDeleteManyModel{}
 }
+
+func (*ClientDeleteManyModel) clientWriteModel() {}
 
 // SetFilter specifies a filter to use to select documents to delete. The filter must be a document containing query
 // operators. It cannot be nil.

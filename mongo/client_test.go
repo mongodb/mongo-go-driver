@@ -540,12 +540,13 @@ func TestClient(t *testing.T) {
 		}
 
 		document := bson.D{{"largeField", strings.Repeat("a", 16777216-100)}} // Adjust size to account for BSON overhead
-		models := &ClientWriteModels{}
-		models = models.AppendInsertOne("db", "x", NewClientInsertOneModel().SetDocument(document))
-		models = models.AppendInsertOne("db", "x", NewClientInsertOneModel().SetDocument(document))
-		models = models.AppendInsertOne("db", "x", NewClientInsertOneModel().SetDocument(document))
+		writes := []ClientBulkWrite{
+			{"db", "x", NewClientInsertOneModel().SetDocument(document)},
+			{"db", "x", NewClientInsertOneModel().SetDocument(document)},
+			{"db", "x", NewClientInsertOneModel().SetDocument(document)},
+		}
 
-		_, err = client.BulkWrite(context.Background(), models)
+		_, err = client.BulkWrite(context.Background(), writes)
 		require.NoError(t, err)
 		assert.Equal(t, 2, bulkWrites, "expected %d bulkWrites, got %d", 2, bulkWrites)
 	})

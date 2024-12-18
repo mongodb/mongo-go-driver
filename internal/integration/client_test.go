@@ -725,23 +725,39 @@ func TestClient(t *testing.T) {
 
 		testCases := []struct {
 			name   string
-			models *mongo.ClientWriteModels
+			writes []mongo.ClientBulkWrite
 		}{
 			{
-				name:   "DeleteOne",
-				models: (&mongo.ClientWriteModels{}).AppendDeleteOne("foo", "bar", mongo.NewClientDeleteOneModel()),
+				name: "DeleteOne",
+				writes: []mongo.ClientBulkWrite{{
+					Database:   "foo",
+					Collection: "bar",
+					Model:      mongo.NewClientDeleteOneModel(),
+				}},
 			},
 			{
-				name:   "DeleteMany",
-				models: (&mongo.ClientWriteModels{}).AppendDeleteMany("foo", "bar", mongo.NewClientDeleteManyModel()),
+				name: "DeleteMany",
+				writes: []mongo.ClientBulkWrite{{
+					Database:   "foo",
+					Collection: "bar",
+					Model:      mongo.NewClientDeleteManyModel(),
+				}},
 			},
 			{
-				name:   "UpdateOne",
-				models: (&mongo.ClientWriteModels{}).AppendUpdateOne("foo", "bar", mongo.NewClientUpdateOneModel()),
+				name: "UpdateOne",
+				writes: []mongo.ClientBulkWrite{{
+					Database:   "foo",
+					Collection: "bar",
+					Model:      mongo.NewClientUpdateOneModel(),
+				}},
 			},
 			{
-				name:   "UpdateMany",
-				models: (&mongo.ClientWriteModels{}).AppendUpdateMany("foo", "bar", mongo.NewClientUpdateManyModel()),
+				name: "UpdateMany",
+				writes: []mongo.ClientBulkWrite{{
+					Database:   "foo",
+					Collection: "bar",
+					Model:      mongo.NewClientUpdateManyModel(),
+				}},
 			},
 		}
 		for _, tc := range testCases {
@@ -750,7 +766,7 @@ func TestClient(t *testing.T) {
 			mt.Run(tc.name, func(mt *mtest.T) {
 				mt.Parallel()
 
-				_, err := mt.Client.BulkWrite(context.Background(), tc.models)
+				_, err := mt.Client.BulkWrite(context.Background(), tc.writes)
 				require.ErrorContains(mt, err, "filter is required")
 			})
 		}
@@ -779,11 +795,13 @@ func TestClient(t *testing.T) {
 			mt.Run(tc.name, func(mt *mtest.T) {
 				mt.Parallel()
 
-				var models *mongo.ClientWriteModels
-
 				insertOneModel := mongo.NewClientInsertOneModel().SetDocument(bson.D{{"x", 1}})
-				models = (&mongo.ClientWriteModels{}).AppendInsertOne("foo", "bar", insertOneModel)
-				res, err := mt.Client.BulkWrite(context.Background(), models, tc.opts)
+				writes := []mongo.ClientBulkWrite{{
+					Database:   "foo",
+					Collection: "bar",
+					Model:      insertOneModel,
+				}}
+				res, err := mt.Client.BulkWrite(context.Background(), writes, tc.opts)
 				require.NoError(mt, err, "BulkWrite error: %v", err)
 				require.NotNil(mt, res, "expected a ClientBulkWriteResult")
 				assert.Equal(mt, res.Acknowledged, tc.want, "expected Acknowledged: %v, got: %v", tc.want, res.Acknowledged)

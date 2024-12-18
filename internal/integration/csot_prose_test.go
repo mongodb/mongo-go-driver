@@ -203,13 +203,16 @@ func TestCSOTProse(t *testing.T) {
 		err = mt.DB.RunCommand(context.Background(), bson.D{{"hello", 1}}).Decode(&hello)
 		require.NoError(mt, err, "Hello error: %v", err)
 
-		models := &mongo.ClientWriteModels{}
+		var writes []mongo.ClientBulkWrite
 		n := hello.MaxMessageSizeBytes/hello.MaxBsonObjectSize + 1
 		for i := 0; i < n; i++ {
-			models.
-				AppendInsertOne("db", "coll", &mongo.ClientInsertOneModel{
+			writes = append(writes, mongo.ClientBulkWrite{
+				Database:   "db",
+				Collection: "coll",
+				Model: &mongo.ClientInsertOneModel{
 					Document: bson.D{{"a", strings.Repeat("b", hello.MaxBsonObjectSize-500)}},
-				})
+				},
+			})
 		}
 
 		var cnt int
@@ -227,8 +230,8 @@ func TestCSOTProse(t *testing.T) {
 		integtest.AddTestServerAPIVersion(cliOptions)
 		cli, err := mongo.Connect(cliOptions)
 		require.NoError(mt, err, "Connect error: %v", err)
-		_, err = cli.BulkWrite(context.Background(), models)
-		assert.ErrorContains(mt, err, "context deadline exceeded", "expected a timeout error, got: %v", err)
+		_, err = cli.BulkWrite(context.Background(), writes)
+		assert.ErrorIs(mt, err, context.DeadlineExceeded, "expected a timeout error, got: %v", err)
 		assert.Equal(mt, 2, cnt, "expected bulkWrite calls: %d, got: %d", 2, cnt)
 	})
 }

@@ -1407,7 +1407,7 @@ func (op Operation) createWireMessage(
 			for b := dst[batchOffset:]; len(b) > 0; /* nothing */ {
 				var seq []byte
 				var ok bool
-				seq, b, ok = wiremessage.DocumentSequenceToArray(b)
+				seq, b, ok = documentSequenceToArray(b)
 				if !ok {
 					break
 				}
@@ -2231,4 +2231,36 @@ func sessionsSupported(wireVersion *description.VersionRange) bool {
 // retryWritesSupported returns true if this description represents a server that supports retryable writes.
 func retryWritesSupported(s description.Server) bool {
 	return s.SessionTimeoutMinutes != nil && s.Kind != description.ServerKindStandalone
+}
+
+func documentSequenceToArray(src []byte) (dst, rem []byte, ok bool) {
+	stype, rem, ok := wiremessage.ReadMsgSectionType(src)
+	if !ok || stype != wiremessage.DocumentSequence {
+		return nil, src, false
+	}
+	var identifier string
+	var ret []byte
+	identifier, rem, ret, ok = wiremessage.ReadMsgSectionRawDocumentSequence(rem)
+	if !ok {
+		return nil, src, false
+	}
+
+	aidx, dst := bsoncore.AppendArrayElementStart(nil, identifier)
+	i := 0
+	for {
+		var doc bsoncore.Document
+		doc, rem, ok = bsoncore.ReadDocument(rem)
+		if !ok {
+			break
+		}
+		dst = bsoncore.AppendDocumentElement(dst, strconv.Itoa(i), doc)
+		i++
+	}
+	if len(rem) > 0 {
+		return nil, src, false
+	}
+
+	dst, _ = bsoncore.AppendArrayEnd(dst, aidx)
+
+	return dst, ret, true
 }

@@ -872,16 +872,23 @@ func (c *Client) createBaseCursorOptions() driver.CursorOptions {
 	}
 }
 
+// ClientBulkWrite is a struct that can be used in a client-level BulkWrite operation.
+type ClientBulkWrite struct {
+	Database   string
+	Collection string
+	Model      ClientWriteModel
+}
+
 // BulkWrite performs a client-level bulk write operation.
-func (c *Client) BulkWrite(ctx context.Context, models *ClientWriteModels,
+func (c *Client) BulkWrite(ctx context.Context, writes []ClientBulkWrite,
 	opts ...options.Lister[options.ClientBulkWriteOptions]) (*ClientBulkWriteResult, error) {
 	// TODO(GODRIVER-3403): Remove after support for QE with Client.bulkWrite.
 	if c.isAutoEncryptionSet {
 		return nil, errors.New("bulkWrite does not currently support automatic encryption")
 	}
 
-	if models == nil {
-		return nil, ErrNilValue
+	if len(writes) == 0 {
+		return nil, ErrEmptySlice
 	}
 	bwo, err := mongoutil.NewOptions(opts...)
 	if err != nil {
@@ -930,8 +937,16 @@ func (c *Client) BulkWrite(ctx context.Context, models *ClientWriteModels,
 	}
 	selector := makePinnedSelector(sess, writeSelector)
 
+	writePairs := make([]clientBulkWritePair, len(writes))
+	for i, w := range writes {
+		writePairs[i] = clientBulkWritePair{
+			namespace: fmt.Sprintf("%s.%s", w.Database, w.Collection),
+			model:     w.Model,
+		}
+	}
+
 	op := clientBulkWrite{
-		models:                   models.models,
+		writePairs:               writePairs,
 		ordered:                  bwo.Ordered,
 		bypassDocumentValidation: bwo.BypassDocumentValidation,
 		comment:                  bwo.Comment,

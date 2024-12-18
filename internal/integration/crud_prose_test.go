@@ -420,7 +420,7 @@ func TestClientBulkWrite(t *testing.T) {
 	mtOpts := mtest.NewOptions().MinServerVersion("8.0").AtlasDataLake(false).ClientType(mtest.Pinned)
 	mt := mtest.New(t, mtOpts)
 
-	mt.Run("bulkWrite batch splits a writeModels input with greater than maxWriteBatchSize operations", func(mt *mtest.T) {
+	mt.Run("3. MongoClient.bulkWrite batch splits a writeModels input with greater than maxWriteBatchSize operations", func(mt *mtest.T) {
 		var opsCnt []int
 		monitor := &event.CommandMonitor{
 			Started: func(_ context.Context, e *event.CommandStartedEvent) {
@@ -440,23 +440,26 @@ func TestClientBulkWrite(t *testing.T) {
 		}
 		err := mt.DB.RunCommand(context.Background(), bson.D{{"hello", 1}}).Decode(&hello)
 		require.NoError(mt, err, "Hello error: %v", err)
-		models := &mongo.ClientWriteModels{}
-		numModels := hello.MaxWriteBatchSize + 1
-		for i := 0; i < numModels; i++ {
-			models.
-				AppendInsertOne("db", "coll", &mongo.ClientInsertOneModel{
+		var writes []mongo.ClientBulkWrite
+		num := hello.MaxWriteBatchSize + 1
+		for i := 0; i < num; i++ {
+			writes = append(writes, mongo.ClientBulkWrite{
+				Database:   "db",
+				Collection: "coll",
+				Model: &mongo.ClientInsertOneModel{
 					Document: bson.D{{"a", "b"}},
-				})
+				},
+			})
 		}
-		result, err := mt.Client.BulkWrite(context.Background(), models)
+		result, err := mt.Client.BulkWrite(context.Background(), writes)
 		require.NoError(mt, err, "BulkWrite error: %v", err)
-		assert.Equal(mt, numModels, int(result.InsertedCount), "expected InsertedCount: %d, got %d", numModels, result.InsertedCount)
+		assert.Equal(mt, num, int(result.InsertedCount), "expected InsertedCount: %d, got %d", num, result.InsertedCount)
 		require.Len(mt, opsCnt, 2, "expected %d bulkWrite commands, got: %d", 2, len(opsCnt))
-		assert.Equal(mt, numModels-1, opsCnt[0], "expected %d firstEvent.command.ops, got: %d", numModels-1, opsCnt[0])
+		assert.Equal(mt, num-1, opsCnt[0], "expected %d firstEvent.command.ops, got: %d", num-1, opsCnt[0])
 		assert.Equal(mt, 1, opsCnt[1], "expected %d secondEvent.command.ops, got: %d", 1, opsCnt[1])
 	})
 
-	mt.Run("bulkWrite batch splits when an ops payload exceeds maxMessageSizeBytes", func(mt *mtest.T) {
+	mt.Run("4. MongoClient.bulkWrite batch splits when an ops payload exceeds maxMessageSizeBytes", func(mt *mtest.T) {
 		var opsCnt []int
 		monitor := &event.CommandMonitor{
 			Started: func(_ context.Context, e *event.CommandStartedEvent) {
@@ -477,23 +480,26 @@ func TestClientBulkWrite(t *testing.T) {
 		}
 		err := mt.DB.RunCommand(context.Background(), bson.D{{"hello", 1}}).Decode(&hello)
 		require.NoError(mt, err, "Hello error: %v", err)
-		models := &mongo.ClientWriteModels{}
-		numModels := hello.MaxMessageSizeBytes/hello.MaxBsonObjectSize + 1
-		for i := 0; i < numModels; i++ {
-			models.
-				AppendInsertOne("db", "coll", &mongo.ClientInsertOneModel{
+		var writes []mongo.ClientBulkWrite
+		num := hello.MaxMessageSizeBytes/hello.MaxBsonObjectSize + 1
+		for i := 0; i < num; i++ {
+			writes = append(writes, mongo.ClientBulkWrite{
+				Database:   "db",
+				Collection: "coll",
+				Model: &mongo.ClientInsertOneModel{
 					Document: bson.D{{"a", strings.Repeat("b", hello.MaxBsonObjectSize-500)}},
-				})
+				},
+			})
 		}
-		result, err := mt.Client.BulkWrite(context.Background(), models)
+		result, err := mt.Client.BulkWrite(context.Background(), writes)
 		require.NoError(mt, err, "BulkWrite error: %v", err)
-		assert.Equal(mt, numModels, int(result.InsertedCount), "expected InsertedCount: %d, got: %d", numModels, result.InsertedCount)
+		assert.Equal(mt, num, int(result.InsertedCount), "expected InsertedCount: %d, got: %d", num, result.InsertedCount)
 		require.Len(mt, opsCnt, 2, "expected %d bulkWrite commands, got: %d", 2, len(opsCnt))
-		assert.Equal(mt, numModels-1, opsCnt[0], "expected %d firstEvent.command.ops, got: %d", numModels-1, opsCnt[0])
+		assert.Equal(mt, num-1, opsCnt[0], "expected %d firstEvent.command.ops, got: %d", num-1, opsCnt[0])
 		assert.Equal(mt, 1, opsCnt[1], "expected %d secondEvent.command.ops, got: %d", 1, opsCnt[1])
 	})
 
-	mt.Run("bulkWrite collects WriteConcernErrors across batches", func(mt *mtest.T) {
+	mt.Run("5. MongoClient.bulkWrite collects WriteConcernErrors across batches", func(mt *mtest.T) {
 		var eventCnt int
 		monitor := &event.CommandMonitor{
 			Started: func(_ context.Context, e *event.CommandStartedEvent) {
@@ -523,26 +529,29 @@ func TestClientBulkWrite(t *testing.T) {
 			},
 		})
 
-		models := &mongo.ClientWriteModels{}
-		numModels := hello.MaxWriteBatchSize + 1
-		for i := 0; i < numModels; i++ {
-			models.
-				AppendInsertOne("db", "coll", &mongo.ClientInsertOneModel{
+		var writes []mongo.ClientBulkWrite
+		num := hello.MaxWriteBatchSize + 1
+		for i := 0; i < num; i++ {
+			writes = append(writes, mongo.ClientBulkWrite{
+				Database:   "db",
+				Collection: "coll",
+				Model: &mongo.ClientInsertOneModel{
 					Document: bson.D{{"a", "b"}},
-				})
+				},
+			})
 		}
-		_, err = mt.Client.BulkWrite(context.Background(), models)
+		_, err = mt.Client.BulkWrite(context.Background(), writes)
 		require.Error(mt, err, "expected a BulkWrite error")
 		bwe, ok := err.(mongo.ClientBulkWriteException)
 		require.True(mt, ok, "expected a BulkWriteException, got %T: %v", err, err)
 		assert.Len(mt, bwe.WriteConcernErrors, 2, "expected %d writeConcernErrors, got: %d", 2, len(bwe.WriteConcernErrors))
 		require.NotNil(mt, bwe.PartialResult)
-		assert.Equal(mt, numModels, int(bwe.PartialResult.InsertedCount),
-			"expected InsertedCount: %d, got: %d", numModels, bwe.PartialResult.InsertedCount)
+		assert.Equal(mt, num, int(bwe.PartialResult.InsertedCount),
+			"expected InsertedCount: %d, got: %d", num, bwe.PartialResult.InsertedCount)
 		require.Equal(mt, 2, eventCnt, "expected %d bulkWrite commands, got: %d", 2, eventCnt)
 	})
 
-	mt.Run("bulkWrite handles individual WriteErrors across batches", func(mt *mtest.T) {
+	mt.Run("6. MongoClient.bulkWrite handles individual WriteErrors across batches", func(mt *mtest.T) {
 		var eventCnt int
 		monitor := &event.CommandMonitor{
 			Started: func(_ context.Context, e *event.CommandStartedEvent) {
@@ -565,19 +574,22 @@ func TestClientBulkWrite(t *testing.T) {
 		_, err = coll.InsertOne(context.Background(), bson.D{{"_id", 1}})
 		require.NoError(mt, err, "InsertOne error: %v", err)
 
-		models := &mongo.ClientWriteModels{}
+		var writes []mongo.ClientBulkWrite
 		numModels := hello.MaxWriteBatchSize + 1
 		for i := 0; i < numModels; i++ {
-			models.
-				AppendInsertOne("db", "coll", &mongo.ClientInsertOneModel{
+			writes = append(writes, mongo.ClientBulkWrite{
+				Database:   "db",
+				Collection: "coll",
+				Model: &mongo.ClientInsertOneModel{
 					Document: bson.D{{"_id", 1}},
-				})
+				},
+			})
 		}
 
 		mt.Run("unordered", func(mt *mtest.T) {
 			eventCnt = 0
 			mt.ResetClient(options.Client().SetMonitor(monitor))
-			_, err := mt.Client.BulkWrite(context.Background(), models, options.ClientBulkWrite().SetOrdered(false))
+			_, err := mt.Client.BulkWrite(context.Background(), writes, options.ClientBulkWrite().SetOrdered(false))
 			require.Error(mt, err, "expected a BulkWrite error")
 			bwe, ok := err.(mongo.ClientBulkWriteException)
 			require.True(mt, ok, "expected a BulkWriteException, got %T: %v", err, err)
@@ -587,7 +599,7 @@ func TestClientBulkWrite(t *testing.T) {
 		mt.Run("ordered", func(mt *mtest.T) {
 			eventCnt = 0
 			mt.ResetClient(options.Client().SetMonitor(monitor))
-			_, err := mt.Client.BulkWrite(context.Background(), models, options.ClientBulkWrite().SetOrdered(true))
+			_, err := mt.Client.BulkWrite(context.Background(), writes, options.ClientBulkWrite().SetOrdered(true))
 			require.Error(mt, err, "expected a BulkWrite error")
 			bwe, ok := err.(mongo.ClientBulkWriteException)
 			require.True(mt, ok, "expected a BulkWriteException, got %T: %v", err, err)
@@ -596,7 +608,7 @@ func TestClientBulkWrite(t *testing.T) {
 		})
 	})
 
-	mt.Run("bulkWrite handles a cursor requiring a getMore", func(mt *mtest.T) {
+	mt.Run("7. MongoClient.bulkWrite handles a cursor requiring a getMore", func(mt *mtest.T) {
 		var getMoreCalled int
 		monitor := &event.CommandMonitor{
 			Started: func(_ context.Context, e *event.CommandStartedEvent) {
@@ -617,17 +629,26 @@ func TestClientBulkWrite(t *testing.T) {
 		require.NoError(mt, err, "Drop error: %v", err)
 
 		upsert := true
-		models := (&mongo.ClientWriteModels{}).
-			AppendUpdateOne("db", "coll", &mongo.ClientUpdateOneModel{
-				Filter: bson.D{{"_id", strings.Repeat("a", hello.MaxBsonObjectSize/2)}},
-				Update: bson.D{{"$set", bson.D{{"x", 1}}}},
-				Upsert: &upsert,
-			}).
-			AppendUpdateOne("db", "coll", &mongo.ClientUpdateOneModel{
-				Filter: bson.D{{"_id", strings.Repeat("b", hello.MaxBsonObjectSize/2)}},
-				Update: bson.D{{"$set", bson.D{{"x", 1}}}},
-				Upsert: &upsert,
-			})
+		models := []mongo.ClientBulkWrite{
+			{
+				Database:   "db",
+				Collection: "coll",
+				Model: &mongo.ClientUpdateOneModel{
+					Filter: bson.D{{"_id", strings.Repeat("a", hello.MaxBsonObjectSize/2)}},
+					Update: bson.D{{"$set", bson.D{{"x", 1}}}},
+					Upsert: &upsert,
+				},
+			},
+			{
+				Database:   "db",
+				Collection: "coll",
+				Model: &mongo.ClientUpdateOneModel{
+					Filter: bson.D{{"_id", strings.Repeat("b", hello.MaxBsonObjectSize/2)}},
+					Update: bson.D{{"$set", bson.D{{"x", 1}}}},
+					Upsert: &upsert,
+				},
+			},
+		}
 		result, err := mt.Client.BulkWrite(context.Background(), models, options.ClientBulkWrite().SetVerboseResults(true))
 		require.NoError(mt, err, "BulkWrite error: %v", err)
 		assert.Equal(mt, int64(2), result.UpsertedCount, "expected InsertedCount: %d, got: %d", 2, result.UpsertedCount)
@@ -635,7 +656,7 @@ func TestClientBulkWrite(t *testing.T) {
 		assert.Equal(mt, 1, getMoreCalled, "expected %d getMore call, got: %d", 1, getMoreCalled)
 	})
 
-	mt.RunOpts("bulkWrite handles a cursor requiring a getMore within a transaction",
+	mt.RunOpts("8. MongoClient.bulkWrite handles a cursor requiring getMore within a transaction",
 		mtest.NewOptions().MinServerVersion("8.0").AtlasDataLake(false).ClientType(mtest.Pinned).
 			Topologies(mtest.ReplicaSet, mtest.Sharded, mtest.LoadBalanced, mtest.ShardedReplicaSet),
 		func(mt *mtest.T) {
@@ -663,17 +684,26 @@ func TestClientBulkWrite(t *testing.T) {
 			defer session.EndSession(context.Background())
 
 			upsert := true
-			models := (&mongo.ClientWriteModels{}).
-				AppendUpdateOne("db", "coll", &mongo.ClientUpdateOneModel{
-					Filter: bson.D{{"_id", strings.Repeat("a", hello.MaxBsonObjectSize/2)}},
-					Update: bson.D{{"$set", bson.D{{"x", 1}}}},
-					Upsert: &upsert,
-				}).
-				AppendUpdateOne("db", "coll", &mongo.ClientUpdateOneModel{
-					Filter: bson.D{{"_id", strings.Repeat("b", hello.MaxBsonObjectSize/2)}},
-					Update: bson.D{{"$set", bson.D{{"x", 1}}}},
-					Upsert: &upsert,
-				})
+			models := []mongo.ClientBulkWrite{
+				{
+					Database:   "db",
+					Collection: "coll",
+					Model: &mongo.ClientUpdateOneModel{
+						Filter: bson.D{{"_id", strings.Repeat("a", hello.MaxBsonObjectSize/2)}},
+						Update: bson.D{{"$set", bson.D{{"x", 1}}}},
+						Upsert: &upsert,
+					},
+				},
+				{
+					Database:   "db",
+					Collection: "coll",
+					Model: &mongo.ClientUpdateOneModel{
+						Filter: bson.D{{"_id", strings.Repeat("b", hello.MaxBsonObjectSize/2)}},
+						Update: bson.D{{"$set", bson.D{{"x", 1}}}},
+						Upsert: &upsert,
+					},
+				},
+			}
 			result, err := session.WithTransaction(context.Background(), func(ctx context.Context) (interface{}, error) {
 				return mt.Client.BulkWrite(ctx, models, options.ClientBulkWrite().SetVerboseResults(true))
 			})
@@ -685,7 +715,7 @@ func TestClientBulkWrite(t *testing.T) {
 			assert.Equal(mt, 1, getMoreCalled, "expected %d getMore call, got: %d", 1, getMoreCalled)
 		})
 
-	mt.Run("bulkWrite handles a getMore error", func(mt *mtest.T) {
+	mt.Run("9. MongoClient.bulkWrite handles a getMore error", func(mt *mtest.T) {
 		var getMoreCalled int
 		var killCursorsCalled int
 		monitor := &event.CommandMonitor{
@@ -721,17 +751,26 @@ func TestClientBulkWrite(t *testing.T) {
 		require.NoError(mt, err, "Drop error: %v", err)
 
 		upsert := true
-		models := (&mongo.ClientWriteModels{}).
-			AppendUpdateOne("db", "coll", &mongo.ClientUpdateOneModel{
-				Filter: bson.D{{"_id", strings.Repeat("a", hello.MaxBsonObjectSize/2)}},
-				Update: bson.D{{"$set", bson.D{{"x", 1}}}},
-				Upsert: &upsert,
-			}).
-			AppendUpdateOne("db", "coll", &mongo.ClientUpdateOneModel{
-				Filter: bson.D{{"_id", strings.Repeat("b", hello.MaxBsonObjectSize/2)}},
-				Update: bson.D{{"$set", bson.D{{"x", 1}}}},
-				Upsert: &upsert,
-			})
+		models := []mongo.ClientBulkWrite{
+			{
+				Database:   "db",
+				Collection: "coll",
+				Model: &mongo.ClientUpdateOneModel{
+					Filter: bson.D{{"_id", strings.Repeat("a", hello.MaxBsonObjectSize/2)}},
+					Update: bson.D{{"$set", bson.D{{"x", 1}}}},
+					Upsert: &upsert,
+				},
+			},
+			{
+				Database:   "db",
+				Collection: "coll",
+				Model: &mongo.ClientUpdateOneModel{
+					Filter: bson.D{{"_id", strings.Repeat("b", hello.MaxBsonObjectSize/2)}},
+					Update: bson.D{{"$set", bson.D{{"x", 1}}}},
+					Upsert: &upsert,
+				},
+			},
+		}
 		_, err = mt.Client.BulkWrite(context.Background(), models, options.ClientBulkWrite().SetVerboseResults(true))
 		assert.Error(mt, err, "expected a BulkWrite error")
 		bwe, ok := err.(mongo.ClientBulkWriteException)
@@ -745,7 +784,7 @@ func TestClientBulkWrite(t *testing.T) {
 		assert.Equal(mt, 1, killCursorsCalled, "expected %d killCursors call, got: %d", 1, killCursorsCalled)
 	})
 
-	mt.Run("bulkWrite batch splits when the addition of a new namespace exceeds the maximum message size", func(mt *mtest.T) {
+	mt.Run("11. MongoClient.bulkWrite batch splits when the addition of a new namespace exceeds the maximum message size", func(mt *mtest.T) {
 		type cmd struct {
 			Ops    []bson.D
 			NsInfo []struct {
@@ -771,60 +810,73 @@ func TestClientBulkWrite(t *testing.T) {
 		err := mt.DB.RunCommand(context.Background(), bson.D{{"hello", 1}}).Decode(&hello)
 		require.NoError(mt, err, "Hello error: %v", err)
 
-		newModels := func() (int, *mongo.ClientWriteModels) {
+		newWrites := func() (int, []mongo.ClientBulkWrite) {
 			maxBsonObjectSize := hello.MaxBsonObjectSize
 			opsBytes := hello.MaxMessageSizeBytes - 1122
-			numModels := opsBytes / maxBsonObjectSize
+			num := opsBytes / maxBsonObjectSize
 
-			models := &mongo.ClientWriteModels{}
-			n := numModels
-			for i := 0; i < n; i++ {
-				models.
-					AppendInsertOne("db", "coll", &mongo.ClientInsertOneModel{
+			var writes []mongo.ClientBulkWrite
+			for i := 0; i < num; i++ {
+				writes = append(writes, mongo.ClientBulkWrite{
+					Database:   "db",
+					Collection: "coll",
+					Model: &mongo.ClientInsertOneModel{
 						Document: bson.D{{"a", strings.Repeat("b", maxBsonObjectSize-57)}},
-					})
+					},
+				})
 			}
 			if remainderBytes := opsBytes % maxBsonObjectSize; remainderBytes > 217 {
-				n++
-				models.
-					AppendInsertOne("db", "coll", &mongo.ClientInsertOneModel{
+				num++
+				writes = append(writes, mongo.ClientBulkWrite{
+					Database:   "db",
+					Collection: "coll",
+					Model: &mongo.ClientInsertOneModel{
 						Document: bson.D{{"a", strings.Repeat("b", remainderBytes-57)}},
-					})
+					},
+				})
 			}
-			return n, models
+			return num, writes
 		}
-		mt.Run("no batch-splitting required", func(mt *mtest.T) {
+		mt.Run("Case 1: No batch-splitting required", func(mt *mtest.T) {
 			bwCmd = bwCmd[:0]
 			mt.ResetClient(options.Client().SetMonitor(monitor))
 
-			numModels, models := newModels()
-			models.AppendInsertOne("db", "coll", &mongo.ClientInsertOneModel{
-				Document: bson.D{{"a", "b"}},
+			num, writes := newWrites()
+			writes = append(writes, mongo.ClientBulkWrite{
+				Database:   "db",
+				Collection: "coll",
+				Model: &mongo.ClientInsertOneModel{
+					Document: bson.D{{"a", "b"}},
+				},
 			})
-			result, err := mt.Client.BulkWrite(context.Background(), models)
+			result, err := mt.Client.BulkWrite(context.Background(), writes)
 			require.NoError(mt, err, "BulkWrite error: %v", err)
-			assert.Equal(mt, numModels+1, int(result.InsertedCount), "expected insertedCound: %d, got: %d", numModels+1, result.InsertedCount)
+			assert.Equal(mt, num+1, int(result.InsertedCount), "expected insertedCound: %d, got: %d", num+1, result.InsertedCount)
 			require.Len(mt, bwCmd, 1, "expected %d bulkWrite call, got: %d", 1, len(bwCmd))
 
-			assert.Len(mt, bwCmd[0].Ops, numModels+1, "expected %d ops, got: %d", numModels+1, len(bwCmd[0].Ops))
+			assert.Len(mt, bwCmd[0].Ops, num+1, "expected %d ops, got: %d", num+1, len(bwCmd[0].Ops))
 			require.Len(mt, bwCmd[0].NsInfo, 1, "expected %d nsInfo, got: %d", 1, len(bwCmd[0].NsInfo))
 			assert.Equal(mt, "db.coll", bwCmd[0].NsInfo[0].Ns, "expected namespace: %s, got: %s", "db.coll", bwCmd[0].NsInfo[0].Ns)
 		})
-		mt.Run("batch-splitting required", func(mt *mtest.T) {
+		mt.Run("Case 2: Batch-splitting required", func(mt *mtest.T) {
 			bwCmd = bwCmd[:0]
 			mt.ResetClient(options.Client().SetMonitor(monitor))
 
 			coll := strings.Repeat("c", 200)
-			numModels, models := newModels()
-			models.AppendInsertOne("db", coll, &mongo.ClientInsertOneModel{
-				Document: bson.D{{"a", "b"}},
+			num, writes := newWrites()
+			writes = append(writes, mongo.ClientBulkWrite{
+				Database:   "db",
+				Collection: coll,
+				Model: &mongo.ClientInsertOneModel{
+					Document: bson.D{{"a", "b"}},
+				},
 			})
-			result, err := mt.Client.BulkWrite(context.Background(), models)
+			result, err := mt.Client.BulkWrite(context.Background(), writes)
 			require.NoError(mt, err, "BulkWrite error: %v", err)
-			assert.Equal(mt, numModels+1, int(result.InsertedCount), "expected insertedCound: %d, got: %d", numModels+1, result.InsertedCount)
+			assert.Equal(mt, num+1, int(result.InsertedCount), "expected insertedCound: %d, got: %d", num+1, result.InsertedCount)
 			require.Len(mt, bwCmd, 2, "expected %d bulkWrite calls, got: %d", 2, len(bwCmd))
 
-			assert.Len(mt, bwCmd[0].Ops, numModels, "expected %d ops, got: %d", numModels, len(bwCmd[0].Ops))
+			assert.Len(mt, bwCmd[0].Ops, num, "expected %d ops, got: %d", num, len(bwCmd[0].Ops))
 			require.Len(mt, bwCmd[0].NsInfo, 1, "expected %d nsInfo, got: %d", 1, len(bwCmd[0].NsInfo))
 			assert.Equal(mt, "db.coll", bwCmd[0].NsInfo[0].Ns, "expected namespace: %s, got: %s", "db.coll", bwCmd[0].NsInfo[0].Ns)
 
@@ -834,32 +886,38 @@ func TestClientBulkWrite(t *testing.T) {
 		})
 	})
 
-	mt.Run("bulkWrite returns an error if no operations can be added to ops", func(mt *mtest.T) {
+	mt.Run("12. MongoClient.bulkWrite returns an error if no operations can be added to ops", func(mt *mtest.T) {
 		mt.ResetClient(options.Client())
 		var hello struct {
 			MaxMessageSizeBytes int
 		}
 		err := mt.DB.RunCommand(context.Background(), bson.D{{"hello", 1}}).Decode(&hello)
 		require.NoError(mt, err, "Hello error: %v", err)
-		mt.Run("document too large", func(mt *mtest.T) {
-			models := (&mongo.ClientWriteModels{}).
-				AppendInsertOne("db", "coll", &mongo.ClientInsertOneModel{
+		mt.Run("Case 1: document too large", func(mt *mtest.T) {
+			writes := []mongo.ClientBulkWrite{{
+				Database:   "db",
+				Collection: "coll",
+				Model: &mongo.ClientInsertOneModel{
 					Document: bson.D{{"a", strings.Repeat("b", hello.MaxMessageSizeBytes)}},
-				})
-			_, err := mt.Client.BulkWrite(context.Background(), models)
+				},
+			}}
+			_, err := mt.Client.BulkWrite(context.Background(), writes)
 			require.EqualError(mt, err, driver.ErrDocumentTooLarge.Error())
 		})
-		mt.Run("namespace too large", func(mt *mtest.T) {
-			models := (&mongo.ClientWriteModels{}).
-				AppendInsertOne("db", strings.Repeat("c", hello.MaxMessageSizeBytes), &mongo.ClientInsertOneModel{
+		mt.Run("Case 2: namespace too large", func(mt *mtest.T) {
+			writes := []mongo.ClientBulkWrite{{
+				Database:   "db",
+				Collection: strings.Repeat("c", hello.MaxMessageSizeBytes),
+				Model: &mongo.ClientInsertOneModel{
 					Document: bson.D{{"a", "b"}},
-				})
-			_, err := mt.Client.BulkWrite(context.Background(), models)
+				},
+			}}
+			_, err := mt.Client.BulkWrite(context.Background(), writes)
 			require.EqualError(mt, err, driver.ErrDocumentTooLarge.Error())
 		})
 	})
 
-	mt.Run("bulkWrite returns an error if auto-encryption is configured", func(mt *mtest.T) {
+	mt.Run("13. MongoClient.bulkWrite returns an error if auto-encryption is configured", func(mt *mtest.T) {
 		if os.Getenv("DOCKER_RUNNING") != "" {
 			mt.Skip("skipping test in docker environment")
 		}
@@ -873,15 +931,18 @@ func TestClientBulkWrite(t *testing.T) {
 				},
 			})
 		mt.ResetClient(options.Client().SetAutoEncryptionOptions(autoEncryptionOpts))
-		models := (&mongo.ClientWriteModels{}).
-			AppendInsertOne("db", "coll", &mongo.ClientInsertOneModel{
+		writes := []mongo.ClientBulkWrite{{
+			Database:   "db",
+			Collection: "coll",
+			Model: &mongo.ClientInsertOneModel{
 				Document: bson.D{{"a", "b"}},
-			})
-		_, err := mt.Client.BulkWrite(context.Background(), models)
+			},
+		}}
+		_, err := mt.Client.BulkWrite(context.Background(), writes)
 		require.ErrorContains(mt, err, "bulkWrite does not currently support automatic encryption")
 	})
 
-	mt.Run("bulkWrite with unacknowledged write concern uses w:0 for all batches", func(mt *mtest.T) {
+	mt.Run("15. MongoClient.bulkWrite with unacknowledged write concern uses w:0 for all batches", func(mt *mtest.T) {
 		type cmd struct {
 			Ops          []bson.D
 			WriteConcern struct {
@@ -912,20 +973,23 @@ func TestClientBulkWrite(t *testing.T) {
 		err = coll.Drop(context.Background())
 		require.NoError(mt, err, "Drop error: %v", err)
 
-		numModels := hello.MaxMessageSizeBytes/hello.MaxBsonObjectSize + 1
-		models := &mongo.ClientWriteModels{}
-		for i := 0; i < numModels; i++ {
-			models.
-				AppendInsertOne("db", "coll", &mongo.ClientInsertOneModel{
+		num := hello.MaxMessageSizeBytes/hello.MaxBsonObjectSize + 1
+		var writes []mongo.ClientBulkWrite
+		for i := 0; i < num; i++ {
+			writes = append(writes, mongo.ClientBulkWrite{
+				Database:   "db",
+				Collection: "coll",
+				Model: &mongo.ClientInsertOneModel{
 					Document: bson.D{{"a", strings.Repeat("b", hello.MaxBsonObjectSize-500)}},
-				})
+				},
+			})
 		}
-		result, err := mt.Client.BulkWrite(context.Background(), models, options.ClientBulkWrite().SetOrdered(false).SetWriteConcern(writeconcern.Unacknowledged()))
+		result, err := mt.Client.BulkWrite(context.Background(), writes, options.ClientBulkWrite().SetOrdered(false).SetWriteConcern(writeconcern.Unacknowledged()))
 		require.NoError(mt, err, "BulkWrite error: %v", err)
 		assert.False(mt, result.Acknowledged)
 		require.Len(mt, bwCmd, 2, "expected %d bulkWrite calls, got: %d", 2, len(bwCmd))
 
-		assert.Len(mt, bwCmd[0].Ops, numModels-1, "expected %d ops, got: %d", numModels-1, len(bwCmd[0].Ops))
+		assert.Len(mt, bwCmd[0].Ops, num-1, "expected %d ops, got: %d", num-1, len(bwCmd[0].Ops))
 		assert.Equal(mt, int32(0), bwCmd[0].WriteConcern.W, "expected writeConcern: %d, got: %v", 0, bwCmd[0].WriteConcern.W)
 
 		assert.Len(mt, bwCmd[1].Ops, 1, "expected %d ops, got: %d", 1, len(bwCmd[1].Ops))
@@ -933,6 +997,6 @@ func TestClientBulkWrite(t *testing.T) {
 
 		n, err := coll.CountDocuments(context.Background(), bson.D{})
 		require.NoError(mt, err, "CountDocuments error: %v", err)
-		assert.Equal(mt, numModels, int(n), "expected %d documents, got: %d", numModels, n)
+		assert.Equal(mt, num, int(n), "expected %d documents, got: %d", num, n)
 	})
 }

@@ -18,7 +18,7 @@ func TestBatches(t *testing.T) {
 	t.Parallel()
 
 	batches := &modelBatches{
-		models: make([]clientWriteModel, 2),
+		writePairs: make([]clientBulkWritePair, 2),
 	}
 	batches.AdvanceBatches(3)
 	size := batches.Size()
@@ -33,7 +33,7 @@ func TestAppendBatchSequence(t *testing.T) {
 		require.NoError(t, err, "NewClient error: %v", err)
 		return &modelBatches{
 			client: client,
-			models: []clientWriteModel{
+			writePairs: []clientBulkWritePair{
 				{"ns0", nil},
 				{"ns1", &ClientInsertOneModel{
 					Document: bson.D{{"foo", 42}},

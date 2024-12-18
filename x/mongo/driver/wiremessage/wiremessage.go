@@ -16,7 +16,6 @@ package wiremessage
 import (
 	"bytes"
 	"encoding/binary"
-	"strconv"
 	"strings"
 	"sync/atomic"
 
@@ -421,39 +420,6 @@ func ReadMsgSectionRawDocumentSequence(src []byte) (identifier string, data []by
 	}
 
 	return identifier, rem, rest, true
-}
-
-// DocumentSequenceToArray converts a document sequence in byte slice to an array.
-func DocumentSequenceToArray(src []byte) (dst, rem []byte, ok bool) {
-	stype, rem, ok := ReadMsgSectionType(src)
-	if !ok || stype != DocumentSequence {
-		return nil, src, false
-	}
-	var identifier string
-	var ret []byte
-	identifier, rem, ret, ok = ReadMsgSectionRawDocumentSequence(rem)
-	if !ok {
-		return nil, src, false
-	}
-
-	aidx, dst := bsoncore.AppendArrayElementStart(nil, identifier)
-	i := 0
-	for {
-		var doc bsoncore.Document
-		doc, rem, ok = bsoncore.ReadDocument(rem)
-		if !ok {
-			break
-		}
-		dst = bsoncore.AppendDocumentElement(dst, strconv.Itoa(i), doc)
-		i++
-	}
-	if len(rem) > 0 {
-		return nil, src, false
-	}
-
-	dst, _ = bsoncore.AppendArrayEnd(dst, aidx)
-
-	return dst, ret, true
 }
 
 // ReadMsgChecksum reads a checksum from src.

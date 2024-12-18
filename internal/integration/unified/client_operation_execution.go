@@ -173,7 +173,7 @@ func executeClientBulkWrite(ctx context.Context, operation *operation) (*operati
 		return nil, err
 	}
 
-	wirteModels := &mongo.ClientWriteModels{}
+	var writes []mongo.ClientBulkWrite
 	opts := options.ClientBulkWrite()
 
 	elems, err := operation.Arguments.Elements()
@@ -192,10 +192,27 @@ func executeClientBulkWrite(ctx context.Context, operation *operation) (*operati
 			}
 			for _, m := range models {
 				model := m.Document().Index(0)
-				err = appendClientBulkWriteModel(model.Key(), model.Value().Document(), wirteModels)
+				var op *mongo.ClientBulkWrite
+				switch key := model.Key(); key {
+				case "insertOne":
+					op, err = createClientInsertOneModel(model.Value().Document())
+				case "updateOne":
+					op, err = createClientUpdateOneModel(model.Value().Document())
+				case "updateMany":
+					op, err = createClientUpdateManyModel(model.Value().Document())
+				case "replaceOne":
+					op, err = createClientReplaceOneModel(model.Value().Document())
+				case "deleteOne":
+					op, err = createClientDeleteOneModel(model.Value().Document())
+				case "deleteMany":
+					op, err = createClientDeleteManyModel(model.Value().Document())
+				default:
+					err = fmt.Errorf("unrecognized bulkWrite model %q", key)
+				}
 				if err != nil {
 					return nil, err
 				}
+				writes = append(writes, *op)
 			}
 		case "bypassDocumentValidation":
 			opts.SetBypassDocumentValidation(val.Boolean())
@@ -223,7 +240,7 @@ func executeClientBulkWrite(ctx context.Context, operation *operation) (*operati
 		}
 	}
 
-	res, err := client.BulkWrite(ctx, wirteModels, opts)
+	res, err := client.BulkWrite(ctx, writes, opts)
 	var bwe mongo.ClientBulkWriteException
 	if errors.As(err, &bwe) {
 		res = bwe.PartialResult
@@ -283,69 +300,26 @@ func executeClientBulkWrite(ctx context.Context, operation *operation) (*operati
 	return newDocumentResult(rawBuilder.Build(), err), nil
 }
 
-func appendClientBulkWriteModel(key string, value bson.Raw, model *mongo.ClientWriteModels) error {
-	switch key {
-	case "insertOne":
-		namespace, m, err := createClientInsertOneModel(value)
-		if err != nil {
-			return err
-		}
-		ns := strings.SplitN(namespace, ".", 2)
-		model.AppendInsertOne(ns[0], ns[1], m)
-	case "updateOne":
-		namespace, m, err := createClientUpdateOneModel(value)
-		if err != nil {
-			return err
-		}
-		ns := strings.SplitN(namespace, ".", 2)
-		model.AppendUpdateOne(ns[0], ns[1], m)
-	case "updateMany":
-		namespace, m, err := createClientUpdateManyModel(value)
-		if err != nil {
-			return err
-		}
-		ns := strings.SplitN(namespace, ".", 2)
-		model.AppendUpdateMany(ns[0], ns[1], m)
-	case "replaceOne":
-		namespace, m, err := createClientReplaceOneModel(value)
-		if err != nil {
-			return err
-		}
-		ns := strings.SplitN(namespace, ".", 2)
-		model.AppendReplaceOne(ns[0], ns[1], m)
-	case "deleteOne":
-		namespace, m, err := createClientDeleteOneModel(value)
-		if err != nil {
-			return err
-		}
-		ns := strings.SplitN(namespace, ".", 2)
-		model.AppendDeleteOne(ns[0], ns[1], m)
-	case "deleteMany":
-		namespace, m, err := createClientDeleteManyModel(value)
-		if err != nil {
-			return err
-		}
-		ns := strings.SplitN(namespace, ".", 2)
-		model.AppendDeleteMany(ns[0], ns[1], m)
-	}
-	return nil
-}
-
-func createClientInsertOneModel(value bson.Raw) (string, *mongo.ClientInsertOneModel, error) {
+func createClientInsertOneModel(value bson.Raw) (*mongo.ClientBulkWrite, error) {
 	var v struct {
 		Namespace string
 		Document  bson.Raw
 	}
 	err := bson.Unmarshal(value, &v)
 	if err != nil {
-		return "", nil, err
+		return nil, err
 	}
-	return v.Namespace, &mongo.ClientInsertOneModel{
-		Document: v.Document,
+	ns := strings.SplitN(v.Namespace, ".", 2)
+	return &mongo.ClientBulkWrite{
+		Database:   ns[0],
+		Collection: ns[1],
+		Model: &mongo.ClientInsertOneModel{
+			Document: v.Document,
+		},
 	}, nil
 }
 
-func createClientUpdateOneModel(value bson.Raw) (string, *mongo.ClientUpdateOneModel, error) {
+func createClientUpdateOneModel(value bson.Raw) (*mongo.ClientBulkWrite, error) {
 	var v struct {
 		Namespace    string
 		Filter       bson.Raw
@@ -357,13 +331,13 @@ func createClientUpdateOneModel(value bson.Raw) (string, *mongo.ClientUpdateOneM
 	}
 	err := bson.Unmarshal(value, &v)
 	if err != nil {
-		return "", nil, err
+		return nil, err
 	}
 	var hint interface{}
 	if v.Hint != nil {
 		hint, err = createHint(*v.Hint)
 		if err != nil {
-			return "", nil, err
+			return nil, err
 		}
 	}
 	model := &mongo.ClientUpdateOneModel{
@@ -376,11 +350,15 @@ func createClientUpdateOneModel(value bson.Raw) (string, *mongo.ClientUpdateOneM
 	if len(v.ArrayFilters) > 0 {
 		model.ArrayFilters = v.ArrayFilters
 	}
-	return v.Namespace, model, nil
-
+	ns := strings.SplitN(v.Namespace, ".", 2)
+	return &mongo.ClientBulkWrite{
+		Database:   ns[0],
+		Collection: ns[1],
+		Model:      model,
+	}, nil
 }
 
-func createClientUpdateManyModel(value bson.Raw) (string, *mongo.ClientUpdateManyModel, error) {
+func createClientUpdateManyModel(value bson.Raw) (*mongo.ClientBulkWrite, error) {
 	var v struct {
 		Namespace    string
 		Filter       bson.Raw
@@ -392,13 +370,13 @@ func createClientUpdateManyModel(value bson.Raw) (string, *mongo.ClientUpdateMan
 	}
 	err := bson.Unmarshal(value, &v)
 	if err != nil {
-		return "", nil, err
+		return nil, err
 	}
 	var hint interface{}
 	if v.Hint != nil {
 		hint, err = createHint(*v.Hint)
 		if err != nil {
-			return "", nil, err
+			return nil, err
 		}
 	}
 	model := &mongo.ClientUpdateManyModel{
@@ -411,10 +389,15 @@ func createClientUpdateManyModel(value bson.Raw) (string, *mongo.ClientUpdateMan
 	if len(v.ArrayFilters) > 0 {
 		model.ArrayFilters = v.ArrayFilters
 	}
-	return v.Namespace, model, nil
+	ns := strings.SplitN(v.Namespace, ".", 2)
+	return &mongo.ClientBulkWrite{
+		Database:   ns[0],
+		Collection: ns[1],
+		Model:      model,
+	}, nil
 }
 
-func createClientReplaceOneModel(value bson.Raw) (string, *mongo.ClientReplaceOneModel, error) {
+func createClientReplaceOneModel(value bson.Raw) (*mongo.ClientBulkWrite, error) {
 	var v struct {
 		Namespace   string
 		Filter      bson.Raw
@@ -425,25 +408,30 @@ func createClientReplaceOneModel(value bson.Raw) (string, *mongo.ClientReplaceOn
 	}
 	err := bson.Unmarshal(value, &v)
 	if err != nil {
-		return "", nil, err
+		return nil, err
 	}
 	var hint interface{}
 	if v.Hint != nil {
 		hint, err = createHint(*v.Hint)
 		if err != nil {
-			return "", nil, err
+			return nil, err
 		}
 	}
-	return v.Namespace, &mongo.ClientReplaceOneModel{
-		Filter:      v.Filter,
-		Replacement: v.Replacement,
-		Collation:   v.Collation,
-		Hint:        hint,
-		Upsert:      v.Upsert,
+	ns := strings.SplitN(v.Namespace, ".", 2)
+	return &mongo.ClientBulkWrite{
+		Database:   ns[0],
+		Collection: ns[1],
+		Model: &mongo.ClientReplaceOneModel{
+			Filter:      v.Filter,
+			Replacement: v.Replacement,
+			Collation:   v.Collation,
+			Hint:        hint,
+			Upsert:      v.Upsert,
+		},
 	}, nil
 }
 
-func createClientDeleteOneModel(value bson.Raw) (string, *mongo.ClientDeleteOneModel, error) {
+func createClientDeleteOneModel(value bson.Raw) (*mongo.ClientBulkWrite, error) {
 	var v struct {
 		Namespace string
 		Filter    bson.Raw
@@ -452,23 +440,28 @@ func createClientDeleteOneModel(value bson.Raw) (string, *mongo.ClientDeleteOneM
 	}
 	err := bson.Unmarshal(value, &v)
 	if err != nil {
-		return "", nil, err
+		return nil, err
 	}
 	var hint interface{}
 	if v.Hint != nil {
 		hint, err = createHint(*v.Hint)
 		if err != nil {
-			return "", nil, err
+			return nil, err
 		}
 	}
-	return v.Namespace, &mongo.ClientDeleteOneModel{
-		Filter:    v.Filter,
-		Collation: v.Collation,
-		Hint:      hint,
+	ns := strings.SplitN(v.Namespace, ".", 2)
+	return &mongo.ClientBulkWrite{
+		Database:   ns[0],
+		Collection: ns[1],
+		Model: &mongo.ClientDeleteOneModel{
+			Filter:    v.Filter,
+			Collation: v.Collation,
+			Hint:      hint,
+		},
 	}, nil
 }
 
-func createClientDeleteManyModel(value bson.Raw) (string, *mongo.ClientDeleteManyModel, error) {
+func createClientDeleteManyModel(value bson.Raw) (*mongo.ClientBulkWrite, error) {
 	var v struct {
 		Namespace string
 		Filter    bson.Raw
@@ -477,18 +470,23 @@ func createClientDeleteManyModel(value bson.Raw) (string, *mongo.ClientDeleteMan
 	}
 	err := bson.Unmarshal(value, &v)
 	if err != nil {
-		return "", nil, err
+		return nil, err
 	}
 	var hint interface{}
 	if v.Hint != nil {
 		hint, err = createHint(*v.Hint)
 		if err != nil {
-			return "", nil, err
+			return nil, err
 		}
 	}
-	return v.Namespace, &mongo.ClientDeleteManyModel{
-		Filter:    v.Filter,
-		Collation: v.Collation,
-		Hint:      hint,
+	ns := strings.SplitN(v.Namespace, ".", 2)
+	return &mongo.ClientBulkWrite{
+		Database:   ns[0],
+		Collection: ns[1],
+		Model: &mongo.ClientDeleteManyModel{
+			Filter:    v.Filter,
+			Collation: v.Collation,
+			Hint:      hint,
+		},
 	}, nil
 }

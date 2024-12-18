@@ -29,8 +29,13 @@ const (
 	database = "admin"
 )
 
+type clientBulkWritePair struct {
+	namespace string
+	model     interface{}
+}
+
 type clientBulkWrite struct {
-	models                   []clientWriteModel
+	writePairs               []clientBulkWritePair
 	errorsOnly               bool
 	ordered                  *bool
 	bypassDocumentValidation *bool
@@ -45,21 +50,21 @@ type clientBulkWrite struct {
 }
 
 func (bw *clientBulkWrite) execute(ctx context.Context) error {
-	if len(bw.models) == 0 {
+	if len(bw.writePairs) == 0 {
 		return ErrEmptySlice
 	}
-	for _, m := range bw.models {
+	for _, m := range bw.writePairs {
 		if m.model == nil {
 			return ErrNilDocument
 		}
 	}
 	batches := &modelBatches{
-		session:   bw.session,
-		client:    bw.client,
-		ordered:   bw.ordered == nil || *bw.ordered,
-		models:    bw.models,
-		result:    &bw.result,
-		retryMode: driver.RetryOnce,
+		session:    bw.session,
+		client:     bw.client,
+		ordered:    bw.ordered == nil || *bw.ordered,
+		writePairs: bw.writePairs,
+		result:     &bw.result,
+		retryMode:  driver.RetryOnce,
 	}
 	err := driver.Operation{
 		CommandFn:         bw.newCommand(),
@@ -106,7 +111,7 @@ func (bw *clientBulkWrite) execute(ctx context.Context) error {
 			_, ok := batches.writeErrors[0]
 			hasSuccess = !ok
 		} else {
-			hasSuccess = len(batches.writeErrors) < len(bw.models)
+			hasSuccess = len(batches.writeErrors) < len(bw.writePairs)
 		}
 		if hasSuccess {
 			exception.PartialResult = batches.result
@@ -177,8 +182,8 @@ type modelBatches struct {
 	session *session.Client
 	client  *Client
 
-	ordered bool
-	models  []clientWriteModel
+	ordered    bool
+	writePairs []clientBulkWritePair
 
 	offset int
 
@@ -199,16 +204,16 @@ func (mb *modelBatches) IsOrdered() *bool {
 
 func (mb *modelBatches) AdvanceBatches(n int) {
 	mb.offset += n
-	if mb.offset > len(mb.models) {
-		mb.offset = len(mb.models)
+	if mb.offset > len(mb.writePairs) {
+		mb.offset = len(mb.writePairs)
 	}
 }
 
 func (mb *modelBatches) Size() int {
-	if mb.offset > len(mb.models) {
+	if mb.offset > len(mb.writePairs) {
 		return 0
 	}
-	return len(mb.models) - mb.offset
+	return len(mb.writePairs) - mb.offset
 }
 
 func (mb *modelBatches) AppendBatchSequence(dst []byte, maxCount, totalSize int) (int, []byte, error) {
@@ -279,17 +284,17 @@ func (mb *modelBatches) appendBatches(fn functionSet, dst []byte, maxCount, tota
 	totalSize -= 1000
 	size := len(dst) + len(nsDst)
 	var n int
-	for i := mb.offset; i < len(mb.models); i++ {
+	for i := mb.offset; i < len(mb.writePairs); i++ {
 		if n == maxCount {
 			break
 		}
 
-		ns := mb.models[i].namespace
+		ns := mb.writePairs[i].namespace
 		nsIdx, exists := getNsIndex(ns)
 
 		var doc bsoncore.Document
 		var err error
-		switch model := mb.models[i].model.(type) {
+		switch model := mb.writePairs[i].model.(type) {
 		case *ClientInsertOneModel:
 			mb.cursorHandlers = append(mb.cursorHandlers, mb.appendInsertResult)
 			var id interface{}
