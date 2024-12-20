@@ -1,12 +1,16 @@
 module go.mongodb.go/mongo-driver/internal/cmd/benchmark
 
-go 1.18
+go 1.22
+
+toolchain go1.23.1
 
 replace go.mongodb.org/mongo-driver/v2 => ../../../
 
 require (
+	github.com/google/uuid v1.6.0
 	github.com/stretchr/testify v1.8.1
 	go.mongodb.org/mongo-driver/v2 v2.0.0-00010101000000-000000000000
+	gonum.org/v1/gonum v0.15.1
 )
 
 require (

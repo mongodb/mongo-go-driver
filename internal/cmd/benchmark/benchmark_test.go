@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package main
+package benchmark
 
 import (
 	"archive/tar"
@@ -583,6 +583,7 @@ func TestRunAllBenchmarks(t *testing.T) {
 		{name: "BenchmarkMultiFindMany", benchmark: BenchmarkMultiFindMany},
 		{name: "BenchmarkMultiInsertSmallDocument", benchmark: BenchmarkMultiInsertSmallDocument},
 		{name: "BenchmarkMultiInsertLargeDocument", benchmark: BenchmarkMultiInsertLargeDocument},
+		{name: "BenchmarkConnectionChurn", benchmark: BenchmarkConnectionChurn},
 	}
 
 	results := make([]poplarTest, len(cases))
