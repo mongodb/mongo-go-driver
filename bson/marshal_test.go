@@ -326,3 +326,61 @@ func TestMarshalConcurrently(t *testing.T) {
 	}
 	wg.Wait()
 }
+
+type testStruct struct {
+	TestData RawValue `bson:"testData"`
+}
+
+func TestSharedUseOfMarshalledBytes(t *testing.T) {
+	type testValue struct {
+		value string
+	}
+
+	type sharedTestCase struct {
+		name      string
+		testData  *testStruct
+		wantValue string
+	}
+
+	// fill the pool with some buffers
+	for i := 0; i < 100; i++ {
+		mustMarshalValue(testValue{value: fmt.Sprintf("marshalled foo bar %d", i)})
+	}
+
+	testCases := []sharedTestCase{
+		{
+			name:      "case 1",
+			testData:  mustMarshalValue(testValue{value: "Case 1 Value"}),
+			wantValue: "Case 1 Value",
+		},
+		{
+			name:      "case 2",
+			testData:  mustMarshalValue(testValue{value: "Case 2 Value"}),
+			wantValue: "Case 2 Value",
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			want := mustMarshalValue(testValue{value: tc.wantValue})
+			if d := cmp.Diff(tc.testData, want); d != "" {
+				t.Errorf("diff: %s", d)
+			}
+		})
+	}
+}
+
+func mustMarshalValue(data any) *testStruct {
+	dataType, dataBytes, err := MarshalValue(data)
+	if err != nil {
+		panic(fmt.Sprintf("unable to marshal data: %s", err))
+	}
+
+	return &testStruct{
+		TestData: RawValue{
+			Type:  dataType,
+			Value: dataBytes,
+		},
+	}
+}
