@@ -35,13 +35,14 @@ type ccCfg struct {
 }
 
 type ccResult struct {
-	RunID            int64 // unifying ID for runs between 1 and 100 percentiles
-	ShortCircuitRate float64
-	Throughput       float64 // operations per second
-	ThroughputActual float64 // throughput * startedRate
-	Percentile       float64
-	TimeoutRate      float64 // timeout errors per operation
-	StartedRate      float64
+	RunID             int64 // unifying ID for runs between 1 and 100 percentiles
+	ShortCircuitRate  float64
+	Throughput        float64 // operations per second
+	ThroughputActual  float64 // throughput * startedRate
+	ThroughputSuccess float64 // throughput * successRate
+	Percentile        float64
+	TimeoutRate       float64 // timeout errors per operation
+	StartedRate       float64
 }
 
 func calculateThroughputPercentile(p float64, results []ccResult) float64 {
@@ -196,9 +197,11 @@ func benchmarkConnectionChurnTO(
 
 	timeoutRate := float64(gotTimeoutErrCount) / float64(cfg.ops)
 	startedRate := float64(commandStarted.Load()) / float64(cfg.ops)
+	successRate := float64(commandSucceeded.Load()) / float64(cfg.ops)
 
 	throughput := float64(cfg.ops) / elapsed.Seconds()
 	throughputActual := throughput * startedRate
+	throughputSuccess := throughput * successRate
 
 	shortCircuitRate := 1.0
 	if gotTimeoutErrCount != 0 {
@@ -213,12 +216,13 @@ func benchmarkConnectionChurnTO(
 
 	//fmt.Println("data: ", cfg.ops, commandStarted, commandSucceeded, commandFailed, gotTimeoutErrCount)
 	return ccResult{
-		RunID:            runID,
-		ShortCircuitRate: shortCircuitRate,
-		Throughput:       throughput,
-		ThroughputActual: throughputActual,
-		TimeoutRate:      timeoutRate,
-		StartedRate:      startedRate,
+		RunID:             runID,
+		ShortCircuitRate:  shortCircuitRate,
+		Throughput:        throughput,
+		ThroughputActual:  throughputActual,
+		ThroughputSuccess: throughputSuccess,
+		TimeoutRate:       timeoutRate,
+		StartedRate:       startedRate,
 	}
 }
 
