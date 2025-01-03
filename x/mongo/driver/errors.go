@@ -153,7 +153,6 @@ func (wce WriteCommandError) Retryable(serverKind description.ServerKind, wireVe
 	if wce.WriteConcernError == nil {
 		return false
 	}
-
 	return wce.WriteConcernError.Retryable(serverKind, wireVersion)
 }
 
