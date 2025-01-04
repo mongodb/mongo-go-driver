@@ -9,7 +9,6 @@ package bson
 import (
 	"bytes"
 	"encoding/json"
-	"slices"
 	"sync"
 )
 
@@ -134,7 +133,8 @@ func MarshalValue(val interface{}) (Type, []byte, error) {
 		return 0, nil, err
 	}
 	typ := sw.Next(2)
-	return Type(typ[0]), slices.Clone(sw.Bytes()), nil
+	clone := append([]byte(nil), sw.Bytes()...)
+	return Type(typ[0]), clone, nil
 }
 
 // MarshalExtJSON returns the extended JSON encoding of val.
