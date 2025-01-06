@@ -91,7 +91,7 @@ func (bw *clientBulkWrite) execute(ctx context.Context) error {
 	var ce CommandError
 	if errors.As(err, &ce) {
 		exception = &ClientBulkWriteException{
-			TopLevelError: &WriteError{
+			WriteError: &WriteError{
 				Code:    int(ce.Code),
 				Message: ce.Message,
 				Raw:     ce.Raw,
@@ -435,7 +435,7 @@ func (mb *modelBatches) processResponse(ctx context.Context, resp bsoncore.Docum
 	}
 	if !res.Ok {
 		return ClientBulkWriteException{
-			TopLevelError: &WriteError{
+			WriteError: &WriteError{
 				Code:    int(res.Code),
 				Message: res.Errmsg,
 				Raw:     bson.Raw(resp),
@@ -616,11 +616,11 @@ func (d *clientUpdateDoc) marshal(bsonOpts *options.BSONOptions, registry *bson.
 
 	doc = bsoncore.AppendInt32Element(doc, "update", int32(d.namespace))
 
+	if d.filter == nil {
+		return nil, fmt.Errorf("update filter cannot be nil")
+	}
 	f, err := marshal(d.filter, bsonOpts, registry)
 	if err != nil {
-		if d.filter == nil {
-			return nil, fmt.Errorf("%w: filter is required", err)
-		}
 		return nil, err
 	}
 	doc = bsoncore.AppendDocumentElement(doc, "filter", f)
@@ -676,11 +676,11 @@ func (d *clientDeleteDoc) marshal(bsonOpts *options.BSONOptions, registry *bson.
 
 	doc = bsoncore.AppendInt32Element(doc, "delete", int32(d.namespace))
 
+	if d.filter == nil {
+		return nil, fmt.Errorf("delete filter cannot be nil")
+	}
 	f, err := marshal(d.filter, bsonOpts, registry)
 	if err != nil {
-		if d.filter == nil {
-			return nil, fmt.Errorf("%w: filter is required", err)
-		}
 		return nil, err
 	}
 	doc = bsoncore.AppendDocumentElement(doc, "filter", f)

@@ -619,7 +619,7 @@ type ClientBulkWriteException struct {
 	// A top-level error that occurred when attempting to communicate with the server
 	// or execute the bulk write. This value may not be populated if the exception was
 	// thrown due to errors occurring on individual writes.
-	TopLevelError *WriteError
+	WriteError *WriteError
 
 	// The write concern errors that occurred.
 	WriteConcernErrors []WriteConcernError
@@ -636,8 +636,8 @@ type ClientBulkWriteException struct {
 // Error implements the error interface.
 func (bwe ClientBulkWriteException) Error() string {
 	causes := make([]string, 0, 4)
-	if bwe.TopLevelError != nil {
-		causes = append(causes, "top level error: "+bwe.TopLevelError.Error())
+	if bwe.WriteError != nil {
+		causes = append(causes, "top level error: "+bwe.WriteError.Error())
 	}
 	if len(bwe.WriteConcernErrors) > 0 {
 		errs := make([]error, len(bwe.WriteConcernErrors))

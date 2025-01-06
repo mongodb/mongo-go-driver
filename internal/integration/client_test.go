@@ -719,6 +719,11 @@ func TestClient(t *testing.T) {
 			})
 		}
 	})
+}
+
+func TestClient_BulkWrite(t *testing.T) {
+	mt := mtest.New(t, noClientOpts)
+
 	mtBulkWriteOpts := mtest.NewOptions().MinServerVersion("8.0").AtlasDataLake(false).ClientType(mtest.Pinned)
 	mt.RunOpts("bulk write with nil filter", mtBulkWriteOpts, func(mt *mtest.T) {
 		mt.Parallel()
@@ -807,6 +812,29 @@ func TestClient(t *testing.T) {
 				assert.Equal(mt, res.Acknowledged, tc.want, "expected Acknowledged: %v, got: %v", tc.want, res.Acknowledged)
 			})
 		}
+	})
+	var bulkWrites int
+	cmdMonitor := &event.CommandMonitor{
+		Started: func(_ context.Context, evt *event.CommandStartedEvent) {
+			if evt.CommandName == "bulkWrite" {
+				bulkWrites++
+			}
+		},
+	}
+	clientOpts := options.Client().SetMonitor(cmdMonitor)
+	mt.RunOpts("bulk write with large messages", mtBulkWriteOpts.ClientOptions(clientOpts), func(mt *mtest.T) {
+		mt.Parallel()
+
+		document := bson.D{{"largeField", strings.Repeat("a", 16777216-100)}} // Adjust size to account for BSON overhead
+		writes := []mongo.ClientBulkWrite{
+			{"db", "x", mongo.NewClientInsertOneModel().SetDocument(document)},
+			{"db", "x", mongo.NewClientInsertOneModel().SetDocument(document)},
+			{"db", "x", mongo.NewClientInsertOneModel().SetDocument(document)},
+		}
+
+		_, err := mt.Client.BulkWrite(context.Background(), writes)
+		require.NoError(t, err)
+		assert.Equal(t, 2, bulkWrites, "expected %d bulkWrites, got %d", 2, bulkWrites)
 	})
 }
 

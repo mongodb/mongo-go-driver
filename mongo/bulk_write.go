@@ -295,11 +295,11 @@ func createDeleteDoc(
 	bsonOpts *options.BSONOptions,
 	registry *bson.Registry,
 ) (bsoncore.Document, error) {
+	if filter == nil {
+		return nil, fmt.Errorf("delete filter cannot be nil")
+	}
 	f, err := marshal(filter, bsonOpts, registry)
 	if err != nil {
-		if filter == nil {
-			return nil, fmt.Errorf("%w: filter is required", err)
-		}
 		return nil, err
 	}
 
@@ -430,11 +430,11 @@ type updateDoc struct {
 }
 
 func (doc updateDoc) marshal(bsonOpts *options.BSONOptions, registry *bson.Registry) (bsoncore.Document, error) {
+	if doc.filter == nil {
+		return nil, fmt.Errorf("update filter cannot be nil")
+	}
 	f, err := marshal(doc.filter, bsonOpts, registry)
 	if err != nil {
-		if doc.filter == nil {
-			return nil, fmt.Errorf("%w: filter is required", err)
-		}
 		return nil, err
 	}
 
