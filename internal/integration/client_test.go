@@ -729,8 +729,9 @@ func TestClient_BulkWrite(t *testing.T) {
 		mt.Parallel()
 
 		testCases := []struct {
-			name   string
-			writes []mongo.ClientBulkWrite
+			name        string
+			writes      []mongo.ClientBulkWrite
+			errorString string
 		}{
 			{
 				name: "DeleteOne",
@@ -739,6 +740,7 @@ func TestClient_BulkWrite(t *testing.T) {
 					Collection: "bar",
 					Model:      mongo.NewClientDeleteOneModel(),
 				}},
+				errorString: "delete filter cannot be nil",
 			},
 			{
 				name: "DeleteMany",
@@ -747,6 +749,7 @@ func TestClient_BulkWrite(t *testing.T) {
 					Collection: "bar",
 					Model:      mongo.NewClientDeleteManyModel(),
 				}},
+				errorString: "delete filter cannot be nil",
 			},
 			{
 				name: "UpdateOne",
@@ -755,6 +758,7 @@ func TestClient_BulkWrite(t *testing.T) {
 					Collection: "bar",
 					Model:      mongo.NewClientUpdateOneModel(),
 				}},
+				errorString: "update filter cannot be nil",
 			},
 			{
 				name: "UpdateMany",
@@ -763,6 +767,7 @@ func TestClient_BulkWrite(t *testing.T) {
 					Collection: "bar",
 					Model:      mongo.NewClientUpdateManyModel(),
 				}},
+				errorString: "update filter cannot be nil",
 			},
 		}
 		for _, tc := range testCases {
@@ -772,7 +777,7 @@ func TestClient_BulkWrite(t *testing.T) {
 				mt.Parallel()
 
 				_, err := mt.Client.BulkWrite(context.Background(), tc.writes)
-				require.ErrorContains(mt, err, "filter is required")
+				require.EqualError(mt, err, tc.errorString)
 			})
 		}
 	})
