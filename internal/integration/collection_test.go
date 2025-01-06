@@ -1719,24 +1719,29 @@ func TestCollection(t *testing.T) {
 			mt.Parallel()
 
 			testCases := []struct {
-				name  string
-				model mongo.WriteModel
+				name        string
+				model       mongo.WriteModel
+				errorString string
 			}{
 				{
-					name:  "DeleteOne",
-					model: mongo.NewDeleteOneModel(),
+					name:        "DeleteOne",
+					model:       mongo.NewDeleteOneModel(),
+					errorString: "delete filter cannot be nil",
 				},
 				{
-					name:  "DeleteMany",
-					model: mongo.NewDeleteManyModel(),
+					name:        "DeleteMany",
+					model:       mongo.NewDeleteManyModel(),
+					errorString: "delete filter cannot be nil",
 				},
 				{
-					name:  "UpdateOne",
-					model: mongo.NewUpdateOneModel().SetUpdate(bson.D{{"$set", bson.D{{"x", 1}}}}),
+					name:        "UpdateOne",
+					model:       mongo.NewUpdateOneModel().SetUpdate(bson.D{{"$set", bson.D{{"x", 1}}}}),
+					errorString: "update filter cannot be nil",
 				},
 				{
-					name:  "UpdateMany",
-					model: mongo.NewUpdateManyModel().SetUpdate(bson.D{{"$set", bson.D{{"x", 1}}}}),
+					name:        "UpdateMany",
+					model:       mongo.NewUpdateManyModel().SetUpdate(bson.D{{"$set", bson.D{{"x", 1}}}}),
+					errorString: "update filter cannot be nil",
 				},
 			}
 			for _, tc := range testCases {
@@ -1746,7 +1751,7 @@ func TestCollection(t *testing.T) {
 					mt.Parallel()
 
 					_, err := mt.Coll.BulkWrite(context.Background(), []mongo.WriteModel{tc.model})
-					assert.ErrorContains(mt, err, "filter is required")
+					assert.EqualError(mt, err, tc.errorString)
 				})
 			}
 		})
