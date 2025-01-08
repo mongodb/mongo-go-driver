@@ -844,7 +844,7 @@ The `bson/primitive` package has been merged into the `bson` package.
 
 Additionally, the `bson.D` has implemented the `json.Marshaler` and `json.Unmarshaler` interfaces, where it uses a key-value representation in "regular" (i.e. non-Extended) JSON.
 
-The `bson.D.String` and `bson.M.String` methods return a relaxed Extended JSON representation of the document.
+The `bson.D.String` and `bson.M.String` methods return an Extended JSON representation of the document.
 
 ```go
 // v2
