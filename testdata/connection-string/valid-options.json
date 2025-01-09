@@ -20,6 +20,29 @@
       "options": {
         "authmechanism": "MONGODB-CR"
       }
+    },
+    {
+      "description": "Equals terminated keys with no value are parsed without error",
+      "uri": "mongodb://alice:secret@example.com/admin?readPreferenceTags=",
+      "valid": true,
+      "warning": false,
+      "hosts": [
+        {
+          "type": "hostname",
+          "host": "example.com",
+          "port": null
+        }
+      ],
+      "auth": {
+        "username": "alice",
+        "password": "secret",
+        "db": "admin"
+      },
+      "options": {
+        "readPreferenceTags": [
+          {}
+        ]
+      }
     }
   ]
 }
