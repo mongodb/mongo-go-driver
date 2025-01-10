@@ -81,8 +81,8 @@ func TestInitialDNSSeedlistDiscoveryProse(t *testing.T) {
 			uri    string
 			labels int
 		}{
-			{"localhost", "mongodb+srv://localhost", 2},
-			{"mongo.local", "mongodb+srv://mongo.local", 3},
+			{"localhost", "mongodb+srv://localhost", 1},
+			{"mongo.local", "mongodb+srv://mongo.local", 2},
 		}
 		for _, c := range cases {
 			c := c
@@ -90,7 +90,11 @@ func TestInitialDNSSeedlistDiscoveryProse(t *testing.T) {
 				t.Parallel()
 
 				_, err := newTestParser(c.record).parse(c.uri)
-				assert.ErrorContains(t, err, fmt.Sprintf("DNS name must contain at least %d labels", c.labels))
+				expected := fmt.Sprintf(
+					"Server record (%d levels) should have more domain levels than parent URI (%d levels)",
+					c.labels, c.labels,
+				)
+				assert.ErrorContains(t, err, expected)
 			})
 		}
 	})
