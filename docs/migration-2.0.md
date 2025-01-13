@@ -503,11 +503,7 @@ mongo.WithSession(context.TODO(),sess,func(ctx context.Context) error {
 
 ## Options Package
 
-The following fields were marked for internal use only and do not have replacement:
-
-- `ClientOptions.AuthenticateToAnything`
-- `FindOptions.OplogReplay`
-- `FindOneOptions.OplogReplay`
+`ClientOptions.AuthenticateToAnything` was marked for internal use in 1.x and does not have a replacement.
 
 The following fields were removed because they are no longer supported by the server
 
