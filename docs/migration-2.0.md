@@ -503,6 +503,8 @@ mongo.WithSession(context.TODO(),sess,func(ctx context.Context) error {
 
 ## Options Package
 
+`ClientOptions.AuthenticateToAnything` was marked for internal use in 1.x and does not have a replacement.
+
 The following fields were removed because they are no longer supported by the server
 
 - `FindOptions.Snapshot` (4.0)
