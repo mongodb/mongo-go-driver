@@ -2991,7 +2991,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		mt.Parallel()
 
 		tlsCAFile := os.Getenv("KMS_FAILPOINT_CA_FILE")
-		require.NotEmpty(mt, tlsCAFile, "failed to load CA file")
+		require.NotEqual(mt, tlsCAFile, "", "failed to load CA file")
 
 		clientAndCATlsMap := map[string]interface{}{
 			"tlsCAFile": tlsCAFile,
