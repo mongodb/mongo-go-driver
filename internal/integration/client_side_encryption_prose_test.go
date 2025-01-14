@@ -2990,17 +2990,14 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 		mt.Parallel()
 
-		var tlsCfg *tls.Config
-		if tlsCAFile := os.Getenv("KMS_FAILPOINT_CA_FILE"); tlsCAFile == "" {
-			require.Fail(mt, "failed to load CA file")
-		} else {
-			var err error
-			clientAndCATlsMap := map[string]interface{}{
-				"tlsCAFile": tlsCAFile,
-			}
-			tlsCfg, err = options.BuildTLSConfig(clientAndCATlsMap)
-			require.Nil(mt, err, "BuildTLSConfig error: %v", err)
+		tlsCAFile := os.Getenv("KMS_FAILPOINT_CA_FILE")
+		require.NotEmpty(mt, tlsCAFile, "failed to load CA file")
+
+		clientAndCATlsMap := map[string]interface{}{
+			"tlsCAFile": tlsCAFile,
 		}
+		tlsCfg, err := options.BuildTLSConfig(clientAndCATlsMap)
+		require.NoError(mt, err, "BuildTLSConfig error: %v", err)
 
 		setFailPoint := func(failure string, count int) error {
 			url := fmt.Sprintf("https://localhost:9003/set_failpoint/%s", failure)
