@@ -416,7 +416,7 @@ func TestErrorsCodeNamePropagated(t *testing.T) {
 	})
 }
 
-func TestClientBulkWrite(t *testing.T) {
+func TestClientBulkWriteProse(t *testing.T) {
 	mtOpts := mtest.NewOptions().MinServerVersion("8.0").AtlasDataLake(false).ClientType(mtest.Pinned)
 	mt := mtest.New(t, mtOpts)
 
@@ -918,6 +918,9 @@ func TestClientBulkWrite(t *testing.T) {
 	})
 
 	mt.Run("13. MongoClient.bulkWrite returns an error if auto-encryption is configured", func(mt *mtest.T) {
+		if !mtest.IsCSFLEEnabled() {
+			mt.Skip("CSFLE is not enabled")
+		}
 		if os.Getenv("DOCKER_RUNNING") != "" {
 			mt.Skip("skipping test in docker environment")
 		}

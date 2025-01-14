@@ -106,7 +106,7 @@ type startedInformation struct {
 	cmd                bsoncore.Document
 	requestID          int32
 	cmdName            string
-	documentSequence   []byte
+	docArray           bsoncore.Array
 	processedBatches   int
 	connID             string
 	driverConnectionID int64
@@ -164,10 +164,10 @@ func redactStartedInformationCmd(info startedInformation) bson.Raw {
 		cmdCopy = make([]byte, 0, len(info.cmd))
 		cmdCopy = append(cmdCopy, info.cmd...)
 
-		if len(info.documentSequence) > 0 {
+		if len(info.docArray) > 0 {
 			// remove 0 byte at end
 			cmdCopy = cmdCopy[:len(info.cmd)-1]
-			cmdCopy = append(cmdCopy, info.documentSequence...)
+			cmdCopy = append(cmdCopy, info.docArray...)
 			// add back 0 byte and update length
 			cmdCopy, _ = bsoncore.AppendDocumentEnd(cmdCopy, 0)
 		}
@@ -1188,8 +1188,7 @@ func (op Operation) createLegacyHandshakeWireMessage(
 	maxTimeMS int64,
 	dst []byte,
 	desc description.SelectedServer,
-	cmdFn func([]byte, description.SelectedServer) ([]byte, error),
-) ([]byte, []byte, error) {
+) (int, []byte, []byte, error) {
 	flags := op.secondaryOK(desc)
 	dst = wiremessage.AppendQueryFlags(dst, flags)
 
@@ -1205,31 +1204,42 @@ func (op Operation) createLegacyHandshakeWireMessage(
 	wrapper := int32(-1)
 	rp, err := op.createReadPref(desc, true)
 	if err != nil {
-		return dst, nil, err
+		return 0, dst, nil, err
 	}
 	if len(rp) > 0 {
 		wrapper, dst = bsoncore.AppendDocumentStart(dst)
 		dst = bsoncore.AppendHeader(dst, bsoncore.TypeEmbeddedDocument, "$query")
 	}
 	idx, dst := bsoncore.AppendDocumentStart(dst)
-	dst, err = cmdFn(dst, desc)
+
+	dst, err = op.CommandFn(dst, desc)
 	if err != nil {
-		return dst, nil, err
+		return 0, dst, nil, err
+	}
+	var n int
+	if op.Batches != nil {
+		n, dst, err = op.Batches.AppendBatchArray(dst, int(desc.MaxBatchCount), int(desc.MaxMessageSize))
+		if err != nil {
+			return 0, dst, nil, err
+		}
+		if n == 0 {
+			return 0, dst, nil, ErrDocumentTooLarge
+		}
 	}
 
 	dst, err = op.addReadConcern(dst, desc)
 	if err != nil {
-		return dst, nil, err
+		return 0, dst, nil, err
 	}
 
 	dst, err = op.addWriteConcern(ctx, dst, desc)
 	if err != nil {
-		return dst, nil, err
+		return 0, dst, nil, err
 	}
 
 	dst, err = op.addSession(dst, desc, false)
 	if err != nil {
-		return dst, nil, err
+		return 0, dst, nil, err
 	}
 
 	dst = op.addClusterTime(dst, desc)
@@ -1248,11 +1258,11 @@ func (op Operation) createLegacyHandshakeWireMessage(
 		dst = bsoncore.AppendDocumentElement(dst, "$readPreference", rp)
 		dst, err = bsoncore.AppendDocumentEnd(dst, idx)
 		if err != nil {
-			return dst, nil, err
+			return 0, dst, nil, err
 		}
 	}
 
-	return dst, dst[idx:], nil
+	return n, dst, dst[idx:], nil
 }
 
 func (op Operation) createMsgWireMessage(
@@ -1345,13 +1355,9 @@ func (op Operation) createWireMessage(
 	isLegacy := isLegacyHandshake(op, desc)
 	switch {
 	case isLegacy:
-		cmdFn := func(dst []byte, desc description.SelectedServer) ([]byte, error) {
-			info.processedBatches, dst, err = op.addLegacyCommandFields(dst, desc)
-			return dst, err
-		}
 		requestID := wiremessage.NextRequestID()
 		wmindex, dst = wiremessage.AppendHeaderStart(dst, requestID, 0, wiremessage.OpQuery)
-		dst, info.cmd, err = op.createLegacyHandshakeWireMessage(ctx, maxTimeMS, dst, desc, cmdFn)
+		info.processedBatches, dst, info.cmd, err = op.createLegacyHandshakeWireMessage(ctx, maxTimeMS, dst, desc)
 	case op.shouldEncrypt():
 		if desc.WireVersion.Max < cryptMinWireVersion {
 			return dst, false, info, errors.New("auto-encryption requires a MongoDB version of 4.2")
@@ -1405,13 +1411,13 @@ func (op Operation) createWireMessage(
 		}
 		if err == nil && batchOffset > 0 {
 			for b := dst[batchOffset:]; len(b) > 0; /* nothing */ {
-				var seq []byte
+				var array bsoncore.Array
 				var ok bool
-				seq, b, ok = documentSequenceToArray(b)
+				array, b, ok = documentSequenceToArray(b)
 				if !ok {
 					break
 				}
-				info.documentSequence = append(info.documentSequence, seq...)
+				info.docArray = append(info.docArray, array...)
 			}
 		}
 	}
@@ -1468,26 +1474,6 @@ func (op Operation) addEncryptCommandFields(ctx context.Context, dst []byte, des
 	}
 	// append encrypted command to original destination, removing the first 4 bytes (length) and final byte (terminator)
 	dst = append(dst, encrypted[4:len(encrypted)-1]...)
-	return n, dst, nil
-}
-
-func (op Operation) addLegacyCommandFields(dst []byte, desc description.SelectedServer) (int, []byte, error) {
-	var err error
-	dst, err = op.CommandFn(dst, desc)
-	if err != nil {
-		return 0, nil, err
-	}
-	if op.Batches == nil {
-		return 0, dst, nil
-	}
-	var n int
-	n, dst, err = op.Batches.AppendBatchArray(dst, int(desc.MaxBatchCount), int(desc.MaxMessageSize))
-	if err != nil {
-		return 0, nil, err
-	}
-	if n == 0 {
-		return 0, nil, ErrDocumentTooLarge
-	}
 	return n, dst, nil
 }
 
@@ -2233,7 +2219,7 @@ func retryWritesSupported(s description.Server) bool {
 	return s.SessionTimeoutMinutes != nil && s.Kind != description.ServerKindStandalone
 }
 
-func documentSequenceToArray(src []byte) (dst, rem []byte, ok bool) {
+func documentSequenceToArray(src []byte) (bsoncore.Array, []byte, bool) {
 	stype, rem, ok := wiremessage.ReadMsgSectionType(src)
 	if !ok || stype != wiremessage.DocumentSequence {
 		return nil, src, false
