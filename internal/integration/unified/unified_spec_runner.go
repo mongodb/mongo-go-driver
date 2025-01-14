@@ -78,6 +78,10 @@ var (
 		"operation is retried multiple times for non-zero timeoutMS - aggregate on collection": "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
 		"operation is retried multiple times for non-zero timeoutMS - aggregate on database":   "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
 		"timeoutMS applied to find command":                                                    "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
+		"timeoutMS applied to find":                                                            "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
+		"timeoutMS is refreshed for getMore if maxAwaitTimeMS is not set":                      "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
+		"timeoutMS is refreshed for getMore if maxAwaitTimeMS is set":                          "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
+		"timeoutMS is refreshed for getMore - failure":                                         "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
 
 		// DRIVERS-2953: This test requires that the driver sends a "getMore"
 		// with "maxTimeMS" set. However, "getMore" can only include "maxTimeMS"
@@ -178,14 +182,14 @@ func runTestFile(t *testing.T, filepath string, expectValidFail bool, opts ...*O
 				mt.Skip("Skipping CSOT spec test because SKIP_CSOT_TESTS=true")
 			}
 
-			defer func() {
-				// catch panics from looking up elements and fail if it's unexpected
-				if r := recover(); r != nil {
-					if !expectValidFail {
-						mt.Fatal(r)
-					}
-				}
-			}()
+			//defer func() {
+			//	// catch panics from looking up elements and fail if it's unexpected
+			//	if r := recover(); r != nil {
+			//		if !expectValidFail {
+			//			mt.Fatal(r)
+			//		}
+			//	}
+			//}()
 			err := testCase.Run(mt)
 			if expectValidFail {
 				if err != nil {

@@ -373,8 +373,33 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 		return
 	}
 
+	dl, ok := ctx.Deadline()
+	fmt.Println("bc deadline: ", time.Until(dl), ok)
+	fmt.Println("bc maxAwaitTime: ", *bc.maxAwaitTime)
+	if bc.maxAwaitTime != nil {
+	}
+
 	bc.err = Operation{
 		CommandFn: func(dst []byte, _ description.SelectedServer) ([]byte, error) {
+			conn, err := bc.Server().Connection(context.Background())
+			if err != nil {
+				panic(err)
+			}
+
+			rttMonitor := bc.Server().RTTMonitor()
+			maxTimeMS, err := driverutil.CalculateMaxTimeMS(ctx, rttMonitor.Min(), rttMonitor.Stats(), ErrDeadlineWouldBeExceeded)
+			if bc.maxAwaitTime != nil && int64(*bc.maxAwaitTime/time.Millisecond) >= maxTimeMS {
+				fmt.Println(int64(*bc.maxAwaitTime/time.Millisecond), maxTimeMS)
+				return nil, ErrDeadlineWouldBeExceeded
+			}
+
+			dl, ok := ctx.Deadline()
+			fmt.Println("bc deadline: ", time.Until(dl), ok)
+			fmt.Println("min (bc): ", bc.Server().RTTMonitor().Min(), conn.Describer.ID(), conn.Describer.Address(), maxTimeMS, time.Until(dl), ok, bc.maxAwaitTime)
+			if err != nil {
+				return nil, err
+			}
+
 			dst = bsoncore.AppendInt64Element(dst, "getMore", bc.id)
 			dst = bsoncore.AppendStringElement(dst, "collection", bc.collection)
 			if numToReturn > 0 {
@@ -382,7 +407,9 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 			}
 
 			if bc.maxAwaitTime != nil && *bc.maxAwaitTime > 0 {
-				dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", int64(*bc.maxAwaitTime)/int64(time.Millisecond))
+				dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", maxTimeMS)
+
+				//dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", int64(*bc.maxAwaitTime)/int64(time.Millisecond))
 			}
 
 			comment, err := codecutil.MarshalValue(bc.comment, bc.encoderFn)
