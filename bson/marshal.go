@@ -133,7 +133,7 @@ func MarshalValue(val interface{}) (Type, []byte, error) {
 		return 0, nil, err
 	}
 	typ := sw.Next(2)
-	clone := append([]byte(nil), sw.Bytes()...) // Don't hand out a shared reference to byte buffer bytes
+	clone := append([]byte{}, sw.Bytes()...) // Don't hand out a shared reference to byte buffer bytes
 	// and fully copy the data. The byte buffer is (potentially) reused
 	// and handing out only a reference to the bytes may lead to race-conditions with the buffer.
 	return Type(typ[0]), clone, nil
