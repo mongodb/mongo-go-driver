@@ -178,12 +178,12 @@ func TestClientOptions(t *testing.T) {
 
 		t.Run("MergeClientOptions single nil option", func(t *testing.T) {
 			got := MergeClientOptions(nil)
-			assert.NotNil(t, got)
+			assert.Equal(t, Client(), got)
 		})
 
 		t.Run("MergeClientOptions multiple nil options", func(t *testing.T) {
 			got := MergeClientOptions(nil, nil)
-			assert.NotNil(t, got)
+			assert.Equal(t, Client(), got)
 		})
 	})
 	t.Run("direct connection validation", func(t *testing.T) {
