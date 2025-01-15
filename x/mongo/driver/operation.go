@@ -820,7 +820,7 @@ func (op Operation) Execute(ctx context.Context) error {
 			}
 
 			connDesc := conn.Description()
-			retryableErr := tt.Retryable(connDesc.WireVersion)
+			retryableErr := tt.Retryable(connDesc.Kind, connDesc.WireVersion)
 			preRetryWriteLabelVersion := connDesc.WireVersion != nil && connDesc.WireVersion.Max < 9
 			inTransaction := op.Client != nil &&
 				!(op.Client.Committing || op.Client.Aborting) && op.Client.TransactionRunning()
