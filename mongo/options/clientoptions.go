@@ -1265,6 +1265,10 @@ func extractX509UsernameFromSubject(subject string) string {
 // precedence.
 func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 	if len(opts) == 1 {
+		if opts[0] == nil {
+			return Client()
+		}
+
 		return opts[0]
 	}
 
