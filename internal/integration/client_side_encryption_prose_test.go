@@ -3096,7 +3096,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 						SetKeyID(keyID).
 						SetAlgorithm("AEAD_AES_256_CBC_HMAC_SHA_512-Deterministic")
 					_, err = clientEncryption.Encrypt(context.Background(), testVal, eo)
-					assert.NoError(mt, err, "error in Encrypt: %v", err)
+					require.NoError(mt, err, "error in Encrypt: %v", err)
 				})
 			}
 		}
