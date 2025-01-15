@@ -45,6 +45,22 @@ type readKeyValueTestCase struct {
 	valEFs []expectedErrorFunc
 }
 
+func expectNoError(t *testing.T, err error, desc string) {
+	if err != nil {
+		t.Helper()
+		t.Errorf("%s: Unepexted error: %v", desc, err)
+		t.FailNow()
+	}
+}
+
+func expectError(t *testing.T, err error, desc string) {
+	if err == nil {
+		t.Helper()
+		t.Errorf("%s: Expected error", desc)
+		t.FailNow()
+	}
+}
+
 func expectSpecificError(expected error) expectedErrorFunc {
 	return func(t *testing.T, err error, desc string) {
 		if !errors.Is(err, expected) {

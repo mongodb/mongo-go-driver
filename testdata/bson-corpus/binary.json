@@ -74,6 +74,36 @@
             "description": "$type query operator (conflicts with legacy $binary form with $type field)",
             "canonical_bson": "180000000378001000000010247479706500020000000000",
             "canonical_extjson": "{\"x\" : { \"$type\" : {\"$numberInt\": \"2\"}}}"
+        },
+        {
+            "description": "subtype 0x09 Vector FLOAT32",
+            "canonical_bson": "170000000578000A0000000927000000FE420000E04000",
+            "canonical_extjson": "{\"x\": {\"$binary\": {\"base64\": \"JwAAAP5CAADgQA==\", \"subType\": \"09\"}}}"
+        },
+        {
+            "description": "subtype 0x09 Vector INT8",
+            "canonical_bson": "11000000057800040000000903007F0700",
+            "canonical_extjson": "{\"x\": {\"$binary\": {\"base64\": \"AwB/Bw==\", \"subType\": \"09\"}}}"
+        },
+        {
+            "description": "subtype 0x09 Vector PACKED_BIT",
+            "canonical_bson": "11000000057800040000000910007F0700",
+            "canonical_extjson": "{\"x\": {\"$binary\": {\"base64\": \"EAB/Bw==\", \"subType\": \"09\"}}}"
+        },
+        {
+            "description": "subtype 0x09 Vector (Zero-length) FLOAT32",
+            "canonical_bson": "0F0000000578000200000009270000",
+            "canonical_extjson": "{\"x\": {\"$binary\": {\"base64\": \"JwA=\", \"subType\": \"09\"}}}"
+        },
+        {
+            "description": "subtype 0x09 Vector (Zero-length) INT8",
+            "canonical_bson": "0F0000000578000200000009030000",
+            "canonical_extjson": "{\"x\": {\"$binary\": {\"base64\": \"AwA=\", \"subType\": \"09\"}}}"
+        },
+        {
+            "description": "subtype 0x09 Vector (Zero-length) PACKED_BIT",
+            "canonical_bson": "0F0000000578000200000009100000",
+            "canonical_extjson": "{\"x\": {\"$binary\": {\"base64\": \"EAA=\", \"subType\": \"09\"}}}"
         }
     ],
     "decodeErrors": [
