@@ -28,6 +28,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage"
@@ -717,6 +718,128 @@ func TestClient(t *testing.T) {
 				}
 			})
 		}
+	})
+}
+
+func TestClient_BulkWrite(t *testing.T) {
+	mt := mtest.New(t, noClientOpts)
+
+	mtBulkWriteOpts := mtest.NewOptions().MinServerVersion("8.0").AtlasDataLake(false).ClientType(mtest.Pinned)
+	mt.RunOpts("bulk write with nil filter", mtBulkWriteOpts, func(mt *mtest.T) {
+		mt.Parallel()
+
+		testCases := []struct {
+			name        string
+			writes      []mongo.ClientBulkWrite
+			errorString string
+		}{
+			{
+				name: "DeleteOne",
+				writes: []mongo.ClientBulkWrite{{
+					Database:   "foo",
+					Collection: "bar",
+					Model:      mongo.NewClientDeleteOneModel(),
+				}},
+				errorString: "delete filter cannot be nil",
+			},
+			{
+				name: "DeleteMany",
+				writes: []mongo.ClientBulkWrite{{
+					Database:   "foo",
+					Collection: "bar",
+					Model:      mongo.NewClientDeleteManyModel(),
+				}},
+				errorString: "delete filter cannot be nil",
+			},
+			{
+				name: "UpdateOne",
+				writes: []mongo.ClientBulkWrite{{
+					Database:   "foo",
+					Collection: "bar",
+					Model:      mongo.NewClientUpdateOneModel(),
+				}},
+				errorString: "update filter cannot be nil",
+			},
+			{
+				name: "UpdateMany",
+				writes: []mongo.ClientBulkWrite{{
+					Database:   "foo",
+					Collection: "bar",
+					Model:      mongo.NewClientUpdateManyModel(),
+				}},
+				errorString: "update filter cannot be nil",
+			},
+		}
+		for _, tc := range testCases {
+			tc := tc
+
+			mt.Run(tc.name, func(mt *mtest.T) {
+				mt.Parallel()
+
+				_, err := mt.Client.BulkWrite(context.Background(), tc.writes)
+				require.EqualError(mt, err, tc.errorString)
+			})
+		}
+	})
+	mt.RunOpts("bulk write with write concern", mtBulkWriteOpts, func(mt *mtest.T) {
+		mt.Parallel()
+
+		testCases := []struct {
+			name string
+			opts *options.ClientBulkWriteOptionsBuilder
+			want bool
+		}{
+			{
+				name: "unacknowledged",
+				opts: options.ClientBulkWrite().SetWriteConcern(writeconcern.Unacknowledged()).SetOrdered(false),
+				want: false,
+			},
+			{
+				name: "acknowledged",
+				want: true,
+			},
+		}
+		for _, tc := range testCases {
+			tc := tc
+
+			mt.Run(tc.name, func(mt *mtest.T) {
+				mt.Parallel()
+
+				insertOneModel := mongo.NewClientInsertOneModel().SetDocument(bson.D{{"x", 1}})
+				writes := []mongo.ClientBulkWrite{{
+					Database:   "foo",
+					Collection: "bar",
+					Model:      insertOneModel,
+				}}
+				res, err := mt.Client.BulkWrite(context.Background(), writes, tc.opts)
+				require.NoError(mt, err, "BulkWrite error: %v", err)
+				require.NotNil(mt, res, "expected a ClientBulkWriteResult")
+				assert.Equal(mt, res.Acknowledged, tc.want, "expected Acknowledged: %v, got: %v", tc.want, res.Acknowledged)
+			})
+		}
+	})
+	var bulkWrites int
+	cmdMonitor := &event.CommandMonitor{
+		Started: func(_ context.Context, evt *event.CommandStartedEvent) {
+			if evt.CommandName == "bulkWrite" {
+				bulkWrites++
+			}
+		},
+	}
+	clientOpts := options.Client().SetMonitor(cmdMonitor)
+	mt.RunOpts("bulk write with large messages", mtBulkWriteOpts.ClientOptions(clientOpts), func(mt *mtest.T) {
+		mt.Parallel()
+
+		document := bson.D{{"largeField", strings.Repeat("a", 16777216-100)}} // Adjust size to account for BSON overhead
+		writes := []mongo.ClientBulkWrite{
+			{"db", "x", mongo.NewClientInsertOneModel().SetDocument(document)},
+			{"db", "x", mongo.NewClientInsertOneModel().SetDocument(document)},
+			{"db", "x", mongo.NewClientInsertOneModel().SetDocument(document)},
+		}
+
+		_, err := mt.Client.BulkWrite(context.Background(), writes)
+		require.NoError(t, err)
+		assert.Equal(t, 2, bulkWrites, "expected %d bulkWrites, got %d", 2, bulkWrites)
 	})
 }
 

@@ -9,6 +9,7 @@ package mongo
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -167,8 +168,7 @@ func (bw *bulkWrite) runBatch(ctx context.Context, batch bulkWriteBatch) (BulkWr
 
 func (bw *bulkWrite) runInsert(ctx context.Context, batch bulkWriteBatch) (operation.InsertResult, error) {
 	docs := make([]bsoncore.Document, len(batch.models))
-	var i int
-	for _, model := range batch.models {
+	for i, model := range batch.models {
 		converted := model.(*InsertOneModel)
 		doc, err := marshal(converted.Document, bw.collection.bsonOpts, bw.collection.registry)
 		if err != nil {
@@ -180,7 +180,6 @@ func (bw *bulkWrite) runInsert(ctx context.Context, batch bulkWriteBatch) (opera
 		}
 
 		docs[i] = doc
-		i++
 	}
 
 	op := operation.NewInsert(docs...).
@@ -296,6 +295,9 @@ func createDeleteDoc(
 	bsonOpts *options.BSONOptions,
 	registry *bson.Registry,
 ) (bsoncore.Document, error) {
+	if filter == nil {
+		return nil, fmt.Errorf("delete filter cannot be nil")
+	}
 	f, err := marshal(filter, bsonOpts, registry)
 	if err != nil {
 		return nil, err
@@ -431,6 +433,9 @@ type updateDoc struct {
 }
 
 func (doc updateDoc) marshal(bsonOpts *options.BSONOptions, registry *bson.Registry) (bsoncore.Document, error) {
+	if doc.filter == nil {
+		return nil, fmt.Errorf("update filter cannot be nil")
+	}
 	f, err := marshal(doc.filter, bsonOpts, registry)
 	if err != nil {
 		return nil, err
