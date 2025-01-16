@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
 )
 
 func TestMarshalValue(t *testing.T) {
@@ -31,6 +32,25 @@ func TestMarshalValue(t *testing.T) {
 				assert.Nil(t, err, "MarshalValue error: %v", err)
 				compareMarshalValueResults(t, tc, valueType, valueBytes)
 			})
+		}
+	})
+
+	t.Run("returns distinct address ranges", func(t *testing.T) {
+		// Call MarshalValue in a loop with the same large value (make sure to
+		// trigger the buffer pooling, which currently doesn't happen for very
+		// small values). Compare the previous and current BSON byte slices and
+		// make sure they always have distinct memory ranges.
+		//
+		// Don't run this test in parallel to maximize the chance that we get
+		// the same pooled buffer for most/all calls.
+		largeVal := strings.Repeat("1234567890", 100_000)
+		var prev []byte
+		for i := 0; i < 20; i++ {
+			_, b, err := MarshalValue(largeVal)
+			require.NoError(t, err)
+
+			assert.DifferentAddressRanges(t, b, prev)
+			prev = b
 		}
 	})
 }
