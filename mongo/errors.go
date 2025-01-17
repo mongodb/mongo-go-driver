@@ -252,7 +252,21 @@ type ServerError interface {
 	// HasErrorCodeWithMessage returns true if any of the contained errors have the specified code and message.
 	HasErrorCodeWithMessage(int, string) bool
 
+	// ErrorCodes returns a deduplicated list of error codes returned by the
+	// server.
+	ErrorCodes() []int
+
 	serverError()
+}
+
+func hasErrorCode(srvErr ServerError, code int) bool {
+	for _, srvErrCode := range srvErr.ErrorCodes() {
+		if code == srvErrCode {
+			return true
+		}
+	}
+
+	return false
 }
 
 var _ ServerError = CommandError{}
@@ -286,6 +300,11 @@ func (e CommandError) Unwrap() error {
 // HasErrorCode returns true if the error has the specified code.
 func (e CommandError) HasErrorCode(code int) bool {
 	return int(e.Code) == code
+}
+
+// ErrorCodes returns a list of error codes returned by the server.
+func (e CommandError) ErrorCodes() []int {
+	return []int{int(e.Code)}
 }
 
 // HasErrorLabel returns true if the error contains the specified label.
@@ -341,6 +360,11 @@ func (we WriteError) Error() string {
 // HasErrorCode returns true if the error has the specified code.
 func (we WriteError) HasErrorCode(code int) bool {
 	return we.Code == code
+}
+
+// ErrorCodes returns a list of error codes returned by the server.
+func (we WriteError) ErrorCodes() []int {
+	return []int{we.Code}
 }
 
 // HasErrorLabel returns true if the error contains the specified label. WriteErrors do not contain labels,
@@ -449,15 +473,21 @@ func (mwe WriteException) Error() string {
 
 // HasErrorCode returns true if the error has the specified code.
 func (mwe WriteException) HasErrorCode(code int) bool {
-	if mwe.WriteConcernError != nil && mwe.WriteConcernError.Code == code {
-		return true
+	return hasErrorCode(mwe, code)
+}
+
+// ErrorCodes returns a list of error codes returned by the server.
+func (mwe WriteException) ErrorCodes() []int {
+	errorCodes := []int{}
+	for _, writeError := range mwe.WriteErrors {
+		errorCodes = append(errorCodes, writeError.Code)
 	}
-	for _, we := range mwe.WriteErrors {
-		if we.Code == code {
-			return true
-		}
+
+	if mwe.WriteConcernError != nil {
+		errorCodes = append(errorCodes, mwe.WriteConcernError.Code)
 	}
-	return false
+
+	return errorCodes
 }
 
 // HasErrorLabel returns true if the error contains the specified label.
@@ -561,15 +591,21 @@ func (bwe BulkWriteException) Error() string {
 
 // HasErrorCode returns true if any of the errors have the specified code.
 func (bwe BulkWriteException) HasErrorCode(code int) bool {
-	if bwe.WriteConcernError != nil && bwe.WriteConcernError.Code == code {
-		return true
+	return hasErrorCode(bwe, code)
+}
+
+// ErrorCodes returns a list of error codes returned by the server.
+func (bwe BulkWriteException) ErrorCodes() []int {
+	errorCodes := []int{}
+	for _, writeError := range bwe.WriteErrors {
+		errorCodes = append(errorCodes, writeError.Code)
 	}
-	for _, we := range bwe.WriteErrors {
-		if we.Code == code {
-			return true
-		}
+
+	if bwe.WriteConcernError != nil {
+		errorCodes = append(errorCodes, bwe.WriteConcernError.Code)
 	}
-	return false
+
+	return errorCodes
 }
 
 // HasErrorLabel returns true if the error contains the specified label.
