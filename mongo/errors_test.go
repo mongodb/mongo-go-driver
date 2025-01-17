@@ -708,7 +708,7 @@ func TestServerError_ErrorCodes(t *testing.T) {
 		{
 			name:  "WriteException duplicates",
 			error: WriteException{WriteErrors: []WriteError{{Code: 1}, {Code: 2}, {Code: 2}}},
-			want:  []int{1, 2},
+			want:  []int{1, 2, 2},
 		},
 		{
 			name:  "BulkWriteException single",
@@ -730,7 +730,7 @@ func TestServerError_ErrorCodes(t *testing.T) {
 				{WriteError: WriteError{Code: 2}},
 				{WriteError: WriteError{Code: 2}},
 			}},
-			want: []int{1, 2},
+			want: []int{1, 2, 2},
 		},
 	}
 

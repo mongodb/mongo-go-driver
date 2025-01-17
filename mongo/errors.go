@@ -299,7 +299,7 @@ func (e CommandError) Unwrap() error {
 
 // HasErrorCode returns true if the error has the specified code.
 func (e CommandError) HasErrorCode(code int) bool {
-	return hasErrorCode(e, code)
+	return int(e.Code) == code
 }
 
 // ErrorCodes returns a list of error codes returned by the server.
@@ -359,7 +359,7 @@ func (we WriteError) Error() string {
 
 // HasErrorCode returns true if the error has the specified code.
 func (we WriteError) HasErrorCode(code int) bool {
-	return hasErrorCode(we, code)
+	return we.Code == code
 }
 
 // ErrorCodes returns a list of error codes returned by the server.
@@ -478,19 +478,13 @@ func (mwe WriteException) HasErrorCode(code int) bool {
 
 // ErrorCodes returns a list of error codes returned by the server.
 func (mwe WriteException) ErrorCodes() []int {
-	errorCodeSet := make(map[int]struct{})
+	errorCodes := []int{}
 	for _, writeError := range mwe.WriteErrors {
-		errorCodeSet[writeError.Code] = struct{}{}
+		errorCodes = append(errorCodes, writeError.Code)
 	}
 
 	if mwe.WriteConcernError != nil {
-		errorCodeSet[mwe.WriteConcernError.Code] = struct{}{}
-	}
-
-	// Deduplicate error codes.
-	errorCodes := make([]int, 0, len(errorCodeSet))
-	for code := range errorCodeSet {
-		errorCodes = append(errorCodes, code)
+		errorCodes = append(errorCodes, mwe.WriteConcernError.Code)
 	}
 
 	return errorCodes
@@ -602,19 +596,13 @@ func (bwe BulkWriteException) HasErrorCode(code int) bool {
 
 // ErrorCodes returns a list of error codes returned by the server.
 func (bwe BulkWriteException) ErrorCodes() []int {
-	errorCodeSet := make(map[int]struct{})
+	errorCodes := []int{}
 	for _, writeError := range bwe.WriteErrors {
-		errorCodeSet[writeError.Code] = struct{}{}
+		errorCodes = append(errorCodes, writeError.Code)
 	}
 
 	if bwe.WriteConcernError != nil {
-		errorCodeSet[bwe.WriteConcernError.Code] = struct{}{}
-	}
-
-	// Deduplicate error codes.
-	errorCodes := make([]int, 0, len(errorCodeSet))
-	for code := range errorCodeSet {
-		errorCodes = append(errorCodes, code)
+		errorCodes = append(errorCodes, bwe.WriteConcernError.Code)
 	}
 
 	return errorCodes
