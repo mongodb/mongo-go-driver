@@ -553,21 +553,6 @@ functions:
           KMS_MOCK_SERVERS_RUNNING: "true"
         args: [*task-runner, evg-test-kmip]
 
-  start-kms-failpoint-server:
-    - command: subprocess.exec
-      params:
-        working_dir: src/go.mongodb.org/mongo-driver
-        binary: bash
-        background: true
-        include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN", "DRIVERS_TOOLS"]
-        # This cannot use task because it will hang on Windows.
-        args: [etc/setup-encryption.sh]
-    - command: subprocess.exec
-      params:
-        binary: python3
-        background: true
-        args: ["-u", "${DRIVERS_TOOLS}/.evergreen/csfle/kms_failpoint_server.py", "--port", "9003"]
-
   run-retry-kms-requests:
     - command: subprocess.exec
       type: test
@@ -575,7 +560,8 @@ functions:
         binary: "bash"
         env: 
           GO_BUILD_TAGS: cse
-        include_expansions_in_env: [AUTH, SSL, MONGODB_URI, TOPOLOGY, MONGO_GO_DRIVER_COMPRESSOR]
+        include_expansions_in_env: [AUTH, SSL, MONGODB_URI, TOPOLOGY, 
+          MONGO_GO_DRIVER_COMPRESSOR]
         args: [*task-runner, setup-test]
     - command: subprocess.exec
       type: test
@@ -1473,7 +1459,7 @@ tasks:
           SSL: "nossl"
 
   - name: "test-kms-tls-invalid-cert"
-    tags: ["kms-tls"]
+    tags: ["kms-test"]
     commands:
       - func: bootstrap-mongo-orchestration
         vars:
@@ -1489,7 +1475,7 @@ tasks:
           SSL: "nossl"
 
   - name: "test-kms-tls-invalid-hostname"
-    tags: ["kms-tls"]
+    tags: ["kms-test"]
     commands:
       - func: bootstrap-mongo-orchestration
         vars:
@@ -1520,14 +1506,14 @@ tasks:
           SSL: "nossl"
 
   - name: "test-retry-kms-requests"
-    tags: ["retry-kms-requests"]
+    tags: ["kms-test"]
     commands:
       - func: bootstrap-mongo-orchestration
         vars:
           TOPOLOGY: "server"
           AUTH: "noauth"
           SSL: "nossl"
-      - func: start-kms-failpoint-server
+      - func: start-cse-servers
       - func: run-retry-kms-requests
 
   - name: "test-serverless"
@@ -2207,11 +2193,11 @@ buildvariants:
     tasks:
       - name: ".versioned-api"
 
-  - matrix_name: "kms-tls-test"
+  - matrix_name: "kms-test"
     matrix_spec: { version: ["7.0"], os-ssl-40: ["rhel87-64"] }
-    display_name: "KMS TLS ${os-ssl-40}"
+    display_name: "KMS TEST ${os-ssl-40}"
     tasks:
-      - name: ".kms-tls"
+      - name: ".kms-test"
 
   - matrix_name: "load-balancer-test"
     tags: ["pullrequest"]
@@ -2238,12 +2224,6 @@ buildvariants:
     display_name: "KMS KMIP ${os-ssl-40}"
     tasks:
       - name: ".kms-kmip"
-
-  - matrix_name: "retry-kms-requests-test"
-    matrix_spec: { version: ["7.0"], os-ssl-40: ["rhel87-64"] }
-    display_name: "Retry KMS Requests ${os-ssl-40}"
-    tasks:
-      - name: ".retry-kms-requests"
 
   - matrix_name: "fuzz-test"
     matrix_spec: { version: ["5.0"], os-ssl-40: ["rhel87-64"] }
