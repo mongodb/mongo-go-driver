@@ -88,6 +88,17 @@ func NewMongoCrypt(opts *options.MongoCryptOptions) (*MongoCrypt, error) {
 		C.mongocrypt_setopt_bypass_query_analysis(wrapped)
 	}
 
+	var keyExpirationMs uint64 = 60_000 // 60,000 ms
+	if opts.KeyExpiration != nil {
+		expirationMs := opts.KeyExpiration.Milliseconds()
+		if expirationMs < 0 {
+			keyExpirationMs = 0
+		} else {
+			keyExpirationMs = uint64(expirationMs)
+		}
+	}
+	C.mongocrypt_setopt_key_expiration(crypt.wrapped, C.uint64_t(keyExpirationMs))
+
 	// If loading the crypt_shared library isn't disabled, set the default library search path "$SYSTEM"
 	// and set a library override path if one was provided.
 	if !opts.CryptSharedLibDisabled {
