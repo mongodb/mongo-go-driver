@@ -7,7 +7,6 @@
 package mongo
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -427,9 +426,7 @@ func (mb *modelBatches) processResponse(ctx context.Context, resp bsoncore.Docum
 		Code      int32
 		Errmsg    string
 	}
-	dec := bson.NewDecoder(bson.NewDocumentReader(bytes.NewReader(resp)))
-	dec.SetRegistry(mb.client.registry)
-	err := dec.Decode(&res)
+	err := bson.Unmarshal(resp, &res)
 	if err != nil {
 		return err
 	}

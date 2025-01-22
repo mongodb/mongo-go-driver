@@ -227,10 +227,8 @@ func TestCSOTProse(t *testing.T) {
 			SetTimeout(2 * time.Second).
 			SetMonitor(cm).
 			ApplyURI(mtest.ClusterURI())
-		integtest.AddTestServerAPIVersion(cliOptions)
-		cli, err := mongo.Connect(cliOptions)
-		require.NoError(mt, err, "Connect error: %v", err)
-		_, err = cli.BulkWrite(context.Background(), writes)
+		mt.ResetClient(cliOptions)
+		_, err = mt.Client.BulkWrite(context.Background(), writes)
 		assert.ErrorIs(mt, err, context.DeadlineExceeded, "expected a timeout error, got: %v", err)
 		assert.Equal(mt, 2, cnt, "expected bulkWrite calls: %d, got: %d", 2, cnt)
 	})
