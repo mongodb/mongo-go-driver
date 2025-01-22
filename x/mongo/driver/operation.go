@@ -103,10 +103,13 @@ type opReply struct {
 
 // startedInformation keeps track of all of the information necessary for monitoring started events.
 type startedInformation struct {
-	cmd                bsoncore.Document
-	requestID          int32
-	cmdName            string
-	docArray           bsoncore.Array
+	cmd               bsoncore.Document
+	requestID         int32
+	cmdName           string
+	documentSequences []struct {
+		identifier string
+		data       []byte
+	}
 	processedBatches   int
 	connID             string
 	driverConnectionID int64
@@ -164,10 +167,12 @@ func redactStartedInformationCmd(info startedInformation) bson.Raw {
 		cmdCopy = make([]byte, 0, len(info.cmd))
 		cmdCopy = append(cmdCopy, info.cmd...)
 
-		if len(info.docArray) > 0 {
+		if len(info.documentSequences) > 0 {
 			// remove 0 byte at end
 			cmdCopy = cmdCopy[:len(info.cmd)-1]
-			cmdCopy = append(cmdCopy, info.docArray...)
+			for _, seq := range info.documentSequences {
+				cmdCopy = appendDocumentArray(cmdCopy, seq.identifier, seq.data)
+			}
 			// add back 0 byte and update length
 			cmdCopy, _ = bsoncore.AppendDocumentEnd(cmdCopy, 0)
 		}
@@ -1410,14 +1415,21 @@ func (op Operation) createWireMessage(
 			}
 		}
 		if err == nil && batchOffset > 0 {
+			// the remaining of dst is expected to be document sequences such as "ops", "nsInfo".
 			for b := dst[batchOffset:]; len(b) > 0; /* nothing */ {
-				var array bsoncore.Array
-				var ok bool
-				array, b, ok = documentSequenceToArray(b)
+				stype, data, ok := wiremessage.ReadMsgSectionType(b)
+				if !ok || stype != wiremessage.DocumentSequence {
+					break
+				}
+				var identifier string
+				identifier, data, b, ok = wiremessage.ReadMsgSectionRawDocumentSequence(data)
 				if !ok {
 					break
 				}
-				info.docArray = append(info.docArray, array...)
+				info.documentSequences = append(info.documentSequences, struct {
+					identifier string
+					data       []byte
+				}{identifier, data})
 			}
 		}
 	}
@@ -2219,34 +2231,22 @@ func retryWritesSupported(s description.Server) bool {
 	return s.SessionTimeoutMinutes != nil && s.Kind != description.ServerKindStandalone
 }
 
-func documentSequenceToArray(src []byte) (bsoncore.Array, []byte, bool) {
-	stype, rem, ok := wiremessage.ReadMsgSectionType(src)
-	if !ok || stype != wiremessage.DocumentSequence {
-		return nil, src, false
-	}
-	var identifier string
-	var ret []byte
-	identifier, rem, ret, ok = wiremessage.ReadMsgSectionRawDocumentSequence(rem)
-	if !ok {
-		return nil, src, false
-	}
-
-	aidx, dst := bsoncore.AppendArrayElementStart(nil, identifier)
+// appendDocumentArray will append an array header and document elements in data to dst and return the extended buffer.
+func appendDocumentArray(dst []byte, key string, data []byte) []byte {
+	aidx, dst := bsoncore.AppendArrayElementStart(dst, key)
+	var doc bsoncore.Document
+	var ok bool
 	i := 0
 	for {
-		var doc bsoncore.Document
-		doc, rem, ok = bsoncore.ReadDocument(rem)
+		doc, data, ok = bsoncore.ReadDocument(data)
 		if !ok {
 			break
 		}
 		dst = bsoncore.AppendDocumentElement(dst, strconv.Itoa(i), doc)
 		i++
 	}
-	if len(rem) > 0 {
-		return nil, src, false
-	}
 
 	dst, _ = bsoncore.AppendArrayEnd(dst, aidx)
 
-	return dst, ret, true
+	return dst
 }
