@@ -35,14 +35,16 @@ type ccCfg struct {
 }
 
 type ccResult struct {
-	RunID             int64 // unifying ID for runs between 1 and 100 percentiles
-	ShortCircuitRate  float64
-	Throughput        float64 // operations per second
-	ThroughputActual  float64 // throughput * startedRate
-	ThroughputSuccess float64 // throughput * successRate
-	Percentile        float64
-	TimeoutRate       float64 // timeout errors per operation
-	StartedRate       float64
+	RunID                     int64 // unifying ID for runs between 1 and 100 percentiles
+	ShortCircuitRate          float64
+	Throughput                float64 // operations per second
+	ThroughputActual          float64 // throughput * startedRate
+	ThroughputSuccess         float64 // throughput * successRate
+	Percentile                float64
+	TimeoutRate               float64 // timeout errors per operation
+	StartedRate               float64
+	Elapsed                   float64
+	ConnectionReadDurationsMS []float64
 }
 
 func calculateThroughputPercentile(p float64, results []ccResult) float64 {
@@ -54,6 +56,15 @@ func calculateThroughputPercentile(p float64, results []ccResult) float64 {
 	sort.Float64s(throughputs)
 
 	return stat.Quantile(p, stat.Empirical, throughputs, nil)
+}
+
+func calculateAverageElapsed(results []ccResult) float64 {
+	elapsed := make([]float64, len(results))
+	for i := range elapsed {
+		elapsed[i] = results[i].Elapsed
+	}
+
+	return stat.Mean(elapsed, nil)
 }
 
 // calculateSimpsonsE returns an approximation of the area under the curve of
@@ -102,13 +113,24 @@ func benchmarkConnectionChurnTO(
 	cfg ccCfg,
 	opts ...*options.ClientOptions,
 ) ccResult {
+	b.Logf("starting benchmark")
 	clientOpts := options.MergeClientOptions(opts...)
 
 	var connectionsClosed atomic.Int64
+
+	connectionReadyDurationsMu := sync.Mutex{}
+	connectionReadyDurations := []float64{}
+
 	poolMonitor := &event.PoolMonitor{
 		Event: func(pe *event.PoolEvent) {
-			if pe.Type == event.ConnectionClosed {
+			switch pe.Type {
+			case event.ConnectionClosed:
 				connectionsClosed.Add(1)
+			case event.ConnectionReady:
+				fmt.Println("READY!")
+				connectionReadyDurationsMu.Lock()
+				connectionReadyDurations = append(connectionReadyDurations, float64(pe.Duration)/float64(time.Millisecond))
+				connectionReadyDurationsMu.Unlock()
 			}
 		},
 	}
@@ -208,21 +230,17 @@ func benchmarkConnectionChurnTO(
 		shortCircuitRate = 1.0 - float64(connectionsClosed.Load())/float64(gotTimeoutErrCount)
 	}
 
-	//b.ReportMetric(float64(cfg.ops), "ops")
-	//b.ReportMetric(float64(commandStarted.Load()), "round-trips")
-	//b.ReportMetric(float64(commandFailed.Load()), "failures")
-	//b.ReportMetric(float64(gotTimeoutErrCount), "t/o")
-	//b.ReportMetric(shortCircuitRate, "closure/t/o")
-
-	//fmt.Println("data: ", cfg.ops, commandStarted, commandSucceeded, commandFailed, gotTimeoutErrCount)
+	fmt.Println("data: ", cfg.ops, commandStarted.Load())
 	return ccResult{
-		RunID:             runID,
-		ShortCircuitRate:  shortCircuitRate,
-		Throughput:        throughput,
-		ThroughputActual:  throughputActual,
-		ThroughputSuccess: throughputSuccess,
-		TimeoutRate:       timeoutRate,
-		StartedRate:       startedRate,
+		RunID:                     runID,
+		ShortCircuitRate:          shortCircuitRate,
+		Throughput:                throughput,
+		ThroughputActual:          throughputActual,
+		ThroughputSuccess:         throughputSuccess,
+		TimeoutRate:               timeoutRate,
+		StartedRate:               startedRate,
+		Elapsed:                   elapsed.Seconds(),
+		ConnectionReadDurationsMS: connectionReadyDurations,
 	}
 }
 
@@ -260,9 +278,10 @@ func BenchmarkConnectionChurn(b *testing.B) {
 		clientOpts *options.ClientOptions
 	}{
 		{
-			name:       "low volume and small pool",
-			goRoutines: runtime.NumCPU(),
-			operations: 100,
+			name: "low volume and small pool",
+			//goRoutines: runtime.NumCPU(),
+			goRoutines: 50,
+			operations: 500,
 			clientOpts: options.Client().SetMaxPoolSize(1).ApplyURI(uri),
 		},
 	}
@@ -301,7 +320,7 @@ func BenchmarkConnectionChurn(b *testing.B) {
 					ops:        uint(tcase.operations),
 				}
 
-				results[i] = benchmarkConnectionChurnTO(b, id, latencyPercentiles[i], cfg, tcase.clientOpts)
+				results[i] = benchmarkConnectionChurnTO(b, id, latencyPercentiles[i]*5, cfg, tcase.clientOpts)
 				results[i].Percentile = float64(i) / 100.0 // Normalize the percentile
 			}
 
