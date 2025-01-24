@@ -82,11 +82,15 @@ func (c *Command) Execute(ctx context.Context) error {
 		CommandFn: func(dst []byte, _ description.SelectedServer) ([]byte, error) {
 			return append(dst, c.command[4:len(c.command)-1]...), nil
 		},
-		ProcessResponseFn: func(info driver.ResponseInfo) error {
-			c.resultResponse = info.ServerResponse
+		ProcessResponseFn: func(_ context.Context, resp bsoncore.Document, info driver.ResponseInfo) error {
+			c.resultResponse = resp
 
 			if c.createCursor {
-				cursorRes, err := driver.NewCursorResponse(info)
+				curDoc, err := driver.ExtractCursorDocument(resp)
+				if err != nil {
+					return err
+				}
+				cursorRes, err := driver.NewCursorResponse(curDoc, info)
 				if err != nil {
 					return err
 				}

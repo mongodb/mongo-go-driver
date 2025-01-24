@@ -97,9 +97,9 @@ func NewCount() *Count {
 // Result returns the result of executing this operation.
 func (c *Count) Result() CountResult { return c.result }
 
-func (c *Count) processResponse(info driver.ResponseInfo) error {
+func (c *Count) processResponse(_ context.Context, resp bsoncore.Document, _ driver.ResponseInfo) error {
 	var err error
-	c.result, err = buildCountResult(info.ServerResponse)
+	c.result, err = buildCountResult(resp)
 	return err
 }
 
