@@ -52,6 +52,7 @@ type ClientUpdateOneModel struct {
 	Update       interface{}
 	ArrayFilters []interface{}
 	Hint         interface{}
+	Sort         interface{}
 }
 
 // NewClientUpdateOneModel creates a new ClientUpdateOneModel.
@@ -102,6 +103,14 @@ func (uom *ClientUpdateOneModel) SetCollation(collation *options.Collation) *Cli
 // ClientBulkWriteResult.
 func (uom *ClientUpdateOneModel) SetUpsert(upsert bool) *ClientUpdateOneModel {
 	uom.Upsert = &upsert
+	return uom
+}
+
+// SetSort specifies which document the operation updates if the query matches multiple documents. The first document
+// matched by the sort order will be updated. This option is only valid for MongoDB versions >= 8.0. The driver will
+// return an error if the sort parameter is a multi-key map. The default value is nil.
+func (uom *ClientUpdateOneModel) SetSort(sort interface{}) *ClientUpdateOneModel {
+	uom.Sort = sort
 	return uom
 }
 
@@ -176,6 +185,7 @@ type ClientReplaceOneModel struct {
 	Filter      interface{}
 	Replacement interface{}
 	Hint        interface{}
+	Sort        interface{}
 }
 
 // NewClientReplaceOneModel creates a new ClientReplaceOneModel.
@@ -219,6 +229,14 @@ func (rom *ClientReplaceOneModel) SetCollation(collation *options.Collation) *Cl
 // BulkWriteResult.
 func (rom *ClientReplaceOneModel) SetUpsert(upsert bool) *ClientReplaceOneModel {
 	rom.Upsert = &upsert
+	return rom
+}
+
+// SetSort specifies which document the operation replaces if the query matches multiple documents. The first document
+// matched by the sort order will be replaced. This option is only valid for MongoDB versions >= 8.0. The driver will
+// return an error if the sort parameter is a multi-key map. The default value is nil.
+func (rom *ClientReplaceOneModel) SetSort(sort interface{}) *ClientReplaceOneModel {
+	rom.Sort = sort
 	return rom
 }
 
