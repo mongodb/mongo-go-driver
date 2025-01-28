@@ -70,9 +70,7 @@ func registerDefaultEncoders(reg *Registry) {
 	reg.RegisterTypeEncoder(tJavaScript, ValueEncoderFunc(javaScriptEncodeValue))
 	reg.RegisterTypeEncoder(tSymbol, ValueEncoderFunc(symbolEncodeValue))
 	reg.RegisterTypeEncoder(tBinary, ValueEncoderFunc(binaryEncodeValue))
-	reg.RegisterTypeEncoder(tInt8Vector, ValueEncoderFunc(vectorEncodeValue))
-	reg.RegisterTypeEncoder(tFloat32Vector, ValueEncoderFunc(vectorEncodeValue))
-	reg.RegisterTypeEncoder(tBitVector, ValueEncoderFunc(vectorEncodeValue))
+	reg.RegisterTypeEncoder(tVector, ValueEncoderFunc(vectorEncodeValue))
 	reg.RegisterTypeEncoder(tUndefined, ValueEncoderFunc(undefinedEncodeValue))
 	reg.RegisterTypeEncoder(tDateTime, ValueEncoderFunc(dateTimeEncodeValue))
 	reg.RegisterTypeEncoder(tNull, ValueEncoderFunc(nullEncodeValue))
@@ -370,26 +368,14 @@ func binaryEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error
 // vectorEncodeValue is the ValueEncoderFunc for Vector.
 func vectorEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
 	t := val.Type()
-	if !val.IsValid() || (t != tInt8Vector && t != tFloat32Vector && t != tBitVector) {
+	if !val.IsValid() || t != tVector {
 		return ValueEncoderError{Name: "VectorEncodeValue",
-			Types:    []reflect.Type{tInt8Vector, tFloat32Vector, tBitVector},
+			Types:    []reflect.Type{tVector},
 			Received: val,
 		}
 	}
-	var b Binary
-	var err error
-	switch v := val.Interface().(type) {
-	case Vector[int8]:
-		b, err = NewBinaryFromVector(v)
-	case Vector[float32]:
-		b, err = NewBinaryFromVector(v)
-	case BitVector:
-		b, err = NewBinaryFromVector(v)
-	}
-	if err != nil {
-		return err
-	}
-
+	v := val.Interface().(Vector)
+	b := v.Binary()
 	return vw.WriteBinaryWithSubtype(b.Data, b.Subtype)
 }
 

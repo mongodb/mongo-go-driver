@@ -42,9 +42,7 @@ func registerDefaultDecoders(reg *Registry) {
 
 	reg.RegisterTypeDecoder(tD, ValueDecoderFunc(dDecodeValue))
 	reg.RegisterTypeDecoder(tBinary, decodeAdapter{binaryDecodeValue, binaryDecodeType})
-	reg.RegisterTypeDecoder(tInt8Vector, decodeAdapter{vectorDecodeValue, vectorDecodeType})
-	reg.RegisterTypeDecoder(tFloat32Vector, decodeAdapter{vectorDecodeValue, vectorDecodeType})
-	reg.RegisterTypeDecoder(tBitVector, decodeAdapter{vectorDecodeValue, vectorDecodeType})
+	reg.RegisterTypeDecoder(tVector, decodeAdapter{vectorDecodeValue, vectorDecodeType})
 	reg.RegisterTypeDecoder(tUndefined, decodeAdapter{undefinedDecodeValue, undefinedDecodeType})
 	reg.RegisterTypeDecoder(tDateTime, decodeAdapter{dateTimeDecodeValue, dateTimeDecodeType})
 	reg.RegisterTypeDecoder(tNull, decodeAdapter{nullDecodeValue, nullDecodeType})
@@ -561,10 +559,10 @@ func binaryDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) erro
 }
 
 func vectorDecodeType(_ DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
-	if t != tInt8Vector && t != tFloat32Vector && t != tBitVector {
+	if t != tVector {
 		return emptyValue, ValueDecoderError{
 			Name:     "VectorDecodeValue",
-			Types:    []reflect.Type{tInt8Vector, tFloat32Vector, tBitVector},
+			Types:    []reflect.Type{tVector},
 			Received: reflect.Zero(t),
 		}
 	}
@@ -585,10 +583,10 @@ func vectorDecodeType(_ DecodeContext, vr ValueReader, t reflect.Type) (reflect.
 // vectorDecodeValue is the ValueDecoderFunc for Vector.
 func vectorDecodeValue(dctx DecodeContext, vr ValueReader, val reflect.Value) error {
 	t := val.Type()
-	if !val.CanSet() || (t != tInt8Vector && t != tFloat32Vector && t != tBitVector) {
+	if !val.CanSet() || t != tVector {
 		return ValueDecoderError{
 			Name:     "VectorDecodeValue",
-			Types:    []reflect.Type{tInt8Vector, tFloat32Vector, tBitVector},
+			Types:    []reflect.Type{tVector},
 			Received: val,
 		}
 	}

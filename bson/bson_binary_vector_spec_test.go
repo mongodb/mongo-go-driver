@@ -70,23 +70,23 @@ func Test_BsonBinaryVector(t *testing.T) {
 		val := Binary{Subtype: TypeBinaryVector}
 
 		for _, tc := range [][]byte{
-			{Float32Vector, 0, 42},
-			{Float32Vector, 0, 42, 42},
-			{Float32Vector, 0, 42, 42, 42},
+			{byte(Float32Vector), 0, 42},
+			{byte(Float32Vector), 0, 42, 42},
+			{byte(Float32Vector), 0, 42, 42, 42},
 
-			{Float32Vector, 0, 42, 42, 42, 42, 42},
-			{Float32Vector, 0, 42, 42, 42, 42, 42, 42},
-			{Float32Vector, 0, 42, 42, 42, 42, 42, 42, 42},
+			{byte(Float32Vector), 0, 42, 42, 42, 42, 42},
+			{byte(Float32Vector), 0, 42, 42, 42, 42, 42, 42},
+			{byte(Float32Vector), 0, 42, 42, 42, 42, 42, 42, 42},
 		} {
 			t.Run(fmt.Sprintf("marshaling %d bytes", len(tc)-2), func(t *testing.T) {
 				val.Data = tc
 				b, err := Marshal(D{{"vector", val}})
 				require.NoError(t, err, "marshaling test BSON")
 				var got struct {
-					Vector Vector[float32]
+					Vector Vector
 				}
 				err = Unmarshal(b, &got)
-				require.ErrorContains(t, err, ErrInsufficientVectorData.Error())
+				require.ErrorContains(t, err, errInsufficientVectorData.Error())
 			})
 		}
 	})
@@ -95,19 +95,18 @@ func Test_BsonBinaryVector(t *testing.T) {
 		t.Parallel()
 
 		t.Run("Marshaling", func(t *testing.T) {
-			val := BitVector{Padding: 1}
-			_, err := Marshal(val)
-			require.EqualError(t, err, ErrNonZeroVectorPadding.Error())
+			_, err := NewPackedBitVector(nil, 1)
+			require.EqualError(t, err, errNonZeroVectorPadding.Error())
 		})
 		t.Run("Unmarshaling", func(t *testing.T) {
-			val := D{{"vector", Binary{Subtype: TypeBinaryVector, Data: []byte{PackedBitVector, 1}}}}
+			val := D{{"vector", Binary{Subtype: TypeBinaryVector, Data: []byte{byte(PackedBitVector), 1}}}}
 			b, err := Marshal(val)
 			require.NoError(t, err, "marshaling test BSON")
 			var got struct {
-				Vector Vector[float32]
+				Vector Vector
 			}
 			err = Unmarshal(b, &got)
-			require.ErrorContains(t, err, ErrNonZeroVectorPadding.Error())
+			require.ErrorContains(t, err, errNonZeroVectorPadding.Error())
 		})
 	})
 
@@ -115,19 +114,18 @@ func Test_BsonBinaryVector(t *testing.T) {
 		t.Parallel()
 
 		t.Run("Marshaling", func(t *testing.T) {
-			val := BitVector{Padding: 8}
-			_, err := Marshal(val)
-			require.EqualError(t, err, ErrVectorPaddingTooLarge.Error())
+			_, err := NewPackedBitVector(nil, 8)
+			require.EqualError(t, err, errVectorPaddingTooLarge.Error())
 		})
 		t.Run("Unmarshaling", func(t *testing.T) {
-			val := D{{"vector", Binary{Subtype: TypeBinaryVector, Data: []byte{PackedBitVector, 8}}}}
+			val := D{{"vector", Binary{Subtype: TypeBinaryVector, Data: []byte{byte(PackedBitVector), 8}}}}
 			b, err := Marshal(val)
 			require.NoError(t, err, "marshaling test BSON")
 			var got struct {
-				Vector Vector[float32]
+				Vector Vector
 			}
 			err = Unmarshal(b, &got)
-			require.ErrorContains(t, err, ErrVectorPaddingTooLarge.Error())
+			require.ErrorContains(t, err, errVectorPaddingTooLarge.Error())
 		})
 	})
 }
@@ -156,22 +154,23 @@ func runBsonBinaryVectorTest(t *testing.T, testKey string, test bsonBinaryVector
 		t.Skipf("skip invalid case %s", test.Description)
 	}
 
-	var testVector interface{}
+	testVector := make(map[string]Vector)
 	switch alias := test.DtypeHex; alias {
 	case "0x03":
-		testVector = map[string]Vector[int8]{
-			testKey: {convertSlice[int8](test.Vector)},
+		testVector[testKey] = Vector{
+			dType:    Int8Vector,
+			int8Data: convertSlice[int8](test.Vector),
 		}
 	case "0x27":
-		testVector = map[string]Vector[float32]{
-			testKey: {convertSlice[float32](test.Vector)},
+		testVector[testKey] = Vector{
+			dType:       Float32Vector,
+			float32Data: convertSlice[float32](test.Vector),
 		}
 	case "0x10":
-		testVector = map[string]BitVector{
-			testKey: {
-				Padding: uint8(test.Padding),
-				Data:    convertSlice[byte](test.Vector),
-			},
+		testVector[testKey] = Vector{
+			dType:      PackedBitVector,
+			bitData:    convertSlice[byte](test.Vector),
+			bitPadding: uint8(test.Padding),
 		}
 	default:
 		t.Fatalf("unsupported vector type: %s", alias)
@@ -183,18 +182,8 @@ func runBsonBinaryVectorTest(t *testing.T, testKey string, test bsonBinaryVector
 	t.Run("Unmarshaling", func(t *testing.T) {
 		t.Parallel()
 
-		var got interface{}
-		switch alias := test.DtypeHex; alias {
-		case "0x03":
-			got = make(map[string]Vector[int8])
-		case "0x27":
-			got = make(map[string]Vector[float32])
-		case "0x10":
-			got = make(map[string]BitVector)
-		default:
-			t.Fatalf("unsupported type: %s", alias)
-		}
-		err := Unmarshal(testBSON, got)
+		var got map[string]Vector
+		err := Unmarshal(testBSON, &got)
 		require.NoError(t, err)
 		require.Equal(t, testVector, got)
 	})

@@ -13,112 +13,148 @@ import (
 	"math"
 )
 
+// VectorDType represents the Vector data type.
+type VectorDType byte
+
 // These constants are vector data types.
 const (
-	Int8Vector      = 0x03
-	Float32Vector   = 0x27
-	PackedBitVector = 0x10
+	Int8Vector      VectorDType = 0x03
+	Float32Vector   VectorDType = 0x27
+	PackedBitVector VectorDType = 0x10
 )
+
+// Stringer of VectorDType
+func (vt VectorDType) String() string {
+	switch vt {
+	case Int8Vector:
+		return "int8"
+	case Float32Vector:
+		return "float32"
+	case PackedBitVector:
+		return "packed bit"
+	default:
+		return "invalid"
+	}
+}
 
 // These are vector conversion errors.
 var (
-	ErrNotVector              = errors.New("not a vector")
-	ErrInsufficientVectorData = errors.New("insufficient data")
-	ErrNonZeroVectorPadding   = errors.New("padding must be 0")
-	ErrVectorPaddingTooLarge  = errors.New("padding larger than 7")
+	errInsufficientVectorData = errors.New("insufficient data")
+	errNonZeroVectorPadding   = errors.New("padding must be 0")
+	errVectorPaddingTooLarge  = errors.New("padding larger than 7")
 )
 
-// Vector represents a densely packed array of numbers.
-type Vector[T int8 | float32] struct {
-	Data []T
+type vectorTypeError struct {
+	Method string
+	Type   VectorDType
 }
 
-// BitVector represents a binary quantized (PACKED_BIT) vector of 0s and 1s
-// (bits). The Padding prescribes the number of bits to ignore in the final byte
-// of the Data. It should be 0 for an empty Data and always less than 8.
-type BitVector struct {
-	Padding uint8
-	Data    []byte
+// Error implements the error interface.
+func (vte vectorTypeError) Error() string {
+	return "Call of " + vte.Method + " on " + vte.Type.String() + " vector"
 }
 
-func newInt8Vector(b []byte) (Vector[int8], error) {
-	var v Vector[int8]
-	if len(b) == 0 {
-		return v, ErrInsufficientVectorData
-	}
-	if padding := b[0]; padding > 0 {
-		return v, ErrNonZeroVectorPadding
-	}
-	s := make([]int8, 0, len(b)-1)
-	for i := 1; i < len(b); i++ {
-		s = append(s, int8(b[i]))
-	}
-	v.Data = s
-	return v, nil
+// Vector represents a densely packed array of numbers / bits.
+type Vector struct {
+	dType       VectorDType
+	int8Data    []int8
+	float32Data []float32
+	bitData     []byte
+	bitPadding  uint8
 }
 
-func newFloat32Vector(b []byte) (Vector[float32], error) {
-	var v Vector[float32]
-	if len(b) == 0 {
-		return v, ErrInsufficientVectorData
-	}
-	if padding := b[0]; padding > 0 {
-		return v, ErrNonZeroVectorPadding
-	}
-	l := (len(b) - 1) / 4
-	if l*4 != len(b)-1 {
-		return v, ErrInsufficientVectorData
-	}
-	s := make([]float32, 0, l)
-	for i := 1; i < len(b); i += 4 {
-		s = append(s, math.Float32frombits(binary.LittleEndian.Uint32(b[i:i+4])))
-	}
-	v.Data = s
-	return v, nil
+// Type returns the vector type.
+func (v Vector) Type() VectorDType {
+	return v.dType
 }
 
-func newBitVector(b []byte) (BitVector, error) {
-	var v BitVector
-	if len(b) == 0 {
-		return v, ErrInsufficientVectorData
+// Int8 returns the int8 slice hold by the vector.
+// It panics if v is not an int8 vector.
+func (v Vector) Int8() []int8 {
+	d, ok := v.Int8OK()
+	if !ok {
+		panic(vectorTypeError{"bson.Vector.Int8", v.dType})
 	}
-	padding := b[0]
-	if padding > 7 {
-		return v, ErrVectorPaddingTooLarge
-	}
-	if padding > 0 && len(b) == 1 {
-		return v, ErrNonZeroVectorPadding
-	}
-	v.Padding = padding
-	v.Data = b[1:]
-	return v, nil
+	return d
 }
 
-// NewVectorFromBinary unpacks a BSON Binary into a Vector.
-func NewVectorFromBinary(b Binary) (interface{}, error) {
-	if b.Subtype != TypeBinaryVector {
-		return nil, ErrNotVector
+// Int8OK is the same as Int8, but returns a boolean instead of panicking.
+func (v Vector) Int8OK() ([]int8, bool) {
+	if v.dType != Int8Vector {
+		return nil, false
 	}
-	if len(b.Data) < 2 {
-		return nil, ErrInsufficientVectorData
+	return v.int8Data, true
+}
+
+// Float32 returns the float32 slice hold by the vector.
+// It panics if v is not a float32 vector.
+func (v Vector) Float32() []float32 {
+	d, ok := v.Float32OK()
+	if !ok {
+		panic(vectorTypeError{"bson.Vector.Float32", v.dType})
 	}
-	switch t := b.Data[0]; t {
+	return d
+}
+
+// Float32OK is the same as Float32, but returns a boolean instead of panicking.
+func (v Vector) Float32OK() ([]float32, bool) {
+	if v.dType != Float32Vector {
+		return nil, false
+	}
+	return v.float32Data, true
+}
+
+// PackedBit returns the byte slice representing the binary quantized (packed bit) vector and the byte padding, which
+// is the number of bits in the final byte that are to be ignored.
+// It panics if v is not a packed bit vector.
+func (v Vector) PackedBit() ([]byte, uint8) {
+	d, p, ok := v.PackedBitOK()
+	if !ok {
+		panic(vectorTypeError{"bson.Vector.PackedBit", v.dType})
+	}
+	return d, p
+}
+
+// PackedBitOK is the same as PackedBit, but returns a boolean instead of panicking.
+func (v Vector) PackedBitOK() ([]byte, uint8, bool) {
+	if v.dType != PackedBitVector {
+		return nil, 0, false
+	}
+	return v.bitData, v.bitPadding, true
+}
+
+// Binary returns the BSON Binary of the Vector.
+func (v Vector) Binary() Binary {
+	switch v.Type() {
 	case Int8Vector:
-		return newInt8Vector(b.Data[1:])
+		return binaryFromInt8Vector(v.Int8())
 	case Float32Vector:
-		return newFloat32Vector(b.Data[1:])
+		return binaryFromFloat32Vector(v.Float32())
 	case PackedBitVector:
-		return newBitVector(b.Data[1:])
+		return binaryFromBitVector(v.PackedBit())
 	default:
-		return nil, fmt.Errorf("invalid Vector data type: %d", t)
+		panic("invalid Vector type")
 	}
 }
 
-func binaryFromFloat32Vector(v Vector[float32]) (Binary, error) {
-	data := make([]byte, 2, len(v.Data)*4+2)
-	copy(data, []byte{Float32Vector, 0})
+func binaryFromInt8Vector(v []int8) Binary {
+	data := make([]byte, 2, len(v)+2)
+	copy(data, []byte{byte(Int8Vector), 0})
+	for _, e := range v {
+		data = append(data, byte(e))
+	}
+
+	return Binary{
+		Subtype: TypeBinaryVector,
+		Data:    data,
+	}
+}
+
+func binaryFromFloat32Vector(v []float32) Binary {
+	data := make([]byte, 2, len(v)*4+2)
+	copy(data, []byte{byte(Float32Vector), 0})
 	var a [4]byte
-	for _, e := range v.Data {
+	for _, e := range v {
 		binary.LittleEndian.PutUint32(a[:], math.Float32bits(e))
 		data = append(data, a[:]...)
 	}
@@ -126,48 +162,110 @@ func binaryFromFloat32Vector(v Vector[float32]) (Binary, error) {
 	return Binary{
 		Subtype: TypeBinaryVector,
 		Data:    data,
-	}, nil
+	}
 }
 
-func binaryFromInt8Vector(v Vector[int8]) (Binary, error) {
-	data := make([]byte, 2, len(v.Data)+2)
-	copy(data, []byte{Int8Vector, 0})
-	for _, e := range v.Data {
-		data = append(data, byte(e))
-	}
-
+func binaryFromBitVector(bits []byte, padding uint8) Binary {
+	data := []byte{byte(PackedBitVector), padding}
+	data = append(data, bits...)
 	return Binary{
 		Subtype: TypeBinaryVector,
 		Data:    data,
-	}, nil
+	}
 }
 
-func binaryFromBitVector(v BitVector) (Binary, error) {
-	var b Binary
-	if v.Padding > 7 {
-		return b, ErrVectorPaddingTooLarge
-	}
-	if v.Padding > 0 && len(v.Data) == 0 {
-		return b, ErrNonZeroVectorPadding
-	}
-	data := []byte{PackedBitVector, v.Padding}
-	data = append(data, v.Data...)
-	return Binary{
-		Subtype: TypeBinaryVector,
-		Data:    data,
-	}, nil
-}
-
-// NewBinaryFromVector converts a Vector into a BSON Binary.
-func NewBinaryFromVector[T BitVector | Vector[int8] | Vector[float32]](v T) (Binary, error) {
-	switch a := any(v).(type) {
-	case Vector[int8]:
-		return binaryFromInt8Vector(a)
-	case Vector[float32]:
-		return binaryFromFloat32Vector(a)
-	case BitVector:
-		return binaryFromBitVector(a)
+// NewVector constructs a Vector from a slice of int8 or float32.
+func NewVector[T int8 | float32](data []T) Vector {
+	var v Vector
+	switch a := any(data).(type) {
+	case []int8:
+		v.dType = Int8Vector
+		v.int8Data = []int8{}
+		v.int8Data = append(v.int8Data, a...)
+	case []float32:
+		v.dType = Float32Vector
+		v.float32Data = []float32{}
+		v.float32Data = append(v.float32Data, a...)
 	default:
-		return Binary{}, fmt.Errorf("unsupported type %T", v)
+		panic(fmt.Errorf("unsupported type %T", data))
 	}
+	return v
+}
+
+// NewPackedBitVector constructs a Vector from a byte slice and a value of byte padding.
+func NewPackedBitVector(bits []byte, padding uint8) (Vector, error) {
+	var v Vector
+	if padding > 7 {
+		return v, errVectorPaddingTooLarge
+	}
+	if padding > 0 && len(bits) == 0 {
+		return v, errNonZeroVectorPadding
+	}
+	v.dType = PackedBitVector
+	v.bitData = []byte{}
+	v.bitData = append(v.bitData, bits...)
+	v.bitPadding = padding
+	return v, nil
+}
+
+// NewVectorFromBinary unpacks a BSON Binary into a Vector.
+func NewVectorFromBinary(b Binary) (Vector, error) {
+	var v Vector
+	if b.Subtype != TypeBinaryVector {
+		return v, errors.New("not a vector")
+	}
+	if len(b.Data) < 2 {
+		return v, errInsufficientVectorData
+	}
+	switch t := b.Data[0]; VectorDType(t) {
+	case Int8Vector:
+		return newInt8Vector(b.Data[1:])
+	case Float32Vector:
+		return newFloat32Vector(b.Data[1:])
+	case PackedBitVector:
+		return newBitVector(b.Data[1:])
+	default:
+		return v, fmt.Errorf("invalid Vector data type: %d", t)
+	}
+}
+
+func newInt8Vector(b []byte) (Vector, error) {
+	var v Vector
+	if len(b) == 0 {
+		return v, errInsufficientVectorData
+	}
+	if padding := b[0]; padding > 0 {
+		return v, errNonZeroVectorPadding
+	}
+	s := make([]int8, 0, len(b)-1)
+	for i := 1; i < len(b); i++ {
+		s = append(s, int8(b[i]))
+	}
+	return NewVector(s), nil
+}
+
+func newFloat32Vector(b []byte) (Vector, error) {
+	var v Vector
+	if len(b) == 0 {
+		return v, errInsufficientVectorData
+	}
+	if padding := b[0]; padding > 0 {
+		return v, errNonZeroVectorPadding
+	}
+	l := (len(b) - 1) / 4
+	if l*4 != len(b)-1 {
+		return v, errInsufficientVectorData
+	}
+	s := make([]float32, 0, l)
+	for i := 1; i < len(b); i += 4 {
+		s = append(s, math.Float32frombits(binary.LittleEndian.Uint32(b[i:i+4])))
+	}
+	return NewVector(s), nil
+}
+
+func newBitVector(b []byte) (Vector, error) {
+	if len(b) == 0 {
+		return Vector{}, errInsufficientVectorData
+	}
+	return NewPackedBitVector(b[1:], b[0])
 }
