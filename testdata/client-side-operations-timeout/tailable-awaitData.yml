@@ -12,9 +12,6 @@ createEntities:
   - client:
       id: &client client
       uriOptions:
-        # Use a high heartbeatFrequencyMS to ensure, when needed, the RTT 
-        # monitor has enough samples to produce a minRTT. 
-        heartbeatFrequencyMS: 500
         timeoutMS: 200
       useMultipleMongoses: false
       observeEvents:
@@ -73,36 +70,6 @@ tests:
           maxAwaitTimeMS: 5
         expectError:
           isClientError: true
-
-  - description: "some test for us"
-    operations:
-      # Wait for enough samples to be added to the RTT Monitor to ensure a 
-      # minimum RTT is available.
-      - name: wait
-        object: testRunner
-        arguments:
-          ms: 750
-      - name: createFindCursor
-        object: *collection
-        arguments:
-          filter: {}
-          cursorType: tailableAwait
-          batchSize: 1
-          maxAwaitTimeMS: 10
-        saveResultAsEntity: &tailableCursor tailableCursor
-      # Iterate twice to force a getMore.
-      - name: iterateOnce
-        object: *tailableCursor
-        arguments: 
-          timeoutMS: 11
-          #  ms: 1
-          #  timeoutMS: 11
-      - name: iterateOnce
-        object: *tailableCursor
-        arguments: 
-          timeoutMS: 11
-        expectError:
-          isTimeoutError: false
 
   - description: "timeoutMS applied to find"
     operations:
@@ -278,3 +245,34 @@ tests:
               command:
                 getMore: { $$type: ["int", "long"] }
                 collection: *collectionName
+
+  - description: "apply remaining timeoutMS if less than maxAwaitTimeMS "
+    operations:
+      - name: createFindCursor
+        object: *collection
+        arguments:
+          filter: {}
+          cursorType: tailableAwait
+          batchSize: 1
+          maxAwaitTimeMS: 100
+        saveResultAsEntity: &tailableCursor tailableCursor
+      # Iterate twice to force a getMore.
+      - name: iterateOnce
+        object: *tailableCursor
+        arguments: 
+          timeoutMS: 50
+      - name: iterateOnce
+        object: *tailableCursor
+        arguments: 
+          timeoutMS: 50
+    expectEvents:
+      - client: *client
+        events:
+          - commandStartedEvent:
+              commandName: find
+              databaseName: *databaseName
+          - commandStartedEvent:
+              commandName: getMore 
+              databaseName: *databaseName
+              command:
+                maxTimeMS: { $$lte: 50 }

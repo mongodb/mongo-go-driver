@@ -1487,14 +1487,12 @@ func createFindCursor(ctx context.Context, operation *operation) (*cursorResult,
 		case "sort":
 			opts.SetSort(val.Document())
 		case "timeoutMode":
-			return nil, newSkipTestError(fmt.Sprintf("timeoutMode is not supported"))
+			return nil, newSkipTestError("timeoutMode is not supported")
 		case "cursorType":
-			fmt.Println("cursorType check", val.String(), strings.ToLower(val.String()), val.String() == "tailableAwait")
 			switch strings.ToLower(val.StringValue()) {
 			case "tailable":
 				opts.SetCursorType(options.Tailable)
 			case "tailableawait":
-				fmt.Println("gottem")
 				opts.SetCursorType(options.TailableAwait)
 			case "nontailable":
 				opts.SetCursorType(options.NonTailable)

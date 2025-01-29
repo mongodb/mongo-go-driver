@@ -405,8 +405,6 @@ func (c *connection) readWireMessage(ctx context.Context) ([]byte, error) {
 		return nil, ConnectionError{ConnectionID: c.id, Wrapped: err, message: "failed to set read deadline"}
 	}
 
-	fmt.Println("contextDeadlineUsed", contextDeadlineUsed, time.Until(deadline))
-
 	dst, errMsg, err := c.read(ctx)
 	if err != nil {
 		if c.awaitRemainingBytes == nil {

@@ -19,24 +19,18 @@ func executeIterateOnce(ctx context.Context, operation *operation) (*operationRe
 		return nil, err
 	}
 
-	fmt.Println("iterate once")
-
 	// TryNext will attempt to get the next document, potentially issuing a single 'getMore'.
 	if cursor.TryNext(ctx) {
 		// We don't expect the server to return malformed documents, so any errors from Decode here are treated
 		// as fatal.
 		var res bson.Raw
 		if err := cursor.Decode(&res); err != nil {
-			fmt.Println("err:", err)
 			return nil, fmt.Errorf("error decoding cursor result: %w", err)
 		}
-
-		fmt.Println("err:", cursor.Err())
 
 		return newDocumentResult(res, nil), nil
 	}
 
-	fmt.Println("err:", cursor.Err())
 	return newErrorResult(cursor.Err()), nil
 }
 

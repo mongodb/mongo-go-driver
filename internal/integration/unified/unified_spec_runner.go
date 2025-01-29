@@ -83,6 +83,18 @@ var (
 		"timeoutMS is refreshed for getMore if maxAwaitTimeMS is set":                          "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
 		"timeoutMS is refreshed for getMore - failure":                                         "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
 
+		// GODRIVER-3473: the implementation of DRIVERS-2868 makes it clear that the
+		// Go Driver does not correctly implement the following validation for
+		// tailable awaitData cursors:
+		//
+		//     Drivers MUST error if this option is set, timeoutMS is set to a
+		//     non-zero value, and maxAwaitTimeMS is greater than or equal to
+		//     timeoutMS.
+		//
+		// Once GODRIVER-3473 is completed, we can continue running these tests.
+		"error if maxAwaitTimeMS is equal to timeoutMS":     "Go Driver does not implement this behavior. See GODRIVER-3473",
+		"error if maxAwaitTimeMS is greater than timeoutMS": "Go Driver does not implement this behavior. See GODRIVER-3473",
+
 		// DRIVERS-2953: This test requires that the driver sends a "getMore"
 		// with "maxTimeMS" set. However, "getMore" can only include "maxTimeMS"
 		// for tailable awaitData cursors. Including "maxTimeMS" on "getMore"
@@ -182,14 +194,14 @@ func runTestFile(t *testing.T, filepath string, expectValidFail bool, opts ...*O
 				mt.Skip("Skipping CSOT spec test because SKIP_CSOT_TESTS=true")
 			}
 
-			//defer func() {
-			//	// catch panics from looking up elements and fail if it's unexpected
-			//	if r := recover(); r != nil {
-			//		if !expectValidFail {
-			//			mt.Fatal(r)
-			//		}
-			//	}
-			//}()
+			defer func() {
+				// catch panics from looking up elements and fail if it's unexpected
+				if r := recover(); r != nil {
+					if !expectValidFail {
+						mt.Fatal(r)
+					}
+				}
+			}()
 			err := testCase.Run(mt)
 			if expectValidFail {
 				if err != nil {

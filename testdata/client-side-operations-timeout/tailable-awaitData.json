@@ -17,7 +17,6 @@
       "client": {
         "id": "client",
         "uriOptions": {
-          "heartbeatFrequencyMS": 500,
           "timeoutMS": 200
         },
         "useMultipleMongoses": false,
@@ -109,46 +108,6 @@
           },
           "expectError": {
             "isClientError": true
-          }
-        }
-      ]
-    },
-    {
-      "description": "some test for us",
-      "operations": [
-        {
-          "name": "wait",
-          "object": "testRunner",
-          "arguments": {
-            "ms": 750
-          }
-        },
-        {
-          "name": "createFindCursor",
-          "object": "collection",
-          "arguments": {
-            "filter": {},
-            "cursorType": "tailableAwait",
-            "batchSize": 1,
-            "maxAwaitTimeMS": 10
-          },
-          "saveResultAsEntity": "tailableCursor"
-        },
-        {
-          "name": "iterateOnce",
-          "object": "tailableCursor",
-          "arguments": {
-            "timeoutMS": 11
-          }
-        },
-        {
-          "name": "iterateOnce",
-          "object": "tailableCursor",
-          "arguments": {
-            "timeoutMS": 11
-          },
-          "expectError": {
-            "isTimeoutError": false
           }
         }
       ]
@@ -452,6 +411,60 @@
                     ]
                   },
                   "collection": "coll"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "apply remaining timeoutMS if less than maxAwaitTimeMS ",
+      "operations": [
+        {
+          "name": "createFindCursor",
+          "object": "collection",
+          "arguments": {
+            "filter": {},
+            "cursorType": "tailableAwait",
+            "batchSize": 1,
+            "maxAwaitTimeMS": 100
+          },
+          "saveResultAsEntity": "tailableCursor"
+        },
+        {
+          "name": "iterateOnce",
+          "object": "tailableCursor",
+          "arguments": {
+            "timeoutMS": 50
+          }
+        },
+        {
+          "name": "iterateOnce",
+          "object": "tailableCursor",
+          "arguments": {
+            "timeoutMS": 50
+          }
+        }
+      ],
+      "expectEvents": [
+        {
+          "client": "client",
+          "events": [
+            {
+              "commandStartedEvent": {
+                "commandName": "find",
+                "databaseName": "test"
+              }
+            },
+            {
+              "commandStartedEvent": {
+                "commandName": "getMore",
+                "databaseName": "test",
+                "command": {
+                  "maxTimeMS": {
+                    "$$lte": 50
+                  }
                 }
               }
             }

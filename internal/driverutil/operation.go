@@ -47,7 +47,7 @@ func CalculateMaxTimeMS(ctx context.Context, rttMin time.Duration, rttStats stri
 
 	// Always round up to the next millisecond value so we never truncate the calculated
 	// maxTimeMS value (e.g. 400 microseconds evaluates to 1ms, not 0ms).
-	maxTimeMS := int64((remainingTimeout - rttMin + time.Millisecond - 1) / time.Millisecond)
+	maxTimeMS := int64((remainingTimeout - rttMin) / time.Millisecond)
 	if maxTimeMS <= 0 {
 		return 0, fmt.Errorf(
 			"remaining time %v until context deadline is less than or equal to min network round-trip time %v (%v): %w",
