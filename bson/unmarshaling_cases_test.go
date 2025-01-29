@@ -8,9 +8,12 @@ package bson
 
 import (
 	"reflect"
+	"testing"
 
 	"go.mongodb.org/mongo-driver/bson/bsonrw"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/require"
 )
 
 type unmarshalingTestCase struct {
@@ -294,4 +297,21 @@ func (ms *unmarshalCallTracker) UnmarshalBSONValue(bsontype.Type, []byte) error 
 	ms.unmarshalCalled = true
 
 	return nil
+}
+
+func TestInitializedPointerDataWithBSONNull(t *testing.T) {
+	// Set up the test case with an initialized pointer.
+	tc := unmarshalBehaviorTestCase{
+		PtrTracker: &unmarshalCallTracker{},
+	}
+
+	// Create BSON data where the 'ptr_tracker' field is explicitly set to null.
+	bytes := docToBytes(D{{Key: "ptr_tracker", Value: nil}})
+
+	// Unmarshal the BSON data into the test case struct.
+	// This should set PtrTracker to nil due to the BSON null value.
+	err := Unmarshal(bytes, &tc)
+	require.NoError(t, err)
+
+	assert.Nil(t, tc.PtrTracker)
 }
