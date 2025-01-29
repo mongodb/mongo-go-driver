@@ -503,11 +503,7 @@ mongo.WithSession(context.TODO(),sess,func(ctx context.Context) error {
 
 ## Options Package
 
-The following fields were marked for internal use only and do not have replacement:
-
-- `ClientOptions.AuthenticateToAnything`
-- `FindOptions.OplogReplay`
-- `FindOneOptions.OplogReplay`
+`ClientOptions.AuthenticateToAnything` was marked for internal use in 1.x and does not have a replacement.
 
 The following fields were removed because they are no longer supported by the server
 
@@ -844,7 +840,7 @@ The `bson/primitive` package has been merged into the `bson` package.
 
 Additionally, the `bson.D` has implemented the `json.Marshaler` and `json.Unmarshaler` interfaces, where it uses a key-value representation in "regular" (i.e. non-Extended) JSON.
 
-The `bson.D.String` and `bson.M.String` methods return a relaxed Extended JSON representation of the document.
+The `bson.D.String` and `bson.M.String` methods return an Extended JSON representation of the document.
 
 ```go
 // v2
