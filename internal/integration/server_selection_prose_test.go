@@ -105,7 +105,7 @@ func runsServerSelection(mt *mtest.T, monitor *eventtest.TestPoolMonitor,
 }
 
 // TestServerSelectionProse implements the Server Selection prose tests:
-// https://github.com/mongodb/specifications/blob/master/source/server-selection/server-selection-tests.rst
+// https://github.com/mongodb/specifications/blob/master/source/server-selection/server-selection-tests.md
 func TestServerSelectionProse(t *testing.T) {
 	const maxPoolSize = 10
 	const localThreshold = 30 * time.Second

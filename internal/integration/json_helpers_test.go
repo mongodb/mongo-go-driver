@@ -67,7 +67,7 @@ func jsonFilesInDir(t testing.TB, dir string) []string {
 }
 
 // create client options from a map
-func createClientOptions(t testing.TB, opts bson.Raw) *options.ClientOptionsBuilder {
+func createClientOptions(t testing.TB, opts bson.Raw) *options.ClientOptions {
 	t.Helper()
 
 	clientOpts := options.Client()
@@ -125,7 +125,7 @@ func createClientOptions(t testing.TB, opts bson.Raw) *options.ClientOptionsBuil
 	return clientOpts
 }
 
-func createAutoEncryptionOptions(t testing.TB, opts bson.Raw) *options.AutoEncryptionOptionsBuilder {
+func createAutoEncryptionOptions(t testing.TB, opts bson.Raw) *options.AutoEncryptionOptions {
 	t.Helper()
 
 	aeo := options.AutoEncryption()

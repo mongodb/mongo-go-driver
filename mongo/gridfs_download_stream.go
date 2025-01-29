@@ -52,7 +52,7 @@ type GridFSDownloadStream struct {
 // GridFSDownloadStream.GetFile method.
 type GridFSFile struct {
 	// ID is the file's ID. This will match the file ID specified when uploading the file. If an upload helper that
-	// does not require a file ID was used, this field will be a primitive.ObjectID.
+	// does not require a file ID was used, this field will be a bson.ObjectID.
 	ID interface{}
 
 	// Length is the length of this file in bytes.

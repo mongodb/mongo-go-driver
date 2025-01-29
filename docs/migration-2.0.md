@@ -503,11 +503,7 @@ mongo.WithSession(context.TODO(),sess,func(ctx context.Context) error {
 
 ## Options Package
 
-The following fields were marked for internal use only and do not have replacement:
-
-- `ClientOptions.AuthenticateToAnything`
-- `FindOptions.OplogReplay`
-- `FindOneOptions.OplogReplay`
+`ClientOptions.AuthenticateToAnything` was marked for internal use in 1.x and does not have a replacement.
 
 The following fields were removed because they are no longer supported by the server
 
@@ -532,13 +528,13 @@ function MergeOptions(target, optionsList):
   return target
 ```
 
-Currently, the driver maintains this logic for every options type, e.g. [MergeClientOptions](https://github.com/mongodb/mongo-go-driver/blob/2e7cb372b05cba29facd58aac7e715c3cec4e377/mongo/options/clientoptions.go#L1065). For v2, we’ve decided to abstract the merge functions by changing the options builder pattern to maintain a slice of setter functions, rather than setting data directly to an options object. Typical usage of options should not change, for example the following is still honored:
+Currently, the driver maintains this logic for every options type, e.g. [MergeFindOptions](https://github.com/mongodb/mongo-go-driver/blob/2e7cb372b05cba29facd58aac7e715c3cec4e377/mongo/options/findoptions.go#L257). For v2, we’ve decided to abstract the merge functions by changing the options builder pattern to maintain a slice of setter functions, rather than setting data directly to an options object. Typical usage of options should not change, for example the following is still honored:
 
 ```go
-opts1 := options.Client().SetAppName("appName")
-opts2 := options.Client().SetConnectTimeout(math.MaxInt64)
+opts1 := options.Find().SetBatchSize(1)
+opts2 := options.Find().SetComment("foo")
 
-_, err := mongo.Connect(opts1, opts2)
+_, err := coll.Find(context.TODO(), bson.D{{"x", 1"}}, opts1, opts2)
 if err != nil {
 	panic(err)
 }
@@ -553,29 +549,27 @@ The options builder is now a slice of setters, rather than a single options obje
 ```go
 // v1
 
-opts := options.Client().ApplyURI("mongodb://x:y@localhost:27017")
+opts := options.Find().SetBatchSize(1)
 
-if opts.Auth.Username == "x" {
-  opts.Auth.Password = "z"
+if opts.MaxAwaitTime == nil {
+  opts.MaxAwaitTime = &defaultMaxAwaitTime
 }
 ```
 
 ```go
-
 // v2
 
-opts := options.Client().ApplyURI("mongodb://x:y@localhost:27017")
+opts := options.Find().SetBatchSize(1)
 
-// If the username is "x", use password "z"
-pwSetter := func(opts *options.ClientOptions) error {
-  if opts.Auth.Username == "x" {
-    opts.Auth.Password = "z"
+maxAwaitTimeSetter := func(opts *options.FindOptions) error {
+  if opts.MaxAwaitTime == nil {
+    opts.MaxAwaitTime = &defaultMaxAwaitTime
   }
 
   return nil
 }
 
-opts.Opts = append(opts.Opts, pwSetter)
+opts.Opts = append(opts.Opts, maxAwaitTimeSetter)
 ```
 
 #### Creating a Slice of Options
@@ -585,22 +579,21 @@ Using options created with the builder pattern as elements in a slice:
 ```go
 // v1
 
-opts1 := options.Client().SetAppName("appName")
-opts2 := options.Client().SetConnectTimeout(math.MaxInt64)
+opts1 := options.Find().SetBatchSize(1)
+opts2 := options.Find().SetComment("foo")
 
-opts := []*options.ClientOptions{opts1, opts2}
-_, err := mongo.Connect(opts...)
+opts := []*options.FindOptions{opts1, opts2}
+_, err := coll.Find(context.TODO(), bson.D{{"x", 1"}}, opts...)
 ```
 
 ```go
 // v2
 
-opts1 := options.Client().SetAppName("appName")
-opts2 := options.Client().SetConnectTimeout(math.MaxInt64)
+opts1 := options.Find().SetBatchSize(1)
+opts2 := options.Find().SetComment("foo")
 
-// Option objects are "Listers" in v2, objects that hold a list of setters
-opts := []options.Lister[options.ClientOptions]{opts1, opts2}
-_, err := mongo.Connect(opts...)
+opts := []options.Lister[options.FindOptions]{opts1, opts2}
+_, err := coll.Find(context.TODO(), bson.D{{"x", 1"}}, opts...)
 ```
 
 #### Creating Options from Builder
@@ -610,21 +603,21 @@ Since a builder is just a slice of option setters, users can create options dire
 ```go
 // v1
 
-opt := &options.ClientOptions{}
-opt.ApplyURI(uri)
+opt := &options.FindOptions{}
+opt.SetBatchSize(1)
 
-return clientOptionAdder{option: opt}
+return findOptionAdder{option: opt}
 ```
 
 ```go
 // v2
 
-var opts options.ClientOptions
-for _, set := range options.Client().ApplyURI(uri).Opts {
+var opts options.FindOptions
+for _, set := range options.Find().SetBatchSize(1).Opts {
   _ = set(&opts)
 }
 
-return clientOptionAdder{option: &opts}
+return findOptionAdder{option: &opts}
 ```
 
 ### DeleteManyOptions / DeleteOneOptions
@@ -719,7 +712,7 @@ The `WTimeout` field has been removed from the `WriteConcern` struct. Instead, u
 
 ## Bsoncodecs / Bsonoptions Package
 
-`*Codec` structs and `New*Codec` methods have been removed. Additionally, the correlated `bson/bsonoptions` package has been removed, so codecs are not directly configurable using `*CodecOptions` structs in Go Driver 2.0. To configure the encode and decode behavior, use the configuration methods on a `bson.Encoder` or `bson.Decoder`. To configure the encode and decode behavior for a `mongo.Client`, use `options.ClientOptionsBuilder.SetBSONOptions` with `BSONOptions`.
+`*Codec` structs and `New*Codec` methods have been removed. Additionally, the correlated `bson/bsonoptions` package has been removed, so codecs are not directly configurable using `*CodecOptions` structs in Go Driver 2.0. To configure the encode and decode behavior, use the configuration methods on a `bson.Encoder` or `bson.Decoder`. To configure the encode and decode behavior for a `mongo.Client`, use `options.ClientOptions.SetBSONOptions` with `BSONOptions`.
 
 This example shows how to set `ObjectIDAsHex`.
 
@@ -847,7 +840,7 @@ The `bson/primitive` package has been merged into the `bson` package.
 
 Additionally, the `bson.D` has implemented the `json.Marshaler` and `json.Unmarshaler` interfaces, where it uses a key-value representation in "regular" (i.e. non-Extended) JSON.
 
-The `bson.D.String` and `bson.M.String` methods return a relaxed Extended JSON representation of the document.
+The `bson.D.String` and `bson.M.String` methods return an Extended JSON representation of the document.
 
 ```go
 // v2
@@ -866,6 +859,34 @@ fmt.Printf("%s\n", d)
 The `NewRegistryBuilder` function has been removed along with the `bsoncodec.RegistryBuilder` struct as mentioned above.
 
 ### Decoder
+
+The BSON decoding logic has changed to decode into a `bson.D` by default.
+
+The example shows the behavior change.
+
+```go
+// v1
+
+b1 := bson.M{"a": 1, "b": bson.M{"c": 2}}
+b2, _ := bson.Marshal(b1)
+b3 := bson.M{}
+bson.Unmarshal(b2, &b3)
+fmt.Printf("b3.b type: %T\n", b3["b"])
+// Output: b3.b type: primitive.M
+```
+
+```go
+// v2
+
+b1 := bson.M{"a": 1, "b": bson.M{"c": 2}}
+b2, _ := bson.Marshal(b1)
+b3 := bson.M{}
+bson.Unmarshal(b2, &b3)
+fmt.Printf("b3.b type: %T\n", b3["b"])
+// Output: b3.b type: bson.D
+```
+
+Use `Decoder.DefaultDocumentM()` or set the `DefaultDocumentM` field of `options.BSONOptions` to always decode documents into the `bson.M` type.
 
 #### NewDecoder
 
@@ -1043,11 +1064,11 @@ The signature of `Reset` has been updated without an error being returned.
 
 #### DefaultDocumentD / DefaultDocumentM
 
-`Decoder.DefaultDocumentD` has been removed since a document, including a top-level value (e.g. you pass in an empty interface value to Decode), is always decoded into a `bson.D` by default. Therefore, use `Decoder.DefaultDocumentM` to always decode a document into a `bson.M` to avoid unexpected decode results.
+`Decoder.DefaultDocumentD()` has been removed since a document, including a top-level value (e.g. you pass in an empty interface value to Decode), is always decoded into a `bson.D` by default. Therefore, use `Decoder.DefaultDocumentM()` to always decode a document into a `bson.M` to avoid unexpected decode results.
 
 #### ObjectIDAsHexString
 
-`Decoder.ObjectIDAsHexString` method enables decoding a BSON ObjectId as a hexadecimal string. Otherwise, the decoder returns an error by default instead of decoding as the UTF-8 representation of the raw ObjectId bytes, which results in a garbled and unusable string.
+`Decoder.ObjectIDAsHexString()` method enables decoding a BSON ObjectId as a hexadecimal string. Otherwise, the decoder returns an error by default instead of decoding as the UTF-8 representation of the raw ObjectId bytes, which results in a garbled and unusable string.
 
 ### Encoder
 
@@ -1183,8 +1204,20 @@ A new `RawArray` type has been added to the `bson` package as a primitive type t
 
 ### ValueMarshaler
 
-The `MarshalBSONValue` method of the `ValueMarshaler` interface is only required to return a byte type value representing the BSON type to avoid importing the `bsontype` package.
+The `MarshalBSONValue` method of the [ValueMarshaler](https://pkg.go.dev/go.mongodb.org/mongo-driver/v2/bson#ValueMarshaler) interface now returns a `byte` value representing the [BSON type](https://pkg.go.dev/go.mongodb.org/mongo-driver/v2/bson#Type). That allows external packages to implement the `ValueMarshaler` interface without having to import the `bson` package. Convert a returned `byte` value to [bson.Type](https://pkg.go.dev/go.mongodb.org/mongo-driver/v2/bson#Type) to compare with the BSON type constants. For example:
+
+```go
+btype, _, _ := m.MarshalBSONValue()
+fmt.Println("type of data: %s: ", bson.Type(btype))
+fmt.Println("type of data is an array: %v", bson.Type(btype) == bson.TypeArray)
+```
 
 ### ValueUnmarshaler
 
-The `UnmarshalBSONValue` method of the `ValueUnmarshaler` interface is only required to take a byte type argument representing the BSON type to avoid importing the Go driver package.
+The `UnmarshalBSONValue` method of the [ValueUnmarshaler](https://pkg.go.dev/go.mongodb.org/mongo-driver/v2/bson#ValueUnmarshaler) interface now accepts a `byte` value representing the [BSON type](https://pkg.go.dev/go.mongodb.org/mongo-driver/v2/bson#Type) for the first argument. That allows packages to implement `ValueUnmarshaler` without having to import the `bson` package. For example:
+
+```go
+if err := m.UnmarshalBSONValue(bson.TypeEmbeddedDocument, bytes); err != nil {
+    log.Fatalf("failed to decode embedded document: %v", err)
+}
+```

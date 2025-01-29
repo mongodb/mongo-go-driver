@@ -78,36 +78,20 @@ type LoggerOptions struct {
 	MaxDocumentLength uint
 }
 
-// LoggerOptionsBuilder contains options to configure a logger. Each option can
-// be set through setter functions. See documentation for each setter function
-// for an explanation of the option.
-type LoggerOptionsBuilder struct {
-	Opts []func(*LoggerOptions) error
-}
-
 // Logger creates a new LoggerOptions instance.
-func Logger() *LoggerOptionsBuilder {
-	return &LoggerOptionsBuilder{}
-}
-
-// List returns a list of LoggerOptions setter functions.
-func (opts *LoggerOptionsBuilder) List() []func(*LoggerOptions) error {
-	return opts.Opts
+func Logger() *LoggerOptions {
+	return &LoggerOptions{}
 }
 
 // SetComponentLevel sets the LogLevel value for a LogComponent. ComponentLevels is a map of
 // LogComponent to LogLevel. The LogLevel for a given LogComponent will be used to determine
 // if a log message should be logged.
-func (opts *LoggerOptionsBuilder) SetComponentLevel(component LogComponent, level LogLevel) *LoggerOptionsBuilder {
-	opts.Opts = append(opts.Opts, func(opts *LoggerOptions) error {
-		if opts.ComponentLevels == nil {
-			opts.ComponentLevels = map[LogComponent]LogLevel{}
-		}
+func (opts *LoggerOptions) SetComponentLevel(component LogComponent, level LogLevel) *LoggerOptions {
+	if opts.ComponentLevels == nil {
+		opts.ComponentLevels = map[LogComponent]LogLevel{}
+	}
 
-		opts.ComponentLevels[component] = level
-
-		return nil
-	})
+	opts.ComponentLevels[component] = level
 
 	return opts
 }
@@ -115,12 +99,8 @@ func (opts *LoggerOptionsBuilder) SetComponentLevel(component LogComponent, leve
 // SetMaxDocumentLength sets the maximum length of a document to be logged. Sink is the
 // LogSink that will be used to log messages. If this is nil, the driver will use the
 // standard logging library.
-func (opts *LoggerOptionsBuilder) SetMaxDocumentLength(maxDocumentLength uint) *LoggerOptionsBuilder {
-	opts.Opts = append(opts.Opts, func(opts *LoggerOptions) error {
-		opts.MaxDocumentLength = maxDocumentLength
-
-		return nil
-	})
+func (opts *LoggerOptions) SetMaxDocumentLength(maxDocumentLength uint) *LoggerOptions {
+	opts.MaxDocumentLength = maxDocumentLength
 
 	return opts
 }
@@ -128,12 +108,8 @@ func (opts *LoggerOptionsBuilder) SetMaxDocumentLength(maxDocumentLength uint) *
 // SetSink sets the LogSink to use for logging. MaxDocumentLength is the maximum length
 // of a document to be logged. If the underlying document is larger than this value, it
 // will be truncated and appended with an ellipses "...".
-func (opts *LoggerOptionsBuilder) SetSink(sink LogSink) *LoggerOptionsBuilder {
-	opts.Opts = append(opts.Opts, func(opts *LoggerOptions) error {
-		opts.Sink = sink
-
-		return nil
-	})
+func (opts *LoggerOptions) SetSink(sink LogSink) *LoggerOptions {
+	opts.Sink = sink
 
 	return opts
 }

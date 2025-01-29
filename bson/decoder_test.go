@@ -647,7 +647,8 @@ func TestDecoderConfiguration(t *testing.T) {
 
 		var got objectIDTest
 		err := dec.Decode(&got)
-		assert.EqualError(t, err, "error decoding key id: decoding an object ID to a non-hexadecimal string representation is not supported")
+		const want = "error decoding key id: decoding an object ID into a string is not supported by default (set Decoder.ObjectIDAsHexString to enable decoding as a hexadecimal string)"
+		assert.EqualError(t, err, want)
 	})
 	t.Run("DefaultDocumentM top-level", func(t *testing.T) {
 		t.Parallel()

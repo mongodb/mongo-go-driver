@@ -16,7 +16,7 @@ import (
 // serverAPIOptions is a wrapper for *options.ServerAPIOptions. This type implements the bson.Unmarshaler interface
 // to convert BSON documents to a serverAPIOptions instance.
 type serverAPIOptions struct {
-	*options.ServerAPIOptionsBuilder
+	*options.ServerAPIOptions
 }
 
 type serverAPIVersion = options.ServerAPIVersion
@@ -37,7 +37,7 @@ func (s *serverAPIOptions) UnmarshalBSON(data []byte) error {
 		return fmt.Errorf("unrecognized fields for serverAPIOptions: %v", mapKeys(temp.Extra))
 	}
 
-	s.ServerAPIOptionsBuilder = options.ServerAPI(temp.ServerAPIVersion)
+	s.ServerAPIOptions = options.ServerAPI(temp.ServerAPIVersion)
 	if temp.DeprecationErrors != nil {
 		s.SetDeprecationErrors(*temp.DeprecationErrors)
 	}
