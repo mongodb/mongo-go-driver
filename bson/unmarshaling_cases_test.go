@@ -114,6 +114,17 @@ func unmarshalingTestCases() []unmarshalingTestCase {
 			},
 			data: docToBytes(D{{"fooBar", int32(10)}}),
 		},
+		{
+			name:  "nil pointer and non-pointer type with literal null BSON",
+			sType: reflect.TypeOf(unmarshalBehaviorTestCase{}),
+			want: &unmarshalBehaviorTestCase{
+				Tracker: unmarshalCallTracker{
+					unmarshalCalled: true,
+				},
+				PtrTracker: nil,
+			},
+			data: docToBytes(D{{Key: "tracker", Value: nil}, {Key: "ptr_tracker", Value: nil}}),
+		},
 		// GODRIVER-2252
 		// Test that a struct of pointer types with UnmarshalBSON functions defined marshal and
 		// unmarshal to the same Go values when the pointer values are "nil".
@@ -267,5 +278,20 @@ func (ms *myString) UnmarshalBSON(bytes []byte) error {
 		return err
 	}
 	*ms = myString(s)
+	return nil
+}
+
+type unmarshalCallTracker struct {
+	unmarshalCalled bool
+}
+
+type unmarshalBehaviorTestCase struct {
+	Tracker    unmarshalCallTracker  `bson:"tracker"`
+	PtrTracker *unmarshalCallTracker `bson:"ptr_tracker"`
+}
+
+func (ms *unmarshalCallTracker) UnmarshalBSONValue(bsontype.Type, []byte) error {
+	ms.unmarshalCalled = true
+
 	return nil
 }
