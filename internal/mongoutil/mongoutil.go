@@ -71,21 +71,15 @@ func NewOptionsLister[T any](args *T, callback func(*T) error) *OptionsLister[T]
 
 // AuthFromURI will create a Credentials object given the provided URI.
 func AuthFromURI(uri string) (*options.Credential, error) {
-	args, err := NewOptions[options.ClientOptions](options.Client().ApplyURI(uri))
-	if err != nil {
-		return nil, err
-	}
+	opts := options.Client().ApplyURI(uri)
 
-	return args.Auth, nil
+	return opts.Auth, nil
 }
 
 // HostsFromURI will parse the hosts in the URI and return them as a slice of
 // strings.
 func HostsFromURI(uri string) ([]string, error) {
-	args, err := NewOptions[options.ClientOptions](options.Client().ApplyURI(uri))
-	if err != nil {
-		return nil, err
-	}
+	opts := options.Client().ApplyURI(uri)
 
-	return args.Hosts, nil
+	return opts.Hosts, nil
 }

@@ -167,7 +167,7 @@ func TestCollection(t *testing.T) {
 		mt.Run("large document batches", func(mt *mtest.T) {
 			mt.Parallel()
 
-			docs := []interface{}{create16MBDocument(mt), create16MBDocument(mt)}
+			docs := []interface{}{create16MBDocument(mt), create16MBDocument(mt), create16MBDocument(mt)}
 			_, err := mt.Coll.InsertMany(context.Background(), docs)
 			assert.Nil(mt, err, "InsertMany error: %v", err)
 			evt := mt.GetStartedEvent()
@@ -1165,6 +1165,7 @@ func TestCollection(t *testing.T) {
 				SetHint(indexName).
 				SetMax(bson.D{{"x", int32(5)}}).
 				SetMin(bson.D{{"x", int32(0)}}).
+				SetOplogReplay(false).
 				SetProjection(bson.D{{"x", int32(1)}}).
 				SetReturnKey(false).
 				SetShowRecordID(false).
@@ -1186,6 +1187,7 @@ func TestCollection(t *testing.T) {
 				AppendString("hint", indexName).
 				StartDocument("max").AppendInt32("x", 5).FinishDocument().
 				StartDocument("min").AppendInt32("x", 0).FinishDocument().
+				AppendBoolean("oplogReplay", false).
 				StartDocument("projection").AppendInt32("x", 1).FinishDocument().
 				AppendBoolean("returnKey", false).
 				AppendBoolean("showRecordId", false).
@@ -1710,6 +1712,46 @@ func TestCollection(t *testing.T) {
 						"expected %v write errors, got %v", tc.numWriteErrors, numWriteErrors)
 					gotCode := bwe.WriteErrors[0].Code
 					assert.Equal(mt, errorModifiedID, gotCode, "expected error code %v, got %v", errorModifiedID, gotCode)
+				})
+			}
+		})
+		mt.Run("error on nil filter", func(mt *mtest.T) {
+			mt.Parallel()
+
+			testCases := []struct {
+				name        string
+				model       mongo.WriteModel
+				errorString string
+			}{
+				{
+					name:        "DeleteOne",
+					model:       mongo.NewDeleteOneModel(),
+					errorString: "delete filter cannot be nil",
+				},
+				{
+					name:        "DeleteMany",
+					model:       mongo.NewDeleteManyModel(),
+					errorString: "delete filter cannot be nil",
+				},
+				{
+					name:        "UpdateOne",
+					model:       mongo.NewUpdateOneModel().SetUpdate(bson.D{{"$set", bson.D{{"x", 1}}}}),
+					errorString: "update filter cannot be nil",
+				},
+				{
+					name:        "UpdateMany",
+					model:       mongo.NewUpdateManyModel().SetUpdate(bson.D{{"$set", bson.D{{"x", 1}}}}),
+					errorString: "update filter cannot be nil",
+				},
+			}
+			for _, tc := range testCases {
+				tc := tc
+
+				mt.Run(tc.name, func(mt *mtest.T) {
+					mt.Parallel()
+
+					_, err := mt.Coll.BulkWrite(context.Background(), []mongo.WriteModel{tc.model})
+					assert.EqualError(mt, err, tc.errorString)
 				})
 			}
 		})

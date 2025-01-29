@@ -81,7 +81,7 @@ type T struct {
 
 	// options copied to sub-tests
 	clientType  ClientType
-	clientOpts  *options.ClientOptionsBuilder
+	clientOpts  *options.ClientOptions
 	collOpts    *options.CollectionOptionsBuilder
 	shareClient *bool
 
@@ -359,7 +359,7 @@ func (t *T) ClearEvents() {
 // If t.Coll is not-nil, it will be reset to use the new client. Should only be called if the existing client is
 // not nil. This will Disconnect the existing client but will not drop existing collections. To do so, ClearCollections
 // must be called before calling ResetClient.
-func (t *T) ResetClient(opts *options.ClientOptionsBuilder) {
+func (t *T) ResetClient(opts *options.ClientOptions) {
 	if opts != nil {
 		t.clientOpts = opts
 	}
@@ -592,18 +592,13 @@ func (t *T) createTestClient() {
 		clientOpts = options.Client().SetWriteConcern(MajorityWc).SetReadPreference(PrimaryRp)
 	}
 
-	args, err := mongoutil.NewOptions[options.ClientOptions](clientOpts)
-	if err != nil {
-		t.Fatalf("failed to construct options from builder: %v", err)
-	}
-
 	// set ServerAPIOptions to latest version if required
-	if args.Deployment == nil && t.clientType != Mock && args.ServerAPIOptions == nil && testContext.requireAPIVersion {
+	if clientOpts.Deployment == nil && t.clientType != Mock && clientOpts.ServerAPIOptions == nil && testContext.requireAPIVersion {
 		clientOpts.SetServerAPIOptions(options.ServerAPI(driver.TestServerAPIVersion))
 	}
 
 	// Setup command monitor
-	var customMonitor = args.Monitor
+	var customMonitor = clientOpts.Monitor
 	clientOpts.SetMonitor(&event.CommandMonitor{
 		Started: func(ctx context.Context, cse *event.CommandStartedEvent) {
 			if customMonitor != nil && customMonitor.Started != nil {
@@ -631,8 +626,8 @@ func (t *T) createTestClient() {
 		},
 	})
 	// only specify connection pool monitor if no deployment is given
-	if args.Deployment == nil {
-		previousPoolMonitor := args.PoolMonitor
+	if clientOpts.Deployment == nil {
+		previousPoolMonitor := clientOpts.PoolMonitor
 
 		clientOpts.SetPoolMonitor(&event.PoolMonitor{
 			Event: func(evt *event.PoolEvent) {
@@ -650,6 +645,7 @@ func (t *T) createTestClient() {
 		})
 	}
 
+	var err error
 	switch t.clientType {
 	case Pinned:
 		// pin to first mongos
@@ -658,15 +654,13 @@ func (t *T) createTestClient() {
 		t.Client, err = mongo.Connect(uriOpts, clientOpts)
 	case Mock:
 		// clear pool monitor to avoid configuration error
-		args, _ = mongoutil.NewOptions[options.ClientOptions](clientOpts)
 
-		args.PoolMonitor = nil
+		clientOpts.PoolMonitor = nil
 
 		t.mockDeployment = drivertest.NewMockDeployment()
-		args.Deployment = t.mockDeployment
+		clientOpts.Deployment = t.mockDeployment
 
-		opts := mongoutil.NewOptionsLister(args, nil)
-		t.Client, err = mongo.Connect(opts)
+		t.Client, err = mongo.Connect(clientOpts)
 	case Proxy:
 		t.proxyDialer = newProxyDialer()
 		clientOpts.SetDialer(t.proxyDialer)
@@ -676,8 +670,8 @@ func (t *T) createTestClient() {
 	case Default:
 		// Use a different set of options to specify the URI because clientOpts may already have a URI or host seedlist
 		// specified.
-		var uriOpts *options.ClientOptionsBuilder
-		if args.Deployment == nil {
+		var uriOpts *options.ClientOptions
+		if clientOpts.Deployment == nil {
 			// Only specify URI if the deployment is not set to avoid setting topology/server options along with the
 			// deployment.
 			uriOpts = options.Client().ApplyURI(testContext.connString.Original)

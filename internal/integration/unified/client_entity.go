@@ -20,7 +20,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/internal/integtest"
 	"go.mongodb.org/mongo-driver/v2/internal/logger"
-	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
@@ -184,15 +183,10 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 		}
 	}
 	if entityOptions.ServerAPIOptions != nil {
-		args, err := mongoutil.NewOptions[options.ServerAPIOptions](entityOptions.ServerAPIOptions)
-		if err != nil {
-			return nil, fmt.Errorf("failed to construct options from builder: %w", err)
-		}
-
-		if err := args.ServerAPIVersion.Validate(); err != nil {
+		if err := entityOptions.ServerAPIOptions.ServerAPIVersion.Validate(); err != nil {
 			return nil, err
 		}
-		clientOpts.SetServerAPIOptions(entityOptions.ServerAPIOptions.ServerAPIOptionsBuilder)
+		clientOpts.SetServerAPIOptions(entityOptions.ServerAPIOptions.ServerAPIOptions)
 	} else {
 		integtest.AddTestServerAPIVersion(clientOpts)
 	}
@@ -589,7 +583,7 @@ func (c *clientEntity) getRecordEvents() bool {
 	return c.recordEvents.Load().(bool)
 }
 
-func setClientOptionsFromURIOptions(clientOpts *options.ClientOptionsBuilder, uriOpts bson.M) error {
+func setClientOptionsFromURIOptions(clientOpts *options.ClientOptions, uriOpts bson.M) error {
 	// A write concern can be constructed across multiple URI options (e.g. "w", "j", and "wTimeoutMS") so we declare an
 	// empty writeConcern instance here that can be populated in the loop below.
 	var wc writeConcern
@@ -654,7 +648,7 @@ func setClientOptionsFromURIOptions(clientOpts *options.ClientOptionsBuilder, ur
 	return nil
 }
 
-func evaluateUseMultipleMongoses(clientOpts *options.ClientOptionsBuilder, useMultipleMongoses bool) error {
+func evaluateUseMultipleMongoses(clientOpts *options.ClientOptions, useMultipleMongoses bool) error {
 	hosts := mtest.ClusterConnString().Hosts
 
 	if !useMultipleMongoses {

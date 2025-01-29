@@ -78,9 +78,12 @@ func (f *Find) Result(opts driver.CursorOptions) (*driver.BatchCursor, error) {
 	return driver.NewBatchCursor(f.result, f.session, f.clock, opts)
 }
 
-func (f *Find) processResponse(info driver.ResponseInfo) error {
-	var err error
-	f.result, err = driver.NewCursorResponse(info)
+func (f *Find) processResponse(_ context.Context, resp bsoncore.Document, info driver.ResponseInfo) error {
+	curDoc, err := driver.ExtractCursorDocument(resp)
+	if err != nil {
+		return err
+	}
+	f.result, err = driver.NewCursorResponse(curDoc, info)
 	return err
 }
 

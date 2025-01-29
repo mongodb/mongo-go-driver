@@ -197,6 +197,25 @@ type unmarshalerNonPtrStruct struct {
 
 type myInt64 int64
 
+var _ ValueUnmarshaler = (*myInt64)(nil)
+
+func (mi *myInt64) UnmarshalBSONValue(t byte, b []byte) error {
+	if len(b) == 0 {
+		return nil
+	}
+
+	if Type(t) == TypeInt64 {
+		i, err := newValueReader(TypeInt64, bytes.NewReader(b)).ReadInt64()
+		if err != nil {
+			return err
+		}
+
+		*mi = myInt64(i)
+	}
+
+	return nil
+}
+
 func (mi *myInt64) UnmarshalBSON(b []byte) error {
 	if len(b) == 0 {
 		return nil

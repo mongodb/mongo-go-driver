@@ -22,6 +22,7 @@ type FindOptions struct {
 	Max                 interface{}
 	MaxAwaitTime        *time.Duration
 	Min                 interface{}
+	OplogReplay         *bool
 	Projection          interface{}
 	ReturnKey           *bool
 	ShowRecordID        *bool
@@ -200,6 +201,19 @@ func (f *FindOptionsBuilder) SetNoCursorTimeout(b bool) *FindOptionsBuilder {
 	return f
 }
 
+// SetOplogReplay sets the value for the OplogReplay field. OplogReplay is for internal
+// replication use only and should not be set.
+//
+// Deprecated: This option has been deprecated in MongoDB version 4.4 and will be ignored by
+// the server if it is set.
+func (f *FindOptionsBuilder) SetOplogReplay(b bool) *FindOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOptions) error {
+		opts.OplogReplay = &b
+		return nil
+	})
+	return f
+}
+
 // SetProjection sets the value for the Projection field. Projection is a document describing
 // which fields will be included in the documents returned by the Find operation. The
 // default value is nil, which means all fields will be included.
@@ -265,6 +279,7 @@ type FindOneOptions struct {
 	Hint                interface{}
 	Max                 interface{}
 	Min                 interface{}
+	OplogReplay         *bool
 	Projection          interface{}
 	ReturnKey           *bool
 	ShowRecordID        *bool
@@ -349,6 +364,19 @@ func (f *FindOneOptionsBuilder) SetMax(max interface{}) *FindOneOptionsBuilder {
 func (f *FindOneOptionsBuilder) SetMin(min interface{}) *FindOneOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneOptions) error {
 		opts.Min = min
+		return nil
+	})
+	return f
+}
+
+// SetOplogReplay sets the value for the OplogReplay field. OplogReplay is for internal
+// replication use only and should not be set.
+//
+// Deprecated: This option has been deprecated in MongoDB version 4.4 and will be ignored by
+// the server if it is set.
+func (f *FindOneOptionsBuilder) SetOplogReplay(b bool) *FindOneOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOneOptions) error {
+		opts.OplogReplay = &b
 		return nil
 	})
 	return f

@@ -50,6 +50,11 @@ type Hello struct {
 	loadBalanced       bool
 	omitMaxTimeMS      bool
 
+	// Fields provided by a library that wraps the Go Driver.
+	outerLibraryName     string
+	outerLibraryVersion  string
+	outerLibraryPlatform string
+
 	res bsoncore.Document
 }
 
@@ -120,6 +125,29 @@ func (h *Hello) ServerAPI(serverAPI *driver.ServerAPIOptions) *Hello {
 // LoadBalanced specifies whether or not this operation is being sent over a connection to a load balanced cluster.
 func (h *Hello) LoadBalanced(lb bool) *Hello {
 	h.loadBalanced = lb
+	return h
+}
+
+// OuterLibraryName specifies the name of the library wrapping the Go Driver.
+func (h *Hello) OuterLibraryName(name string) *Hello {
+	h.outerLibraryName = name
+
+	return h
+}
+
+// OuterLibraryVersion specifies the version of the library wrapping the Go
+// Driver.
+func (h *Hello) OuterLibraryVersion(version string) *Hello {
+	h.outerLibraryVersion = version
+
+	return h
+}
+
+// OuterLibraryPlatform specifies the platform of the library wrapping the Go
+// Driver.
+func (h *Hello) OuterLibraryPlatform(platform string) *Hello {
+	h.outerLibraryPlatform = platform
+
 	return h
 }
 
@@ -247,12 +275,22 @@ func appendClientAppName(dst []byte, name string) ([]byte, error) {
 // appendClientDriver appends the driver metadata to dst. It is the
 // responsibility of the caller to check that this appending does not cause dst
 // to exceed any size limitations.
-func appendClientDriver(dst []byte) ([]byte, error) {
+func appendClientDriver(dst []byte, outerLibraryName, outerLibraryVersion string) ([]byte, error) {
 	var idx int32
 	idx, dst = bsoncore.AppendDocumentElementStart(dst, "driver")
 
-	dst = bsoncore.AppendStringElement(dst, "name", driverName)
-	dst = bsoncore.AppendStringElement(dst, "version", version.Driver)
+	name := driverName
+	if outerLibraryName != "" {
+		name = name + "|" + outerLibraryName
+	}
+
+	version := version.Driver
+	if outerLibraryVersion != "" {
+		version = version + "|" + outerLibraryVersion
+	}
+
+	dst = bsoncore.AppendStringElement(dst, "name", name)
+	dst = bsoncore.AppendStringElement(dst, "version", version)
 
 	return bsoncore.AppendDocumentEnd(dst, idx)
 }
@@ -374,8 +412,13 @@ func appendClientOS(dst []byte, omitNonType bool) ([]byte, error) {
 // appendClientPlatform appends the platform metadata to dst. It is the
 // responsibility of the caller to check that this appending does not cause dst
 // to exceed any size limitations.
-func appendClientPlatform(dst []byte) []byte {
-	return bsoncore.AppendStringElement(dst, "platform", runtime.Version())
+func appendClientPlatform(dst []byte, outerLibraryPlatform string) []byte {
+	platform := runtime.Version()
+	if outerLibraryPlatform != "" {
+		platform = platform + "|" + outerLibraryPlatform
+	}
+
+	return bsoncore.AppendStringElement(dst, "platform", platform)
 }
 
 // encodeClientMetadata encodes the client metadata into a BSON document. maxLen
@@ -412,7 +455,7 @@ func appendClientPlatform(dst []byte) []byte {
 //			}
 //		}
 //	}
-func encodeClientMetadata(appname string, maxLen int) ([]byte, error) {
+func encodeClientMetadata(h *Hello, maxLen int) ([]byte, error) {
 	dst := make([]byte, 0, maxLen)
 
 	omitEnvDoc := false
@@ -426,12 +469,12 @@ retry:
 	idx, dst = bsoncore.AppendDocumentStart(dst)
 
 	var err error
-	dst, err = appendClientAppName(dst, appname)
+	dst, err = appendClientAppName(dst, h.appname)
 	if err != nil {
 		return nil, err
 	}
 
-	dst, err = appendClientDriver(dst)
+	dst, err = appendClientDriver(dst, h.outerLibraryName, h.outerLibraryVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -442,7 +485,7 @@ retry:
 	}
 
 	if !truncatePlatform {
-		dst = appendClientPlatform(dst)
+		dst = appendClientPlatform(dst, h.outerLibraryPlatform)
 	}
 
 	if !omitEnvDocument {
@@ -519,7 +562,7 @@ func (h *Hello) handshakeCommand(dst []byte, desc description.SelectedServer) ([
 	}
 	dst, _ = bsoncore.AppendArrayEnd(dst, idx)
 
-	clientMetadata, _ := encodeClientMetadata(h.appname, maxClientMetadataSize)
+	clientMetadata, _ := encodeClientMetadata(h, maxClientMetadataSize)
 
 	// If the client metadata is empty, do not append it to the command.
 	if len(clientMetadata) > 0 {
@@ -588,8 +631,8 @@ func (h *Hello) createOperation() driver.Operation {
 		CommandFn:  h.command,
 		Database:   "admin",
 		Deployment: h.d,
-		ProcessResponseFn: func(info driver.ResponseInfo) error {
-			h.res = info.ServerResponse
+		ProcessResponseFn: func(_ context.Context, resp bsoncore.Document, _ driver.ResponseInfo) error {
+			h.res = resp
 			return nil
 		},
 		ServerAPI:     h.serverAPI,
@@ -613,8 +656,8 @@ func (h *Hello) GetHandshakeInformation(ctx context.Context, _ address.Address, 
 		CommandFn:  h.handshakeCommand,
 		Deployment: deployment,
 		Database:   "admin",
-		ProcessResponseFn: func(info driver.ResponseInfo) error {
-			h.res = info.ServerResponse
+		ProcessResponseFn: func(_ context.Context, resp bsoncore.Document, _ driver.ResponseInfo) error {
+			h.res = resp
 			return nil
 		},
 		ServerAPI: h.serverAPI,

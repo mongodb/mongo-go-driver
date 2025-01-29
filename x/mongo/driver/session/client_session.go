@@ -100,8 +100,6 @@ type Client struct {
 	RetryingCommit bool
 	Committing     bool
 	Aborting       bool
-	RetryWrite     bool
-	RetryRead      bool
 	Snapshot       bool
 
 	// options for the current transaction

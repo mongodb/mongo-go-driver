@@ -356,11 +356,7 @@ func TestClientSideEncryptionCustomCrypt(t *testing.T) {
 			ApplyURI(mtest.ClusterURI()).
 			SetAutoEncryptionOptions(aeOpts)
 		cc := &customCrypt{}
-		clientOpts.Opts = append(clientOpts.Opts, func(args *options.ClientOptions) error {
-			args.Crypt = cc
-
-			return nil
-		})
+		clientOpts.Crypt = cc
 		integtest.AddTestServerAPIVersion(clientOpts)
 
 		client, err := mongo.Connect(clientOpts)
@@ -398,8 +394,8 @@ func TestClientSideEncryptionCustomCrypt(t *testing.T) {
 			"expected 0 calls to DecryptExplicit, got %v", cc.numDecryptExplicitCalls)
 		assert.Equal(mt, cc.numCloseCalls, 0,
 			"expected 0 calls to Close, got %v", cc.numCloseCalls)
-		assert.Equal(mt, cc.numBypassAutoEncryptionCalls, 2,
-			"expected 2 calls to BypassAutoEncryption, got %v", cc.numBypassAutoEncryptionCalls)
+		assert.Equal(mt, cc.numBypassAutoEncryptionCalls, 1,
+			"expected 1 call to BypassAutoEncryption, got %v", cc.numBypassAutoEncryptionCalls)
 	})
 }
 
@@ -683,11 +679,7 @@ func TestFLEIndexView(t *testing.T) {
 		SetReadPreference(mtest.PrimaryRp)
 
 	cc := &customCrypt{}
-	opts.Opts = append(opts.Opts, func(args *options.ClientOptions) error {
-		args.Crypt = cc
-
-		return nil
-	})
+	opts.Crypt = cc
 
 	integtest.AddTestServerAPIVersion(opts)
 

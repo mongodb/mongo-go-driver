@@ -8,4 +8,5 @@ use (
 	./internal/cmd/benchmark
 	./internal/cmd/compilecheck
 	./internal/cmd/faas/awslambda/mongodb
+	./internal/test/goleak
 )
