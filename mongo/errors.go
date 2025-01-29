@@ -252,8 +252,10 @@ type ServerError interface {
 	// HasErrorCodeWithMessage returns true if any of the contained errors have the specified code and message.
 	HasErrorCodeWithMessage(int, string) bool
 
-	// ErrorCodes returns a deduplicated list of error codes returned by the
-	// server.
+	// ErrorCodes returns all error codes (unsorted) in the server’s response.
+	// This would include nested errors (e.g., write concern errors) for
+	// supporting implementations (e.g., BulkWriteException) as well as the
+	// top-level error code.
 	ErrorCodes() []int
 
 	serverError()
