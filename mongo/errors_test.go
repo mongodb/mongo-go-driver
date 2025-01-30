@@ -679,6 +679,70 @@ func TestIsTimeout(t *testing.T) {
 	}
 }
 
+func TestServerError_ErrorCodes(t *testing.T) {
+	tests := []struct {
+		name  string
+		error ServerError
+		want  []int
+	}{
+		{
+			name:  "CommandError",
+			error: CommandError{Code: 1},
+			want:  []int{1},
+		},
+		{
+			name:  "WriteError",
+			error: WriteError{Code: 1},
+			want:  []int{1},
+		},
+		{
+			name:  "WriteException single",
+			error: WriteException{WriteErrors: []WriteError{{Code: 1}}},
+			want:  []int{1},
+		},
+		{
+			name:  "WriteException multiple",
+			error: WriteException{WriteErrors: []WriteError{{Code: 1}, {Code: 2}}},
+			want:  []int{1, 2},
+		},
+		{
+			name:  "WriteException duplicates",
+			error: WriteException{WriteErrors: []WriteError{{Code: 1}, {Code: 2}, {Code: 2}}},
+			want:  []int{1, 2, 2},
+		},
+		{
+			name:  "BulkWriteException single",
+			error: BulkWriteException{WriteErrors: []BulkWriteError{{WriteError: WriteError{Code: 1}}}},
+			want:  []int{1},
+		},
+		{
+			name: "BulkWriteException multiple",
+			error: BulkWriteException{WriteErrors: []BulkWriteError{
+				{WriteError: WriteError{Code: 1}},
+				{WriteError: WriteError{Code: 2}},
+			}},
+			want: []int{1, 2},
+		},
+		{
+			name: "BulkWriteException duplicates",
+			error: BulkWriteException{WriteErrors: []BulkWriteError{
+				{WriteError: WriteError{Code: 1}},
+				{WriteError: WriteError{Code: 2}},
+				{WriteError: WriteError{Code: 2}},
+			}},
+			want: []int{1, 2, 2},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := test.error.ErrorCodes()
+
+			assert.ElementsMatch(t, got, test.want)
+		})
+	}
+}
+
 type netErr struct {
 	timeout bool
 }
