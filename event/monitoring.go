@@ -89,6 +89,7 @@ const (
 	ConnectionPendingReadStarted   = "ConnectionPendingReadStarted"
 	ConnectionPendingReadSucceeded = "ConnectionPendingReadSucceeded"
 	ConnectionPendingReadFailed    = "ConnectionPendingReadFailed"
+	ConnectionPendingReadDuration  = "ConnectionPendingReadDuration"
 )
 
 // MonitorPoolOptions contains pool options as formatted in pool events

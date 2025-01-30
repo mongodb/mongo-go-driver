@@ -903,7 +903,6 @@ func awaitPendingRead(ctx context.Context, pool *pool, conn *connection) error {
 
 	buf := bytes.NewBuffer(nil)
 	n, err := io.CopyN(buf, conn.nc, int64(size))
-	fmt.Println("buf: ", buf)
 	if err != nil {
 		// If the read times out, record the bytes left to read before exiting.
 		nerr := net.Error(nil)
