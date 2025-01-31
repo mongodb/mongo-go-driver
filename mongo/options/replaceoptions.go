@@ -40,6 +40,12 @@ type ReplaceOptions struct {
 	// Values must be constant or closed expressions that do not reference document fields. Parameters can then be
 	// accessed as variables in an aggregate expression context (e.g. "$$var").
 	Let interface{}
+
+	// If true, the server accepts empty Timestamp as a literal rather than replacing it with the current time.
+	//
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	BypassEmptyTsReplacement *bool
 }
 
 // Replace creates a new ReplaceOptions instance.
@@ -83,6 +89,12 @@ func (ro *ReplaceOptions) SetLet(l interface{}) *ReplaceOptions {
 	return ro
 }
 
+// SetBypassEmptyTsReplacement sets the value for the BypassEmptyTsReplacement field.
+func (ro *ReplaceOptions) SetBypassEmptyTsReplacement(b bool) *ReplaceOptions {
+	ro.BypassEmptyTsReplacement = &b
+	return ro
+}
+
 // MergeReplaceOptions combines the given ReplaceOptions instances into a single ReplaceOptions in a last-one-wins
 // fashion.
 //
@@ -111,6 +123,9 @@ func MergeReplaceOptions(opts ...*ReplaceOptions) *ReplaceOptions {
 		}
 		if ro.Let != nil {
 			rOpts.Let = ro.Let
+		}
+		if ro.BypassEmptyTsReplacement != nil {
+			rOpts.BypassEmptyTsReplacement = ro.BypassEmptyTsReplacement
 		}
 	}
 

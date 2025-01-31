@@ -29,6 +29,12 @@ type BulkWriteOptions struct {
 	// parameter names to values. Values must be constant or closed expressions that do not reference document fields.
 	// Parameters can then be accessed as variables in an aggregate expression context (e.g. "$$var").
 	Let interface{}
+
+	// If true, the server accepts empty Timestamp as a literal rather than replacing it with the current time.
+	//
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	BypassEmptyTsReplacement *bool
 }
 
 // BulkWrite creates a new *BulkWriteOptions instance.
@@ -65,6 +71,12 @@ func (b *BulkWriteOptions) SetLet(let interface{}) *BulkWriteOptions {
 	return b
 }
 
+// SetBypassEmptyTsReplacement sets the value for the BypassEmptyTsReplacement field.
+func (b *BulkWriteOptions) SetBypassEmptyTsReplacement(bypassEmptyTsReplacement bool) *BulkWriteOptions {
+	b.BypassEmptyTsReplacement = &bypassEmptyTsReplacement
+	return b
+}
+
 // MergeBulkWriteOptions combines the given BulkWriteOptions instances into a single BulkWriteOptions in a last-one-wins
 // fashion.
 //
@@ -87,6 +99,9 @@ func MergeBulkWriteOptions(opts ...*BulkWriteOptions) *BulkWriteOptions {
 		}
 		if opt.Let != nil {
 			b.Let = opt.Let
+		}
+		if opt.BypassEmptyTsReplacement != nil {
+			b.BypassEmptyTsReplacement = opt.BypassEmptyTsReplacement
 		}
 	}
 

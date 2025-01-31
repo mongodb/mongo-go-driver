@@ -17,6 +17,12 @@ type InsertOneOptions struct {
 	// A string or document that will be included in server logs, profiling logs, and currentOp queries to help trace
 	// the operation.  The default value is nil, which means that no comment will be included in the logs.
 	Comment interface{}
+
+	// If true, the server accepts empty Timestamp as a literal rather than replacing it with the current time.
+	//
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	BypassEmptyTsReplacement *bool
 }
 
 // InsertOne creates a new InsertOneOptions instance.
@@ -33,6 +39,12 @@ func (ioo *InsertOneOptions) SetBypassDocumentValidation(b bool) *InsertOneOptio
 // SetComment sets the value for the Comment field.
 func (ioo *InsertOneOptions) SetComment(comment interface{}) *InsertOneOptions {
 	ioo.Comment = comment
+	return ioo
+}
+
+// SetBypassEmptyTsReplacement sets the value for the BypassEmptyTsReplacement field.
+func (ioo *InsertOneOptions) SetBypassEmptyTsReplacement(b bool) *InsertOneOptions {
+	ioo.BypassEmptyTsReplacement = &b
 	return ioo
 }
 
@@ -53,6 +65,9 @@ func MergeInsertOneOptions(opts ...*InsertOneOptions) *InsertOneOptions {
 		if ioo.Comment != nil {
 			ioOpts.Comment = ioo.Comment
 		}
+		if ioo.BypassEmptyTsReplacement != nil {
+			ioOpts.BypassEmptyTsReplacement = ioo.BypassEmptyTsReplacement
+		}
 	}
 
 	return ioOpts
@@ -72,6 +87,12 @@ type InsertManyOptions struct {
 
 	// If true, no writes will be executed after one fails. The default value is true.
 	Ordered *bool
+
+	// If true, the server accepts empty Timestamp as a literal rather than replacing it with the current time.
+	//
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	BypassEmptyTsReplacement *bool
 }
 
 // InsertMany creates a new InsertManyOptions instance.
@@ -99,6 +120,12 @@ func (imo *InsertManyOptions) SetOrdered(b bool) *InsertManyOptions {
 	return imo
 }
 
+// SetBypassEmptyTsReplacement sets the value for the BypassEmptyTsReplacement field.
+func (imo *InsertManyOptions) SetBypassEmptyTsReplacement(b bool) *InsertManyOptions {
+	imo.BypassEmptyTsReplacement = &b
+	return imo
+}
+
 // MergeInsertManyOptions combines the given InsertManyOptions instances into a single InsertManyOptions in a last one
 // wins fashion.
 //
@@ -118,6 +145,9 @@ func MergeInsertManyOptions(opts ...*InsertManyOptions) *InsertManyOptions {
 		}
 		if imo.Ordered != nil {
 			imOpts.Ordered = imo.Ordered
+		}
+		if imo.BypassEmptyTsReplacement != nil {
+			imOpts.BypassEmptyTsReplacement = imo.BypassEmptyTsReplacement
 		}
 	}
 
