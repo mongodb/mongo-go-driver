@@ -36,7 +36,7 @@ type bsonBinaryVectorTestCase struct {
 	CanonicalBson string        `json:"canonical_bson"`
 }
 
-func Test_BsonBinaryVector(t *testing.T) {
+func TestBsonBinaryVector(t *testing.T) {
 	t.Parallel()
 
 	jsonFiles, err := findJSONFilesInDir(bsonBinaryVectorDir)
@@ -70,13 +70,13 @@ func Test_BsonBinaryVector(t *testing.T) {
 		val := Binary{Subtype: TypeBinaryVector}
 
 		for _, tc := range [][]byte{
-			{byte(Float32Vector), 0, 42},
-			{byte(Float32Vector), 0, 42, 42},
-			{byte(Float32Vector), 0, 42, 42, 42},
+			{Float32Vector, 0, 42},
+			{Float32Vector, 0, 42, 42},
+			{Float32Vector, 0, 42, 42, 42},
 
-			{byte(Float32Vector), 0, 42, 42, 42, 42, 42},
-			{byte(Float32Vector), 0, 42, 42, 42, 42, 42, 42},
-			{byte(Float32Vector), 0, 42, 42, 42, 42, 42, 42, 42},
+			{Float32Vector, 0, 42, 42, 42, 42, 42},
+			{Float32Vector, 0, 42, 42, 42, 42, 42, 42},
+			{Float32Vector, 0, 42, 42, 42, 42, 42, 42, 42},
 		} {
 			t.Run(fmt.Sprintf("marshaling %d bytes", len(tc)-2), func(t *testing.T) {
 				val.Data = tc
@@ -91,6 +91,36 @@ func Test_BsonBinaryVector(t *testing.T) {
 		}
 	})
 
+	t.Run("FLOAT32 with padding", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("Unmarshaling", func(t *testing.T) {
+			val := D{{"vector", Binary{Subtype: TypeBinaryVector, Data: []byte{Float32Vector, 3}}}}
+			b, err := Marshal(val)
+			require.NoError(t, err, "marshaling test BSON")
+			var got struct {
+				Vector Vector
+			}
+			err = Unmarshal(b, &got)
+			require.ErrorContains(t, err, errNonZeroVectorPadding.Error())
+		})
+	})
+
+	t.Run("INT8 with padding", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("Unmarshaling", func(t *testing.T) {
+			val := D{{"vector", Binary{Subtype: TypeBinaryVector, Data: []byte{Int8Vector, 3}}}}
+			b, err := Marshal(val)
+			require.NoError(t, err, "marshaling test BSON")
+			var got struct {
+				Vector Vector
+			}
+			err = Unmarshal(b, &got)
+			require.ErrorContains(t, err, errNonZeroVectorPadding.Error())
+		})
+	})
+
 	t.Run("Padding specified with no vector data PACKED_BIT", func(t *testing.T) {
 		t.Parallel()
 
@@ -99,7 +129,7 @@ func Test_BsonBinaryVector(t *testing.T) {
 			require.EqualError(t, err, errNonZeroVectorPadding.Error())
 		})
 		t.Run("Unmarshaling", func(t *testing.T) {
-			val := D{{"vector", Binary{Subtype: TypeBinaryVector, Data: []byte{byte(PackedBitVector), 1}}}}
+			val := D{{"vector", Binary{Subtype: TypeBinaryVector, Data: []byte{PackedBitVector, 1}}}}
 			b, err := Marshal(val)
 			require.NoError(t, err, "marshaling test BSON")
 			var got struct {
@@ -118,7 +148,7 @@ func Test_BsonBinaryVector(t *testing.T) {
 			require.EqualError(t, err, errVectorPaddingTooLarge.Error())
 		})
 		t.Run("Unmarshaling", func(t *testing.T) {
-			val := D{{"vector", Binary{Subtype: TypeBinaryVector, Data: []byte{byte(PackedBitVector), 8}}}}
+			val := D{{"vector", Binary{Subtype: TypeBinaryVector, Data: []byte{PackedBitVector, 8}}}}
 			b, err := Marshal(val)
 			require.NoError(t, err, "marshaling test BSON")
 			var got struct {
@@ -134,13 +164,13 @@ func convertSlice[T int8 | float32 | byte](s []interface{}) []T {
 	v := make([]T, len(s))
 	for i, e := range s {
 		f := math.NaN()
-		switch v := e.(type) {
+		switch val := e.(type) {
 		case float64:
-			f = v
+			f = val
 		case string:
-			if v == "inf" {
+			if val == "inf" {
 				f = math.Inf(0)
-			} else if v == "-inf" {
+			} else if val == "-inf" {
 				f = math.Inf(-1)
 			}
 		}
@@ -150,10 +180,6 @@ func convertSlice[T int8 | float32 | byte](s []interface{}) []T {
 }
 
 func runBsonBinaryVectorTest(t *testing.T, testKey string, test bsonBinaryVectorTestCase) {
-	if !test.Valid {
-		t.Skipf("skip invalid case %s", test.Description)
-	}
-
 	testVector := make(map[string]Vector)
 	switch alias := test.DtypeHex; alias {
 	case "0x03":
@@ -180,6 +206,23 @@ func runBsonBinaryVectorTest(t *testing.T, testKey string, test bsonBinaryVector
 	require.NoError(t, err, "decoding canonical BSON")
 
 	t.Run("Unmarshaling", func(t *testing.T) {
+		skipCases := map[string]string{
+			"FLOAT32 with padding":                             "run in alternative case",
+			"Overflow Vector INT8":                             "compile-time restriction",
+			"Underflow Vector INT8":                            "compile-time restriction",
+			"INT8 with padding":                                "run in alternative case",
+			"INT8 with float inputs":                           "compile-time restriction",
+			"Overflow Vector PACKED_BIT":                       "compile-time restriction",
+			"Underflow Vector PACKED_BIT":                      "compile-time restriction",
+			"Vector with float values PACKED_BIT":              "compile-time restriction",
+			"Padding specified with no vector data PACKED_BIT": "run in alternative case",
+			"Exceeding maximum padding PACKED_BIT":             "run in alternative case",
+			"Negative padding PACKED_BIT":                      "compile-time restriction",
+		}
+		if reason, ok := skipCases[test.Description]; ok {
+			t.Skipf("skip test case %s: %s", test.Description, reason)
+		}
+
 		t.Parallel()
 
 		var got map[string]Vector
@@ -189,6 +232,23 @@ func runBsonBinaryVectorTest(t *testing.T, testKey string, test bsonBinaryVector
 	})
 
 	t.Run("Marshaling", func(t *testing.T) {
+		skipCases := map[string]string{
+			"FLOAT32 with padding":                             "private padding field",
+			"Overflow Vector INT8":                             "compile-time restriction",
+			"Underflow Vector INT8":                            "compile-time restriction",
+			"INT8 with padding":                                "private padding field",
+			"INT8 with float inputs":                           "compile-time restriction",
+			"Overflow Vector PACKED_BIT":                       "compile-time restriction",
+			"Underflow Vector PACKED_BIT":                      "compile-time restriction",
+			"Vector with float values PACKED_BIT":              "compile-time restriction",
+			"Padding specified with no vector data PACKED_BIT": "run in alternative case",
+			"Exceeding maximum padding PACKED_BIT":             "run in alternative case",
+			"Negative padding PACKED_BIT":                      "compile-time restriction",
+		}
+		if reason, ok := skipCases[test.Description]; ok {
+			t.Skipf("skip test case %s: %s", test.Description, reason)
+		}
+
 		t.Parallel()
 
 		got, err := Marshal(testVector)

@@ -13,50 +13,42 @@ import (
 	"math"
 )
 
-// VectorDType represents the Vector data type.
-type VectorDType byte
-
 // These constants are vector data types.
 const (
-	Int8Vector      VectorDType = 0x03
-	Float32Vector   VectorDType = 0x27
-	PackedBitVector VectorDType = 0x10
+	Int8Vector      byte = 0x03
+	Float32Vector   byte = 0x27
+	PackedBitVector byte = 0x10
 )
-
-// Stringer of VectorDType
-func (vt VectorDType) String() string {
-	switch vt {
-	case Int8Vector:
-		return "int8"
-	case Float32Vector:
-		return "float32"
-	case PackedBitVector:
-		return "packed bit"
-	default:
-		return "invalid"
-	}
-}
 
 // These are vector conversion errors.
 var (
 	errInsufficientVectorData = errors.New("insufficient data")
 	errNonZeroVectorPadding   = errors.New("padding must be 0")
-	errVectorPaddingTooLarge  = errors.New("padding larger than 7")
+	errVectorPaddingTooLarge  = errors.New("padding cannot be larger than 7")
 )
 
 type vectorTypeError struct {
 	Method string
-	Type   VectorDType
+	Type   byte
 }
 
 // Error implements the error interface.
 func (vte vectorTypeError) Error() string {
-	return "Call of " + vte.Method + " on " + vte.Type.String() + " vector"
+	t := "invalid"
+	switch vte.Type {
+	case Int8Vector:
+		t = "int8"
+	case Float32Vector:
+		t = "float32"
+	case PackedBitVector:
+		t = "packed bit"
+	}
+	return fmt.Sprintf("cannot call %s, on a type %s vector", vte.Method, t)
 }
 
 // Vector represents a densely packed array of numbers / bits.
 type Vector struct {
-	dType       VectorDType
+	dType       byte
 	int8Data    []int8
 	float32Data []float32
 	bitData     []byte
@@ -64,7 +56,7 @@ type Vector struct {
 }
 
 // Type returns the vector type.
-func (v Vector) Type() VectorDType {
+func (v Vector) Type() byte {
 	return v.dType
 }
 
@@ -123,7 +115,7 @@ func (v Vector) PackedBitOK() ([]byte, uint8, bool) {
 	return v.bitData, v.bitPadding, true
 }
 
-// Binary returns the BSON Binary of the Vector.
+// Binary returns the BSON Binary representation of the Vector.
 func (v Vector) Binary() Binary {
 	switch v.Type() {
 	case Int8Vector:
@@ -133,15 +125,17 @@ func (v Vector) Binary() Binary {
 	case PackedBitVector:
 		return binaryFromBitVector(v.PackedBit())
 	default:
-		panic("invalid Vector type")
+		panic(fmt.Sprintf("invalid Vector data type: %d", v.dType))
 	}
 }
 
 func binaryFromInt8Vector(v []int8) Binary {
-	data := make([]byte, 2, len(v)+2)
-	copy(data, []byte{byte(Int8Vector), 0})
-	for _, e := range v {
-		data = append(data, byte(e))
+	data := make([]byte, len(v)+2)
+	data[0] = Int8Vector
+	data[1] = 0
+
+	for i, e := range v {
+		data[i+2] = byte(e)
 	}
 
 	return Binary{
@@ -152,7 +146,8 @@ func binaryFromInt8Vector(v []int8) Binary {
 
 func binaryFromFloat32Vector(v []float32) Binary {
 	data := make([]byte, 2, len(v)*4+2)
-	copy(data, []byte{byte(Float32Vector), 0})
+	data[0] = Float32Vector
+	data[1] = 0
 	var a [4]byte
 	for _, e := range v {
 		binary.LittleEndian.PutUint32(a[:], math.Float32bits(e))
@@ -166,7 +161,7 @@ func binaryFromFloat32Vector(v []float32) Binary {
 }
 
 func binaryFromBitVector(bits []byte, padding uint8) Binary {
-	data := []byte{byte(PackedBitVector), padding}
+	data := []byte{PackedBitVector, padding}
 	data = append(data, bits...)
 	return Binary{
 		Subtype: TypeBinaryVector,
@@ -180,12 +175,12 @@ func NewVector[T int8 | float32](data []T) Vector {
 	switch a := any(data).(type) {
 	case []int8:
 		v.dType = Int8Vector
-		v.int8Data = []int8{}
-		v.int8Data = append(v.int8Data, a...)
+		v.int8Data = make([]int8, len(data))
+		copy(v.int8Data, a)
 	case []float32:
 		v.dType = Float32Vector
-		v.float32Data = []float32{}
-		v.float32Data = append(v.float32Data, a...)
+		v.float32Data = make([]float32, len(data))
+		copy(v.float32Data, a)
 	default:
 		panic(fmt.Errorf("unsupported type %T", data))
 	}
@@ -217,7 +212,7 @@ func NewVectorFromBinary(b Binary) (Vector, error) {
 	if len(b.Data) < 2 {
 		return v, errInsufficientVectorData
 	}
-	switch t := b.Data[0]; VectorDType(t) {
+	switch t := b.Data[0]; t {
 	case Int8Vector:
 		return newInt8Vector(b.Data[1:])
 	case Float32Vector:
