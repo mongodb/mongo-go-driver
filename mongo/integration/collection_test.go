@@ -1864,7 +1864,7 @@ func TestCollection(t *testing.T) {
 }
 
 func TestBypassEmptyTsReplacement(t *testing.T) {
-	mt := mtest.New(t, mtest.NewOptions().CreateClient(false))
+	mt := mtest.New(t, mtest.NewOptions().CreateClient(false).MinServerVersion("5.0"))
 
 	marshalValue := func(val interface{}) bson.RawValue {
 		t.Helper()
