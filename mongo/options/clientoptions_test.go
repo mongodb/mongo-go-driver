@@ -175,6 +175,16 @@ func TestClientOptions(t *testing.T) {
 				t.Errorf("Merged client options do not match. got %v; want %v", got.err.Error(), opt1.err.Error())
 			}
 		})
+
+		t.Run("MergeClientOptions single nil option", func(t *testing.T) {
+			got := MergeClientOptions(nil)
+			assert.Equal(t, Client(), got)
+		})
+
+		t.Run("MergeClientOptions multiple nil options", func(t *testing.T) {
+			got := MergeClientOptions(nil, nil)
+			assert.Equal(t, Client(), got)
+		})
 	})
 	t.Run("direct connection validation", func(t *testing.T) {
 		t.Run("multiple hosts", func(t *testing.T) {

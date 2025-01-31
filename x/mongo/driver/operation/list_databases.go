@@ -135,10 +135,10 @@ func NewListDatabases(filter bsoncore.Document) *ListDatabases {
 // Result returns the result of executing this operation.
 func (ld *ListDatabases) Result() ListDatabasesResult { return ld.result }
 
-func (ld *ListDatabases) processResponse(info driver.ResponseInfo) error {
+func (ld *ListDatabases) processResponse(_ context.Context, resp bsoncore.Document, _ driver.ResponseInfo) error {
 	var err error
 
-	ld.result, err = buildListDatabasesResult(info.ServerResponse)
+	ld.result, err = buildListDatabasesResult(resp)
 	return err
 
 }

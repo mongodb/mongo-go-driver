@@ -41,9 +41,8 @@ func NewAbortTransaction() *AbortTransaction {
 	return &AbortTransaction{}
 }
 
-func (at *AbortTransaction) processResponse(driver.ResponseInfo) error {
-	var err error
-	return err
+func (at *AbortTransaction) processResponse(context.Context, bsoncore.Document, driver.ResponseInfo) error {
+	return nil
 }
 
 // Execute runs this operations and returns an error if the operation did not execute successfully.

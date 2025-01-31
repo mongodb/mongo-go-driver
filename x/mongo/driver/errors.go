@@ -140,7 +140,7 @@ func (wce WriteCommandError) Error() string {
 }
 
 // Retryable returns true if the error is retryable
-func (wce WriteCommandError) Retryable(wireVersion *description.VersionRange) bool {
+func (wce WriteCommandError) Retryable(serverKind description.ServerKind, wireVersion *description.VersionRange) bool {
 	for _, label := range wce.Labels {
 		if label == RetryableWriteError {
 			return true
@@ -153,7 +153,7 @@ func (wce WriteCommandError) Retryable(wireVersion *description.VersionRange) bo
 	if wce.WriteConcernError == nil {
 		return false
 	}
-	return wce.WriteConcernError.Retryable()
+	return wce.WriteConcernError.Retryable(serverKind, wireVersion)
 }
 
 // HasErrorLabel returns true if the error contains the specified label.
@@ -186,7 +186,14 @@ func (wce WriteConcernError) Error() string {
 }
 
 // Retryable returns true if the error is retryable
-func (wce WriteConcernError) Retryable() bool {
+func (wce WriteConcernError) Retryable(serverKind description.ServerKind, wireVersion *description.VersionRange) bool {
+	if serverKind == description.ServerKindMongos && wireVersion.Max < 9 {
+		// For a pre-4.4 mongos response, we can trust that mongos will have already
+		// retried the operation if necessary. Drivers should not retry to avoid
+		// "excessive retrying".
+		return false
+	}
+
 	for _, code := range retryableCodes {
 		if wce.Code == int64(code) {
 			return true
