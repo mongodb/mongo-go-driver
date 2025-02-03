@@ -161,8 +161,10 @@ func binaryFromFloat32Vector(v []float32) Binary {
 }
 
 func binaryFromBitVector(bits []byte, padding uint8) Binary {
-	data := []byte{PackedBitVector, padding}
-	data = append(data, bits...)
+	data := make([]byte, len(bits)+2)
+	data[0] = PackedBitVector
+	data[1] = padding
+	copy(data[2:], bits)
 	return Binary{
 		Subtype: TypeBinaryVector,
 		Data:    data,
@@ -197,8 +199,8 @@ func NewPackedBitVector(bits []byte, padding uint8) (Vector, error) {
 		return v, errNonZeroVectorPadding
 	}
 	v.dType = PackedBitVector
-	v.bitData = []byte{}
-	v.bitData = append(v.bitData, bits...)
+	v.bitData = make([]byte, len(bits))
+	copy(v.bitData, bits)
 	v.bitPadding = padding
 	return v, nil
 }
