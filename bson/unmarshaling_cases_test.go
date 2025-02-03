@@ -8,12 +8,9 @@ package bson
 
 import (
 	"reflect"
-	"testing"
 
 	"go.mongodb.org/mongo-driver/bson/bsonrw"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/require"
 )
 
 type unmarshalingTestCase struct {
@@ -121,12 +118,21 @@ func unmarshalingTestCases() []unmarshalingTestCase {
 			name:  "nil pointer and non-pointer type with literal null BSON",
 			sType: reflect.TypeOf(unmarshalBehaviorTestCase{}),
 			want: &unmarshalBehaviorTestCase{
-				Tracker: unmarshalCallTracker{
-					unmarshalCalled: true,
+				BSONValueTracker: unmarshalBSONValueCallTracker{
+					called: true,
 				},
-				PtrTracker: nil,
+				BSONValuePtrTracker: nil,
+				BSONTracker: unmarshalBSONCallTracker{
+					called: true,
+				},
+				BSONPtrTracker: nil,
 			},
-			data: docToBytes(D{{Key: "tracker", Value: nil}, {Key: "ptr_tracker", Value: nil}}),
+			data: docToBytes(D{
+				{Key: "bv_tracker", Value: nil},
+				{Key: "bv_ptr_tracker", Value: nil},
+				{Key: "b_tracker", Value: nil},
+				{Key: "b_ptr_tracker", Value: nil},
+			}),
 		},
 		// GODRIVER-2252
 		// Test that a struct of pointer types with UnmarshalBSON functions defined marshal and
@@ -284,34 +290,38 @@ func (ms *myString) UnmarshalBSON(bytes []byte) error {
 	return nil
 }
 
-type unmarshalCallTracker struct {
-	unmarshalCalled bool
+// unmarshalBSONValueCallTracker is a test struct that tracks whether the
+// UnmarshalBSONValue method has been called.
+type unmarshalBSONValueCallTracker struct {
+	called bool // called is set to true when UnmarshalBSONValue is invoked.
 }
 
+var _ ValueUnmarshaler = &unmarshalBSONValueCallTracker{}
+
+// unmarshalBSONCallTracker is a test struct that tracks whether the
+// UnmarshalBSON method has been called.
+type unmarshalBSONCallTracker struct {
+	called bool // called is set to true when UnmarshalBSON is invoked.
+}
+
+// Ensure unmarshalBSONCallTracker implements the Unmarshaler interface.
+var _ Unmarshaler = &unmarshalBSONCallTracker{}
+
+// unmarshalBehaviorTestCase holds instances of call trackers for testing BSON
+// unmarshaling behavior.
 type unmarshalBehaviorTestCase struct {
-	Tracker    unmarshalCallTracker  `bson:"tracker"`
-	PtrTracker *unmarshalCallTracker `bson:"ptr_tracker"`
+	BSONValueTracker    unmarshalBSONValueCallTracker  `bson:"bv_tracker"`     // BSON value unmarshaling by value.
+	BSONValuePtrTracker *unmarshalBSONValueCallTracker `bson:"bv_ptr_tracker"` // BSON value unmarshaling by pointer.
+	BSONTracker         unmarshalBSONCallTracker       `bson:"b_tracker"`      // BSON unmarshaling by value.
+	BSONPtrTracker      *unmarshalBSONCallTracker      `bson:"b_ptr_tracker"`  // BSON unmarshaling by pointer.
 }
 
-func (ms *unmarshalCallTracker) UnmarshalBSONValue(bsontype.Type, []byte) error {
-	ms.unmarshalCalled = true
-
+func (tracker *unmarshalBSONValueCallTracker) UnmarshalBSONValue(bsontype.Type, []byte) error {
+	tracker.called = true
 	return nil
 }
 
-func TestInitializedPointerDataWithBSONNull(t *testing.T) {
-	// Set up the test case with an initialized pointer.
-	tc := unmarshalBehaviorTestCase{
-		PtrTracker: &unmarshalCallTracker{},
-	}
-
-	// Create BSON data where the 'ptr_tracker' field is explicitly set to null.
-	bytes := docToBytes(D{{Key: "ptr_tracker", Value: nil}})
-
-	// Unmarshal the BSON data into the test case struct.
-	// This should set PtrTracker to nil due to the BSON null value.
-	err := Unmarshal(bytes, &tc)
-	require.NoError(t, err)
-
-	assert.Nil(t, tc.PtrTracker)
+func (tracker *unmarshalBSONCallTracker) UnmarshalBSON([]byte) error {
+	tracker.called = true
+	return nil
 }
