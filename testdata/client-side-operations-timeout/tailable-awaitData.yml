@@ -4,6 +4,7 @@ schemaVersion: "1.9"
 
 runOnRequirements:
   - minServerVersion: "4.4"
+    serverless: forbid # Capped collections are not allowed for serverless.
 
 createEntities:
   - client:
