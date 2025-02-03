@@ -36,7 +36,7 @@ type bsonBinaryVectorTestCase struct {
 	CanonicalBson string        `json:"canonical_bson"`
 }
 
-func TestBsonBinaryVector(t *testing.T) {
+func TestBsonBinaryVectorSpec(t *testing.T) {
 	t.Parallel()
 
 	jsonFiles, err := findJSONFilesInDir(bsonBinaryVectorDir)
@@ -63,33 +63,6 @@ func TestBsonBinaryVector(t *testing.T) {
 			}
 		})
 	}
-
-	t.Run("Insufficient vector data FLOAT32", func(t *testing.T) {
-		t.Parallel()
-
-		val := Binary{Subtype: TypeBinaryVector}
-
-		for _, tc := range [][]byte{
-			{Float32Vector, 0, 42},
-			{Float32Vector, 0, 42, 42},
-			{Float32Vector, 0, 42, 42, 42},
-
-			{Float32Vector, 0, 42, 42, 42, 42, 42},
-			{Float32Vector, 0, 42, 42, 42, 42, 42, 42},
-			{Float32Vector, 0, 42, 42, 42, 42, 42, 42, 42},
-		} {
-			t.Run(fmt.Sprintf("marshaling %d bytes", len(tc)-2), func(t *testing.T) {
-				val.Data = tc
-				b, err := Marshal(D{{"vector", val}})
-				require.NoError(t, err, "marshaling test BSON")
-				var got struct {
-					Vector Vector
-				}
-				err = Unmarshal(b, &got)
-				require.ErrorContains(t, err, errInsufficientVectorData.Error())
-			})
-		}
-	})
 
 	t.Run("FLOAT32 with padding", func(t *testing.T) {
 		t.Parallel()
@@ -158,6 +131,34 @@ func TestBsonBinaryVector(t *testing.T) {
 			require.ErrorContains(t, err, errVectorPaddingTooLarge.Error())
 		})
 	})
+}
+
+// TODO: This test may be added into the spec tests.
+func TestFloat32VectorWithInsufficientData(t *testing.T) {
+	t.Parallel()
+
+	val := Binary{Subtype: TypeBinaryVector}
+
+	for _, tc := range [][]byte{
+		{Float32Vector, 0, 42},
+		{Float32Vector, 0, 42, 42},
+		{Float32Vector, 0, 42, 42, 42},
+
+		{Float32Vector, 0, 42, 42, 42, 42, 42},
+		{Float32Vector, 0, 42, 42, 42, 42, 42, 42},
+		{Float32Vector, 0, 42, 42, 42, 42, 42, 42, 42},
+	} {
+		t.Run(fmt.Sprintf("marshaling %d bytes", len(tc)-2), func(t *testing.T) {
+			val.Data = tc
+			b, err := Marshal(D{{"vector", val}})
+			require.NoError(t, err, "marshaling test BSON")
+			var got struct {
+				Vector Vector
+			}
+			err = Unmarshal(b, &got)
+			require.ErrorContains(t, err, errInsufficientVectorData.Error())
+		})
+	}
 }
 
 func convertSlice[T int8 | float32 | byte](s []interface{}) []T {
