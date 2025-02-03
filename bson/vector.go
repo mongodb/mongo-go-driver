@@ -13,7 +13,7 @@ import (
 	"math"
 )
 
-// These constants are vector data types.
+// BSON binary vector types as described in https://bsonspec.org/spec.html.
 const (
 	Int8Vector      byte = 0x03
 	Float32Vector   byte = 0x27
