@@ -1877,6 +1877,10 @@ func TestBypassEmptyTsReplacement(t *testing.T) {
 		}
 	}
 
+	boolPtr := func(b bool) *bool {
+		return &b
+	}
+
 	mt.Run("insert one", func(mt *mtest.T) {
 		doc := bson.D{{"x", 42}}
 
@@ -1892,12 +1896,12 @@ func TestBypassEmptyTsReplacement(t *testing.T) {
 			},
 			{
 				"false",
-				options.InsertOne().SetBypassEmptyTsReplacement(false),
+				&options.InsertOneOptions{BypassEmptyTsReplacement: boolPtr(false)},
 				marshalValue(false),
 			},
 			{
 				"true",
-				options.InsertOne().SetBypassEmptyTsReplacement(true),
+				&options.InsertOneOptions{BypassEmptyTsReplacement: boolPtr(true)},
 				marshalValue(true),
 			},
 		}
@@ -1929,12 +1933,12 @@ func TestBypassEmptyTsReplacement(t *testing.T) {
 			},
 			{
 				"false",
-				options.InsertMany().SetBypassEmptyTsReplacement(false),
+				&options.InsertManyOptions{BypassEmptyTsReplacement: boolPtr(false)},
 				marshalValue(false),
 			},
 			{
 				"true",
-				options.InsertMany().SetBypassEmptyTsReplacement(true),
+				&options.InsertManyOptions{BypassEmptyTsReplacement: boolPtr(true)},
 				marshalValue(true),
 			},
 		}
@@ -1964,12 +1968,12 @@ func TestBypassEmptyTsReplacement(t *testing.T) {
 			},
 			{
 				"false",
-				options.Update().SetBypassEmptyTsReplacement(false),
+				&options.UpdateOptions{BypassEmptyTsReplacement: boolPtr(false)},
 				marshalValue(false),
 			},
 			{
 				"true",
-				options.Update().SetBypassEmptyTsReplacement(true),
+				&options.UpdateOptions{BypassEmptyTsReplacement: boolPtr(true)},
 				marshalValue(true),
 			},
 		}
@@ -1999,12 +2003,12 @@ func TestBypassEmptyTsReplacement(t *testing.T) {
 			},
 			{
 				"false",
-				options.Update().SetBypassEmptyTsReplacement(false),
+				&options.UpdateOptions{BypassEmptyTsReplacement: boolPtr(false)},
 				marshalValue(false),
 			},
 			{
 				"true",
-				options.Update().SetBypassEmptyTsReplacement(true),
+				&options.UpdateOptions{BypassEmptyTsReplacement: boolPtr(true)},
 				marshalValue(true),
 			},
 		}
@@ -2034,12 +2038,12 @@ func TestBypassEmptyTsReplacement(t *testing.T) {
 			},
 			{
 				"false",
-				options.Replace().SetBypassEmptyTsReplacement(false),
+				&options.ReplaceOptions{BypassEmptyTsReplacement: boolPtr(false)},
 				marshalValue(false),
 			},
 			{
 				"true",
-				options.Replace().SetBypassEmptyTsReplacement(true),
+				&options.ReplaceOptions{BypassEmptyTsReplacement: boolPtr(true)},
 				marshalValue(true),
 			},
 		}
@@ -2069,12 +2073,12 @@ func TestBypassEmptyTsReplacement(t *testing.T) {
 			},
 			{
 				"false",
-				options.FindOneAndUpdate().SetBypassEmptyTsReplacement(false),
+				&options.FindOneAndUpdateOptions{BypassEmptyTsReplacement: boolPtr(false)},
 				marshalValue(false),
 			},
 			{
 				"true",
-				options.FindOneAndUpdate().SetBypassEmptyTsReplacement(true),
+				&options.FindOneAndUpdateOptions{BypassEmptyTsReplacement: boolPtr(true)},
 				marshalValue(true),
 			},
 		}
@@ -2107,12 +2111,12 @@ func TestBypassEmptyTsReplacement(t *testing.T) {
 			},
 			{
 				"false",
-				options.FindOneAndReplace().SetBypassEmptyTsReplacement(false),
+				&options.FindOneAndReplaceOptions{BypassEmptyTsReplacement: boolPtr(false)},
 				marshalValue(false),
 			},
 			{
 				"true",
-				options.FindOneAndReplace().SetBypassEmptyTsReplacement(true),
+				&options.FindOneAndReplaceOptions{BypassEmptyTsReplacement: boolPtr(true)},
 				marshalValue(true),
 			},
 		}
@@ -2164,12 +2168,12 @@ func TestBypassEmptyTsReplacement(t *testing.T) {
 			},
 			{
 				"false",
-				options.BulkWrite().SetBypassEmptyTsReplacement(false),
+				&options.BulkWriteOptions{BypassEmptyTsReplacement: boolPtr(false)},
 				marshalValue(false),
 			},
 			{
 				"true",
-				options.BulkWrite().SetBypassEmptyTsReplacement(true),
+				&options.BulkWriteOptions{BypassEmptyTsReplacement: boolPtr(true)},
 				marshalValue(true),
 			},
 		}

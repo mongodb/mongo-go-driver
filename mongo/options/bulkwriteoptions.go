@@ -71,12 +71,6 @@ func (b *BulkWriteOptions) SetLet(let interface{}) *BulkWriteOptions {
 	return b
 }
 
-// SetBypassEmptyTsReplacement sets the value for the BypassEmptyTsReplacement field.
-func (b *BulkWriteOptions) SetBypassEmptyTsReplacement(bypassEmptyTsReplacement bool) *BulkWriteOptions {
-	b.BypassEmptyTsReplacement = &bypassEmptyTsReplacement
-	return b
-}
-
 // MergeBulkWriteOptions combines the given BulkWriteOptions instances into a single BulkWriteOptions in a last-one-wins
 // fashion.
 //

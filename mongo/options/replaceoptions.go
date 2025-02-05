@@ -89,12 +89,6 @@ func (ro *ReplaceOptions) SetLet(l interface{}) *ReplaceOptions {
 	return ro
 }
 
-// SetBypassEmptyTsReplacement sets the value for the BypassEmptyTsReplacement field.
-func (ro *ReplaceOptions) SetBypassEmptyTsReplacement(b bool) *ReplaceOptions {
-	ro.BypassEmptyTsReplacement = &b
-	return ro
-}
-
 // MergeReplaceOptions combines the given ReplaceOptions instances into a single ReplaceOptions in a last-one-wins
 // fashion.
 //

@@ -752,12 +752,6 @@ func (f *FindOneAndReplaceOptions) SetLet(let interface{}) *FindOneAndReplaceOpt
 	return f
 }
 
-// SetBypassEmptyTsReplacement sets the value for the BypassEmptyTsReplacement field.
-func (f *FindOneAndReplaceOptions) SetBypassEmptyTsReplacement(b bool) *FindOneAndReplaceOptions {
-	f.BypassEmptyTsReplacement = &b
-	return f
-}
-
 // MergeFindOneAndReplaceOptions combines the given FindOneAndReplaceOptions instances into a single
 // FindOneAndReplaceOptions in a last-one-wins fashion.
 //
@@ -947,12 +941,6 @@ func (f *FindOneAndUpdateOptions) SetHint(hint interface{}) *FindOneAndUpdateOpt
 // SetLet sets the value for the Let field.
 func (f *FindOneAndUpdateOptions) SetLet(let interface{}) *FindOneAndUpdateOptions {
 	f.Let = let
-	return f
-}
-
-// SetBypassEmptyTsReplacement sets the value for the BypassEmptyTsReplacement field.
-func (f *FindOneAndUpdateOptions) SetBypassEmptyTsReplacement(b bool) *FindOneAndUpdateOptions {
-	f.BypassEmptyTsReplacement = &b
 	return f
 }
 

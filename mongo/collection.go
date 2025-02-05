@@ -360,7 +360,7 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 		imOpts.SetComment(ioOpts.Comment)
 	}
 	if ioOpts.BypassEmptyTsReplacement != nil {
-		imOpts.SetBypassEmptyTsReplacement(*ioOpts.BypassEmptyTsReplacement)
+		imOpts.BypassEmptyTsReplacement = ioOpts.BypassEmptyTsReplacement
 	}
 	res, err := coll.insert(ctx, []interface{}{document}, imOpts)
 

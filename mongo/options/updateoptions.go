@@ -100,12 +100,6 @@ func (uo *UpdateOptions) SetLet(l interface{}) *UpdateOptions {
 	return uo
 }
 
-// SetBypassEmptyTsReplacement sets the value for the BypassEmptyTsReplacement field.
-func (uo *UpdateOptions) SetBypassEmptyTsReplacement(b bool) *UpdateOptions {
-	uo.BypassEmptyTsReplacement = &b
-	return uo
-}
-
 // MergeUpdateOptions combines the given UpdateOptions instances into a single UpdateOptions in a last-one-wins fashion.
 //
 // Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a

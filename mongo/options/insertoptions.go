@@ -42,12 +42,6 @@ func (ioo *InsertOneOptions) SetComment(comment interface{}) *InsertOneOptions {
 	return ioo
 }
 
-// SetBypassEmptyTsReplacement sets the value for the BypassEmptyTsReplacement field.
-func (ioo *InsertOneOptions) SetBypassEmptyTsReplacement(b bool) *InsertOneOptions {
-	ioo.BypassEmptyTsReplacement = &b
-	return ioo
-}
-
 // MergeInsertOneOptions combines the given InsertOneOptions instances into a single InsertOneOptions in a last-one-wins
 // fashion.
 //
@@ -117,12 +111,6 @@ func (imo *InsertManyOptions) SetComment(comment interface{}) *InsertManyOptions
 // SetOrdered sets the value for the Ordered field.
 func (imo *InsertManyOptions) SetOrdered(b bool) *InsertManyOptions {
 	imo.Ordered = &b
-	return imo
-}
-
-// SetBypassEmptyTsReplacement sets the value for the BypassEmptyTsReplacement field.
-func (imo *InsertManyOptions) SetBypassEmptyTsReplacement(b bool) *InsertManyOptions {
-	imo.BypassEmptyTsReplacement = &b
 	return imo
 }
 
