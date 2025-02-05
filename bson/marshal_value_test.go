@@ -7,33 +7,45 @@
 package bson
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 func TestMarshalValue(t *testing.T) {
 	t.Parallel()
 
-	marshalValueTestCases := newMarshalValueTestCasesWithInterfaceCore(t)
-
-	t.Run("MarshalValue", func(t *testing.T) {
-		t.Parallel()
-
-		for _, tc := range marshalValueTestCases {
-			tc := tc
-
-			t.Run(tc.name, func(t *testing.T) {
-				t.Parallel()
-
-				valueType, valueBytes, err := MarshalValue(tc.val)
-				assert.Nil(t, err, "MarshalValue error: %v", err)
-				compareMarshalValueResults(t, tc, valueType, valueBytes)
-			})
-		}
+	testCases := slices.Clone(marshalValueTestCases)
+	testCases = append(testCases, marshalValueTestCase{
+		name: "interface",
+		val: marshalValueInterfaceOuter{
+			Reader: marshalValueInterfaceInner{
+				Foo: 10,
+			},
+		},
+		bsontype: TypeEmbeddedDocument,
+		bytes: bsoncore.NewDocumentBuilder().
+			AppendDocument("reader", bsoncore.NewDocumentBuilder().
+				AppendInt32("foo", 10).
+				Build()).
+			Build(),
 	})
+
+	for _, tc := range testCases {
+		tc := tc
+
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			valueType, valueBytes, err := MarshalValue(tc.val)
+			assert.Nil(t, err, "MarshalValue error: %v", err)
+			compareMarshalValueResults(t, tc, valueType, valueBytes)
+		})
+	}
 
 	t.Run("returns distinct address ranges", func(t *testing.T) {
 		// Call MarshalValue in a loop with the same large value (make sure to
