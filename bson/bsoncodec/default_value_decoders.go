@@ -1570,11 +1570,11 @@ func (dvd DefaultValueDecoders) UnmarshalerDecodeValue(_ DecodeContext, vr bsonr
 	}
 
 	// If BSON value is null and the go value is a pointer, then don't call
-	// UnmarshalBSONValue. Even if the Go pointer is already initialized (i.e.,
+	// UnmarshalBSON. Even if the Go pointer is already initialized (i.e.,
 	// non-nil), encountering null in BSON will result in the pointer being
 	// directly set to nil here. Since the pointer is being replaced with nil,
-	// there is no opportunity (or reason) for the custom UnmarshalBSONValue logic
-	// to be called.
+	// there is no opportunity (or reason) for the custom UnmarshalBSON logic to
+	// be called.
 	if val.Kind() == reflect.Ptr && vr.Type() == bsontype.Null {
 		val.Set(reflect.Zero(val.Type()))
 
