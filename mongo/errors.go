@@ -166,25 +166,10 @@ func IsTimeout(err error) bool {
 	return false
 }
 
-// unwrap returns the inner error if err implements Unwrap(), otherwise it returns nil.
-func unwrap(err error) error {
-	u, ok := err.(interface {
-		Unwrap() error
-	})
-	if !ok {
-		return nil
-	}
-	return u.Unwrap()
-}
-
 // errorHasLabel returns true if err contains the specified label
 func errorHasLabel(err error, label string) bool {
-	for ; err != nil; err = unwrap(err) {
-		if le, ok := err.(LabeledError); ok && le.HasErrorLabel(label) {
-			return true
-		}
-	}
-	return false
+	var le LabeledError
+	return errors.As(err, &le) && le.HasErrorLabel(label)
 }
 
 // IsNetworkError returns true if err is a network error
