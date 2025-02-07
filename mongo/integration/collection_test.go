@@ -1870,7 +1870,7 @@ func TestBypassEmptyTsReplacement(t *testing.T) {
 		t.Helper()
 
 		valType, data, err := bson.MarshalValue(val)
-		assert.Nil(t, err, "MarshalValue error: %v", err)
+		require.Nil(t, err, "MarshalValue error: %v", err)
 		return bson.RawValue{
 			Type:  valType,
 			Value: data,
@@ -1911,7 +1911,7 @@ func TestBypassEmptyTsReplacement(t *testing.T) {
 				require.NoError(mt, err, "InsertOne error: %v", err)
 				evt := mt.GetStartedEvent()
 				val := evt.Command.Lookup("bypassEmptyTsReplacement")
-				require.Equal(mt, tc.expected, val, "expected bypassEmptyTsReplacement to be %s", tc.expected.String())
+				assert.Equal(mt, tc.expected, val, "expected bypassEmptyTsReplacement to be %s", tc.expected.String())
 			})
 		}
 	})
@@ -1948,7 +1948,7 @@ func TestBypassEmptyTsReplacement(t *testing.T) {
 				require.NoError(mt, err, "InsertMany error: %v", err)
 				evt := mt.GetStartedEvent()
 				val := evt.Command.Lookup("bypassEmptyTsReplacement")
-				require.Equal(mt, tc.expected, val, "expected bypassEmptyTsReplacement to be %s", tc.expected.String())
+				assert.Equal(mt, tc.expected, val, "expected bypassEmptyTsReplacement to be %s", tc.expected.String())
 			})
 		}
 	})
@@ -1983,7 +1983,7 @@ func TestBypassEmptyTsReplacement(t *testing.T) {
 				require.NoError(mt, err, "UpdateOne error: %v", err)
 				evt := mt.GetStartedEvent()
 				val := evt.Command.Lookup("bypassEmptyTsReplacement")
-				require.Equal(mt, tc.expected, val, "expected bypassEmptyTsReplacement to be %s", tc.expected.String())
+				assert.Equal(mt, tc.expected, val, "expected bypassEmptyTsReplacement to be %s", tc.expected.String())
 			})
 		}
 	})
@@ -2018,7 +2018,7 @@ func TestBypassEmptyTsReplacement(t *testing.T) {
 				require.NoError(mt, err, "UpdateMany error: %v", err)
 				evt := mt.GetStartedEvent()
 				val := evt.Command.Lookup("bypassEmptyTsReplacement")
-				require.Equal(mt, tc.expected, val, "expected bypassEmptyTsReplacement to be %s", tc.expected.String())
+				assert.Equal(mt, tc.expected, val, "expected bypassEmptyTsReplacement to be %s", tc.expected.String())
 			})
 		}
 	})
@@ -2053,7 +2053,7 @@ func TestBypassEmptyTsReplacement(t *testing.T) {
 				require.NoError(mt, err, "ReplaceOne error: %v", err)
 				evt := mt.GetStartedEvent()
 				val := evt.Command.Lookup("bypassEmptyTsReplacement")
-				require.Equal(mt, tc.expected, val, "expected bypassEmptyTsReplacement to be %s", tc.expected.String())
+				assert.Equal(mt, tc.expected, val, "expected bypassEmptyTsReplacement to be %s", tc.expected.String())
 			})
 		}
 	})
@@ -2091,7 +2091,7 @@ func TestBypassEmptyTsReplacement(t *testing.T) {
 				require.NoError(mt, err, "FindOneAndUpdate error: %v", err)
 				evt := mt.GetStartedEvent()
 				val := evt.Command.Lookup("bypassEmptyTsReplacement")
-				require.Equal(mt, tc.expected, val, "expected bypassEmptyTsReplacement to be %s", tc.expected.String())
+				assert.Equal(mt, tc.expected, val, "expected bypassEmptyTsReplacement to be %s", tc.expected.String())
 			})
 		}
 	})
@@ -2129,7 +2129,7 @@ func TestBypassEmptyTsReplacement(t *testing.T) {
 				require.NoError(mt, err, "FindOneAndReplace error: %v", err)
 				evt := mt.GetStartedEvent()
 				val := evt.Command.Lookup("bypassEmptyTsReplacement")
-				require.Equal(mt, tc.expected, val, "expected bypassEmptyTsReplacement to be %s", tc.expected.String())
+				assert.Equal(mt, tc.expected, val, "expected bypassEmptyTsReplacement to be %s", tc.expected.String())
 			})
 		}
 	})
@@ -2184,7 +2184,7 @@ func TestBypassEmptyTsReplacement(t *testing.T) {
 					require.NoError(mt, err, "BulkWrite error: %v", err)
 					evt := mt.GetStartedEvent()
 					val := evt.Command.Lookup("bypassEmptyTsReplacement")
-					require.Equal(mt, tc.expected, val, "expected bypassEmptyTsReplacement to be %s", tc.expected.String())
+					assert.Equal(mt, tc.expected, val, "expected bypassEmptyTsReplacement to be %s", tc.expected.String())
 				})
 			}
 		}
