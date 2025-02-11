@@ -328,8 +328,9 @@ func (f *GridFSFindOptionsBuilder) SetSkip(i int32) *GridFSFindOptionsBuilder {
 }
 
 // SetSort sets the value for the Sort field. Sets a document specifying the order
-// in which documents should be returned. The driver will return an error if the
-// sort parameter is a multi-key map.
+// in which documents should be returned. The sort parameter is evaluated sequentially,
+// so the driver will return an error if it is a multi-key map (which is unordeded).
+// The default value is nil.
 func (f *GridFSFindOptionsBuilder) SetSort(sort interface{}) *GridFSFindOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *GridFSFindOptions) error {
 		opts.Sort = sort
