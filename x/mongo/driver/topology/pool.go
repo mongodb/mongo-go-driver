@@ -812,6 +812,16 @@ func awaitPendingRead(ctx context.Context, pool *pool, conn *connection) error {
 		logPoolMessage(pool, logger.ConnectionPendingReadStarted, keysAndValues...)
 	}
 
+	if pool.monitor != nil {
+		event := &event.PoolEvent{
+			Type:         event.ConnectionPendingReadStarted,
+			ConnectionID: conn.driverConnectionID,
+			RequestID:    prs.requestID,
+		}
+
+		pool.monitor.Event(event)
+	}
+
 	size := prs.remainingBytes
 
 	checkIn := false
@@ -827,6 +837,19 @@ func awaitPendingRead(ctx context.Context, pool *pool, conn *connection) error {
 			}
 
 			logPoolMessage(pool, logger.ConnectionPendingReadFailed, keysAndValues...)
+		}
+
+		if pool.monitor != nil && someErr != nil {
+			event := &event.PoolEvent{
+				Type:          event.ConnectionPendingReadFailed,
+				Address:       pool.address.String(),
+				ConnectionID:  conn.driverConnectionID,
+				RequestID:     prs.requestID,
+				RemainingTime: *prs.remainingTime,
+				Reason:        someErr.Error(),
+			}
+
+			pool.monitor.Event(event)
 		}
 
 		// If we have exceeded the time limit, then close the connection.
@@ -922,6 +945,17 @@ func awaitPendingRead(ctx context.Context, pool *pool, conn *connection) error {
 		}
 
 		logPoolMessage(pool, logger.ConnectionPendingReadSucceeded, keysAndValues...)
+	}
+
+	if pool.monitor != nil {
+		event := &event.PoolEvent{
+			Type:         event.ConnectionPendingReadSucceeded,
+			Address:      pool.address.String(),
+			ConnectionID: conn.driverConnectionID,
+			Duration:     time.Since(st),
+		}
+
+		pool.monitor.Event(event)
 	}
 
 	conn.pendingReadState = nil
