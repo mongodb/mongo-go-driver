@@ -91,24 +91,29 @@ const (
 
 // strings for pool command monitoring types
 const (
-	PoolCreated        = "ConnectionPoolCreated"
-	PoolReady          = "ConnectionPoolReady"
-	PoolCleared        = "ConnectionPoolCleared"
-	PoolClosedEvent    = "ConnectionPoolClosed"
-	ConnectionCreated  = "ConnectionCreated"
-	ConnectionReady    = "ConnectionReady"
-	ConnectionClosed   = "ConnectionClosed"
-	GetStarted         = "ConnectionCheckOutStarted"
-	GetFailed          = "ConnectionCheckOutFailed"
-	GetSucceeded       = "ConnectionCheckedOut"
-	ConnectionReturned = "ConnectionCheckedIn"
+	PoolCreated                    = "ConnectionPoolCreated"
+	PoolReady                      = "ConnectionPoolReady"
+	PoolCleared                    = "ConnectionPoolCleared"
+	PoolClosedEvent                = "ConnectionPoolClosed"
+	ConnectionCreated              = "ConnectionCreated"
+	ConnectionReady                = "ConnectionReady"
+	ConnectionClosed               = "ConnectionClosed"
+	GetStarted                     = "ConnectionCheckOutStarted"
+	GetFailed                      = "ConnectionCheckOutFailed"
+	GetSucceeded                   = "ConnectionCheckedOut"
+	ConnectionReturned             = "ConnectionCheckedIn"
+	ConnectionPendingReadStarted   = "ConnectionPendingReadStarted"
+	ConnectionPendingReadSucceeded = "ConnectionPendingReadSucceeded"
+	ConnectionPendingReadFailed    = "ConnectionPendingReadFailed"
 )
 
 // MonitorPoolOptions contains pool options as formatted in pool events
 type MonitorPoolOptions struct {
-	MaxPoolSize        uint64 `json:"maxPoolSize"`
-	MinPoolSize        uint64 `json:"minPoolSize"`
-	WaitQueueTimeoutMS uint64 `json:"maxIdleTimeMS"`
+	MaxPoolSize        uint64        `json:"maxPoolSize"`
+	MinPoolSize        uint64        `json:"minPoolSize"`
+	WaitQueueTimeoutMS uint64        `json:"maxIdleTimeMS"`
+	RequestID          int32         `json:"requestId"`
+	RemainingTime      time.Duration `json:"remainingTime"`
 }
 
 // PoolEvent contains all information summarizing a pool event
