@@ -790,9 +790,6 @@ var PendingReadTimeout = 1000 * time.Millisecond
 // tries to read any bytes returned by the server. If there are any errors, the
 // connection will be checked back into the pool to be retried.
 func awaitPendingRead(ctx context.Context, pool *pool, conn *connection) error {
-	// conn.pendingReadMU.Lock()
-	// defer conn.pendingReadMU.Unlock()
-
 	// If there are no bytes pending read, do nothing.
 	if conn.pendingReadState == nil {
 		return nil
@@ -847,6 +844,7 @@ func awaitPendingRead(ctx context.Context, pool *pool, conn *connection) error {
 				RequestID:     prs.requestID,
 				RemainingTime: *prs.remainingTime,
 				Reason:        someErr.Error(),
+				Error:         someErr,
 			}
 
 			pool.monitor.Event(event)
