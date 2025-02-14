@@ -35,7 +35,7 @@
   ],
   "tests": [
     {
-      "description": "Session argument is for the right client (insertOne)",
+      "description": "Session argument is for the right client",
       "operations": [
         {
           "name": "insertOne",
@@ -49,12 +49,7 @@
           "expectError": {
             "isClientError": true
           }
-        }
-      ]
-    },
-    {
-      "description": "Session argument is for the right client (insertMany)",
-      "operations": [
+        },
         {
           "name": "insertMany",
           "object": "collection0",
@@ -69,12 +64,7 @@
           "expectError": {
             "isClientError": true
           }
-        }
-      ]
-    },
-    {
-      "description": "Session argument is for the right client (deleteOne)",
-      "operations": [
+        },
         {
           "name": "deleteOne",
           "object": "collection0",
@@ -87,12 +77,7 @@
           "expectError": {
             "isClientError": true
           }
-        }
-      ]
-    },
-    {
-      "description": "Session argument is for the right client (deleteMany)",
-      "operations": [
+        },
         {
           "name": "deleteMany",
           "object": "collection0",
@@ -105,12 +90,7 @@
           "expectError": {
             "isClientError": true
           }
-        }
-      ]
-    },
-    {
-      "description": "Session argument is for the right client (updateOne)",
-      "operations": [
+        },
         {
           "name": "updateOne",
           "object": "collection0",
@@ -128,12 +108,7 @@
           "expectError": {
             "isClientError": true
           }
-        }
-      ]
-    },
-    {
-      "description": "Session argument is for the right client (updateMany)",
-      "operations": [
+        },
         {
           "name": "updateMany",
           "object": "collection0",
@@ -151,12 +126,7 @@
           "expectError": {
             "isClientError": true
           }
-        }
-      ]
-    },
-    {
-      "description": "Session argument is for the right client (updateSearchIndex)",
-      "operations": [
+        },
         {
           "name": "updateSearchIndex",
           "object": "collection0",
@@ -168,12 +138,7 @@
           "expectError": {
             "isClientError": true
           }
-        }
-      ]
-    },
-    {
-      "description": "Session argument is for the right client (replaceOne)",
-      "operations": [
+        },
         {
           "name": "replaceOne",
           "object": "collection0",
@@ -189,12 +154,7 @@
           "expectError": {
             "isClientError": true
           }
-        }
-      ]
-    },
-    {
-      "description": "Session argument is for the right client (aggregate)",
-      "operations": [
+        },
         {
           "name": "aggregate",
           "object": "collection0",
@@ -205,12 +165,7 @@
           "expectError": {
             "isClientError": true
           }
-        }
-      ]
-    },
-    {
-      "description": "Session argument is for the right client (bulkWrite)",
-      "operations": [
+        },
         {
           "name": "bulkWrite",
           "object": "collection0",
@@ -221,12 +176,7 @@
           "expectError": {
             "isClientError": true
           }
-        }
-      ]
-    },
-    {
-      "description": "Session argument is for the right client (estimatedDocumentCount)",
-      "operations": [
+        },
         {
           "name": "estimatedDocumentCount",
           "object": "collection0",
@@ -236,12 +186,7 @@
           "expectError": {
             "isClientError": true
           }
-        }
-      ]
-    },
-    {
-      "description": "Session argument is for the right client (distinct)",
-      "operations": [
+        },
         {
           "name": "distinct",
           "object": "collection0",
@@ -253,12 +198,7 @@
           "expectError": {
             "isClientError": true
           }
-        }
-      ]
-    },
-    {
-      "description": "Session argument is for the right client (find)",
-      "operations": [
+        },
         {
           "name": "find",
           "object": "collection0",
@@ -271,12 +211,7 @@
           "expectError": {
             "isClientError": true
           }
-        }
-      ]
-    },
-    {
-      "description": "Session argument is for the right client (findOne)",
-      "operations": [
+        },
         {
           "name": "findOne",
           "object": "collection0",
@@ -289,12 +224,7 @@
           "expectError": {
             "isClientError": true
           }
-        }
-      ]
-    },
-    {
-      "description": "Session argument is for the right client (findOneAndDelete)",
-      "operations": [
+        },
         {
           "name": "findOneAndDelete",
           "object": "collection0",
@@ -307,12 +237,7 @@
           "expectError": {
             "isClientError": true
           }
-        }
-      ]
-    },
-    {
-      "description": "Session argument is for the right client (findOneAndReplace)",
-      "operations": [
+        },
         {
           "name": "findOneAndReplace",
           "object": "collection0",
@@ -328,12 +253,7 @@
           "expectError": {
             "isClientError": true
           }
-        }
-      ]
-    },
-    {
-      "description": "Session argument is for the right client (findOneAndUpdate)",
-      "operations": [
+        },
         {
           "name": "findOneAndUpdate",
           "object": "collection0",
@@ -351,12 +271,7 @@
           "expectError": {
             "isClientError": true
           }
-        }
-      ]
-    },
-    {
-      "description": "Session argument is for the right client (countDocuments)",
-      "operations": [
+        },
         {
           "name": "countDocuments",
           "object": "collection0",
@@ -367,12 +282,7 @@
           "expectError": {
             "isClientError": true
           }
-        }
-      ]
-    },
-    {
-      "description": "Session argument is for the right client (createFindCursor)",
-      "operations": [
+        },
         {
           "name": "createFindCursor",
           "object": "collection0",
@@ -383,12 +293,7 @@
           "expectError": {
             "isClientError": true
           }
-        }
-      ]
-    },
-    {
-      "description": "Session argument is for the right client (createIndex)",
-      "operations": [
+        },
         {
           "name": "createIndex",
           "object": "collection0",
@@ -402,12 +307,7 @@
           "expectError": {
             "isClientError": true
           }
-        }
-      ]
-    },
-    {
-      "description": "Session argument is for the right client (createSearchIndex)",
-      "operations": [
+        },
         {
           "name": "createSearchIndex",
           "object": "collection0",
@@ -418,12 +318,7 @@
           "expectError": {
             "isClientError": true
           }
-        }
-      ]
-    },
-    {
-      "description": "Session argument is for the right client (createSearchIndexes)",
-      "operations": [
+        },
         {
           "name": "createSearchIndexes",
           "object": "collection0",
@@ -434,12 +329,7 @@
           "expectError": {
             "isClientError": true
           }
-        }
-      ]
-    },
-    {
-      "description": "Session argument is for the right client (dropIndex)",
-      "operations": [
+        },
         {
           "name": "dropIndex",
           "object": "collection0",
@@ -450,12 +340,7 @@
           "expectError": {
             "isClientError": true
           }
-        }
-      ]
-    },
-    {
-      "description": "Session argument is for the right client (dropIndexes)",
-      "operations": [
+        },
         {
           "name": "dropIndexes",
           "object": "collection0",
@@ -465,12 +350,7 @@
           "expectError": {
             "isClientError": true
           }
-        }
-      ]
-    },
-    {
-      "description": "Session argument is for the right client (dropSearchIndex)",
-      "operations": [
+        },
         {
           "name": "dropSearchIndex",
           "object": "collection0",
@@ -481,12 +361,7 @@
           "expectError": {
             "isClientError": true
           }
-        }
-      ]
-    },
-    {
-      "description": "Session argument is for the right client (listIndexes)",
-      "operations": [
+        },
         {
           "name": "listIndexes",
           "object": "collection0",
@@ -496,12 +371,7 @@
           "expectError": {
             "isClientError": true
           }
-        }
-      ]
-    },
-    {
-      "description": "Session argument is for the right client (listSearchIndexes)",
-      "operations": [
+        },
         {
           "name": "listSearchIndexes",
           "object": "collection0",
@@ -511,12 +381,7 @@
           "expectError": {
             "isClientError": true
           }
-        }
-      ]
-    },
-    {
-      "description": "Session argument is for the right client (listCollections)",
-      "operations": [
+        },
         {
           "name": "listCollections",
           "object": "database0",
@@ -526,12 +391,7 @@
           "expectError": {
             "isClientError": true
           }
-        }
-      ]
-    },
-    {
-      "description": "Session argument is for the right client (listCollectionNames)",
-      "operations": [
+        },
         {
           "name": "listCollectionNames",
           "object": "database0",
@@ -541,12 +401,7 @@
           "expectError": {
             "isClientError": true
           }
-        }
-      ]
-    },
-    {
-      "description": "Session argument is for the right client (dropCollection)",
-      "operations": [
+        },
         {
           "name": "dropCollection",
           "object": "database0",
@@ -557,12 +412,7 @@
           "expectError": {
             "isClientError": true
           }
-        }
-      ]
-    },
-    {
-      "description": "Session argument is for the right client (listDatabases)",
-      "operations": [
+        },
         {
           "name": "listDatabases",
           "object": "client0",
