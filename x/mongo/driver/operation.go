@@ -60,7 +60,7 @@ const (
 	readSnapshotMinWireVersion int32 = 13
 )
 
-// UnsafeAllowSeperateMaxTimeMSWithCSOT is a global flag that allows useres to
+// UnsafeAllowSeperateMaxTimeMSWithCSOT is a global flag that allows users to
 // set maxTimeMS independently of the context deadline when CSOT is enabled
 // (client.Timeout >=0). If a user provides a context deadline it will be used
 // for all blocking client-side logic (e.g. socket timeouts, checking out
