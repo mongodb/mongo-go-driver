@@ -3,7 +3,7 @@
     "timestamp": "2024-06-04T11:44:11.689753+00:00"
   },
   "components": [],
-  "serialNumber": "urn:uuid:6687021d-b80d-46ed-acc9-031a17e582a3",
+  "serialNumber": "urn:uuid:111e81e6-34b4-4598-bf86-41acf58084a7",
   "version": 1,
   "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
   "bomFormat": "CycloneDX",
