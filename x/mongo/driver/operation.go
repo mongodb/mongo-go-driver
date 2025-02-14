@@ -70,8 +70,9 @@ const (
 //
 // ⚠️  **USE WITH CAUTION** ⚠️
 //
-// For CSOT, Go driver derives maxTimeMS from the context deadline to ensure
-// that the server-side timeout aligns with the client-side operation timeout.
+// The CSOT default behavior is for the Go Driver to derive maxTimeMS from the
+// context deadline to ensure that the server-side timeout aligns with the
+// client-side operation timeout.
 //
 // THIS OPTION MAY BE REMOVED AT ANY TIME.
 var UnsafeAllowSeperateMaxTimeMSWithCSOT bool
