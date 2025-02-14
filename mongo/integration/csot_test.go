@@ -741,35 +741,6 @@ func TestCSOT_maxTimeMS(t *testing.T) {
 
 }
 
-// mt.Run("FindOne uses MaxTime when UnsafeAllowSeperateMaxTimeMSWithCSOT is set", func(mt *mtest.T) {
-//	driver.UnsafeAllowSeperateMaxTimeMSWithCSOT = true
-
-//	// Enable CSOT
-//	mt.ResetClient(options.Client().SetTimeout(0))
-
-//	// Insert some documents so the collection isn't empty.
-//	insertTwoDocuments(mt)
-
-//	// Set a 5-second MaxTime value.
-//	opts := options.FindOne().SetMaxTime(5 * time.Second)
-
-//	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-//	defer cancel()
-
-//	res := mt.Coll.FindOne(ctx, bson.D{}, opts)
-//	require.NoError(mt, res.Err(), "Find error")
-
-//	// Assert that maxTimeMS is set and that it's equal to the MaxTime
-//	// value.
-//	maxTimeMS := getMaxTimeMS(mt, "find")
-//	assert.Equal(mt,
-//		int64(5_000),
-//		maxTimeMS,
-//		"expected maxTimeMS to be equal to the MaxTime value")
-// })
-//
-// operation  func(ctx context.Context, coll *mongo.Collection, maxTime *time.Duration) errorb
-
 func TestCSOT_errors(t *testing.T) {
 	// Skip CSOT tests when SKIP_CSOT_TESTS=true. In Evergreen, we typically set
 	// that environment variable on Windows and macOS because the CSOT spec
