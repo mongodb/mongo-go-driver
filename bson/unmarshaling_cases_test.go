@@ -11,6 +11,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson/bsonrw"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type unmarshalingTestCase struct {
@@ -193,6 +194,50 @@ func unmarshalingTestCases() []unmarshalingTestCase {
 			sType: reflect.TypeOf(unmarshalerNonPtrStruct{}),
 			want:  &valNonPtrStruct,
 			data:  docToBytes(valNonPtrStruct),
+		},
+		{
+			name:  "nil pointer and non-pointer type with BSON minkey",
+			sType: reflect.TypeOf(unmarshalBehaviorTestCase{}),
+			want: &unmarshalBehaviorTestCase{
+				BSONValueTracker: unmarshalBSONValueCallTracker{
+					called: true,
+				},
+				BSONValuePtrTracker: &unmarshalBSONValueCallTracker{
+					called: true,
+				},
+				BSONTracker: unmarshalBSONCallTracker{
+					called: true,
+				},
+				BSONPtrTracker: nil,
+			},
+			data: docToBytes(D{
+				{Key: "bv_tracker", Value: primitive.MinKey{}},
+				{Key: "bv_ptr_tracker", Value: primitive.MinKey{}},
+				{Key: "b_tracker", Value: primitive.MinKey{}},
+				{Key: "b_ptr_tracker", Value: primitive.MinKey{}},
+			}),
+		},
+		{
+			name:  "nil pointer and non-pointer type with BSON maxkey",
+			sType: reflect.TypeOf(unmarshalBehaviorTestCase{}),
+			want: &unmarshalBehaviorTestCase{
+				BSONValueTracker: unmarshalBSONValueCallTracker{
+					called: true,
+				},
+				BSONValuePtrTracker: &unmarshalBSONValueCallTracker{
+					called: true,
+				},
+				BSONTracker: unmarshalBSONCallTracker{
+					called: true,
+				},
+				BSONPtrTracker: nil,
+			},
+			data: docToBytes(D{
+				{Key: "bv_tracker", Value: primitive.MaxKey{}},
+				{Key: "bv_ptr_tracker", Value: primitive.MaxKey{}},
+				{Key: "b_tracker", Value: primitive.MaxKey{}},
+				{Key: "b_ptr_tracker", Value: primitive.MaxKey{}},
+			}),
 		},
 	}
 }

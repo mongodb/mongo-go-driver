@@ -1569,18 +1569,6 @@ func (dvd DefaultValueDecoders) UnmarshalerDecodeValue(_ DecodeContext, vr bsonr
 		return ValueDecoderError{Name: "UnmarshalerDecodeValue", Types: []reflect.Type{tUnmarshaler}, Received: val}
 	}
 
-	// If BSON value is null and the go value is a pointer, then don't call
-	// UnmarshalBSON. Even if the Go pointer is already initialized (i.e.,
-	// non-nil), encountering null in BSON will result in the pointer being
-	// directly set to nil here. Since the pointer is being replaced with nil,
-	// there is no opportunity (or reason) for the custom UnmarshalBSON logic to
-	// be called.
-	if val.Kind() == reflect.Ptr && vr.Type() == bsontype.Null {
-		val.Set(reflect.Zero(val.Type()))
-
-		return vr.ReadNull()
-	}
-
 	if val.Kind() == reflect.Ptr && val.IsNil() {
 		if !val.CanSet() {
 			return ValueDecoderError{Name: "UnmarshalerDecodeValue", Types: []reflect.Type{tUnmarshaler}, Received: val}
@@ -1591,6 +1579,18 @@ func (dvd DefaultValueDecoders) UnmarshalerDecodeValue(_ DecodeContext, vr bsonr
 	_, src, err := bsonrw.Copier{}.CopyValueToBytes(vr)
 	if err != nil {
 		return err
+	}
+
+	// If the target Go value is a pointer and the BSON field value is empty, set the value to the
+	// zero value of the pointer (nil) and don't call UnmarshalBSON. UnmarshalBSON has no way to
+	// change the pointer value from within the function (only the value at the pointer address),
+	// so it can't set the pointer to "nil" itself. Since the most common Go value for an empty BSON
+	// field value is "nil", we set "nil" here and don't call UnmarshalBSON. This behavior matches
+	// the behavior of the Go "encoding/json" unmarshaler when the target Go value is a pointer and
+	// the JSON field value is "null".
+	if val.Kind() == reflect.Ptr && len(src) == 0 {
+		val.Set(reflect.Zero(val.Type()))
+		return nil
 	}
 
 	if !val.Type().Implements(tUnmarshaler) {
