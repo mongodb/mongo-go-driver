@@ -35,7 +35,7 @@ do
 			done
 		fi
 
-		go test ${PARENTDIR} -run=${FUNC} -fuzz=${FUNC} -fuzztime=${FUZZTIME} || true
+		GOMAXPROCS=2 go test ${PARENTDIR} -run=${FUNC} -fuzz=${FUNC} -fuzztime=${FUZZTIME} || true
 
 		# Check if any new corpus files were generated for the fuzzer. If there are new corpus files, move them
 		# to $PROJECT_DIRECTORY/fuzz/$FUNC/* so they can be tarred up and uploaded to S3.
