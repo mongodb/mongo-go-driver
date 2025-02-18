@@ -60,23 +60,6 @@ const (
 	readSnapshotMinWireVersion int32 = 13
 )
 
-// UnsafeAllowSeperateMaxTimeMSWithCSOT is a global flag that allows users to
-// set maxTimeMS independently of the context deadline when CSOT is enabled
-// (client.Timeout >=0). If a user provides a context deadline it will be used
-// for all blocking client-side logic (e.g. socket timeouts, checking out
-// connections, etc).
-//
-// This switch is untested and experimental.
-//
-// ⚠️  **USE WITH CAUTION** ⚠️
-//
-// The CSOT default behavior is for the Go Driver to derive maxTimeMS from the
-// context deadline to ensure that the server-side timeout aligns with the
-// client-side operation timeout.
-//
-// THIS OPTION MAY BE REMOVED AT ANY TIME.
-var UnsafeAllowSeperateMaxTimeMSWithCSOT bool
-
 // RetryablePoolError is a connection pool error that can be retried while executing an operation.
 type RetryablePoolError interface {
 	Retryable() bool
@@ -341,6 +324,19 @@ type Operation struct {
 	// where a default read preference is used when the operation
 	// ReadPreference is not specified.
 	omitReadPreference bool
+
+	// UnsafeAllowSeperateMaxTimeMS is allows setting maxTimeMS independently of
+	// the context deadline when CSOT is enabled (client.Timeout >=0). If a user
+	// provides a context deadline it will be used for all blocking client-side
+	// logic (e.g. socket timeouts, checking out connections, etc).
+	//
+	// This switch is untested and experimental.
+	//
+	// ⚠️  **USE WITH CAUTION** ⚠️
+	//
+	// Deprecated: This option is for internal use only and should not be set. It
+	// may be changed or removed in any release.
+	UnsafeAllowSeperateMaxTimeMS bool
 }
 
 // shouldEncrypt returns true if this operation should automatically be encrypted.
@@ -1610,7 +1606,7 @@ func (op Operation) addClusterTime(dst []byte, desc description.SelectedServer) 
 // operation's MaxTimeMS if set. If no MaxTimeMS is set on the operation, and context is
 // not a Timeout context, calculateMaxTimeMS returns 0.
 func (op Operation) calculateMaxTimeMS(ctx context.Context, mon RTTMonitor) (uint64, error) {
-	unsafelyOverrideCSOT := UnsafeAllowSeperateMaxTimeMSWithCSOT && op.MaxTime != nil
+	unsafelyOverrideCSOT := op.UnsafeAllowSeperateMaxTimeMS && op.MaxTime != nil
 
 	// If CSOT is enabled and we're not omitting the CSOT-calculated maxTimeMS
 	// value, then calculate maxTimeMS.
