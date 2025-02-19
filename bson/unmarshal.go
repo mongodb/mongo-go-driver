@@ -36,7 +36,11 @@ type ValueUnmarshaler interface {
 }
 
 // Unmarshal parses the BSON-encoded data and stores the result in the value
-// pointed to by val. If val is nil or not a pointer, Unmarshal returns an error.
+// pointed to by val. If val is nil or not a pointer, Unmarshal returns an
+// error.
+//
+// When unmarshaling BSON, if the BSON value is null and the Go value is a
+// pointer, the pointer is set to nil without calling UnmarshalBSONValue.
 func Unmarshal(data []byte, val interface{}) error {
 	vr := newDocumentReader(bytes.NewReader(data))
 	if l, err := vr.peekLength(); err != nil {
