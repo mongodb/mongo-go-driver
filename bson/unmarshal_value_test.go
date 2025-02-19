@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
@@ -37,6 +38,26 @@ func TestUnmarshalValue(t *testing.T) {
 			})
 		}
 	})
+}
+
+func TestInitializedPointerDataWithBSONNull(t *testing.T) {
+	// Set up the test case with initialized pointers.
+	tc := unmarshalBehaviorTestCase{
+		BSONValuePtrTracker: &unmarshalBSONValueCallTracker{},
+		BSONPtrTracker:      &unmarshalBSONCallTracker{},
+	}
+	// Create BSON data where the '*_ptr_tracker' fields are explicitly set to
+	// null.
+	bytes := docToBytes(D{
+		{Key: "bv_ptr_tracker", Value: nil},
+		{Key: "b_ptr_tracker", Value: nil},
+	})
+	// Unmarshal the BSON data into the test case struct. This should set the
+	// pointer fields to nil due to the BSON null value.
+	err := Unmarshal(bytes, &tc)
+	require.NoError(t, err)
+	assert.Nil(t, tc.BSONValuePtrTracker)
+	assert.Nil(t, tc.BSONPtrTracker)
 }
 
 // tests covering GODRIVER-2779
