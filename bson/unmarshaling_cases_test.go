@@ -173,6 +173,26 @@ func unmarshalingTestCases() []unmarshalingTestCase {
 			data:  docToBytes(valNonPtrStruct),
 		},
 		{
+			name:  "nil pointer and non-pointer type with literal null BSON",
+			sType: reflect.TypeOf(unmarshalBehaviorTestCase{}),
+			want: &unmarshalBehaviorTestCase{
+				BSONValueTracker: unmarshalBSONValueCallTracker{
+					called: true,
+				},
+				BSONValuePtrTracker: nil,
+				BSONTracker: unmarshalBSONCallTracker{
+					called: true,
+				},
+				BSONPtrTracker: nil,
+			},
+			data: docToBytes(D{
+				{Key: "bv_tracker", Value: nil},
+				{Key: "bv_ptr_tracker", Value: nil},
+				{Key: "b_tracker", Value: nil},
+				{Key: "b_ptr_tracker", Value: nil},
+			}),
+		},
+		{
 			name:  "nil pointer and non-pointer type with BSON minkey",
 			sType: reflect.TypeOf(unmarshalBehaviorTestCase{}),
 			want: &unmarshalBehaviorTestCase{
@@ -342,6 +362,7 @@ func (tracker *unmarshalBSONValueCallTracker) UnmarshalBSONValue(byte, []byte) e
 	tracker.called = true
 	return nil
 }
+
 func (tracker *unmarshalBSONCallTracker) UnmarshalBSON([]byte) error {
 	tracker.called = true
 	return nil
