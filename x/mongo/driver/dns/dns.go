@@ -113,15 +113,18 @@ func (r *Resolver) fetchSeedlistFromSRV(host string, srvName string, stopOnErr b
 func validateSRVResult(recordFromSRV, inputHostName string) error {
 	separatedInputDomain := strings.Split(strings.ToLower(inputHostName), ".")
 	separatedRecord := strings.Split(strings.ToLower(recordFromSRV), ".")
-	if len(separatedRecord) < 2 {
-		return errors.New("DNS name must contain at least 2 labels")
+	if l := len(separatedInputDomain); l < 3 && len(separatedRecord) <= l {
+		return fmt.Errorf("Server record (%d levels) should have more domain levels than parent URI (%d levels)", l, len(separatedRecord))
 	}
 	if len(separatedRecord) < len(separatedInputDomain) {
 		return errors.New("Domain suffix from SRV record not matched input domain")
 	}
 
-	inputDomainSuffix := separatedInputDomain[1:]
-	domainSuffixOffset := len(separatedRecord) - (len(separatedInputDomain) - 1)
+	inputDomainSuffix := separatedInputDomain
+	if len(inputDomainSuffix) > 2 {
+		inputDomainSuffix = inputDomainSuffix[1:]
+	}
+	domainSuffixOffset := len(separatedRecord) - len(inputDomainSuffix)
 
 	recordDomainSuffix := separatedRecord[domainSuffixOffset:]
 	for ix, label := range inputDomainSuffix {
