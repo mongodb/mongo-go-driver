@@ -142,10 +142,10 @@ func runBsonBinaryVectorTest(t *testing.T, testKey string, test bsonBinaryVector
 		}
 
 		errMap := map[string]string{
-			"FLOAT32 with padding":                             errNonZeroVectorPadding.Error(),
-			"INT8 with padding":                                errNonZeroVectorPadding.Error(),
-			"Padding specified with no vector data PACKED_BIT": errNonZeroVectorPadding.Error(),
-			"Exceeding maximum padding PACKED_BIT":             errVectorPaddingTooLarge.Error(),
+			"FLOAT32 with padding":                             "padding must be 0",
+			"INT8 with padding":                                "padding must be 0",
+			"Padding specified with no vector data PACKED_BIT": "padding must be 0",
+			"Exceeding maximum padding PACKED_BIT":             "padding cannot be larger than 7",
 		}
 
 		t.Parallel()
