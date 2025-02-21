@@ -11,6 +11,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson/bsonrw"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type unmarshalingTestCase struct {
@@ -114,6 +115,26 @@ func unmarshalingTestCases() []unmarshalingTestCase {
 			},
 			data: docToBytes(D{{"fooBar", int32(10)}}),
 		},
+		{
+			name:  "nil pointer and non-pointer type with literal null BSON",
+			sType: reflect.TypeOf(unmarshalBehaviorTestCase{}),
+			want: &unmarshalBehaviorTestCase{
+				BSONValueTracker: unmarshalBSONValueCallTracker{
+					called: true,
+				},
+				BSONValuePtrTracker: nil,
+				BSONTracker: unmarshalBSONCallTracker{
+					called: true,
+				},
+				BSONPtrTracker: nil,
+			},
+			data: docToBytes(D{
+				{Key: "bv_tracker", Value: nil},
+				{Key: "bv_ptr_tracker", Value: nil},
+				{Key: "b_tracker", Value: nil},
+				{Key: "b_ptr_tracker", Value: nil},
+			}),
+		},
 		// GODRIVER-2252
 		// Test that a struct of pointer types with UnmarshalBSON functions defined marshal and
 		// unmarshal to the same Go values when the pointer values are "nil".
@@ -173,6 +194,50 @@ func unmarshalingTestCases() []unmarshalingTestCase {
 			sType: reflect.TypeOf(unmarshalerNonPtrStruct{}),
 			want:  &valNonPtrStruct,
 			data:  docToBytes(valNonPtrStruct),
+		},
+		{
+			name:  "nil pointer and non-pointer type with BSON minkey",
+			sType: reflect.TypeOf(unmarshalBehaviorTestCase{}),
+			want: &unmarshalBehaviorTestCase{
+				BSONValueTracker: unmarshalBSONValueCallTracker{
+					called: true,
+				},
+				BSONValuePtrTracker: &unmarshalBSONValueCallTracker{
+					called: true,
+				},
+				BSONTracker: unmarshalBSONCallTracker{
+					called: true,
+				},
+				BSONPtrTracker: nil,
+			},
+			data: docToBytes(D{
+				{Key: "bv_tracker", Value: primitive.MinKey{}},
+				{Key: "bv_ptr_tracker", Value: primitive.MinKey{}},
+				{Key: "b_tracker", Value: primitive.MinKey{}},
+				{Key: "b_ptr_tracker", Value: primitive.MinKey{}},
+			}),
+		},
+		{
+			name:  "nil pointer and non-pointer type with BSON maxkey",
+			sType: reflect.TypeOf(unmarshalBehaviorTestCase{}),
+			want: &unmarshalBehaviorTestCase{
+				BSONValueTracker: unmarshalBSONValueCallTracker{
+					called: true,
+				},
+				BSONValuePtrTracker: &unmarshalBSONValueCallTracker{
+					called: true,
+				},
+				BSONTracker: unmarshalBSONCallTracker{
+					called: true,
+				},
+				BSONPtrTracker: nil,
+			},
+			data: docToBytes(D{
+				{Key: "bv_tracker", Value: primitive.MaxKey{}},
+				{Key: "bv_ptr_tracker", Value: primitive.MaxKey{}},
+				{Key: "b_tracker", Value: primitive.MaxKey{}},
+				{Key: "b_ptr_tracker", Value: primitive.MaxKey{}},
+			}),
 		},
 	}
 }
@@ -248,5 +313,41 @@ func (ms *myString) UnmarshalBSON(bytes []byte) error {
 		return err
 	}
 	*ms = myString(s)
+	return nil
+}
+
+// unmarshalBSONValueCallTracker is a test struct that tracks whether the
+// UnmarshalBSONValue method has been called.
+type unmarshalBSONValueCallTracker struct {
+	called bool // called is set to true when UnmarshalBSONValue is invoked.
+}
+
+var _ ValueUnmarshaler = &unmarshalBSONValueCallTracker{}
+
+// unmarshalBSONCallTracker is a test struct that tracks whether the
+// UnmarshalBSON method has been called.
+type unmarshalBSONCallTracker struct {
+	called bool // called is set to true when UnmarshalBSON is invoked.
+}
+
+// Ensure unmarshalBSONCallTracker implements the Unmarshaler interface.
+var _ Unmarshaler = &unmarshalBSONCallTracker{}
+
+// unmarshalBehaviorTestCase holds instances of call trackers for testing BSON
+// unmarshaling behavior.
+type unmarshalBehaviorTestCase struct {
+	BSONValueTracker    unmarshalBSONValueCallTracker  `bson:"bv_tracker"`     // BSON value unmarshaling by value.
+	BSONValuePtrTracker *unmarshalBSONValueCallTracker `bson:"bv_ptr_tracker"` // BSON value unmarshaling by pointer.
+	BSONTracker         unmarshalBSONCallTracker       `bson:"b_tracker"`      // BSON unmarshaling by value.
+	BSONPtrTracker      *unmarshalBSONCallTracker      `bson:"b_ptr_tracker"`  // BSON unmarshaling by pointer.
+}
+
+func (tracker *unmarshalBSONValueCallTracker) UnmarshalBSONValue(bsontype.Type, []byte) error {
+	tracker.called = true
+	return nil
+}
+
+func (tracker *unmarshalBSONCallTracker) UnmarshalBSON([]byte) error {
+	tracker.called = true
 	return nil
 }
