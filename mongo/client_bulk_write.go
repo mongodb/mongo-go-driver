@@ -315,6 +315,7 @@ func (mb *modelBatches) appendBatches(fn functionSet, dst []byte, maxCount, tota
 				arrayFilters:   model.ArrayFilters,
 				collation:      model.Collation,
 				upsert:         model.Upsert,
+				sort:           model.Sort,
 				multi:          false,
 				checkDollarKey: true,
 			}).marshal(mb.client.bsonOpts, mb.client.registry)
@@ -342,6 +343,7 @@ func (mb *modelBatches) appendBatches(fn functionSet, dst []byte, maxCount, tota
 				arrayFilters:   nil,
 				collation:      model.Collation,
 				upsert:         model.Upsert,
+				sort:           model.Sort,
 				multi:          false,
 				checkDollarKey: false,
 			}).marshal(mb.client.bsonOpts, mb.client.registry)
@@ -603,6 +605,7 @@ type clientUpdateDoc struct {
 	hint           interface{}
 	arrayFilters   []interface{}
 	collation      *options.Collation
+	sort           interface{}
 	upsert         *bool
 	multi          bool
 	checkDollarKey bool
@@ -655,6 +658,17 @@ func (d *clientUpdateDoc) marshal(bsonOpts *options.BSONOptions, registry *bson.
 			return nil, err
 		}
 		doc = bsoncore.AppendValueElement(doc, "hint", hintVal)
+	}
+
+	if d.sort != nil {
+		if isUnorderedMap(d.sort) {
+			return nil, ErrMapForOrderedArgument{"sort"}
+		}
+		sortVal, err := marshalValue(d.sort, bsonOpts, registry)
+		if err != nil {
+			return nil, err
+		}
+		doc = bsoncore.AppendValueElement(doc, "sort", sortVal)
 	}
 
 	return bsoncore.AppendDocumentEnd(doc, uidx)

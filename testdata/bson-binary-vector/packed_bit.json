@@ -8,7 +8,8 @@
       "vector": [],
       "dtype_hex": "0x10",
       "dtype_alias": "PACKED_BIT",
-      "padding": 1
+      "padding": 1,
+      "canonical_bson": "1400000005766563746F72000200000009100100"
     },
     {
       "description": "Simple Vector PACKED_BIT",
@@ -62,20 +63,13 @@
       "padding": 0
     },
     {
-      "description": "Padding specified with no vector data PACKED_BIT",
-      "valid": false,
-      "vector": [],
-      "dtype_hex": "0x10",
-      "dtype_alias": "PACKED_BIT",
-      "padding": 1
-    },
-    {
       "description": "Exceeding maximum padding PACKED_BIT",
       "valid": false,
       "vector": [1],
       "dtype_hex": "0x10",
       "dtype_alias": "PACKED_BIT",
-      "padding": 8
+      "padding": 8,
+      "canonical_bson": "1500000005766563746F7200030000000910080100"
     },
     {
       "description": "Negative padding PACKED_BIT",
@@ -84,14 +78,6 @@
       "dtype_hex": "0x10",
       "dtype_alias": "PACKED_BIT",
       "padding": -1
-    },
-    {
-      "description": "Vector with float values PACKED_BIT",
-      "valid": false,
-      "vector": [127.5],
-      "dtype_hex": "0x10",
-      "dtype_alias": "PACKED_BIT",
-      "padding": 0
     }
   ]
 }

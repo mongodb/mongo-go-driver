@@ -127,8 +127,8 @@ func (ro *ReplaceOptionsBuilder) SetLet(l interface{}) *ReplaceOptionsBuilder {
 // SetSort sets the value for the Sort field. Specifies a document specifying which document should
 // be replaced if the filter used by the operation matches multiple documents in the collection. If
 // set, the first document in the sorted order will be replaced. This option is only valid for MongoDB
-// versions >= 8.0. The driver will return an error if the sort parameter is a multi-key map. The
-// default value is nil.
+// versions >= 8.0. The sort parameter is evaluated sequentially, so the driver will return an error
+// if it is a multi-key map (which is unordeded). The default value is nil.
 func (ro *ReplaceOptionsBuilder) SetSort(s interface{}) *ReplaceOptionsBuilder {
 	ro.Opts = append(ro.Opts, func(opts *ReplaceOptions) error {
 		opts.Sort = s

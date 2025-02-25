@@ -328,6 +328,7 @@ func createClientUpdateOneModel(value bson.Raw) (*mongo.ClientBulkWrite, error) 
 		Collation    *options.Collation
 		Hint         *bson.RawValue
 		Upsert       *bool
+		Sort         *bson.RawValue
 	}
 	err := bson.Unmarshal(value, &v)
 	if err != nil {
@@ -340,12 +341,17 @@ func createClientUpdateOneModel(value bson.Raw) (*mongo.ClientBulkWrite, error) 
 			return nil, err
 		}
 	}
+	var sort interface{}
+	if v.Sort != nil {
+		sort = v.Sort.Document()
+	}
 	model := &mongo.ClientUpdateOneModel{
 		Filter:    v.Filter,
 		Update:    v.Update,
 		Collation: v.Collation,
 		Hint:      hint,
 		Upsert:    v.Upsert,
+		Sort:      sort,
 	}
 	if len(v.ArrayFilters) > 0 {
 		model.ArrayFilters = v.ArrayFilters
@@ -405,6 +411,7 @@ func createClientReplaceOneModel(value bson.Raw) (*mongo.ClientBulkWrite, error)
 		Collation   *options.Collation
 		Hint        *bson.RawValue
 		Upsert      *bool
+		Sort        *bson.RawValue
 	}
 	err := bson.Unmarshal(value, &v)
 	if err != nil {
@@ -417,6 +424,10 @@ func createClientReplaceOneModel(value bson.Raw) (*mongo.ClientBulkWrite, error)
 			return nil, err
 		}
 	}
+	var sort interface{}
+	if v.Sort != nil {
+		sort = v.Sort.Document()
+	}
 	ns := strings.SplitN(v.Namespace, ".", 2)
 	return &mongo.ClientBulkWrite{
 		Database:   ns[0],
@@ -427,6 +438,7 @@ func createClientReplaceOneModel(value bson.Raw) (*mongo.ClientBulkWrite, error)
 			Collation:   v.Collation,
 			Hint:        hint,
 			Upsert:      v.Upsert,
+			Sort:        sort,
 		},
 	}, nil
 }

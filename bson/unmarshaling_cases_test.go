@@ -172,6 +172,70 @@ func unmarshalingTestCases() []unmarshalingTestCase {
 			want:  &valNonPtrStruct,
 			data:  docToBytes(valNonPtrStruct),
 		},
+		{
+			name:  "nil pointer and non-pointer type with literal null BSON",
+			sType: reflect.TypeOf(unmarshalBehaviorTestCase{}),
+			want: &unmarshalBehaviorTestCase{
+				BSONValueTracker: unmarshalBSONValueCallTracker{
+					called: true,
+				},
+				BSONValuePtrTracker: nil,
+				BSONTracker: unmarshalBSONCallTracker{
+					called: true,
+				},
+				BSONPtrTracker: nil,
+			},
+			data: docToBytes(D{
+				{Key: "bv_tracker", Value: nil},
+				{Key: "bv_ptr_tracker", Value: nil},
+				{Key: "b_tracker", Value: nil},
+				{Key: "b_ptr_tracker", Value: nil},
+			}),
+		},
+		{
+			name:  "nil pointer and non-pointer type with BSON minkey",
+			sType: reflect.TypeOf(unmarshalBehaviorTestCase{}),
+			want: &unmarshalBehaviorTestCase{
+				BSONValueTracker: unmarshalBSONValueCallTracker{
+					called: true,
+				},
+				BSONValuePtrTracker: &unmarshalBSONValueCallTracker{
+					called: true,
+				},
+				BSONTracker: unmarshalBSONCallTracker{
+					called: true,
+				},
+				BSONPtrTracker: nil,
+			},
+			data: docToBytes(D{
+				{Key: "bv_tracker", Value: MinKey{}},
+				{Key: "bv_ptr_tracker", Value: MinKey{}},
+				{Key: "b_tracker", Value: MinKey{}},
+				{Key: "b_ptr_tracker", Value: MinKey{}},
+			}),
+		},
+		{
+			name:  "nil pointer and non-pointer type with BSON maxkey",
+			sType: reflect.TypeOf(unmarshalBehaviorTestCase{}),
+			want: &unmarshalBehaviorTestCase{
+				BSONValueTracker: unmarshalBSONValueCallTracker{
+					called: true,
+				},
+				BSONValuePtrTracker: &unmarshalBSONValueCallTracker{
+					called: true,
+				},
+				BSONTracker: unmarshalBSONCallTracker{
+					called: true,
+				},
+				BSONPtrTracker: nil,
+			},
+			data: docToBytes(D{
+				{Key: "bv_tracker", Value: MaxKey{}},
+				{Key: "bv_ptr_tracker", Value: MaxKey{}},
+				{Key: "b_tracker", Value: MaxKey{}},
+				{Key: "b_ptr_tracker", Value: MaxKey{}},
+			}),
+		},
 	}
 }
 
@@ -265,5 +329,41 @@ func (ms *myString) UnmarshalBSON(b []byte) error {
 		return err
 	}
 	*ms = myString(s)
+	return nil
+}
+
+// unmarshalBSONValueCallTracker is a test struct that tracks whether the
+// UnmarshalBSONValue method has been called.
+type unmarshalBSONValueCallTracker struct {
+	called bool // called is set to true when UnmarshalBSONValue is invoked.
+}
+
+var _ ValueUnmarshaler = &unmarshalBSONValueCallTracker{}
+
+// unmarshalBSONCallTracker is a test struct that tracks whether the
+// UnmarshalBSON method has been called.
+type unmarshalBSONCallTracker struct {
+	called bool // called is set to true when UnmarshalBSON is invoked.
+}
+
+// Ensure unmarshalBSONCallTracker implements the Unmarshaler interface.
+var _ Unmarshaler = &unmarshalBSONCallTracker{}
+
+// unmarshalBehaviorTestCase holds instances of call trackers for testing BSON
+// unmarshaling behavior.
+type unmarshalBehaviorTestCase struct {
+	BSONValueTracker    unmarshalBSONValueCallTracker  `bson:"bv_tracker"`     // BSON value unmarshaling by value.
+	BSONValuePtrTracker *unmarshalBSONValueCallTracker `bson:"bv_ptr_tracker"` // BSON value unmarshaling by pointer.
+	BSONTracker         unmarshalBSONCallTracker       `bson:"b_tracker"`      // BSON unmarshaling by value.
+	BSONPtrTracker      *unmarshalBSONCallTracker      `bson:"b_ptr_tracker"`  // BSON unmarshaling by pointer.
+}
+
+func (tracker *unmarshalBSONValueCallTracker) UnmarshalBSONValue(byte, []byte) error {
+	tracker.called = true
+	return nil
+}
+
+func (tracker *unmarshalBSONCallTracker) UnmarshalBSON([]byte) error {
+	tracker.called = true
 	return nil
 }
