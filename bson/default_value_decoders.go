@@ -42,6 +42,7 @@ func registerDefaultDecoders(reg *Registry) {
 
 	reg.RegisterTypeDecoder(tD, ValueDecoderFunc(dDecodeValue))
 	reg.RegisterTypeDecoder(tBinary, decodeAdapter{binaryDecodeValue, binaryDecodeType})
+	reg.RegisterTypeDecoder(tVector, decodeAdapter{vectorDecodeValue, vectorDecodeType})
 	reg.RegisterTypeDecoder(tUndefined, decodeAdapter{undefinedDecodeValue, undefinedDecodeType})
 	reg.RegisterTypeDecoder(tDateTime, decodeAdapter{dateTimeDecodeValue, dateTimeDecodeType})
 	reg.RegisterTypeDecoder(tNull, decodeAdapter{nullDecodeValue, nullDecodeType})
@@ -501,14 +502,8 @@ func symbolDecodeValue(dctx DecodeContext, vr ValueReader, val reflect.Value) er
 	return nil
 }
 
-func binaryDecodeType(_ DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
-	if t != tBinary {
-		return emptyValue, ValueDecoderError{
-			Name:     "BinaryDecodeValue",
-			Types:    []reflect.Type{tBinary},
-			Received: reflect.Zero(t),
-		}
-	}
+func binaryDecode(vr ValueReader) (Binary, error) {
+	var b Binary
 
 	var data []byte
 	var subtype byte
@@ -521,13 +516,31 @@ func binaryDecodeType(_ DecodeContext, vr ValueReader, t reflect.Type) (reflect.
 	case TypeUndefined:
 		err = vr.ReadUndefined()
 	default:
-		return emptyValue, fmt.Errorf("cannot decode %v into a Binary", vrType)
+		return b, fmt.Errorf("cannot decode %v into a Binary", vrType)
 	}
+	if err != nil {
+		return b, err
+	}
+	b.Subtype = subtype
+	b.Data = data
+
+	return b, nil
+}
+
+func binaryDecodeType(_ DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
+	if t != tBinary {
+		return emptyValue, ValueDecoderError{
+			Name:     "BinaryDecodeValue",
+			Types:    []reflect.Type{tBinary},
+			Received: reflect.Zero(t),
+		}
+	}
+
+	b, err := binaryDecode(vr)
 	if err != nil {
 		return emptyValue, err
 	}
-
-	return reflect.ValueOf(Binary{Subtype: subtype, Data: data}), nil
+	return reflect.ValueOf(b), nil
 }
 
 // binaryDecodeValue is the ValueDecoderFunc for Binary.
@@ -537,6 +550,48 @@ func binaryDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) erro
 	}
 
 	elem, err := binaryDecodeType(dc, vr, tBinary)
+	if err != nil {
+		return err
+	}
+
+	val.Set(elem)
+	return nil
+}
+
+func vectorDecodeType(_ DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
+	if t != tVector {
+		return emptyValue, ValueDecoderError{
+			Name:     "VectorDecodeValue",
+			Types:    []reflect.Type{tVector},
+			Received: reflect.Zero(t),
+		}
+	}
+
+	b, err := binaryDecode(vr)
+	if err != nil {
+		return emptyValue, err
+	}
+
+	v, err := NewVectorFromBinary(b)
+	if err != nil {
+		return emptyValue, err
+	}
+
+	return reflect.ValueOf(v), nil
+}
+
+// vectorDecodeValue is the ValueDecoderFunc for Vector.
+func vectorDecodeValue(dctx DecodeContext, vr ValueReader, val reflect.Value) error {
+	t := val.Type()
+	if !val.CanSet() || t != tVector {
+		return ValueDecoderError{
+			Name:     "VectorDecodeValue",
+			Types:    []reflect.Type{tVector},
+			Received: val,
+		}
+	}
+
+	elem, err := vectorDecodeType(dctx, vr, t)
 	if err != nil {
 		return err
 	}
@@ -1166,7 +1221,13 @@ func valueUnmarshalerDecodeValue(_ DecodeContext, vr ValueReader, val reflect.Va
 		return ValueDecoderError{Name: "ValueUnmarshalerDecodeValue", Types: []reflect.Type{tValueUnmarshaler}, Received: val}
 	}
 
-	if vr.Type() == TypeNull {
+	// If BSON value is null and the go value is a pointer, then don't call
+	// UnmarshalBSONValue. Even if the Go pointer is already initialized (i.e.,
+	// non-nil), encountering null in BSON will result in the pointer being
+	// directly set to nil here. Since the pointer is being replaced with nil,
+	// there is no opportunity (or reason) for the custom UnmarshalBSONValue logic
+	// to be called.
+	if vr.Type() == TypeNull && val.Kind() == reflect.Ptr {
 		val.Set(reflect.Zero(val.Type()))
 
 		return vr.ReadNull()

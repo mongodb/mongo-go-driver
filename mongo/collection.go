@@ -1551,7 +1551,7 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 
 	args, err := mongoutil.NewOptions(opts...)
 	if err != nil {
-		return nil
+		return &SingleResult{err: err}
 	}
 	cursor, err := coll.find(ctx, filter, false, newFindArgsFromFindOneArgs(args))
 	return &SingleResult{

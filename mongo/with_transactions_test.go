@@ -21,6 +21,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/integtest"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
@@ -575,6 +576,31 @@ func TestConvenientTransactions(t *testing.T) {
 			time.Millisecond,
 			"expected transaction to be passed within 2s")
 
+	})
+	t.Run("retries correctly for joined errors", func(t *testing.T) {
+		withTransactionTimeout = 500 * time.Millisecond
+
+		sess, err := client.StartSession()
+		require.Nil(t, err, "StartSession error: %v", err)
+		defer sess.EndSession(context.Background())
+
+		count := 0
+		_, _ = sess.WithTransaction(context.Background(), func(context.Context) (interface{}, error) {
+			count++
+			time.Sleep(10 * time.Millisecond)
+
+			// Return a combined error value that is built using both
+			// errors.Join and fmt.Errorf with multiple "%w" verbs, nesting a
+			// retryable CommandError within the joined error tree.
+			return nil, errors.Join(
+				fmt.Errorf("%w, %w",
+					CommandError{Name: "test err 1", Labels: []string{driver.TransientTransactionError}},
+					errors.New("test err 2"),
+				),
+				errors.New("test err 3"),
+			)
+		})
+		assert.Greater(t, count, 1, "expected WithTransaction callback to be retried at least once")
 	})
 }
 
