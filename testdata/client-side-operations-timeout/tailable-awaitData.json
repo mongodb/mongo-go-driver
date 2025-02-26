@@ -420,7 +420,7 @@
       ]
     },
     {
-      "description": "apply remaining timeoutMS if less than maxAwaitTimeMS ",
+      "description": "apply remaining timeoutMS if less than maxAwaitTimeMS",
       "operations": [
         {
           "name": "createFindCursor",
@@ -429,23 +429,20 @@
             "filter": {},
             "cursorType": "tailableAwait",
             "batchSize": 1,
-            "maxAwaitTimeMS": 100
+            "maxAwaitTimeMS": 100,
+            "timeoutMS": 50
           },
           "saveResultAsEntity": "tailableCursor"
         },
         {
           "name": "iterateOnce",
           "object": "tailableCursor",
-          "arguments": {
-            "timeoutMS": 50
-          }
+          "arguments": null
         },
         {
           "name": "iterateOnce",
           "object": "tailableCursor",
-          "arguments": {
-            "timeoutMS": 50
-          }
+          "arguments": null
         }
       ],
       "expectEvents": [
@@ -483,23 +480,20 @@
             "filter": {},
             "cursorType": "tailableAwait",
             "batchSize": 1,
-            "maxAwaitTimeMS": 50
+            "maxAwaitTimeMS": 50,
+            "timeoutMS": 100
           },
           "saveResultAsEntity": "tailableCursor"
         },
         {
           "name": "iterateOnce",
           "object": "tailableCursor",
-          "arguments": {
-            "timeoutMS": 100
-          }
+          "arguments": null
         },
         {
           "name": "iterateOnce",
           "object": "tailableCursor",
-          "arguments": {
-            "timeoutMS": 100
-          }
+          "arguments": null
         }
       ],
       "expectEvents": [

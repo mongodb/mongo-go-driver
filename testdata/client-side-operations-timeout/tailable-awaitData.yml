@@ -247,7 +247,7 @@ tests:
                 getMore: { $$type: ["int", "long"] }
                 collection: *collectionName
 
-  - description: "apply remaining timeoutMS if less than maxAwaitTimeMS "
+  - description: "apply remaining timeoutMS if less than maxAwaitTimeMS"
     operations:
       - name: createFindCursor
         object: *collection
@@ -256,16 +256,15 @@ tests:
           cursorType: tailableAwait
           batchSize: 1
           maxAwaitTimeMS: 100
+          timeoutMS: 50
         saveResultAsEntity: &tailableCursor tailableCursor
       # Iterate twice to force a getMore.
       - name: iterateOnce
         object: *tailableCursor
         arguments: 
-          timeoutMS: 50
       - name: iterateOnce
         object: *tailableCursor
         arguments: 
-          timeoutMS: 50
     expectEvents:
       - client: *client
         events:
@@ -287,16 +286,15 @@ tests:
           cursorType: tailableAwait
           batchSize: 1
           maxAwaitTimeMS: 50
+          timeoutMS: 100
         saveResultAsEntity: &tailableCursor tailableCursor
       # Iterate twice to force a getMore.
       - name: iterateOnce
         object: *tailableCursor
         arguments: 
-          timeoutMS: 100
       - name: iterateOnce
         object: *tailableCursor
         arguments: 
-          timeoutMS: 100
     expectEvents:
       - client: *client
         events:

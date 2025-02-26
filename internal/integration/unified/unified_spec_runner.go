@@ -92,8 +92,10 @@ var (
 		//     timeoutMS.
 		//
 		// Once GODRIVER-3473 is completed, we can continue running these tests.
-		"error if maxAwaitTimeMS is equal to timeoutMS":     "Go Driver does not implement this behavior. See GODRIVER-3473",
-		"error if maxAwaitTimeMS is greater than timeoutMS": "Go Driver does not implement this behavior. See GODRIVER-3473",
+		"error if maxAwaitTimeMS is equal to timeoutMS":         "Go Driver does not implement this behavior. See GODRIVER-3473",
+		"error if maxAwaitTimeMS is greater than timeoutMS":     "Go Driver does not implement this behavior. See GODRIVER-3473",
+		"apply remaining timeoutMS if less than maxAwaitTimeMS": "Go Driver does not implement this behavior. See GODRIVER-3473",
+		"apply maxAwaitTimeMS if less than remaining timeout":   "Go Driver does not implement this behavior. See GODRIVER-3473",
 
 		// DRIVERS-2953: This test requires that the driver sends a "getMore"
 		// with "maxTimeMS" set. However, "getMore" can only include "maxTimeMS"
