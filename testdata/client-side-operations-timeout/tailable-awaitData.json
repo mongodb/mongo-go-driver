@@ -436,13 +436,11 @@
         },
         {
           "name": "iterateOnce",
-          "object": "tailableCursor",
-          "arguments": null
+          "object": "tailableCursor"
         },
         {
           "name": "iterateOnce",
-          "object": "tailableCursor",
-          "arguments": null
+          "object": "tailableCursor"
         }
       ],
       "expectEvents": [
@@ -487,13 +485,11 @@
         },
         {
           "name": "iterateOnce",
-          "object": "tailableCursor",
-          "arguments": null
+          "object": "tailableCursor"
         },
         {
           "name": "iterateOnce",
-          "object": "tailableCursor",
-          "arguments": null
+          "object": "tailableCursor"
         }
       ],
       "expectEvents": [

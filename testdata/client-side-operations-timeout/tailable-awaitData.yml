@@ -261,10 +261,8 @@ tests:
       # Iterate twice to force a getMore.
       - name: iterateOnce
         object: *tailableCursor
-        arguments: 
       - name: iterateOnce
         object: *tailableCursor
-        arguments: 
     expectEvents:
       - client: *client
         events:
@@ -291,10 +289,8 @@ tests:
       # Iterate twice to force a getMore.
       - name: iterateOnce
         object: *tailableCursor
-        arguments: 
       - name: iterateOnce
         object: *tailableCursor
-        arguments: 
     expectEvents:
       - client: *client
         events:
