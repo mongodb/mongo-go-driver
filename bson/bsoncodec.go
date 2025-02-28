@@ -138,6 +138,15 @@ func (fn ValueEncoderFunc) EncodeValue(ec EncodeContext, vw ValueWriter, val ref
 	return fn(ec, vw, val)
 }
 
+// defaultVauleEncoderFunc is used to wrap the default encoders for determining
+// if a registry contains custom data.
+type defaultVauleEncoderFunc func(EncodeContext, ValueWriter, reflect.Value) error
+
+// EncodeValue implements the ValueEncoder interface.
+func (fn defaultVauleEncoderFunc) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
+	return fn(ec, vw, val)
+}
+
 // ValueDecoder is the interface implemented by types that can decode BSON to a provided Go type.
 // Implementations should ensure that the value they receive is settable. Similar to ValueEncoderFunc,
 // ValueDecoderFunc is provided to allow the use of a function with the correct signature as a

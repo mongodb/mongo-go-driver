@@ -81,22 +81,24 @@ func (entme errNoTypeMapEntry) Error() string {
 //
 // Read [Registry.LookupDecoder] and [Registry.LookupEncoder] for Registry lookup procedure.
 type Registry struct {
-	interfaceEncoders []interfaceValueEncoder
-	interfaceDecoders []interfaceValueDecoder
-	typeEncoders      *typeEncoderCache
-	typeDecoders      *typeDecoderCache
-	kindEncoders      *kindEncoderCache
-	kindDecoders      *kindDecoderCache
-	typeMap           sync.Map // map[Type]reflect.Type
+	interfaceEncoders   []interfaceValueEncoder
+	interfaceDecoders   []interfaceValueDecoder
+	typeEncoders        *typeEncoderCache
+	typeDecoders        *typeDecoderCache
+	kindEncoders        *kindEncoderCache
+	kindDecoders        *kindDecoderCache
+	typeMap             sync.Map // map[Type]reflect.Type
+	defaultTypeEncoders bool
 }
 
 // NewRegistry creates a new empty Registry.
 func NewRegistry() *Registry {
 	reg := &Registry{
-		typeEncoders: new(typeEncoderCache),
-		typeDecoders: new(typeDecoderCache),
-		kindEncoders: new(kindEncoderCache),
-		kindDecoders: new(kindDecoderCache),
+		typeEncoders:        new(typeEncoderCache),
+		typeDecoders:        new(typeDecoderCache),
+		kindEncoders:        new(kindEncoderCache),
+		kindDecoders:        new(kindDecoderCache),
+		defaultTypeEncoders: true,
 	}
 	registerDefaultEncoders(reg)
 	registerDefaultDecoders(reg)
@@ -115,6 +117,9 @@ func NewRegistry() *Registry {
 //
 // RegisterTypeEncoder should not be called concurrently with any other Registry method.
 func (r *Registry) RegisterTypeEncoder(valueType reflect.Type, enc ValueEncoder) {
+	if _, ok := enc.(defaultVauleEncoderFunc); !ok {
+		r.defaultTypeEncoders = false
+	}
 	r.typeEncoders.Store(valueType, enc)
 }
 
@@ -268,6 +273,58 @@ func (r *Registry) storeTypeEncoder(rt reflect.Type, enc ValueEncoder) ValueEnco
 }
 
 func (r *Registry) lookupTypeEncoder(rt reflect.Type) (ValueEncoder, bool) {
+	// Check if this is the default registry and handle specific cases
+	if r.defaultTypeEncoders {
+		switch rt {
+		case tFloat64:
+			return defaultVauleEncoderFunc(floatEncodeValue), true
+		case tByteSlice:
+			return defaultVauleEncoderFunc((&byteSliceCodec{}).EncodeValue), true
+		case tTime:
+			return defaultVauleEncoderFunc((&timeCodec{}).EncodeValue), true
+		case tEmpty:
+			return defaultVauleEncoderFunc((&emptyInterfaceCodec{}).EncodeValue), true
+		case tCoreArray:
+			return defaultVauleEncoderFunc((&arrayCodec{}).EncodeValue), true
+		case tOID:
+			return defaultVauleEncoderFunc(objectIDEncodeValue), true
+		case tDecimal:
+			return defaultVauleEncoderFunc(decimal128EncodeValue), true
+		case tJSONNumber:
+			return defaultVauleEncoderFunc(jsonNumberEncodeValue), true
+		case tURL:
+			return defaultVauleEncoderFunc(urlEncodeValue), true
+		case tJavaScript:
+			return defaultVauleEncoderFunc(javaScriptEncodeValue), true
+		case tSymbol:
+			return defaultVauleEncoderFunc(symbolEncodeValue), true
+		case tBinary:
+			return defaultVauleEncoderFunc(binaryEncodeValue), true
+		case tVector:
+			return defaultVauleEncoderFunc(vectorEncodeValue), true
+		case tUndefined:
+			return defaultVauleEncoderFunc(undefinedEncodeValue), true
+		case tDateTime:
+			return defaultVauleEncoderFunc(dateTimeEncodeValue), true
+		case tNull:
+			return defaultVauleEncoderFunc(nullEncodeValue), true
+		case tRegex:
+			return defaultVauleEncoderFunc(regexEncodeValue), true
+		case tDBPointer:
+			return defaultVauleEncoderFunc(dbPointerEncodeValue), true
+		case tTimestamp:
+			return defaultVauleEncoderFunc(timestampEncodeValue), true
+		case tMinKey:
+			return defaultVauleEncoderFunc(minKeyEncodeValue), true
+		case tMaxKey:
+			return defaultVauleEncoderFunc(maxKeyEncodeValue), true
+		case tCoreDocument:
+			return defaultVauleEncoderFunc(coreDocumentEncodeValue), true
+		case tCodeWithScope:
+			return defaultVauleEncoderFunc(codeWithScopeEncodeValue), true
+		}
+	}
+
 	return r.typeEncoders.Load(rt)
 }
 

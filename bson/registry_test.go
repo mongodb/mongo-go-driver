@@ -7,12 +7,16 @@
 package bson
 
 import (
+	"encoding/json"
 	"errors"
+	"net/url"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 // newTestRegistry creates a new Registry.
@@ -575,3 +579,80 @@ var _ testInterface3 = (*testInterface3Impl)(nil)
 func (*testInterface3Impl) test3() {}
 
 func typeComparer(i1, i2 reflect.Type) bool { return i1 == i2 }
+
+func BenchmarkLookupTypeEncoder(b *testing.B) {
+	typesToTest := []reflect.Type{
+		reflect.TypeOf(false),                      // tBool
+		reflect.TypeOf(float32(0)),                 // tFloat32
+		reflect.TypeOf(float64(0)),                 // tFloat64
+		reflect.TypeOf(int32(0)),                   // tInt32
+		reflect.TypeOf(int64(0)),                   // tInt64
+		reflect.TypeOf(""),                         // tString
+		reflect.TypeOf(time.Time{}),                // tTime
+		reflect.TypeOf((*interface{})(nil)).Elem(), // tEmpty
+		reflect.TypeOf([]byte{}),                   // tByteSlice
+		reflect.TypeOf(byte(0x00)),                 // tByte
+		reflect.TypeOf(url.URL{}),                  // tURL
+		reflect.TypeOf(json.Number("")),            // tJSONNumber
+		reflect.TypeOf(Binary{}),                   // tBinary
+		reflect.TypeOf(Undefined{}),                // tUndefined
+		reflect.TypeOf(ObjectID{}),                 // tOID
+		reflect.TypeOf(DateTime(0)),                // tDateTime
+		reflect.TypeOf(Null{}),                     // tNull
+		reflect.TypeOf(Regex{}),                    // tRegex
+		reflect.TypeOf(CodeWithScope{}),            // tCodeWithScope
+		reflect.TypeOf(DBPointer{}),                // tDBPointer
+		reflect.TypeOf(JavaScript("")),             // tJavaScript
+		reflect.TypeOf(Symbol("")),                 // tSymbol
+		reflect.TypeOf(Timestamp{}),                // tTimestamp
+		reflect.TypeOf(Decimal128{}),               // tDecimal
+		reflect.TypeOf(Vector{}),                   // tVector
+		reflect.TypeOf(MinKey{}),                   // tMinKey
+		reflect.TypeOf(MaxKey{}),                   // tMaxKey
+		reflect.TypeOf(D{}),                        // tD
+		reflect.TypeOf(A{}),                        // tA
+		reflect.TypeOf(E{}),                        // tE
+		reflect.TypeOf(bsoncore.Document{}),        // tCoreDocument
+		reflect.TypeOf(bsoncore.Array{}),           // tCoreArray
+	}
+
+	// Helper function for running benchmarks with the specified configuration
+	runBenchmark := func(b *testing.B, name string, defaultEncoders bool) {
+		b.Run(name, func(b *testing.B) {
+			reg := NewRegistry()
+			reg.defaultTypeEncoders = defaultEncoders
+			b.ReportAllocs()
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				for _, t := range typesToTest {
+					reg.lookupTypeEncoder(t)
+				}
+			}
+		})
+	}
+
+	// Helper function for running benchmarks concurrently
+	runBenchmarkAsync := func(b *testing.B, name string, defaultEncoders bool) {
+		b.Run(name, func(b *testing.B) {
+			reg := NewRegistry()
+			reg.defaultTypeEncoders = defaultEncoders
+			b.ReportAllocs()
+			b.ResetTimer()
+			b.RunParallel(func(pb *testing.PB) {
+				for pb.Next() {
+					for _, t := range typesToTest {
+						reg.lookupTypeEncoder(t)
+					}
+				}
+			})
+		})
+	}
+
+	// Sequential benchmarks
+	runBenchmark(b, "DefaultTypeEncodersTrueSequential", true)
+	runBenchmark(b, "DefaultTypeEncodersFalseSequential", false)
+
+	// Concurrent benchmarks
+	runBenchmarkAsync(b, "DefaultTypeEncodersTrueConcurrent", true)
+	runBenchmarkAsync(b, "DefaultTypeEncodersFalseConcurrent", false)
+}
