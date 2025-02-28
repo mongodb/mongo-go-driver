@@ -957,7 +957,7 @@ func TestClient_BSONOptions(t *testing.T) {
 			wantRaw:    bson.Raw(bsoncore.NewDocumentBuilder().Build()),
 		},
 		{
-			name: "OmitEmpty",
+			name: "OmitEmpty with non-zeroer struct",
 			bsonOpts: &options.BSONOptions{
 				OmitZeroStruct: true,
 				OmitEmpty:      true,
