@@ -13,15 +13,14 @@ permissions:
 
 jobs:
   merge-up:
-    environment: release
     name: Create merge up pull request
     runs-on: ubuntu-latest
 
     steps:
       - uses: mongodb-labs/drivers-github-tools/secure-checkout@v2
         with:
-          app_id: ${{ vars.APP_ID }}
-          private_key: ${{ secrets.APP_PRIVATE_KEY }}
+          app_id: ${{ vars.PR_APP_ID }}
+          private_key: ${{ secrets.PR_APP_PRIVATE_KEY }}
           # Make sure to include fetch-depth 0 so all branches are fetched, not
           # just the current one
           fetch-depth: 0
