@@ -186,8 +186,9 @@ func (rom *ReplaceOneModel) SetUpsert(upsert bool) *ReplaceOneModel {
 }
 
 // SetSort specifies which document the operation replaces if the query matches multiple documents. The first document
-// matched by the sort order will be replaced. This option is only valid for MongoDB versions >= 8.0. The driver will
-// return an error if the sort parameter is a multi-key map. The default value is nil.
+// matched by the sort order will be replaced. This option is only valid for MongoDB versions >= 8.0. The sort parameter
+// is evaluated sequentially, so the driver will return an error if it is a multi-key map (which is unordeded). The
+// default value is nil.
 func (rom *ReplaceOneModel) SetSort(sort interface{}) *ReplaceOneModel {
 	rom.Sort = sort
 	return rom
@@ -263,8 +264,9 @@ func (uom *UpdateOneModel) SetUpsert(upsert bool) *UpdateOneModel {
 }
 
 // SetSort specifies which document the operation updates if the query matches multiple documents. The first document
-// matched by the sort order will be updated. This option is only valid for MongoDB versions >= 8.0. The driver will
-// return an error if the sort parameter is a multi-key map. The default value is nil.
+// matched by the sort order will be updated. This option is only valid for MongoDB versions >= 8.0. The sort parameter
+// is evaluated sequentially, so the driver will return an error if it is a multi-key map (which is unordeded). The
+// default value is nil.
 func (uom *UpdateOneModel) SetSort(sort interface{}) *UpdateOneModel {
 	uom.Sort = sort
 	return uom

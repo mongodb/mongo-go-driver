@@ -9,7 +9,6 @@ package bson
 import (
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"math"
 	"os"
 	"path"
@@ -64,52 +63,12 @@ func TestBsonBinaryVectorSpec(t *testing.T) {
 		})
 	}
 
-	t.Run("FLOAT32 with padding", func(t *testing.T) {
-		t.Parallel()
-
-		t.Run("Unmarshaling", func(t *testing.T) {
-			val := D{{"vector", Binary{Subtype: TypeBinaryVector, Data: []byte{Float32Vector, 3}}}}
-			b, err := Marshal(val)
-			require.NoError(t, err, "marshaling test BSON")
-			var got struct {
-				Vector Vector
-			}
-			err = Unmarshal(b, &got)
-			require.ErrorContains(t, err, errNonZeroVectorPadding.Error())
-		})
-	})
-
-	t.Run("INT8 with padding", func(t *testing.T) {
-		t.Parallel()
-
-		t.Run("Unmarshaling", func(t *testing.T) {
-			val := D{{"vector", Binary{Subtype: TypeBinaryVector, Data: []byte{Int8Vector, 3}}}}
-			b, err := Marshal(val)
-			require.NoError(t, err, "marshaling test BSON")
-			var got struct {
-				Vector Vector
-			}
-			err = Unmarshal(b, &got)
-			require.ErrorContains(t, err, errNonZeroVectorPadding.Error())
-		})
-	})
-
 	t.Run("Padding specified with no vector data PACKED_BIT", func(t *testing.T) {
 		t.Parallel()
 
 		t.Run("Marshaling", func(t *testing.T) {
 			_, err := NewPackedBitVector(nil, 1)
 			require.EqualError(t, err, errNonZeroVectorPadding.Error())
-		})
-		t.Run("Unmarshaling", func(t *testing.T) {
-			val := D{{"vector", Binary{Subtype: TypeBinaryVector, Data: []byte{PackedBitVector, 1}}}}
-			b, err := Marshal(val)
-			require.NoError(t, err, "marshaling test BSON")
-			var got struct {
-				Vector Vector
-			}
-			err = Unmarshal(b, &got)
-			require.ErrorContains(t, err, errNonZeroVectorPadding.Error())
 		})
 	})
 
@@ -120,45 +79,7 @@ func TestBsonBinaryVectorSpec(t *testing.T) {
 			_, err := NewPackedBitVector(nil, 8)
 			require.EqualError(t, err, errVectorPaddingTooLarge.Error())
 		})
-		t.Run("Unmarshaling", func(t *testing.T) {
-			val := D{{"vector", Binary{Subtype: TypeBinaryVector, Data: []byte{PackedBitVector, 8}}}}
-			b, err := Marshal(val)
-			require.NoError(t, err, "marshaling test BSON")
-			var got struct {
-				Vector Vector
-			}
-			err = Unmarshal(b, &got)
-			require.ErrorContains(t, err, errVectorPaddingTooLarge.Error())
-		})
 	})
-}
-
-// TODO: This test may be added into the spec tests.
-func TestFloat32VectorWithInsufficientData(t *testing.T) {
-	t.Parallel()
-
-	val := Binary{Subtype: TypeBinaryVector}
-
-	for _, tc := range [][]byte{
-		{Float32Vector, 0, 42},
-		{Float32Vector, 0, 42, 42},
-		{Float32Vector, 0, 42, 42, 42},
-
-		{Float32Vector, 0, 42, 42, 42, 42, 42},
-		{Float32Vector, 0, 42, 42, 42, 42, 42, 42},
-		{Float32Vector, 0, 42, 42, 42, 42, 42, 42, 42},
-	} {
-		t.Run(fmt.Sprintf("marshaling %d bytes", len(tc)-2), func(t *testing.T) {
-			val.Data = tc
-			b, err := Marshal(D{{"vector", val}})
-			require.NoError(t, err, "marshaling test BSON")
-			var got struct {
-				Vector Vector
-			}
-			err = Unmarshal(b, &got)
-			require.ErrorContains(t, err, errInsufficientVectorData.Error())
-		})
-	}
 }
 
 func convertSlice[T int8 | float32 | byte](s []interface{}) []T {
@@ -208,33 +129,44 @@ func runBsonBinaryVectorTest(t *testing.T, testKey string, test bsonBinaryVector
 
 	t.Run("Unmarshaling", func(t *testing.T) {
 		skipCases := map[string]string{
-			"FLOAT32 with padding":                             "run in alternative case",
-			"Overflow Vector INT8":                             "compile-time restriction",
-			"Underflow Vector INT8":                            "compile-time restriction",
-			"INT8 with padding":                                "run in alternative case",
-			"INT8 with float inputs":                           "compile-time restriction",
-			"Overflow Vector PACKED_BIT":                       "compile-time restriction",
-			"Underflow Vector PACKED_BIT":                      "compile-time restriction",
-			"Vector with float values PACKED_BIT":              "compile-time restriction",
-			"Padding specified with no vector data PACKED_BIT": "run in alternative case",
-			"Exceeding maximum padding PACKED_BIT":             "run in alternative case",
-			"Negative padding PACKED_BIT":                      "compile-time restriction",
+			"Overflow Vector INT8":                "compile-time restriction",
+			"Underflow Vector INT8":               "compile-time restriction",
+			"INT8 with float inputs":              "compile-time restriction",
+			"Overflow Vector PACKED_BIT":          "compile-time restriction",
+			"Underflow Vector PACKED_BIT":         "compile-time restriction",
+			"Vector with float values PACKED_BIT": "compile-time restriction",
+			"Negative padding PACKED_BIT":         "compile-time restriction",
 		}
 		if reason, ok := skipCases[test.Description]; ok {
 			t.Skipf("skip test case %s: %s", test.Description, reason)
+		}
+
+		errMap := map[string]string{
+			"FLOAT32 with padding":                             "padding must be 0",
+			"INT8 with padding":                                "padding must be 0",
+			"Padding specified with no vector data PACKED_BIT": "padding must be 0",
+			"Exceeding maximum padding PACKED_BIT":             "padding cannot be larger than 7",
 		}
 
 		t.Parallel()
 
 		var got map[string]Vector
 		err := Unmarshal(testBSON, &got)
-		require.NoError(t, err)
-		require.Equal(t, testVector, got)
+		if test.Valid {
+			require.NoError(t, err)
+			require.Equal(t, testVector, got)
+		} else if errMsg, ok := errMap[test.Description]; ok {
+			require.ErrorContains(t, err, errMsg)
+		} else {
+			require.Error(t, err)
+		}
 	})
 
 	t.Run("Marshaling", func(t *testing.T) {
 		skipCases := map[string]string{
 			"FLOAT32 with padding":                             "private padding field",
+			"Insufficient vector data with 3 bytes FLOAT32":    "invalid case",
+			"Insufficient vector data with 5 bytes FLOAT32":    "invalid case",
 			"Overflow Vector INT8":                             "compile-time restriction",
 			"Underflow Vector INT8":                            "compile-time restriction",
 			"INT8 with padding":                                "private padding field",
