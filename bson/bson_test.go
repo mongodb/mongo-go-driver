@@ -19,6 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/bsonoptions"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
@@ -233,7 +234,7 @@ func TestExtJSONEscapeKey(t *testing.T) {
 		},
 		{
 			Key:   "regex",
-			Value: Regex{Pattern: "ab\\\\\\\"ab", Options: "\""},
+			Value: primitive.Regex{Pattern: "ab\\\\\\\"ab", Options: "\""},
 		},
 	}
 	b, err := MarshalExtJSON(&doc, false, false)
