@@ -64,7 +64,7 @@ func replaceErrors(err error) error {
 	if errors.Is(err, topology.ErrTopologyClosed) {
 		return ErrClientDisconnected
 	}
-	if de := new(driver.Error); errors.As(err, de) {
+	if de, ok := err.(driver.Error); ok {
 		return CommandError{
 			Code:    de.Code,
 			Message: de.Message,
@@ -74,7 +74,7 @@ func replaceErrors(err error) error {
 			Raw:     bson.Raw(de.Raw),
 		}
 	}
-	if qe := new(driver.QueryFailureError); errors.As(err, qe) {
+	if qe, ok := err.(driver.QueryFailureError); ok {
 		// qe.Message is "command failure"
 		ce := CommandError{
 			Name:    qe.Message,
@@ -93,7 +93,7 @@ func replaceErrors(err error) error {
 
 		return ce
 	}
-	if me := new(mongocrypt.Error); errors.As(err, me) {
+	if me, ok := err.(mongocrypt.Error); ok {
 		return MongocryptError{Code: me.Code, Message: me.Message}
 	}
 
@@ -101,7 +101,7 @@ func replaceErrors(err error) error {
 		return ErrNilValue
 	}
 
-	if marshalErr := new(codecutil.MarshalError); errors.As(err, marshalErr) {
+	if marshalErr, ok := err.(codecutil.MarshalError); ok {
 		return MarshalError{
 			Value: marshalErr.Value,
 			Err:   marshalErr.Err,
