@@ -16,9 +16,9 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/internal/require"
-	"go.mongodb.org/mongo-driver/internal/spectest"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/internal/spectest"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
 )
 
 type host struct {
@@ -99,6 +99,8 @@ func runTestsInFile(t *testing.T, dirname string, filename string, warningsError
 
 var skipDescriptions = map[string]struct{}{
 	"Valid options specific to single-threaded drivers are parsed correctly": {},
+	// GODRIVER-2348: the wtimeoutMS write concern option is not supported.
+	"Valid read and write concern are parsed correctly": {},
 }
 
 var skipKeywords = []string{
@@ -106,6 +108,9 @@ var skipKeywords = []string{
 	"tlsAllowInvalidCertificates",
 	"tlsDisableCertificateRevocationCheck",
 	"serverSelectionTryOnce",
+
+	// GODRIVER-2348: the wtimeoutMS write concern option is not supported.
+	"wTimeoutMS",
 }
 
 func runTest(t *testing.T, filename string, test testCase, warningsError bool) {
@@ -277,8 +282,6 @@ func verifyConnStringOptions(t *testing.T, cs *connstring.ConnString, options ma
 			} else {
 				require.Equal(t, value, cs.WString)
 			}
-		case "wtimeoutms":
-			require.Equal(t, value, float64(cs.WTimeout/time.Millisecond))
 		case "waitqueuetimeoutms":
 		case "zlibcompressionlevel":
 			require.Equal(t, value, float64(cs.ZlibLevel))

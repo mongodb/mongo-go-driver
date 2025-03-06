@@ -9,11 +9,9 @@ package mongo
 import (
 	"context"
 	"errors"
-	"fmt"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 // ErrNoDocuments is returned by SingleResult methods when the operation that created the SingleResult did not return
@@ -29,20 +27,29 @@ type SingleResult struct {
 	cur      *Cursor
 	rdr      bson.Raw
 	bsonOpts *options.BSONOptions
-	reg      *bsoncodec.Registry
+	reg      *bson.Registry
+
+	// Operation performed with an acknowledged write. Values returned by
+	// SingleResult methods may not be deterministic if the write operation was
+	// unacknowledged and so should not be relied upon.
+	Acknowledged bool
 }
 
 // NewSingleResultFromDocument creates a SingleResult with the provided error, registry, and an underlying Cursor pre-loaded with
-// the provided document, error and registry. If no registry is provided, bson.DefaultRegistry will be used. If an error distinct
+// the provided document, error and registry. If no registry is provided, bson.NewRegistry() will be used. If an error distinct
 // from the one provided occurs during creation of the SingleResult, that error will be stored on the returned SingleResult.
 //
 // The document parameter must be a non-nil document.
-func NewSingleResultFromDocument(document interface{}, err error, registry *bsoncodec.Registry) *SingleResult {
+func NewSingleResultFromDocument(
+	document interface{},
+	err error,
+	registry *bson.Registry,
+) *SingleResult {
 	if document == nil {
 		return &SingleResult{err: ErrNilDocument}
 	}
 	if registry == nil {
-		registry = bson.DefaultRegistry
+		registry = defaultRegistry
 	}
 
 	cur, createErr := NewCursorFromDocuments([]interface{}{document}, err, registry)
@@ -75,10 +82,7 @@ func (sr *SingleResult) Decode(v interface{}) error {
 		return sr.err
 	}
 
-	dec, err := getDecoder(sr.rdr, sr.bsonOpts, sr.reg)
-	if err != nil {
-		return fmt.Errorf("error configuring BSON decoder: %w", err)
-	}
+	dec := getDecoder(sr.rdr, sr.bsonOpts, sr.reg)
 
 	return dec.Decode(v)
 }
@@ -95,16 +99,8 @@ func (sr *SingleResult) Raw() (bson.Raw, error) {
 	if sr.err = sr.setRdrContents(); sr.err != nil {
 		return nil, sr.err
 	}
-	return sr.rdr, nil
-}
 
-// DecodeBytes will return the document represented by this SingleResult as a bson.Raw. If there was an error from the
-// operation that created this SingleResult, both the result and that error will be returned. If the operation returned
-// no documents, this will return (nil, ErrNoDocuments).
-//
-// Deprecated: Use [SingleResult.Raw] instead.
-func (sr *SingleResult) DecodeBytes() (bson.Raw, error) {
-	return sr.Raw()
+	return sr.rdr, nil
 }
 
 // setRdrContents will set the contents of rdr by iterating the underlying cursor if necessary.
@@ -124,7 +120,9 @@ func (sr *SingleResult) setRdrContents() error {
 
 			return ErrNoDocuments
 		}
+
 		sr.rdr = sr.cur.Current
+
 		return nil
 	}
 

@@ -11,28 +11,74 @@ import (
 	"time"
 )
 
-type timeoutKey struct{}
+type clientLevel struct{}
 
-// MakeTimeoutContext returns a new context with Client-Side Operation Timeout (CSOT) feature-gated behavior
-// and a Timeout set to the passed in Duration. Setting a Timeout on a single operation is not supported in
-// public API.
-//
-// TODO(GODRIVER-2348) We may be able to remove this function once CSOT feature-gated behavior becomes the
-// TODO default behavior.
-func MakeTimeoutContext(ctx context.Context, to time.Duration) (context.Context, context.CancelFunc) {
-	// Only use the passed in Duration as a timeout on the Context if it
-	// is non-zero and if the Context doesn't already have a timeout.
-	cancelFunc := func() {}
-	if _, deadlineSet := ctx.Deadline(); to != 0 && !deadlineSet {
-		ctx, cancelFunc = context.WithTimeout(ctx, to)
+func isClientLevel(ctx context.Context) bool {
+	val := ctx.Value(clientLevel{})
+	if val == nil {
+		return false
 	}
 
-	// Add timeoutKey either way to indicate CSOT is enabled.
-	return context.WithValue(ctx, timeoutKey{}, true), cancelFunc
+	return val.(bool)
 }
 
+// IsTimeoutContext checks if the provided context has been assigned a deadline
+// or has unlimited retries.
 func IsTimeoutContext(ctx context.Context) bool {
-	return ctx.Value(timeoutKey{}) != nil
+	_, ok := ctx.Deadline()
+
+	return ok || isClientLevel(ctx)
+}
+
+// WithTimeout will set the given timeout on the context, if no deadline has
+// already been set.
+//
+// This function assumes that the timeout field is static, given that the
+// timeout should be sourced from the client. Therefore, once a timeout function
+// parameter has  been applied to the context, it will remain for the lifetime
+// of the context.
+func WithTimeout(parent context.Context, timeout *time.Duration) (context.Context, context.CancelFunc) {
+	cancel := func() {}
+
+	if timeout == nil || IsTimeoutContext(parent) {
+		// In the following conditions, do nothing:
+		//	1. The parent already has a deadline
+		//	2. The parent does not have a deadline, but a client-level timeout has
+		//		 been applied.
+		//	3. The parent does not have a deadline, there is not client-level
+		//     timeout, and the timeout parameter DNE.
+		return parent, cancel
+	}
+
+	// If a client-level timeout has not been applied, then apply it.
+	parent = context.WithValue(parent, clientLevel{}, true)
+
+	dur := *timeout
+
+	if dur == 0 {
+		// If the parent does not have a deadline and the timeout is zero, then
+		// do nothing.
+		return parent, cancel
+	}
+
+	// If the parent does not have a dealine and the timeout is non-zero, then
+	// apply the timeout.
+	return context.WithTimeout(parent, dur)
+}
+
+// WithServerSelectionTimeout creates a context with a timeout that is the
+// minimum of serverSelectionTimeoutMS and context deadline. The usage of
+// non-positive values for serverSelectionTimeoutMS are an anti-pattern and are
+// not considered in this calculation.
+func WithServerSelectionTimeout(
+	parent context.Context,
+	serverSelectionTimeout time.Duration,
+) (context.Context, context.CancelFunc) {
+	if serverSelectionTimeout <= 0 {
+		return parent, func() {}
+	}
+
+	return context.WithTimeout(parent, serverSelectionTimeout)
 }
 
 // ZeroRTTMonitor implements the RTTMonitor interface and is used internally for testing. It returns 0 for all

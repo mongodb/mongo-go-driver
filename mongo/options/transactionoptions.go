@@ -7,97 +7,73 @@
 package options
 
 import (
-	"time"
-
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 )
 
-// TransactionOptions represents options that can be used to configure a transaction.
+// TransactionOptions represents arguments that can be used to configure a
+// transaction.
+//
+// See corresponding setter methods for documentation.
 type TransactionOptions struct {
-	// The read concern for operations in the transaction. The default value is nil, which means that the default
-	// read concern of the session used to start the transaction will be used.
-	ReadConcern *readconcern.ReadConcern
-
-	// The read preference for operations in the transaction. The default value is nil, which means that the default
-	// read preference of the session used to start the transaction will be used.
+	ReadConcern    *readconcern.ReadConcern
 	ReadPreference *readpref.ReadPref
+	WriteConcern   *writeconcern.WriteConcern
+}
 
-	// The write concern for operations in the transaction. The default value is nil, which means that the default
-	// write concern of the session used to start the transaction will be used.
-	WriteConcern *writeconcern.WriteConcern
-
-	// The default maximum amount of time that a CommitTransaction operation executed in the session can run on the
-	// server. The default value is nil, meaning that there is no time limit for execution.
-
-	// The maximum amount of time that a CommitTransaction operation can executed in the transaction can run on the
-	// server. The default value is nil, which means that the default maximum commit time of the session used to
-	// start the transaction will be used.
-	//
-	// NOTE(benjirewis): MaxCommitTime will be deprecated in a future release. The more general Timeout option may
-	// be used in its place to control the amount of time that a single operation can run before returning an error.
-	// MaxCommitTime is ignored if Timeout is set on the client.
-	MaxCommitTime *time.Duration
+// TransactionOptionsBuilder contains arguments to configure count operations.
+// Each option can be set through setter functions. See documentation for each
+// setter function for an explanation of the option.
+type TransactionOptionsBuilder struct {
+	Opts []func(*TransactionOptions) error
 }
 
 // Transaction creates a new TransactionOptions instance.
-func Transaction() *TransactionOptions {
-	return &TransactionOptions{}
+func Transaction() *TransactionOptionsBuilder {
+	return &TransactionOptionsBuilder{}
 }
 
-// SetReadConcern sets the value for the ReadConcern field.
-func (t *TransactionOptions) SetReadConcern(rc *readconcern.ReadConcern) *TransactionOptions {
-	t.ReadConcern = rc
+// List returns a list of TransactionOptions setter functions.
+func (t *TransactionOptionsBuilder) List() []func(*TransactionOptions) error {
+	return t.Opts
+}
+
+// SetReadConcern sets the value for the ReadConcern field. Specifies the read concern for operations
+// in the transaction. The default value is nil, which means that the default read concern of the
+// session used to start the transaction will be used.
+func (t *TransactionOptionsBuilder) SetReadConcern(rc *readconcern.ReadConcern) *TransactionOptionsBuilder {
+	t.Opts = append(t.Opts, func(opts *TransactionOptions) error {
+		opts.ReadConcern = rc
+
+		return nil
+	})
+
 	return t
 }
 
-// SetReadPreference sets the value for the ReadPreference field.
-func (t *TransactionOptions) SetReadPreference(rp *readpref.ReadPref) *TransactionOptions {
-	t.ReadPreference = rp
+// SetReadPreference sets the value for the ReadPreference field. Specifies the read preference for
+// operations in the transaction. The default value is nil, which means that the default read
+// preference of the session used to start the transaction will be used.
+func (t *TransactionOptionsBuilder) SetReadPreference(rp *readpref.ReadPref) *TransactionOptionsBuilder {
+	t.Opts = append(t.Opts, func(opts *TransactionOptions) error {
+		opts.ReadPreference = rp
+
+		return nil
+	})
+
 	return t
 }
 
-// SetWriteConcern sets the value for the WriteConcern field.
-func (t *TransactionOptions) SetWriteConcern(wc *writeconcern.WriteConcern) *TransactionOptions {
-	t.WriteConcern = wc
-	return t
-}
+// SetWriteConcern sets the value for the WriteConcern field. Specifies the write concern for
+// operations in the transaction. The default value is nil, which means that the default
+// write concern of the session used to start the transaction will be used.
+func (t *TransactionOptionsBuilder) SetWriteConcern(wc *writeconcern.WriteConcern) *TransactionOptionsBuilder {
+	t.Opts = append(t.Opts, func(opts *TransactionOptions) error {
+		opts.WriteConcern = wc
 
-// SetMaxCommitTime sets the value for the MaxCommitTime field.
-//
-// NOTE(benjirewis): MaxCommitTime will be deprecated in a future release. The more general Timeout
-// option may be used in its place to control the amount of time that a single operation can run before
-// returning an error. MaxCommitTime is ignored if Timeout is set on the client.
-func (t *TransactionOptions) SetMaxCommitTime(mct *time.Duration) *TransactionOptions {
-	t.MaxCommitTime = mct
-	return t
-}
-
-// MergeTransactionOptions combines the given TransactionOptions instances into a single TransactionOptions in a
-// last-one-wins fashion.
-//
-// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
-// single options struct instead.
-func MergeTransactionOptions(opts ...*TransactionOptions) *TransactionOptions {
-	t := Transaction()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.ReadConcern != nil {
-			t.ReadConcern = opt.ReadConcern
-		}
-		if opt.ReadPreference != nil {
-			t.ReadPreference = opt.ReadPreference
-		}
-		if opt.WriteConcern != nil {
-			t.WriteConcern = opt.WriteConcern
-		}
-		if opt.MaxCommitTime != nil {
-			t.MaxCommitTime = opt.MaxCommitTime
-		}
-	}
+		return nil
+	})
 
 	return t
 }

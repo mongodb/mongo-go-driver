@@ -10,10 +10,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"strconv"
 	"strings"
 
-	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"go.mongodb.org/mongo-driver/v2/internal/bsoncoreutil"
 )
 
 // ValidationError is an error type returned when attempting to validate a document or array.
@@ -63,13 +64,13 @@ func (ibe InsufficientBytesError) Equal(err2 error) bool {
 // the path is neither an embedded document nor an array.
 type InvalidDepthTraversalError struct {
 	Key  string
-	Type bsontype.Type
+	Type Type
 }
 
 func (idte InvalidDepthTraversalError) Error() string {
 	return fmt.Sprintf(
 		"attempt to traverse into %s, but it's type is %s, not %s nor %s",
-		idte.Key, idte.Type, bsontype.EmbeddedDocument, bsontype.Array,
+		idte.Key, idte.Type, TypeEmbeddedDocument, TypeArray,
 	)
 }
 
@@ -167,15 +168,15 @@ func (d Document) LookupErr(key ...string) (Value, error) {
 			continue
 		}
 		if len(key) > 1 {
-			tt := bsontype.Type(elem[0])
+			tt := Type(elem[0])
 			switch tt {
-			case bsontype.EmbeddedDocument:
+			case TypeEmbeddedDocument:
 				val, err := elem.Value().Document().LookupErr(key[1:]...)
 				if err != nil {
 					return Value{}, err
 				}
 				return val, nil
-			case bsontype.Array:
+			case TypeArray:
 				// Convert to Document to continue Lookup recursion.
 				val, err := Document(elem.Value().Array()).LookupErr(key[1:]...)
 				if err != nil {
@@ -263,32 +264,56 @@ func (d Document) DebugString() string {
 // String outputs an ExtendedJSON version of Document. If the document is not valid, this method
 // returns an empty string.
 func (d Document) String() string {
-	if len(d) < 5 {
+	return d.StringN(math.MaxInt)
+}
+
+// StringN stringifies a document upto N bytes
+func (d Document) StringN(n int) string {
+	if len(d) < 5 || n <= 0 {
 		return ""
 	}
+
 	var buf strings.Builder
+
 	buf.WriteByte('{')
 
-	length, rem, _ := ReadLength(d) // We know we have enough bytes to read the length
-
+	length, rem, _ := ReadLength(d)
 	length -= 4
 
 	var elem Element
 	var ok bool
+
 	first := true
-	for length > 1 {
-		if !first {
-			buf.WriteByte(',')
+	truncated := false
+
+	if n > 0 {
+		for length > 1 {
+			if !first {
+				buf.WriteByte(',')
+			}
+			elem, rem, ok = ReadElement(rem)
+			length -= int32(len(elem))
+			if !ok {
+				return ""
+			}
+
+			str := elem.StringN(n)
+			if buf.Len()+len(str) > n {
+				truncatedStr := bsoncoreutil.Truncate(str, n-buf.Len())
+				buf.WriteString(truncatedStr)
+
+				truncated = true
+				break
+			}
+
+			buf.WriteString(str)
+			first = false
 		}
-		elem, rem, ok = ReadElement(rem)
-		length -= int32(len(elem))
-		if !ok {
-			return ""
-		}
-		buf.WriteString(elem.String())
-		first = false
 	}
-	buf.WriteByte('}')
+
+	if !truncated {
+		buf.WriteByte('}')
+	}
 
 	return buf.String()
 }

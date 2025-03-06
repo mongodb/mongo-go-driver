@@ -10,7 +10,7 @@ import (
 	"context"
 	"net/http"
 
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 )
 
 // PLAIN is the mechanism name for PLAIN.
@@ -45,7 +45,7 @@ type PlainAuthenticator struct {
 }
 
 // Auth authenticates the connection.
-func (a *PlainAuthenticator) Auth(ctx context.Context, cfg *Config) error {
+func (a *PlainAuthenticator) Auth(ctx context.Context, cfg *driver.AuthConfig) error {
 	return ConductSaslConversation(ctx, cfg, sourceExternal, &plainSaslClient{
 		username: a.Username,
 		password: a.Password,

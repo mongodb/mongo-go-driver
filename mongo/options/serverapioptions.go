@@ -10,22 +10,27 @@ import (
 	"fmt"
 )
 
-// ServerAPIOptions represents options used to configure the API version sent to the server
-// when running commands.
+// ServerAPIOptions represents arguments used to configure the API version sent to
+// the server when running commands.
 //
-// Sending a specified server API version causes the server to behave in a manner compatible with that
-// API version. It also causes the driver to behave in a manner compatible with the driver’s behavior as
-// of the release when the driver first started to support the specified server API version.
+// Sending a specified server API version causes the server to behave in a
+// manner compatible with that API version. It also causes the driver to behave
+// in a manner compatible with the driver’s behavior as of the release when the
+// driver first started to support the specified server API version.
 //
-// The user must specify a ServerAPIVersion if including ServerAPIOptions in their client. That version
-// must also be currently supported by the driver. This version of the driver supports API version "1".
+// The user must specify a ServerAPIVersion if including ServerAPIOptions in
+// their client. That version must also be currently supported by the driver.
+// This version of the driver supports API version "1".
+//
+// See corresponding setter methods for documentation.
 type ServerAPIOptions struct {
 	ServerAPIVersion  ServerAPIVersion
 	Strict            *bool
 	DeprecationErrors *bool
 }
 
-// ServerAPI creates a new ServerAPIOptions configured with the provided serverAPIversion.
+// ServerAPI creates a new ServerAPIOptions configured with the provided
+// serverAPIversion.
 func ServerAPI(serverAPIVersion ServerAPIVersion) *ServerAPIOptions {
 	return &ServerAPIOptions{ServerAPIVersion: serverAPIVersion}
 }
@@ -33,12 +38,14 @@ func ServerAPI(serverAPIVersion ServerAPIVersion) *ServerAPIOptions {
 // SetStrict specifies whether the server should return errors for features that are not part of the API version.
 func (s *ServerAPIOptions) SetStrict(strict bool) *ServerAPIOptions {
 	s.Strict = &strict
+
 	return s
 }
 
 // SetDeprecationErrors specifies whether the server should return errors for deprecated features.
 func (s *ServerAPIOptions) SetDeprecationErrors(deprecationErrors bool) *ServerAPIOptions {
 	s.DeprecationErrors = &deprecationErrors
+
 	return s
 }
 

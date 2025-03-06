@@ -11,19 +11,18 @@ import (
 	"errors"
 	"time"
 
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/driverutil"
-	"go.mongodb.org/mongo-driver/mongo/description"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
 // ListIndexes performs a listIndexes operation.
 type ListIndexes struct {
 	authenticator driver.Authenticator
 	batchSize     *int32
-	maxTime       *time.Duration
 	session       *session.Client
 	clock         *session.ClusterClock
 	collection    string
@@ -77,7 +76,6 @@ func (li *ListIndexes) Execute(ctx context.Context) error {
 		CommandMonitor: li.monitor,
 		Database:       li.database,
 		Deployment:     li.deployment,
-		MaxTime:        li.maxTime,
 		Selector:       li.selector,
 		Crypt:          li.crypt,
 		Legacy:         driver.LegacyListIndexes,
@@ -112,16 +110,6 @@ func (li *ListIndexes) BatchSize(batchSize int32) *ListIndexes {
 	}
 
 	li.batchSize = &batchSize
-	return li
-}
-
-// MaxTime specifies the maximum amount of time to allow the query to run on the server.
-func (li *ListIndexes) MaxTime(maxTime *time.Duration) *ListIndexes {
-	if li == nil {
-		li = new(ListIndexes)
-	}
-
-	li.maxTime = maxTime
 	return li
 }
 

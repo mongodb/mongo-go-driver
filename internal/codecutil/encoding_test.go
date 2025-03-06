@@ -10,24 +10,16 @@ import (
 	"io"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/bson/bsonrw"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/require"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
 )
 
 func testEncFn(t *testing.T) EncoderFn {
 	t.Helper()
 
-	return func(w io.Writer) (*bson.Encoder, error) {
-		rw, err := bsonrw.NewBSONValueWriter(w)
-		require.NoError(t, err, "failed to construct BSONValue writer")
-
-		enc, err := bson.NewEncoder(rw)
-		require.NoError(t, err, "failed to construct encoder")
-
-		return enc, nil
+	return func(w io.Writer) *bson.Encoder {
+		rw := bson.NewDocumentWriter(w)
+		return bson.NewEncoder(rw)
 	}
 }
 
@@ -37,7 +29,7 @@ func TestMarshalValue(t *testing.T) {
 	tests := []struct {
 		name     string
 		val      interface{}
-		registry *bsoncodec.Registry
+		registry *bson.Registry
 		encFn    EncoderFn
 		want     string
 		wantErr  error

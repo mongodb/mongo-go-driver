@@ -11,7 +11,7 @@ package eventtest
 import (
 	"sync"
 
-	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/v2/event"
 )
 
 // TestPoolMonitor exposes an *event.TestPoolMonitor and collects all events logged to that
@@ -72,7 +72,7 @@ func (tpm *TestPoolMonitor) ClearEvents() {
 // recorded by the testPoolMonitor.
 func (tpm *TestPoolMonitor) IsPoolCleared() bool {
 	poolClearedEvents := tpm.Events(func(evt *event.PoolEvent) bool {
-		return evt.Type == event.PoolCleared
+		return evt.Type == event.ConnectionPoolCleared
 	})
 	return len(poolClearedEvents) > 0
 }

@@ -16,72 +16,28 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/bson/bsonrw"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/require"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
-
-var tInt32 = reflect.TypeOf(int32(0))
-
-func TestMarshalAppendWithRegistry(t *testing.T) {
-	for _, tc := range marshalingTestCases {
-		t.Run(tc.name, func(t *testing.T) {
-			dst := make([]byte, 0, 1024)
-			var reg *bsoncodec.Registry
-			if tc.reg != nil {
-				reg = tc.reg
-			} else {
-				reg = DefaultRegistry
-			}
-			got, err := MarshalAppendWithRegistry(reg, dst, tc.val)
-			noerr(t, err)
-
-			if !bytes.Equal(got, tc.want) {
-				t.Errorf("Bytes are not equal. got %v; want %v", got, tc.want)
-				t.Errorf("Bytes:\n%v\n%v", got, tc.want)
-			}
-		})
-	}
-}
-
-func TestMarshalAppendWithContext(t *testing.T) {
-	for _, tc := range marshalingTestCases {
-		t.Run(tc.name, func(t *testing.T) {
-			dst := make([]byte, 0, 1024)
-			var reg *bsoncodec.Registry
-			if tc.reg != nil {
-				reg = tc.reg
-			} else {
-				reg = DefaultRegistry
-			}
-			ec := bsoncodec.EncodeContext{Registry: reg}
-			got, err := MarshalAppendWithContext(ec, dst, tc.val)
-			noerr(t, err)
-
-			if !bytes.Equal(got, tc.want) {
-				t.Errorf("Bytes are not equal. got %v; want %v", got, tc.want)
-				t.Errorf("Bytes:\n%v\n%v", got, tc.want)
-			}
-		})
-	}
-}
 
 func TestMarshalWithRegistry(t *testing.T) {
 	for _, tc := range marshalingTestCases {
 		t.Run(tc.name, func(t *testing.T) {
-			var reg *bsoncodec.Registry
+			var reg *Registry
 			if tc.reg != nil {
 				reg = tc.reg
 			} else {
-				reg = DefaultRegistry
+				reg = defaultRegistry
 			}
-			got, err := MarshalWithRegistry(reg, tc.val)
+			buf := new(bytes.Buffer)
+			vw := NewDocumentWriter(buf)
+			enc := NewEncoder(vw)
+			enc.SetRegistry(reg)
+			err := enc.Encode(tc.val)
 			noerr(t, err)
 
-			if !bytes.Equal(got, tc.want) {
+			if got := buf.Bytes(); !bytes.Equal(got, tc.want) {
 				t.Errorf("Bytes are not equal. got %v; want %v", got, tc.want)
 				t.Errorf("Bytes:\n%v\n%v", got, tc.want)
 			}
@@ -92,17 +48,21 @@ func TestMarshalWithRegistry(t *testing.T) {
 func TestMarshalWithContext(t *testing.T) {
 	for _, tc := range marshalingTestCases {
 		t.Run(tc.name, func(t *testing.T) {
-			var reg *bsoncodec.Registry
+			var reg *Registry
 			if tc.reg != nil {
 				reg = tc.reg
 			} else {
-				reg = DefaultRegistry
+				reg = defaultRegistry
 			}
-			ec := bsoncodec.EncodeContext{Registry: reg}
-			got, err := MarshalWithContext(ec, tc.val)
+			buf := new(bytes.Buffer)
+			vw := NewDocumentWriter(buf)
+			enc := NewEncoder(vw)
+			enc.IntMinSize()
+			enc.SetRegistry(reg)
+			err := enc.Encode(tc.val)
 			noerr(t, err)
 
-			if !bytes.Equal(got, tc.want) {
+			if got := buf.Bytes(); !bytes.Equal(got, tc.want) {
 				t.Errorf("Bytes are not equal. got %v; want %v", got, tc.want)
 				t.Errorf("Bytes:\n%v\n%v", got, tc.want)
 			}
@@ -110,46 +70,11 @@ func TestMarshalWithContext(t *testing.T) {
 	}
 }
 
-func TestMarshalAppend(t *testing.T) {
-	for _, tc := range marshalingTestCases {
-		t.Run(tc.name, func(t *testing.T) {
-			if tc.reg != nil {
-				t.Skip() // test requires custom registry
-			}
-			dst := make([]byte, 0, 1024)
-			got, err := MarshalAppend(dst, tc.val)
-			noerr(t, err)
-
-			if !bytes.Equal(got, tc.want) {
-				t.Errorf("Bytes are not equal. got %v; want %v", got, tc.want)
-				t.Errorf("Bytes:\n%v\n%v", got, tc.want)
-			}
-		})
-	}
-}
-
-func TestMarshalExtJSONAppendWithContext(t *testing.T) {
-	t.Run("MarshalExtJSONAppendWithContext", func(t *testing.T) {
-		dst := make([]byte, 0, 1024)
+func TestMarshalExtJSON(t *testing.T) {
+	t.Run("MarshalExtJSON", func(t *testing.T) {
 		type teststruct struct{ Foo int }
 		val := teststruct{1}
-		ec := bsoncodec.EncodeContext{Registry: DefaultRegistry}
-		got, err := MarshalExtJSONAppendWithContext(ec, dst, val, true, false)
-		noerr(t, err)
-		want := []byte(`{"foo":{"$numberInt":"1"}}`)
-		if !bytes.Equal(got, want) {
-			t.Errorf("Bytes are not equal. got %v; want %v", got, want)
-			t.Errorf("Bytes:\n%s\n%s", got, want)
-		}
-	})
-}
-
-func TestMarshalExtJSONWithContext(t *testing.T) {
-	t.Run("MarshalExtJSONWithContext", func(t *testing.T) {
-		type teststruct struct{ Foo int }
-		val := teststruct{1}
-		ec := bsoncodec.EncodeContext{Registry: DefaultRegistry}
-		got, err := MarshalExtJSONWithContext(ec, val, true, false)
+		got, err := MarshalExtJSON(val, true, false)
 		noerr(t, err)
 		want := []byte(`{"foo":{"$numberInt":"1"}}`)
 		if !bytes.Equal(got, want) {
@@ -204,7 +129,7 @@ func TestMarshal_roundtripFromDoc(t *testing.T) {
 	before := D{
 		{"foo", "bar"},
 		{"baz", int64(-27)},
-		{"bing", A{nil, primitive.Regex{Pattern: "word", Options: "i"}}},
+		{"bing", A{nil, Regex{Pattern: "word", Options: "i"}}},
 	}
 
 	b, err := Marshal(before)
@@ -224,16 +149,15 @@ func TestCachingEncodersNotSharedAcrossRegistries(t *testing.T) {
 	// different Registry is used.
 
 	// Create a custom Registry that negates int32 values when encoding.
-	var encodeInt32 bsoncodec.ValueEncoderFunc = func(_ bsoncodec.EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+	var encodeInt32 ValueEncoderFunc = func(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
 		if val.Kind() != reflect.Int32 {
 			return fmt.Errorf("expected kind to be int32, got %v", val.Kind())
 		}
 
 		return vw.WriteInt32(int32(val.Int()) * -1)
 	}
-	customReg := NewRegistryBuilder().
-		RegisterTypeEncoder(tInt32, encodeInt32).
-		Build()
+	customReg := NewRegistry()
+	customReg.RegisterTypeEncoder(tInt32, encodeInt32)
 
 	// Helper function to run the test and make assertions. The provided original value should result in the document
 	// {"x": {$numberInt: 1}} when marshalled with the default registry.
@@ -248,8 +172,13 @@ func TestCachingEncodersNotSharedAcrossRegistries(t *testing.T) {
 		))
 		assert.Equal(t, expectedFirst, Raw(first), "expected document %v, got %v", expectedFirst, Raw(first))
 
-		second, err := MarshalWithRegistry(customReg, original)
-		assert.Nil(t, err, "Marshal error: %v", err)
+		buf := new(bytes.Buffer)
+		vw := NewDocumentWriter(buf)
+		enc := NewEncoder(vw)
+		enc.SetRegistry(customReg)
+		err = enc.Encode(original)
+		assert.Nil(t, err, "Encode error: %v", err)
+		second := buf.Bytes()
 		expectedSecond := Raw(bsoncore.BuildDocumentFromElements(
 			nil,
 			bsoncore.AppendInt32Element(nil, "x", -1),
@@ -294,7 +223,7 @@ func TestNullBytes(t *testing.T) {
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				regex := primitive.Regex{
+				regex := Regex{
 					Pattern: tc.pattern,
 					Options: tc.options,
 				}

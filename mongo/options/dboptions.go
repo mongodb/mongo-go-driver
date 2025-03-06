@@ -7,98 +7,100 @@
 package options
 
 import (
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 )
 
-// DatabaseOptions represents options that can be used to configure a Database.
+// DatabaseOptions represents arguments that can be used to configure a
+// database.
+//
+// See corresponding setter methods for documentation.
 type DatabaseOptions struct {
-	// ReadConcern is the read concern to use for operations executed on the Database. The default value is nil, which means that
-	// the read concern of the Client used to configure the Database will be used.
-	ReadConcern *readconcern.ReadConcern
-
-	// WriteConcern is the write concern to use for operations executed on the Database. The default value is nil, which means that the
-	// write concern of the Client used to configure the Database will be used.
-	WriteConcern *writeconcern.WriteConcern
-
-	// ReadPreference is the read preference to use for operations executed on the Database. The default value is nil, which means that
-	// the read preference of the Client used to configure the Database will be used.
+	ReadConcern    *readconcern.ReadConcern
+	WriteConcern   *writeconcern.WriteConcern
 	ReadPreference *readpref.ReadPref
+	BSONOptions    *BSONOptions
+	Registry       *bson.Registry
+}
 
-	// BSONOptions configures optional BSON marshaling and unmarshaling
-	// behavior.
-	BSONOptions *BSONOptions
-
-	// Registry is the BSON registry to marshal and unmarshal documents for operations executed on the Database. The default value
-	// is nil, which means that the registry of the Client used to configure the Database will be used.
-	Registry *bsoncodec.Registry
+// DatabaseOptionsBuilder contains options to configure a database object. Each
+// option can be set through setter functions. See documentation for each setter
+// function for an explanation of the option.
+type DatabaseOptionsBuilder struct {
+	Opts []func(*DatabaseOptions) error
 }
 
 // Database creates a new DatabaseOptions instance.
-func Database() *DatabaseOptions {
-	return &DatabaseOptions{}
+func Database() *DatabaseOptionsBuilder {
+	return &DatabaseOptionsBuilder{}
 }
 
-// SetReadConcern sets the value for the ReadConcern field.
-func (d *DatabaseOptions) SetReadConcern(rc *readconcern.ReadConcern) *DatabaseOptions {
-	d.ReadConcern = rc
+// List returns a list of DatabaseOptions setter functions.
+func (d *DatabaseOptionsBuilder) List() []func(*DatabaseOptions) error {
+	return d.Opts
+}
+
+// SetReadConcern sets the value for the ReadConcern field. ReadConcern is the read concern
+// to use for operations executed on the Database. The default value is nil, which means that
+// the read concern of the Client used to configure the Database will be used.
+func (d *DatabaseOptionsBuilder) SetReadConcern(rc *readconcern.ReadConcern) *DatabaseOptionsBuilder {
+	d.Opts = append(d.Opts, func(opts *DatabaseOptions) error {
+		opts.ReadConcern = rc
+
+		return nil
+	})
+
 	return d
 }
 
-// SetWriteConcern sets the value for the WriteConcern field.
-func (d *DatabaseOptions) SetWriteConcern(wc *writeconcern.WriteConcern) *DatabaseOptions {
-	d.WriteConcern = wc
+// SetWriteConcern sets the value for the WriteConcern field. WriteConcern is the write concern
+// to use for operations executed on the Database. The default value is nil, which means that
+// the write concern of the Client used to configure the Database will be used.
+func (d *DatabaseOptionsBuilder) SetWriteConcern(wc *writeconcern.WriteConcern) *DatabaseOptionsBuilder {
+	d.Opts = append(d.Opts, func(opts *DatabaseOptions) error {
+		opts.WriteConcern = wc
+
+		return nil
+	})
+
 	return d
 }
 
-// SetReadPreference sets the value for the ReadPreference field.
-func (d *DatabaseOptions) SetReadPreference(rp *readpref.ReadPref) *DatabaseOptions {
-	d.ReadPreference = rp
+// SetReadPreference sets the value for the ReadPreference field. ReadPreference is the read
+// preference to use for operations executed on the Database. The default value is nil, which
+// means that the read preference of the Client used to configure the Database will be used.
+func (d *DatabaseOptionsBuilder) SetReadPreference(rp *readpref.ReadPref) *DatabaseOptionsBuilder {
+	d.Opts = append(d.Opts, func(opts *DatabaseOptions) error {
+		opts.ReadPreference = rp
+
+		return nil
+	})
+
 	return d
 }
 
-// SetBSONOptions configures optional BSON marshaling and unmarshaling behavior.
-func (d *DatabaseOptions) SetBSONOptions(opts *BSONOptions) *DatabaseOptions {
-	d.BSONOptions = opts
+// SetBSONOptions configures optional BSON marshaling and unmarshaling behavior. BSONOptions
+// configures optional BSON marshaling and unmarshaling behavior.
+func (d *DatabaseOptionsBuilder) SetBSONOptions(bopts *BSONOptions) *DatabaseOptionsBuilder {
+	d.Opts = append(d.Opts, func(opts *DatabaseOptions) error {
+		opts.BSONOptions = bopts
+
+		return nil
+	})
+
 	return d
 }
 
-// SetRegistry sets the value for the Registry field.
-func (d *DatabaseOptions) SetRegistry(r *bsoncodec.Registry) *DatabaseOptions {
-	d.Registry = r
-	return d
-}
+// SetRegistry sets the value for the Registry field. Registry is the BSON registry to marshal and
+// unmarshal documents for operations executed on the Database. The default value is nil, which
+// means that the registry of the Client used to configure the Database will be used.
+func (d *DatabaseOptionsBuilder) SetRegistry(r *bson.Registry) *DatabaseOptionsBuilder {
+	d.Opts = append(d.Opts, func(opts *DatabaseOptions) error {
+		opts.Registry = r
 
-// MergeDatabaseOptions combines the given DatabaseOptions instances into a single DatabaseOptions in a last-one-wins
-// fashion.
-//
-// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
-// single options struct instead.
-func MergeDatabaseOptions(opts ...*DatabaseOptions) *DatabaseOptions {
-	d := Database()
-
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.ReadConcern != nil {
-			d.ReadConcern = opt.ReadConcern
-		}
-		if opt.WriteConcern != nil {
-			d.WriteConcern = opt.WriteConcern
-		}
-		if opt.ReadPreference != nil {
-			d.ReadPreference = opt.ReadPreference
-		}
-		if opt.Registry != nil {
-			d.Registry = opt.Registry
-		}
-		if opt.BSONOptions != nil {
-			d.BSONOptions = opt.BSONOptions
-		}
-	}
-
+		return nil
+	})
 	return d
 }

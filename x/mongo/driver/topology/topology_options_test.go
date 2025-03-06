@@ -13,10 +13,10 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/require"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 )
 
 func TestDirectConnectionFromConnString(t *testing.T) {
@@ -76,7 +76,7 @@ func TestLoadBalancedFromConnString(t *testing.T) {
 			assert.Nil(t, err, "topology.New error: %v", err)
 			assert.Equal(t, tc.loadBalanced, topo.cfg.LoadBalanced, "expected loadBalanced %v, got %v", tc.loadBalanced, topo.cfg.LoadBalanced)
 
-			srvr := NewServer("", topo.id, topo.cfg.ServerOpts...)
+			srvr := NewServer("", topo.id, defaultConnectionTimeout, topo.cfg.ServerOpts...)
 			assert.Equal(t, tc.loadBalanced, srvr.cfg.loadBalanced, "expected loadBalanced %v, got %v", tc.loadBalanced, srvr.cfg.loadBalanced)
 
 			conn := newConnection("", srvr.cfg.connectionOpts...)

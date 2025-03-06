@@ -9,7 +9,7 @@ package address
 import (
 	"testing"
 
-	"go.mongodb.org/mongo-driver/internal/require"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
 )
 
 func TestAddress_String(t *testing.T) {
@@ -22,6 +22,7 @@ func TestAddress_String(t *testing.T) {
 		{"A:27017", "a:27017"},
 		{"a:27017", "a:27017"},
 		{"a.sock", "a.sock"},
+		{"A.sock", "A.sock"},
 	}
 
 	for _, test := range tests {

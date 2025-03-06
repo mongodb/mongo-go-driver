@@ -10,9 +10,9 @@ import (
 	"context"
 	"net/http"
 
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
 )
 
 // MongoDBX509 is the mechanism name for MongoDBX509.
@@ -55,7 +55,7 @@ func createFirstX509Message() bsoncore.Document {
 
 // Finish implements the SpeculativeConversation interface and is a no-op because an X509 conversation only has one
 // step.
-func (c *x509Conversation) Finish(context.Context, *Config, bsoncore.Document) error {
+func (c *x509Conversation) Finish(context.Context, *driver.AuthConfig, bsoncore.Document) error {
 	return nil
 }
 
@@ -65,7 +65,7 @@ func (a *MongoDBX509Authenticator) CreateSpeculativeConversation() (SpeculativeC
 }
 
 // Auth authenticates the provided connection by conducting an X509 authentication conversation.
-func (a *MongoDBX509Authenticator) Auth(ctx context.Context, cfg *Config) error {
+func (a *MongoDBX509Authenticator) Auth(ctx context.Context, cfg *driver.AuthConfig) error {
 	requestDoc := createFirstX509Message()
 	authCmd := operation.
 		NewCommand(requestDoc).

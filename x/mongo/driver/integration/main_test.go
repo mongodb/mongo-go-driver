@@ -14,16 +14,16 @@ import (
 	"strings"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/internal/integtest"
-	"go.mongodb.org/mongo-driver/internal/require"
-	"go.mongodb.org/mongo-driver/mongo/description"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
+	"go.mongodb.org/mongo-driver/v2/internal/integtest"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/auth"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/topology"
 )
 
 var host *string
@@ -119,19 +119,19 @@ func addCompressorToURI(uri string) string {
 	return uri + "compressors=" + comp
 }
 
-// runCommand runs an arbitrary command on a given database of target server
-func runCommand(s driver.Server, db string, cmd bsoncore.Document) (bsoncore.Document, error) {
+// runCommand runs an arbitrary command on a given database of the target
+// server.
+func runCommand(s driver.Server, db string, cmd bsoncore.Document) error {
 	op := operation.NewCommand(cmd).
-		Database(db).Deployment(driver.SingleServerDeployment{Server: s})
-	err := op.Execute(context.Background())
-	res := op.Result()
-	return res, err
+		Database(db).
+		Deployment(driver.SingleServerDeployment{Server: s})
+	return op.Execute(context.Background())
 }
 
 // dropCollection drops the collection in the test cluster.
 func dropCollection(t *testing.T, dbname, colname string) {
 	err := operation.NewCommand(bsoncore.BuildDocument(nil, bsoncore.AppendStringElement(nil, "drop", colname))).
-		Database(dbname).ServerSelector(description.WriteSelector()).Deployment(integtest.Topology(t)).
+		Database(dbname).ServerSelector(&serverselector.Write{}).Deployment(integtest.Topology(t)).
 		Execute(context.Background())
 	if de, ok := err.(driver.Error); err != nil && !(ok && de.NamespaceNotFound()) {
 		require.NoError(t, err)
@@ -149,7 +149,7 @@ func insertDocs(t *testing.T, dbname, colname string, writeConcern *writeconcern
 		Collection(colname).
 		Database(dbname).
 		Deployment(integtest.Topology(t)).
-		ServerSelector(description.WriteSelector()).
+		ServerSelector(&serverselector.Write{}).
 		WriteConcern(writeConcern).
 		Execute(context.Background())
 	require.NoError(t, err)

@@ -7,8 +7,7 @@
 package options
 
 import (
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 // These constants specify valid values for QueryType
@@ -18,6 +17,8 @@ const (
 )
 
 // RangeOptions specifies index options for a Queryable Encryption field supporting "range" queries.
+//
+// See corresponding setter methods for documentation.
 type RangeOptions struct {
 	Min        *bson.RawValue
 	Max        *bson.RawValue
@@ -26,30 +27,125 @@ type RangeOptions struct {
 	Precision  *int32
 }
 
-// EncryptOptions represents options to explicitly encrypt a value.
+// RangeOptionsBuilder contains options to configure Rangeopts for queryeable
+// encryption. Each option can be set through setter functions. See
+// documentation for each setter function for an explanation of the option.
+type RangeOptionsBuilder struct {
+	Opts []func(*RangeOptions) error
+}
+
+// Range creates a new RangeOptions instance.
+func Range() *RangeOptionsBuilder {
+	return &RangeOptionsBuilder{}
+}
+
+// List returns a list of RangeOptions setter functions.
+func (ro *RangeOptionsBuilder) List() []func(*RangeOptions) error {
+	return ro.Opts
+}
+
+// SetMin sets the range index minimum value.
+func (ro *RangeOptionsBuilder) SetMin(min bson.RawValue) *RangeOptionsBuilder {
+	ro.Opts = append(ro.Opts, func(opts *RangeOptions) error {
+		opts.Min = &min
+
+		return nil
+	})
+
+	return ro
+}
+
+// SetMax sets the range index maximum value.
+func (ro *RangeOptionsBuilder) SetMax(max bson.RawValue) *RangeOptionsBuilder {
+	ro.Opts = append(ro.Opts, func(opts *RangeOptions) error {
+		opts.Max = &max
+
+		return nil
+	})
+
+	return ro
+}
+
+// SetSparsity sets the range index sparsity.
+func (ro *RangeOptionsBuilder) SetSparsity(sparsity int64) *RangeOptionsBuilder {
+	ro.Opts = append(ro.Opts, func(opts *RangeOptions) error {
+		opts.Sparsity = &sparsity
+
+		return nil
+	})
+
+	return ro
+}
+
+// SetTrimFactor sets the range index trim factor.
+func (ro *RangeOptionsBuilder) SetTrimFactor(trimFactor int32) *RangeOptionsBuilder {
+	ro.Opts = append(ro.Opts, func(opts *RangeOptions) error {
+		opts.TrimFactor = &trimFactor
+
+		return nil
+	})
+
+	return ro
+}
+
+// SetPrecision sets the range index precision.
+func (ro *RangeOptionsBuilder) SetPrecision(precision int32) *RangeOptionsBuilder {
+	ro.Opts = append(ro.Opts, func(opts *RangeOptions) error {
+		opts.Precision = &precision
+
+		return nil
+	})
+
+	return ro
+}
+
+// EncryptOptions represents arguments to explicitly encrypt a value.
+//
+// See corresponding setter methods for documentation.
 type EncryptOptions struct {
-	KeyID            *primitive.Binary
+	KeyID            *bson.Binary
 	KeyAltName       *string
 	Algorithm        string
 	QueryType        string
 	ContentionFactor *int64
-	RangeOptions     *RangeOptions
+	RangeOptions     *RangeOptionsBuilder
+}
+
+// EncryptOptionsBuilder contains options to configure Encryptopts for
+// queryeable encryption. Each option can be set through setter functions. See
+// documentation for each setter function for an explanation of the option.
+type EncryptOptionsBuilder struct {
+	Opts []func(*EncryptOptions) error
+}
+
+// List returns a list of EncryptOptions setter functions.
+func (e *EncryptOptionsBuilder) List() []func(*EncryptOptions) error {
+	return e.Opts
 }
 
 // Encrypt creates a new EncryptOptions instance.
-func Encrypt() *EncryptOptions {
-	return &EncryptOptions{}
+func Encrypt() *EncryptOptionsBuilder {
+	return &EncryptOptionsBuilder{}
 }
 
-// SetKeyID specifies an _id of a data key. This should be a UUID (a primitive.Binary with subtype 4).
-func (e *EncryptOptions) SetKeyID(keyID primitive.Binary) *EncryptOptions {
-	e.KeyID = &keyID
+// SetKeyID specifies an _id of a data key. This should be a UUID (a bson.Binary with subtype 4).
+func (e *EncryptOptionsBuilder) SetKeyID(keyID bson.Binary) *EncryptOptionsBuilder {
+	e.Opts = append(e.Opts, func(opts *EncryptOptions) error {
+		opts.KeyID = &keyID
+
+		return nil
+	})
 	return e
 }
 
 // SetKeyAltName identifies a key vault document by 'keyAltName'.
-func (e *EncryptOptions) SetKeyAltName(keyAltName string) *EncryptOptions {
-	e.KeyAltName = &keyAltName
+func (e *EncryptOptionsBuilder) SetKeyAltName(keyAltName string) *EncryptOptionsBuilder {
+	e.Opts = append(e.Opts, func(opts *EncryptOptions) error {
+		opts.KeyAltName = &keyAltName
+
+		return nil
+	})
+
 	return e
 }
 
@@ -61,8 +157,13 @@ func (e *EncryptOptions) SetKeyAltName(keyAltName string) *EncryptOptions {
 // - Range
 // This is required.
 // Indexed and Unindexed are used for Queryable Encryption.
-func (e *EncryptOptions) SetAlgorithm(algorithm string) *EncryptOptions {
-	e.Algorithm = algorithm
+func (e *EncryptOptionsBuilder) SetAlgorithm(algorithm string) *EncryptOptionsBuilder {
+	e.Opts = append(e.Opts, func(opts *EncryptOptions) error {
+		opts.Algorithm = algorithm
+
+		return nil
+	})
+
 	return e
 }
 
@@ -70,84 +171,35 @@ func (e *EncryptOptions) SetAlgorithm(algorithm string) *EncryptOptions {
 // This should be one of the following:
 // - equality
 // QueryType is used for Queryable Encryption.
-func (e *EncryptOptions) SetQueryType(queryType string) *EncryptOptions {
-	e.QueryType = queryType
+func (e *EncryptOptionsBuilder) SetQueryType(queryType string) *EncryptOptionsBuilder {
+	e.Opts = append(e.Opts, func(opts *EncryptOptions) error {
+		opts.QueryType = queryType
+
+		return nil
+	})
+
 	return e
 }
 
 // SetContentionFactor specifies the contention factor. It is only valid to set if algorithm is "Indexed".
 // ContentionFactor is used for Queryable Encryption.
-func (e *EncryptOptions) SetContentionFactor(contentionFactor int64) *EncryptOptions {
-	e.ContentionFactor = &contentionFactor
+func (e *EncryptOptionsBuilder) SetContentionFactor(contentionFactor int64) *EncryptOptionsBuilder {
+	e.Opts = append(e.Opts, func(opts *EncryptOptions) error {
+		opts.ContentionFactor = &contentionFactor
+
+		return nil
+	})
+
 	return e
 }
 
-// SetRangeOptions specifies the options to use for explicit encryption with range. It is only valid to set if algorithm is "Range".
-func (e *EncryptOptions) SetRangeOptions(ro RangeOptions) *EncryptOptions {
-	e.RangeOptions = &ro
+// SetRangeOptions specifies the options to use for explicit encryption with range. It is only valid to set if algorithm is "range".
+func (e *EncryptOptionsBuilder) SetRangeOptions(ro *RangeOptionsBuilder) *EncryptOptionsBuilder {
+	e.Opts = append(e.Opts, func(opts *EncryptOptions) error {
+		opts.RangeOptions = ro
+
+		return nil
+	})
+
 	return e
-}
-
-// SetMin sets the range index minimum value.
-func (ro *RangeOptions) SetMin(min bson.RawValue) *RangeOptions {
-	ro.Min = &min
-	return ro
-}
-
-// SetMax sets the range index maximum value.
-func (ro *RangeOptions) SetMax(max bson.RawValue) *RangeOptions {
-	ro.Max = &max
-	return ro
-}
-
-// SetSparsity sets the range index sparsity.
-func (ro *RangeOptions) SetSparsity(sparsity int64) *RangeOptions {
-	ro.Sparsity = &sparsity
-	return ro
-}
-
-// SetTrimFactor sets the range index trim factor.
-func (ro *RangeOptions) SetTrimFactor(trimFactor int32) *RangeOptions {
-	ro.TrimFactor = &trimFactor
-	return ro
-}
-
-// SetPrecision sets the range index precision.
-func (ro *RangeOptions) SetPrecision(precision int32) *RangeOptions {
-	ro.Precision = &precision
-	return ro
-}
-
-// MergeEncryptOptions combines the argued EncryptOptions in a last-one wins fashion.
-//
-// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
-// single options struct instead.
-func MergeEncryptOptions(opts ...*EncryptOptions) *EncryptOptions {
-	eo := Encrypt()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-
-		if opt.KeyID != nil {
-			eo.KeyID = opt.KeyID
-		}
-		if opt.KeyAltName != nil {
-			eo.KeyAltName = opt.KeyAltName
-		}
-		if opt.Algorithm != "" {
-			eo.Algorithm = opt.Algorithm
-		}
-		if opt.QueryType != "" {
-			eo.QueryType = opt.QueryType
-		}
-		if opt.ContentionFactor != nil {
-			eo.ContentionFactor = opt.ContentionFactor
-		}
-		if opt.RangeOptions != nil {
-			eo.RangeOptions = opt.RangeOptions
-		}
-	}
-
-	return eo
 }

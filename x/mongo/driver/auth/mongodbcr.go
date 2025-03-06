@@ -17,10 +17,10 @@ import (
 	/* #nosec G501 */
 	"crypto/md5"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
 )
 
 // MONGODBCR is the mechanism name for MONGODB-CR.
@@ -55,7 +55,7 @@ type MongoDBCRAuthenticator struct {
 //
 // The MONGODB-CR authentication mechanism is deprecated in MongoDB 3.6 and removed in
 // MongoDB 4.0.
-func (a *MongoDBCRAuthenticator) Auth(ctx context.Context, cfg *Config) error {
+func (a *MongoDBCRAuthenticator) Auth(ctx context.Context, cfg *driver.AuthConfig) error {
 
 	db := a.DB
 	if db == "" {
@@ -65,7 +65,7 @@ func (a *MongoDBCRAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 	doc := bsoncore.BuildDocumentFromElements(nil, bsoncore.AppendInt32Element(nil, "getnonce", 1))
 	cmd := operation.NewCommand(doc).
 		Database(db).
-		Deployment(driver.SingleConnectionDeployment{cfg.Connection}).
+		Deployment(driver.SingleConnectionDeployment{C: cfg.Connection}).
 		ClusterClock(cfg.ClusterClock).
 		ServerAPI(cfg.ServerAPI)
 	err := cmd.Execute(ctx)
@@ -91,7 +91,7 @@ func (a *MongoDBCRAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 	)
 	cmd = operation.NewCommand(doc).
 		Database(db).
-		Deployment(driver.SingleConnectionDeployment{cfg.Connection}).
+		Deployment(driver.SingleConnectionDeployment{C: cfg.Connection}).
 		ClusterClock(cfg.ClusterClock).
 		ServerAPI(cfg.ServerAPI)
 	err = cmd.Execute(ctx)

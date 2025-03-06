@@ -20,8 +20,8 @@ defaults:
 
 env:
   # Changes per branch
-  SILK_ASSET_GROUP: mongodb-go-driver-v1
-  EVERGREEN_PROJECT: mongo-go-driver-v1
+  SILK_ASSET_GROUP: mongodb-go-driver
+  EVERGREEN_PROJECT: mongo-go-driver
 
 jobs:
   pre-publish:

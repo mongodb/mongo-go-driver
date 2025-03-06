@@ -12,16 +12,15 @@ import (
 	"fmt"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/driverutil"
-	"go.mongodb.org/mongo-driver/internal/logger"
-	"go.mongodb.org/mongo-driver/mongo/description"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/internal/logger"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
 // Update performs an update operation.
@@ -47,7 +46,6 @@ type Update struct {
 	serverAPI                *driver.ServerAPIOptions
 	let                      bsoncore.Document
 	timeout                  *time.Duration
-	bypassEmptyTsReplacement *bool
 	logger                   *logger.Logger
 }
 
@@ -177,11 +175,11 @@ func (u *Update) Execute(ctx context.Context) error {
 func (u *Update) command(dst []byte, desc description.SelectedServer) ([]byte, error) {
 	dst = bsoncore.AppendStringElement(dst, "update", u.collection)
 	if u.bypassDocumentValidation != nil &&
-		(desc.WireVersion != nil && desc.WireVersion.Includes(4)) {
+		(desc.WireVersion != nil && driverutil.VersionRangeIncludes(*desc.WireVersion, 4)) {
 
 		dst = bsoncore.AppendBooleanElement(dst, "bypassDocumentValidation", *u.bypassDocumentValidation)
 	}
-	if u.comment.Type != bsontype.Type(0) {
+	if u.comment.Type != bsoncore.Type(0) {
 		dst = bsoncore.AppendValueElement(dst, "comment", u.comment)
 	}
 	if u.ordered != nil {
@@ -190,7 +188,7 @@ func (u *Update) command(dst []byte, desc description.SelectedServer) ([]byte, e
 	}
 	if u.hint != nil && *u.hint {
 
-		if desc.WireVersion == nil || !desc.WireVersion.Includes(5) {
+		if desc.WireVersion == nil || !driverutil.VersionRangeIncludes(*desc.WireVersion, 5) {
 			return nil, errors.New("the 'hint' command parameter requires a minimum server wire version of 5")
 		}
 		if !u.writeConcern.Acknowledged() {
@@ -198,15 +196,12 @@ func (u *Update) command(dst []byte, desc description.SelectedServer) ([]byte, e
 		}
 	}
 	if u.arrayFilters != nil && *u.arrayFilters {
-		if desc.WireVersion == nil || !desc.WireVersion.Includes(6) {
+		if desc.WireVersion == nil || !driverutil.VersionRangeIncludes(*desc.WireVersion, 6) {
 			return nil, errors.New("the 'arrayFilters' command parameter requires a minimum server wire version of 6")
 		}
 	}
 	if u.let != nil {
 		dst = bsoncore.AppendDocumentElement(dst, "let", u.let)
-	}
-	if u.bypassEmptyTsReplacement != nil {
-		dst = bsoncore.AppendBooleanElement(dst, "bypassEmptyTsReplacement", *u.bypassEmptyTsReplacement)
 	}
 
 	return dst, nil
@@ -428,15 +423,5 @@ func (u *Update) Authenticator(authenticator driver.Authenticator) *Update {
 	}
 
 	u.authenticator = authenticator
-	return u
-}
-
-// BypassEmptyTsReplacement sets the bypassEmptyTsReplacement to use for this operation.
-func (u *Update) BypassEmptyTsReplacement(bypassEmptyTsReplacement bool) *Update {
-	if u == nil {
-		u = new(Update)
-	}
-
-	u.bypassEmptyTsReplacement = &bypassEmptyTsReplacement
 	return u
 }

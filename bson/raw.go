@@ -10,7 +10,7 @@ import (
 	"errors"
 	"io"
 
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 // ErrNilReader indicates that an operation was attempted on a nil bson.Reader.
@@ -27,14 +27,6 @@ type Raw []byte
 func ReadDocument(r io.Reader) (Raw, error) {
 	doc, err := bsoncore.NewDocumentFromReader(r)
 	return Raw(doc), err
-}
-
-// NewFromIOReader reads a BSON document from the io.Reader and returns it as a bson.Raw. If the
-// reader contains multiple BSON documents, only the first document is read.
-//
-// Deprecated: Use ReadDocument instead.
-func NewFromIOReader(r io.Reader) (Raw, error) {
-	return ReadDocument(r)
 }
 
 // Validate validates the document. This method only validates the first document in

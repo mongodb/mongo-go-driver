@@ -15,10 +15,9 @@ import (
 	"strings"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt/options"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mongocrypt"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mongocrypt/options"
 )
 
 const (
@@ -174,11 +173,11 @@ func (c *crypt) RewrapDataKey(ctx context.Context, filter []byte,
 
 	rewrappedDocuments := []bsoncore.Document{}
 	for _, rewrappedDocumentValue := range rewrappedDocumentValues {
-		if rewrappedDocumentValue.Type != bsontype.EmbeddedDocument {
+		if rewrappedDocumentValue.Type != bsoncore.TypeEmbeddedDocument {
 			// If a value in the document's array returned by mongocrypt is anything other than an embedded document,
 			// then something is wrong and we should terminate the routine.
 			return nil, fmt.Errorf("expected value of type %q, got: %q",
-				bsontype.EmbeddedDocument.String(),
+				bsoncore.TypeEmbeddedDocument.String(),
 				rewrappedDocumentValue.Type.String())
 		}
 		rewrappedDocuments = append(rewrappedDocuments, rewrappedDocumentValue.Document())

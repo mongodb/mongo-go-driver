@@ -7,14 +7,10 @@
 package options
 
 import (
-	"fmt"
-	"reflect"
-	"strconv"
-
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
+
+var defaultRegistry = bson.NewRegistry()
 
 // Collation allows users to specify language-specific rules for string comparison, such as
 // rules for lettercase and accent marks.
@@ -28,42 +24,6 @@ type Collation struct {
 	MaxVariable     string `bson:",omitempty"` // Which characters are affected by alternate: "shifted"
 	Normalization   bool   `bson:",omitempty"` // Causes text to be normalized into Unicode NFD
 	Backwards       bool   `bson:",omitempty"` // Causes secondary differences to be considered in reverse order, as it is done in the French language
-}
-
-// ToDocument converts the Collation to a bson.Raw.
-//
-// Deprecated: Marshaling a Collation to BSON will not be supported in Go Driver 2.0.
-func (co *Collation) ToDocument() bson.Raw {
-	idx, doc := bsoncore.AppendDocumentStart(nil)
-	if co.Locale != "" {
-		doc = bsoncore.AppendStringElement(doc, "locale", co.Locale)
-	}
-	if co.CaseLevel {
-		doc = bsoncore.AppendBooleanElement(doc, "caseLevel", true)
-	}
-	if co.CaseFirst != "" {
-		doc = bsoncore.AppendStringElement(doc, "caseFirst", co.CaseFirst)
-	}
-	if co.Strength != 0 {
-		doc = bsoncore.AppendInt32Element(doc, "strength", int32(co.Strength))
-	}
-	if co.NumericOrdering {
-		doc = bsoncore.AppendBooleanElement(doc, "numericOrdering", true)
-	}
-	if co.Alternate != "" {
-		doc = bsoncore.AppendStringElement(doc, "alternate", co.Alternate)
-	}
-	if co.MaxVariable != "" {
-		doc = bsoncore.AppendStringElement(doc, "maxVariable", co.MaxVariable)
-	}
-	if co.Normalization {
-		doc = bsoncore.AppendBooleanElement(doc, "normalization", true)
-	}
-	if co.Backwards {
-		doc = bsoncore.AppendBooleanElement(doc, "backwards", true)
-	}
-	doc, _ = bsoncore.AppendDocumentEnd(doc, idx)
-	return doc
 }
 
 // CursorType specifies whether a cursor should close when the last data is retrieved. See
@@ -108,76 +68,3 @@ const (
 	// if the post-image for this event is available.
 	WhenAvailable FullDocument = "whenAvailable"
 )
-
-// TODO(GODRIVER-2617): Once Registry is removed, ArrayFilters doesn't need to
-// TODO be a separate type. Remove the type and update all ArrayFilters fields
-// TODO to be type []interface{}.
-
-// ArrayFilters is used to hold filters for the array filters CRUD option. If a registry is nil, bson.DefaultRegistry
-// will be used when converting the filter interfaces to BSON.
-type ArrayFilters struct {
-	// Registry is the registry to use for converting filters. Defaults to bson.DefaultRegistry.
-	//
-	// Deprecated: Marshaling ArrayFilters to BSON will not be supported in Go Driver 2.0.
-	Registry *bsoncodec.Registry
-
-	Filters []interface{} // The filters to apply
-}
-
-// ToArray builds a []bson.Raw from the provided ArrayFilters.
-//
-// Deprecated: Marshaling ArrayFilters to BSON will not be supported in Go Driver 2.0.
-func (af *ArrayFilters) ToArray() ([]bson.Raw, error) {
-	registry := af.Registry
-	if registry == nil {
-		registry = bson.DefaultRegistry
-	}
-	filters := make([]bson.Raw, 0, len(af.Filters))
-	for _, f := range af.Filters {
-		filter, err := bson.MarshalWithRegistry(registry, f)
-		if err != nil {
-			return nil, err
-		}
-		filters = append(filters, filter)
-	}
-	return filters, nil
-}
-
-// ToArrayDocument builds a BSON array for the array filters CRUD option. If the registry for af is nil,
-// bson.DefaultRegistry will be used when converting the filter interfaces to BSON.
-//
-// Deprecated: Marshaling ArrayFilters to BSON will not be supported in Go Driver 2.0.
-func (af *ArrayFilters) ToArrayDocument() (bson.Raw, error) {
-	registry := af.Registry
-	if registry == nil {
-		registry = bson.DefaultRegistry
-	}
-
-	idx, arr := bsoncore.AppendArrayStart(nil)
-	for i, f := range af.Filters {
-		filter, err := bson.MarshalWithRegistry(registry, f)
-		if err != nil {
-			return nil, err
-		}
-
-		arr = bsoncore.AppendDocumentElement(arr, strconv.Itoa(i), filter)
-	}
-	arr, _ = bsoncore.AppendArrayEnd(arr, idx)
-	return arr, nil
-}
-
-// MarshalError is returned when attempting to transform a value into a document
-// results in an error.
-//
-// Deprecated: MarshalError is unused and will be removed in Go Driver 2.0.
-type MarshalError struct {
-	Value interface{}
-	Err   error
-}
-
-// Error implements the error interface.
-//
-// Deprecated: MarshalError is unused and will be removed in Go Driver 2.0.
-func (me MarshalError) Error() string {
-	return fmt.Sprintf("cannot transform type %s to a bson.Raw", reflect.TypeOf(me.Value))
-}

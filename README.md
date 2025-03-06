@@ -1,8 +1,8 @@
 <p align="center"><img src="etc/assets/mongo-gopher.png" width="250"></p>
 <p align="center">
-  <a href="https://goreportcard.com/report/go.mongodb.org/mongo-driver"><img src="https://goreportcard.com/badge/go.mongodb.org/mongo-driver"></a>
-  <a href="https://pkg.go.dev/go.mongodb.org/mongo-driver/mongo"><img src="etc/assets/godev-mongo-blue.svg" alt="docs"></a>
-  <a href="https://pkg.go.dev/go.mongodb.org/mongo-driver/bson"><img src="etc/assets/godev-bson-blue.svg" alt="docs"></a>
+  <a href="https://goreportcard.com/report/go.mongodb.org/mongo-driver/v2"><img src="https://goreportcard.com/badge/go.mongodb.org/mongo-driver/v2"></a>
+  <a href="https://pkg.go.dev/go.mongodb.org/mongo-driver/v2/mongo"><img src="etc/assets/godev-mongo-blue.svg" alt="docs"></a>
+  <a href="https://pkg.go.dev/go.mongodb.org/mongo-driver/v2/bson"><img src="etc/assets/godev-bson-blue.svg" alt="docs"></a>
   <a href="https://www.mongodb.com/docs/drivers/go/current/"><img src="etc/assets/docs-mongodb-green.svg"></a>
 </p>
 
@@ -10,21 +10,16 @@
 
 The MongoDB supported driver for Go.
 
-> \[!NOTE\]
->
-> Go Driver 1.17.0 is the last planned 1.x version.
-> It will receive critical bug fixes, but future development and features
-> will be in the 2.x version of the driver.
+See the following resources to learn more about upgrading from version 1.x to 2.0.:
 
-______________________________________________________________________
+- [v2.0 Migration Guide](docs/migration-2.0.md)
+- [v2.0 What's New](https://www.mongodb.com/docs/drivers/go/upcoming/whats-new/#what-s-new-in-2.0)
 
 ## Requirements
 
 - Go 1.18 or higher. We aim to support the latest versions of Go.
 - Go 1.22 or higher is required to run the driver test suite.
 - MongoDB 3.6 and higher.
-
-______________________________________________________________________
 
 ## Installation
 
@@ -33,16 +28,14 @@ your project. This can be done either by importing packages from `go.mongodb.org
 step install the dependency or by explicitly running
 
 ```bash
-go get go.mongodb.org/mongo-driver/mongo
+go get go.mongodb.org/mongo-driver/v2/mongo
 ```
 
 When using a version of Go that does not support modules, the driver can be installed using `dep` by running
 
 ```bash
-dep ensure -add "go.mongodb.org/mongo-driver/mongo"
+dep ensure -add "go.mongodb.org/mongo-driver/v2/mongo"
 ```
-
-______________________________________________________________________
 
 ## Usage
 
@@ -53,14 +46,12 @@ import (
     "context"
     "time"
 
-    "go.mongodb.org/mongo-driver/mongo"
-    "go.mongodb.org/mongo-driver/mongo/options"
-    "go.mongodb.org/mongo-driver/mongo/readpref"
+    "go.mongodb.org/mongo-driver/v2/mongo"
+    "go.mongodb.org/mongo-driver/v2/mongo/options"
+    "go.mongodb.org/mongo-driver/v2/mongo/readpref"
 )
 
-ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-defer cancel()
-client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
+client, _ := mongo.Connect(options.Client().ApplyURI("mongodb://localhost:27017"))
 ```
 
 Make sure to defer a call to `Disconnect` after instantiating your client:
@@ -73,7 +64,7 @@ defer func() {
 }()
 ```
 
-For more advanced configuration and authentication, see the [documentation for mongo.Connect](https://pkg.go.dev/go.mongodb.org/mongo-driver/mongo#Connect).
+For more advanced configuration and authentication, see the [documentation for mongo.Connect](https://pkg.go.dev/go.mongodb.org/mongo-driver/v2/mongo#Connect).
 
 Calling `Connect` does not block for server discovery. If you wish to know if a MongoDB server has been found and connected to,
 use the `Ping` method:
@@ -81,7 +72,8 @@ use the `Ping` method:
 ```go
 ctx, cancel = context.WithTimeout(context.Background(), 2*time.Second)
 defer cancel()
-err = client.Ping(ctx, readpref.Primary())
+
+_ = client.Ping(ctx, readpref.Primary())
 ```
 
 To insert a document into a collection, first retrieve a `Database` and then `Collection` instance from the `Client`:
@@ -95,11 +87,12 @@ The `Collection` instance can then be used to insert documents:
 ```go
 ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
 defer cancel()
-res, err := collection.InsertOne(ctx, bson.D{{"name", "pi"}, {"value", 3.14159}})
+
+res, _ := collection.InsertOne(ctx, bson.D{{"name", "pi"}, {"value", 3.14159}})
 id := res.InsertedID
 ```
 
-To use `bson.D`, you will need to add `"go.mongodb.org/mongo-driver/bson"` to your imports.
+To use `bson.D`, you will need to add `"go.mongodb.org/mongo-driver/v2/bson"` to your imports.
 
 Your import statement should now look like this:
 
@@ -109,10 +102,10 @@ import (
     "log"
     "time"
 
-    "go.mongodb.org/mongo-driver/bson"
-    "go.mongodb.org/mongo-driver/mongo"
-    "go.mongodb.org/mongo-driver/mongo/options"
-    "go.mongodb.org/mongo-driver/mongo/readpref"
+    "go.mongodb.org/mongo-driver/v2/bson"
+    "go.mongodb.org/mongo-driver/v2/mongo"
+    "go.mongodb.org/mongo-driver/v2/mongo/options"
+    "go.mongodb.org/mongo-driver/v2/mongo/readpref"
 )
 ```
 
@@ -121,15 +114,22 @@ Several query methods return a cursor, which can be used like this:
 ```go
 ctx, cancel = context.WithTimeout(context.Background(), 30*time.Second)
 defer cancel()
+
 cur, err := collection.Find(ctx, bson.D{})
-if err != nil { log.Fatal(err) }
+if err != nil {
+  log.Fatal(err)
+}
+
 defer cur.Close(ctx)
 for cur.Next(ctx) {
     var result bson.D
-    err := cur.Decode(&result)
-    if err != nil { log.Fatal(err) }
+    if err := cur.Decode(&result); err != nil {
+      log.Fatal(err)
+    }
+
     // do something with result....
 }
+
 if err := cur.Err(); err != nil {
     log.Fatal(err)
 }
@@ -141,16 +141,18 @@ For methods that return a single item, a `SingleResult` instance is returned:
 var result struct {
     Value float64
 }
+
 filter := bson.D{{"name", "pi"}}
 ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
 defer cancel()
+
 err = collection.FindOne(ctx, filter).Decode(&result)
-if err == mongo.ErrNoDocuments {
+if errors.Is(err, mongo.ErrNoDocuments) {
     // Do something when no record was found
-    fmt.Println("record does not exist")
 } else if err != nil {
     log.Fatal(err)
 }
+
 // Do something with result...
 ```
 
@@ -172,19 +174,17 @@ Compression can be enabled using the `compressors` parameter on the connection s
 
 ```go
 opts := options.Client().ApplyURI("mongodb://localhost:27017/?compressors=snappy,zlib,zstd")
-client, _ := mongo.Connect(context.TODO(), opts)
+client, _ := mongo.Connect(opts)
 ```
 
 ```go
 opts := options.Client().SetCompressors([]string{"snappy", "zlib", "zstd"})
-client, _ := mongo.Connect(context.TODO(), opts)
+client, _ := mongo.Connect(opts)
 ```
 
 If compressors are set, the Go Driver negotiates with the server to select the first common compressor. For server configuration and defaults, refer to [`networkMessageCompressors`](https://www.mongodb.com/docs/manual/reference/program/mongod/#std-option-mongod.--networkMessageCompressors).
 
 Messages compress when both parties enable network compression; otherwise, messages remain uncompressed
-
-______________________________________________________________________
 
 ## Feedback
 
@@ -192,32 +192,22 @@ For help with the driver, please post in the [MongoDB Community Forums](https://
 
 New features and bugs can be reported on jira: https://jira.mongodb.org/browse/GODRIVER
 
-______________________________________________________________________
-
 ## Contribution
 
 Check out the [project page](https://jira.mongodb.org/browse/GODRIVER) for tickets that need completing. See our [contribution guidelines](docs/CONTRIBUTING.md) for details.
-
-______________________________________________________________________
 
 ## Continuous Integration
 
 Commits to master are run automatically on [evergreen](https://evergreen.mongodb.com/waterfall/mongo-go-driver).
 
-______________________________________________________________________
-
 ## Frequently Encountered Issues
 
 See our [common issues](docs/common-issues.md) documentation for troubleshooting frequently encountered issues.
-
-______________________________________________________________________
 
 ## Thanks and Acknowledgement
 
 - The Go Gopher artwork by [@ashleymcnamara](https://github.com/ashleymcnamara)
 - The original Go Gopher was designed by [Renee French](http://reneefrench.blogspot.com/)
-
-______________________________________________________________________
 
 ## License
 

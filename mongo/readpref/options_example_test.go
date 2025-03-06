@@ -7,12 +7,10 @@
 package readpref_test
 
 import (
-	"context"
-
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/tag"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/tag"
 )
 
 // Configure a Client with a read preference that selects the nearest replica
@@ -27,7 +25,7 @@ func ExampleWithTags() {
 		ApplyURI("mongodb://localhost:27017").
 		SetReadPreference(rp)
 
-	_, err := mongo.Connect(context.Background(), opts)
+	_, err := mongo.Connect(opts)
 	if err != nil {
 		panic(err)
 	}
@@ -55,7 +53,7 @@ func ExampleWithTagSets() {
 		ApplyURI("mongodb://localhost").
 		SetReadPreference(rp)
 
-	_, err := mongo.Connect(context.Background(), opts)
+	_, err := mongo.Connect(opts)
 	if err != nil {
 		panic(err)
 	}

@@ -9,6 +9,8 @@ debug
 *.sublime-workspace
 driver-test-data.tar.gz
 perf
+perf.json
+perf.suite
 **mongocryptd.pid
 *.test
 .DS_Store
@@ -19,14 +21,18 @@ install
 libmongocrypt
 venv
 test.suite
+go.work.sum
+.task
+env.sh
+expansion.yml
 
 # AWS SAM-generated files
-internal/test/faas/awslambda/.aws-sam
-internal/test/faas/awslambda/events/event.json
+internal/cmd/faas/awslambda/.aws-sam
+internal/cmd/faas/awslambda/events/event.json
 
 # Ignore compiled binaries from the compilecheck
-internal/test/compilecheck/compilecheck
-internal/test/compilecheck/compilecheck.so
+internal/cmd/compilecheck/compilecheck
+internal/cmd/compilecheck/compilecheck.so
 
 # Ignore api report files
 api-report.md
@@ -35,3 +41,4 @@ api-report.txt
 # Ignore secrets files
 secrets-expansion.yml
 secrets-export.sh
+.test.env

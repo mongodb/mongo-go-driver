@@ -11,7 +11,7 @@
 //
 // WARNING: THIS PACKAGE IS EXPERIMENTAL AND MAY BE MODIFIED OR REMOVED WITHOUT
 // NOTICE! USE WITH EXTREME CAUTION!
-package connstring // import "go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
+package connstring
 
 import (
 	"errors"
@@ -22,11 +22,10 @@ import (
 	"strings"
 	"time"
 
-	"go.mongodb.org/mongo-driver/internal/randutil"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/dns"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
+	"go.mongodb.org/mongo-driver/v2/internal/randutil"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/auth"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/dns"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage"
 )
 
 const (
@@ -188,10 +187,6 @@ type ConnString struct {
 	ZstdLevel                          int
 	ZstdLevelSet                       bool
 
-	WTimeout              time.Duration
-	WTimeoutSet           bool
-	WTimeoutSetFromOption bool
-
 	Options        map[string][]string
 	UnknownOptions map[string][]string
 }
@@ -222,7 +217,7 @@ func (u *ConnString) Validate() error {
 
 	// Check for invalid write concern (i.e. w=0 and j=true)
 	if u.WNumberSet && u.WNumber == 0 && u.JSet && u.J {
-		return writeconcern.ErrInconsistent
+		return errors.New("a write concern cannot have both w=0 and j=true")
 	}
 
 	// Check for invalid use of direct connections.
@@ -661,24 +656,6 @@ func (u *ConnString) addOptions(connectionArgPairs []string) error {
 
 			u.WString = value
 			u.WNumberSet = false
-
-		case "wtimeoutms":
-			n, err := strconv.Atoi(value)
-			if err != nil || n < 0 {
-				return fmt.Errorf("invalid value for %q: %q", key, value)
-			}
-			u.WTimeout = time.Duration(n) * time.Millisecond
-			u.WTimeoutSet = true
-		case "wtimeout":
-			// Defer to wtimeoutms, but not to a manually-set option.
-			if u.WTimeoutSet {
-				break
-			}
-			n, err := strconv.Atoi(value)
-			if err != nil || n < 0 {
-				return fmt.Errorf("invalid value for %q: %q", key, value)
-			}
-			u.WTimeout = time.Duration(n) * time.Millisecond
 		case "zlibcompressionlevel":
 			level, err := strconv.Atoi(value)
 			if err != nil || (level < -1 || level > 9) {
@@ -1046,11 +1023,6 @@ func (p *parser) parse(original string) (*ConnString, error) {
 	err = connStr.setDefaultAuthParams(extractedDatabase.db)
 	if err != nil {
 		return nil, err
-	}
-
-	// If WTimeout was set from manual options passed in, set WTImeoutSet to true.
-	if connStr.WTimeoutSetFromOption {
-		connStr.WTimeoutSet = true
 	}
 
 	return connStr, nil

@@ -14,16 +14,17 @@ import (
 	"strconv"
 	"strings"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/bsonutil"
-	"go.mongodb.org/mongo-driver/internal/driverutil"
-	"go.mongodb.org/mongo-driver/internal/handshake"
-	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/mongo/description"
-	"go.mongodb.org/mongo-driver/version"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/bsonutil"
+	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/internal/handshake"
+	"go.mongodb.org/mongo-driver/v2/mongo/address"
+	"go.mongodb.org/mongo-driver/v2/version"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
 // maxClientMetadataSize is the maximum size of the client metadata document
@@ -47,6 +48,12 @@ type Hello struct {
 	maxAwaitTimeMS     *int64
 	serverAPI          *driver.ServerAPIOptions
 	loadBalanced       bool
+	omitMaxTimeMS      bool
+
+	// Fields provided by a library that wraps the Go Driver.
+	outerLibraryName     string
+	outerLibraryVersion  string
+	outerLibraryPlatform string
 
 	res bsoncore.Document
 }
@@ -121,9 +128,32 @@ func (h *Hello) LoadBalanced(lb bool) *Hello {
 	return h
 }
 
+// OuterLibraryName specifies the name of the library wrapping the Go Driver.
+func (h *Hello) OuterLibraryName(name string) *Hello {
+	h.outerLibraryName = name
+
+	return h
+}
+
+// OuterLibraryVersion specifies the version of the library wrapping the Go
+// Driver.
+func (h *Hello) OuterLibraryVersion(version string) *Hello {
+	h.outerLibraryVersion = version
+
+	return h
+}
+
+// OuterLibraryPlatform specifies the platform of the library wrapping the Go
+// Driver.
+func (h *Hello) OuterLibraryPlatform(platform string) *Hello {
+	h.outerLibraryPlatform = platform
+
+	return h
+}
+
 // Result returns the result of executing this operation.
 func (h *Hello) Result(addr address.Address) description.Server {
-	return description.NewServer(addr, bson.Raw(h.res))
+	return driverutil.NewServerDescription(addr, bson.Raw(h.res))
 }
 
 const dockerEnvPath = "/.dockerenv"
@@ -245,12 +275,22 @@ func appendClientAppName(dst []byte, name string) ([]byte, error) {
 // appendClientDriver appends the driver metadata to dst. It is the
 // responsibility of the caller to check that this appending does not cause dst
 // to exceed any size limitations.
-func appendClientDriver(dst []byte) ([]byte, error) {
+func appendClientDriver(dst []byte, outerLibraryName, outerLibraryVersion string) ([]byte, error) {
 	var idx int32
 	idx, dst = bsoncore.AppendDocumentElementStart(dst, "driver")
 
-	dst = bsoncore.AppendStringElement(dst, "name", driverName)
-	dst = bsoncore.AppendStringElement(dst, "version", version.Driver)
+	name := driverName
+	if outerLibraryName != "" {
+		name = name + "|" + outerLibraryName
+	}
+
+	version := version.Driver
+	if outerLibraryVersion != "" {
+		version = version + "|" + outerLibraryVersion
+	}
+
+	dst = bsoncore.AppendStringElement(dst, "name", name)
+	dst = bsoncore.AppendStringElement(dst, "version", version)
 
 	return bsoncore.AppendDocumentEnd(dst, idx)
 }
@@ -372,8 +412,13 @@ func appendClientOS(dst []byte, omitNonType bool) ([]byte, error) {
 // appendClientPlatform appends the platform metadata to dst. It is the
 // responsibility of the caller to check that this appending does not cause dst
 // to exceed any size limitations.
-func appendClientPlatform(dst []byte) []byte {
-	return bsoncore.AppendStringElement(dst, "platform", runtime.Version())
+func appendClientPlatform(dst []byte, outerLibraryPlatform string) []byte {
+	platform := runtime.Version()
+	if outerLibraryPlatform != "" {
+		platform = platform + "|" + outerLibraryPlatform
+	}
+
+	return bsoncore.AppendStringElement(dst, "platform", platform)
 }
 
 // encodeClientMetadata encodes the client metadata into a BSON document. maxLen
@@ -410,7 +455,7 @@ func appendClientPlatform(dst []byte) []byte {
 //			}
 //		}
 //	}
-func encodeClientMetadata(appname string, maxLen int) ([]byte, error) {
+func encodeClientMetadata(h *Hello, maxLen int) ([]byte, error) {
 	dst := make([]byte, 0, maxLen)
 
 	omitEnvDoc := false
@@ -424,12 +469,12 @@ retry:
 	idx, dst = bsoncore.AppendDocumentStart(dst)
 
 	var err error
-	dst, err = appendClientAppName(dst, appname)
+	dst, err = appendClientAppName(dst, h.appname)
 	if err != nil {
 		return nil, err
 	}
 
-	dst, err = appendClientDriver(dst)
+	dst, err = appendClientDriver(dst, h.outerLibraryName, h.outerLibraryVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -440,7 +485,7 @@ retry:
 	}
 
 	if !truncatePlatform {
-		dst = appendClientPlatform(dst)
+		dst = appendClientPlatform(dst, h.outerLibraryPlatform)
 	}
 
 	if !omitEnvDocument {
@@ -517,7 +562,7 @@ func (h *Hello) handshakeCommand(dst []byte, desc description.SelectedServer) ([
 	}
 	dst, _ = bsoncore.AppendArrayEnd(dst, idx)
 
-	clientMetadata, _ := encodeClientMetadata(h.appname, maxClientMetadataSize)
+	clientMetadata, _ := encodeClientMetadata(h, maxClientMetadataSize)
 
 	// If the client metadata is empty, do not append it to the command.
 	if len(clientMetadata) > 0 {
@@ -568,7 +613,7 @@ func (h *Hello) Execute(ctx context.Context) error {
 }
 
 // StreamResponse gets the next streaming Hello response from the server.
-func (h *Hello) StreamResponse(ctx context.Context, conn driver.StreamerConnection) error {
+func (h *Hello) StreamResponse(ctx context.Context, conn *mnet.Connection) error {
 	return h.createOperation().ExecuteExhaust(ctx, conn)
 }
 
@@ -590,7 +635,8 @@ func (h *Hello) createOperation() driver.Operation {
 			h.res = info.ServerResponse
 			return nil
 		},
-		ServerAPI: h.serverAPI,
+		ServerAPI:     h.serverAPI,
+		OmitMaxTimeMS: h.omitMaxTimeMS,
 	}
 
 	if isLegacyHandshake(h.serverAPI, h.loadBalanced) {
@@ -602,8 +648,8 @@ func (h *Hello) createOperation() driver.Operation {
 
 // GetHandshakeInformation performs the MongoDB handshake for the provided connection and returns the relevant
 // information about the server. This function implements the driver.Handshaker interface.
-func (h *Hello) GetHandshakeInformation(ctx context.Context, _ address.Address, c driver.Connection) (driver.HandshakeInformation, error) {
-	deployment := driver.SingleConnectionDeployment{C: c}
+func (h *Hello) GetHandshakeInformation(ctx context.Context, _ address.Address, conn *mnet.Connection) (driver.HandshakeInformation, error) {
+	deployment := driver.SingleConnectionDeployment{C: conn}
 
 	op := driver.Operation{
 		Clock:      h.clock,
@@ -626,7 +672,7 @@ func (h *Hello) GetHandshakeInformation(ctx context.Context, _ address.Address, 
 	}
 
 	info := driver.HandshakeInformation{
-		Description: h.Result(c.Address()),
+		Description: h.Result(conn.Address()),
 	}
 	if speculativeAuthenticate, ok := h.res.Lookup("speculativeAuthenticate").DocumentOK(); ok {
 		info.SpeculativeAuthenticate = speculativeAuthenticate
@@ -647,8 +693,18 @@ func (h *Hello) GetHandshakeInformation(ctx context.Context, _ address.Address, 
 
 // FinishHandshake implements the Handshaker interface. This is a no-op function because a non-authenticated connection
 // does not do anything besides the initial Hello for a handshake.
-func (h *Hello) FinishHandshake(context.Context, driver.Connection) error {
+func (h *Hello) FinishHandshake(context.Context, *mnet.Connection) error {
 	return nil
+}
+
+// OmitMaxTimeMS will ensure maxTimMS is not included in the wire message
+// constructed to send a hello request.
+func (h *Hello) OmitMaxTimeMS(val bool) *Hello {
+	if h == nil {
+		h = new(Hello)
+	}
+	h.omitMaxTimeMS = val
+	return h
 }
 
 // Authenticator sets the authenticator to use for this operation.

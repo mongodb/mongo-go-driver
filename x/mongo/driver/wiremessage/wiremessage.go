@@ -19,7 +19,7 @@ import (
 	"strings"
 	"sync/atomic"
 
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 // WireMessage represents a MongoDB wire message in binary form.
@@ -537,17 +537,6 @@ func ReadCompressedCompressorID(src []byte) (id CompressorID, rem []byte, ok boo
 		return 0, src, false
 	}
 	return CompressorID(src[0]), src[1:], true
-}
-
-// ReadCompressedCompressedMessage reads the compressed wiremessage to dst.
-//
-// Deprecated: This function is not required by the Go Driver and will be
-// removed in the 2.0 release.
-func ReadCompressedCompressedMessage(src []byte, length int32) (msg []byte, rem []byte, ok bool) {
-	if len(src) < int(length) || length < 0 {
-		return nil, src, false
-	}
-	return src[:length], src[length:], true
 }
 
 // ReadKillCursorsZero reads the zero field from src.

@@ -12,11 +12,13 @@ import (
 	"strings"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/internal/require"
-	"go.mongodb.org/mongo-driver/mongo/description"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/drivertest"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/auth"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/drivertest"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
 )
 
 func TestPlainAuthenticator_Fails(t *testing.T) {
@@ -47,7 +49,9 @@ func TestPlainAuthenticator_Fails(t *testing.T) {
 		Desc:     desc,
 	}
 
-	err := authenticator.Auth(context.Background(), &auth.Config{Description: desc, Connection: c})
+	mnetconn := mnet.NewConnection(c)
+
+	err := authenticator.Auth(context.Background(), &driver.AuthConfig{Connection: mnetconn})
 	if err == nil {
 		t.Fatalf("expected an error but got none")
 	}
@@ -90,7 +94,9 @@ func TestPlainAuthenticator_Extra_server_message(t *testing.T) {
 		Desc:     desc,
 	}
 
-	err := authenticator.Auth(context.Background(), &auth.Config{Description: desc, Connection: c})
+	mnetconn := mnet.NewConnection(c)
+
+	err := authenticator.Auth(context.Background(), &driver.AuthConfig{Connection: mnetconn})
 	if err == nil {
 		t.Fatalf("expected an error but got none")
 	}
@@ -128,7 +134,9 @@ func TestPlainAuthenticator_Succeeds(t *testing.T) {
 		Desc:     desc,
 	}
 
-	err := authenticator.Auth(context.Background(), &auth.Config{Description: desc, Connection: c})
+	mnetconn := mnet.NewConnection(c)
+
+	err := authenticator.Auth(context.Background(), &driver.AuthConfig{Connection: mnetconn})
 	if err != nil {
 		t.Fatalf("expected no error but got \"%s\"", err)
 	}
@@ -173,7 +181,9 @@ func TestPlainAuthenticator_SucceedsBoolean(t *testing.T) {
 		Desc:     desc,
 	}
 
-	err := authenticator.Auth(context.Background(), &auth.Config{Description: desc, Connection: c})
+	mnetconn := mnet.NewConnection(c)
+
+	err := authenticator.Auth(context.Background(), &driver.AuthConfig{Connection: mnetconn})
 	require.NoError(t, err, "Auth error")
 	require.Len(t, c.Written, 1, "expected 1 messages to be sent")
 

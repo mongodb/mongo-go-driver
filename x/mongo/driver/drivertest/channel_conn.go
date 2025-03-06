@@ -10,10 +10,10 @@ import (
 	"context"
 	"errors"
 
-	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/mongo/description"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
+	"go.mongodb.org/mongo-driver/v2/mongo/address"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage"
 )
 
 // ChannelConn implements the driver.Connection interface by reading and writing wire messages
@@ -37,7 +37,7 @@ func (c *ChannelConn) OIDCTokenGenID() uint64 {
 func (c *ChannelConn) SetOIDCTokenGenID(uint64) {}
 
 // WriteWireMessage implements the driver.Connection interface.
-func (c *ChannelConn) WriteWireMessage(ctx context.Context, wm []byte) error {
+func (c *ChannelConn) Write(ctx context.Context, wm []byte) error {
 	// Copy wm in case it came from a buffer pool.
 	b := make([]byte, len(wm))
 	copy(b, wm)
@@ -52,7 +52,7 @@ func (c *ChannelConn) WriteWireMessage(ctx context.Context, wm []byte) error {
 }
 
 // ReadWireMessage implements the driver.Connection interface.
-func (c *ChannelConn) ReadWireMessage(ctx context.Context) ([]byte, error) {
+func (c *ChannelConn) Read(ctx context.Context) ([]byte, error) {
 	var wm []byte
 	var err error
 	select {
@@ -78,8 +78,7 @@ func (c *ChannelConn) ID() string {
 }
 
 // DriverConnectionID implements the driver.Connection interface.
-// TODO(GODRIVER-2824): replace return type with int64.
-func (c *ChannelConn) DriverConnectionID() uint64 {
+func (c *ChannelConn) DriverConnectionID() int64 {
 	return 0
 }
 

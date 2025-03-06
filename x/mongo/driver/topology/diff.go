@@ -6,7 +6,7 @@
 
 package topology
 
-import "go.mongodb.org/mongo-driver/mongo/description"
+import "go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
 
 // hostlistDiff is the difference between a topology and a host list.
 type hostlistDiff struct {

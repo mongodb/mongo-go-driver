@@ -2,35 +2,32 @@
 set -e # exit when any command fails
 set -x # show all commands being run
 
-GC=go
-COMPILE_CHECK_DIR="internal/test/compilecheck"
-DEV_MIN_VERSION=1.19
-
-# version will flatten a version string of upto 4 components for inequality
-# comparison.
-function version {
-	echo "$@" | awk -F. '{ printf("%d%03d%03d%03d\n", $1,$2,$3,$4); }';
-}
+# Default to Go 1.18 if GO_VERSION is not set.
+#
+# Use the "=" operator (instead of the more common ":-" operator) so that it
+# allows setting GO_VERSION="" to use the Go installation in the PATH, and it
+# sets the GO_VERSION variable if the default is used.
+GC=go${GO_VERSION="1.18"}
+COMPILE_CHECK_DIR="internal/cmd/compilecheck"
 
 # compile_check will attempt to build the internal/test/compilecheck project
 # using the provided Go version. This is to simulate an end-to-end use case.
-# This check will only run on environments where the Go version is greater than
-# or equal to the given version.
 function compile_check {
 	# Change the directory to the compilecheck test directory.
-	cd ${COMPILE_CHECK_DIR}
+	pushd ${COMPILE_CHECK_DIR}
 
-	# If the Go version is 1.15 or greater, then run "go mod tidy".
-	MACHINE_VERSION=`${GC} version | { read _ _ v _; echo ${v#go}; }`
-	if [ $(version $MACHINE_VERSION) -ge $(version 1.15) ]; then
-		go mod tidy
+	# If a custom Go version is set using the GO_VERSION env var (e.g. "1.18"),
+	# add the GOPATH bin directory to PATH and then install that Go version.
+	if [ ! -z "$GO_VERSION" ]; then
+		PATH=$(go env GOPATH)/bin:$PATH
+		export PATH
+
+		go install golang.org/dl/go$GO_VERSION@latest
+		${GC} download
 	fi
 
-	# Test vendoring
-	go mod vendor
-	${GC} build -mod=vendor
-
-	rm -rf vendor
+	${GC} version
+	${GC} mod tidy
 
 	# Check simple build.
 	${GC} build ./...
@@ -54,7 +51,7 @@ function compile_check {
 	rm compilecheck.so
 
 	# Change the directory back to the working directory.
-	cd -
+	popd
 }
 
 compile_check

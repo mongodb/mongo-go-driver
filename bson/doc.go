@@ -47,20 +47,20 @@
 //  5. BSON boolean unmarshals to a bool.
 //  6. BSON embedded document unmarshals to the parent type (i.e. D for a D, M for an M).
 //  7. BSON array unmarshals to a bson.A.
-//  8. BSON ObjectId unmarshals to a primitive.ObjectID.
-//  9. BSON datetime unmarshals to a primitive.DateTime.
-//  10. BSON binary unmarshals to a primitive.Binary.
-//  11. BSON regular expression unmarshals to a primitive.Regex.
-//  12. BSON JavaScript unmarshals to a primitive.JavaScript.
-//  13. BSON code with scope unmarshals to a primitive.CodeWithScope.
-//  14. BSON timestamp unmarshals to an primitive.Timestamp.
-//  15. BSON 128-bit decimal unmarshals to an primitive.Decimal128.
-//  16. BSON min key unmarshals to an primitive.MinKey.
-//  17. BSON max key unmarshals to an primitive.MaxKey.
-//  18. BSON undefined unmarshals to a primitive.Undefined.
+//  8. BSON ObjectId unmarshals to a bson.ObjectID.
+//  9. BSON datetime unmarshals to a bson.DateTime.
+//  10. BSON binary unmarshals to a bson.Binary.
+//  11. BSON regular expression unmarshals to a bson.Regex.
+//  12. BSON JavaScript unmarshals to a bson.JavaScript.
+//  13. BSON code with scope unmarshals to a bson.CodeWithScope.
+//  14. BSON timestamp unmarshals to an bson.Timestamp.
+//  15. BSON 128-bit decimal unmarshals to an bson.Decimal128.
+//  16. BSON min key unmarshals to an bson.MinKey.
+//  17. BSON max key unmarshals to an bson.MaxKey.
+//  18. BSON undefined unmarshals to a bson.Undefined.
 //  19. BSON null unmarshals to nil.
-//  20. BSON DBPointer unmarshals to a primitive.DBPointer.
-//  21. BSON symbol unmarshals to a primitive.Symbol.
+//  20. BSON DBPointer unmarshals to a bson.DBPointer.
+//  21. BSON symbol unmarshals to a bson.Symbol.
 //
 // The above mappings also apply when marshaling a D or M to BSON. Some other useful marshaling mappings are:
 //
@@ -137,6 +137,19 @@
 // # Marshaling and Unmarshaling
 //
 // Manually marshaling and unmarshaling can be done with the Marshal and Unmarshal family of functions.
+//
+// bsoncodec code provides a system for encoding values to BSON representations and decoding
+// values from BSON representations. This package considers both binary BSON and ExtendedJSON as
+// BSON representations. The types in this package enable a flexible system for handling this
+// encoding and decoding.
+//
+// The codec system is composed of two parts:
+//
+// 1) [ValueEncoder] and [ValueDecoder] that handle encoding and decoding Go values to and from BSON
+// representations.
+//
+// 2) A [Registry] that holds these ValueEncoders and ValueDecoders and provides methods for
+// retrieving them.
 //
 // [Work with BSON]: https://www.mongodb.com/docs/drivers/go/current/fundamentals/bson/
 package bson

@@ -10,10 +10,10 @@ import (
 	"context"
 	"fmt"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
 )
 
 // SaslClient is the client piece of a sasl conversation.
@@ -94,7 +94,7 @@ type saslResponse struct {
 }
 
 // Finish completes the conversation based on the first server response to authenticate the given connection.
-func (sc *saslConversation) Finish(ctx context.Context, cfg *Config, firstResponse bsoncore.Document) error {
+func (sc *saslConversation) Finish(ctx context.Context, cfg *driver.AuthConfig, firstResponse bsoncore.Document) error {
 	if closer, ok := sc.client.(SaslClientCloser); ok {
 		defer closer.Close()
 	}
@@ -153,7 +153,7 @@ func (sc *saslConversation) Finish(ctx context.Context, cfg *Config, firstRespon
 }
 
 // ConductSaslConversation runs a full SASL conversation to authenticate the given connection.
-func ConductSaslConversation(ctx context.Context, cfg *Config, authSource string, client SaslClient) error {
+func ConductSaslConversation(ctx context.Context, cfg *driver.AuthConfig, authSource string, client SaslClient) error {
 	// Create a non-speculative SASL conversation.
 	conversation := newSaslConversation(client, authSource, false)
 	saslStartDoc, err := conversation.FirstMessage()

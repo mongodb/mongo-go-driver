@@ -12,7 +12,8 @@ add_copyright() {
     file=$1
 
     # Check if first 24 bytes match first 24 bytes of copyright notice.
-    local line=$(head -c 24 $file)
+    local line
+    line=$(head -c 24 $file)
     if [ "$line" == "// Copyright (C) MongoDB" ]; then
         if [ ! -z "$verbose" ]; then
             echo "$file already has copyright notice" >&2
@@ -21,7 +22,7 @@ add_copyright() {
     fi
 
     # Check if first 14 bytes matches the prefix "// Copied from"
-    local line=$(head -c 14 $file)
+    line=$(head -c 14 $file)
     if [ "$line" == "// Copied from" ]; then
         if [ ! -z "$verbose" ]; then
             echo "$file has a third-party copyright notice" >&2
@@ -34,7 +35,7 @@ add_copyright() {
         return
     fi
 
-    echo "Missing copyright notice in \"$file\". Run \"make add-license\" to add missing licenses."
+    echo "Missing copyright notice in \"$file\". Run \"task add-license\" to add missing licenses."
     exit 1
 }
 
@@ -46,11 +47,15 @@ do
     case "${flag}" in
         a) add=1;;
         v) verbose=1;;
+        *)
+            echo "flag not recognized"
+            exit 1
+            ;;
     esac
 done
 
-# Find all .go files not in the vendor directory and try to write a license notice.
-GO_FILES=$(find . -path ./vendor -prune -o -type f -name "*.go" -print)
+# Find all .go files and try to write a license notice.
+GO_FILES=$(find . -type f -name "*.go" -print)
 
 for file in $GO_FILES
 do

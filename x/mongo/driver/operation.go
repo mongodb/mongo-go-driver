@@ -18,22 +18,22 @@ import (
 	"sync"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/csot"
-	"go.mongodb.org/mongo-driver/internal/driverutil"
-	"go.mongodb.org/mongo-driver/internal/handshake"
-	"go.mongodb.org/mongo-driver/internal/logger"
-	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/mongo/description"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/csot"
+	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/internal/handshake"
+	"go.mongodb.org/mongo-driver/v2/internal/logger"
+	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
+	"go.mongodb.org/mongo-driver/v2/mongo/address"
+	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage"
 )
 
 const defaultLocalThreshold = 15 * time.Millisecond
@@ -47,12 +47,20 @@ var (
 	ErrReplyDocumentMismatch = errors.New("number of documents returned does not match numberReturned field")
 	// ErrNonPrimaryReadPref is returned when a read is attempted in a transaction with a non-primary read preference.
 	ErrNonPrimaryReadPref = errors.New("read preference in a transaction must be primary")
+	// ErrEmptyReadConcern indicates that a read concern has no fields set.
+	ErrEmptyReadConcern = errors.New("a read concern must have at least one field set")
+	// ErrEmptyWriteConcern indicates that a write concern has no fields set.
+	ErrEmptyWriteConcern = errors.New("a write concern must have at least one field set")
 	// errDatabaseNameEmpty occurs when a database name is not provided.
 	errDatabaseNameEmpty = errors.New("database name cannot be empty")
+	// errNegativeW indicates that a negative integer `w` field was specified.
+	errNegativeW = errors.New("write concern `w` field cannot be a negative number")
+	// errInconsistent indicates that an inconsistent write concern was specified.
+	errInconsistent = errors.New("a write concern cannot have both w=0 and j=true")
 )
 
 const (
-	// maximum BSON object size when client side encryption is enabled
+	// maximum BSON object size when in-use encryption is enabled
 	cryptMaxBsonObjectSize uint32 = 2097152
 	// minimum wire version necessary to use automatic encryption
 	cryptMinWireVersion int32 = 8
@@ -97,10 +105,10 @@ type startedInformation struct {
 	cmdName                  string
 	documentSequenceIncluded bool
 	connID                   string
-	driverConnectionID       uint64 // TODO(GODRIVER-2824): change type to int64.
+	driverConnectionID       int64
 	serverConnID             *int64
 	redacted                 bool
-	serviceID                *primitive.ObjectID
+	serviceID                *bson.ObjectID
 	serverAddress            address.Address
 }
 
@@ -111,28 +119,12 @@ type finishedInformation struct {
 	response           bsoncore.Document
 	cmdErr             error
 	connID             string
-	driverConnectionID uint64 // TODO(GODRIVER-2824): change type to int64.
+	driverConnectionID int64
 	serverConnID       *int64
 	redacted           bool
-	serviceID          *primitive.ObjectID
+	serviceID          *bson.ObjectID
 	serverAddress      address.Address
 	duration           time.Duration
-}
-
-// convertInt64PtrToInt32Ptr will convert an int64 pointer reference to an int32 pointer
-// reference. If the int64 value cannot be converted to int32 without causing
-// an overflow, then this function will return nil.
-func convertInt64PtrToInt32Ptr(i64 *int64) *int32 {
-	if i64 == nil {
-		return nil
-	}
-
-	if *i64 > math.MaxInt32 || *i64 < math.MinInt32 {
-		return nil
-	}
-
-	i32 := int32(*i64)
-	return &i32
 }
 
 // success returns true if there was no command error or the command error is a
@@ -153,7 +145,7 @@ func (info finishedInformation) success() bool {
 type ResponseInfo struct {
 	ServerResponse        bsoncore.Document
 	Server                Server
-	Connection            Connection
+	Connection            *mnet.Connection
 	ConnectionDescription description.Server
 	CurrentIndex          int
 }
@@ -287,7 +279,7 @@ type Operation struct {
 	// no events will be reported.
 	CommandMonitor *event.CommandMonitor
 
-	// Crypt specifies a Crypt object to use for automatic client side encryption and decryption.
+	// Crypt specifies a Crypt object to use for automatic in-use encryption and decryption.
 	Crypt Crypt
 
 	// ServerAPI specifies options used to configure the API version sent to the server.
@@ -296,9 +288,6 @@ type Operation struct {
 	// IsOutputAggregate specifies whether this operation is an aggregate with an output stage. If true,
 	// read preference will not be added to the command on wire versions < 13.
 	IsOutputAggregate bool
-
-	// MaxTime specifies the maximum amount of time to allow the operation to run on the server.
-	MaxTime *time.Duration
 
 	// Timeout is the amount of time that this operation can execute before returning an error. The default value
 	// nil, which means that the timeout of the operation's caller will be used.
@@ -310,10 +299,9 @@ type Operation struct {
 	// OP_MSG as well as for logging server selection data.
 	Name string
 
-	// OmitCSOTMaxTimeMS omits the automatically-calculated "maxTimeMS" from the
-	// command when CSOT is enabled. It does not effect "maxTimeMS" set by
-	// [Operation.MaxTime].
-	OmitCSOTMaxTimeMS bool
+	// OmitMaxTimeMS will ensure that wire messages sent to the server in service
+	// of the operation do not contain a maxTimeMS field.
+	OmitMaxTimeMS bool
 
 	// Authenticator is the authenticator to use for this operation when a reauthentication is
 	// required.
@@ -353,7 +341,7 @@ func filterDeprioritizedServers(candidates, deprioritized []description.Server) 
 	// Iterate over the candidates and append them to the allowdIndexes slice if
 	// they are not in the deprioritizedServers list.
 	for _, candidate := range candidates {
-		if srv, ok := dpaSet[candidate.Addr]; !ok || !srv.Equal(candidate) {
+		if srv, ok := dpaSet[candidate.Addr]; !ok || !driverutil.EqualServers(*srv, candidate) {
 			allowed = append(allowed, candidate)
 		}
 	}
@@ -408,10 +396,13 @@ func (op Operation) selectServer(
 		if rp == nil {
 			rp = readpref.Primary()
 		}
-		selector = description.CompositeSelector([]description.ServerSelector{
-			description.ReadPrefSelector(rp),
-			description.LatencySelector(defaultLocalThreshold),
-		})
+
+		selector = &serverselector.Composite{
+			Selectors: []description.ServerSelector{
+				&serverselector.ReadPref{ReadPref: rp},
+				&serverselector.Latency{Latency: defaultLocalThreshold},
+			},
+		}
 	}
 
 	oss := &opServerSelector{
@@ -430,7 +421,10 @@ func (op Operation) getServerAndConnection(
 	ctx context.Context,
 	requestID int32,
 	deprioritized []description.Server,
-) (Server, Connection, error) {
+) (Server, *mnet.Connection, error) {
+	ctx, cancel := csot.WithServerSelectionTimeout(ctx, op.Deployment.GetServerSelectionTimeout())
+	defer cancel()
+
 	server, err := op.selectServer(ctx, requestID, deprioritized)
 	if err != nil {
 		if op.Client != nil &&
@@ -447,7 +441,8 @@ func (op Operation) getServerAndConnection(
 	// If the provided client session has a pinned connection, it should be used for the operation because this
 	// indicates that we're in a transaction and the target server is behind a load balancer.
 	if op.Client != nil && op.Client.PinnedConnection != nil {
-		return server, op.Client.PinnedConnection, nil
+		conn := mnet.NewConnection(op.Client.PinnedConnection)
+		return server, conn, nil
 	}
 
 	// Otherwise, default to checking out a connection from the server's pool.
@@ -457,19 +452,18 @@ func (op Operation) getServerAndConnection(
 	}
 
 	// If we're in load balanced mode and this is the first operation in a transaction, pin the session to a connection.
-	if conn.Description().LoadBalanced() && op.Client != nil && op.Client.TransactionStarting() {
-		pinnedConn, ok := conn.(PinnedConnection)
-		if !ok {
+	if driverutil.IsServerLoadBalanced(conn.Description()) && op.Client != nil && op.Client.TransactionStarting() {
+		if conn.Pinner == nil {
 			// Close the original connection to avoid a leak.
 			_ = conn.Close()
 			return nil, nil, fmt.Errorf("expected Connection used to start a transaction to be a PinnedConnection, but got %T", conn)
 		}
-		if err := pinnedConn.PinToTransaction(); err != nil {
+		if err := conn.PinToTransaction(); err != nil {
 			// Close the original connection to avoid a leak.
 			_ = conn.Close()
 			return nil, nil, fmt.Errorf("error incrementing connection reference count when starting a transaction: %w", err)
 		}
-		op.Client.PinnedConnection = pinnedConn
+		op.Client.PinnedConnection = conn
 	}
 
 	return server, conn, nil
@@ -486,7 +480,7 @@ func (op Operation) Validate() error {
 	if op.Database == "" {
 		return errDatabaseNameEmpty
 	}
-	if op.Client != nil && !writeconcern.AckWrite(op.WriteConcern) {
+	if op.Client != nil && !op.WriteConcern.Acknowledged() {
 		return errors.New("session provided for an unacknowledged write")
 	}
 	return nil
@@ -508,15 +502,8 @@ func (op Operation) Execute(ctx context.Context) error {
 		return err
 	}
 
-	// If op.Timeout is set, and context is not already a Timeout context, honor
-	// op.Timeout in new Timeout context for operation execution.
-	if op.Timeout != nil && !csot.IsTimeoutContext(ctx) {
-		newCtx, cancelFunc := csot.MakeTimeoutContext(ctx, *op.Timeout)
-		// Redefine ctx to be the new timeout-derived context.
-		ctx = newCtx
-		// Cancel the timeout-derived context at the end of Execute to avoid a context leak.
-		defer cancelFunc()
-	}
+	ctx, cancel := csot.WithTimeout(ctx, op.Timeout)
+	defer cancel()
 
 	if op.Client != nil {
 		if err := op.Client.StartCommand(); err != nil {
@@ -554,7 +541,7 @@ func (op Operation) Execute(ctx context.Context) error {
 	}
 
 	var srvr Server
-	var conn Connection
+	var conn *mnet.Connection
 	var res bsoncore.Document
 	var operationErr WriteCommandError
 	var prevErr error
@@ -577,18 +564,18 @@ func (op Operation) Execute(ctx context.Context) error {
 
 		// Set the previous indefinite error to be returned in any case where a retryable write error does not have a
 		// NoWritesPerfomed label (the definite case).
-		if err, ok := err.(labeledError); ok {
+		if lerr, ok := err.(labeledError); ok {
 			// If the "prevIndefiniteErr" is nil, then the current error is the first error encountered
 			// during the retry attempt cycle. We must persist the first error in the case where all
 			// following errors are labeled "NoWritesPerformed", which would otherwise raise nil as the
 			// error.
 			if prevIndefiniteErr == nil {
-				prevIndefiniteErr = err
+				prevIndefiniteErr = lerr
 			}
 
 			// If the error is not labeled NoWritesPerformed and is retryable, then set the previous
 			// indefinite error to be the current error.
-			if !err.HasErrorLabel(NoWritesPerformed) && err.HasErrorLabel(RetryableWriteError) {
+			if !lerr.HasErrorLabel(NoWritesPerformed) && lerr.HasErrorLabel(RetryableWriteError) {
 				prevIndefiniteErr = err
 			}
 		}
@@ -598,7 +585,7 @@ func (op Operation) Execute(ctx context.Context) error {
 		if conn != nil {
 			// If we are dealing with a sharded cluster, then mark the failed server
 			// as "deprioritized".
-			if desc := conn.Description; desc != nil && op.Deployment.Kind() == description.Sharded {
+			if desc := conn.Description; desc != nil && op.Deployment.Kind() == description.TopologyKindSharded {
 				deprioritizedServers = []description.Server{conn.Description()}
 			}
 
@@ -698,7 +685,8 @@ func (op Operation) Execute(ctx context.Context) error {
 			first = false
 		}
 
-		maxTimeMS, err := op.calculateMaxTimeMS(ctx, srvr.RTTMonitor())
+		// Calculate maxTimeMS value to potentially be appended to the wire message.
+		maxTimeMS, err := op.calculateMaxTimeMS(ctx, srvr.RTTMonitor().Min(), srvr.RTTMonitor().Stats())
 		if err != nil {
 			return err
 		}
@@ -709,13 +697,16 @@ func (op Operation) Execute(ctx context.Context) error {
 			maxTimeMS = 0
 		}
 
-		desc := description.SelectedServer{Server: conn.Description(), Kind: op.Deployment.Kind()}
+		desc := description.SelectedServer{
+			Server: conn.Description(),
+			Kind:   op.Deployment.Kind(),
+		}
 
 		if batching {
 			targetBatchSize := desc.MaxDocumentSize
 			maxDocSize := desc.MaxDocumentSize
 			if op.shouldEncrypt() {
-				// For client-side encryption, we want the batch to be split at 2 MiB instead of 16MiB.
+				// For in-use encryption, we want the batch to be split at 2 MiB instead of 16MiB.
 				// If there's only one document in the batch, it can be up to 16MiB, so we set target batch size to
 				// 2MiB but max document size to 16MiB. This will allow the AdvanceBatch call to create a batch
 				// with a single large document.
@@ -760,7 +751,7 @@ func (op Operation) Execute(ctx context.Context) error {
 		moreToCome := wiremessage.IsMsgMoreToCome(*wm)
 
 		// compress wiremessage if allowed
-		if compressor, ok := conn.(Compressor); ok && op.canCompress(startedInfo.cmdName) {
+		if compressor := conn.Compressor; compressor != nil && op.canCompress(startedInfo.cmdName) {
 			b := memoryPool.Get().(*[]byte)
 			*b, err = compressor.CompressWireMessage(*wm, (*b)[:0])
 			memoryPool.Put(wm)
@@ -789,14 +780,8 @@ func (op Operation) Execute(ctx context.Context) error {
 		if ctx.Err() != nil {
 			err = ctx.Err()
 		} else if deadline, ok := ctx.Deadline(); ok {
-			if csot.IsTimeoutContext(ctx) && time.Now().Add(srvr.RTTMonitor().P90()).After(deadline) {
-				err = fmt.Errorf(
-					"remaining time %v until context deadline is less than 90th percentile network round-trip time: %w\n%v",
-					time.Until(deadline),
-					ErrDeadlineWouldBeExceeded,
-					srvr.RTTMonitor().Stats())
-			} else if time.Now().Add(srvr.RTTMonitor().Min()).After(deadline) {
-				err = context.DeadlineExceeded
+			if time.Now().Add(srvr.RTTMonitor().Min()).After(deadline) {
+				err = fmt.Errorf("%w: %v", ErrDeadlineWouldBeExceeded, srvr.RTTMonitor().Stats())
 			}
 		}
 
@@ -1075,7 +1060,7 @@ func (op Operation) retryable(desc description.Server) bool {
 		}
 		if retryWritesSupported(desc) &&
 			op.Client != nil && !(op.Client.TransactionInProgress() || op.Client.TransactionStarting()) &&
-			writeconcern.AckWrite(op.WriteConcern) {
+			op.WriteConcern.Acknowledged() {
 			return true
 		}
 	case Read:
@@ -1091,23 +1076,23 @@ func (op Operation) retryable(desc description.Server) bool {
 
 // roundTrip writes a wiremessage to the connection and then reads a wiremessage. The wm parameter
 // is reused when reading the wiremessage.
-func (op Operation) roundTrip(ctx context.Context, conn Connection, wm []byte) ([]byte, error) {
-	err := conn.WriteWireMessage(ctx, wm)
+func (op Operation) roundTrip(ctx context.Context, conn *mnet.Connection, wm []byte) ([]byte, error) {
+	err := conn.Write(ctx, wm)
 	if err != nil {
 		return nil, op.networkError(err)
 	}
 	return op.readWireMessage(ctx, conn)
 }
 
-func (op Operation) readWireMessage(ctx context.Context, conn Connection) (result []byte, err error) {
-	wm, err := conn.ReadWireMessage(ctx)
+func (op Operation) readWireMessage(ctx context.Context, conn *mnet.Connection) (result []byte, err error) {
+	wm, err := conn.Read(ctx)
 	if err != nil {
 		return nil, op.networkError(err)
 	}
 
 	// If we're using a streamable connection, we set its streaming state based on the moreToCome flag in the server
 	// response.
-	if streamer, ok := conn.(StreamerConnection); ok {
+	if streamer := conn.Streamer; streamer != nil {
 		streamer.SetStreaming(wiremessage.IsMsgMoreToCome(wm))
 	}
 
@@ -1125,7 +1110,7 @@ func (op Operation) readWireMessage(ctx context.Context, conn Connection) (resul
 	}
 
 	// decode
-	res, err := op.decodeResult(ctx, opcode, rem)
+	res, err := op.decodeResult(opcode, rem)
 	// Update cluster/operation time and recovery tokens before handling the error to ensure we're properly updating
 	// everything.
 	op.updateClusterTimes(res)
@@ -1141,7 +1126,7 @@ func (op Operation) readWireMessage(ctx context.Context, conn Connection) (resul
 		return res, err
 	}
 
-	// If there is no error, automatically attempt to decrypt all results if client side encryption is enabled.
+	// If there is no error, automatically attempt to decrypt all results if in-use encryption is enabled.
 	if op.Crypt != nil {
 		res, err = op.Crypt.Decrypt(ctx, res)
 	}
@@ -1171,8 +1156,8 @@ func (op Operation) networkError(err error) error {
 
 // moreToComeRoundTrip writes a wiremessage to the provided connection. This is used when an OP_MSG is
 // being sent with  the moreToCome bit set.
-func (op *Operation) moreToComeRoundTrip(ctx context.Context, conn Connection, wm []byte) (result []byte, err error) {
-	err = conn.WriteWireMessage(ctx, wm)
+func (op *Operation) moreToComeRoundTrip(ctx context.Context, conn *mnet.Connection, wm []byte) (result []byte, err error) {
+	err = conn.Write(ctx, wm)
 	if err != nil {
 		if op.Client != nil {
 			op.Client.MarkDirty()
@@ -1221,7 +1206,8 @@ func (op Operation) addBatchArray(dst []byte) []byte {
 }
 
 func (op Operation) createLegacyHandshakeWireMessage(
-	maxTimeMS uint64,
+	ctx context.Context,
+	maxTimeMS int64,
 	dst []byte,
 	desc description.SelectedServer,
 ) ([]byte, startedInformation, error) {
@@ -1248,7 +1234,7 @@ func (op Operation) createLegacyHandshakeWireMessage(
 	}
 	if len(rp) > 0 {
 		wrapper, dst = bsoncore.AppendDocumentStart(dst)
-		dst = bsoncore.AppendHeader(dst, bsontype.EmbeddedDocument, "$query")
+		dst = bsoncore.AppendHeader(dst, bsoncore.TypeEmbeddedDocument, "$query")
 	}
 	idx, dst := bsoncore.AppendDocumentStart(dst)
 	dst, err = op.CommandFn(dst, desc)
@@ -1265,7 +1251,7 @@ func (op Operation) createLegacyHandshakeWireMessage(
 		return dst, info, err
 	}
 
-	dst, err = op.addWriteConcern(dst, desc)
+	dst, err = op.addWriteConcern(ctx, dst, desc)
 	if err != nil {
 		return dst, info, err
 	}
@@ -1280,7 +1266,7 @@ func (op Operation) createLegacyHandshakeWireMessage(
 	// If maxTimeMS is greater than 0 append it to wire message. A maxTimeMS value of 0 only explicitly
 	// specifies the default behavior of no timeout server-side.
 	if maxTimeMS > 0 {
-		dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", int64(maxTimeMS))
+		dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", maxTimeMS)
 	}
 
 	dst, _ = bsoncore.AppendDocumentEnd(dst, idx)
@@ -1301,10 +1287,10 @@ func (op Operation) createLegacyHandshakeWireMessage(
 
 func (op Operation) createMsgWireMessage(
 	ctx context.Context,
-	maxTimeMS uint64,
+	maxTimeMS int64,
 	dst []byte,
 	desc description.SelectedServer,
-	conn Connection,
+	conn *mnet.Connection,
 	requestID int32,
 ) ([]byte, startedInformation, error) {
 	var info startedInformation
@@ -1312,12 +1298,12 @@ func (op Operation) createMsgWireMessage(
 	var wmindex int32
 	// We set the MoreToCome bit if we have a write concern, it's unacknowledged, and we either
 	// aren't batching or we are encoding the last batch.
-	if op.WriteConcern != nil && !writeconcern.AckWrite(op.WriteConcern) && (op.Batches == nil || len(op.Batches.Documents) == 0) {
+	if op.WriteConcern != nil && !op.WriteConcern.Acknowledged() && (op.Batches == nil || len(op.Batches.Documents) == 0) {
 		flags = wiremessage.MoreToCome
 	}
 	// Set the ExhaustAllowed flag if the connection supports streaming. This will tell the server that it can
 	// respond with the MoreToCome flag and then stream responses over this connection.
-	if streamer, ok := conn.(StreamerConnection); ok && streamer.SupportsStreaming() {
+	if streamer := conn.Streamer; streamer != nil && streamer.SupportsStreaming() {
 		flags |= wiremessage.ExhaustAllowed
 	}
 
@@ -1337,7 +1323,7 @@ func (op Operation) createMsgWireMessage(
 	if err != nil {
 		return dst, info, err
 	}
-	dst, err = op.addWriteConcern(dst, desc)
+	dst, err = op.addWriteConcern(ctx, dst, desc)
 	if err != nil {
 		return dst, info, err
 	}
@@ -1351,7 +1337,7 @@ func (op Operation) createMsgWireMessage(
 	// If maxTimeMS is greater than 0 append it to wire message. A maxTimeMS value of 0 only explicitly
 	// specifies the default behavior of no timeout server-side.
 	if maxTimeMS > 0 {
-		dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", int64(maxTimeMS))
+		dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", maxTimeMS)
 	}
 
 	dst = bsoncore.AppendStringElement(dst, "$db", op.Database)
@@ -1397,14 +1383,14 @@ func isLegacyHandshake(op Operation, desc description.SelectedServer) bool {
 
 func (op Operation) createWireMessage(
 	ctx context.Context,
-	maxTimeMS uint64,
+	maxTimeMS int64,
 	dst []byte,
 	desc description.SelectedServer,
-	conn Connection,
+	conn *mnet.Connection,
 	requestID int32,
 ) ([]byte, startedInformation, error) {
 	if isLegacyHandshake(op, desc) {
-		return op.createLegacyHandshakeWireMessage(maxTimeMS, dst, desc)
+		return op.createLegacyHandshakeWireMessage(ctx, maxTimeMS, dst, desc)
 	}
 
 	return op.createMsgWireMessage(ctx, maxTimeMS, dst, desc, conn, requestID)
@@ -1461,8 +1447,24 @@ func (op Operation) addServerAPI(dst []byte) []byte {
 	return dst
 }
 
+// MarshalBSONReadConcern marshals a ReadConcern.
+func MarshalBSONReadConcern(rc *readconcern.ReadConcern) (bson.Type, []byte, error) {
+	if rc == nil {
+		return 0, nil, ErrEmptyReadConcern
+	}
+
+	var elems []byte
+	if len(rc.Level) > 0 {
+		elems = bsoncore.AppendStringElement(elems, "level", rc.Level)
+	}
+
+	return bson.TypeEmbeddedDocument, bsoncore.BuildDocument(nil, elems), nil
+}
+
 func (op Operation) addReadConcern(dst []byte, desc description.SelectedServer) ([]byte, error) {
-	if op.MinimumReadConcernWireVersion > 0 && (desc.WireVersion == nil || !desc.WireVersion.Includes(op.MinimumReadConcernWireVersion)) {
+	if op.MinimumReadConcernWireVersion > 0 && (desc.WireVersion == nil ||
+		!driverutil.VersionRangeIncludes(*desc.WireVersion, op.MinimumReadConcernWireVersion)) {
+
 		return dst, nil
 	}
 	rc := op.ReadConcern
@@ -1474,7 +1476,7 @@ func (op Operation) addReadConcern(dst []byte, desc description.SelectedServer) 
 
 	// start transaction must append afterclustertime IF causally consistent and operation time exists
 	if rc == nil && client != nil && client.TransactionStarting() && client.Consistent && client.OperationTime != nil {
-		rc = readconcern.New()
+		rc = &readconcern.ReadConcern{}
 	}
 
 	if client != nil && client.Snapshot {
@@ -1484,11 +1486,11 @@ func (op Operation) addReadConcern(dst []byte, desc description.SelectedServer) 
 		rc = readconcern.Snapshot()
 	}
 
-	if rc == nil {
+	_, data, err := MarshalBSONReadConcern(rc) // always returns a document
+	if errors.Is(err, ErrEmptyReadConcern) {
 		return dst, nil
 	}
 
-	_, data, err := rc.MarshalBSONValue() // always returns a document
 	if err != nil {
 		return dst, err
 	}
@@ -1512,8 +1514,62 @@ func (op Operation) addReadConcern(dst []byte, desc description.SelectedServer) 
 	return bsoncore.AppendDocumentElement(dst, "readConcern", data), nil
 }
 
-func (op Operation) addWriteConcern(dst []byte, desc description.SelectedServer) ([]byte, error) {
-	if op.MinimumWriteConcernWireVersion > 0 && (desc.WireVersion == nil || !desc.WireVersion.Includes(op.MinimumWriteConcernWireVersion)) {
+// MarshalBSONWriteConcern marshals a WriteConcern.
+func MarshalBSONWriteConcern(wc *writeconcern.WriteConcern, wtimeout time.Duration) (bson.Type, []byte, error) {
+	if wc == nil {
+		return 0, nil, ErrEmptyWriteConcern
+	}
+
+	var elems []byte
+	if wc.W != nil {
+		// Only support string or int values for W. That aligns with the
+		// documentation and the behavior of other functions, like Acknowledged.
+		switch w := wc.W.(type) {
+		case int:
+			if w < 0 {
+				return 0, nil, errNegativeW
+			}
+
+			// If Journal=true and W=0, return an error because that write
+			// concern is ambiguous.
+			if wc.Journal != nil && *wc.Journal && w == 0 {
+				return 0, nil, errInconsistent
+			}
+
+			// Check for lower and upper bounds on architecture-dependent int.
+			if w > math.MaxInt32 {
+				return 0, nil, fmt.Errorf("WriteConcern.W overflows int32: %v", wc.W)
+			}
+
+			elems = bsoncore.AppendInt32Element(elems, "w", int32(w))
+		case string:
+			elems = bsoncore.AppendStringElement(elems, "w", w)
+		default:
+			return 0,
+				nil,
+				fmt.Errorf("WriteConcern.W must be a string or int, but is a %T", wc.W)
+		}
+	}
+
+	if wc.Journal != nil {
+		elems = bsoncore.AppendBooleanElement(elems, "j", *wc.Journal)
+	}
+
+	if wtimeout != 0 {
+		elems = bsoncore.AppendInt64Element(elems, "wtimeout", int64(wtimeout/time.Millisecond))
+	}
+
+	if len(elems) == 0 {
+		return 0, nil, ErrEmptyWriteConcern
+	}
+
+	return bson.TypeEmbeddedDocument, bsoncore.BuildDocument(nil, elems), nil
+}
+
+func (op Operation) addWriteConcern(ctx context.Context, dst []byte, desc description.SelectedServer) ([]byte, error) {
+	if op.MinimumWriteConcernWireVersion > 0 && (desc.WireVersion == nil ||
+		!driverutil.VersionRangeIncludes(*desc.WireVersion, op.MinimumWriteConcernWireVersion)) {
+
 		return dst, nil
 	}
 	wc := op.WriteConcern
@@ -1521,15 +1577,27 @@ func (op Operation) addWriteConcern(dst []byte, desc description.SelectedServer)
 		return dst, nil
 	}
 
-	t, data, err := wc.MarshalBSONValue()
-	if errors.Is(err, writeconcern.ErrEmptyWriteConcern) {
+	// The specifications for committing a transaction states:
+	//
+	// > if the modified write concern does not include a wtimeout value, drivers
+	// > MUST also apply wtimeout: 10000 to the write concern in order to avoid
+	// > waiting forever (or until a socket timeout) if the majority write concern
+	// > cannot be satisfied.
+	var wtimeout time.Duration
+	if _, ok := ctx.Deadline(); op.Client != nil && op.Timeout == nil && !ok {
+		wtimeout = op.Client.CurrentWTimeout
+	}
+
+	typ, wcBSON, err := MarshalBSONWriteConcern(wc, wtimeout)
+	if errors.Is(err, ErrEmptyWriteConcern) {
 		return dst, nil
 	}
+
 	if err != nil {
 		return dst, err
 	}
 
-	return append(bsoncore.AppendHeader(dst, t, "writeConcern"), data...), nil
+	return append(bsoncore.AppendHeader(dst, bsoncore.Type(typ), "writeConcern"), wcBSON...), nil
 }
 
 func (op Operation) addSession(dst []byte, desc description.SelectedServer) ([]byte, error) {
@@ -1537,11 +1605,11 @@ func (op Operation) addSession(dst []byte, desc description.SelectedServer) ([]b
 
 	// If the operation is defined for an explicit session but the server
 	// does not support sessions, then throw an error.
-	if client != nil && !client.IsImplicit && desc.SessionTimeoutMinutesPtr == nil {
+	if client != nil && !client.IsImplicit && desc.SessionTimeoutMinutes == nil {
 		return nil, fmt.Errorf("current topology does not support sessions")
 	}
 
-	if client == nil || !sessionsSupported(desc.WireVersion) || desc.SessionTimeoutMinutesPtr == nil {
+	if client == nil || !sessionsSupported(desc.WireVersion) || desc.SessionTimeoutMinutes == nil {
 		return dst, nil
 	}
 	if err := client.UpdateUseTime(); err != nil {
@@ -1583,7 +1651,7 @@ func (op Operation) addClusterTime(dst []byte, desc description.SelectedServer) 
 	if err != nil {
 		return dst
 	}
-	return append(bsoncore.AppendHeader(dst, val.Type, "$clusterTime"), val.Value...)
+	return append(bsoncore.AppendHeader(dst, bsoncore.Type(val.Type), "$clusterTime"), val.Value...)
 	// return bsoncore.AppendDocumentElement(dst, "$clusterTime", clusterTime)
 }
 
@@ -1592,56 +1660,40 @@ func (op Operation) addClusterTime(dst []byte, desc description.SelectedServer) 
 // if the ctx is a Timeout context. If the context is not a Timeout context, it uses the
 // operation's MaxTimeMS if set. If no MaxTimeMS is set on the operation, and context is
 // not a Timeout context, calculateMaxTimeMS returns 0.
-func (op Operation) calculateMaxTimeMS(ctx context.Context, mon RTTMonitor) (uint64, error) {
-	// If CSOT is enabled and we're not omitting the CSOT-calculated maxTimeMS
-	// value, then calculate maxTimeMS.
-	//
-	// This allows commands that do not currently send CSOT-calculated maxTimeMS
-	// (e.g. Find and Aggregate) to still use a manually-provided maxTimeMS
-	// value.
-	//
-	// TODO(GODRIVER-2944): Remove or refactor this logic when we add the
-	// "timeoutMode" option, which will allow users to opt-in to the
-	// CSOT-calculated maxTimeMS values if that's the behavior they want.
-	if csot.IsTimeoutContext(ctx) && !op.OmitCSOTMaxTimeMS {
-		if deadline, ok := ctx.Deadline(); ok {
-			remainingTimeout := time.Until(deadline)
-			rtt90 := mon.P90()
-			maxTime := remainingTimeout - rtt90
-
-			// Always round up to the next millisecond value so we never truncate the calculated
-			// maxTimeMS value (e.g. 400 microseconds evaluates to 1ms, not 0ms).
-			maxTimeMS := int64((maxTime + (time.Millisecond - 1)) / time.Millisecond)
-			if maxTimeMS <= 0 {
-				return 0, fmt.Errorf(
-					"negative maxTimeMS: remaining time %v until context deadline is less than 90th percentile network round-trip time (%v): %w",
-					remainingTimeout,
-					mon.Stats(),
-					ErrDeadlineWouldBeExceeded)
-			}
-
-			// The server will return a "BadValue" error if maxTimeMS is greater
-			// than the maximum positive int32 value (about 24.9 days). If the
-			// user specified a timeout value greater than that,  omit maxTimeMS
-			// and let the client-side timeout handle cancelling the op if the
-			// timeout is ever reached.
-			if maxTimeMS > math.MaxInt32 {
-				return 0, nil
-			}
-
-			return uint64(maxTimeMS), nil
-		}
-	} else if op.MaxTime != nil {
-		// Users are not allowed to pass a negative value as MaxTime. A value of 0 would indicate
-		// no timeout and is allowed.
-		if *op.MaxTime < 0 {
-			return 0, ErrNegativeMaxTime
-		}
-		// Always round up to the next millisecond value so we never truncate the requested
-		// MaxTime value (e.g. 400 microseconds evaluates to 1ms, not 0ms).
-		return uint64((*op.MaxTime + (time.Millisecond - 1)) / time.Millisecond), nil
+func (op Operation) calculateMaxTimeMS(ctx context.Context, rttMin time.Duration, rttStats string) (int64, error) {
+	if op.OmitMaxTimeMS {
+		return 0, nil
 	}
-	return 0, nil
+
+	deadline, ok := ctx.Deadline()
+	if !ok {
+		return 0, nil
+	}
+
+	remainingTimeout := time.Until(deadline)
+
+	// Always round up to the next millisecond value so we never truncate the calculated
+	// maxTimeMS value (e.g. 400 microseconds evaluates to 1ms, not 0ms).
+	maxTimeMS := int64((remainingTimeout - rttMin + time.Millisecond - 1) / time.Millisecond)
+	if maxTimeMS <= 0 {
+		return 0, fmt.Errorf(
+			"remaining time %v until context deadline is less than or equal to min network round-trip time %v (%v): %w",
+			remainingTimeout,
+			rttMin,
+			rttStats,
+			ErrDeadlineWouldBeExceeded)
+	}
+
+	// The server will return a "BadValue" error if maxTimeMS is greater
+	// than the maximum positive int32 value (about 24.9 days). If the
+	// user specified a timeout value greater than that,  omit maxTimeMS
+	// and let the client-side timeout handle cancelling the op if the
+	// timeout is ever reached.
+	if maxTimeMS > math.MaxInt32 {
+		return 0, nil
+	}
+
+	return maxTimeMS, nil
 }
 
 // updateClusterTimes updates the cluster times for the session and cluster clock attached to this
@@ -1683,7 +1735,7 @@ func (op Operation) updateOperationTime(response bsoncore.Document) {
 	}
 
 	t, i := opTimeElem.Timestamp()
-	_ = sess.AdvanceOperationTime(&primitive.Timestamp{
+	_ = sess.AdvanceOperationTime(&bson.Timestamp{
 		T: t,
 		I: i,
 	})
@@ -1713,7 +1765,9 @@ func (op Operation) createReadPref(desc description.SelectedServer, isOpQuery bo
 
 	// TODO(GODRIVER-2231): Instead of checking if isOutputAggregate and desc.Server.WireVersion.Max < 13, somehow check
 	// TODO if supplied readPreference was "overwritten" with primary in description.selectForReplicaSet.
-	if desc.Server.Kind == description.Standalone || (isOpQuery && desc.Server.Kind != description.Mongos) ||
+	if desc.Server.Kind == description.ServerKindStandalone || (isOpQuery &&
+		desc.Server.Kind != description.ServerKindMongos) ||
+
 		op.Type == Write || (op.IsOutputAggregate && desc.Server.WireVersion.Max < 13) {
 		// Don't send read preference for:
 		// 1. all standalones
@@ -1731,7 +1785,7 @@ func (op Operation) createReadPref(desc description.SelectedServer, isOpQuery bo
 	}
 
 	if rp == nil {
-		if desc.Kind == description.Single && desc.Server.Kind != description.Mongos {
+		if desc.Kind == description.TopologyKindSingle && desc.Server.Kind != description.ServerKindMongos {
 			doc = bsoncore.AppendStringElement(doc, "mode", "primaryPreferred")
 			doc, _ = bsoncore.AppendDocumentEnd(doc, idx)
 			return doc, nil
@@ -1741,10 +1795,10 @@ func (op Operation) createReadPref(desc description.SelectedServer, isOpQuery bo
 
 	switch rp.Mode() {
 	case readpref.PrimaryMode:
-		if desc.Server.Kind == description.Mongos {
+		if desc.Server.Kind == description.ServerKindMongos {
 			return nil, nil
 		}
-		if desc.Kind == description.Single {
+		if desc.Kind == description.TopologyKindSingle {
 			doc = bsoncore.AppendStringElement(doc, "mode", "primaryPreferred")
 			doc, _ = bsoncore.AppendDocumentEnd(doc, idx)
 			return doc, nil
@@ -1761,7 +1815,9 @@ func (op Operation) createReadPref(desc description.SelectedServer, isOpQuery bo
 		doc = bsoncore.AppendStringElement(doc, "mode", "primaryPreferred")
 	case readpref.SecondaryPreferredMode:
 		_, ok := rp.MaxStaleness()
-		if desc.Server.Kind == description.Mongos && isOpQuery && !ok && len(rp.TagSets()) == 0 && rp.HedgeEnabled() == nil {
+		if desc.Server.Kind == description.ServerKindMongos && isOpQuery && !ok && len(rp.TagSets()) == 0 &&
+			rp.HedgeEnabled() == nil {
+
 			return nil, nil
 		}
 		doc = bsoncore.AppendStringElement(doc, "mode", "secondaryPreferred")
@@ -1808,7 +1864,7 @@ func (op Operation) createReadPref(desc description.SelectedServer, isOpQuery bo
 }
 
 func (op Operation) secondaryOK(desc description.SelectedServer) wiremessage.QueryFlag {
-	if desc.Kind == description.Single && desc.Server.Kind != description.Mongos {
+	if desc.Kind == description.TopologyKindSingle && desc.Server.Kind != description.ServerKindMongos {
 		return wiremessage.SecondaryOK
 	}
 
@@ -1878,7 +1934,7 @@ func (Operation) decodeOpReply(wm []byte) opReply {
 	return reply
 }
 
-func (op Operation) decodeResult(ctx context.Context, opcode wiremessage.OpCode, wm []byte) (bsoncore.Document, error) {
+func (op Operation) decodeResult(opcode wiremessage.OpCode, wm []byte) (bsoncore.Document, error) {
 	switch opcode {
 	case wiremessage.OpReply:
 		reply := op.decodeOpReply(wm)
@@ -1896,7 +1952,7 @@ func (op Operation) decodeResult(ctx context.Context, opcode wiremessage.OpCode,
 			return nil, NewCommandResponseError("malformed OP_REPLY: invalid document", err)
 		}
 
-		return rdr, ExtractErrorFromServerResponse(ctx, rdr)
+		return rdr, ExtractErrorFromServerResponse(rdr)
 	case wiremessage.OpMsg:
 		_, wm, ok := wiremessage.ReadMsgFlags(wm)
 		if !ok {
@@ -1932,7 +1988,7 @@ func (op Operation) decodeResult(ctx context.Context, opcode wiremessage.OpCode,
 			return nil, NewCommandResponseError("malformed OP_MSG: invalid document", err)
 		}
 
-		return res, ExtractErrorFromServerResponse(ctx, res)
+		return res, ExtractErrorFromServerResponse(res)
 	default:
 		return nil, fmt.Errorf("cannot decode result from %s", opcode)
 	}
@@ -1977,8 +2033,9 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 	if op.canLogCommandMessage() {
 		host, port, _ := net.SplitHostPort(info.serverAddress.String())
 
-		redactedCmd := redactStartedInformationCmd(op, info).String()
-		formattedCmd := logger.FormatMessage(redactedCmd, op.Logger.MaxDocumentLength)
+		redactedCmd := redactStartedInformationCmd(op, info)
+
+		formattedCmd := logger.FormatDocument(redactedCmd, op.Logger.MaxDocumentLength)
 
 		op.Logger.Print(logger.LevelDebug,
 			logger.ComponentCommand,
@@ -2000,14 +2057,13 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 
 	if op.canPublishStartedEvent() {
 		started := &event.CommandStartedEvent{
-			Command:              redactStartedInformationCmd(op, info),
-			DatabaseName:         op.Database,
-			CommandName:          info.cmdName,
-			RequestID:            int64(info.requestID),
-			ConnectionID:         info.connID,
-			ServerConnectionID:   convertInt64PtrToInt32Ptr(info.serverConnID),
-			ServerConnectionID64: info.serverConnID,
-			ServiceID:            info.serviceID,
+			Command:            redactStartedInformationCmd(op, info),
+			DatabaseName:       op.Database,
+			CommandName:        info.cmdName,
+			RequestID:          int64(info.requestID),
+			ConnectionID:       info.connID,
+			ServerConnectionID: info.serverConnID,
+			ServiceID:          info.serviceID,
 		}
 		op.CommandMonitor.Started(ctx, started)
 	}
@@ -2030,8 +2086,9 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 	if op.canLogCommandMessage() && info.success() {
 		host, port, _ := net.SplitHostPort(info.serverAddress.String())
 
-		redactedReply := redactFinishedInformationResponse(info).String()
-		formattedReply := logger.FormatMessage(redactedReply, op.Logger.MaxDocumentLength)
+		redactedReply := redactFinishedInformationResponse(info)
+
+		formattedReply := logger.FormatDocument(redactedReply, op.Logger.MaxDocumentLength)
 
 		op.Logger.Print(logger.LevelDebug,
 			logger.ComponentCommand,
@@ -2054,7 +2111,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 	if op.canLogCommandMessage() && !info.success() {
 		host, port, _ := net.SplitHostPort(info.serverAddress.String())
 
-		formattedReply := logger.FormatMessage(info.cmdErr.Error(), op.Logger.MaxDocumentLength)
+		formattedReply := logger.FormatString(info.cmdErr.Error(), op.Logger.MaxDocumentLength)
 
 		op.Logger.Print(logger.LevelDebug,
 			logger.ComponentCommand,
@@ -2080,15 +2137,13 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 	}
 
 	finished := event.CommandFinishedEvent{
-		CommandName:          info.cmdName,
-		DatabaseName:         op.Database,
-		RequestID:            int64(info.requestID),
-		ConnectionID:         info.connID,
-		Duration:             info.duration,
-		DurationNanos:        info.duration.Nanoseconds(),
-		ServerConnectionID:   convertInt64PtrToInt32Ptr(info.serverConnID),
-		ServerConnectionID64: info.serverConnID,
-		ServiceID:            info.serviceID,
+		CommandName:        info.cmdName,
+		DatabaseName:       op.Database,
+		RequestID:          int64(info.requestID),
+		ConnectionID:       info.connID,
+		Duration:           info.duration,
+		ServerConnectionID: info.serverConnID,
+		ServiceID:          info.serviceID,
 	}
 
 	if info.success() {
@@ -2102,7 +2157,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 	}
 
 	failedEvent := &event.CommandFailedEvent{
-		Failure:              info.cmdErr.Error(),
+		Failure:              info.cmdErr,
 		CommandFinishedEvent: finished,
 	}
 	op.CommandMonitor.Failed(ctx, failedEvent)
@@ -2115,5 +2170,5 @@ func sessionsSupported(wireVersion *description.VersionRange) bool {
 
 // retryWritesSupported returns true if this description represents a server that supports retryable writes.
 func retryWritesSupported(s description.Server) bool {
-	return s.SessionTimeoutMinutesPtr != nil && s.Kind != description.Standalone
+	return s.SessionTimeoutMinutes != nil && s.Kind != description.ServerKindStandalone
 }

@@ -12,17 +12,15 @@ import (
 	"fmt"
 	"net/http"
 
-	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/mongo/description"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/v2/mongo/address"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
 const sourceExternal = "$external"
-
-// Config contains the configuration for an Authenticator.
-type Config = driver.AuthConfig
 
 // AuthenticatorFactory constructs an authenticator.
 type AuthenticatorFactory func(*Cred, *http.Client) (Authenticator, error)
@@ -67,6 +65,11 @@ type HandshakeOptions struct {
 	ClusterClock          *session.ClusterClock
 	ServerAPI             *driver.ServerAPIOptions
 	LoadBalanced          bool
+
+	// Fields provided by a library that wraps the Go Driver.
+	OuterLibraryName     string
+	OuterLibraryVersion  string
+	OuterLibraryPlatform string
 }
 
 type authHandshaker struct {
@@ -81,7 +84,11 @@ var _ driver.Handshaker = (*authHandshaker)(nil)
 
 // GetHandshakeInformation performs the initial MongoDB handshake to retrieve the required information for the provided
 // connection.
-func (ah *authHandshaker) GetHandshakeInformation(ctx context.Context, addr address.Address, conn driver.Connection) (driver.HandshakeInformation, error) {
+func (ah *authHandshaker) GetHandshakeInformation(
+	ctx context.Context,
+	addr address.Address,
+	conn *mnet.Connection,
+) (driver.HandshakeInformation, error) {
 	if ah.wrapped != nil {
 		return ah.wrapped.GetHandshakeInformation(ctx, addr, conn)
 	}
@@ -92,7 +99,10 @@ func (ah *authHandshaker) GetHandshakeInformation(ctx context.Context, addr addr
 		SASLSupportedMechs(ah.options.DBUser).
 		ClusterClock(ah.options.ClusterClock).
 		ServerAPI(ah.options.ServerAPI).
-		LoadBalanced(ah.options.LoadBalanced)
+		LoadBalanced(ah.options.LoadBalanced).
+		OuterLibraryName(ah.options.OuterLibraryName).
+		OuterLibraryVersion(ah.options.OuterLibraryVersion).
+		OuterLibraryPlatform(ah.options.OuterLibraryPlatform)
 
 	if ah.options.Authenticator != nil {
 		if speculativeAuth, ok := ah.options.Authenticator.(SpeculativeAuthenticator); ok {
@@ -125,19 +135,17 @@ func (ah *authHandshaker) GetHandshakeInformation(ctx context.Context, addr addr
 }
 
 // FinishHandshake performs authentication for conn if necessary.
-func (ah *authHandshaker) FinishHandshake(ctx context.Context, conn driver.Connection) error {
+func (ah *authHandshaker) FinishHandshake(ctx context.Context, conn *mnet.Connection) error {
 	performAuth := ah.options.PerformAuthentication
 	if performAuth == nil {
 		performAuth = func(serv description.Server) bool {
 			// Authentication is possible against all server types except arbiters
-			return serv.Kind != description.RSArbiter
+			return serv.Kind != description.ServerKindRSArbiter
 		}
 	}
 
-	desc := conn.Description()
-	if performAuth(desc) && ah.options.Authenticator != nil {
-		cfg := &Config{
-			Description:   desc,
+	if performAuth(conn.Description()) && ah.options.Authenticator != nil {
+		cfg := &driver.AuthConfig{
 			Connection:    conn,
 			ClusterClock:  ah.options.ClusterClock,
 			HandshakeInfo: ah.handshakeInfo,
@@ -155,7 +163,7 @@ func (ah *authHandshaker) FinishHandshake(ctx context.Context, conn driver.Conne
 	return ah.wrapped.FinishHandshake(ctx, conn)
 }
 
-func (ah *authHandshaker) authenticate(ctx context.Context, cfg *Config) error {
+func (ah *authHandshaker) authenticate(ctx context.Context, cfg *driver.AuthConfig) error {
 	// If the initial hello reply included a response to the speculative authentication attempt, we only need to
 	// conduct the remainder of the conversation.
 	if speculativeResponse := ah.handshakeInfo.SpeculativeAuthenticate; speculativeResponse != nil {
@@ -177,6 +185,15 @@ func Handshaker(h driver.Handshaker, options *HandshakeOptions) driver.Handshake
 		wrapped: h,
 		options: options,
 	}
+}
+
+// Config holds the information necessary to perform an authentication attempt.
+type Config struct {
+	Connection    *mnet.Connection
+	ClusterClock  *session.ClusterClock
+	HandshakeInfo driver.HandshakeInformation
+	ServerAPI     *driver.ServerAPIOptions
+	HTTPClient    *http.Client
 }
 
 // Authenticator handles authenticating a connection.

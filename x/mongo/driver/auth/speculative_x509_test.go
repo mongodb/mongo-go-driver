@@ -12,12 +12,13 @@ import (
 	"net/http"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/handshake"
-	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/drivertest"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/handshake"
+	"go.mongodb.org/mongo-driver/v2/mongo/address"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/drivertest"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
 )
 
 var (
@@ -48,12 +49,14 @@ func TestSpeculativeX509(t *testing.T) {
 			ReadResp: responses,
 		}
 
-		info, err := handshaker.GetHandshakeInformation(context.Background(), address.Address("localhost:27017"), conn)
+		mnetconn := mnet.NewConnection(conn)
+
+		info, err := handshaker.GetHandshakeInformation(context.Background(), address.Address("localhost:27017"), mnetconn)
 		assert.Nil(t, err, "GetDescription error: %v", err)
 		assert.NotNil(t, info.SpeculativeAuthenticate, "desc.SpeculativeAuthenticate not set")
 		conn.Desc = info.Description
 
-		err = handshaker.FinishHandshake(context.Background(), conn)
+		err = handshaker.FinishHandshake(context.Background(), mnetconn)
 		assert.Nil(t, err, "FinishHandshake error: %v", err)
 		assert.Equal(t, 0, len(conn.ReadResp), "%d messages left unread", len(conn.ReadResp))
 
@@ -92,13 +95,15 @@ func TestSpeculativeX509(t *testing.T) {
 			ReadResp: responses,
 		}
 
-		info, err := handshaker.GetHandshakeInformation(context.Background(), address.Address("localhost:27017"), conn)
+		mnetconn := mnet.NewConnection(conn)
+
+		info, err := handshaker.GetHandshakeInformation(context.Background(), address.Address("localhost:27017"), mnetconn)
 		assert.Nil(t, err, "GetDescription error: %v", err)
 		assert.Nil(t, info.SpeculativeAuthenticate, "expected desc.SpeculativeAuthenticate to be unset, got %s",
 			bson.Raw(info.SpeculativeAuthenticate))
 		conn.Desc = info.Description
 
-		err = handshaker.FinishHandshake(context.Background(), conn)
+		err = handshaker.FinishHandshake(context.Background(), mnetconn)
 		assert.Nil(t, err, "FinishHandshake error: %v", err)
 		assert.Equal(t, 0, len(conn.ReadResp), "%d messages left unread", len(conn.ReadResp))
 
