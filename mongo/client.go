@@ -193,7 +193,7 @@ func newClient(opts ...*options.ClientOptions) (*Client, error) {
 	}
 	// AutoEncryptionOptions
 	if clientOpts.AutoEncryptionOptions != nil {
-		if err = client.configureAutoEncryption(clientOpts); err != nil {
+		if err := client.configureAutoEncryption(clientOpts); err != nil {
 			return nil, err
 		}
 	} else {
@@ -471,48 +471,30 @@ func (c *Client) endSessions(ctx context.Context) {
 }
 
 func (c *Client) configureAutoEncryption(args *options.ClientOptions) error {
-	aeOpts := args.AutoEncryptionOptions
-	c.encryptedFieldsMap = aeOpts.EncryptedFieldsMap
+	c.encryptedFieldsMap = args.AutoEncryptionOptions.EncryptedFieldsMap
 	if err := c.configureKeyVaultClientFLE(args); err != nil {
 		return err
 	}
 
-	mc, err := c.newMongoCrypt(aeOpts)
+	if err := c.configureMetadataClientFLE(args); err != nil {
+		return err
+	}
+
+	mc, err := c.newMongoCrypt(args.AutoEncryptionOptions)
 	if err != nil {
 		return err
 	}
 
 	// If the crypt_shared library was not loaded, try to spawn and connect to mongocryptd.
 	if mc.CryptSharedLibVersionString() == "" {
-		c.mongocryptdFLE, err = newMongocryptdClient(aeOpts)
+		mongocryptdFLE, err := newMongocryptdClient(args.AutoEncryptionOptions)
 		if err != nil {
 			return err
 		}
+		c.mongocryptdFLE = mongocryptdFLE
 	}
 
-	kr := keyRetriever{coll: c.keyVaultCollFLE}
-	var cir collInfoRetriever
-	bypass := aeOpts.BypassAutoEncryption != nil && *aeOpts.BypassAutoEncryption
-	if !bypass {
-		if args.MaxPoolSize != nil && *args.MaxPoolSize == 0 {
-			c.metadataClientFLE = c
-		} else {
-			c.metadataClientFLE, err = c.getOrCreateInternalClient(args)
-			if err != nil {
-				return err
-			}
-		}
-		cir.client = c.metadataClientFLE
-	}
-
-	c.cryptFLE = driver.NewCrypt(&driver.CryptOptions{
-		MongoCrypt:           mc,
-		CollInfoFn:           cir.cryptCollInfo,
-		KeyFn:                kr.cryptKeys,
-		MarkFn:               c.mongocryptdFLE.markCommand,
-		TLSConfig:            aeOpts.TLSConfig,
-		BypassAutoEncryption: bypass,
-	})
+	c.configureCryptFLE(mc, args.AutoEncryptionOptions)
 	return nil
 }
 
@@ -553,6 +535,24 @@ func (c *Client) configureKeyVaultClientFLE(clientOpts *options.ClientOptions) e
 	dbName, collName := splitNamespace(aeOpts.KeyVaultNamespace)
 	c.keyVaultCollFLE = c.keyVaultClientFLE.Database(dbName).Collection(collName, keyVaultCollOpts)
 	return nil
+}
+
+func (c *Client) configureMetadataClientFLE(clientOpts *options.ClientOptions) error {
+	aeOpts := clientOpts.AutoEncryptionOptions
+
+	if aeOpts.BypassAutoEncryption != nil && *aeOpts.BypassAutoEncryption {
+		// no need for a metadata client.
+		return nil
+	}
+	if clientOpts.MaxPoolSize != nil && *clientOpts.MaxPoolSize == 0 {
+		c.metadataClientFLE = c
+		return nil
+	}
+
+	var err error
+	c.metadataClientFLE, err = c.getOrCreateInternalClient(clientOpts)
+
+	return err
 }
 
 func (c *Client) newMongoCrypt(opts *options.AutoEncryptionOptions) (*mongocrypt.MongoCrypt, error) {
@@ -636,6 +636,28 @@ func (c *Client) newMongoCrypt(opts *options.AutoEncryptionOptions) (*mongocrypt
 	}
 
 	return mc, nil
+}
+
+//nolint:unused // the unused linter thinks that this function is unreachable because "c.newMongoCrypt" always panics without the "cse" build tag set.
+func (c *Client) configureCryptFLE(mc *mongocrypt.MongoCrypt, opts *options.AutoEncryptionOptions) {
+	bypass := opts.BypassAutoEncryption != nil && *opts.BypassAutoEncryption
+	kr := keyRetriever{coll: c.keyVaultCollFLE}
+	var cir collInfoRetriever
+	// If bypass is true, c.metadataClientFLE is nil and the collInfoRetriever
+	// will not be used. If bypass is false, to the parent client or the
+	// internal client.
+	if !bypass {
+		cir = collInfoRetriever{client: c.metadataClientFLE}
+	}
+
+	c.cryptFLE = driver.NewCrypt(&driver.CryptOptions{
+		MongoCrypt:           mc,
+		CollInfoFn:           cir.cryptCollInfo,
+		KeyFn:                kr.cryptKeys,
+		MarkFn:               c.mongocryptdFLE.markCommand,
+		TLSConfig:            opts.TLSConfig,
+		BypassAutoEncryption: bypass,
+	})
 }
 
 // validSession returns an error if the session doesn't belong to the client
