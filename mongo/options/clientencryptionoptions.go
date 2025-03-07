@@ -83,6 +83,7 @@ func (c *ClientEncryptionOptionsBuilder) SetTLSConfig(cfg map[string]*tls.Config
 }
 
 // SetKeyExpiration specifies duration for the key expiration. 0 or negative value means "never expire".
+// The granularity is in milliseconds. Any sub-millisecond fraction will be rounded up.
 func (c *ClientEncryptionOptionsBuilder) SetKeyExpiration(expiration time.Duration) *ClientEncryptionOptionsBuilder {
 	c.Opts = append(c.Opts, func(opts *ClientEncryptionOptions) error {
 		opts.KeyExpiration = &expiration

@@ -74,6 +74,7 @@ func (mo *MongoCryptOptions) SetHTTPClient(httpClient *http.Client) *MongoCryptO
 }
 
 // SetKeyExpiration sets the key expiration duration. 0 means "never expire".
+// The granularity is in milliseconds. Any sub-millisecond fraction will be rounded up.
 func (mo *MongoCryptOptions) SetKeyExpiration(expiration *time.Duration) *MongoCryptOptions {
 	mo.KeyExpiration = expiration
 	return mo

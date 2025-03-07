@@ -168,6 +168,7 @@ func (a *AutoEncryptionOptions) SetBypassQueryAnalysis(bypass bool) *AutoEncrypt
 }
 
 // SetKeyExpiration specifies duration for the key expiration. 0 or negative value means "never expire".
+// The granularity is in milliseconds. Any sub-millisecond fraction will be rounded up.
 func (a *AutoEncryptionOptions) SetKeyExpiration(expiration time.Duration) *AutoEncryptionOptions {
 	a.KeyExpiration = &expiration
 
