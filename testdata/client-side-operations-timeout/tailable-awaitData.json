@@ -426,11 +426,13 @@
           "name": "createFindCursor",
           "object": "collection",
           "arguments": {
-            "filter": {},
+            "filter": {
+              "_id": 1
+            },
             "cursorType": "tailableAwait",
             "batchSize": 1,
             "maxAwaitTimeMS": 100,
-            "timeoutMS": 50
+            "timeoutMS": 200
           },
           "saveResultAsEntity": "tailableCursor"
         },
@@ -439,13 +441,17 @@
           "object": "tailableCursor"
         },
         {
-          "name": "iterateOnce",
-          "object": "tailableCursor"
+          "name": "iterateUntilDocumentOrError",
+          "object": "tailableCursor",
+          "expectError": {
+            "isTimeoutError": true
+          }
         }
       ],
       "expectEvents": [
         {
           "client": "client",
+          "ignoreExtraEvents": true,
           "events": [
             {
               "commandStartedEvent": {
@@ -459,7 +465,18 @@
                 "databaseName": "test",
                 "command": {
                   "maxTimeMS": {
-                    "$$lte": 50
+                    "$$lte": 100
+                  }
+                }
+              }
+            },
+            {
+              "commandStartedEvent": {
+                "commandName": "getMore",
+                "databaseName": "test",
+                "command": {
+                  "maxTimeMS": {
+                    "$$lte": 99
                   }
                 }
               }

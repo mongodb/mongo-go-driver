@@ -252,19 +252,21 @@ tests:
       - name: createFindCursor
         object: *collection
         arguments:
-          filter: {}
+          filter: { _id:  1 }
           cursorType: tailableAwait
           batchSize: 1
           maxAwaitTimeMS: 100
-          timeoutMS: 50
+          timeoutMS: 200
         saveResultAsEntity: &tailableCursor tailableCursor
-      # Iterate twice to force a getMore.
       - name: iterateOnce
         object: *tailableCursor
-      - name: iterateOnce
+      - name: iterateUntilDocumentOrError 
         object: *tailableCursor
+        expectError:
+          isTimeoutError: true
     expectEvents:
       - client: *client
+        ignoreExtraEvents: true
         events:
           - commandStartedEvent:
               commandName: find
@@ -273,7 +275,12 @@ tests:
               commandName: getMore 
               databaseName: *databaseName
               command:
-                maxTimeMS: { $$lte: 50 }
+                maxTimeMS: { $$lte: 100 }
+          - commandStartedEvent:
+              commandName: getMore 
+              databaseName: *databaseName
+              command:
+                maxTimeMS: { $$lte: 99 }
 
   - description: "apply maxAwaitTimeMS if less than remaining timeout"
     operations:
