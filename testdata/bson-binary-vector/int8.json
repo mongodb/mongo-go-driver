@@ -1,0 +1,57 @@
+{
+  "description": "Tests of Binary subtype 9, Vectors, with dtype INT8",
+  "test_key": "vector",
+  "tests": [
+    {
+      "description": "Simple Vector INT8",
+      "valid": true,
+      "vector": [127, 7],
+      "dtype_hex": "0x03",
+      "dtype_alias": "INT8",
+      "padding": 0,
+      "canonical_bson": "1600000005766563746F7200040000000903007F0700"
+    },
+    {
+      "description": "Empty Vector INT8",
+      "valid": true,
+      "vector": [],
+      "dtype_hex": "0x03",
+      "dtype_alias": "INT8",
+      "padding": 0,
+      "canonical_bson": "1400000005766563746F72000200000009030000"
+    },
+    {
+      "description": "Overflow Vector INT8",
+      "valid": false,
+      "vector": [128],
+      "dtype_hex": "0x03",
+      "dtype_alias": "INT8",
+      "padding": 0
+    },
+    {
+      "description": "Underflow Vector INT8",
+      "valid": false,
+      "vector": [-129],
+      "dtype_hex": "0x03",
+      "dtype_alias": "INT8",
+      "padding": 0
+    },
+    {
+      "description": "INT8 with padding",
+      "valid": false,
+      "vector": [127, 7],
+      "dtype_hex": "0x03",
+      "dtype_alias": "INT8",
+      "padding": 3,
+      "canonical_bson": "1600000005766563746F7200040000000903037F0700"
+    },
+    {
+      "description": "INT8 with float inputs",
+      "valid": false,
+      "vector": [127.77, 7.77],
+      "dtype_hex": "0x03",
+      "dtype_alias": "INT8",
+      "padding": 0
+    }
+  ]
+}

@@ -70,6 +70,7 @@ func registerDefaultEncoders(reg *Registry) {
 	reg.RegisterTypeEncoder(tJavaScript, ValueEncoderFunc(javaScriptEncodeValue))
 	reg.RegisterTypeEncoder(tSymbol, ValueEncoderFunc(symbolEncodeValue))
 	reg.RegisterTypeEncoder(tBinary, ValueEncoderFunc(binaryEncodeValue))
+	reg.RegisterTypeEncoder(tVector, ValueEncoderFunc(vectorEncodeValue))
 	reg.RegisterTypeEncoder(tUndefined, ValueEncoderFunc(undefinedEncodeValue))
 	reg.RegisterTypeEncoder(tDateTime, ValueEncoderFunc(dateTimeEncodeValue))
 	reg.RegisterTypeEncoder(tNull, ValueEncoderFunc(nullEncodeValue))
@@ -361,6 +362,20 @@ func binaryEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error
 	}
 	b := val.Interface().(Binary)
 
+	return vw.WriteBinaryWithSubtype(b.Data, b.Subtype)
+}
+
+// vectorEncodeValue is the ValueEncoderFunc for Vector.
+func vectorEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
+	t := val.Type()
+	if !val.IsValid() || t != tVector {
+		return ValueEncoderError{Name: "VectorEncodeValue",
+			Types:    []reflect.Type{tVector},
+			Received: val,
+		}
+	}
+	v := val.Interface().(Vector)
+	b := v.Binary()
 	return vw.WriteBinaryWithSubtype(b.Data, b.Subtype)
 }
 

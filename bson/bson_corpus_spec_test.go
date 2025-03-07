@@ -217,7 +217,7 @@ func normalizeRelaxedDouble(t *testing.T, key string, rEJ string) string {
 func bsonToNative(t *testing.T, b []byte, bType, testDesc string) D {
 	var doc D
 	err := Unmarshal(b, &doc)
-	expectNoError(t, err, fmt.Sprintf("%s: decoding %s BSON", testDesc, bType))
+	require.NoErrorf(t, err, "%s: decoding %s BSON", testDesc, bType)
 	return doc
 }
 
@@ -225,7 +225,7 @@ func bsonToNative(t *testing.T, b []byte, bType, testDesc string) D {
 // canonical BSON (cB)
 func nativeToBSON(t *testing.T, cB []byte, doc D, testDesc, bType, docSrcDesc string) {
 	actual, err := Marshal(doc)
-	expectNoError(t, err, fmt.Sprintf("%s: encoding %s BSON", testDesc, bType))
+	require.NoErrorf(t, err, "%s: encoding %s BSON", testDesc, bType)
 
 	if diff := cmp.Diff(cB, actual); diff != "" {
 		t.Errorf("%s: 'native_to_bson(%s) = cB' failed (-want, +got):\n-%v\n+%v\n",
@@ -261,7 +261,7 @@ func jsonToBytes(ej, ejType, testDesc string) ([]byte, error) {
 // nativeToJSON encodes the native Document (doc) into an extended JSON string
 func nativeToJSON(t *testing.T, ej string, doc D, testDesc, ejType, ejShortName, docSrcDesc string) {
 	actualEJ, err := MarshalExtJSON(doc, ejType != "relaxed", true)
-	expectNoError(t, err, fmt.Sprintf("%s: encoding %s extended JSON", testDesc, ejType))
+	require.NoErrorf(t, err, "%s: encoding %s extended JSON", testDesc, ejType)
 
 	if diff := cmp.Diff(ej, string(actualEJ)); diff != "" {
 		t.Errorf("%s: 'native_to_%s_extended_json(%s) = %s' failed (-want, +got):\n%s\n",
@@ -288,7 +288,7 @@ func runTest(t *testing.T, file string) {
 				t.Run(v.Description, func(t *testing.T) {
 					// get canonical BSON
 					cB, err := hex.DecodeString(v.CanonicalBson)
-					expectNoError(t, err, fmt.Sprintf("%s: reading canonical BSON", v.Description))
+					require.NoErrorf(t, err, "%s: reading canonical BSON", v.Description)
 
 					// get canonical extended JSON
 					var compactEJ bytes.Buffer
@@ -341,7 +341,7 @@ func runTest(t *testing.T, file string) {
 					/*** degenerate BSON round-trip tests (if exists) ***/
 					if v.DegenerateBSON != nil {
 						dB, err := hex.DecodeString(*v.DegenerateBSON)
-						expectNoError(t, err, fmt.Sprintf("%s: reading degenerate BSON", v.Description))
+						require.NoErrorf(t, err, "%s: reading degenerate BSON", v.Description)
 
 						doc = bsonToNative(t, dB, "degenerate", v.Description)
 
@@ -377,7 +377,7 @@ func runTest(t *testing.T, file string) {
 			for _, d := range test.DecodeErrors {
 				t.Run(d.Description, func(t *testing.T) {
 					b, err := hex.DecodeString(d.Bson)
-					expectNoError(t, err, d.Description)
+					require.NoError(t, err, d.Description)
 
 					var doc D
 					err = Unmarshal(b, &doc)
@@ -392,12 +392,12 @@ func runTest(t *testing.T, file string) {
 						invalidDBPtr := ok && !utf8.ValidString(dbPtr.DB)
 
 						if invalidString || invalidDBPtr {
-							expectNoError(t, err, d.Description)
+							require.NoError(t, err, d.Description)
 							return
 						}
 					}
 
-					expectError(t, err, fmt.Sprintf("%s: expected decode error", d.Description))
+					require.Errorf(t, err, "%s: expected decode error", d.Description)
 				})
 			}
 		})
@@ -418,7 +418,7 @@ func runTest(t *testing.T, file string) {
 						if strings.Contains(p.Description, "Null") {
 							_, err = Marshal(doc)
 						}
-						expectError(t, err, fmt.Sprintf("%s: expected parse error", p.Description))
+						require.Errorf(t, err, "%s: expected parse error", p.Description)
 					default:
 						t.Errorf("Update test to check for parse errors for type %s", test.BsonType)
 						t.Fail()
@@ -431,28 +431,10 @@ func runTest(t *testing.T, file string) {
 
 func Test_BsonCorpus(t *testing.T) {
 	jsonFiles, err := findJSONFilesInDir(dataDir)
-	if err != nil {
-		t.Fatalf("error finding JSON files in %s: %v", dataDir, err)
-	}
+	require.NoErrorf(t, err, "error finding JSON files in %s: %v", dataDir, err)
 
 	for _, file := range jsonFiles {
 		runTest(t, file)
-	}
-}
-
-func expectNoError(t *testing.T, err error, desc string) {
-	if err != nil {
-		t.Helper()
-		t.Errorf("%s: Unepexted error: %v", desc, err)
-		t.FailNow()
-	}
-}
-
-func expectError(t *testing.T, err error, desc string) {
-	if err == nil {
-		t.Helper()
-		t.Errorf("%s: Expected error", desc)
-		t.FailNow()
 	}
 }
 

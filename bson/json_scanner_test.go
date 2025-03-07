@@ -12,6 +12,7 @@ import (
 	"testing/iotest"
 
 	"github.com/google/go-cmp/cmp"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
 )
 
 func jttDiff(t *testing.T, expected, actual jsonTokenType, desc string) {
@@ -289,7 +290,7 @@ func TestJsonScannerValidInputs(t *testing.T) {
 
 			for _, token := range tc.tokens {
 				c, err := js.nextToken()
-				expectNoError(t, err, tc.desc)
+				require.NoError(t, err, tc.desc)
 				jttDiff(t, token.t, c.t, tc.desc)
 				jtvDiff(t, token.v, c.v, tc.desc)
 			}
@@ -303,7 +304,7 @@ func TestJsonScannerValidInputs(t *testing.T) {
 
 			for _, token := range tc.tokens {
 				c, err := js.nextToken()
-				expectNoError(t, err, tc.desc)
+				require.NoError(t, err, tc.desc)
 				jttDiff(t, token.t, c.t, tc.desc)
 				jtvDiff(t, token.v, c.v, tc.desc)
 			}
@@ -354,7 +355,7 @@ func TestJsonScannerInvalidInputs(t *testing.T) {
 
 			c, err := js.nextToken()
 			expectNilToken(t, c, tc.desc)
-			expectError(t, err, tc.desc)
+			require.Error(t, err, tc.desc)
 		})
 	}
 }

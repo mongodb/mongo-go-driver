@@ -110,7 +110,7 @@ func TestCSOTProse(t *testing.T) {
 			}
 
 			// Assert that Ping fails within 150ms due to server selection timeout.
-			assert.Eventually(t,
+			assert.Eventually(mt,
 				callback,
 				150*time.Millisecond,
 				time.Millisecond,
@@ -130,7 +130,7 @@ func TestCSOTProse(t *testing.T) {
 			}
 
 			// Assert that Ping fails within 150ms due to timeout.
-			assert.Eventually(t,
+			assert.Eventually(mt,
 				callback,
 				150*time.Millisecond,
 				time.Millisecond,
@@ -150,7 +150,7 @@ func TestCSOTProse(t *testing.T) {
 			}
 
 			// Assert that Ping fails within 150ms due to server selection timeout.
-			assert.Eventually(t,
+			assert.Eventually(mt,
 				callback,
 				150*time.Millisecond,
 				time.Millisecond,
@@ -170,12 +170,67 @@ func TestCSOTProse(t *testing.T) {
 			}
 
 			// Assert that Ping fails within 150ms due to server selection timeout.
-			assert.Eventually(t,
+			assert.Eventually(mt,
 				callback,
 				150*time.Millisecond,
 				time.Millisecond,
 				"expected ping to fail within 150ms")
 		})
+	})
+
+	mt.RunOpts("11. multi-batch bulkWrites", mtest.NewOptions().MinServerVersion("8.0").
+		AtlasDataLake(false).Topologies(mtest.Single), func(mt *mtest.T) {
+		coll := mt.CreateCollection(mtest.Collection{DB: "db", Name: "coll"}, false)
+		err := coll.Drop(context.Background())
+		require.NoError(mt, err, "Drop error: %v", err)
+
+		mt.SetFailPoint(failpoint.FailPoint{
+			ConfigureFailPoint: "failCommand",
+			Mode: failpoint.Mode{
+				Times: 2,
+			},
+			Data: failpoint.Data{
+				FailCommands:    []string{"bulkWrite"},
+				BlockConnection: true,
+				BlockTimeMS:     1010,
+			},
+		})
+
+		var hello struct {
+			MaxBsonObjectSize   int
+			MaxMessageSizeBytes int
+		}
+		err = mt.DB.RunCommand(context.Background(), bson.D{{"hello", 1}}).Decode(&hello)
+		require.NoError(mt, err, "Hello error: %v", err)
+
+		var writes []mongo.ClientBulkWrite
+		n := hello.MaxMessageSizeBytes/hello.MaxBsonObjectSize + 1
+		for i := 0; i < n; i++ {
+			writes = append(writes, mongo.ClientBulkWrite{
+				Database:   "db",
+				Collection: "coll",
+				Model: &mongo.ClientInsertOneModel{
+					Document: bson.D{{"a", strings.Repeat("b", hello.MaxBsonObjectSize-500)}},
+				},
+			})
+		}
+
+		var cnt int
+		cm := &event.CommandMonitor{
+			Started: func(_ context.Context, evt *event.CommandStartedEvent) {
+				if evt.CommandName == "bulkWrite" {
+					cnt++
+				}
+			},
+		}
+		cliOptions := options.Client().
+			SetTimeout(2 * time.Second).
+			SetMonitor(cm).
+			ApplyURI(mtest.ClusterURI())
+		mt.ResetClient(cliOptions)
+		_, err = mt.Client.BulkWrite(context.Background(), writes)
+		assert.ErrorIs(mt, err, context.DeadlineExceeded, "expected a timeout error, got: %v", err)
+		assert.Equal(mt, 2, cnt, "expected bulkWrite calls: %d, got: %d", 2, cnt)
 	})
 }
 

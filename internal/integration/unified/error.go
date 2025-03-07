@@ -8,6 +8,7 @@ package unified
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -18,15 +19,22 @@ import (
 // expectedError represents an error that is expected to occur during a test. This type ignores the "isError" field in
 // test files because it is always true if it is specified, so the runner can simply assert that an error occurred.
 type expectedError struct {
-	IsClientError  *bool          `bson:"isClientError"`
-	IsTimeoutError *bool          `bson:"isTimeoutError"`
-	ErrorSubstring *string        `bson:"errorContains"`
-	Code           *int32         `bson:"errorCode"`
-	CodeName       *string        `bson:"errorCodeName"`
-	IncludedLabels []string       `bson:"errorLabelsContain"`
-	OmittedLabels  []string       `bson:"errorLabelsOmit"`
-	ExpectedResult *bson.RawValue `bson:"expectResult"`
-	ErrorResponse  *bson.Raw      `bson:"errorResponse"`
+	IsClientError      *bool                            `bson:"isClientError"`
+	IsTimeoutError     *bool                            `bson:"isTimeoutError"`
+	ErrorSubstring     *string                          `bson:"errorContains"`
+	Code               *int32                           `bson:"errorCode"`
+	CodeName           *string                          `bson:"errorCodeName"`
+	IncludedLabels     []string                         `bson:"errorLabelsContain"`
+	OmittedLabels      []string                         `bson:"errorLabelsOmit"`
+	ExpectedResult     *bson.RawValue                   `bson:"expectResult"`
+	ErrorResponse      *bson.Raw                        `bson:"errorResponse"`
+	WriteErrors        map[int]clientBulkWriteException `bson:"writeErrors"`
+	WriteConcernErrors []clientBulkWriteException       `bson:"writeConcernErrors"`
+}
+
+type clientBulkWriteException struct {
+	Code    *int    `bson:"code"`
+	Message *string `bson:"message"`
 }
 
 // verifyOperationError compares the expected error to the actual operation result. If the expected parameter is nil,
@@ -133,6 +141,40 @@ func verifyOperationError(ctx context.Context, expected *expectedError, result *
 			return fmt.Errorf("error response comparison error: %w", err)
 		}
 	}
+	if expected.WriteErrors != nil {
+		var exception mongo.ClientBulkWriteException
+		if !errors.As(result.Err, &exception) {
+			return fmt.Errorf("expected a ClientBulkWriteException, got %T: %v", result.Err, result.Err)
+		}
+		if len(expected.WriteErrors) != len(exception.WriteErrors) {
+			return fmt.Errorf("expected errors: %v, got: %v", expected.WriteErrors, exception.WriteErrors)
+		}
+		for k, e := range expected.WriteErrors {
+			if e.Code != nil && *e.Code != exception.WriteErrors[k].Code {
+				return fmt.Errorf("expected errors: %v, got: %v", expected.WriteConcernErrors, exception.WriteConcernErrors)
+			}
+			if e.Message != nil && *e.Message != exception.WriteErrors[k].Message {
+				return fmt.Errorf("expected errors: %v, got: %v", expected.WriteConcernErrors, exception.WriteConcernErrors)
+			}
+		}
+	}
+	if expected.WriteConcernErrors != nil {
+		var exception mongo.ClientBulkWriteException
+		if !errors.As(result.Err, &exception) {
+			return fmt.Errorf("expected a ClientBulkWriteException, got %T: %v", result.Err, result.Err)
+		}
+		if len(expected.WriteConcernErrors) != len(exception.WriteConcernErrors) {
+			return fmt.Errorf("expected errors: %v, got: %v", expected.WriteConcernErrors, exception.WriteConcernErrors)
+		}
+		for i, e := range expected.WriteConcernErrors {
+			if e.Code != nil && *e.Code != exception.WriteConcernErrors[i].Code {
+				return fmt.Errorf("expected errors: %v, got: %v", expected.WriteConcernErrors, exception.WriteConcernErrors)
+			}
+			if e.Message != nil && *e.Message != exception.WriteConcernErrors[i].Message {
+				return fmt.Errorf("expected errors: %v, got: %v", expected.WriteConcernErrors, exception.WriteConcernErrors)
+			}
+		}
+	}
 	return nil
 }
 
@@ -175,6 +217,11 @@ func extractErrorDetails(err error) (errorDetails, bool) {
 			details.raw = we.Raw
 		}
 		details.labels = converted.Labels
+	case mongo.ClientBulkWriteException:
+		if converted.WriteError != nil {
+			details.raw = converted.WriteError.Raw
+			details.codes = append(details.codes, int32(converted.WriteError.Code))
+		}
 	default:
 		return errorDetails{}, false
 	}
