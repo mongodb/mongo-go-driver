@@ -29,7 +29,10 @@
           "commandSucceededEvent",
           "connectionCheckedOutEvent",
           "connectionCheckedInEvent",
-          "connectionClosedEvent"
+          "connectionClosedEvent",
+          "connectionPendingReadSucceeded",
+          "connectionPendingReadStarted",
+          "connectionPendingReadFailed"
         ]
       }
     },
@@ -128,6 +131,12 @@
             },
             {
               "connectionCheckedInEvent": {}
+            },
+            {
+              "connectionPendingReadStarted": {}
+            },
+            {
+              "connectionPendingReadSucceeded": {}
             },
             {
               "connectionCheckedOutEvent": {}
@@ -262,6 +271,12 @@
               "connectionCheckedInEvent": {}
             },
             {
+              "connectionPendingReadStarted": {}
+            },
+            {
+              "connectionPendingReadSucceeded": {}
+            },
+            {
               "connectionCheckedOutEvent": {}
             },
             {
@@ -345,6 +360,12 @@
               "connectionCheckedInEvent": {}
             },
             {
+              "connectionPendingReadStarted": {}
+            },
+            {
+              "connectionPendingReadFailed": {}
+            },
+            {
               "connectionClosedEvent": {
                 "reason": "error"
               }
@@ -426,6 +447,12 @@
               "connectionCheckedInEvent": {}
             },
             {
+              "connectionPendingReadStarted": {}
+            },
+            {
+              "connectionPendingReadSucceeded": {}
+            },
+            {
               "connectionCheckedOutEvent": {}
             },
             {
@@ -505,6 +532,12 @@
             },
             {
               "connectionCheckedInEvent": {}
+            },
+            {
+              "connectionPendingReadStarted": {}
+            },
+            {
+              "connectionPendingReadFailed": {}
             },
             {
               "connectionClosedEvent": {

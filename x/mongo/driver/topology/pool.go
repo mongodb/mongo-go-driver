@@ -818,6 +818,7 @@ func awaitPendingRead(ctx context.Context, pool *pool, conn *connection) error {
 	if pool.monitor != nil {
 		event := &event.PoolEvent{
 			Type:         event.ConnectionPendingReadStarted,
+			Address:      pool.address.String(),
 			ConnectionID: conn.driverConnectionID,
 			RequestID:    prs.requestID,
 		}

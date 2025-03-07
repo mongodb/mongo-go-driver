@@ -25,6 +25,9 @@ createEntities:
         - connectionCheckedOutEvent
         - connectionCheckedInEvent
         - connectionClosedEvent
+        - connectionPendingReadSucceeded
+        - connectionPendingReadStarted
+        - connectionPendingReadFailed
   - database:
       id: &database test
       client: *client
@@ -80,10 +83,12 @@ tests:
       - client: *client
         eventType: cmap
         events:
-          - connectionCheckedOutEvent: {} # insert
-          - connectionCheckedInEvent: {}  # insert fails
-          - connectionCheckedOutEvent: {} # find
-          - connectionCheckedInEvent: {}  # find succeeds
+          - connectionCheckedOutEvent: {}
+          - connectionCheckedInEvent: {}        # insert fails
+          - connectionPendingReadStarted: {}
+          - connectionPendingReadSucceeded: {}  # find op drains conn
+          - connectionCheckedOutEvent: {}
+          - connectionCheckedInEvent: {}        # find succeeds
 
   - description: "Concurrent write operation with successful pending read"
     operations:
@@ -167,6 +172,8 @@ tests:
         events:
           - connectionCheckedOutEvent: {} # insert
           - connectionCheckedInEvent: {}  # insert fails
+          - connectionPendingReadStarted: {}
+          - connectionPendingReadSucceeded: {}
           - connectionCheckedOutEvent: {} # find
           - connectionCheckedInEvent: {}  # find succeeds
 
@@ -215,6 +222,8 @@ tests:
         events:
           - connectionCheckedOutEvent: {} # first insert
           - connectionCheckedInEvent: {}  # first insert fails
+          - connectionPendingReadStarted: {}
+          - connectionPendingReadFailed: {}
           - connectionClosedEvent:        # second insert times out pending read in checkout, closes
               reason: error
 
@@ -260,6 +269,8 @@ tests:
         events:
           - connectionCheckedOutEvent: {} # first find
           - connectionCheckedInEvent: {}  # first find fails
+          - connectionPendingReadStarted: {}
+          - connectionPendingReadSucceeded: {}
           - connectionCheckedOutEvent: {} # second find
           - connectionCheckedInEvent: {}  # second find succeeds
 
@@ -308,5 +319,7 @@ tests:
         events:
           - connectionCheckedOutEvent: {} # first find
           - connectionCheckedInEvent: {}  # first find fails
+          - connectionPendingReadStarted: {}
+          - connectionPendingReadFailed: {}
           - connectionClosedEvent:        # second find times out pending read in checkout, closes
               reason: error
