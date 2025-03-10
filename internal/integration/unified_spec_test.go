@@ -164,7 +164,6 @@ var directories = []string{
 	"convenient-transactions",
 	"retryable-reads/legacy",
 	"read-write-concern/operation",
-	"server-discovery-and-monitoring/integration",
 	"atlas-data-lake-testing",
 }
 
