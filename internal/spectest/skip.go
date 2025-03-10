@@ -135,6 +135,23 @@ var skipTests = map[string]string{
 	//  (BadValue) cannot set maxTimeMS on getMore command for a non-awaitData cursor
 	//
 	"TestUnifiedSpec/client-side-operations-timeout/runCursorCommand.json/Non-tailable_cursor_lifetime_remaining_timeoutMS_applied_to_getMore_if_timeoutMode_is_unset": "maxTimeMS can't be set on a getMore. See DRIVERS-2953",
+
+	// TODO(GODRIVER-2466): Converting SDAM integration spec tests to unified
+	// test format requires implementing new test operations, such as
+	// "recordTopologyDescription". Un-skip whenever GODRIVER-2466 is completed.
+	"TestUnifiedSpec/server-discovery-and-monitoring/unified/rediscover-quickly-after-step-down.json/Rediscover_quickly_after_replSetStepDown": "Implement GODRIVER-2466",
+
+	// TODO(GODRIVER-2967): The Go Driver doesn't currently emit a
+	// TopologyChangedEvent when a topology is closed. Un-skip whenever
+	// GODRIVER-2967 is completed.
+	"TestUnifiedSpec/server-discovery-and-monitoring/unified/logging-loadbalanced.json/Topology_lifecycle":                            "Implement GODRIVER-2967",
+	"TestUnifiedSpec/server-discovery-and-monitoring/unified/logging-sharded.json/Topology_lifecycle":                                 "Implement GODRIVER-2967",
+	"TestUnifiedSpec/server-discovery-and-monitoring/unified/logging-replicaset.json/Topology_lifecycle":                              "Implement GODRIVER-2967",
+	"TestUnifiedSpec/server-discovery-and-monitoring/unified/logging-standalone.json/Topology_lifecycle":                              "Implement GODRIVER-2967",
+	"TestUnifiedSpec/server-discovery-and-monitoring/unified/loadbalanced-emit-topology-changed-before-close.json/Topology_lifecycle": "Implement GODRIVER-2967",
+	"TestUnifiedSpec/server-discovery-and-monitoring/unified/sharded-emit-topology-changed-before-close.json/Topology_lifecycle":      "Implement GODRIVER-2967",
+	"TestUnifiedSpec/server-discovery-and-monitoring/unified/replicaset-emit-topology-changed-before-close.json/Topology_lifecycle":   "Implement GODRIVER-2967",
+	"TestUnifiedSpec/server-discovery-and-monitoring/unified/standalone-emit-topology-changed-before-close.json/Topology_lifecycle":   "Implement GODRIVER-2967",
 }
 
 // CheckSkip checks if the fully-qualified test name matches a skipped test
