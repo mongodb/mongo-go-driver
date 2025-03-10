@@ -369,7 +369,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					assert.True(mt, strings.Contains(insertErr.Error(), "auth error"),
 						"expected InsertOne auth error, got %v", insertErr)
 					assert.True(mt, strings.Contains(encErr.Error(), "auth error"),
-						"expected Encrypt auth error, got %v", encErr)
+						"expected Encrypt auth error, got %v", insertErr)
 					return
 				}
 				assert.Nil(mt, insertErr, "InsertOne error: %v", insertErr)
