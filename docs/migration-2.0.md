@@ -503,7 +503,7 @@ mongo.WithSession(context.TODO(),sess,func(ctx context.Context) error {
 
 ## Options Package
 
-`ClientOptions.AuthenticateToAnything` was marked for internal use in 1.x and does not have a replacement.
+`ClientOptions.AuthenticateToAnything` was removed in 2.0 (it was marked for internal use in 1.x).
 
 The following fields were removed because they are no longer supported by the server
 
@@ -633,9 +633,13 @@ The following types are not valid for a `findOne` operation and have been remove
 - `MaxAwaitTime`
 - `NoCursorTimeout`
 
+The data type of `ArrayFilters` has been changed to `[]interface{}`, which can be used as the `Filters` field in the original `ArrayFilters` struct.
+
 ### UpdateManyOptions / UpdateOneOptions
 
 The `UpdateOptions` has been separated into `UpdateManyOptions` and `UpdateOneOptions` to configure the corresponding `UpdateMany` and `UpdateOne` operations.
+
+The data type of `ArrayFilters` in the `Update*Options` has been changed to `[]interface{}`, which can be used as the `Filters` field in the original `ArrayFilters` struct.
 
 ### Merge\*Options
 
