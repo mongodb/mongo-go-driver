@@ -405,7 +405,7 @@ func executeDecrypt(ctx context.Context, operation *operation) (*operationResult
 	}
 	t, d, ok := rawValue.BinaryOK()
 	if !ok {
-		return nil, fmt.Errorf("'value' argument is not a BSON binary")
+		return nil, errors.New("'value' argument is not a BSON binary")
 	}
 
 	rawValue, err = cee.Decrypt(ctx, bson.Binary{Subtype: t, Data: d})
