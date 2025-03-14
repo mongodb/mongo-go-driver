@@ -35,10 +35,7 @@ func TestServerSelectionRTTSpec(t *testing.T) {
 			content, err := ioutil.ReadFile(filepath)
 			assert.Nil(t, err, "ReadFile error for %s: %v", filepath, err)
 
-			// Remove ".json" from filename.
-			testName := filename[:len(filename)-5]
-
-			t.Run(testName, func(t *testing.T) {
+			t.Run(filename, func(t *testing.T) {
 				var test testCase
 				err = json.Unmarshal(content, &test)
 				assert.Nil(t, err, "Unmarshal error: %v", err)

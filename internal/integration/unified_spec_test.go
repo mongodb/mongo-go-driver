@@ -27,6 +27,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/failpoint"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/internal/integtest"
+	"go.mongodb.org/mongo-driver/v2/internal/spectest"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/address"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -37,26 +38,11 @@ import (
 )
 
 const (
-	gridFSFiles            = "fs.files"
-	gridFSChunks           = "fs.chunks"
-	spec1403SkipReason     = "servers less than 4.2 do not have mongocryptd; see SPEC-1403"
-	godriver2123SkipReason = "failpoints and timeouts together cause failures; see GODRIVER-2123"
+	gridFSFiles  = "fs.files"
+	gridFSChunks = "fs.chunks"
 )
 
-var (
-	defaultHeartbeatInterval = 500 * time.Millisecond
-	skippedTestDescriptions  = map[string]string{
-		// SPEC-1403: This test checks to see if the correct error is thrown when auto encrypting with a server < 4.2.
-		// Currently, the test will fail because a server < 4.2 wouldn't have mongocryptd, so Client construction
-		// would fail with a mongocryptd spawn error.
-		"operation fails with maxWireVersion < 8": spec1403SkipReason,
-		// GODRIVER-2123: The two tests below use a failpoint and a socket or server selection timeout.
-		// The timeout causes the eventual clearing of the failpoint in the test runner to fail with an
-		// i/o timeout.
-		"Ignore network timeout error on find":             godriver2123SkipReason,
-		"Network error on minPoolSize background creation": godriver2123SkipReason,
-	}
-)
+var defaultHeartbeatInterval = 500 * time.Millisecond
 
 type testFile struct {
 	RunOn           []mtest.RunOnBlock `bson:"runOn"`
@@ -178,7 +164,6 @@ var directories = []string{
 	"convenient-transactions",
 	"retryable-reads/legacy",
 	"read-write-concern/operation",
-	"server-discovery-and-monitoring/integration",
 	"atlas-data-lake-testing",
 }
 
@@ -254,11 +239,10 @@ func runSpecTestCase(mt *mtest.T, test *testCase, testFile testFile) {
 
 	// Start the test without setting client options so the setup will be done with a default client.
 	mt.RunOpts(test.Description, opts, func(mt *mtest.T) {
+		spectest.CheckSkip(mt.T)
+
 		if len(test.SkipReason) > 0 {
 			mt.Skip(test.SkipReason)
-		}
-		if skipReason, ok := skippedTestDescriptions[test.Description]; ok {
-			mt.Skipf("skipping due to known failure: %v", skipReason)
 		}
 
 		// work around for SERVER-39704: run a non-transactional distinct against each shard in a sharded cluster
