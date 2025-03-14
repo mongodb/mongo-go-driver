@@ -24,17 +24,35 @@ import (
 // ErrClientDisconnected is returned when disconnected Client is used to run an operation.
 var ErrClientDisconnected = errors.New("client is disconnected")
 
+// InvalidArgumentError wraps an invalid argument error.
+type InvalidArgumentError struct {
+	Wrapped error
+}
+
+// Error implements the error interface.
+func (e InvalidArgumentError) Error() string {
+	return e.Wrapped.Error()
+}
+
+// Unwrap returns the underlying error.
+func (e InvalidArgumentError) Unwrap() error {
+	return e.Wrapped
+}
+
+// ErrMultipleIndexDrop is returned if multiple indexes would be dropped from a call to IndexView.DropOne.
+var ErrMultipleIndexDrop = InvalidArgumentError{errors.New("multiple indexes would be dropped")}
+
 // ErrNilDocument is returned when a nil document is passed to a CRUD method.
-var ErrNilDocument = errors.New("document is nil")
+var ErrNilDocument = InvalidArgumentError{errors.New("document is nil")}
 
 // ErrNilValue is returned when a nil value is passed to a CRUD method.
-var ErrNilValue = errors.New("value is nil")
+var ErrNilValue = InvalidArgumentError{errors.New("value is nil")}
 
 // ErrEmptySlice is returned when an empty slice is passed to a CRUD method that requires a non-empty slice.
-var ErrEmptySlice = errors.New("must provide at least one element in input slice")
+var ErrEmptySlice = InvalidArgumentError{errors.New("must provide at least one element in input slice")}
 
 // ErrNotSlice is returned when a type other than slice is passed to InsertMany.
-var ErrNotSlice = errors.New("must provide a non-empty slice")
+var ErrNotSlice = InvalidArgumentError{errors.New("must provide a non-empty slice")}
 
 // ErrMapForOrderedArgument is returned when a map with multiple keys is passed to a CRUD method for an ordered parameter
 type ErrMapForOrderedArgument struct {
