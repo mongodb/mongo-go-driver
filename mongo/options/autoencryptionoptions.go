@@ -9,6 +9,7 @@ package options
 import (
 	"crypto/tls"
 	"net/http"
+	"time"
 
 	"go.mongodb.org/mongo-driver/v2/internal/httputil"
 )
@@ -40,6 +41,7 @@ type AutoEncryptionOptions struct {
 	HTTPClient            *http.Client
 	EncryptedFieldsMap    map[string]interface{}
 	BypassQueryAnalysis   *bool
+	KeyExpiration         *time.Duration
 }
 
 // AutoEncryption creates a new AutoEncryptionOptions configured with default values.
@@ -161,6 +163,14 @@ func (a *AutoEncryptionOptions) SetEncryptedFieldsMap(ef map[string]interface{})
 // Use this option when using explicit encryption with Queryable Encryption.
 func (a *AutoEncryptionOptions) SetBypassQueryAnalysis(bypass bool) *AutoEncryptionOptions {
 	a.BypassQueryAnalysis = &bypass
+
+	return a
+}
+
+// SetKeyExpiration specifies duration for the key expiration. 0 or negative value means "never expire".
+// The granularity is in milliseconds. Any sub-millisecond fraction will be rounded up.
+func (a *AutoEncryptionOptions) SetKeyExpiration(expiration time.Duration) *AutoEncryptionOptions {
+	a.KeyExpiration = &expiration
 
 	return a
 }

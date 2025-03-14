@@ -609,7 +609,8 @@ func (c *Client) newMongoCrypt(opts *options.AutoEncryptionOptions) (*mongocrypt
 		SetEncryptedFieldsMap(cryptEncryptedFieldsMap).
 		SetCryptSharedLibDisabled(cryptSharedLibDisabled || bypassAutoEncryption).
 		SetCryptSharedLibOverridePath(cryptSharedLibPath).
-		SetHTTPClient(opts.HTTPClient))
+		SetHTTPClient(opts.HTTPClient).
+		SetKeyExpiration(opts.KeyExpiration))
 	if err != nil {
 		return nil, err
 	}

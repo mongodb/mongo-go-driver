@@ -270,6 +270,8 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 		return executeDeleteKey(ctx, op)
 	case "addKeyAltName":
 		return executeAddKeyAltName(ctx, op)
+	case "decrypt":
+		return executeDecrypt(ctx, op)
 
 	// Unsupported operations
 	case "count", "listIndexNames":
