@@ -503,7 +503,7 @@ mongo.WithSession(context.TODO(),sess,func(ctx context.Context) error {
 
 ## Options Package
 
-`ClientOptions.AuthenticateToAnything` was marked for internal use in 1.x and does not have a replacement.
+`ClientOptions.AuthenticateToAnything` was removed in v2 (it was marked for internal use in v1).
 
 The following fields were removed because they are no longer supported by the server
 
@@ -633,9 +633,15 @@ The following types are not valid for a `findOne` operation and have been remove
 - `MaxAwaitTime`
 - `NoCursorTimeout`
 
+### FindOneAndUpdateOptions
+
+The `ArrayFilters` struct type has been removed in v2. As a result, the `ArrayFilters` field in the `FindOneAndUpdateOptions` struct now uses the `[]interface{}` type. The `ArrayFilters` field (now of type `[]interface{}`) serves the same purpose as the `Filters` field in the original `ArrayFilters` struct.
+
 ### UpdateManyOptions / UpdateOneOptions
 
 The `UpdateOptions` has been separated into `UpdateManyOptions` and `UpdateOneOptions` to configure the corresponding `UpdateMany` and `UpdateOne` operations.
+
+The `ArrayFilters` struct type has been removed in v2. As a result, the `ArrayFilters` fields in the new `UpdateManyOptions` and `UpdateOneOptions` structs (which replace the old `UpdateOptions` struct) now use the `[]interface{}` type. The `ArrayFilters` field (now of type `[]interface{}`) serves the same purpose as the `Filters` field in the original `ArrayFilters` struct.
 
 ### Merge\*Options
 
