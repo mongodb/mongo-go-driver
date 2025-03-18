@@ -182,8 +182,6 @@ func readExtJSONFile(filename string) map[string]interface{} {
 }
 
 func BenchmarkMarshal(b *testing.B) {
-	b.ReportAllocs()
-
 	cases := []struct {
 		desc  string
 		value any
@@ -232,6 +230,7 @@ func BenchmarkMarshal(b *testing.B) {
 			tc := tc // Capture range variable.
 
 			b.Run(tc.desc, func(b *testing.B) {
+				b.ReportAllocs()
 				b.RunParallel(func(pb *testing.PB) {
 					for pb.Next() {
 						_, err := Marshal(tc.value)
@@ -249,6 +248,7 @@ func BenchmarkMarshal(b *testing.B) {
 			tc := tc // Capture range variable.
 
 			b.Run(tc.desc, func(b *testing.B) {
+				b.ReportAllocs()
 				b.RunParallel(func(pb *testing.PB) {
 					for pb.Next() {
 						_, err := MarshalExtJSON(tc.value, true, false)
@@ -266,6 +266,7 @@ func BenchmarkMarshal(b *testing.B) {
 			tc := tc // Capture range variable.
 
 			b.Run(tc.desc, func(b *testing.B) {
+				b.ReportAllocs()
 				b.RunParallel(func(pb *testing.PB) {
 					for pb.Next() {
 						_, err := json.Marshal(tc.value)
@@ -280,73 +281,73 @@ func BenchmarkMarshal(b *testing.B) {
 }
 
 func BenchmarkUnmarshal(b *testing.B) {
-	b.ReportAllocs()
-
-	cases := []struct {
+	type testcase struct {
 		desc  string
 		value any
 		dst   func() any
+	}
+
+	cases := []testcase{
+		{
+			desc:  "simple struct",
+			value: encodetestInstance,
+			dst:   func() any { return &encodetest{} },
+		},
+		{
+			desc:  "nested struct",
+			value: nestedInstance,
+			dst:   func() any { return &encodetest{} },
+		},
+	}
+
+	inputs := []struct {
+		name  string
+		value any
 	}{
 		{
-			desc:  "simple to struct",
+			name:  "simple",
 			value: encodetestInstance,
-			dst:   func() any { return &encodetest{} },
 		},
 		{
-			desc:  "simple to map",
-			value: encodetestInstance,
-			dst:   func() any { return &map[string]any{} },
-		},
-		{
-			desc:  "simple to D",
-			value: encodetestInstance,
-			dst:   func() any { return &D{} },
-		},
-		{
-			desc:  "nested to struct",
+			name:  "nested",
 			value: nestedInstance,
-			dst:   func() any { return &encodetest{} },
 		},
 		{
-			desc:  "nested to map",
-			value: nestedInstance,
-			dst:   func() any { return &map[string]any{} },
-		},
-		{
-			desc:  "nested to D",
-			value: nestedInstance,
-			dst:   func() any { return &D{} },
-		},
-		{
-			desc:  "deep_bson.json.gz to map",
+			name:  "deep_bson.json.gz",
 			value: readExtJSONFile("deep_bson.json.gz"),
-			dst:   func() any { return &map[string]any{} },
 		},
 		{
-			desc:  "deep_bson.json.gz to D",
-			value: readExtJSONFile("deep_bson.json.gz"),
-			dst:   func() any { return &D{} },
-		},
-		{
-			desc:  "flat_bson.json.gz to map",
+			name:  "flat_bson.json.gz",
 			value: readExtJSONFile("flat_bson.json.gz"),
-			dst:   func() any { return &map[string]any{} },
 		},
 		{
-			desc:  "flat_bson.json.gz to D",
-			value: readExtJSONFile("flat_bson.json.gz"),
-			dst:   func() any { return &D{} },
-		},
-		{
-			desc:  "full_bson.json.gz to map",
+			name:  "full_bson.json.gz",
 			value: readExtJSONFile("full_bson.json.gz"),
-			dst:   func() any { return &map[string]any{} },
+		},
+	}
+
+	destinations := []struct {
+		name string
+		dst  func() any
+	}{
+		{
+			name: "to map",
+			dst:  func() any { return &map[string]any{} },
 		},
 		{
-			desc:  "full_bson.json.gz to D",
-			value: readExtJSONFile("full_bson.json.gz"),
-			dst:   func() any { return &D{} },
+			name: "to D",
+			dst:  func() any { return &D{} },
 		},
+	}
+
+	for _, input := range inputs {
+		for _, dest := range destinations {
+			cases = append(cases, testcase{
+				desc:  input.name + " " + dest.name,
+				value: input.value,
+				dst:   dest.dst,
+			})
+		}
 	}
 
 	b.Run("BSON", func(b *testing.B) {
@@ -354,6 +355,7 @@ func BenchmarkUnmarshal(b *testing.B) {
 			tc := tc // Capture range variable.
 
 			b.Run(tc.desc, func(b *testing.B) {
+				b.ReportAllocs()
 				data, err := Marshal(tc.value)
 				if err != nil {
 					b.Errorf("error marshalling BSON: %s", err)
@@ -380,6 +382,7 @@ func BenchmarkUnmarshal(b *testing.B) {
 			tc := tc // Capture range variable.
 
 			b.Run(tc.desc, func(b *testing.B) {
+				b.ReportAllocs()
 				data, err := MarshalExtJSON(tc.value, true, false)
 				if err != nil {
 					b.Errorf("error marshalling extended JSON: %s", err)
@@ -406,6 +409,7 @@ func BenchmarkUnmarshal(b *testing.B) {
 			tc := tc // Capture range variable.
 
 			b.Run(tc.desc, func(b *testing.B) {
+				b.ReportAllocs()
 				data, err := json.Marshal(tc.value)
 				if err != nil {
 					b.Errorf("error marshalling JSON: %s", err)
@@ -494,13 +498,13 @@ func codeInit() {
 }
 
 func BenchmarkCodeUnmarshal(b *testing.B) {
-	b.ReportAllocs()
 	if codeJSON == nil {
 		b.StopTimer()
 		codeInit()
 		b.StartTimer()
 	}
 	b.Run("BSON", func(b *testing.B) {
+		b.ReportAllocs()
 		b.RunParallel(func(pb *testing.PB) {
 			for pb.Next() {
 				var r codeResponse
@@ -512,6 +516,7 @@ func BenchmarkCodeUnmarshal(b *testing.B) {
 		b.SetBytes(int64(len(codeBSON)))
 	})
 	b.Run("JSON", func(b *testing.B) {
+		b.ReportAllocs()
 		b.RunParallel(func(pb *testing.PB) {
 			for pb.Next() {
 				var r codeResponse
@@ -525,13 +530,13 @@ func BenchmarkCodeUnmarshal(b *testing.B) {
 }
 
 func BenchmarkCodeMarshal(b *testing.B) {
-	b.ReportAllocs()
 	if codeJSON == nil {
 		b.StopTimer()
 		codeInit()
 		b.StartTimer()
 	}
 	b.Run("BSON", func(b *testing.B) {
+		b.ReportAllocs()
 		b.RunParallel(func(pb *testing.PB) {
 			for pb.Next() {
 				if _, err := Marshal(&codeStruct); err != nil {
@@ -542,6 +547,7 @@ func BenchmarkCodeMarshal(b *testing.B) {
 		b.SetBytes(int64(len(codeBSON)))
 	})
 	b.Run("JSON", func(b *testing.B) {
+		b.ReportAllocs()
 		b.RunParallel(func(pb *testing.PB) {
 			for pb.Next() {
 				if _, err := json.Marshal(&codeStruct); err != nil {
