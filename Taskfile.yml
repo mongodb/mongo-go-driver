@@ -28,8 +28,7 @@ tasks:
 
   build-tests: go test -short ${BUILD_TAGS} -run ^$$ ./...
 
-  build-compile-check: 
-    go test -v ./internal/test/compilecheck
+  build-compile-check: bash etc/run-compile-check-test.sh
 
   build-aws-ecs-test: go build ${BUILD_TAGS} ./internal/cmd/testaws/main.go
 
