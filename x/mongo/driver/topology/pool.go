@@ -783,11 +783,12 @@ func (p *pool) removeConnection(conn *connection, reason reason, err error) erro
 
 // PendingReadTimeout is the maximum amount of the to wait when trying to read
 // the server reply on a connection after an operation timed out. The
-// default is 1 second.
+// default is 400 milliseconds. This value is refreshed for every 4KB read from
+// the TCP stream.
 //
 // Deprecated: PendingReadTimeout is intended for internal use only and may be
 // removed or modified at any time.
-var PendingReadTimeout = 2000 * time.Millisecond
+var PendingReadTimeout = 400 * time.Millisecond
 
 // awaitPendingRead sets a new read deadline on the provided connection and
 // tries to read any bytes returned by the server. If there are any errors, the
@@ -926,21 +927,54 @@ func awaitPendingRead(ctx context.Context, pool *pool, conn *connection) error {
 		size -= 4
 	}
 
-	n, err := io.CopyN(io.Discard, conn.nc, int64(size))
-	if err != nil {
-		// If the read times out, record the bytes left to read before exiting.
-		nerr := net.Error(nil)
-		if l := int32(n); l == 0 && errors.As(err, &nerr) && nerr.Timeout() {
-			prs.remainingBytes = l + prs.remainingBytes
-			prs.remainingTime = ptrutil.Ptr(*prs.remainingTime - time.Since(st))
+	const bufSize = 4096
+	buf := make([]byte, bufSize)
+
+	var totalRead int64
+
+	// Iterate every 4KB of the TCP stream, refreshing the remainingTimeout for
+	// each successful read to avoid closing while streaming large (upto 16MiB)
+	// response messages.
+	for totalRead < int64(size) {
+		newDeadline := time.Now().Add(*prs.remainingTime)
+		if err := conn.nc.SetReadDeadline(newDeadline); err != nil {
+			checkIn = true
+			someErr = fmt.Errorf("error renewing read deadline: %w", err)
+
+			return someErr
 		}
 
-		checkIn = true
+		remaining := int64(size) - totalRead
 
-		err = transformNetworkError(ctx, err, contextDeadlineUsed)
-		someErr = fmt.Errorf("error discarding %d byte message: %w", size, err)
+		readSize := bufSize
+		if int64(readSize) > remaining {
+			readSize = int(remaining)
+		}
 
-		return someErr
+		n, err := conn.nc.Read(buf[:readSize])
+		if n > 0 {
+			totalRead += int64(n)
+
+			// Refresh the remaining time if we get are receiving data.
+			prs.remainingTime = ptrutil.Ptr(PendingReadTimeout)
+		}
+
+		if err != nil {
+			// If the read times out, record the bytes left to read before exiting.
+			// Reduce the remainingTime.
+			nerr := net.Error(nil)
+			if l := int32(n); l == 0 && errors.As(err, &nerr) && nerr.Timeout() {
+				prs.remainingBytes = l + prs.remainingBytes
+				prs.remainingTime = ptrutil.Ptr(*prs.remainingTime - time.Since(st))
+			}
+
+			checkIn = true
+
+			err = transformNetworkError(ctx, err, contextDeadlineUsed)
+			someErr = fmt.Errorf("error discarding %d byte message: %w", size, err)
+
+			return someErr
+		}
 	}
 
 	if mustLogPoolMessage(pool) {
