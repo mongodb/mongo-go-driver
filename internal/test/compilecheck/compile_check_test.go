@@ -99,10 +99,8 @@ func getDockerGolangImages() ([]string, error) {
 	for url != "" {
 		resp, err := http.Get(url)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to get response from Docker Hub: %w", err)
 		}
-
-		defer resp.Body.Close()
 
 		var data struct {
 			Results []struct {
@@ -112,8 +110,10 @@ func getDockerGolangImages() ([]string, error) {
 		}
 
 		if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to decode response Body from Docker Hub: %w", err)
 		}
+
+		resp.Body.Close()
 
 		for _, tag := range data.Results {
 			// Skip tags that don't start with a digit (typically version numbers).
