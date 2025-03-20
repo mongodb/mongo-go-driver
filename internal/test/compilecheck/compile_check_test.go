@@ -14,13 +14,13 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
+	"golang.org/x/mod/semver"
 )
 
 const minSupportedVersion = "1.18"
@@ -78,42 +78,6 @@ func TestCompileCheck(t *testing.T) {
 	}
 }
 
-func compareVersions(v1, v2 string) int {
-	parts1 := strings.Split(v1, ".")
-	parts2 := strings.Split(v2, ".")
-
-	n := len(parts1)
-	if len(parts2) > n {
-		n = len(parts2)
-	}
-
-	for i := 0; i < n; i++ {
-		var num1, num2 int
-		if i < len(parts2) {
-			num1, _ = strconv.Atoi(parts1[i])
-		}
-
-		if i < len(parts2) {
-			num2, _ = strconv.Atoi(parts2[i])
-		}
-
-		if num1 < num2 {
-			return -1
-		} else if num1 > num2 {
-			return 1
-		}
-	}
-
-	return 0
-}
-
-type tagResponse struct {
-	Results []struct {
-		Name string `json:"name"`
-	} `json:"results"`
-	Next string `json:"next"`
-}
-
 func getDockerGolangImages() ([]string, error) {
 	url := "https://hub.docker.com/v2/repositories/library/golang/tags?page_size=100"
 
@@ -126,7 +90,13 @@ func getDockerGolangImages() ([]string, error) {
 
 		defer resp.Body.Close()
 
-		var data tagResponse
+		var data struct {
+			Results []struct {
+				Name string `json:"name"`
+			} `json:"results"`
+			Next string `json:"next"`
+		}
+
 		if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
 			return nil, err
 		}
@@ -156,7 +126,8 @@ func getDockerGolangImages() ([]string, error) {
 				continue
 			}
 
-			if compareVersions(base, minSupportedVersion) >= 0 {
+			//if compareVersions(base, minSupportedVersion) >= 0 {
+			if semver.Compare("v"+base, "v"+minSupportedVersion) >= 0 {
 				versionSet[base] = true
 
 				continue

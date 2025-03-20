@@ -41,5 +41,3 @@ function compile_check {
 }
 
 compile_check
-
-exit 0

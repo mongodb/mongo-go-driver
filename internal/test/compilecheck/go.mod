@@ -7,6 +7,7 @@ replace go.mongodb.org/mongo-driver => ../../../
 require (
 	github.com/stretchr/testify v1.10.0
 	github.com/testcontainers/testcontainers-go v0.34.0
+	golang.org/x/mod v0.12.0
 )
 
 require (
