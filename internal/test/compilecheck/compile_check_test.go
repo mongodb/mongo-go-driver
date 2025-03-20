@@ -23,13 +23,17 @@ import (
 	"golang.org/x/mod/semver"
 )
 
+// This module is outside of the go workspace since testcontainers requires a
+// version of klauspost/compress not supported by the driver. Use GOWORK=off
+// when running these tests.
+
 const minSupportedVersion = "1.18"
 
 func TestCompileCheck(t *testing.T) {
 	cwd, err := os.Getwd()
 	require.NoError(t, err)
 
-	internalDir := filepath.Dir(filepath.Dir(filepath.Dir(cwd)))
+	rootDir := filepath.Dir(filepath.Dir(filepath.Dir(cwd)))
 
 	versions, err := getDockerGolangImages()
 	require.NoError(t, err)
@@ -45,7 +49,7 @@ func TestCompileCheck(t *testing.T) {
 				Image: image,
 				Cmd:   []string{"tail", "-f", "/dev/null"},
 				Mounts: []testcontainers.ContainerMount{
-					testcontainers.BindMount(internalDir, "/workspace"),
+					testcontainers.BindMount(rootDir, "/workspace"),
 				},
 				WorkingDir: "/workspace",
 				Env: map[string]string{
@@ -79,9 +83,11 @@ func TestCompileCheck(t *testing.T) {
 }
 
 func getDockerGolangImages() ([]string, error) {
-	url := "https://hub.docker.com/v2/repositories/library/golang/tags?page_size=100"
+	var url = "https://hub.docker.com/v2/repositories/library/golang/tags?page_size=100"
 
 	versionSet := map[string]bool{}
+	versions := []string{}
+
 	for url != "" {
 		resp, err := http.Get(url)
 		if err != nil {
@@ -101,7 +107,6 @@ func getDockerGolangImages() ([]string, error) {
 			return nil, err
 		}
 
-		finished := false
 		for _, tag := range data.Results {
 			// Skip tags that don't start with a digit (e.g. alpine, buster, etc)
 			if len(tag.Name) == 0 || tag.Name[0] < '0' || tag.Name[0] > '9' {
@@ -111,41 +116,19 @@ func getDockerGolangImages() ([]string, error) {
 			// Extract the base version (e.g. 1.18.1 from 1.18.1-alpine)
 			base := strings.Split(tag.Name, "-")[0]
 
-			// If its not at least three characters, do nothing.
-			if len(base) < 3 {
+			// Reduce versions to MajorMinor.
+			baseMajMin := semver.MajorMinor("v" + base)
+			if !semver.IsValid(baseMajMin) || versionSet[baseMajMin] {
 				continue
 			}
 
-			// Skip release candidates.
-			if strings.Contains(base, "rc") {
-				continue
+			if semver.Compare(baseMajMin, "v"+minSupportedVersion) >= 0 {
+				versionSet[baseMajMin] = true
+				versions = append(versions, baseMajMin[1:])
 			}
-
-			// Only take major versions.
-			if strings.Count(base, ".") > 1 {
-				continue
-			}
-
-			//if compareVersions(base, minSupportedVersion) >= 0 {
-			if semver.Compare("v"+base, "v"+minSupportedVersion) >= 0 {
-				versionSet[base] = true
-
-				continue
-			} else {
-				finished = true
-			}
-		}
-
-		if finished {
-			break
 		}
 
 		url = data.Next
-	}
-
-	versions := []string{}
-	for v := range versionSet {
-		versions = append(versions, v)
 	}
 
 	return versions, nil
