@@ -1,12 +1,12 @@
-module go.mongodb.go/mongo-driver/v2/internal/test/compilecheck
+module go.mongodb.go/mongo-driver/internal/test/compilecheck
 
 go 1.22
 
 replace go.mongodb.org/mongo-driver => ../../../
 
 require (
-	github.com/stretchr/testify v1.9.0
-	github.com/testcontainers/testcontainers-go v0.35.0
+	github.com/stretchr/testify v1.10.0
+	github.com/testcontainers/testcontainers-go v0.34.0
 )
 
 require (
@@ -54,7 +54,7 @@ require (
 	go.opentelemetry.io/otel v1.24.0 // indirect
 	go.opentelemetry.io/otel/metric v1.24.0 // indirect
 	go.opentelemetry.io/otel/trace v1.24.0 // indirect
-	golang.org/x/crypto v0.33.0 // indirect
-	golang.org/x/sys v0.30.0 // indirect
+	golang.org/x/crypto v0.31.0 // indirect
+	golang.org/x/sys v0.28.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

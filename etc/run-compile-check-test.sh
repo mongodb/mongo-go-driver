@@ -6,5 +6,5 @@ set +x
 
 echo "Running internal/test/compilecheck"
 pushd internal/test/compilecheck
-go test -v ./... >>../../../test.suite
+GOWORK=off go test -v ./... >>../../../test.suite
 popd
