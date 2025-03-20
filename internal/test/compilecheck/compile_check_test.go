@@ -82,12 +82,20 @@ func TestCompileCheck(t *testing.T) {
 	}
 }
 
+// getDockerGolangImages retrieves the available Golang Docker image tags from
+// Docker Hub that are considered valid and meet the specified version
+// condition. It returns a slice of version strings in the MajorMinor format and
+// an error, if any.
 func getDockerGolangImages() ([]string, error) {
+	// URL to fetch the Golang tags from Docker Hub with a page size of 100
+	// records.
 	var url = "https://hub.docker.com/v2/repositories/library/golang/tags?page_size=100"
 
 	versionSet := map[string]bool{}
 	versions := []string{}
 
+	// Iteratively fetch and process tags from Docker Hub as long as there is a
+	// valid next page URL.
 	for url != "" {
 		resp, err := http.Get(url)
 		if err != nil {
@@ -100,7 +108,7 @@ func getDockerGolangImages() ([]string, error) {
 			Results []struct {
 				Name string `json:"name"`
 			} `json:"results"`
-			Next string `json:"next"`
+			Next string `json:"next"` // URL of the next page for pagination.
 		}
 
 		if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
@@ -108,15 +116,16 @@ func getDockerGolangImages() ([]string, error) {
 		}
 
 		for _, tag := range data.Results {
-			// Skip tags that don't start with a digit (e.g. alpine, buster, etc)
+			// Skip tags that don't start with a digit (typically version numbers).
 			if len(tag.Name) == 0 || tag.Name[0] < '0' || tag.Name[0] > '9' {
 				continue
 			}
 
-			// Extract the base version (e.g. 1.18.1 from 1.18.1-alpine)
+			// Split the tag name and extract the base version part.
+			// This handles tags like `1.18.1-alpine` by extracting `1.18.1`.
 			base := strings.Split(tag.Name, "-")[0]
 
-			// Reduce versions to MajorMinor.
+			// Reduce the base version to MajorMinor format (e.g., `v1.18`).
 			baseMajMin := semver.MajorMinor("v" + base)
 			if !semver.IsValid(baseMajMin) || versionSet[baseMajMin] {
 				continue
@@ -128,6 +137,7 @@ func getDockerGolangImages() ([]string, error) {
 			}
 		}
 
+		// Move to the next page of results, set by the `Next` field.
 		url = data.Next
 	}
 
