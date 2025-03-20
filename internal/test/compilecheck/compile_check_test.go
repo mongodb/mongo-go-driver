@@ -20,35 +20,11 @@ import (
 const minSupportedVersion = "1.18"
 
 func TestCompileCheck(t *testing.T) {
-	//ctx := context.Background()
-
-	//req := testcontainers.ContainerRequest{
-	//	Image:      "alpine",
-	//	Cmd:        []string{"tail", "-f", "/dev/null"},
-	//	WaitingFor: wait.ForExec([]string{"echo", "hello world"}).WithExitCode(0),
-	//}
-
-	//container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
-	//	ContainerRequest: req,
-	//	Started:          true,
-	//})
-
-	//require.NoError(t, err)
-
-	//defer func() {
-	//	err := container.Terminate(ctx)
-	//	require.NoError(t, err)
-	//}()
 	cwd, err := os.Getwd()
 	require.NoError(t, err)
 
 	internalDir := filepath.Dir(filepath.Dir(filepath.Dir(cwd)))
 
-	fmt.Println(internalDir)
-
-	//versions, err := getAllGoVersions()
-	//require.NoError(t, err)
-	//
 	versions, err := getDockerGolangImages()
 	require.NoError(t, err)
 
@@ -57,11 +33,11 @@ func TestCompileCheck(t *testing.T) {
 
 		image := fmt.Sprintf("golang:%s", version)
 		t.Run(image, func(t *testing.T) {
+			t.Parallel()
+
 			req := testcontainers.ContainerRequest{
 				Image: image,
-				//Entrypoint: []string{"/bin/sh", "-c"},
-
-				Cmd: []string{"tail", "-f", "/dev/null"},
+				Cmd:   []string{"tail", "-f", "/dev/null"},
 				Mounts: []testcontainers.ContainerMount{
 					testcontainers.BindMount(internalDir, "/workspace"),
 				},
@@ -69,15 +45,14 @@ func TestCompileCheck(t *testing.T) {
 				Env: map[string]string{
 					"GO_VERSION": version,
 				},
-				//WaitingFor: wait.ForExit().WithExitCode(0),
-				//WaitingFor: wait.ForExec([]string{"bash", "compile_check.sh"}).WithExitCode(0),
 			}
 
-			container, err := testcontainers.GenericContainer(context.Background(), testcontainers.GenericContainerRequest{
+			genReq := testcontainers.GenericContainerRequest{
 				ContainerRequest: req,
 				Started:          true,
-			})
+			}
 
+			container, err := testcontainers.GenericContainer(context.Background(), genReq)
 			require.NoError(t, err)
 
 			defer func() {
@@ -165,7 +140,7 @@ func getDockerGolangImages() ([]string, error) {
 				continue
 			}
 
-			// Skip release candidates
+			// Skip release candidates.
 			if strings.Contains(base, "rc") {
 				continue
 			}
@@ -198,34 +173,3 @@ func getDockerGolangImages() ([]string, error) {
 
 	return versions, nil
 }
-
-//func getAllGoVersions() ([]string, error) {
-//	resp, err := http.Get("https://golang.org/dl/?mode=json&include=all")
-//	if err != nil {
-//		return nil, fmt.Errorf("failed to get response from golang.org: %v", err)
-//	}
-//
-//	defer resp.Body.Close()
-//
-//	var releases []struct {
-//		Version string `json:"version"`
-//	}
-//
-//	if err := json.NewDecoder(resp.Body).Decode(&releases); err != nil {
-//		return nil, fmt.Errorf("failed to decode response body: %v", err)
-//	}
-//
-//	versions := []string{}
-//	for _, r := range releases {
-//		if len(r.Version) < 3 || r.Version[:2] != "go" {
-//			continue
-//		}
-//
-//		v := "v" + r.Version[2:]
-//		if semver.Compare(v, minSupportedVersion) >= 0 {
-//			versions = append(versions, v[1:])
-//		}
-//	}
-//
-//	return versions, nil
-//}

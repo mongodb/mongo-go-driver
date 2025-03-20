@@ -1427,9 +1427,7 @@ tasks:
       - command: subprocess.exec
         params:
           binary: bash
-          env:
-            GO_VERSION: "1.18"
-          args: [*task-runner, build-compile-check]
+          args: [*task-runner, build-compile-check-msv]
 
   # Build with the same Go version that we're using for tests.
   - name: build
