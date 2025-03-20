@@ -18,11 +18,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
-var skippedTests = map[string]string{
-	// GODRIVER-3175: Support will be added with GODRIVER-2129.
-	"must raise an error when the hostname canonicalization is invalid": "Support will be added with GODRIVER-2129.",
-}
-
 type credential struct {
 	Username  string
 	Password  *string
@@ -53,53 +48,53 @@ func runTestsInFile(t *testing.T, dirname string, filename string) {
 	var container testContainer
 	require.NoError(t, json.Unmarshal(content, &container))
 
-	for _, testCase := range container.Tests {
-		t.Run(filename, func(t *testing.T) {
-			runTest(t, testCase)
-		})
-	}
+	t.Run(filename, func(t *testing.T) {
+		for _, testCase := range container.Tests {
+			testCase := testCase // Capture range variable.
+
+			t.Run(testCase.Description, func(t *testing.T) {
+				spectest.CheckSkip(t)
+
+				runTest(t, testCase)
+			})
+		}
+	})
 }
 
 func runTest(t *testing.T, test testCase) {
-	if skipReason, ok := skippedTests[test.Description]; ok {
-		t.Skipf("skipping due to known failure: %q", skipReason)
+	opts := options.Client().ApplyURI(test.URI)
+
+	if test.Valid {
+		require.NoError(t, opts.Validate())
+	} else {
+		require.Error(t, opts.Validate())
+
+		return
 	}
 
-	t.Run(test.Description, func(t *testing.T) {
-		opts := options.Client().ApplyURI(test.URI)
+	if test.Credential == nil {
+		require.Nil(t, opts.Auth)
+		return
+	}
+	require.NotNil(t, opts.Auth)
+	require.Equal(t, test.Credential.Username, opts.Auth.Username)
 
-		if test.Valid {
-			require.NoError(t, opts.Validate())
-		} else {
-			require.Error(t, opts.Validate())
+	if test.Credential.Password == nil {
+		require.False(t, opts.Auth.PasswordSet)
+	} else {
+		require.True(t, opts.Auth.PasswordSet)
+		require.Equal(t, *test.Credential.Password, opts.Auth.Password)
+	}
 
-			return
-		}
+	require.Equal(t, test.Credential.Source, opts.Auth.AuthSource)
 
-		if test.Credential == nil {
-			require.Nil(t, opts.Auth)
-			return
-		}
-		require.NotNil(t, opts.Auth)
-		require.Equal(t, test.Credential.Username, opts.Auth.Username)
+	require.Equal(t, test.Credential.Mechanism, opts.Auth.AuthMechanism)
 
-		if test.Credential.Password == nil {
-			require.False(t, opts.Auth.PasswordSet)
-		} else {
-			require.True(t, opts.Auth.PasswordSet)
-			require.Equal(t, *test.Credential.Password, opts.Auth.Password)
-		}
-
-		require.Equal(t, test.Credential.Source, opts.Auth.AuthSource)
-
-		require.Equal(t, test.Credential.Mechanism, opts.Auth.AuthMechanism)
-
-		if len(test.Credential.MechProps) > 0 {
-			require.Equal(t, mapInterfaceToString(test.Credential.MechProps), opts.Auth.AuthMechanismProperties)
-		} else {
-			require.Equal(t, 0, len(opts.Auth.AuthMechanismProperties))
-		}
-	})
+	if len(test.Credential.MechProps) > 0 {
+		require.Equal(t, mapInterfaceToString(test.Credential.MechProps), opts.Auth.AuthMechanismProperties)
+	} else {
+		require.Equal(t, 0, len(opts.Auth.AuthMechanismProperties))
+	}
 }
 
 // Convert each interface{} value in the map to a string.
