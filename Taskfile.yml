@@ -28,8 +28,10 @@ tasks:
 
   build-tests: go test -short ${BUILD_TAGS} -run ^$$ ./...
 
+  # Compile check for all versions >= the minimum supported version.
   build-compile-check: bash etc/run-compile-check-test.sh
 
+  # Compile check for the minimum supported version (msv).
   build-compile-check-msv: bash etc/run-compile-check-test.sh TestCompileCheck/golang:1.18
 
   build-aws-ecs-test: go build ${BUILD_TAGS} ./internal/cmd/testaws/main.go
