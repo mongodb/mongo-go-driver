@@ -40,19 +40,19 @@ func (e InvalidArgumentError) Unwrap() error {
 }
 
 // ErrMultipleIndexDrop is returned if multiple indexes would be dropped from a call to IndexView.DropOne.
-var ErrMultipleIndexDrop = InvalidArgumentError{errors.New("multiple indexes would be dropped")}
+var ErrMultipleIndexDrop error = InvalidArgumentError{errors.New("multiple indexes would be dropped")}
 
 // ErrNilDocument is returned when a nil document is passed to a CRUD method.
-var ErrNilDocument = InvalidArgumentError{errors.New("document is nil")}
+var ErrNilDocument error = InvalidArgumentError{errors.New("document is nil")}
 
 // ErrNilValue is returned when a nil value is passed to a CRUD method.
-var ErrNilValue = InvalidArgumentError{errors.New("value is nil")}
+var ErrNilValue error = InvalidArgumentError{errors.New("value is nil")}
 
 // ErrEmptySlice is returned when an empty slice is passed to a CRUD method that requires a non-empty slice.
-var ErrEmptySlice = InvalidArgumentError{errors.New("must provide at least one element in input slice")}
+var ErrEmptySlice error = InvalidArgumentError{errors.New("must provide at least one element in input slice")}
 
 // ErrNotSlice is returned when a type other than slice is passed to InsertMany.
-var ErrNotSlice = InvalidArgumentError{errors.New("must provide a non-empty slice")}
+var ErrNotSlice error = InvalidArgumentError{errors.New("must provide a non-empty slice")}
 
 // ErrMapForOrderedArgument is returned when a map with multiple keys is passed to a CRUD method for an ordered parameter
 type ErrMapForOrderedArgument struct {
