@@ -36,10 +36,6 @@ function compile_check {
   GOWORK=off GOOS=linux GOARCH=ppc64le ${GC} build -buildvcs=false ./...
   GOWORK=off GOOS=linux GOARCH=s390x ${GC} build -buildvcs=false ./...
 
-  # Remove the binaries.
-  rm compilecheck
-  rm compilecheck.so
-
   # Change the directory back to the working directory.
   popd
 }
