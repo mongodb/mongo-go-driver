@@ -51,13 +51,6 @@ type IndexModel struct {
 	Options *options.IndexOptionsBuilder
 }
 
-func isNamespaceNotFoundError(err error) bool {
-	if de, ok := err.(driver.Error); ok {
-		return de.Code == 26
-	}
-	return false
-}
-
 // List executes a listIndexes command and returns a cursor over the indexes in the collection.
 //
 // The opts parameter can be used to specify options for this operation (see the options.ListIndexesOptions
@@ -120,7 +113,8 @@ func (iv IndexView) List(ctx context.Context, opts ...options.Lister[options.Lis
 	if err != nil {
 		// for namespaceNotFound errors, return an empty cursor and do not throw an error
 		closeImplicitSession(sess)
-		if isNamespaceNotFoundError(err) {
+		var de driver.Error
+		if errors.As(err, &de) && de.NamespaceNotFound() {
 			return newEmptyCursor(), nil
 		}
 

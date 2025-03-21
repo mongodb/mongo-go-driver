@@ -1743,7 +1743,7 @@ axes:
           - windows-vsCurrent-small
         variables:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
-          GO_DIST: "C:\\golang\\go1.22"
+          GO_DIST: "C:\\golang\\go1.23"
           VENV_BIN_DIR: "Scripts"
           DEFAULT_TASK: evg-test
           # CSOT tests are unreliable on our slow Windows hosts.
@@ -1752,14 +1752,14 @@ axes:
         display_name: "RHEL 8.7"
         run_on: rhel8.7-large
         variables:
-          GO_DIST: "/opt/golang/go1.22"
+          GO_DIST: "/opt/golang/go1.23"
           DEFAULT_TASK: evg-test
       - id: "macos"
         display_name: "MacOS 14.0"
         run_on: macos-14
         batchtime: 1440 # Run at most once per 24 hours.
         variables:
-          GO_DIST: "/opt/golang/go1.22"
+          GO_DIST: "/opt/golang/go1.23"
           DEFAULT_TASK: evg-test-load-balancers
           # CSOT tests are unreliable on our slow macOS hosts.
           SKIP_CSOT_TESTS: true
@@ -1774,7 +1774,7 @@ axes:
           - windows-vsCurrent-small
         variables:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
-          GO_DIST: "C:\\golang\\go1.22"
+          GO_DIST: "C:\\golang\\go1.23"
           VENV_BIN_DIR: "Scripts"
           DEFAULT_TASK: evg-test
           # CSOT tests are unreliable on our slow Windows hosts.
@@ -1783,14 +1783,14 @@ axes:
         display_name: "RHEL 8.7"
         run_on: rhel8.7-large
         variables:
-          GO_DIST: "/opt/golang/go1.22"
+          GO_DIST: "/opt/golang/go1.23"
           DEFAULT_TASK: evg-test
       - id: "macos"
         display_name: "MacOS 14.0"
         run_on: macos-14
         batchtime: 1440 # Run at most once per 24 hours.
         variables:
-          GO_DIST: "/opt/golang/go1.22"
+          GO_DIST: "/opt/golang/go1.23"
           DEFAULT_TASK: evg-test-load-balancers
           # CSOT tests are unreliable on our slow macOS hosts.
           SKIP_CSOT_TESTS: true
@@ -1802,7 +1802,7 @@ axes:
         display_name: "RHEL 8.7"
         run_on: rhel8.7-large
         variables:
-          GO_DIST: "/opt/golang/go1.22"
+          GO_DIST: "/opt/golang/go1.23"
           DEFAULT_TASK: evg-test
 
   - id: os-aws-auth
@@ -1814,7 +1814,7 @@ axes:
           - windows-vsCurrent-small
         variables:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
-          GO_DIST: "C:\\golang\\go1.22"
+          GO_DIST: "C:\\golang\\go1.23"
           SKIP_ECS_AUTH_TEST: true
           DEFAULT_TASK: evg-test
           # CSOT tests are unreliable on our slow Windows hosts.
@@ -1823,14 +1823,14 @@ axes:
         display_name: "Ubuntu 20.04"
         run_on: ubuntu2004-test
         variables:
-          GO_DIST: "/opt/golang/go1.22"
+          GO_DIST: "/opt/golang/go1.23"
           DEFAULT_TASK: evg-test
       - id: "macos"
         display_name: "MacOS 14.0"
         run_on: macos-14
         batchtime: 1440 # Run at most once per 24 hours.
         variables:
-          GO_DIST: "/opt/golang/go1.22"
+          GO_DIST: "/opt/golang/go1.23"
           SKIP_ECS_AUTH_TEST: true
           SKIP_EC2_AUTH_TEST: true
           SKIP_WEB_IDENTITY_AUTH_TEST: true
@@ -1845,7 +1845,7 @@ axes:
         display_name: "RHEL 8.7"
         run_on: rhel8.7-large
         variables:
-          GO_DIST: "/opt/golang/go1.22"
+          GO_DIST: "/opt/golang/go1.23"
 
   - id: os-serverless
     display_name: OS
@@ -1854,7 +1854,7 @@ axes:
         display_name: "RHEL 8.7"
         run_on: rhel8.7-small
         variables:
-          GO_DIST: "/opt/golang/go1.22"
+          GO_DIST: "/opt/golang/go1.23"
 
 task_groups:
   - name: serverless_task_group
@@ -2093,7 +2093,7 @@ buildvariants:
       - rhel8.7-small
     expansions:
       # Keep this in sync with go version used in etc/golangci-lint.sh
-      GO_DIST: "/opt/golang/go1.22"
+      GO_DIST: "/opt/golang/go1.23"
     tasks:
       - name: ".static-analysis"
 
@@ -2103,7 +2103,7 @@ buildvariants:
     run_on:
       - rhel8.7-small
     expansions:
-      GO_DIST: "/opt/golang/go1.22"
+      GO_DIST: "/opt/golang/go1.23"
     tasks:
       - name: "pull-request-helpers"
 
@@ -2112,7 +2112,7 @@ buildvariants:
     display_name: "Performance"
     run_on: rhel90-dbx-perf-large
     expansions:
-      GO_DIST: "/opt/golang/go1.22"
+      GO_DIST: "/opt/golang/go1.23"
     tasks:
       - name: ".performance"
 
@@ -2122,7 +2122,7 @@ buildvariants:
     run_on:
       - ubuntu2204-small
     expansions:
-      GO_DIST: "/opt/golang/go1.22"
+      GO_DIST: "/opt/golang/go1.23"
     tasks:
       - name: ".compile-check"
 
@@ -2131,7 +2131,7 @@ buildvariants:
     run_on:
       - rhel8.7-small
     expansions:
-      GO_DIST: "/opt/golang/go1.22"
+      GO_DIST: "/opt/golang/go1.23"
     tasks: 
       - name: "backport-pr"
 
@@ -2141,7 +2141,7 @@ buildvariants:
     run_on:
       - rhel8.7-large
     expansions:
-      GO_DIST: "/opt/golang/go1.22"
+      GO_DIST: "/opt/golang/go1.23"
     tasks:
       - name: "atlas-test"
 
@@ -2151,7 +2151,7 @@ buildvariants:
     run_on:
       - ubuntu2004-large
     expansions:
-      GO_DIST: "/opt/golang/go1.22"
+      GO_DIST: "/opt/golang/go1.23"
     tasks:
       - name: "test-atlas-data-lake"
 
@@ -2161,7 +2161,7 @@ buildvariants:
     run_on:
       - ubuntu2204-large
     expansions:
-      GO_DIST: "/opt/golang/go1.22"
+      GO_DIST: "/opt/golang/go1.23"
     tasks:
       - name: "test-docker-runner"
 
@@ -2171,7 +2171,7 @@ buildvariants:
     run_on:
       - ubuntu2204-large
     expansions:
-      GO_DIST: "/opt/golang/go1.22"
+      GO_DIST: "/opt/golang/go1.23"
     tasks:
       - name: ".goleak"
 
@@ -2338,7 +2338,7 @@ buildvariants:
     run_on:
       - rhel8.7-small
     expansions:
-      GO_DIST: "/opt/golang/go1.22"
+      GO_DIST: "/opt/golang/go1.23"
     tasks:
       - name: testgcpkms_task_group
         batchtime: 20160 # Use a batchtime of 14 days as suggested by the CSFLE test README
@@ -2349,7 +2349,7 @@ buildvariants:
     run_on:
       - rhel8.7-small
     expansions:
-      GO_DIST: "/opt/golang/go1.22"
+      GO_DIST: "/opt/golang/go1.23"
     tasks:
       - testawskms-task
       - testawskms-fail-task
@@ -2359,7 +2359,7 @@ buildvariants:
     run_on:
       - rhel8.7-small
     expansions:
-      GO_DIST: "/opt/golang/go1.22"
+      GO_DIST: "/opt/golang/go1.23"
     tasks:
       - name: testazurekms_task_group
         batchtime: 20160 # Use a batchtime of 14 days as suggested by the CSFLE test README
@@ -2370,7 +2370,7 @@ buildvariants:
     run_on:
       - ubuntu2204-small
     expansions:
-      GO_DIST: "/opt/golang/go1.22"
+      GO_DIST: "/opt/golang/go1.23"
     tasks:
       - name: testoidc_task_group
       - name: testazureoidc_task_group
