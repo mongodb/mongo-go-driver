@@ -23,6 +23,10 @@ import (
 	"golang.org/x/mod/semver"
 )
 
+// This module cannot be included in the workspace since it requires a version
+// of klauspost/compress that is not compatible with the Go Driver. Must use
+// GOWORK=off to run this test.
+
 const minSupportedVersion = "1.18"
 
 func TestCompileCheck(t *testing.T) {
