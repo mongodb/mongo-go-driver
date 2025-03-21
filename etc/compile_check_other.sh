@@ -2,15 +2,12 @@
 set -e # exit when any command fails
 set -x # show all commands being run
 
-GC=go
+: ${GO_VERSION:="1.18"} # Default to 1.18 if GO_VERSION is unset or empty
+: ${GC:=go$GO_VERSION}  # Use existing GC or default to "go$GO_VERSION"
+
 COMPILE_CHECK_DIR="internal/cmd/compilecheck"
 ARCHITECTURES=("386" "arm" "arm64" "ppc64le" "s390x")
 BUILD_CMD="${GC} build -buildvcs=false"
-
-# Compilation modules are not part of the workspace as testcontainers requires
-# a version of klauspost/compress not supported by the Go Driver / other modules
-# in the workspace.
-export GOWORK=off
 
 # compile_check will attempt to build the internal/test/compilecheck project
 # using the provided Go version. This is to simulate an end-to-end use case.

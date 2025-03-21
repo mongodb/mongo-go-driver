@@ -49,7 +49,11 @@ func TestCompileCheck(t *testing.T) {
 				},
 				WorkingDir: "/workspace",
 				Env: map[string]string{
-					"GO_VERSION": version,
+					"GC": "go",
+					// Compilation modules are not part of the workspace as testcontainers requires
+					// a version of klauspost/compress not supported by the Go Driver / other modules
+					// in the workspace.
+					"GOWORK": "off",
 				},
 			}
 
