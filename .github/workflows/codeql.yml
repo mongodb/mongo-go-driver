@@ -39,8 +39,6 @@ jobs:
         #- name: Task build
         #  shell: bash
         #  run: task build
-    - name: Build code
-      run: go build -o ./output ./...
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
