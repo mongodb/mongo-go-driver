@@ -28,7 +28,7 @@ tasks:
 
   build-tests: go test -short ${BUILD_TAGS} -run ^$$ ./...
 
-  build-compile-check: bash etc/compile_check_other.sh
+  build-compile-check: bash etc/compile_check.sh
 
   build-compile-check-all: bash etc/run-compile-check-test.sh
 

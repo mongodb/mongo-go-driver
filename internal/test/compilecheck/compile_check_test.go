@@ -70,7 +70,7 @@ func TestCompileCheck(t *testing.T) {
 				require.NoError(t, err)
 			}()
 
-			exitCode, outputReader, err := container.Exec(context.Background(), []string{"bash", "etc/compile_check_other.sh"})
+			exitCode, outputReader, err := container.Exec(context.Background(), []string{"bash", "etc/compile_check.sh"})
 			require.NoError(t, err)
 
 			output, err := io.ReadAll(outputReader)
