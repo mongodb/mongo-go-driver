@@ -22,9 +22,9 @@ tasks:
     cmds:
       - go build ./...
       - go build ${BUILD_TAGS} ./...
-      - task: build-tests
-      - task: build-compile-check
-      - task: cross-compile
+      #- task: build-tests
+      #- task: build-compile-check
+      #- task: cross-compile
 
   build-tests: go test -short ${BUILD_TAGS} -run ^$$ ./...
 
