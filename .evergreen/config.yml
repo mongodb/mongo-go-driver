@@ -1427,7 +1427,9 @@ tasks:
       - command: subprocess.exec
         params:
           binary: bash
-          args: [*task-runner, build-compile-check-msv]
+          env:
+            GO_VERSION: "1.18"
+          args: [*task-runner, build-compile-check]
 
   # Build with the same Go version that we're using for tests.
   - name: build
@@ -2120,7 +2122,7 @@ buildvariants:
     tags: ["pullrequest"]
     display_name: "Compile Only Checks"
     run_on:
-      - ubuntu2204-small
+      - rhel8.7-small
     expansions:
       GO_DIST: "/opt/golang/go1.22"
     tasks:
