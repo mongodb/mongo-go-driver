@@ -2,8 +2,7 @@
 set -e # exit when any command fails
 set -x # show all commands being run
 
-: ${GO_VERSION:="1.18"} # Default to 1.18 if GO_VERSION is unset or empty
-: ${GC:=go$GO_VERSION}  # Use existing GC or default to "go$GO_VERSION"
+: ${GC:=go${GO_VERSION="1.18"}}
 
 COMPILE_CHECK_DIR="internal/cmd/compilecheck"
 ARCHITECTURES=("386" "arm" "arm64" "ppc64le" "s390x")
@@ -14,6 +13,16 @@ BUILD_CMD="${GC} build -buildvcs=false"
 function compile_check {
   # Change the directory to the compilecheck test directory.
   pushd "${COMPILE_CHECK_DIR}" >/dev/null
+
+  # If a custom Go version is set using the GO_VERSION env var (e.g. "1.18"),
+  # add the GOPATH bin directory to PATH and then install that Go version.
+  if [ ! -z "$GO_VERSION" ]; then
+    PATH=$(go env GOPATH)/bin:$PATH
+    export PATH
+
+    go install golang.org/dl/go$GO_VERSION@latest
+    ${GC} download
+  fi
 
   ${GC} version
   ${GC} mod tidy
