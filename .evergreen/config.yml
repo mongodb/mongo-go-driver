@@ -1421,7 +1421,7 @@ tasks:
           MONGO_GO_DRIVER_COMPRESSOR: "snappy"
 
   # Build the compilecheck submodule with the oldest supported version of Go.
-  - name: go1.18+-build
+  - name: go1.18-build
     tags: ["compile-check"]
     commands:
       - command: subprocess.exec
@@ -2120,7 +2120,7 @@ buildvariants:
     tags: ["pullrequest"]
     display_name: "Compile Only Checks"
     run_on:
-      - rhel8.7-small
+      - ubuntu2204-small
     expansions:
       GO_DIST: "/opt/golang/go1.22"
     tasks:
