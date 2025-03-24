@@ -203,7 +203,7 @@ func serverClosed(e *event.ServerClosedEvent) {
 	lock.Unlock()
 }
 
-const testsDir string = "../../../../testdata/server-discovery-and-monitoring/"
+const testsDir string = "../../../../testdata/source/server-discovery-and-monitoring/tests/"
 
 var publishedEvents []interface{}
 var lock sync.Mutex

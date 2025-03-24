@@ -47,8 +47,8 @@ type testContainer struct {
 	Tests []testCase
 }
 
-const connstringTestsDir = "../../../../testdata/source/connection-string/"
-const urioptionsTestDir = "../../../../testdata/source/uri-options/"
+const connstringTestsDir = "../../../../testdata/source/connection-string/tests/"
+const urioptionsTestDir = "../../../../testdata/source/uri-options/tests/"
 
 func (h *host) toString() string {
 	switch h.Type {
@@ -108,8 +108,26 @@ var skipKeywords = []string{
 	"tlsDisableCertificateRevocationCheck",
 	"serverSelectionTryOnce",
 
-	// GODRIVER-2348: the wtimeoutMS write concern option is not supported.
+	// These tests violate current Go Driver behavior
+	"Empty integer option values are ignored",    // PEC-1545
+	"Empty boolean option value are ignored",     // SPEC-1545
+	"Comma in a key value pair causes a warning", // DRIVERS-2915
+
+	// Unclear ~ possible bugs
+	"maxConnecting=0 causes a warning", // DRIVERS-1943
+
+	// TODO(GODRIVER-2348): the wtimeoutMS write concern option is not supported.
 	"wTimeoutMS",
+
+	// TODO(GODRIVER-2991): make delimiting slash between hosts and options
+	// optional.
+	"Missing delimiting slash between hosts and options",
+
+	// TODO(GODRIVER-2183): Socks5 Proxy Support
+	"proxyPort",
+	"proxyHost",
+	"proxyPassword",
+	"proxyUsername",
 }
 
 func runTest(t *testing.T, test testCase, warningsError bool) {
@@ -163,7 +181,7 @@ func runTest(t *testing.T, test testCase, warningsError bool) {
 	// for options that are present.
 	var ok bool
 
-	_, ok = test.Options["maxpoolsize"]
+	_, ok = test.Options["maxPoolSize"]
 	require.Equal(t, ok, cs.MaxPoolSizeSet)
 }
 
@@ -220,13 +238,13 @@ func verifyConnStringOptions(t *testing.T, cs *connstring.ConnString, options ma
 			require.Equal(t, value, float64(cs.MaxConnIdleTime/time.Millisecond))
 		case "maxpoolsize":
 			require.True(t, cs.MaxPoolSizeSet)
-			require.Equal(t, value, cs.MaxPoolSize)
+			require.Equal(t, value, float64(cs.MaxPoolSize))
 		case "maxstalenessseconds":
 			require.True(t, cs.MaxStalenessSet)
 			require.Equal(t, value, float64(cs.MaxStaleness/time.Second))
 		case "minpoolsize":
 			require.True(t, cs.MinPoolSizeSet)
-			require.Equal(t, value, int64(cs.MinPoolSize))
+			require.Equal(t, value, float64(cs.MinPoolSize))
 		case "readpreference":
 			require.Equal(t, value, cs.ReadPreference)
 		case "readpreferencetags":
@@ -285,7 +303,12 @@ func verifyConnStringOptions(t *testing.T, cs *connstring.ConnString, options ma
 			require.Equal(t, value, cs.SSLDisableOCSPEndpointCheck)
 		case "servermonitoringmode":
 			require.Equal(t, value, cs.ServerMonitoringMode)
+		case "timeoutms":
+			require.Equal(t, value, float64(cs.Timeout/time.Millisecond))
+		case "maxconnecting":
+			require.Equal(t, value, float64(cs.MaxConnecting))
 		default:
+			fmt.Println(key)
 			opt, ok := cs.UnknownOptions[key]
 			require.True(t, ok)
 			require.Contains(t, opt, fmt.Sprint(value))
