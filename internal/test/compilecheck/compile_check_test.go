@@ -114,6 +114,8 @@ func getDockerGolangImages() ([]string, error) {
 		}
 
 		if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+			resp.Body.Close()
+
 			return nil, fmt.Errorf("failed to decode response Body from Docker Hub: %w", err)
 		}
 
