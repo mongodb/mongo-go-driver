@@ -47,8 +47,8 @@ type testContainer struct {
 	Tests []testCase
 }
 
-const connstringTestsDir = "../../../../testdata/connection-string/"
-const urioptionsTestDir = "../../../../testdata/uri-options/"
+const connstringTestsDir = "../../../../testdata/source/connection-string/"
+const urioptionsTestDir = "../../../../testdata/source/uri-options/"
 
 func (h *host) toString() string {
 	switch h.Type {
