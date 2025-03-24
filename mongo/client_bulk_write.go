@@ -50,7 +50,7 @@ type clientBulkWrite struct {
 
 func (bw *clientBulkWrite) execute(ctx context.Context) error {
 	if len(bw.writePairs) == 0 {
-		return fmt.Errorf("error from writes: %w", ErrEmptySlice)
+		return fmt.Errorf("invalid writes: %w", ErrEmptySlice)
 	}
 	for i, m := range bw.writePairs {
 		if m.model == nil {
