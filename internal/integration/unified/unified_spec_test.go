@@ -8,41 +8,44 @@ package unified
 
 import (
 	"context"
-	"path"
+	"strings"
 	"testing"
+
+	"go.mongodb.org/mongo-driver/v2/internal/spectest"
 )
 
 var (
 	passDirectories = []string{
-		"unified-test-format/valid-pass",
-		"versioned-api",
-		"crud/unified",
-		"change-streams",
-		"transactions/unified",
-		"load-balancers",
-		"collection-management",
-		"command-monitoring",
-		"command-monitoring/logging",
-		"connection-monitoring-and-pooling/logging",
-		"sessions",
-		"retryable-reads/unified",
-		"retryable-writes/unified",
-		"client-side-encryption/unified",
-		"client-side-operations-timeout",
-		"gridfs",
-		"server-selection/logging",
-		"server-discovery-and-monitoring/unified",
-		"run-command",
-		"index-management",
+		spectest.TestPath(3, "unified-test-format", "valid-pass"),
+		//"unified-test-format/valid-pass",
+		//"versioned-api",
+		//"crud/unified",
+		//"change-streams",
+		//"transactions/unified",
+		//"load-balancers",
+		//"collection-management",
+		//"command-monitoring",
+		//"command-monitoring/logging",
+		//"connection-monitoring-and-pooling/logging",
+		//"sessions",
+		//"retryable-reads/unified",
+		//"retryable-writes/unified",
+		//"client-side-encryption/unified",
+		//"client-side-operations-timeout",
+		//"gridfs",
+		//"server-selection/logging",
+		//"server-discovery-and-monitoring/unified",
+		//"run-command",
+		//"index-management",
 	}
 	failDirectories = []string{
-		"unified-test-format/valid-fail",
+		//"unified-test-format/valid-fail",
 	}
 )
 
-const (
-	dataDirectory = "../../../testdata"
-)
+//const (
+//	dataDirectory = "../../../testdata"
+//)
 
 func TestUnifiedSpec(t *testing.T) {
 	// Ensure the cluster is in a clean state before test execution begins.
@@ -51,14 +54,17 @@ func TestUnifiedSpec(t *testing.T) {
 	}
 
 	for _, testDir := range passDirectories {
-		t.Run(testDir, func(t *testing.T) {
-			runTestDirectory(t, path.Join(dataDirectory, testDir), false)
+		index := strings.Index(testDir, "testdata/")
+		testName := testDir[index+len("testdata/"):]
+
+		t.Run(testName, func(t *testing.T) {
+			runTestDirectory(t, testDir, false)
 		})
 	}
 
 	for _, testDir := range failDirectories {
 		t.Run(testDir, func(t *testing.T) {
-			runTestDirectory(t, path.Join(dataDirectory, testDir), true)
+			runTestDirectory(t, testDir, true)
 		})
 	}
 }

@@ -67,11 +67,96 @@ var skipTests = map[string]string{
 	// TODO(GODRIVER-2129): Re-enable this test once GODRIVER-2129 is done.
 	"TestAuthSpec/connection-string.json/must_raise_an_error_when_the_hostname_canonicalization_is_invalid": "Support will be added with GODRIVER-2129.",
 
+	// TODO(GODRIVER-2183): Socks5 Proxy Support.
+	"TestURIOptionsSpec/proxy-options.json/proxyPort_without_proxyHost":               "Implement GODRIVER-2183 for Socks5 Proxy Support",
+	"TestURIOptionsSpec/proxy-options.json/proxyUsername_without_proxyHost":           "Implement GODRIVER-2183 for Socks5 Proxy Support",
+	"TestURIOptionsSpec/proxy-options.json/proxyPassword_without_proxyHost":           "Implement GODRIVER-2183 for Socks5 Proxy Support",
+	"TestURIOptionsSpec/proxy-options.json/all_other_proxy_options_without_proxyHost": "Implement GODRIVER-2183 for Socks5 Proxy Support",
+	"TestURIOptionsSpec/proxy-options.json/proxyUsername_without_proxyPassword":       "Implement GODRIVER-2183 for Socks5 Proxy Support",
+	"TestURIOptionsSpec/proxy-options.json/proxyPassword_without_proxyUsername":       "Implement GODRIVER-2183 for Socks5 Proxy Support",
+	"TestURIOptionsSpec/proxy-options.json/multiple_proxyHost_parameters":             "Implement GODRIVER-2183 for Socks5 Proxy Support",
+	"TestURIOptionsSpec/proxy-options.json/multiple_proxyPort_parameters":             "Implement GODRIVER-2183 for Socks5 Proxy Support",
+	"TestURIOptionsSpec/proxy-options.json/multiple_proxyUsername_parameters":         "Implement GODRIVER-2183 for Socks5 Proxy Support",
+	"TestURIOptionsSpec/proxy-options.json/multiple_proxyPassword_parameters":         "Implement GODRIVER-2183 for Socks5 Proxy Support",
+
+	// wtimeoutMS write concern option is not supported.
+	"TestURIOptionsSpec/concern-options.json/Valid_read_and_write_concern_are_parsed_correctly": "wtimeoutMS is deprecated",
+	"TestURIOptionsSpec/concern-options.json/Non-numeric_wTimeoutMS_causes_a_warning":           "wtimeoutMS is deprecated",
+	"TestURIOptionsSpec/concern-options.json/Too_low_wTimeoutMS_causes_a_warning":               "wtimeoutMS is deprecated",
+	"TestReadWriteConcernSpec/connstring/write-concern.json/wtimeoutMS_as_an_invalid_number":    "wtimeoutMS is deprecated",
+
+	// Unsupported TLS behavior in connection strings.
+	"TestURIOptionsSpec/tls-options.json/tlsAllowInvalidCertificates_and_tlsDisableCertificateRevocationCheck_both_present_(and_true)_raises_an_error":  "unsupported connstring behavior",
+	"TestURIOptionsSpec/tls-options.json/tlsAllowInvalidCertificates=true_and_tlsDisableCertificateRevocationCheck=false_raises_an_error":               "unsupported connstring behavior",
+	"TestURIOptionsSpec/tls-options.json/tlsAllowInvalidCertificates=false_and_tlsDisableCertificateRevocationCheck=true_raises_an_error":               "unsupported connstring behavior",
+	"TestURIOptionsSpec/tls-options.json/tlsAllowInvalidCertificates_and_tlsDisableCertificateRevocationCheck_both_present_(and_false)_raises_an_error": "unsupported connstring behavior",
+	"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck_and_tlsAllowInvalidCertificates_both_present_(and_true)_raises_an_error":  "unsupported connstring behavior",
+	"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck=true_and_tlsAllowInvalidCertificates=false_raises_an_error":               "unsupported connstring behavior",
+	"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck=false_and_tlsAllowInvalidCertificates=true_raises_an_error":               "unsupported connstring behavior",
+	"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck_and_tlsAllowInvalidCertificates_both_present_(and_false)_raises_an_error": "unsupported connstring behavior",
+	"TestURIOptionsSpec/tls-options.json/tlsInsecure_and_tlsDisableCertificateRevocationCheck_both_present_(and_true)_raises_an_error":                  "unsupported connstring behavior",
+	"TestURIOptionsSpec/tls-options.json/tlsInsecure=true_and_tlsDisableCertificateRevocationCheck=false_raises_an_error":                               "unsupported connstring behavior",
+	"TestURIOptionsSpec/tls-options.json/tlsInsecure=false_and_tlsDisableCertificateRevocationCheck=true_raises_an_error":                               "unsupported connstring behavior",
+	"TestURIOptionsSpec/tls-options.json/tlsInsecure_and_tlsDisableCertificateRevocationCheck_both_present_(and_false)_raises_an_error":                 "unsupported connstring behavior",
+	"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck_and_tlsInsecure_both_present_(and_true)_raises_an_error":                  "unsupported connstring behavior",
+	"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck=true_and_tlsInsecure=false_raises_an_error":                               "unsupported connstring behavior",
+	"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck=false_and_tlsInsecure=true_raises_an_error":                               "unsupported connstring behavior",
+	"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck_and_tlsInsecure_both_present_(and_false)_raises_an_error":                 "unsupported connstring behavior",
+	"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck_and_tlsDisableOCSPEndpointCheck_both_present_(and_true)_raises_an_error":  "unsupported connstring behavior",
+	"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck=true_and_tlsDisableOCSPEndpointCheck=false_raises_an_error":               "unsupported connstring behavior",
+	"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck=false_and_tlsDisableOCSPEndpointCheck=true_raises_an_error":               "unsupported connstring behavior",
+	"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck_and_tlsDisableOCSPEndpointCheck_both_present_(and_false)_raises_an_error": "unsupported connstring behavior",
+	"TestURIOptionsSpec/tls-options.json/tlsDisableOCSPEndpointCheck_and_tlsDisableCertificateRevocationCheck_both_present_(and_true)_raises_an_error":  "unsupported connstring behavior",
+	"TestURIOptionsSpec/tls-options.json/tlsDisableOCSPEndpointCheck=true_and_tlsDisableCertificateRevocationCheck=false_raises_an_error":               "unsupported connstring behavior",
+	"TestURIOptionsSpec/tls-options.json/tlsDisableOCSPEndpointCheck=false_and_tlsDisableCertificateRevocationCheck=true_raises_an_error":               "unsupported connstring behavior",
+	"TestURIOptionsSpec/tls-options.json/tlsDisableOCSPEndpointCheck_and_tlsDisableCertificateRevocationCheck_both_present_(and_false)_raises_an_error": "unsupported connstring behavior",
+	"TestURIOptionsSpec/tls-options.json/tlsAllowInvalidCertificates_and_tlsDisableOCSPEndpointCheck_both_present_(and_true)_raises_an_error":           "unsupported connstring behavior",
+	"TestURIOptionsSpec/tls-options.json/tlsAllowInvalidCertificates=true_and_tlsDisableOCSPEndpointCheck=false_raises_an_error":                        "unsupported connstring behavior",
+	"TestURIOptionsSpec/tls-options.json/tlsAllowInvalidCertificates=false_and_tlsDisableOCSPEndpointCheck=true_raises_an_error":                        "unsupported connstring behavior",
+	"TestURIOptionsSpec/tls-options.json/tlsAllowInvalidCertificates_and_tlsDisableOCSPEndpointCheck_both_present_(and_false)_raises_an_error":          "unsupported connstring behavior",
+	"TestURIOptionsSpec/tls-options.json/tlsDisableOCSPEndpointCheck_and_tlsAllowInvalidCertificates_both_present_(and_true)_raises_an_error":           "unsupported connstring behavior",
+	"TestURIOptionsSpec/tls-options.json/tlsDisableOCSPEndpointCheck=true_and_tlsAllowInvalidCertificates=false_raises_an_error":                        "unsupported connstring behavior",
+	"TestURIOptionsSpec/tls-options.json/tlsDisableOCSPEndpointCheck=false_and_tlsAllowInvalidCertificates=true_raises_an_error":                        "unsupported connstring behavior",
+	"TestURIOptionsSpec/tls-options.json/tlsDisableOCSPEndpointCheck_and_tlsAllowInvalidCertificates_both_present_(and_false)_raises_an_error":          "unsupported connstring behavior",
+	"TestURIOptionsSpec/tls-options.json/Invalid_tlsAllowInvalidCertificates_causes_a_warning":                                                          "unsupported connstring behavior",
+	"TestURIOptionsSpec/tls-options.json/tlsAllowInvalidCertificates_is_parsed_correctly":                                                               "unsupported connstring behavior",
+	"TestURIOptionsSpec/tls-options.json/tlsAllowInvalidHostnames_is_parsed_correctly":                                                                  "unsupported connstring behavior",
+	"TestURIOptionsSpec/tls-options.json/Invalid_tlsAllowInvalidHostnames_causes_a_warning":                                                             "unsupported connstring behavior",
+	"TestURIOptionsSpec/tls-options.json/tlsInsecure_and_tlsAllowInvalidCertificates_both_present_(and_true)_raises_an_error":                           "unsupported connstring behavior",
+	"TestURIOptionsSpec/tls-options.json/tlsInsecure_and_tlsAllowInvalidCertificates_both_present_(and_false)_raises_an_error":                          "unsupported connstring behavior",
+	"TestURIOptionsSpec/tls-options.json/tlsAllowInvalidCertificates_and_tlsInsecure_both_present_(and_true)_raises_an_error":                           "unsupported connstring behavior",
+	"TestURIOptionsSpec/tls-options.json/tlsAllowInvalidCertificates_and_tlsInsecure_both_present_(and_false)_raises_an_error":                          "unsupported connstring behavior",
+	"TestURIOptionsSpec/tls-options.json/tlsInsecure_and_tlsAllowInvalidHostnames_both_present_(and_true)_raises_an_error":                              "unsupported connstring behavior",
+	"TestURIOptionsSpec/tls-options.json/tlsInsecure_and_tlsAllowInvalidHostnames_both_present_(and_false)_raises_an_error":                             "unsupported connstring behavior",
+	"TestURIOptionsSpec/tls-options.json/tlsAllowInvalidHostnames_and_tlsInsecure_both_present_(and_true)_raises_an_error":                              "unsupported connstring behavior",
+	"TestURIOptionsSpec/tls-options.json/tlsAllowInvalidHostnames_and_tlsInsecure_both_present_(and_false)_raises_an_error":                             "unsupported connstring behavior",
+
+	// TODO(GODRIVER-2991): make delimiting slash between hosts and options
+	// optional.
+	"TestConnStringSpec/valid-options.json/Missing_delimiting_slash_between_hosts_and_options": "Implement GODRIVER-2991 making delimiting slash between hosts and options optional",
+
+	// Connstring tests violate current Go Driver behavior
+	"TestURIOptionsSpec/connection-pool-options.json/maxConnecting=0_causes_a_warning":                "unsupported behavior",
+	"TestURIOptionsSpec/single-threaded-options.json/Invalid_serverSelectionTryOnce_causes_a_warning": "unsupported behavior",
+	"TestConnStringSpec/valid-warnings.json/Empty_integer_option_values_are_ignored":                  "SPEC-1545: unsupported behavior",
+	"TestConnStringSpec/valid-warnings.json/Empty_boolean_option_value_are_ignored":                   "SPEC-1545: unsupported behavior",
+	"TestConnStringSpec/valid-warnings.json/Comma_in_a_key_value_pair_causes_a_warning":               "DRIVERS-2915: unsupported behavior",
+
+	// TODO(GODRIVER-3167): Support assertions on topologyDescriptionChangedEvent
+	// in expectEvents
+	"TestUnifiedSpec/specifications/source/unified-test-format/tests/valid-pass/expectedEventsForClient-topologyDescriptionChangedEvent.json/can_assert_on_values_of_newDescription_and_previousDescription_fields": "Implement GODRIVER-3161",
+
+	// TODO(GODRIVER-3409): Regression test for "number" alias in $$type operator
+	"TestUnifiedSpec/specifications/source/unified-test-format/tests/valid-pass/operator-type-number_alias.json/type_number_alias_matches_int32":      "Implement GODRIVER-3409",
+	"TestUnifiedSpec/specifications/source/unified-test-format/tests/valid-pass/operator-type-number_alias.json/type_number_alias_matches_int64":      "Implement GODRIVER-3409",
+	"TestUnifiedSpec/specifications/source/unified-test-format/tests/valid-pass/operator-type-number_alias.json/type_number_alias_matches_double":     "Implement GODRIVER-3409",
+	"TestUnifiedSpec/specifications/source/unified-test-format/tests/valid-pass/operator-type-number_alias.json/type_number_alias_matches_decimal128": "Implement GODRIVER-3409",
+
 	// GODRIVER-1773: This test runs a "find" with limit=4 and batchSize=3. It
 	// expects batchSize values of three for the "find" and one for the
 	// "getMore", but we send three for both.
-	"TestUnifiedSpec/command-monitoring/find.json/A_successful_find_event_with_a_getmore_and_the_server_kills_the_cursor_(<=_4.4)":                               "See GODRIVER-1773",
-	"TestUnifiedSpec/unified-test-format/valid-pass/poc-command-monitoring.json/A_successful_find_event_with_a_getmore_and_the_server_kills_the_cursor_(<=_4.4)": "See GODRIVER-1773",
+	"TestUnifiedSpec/command-monitoring/find.json/A_successful_find_event_with_a_getmore_and_the_server_kills_the_cursor_(<=_4.4)": "See GODRIVER-1773",
+	//"TestUnifiedSpec/unified-test-format/valid-pass/poc-command-monitoring.json/A_successful_find_event_with_a_getmore_and_the_server_kills_the_cursor_(<=_4.4)": "See GODRIVER-1773",
 
 	// GODRIVER-2577: The following spec tests require canceling ops
 	// immediately, but the current logic clears pools and cancels in-progress
@@ -150,81 +235,6 @@ var skipTests = map[string]string{
 	"TestUnifiedSpec/server-discovery-and-monitoring/unified/sharded-emit-topology-changed-before-close.json/Topology_lifecycle":      "Implement GODRIVER-2967",
 	"TestUnifiedSpec/server-discovery-and-monitoring/unified/replicaset-emit-topology-changed-before-close.json/Topology_lifecycle":   "Implement GODRIVER-2967",
 	"TestUnifiedSpec/server-discovery-and-monitoring/unified/standalone-emit-topology-changed-before-close.json/Topology_lifecycle":   "Implement GODRIVER-2967",
-
-	// TODO(GODRIVER-2183): Socks5 Proxy Support.
-	"TestURIOptionsSpec/proxy-options.json/proxyPort_without_proxyHost":               "Implement GODRIVER-2183 for Socks5 Proxy Support",
-	"TestURIOptionsSpec/proxy-options.json/proxyUsername_without_proxyHost":           "Implement GODRIVER-2183 for Socks5 Proxy Support",
-	"TestURIOptionsSpec/proxy-options.json/proxyPassword_without_proxyHost":           "Implement GODRIVER-2183 for Socks5 Proxy Support",
-	"TestURIOptionsSpec/proxy-options.json/all_other_proxy_options_without_proxyHost": "Implement GODRIVER-2183 for Socks5 Proxy Support",
-	"TestURIOptionsSpec/proxy-options.json/proxyUsername_without_proxyPassword":       "Implement GODRIVER-2183 for Socks5 Proxy Support",
-	"TestURIOptionsSpec/proxy-options.json/proxyPassword_without_proxyUsername":       "Implement GODRIVER-2183 for Socks5 Proxy Support",
-	"TestURIOptionsSpec/proxy-options.json/multiple_proxyHost_parameters":             "Implement GODRIVER-2183 for Socks5 Proxy Support",
-	"TestURIOptionsSpec/proxy-options.json/multiple_proxyPort_parameters":             "Implement GODRIVER-2183 for Socks5 Proxy Support",
-	"TestURIOptionsSpec/proxy-options.json/multiple_proxyUsername_parameters":         "Implement GODRIVER-2183 for Socks5 Proxy Support",
-	"TestURIOptionsSpec/proxy-options.json/multiple_proxyPassword_parameters":         "Implement GODRIVER-2183 for Socks5 Proxy Support",
-
-	// wtimeoutMS write concern option is not supported.
-	"TestURIOptionsSpec/concern-options.json/Valid_read_and_write_concern_are_parsed_correctly": "wtimeoutMS is deprecated",
-	"TestURIOptionsSpec/concern-options.json/Non-numeric_wTimeoutMS_causes_a_warning":           "wtimeoutMS is deprecated",
-	"TestURIOptionsSpec/concern-options.json/Too_low_wTimeoutMS_causes_a_warning":               "wtimeoutMS is deprecated",
-	"TestReadWriteConcernSpec/connstring/write-concern.json/wtimeoutMS_as_an_invalid_number":    "wtimeoutMS is deprecated",
-
-	// Unsupported TLS behavior in connection strings.
-	"TestURIOptionsSpec/tls-options.json/tlsAllowInvalidCertificates_and_tlsDisableCertificateRevocationCheck_both_present_(and_true)_raises_an_error":  "unsupported connstring behavior",
-	"TestURIOptionsSpec/tls-options.json/tlsAllowInvalidCertificates=true_and_tlsDisableCertificateRevocationCheck=false_raises_an_error":               "unsupported connstring behavior",
-	"TestURIOptionsSpec/tls-options.json/tlsAllowInvalidCertificates=false_and_tlsDisableCertificateRevocationCheck=true_raises_an_error":               "unsupported connstring behavior",
-	"TestURIOptionsSpec/tls-options.json/tlsAllowInvalidCertificates_and_tlsDisableCertificateRevocationCheck_both_present_(and_false)_raises_an_error": "unsupported connstring behavior",
-	"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck_and_tlsAllowInvalidCertificates_both_present_(and_true)_raises_an_error":  "unsupported connstring behavior",
-	"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck=true_and_tlsAllowInvalidCertificates=false_raises_an_error":               "unsupported connstring behavior",
-	"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck=false_and_tlsAllowInvalidCertificates=true_raises_an_error":               "unsupported connstring behavior",
-	"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck_and_tlsAllowInvalidCertificates_both_present_(and_false)_raises_an_error": "unsupported connstring behavior",
-	"TestURIOptionsSpec/tls-options.json/tlsInsecure_and_tlsDisableCertificateRevocationCheck_both_present_(and_true)_raises_an_error":                  "unsupported connstring behavior",
-	"TestURIOptionsSpec/tls-options.json/tlsInsecure=true_and_tlsDisableCertificateRevocationCheck=false_raises_an_error":                               "unsupported connstring behavior",
-	"TestURIOptionsSpec/tls-options.json/tlsInsecure=false_and_tlsDisableCertificateRevocationCheck=true_raises_an_error":                               "unsupported connstring behavior",
-	"TestURIOptionsSpec/tls-options.json/tlsInsecure_and_tlsDisableCertificateRevocationCheck_both_present_(and_false)_raises_an_error":                 "unsupported connstring behavior",
-	"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck_and_tlsInsecure_both_present_(and_true)_raises_an_error":                  "unsupported connstring behavior",
-	"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck=true_and_tlsInsecure=false_raises_an_error":                               "unsupported connstring behavior",
-	"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck=false_and_tlsInsecure=true_raises_an_error":                               "unsupported connstring behavior",
-	"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck_and_tlsInsecure_both_present_(and_false)_raises_an_error":                 "unsupported connstring behavior",
-	"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck_and_tlsDisableOCSPEndpointCheck_both_present_(and_true)_raises_an_error":  "unsupported connstring behavior",
-	"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck=true_and_tlsDisableOCSPEndpointCheck=false_raises_an_error":               "unsupported connstring behavior",
-	"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck=false_and_tlsDisableOCSPEndpointCheck=true_raises_an_error":               "unsupported connstring behavior",
-	"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck_and_tlsDisableOCSPEndpointCheck_both_present_(and_false)_raises_an_error": "unsupported connstring behavior",
-	"TestURIOptionsSpec/tls-options.json/tlsDisableOCSPEndpointCheck_and_tlsDisableCertificateRevocationCheck_both_present_(and_true)_raises_an_error":  "unsupported connstring behavior",
-	"TestURIOptionsSpec/tls-options.json/tlsDisableOCSPEndpointCheck=true_and_tlsDisableCertificateRevocationCheck=false_raises_an_error":               "unsupported connstring behavior",
-	"TestURIOptionsSpec/tls-options.json/tlsDisableOCSPEndpointCheck=false_and_tlsDisableCertificateRevocationCheck=true_raises_an_error":               "unsupported connstring behavior",
-	"TestURIOptionsSpec/tls-options.json/tlsDisableOCSPEndpointCheck_and_tlsDisableCertificateRevocationCheck_both_present_(and_false)_raises_an_error": "unsupported connstring behavior",
-	"TestURIOptionsSpec/tls-options.json/tlsAllowInvalidCertificates_and_tlsDisableOCSPEndpointCheck_both_present_(and_true)_raises_an_error":           "unsupported connstring behavior",
-	"TestURIOptionsSpec/tls-options.json/tlsAllowInvalidCertificates=true_and_tlsDisableOCSPEndpointCheck=false_raises_an_error":                        "unsupported connstring behavior",
-	"TestURIOptionsSpec/tls-options.json/tlsAllowInvalidCertificates=false_and_tlsDisableOCSPEndpointCheck=true_raises_an_error":                        "unsupported connstring behavior",
-	"TestURIOptionsSpec/tls-options.json/tlsAllowInvalidCertificates_and_tlsDisableOCSPEndpointCheck_both_present_(and_false)_raises_an_error":          "unsupported connstring behavior",
-	"TestURIOptionsSpec/tls-options.json/tlsDisableOCSPEndpointCheck_and_tlsAllowInvalidCertificates_both_present_(and_true)_raises_an_error":           "unsupported connstring behavior",
-	"TestURIOptionsSpec/tls-options.json/tlsDisableOCSPEndpointCheck=true_and_tlsAllowInvalidCertificates=false_raises_an_error":                        "unsupported connstring behavior",
-	"TestURIOptionsSpec/tls-options.json/tlsDisableOCSPEndpointCheck=false_and_tlsAllowInvalidCertificates=true_raises_an_error":                        "unsupported connstring behavior",
-	"TestURIOptionsSpec/tls-options.json/tlsDisableOCSPEndpointCheck_and_tlsAllowInvalidCertificates_both_present_(and_false)_raises_an_error":          "unsupported connstring behavior",
-	"TestURIOptionsSpec/tls-options.json/Invalid_tlsAllowInvalidCertificates_causes_a_warning":                                                          "unsupported connstring behavior",
-	"TestURIOptionsSpec/tls-options.json/tlsAllowInvalidCertificates_is_parsed_correctly":                                                               "unsupported connstring behavior",
-	"TestURIOptionsSpec/tls-options.json/tlsAllowInvalidHostnames_is_parsed_correctly":                                                                  "unsupported connstring behavior",
-	"TestURIOptionsSpec/tls-options.json/Invalid_tlsAllowInvalidHostnames_causes_a_warning":                                                             "unsupported connstring behavior",
-	"TestURIOptionsSpec/tls-options.json/tlsInsecure_and_tlsAllowInvalidCertificates_both_present_(and_true)_raises_an_error":                           "unsupported connstring behavior",
-	"TestURIOptionsSpec/tls-options.json/tlsInsecure_and_tlsAllowInvalidCertificates_both_present_(and_false)_raises_an_error":                          "unsupported connstring behavior",
-	"TestURIOptionsSpec/tls-options.json/tlsAllowInvalidCertificates_and_tlsInsecure_both_present_(and_true)_raises_an_error":                           "unsupported connstring behavior",
-	"TestURIOptionsSpec/tls-options.json/tlsAllowInvalidCertificates_and_tlsInsecure_both_present_(and_false)_raises_an_error":                          "unsupported connstring behavior",
-	"TestURIOptionsSpec/tls-options.json/tlsInsecure_and_tlsAllowInvalidHostnames_both_present_(and_true)_raises_an_error":                              "unsupported connstring behavior",
-	"TestURIOptionsSpec/tls-options.json/tlsInsecure_and_tlsAllowInvalidHostnames_both_present_(and_false)_raises_an_error":                             "unsupported connstring behavior",
-	"TestURIOptionsSpec/tls-options.json/tlsAllowInvalidHostnames_and_tlsInsecure_both_present_(and_true)_raises_an_error":                              "unsupported connstring behavior",
-	"TestURIOptionsSpec/tls-options.json/tlsAllowInvalidHostnames_and_tlsInsecure_both_present_(and_false)_raises_an_error":                             "unsupported connstring behavior",
-
-	// TODO(GODRIVER-2991): make delimiting slash between hosts and options
-	// optional.
-	"TestConnStringSpec/valid-options.json/Missing_delimiting_slash_between_hosts_and_options": "Implement GODRIVER-2991 making delimiting slash between hosts and options optional",
-
-	// Connstring tests violate current Go Driver behavior
-	"TestURIOptionsSpec/connection-pool-options.json/maxConnecting=0_causes_a_warning":                "unsupported behavior",
-	"TestURIOptionsSpec/single-threaded-options.json/Invalid_serverSelectionTryOnce_causes_a_warning": "unsupported behavior",
-	"TestConnStringSpec/valid-warnings.json/Empty_integer_option_values_are_ignored":                  "SPEC-1545: unsupported behavior",
-	"TestConnStringSpec/valid-warnings.json/Empty_boolean_option_value_are_ignored":                   "SPEC-1545: unsupported behavior",
-	"TestConnStringSpec/valid-warnings.json/Comma_in_a_key_value_pair_causes_a_warning":               "DRIVERS-2915: unsupported behavior",
 }
 
 // CheckSkip checks if the fully-qualified test name matches a skipped test

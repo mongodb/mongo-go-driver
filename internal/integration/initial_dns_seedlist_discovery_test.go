@@ -21,6 +21,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
+	"go.mongodb.org/mongo-driver/v2/internal/spectest"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
@@ -29,9 +30,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/topology"
 )
 
-const (
-	seedlistDiscoveryTestsBaseDir = "../../testdata/initial-dns-seedlist-discovery"
-)
+var seedlistDiscoveryTestsBaseDir = spectest.TestPath(2, "initial-dns-seedlist-discovery")
 
 type seedlistTest struct {
 	URI      string   `bson:"uri"`
