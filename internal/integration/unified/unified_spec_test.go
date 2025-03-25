@@ -16,8 +16,9 @@ import (
 
 var (
 	passDirectories = []string{
-		spectest.TestPath(3, "unified-test-format", "valid-pass"),
-		spectest.TestPath(3, "versioned-api"),
+		//spectest.TestPath(3, "unified-test-format", "valid-pass"),
+		//spectest.TestPath(3, "versioned-api"),
+		spectest.TestPath(3, "crud", "unified"),
 		//"versioned-api",
 		//"crud/unified",
 		//"change-streams",

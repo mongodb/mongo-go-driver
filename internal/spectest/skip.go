@@ -152,11 +152,63 @@ var skipTests = map[string]string{
 	"TestUnifiedSpec/specifications/source/unified-test-format/tests/valid-pass/operator-type-number_alias.json/type_number_alias_matches_double":     "Implement GODRIVER-3409",
 	"TestUnifiedSpec/specifications/source/unified-test-format/tests/valid-pass/operator-type-number_alias.json/type_number_alias_matches_decimal128": "Implement GODRIVER-3409",
 
+	// TODO(GODRIVER-3143): Convert CRUD v1 spec tests to unified test format
+	"TestUnifiedSpec/specifications/source/crud/tests/unified/bulkWrite-collation.json/BulkWrite_with_delete_operations_and_collation": "Implement GODRIVER-3143",
+	"TestUnifiedSpec/specifications/source/crud/tests/unified/count.json/Count_documents_with_skip_and_limit":                          "Implement GODRIVER-3143",
+	"TestUnifiedSpec/specifications/source/crud/tests/unified/findOne.json/FindOne_with_filter,_sort,_and_skip":                        "Implement GODRIVER-3143",
+
+	// TODO(GODRIVER-2125): Allow hint for unacknowledged writes using OP_MSG when
+	// supported by the server
+	"TestUnifiedSpec/specifications/source/crud/tests/unified/bulkWrite-deleteMany-hint-unacknowledged.json/Unacknowledged_deleteMany_with_hint_string_on_4.4+_server":   "Implement GODRIVER-2125",
+	"TestUnifiedSpec/specifications/source/crud/tests/unified/bulkWrite-deleteMany-hint-unacknowledged.json/Unacknowledged_deleteMany_with_hint_document_on_4.4+_server": "Implement GODRIVER-2125",
+	"TestUnifiedSpec/specifications/source/crud/tests/unified/bulkWrite-deleteOne-hint-unacknowledged.json/Unacknowledged_deleteOne_with_hint_string_on_4.4+_server":     "Implement GODRIVER-2125",
+	"TestUnifiedSpec/specifications/source/crud/tests/unified/bulkWrite-deleteOne-hint-unacknowledged.json/Unacknowledged_deleteOne_with_hint_document_on_4.4+_server":   "Implement GODRIVER-2125",
+	"TestUnifiedSpec/specifications/source/crud/tests/unified/bulkWrite-replaceOne-hint-unacknowledged.json/Unacknowledged_replaceOne_with_hint_string_on_4.2+_server":   "Implement GODRIVER-2125",
+	"TestUnifiedSpec/specifications/source/crud/tests/unified/bulkWrite-replaceOne-hint-unacknowledged.json/Unacknowledged_replaceOne_with_hint_document_on_4.2+_server": "Implement GODRIVER-2125",
+	"TestUnifiedSpec/specifications/source/crud/tests/unified/bulkWrite-updateMany-hint-unacknowledged.json/Unacknowledged_updateMany_with_hint_string_on_4.2+_server":   "Implement GODRIVER-2125",
+	"TestUnifiedSpec/specifications/source/crud/tests/unified/bulkWrite-updateMany-hint-unacknowledged.json/Unacknowledged_updateMany_with_hint_document_on_4.2+_server": "Implement GODRIVER-2125",
+	"TestUnifiedSpec/specifications/source/crud/tests/unified/bulkWrite-updateOne-hint-unacknowledged.json/Unacknowledged_updateOne_with_hint_string_on_4.2+_server":     "Implement GODRIVER-2125",
+	"TestUnifiedSpec/specifications/source/crud/tests/unified/bulkWrite-updateOne-hint-unacknowledged.json/Unacknowledged_updateOne_with_hint_document_on_4.2+_server":   "Implement GODRIVER-2125",
+
+	// TODO(GODRIVER-3407): Allow drivers to set bypassDocumentValidation: false
+	// on write commands
+	"TestUnifiedSpec/specifications/source/crud/tests/unified/bypassDocumentValidation.json/Aggregate_with_$out_passes_bypassDocumentValidation:_false":                      "Implement GODRIVER-3407",
+	"TestUnifiedSpec/specifications/source/crud/tests/unified/bypassDocumentValidation.json/BulkWrite_passes_bypassDocumentValidation:_false":                                "Implement GODRIVER-3407",
+	"TestUnifiedSpec/specifications/source/crud/tests/unified/bypassDocumentValidation.json/FindOneAndReplace_passes_bypassDocumentValidation:_false":                        "Implement GODRIVER-3407",
+	"TestUnifiedSpec/specifications/source/crud/tests/unified/bypassDocumentValidation.json/FindOneAndUpdate_passes_bypassDocumentValidation:_fals":                          "Implement GODRIVER-3407",
+	"TestUnifiedSpec/specifications/source/crud/tests/unified/bypassDocumentValidation.json/FindOneAndUpdate_passes_bypassDocumentValidation:_false":                         "Implement GODRIVER-3407",
+	"TestUnifiedSpec/specifications/source/crud/tests/unified/bypassDocumentValidation.json/InsertMany_passes_bypassDocumentValidation:_false":                               "Implement GODRIVER-3407",
+	"TestUnifiedSpec/specifications/source/crud/tests/unified/bypassDocumentValidation.json/InsertOne_passes_bypassDocumentValidation:_false":                                "Implement GODRIVER-3407",
+	"TestUnifiedSpec/specifications/source/crud/tests/unified/bypassDocumentValidation.json/ReplaceOne_passes_bypassDocumentValidation:_false":                               "Implement GODRIVER-3407",
+	"TestUnifiedSpec/specifications/source/crud/tests/unified/bypassDocumentValidation.json/UpdateMany_passes_bypassDocumentValidation:_false":                               "Implement GODRIVER-3407",
+	"TestUnifiedSpec/specifications/source/crud/tests/unified/bypassDocumentValidation.json/UpdateOne_passes_bypassDocumentValidation:_false":                                "Implement GODRIVER-3407",
+	"TestUnifiedSpec/specifications/source/crud/tests/unified/deleteMany-hint-unacknowledged.json/Unacknowledged_deleteMany_with_hint_string_on_4.4+_server":                 "Implement GODRIVER-3407",
+	"TestUnifiedSpec/specifications/source/crud/tests/unified/deleteMany-hint-unacknowledged.json/Unacknowledged_deleteMany_with_hint_document_on_4.4+_server":               "Implement GODRIVER-3407",
+	"TestUnifiedSpec/specifications/source/crud/tests/unified/deleteOne-hint-unacknowledged.json/Unacknowledged_deleteOne_with_hint_string_on_4.4+_server":                   "Implement GODRIVER-3407",
+	"TestUnifiedSpec/specifications/source/crud/tests/unified/deleteOne-hint-unacknowledged.json/Unacknowledged_deleteOne_with_hint_document_on_4.4+_server":                 "Implement GODRIVER-3407",
+	"TestUnifiedSpec/specifications/source/crud/tests/unified/findOneAndDelete-hint-unacknowledged.json/Unacknowledged_findOneAndDelete_with_hint_string_on_4.4+_server":     "Implement GODRIVER-3407",
+	"TestUnifiedSpec/specifications/source/crud/tests/unified/findOneAndDelete-hint-unacknowledged.json/Unacknowledged_findOneAndDelete_with_hint_document_on_4.4+_server":   "Implement GODRIVER-3407",
+	"TestUnifiedSpec/specifications/source/crud/tests/unified/findOneAndReplace-hint-unacknowledged.json/Unacknowledged_findOneAndReplace_with_hint_string_on_4.4+_server":   "Implement GODRIVER-3407",
+	"TestUnifiedSpec/specifications/source/crud/tests/unified/findOneAndReplace-hint-unacknowledged.json/Unacknowledged_findOneAndReplace_with_hint_document_on_4.4+_server": "Implement GODRIVER-3407",
+	"TestUnifiedSpec/specifications/source/crud/tests/unified/findOneAndUpdate-hint-unacknowledged.json/Unacknowledged_findOneAndUpdate_with_hint_string_on_4.4+_server":     "Implement GODRIVER-3407",
+	"TestUnifiedSpec/specifications/source/crud/tests/unified/findOneAndUpdate-hint-unacknowledged.json/Unacknowledged_findOneAndUpdate_with_hint_document_on_4.4+_server":   "Implement GODRIVER-3407",
+	"TestUnifiedSpec/specifications/source/crud/tests/unified/replaceOne-hint-unacknowledged.json/Unacknowledged_replaceOne_with_hint_string_on_4.2+_server":                 "Implement GODRIVER-3407",
+	"TestUnifiedSpec/specifications/source/crud/tests/unified/replaceOne-hint-unacknowledged.json/Unacknowledged_replaceOne_with_hint_document_on_4.2+_server":               "Implement GODRIVER-3407",
+	"TestUnifiedSpec/specifications/source/crud/tests/unified/updateMany-hint-unacknowledged.json/Unacknowledged_updateMany_with_hint_string_on_4.2+_server":                 "Implement GODRIVER-3407",
+	"TestUnifiedSpec/specifications/source/crud/tests/unified/updateMany-hint-unacknowledged.json/Unacknowledged_updateMany_with_hint_document_on_4.2+_server":               "Implement GODRIVER-3407",
+	"TestUnifiedSpec/specifications/source/crud/tests/unified/updateOne-hint-unacknowledged.json/Unacknowledged_updateOne_with_hint_string_on_4.2+_server":                   "Implement GODRIVER-3407",
+	"TestUnifiedSpec/specifications/source/crud/tests/unified/updateOne-hint-unacknowledged.json/Unacknowledged_updateOne_with_hint_document_on_4.2+_server":                 "Implement GODRIVER-3407",
+
+	// TODO(GODRIVER-3392): Test that inserts and upserts respect null _id values
+	"TestUnifiedSpec/specifications/source/crud/tests/unified/create-null-ids.json/inserting__id_with_type_null_via_insertOne": "Implement GODRIVER-3392",
+
+	// TODO(GODRIVER-3395): Ensure findOne does not set batchSize=1
+	"TestUnifiedSpec/specifications/source/crud/tests/unified/find.json/Find_with_batchSize_equal_to_limit": "Implement GODRIVER-3395",
+
 	// GODRIVER-1773: This test runs a "find" with limit=4 and batchSize=3. It
 	// expects batchSize values of three for the "find" and one for the
 	// "getMore", but we send three for both.
 	"TestUnifiedSpec/command-monitoring/find.json/A_successful_find_event_with_a_getmore_and_the_server_kills_the_cursor_(<=_4.4)": "See GODRIVER-1773",
-	//"TestUnifiedSpec/unified-test-format/valid-pass/poc-command-monitoring.json/A_successful_find_event_with_a_getmore_and_the_server_kills_the_cursor_(<=_4.4)": "See GODRIVER-1773",
 
 	// GODRIVER-2577: The following spec tests require canceling ops
 	// immediately, but the current logic clears pools and cancels in-progress
@@ -180,7 +232,7 @@ var skipTests = map[string]string{
 	"TestUnifiedSpec/server-discovery-and-monitoring/unified/auth-network-timeout-error.json/Reset_server_and_pool_after_network_timeout_error_during_authentication": "Uses unsupported socketTimeoutMS",
 	"TestUnifiedSpec/server-discovery-and-monitoring/unified/find-network-timeout-error.json/Ignore_network_timeout_error_on_find":                                    "Uses unsupported socketTimeoutMS",
 	"TestUnifiedSpec/command-monitoring/find.json/A_successful_find_with_options":                                                                                     "Uses unsupported maxTimeMS",
-	"TestUnifiedSpec/crud/unified/estimatedDocumentCount.json/estimatedDocumentCount_with_maxTimeMS":                                                                  "Uses unsupported maxTimeMS",
+	"TestUnifiedSpec/specifications/source/crud/tests/unified/estimatedDocumentCount.json/estimatedDocumentCount_with_maxTimeMS":                                      "Uses unsupported maxTimeMS",
 	"TestUnifiedSpec/run-command/runCursorCommand.json/supports_configuring_getMore_maxTimeMS":                                                                        "Uses unsupported maxTimeMS",
 
 	// TODO(GODRIVER-3137): Implement Gossip cluster time"
