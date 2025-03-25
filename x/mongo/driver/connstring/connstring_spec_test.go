@@ -47,8 +47,8 @@ type testContainer struct {
 	Tests []testCase
 }
 
-const connstringTestsDir = "../../../../testdata/source/connection-string/tests/"
-const urioptionsTestDir = "../../../../testdata/source/uri-options/tests/"
+var connstringTestsDir = spectest.TestPath(4, "connection-string")
+var urioptionsTestDir = spectest.TestPath(4, "uri-options")
 
 func (h *host) toString() string {
 	switch h.Type {
@@ -102,40 +102,8 @@ func runTestsInFile(t *testing.T, dirname string, filename string, warningsError
 	})
 }
 
-var skipKeywords = []string{
-	"tlsAllowInvalidHostnames",
-	"tlsAllowInvalidCertificates",
-	"tlsDisableCertificateRevocationCheck",
-	"serverSelectionTryOnce",
-
-	// These tests violate current Go Driver behavior
-	"Empty integer option values are ignored",    // PEC-1545
-	"Empty boolean option value are ignored",     // SPEC-1545
-	"Comma in a key value pair causes a warning", // DRIVERS-2915
-
-	// Unclear ~ possible bugs
-	"maxConnecting=0 causes a warning", // DRIVERS-1943
-
-	// TODO(GODRIVER-2348): the wtimeoutMS write concern option is not supported.
-	"wTimeoutMS",
-
-	// TODO(GODRIVER-2991): make delimiting slash between hosts and options
-	// optional.
-	"Missing delimiting slash between hosts and options",
-
-	// TODO(GODRIVER-2183): Socks5 Proxy Support
-	"proxyPort",
-	"proxyHost",
-	"proxyPassword",
-	"proxyUsername",
-}
-
 func runTest(t *testing.T, test testCase, warningsError bool) {
-	for _, keyword := range skipKeywords {
-		if strings.Contains(test.Description, keyword) {
-			t.Skipf("skipping because keyword %s", keyword)
-		}
-	}
+	spectest.CheckSkip(t)
 
 	cs, err := connstring.ParseAndValidate(test.URI)
 	// Since we don't have warnings in Go, we return warnings as errors.

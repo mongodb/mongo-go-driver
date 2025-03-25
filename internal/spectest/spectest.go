@@ -9,6 +9,8 @@ package spectest
 import (
 	"io/ioutil"
 	"path"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/v2/internal/require"
@@ -32,4 +34,15 @@ func FindJSONFilesInDir(t *testing.T, dir string) []string {
 	}
 
 	return files
+}
+
+func TestPath(depth int, testDir string, subDirs ...string) string {
+	const basePath = "testdata/specifications/source/"
+
+	// Create a string of "../" repeated 'depth' times
+	relativePath := strings.Repeat("../", depth)
+	// Construct the full path
+	fullPath := relativePath + basePath + testDir + "/tests/" + filepath.Join(subDirs...)
+
+	return fullPath
 }
