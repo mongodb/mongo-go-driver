@@ -1420,8 +1420,9 @@ tasks:
         vars:
           MONGO_GO_DRIVER_COMPRESSOR: "snappy"
 
-  # Build the compilecheck submodule with the oldest supported version of Go.
-  - name: go1.18-build
+  # Build the compilecheck submodule with all supported versions of Go >= 
+  # the minimum supported version.
+  - name: go-build
     tags: ["compile-check"]
     commands:
       - command: subprocess.exec
