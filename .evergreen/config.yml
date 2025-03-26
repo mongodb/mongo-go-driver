@@ -1481,6 +1481,23 @@ tasks:
           SSL: "nossl"
           REQUIRE_API_VERSION: true
 
+  - name: "test-sharded-versioned-api"
+    tags: ["versioned-api"]
+    commands:
+      - func: bootstrap-mongo-orchestration
+        vars:
+          TOPOLOGY: "sharded_cluster"
+          AUTH: "auth"
+          SSL: "nossl"
+          REQUIRE_API_VERSION: true
+      - func: start-cse-servers
+      - func: run-versioned-api-test
+        vars:
+          TOPOLOGY: "sharded_cluster"
+          AUTH: "auth"
+          SSL: "nossl"
+          REQUIRE_API_VERSION: true
+
   - name: "test-standalone-versioned-api-test-commands"
     tags: ["versioned-api"]
     commands:
