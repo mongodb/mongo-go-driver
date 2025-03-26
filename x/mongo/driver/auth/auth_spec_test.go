@@ -38,7 +38,7 @@ type testContainer struct {
 }
 
 // Note a test supporting the deprecated gssapiServiceName property was removed from data/auth/auth_tests.json
-const authTestsDir = "../../../../testdata/auth/"
+var authTestsDir = spectest.TestPath(4, "auth", "legacy")
 
 func runTestsInFile(t *testing.T, dirname string, filename string) {
 	filepath := path.Join(dirname, filename)
@@ -111,6 +111,7 @@ func mapInterfaceToString(m map[string]interface{}) map[string]string {
 // Test case for all connection string spec tests.
 func TestAuthSpec(t *testing.T) {
 	for _, file := range spectest.FindJSONFilesInDir(t, authTestsDir) {
+		fmt.Println("file", file)
 		runTestsInFile(t, authTestsDir, file)
 	}
 }
