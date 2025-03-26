@@ -247,7 +247,7 @@ var skipTests = map[string]string{
 	// Compatibility Field
 	"TestUnifiedSpec/server-discovery-and-monitoring/unified/auth-network-timeout-error.json/Reset_server_and_pool_after_network_timeout_error_during_authentication": "Uses unsupported socketTimeoutMS",
 	"TestUnifiedSpec/server-discovery-and-monitoring/unified/find-network-timeout-error.json/Ignore_network_timeout_error_on_find":                                    "Uses unsupported socketTimeoutMS",
-	"TestUnifiedSpec/command-monitoring/find.json/A_successful_find_with_options":                                                                                     "Uses unsupported maxTimeMS",
+	"TestUnifiedSpec/specifications/source/command-logging-and-monitoring/tests/monitoring/find.json/A_successful_find_with_options":                                  "Uses unsupported maxTimeMS",
 	"TestUnifiedSpec/specifications/source/crud/tests/unified/estimatedDocumentCount.json/estimatedDocumentCount_with_maxTimeMS":                                      "Uses unsupported maxTimeMS",
 	"TestUnifiedSpec/run-command/runCursorCommand.json/supports_configuring_getMore_maxTimeMS":                                                                        "Uses unsupported maxTimeMS",
 
