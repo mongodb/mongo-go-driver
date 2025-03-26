@@ -20,9 +20,12 @@ var (
 		//spectest.TestPath(3, "versioned-api"),
 		//spectest.TestPath(3, "crud", "unified"),
 		//spectest.TestPath(3, "change-streams", "unified"),
-		spectest.TestPath(3, "transactions", "unified"),
+		//spectest.TestPath(3, "transactions", "unified"),
+		//
 		//"load-balancers",
+		//
 		//"collection-management",
+		spectest.TestPath(3, "collection-management"),
 		//"command-monitoring",
 		//"command-monitoring/logging",
 		//"connection-monitoring-and-pooling/logging",
