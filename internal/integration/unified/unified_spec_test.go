@@ -10,6 +10,8 @@ import (
 	"context"
 	"strings"
 	"testing"
+
+	"go.mongodb.org/mongo-driver/v2/internal/spectest"
 )
 
 var (
@@ -23,6 +25,7 @@ var (
 		//"load-balancers",
 		//
 		//spectest.TestPath(3, "collection-management"),
+		spectest.TestPath(3, "command-monitoring"),
 		//"command-monitoring",
 		//"command-monitoring/logging",
 		//"connection-monitoring-and-pooling/logging",
