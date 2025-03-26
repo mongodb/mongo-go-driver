@@ -205,6 +205,22 @@ var skipTests = map[string]string{
 	// TODO(GODRIVER-3395): Ensure findOne does not set batchSize=1
 	"TestUnifiedSpec/specifications/source/crud/tests/unified/find.json/Find_with_batchSize_equal_to_limit": "Implement GODRIVER-3395",
 
+	// TODO(GODRIVER-2016): Convert transactions spec tests to unified test format
+	"TestUnifiedSpec/specifications/source/transactions/tests/unified/error-labels.json/do_not_add_UnknownTransactionCommitResult_label_to_MaxTimeMSExpired_inside_transaction":                        "Implement GODRIVER-2016",
+	"TestUnifiedSpec/specifications/source/transactions/tests/unified/error-labels.json/do_not_add_UnknownTransactionCommitResult_label_to_MaxTimeMSExpired_inside_transactions":                       "Implement GODRIVER-2016",
+	"TestUnifiedSpec/specifications/source/transactions/tests/unified/error-labels.json/add_UnknownTransactionCommitResult_label_to_MaxTimeMSExpired":                                                  "Implement GODRIVER-2016",
+	"TestUnifiedSpec/specifications/source/transactions/tests/unified/error-labels.json/add_UnknownTransactionCommitResult_label_to_writeConcernError_MaxTimeMSExpired":                                "Implement GODRIVER-2016",
+	"TestUnifiedSpec/specifications/source/transactions/tests/unified/retryable-commit.json/commitTransaction_applies_majority_write_concern_on_retries":                                               "Implement GODRIVER-2016",
+	"TestUnifiedSpec/specifications/source/transactions/tests/unified/run-command.json/run_command_with_secondary_read_preference_in_client_option_and_primary_read_preference_in_transaction_options": "Implement GODRIVER-2016",
+	"TestUnifiedSpec/specifications/source/transactions/tests/unified/transaction-options.json/transaction_options_inherited_from_client":                                                              "Implement GODRIVER-2016",
+	"TestUnifiedSpec/specifications/source/transactions/tests/unified/transaction-options.json/transaction_options_inherited_from_defaultTransactionOptions":                                           "Implement GODRIVER-2016",
+	"TestUnifiedSpec/specifications/source/transactions/tests/unified/transaction-options.json/startTransaction_options_override_defaults":                                                             "Implement GODRIVER-2016",
+	"TestUnifiedSpec/specifications/source/transactions/tests/unified/transaction-options.json/defaultTransactionOptions_override_client_options":                                                      "Implement GODRIVER-2016",
+	"TestUnifiedSpec/specifications/source/transactions/tests/unified/transaction-options.json/readConcern_local_in_defaultTransactionOptions":                                                         "Implement GODRIVER-2016",
+	"TestUnifiedSpec/specifications/source/transactions/tests/unified/transaction-options.json/readPreference_inherited_from_client":                                                                   "Implement GODRIVER-2016",
+	"TestUnifiedSpec/specifications/source/transactions/tests/unified/transaction-options.json/readPreference_inherited_from_defaultTransactionOptions":                                                "Implement GODRIVER-2016",
+	"TestUnifiedSpec/specifications/source/transactions/tests/unified/transaction-options.json/startTransaction_overrides_readPreference":                                                              "Implement GODRIVER-2016",
+
 	// GODRIVER-1773: This test runs a "find" with limit=4 and batchSize=3. It
 	// expects batchSize values of three for the "find" and one for the
 	// "getMore", but we send three for both.
