@@ -16,21 +16,21 @@ import (
 
 var (
 	passDirectories = []string{
+		//
+		//"load-balancers",
+		//
 		//spectest.TestPath(3, "unified-test-format", "valid-pass"),
 		//spectest.TestPath(3, "versioned-api"),
 		//spectest.TestPath(3, "crud", "unified"),
 		//spectest.TestPath(3, "change-streams", "unified"),
 		//spectest.TestPath(3, "transactions", "unified"),
-		//
-		//"load-balancers",
-		//
 		//spectest.TestPath(3, "collection-management"),
 		//spectest.TestPath(3, "command-logging-and-monitoring", "monitoring"),
 		//spectest.TestPath(3, "command-logging-and-monitoring", "logging"),
 		//spectest.TestPath(3, "connection-monitoring-and-pooling", "cmap-format"),
 		//spectest.TestPath(3, "connection-monitoring-and-pooling", "logging"),
-		spectest.TestPath(3, "sessions"),
-		//"sessions",
+		//spectest.TestPath(3, "sessions"),
+		spectest.TestPath(3, "retryable-reads", "unified"),
 		//"retryable-reads/unified",
 		//"retryable-writes/unified",
 		//"client-side-encryption/unified",
