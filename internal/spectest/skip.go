@@ -6,7 +6,9 @@
 
 package spectest
 
-import "testing"
+import (
+	"testing"
+)
 
 // skipTests is a map of "fully-qualified test name" to "the reason for skipping
 // the test".
@@ -343,6 +345,31 @@ var skipTests = map[string]string{
 	"TestUnifiedSpec/server-discovery-and-monitoring/unified/sharded-emit-topology-changed-before-close.json/Topology_lifecycle":      "Implement GODRIVER-2967",
 	"TestUnifiedSpec/server-discovery-and-monitoring/unified/replicaset-emit-topology-changed-before-close.json/Topology_lifecycle":   "Implement GODRIVER-2967",
 	"TestUnifiedSpec/server-discovery-and-monitoring/unified/standalone-emit-topology-changed-before-close.json/Topology_lifecycle":   "Implement GODRIVER-2967",
+
+	// Unknown BSON
+	"TestBsonBinaryVectorSpec/Tests_of_Binary_subtype_9,_Vectors,_with_dtype_FLOAT32/Infinity_Vector_FLOAT32/Marshaling":   "Unsupported format",
+	"TestBsonBinaryVectorSpec/Tests_of_Binary_subtype_9,_Vectors,_with_dtype_FLOAT32/Infinity_Vector_FLOAT32/Unmarshaling": "Unsupported format",
+
+	// Unsuported BSON binary vector tests.
+	"TestBsonBinaryVectorSpec/Tests_of_Binary_subtype_9,_Vectors,_with_dtype_PACKED_BIT/Overflow_Vector_PACKED_BIT/Marshaling":                 "compile-time restriction",
+	"TestBsonBinaryVectorSpec/Tests_of_Binary_subtype_9,_Vectors,_with_dtype_INT8/Underflow_Vector_INT8/Marshaling":                            "compile-time restriction",
+	"TestBsonBinaryVectorSpec/Tests_of_Binary_subtype_9,_Vectors,_with_dtype_INT8/Overflow_Vector_INT8/Marshaling":                             "compile-time restriction",
+	"TestBsonBinaryVectorSpec/Tests_of_Binary_subtype_9,_Vectors,_with_dtype_PACKED_BIT/Negative_padding_PACKED_BIT/Marshaling":                "compile-time restriction",
+	"TestBsonBinaryVectorSpec/Tests_of_Binary_subtype_9,_Vectors,_with_dtype_INT8/INT8_with_padding/Marshaling":                                "private padding field",
+	"TestBsonBinaryVectorSpec/Tests_of_Binary_subtype_9,_Vectors,_with_dtype_FLOAT32/Insufficient_vector_data_with_3_bytes_FLOAT32/Marshaling": "invalid case",
+	"TestBsonBinaryVectorSpec/Tests_of_Binary_subtype_9,_Vectors,_with_dtype_FLOAT32/FLOAT32_with_padding/Marshaling":                          "private padding field",
+	"TestBsonBinaryVectorSpec/Tests_of_Binary_subtype_9,_Vectors,_with_dtype_FLOAT32/Insufficient_vector_data_with_5_bytes_FLOAT32/Marshaling": "invalid case",
+	"TestBsonBinaryVectorSpec/Tests_of_Binary_subtype_9,_Vectors,_with_dtype_PACKED_BIT/Vector_with_float_values_PACKED_BIT/Marshaling":        "compile-time restriction",
+	"TestBsonBinaryVectorSpec/Tests_of_Binary_subtype_9,_Vectors,_with_dtype_PACKED_BIT/Underflow_Vector_PACKED_BIT/Marshaling":                "compile-time restriction",
+	"TestBsonBinaryVectorSpec/Tests_of_Binary_subtype_9,_Vectors,_with_dtype_INT8/INT8_with_float_inputs/Marshaling":                           "compile-time restriction",
+
+	// TODO(GODRIVER-3521): Extend Legacy Unified Spec Runner to include
+	// client-side-encryption timeoutMS
+	"TestClientSideEncryptionSpec/timeoutMS.json/remaining_timeoutMS_applied_to_find_to_get_keyvault_data":      "Implement GODRIVER-3521",
+	"TestClientSideEncryptionSpec/timeoutMS.json/timeoutMS_applied_to_listCollections_to_get_collection_schema": "Implement GODRIVER-3521",
+
+	// TODO(GODRIVER-3076): CSFLE/QE Support for more than 1 KMS provider per type
+	"TestClientSideEncryptionSpec/namedKMS.json/Automatically_encrypt_and_decrypt_with_a_named_KMS_provider": "Implement GODRIVER-3076",
 }
 
 // CheckSkip checks if the fully-qualified test name matches a skipped test

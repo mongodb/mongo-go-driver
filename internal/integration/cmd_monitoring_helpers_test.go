@@ -83,7 +83,30 @@ func compareValues(mt *mtest.T, key string, expected, actual bson.RawValue) erro
 		if typeVal, err := e.LookupErr("$$type"); err == nil {
 			// $$type represents a type assertion
 			// for example {field: {$$type: "binData"}} should assert that "field" is an element with a binary value
-			return checkValueType(mt, key, actual.Type, typeVal.StringValue())
+			types := []string{}
+			switch typeVal.Type {
+			case bson.TypeArray:
+				elems, err := typeVal.Array().Values()
+				if err != nil {
+					return fmt.Errorf("error getting expected types: %v", err)
+				}
+
+				for _, elem := range elems {
+					types = append(types, elem.StringValue())
+				}
+			case bson.TypeString:
+				types = append(types, typeVal.StringValue())
+			}
+
+			// If at least one of the types does not return an error, then the test
+			// has passed.
+			for _, t := range types {
+				if err := checkValueType(mt, key, actual.Type, t); err == nil {
+					return nil
+				}
+			}
+
+			return fmt.Errorf("BSON type mismatch for key %s; expected one of %v, got %s", key, types, actual.Type)
 		}
 
 		a := actual.Document()

@@ -15,6 +15,7 @@ import (
 	"os"
 	"path"
 	"reflect"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -157,14 +158,12 @@ type operationError struct {
 	ErrorLabelsOmit    []string `bson:"errorLabelsOmit"`
 }
 
-const dataPath string = "../../testdata/"
-
 var directories = []string{
-	"transactions/legacy",
-	"convenient-transactions",
-	"retryable-reads/legacy",
-	"read-write-concern/operation",
-	"atlas-data-lake-testing",
+	"../../testdata/transactions/legacy",
+	"../../testdata/convenient-transactions",
+	"../../testdata/retryable-reads/legacy",
+	"../../testdata/read-write-concern/operation",
+	"../../testdata/atlas-data-lake-testing",
 }
 
 var checkOutcomeOpts = options.Collection().SetReadPreference(readpref.Primary()).SetReadConcern(readconcern.Local())
@@ -177,8 +176,10 @@ var specTestRegistry = func() *bson.Registry {
 
 func TestUnifiedSpecs(t *testing.T) {
 	for _, specDir := range directories {
-		t.Run(specDir, func(t *testing.T) {
-			for _, fileName := range jsonFilesInDir(t, path.Join(dataPath, specDir)) {
+		index := strings.Index(specDir, "testdata/")
+		dirTestName := specDir[index+len("testdata/"):]
+		t.Run(dirTestName, func(t *testing.T) {
+			for _, fileName := range jsonFilesInDir(t, specDir) {
 				t.Run(fileName, func(t *testing.T) {
 					runSpecTestFile(t, specDir, fileName)
 				})
@@ -190,7 +191,8 @@ func TestUnifiedSpecs(t *testing.T) {
 // specDir: name of directory for a spec in the data/ folder
 // fileName: name of test file in specDir
 func runSpecTestFile(t *testing.T, specDir, fileName string) {
-	filePath := path.Join(dataPath, specDir, fileName)
+	filePath := path.Join(specDir, fileName)
+
 	content, err := ioutil.ReadFile(filePath)
 	assert.Nil(t, err, "unable to read spec test file %v: %v", filePath, err)
 
@@ -206,7 +208,7 @@ func runSpecTestFile(t *testing.T, specDir, fileName string) {
 	mtOpts := mtest.NewOptions().
 		RunOn(testFile.RunOn...).
 		CreateClient(false)
-	if specDir == "atlas-data-lake-testing" {
+	if strings.Contains(specDir, "atlas-data-lake-testing") {
 		mtOpts.AtlasDataLake(true)
 	}
 	mt := mtest.New(t, mtOpts)

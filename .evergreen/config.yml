@@ -32,6 +32,11 @@ functions:
       type: system
       params:
         directory: src/go.mongodb.org/mongo-driver
+    - command: shell.exec
+      params:
+        working_dir: "src/go.mongodb.org/mongo-driver"
+        script: |
+          git submodule update --init
     # Make an env.sh and evergreen expansion file with dynamic values
     - command: subprocess.exec
       params:

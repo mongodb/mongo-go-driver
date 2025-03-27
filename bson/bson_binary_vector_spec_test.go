@@ -15,9 +15,10 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/internal/spectest"
 )
 
-const bsonBinaryVectorDir = "../testdata/bson-binary-vector/"
+var bsonBinaryVectorDir = spectest.TestPath(1, "bson-binary-vector")
 
 type bsonBinaryVectorTests struct {
 	Description string                     `json:"description"`
@@ -128,18 +129,7 @@ func runBsonBinaryVectorTest(t *testing.T, testKey string, test bsonBinaryVector
 	require.NoError(t, err, "decoding canonical BSON")
 
 	t.Run("Unmarshaling", func(t *testing.T) {
-		skipCases := map[string]string{
-			"Overflow Vector INT8":                "compile-time restriction",
-			"Underflow Vector INT8":               "compile-time restriction",
-			"INT8 with float inputs":              "compile-time restriction",
-			"Overflow Vector PACKED_BIT":          "compile-time restriction",
-			"Underflow Vector PACKED_BIT":         "compile-time restriction",
-			"Vector with float values PACKED_BIT": "compile-time restriction",
-			"Negative padding PACKED_BIT":         "compile-time restriction",
-		}
-		if reason, ok := skipCases[test.Description]; ok {
-			t.Skipf("skip test case %s: %s", test.Description, reason)
-		}
+		spectest.CheckSkip(t)
 
 		errMap := map[string]string{
 			"FLOAT32 with padding":                             "padding must be 0",
@@ -163,24 +153,7 @@ func runBsonBinaryVectorTest(t *testing.T, testKey string, test bsonBinaryVector
 	})
 
 	t.Run("Marshaling", func(t *testing.T) {
-		skipCases := map[string]string{
-			"FLOAT32 with padding":                             "private padding field",
-			"Insufficient vector data with 3 bytes FLOAT32":    "invalid case",
-			"Insufficient vector data with 5 bytes FLOAT32":    "invalid case",
-			"Overflow Vector INT8":                             "compile-time restriction",
-			"Underflow Vector INT8":                            "compile-time restriction",
-			"INT8 with padding":                                "private padding field",
-			"INT8 with float inputs":                           "compile-time restriction",
-			"Overflow Vector PACKED_BIT":                       "compile-time restriction",
-			"Underflow Vector PACKED_BIT":                      "compile-time restriction",
-			"Vector with float values PACKED_BIT":              "compile-time restriction",
-			"Padding specified with no vector data PACKED_BIT": "run in alternative case",
-			"Exceeding maximum padding PACKED_BIT":             "run in alternative case",
-			"Negative padding PACKED_BIT":                      "compile-time restriction",
-		}
-		if reason, ok := skipCases[test.Description]; ok {
-			t.Skipf("skip test case %s: %s", test.Description, reason)
-		}
+		spectest.CheckSkip(t)
 
 		t.Parallel()
 
