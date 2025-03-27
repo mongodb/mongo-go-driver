@@ -15,6 +15,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
@@ -238,10 +239,7 @@ func TestCollection(t *testing.T) {
 					gotCode := we.WriteErrors[0].Code
 					assert.Equal(mt, errorDuplicateKey, gotCode, "expected error code %v, got %v", errorDuplicateKey, gotCode)
 
-					if len(res.InsertedIDs) == 0 {
-						mt.Fatal("Expected at least one inserted ID")
-					}
-
+					require.Greater(mt, len(res.InsertedIDs), 0, "expected at least one inserted ID")
 					assert.Equal(mt,
 						tc.numInserted,
 						len(res.InsertedIDs),
