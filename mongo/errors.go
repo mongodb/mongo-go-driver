@@ -26,17 +26,17 @@ var ErrClientDisconnected = errors.New("client is disconnected")
 
 // InvalidArgumentError wraps an invalid argument error.
 type InvalidArgumentError struct {
-	Wrapped error
+	wrapped error
 }
 
 // Error implements the error interface.
 func (e InvalidArgumentError) Error() string {
-	return e.Wrapped.Error()
+	return e.wrapped.Error()
 }
 
 // Unwrap returns the underlying error.
 func (e InvalidArgumentError) Unwrap() error {
-	return e.Wrapped
+	return e.wrapped
 }
 
 // ErrMultipleIndexDrop is returned if multiple indexes would be dropped from a call to IndexView.DropOne.
