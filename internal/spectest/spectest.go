@@ -45,7 +45,7 @@ func TestPath(depth int, testDir string, subDirs ...string) string {
 	// Create a string of "../" repeated 'depth' times
 	relativePath := strings.Repeat("../", depth)
 	// Construct the full path
-	fullPath := relativePath + basePath + testDir + "/tests/" + filepath.Join(subDirs...)
+	fullPath := filepath.Join(relativePath, basePath, testDir, "tests", filepath.Join(subDirs...))
 
 	return fullPath
 }

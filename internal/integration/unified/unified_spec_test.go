@@ -16,13 +16,14 @@ import (
 
 var (
 	passDirectories = []string{
-		//
-		//"load-balancers",
-		//
-		spectest.TestPath(3, "unified-test-format", "valid-pass"),
+
 		spectest.TestPath(3, "versioned-api"),
-		//spectest.TestPath(3, "crud", "unified"),
-		//spectest.TestPath(3, "change-streams", "unified"),
+		spectest.TestPath(3, "unified-test-format", "valid-pass"),
+		spectest.TestPath(3, "crud", "unified"),
+		spectest.TestPath(3, "change-streams", "unified"),
+
+		// TODO:
+		//"load-balancers",
 		//spectest.TestPath(3, "transactions", "unified"),
 		//spectest.TestPath(3, "collection-management"),
 		//spectest.TestPath(3, "command-logging-and-monitoring", "monitoring"),
@@ -32,22 +33,20 @@ var (
 		//spectest.TestPath(3, "sessions"),
 		//spectest.TestPath(3, "retryable-reads", "unified"),
 		//spectest.TestPath(3, "retryable-writes", "unified"),
-		//"client-side-encryption/unified",
-		//"client-side-operations-timeout",
-		//"gridfs",
-		//"server-selection/logging",
-		//"server-discovery-and-monitoring/unified",
-		//"run-command",
-		//"index-management",
+
+		spectest.TestPath(3, "client-side-encryption", "unified"),
+		spectest.TestPath(3, "client-side-operations-timeout"),
+		spectest.TestPath(3, "gridfs"),
+		spectest.TestPath(3, "server-selection", "logging"),
+		spectest.TestPath(3, "server-discovery-and-monitoring", "unified"),
+		spectest.TestPath(3, "run-command", "unified"),
+		spectest.TestPath(3, "index-management"),
 	}
 	failDirectories = []string{
+		// TODO:
 		//"unified-test-format/valid-fail",
 	}
 )
-
-//const (
-//	dataDirectory = "../../../testdata"
-//)
 
 func TestUnifiedSpec(t *testing.T) {
 	// Ensure the cluster is in a clean state before test execution begins.
