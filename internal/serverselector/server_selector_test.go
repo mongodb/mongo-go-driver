@@ -157,7 +157,7 @@ func compareServers(t *testing.T, expected []*serverDesc, actual []description.S
 	}
 }
 
-var maxStalenessTestsDir = spectest.TestPath(2, "max-staleness")
+var maxStalenessTestsDir = spectest.Path("max-staleness/tests")
 
 // Test case for all max staleness spec tests.
 func TestMaxStalenessSpec(t *testing.T) {
@@ -176,7 +176,7 @@ func TestMaxStalenessSpec(t *testing.T) {
 	}
 }
 
-var selectorTestsDir = spectest.TestPath(2, "server-selection")
+var selectorTestsDir = spectest.Path("server-selection/tests")
 
 func selectServers(t *testing.T, test *testCase) error {
 	servers := make([]description.Server, 0, len(test.TopologyDescription.Servers))
