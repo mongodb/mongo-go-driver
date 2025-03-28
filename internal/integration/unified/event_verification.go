@@ -89,10 +89,10 @@ type sdamEvent struct {
 
 	TopologyDescriptionChangedEvent *struct {
 		PreviousDescription *struct {
-			Type string `bson:"type"`
+			Type *string `bson:"type"`
 		} `bson:"previousDescription"`
 		NewDescription *struct {
-			Type string `bson:"type"`
+			Type *string `bson:"type"`
 		} `bson:"newDescription"`
 	} `bson:"topologyDescriptionChangedEvent"`
 	TopologyOpeningEvent *struct{} `bson:"topologyOpeningEvent"`
@@ -615,11 +615,11 @@ func verifySDAMEvents(client *clientEntity, expectedEvents *expectedEvents) erro
 				return newEventVerificationError(idx, client, "failed to get next description changed event: %v", err.Error())
 			}
 
-			if want := evt.TopologyDescriptionChangedEvent.PreviousDescription; want != nil && want.Type != got.PreviousDescription.Kind {
-				return newEventVerificationError(idx, client, "want previous description %v, got %v", want.Type, got.PreviousDescription.Kind)
+			if want := evt.TopologyDescriptionChangedEvent.PreviousDescription; want != nil && want.Type != nil && *want.Type != got.PreviousDescription.Kind {
+				return newEventVerificationError(idx, client, "want previous description %v, got %v", *want.Type, got.PreviousDescription.Kind)
 			}
-			if want := evt.TopologyDescriptionChangedEvent.NewDescription; want != nil && want.Type != got.NewDescription.Kind {
-				return newEventVerificationError(idx, client, "want new description %v, got %v", want.Type, got.NewDescription.Kind)
+			if want := evt.TopologyDescriptionChangedEvent.NewDescription; want != nil && want.Type != nil && *want.Type != got.NewDescription.Kind {
+				return newEventVerificationError(idx, client, "want new description %v, got %v", *want.Type, got.NewDescription.Kind)
 			}
 		case evt.TopologyOpeningEvent != nil:
 			if _, topening, err = getNextTopologyOpeningEvent(topening); err != nil {
