@@ -87,7 +87,16 @@ type sdamEvent struct {
 		Awaited *bool `bson:"awaited"`
 	} `bson:"serverHeartbeatFailedEvent"`
 
-	TopologyDescriptionChangedEvent *struct{} `bson:"topologyDescriptionChangedEvent"`
+	TopologyDescriptionChangedEvent *struct {
+		PreviousDescription *struct {
+			Type string `bson:"type"`
+		} `bson:"previousDescription"`
+		NewDescription *struct {
+			Type string `bson:"type"`
+		} `bson:"newDescription"`
+	} `bson:"topologyDescriptionChangedEvent"`
+	TopologyOpeningEvent *struct{} `bson:"topologyOpeningEvent"`
+	TopologyClosedEvent  *struct{} `bson:"topologyClosedEvent"`
 }
 
 type expectedEvents struct {
@@ -468,7 +477,7 @@ func getNextServerHeartbeatSucceededEvent(
 		return nil, nil, errors.New("no heartbeat succeeded event published")
 	}
 
-	return events[0], events[:1], nil
+	return events[0], events[1:], nil
 }
 
 func getNextServerHeartbeatFailedEvent(
@@ -478,7 +487,7 @@ func getNextServerHeartbeatFailedEvent(
 		return nil, nil, errors.New("no heartbeat failed event published")
 	}
 
-	return events[0], events[:1], nil
+	return events[0], events[1:], nil
 }
 
 func getNextTopologyDescriptionChangedEvent(
@@ -488,7 +497,27 @@ func getNextTopologyDescriptionChangedEvent(
 		return nil, nil, errors.New("no topology description changed event published")
 	}
 
-	return events[0], events[:1], nil
+	return events[0], events[1:], nil
+}
+
+func getNextTopologyOpeningEvent(
+	events []*event.TopologyOpeningEvent,
+) (*event.TopologyOpeningEvent, []*event.TopologyOpeningEvent, error) {
+	if len(events) == 0 {
+		return nil, nil, errors.New("no topology opening event published")
+	}
+
+	return events[0], events[1:], nil
+}
+
+func getNextTopologyClosedEvent(
+	events []*event.TopologyClosedEvent,
+) (*event.TopologyClosedEvent, []*event.TopologyClosedEvent, error) {
+	if len(events) == 0 {
+		return nil, nil, errors.New("no topology closed event published")
+	}
+
+	return events[0], events[1:], nil
 }
 
 func verifySDAMEvents(client *clientEntity, expectedEvents *expectedEvents) error {
@@ -498,9 +527,21 @@ func verifySDAMEvents(client *clientEntity, expectedEvents *expectedEvents) erro
 		succeeded = client.serverHeartbeatSucceeded
 		failed    = client.serverHeartbeatFailedEvent
 		tchanged  = client.topologyDescriptionChanged
+		topening  = client.topologyOpening
+		tclosed   = client.topologyClosed
 	)
 
-	vol := func() int { return len(changed) + len(started) + len(succeeded) + len(failed) + len(tchanged) }
+	vol := func() int {
+		var count int
+		count += len(changed)
+		count += len(started)
+		count += len(succeeded)
+		count += len(failed)
+		count += len(tchanged)
+		count += len(topening)
+		count += len(tclosed)
+		return count
+	}
 
 	if len(expectedEvents.SDAMEvents) == 0 && vol() != 0 {
 		return fmt.Errorf("expected no sdam events to be sent but got %s", stringifyEventsForClient(client))
@@ -569,7 +610,23 @@ func verifySDAMEvents(client *clientEntity, expectedEvents *expectedEvents) erro
 				return newEventVerificationError(idx, client, "want awaited %v, got %v", *want, got.Awaited)
 			}
 		case evt.TopologyDescriptionChangedEvent != nil:
-			if _, tchanged, err = getNextTopologyDescriptionChangedEvent(tchanged); err != nil {
+			var got *event.TopologyDescriptionChangedEvent
+			if got, tchanged, err = getNextTopologyDescriptionChangedEvent(tchanged); err != nil {
+				return newEventVerificationError(idx, client, "failed to get next description changed event: %v", err.Error())
+			}
+
+			if want := evt.TopologyDescriptionChangedEvent.PreviousDescription; want != nil && want.Type != got.PreviousDescription.Kind {
+				return newEventVerificationError(idx, client, "want previous description %v, got %v", want.Type, got.PreviousDescription.Kind)
+			}
+			if want := evt.TopologyDescriptionChangedEvent.NewDescription; want != nil && want.Type != got.NewDescription.Kind {
+				return newEventVerificationError(idx, client, "want new description %v, got %v", want.Type, got.NewDescription.Kind)
+			}
+		case evt.TopologyOpeningEvent != nil:
+			if _, topening, err = getNextTopologyOpeningEvent(topening); err != nil {
+				return newEventVerificationError(idx, client, "failed to get next description changed event: %v", err.Error())
+			}
+		case evt.TopologyClosedEvent != nil:
+			if _, tclosed, err = getNextTopologyClosedEvent(tclosed); err != nil {
 				return newEventVerificationError(idx, client, "failed to get next description changed event: %v", err.Error())
 			}
 		}
