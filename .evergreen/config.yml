@@ -44,6 +44,10 @@ functions:
           # Define an alias for the task runner script.
           TASK_RUNNER_ALIAS: &task-runner src/go.mongodb.org/mongo-driver/.evergreen/run-task.sh
         args: [.evergreen/setup-system.sh]
+    - command: subprocess.exec
+      params:
+        binary: bash
+        args: [*task-runner, init-submodule]
     - command: expansions.update
       params:
         file: src/go.mongodb.org/mongo-driver/expansion.yml

@@ -114,7 +114,7 @@ type testInfo struct {
 	sync.Mutex
 }
 
-var cmapTestDir = spectest.TestPath(4, "connection-monitoring-and-pooling", "cmap-format")
+var cmapTestDir = spectest.Path("connection-monitoring-and-pooling/tests/cmap-format")
 
 func TestCMAPSpec(t *testing.T) {
 	for _, testFileName := range spectest.FindJSONFilesInDir(t, cmapTestDir) {

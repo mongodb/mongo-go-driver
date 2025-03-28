@@ -36,7 +36,7 @@ var (
 		reg.RegisterTypeMapEntry(bson.TypeEmbeddedDocument, reflect.TypeOf(bson.Raw{}))
 		return reg
 	}()
-	readWriteConcernTestsDir = spectest.TestPath(1, "read-write-concern")
+	readWriteConcernTestsDir = spectest.Path("read-write-concern/tests")
 )
 
 type connectionStringTestFile struct {

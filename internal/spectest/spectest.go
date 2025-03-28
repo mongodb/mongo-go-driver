@@ -10,7 +10,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/v2/internal/require"
@@ -33,19 +32,20 @@ func FindJSONFilesInDir(t *testing.T, dir string) []string {
 		files = append(files, entry.Name())
 	}
 
+	if len(files) == 0 {
+		t.Fatalf("no JSON files found in %q", dir)
+	}
+
 	return files
 }
 
-// TestPath will construct a path to a test file in the specifications git
-// submodule. The path will be relative to the current package so a depth should
-// be provided to indicate how many directories to go up.
-func TestPath(depth int, testDir string, subDirs ...string) string {
-	const basePath = "testdata/specifications/source/"
+// Path returns the absolute path to the given specifications repo file or
+// subdirectory.
+func Path(subdir string) string {
+	testPath, err := filepath.Abs("../../../testdata/specifications/source/")
+	if err != nil {
+		panic(err)
+	}
 
-	// Create a string of "../" repeated 'depth' times
-	relativePath := strings.Repeat("../", depth)
-	// Construct the full path
-	fullPath := relativePath + basePath + testDir + "/tests/" + filepath.Join(subDirs...)
-
-	return fullPath
+	return filepath.Join(testPath, subdir)
 }
