@@ -19,6 +19,20 @@ import (
 	"testing"
 )
 
+var encodetestBsonD D
+
+func init() {
+	b, err := Marshal(encodetestInstance)
+	if err != nil {
+		panic(fmt.Sprintf("error marshling struct: %v", err))
+	}
+
+	err = Unmarshal(b, &encodetestBsonD)
+	if err != nil {
+		panic(fmt.Sprintf("error unmarshaling BSON: %v", err))
+	}
+}
+
 type encodetest struct {
 	Field1String  string
 	Field1Int64   int64
@@ -195,21 +209,8 @@ func BenchmarkMarshal(b *testing.B) {
 			value: nestedInstance,
 		},
 		{
-			desc: "simple D",
-			value: D{
-				{"field1String", "foo"},
-				{"field1Int64", int64(1)},
-				{"field1Float64", float64(3.0)},
-				{"field2String", "bar"},
-				{"field2Int64", int64(2)},
-				{"field2Float64", float64(3.1)},
-				{"field3String", "baz"},
-				{"field3Int64", int64(3)},
-				{"field3Float64", float64(3.14)},
-				{"field4String", "qux"},
-				{"field4Int64", int64(4)},
-				{"field4Float64", float64(3.141)},
-			},
+			desc:  "simple D",
+			value: encodetestBsonD,
 		},
 		{
 			desc:  "deep_bson.json.gz",
