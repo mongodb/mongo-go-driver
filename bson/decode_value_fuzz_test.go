@@ -27,6 +27,10 @@ func FuzzDecodeValue(f *testing.F) {
 		int64(0), math.MaxInt64, math.MinInt64,
 		// string, including empty and large string.
 		"", strings.Repeat("z", 10_000),
+		// map
+		map[string]any{"nested": []any{1, "two", map[string]any{"three": 3}}},
+		// array
+		[]any{1, 2, 3, "four"},
 	}
 
 	for _, v := range values {
@@ -48,6 +52,7 @@ func FuzzDecodeValue(f *testing.F) {
 		// to "nil". It's not clear if MarshalValue should support "nil", but
 		// for now we skip it.
 		if v == nil {
+			t.Logf("data unmarshaled to nil: %v", data)
 			return
 		}
 
@@ -56,7 +61,8 @@ func FuzzDecodeValue(f *testing.F) {
 			t.Fatalf("failed to marshal: %v", err)
 		}
 
-		if err := UnmarshalValue(typ, encoded, &v); err != nil {
+		var v2 any
+		if err := UnmarshalValue(typ, encoded, &v2); err != nil {
 			t.Fatalf("failed to unmarshal: %v", err)
 		}
 	})
