@@ -13,9 +13,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path"
+	"path/filepath"
 	"reflect"
-	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -159,11 +158,7 @@ type operationError struct {
 }
 
 var directories = []string{
-	"../../testdata/transactions/legacy",
-	"../../testdata/convenient-transactions",
-	"../../testdata/retryable-reads/legacy",
-	"../../testdata/read-write-concern/operation",
-	"../../testdata/atlas-data-lake-testing",
+	"read-write-concern/tests/operation",
 }
 
 var checkOutcomeOpts = options.Collection().SetReadPreference(readpref.Primary()).SetReadConcern(readconcern.Local())
@@ -176,12 +171,10 @@ var specTestRegistry = func() *bson.Registry {
 
 func TestUnifiedSpecs(t *testing.T) {
 	for _, specDir := range directories {
-		index := strings.Index(specDir, "testdata/")
-		dirTestName := specDir[index+len("testdata/"):]
-		t.Run(dirTestName, func(t *testing.T) {
-			for _, fileName := range jsonFilesInDir(t, specDir) {
+		t.Run(specDir, func(t *testing.T) {
+			for _, fileName := range jsonFilesInDir(t, spectest.Path(specDir)) {
 				t.Run(fileName, func(t *testing.T) {
-					runSpecTestFile(t, specDir, fileName)
+					runSpecTestFile(t, filepath.Join(specDir, fileName))
 				})
 			}
 		})
@@ -190,8 +183,9 @@ func TestUnifiedSpecs(t *testing.T) {
 
 // specDir: name of directory for a spec in the data/ folder
 // fileName: name of test file in specDir
-func runSpecTestFile(t *testing.T, specDir, fileName string) {
-	filePath := path.Join(specDir, fileName)
+func runSpecTestFile(t *testing.T, filePath string) {
+	// It's possible that a JSON blob does not conform to our spec test format.
+	spectest.CheckSkip(t)
 
 	content, err := ioutil.ReadFile(filePath)
 	assert.Nil(t, err, "unable to read spec test file %v: %v", filePath, err)
@@ -208,9 +202,6 @@ func runSpecTestFile(t *testing.T, specDir, fileName string) {
 	mtOpts := mtest.NewOptions().
 		RunOn(testFile.RunOn...).
 		CreateClient(false)
-	if strings.Contains(specDir, "atlas-data-lake-testing") {
-		mtOpts.AtlasDataLake(true)
-	}
 	mt := mtest.New(t, mtOpts)
 
 	for _, test := range testFile.Tests {

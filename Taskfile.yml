@@ -17,6 +17,8 @@ tasks:
 
   check-license: bash etc/check_license.sh
 
+  init-submodule: git submodule update --init
+
   build:
     deps: [install-libmongocrypt]
     cmds:
@@ -149,9 +151,9 @@ tasks:
   evg-test-load-balancers:
     # Load balancer should be tested with all unified tests as well as tests in the following
     # components: retryable reads, retryable writes, change streams, initial DNS seedlist discovery.
-    - go test ${BUILD_TAGS} ./internal/integration -run TestUnifiedSpecs/retryable-reads -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
-    - go test ${BUILD_TAGS} ./internal/integration -run TestRetryableWritesSpec -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
-    - go test ${BUILD_TAGS} ./internal/integration -run TestChangeStreamSpec -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./internal/integration/unified -run TestUnifiedSpec/retryable-reads -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./internal/integration/unified -run TestUnifiedSpec/retryable-writes -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
+    - go test ${BUILD_TAGS} ./internal/integration/unified -run TestUnifiedSpec/change-streams -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
     - go test ${BUILD_TAGS} ./internal/integration -run TestInitialDNSSeedlistDiscoverySpec/load_balanced -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
     - go test ${BUILD_TAGS} ./internal/integration -run TestLoadBalancerSupport -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
     - go test ${BUILD_TAGS} ./internal/integration -run TestLoadBalancedConnectionHandshake -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
@@ -174,13 +176,10 @@ tasks:
     - go test ${BUILD_TAGS} ./internal/integration -run TestWriteConcernError -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
     - go test ${BUILD_TAGS} ./internal/integration -run TestErrorsCodeNamePropagated -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
     - go test ${BUILD_TAGS} ./internal/integration -run TestLoadBalancerSupport -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
-    - go test ${BUILD_TAGS} ./internal/integration -run TestUnifiedSpecs/retryable-reads -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
     - go test ${BUILD_TAGS} ./internal/integration -run TestRetryableReadsProse -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
     - go test ${BUILD_TAGS} ./internal/integration -run TestRetryableWritesSpec -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
     - go test ${BUILD_TAGS} ./internal/integration -run TestRetryableWritesProse -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
-    - go test ${BUILD_TAGS} ./internal/integration -run TestUnifiedSpecs/sessions -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
     - go test ${BUILD_TAGS} ./internal/integration -run TestSessionsProse -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
-    - go test ${BUILD_TAGS} ./internal/integration -run TestUnifiedSpecs/transactions/legacy -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
     - go test ${BUILD_TAGS} ./internal/integration -run TestConvenientTransactions -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
     - go test ${BUILD_TAGS} ./internal/integration -run TestCursor -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
     - go test ${BUILD_TAGS} ./internal/integration/unified -run TestUnifiedSpec -v -timeout {{.TEST_TIMEOUT}}s >> test.suite
@@ -199,7 +198,7 @@ tasks:
 
   evg-test-deployed-lambda-aws: bash ${DRIVERS_TOOLS}/.evergreen/aws_lambda/run-deployed-lambda-aws-tests.sh
 
-  evg-gather-test-suites: find . -name \*.suite | xargs tar czf test_suite.tgz
+  evg-gather-test-suites: find . -name \*.suite | xargs --no-run-if-empty tar czf test_suite.tgz
 
   build-kms-test: go build ${BUILD_TAGS} ./internal/cmd/testkms
 

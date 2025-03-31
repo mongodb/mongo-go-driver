@@ -8,7 +8,6 @@ package unified
 
 import (
 	"context"
-	"strings"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/v2/internal/spectest"
@@ -16,35 +15,31 @@ import (
 
 var (
 	passDirectories = []string{
-
-		spectest.TestPath(3, "versioned-api"),
-		spectest.TestPath(3, "unified-test-format", "valid-pass"),
-		spectest.TestPath(3, "crud", "unified"),
-		spectest.TestPath(3, "change-streams", "unified"),
-
-		// TODO:
-		//"load-balancers",
-		//spectest.TestPath(3, "transactions", "unified"),
-		//spectest.TestPath(3, "collection-management"),
-		//spectest.TestPath(3, "command-logging-and-monitoring", "monitoring"),
-		//spectest.TestPath(3, "command-logging-and-monitoring", "logging"),
-		//spectest.TestPath(3, "connection-monitoring-and-pooling", "cmap-format"),
-		//spectest.TestPath(3, "connection-monitoring-and-pooling", "logging"),
-		//spectest.TestPath(3, "sessions"),
-		//spectest.TestPath(3, "retryable-reads", "unified"),
-		//spectest.TestPath(3, "retryable-writes", "unified"),
-
-		spectest.TestPath(3, "client-side-encryption", "unified"),
-		spectest.TestPath(3, "client-side-operations-timeout"),
-		spectest.TestPath(3, "gridfs"),
-		spectest.TestPath(3, "server-selection", "logging"),
-		spectest.TestPath(3, "server-discovery-and-monitoring", "unified"),
-		spectest.TestPath(3, "run-command", "unified"),
-		spectest.TestPath(3, "index-management"),
+		"unified-test-format/tests/valid-pass",
+		"versioned-api/tests",
+		"crud/tests/unified",
+		"change-streams/tests/unified",
+		"transactions/tests/unified",
+		"load-balancers/tests",
+		"collection-management/tests",
+		"command-logging-and-monitoring/tests/monitoring",
+		"command-logging-and-monitoring/tests/logging",
+		"connection-monitoring-and-pooling/tests/logging",
+		"sessions/tests",
+		"retryable-reads/tests/unified",
+		"retryable-writes/tests/unified",
+		"client-side-encryption/tests/unified",
+		"client-side-operations-timeout/tests",
+		"gridfs/tests",
+		"server-selection/tests/logging",
+		"server-discovery-and-monitoring/tests/unified",
+		"run-command/tests/unified",
+		"index-management/tests",
+		"transactions-convenient-api/tests/unified",
+		"atlas-data-lake-testing/tests/unified",
 	}
 	failDirectories = []string{
-		// TODO:
-		//"unified-test-format/valid-fail",
+		"unified-test-format/tests/valid-fail",
 	}
 )
 
@@ -55,17 +50,14 @@ func TestUnifiedSpec(t *testing.T) {
 	}
 
 	for _, testDir := range passDirectories {
-		index := strings.Index(testDir, "testdata/")
-		testName := testDir[index+len("testdata/"):]
-
-		t.Run(testName, func(t *testing.T) {
-			runTestDirectory(t, testDir, false)
+		t.Run(testDir, func(t *testing.T) {
+			runTestDirectory(t, spectest.Path(testDir), false)
 		})
 	}
 
 	for _, testDir := range failDirectories {
 		t.Run(testDir, func(t *testing.T) {
-			runTestDirectory(t, testDir, true)
+			runTestDirectory(t, spectest.Path(testDir), true)
 		})
 	}
 }

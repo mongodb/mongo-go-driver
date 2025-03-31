@@ -203,7 +203,7 @@ func serverClosed(e *event.ServerClosedEvent) {
 	lock.Unlock()
 }
 
-var testsDir = spectest.TestPath(4, "server-discovery-and-monitoring")
+var testsDir = spectest.Path("server-discovery-and-monitoring/tests")
 
 var publishedEvents []interface{}
 var lock sync.Mutex

@@ -30,7 +30,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/topology"
 )
 
-var seedlistDiscoveryTestsBaseDir = spectest.TestPath(2, "initial-dns-seedlist-discovery")
+var seedlistDiscoveryTestsBaseDir = spectest.Path("initial-dns-seedlist-discovery/tests")
 
 type seedlistTest struct {
 	URI      string   `bson:"uri"`

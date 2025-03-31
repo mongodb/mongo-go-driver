@@ -47,8 +47,8 @@ type testContainer struct {
 	Tests []testCase
 }
 
-var connstringTestsDir = spectest.TestPath(4, "connection-string")
-var urioptionsTestDir = spectest.TestPath(4, "uri-options")
+var connstringTestsDir = spectest.Path("connection-string/tests")
+var urioptionsTestDir = spectest.Path("uri-options/tests")
 
 func (h *host) toString() string {
 	switch h.Type {

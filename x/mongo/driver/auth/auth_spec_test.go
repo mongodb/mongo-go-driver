@@ -38,7 +38,7 @@ type testContainer struct {
 }
 
 // Note a test supporting the deprecated gssapiServiceName property was removed from data/auth/auth_tests.json
-var authTestsDir = spectest.TestPath(4, "auth", "legacy")
+var authTestsDir = spectest.Path("auth/tests/legacy")
 
 func runTestsInFile(t *testing.T, dirname string, filename string) {
 	filepath := path.Join(dirname, filename)

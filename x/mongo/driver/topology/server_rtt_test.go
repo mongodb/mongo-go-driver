@@ -27,7 +27,7 @@ func TestServerSelectionRTTSpec(t *testing.T) {
 		NewAvgRtt float64     `json:"new_avg_rtt"`
 	}
 
-	testsDir := spectest.TestPath(4, "server-selection", "rtt")
+	testsDir := spectest.Path("server-selection/tests/rtt")
 
 	for _, file := range spectest.FindJSONFilesInDir(t, testsDir) {
 		func(t *testing.T, filename string) {

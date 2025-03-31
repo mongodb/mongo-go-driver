@@ -58,7 +58,7 @@ type parseErrorTestCase struct {
 	String      string `json:"string"`
 }
 
-var dataDir = spectest.TestPath(1, "bson-corpus")
+var dataDir = spectest.Path("bson-corpus/tests")
 
 func findJSONFilesInDir(dir string) ([]string, error) {
 	files := make([]string, 0)

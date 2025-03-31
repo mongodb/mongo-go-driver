@@ -18,7 +18,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/spectest"
 )
 
-var bsonBinaryVectorDir = spectest.TestPath(1, "bson-binary-vector")
+var bsonBinaryVectorDir = spectest.Path("bson-binary-vector")
 
 type bsonBinaryVectorTests struct {
 	Description string                     `json:"description"`
