@@ -189,6 +189,7 @@ var skipTests = map[string][]string{
 	// TODO: GODRIVER-3392 - Test that inserts and upserts respect null _id values.
 	"Implement GODRIVER-3392": {
 		"TestUnifiedSpec/crud/tests/unified/create-null-ids.json/inserting__id_with_type_null_via_insertOne",
+		"TestUnifiedSpec/crud/tests/unified/create-null-ids.json/inserting__id_with_type_null_via_clientBulkWrite",
 	},
 
 	// TODO: GODRIVER-3395 - Ensure findOne does not set batchSize=1.
@@ -219,6 +220,7 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/transactions-convenient-api/tests/unified/commit-writeconcernerror.json/commitTransaction_is_not_retried_after_UnsatisfiableWriteConcern_error",
 		"TestUnifiedSpec/transactions-convenient-api/tests/unified/commit-writeconcernerror.json/commitTransaction_is_not_retried_after_MaxTimeMSExpired_error",
 		"TestUnifiedSpec/transactions-convenient-api/tests/unified/commit-retry.json/commitTransaction_retry_only_overwrites_write_concern_w_option",
+		"TestUnifiedSpec/transactions/tests/unified/retryable-commit.json/commitTransaction_fails_after_Interrupted",
 	},
 
 	// GODRIVER-1773: Tests related to batch size expectation in "find" and "getMore" events.
