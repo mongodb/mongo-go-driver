@@ -22,9 +22,9 @@ func FuzzDecodeValue(f *testing.F) {
 	// Also seed the fuzz corpus with special values that we want to test.
 	values := []any{
 		// int32, including max and min values.
-		int32(0), math.MaxInt32, math.MinInt32,
+		int32(0), int32(math.MaxInt32), int32(math.MinInt32),
 		// int64, including max and min values.
-		int64(0), math.MaxInt64, math.MinInt64,
+		int64(0), int64(math.MaxInt64), int64(math.MinInt64),
 		// string, including empty and large string.
 		"", strings.Repeat("z", 10_000),
 		// map
