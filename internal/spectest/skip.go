@@ -707,6 +707,13 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/retryable-writes/tests/unified/handshakeError.json",
 		"TestUnifiedSpec/retryable-reads/tests/unified/handshakeError.json",
 	},
+
+	// TODO(GODRIVER-3524): Change streams expanded events present by default in
+	// 8.2+.
+	"Implement GODRIVER-3524": {
+		"TestUnifiedSpec/change-streams/change-streams-disambiguatedPaths.json/disambiguatedPaths_is_not_present_when_showExpandedEvents_is_false/unset",
+		"TestUnifiedSpec/change-streams/change-streams.json/Test_insert,_update,_replace,_and_delete_event_types",
+	},
 }
 
 // CheckSkip checks if the fully-qualified test name matches a list of skipped test names for a given reason.
