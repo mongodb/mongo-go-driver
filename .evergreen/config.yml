@@ -1426,16 +1426,15 @@ tasks:
         vars:
           MONGO_GO_DRIVER_COMPRESSOR: "snappy"
 
-  # Build the compilecheck submodule with the oldest supported version of Go.
-  - name: go1.18-build
+  # Build the compilecheck submodule with all supported versions of Go >= 
+  # the minimum supported version.
+  - name: go-build
     tags: ["compile-check"]
     commands:
       - command: subprocess.exec
         params:
           binary: bash
-          env:
-            GO_VERSION: "1.18"
-          args: [*task-runner, build-compile-check]
+          args: [*task-runner, build-compile-check-all]
 
   # Build with the same Go version that we're using for tests.
   - name: build
@@ -1483,6 +1482,23 @@ tasks:
       - func: run-versioned-api-test
         vars:
           TOPOLOGY: "server"
+          AUTH: "auth"
+          SSL: "nossl"
+          REQUIRE_API_VERSION: true
+
+  - name: "test-sharded-versioned-api"
+    tags: ["versioned-api"]
+    commands:
+      - func: bootstrap-mongo-orchestration
+        vars:
+          TOPOLOGY: "sharded_cluster"
+          AUTH: "auth"
+          SSL: "nossl"
+          REQUIRE_API_VERSION: true
+      - func: start-cse-servers
+      - func: run-versioned-api-test
+        vars:
+          TOPOLOGY: "sharded_cluster"
           AUTH: "auth"
           SSL: "nossl"
           REQUIRE_API_VERSION: true
@@ -2127,7 +2143,7 @@ buildvariants:
     tags: ["pullrequest"]
     display_name: "Compile Only Checks"
     run_on:
-      - rhel8.7-small
+      - ubuntu2204-small
     expansions:
       GO_DIST: "/opt/golang/go1.23"
     tasks:
