@@ -698,7 +698,7 @@ func (op Operation) Execute(ctx context.Context) error {
 		}
 
 		// Calculate maxTimeMS value to potentially be appended to the wire message.
-		maxTimeMS, err := op.calculateMaxTimeMS(ctx, srvr.RTTMonitor().Min(), srvr.RTTMonitor().Stats())
+		maxTimeMS, err := op.calculateMaxTimeMS(ctx, srvr.RTTMonitor().Min())
 		if err != nil {
 			return err
 		}
@@ -1719,12 +1719,22 @@ func (op Operation) addClusterTime(dst []byte, desc description.SelectedServer) 
 // if the ctx is a Timeout context. If the context is not a Timeout context, it uses the
 // operation's MaxTimeMS if set. If no MaxTimeMS is set on the operation, and context is
 // not a Timeout context, calculateMaxTimeMS returns 0.
-func (op Operation) calculateMaxTimeMS(ctx context.Context, rttMin time.Duration, rttStats string) (int64, error) {
+func (op Operation) calculateMaxTimeMS(ctx context.Context, rttMin time.Duration) (int64, error) {
 	if op.OmitMaxTimeMS {
 		return 0, nil
 	}
 
-	return driverutil.CalculateMaxTimeMS(ctx, rttMin, rttStats, ErrDeadlineWouldBeExceeded)
+	// Calculate maxTimeMS value to potentially be appended to the wire message.
+	maxTimeMS, ok := driverutil.CalculateMaxTimeMS(ctx, rttMin)
+	if !ok && maxTimeMS <= 0 {
+		return 0, fmt.Errorf(
+			"calculated server-side timeout (%v ms) is less than or equal to 0 (%v): %w",
+			maxTimeMS,
+			rttMin,
+			ErrDeadlineWouldBeExceeded)
+	}
+
+	return maxTimeMS, nil
 }
 
 // updateClusterTimes updates the cluster times for the session and cluster clock attached to this

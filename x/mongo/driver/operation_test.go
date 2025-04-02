@@ -312,13 +312,14 @@ func TestOperation(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()
 
-				got, err := tc.op.calculateMaxTimeMS(tc.ctx, tc.rttMin, tc.rttStats)
+				got, err := tc.op.calculateMaxTimeMS(tc.ctx, tc.rttMin)
 
 				// Assert that the calculated maxTimeMS is less than or equal to the expected value. A few
 				// milliseconds will have elapsed toward the context deadline, and (remainingTimeout
 				// - rtt90) will be slightly smaller than the expected value.
 				if got > tc.want {
 					t.Errorf("maxTimeMS value higher than expected. got %v; wanted at most %v", got, tc.want)
+					//t.Errorf("calculated server-side timeout (%v ms) is less than or equal to 0 (%v): %w",got, )
 				}
 				if !errors.Is(err, tc.err) {
 					t.Errorf("error values do not match. got %v; want %v", err, tc.err)

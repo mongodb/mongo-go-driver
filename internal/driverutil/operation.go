@@ -38,25 +38,18 @@ const (
 	BulkWriteOp         = "bulkWrite"         // BulkWriteOp is the name for client-level bulk write
 )
 
-func CalculateMaxTimeMS(ctx context.Context, rttMin time.Duration, rttStats string, err error) (int64, error) {
+func CalculateMaxTimeMS(ctx context.Context, rttMin time.Duration) (int64, bool) {
 	deadline, ok := ctx.Deadline()
 	if !ok {
-		return 0, nil
+		return 0, true
 	}
 
 	remainingTimeout := time.Until(deadline)
+	fmt.Println(remainingTimeout, rttMin)
 
 	// Always round up to the next millisecond value so we never truncate the calculated
 	// maxTimeMS value (e.g. 400 microseconds evaluates to 1ms, not 0ms).
 	maxTimeMS := int64((remainingTimeout - rttMin) / time.Millisecond)
-	if maxTimeMS <= 0 {
-		return 0, fmt.Errorf(
-			"remaining time %v until context deadline is less than or equal to min network round-trip time %v (%v): %w",
-			remainingTimeout,
-			rttMin,
-			rttStats,
-			err)
-	}
 
 	// The server will return a "BadValue" error if maxTimeMS is greater
 	// than the maximum positive int32 value (about 24.9 days). If the
@@ -64,8 +57,8 @@ func CalculateMaxTimeMS(ctx context.Context, rttMin time.Duration, rttStats stri
 	// and let the client-side timeout handle cancelling the op if the
 	// timeout is ever reached.
 	if maxTimeMS > math.MaxInt32 {
-		return 0, nil
+		return 0, false
 	}
 
-	return maxTimeMS, nil
+	return maxTimeMS, true
 }

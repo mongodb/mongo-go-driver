@@ -391,10 +391,14 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 				if ctxDeadlineSet {
 					rttMonitor := bc.Server().RTTMonitor()
 
-					var err error
-					maxTimeMS, err = driverutil.CalculateMaxTimeMS(ctx, rttMonitor.Min(), rttMonitor.Stats(), ErrDeadlineWouldBeExceeded)
-					if err != nil {
-						return nil, err
+					var ok bool
+					maxTimeMS, ok = driverutil.CalculateMaxTimeMS(ctx, rttMonitor.Min())
+					if !ok && maxTimeMS <= 0 {
+						return nil, fmt.Errorf(
+							"calculated server-side timeout (%v ms) is less than or equal to 0 (%v): %w",
+							maxTimeMS,
+							rttMonitor.Stats(),
+							ErrDeadlineWouldBeExceeded)
 					}
 				}
 
