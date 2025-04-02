@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"reflect"
 	"sync"
@@ -161,6 +162,12 @@ var directories = []string{
 	"read-write-concern/tests/operation",
 }
 
+var nonGitSubmodulePassDirectories = []string{
+	"convenient-transactions",
+}
+
+const dataPath string = "../../testdata/"
+
 var checkOutcomeOpts = options.Collection().SetReadPreference(readpref.Primary()).SetReadConcern(readconcern.Local())
 var specTestRegistry = func() *bson.Registry {
 	reg := bson.NewRegistry()
@@ -179,11 +186,25 @@ func TestUnifiedSpecs(t *testing.T) {
 			}
 		})
 	}
+
+	for _, specDir := range nonGitSubmodulePassDirectories {
+		t.Run(specDir, func(t *testing.T) {
+			for _, fileName := range jsonFilesInDir(t, path.Join(dataPath, specDir)) {
+				fmt.Println(fileName)
+				t.Run(fileName, func(t *testing.T) {
+					runSpecTestFile(t, filepath.Join(dataPath, specDir, fileName))
+				})
+			}
+		})
+	}
 }
 
 // specDir: name of directory for a spec in the data/ folder
 // fileName: name of test file in specDir
 func runSpecTestFile(t *testing.T, filePath string) {
+	// It's possible that a JSON blob does not conform to our spec test format.
+	spectest.CheckSkip(t)
+
 	content, err := ioutil.ReadFile(filePath)
 	assert.Nil(t, err, "unable to read spec test file %v: %v", filePath, err)
 

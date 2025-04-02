@@ -90,6 +90,7 @@ func runTestDirectory(t *testing.T, directoryPath string, expectValidFail bool) 
 
 // runTestFile runs the tests in the given file, with expectValidFail determining whether the tests should expect to pass or fail
 func runTestFile(t *testing.T, filepath string, expectValidFail bool, opts ...*Options) {
+	//spectest.CheckSkip(t)
 	content, err := ioutil.ReadFile(filepath)
 	assert.Nil(t, err, "ReadFile error for file %q: %v", filepath, err)
 

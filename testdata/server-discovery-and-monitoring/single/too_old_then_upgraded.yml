@@ -1,0 +1,48 @@
+description: "Standalone with default maxWireVersion of 0 is upgraded to one with maxWireVersion 21"
+uri: "mongodb://a"
+phases: [
+    {
+        responses: [
+                ["a:27017", {
+                    ok: 1,
+                    helloOk: true,
+                    isWritablePrimary: true
+                }]
+        ],
+        outcome: {
+            servers: {
+                "a:27017": {
+                    type: "Standalone",
+                    setName:
+                }
+            },
+            topologyType: "Single",
+            logicalSessionTimeoutMinutes: null,
+            setName: ,
+            compatible: false
+        }
+    },
+    {
+        responses: [
+                ["a:27017", {
+                    ok: 1,
+                    helloOk: true,
+                    isWritablePrimary: true,
+                    minWireVersion: 0,
+                    maxWireVersion: 21
+                }]
+        ],
+        outcome: {
+            servers: {
+                "a:27017": {
+                    type: "Standalone",
+                    setName:
+                }
+            },
+            topologyType: "Single",
+            logicalSessionTimeoutMinutes: null,
+            setName: ,
+            compatible: true
+        }
+    }
+]

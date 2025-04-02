@@ -1,0 +1,35 @@
+description: "Discover standalone"
+
+uri: "mongodb://a/?directConnection=false"
+
+phases: [
+
+    {
+        responses: [
+
+                ["a:27017", {
+
+                    ok: 1,
+                    helloOk: true,
+                    isWritablePrimary: true,
+                    minWireVersion: 0,
+                    maxWireVersion: 21
+                }]
+        ],
+
+        outcome: {
+
+            servers: {
+
+                "a:27017": {
+
+                    type: "Standalone",
+                    setName:
+                }
+            },
+            topologyType: "Single",
+            logicalSessionTimeoutMinutes: null,
+            setName:
+        }
+    }
+]

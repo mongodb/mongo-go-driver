@@ -1,0 +1,31 @@
+{
+  "description": "Standalone removed from multi-server topology",
+  "uri": "mongodb://a,b",
+  "phases": [
+    {
+      "responses": [
+        [
+          "a:27017",
+          {
+            "ok": 1,
+            "helloOk": true,
+            "isWritablePrimary": true,
+            "minWireVersion": 0,
+            "maxWireVersion": 21
+          }
+        ]
+      ],
+      "outcome": {
+        "servers": {
+          "b:27017": {
+            "type": "Unknown",
+            "setName": null
+          }
+        },
+        "topologyType": "Unknown",
+        "logicalSessionTimeoutMinutes": null,
+        "setName": null
+      }
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+description: "Primary wrong setName"
+
+uri: "mongodb://a/?replicaSet=rs"
+
+phases: [
+
+    {
+        responses: [
+
+                ["a:27017", {
+
+                    ok: 1,
+                    helloOk: true,
+                    isWritablePrimary: true,
+                    hosts: ["a:27017"],
+                    setName: "wrong",
+                    minWireVersion: 0,
+                    maxWireVersion: 21
+                }]
+        ],
+
+        outcome: {
+
+            servers: {},
+            topologyType: "ReplicaSetNoPrimary",
+            logicalSessionTimeoutMinutes: null,
+            setName: "rs"
+        }
+    }
+]

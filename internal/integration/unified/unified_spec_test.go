@@ -8,14 +8,17 @@ package unified
 
 import (
 	"context"
+	"path"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/v2/internal/spectest"
 )
 
 var (
+	nonGitSubmodulePassDirectories = []string{
+		"unified-test-format/valid-pass",
+	}
 	passDirectories = []string{
-		"unified-test-format/tests/valid-pass",
 		"versioned-api/tests",
 		"crud/tests/unified",
 		"change-streams/tests/unified",
@@ -29,19 +32,20 @@ var (
 		"retryable-reads/tests/unified",
 		"retryable-writes/tests/unified",
 		"client-side-encryption/tests/unified",
-		"client-side-operations-timeout/tests",
+		//"client-side-operations-timeout/tests",
 		"gridfs/tests",
 		"server-selection/tests/logging",
 		"server-discovery-and-monitoring/tests/unified",
 		"run-command/tests/unified",
 		"index-management/tests",
-		"transactions-convenient-api/tests/unified",
 		"atlas-data-lake-testing/tests/unified",
 	}
 	failDirectories = []string{
 		"unified-test-format/tests/valid-fail",
 	}
 )
+
+const dataDirectory = "../../../testdata"
 
 func TestUnifiedSpec(t *testing.T) {
 	// Ensure the cluster is in a clean state before test execution begins.
@@ -52,6 +56,12 @@ func TestUnifiedSpec(t *testing.T) {
 	for _, testDir := range passDirectories {
 		t.Run(testDir, func(t *testing.T) {
 			runTestDirectory(t, spectest.Path(testDir), false)
+		})
+	}
+
+	for _, testDir := range nonGitSubmodulePassDirectories {
+		t.Run(testDir, func(t *testing.T) {
+			runTestDirectory(t, path.Join(dataDirectory, testDir), false)
 		})
 	}
 

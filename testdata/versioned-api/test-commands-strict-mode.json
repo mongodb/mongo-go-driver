@@ -1,0 +1,75 @@
+{
+  "description": "Test commands: strict mode",
+  "schemaVersion": "1.4",
+  "runOnRequirements": [
+    {
+      "minServerVersion": "4.9",
+      "serverParameters": {
+        "enableTestCommands": true
+      },
+      "serverless": "forbid"
+    }
+  ],
+  "createEntities": [
+    {
+      "client": {
+        "id": "client",
+        "observeEvents": [
+          "commandStartedEvent"
+        ],
+        "serverApi": {
+          "version": "1",
+          "strict": true
+        }
+      }
+    },
+    {
+      "database": {
+        "id": "database",
+        "client": "client",
+        "databaseName": "versioned-api-tests"
+      }
+    }
+  ],
+  "tests": [
+    {
+      "description": "Running a command that is not part of the versioned API results in an error",
+      "operations": [
+        {
+          "name": "runCommand",
+          "object": "database",
+          "arguments": {
+            "commandName": "testVersion2",
+            "command": {
+              "testVersion2": 1
+            }
+          },
+          "expectError": {
+            "isError": true,
+            "errorContains": "command testVersion2 is not in API Version 1",
+            "errorCodeName": "APIStrictError"
+          }
+        }
+      ],
+      "expectEvents": [
+        {
+          "client": "client",
+          "events": [
+            {
+              "commandStartedEvent": {
+                "command": {
+                  "testVersion2": 1,
+                  "apiVersion": "1",
+                  "apiStrict": true,
+                  "apiDeprecationErrors": {
+                    "$$unsetOrMatches": false
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

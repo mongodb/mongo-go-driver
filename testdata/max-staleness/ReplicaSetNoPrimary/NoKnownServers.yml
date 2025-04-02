@@ -1,0 +1,16 @@
+# valid maxStalenessSeconds and no known servers results in an empty set of suitable servers
+---
+topology_description:
+  type: ReplicaSetNoPrimary
+  servers:
+  - &1
+    address: a:27017
+    type: Unknown
+  - &2
+    address: b:27017
+    type: Unknown
+read_preference:
+  mode: Nearest
+  maxStalenessSeconds: 90
+suitable_servers: []
+in_latency_window: []
