@@ -124,15 +124,15 @@ var skipTests = map[string][]string{
 
 	// TODO: GODRIVER-3167 - Support assertions on topologyDescriptionChangedEvent in expectEvents.
 	"Implement GODRIVER-3161": {
-		"TestUnifiedSpec/unified-test-format/tests/valid-pass/expectedEventsForClient-topologyDescriptionChangedEvent.json/can_assert_on_values_of_newDescription_and_previousDescription_fields",
+		"TestUnifiedSpec/unified-test-format/valid-pass/expectedEventsForClient-topologyDescriptionChangedEvent.json/can_assert_on_values_of_newDescription_and_previousDescription_fields",
 	},
 
 	// TODO: GODRIVER-3409 - Regression test for "number" alias in $$type operator.
 	"Implement GODRIVER-3409": {
-		"TestUnifiedSpec/unified-test-format/tests/valid-pass/operator-type-number_alias.json/type_number_alias_matches_int32",
-		"TestUnifiedSpec/unified-test-format/tests/valid-pass/operator-type-number_alias.json/type_number_alias_matches_int64",
-		"TestUnifiedSpec/unified-test-format/tests/valid-pass/operator-type-number_alias.json/type_number_alias_matches_double",
-		"TestUnifiedSpec/unified-test-format/tests/valid-pass/operator-type-number_alias.json/type_number_alias_matches_decimal128",
+		"TestUnifiedSpec/unified-test-format/valid-pass/operator-type-number_alias.json/type_number_alias_matches_int32",
+		"TestUnifiedSpec/unified-test-format/valid-pass/operator-type-number_alias.json/type_number_alias_matches_int64",
+		"TestUnifiedSpec/unified-test-format/valid-pass/operator-type-number_alias.json/type_number_alias_matches_double",
+		"TestUnifiedSpec/unified-test-format/valid-pass/operator-type-number_alias.json/type_number_alias_matches_decimal128",
 	},
 
 	// TODO: GODRIVER-3143 - Convert CRUD v1 spec tests to unified test format.
@@ -213,21 +213,13 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/transactions/tests/unified/transaction-options.json/readPreference_inherited_from_client",
 		"TestUnifiedSpec/transactions/tests/unified/transaction-options.json/readPreference_inherited_from_defaultTransactionOptions",
 		"TestUnifiedSpec/transactions/tests/unified/transaction-options.json/startTransaction_overrides_readPreference",
-		"TestUnifiedSpec/transactions-convenient-api/tests/unified/callback-retry.json/callback_succeeds_after_multiple_connection_errors",
-		"TestUnifiedSpec/transactions-convenient-api/tests/unified/callback-retry.json/callback_is_not_retried_after_non-transient_error_(DuplicateKeyError)",
-		"TestUnifiedSpec/transactions-convenient-api/tests/unified/commit-retry.json/commit_is_not_retried_after_MaxTimeMSExpired_error",
-		"TestUnifiedSpec/transactions-convenient-api/tests/unified/commit-writeconcernerror.json/commitTransaction_is_not_retried_after_UnknownReplWriteConcern_error",
-		"TestUnifiedSpec/transactions-convenient-api/tests/unified/commit-writeconcernerror.json/commitTransaction_is_not_retried_after_UnsatisfiableWriteConcern_error",
-		"TestUnifiedSpec/transactions-convenient-api/tests/unified/commit-writeconcernerror.json/commitTransaction_is_not_retried_after_MaxTimeMSExpired_error",
-		"TestUnifiedSpec/transactions-convenient-api/tests/unified/commit-retry.json/commitTransaction_retry_only_overwrites_write_concern_w_option",
 		"TestUnifiedSpec/transactions/tests/unified/retryable-commit.json/commitTransaction_fails_after_Interrupted",
 	},
 
 	// GODRIVER-1773: Tests related to batch size expectation in "find" and "getMore" events.
 	"Implement GODRIVER-1773": {
-
 		"TestUnifiedSpec/command-logging-and-monitoring/tests/monitoring/find.json/A_successful_find_event_with_a_getmore_and_the_server_kills_the_cursor_(<=_4.4)",
-		"TestUnifiedSpec/unified-test-format/tests/valid-pass/poc-command-monitoring.json/A_successful_find_event_with_a_getmore_and_the_server_kills_the_cursor_(<=_4.4)",
+		"TestUnifiedSpec/unified-test-format/valid-pass/poc-command-monitoring.json/A_successful_find_event_with_a_getmore_and_the_server_kills_the_cursor_(<=_4.4)",
 	},
 
 	// GODRIVER-2577: Tests require immediate operation canceling, incompatible with current pool clearing logic.
@@ -389,7 +381,7 @@ var skipTests = map[string][]string{
 
 	// TODO: GODRIVER-3486 - Support auto encryption in unified tests.
 	"Implement GODRIVER-3486": {
-		"TestUnifiedSpec/unified-test-format/tests/valid-pass/poc-queryable-encryption.json/insert,_replace,_and_find_with_queryable_encryption",
+		"TestUnifiedSpec/unified-test-format/valid-pass/poc-queryable-encryption.json/insert,_replace,_and_find_with_queryable_encryption",
 	},
 
 	// TODO: DRIVERS-3106 - Support auto encryption in unified tests.
@@ -704,8 +696,57 @@ var skipTests = map[string][]string{
 	// TODO(GODRIVER-2191): Drivers should retry operations if connection
 	// handshake fails.
 	"Implement GODRIVER-2191": {
+		"TestUnifiedSpec/retryable-reads/tests/unified/handshakeError.json/client.listDatabases_succeeds_after_retryable_handshake_network_error",
+		"TestUnifiedSpec/retryable-reads/tests/unified/handshakeError.json/client.listDatabases_succeeds_after_retryable_handshake_server_error_(ShutdownInProgress)",
+		"TestUnifiedSpec/retryable-reads/tests/unified/handshakeError.json/client.listDatabaseNames_succeeds_after_retryable_handshake_network_error",
+		"TestUnifiedSpec/retryable-reads/tests/unified/handshakeError.json/client.listDatabaseNames_succeeds_after_retryable_handshake_server_error_(ShutdownInProgress)",
+		"TestUnifiedSpec/retryable-reads/tests/unified/handshakeError.json/client.createChangeStream_succeeds_after_retryable_handshake_network_error",
+		"TestUnifiedSpec/retryable-reads/tests/unified/handshakeError.json/client.createChangeStream_succeeds_after_retryable_handshake_server_error_(ShutdownInProgress)",
+		"TestUnifiedSpec/retryable-reads/tests/unified/handshakeError.json/database.aggregate_succeeds_after_retryable_handshake_network_error",
+		"TestUnifiedSpec/retryable-reads/tests/unified/handshakeError.json/database.aggregate_succeeds_after_retryable_handshake_server_error_(ShutdownInProgress)",
+		"TestUnifiedSpec/retryable-reads/tests/unified/handshakeError.json/database.listCollections_succeeds_after_retryable_handshake_network_error",
+		"TestUnifiedSpec/retryable-reads/tests/unified/handshakeError.json/database.listCollections_succeeds_after_retryable_handshake_server_error_(ShutdownInProgress)",
+		"TestUnifiedSpec/retryable-reads/tests/unified/handshakeError.json/database.listCollectionNames_succeeds_after_retryable_handshake_network_error",
+		"TestUnifiedSpec/retryable-reads/tests/unified/handshakeError.json/database.listCollectionNames_succeeds_after_retryable_handshake_server_error_(ShutdownInProgress)",
+		"TestUnifiedSpec/retryable-reads/tests/unified/handshakeError.json/database.createChangeStream_succeeds_after_retryable_handshake_network_error",
+		"TestUnifiedSpec/retryable-reads/tests/unified/handshakeError.json/database.createChangeStream_succeeds_after_retryable_handshake_server_error_(ShutdownInProgress)",
+		"TestUnifiedSpec/retryable-reads/tests/unified/handshakeError.json/collection.aggregate_succeeds_after_retryable_handshake_network_error",
+		"TestUnifiedSpec/retryable-reads/tests/unified/handshakeError.json/collection.aggregate_succeeds_after_retryable_handshake_server_error_(ShutdownInProgress)",
+		"TestUnifiedSpec/retryable-reads/tests/unified/handshakeError.json/collection.countDocuments_succeeds_after_retryable_handshake_network_error",
+		"TestUnifiedSpec/retryable-reads/tests/unified/handshakeError.json/collection.countDocuments_succeeds_after_retryable_handshake_server_error_(ShutdownInProgress)",
+		"TestUnifiedSpec/retryable-reads/tests/unified/handshakeError.json/collection.estimatedDocumentCount_succeeds_after_retryable_handshake_network_error",
+		"TestUnifiedSpec/retryable-reads/tests/unified/handshakeError.json/collection.estimatedDocumentCount_succeeds_after_retryable_handshake_server_error_(ShutdownInProgress)",
+		"TestUnifiedSpec/retryable-reads/tests/unified/handshakeError.json/collection.distinct_succeeds_after_retryable_handshake_network_error",
+		"TestUnifiedSpec/retryable-reads/tests/unified/handshakeError.json/collection.distinct_succeeds_after_retryable_handshake_server_error_(ShutdownInProgress)",
+		"TestUnifiedSpec/retryable-reads/tests/unified/handshakeError.json/collection.find_succeeds_after_retryable_handshake_network_error",
+		"TestUnifiedSpec/retryable-reads/tests/unified/handshakeError.json/collection.find_succeeds_after_retryable_handshake_server_error_(ShutdownInProgress)",
+		"TestUnifiedSpec/retryable-reads/tests/unified/handshakeError.json/collection.findOne_succeeds_after_retryable_handshake_network_error",
+		"TestUnifiedSpec/retryable-reads/tests/unified/handshakeError.json/collection.findOne_succeeds_after_retryable_handshake_server_error_(ShutdownInProgress)",
+		"TestUnifiedSpec/retryable-reads/tests/unified/handshakeError.json/collection.listIndexes_succeeds_after_retryable_handshake_network_error",
+		"TestUnifiedSpec/retryable-reads/tests/unified/handshakeError.json/collection.listIndexes_succeeds_after_retryable_handshake_server_error_(ShutdownInProgress)",
+		"TestUnifiedSpec/retryable-reads/tests/unified/handshakeError.json/collection.createChangeStream_succeeds_after_retryable_handshake_network_error",
+		"TestUnifiedSpec/retryable-reads/tests/unified/handshakeError.json/collection.createChangeStream_succeeds_after_retryable_handshake_server_error_(ShutdownInProgress)",
 		"TestUnifiedSpec/retryable-writes/tests/unified/handshakeError.json",
-		"TestUnifiedSpec/retryable-reads/tests/unified/handshakeError.json",
+		"TestUnifiedSpec/retryable-writes/tests/unified/handshakeError.json/client.clientBulkWrite_succeeds_after_retryable_handshake_network_error",
+		"TestUnifiedSpec/retryable-writes/tests/unified/handshakeError.json/client.clientBulkWrite_succeeds_after_retryable_handshake_server_error_(ShutdownInProgress)",
+		"TestUnifiedSpec/retryable-writes/tests/unified/handshakeError.json/collection.insertOne_succeeds_after_retryable_handshake_network_error",
+		"TestUnifiedSpec/retryable-writes/tests/unified/handshakeError.json/collection.insertOne_succeeds_after_retryable_handshake_server_error_(ShutdownInProgress)",
+		"TestUnifiedSpec/retryable-writes/tests/unified/handshakeError.json/collection.insertMany_succeeds_after_retryable_handshake_network_error",
+		"TestUnifiedSpec/retryable-writes/tests/unified/handshakeError.json/collection.insertMany_succeeds_after_retryable_handshake_server_error_(ShutdownInProgress)",
+		"TestUnifiedSpec/retryable-writes/tests/unified/handshakeError.json/collection.deleteOne_succeeds_after_retryable_handshake_network_error",
+		"TestUnifiedSpec/retryable-writes/tests/unified/handshakeError.json/collection.deleteOne_succeeds_after_retryable_handshake_server_error_(ShutdownInProgress)",
+		"TestUnifiedSpec/retryable-writes/tests/unified/handshakeError.json/collection.replaceOne_succeeds_after_retryable_handshake_network_error",
+		"TestUnifiedSpec/retryable-writes/tests/unified/handshakeError.json/collection.replaceOne_succeeds_after_retryable_handshake_server_error_(ShutdownInProgress)",
+		"TestUnifiedSpec/retryable-writes/tests/unified/handshakeError.json/collection.updateOne_succeeds_after_retryable_handshake_network_error",
+		"TestUnifiedSpec/retryable-writes/tests/unified/handshakeError.json/collection.updateOne_succeeds_after_retryable_handshake_server_error_(ShutdownInProgress)",
+		"TestUnifiedSpec/retryable-writes/tests/unified/handshakeError.json/collection.findOneAndDelete_succeeds_after_retryable_handshake_network_error",
+		"TestUnifiedSpec/retryable-writes/tests/unified/handshakeError.json/collection.findOneAndDelete_succeeds_after_retryable_handshake_server_error_(ShutdownInProgress)",
+		"TestUnifiedSpec/retryable-writes/tests/unified/handshakeError.json/collection.findOneAndReplace_succeeds_after_retryable_handshake_network_error",
+		"TestUnifiedSpec/retryable-writes/tests/unified/handshakeError.json/collection.findOneAndReplace_succeeds_after_retryable_handshake_server_error_(ShutdownInProgress)",
+		"TestUnifiedSpec/retryable-writes/tests/unified/handshakeError.json/collection.findOneAndUpdate_succeeds_after_retryable_handshake_network_error",
+		"TestUnifiedSpec/retryable-writes/tests/unified/handshakeError.json/collection.findOneAndUpdate_succeeds_after_retryable_handshake_server_error_(ShutdownInProgress)",
+		"TestUnifiedSpec/retryable-writes/tests/unified/handshakeError.json/collection.bulkWrite_succeeds_after_retryable_handshake_network_error",
+		"TestUnifiedSpec/retryable-writes/tests/unified/handshakeError.json/collection.bulkWrite_succeeds_after_retryable_handshake_server_error_(ShutdownInProgress)",
 	},
 
 	// TODO(GODRIVER-3524): Change streams expanded events present by default in
@@ -713,6 +754,11 @@ var skipTests = map[string][]string{
 	"Implement GODRIVER-3524": {
 		"TestUnifiedSpec/change-streams/change-streams-disambiguatedPaths.json/disambiguatedPaths_is_not_present_when_showExpandedEvents_is_false/unset",
 		"TestUnifiedSpec/change-streams/change-streams.json/Test_insert,_update,_replace,_and_delete_event_types",
+	},
+
+	// TODO(DRIVERS-3153): Re-enable once DRIVERS-3153 is fixed.
+	"Re-enable once DRIVERS-3153 is fixed": {
+		"TestUnifiedSpec/atlas-data-lake-testing/tests/unified/getMore.json/A_successful_find_event_with_getMore",
 	},
 }
 
