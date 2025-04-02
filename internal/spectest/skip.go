@@ -270,6 +270,11 @@ var skipTests = map[string][]string{
 	// TODO(GODRIVER-3137): Implement Gossip cluster time.
 	"Implement Gossip cluster time (GODRIVER-3137)": {
 		"TestUnifiedSpec/transactions/unified/mongos-unpin.json/unpin_after_TransientTransactionError_error_on_commit",
+		// This test fails with the same error as GODRIVER-3137, but is not
+		// directly referenced as an impacted test case by DRIVERS-2816. It
+		// seems likely that the same change will resolve the failure, so I'm
+		// including it here.
+		"TestUnifiedSpec/unified-test-format/valid-pass/poc-transactions-convenient-api.json/withTransaction_and_no_transaction_options_set",
 	},
 
 	// TODO(GODRIVER-3034): Drivers should unpin connections when ending a
