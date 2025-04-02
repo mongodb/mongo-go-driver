@@ -17,12 +17,12 @@ import (
 var (
 	nonGitSubmodulePassDirectories = []string{
 		"unified-test-format/valid-pass",
+		"transactions/unified",
 	}
 	passDirectories = []string{
 		"versioned-api/tests",
 		"crud/tests/unified",
 		"change-streams/tests/unified",
-		"transactions/tests/unified",
 		"load-balancers/tests",
 		"collection-management/tests",
 		"command-logging-and-monitoring/tests/monitoring",
