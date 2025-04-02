@@ -42,6 +42,10 @@ func FindJSONFilesInDir(t *testing.T, dir string) []string {
 
 // Path returns the absolute path to the given specifications repo file or
 // subdirectory.
+//
+// If the PROJECT_DIRECTORY environment variable is set, Path uses that to find
+// the repo root path. Otherwise, it falls back to using the call stack to find
+// the repo root path. Path panics if it can't find the repo root path.
 func Path(subdir string) string {
 	root := os.Getenv("PROJECT_DIRECTORY")
 	if root == "" {
