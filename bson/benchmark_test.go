@@ -130,7 +130,7 @@ var nestedInstance = nestedtest1{
 	},
 }
 
-const extendedBSONDir = "../testdata/extended-bson"
+const extendedBSONDir = "../testdata/extended_bson"
 
 var (
 	extJSONFiles   map[string]map[string]interface{}
