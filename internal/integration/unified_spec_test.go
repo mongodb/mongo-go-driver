@@ -190,7 +190,6 @@ func TestUnifiedSpecs(t *testing.T) {
 	for _, specDir := range nonGitSubmodulePassDirectories {
 		t.Run(specDir, func(t *testing.T) {
 			for _, fileName := range jsonFilesInDir(t, path.Join(dataPath, specDir)) {
-				fmt.Println(fileName)
 				t.Run(fileName, func(t *testing.T) {
 					runSpecTestFile(t, filepath.Join(dataPath, specDir, fileName))
 				})
