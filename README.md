@@ -18,8 +18,8 @@ See the following resources to learn more about upgrading from version 1.x to 2.
 ## Requirements
 
 - Go 1.18 or higher. We aim to support the latest versions of Go.
-- Go 1.22 or higher is required to run the driver test suite.
-- MongoDB 3.6 and higher.
+- Go 1.23 or higher is required to run the driver test suite.
+- MongoDB 4.0 and higher.
 
 ## Installation
 

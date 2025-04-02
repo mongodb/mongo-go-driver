@@ -59,7 +59,8 @@ func NewClientEncryption(keyVaultClient *Client, opts ...options.Lister[options.
 		// ClientEncryption because it's only needed for AutoEncryption and we don't expect users to
 		// have the crypt_shared library installed if they're using ClientEncryption.
 		SetCryptSharedLibDisabled(true).
-		SetHTTPClient(cea.HTTPClient))
+		SetHTTPClient(cea.HTTPClient).
+		SetKeyExpiration(cea.KeyExpiration))
 	if err != nil {
 		return nil, err
 	}

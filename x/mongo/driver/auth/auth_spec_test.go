@@ -48,50 +48,53 @@ func runTestsInFile(t *testing.T, dirname string, filename string) {
 	var container testContainer
 	require.NoError(t, json.Unmarshal(content, &container))
 
-	// Remove ".json" from filename.
-	filename = filename[:len(filename)-5]
+	t.Run(filename, func(t *testing.T) {
+		for _, testCase := range container.Tests {
+			testCase := testCase // Capture range variable.
 
-	for _, testCase := range container.Tests {
-		runTest(t, filename, testCase)
-	}
-}
+			t.Run(testCase.Description, func(t *testing.T) {
+				spectest.CheckSkip(t)
 
-func runTest(t *testing.T, filename string, test testCase) {
-	t.Run(filename+":"+test.Description, func(t *testing.T) {
-		opts := options.Client().ApplyURI(test.URI)
-
-		if test.Valid {
-			require.NoError(t, opts.Validate())
-		} else {
-			require.Error(t, opts.Validate())
-
-			return
-		}
-
-		if test.Credential == nil {
-			require.Nil(t, opts.Auth)
-			return
-		}
-		require.NotNil(t, opts.Auth)
-		require.Equal(t, test.Credential.Username, opts.Auth.Username)
-
-		if test.Credential.Password == nil {
-			require.False(t, opts.Auth.PasswordSet)
-		} else {
-			require.True(t, opts.Auth.PasswordSet)
-			require.Equal(t, *test.Credential.Password, opts.Auth.Password)
-		}
-
-		require.Equal(t, test.Credential.Source, opts.Auth.AuthSource)
-
-		require.Equal(t, test.Credential.Mechanism, opts.Auth.AuthMechanism)
-
-		if len(test.Credential.MechProps) > 0 {
-			require.Equal(t, mapInterfaceToString(test.Credential.MechProps), opts.Auth.AuthMechanismProperties)
-		} else {
-			require.Equal(t, 0, len(opts.Auth.AuthMechanismProperties))
+				runTest(t, testCase)
+			})
 		}
 	})
+}
+
+func runTest(t *testing.T, test testCase) {
+	opts := options.Client().ApplyURI(test.URI)
+
+	if test.Valid {
+		require.NoError(t, opts.Validate())
+	} else {
+		require.Error(t, opts.Validate())
+
+		return
+	}
+
+	if test.Credential == nil {
+		require.Nil(t, opts.Auth)
+		return
+	}
+	require.NotNil(t, opts.Auth)
+	require.Equal(t, test.Credential.Username, opts.Auth.Username)
+
+	if test.Credential.Password == nil {
+		require.False(t, opts.Auth.PasswordSet)
+	} else {
+		require.True(t, opts.Auth.PasswordSet)
+		require.Equal(t, *test.Credential.Password, opts.Auth.Password)
+	}
+
+	require.Equal(t, test.Credential.Source, opts.Auth.AuthSource)
+
+	require.Equal(t, test.Credential.Mechanism, opts.Auth.AuthMechanism)
+
+	if len(test.Credential.MechProps) > 0 {
+		require.Equal(t, mapInterfaceToString(test.Credential.MechProps), opts.Auth.AuthMechanismProperties)
+	} else {
+		require.Equal(t, 0, len(opts.Auth.AuthMechanismProperties))
+	}
 }
 
 // Convert each interface{} value in the map to a string.

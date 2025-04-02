@@ -8,11 +8,13 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"os"
 	"path"
 	"reflect"
+	"strings"
 	"sync"
 	"time"
 	"unsafe"
@@ -101,7 +103,7 @@ func main() {
 
 	hasError := false
 	aux := func(test_name string, f func() error) {
-		fmt.Printf("%s...", test_name)
+		fmt.Printf("%s...\n", test_name)
 		err := f()
 		if err != nil {
 			fmt.Println("Test Error: ", err)
@@ -148,6 +150,8 @@ func main() {
 		aux("machine_5_2_azureWithNoUsername", machine52azureWithBadUsername)
 	case "gcp":
 		aux("machine_6_1_gcpWithNoUsername", machine61gcpWithNoUsername)
+	case "k8s":
+		aux("machine_k8s", machinek8s)
 	default:
 		log.Fatal("Unknown OIDC_ENV: ", env)
 	}
@@ -282,7 +286,7 @@ func machine21validCallbackInputs() error {
 		tokenFile := tokenFile("test_user1")
 		accessToken, err := os.ReadFile(tokenFile)
 		if err != nil {
-			fmt.Printf("machine_2_1: failed reading token file: %v", err)
+			return nil, fmt.Errorf("machine_2_1: failed reading token file: %w", err)
 		}
 		return &options.OIDCCredential{
 			AccessToken:  string(accessToken),
@@ -1778,14 +1782,16 @@ func machine51azureWithNoUsername() error {
 
 func machine52azureWithBadUsername() error {
 	opts := options.Client().ApplyURI(uriSingle)
-	cred := options.Credential{
-		AuthMechanism: "MONGODB-OIDC",
-		Username:      "bad",
-	}
-	opts.SetAuth(cred)
+
 	if opts == nil {
 		return fmt.Errorf("machine_5_2: failed parsing uri: %q", uriSingle)
 	}
+	if opts.Auth == nil || opts.Auth.AuthMechanism != "MONGODB-OIDC" {
+		return errors.New("machine_5_2: expected URI to contain MONGODB-OIDC auth information")
+	}
+
+	opts.Auth.Username = "bad"
+
 	client, err := mongo.Connect(opts)
 	if err != nil {
 		return fmt.Errorf("machine_5_2: failed connecting client: %v", err)
@@ -1814,6 +1820,30 @@ func machine61gcpWithNoUsername() error {
 	_, err = coll.Find(context.Background(), bson.D{})
 	if err != nil {
 		return fmt.Errorf("machine_6_1: failed executing Find: %v", err)
+	}
+	return nil
+}
+
+// machinek8s tests the "k8s" Kubernetes OIDC environment. There is no specified
+// prose test for "k8s", so this test simply checks that you can run a "find"
+// with the provided conn string.
+func machinek8s() error {
+	if !strings.Contains(uriSingle, "ENVIRONMENT:k8s") {
+		return fmt.Errorf("expected MONGODB_URI_SINGLE to specify ENVIRONMENT:k8s for Kubernetes test")
+	}
+
+	opts := options.Client().ApplyURI(uriSingle)
+	client, err := mongo.Connect(opts)
+	if err != nil {
+		return fmt.Errorf("machine_k8s: failed connecting client: %v", err)
+	}
+	defer func() { _ = client.Disconnect(context.Background()) }()
+
+	coll := client.Database("test").Collection("test")
+
+	_, err = coll.Find(context.Background(), bson.D{})
+	if err != nil {
+		return fmt.Errorf("machine_k8s: failed executing Find: %v", err)
 	}
 	return nil
 }

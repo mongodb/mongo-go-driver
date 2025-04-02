@@ -275,11 +275,7 @@ func runTest(t *testing.T, file string) {
 	content, err := os.ReadFile(filepath)
 	require.NoError(t, err)
 
-	// Remove ".json" from filename.
-	file = file[:len(file)-5]
-	testName := "bson_corpus--" + file
-
-	t.Run(testName, func(t *testing.T) {
+	t.Run(file, func(t *testing.T) {
 		var test testCase
 		require.NoError(t, json.Unmarshal(content, &test))
 
@@ -429,7 +425,7 @@ func runTest(t *testing.T, file string) {
 	})
 }
 
-func Test_BsonCorpus(t *testing.T) {
+func TestBSONCorpus(t *testing.T) {
 	jsonFiles, err := findJSONFilesInDir(dataDir)
 	require.NoErrorf(t, err, "error finding JSON files in %s: %v", dataDir, err)
 

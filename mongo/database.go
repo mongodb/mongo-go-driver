@@ -110,13 +110,15 @@ func (db *Database) Name() string {
 	return db.name
 }
 
-// Collection gets a handle for a collection with the given name configured with the given CollectionOptions.
+// Collection returns a handle for a collection with the given name and options.
+//
+// If the collection does not exist on the server, it will be created when a
+// write operation is performed.
 func (db *Database) Collection(name string, opts ...options.Lister[options.CollectionOptions]) *Collection {
 	return newCollection(db, name, opts...)
 }
 
-// Aggregate executes an aggregate command the database. This requires MongoDB version >= 3.6 and driver version >=
-// 1.1.0.
+// Aggregate executes an aggregate command the database.
 //
 // The pipeline parameter must be a slice of documents, each representing an aggregation stage. The pipeline
 // cannot be nil but can be empty. The stage documents must all be non-nil. For a pipeline of bson.D documents, the
@@ -343,8 +345,8 @@ func (db *Database) Drop(ctx context.Context) error {
 
 	err = op.Execute(ctx)
 
-	driverErr, ok := err.(driver.Error)
-	if err != nil && (!ok || !driverErr.NamespaceNotFound()) {
+	var driverErr driver.Error
+	if err != nil && (!errors.As(err, &driverErr) || !driverErr.NamespaceNotFound()) {
 		return replaceErrors(err)
 	}
 	return nil
@@ -583,14 +585,15 @@ func (db *Database) Watch(ctx context.Context, pipeline interface{},
 	return newChangeStream(ctx, csConfig, pipeline, opts...)
 }
 
-// CreateCollection executes a create command to explicitly create a new collection with the specified name on the
-// server. If the collection being created already exists, this method will return a mongo.CommandError. This method
-// requires driver version 1.4.0 or higher.
+// CreateCollection creates a new collection on the server with the specified
+// name and options.
 //
-// The opts parameter can be used to specify options for the operation (see the options.CreateCollectionOptions
-// documentation).
+// MongoDB versions < 7.0 will return an error if the collection already exists.
+// MongoDB versions >= 7.0 will not return an error if an existing collection
+// created with the same name and options already exists.
 //
-// For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/create/.
+// For more information about the command, see
+// https://www.mongodb.com/docs/manual/reference/command/create/.
 func (db *Database) CreateCollection(ctx context.Context, name string, opts ...options.Lister[options.CreateCollectionOptions]) error {
 	args, err := mongoutil.NewOptions(opts...)
 	if err != nil {
@@ -873,19 +876,20 @@ func (db *Database) createCollectionOperation(
 	return op, nil
 }
 
-// CreateView executes a create command to explicitly create a view on the server. See
-// https://www.mongodb.com/docs/manual/core/views/ for more information about views. This method requires driver version >=
-// 1.4.0 and MongoDB version >= 3.4.
+// CreateView creates a view on the server.
 //
-// The viewName parameter specifies the name of the view to create.
+// The viewName parameter specifies the name of the view to create. The viewOn
+// parameter specifies the name of the collection or view on which this view
+// will be created. The pipeline parameter specifies an aggregation pipeline
+// that will be exececuted against the source collection or view to create this
+// view.
 //
-// # The viewOn parameter specifies the name of the collection or view on which this view will be created
+// MongoDB versions < 7.0 will return an error if the view already exists.
+// MongoDB versions >= 7.0 will not return an error if an existing view created
+// with the same name and options already exists.
 //
-// The pipeline parameter specifies an aggregation pipeline that will be exececuted against the source collection or
-// view to create this view.
-//
-// The opts parameter can be used to specify options for the operation (see the options.CreateViewOptions
-// documentation).
+// See https://www.mongodb.com/docs/manual/core/views/ for more information
+// about views.
 func (db *Database) CreateView(ctx context.Context, viewName, viewOn string, pipeline interface{},
 	opts ...options.Lister[options.CreateViewOptions]) error {
 

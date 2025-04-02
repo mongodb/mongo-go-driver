@@ -57,6 +57,7 @@ functions:
   handle-test-artifacts:
     - command: gotest.parse_files
       params:
+        optional_output: "true"
         files:
           - "src/go.mongodb.org/mongo-driver/*.suite"
     - command: ec2.assume_role
@@ -162,17 +163,18 @@ functions:
         args: 
           - ${DRIVERS_TOOLS}/.evergreen/teardown.sh
 
-  assume-ec2-role:
+  assume-test-secrets-ec2-role:
     - command: ec2.assume_role
       params:
         role_arn: ${aws_test_secrets_role}
+        duration_seconds: 1800
 
   run-oidc-auth-test-with-test-credentials:
     - command: subprocess.exec
       type: test
       params:
         binary: bash
-        env: 
+        env:
           OIDC: oidc
         include_expansions_in_env: [DRIVERS_TOOLS, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN]
         args: [*task-runner, test-oidc]
@@ -395,6 +397,16 @@ functions:
         binary: "bash"
         include_expansions_in_env: ["MONGODB_URI"]
         args: [*task-runner, test-goleak]
+
+  "run oidc k8s test":
+    - command: subprocess.exec
+      type: test
+      params:
+        binary: bash
+        include_expansions_in_env: [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN, VARIANT, DRIVERS_TOOLS]
+        env:
+          OIDC_ENV: k8s
+        args: [*task-runner, test-oidc-remote]
 
   run-ocsp-server:
     - command: subprocess.exec
@@ -1409,16 +1421,15 @@ tasks:
         vars:
           MONGO_GO_DRIVER_COMPRESSOR: "snappy"
 
-  # Build the compilecheck submodule with the oldest supported version of Go.
-  - name: go1.18-build
+  # Build the compilecheck submodule with all supported versions of Go >= 
+  # the minimum supported version.
+  - name: go-build
     tags: ["compile-check"]
     commands:
       - command: subprocess.exec
         params:
           binary: bash
-          env:
-            GO_VERSION: "1.18"
-          args: [*task-runner, build-compile-check]
+          args: [*task-runner, build-compile-check-all]
 
   # Build with the same Go version that we're using for tests.
   - name: build
@@ -1466,6 +1477,23 @@ tasks:
       - func: run-versioned-api-test
         vars:
           TOPOLOGY: "server"
+          AUTH: "auth"
+          SSL: "nossl"
+          REQUIRE_API_VERSION: true
+
+  - name: "test-sharded-versioned-api"
+    tags: ["versioned-api"]
+    commands:
+      - func: bootstrap-mongo-orchestration
+        vars:
+          TOPOLOGY: "sharded_cluster"
+          AUTH: "auth"
+          SSL: "nossl"
+          REQUIRE_API_VERSION: true
+      - func: start-cse-servers
+      - func: run-versioned-api-test
+        vars:
+          TOPOLOGY: "sharded_cluster"
           AUTH: "auth"
           SSL: "nossl"
           REQUIRE_API_VERSION: true
@@ -1658,6 +1686,19 @@ tasks:
           OIDC_ENV: gcp
         args: [*task-runner, test-oidc-remote]
 
+  - name: "oidc-auth-test-k8s"
+    commands:
+    - func: assume-test-secrets-ec2-role
+    - func: "run oidc k8s test"
+      vars:
+        VARIANT: eks
+    - func: "run oidc k8s test"
+      vars:
+        VARIANT: gke
+    - func: "run oidc k8s test"
+      vars:
+        VARIANT: aks
+
   - name: "test-search-index"
     commands:
       - func: "bootstrap-mongo-orchestration"
@@ -1698,10 +1739,6 @@ axes:
         display_name: "4.0"
         variables:
           VERSION: "4.0"
-      - id: "3.6"
-        display_name: "3.6"
-        variables:
-          VERSION: "3.6"
       - id: "rapid"
         display_name: "rapid"
         variables:
@@ -1721,7 +1758,7 @@ axes:
           - windows-vsCurrent-small
         variables:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
-          GO_DIST: "C:\\golang\\go1.22"
+          GO_DIST: "C:\\golang\\go1.23"
           VENV_BIN_DIR: "Scripts"
           DEFAULT_TASK: evg-test
           # CSOT tests are unreliable on our slow Windows hosts.
@@ -1730,14 +1767,14 @@ axes:
         display_name: "RHEL 8.7"
         run_on: rhel8.7-large
         variables:
-          GO_DIST: "/opt/golang/go1.22"
+          GO_DIST: "/opt/golang/go1.23"
           DEFAULT_TASK: evg-test
       - id: "macos"
         display_name: "MacOS 14.0"
         run_on: macos-14
         batchtime: 1440 # Run at most once per 24 hours.
         variables:
-          GO_DIST: "/opt/golang/go1.22"
+          GO_DIST: "/opt/golang/go1.23"
           DEFAULT_TASK: evg-test-load-balancers
           # CSOT tests are unreliable on our slow macOS hosts.
           SKIP_CSOT_TESTS: true
@@ -1752,7 +1789,7 @@ axes:
           - windows-vsCurrent-small
         variables:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
-          GO_DIST: "C:\\golang\\go1.22"
+          GO_DIST: "C:\\golang\\go1.23"
           VENV_BIN_DIR: "Scripts"
           DEFAULT_TASK: evg-test
           # CSOT tests are unreliable on our slow Windows hosts.
@@ -1761,14 +1798,14 @@ axes:
         display_name: "RHEL 8.7"
         run_on: rhel8.7-large
         variables:
-          GO_DIST: "/opt/golang/go1.22"
+          GO_DIST: "/opt/golang/go1.23"
           DEFAULT_TASK: evg-test
       - id: "macos"
         display_name: "MacOS 14.0"
         run_on: macos-14
         batchtime: 1440 # Run at most once per 24 hours.
         variables:
-          GO_DIST: "/opt/golang/go1.22"
+          GO_DIST: "/opt/golang/go1.23"
           DEFAULT_TASK: evg-test-load-balancers
           # CSOT tests are unreliable on our slow macOS hosts.
           SKIP_CSOT_TESTS: true
@@ -1780,7 +1817,7 @@ axes:
         display_name: "RHEL 8.7"
         run_on: rhel8.7-large
         variables:
-          GO_DIST: "/opt/golang/go1.22"
+          GO_DIST: "/opt/golang/go1.23"
           DEFAULT_TASK: evg-test
 
   - id: os-aws-auth
@@ -1792,7 +1829,7 @@ axes:
           - windows-vsCurrent-small
         variables:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
-          GO_DIST: "C:\\golang\\go1.22"
+          GO_DIST: "C:\\golang\\go1.23"
           SKIP_ECS_AUTH_TEST: true
           DEFAULT_TASK: evg-test
           # CSOT tests are unreliable on our slow Windows hosts.
@@ -1801,14 +1838,14 @@ axes:
         display_name: "Ubuntu 20.04"
         run_on: ubuntu2004-test
         variables:
-          GO_DIST: "/opt/golang/go1.22"
+          GO_DIST: "/opt/golang/go1.23"
           DEFAULT_TASK: evg-test
       - id: "macos"
         display_name: "MacOS 14.0"
         run_on: macos-14
         batchtime: 1440 # Run at most once per 24 hours.
         variables:
-          GO_DIST: "/opt/golang/go1.22"
+          GO_DIST: "/opt/golang/go1.23"
           SKIP_ECS_AUTH_TEST: true
           SKIP_EC2_AUTH_TEST: true
           SKIP_WEB_IDENTITY_AUTH_TEST: true
@@ -1823,7 +1860,7 @@ axes:
         display_name: "RHEL 8.7"
         run_on: rhel8.7-large
         variables:
-          GO_DIST: "/opt/golang/go1.22"
+          GO_DIST: "/opt/golang/go1.23"
 
   - id: os-serverless
     display_name: OS
@@ -1832,7 +1869,7 @@ axes:
         display_name: "RHEL 8.7"
         run_on: rhel8.7-small
         variables:
-          GO_DIST: "/opt/golang/go1.22"
+          GO_DIST: "/opt/golang/go1.23"
 
 task_groups:
   - name: serverless_task_group
@@ -1902,14 +1939,20 @@ task_groups:
            - ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/teardown.sh
       - func: teardown
       - func: handle-test-artifacts
-      
     tasks:
       - testazurekms-task
 
   - name: testoidc_task_group
+    setup_group_can_fail_task: true
+    setup_group_timeout_secs: 1800
+    # TODO(DRIVERS-3141): Uncomment the following line once the teardown bug is
+    # fixed. See DRIVERS-3141 for more context.
+    #
+    # teardown_task_can_fail_task: true
+    teardown_group_timeout_secs: 180 # 3 minutes (max allowed time)
     setup_group:
       - func: setup-system
-      - func: assume-ec2-role
+      - func: assume-test-secrets-ec2-role
       - command: subprocess.exec
         params:
           binary: bash
@@ -1926,12 +1969,14 @@ task_groups:
             - ${DRIVERS_TOOLS}/.evergreen/auth_oidc/teardown.sh
       - func: teardown
       - func: handle-test-artifacts
-    setup_group_can_fail_task: true
-    setup_group_timeout_secs: 1800
     tasks:
       - oidc-auth-test
 
   - name: testazureoidc_task_group
+    setup_group_can_fail_task: true
+    setup_group_timeout_secs: 1800
+    teardown_task_can_fail_task: true
+    teardown_group_timeout_secs: 180 # 3 minutes (max allowed time)
     setup_group:
       - func: setup-system
       - command: subprocess.exec
@@ -1949,12 +1994,14 @@ task_groups:
             - ${DRIVERS_TOOLS}/.evergreen/auth_oidc/azure/teardown.sh
       - func: teardown
       - func: handle-test-artifacts
-    setup_group_can_fail_task: true
-    setup_group_timeout_secs: 1800
     tasks:
       - oidc-auth-test-azure
 
   - name: testgcpoidc_task_group
+    setup_group_can_fail_task: true
+    setup_group_timeout_secs: 1800
+    teardown_task_can_fail_task: true
+    teardown_group_timeout_secs: 180 # 3 minutes (max allowed time)
     setup_group:
       - func: setup-system
       - command: subprocess.exec
@@ -1972,10 +2019,32 @@ task_groups:
             - ${DRIVERS_TOOLS}/.evergreen/auth_oidc/gcp/teardown.sh
       - func: teardown
       - func: handle-test-artifacts
-    setup_group_can_fail_task: true
-    setup_group_timeout_secs: 1800
     tasks:
       - oidc-auth-test-gcp
+
+  - name: testk8soidc_task_group
+    setup_group_can_fail_task: true
+    setup_group_timeout_secs: 1800
+    teardown_task_can_fail_task: true
+    teardown_group_timeout_secs: 180 # 3 minutes (max allowed time)
+    setup_group:
+      - func: setup-system
+      - command: subprocess.exec
+        params:
+          binary: bash
+          include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
+          args:
+            - ${DRIVERS_TOOLS}/.evergreen/auth_oidc/k8s/setup.sh
+    teardown_group:
+      - command: subprocess.exec
+        params:
+          binary: bash
+          args:
+            - ${DRIVERS_TOOLS}/.evergreen/auth_oidc/k8s/teardown.sh
+      - func: teardown
+      - func: handle-test-artifacts
+    tasks:
+      - oidc-auth-test-k8s
 
   - name: test-aws-lambda-task-group
     setup_group:
@@ -2042,7 +2111,7 @@ buildvariants:
       - rhel8.7-small
     expansions:
       # Keep this in sync with go version used in etc/golangci-lint.sh
-      GO_DIST: "/opt/golang/go1.22"
+      GO_DIST: "/opt/golang/go1.23"
     tasks:
       - name: ".static-analysis"
 
@@ -2052,7 +2121,7 @@ buildvariants:
     run_on:
       - rhel8.7-small
     expansions:
-      GO_DIST: "/opt/golang/go1.22"
+      GO_DIST: "/opt/golang/go1.23"
     tasks:
       - name: "pull-request-helpers"
 
@@ -2061,7 +2130,7 @@ buildvariants:
     display_name: "Performance"
     run_on: rhel90-dbx-perf-large
     expansions:
-      GO_DIST: "/opt/golang/go1.22"
+      GO_DIST: "/opt/golang/go1.23"
     tasks:
       - name: ".performance"
 
@@ -2069,9 +2138,9 @@ buildvariants:
     tags: ["pullrequest"]
     display_name: "Compile Only Checks"
     run_on:
-      - rhel8.7-small
+      - ubuntu2204-small
     expansions:
-      GO_DIST: "/opt/golang/go1.22"
+      GO_DIST: "/opt/golang/go1.23"
     tasks:
       - name: ".compile-check"
 
@@ -2080,7 +2149,7 @@ buildvariants:
     run_on:
       - rhel8.7-small
     expansions:
-      GO_DIST: "/opt/golang/go1.22"
+      GO_DIST: "/opt/golang/go1.23"
     tasks: 
       - name: "backport-pr"
 
@@ -2090,7 +2159,7 @@ buildvariants:
     run_on:
       - rhel8.7-large
     expansions:
-      GO_DIST: "/opt/golang/go1.22"
+      GO_DIST: "/opt/golang/go1.23"
     tasks:
       - name: "atlas-test"
 
@@ -2100,7 +2169,7 @@ buildvariants:
     run_on:
       - ubuntu2004-large
     expansions:
-      GO_DIST: "/opt/golang/go1.22"
+      GO_DIST: "/opt/golang/go1.23"
     tasks:
       - name: "test-atlas-data-lake"
 
@@ -2110,7 +2179,7 @@ buildvariants:
     run_on:
       - ubuntu2204-large
     expansions:
-      GO_DIST: "/opt/golang/go1.22"
+      GO_DIST: "/opt/golang/go1.23"
     tasks:
       - name: "test-docker-runner"
 
@@ -2120,22 +2189,9 @@ buildvariants:
     run_on:
       - ubuntu2204-large
     expansions:
-      GO_DIST: "/opt/golang/go1.22"
+      GO_DIST: "/opt/golang/go1.23"
     tasks:
       - name: ".goleak"
-
-  - matrix_name: "tests-rhel-36-with-zlib-support"
-    tags: ["pullrequest"]
-    matrix_spec: { version: ["3.6"], os-ssl-32: ["rhel87-64"] }
-    display_name: "${version} ${os-ssl-32}"
-    tasks:
-      - name: ".test !.enterprise-auth !.snappy !.zstd"
-
-  - matrix_name: "tests-windows-36-with-zlib-support"
-    matrix_spec: { version: ["3.6"], os-ssl-32: ["windows-64"] }
-    display_name: "${version} ${os-ssl-32}"
-    tasks:
-      - name: ".test !.enterprise-auth !.snappy !.zstd"
 
   - matrix_name: "tests-rhel-40-with-snappy-support"
     tags: ["pullrequest"]
@@ -2287,7 +2343,7 @@ buildvariants:
     run_on:
       - rhel8.7-small
     expansions:
-      GO_DIST: "/opt/golang/go1.22"
+      GO_DIST: "/opt/golang/go1.23"
     tasks:
       - name: testgcpkms_task_group
         batchtime: 20160 # Use a batchtime of 14 days as suggested by the CSFLE test README
@@ -2298,7 +2354,7 @@ buildvariants:
     run_on:
       - rhel8.7-small
     expansions:
-      GO_DIST: "/opt/golang/go1.22"
+      GO_DIST: "/opt/golang/go1.23"
     tasks:
       - testawskms-task
       - testawskms-fail-task
@@ -2308,7 +2364,7 @@ buildvariants:
     run_on:
       - rhel8.7-small
     expansions:
-      GO_DIST: "/opt/golang/go1.22"
+      GO_DIST: "/opt/golang/go1.23"
     tasks:
       - name: testazurekms_task_group
         batchtime: 20160 # Use a batchtime of 14 days as suggested by the CSFLE test README
@@ -2319,11 +2375,9 @@ buildvariants:
     run_on:
       - ubuntu2204-small
     expansions:
-      GO_DIST: "/opt/golang/go1.22"
+      GO_DIST: "/opt/golang/go1.23"
     tasks:
       - name: testoidc_task_group
-        batchtime: 20160 # Use a batchtime of 14 days as suggested by the CSFLE test README
       - name: testazureoidc_task_group
-        batchtime: 20160 # Use a batchtime of 14 days as suggested by the CSFLE test README
       - name: testgcpoidc_task_group
-        batchtime: 20160 # Use a batchtime of 14 days as suggested by the CSFLE test README
+      - name: testk8soidc_task_group

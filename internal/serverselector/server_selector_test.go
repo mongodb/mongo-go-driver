@@ -296,11 +296,7 @@ func runTest(t *testing.T, testsDir string, directory string, filename string) {
 	content, err := ioutil.ReadFile(filepath)
 	require.NoError(t, err)
 
-	// Remove ".json" from filename.
-	filename = filename[:len(filename)-5]
-	testName := directory + "/" + filename + ":"
-
-	t.Run(testName, func(t *testing.T) {
+	t.Run(directory+"/"+filename, func(t *testing.T) {
 		var test testCase
 		require.NoError(t, bson.UnmarshalExtJSON(content, true, &test))
 
