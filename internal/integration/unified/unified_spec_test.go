@@ -8,6 +8,7 @@ package unified
 
 import (
 	"context"
+	"os"
 	"path"
 	"testing"
 
@@ -52,8 +53,12 @@ const dataDirectory = "../../../testdata"
 
 func TestUnifiedSpec(t *testing.T) {
 	// Ensure the cluster is in a clean state before test execution begins.
-	if err := terminateOpenSessions(context.Background()); err != nil {
-		t.Fatalf("error terminating open transactions: %v", err)
+	// Don't run for Data Lake tests because it doesn't support
+	// "killAllSessions".
+	if os.Getenv("ATLAS_DATA_LAKE_INTEGRATION_TEST") != "true" {
+		if err := terminateOpenSessions(context.Background()); err != nil {
+			t.Fatalf("error terminating open transactions: %v", err)
+		}
 	}
 
 	for _, testDir := range passDirectories {
