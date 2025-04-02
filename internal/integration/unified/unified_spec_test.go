@@ -32,7 +32,7 @@ var (
 		"retryable-reads/tests/unified",
 		"retryable-writes/tests/unified",
 		"client-side-encryption/tests/unified",
-		//"client-side-operations-timeout/tests",
+		"client-side-operations-timeout/tests",
 		"gridfs/tests",
 		"server-selection/tests/logging",
 		"server-discovery-and-monitoring/tests/unified",

@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/v2/internal/require"
@@ -43,15 +44,15 @@ func FindJSONFilesInDir(t *testing.T, dir string) []string {
 // subdirectory.
 func Path(subdir string) string {
 	root := os.Getenv("PROJECT_DIRECTORY")
-	//if root == "" {
-	//	_, file, _, ok := runtime.Caller(0)
-	//	if !ok {
-	//		panic("unable to get current file path from call stack")
-	//	}
+	if root == "" {
+		_, file, _, ok := runtime.Caller(0)
+		if !ok {
+			panic("unable to get current file path from call stack")
+		}
 
-	//	// Get the repository root path from the current Go file path.
-	//	root = filepath.Dir(filepath.Dir(filepath.Dir(file)))
-	//}
+		// Get the repository root path from the current Go file path.
+		root = filepath.Dir(filepath.Dir(filepath.Dir(file)))
+	}
 
 	return filepath.Join(root, "testdata", "specifications", "source", subdir)
 }
