@@ -126,6 +126,10 @@ var skipTests = map[string]string{
 	"TestUnifiedSpec/client-side-operations-timeout/retryability-timeoutMS.json/operation_is_retried_multiple_times_for_non-zero_timeoutMS_-_aggregate_on_collection": "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
 	"TestUnifiedSpec/client-side-operations-timeout/retryability-timeoutMS.json/operation_is_retried_multiple_times_for_non-zero_timeoutMS_-_aggregate_on_database":   "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
 	"TestUnifiedSpec/client-side-operations-timeout/gridfs-find.json/timeoutMS_applied_to_find_command":                                                               "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
+	"TestUnifiedSpec/client-side-operations-timeout/tailable-awaitData.json/timeoutMS_applied_to_find":                                                                "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
+	"TestUnifiedSpec/client-side-operations-timeout/tailable-awaitData.json/timeoutMS_is_refreshed_for_getMore_if_maxAwaitTimeMS_is_not_set":                          "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
+	"TestUnifiedSpec/client-side-operations-timeout/tailable-awaitData.json/timeoutMS_is_refreshed_for_getMore_if_maxAwaitTimeMS_is_set":                              "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
+	"TestUnifiedSpec/client-side-operations-timeout/tailable-awaitData.json/timeoutMS_is_refreshed_for_getMore_-_failure":                                             "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
 
 	// DRIVERS-2953: This test requires that the driver sends a "getMore" with
 	// "maxTimeMS" set. However, "getMore" can only include "maxTimeMS" for
@@ -152,6 +156,18 @@ var skipTests = map[string]string{
 	"TestUnifiedSpec/server-discovery-and-monitoring/unified/sharded-emit-topology-changed-before-close.json/Topology_lifecycle":      "Implement GODRIVER-2967",
 	"TestUnifiedSpec/server-discovery-and-monitoring/unified/replicaset-emit-topology-changed-before-close.json/Topology_lifecycle":   "Implement GODRIVER-2967",
 	"TestUnifiedSpec/server-discovery-and-monitoring/unified/standalone-emit-topology-changed-before-close.json/Topology_lifecycle":   "Implement GODRIVER-2967",
+
+	// GODRIVER-3473: the implementation of DRIVERS-2868 makes it clear that the
+	// Go Driver does not correctly implement the following validation for
+	// tailable awaitData cursors:
+	//
+	//     Drivers MUST error if this option is set, timeoutMS is set to a
+	//     non-zero value, and maxAwaitTimeMS is greater than or equal to
+	//     timeoutMS.
+	//
+	// Once GODRIVER-3473 is completed, we can continue running these tests.
+	"TestUnifiedSpec/client-side-operations-timeout/tailable-awaitData.json/apply_remaining_timeoutMS_if_less_than_maxAwaitTimeMS": "Go Driver does not implement this behavior. See GODRIVER-3473",
+	"TestUnifiedSpec/client-side-operations-timeout/tailable-awaitData.json/error_if_maxAwaitTimeMS_is_equal_to_timeoutMS":         "Go Driver does not implement this behavior. See GODRIVER-3473",
 }
 
 // CheckSkip checks if the fully-qualified test name matches a skipped test
