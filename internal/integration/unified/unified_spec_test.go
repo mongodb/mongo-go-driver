@@ -15,6 +15,9 @@ import (
 )
 
 var (
+	// TODO(GODRIVER-3526): This variable can be removed once we determine why
+	// transaction-heavy unified spec tests are failing in the unified spec
+	// runner.
 	nonGitSubmodulePassDirectories = []string{
 		"unified-test-format/valid-pass",
 		"transactions/unified",
@@ -59,6 +62,9 @@ func TestUnifiedSpec(t *testing.T) {
 		})
 	}
 
+	// TODO(GODRIVER-3526): This block can be removed once we determine why
+	// transaction-heavy unified spec tests are failing in the unified spec
+	// runner.
 	for _, testDir := range nonGitSubmodulePassDirectories {
 		t.Run(testDir, func(t *testing.T) {
 			runTestDirectory(t, path.Join(dataDirectory, testDir), false)

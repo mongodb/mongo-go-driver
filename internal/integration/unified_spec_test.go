@@ -162,6 +162,9 @@ var directories = []string{
 	"read-write-concern/tests/operation",
 }
 
+// TODO(GODRIVER-3526): This variable can be removed once we determine why
+// transaction-heavy unified spec tests are failing in the unified spec
+// runner.
 var nonGitSubmodulePassDirectories = []string{
 	"convenient-transactions",
 }
@@ -187,6 +190,9 @@ func TestUnifiedSpecs(t *testing.T) {
 		})
 	}
 
+	// TODO(GODRIVER-3526): This block can be removed once we determine why
+	// transaction-heavy unified spec tests are failing in the unified spec
+	// runner.
 	for _, specDir := range nonGitSubmodulePassDirectories {
 		t.Run(specDir, func(t *testing.T) {
 			for _, fileName := range jsonFilesInDir(t, path.Join(dataPath, specDir)) {

@@ -11,35 +11,41 @@ import "testing"
 // skipTests is a map of "fully-qualified test name" to "the reason for skipping
 // the test".
 var skipTests = map[string][]string{
-
-	// SPEC-1403: This test checks to see if the correct error is thrown when auto encrypting with a server < 4.2.
-	// Currently, the test will fail because a server < 4.2 wouldn't have mongocryptd, so Client construction would fail with a mongocryptd spawn error.
+	// SPEC-1403: This test checks to see if the correct error is thrown when auto
+	// encrypting with a server < 4.2. Currently, the test will fail because a
+	// server < 4.2 wouldn't have mongocryptd, so Client construction would fail
+	// with a mongocryptd spawn error.
 	"Servers less than 4.2 do not have mongocryptd; see SPEC-1403": {
 		"TestClientSideEncryptionSpec/maxWireVersion.json/operation_fails_with_maxWireVersion_<_8",
 	},
 
-	// GODRIVER-1826: Tests for incompatible event ordering in load-balancer SDAM spec tests.
+	// TODO(GODRIVER-1826): Tests for incompatible event ordering in load-balancer
+	// SDAM spec tests.
 	"Event ordering is incompatible with load-balancer SDAM spec test (DRIVERS-1785)": {
 		"TestCMAPSpec/pool-create-min-size-error.json/error_during_minPoolSize_population_clears_pool",
 	},
 
-	// GODRIVER-1826: Race condition prevents the "threads blocked by maxConnecting" test from passing.
+	// TODO(GODRIVER-1826): Race condition prevents the "threads blocked by
+	// maxConnecting" test from passing.
 	"Test requires that connections established by minPoolSize are immediately used to satisfy check-out requests (DRIVERS-2225)": {
 		"TestCMAPSpec/pool-checkout-minPoolSize-connection-maxConnecting.json/threads_blocked_by_maxConnecting_check_out_minPoolSize_connections",
 	},
 
-	// GODRIVER-1826: The Go connection pool behavior for check-in requests is incompatible with expected test behavior.
+	// TODO(GODRIVER-1826): The Go connection pool behavior for check-in requests
+	// is incompatible with expected test behavior.
 	"Test requires a checked-in connections cannot satisfy a check-out waiting on a new connection (DRIVERS-2223)": {
 		"TestCMAPSpec/pool-checkout-returned-connection-maxConnecting.json/threads_blocked_by_maxConnecting_check_out_returned_connections",
 	},
 
-	// TODO: GODRIVER-2129. Re-enable this test once the feature is implemented.
-	"Support will be added with GODRIVER-2129.": {
+	// TODO(GODRIVER-2129): Re-enable this test once the feature is implemented.
+	// TODO(GODRIVER-2129): Support for
+	// sspiHostnamecanonicalization=none/forward/forwardAndReverse for Kerberos
+	"Requires sspiHostnamecanonicalization=none/forward/forwardAndReverse support for Kerberos (GODRIVER-2129)": {
 		"TestAuthSpec/connection-string.json/must_raise_an_error_when_the_hostname_canonicalization_is_invalid",
 	},
 
-	// TODO: GODRIVER-2183: Implementation of Socks5 Proxy Support is pending.
-	"Implement GODRIVER-2183 for Socks5 Proxy Support": {
+	// TODO(GODRIVER-2183): Implementation of Socks5 Proxy Support is pending.
+	"Requires Socks5 Proxy Support (GODRIVER-2183)": {
 		"TestURIOptionsSpec/proxy-options.json/proxyPort_without_proxyHost",
 		"TestURIOptionsSpec/proxy-options.json/proxyUsername_without_proxyHost",
 		"TestURIOptionsSpec/proxy-options.json/proxyPassword_without_proxyHost",
@@ -108,8 +114,9 @@ var skipTests = map[string][]string{
 		"TestURIOptionsSpec/tls-options.json/tlsAllowInvalidHostnames_and_tlsInsecure_both_present_(and_false)_raises_an_error",
 	},
 
-	// TODO: GODRIVER-2991 - Make delimiting slash between hosts and options optional.
-	"Implement GODRIVER-2991 making delimiting slash between hosts and options optional": {
+	// TODO(GODRIVER-2991): Make delimiting slash between hosts and options
+	// optional.
+	"Requires making delimiting slash between hosts and options optional (GODRIVERS-2991)": {
 		"TestConnStringSpec/valid-options.json/Missing_delimiting_slash_between_hosts_and_options",
 	},
 
@@ -122,28 +129,31 @@ var skipTests = map[string][]string{
 		"TestConnStringSpec/valid-warnings.json/Comma_in_a_key_value_pair_causes_a_warning",
 	},
 
-	// TODO: GODRIVER-3167 - Support assertions on topologyDescriptionChangedEvent in expectEvents.
-	"Implement GODRIVER-3161": {
+	// TODO(GODRIVER-3167): Support assertions on topologyDescriptionChangedEvent
+	// in expectEvents.
+	"Support assertions on topologyDescriptionChangedEvent in expectEvents (GODRIVER-3167)": {
 		"TestUnifiedSpec/unified-test-format/valid-pass/expectedEventsForClient-topologyDescriptionChangedEvent.json/can_assert_on_values_of_newDescription_and_previousDescription_fields",
 	},
 
-	// TODO: GODRIVER-3409 - Regression test for "number" alias in $$type operator.
-	"Implement GODRIVER-3409": {
+	// TODO(GODRIVER-3409): Add regression test for "number" alias in $$type
+	// operator.
+	"Regression test for 'number' alias in $$type operator (GODRIVER-3409)": {
 		"TestUnifiedSpec/unified-test-format/valid-pass/operator-type-number_alias.json/type_number_alias_matches_int32",
 		"TestUnifiedSpec/unified-test-format/valid-pass/operator-type-number_alias.json/type_number_alias_matches_int64",
 		"TestUnifiedSpec/unified-test-format/valid-pass/operator-type-number_alias.json/type_number_alias_matches_double",
 		"TestUnifiedSpec/unified-test-format/valid-pass/operator-type-number_alias.json/type_number_alias_matches_decimal128",
 	},
 
-	// TODO: GODRIVER-3143 - Convert CRUD v1 spec tests to unified test format.
-	"Implement GODRIVER-3143": {
+	// TODO(GODRIVER-3143): Convert CRUD v1 spec tests to unified test format.
+	"Convert CRUD v1 spec tests to unified test format (GODRIVER-3143)": {
 		"TestUnifiedSpec/crud/tests/unified/bulkWrite-collation.json/BulkWrite_with_delete_operations_and_collation",
 		"TestUnifiedSpec/crud/tests/unified/count.json/Count_documents_with_skip_and_limit",
 		"TestUnifiedSpec/crud/tests/unified/findOne.json/FindOne_with_filter,_sort,_and_skip",
 	},
 
-	// TODO: GODRIVER-2125 - Allow hint for unacknowledged writes using OP_MSG when supported by the server.
-	"Implement GODRIVER-2125": {
+	// TODO(GODRIVER-2125): Allow hint for unacknowledged writes using OP_MSG when
+	// supported by the server.
+	"Allow hint for unacknowledged writes using OP_MSG (GODRIVER-2125)": {
 		"TestUnifiedSpec/crud/tests/unified/bulkWrite-deleteMany-hint-unacknowledged.json/Unacknowledged_deleteMany_with_hint_string_on_4.4+_server",
 		"TestUnifiedSpec/crud/tests/unified/bulkWrite-deleteMany-hint-unacknowledged.json/Unacknowledged_deleteMany_with_hint_document_on_4.4+_server",
 		"TestUnifiedSpec/crud/tests/unified/bulkWrite-deleteOne-hint-unacknowledged.json/Unacknowledged_deleteOne_with_hint_string_on_4.4+_server",
@@ -156,8 +166,9 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/crud/tests/unified/bulkWrite-updateOne-hint-unacknowledged.json/Unacknowledged_updateOne_with_hint_document_on_4.2+_server",
 	},
 
-	// TODO: GODRIVER-3407 - Allow drivers to set bypassDocumentValidation: false on write commands.
-	"Implement GODRIVER-3407": {
+	// TODO(GODRIVER-3407): Allow drivers to set bypassDocumentValidation: false
+	// on write commands.
+	"Allow drivers to set bypassDocumentValidation: false on write commands (GODRIVER-3407)": {
 		"TestUnifiedSpec/crud/tests/unified/bypassDocumentValidation.json/Aggregate_with_$out_passes_bypassDocumentValidation:_false",
 		"TestUnifiedSpec/crud/tests/unified/bypassDocumentValidation.json/BulkWrite_passes_bypassDocumentValidation:_false",
 		"TestUnifiedSpec/crud/tests/unified/bypassDocumentValidation.json/FindOneAndReplace_passes_bypassDocumentValidation:_false",
@@ -186,19 +197,20 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/crud/tests/unified/updateOne-hint-unacknowledged.json/Unacknowledged_updateOne_with_hint_document_on_4.2+_server",
 	},
 
-	// TODO: GODRIVER-3392 - Test that inserts and upserts respect null _id values.
-	"Implement GODRIVER-3392": {
+	// TODO(GODRIVER-3392): Test that inserts and upserts respect null _id values.
+	"Test inserts and upserts respect null _id values (GODRIVER-3392)": {
 		"TestUnifiedSpec/crud/tests/unified/create-null-ids.json/inserting__id_with_type_null_via_insertOne",
 		"TestUnifiedSpec/crud/tests/unified/create-null-ids.json/inserting__id_with_type_null_via_clientBulkWrite",
 	},
 
-	// TODO: GODRIVER-3395 - Ensure findOne does not set batchSize=1.
-	"Implement GODRIVER-3395": {
+	// TODO(GODRIVER-3395): Ensure findOne does not set batchSize=1.
+	"Ensure findOne does not set batchSize=1 (GODRIVER-3395)": {
 		"TestUnifiedSpec/crud/tests/unified/find.json/Find_with_batchSize_equal_to_limit",
 	},
 
-	// TODO: GODRIVER-2016 - Convert transactions spec tests to unified test format.
-	"Implement GODRIVER-2016": {
+	// TODO(GODRIVER-2016): Convert transactions spec tests to unified test
+	// format.
+	"Convert transactions spec tests to unified test format (GODRIVER-2016)": {
 		"TestUnifiedSpec/transactions/tests/unified/error-labels.json/do_not_add_UnknownTransactionCommitResult_label_to_MaxTimeMSExpired_inside_transaction",
 		"TestUnifiedSpec/transactions/tests/unified/error-labels.json/do_not_add_UnknownTransactionCommitResult_label_to_MaxTimeMSExpired_inside_transactions",
 		"TestUnifiedSpec/transactions/tests/unified/error-labels.json/add_UnknownTransactionCommitResult_label_to_MaxTimeMSExpired",
@@ -216,34 +228,38 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/transactions/tests/unified/retryable-commit.json/commitTransaction_fails_after_Interrupted",
 	},
 
-	// GODRIVER-1773: Tests related to batch size expectation in "find" and "getMore" events.
-	"Implement GODRIVER-1773": {
+	// TODO(GODRIVER-1773): Tests related to batch size expectation in "find" and
+	// "getMore" events.
+	"Tests for batch size expectation in 'find' and 'getMore' events (GODRIVER-1773)": {
 		"TestUnifiedSpec/command-logging-and-monitoring/tests/monitoring/find.json/A_successful_find_event_with_a_getmore_and_the_server_kills_the_cursor_(<=_4.4)",
 		"TestUnifiedSpec/unified-test-format/valid-pass/poc-command-monitoring.json/A_successful_find_event_with_a_getmore_and_the_server_kills_the_cursor_(<=_4.4)",
 	},
 
-	// GODRIVER-2577: Tests require immediate operation canceling, incompatible with current pool clearing logic.
-	"Go Driver clears after multiple timeout": {
+	// TODO(GODRIVER-2577): Tests require immediate operation canceling,
+	// incompatible with current pool clearing logic.
+	"Require immediate operation canceling for pool clearing (GODRIVER-2577)": {
 		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/interruptInUse-pool-clear.json/Connection_pool_clear_uses_interruptInUseConnections=true_after_monitor_timeout",
 		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/interruptInUse-pool-clear.json/Error_returned_from_connection_pool_clear_with_interruptInUseConnections=true_is_retryable",
 		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/interruptInUse-pool-clear.json/Error_returned_from_connection_pool_clear_with_interruptInUseConnections=true_is_retryable_for_write",
 	},
 
-	// TODO: GODRIVER-2843 - Fix and unskip these test cases.
-	"Test fails frequently. See GODRIVER-2843": {
+	// TODO(GODRIVER-2843): Fix and unskip these test cases.
+	"Test fails frequently, needs fixing (GODRIVER-2843)": {
 		"TestUnifiedSpec/sessions/snapshot-sessions.json/Find_operation_with_snapshot",
 		"TestUnifiedSpec/sessions/snapshot-sessions.json/Write_commands_with_snapshot_session_do_not_affect_snapshot_reads",
 	},
 
-	// TODO: GODRIVER-3043 - Avoid Appending Write/Read Concern in Atlas Search Index Helper Commands.
-	"Sync GODRIVER-3074, but skip testing bug GODRIVER-3043": {
+	// TODO(GODRIVER-3043): Avoid Appending Write/Read Concern in Atlas Search
+	// Index Helper Commands.
+	"Sync tests but avoid write/read concern bug (GODRIVER-3043)": {
 		"TestUnifiedSpec/index-management/tests/searchIndexIgnoresReadWriteConcern.json/dropSearchIndex_ignores_read_and_write_concern",
 		"TestUnifiedSpec/index-management/tests/searchIndexIgnoresReadWriteConcern.json/listSearchIndexes_ignores_read_and_write_concern",
 		"TestUnifiedSpec/index-management/tests/searchIndexIgnoresReadWriteConcern.json/updateSearchIndex_ignores_the_read_and_write_concern",
 	},
 
-	// TODO: DRIVERS-2829 - Create CSOT Legacy Timeout Analogues and Compatibility Field.
-	"Uses unsupported socketTimeoutMS": {
+	// TODO(DRIVERS-2829): Create CSOT Legacy Timeout Analogues and Compatibility
+	// Field.
+	"Handles socketTimeoutMS instead of CSOT (DRIVERS-2829)": {
 		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/auth-network-timeout-error.json/Reset_server_and_pool_after_network_timeout_error_during_authentication",
 		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/find-network-timeout-error.json/Ignore_network_timeout_error_on_find",
 		"TestUnifiedSpec/command-logging-and-monitoring/tests/monitoring/find.json/A_successful_find_with_options",
@@ -251,13 +267,14 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/run-command/tests/unified/runCursorCommand.json/supports_configuring_getMore_maxTimeMS",
 	},
 
-	// TODO: GODRIVER-3137 - Implement Gossip cluster time.
-	"Implement GODRIVER-3137": {
+	// TODO(GODRIVER-3137): Implement Gossip cluster time.
+	"Implement Gossip cluster time (GODRIVER-3137)": {
 		"TestUnifiedSpec/transactions/unified/mongos-unpin.json/unpin_after_TransientTransactionError_error_on_commit",
 	},
 
-	// TODO: GODRIVER-3034 - Drivers should unpin connections when ending a session.
-	"Implement GODRIVER-3034": {
+	// TODO(GODRIVER-3034): Drivers should unpin connections when ending a
+	// session.
+	"Unpin connections at session end (GODRIVER-3034)": {
 		"TestUnifiedSpec/transactions/unified/mongos-unpin.json/unpin_on_successful_abort",
 		"TestUnifiedSpec/transactions/unified/mongos-unpin.json/unpin_after_non-transient_error_on_abort",
 		"TestUnifiedSpec/transactions/unified/mongos-unpin.json/unpin_after_TransientTransactionError_error_on_abort",
@@ -266,8 +283,8 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/transactions/unified/mongos-unpin.json/unpin_when_a_non-transaction_read_operation_uses_a_session",
 	},
 
-	// TODO: GODRIVER-3146 - Convert retryable reads spec tests to unified test format.
-	"Implement GODRIVER-3146": {
+	// TODO(GODRIVER-3146): Convert retryable reads spec tests to unified test format.
+	"Convert retryable reads spec tests to unified test format (GODRIVER-3146)": {
 		"TestUnifiedSpec/retryable-reads/tests/unified/listCollectionObjects-serverErrors.json/ListCollectionObjects_succeeds_after_InterruptedAtShutdown",
 		"TestUnifiedSpec/retryable-reads/tests/unified/listCollectionObjects-serverErrors.json/ListCollectionObjects_succeeds_after_InterruptedDueToReplStateChange",
 		"TestUnifiedSpec/retryable-reads/tests/unified/listCollectionObjects-serverErrors.json/ListCollectionObjects_succeeds_after_NotWritablePrimary",
@@ -307,8 +324,10 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/retryable-reads/tests/unified/mapReduce.json/MapReduce_fails_with_retry_off",
 	},
 
-	// DRIVERS-2722: Setting "maxTimeMS" on a command that creates a cursor may be surprising to users, so omit this from operations that return user-managed cursors.
-	"maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.": {
+	// TODO(GODRIVER-2944): Setting "maxTimeMS" on a command that creates a cursor
+	// may be surprising to users, so omit this from operations that return
+	// user-managed cursors.
+	"Omit maxTimeMS from user-managed cursor operations (DRIVERS-2722)": {
 		"TestUnifiedSpec/client-side-operations-timeout/tests/gridfs-find.json/timeoutMS_can_be_overridden_for_a_find",
 		"TestUnifiedSpec/client-side-operations-timeout/tests/override-operation-timeoutMS.json/timeoutMS_can_be_configured_for_an_operation_-_find_on_collection",
 		"TestUnifiedSpec/client-side-operations-timeout/tests/override-operation-timeoutMS.json/timeoutMS_can_be_configured_for_an_operation_-_aggregate_on_collection",
@@ -322,18 +341,19 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/client-side-operations-timeout/tests/gridfs-find.json/timeoutMS_applied_to_find_command",
 	},
 
-	// DRIVERS-2953: Tests require "getMore" with "maxTimeMS" settings. Not supported for non-awaitData cursors.
-	"maxTimeMS can't be set on a getMore. See DRIVERS-2953": {
+	// TODO(GODRIVER-3411): Tests require "getMore" with "maxTimeMS" settings. Not
+	// supported for non-awaitData cursors.
+	"Omit maxTimeMS from a getMore (DRIVERS-2953)": {
 		"TestUnifiedSpec/client-side-operations-timeout/runCursorCommand.json/Non-tailable_cursor_lifetime_remaining_timeoutMS_applied_to_getMore_if_timeoutMode_is_unset",
 	},
 
-	// TODO: GODRIVER-2466 - Convert SDAM integration spec tests to unified test format.
-	"Implement GODRIVER-2466": {
+	// TODO(GODRIVER-2466): Convert SDAM integration spec tests to unified test format.
+	"Convert SDAM integration tests to unified format (GODRIVER-2466)": {
 		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/rediscover-quickly-after-step-down.json/Rediscover_quickly_after_replSetStepDown",
 	},
 
-	// TODO: GODRIVER-2967 - Implement TopologyChangedEvent on topology close.
-	"Implement GODRIVER-2967": {
+	// TODO(GODRIVER-2967): Implement TopologyChangedEvent on topology close.
+	"Implement TopologyChangedEvent on close (GODRIVER-2967)": {
 		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/logging-loadbalanced.json/Topology_lifecycle",
 		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/logging-sharded.json/Topology_lifecycle",
 		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/logging-replicaset.json/Topology_lifecycle",
@@ -373,27 +393,29 @@ var skipTests = map[string][]string{
 		"TestBsonBinaryVectorSpec/Tests_of_Binary_subtype_9,_Vectors,_with_dtype_FLOAT32/Insufficient_vector_data_with_5_bytes_FLOAT32/Marshaling",
 	},
 
-	// TODO: GODRIVER-3521 - Extend Legacy Unified Spec Runner to include client-side-encryption timeoutMS.
-	"Implement GODRIVER-3521": {
+	// TODO(GODRIVER-3521): Extend Legacy Unified Spec Runner to include
+	// client-side-encryption timeoutMS.
+	"Extend Legacy Unified Spec Runner for client-side-encryption timeoutMS (GODRIVER-3521)": {
 		"TestClientSideEncryptionSpec/timeoutMS.json/remaining_timeoutMS_applied_to_find_to_get_keyvault_data",
 		"TestClientSideEncryptionSpec/timeoutMS.json/timeoutMS_applied_to_listCollections_to_get_collection_schema",
 	},
 
-	// TODO: GODRIVER-3486 - Support auto encryption in unified tests.
-	"Implement GODRIVER-3486": {
+	// TODO(GODRIVER-3486): Support auto encryption in unified tests.
+	"Support auto encryption in unified tests (GODRIVER-3486)": {
 		"TestUnifiedSpec/unified-test-format/valid-pass/poc-queryable-encryption.json/insert,_replace,_and_find_with_queryable_encryption",
 	},
 
-	// TODO: DRIVERS-3106 - Support auto encryption in unified tests.
-	"Implement GODRIVER-3106": {
+	// TODO(DRIVERS-3106): Support auto encryption in unified tests.
+	"Support auto encryption in unified tests (DRIVERS-3106)": {
 		"TestUnifiedSpec/client-side-encryption/tests/unified/localSchema.json/A_local_schema_should_override",
 		"TestUnifiedSpec/client-side-encryption/tests/unified/localSchema.json/A_local_schema_with_no_encryption_is_an_error",
 		"TestUnifiedSpec/client-side-encryption/tests/unified/fle2v2-BypassQueryAnalysis.json/BypassQueryAnalysis_decrypts",
 		"TestUnifiedSpec/client-side-encryption/tests/unified/fle2v2-EncryptedFields-vs-EncryptedFieldsMap.json/encryptedFieldsMap_is_preferred_over_remote_encryptedFields",
 	},
 
-	// TODO: GODRIVER-3076 - CSFLE/QE Support for more than 1 KMS provider per type.
-	"Implement GODRIVER-3076": {
+	// TODO(GODRIVER-3076): CSFLE/QE Support for more than 1 KMS provider per
+	// type.
+	"Support multiple KMS providers per type (GODRIVER-3076)": {
 		"TestUnifiedSpec/client-side-encryption/tests/unified/namedKMS-createDataKey.json/create_datakey_with_named_Azure_KMS_provider",
 		"TestUnifiedSpec/client-side-encryption/tests/unified/namedKMS-createDataKey.json/create_datakey_with_named_GCP_KMS_provider",
 		"TestUnifiedSpec/client-side-encryption/tests/unified/namedKMS-createDataKey.json/create_datakey_with_named_KMIP_KMS_provider",
@@ -411,8 +433,8 @@ var skipTests = map[string][]string{
 		"TestClientSideEncryptionSpec/namedKMS.json/Automatically_encrypt_and_decrypt_with_a_named_KMS_provider",
 	},
 
-	// TODO: GODRIVER-3380 - Change stream should resume with CSOT failure.
-	"Implement GODRIVER-3380": {
+	// TODO(GODRIVER-3380): Change stream should resume with CSOT failure.
+	"Ensure change streams resume with CSOT failure (GODRIVER-3380)": {
 		"TestUnifiedSpec/client-side-operations-timeout/tests/change-streams.json/timeoutMS_is_refreshed_for_getMore_if_maxAwaitTimeMS_is_not_set",
 		"TestUnifiedSpec/client-side-operations-timeout/tests/change-streams.json/timeoutMS_is_refreshed_for_getMore_if_maxAwaitTimeMS_is_set",
 		"TestUnifiedSpec/client-side-operations-timeout/tests/change-streams.json/timeoutMS_applies_to_full_resume_attempt_in_a_next_call",
@@ -662,13 +684,14 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/client-side-operations-timeout/tests/legacy-timeouts.json/maxCommitTimeMS_option_is_used_directly_as_the_maxTimeMS_field_on_a_commitTransaction_command",
 	},
 
-	// TODO(GODRIVER-3106): "hello" failpoint in CSOT command-execution UST is
-	// premature
-	"Fix in GODRIVER-3106": {
+	// TODO(GODRIVER-3106): "hello" failpoint in CSOT command-execution UST is premature.
+	"Address premature 'hello' failpoint in CSOT command-execution (GODRIVER-3106)": {
 		"TestUnifiedSpec/client-side-operations-timeout/tests/command-execution.json/maxTimeMS_value_in_the_command_is_less_than_timeoutMS",
 	},
 
-	"Implement GODRIVER-3415": {
+	// TODO(GODRIVER-3415): Add performant "rename all revisions by filename"
+	// feature - rename_by_name.
+	"Add performant 'rename all revisions by filename' feature (GODRIVER-3415)": {
 		"TestUnifiedSpec/gridfs/tests/deleteByName.json/delete_when_multiple_revisions_of_the_file_exist",
 		"TestUnifiedSpec/gridfs/tests/deleteByName.json/delete_when_file_name_does_not_exist",
 		"TestUnifiedSpec/gridfs/tests/renameByName.json/rename_when_multiple_revisions_of_the_file_exist",
@@ -676,8 +699,8 @@ var skipTests = map[string][]string{
 	},
 
 	// TODO(GODRIVER-3393): Add test that PoolClearedEvent is emitted before
-	// ConnectionCheckedInEvent/ConnectionCheckOutFailedEvent
-	"Implement GODRIVER-3393": {
+	// ConnectionCheckedInEvent/ConnectionCheckOutFailedEvent.
+	"Ensure PoolClearedEvent is emitted before ConnectionCheckedIn/ConnectionCheckOutFailed (GODRIVER-3393)": {
 		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/pool-clear-checkout-error.json/Pool_is_cleared_before_connection_is_closed_(authentication_error)",
 		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/pool-clear-checkout-error.json/Pool_is_cleared_before_connection_is_closed_(handshake_error)",
 		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/pool-clear-min-pool-size-error.json/Pool_is_cleared_on_authentication_error_during_minPoolSize_population",
@@ -686,7 +709,7 @@ var skipTests = map[string][]string{
 
 	// TODO(GODRIVER-3155): Convert read/write concern spec tests to unified test
 	// format.
-	"Implement GODRIVER-3155": {
+	"Convert read/write concern spec tests to unified format (GODRIVER-3155)": {
 		"TestUnifiedSpecs/read-write-concern/tests/operation/default-write-concern-2.6.json",
 		"TestUnifiedSpecs/read-write-concern/tests/operation/default-write-concern-3.2.json",
 		"TestUnifiedSpecs/read-write-concern/tests/operation/default-write-concern-3.4.json",
@@ -695,7 +718,7 @@ var skipTests = map[string][]string{
 
 	// TODO(GODRIVER-2191): Drivers should retry operations if connection
 	// handshake fails.
-	"Implement GODRIVER-2191": {
+	"Retry operations on handshake failure (GODRIVER-2191)": {
 		"TestUnifiedSpec/retryable-reads/tests/unified/handshakeError.json/client.listDatabases_succeeds_after_retryable_handshake_network_error",
 		"TestUnifiedSpec/retryable-reads/tests/unified/handshakeError.json/client.listDatabases_succeeds_after_retryable_handshake_server_error_(ShutdownInProgress)",
 		"TestUnifiedSpec/retryable-reads/tests/unified/handshakeError.json/client.listDatabaseNames_succeeds_after_retryable_handshake_network_error",
@@ -749,15 +772,15 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/retryable-writes/tests/unified/handshakeError.json/collection.bulkWrite_succeeds_after_retryable_handshake_server_error_(ShutdownInProgress)",
 	},
 
-	// TODO(GODRIVER-3524): Change streams expanded events present by default in
+	// TODO (GODRIVER-3524): Change streams expanded events present by default in
 	// 8.2+.
-	"Implement GODRIVER-3524": {
+	"Change streams expanded events for MongoDB 8.2+ (GODRIVER-3524)": {
 		"TestUnifiedSpec/change-streams/change-streams-disambiguatedPaths.json/disambiguatedPaths_is_not_present_when_showExpandedEvents_is_false/unset",
 		"TestUnifiedSpec/change-streams/change-streams.json/Test_insert,_update,_replace,_and_delete_event_types",
 	},
 
-	// TODO(DRIVERS-3153): Re-enable once DRIVERS-3153 is fixed.
-	"Re-enable once DRIVERS-3153 is fixed": {
+	// TODO (DRIVERS-3153): Re-enable once resolved.
+	"Re-enable test following DRIVERS-3153 resolution (DRIVERS-3153)": {
 		"TestUnifiedSpec/atlas-data-lake-testing/tests/unified/getMore.json/A_successful_find_event_with_getMore",
 	},
 }
