@@ -111,7 +111,6 @@ func mapInterfaceToString(m map[string]interface{}) map[string]string {
 // Test case for all connection string spec tests.
 func TestAuthSpec(t *testing.T) {
 	for _, file := range spectest.FindJSONFilesInDir(t, authTestsDir) {
-		fmt.Println("file", file)
 		runTestsInFile(t, authTestsDir, file)
 	}
 }
