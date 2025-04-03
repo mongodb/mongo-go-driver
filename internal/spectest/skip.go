@@ -168,6 +168,7 @@ var skipTests = map[string]string{
 	// Once GODRIVER-3473 is completed, we can continue running these tests.
 	"TestUnifiedSpec/client-side-operations-timeout/tailable-awaitData.json/apply_remaining_timeoutMS_if_less_than_maxAwaitTimeMS": "Go Driver does not implement this behavior. See GODRIVER-3473",
 	"TestUnifiedSpec/client-side-operations-timeout/tailable-awaitData.json/error_if_maxAwaitTimeMS_is_equal_to_timeoutMS":         "Go Driver does not implement this behavior. See GODRIVER-3473",
+	"TestUnifiedSpec/client-side-operations-timeout/tailable-awaitData.json/error_if_maxAwaitTimeMS_is_greater_than_timeoutMS":     "Go Driver does not implement this behavior. See GODRIVER-3473",
 }
 
 // CheckSkip checks if the fully-qualified test name matches a skipped test
