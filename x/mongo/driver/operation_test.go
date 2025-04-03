@@ -312,7 +312,7 @@ func TestOperation(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()
 
-				got, err := tc.op.calculateMaxTimeMS(tc.ctx, tc.rttMin)
+				got, err := tc.op.calculateMaxTimeMS(tc.ctx, tc.rttMin, tc.rttStats)
 
 				// Assert that the calculated maxTimeMS is less than or equal to the expected value. A few
 				// milliseconds will have elapsed toward the context deadline, and (remainingTimeout
