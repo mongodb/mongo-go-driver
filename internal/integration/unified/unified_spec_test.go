@@ -9,21 +9,15 @@ package unified
 import (
 	"context"
 	"os"
-	"path"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/v2/internal/spectest"
 )
 
 var (
-	// TODO(GODRIVER-3526): This variable can be removed once we determine why
-	// transaction-heavy unified spec tests are failing in the unified spec
-	// runner.
-	nonGitSubmodulePassDirectories = []string{
-		"unified-test-format/valid-pass",
-		"transactions/unified",
-	}
 	passDirectories = []string{
+		"unified-test-format/tests/valid-pass",
+		"transactions-convenient-api/tests/unified",
 		"versioned-api/tests",
 		"crud/tests/unified",
 		"change-streams/tests/unified",
@@ -49,8 +43,6 @@ var (
 	}
 )
 
-const dataDirectory = "../../../testdata"
-
 func TestUnifiedSpec(t *testing.T) {
 	// Ensure the cluster is in a clean state before test execution begins.
 	// Don't run for Data Lake tests because it doesn't support
@@ -64,15 +56,6 @@ func TestUnifiedSpec(t *testing.T) {
 	for _, testDir := range passDirectories {
 		t.Run(testDir, func(t *testing.T) {
 			runTestDirectory(t, spectest.Path(testDir), false)
-		})
-	}
-
-	// TODO(GODRIVER-3526): This block can be removed once we determine why
-	// transaction-heavy unified spec tests are failing in the unified spec
-	// runner.
-	for _, testDir := range nonGitSubmodulePassDirectories {
-		t.Run(testDir, func(t *testing.T) {
-			runTestDirectory(t, path.Join(dataDirectory, testDir), false)
 		})
 	}
 

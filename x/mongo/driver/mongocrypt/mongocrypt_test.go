@@ -23,7 +23,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mongocrypt/options"
 )
 
-// TODO: create new directory for mongocrypt
 const resourcesDir = "../../../../testdata/mongocrypt"
 
 func noerr(t *testing.T, err error) {

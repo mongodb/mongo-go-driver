@@ -49,7 +49,6 @@ type connectionStringTest struct {
 	Valid        bool     `bson:"valid"`
 	ReadConcern  bson.Raw `bson:"readConcern"`
 	WriteConcern bson.Raw `bson:"writeConcern"`
-	SkipReason   string   `bson:"skipReason"`
 }
 
 type documentTestFile struct {

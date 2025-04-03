@@ -132,16 +132,16 @@ var skipTests = map[string][]string{
 	// TODO(GODRIVER-3167): Support assertions on topologyDescriptionChangedEvent
 	// in expectEvents.
 	"Support assertions on topologyDescriptionChangedEvent in expectEvents (GODRIVER-3167)": {
-		"TestUnifiedSpec/unified-test-format/valid-pass/expectedEventsForClient-topologyDescriptionChangedEvent.json/can_assert_on_values_of_newDescription_and_previousDescription_fields",
+		"TestUnifiedSpec/unified-test-format/tests/valid-pass/expectedEventsForClient-topologyDescriptionChangedEvent.json/can_assert_on_values_of_newDescription_and_previousDescription_fields",
 	},
 
 	// TODO(GODRIVER-3409): Add regression test for "number" alias in $$type
 	// operator.
 	"Regression test for 'number' alias in $$type operator (GODRIVER-3409)": {
-		"TestUnifiedSpec/unified-test-format/valid-pass/operator-type-number_alias.json/type_number_alias_matches_int32",
-		"TestUnifiedSpec/unified-test-format/valid-pass/operator-type-number_alias.json/type_number_alias_matches_int64",
-		"TestUnifiedSpec/unified-test-format/valid-pass/operator-type-number_alias.json/type_number_alias_matches_double",
-		"TestUnifiedSpec/unified-test-format/valid-pass/operator-type-number_alias.json/type_number_alias_matches_decimal128",
+		"TestUnifiedSpec/unified-test-format/tests/valid-pass/operator-type-number_alias.json/type_number_alias_matches_int32",
+		"TestUnifiedSpec/unified-test-format/tests/valid-pass/operator-type-number_alias.json/type_number_alias_matches_int64",
+		"TestUnifiedSpec/unified-test-format/tests/valid-pass/operator-type-number_alias.json/type_number_alias_matches_double",
+		"TestUnifiedSpec/unified-test-format/tests/valid-pass/operator-type-number_alias.json/type_number_alias_matches_decimal128",
 	},
 
 	// TODO(GODRIVER-3143): Convert CRUD v1 spec tests to unified test format.
@@ -226,13 +226,20 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/transactions/tests/unified/transaction-options.json/readPreference_inherited_from_defaultTransactionOptions",
 		"TestUnifiedSpec/transactions/tests/unified/transaction-options.json/startTransaction_overrides_readPreference",
 		"TestUnifiedSpec/transactions/tests/unified/retryable-commit.json/commitTransaction_fails_after_Interrupted",
+		"TestUnifiedSpec/transactions-convenient-api/tests/unified/callback-retry.json/callback_is_not_retried_after_non-transient_error_(DuplicateKeyError)",
+		"TestUnifiedSpec/transactions-convenient-api/tests/unified/callback-retry.json/callback_succeeds_after_multiple_connection_errors",
+		"TestUnifiedSpec/transactions-convenient-api/tests/unified/commit-retry.json/commitTransaction_retry_only_overwrites_write_concern_w_option",
+		"TestUnifiedSpec/transactions-convenient-api/tests/unified/commit-retry.json/commit_is_not_retried_after_MaxTimeMSExpired_error",
+		"TestUnifiedSpec/transactions-convenient-api/tests/unified/commit-writeconcernerror.json/commitTransaction_is_not_retried_after_UnknownReplWriteConcern_error",
+		"TestUnifiedSpec/transactions-convenient-api/tests/unified/commit-writeconcernerror.json/commitTransaction_is_not_retried_after_UnsatisfiableWriteConcern_error",
+		"TestUnifiedSpec/transactions-convenient-api/tests/unified/commit-writeconcernerror.json/commitTransaction_is_not_retried_after_MaxTimeMSExpired_error",
 	},
 
 	// TODO(GODRIVER-1773): Tests related to batch size expectation in "find" and
 	// "getMore" events.
 	"Tests for batch size expectation in 'find' and 'getMore' events (GODRIVER-1773)": {
 		"TestUnifiedSpec/command-logging-and-monitoring/tests/monitoring/find.json/A_successful_find_event_with_a_getmore_and_the_server_kills_the_cursor_(<=_4.4)",
-		"TestUnifiedSpec/unified-test-format/valid-pass/poc-command-monitoring.json/A_successful_find_event_with_a_getmore_and_the_server_kills_the_cursor_(<=_4.4)",
+		"TestUnifiedSpec/unified-test-format/tests/valid-pass/poc-command-monitoring.json/A_successful_find_event_with_a_getmore_and_the_server_kills_the_cursor_(<=_4.4)",
 	},
 
 	// TODO(GODRIVER-2577): Tests require immediate operation canceling,
@@ -265,16 +272,6 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/command-logging-and-monitoring/tests/monitoring/find.json/A_successful_find_with_options",
 		"TestUnifiedSpec/crud/tests/unified/estimatedDocumentCount.json/estimatedDocumentCount_with_maxTimeMS",
 		"TestUnifiedSpec/run-command/tests/unified/runCursorCommand.json/supports_configuring_getMore_maxTimeMS",
-	},
-
-	// TODO(GODRIVER-3137): Implement Gossip cluster time.
-	"Implement Gossip cluster time (GODRIVER-3137)": {
-		"TestUnifiedSpec/transactions/unified/mongos-unpin.json/unpin_after_TransientTransactionError_error_on_commit",
-		// This test fails with the same error as GODRIVER-3137, but is not
-		// directly referenced as an impacted test case by DRIVERS-2816. It
-		// seems likely that the same change will resolve the failure, so I'm
-		// including it here.
-		"TestUnifiedSpec/unified-test-format/valid-pass/poc-transactions-convenient-api.json/withTransaction_and_no_transaction_options_set",
 	},
 
 	// TODO(GODRIVER-3034): Drivers should unpin connections when ending a
@@ -407,7 +404,7 @@ var skipTests = map[string][]string{
 
 	// TODO(GODRIVER-3486): Support auto encryption in unified tests.
 	"Support auto encryption in unified tests (GODRIVER-3486)": {
-		"TestUnifiedSpec/unified-test-format/valid-pass/poc-queryable-encryption.json/insert,_replace,_and_find_with_queryable_encryption",
+		"TestUnifiedSpec/unified-test-format/tests/valid-pass/poc-queryable-encryption.json/insert,_replace,_and_find_with_queryable_encryption",
 	},
 
 	// TODO(DRIVERS-3106): Support auto encryption in unified tests.
@@ -777,16 +774,44 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/retryable-writes/tests/unified/handshakeError.json/collection.bulkWrite_succeeds_after_retryable_handshake_server_error_(ShutdownInProgress)",
 	},
 
-	// TODO (GODRIVER-3524): Change streams expanded events present by default in
+	// TODO(GODRIVER-3524): Change streams expanded events present by default in
 	// 8.2+.
 	"Change streams expanded events for MongoDB 8.2+ (GODRIVER-3524)": {
 		"TestUnifiedSpec/change-streams/change-streams-disambiguatedPaths.json/disambiguatedPaths_is_not_present_when_showExpandedEvents_is_false/unset",
 		"TestUnifiedSpec/change-streams/change-streams.json/Test_insert,_update,_replace,_and_delete_event_types",
 	},
 
-	// TODO (DRIVERS-3153): Re-enable once resolved.
+	// TODO(DRIVERS-3153): Re-enable once resolved.
 	"Re-enable test following DRIVERS-3153 resolution (DRIVERS-3153)": {
 		"TestUnifiedSpec/atlas-data-lake-testing/tests/unified/getMore.json/A_successful_find_event_with_getMore",
+	},
+
+	// TODO(GODRIVER-3137): Gossip cluster time from internal MongoClient to
+	// session entities.
+	"Must advance cluster times in unified spec runner (GODRIVER-3137)": {
+		"TestUnifiedSpec/transactions/unified/mongos-unpin.json/unpin_after_TransientTransactionError_error_on_commit",
+		// This test fails with the same error as GODRIVER-3137, but is not
+		// directly referenced as an impacted test case by DRIVERS-2816. It
+		// seems likely that the same change will resolve the failure, so I'm
+		// including it here.
+		"TestUnifiedSpec/unified-test-format/tests/valid-pass/poc-transactions-convenient-api.json/withTransaction_and_no_transaction_options_set",
+		"TestUnifiedSpec/unified-test-format/tests/valid-pass/poc-transactions-convenient-api.json/withTransaction_inherits_transaction_options_from_client",
+		"TestUnifiedSpec/unified-test-format/tests/valid-pass/poc-transactions-convenient-api.json/withTransaction_inherits_transaction_options_from_defaultTransactionOptions",
+		"TestUnifiedSpec/unified-test-format/tests/valid-pass/poc-transactions-convenient-api.json/withTransaction_explicit_transaction_options",
+		"TestUnifiedSpec/unified-test-format/tests/valid-pass/poc-transactions-mongos-pin-auto.json/remain_pinned_after_non-transient_Interrupted_error_on_insertOne",
+		"TestUnifiedSpec/unified-test-format/tests/valid-pass/poc-transactions-mongos-pin-auto.json/unpin_after_transient_error_within_a_transaction",
+		"TestUnifiedSpec/transactions-convenient-api/tests/unified/callback-aborts.json/withTransaction_succeeds_if_callback_aborts",
+		"TestUnifiedSpec/transactions-convenient-api/tests/unified/callback-commits.json/withTransaction_succeeds_if_callback_commits",
+		"TestUnifiedSpec/transactions-convenient-api/tests/unified/callback-commits.json/withTransaction_still_succeeds_if_callback_commits_and_runs_extra_op",
+		"TestUnifiedSpec/transactions-convenient-api/tests/unified/callback-aborts.json/withTransaction_still_succeeds_if_callback_aborts_and_runs_extra_op",
+		"TestUnifiedSpec/transactions-convenient-api/tests/unified/commit.json/withTransaction_commits_after_callback_returns_(second_transaction)",
+		"TestUnifiedSpec/transactions-convenient-api/tests/unified/transaction-options.json/withTransaction_and_no_transaction_options_set",
+		"TestUnifiedSpec/transactions-convenient-api/tests/unified/transaction-options.json/withTransaction_inherits_transaction_options_from_client",
+		"TestUnifiedSpec/transactions-convenient-api/tests/unified/transaction-options.json/withTransaction_inherits_transaction_options_from_defaultTransactionOptions",
+		"TestUnifiedSpec/transactions-convenient-api/tests/unified/transaction-options.json/withTransaction_explicit_transaction_options",
+		"TestUnifiedSpec/transactions-convenient-api/tests/unified/transaction-options.json/withTransaction_explicit_transaction_options_override_defaultTransactionOptions",
+		"TestUnifiedSpec/transactions-convenient-api/tests/unified/transaction-options.json/withTransaction_explicit_transaction_options_override_client_options",
+		"TestUnifiedSpec/transactions-convenient-api/tests/unified/commit.json/withTransaction_commits_after_callback_returns",
 	},
 }
 

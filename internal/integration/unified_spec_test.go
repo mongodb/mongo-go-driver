@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
 	"reflect"
 	"sync"
@@ -162,15 +161,6 @@ var directories = []string{
 	"read-write-concern/tests/operation",
 }
 
-// TODO(GODRIVER-3526): This variable can be removed once we determine why
-// transaction-heavy unified spec tests are failing in the unified spec
-// runner.
-var nonGitSubmodulePassDirectories = []string{
-	"convenient-transactions",
-}
-
-const dataPath string = "../../testdata/"
-
 var checkOutcomeOpts = options.Collection().SetReadPreference(readpref.Primary()).SetReadConcern(readconcern.Local())
 var specTestRegistry = func() *bson.Registry {
 	reg := bson.NewRegistry()
@@ -185,19 +175,6 @@ func TestUnifiedSpecs(t *testing.T) {
 			for _, fileName := range jsonFilesInDir(t, spectest.Path(specDir)) {
 				t.Run(fileName, func(t *testing.T) {
 					runSpecTestFile(t, filepath.Join(specDir, fileName))
-				})
-			}
-		})
-	}
-
-	// TODO(GODRIVER-3526): This block can be removed once we determine why
-	// transaction-heavy unified spec tests are failing in the unified spec
-	// runner.
-	for _, specDir := range nonGitSubmodulePassDirectories {
-		t.Run(specDir, func(t *testing.T) {
-			for _, fileName := range jsonFilesInDir(t, path.Join(dataPath, specDir)) {
-				t.Run(fileName, func(t *testing.T) {
-					runSpecTestFile(t, filepath.Join(dataPath, specDir, fileName))
 				})
 			}
 		})

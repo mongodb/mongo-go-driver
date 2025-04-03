@@ -276,7 +276,6 @@ func verifyConnStringOptions(t *testing.T, cs *connstring.ConnString, options ma
 		case "maxconnecting":
 			require.Equal(t, value, float64(cs.MaxConnecting))
 		default:
-			fmt.Println(key)
 			opt, ok := cs.UnknownOptions[key]
 			require.True(t, ok)
 			require.Contains(t, opt, fmt.Sprint(value))
