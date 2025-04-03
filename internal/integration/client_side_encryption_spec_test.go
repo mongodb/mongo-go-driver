@@ -11,14 +11,14 @@ package integration
 
 import (
 	"os"
-	"path"
+	"path/filepath"
 	"regexp"
 	"testing"
+
+	"go.mongodb.org/mongo-driver/v2/internal/spectest"
 )
 
-const (
-	encryptionSpecName = "client-side-encryption/legacy"
-)
+var encryptionSpecDir = spectest.Path("client-side-encryption/tests/legacy")
 
 func verifyClientSideEncryptionVarsSet(t *testing.T) {
 	t.Helper()
@@ -53,7 +53,7 @@ func verifyClientSideEncryptionVarsSet(t *testing.T) {
 func TestClientSideEncryptionSpec(t *testing.T) {
 	verifyClientSideEncryptionVarsSet(t)
 
-	for _, fileName := range jsonFilesInDir(t, path.Join(dataPath, encryptionSpecName)) {
+	for _, fileName := range jsonFilesInDir(t, encryptionSpecDir) {
 		t.Run(fileName, func(t *testing.T) {
 			re := regexp.MustCompile(`fle2\-Range\-.*\-Correctness`)
 			if re.Match([]byte(fileName)) {
@@ -62,7 +62,7 @@ func TestClientSideEncryptionSpec(t *testing.T) {
 			if fileName == "kmipKMS.json" && "" == os.Getenv("KMS_MOCK_SERVERS_RUNNING") {
 				t.Skipf("Skipping test as KMS_MOCK_SERVERS_RUNNING is not set")
 			}
-			runSpecTestFile(t, encryptionSpecName, fileName)
+			runSpecTestFile(t, filepath.Join(encryptionSpecDir, fileName))
 		})
 	}
 }
