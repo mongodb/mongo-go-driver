@@ -29,10 +29,9 @@ import (
 var ErrInvalidIndexValue = errors.New("invalid index value")
 
 // ErrNonStringIndexName is returned if an index is created with a name that is not a string.
+//
+// Deprecated: it will be removed in the next major release
 var ErrNonStringIndexName = errors.New("index name must be a string")
-
-// ErrMultipleIndexDrop is returned if multiple indexes would be dropped from a call to IndexView.DropOne.
-var ErrMultipleIndexDrop = errors.New("multiple indexes would be dropped")
 
 // IndexView is a type that can be used to create, drop, and list indexes on a collection. An IndexView for a collection
 // can be created by a call to Collection.Indexes().
