@@ -405,7 +405,10 @@ func (t *Topology) Disconnect(ctx context.Context) error {
 		t.pollingwg.Wait()
 	}
 
-	t.desc.Store(description.Topology{})
+	oldDesc := t.fsm.Topology
+	t.fsm = newFSM()
+	t.desc.Store(t.fsm.Topology)
+	t.publishTopologyDescriptionChangedEvent(oldDesc, t.fsm.Topology)
 
 	atomic.StoreInt64(&t.state, topologyDisconnected)
 	t.publishTopologyClosedEvent()
