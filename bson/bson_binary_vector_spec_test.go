@@ -81,15 +81,16 @@ func TestBsonBinaryVectorSpec(t *testing.T) {
 	})
 }
 
-func convertSlice[T int8 | float32 | byte](t *testing.T, data []byte) []T {
+func decodeTestSlice[T int8 | float32 | byte](t *testing.T, data []byte) []T {
+	t.Helper()
+
 	if len(data) == 0 {
 		return nil
 	}
 	var s []float64
 	err := UnmarshalExtJSON(data, true, &s)
-	if err != nil {
-		t.Fatalf("got %q while handling %s", err, string(data))
-	}
+	require.NoError(t, err)
+
 	v := make([]T, len(s))
 	for i, e := range s {
 		v[i] = T(e)
@@ -103,17 +104,17 @@ func runBsonBinaryVectorTest(t *testing.T, testKey string, test bsonBinaryVector
 	case "0x03":
 		testVector[testKey] = Vector{
 			dType:    Int8Vector,
-			int8Data: convertSlice[int8](t, test.Vector),
+			int8Data: decodeTestSlice[int8](t, test.Vector),
 		}
 	case "0x27":
 		testVector[testKey] = Vector{
 			dType:       Float32Vector,
-			float32Data: convertSlice[float32](t, test.Vector),
+			float32Data: decodeTestSlice[float32](t, test.Vector),
 		}
 	case "0x10":
 		testVector[testKey] = Vector{
 			dType:      PackedBitVector,
-			bitData:    convertSlice[byte](t, test.Vector),
+			bitData:    decodeTestSlice[byte](t, test.Vector),
 			bitPadding: uint8(test.Padding),
 		}
 	default:
