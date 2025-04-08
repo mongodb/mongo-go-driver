@@ -777,8 +777,8 @@ var skipTests = map[string][]string{
 	// TODO(GODRIVER-3524): Change streams expanded events present by default in
 	// 8.2+.
 	"Change streams expanded events for MongoDB 8.2+ (GODRIVER-3524)": {
-		"TestUnifiedSpec/change-streams/change-streams-disambiguatedPaths.json/disambiguatedPaths_is_not_present_when_showExpandedEvents_is_false/unset",
-		"TestUnifiedSpec/change-streams/change-streams.json/Test_insert,_update,_replace,_and_delete_event_types",
+		"TestUnifiedSpec/change-streams/tests/unified/change-streams-disambiguatedPaths.json/disambiguatedPaths_is_not_present_when_showExpandedEvents_is_false/unset",
+		"TestUnifiedSpec/change-streams/tests/unified/change-streams.json/Test_insert,_update,_replace,_and_delete_event_types",
 	},
 
 	// TODO(DRIVERS-3153): Re-enable once resolved.
