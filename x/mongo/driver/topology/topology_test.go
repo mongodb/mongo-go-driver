@@ -114,7 +114,7 @@ func TestServerSelection(t *testing.T) {
 		}
 		want := fmt.Errorf(
 			"server at %s reports wire version %d, but this version of the Go driver requires "+
-				"at least 6 (MongoDB 3.6)",
+				"at least 7 (MongoDB 4.0)",
 			desc.Servers[0].Addr.String(),
 			desc.Servers[0].WireVersion.Max,
 		)
@@ -808,7 +808,7 @@ type inWindowTestCase struct {
 // can't be effectively accomplished just with server descriptions like most other server selection
 // algorithms.
 func TestServerSelectionSpecInWindow(t *testing.T) {
-	const testsDir = "../../../../testdata/server-selection/in_window"
+	testsDir := spectest.Path("server-selection/tests/in_window")
 
 	files := spectest.FindJSONFilesInDir(t, testsDir)
 

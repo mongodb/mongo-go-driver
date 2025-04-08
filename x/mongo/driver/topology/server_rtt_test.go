@@ -27,7 +27,7 @@ func TestServerSelectionRTTSpec(t *testing.T) {
 		NewAvgRtt float64     `json:"new_avg_rtt"`
 	}
 
-	const testsDir string = "../../../../testdata/server-selection/rtt"
+	testsDir := spectest.Path("server-selection/tests/rtt")
 
 	for _, file := range spectest.FindJSONFilesInDir(t, testsDir) {
 		func(t *testing.T, filename string) {
@@ -35,10 +35,7 @@ func TestServerSelectionRTTSpec(t *testing.T) {
 			content, err := ioutil.ReadFile(filepath)
 			assert.Nil(t, err, "ReadFile error for %s: %v", filepath, err)
 
-			// Remove ".json" from filename.
-			testName := filename[:len(filename)-5]
-
-			t.Run(testName, func(t *testing.T) {
+			t.Run(filename, func(t *testing.T) {
 				var test testCase
 				err = json.Unmarshal(content, &test)
 				assert.Nil(t, err, "Unmarshal error: %v", err)

@@ -391,3 +391,26 @@ func executeRewrapManyDataKey(ctx context.Context, operation *operation) (*opera
 	}
 	return rewrapManyDataKeyResultsOpResult(result)
 }
+
+// executeDecrypt will decrypt the given value.
+func executeDecrypt(ctx context.Context, operation *operation) (*operationResult, error) {
+	cee, err := entities(ctx).clientEncryption(operation.Object)
+	if err != nil {
+		return nil, err
+	}
+
+	rawValue, err := operation.Arguments.LookupErr("value")
+	if err != nil {
+		return nil, err
+	}
+	t, d, ok := rawValue.BinaryOK()
+	if !ok {
+		return nil, errors.New("'value' argument is not a BSON binary")
+	}
+
+	rawValue, err = cee.Decrypt(ctx, bson.Binary{Subtype: t, Data: d})
+	if err != nil {
+		return newErrorResult(err), nil
+	}
+	return newValueResult(rawValue.Type, rawValue.Value, err), nil
+}

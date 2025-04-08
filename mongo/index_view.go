@@ -29,10 +29,9 @@ import (
 var ErrInvalidIndexValue = errors.New("invalid index value")
 
 // ErrNonStringIndexName is returned if an index is created with a name that is not a string.
+//
+// Deprecated: it will be removed in the next major release
 var ErrNonStringIndexName = errors.New("index name must be a string")
-
-// ErrMultipleIndexDrop is returned if multiple indexes would be dropped from a call to IndexView.DropOne.
-var ErrMultipleIndexDrop = errors.New("multiple indexes would be dropped")
 
 // IndexView is a type that can be used to create, drop, and list indexes on a collection. An IndexView for a collection
 // can be created by a call to Collection.Indexes().
@@ -49,13 +48,6 @@ type IndexModel struct {
 
 	// The options to use to create the index.
 	Options *options.IndexOptionsBuilder
-}
-
-func isNamespaceNotFoundError(err error) bool {
-	if de, ok := err.(driver.Error); ok {
-		return de.Code == 26
-	}
-	return false
 }
 
 // List executes a listIndexes command and returns a cursor over the indexes in the collection.
@@ -120,7 +112,8 @@ func (iv IndexView) List(ctx context.Context, opts ...options.Lister[options.Lis
 	if err != nil {
 		// for namespaceNotFound errors, return an empty cursor and do not throw an error
 		closeImplicitSession(sess)
-		if isNamespaceNotFoundError(err) {
+		var de driver.Error
+		if errors.As(err, &de) && de.NamespaceNotFound() {
 			return newEmptyCursor(), nil
 		}
 
