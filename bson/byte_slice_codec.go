@@ -23,17 +23,6 @@ type byteSliceCodec struct {
 // collection.
 var _ typeDecoder = &byteSliceCodec{}
 
-// EncodeValue is the ValueEncoder for []byte.
-func (bsc *byteSliceCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
-	if !val.IsValid() || val.Type() != tByteSlice {
-		return ValueEncoderError{Name: "ByteSliceEncodeValue", Types: []reflect.Type{tByteSlice}, Received: val}
-	}
-	if val.IsNil() && !bsc.encodeNilAsEmpty && !ec.nilByteSliceAsEmpty {
-		return vw.WriteNull()
-	}
-	return vw.WriteBinary(val.Interface().([]byte))
-}
-
 func (bsc *byteSliceCodec) decodeType(_ DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t != tByteSlice {
 		return emptyValue, ValueDecoderError{

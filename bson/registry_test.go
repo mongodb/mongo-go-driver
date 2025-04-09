@@ -22,6 +22,9 @@ func newTestRegistry() *Registry {
 		typeDecoders: new(typeDecoderCache),
 		kindEncoders: new(kindEncoderCache),
 		kindDecoders: new(kindDecoderCache),
+
+		reflectFreeTypeEncoders: new(typeReflectFreeEncoderCache),
+		reflectFreeKindEncoders: new(kindEncoderReflectFreeCache),
 	}
 }
 

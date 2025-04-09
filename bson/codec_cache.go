@@ -24,6 +24,7 @@ func init() {
 // statically assert array size
 var _ = (kindEncoderCache{}).entries[reflect.UnsafePointer]
 var _ = (kindDecoderCache{}).entries[reflect.UnsafePointer]
+var _ = (kindEncoderReflectFreeCache{}).entries[reflect.UnsafePointer]
 
 type typeEncoderCache struct {
 	cache sync.Map // map[reflect.Type]ValueEncoder
@@ -49,6 +50,39 @@ func (c *typeEncoderCache) LoadOrStore(rt reflect.Type, enc ValueEncoder) ValueE
 
 func (c *typeEncoderCache) Clone() *typeEncoderCache {
 	cc := new(typeEncoderCache)
+	c.cache.Range(func(k, v interface{}) bool {
+		if k != nil && v != nil {
+			cc.cache.Store(k, v)
+		}
+		return true
+	})
+	return cc
+}
+
+type typeReflectFreeEncoderCache struct {
+	cache sync.Map // map[reflect.Type]typeReflectFreeEncoderCache
+}
+
+func (c *typeReflectFreeEncoderCache) Store(rt reflect.Type, enc reflectFreeValueEncoder) {
+	c.cache.Store(rt, enc)
+}
+
+func (c *typeReflectFreeEncoderCache) Load(rt reflect.Type) (reflectFreeValueEncoder, bool) {
+	if v, _ := c.cache.Load(rt); v != nil {
+		return v.(reflectFreeValueEncoder), true
+	}
+	return nil, false
+}
+
+func (c *typeReflectFreeEncoderCache) LoadOrStore(rt reflect.Type, enc reflectFreeValueEncoder) reflectFreeValueEncoder {
+	if v, loaded := c.cache.LoadOrStore(rt, enc); loaded {
+		enc = v.(reflectFreeValueEncoder)
+	}
+	return enc
+}
+
+func (c *typeReflectFreeEncoderCache) Clone() *typeReflectFreeEncoderCache {
+	cc := new(typeReflectFreeEncoderCache)
 	c.cache.Range(func(k, v interface{}) bool {
 		if k != nil && v != nil {
 			cc.cache.Store(k, v)
@@ -95,6 +129,39 @@ func (c *typeDecoderCache) Clone() *typeDecoderCache {
 // so we wrap the ValueEncoder with a kindEncoderCacheEntry to ensure the type
 // is always the same (since different concrete types may implement the
 // ValueEncoder interface).
+type kindEncoderReflectFreeCacheEntry struct {
+	enc reflectFreeValueEncoder
+}
+
+type kindEncoderReflectFreeCache struct {
+	entries [reflect.UnsafePointer + 1]atomic.Value // *kindEncoderCacheEntry
+}
+
+func (c *kindEncoderReflectFreeCache) Store(rt reflect.Kind, enc reflectFreeValueEncoder) {
+	if enc != nil && rt < reflect.Kind(len(c.entries)) {
+		c.entries[rt].Store(&kindEncoderReflectFreeCacheEntry{enc: enc})
+	}
+}
+
+func (c *kindEncoderReflectFreeCache) Load(rt reflect.Kind) (reflectFreeValueEncoder, bool) {
+	if rt < reflect.Kind(len(c.entries)) {
+		if ent, ok := c.entries[rt].Load().(*kindEncoderReflectFreeCacheEntry); ok {
+			return ent.enc, ent.enc != nil
+		}
+	}
+	return nil, false
+}
+
+func (c *kindEncoderReflectFreeCache) Clone() *kindEncoderReflectFreeCache {
+	cc := new(kindEncoderReflectFreeCache)
+	for i, v := range c.entries {
+		if val := v.Load(); val != nil {
+			cc.entries[i].Store(val)
+		}
+	}
+	return cc
+}
+
 type kindEncoderCacheEntry struct {
 	enc ValueEncoder
 }

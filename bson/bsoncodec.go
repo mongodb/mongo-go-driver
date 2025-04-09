@@ -139,6 +139,25 @@ func (fn ValueEncoderFunc) EncodeValue(ec EncodeContext, vw ValueWriter, val ref
 	return fn(ec, vw, val)
 }
 
+// defaultValueEncoderFunc is an adapter function that allows a function with
+// the correct signature to be used as a ValueEncoder.
+type defaultValueEncoderFunc func(EncodeContext, ValueWriter, reflect.Value) error
+
+// EncodeValue implements the ValueEncoder interface.
+func (fn defaultValueEncoderFunc) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
+	return fn(ec, vw, val)
+}
+
+type reflectFreeValueEncoder interface {
+	EncodeValue(ec EncodeContext, vw ValueWriter, val any) error
+}
+
+type reflectFreeValueEncoderFunc func(ec EncodeContext, vw ValueWriter, val any) error
+
+func (fn reflectFreeValueEncoderFunc) EncodeValue(ec EncodeContext, vw ValueWriter, val any) error {
+	return fn(ec, vw, val)
+}
+
 // ValueDecoder is the interface implemented by types that can decode BSON to a provided Go type.
 // Implementations should ensure that the value they receive is settable. Similar to ValueEncoderFunc,
 // ValueDecoderFunc is provided to allow the use of a function with the correct signature as a

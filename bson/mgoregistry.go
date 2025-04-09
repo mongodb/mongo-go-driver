@@ -38,11 +38,13 @@ func NewMgoRegistry() *Registry {
 	uintCodec := &uintCodec{encodeToMinSize: true}
 
 	reg := NewRegistry()
+	reg.registerReflectFreeTypeEncoder(tByteSlice, byteSliceEncodeValueRF(true))
+
 	reg.RegisterTypeDecoder(tEmpty, &emptyInterfaceCodec{decodeBinaryAsSlice: true})
 	reg.RegisterKindDecoder(reflect.String, ValueDecoderFunc(mgoStringDecodeValue))
 	reg.RegisterKindDecoder(reflect.Struct, structCodec)
 	reg.RegisterKindDecoder(reflect.Map, mapCodec)
-	reg.RegisterTypeEncoder(tByteSlice, &byteSliceCodec{encodeNilAsEmpty: true})
+	//reg.RegisterTypeEncoder(tByteSlice, &byteSliceCodec{encodeNilAsEmpty: true})
 	reg.RegisterKindEncoder(reflect.Struct, structCodec)
 	reg.RegisterKindEncoder(reflect.Slice, &sliceCodec{encodeNilAsEmpty: true})
 	reg.RegisterKindEncoder(reflect.Map, mapCodec)
@@ -69,8 +71,10 @@ func NewRespectNilValuesMgoRegistry() *Registry {
 	}
 
 	reg := NewMgoRegistry()
+	reg.registerReflectFreeTypeEncoder(tByteSlice, byteSliceEncodeValueRF(false))
+
 	reg.RegisterKindDecoder(reflect.Map, mapCodec)
-	reg.RegisterTypeEncoder(tByteSlice, &byteSliceCodec{encodeNilAsEmpty: false})
+	//reg.RegisterTypeEncoder(tByteSlice, &byteSliceCodec{encodeNilAsEmpty: false})
 	reg.RegisterKindEncoder(reflect.Slice, &sliceCodec{})
 	reg.RegisterKindEncoder(reflect.Map, mapCodec)
 	return reg
