@@ -65,17 +65,17 @@ func registerDefaultEncoders(reg *Registry) {
 	reg.registerReflectFreeTypeEncoder(tTime, reflectFreeValueEncoderFunc(timeEncodeValueRF))
 	reg.registerReflectFreeTypeEncoder(tEmpty, reflectFreeValueEncoderFunc(emptyInterfaceValueRF))
 	reg.registerReflectFreeTypeEncoder(tCoreArray, reflectFreeValueEncoderFunc(coreArrayEncodeValueRF))
-	reg.registerReflectFreeTypeEncoder(tNull, reflectFreeValueEncoderFunc(nullEncodeValueX))
-	reg.registerReflectFreeTypeEncoder(tOID, reflectFreeValueEncoderFunc(objectIDEncodeValueX))
-	reg.registerReflectFreeTypeEncoder(tDecimal, reflectFreeValueEncoderFunc(decimal128EncodeValueX))
-	reg.registerReflectFreeTypeEncoder(tJSONNumber, reflectFreeValueEncoderFunc(jsonNumberEncodeValueX))
-	reg.registerReflectFreeTypeEncoder(tURL, reflectFreeValueEncoderFunc(urlEncodeValueX))
-	reg.registerReflectFreeTypeEncoder(tJavaScript, reflectFreeValueEncoderFunc(javaScriptEncodeValueX))
-	reg.registerReflectFreeTypeEncoder(tSymbol, reflectFreeValueEncoderFunc(symbolEncodeValueX))
-	reg.registerReflectFreeTypeEncoder(tBinary, reflectFreeValueEncoderFunc(binaryEncodeValueX))
-	reg.registerReflectFreeTypeEncoder(tVector, reflectFreeValueEncoderFunc(vectorEncodeValueX))
-	reg.registerReflectFreeTypeEncoder(tUndefined, reflectFreeValueEncoderFunc(undefinedEncodeValueX))
-	reg.registerReflectFreeTypeEncoder(tDateTime, reflectFreeValueEncoderFunc(dateTimeEncodeValueX))
+	reg.registerReflectFreeTypeEncoder(tNull, reflectFreeValueEncoderFunc(nullEncodeValueRF))
+	reg.registerReflectFreeTypeEncoder(tOID, reflectFreeValueEncoderFunc(objectIDEncodeValueRF))
+	reg.registerReflectFreeTypeEncoder(tDecimal, reflectFreeValueEncoderFunc(decimal128EncodeValueRF))
+	reg.registerReflectFreeTypeEncoder(tJSONNumber, reflectFreeValueEncoderFunc(jsonNumberEncodeValueRF))
+	reg.registerReflectFreeTypeEncoder(tURL, reflectFreeValueEncoderFunc(urlEncodeValueRF))
+	reg.registerReflectFreeTypeEncoder(tJavaScript, reflectFreeValueEncoderFunc(javaScriptEncodeValueRF))
+	reg.registerReflectFreeTypeEncoder(tSymbol, reflectFreeValueEncoderFunc(symbolEncodeValueRF))
+	reg.registerReflectFreeTypeEncoder(tBinary, reflectFreeValueEncoderFunc(binaryEncodeValueRF))
+	reg.registerReflectFreeTypeEncoder(tVector, reflectFreeValueEncoderFunc(vectorEncodeValueRF))
+	reg.registerReflectFreeTypeEncoder(tUndefined, reflectFreeValueEncoderFunc(undefinedEncodeValueRF))
+	reg.registerReflectFreeTypeEncoder(tDateTime, reflectFreeValueEncoderFunc(dateTimeEncodeValueRF))
 	reg.registerReflectFreeTypeEncoder(tRegex, reflectFreeValueEncoderFunc(regexEncodeValueX))
 	reg.registerReflectFreeTypeEncoder(tDBPointer, reflectFreeValueEncoderFunc(dbPointerEncodeValueX))
 	reg.registerReflectFreeTypeEncoder(tTimestamp, reflectFreeValueEncoderFunc(timestampEncodeValueX))
@@ -176,35 +176,25 @@ func intEncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
 	}
 }
 
-// floatEncodeValue is the ValueEncoderFunc for float types.
-func floatEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
-	switch val.Kind() {
-	case reflect.Float32, reflect.Float64:
-		return vw.WriteDouble(val.Float())
+func floatEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
+	if f32, ok := val.(float32); ok {
+		return vw.WriteDouble(float64(f32))
 	}
 
-	return ValueEncoderError{Name: "FloatEncodeValue", Kinds: []reflect.Kind{reflect.Float32, reflect.Float64}, Received: val}
-}
-
-func floatEncodeValueX(_ EncodeContext, vw ValueWriter, val any) error {
-	switch val := val.(type) {
-	case float32, float64:
-		return vw.WriteDouble(val.(float64))
+	if f64, ok := val.(float64); ok {
+		return vw.WriteDouble(f64)
 	}
 
 	return ValueEncoderError{Name: "FloatEncodeValue", Kinds: []reflect.Kind{reflect.Float32, reflect.Float64}, Received: reflect.ValueOf(val)}
 }
 
-// objectIDEncodeValue is the ValueEncoderFunc for ObjectID.
-func objectIDEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
-	if !val.IsValid() || val.Type() != tOID {
-		return ValueEncoderError{Name: "ObjectIDEncodeValue", Types: []reflect.Type{tOID}, Received: val}
-	}
-	return vw.WriteObjectID(val.Interface().(ObjectID))
+// floatEncodeValue is the ValueEncoderFunc for float types.
+func floatEncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
+	return floatEncodeValueRF(ec, vw, val.Interface())
 }
 
 // objectIDEncodeValue is the ValueEncoderFunc for ObjectID.
-func objectIDEncodeValueX(_ EncodeContext, vw ValueWriter, val any) error {
+func objectIDEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 	objID, ok := val.(ObjectID)
 	if !ok {
 		return ValueEncoderError{
@@ -217,48 +207,26 @@ func objectIDEncodeValueX(_ EncodeContext, vw ValueWriter, val any) error {
 	return vw.WriteObjectID(objID)
 }
 
-// decimal128EncodeValue is the ValueEncoderFunc for Decimal128.
-func decimal128EncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
-	if !val.IsValid() || val.Type() != tDecimal {
-		return ValueEncoderError{Name: "Decimal128EncodeValue", Types: []reflect.Type{tDecimal}, Received: val}
-	}
-	return vw.WriteDecimal128(val.Interface().(Decimal128))
+// objectIDEncodeValue is the ValueEncoderFunc for ObjectID.
+func objectIDEncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
+	return objectIDEncodeValueRF(ec, vw, val.Interface())
 }
 
-func decimal128EncodeValueX(_ EncodeContext, vw ValueWriter, val any) error {
+func decimal128EncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 	d128, ok := val.(Decimal128)
 	if !ok {
-		return ValueEncoderError{
-			Name:     "Decimal128EncodeValue",
-			Types:    []reflect.Type{tDecimal},
-			Received: reflect.ValueOf(val),
-		}
+		return ValueEncoderError{Name: "Decimal128EncodeValue", Types: []reflect.Type{tDecimal}, Received: reflect.ValueOf(val)}
 	}
 
 	return vw.WriteDecimal128(d128)
 }
 
-// jsonNumberEncodeValue is the ValueEncoderFunc for json.Number.
-func jsonNumberEncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
-	if !val.IsValid() || val.Type() != tJSONNumber {
-		return ValueEncoderError{Name: "JSONNumberEncodeValue", Types: []reflect.Type{tJSONNumber}, Received: val}
-	}
-	jsnum := val.Interface().(json.Number)
-
-	// Attempt int first, then float64
-	if i64, err := jsnum.Int64(); err == nil {
-		return intEncodeValue(ec, vw, reflect.ValueOf(i64))
-	}
-
-	f64, err := jsnum.Float64()
-	if err != nil {
-		return err
-	}
-
-	return floatEncodeValue(ec, vw, reflect.ValueOf(f64))
+// decimal128EncodeValue is the ValueEncoderFunc for Decimal128.
+func decimal128EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
+	return decimal128EncodeValueRF(ec, vw, val.Interface())
 }
 
-func jsonNumberEncodeValueX(ec EncodeContext, vw ValueWriter, val any) error {
+func jsonNumberEncodeValueRF(ec EncodeContext, vw ValueWriter, val any) error {
 	jsnum, ok := val.(json.Number)
 	if !ok {
 		return ValueEncoderError{Name: "JSONNumberEncodeValue", Types: []reflect.Type{tJSONNumber}, Received: reflect.ValueOf(val)}
@@ -274,25 +242,26 @@ func jsonNumberEncodeValueX(ec EncodeContext, vw ValueWriter, val any) error {
 		return err
 	}
 
-	return floatEncodeValueX(ec, vw, f64)
+	return floatEncodeValueRF(ec, vw, f64)
 }
 
-// urlEncodeValue is the ValueEncoderFunc for url.URL.
-func urlEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
-	if !val.IsValid() || val.Type() != tURL {
-		return ValueEncoderError{Name: "URLEncodeValue", Types: []reflect.Type{tURL}, Received: val}
-	}
-	u := val.Interface().(url.URL)
-	return vw.WriteString(u.String())
+// jsonNumberEncodeValue is the ValueEncoderFunc for json.Number.
+func jsonNumberEncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
+	return jsonNumberEncodeValueRF(ec, vw, val.Interface())
 }
 
-func urlEncodeValueX(_ EncodeContext, vw ValueWriter, val any) error {
+func urlEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 	u, ok := val.(url.URL)
 	if !ok {
 		return ValueEncoderError{Name: "URLEncodeValue", Types: []reflect.Type{tURL}, Received: reflect.ValueOf(val)}
 	}
 
 	return vw.WriteString(u.String())
+}
+
+// urlEncodeValue is the ValueEncoderFunc for url.URL.
+func urlEncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
+	return urlEncodeValueRF(ec, vw, val.Interface())
 }
 
 // arrayEncodeValue is the ValueEncoderFunc for array types.
@@ -435,16 +404,7 @@ func marshalerEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) er
 	return copyValueFromBytes(vw, TypeEmbeddedDocument, data)
 }
 
-// javaScriptEncodeValue is the ValueEncoderFunc for the JavaScript type.
-func javaScriptEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
-	if !val.IsValid() || val.Type() != tJavaScript {
-		return ValueEncoderError{Name: "JavaScriptEncodeValue", Types: []reflect.Type{tJavaScript}, Received: val}
-	}
-
-	return vw.WriteJavascript(val.String())
-}
-
-func javaScriptEncodeValueX(_ EncodeContext, vw ValueWriter, val any) error {
+func javaScriptEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 	jsString, ok := val.(JavaScript)
 	if !ok {
 		return ValueEncoderError{Name: "JavaScriptEncodeValue", Types: []reflect.Type{tJavaScript}, Received: reflect.ValueOf(val)}
@@ -453,16 +413,12 @@ func javaScriptEncodeValueX(_ EncodeContext, vw ValueWriter, val any) error {
 	return vw.WriteJavascript(string(jsString))
 }
 
-// symbolEncodeValue is the ValueEncoderFunc for the Symbol type.
-func symbolEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
-	if !val.IsValid() || val.Type() != tSymbol {
-		return ValueEncoderError{Name: "SymbolEncodeValue", Types: []reflect.Type{tSymbol}, Received: val}
-	}
-
-	return vw.WriteSymbol(val.String())
+// javaScriptEncodeValue is the ValueEncoderFunc for the JavaScript type.
+func javaScriptEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
+	return javaScriptEncodeValueRF(EncodeContext{}, vw, val.Interface())
 }
 
-func symbolEncodeValueX(_ EncodeContext, vw ValueWriter, val any) error {
+func symbolEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 	symbol, ok := val.(Symbol)
 	if !ok {
 		return ValueEncoderError{Name: "SymbolEncodeValue", Types: []reflect.Type{tSymbol}, Received: reflect.ValueOf(val)}
@@ -471,17 +427,12 @@ func symbolEncodeValueX(_ EncodeContext, vw ValueWriter, val any) error {
 	return vw.WriteSymbol(string(symbol))
 }
 
-// binaryEncodeValue is the ValueEncoderFunc for Binary.
-func binaryEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
-	if !val.IsValid() || val.Type() != tBinary {
-		return ValueEncoderError{Name: "BinaryEncodeValue", Types: []reflect.Type{tBinary}, Received: val}
-	}
-	b := val.Interface().(Binary)
-
-	return vw.WriteBinaryWithSubtype(b.Data, b.Subtype)
+// symbolEncodeValue is the ValueEncoderFunc for the Symbol type.
+func symbolEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
+	return symbolEncodeValueRF(EncodeContext{}, vw, val.Interface())
 }
 
-func binaryEncodeValueX(_ EncodeContext, vw ValueWriter, val any) error {
+func binaryEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 	b, ok := val.(Binary)
 	if !ok {
 		return ValueEncoderError{Name: "BinaryEncodeValue", Types: []reflect.Type{tBinary}, Received: reflect.ValueOf(val)}
@@ -490,21 +441,12 @@ func binaryEncodeValueX(_ EncodeContext, vw ValueWriter, val any) error {
 	return vw.WriteBinaryWithSubtype(b.Data, b.Subtype)
 }
 
-// vectorEncodeValue is the ValueEncoderFunc for Vector.
-func vectorEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
-	t := val.Type()
-	if !val.IsValid() || t != tVector {
-		return ValueEncoderError{Name: "VectorEncodeValue",
-			Types:    []reflect.Type{tVector},
-			Received: val,
-		}
-	}
-	v := val.Interface().(Vector)
-	b := v.Binary()
-	return vw.WriteBinaryWithSubtype(b.Data, b.Subtype)
+// binaryEncodeValue is the ValueEncoderFunc for Binary.
+func binaryEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
+	return binaryEncodeValueRF(EncodeContext{}, vw, val.Interface())
 }
 
-func vectorEncodeValueX(_ EncodeContext, vw ValueWriter, val any) error {
+func vectorEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 	v, ok := val.(Vector)
 	if !ok {
 		return ValueEncoderError{Name: "VectorEncodeValue", Types: []reflect.Type{tVector}, Received: reflect.ValueOf(val)}
@@ -514,16 +456,12 @@ func vectorEncodeValueX(_ EncodeContext, vw ValueWriter, val any) error {
 	return vw.WriteBinaryWithSubtype(b.Data, b.Subtype)
 }
 
-// undefinedEncodeValue is the ValueEncoderFunc for Undefined.
-func undefinedEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
-	if !val.IsValid() || val.Type() != tUndefined {
-		return ValueEncoderError{Name: "UndefinedEncodeValue", Types: []reflect.Type{tUndefined}, Received: val}
-	}
-
-	return vw.WriteUndefined()
+// vectorEncodeValue is the ValueEncoderFunc for Vector.
+func vectorEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
+	return vectorEncodeValueRF(EncodeContext{}, vw, val.Interface())
 }
 
-func undefinedEncodeValueX(_ EncodeContext, vw ValueWriter, val any) error {
+func undefinedEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 	if _, ok := val.(Undefined); !ok {
 		return ValueEncoderError{Name: "UndefinedEncodeValue", Types: []reflect.Type{tUndefined}, Received: reflect.ValueOf(val)}
 	}
@@ -531,16 +469,12 @@ func undefinedEncodeValueX(_ EncodeContext, vw ValueWriter, val any) error {
 	return vw.WriteUndefined()
 }
 
-// dateTimeEncodeValue is the ValueEncoderFunc for DateTime.
-func dateTimeEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
-	if !val.IsValid() || val.Type() != tDateTime {
-		return ValueEncoderError{Name: "DateTimeEncodeValue", Types: []reflect.Type{tDateTime}, Received: val}
-	}
-
-	return vw.WriteDateTime(val.Int())
+// undefinedEncodeValue is the ValueEncoderFunc for Undefined.
+func undefinedEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
+	return undefinedEncodeValueRF(EncodeContext{}, vw, val.Interface())
 }
 
-func dateTimeEncodeValueX(_ EncodeContext, vw ValueWriter, val any) error {
+func dateTimeEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 	dateTime, ok := val.(DateTime)
 	if !ok {
 		return ValueEncoderError{Name: "DateTimeEncodeValue", Types: []reflect.Type{tDateTime}, Received: reflect.ValueOf(val)}
@@ -549,25 +483,22 @@ func dateTimeEncodeValueX(_ EncodeContext, vw ValueWriter, val any) error {
 	return vw.WriteDateTime(int64(dateTime))
 }
 
-// nullEncodeValue is the ValueEncoderFunc for Null.
-func nullEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
-	if !val.IsValid() || val.Type() != tNull {
-		return ValueEncoderError{Name: "NullEncodeValue", Types: []reflect.Type{tNull}, Received: val}
+// dateTimeEncodeValue is the ValueEncoderFunc for DateTime.
+func dateTimeEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
+	return dateTimeEncodeValueRF(EncodeContext{}, vw, val.Interface())
+}
+
+func nullEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
+	if _, ok := val.(Null); !ok {
+		return ValueEncoderError{Name: "NullEncodeValue", Types: []reflect.Type{tNull}, Received: reflect.ValueOf(val)}
 	}
 
 	return vw.WriteNull()
 }
 
-func nullEncodeValueX(_ EncodeContext, vw ValueWriter, val any) error {
-	if _, ok := val.(Null); !ok {
-		return ValueEncoderError{
-			Name:     "NullEncodeValue",
-			Types:    []reflect.Type{tNull},
-			Received: reflect.ValueOf(val),
-		}
-	}
-
-	return vw.WriteNull()
+// nullEncodeValue is the ValueEncoderFunc for Null.
+func nullEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
+	return nullEncodeValueRF(EncodeContext{}, vw, val.Interface())
 }
 
 // regexEncodeValue is the ValueEncoderFunc for Regex.
