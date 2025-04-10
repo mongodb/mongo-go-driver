@@ -3414,11 +3414,10 @@ func TestDefaultValueDecoders(t *testing.T) {
 			// the top-level to decode to registered type when unmarshalling to interface{}
 
 			topLevelReg := &Registry{
-				typeEncoders: new(typeEncoderCache),
-				typeDecoders: new(typeDecoderCache),
-				kindEncoders: new(kindEncoderCache),
-				kindDecoders: new(kindDecoderCache),
-
+				typeEncoders:            new(typeEncoderCache),
+				typeDecoders:            new(typeDecoderCache),
+				kindEncoders:            new(kindEncoderCache),
+				kindDecoders:            new(kindDecoderCache),
 				reflectFreeTypeEncoders: new(typeReflectFreeEncoderCache),
 			}
 			registerDefaultEncoders(topLevelReg)
@@ -3426,11 +3425,10 @@ func TestDefaultValueDecoders(t *testing.T) {
 			topLevelReg.RegisterTypeMapEntry(Type(0), reflect.TypeOf(M{}))
 
 			embeddedReg := &Registry{
-				typeEncoders: new(typeEncoderCache),
-				typeDecoders: new(typeDecoderCache),
-				kindEncoders: new(kindEncoderCache),
-				kindDecoders: new(kindDecoderCache),
-
+				typeEncoders:            new(typeEncoderCache),
+				typeDecoders:            new(typeDecoderCache),
+				kindEncoders:            new(kindEncoderCache),
+				kindDecoders:            new(kindDecoderCache),
 				reflectFreeTypeEncoders: new(typeReflectFreeEncoderCache),
 			}
 			registerDefaultEncoders(embeddedReg)
@@ -3474,11 +3472,10 @@ func TestDefaultValueDecoders(t *testing.T) {
 			// type information is not available.
 
 			reg := &Registry{
-				typeEncoders: new(typeEncoderCache),
-				typeDecoders: new(typeDecoderCache),
-				kindEncoders: new(kindEncoderCache),
-				kindDecoders: new(kindDecoderCache),
-
+				typeEncoders:            new(typeEncoderCache),
+				typeDecoders:            new(typeDecoderCache),
+				kindEncoders:            new(kindEncoderCache),
+				kindDecoders:            new(kindDecoderCache),
 				reflectFreeTypeEncoders: new(typeReflectFreeEncoderCache),
 			}
 			registerDefaultEncoders(reg)
@@ -3570,11 +3567,10 @@ func TestDefaultValueDecoders(t *testing.T) {
 
 		// Use a registry that has all default decoders with the custom interface{} decoder that always errors.
 		nestedRegistry := &Registry{
-			typeEncoders: new(typeEncoderCache),
-			typeDecoders: new(typeDecoderCache),
-			kindEncoders: new(kindEncoderCache),
-			kindDecoders: new(kindDecoderCache),
-
+			typeEncoders:            new(typeEncoderCache),
+			typeDecoders:            new(typeDecoderCache),
+			kindEncoders:            new(kindEncoderCache),
+			kindDecoders:            new(kindDecoderCache),
 			reflectFreeTypeEncoders: new(typeReflectFreeEncoderCache),
 		}
 		registerDefaultDecoders(nestedRegistry)
@@ -3729,11 +3725,10 @@ func TestDefaultValueDecoders(t *testing.T) {
 			)
 
 			reg := &Registry{
-				typeEncoders: new(typeEncoderCache),
-				typeDecoders: new(typeDecoderCache),
-				kindEncoders: new(kindEncoderCache),
-				kindDecoders: new(kindDecoderCache),
-
+				typeEncoders:            new(typeEncoderCache),
+				typeDecoders:            new(typeDecoderCache),
+				kindEncoders:            new(kindEncoderCache),
+				kindDecoders:            new(kindDecoderCache),
 				reflectFreeTypeEncoders: new(typeReflectFreeEncoderCache),
 			}
 			registerDefaultDecoders(reg)
@@ -3805,11 +3800,10 @@ func buildDocument(elems []byte) []byte {
 
 func buildDefaultRegistry() *Registry {
 	reg := &Registry{
-		typeEncoders: new(typeEncoderCache),
-		typeDecoders: new(typeDecoderCache),
-		kindEncoders: new(kindEncoderCache),
-		kindDecoders: new(kindDecoderCache),
-
+		typeEncoders:            new(typeEncoderCache),
+		typeDecoders:            new(typeDecoderCache),
+		kindEncoders:            new(kindEncoderCache),
+		kindDecoders:            new(kindDecoderCache),
 		reflectFreeTypeEncoders: new(typeReflectFreeEncoderCache),
 	}
 	registerDefaultEncoders(reg)

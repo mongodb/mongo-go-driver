@@ -63,7 +63,6 @@ func registerDefaultEncoders(reg *Registry) {
 	// Register the reflect-free default type encoders.
 	reg.registerReflectFreeTypeEncoder(tByteSlice, byteSliceEncodeValueRF(false))
 	reg.registerReflectFreeTypeEncoder(tTime, reflectFreeValueEncoderFunc(timeEncodeValueRF))
-	reg.registerReflectFreeTypeEncoder(tEmpty, reflectFreeValueEncoderFunc(emptyInterfaceValueRF))
 	reg.registerReflectFreeTypeEncoder(tCoreArray, reflectFreeValueEncoderFunc(coreArrayEncodeValueRF))
 	reg.registerReflectFreeTypeEncoder(tNull, reflectFreeValueEncoderFunc(nullEncodeValueRF))
 	reg.registerReflectFreeTypeEncoder(tOID, reflectFreeValueEncoderFunc(objectIDEncodeValueRF))
@@ -76,13 +75,13 @@ func registerDefaultEncoders(reg *Registry) {
 	reg.registerReflectFreeTypeEncoder(tVector, reflectFreeValueEncoderFunc(vectorEncodeValueRF))
 	reg.registerReflectFreeTypeEncoder(tUndefined, reflectFreeValueEncoderFunc(undefinedEncodeValueRF))
 	reg.registerReflectFreeTypeEncoder(tDateTime, reflectFreeValueEncoderFunc(dateTimeEncodeValueRF))
-	reg.registerReflectFreeTypeEncoder(tRegex, reflectFreeValueEncoderFunc(regexEncodeValueX))
-	reg.registerReflectFreeTypeEncoder(tDBPointer, reflectFreeValueEncoderFunc(dbPointerEncodeValueX))
-	reg.registerReflectFreeTypeEncoder(tTimestamp, reflectFreeValueEncoderFunc(timestampEncodeValueX))
-	reg.registerReflectFreeTypeEncoder(tMinKey, reflectFreeValueEncoderFunc(minKeyEncodeValueX))
-	reg.registerReflectFreeTypeEncoder(tMaxKey, reflectFreeValueEncoderFunc(maxKeyEncodeValueX))
-	reg.registerReflectFreeTypeEncoder(tCoreDocument, reflectFreeValueEncoderFunc(coreDocumentEncodeValueX))
-	reg.registerReflectFreeTypeEncoder(tCodeWithScope, reflectFreeValueEncoderFunc(codeWithScopeEncodeValueX))
+	reg.registerReflectFreeTypeEncoder(tRegex, reflectFreeValueEncoderFunc(regexEncodeValueRF))
+	reg.registerReflectFreeTypeEncoder(tDBPointer, reflectFreeValueEncoderFunc(dbPointerEncodeValueRF))
+	reg.registerReflectFreeTypeEncoder(tTimestamp, reflectFreeValueEncoderFunc(timestampEncodeValueRF))
+	reg.registerReflectFreeTypeEncoder(tMinKey, reflectFreeValueEncoderFunc(minKeyEncodeValueRF))
+	reg.registerReflectFreeTypeEncoder(tMaxKey, reflectFreeValueEncoderFunc(maxKeyEncodeValueRF))
+	reg.registerReflectFreeTypeEncoder(tCoreDocument, reflectFreeValueEncoderFunc(coreDocumentEncodeValueRF))
+	reg.registerReflectFreeTypeEncoder(tCodeWithScope, reflectFreeValueEncoderFunc(codeWithScopeEncodeValueRF))
 
 	// Register the reflect-based default encoders. These are required since
 	// removing them would break Registry.LookupEncoder. However, these will
@@ -90,7 +89,7 @@ func registerDefaultEncoders(reg *Registry) {
 	//
 	reg.RegisterTypeEncoder(tByteSlice, byteSliceEncodeValue(false))
 	reg.RegisterTypeEncoder(tTime, defaultValueEncoderFunc(timeEncodeValue))
-	reg.RegisterTypeEncoder(tEmpty, defaultValueEncoderFunc(emptyInterfaceValue)) // TODO: extend this to reflection free
+	reg.RegisterTypeEncoder(tEmpty, ValueEncoderFunc(emptyInterfaceValue))
 	reg.RegisterTypeEncoder(tCoreArray, defaultValueEncoderFunc(coreArrayEncodeValue))
 	reg.RegisterTypeEncoder(tOID, defaultValueEncoderFunc(objectIDEncodeValue))
 	reg.RegisterTypeEncoder(tDecimal, defaultValueEncoderFunc(decimal128EncodeValue))
@@ -508,18 +507,7 @@ func nullEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
 	return nullEncodeValueRF(EncodeContext{}, vw, val.Interface())
 }
 
-// regexEncodeValue is the ValueEncoderFunc for Regex.
-func regexEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
-	if !val.IsValid() || val.Type() != tRegex {
-		return ValueEncoderError{Name: "RegexEncodeValue", Types: []reflect.Type{tRegex}, Received: val}
-	}
-
-	regex := val.Interface().(Regex)
-
-	return vw.WriteRegex(regex.Pattern, regex.Options)
-}
-
-func regexEncodeValueX(_ EncodeContext, vw ValueWriter, val any) error {
+func regexEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 	regex, ok := val.(Regex)
 	if !ok {
 		return ValueEncoderError{Name: "RegexEncodeValue", Types: []reflect.Type{tRegex}, Received: reflect.ValueOf(val)}
@@ -528,18 +516,12 @@ func regexEncodeValueX(_ EncodeContext, vw ValueWriter, val any) error {
 	return vw.WriteRegex(regex.Pattern, regex.Options)
 }
 
-// dbPointerEncodeValue is the ValueEncoderFunc for DBPointer.
-func dbPointerEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
-	if !val.IsValid() || val.Type() != tDBPointer {
-		return ValueEncoderError{Name: "DBPointerEncodeValue", Types: []reflect.Type{tDBPointer}, Received: val}
-	}
-
-	dbp := val.Interface().(DBPointer)
-
-	return vw.WriteDBPointer(dbp.DB, dbp.Pointer)
+// regexEncodeValue is the ValueEncoderFunc for Regex.
+func regexEncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
+	return regexEncodeValueRF(ec, vw, val.Interface())
 }
 
-func dbPointerEncodeValueX(_ EncodeContext, vw ValueWriter, val any) error {
+func dbPointerEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 	dbp, ok := val.(DBPointer)
 	if !ok {
 		return ValueEncoderError{Name: "DBPointerEncodeValue", Types: []reflect.Type{tDBPointer}, Received: reflect.ValueOf(val)}
@@ -548,18 +530,12 @@ func dbPointerEncodeValueX(_ EncodeContext, vw ValueWriter, val any) error {
 	return vw.WriteDBPointer(dbp.DB, dbp.Pointer)
 }
 
-// timestampEncodeValue is the ValueEncoderFunc for Timestamp.
-func timestampEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
-	if !val.IsValid() || val.Type() != tTimestamp {
-		return ValueEncoderError{Name: "TimestampEncodeValue", Types: []reflect.Type{tTimestamp}, Received: val}
-	}
-
-	ts := val.Interface().(Timestamp)
-
-	return vw.WriteTimestamp(ts.T, ts.I)
+// dbPointerEncodeValue is the ValueEncoderFunc for DBPointer.
+func dbPointerEncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
+	return dbPointerEncodeValueRF(ec, vw, val.Interface())
 }
 
-func timestampEncodeValueX(_ EncodeContext, vw ValueWriter, val any) error {
+func timestampEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 	ts, ok := val.(Timestamp)
 	if !ok {
 		return ValueEncoderError{Name: "TimestampEncodeValue", Types: []reflect.Type{tTimestamp}, Received: reflect.ValueOf(val)}
@@ -568,16 +544,12 @@ func timestampEncodeValueX(_ EncodeContext, vw ValueWriter, val any) error {
 	return vw.WriteTimestamp(ts.T, ts.I)
 }
 
-// minKeyEncodeValue is the ValueEncoderFunc for MinKey.
-func minKeyEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
-	if !val.IsValid() || val.Type() != tMinKey {
-		return ValueEncoderError{Name: "MinKeyEncodeValue", Types: []reflect.Type{tMinKey}, Received: val}
-	}
-
-	return vw.WriteMinKey()
+// timestampEncodeValue is the ValueEncoderFunc for Timestamp.
+func timestampEncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
+	return timestampEncodeValueRF(ec, vw, val.Interface())
 }
 
-func minKeyEncodeValueX(_ EncodeContext, vw ValueWriter, val any) error {
+func minKeyEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 	if _, ok := val.(MinKey); !ok {
 		return ValueEncoderError{Name: "MinKeyEncodeValue", Types: []reflect.Type{tMinKey}, Received: reflect.ValueOf(val)}
 	}
@@ -585,16 +557,12 @@ func minKeyEncodeValueX(_ EncodeContext, vw ValueWriter, val any) error {
 	return vw.WriteMinKey()
 }
 
-// maxKeyEncodeValue is the ValueEncoderFunc for MaxKey.
-func maxKeyEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
-	if !val.IsValid() || val.Type() != tMaxKey {
-		return ValueEncoderError{Name: "MaxKeyEncodeValue", Types: []reflect.Type{tMaxKey}, Received: val}
-	}
-
-	return vw.WriteMaxKey()
+// minKeyEncodeValue is the ValueEncoderFunc for MinKey.
+func minKeyEncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
+	return minKeyEncodeValueRF(ec, vw, val.Interface())
 }
 
-func maxKeyEncodeValueX(_ EncodeContext, vw ValueWriter, val any) error {
+func maxKeyEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 	if _, ok := val.(MaxKey); !ok {
 		return ValueEncoderError{Name: "MaxKeyEncodeValue", Types: []reflect.Type{tMaxKey}, Received: reflect.ValueOf(val)}
 	}
@@ -602,18 +570,12 @@ func maxKeyEncodeValueX(_ EncodeContext, vw ValueWriter, val any) error {
 	return vw.WriteMaxKey()
 }
 
-// coreDocumentEncodeValue is the ValueEncoderFunc for bsoncore.Document.
-func coreDocumentEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
-	if !val.IsValid() || val.Type() != tCoreDocument {
-		return ValueEncoderError{Name: "CoreDocumentEncodeValue", Types: []reflect.Type{tCoreDocument}, Received: val}
-	}
-
-	cdoc := val.Interface().(bsoncore.Document)
-
-	return copyDocumentFromBytes(vw, cdoc)
+// maxKeyEncodeValue is the ValueEncoderFunc for MaxKey.
+func maxKeyEncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
+	return maxKeyEncodeValueRF(ec, vw, val.Interface())
 }
 
-func coreDocumentEncodeValueX(_ EncodeContext, vw ValueWriter, val any) error {
+func coreDocumentEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 	cdoc, ok := val.(bsoncore.Document)
 	if !ok {
 		return ValueEncoderError{Name: "CoreDocumentEncodeValue", Types: []reflect.Type{tCoreDocument}, Received: reflect.ValueOf(val)}
@@ -622,45 +584,12 @@ func coreDocumentEncodeValueX(_ EncodeContext, vw ValueWriter, val any) error {
 	return copyDocumentFromBytes(vw, cdoc)
 }
 
-// codeWithScopeEncodeValue is the ValueEncoderFunc for CodeWithScope.
-func codeWithScopeEncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
-	if !val.IsValid() || val.Type() != tCodeWithScope {
-		return ValueEncoderError{Name: "CodeWithScopeEncodeValue", Types: []reflect.Type{tCodeWithScope}, Received: val}
-	}
-
-	cws := val.Interface().(CodeWithScope)
-
-	dw, err := vw.WriteCodeWithScope(string(cws.Code))
-	if err != nil {
-		return err
-	}
-
-	sw := sliceWriterPool.Get().(*sliceWriter)
-	defer sliceWriterPool.Put(sw)
-	*sw = (*sw)[:0]
-
-	scopeVW := bvwPool.Get().(*valueWriter)
-	scopeVW.reset(scopeVW.buf[:0])
-	scopeVW.w = sw
-	defer bvwPool.Put(scopeVW)
-	encoder, err := ec.LookupEncoder(reflect.TypeOf(cws.Scope))
-	if err != nil {
-		return err
-	}
-
-	err = encoder.EncodeValue(ec, scopeVW, reflect.ValueOf(cws.Scope))
-	if err != nil {
-		return err
-	}
-
-	err = copyBytesToDocumentWriter(dw, *sw)
-	if err != nil {
-		return err
-	}
-	return dw.WriteDocumentEnd()
+// coreDocumentEncodeValue is the ValueEncoderFunc for bsoncore.Document.
+func coreDocumentEncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
+	return coreDocumentEncodeValueRF(ec, vw, val.Interface())
 }
 
-func codeWithScopeEncodeValueX(ec EncodeContext, vw ValueWriter, val any) error {
+func codeWithScopeEncodeValueRF(ec EncodeContext, vw ValueWriter, val any) error {
 	cws, ok := val.(CodeWithScope)
 	if !ok {
 		return ValueEncoderError{Name: "CodeWithScopeEncodeValue", Types: []reflect.Type{tCodeWithScope}, Received: reflect.ValueOf(val)}
@@ -694,6 +623,11 @@ func codeWithScopeEncodeValueX(ec EncodeContext, vw ValueWriter, val any) error 
 		return err
 	}
 	return dw.WriteDocumentEnd()
+}
+
+// codeWithScopeEncodeValue is the ValueEncoderFunc for CodeWithScope.
+func codeWithScopeEncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
+	return codeWithScopeEncodeValueRF(ec, vw, val.Interface())
 }
 
 // isImplementationNil returns if val is a nil pointer and inter is implemented on a concrete type
@@ -755,18 +689,6 @@ func coreArrayEncodeValueRF(ec EncodeContext, vw ValueWriter, val any) error {
 
 func coreArrayEncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
 	return coreArrayEncodeValueRF(ec, vw, val.Interface())
-}
-
-func emptyInterfaceValueRF(ec EncodeContext, vw ValueWriter, val any) error {
-	if val == nil {
-		return vw.WriteNull()
-	}
-	encoder, err := ec.LookupEncoder(reflect.TypeOf(val))
-	if err != nil {
-		return err
-	}
-
-	return encoder.EncodeValue(ec, vw, reflect.ValueOf(val))
 }
 
 func emptyInterfaceValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {

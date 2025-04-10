@@ -73,11 +73,13 @@ func TestDefaultValueEncoders(t *testing.T) {
 	testCases := []struct {
 		name     string
 		ve       ValueEncoder
+		rfve     reflectFreeValueEncoder
 		subtests []subtest
 	}{
 		{
 			"BooleanEncodeValue",
 			ValueEncoderFunc(booleanEncodeValue),
+			nil,
 			[]subtest{
 				{
 					"wrong type",
@@ -94,6 +96,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		{
 			"IntEncodeValue",
 			ValueEncoderFunc(intEncodeValue),
+			nil,
 			[]subtest{
 				{
 					"wrong type",
@@ -134,6 +137,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		{
 			"UintEncodeValue",
 			&uintCodec{},
+			nil,
 			[]subtest{
 				{
 					"wrong type",
@@ -175,6 +179,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		{
 			"FloatEncodeValue",
 			ValueEncoderFunc(floatEncodeValue),
+			nil,
 			[]subtest{
 				{
 					"wrong type",
@@ -195,8 +200,33 @@ func TestDefaultValueEncoders(t *testing.T) {
 			},
 		},
 		{
+			"reflection free FloatEncodeValue",
+			nil,
+			reflectFreeValueEncoderFunc(floatEncodeValueRF),
+			[]subtest{
+				{
+					"wrong type",
+					wrong,
+					nil,
+					nil,
+					nothing,
+					ValueEncoderError{
+						Name:     "FloatEncodeValue",
+						Kinds:    []reflect.Kind{reflect.Float32, reflect.Float64},
+						Received: reflect.ValueOf(wrong),
+					},
+				},
+				// the reflection free encoder function should only be used for
+				// encoding "types", not "kinds". So the reflection path tests are not
+				// valid.
+				{"float32/fast path", float32(3.14159), nil, nil, writeDouble, nil},
+				{"float64/fast path", float64(3.14159), nil, nil, writeDouble, nil},
+			},
+		},
+		{
 			"TimeEncodeValue",
 			ValueEncoderFunc(timeEncodeValue),
+			reflectFreeValueEncoderFunc(timeEncodeValueRF),
 			[]subtest{
 				{
 					"wrong type",
@@ -212,6 +242,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		{
 			"MapEncodeValue",
 			&mapCodec{},
+			nil,
 			[]subtest{
 				{
 					"wrong kind",
@@ -292,6 +323,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		{
 			"ArrayEncodeValue",
 			ValueEncoderFunc(arrayEncodeValue),
+			nil,
 			[]subtest{
 				{
 					"wrong kind",
@@ -370,6 +402,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		{
 			"SliceEncodeValue",
 			&sliceCodec{},
+			nil,
 			[]subtest{
 				{
 					"wrong kind",
@@ -456,6 +489,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		{
 			"ObjectIDEncodeValue",
 			ValueEncoderFunc(objectIDEncodeValue),
+			reflectFreeValueEncoderFunc(objectIDEncodeValueRF),
 			[]subtest{
 				{
 					"wrong type",
@@ -475,6 +509,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		{
 			"Decimal128EncodeValue",
 			ValueEncoderFunc(decimal128EncodeValue),
+			reflectFreeValueEncoderFunc(decimal128EncodeValueRF),
 			[]subtest{
 				{
 					"wrong type",
@@ -490,6 +525,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		{
 			"JSONNumberEncodeValue",
 			ValueEncoderFunc(jsonNumberEncodeValue),
+			reflectFreeValueEncoderFunc(jsonNumberEncodeValueRF),
 			[]subtest{
 				{
 					"wrong type",
@@ -519,6 +555,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		{
 			"URLEncodeValue",
 			ValueEncoderFunc(urlEncodeValue),
+			reflectFreeValueEncoderFunc(urlEncodeValueRF),
 			[]subtest{
 				{
 					"wrong type",
@@ -534,6 +571,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		{
 			"ByteSliceEncodeValue",
 			ValueEncoderFunc(byteSliceEncodeValue(false)),
+			reflectFreeValueEncoderFunc(byteSliceEncodeValueRF(false)),
 			[]subtest{
 				{
 					"wrong type",
@@ -550,6 +588,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		{
 			"EmptyInterfaceEncodeValue",
 			ValueEncoderFunc(emptyInterfaceValue),
+			nil,
 			[]subtest{
 				{
 					"wrong type",
@@ -564,6 +603,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		{
 			"ValueMarshalerEncodeValue",
 			ValueEncoderFunc(valueMarshalerEncodeValue),
+			nil,
 			[]subtest{
 				{
 					"wrong type",
@@ -642,6 +682,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		{
 			"MarshalerEncodeValue",
 			ValueEncoderFunc(marshalerEncodeValue),
+			nil,
 			[]subtest{
 				{
 					"wrong type",
@@ -704,6 +745,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		{
 			"PointerCodec.EncodeValue",
 			&pointerCodec{},
+			nil,
 			[]subtest{
 				{
 					"nil",
@@ -742,6 +784,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		{
 			"pointer implementation addressable interface",
 			&pointerCodec{},
+			nil,
 			[]subtest{
 				{
 					"ValueMarshaler",
@@ -764,6 +807,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		{
 			"JavaScriptEncodeValue",
 			ValueEncoderFunc(javaScriptEncodeValue),
+			reflectFreeValueEncoderFunc(javaScriptEncodeValueRF),
 			[]subtest{
 				{
 					"wrong type",
@@ -779,6 +823,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		{
 			"SymbolEncodeValue",
 			ValueEncoderFunc(symbolEncodeValue),
+			reflectFreeValueEncoderFunc(symbolEncodeValueRF),
 			[]subtest{
 				{
 					"wrong type",
@@ -794,6 +839,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		{
 			"BinaryEncodeValue",
 			ValueEncoderFunc(binaryEncodeValue),
+			reflectFreeValueEncoderFunc(binaryEncodeValueRF),
 			[]subtest{
 				{
 					"wrong type",
@@ -809,6 +855,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		{
 			"UndefinedEncodeValue",
 			ValueEncoderFunc(undefinedEncodeValue),
+			reflectFreeValueEncoderFunc(undefinedEncodeValueRF),
 			[]subtest{
 				{
 					"wrong type",
@@ -824,6 +871,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		{
 			"DateTimeEncodeValue",
 			ValueEncoderFunc(dateTimeEncodeValue),
+			reflectFreeValueEncoderFunc(dateTimeEncodeValueRF),
 			[]subtest{
 				{
 					"wrong type",
@@ -839,6 +887,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		{
 			"NullEncodeValue",
 			ValueEncoderFunc(nullEncodeValue),
+			reflectFreeValueEncoderFunc(nullEncodeValueRF),
 			[]subtest{
 				{
 					"wrong type",
@@ -854,6 +903,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		{
 			"RegexEncodeValue",
 			ValueEncoderFunc(regexEncodeValue),
+			reflectFreeValueEncoderFunc(regexEncodeValueRF),
 			[]subtest{
 				{
 					"wrong type",
@@ -869,6 +919,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		{
 			"DBPointerEncodeValue",
 			ValueEncoderFunc(dbPointerEncodeValue),
+			reflectFreeValueEncoderFunc(dbPointerEncodeValueRF),
 			[]subtest{
 				{
 					"wrong type",
@@ -891,6 +942,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		{
 			"TimestampEncodeValue",
 			ValueEncoderFunc(timestampEncodeValue),
+			reflectFreeValueEncoderFunc(timestampEncodeValueRF),
 			[]subtest{
 				{
 					"wrong type",
@@ -906,6 +958,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		{
 			"MinKeyEncodeValue",
 			ValueEncoderFunc(minKeyEncodeValue),
+			reflectFreeValueEncoderFunc(minKeyEncodeValueRF),
 			[]subtest{
 				{
 					"wrong type",
@@ -921,6 +974,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		{
 			"MaxKeyEncodeValue",
 			ValueEncoderFunc(maxKeyEncodeValue),
+			reflectFreeValueEncoderFunc(maxKeyEncodeValueRF),
 			[]subtest{
 				{
 					"wrong type",
@@ -936,6 +990,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		{
 			"CoreDocumentEncodeValue",
 			ValueEncoderFunc(coreDocumentEncodeValue),
+			reflectFreeValueEncoderFunc(coreDocumentEncodeValueRF),
 			[]subtest{
 				{
 					"wrong type",
@@ -994,6 +1049,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		{
 			"StructEncodeValue",
 			newStructCodec(&mapCodec{}),
+			nil,
 			[]subtest{
 				{
 					"interface value",
@@ -1016,6 +1072,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		{
 			"CodeWithScopeEncodeValue",
 			ValueEncoderFunc(codeWithScopeEncodeValue),
+			reflectFreeValueEncoderFunc(codeWithScopeEncodeValueRF),
 			[]subtest{
 				{
 					"wrong type",
@@ -1051,6 +1108,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		{
 			"CoreArrayEncodeValue",
 			ValueEncoderFunc(coreArrayEncodeValue),
+			reflectFreeValueEncoderFunc(coreArrayEncodeValueRF),
 			[]subtest{
 				{
 					"wrong type",
@@ -1110,13 +1168,27 @@ func TestDefaultValueEncoders(t *testing.T) {
 						llvrw = subtest.llvrw
 					}
 					llvrw.T = t
-					err := tc.ve.EncodeValue(ec, llvrw, reflect.ValueOf(subtest.val))
-					if !assert.CompareErrors(err, subtest.err) {
-						t.Errorf("Errors do not match. got %v; want %v", err, subtest.err)
+
+					if tc.ve != nil {
+						err := tc.ve.EncodeValue(ec, llvrw, reflect.ValueOf(subtest.val))
+						if !assert.CompareErrors(err, subtest.err) {
+							t.Errorf("Errors do not match. got %v; want %v", err, subtest.err)
+						}
+						invoked := llvrw.invoked
+						if !cmp.Equal(invoked, subtest.invoke) {
+							t.Errorf("Incorrect method invoked. got %v; want %v", invoked, subtest.invoke)
+						}
 					}
-					invoked := llvrw.invoked
-					if !cmp.Equal(invoked, subtest.invoke) {
-						t.Errorf("Incorrect method invoked. got %v; want %v", invoked, subtest.invoke)
+
+					if tc.rfve != nil {
+						err := tc.rfve.EncodeValue(ec, llvrw, subtest.val)
+						if !assert.CompareErrors(err, subtest.err) {
+							t.Errorf("Errors do not match. got %v; want %v", err, subtest.err)
+						}
+						invoked := llvrw.invoked
+						if !cmp.Equal(invoked, subtest.invoke) {
+							t.Errorf("Incorrect method invoked. got %v; want %v", invoked, subtest.invoke)
+						}
 					}
 				})
 			}
