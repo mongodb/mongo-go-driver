@@ -809,14 +809,14 @@ func equalTopologies(topo1, topo2 description.Topology) bool {
 		return false
 	}
 
-	topoServers := make(map[string]description.Server, len(topo1.Servers))
-	for _, s := range topo1.Servers {
-		topoServers[s.Addr.String()] = s
+	topoServers := make(map[string]*description.Server, len(topo1.Servers))
+	for i := range topo1.Servers {
+		topoServers[topo1.Servers[i].Addr.String()] = &topo1.Servers[i]
 	}
 
-	otherServers := make(map[string]description.Server, len(topo2.Servers))
-	for _, s := range topo2.Servers {
-		otherServers[s.Addr.String()] = s
+	otherServers := make(map[string]*description.Server, len(topo2.Servers))
+	for i := range topo2.Servers {
+		otherServers[topo2.Servers[i].Addr.String()] = &topo2.Servers[i]
 	}
 
 	if len(topoServers) != len(otherServers) {
@@ -826,7 +826,7 @@ func equalTopologies(topo1, topo2 description.Topology) bool {
 	for _, server := range topoServers {
 		otherServer := otherServers[server.Addr.String()]
 
-		if !driverutil.EqualServers(server, otherServer) {
+		if !driverutil.EqualServers(*server, *otherServer) {
 			return false
 		}
 	}

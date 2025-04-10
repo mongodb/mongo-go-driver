@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path"
+	"strconv"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -1039,4 +1040,29 @@ func BenchmarkSelectServerFromDescription(b *testing.B) {
 			})
 		})
 	}
+}
+
+func BenchmarkEqualTopologies(b *testing.B) {
+	servers := make([]description.Server, 100)
+	for i := 0; i < len(servers); i++ {
+		servers[i] = description.Server{
+			Addr:              address.Address("127.0.0." + strconv.Itoa(i) + ":27017"),
+			HeartbeatInterval: time.Duration(10) * time.Second,
+			LastWriteTime:     time.Date(2017, 2, 11, 14, 0, 0, 0, time.UTC),
+			LastUpdateTime:    time.Date(2017, 2, 11, 14, 0, 2, 0, time.UTC),
+			Kind:              description.ServerKindMongos,
+			WireVersion:       &description.VersionRange{Min: 6, Max: 21},
+		}
+	}
+	desc := description.Topology{
+		Servers: servers,
+	}
+
+	b.ResetTimer()
+	b.RunParallel(func(p *testing.PB) {
+		b.ReportAllocs()
+		for p.Next() {
+			_ = equalTopologies(desc, desc)
+		}
+	})
 }
