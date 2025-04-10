@@ -63,6 +63,7 @@ func registerDefaultEncoders(reg *Registry) {
 	// Register the reflect-free default type encoders.
 	reg.registerReflectFreeTypeEncoder(tByteSlice, byteSliceEncodeValueRF(false))
 	reg.registerReflectFreeTypeEncoder(tTime, reflectFreeValueEncoderFunc(timeEncodeValueRF))
+	reg.registerReflectFreeTypeEncoder(tEmpty, reflectFreeValueEncoderFunc(emptyInterfaceValueRF))
 	reg.registerReflectFreeTypeEncoder(tCoreArray, reflectFreeValueEncoderFunc(coreArrayEncodeValueRF))
 	reg.registerReflectFreeTypeEncoder(tNull, reflectFreeValueEncoderFunc(nullEncodeValueX))
 	reg.registerReflectFreeTypeEncoder(tOID, reflectFreeValueEncoderFunc(objectIDEncodeValueX))
@@ -89,7 +90,7 @@ func registerDefaultEncoders(reg *Registry) {
 	//
 	reg.RegisterTypeEncoder(tByteSlice, byteSliceEncodeValue(false))
 	reg.RegisterTypeEncoder(tTime, defaultValueEncoderFunc(timeEncodeValue))
-	reg.RegisterTypeEncoder(tEmpty, &emptyInterfaceCodec{}) // TODO: extend this to reflection free
+	reg.RegisterTypeEncoder(tEmpty, defaultValueEncoderFunc(emptyInterfaceValue)) // TODO: extend this to reflection free
 	reg.RegisterTypeEncoder(tCoreArray, defaultValueEncoderFunc(coreArrayEncodeValue))
 	reg.RegisterTypeEncoder(tOID, defaultValueEncoderFunc(objectIDEncodeValue))
 	reg.RegisterTypeEncoder(tDecimal, defaultValueEncoderFunc(decimal128EncodeValue))
@@ -258,10 +259,6 @@ func jsonNumberEncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) 
 }
 
 func jsonNumberEncodeValueX(ec EncodeContext, vw ValueWriter, val any) error {
-	//if !val.IsValid() || val.Type() != tJSONNumber {
-	//	return ValueEncoderError{Name: "JSONNumberEncodeValue", Types: []reflect.Type{tJSONNumber}, Received: val}
-	//}
-	//jsnum := val.Interface().(json.Number)
 	jsnum, ok := val.(json.Number)
 	if !ok {
 		return ValueEncoderError{Name: "JSONNumberEncodeValue", Types: []reflect.Type{tJSONNumber}, Received: reflect.ValueOf(val)}
@@ -708,7 +705,6 @@ func codeWithScopeEncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Valu
 	scopeVW.reset(scopeVW.buf[:0])
 	scopeVW.w = sw
 	defer bvwPool.Put(scopeVW)
-
 	encoder, err := ec.LookupEncoder(reflect.TypeOf(cws.Scope))
 	if err != nil {
 		return err
@@ -745,7 +741,6 @@ func codeWithScopeEncodeValueX(ec EncodeContext, vw ValueWriter, val any) error 
 	scopeVW.reset(scopeVW.buf[:0])
 	scopeVW.w = sw
 	defer bvwPool.Put(scopeVW)
-
 	encoder, err := ec.LookupEncoder(reflect.TypeOf(cws.Scope))
 	if err != nil {
 		return err
@@ -822,4 +817,20 @@ func coreArrayEncodeValueRF(ec EncodeContext, vw ValueWriter, val any) error {
 
 func coreArrayEncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
 	return coreArrayEncodeValueRF(ec, vw, val.Interface())
+}
+
+func emptyInterfaceValueRF(ec EncodeContext, vw ValueWriter, val any) error {
+	if val == nil {
+		return vw.WriteNull()
+	}
+	encoder, err := ec.LookupEncoder(reflect.TypeOf(val))
+	if err != nil {
+		return err
+	}
+
+	return encoder.EncodeValue(ec, vw, reflect.ValueOf(val))
+}
+
+func emptyInterfaceValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
+	return emptyInterfaceValueRF(ec, vw, val.Interface())
 }

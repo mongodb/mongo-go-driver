@@ -7,15 +7,10 @@
 package bson
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
-	"net/url"
 	"reflect"
 	"sync"
-	"time"
-
-	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 // defaultRegistry is the default Registry. It contains the default codecs and the
@@ -246,130 +241,6 @@ func (r *Registry) RegisterTypeMapEntry(bt Type, rt reflect.Type) {
 	r.typeMap.Store(bt, rt)
 }
 
-func getReflectTypeFromAny(val any) (reflect.Type, error) {
-	switch v := val.(type) {
-	case bool:
-		return tBool, nil
-	case float64:
-		return tFloat64, nil
-	case int32:
-		return tInt32, nil
-	case int64:
-		return tInt64, nil
-	case string:
-		return tString, nil
-	case time.Time:
-		return tTime, nil
-	case interface{}:
-		return tEmpty, nil
-	case []byte:
-		return tByteSlice, nil
-	case byte:
-		return tByte, nil
-	case url.URL:
-		return tURL, nil
-	case json.Number:
-		return tJSONNumber, nil
-	case ValueMarshaler:
-		return tValueMarshaler, nil
-	case ValueUnmarshaler:
-		return tValueUnmarshaler, nil
-	case Marshaler:
-		return tMarshaler, nil
-	case Unmarshaler:
-		return tUnmarshaler, nil
-	case Zeroer:
-		return tZeroer, nil
-	case Binary:
-		return tBinary, nil
-	case Undefined:
-		return tUndefined, nil
-	case ObjectID:
-		return tOID, nil
-	case DateTime:
-		return tDateTime, nil
-	case Null:
-		return tNull, nil
-	case Regex:
-		return tRegex, nil
-	case CodeWithScope:
-		return tCodeWithScope, nil
-	case DBPointer:
-		return tDBPointer, nil
-	case JavaScript:
-		return tJavaScript, nil
-	case Symbol:
-		return tSymbol, nil
-	case Timestamp:
-		return tTimestamp, nil
-	case Decimal128:
-		return tDecimal, nil
-	case Vector:
-		return tVector, nil
-	case MinKey:
-		return tMinKey, nil
-	case MaxKey:
-		return tMaxKey, nil
-	case D:
-		return tD, nil
-	case A:
-		return tA, nil
-	case E:
-		return tE, nil
-	case bsoncore.Document:
-		return tCoreDocument, nil
-	case bsoncore.Array:
-		return tCoreArray, nil
-	default:
-		return nil, fmt.Errorf("no default encoder for type %T", v)
-	}
-}
-
-//func lookupReflectFreeEncoder(r *Registry, typ reflect.Type) (reflectFreeValueEncoder, error) {
-//}
-
-func lookupEncoderReflectFree(r *Registry, typ reflect.Type, val any) (reflectFreeValueEncoder, error) {
-	if typ == nil {
-		var err error
-
-		typ, err = getReflectTypeFromAny(val)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	rfeEnc, found := r.reflectFreeTypeEncoders.Load(typ)
-	if !found {
-		return nil, errNoEncoder{Type: typ}
-	}
-
-	return rfeEnc, nil
-}
-
-func lookupUserDefinedEncoder(r *Registry, val any) (ValueEncoder, reflect.Type, bool, error) {
-	typ, err := getReflectTypeFromAny(val)
-	if err != nil {
-		return nil, nil, false, err
-	}
-
-	enc, found := r.lookupTypeEncoder(typ)
-	if found {
-		if enc == nil {
-			return nil, typ, false, errNoEncoder{Type: typ}
-		}
-
-		// We do not use ValueEncoder in the default case, preferring a reflect-free
-		// solution.
-		if _, ok := enc.(defaultValueEncoderFunc); ok {
-			return nil, typ, false, nil
-		}
-
-		return enc, typ, true, nil
-	}
-
-	return nil, typ, false, nil
-}
-
 // LookupEncoder returns the first matching encoder in the Registry. It uses the following lookup
 // order:
 //
@@ -392,30 +263,27 @@ func (r *Registry) LookupEncoder(valueType reflect.Type) (ValueEncoder, error) {
 		return nil, errNoEncoder{Type: valueType}
 	}
 
-	// First attempt to lookup a reflect-free default encoder.
-	// TODO: This will be moved in favor of the lookup* solution.
-	rfeEnc, found := r.reflectFreeTypeEncoders.Load(valueType)
-	if found {
-		if rfeEnc != nil {
-			wrapper := func(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
-				return rfeEnc.EncodeValue(ec, vw, val.Interface())
-			}
-
-			return ValueEncoderFunc(wrapper), nil
-		}
-	}
-
-	// Then lookup a user-defined encoder.
-	enc, found := r.lookupTypeEncoder(valueType)
-	if found {
+	// First attempt to get a user-defined type encoder.
+	if enc, found := r.lookupTypeEncoder(valueType); found {
 		if enc == nil {
 			return nil, errNoEncoder{Type: valueType}
 		}
-		return enc, nil
+
+		if _, ok := enc.(defaultValueEncoderFunc); !ok {
+			return enc, nil
+		}
 	}
 
-	enc, found = r.lookupInterfaceEncoder(valueType, true)
-	if found {
+	// Next try to get a reflection-free encoder.
+	if rfeEnc, found := r.reflectFreeTypeEncoders.Load(valueType); found && rfeEnc != nil {
+		wrapper := func(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
+			return rfeEnc.EncodeValue(ec, vw, val.Interface())
+		}
+
+		return ValueEncoderFunc(wrapper), nil
+	}
+
+	if enc, found := r.lookupInterfaceEncoder(valueType, true); found {
 		return r.typeEncoders.LoadOrStore(valueType, enc), nil
 	}
 
