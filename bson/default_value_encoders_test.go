@@ -1051,53 +1051,55 @@ func TestDefaultValueEncoders(t *testing.T) {
 				},
 			},
 		},
-		//{
-		//	"CoreArrayEncodeValue",
-		//	&arrayCodec{},
-		//	[]subtest{
-		//		{
-		//			"wrong type",
-		//			wrong,
-		//			nil,
-		//			nil,
-		//			nothing,
-		//			ValueEncoderError{
-		//				Name:     "CoreArrayEncodeValue",
-		//				Types:    []reflect.Type{tCoreArray},
-		//				Received: reflect.ValueOf(wrong),
-		//			},
-		//		},
+		{
+			"CoreArrayEncodeValue",
+			ValueEncoderFunc(func(ec EncodeContext, vw ValueWriter, v reflect.Value) error {
+				return coreArrayEncodeValueRF(ec, vw, v.Interface())
+			}),
+			[]subtest{
+				{
+					"wrong type",
+					wrong,
+					nil,
+					nil,
+					nothing,
+					ValueEncoderError{
+						Name:     "CoreArrayEncodeValue",
+						Types:    []reflect.Type{tCoreArray},
+						Received: reflect.ValueOf(wrong),
+					},
+				},
 
-		//		{
-		//			"WriteArray Error",
-		//			bsoncore.Array{},
-		//			nil,
-		//			&valueReaderWriter{Err: errors.New("wa error"), ErrAfter: writeArray},
-		//			writeArray,
-		//			errors.New("wa error"),
-		//		},
-		//		{
-		//			"WriteArrayElement Error",
-		//			bsoncore.Array(buildDocumentArray(func([]byte) []byte {
-		//				return bsoncore.AppendNullElement(nil, "foo")
-		//			})),
-		//			nil,
-		//			&valueReaderWriter{Err: errors.New("wae error"), ErrAfter: writeArrayElement},
-		//			writeArrayElement,
-		//			errors.New("wae error"),
-		//		},
-		//		{
-		//			"encodeValue error",
-		//			bsoncore.Array(buildDocumentArray(func([]byte) []byte {
-		//				return bsoncore.AppendNullElement(nil, "foo")
-		//			})),
-		//			nil,
-		//			&valueReaderWriter{Err: errors.New("ev error"), ErrAfter: writeNull},
-		//			writeNull,
-		//			errors.New("ev error"),
-		//		},
-		//	},
-		//},
+				{
+					"WriteArray Error",
+					bsoncore.Array{},
+					nil,
+					&valueReaderWriter{Err: errors.New("wa error"), ErrAfter: writeArray},
+					writeArray,
+					errors.New("wa error"),
+				},
+				{
+					"WriteArrayElement Error",
+					bsoncore.Array(buildDocumentArray(func([]byte) []byte {
+						return bsoncore.AppendNullElement(nil, "foo")
+					})),
+					nil,
+					&valueReaderWriter{Err: errors.New("wae error"), ErrAfter: writeArrayElement},
+					writeArrayElement,
+					errors.New("wae error"),
+				},
+				{
+					"encodeValue error",
+					bsoncore.Array(buildDocumentArray(func([]byte) []byte {
+						return bsoncore.AppendNullElement(nil, "foo")
+					})),
+					nil,
+					&valueReaderWriter{Err: errors.New("ev error"), ErrAfter: writeNull},
+					writeNull,
+					errors.New("ev error"),
+				},
+			},
+		},
 	}
 
 	for _, tc := range testCases {

@@ -188,9 +188,16 @@ func floatEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 	return ValueEncoderError{Name: "FloatEncodeValue", Kinds: []reflect.Kind{reflect.Float32, reflect.Float64}, Received: reflect.ValueOf(val)}
 }
 
-// floatEncodeValue is the ValueEncoderFunc for float types.
+// floatEncodeValue is the ValueEncoderFunc for float types. this function is
+// used to decode "types" and "kinds" and therefore cannot be a wrapper for
+// reflection-free decoding in the default "type" case.
 func floatEncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
-	return floatEncodeValueRF(ec, vw, val.Interface())
+	switch val.Kind() {
+	case reflect.Float32, reflect.Float64:
+		return vw.WriteDouble(val.Float())
+	}
+
+	return ValueEncoderError{Name: "FloatEncodeValue", Kinds: []reflect.Kind{reflect.Float32, reflect.Float64}, Received: val}
 }
 
 // objectIDEncodeValue is the ValueEncoderFunc for ObjectID.

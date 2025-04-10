@@ -90,7 +90,6 @@ type Registry struct {
 	typeMap           sync.Map // map[Type]reflect.Type
 
 	reflectFreeTypeEncoders *typeReflectFreeEncoderCache
-	reflectFreeKindEncoders *kindEncoderReflectFreeCache
 }
 
 // NewRegistry creates a new empty Registry.
@@ -102,7 +101,6 @@ func NewRegistry() *Registry {
 		kindDecoders: new(kindDecoderCache),
 
 		reflectFreeTypeEncoders: new(typeReflectFreeEncoderCache),
-		reflectFreeKindEncoders: new(kindEncoderReflectFreeCache),
 	}
 	registerDefaultEncoders(reg)
 	registerDefaultDecoders(reg)
@@ -126,10 +124,6 @@ func (r *Registry) RegisterTypeEncoder(valueType reflect.Type, enc ValueEncoder)
 
 func (r *Registry) registerReflectFreeTypeEncoder(valueType reflect.Type, enc reflectFreeValueEncoder) {
 	r.reflectFreeTypeEncoders.Store(valueType, enc)
-}
-
-func (r *Registry) registerReflectFreeKindEncoder(kind reflect.Kind, enc reflectFreeValueEncoder) {
-	r.reflectFreeKindEncoders.Store(kind, enc)
 }
 
 func (r *Registry) storeReflectFreeTypeEncoder(rt reflect.Type, enc reflectFreeValueEncoder) reflectFreeValueEncoder {
@@ -285,15 +279,6 @@ func (r *Registry) LookupEncoder(valueType reflect.Type) (ValueEncoder, error) {
 
 	if enc, found := r.lookupInterfaceEncoder(valueType, true); found {
 		return r.typeEncoders.LoadOrStore(valueType, enc), nil
-	}
-
-	if v, ok := r.reflectFreeKindEncoders.Load(valueType.Kind()); ok {
-		ve := r.storeReflectFreeTypeEncoder(valueType, v)
-		wrapper := func(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
-			return ve.EncodeValue(ec, vw, val.Interface())
-		}
-
-		return ValueEncoderFunc(wrapper), nil
 	}
 
 	if v, ok := r.kindEncoders.Load(valueType.Kind()); ok {
