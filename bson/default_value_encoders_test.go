@@ -51,7 +51,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 	type myfloat32 float32
 	type myfloat64 float64
 
-	//now := time.Now().Truncate(time.Millisecond)
+	now := time.Now().Truncate(time.Millisecond)
 	pjsnum := new(json.Number)
 	*pjsnum = json.Number("3.14159")
 	d128 := NewDecimal128(12345, 67890)
@@ -194,21 +194,21 @@ func TestDefaultValueEncoders(t *testing.T) {
 				{"float64/reflection path", myfloat64(3.14159), nil, nil, writeDouble, nil},
 			},
 		},
-		//{
-		//	"TimeEncodeValue",
-		//	&timeCodec{},
-		//	[]subtest{
-		//		{
-		//			"wrong type",
-		//			wrong,
-		//			nil,
-		//			nil,
-		//			nothing,
-		//			ValueEncoderError{Name: "TimeEncodeValue", Types: []reflect.Type{tTime}, Received: reflect.ValueOf(wrong)},
-		//		},
-		//		{"time.Time", now, nil, nil, writeDateTime, nil},
-		//	},
-		//},
+		{
+			"TimeEncodeValue",
+			ValueEncoderFunc(timeEncodeValue),
+			[]subtest{
+				{
+					"wrong type",
+					wrong,
+					nil,
+					nil,
+					nothing,
+					ValueEncoderError{Name: "TimeEncodeValue", Types: []reflect.Type{tTime}, Received: reflect.ValueOf(wrong)},
+				},
+				{"time.Time", now, nil, nil, writeDateTime, nil},
+			},
+		},
 		{
 			"MapEncodeValue",
 			&mapCodec{},
@@ -531,39 +531,36 @@ func TestDefaultValueEncoders(t *testing.T) {
 				{"url.URL", url.URL{Scheme: "http", Host: "example.com"}, nil, nil, writeString, nil},
 			},
 		},
-		//{
-		//	"ByteSliceEncodeValue",
-		//	// TODO: Fix this.
-		//	ValueEncoderFunc(func(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
-		//		return (&byteSliceCodec{}).EncodeValue(ec, vw, val)
-		//	}),
-		//	[]subtest{
-		//		{
-		//			"wrong type",
-		//			wrong,
-		//			nil,
-		//			nil,
-		//			nothing,
-		//			ValueEncoderError{Name: "ByteSliceEncodeValue", Types: []reflect.Type{tByteSlice}, Received: reflect.ValueOf(wrong)},
-		//		},
-		//		{"[]byte", []byte{0x01, 0x02, 0x03}, nil, nil, writeBinary, nil},
-		//		{"[]byte/nil", []byte(nil), nil, nil, writeNull, nil},
-		//	},
-		//},
-		//{
-		//	"EmptyInterfaceEncodeValue",
-		//	&emptyInterfaceCodec{},
-		//	[]subtest{
-		//		{
-		//			"wrong type",
-		//			wrong,
-		//			nil,
-		//			nil,
-		//			nothing,
-		//			ValueEncoderError{Name: "EmptyInterfaceEncodeValue", Types: []reflect.Type{tEmpty}, Received: reflect.ValueOf(wrong)},
-		//		},
-		//	},
-		//},
+		{
+			"ByteSliceEncodeValue",
+			ValueEncoderFunc(byteSliceEncodeValue(false)),
+			[]subtest{
+				{
+					"wrong type",
+					wrong,
+					nil,
+					nil,
+					nothing,
+					ValueEncoderError{Name: "ByteSliceEncodeValue", Types: []reflect.Type{tByteSlice}, Received: reflect.ValueOf(wrong)},
+				},
+				{"[]byte", []byte{0x01, 0x02, 0x03}, nil, nil, writeBinary, nil},
+				{"[]byte/nil", []byte(nil), nil, nil, writeNull, nil},
+			},
+		},
+		{
+			"EmptyInterfaceEncodeValue",
+			ValueEncoderFunc(emptyInterfaceValue),
+			[]subtest{
+				{
+					"wrong type",
+					wrong,
+					nil,
+					nil,
+					nothing,
+					ValueEncoderError{Name: "EmptyInterfaceEncodeValue", Types: []reflect.Type{tEmpty}, Received: reflect.ValueOf(wrong)},
+				},
+			},
+		},
 		{
 			"ValueMarshalerEncodeValue",
 			ValueEncoderFunc(valueMarshalerEncodeValue),
@@ -1053,9 +1050,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"CoreArrayEncodeValue",
-			ValueEncoderFunc(func(ec EncodeContext, vw ValueWriter, v reflect.Value) error {
-				return coreArrayEncodeValueRF(ec, vw, v.Interface())
-			}),
+			ValueEncoderFunc(coreArrayEncodeValue),
 			[]subtest{
 				{
 					"wrong type",

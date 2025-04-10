@@ -770,5 +770,18 @@ func emptyInterfaceValueRF(ec EncodeContext, vw ValueWriter, val any) error {
 }
 
 func emptyInterfaceValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
-	return emptyInterfaceValueRF(ec, vw, val.Interface())
+	if !val.IsValid() || val.Type() != tEmpty {
+		return ValueEncoderError{Name: "EmptyInterfaceEncodeValue", Types: []reflect.Type{tEmpty}, Received: val}
+	}
+
+	if val.IsNil() {
+		return vw.WriteNull()
+	}
+
+	encoder, err := ec.LookupEncoder(val.Elem().Type())
+	if err != nil {
+		return err
+	}
+
+	return encoder.EncodeValue(ec, vw, val.Elem())
 }
