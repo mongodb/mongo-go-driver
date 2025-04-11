@@ -824,7 +824,10 @@ func equalTopologies(topo1, topo2 description.Topology) bool {
 	}
 
 	for _, server := range topoServers {
-		otherServer := otherServers[server.Addr.String()]
+		otherServer, ok := otherServers[server.Addr.String()]
+		if !ok {
+			return false
+		}
 
 		if !driverutil.EqualServers(*server, *otherServer) {
 			return false

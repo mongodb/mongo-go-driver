@@ -1042,6 +1042,31 @@ func BenchmarkSelectServerFromDescription(b *testing.B) {
 	}
 }
 
+func TestEqualTopologies(t *testing.T) {
+	assert.True(t, equalTopologies(
+		description.Topology{
+			Servers: []description.Server{{
+				Addr: "127.0.0.1:27017",
+			}},
+		}, description.Topology{
+			Servers: []description.Server{{
+				Addr: "127.0.0.1:27017",
+			}},
+		},
+	))
+	assert.False(t, equalTopologies(
+		description.Topology{
+			Servers: []description.Server{{
+				Addr: "127.0.0.1:27017",
+			}},
+		}, description.Topology{
+			Servers: []description.Server{{
+				Addr: "127.0.0.2:27017",
+			}},
+		},
+	))
+}
+
 func BenchmarkEqualTopologies(b *testing.B) {
 	servers := make([]description.Server, 100)
 	for i := 0; i < len(servers); i++ {
