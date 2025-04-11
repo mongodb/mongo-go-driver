@@ -190,7 +190,7 @@ func floatEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 // floatEncodeValue is the ValueEncoderFunc for float types. this function is
 // used to decode "types" and "kinds" and therefore cannot be a wrapper for
 // reflection-free decoding in the default "type" case.
-func floatEncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
+func floatEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
 	switch val.Kind() {
 	case reflect.Float32, reflect.Float64:
 		return vw.WriteDouble(val.Float())
@@ -664,7 +664,7 @@ func byteSliceEncodeValue(encodeNilAsEmpty bool) defaultValueEncoderFunc {
 	})
 }
 
-func timeEncodeValueRF(ec EncodeContext, vw ValueWriter, val any) error {
+func timeEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 	tt, ok := val.(time.Time)
 	if !ok {
 		return ValueEncoderError{Name: "TimeEncodeValue", Types: []reflect.Type{tTime}, Received: reflect.ValueOf(val)}
@@ -678,7 +678,7 @@ func timeEncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error 
 	return timeEncodeValueRF(ec, vw, val.Interface())
 }
 
-func coreArrayEncodeValueRF(ec EncodeContext, vw ValueWriter, val any) error {
+func coreArrayEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 	arr, ok := val.(bsoncore.Array)
 	if !ok {
 		return ValueEncoderError{Name: "CoreArrayEncodeValue", Types: []reflect.Type{tCoreArray}, Received: reflect.ValueOf(val)}

@@ -571,7 +571,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		{
 			"ByteSliceEncodeValue",
 			ValueEncoderFunc(byteSliceEncodeValue(false)),
-			reflectFreeValueEncoderFunc(byteSliceEncodeValueRF(false)),
+			byteSliceEncodeValueRF(false),
 			[]subtest{
 				{
 					"wrong type",

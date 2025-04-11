@@ -12,11 +12,7 @@ import (
 )
 
 // byteSliceCodec is the Codec used for []byte values.
-type byteSliceCodec struct {
-	// encodeNilAsEmpty causes EncodeValue to marshal nil Go byte slices as empty BSON binary values
-	// instead of BSON null.
-	encodeNilAsEmpty bool
-}
+type byteSliceCodec struct{}
 
 // Assert that byteSliceCodec satisfies the typeDecoder interface, which allows it to be
 // used by collection type decoders (e.g. map, slice, etc) to set individual values in a

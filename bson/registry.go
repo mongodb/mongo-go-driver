@@ -126,10 +126,6 @@ func (r *Registry) registerReflectFreeTypeEncoder(valueType reflect.Type, enc re
 	r.reflectFreeTypeEncoders.Store(valueType, enc)
 }
 
-func (r *Registry) storeReflectFreeTypeEncoder(rt reflect.Type, enc reflectFreeValueEncoder) reflectFreeValueEncoder {
-	return r.reflectFreeTypeEncoders.LoadOrStore(rt, enc)
-}
-
 // RegisterTypeDecoder registers the provided ValueDecoder for the provided type.
 //
 // The type will be used as provided, so a decoder can be registered for a type and a different
