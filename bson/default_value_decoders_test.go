@@ -3418,7 +3418,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				typeDecoders:            new(typeDecoderCache),
 				kindEncoders:            new(kindEncoderCache),
 				kindDecoders:            new(kindDecoderCache),
-				reflectFreeTypeEncoders: new(typeReflectFreeEncoderCache),
+				reflectFreeTypeEncoders: new(reflectFreeTypeEncoderCache),
 			}
 			registerDefaultEncoders(topLevelReg)
 			registerDefaultDecoders(topLevelReg)
@@ -3429,7 +3429,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				typeDecoders:            new(typeDecoderCache),
 				kindEncoders:            new(kindEncoderCache),
 				kindDecoders:            new(kindDecoderCache),
-				reflectFreeTypeEncoders: new(typeReflectFreeEncoderCache),
+				reflectFreeTypeEncoders: new(reflectFreeTypeEncoderCache),
 			}
 			registerDefaultEncoders(embeddedReg)
 			registerDefaultDecoders(embeddedReg)
@@ -3476,7 +3476,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				typeDecoders:            new(typeDecoderCache),
 				kindEncoders:            new(kindEncoderCache),
 				kindDecoders:            new(kindDecoderCache),
-				reflectFreeTypeEncoders: new(typeReflectFreeEncoderCache),
+				reflectFreeTypeEncoders: new(reflectFreeTypeEncoderCache),
 			}
 			registerDefaultEncoders(reg)
 			registerDefaultDecoders(reg)
@@ -3571,7 +3571,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 			typeDecoders:            new(typeDecoderCache),
 			kindEncoders:            new(kindEncoderCache),
 			kindDecoders:            new(kindDecoderCache),
-			reflectFreeTypeEncoders: new(typeReflectFreeEncoderCache),
+			reflectFreeTypeEncoders: new(reflectFreeTypeEncoderCache),
 		}
 		registerDefaultDecoders(nestedRegistry)
 		nestedRegistry.RegisterTypeDecoder(tEmpty, ValueDecoderFunc(emptyInterfaceErrorDecode))
@@ -3729,7 +3729,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				typeDecoders:            new(typeDecoderCache),
 				kindEncoders:            new(kindEncoderCache),
 				kindDecoders:            new(kindDecoderCache),
-				reflectFreeTypeEncoders: new(typeReflectFreeEncoderCache),
+				reflectFreeTypeEncoders: new(reflectFreeTypeEncoderCache),
 			}
 			registerDefaultDecoders(reg)
 			reg.RegisterTypeMapEntry(TypeBoolean, reflect.TypeOf(mybool(true)))
@@ -3804,7 +3804,7 @@ func buildDefaultRegistry() *Registry {
 		typeDecoders:            new(typeDecoderCache),
 		kindEncoders:            new(kindEncoderCache),
 		kindDecoders:            new(kindDecoderCache),
-		reflectFreeTypeEncoders: new(typeReflectFreeEncoderCache),
+		reflectFreeTypeEncoders: new(reflectFreeTypeEncoderCache),
 	}
 	registerDefaultEncoders(reg)
 	registerDefaultDecoders(reg)

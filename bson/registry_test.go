@@ -23,7 +23,7 @@ func newTestRegistry() *Registry {
 		kindEncoders: new(kindEncoderCache),
 		kindDecoders: new(kindDecoderCache),
 
-		reflectFreeTypeEncoders: new(typeReflectFreeEncoderCache),
+		reflectFreeTypeEncoders: new(reflectFreeTypeEncoderCache),
 	}
 }
 

@@ -89,7 +89,7 @@ type Registry struct {
 	kindDecoders      *kindDecoderCache
 	typeMap           sync.Map // map[Type]reflect.Type
 
-	reflectFreeTypeEncoders *typeReflectFreeEncoderCache
+	reflectFreeTypeEncoders *reflectFreeTypeEncoderCache
 }
 
 // NewRegistry creates a new empty Registry.
@@ -100,7 +100,7 @@ func NewRegistry() *Registry {
 		kindEncoders: new(kindEncoderCache),
 		kindDecoders: new(kindDecoderCache),
 
-		reflectFreeTypeEncoders: new(typeReflectFreeEncoderCache),
+		reflectFreeTypeEncoders: new(reflectFreeTypeEncoderCache),
 	}
 	registerDefaultEncoders(reg)
 	registerDefaultDecoders(reg)

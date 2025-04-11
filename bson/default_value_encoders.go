@@ -83,31 +83,8 @@ func registerDefaultEncoders(reg *Registry) {
 	reg.registerReflectFreeTypeEncoder(tCoreDocument, reflectFreeValueEncoderFunc(coreDocumentEncodeValueRF))
 	reg.registerReflectFreeTypeEncoder(tCodeWithScope, reflectFreeValueEncoderFunc(codeWithScopeEncodeValueRF))
 
-	// Register the reflect-based default encoders. These are required since
-	// removing them would break Registry.LookupEncoder. However, these will
-	// never be used internally.
-	reg.RegisterTypeEncoder(tByteSlice, byteSliceEncodeValue(false))
-	reg.RegisterTypeEncoder(tTime, defaultValueEncoderFunc(timeEncodeValue))
+	// Register the reflect-based default encoders.
 	reg.RegisterTypeEncoder(tEmpty, ValueEncoderFunc(emptyInterfaceValue))
-	reg.RegisterTypeEncoder(tCoreArray, defaultValueEncoderFunc(coreArrayEncodeValue))
-	reg.RegisterTypeEncoder(tOID, defaultValueEncoderFunc(objectIDEncodeValue))
-	reg.RegisterTypeEncoder(tDecimal, defaultValueEncoderFunc(decimal128EncodeValue))
-	reg.RegisterTypeEncoder(tJSONNumber, defaultValueEncoderFunc(jsonNumberEncodeValue))
-	reg.RegisterTypeEncoder(tURL, defaultValueEncoderFunc(urlEncodeValue))
-	reg.RegisterTypeEncoder(tJavaScript, defaultValueEncoderFunc(javaScriptEncodeValue))
-	reg.RegisterTypeEncoder(tSymbol, defaultValueEncoderFunc(symbolEncodeValue))
-	reg.RegisterTypeEncoder(tBinary, defaultValueEncoderFunc(binaryEncodeValue))
-	reg.RegisterTypeEncoder(tVector, defaultValueEncoderFunc(vectorEncodeValue))
-	reg.RegisterTypeEncoder(tUndefined, defaultValueEncoderFunc(undefinedEncodeValue))
-	reg.RegisterTypeEncoder(tDateTime, defaultValueEncoderFunc(dateTimeEncodeValue))
-	reg.RegisterTypeEncoder(tNull, defaultValueEncoderFunc(nullEncodeValue))
-	reg.RegisterTypeEncoder(tRegex, defaultValueEncoderFunc(regexEncodeValue))
-	reg.RegisterTypeEncoder(tDBPointer, defaultValueEncoderFunc(dbPointerEncodeValue))
-	reg.RegisterTypeEncoder(tTimestamp, defaultValueEncoderFunc(timestampEncodeValue))
-	reg.RegisterTypeEncoder(tMinKey, defaultValueEncoderFunc(minKeyEncodeValue))
-	reg.RegisterTypeEncoder(tMaxKey, defaultValueEncoderFunc(maxKeyEncodeValue))
-	reg.RegisterTypeEncoder(tCoreDocument, defaultValueEncoderFunc(coreDocumentEncodeValue))
-	reg.RegisterTypeEncoder(tCodeWithScope, defaultValueEncoderFunc(codeWithScopeEncodeValue))
 
 	// Register the kind-based default encoders. These must continue using
 	// reflection since they account for custom types that cannot be anticipated.
@@ -212,11 +189,6 @@ func objectIDEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 	return vw.WriteObjectID(objID)
 }
 
-// objectIDEncodeValue is the ValueEncoderFunc for ObjectID.
-func objectIDEncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
-	return objectIDEncodeValueRF(ec, vw, val.Interface())
-}
-
 func decimal128EncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 	d128, ok := val.(Decimal128)
 	if !ok {
@@ -224,11 +196,6 @@ func decimal128EncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 	}
 
 	return vw.WriteDecimal128(d128)
-}
-
-// decimal128EncodeValue is the ValueEncoderFunc for Decimal128.
-func decimal128EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
-	return decimal128EncodeValueRF(ec, vw, val.Interface())
 }
 
 func jsonNumberEncodeValueRF(ec EncodeContext, vw ValueWriter, val any) error {
@@ -250,11 +217,6 @@ func jsonNumberEncodeValueRF(ec EncodeContext, vw ValueWriter, val any) error {
 	return floatEncodeValueRF(ec, vw, f64)
 }
 
-// jsonNumberEncodeValue is the ValueEncoderFunc for json.Number.
-func jsonNumberEncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
-	return jsonNumberEncodeValueRF(ec, vw, val.Interface())
-}
-
 func urlEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 	u, ok := val.(url.URL)
 	if !ok {
@@ -262,11 +224,6 @@ func urlEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 	}
 
 	return vw.WriteString(u.String())
-}
-
-// urlEncodeValue is the ValueEncoderFunc for url.URL.
-func urlEncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
-	return urlEncodeValueRF(ec, vw, val.Interface())
 }
 
 // arrayEncodeValue is the ValueEncoderFunc for array types.
@@ -418,11 +375,6 @@ func javaScriptEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 	return vw.WriteJavascript(string(jsString))
 }
 
-// javaScriptEncodeValue is the ValueEncoderFunc for the JavaScript type.
-func javaScriptEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
-	return javaScriptEncodeValueRF(EncodeContext{}, vw, val.Interface())
-}
-
 func symbolEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 	symbol, ok := val.(Symbol)
 	if !ok {
@@ -432,11 +384,6 @@ func symbolEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 	return vw.WriteSymbol(string(symbol))
 }
 
-// symbolEncodeValue is the ValueEncoderFunc for the Symbol type.
-func symbolEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
-	return symbolEncodeValueRF(EncodeContext{}, vw, val.Interface())
-}
-
 func binaryEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 	b, ok := val.(Binary)
 	if !ok {
@@ -444,11 +391,6 @@ func binaryEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 	}
 
 	return vw.WriteBinaryWithSubtype(b.Data, b.Subtype)
-}
-
-// binaryEncodeValue is the ValueEncoderFunc for Binary.
-func binaryEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
-	return binaryEncodeValueRF(EncodeContext{}, vw, val.Interface())
 }
 
 func vectorEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
@@ -461,22 +403,12 @@ func vectorEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 	return vw.WriteBinaryWithSubtype(b.Data, b.Subtype)
 }
 
-// vectorEncodeValue is the ValueEncoderFunc for Vector.
-func vectorEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
-	return vectorEncodeValueRF(EncodeContext{}, vw, val.Interface())
-}
-
 func undefinedEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 	if _, ok := val.(Undefined); !ok {
 		return ValueEncoderError{Name: "UndefinedEncodeValue", Types: []reflect.Type{tUndefined}, Received: reflect.ValueOf(val)}
 	}
 
 	return vw.WriteUndefined()
-}
-
-// undefinedEncodeValue is the ValueEncoderFunc for Undefined.
-func undefinedEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
-	return undefinedEncodeValueRF(EncodeContext{}, vw, val.Interface())
 }
 
 func dateTimeEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
@@ -488,22 +420,12 @@ func dateTimeEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 	return vw.WriteDateTime(int64(dateTime))
 }
 
-// dateTimeEncodeValue is the ValueEncoderFunc for DateTime.
-func dateTimeEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
-	return dateTimeEncodeValueRF(EncodeContext{}, vw, val.Interface())
-}
-
 func nullEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 	if _, ok := val.(Null); !ok {
 		return ValueEncoderError{Name: "NullEncodeValue", Types: []reflect.Type{tNull}, Received: reflect.ValueOf(val)}
 	}
 
 	return vw.WriteNull()
-}
-
-// nullEncodeValue is the ValueEncoderFunc for Null.
-func nullEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
-	return nullEncodeValueRF(EncodeContext{}, vw, val.Interface())
 }
 
 func regexEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
@@ -515,11 +437,6 @@ func regexEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 	return vw.WriteRegex(regex.Pattern, regex.Options)
 }
 
-// regexEncodeValue is the ValueEncoderFunc for Regex.
-func regexEncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
-	return regexEncodeValueRF(ec, vw, val.Interface())
-}
-
 func dbPointerEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 	dbp, ok := val.(DBPointer)
 	if !ok {
@@ -527,11 +444,6 @@ func dbPointerEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 	}
 
 	return vw.WriteDBPointer(dbp.DB, dbp.Pointer)
-}
-
-// dbPointerEncodeValue is the ValueEncoderFunc for DBPointer.
-func dbPointerEncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
-	return dbPointerEncodeValueRF(ec, vw, val.Interface())
 }
 
 func timestampEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
@@ -543,22 +455,12 @@ func timestampEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 	return vw.WriteTimestamp(ts.T, ts.I)
 }
 
-// timestampEncodeValue is the ValueEncoderFunc for Timestamp.
-func timestampEncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
-	return timestampEncodeValueRF(ec, vw, val.Interface())
-}
-
 func minKeyEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 	if _, ok := val.(MinKey); !ok {
 		return ValueEncoderError{Name: "MinKeyEncodeValue", Types: []reflect.Type{tMinKey}, Received: reflect.ValueOf(val)}
 	}
 
 	return vw.WriteMinKey()
-}
-
-// minKeyEncodeValue is the ValueEncoderFunc for MinKey.
-func minKeyEncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
-	return minKeyEncodeValueRF(ec, vw, val.Interface())
 }
 
 func maxKeyEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
@@ -569,11 +471,6 @@ func maxKeyEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 	return vw.WriteMaxKey()
 }
 
-// maxKeyEncodeValue is the ValueEncoderFunc for MaxKey.
-func maxKeyEncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
-	return maxKeyEncodeValueRF(ec, vw, val.Interface())
-}
-
 func coreDocumentEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 	cdoc, ok := val.(bsoncore.Document)
 	if !ok {
@@ -581,11 +478,6 @@ func coreDocumentEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 	}
 
 	return copyDocumentFromBytes(vw, cdoc)
-}
-
-// coreDocumentEncodeValue is the ValueEncoderFunc for bsoncore.Document.
-func coreDocumentEncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
-	return coreDocumentEncodeValueRF(ec, vw, val.Interface())
 }
 
 func codeWithScopeEncodeValueRF(ec EncodeContext, vw ValueWriter, val any) error {
@@ -624,11 +516,6 @@ func codeWithScopeEncodeValueRF(ec EncodeContext, vw ValueWriter, val any) error
 	return dw.WriteDocumentEnd()
 }
 
-// codeWithScopeEncodeValue is the ValueEncoderFunc for CodeWithScope.
-func codeWithScopeEncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
-	return codeWithScopeEncodeValueRF(ec, vw, val.Interface())
-}
-
 // isImplementationNil returns if val is a nil pointer and inter is implemented on a concrete type
 func isImplementationNil(val reflect.Value, inter reflect.Type) bool {
 	vt := val.Type()
@@ -657,12 +544,6 @@ func byteSliceEncodeValueRF(encodeNilAsEmpty bool) reflectFreeValueEncoderFunc {
 	})
 }
 
-func byteSliceEncodeValue(encodeNilAsEmpty bool) defaultValueEncoderFunc {
-	return defaultValueEncoderFunc(func(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
-		return byteSliceEncodeValueRF(encodeNilAsEmpty)(ec, vw, val.Interface())
-	})
-}
-
 func timeEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 	tt, ok := val.(time.Time)
 	if !ok {
@@ -673,10 +554,6 @@ func timeEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 	return vw.WriteDateTime(int64(dt))
 }
 
-func timeEncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
-	return timeEncodeValueRF(ec, vw, val.Interface())
-}
-
 func coreArrayEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 	arr, ok := val.(bsoncore.Array)
 	if !ok {
@@ -684,10 +561,6 @@ func coreArrayEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 	}
 
 	return copyArrayFromBytes(vw, arr)
-}
-
-func coreArrayEncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
-	return coreArrayEncodeValueRF(ec, vw, val.Interface())
 }
 
 func emptyInterfaceValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {

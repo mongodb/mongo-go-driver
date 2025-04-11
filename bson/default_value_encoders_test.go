@@ -225,7 +225,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"TimeEncodeValue",
-			ValueEncoderFunc(timeEncodeValue),
+			nil,
 			reflectFreeValueEncoderFunc(timeEncodeValueRF),
 			[]subtest{
 				{
@@ -488,7 +488,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"ObjectIDEncodeValue",
-			ValueEncoderFunc(objectIDEncodeValue),
+			nil,
 			reflectFreeValueEncoderFunc(objectIDEncodeValueRF),
 			[]subtest{
 				{
@@ -508,7 +508,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"Decimal128EncodeValue",
-			ValueEncoderFunc(decimal128EncodeValue),
+			nil,
 			reflectFreeValueEncoderFunc(decimal128EncodeValueRF),
 			[]subtest{
 				{
@@ -524,7 +524,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"JSONNumberEncodeValue",
-			ValueEncoderFunc(jsonNumberEncodeValue),
+			nil,
 			reflectFreeValueEncoderFunc(jsonNumberEncodeValueRF),
 			[]subtest{
 				{
@@ -554,7 +554,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"URLEncodeValue",
-			ValueEncoderFunc(urlEncodeValue),
+			nil,
 			reflectFreeValueEncoderFunc(urlEncodeValueRF),
 			[]subtest{
 				{
@@ -570,7 +570,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"ByteSliceEncodeValue",
-			ValueEncoderFunc(byteSliceEncodeValue(false)),
+			nil,
 			byteSliceEncodeValueRF(false),
 			[]subtest{
 				{
@@ -806,7 +806,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"JavaScriptEncodeValue",
-			ValueEncoderFunc(javaScriptEncodeValue),
+			nil,
 			reflectFreeValueEncoderFunc(javaScriptEncodeValueRF),
 			[]subtest{
 				{
@@ -822,7 +822,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"SymbolEncodeValue",
-			ValueEncoderFunc(symbolEncodeValue),
+			nil,
 			reflectFreeValueEncoderFunc(symbolEncodeValueRF),
 			[]subtest{
 				{
@@ -838,7 +838,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"BinaryEncodeValue",
-			ValueEncoderFunc(binaryEncodeValue),
+			nil,
 			reflectFreeValueEncoderFunc(binaryEncodeValueRF),
 			[]subtest{
 				{
@@ -854,7 +854,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"UndefinedEncodeValue",
-			ValueEncoderFunc(undefinedEncodeValue),
+			nil,
 			reflectFreeValueEncoderFunc(undefinedEncodeValueRF),
 			[]subtest{
 				{
@@ -870,7 +870,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"DateTimeEncodeValue",
-			ValueEncoderFunc(dateTimeEncodeValue),
+			nil,
 			reflectFreeValueEncoderFunc(dateTimeEncodeValueRF),
 			[]subtest{
 				{
@@ -886,7 +886,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"NullEncodeValue",
-			ValueEncoderFunc(nullEncodeValue),
+			nil,
 			reflectFreeValueEncoderFunc(nullEncodeValueRF),
 			[]subtest{
 				{
@@ -902,7 +902,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"RegexEncodeValue",
-			ValueEncoderFunc(regexEncodeValue),
+			nil,
 			reflectFreeValueEncoderFunc(regexEncodeValueRF),
 			[]subtest{
 				{
@@ -918,7 +918,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"DBPointerEncodeValue",
-			ValueEncoderFunc(dbPointerEncodeValue),
+			nil,
 			reflectFreeValueEncoderFunc(dbPointerEncodeValueRF),
 			[]subtest{
 				{
@@ -941,7 +941,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"TimestampEncodeValue",
-			ValueEncoderFunc(timestampEncodeValue),
+			nil,
 			reflectFreeValueEncoderFunc(timestampEncodeValueRF),
 			[]subtest{
 				{
@@ -957,7 +957,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"MinKeyEncodeValue",
-			ValueEncoderFunc(minKeyEncodeValue),
+			nil,
 			reflectFreeValueEncoderFunc(minKeyEncodeValueRF),
 			[]subtest{
 				{
@@ -973,7 +973,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"MaxKeyEncodeValue",
-			ValueEncoderFunc(maxKeyEncodeValue),
+			nil,
 			reflectFreeValueEncoderFunc(maxKeyEncodeValueRF),
 			[]subtest{
 				{
@@ -989,7 +989,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"CoreDocumentEncodeValue",
-			ValueEncoderFunc(coreDocumentEncodeValue),
+			nil,
 			reflectFreeValueEncoderFunc(coreDocumentEncodeValueRF),
 			[]subtest{
 				{
@@ -1071,7 +1071,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"CodeWithScopeEncodeValue",
-			ValueEncoderFunc(codeWithScopeEncodeValue),
+			nil,
 			reflectFreeValueEncoderFunc(codeWithScopeEncodeValueRF),
 			[]subtest{
 				{
@@ -1107,7 +1107,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"CoreArrayEncodeValue",
-			ValueEncoderFunc(coreArrayEncodeValue),
+			nil,
 			reflectFreeValueEncoderFunc(coreArrayEncodeValueRF),
 			[]subtest{
 				{

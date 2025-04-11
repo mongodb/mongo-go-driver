@@ -58,30 +58,30 @@ func (c *typeEncoderCache) Clone() *typeEncoderCache {
 	return cc
 }
 
-type typeReflectFreeEncoderCache struct {
+type reflectFreeTypeEncoderCache struct {
 	cache sync.Map // map[reflect.Type]typeReflectFreeEncoderCache
 }
 
-func (c *typeReflectFreeEncoderCache) Store(rt reflect.Type, enc reflectFreeValueEncoder) {
+func (c *reflectFreeTypeEncoderCache) Store(rt reflect.Type, enc reflectFreeValueEncoder) {
 	c.cache.Store(rt, enc)
 }
 
-func (c *typeReflectFreeEncoderCache) Load(rt reflect.Type) (reflectFreeValueEncoder, bool) {
+func (c *reflectFreeTypeEncoderCache) Load(rt reflect.Type) (reflectFreeValueEncoder, bool) {
 	if v, _ := c.cache.Load(rt); v != nil {
 		return v.(reflectFreeValueEncoder), true
 	}
 	return nil, false
 }
 
-func (c *typeReflectFreeEncoderCache) LoadOrStore(rt reflect.Type, enc reflectFreeValueEncoder) reflectFreeValueEncoder {
+func (c *reflectFreeTypeEncoderCache) LoadOrStore(rt reflect.Type, enc reflectFreeValueEncoder) reflectFreeValueEncoder {
 	if v, loaded := c.cache.LoadOrStore(rt, enc); loaded {
 		enc = v.(reflectFreeValueEncoder)
 	}
 	return enc
 }
 
-func (c *typeReflectFreeEncoderCache) Clone() *typeReflectFreeEncoderCache {
-	cc := new(typeReflectFreeEncoderCache)
+func (c *reflectFreeTypeEncoderCache) Clone() *reflectFreeTypeEncoderCache {
+	cc := new(reflectFreeTypeEncoderCache)
 	c.cache.Range(func(k, v interface{}) bool {
 		if k != nil && v != nil {
 			cc.cache.Store(k, v)
