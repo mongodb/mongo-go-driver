@@ -179,11 +179,7 @@ func floatEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error 
 func objectIDEncodeValueRF(_ EncodeContext, vw ValueWriter, val any) error {
 	objID, ok := val.(ObjectID)
 	if !ok {
-		return ValueEncoderError{
-			Name:     "ObjectIDEncodeValue",
-			Types:    []reflect.Type{tOID},
-			Received: reflect.ValueOf(val),
-		}
+		return ValueEncoderError{Name: "ObjectIDEncodeValue", Types: []reflect.Type{tOID}, Received: reflect.ValueOf(val)}
 	}
 
 	return vw.WriteObjectID(objID)
