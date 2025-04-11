@@ -15,16 +15,6 @@ import (
 // arrayCodec is the Codec used for bsoncore.Array values.
 type arrayCodec struct{}
 
-// EncodeValue is the ValueEncoder for bsoncore.Array values.
-func (ac *arrayCodec) EncodeValue(_ EncodeContext, vw ValueWriter, val any) error {
-	arr, ok := val.(bsoncore.Array)
-	if !ok {
-		return ValueEncoderError{Name: "CoreArrayEncodeValue", Types: []reflect.Type{tCoreArray}, Received: reflect.ValueOf(val)}
-	}
-
-	return copyArrayFromBytes(vw, arr)
-}
-
 // DecodeValue is the ValueDecoder for bsoncore.Array values.
 func (ac *arrayCodec) DecodeValue(_ DecodeContext, vr ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tCoreArray {

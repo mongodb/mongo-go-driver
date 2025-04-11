@@ -1791,7 +1791,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 	t.Run("EmptyInterfaceEncodeValue/nil", func(t *testing.T) {
 		val := reflect.New(tEmpty).Elem()
 		llvrw := new(valueReaderWriter)
-		err := (&emptyInterfaceCodec{}).EncodeValue(EncodeContext{Registry: newTestRegistry()}, llvrw, val)
+		err := emptyInterfaceValue(EncodeContext{Registry: newTestRegistry()}, llvrw, val)
 		noerr(t, err)
 		if llvrw.invoked != writeNull {
 			t.Errorf("Incorrect method called. got %v; want %v", llvrw.invoked, writeNull)
@@ -1802,10 +1802,10 @@ func TestDefaultValueEncoders(t *testing.T) {
 		val := reflect.New(tEmpty).Elem()
 		val.Set(reflect.ValueOf(int64(1234567890)))
 		llvrw := new(valueReaderWriter)
-		got := (&emptyInterfaceCodec{}).EncodeValue(EncodeContext{Registry: newTestRegistry()}, llvrw, val)
+		err := emptyInterfaceValue(EncodeContext{Registry: newTestRegistry()}, llvrw, val)
 		want := errNoEncoder{Type: tInt64}
-		if !assert.CompareErrors(got, want) {
-			t.Errorf("Did not receive expected error. got %v; want %v", got, want)
+		if !assert.CompareErrors(err, want) {
+			t.Errorf("Did not receive expected error. got %v; want %v", err, want)
 		}
 	})
 }
