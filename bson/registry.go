@@ -259,9 +259,7 @@ func (r *Registry) LookupEncoder(valueType reflect.Type) (ValueEncoder, error) {
 			return nil, errNoEncoder{Type: valueType}
 		}
 
-		if _, ok := enc.(defaultValueEncoderFunc); !ok {
-			return enc, nil
-		}
+		return enc, nil
 	}
 
 	// Next try to get a reflection-free encoder.

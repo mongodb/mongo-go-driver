@@ -139,18 +139,6 @@ func (fn ValueEncoderFunc) EncodeValue(ec EncodeContext, vw ValueWriter, val ref
 	return fn(ec, vw, val)
 }
 
-// defaultValueEncoderFunc is an adapter function that allows a function with
-// the correct signature to be used as a ValueEncoder. This differentiates
-// between user-defined ValueEncoders and driver-defined ValueEncoders with the
-// goal of forgoing drvier-defined behavior in favor of a reflection-free option
-// if one exists.
-type defaultValueEncoderFunc func(EncodeContext, ValueWriter, reflect.Value) error
-
-// EncodeValue implements the ValueEncoder interface.
-func (fn defaultValueEncoderFunc) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
-	return fn(ec, vw, val)
-}
-
 // reflectFreeValueEncoder is a reflect-free version of ValueEncoder.
 type reflectFreeValueEncoder interface {
 	EncodeValue(ec EncodeContext, vw ValueWriter, val any) error
