@@ -86,7 +86,6 @@ func registerDefaultEncoders(reg *Registry) {
 	// Register the reflect-based default encoders. These are required since
 	// removing them would break Registry.LookupEncoder. However, these will
 	// never be used internally.
-	//
 	reg.RegisterTypeEncoder(tByteSlice, byteSliceEncodeValue(false))
 	reg.RegisterTypeEncoder(tTime, defaultValueEncoderFunc(timeEncodeValue))
 	reg.RegisterTypeEncoder(tEmpty, ValueEncoderFunc(emptyInterfaceValue))
