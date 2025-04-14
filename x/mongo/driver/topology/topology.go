@@ -823,8 +823,8 @@ func equalTopologies(topo1, topo2 description.Topology) bool {
 		return false
 	}
 
-	for _, server := range topoServers {
-		otherServer, ok := otherServers[server.Addr.String()]
+	for addr, server := range topoServers {
+		otherServer, ok := otherServers[addr]
 		if !ok {
 			return false
 		}
