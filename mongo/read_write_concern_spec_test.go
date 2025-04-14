@@ -16,6 +16,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/spectest"
 	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
@@ -24,9 +25,8 @@ import (
 )
 
 const (
-	readWriteConcernTestsDir = "../testdata/read-write-concern"
-	connstringTestsDir       = "connection-string"
-	documentTestsDir         = "document"
+	connstringTestsDir = "connection-string"
+	documentTestsDir   = "document"
 )
 
 var (
@@ -36,6 +36,7 @@ var (
 		reg.RegisterTypeMapEntry(bson.TypeEmbeddedDocument, reflect.TypeOf(bson.Raw{}))
 		return reg
 	}()
+	readWriteConcernTestsDir = spectest.Path("read-write-concern/tests")
 )
 
 type connectionStringTestFile struct {
@@ -48,7 +49,6 @@ type connectionStringTest struct {
 	Valid        bool     `bson:"valid"`
 	ReadConcern  bson.Raw `bson:"readConcern"`
 	WriteConcern bson.Raw `bson:"writeConcern"`
-	SkipReason   string   `bson:"skipReason"`
 }
 
 type documentTestFile struct {
@@ -103,9 +103,7 @@ func runConnectionStringTestFile(t *testing.T, filePath string) {
 }
 
 func runConnectionStringTest(t *testing.T, test connectionStringTest) {
-	if test.SkipReason != "" {
-		t.Skip(test.SkipReason)
-	}
+	spectest.CheckSkip(t)
 
 	cs, err := connstring.ParseAndValidate(test.URI)
 	if !test.Valid {

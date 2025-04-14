@@ -157,7 +157,7 @@ func compareServers(t *testing.T, expected []*serverDesc, actual []description.S
 	}
 }
 
-const maxStalenessTestsDir = "../../testdata/max-staleness"
+var maxStalenessTestsDir = spectest.Path("max-staleness/tests")
 
 // Test case for all max staleness spec tests.
 func TestMaxStalenessSpec(t *testing.T) {
@@ -176,7 +176,7 @@ func TestMaxStalenessSpec(t *testing.T) {
 	}
 }
 
-const selectorTestsDir = "../../testdata/server-selection/server_selection"
+var selectorTestsDir = spectest.Path("server-selection/tests")
 
 func selectServers(t *testing.T, test *testCase) error {
 	servers := make([]description.Server, 0, len(test.TopologyDescription.Servers))
@@ -296,11 +296,7 @@ func runTest(t *testing.T, testsDir string, directory string, filename string) {
 	content, err := ioutil.ReadFile(filepath)
 	require.NoError(t, err)
 
-	// Remove ".json" from filename.
-	filename = filename[:len(filename)-5]
-	testName := directory + "/" + filename + ":"
-
-	t.Run(testName, func(t *testing.T) {
+	t.Run(directory+"/"+filename, func(t *testing.T) {
 		var test testCase
 		require.NoError(t, bson.UnmarshalExtJSON(content, true, &test))
 
@@ -325,7 +321,7 @@ func TestServerSelectionSpec(t *testing.T) {
 		"LoadBalanced",
 	} {
 		for _, subdir := range [...]string{"read", "write"} {
-			subdirPath := path.Join(topology, subdir)
+			subdirPath := path.Join("server_selection", topology, subdir)
 
 			for _, file := range spectest.FindJSONFilesInDir(t,
 				path.Join(selectorTestsDir, subdirPath)) {

@@ -54,6 +54,8 @@ type clientEntity struct {
 	serverHeartbeatStartedEvent []*event.ServerHeartbeatStartedEvent
 	serverHeartbeatSucceeded    []*event.ServerHeartbeatSucceededEvent
 	topologyDescriptionChanged  []*event.TopologyDescriptionChangedEvent
+	topologyOpening             []*event.TopologyOpeningEvent
+	topologyClosed              []*event.TopologyClosedEvent
 	ignoredCommands             map[string]struct{}
 	observeSensitiveCommands    *bool
 	numConnsCheckedOut          int32
@@ -161,6 +163,8 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 			ServerHeartbeatStarted:     entity.processServerHeartbeatStartedEvent,
 			ServerHeartbeatSucceeded:   entity.processServerHeartbeatSucceededEvent,
 			TopologyDescriptionChanged: entity.processTopologyDescriptionChangedEvent,
+			TopologyOpening:            entity.processTopologyOpeningEvent,
+			TopologyClosed:             entity.processTopologyClosedEvent,
 		}
 
 		clientOpts.SetMonitor(commandMonitor).SetPoolMonitor(poolMonitor).SetServerMonitor(serverMonitor)
@@ -573,6 +577,36 @@ func (c *clientEntity) processTopologyDescriptionChangedEvent(evt *event.Topolog
 	}
 
 	c.addEventsCount(topologyDescriptionChangedEvent)
+}
+
+func (c *clientEntity) processTopologyOpeningEvent(evt *event.TopologyOpeningEvent) {
+	c.eventProcessMu.Lock()
+	defer c.eventProcessMu.Unlock()
+
+	if !c.getRecordEvents() {
+		return
+	}
+
+	if _, ok := c.observedEvents[topologyOpeningEvent]; ok {
+		c.topologyOpening = append(c.topologyOpening, evt)
+	}
+
+	c.addEventsCount(topologyOpeningEvent)
+}
+
+func (c *clientEntity) processTopologyClosedEvent(evt *event.TopologyClosedEvent) {
+	c.eventProcessMu.Lock()
+	defer c.eventProcessMu.Unlock()
+
+	if !c.getRecordEvents() {
+		return
+	}
+
+	if _, ok := c.observedEvents[topologyClosedEvent]; ok {
+		c.topologyClosed = append(c.topologyClosed, evt)
+	}
+
+	c.addEventsCount(topologyClosedEvent)
 }
 
 func (c *clientEntity) setRecordEvents(record bool) {

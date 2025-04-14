@@ -24,71 +24,6 @@ import (
 )
 
 var (
-	skippedTests = map[string]string{
-		// GODRIVER-1773: This test runs a "find" with limit=4 and batchSize=3. It expects batchSize values of three for
-		// the "find" and one for the "getMore", but we send three for both.
-		"A successful find event with a getmore and the server kills the cursor (<= 4.4)": "See GODRIVER-1773",
-
-		// GODRIVER-2577: The following spec tests require canceling ops immediately, but the current logic clears pools
-		// and cancels in-progress ops after two the heartbeat failures.
-		"Connection pool clear uses interruptInUseConnections=true after monitor timeout":                      "Godriver clears after multiple timeout",
-		"Error returned from connection pool clear with interruptInUseConnections=true is retryable":           "Godriver clears after multiple timeout",
-		"Error returned from connection pool clear with interruptInUseConnections=true is retryable for write": "Godriver clears after multiple timeout",
-
-		// TODO(GODRIVER-2843): Fix and unskip these test cases.
-		"Find operation with snapshot":                                      "Test fails frequently. See GODRIVER-2843",
-		"Write commands with snapshot session do not affect snapshot reads": "Test fails frequently. See GODRIVER-2843",
-
-		// TODO(GODRIVER-3043): Avoid Appending Write/Read Concern in Atlas Search
-		// Index Helper Commands.
-		"dropSearchIndex ignores read and write concern":       "Sync GODRIVER-3074, but skip testing bug GODRIVER-3043",
-		"listSearchIndexes ignores read and write concern":     "Sync GODRIVER-3074, but skip testing bug GODRIVER-3043",
-		"updateSearchIndex ignores the read and write concern": "Sync GODRIVER-3074, but skip testing bug GODRIVER-3043",
-
-		// TODO(DRIVERS-2829): Create CSOT Legacy Timeout Analogues and Compatibility Field
-		"Reset server and pool after network timeout error during authentication": "Uses unsupported socketTimeoutMS",
-		"Ignore network timeout error on find":                                    "Uses unsupported socketTimeoutMS",
-		"A successful find with options":                                          "Uses unsupported maxTimeMS",
-		"estimatedDocumentCount with maxTimeMS":                                   "Uses unsupported maxTimeMS",
-		"supports configuring getMore maxTimeMS":                                  "Uses unsupported maxTimeMS",
-
-		// TODO(GODRIVER-3137): Implement Gossip cluster time"
-		"unpin after TransientTransactionError error on commit": "Implement GODRIVER-3137",
-
-		// TODO(GODRIVER-3034): Drivers should unpin connections when ending a session
-		"unpin on successful abort":                                   "Implement GODRIVER-3034",
-		"unpin after non-transient error on abort":                    "Implement GODRIVER-3034",
-		"unpin after TransientTransactionError error on abort":        "Implement GODRIVER-3034",
-		"unpin when a new transaction is started":                     "Implement GODRIVER-3034",
-		"unpin when a non-transaction write operation uses a session": "Implement GODRIVER-3034",
-		"unpin when a non-transaction read operation uses a session":  "Implement GODRIVER-3034",
-
-		// DRIVERS-2722: Setting "maxTimeMS" on a command that creates a cursor
-		// also limits the lifetime of the cursor. That may be surprising to
-		// users, so omit "maxTimeMS" from operations that return user-managed
-		// cursors.
-		"timeoutMS can be overridden for a find":                                               "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
-		"timeoutMS can be configured for an operation - find on collection":                    "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
-		"timeoutMS can be configured for an operation - aggregate on collection":               "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
-		"timeoutMS can be configured for an operation - aggregate on database":                 "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
-		"timeoutMS can be configured on a MongoClient - find on collection":                    "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
-		"timeoutMS can be configured on a MongoClient - aggregate on collection":               "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
-		"timeoutMS can be configured on a MongoClient - aggregate on database":                 "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
-		"operation is retried multiple times for non-zero timeoutMS - find on collection":      "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
-		"operation is retried multiple times for non-zero timeoutMS - aggregate on collection": "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
-		"operation is retried multiple times for non-zero timeoutMS - aggregate on database":   "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
-		"timeoutMS applied to find command":                                                    "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
-
-		// DRIVERS-2953: This test requires that the driver sends a "getMore"
-		// with "maxTimeMS" set. However, "getMore" can only include "maxTimeMS"
-		// for tailable awaitData cursors. Including "maxTimeMS" on "getMore"
-		// for any other cursor type results in a server error:
-		//
-		//  (BadValue) cannot set maxTimeMS on getMore command for a non-awaitData cursor
-		//
-		"Non-tailable cursor lifetime remaining timeoutMS applied to getMore if timeoutMode is unset": "maxTimeMS can't be set on a getMore. See DRIVERS-2953",
-	}
-
 	logMessageValidatorTimeout = 10 * time.Millisecond
 	lowHeartbeatFrequency      = 500 * time.Millisecond
 )
@@ -155,6 +90,7 @@ func runTestDirectory(t *testing.T, directoryPath string, expectValidFail bool) 
 
 // runTestFile runs the tests in the given file, with expectValidFail determining whether the tests should expect to pass or fail
 func runTestFile(t *testing.T, filepath string, expectValidFail bool, opts ...*Options) {
+	spectest.CheckSkip(t)
 	content, err := ioutil.ReadFile(filepath)
 	assert.Nil(t, err, "ReadFile error for file %q: %v", filepath, err)
 
@@ -163,6 +99,9 @@ func runTestFile(t *testing.T, filepath string, expectValidFail bool, opts ...*O
 	mtOpts := mtest.NewOptions().
 		RunOn(fileReqs...).
 		CreateClient(false)
+	if strings.Contains(filepath, "atlas-data-lake-testing") {
+		mtOpts.AtlasDataLake(true)
+	}
 	mt := mtest.New(t, mtOpts)
 
 	for _, testCase := range testCases {
@@ -171,6 +110,8 @@ func runTestFile(t *testing.T, filepath string, expectValidFail bool, opts ...*O
 			CreateClient(false)
 
 		mt.RunOpts(testCase.Description, mtOpts, func(mt *mtest.T) {
+			spectest.CheckSkip(mt.T)
+
 			// Skip CSOT spec tests when SKIP_CSOT_TESTS=true. In Evergreen, we
 			// typically set that environment variable on Windows and macOS
 			// because the CSOT spec tests are unreliable on those hosts.
@@ -186,6 +127,7 @@ func runTestFile(t *testing.T, filepath string, expectValidFail bool, opts ...*O
 					}
 				}
 			}()
+
 			err := testCase.Run(mt)
 			if expectValidFail {
 				if err != nil {
@@ -284,9 +226,6 @@ func isSkipTestError(err error) bool {
 func (tc *TestCase) Run(ls LoggerSkipper) error {
 	if tc.SkipReason != nil {
 		ls.Skipf("skipping for reason: %q", *tc.SkipReason)
-	}
-	if skipReason, ok := skippedTests[tc.Description]; ok {
-		ls.Skipf("skipping due to known failure: %q", skipReason)
 	}
 
 	// Validate that we support the schema declared by the test file before attempting to use its contents.

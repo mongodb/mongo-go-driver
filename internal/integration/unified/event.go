@@ -38,6 +38,8 @@ const (
 	serverHeartbeatStartedEvent     monitoringEventType = "ServerHeartbeatStartedEvent"
 	serverHeartbeatSucceededEvent   monitoringEventType = "ServerHeartbeatSucceededEvent"
 	topologyDescriptionChangedEvent monitoringEventType = "TopologyDescriptionChangedEvent"
+	topologyOpeningEvent            monitoringEventType = "TopologyOpeningEvent"
+	topologyClosedEvent             monitoringEventType = "TopologyClosedEvent"
 )
 
 func monitoringEventTypeFromString(eventStr string) (monitoringEventType, bool) {
@@ -86,6 +88,10 @@ func monitoringEventTypeFromString(eventStr string) (monitoringEventType, bool) 
 		return serverHeartbeatSucceededEvent, true
 	case "topologydescriptionchangedevent":
 		return topologyDescriptionChangedEvent, true
+	case "topologyopeningevent":
+		return topologyOpeningEvent, true
+	case "topologyclosedevent":
+		return topologyClosedEvent, true
 	default:
 		return "", false
 	}

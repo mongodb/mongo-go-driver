@@ -179,6 +179,7 @@ type clientEncryptionOpts struct {
 	KeyVaultClient    string              `bson:"keyVaultClient"`
 	KeyVaultNamespace string              `bson:"keyVaultNamespace"`
 	KmsProviders      map[string]bson.Raw `bson:"kmsProviders"`
+	KeyExpirationMS   *int64              `bson:"keyExpirationMS"`
 }
 
 // EntityMap is used to store entities during tests. This type enforces uniqueness so no two entities can have the same
@@ -735,12 +736,15 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 		return newEntityNotFoundError("client", ceo.KeyVaultClient)
 	}
 
-	ce, err := mongo.NewClientEncryption(
-		keyVaultClient.Client,
-		options.ClientEncryption().
-			SetKeyVaultNamespace(ceo.KeyVaultNamespace).
-			SetTLSConfig(tlsconf).
-			SetKmsProviders(kmsProviders))
+	opts := options.ClientEncryption().
+		SetKeyVaultNamespace(ceo.KeyVaultNamespace).
+		SetTLSConfig(tlsconf).
+		SetKmsProviders(kmsProviders)
+	if ceo.KeyExpirationMS != nil {
+		opts.SetKeyExpiration(time.Duration(*ceo.KeyExpirationMS) * time.Millisecond)
+	}
+
+	ce, err := mongo.NewClientEncryption(keyVaultClient.Client, opts)
 	if err != nil {
 		return err
 	}

@@ -1,6 +1,6 @@
 module go.mongodb.go/mongo-driver/examples/logger/zap
 
-go 1.22
+go 1.23
 
 replace go.mongodb.org/mongo-driver/v2 => ../../../
 
@@ -12,7 +12,7 @@ require (
 
 require (
 	github.com/go-logr/logr v1.2.2 // indirect
-	github.com/golang/snappy v0.0.4 // indirect
+	github.com/golang/snappy v1.0.0 // indirect
 	github.com/klauspost/compress v1.16.7 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect
