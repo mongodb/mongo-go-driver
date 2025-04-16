@@ -12,8 +12,9 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 )
 
-// Deprecated: SetInternalClientOptions sets internal only options for ClientOptions. It may be changed
-// or removed in any release.
+// SetInternalClientOptions sets internal options for ClientOptions.
+//
+// Deprecated: This function is for internal use only. It may be changed or removed in any release.
 func SetInternalClientOptions(opts *ClientOptions, custom map[string]any) (*ClientOptions, error) {
 	const typeErr = "unexpected type for %s"
 	for k, v := range custom {
