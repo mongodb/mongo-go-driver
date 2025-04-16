@@ -282,6 +282,16 @@ func (vr *valueReader) appendNextElement(dst []byte) ([]byte, error) {
 
 	buf, err := vr.r.Peek(int(length))
 	if err != nil {
+		if err == bufio.ErrBufferFull {
+			temp := make([]byte, length)
+			if _, err = io.ReadFull(vr.r, temp); err != nil {
+				return nil, err
+			}
+			dst = append(dst, temp...)
+			vr.offset += int64(len(temp))
+			return dst, nil
+		}
+
 		return nil, err
 	}
 
