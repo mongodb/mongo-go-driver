@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 	"unsafe"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -88,6 +89,17 @@ func NewMongoCrypt(opts *options.MongoCryptOptions) (*MongoCrypt, error) {
 	if opts.BypassQueryAnalysis {
 		C.mongocrypt_setopt_bypass_query_analysis(crypt.wrapped)
 	}
+
+	var keyExpirationMs uint64 = 60_000 // 60,000 ms
+	if opts.KeyExpiration != nil {
+		if *opts.KeyExpiration <= 0 {
+			keyExpirationMs = 0
+		} else {
+			// find the ceiling integer millisecond for the expiration
+			keyExpirationMs = uint64((*opts.KeyExpiration + time.Millisecond - 1) / time.Millisecond)
+		}
+	}
+	C.mongocrypt_setopt_key_expiration(crypt.wrapped, C.uint64_t(keyExpirationMs))
 
 	// If loading the crypt_shared library isn't disabled, set the default library search path "$SYSTEM"
 	// and set a library override path if one was provided.
