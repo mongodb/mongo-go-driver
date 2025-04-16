@@ -26,6 +26,16 @@ var vwPool = sync.Pool{
 	},
 }
 
+func getValueWriter(w io.Writer) *valueWriter {
+	vw := vwPool.Get().(*valueWriter)
+
+	vw.reset(vw.buf)
+	vw.buf = vw.buf[:0]
+	vw.w = w
+
+	return vw
+}
+
 func putValueWriter(vw *valueWriter) {
 	if vw != nil {
 		vw.w = nil // don't leak the writer
