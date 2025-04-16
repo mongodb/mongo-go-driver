@@ -51,7 +51,7 @@ func CalculateMaxTimeMS(ctx context.Context, rttMin time.Duration) (int64, bool)
 
 	// Always round up to the next millisecond value so we never truncate the calculated
 	// maxTimeMS value (e.g. 400 microseconds evaluates to 1ms, not 0ms).
-	maxTimeMS := int64((remainingTimeout - rttMin) / time.Millisecond)
+	maxTimeMS := int64((remainingTimeout - rttMin + time.Millisecond - 1) / time.Millisecond)
 	if maxTimeMS <= 0 {
 		return 0, false
 	}
