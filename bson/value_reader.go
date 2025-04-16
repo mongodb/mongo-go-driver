@@ -46,11 +46,11 @@ var vrPool = sync.Pool{
 
 // valueReader is for reading BSON values.
 type valueReader struct {
-	r *bufio.Reader
-
+	r      *bufio.Reader
 	offset int64
-	stack  []vrState
-	frame  int64
+
+	stack []vrState
+	frame int64
 }
 
 // NewDocumentReader returns a ValueReader using b for the underlying BSON
