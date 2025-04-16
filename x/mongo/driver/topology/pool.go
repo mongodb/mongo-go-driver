@@ -7,6 +7,7 @@
 package topology
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
@@ -19,7 +20,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/logger"
-	"go.mongodb.org/mongo-driver/v2/internal/ptrutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/address"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 )
@@ -790,23 +790,15 @@ func (p *pool) removeConnection(conn *connection, reason reason, err error) erro
 // removed or modified at any time.
 var PendingReadTimeout = 400 * time.Millisecond
 
-// awaitPendingRead sets a new read deadline on the provided connection and
-// tries to read any bytes returned by the server. If there are any errors, the
-// connection will be checked back into the pool to be retried.
-func awaitPendingRead(ctx context.Context, pool *pool, conn *connection) error {
-	conn.pendingReadMu.Lock()
-	defer conn.pendingReadMu.Unlock()
-
-	// If there are no bytes pending read, do nothing.
-	if conn.pendingReadState == nil {
-		return nil
-	}
-
+// publishPendingReadStarted will log a message to the pool logger and
+// publish an event to the pool monitor if they are set.
+func publishPendingReadStarted(pool *pool, conn *connection) {
 	prs := conn.pendingReadState
-	if prs.remainingTime == nil {
-		prs.remainingTime = ptrutil.Ptr(PendingReadTimeout)
+	if prs == nil {
+		return
 	}
 
+	// log a message to the pool logger if it is set.
 	if mustLogPoolMessage(pool) {
 		keysAndValues := logger.KeyValues{
 			logger.KeyDriverConnectionID, conn.driverConnectionID,
@@ -816,6 +808,7 @@ func awaitPendingRead(ctx context.Context, pool *pool, conn *connection) error {
 		logPoolMessage(pool, logger.ConnectionPendingReadStarted, keysAndValues...)
 	}
 
+	// publish an event to the pool monitor if it is set.
 	if pool.monitor != nil {
 		event := &event.PoolEvent{
 			Type:         event.ConnectionPendingReadStarted,
@@ -826,155 +819,44 @@ func awaitPendingRead(ctx context.Context, pool *pool, conn *connection) error {
 
 		pool.monitor.Event(event)
 	}
+}
 
-	size := prs.remainingBytes
-
-	checkIn := false
-	var someErr error
-
-	defer func() {
-		if mustLogPoolMessage(pool) && someErr != nil {
-			keysAndValues := logger.KeyValues{
-				logger.KeyDriverConnectionID, conn.driverConnectionID,
-				logger.KeyRequestID, prs.requestID,
-				logger.KeyReason, someErr.Error(),
-				logger.KeyRemainingTimeMS, *prs.remainingTime,
-			}
-
-			logPoolMessage(pool, logger.ConnectionPendingReadFailed, keysAndValues...)
-		}
-
-		if pool.monitor != nil && someErr != nil {
-			event := &event.PoolEvent{
-				Type:          event.ConnectionPendingReadFailed,
-				Address:       pool.address.String(),
-				ConnectionID:  conn.driverConnectionID,
-				RequestID:     prs.requestID,
-				RemainingTime: *prs.remainingTime,
-				Reason:        someErr.Error(),
-				Error:         someErr,
-			}
-
-			pool.monitor.Event(event)
-		}
-
-		// If we have exceeded the time limit, then close the connection.
-		if prs.remainingTime != nil && *prs.remainingTime < 0 {
-			if err := conn.close(); err != nil {
-				panic(err)
-			}
-
-			return
-		}
-
-		if !checkIn {
-			return
-		}
-
-		// No matter what happens, always check the connection back into the
-		// pool, which will either make it available for other operations or
-		// remove it from the pool if it was closed.
-		//
-		// TODO(GODRIVER-3385): Figure out how to handle this error. It's possible
-		// that a single connection can be checked out to handle multiple concurrent
-		// operations. This is likely a bug in the Go Driver. So it's possible that
-		// the connection is idle at the point of check-in.
-		_ = pool.checkInNoEvent(conn)
-	}()
-
-	dl, contextDeadlineUsed := ctx.Deadline()
-	if !contextDeadlineUsed {
-		// If there is a remainingTime, use that. If not, use the static
-		// PendingReadTimeout. This is required since a user could provide a timeout
-		// for the first try that does not exceed the pending read timeout, fail,
-		// and then not use a timeout for a subsequent try.
-		if prs.remainingTime != nil {
-			dl = time.Now().Add(*prs.remainingTime)
-		} else {
-			dl = time.Now().Add(PendingReadTimeout)
-		}
+func publishPendingReadFailed(pool *pool, conn *connection, err error) {
+	prs := conn.pendingReadState
+	if prs == nil {
+		return
 	}
 
-	err := conn.nc.SetReadDeadline(dl)
-	if err != nil {
-		checkIn = true
+	if mustLogPoolMessage(pool) {
+		keysAndValues := logger.KeyValues{
+			logger.KeyDriverConnectionID, conn.driverConnectionID,
+			logger.KeyRequestID, prs.requestID,
+			logger.KeyReason, err.Error(),
+			logger.KeyRemainingTimeMS, *prs.remainingTime,
+		}
 
-		someErr = fmt.Errorf("error setting a read deadline: %w", err)
-
-		return someErr
+		logPoolMessage(pool, logger.ConnectionPendingReadFailed, keysAndValues...)
 	}
 
-	st := time.Now()
-
-	if size == 0 { // Question: Would this alawys equal to zero?
-		var sizeBuf [4]byte
-		if _, err := io.ReadFull(conn.nc, sizeBuf[:]); err != nil {
-			prs.remainingTime = ptrutil.Ptr(*prs.remainingTime - time.Since(st))
-			checkIn = true
-
-			err = transformNetworkError(ctx, err, contextDeadlineUsed)
-			someErr = fmt.Errorf("error reading the message size: %w", err)
-
-			return someErr
+	if pool.monitor != nil {
+		event := &event.PoolEvent{
+			Type:         event.ConnectionPendingReadFailed,
+			Address:      pool.address.String(),
+			ConnectionID: conn.driverConnectionID,
+			RequestID:    prs.requestID,
+			//RemainingTime: remainingTime,
+			Reason: err.Error(),
+			Error:  err,
 		}
-		size, err = conn.parseWmSizeBytes(sizeBuf)
-		if err != nil {
-			checkIn = true
-			someErr = transformNetworkError(ctx, err, contextDeadlineUsed)
 
-			return someErr
-		}
-		size -= 4
+		pool.monitor.Event(event)
 	}
+}
 
-	const bufSize = 4096
-	buf := make([]byte, bufSize)
-
-	var totalRead int64
-
-	// Iterate every 4KB of the TCP stream, refreshing the remainingTimeout for
-	// each successful read to avoid closing while streaming large (upto 16MiB)
-	// response messages.
-	for totalRead < int64(size) {
-		newDeadline := time.Now().Add(*prs.remainingTime)
-		if err := conn.nc.SetReadDeadline(newDeadline); err != nil {
-			checkIn = true
-			someErr = fmt.Errorf("error renewing read deadline: %w", err)
-
-			return someErr
-		}
-
-		remaining := int64(size) - totalRead
-
-		readSize := bufSize
-		if int64(readSize) > remaining {
-			readSize = int(remaining)
-		}
-
-		n, err := conn.nc.Read(buf[:readSize])
-		if n > 0 {
-			totalRead += int64(n)
-
-			// Refresh the remaining time if we get are receiving data.
-			prs.remainingTime = ptrutil.Ptr(PendingReadTimeout)
-		}
-
-		if err != nil {
-			// If the read times out, record the bytes left to read before exiting.
-			// Reduce the remainingTime.
-			nerr := net.Error(nil)
-			if l := int32(n); l == 0 && errors.As(err, &nerr) && nerr.Timeout() {
-				prs.remainingBytes = l + prs.remainingBytes
-				prs.remainingTime = ptrutil.Ptr(*prs.remainingTime - time.Since(st))
-			}
-
-			checkIn = true
-
-			err = transformNetworkError(ctx, err, contextDeadlineUsed)
-			someErr = fmt.Errorf("error discarding %d byte message: %w", size, err)
-
-			return someErr
-		}
+func publishPendingReadSucceeded(pool *pool, conn *connection) {
+	prs := conn.pendingReadState
+	if prs == nil {
+		return
 	}
 
 	if mustLogPoolMessage(pool) {
@@ -991,13 +873,211 @@ func awaitPendingRead(ctx context.Context, pool *pool, conn *connection) error {
 			Type:         event.ConnectionPendingReadSucceeded,
 			Address:      pool.address.String(),
 			ConnectionID: conn.driverConnectionID,
-			Duration:     time.Since(st),
+			//Duration:     time.Since(st),
 		}
 
 		pool.monitor.Event(event)
 	}
+}
 
-	conn.pendingReadState = nil
+// newPendingReadContext creates a new context with a deadline that is the
+// minimum of the parent context's deadline and the remaining time.
+func newPendingReadContext(parent context.Context, remainingTime time.Duration) (context.Context, context.CancelFunc) {
+	parentDeadline, hasDeadline := parent.Deadline()
+
+	calculatedDeadline := time.Now().Add(remainingTime)
+
+	if hasDeadline {
+		// Chose the earliest of the two deadlines.
+		var minDeadline time.Time
+		if calculatedDeadline.Before(parentDeadline) {
+			minDeadline = calculatedDeadline
+		} else {
+			minDeadline = parentDeadline
+		}
+
+		return context.WithDeadline(parent, minDeadline)
+	}
+
+	// If no deadline was set on the parent context, use the remaining time.
+	return context.WithTimeout(parent, remainingTime)
+}
+
+// peekConnectionAlive checks if the connection is alive by peeking at the
+// buffered reader. If the connection is closed, it will return false.
+func peekConnectionAlive(conn *connection) (int, error) {
+	// Set a very short deadline to avoid blocking.
+	conn.nc.SetReadDeadline(time.Now().Add(1 * time.Nanosecond))
+
+	// Wrap the connection in a buffered reader to use peek.
+	reader := bufio.NewReader(conn.nc)
+
+	// Try to peek at one byte.
+	bytes, err := reader.Peek(1)
+	return len(bytes), err
+}
+
+func attemptPendingRead(ctx context.Context, conn *connection, remainingTime time.Duration) (int, error) {
+	pendingreadState := conn.pendingReadState
+	if pendingreadState == nil {
+		return 0, fmt.Errorf("no pending read state")
+	}
+
+	dl, contextDeadlineUsed := ctx.Deadline()
+	calculatedDeadline := time.Now().Add(remainingTime)
+
+	if contextDeadlineUsed {
+		if calculatedDeadline.Before(dl) {
+			dl = calculatedDeadline
+		}
+	} else {
+		dl = calculatedDeadline
+	}
+
+	err := conn.nc.SetReadDeadline(dl)
+	if err != nil {
+		return 0, fmt.Errorf("error setting a read deadline: %w", err)
+	}
+
+	size := pendingreadState.remainingBytes
+
+	//st := time.Now()
+	if size == 0 { // Question: Would this alawys equal to zero?
+		var sizeBuf [4]byte
+		if bytesRead, err := io.ReadFull(conn.nc, sizeBuf[:]); err != nil {
+			err = transformNetworkError(ctx, err, contextDeadlineUsed)
+
+			return bytesRead, fmt.Errorf("error reading the message size: %w", err)
+		}
+
+		size, err = conn.parseWmSizeBytes(sizeBuf)
+		if err != nil {
+			return int(size), transformNetworkError(ctx, err, contextDeadlineUsed)
+		}
+		size -= 4
+	}
+
+	const bufSize = 4096
+	buf := make([]byte, bufSize)
+
+	var totalRead int64
+
+	// Iterate every 4KB of the TCP stream, refreshing the remainingTimeout for
+	// each successful read to avoid closing while streaming large (upto 16MiB)
+	// response messages.
+	for totalRead < int64(size) {
+		newDeadline := time.Now().Add(time.Until(dl))
+		if err := conn.nc.SetReadDeadline(newDeadline); err != nil {
+			return int(totalRead), fmt.Errorf("error renewing read deadline: %w", err)
+		}
+
+		remaining := int64(size) - totalRead
+
+		readSize := bufSize
+		if int64(readSize) > remaining {
+			readSize = int(remaining)
+		}
+
+		n, err := conn.nc.Read(buf[:readSize])
+		if n > 0 {
+			totalRead += int64(n)
+		}
+
+		if err != nil {
+			// If the read times out, record the bytes left to read before exiting.
+			// Reduce the remainingTime.
+			nerr := net.Error(nil)
+			if l := int32(n); l == 0 && errors.As(err, &nerr) && nerr.Timeout() {
+				pendingreadState.remainingBytes = l + pendingreadState.remainingBytes
+				//prs.remainingTime = ptrutil.Ptr(*prs.remainingTime - time.Since(st))
+			}
+
+			err = transformNetworkError(ctx, err, contextDeadlineUsed)
+			return n, fmt.Errorf("error discarding %d byte message: %w", size, err)
+		}
+
+		pendingreadState.start = time.Now()
+	}
+
+	return int(totalRead), nil
+}
+
+// awaitPendingRead sets a new read deadline on the provided connection and
+// tries to read any bytes returned by the server. If there are any errors, the
+// connection will be checked back into the pool to be retried.
+func awaitPendingRead(ctx context.Context, pool *pool, conn *connection) error {
+	conn.pendingReadMu.Lock()
+	defer conn.pendingReadMu.Unlock()
+
+	// If there are no bytes pending read, do nothing.
+	if conn.pendingReadState == nil {
+		return nil
+	}
+
+	publishPendingReadStarted(pool, conn)
+
+	var (
+		pendingReadState    = conn.pendingReadState
+		remainingTime       = pendingReadState.start.Add(PendingReadTimeout).Sub(time.Now())
+		err                 error
+		bytesRead           int
+		contextDeadlineUsed bool
+	)
+
+	if remainingTime <= 0 {
+		// If there is no remaining time, we can just peek at the connection to check
+		// aliveness. In such cases, we don't want to close the connection.
+		bytesRead, err = peekConnectionAlive(conn)
+	} else {
+		//pendingReadContext, cancel := newPendingReadContext(ctx, remainingTime)
+		//defer cancel()
+
+		contextDeadlineUsed = true
+		bytesRead, err = attemptPendingRead(ctx, conn, remainingTime)
+	}
+
+	endTime := time.Now()
+
+	if err != nil {
+		// No matter what happens, always check the connection back into the
+		// pool, which will either make it available for other operations or
+		// remove it from the pool if it was closed.
+		//
+		// TODO(GODRIVER-3385): Figure out how to handle this error. It's possible
+		// that a single connection can be checked out to handle multiple concurrent
+		// operations. This is likely a bug in the Go Driver. So it's possible that
+		// the connection is idle at the point of check-in.
+		defer func() {
+			publishPendingReadFailed(pool, conn, err)
+
+			_ = pool.checkInNoEvent(conn)
+		}()
+
+		if netErr, ok := err.(net.Error); ok && !netErr.Timeout() {
+			if err := conn.close(); err != nil {
+				return err
+			}
+			return transformNetworkError(ctx, err, contextDeadlineUsed)
+		}
+	}
+
+	// If the read was successful, then we should refresh the remaining timeout.
+	if bytesRead > 0 {
+		pendingReadState.start = endTime
+	}
+
+	// If the remaining time has been exceeded, then close the connection.
+	if endTime.Sub(pendingReadState.start) > PendingReadTimeout {
+		if err := conn.close(); err != nil {
+			return err
+		}
+	}
+
+	if err != nil {
+		return err
+	}
+
+	publishPendingReadSucceeded(pool, conn)
 
 	return nil
 }

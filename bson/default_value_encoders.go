@@ -9,6 +9,7 @@ package bson
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math"
 	"net/url"
 	"reflect"
@@ -165,6 +166,7 @@ func decimal128EncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) e
 	if !val.IsValid() || val.Type() != tDecimal {
 		return ValueEncoderError{Name: "Decimal128EncodeValue", Types: []reflect.Type{tDecimal}, Received: val}
 	}
+	fmt.Println(val.Interface().(Decimal128))
 	return vw.WriteDecimal128(val.Interface().(Decimal128))
 }
 

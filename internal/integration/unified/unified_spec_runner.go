@@ -122,6 +122,8 @@ func runTestFile(t *testing.T, filepath string, expectValidFail bool, opts ...*O
 			defer func() {
 				// catch panics from looking up elements and fail if it's unexpected
 				if r := recover(); r != nil {
+
+					panic(r)
 					if !expectValidFail {
 						mt.Fatal(r)
 					}

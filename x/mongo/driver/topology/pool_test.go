@@ -1566,6 +1566,61 @@ func TestAwaitPendingRead(t *testing.T) {
 
 		assert.EqualError(t, pendingReadError, "error discarding 3 byte message: EOF")
 	})
+	//t.Run("no remaining time with no response", func(t *testing.T) {
+	//	timeout := 10 * time.Millisecond
+
+	//	addr := bootstrapConnections(t, 1, func(nc net.Conn) {
+	//		defer func() {
+	//			_ = nc.Close()
+	//		}()
+
+	//		// Write nothing so that the 10 microseconds "non-blocking"
+	//	})
+
+	//	var pendingReadError error
+	//	monitor := &event.PoolMonitor{
+	//		Event: func(pe *event.PoolEvent) {
+	//			if pe.Type == event.ConnectionPendingReadFailed {
+	//				pendingReadError = pe.Error
+	//			}
+	//		},
+	//	}
+
+	//	p := newPool(
+	//		poolConfig{
+	//			Address:     address.Address(addr.String()),
+	//			PoolMonitor: monitor,
+	//		},
+	//	)
+	//	defer p.close(context.Background())
+	//	err := p.ready()
+	//	require.NoError(t, err)
+
+	//	conn, err := p.checkOut(context.Background())
+	//	require.NoError(t, err)
+
+	//	ctx, cancel := csot.WithTimeout(context.Background(), &timeout)
+	//	defer cancel()
+
+	//	ctx = driverutil.WithValueHasMaxTimeMS(ctx, true)
+	//	ctx = driverutil.WithRequestID(ctx, -1)
+
+	//	_, err = conn.readWireMessage(ctx)
+	//	regex := regexp.MustCompile(
+	//		`^connection\(.*\[-\d+\]\) incomplete read of message header: context deadline exceeded: read tcp 127.0.0.1:.*->127.0.0.1:.*: i\/o timeout$`,
+	//	)
+	//	assert.True(t, regex.MatchString(err.Error()), "error %q does not match pattern %q", err, regex)
+	//	err = p.checkIn(conn)
+	//	require.NoError(t, err)
+
+	//	// Wait 400ms to ensure there is no time left on the pending read.
+	//	time.Sleep(400 * time.Millisecond)
+
+	//	_, err = p.checkOut(context.Background())
+	//	require.NoError(t, err)
+
+	//	require.NoError(t, pendingReadError)
+	//})
 }
 
 func assertConnectionsClosed(t *testing.T, dialer *dialer, count int) {
