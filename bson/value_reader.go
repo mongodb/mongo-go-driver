@@ -46,10 +46,7 @@ var vrPool = sync.Pool{
 
 // valueReader is for reading BSON values.
 type valueReader struct {
-	r  *bufio.Reader
-	ra io.ReaderAt // The underlying reader
-
-	poolReader bool // Set if r is from bufioReaderPool
+	r *bufio.Reader
 
 	offset int64
 	stack  []vrState
@@ -79,7 +76,6 @@ func newDocumentReader(r io.Reader) *valueReader {
 
 	vr.offset = 0
 	vr.frame = 0
-	vr.poolReader = true
 
 	vr.stack = vr.stack[:1]
 	vr.stack[0].mode = mTopLevel
@@ -92,15 +88,9 @@ func newDocumentReader(r io.Reader) *valueReader {
 }
 
 func releaseDocumentReader(vr *valueReader) {
-	if !vr.poolReader {
-		return
-	}
-
 	bufioReaderPool.Put(vr.r)
 	vr.r = nil
-	vr.poolReader = false
 
-	vr.ra = nil
 	vrPool.Put(vr)
 }
 
