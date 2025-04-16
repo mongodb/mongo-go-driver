@@ -1724,7 +1724,17 @@ func (op Operation) calculateMaxTimeMS(ctx context.Context, rttMin time.Duration
 		return 0, nil
 	}
 
-	return driverutil.CalculateMaxTimeMS(ctx, rttMin, rttStats, ErrDeadlineWouldBeExceeded)
+	// Calculate maxTimeMS value to potentially be appended to the wire message.
+	maxTimeMS, ok := driverutil.CalculateMaxTimeMS(ctx, rttMin)
+	if !ok && maxTimeMS <= 0 {
+		return 0, fmt.Errorf(
+			"calculated server-side timeout (%v ms) is less than or equal to 0 (%v): %w",
+			maxTimeMS,
+			rttStats,
+			ErrDeadlineWouldBeExceeded)
+	}
+
+	return maxTimeMS, nil
 }
 
 // updateClusterTimes updates the cluster times for the session and cluster clock attached to this

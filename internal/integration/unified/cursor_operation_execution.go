@@ -30,7 +30,6 @@ func executeIterateOnce(ctx context.Context, operation *operation) (*operationRe
 
 		return newDocumentResult(res, nil), nil
 	}
-
 	return newErrorResult(cursor.Err()), nil
 }
 

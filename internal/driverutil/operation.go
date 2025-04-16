@@ -8,7 +8,6 @@ package driverutil
 
 import (
 	"context"
-	"fmt"
 	"math"
 	"time"
 )
@@ -38,10 +37,14 @@ const (
 	BulkWriteOp         = "bulkWrite"         // BulkWriteOp is the name for client-level bulk write
 )
 
-func CalculateMaxTimeMS(ctx context.Context, rttMin time.Duration, rttStats string, err error) (int64, error) {
+// CalculateMaxTimeMS calculates the maxTimeMS value to send to the server
+// based on the context deadline and the minimum round trip time. If the
+// calculated maxTimeMS is likely to cause a socket timeout, then this function
+// will return 0 and false.
+func CalculateMaxTimeMS(ctx context.Context, rttMin time.Duration) (int64, bool) {
 	deadline, ok := ctx.Deadline()
 	if !ok {
-		return 0, nil
+		return 0, true
 	}
 
 	remainingTimeout := time.Until(deadline)
@@ -50,12 +53,7 @@ func CalculateMaxTimeMS(ctx context.Context, rttMin time.Duration, rttStats stri
 	// maxTimeMS value (e.g. 400 microseconds evaluates to 1ms, not 0ms).
 	maxTimeMS := int64((remainingTimeout - rttMin) / time.Millisecond)
 	if maxTimeMS <= 0 {
-		return 0, fmt.Errorf(
-			"remaining time %v until context deadline is less than or equal to min network round-trip time %v (%v): %w",
-			remainingTimeout,
-			rttMin,
-			rttStats,
-			err)
+		return 0, false
 	}
 
 	// The server will return a "BadValue" error if maxTimeMS is greater
@@ -64,8 +62,8 @@ func CalculateMaxTimeMS(ctx context.Context, rttMin time.Duration, rttStats stri
 	// and let the client-side timeout handle cancelling the op if the
 	// timeout is ever reached.
 	if maxTimeMS > math.MaxInt32 {
-		return 0, nil
+		return 0, true
 	}
 
-	return maxTimeMS, nil
+	return maxTimeMS, true
 }
