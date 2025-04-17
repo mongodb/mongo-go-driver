@@ -1079,6 +1079,8 @@ func awaitPendingRead(ctx context.Context, pool *pool, conn *connection) error {
 
 	publishPendingReadSucceeded(pool, conn)
 
+	conn.pendingReadState = nil
+
 	return nil
 }
 
