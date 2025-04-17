@@ -9,7 +9,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 )
 
-//nolint:govet
 func TestCalculateMaxTimeMS(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -41,7 +40,7 @@ func TestCalculateMaxTimeMS(t *testing.T) {
 		{
 			name: "remaining timeout < rttMin",
 			ctx: func() context.Context {
-				ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(1*time.Millisecond))
+				ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(1*time.Millisecond)) //nolint:govet
 				return ctx
 			}(),
 			rttMin:       10 * time.Millisecond,
@@ -52,7 +51,7 @@ func TestCalculateMaxTimeMS(t *testing.T) {
 		{
 			name: "normal positive result",
 			ctx: func() context.Context {
-				ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(100*time.Millisecond))
+				ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(100*time.Millisecond)) //nolint:govet
 				return ctx
 			}(),
 			wantZero:     false,
@@ -62,7 +61,7 @@ func TestCalculateMaxTimeMS(t *testing.T) {
 		{
 			name: "beyond maxInt32",
 			ctx: func() context.Context {
-				ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(time.Duration(math.MaxInt32+1000)*time.Millisecond))
+				ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(time.Duration(math.MaxInt32+1000)*time.Millisecond)) //nolint:govet
 				return ctx
 			}(),
 			wantZero:     true,
@@ -72,7 +71,7 @@ func TestCalculateMaxTimeMS(t *testing.T) {
 		{
 			name: "round up to 1ms",
 			ctx: func() context.Context {
-				ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(999*time.Microsecond))
+				ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(999*time.Microsecond)) //nolint:govet
 				return ctx
 			}(),
 			wantOk:    true,
