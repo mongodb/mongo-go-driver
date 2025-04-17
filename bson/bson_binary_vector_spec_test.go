@@ -9,7 +9,6 @@ package bson
 import (
 	"encoding/hex"
 	"encoding/json"
-	"math"
 	"os"
 	"path"
 	"testing"
@@ -27,13 +26,13 @@ type bsonBinaryVectorTests struct {
 }
 
 type bsonBinaryVectorTestCase struct {
-	Description   string        `json:"description"`
-	Valid         bool          `json:"valid"`
-	Vector        []interface{} `json:"vector"`
-	DtypeHex      string        `json:"dtype_hex"`
-	DtypeAlias    string        `json:"dtype_alias"`
-	Padding       int           `json:"padding"`
-	CanonicalBson string        `json:"canonical_bson"`
+	Description   string          `json:"description"`
+	Valid         bool            `json:"valid"`
+	Vector        json.RawMessage `json:"vector"`
+	DtypeHex      string          `json:"dtype_hex"`
+	DtypeAlias    string          `json:"dtype_alias"`
+	Padding       int             `json:"padding"`
+	CanonicalBson string          `json:"canonical_bson"`
 }
 
 func TestBsonBinaryVectorSpec(t *testing.T) {
@@ -83,21 +82,19 @@ func TestBsonBinaryVectorSpec(t *testing.T) {
 	})
 }
 
-func convertSlice[T int8 | float32 | byte](s []interface{}) []T {
+func decodeTestSlice[T int8 | float32 | byte](t *testing.T, data []byte) []T {
+	t.Helper()
+
+	if len(data) == 0 {
+		return nil
+	}
+	var s []float64
+	err := UnmarshalExtJSON(data, true, &s)
+	require.NoError(t, err)
+
 	v := make([]T, len(s))
 	for i, e := range s {
-		f := math.NaN()
-		switch val := e.(type) {
-		case float64:
-			f = val
-		case string:
-			if val == "inf" {
-				f = math.Inf(0)
-			} else if val == "-inf" {
-				f = math.Inf(-1)
-			}
-		}
-		v[i] = T(f)
+		v[i] = T(e)
 	}
 	return v
 }
@@ -108,17 +105,17 @@ func runBsonBinaryVectorTest(t *testing.T, testKey string, test bsonBinaryVector
 	case "0x03":
 		testVector[testKey] = Vector{
 			dType:    Int8Vector,
-			int8Data: convertSlice[int8](test.Vector),
+			int8Data: decodeTestSlice[int8](t, test.Vector),
 		}
 	case "0x27":
 		testVector[testKey] = Vector{
 			dType:       Float32Vector,
-			float32Data: convertSlice[float32](test.Vector),
+			float32Data: decodeTestSlice[float32](t, test.Vector),
 		}
 	case "0x10":
 		testVector[testKey] = Vector{
 			dType:      PackedBitVector,
-			bitData:    convertSlice[byte](test.Vector),
+			bitData:    decodeTestSlice[byte](t, test.Vector),
 			bitPadding: uint8(test.Padding),
 		}
 	default:
