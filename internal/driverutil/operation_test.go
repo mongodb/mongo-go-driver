@@ -61,7 +61,8 @@ func TestCalculateMaxTimeMS(t *testing.T) {
 		{
 			name: "beyond maxInt32",
 			ctx: func() context.Context {
-				ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(time.Duration(math.MaxInt32+1000)*time.Millisecond)) //nolint:govet
+				dur := time.Now().Add(time.Duration(math.MaxInt32+1000) * time.Millisecond)
+				ctx, _ := context.WithDeadline(context.Background(), dur) //nolint:govet
 				return ctx
 			}(),
 			wantZero:     true,
