@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"sync"
 )
 
 var _ ValueReader = &valueReader{}
@@ -27,6 +28,20 @@ type vrState struct {
 	mode  mode
 	vType Type
 	end   int64
+}
+
+var bufioReaderPool = sync.Pool{
+	New: func() interface{} {
+		return bufio.NewReader(nil)
+	},
+}
+
+var vrPool = sync.Pool{
+	New: func() interface{} {
+		return &valueReader{
+			stack: make([]vrState, 1, 5),
+		}
+	},
 }
 
 // valueReader is for reading BSON values.
@@ -57,14 +72,26 @@ func newValueReader(t Type, r io.Reader) ValueReader {
 }
 
 func newDocumentReader(r io.Reader) *valueReader {
-	stack := make([]vrState, 1, 5)
-	stack[0] = vrState{
-		mode: mTopLevel,
-	}
-	return &valueReader{
-		r:     bufio.NewReader(r),
-		stack: stack,
-	}
+	vr := vrPool.Get().(*valueReader)
+
+	vr.offset = 0
+	vr.frame = 0
+
+	vr.stack = vr.stack[:1]
+	vr.stack[0].mode = mTopLevel
+
+	br := bufioReaderPool.Get().(*bufio.Reader)
+	br.Reset(r)
+	vr.r = br
+
+	return vr
+}
+
+func releaseDocumentReader(vr *valueReader) {
+	bufioReaderPool.Put(vr.r)
+	vr.r = nil
+
+	vrPool.Put(vr)
 }
 
 func (vr *valueReader) advanceFrame() {
@@ -253,14 +280,28 @@ func (vr *valueReader) appendNextElement(dst []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	buf := make([]byte, length)
-	_, err = io.ReadFull(vr.r, buf)
+	buf, err := vr.r.Peek(int(length))
 	if err != nil {
+		if err == bufio.ErrBufferFull {
+			temp := make([]byte, length)
+			if _, err = io.ReadFull(vr.r, temp); err != nil {
+				return nil, err
+			}
+			dst = append(dst, temp...)
+			vr.offset += int64(len(temp))
+			return dst, nil
+		}
+
 		return nil, err
 	}
+
 	dst = append(dst, buf...)
-	vr.offset += int64(len(buf))
-	return dst, err
+	if _, err = vr.r.Discard(int(length)); err != nil {
+		return nil, err
+	}
+
+	vr.offset += int64(length)
+	return dst, nil
 }
 
 func (vr *valueReader) readValueBytes(dst []byte) (Type, []byte, error) {
