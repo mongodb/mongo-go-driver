@@ -491,13 +491,11 @@ func (c *connection) read(ctx context.Context) (bytesRead []byte, errMsg string,
 		if l := int32(n); l == 0 && isCSOTTimeout(err) && driverutil.HasMaxTimeMS(ctx) {
 			requestID, _ := driverutil.GetRequestID(ctx)
 
-			//c.pendingReadMu.Lock()
 			c.pendingReadState = &pendingReadState{
 				remainingBytes: l,
 				requestID:      requestID,
 				start:          time.Now(),
 			}
-			//c.pendingReadMu.Unlock()
 		}
 		return nil, "incomplete read of message header", err
 	}
@@ -515,13 +513,11 @@ func (c *connection) read(ctx context.Context) (bytesRead []byte, errMsg string,
 		if remainingBytes > 0 && isCSOTTimeout(err) && driverutil.HasMaxTimeMS(ctx) {
 			requestID, _ := driverutil.GetRequestID(ctx)
 
-			//c.pendingReadMu.Lock()
 			c.pendingReadState = &pendingReadState{
 				remainingBytes: remainingBytes,
 				requestID:      requestID,
 				start:          time.Now(),
 			}
-			//c.pendingReadMu.Unlock()
 		}
 		return dst, "incomplete read of full message", err
 	}

@@ -907,7 +907,9 @@ func newPendingReadContext(parent context.Context, remainingTime time.Duration) 
 // buffered reader. If the connection is closed, it will return false.
 func peekConnectionAlive(conn *connection) (int, error) {
 	// Set a very short deadline to avoid blocking.
-	conn.nc.SetReadDeadline(time.Now().Add(1 * time.Nanosecond))
+	if err := conn.nc.SetReadDeadline(time.Now().Add(1 * time.Nanosecond)); err != nil {
+		return 0, err
+	}
 
 	// Wrap the connection in a buffered reader to use peek.
 	reader := bufio.NewReader(conn.nc)
@@ -927,6 +929,8 @@ func attemptPendingRead(ctx context.Context, conn *connection, remainingTime tim
 	calculatedDeadline := time.Now().Add(remainingTime)
 
 	if contextDeadlineUsed {
+		// Use the minimum of the user-provided deadline and the calculated
+		// deadline.
 		if calculatedDeadline.Before(dl) {
 			dl = calculatedDeadline
 		}
@@ -941,7 +945,6 @@ func attemptPendingRead(ctx context.Context, conn *connection, remainingTime tim
 
 	size := pendingreadState.remainingBytes
 
-	//st := time.Now()
 	if size == 0 { // Question: Would this alawys equal to zero?
 		var sizeBuf [4]byte
 		if bytesRead, err := io.ReadFull(conn.nc, sizeBuf[:]); err != nil {
@@ -989,7 +992,6 @@ func attemptPendingRead(ctx context.Context, conn *connection, remainingTime tim
 			nerr := net.Error(nil)
 			if l := int32(n); l == 0 && errors.As(err, &nerr) && nerr.Timeout() {
 				pendingreadState.remainingBytes = l + pendingreadState.remainingBytes
-				//prs.remainingTime = ptrutil.Ptr(*prs.remainingTime - time.Since(st))
 			}
 
 			err = transformNetworkError(ctx, err, contextDeadlineUsed)
@@ -1017,11 +1019,10 @@ func awaitPendingRead(ctx context.Context, pool *pool, conn *connection) error {
 	publishPendingReadStarted(pool, conn)
 
 	var (
-		pendingReadState    = conn.pendingReadState
-		remainingTime       = pendingReadState.start.Add(PendingReadTimeout).Sub(time.Now())
-		err                 error
-		bytesRead           int
-		contextDeadlineUsed bool
+		pendingReadState = conn.pendingReadState
+		remainingTime    = pendingReadState.start.Add(PendingReadTimeout).Sub(time.Now())
+		err              error
+		bytesRead        int
 	)
 
 	if remainingTime <= 0 {
@@ -1029,10 +1030,6 @@ func awaitPendingRead(ctx context.Context, pool *pool, conn *connection) error {
 		// aliveness. In such cases, we don't want to close the connection.
 		bytesRead, err = peekConnectionAlive(conn)
 	} else {
-		//pendingReadContext, cancel := newPendingReadContext(ctx, remainingTime)
-		//defer cancel()
-
-		contextDeadlineUsed = true
 		bytesRead, err = attemptPendingRead(ctx, conn, remainingTime)
 	}
 
@@ -1057,7 +1054,7 @@ func awaitPendingRead(ctx context.Context, pool *pool, conn *connection) error {
 			if err := conn.close(); err != nil {
 				return err
 			}
-			return transformNetworkError(ctx, err, contextDeadlineUsed)
+			return err
 		}
 	}
 

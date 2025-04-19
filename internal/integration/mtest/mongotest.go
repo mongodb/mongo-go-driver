@@ -564,6 +564,11 @@ func (t *T) TrackFailPoint(fpName string) {
 
 // ClearFailPoints disables all previously set failpoints for this test.
 func (t *T) ClearFailPoints() {
+	// Run some arbitrary command to ensure that any connection that would
+	// otherwise blocking during a pending read is closed. This could happen if
+	// the mode times > 1 and the blocking time is > default pending read timeout.
+	_ = t.Client.Ping(context.Background(), nil)
+
 	db := t.Client.Database("admin")
 	for _, fp := range t.failPointNames {
 		cmd := failpoint.FailPoint{
