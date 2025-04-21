@@ -30,3 +30,16 @@ func Value(opts Options, key string) any {
 	}
 	return nil
 }
+
+// Equal compares two Options instances for equality.
+func Equal(opts1, opts2 Options) bool {
+	if len(opts1.values) != len(opts2.values) {
+		return false
+	}
+	for key, val1 := range opts1.values {
+		if val2, ok := opts2.values[key]; !ok || val1 != val2 {
+			return false
+		}
+	}
+	return true
+}
