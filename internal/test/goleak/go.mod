@@ -1,8 +1,6 @@
 module go.mongodb.go/mongo-driver/internal/test/goleak
 
-go 1.23.0
-
-toolchain go1.24.1
+go 1.23
 
 replace go.mongodb.org/mongo-driver => ../../../
 
