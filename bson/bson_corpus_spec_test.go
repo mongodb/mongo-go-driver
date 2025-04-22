@@ -23,6 +23,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/internal/spectest"
 )
 
 type testCase struct {
@@ -57,7 +58,7 @@ type parseErrorTestCase struct {
 	String      string `json:"string"`
 }
 
-const dataDir = "../testdata/bson-corpus/"
+var dataDir = spectest.Path("bson-corpus/tests")
 
 func findJSONFilesInDir(dir string) ([]string, error) {
 	files := make([]string, 0)

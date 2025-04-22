@@ -245,10 +245,11 @@ func executeClientBulkWrite(ctx context.Context, operation *operation) (*operati
 	if errors.As(err, &bwe) {
 		res = bwe.PartialResult
 	}
-	if res == nil || !res.Acknowledged {
+	if res == nil {
 		return newDocumentResult(emptyCoreDocument, err), nil
 	}
 	rawBuilder := bsoncore.NewDocumentBuilder().
+		AppendBoolean("acknowledged", res.Acknowledged).
 		AppendInt64("deletedCount", res.DeletedCount).
 		AppendInt64("insertedCount", res.InsertedCount).
 		AppendInt64("matchedCount", res.MatchedCount).

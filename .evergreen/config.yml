@@ -32,6 +32,11 @@ functions:
       type: system
       params:
         directory: src/go.mongodb.org/mongo-driver
+    - command: shell.exec
+      params:
+        working_dir: "src/go.mongodb.org/mongo-driver"
+        script: |
+          git submodule update --init
     # Make an env.sh and evergreen expansion file with dynamic values
     - command: subprocess.exec
       params:
@@ -1477,6 +1482,23 @@ tasks:
       - func: run-versioned-api-test
         vars:
           TOPOLOGY: "server"
+          AUTH: "auth"
+          SSL: "nossl"
+          REQUIRE_API_VERSION: true
+
+  - name: "test-sharded-versioned-api"
+    tags: ["versioned-api"]
+    commands:
+      - func: bootstrap-mongo-orchestration
+        vars:
+          TOPOLOGY: "sharded_cluster"
+          AUTH: "auth"
+          SSL: "nossl"
+          REQUIRE_API_VERSION: true
+      - func: start-cse-servers
+      - func: run-versioned-api-test
+        vars:
+          TOPOLOGY: "sharded_cluster"
           AUTH: "auth"
           SSL: "nossl"
           REQUIRE_API_VERSION: true
