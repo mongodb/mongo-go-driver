@@ -6,5 +6,5 @@ set +x
 
 echo "Running internal/test/goleak"
 pushd internal/test/goleak
-go test -v ./... >> ../../../test.suite
+GOWORK=off go test -v ./... >>../../../test.suite
 popd
