@@ -233,9 +233,6 @@ func TestCSOTProse(t *testing.T) {
 		assert.ErrorIs(mt, err, context.DeadlineExceeded, "expected a timeout error, got: %v", err)
 		assert.Equal(mt, 2, cnt, "expected bulkWrite calls: %d, got: %d", 2, cnt)
 	})
-
-	//mt.Run("pending read", func(mt *mtest.T) {
-	//})
 }
 
 func TestCSOTProse_GridFS(t *testing.T) {

@@ -788,7 +788,7 @@ func (p *pool) removeConnection(conn *connection, reason reason, err error) erro
 //
 // Deprecated: PendingReadTimeout is intended for internal use only and may be
 // removed or modified at any time.
-var PendingReadTimeout = 400 * time.Millisecond
+var PendingReadTimeout = 3000 * time.Millisecond
 
 // publishPendingReadStarted will log a message to the pool logger and
 // publish an event to the pool monitor if they are set.
@@ -880,34 +880,11 @@ func publishPendingReadSucceeded(pool *pool, conn *connection) {
 	}
 }
 
-// newPendingReadContext creates a new context with a deadline that is the
-// minimum of the parent context's deadline and the remaining time.
-func newPendingReadContext(parent context.Context, remainingTime time.Duration) (context.Context, context.CancelFunc) {
-	parentDeadline, hasDeadline := parent.Deadline()
-
-	calculatedDeadline := time.Now().Add(remainingTime)
-
-	if hasDeadline {
-		// Chose the earliest of the two deadlines.
-		var minDeadline time.Time
-		if calculatedDeadline.Before(parentDeadline) {
-			minDeadline = calculatedDeadline
-		} else {
-			minDeadline = parentDeadline
-		}
-
-		return context.WithDeadline(parent, minDeadline)
-	}
-
-	// If no deadline was set on the parent context, use the remaining time.
-	return context.WithTimeout(parent, remainingTime)
-}
-
 // peekConnectionAlive checks if the connection is alive by peeking at the
 // buffered reader. If the connection is closed, it will return false.
 func peekConnectionAlive(conn *connection) (int, error) {
 	// Set a very short deadline to avoid blocking.
-	if err := conn.nc.SetReadDeadline(time.Now().Add(1 * time.Nanosecond)); err != nil {
+	if err := conn.nc.SetReadDeadline(time.Now().Add(1 * time.Millisecond)); err != nil {
 		return 0, err
 	}
 
@@ -1051,6 +1028,7 @@ func awaitPendingRead(ctx context.Context, pool *pool, conn *connection) error {
 		}()
 
 		if netErr, ok := err.(net.Error); ok && !netErr.Timeout() {
+			fmt.Println(1)
 			if err := conn.close(); err != nil {
 				return err
 			}
