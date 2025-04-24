@@ -361,7 +361,7 @@ func TestCMAPProse(t *testing.T) {
 		assert.Equal(t, addr.String(), failed[0].Address)
 		assert.Equal(t, conn.driverConnectionID, failed[0].ConnectionID)
 		assert.Equal(t, requestID, failed[0].RequestID)
-		assert.Equal(t, io.EOF.Error(), failed[0].Reason)
+		assert.Equal(t, "error", failed[0].Reason)
 		assert.ErrorIs(t, failed[0].Error, io.EOF)
 		assert.Equal(t, time.Duration(0), failed[0].RemainingTime)
 
@@ -462,6 +462,7 @@ func TestCMAPProse(t *testing.T) {
 
 		assert.Equal(t, addr.String(), succeeded[0].Address)
 		assert.Equal(t, conn.driverConnectionID, succeeded[0].ConnectionID)
+		assert.Equal(t, requestID, succeeded[0].RequestID)
 		assert.Greater(t, int(succeeded[0].Duration), 0)
 	})
 }

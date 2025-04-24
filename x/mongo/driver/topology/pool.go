@@ -827,29 +827,32 @@ func publishPendingReadFailed(pool *pool, conn *connection, err error) {
 		return
 	}
 
+	reason := event.ReasonError
+	if errors.Is(err, context.DeadlineExceeded) {
+		reason = event.ReasonTimedOut
+	}
+
 	if mustLogPoolMessage(pool) {
 		keysAndValues := logger.KeyValues{
 			logger.KeyDriverConnectionID, conn.driverConnectionID,
 			logger.KeyRequestID, prs.requestID,
-			logger.KeyReason, err.Error(),
-			logger.KeyRemainingTimeMS, *prs.remainingTime,
+			logger.KeyReason, reason,
+			logger.KeyError, err.Error(),
 		}
 
 		logPoolMessage(pool, logger.ConnectionPendingReadFailed, keysAndValues...)
 	}
 
 	if pool.monitor != nil {
-		event := &event.PoolEvent{
+		e := &event.PoolEvent{
 			Type:         event.ConnectionPendingResponseFailed,
 			Address:      pool.address.String(),
 			ConnectionID: conn.driverConnectionID,
 			RequestID:    prs.requestID,
-			//RemainingTime: remainingTime,
-			Reason: err.Error(),
-			Error:  err,
+			Reason:       reason,
+			Error:        err,
 		}
-
-		pool.monitor.Event(event)
+		pool.monitor.Event(e)
 	}
 }
 
@@ -863,6 +866,7 @@ func publishPendingReadSucceeded(pool *pool, conn *connection, dur time.Duration
 		keysAndValues := logger.KeyValues{
 			logger.KeyDriverConnectionID, conn.driverConnectionID,
 			logger.KeyRequestID, prs.requestID,
+			logger.KeyDurationMS, dur.Milliseconds(),
 		}
 
 		logPoolMessage(pool, logger.ConnectionPendingReadSucceeded, keysAndValues...)
@@ -873,6 +877,7 @@ func publishPendingReadSucceeded(pool *pool, conn *connection, dur time.Duration
 			Type:         event.ConnectionPendingResponseSucceeded,
 			Address:      pool.address.String(),
 			ConnectionID: conn.driverConnectionID,
+			RequestID:    prs.requestID,
 			Duration:     dur,
 		}
 

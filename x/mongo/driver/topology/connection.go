@@ -50,7 +50,6 @@ func nextConnectionID() uint64 { return atomic.AddUint64(&globalConnectionID, 1)
 type pendingReadState struct {
 	remainingBytes int32
 	requestID      int32
-	remainingTime  *time.Duration
 	start          time.Time
 }
 
