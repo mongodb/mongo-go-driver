@@ -35,7 +35,7 @@ func putValueWriter(vw *valueWriter) {
 
 var documentWriterPool = sync.Pool{
 	New: func() interface{} {
-		return NewDocumentWriter(nil)
+		return newDocumentWriter(nil)
 	},
 }
 
