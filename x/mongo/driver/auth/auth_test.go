@@ -7,13 +7,19 @@
 package auth_test
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/auth"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/drivertest"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage"
 )
 
@@ -99,5 +105,58 @@ func compareResponses(t *testing.T, wm []byte, expectedPayload bsoncore.Document
 
 	if !cmp.Equal(actualPayload, expectedPayload) {
 		t.Errorf("Payloads don't match. got %v; want %v", actualPayload, expectedPayload)
+	}
+}
+
+type testAuthenticator struct{}
+
+func (a *testAuthenticator) Auth(context.Context, *driver.AuthConfig) error {
+	return fmt.Errorf("test error")
+}
+
+func (a *testAuthenticator) Reauth(context.Context, *driver.AuthConfig) error {
+	return nil
+}
+
+func TestPerformAuthentication(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name          string
+		needToPerform bool
+		assert        func(*testing.T, error)
+	}{
+		{
+			name:          "positive",
+			needToPerform: true,
+			assert: func(t *testing.T, err error) {
+				require.EqualError(t, err, "auth error: test error")
+			},
+		},
+		{
+			name:          "negative",
+			needToPerform: false,
+			assert: func(t *testing.T, err error) {
+				require.NoError(t, err)
+			},
+		},
+	}
+	mnetconn := mnet.NewConnection(&drivertest.ChannelConn{})
+	for _, tc := range cases {
+		tc := tc
+
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			handshaker := auth.Handshaker(nil, &auth.HandshakeOptions{
+				Authenticator: &testAuthenticator{},
+				PerformAuthentication: func(description.Server) bool {
+					return tc.needToPerform
+				},
+			})
+
+			err := handshaker.FinishHandshake(context.Background(), mnetconn)
+			tc.assert(t, err)
+		})
 	}
 }
