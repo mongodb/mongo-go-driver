@@ -121,11 +121,11 @@ func monitoringEventTypeFromPoolEvent(evt *event.PoolEvent) monitoringEventType 
 		return connectionCheckedOutEvent
 	case event.ConnectionCheckedIn:
 		return connectionCheckedInEvent
-	case event.ConnectionPendingReadStarted:
+	case event.ConnectionPendingResponseStarted:
 		return connectionPendingReadStarted
-	case event.ConnectionPendingReadSucceeded:
+	case event.ConnectionPendingResponseSucceeded:
 		return connectionPendingReadSucceeded
-	case event.ConnectionPendingReadFailed:
+	case event.ConnectionPendingResponseFailed:
 		return connectionPendingReadFailed
 	default:
 		return ""

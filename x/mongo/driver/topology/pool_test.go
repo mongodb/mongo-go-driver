@@ -9,7 +9,6 @@ package topology
 import (
 	"context"
 	"errors"
-	"io"
 	"net"
 	"regexp"
 	"sync"
@@ -1293,7 +1292,7 @@ func TestAwaitPendingRead(t *testing.T) {
 		var pendingReadError error
 		monitor := &event.PoolMonitor{
 			Event: func(pe *event.PoolEvent) {
-				if pe.Type == event.ConnectionPendingReadFailed {
+				if pe.Type == event.ConnectionPendingResponseFailed {
 					pendingReadError = pe.Error
 				}
 			},
@@ -1348,7 +1347,7 @@ func TestAwaitPendingRead(t *testing.T) {
 		var pendingReadError error
 		monitor := &event.PoolMonitor{
 			Event: func(pe *event.PoolEvent) {
-				if pe.Type == event.ConnectionPendingReadFailed {
+				if pe.Type == event.ConnectionPendingResponseFailed {
 					pendingReadError = pe.Error
 				}
 			},
@@ -1407,7 +1406,7 @@ func TestAwaitPendingRead(t *testing.T) {
 		var pendingReadError error
 		monitor := &event.PoolMonitor{
 			Event: func(pe *event.PoolEvent) {
-				if pe.Type == event.ConnectionPendingReadFailed {
+				if pe.Type == event.ConnectionPendingResponseFailed {
 					pendingReadError = pe.Error
 				}
 			},
@@ -1469,7 +1468,7 @@ func TestAwaitPendingRead(t *testing.T) {
 		var pendingReadError error
 		monitor := &event.PoolMonitor{
 			Event: func(pe *event.PoolEvent) {
-				if pe.Type == event.ConnectionPendingReadFailed {
+				if pe.Type == event.ConnectionPendingResponseFailed {
 					pendingReadError = pe.Error
 				}
 			},
@@ -1528,7 +1527,7 @@ func TestAwaitPendingRead(t *testing.T) {
 		var pendingReadError error
 		monitor := &event.PoolMonitor{
 			Event: func(pe *event.PoolEvent) {
-				if pe.Type == event.ConnectionPendingReadFailed {
+				if pe.Type == event.ConnectionPendingResponseFailed {
 					pendingReadError = pe.Error
 				}
 			},
@@ -1566,156 +1565,6 @@ func TestAwaitPendingRead(t *testing.T) {
 		require.Error(t, err)
 
 		assert.EqualError(t, pendingReadError, "error discarding 3 byte message: EOF")
-	})
-
-	// Need to test the case where we attempt a non-blocking read to determine if
-	// we should refresh the remaining time. In the case of the Go Driver, we do
-	// this by attempt to "pee" at 1 byte with a deadline of 1ns.
-	t.Run("connection attempts peek but fails", func(t *testing.T) {
-		timeout := 10 * time.Millisecond
-
-		// Mock a TCP listener that will write a byte sequence > 5 (to avoid errors
-		// due to size) to the TCP socket. Have the listener sleep for 2x the
-		// timeout provided to the connection AFTER writing the byte sequence. This
-		// wiill cause the connection to timeout while reading from the socket.
-		addr := bootstrapConnections(t, 1, func(nc net.Conn) {
-			defer func() {
-				_ = nc.Close()
-			}()
-
-			_, err := nc.Write([]byte{12, 0, 0, 0, 0, 0, 0, 0, 1})
-			require.NoError(t, err)
-			time.Sleep(timeout * 2)
-
-			// Write nothing so that the 1 millisecond "non-blocking" peek fails.
-		})
-
-		var pendingReadError error
-		monitor := &event.PoolMonitor{
-			Event: func(pe *event.PoolEvent) {
-				if pe.Type == event.ConnectionPendingReadFailed {
-					pendingReadError = pe.Error
-				}
-			},
-		}
-
-		p := newPool(
-			poolConfig{
-				Address:     address.Address(addr.String()),
-				PoolMonitor: monitor,
-			},
-		)
-		defer p.close(context.Background())
-		err := p.ready()
-		require.NoError(t, err)
-
-		// Check out a connection and read from the socket, causing a timeout and
-		// pinning the connection to a pending read state.
-		conn, err := p.checkOut(context.Background())
-		require.NoError(t, err)
-
-		ctx, cancel := csot.WithTimeout(context.Background(), &timeout)
-		defer cancel()
-
-		ctx = driverutil.WithValueHasMaxTimeMS(ctx, true)
-		ctx = driverutil.WithRequestID(ctx, -1)
-
-		_, err = conn.readWireMessage(ctx)
-		regex := regexp.MustCompile(
-			`^connection\(.*\[-\d+\]\) incomplete read of full message: context deadline exceeded: read tcp 127.0.0.1:.*->127.0.0.1:.*: i\/o timeout$`,
-		)
-		assert.True(t, regex.MatchString(err.Error()), "error %q does not match pattern %q", err, regex)
-
-		// Check in the connection with a pending read state. The next time this
-		// connection is checked out, it should attempt to read the pending
-		// response.
-		err = p.checkIn(conn)
-		require.NoError(t, err)
-
-		// Wait 3s to make sure there is no remaining time on the pending read
-		// state.
-		time.Sleep(3 * time.Second)
-
-		// Check out the connection again. The remaining time should be exhausted
-		// requiring us to "peek" at the connection to determine if we should
-		_, err = p.checkOut(context.Background())
-		assert.ErrorIs(t, err, io.EOF)
-		assert.ErrorIs(t, pendingReadError, io.EOF)
-	})
-
-	t.Run("connection attempts peek and succeeds", func(t *testing.T) {
-		timeout := 10 * time.Millisecond
-
-		// Mock a TCP listener that will write a byte sequence > 5 (to avoid errors
-		// due to size) to the TCP socket. Have the listener sleep for 2x the
-		// timeout provided to the connection AFTER writing the byte sequence. This
-		// wiill cause the connection to timeout while reading from the socket.
-		addr := bootstrapConnections(t, 1, func(nc net.Conn) {
-			defer func() {
-				_ = nc.Close()
-			}()
-
-			_, err := nc.Write([]byte{12, 0, 0, 0, 0, 0, 0, 0, 1})
-			require.NoError(t, err)
-			time.Sleep(timeout * 2)
-
-			// Write data that can be peeked at.
-			_, err = nc.Write([]byte{12, 0, 0, 0, 0, 0, 0, 0, 1})
-			require.NoError(t, err)
-
-		})
-
-		var pendingReadError error
-		monitor := &event.PoolMonitor{
-			Event: func(pe *event.PoolEvent) {
-				if pe.Type == event.ConnectionPendingReadFailed {
-					pendingReadError = pe.Error
-				}
-			},
-		}
-
-		p := newPool(
-			poolConfig{
-				Address:     address.Address(addr.String()),
-				PoolMonitor: monitor,
-			},
-		)
-		defer p.close(context.Background())
-		err := p.ready()
-		require.NoError(t, err)
-
-		// Check out a connection and read from the socket, causing a timeout and
-		// pinning the connection to a pending read state.
-		conn, err := p.checkOut(context.Background())
-		require.NoError(t, err)
-
-		ctx, cancel := csot.WithTimeout(context.Background(), &timeout)
-		defer cancel()
-
-		ctx = driverutil.WithValueHasMaxTimeMS(ctx, true)
-		ctx = driverutil.WithRequestID(ctx, -1)
-
-		_, err = conn.readWireMessage(ctx)
-		regex := regexp.MustCompile(
-			`^connection\(.*\[-\d+\]\) incomplete read of full message: context deadline exceeded: read tcp 127.0.0.1:.*->127.0.0.1:.*: i\/o timeout$`,
-		)
-		assert.True(t, regex.MatchString(err.Error()), "error %q does not match pattern %q", err, regex)
-
-		// Check in the connection with a pending read state. The next time this
-		// connection is checked out, it should attempt to read the pending
-		// response.
-		err = p.checkIn(conn)
-		require.NoError(t, err)
-
-		// Wait 3s to make sure there is no remaining time on the pending read
-		// state.
-		time.Sleep(3 * time.Second)
-
-		// Check out the connection again. The remaining time should be exhausted
-		// requiring us to "peek" at the connection to determine if we should
-		_, err = p.checkOut(context.Background())
-		require.NoError(t, err)
-		require.NoError(t, pendingReadError)
 	})
 }
 

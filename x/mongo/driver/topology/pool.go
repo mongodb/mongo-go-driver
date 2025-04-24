@@ -811,7 +811,7 @@ func publishPendingReadStarted(pool *pool, conn *connection) {
 	// publish an event to the pool monitor if it is set.
 	if pool.monitor != nil {
 		event := &event.PoolEvent{
-			Type:         event.ConnectionPendingReadStarted,
+			Type:         event.ConnectionPendingResponseStarted,
 			Address:      pool.address.String(),
 			ConnectionID: conn.driverConnectionID,
 			RequestID:    prs.requestID,
@@ -840,7 +840,7 @@ func publishPendingReadFailed(pool *pool, conn *connection, err error) {
 
 	if pool.monitor != nil {
 		event := &event.PoolEvent{
-			Type:         event.ConnectionPendingReadFailed,
+			Type:         event.ConnectionPendingResponseFailed,
 			Address:      pool.address.String(),
 			ConnectionID: conn.driverConnectionID,
 			RequestID:    prs.requestID,
@@ -853,7 +853,7 @@ func publishPendingReadFailed(pool *pool, conn *connection, err error) {
 	}
 }
 
-func publishPendingReadSucceeded(pool *pool, conn *connection) {
+func publishPendingReadSucceeded(pool *pool, conn *connection, dur time.Duration) {
 	prs := conn.pendingReadState
 	if prs == nil {
 		return
@@ -870,10 +870,10 @@ func publishPendingReadSucceeded(pool *pool, conn *connection) {
 
 	if pool.monitor != nil {
 		event := &event.PoolEvent{
-			Type:         event.ConnectionPendingReadSucceeded,
+			Type:         event.ConnectionPendingResponseSucceeded,
 			Address:      pool.address.String(),
 			ConnectionID: conn.driverConnectionID,
-			//Duration:     time.Since(st),
+			Duration:     dur,
 		}
 
 		pool.monitor.Event(event)
@@ -1002,6 +1002,7 @@ func awaitPendingRead(ctx context.Context, pool *pool, conn *connection) error {
 		bytesRead        int
 	)
 
+	st := time.Now()
 	if remainingTime <= 0 {
 		// If there is no remaining time, we can just peek at the connection to check
 		// aliveness. In such cases, we don't want to close the connection.
@@ -1011,6 +1012,7 @@ func awaitPendingRead(ctx context.Context, pool *pool, conn *connection) error {
 	}
 
 	endTime := time.Now()
+	endDuration := time.Since(st)
 
 	if err != nil {
 		// No matter what happens, always check the connection back into the
@@ -1052,7 +1054,7 @@ func awaitPendingRead(ctx context.Context, pool *pool, conn *connection) error {
 		return err
 	}
 
-	publishPendingReadSucceeded(pool, conn)
+	publishPendingReadSucceeded(pool, conn, endDuration)
 
 	conn.pendingReadState = nil
 

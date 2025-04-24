@@ -363,15 +363,15 @@ func verifyCMAPEvents(client *clientEntity, expectedEvents *expectedEvents) erro
 				return newEventVerificationError(idx, client, "failed to get next pool event: %v", err.Error())
 			}
 		case evt.ConnectionPendingReadStarted != nil:
-			if _, pooled, err = getNextPoolEvent(pooled, event.ConnectionPendingReadStarted); err != nil {
+			if _, pooled, err = getNextPoolEvent(pooled, event.ConnectionPendingResponseStarted); err != nil {
 				return newEventVerificationError(idx, client, "failed to get next pool event: %v", err.Error())
 			}
 		case evt.ConnectionPendingreadSucceeded != nil:
-			if _, pooled, err = getNextPoolEvent(pooled, event.ConnectionPendingReadSucceeded); err != nil {
+			if _, pooled, err = getNextPoolEvent(pooled, event.ConnectionPendingResponseSucceeded); err != nil {
 				return newEventVerificationError(idx, client, "failed to get next pool event: %v", err.Error())
 			}
 		case evt.ConnectionPendingReadFailed != nil:
-			if _, pooled, err = getNextPoolEvent(pooled, event.ConnectionPendingReadFailed); err != nil {
+			if _, pooled, err = getNextPoolEvent(pooled, event.ConnectionPendingResponseFailed); err != nil {
 				return newEventVerificationError(idx, client, "failed to get next pool event: %v", err.Error())
 			}
 		case evt.PoolClearedEvent != nil:

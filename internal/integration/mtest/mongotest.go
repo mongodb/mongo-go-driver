@@ -662,9 +662,9 @@ func (t *T) createTestClient() {
 					atomic.AddInt64(&t.connsCheckedOut, 1)
 				case event.ConnectionCheckedIn:
 					atomic.AddInt64(&t.connsCheckedOut, -1)
-				case event.ConnectionPendingReadStarted:
+				case event.ConnectionPendingResponseStarted:
 					atomic.AddInt64(&t.connPendingReadStarted, 1)
-				case event.ConnectionPendingReadSucceeded:
+				case event.ConnectionPendingResponseSucceeded:
 					atomic.AddInt64(&t.connPendingReadSucceeded, 1)
 				case event.ConnectionCheckOutFailed:
 					atomic.AddInt64(&t.connPendingReadFailed, 1)

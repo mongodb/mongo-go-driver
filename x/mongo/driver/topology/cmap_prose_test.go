@@ -9,13 +9,19 @@ package topology
 import (
 	"context"
 	"errors"
+	"io"
 	"net"
+	"regexp"
+	"sync"
 	"testing"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/csot"
+	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/mongo/address"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
 )
 
@@ -262,6 +268,201 @@ func TestCMAPProse(t *testing.T) {
 
 			})
 		})
+	})
+
+	// Need to test the case where we attempt a non-blocking read to determine if
+	// we should refresh the remaining time. In the case of the Go Driver, we do
+	// this by attempt to "pee" at 1 byte with a deadline of 1ns.
+	t.Run("connection attempts peek but fails", func(t *testing.T) {
+		const requestID = int32(-1)
+		timeout := 10 * time.Millisecond
+
+		// Mock a TCP listener that will write a byte sequence > 5 (to avoid errors
+		// due to size) to the TCP socket. Have the listener sleep for 2x the
+		// timeout provided to the connection AFTER writing the byte sequence. This
+		// wiill cause the connection to timeout while reading from the socket.
+		addr := bootstrapConnections(t, 1, func(nc net.Conn) {
+			defer func() {
+				_ = nc.Close()
+			}()
+
+			_, err := nc.Write([]byte{12, 0, 0, 0, 0, 0, 0, 0, 1})
+			require.NoError(t, err)
+			time.Sleep(timeout * 2)
+
+			// Write nothing so that the 1 millisecond "non-blocking" peek fails.
+		})
+
+		poolEventsByType := make(map[string][]event.PoolEvent)
+		poolEventsByTypeMu := &sync.Mutex{}
+
+		monitor := &event.PoolMonitor{
+			Event: func(pe *event.PoolEvent) {
+				poolEventsByTypeMu.Lock()
+				poolEventsByType[pe.Type] = append(poolEventsByType[pe.Type], *pe)
+				poolEventsByTypeMu.Unlock()
+			},
+		}
+
+		p := newPool(
+			poolConfig{
+				Address:     address.Address(addr.String()),
+				PoolMonitor: monitor,
+			},
+		)
+		defer p.close(context.Background())
+		err := p.ready()
+		require.NoError(t, err)
+
+		// Check out a connection and read from the socket, causing a timeout and
+		// pinning the connection to a pending read state.
+		conn, err := p.checkOut(context.Background())
+		require.NoError(t, err)
+
+		ctx, cancel := csot.WithTimeout(context.Background(), &timeout)
+		defer cancel()
+
+		ctx = driverutil.WithValueHasMaxTimeMS(ctx, true)
+		ctx = driverutil.WithRequestID(ctx, requestID)
+
+		_, err = conn.readWireMessage(ctx)
+		regex := regexp.MustCompile(
+			`^connection\(.*\[-\d+\]\) incomplete read of full message: context deadline exceeded: read tcp 127.0.0.1:.*->127.0.0.1:.*: i\/o timeout$`,
+		)
+		assert.True(t, regex.MatchString(err.Error()), "error %q does not match pattern %q", err, regex)
+
+		// Check in the connection with a pending read state. The next time this
+		// connection is checked out, it should attempt to read the pending
+		// response.
+		err = p.checkIn(conn)
+		require.NoError(t, err)
+
+		// Wait 3s to make sure there is no remaining time on the pending read
+		// state.
+		time.Sleep(3 * time.Second)
+
+		// Check out the connection again. The remaining time should be exhausted
+		// requiring us to "peek" at the connection to determine if we should
+		_, err = p.checkOut(context.Background())
+		assert.ErrorIs(t, err, io.EOF)
+
+		// There should be 1 ConnectionPendingResponseStarted event.
+		started := poolEventsByType[event.ConnectionPendingResponseStarted]
+		require.Len(t, started, 1)
+
+		assert.Equal(t, addr.String(), started[0].Address)
+		assert.Equal(t, conn.driverConnectionID, started[0].ConnectionID)
+		assert.Equal(t, requestID, started[0].RequestID)
+
+		// There should be 1 ConnectionPendingResponseFailed event.
+		failed := poolEventsByType[event.ConnectionPendingResponseFailed]
+		require.Len(t, failed, 1)
+
+		assert.Equal(t, addr.String(), failed[0].Address)
+		assert.Equal(t, conn.driverConnectionID, failed[0].ConnectionID)
+		assert.Equal(t, requestID, failed[0].RequestID)
+		assert.Equal(t, io.EOF.Error(), failed[0].Reason)
+		assert.ErrorIs(t, failed[0].Error, io.EOF)
+		assert.Equal(t, time.Duration(0), failed[0].RemainingTime)
+
+		// There should be 0 ConnectionPendingResponseSucceeded event.
+		require.Len(t, poolEventsByType[event.ConnectionPendingResponseSucceeded], 0)
+	})
+
+	t.Run("connection attempts peek and succeeds", func(t *testing.T) {
+		const requestID = int32(-1)
+		timeout := 10 * time.Millisecond
+
+		// Mock a TCP listener that will write a byte sequence > 5 (to avoid errors
+		// due to size) to the TCP socket. Have the listener sleep for 2x the
+		// timeout provided to the connection AFTER writing the byte sequence. This
+		// wiill cause the connection to timeout while reading from the socket.
+		addr := bootstrapConnections(t, 1, func(nc net.Conn) {
+			defer func() {
+				_ = nc.Close()
+			}()
+
+			_, err := nc.Write([]byte{12, 0, 0, 0, 0, 0, 0, 0, 1})
+			require.NoError(t, err)
+			time.Sleep(timeout * 2)
+
+			// Write data that can be peeked at.
+			_, err = nc.Write([]byte{12, 0, 0, 0, 0, 0, 0, 0, 1})
+			require.NoError(t, err)
+
+		})
+
+		poolEventsByType := make(map[string][]event.PoolEvent)
+		poolEventsByTypeMu := &sync.Mutex{}
+
+		monitor := &event.PoolMonitor{
+			Event: func(pe *event.PoolEvent) {
+				poolEventsByTypeMu.Lock()
+				poolEventsByType[pe.Type] = append(poolEventsByType[pe.Type], *pe)
+				poolEventsByTypeMu.Unlock()
+			},
+		}
+
+		p := newPool(
+			poolConfig{
+				Address:     address.Address(addr.String()),
+				PoolMonitor: monitor,
+			},
+		)
+		defer p.close(context.Background())
+		err := p.ready()
+		require.NoError(t, err)
+
+		// Check out a connection and read from the socket, causing a timeout and
+		// pinning the connection to a pending read state.
+		conn, err := p.checkOut(context.Background())
+		require.NoError(t, err)
+
+		ctx, cancel := csot.WithTimeout(context.Background(), &timeout)
+		defer cancel()
+
+		ctx = driverutil.WithValueHasMaxTimeMS(ctx, true)
+		ctx = driverutil.WithRequestID(ctx, requestID)
+
+		_, err = conn.readWireMessage(ctx)
+		regex := regexp.MustCompile(
+			`^connection\(.*\[-\d+\]\) incomplete read of full message: context deadline exceeded: read tcp 127.0.0.1:.*->127.0.0.1:.*: i\/o timeout$`,
+		)
+		assert.True(t, regex.MatchString(err.Error()), "error %q does not match pattern %q", err, regex)
+
+		// Check in the connection with a pending read state. The next time this
+		// connection is checked out, it should attempt to read the pending
+		// response.
+		err = p.checkIn(conn)
+		require.NoError(t, err)
+
+		// Wait 3s to make sure there is no remaining time on the pending read
+		// state.
+		time.Sleep(3 * time.Second)
+
+		// Check out the connection again. The remaining time should be exhausted
+		// requiring us to "peek" at the connection to determine if we should
+		_, err = p.checkOut(context.Background())
+		require.NoError(t, err)
+
+		// There should be 1 ConnectionPendingResponseStarted event.
+		started := poolEventsByType[event.ConnectionPendingResponseStarted]
+		require.Len(t, started, 1)
+
+		assert.Equal(t, addr.String(), started[0].Address)
+		assert.Equal(t, conn.driverConnectionID, started[0].ConnectionID)
+		assert.Equal(t, requestID, started[0].RequestID)
+
+		// There should be 0 ConnectionPendingResponseFailed event.
+		require.Len(t, poolEventsByType[event.ConnectionPendingResponseFailed], 0)
+
+		// There should be 1 ConnectionPendingResponseSucceeded event.
+		succeeded := poolEventsByType[event.ConnectionPendingResponseSucceeded]
+		require.Len(t, succeeded, 1)
+
+		assert.Equal(t, addr.String(), succeeded[0].Address)
+		assert.Equal(t, conn.driverConnectionID, succeeded[0].ConnectionID)
+		assert.Greater(t, int(succeeded[0].Duration), 0)
 	})
 }
 
