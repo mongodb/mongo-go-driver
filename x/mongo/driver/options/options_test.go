@@ -7,6 +7,7 @@
 package options
 
 import (
+	"fmt"
 	"testing"
 
 	internalOptions "go.mongodb.org/mongo-driver/v2/internal/options"
@@ -31,7 +32,7 @@ func TestSetInternalClientOptions(t *testing.T) {
 	for _, tc := range cases {
 		tc := tc
 
-		t.Run(tc.key, func(t *testing.T) {
+		t.Run(fmt.Sprintf("set %s", tc.key), func(t *testing.T) {
 			t.Parallel()
 
 			opts := options.Client()
@@ -42,7 +43,7 @@ func TestSetInternalClientOptions(t *testing.T) {
 		})
 	}
 
-	t.Run("crypt", func(t *testing.T) {
+	t.Run("set crypt", func(t *testing.T) {
 		t.Parallel()
 
 		c := driver.NewCrypt(&driver.CryptOptions{})
@@ -52,7 +53,15 @@ func TestSetInternalClientOptions(t *testing.T) {
 		require.Equal(t, c, opts.Crypt, "expected %v, got %v", c, opts.Crypt)
 	})
 
-	t.Run("deployment", func(t *testing.T) {
+	t.Run("set crypt - wrong type", func(t *testing.T) {
+		t.Parallel()
+
+		opts := options.Client()
+		err := SetInternalClientOptions(opts, "crypt", &drivertest.MockDeployment{})
+		require.EqualError(t, err, "unexpected type for crypt")
+	})
+
+	t.Run("set deployment", func(t *testing.T) {
 		t.Parallel()
 
 		d := &drivertest.MockDeployment{}
@@ -60,5 +69,21 @@ func TestSetInternalClientOptions(t *testing.T) {
 		err := SetInternalClientOptions(opts, "deployment", d)
 		require.NoError(t, err, "error setting deployment: %v", err)
 		require.Equal(t, d, opts.Deployment, "expected %v, got %v", d, opts.Deployment)
+	})
+
+	t.Run("set deployment - wrong type", func(t *testing.T) {
+		t.Parallel()
+
+		opts := options.Client()
+		err := SetInternalClientOptions(opts, "deployment", driver.NewCrypt(&driver.CryptOptions{}))
+		require.EqualError(t, err, "unexpected type for deployment")
+	})
+
+	t.Run("set unsupported option", func(t *testing.T) {
+		t.Parallel()
+
+		opts := options.Client()
+		err := SetInternalClientOptions(opts, "unsupported", "unsupported")
+		require.EqualError(t, err, "unsupported option: unsupported")
 	})
 }
