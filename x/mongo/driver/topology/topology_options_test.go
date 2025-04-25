@@ -21,7 +21,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/drivertest"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
-	xoptions "go.mongodb.org/mongo-driver/v2/x/mongo/driver/options"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/xoptions"
 )
 
 func TestDirectConnectionFromConnString(t *testing.T) {
