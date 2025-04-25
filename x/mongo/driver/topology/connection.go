@@ -212,7 +212,7 @@ func (c *connection) connect(ctx context.Context) (err error) {
 	// Assign the result of DialContext to a temporary net.Conn to ensure that c.nc is not set in an error case.
 	tempNc, err := c.config.dialer.DialContext(ctx, c.addr.Network(), c.addr.String())
 	if err != nil {
-		return ConnectionError{Wrapped: err, init: true}
+		return ConnectionError{Wrapped: err, init: true, message: fmt.Sprintf("failed to connect to %s", c.addr)}
 	}
 	c.nc = tempNc
 
@@ -229,7 +229,7 @@ func (c *connection) connect(ctx context.Context) (err error) {
 		tlsNc, err := configureTLS(ctx, c.config.tlsConnectionSource, c.nc, c.addr, tlsConfig, ocspOpts)
 
 		if err != nil {
-			return ConnectionError{Wrapped: err, init: true}
+			return ConnectionError{Wrapped: err, init: true, message: fmt.Sprintf("failed to configure TLS for %s", c.addr)}
 		}
 		c.nc = tlsNc
 	}
