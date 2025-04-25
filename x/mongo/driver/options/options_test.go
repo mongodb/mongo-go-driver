@@ -18,7 +18,7 @@ import (
 func TestSetInternalClientOptions(t *testing.T) {
 	t.Parallel()
 
-	t.Run("crypt with driver.Crypt", func(t *testing.T) {
+	t.Run("set crypt", func(t *testing.T) {
 		t.Parallel()
 
 		c := driver.NewCrypt(&driver.CryptOptions{})
@@ -28,7 +28,7 @@ func TestSetInternalClientOptions(t *testing.T) {
 		require.Equal(t, c, opts.Crypt, "expected %v, got %v", c, opts.Crypt)
 	})
 
-	t.Run("set Crypt with driver.Deployment", func(t *testing.T) {
+	t.Run("set crypt - wrong type", func(t *testing.T) {
 		t.Parallel()
 
 		opts := options.Client()
@@ -36,17 +36,17 @@ func TestSetInternalClientOptions(t *testing.T) {
 		require.EqualError(t, err, "unexpected type for crypt")
 	})
 
-	t.Run("set Deployment with driver.Deployment", func(t *testing.T) {
+	t.Run("set deployment", func(t *testing.T) {
 		t.Parallel()
 
 		d := &drivertest.MockDeployment{}
 		opts := options.Client()
 		err := SetInternalClientOptions(opts, "deployment", d)
-		require.NoError(t, err)
-		require.Equal(t, d, opts.Deployment)
+		require.NoError(t, err, "error setting deployment: %v", err)
+		require.Equal(t, d, opts.Deployment, "expected %v, got %v", d, opts.Deployment)
 	})
 
-	t.Run("set Deployment with driver.Crypt", func(t *testing.T) {
+	t.Run("set deployment - wrong type", func(t *testing.T) {
 		t.Parallel()
 
 		opts := options.Client()
