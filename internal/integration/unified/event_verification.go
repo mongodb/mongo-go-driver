@@ -56,10 +56,10 @@ type cmapEvent struct {
 		Reason *string `bson:"reason"`
 	} `bson:"connectionCheckOutFailedEvent"`
 
-	ConnectionCheckedInEvent       *struct{} `bson:"connectionCheckedInEvent"`
-	ConnectionPendingReadStarted   *struct{} `bson:"connectionPendingReadStarted"`
-	ConnectionPendingreadSucceeded *struct{} `bson:"connectionPendingReadSucceeded"`
-	ConnectionPendingReadFailed    *struct{} `bson:"connectionPendingReadFailed"`
+	ConnectionCheckedInEvent           *struct{} `bson:"connectionCheckedInEvent"`
+	ConnectionPendingResponseStarted   *struct{} `bson:"connectionPendingResponseStarted"`
+	ConnectionPendingResponseSucceeded *struct{} `bson:"connectionPendingResponseSucceeded"`
+	ConnectionPendingResponseFailed    *struct{} `bson:"connectionPendingResponseFailed"`
 
 	PoolClearedEvent *struct {
 		HasServiceID              *bool `bson:"hasServiceId"`
@@ -362,15 +362,15 @@ func verifyCMAPEvents(client *clientEntity, expectedEvents *expectedEvents) erro
 			if _, pooled, err = getNextPoolEvent(pooled, event.ConnectionCheckedIn); err != nil {
 				return newEventVerificationError(idx, client, "failed to get next pool event: %v", err.Error())
 			}
-		case evt.ConnectionPendingReadStarted != nil:
+		case evt.ConnectionPendingResponseStarted != nil:
 			if _, pooled, err = getNextPoolEvent(pooled, event.ConnectionPendingResponseStarted); err != nil {
 				return newEventVerificationError(idx, client, "failed to get next pool event: %v", err.Error())
 			}
-		case evt.ConnectionPendingreadSucceeded != nil:
+		case evt.ConnectionPendingResponseSucceeded != nil:
 			if _, pooled, err = getNextPoolEvent(pooled, event.ConnectionPendingResponseSucceeded); err != nil {
 				return newEventVerificationError(idx, client, "failed to get next pool event: %v", err.Error())
 			}
-		case evt.ConnectionPendingReadFailed != nil:
+		case evt.ConnectionPendingResponseFailed != nil:
 			if _, pooled, err = getNextPoolEvent(pooled, event.ConnectionPendingResponseFailed); err != nil {
 				return newEventVerificationError(idx, client, "failed to get next pool event: %v", err.Error())
 			}
