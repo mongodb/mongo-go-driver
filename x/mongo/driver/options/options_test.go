@@ -10,43 +10,38 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/drivertest"
 )
 
-func TestSetClientOptions(t *testing.T) {
+func TestSetInternalClientOptions(t *testing.T) {
 	t.Parallel()
 
-	t.Run("set Crypt with driver.Crypt", func(t *testing.T) {
+	t.Run("crypt with driver.Crypt", func(t *testing.T) {
 		t.Parallel()
 
-		opts := &ClientOptions{}
 		c := driver.NewCrypt(&driver.CryptOptions{})
-		opts, err := SetInternalClientOptions(opts, map[string]any{
-			"crypt": c,
-		})
-		require.NoError(t, err)
-		require.Equal(t, c, opts.Crypt)
+		opts := options.Client()
+		err := SetInternalClientOptions(opts, "crypt", c)
+		require.NoError(t, err, "error setting crypt: %v", err)
+		require.Equal(t, c, opts.Crypt, "expected %v, got %v", c, opts.Crypt)
 	})
 
 	t.Run("set Crypt with driver.Deployment", func(t *testing.T) {
 		t.Parallel()
 
-		opts := &ClientOptions{}
-		_, err := SetInternalClientOptions(opts, map[string]any{
-			"crypt": &drivertest.MockDeployment{},
-		})
+		opts := options.Client()
+		err := SetInternalClientOptions(opts, "crypt", &drivertest.MockDeployment{})
 		require.EqualError(t, err, "unexpected type for crypt")
 	})
 
 	t.Run("set Deployment with driver.Deployment", func(t *testing.T) {
 		t.Parallel()
 
-		opts := &ClientOptions{}
 		d := &drivertest.MockDeployment{}
-		opts, err := SetInternalClientOptions(opts, map[string]any{
-			"deployment": d,
-		})
+		opts := options.Client()
+		err := SetInternalClientOptions(opts, "deployment", d)
 		require.NoError(t, err)
 		require.Equal(t, d, opts.Deployment)
 	})
@@ -54,20 +49,16 @@ func TestSetClientOptions(t *testing.T) {
 	t.Run("set Deployment with driver.Crypt", func(t *testing.T) {
 		t.Parallel()
 
-		opts := &ClientOptions{}
-		_, err := SetInternalClientOptions(opts, map[string]any{
-			"deployment": driver.NewCrypt(&driver.CryptOptions{}),
-		})
+		opts := options.Client()
+		err := SetInternalClientOptions(opts, "deployment", driver.NewCrypt(&driver.CryptOptions{}))
 		require.EqualError(t, err, "unexpected type for deployment")
 	})
 
 	t.Run("set unsupported option", func(t *testing.T) {
 		t.Parallel()
 
-		opts := &ClientOptions{}
-		_, err := SetInternalClientOptions(opts, map[string]any{
-			"unsupported": "unsupported",
-		})
+		opts := options.Client()
+		err := SetInternalClientOptions(opts, "unsupported", "unsupported")
 		require.EqualError(t, err, "unsupported option: unsupported")
 	})
 }
