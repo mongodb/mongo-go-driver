@@ -471,6 +471,7 @@ func TestPool_checkOut(t *testing.T) {
 
 		dialErr := errors.New("create new connection error")
 		p := newPool(poolConfig{
+			Address:        "testaddr",
 			ConnectTimeout: defaultConnectionTimeout,
 		}, WithDialer(func(Dialer) Dialer {
 			return DialerFunc(func(context.Context, string, string) (net.Conn, error) {
@@ -481,7 +482,7 @@ func TestPool_checkOut(t *testing.T) {
 		require.NoError(t, err)
 
 		_, err = p.checkOut(context.Background())
-		var want error = ConnectionError{Wrapped: dialErr, init: true}
+		var want error = ConnectionError{Wrapped: dialErr, init: true, message: "failed to connect to testaddr:27017"}
 		assert.Equalf(t, want, err, "should return error from calling checkOut()")
 		// If a connection initialization error occurs during checkOut, removing and closing the
 		// failed connection both happen asynchronously with the checkOut. Wait for up to 2s for

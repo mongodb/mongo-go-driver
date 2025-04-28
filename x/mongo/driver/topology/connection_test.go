@@ -63,8 +63,8 @@ func TestConnection(t *testing.T) {
 		t.Run("connect", func(t *testing.T) {
 			t.Run("dialer error", func(t *testing.T) {
 				err := errors.New("dialer error")
-				var want error = ConnectionError{Wrapped: err, init: true}
-				conn := newConnection(address.Address(""), WithDialer(func(Dialer) Dialer {
+				var want error = ConnectionError{Wrapped: err, init: true, message: "failed to connect to testaddr:27017"}
+				conn := newConnection(address.Address("testaddr"), WithDialer(func(Dialer) Dialer {
 					return DialerFunc(func(context.Context, string, string) (net.Conn, error) { return nil, err })
 				}))
 				got := conn.connect(context.Background())
