@@ -413,9 +413,6 @@ func (c *connection) readWireMessage(ctx context.Context) ([]byte, error) {
 			c.close()
 		}
 		message := errMsg
-		if errors.Is(err, io.EOF) {
-			message = "socket was unexpectedly closed"
-		}
 		return nil, ConnectionError{
 			ConnectionID: c.id,
 			Wrapped:      transformNetworkError(ctx, err, contextDeadlineUsed),

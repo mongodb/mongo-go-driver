@@ -41,7 +41,7 @@ func (e ConnectionError) Error() string {
 	}
 	if e.Wrapped != nil {
 		if errors.Is(e.Wrapped, io.EOF) {
-			messages = append(messages, "connection closed unexpectedly by the other side")
+			messages = append(messages, "socket was unexpectedly closed")
 		}
 		if errors.Is(e.Wrapped, os.ErrDeadlineExceeded) {
 			messages = append(messages, "client timed out waiting for server response")
