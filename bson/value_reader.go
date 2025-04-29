@@ -53,6 +53,33 @@ type valueReader struct {
 	frame int64
 }
 
+func getDocumentReader(r io.Reader) *valueReader {
+	vr := vrPool.Get().(*valueReader)
+
+	vr.offset = 0
+	vr.frame = 0
+
+	vr.stack = vr.stack[:1]
+	vr.stack[0].mode = mTopLevel
+
+	br := bufioReaderPool.Get().(*bufio.Reader)
+	br.Reset(r)
+	vr.r = br
+
+	return vr
+}
+
+func putDocumentReader(vr *valueReader) {
+	if vr == nil {
+		return
+	}
+
+	bufioReaderPool.Put(vr.r)
+	vr.r = nil
+
+	vrPool.Put(vr)
+}
+
 // NewDocumentReader returns a ValueReader using b for the underlying BSON
 // representation.
 func NewDocumentReader(r io.Reader) ValueReader {
@@ -72,26 +99,14 @@ func newValueReader(t Type, r io.Reader) ValueReader {
 }
 
 func newDocumentReader(r io.Reader) *valueReader {
-	vr := vrPool.Get().(*valueReader)
-
-	vr.offset = 0
-	vr.frame = 0
-
-	vr.stack = vr.stack[:1]
-	vr.stack[0].mode = mTopLevel
-
-	br := bufioReaderPool.Get().(*bufio.Reader)
-	br.Reset(r)
-	vr.r = br
-
-	return vr
-}
-
-func releaseDocumentReader(vr *valueReader) {
-	bufioReaderPool.Put(vr.r)
-	vr.r = nil
-
-	vrPool.Put(vr)
+	stack := make([]vrState, 1, 5)
+	stack[0] = vrState{
+		mode: mTopLevel,
+	}
+	return &valueReader{
+		r:     bufio.NewReader(r),
+		stack: stack,
+	}
 }
 
 func (vr *valueReader) advanceFrame() {
