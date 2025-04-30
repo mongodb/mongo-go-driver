@@ -246,22 +246,16 @@ functions:
         script: |
           # We use the requester expansion to determine whether the data is from a mainline evergreen run or not
           if [ "${requester}" == "commit" ]; then
-            echo "is_mainline: true" >> expansion.yml
+            is_mainline=true
           else
-            echo "is_mainline: false" >> expansion.yml
+            is_mainline=false
           fi
 
           # We parse the username out of the order_id as patches append that in and SPS does not need that information
-          echo "parsed_order_id: $(echo "${revision_order_id}" | awk -F'_' '{print $NF}')"  >> expansion.yml
-    - command: expansions.update
-      params:
-        file: expansion.yml
-    - command: shell.exec
-      params:
-        script: |
+          parsed_order_id=$(echo "${revision_order_id}" | awk -F'_' '{print $NF}')
           # Submit the performance data to the SPS endpoint
           response=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X 'POST' \
-            "https://performance-monitoring-api.corp.mongodb.com/raw_perf_results/cedar_report?project=${project_id}&version=${version_id}&variant=${build_variant}&order=${parsed_order_id}&task_name=${task_name}&task_id=${task_id}&execution=${execution}&mainline=${is_mainline}" \
+            "https://performance-monitoring-api.corp.mongodb.com/raw_perf_results/cedar_report?project=${project_id}&version=${version_id}&variant=${build_variant}&order=$parsed_order_id&task_name=${task_name}&task_id=${task_id}&execution=${execution}&mainline=$is_mainline" \
             -H 'accept: application/json' \
             -H 'Content-Type: application/json' \
             -d @src/go.mongodb.org/mongo-driver/perf.json)
