@@ -60,7 +60,7 @@ func getDocumentReader(r io.Reader) *valueReader {
 	vr.frame = 0
 
 	vr.stack = vr.stack[:1]
-	vr.stack[0].mode = mTopLevel
+	vr.stack[0] = vrState{mode: mTopLevel}
 
 	br := bufioReaderPool.Get().(*bufio.Reader)
 	br.Reset(r)
