@@ -108,11 +108,10 @@ type PoolEvent struct {
 	Reason       string              `json:"reason"`
 	// ServiceID is only set if the Type is PoolCleared and the server is deployed behind a load balancer. This field
 	// can be used to distinguish between individual servers in a load balanced deployment.
-	ServiceID     *bson.ObjectID `json:"serviceId"`
-	Interruption  bool           `json:"interruptInUseConnections"`
-	Error         error          `json:"error"`
-	RequestID     int32          `json:"requestId"`
-	RemainingTime time.Duration  `json:"remainingTime"`
+	ServiceID    *bson.ObjectID `json:"serviceId"`
+	Interruption bool           `json:"interruptInUseConnections"`
+	Error        error          `json:"error"`
+	RequestID    int32          `json:"requestId"`
 }
 
 // PoolMonitor is a function that allows the user to gain access to events occurring in the pool

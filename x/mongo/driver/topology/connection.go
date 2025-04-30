@@ -47,7 +47,7 @@ var (
 
 func nextConnectionID() uint64 { return atomic.AddUint64(&globalConnectionID, 1) }
 
-type pendingReadState struct {
+type pendingResponseState struct {
 	remainingBytes int32
 	requestID      int32
 	start          time.Time
@@ -88,11 +88,11 @@ type connection struct {
 	// accessTokens in the OIDC authenticator cache.
 	oidcTokenGenID uint64
 
-	// pendingReadState contains information required to attempt a pending read
+	// pendingResponseState contains information required to attempt a pending read
 	// in the event of a socket timeout for an operation that has appended
 	// maxTimeMS to the wire message.
-	pendingReadState *pendingReadState
-	pendingReadMu    sync.Mutex
+	pendingResponseState   *pendingResponseState
+	pendingResponseStateMu sync.Mutex
 }
 
 // newConnection handles the creation of a connection. It does not connect the connection.
@@ -415,14 +415,14 @@ func (c *connection) readWireMessage(ctx context.Context) ([]byte, error) {
 
 	dst, errMsg, err := c.read(ctx)
 	if err != nil {
-		c.pendingReadMu.Lock()
-		if c.pendingReadState == nil {
+		c.pendingResponseStateMu.Lock()
+		if c.pendingResponseState == nil {
 			// If there is no pending read on the connection, use the pre-CSOT
 			// behavior and close the connection because we don't know if there are
 			// other bytes left to read.
 			c.close()
 		}
-		c.pendingReadMu.Unlock()
+		c.pendingResponseStateMu.Unlock()
 		message := errMsg
 		if errors.Is(err, io.EOF) {
 			message = "socket was unexpectedly closed"
@@ -490,7 +490,7 @@ func (c *connection) read(ctx context.Context) (bytesRead []byte, errMsg string,
 		if l := int32(n); l == 0 && isCSOTTimeout(err) && driverutil.HasMaxTimeMS(ctx) {
 			requestID, _ := driverutil.GetRequestID(ctx)
 
-			c.pendingReadState = &pendingReadState{
+			c.pendingResponseState = &pendingResponseState{
 				remainingBytes: l,
 				requestID:      requestID,
 				start:          time.Now(),
@@ -512,7 +512,7 @@ func (c *connection) read(ctx context.Context) (bytesRead []byte, errMsg string,
 		if remainingBytes > 0 && isCSOTTimeout(err) && driverutil.HasMaxTimeMS(ctx) {
 			requestID, _ := driverutil.GetRequestID(ctx)
 
-			c.pendingReadState = &pendingReadState{
+			c.pendingResponseState = &pendingResponseState{
 				remainingBytes: remainingBytes,
 				requestID:      requestID,
 				start:          time.Now(),

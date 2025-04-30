@@ -272,7 +272,7 @@ func TestCMAPProse(t *testing.T) {
 
 	// Need to test the case where we attempt a non-blocking read to determine if
 	// we should refresh the remaining time. In the case of the Go Driver, we do
-	// this by attempt to "pee" at 1 byte with a deadline of 1ns.
+	// this by attempt to "peek" at 1 byte with a deadline of 1ns.
 	t.Run("connection attempts peek but fails", func(t *testing.T) {
 		const requestID = int32(-1)
 		timeout := 10 * time.Millisecond
@@ -342,7 +342,7 @@ func TestCMAPProse(t *testing.T) {
 		time.Sleep(3 * time.Second)
 
 		// Check out the connection again. The remaining time should be exhausted
-		// requiring us to "peek" at the connection to determine if we should
+		// requiring us to "peek" at the connection to determine if we should.
 		_, err = p.checkOut(context.Background())
 		assert.ErrorIs(t, err, io.EOF)
 
@@ -363,7 +363,6 @@ func TestCMAPProse(t *testing.T) {
 		assert.Equal(t, requestID, failed[0].RequestID)
 		assert.Equal(t, "error", failed[0].Reason)
 		assert.ErrorIs(t, failed[0].Error, io.EOF)
-		assert.Equal(t, time.Duration(0), failed[0].RemainingTime)
 
 		// There should be 0 ConnectionPendingResponseSucceeded event.
 		require.Len(t, poolEventsByType[event.ConnectionPendingResponseSucceeded], 0)
@@ -442,6 +441,7 @@ func TestCMAPProse(t *testing.T) {
 
 		// Check out the connection again. The remaining time should be exhausted
 		// requiring us to "peek" at the connection to determine if we should
+		// close as not alive.
 		_, err = p.checkOut(context.Background())
 		require.NoError(t, err)
 

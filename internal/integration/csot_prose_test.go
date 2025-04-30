@@ -176,7 +176,6 @@ func TestCSOTProse(t *testing.T) {
 				time.Millisecond,
 				"expected ping to fail within 150ms")
 		})
-
 	})
 
 	mt.RunOpts("11. multi-batch bulkWrites", mtest.NewOptions().MinServerVersion("8.0").

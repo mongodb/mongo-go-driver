@@ -578,7 +578,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 			return nil, w.err
 		}
 
-		if err := awaitPendingRead(ctx, p, w.conn); err != nil {
+		if err := awaitPendingResponse(ctx, p, w.conn); err != nil {
 			return nil, err
 		}
 
@@ -638,7 +638,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 			return nil, w.err
 		}
 
-		if err := awaitPendingRead(ctx, p, w.conn); err != nil {
+		if err := awaitPendingResponse(ctx, p, w.conn); err != nil {
 			return nil, err
 		}
 
@@ -781,19 +781,18 @@ func (p *pool) removeConnection(conn *connection, reason reason, err error) erro
 	return nil
 }
 
-// PendingReadTimeout is the maximum amount of the to wait when trying to read
-// the server reply on a connection after an operation timed out. The
-// default is 400 milliseconds. This value is refreshed for every 4KB read from
-// the TCP stream.
+// PendingResponseTimeout is the maximum amount of the to wait when trying to
+// read the server reply on a connection after an operation timed out. The
+// default is 3000 milliseconds.
 //
-// Deprecated: PendingReadTimeout is intended for internal use only and may be
-// removed or modified at any time.
-var PendingReadTimeout = 3000 * time.Millisecond
+// Deprecated: PendingResponseTimeout is intended for internal use only and may
+// be removed or modified at any time.
+var PendingResponseTimeout = 3000 * time.Millisecond
 
-// publishPendingReadStarted will log a message to the pool logger and
+// publishPendingResponseStarted will log a message to the pool logger and
 // publish an event to the pool monitor if they are set.
-func publishPendingReadStarted(pool *pool, conn *connection) {
-	prs := conn.pendingReadState
+func publishPendingResponseStarted(pool *pool, conn *connection) {
+	prs := conn.pendingResponseState
 	if prs == nil {
 		return
 	}
@@ -805,7 +804,7 @@ func publishPendingReadStarted(pool *pool, conn *connection) {
 			logger.KeyRequestID, prs.requestID,
 		}
 
-		logPoolMessage(pool, logger.ConnectionPendingReadStarted, keysAndValues...)
+		logPoolMessage(pool, logger.ConnectionPendingResponseStarted, keysAndValues...)
 	}
 
 	// publish an event to the pool monitor if it is set.
@@ -821,8 +820,8 @@ func publishPendingReadStarted(pool *pool, conn *connection) {
 	}
 }
 
-func publishPendingReadFailed(pool *pool, conn *connection, err error) {
-	prs := conn.pendingReadState
+func publishPendingResponseFailed(pool *pool, conn *connection, err error) {
+	prs := conn.pendingResponseState
 	if prs == nil {
 		return
 	}
@@ -840,7 +839,7 @@ func publishPendingReadFailed(pool *pool, conn *connection, err error) {
 			logger.KeyError, err.Error(),
 		}
 
-		logPoolMessage(pool, logger.ConnectionPendingReadFailed, keysAndValues...)
+		logPoolMessage(pool, logger.ConnectionPendingResponseFailed, keysAndValues...)
 	}
 
 	if pool.monitor != nil {
@@ -856,8 +855,8 @@ func publishPendingReadFailed(pool *pool, conn *connection, err error) {
 	}
 }
 
-func publishPendingReadSucceeded(pool *pool, conn *connection, dur time.Duration) {
-	prs := conn.pendingReadState
+func publishPendingResponseSucceeded(pool *pool, conn *connection, dur time.Duration) {
+	prs := conn.pendingResponseState
 	if prs == nil {
 		return
 	}
@@ -869,7 +868,7 @@ func publishPendingReadSucceeded(pool *pool, conn *connection, dur time.Duration
 			logger.KeyDurationMS, dur.Milliseconds(),
 		}
 
-		logPoolMessage(pool, logger.ConnectionPendingReadSucceeded, keysAndValues...)
+		logPoolMessage(pool, logger.ConnectionPendingResponseSucceeded, keysAndValues...)
 	}
 
 	if pool.monitor != nil {
@@ -901,8 +900,8 @@ func peekConnectionAlive(conn *connection) (int, error) {
 	return len(bytes), err
 }
 
-func attemptPendingRead(ctx context.Context, conn *connection, remainingTime time.Duration) (int, error) {
-	pendingreadState := conn.pendingReadState
+func attemptPendingResponse(ctx context.Context, conn *connection, remainingTime time.Duration) (int, error) {
+	pendingreadState := conn.pendingResponseState
 	if pendingreadState == nil {
 		return 0, fmt.Errorf("no pending read state")
 	}
@@ -986,25 +985,25 @@ func attemptPendingRead(ctx context.Context, conn *connection, remainingTime tim
 	return int(totalRead), nil
 }
 
-// awaitPendingRead sets a new read deadline on the provided connection and
+// awaitPendingResponse sets a new read deadline on the provided connection and
 // tries to read any bytes returned by the server. If there are any errors, the
 // connection will be checked back into the pool to be retried.
-func awaitPendingRead(ctx context.Context, pool *pool, conn *connection) error {
-	conn.pendingReadMu.Lock()
-	defer conn.pendingReadMu.Unlock()
+func awaitPendingResponse(ctx context.Context, pool *pool, conn *connection) error {
+	conn.pendingResponseStateMu.Lock()
+	defer conn.pendingResponseStateMu.Unlock()
 
 	// If there are no bytes pending read, do nothing.
-	if conn.pendingReadState == nil {
+	if conn.pendingResponseState == nil {
 		return nil
 	}
 
-	publishPendingReadStarted(pool, conn)
+	publishPendingResponseStarted(pool, conn)
 
 	var (
-		pendingReadState = conn.pendingReadState
-		remainingTime    = pendingReadState.start.Add(PendingReadTimeout).Sub(time.Now())
-		err              error
-		bytesRead        int
+		pendingResponseState = conn.pendingResponseState
+		remainingTime        = pendingResponseState.start.Add(PendingResponseTimeout).Sub(time.Now())
+		err                  error
+		bytesRead            int
 	)
 
 	st := time.Now()
@@ -1013,7 +1012,7 @@ func awaitPendingRead(ctx context.Context, pool *pool, conn *connection) error {
 		// aliveness. In such cases, we don't want to close the connection.
 		bytesRead, err = peekConnectionAlive(conn)
 	} else {
-		bytesRead, err = attemptPendingRead(ctx, conn, remainingTime)
+		bytesRead, err = attemptPendingResponse(ctx, conn, remainingTime)
 	}
 
 	endTime := time.Now()
@@ -1029,13 +1028,12 @@ func awaitPendingRead(ctx context.Context, pool *pool, conn *connection) error {
 		// operations. This is likely a bug in the Go Driver. So it's possible that
 		// the connection is idle at the point of check-in.
 		defer func() {
-			publishPendingReadFailed(pool, conn, err)
+			publishPendingResponseFailed(pool, conn, err)
 
 			_ = pool.checkInNoEvent(conn)
 		}()
 
 		if netErr, ok := err.(net.Error); ok && !netErr.Timeout() {
-			fmt.Println(1)
 			if err := conn.close(); err != nil {
 				return err
 			}
@@ -1045,11 +1043,11 @@ func awaitPendingRead(ctx context.Context, pool *pool, conn *connection) error {
 
 	// If the read was successful, then we should refresh the remaining timeout.
 	if bytesRead > 0 {
-		pendingReadState.start = endTime
+		pendingResponseState.start = endTime
 	}
 
 	// If the remaining time has been exceeded, then close the connection.
-	if endTime.Sub(pendingReadState.start) > PendingReadTimeout {
+	if endTime.Sub(pendingResponseState.start) > PendingResponseTimeout {
 		if err := conn.close(); err != nil {
 			return err
 		}
@@ -1059,9 +1057,9 @@ func awaitPendingRead(ctx context.Context, pool *pool, conn *connection) error {
 		return err
 	}
 
-	publishPendingReadSucceeded(pool, conn, endDuration)
+	publishPendingResponseSucceeded(pool, conn, endDuration)
 
-	conn.pendingReadState = nil
+	conn.pendingResponseState = nil
 
 	return nil
 }
