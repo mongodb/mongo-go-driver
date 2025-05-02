@@ -76,9 +76,9 @@ func NewDistinct(key string, query bsoncore.Document) *Distinct {
 // Result returns the result of executing this operation.
 func (d *Distinct) Result() DistinctResult { return d.result }
 
-func (d *Distinct) processResponse(info driver.ResponseInfo) error {
+func (d *Distinct) processResponse(_ context.Context, resp bsoncore.Document, _ driver.ResponseInfo) error {
 	var err error
-	d.result, err = buildDistinctResult(info.ServerResponse)
+	d.result, err = buildDistinctResult(resp)
 	return err
 }
 

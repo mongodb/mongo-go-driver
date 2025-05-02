@@ -561,6 +561,25 @@ functions:
           KMS_MOCK_SERVERS_RUNNING: "true"
         args: [*task-runner, evg-test-kmip]
 
+  run-retry-kms-requests:
+    - command: subprocess.exec
+      type: test
+      params:
+        binary: "bash"
+        env: 
+          GO_BUILD_TAGS: cse
+        include_expansions_in_env: [AUTH, SSL, MONGODB_URI, TOPOLOGY, 
+          MONGO_GO_DRIVER_COMPRESSOR]
+        args: [*task-runner, setup-test]
+    - command: subprocess.exec
+      type: test
+      params:
+        binary: "bash"
+        env:
+          KMS_FAILPOINT_CA_FILE: "${DRIVERS_TOOLS}/.evergreen/x509gen/ca.pem"
+          KMS_FAILPOINT_SERVER_RUNNING: "true"
+        args: [*task-runner, evg-test-retry-kms-requests]
+
   run-fuzz-tests:
     - command: subprocess.exec
       type: test
@@ -1468,7 +1487,7 @@ tasks:
           SSL: "nossl"
 
   - name: "test-kms-tls-invalid-cert"
-    tags: ["kms-tls"]
+    tags: ["kms-test"]
     commands:
       - func: bootstrap-mongo-orchestration
         vars:
@@ -1484,7 +1503,7 @@ tasks:
           SSL: "nossl"
 
   - name: "test-kms-tls-invalid-hostname"
-    tags: ["kms-tls"]
+    tags: ["kms-test"]
     commands:
       - func: bootstrap-mongo-orchestration
         vars:
@@ -1513,6 +1532,17 @@ tasks:
           TOPOLOGY: "server"
           AUTH: "noauth"
           SSL: "nossl"
+
+  - name: "test-retry-kms-requests"
+    tags: ["kms-test"]
+    commands:
+      - func: bootstrap-mongo-orchestration
+        vars:
+          TOPOLOGY: "server"
+          AUTH: "noauth"
+          SSL: "nossl"
+      - func: start-cse-servers
+      - func: run-retry-kms-requests
 
   - name: "test-serverless"
     tags: ["serverless"]
@@ -2201,11 +2231,11 @@ buildvariants:
     tasks:
       - name: ".versioned-api"
 
-  - matrix_name: "kms-tls-test"
+  - matrix_name: "kms-test"
     matrix_spec: { version: ["7.0"], os-ssl-40: ["rhel87-64"] }
-    display_name: "KMS TLS ${os-ssl-40}"
+    display_name: "KMS TEST ${os-ssl-40}"
     tasks:
-      - name: ".kms-tls"
+      - name: ".kms-test"
 
   - matrix_name: "load-balancer-test"
     tags: ["pullrequest"]

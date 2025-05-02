@@ -72,6 +72,7 @@ const (
 	TypeBinaryEncrypted   byte = 0x06
 	TypeBinaryColumn      byte = 0x07
 	TypeBinarySensitive   byte = 0x08
+	TypeBinaryVector      byte = 0x09
 	TypeBinaryUserDefined byte = 0x80
 )
 
@@ -106,6 +107,7 @@ var tJavaScript = reflect.TypeOf(JavaScript(""))
 var tSymbol = reflect.TypeOf(Symbol(""))
 var tTimestamp = reflect.TypeOf(Timestamp{})
 var tDecimal = reflect.TypeOf(Decimal128{})
+var tVector = reflect.TypeOf(Vector{})
 var tMinKey = reflect.TypeOf(MinKey{})
 var tMaxKey = reflect.TypeOf(MaxKey{})
 var tD = reflect.TypeOf(D{})

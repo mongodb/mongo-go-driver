@@ -8,7 +8,10 @@ package unified
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -162,4 +165,340 @@ func executeListDatabases(ctx context.Context, operation *operation, nameOnly bo
 		AppendInt64("totalSize", res.TotalSize).
 		Build()
 	return newDocumentResult(raw, nil), nil
+}
+
+func executeClientBulkWrite(ctx context.Context, operation *operation) (*operationResult, error) {
+	client, err := entities(ctx).client(operation.Object)
+	if err != nil {
+		return nil, err
+	}
+
+	var writes []mongo.ClientBulkWrite
+	opts := options.ClientBulkWrite()
+
+	elems, err := operation.Arguments.Elements()
+	if err != nil {
+		return nil, err
+	}
+	for _, elem := range elems {
+		key := elem.Key()
+		val := elem.Value()
+
+		switch key {
+		case "models":
+			models, err := val.Array().Values()
+			if err != nil {
+				return nil, err
+			}
+			for _, m := range models {
+				model := m.Document().Index(0)
+				var op *mongo.ClientBulkWrite
+				switch key := model.Key(); key {
+				case "insertOne":
+					op, err = createClientInsertOneModel(model.Value().Document())
+				case "updateOne":
+					op, err = createClientUpdateOneModel(model.Value().Document())
+				case "updateMany":
+					op, err = createClientUpdateManyModel(model.Value().Document())
+				case "replaceOne":
+					op, err = createClientReplaceOneModel(model.Value().Document())
+				case "deleteOne":
+					op, err = createClientDeleteOneModel(model.Value().Document())
+				case "deleteMany":
+					op, err = createClientDeleteManyModel(model.Value().Document())
+				default:
+					err = fmt.Errorf("unrecognized bulkWrite model %q", key)
+				}
+				if err != nil {
+					return nil, err
+				}
+				writes = append(writes, *op)
+			}
+		case "bypassDocumentValidation":
+			opts.SetBypassDocumentValidation(val.Boolean())
+		case "comment":
+			opts.SetComment(val)
+		case "let":
+			opts.SetLet(val.Document())
+		case "ordered":
+			opts.SetOrdered(val.Boolean())
+		case "verboseResults":
+			opts.SetVerboseResults(val.Boolean())
+		case "writeConcern":
+			var wc writeConcern
+			err := bson.Unmarshal(val.Value, &wc)
+			if err != nil {
+				return nil, err
+			}
+			c, err := wc.toWriteConcernOption()
+			if err != nil {
+				return nil, err
+			}
+			opts.SetWriteConcern(c)
+		default:
+			return nil, fmt.Errorf("unrecognized bulkWrite option %q", key)
+		}
+	}
+
+	res, err := client.BulkWrite(ctx, writes, opts)
+	var bwe mongo.ClientBulkWriteException
+	if errors.As(err, &bwe) {
+		res = bwe.PartialResult
+	}
+	if res == nil || !res.Acknowledged {
+		return newDocumentResult(emptyCoreDocument, err), nil
+	}
+	rawBuilder := bsoncore.NewDocumentBuilder().
+		AppendInt64("deletedCount", res.DeletedCount).
+		AppendInt64("insertedCount", res.InsertedCount).
+		AppendInt64("matchedCount", res.MatchedCount).
+		AppendInt64("modifiedCount", res.ModifiedCount).
+		AppendInt64("upsertedCount", res.UpsertedCount)
+
+	var resBuilder *bsoncore.DocumentBuilder
+
+	resBuilder = bsoncore.NewDocumentBuilder()
+	for k, v := range res.DeleteResults {
+		resBuilder.AppendDocument(strconv.Itoa(k),
+			bsoncore.NewDocumentBuilder().
+				AppendInt64("deletedCount", v.DeletedCount).
+				Build(),
+		)
+	}
+	rawBuilder.AppendDocument("deleteResults", resBuilder.Build())
+
+	resBuilder = bsoncore.NewDocumentBuilder()
+	for k, v := range res.InsertResults {
+		t, d, err := bson.MarshalValue(v.InsertedID)
+		if err != nil {
+			return nil, err
+		}
+		resBuilder.AppendDocument(strconv.Itoa(k),
+			bsoncore.NewDocumentBuilder().
+				AppendValue("insertedId", bsoncore.Value{Type: bsoncore.Type(t), Data: d}).
+				Build(),
+		)
+	}
+	rawBuilder.AppendDocument("insertResults", resBuilder.Build())
+
+	resBuilder = bsoncore.NewDocumentBuilder()
+	for k, v := range res.UpdateResults {
+		b := bsoncore.NewDocumentBuilder().
+			AppendInt64("matchedCount", v.MatchedCount).
+			AppendInt64("modifiedCount", v.ModifiedCount)
+		if v.UpsertedID != nil {
+			t, d, err := bson.MarshalValue(v.UpsertedID)
+			if err != nil {
+				return nil, err
+			}
+			b.AppendValue("upsertedId", bsoncore.Value{Type: bsoncore.Type(t), Data: d})
+		}
+		resBuilder.AppendDocument(strconv.Itoa(k), b.Build())
+	}
+	rawBuilder.AppendDocument("updateResults", resBuilder.Build())
+
+	return newDocumentResult(rawBuilder.Build(), err), nil
+}
+
+func createClientInsertOneModel(value bson.Raw) (*mongo.ClientBulkWrite, error) {
+	var v struct {
+		Namespace string
+		Document  bson.Raw
+	}
+	err := bson.Unmarshal(value, &v)
+	if err != nil {
+		return nil, err
+	}
+	ns := strings.SplitN(v.Namespace, ".", 2)
+	return &mongo.ClientBulkWrite{
+		Database:   ns[0],
+		Collection: ns[1],
+		Model: &mongo.ClientInsertOneModel{
+			Document: v.Document,
+		},
+	}, nil
+}
+
+func createClientUpdateOneModel(value bson.Raw) (*mongo.ClientBulkWrite, error) {
+	var v struct {
+		Namespace    string
+		Filter       bson.Raw
+		Update       interface{}
+		ArrayFilters []interface{}
+		Collation    *options.Collation
+		Hint         *bson.RawValue
+		Upsert       *bool
+		Sort         *bson.RawValue
+	}
+	err := bson.Unmarshal(value, &v)
+	if err != nil {
+		return nil, err
+	}
+	var hint interface{}
+	if v.Hint != nil {
+		hint, err = createHint(*v.Hint)
+		if err != nil {
+			return nil, err
+		}
+	}
+	var sort interface{}
+	if v.Sort != nil {
+		sort = v.Sort.Document()
+	}
+	model := &mongo.ClientUpdateOneModel{
+		Filter:    v.Filter,
+		Update:    v.Update,
+		Collation: v.Collation,
+		Hint:      hint,
+		Upsert:    v.Upsert,
+		Sort:      sort,
+	}
+	if len(v.ArrayFilters) > 0 {
+		model.ArrayFilters = v.ArrayFilters
+	}
+	ns := strings.SplitN(v.Namespace, ".", 2)
+	return &mongo.ClientBulkWrite{
+		Database:   ns[0],
+		Collection: ns[1],
+		Model:      model,
+	}, nil
+}
+
+func createClientUpdateManyModel(value bson.Raw) (*mongo.ClientBulkWrite, error) {
+	var v struct {
+		Namespace    string
+		Filter       bson.Raw
+		Update       interface{}
+		ArrayFilters []interface{}
+		Collation    *options.Collation
+		Hint         *bson.RawValue
+		Upsert       *bool
+	}
+	err := bson.Unmarshal(value, &v)
+	if err != nil {
+		return nil, err
+	}
+	var hint interface{}
+	if v.Hint != nil {
+		hint, err = createHint(*v.Hint)
+		if err != nil {
+			return nil, err
+		}
+	}
+	model := &mongo.ClientUpdateManyModel{
+		Filter:    v.Filter,
+		Update:    v.Update,
+		Collation: v.Collation,
+		Hint:      hint,
+		Upsert:    v.Upsert,
+	}
+	if len(v.ArrayFilters) > 0 {
+		model.ArrayFilters = v.ArrayFilters
+	}
+	ns := strings.SplitN(v.Namespace, ".", 2)
+	return &mongo.ClientBulkWrite{
+		Database:   ns[0],
+		Collection: ns[1],
+		Model:      model,
+	}, nil
+}
+
+func createClientReplaceOneModel(value bson.Raw) (*mongo.ClientBulkWrite, error) {
+	var v struct {
+		Namespace   string
+		Filter      bson.Raw
+		Replacement bson.Raw
+		Collation   *options.Collation
+		Hint        *bson.RawValue
+		Upsert      *bool
+		Sort        *bson.RawValue
+	}
+	err := bson.Unmarshal(value, &v)
+	if err != nil {
+		return nil, err
+	}
+	var hint interface{}
+	if v.Hint != nil {
+		hint, err = createHint(*v.Hint)
+		if err != nil {
+			return nil, err
+		}
+	}
+	var sort interface{}
+	if v.Sort != nil {
+		sort = v.Sort.Document()
+	}
+	ns := strings.SplitN(v.Namespace, ".", 2)
+	return &mongo.ClientBulkWrite{
+		Database:   ns[0],
+		Collection: ns[1],
+		Model: &mongo.ClientReplaceOneModel{
+			Filter:      v.Filter,
+			Replacement: v.Replacement,
+			Collation:   v.Collation,
+			Hint:        hint,
+			Upsert:      v.Upsert,
+			Sort:        sort,
+		},
+	}, nil
+}
+
+func createClientDeleteOneModel(value bson.Raw) (*mongo.ClientBulkWrite, error) {
+	var v struct {
+		Namespace string
+		Filter    bson.Raw
+		Collation *options.Collation
+		Hint      *bson.RawValue
+	}
+	err := bson.Unmarshal(value, &v)
+	if err != nil {
+		return nil, err
+	}
+	var hint interface{}
+	if v.Hint != nil {
+		hint, err = createHint(*v.Hint)
+		if err != nil {
+			return nil, err
+		}
+	}
+	ns := strings.SplitN(v.Namespace, ".", 2)
+	return &mongo.ClientBulkWrite{
+		Database:   ns[0],
+		Collection: ns[1],
+		Model: &mongo.ClientDeleteOneModel{
+			Filter:    v.Filter,
+			Collation: v.Collation,
+			Hint:      hint,
+		},
+	}, nil
+}
+
+func createClientDeleteManyModel(value bson.Raw) (*mongo.ClientBulkWrite, error) {
+	var v struct {
+		Namespace string
+		Filter    bson.Raw
+		Collation *options.Collation
+		Hint      *bson.RawValue
+	}
+	err := bson.Unmarshal(value, &v)
+	if err != nil {
+		return nil, err
+	}
+	var hint interface{}
+	if v.Hint != nil {
+		hint, err = createHint(*v.Hint)
+		if err != nil {
+			return nil, err
+		}
+	}
+	ns := strings.SplitN(v.Namespace, ".", 2)
+	return &mongo.ClientBulkWrite{
+		Database:   ns[0],
+		Collection: ns[1],
+		Model: &mongo.ClientDeleteManyModel{
+			Filter:    v.Filter,
+			Collation: v.Collation,
+			Hint:      hint,
+		},
+	}, nil
 }
