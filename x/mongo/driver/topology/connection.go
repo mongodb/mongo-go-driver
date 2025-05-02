@@ -341,7 +341,10 @@ func transformNetworkError(ctx context.Context, originalError error, contextDead
 		return originalError
 	}
 	if netErr, ok := originalError.(net.Error); ok && netErr.Timeout() {
-		return fmt.Errorf("%w: %s", context.DeadlineExceeded, originalError.Error())
+		return fmt.Errorf("%w: %s: %s",
+			context.DeadlineExceeded,
+			"client timed out waiting for server response",
+			originalError.Error())
 	}
 
 	return originalError

@@ -19,6 +19,8 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
 )
 
+var _ error = ConnectionError{}
+
 // ConnectionError represents a connection error.
 type ConnectionError struct {
 	ConnectionID string
@@ -41,7 +43,7 @@ func (e ConnectionError) Error() string {
 	}
 	if e.Wrapped != nil {
 		if errors.Is(e.Wrapped, io.EOF) {
-			messages = append(messages, "socket was unexpectedly closed")
+			messages = append(messages, "connection closed unexpectedly by the other side")
 		}
 		if errors.Is(e.Wrapped, os.ErrDeadlineExceeded) {
 			messages = append(messages, "client timed out waiting for server response")
