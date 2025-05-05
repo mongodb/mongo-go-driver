@@ -237,13 +237,31 @@ type ServerError interface {
 	// HasErrorCodeWithMessage returns true if any of the contained errors have the specified code and message.
 	HasErrorCodeWithMessage(int, string) bool
 
+	// ErrorCodes returns all error codes (unsorted) in the server’s response.
+	// This would include nested errors (e.g., write concern errors) for
+	// supporting implementations (e.g., BulkWriteException) as well as the
+	// top-level error code.
+	ErrorCodes() []int
+
 	serverError()
+}
+
+func hasErrorCode(srvErr ServerError, code int) bool {
+	for _, srvErrCode := range srvErr.ErrorCodes() {
+		if code == srvErrCode {
+			return true
+		}
+	}
+
+	return false
 }
 
 var _ ServerError = CommandError{}
 var _ ServerError = WriteError{}
 var _ ServerError = WriteException{}
 var _ ServerError = BulkWriteException{}
+
+var _ error = ClientBulkWriteException{}
 
 // CommandError represents a server error during execution of a command. This can be returned by any operation.
 type CommandError struct {
@@ -271,6 +289,11 @@ func (e CommandError) Unwrap() error {
 // HasErrorCode returns true if the error has the specified code.
 func (e CommandError) HasErrorCode(code int) bool {
 	return int(e.Code) == code
+}
+
+// ErrorCodes returns a list of error codes returned by the server.
+func (e CommandError) ErrorCodes() []int {
+	return []int{int(e.Code)}
 }
 
 // HasErrorLabel returns true if the error contains the specified label.
@@ -326,6 +349,11 @@ func (we WriteError) Error() string {
 // HasErrorCode returns true if the error has the specified code.
 func (we WriteError) HasErrorCode(code int) bool {
 	return we.Code == code
+}
+
+// ErrorCodes returns a list of error codes returned by the server.
+func (we WriteError) ErrorCodes() []int {
+	return []int{we.Code}
 }
 
 // HasErrorLabel returns true if the error contains the specified label. WriteErrors do not contain labels,
@@ -434,15 +462,21 @@ func (mwe WriteException) Error() string {
 
 // HasErrorCode returns true if the error has the specified code.
 func (mwe WriteException) HasErrorCode(code int) bool {
-	if mwe.WriteConcernError != nil && mwe.WriteConcernError.Code == code {
-		return true
+	return hasErrorCode(mwe, code)
+}
+
+// ErrorCodes returns a list of error codes returned by the server.
+func (mwe WriteException) ErrorCodes() []int {
+	errorCodes := []int{}
+	for _, writeError := range mwe.WriteErrors {
+		errorCodes = append(errorCodes, writeError.Code)
 	}
-	for _, we := range mwe.WriteErrors {
-		if we.Code == code {
-			return true
-		}
+
+	if mwe.WriteConcernError != nil {
+		errorCodes = append(errorCodes, mwe.WriteConcernError.Code)
 	}
-	return false
+
+	return errorCodes
 }
 
 // HasErrorLabel returns true if the error contains the specified label.
@@ -546,15 +580,21 @@ func (bwe BulkWriteException) Error() string {
 
 // HasErrorCode returns true if any of the errors have the specified code.
 func (bwe BulkWriteException) HasErrorCode(code int) bool {
-	if bwe.WriteConcernError != nil && bwe.WriteConcernError.Code == code {
-		return true
+	return hasErrorCode(bwe, code)
+}
+
+// ErrorCodes returns a list of error codes returned by the server.
+func (bwe BulkWriteException) ErrorCodes() []int {
+	errorCodes := []int{}
+	for _, writeError := range bwe.WriteErrors {
+		errorCodes = append(errorCodes, writeError.Code)
 	}
-	for _, we := range bwe.WriteErrors {
-		if we.Code == code {
-			return true
-		}
+
+	if bwe.WriteConcernError != nil {
+		errorCodes = append(errorCodes, bwe.WriteConcernError.Code)
 	}
-	return false
+
+	return errorCodes
 }
 
 // HasErrorLabel returns true if the error contains the specified label.
@@ -596,6 +636,56 @@ func (bwe BulkWriteException) HasErrorCodeWithMessage(code int, message string) 
 
 // serverError implements the ServerError interface.
 func (bwe BulkWriteException) serverError() {}
+
+// ClientBulkWriteException is the error type returned by ClientBulkWrite operations.
+type ClientBulkWriteException struct {
+	// A top-level error that occurred when attempting to communicate with the server
+	// or execute the bulk write. This value may not be populated if the exception was
+	// thrown due to errors occurring on individual writes.
+	WriteError *WriteError
+
+	// The write concern errors that occurred.
+	WriteConcernErrors []WriteConcernError
+
+	// The write errors that occurred during individual operation execution.
+	// This map will contain at most one entry if the bulk write was ordered.
+	WriteErrors map[int]WriteError
+
+	// The results of any successful operations that were performed before the error
+	// was encountered.
+	PartialResult *ClientBulkWriteResult
+}
+
+// Error implements the error interface.
+func (bwe ClientBulkWriteException) Error() string {
+	causes := make([]string, 0, 4)
+	if bwe.WriteError != nil {
+		causes = append(causes, "top level error: "+bwe.WriteError.Error())
+	}
+	if len(bwe.WriteConcernErrors) > 0 {
+		errs := make([]error, len(bwe.WriteConcernErrors))
+		for i := 0; i < len(bwe.WriteConcernErrors); i++ {
+			errs[i] = bwe.WriteConcernErrors[i]
+		}
+		causes = append(causes, "write concern errors: "+joinBatchErrors(errs))
+	}
+	if len(bwe.WriteErrors) > 0 {
+		errs := make([]error, 0, len(bwe.WriteErrors))
+		for _, v := range bwe.WriteErrors {
+			errs = append(errs, v)
+		}
+		causes = append(causes, "write errors: "+joinBatchErrors(errs))
+	}
+	if bwe.PartialResult != nil {
+		causes = append(causes, fmt.Sprintf("result: %v", *bwe.PartialResult))
+	}
+
+	message := "bulk write exception: "
+	if len(causes) == 0 {
+		return message + "no causes"
+	}
+	return "bulk write exception: " + strings.Join(causes, ", ")
+}
 
 // returnResult is used to determine if a function calling processWriteError should return
 // the result or return nil. Since the processWriteError function is used by many different

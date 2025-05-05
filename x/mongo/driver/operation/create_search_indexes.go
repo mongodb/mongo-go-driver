@@ -93,9 +93,9 @@ func NewCreateSearchIndexes(indexes bsoncore.Document) *CreateSearchIndexes {
 // Result returns the result of executing this operation.
 func (csi *CreateSearchIndexes) Result() CreateSearchIndexesResult { return csi.result }
 
-func (csi *CreateSearchIndexes) processResponse(info driver.ResponseInfo) error {
+func (csi *CreateSearchIndexes) processResponse(_ context.Context, resp bsoncore.Document, _ driver.ResponseInfo) error {
 	var err error
-	csi.result, err = buildCreateSearchIndexesResult(info.ServerResponse)
+	csi.result, err = buildCreateSearchIndexesResult(resp)
 	return err
 }
 

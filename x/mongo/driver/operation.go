@@ -51,6 +51,9 @@ var (
 	ErrEmptyReadConcern = errors.New("a read concern must have at least one field set")
 	// ErrEmptyWriteConcern indicates that a write concern has no fields set.
 	ErrEmptyWriteConcern = errors.New("a write concern must have at least one field set")
+	// ErrDocumentTooLarge occurs when a document that is larger than the maximum size accepted by a
+	// server is passed to an insert command.
+	ErrDocumentTooLarge = errors.New("an inserted document is too large")
 	// errDatabaseNameEmpty occurs when a database name is not provided.
 	errDatabaseNameEmpty = errors.New("database name cannot be empty")
 	// errNegativeW indicates that a negative integer `w` field was specified.
@@ -61,7 +64,7 @@ var (
 
 const (
 	// maximum BSON object size when in-use encryption is enabled
-	cryptMaxBsonObjectSize uint32 = 2097152
+	cryptMaxBsonObjectSize int = 2097152
 	// minimum wire version necessary to use automatic encryption
 	cryptMinWireVersion int32 = 8
 	// minimum wire version necessary to use read snapshots
@@ -100,16 +103,20 @@ type opReply struct {
 
 // startedInformation keeps track of all of the information necessary for monitoring started events.
 type startedInformation struct {
-	cmd                      bsoncore.Document
-	requestID                int32
-	cmdName                  string
-	documentSequenceIncluded bool
-	connID                   string
-	driverConnectionID       int64
-	serverConnID             *int64
-	redacted                 bool
-	serviceID                *bson.ObjectID
-	serverAddress            address.Address
+	cmd               bsoncore.Document
+	requestID         int32
+	cmdName           string
+	documentSequences []struct {
+		identifier string
+		data       []byte
+	}
+	processedBatches   int
+	connID             string
+	driverConnectionID int64
+	serverConnID       *int64
+	redacted           bool
+	serviceID          *bson.ObjectID
+	serverAddress      address.Address
 }
 
 // finishedInformation keeps track of all of the information necessary for monitoring success and failure events.
@@ -143,28 +150,29 @@ func (info finishedInformation) success() bool {
 
 // ResponseInfo contains the context required to parse a server response.
 type ResponseInfo struct {
-	ServerResponse        bsoncore.Document
 	Server                Server
 	Connection            *mnet.Connection
 	ConnectionDescription description.Server
 	CurrentIndex          int
+	Error                 error
 }
 
-func redactStartedInformationCmd(op Operation, info startedInformation) bson.Raw {
+func redactStartedInformationCmd(info startedInformation) bson.Raw {
 	var cmdCopy bson.Raw
 
 	// Make a copy of the command. Redact if the command is security
 	// sensitive and cannot be monitored. If there was a type 1 payload for
 	// the current batch, convert it to a BSON array
 	if !info.redacted {
-		cmdCopy = make([]byte, len(info.cmd))
-		copy(cmdCopy, info.cmd)
+		cmdCopy = make([]byte, 0, len(info.cmd))
+		cmdCopy = append(cmdCopy, info.cmd...)
 
-		if info.documentSequenceIncluded {
+		if len(info.documentSequences) > 0 {
 			// remove 0 byte at end
 			cmdCopy = cmdCopy[:len(info.cmd)-1]
-			cmdCopy = op.addBatchArray(cmdCopy)
-
+			for _, seq := range info.documentSequences {
+				cmdCopy = appendDocumentArray(cmdCopy, seq.identifier, seq.data)
+			}
 			// add back 0 byte and update length
 			cmdCopy, _ = bsoncore.AppendDocumentEnd(cmdCopy, 0)
 		}
@@ -179,6 +187,16 @@ func redactFinishedInformationResponse(info finishedInformation) bson.Raw {
 	}
 
 	return bson.Raw{}
+}
+
+// OperationBatches contains the documents that are split when executing a write command that potentially
+// has more documents than can fit in a single command.
+type OperationBatches interface {
+	AppendBatchSequence(dst []byte, maxCount int, totalSize int) (int, []byte, error)
+	AppendBatchArray(dst []byte, maxCount int, totalSize int) (int, []byte, error)
+	IsOrdered() *bool
+	AdvanceBatches(n int)
+	Size() int
 }
 
 // Operation is used to execute an operation. It contains all of the common code required to
@@ -210,7 +228,7 @@ type Operation struct {
 	// ProcessResponseFn is called after a response to the command is returned. The server is
 	// provided for types like Cursor that are required to run subsequent commands using the same
 	// server.
-	ProcessResponseFn func(ResponseInfo) error
+	ProcessResponseFn func(context.Context, bsoncore.Document, ResponseInfo) error
 
 	// Selector is the server selector that's used during both initial server selection and
 	// subsequent selection for retries. Depending on the Deployment implementation, the
@@ -266,9 +284,8 @@ type Operation struct {
 
 	// Batches contains the documents that are split when executing a write command that potentially
 	// has more documents than can fit in a single command. This should only be specified for
-	// commands that are batch compatible. For more information, please refer to the definition of
-	// Batches.
-	Batches *Batches
+	// commands that are batch compatible.
+	Batches OperationBatches
 
 	// Legacy sets the legacy type for this operation. There are only 3 types that require legacy
 	// support: find, getMore, and killCursors. For more information about LegacyOperationKind,
@@ -532,12 +549,12 @@ func (op Operation) Execute(ctx context.Context) error {
 				retries = -1
 			}
 		}
-	}
-	// If context is a Timeout context, automatically set retries to -1 (infinite) if retrying is
-	// enabled.
-	retryEnabled := op.RetryMode != nil && op.RetryMode.Enabled()
-	if csot.IsTimeoutContext(ctx) && retryEnabled {
-		retries = -1
+
+		// If context is a Timeout context, automatically set retries to -1 (infinite) if retrying is
+		// enabled.
+		if csot.IsTimeoutContext(ctx) && op.RetryMode.Enabled() {
+			retries = -1
+		}
 	}
 
 	var srvr Server
@@ -546,7 +563,6 @@ func (op Operation) Execute(ctx context.Context) error {
 	var operationErr WriteCommandError
 	var prevErr error
 	var prevIndefiniteErr error
-	batching := op.Batches.Valid()
 	retrySupported := false
 	first := true
 	currIndex := 0
@@ -585,7 +601,7 @@ func (op Operation) Execute(ctx context.Context) error {
 		if conn != nil {
 			// If we are dealing with a sharded cluster, then mark the failed server
 			// as "deprioritized".
-			if desc := conn.Description; desc != nil && op.Deployment.Kind() == description.TopologyKindSharded {
+			if op.Deployment.Kind() == description.TopologyKindSharded {
 				deprioritizedServers = []description.Server{conn.Description()}
 			}
 
@@ -672,14 +688,10 @@ func (op Operation) Execute(ctx context.Context) error {
 			// Calling IncrementTxnNumber() for server descriptions or topologies that do not
 			// support retries (e.g. standalone topologies) will cause server errors. Only do this
 			// check for the first attempt to keep retried writes in the same transaction.
-			if retrySupported && op.RetryMode != nil && op.Type == Write && op.Client != nil {
-				op.Client.RetryWrite = false
-				if op.RetryMode.Enabled() {
-					op.Client.RetryWrite = true
-					if !op.Client.Committing && !op.Client.Aborting {
-						op.Client.IncrementTxnNumber()
-					}
-				}
+			retryEnabled := op.RetryMode != nil && op.RetryMode.Enabled()
+			needToIncrease := op.Client != nil && !op.Client.Committing && !op.Client.Aborting
+			if retrySupported && op.Type == Write && retryEnabled && needToIncrease {
+				op.Client.IncrementTxnNumber()
 			}
 
 			first = false
@@ -702,30 +714,14 @@ func (op Operation) Execute(ctx context.Context) error {
 			Kind:   op.Deployment.Kind(),
 		}
 
-		if batching {
-			targetBatchSize := desc.MaxDocumentSize
-			maxDocSize := desc.MaxDocumentSize
-			if op.shouldEncrypt() {
-				// For in-use encryption, we want the batch to be split at 2 MiB instead of 16MiB.
-				// If there's only one document in the batch, it can be up to 16MiB, so we set target batch size to
-				// 2MiB but max document size to 16MiB. This will allow the AdvanceBatch call to create a batch
-				// with a single large document.
-				targetBatchSize = cryptMaxBsonObjectSize
-			}
-
-			err = op.Batches.AdvanceBatch(int(desc.MaxBatchCount), int(targetBatchSize), int(maxDocSize))
-			if err != nil {
-				// TODO(GODRIVER-982): Should we also be returning operationErr?
-				return err
-			}
-		}
-
+		var moreToCome bool
 		var startedInfo startedInformation
-		*wm, startedInfo, err = op.createWireMessage(ctx, maxTimeMS, (*wm)[:0], desc, conn, requestID)
+		*wm, moreToCome, startedInfo, err = op.createWireMessage(ctx, maxTimeMS, (*wm)[:0], desc, conn, requestID)
 
 		if err != nil {
 			return err
 		}
+		retryEnabled := op.RetryMode != nil && op.RetryMode.Enabled()
 
 		// set extra data and send event if possible
 		startedInfo.connID = conn.ID()
@@ -746,9 +742,6 @@ func (op Operation) Execute(ctx context.Context) error {
 		startedInfo.serverAddress = conn.Description().Addr
 
 		op.publishStartedEvent(ctx, startedInfo)
-
-		// get the moreToCome flag information before we compress
-		moreToCome := wiremessage.IsMsgMoreToCome(*wm)
 
 		// compress wiremessage if allowed
 		if compressor := conn.Compressor; compressor != nil && op.canCompress(startedInfo.cmdName) {
@@ -812,7 +805,6 @@ func (op Operation) Execute(ctx context.Context) error {
 		// TODO(GODRIVER-2579): When refactoring the "Execute" method, consider creating a separate method for the
 		// error handling logic below. This will remove the necessity of the "checkError" goto label.
 	checkError:
-		var perr error
 		switch tt := err.(type) {
 		case WriteCommandError:
 			if e := err.(WriteCommandError); retrySupported && op.Type == Write && e.UnsupportedStorageEngine() {
@@ -820,7 +812,7 @@ func (op Operation) Execute(ctx context.Context) error {
 			}
 
 			connDesc := conn.Description()
-			retryableErr := tt.Retryable(connDesc.WireVersion)
+			retryableErr := tt.Retryable(connDesc.Kind, connDesc.WireVersion)
 			preRetryWriteLabelVersion := connDesc.WireVersion != nil && connDesc.WireVersion.Max < 9
 			inTransaction := op.Client != nil &&
 				!(op.Client.Committing || op.Client.Aborting) && op.Client.TransactionRunning()
@@ -833,7 +825,7 @@ func (op Operation) Execute(ctx context.Context) error {
 			// If retries are supported for the current operation on the first server description,
 			// the error is considered retryable, and there are retries remaining (negative retries
 			// means retry indefinitely), then retry the operation.
-			if retrySupported && retryableErr && retries != 0 {
+			if retrySupported && retryEnabled && retryableErr && retries != 0 {
 				if op.Client != nil && op.Client.Committing {
 					// Apply majority write concern for retries
 					op.Client.UpdateCommitTransactionWriteConcern()
@@ -856,25 +848,26 @@ func (op Operation) Execute(ctx context.Context) error {
 			// If the operation isn't being retried, process the response
 			if op.ProcessResponseFn != nil {
 				info := ResponseInfo{
-					ServerResponse:        res,
 					Server:                srvr,
 					Connection:            conn,
 					ConnectionDescription: desc.Server,
 					CurrentIndex:          currIndex,
+					Error:                 tt,
 				}
-				_ = op.ProcessResponseFn(info)
-			}
-
-			if batching && len(tt.WriteErrors) > 0 && currIndex > 0 {
-				for i := range tt.WriteErrors {
-					tt.WriteErrors[i].Index += int64(currIndex)
-				}
+				_ = op.ProcessResponseFn(ctx, res, info)
 			}
 
 			// If batching is enabled and either ordered is the default (which is true) or
 			// explicitly set to true and we have write errors, return the errors.
-			if batching && (op.Batches.Ordered == nil || *op.Batches.Ordered) && len(tt.WriteErrors) > 0 {
-				return tt
+			if op.Batches != nil && len(tt.WriteErrors) > 0 {
+				if currIndex > 0 {
+					for i := range tt.WriteErrors {
+						tt.WriteErrors[i].Index += int64(currIndex)
+					}
+				}
+				if isOrdered := op.Batches.IsOrdered(); isOrdered == nil || *isOrdered {
+					return tt
+				}
 			}
 			if op.Client != nil && op.Client.Committing && tt.WriteConcernError != nil {
 				// When running commitTransaction we return WriteConcernErrors as an Error.
@@ -952,7 +945,7 @@ func (op Operation) Execute(ctx context.Context) error {
 			// If retries are supported for the current operation on the first server description,
 			// the error is considered retryable, and there are retries remaining (negative retries
 			// means retry indefinitely), then retry the operation.
-			if retrySupported && retryableErr && retries != 0 {
+			if retrySupported && retryEnabled && retryableErr && retries != 0 {
 				if op.Client != nil && op.Client.Committing {
 					// Apply majority write concern for retries
 					op.Client.UpdateCommitTransactionWriteConcern()
@@ -975,13 +968,13 @@ func (op Operation) Execute(ctx context.Context) error {
 			// If the operation isn't being retried, process the response
 			if op.ProcessResponseFn != nil {
 				info := ResponseInfo{
-					ServerResponse:        res,
 					Server:                srvr,
 					Connection:            conn,
 					ConnectionDescription: desc.Server,
 					CurrentIndex:          currIndex,
+					Error:                 tt,
 				}
-				_ = op.ProcessResponseFn(info)
+				_ = op.ProcessResponseFn(ctx, res, info)
 			}
 
 			if op.Client != nil && op.Client.Committing && (retryableErr || tt.Code == 50) {
@@ -995,27 +988,27 @@ func (op Operation) Execute(ctx context.Context) error {
 			}
 			if op.ProcessResponseFn != nil {
 				info := ResponseInfo{
-					ServerResponse:        res,
 					Server:                srvr,
 					Connection:            conn,
 					ConnectionDescription: desc.Server,
 					CurrentIndex:          currIndex,
+					Error:                 tt,
 				}
-				perr = op.ProcessResponseFn(info)
-			}
-			if perr != nil {
-				return perr
+				perr := op.ProcessResponseFn(ctx, res, info)
+				if perr != nil {
+					return perr
+				}
 			}
 		default:
 			if op.ProcessResponseFn != nil {
 				info := ResponseInfo{
-					ServerResponse:        res,
 					Server:                srvr,
 					Connection:            conn,
 					ConnectionDescription: desc.Server,
 					CurrentIndex:          currIndex,
+					Error:                 tt,
 				}
-				_ = op.ProcessResponseFn(info)
+				_ = op.ProcessResponseFn(ctx, res, info)
 			}
 			return err
 		}
@@ -1023,23 +1016,22 @@ func (op Operation) Execute(ctx context.Context) error {
 		// If we're batching and there are batches remaining, advance to the next batch. This isn't
 		// a retry, so increment the transaction number, reset the retries number, and don't set
 		// server or connection to nil to continue using the same connection.
-		if batching && len(op.Batches.Documents) > 0 {
+		if op.Batches != nil && op.Batches.Size() > startedInfo.processedBatches {
 			// If retries are supported for the current operation on the current server description,
 			// the session isn't nil, and client retries are enabled, increment the txn number.
 			// Calling IncrementTxnNumber() for server descriptions or topologies that do not
 			// support retries (e.g. standalone topologies) will cause server errors.
-			if retrySupported && op.Client != nil && op.RetryMode != nil {
-				if op.RetryMode.Enabled() {
-					op.Client.IncrementTxnNumber()
-				}
+			if retrySupported && op.Client != nil && retryEnabled {
+				op.Client.IncrementTxnNumber()
+
 				// Reset the retries number for RetryOncePerCommand unless context is a Timeout context, in
 				// which case retries should remain as -1 (as many times as possible).
 				if *op.RetryMode == RetryOncePerCommand && !csot.IsTimeoutContext(ctx) {
 					retries = 1
 				}
 			}
-			currIndex += len(op.Batches.Current)
-			op.Batches.ClearBatch()
+			currIndex += startedInfo.processedBatches
+			op.Batches.AdvanceBatches(startedInfo.processedBatches)
 			continue
 		}
 		break
@@ -1196,26 +1188,13 @@ func (Operation) decompressWireMessage(wm []byte) (wiremessage.OpCode, []byte, e
 	return opcode, uncompressed, nil
 }
 
-func (op Operation) addBatchArray(dst []byte) []byte {
-	aidx, dst := bsoncore.AppendArrayElementStart(dst, op.Batches.Identifier)
-	for i, doc := range op.Batches.Current {
-		dst = bsoncore.AppendDocumentElement(dst, strconv.Itoa(i), doc)
-	}
-	dst, _ = bsoncore.AppendArrayEnd(dst, aidx)
-	return dst
-}
-
 func (op Operation) createLegacyHandshakeWireMessage(
 	ctx context.Context,
 	maxTimeMS int64,
 	dst []byte,
 	desc description.SelectedServer,
-) ([]byte, startedInformation, error) {
-	var info startedInformation
+) (int, []byte, []byte, error) {
 	flags := op.secondaryOK(desc)
-	var wmindex int32
-	info.requestID = wiremessage.NextRequestID()
-	wmindex, dst = wiremessage.AppendHeaderStart(dst, info.requestID, 0, wiremessage.OpQuery)
 	dst = wiremessage.AppendQueryFlags(dst, flags)
 
 	dollarCmd := [...]byte{'.', '$', 'c', 'm', 'd'}
@@ -1230,35 +1209,42 @@ func (op Operation) createLegacyHandshakeWireMessage(
 	wrapper := int32(-1)
 	rp, err := op.createReadPref(desc, true)
 	if err != nil {
-		return dst, info, err
+		return 0, dst, nil, err
 	}
 	if len(rp) > 0 {
 		wrapper, dst = bsoncore.AppendDocumentStart(dst)
 		dst = bsoncore.AppendHeader(dst, bsoncore.TypeEmbeddedDocument, "$query")
 	}
 	idx, dst := bsoncore.AppendDocumentStart(dst)
+
 	dst, err = op.CommandFn(dst, desc)
 	if err != nil {
-		return dst, info, err
+		return 0, dst, nil, err
 	}
-
-	if op.Batches != nil && len(op.Batches.Current) > 0 {
-		dst = op.addBatchArray(dst)
+	var n int
+	if op.Batches != nil {
+		n, dst, err = op.Batches.AppendBatchArray(dst, int(desc.MaxBatchCount), int(desc.MaxMessageSize))
+		if err != nil {
+			return 0, dst, nil, err
+		}
+		if n == 0 {
+			return 0, dst, nil, ErrDocumentTooLarge
+		}
 	}
 
 	dst, err = op.addReadConcern(dst, desc)
 	if err != nil {
-		return dst, info, err
+		return 0, dst, nil, err
 	}
 
 	dst, err = op.addWriteConcern(ctx, dst, desc)
 	if err != nil {
-		return dst, info, err
+		return 0, dst, nil, err
 	}
 
-	dst, err = op.addSession(dst, desc)
+	dst, err = op.addSession(dst, desc, false)
 	if err != nil {
-		return dst, info, err
+		return 0, dst, nil, err
 	}
 
 	dst = op.addClusterTime(dst, desc)
@@ -1270,19 +1256,18 @@ func (op Operation) createLegacyHandshakeWireMessage(
 	}
 
 	dst, _ = bsoncore.AppendDocumentEnd(dst, idx)
-	// Command monitoring only reports the document inside $query
-	info.cmd = dst[idx:]
 
 	if len(rp) > 0 {
+		idx = wrapper
 		var err error
 		dst = bsoncore.AppendDocumentElement(dst, "$readPreference", rp)
-		dst, err = bsoncore.AppendDocumentEnd(dst, wrapper)
+		dst, err = bsoncore.AppendDocumentEnd(dst, idx)
 		if err != nil {
-			return dst, info, err
+			return 0, dst, nil, err
 		}
 	}
 
-	return bsoncore.UpdateLength(dst, wmindex, int32(len(dst[wmindex:]))), info, nil
+	return n, dst, dst[idx:], nil
 }
 
 func (op Operation) createMsgWireMessage(
@@ -1291,45 +1276,40 @@ func (op Operation) createMsgWireMessage(
 	dst []byte,
 	desc description.SelectedServer,
 	conn *mnet.Connection,
-	requestID int32,
-) ([]byte, startedInformation, error) {
-	var info startedInformation
+	cmdFn func([]byte, description.SelectedServer) ([]byte, error),
+) ([]byte, []byte, error) {
 	var flags wiremessage.MsgFlag
-	var wmindex int32
-	// We set the MoreToCome bit if we have a write concern, it's unacknowledged, and we either
-	// aren't batching or we are encoding the last batch.
-	if op.WriteConcern != nil && !op.WriteConcern.Acknowledged() && (op.Batches == nil || len(op.Batches.Documents) == 0) {
-		flags = wiremessage.MoreToCome
-	}
 	// Set the ExhaustAllowed flag if the connection supports streaming. This will tell the server that it can
 	// respond with the MoreToCome flag and then stream responses over this connection.
 	if streamer := conn.Streamer; streamer != nil && streamer.SupportsStreaming() {
-		flags |= wiremessage.ExhaustAllowed
+		flags = wiremessage.ExhaustAllowed
 	}
-
-	info.requestID = requestID
-	wmindex, dst = wiremessage.AppendHeaderStart(dst, info.requestID, 0, wiremessage.OpMsg)
 	dst = wiremessage.AppendMsgFlags(dst, flags)
 	// Body
 	dst = wiremessage.AppendMsgSectionType(dst, wiremessage.SingleDocument)
 
 	idx, dst := bsoncore.AppendDocumentStart(dst)
 
-	dst, err := op.addCommandFields(ctx, dst, desc)
+	var err error
+	dst, err = cmdFn(dst, desc)
 	if err != nil {
-		return dst, info, err
+		return dst, nil, err
 	}
 	dst, err = op.addReadConcern(dst, desc)
 	if err != nil {
-		return dst, info, err
+		return dst, nil, err
 	}
 	dst, err = op.addWriteConcern(ctx, dst, desc)
 	if err != nil {
-		return dst, info, err
+		return dst, nil, err
 	}
-	dst, err = op.addSession(dst, desc)
+	retryWrite := false
+	if op.retryable(conn.Description()) && op.RetryMode != nil && op.RetryMode.Enabled() {
+		retryWrite = true
+	}
+	dst, err = op.addSession(dst, desc, retryWrite)
 	if err != nil {
-		return dst, info, err
+		return dst, nil, err
 	}
 
 	dst = op.addClusterTime(dst, desc)
@@ -1343,34 +1323,15 @@ func (op Operation) createMsgWireMessage(
 	dst = bsoncore.AppendStringElement(dst, "$db", op.Database)
 	rp, err := op.createReadPref(desc, false)
 	if err != nil {
-		return dst, info, err
+		return dst, nil, err
 	}
 	if len(rp) > 0 {
 		dst = bsoncore.AppendDocumentElement(dst, "$readPreference", rp)
 	}
 
 	dst, _ = bsoncore.AppendDocumentEnd(dst, idx)
-	// The command document for monitoring shouldn't include the type 1 payload as a document sequence
-	info.cmd = dst[idx:]
 
-	// add batch as a document sequence if auto encryption is not enabled
-	// if auto encryption is enabled, the batch will already be an array in the command document
-	if !op.shouldEncrypt() && op.Batches != nil && len(op.Batches.Current) > 0 {
-		info.documentSequenceIncluded = true
-		dst = wiremessage.AppendMsgSectionType(dst, wiremessage.DocumentSequence)
-		idx, dst = bsoncore.ReserveLength(dst)
-
-		dst = append(dst, op.Batches.Identifier...)
-		dst = append(dst, 0x00)
-
-		for _, doc := range op.Batches.Current {
-			dst = append(dst, doc...)
-		}
-
-		dst = bsoncore.UpdateLength(dst, idx, int32(len(dst[idx:])))
-	}
-
-	return bsoncore.UpdateLength(dst, wmindex, int32(len(dst[wmindex:]))), info, nil
+	return dst, dst[idx:], nil
 }
 
 // isLegacyHandshake returns True if the operation is the first message of
@@ -1388,46 +1349,144 @@ func (op Operation) createWireMessage(
 	desc description.SelectedServer,
 	conn *mnet.Connection,
 	requestID int32,
-) ([]byte, startedInformation, error) {
-	if isLegacyHandshake(op, desc) {
-		return op.createLegacyHandshakeWireMessage(ctx, maxTimeMS, dst, desc)
+) ([]byte, bool, startedInformation, error) {
+	var info startedInformation
+	var wmindex int32
+	var err error
+
+	unacknowledged := op.WriteConcern != nil && !op.WriteConcern.Acknowledged()
+
+	fIdx := -1
+	isLegacy := isLegacyHandshake(op, desc)
+	switch {
+	case isLegacy:
+		requestID := wiremessage.NextRequestID()
+		wmindex, dst = wiremessage.AppendHeaderStart(dst, requestID, 0, wiremessage.OpQuery)
+		info.processedBatches, dst, info.cmd, err = op.createLegacyHandshakeWireMessage(ctx, maxTimeMS, dst, desc)
+	case op.shouldEncrypt():
+		if desc.WireVersion.Max < cryptMinWireVersion {
+			return dst, false, info, errors.New("auto-encryption requires a MongoDB version of 4.2")
+		}
+		cmdFn := func(dst []byte, desc description.SelectedServer) ([]byte, error) {
+			info.processedBatches, dst, err = op.addEncryptCommandFields(ctx, dst, desc)
+			return dst, err
+		}
+		wmindex, dst = wiremessage.AppendHeaderStart(dst, requestID, 0, wiremessage.OpMsg)
+		fIdx = len(dst)
+		dst, info.cmd, err = op.createMsgWireMessage(ctx, maxTimeMS, dst, desc, conn, cmdFn)
+	default:
+		wmindex, dst = wiremessage.AppendHeaderStart(dst, requestID, 0, wiremessage.OpMsg)
+		fIdx = len(dst)
+
+		batchOffset := -1
+		switch op.Batches.(type) {
+		case *Batches:
+			dst, info.cmd, err = op.createMsgWireMessage(ctx, maxTimeMS, dst, desc, conn, op.CommandFn)
+			if err == nil && op.Batches != nil {
+				batchOffset = len(dst)
+				info.processedBatches, dst, err = op.Batches.AppendBatchSequence(dst,
+					int(desc.MaxBatchCount), int(desc.MaxMessageSize),
+				)
+				if err != nil {
+					break
+				}
+				if info.processedBatches == 0 {
+					err = ErrDocumentTooLarge
+				}
+			}
+		default:
+			var batches []byte
+			if op.Batches != nil {
+				info.processedBatches, batches, err = op.Batches.AppendBatchSequence(batches,
+					int(desc.MaxBatchCount), int(desc.MaxMessageSize),
+				)
+				if err != nil {
+					break
+				}
+				if info.processedBatches == 0 {
+					err = ErrDocumentTooLarge
+					break
+				}
+			}
+			dst, info.cmd, err = op.createMsgWireMessage(ctx, maxTimeMS, dst, desc, conn, op.CommandFn)
+			if err == nil && len(batches) > 0 {
+				batchOffset = len(dst)
+				dst = append(dst, batches...)
+			}
+		}
+		if err == nil && batchOffset > 0 {
+			// the remaining of dst is expected to be document sequences such as "ops", "nsInfo".
+			for b := dst[batchOffset:]; len(b) > 0; /* nothing */ {
+				stype, data, ok := wiremessage.ReadMsgSectionType(b)
+				if !ok || stype != wiremessage.DocumentSequence {
+					break
+				}
+				var identifier string
+				identifier, data, b, ok = wiremessage.ReadMsgSectionRawDocumentSequence(data)
+				if !ok {
+					break
+				}
+				info.documentSequences = append(info.documentSequences, struct {
+					identifier string
+					data       []byte
+				}{identifier, data})
+			}
+		}
+	}
+	if err != nil {
+		return nil, false, info, err
 	}
 
-	return op.createMsgWireMessage(ctx, maxTimeMS, dst, desc, conn, requestID)
+	var moreToCome bool
+	// We set the MoreToCome bit if we have a write concern, it's unacknowledged, and we either
+	// aren't batching or we are encoding the last batch.
+	batching := op.Batches != nil && op.Batches.Size() > info.processedBatches
+	if fIdx > 0 && unacknowledged && !batching {
+		dst[fIdx] |= byte(wiremessage.MoreToCome)
+		moreToCome = true
+	}
+	info.requestID = requestID
+	return bsoncore.UpdateLength(dst, wmindex, int32(len(dst[wmindex:]))), moreToCome, info, nil
 }
 
-// addCommandFields adds the fields for a command to the wire message in dst. This assumes that the start of the document
-// has already been added and does not add the final 0 byte.
-func (op Operation) addCommandFields(ctx context.Context, dst []byte, desc description.SelectedServer) ([]byte, error) {
-	if !op.shouldEncrypt() {
-		return op.CommandFn(dst, desc)
-	}
-
-	if desc.WireVersion.Max < cryptMinWireVersion {
-		return dst, errors.New("auto-encryption requires a MongoDB version of 4.2")
-	}
-
-	// create temporary command document
-	cidx, cmdDst := bsoncore.AppendDocumentStart(nil)
+func (op Operation) addEncryptCommandFields(ctx context.Context, dst []byte, desc description.SelectedServer) (int, []byte, error) {
+	idx, cmdDst := bsoncore.AppendDocumentStart(nil)
 	var err error
+	// create temporary command document
 	cmdDst, err = op.CommandFn(cmdDst, desc)
 	if err != nil {
-		return dst, err
+		return 0, nil, err
 	}
-	// use a BSON array instead of a type 1 payload because mongocryptd will convert to arrays regardless
-	if op.Batches != nil && len(op.Batches.Current) > 0 {
-		cmdDst = op.addBatchArray(cmdDst)
+	var n int
+	if op.Batches != nil {
+		if maxBatchCount := int(desc.MaxBatchCount); maxBatchCount > 1 {
+			n, cmdDst, err = op.Batches.AppendBatchArray(cmdDst, maxBatchCount, cryptMaxBsonObjectSize)
+			if err != nil {
+				return 0, nil, err
+			}
+		}
+		if n == 0 {
+			n, cmdDst, err = op.Batches.AppendBatchArray(cmdDst, 1, int(desc.MaxMessageSize))
+			if err != nil {
+				return 0, nil, err
+			}
+			if n == 0 {
+				return 0, nil, ErrDocumentTooLarge
+			}
+		}
 	}
-	cmdDst, _ = bsoncore.AppendDocumentEnd(cmdDst, cidx)
-
+	cmdDst, err = bsoncore.AppendDocumentEnd(cmdDst, idx)
+	if err != nil {
+		return 0, nil, err
+	}
 	// encrypt the command
 	encrypted, err := op.Crypt.Encrypt(ctx, op.Database, cmdDst)
 	if err != nil {
-		return dst, err
+		return 0, nil, err
 	}
 	// append encrypted command to original destination, removing the first 4 bytes (length) and final byte (terminator)
 	dst = append(dst, encrypted[4:len(encrypted)-1]...)
-	return dst, nil
+	return n, dst, nil
 }
 
 // addServerAPI adds the relevant fields for server API specification to the wire message in dst.
@@ -1600,7 +1659,7 @@ func (op Operation) addWriteConcern(ctx context.Context, dst []byte, desc descri
 	return append(bsoncore.AppendHeader(dst, bsoncore.Type(typ), "writeConcern"), wcBSON...), nil
 }
 
-func (op Operation) addSession(dst []byte, desc description.SelectedServer) ([]byte, error) {
+func (op Operation) addSession(dst []byte, desc description.SelectedServer, retryWrite bool) ([]byte, error) {
 	client := op.Client
 
 	// If the operation is defined for an explicit session but the server
@@ -1618,7 +1677,7 @@ func (op Operation) addSession(dst []byte, desc description.SelectedServer) ([]b
 	dst = bsoncore.AppendDocumentElement(dst, "lsid", client.SessionID)
 
 	var addedTxnNumber bool
-	if op.Type == Write && client.RetryWrite {
+	if op.Type == Write && retryWrite {
 		addedTxnNumber = true
 		dst = bsoncore.AppendInt64Element(dst, "txnNumber", op.Client.TxnNumber)
 	}
@@ -2033,8 +2092,7 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 	if op.canLogCommandMessage() {
 		host, port, _ := net.SplitHostPort(info.serverAddress.String())
 
-		redactedCmd := redactStartedInformationCmd(op, info)
-
+		redactedCmd := redactStartedInformationCmd(info)
 		formattedCmd := logger.FormatDocument(redactedCmd, op.Logger.MaxDocumentLength)
 
 		op.Logger.Print(logger.LevelDebug,
@@ -2057,7 +2115,7 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 
 	if op.canPublishStartedEvent() {
 		started := &event.CommandStartedEvent{
-			Command:            redactStartedInformationCmd(op, info),
+			Command:            redactStartedInformationCmd(info),
 			DatabaseName:       op.Database,
 			CommandName:        info.cmdName,
 			RequestID:          int64(info.requestID),
@@ -2171,4 +2229,24 @@ func sessionsSupported(wireVersion *description.VersionRange) bool {
 // retryWritesSupported returns true if this description represents a server that supports retryable writes.
 func retryWritesSupported(s description.Server) bool {
 	return s.SessionTimeoutMinutes != nil && s.Kind != description.ServerKindStandalone
+}
+
+// appendDocumentArray will append an array header and document elements in data to dst and return the extended buffer.
+func appendDocumentArray(dst []byte, key string, data []byte) []byte {
+	aidx, dst := bsoncore.AppendArrayElementStart(dst, key)
+	var doc bsoncore.Document
+	var ok bool
+	i := 0
+	for {
+		doc, data, ok = bsoncore.ReadDocument(data)
+		if !ok {
+			break
+		}
+		dst = bsoncore.AppendDocumentElement(dst, strconv.Itoa(i), doc)
+		i++
+	}
+
+	dst, _ = bsoncore.AppendArrayEnd(dst, aidx)
+
+	return dst
 }

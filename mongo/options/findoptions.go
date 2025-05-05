@@ -258,8 +258,8 @@ func (f *FindOptionsBuilder) SetSkip(i int64) *FindOptionsBuilder {
 }
 
 // SetSort sets the value for the Sort field. Sort is a document specifying the order in which
-// documents should be returned.  The driver will return an error if the sort parameter is a
-// multi-key map.
+// documents should be returned. The sort parameter is evaluated sequentially, so the driver will
+// return an error if it is a multi-key map (which is unordeded). The default value is nil.
 func (f *FindOptionsBuilder) SetSort(sort interface{}) *FindOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOptions) error {
 		opts.Sort = sort
@@ -426,8 +426,9 @@ func (f *FindOneOptionsBuilder) SetSkip(i int64) *FindOneOptionsBuilder {
 }
 
 // SetSort sets the value for the Sort field. Sets a document specifying the sort order to
-// apply to the query. The first document in the sorted order will be returned. The driver
-// will return an error if the sort parameter is a multi-key map.
+// apply to the query. The first document in the sorted order will be returned. The sort
+// parameter is evaluated sequentially, so the driver will return an error if it is a multi-
+// key map (which is unordeded). The default value is nil.
 func (f *FindOneOptionsBuilder) SetSort(sort interface{}) *FindOneOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneOptions) error {
 		opts.Sort = sort
@@ -539,8 +540,9 @@ func (f *FindOneAndReplaceOptionsBuilder) SetReturnDocument(rd ReturnDocument) *
 
 // SetSort sets the value for the Sort field. Sets a document specifying which document should
 // be replaced if the filter used by the operation matches multiple documents in the collection.
-// If set, the first document in the sorted order will be replaced. The driver will return an
-// error if the sort parameter is a multi-key map. The default value is nil.
+// If set, the first document in the sorted order will be replaced. The sort parameter is evaluated
+// sequentially, so the driver will return an error if it is a multi-key map (which is unordeded).
+// The default value is nil.
 func (f *FindOneAndReplaceOptionsBuilder) SetSort(sort interface{}) *FindOneAndReplaceOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndReplaceOptions) error {
 		opts.Sort = sort
@@ -716,8 +718,9 @@ func (f *FindOneAndUpdateOptionsBuilder) SetReturnDocument(rd ReturnDocument) *F
 
 // SetSort sets the value for the Sort field. Sets a document specifying which document should
 // be updated if the filter used by the operation matches multiple documents in the collection.
-// If set, the first document in the sorted order will be updated. The driver will return an
-// error if the sort parameter is a multi-key map. The default value is nil.
+// If set, the first document in the sorted order will be updated. The sort parameter is evaluated
+// sequentially, so the driver will return an error if it is a multi-key map (which is unordeded).
+// The default value is nil.
 func (f *FindOneAndUpdateOptionsBuilder) SetSort(sort interface{}) *FindOneAndUpdateOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndUpdateOptions) error {
 		opts.Sort = sort
@@ -846,8 +849,9 @@ func (f *FindOneAndDeleteOptionsBuilder) SetProjection(projection interface{}) *
 
 // SetSort sets the value for the Sort field. Sets a document specifying which document should
 // be replaced if the filter used by the operation matches multiple documents in the collection.
-// If set, the first document in the sorted order will be selected for replacement. The driver
-// will return an error if the sort parameter is a multi-key map. The default value is nil.
+// If set, the first document in the sorted order will be deleted. The sort parameter is evaluated
+// sequentially, so the driver will return an error if it is a multi-key map (which is unordeded).
+// The default value is nil.
 func (f *FindOneAndDeleteOptionsBuilder) SetSort(sort interface{}) *FindOneAndDeleteOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndDeleteOptions) error {
 		opts.Sort = sort

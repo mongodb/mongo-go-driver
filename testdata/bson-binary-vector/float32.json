@@ -1,0 +1,65 @@
+{
+  "description": "Tests of Binary subtype 9, Vectors, with dtype FLOAT32",
+  "test_key": "vector",
+  "tests": [
+    {
+      "description": "Simple Vector FLOAT32",
+      "valid": true,
+      "vector": [127.0, 7.0],
+      "dtype_hex": "0x27",
+      "dtype_alias": "FLOAT32",
+      "padding": 0,
+      "canonical_bson": "1C00000005766563746F72000A0000000927000000FE420000E04000"
+    },
+    {
+      "description": "Vector with decimals and negative value FLOAT32",
+      "valid": true,
+      "vector": [127.7, -7.7],
+      "dtype_hex": "0x27",
+      "dtype_alias": "FLOAT32",
+      "padding": 0,
+      "canonical_bson": "1C00000005766563746F72000A0000000927006666FF426666F6C000"
+    },
+    {
+      "description": "Empty Vector FLOAT32",
+      "valid": true,
+      "vector": [],
+      "dtype_hex": "0x27",
+      "dtype_alias": "FLOAT32",
+      "padding": 0,
+      "canonical_bson": "1400000005766563746F72000200000009270000"
+    },
+    {
+      "description": "Infinity Vector FLOAT32",
+      "valid": true,
+      "vector": ["-inf", 0.0, "inf"],
+      "dtype_hex": "0x27",
+      "dtype_alias": "FLOAT32",
+      "padding": 0,
+      "canonical_bson": "2000000005766563746F72000E000000092700000080FF000000000000807F00"
+    },
+    {
+      "description": "FLOAT32 with padding",
+      "valid": false,
+      "vector": [127.0, 7.0],
+      "dtype_hex": "0x27",
+      "dtype_alias": "FLOAT32",
+      "padding": 3,
+      "canonical_bson": "1C00000005766563746F72000A0000000927030000FE420000E04000"
+    },
+    {
+      "description": "Insufficient vector data with 3 bytes FLOAT32",
+      "valid": false,
+      "dtype_hex": "0x27",
+      "dtype_alias": "FLOAT32",
+      "canonical_bson": "1700000005766563746F7200050000000927002A2A2A00"
+    },
+    {
+      "description": "Insufficient vector data with 5 bytes FLOAT32",
+      "valid": false,
+      "dtype_hex": "0x27",
+      "dtype_alias": "FLOAT32",
+      "canonical_bson": "1900000005766563746F7200070000000927002A2A2A2A2A00"
+    }
+  ]
+}

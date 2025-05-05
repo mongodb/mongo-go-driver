@@ -1,48 +1,88 @@
 {
-  "runOn": [
+  "description": "mongos-pin-auto",
+  "schemaVersion": "1.4",
+  "runOnRequirements": [
     {
       "minServerVersion": "4.1.8",
-      "topology": [
+      "topologies": [
         "sharded"
       ],
       "serverless": "forbid"
     }
   ],
-  "database_name": "transaction-tests",
-  "collection_name": "test",
-  "data": [
+  "createEntities": [
     {
-      "_id": 1
+      "client": {
+        "id": "client0",
+        "useMultipleMongoses": true,
+        "observeEvents": [
+          "commandStartedEvent"
+        ]
+      }
     },
     {
-      "_id": 2
+      "database": {
+        "id": "database0",
+        "client": "client0",
+        "databaseName": "transaction-tests"
+      }
+    },
+    {
+      "collection": {
+        "id": "collection0",
+        "database": "database0",
+        "collectionName": "test"
+      }
+    },
+    {
+      "session": {
+        "id": "session0",
+        "client": "client0"
+      }
+    }
+  ],
+  "initialData": [
+    {
+      "collectionName": "test",
+      "databaseName": "transaction-tests",
+      "documents": [
+        {
+          "_id": 1
+        },
+        {
+          "_id": 2
+        }
+      ]
     }
   ],
   "tests": [
     {
       "description": "remain pinned after non-transient Interrupted error on insertOne",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
-          "name": "targetedFailPoint",
           "object": "testRunner",
+          "name": "targetedFailPoint",
           "arguments": {
             "session": "session0",
             "failPoint": {
@@ -60,15 +100,15 @@
           }
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 4
             }
           },
-          "result": {
+          "expectError": {
             "errorLabelsOmit": [
               "TransientTransactionError",
               "UnknownTransactionCommitResult"
@@ -77,85 +117,114 @@
           }
         },
         {
-          "name": "assertSessionPinned",
           "object": "testRunner",
+          "name": "assertSessionPinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "commitTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "commitTransaction"
         }
       ],
-      "expectations": [
+      "expectEvents": [
         {
-          "command_started_event": {
-            "command": {
-              "insert": "test",
-              "documents": [
-                {
-                  "_id": 3
-                }
-              ],
-              "ordered": true,
-              "readConcern": null,
-              "lsid": "session0",
-              "txnNumber": {
-                "$numberLong": "1"
-              },
-              "startTransaction": true,
-              "autocommit": false,
-              "writeConcern": null
+          "client": "client0",
+          "events": [
+            {
+              "commandStartedEvent": {
+                "command": {
+                  "insert": "test",
+                  "documents": [
+                    {
+                      "_id": 3
+                    }
+                  ],
+                  "ordered": true,
+                  "readConcern": {
+                    "$$exists": false
+                  },
+                  "lsid": {
+                    "$$sessionLsid": "session0"
+                  },
+                  "txnNumber": {
+                    "$numberLong": "1"
+                  },
+                  "startTransaction": true,
+                  "autocommit": false,
+                  "writeConcern": {
+                    "$$exists": false
+                  }
+                },
+                "commandName": "insert",
+                "databaseName": "transaction-tests"
+              }
             },
-            "command_name": "insert",
-            "database_name": "transaction-tests"
-          }
-        },
-        {
-          "command_started_event": {
-            "command": {
-              "insert": "test",
-              "documents": [
-                {
-                  "_id": 4
-                }
-              ],
-              "ordered": true,
-              "readConcern": null,
-              "lsid": "session0",
-              "txnNumber": {
-                "$numberLong": "1"
-              },
-              "startTransaction": null,
-              "autocommit": false,
-              "writeConcern": null
+            {
+              "commandStartedEvent": {
+                "command": {
+                  "insert": "test",
+                  "documents": [
+                    {
+                      "_id": 4
+                    }
+                  ],
+                  "ordered": true,
+                  "readConcern": {
+                    "$$exists": false
+                  },
+                  "lsid": {
+                    "$$sessionLsid": "session0"
+                  },
+                  "txnNumber": {
+                    "$numberLong": "1"
+                  },
+                  "startTransaction": {
+                    "$$exists": false
+                  },
+                  "autocommit": false,
+                  "writeConcern": {
+                    "$$exists": false
+                  }
+                },
+                "commandName": "insert",
+                "databaseName": "transaction-tests"
+              }
             },
-            "command_name": "insert",
-            "database_name": "transaction-tests"
-          }
-        },
-        {
-          "command_started_event": {
-            "command": {
-              "commitTransaction": 1,
-              "lsid": "session0",
-              "txnNumber": {
-                "$numberLong": "1"
-              },
-              "startTransaction": null,
-              "autocommit": false,
-              "writeConcern": null,
-              "recoveryToken": 42
-            },
-            "command_name": "commitTransaction",
-            "database_name": "admin"
-          }
+            {
+              "commandStartedEvent": {
+                "command": {
+                  "commitTransaction": 1,
+                  "lsid": {
+                    "$$sessionLsid": "session0"
+                  },
+                  "txnNumber": {
+                    "$numberLong": "1"
+                  },
+                  "startTransaction": {
+                    "$$exists": false
+                  },
+                  "autocommit": false,
+                  "writeConcern": {
+                    "$$exists": false
+                  },
+                  "recoveryToken": {
+                    "$$exists": true
+                  }
+                },
+                "commandName": "commitTransaction",
+                "databaseName": "admin"
+              }
+            }
+          ]
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -167,32 +236,35 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "unpin after transient error within a transaction",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
-          "name": "targetedFailPoint",
           "object": "testRunner",
+          "name": "targetedFailPoint",
           "arguments": {
             "session": "session0",
             "failPoint": {
@@ -210,15 +282,15 @@
           }
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 4
             }
           },
-          "result": {
+          "expectError": {
             "errorLabelsContain": [
               "TransientTransactionError"
             ],
@@ -228,85 +300,114 @@
           }
         },
         {
-          "name": "assertSessionUnpinned",
           "object": "testRunner",
+          "name": "assertSessionUnpinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "expectations": [
+      "expectEvents": [
         {
-          "command_started_event": {
-            "command": {
-              "insert": "test",
-              "documents": [
-                {
-                  "_id": 3
-                }
-              ],
-              "ordered": true,
-              "readConcern": null,
-              "lsid": "session0",
-              "txnNumber": {
-                "$numberLong": "1"
-              },
-              "startTransaction": true,
-              "autocommit": false,
-              "writeConcern": null
+          "client": "client0",
+          "events": [
+            {
+              "commandStartedEvent": {
+                "command": {
+                  "insert": "test",
+                  "documents": [
+                    {
+                      "_id": 3
+                    }
+                  ],
+                  "ordered": true,
+                  "readConcern": {
+                    "$$exists": false
+                  },
+                  "lsid": {
+                    "$$sessionLsid": "session0"
+                  },
+                  "txnNumber": {
+                    "$numberLong": "1"
+                  },
+                  "startTransaction": true,
+                  "autocommit": false,
+                  "writeConcern": {
+                    "$$exists": false
+                  }
+                },
+                "commandName": "insert",
+                "databaseName": "transaction-tests"
+              }
             },
-            "command_name": "insert",
-            "database_name": "transaction-tests"
-          }
-        },
-        {
-          "command_started_event": {
-            "command": {
-              "insert": "test",
-              "documents": [
-                {
-                  "_id": 4
-                }
-              ],
-              "ordered": true,
-              "readConcern": null,
-              "lsid": "session0",
-              "txnNumber": {
-                "$numberLong": "1"
-              },
-              "startTransaction": null,
-              "autocommit": false,
-              "writeConcern": null
+            {
+              "commandStartedEvent": {
+                "command": {
+                  "insert": "test",
+                  "documents": [
+                    {
+                      "_id": 4
+                    }
+                  ],
+                  "ordered": true,
+                  "readConcern": {
+                    "$$exists": false
+                  },
+                  "lsid": {
+                    "$$sessionLsid": "session0"
+                  },
+                  "txnNumber": {
+                    "$numberLong": "1"
+                  },
+                  "startTransaction": {
+                    "$$exists": false
+                  },
+                  "autocommit": false,
+                  "writeConcern": {
+                    "$$exists": false
+                  }
+                },
+                "commandName": "insert",
+                "databaseName": "transaction-tests"
+              }
             },
-            "command_name": "insert",
-            "database_name": "transaction-tests"
-          }
-        },
-        {
-          "command_started_event": {
-            "command": {
-              "abortTransaction": 1,
-              "lsid": "session0",
-              "txnNumber": {
-                "$numberLong": "1"
-              },
-              "startTransaction": null,
-              "autocommit": false,
-              "writeConcern": null,
-              "recoveryToken": 42
-            },
-            "command_name": "abortTransaction",
-            "database_name": "admin"
-          }
+            {
+              "commandStartedEvent": {
+                "command": {
+                  "abortTransaction": 1,
+                  "lsid": {
+                    "$$sessionLsid": "session0"
+                  },
+                  "txnNumber": {
+                    "$numberLong": "1"
+                  },
+                  "startTransaction": {
+                    "$$exists": false
+                  },
+                  "autocommit": false,
+                  "writeConcern": {
+                    "$$exists": false
+                  },
+                  "recoveryToken": {
+                    "$$exists": true
+                  }
+                },
+                "commandName": "abortTransaction",
+                "databaseName": "admin"
+              }
+            }
+          ]
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -315,27 +416,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "remain pinned after non-transient Interrupted error on insertOne insert",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -359,34 +463,36 @@
         },
         {
           "name": "insertOne",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 4
             }
           },
-          "result": {
+          "expectError": {
             "errorLabelsOmit": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionPinned",
           "object": "testRunner",
+          "name": "assertSessionPinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -395,27 +501,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "remain pinned after non-transient Interrupted error on insertMany insert",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -439,7 +548,7 @@
         },
         {
           "name": "insertMany",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "documents": [
@@ -451,27 +560,29 @@
               }
             ]
           },
-          "result": {
+          "expectError": {
             "errorLabelsOmit": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionPinned",
           "object": "testRunner",
+          "name": "assertSessionPinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -480,27 +591,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "remain pinned after non-transient Interrupted error on updateOne update",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -524,7 +638,7 @@
         },
         {
           "name": "updateOne",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "filter": {
@@ -536,27 +650,29 @@
               }
             }
           },
-          "result": {
+          "expectError": {
             "errorLabelsOmit": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionPinned",
           "object": "testRunner",
+          "name": "assertSessionPinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -565,27 +681,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "remain pinned after non-transient Interrupted error on replaceOne update",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -609,7 +728,7 @@
         },
         {
           "name": "replaceOne",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "filter": {
@@ -619,27 +738,29 @@
               "y": 1
             }
           },
-          "result": {
+          "expectError": {
             "errorLabelsOmit": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionPinned",
           "object": "testRunner",
+          "name": "assertSessionPinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -648,27 +769,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "remain pinned after non-transient Interrupted error on updateMany update",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -692,7 +816,7 @@
         },
         {
           "name": "updateMany",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "filter": {
@@ -706,27 +830,29 @@
               }
             }
           },
-          "result": {
+          "expectError": {
             "errorLabelsOmit": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionPinned",
           "object": "testRunner",
+          "name": "assertSessionPinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -735,27 +861,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "remain pinned after non-transient Interrupted error on deleteOne delete",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -779,34 +908,36 @@
         },
         {
           "name": "deleteOne",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "filter": {
               "_id": 1
             }
           },
-          "result": {
+          "expectError": {
             "errorLabelsOmit": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionPinned",
           "object": "testRunner",
+          "name": "assertSessionPinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -815,27 +946,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "remain pinned after non-transient Interrupted error on deleteMany delete",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -859,7 +993,7 @@
         },
         {
           "name": "deleteMany",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "filter": {
@@ -868,27 +1002,29 @@
               }
             }
           },
-          "result": {
+          "expectError": {
             "errorLabelsOmit": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionPinned",
           "object": "testRunner",
+          "name": "assertSessionPinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -897,27 +1033,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "remain pinned after non-transient Interrupted error on findOneAndDelete findAndModify",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -941,34 +1080,36 @@
         },
         {
           "name": "findOneAndDelete",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "filter": {
               "_id": 1
             }
           },
-          "result": {
+          "expectError": {
             "errorLabelsOmit": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionPinned",
           "object": "testRunner",
+          "name": "assertSessionPinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -977,27 +1118,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "remain pinned after non-transient Interrupted error on findOneAndUpdate findAndModify",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -1021,7 +1165,7 @@
         },
         {
           "name": "findOneAndUpdate",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "filter": {
@@ -1034,27 +1178,29 @@
             },
             "returnDocument": "Before"
           },
-          "result": {
+          "expectError": {
             "errorLabelsOmit": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionPinned",
           "object": "testRunner",
+          "name": "assertSessionPinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -1063,27 +1209,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "remain pinned after non-transient Interrupted error on findOneAndReplace findAndModify",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -1107,7 +1256,7 @@
         },
         {
           "name": "findOneAndReplace",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "filter": {
@@ -1118,27 +1267,29 @@
             },
             "returnDocument": "Before"
           },
-          "result": {
+          "expectError": {
             "errorLabelsOmit": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionPinned",
           "object": "testRunner",
+          "name": "assertSessionPinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -1147,27 +1298,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "remain pinned after non-transient Interrupted error on bulkWrite insert",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -1191,13 +1345,12 @@
         },
         {
           "name": "bulkWrite",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "requests": [
               {
-                "name": "insertOne",
-                "arguments": {
+                "insertOne": {
                   "document": {
                     "_id": 1
                   }
@@ -1205,27 +1358,29 @@
               }
             ]
           },
-          "result": {
+          "expectError": {
             "errorLabelsOmit": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionPinned",
           "object": "testRunner",
+          "name": "assertSessionPinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -1234,27 +1389,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "remain pinned after non-transient Interrupted error on bulkWrite update",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -1278,13 +1436,12 @@
         },
         {
           "name": "bulkWrite",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "requests": [
               {
-                "name": "updateOne",
-                "arguments": {
+                "updateOne": {
                   "filter": {
                     "_id": 1
                   },
@@ -1297,27 +1454,29 @@
               }
             ]
           },
-          "result": {
+          "expectError": {
             "errorLabelsOmit": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionPinned",
           "object": "testRunner",
+          "name": "assertSessionPinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -1326,27 +1485,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "remain pinned after non-transient Interrupted error on bulkWrite delete",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -1370,13 +1532,12 @@
         },
         {
           "name": "bulkWrite",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "requests": [
               {
-                "name": "deleteOne",
-                "arguments": {
+                "deleteOne": {
                   "filter": {
                     "_id": 1
                   }
@@ -1384,27 +1545,29 @@
               }
             ]
           },
-          "result": {
+          "expectError": {
             "errorLabelsOmit": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionPinned",
           "object": "testRunner",
+          "name": "assertSessionPinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -1413,27 +1576,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "remain pinned after non-transient Interrupted error on find find",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -1457,34 +1623,36 @@
         },
         {
           "name": "find",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "filter": {
               "_id": 1
             }
           },
-          "result": {
+          "expectError": {
             "errorLabelsOmit": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionPinned",
           "object": "testRunner",
+          "name": "assertSessionPinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -1493,27 +1661,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "remain pinned after non-transient Interrupted error on countDocuments aggregate",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -1537,32 +1708,34 @@
         },
         {
           "name": "countDocuments",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "filter": {}
           },
-          "result": {
+          "expectError": {
             "errorLabelsOmit": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionPinned",
           "object": "testRunner",
+          "name": "assertSessionPinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -1571,27 +1744,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "remain pinned after non-transient Interrupted error on aggregate aggregate",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -1615,32 +1791,34 @@
         },
         {
           "name": "aggregate",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "pipeline": []
           },
-          "result": {
+          "expectError": {
             "errorLabelsOmit": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionPinned",
           "object": "testRunner",
+          "name": "assertSessionPinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -1649,27 +1827,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "remain pinned after non-transient Interrupted error on distinct distinct",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -1693,32 +1874,35 @@
         },
         {
           "name": "distinct",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
-            "fieldName": "_id"
+            "fieldName": "_id",
+            "filter": {}
           },
-          "result": {
+          "expectError": {
             "errorLabelsOmit": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionPinned",
           "object": "testRunner",
+          "name": "assertSessionPinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -1727,27 +1911,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "remain pinned after non-transient Interrupted error on runCommand insert",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -1771,10 +1958,10 @@
         },
         {
           "name": "runCommand",
-          "object": "database",
-          "command_name": "insert",
+          "object": "database0",
           "arguments": {
             "session": "session0",
+            "commandName": "insert",
             "command": {
               "insert": "test",
               "documents": [
@@ -1784,27 +1971,29 @@
               ]
             }
           },
-          "result": {
+          "expectError": {
             "errorLabelsOmit": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionPinned",
           "object": "testRunner",
+          "name": "assertSessionPinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -1813,27 +2002,128 @@
             }
           ]
         }
-      }
+      ]
+    },
+    {
+      "description": "remain pinned after non-transient Interrupted error on clientBulkWrite bulkWrite",
+      "operations": [
+        {
+          "object": "session0",
+          "name": "startTransaction"
+        },
+        {
+          "object": "collection0",
+          "name": "insertOne",
+          "arguments": {
+            "session": "session0",
+            "document": {
+              "_id": 3
+            }
+          },
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
+          }
+        },
+        {
+          "name": "targetedFailPoint",
+          "object": "testRunner",
+          "arguments": {
+            "session": "session0",
+            "failPoint": {
+              "configureFailPoint": "failCommand",
+              "mode": {
+                "times": 1
+              },
+              "data": {
+                "failCommands": [
+                  "bulkWrite"
+                ],
+                "errorCode": 11601
+              }
+            }
+          }
+        },
+        {
+          "name": "clientBulkWrite",
+          "object": "client0",
+          "arguments": {
+            "session": "session0",
+            "models": [
+              {
+                "insertOne": {
+                  "namespace": "database0.collection0",
+                  "document": {
+                    "_id": 8,
+                    "x": 88
+                  }
+                }
+              }
+            ]
+          },
+          "expectError": {
+            "errorLabelsOmit": [
+              "TransientTransactionError"
+            ]
+          }
+        },
+        {
+          "object": "testRunner",
+          "name": "assertSessionPinned",
+          "arguments": {
+            "session": "session0"
+          }
+        },
+        {
+          "object": "session0",
+          "name": "abortTransaction"
+        }
+      ],
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
+            {
+              "_id": 1
+            },
+            {
+              "_id": 2
+            }
+          ]
+        }
+      ],
+      "runOnRequirements": [
+        {
+          "minServerVersion": "8.0"
+        }
+      ]
     },
     {
       "description": "unpin after transient connection error on insertOne insert",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -1857,34 +2147,36 @@
         },
         {
           "name": "insertOne",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 4
             }
           },
-          "result": {
+          "expectError": {
             "errorLabelsContain": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionUnpinned",
           "object": "testRunner",
+          "name": "assertSessionUnpinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -1893,27 +2185,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "unpin after transient ShutdownInProgress error on insertOne insert",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -1937,34 +2232,36 @@
         },
         {
           "name": "insertOne",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 4
             }
           },
-          "result": {
+          "expectError": {
             "errorLabelsContain": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionUnpinned",
           "object": "testRunner",
+          "name": "assertSessionUnpinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -1973,27 +2270,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "unpin after transient connection error on insertMany insert",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -2017,7 +2317,7 @@
         },
         {
           "name": "insertMany",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "documents": [
@@ -2029,27 +2329,29 @@
               }
             ]
           },
-          "result": {
+          "expectError": {
             "errorLabelsContain": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionUnpinned",
           "object": "testRunner",
+          "name": "assertSessionUnpinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -2058,27 +2360,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "unpin after transient ShutdownInProgress error on insertMany insert",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -2102,7 +2407,7 @@
         },
         {
           "name": "insertMany",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "documents": [
@@ -2114,27 +2419,29 @@
               }
             ]
           },
-          "result": {
+          "expectError": {
             "errorLabelsContain": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionUnpinned",
           "object": "testRunner",
+          "name": "assertSessionUnpinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -2143,27 +2450,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "unpin after transient connection error on updateOne update",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -2187,7 +2497,7 @@
         },
         {
           "name": "updateOne",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "filter": {
@@ -2199,27 +2509,29 @@
               }
             }
           },
-          "result": {
+          "expectError": {
             "errorLabelsContain": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionUnpinned",
           "object": "testRunner",
+          "name": "assertSessionUnpinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -2228,27 +2540,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "unpin after transient ShutdownInProgress error on updateOne update",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -2272,7 +2587,7 @@
         },
         {
           "name": "updateOne",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "filter": {
@@ -2284,27 +2599,29 @@
               }
             }
           },
-          "result": {
+          "expectError": {
             "errorLabelsContain": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionUnpinned",
           "object": "testRunner",
+          "name": "assertSessionUnpinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -2313,27 +2630,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "unpin after transient connection error on replaceOne update",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -2357,7 +2677,7 @@
         },
         {
           "name": "replaceOne",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "filter": {
@@ -2367,27 +2687,29 @@
               "y": 1
             }
           },
-          "result": {
+          "expectError": {
             "errorLabelsContain": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionUnpinned",
           "object": "testRunner",
+          "name": "assertSessionUnpinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -2396,27 +2718,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "unpin after transient ShutdownInProgress error on replaceOne update",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -2440,7 +2765,7 @@
         },
         {
           "name": "replaceOne",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "filter": {
@@ -2450,27 +2775,29 @@
               "y": 1
             }
           },
-          "result": {
+          "expectError": {
             "errorLabelsContain": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionUnpinned",
           "object": "testRunner",
+          "name": "assertSessionUnpinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -2479,27 +2806,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "unpin after transient connection error on updateMany update",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -2523,7 +2853,7 @@
         },
         {
           "name": "updateMany",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "filter": {
@@ -2537,27 +2867,29 @@
               }
             }
           },
-          "result": {
+          "expectError": {
             "errorLabelsContain": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionUnpinned",
           "object": "testRunner",
+          "name": "assertSessionUnpinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -2566,27 +2898,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "unpin after transient ShutdownInProgress error on updateMany update",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -2610,7 +2945,7 @@
         },
         {
           "name": "updateMany",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "filter": {
@@ -2624,27 +2959,29 @@
               }
             }
           },
-          "result": {
+          "expectError": {
             "errorLabelsContain": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionUnpinned",
           "object": "testRunner",
+          "name": "assertSessionUnpinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -2653,27 +2990,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "unpin after transient connection error on deleteOne delete",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -2697,34 +3037,36 @@
         },
         {
           "name": "deleteOne",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "filter": {
               "_id": 1
             }
           },
-          "result": {
+          "expectError": {
             "errorLabelsContain": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionUnpinned",
           "object": "testRunner",
+          "name": "assertSessionUnpinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -2733,27 +3075,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "unpin after transient ShutdownInProgress error on deleteOne delete",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -2777,34 +3122,36 @@
         },
         {
           "name": "deleteOne",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "filter": {
               "_id": 1
             }
           },
-          "result": {
+          "expectError": {
             "errorLabelsContain": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionUnpinned",
           "object": "testRunner",
+          "name": "assertSessionUnpinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -2813,27 +3160,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "unpin after transient connection error on deleteMany delete",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -2857,7 +3207,7 @@
         },
         {
           "name": "deleteMany",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "filter": {
@@ -2866,27 +3216,29 @@
               }
             }
           },
-          "result": {
+          "expectError": {
             "errorLabelsContain": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionUnpinned",
           "object": "testRunner",
+          "name": "assertSessionUnpinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -2895,27 +3247,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "unpin after transient ShutdownInProgress error on deleteMany delete",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -2939,7 +3294,7 @@
         },
         {
           "name": "deleteMany",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "filter": {
@@ -2948,27 +3303,29 @@
               }
             }
           },
-          "result": {
+          "expectError": {
             "errorLabelsContain": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionUnpinned",
           "object": "testRunner",
+          "name": "assertSessionUnpinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -2977,27 +3334,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "unpin after transient connection error on findOneAndDelete findAndModify",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -3021,34 +3381,36 @@
         },
         {
           "name": "findOneAndDelete",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "filter": {
               "_id": 1
             }
           },
-          "result": {
+          "expectError": {
             "errorLabelsContain": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionUnpinned",
           "object": "testRunner",
+          "name": "assertSessionUnpinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -3057,27 +3419,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "unpin after transient ShutdownInProgress error on findOneAndDelete findAndModify",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -3101,34 +3466,36 @@
         },
         {
           "name": "findOneAndDelete",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "filter": {
               "_id": 1
             }
           },
-          "result": {
+          "expectError": {
             "errorLabelsContain": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionUnpinned",
           "object": "testRunner",
+          "name": "assertSessionUnpinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -3137,27 +3504,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "unpin after transient connection error on findOneAndUpdate findAndModify",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -3181,7 +3551,7 @@
         },
         {
           "name": "findOneAndUpdate",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "filter": {
@@ -3194,27 +3564,29 @@
             },
             "returnDocument": "Before"
           },
-          "result": {
+          "expectError": {
             "errorLabelsContain": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionUnpinned",
           "object": "testRunner",
+          "name": "assertSessionUnpinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -3223,27 +3595,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "unpin after transient ShutdownInProgress error on findOneAndUpdate findAndModify",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -3267,7 +3642,7 @@
         },
         {
           "name": "findOneAndUpdate",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "filter": {
@@ -3280,27 +3655,29 @@
             },
             "returnDocument": "Before"
           },
-          "result": {
+          "expectError": {
             "errorLabelsContain": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionUnpinned",
           "object": "testRunner",
+          "name": "assertSessionUnpinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -3309,27 +3686,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "unpin after transient connection error on findOneAndReplace findAndModify",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -3353,7 +3733,7 @@
         },
         {
           "name": "findOneAndReplace",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "filter": {
@@ -3364,27 +3744,29 @@
             },
             "returnDocument": "Before"
           },
-          "result": {
+          "expectError": {
             "errorLabelsContain": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionUnpinned",
           "object": "testRunner",
+          "name": "assertSessionUnpinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -3393,27 +3775,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "unpin after transient ShutdownInProgress error on findOneAndReplace findAndModify",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -3437,7 +3822,7 @@
         },
         {
           "name": "findOneAndReplace",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "filter": {
@@ -3448,27 +3833,29 @@
             },
             "returnDocument": "Before"
           },
-          "result": {
+          "expectError": {
             "errorLabelsContain": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionUnpinned",
           "object": "testRunner",
+          "name": "assertSessionUnpinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -3477,27 +3864,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "unpin after transient connection error on bulkWrite insert",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -3521,13 +3911,12 @@
         },
         {
           "name": "bulkWrite",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "requests": [
               {
-                "name": "insertOne",
-                "arguments": {
+                "insertOne": {
                   "document": {
                     "_id": 1
                   }
@@ -3535,27 +3924,29 @@
               }
             ]
           },
-          "result": {
+          "expectError": {
             "errorLabelsContain": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionUnpinned",
           "object": "testRunner",
+          "name": "assertSessionUnpinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -3564,27 +3955,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "unpin after transient ShutdownInProgress error on bulkWrite insert",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -3608,13 +4002,12 @@
         },
         {
           "name": "bulkWrite",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "requests": [
               {
-                "name": "insertOne",
-                "arguments": {
+                "insertOne": {
                   "document": {
                     "_id": 1
                   }
@@ -3622,27 +4015,29 @@
               }
             ]
           },
-          "result": {
+          "expectError": {
             "errorLabelsContain": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionUnpinned",
           "object": "testRunner",
+          "name": "assertSessionUnpinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -3651,27 +4046,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "unpin after transient connection error on bulkWrite update",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -3695,13 +4093,12 @@
         },
         {
           "name": "bulkWrite",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "requests": [
               {
-                "name": "updateOne",
-                "arguments": {
+                "updateOne": {
                   "filter": {
                     "_id": 1
                   },
@@ -3714,27 +4111,29 @@
               }
             ]
           },
-          "result": {
+          "expectError": {
             "errorLabelsContain": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionUnpinned",
           "object": "testRunner",
+          "name": "assertSessionUnpinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -3743,27 +4142,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "unpin after transient ShutdownInProgress error on bulkWrite update",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -3787,13 +4189,12 @@
         },
         {
           "name": "bulkWrite",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "requests": [
               {
-                "name": "updateOne",
-                "arguments": {
+                "updateOne": {
                   "filter": {
                     "_id": 1
                   },
@@ -3806,27 +4207,29 @@
               }
             ]
           },
-          "result": {
+          "expectError": {
             "errorLabelsContain": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionUnpinned",
           "object": "testRunner",
+          "name": "assertSessionUnpinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -3835,27 +4238,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "unpin after transient connection error on bulkWrite delete",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -3879,13 +4285,12 @@
         },
         {
           "name": "bulkWrite",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "requests": [
               {
-                "name": "deleteOne",
-                "arguments": {
+                "deleteOne": {
                   "filter": {
                     "_id": 1
                   }
@@ -3893,27 +4298,29 @@
               }
             ]
           },
-          "result": {
+          "expectError": {
             "errorLabelsContain": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionUnpinned",
           "object": "testRunner",
+          "name": "assertSessionUnpinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -3922,27 +4329,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "unpin after transient ShutdownInProgress error on bulkWrite delete",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -3966,13 +4376,12 @@
         },
         {
           "name": "bulkWrite",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "requests": [
               {
-                "name": "deleteOne",
-                "arguments": {
+                "deleteOne": {
                   "filter": {
                     "_id": 1
                   }
@@ -3980,27 +4389,29 @@
               }
             ]
           },
-          "result": {
+          "expectError": {
             "errorLabelsContain": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionUnpinned",
           "object": "testRunner",
+          "name": "assertSessionUnpinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -4009,27 +4420,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "unpin after transient connection error on find find",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -4053,34 +4467,36 @@
         },
         {
           "name": "find",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "filter": {
               "_id": 1
             }
           },
-          "result": {
+          "expectError": {
             "errorLabelsContain": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionUnpinned",
           "object": "testRunner",
+          "name": "assertSessionUnpinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -4089,27 +4505,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "unpin after transient ShutdownInProgress error on find find",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -4133,34 +4552,36 @@
         },
         {
           "name": "find",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "filter": {
               "_id": 1
             }
           },
-          "result": {
+          "expectError": {
             "errorLabelsContain": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionUnpinned",
           "object": "testRunner",
+          "name": "assertSessionUnpinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -4169,27 +4590,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "unpin after transient connection error on countDocuments aggregate",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -4213,32 +4637,34 @@
         },
         {
           "name": "countDocuments",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "filter": {}
           },
-          "result": {
+          "expectError": {
             "errorLabelsContain": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionUnpinned",
           "object": "testRunner",
+          "name": "assertSessionUnpinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -4247,27 +4673,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "unpin after transient ShutdownInProgress error on countDocuments aggregate",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -4291,32 +4720,34 @@
         },
         {
           "name": "countDocuments",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "filter": {}
           },
-          "result": {
+          "expectError": {
             "errorLabelsContain": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionUnpinned",
           "object": "testRunner",
+          "name": "assertSessionUnpinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -4325,27 +4756,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "unpin after transient connection error on aggregate aggregate",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -4369,32 +4803,34 @@
         },
         {
           "name": "aggregate",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "pipeline": []
           },
-          "result": {
+          "expectError": {
             "errorLabelsContain": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionUnpinned",
           "object": "testRunner",
+          "name": "assertSessionUnpinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -4403,27 +4839,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "unpin after transient ShutdownInProgress error on aggregate aggregate",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -4447,32 +4886,34 @@
         },
         {
           "name": "aggregate",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
             "pipeline": []
           },
-          "result": {
+          "expectError": {
             "errorLabelsContain": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionUnpinned",
           "object": "testRunner",
+          "name": "assertSessionUnpinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -4481,27 +4922,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "unpin after transient connection error on distinct distinct",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -4525,32 +4969,35 @@
         },
         {
           "name": "distinct",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
-            "fieldName": "_id"
+            "fieldName": "_id",
+            "filter": {}
           },
-          "result": {
+          "expectError": {
             "errorLabelsContain": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionUnpinned",
           "object": "testRunner",
+          "name": "assertSessionUnpinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -4559,27 +5006,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "unpin after transient ShutdownInProgress error on distinct distinct",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -4603,32 +5053,35 @@
         },
         {
           "name": "distinct",
-          "object": "collection",
+          "object": "collection0",
           "arguments": {
             "session": "session0",
-            "fieldName": "_id"
+            "fieldName": "_id",
+            "filter": {}
           },
-          "result": {
+          "expectError": {
             "errorLabelsContain": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionUnpinned",
           "object": "testRunner",
+          "name": "assertSessionUnpinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -4637,27 +5090,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "unpin after transient connection error on runCommand insert",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -4681,10 +5137,10 @@
         },
         {
           "name": "runCommand",
-          "object": "database",
-          "command_name": "insert",
+          "object": "database0",
           "arguments": {
             "session": "session0",
+            "commandName": "insert",
             "command": {
               "insert": "test",
               "documents": [
@@ -4694,27 +5150,29 @@
               ]
             }
           },
-          "result": {
+          "expectError": {
             "errorLabelsContain": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionUnpinned",
           "object": "testRunner",
+          "name": "assertSessionUnpinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -4723,27 +5181,30 @@
             }
           ]
         }
-      }
+      ]
     },
     {
       "description": "unpin after transient ShutdownInProgress error on runCommand insert",
-      "useMultipleMongoses": true,
       "operations": [
         {
-          "name": "startTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "startTransaction"
         },
         {
+          "object": "collection0",
           "name": "insertOne",
-          "object": "collection",
           "arguments": {
             "session": "session0",
             "document": {
               "_id": 3
             }
           },
-          "result": {
-            "insertedId": 3
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
           }
         },
         {
@@ -4767,10 +5228,10 @@
         },
         {
           "name": "runCommand",
-          "object": "database",
-          "command_name": "insert",
+          "object": "database0",
           "arguments": {
             "session": "session0",
+            "commandName": "insert",
             "command": {
               "insert": "test",
               "documents": [
@@ -4780,27 +5241,29 @@
               ]
             }
           },
-          "result": {
+          "expectError": {
             "errorLabelsContain": [
               "TransientTransactionError"
             ]
           }
         },
         {
-          "name": "assertSessionUnpinned",
           "object": "testRunner",
+          "name": "assertSessionUnpinned",
           "arguments": {
             "session": "session0"
           }
         },
         {
-          "name": "abortTransaction",
-          "object": "session0"
+          "object": "session0",
+          "name": "abortTransaction"
         }
       ],
-      "outcome": {
-        "collection": {
-          "data": [
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
             {
               "_id": 1
             },
@@ -4809,7 +5272,203 @@
             }
           ]
         }
-      }
+      ]
+    },
+    {
+      "description": "unpin after transient connection error on clientBulkWrite bulkWrite",
+      "operations": [
+        {
+          "object": "session0",
+          "name": "startTransaction"
+        },
+        {
+          "object": "collection0",
+          "name": "insertOne",
+          "arguments": {
+            "session": "session0",
+            "document": {
+              "_id": 3
+            }
+          },
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
+          }
+        },
+        {
+          "name": "targetedFailPoint",
+          "object": "testRunner",
+          "arguments": {
+            "session": "session0",
+            "failPoint": {
+              "configureFailPoint": "failCommand",
+              "mode": {
+                "times": 1
+              },
+              "data": {
+                "failCommands": [
+                  "bulkWrite"
+                ],
+                "closeConnection": true
+              }
+            }
+          }
+        },
+        {
+          "name": "clientBulkWrite",
+          "object": "client0",
+          "arguments": {
+            "session": "session0",
+            "models": [
+              {
+                "insertOne": {
+                  "namespace": "database0.collection0",
+                  "document": {
+                    "_id": 8,
+                    "x": 88
+                  }
+                }
+              }
+            ]
+          },
+          "expectError": {
+            "errorLabelsContain": [
+              "TransientTransactionError"
+            ]
+          }
+        },
+        {
+          "object": "testRunner",
+          "name": "assertSessionUnpinned",
+          "arguments": {
+            "session": "session0"
+          }
+        },
+        {
+          "object": "session0",
+          "name": "abortTransaction"
+        }
+      ],
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
+            {
+              "_id": 1
+            },
+            {
+              "_id": 2
+            }
+          ]
+        }
+      ],
+      "runOnRequirements": [
+        {
+          "minServerVersion": "8.0"
+        }
+      ]
+    },
+    {
+      "description": "unpin after transient ShutdownInProgress error on clientBulkWrite bulkWrite",
+      "operations": [
+        {
+          "object": "session0",
+          "name": "startTransaction"
+        },
+        {
+          "object": "collection0",
+          "name": "insertOne",
+          "arguments": {
+            "session": "session0",
+            "document": {
+              "_id": 3
+            }
+          },
+          "expectResult": {
+            "$$unsetOrMatches": {
+              "insertedId": {
+                "$$unsetOrMatches": 3
+              }
+            }
+          }
+        },
+        {
+          "name": "targetedFailPoint",
+          "object": "testRunner",
+          "arguments": {
+            "session": "session0",
+            "failPoint": {
+              "configureFailPoint": "failCommand",
+              "mode": {
+                "times": 1
+              },
+              "data": {
+                "failCommands": [
+                  "bulkWrite"
+                ],
+                "errorCode": 91
+              }
+            }
+          }
+        },
+        {
+          "name": "clientBulkWrite",
+          "object": "client0",
+          "arguments": {
+            "session": "session0",
+            "models": [
+              {
+                "insertOne": {
+                  "namespace": "database0.collection0",
+                  "document": {
+                    "_id": 8,
+                    "x": 88
+                  }
+                }
+              }
+            ]
+          },
+          "expectError": {
+            "errorLabelsContain": [
+              "TransientTransactionError"
+            ]
+          }
+        },
+        {
+          "object": "testRunner",
+          "name": "assertSessionUnpinned",
+          "arguments": {
+            "session": "session0"
+          }
+        },
+        {
+          "object": "session0",
+          "name": "abortTransaction"
+        }
+      ],
+      "outcome": [
+        {
+          "collectionName": "test",
+          "databaseName": "transaction-tests",
+          "documents": [
+            {
+              "_id": 1
+            },
+            {
+              "_id": 2
+            }
+          ]
+        }
+      ],
+      "runOnRequirements": [
+        {
+          "minServerVersion": "8.0"
+        }
+      ]
     }
   ]
 }

@@ -1293,6 +1293,8 @@ func executeReplaceOne(ctx context.Context, operation *operation) (*operationRes
 				return nil, fmt.Errorf("error creating hint: %w", err)
 			}
 			opts.SetHint(hint)
+		case "sort":
+			opts.SetSort(val.Document())
 		case "replacement":
 			replacement = val.Document()
 		case "upsert":

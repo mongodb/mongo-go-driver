@@ -18,6 +18,7 @@ type UpdateOneOptions struct {
 	Hint                     interface{}
 	Upsert                   *bool
 	Let                      interface{}
+	Sort                     interface{}
 }
 
 // UpdateOneOptionsBuilder contains options to configure UpdateOne operations.
@@ -130,6 +131,21 @@ func (uo *UpdateOneOptionsBuilder) SetUpsert(b bool) *UpdateOneOptionsBuilder {
 func (uo *UpdateOneOptionsBuilder) SetLet(l interface{}) *UpdateOneOptionsBuilder {
 	uo.Opts = append(uo.Opts, func(opts *UpdateOneOptions) error {
 		opts.Let = l
+
+		return nil
+	})
+
+	return uo
+}
+
+// SetSort sets the value for the Sort field. Specifies a document specifying which document should
+// be updated if the filter used by the operation matches multiple documents in the collection. If
+// set, the first document in the sorted order will be updated. This option is only valid for MongoDB
+// versions >= 8.0. The sort parameter is evaluated sequentially, so the driver will return an error
+// if it is a multi-key map (which is unordeded). The default value is nil.
+func (uo *UpdateOneOptionsBuilder) SetSort(s interface{}) *UpdateOneOptionsBuilder {
+	uo.Opts = append(uo.Opts, func(opts *UpdateOneOptions) error {
+		opts.Sort = s
 
 		return nil
 	})

@@ -20,24 +20,18 @@ import (
 func TestUnmarshalValue(t *testing.T) {
 	t.Parallel()
 
-	unmarshalValueTestCases := newMarshalValueTestCases(t)
+	for _, tc := range marshalValueTestCases {
+		tc := tc
 
-	t.Run("UnmarshalValue", func(t *testing.T) {
-		t.Parallel()
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 
-		for _, tc := range unmarshalValueTestCases {
-			tc := tc
-
-			t.Run(tc.name, func(t *testing.T) {
-				t.Parallel()
-
-				gotValue := reflect.New(reflect.TypeOf(tc.val))
-				err := UnmarshalValue(tc.bsontype, tc.bytes, gotValue.Interface())
-				assert.Nil(t, err, "UnmarshalValueWithRegistry error: %v", err)
-				assert.Equal(t, tc.val, gotValue.Elem().Interface(), "value mismatch; expected %s, got %s", tc.val, gotValue.Elem())
-			})
-		}
-	})
+			gotValue := reflect.New(reflect.TypeOf(tc.val))
+			err := UnmarshalValue(tc.bsontype, tc.bytes, gotValue.Interface())
+			assert.Nil(t, err, "UnmarshalValueWithRegistry error: %v", err)
+			assert.Equal(t, tc.val, gotValue.Elem().Interface(), "value mismatch; expected %s, got %s", tc.val, gotValue.Elem())
+		})
+	}
 }
 
 func TestInitializedPointerDataWithBSONNull(t *testing.T) {

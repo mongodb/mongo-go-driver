@@ -528,13 +528,13 @@ function MergeOptions(target, optionsList):
   return target
 ```
 
-Currently, the driver maintains this logic for every options type, e.g. [MergeClientOptions](https://github.com/mongodb/mongo-go-driver/blob/2e7cb372b05cba29facd58aac7e715c3cec4e377/mongo/options/clientoptions.go#L1065). For v2, we’ve decided to abstract the merge functions by changing the options builder pattern to maintain a slice of setter functions, rather than setting data directly to an options object. Typical usage of options should not change, for example the following is still honored:
+Currently, the driver maintains this logic for every options type, e.g. [MergeFindOptions](https://github.com/mongodb/mongo-go-driver/blob/2e7cb372b05cba29facd58aac7e715c3cec4e377/mongo/options/findoptions.go#L257). For v2, we’ve decided to abstract the merge functions by changing the options builder pattern to maintain a slice of setter functions, rather than setting data directly to an options object. Typical usage of options should not change, for example the following is still honored:
 
 ```go
-opts1 := options.Client().SetAppName("appName")
-opts2 := options.Client().SetConnectTimeout(math.MaxInt64)
+opts1 := options.Find().SetBatchSize(1)
+opts2 := options.Find().SetComment("foo")
 
-_, err := mongo.Connect(opts1, opts2)
+_, err := coll.Find(context.TODO(), bson.D{{"x", 1"}}, opts1, opts2)
 if err != nil {
 	panic(err)
 }
@@ -549,29 +549,27 @@ The options builder is now a slice of setters, rather than a single options obje
 ```go
 // v1
 
-opts := options.Client().ApplyURI("mongodb://x:y@localhost:27017")
+opts := options.Find().SetBatchSize(1)
 
-if opts.Auth.Username == "x" {
-  opts.Auth.Password = "z"
+if opts.MaxAwaitTime == nil {
+  opts.MaxAwaitTime = &defaultMaxAwaitTime
 }
 ```
 
 ```go
-
 // v2
 
-opts := options.Client().ApplyURI("mongodb://x:y@localhost:27017")
+opts := options.Find().SetBatchSize(1)
 
-// If the username is "x", use password "z"
-pwSetter := func(opts *options.ClientOptions) error {
-  if opts.Auth.Username == "x" {
-    opts.Auth.Password = "z"
+maxAwaitTimeSetter := func(opts *options.FindOptions) error {
+  if opts.MaxAwaitTime == nil {
+    opts.MaxAwaitTime = &defaultMaxAwaitTime
   }
 
   return nil
 }
 
-opts.Opts = append(opts.Opts, pwSetter)
+opts.Opts = append(opts.Opts, maxAwaitTimeSetter)
 ```
 
 #### Creating a Slice of Options
@@ -581,22 +579,21 @@ Using options created with the builder pattern as elements in a slice:
 ```go
 // v1
 
-opts1 := options.Client().SetAppName("appName")
-opts2 := options.Client().SetConnectTimeout(math.MaxInt64)
+opts1 := options.Find().SetBatchSize(1)
+opts2 := options.Find().SetComment("foo")
 
-opts := []*options.ClientOptions{opts1, opts2}
-_, err := mongo.Connect(opts...)
+opts := []*options.FindOptions{opts1, opts2}
+_, err := coll.Find(context.TODO(), bson.D{{"x", 1"}}, opts...)
 ```
 
 ```go
 // v2
 
-opts1 := options.Client().SetAppName("appName")
-opts2 := options.Client().SetConnectTimeout(math.MaxInt64)
+opts1 := options.Find().SetBatchSize(1)
+opts2 := options.Find().SetComment("foo")
 
-// Option objects are "Listers" in v2, objects that hold a list of setters
-opts := []options.Lister[options.ClientOptions]{opts1, opts2}
-_, err := mongo.Connect(opts...)
+opts := []options.Lister[options.FindOptions]{opts1, opts2}
+_, err := coll.Find(context.TODO(), bson.D{{"x", 1"}}, opts...)
 ```
 
 #### Creating Options from Builder
@@ -606,21 +603,21 @@ Since a builder is just a slice of option setters, users can create options dire
 ```go
 // v1
 
-opt := &options.ClientOptions{}
-opt.ApplyURI(uri)
+opt := &options.FindOptions{}
+opt.SetBatchSize(1)
 
-return clientOptionAdder{option: opt}
+return findOptionAdder{option: opt}
 ```
 
 ```go
 // v2
 
-var opts options.ClientOptions
-for _, set := range options.Client().ApplyURI(uri).Opts {
+var opts options.FindOptions
+for _, set := range options.Find().SetBatchSize(1).Opts {
   _ = set(&opts)
 }
 
-return clientOptionAdder{option: &opts}
+return findOptionAdder{option: &opts}
 ```
 
 ### DeleteManyOptions / DeleteOneOptions
@@ -715,7 +712,7 @@ The `WTimeout` field has been removed from the `WriteConcern` struct. Instead, u
 
 ## Bsoncodecs / Bsonoptions Package
 
-`*Codec` structs and `New*Codec` methods have been removed. Additionally, the correlated `bson/bsonoptions` package has been removed, so codecs are not directly configurable using `*CodecOptions` structs in Go Driver 2.0. To configure the encode and decode behavior, use the configuration methods on a `bson.Encoder` or `bson.Decoder`. To configure the encode and decode behavior for a `mongo.Client`, use `options.ClientOptionsBuilder.SetBSONOptions` with `BSONOptions`.
+`*Codec` structs and `New*Codec` methods have been removed. Additionally, the correlated `bson/bsonoptions` package has been removed, so codecs are not directly configurable using `*CodecOptions` structs in Go Driver 2.0. To configure the encode and decode behavior, use the configuration methods on a `bson.Encoder` or `bson.Decoder`. To configure the encode and decode behavior for a `mongo.Client`, use `options.ClientOptions.SetBSONOptions` with `BSONOptions`.
 
 This example shows how to set `ObjectIDAsHex`.
 
@@ -843,7 +840,7 @@ The `bson/primitive` package has been merged into the `bson` package.
 
 Additionally, the `bson.D` has implemented the `json.Marshaler` and `json.Unmarshaler` interfaces, where it uses a key-value representation in "regular" (i.e. non-Extended) JSON.
 
-The `bson.D.String` and `bson.M.String` methods return a relaxed Extended JSON representation of the document.
+The `bson.D.String` and `bson.M.String` methods return an Extended JSON representation of the document.
 
 ```go
 // v2
