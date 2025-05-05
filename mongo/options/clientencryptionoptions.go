@@ -10,6 +10,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
+	"time"
 
 	"go.mongodb.org/mongo-driver/v2/internal/httputil"
 )
@@ -22,6 +23,7 @@ type ClientEncryptionOptions struct {
 	KmsProviders      map[string]map[string]interface{}
 	TLSConfig         map[string]*tls.Config
 	HTTPClient        *http.Client
+	KeyExpiration     *time.Duration
 }
 
 // ClientEncryptionOptionsBuilder contains options to configure client
@@ -73,6 +75,18 @@ func (c *ClientEncryptionOptionsBuilder) SetKmsProviders(providers map[string]ma
 func (c *ClientEncryptionOptionsBuilder) SetTLSConfig(cfg map[string]*tls.Config) *ClientEncryptionOptionsBuilder {
 	c.Opts = append(c.Opts, func(opts *ClientEncryptionOptions) error {
 		opts.TLSConfig = cfg
+
+		return nil
+	})
+
+	return c
+}
+
+// SetKeyExpiration specifies duration for the key expiration. 0 or negative value means "never expire".
+// The granularity is in milliseconds. Any sub-millisecond fraction will be rounded up.
+func (c *ClientEncryptionOptionsBuilder) SetKeyExpiration(expiration time.Duration) *ClientEncryptionOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *ClientEncryptionOptions) error {
+		opts.KeyExpiration = &expiration
 
 		return nil
 	})

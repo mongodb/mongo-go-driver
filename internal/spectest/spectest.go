@@ -7,8 +7,10 @@
 package spectest
 
 import (
-	"io/ioutil"
+	"os"
 	"path"
+	"path/filepath"
+	"runtime"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/v2/internal/require"
@@ -20,7 +22,7 @@ func FindJSONFilesInDir(t *testing.T, dir string) []string {
 
 	files := make([]string, 0)
 
-	entries, err := ioutil.ReadDir(dir)
+	entries, err := os.ReadDir(dir)
 	require.NoError(t, err)
 
 	for _, entry := range entries {
@@ -31,5 +33,30 @@ func FindJSONFilesInDir(t *testing.T, dir string) []string {
 		files = append(files, entry.Name())
 	}
 
+	if len(files) == 0 {
+		t.Fatalf("no JSON files found in %q", dir)
+	}
+
 	return files
+}
+
+// Path returns the absolute path to the given specifications repo file or
+// subdirectory.
+//
+// If the PROJECT_DIRECTORY environment variable is set, Path uses that to find
+// the repo root path. Otherwise, it falls back to using the call stack to find
+// the repo root path. Path panics if it can't find the repo root path.
+func Path(subdir string) string {
+	root := os.Getenv("PROJECT_DIRECTORY")
+	if root == "" {
+		_, file, _, ok := runtime.Caller(0)
+		if !ok {
+			panic("unable to get current file path from call stack")
+		}
+
+		// Get the repository root path from the current Go file path.
+		root = filepath.Dir(filepath.Dir(filepath.Dir(file)))
+	}
+
+	return filepath.Join(root, "testdata", "specifications", "source", subdir)
 }

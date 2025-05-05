@@ -609,7 +609,8 @@ func (c *Client) newMongoCrypt(opts *options.AutoEncryptionOptions) (*mongocrypt
 		SetEncryptedFieldsMap(cryptEncryptedFieldsMap).
 		SetCryptSharedLibDisabled(cryptSharedLibDisabled || bypassAutoEncryption).
 		SetCryptSharedLibOverridePath(cryptSharedLibPath).
-		SetHTTPClient(opts.HTTPClient))
+		SetHTTPClient(opts.HTTPClient).
+		SetKeyExpiration(opts.KeyExpiration))
 	if err != nil {
 		return nil, err
 	}
@@ -888,7 +889,7 @@ func (c *Client) BulkWrite(ctx context.Context, writes []ClientBulkWrite,
 	}
 
 	if len(writes) == 0 {
-		return nil, ErrEmptySlice
+		return nil, fmt.Errorf("invalid writes: %w", ErrEmptySlice)
 	}
 	bwo, err := mongoutil.NewOptions(opts...)
 	if err != nil {

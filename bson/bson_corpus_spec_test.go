@@ -23,6 +23,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/internal/spectest"
 )
 
 type testCase struct {
@@ -57,7 +58,7 @@ type parseErrorTestCase struct {
 	String      string `json:"string"`
 }
 
-const dataDir = "../testdata/bson-corpus/"
+var dataDir = spectest.Path("bson-corpus/tests")
 
 func findJSONFilesInDir(dir string) ([]string, error) {
 	files := make([]string, 0)
@@ -275,11 +276,7 @@ func runTest(t *testing.T, file string) {
 	content, err := os.ReadFile(filepath)
 	require.NoError(t, err)
 
-	// Remove ".json" from filename.
-	file = file[:len(file)-5]
-	testName := "bson_corpus--" + file
-
-	t.Run(testName, func(t *testing.T) {
+	t.Run(file, func(t *testing.T) {
 		var test testCase
 		require.NoError(t, json.Unmarshal(content, &test))
 
@@ -429,7 +426,7 @@ func runTest(t *testing.T, file string) {
 	})
 }
 
-func Test_BsonCorpus(t *testing.T) {
+func TestBSONCorpus(t *testing.T) {
 	jsonFiles, err := findJSONFilesInDir(dataDir)
 	require.NoErrorf(t, err, "error finding JSON files in %s: %v", dataDir, err)
 

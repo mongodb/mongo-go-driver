@@ -193,7 +193,7 @@ func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
 	opts ...options.Lister[options.BulkWriteOptions]) (*BulkWriteResult, error) {
 
 	if len(models) == 0 {
-		return nil, ErrEmptySlice
+		return nil, fmt.Errorf("invalid models: %w", ErrEmptySlice)
 	}
 
 	if ctx == nil {
@@ -221,9 +221,9 @@ func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
 
 	selector := makePinnedSelector(sess, coll.writeSelector)
 
-	for _, model := range models {
+	for i, model := range models {
 		if model == nil {
-			return nil, ErrNilDocument
+			return nil, fmt.Errorf("invalid model at index %d: %w", i, ErrNilDocument)
 		}
 	}
 
@@ -407,10 +407,10 @@ func (coll *Collection) InsertMany(
 
 	dv := reflect.ValueOf(documents)
 	if dv.Kind() != reflect.Slice {
-		return nil, ErrNotSlice
+		return nil, fmt.Errorf("invalid documents: %w", ErrNotSlice)
 	}
 	if dv.Len() == 0 {
-		return nil, ErrEmptySlice
+		return nil, fmt.Errorf("invalid documents: %w", ErrEmptySlice)
 	}
 
 	docSlice := make([]interface{}, 0, dv.Len())
@@ -729,7 +729,7 @@ func (coll *Collection) UpdateByID(
 	opts ...options.Lister[options.UpdateOneOptions],
 ) (*UpdateResult, error) {
 	if id == nil {
-		return nil, ErrNilValue
+		return nil, fmt.Errorf("invalid id: %w", ErrNilValue)
 	}
 	return coll.UpdateOne(ctx, bson.D{{"_id", id}}, update, opts...)
 }
@@ -1045,7 +1045,8 @@ func aggregate(a aggregateParams, opts ...options.Lister[options.AggregateOption
 
 	err = op.Execute(a.ctx)
 	if err != nil {
-		if wce, ok := err.(driver.WriteCommandError); ok && wce.WriteConcernError != nil {
+		var wce driver.WriteCommandError
+		if errors.As(err, &wce) && wce.WriteConcernError != nil {
 			return nil, *convertDriverWriteConcernError(wce.WriteConcernError)
 		}
 		return nil, replaceErrors(err)
@@ -2041,8 +2042,8 @@ func (coll *Collection) drop(ctx context.Context) error {
 	err = op.Execute(ctx)
 
 	// ignore namespace not found errors
-	driverErr, ok := err.(driver.Error)
-	if !ok || (ok && !driverErr.NamespaceNotFound()) {
+	var driverErr driver.Error
+	if !errors.As(err, &driverErr) || !driverErr.NamespaceNotFound() {
 		return replaceErrors(err)
 	}
 	return nil
