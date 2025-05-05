@@ -32,7 +32,7 @@
     {
       "description": "Infinity Vector FLOAT32",
       "valid": true,
-      "vector": ["-inf", 0.0, "inf"],
+      "vector": [{"$numberDouble": "-Infinity"}, 0.0, {"$numberDouble": "Infinity"}],
       "dtype_hex": "0x27",
       "dtype_alias": "FLOAT32",
       "padding": 0,
