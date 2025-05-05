@@ -362,6 +362,7 @@ func TestCMAPProse(t *testing.T) {
 		assert.Equal(t, conn.driverConnectionID, failed[0].ConnectionID)
 		assert.Equal(t, requestID, failed[0].RequestID)
 		assert.Equal(t, "error", failed[0].Reason)
+		assert.Greater(t, int(failed[0].Duration), 0)
 		assert.ErrorIs(t, failed[0].Error, io.EOF)
 
 		// There should be 0 ConnectionPendingResponseSucceeded event.

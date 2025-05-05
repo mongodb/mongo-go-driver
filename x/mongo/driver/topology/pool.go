@@ -820,7 +820,7 @@ func publishPendingResponseStarted(pool *pool, conn *connection) {
 	}
 }
 
-func publishPendingResponseFailed(pool *pool, conn *connection, err error) {
+func publishPendingResponseFailed(pool *pool, conn *connection, dur time.Duration, err error) {
 	prs := conn.pendingResponseState
 	if prs == nil {
 		return
@@ -850,6 +850,7 @@ func publishPendingResponseFailed(pool *pool, conn *connection, err error) {
 			RequestID:    prs.requestID,
 			Reason:       reason,
 			Error:        err,
+			Duration:     dur,
 		}
 		pool.monitor.Event(e)
 	}
@@ -1028,7 +1029,8 @@ func awaitPendingResponse(ctx context.Context, pool *pool, conn *connection) err
 		// operations. This is likely a bug in the Go Driver. So it's possible that
 		// the connection is idle at the point of check-in.
 		defer func() {
-			publishPendingResponseFailed(pool, conn, err)
+			dur := time.Since(st)
+			publishPendingResponseFailed(pool, conn, dur, err)
 
 			_ = pool.checkInNoEvent(conn)
 		}()
