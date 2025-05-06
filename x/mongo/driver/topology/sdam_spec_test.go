@@ -203,7 +203,7 @@ func serverClosed(e *event.ServerClosedEvent) {
 	lock.Unlock()
 }
 
-const testsDir string = "../../../../testdata/server-discovery-and-monitoring/"
+var testsDir = spectest.Path("server-discovery-and-monitoring/tests")
 
 var publishedEvents []interface{}
 var lock sync.Mutex
@@ -462,11 +462,7 @@ func runTest(t *testing.T, directory string, filename string) {
 	content, err := ioutil.ReadFile(filepath)
 	assert.Nil(t, err, "ReadFile error: %v", err)
 
-	// Remove ".json" from filename.
-	filename = filename[:len(filename)-5]
-	testName := directory + "/" + filename + ":"
-
-	t.Run(testName, func(t *testing.T) {
+	t.Run(directory+"/"+filename, func(t *testing.T) {
 		var test testCase
 		err = bson.UnmarshalExtJSON(content, false, &test)
 		assert.Nil(t, err, "Unmarshal error: %v", err)

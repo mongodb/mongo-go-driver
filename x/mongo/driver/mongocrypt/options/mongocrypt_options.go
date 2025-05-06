@@ -8,6 +8,7 @@ package options
 
 import (
 	"net/http"
+	"time"
 
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
@@ -21,6 +22,7 @@ type MongoCryptOptions struct {
 	CryptSharedLibDisabled     bool
 	CryptSharedLibOverridePath string
 	HTTPClient                 *http.Client
+	KeyExpiration              *time.Duration
 }
 
 // MongoCrypt creates a new MongoCryptOptions instance.
@@ -68,5 +70,12 @@ func (mo *MongoCryptOptions) SetCryptSharedLibOverridePath(path string) *MongoCr
 // SetHTTPClient sets the http client.
 func (mo *MongoCryptOptions) SetHTTPClient(httpClient *http.Client) *MongoCryptOptions {
 	mo.HTTPClient = httpClient
+	return mo
+}
+
+// SetKeyExpiration sets the key expiration duration. 0 means "never expire".
+// The granularity is in milliseconds. Any sub-millisecond fraction will be rounded up.
+func (mo *MongoCryptOptions) SetKeyExpiration(expiration *time.Duration) *MongoCryptOptions {
+	mo.KeyExpiration = expiration
 	return mo
 }
