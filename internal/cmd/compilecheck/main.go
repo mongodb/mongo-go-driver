@@ -12,9 +12,13 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/xoptions"
 )
 
 func main() {
+	opts := options.Client()
+	xoptions.SetInternalClientOptions(opts, "foo", "bar")
+
 	_, _ = mongo.Connect(options.Client())
 	fmt.Println(bson.D{{Key: "key", Value: "value"}})
 }
