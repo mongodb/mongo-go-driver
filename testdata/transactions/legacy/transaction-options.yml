@@ -260,6 +260,7 @@ tests:
     outcome: *outcome
 
   - description: startTransaction options override defaults
+    skipReason: "GODRIVER-2348: maxCommitTimeMS is deprecated"
 
     clientOptions:
       readConcernLevel: local
@@ -381,6 +382,7 @@ tests:
     outcome: *outcome
 
   - description: defaultTransactionOptions override client options
+    skipReason: "GODRIVER-2348: maxCommitTimeMS is deprecated"
 
     clientOptions:
       readConcernLevel: local
@@ -665,6 +667,7 @@ tests:
           - _id: 1
 
   - description: readPreference inherited from defaultTransactionOptions
+    skipReason: "GODRIVER-2348: maxCommitTimeMS is deprecated"
 
     clientOptions:
       readPreference: primary

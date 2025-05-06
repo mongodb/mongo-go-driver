@@ -14,18 +14,18 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/integtest"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/tag"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/integtest"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/tag"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mongocrypt"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/topology"
 )
 
 var bgCtx = context.Background()
@@ -36,7 +36,7 @@ func setupClient(opts ...*options.ClientOptions) *Client {
 		integtest.AddTestServerAPIVersion(clientOpts)
 		opts = append(opts, clientOpts)
 	}
-	client, _ := NewClient(opts...)
+	client, _ := Connect(opts...)
 	return client
 }
 
@@ -52,11 +52,14 @@ func TestClient(t *testing.T) {
 		assert.Equal(t, dbName, db.Name(), "expected db name %v, got %v", dbName, db.Name())
 		assert.Equal(t, client, db.Client(), "expected client %v, got %v", client, db.Client())
 	})
-	t.Run("replace topology error", func(t *testing.T) {
+	t.Run("replaceErrors for disconnected topology", func(t *testing.T) {
 		client := setupClient()
 
-		_, err := client.StartSession()
-		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
+		topo, ok := client.deployment.(*topology.Topology)
+		require.True(t, ok, "client deployment is not a topology")
+
+		err := topo.Disconnect(context.Background())
+		require.NoError(t, err)
 
 		_, err = client.ListDatabases(bgCtx, bson.D{})
 		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
@@ -71,19 +74,17 @@ func TestClient(t *testing.T) {
 		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
 	})
 	t.Run("nil document error", func(t *testing.T) {
-		// manually set session pool to non-nil because Watch will return ErrClientDisconnected
 		client := setupClient()
-		client.sessionPool = &session.Pool{}
 
 		_, err := client.Watch(bgCtx, nil)
 		watchErr := errors.New("can only marshal slices and arrays into aggregation pipelines, but got invalid")
 		assert.Equal(t, watchErr, err, "expected error %v, got %v", watchErr, err)
 
 		_, err = client.ListDatabases(bgCtx, nil)
-		assert.Equal(t, ErrNilDocument, err, "expected error %v, got %v", ErrNilDocument, err)
+		assert.True(t, errors.Is(err, ErrNilDocument), "expected error %v, got %v", ErrNilDocument, err)
 
 		_, err = client.ListDatabaseNames(bgCtx, nil)
-		assert.Equal(t, ErrNilDocument, err, "expected error %v, got %v", ErrNilDocument, err)
+		assert.True(t, errors.Is(err, ErrNilDocument), "expected error %v, got %v", ErrNilDocument, err)
 	})
 	t.Run("read preference", func(t *testing.T) {
 		t.Run("absent", func(t *testing.T) {
@@ -184,7 +185,7 @@ func TestClient(t *testing.T) {
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				_, err := NewClient(tc.opts)
+				_, err := newClient(tc.opts)
 				assert.Equal(t, tc.err, err, "expected error %v, got %v", tc.err, err)
 			})
 		}
@@ -228,7 +229,7 @@ func TestClient(t *testing.T) {
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				_, err := NewClient(tc.opts)
+				_, err := newClient(tc.opts)
 				assert.Equal(t, tc.err, err, "expected error %v, got %v", tc.err, err)
 			})
 		}
@@ -250,7 +251,7 @@ func TestClient(t *testing.T) {
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				client, err := NewClient(tc.opts)
+				client, err := newClient(tc.opts)
 				if tc.expectErr {
 					assert.NotNil(t, err, "expected error, got nil")
 					return
@@ -278,7 +279,7 @@ func TestClient(t *testing.T) {
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				client, err := NewClient(tc.opts)
+				client, err := newClient(tc.opts)
 				if tc.expectErr {
 					assert.NotNil(t, err, "expected error, got nil")
 					return
@@ -290,7 +291,7 @@ func TestClient(t *testing.T) {
 		}
 	})
 	t.Run("write concern", func(t *testing.T) {
-		wc := writeconcern.New(writeconcern.WMajority())
+		wc := writeconcern.Majority()
 		client := setupClient(options.Client().SetWriteConcern(wc))
 		assert.Equal(t, wc, client.writeConcern, "mismatch; expected write concern %v, got %v", wc, client.writeConcern)
 	})
@@ -307,13 +308,16 @@ func TestClient(t *testing.T) {
 		})
 		t.Run("ApplyURI called with empty string", func(t *testing.T) {
 			opts := options.Client().ApplyURI("")
+
 			uri := opts.GetURI()
 			assert.Equal(t, "", uri, "expected GetURI to return empty string, got %v", uri)
 		})
 		t.Run("ApplyURI called with non-empty string", func(t *testing.T) {
 			uri := "mongodb://localhost:27017/foobar"
 			opts := options.Client().ApplyURI(uri)
+
 			got := opts.GetURI()
+
 			assert.Equal(t, uri, got, "expected GetURI to return %v, got %v", uri, got)
 		})
 	})
@@ -344,7 +348,7 @@ func TestClient(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				// Setup a client and skip the test based on server version.
 				var started []*event.CommandStartedEvent
-				var failureReasons []string
+				var failureReasons []error
 				cmdMonitor := &event.CommandMonitor{
 					Started: func(_ context.Context, evt *event.CommandStartedEvent) {
 						if evt.CommandName == "endSessions" {
@@ -358,9 +362,9 @@ func TestClient(t *testing.T) {
 					},
 				}
 				clientOpts := options.Client().ApplyURI(cs.Original).SetReadPreference(readpref.Primary()).
-					SetWriteConcern(writeconcern.New(writeconcern.WMajority())).SetMonitor(cmdMonitor)
+					SetWriteConcern(writeconcern.Majority()).SetMonitor(cmdMonitor)
 				integtest.AddTestServerAPIVersion(clientOpts)
-				client, err := Connect(bgCtx, clientOpts)
+				client, err := Connect(clientOpts)
 				assert.Nil(t, err, "Connect error: %v", err)
 				defer func() {
 					_ = client.Disconnect(bgCtx)
@@ -380,7 +384,7 @@ func TestClient(t *testing.T) {
 				// Do an application operation and create the number of sessions specified by the test.
 				_, err = coll.CountDocuments(bgCtx, bson.D{})
 				assert.Nil(t, err, "CountDocuments error: %v", err)
-				var sessions []Session
+				var sessions []*Session
 				for i := 0; i < tc.numSessions; i++ {
 					sess, err := client.StartSession()
 					assert.Nil(t, err, "StartSession error at index %d: %v", i, err)
@@ -416,7 +420,7 @@ func TestClient(t *testing.T) {
 
 		t.Run("success with all options", func(t *testing.T) {
 			serverAPIOptions := getServerAPIOptions()
-			client, err := NewClient(options.Client().SetServerAPIOptions(serverAPIOptions))
+			client, err := newClient(options.Client().SetServerAPIOptions(serverAPIOptions))
 			assert.Nil(t, err, "unexpected error from NewClient: %v", err)
 			convertedAPIOptions := topology.ConvertToDriverAPIOptions(serverAPIOptions)
 			assert.Equal(t, convertedAPIOptions, client.serverAPI,
@@ -424,14 +428,14 @@ func TestClient(t *testing.T) {
 		})
 		t.Run("failure with unsupported version", func(t *testing.T) {
 			serverAPIOptions := options.ServerAPI("badVersion")
-			_, err := NewClient(options.Client().SetServerAPIOptions(serverAPIOptions))
+			_, err := newClient(options.Client().SetServerAPIOptions(serverAPIOptions))
 			assert.NotNil(t, err, "expected error from NewClient, got nil")
 			errmsg := `api version "badVersion" not supported; this driver version only supports API version "1"`
 			assert.Equal(t, errmsg, err.Error(), "expected error %v, got %v", errmsg, err.Error())
 		})
 		t.Run("cannot modify options after client creation", func(t *testing.T) {
 			serverAPIOptions := getServerAPIOptions()
-			client, err := NewClient(options.Client().SetServerAPIOptions(serverAPIOptions))
+			client, err := newClient(options.Client().SetServerAPIOptions(serverAPIOptions))
 			assert.Nil(t, err, "unexpected error from NewClient: %v", err)
 
 			expectedServerAPIOptions := getServerAPIOptions()
@@ -483,7 +487,7 @@ func TestClient(t *testing.T) {
 					extraOptions["__cryptSharedLibDisabledForTestOnly"] = true
 				}
 
-				_, err := NewClient(options.Client().
+				_, err := newClient(options.Client().
 					SetAutoEncryptionOptions(options.AutoEncryption().
 						SetKmsProviders(map[string]map[string]interface{}{
 							"local": {"key": make([]byte, 96)},
@@ -500,5 +504,14 @@ func TestClient(t *testing.T) {
 				}
 			})
 		}
+	})
+	t.Run("negative timeout will err", func(t *testing.T) {
+		t.Parallel()
+
+		copts := options.Client().SetTimeout(-1 * time.Second)
+		_, err := Connect(copts)
+
+		errmsg := `invalid value "-1s" for "Timeout": value must be positive`
+		assert.Equal(t, errmsg, err.Error(), "expected error %v, got %v", errmsg, err.Error())
 	})
 }

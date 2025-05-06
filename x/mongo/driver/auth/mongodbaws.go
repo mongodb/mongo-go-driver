@@ -11,10 +11,10 @@ import (
 	"errors"
 	"net/http"
 
-	"go.mongodb.org/mongo-driver/internal/aws/credentials"
-	"go.mongodb.org/mongo-driver/internal/credproviders"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/creds"
+	"go.mongodb.org/mongo-driver/v2/internal/aws/credentials"
+	"go.mongodb.org/mongo-driver/v2/internal/credproviders"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/auth/creds"
 )
 
 // MongoDBAWS is the mechanism name for MongoDBAWS.
@@ -46,7 +46,7 @@ type MongoDBAWSAuthenticator struct {
 }
 
 // Auth authenticates the connection.
-func (a *MongoDBAWSAuthenticator) Auth(ctx context.Context, cfg *Config) error {
+func (a *MongoDBAWSAuthenticator) Auth(ctx context.Context, cfg *driver.AuthConfig) error {
 	providers := creds.NewAWSCredentialProvider(a.httpClient, a.credentials)
 	adapter := &awsSaslAdapter{
 		conversation: &awsConversation{

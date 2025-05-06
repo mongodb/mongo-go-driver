@@ -12,7 +12,7 @@ package mongocrypt
 // #include <mongocrypt.h>
 import "C"
 import (
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 // Context represents a mongocrypt_ctx_t handle

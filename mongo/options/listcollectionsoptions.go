@@ -6,64 +6,67 @@
 
 package options
 
-// ListCollectionsOptions represents options that can be used to configure a ListCollections operation.
+// ListCollectionsOptions represents arguments that can be used to configure a
+// ListCollections operation.
+//
+// See corresponding setter methods for documentation.
 type ListCollectionsOptions struct {
-	// If true, each collection document will only contain a field for the collection name. The default value is false.
-	NameOnly *bool
-
-	// The maximum number of documents to be included in each batch returned by the server.
-	BatchSize *int32
-
-	// If true, and NameOnly is true, limits the documents returned to only contain collections the user is authorized to use. The default value
-	// is false. This option is only valid for MongoDB server versions >= 4.0. Server versions < 4.0 ignore this option.
+	NameOnly              *bool
+	BatchSize             *int32
 	AuthorizedCollections *bool
 }
 
+// ListCollectionsOptionsBuilder contains options to configure list collection
+// operations. Each option can be set through setter functions. See
+// documentation for each setter function for an explanation of the option.
+type ListCollectionsOptionsBuilder struct {
+	Opts []func(*ListCollectionsOptions) error
+}
+
 // ListCollections creates a new ListCollectionsOptions instance.
-func ListCollections() *ListCollectionsOptions {
-	return &ListCollectionsOptions{}
+func ListCollections() *ListCollectionsOptionsBuilder {
+	return &ListCollectionsOptionsBuilder{}
 }
 
-// SetNameOnly sets the value for the NameOnly field.
-func (lc *ListCollectionsOptions) SetNameOnly(b bool) *ListCollectionsOptions {
-	lc.NameOnly = &b
+// List returns a list of CountOptions setter functions.
+func (lc *ListCollectionsOptionsBuilder) List() []func(*ListCollectionsOptions) error {
+	return lc.Opts
+}
+
+// SetNameOnly sets the value for the NameOnly field. If true, each collection document will only
+// contain a field for the collection name. The default value is false.
+func (lc *ListCollectionsOptionsBuilder) SetNameOnly(b bool) *ListCollectionsOptionsBuilder {
+	lc.Opts = append(lc.Opts, func(opts *ListCollectionsOptions) error {
+		opts.NameOnly = &b
+
+		return nil
+	})
+
 	return lc
 }
 
-// SetBatchSize sets the value for the BatchSize field.
-func (lc *ListCollectionsOptions) SetBatchSize(size int32) *ListCollectionsOptions {
-	lc.BatchSize = &size
+// SetBatchSize sets the value for the BatchSize field. Specifies the maximum number of documents
+// to be included in each batch returned by the server.
+func (lc *ListCollectionsOptionsBuilder) SetBatchSize(size int32) *ListCollectionsOptionsBuilder {
+	lc.Opts = append(lc.Opts, func(opts *ListCollectionsOptions) error {
+		opts.BatchSize = &size
+
+		return nil
+	})
+
 	return lc
 }
 
-// SetAuthorizedCollections sets the value for the AuthorizedCollections field. This option is only valid for MongoDB server versions >= 4.0. Server
-// versions < 4.0 ignore this option.
-func (lc *ListCollectionsOptions) SetAuthorizedCollections(b bool) *ListCollectionsOptions {
-	lc.AuthorizedCollections = &b
-	return lc
-}
+// SetAuthorizedCollections sets the value for the AuthorizedCollections field. If true, and
+// NameOnly is true, limits the documents returned to only contain collections the user is
+// authorized to use. The default value is false. This option is only valid for MongoDB server
+// versions >= 4.0. Server versions < 4.0 ignore this option.
+func (lc *ListCollectionsOptionsBuilder) SetAuthorizedCollections(b bool) *ListCollectionsOptionsBuilder {
+	lc.Opts = append(lc.Opts, func(opts *ListCollectionsOptions) error {
+		opts.AuthorizedCollections = &b
 
-// MergeListCollectionsOptions combines the given ListCollectionsOptions instances into a single *ListCollectionsOptions
-// in a last-one-wins fashion.
-//
-// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
-// single options struct instead.
-func MergeListCollectionsOptions(opts ...*ListCollectionsOptions) *ListCollectionsOptions {
-	lc := ListCollections()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.NameOnly != nil {
-			lc.NameOnly = opt.NameOnly
-		}
-		if opt.BatchSize != nil {
-			lc.BatchSize = opt.BatchSize
-		}
-		if opt.AuthorizedCollections != nil {
-			lc.AuthorizedCollections = opt.AuthorizedCollections
-		}
-	}
+		return nil
+	})
 
 	return lc
 }

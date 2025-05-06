@@ -9,50 +9,73 @@ package options
 // DefaultOrdered is the default value for the Ordered option in BulkWriteOptions.
 var DefaultOrdered = true
 
-// BulkWriteOptions represents options that can be used to configure a BulkWrite operation.
+// BulkWriteOptions represents arguments that can be used to configure a
+// BulkWrite operation.
+//
+// See corresponding setter methods for documentation.
 type BulkWriteOptions struct {
-	// If true, writes executed as part of the operation will opt out of document-level validation on the server. This
-	// option is valid for MongoDB versions >= 3.2 and is ignored for previous server versions. The default value is
-	// false. See https://www.mongodb.com/docs/manual/core/schema-validation/ for more information about document
-	// validation.
 	BypassDocumentValidation *bool
+	Comment                  interface{}
+	Ordered                  *bool
+	Let                      interface{}
+}
 
-	// A string or document that will be included in server logs, profiling logs, and currentOp queries to help trace
-	// the operation.  The default value is nil, which means that no comment will be included in the logs.
-	Comment interface{}
-
-	// If true, no writes will be executed after one fails. The default value is true.
-	Ordered *bool
-
-	// Specifies parameters for all update and delete commands in the BulkWrite. This option is only valid for MongoDB
-	// versions >= 5.0. Older servers will report an error for using this option. This must be a document mapping
-	// parameter names to values. Values must be constant or closed expressions that do not reference document fields.
-	// Parameters can then be accessed as variables in an aggregate expression context (e.g. "$$var").
-	Let interface{}
+// BulkWriteOptionsBuilder contains options to configure bulk write operations.
+// Each option can be set through setter functions. See documentation for each
+// setter function for an explanation of the option.
+type BulkWriteOptionsBuilder struct {
+	Opts []func(*BulkWriteOptions) error
 }
 
 // BulkWrite creates a new *BulkWriteOptions instance.
-func BulkWrite() *BulkWriteOptions {
-	return &BulkWriteOptions{
-		Ordered: &DefaultOrdered,
-	}
+func BulkWrite() *BulkWriteOptionsBuilder {
+	opts := &BulkWriteOptionsBuilder{}
+	opts = opts.SetOrdered(DefaultOrdered)
+
+	return opts
 }
 
-// SetComment sets the value for the Comment field.
-func (b *BulkWriteOptions) SetComment(comment interface{}) *BulkWriteOptions {
-	b.Comment = comment
+// List returns a list of BulkWriteOptions setter functions.
+func (b *BulkWriteOptionsBuilder) List() []func(*BulkWriteOptions) error {
+	return b.Opts
+}
+
+// SetComment sets the value for the Comment field. Specifies a string or document that will be included in
+// server logs, profiling logs, and currentOp queries to help tracethe operation.  The default value is nil,
+// which means that no comment will be included in the logs.
+func (b *BulkWriteOptionsBuilder) SetComment(comment interface{}) *BulkWriteOptionsBuilder {
+	b.Opts = append(b.Opts, func(opts *BulkWriteOptions) error {
+		opts.Comment = comment
+
+		return nil
+	})
+
 	return b
 }
 
-// SetOrdered sets the value for the Ordered field.
-func (b *BulkWriteOptions) SetOrdered(ordered bool) *BulkWriteOptions {
-	b.Ordered = &ordered
+// SetOrdered sets the value for the Ordered field. If true, no writes will be executed after one fails.
+// The default value is true.
+func (b *BulkWriteOptionsBuilder) SetOrdered(ordered bool) *BulkWriteOptionsBuilder {
+	b.Opts = append(b.Opts, func(opts *BulkWriteOptions) error {
+		opts.Ordered = &ordered
+
+		return nil
+	})
+
 	return b
 }
 
-// SetBypassDocumentValidation sets the value for the BypassDocumentValidation field.
-func (b *BulkWriteOptions) SetBypassDocumentValidation(bypass bool) *BulkWriteOptions {
-	b.BypassDocumentValidation = &bypass
+// SetBypassDocumentValidation sets the value for the BypassDocumentValidation field. If true, writes
+// executed as part of the operation will opt out of document-level validation on the server. The default value is
+// false. See https://www.mongodb.com/docs/manual/core/schema-validation/ for more information about document
+// validation.
+func (b *BulkWriteOptionsBuilder) SetBypassDocumentValidation(bypass bool) *BulkWriteOptionsBuilder {
+	b.Opts = append(b.Opts, func(opts *BulkWriteOptions) error {
+		opts.BypassDocumentValidation = &bypass
+
+		return nil
+	})
+
 	return b
 }
 
@@ -60,35 +83,12 @@ func (b *BulkWriteOptions) SetBypassDocumentValidation(bypass bool) *BulkWriteOp
 // This option is only valid for MongoDB versions >= 5.0. Older servers will report an error for using this option.
 // This must be a document mapping parameter names to values. Values must be constant or closed expressions that do not
 // reference document fields. Parameters can then be accessed as variables in an aggregate expression context (e.g. "$$var").
-func (b *BulkWriteOptions) SetLet(let interface{}) *BulkWriteOptions {
-	b.Let = &let
-	return b
-}
+func (b *BulkWriteOptionsBuilder) SetLet(let interface{}) *BulkWriteOptionsBuilder {
+	b.Opts = append(b.Opts, func(opts *BulkWriteOptions) error {
+		opts.Let = &let
 
-// MergeBulkWriteOptions combines the given BulkWriteOptions instances into a single BulkWriteOptions in a last-one-wins
-// fashion.
-//
-// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
-// single options struct instead.
-func MergeBulkWriteOptions(opts ...*BulkWriteOptions) *BulkWriteOptions {
-	b := BulkWrite()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.Comment != nil {
-			b.Comment = opt.Comment
-		}
-		if opt.Ordered != nil {
-			b.Ordered = opt.Ordered
-		}
-		if opt.BypassDocumentValidation != nil {
-			b.BypassDocumentValidation = opt.BypassDocumentValidation
-		}
-		if opt.Let != nil {
-			b.Let = opt.Let
-		}
-	}
+		return nil
+	})
 
 	return b
 }

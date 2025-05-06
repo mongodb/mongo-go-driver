@@ -7,10 +7,10 @@
 package bson
 
 import (
+	"bytes"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
 )
 
 type inputArgs struct {
@@ -23,24 +23,35 @@ type outputArgs struct {
 	Val  *int64
 }
 
+func unmarshalWithContext(t *testing.T, dc DecodeContext, data []byte, val interface{}) error {
+	t.Helper()
+
+	vr := NewDocumentReader(bytes.NewReader(data))
+	return unmarshalFromReader(dc, vr, val)
+}
+
 func TestTruncation(t *testing.T) {
 	t.Run("truncation", func(t *testing.T) {
 		inputName := "truncation"
 		inputVal := 4.7892
 
 		input := inputArgs{Name: inputName, Val: &inputVal}
-		ec := bsoncodec.EncodeContext{Registry: DefaultRegistry}
 
-		doc, err := MarshalWithContext(ec, &input)
+		buf := new(bytes.Buffer)
+		vw := NewDocumentWriter(buf)
+		enc := NewEncoder(vw)
+		enc.IntMinSize()
+		enc.SetRegistry(defaultRegistry)
+		err := enc.Encode(&input)
 		assert.Nil(t, err)
 
 		var output outputArgs
-		dc := bsoncodec.DecodeContext{
-			Registry: DefaultRegistry,
-			Truncate: true,
+		dc := DecodeContext{
+			Registry: defaultRegistry,
+			truncate: true,
 		}
 
-		err = UnmarshalWithContext(dc, doc, &output)
+		err = unmarshalWithContext(t, dc, buf.Bytes(), &output)
 		assert.Nil(t, err)
 
 		assert.Equal(t, inputName, output.Name)
@@ -51,19 +62,23 @@ func TestTruncation(t *testing.T) {
 		inputVal := 7.382
 
 		input := inputArgs{Name: inputName, Val: &inputVal}
-		ec := bsoncodec.EncodeContext{Registry: DefaultRegistry}
 
-		doc, err := MarshalWithContext(ec, &input)
+		buf := new(bytes.Buffer)
+		vw := NewDocumentWriter(buf)
+		enc := NewEncoder(vw)
+		enc.IntMinSize()
+		enc.SetRegistry(defaultRegistry)
+		err := enc.Encode(&input)
 		assert.Nil(t, err)
 
 		var output outputArgs
-		dc := bsoncodec.DecodeContext{
-			Registry: DefaultRegistry,
-			Truncate: false,
+		dc := DecodeContext{
+			Registry: defaultRegistry,
+			truncate: false,
 		}
 
 		// case throws an error when truncation is disabled
-		err = UnmarshalWithContext(dc, doc, &output)
+		err = unmarshalWithContext(t, dc, buf.Bytes(), &output)
 		assert.NotNil(t, err)
 	})
 }

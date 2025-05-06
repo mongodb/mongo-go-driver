@@ -7,114 +7,67 @@
 package bson
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 func TestMarshalValue(t *testing.T) {
 	t.Parallel()
 
-	marshalValueTestCases := newMarshalValueTestCasesWithInterfaceCore(t)
-
-	t.Run("MarshalValue", func(t *testing.T) {
-		t.Parallel()
-
-		for _, tc := range marshalValueTestCases {
-			tc := tc
-
-			t.Run(tc.name, func(t *testing.T) {
-				t.Parallel()
-
-				valueType, valueBytes, err := MarshalValue(tc.val)
-				assert.Nil(t, err, "MarshalValue error: %v", err)
-				compareMarshalValueResults(t, tc, valueType, valueBytes)
-			})
-		}
+	testCases := slices.Clone(marshalValueTestCases)
+	testCases = append(testCases, marshalValueTestCase{
+		name: "interface",
+		val: marshalValueInterfaceOuter{
+			Reader: marshalValueInterfaceInner{
+				Foo: 10,
+			},
+		},
+		bsontype: TypeEmbeddedDocument,
+		bytes: bsoncore.NewDocumentBuilder().
+			AppendDocument("reader", bsoncore.NewDocumentBuilder().
+				AppendInt32("foo", 10).
+				Build()).
+			Build(),
 	})
-	t.Run("MarshalValueAppend", func(t *testing.T) {
-		t.Parallel()
 
-		for _, tc := range marshalValueTestCases {
-			tc := tc
+	for _, tc := range testCases {
+		tc := tc
 
-			t.Run(tc.name, func(t *testing.T) {
-				t.Parallel()
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 
-				valueType, valueBytes, err := MarshalValueAppend(nil, tc.val)
-				assert.Nil(t, err, "MarshalValueAppend error: %v", err)
-				compareMarshalValueResults(t, tc, valueType, valueBytes)
-			})
-		}
-	})
-	t.Run("MarshalValueWithRegistry", func(t *testing.T) {
-		t.Parallel()
+			valueType, valueBytes, err := MarshalValue(tc.val)
+			assert.Nil(t, err, "MarshalValue error: %v", err)
+			compareMarshalValueResults(t, tc, valueType, valueBytes)
+		})
+	}
 
-		for _, tc := range marshalValueTestCases {
-			tc := tc
+	t.Run("returns distinct address ranges", func(t *testing.T) {
+		// Call MarshalValue in a loop with the same large value (make sure to
+		// trigger the buffer pooling, which currently doesn't happen for very
+		// small values). Compare the previous and current BSON byte slices and
+		// make sure they always have distinct memory ranges.
+		//
+		// Don't run this test in parallel to maximize the chance that we get
+		// the same pooled buffer for most/all calls.
+		largeVal := strings.Repeat("1234567890", 100_000)
+		var prev []byte
+		for i := 0; i < 20; i++ {
+			_, b, err := MarshalValue(largeVal)
+			require.NoError(t, err)
 
-			t.Run(tc.name, func(t *testing.T) {
-				t.Parallel()
-
-				valueType, valueBytes, err := MarshalValueWithRegistry(DefaultRegistry, tc.val)
-				assert.Nil(t, err, "MarshalValueWithRegistry error: %v", err)
-				compareMarshalValueResults(t, tc, valueType, valueBytes)
-			})
-		}
-	})
-	t.Run("MarshalValueWithContext", func(t *testing.T) {
-		t.Parallel()
-
-		ec := bsoncodec.EncodeContext{Registry: DefaultRegistry}
-		for _, tc := range marshalValueTestCases {
-			tc := tc
-
-			t.Run(tc.name, func(t *testing.T) {
-				t.Parallel()
-
-				valueType, valueBytes, err := MarshalValueWithContext(ec, tc.val)
-				assert.Nil(t, err, "MarshalValueWithContext error: %v", err)
-				compareMarshalValueResults(t, tc, valueType, valueBytes)
-			})
-		}
-	})
-	t.Run("MarshalValueAppendWithRegistry", func(t *testing.T) {
-		t.Parallel()
-
-		for _, tc := range marshalValueTestCases {
-			tc := tc
-
-			t.Run(tc.name, func(t *testing.T) {
-				t.Parallel()
-
-				valueType, valueBytes, err := MarshalValueAppendWithRegistry(DefaultRegistry, nil, tc.val)
-				assert.Nil(t, err, "MarshalValueAppendWithRegistry error: %v", err)
-				compareMarshalValueResults(t, tc, valueType, valueBytes)
-			})
-		}
-	})
-	t.Run("MarshalValueAppendWithContext", func(t *testing.T) {
-		t.Parallel()
-
-		ec := bsoncodec.EncodeContext{Registry: DefaultRegistry}
-		for _, tc := range marshalValueTestCases {
-			tc := tc
-
-			t.Run(tc.name, func(t *testing.T) {
-				t.Parallel()
-
-				valueType, valueBytes, err := MarshalValueAppendWithContext(ec, nil, tc.val)
-				assert.Nil(t, err, "MarshalValueWithContext error: %v", err)
-				compareMarshalValueResults(t, tc, valueType, valueBytes)
-			})
+			assert.DifferentAddressRanges(t, b, prev)
+			prev = b
 		}
 	})
 }
 
-func compareMarshalValueResults(t *testing.T, tc marshalValueTestCase, gotType bsontype.Type, gotBytes []byte) {
+func compareMarshalValueResults(t *testing.T, tc marshalValueTestCase, gotType Type, gotBytes []byte) {
 	t.Helper()
 	expectedValue := RawValue{Type: tc.bsontype, Value: tc.bytes}
 	gotValue := RawValue{Type: gotType, Value: gotBytes}

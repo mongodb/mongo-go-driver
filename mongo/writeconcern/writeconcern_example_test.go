@@ -7,11 +7,9 @@
 package writeconcern_test
 
 import (
-	"context"
-
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 )
 
 // Configure a Client with write concern "majority" that requests
@@ -23,7 +21,7 @@ func Example_majority() {
 		ApplyURI("mongodb://localhost:27017").
 		SetWriteConcern(wc)
 
-	_, err := mongo.Connect(context.Background(), opts)
+	_, err := mongo.Connect(opts)
 	if err != nil {
 		panic(err)
 	}
@@ -41,7 +39,7 @@ func Example_w2Journaled() {
 		ApplyURI("mongodb://localhost:27017").
 		SetWriteConcern(wc)
 
-	_, err := mongo.Connect(context.Background(), opts)
+	_, err := mongo.Connect(opts)
 	if err != nil {
 		panic(err)
 	}

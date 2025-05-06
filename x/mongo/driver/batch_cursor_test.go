@@ -8,9 +8,8 @@ package driver
 
 import (
 	"testing"
-	"time"
 
-	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
 )
 
 func TestBatchCursor(t *testing.T) {
@@ -90,44 +89,4 @@ func TestBatchCursor(t *testing.T) {
 			})
 		}
 	})
-}
-
-func TestBatchCursorSetMaxTime(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name string
-		dur  time.Duration
-		want int64
-	}{
-		{
-			name: "empty",
-			dur:  0,
-			want: 0,
-		},
-		{
-			name: "partial milliseconds are truncated",
-			dur:  10_900 * time.Microsecond,
-			want: 10,
-		},
-		{
-			name: "millisecond input",
-			dur:  10 * time.Millisecond,
-			want: 10,
-		},
-	}
-
-	for _, test := range tests {
-		test := test
-
-		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
-
-			bc := BatchCursor{}
-			bc.SetMaxTime(test.dur)
-
-			got := bc.maxTimeMS
-			assert.Equal(t, test.want, got, "expected and actual maxTimeMS are different")
-		})
-	}
 }

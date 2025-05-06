@@ -74,7 +74,7 @@ tests:
   - description: Change Stream should error when _id is projected out
     runOnRequirements:
       - minServerVersion: "4.1.11"
-        topologies: [ replicaset, sharded-replicaset, load-balanced ]
+        topologies: [ replicaset, sharded, load-balanced ]
     operations:
       - name: createChangeStream
         object: *collection0
@@ -93,7 +93,7 @@ tests:
   - description: change stream errors on ElectionInProgress
     runOnRequirements:
       - minServerVersion: "4.2"
-        topologies: [ replicaset, sharded-replicaset, load-balanced ]
+        topologies: [ replicaset, sharded, load-balanced ]
     operations:
       - name: failPoint
         object: testRunner

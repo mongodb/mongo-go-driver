@@ -6,126 +6,278 @@
 
 package options
 
-// UpdateOptions represents options that can be used to configure UpdateOne and UpdateMany operations.
-type UpdateOptions struct {
-	// A set of filters specifying to which array elements an update should apply. This option is only valid for MongoDB
-	// versions >= 3.6. For previous server versions, the driver will return an error if this option is used. The
-	// default value is nil, which means the update will apply to all array elements.
-	ArrayFilters *ArrayFilters
-
-	// If true, writes executed as part of the operation will opt out of document-level validation on the server. This
-	// option is valid for MongoDB versions >= 3.2 and is ignored for previous server versions. The default value is
-	// false. See https://www.mongodb.com/docs/manual/core/schema-validation/ for more information about document
-	// validation.
-	BypassDocumentValidation *bool
-
-	// Specifies a collation to use for string comparisons during the operation. This option is only valid for MongoDB
-	// versions >= 3.4. For previous server versions, the driver will return an error if this option is used. The
-	// default value is nil, which means the default collation of the collection will be used.
-	Collation *Collation
-
-	// A string or document that will be included in server logs, profiling logs, and currentOp queries to help trace
-	// the operation.  The default value is nil, which means that no comment will be included in the logs.
-	Comment interface{}
-
-	// The index to use for the operation. This should either be the index name as a string or the index specification
-	// as a document. This option is only valid for MongoDB versions >= 4.2. Server versions >= 3.4 will return an error
-	// if this option is specified. For server versions < 3.4, the driver will return a client-side error if this option
-	// is specified. The driver will return an error if this option is specified during an unacknowledged write
-	// operation. The driver will return an error if the hint parameter is a multi-key map. The default value is nil,
-	// which means that no hint will be sent.
-	Hint interface{}
-
-	// If true, a new document will be inserted if the filter does not match any documents in the collection. The
-	// default value is false.
-	Upsert *bool
-
-	// Specifies parameters for the update expression. This option is only valid for MongoDB versions >= 5.0. Older
-	// servers will report an error for using this option. This must be a document mapping parameter names to values.
-	// Values must be constant or closed expressions that do not reference document fields. Parameters can then be
-	// accessed as variables in an aggregate expression context (e.g. "$$var").
-	Let interface{}
-}
-
-// Update creates a new UpdateOptions instance.
-func Update() *UpdateOptions {
-	return &UpdateOptions{}
-}
-
-// SetArrayFilters sets the value for the ArrayFilters field.
-func (uo *UpdateOptions) SetArrayFilters(af ArrayFilters) *UpdateOptions {
-	uo.ArrayFilters = &af
-	return uo
-}
-
-// SetBypassDocumentValidation sets the value for the BypassDocumentValidation field.
-func (uo *UpdateOptions) SetBypassDocumentValidation(b bool) *UpdateOptions {
-	uo.BypassDocumentValidation = &b
-	return uo
-}
-
-// SetCollation sets the value for the Collation field.
-func (uo *UpdateOptions) SetCollation(c *Collation) *UpdateOptions {
-	uo.Collation = c
-	return uo
-}
-
-// SetComment sets the value for the Comment field.
-func (uo *UpdateOptions) SetComment(comment interface{}) *UpdateOptions {
-	uo.Comment = comment
-	return uo
-}
-
-// SetHint sets the value for the Hint field.
-func (uo *UpdateOptions) SetHint(h interface{}) *UpdateOptions {
-	uo.Hint = h
-	return uo
-}
-
-// SetUpsert sets the value for the Upsert field.
-func (uo *UpdateOptions) SetUpsert(b bool) *UpdateOptions {
-	uo.Upsert = &b
-	return uo
-}
-
-// SetLet sets the value for the Let field.
-func (uo *UpdateOptions) SetLet(l interface{}) *UpdateOptions {
-	uo.Let = l
-	return uo
-}
-
-// MergeUpdateOptions combines the given UpdateOptions instances into a single UpdateOptions in a last-one-wins fashion.
+// UpdateOneOptions represents arguments that can be used to configure UpdateOne
+// operations.
 //
-// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
-// single options struct instead.
-func MergeUpdateOptions(opts ...*UpdateOptions) *UpdateOptions {
-	uOpts := Update()
-	for _, uo := range opts {
-		if uo == nil {
-			continue
-		}
-		if uo.ArrayFilters != nil {
-			uOpts.ArrayFilters = uo.ArrayFilters
-		}
-		if uo.BypassDocumentValidation != nil {
-			uOpts.BypassDocumentValidation = uo.BypassDocumentValidation
-		}
-		if uo.Collation != nil {
-			uOpts.Collation = uo.Collation
-		}
-		if uo.Comment != nil {
-			uOpts.Comment = uo.Comment
-		}
-		if uo.Hint != nil {
-			uOpts.Hint = uo.Hint
-		}
-		if uo.Upsert != nil {
-			uOpts.Upsert = uo.Upsert
-		}
-		if uo.Let != nil {
-			uOpts.Let = uo.Let
-		}
-	}
+// See corresponding setter methods for documentation.
+type UpdateOneOptions struct {
+	ArrayFilters             []interface{}
+	BypassDocumentValidation *bool
+	Collation                *Collation
+	Comment                  interface{}
+	Hint                     interface{}
+	Upsert                   *bool
+	Let                      interface{}
+	Sort                     interface{}
+}
 
-	return uOpts
+// UpdateOneOptionsBuilder contains options to configure UpdateOne operations.
+// Each option can be set through setter functions. See documentation for each
+// setter function for an explanation of the option.
+type UpdateOneOptionsBuilder struct {
+	Opts []func(*UpdateOneOptions) error
+}
+
+// UpdateOne creates a new UpdateOneOptions instance.
+func UpdateOne() *UpdateOneOptionsBuilder {
+	return &UpdateOneOptionsBuilder{}
+}
+
+// List returns a list of UpdateOneOptions setter functions.
+func (uo *UpdateOneOptionsBuilder) List() []func(*UpdateOneOptions) error {
+	return uo.Opts
+}
+
+// SetArrayFilters sets the value for the ArrayFilters field. ArrayFilters is a
+// set of filters specifying to which array elements an update should apply. The
+// default value is nil, which means the update will apply to all array
+// elements.
+func (uo *UpdateOneOptionsBuilder) SetArrayFilters(af []interface{}) *UpdateOneOptionsBuilder {
+	uo.Opts = append(uo.Opts, func(opts *UpdateOneOptions) error {
+		opts.ArrayFilters = af
+
+		return nil
+	})
+
+	return uo
+}
+
+// SetBypassDocumentValidation sets the value for the BypassDocumentValidation field. If true,
+// writes executed as part of the operation will opt out of document-level validation on the server.
+// The default value is false. See https://www.mongodb.com/docs/manual/core/schema-validation/ for
+// more information about document validation.
+func (uo *UpdateOneOptionsBuilder) SetBypassDocumentValidation(b bool) *UpdateOneOptionsBuilder {
+	uo.Opts = append(uo.Opts, func(opts *UpdateOneOptions) error {
+		opts.BypassDocumentValidation = &b
+
+		return nil
+	})
+
+	return uo
+}
+
+// SetCollation sets the value for the Collation field. Specifies a collation to
+// use for string comparisons during the operation. The default value is nil,
+// which means the default collation of the collection will be used.
+func (uo *UpdateOneOptionsBuilder) SetCollation(c *Collation) *UpdateOneOptionsBuilder {
+	uo.Opts = append(uo.Opts, func(opts *UpdateOneOptions) error {
+		opts.Collation = c
+
+		return nil
+	})
+
+	return uo
+}
+
+// SetComment sets the value for the Comment field. Specifies a string or document that will be
+// included in server logs, profiling logs, and currentOp queries to help trace the operation.
+// The default value is nil, which means that no comment will be included in the logs.
+func (uo *UpdateOneOptionsBuilder) SetComment(comment interface{}) *UpdateOneOptionsBuilder {
+	uo.Opts = append(uo.Opts, func(opts *UpdateOneOptions) error {
+		opts.Comment = comment
+
+		return nil
+	})
+
+	return uo
+}
+
+// SetHint sets the value for the Hint field. Specifies the index to use for the
+// operation. This should either be the index name as a string or the index
+// specification as a document. This option is only valid for MongoDB versions
+// >= 4.2. Server versions < 4.2 will return an error if this option is
+// specified. The driver will return an error if this option is specified during
+// an unacknowledged write operation. The driver will return an error if the
+// hint parameter is a multi-key map. The default value is nil, which means that
+// no hint will be sent.
+func (uo *UpdateOneOptionsBuilder) SetHint(h interface{}) *UpdateOneOptionsBuilder {
+	uo.Opts = append(uo.Opts, func(opts *UpdateOneOptions) error {
+		opts.Hint = h
+
+		return nil
+	})
+
+	return uo
+}
+
+// SetUpsert sets the value for the Upsert field. If true, a new document will be inserted if the
+// filter does not match any documents in the collection. The default value is false.
+func (uo *UpdateOneOptionsBuilder) SetUpsert(b bool) *UpdateOneOptionsBuilder {
+	uo.Opts = append(uo.Opts, func(opts *UpdateOneOptions) error {
+		opts.Upsert = &b
+
+		return nil
+	})
+
+	return uo
+}
+
+// SetLet sets the value for the Let field. Specifies parameters for the update expression. This
+// option is only valid for MongoDB versions >= 5.0. Older servers will report an error for using
+// this option. This must be a document mapping parameter names to values. Values must be constant
+// or closed expressions that do not reference document fields. Parameters can then be accessed
+// as variables in an aggregate expression context (e.g. "$$var").
+func (uo *UpdateOneOptionsBuilder) SetLet(l interface{}) *UpdateOneOptionsBuilder {
+	uo.Opts = append(uo.Opts, func(opts *UpdateOneOptions) error {
+		opts.Let = l
+
+		return nil
+	})
+
+	return uo
+}
+
+// SetSort sets the value for the Sort field. Specifies a document specifying which document should
+// be updated if the filter used by the operation matches multiple documents in the collection. If
+// set, the first document in the sorted order will be updated. This option is only valid for MongoDB
+// versions >= 8.0. The sort parameter is evaluated sequentially, so the driver will return an error
+// if it is a multi-key map (which is unordeded). The default value is nil.
+func (uo *UpdateOneOptionsBuilder) SetSort(s interface{}) *UpdateOneOptionsBuilder {
+	uo.Opts = append(uo.Opts, func(opts *UpdateOneOptions) error {
+		opts.Sort = s
+
+		return nil
+	})
+
+	return uo
+}
+
+// UpdateManyOptions represents arguments that can be used to configure UpdateMany
+// operations.
+//
+// See corresponding setter methods for documentation.
+type UpdateManyOptions struct {
+	ArrayFilters             []interface{}
+	BypassDocumentValidation *bool
+	Collation                *Collation
+	Comment                  interface{}
+	Hint                     interface{}
+	Upsert                   *bool
+	Let                      interface{}
+}
+
+// UpdateManyOptionsBuilder contains options to configure UpdateMany operations.
+// Each option can be set through setter functions. See documentation for each
+// setter function for an explanation of the option.
+type UpdateManyOptionsBuilder struct {
+	Opts []func(*UpdateManyOptions) error
+}
+
+// UpdateMany creates a new UpdateManyOptions instance.
+func UpdateMany() *UpdateManyOptionsBuilder {
+	return &UpdateManyOptionsBuilder{}
+}
+
+// List returns a list of UpdateManyOptions setter functions.
+func (uo *UpdateManyOptionsBuilder) List() []func(*UpdateManyOptions) error {
+	return uo.Opts
+}
+
+// SetArrayFilters sets the value for the ArrayFilters field. ArrayFilters is a
+// set of filters specifying to which array elements an update should apply. The
+// default value is nil, which means the update will apply to all array
+// elements.
+func (uo *UpdateManyOptionsBuilder) SetArrayFilters(af []interface{}) *UpdateManyOptionsBuilder {
+	uo.Opts = append(uo.Opts, func(opts *UpdateManyOptions) error {
+		opts.ArrayFilters = af
+
+		return nil
+	})
+
+	return uo
+}
+
+// SetBypassDocumentValidation sets the value for the BypassDocumentValidation field. If true,
+// writes executed as part of the operation will opt out of document-level validation on the server.
+// The default value is false. See https://www.mongodb.com/docs/manual/core/schema-validation/ for
+// more information about document validation.
+func (uo *UpdateManyOptionsBuilder) SetBypassDocumentValidation(b bool) *UpdateManyOptionsBuilder {
+	uo.Opts = append(uo.Opts, func(opts *UpdateManyOptions) error {
+		opts.BypassDocumentValidation = &b
+
+		return nil
+	})
+
+	return uo
+}
+
+// SetCollation sets the value for the Collation field. Specifies a collation to
+// use for string comparisons during the operation. The default value is nil,
+// which means the default collation of the collection will be used.
+func (uo *UpdateManyOptionsBuilder) SetCollation(c *Collation) *UpdateManyOptionsBuilder {
+	uo.Opts = append(uo.Opts, func(opts *UpdateManyOptions) error {
+		opts.Collation = c
+
+		return nil
+	})
+
+	return uo
+}
+
+// SetComment sets the value for the Comment field. Specifies a string or document that will be
+// included in server logs, profiling logs, and currentOp queries to help trace the operation.
+// The default value is nil, which means that no comment will be included in the logs.
+func (uo *UpdateManyOptionsBuilder) SetComment(comment interface{}) *UpdateManyOptionsBuilder {
+	uo.Opts = append(uo.Opts, func(opts *UpdateManyOptions) error {
+		opts.Comment = comment
+
+		return nil
+	})
+
+	return uo
+}
+
+// SetHint sets the value for the Hint field. Specifies the index to use for the
+// operation. This should either be the index name as a string or the index
+// specification as a document. This option is only valid for MongoDB versions
+// >= 4.2. Server versions < 4.2 will return an error if this option is
+// specified. The driver will return an error if this option is specified during
+// an unacknowledged write operation. The driver will return an error if the
+// hint parameter is a multi-key map. The default value is nil, which means that
+// no hint will be sent.
+func (uo *UpdateManyOptionsBuilder) SetHint(h interface{}) *UpdateManyOptionsBuilder {
+	uo.Opts = append(uo.Opts, func(opts *UpdateManyOptions) error {
+		opts.Hint = h
+
+		return nil
+	})
+
+	return uo
+}
+
+// SetUpsert sets the value for the Upsert field. If true, a new document will be inserted if the
+// filter does not match any documents in the collection. The default value is false.
+func (uo *UpdateManyOptionsBuilder) SetUpsert(b bool) *UpdateManyOptionsBuilder {
+	uo.Opts = append(uo.Opts, func(opts *UpdateManyOptions) error {
+		opts.Upsert = &b
+
+		return nil
+	})
+
+	return uo
+}
+
+// SetLet sets the value for the Let field. Specifies parameters for the update expression. This
+// option is only valid for MongoDB versions >= 5.0. Older servers will report an error for using
+// this option. This must be a document mapping parameter names to values. Values must be constant
+// or closed expressions that do not reference document fields. Parameters can then be accessed
+// as variables in an aggregate expression context (e.g. "$$var").
+func (uo *UpdateManyOptionsBuilder) SetLet(l interface{}) *UpdateManyOptionsBuilder {
+	uo.Opts = append(uo.Opts, func(opts *UpdateManyOptions) error {
+		opts.Let = l
+
+		return nil
+	})
+
+	return uo
 }

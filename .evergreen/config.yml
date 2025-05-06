@@ -20,172 +20,51 @@ exec_timeout_secs: 3600
 
 # What to do when evergreen hits the timeout (`post:` tasks are run automatically)
 timeout:
-  - command: shell.exec
+  - command: subprocess.exec
     params:
-      shell: "bash"
-      script: |
-        ls -la
+      binary: bash
+      args: [ls, -la]
+
 functions:
-  fetch-source:
+  setup-system:
     # Executes clone and applies the submitted patch, if any
     - command: git.get_project
       type: system
       params:
         directory: src/go.mongodb.org/mongo-driver
-    # Make an evergreen expansion file with dynamic values
     - command: shell.exec
       params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
+        working_dir: "src/go.mongodb.org/mongo-driver"
         script: |
-          set -o errexit
-
-          # Get the current unique version of this checkout.
-          if [ "${is_patch}" = "true" ]; then
-             CURRENT_VERSION=$(git describe)-patch-${version_id}
-          else
-             CURRENT_VERSION=latest
-          fi
-
-          # Set Golang environment vars. GOROOT is wherever current Go distribution is; GOPATH is always 3
-          # directories up from pwd; GOCACHE is under .cache in the pwd.
-          export GOROOT="${GO_DIST}"
-          export GOPATH="$(dirname $(dirname $(dirname `pwd`)))"
-          export GOCACHE="$(pwd)/.cache"
-
-          # Set other relevant variables for Evergreen processes.
-          export DRIVERS_TOOLS="$(dirname $(dirname $(dirname `pwd`)))/drivers-tools"
-          export PROJECT_DIRECTORY="$(pwd)"
-          export MONGO_ORCHESTRATION_HOME="$DRIVERS_TOOLS/.evergreen/orchestration"
-          export MONGODB_BINARIES="$DRIVERS_TOOLS/mongodb/bin"
-          export UPLOAD_BUCKET="${project}"
-          export PROJECT="${project}"
-
-          # If on Windows, convert paths with cygpath. GOROOT should not be converted as Windows expects it
-          # to be separated with '\'.
-          if [ "Windows_NT" = "$OS" ]; then
-             export GOPATH=$(cygpath -m $GOPATH)
-             export GOCACHE=$(cygpath -m $GOCACHE)
-             export DRIVERS_TOOLS=$(cygpath -m $DRIVERS_TOOLS)
-             export PROJECT_DIRECTORY=$(cygpath -m $PROJECT_DIRECTORY)
-             export MONGO_ORCHESTRATION_HOME=$(cygpath -m $MONGO_ORCHESTRATION_HOME)
-             export MONGODB_BINARIES=$(cygpath -m $MONGODB_BINARIES)
-             export UPLOAD_BUCKET=$(cygpath -m $UPLOAD_BUCKET)
-             export PROJECT=$(cygpath -m $PROJECT)
-
-             # Set home variables for Windows, too.
-             export USERPROFILE=$(cygpath -w $(dirname $(dirname $(dirname `pwd`))))
-             export HOME=$USERPROFILE
-          fi
-
-          # Set actual PATH. PATH should contain binaries from GOROOT, GOPATH, GCC_PATH and mongodb.
-          export GOROOTBIN="$GOROOT/bin"
-          export GOPATHBIN="$GOPATH/bin"
-          if [ "Windows_NT" = "$OS" ]; then
-             # Convert all Windows-style paths (e.g. C:/) to Bash-style Cygwin paths
-             # (e.g. /cygdrive/c/...) because PATH is interpreted by Bash, which uses ":" as a
-             # separator so doesn't support Windows-style paths. Other scripts or binaries that
-             # aren't part of Cygwin still need the environment variables to use Windows-style
-             # paths, so only convert them when setting PATH. Note that GCC_PATH is already a
-             # Bash-style Cygwin path for all Windows tasks.
-             export PATH="$(cygpath $GOROOTBIN):$(cygpath $GOPATHBIN):${GCC_PATH}:$(cygpath $MONGODB_BINARIES):$PATH"
-          else
-             export PATH="$GOROOTBIN:$GOPATHBIN:${GCC_PATH}:$MONGODB_BINARIES:$PATH"
-          fi
-
-          # Check Go installation.
-          go version
-          go env
-
-          # Install libmongocrypt.
-          bash etc/install-libmongocrypt.sh
-          if [ "Windows_NT" = "$OS" ]; then
-            export PATH=$PATH:/cygdrive/c/libmongocrypt/bin
-          fi
-
-          cat <<EOT > expansion.yml
-          CURRENT_VERSION: "$CURRENT_VERSION"
-          DRIVERS_TOOLS: "$DRIVERS_TOOLS"
-          MONGO_ORCHESTRATION_HOME: "$MONGO_ORCHESTRATION_HOME"
-          MONGODB_BINARIES: "$MONGODB_BINARIES"
-          UPLOAD_BUCKET: "$UPLOAD_BUCKET"
-          PROJECT_DIRECTORY: "$PROJECT_DIRECTORY"
-          PREPARE_SHELL: |
-             set -o errexit
-             export SKIP_LEGACY_SHELL=1
-             export GOROOT="$GOROOT"
-             export GOPATH="$GOPATH"
-             export GOCACHE="$GOCACHE"
-             export DRIVERS_TOOLS="$DRIVERS_TOOLS"
-             export PROJECT_DIRECTORY="$PROJECT_DIRECTORY"
-             export MONGO_ORCHESTRATION_HOME="$MONGO_ORCHESTRATION_HOME"
-             export MONGODB_BINARIES="$MONGODB_BINARIES"
-             export UPLOAD_BUCKET="$UPLOAD_BUCKET"
-             export PROJECT="$PROJECT"
-             export TMPDIR="$MONGO_ORCHESTRATION_HOME/db"
-             export PKG_CONFIG_PATH=$(pwd)/install/libmongocrypt/lib64/pkgconfig
-             export LD_LIBRARY_PATH=$(pwd)/install/libmongocrypt/lib64
-             export PATH="$PATH"
-          EOT
-          # See what we variables we've set.
-          cat expansion.yml
-    # Load the expansion file to make an evergreen variable with the current unique version
+          git submodule update --init
+    # Make an env.sh and evergreen expansion file with dynamic values
+    - command: subprocess.exec
+      params:
+        binary: bash
+        working_dir: src/go.mongodb.org/mongo-driver
+        env:
+          GOROOT: ${GO_DIST}
+          IS_PATCH: ${is_patch}
+          VERSION_ID: ${version_id}
+          # Define an alias for the task runner script.
+          TASK_RUNNER_ALIAS: &task-runner src/go.mongodb.org/mongo-driver/.evergreen/run-task.sh
+        args: [.evergreen/setup-system.sh]
     - command: expansions.update
       params:
         file: src/go.mongodb.org/mongo-driver/expansion.yml
-
-  prepare-resources:
-    - command: shell.exec
+    - command: subprocess.exec
       params:
-        shell: "bash"
-        script: |
-          ${PREPARE_SHELL}
-          rm -rf $DRIVERS_TOOLS
-          if [ "${project}" = "drivers-tools" ]; then
-            # If this was a patch build, doing a fresh clone would not actually test the patch
-            cp -R ${PROJECT_DIRECTORY}/ $DRIVERS_TOOLS
-          else
-            git clone https://github.com/mongodb-labs/drivers-evergreen-tools.git $DRIVERS_TOOLS
-          fi
-          echo "{ \"releases\": { \"default\": \"$MONGODB_BINARIES\" }}" > $MONGO_ORCHESTRATION_HOME/orchestration.config
-    - command: shell.exec
-      params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
-        script: |
-          ${PREPARE_SHELL}
-
-          # initialize submodules
-          git submodule init
-          git submodule update
-    - command: shell.exec
-      params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
-        script: |
-          . ${DRIVERS_TOOLS}/.evergreen/venv-utils.sh
-          . ${DRIVERS_TOOLS}/.evergreen/find-python3.sh
-
-          export PYTHON3_BINARY="$(find_python3 2>/dev/null)"
-          venvcreate "$PYTHON3_BINARY" venv
-
-          echo "PYTHON3_BINARY: $PYTHON3_BINARY" >>expansion.yml
-    # Load the expansion file to make an evergreen variable with the current unique version
-    - command: expansions.update
-      params:
-        file: src/go.mongodb.org/mongo-driver/expansion.yml
+        binary: bash
+        include_expansions_in_env: ["PROJECT_DIRECTORY"]
+        args:
+          - "${DRIVERS_TOOLS}/.evergreen/setup.sh"
 
   handle-test-artifacts:
     - command: gotest.parse_files
       params:
+        optional_output: "true"
         files:
           - "src/go.mongodb.org/mongo-driver/*.suite"
-    - command: shell.exec
-      params:
-        shell: "bash"
-        script: |
-          ${PREPARE_SHELL}
-          find $MONGO_ORCHESTRATION_HOME -name \*.log | xargs tar czf mongodb-logs.tar.gz
     - command: ec2.assume_role
       params:
         role_arn: ${assume_role_arn}
@@ -194,12 +73,12 @@ functions:
         aws_key: ${AWS_ACCESS_KEY_ID}
         aws_secret: ${AWS_SECRET_ACCESS_KEY}
         aws_session_token: ${AWS_SESSION_TOKEN}
-        local_file: mongodb-logs.tar.gz
-        remote_file: ${build_variant}/${revision}/${version_id}/${build_id}/logs/${task_id}-${execution}-mongodb-logs.tar.gz
+        local_file: ${DRIVERS_TOOLS}/.evergreen/test_logs.tar.gz
+        remote_file: ${build_variant}/${revision}/${version_id}/${build_id}/logs/${task_id}-${execution}-drivers-tools-logs.tar.gz
         bucket: ${aws_bucket}
         permissions: public-read
         content_type: ${content_type|application/x-gzip}
-        display_name: "mongodb-logs.tar.gz"
+        display_name: "drivers-tools-logs.tar.gz"
     - command: s3.put
       params:
         aws_key: ${AWS_ACCESS_KEY_ID}
@@ -212,13 +91,10 @@ functions:
         permissions: public-read
         content_type: application/x-gzip
         display_name: "fuzz.tgz"
-    - command: shell.exec
+    - command: subprocess.exec
       params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
-        script: |
-          ${PREPARE_SHELL}
-          find . -name \*.suite | xargs tar czf test_suite.tgz
+        binary: bash
+        args: [*task-runner, evg-gather-test-suites]
     - command: s3.put
       params:
         aws_key: ${AWS_ACCESS_KEY_ID}
@@ -230,486 +106,369 @@ functions:
         bucket: ${aws_bucket}
         permissions: public-read
         content_type: ${content_type|text/plain}
-        display_name: "test_suite.tgz"
+        display_name: test_suite.tgz
 
   bootstrap-mongohoused:
     - command: subprocess.exec
       params:
-        binary: "bash"
+        binary: bash
         args: 
           - ${DRIVERS_TOOLS}/.evergreen/atlas_data_lake/pull-mongohouse-image.sh
     - command: subprocess.exec
       params:
-        binary: "bash"
+        binary: bash
         args: 
           - ${DRIVERS_TOOLS}/.evergreen/atlas_data_lake/run-mongohouse-image.sh
 
   bootstrap-mongo-orchestration:
-    - command: shell.exec
+    - command: subprocess.exec
       params:
-        shell: "bash"
-        script: |
-          set -x
-          ${PREPARE_SHELL}
-
-          MONGODB_VERSION=${VERSION} \
-          TOPOLOGY=${TOPOLOGY} \
-          AUTH=${AUTH} \
-          SSL=${SSL} \
-          ORCHESTRATION_FILE=${ORCHESTRATION_FILE} \
-          REQUIRE_API_VERSION=${REQUIRE_API_VERSION} \
-          LOAD_BALANCER=${LOAD_BALANCER} \
-          bash ${DRIVERS_TOOLS}/.evergreen/run-orchestration.sh
+        binary: bash
+        env: 
+          MONGODB_VERSION: ${VERSION}
+        include_expansions_in_env: [TOPOLOGY, AUTH, SSL, ORCHESTRATION_FILE, 
+            REQUIRE_API_VERSION, LOAD_BALANCER]
+        args: ["${DRIVERS_TOOLS}/.evergreen/run-orchestration.sh"]
     - command: expansions.update
       params:
         file: mo-expansion.yml
 
   ocsp-bootstrap-mongo-orchestration:
-    - command: shell.exec
+    - command: subprocess.exec
       params:
-        shell: "bash"
-        script: |
-          ${PREPARE_SHELL}
-
-          MONGODB_VERSION=${VERSION} \
-          TOPOLOGY=${TOPOLOGY} \
-          AUTH=${AUTH} \
-          SSL=${SSL} \
-          ORCHESTRATION_FILE=${ORCHESTRATION_FILE} \
-          bash ${DRIVERS_TOOLS}/.evergreen/run-orchestration.sh
+        binary: bash
+        env: 
+          MONGODB_VERSION: ${VERSION}
+        include_expansions_in_env: [TOPOLOGY, AUTH, SSL, ORCHESTRATION_FILE]
+        args: ["${DRIVERS_TOOLS}/.evergreen/run-orchestration.sh"]
     - command: expansions.update
       params:
         file: mo-expansion.yml
 
-  cleanup:
-    - command: shell.exec
+  teardown:
+    - command: subprocess.exec
       params:
-        shell: "bash"
-        script: |
+        binary: bash
+        args: 
           # Ensure the instance profile is reassigned for aws tests.
-          cd "${DRIVERS_TOOLS}/.evergreen/auth_aws"
-          if [ -f "./aws_e2e_setup.json" ]; then
-            . ./activate-authawsvenv.sh
-            python ./lib/aws_assign_instance_profile.py
-          fi
-    - command: shell.exec
+          - ${DRIVERS_TOOLS}/.evergreen/auth_aws/teardown.sh
+    - command: subprocess.exec
       params:
-        shell: "bash"
-        script: |
-          # Attempt to shut down a running load balancer. Ignore any errors that happen if the load
-          # balancer is not running.
-          DRIVERS_TOOLS=${DRIVERS_TOOLS} MONGODB_URI=${MONGODB_URI} bash ${DRIVERS_TOOLS}/.evergreen/run-load-balancer.sh stop || echo "Ignoring load balancer stop error"
-    - command: shell.exec
+        binary: bash
+        args: 
+          - ${DRIVERS_TOOLS}/.evergreen/csfle/teardown.sh
+    - command: subprocess.exec
       params:
-        shell: "bash"
-        script: |
-          ${PREPARE_SHELL}
-          # Clean up cse servers
-          bash ${DRIVERS_TOOLS}/.evergreen/csfle/stop-servers.sh
-    - command: shell.exec
+        binary: bash
+        args: 
+          - ${DRIVERS_TOOLS}/.evergreen/ocsp/teardown.sh
+    - command: subprocess.exec
       params:
-        shell: "bash"
-        script: |
-          ${PREPARE_SHELL}
-          # Stop orchestration and remove drivers tools.
-          bash ${DRIVERS_TOOLS}/.evergreen/stop-orchestration.sh
-          cd -
-          rm -rf $DRIVERS_TOOLS || true
+        binary: bash
+        args: 
+          - ${DRIVERS_TOOLS}/.evergreen/teardown.sh
 
-
-  fix-absolute-paths:
-    - command: shell.exec
-      params:
-        shell: "bash"
-        script: |
-          ${PREPARE_SHELL}
-          for filename in $(find ${DRIVERS_TOOLS} -name \*.json); do
-            perl -p -i -e "s|ABSOLUTE_PATH_REPLACEMENT_TOKEN|${DRIVERS_TOOLS}|g" $filename
-          done
-
-  windows-fix:
-    - command: shell.exec
-      params:
-        shell: "bash"
-        script: |
-          ${PREPARE_SHELL}
-          for i in $(find ${DRIVERS_TOOLS}/.evergreen ${PROJECT_DIRECTORY} -name \*.sh); do
-            cat $i | tr -d '\r' > $i.new
-            mv $i.new $i
-          done
-          # Copy client certificate because symlinks do not work on Windows. Ignore any copy errors.
-          cp ${DRIVERS_TOOLS}/.evergreen/x509gen/client.pem ${MONGO_ORCHESTRATION_HOME}/lib/client.pem || echo "Ignoring copy error"
-
-  make-files-executable:
-    - command: shell.exec
-      params:
-        shell: "bash"
-        script: |
-          ${PREPARE_SHELL}
-          for i in $(find ${DRIVERS_TOOLS}/.evergreen ${PROJECT_DIRECTORY} -name \*.sh); do
-            chmod +x $i
-          done
-
-  assume-ec2-role:
+  assume-test-secrets-ec2-role:
     - command: ec2.assume_role
       params:
         role_arn: ${aws_test_secrets_role}
+        duration_seconds: 1800
 
   run-oidc-auth-test-with-test-credentials:
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        working_dir: src/go.mongodb.org/mongo-driver
-        shell: bash
-        include_expansions_in_env: ["DRIVERS_TOOLS", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
-        script: |
-          ${PREPARE_SHELL}
-          export OIDC="oidc"
-          bash ${PROJECT_DIRECTORY}/etc/run-oidc-test.sh 'make -s evg-test-oidc-auth'
-
-  run-make:
-    - command: shell.exec
-      type: test
-      params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
-        script: |
-          ${PREPARE_SHELL}
-          ${BUILD_ENV|} BUILD_TAGS=${BUILD_TAGS|-tags=cse,gssapi} make ${targets}
+        binary: bash
+        env:
+          OIDC: oidc
+        include_expansions_in_env: [DRIVERS_TOOLS, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN]
+        args: [*task-runner, test-oidc]
 
   run-tests:
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
+        binary: bash
+        env:
+          GO_BUILD_TAGS: cse
         include_expansions_in_env: ["TOPOLOGY", "AUTH", "SSL", "SKIP_CSOT_TESTS", "MONGODB_URI", "CRYPT_SHARED_LIB_PATH", "SKIP_CRYPT_SHARED_LIB", "RACE", "MONGO_GO_DRIVER_COMPRESSOR", "REQUIRE_API_VERSION", "LOAD_BALANCER"]
-        script: |
-          ${PREPARE_SHELL}
-          bash ${PROJECT_DIRECTORY}/.evergreen/run-tests.sh
+        args: [*task-runner, setup-test]
+    - command: subprocess.exec
+      type: test
+      params:
+        binary: bash
+        args: [*task-runner, "${DEFAULT_TASK}" ]
 
   create-api-report:
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
-        script: |
-          ${PREPARE_SHELL}
-          export BASE_SHA=${revision}
-          export HEAD_SHA=${github_commit}
-          bash etc/api_report.sh
+        binary: bash
+        env:
+          BASE_SHA: "${revision}"
+          HEAD_SHA: "${github_commit}"
+        args: [*task-runner, api-report]
 
   "add PR labels":
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
-        script: |
-          ${PREPARE_SHELL}
-          export CONFIG=$PROJECT_DIRECTORY/.github/labeler.yml
-          export SCRIPT="$DRIVERS_TOOLS/.evergreen/github_app/apply-labels.sh"
-          bash $SCRIPT -l $CONFIG -h ${github_commit} -o "mongodb" -n "mongo-go-driver"
+        binary: bash
+        env:
+          COMMIT: "${github_commit}"
+          PR_TASK: apply-labels
+        args: [*task-runner, pr-task]
 
   "add PR reviewer":
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
-        script: |
-          ${PREPARE_SHELL}
-          export CONFIG=$PROJECT_DIRECTORY/.github/reviewers.txt
-          export SCRIPT="$DRIVERS_TOOLS/.evergreen/github_app/assign-reviewer.sh"
-          bash $SCRIPT -p $CONFIG -h ${github_commit} -o "mongodb" -n "mongo-go-driver"
+        binary: bash
+        env:
+          COMMIT: "${github_commit}"
+          PR_TASK: assign-reviewer
+        args: [*task-runner, pr-task]
 
   "backport pr":
     - command: subprocess.exec
       type: test
       params:
         binary: bash
-        args:
-          - ${DRIVERS_TOOLS}/.evergreen/github_app/backport-pr.sh 
-          - mongodb 
-          - mongo-go-driver 
-          - ${github_commit}
+        env:
+          COMMIT: "${github_commit}"
+          PR_TASK: backport-pr
+        args: [*task-runner, pr-task]
 
   send-perf-data:
-    - command: perf.send
+    # Here we begin to generate the request to send the data to SPS
+    - command: shell.exec
       params:
-        file: src/go.mongodb.org/mongo-driver/perf.json
+        script: |
+          # We use the requester expansion to determine whether the data is from a mainline evergreen run or not
+          if [ "${requester}" == "commit" ]; then
+            is_mainline=true
+          else
+            is_mainline=false
+          fi
+
+          # We parse the username out of the order_id as patches append that in and SPS does not need that information
+          parsed_order_id=$(echo "${revision_order_id}" | awk -F'_' '{print $NF}')
+          # Submit the performance data to the SPS endpoint
+          response=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X 'POST' \
+            "https://performance-monitoring-api.corp.mongodb.com/raw_perf_results/cedar_report?project=${project_id}&version=${version_id}&variant=${build_variant}&order=$parsed_order_id&task_name=${task_name}&task_id=${task_id}&execution=${execution}&mainline=$is_mainline" \
+            -H 'accept: application/json' \
+            -H 'Content-Type: application/json' \
+            -d @src/go.mongodb.org/mongo-driver/perf.json)
+
+          http_status=$(echo "$response" | grep "HTTP_STATUS" | awk -F':' '{print $2}')
+          response_body=$(echo "$response" | sed '/HTTP_STATUS/d')
+
+          # We want to throw an error if the data was not successfully submitted
+          if [ "$http_status" -ne 200 ]; then
+            echo "Error: Received HTTP status $http_status"
+            echo "Response Body: $response_body"
+            exit 1
+          fi
+
+          echo "Response Body: $response_body"
+          echo "HTTP Status: $http_status"
 
   run-enterprise-auth-tests:
     - command: ec2.assume_role
       params:
         role_arn: "${aws_test_secrets_role}"
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
-        include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
-        script: |
-          ${PREPARE_SHELL}
-          bash ./etc/run-enterprise-plain-test.sh
+        binary: bash
+        include_expansions_in_env: [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN]
+        env: 
+          TEST_ENTERPRISE_AUTH: plain
+        args: [*task-runner, setup-test]
+    - command: subprocess.exec
+      type: test
+      params:
+        binary: bash
+        args: [*task-runner, --silent, evg-test-enterprise-auth]
 
   run-enterprise-gssapi-auth-tests:
     - command: ec2.assume_role
       params:
         role_arn: "${aws_test_secrets_role}"
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
-        include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
-        script: |
-          ${PREPARE_SHELL}
-          bash ./etc/run-enterprise-gssapi-test.sh
+        binary: bash
+        include_expansions_in_env: [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN]
+        env: 
+          TEST_ENTERPRISE_AUTH: gssapi
+        args: [*task-runner, setup-test]
+    - command: subprocess.exec
+      type: test
+      params:
+        binary: bash
+        args: [*task-runner, --silent, evg-test-enterprise-auth]
 
   run-atlas-test:
     - command: ec2.assume_role
       params:
         role_arn: "${aws_test_secrets_role}"
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
-        include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
-        script: |
-          ${PREPARE_SHELL}
-          bash etc/run-atlas-test.sh
+        binary: bash
+        include_expansions_in_env: [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN]
+        env:
+          TEST_ATLAS_CONNECT: "1"
+        args: [*task-runner, setup-test]
+    - command: subprocess.exec
+      type: test
+      params:
+        binary: bash
+        args: [*task-runner, test-atlas-connect]
 
   run-ocsp-test:
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
-        script: |
-          ${PREPARE_SHELL}
-          export MONGO_GO_DRIVER_CA_FILE="$DRIVERS_TOOLS/.evergreen/ocsp/${OCSP_ALGORITHM}/ca.pem"
-          if [ "Windows_NT" = "$OS" ]; then # Magic variable in cygwin
-            export MONGO_GO_DRIVER_CA_FILE=$(cygpath -m $MONGO_GO_DRIVER_CA_FILE)
-          fi
-
-          AUTH="auth" \
-          SSL="ssl" \
-          TOPOLOGY="server" \
-          MONGODB_URI="${MONGODB_URI}" \
-          OCSP_TLS_SHOULD_SUCCEED="${OCSP_TLS_SHOULD_SUCCEED}" \
-          make evg-test-ocsp
+        binary: bash
+        env: 
+          TOPOLOGY: server
+          AUTH: auth
+          SSL: ssl
+        include_expansions_in_env: [OCSP_ALGORITHM, MONGODB_URI]
+        args: [*task-runner, setup-test]
+    - command: subprocess.exec
+      type: test
+      params:
+        binary: bash
+        include_expansions_in_env: [OCSP_TLS_SHOULD_SUCCEED]
+        args: [*task-runner, evg-test-ocsp]
 
   run-versioned-api-test:
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
-        script: |
-          ${PREPARE_SHELL}
-          source ./secrets-export.sh
-
-          if [ "${SKIP_CRYPT_SHARED_LIB}" = "true" ]; then
-            CRYPT_SHARED_LIB_PATH=""
-            echo "crypt_shared library is skipped"
-          elif [ -z "${CRYPT_SHARED_LIB_PATH}" ]; then
-            echo "crypt_shared library path is empty"
-          else
-            CRYPT_SHARED_LIB_PATH=${CRYPT_SHARED_LIB_PATH}
-            echo "crypt_shared library will be loaded from path: $CRYPT_SHARED_LIB_PATH"
-          fi
-
-          export GOFLAGS=-mod=vendor
-          AUTH="${AUTH}" \
-          SSL="${SSL}" \
-          MONGODB_URI="${MONGODB_URI}" \
-          TOPOLOGY="${TOPOLOGY}" \
-          MONGO_GO_DRIVER_COMPRESSOR=${MONGO_GO_DRIVER_COMPRESSOR} \
-          BUILD_TAGS="-tags=cse" \
-          REQUIRE_API_VERSION="${REQUIRE_API_VERSION}" \
-          CRYPT_SHARED_LIB_PATH="$CRYPT_SHARED_LIB_PATH" \
-          make evg-test-versioned-api \
-          PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
-          LD_LIBRARY_PATH=$LD_LIBRARY_PATH
+        binary: bash
+        env: 
+          GO_BUILD_TAGS: cse
+        include_expansions_in_env: [AUTH, SSL, MONGODB_URI, TOPOLOGY, MONGO_GO_DRIVER_COMPRESSOR, 
+          REQUIRE_API_VERSION, SKIP_CRYPT_SHARED_LIB, CRYPT_SHARED_LIB_PATH]
+        args: [*task-runner, setup-test]
+    - command: subprocess.exec
+      type: test
+      params:
+        binary: bash
+        args: [*task-runner, evg-test-versioned-api]
 
   run-load-balancer-tests:
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
-        script: |
-          ${PREPARE_SHELL}
-
-          if [ ${SSL} = "ssl" ]; then
-              export MONGO_GO_DRIVER_CA_FILE="$DRIVERS_TOOLS/.evergreen/x509gen/ca.pem"
-              export MONGO_GO_DRIVER_KEY_FILE="$DRIVERS_TOOLS/.evergreen/x509gen/client.pem"
-              export MONGO_GO_DRIVER_PKCS8_ENCRYPTED_KEY_FILE="$DRIVERS_TOOLS/.evergreen/x509gen/client-pkcs8-encrypted.pem"
-              export MONGO_GO_DRIVER_PKCS8_UNENCRYPTED_KEY_FILE="$DRIVERS_TOOLS/.evergreen/x509gen/client-pkcs8-unencrypted.pem"
-              if [ "Windows_NT" = "$OS" ]; then # Magic variable in cygwin
-                  export MONGO_GO_DRIVER_CA_FILE=$(cygpath -m $MONGO_GO_DRIVER_CA_FILE)
-                  export MONGO_GO_DRIVER_KEY_FILE=$(cygpath -m $MONGO_GO_DRIVER_KEY_FILE)
-                  export MONGO_GO_DRIVER_PKCS8_ENCRYPTED_KEY_FILE=$(cygpath -m $MONGO_GO_DRIVER_PKCS8_ENCRYPTED_KEY_FILE)
-                  export MONGO_GO_DRIVER_PKCS8_UNENCRYPTED_KEY_FILE=$(cygpath -m $MONGO_GO_DRIVER_PKCS8_UNENCRYPTED_KEY_FILE)
-              fi
-          fi
-
-          # Verify that the required LB URI expansions are set to ensure that the test runner can correctly connect to
-          # the LBs.
-          if [ -z "${SINGLE_MONGOS_LB_URI}" ]; then
-            echo "SINGLE_MONGOS_LB_URI must be set for testing against LBs"
-            exit 1
-          fi
-          if [ -z "${MULTI_MONGOS_LB_URI}" ]; then
-            echo "MULTI_MONGOS_LB_URI must be set for testing against LBs"
-            exit 1
-          fi
-
-          # Per the LB testing spec, the URI of an LB fronting a single mongos should be used to configure internal
-          # testing Client instances, so we set MONGODB_URI to SINGLE_MONGOS_LB_URI.
-          export GOFLAGS=-mod=vendor
-          AUTH="${AUTH}" \
-          SSL="${SSL}" \
-          MONGODB_URI="${SINGLE_MONGOS_LB_URI}" \
-          SINGLE_MONGOS_LB_URI="${SINGLE_MONGOS_LB_URI}" \
-          MULTI_MONGOS_LB_URI="${MULTI_MONGOS_LB_URI}" \
-          TOPOLOGY="${TOPOLOGY}" \
-          MONGO_GO_DRIVER_COMPRESSOR=${MONGO_GO_DRIVER_COMPRESSOR} \
-          make evg-test-load-balancers
+        binary: bash
+        include_expansions_in_env: [SINGLE_MONGOS_LB_URI, MULTI_MONGOS_LB_URI, AUTH, SSL, MONGO_GO_DRIVER_COMPRESSOR]
+        env: 
+          LOAD_BALANCER: "true"
+        args: [*task-runner, setup-test]
+    - command: subprocess.exec
+      type: test
+      params:
+        binary: bash
+        args: [*task-runner, evg-test-load-balancers]
 
   run-serverless-tests:
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
-        script: |
-          ${PREPARE_SHELL}
-          bash etc/run-serverless-test.sh
+        binary: "bash"
+        env:
+          SERVERLESS: "serverless"
+        args: [*task-runner, setup-test]
+    - command: subprocess.exec
+      type: test
+      params:
+        binary: "bash"
+        args: [*task-runner, evg-test-serverless]
 
   run-atlas-data-lake-test:
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
-        script: |
-          ${PREPARE_SHELL}
-          AUTH="auth" \
-          SSL="nossl" \
-          TOPOLOGY="server" \
-          MONGODB_URI="mongodb://mhuser:pencil@localhost" \
-          make evg-test-atlas-data-lake
+        binary: "bash"
+        env: 
+          AUTH: auth
+          SSL: nossl
+          TOPOLOGY: server
+          MONGODB_URI: "mongodb://mhuser:pencil@localhost"
+        args: [*task-runner, setup-test]
+    - command: subprocess.exec
+      type: test
+      params:
+        binary: "bash"
+        args: [*task-runner, evg-test-atlas-data-lake]
 
   run-docker-test:
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
-        script: |
-          ${PREPARE_SHELL}
-          bash etc/run_docker.sh
-          TOPOLOGY=sharded_cluster bash etc/run_docker.sh test-short
+        binary: "bash"
+        env:
+          TASKFILE_TARGET: test-short
+        args: [*task-runner, run-docker]
+    - command: subprocess.exec
+      type: test
+      params:
+        binary: "bash"
+        env: 
+          TOPOLOGY: sharded_cluster
+          TASKFILE_TARGET: test-short
+        args: [*task-runner, run-docker]
 
   run-goleak-test:
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
+        binary: "bash"
         include_expansions_in_env: ["MONGODB_URI"]
-        script: |
-          ${PREPARE_SHELL}
-          bash etc/run-goleak-test.sh
+        args: [*task-runner, test-goleak]
 
-  run-valid-ocsp-server:
-    - command: shell.exec
+  "run oidc k8s test":
+    - command: subprocess.exec
+      type: test
       params:
-        shell: "bash"
-        background: true
-        script: |
-          cd ${DRIVERS_TOOLS}/.evergreen/ocsp
-          . ./activate-ocspvenv.sh
+        binary: bash
+        include_expansions_in_env: [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN, VARIANT, DRIVERS_TOOLS]
+        env:
+          OIDC_ENV: k8s
+        args: [*task-runner, test-oidc-remote]
 
-          python ocsp_mock.py \
-          --ca_file ${OCSP_ALGORITHM}/ca.pem \
-          --ocsp_responder_cert ${OCSP_ALGORITHM}/ca.crt \
-          --ocsp_responder_key ${OCSP_ALGORITHM}/ca.key \
-          -p 8100 -v
-
-  run-revoked-ocsp-server:
-    - command: shell.exec
+  run-ocsp-server:
+    - command: subprocess.exec
       params:
-        shell: "bash"
+        binary: bash
         background: true
-        script: |
-          cd ${DRIVERS_TOOLS}/.evergreen/ocsp
-          . ./activate-ocspvenv.sh
-
-          python ocsp_mock.py \
-          --ca_file ${OCSP_ALGORITHM}/ca.pem \
-          --ocsp_responder_cert ${OCSP_ALGORITHM}/ca.crt \
-          --ocsp_responder_key ${OCSP_ALGORITHM}/ca.key \
-          -p 8100 \
-          -v \
-          --fault revoked
-
-  run-valid-delegate-ocsp-server:
-    - command: shell.exec
-      params:
-        shell: "bash"
-        background: true
-        script: |
-          cd ${DRIVERS_TOOLS}/.evergreen/ocsp
-          . ./activate-ocspvenv.sh
-
-          python ocsp_mock.py \
-          --ca_file ${OCSP_ALGORITHM}/ca.pem \
-          --ocsp_responder_cert ${OCSP_ALGORITHM}/ocsp-responder.crt \
-          --ocsp_responder_key ${OCSP_ALGORITHM}/ocsp-responder.key \
-          -p 8100 -v
-
-  run-revoked-delegate-ocsp-server:
-    - command: shell.exec
-      params:
-        shell: "bash"
-        background: true
-        script: |
-          cd ${DRIVERS_TOOLS}/.evergreen/ocsp
-          . ./activate-ocspvenv.sh
-
-          python ocsp_mock.py \
-          --ca_file ${OCSP_ALGORITHM}/ca.pem \
-          --ocsp_responder_cert ${OCSP_ALGORITHM}/ocsp-responder.crt \
-          --ocsp_responder_key ${OCSP_ALGORITHM}/ocsp-responder.key \
-          -p 8100 \
-          -v \
-          --fault revoked
+        include_expansions_in_env: [SERVER_TYPE, OCSP_ALGORITHM]
+        args:
+          - ${DRIVERS_TOOLS}/.evergreen/ocsp/setup.sh
 
   run-load-balancer:
-    - command: shell.exec
+    - command: subprocess.exec
       params:
-        shell: "bash"
-        script: |
-          DRIVERS_TOOLS=${DRIVERS_TOOLS} MONGODB_URI=${MONGODB_URI} bash ${DRIVERS_TOOLS}/.evergreen/run-load-balancer.sh start
+        binary: "bash"
+        include_expansions_in_env: ["MONGODB-AWS", "MONGODB_URI"]
+        args: ["${DRIVERS_TOOLS}/.evergreen/run-load-balancer.sh", start]
     - command: expansions.update
       params:
         file: lb-expansion.yml
 
   run-search-index-tests:
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
-        script: |
-          ${PREPARE_SHELL}
-          TEST_INDEX_URI="${TEST_INDEX_URI}" \
-          make evg-test-search-index
+        binary: "bash"
+        env:
+          TEST_SEARCH_INDEX: "${MONGODB_URI}"
+        args: [*task-runner, evg-test-search-index]
 
   add-aws-auth-variables-to-file:
     - command: ec2.assume_role
@@ -724,119 +483,77 @@ functions:
           - ${DRIVERS_TOOLS}/.evergreen/auth_aws/setup-secrets.sh
 
   run-aws-auth-test-with-regular-aws-credentials:
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        shell: "bash"
-        working_dir: "src"
-        script: |
-          ${PREPARE_SHELL}
-          ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-test.sh regular
+        binary: "bash"
+        env:
+          AWS_TEST: regular
+        args: [*task-runner, evg-test-aws]
 
   run-aws-auth-test-with-assume-role-credentials:
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        shell: "bash"
-        working_dir: "src"
-        script: |
-          ${PREPARE_SHELL}
-          ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-test.sh assume-role
+        binary: "bash"
+        env:
+          AWS_TEST: assume-role
+        args: [*task-runner, evg-test-aws]
 
   run-aws-auth-test-with-aws-EC2-credentials:
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        shell: "bash"
-        working_dir: "src"
-        script: |
-          ${PREPARE_SHELL}
-          if [ "${SKIP_EC2_AUTH_TEST}" = "true" ]; then
-            echo "This platform does not support the EC2 auth test, skipping..."
-            exit 0
-          fi
-          ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-test.sh ec2
+        binary: bash 
+        include_expansions_in_env: [SKIP_EC2_AUTH_TEST]
+        env:
+          AWS_TEST: ec2
+        args: [*task-runner, evg-test-aws]
 
   run-aws-auth-test-with-aws-credentials-as-environment-variables:
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        shell: "bash"
-        working_dir: "src"
-        script: |
-          ${PREPARE_SHELL}
-          ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-test.sh env-creds
+        binary: "bash"
+        env:
+          AWS_TEST: env-creds
+        args: [*task-runner, evg-test-aws]
 
   run-aws-auth-test-with-aws-credentials-and-session-token-as-environment-variables:
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        shell: "bash"
-        working_dir: "src"
-        script: |
-          ${PREPARE_SHELL}
-          ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-test.sh session-creds
+        binary: "bash"
+        env:
+          AWS_TEST: session-creds
+        args: [*task-runner, evg-test-aws]
 
   run-aws-ECS-auth-test:
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
-        script: |
-          ${PREPARE_SHELL}
-          if [ "${SKIP_ECS_AUTH_TEST}" = "true" ]; then
-            echo "This platform does not support the ECS auth test, skipping..."
-            exit 0
-          fi
-          make build-aws-ecs-test
-    - command: shell.exec
-      type: test
-      params:
-        shell: "bash"
-        working_dir: "src"
-        script: |
-          ${PREPARE_SHELL}
-          if [ "${SKIP_ECS_AUTH_TEST}" = "true" ]; then
-            exit 0
-          fi
-          AUTH_AWS_DIR=${DRIVERS_TOOLS}/.evergreen/auth_aws
-          ECS_SRC_DIR=$AUTH_AWS_DIR/src
-          # pack up project directory to ssh it to the container
-          mkdir -p $ECS_SRC_DIR/.evergreen
-          cp ${PROJECT_DIRECTORY}/main $ECS_SRC_DIR
-          cp ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-ecs-test.sh $ECS_SRC_DIR/.evergreen
-          tar -czf $ECS_SRC_DIR/src.tgz -C $PROJECT_DIRECTORY .
-
-          export PROJECT_DIRECTORY="$ECS_SRC_DIR"
-          $AUTH_AWS_DIR/aws_setup.sh ecs
+        binary: "bash"
+        include_expansions_in_env: [SKIP_ECS_AUTH_TEST]
+        args: [*task-runner, evg-test-aws-ecs]
 
   run-aws-auth-test-with-aws-web-identity-credentials:
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        shell: "bash"
-        working_dir: "src"
-        script: |
-          ${PREPARE_SHELL}
-          if [ "${SKIP_WEB_IDENTITY_AUTH_TEST}" = "true" ]; then
-             echo "This platform does not support the web identity auth test, skipping..."
-             exit 0
-          fi
-          ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-test.sh web-identity
-    - command: shell.exec
+        binary: bash
+        include_expansions_in_env: [SKIP_WEB_IDENTITY_AUTH_TEST]
+        env:
+          AWS_TEST: web-identity
+        args: [*task-runner, evg-test-aws]
+    - command: subprocess.exec
       type: test
       params:
-        shell: "bash"
-        working_dir: "src"
-        script: |
-          ${PREPARE_SHELL}
-          if [ "${SKIP_WEB_IDENTITY_AUTH_TEST}" = "true" ]; then
-             echo "This platform does not support the web identity auth test, skipping..."
-             exit 0
-          fi
-          export AWS_ROLE_SESSION_NAME="test"
-          ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-test.sh web-identity
+        binary: bash
+        env: 
+          AWS_ROLE_SESSION_NAME: test
+          AWS_TEST: web-identity
+        include_expansions_in_env: [SKIP_WEB_IDENTITY_AUTH_TEST]
+        args: [*task-runner, evg-test-aws]
 
   start-cse-servers:
     - command: ec2.assume_role
@@ -848,87 +565,89 @@ functions:
         binary: bash
         background: true
         include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN", "DRIVERS_TOOLS"]
-        args:
-          - etc/setup-encryption.sh
+        # This cannot use task because it will hang on Windows.
+        args: [etc/setup-encryption.sh]
     - command: subprocess.exec
       params:
-        working_dir: src/go.mongodb.org/mongo-driver
         binary: bash
-        args:
-          - ${DRIVERS_TOOLS}/.evergreen/csfle/await-servers.sh
+        args: ["${DRIVERS_TOOLS}/.evergreen/csfle/await-servers.sh"]
 
   run-kms-tls-test:
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
-        script: |
-          ${PREPARE_SHELL}
-          source ./secrets-export.sh
-          export KMS_TLS_TESTCASE="${KMS_TLS_TESTCASE}"
-
-          export GOFLAGS=-mod=vendor
-          AUTH="${AUTH}" \
-          SSL="${SSL}" \
-          MONGODB_URI="${MONGODB_URI}" \
-          TOPOLOGY="${TOPOLOGY}" \
-          MONGO_GO_DRIVER_COMPRESSOR=${MONGO_GO_DRIVER_COMPRESSOR} \
-          BUILD_TAGS="-tags=cse" \
-          make evg-test-kms \
-          PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
-          LD_LIBRARY_PATH=$LD_LIBRARY_PATH
+        binary: "bash"
+        env: 
+          GO_BUILD_TAGS: cse
+        include_expansions_in_env: [AUTH, SSL, MONGODB_URI, TOPOLOGY, 
+          MONGO_GO_DRIVER_COMPRESSOR]
+        args: [*task-runner, setup-test]
+    - command: subprocess.exec
+      type: test
+      params:
+        binary: "bash"
+        include_expansions_in_env: [KMS_TLS_TESTCASE]
+        args: [*task-runner, evg-test-kms]
 
   run-kmip-tests:
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
-        script: |
-          ${PREPARE_SHELL}
-          source ./secrets-export.sh
-          export KMS_MOCK_SERVERS_RUNNING="true"
+        binary: "bash"
+        env: 
+          GO_BUILD_TAGS: cse
+        include_expansions_in_env: [AUTH, SSL, MONGODB_URI, TOPOLOGY, 
+          MONGO_GO_DRIVER_COMPRESSOR]
+        args: [*task-runner, setup-test]
+    - command: subprocess.exec
+      type: test
+      params:
+        binary: "bash"
+        env:
+          KMS_MOCK_SERVERS_RUNNING: "true"
+        args: [*task-runner, evg-test-kmip]
 
-          export GOFLAGS=-mod=vendor
-          AUTH="${AUTH}" \
-          SSL="${SSL}" \
-          MONGODB_URI="${MONGODB_URI}" \
-          TOPOLOGY="${TOPOLOGY}" \
-          MONGO_GO_DRIVER_COMPRESSOR=${MONGO_GO_DRIVER_COMPRESSOR} \
-          BUILD_TAGS="-tags=cse" \
-          make evg-test-kmip \
-          PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
-          LD_LIBRARY_PATH=$LD_LIBRARY_PATH
+  run-retry-kms-requests:
+    - command: subprocess.exec
+      type: test
+      params:
+        binary: "bash"
+        env: 
+          GO_BUILD_TAGS: cse
+        include_expansions_in_env: [AUTH, SSL, MONGODB_URI, TOPOLOGY, 
+          MONGO_GO_DRIVER_COMPRESSOR]
+        args: [*task-runner, setup-test]
+    - command: subprocess.exec
+      type: test
+      params:
+        binary: "bash"
+        env:
+          KMS_FAILPOINT_CA_FILE: "${DRIVERS_TOOLS}/.evergreen/x509gen/ca.pem"
+          KMS_FAILPOINT_SERVER_RUNNING: "true"
+        args: [*task-runner, evg-test-retry-kms-requests]
 
   run-fuzz-tests:
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        shell: "bash"
-        working_dir: "src"
-        script: |
-          ${PREPARE_SHELL}
-          ${PROJECT_DIRECTORY}/.evergreen/run-fuzz.sh
+        binary: "bash"
+        args: [*task-runner, run-fuzz]
 
 pre:
-  - func: fetch-source
-  - func: prepare-resources
-  - func: windows-fix
-  - func: fix-absolute-paths
-  - func: make-files-executable
+  - func: setup-system
 
 post:
+  - func: teardown
   - func: handle-test-artifacts
-  - func: cleanup
 
 tasks:
   - name: static-analysis
     tags: ["static-analysis"]
     commands:
-      - func: run-make
-        vars:
-          targets: "check-fmt check-license check-modules lint"
+      - command: subprocess.exec
+        params:
+          binary: bash
+          args: [*task-runner, check-fmt, check-license, check-modules, lint]
 
   - name: pull-request-helpers
     allowed_requesters: ["patch", "github_pr"]
@@ -948,12 +667,15 @@ tasks:
     commands:
       - func: bootstrap-mongo-orchestration
         vars:
+          VERSION: "v6.0-perf"
           TOPOLOGY: "server"
           AUTH: "noauth"
           SSL: "nossl"
-      - func: run-make
-        vars:
-          targets: driver-benchmark
+          SKIP_LEGACY_SHELL: "true"
+      - command: subprocess.exec
+        params:
+          binary: bash
+          args: [*task-runner, driver-benchmark]
       - func: send-perf-data
 
   - name: test-standalone-noauth-nossl
@@ -1100,9 +822,10 @@ tasks:
   - name: test-ocsp-rsa-valid-cert-server-staples
     tags: ["ocsp", "ocsp-rsa", "ocsp-staple"]
     commands:
-      - func: run-valid-ocsp-server
+      - func: run-ocsp-server
         vars:
           OCSP_ALGORITHM: "rsa"
+          SERVER_TYPE: valid
       - func: ocsp-bootstrap-mongo-orchestration
         vars:
           ORCHESTRATION_FILE: "rsa-basic-tls-ocsp-mustStaple.json"
@@ -1114,9 +837,10 @@ tasks:
   - name: test-ocsp-rsa-invalid-cert-server-staples
     tags: ["ocsp", "ocsp-rsa", "ocsp-staple"]
     commands:
-      - func: run-revoked-ocsp-server
+      - func: run-ocsp-server
         vars:
           OCSP_ALGORITHM: "rsa"
+          SERVER_TYPE: revoked
       - func: ocsp-bootstrap-mongo-orchestration
         vars:
           ORCHESTRATION_FILE: "rsa-basic-tls-ocsp-mustStaple.json"
@@ -1128,9 +852,10 @@ tasks:
   - name: test-ocsp-rsa-valid-cert-server-does-not-staple
     tags: ["ocsp", "ocsp-rsa"]
     commands:
-      - func: run-valid-ocsp-server
+      - func: run-ocsp-server
         vars:
           OCSP_ALGORITHM: "rsa"
+          SERVER_TYPE: valid
       - func: ocsp-bootstrap-mongo-orchestration
         vars:
           ORCHESTRATION_FILE: "rsa-basic-tls-ocsp-disableStapling.json"
@@ -1142,9 +867,10 @@ tasks:
   - name: test-ocsp-rsa-invalid-cert-server-does-not-staple
     tags: ["ocsp", "ocsp-rsa"]
     commands:
-      - func: run-revoked-ocsp-server
+      - func: run-ocsp-server
         vars:
           OCSP_ALGORITHM: "rsa"
+          SERVER_TYPE: revoked
       - func: ocsp-bootstrap-mongo-orchestration
         vars:
           ORCHESTRATION_FILE: "rsa-basic-tls-ocsp-disableStapling.json"
@@ -1167,9 +893,10 @@ tasks:
   - name: test-ocsp-rsa-malicious-invalid-cert-mustStaple-server-does-not-staple
     tags: ["ocsp", "ocsp-rsa"]
     commands:
-      - func: run-revoked-ocsp-server
+      - func: run-ocsp-server
         vars:
           OCSP_ALGORITHM: "rsa"
+          SERVER_TYPE: revoked
       - func: ocsp-bootstrap-mongo-orchestration
         vars:
           ORCHESTRATION_FILE: "rsa-basic-tls-ocsp-mustStaple-disableStapling.json"
@@ -1192,9 +919,10 @@ tasks:
   - name: test-ocsp-rsa-delegate-valid-cert-server-staples
     tags: ["ocsp", "ocsp-rsa", "ocsp-staple"]
     commands:
-      - func: run-valid-delegate-ocsp-server
+      - func: run-ocsp-server
         vars:
           OCSP_ALGORITHM: "rsa"
+          SERVER_TYPE: valid-delegate
       - func: ocsp-bootstrap-mongo-orchestration
         vars:
           ORCHESTRATION_FILE: "rsa-basic-tls-ocsp-mustStaple.json"
@@ -1206,9 +934,10 @@ tasks:
   - name: test-ocsp-rsa-delegate-invalid-cert-server-staples
     tags: ["ocsp", "ocsp-rsa", "ocsp-staple"]
     commands:
-      - func: run-revoked-delegate-ocsp-server
+      - func: run-ocsp-server
         vars:
           OCSP_ALGORITHM: "rsa"
+          SERVER_TYPE: revoked-delegate
       - func: ocsp-bootstrap-mongo-orchestration
         vars:
           ORCHESTRATION_FILE: "rsa-basic-tls-ocsp-mustStaple.json"
@@ -1220,9 +949,10 @@ tasks:
   - name: test-ocsp-rsa-delegate-valid-cert-server-does-not-staple
     tags: ["ocsp", "ocsp-rsa"]
     commands:
-      - func: run-valid-delegate-ocsp-server
+      - func: run-ocsp-server
         vars:
           OCSP_ALGORITHM: "rsa"
+          SERVER_TYPE: valid-delegate
       - func: ocsp-bootstrap-mongo-orchestration
         vars:
           ORCHESTRATION_FILE: "rsa-basic-tls-ocsp-disableStapling.json"
@@ -1234,9 +964,10 @@ tasks:
   - name: test-ocsp-rsa-delegate-invalid-cert-server-does-not-staple
     tags: ["ocsp", "ocsp-rsa"]
     commands:
-      - func: run-revoked-delegate-ocsp-server
+      - func: run-ocsp-server
         vars:
           OCSP_ALGORITHM: "rsa"
+          SERVER_TYPE: revoked-delegate
       - func: ocsp-bootstrap-mongo-orchestration
         vars:
           ORCHESTRATION_FILE: "rsa-basic-tls-ocsp-disableStapling.json"
@@ -1248,9 +979,10 @@ tasks:
   - name: test-ocsp-rsa-delegate-malicious-invalid-cert-mustStaple-server-does-not-staple
     tags: ["ocsp", "ocsp-rsa"]
     commands:
-      - func: run-revoked-delegate-ocsp-server
+      - func: run-ocsp-server
         vars:
           OCSP_ALGORITHM: "rsa"
+          SERVER_TYPE: revoked-delegate
       - func: ocsp-bootstrap-mongo-orchestration
         vars:
           ORCHESTRATION_FILE: "rsa-basic-tls-ocsp-mustStaple-disableStapling.json"
@@ -1262,9 +994,10 @@ tasks:
   - name: test-ocsp-ecdsa-valid-cert-server-staples
     tags: ["ocsp", "ocsp-ecdsa", "ocsp-staple"]
     commands:
-      - func: run-valid-ocsp-server
+      - func: run-ocsp-server
         vars:
           OCSP_ALGORITHM: "ecdsa"
+          SERVER_TYPE: valid
       - func: ocsp-bootstrap-mongo-orchestration
         vars:
           ORCHESTRATION_FILE: "ecdsa-basic-tls-ocsp-mustStaple.json"
@@ -1276,9 +1009,10 @@ tasks:
   - name: test-ocsp-ecdsa-invalid-cert-server-staples
     tags: ["ocsp", "ocsp-ecdsa", "ocsp-staple"]
     commands:
-      - func: run-revoked-ocsp-server
+      - func: run-ocsp-server
         vars:
           OCSP_ALGORITHM: "ecdsa"
+          SERVER_TYPE: revoked
       - func: ocsp-bootstrap-mongo-orchestration
         vars:
           ORCHESTRATION_FILE: "ecdsa-basic-tls-ocsp-mustStaple.json"
@@ -1290,9 +1024,10 @@ tasks:
   - name: test-ocsp-ecdsa-valid-cert-server-does-not-staple
     tags: ["ocsp", "ocsp-ecdsa"]
     commands:
-      - func: run-valid-ocsp-server
+      - func: run-ocsp-server
         vars:
           OCSP_ALGORITHM: "ecdsa"
+          SERVER_TYPE: valid
       - func: ocsp-bootstrap-mongo-orchestration
         vars:
           ORCHESTRATION_FILE: "ecdsa-basic-tls-ocsp-disableStapling.json"
@@ -1304,9 +1039,10 @@ tasks:
   - name: test-ocsp-ecdsa-invalid-cert-server-does-not-staple
     tags: ["ocsp", "ocsp-ecdsa"]
     commands:
-      - func: run-revoked-ocsp-server
+      - func: run-ocsp-server
         vars:
           OCSP_ALGORITHM: "ecdsa"
+          SERVER_TYPE: revoked
       - func: ocsp-bootstrap-mongo-orchestration
         vars:
           ORCHESTRATION_FILE: "ecdsa-basic-tls-ocsp-disableStapling.json"
@@ -1329,9 +1065,10 @@ tasks:
   - name: test-ocsp-ecdsa-malicious-invalid-cert-mustStaple-server-does-not-staple
     tags: ["ocsp", "ocsp-ecdsa"]
     commands:
-      - func: run-revoked-ocsp-server
+      - func: run-ocsp-server
         vars:
           OCSP_ALGORITHM: "ecdsa"
+          SERVER_TYPE: revoked
       - func: ocsp-bootstrap-mongo-orchestration
         vars:
           ORCHESTRATION_FILE: "ecdsa-basic-tls-ocsp-mustStaple-disableStapling.json"
@@ -1354,9 +1091,10 @@ tasks:
   - name: test-ocsp-ecdsa-delegate-valid-cert-server-staples
     tags: ["ocsp", "ocsp-ecdsa", "ocsp-staple"]
     commands:
-      - func: run-valid-delegate-ocsp-server
+      - func: run-ocsp-server
         vars:
           OCSP_ALGORITHM: "ecdsa"
+          SERVER_TYPE: valid-delegate
       - func: ocsp-bootstrap-mongo-orchestration
         vars:
           ORCHESTRATION_FILE: "ecdsa-basic-tls-ocsp-mustStaple.json"
@@ -1368,9 +1106,10 @@ tasks:
   - name: test-ocsp-ecdsa-delegate-invalid-cert-server-staples
     tags: ["ocsp", "ocsp-ecdsa", "ocsp-staple"]
     commands:
-      - func: run-revoked-delegate-ocsp-server
+      - func: run-ocsp-server
         vars:
           OCSP_ALGORITHM: "ecdsa"
+          SERVER_TYPE: revoked-delegate
       - func: ocsp-bootstrap-mongo-orchestration
         vars:
           ORCHESTRATION_FILE: "ecdsa-basic-tls-ocsp-mustStaple.json"
@@ -1382,9 +1121,10 @@ tasks:
   - name: test-ocsp-ecdsa-delegate-valid-cert-server-does-not-staple
     tags: ["ocsp", "ocsp-ecdsa"]
     commands:
-      - func: run-valid-delegate-ocsp-server
+      - func: run-ocsp-server
         vars:
           OCSP_ALGORITHM: "ecdsa"
+          SERVER_TYPE: valid-delegate
       - func: ocsp-bootstrap-mongo-orchestration
         vars:
           ORCHESTRATION_FILE: "ecdsa-basic-tls-ocsp-disableStapling.json"
@@ -1396,9 +1136,10 @@ tasks:
   - name: test-ocsp-ecdsa-delegate-invalid-cert-server-does-not-staple
     tags: ["ocsp", "ocsp-ecdsa"]
     commands:
-      - func: run-revoked-delegate-ocsp-server
+      - func: run-ocsp-server
         vars:
           OCSP_ALGORITHM: "ecdsa"
+          SERVER_TYPE: revoked-delegate
       - func: ocsp-bootstrap-mongo-orchestration
         vars:
           ORCHESTRATION_FILE: "ecdsa-basic-tls-ocsp-disableStapling.json"
@@ -1410,9 +1151,10 @@ tasks:
   - name: test-ocsp-ecdsa-delegate-malicious-invalid-cert-mustStaple-server-does-not-staple
     tags: ["ocsp", "ocsp-ecdsa"]
     commands:
-      - func: run-revoked-delegate-ocsp-server
+      - func: run-ocsp-server
         vars:
           OCSP_ALGORITHM: "ecdsa"
+          SERVER_TYPE: revoked-delegate
       - func: ocsp-bootstrap-mongo-orchestration
         vars:
           ORCHESTRATION_FILE: "ecdsa-basic-tls-ocsp-mustStaple-disableStapling.json"
@@ -1711,24 +1453,30 @@ tasks:
     commands:
       - func: run-enterprise-gssapi-auth-tests
         vars:
-            MONGO_GO_DRIVER_COMPRESSOR: "snappy"
+          MONGO_GO_DRIVER_COMPRESSOR: "snappy"
 
-  # Build with the oldest supported version of Go.
-  - name: go1.18-build
+  # Build the compilecheck submodule with all supported versions of Go >= 
+  # the minimum supported version.
+  - name: go-build
     tags: ["compile-check"]
     commands:
-      - func: run-make
-        vars:
-          targets: "build-compile-check"
-          BUILD_ENV: "PATH=/opt/golang/go1.18/bin:$PATH GOROOT=/opt/golang/go1.18"
+      - command: subprocess.exec
+        params:
+          binary: bash
+          args: [*task-runner, build-compile-check-all]
 
   # Build with the same Go version that we're using for tests.
   - name: build
     tags: ["compile-check"]
     commands:
-      - func: run-make
-        vars:
-          targets: "build"
+      - command: subprocess.exec
+        params:
+          binary: bash
+          # Set the GO_VERSION to empty string to use the Go installation in the
+          # PATH.
+          env:
+            GO_VERSION: ""
+          args: [*task-runner, build]
 
   - name: "atlas-test"
     commands:
@@ -1767,6 +1515,23 @@ tasks:
           SSL: "nossl"
           REQUIRE_API_VERSION: true
 
+  - name: "test-sharded-versioned-api"
+    tags: ["versioned-api"]
+    commands:
+      - func: bootstrap-mongo-orchestration
+        vars:
+          TOPOLOGY: "sharded_cluster"
+          AUTH: "auth"
+          SSL: "nossl"
+          REQUIRE_API_VERSION: true
+      - func: start-cse-servers
+      - func: run-versioned-api-test
+        vars:
+          TOPOLOGY: "sharded_cluster"
+          AUTH: "auth"
+          SSL: "nossl"
+          REQUIRE_API_VERSION: true
+
   - name: "test-standalone-versioned-api-test-commands"
     tags: ["versioned-api"]
     commands:
@@ -1784,7 +1549,7 @@ tasks:
           SSL: "nossl"
 
   - name: "test-kms-tls-invalid-cert"
-    tags: ["kms-tls"]
+    tags: ["kms-test"]
     commands:
       - func: bootstrap-mongo-orchestration
         vars:
@@ -1800,7 +1565,7 @@ tasks:
           SSL: "nossl"
 
   - name: "test-kms-tls-invalid-hostname"
-    tags: ["kms-tls"]
+    tags: ["kms-test"]
     commands:
       - func: bootstrap-mongo-orchestration
         vars:
@@ -1830,6 +1595,17 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
 
+  - name: "test-retry-kms-requests"
+    tags: ["kms-test"]
+    commands:
+      - func: bootstrap-mongo-orchestration
+        vars:
+          TOPOLOGY: "server"
+          AUTH: "noauth"
+          SSL: "nossl"
+      - func: start-cse-servers
+      - func: run-retry-kms-requests
+
   - name: "test-serverless"
     tags: ["serverless"]
     commands:
@@ -1840,143 +1616,63 @@ tasks:
 
   - name: "testgcpkms-task"
     commands:
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
-        script: |
-          ${PREPARE_SHELL}
-          echo "Building build-kms-test ... begin"
-          BUILD_TAGS="-tags=cse" \
-          PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
-            make build-kms-test
-          echo "Building build-kms-test ... end"
-          source $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/secrets-export.sh
-          echo "Copying files ... begin"
-          tar czf testgcpkms.tgz ./testkms ./install/libmongocrypt/lib64/libmongocrypt.*
-          GCPKMS_SRC=testgcpkms.tgz GCPKMS_DST=$GCPKMS_INSTANCENAME: $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/copy-file.sh
-          echo "Copying files ... end"
-
-          echo "Untarring file ... begin"
-          GCPKMS_CMD="tar xf testgcpkms.tgz" $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/run-command.sh
-          echo "Untarring file ... end"
-
-    - command: shell.exec
-      type: test
-      params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
-        script: |
-          ${PREPARE_SHELL}
-          source $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/secrets-export.sh
-          GCPKMS_CMD="LD_LIBRARY_PATH=./install/libmongocrypt/lib64 MONGODB_URI='mongodb://localhost:27017' PROVIDER='gcp' ./testkms" $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/run-command.sh
+        binary: bash
+        args: [*task-runner, test-gcpkms]
 
   - name: "testgcpkms-fail-task"
     # testgcpkms-fail-task runs in a non-GCE environment.
     # It is expected to fail to obtain GCE credentials.
     commands:
-      - command: shell.exec
-        type: test
-        params:
-          shell: "bash"
-          working_dir: src/go.mongodb.org/mongo-driver
-          script: |
-            ${PREPARE_SHELL}
-            echo "Building build-kms-test ... begin"
-            BUILD_TAGS="-tags=cse" \
-            PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
-              make build-kms-test
-            echo "Building build-kms-test ... end"
-            LD_LIBRARY_PATH=./install/libmongocrypt/lib64 \
-            MONGODB_URI='mongodb://localhost:27017/' \
-            EXPECT_ERROR='unable to retrieve GCP credentials' \
-            PROVIDER='gcp' \
-              ./testkms
+    - command: subprocess.exec
+      type: test
+      params:
+        binary: bash
+        env:
+          EXPECT_ERROR: "1"
+        args: [*task-runner, test-gcpkms]
 
   - name: "testawskms-task"
     commands:
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
-        script: |
-          ${PREPARE_SHELL}
-          bash etc/run-awskms-test.sh
+        binary: "bash"
+        args: [*task-runner, test-awskms]
 
   - name: "testawskms-fail-task"
     # testawskms-fail-task runs without environment variables.
     # It is expected to fail to obtain credentials.
     commands:
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
-        script: |
-          ${PREPARE_SHELL}
-          export EXPECT_ERROR='status=400'
-          bash etc/run-awskms-test.sh
+        binary: "bash"
+        env: 
+          EXPECT_ERROR: 'status=400'
+        args: [*task-runner, test-awskms]
 
   - name: "testazurekms-task"
     commands:
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
-        script: |
-          ${PREPARE_SHELL}
-          echo "Building build-kms-test ... begin"
-          BUILD_TAGS="-tags=cse" \
-          PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
-            make build-kms-test
-          echo "Building build-kms-test ... end"
-
-          echo "Copying files ... begin"
-          source $DRIVERS_TOOLS/.evergreen/csfle/azurekms/secrets-export.sh
-          tar czf testazurekms.tgz ./testkms ./install/libmongocrypt/lib64/libmongocrypt.*
-          AZUREKMS_SRC=testazurekms.tgz AZUREKMS_DST=/tmp $DRIVERS_TOOLS/.evergreen/csfle/azurekms/copy-file.sh
-          echo "Copying files ... end"
-          echo "Untarring file ... begin"
-          AZUREKMS_CMD="tar xf /tmp/testazurekms.tgz" $DRIVERS_TOOLS/.evergreen/csfle/azurekms/run-command.sh
-          echo "Untarring file ... end"
-
-    - command: shell.exec
-      type: test
-      params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
-        script: |
-          ${PREPARE_SHELL}
-          source ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/secrets-export.sh
-          AZUREKMS_CMD="LD_LIBRARY_PATH=./install/libmongocrypt/lib64 MONGODB_URI='mongodb://localhost:27017' PROVIDER='azure' AZUREKMS_KEY_NAME=$AZUREKMS_KEYNAME AZUREKMS_KEY_VAULT_ENDPOINT=$AZUREKMS_KEYVAULTENDPOINT ./testkms" $DRIVERS_TOOLS/.evergreen/csfle/azurekms/run-command.sh
+        binary: bash
+        args: [*task-runner, test-azurekms]
 
   - name: "testazurekms-fail-task"
     # testazurekms-fail-task runs without environment variables.
     # It is expected to fail to obtain credentials.
     commands:
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
-        script: |
-          ${PREPARE_SHELL}
-          echo "Building build-kms-test ... begin"
-          BUILD_TAGS="-tags=cse" \
-          PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
-            make build-kms-test
-          echo "Building build-kms-test ... end"
-
-          . ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/setup-secrets.sh
-          
-          LD_LIBRARY_PATH=./install/libmongocrypt/lib64 \
-          MONGODB_URI='mongodb://localhost:27017' \
-          EXPECT_ERROR='unable to retrieve azure credentials' \
-          PROVIDER='azure' AZUREKMS_KEY_NAME=$AZUREKMS_KEYNAME AZUREKMS_KEY_VAULT_ENDPOINT=$AZUREKMS_KEYVAULTENDPOINT \
-            ./testkms
+        binary: bash
+        env:
+          EXPECT_ERROR: "1"
+        args: [*task-runner, test-azurekms]
 
   - name: "test-fuzz"
     commands:
@@ -1989,22 +1685,16 @@ tasks:
         params:
           role_arn: ${LAMBDA_AWS_ROLE_ARN}
           duration_seconds: 3600
-      - command: shell.exec
+      - command: subprocess.exec
         type: test
         params:
-          working_dir: src/go.mongodb.org/mongo-driver
-          shell: bash
+          binary: bash
           env:
-            TEST_LAMBDA_DIRECTORY: ${PROJECT_DIRECTORY}/internal/test/faas/awslambda
+            TEST_LAMBDA_DIRECTORY: ${PROJECT_DIRECTORY}/internal/cmd/faas/awslambda
             LAMBDA_STACK_NAME: dbx-go-lambda
             AWS_REGION: us-east-1
           include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
-          script: |
-            ${PREPARE_SHELL}
-            pushd $TEST_LAMBDA_DIRECTORY/mongodb
-            go mod tidy
-            popd
-            ./.evergreen/run-deployed-lambda-aws-tests.sh
+          args: [*task-runner, evg-test-deployed-lambda-aws]
 
   - name: "oidc-auth-test"
     commands:
@@ -2012,55 +1702,36 @@ tasks:
 
   - name: "oidc-auth-test-azure"
     commands:
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        working_dir: src/go.mongodb.org/mongo-driver
-        shell: bash
-        script: |-
-          set -o errexit
-          ${PREPARE_SHELL}
-          export AZUREOIDC_DRIVERS_TAR_FILE=/tmp/mongo-go-driver.tar.gz
-          # we need to statically link libc to avoid the situation where the VM has a different
-          # version of libc
-          go build -tags osusergo,netgo -ldflags '-w -extldflags "-static -lgcc -lc"' -o test ./cmd/testoidcauth/main.go
-          rm "$AZUREOIDC_DRIVERS_TAR_FILE" || true
-          tar -cf $AZUREOIDC_DRIVERS_TAR_FILE ./test
-          tar -uf $AZUREOIDC_DRIVERS_TAR_FILE ./etc
-          rm "$AZUREOIDC_DRIVERS_TAR_FILE".gz || true
-          gzip $AZUREOIDC_DRIVERS_TAR_FILE
-          export AZUREOIDC_DRIVERS_TAR_FILE=/tmp/mongo-go-driver.tar.gz
-          # Define the command to run on the azure VM.
-          # Ensure that we source the environment file created for us, set up any other variables we need,
-          # and then run our test suite on the vm.
-          export AZUREOIDC_TEST_CMD="PROJECT_DIRECTORY='.' OIDC_ENV=azure OIDC=oidc ./etc/run-oidc-test.sh ./test"
-          bash $DRIVERS_TOOLS/.evergreen/auth_oidc/azure/run-driver-test.sh
+        binary: bash
+        env:
+          OIDC_ENV: azure
+        args: [*task-runner, test-oidc-remote]
 
   - name: "oidc-auth-test-gcp"
     commands:
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        working_dir: src/go.mongodb.org/mongo-driver
-        shell: bash
-        script: |-
-          set -o errexit
-          ${PREPARE_SHELL}
-          export GCPOIDC_DRIVERS_TAR_FILE=/tmp/mongo-go-driver.tar.gz
-          # we need to statically link libc to avoid the situation where the VM has a different
-          # version of libc
-          go build -tags osusergo,netgo -ldflags '-w -extldflags "-static -lgcc -lc"' -o test ./cmd/testoidcauth/main.go
-          rm "$GCPOIDC_DRIVERS_TAR_FILE" || true
-          tar -cf $GCPOIDC_DRIVERS_TAR_FILE ./test
-          tar -uf $GCPOIDC_DRIVERS_TAR_FILE ./etc
-          rm "$GCPOIDC_DRIVERS_TAR_FILE".gz || true
-          gzip $GCPOIDC_DRIVERS_TAR_FILE
-          export GCPOIDC_DRIVERS_TAR_FILE=/tmp/mongo-go-driver.tar.gz
-          # Define the command to run on the gcp VM.
-          # Ensure that we source the environment file created for us, set up any other variables we need,
-          # and then run our test suite on the vm.
-          export GCPOIDC_TEST_CMD="PROJECT_DIRECTORY='.' OIDC_ENV=gcp OIDC=oidc ./etc/run-oidc-test.sh ./test"
-          bash $DRIVERS_TOOLS/.evergreen/auth_oidc/gcp/run-driver-test.sh
+        binary: bash
+        env:
+          OIDC_ENV: gcp
+        args: [*task-runner, test-oidc-remote]
+
+  - name: "oidc-auth-test-k8s"
+    commands:
+    - func: assume-test-secrets-ec2-role
+    - func: "run oidc k8s test"
+      vars:
+        VARIANT: eks
+    - func: "run oidc k8s test"
+      vars:
+        VARIANT: gke
+    - func: "run oidc k8s test"
+      vars:
+        VARIANT: aks
 
   - name: "test-search-index"
     commands:
@@ -2102,10 +1773,6 @@ axes:
         display_name: "4.0"
         variables:
           VERSION: "4.0"
-      - id: "3.6"
-        display_name: "3.6"
-        variables:
-          VERSION: "3.6"
       - id: "rapid"
         display_name: "rapid"
         variables:
@@ -2125,21 +1792,24 @@ axes:
           - windows-vsCurrent-small
         variables:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
-          GO_DIST: "C:\\golang\\go1.22"
+          GO_DIST: "C:\\golang\\go1.23"
           VENV_BIN_DIR: "Scripts"
+          DEFAULT_TASK: evg-test
           # CSOT tests are unreliable on our slow Windows hosts.
           SKIP_CSOT_TESTS: true
       - id: "rhel87-64"
         display_name: "RHEL 8.7"
         run_on: rhel8.7-large
         variables:
-          GO_DIST: "/opt/golang/go1.22"
-      - id: "macos11"
-        display_name: "MacOS 11.0"
-        run_on: macos-1100
+          GO_DIST: "/opt/golang/go1.23"
+          DEFAULT_TASK: evg-test
+      - id: "macos"
+        display_name: "MacOS 14.0"
+        run_on: macos-14
         batchtime: 1440 # Run at most once per 24 hours.
         variables:
-          GO_DIST: "/opt/golang/go1.22"
+          GO_DIST: "/opt/golang/go1.23"
+          DEFAULT_TASK: evg-test-load-balancers
           # CSOT tests are unreliable on our slow macOS hosts.
           SKIP_CSOT_TESTS: true
 
@@ -2153,21 +1823,24 @@ axes:
           - windows-vsCurrent-small
         variables:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
-          GO_DIST: "C:\\golang\\go1.22"
+          GO_DIST: "C:\\golang\\go1.23"
           VENV_BIN_DIR: "Scripts"
+          DEFAULT_TASK: evg-test
           # CSOT tests are unreliable on our slow Windows hosts.
           SKIP_CSOT_TESTS: true
       - id: "rhel87-64"
         display_name: "RHEL 8.7"
         run_on: rhel8.7-large
         variables:
-          GO_DIST: "/opt/golang/go1.22"
-      - id: "macos11"
-        display_name: "MacOS 11.0"
-        run_on: macos-1100
+          GO_DIST: "/opt/golang/go1.23"
+          DEFAULT_TASK: evg-test
+      - id: "macos"
+        display_name: "MacOS 14.0"
+        run_on: macos-14
         batchtime: 1440 # Run at most once per 24 hours.
         variables:
-          GO_DIST: "/opt/golang/go1.22"
+          GO_DIST: "/opt/golang/go1.23"
+          DEFAULT_TASK: evg-test-load-balancers
           # CSOT tests are unreliable on our slow macOS hosts.
           SKIP_CSOT_TESTS: true
 
@@ -2178,7 +1851,8 @@ axes:
         display_name: "RHEL 8.7"
         run_on: rhel8.7-large
         variables:
-          GO_DIST: "/opt/golang/go1.22"
+          GO_DIST: "/opt/golang/go1.23"
+          DEFAULT_TASK: evg-test
 
   - id: os-aws-auth
     display_name: OS
@@ -2189,24 +1863,27 @@ axes:
           - windows-vsCurrent-small
         variables:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
-          GO_DIST: "C:\\golang\\go1.22"
+          GO_DIST: "C:\\golang\\go1.23"
           SKIP_ECS_AUTH_TEST: true
+          DEFAULT_TASK: evg-test
           # CSOT tests are unreliable on our slow Windows hosts.
           SKIP_CSOT_TESTS: true
       - id: "ubuntu2004-64"
         display_name: "Ubuntu 20.04"
         run_on: ubuntu2004-test
         variables:
-          GO_DIST: "/opt/golang/go1.22"
-      - id: "macos11"
-        display_name: "MacOS 11.0"
-        run_on: macos-1100
+          GO_DIST: "/opt/golang/go1.23"
+          DEFAULT_TASK: evg-test
+      - id: "macos"
+        display_name: "MacOS 14.0"
+        run_on: macos-14
         batchtime: 1440 # Run at most once per 24 hours.
         variables:
-          GO_DIST: "/opt/golang/go1.22"
+          GO_DIST: "/opt/golang/go1.23"
           SKIP_ECS_AUTH_TEST: true
           SKIP_EC2_AUTH_TEST: true
           SKIP_WEB_IDENTITY_AUTH_TEST: true
+          DEFAULT_TASK: evg-test-load-balancers
           # CSOT tests are unreliable on our slow macOS hosts.
           SKIP_CSOT_TESTS: true
 
@@ -2217,7 +1894,7 @@ axes:
         display_name: "RHEL 8.7"
         run_on: rhel8.7-large
         variables:
-          GO_DIST: "/opt/golang/go1.22"
+          GO_DIST: "/opt/golang/go1.23"
 
   - id: os-serverless
     display_name: OS
@@ -2226,63 +1903,31 @@ axes:
         display_name: "RHEL 8.7"
         run_on: rhel8.7-small
         variables:
-          GO_DIST: "/opt/golang/go1.22"
+          GO_DIST: "/opt/golang/go1.23"
 
 task_groups:
   - name: serverless_task_group
     setup_group_can_fail_task: true
     setup_group_timeout_secs: 1800 # 30 minutes
     setup_group:
-      - func: fetch-source
-      - func: prepare-resources
-      - func: fix-absolute-paths
-      - func: make-files-executable
-      - func: start-cse-servers
-      - command: shell.exec
+      - func: setup-system
+      - command: subprocess.exec
         params:
-          shell: "bash"
-          script: |
-            ${PREPARE_SHELL}
-            bash ${DRIVERS_TOOLS}/.evergreen/serverless/setup-secrets.sh ${VAULT_NAME}
-            bash ${DRIVERS_TOOLS}/.evergreen/serverless/create-instance.sh
+          binary: "bash"
+          args: 
+            - ${DRIVERS_TOOLS}/.evergreen/serverless/setup.sh
       - command: expansions.update
         params:
           file: serverless-expansion.yml
-      - command: shell.exec
-        params:
-          shell: "bash"
-          script: |
-            ${PREPARE_SHELL}
-
-            # Find the crypt_shared library file in the current directory and set the CRYPT_SHARED_LIB_PATH to
-            # the path of that file. Only look for .so, .dll, or .dylib files to prevent matching any other
-            # downloaded files.
-            CRYPT_SHARED_LIB_PATH="$(find $(pwd) -maxdepth 1 -type f \
-              -name 'mongo_crypt_v1.so' -o \
-              -name 'mongo_crypt_v1.dll' -o \
-              -name 'mongo_crypt_v1.dylib')"
-
-            # If we're on Windows, convert the "cygdrive" path to Windows-style paths.
-            if [ "Windows_NT" = "$OS" ]; then
-                CRYPT_SHARED_LIB_PATH=$(cygpath -m $CRYPT_SHARED_LIB_PATH)
-            fi
-
-            echo "CRYPT_SHARED_LIB_PATH: $CRYPT_SHARED_LIB_PATH" >> crypt-expansion.yml
-
-      # Load the expansion file to make an evergreen variable with the current unique version
-      - command: expansions.update
-        params:
-          file: crypt-expansion.yml
-
     teardown_group:
-      - command: shell.exec
+      - command: subprocess.exec
         params:
-          shell: "bash"
-          script: |
-            ${PREPARE_SHELL}
-            bash ${DRIVERS_TOOLS}/.evergreen/serverless/delete-instance.sh ${VAULT_NAME}
+          binary: "bash"
+          args:
+            - ${DRIVERS_TOOLS}/.evergreen/serverless/teardown.sh
+      - func: teardown
       - func: handle-test-artifacts
-      - func: cleanup
+      
     tasks:
       - ".serverless"
 
@@ -2290,66 +1935,58 @@ task_groups:
     setup_group_can_fail_task: true
     setup_group_timeout_secs: 1800 # 30 minutes
     setup_group:
-      - func: fetch-source
-      - func: prepare-resources
-      - func: fix-absolute-paths
-      - func: make-files-executable
-      - command: shell.exec
+      - func: setup-system
+      - command: subprocess.exec
         params:
-          shell: "bash"
-          script: |
-            ${PREPARE_SHELL}
-            $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/setup.sh
+          binary: "bash"
+          args: 
+            - ${DRIVERS_TOOLS}/.evergreen/csfle/gcpkms/setup.sh
     teardown_group:
-      - command: shell.exec
+      - command: subprocess.exec
         params:
-          shell: "bash"
-          script: |
-            ${PREPARE_SHELL}
-            $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/teardown.sh
+          binary: "bash"
+          args: 
+            - ${DRIVERS_TOOLS}/.evergreen/csfle/gcpkms/teardown.sh
+      - func: teardown
       - func: handle-test-artifacts
-      - func: cleanup
     tasks:
       - testgcpkms-task
 
   - name: testazurekms_task_group
     setup_group_can_fail_task: true
-    teardown_group_can_fail_task: true
+    teardown_task_can_fail_task: true
     setup_group_timeout_secs: 1800 # 30 minutes
     setup_group:
-      - func: fetch-source
-      - func: prepare-resources
-      - func: fix-absolute-paths
-      - func: make-files-executable
-      - command: shell.exec
+      - func: setup-system
+      - command: subprocess.exec
         params:
-          shell: "bash"
-          script: |
-            ${PREPARE_SHELL}
-            export AZUREKMS_VMNAME_PREFIX="GODRIVER"
-            export AZUREKMS_DRIVERS_TOOLS=$DRIVERS_TOOLS
-            # Get azurekms credentials from the vault.
-            . ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/setup-secrets.sh
-            ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/create-and-setup-vm.sh
+          binary: bash
+          env: 
+            AZUREKMS_VMNAME_PREFIX: GODRIVER
+          args:
+            - ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/setup.sh
     teardown_group:
       - command: subprocess.exec
         params:
           binary: "bash"
-          args:
+          args: 
            - ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/teardown.sh
-
+      - func: teardown
       - func: handle-test-artifacts
-      - func: cleanup
     tasks:
       - testazurekms-task
 
   - name: testoidc_task_group
+    setup_group_can_fail_task: true
+    setup_group_timeout_secs: 1800
+    # TODO(DRIVERS-3141): Uncomment the following line once the teardown bug is
+    # fixed. See DRIVERS-3141 for more context.
+    #
+    # teardown_task_can_fail_task: true
+    teardown_group_timeout_secs: 180 # 3 minutes (max allowed time)
     setup_group:
-      - func: fetch-source
-      - func: prepare-resources
-      - func: fix-absolute-paths
-      - func: make-files-executable
-      - func: assume-ec2-role
+      - func: setup-system
+      - func: assume-test-secrets-ec2-role
       - command: subprocess.exec
         params:
           binary: bash
@@ -2364,41 +2001,43 @@ task_groups:
           binary: bash
           args:
             - ${DRIVERS_TOOLS}/.evergreen/auth_oidc/teardown.sh
-    setup_group_can_fail_task: true
-    setup_group_timeout_secs: 1800
+      - func: teardown
+      - func: handle-test-artifacts
     tasks:
       - oidc-auth-test
 
   - name: testazureoidc_task_group
+    setup_group_can_fail_task: true
+    setup_group_timeout_secs: 1800
+    teardown_task_can_fail_task: true
+    teardown_group_timeout_secs: 180 # 3 minutes (max allowed time)
     setup_group:
-      - func: fetch-source
-      - func: prepare-resources
-      - func: fix-absolute-paths
-      - func: make-files-executable
+      - func: setup-system
       - command: subprocess.exec
         params:
           binary: bash
           env:
             AZUREOIDC_VMNAME_PREFIX: "GO_DRIVER"
           args:
-            - ${DRIVERS_TOOLS}/.evergreen/auth_oidc/azure/create-and-setup-vm.sh
+            - ${DRIVERS_TOOLS}/.evergreen/auth_oidc/azure/setup.sh
     teardown_task:
       - command: subprocess.exec
         params:
           binary: bash
           args:
-            - ${DRIVERS_TOOLS}/.evergreen/auth_oidc/azure/delete-vm.sh
-    setup_group_can_fail_task: true
-    setup_group_timeout_secs: 1800
+            - ${DRIVERS_TOOLS}/.evergreen/auth_oidc/azure/teardown.sh
+      - func: teardown
+      - func: handle-test-artifacts
     tasks:
       - oidc-auth-test-azure
 
   - name: testgcpoidc_task_group
+    setup_group_can_fail_task: true
+    setup_group_timeout_secs: 1800
+    teardown_task_can_fail_task: true
+    teardown_group_timeout_secs: 180 # 3 minutes (max allowed time)
     setup_group:
-      - func: fetch-source
-      - func: prepare-resources
-      - func: fix-absolute-paths
-      - func: make-files-executable
+      - func: setup-system
       - command: subprocess.exec
         params:
           binary: bash
@@ -2412,26 +2051,46 @@ task_groups:
           binary: bash
           args:
             - ${DRIVERS_TOOLS}/.evergreen/auth_oidc/gcp/teardown.sh
-    setup_group_can_fail_task: true
-    setup_group_timeout_secs: 1800
+      - func: teardown
+      - func: handle-test-artifacts
     tasks:
       - oidc-auth-test-gcp
 
+  - name: testk8soidc_task_group
+    setup_group_can_fail_task: true
+    setup_group_timeout_secs: 1800
+    teardown_task_can_fail_task: true
+    teardown_group_timeout_secs: 180 # 3 minutes (max allowed time)
+    setup_group:
+      - func: setup-system
+      - command: subprocess.exec
+        params:
+          binary: bash
+          include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
+          args:
+            - ${DRIVERS_TOOLS}/.evergreen/auth_oidc/k8s/setup.sh
+    teardown_group:
+      - command: subprocess.exec
+        params:
+          binary: bash
+          args:
+            - ${DRIVERS_TOOLS}/.evergreen/auth_oidc/k8s/teardown.sh
+      - func: teardown
+      - func: handle-test-artifacts
+    tasks:
+      - oidc-auth-test-k8s
+
   - name: test-aws-lambda-task-group
     setup_group:
-      - func: fetch-source
-      - func: prepare-resources
+      - func: setup-system
       - command: subprocess.exec
         params:
           working_dir: src/go.mongodb.org/mongo-driver
           binary: bash
           env:
             LAMBDA_STACK_NAME: dbx-go-lambda
-            AWS_REGION: us-east-1
-            task_id: ${task_id}
-            execution: ${execution}
           args:
-            - ${DRIVERS_TOOLS}/.evergreen/atlas/setup-atlas-cluster.sh
+            - ${DRIVERS_TOOLS}/.evergreen/atlas/setup.sh
     teardown_group:
       - command: subprocess.exec
         params:
@@ -2441,9 +2100,9 @@ task_groups:
             LAMBDA_STACK_NAME: dbx-go-lambda
             AWS_REGION: us-east-1
           args:
-            - ${DRIVERS_TOOLS}/.evergreen/atlas/teardown-atlas-cluster.sh
+            - ${DRIVERS_TOOLS}/.evergreen/atlas/teardown.sh
+      - func: teardown
       - func: handle-test-artifacts
-      - func: cleanup
     setup_group_can_fail_task: true
     setup_group_timeout_secs: 1800
     tasks:
@@ -2451,8 +2110,7 @@ task_groups:
 
   - name: test-search-index-task-group
     setup_group:
-      - func: fetch-source
-      - func: prepare-resources
+      - func: setup-system
       - command: subprocess.exec
         params:
           working_dir: src/go.mongodb.org/mongo-driver
@@ -2460,20 +2118,8 @@ task_groups:
           env:
             MONGODB_VERSION: "7.0"
             LAMBDA_STACK_NAME: dbx-go-lambda
-            AWS_REGION: us-east-1
-            task_id: ${task_id}
-            execution: ${execution}
           args:
-            - ${DRIVERS_TOOLS}/.evergreen/atlas/setup-atlas-cluster.sh
-      - command: expansions.update
-        params:
-          file: src/go.mongodb.org/mongo-driver/atlas-expansion.yml
-      - command: shell.exec
-        params:
-          working_dir: src/go.mongodb.org/mongo-driver
-          shell: bash
-          script: |-
-            echo "TEST_INDEX_URI: ${MONGODB_URI}" > atlas-expansion.yml
+            - ${DRIVERS_TOOLS}/.evergreen/atlas/setup.sh
       - command: expansions.update
         params:
           file: src/go.mongodb.org/mongo-driver/atlas-expansion.yml
@@ -2483,9 +2129,9 @@ task_groups:
           working_dir: src/go.mongodb.org/mongo-driver
           binary: bash
           args:
-            - ${DRIVERS_TOOLS}/.evergreen/atlas/teardown-atlas-cluster.sh
+            - ${DRIVERS_TOOLS}/.evergreen/atlas/teardown.sh
+      - func: teardown
       - func: handle-test-artifacts
-      - func: cleanup
     setup_group_can_fail_task: true
     setup_group_timeout_secs: 1800
     tasks:
@@ -2496,9 +2142,10 @@ buildvariants:
     tags: ["pullrequest"]
     display_name: "Static Analysis"
     run_on:
-      - rhel8.7-large
+      - rhel8.7-small
     expansions:
-      GO_DIST: "/opt/golang/go1.22"
+      # Keep this in sync with go version used in etc/golangci-lint.sh
+      GO_DIST: "/opt/golang/go1.23"
     tasks:
       - name: ".static-analysis"
 
@@ -2508,16 +2155,16 @@ buildvariants:
     run_on:
       - rhel8.7-small
     expansions:
-      GO_DIST: "/opt/golang/go1.22"
+      GO_DIST: "/opt/golang/go1.23"
     tasks:
       - name: "pull-request-helpers"
 
   - name: perf
+    tags: ["pullrequest"]
     display_name: "Performance"
-    run_on:
-      - rhel8.7-large
+    run_on: rhel90-dbx-perf-large
     expansions:
-      GO_DIST: "/opt/golang/go1.22"
+      GO_DIST: "/opt/golang/go1.23"
     tasks:
       - name: ".performance"
 
@@ -2525,18 +2172,18 @@ buildvariants:
     tags: ["pullrequest"]
     display_name: "Compile Only Checks"
     run_on:
-      - rhel8.7-large
+      - ubuntu2204-small
     expansions:
-      GO_DIST: "/opt/golang/go1.22"
+      GO_DIST: "/opt/golang/go1.23"
     tasks:
       - name: ".compile-check"
 
   - name: backport-pr
     display_name: "Backport PR"
     run_on:
-      - rhel8.7-large
+      - rhel8.7-small
     expansions:
-      GO_DIST: "/opt/golang/go1.22"
+      GO_DIST: "/opt/golang/go1.23"
     tasks: 
       - name: "backport-pr"
 
@@ -2546,7 +2193,7 @@ buildvariants:
     run_on:
       - rhel8.7-large
     expansions:
-      GO_DIST: "/opt/golang/go1.22"
+      GO_DIST: "/opt/golang/go1.23"
     tasks:
       - name: "atlas-test"
 
@@ -2556,7 +2203,7 @@ buildvariants:
     run_on:
       - ubuntu2004-large
     expansions:
-      GO_DIST: "/opt/golang/go1.22"
+      GO_DIST: "/opt/golang/go1.23"
     tasks:
       - name: "test-atlas-data-lake"
 
@@ -2566,7 +2213,7 @@ buildvariants:
     run_on:
       - ubuntu2204-large
     expansions:
-      GO_DIST: "/opt/golang/go1.22"
+      GO_DIST: "/opt/golang/go1.23"
     tasks:
       - name: "test-docker-runner"
 
@@ -2576,37 +2223,24 @@ buildvariants:
     run_on:
       - ubuntu2204-large
     expansions:
-      GO_DIST: "/opt/golang/go1.22"
+      GO_DIST: "/opt/golang/go1.23"
     tasks:
       - name: ".goleak"
 
-  - matrix_name: "tests-rhel-36-with-zlib-support"
-    tags: ["pullrequest"]
-    matrix_spec: { version: ["3.6"], os-ssl-32: ["rhel87-64"] }
-    display_name: "${version} ${os-ssl-32}"
-    tasks:
-      - name: ".test !.enterprise-auth !.snappy !.zstd"
-
-  - matrix_name: "tests-windows-36-with-zlib-support"
-    matrix_spec: { version: ["3.6"], os-ssl-32: ["windows-64"] }
-    display_name: "${version} ${os-ssl-32}"
-    tasks:
-      - name: ".test !.enterprise-auth !.snappy !.zstd"
-
-  - matrix_name: "tests-rhel-40-with-zlib-support"
+  - matrix_name: "tests-rhel-40-with-snappy-support"
     tags: ["pullrequest"]
     matrix_spec: { version: ["4.0"], os-ssl-40: ["rhel87-64"] }
     display_name: "${version} ${os-ssl-40}"
     tasks:
-      - name: ".test !.enterprise-auth !.snappy !.zstd"
+      - name: ".test !.enterprise-auth !.zlib !.zstd"
 
-  - matrix_name: "tests-windows-40-with-zlib-support"
+  - matrix_name: "tests-windows-40-with-snappy-support"
     matrix_spec: { version: ["4.0"], os-ssl-40: ["windows-64"] }
     display_name: "${version} ${os-ssl-40}"
     tasks:
-      - name: ".test !.enterprise-auth !.snappy !.zstd"
+      - name: ".test !.enterprise-auth !.zlib !.zstd"
 
-  - matrix_name: "tests-rhel-42-plus-zlib-zstd-support"
+  - matrix_name: "tests-rhel-44-plus-zlib-zstd-support"
     tags: ["pullrequest"]
     matrix_spec: { version: ["4.2", "4.4", "5.0", "6.0", "7.0", "8.0"], os-ssl-40: ["rhel87-64"] }
     display_name: "${version} ${os-ssl-40}"
@@ -2660,7 +2294,7 @@ buildvariants:
       - name: ".ocsp-rsa !.ocsp-staple"
 
   - matrix_name: "ocsp-test-macos"
-    matrix_spec: { version: ["4.4", "5.0", "6.0", "7.0", "8.0", "latest"], os-ssl-40: ["macos11"] }
+    matrix_spec: { version: ["4.4", "5.0", "6.0", "7.0", "8.0", "latest"], os-ssl-40: ["macos"] }
     display_name: "OCSP ${version} ${os-ssl-40}"
     batchtime: 20160 # Use a batchtime of 14 days as suggested by the OCSP test README
     tasks:
@@ -2687,11 +2321,11 @@ buildvariants:
     tasks:
       - name: ".versioned-api"
 
-  - matrix_name: "kms-tls-test"
+  - matrix_name: "kms-test"
     matrix_spec: { version: ["7.0"], os-ssl-40: ["rhel87-64"] }
-    display_name: "KMS TLS ${os-ssl-40}"
+    display_name: "KMS TEST ${os-ssl-40}"
     tasks:
-      - name: ".kms-tls"
+      - name: ".kms-test"
 
   - matrix_name: "load-balancer-test"
     tags: ["pullrequest"]
@@ -2743,7 +2377,7 @@ buildvariants:
     run_on:
       - rhel8.7-small
     expansions:
-      GO_DIST: "/opt/golang/go1.22"
+      GO_DIST: "/opt/golang/go1.23"
     tasks:
       - name: testgcpkms_task_group
         batchtime: 20160 # Use a batchtime of 14 days as suggested by the CSFLE test README
@@ -2754,7 +2388,7 @@ buildvariants:
     run_on:
       - rhel8.7-small
     expansions:
-      GO_DIST: "/opt/golang/go1.22"
+      GO_DIST: "/opt/golang/go1.23"
     tasks:
       - testawskms-task
       - testawskms-fail-task
@@ -2764,7 +2398,7 @@ buildvariants:
     run_on:
       - rhel8.7-small
     expansions:
-      GO_DIST: "/opt/golang/go1.22"
+      GO_DIST: "/opt/golang/go1.23"
     tasks:
       - name: testazurekms_task_group
         batchtime: 20160 # Use a batchtime of 14 days as suggested by the CSFLE test README
@@ -2775,11 +2409,9 @@ buildvariants:
     run_on:
       - ubuntu2204-small
     expansions:
-      GO_DIST: "/opt/golang/go1.22"
+      GO_DIST: "/opt/golang/go1.23"
     tasks:
       - name: testoidc_task_group
-        batchtime: 20160 # Use a batchtime of 14 days as suggested by the CSFLE test README
       - name: testazureoidc_task_group
-        batchtime: 20160 # Use a batchtime of 14 days as suggested by the CSFLE test README
       - name: testgcpoidc_task_group
-        batchtime: 20160 # Use a batchtime of 14 days as suggested by the CSFLE test README
+      - name: testk8soidc_task_group

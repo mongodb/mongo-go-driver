@@ -12,8 +12,6 @@ import (
 	"math"
 	"reflect"
 	"testing"
-
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func TestDocumentBuilder(t *testing.T) {
@@ -68,10 +66,10 @@ func TestDocumentBuilder(t *testing.T) {
 			NewDocumentBuilder().AppendObjectID,
 			[]interface{}{
 				"foobar",
-				primitive.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
+				[12]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
 			},
 			BuildDocumentFromElements(nil, AppendObjectIDElement(nil, "foobar",
-				primitive.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C})),
+				[12]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C})),
 		},
 		{
 			"AppendBoolean",
@@ -124,8 +122,8 @@ func TestDocumentBuilder(t *testing.T) {
 		{
 			"AppendDecimal128",
 			NewDocumentBuilder().AppendDecimal128,
-			[]interface{}{"foobar", primitive.NewDecimal128(4294967296, 65536)},
-			BuildDocumentFromElements(nil, AppendDecimal128Element(nil, "foobar", primitive.NewDecimal128(4294967296, 65536))),
+			[]interface{}{"foobar", uint64(4294967296), uint64(65536)},
+			BuildDocumentFromElements(nil, AppendDecimal128Element(nil, "foobar", 4294967296, 65536)),
 		},
 		{
 			"AppendMaxKey",
@@ -149,9 +147,9 @@ func TestDocumentBuilder(t *testing.T) {
 			"AppendDBPointer",
 			NewDocumentBuilder().AppendDBPointer,
 			[]interface{}{"foobar", "barbaz",
-				primitive.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C}},
+				[12]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C}},
 			BuildDocumentFromElements(nil, AppendDBPointerElement(nil, "foobar", "barbaz",
-				primitive.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C})),
+				[12]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C})),
 		},
 		{
 			"AppendUndefined",

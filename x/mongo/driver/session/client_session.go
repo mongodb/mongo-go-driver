@@ -4,22 +4,21 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package session // import "go.mongodb.org/mongo-driver/x/mongo/driver/session"
+package session
 
 import (
-	"context"
 	"errors"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/internal/uuid"
-	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/mongo/description"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/uuid"
+	"go.mongodb.org/mongo-driver/v2/mongo/address"
+	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
 )
 
 // ErrSessionEnded is returned when a client session is used after a call to endSession().
@@ -58,6 +57,8 @@ const (
 	Aborted
 )
 
+const defaultWriteConcernTimeout = 10_000 * time.Millisecond
+
 // String implements the fmt.Stringer interface.
 func (s TransactionState) String() string {
 	switch s {
@@ -76,28 +77,15 @@ func (s TransactionState) String() string {
 	}
 }
 
+var _ mnet.Pinner = (LoadBalancedTransactionConnection)(nil)
+
 // LoadBalancedTransactionConnection represents a connection that's pinned by a ClientSession because it's being used
 // to execute a transaction when running against a load balancer. This interface is a copy of driver.PinnedConnection
 // and exists to be able to pin transactions to a connection without causing an import cycle.
 type LoadBalancedTransactionConnection interface {
-	// Functions copied over from driver.Connection.
-	WriteWireMessage(context.Context, []byte) error
-	ReadWireMessage(ctx context.Context) ([]byte, error)
-	Description() description.Server
-	Close() error
-	ID() string
-	ServerConnectionID() *int64
-	DriverConnectionID() uint64 // TODO(GODRIVER-2824): change type to int64.
-	Address() address.Address
-	Stale() bool
-	OIDCTokenGenID() uint64
-	SetOIDCTokenGenID(uint64)
-
-	// Functions copied over from driver.PinnedConnection that are not part of Connection or Expirable.
-	PinToCursor() error
-	PinToTransaction() error
-	UnpinFromCursor() error
-	UnpinFromTransaction() error
+	mnet.ReadWriteCloser
+	mnet.Describer
+	mnet.Pinner
 }
 
 // Client is a session for clients to run commands.
@@ -106,35 +94,32 @@ type Client struct {
 	ClientID       uuid.UUID
 	ClusterTime    bson.Raw
 	Consistent     bool // causal consistency
-	OperationTime  *primitive.Timestamp
+	OperationTime  *bson.Timestamp
 	IsImplicit     bool
 	Terminated     bool
 	RetryingCommit bool
 	Committing     bool
 	Aborting       bool
-	RetryWrite     bool
-	RetryRead      bool
 	Snapshot       bool
 
 	// options for the current transaction
 	// most recently set by transactionopt
-	CurrentRc  *readconcern.ReadConcern
-	CurrentRp  *readpref.ReadPref
-	CurrentWc  *writeconcern.WriteConcern
-	CurrentMct *time.Duration
+	CurrentRc       *readconcern.ReadConcern
+	CurrentRp       *readpref.ReadPref
+	CurrentWc       *writeconcern.WriteConcern
+	CurrentWTimeout time.Duration
 
 	// default transaction options
-	transactionRc            *readconcern.ReadConcern
-	transactionRp            *readpref.ReadPref
-	transactionWc            *writeconcern.WriteConcern
-	transactionMaxCommitTime *time.Duration
+	transactionRc *readconcern.ReadConcern
+	transactionRp *readpref.ReadPref
+	transactionWc *writeconcern.WriteConcern
 
 	pool             *Pool
 	TransactionState TransactionState
-	PinnedServer     *description.Server
+	PinnedServerAddr *address.Address
 	RecoveryToken    bson.Raw
 	PinnedConnection LoadBalancedTransactionConnection
-	SnapshotTime     *primitive.Timestamp
+	SnapshotTime     *bson.Timestamp
 }
 
 func getClusterTime(clusterTime bson.Raw) (uint32, uint32) {
@@ -204,9 +189,6 @@ func NewClientSession(pool *Pool, clientID uuid.UUID, opts ...*ClientOptions) (*
 	if mergedOpts.DefaultWriteConcern != nil {
 		c.transactionWc = mergedOpts.DefaultWriteConcern
 	}
-	if mergedOpts.DefaultMaxCommitTime != nil {
-		c.transactionMaxCommitTime = mergedOpts.DefaultMaxCommitTime
-	}
 	if mergedOpts.Snapshot != nil {
 		c.Snapshot = *mergedOpts.Snapshot
 	}
@@ -247,7 +229,7 @@ func (c *Client) AdvanceClusterTime(clusterTime bson.Raw) error {
 }
 
 // AdvanceOperationTime updates the session's operation time.
-func (c *Client) AdvanceOperationTime(opTime *primitive.Timestamp) error {
+func (c *Client) AdvanceOperationTime(opTime *bson.Timestamp) error {
 	if c.Terminated {
 		return ErrSessionEnded
 	}
@@ -309,7 +291,7 @@ func (c *Client) UpdateSnapshotTime(response bsoncore.Document) {
 	}
 
 	t, i := ssTimeElem.Timestamp()
-	c.SnapshotTime = &primitive.Timestamp{
+	c.SnapshotTime = &bson.Timestamp{
 		T: t,
 		I: i,
 	}
@@ -321,7 +303,7 @@ func (c *Client) ClearPinnedResources() error {
 		return nil
 	}
 
-	c.PinnedServer = nil
+	c.PinnedServerAddr = nil
 	if c.PinnedConnection != nil {
 		if err := c.PinnedConnection.UnpinFromTransaction(); err != nil {
 			return err
@@ -414,7 +396,6 @@ func (c *Client) StartTransaction(opts *TransactionOptions) error {
 		c.CurrentRc = opts.ReadConcern
 		c.CurrentRp = opts.ReadPreference
 		c.CurrentWc = opts.WriteConcern
-		c.CurrentMct = opts.MaxCommitTime
 	}
 
 	if c.CurrentRc == nil {
@@ -429,11 +410,7 @@ func (c *Client) StartTransaction(opts *TransactionOptions) error {
 		c.CurrentWc = c.transactionWc
 	}
 
-	if c.CurrentMct == nil {
-		c.CurrentMct = c.transactionMaxCommitTime
-	}
-
-	if !writeconcern.AckWrite(c.CurrentWc) {
+	if !c.CurrentWc.Acknowledged() {
 		_ = c.clearTransactionOpts()
 		return ErrUnackWCUnsupported
 	}
@@ -464,16 +441,22 @@ func (c *Client) CommitTransaction() error {
 	return nil
 }
 
-// UpdateCommitTransactionWriteConcern will set the write concern to majority and potentially set  a
-// w timeout of 10 seconds. This should be called after a commit transaction operation fails with a
-// retryable error or after a successful commit transaction operation.
+// UpdateCommitTransactionWriteConcern will set the write concern to majority.
+// This should be called after a commit transaction operation fails with a
+// retryable error or after a successful commit transaction operation
+//
+// Per the transaction specifications, when commitTransaction is retried, if
+// the modified write concern does not include a "wtimeout" value, drivers
+// MUST apply "wtimeout: 10000" to the write concern in order to avoid waiting
+// forever (oruntil a socket timeout) if the majority write concern cannot be
+// satisfied. This field abstracts that functionality. For more information,
+// see SPEC-1185.
 func (c *Client) UpdateCommitTransactionWriteConcern() {
-	wc := c.CurrentWc
-	timeout := 10 * time.Second
-	if wc != nil && wc.GetWTimeout() != 0 {
-		timeout = wc.GetWTimeout()
+	c.CurrentWc = &writeconcern.WriteConcern{
+		W: "majority",
 	}
-	c.CurrentWc = wc.WithOptions(writeconcern.WMajority(), writeconcern.WTimeout(timeout))
+
+	c.CurrentWTimeout = defaultWriteConcernTimeout
 }
 
 // CheckAbortTransaction checks to see if allowed to abort transaction and returns
@@ -526,8 +509,8 @@ func (c *Client) ApplyCommand(desc description.Server) error {
 	if c.TransactionState == Starting {
 		c.TransactionState = InProgress
 		// If this is in a transaction and the server is a mongos, pin it
-		if desc.Kind == description.Mongos {
-			c.PinnedServer = &desc
+		if desc.Kind == description.ServerKindMongos {
+			c.PinnedServerAddr = &desc.Addr
 		}
 	} else if c.TransactionState == Committed || c.TransactionState == Aborted {
 		c.TransactionState = None
