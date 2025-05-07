@@ -110,7 +110,7 @@ gitGraph
 When the "Merge up" GitHub Action is enabled, multiple merge-up pull requests (such as PR1, PR2, and PR3) can be
 automatically created at the same time for different bug fixes or features that all target, for example, the
 release/2.x branch. At first, PR1, PR2, and PR3 exist side by side—each handling separate changes. When PR1 and PR2 are
-closed (merged), the Action automatically combines their changes into PR3. This final PR3 then contains all updates,
+closed, the Action automatically combines their changes into PR3. This final PR3 then contains all updates,
 allowing you to merge everything into release/2.x+1 in a single, streamlined step.
 
 ```mermaid
