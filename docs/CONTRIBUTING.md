@@ -61,7 +61,7 @@ incorporated into the latest codebase and actively supported versions.
 For example, suppose we have four minor release branches: release/2.0, release/2.1, release/2.2, and release/2.3. If a
 regression is found in the release/2.1 branch, you would create a pull request to fix the issue in the latest supported
 branch, release/2.3. Once this pull request is merged, the "Merge up" GitHub Action will automatically create a pull
-request to merge the changes from release/2.3 into the master branch.
+request to merge the changes from release/2.3 into the master branch. Then you can proceed to release release/2.3.latest+1.
 
 ```mermaid
 gitGraph
@@ -97,7 +97,7 @@ gitGraph
    commit
 ```
 
-However, it is also possible to apply the fix to the older branch where the bug was originally found. In our example,
+If necessary, it is also possible to apply the fix to the older branch where the bug was originally found. In our example,
 once the pull request is merged into release/2.1, the "Merge up" GitHub Action will initiate a series of pull requests
 to roll the fix forward: first into release/2.2, then into release/2.3, and finally into master. This process makes sure
 that the change cascades through every intermediate supported version.
