@@ -30,8 +30,6 @@ If any tests do not pass, or relevant tests are not included, the patch will not
 
 If you are working on a bug or feature listed in Jira, please include the ticket number prefixed with GODRIVER in the commit message and GitHub pull request title, (e.g. GODRIVER-123). For the patch commit message itself, please follow the [How to Write a Git Commit Message](https://chris.beams.io/posts/git-commit/) guide.
 
-\=======
-
 ### Linting on commit
 
 The Go team uses [pre-commit](https://pre-commit.com/#installation) to lint both source and text files.
@@ -48,6 +46,86 @@ After that, the checks will run on any changed files when committing.  To manual
 ```bash
 pre-commit run --all-files
 ```
+
+### Merge up GitHub Action
+
+PR [#1962](https://github.com/mongodb/mongo-go-driver/pull/1962) added the "Merge up" GitHub Actions workflow to automatically roll changes from old branches into new ones. This section outlines how this process works.
+
+#### Regression
+
+If a regression is identified in the release/2.x branch, a fix should be submitted as a pull request targeting
+release/2.x. Once this PR is merged, the "Merge up" GitHub Action will automatically create a pull request to merge
+release/2.x into release/2.x+1. This process is repeated until changes are merged all the way up to release/2.latest,
+which is then merged into the master branch.
+
+For example, suppose we have four minor release branches: release/2.0, release/2.1, release/2.2, and release/2.3. If a
+regression is identified in the release/2.1 branch, you would first create a pull request to fix the issue in
+release/2.1. Once this pull request is merged, the "Merge up" GitHub Action automatically initiates a pull request to
+merge the changes from release/2.1 into release/2.2. After that merge is completed, the action continues to create a
+pull request to merge release/2.2 into release/2.3. Finally, once the changes have successfully rolled through all the
+release branches, the updates in release/2.3 are prepared to be merged into the master branch, ensuring all the bug
+fixes are incorporated into the latest codebase.
+
+```mermaid
+gitGraph
+  commit tag: "Initial main setup"
+
+  branch release/2.0
+  checkout release/2.0
+  commit tag: "Initial release/2.0"
+
+  branch release/2.1
+  checkout release/2.1
+  commit tag: "Bug introduced"
+
+  branch release/2.2
+  checkout release/2.2
+  commit tag: "Initial release/2.2"
+
+  branch release/2.3
+  checkout release/2.3
+  commit tag: "Initial release/2.3"
+
+  checkout release/2.1
+  commit tag: "Bug fix in release/2.1 (Manual PR)"
+
+  checkout release/2.2
+  merge release/2.1 tag: "Merge fix from release/2.1 (GitHub Actions)"
+  commit
+
+  checkout release/2.3
+  merge release/2.2 tag: "Merge updates from release/2.2 (GitHub Actions)"
+  commit
+
+  checkout main
+  merge release/2.3 tag: "Merge updates from release/2.3 (Github Actions)"
+  commit
+```
+
+#### Pull Request Management
+
+When the "Merge up" GitHub Action is enabled, multiple merge-up pull requests (such as PR1, PR2, and PR3) can be
+automatically created at the same time for different bug fixes or features that all target, for example, the
+release/2.x branch. At first, PR1, PR2, and PR3 exist side by side—each handling separate changes. When PR1 and PR2 are
+closed (merged), the Action automatically combines their changes into PR3. This final PR3 then contains all updates,
+allowing you to merge everything into release/2.x+1 in a single, streamlined step.
+
+```mermaid
+flowchart LR
+   A[PR1: Merge up from release/2.x] --> B[Close PR1]
+   C[PR2: Merge up from release/2.x] --> D[Close PR2]
+
+   B --> E[PR3: Consolidated Final Pull Request]
+   D --> E
+    E --> F[release/2.x+1]
+    B[Close PR1]
+   D[Close PR2]
+   E[PR3: Includes changes from both PR1 and PR2]
+```
+
+#### Evergreen Config Merge Strategy
+
+Changes to the testing workflow should persist through all releases in a major version.
 
 ### Cherry-picking between branches
 
