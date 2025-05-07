@@ -53,7 +53,7 @@ PR [#1962](https://github.com/mongodb/mongo-go-driver/pull/1962) added the "Merg
 
 #### Regression
 
-If a regression is identified in the release/2.x branch, a fix should be submitted as a pull request targeting
+If a regression is identified in the release/2.x branch, a fix can be submitted as a pull request targeting
 release/2.x. Once this PR is merged, the "Merge up" GitHub Action will automatically create a pull request to merge
 release/2.x into release/2.x+1. This process is repeated until changes are merged all the way up to release/2.latest,
 which is then merged into the master branch.
@@ -104,6 +104,8 @@ gitGraph
    merge release/2.3 tag: "Merge updates from release/2.3 (GitHub Actions)"
    commit
 ```
+
+**Note**: In general, bug fixes should only target the latest release branch, since we only support patching the latest version. However, this is just a rule of thumb—exceptions can be made when necessary.
 
 #### Pull Request Management
 
