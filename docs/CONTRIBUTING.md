@@ -53,19 +53,6 @@ PR [#1962](https://github.com/mongodb/mongo-go-driver/pull/1962) added the "Merg
 
 #### Regression
 
-If a regression is identified in the release/2.x branch, a fix can be submitted as a pull request targeting
-release/2.x. Once this PR is merged, the "Merge up" GitHub Action will automatically create a pull request to merge
-release/2.x into release/2.x+1. This process is repeated until changes are merged all the way up to release/2.latest,
-which is then merged into the master branch.
-
-For example, suppose we have four minor release branches: release/2.0, release/2.1, release/2.2, and release/2.3. If a
-regression is identified in the release/2.1 branch, you would first create a pull request to fix the issue in
-release/2.1. Once this pull request is merged, the "Merge up" GitHub Action automatically initiates a pull request to
-merge the changes from release/2.1 into release/2.2. After that merge is completed, the action continues to create a
-pull request to merge release/2.2 into release/2.3. Finally, once the changes have successfully rolled through all the
-release branches, the updates in release/2.3 are prepared to be merged into the master branch, ensuring all the bug
-fixes are incorporated into the latest codebase.
-
 If a regression is identified in an older branch, the fix should be applied directly to the latest
 release branch. Once the pull request with the fix is merged into latest, the "Merge up" GitHub Action will
 automatically create a pull request to merge these changes into the master branch. This ensures that all bug fixes are
