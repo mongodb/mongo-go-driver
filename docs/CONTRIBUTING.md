@@ -76,7 +76,7 @@ regression is found in the release/2.1 branch, you would create a pull request t
 branch, release/2.3. Once this pull request is merged, the "Merge up" GitHub Action will automatically create a pull
 request to merge the changes from release/2.3 into the master branch.
 
-```
+```mermaid
 gitGraph
    commit tag: "Initial main setup"
 
