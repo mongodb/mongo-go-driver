@@ -66,6 +66,55 @@ pull request to merge release/2.2 into release/2.3. Finally, once the changes ha
 release branches, the updates in release/2.3 are prepared to be merged into the master branch, ensuring all the bug
 fixes are incorporated into the latest codebase.
 
+If a regression is identified in an older branch, the fix should be applied directly to the latest
+release branch. Once the pull request with the fix is merged into latest, the "Merge up" GitHub Action will
+automatically create a pull request to merge these changes into the master branch. This ensures that all bug fixes are
+incorporated into the latest codebase and actively supported versions.
+
+For example, suppose we have four minor release branches: release/2.0, release/2.1, release/2.2, and release/2.3. If a
+regression is found in the release/2.1 branch, you would create a pull request to fix the issue in the latest supported
+branch, release/2.3. Once this pull request is merged, the "Merge up" GitHub Action will automatically create a pull
+request to merge the changes from release/2.3 into the master branch.
+
+```
+gitGraph
+   commit tag: "Initial main setup"
+
+   branch release/2.0
+   checkout release/2.0
+   commit tag: "Initial release/2.0"
+
+   checkout main
+   branch release/2.1
+   checkout release/2.1
+   commit tag: "Bug introduced"
+
+   checkout main
+   branch release/2.2
+   checkout release/2.2
+   commit tag: "Initial release/2.2"
+
+   checkout main
+   branch release/2.3
+   checkout release/2.3
+   commit tag: "Initial release/2.3"
+
+   checkout release/2.1
+   commit tag: "Bug found in release/2.1"
+
+   checkout release/2.3
+   commit tag: "Bug fix applied in release/2.3 (Manual PR)"
+
+   checkout main
+   merge release/2.3 tag: "Merge fix from release/2.3 into master (GitHub Actions)"
+   commit
+```
+
+However, it is also possible to apply the fix to the older branch where the bug was originally found. In our example,
+once the pull request is merged into release/2.1, the "Merge up" GitHub Action will initiate a series of pull requests
+to roll the fix forward: first into release/2.2, then into release/2.3, and finally into master. This process makes sure
+that the change cascades through every intermediate supported version.
+
 ```mermaid
 gitGraph
    commit tag: "Initial main setup"
@@ -104,8 +153,6 @@ gitGraph
    merge release/2.3 tag: "Merge updates from release/2.3 (GitHub Actions)"
    commit
 ```
-
-**Note**: In general, bug fixes should only target the latest release branch, since we only support patching the latest version. However, this is just a rule of thumb—exceptions can be made when necessary.
 
 #### Pull Request Management
 
