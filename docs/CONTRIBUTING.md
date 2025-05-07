@@ -68,38 +68,41 @@ fixes are incorporated into the latest codebase.
 
 ```mermaid
 gitGraph
-  commit tag: "Initial main setup"
+   commit tag: "Initial main setup"
 
-  branch release/2.0
-  checkout release/2.0
-  commit tag: "Initial release/2.0"
+   branch release/2.0
+   checkout release/2.0
+   commit tag: "Initial release/2.0"
 
-  branch release/2.1
-  checkout release/2.1
-  commit tag: "Bug introduced"
+   checkout main
+   branch release/2.1
+   checkout release/2.1
+   commit tag: "Bug introduced"
 
-  branch release/2.2
-  checkout release/2.2
-  commit tag: "Initial release/2.2"
+   checkout main
+   branch release/2.2
+   checkout release/2.2
+   commit tag: "Initial release/2.2"
 
-  branch release/2.3
-  checkout release/2.3
-  commit tag: "Initial release/2.3"
+   checkout main
+   branch release/2.3
+   checkout release/2.3
+   commit tag: "Initial release/2.3"
 
-  checkout release/2.1
-  commit tag: "Bug fix in release/2.1 (Manual PR)"
+   checkout release/2.1
+   commit tag: "Bug fix in release/2.1 (Manual PR)"
 
-  checkout release/2.2
-  merge release/2.1 tag: "Merge fix from release/2.1 (GitHub Actions)"
-  commit
+   checkout release/2.2
+   merge release/2.1 tag: "Merge fix from release/2.1 (GitHub Actions)"
+   commit
 
-  checkout release/2.3
-  merge release/2.2 tag: "Merge updates from release/2.2 (GitHub Actions)"
-  commit
+   checkout release/2.3
+   merge release/2.2 tag: "Merge updates from release/2.2 (GitHub Actions)"
+   commit
 
-  checkout main
-  merge release/2.3 tag: "Merge updates from release/2.3 (Github Actions)"
-  commit
+   checkout main
+   merge release/2.3 tag: "Merge updates from release/2.3 (GitHub Actions)"
+   commit
 ```
 
 #### Pull Request Management
