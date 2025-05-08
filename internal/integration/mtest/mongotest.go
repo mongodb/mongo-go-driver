@@ -49,6 +49,11 @@ const (
 	namespaceExistsErrCode int32 = 48
 )
 
+type failPoint struct {
+	name   string
+	client *mongo.Client
+}
+
 // T is a wrapper around testing.T.
 type T struct {
 	// connsCheckedOut is the net number of connections checked out during test execution.
@@ -68,7 +73,8 @@ type T struct {
 	createdColls      []*Collection // collections created in this test
 	proxyDialer       *proxyDialer
 	dbName, collName  string
-	failPointNames    []string
+	hasFailPoint      bool
+	failPoints        []failPoint
 	minServerVersion  string
 	maxServerVersion  string
 	validTopologies   []TopologyKind
@@ -166,7 +172,14 @@ func (t *T) cleanup() {
 
 	// always disconnect the client regardless of clientType because Client.Disconnect will work against
 	// all deployments
-	_ = t.Client.Disconnect(context.Background())
+	if !t.hasFailPoint {
+		_ = t.Client.Disconnect(context.Background())
+	}
+	for _, fp := range t.failPoints {
+		_ = fp.client.Disconnect(context.Background())
+	}
+	t.hasFailPoint = false
+	t.failPoints = t.failPoints[:0]
 }
 
 // Run creates a new T instance for a sub-test and runs the given callback. It also creates a new collection using the
@@ -220,7 +233,7 @@ func (t *T) RunOpts(name string, opts *Options, callback func(mt *T)) {
 				sub.ClearCollections()
 			}
 			// only disconnect client if it's not being shared
-			if sub.shareClient == nil || !*sub.shareClient {
+			if (sub.shareClient == nil || !*sub.shareClient) && !sub.hasFailPoint {
 				_ = sub.Client.Disconnect(context.Background())
 			}
 			assert.Equal(sub, 0, sessions, "%v sessions checked out", sessions)
@@ -364,7 +377,10 @@ func (t *T) ResetClient(opts *options.ClientOptions) {
 		t.clientOpts = opts
 	}
 
-	_ = t.Client.Disconnect(context.Background())
+	if !t.hasFailPoint {
+		_ = t.Client.Disconnect(context.Background())
+	}
+	t.hasFailPoint = false
 	t.createTestClient()
 	t.DB = t.Client.Database(t.dbName)
 	t.Coll = t.DB.Collection(t.collName, t.collOpts)
@@ -523,7 +539,8 @@ func (t *T) SetFailPoint(fp failpoint.FailPoint) {
 	if err := SetFailPoint(fp, t.Client); err != nil {
 		t.Fatal(err)
 	}
-	t.failPointNames = append(t.failPointNames, fp.ConfigureFailPoint)
+	t.hasFailPoint = true
+	t.failPoints = append(t.failPoints, failPoint{name: fp.ConfigureFailPoint, client: t.Client})
 }
 
 // SetFailPointFromDocument sets the fail point represented by the given document for the client associated with T. This
@@ -536,29 +553,34 @@ func (t *T) SetFailPointFromDocument(fp bson.Raw) {
 	}
 
 	name := fp.Index(0).Value().StringValue()
-	t.failPointNames = append(t.failPointNames, name)
+	t.hasFailPoint = true
+	t.failPoints = append(t.failPoints, failPoint{name: name, client: t.Client})
 }
 
 // TrackFailPoint adds the given fail point to the list of fail points to be disabled when the current test finishes.
 // This function does not create a fail point on the server.
 func (t *T) TrackFailPoint(fpName string) {
-	t.failPointNames = append(t.failPointNames, fpName)
+	t.hasFailPoint = true
+	t.failPoints = append(t.failPoints, failPoint{name: fpName, client: t.Client})
 }
 
 // ClearFailPoints disables all previously set failpoints for this test.
 func (t *T) ClearFailPoints() {
-	db := t.Client.Database("admin")
-	for _, fp := range t.failPointNames {
+	for _, fp := range t.failPoints {
 		cmd := failpoint.FailPoint{
-			ConfigureFailPoint: fp,
+			ConfigureFailPoint: fp.name,
 			Mode:               failpoint.ModeOff,
 		}
-		err := db.RunCommand(context.Background(), cmd).Err()
+		err := fp.client.Database("admin").RunCommand(context.Background(), cmd).Err()
 		if err != nil {
-			t.Fatalf("error clearing fail point %s: %v", fp, err)
+			t.Fatalf("error clearing fail point %s: %v", fp.name, err)
+		}
+		if fp.client != t.Client {
+			_ = fp.client.Disconnect(context.Background())
 		}
 	}
-	t.failPointNames = t.failPointNames[:0]
+	t.hasFailPoint = false
+	t.failPoints = t.failPoints[:0]
 }
 
 // CloneDatabase modifies the default database for this test to match the given options.
