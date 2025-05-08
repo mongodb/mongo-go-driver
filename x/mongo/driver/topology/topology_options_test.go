@@ -92,6 +92,8 @@ func TestLoadBalancedFromConnString(t *testing.T) {
 
 type testAuthenticator struct{}
 
+var _ driver.Authenticator = &testAuthenticator{}
+
 func (a *testAuthenticator) Auth(context.Context, *driver.AuthConfig) error {
 	return fmt.Errorf("test error")
 }

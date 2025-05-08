@@ -26,7 +26,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/httputil"
-	"go.mongodb.org/mongo-driver/v2/internal/options"
+	"go.mongodb.org/mongo-driver/v2/internal/optionsutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
@@ -302,7 +302,7 @@ type ClientOptions struct {
 	//
 	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
 	// release.
-	Custom options.Options
+	Custom optionsutil.Options
 
 	connString *connstring.ConnString
 	err        error
