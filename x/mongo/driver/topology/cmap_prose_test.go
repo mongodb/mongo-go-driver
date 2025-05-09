@@ -367,6 +367,9 @@ func TestCMAPProse(t *testing.T) {
 
 		// There should be 0 ConnectionPendingResponseSucceeded event.
 		require.Len(t, poolEventsByType[event.ConnectionPendingResponseSucceeded], 0)
+
+		// The connection should have been closed.
+		require.Len(t, poolEventsByType[event.ConnectionClosed], 1)
 	})
 
 	t.Run("connection attempts peek and succeeds", func(t *testing.T) {
@@ -465,6 +468,9 @@ func TestCMAPProse(t *testing.T) {
 		assert.Equal(t, conn.driverConnectionID, succeeded[0].ConnectionID)
 		assert.Equal(t, requestID, succeeded[0].RequestID)
 		assert.Greater(t, int(succeeded[0].Duration), 0)
+
+		// The connection should not have been closed.
+		require.Len(t, poolEventsByType[event.ConnectionClosed], 0)
 	})
 }
 

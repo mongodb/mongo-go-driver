@@ -1035,7 +1035,14 @@ func awaitPendingResponse(ctx context.Context, pool *pool, conn *connection) err
 			_ = pool.checkInNoEvent(conn)
 		}()
 
-		if netErr, ok := err.(net.Error); ok && !netErr.Timeout() {
+		isCSOTTimeout := func(err error) bool {
+			// If the error was a timeout error, instead of closing the
+			// connection mark it as awaiting response so the pool can read the
+			// response before making it available to other operations.
+			nerr := net.Error(nil)
+			return errors.As(err, &nerr) && nerr.Timeout()
+		}
+		if !isCSOTTimeout(err) {
 			if err := conn.close(); err != nil {
 				return err
 			}
