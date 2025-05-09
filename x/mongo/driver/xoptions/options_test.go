@@ -7,8 +7,10 @@
 package xoptions
 
 import (
+	"fmt"
 	"testing"
 
+	"go.mongodb.org/mongo-driver/v2/internal/optionsutil"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
@@ -17,6 +19,29 @@ import (
 
 func TestSetInternalClientOptions(t *testing.T) {
 	t.Parallel()
+
+	cases := []struct {
+		key   string
+		value any
+	}{
+		{
+			key:   "authenticateToAnything",
+			value: true,
+		},
+	}
+	for _, tc := range cases {
+		tc := tc
+
+		t.Run(fmt.Sprintf("set %s", tc.key), func(t *testing.T) {
+			t.Parallel()
+
+			opts := options.Client()
+			err := SetInternalClientOptions(opts, tc.key, tc.value)
+			require.NoError(t, err, "error setting %s: %v", tc.key, err)
+			v := optionsutil.Value(opts.Custom, tc.key)
+			require.Equal(t, tc.value, v, "expected %v, got %v", tc.value, v)
+		})
+	}
 
 	t.Run("set crypt", func(t *testing.T) {
 		t.Parallel()
@@ -33,7 +58,7 @@ func TestSetInternalClientOptions(t *testing.T) {
 
 		opts := options.Client()
 		err := SetInternalClientOptions(opts, "crypt", &drivertest.MockDeployment{})
-		require.EqualError(t, err, "unexpected type for crypt")
+		require.EqualError(t, err, "unexpected type for crypt: *drivertest.MockDeployment is not driver.Crypt")
 	})
 
 	t.Run("set deployment", func(t *testing.T) {
@@ -51,7 +76,7 @@ func TestSetInternalClientOptions(t *testing.T) {
 
 		opts := options.Client()
 		err := SetInternalClientOptions(opts, "deployment", driver.NewCrypt(&driver.CryptOptions{}))
-		require.EqualError(t, err, "unexpected type for deployment")
+		require.EqualError(t, err, "unexpected type for deployment: *driver.crypt is not driver.Deployment")
 	})
 
 	t.Run("set unsupported option", func(t *testing.T) {
