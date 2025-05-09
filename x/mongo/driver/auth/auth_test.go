@@ -122,21 +122,21 @@ func TestPerformAuthentication(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
-		name          string
-		needToPerform bool
-		assert        func(*testing.T, error)
+		name                   string
+		authenticateToAnything bool
+		require                func(*testing.T, error)
 	}{
 		{
-			name:          "positive",
-			needToPerform: true,
-			assert: func(t *testing.T, err error) {
+			name:                   "positive",
+			authenticateToAnything: true,
+			require: func(t *testing.T, err error) {
 				require.EqualError(t, err, "auth error: test error")
 			},
 		},
 		{
-			name:          "negative",
-			needToPerform: false,
-			assert: func(t *testing.T, err error) {
+			name:                   "negative",
+			authenticateToAnything: false,
+			require: func(t *testing.T, err error) {
 				require.NoError(t, err)
 			},
 		},
@@ -151,12 +151,12 @@ func TestPerformAuthentication(t *testing.T) {
 			handshaker := auth.Handshaker(nil, &auth.HandshakeOptions{
 				Authenticator: &testAuthenticator{},
 				PerformAuthentication: func(description.Server) bool {
-					return tc.needToPerform
+					return tc.authenticateToAnything
 				},
 			})
 
 			err := handshaker.FinishHandshake(context.Background(), mnetconn)
-			tc.assert(t, err)
+			tc.require(t, err)
 		})
 	}
 }

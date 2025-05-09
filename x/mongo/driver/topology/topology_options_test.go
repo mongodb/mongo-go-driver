@@ -106,14 +106,14 @@ func TestAuthenticateToAnything(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
-		name   string
-		set    func(*options.ClientOptions) error
-		assert func(*testing.T, error)
+		name    string
+		set     func(*options.ClientOptions) error
+		require func(*testing.T, error)
 	}{
 		{
 			name: "default",
 			set:  func(*options.ClientOptions) error { return nil },
-			assert: func(t *testing.T, err error) {
+			require: func(t *testing.T, err error) {
 				require.NoError(t, err)
 			},
 		},
@@ -122,7 +122,7 @@ func TestAuthenticateToAnything(t *testing.T) {
 			set: func(opt *options.ClientOptions) error {
 				return xoptions.SetInternalClientOptions(opt, "authenticateToAnything", true)
 			},
-			assert: func(t *testing.T, err error) {
+			require: func(t *testing.T, err error) {
 				require.EqualError(t, err, "auth error: test error")
 			},
 		},
@@ -131,7 +131,7 @@ func TestAuthenticateToAnything(t *testing.T) {
 			set: func(opt *options.ClientOptions) error {
 				return xoptions.SetInternalClientOptions(opt, "authenticateToAnything", false)
 			},
-			assert: func(t *testing.T, err error) {
+			require: func(t *testing.T, err error) {
 				require.NoError(t, err)
 			},
 		},
@@ -155,7 +155,7 @@ func TestAuthenticateToAnything(t *testing.T) {
 			srvrCfg := newServerConfig(defaultConnectionTimeout, cfg.ServerOpts...)
 			connCfg := newConnectionConfig(srvrCfg.connectionOpts...)
 			err = connCfg.handshaker.FinishHandshake(context.TODO(), &mnet.Connection{Describer: describer})
-			tc.assert(t, err)
+			tc.require(t, err)
 		})
 	}
 }
