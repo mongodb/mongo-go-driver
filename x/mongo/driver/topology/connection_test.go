@@ -1101,6 +1101,67 @@ func (tcl *testCancellationListener) assertCalledOnce(t *testing.T) {
 	assert.Equal(t, 1, tcl.numStopListening, "expected StopListening to be called once, got %d", tcl.numListen)
 }
 
+type testContext struct {
+	context.Context
+	deadline time.Time
+}
+
+func (tc *testContext) Deadline() (time.Time, bool) {
+	return tc.deadline, false
+}
+
+func TestConnectionError(t *testing.T) {
+	t.Parallel()
+
+	t.Run("EOF", func(t *testing.T) {
+		t.Parallel()
+
+		addr := bootstrapConnections(t, 1, func(nc net.Conn) {
+			_ = nc.Close()
+		})
+
+		p := newPool(
+			poolConfig{Address: address.Address(addr.String())},
+		)
+		defer p.close(context.Background())
+		err := p.ready()
+		require.NoError(t, err, "unexpected close error")
+
+		conn, err := p.checkOut(context.Background())
+		require.NoError(t, err, "unexpected checkOut error")
+
+		_, err = conn.readWireMessage(context.Background())
+		assert.ErrorContains(t, err, "connection closed unexpectedly by the other side: EOF")
+	})
+	t.Run("timeout", func(t *testing.T) {
+		t.Parallel()
+
+		timeout := 10 * time.Millisecond
+
+		addr := bootstrapConnections(t, 1, func(nc net.Conn) {
+			time.Sleep(timeout * 2)
+			_ = nc.Close()
+		})
+
+		p := newPool(
+			poolConfig{Address: address.Address(addr.String())},
+		)
+		defer p.close(context.Background())
+		err := p.ready()
+		require.NoError(t, err)
+
+		conn, err := p.checkOut(context.Background())
+		require.NoError(t, err)
+
+		ctx := &testContext{
+			Context:  context.Background(),
+			deadline: time.Now().Add(timeout),
+		}
+		_, err = conn.readWireMessage(ctx)
+		assert.ErrorContains(t, err, "client timed out waiting for server response")
+	})
+}
+
 func TestConnection_IsAlive(t *testing.T) {
 	t.Parallel()
 
