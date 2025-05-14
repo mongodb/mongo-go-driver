@@ -169,7 +169,7 @@ type reason struct {
 // connectionPerished checks if a given connection is perished and should be removed from the pool.
 func connectionPerished(conn *connection) (reason, bool) {
 	switch {
-	case conn.closed() || !conn.isAlive():
+	case conn.closed():
 		// A connection would only be closed if it encountered a network error
 		// during an operation and closed itself. If a connection is not alive
 		// (e.g. the connection was closed by the server-side), it's also
