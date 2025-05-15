@@ -55,7 +55,10 @@ type T struct {
 	// It must be accessed using the atomic package and should be at the beginning of the struct.
 	// - atomic bug: https://pkg.go.dev/sync/atomic#pkg-note-BUG
 	// - suggested layout: https://go101.org/article/memory-layout.html
-	connsCheckedOut int64
+	connsCheckedOut          int64
+	connPendingReadStarted   int64
+	connPendingReadSucceeded int64
+	connPendingReadFailed    int64
 
 	*testing.T
 
@@ -348,6 +351,20 @@ func (t *T) NumberConnectionsCheckedOut() int {
 	return int(atomic.LoadInt64(&t.connsCheckedOut))
 }
 
+// NumberConnectionsPendingReadStarted returns the number of connections that have
+// started a pending read.
+func (t *T) NumberConnectionsPendingReadStarted() int {
+	return int(atomic.LoadInt64(&t.connPendingReadStarted))
+}
+
+func (t *T) NumberConnectionsPendingReadSucceeded() int {
+	return int(atomic.LoadInt64(&t.connPendingReadSucceeded))
+}
+
+func (t *T) NumberConnectionsPendingReadFailed() int {
+	return int(atomic.LoadInt64(&t.connPendingReadFailed))
+}
+
 // ClearEvents clears the existing command monitoring events.
 func (t *T) ClearEvents() {
 	t.started = t.started[:0]
@@ -547,6 +564,11 @@ func (t *T) TrackFailPoint(fpName string) {
 
 // ClearFailPoints disables all previously set failpoints for this test.
 func (t *T) ClearFailPoints() {
+	// Run some arbitrary command to ensure that any connection that would
+	// otherwise blocking during a pending read is closed. This could happen if
+	// the mode times > 1 and the blocking time is > default pending read timeout.
+	_ = t.Client.Ping(context.Background(), nil)
+
 	db := t.Client.Database("admin")
 	for _, fp := range t.failPointNames {
 		cmd := failpoint.FailPoint{
@@ -640,6 +662,12 @@ func (t *T) createTestClient() {
 					atomic.AddInt64(&t.connsCheckedOut, 1)
 				case event.ConnectionCheckedIn:
 					atomic.AddInt64(&t.connsCheckedOut, -1)
+				case event.ConnectionPendingResponseStarted:
+					atomic.AddInt64(&t.connPendingReadStarted, 1)
+				case event.ConnectionPendingResponseSucceeded:
+					atomic.AddInt64(&t.connPendingReadSucceeded, 1)
+				case event.ConnectionCheckOutFailed:
+					atomic.AddInt64(&t.connPendingReadFailed, 1)
 				}
 			},
 		})
