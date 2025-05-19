@@ -151,13 +151,7 @@ func TestConnection(t *testing.T) {
 					close(doneChan)
 
 					assert.Eventually(t,
-						func() bool {
-							if done.Load() == nil {
-								return false
-							}
-
-							return done.Load().(bool)
-						},
+						func() bool { return done.Load() != nil && done.Load().(bool) },
 						100*time.Millisecond,
 						1*time.Millisecond,
 						"TODO")
