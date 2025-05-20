@@ -2,7 +2,7 @@
 set -e # exit when any command fails
 set -x # show all commands being run
 
-: ${GC:=go${GO_VERSION="1.18"}}
+: ${GC:=go${GO_VERSION="1.19"}}
 
 COMPILE_CHECK_DIR="internal/cmd/compilecheck"
 ARCHITECTURES=("386" "arm" "arm64" "ppc64le" "s390x")

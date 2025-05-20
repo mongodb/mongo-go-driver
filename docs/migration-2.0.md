@@ -1,7 +1,5 @@
 # Migrating from 1.x to 2.0
 
-The minimum supported version of Go for v2 is 1.18.
-
 To upgrade imports of the Go Driver from v1 to v2, we recommend using [marwan-at-work/mod
 ](https://github.com/marwan-at-work/mod):
 
