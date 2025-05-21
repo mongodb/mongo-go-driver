@@ -171,9 +171,7 @@ func connectionPerished(conn *connection) (reason, bool) {
 	switch {
 	case conn.closed():
 		// A connection would only be closed if it encountered a network error
-		// during an operation and closed itself. If a connection is not alive
-		// (e.g. the connection was closed by the server-side), it's also
-		// considered a network error.
+		// during an operation and closed itself.
 		return reason{
 			loggerConn: logger.ReasonConnClosedError,
 			event:      event.ReasonError,
