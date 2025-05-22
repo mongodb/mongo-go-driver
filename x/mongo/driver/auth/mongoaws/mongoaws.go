@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -140,6 +141,7 @@ func getRegion(host string) (string, error) {
 // "client-final" payload containing the SigV4-signed STS GetCallerIdentity
 // request.
 func (client *awsSdkSaslClient) Next(ctx context.Context, challenge []byte) ([]byte, error) {
+	log.Println("challenge received")
 	if client.state != conversationStateServerFirst {
 		return nil, fmt.Errorf("invalid state: %v", client.state)
 	}
@@ -154,6 +156,8 @@ func (client *awsSdkSaslClient) Next(ctx context.Context, challenge []byte) ([]b
 	if err := bson.Unmarshal(challenge, &sm); err != nil {
 		return nil, err
 	}
+
+	log.Printf("SASL h (sts host): %s", sm.Host)
 
 	// Check nonce prefix
 	if sm.Nonce.Subtype != 0x00 {
@@ -175,6 +179,7 @@ func (client *awsSdkSaslClient) Next(ctx context.Context, challenge []byte) ([]b
 	req, _ := http.NewRequest("POST", "/", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Content-Length", "43")
+	req.URL.Scheme = "https"
 	req.Host = sm.Host
 	req.Header.Set("X-Amz-Date", currentTime.Format(amzDateFormat))
 
@@ -186,16 +191,27 @@ func (client *awsSdkSaslClient) Next(ctx context.Context, challenge []byte) ([]b
 	req.Header.Set("X-MongoDB-Server-Nonce", base64.StdEncoding.EncodeToString(sm.Nonce.Data))
 	req.Header.Set("X-MongoDB-GS2-CB-Flag", "n")
 
+	region, err := getRegion(sm.Host)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get AWS region: %w", err)
+	}
+
 	// Retrieve AWS creds and sign the request using AWS SDK v4.
 	creds, err := client.awsCfg.Credentials.Retrieve(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve AWS credentials: %w", err)
 	}
 
+	log.Printf("SASL r (region): %s", region)
+
 	// Create signer with credentials
-	err = client.signer.SignHTTP(ctx, creds, req, body, "sts", sm.Host, currentTime)
+	err = client.signer.SignHTTP(ctx, creds, req, body, "sts", region, currentTime)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign request: %w", err)
+	}
+
+	for k, v := range req.Header {
+		log.Printf("Header %q: %s", k, v)
 	}
 
 	// create message
@@ -204,11 +220,12 @@ func (client *awsSdkSaslClient) Next(ctx context.Context, challenge []byte) ([]b
 	msg = bsoncore.AppendStringElement(msg, "a", req.Header.Get("Authorization"))
 	msg = bsoncore.AppendStringElement(msg, "d", req.Header.Get("X-Amz-Date"))
 	if tok := req.Header.Get("X-Amz-Security-Token"); tok != "" {
+		log.Println("token received")
 		msg = bsoncore.AppendStringElement(msg, "t", tok)
 	}
 	msg, _ = bsoncore.AppendDocumentEnd(msg, idx)
 
-	return nil, nil
+	return msg, nil
 }
 
 // complete signals that the SASL conversation is done.
