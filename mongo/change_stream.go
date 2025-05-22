@@ -702,12 +702,6 @@ func (cs *ChangeStream) loopNext(ctx context.Context, nonBlocking bool) {
 		return
 	}
 
-	// Apply the client-level timeout if the operation-level timeout is not set.
-	// This calculation is also done in "executeOperation" but cursor.Next is also
-	// blocking and should honor client-level timeouts.
-	ctx, cancel := csot.WithTimeout(ctx, cs.client.timeout)
-	defer cancel()
-
 	for {
 		if cs.cursor == nil {
 			return
