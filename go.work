@@ -9,5 +9,5 @@ use (
 	./internal/cmd/compilecheck
 	./internal/cmd/faas/awslambda/mongodb
 	./internal/test/goleak
-	./internal/cmd/testmongoaws
+	./internal/test/mongoaws
 )

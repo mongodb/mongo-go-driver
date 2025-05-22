@@ -1,4 +1,4 @@
-module go.mongodb.go/mongo-driver/internal/cmd/testmongoaws
+module go.mongodb.go/mongo-driver/internal/test/mongoaws
 
 go 1.23.1
 
@@ -13,6 +13,7 @@ require (
 )
 
 require (
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/golang/snappy v1.0.0 // indirect
 	github.com/klauspost/compress v1.16.7 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect

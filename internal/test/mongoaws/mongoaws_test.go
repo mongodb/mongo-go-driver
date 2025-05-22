@@ -1,17 +1,12 @@
-// Copyright (C) MongoDB, Inc. 2017-present.
-//
-// Licensed under the Apache License, Version 2.0 (the "License"); you may
-// not use this file except in compliance with the License. You may obtain
-// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-
 package main
 
 import (
 	"context"
 	"errors"
-	"fmt"
 	"os"
+	"testing"
 
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -19,26 +14,23 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/auth/mongoaws"
 )
 
-func main() {
+func TestMongoAWS(t *testing.T) {
 	auth.RegisterAuthenticatorFactory(auth.MongoDBAWS, mongoaws.NewAuthenticator)
 
 	uri := os.Getenv("MONGODB_URI")
 	ctx := context.Background()
 
 	client, err := mongo.Connect(options.Client().ApplyURI(uri))
-	if err != nil {
-		panic(fmt.Sprintf("Connect error: %v", err))
-	}
+	require.NoError(t, err, "Connect error")
 
 	defer func() {
-		if err = client.Disconnect(ctx); err != nil {
-			panic(fmt.Sprintf("Disconnect error: %v", err))
-		}
+		err = client.Disconnect(ctx)
+		require.NoError(t, err, "Disconnect error")
 	}()
 
 	db := client.Database("aws")
 	coll := db.Collection("test")
 	if err = coll.FindOne(ctx, bson.D{{"x", 1}}).Err(); err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
-		panic(fmt.Sprintf("FindOne error: %v", err))
+		t.Fatalf("FindOne error: %v", err)
 	}
 }
