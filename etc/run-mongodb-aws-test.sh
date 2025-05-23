@@ -29,7 +29,12 @@ fi
 # show test output
 set -x
 
+# Region is required for the v2 AWS SDK
+if [ -z "$AWS_REGION" ]; then
+  export AWS_REGION="us-east-1"
+fi
+
 # For Go 1.16+, Go builds requires a go.mod file in the current working directory or a parent
 # directory. Spawn a new subshell, "cd" to the project directory, then run "go run".
-#(cd ${PROJECT_DIRECTORY} && go run "./internal/cmd/testaws/main.go" | tee test.suite)
+(cd ${PROJECT_DIRECTORY} && go run "./internal/cmd/testaws/main.go" | tee test.suite)
 (cd ${PROJECT_DIRECTORY} && go test "./internal/test/mongoaws" -v | tee test.suite)

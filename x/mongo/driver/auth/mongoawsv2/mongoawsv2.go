@@ -47,7 +47,7 @@ var _ driver.Authenticator = (*Authenticator)(nil)
 // Authenticator that uses it.
 func NewAuthenticator(cred *auth.Cred, _ *http.Client) (driver.Authenticator, error) {
 	// Load AWS SDK config from environment variables / credentials files.
-	awsCfg, err := config.LoadDefaultConfig(context.Background(), config.WithRegion("us-east-1"))
+	awsCfg, err := config.LoadDefaultConfig(context.Background())
 	if err != nil {
 		return nil, fmt.Errorf("failed to load AWS SDK config: %w", err)
 	}
