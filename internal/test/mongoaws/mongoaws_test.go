@@ -11,11 +11,11 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/auth"
-	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/auth/mongoaws"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/auth/mongoawsv2"
 )
 
 func TestMongoAWS(t *testing.T) {
-	auth.RegisterAuthenticatorFactory(auth.MongoDBAWS, mongoaws.NewAuthenticator)
+	auth.RegisterAuthenticatorFactory(auth.MongoDBAWS, mongoawsv2.NewAuthenticator)
 
 	uri := os.Getenv("MONGODB_URI")
 	ctx := context.Background()

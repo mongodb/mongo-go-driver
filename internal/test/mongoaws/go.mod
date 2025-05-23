@@ -4,12 +4,12 @@ go 1.23.1
 
 replace (
 	go.mongodb.org/mongo-driver/v2 => ../../../
-	go.mongodb.org/mongo-driver/v2/x/mongo/driver/auth/mongoaws => ../../../x/mongo/driver/auth/mongoaws
+	go.mongodb.org/mongo-driver/v2/x/mongo/driver/auth/mongoawsv2 => ../../../x/mongo/driver/auth/mongoawsv2
 )
 
 require (
 	go.mongodb.org/mongo-driver/v2 v2.3.4
-	go.mongodb.org/mongo-driver/v2/x/mongo/driver/auth/mongoaws v1.2.3
+	go.mongodb.org/mongo-driver/v2/x/mongo/driver/auth/mongoawsv2 v1.2.3
 )
 
 require (

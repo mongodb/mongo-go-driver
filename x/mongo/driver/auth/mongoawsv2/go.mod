@@ -1,4 +1,4 @@
-module go.mongodb.org/mongo-driver/v2/x/mongo/driver/auth/mongoaws
+module go.mongodb.org/mongo-driver/v2/x/mongo/driver/auth/mongoawsv2
 
 go 1.23
 
