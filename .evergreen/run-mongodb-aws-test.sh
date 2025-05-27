@@ -20,7 +20,7 @@ echo "Running MONGODB-AWS authentication tests"
 set -x
 
 # Region is required for the v2 AWS SDK
-if [ -z "$AWS_REGION" ]; then
+if [ -z "${AWS_REGION:-}" ]; then
   export AWS_REGION="us-east-1"
 fi
 
