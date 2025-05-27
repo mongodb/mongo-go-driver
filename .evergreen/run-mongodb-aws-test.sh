@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -o errexit  # Exit the script with error if any of the commands fail
+set -o errexit # Exit the script with error if any of the commands fail
 
 ############################################
 #            Main Program                  #
@@ -19,6 +19,12 @@ echo "Running MONGODB-AWS authentication tests"
 # show test output
 set -x
 
+# Region is required for the v2 AWS SDK
+if [ -z "$AWS_REGION" ]; then
+  export AWS_REGION="us-east-1"
+fi
+
 # For Go 1.16+, Go builds requires a go.mod file in the current working directory or a parent
 # directory. Spawn a new subshell, "cd" to the project directory, then run "go run".
 (cd ${PROJECT_DIRECTORY} && go run "./cmd/testaws/main.go" | tee test.suite)
+(cd ${PROJECT_DIRECTORY} && go test "./internal/test/mongoaws" -v | tee test.suite)
