@@ -1,4 +1,4 @@
-module go.mongodb.go/mongo-driver/internal/test/compilecheck
+module go.mongodb.go/mongo-driver/v2/internal/test/compilecheck
 
 go 1.23.0
 

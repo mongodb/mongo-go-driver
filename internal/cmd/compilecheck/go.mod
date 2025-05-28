@@ -1,4 +1,4 @@
-module go.mongodb.go/mongo-driver/internal/cmd/compilecheck
+module go.mongodb.go/mongo-driver/v2/internal/cmd/compilecheck
 
 go 1.19
 
