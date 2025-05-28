@@ -806,7 +806,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				"endpoint":   "doesnotexist.invalid:443",
 			},
 			"kmip": {
-				"endpoint": "doesnotexist.local:5698",
+				"endpoint": "doesnotexist.invalid:5698",
 			},
 		}
 
@@ -830,9 +830,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			"endpoint": "kms.us-east-1.amazonaws.com:443",
 		}
 		awsFailureConnectionError := map[string]interface{}{
-			"region":   "us-east-1",
-			"key":      "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
-			"endpoint": "kms.us-east-1.amazonaws.com:12345",
+			"keyId":    "1",
+			"endpoint": "localhost:12345",
 		}
 		awsFailureInvalidEndpoint := map[string]interface{}{
 			"region":   "us-east-1",
@@ -871,7 +870,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		}
 		kmipFailureInvalidEndpoint := map[string]interface{}{
 			"keyId":    "1",
-			"endpoint": "doesnotexist.local:5698",
+			"endpoint": "doesnotexist.invalid:5698",
 		}
 
 		const (
@@ -917,7 +916,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			},
 			{
 				name:                                  "Case 4: aws failure with connection error",
-				provider:                              "aws",
+				provider:                              "kmip",
 				masterKey:                             awsFailureConnectionError,
 				errorSubstring:                        []string{errConnectionRefused, errWindowsTLSConnectionRefused},
 				testInvalidClientEncryption:           false,
@@ -1588,7 +1587,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			"endpoint": "127.0.0.1:9001",
 		}
 		azureMasterKey := map[string]interface{}{
-			"keyVaultEndpoint": "doesnotexist.local",
+			"keyVaultEndpoint": "doesnotexist.invalid",
 			"keyName":          "foo",
 		}
 		gcpMasterKey := map[string]interface{}{

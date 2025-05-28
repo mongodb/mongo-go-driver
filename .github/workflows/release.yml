@@ -49,6 +49,7 @@ jobs:
         with:
           version: ${{ inputs.version }}
           push_changes: ${{ inputs.push_changes }}
+          ignored_branches: ${{ vars.IGNORED_MERGE_UP_BRANCHES }}
 
   static-scan:
     needs: [pre-publish]
