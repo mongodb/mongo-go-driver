@@ -1,4 +1,4 @@
-module go.mongodb.go/mongo-driver/internal/cmd/benchmark
+module go.mongodb.go/mongo-driver/v2/internal/cmd/benchmark
 
 go 1.19
 
