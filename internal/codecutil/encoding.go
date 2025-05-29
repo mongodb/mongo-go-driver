@@ -13,8 +13,8 @@ import (
 	"io"
 	"reflect"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 var ErrNilValue = errors.New("value is nil")
@@ -33,7 +33,7 @@ func (e MarshalError) Error() string {
 }
 
 // EncoderFn is used to functionally construct an encoder for marshaling values.
-type EncoderFn func(io.Writer) (*bson.Encoder, error)
+type EncoderFn func(io.Writer) *bson.Encoder
 
 // MarshalValue will attempt to encode the value with the encoder returned by
 // the encoder function.
@@ -49,14 +49,11 @@ func MarshalValue(val interface{}, encFn EncoderFn) (bsoncore.Value, error) {
 
 	buf := new(bytes.Buffer)
 
-	enc, err := encFn(buf)
-	if err != nil {
-		return bsoncore.Value{}, err
-	}
+	enc := encFn(buf)
 
 	// Encode the value in a single-element document with an empty key. Use
 	// bsoncore to extract the first element and return the BSON value.
-	err = enc.Encode(bson.D{{Key: "", Value: val}})
+	err := enc.Encode(bson.D{{Key: "", Value: val}})
 	if err != nil {
 		return bsoncore.Value{}, MarshalError{Value: val, Err: err}
 	}

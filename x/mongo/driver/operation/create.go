@@ -10,12 +10,13 @@ import (
 	"context"
 	"errors"
 
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/mongo/description"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
 // Create represents a create operation.
@@ -56,7 +57,7 @@ func NewCreate(collectionName string) *Create {
 	}
 }
 
-func (c *Create) processResponse(driver.ResponseInfo) error {
+func (c *Create) processResponse(context.Context, bsoncore.Document, driver.ResponseInfo) error {
 	return nil
 }
 
@@ -93,7 +94,7 @@ func (c *Create) command(dst []byte, desc description.SelectedServer) ([]byte, e
 		dst = bsoncore.AppendDocumentElement(dst, "changeStreamPreAndPostImages", c.changeStreamPreAndPostImages)
 	}
 	if c.collation != nil {
-		if desc.WireVersion == nil || !desc.WireVersion.Includes(5) {
+		if desc.WireVersion == nil || !driverutil.VersionRangeIncludes(*desc.WireVersion, 5) {
 			return nil, errors.New("the 'collation' command parameter requires a minimum server wire version of 5")
 		}
 		dst = bsoncore.AppendDocumentElement(dst, "collation", c.collation)
@@ -150,7 +151,7 @@ func (c *Create) Capped(capped bool) *Create {
 	return c
 }
 
-// Collation specifies a collation. This option is only valid for server versions 3.4 and above.
+// Collation specifies a collation.
 func (c *Create) Collation(collation bsoncore.Document) *Create {
 	if c == nil {
 		c = new(Create)

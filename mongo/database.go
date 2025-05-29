@@ -12,22 +12,24 @@ import (
 	"fmt"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/internal/csfle"
-	"go.mongodb.org/mongo-driver/mongo/description"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/csfle"
+	"go.mongodb.org/mongo-driver/v2/internal/csot"
+	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
+	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
 var (
-	defaultRunCmdOpts = []*options.RunCmdOptions{options.RunCmd().SetReadPreference(readpref.Primary())}
+	defaultRunCmdOpts = []options.Lister[options.RunCmdOptions]{options.RunCmd().SetReadPreference(readpref.Primary())}
 )
 
 // Database is a handle to a MongoDB database. It is safe for concurrent use by multiple goroutines.
@@ -40,35 +42,35 @@ type Database struct {
 	readSelector   description.ServerSelector
 	writeSelector  description.ServerSelector
 	bsonOpts       *options.BSONOptions
-	registry       *bsoncodec.Registry
+	registry       *bson.Registry
 }
 
-func newDatabase(client *Client, name string, opts ...*options.DatabaseOptions) *Database {
-	dbOpt := options.MergeDatabaseOptions(opts...)
+func newDatabase(client *Client, name string, opts ...options.Lister[options.DatabaseOptions]) *Database {
+	args, _ := mongoutil.NewOptions[options.DatabaseOptions](opts...)
 
 	rc := client.readConcern
-	if dbOpt.ReadConcern != nil {
-		rc = dbOpt.ReadConcern
+	if args.ReadConcern != nil {
+		rc = args.ReadConcern
 	}
 
 	rp := client.readPreference
-	if dbOpt.ReadPreference != nil {
-		rp = dbOpt.ReadPreference
+	if args.ReadPreference != nil {
+		rp = args.ReadPreference
 	}
 
 	wc := client.writeConcern
-	if dbOpt.WriteConcern != nil {
-		wc = dbOpt.WriteConcern
+	if args.WriteConcern != nil {
+		wc = args.WriteConcern
 	}
 
 	bsonOpts := client.bsonOpts
-	if dbOpt.BSONOptions != nil {
-		bsonOpts = dbOpt.BSONOptions
+	if args.BSONOptions != nil {
+		bsonOpts = args.BSONOptions
 	}
 
 	reg := client.registry
-	if dbOpt.Registry != nil {
-		reg = dbOpt.Registry
+	if args.Registry != nil {
+		reg = args.Registry
 	}
 
 	db := &Database{
@@ -81,15 +83,19 @@ func newDatabase(client *Client, name string, opts ...*options.DatabaseOptions) 
 		registry:       reg,
 	}
 
-	db.readSelector = description.CompositeSelector([]description.ServerSelector{
-		description.ReadPrefSelector(db.readPreference),
-		description.LatencySelector(db.client.localThreshold),
-	})
+	db.readSelector = &serverselector.Composite{
+		Selectors: []description.ServerSelector{
+			&serverselector.ReadPref{ReadPref: db.readPreference},
+			&serverselector.Latency{Latency: db.client.localThreshold},
+		},
+	}
 
-	db.writeSelector = description.CompositeSelector([]description.ServerSelector{
-		description.WriteSelector(),
-		description.LatencySelector(db.client.localThreshold),
-	})
+	db.writeSelector = &serverselector.Composite{
+		Selectors: []description.ServerSelector{
+			&serverselector.Write{},
+			&serverselector.Latency{Latency: db.client.localThreshold},
+		},
+	}
 
 	return db
 }
@@ -104,13 +110,15 @@ func (db *Database) Name() string {
 	return db.name
 }
 
-// Collection gets a handle for a collection with the given name configured with the given CollectionOptions.
-func (db *Database) Collection(name string, opts ...*options.CollectionOptions) *Collection {
+// Collection returns a handle for a collection with the given name and options.
+//
+// If the collection does not exist on the server, it will be created when a
+// write operation is performed.
+func (db *Database) Collection(name string, opts ...options.Lister[options.CollectionOptions]) *Collection {
 	return newCollection(db, name, opts...)
 }
 
-// Aggregate executes an aggregate command the database. This requires MongoDB version >= 3.6 and driver version >=
-// 1.1.0.
+// Aggregate executes an aggregate command the database.
 //
 // The pipeline parameter must be a slice of documents, each representing an aggregation stage. The pipeline
 // cannot be nil but can be empty. The stage documents must all be non-nil. For a pipeline of bson.D documents, the
@@ -121,8 +129,11 @@ func (db *Database) Collection(name string, opts ...*options.CollectionOptions) 
 // The opts parameter can be used to specify options for this operation (see the options.AggregateOptions documentation).
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/aggregate/.
-func (db *Database) Aggregate(ctx context.Context, pipeline interface{},
-	opts ...*options.AggregateOptions) (*Cursor, error) {
+func (db *Database) Aggregate(
+	ctx context.Context,
+	pipeline interface{},
+	opts ...options.Lister[options.AggregateOptions],
+) (*Cursor, error) {
 	a := aggregateParams{
 		ctx:            ctx,
 		pipeline:       pipeline,
@@ -135,25 +146,32 @@ func (db *Database) Aggregate(ctx context.Context, pipeline interface{},
 		readSelector:   db.readSelector,
 		writeSelector:  db.writeSelector,
 		readPreference: db.readPreference,
-		opts:           opts,
 	}
-	return aggregate(a)
+
+	return aggregate(a, opts...)
 }
 
-func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
-	cursorCommand bool, opts ...*options.RunCmdOptions) (*operation.Command, *session.Client, error) {
+func (db *Database) processRunCommand(
+	ctx context.Context,
+	cmd interface{},
+	cursorCommand bool,
+	opts ...options.Lister[options.RunCmdOptions],
+) (*operation.Command, *session.Client, error) {
+	args, err := mongoutil.NewOptions[options.RunCmdOptions](append(defaultRunCmdOpts, opts...)...)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to construct options from builder: %w", err)
+	}
+
 	sess := sessionFromContext(ctx)
 	if sess == nil && db.client.sessionPool != nil {
 		sess = session.NewImplicitClientSession(db.client.sessionPool, db.client.id)
 	}
 
-	err := db.client.validSession(sess)
-	if err != nil {
+	if err := db.client.validSession(sess); err != nil {
 		return nil, sess, err
 	}
 
-	ro := options.MergeRunCmdOptions(append(defaultRunCmdOpts, opts...)...)
-	if sess != nil && sess.TransactionRunning() && ro.ReadPreference != nil && ro.ReadPreference.Mode() != readpref.PrimaryMode {
+	if sess != nil && sess.TransactionRunning() && args.ReadPreference != nil && args.ReadPreference.Mode() != readpref.PrimaryMode {
 		return nil, sess, errors.New("read preference in a transaction must be primary")
 	}
 
@@ -165,11 +183,17 @@ func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 	if err != nil {
 		return nil, sess, err
 	}
-	readSelect := description.CompositeSelector([]description.ServerSelector{
-		description.ReadPrefSelector(ro.ReadPreference),
-		description.LatencySelector(db.client.localThreshold),
-	})
-	if sess != nil && sess.PinnedServer != nil {
+
+	var readSelect description.ServerSelector
+
+	readSelect = &serverselector.Composite{
+		Selectors: []description.ServerSelector{
+			&serverselector.ReadPref{ReadPref: args.ReadPreference},
+			&serverselector.Latency{Latency: db.client.localThreshold},
+		},
+	}
+
+	if sess != nil && sess.PinnedServerAddr != nil {
 		readSelect = makePinnedSelector(sess, readSelect)
 	}
 
@@ -188,7 +212,7 @@ func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 	return op.Session(sess).CommandMonitor(db.client.monitor).
 		ServerSelector(readSelect).ClusterClock(db.client.clock).
 		Database(db.name).Deployment(db.client.deployment).
-		Crypt(db.client.cryptFLE).ReadPreference(ro.ReadPreference).ServerAPI(db.client.serverAPI).
+		Crypt(db.client.cryptFLE).ReadPreference(args.ReadPreference).ServerAPI(db.client.serverAPI).
 		Timeout(db.client.timeout).Logger(db.client.logger).Authenticator(db.client.authenticator), sess, nil
 }
 
@@ -210,7 +234,11 @@ func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 // - A session ID or any transaction-specific fields
 // - API versioning options when an API version is already declared on the Client
 // - maxTimeMS when Timeout is set on the Client
-func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts ...*options.RunCmdOptions) *SingleResult {
+func (db *Database) RunCommand(
+	ctx context.Context,
+	runCommand interface{},
+	opts ...options.Lister[options.RunCmdOptions],
+) *SingleResult {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -223,13 +251,14 @@ func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts
 
 	err = op.Execute(ctx)
 	// RunCommand can be used to run a write, thus execute may return a write error
-	_, convErr := processWriteError(err)
+	rr, convErr := processWriteError(err)
 	return &SingleResult{
-		ctx:      ctx,
-		err:      convErr,
-		rdr:      bson.Raw(op.Result()),
-		bsonOpts: db.bsonOpts,
-		reg:      db.registry,
+		ctx:          ctx,
+		err:          convErr,
+		rdr:          bson.Raw(op.Result()),
+		bsonOpts:     db.bsonOpts,
+		reg:          db.registry,
+		Acknowledged: rr.isAcknowledged(),
 	}
 }
 
@@ -247,7 +276,11 @@ func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts
 // - A session ID or any transaction-specific fields
 // - API versioning options when an API version is already declared on the Client
 // - maxTimeMS when Timeout is set on the Client
-func (db *Database) RunCommandCursor(ctx context.Context, runCommand interface{}, opts ...*options.RunCmdOptions) (*Cursor, error) {
+func (db *Database) RunCommandCursor(
+	ctx context.Context,
+	runCommand interface{},
+	opts ...options.Lister[options.RunCmdOptions],
+) (*Cursor, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -298,7 +331,7 @@ func (db *Database) Drop(ctx context.Context) error {
 	if sess.TransactionRunning() {
 		wc = nil
 	}
-	if !writeconcern.AckWrite(wc) {
+	if !wc.Acknowledged() {
 		sess = nil
 	}
 
@@ -312,8 +345,8 @@ func (db *Database) Drop(ctx context.Context) error {
 
 	err = op.Execute(ctx)
 
-	driverErr, ok := err.(driver.Error)
-	if err != nil && (!ok || !driverErr.NamespaceNotFound()) {
+	var driverErr driver.Error
+	if err != nil && (!errors.As(err, &driverErr) || !driverErr.NamespaceNotFound()) {
 		return replaceErrors(err)
 	}
 	return nil
@@ -330,30 +363,53 @@ func (db *Database) Drop(ctx context.Context) error {
 // documentation).
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/listCollections/.
-//
-// BUG(benjirewis): ListCollectionSpecifications prevents listing more than 100 collections per database when running
-// against MongoDB version 2.6.
-func (db *Database) ListCollectionSpecifications(ctx context.Context, filter interface{},
-	opts ...*options.ListCollectionsOptions) ([]*CollectionSpecification, error) {
-
+func (db *Database) ListCollectionSpecifications(
+	ctx context.Context,
+	filter interface{},
+	opts ...options.Lister[options.ListCollectionsOptions],
+) ([]CollectionSpecification, error) {
 	cursor, err := db.ListCollections(ctx, filter, opts...)
 	if err != nil {
 		return nil, err
 	}
 
-	var specs []*CollectionSpecification
-	err = cursor.All(ctx, &specs)
+	var resp []struct {
+		Name string `bson:"name"`
+		Type string `bson:"type"`
+		Info *struct {
+			ReadOnly bool         `bson:"readOnly"`
+			UUID     *bson.Binary `bson:"uuid"`
+		} `bson:"info"`
+		Options bson.Raw                       `bson:"options"`
+		IDIndex indexListSpecificationResponse `bson:"idIndex"`
+	}
+
+	err = cursor.All(ctx, &resp)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, spec := range specs {
+	specs := make([]CollectionSpecification, len(resp))
+	for idx, spec := range resp {
+		specs[idx] = CollectionSpecification{
+			Name:    spec.Name,
+			Type:    spec.Type,
+			Options: spec.Options,
+			IDIndex: IndexSpecification(spec.IDIndex),
+		}
+
+		if spec.Info != nil {
+			specs[idx].ReadOnly = spec.Info.ReadOnly
+			specs[idx].UUID = spec.Info.UUID
+		}
+
 		// Pre-4.4 servers report a namespace in their responses, so we only set Namespace manually if it was not in
 		// the response.
-		if spec.IDIndex != nil && spec.IDIndex.Namespace == "" {
-			spec.IDIndex.Namespace = db.name + "." + spec.Name
+		if specs[idx].IDIndex.Namespace == "" {
+			specs[idx].IDIndex.Namespace = db.name + "." + specs[idx].Name
 		}
 	}
+
 	return specs, nil
 }
 
@@ -370,9 +426,18 @@ func (db *Database) ListCollectionSpecifications(ctx context.Context, filter int
 //
 // BUG(benjirewis): ListCollections prevents listing more than 100 collections per database when running against
 // MongoDB version 2.6.
-func (db *Database) ListCollections(ctx context.Context, filter interface{}, opts ...*options.ListCollectionsOptions) (*Cursor, error) {
+func (db *Database) ListCollections(
+	ctx context.Context,
+	filter interface{},
+	opts ...options.Lister[options.ListCollectionsOptions],
+) (*Cursor, error) {
 	if ctx == nil {
 		ctx = context.Background()
+	}
+
+	args, err := mongoutil.NewOptions[options.ListCollectionsOptions](opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 
 	filterDoc, err := marshal(filter, db.bsonOpts, db.registry)
@@ -391,13 +456,17 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 		return nil, err
 	}
 
-	selector := description.CompositeSelector([]description.ServerSelector{
-		description.ReadPrefSelector(readpref.Primary()),
-		description.LatencySelector(db.client.localThreshold),
-	})
+	var selector description.ServerSelector
+
+	selector = &serverselector.Composite{
+		Selectors: []description.ServerSelector{
+			&serverselector.ReadPref{ReadPref: readpref.Primary()},
+			&serverselector.Latency{Latency: db.client.localThreshold},
+		},
+	}
+
 	selector = makeReadPrefSelector(sess, selector, db.client.localThreshold)
 
-	lco := options.MergeListCollectionsOptions(opts...)
 	op := operation.NewListCollections(filterDoc).
 		Session(sess).ReadPreference(db.readPreference).CommandMonitor(db.client.monitor).
 		ServerSelector(selector).ClusterClock(db.client.clock).
@@ -408,15 +477,15 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 
 	cursorOpts.MarshalValueEncoderFn = newEncoderFn(db.bsonOpts, db.registry)
 
-	if lco.NameOnly != nil {
-		op = op.NameOnly(*lco.NameOnly)
+	if args.NameOnly != nil {
+		op = op.NameOnly(*args.NameOnly)
 	}
-	if lco.BatchSize != nil {
-		cursorOpts.BatchSize = *lco.BatchSize
-		op = op.BatchSize(*lco.BatchSize)
+	if args.BatchSize != nil {
+		cursorOpts.BatchSize = *args.BatchSize
+		op = op.BatchSize(*args.BatchSize)
 	}
-	if lco.AuthorizedCollections != nil {
-		op = op.AuthorizedCollections(*lco.AuthorizedCollections)
+	if args.AuthorizedCollections != nil {
+		op = op.AuthorizedCollections(*args.AuthorizedCollections)
 	}
 
 	retry := driver.RetryNone
@@ -454,7 +523,11 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 //
 // BUG(benjirewis): ListCollectionNames prevents listing more than 100 collections per database when running against
 // MongoDB version 2.6.
-func (db *Database) ListCollectionNames(ctx context.Context, filter interface{}, opts ...*options.ListCollectionsOptions) ([]string, error) {
+func (db *Database) ListCollectionNames(
+	ctx context.Context,
+	filter interface{},
+	opts ...options.Lister[options.ListCollectionsOptions],
+) ([]string, error) {
 	opts = append(opts, options.ListCollections().SetNameOnly(true))
 
 	res, err := db.ListCollections(ctx, filter, opts...)
@@ -483,21 +556,6 @@ func (db *Database) ListCollectionNames(ctx context.Context, filter interface{},
 	return names, nil
 }
 
-// ReadConcern returns the read concern used to configure the Database object.
-func (db *Database) ReadConcern() *readconcern.ReadConcern {
-	return db.readConcern
-}
-
-// ReadPreference returns the read preference used to configure the Database object.
-func (db *Database) ReadPreference() *readpref.ReadPref {
-	return db.readPreference
-}
-
-// WriteConcern returns the write concern used to configure the Database object.
-func (db *Database) WriteConcern() *writeconcern.WriteConcern {
-	return db.writeConcern
-}
-
 // Watch returns a change stream for all changes to the corresponding database. See
 // https://www.mongodb.com/docs/manual/changeStreams/ for more information about change streams.
 //
@@ -512,12 +570,13 @@ func (db *Database) WriteConcern() *writeconcern.WriteConcern {
 // The opts parameter can be used to specify options for change stream creation (see the options.ChangeStreamOptions
 // documentation).
 func (db *Database) Watch(ctx context.Context, pipeline interface{},
-	opts ...*options.ChangeStreamOptions) (*ChangeStream, error) {
+	opts ...options.Lister[options.ChangeStreamOptions]) (*ChangeStream, error) {
 
 	csConfig := changeStreamConfig{
 		readConcern:    db.readConcern,
 		readPreference: db.readPreference,
 		client:         db.client,
+		bsonOpts:       db.bsonOpts,
 		registry:       db.registry,
 		streamType:     DatabaseStream,
 		databaseName:   db.Name(),
@@ -526,19 +585,24 @@ func (db *Database) Watch(ctx context.Context, pipeline interface{},
 	return newChangeStream(ctx, csConfig, pipeline, opts...)
 }
 
-// CreateCollection executes a create command to explicitly create a new collection with the specified name on the
-// server. If the collection being created already exists, this method will return a mongo.CommandError. This method
-// requires driver version 1.4.0 or higher.
+// CreateCollection creates a new collection on the server with the specified
+// name and options.
 //
-// The opts parameter can be used to specify options for the operation (see the options.CreateCollectionOptions
-// documentation).
+// MongoDB versions < 7.0 will return an error if the collection already exists.
+// MongoDB versions >= 7.0 will not return an error if an existing collection
+// created with the same name and options already exists.
 //
-// For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/create/.
-func (db *Database) CreateCollection(ctx context.Context, name string, opts ...*options.CreateCollectionOptions) error {
-	cco := options.MergeCreateCollectionOptions(opts...)
-	// Follow Client-Side Encryption specification to check for encryptedFields.
+// For more information about the command, see
+// https://www.mongodb.com/docs/manual/reference/command/create/.
+func (db *Database) CreateCollection(ctx context.Context, name string, opts ...options.Lister[options.CreateCollectionOptions]) error {
+	args, err := mongoutil.NewOptions(opts...)
+	if err != nil {
+		return fmt.Errorf("failed to construct options from builder: %w", err)
+	}
+
+	// Follow In-Use Encryption specification to check for encryptedFields.
 	// Check for encryptedFields from create options.
-	ef := cco.EncryptedFields
+	ef := args.EncryptedFields
 	// Check for encryptedFields from the client EncryptedFieldsMap.
 	if ef == nil {
 		ef = db.getEncryptedFieldsFromMap(name)
@@ -599,7 +663,12 @@ func (db *Database) getEncryptedFieldsFromMap(collectionName string) interface{}
 }
 
 // createCollectionWithEncryptedFields creates a collection with an EncryptedFields.
-func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, name string, ef interface{}, opts ...*options.CreateCollectionOptions) error {
+func (db *Database) createCollectionWithEncryptedFields(
+	ctx context.Context,
+	name string,
+	ef interface{},
+	opts ...options.Lister[options.CreateCollectionOptions],
+) error {
 	efBSON, err := marshal(ef, db.bsonOpts, db.registry)
 	if err != nil {
 		return fmt.Errorf("error transforming document: %w", err)
@@ -610,10 +679,14 @@ func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, nam
 	// That is OK. This wire version check is a best effort to inform users earlier if using a QEv2 driver with a QEv1 server.
 	{
 		const QEv2WireVersion = 21
-		server, err := db.client.deployment.SelectServer(ctx, description.WriteSelector())
+		ctx, cancel := csot.WithServerSelectionTimeout(ctx, db.client.deployment.GetServerSelectionTimeout())
+		defer cancel()
+
+		server, err := db.client.deployment.SelectServer(ctx, &serverselector.Write{})
 		if err != nil {
 			return fmt.Errorf("error selecting server to check maxWireVersion: %w", err)
 		}
+
 		conn, err := server.Connection(ctx)
 		if err != nil {
 			return fmt.Errorf("error getting connection to check maxWireVersion: %w", err)
@@ -669,7 +742,11 @@ func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, nam
 }
 
 // createCollection creates a collection without EncryptedFields.
-func (db *Database) createCollection(ctx context.Context, name string, opts ...*options.CreateCollectionOptions) error {
+func (db *Database) createCollection(
+	ctx context.Context,
+	name string,
+	opts ...options.Lister[options.CreateCollectionOptions],
+) error {
 	op, err := db.createCollectionOperation(name, opts...)
 	if err != nil {
 		return err
@@ -677,101 +754,119 @@ func (db *Database) createCollection(ctx context.Context, name string, opts ...*
 	return db.executeCreateOperation(ctx, op)
 }
 
-func (db *Database) createCollectionOperation(name string, opts ...*options.CreateCollectionOptions) (*operation.Create, error) {
-	cco := options.MergeCreateCollectionOptions(opts...)
+func (db *Database) createCollectionOperation(
+	name string,
+	opts ...options.Lister[options.CreateCollectionOptions],
+) (*operation.Create, error) {
+	args, err := mongoutil.NewOptions[options.CreateCollectionOptions](opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
+	}
+
 	op := operation.NewCreate(name).ServerAPI(db.client.serverAPI).Authenticator(db.client.authenticator)
 
-	if cco.Capped != nil {
-		op.Capped(*cco.Capped)
+	if args.Capped != nil {
+		op.Capped(*args.Capped)
 	}
-	if cco.Collation != nil {
-		op.Collation(bsoncore.Document(cco.Collation.ToDocument()))
+	if args.Collation != nil {
+		op.Collation(bsoncore.Document(toDocument(args.Collation)))
 	}
-	if cco.ChangeStreamPreAndPostImages != nil {
-		csppi, err := marshal(cco.ChangeStreamPreAndPostImages, db.bsonOpts, db.registry)
+	if args.ChangeStreamPreAndPostImages != nil {
+		csppi, err := marshal(args.ChangeStreamPreAndPostImages, db.bsonOpts, db.registry)
 		if err != nil {
 			return nil, err
 		}
 		op.ChangeStreamPreAndPostImages(csppi)
 	}
-	if cco.DefaultIndexOptions != nil {
+	if args.DefaultIndexOptions != nil {
+		defaultIndexArgs, err := mongoutil.NewOptions[options.DefaultIndexOptions](args.DefaultIndexOptions)
+		if err != nil {
+			return nil, fmt.Errorf("failed to construct DefaultIndexArgs from options: %w", err)
+		}
+
 		idx, doc := bsoncore.AppendDocumentStart(nil)
-		if cco.DefaultIndexOptions.StorageEngine != nil {
-			storageEngine, err := marshal(cco.DefaultIndexOptions.StorageEngine, db.bsonOpts, db.registry)
+		if defaultIndexArgs.StorageEngine != nil {
+			storageEngine, err := marshal(defaultIndexArgs.StorageEngine, db.bsonOpts, db.registry)
 			if err != nil {
 				return nil, err
 			}
 
 			doc = bsoncore.AppendDocumentElement(doc, "storageEngine", storageEngine)
 		}
-		doc, err := bsoncore.AppendDocumentEnd(doc, idx)
+
+		doc, err = bsoncore.AppendDocumentEnd(doc, idx)
 		if err != nil {
 			return nil, err
 		}
 
 		op.IndexOptionDefaults(doc)
 	}
-	if cco.MaxDocuments != nil {
-		op.Max(*cco.MaxDocuments)
+	if args.MaxDocuments != nil {
+		op.Max(*args.MaxDocuments)
 	}
-	if cco.SizeInBytes != nil {
-		op.Size(*cco.SizeInBytes)
+	if args.SizeInBytes != nil {
+		op.Size(*args.SizeInBytes)
 	}
-	if cco.StorageEngine != nil {
-		storageEngine, err := marshal(cco.StorageEngine, db.bsonOpts, db.registry)
+	if args.StorageEngine != nil {
+		storageEngine, err := marshal(args.StorageEngine, db.bsonOpts, db.registry)
 		if err != nil {
 			return nil, err
 		}
 		op.StorageEngine(storageEngine)
 	}
-	if cco.ValidationAction != nil {
-		op.ValidationAction(*cco.ValidationAction)
+	if args.ValidationAction != nil {
+		op.ValidationAction(*args.ValidationAction)
 	}
-	if cco.ValidationLevel != nil {
-		op.ValidationLevel(*cco.ValidationLevel)
+	if args.ValidationLevel != nil {
+		op.ValidationLevel(*args.ValidationLevel)
 	}
-	if cco.Validator != nil {
-		validator, err := marshal(cco.Validator, db.bsonOpts, db.registry)
+	if args.Validator != nil {
+		validator, err := marshal(args.Validator, db.bsonOpts, db.registry)
 		if err != nil {
 			return nil, err
 		}
 		op.Validator(validator)
 	}
-	if cco.ExpireAfterSeconds != nil {
-		op.ExpireAfterSeconds(*cco.ExpireAfterSeconds)
+	if args.ExpireAfterSeconds != nil {
+		op.ExpireAfterSeconds(*args.ExpireAfterSeconds)
 	}
-	if cco.TimeSeriesOptions != nil {
+	if args.TimeSeriesOptions != nil {
+		timeSeriesArgs, err := mongoutil.NewOptions[options.TimeSeriesOptions](args.TimeSeriesOptions)
+		if err != nil {
+			return nil, fmt.Errorf("failed to construct DefaultIndexArgs from options: %w", err)
+		}
+
 		idx, doc := bsoncore.AppendDocumentStart(nil)
-		doc = bsoncore.AppendStringElement(doc, "timeField", cco.TimeSeriesOptions.TimeField)
+		doc = bsoncore.AppendStringElement(doc, "timeField", timeSeriesArgs.TimeField)
 
-		if cco.TimeSeriesOptions.MetaField != nil {
-			doc = bsoncore.AppendStringElement(doc, "metaField", *cco.TimeSeriesOptions.MetaField)
+		if timeSeriesArgs.MetaField != nil {
+			doc = bsoncore.AppendStringElement(doc, "metaField", *timeSeriesArgs.MetaField)
 		}
-		if cco.TimeSeriesOptions.Granularity != nil {
-			doc = bsoncore.AppendStringElement(doc, "granularity", *cco.TimeSeriesOptions.Granularity)
+		if timeSeriesArgs.Granularity != nil {
+			doc = bsoncore.AppendStringElement(doc, "granularity", *timeSeriesArgs.Granularity)
 		}
 
-		if cco.TimeSeriesOptions.BucketMaxSpan != nil {
-			bmss := int64(*cco.TimeSeriesOptions.BucketMaxSpan / time.Second)
+		if timeSeriesArgs.BucketMaxSpan != nil {
+			bmss := int64(*timeSeriesArgs.BucketMaxSpan / time.Second)
 
 			doc = bsoncore.AppendInt64Element(doc, "bucketMaxSpanSeconds", bmss)
 		}
 
-		if cco.TimeSeriesOptions.BucketRounding != nil {
-			brs := int64(*cco.TimeSeriesOptions.BucketRounding / time.Second)
+		if timeSeriesArgs.BucketRounding != nil {
+			brs := int64(*timeSeriesArgs.BucketRounding / time.Second)
 
 			doc = bsoncore.AppendInt64Element(doc, "bucketRoundingSeconds", brs)
 		}
 
-		doc, err := bsoncore.AppendDocumentEnd(doc, idx)
+		doc, err = bsoncore.AppendDocumentEnd(doc, idx)
 		if err != nil {
 			return nil, err
 		}
 
 		op.TimeSeries(doc)
 	}
-	if cco.ClusteredIndex != nil {
-		clusteredIndex, err := marshal(cco.ClusteredIndex, db.bsonOpts, db.registry)
+	if args.ClusteredIndex != nil {
+		clusteredIndex, err := marshal(args.ClusteredIndex, db.bsonOpts, db.registry)
 		if err != nil {
 			return nil, err
 		}
@@ -781,21 +876,22 @@ func (db *Database) createCollectionOperation(name string, opts ...*options.Crea
 	return op, nil
 }
 
-// CreateView executes a create command to explicitly create a view on the server. See
-// https://www.mongodb.com/docs/manual/core/views/ for more information about views. This method requires driver version >=
-// 1.4.0 and MongoDB version >= 3.4.
+// CreateView creates a view on the server.
 //
-// The viewName parameter specifies the name of the view to create.
+// The viewName parameter specifies the name of the view to create. The viewOn
+// parameter specifies the name of the collection or view on which this view
+// will be created. The pipeline parameter specifies an aggregation pipeline
+// that will be exececuted against the source collection or view to create this
+// view.
 //
-// # The viewOn parameter specifies the name of the collection or view on which this view will be created
+// MongoDB versions < 7.0 will return an error if the view already exists.
+// MongoDB versions >= 7.0 will not return an error if an existing view created
+// with the same name and options already exists.
 //
-// The pipeline parameter specifies an aggregation pipeline that will be exececuted against the source collection or
-// view to create this view.
-//
-// The opts parameter can be used to specify options for the operation (see the options.CreateViewOptions
-// documentation).
+// See https://www.mongodb.com/docs/manual/core/views/ for more information
+// about views.
 func (db *Database) CreateView(ctx context.Context, viewName, viewOn string, pipeline interface{},
-	opts ...*options.CreateViewOptions) error {
+	opts ...options.Lister[options.CreateViewOptions]) error {
 
 	pipelineArray, _, err := marshalAggregatePipeline(pipeline, db.bsonOpts, db.registry)
 	if err != nil {
@@ -805,11 +901,14 @@ func (db *Database) CreateView(ctx context.Context, viewName, viewOn string, pip
 	op := operation.NewCreate(viewName).
 		ViewOn(viewOn).
 		Pipeline(pipelineArray).
-		ServerAPI(db.client.serverAPI).
-		Authenticator(db.client.authenticator)
-	cvo := options.MergeCreateViewOptions(opts...)
-	if cvo.Collation != nil {
-		op.Collation(bsoncore.Document(cvo.Collation.ToDocument()))
+		ServerAPI(db.client.serverAPI).Authenticator(db.client.authenticator)
+	args, err := mongoutil.NewOptions(opts...)
+	if err != nil {
+		return fmt.Errorf("failed to construct options from builder: %w", err)
+	}
+
+	if args.Collation != nil {
+		op.Collation(bsoncore.Document(toDocument(args.Collation)))
 	}
 
 	return db.executeCreateOperation(ctx, op)
@@ -831,7 +930,7 @@ func (db *Database) executeCreateOperation(ctx context.Context, op *operation.Cr
 	if sess.TransactionRunning() {
 		wc = nil
 	}
-	if !writeconcern.AckWrite(wc) {
+	if !wc.Acknowledged() {
 		sess = nil
 	}
 
@@ -846,4 +945,40 @@ func (db *Database) executeCreateOperation(ctx context.Context, op *operation.Cr
 		Crypt(db.client.cryptFLE)
 
 	return replaceErrors(op.Execute(ctx))
+}
+
+// GridFSBucket is used to construct a GridFS bucket which can be used as a
+// container for files.
+func (db *Database) GridFSBucket(opts ...options.Lister[options.BucketOptions]) *GridFSBucket {
+	b := &GridFSBucket{
+		name:      "fs",
+		chunkSize: DefaultGridFSChunkSize,
+		db:        db,
+	}
+
+	bo, _ := mongoutil.NewOptions[options.BucketOptions](opts...)
+	if bo.Name != nil {
+		b.name = *bo.Name
+	}
+	if bo.ChunkSizeBytes != nil {
+		b.chunkSize = *bo.ChunkSizeBytes
+	}
+	if bo.WriteConcern != nil {
+		b.wc = bo.WriteConcern
+	}
+	if bo.ReadConcern != nil {
+		b.rc = bo.ReadConcern
+	}
+	if bo.ReadPreference != nil {
+		b.rp = bo.ReadPreference
+	}
+
+	var collOpts = options.Collection().SetWriteConcern(b.wc).SetReadConcern(b.rc).SetReadPreference(b.rp)
+
+	b.chunksColl = db.Collection(b.name+".chunks", collOpts)
+	b.filesColl = db.Collection(b.name+".files", collOpts)
+	b.readBuf = make([]byte, b.chunkSize)
+	b.writeBuf = make([]byte, b.chunkSize)
+
+	return b
 }

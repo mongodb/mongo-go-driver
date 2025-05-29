@@ -6,7 +6,7 @@
       "minServerVersion": "4.3.1",
       "topologies": [
         "replicaset",
-        "sharded-replicaset",
+        "sharded",
         "load-balanced"
       ],
       "serverless": "forbid"
@@ -1479,10 +1479,10 @@
     {
       "description": "change stream resumes after StaleShardVersion",
       "runOnRequirements": [
-         {
-           "maxServerVersion": "6.0.99"
-         }
-       ],
+        {
+          "maxServerVersion": "6.0.99"
+        }
+      ],
       "operations": [
         {
           "name": "failPoint",

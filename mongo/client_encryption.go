@@ -7,19 +7,19 @@
 package mongo
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"strings"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsonrw"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt"
-	mcopts "go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt/options"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mongocrypt"
+	mcopts "go.mongodb.org/mongo-driver/v2/x/mongo/driver/mongocrypt/options"
 )
 
 // ClientEncryption is used to create data keys and explicitly encrypt and decrypt BSON values.
@@ -27,10 +27,11 @@ type ClientEncryption struct {
 	crypt          driver.Crypt
 	keyVaultClient *Client
 	keyVaultColl   *Collection
+	closed         bool
 }
 
 // NewClientEncryption creates a new ClientEncryption instance configured with the given options.
-func NewClientEncryption(keyVaultClient *Client, opts ...*options.ClientEncryptionOptions) (*ClientEncryption, error) {
+func NewClientEncryption(keyVaultClient *Client, opts ...options.Lister[options.ClientEncryptionOptions]) (*ClientEncryption, error) {
 	if keyVaultClient == nil {
 		return nil, errors.New("keyVaultClient must not be nil")
 	}
@@ -38,13 +39,16 @@ func NewClientEncryption(keyVaultClient *Client, opts ...*options.ClientEncrypti
 	ce := &ClientEncryption{
 		keyVaultClient: keyVaultClient,
 	}
-	ceo := options.MergeClientEncryptionOptions(opts...)
+	cea, err := mongoutil.NewOptions(opts...)
+	if err != nil {
+		return nil, err
+	}
 
 	// create keyVaultColl
-	db, coll := splitNamespace(ceo.KeyVaultNamespace)
+	db, coll := splitNamespace(cea.KeyVaultNamespace)
 	ce.keyVaultColl = ce.keyVaultClient.Database(db).Collection(coll, keyVaultCollOpts)
 
-	kmsProviders, err := marshal(ceo.KmsProviders, nil, nil)
+	kmsProviders, err := marshal(cea.KmsProviders, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error creating KMS providers map: %w", err)
 	}
@@ -55,7 +59,8 @@ func NewClientEncryption(keyVaultClient *Client, opts ...*options.ClientEncrypti
 		// ClientEncryption because it's only needed for AutoEncryption and we don't expect users to
 		// have the crypt_shared library installed if they're using ClientEncryption.
 		SetCryptSharedLibDisabled(true).
-		SetHTTPClient(ceo.HTTPClient))
+		SetHTTPClient(cea.HTTPClient).
+		SetKeyExpiration(cea.KeyExpiration))
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +72,7 @@ func NewClientEncryption(keyVaultClient *Client, opts ...*options.ClientEncrypti
 		MongoCrypt: mc,
 		KeyFn:      kr.cryptKeys,
 		CollInfoFn: cir.cryptCollInfo,
-		TLSConfig:  ceo.TLSConfig,
+		TLSConfig:  cea.TLSConfig,
 	})
 
 	return ce, nil
@@ -76,12 +81,22 @@ func NewClientEncryption(keyVaultClient *Client, opts ...*options.ClientEncrypti
 // CreateEncryptedCollection creates a new collection for Queryable Encryption with the help of automatic generation of new encryption data keys for null keyIds.
 // It returns the created collection and the encrypted fields document used to create it.
 func (ce *ClientEncryption) CreateEncryptedCollection(ctx context.Context,
-	db *Database, coll string, createOpts *options.CreateCollectionOptions,
+	db *Database, coll string, createOpts options.Lister[options.CreateCollectionOptions],
 	kmsProvider string, masterKey interface{}) (*Collection, bson.M, error) {
+	if ce.closed {
+		return nil, nil, ErrClientDisconnected
+	}
+
 	if createOpts == nil {
 		return nil, nil, errors.New("nil CreateCollectionOptions")
 	}
-	ef := createOpts.EncryptedFields
+
+	createArgs, err := mongoutil.NewOptions[options.CreateCollectionOptions](createOpts)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to construct options from builder: %w", err)
+	}
+
+	ef := createArgs.EncryptedFields
 	if ef == nil {
 		return nil, nil, errors.New("no EncryptedFields defined for the collection")
 	}
@@ -90,11 +105,9 @@ func (ce *ClientEncryption) CreateEncryptedCollection(ctx context.Context,
 	if err != nil {
 		return nil, nil, err
 	}
-	r := bsonrw.NewBSONDocumentReader(efBSON)
-	dec, err := bson.NewDecoder(r)
-	if err != nil {
-		return nil, nil, err
-	}
+	r := bson.NewDocumentReader(bytes.NewReader(efBSON))
+	dec := bson.NewDecoder(r)
+	dec.DefaultDocumentM()
 	var m bson.M
 	err = dec.Decode(&m)
 	if err != nil {
@@ -113,16 +126,18 @@ func (ce *ClientEncryption) CreateEncryptedCollection(ctx context.Context,
 					}
 					keyid, err := ce.CreateDataKey(ctx, kmsProvider, dkOpts)
 					if err != nil {
-						createOpts.EncryptedFields = m
+						createArgs.EncryptedFields = m
 						return nil, m, err
 					}
 					f["keyId"] = keyid
 				}
 			}
-			createOpts.EncryptedFields = m
+			createArgs.EncryptedFields = m
 		}
 	}
-	err = db.CreateCollection(ctx, coll, createOpts)
+
+	updatedCreateOpts := mongoutil.NewOptionsLister(createArgs, nil)
+	err = db.CreateCollection(ctx, coll, updatedCreateOpts)
 	if err != nil {
 		return nil, m, err
 	}
@@ -131,7 +146,11 @@ func (ce *ClientEncryption) CreateEncryptedCollection(ctx context.Context,
 
 // AddKeyAltName adds a keyAltName to the keyAltNames array of the key document in the key vault collection with the
 // given UUID (BSON binary subtype 0x04). Returns the previous version of the key document.
-func (ce *ClientEncryption) AddKeyAltName(ctx context.Context, id primitive.Binary, keyAltName string) *SingleResult {
+func (ce *ClientEncryption) AddKeyAltName(ctx context.Context, id bson.Binary, keyAltName string) *SingleResult {
+	if ce.closed {
+		return &SingleResult{err: ErrClientDisconnected}
+	}
+
 	filter := bsoncore.NewDocumentBuilder().AppendBinary("_id", id.Subtype, id.Data).Build()
 	keyAltNameDoc := bsoncore.NewDocumentBuilder().AppendString("keyAltNames", keyAltName).Build()
 	update := bsoncore.NewDocumentBuilder().AppendDocument("$addToSet", keyAltNameDoc).Build()
@@ -140,75 +159,87 @@ func (ce *ClientEncryption) AddKeyAltName(ctx context.Context, id primitive.Bina
 
 // CreateDataKey creates a new key document and inserts into the key vault collection. Returns the _id of the created
 // document as a UUID (BSON binary subtype 0x04).
-func (ce *ClientEncryption) CreateDataKey(ctx context.Context, kmsProvider string,
-	opts ...*options.DataKeyOptions) (primitive.Binary, error) {
+func (ce *ClientEncryption) CreateDataKey(
+	ctx context.Context,
+	kmsProvider string,
+	opts ...options.Lister[options.DataKeyOptions],
+) (bson.Binary, error) {
+	if ce.closed {
+		return bson.Binary{}, ErrClientDisconnected
+	}
 
-	// translate opts to mcopts.DataKeyOptions
-	dko := options.MergeDataKeyOptions(opts...)
-	co := mcopts.DataKey().SetKeyAltNames(dko.KeyAltNames)
-	if dko.MasterKey != nil {
+	args, err := mongoutil.NewOptions[options.DataKeyOptions](opts...)
+	if err != nil {
+		return bson.Binary{}, fmt.Errorf("failed to construct options from builder: %w", err)
+	}
+
+	co := mcopts.DataKey().SetKeyAltNames(args.KeyAltNames)
+	if args.MasterKey != nil {
 		keyDoc, err := marshal(
-			dko.MasterKey,
+			args.MasterKey,
 			ce.keyVaultClient.bsonOpts,
 			ce.keyVaultClient.registry)
 		if err != nil {
-			return primitive.Binary{}, err
+			return bson.Binary{}, err
 		}
 		co.SetMasterKey(keyDoc)
 	}
-	if dko.KeyMaterial != nil {
-		co.SetKeyMaterial(dko.KeyMaterial)
+	if args.KeyMaterial != nil {
+		co.SetKeyMaterial(args.KeyMaterial)
 	}
 
 	// create data key document
 	dataKeyDoc, err := ce.crypt.CreateDataKey(ctx, kmsProvider, co)
 	if err != nil {
-		return primitive.Binary{}, err
+		return bson.Binary{}, err
 	}
 
 	// insert key into key vault
 	_, err = ce.keyVaultColl.InsertOne(ctx, dataKeyDoc)
 	if err != nil {
-		return primitive.Binary{}, err
+		return bson.Binary{}, err
 	}
 
 	subtype, data := bson.Raw(dataKeyDoc).Lookup("_id").Binary()
-	return primitive.Binary{Subtype: subtype, Data: data}, nil
+	return bson.Binary{Subtype: subtype, Data: data}, nil
 }
 
 // transformExplicitEncryptionOptions creates explicit encryption options to be passed to libmongocrypt.
-func transformExplicitEncryptionOptions(opts ...*options.EncryptOptions) *mcopts.ExplicitEncryptionOptions {
-	eo := options.MergeEncryptOptions(opts...)
+func transformExplicitEncryptionOptions(opts ...options.Lister[options.EncryptOptions]) *mcopts.ExplicitEncryptionOptions {
+	args, _ := mongoutil.NewOptions[options.EncryptOptions](opts...)
+
 	transformed := mcopts.ExplicitEncryption()
-	if eo.KeyID != nil {
-		transformed.SetKeyID(*eo.KeyID)
+	if args.KeyID != nil {
+		transformed.SetKeyID(*args.KeyID)
 	}
-	if eo.KeyAltName != nil {
-		transformed.SetKeyAltName(*eo.KeyAltName)
+	if args.KeyAltName != nil {
+		transformed.SetKeyAltName(*args.KeyAltName)
 	}
-	transformed.SetAlgorithm(eo.Algorithm)
-	transformed.SetQueryType(eo.QueryType)
+	transformed.SetAlgorithm(args.Algorithm)
+	transformed.SetQueryType(args.QueryType)
 
-	if eo.ContentionFactor != nil {
-		transformed.SetContentionFactor(*eo.ContentionFactor)
+	if args.ContentionFactor != nil {
+		transformed.SetContentionFactor(*args.ContentionFactor)
 	}
 
-	if eo.RangeOptions != nil {
+	if args.RangeOptions != nil {
+		rangeArgs, _ := mongoutil.NewOptions[options.RangeOptions](args.RangeOptions)
+
 		var transformedRange mcopts.ExplicitRangeOptions
-		if eo.RangeOptions.Min != nil {
-			transformedRange.Min = &bsoncore.Value{Type: eo.RangeOptions.Min.Type, Data: eo.RangeOptions.Min.Value}
+		if rangeArgs.Min != nil {
+			transformedRange.Min = &bsoncore.Value{Type: bsoncore.Type(rangeArgs.Min.Type), Data: rangeArgs.Min.Value}
 		}
-		if eo.RangeOptions.Max != nil {
-			transformedRange.Max = &bsoncore.Value{Type: eo.RangeOptions.Max.Type, Data: eo.RangeOptions.Max.Value}
+		if rangeArgs.Max != nil {
+			transformedRange.Max = &bsoncore.Value{Type: bsoncore.Type(rangeArgs.Max.Type), Data: rangeArgs.Max.Value}
 		}
-		if eo.RangeOptions.Precision != nil {
-			transformedRange.Precision = eo.RangeOptions.Precision
+		if rangeArgs.Precision != nil {
+			transformedRange.Precision = rangeArgs.Precision
 		}
-		if eo.RangeOptions.Sparsity != nil {
-			transformedRange.Sparsity = eo.RangeOptions.Sparsity
+		if rangeArgs.Sparsity != nil {
+			transformedRange.Sparsity = rangeArgs.Sparsity
 		}
-		if eo.RangeOptions.TrimFactor != nil {
-			transformedRange.TrimFactor = eo.RangeOptions.TrimFactor
+		if rangeArgs.TrimFactor != nil {
+			transformedRange.TrimFactor = rangeArgs.TrimFactor
 		}
 		transformed.SetRangeOptions(transformedRange)
 	}
@@ -216,15 +247,21 @@ func transformExplicitEncryptionOptions(opts ...*options.EncryptOptions) *mcopts
 }
 
 // Encrypt encrypts a BSON value with the given key and algorithm. Returns an encrypted value (BSON binary of subtype 6).
-func (ce *ClientEncryption) Encrypt(ctx context.Context, val bson.RawValue,
-	opts ...*options.EncryptOptions) (primitive.Binary, error) {
+func (ce *ClientEncryption) Encrypt(
+	ctx context.Context,
+	val bson.RawValue,
+	opts ...options.Lister[options.EncryptOptions],
+) (bson.Binary, error) {
+	if ce.closed {
+		return bson.Binary{}, ErrClientDisconnected
+	}
 
 	transformed := transformExplicitEncryptionOptions(opts...)
-	subtype, data, err := ce.crypt.EncryptExplicit(ctx, bsoncore.Value{Type: val.Type, Data: val.Value}, transformed)
+	subtype, data, err := ce.crypt.EncryptExplicit(ctx, bsoncore.Value{Type: bsoncore.Type(val.Type), Data: val.Value}, transformed)
 	if err != nil {
-		return primitive.Binary{}, err
+		return bson.Binary{}, err
 	}
-	return primitive.Binary{Subtype: subtype, Data: data}, nil
+	return bson.Binary{Subtype: subtype, Data: data}, nil
 }
 
 // EncryptExpression encrypts an expression to query a range index.
@@ -236,7 +273,11 @@ func (ce *ClientEncryption) Encrypt(ctx context.Context, val bson.RawValue,
 // {$and: [{$gt: [<fieldpath>, <value1>]}, {$lt: [<fieldpath>, <value2>]}]
 // $gt may also be $gte. $lt may also be $lte.
 // Only supported for queryType "range"
-func (ce *ClientEncryption) EncryptExpression(ctx context.Context, expr interface{}, result interface{}, opts ...*options.EncryptOptions) error {
+func (ce *ClientEncryption) EncryptExpression(ctx context.Context, expr interface{}, result interface{}, opts ...options.Lister[options.EncryptOptions]) error {
+	if ce.closed {
+		return ErrClientDisconnected
+	}
+
 	transformed := transformExplicitEncryptionOptions(opts...)
 
 	exprDoc, err := marshal(expr, nil, nil)
@@ -261,38 +302,62 @@ func (ce *ClientEncryption) EncryptExpression(ctx context.Context, expr interfac
 }
 
 // Decrypt decrypts an encrypted value (BSON binary of subtype 6) and returns the original BSON value.
-func (ce *ClientEncryption) Decrypt(ctx context.Context, val primitive.Binary) (bson.RawValue, error) {
+func (ce *ClientEncryption) Decrypt(ctx context.Context, val bson.Binary) (bson.RawValue, error) {
+	if ce.closed {
+		return bson.RawValue{}, ErrClientDisconnected
+	}
+
 	decrypted, err := ce.crypt.DecryptExplicit(ctx, val.Subtype, val.Data)
 	if err != nil {
 		return bson.RawValue{}, err
 	}
 
-	return bson.RawValue{Type: decrypted.Type, Value: decrypted.Data}, nil
+	return bson.RawValue{Type: bson.Type(decrypted.Type), Value: decrypted.Data}, nil
 }
 
 // Close cleans up any resources associated with the ClientEncryption instance. This includes disconnecting the
 // key-vault Client instance.
 func (ce *ClientEncryption) Close(ctx context.Context) error {
+	if ce.closed {
+		return ErrClientDisconnected
+	}
+
 	ce.crypt.Close()
-	return ce.keyVaultClient.Disconnect(ctx)
+	err := ce.keyVaultClient.Disconnect(ctx)
+	if err == nil {
+		ce.closed = true
+	}
+	return err
 }
 
 // DeleteKey removes the key document with the given UUID (BSON binary subtype 0x04) from the key vault collection.
 // Returns the result of the internal deleteOne() operation on the key vault collection.
-func (ce *ClientEncryption) DeleteKey(ctx context.Context, id primitive.Binary) (*DeleteResult, error) {
+func (ce *ClientEncryption) DeleteKey(ctx context.Context, id bson.Binary) (*DeleteResult, error) {
+	if ce.closed {
+		return nil, ErrClientDisconnected
+	}
+
 	filter := bsoncore.NewDocumentBuilder().AppendBinary("_id", id.Subtype, id.Data).Build()
 	return ce.keyVaultColl.DeleteOne(ctx, filter)
 }
 
 // GetKeyByAltName returns a key document in the key vault collection with the given keyAltName.
 func (ce *ClientEncryption) GetKeyByAltName(ctx context.Context, keyAltName string) *SingleResult {
+	if ce.closed {
+		return &SingleResult{err: ErrClientDisconnected}
+	}
+
 	filter := bsoncore.NewDocumentBuilder().AppendString("keyAltNames", keyAltName).Build()
 	return ce.keyVaultColl.FindOne(ctx, filter)
 }
 
 // GetKey finds a single key document with the given UUID (BSON binary subtype 0x04). Returns the result of the
 // internal find() operation on the key vault collection.
-func (ce *ClientEncryption) GetKey(ctx context.Context, id primitive.Binary) *SingleResult {
+func (ce *ClientEncryption) GetKey(ctx context.Context, id bson.Binary) *SingleResult {
+	if ce.closed {
+		return &SingleResult{err: ErrClientDisconnected}
+	}
+
 	filter := bsoncore.NewDocumentBuilder().AppendBinary("_id", id.Subtype, id.Data).Build()
 	return ce.keyVaultColl.FindOne(ctx, filter)
 }
@@ -300,12 +365,20 @@ func (ce *ClientEncryption) GetKey(ctx context.Context, id primitive.Binary) *Si
 // GetKeys finds all documents in the key vault collection. Returns the result of the internal find() operation on the
 // key vault collection.
 func (ce *ClientEncryption) GetKeys(ctx context.Context) (*Cursor, error) {
+	if ce.closed {
+		return nil, ErrClientDisconnected
+	}
+
 	return ce.keyVaultColl.Find(ctx, bson.D{})
 }
 
 // RemoveKeyAltName removes a keyAltName from the keyAltNames array of the key document in the key vault collection with
 // the given UUID (BSON binary subtype 0x04). Returns the previous version of the key document.
-func (ce *ClientEncryption) RemoveKeyAltName(ctx context.Context, id primitive.Binary, keyAltName string) *SingleResult {
+func (ce *ClientEncryption) RemoveKeyAltName(ctx context.Context, id bson.Binary, keyAltName string) *SingleResult {
+	if ce.closed {
+		return &SingleResult{err: ErrClientDisconnected}
+	}
+
 	filter := bsoncore.NewDocumentBuilder().AppendBinary("_id", id.Subtype, id.Data).Build()
 	update := bson.A{bson.D{{"$set", bson.D{{"keyAltNames", bson.D{{"$cond", bson.A{bson.D{{"$eq",
 		bson.A{"$keyAltNames", bson.A{keyAltName}}}}, "$$REMOVE", bson.D{{"$filter",
@@ -338,7 +411,7 @@ func setRewrapManyDataKeyWriteModels(rewrappedDocuments []bsoncore.Document, wri
 			return err
 		}
 		keyMaterialSubtype, keyMaterialData := keyMaterialValue.Binary()
-		keyMaterialBinary := primitive.Binary{Subtype: keyMaterialSubtype, Data: keyMaterialData}
+		keyMaterialBinary := bson.Binary{Subtype: keyMaterialSubtype, Data: keyMaterialData}
 
 		// Prepare the _id filter for documents to update.
 		id, err := rewrappedDocument.LookupErr(idKey)
@@ -350,7 +423,7 @@ func setRewrapManyDataKeyWriteModels(rewrappedDocuments []bsoncore.Document, wri
 		if !ok {
 			return fmt.Errorf("expected to assert %q as binary, got type %T", idKey, id)
 		}
-		binaryID := primitive.Binary{Subtype: idSubtype, Data: idData}
+		binaryID := bson.Binary{Subtype: idSubtype, Data: idData}
 
 		// Append the mutable document to the slice for bulk update.
 		*writeModels = append(*writeModels, NewUpdateOneModel().
@@ -369,26 +442,36 @@ func setRewrapManyDataKeyWriteModels(rewrappedDocuments []bsoncore.Document, wri
 // matching documents, this method will overwrite the "masterKey", "updateDate", and "keyMaterial". On error, some
 // matching data keys may have been rewrapped.
 // libmongocrypt 1.5.2 is required. An error is returned if the detected version of libmongocrypt is less than 1.5.2.
-func (ce *ClientEncryption) RewrapManyDataKey(ctx context.Context, filter interface{},
-	opts ...*options.RewrapManyDataKeyOptions) (*RewrapManyDataKeyResult, error) {
-
+func (ce *ClientEncryption) RewrapManyDataKey(
+	ctx context.Context,
+	filter interface{},
+	opts ...options.Lister[options.RewrapManyDataKeyOptions],
+) (*RewrapManyDataKeyResult, error) {
 	// libmongocrypt versions 1.5.0 and 1.5.1 have a severe bug in RewrapManyDataKey.
 	// Check if the version string starts with 1.5.0 or 1.5.1. This accounts for pre-release versions, like 1.5.0-rc0.
+	if ce.closed {
+		return nil, ErrClientDisconnected
+	}
+
 	libmongocryptVersion := mongocrypt.Version()
 	if strings.HasPrefix(libmongocryptVersion, "1.5.0") || strings.HasPrefix(libmongocryptVersion, "1.5.1") {
 		return nil, fmt.Errorf("RewrapManyDataKey requires libmongocrypt 1.5.2 or newer. Detected version: %v", libmongocryptVersion)
 	}
 
-	rmdko := options.MergeRewrapManyDataKeyOptions(opts...)
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
+	args, err := mongoutil.NewOptions[options.RewrapManyDataKeyOptions](opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
+	}
+
 	// Transfer rmdko options to /x/ package options to publish the mongocrypt feed.
 	co := mcopts.RewrapManyDataKey()
-	if rmdko.MasterKey != nil {
+	if args.MasterKey != nil {
 		keyDoc, err := marshal(
-			rmdko.MasterKey,
+			args.MasterKey,
 			ce.keyVaultClient.bsonOpts,
 			ce.keyVaultClient.registry)
 		if err != nil {
@@ -396,8 +479,8 @@ func (ce *ClientEncryption) RewrapManyDataKey(ctx context.Context, filter interf
 		}
 		co.SetMasterKey(keyDoc)
 	}
-	if rmdko.Provider != nil {
-		co.SetProvider(*rmdko.Provider)
+	if args.Provider != nil {
+		co.SetProvider(*args.Provider)
 	}
 
 	// Prepare the filters and rewrap the data key using mongocrypt.

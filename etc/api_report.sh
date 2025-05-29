@@ -23,7 +23,7 @@ fi
 # Generate and parse the report.
 gorelease -base=$BASE_SHA > api-report.txt || true
 cat api-report.txt
-go run ./cmd/parse-api-report/main.go
+go run ./internal/cmd/parse-api-report/main.go
 rm api-report.txt
 
 # Make the PR comment.

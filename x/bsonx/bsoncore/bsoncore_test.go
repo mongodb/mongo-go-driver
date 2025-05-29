@@ -15,9 +15,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
 )
 
 func compareErrors(err1, err2 error) bool {
@@ -50,8 +48,8 @@ func TestAppend(t *testing.T) {
 		{
 			"AppendType",
 			AppendType,
-			[]interface{}{make([]byte, 0), bsontype.Null},
-			[]byte{byte(bsontype.Null)},
+			[]interface{}{make([]byte, 0), TypeNull},
+			[]byte{byte(TypeNull)},
 		},
 		{
 			"AppendKey",
@@ -62,14 +60,14 @@ func TestAppend(t *testing.T) {
 		{
 			"AppendHeader",
 			AppendHeader,
-			[]interface{}{make([]byte, 0), bsontype.Null, "foobar"},
-			[]byte{byte(bsontype.Null), 'f', 'o', 'o', 'b', 'a', 'r', 0x00},
+			[]interface{}{make([]byte, 0), TypeNull, "foobar"},
+			[]byte{byte(TypeNull), 'f', 'o', 'o', 'b', 'a', 'r', 0x00},
 		},
 		{
 			"AppendValueElement",
 			AppendValueElement,
-			[]interface{}{make([]byte, 0), "testing", Value{Type: bsontype.Boolean, Data: []byte{0x01}}},
-			[]byte{byte(bsontype.Boolean), 't', 'e', 's', 't', 'i', 'n', 'g', 0x00, 0x01},
+			[]interface{}{make([]byte, 0), "testing", Value{Type: TypeBoolean, Data: []byte{0x01}}},
+			[]byte{byte(TypeBoolean), 't', 'e', 's', 't', 'i', 'n', 'g', 0x00, 0x01},
 		},
 		{
 			"AppendDouble",
@@ -81,7 +79,7 @@ func TestAppend(t *testing.T) {
 			"AppendDoubleElement",
 			AppendDoubleElement,
 			[]interface{}{make([]byte, 0), "foobar", float64(3.14159)},
-			append([]byte{byte(bsontype.Double), 'f', 'o', 'o', 'b', 'a', 'r', 0x00}, pi...),
+			append([]byte{byte(TypeDouble), 'f', 'o', 'o', 'b', 'a', 'r', 0x00}, pi...),
 		},
 		{
 			"AppendString",
@@ -93,7 +91,7 @@ func TestAppend(t *testing.T) {
 			"AppendStringElement",
 			AppendStringElement,
 			[]interface{}{make([]byte, 0), "foobar", "barbaz"},
-			[]byte{byte(bsontype.String),
+			[]byte{byte(TypeString),
 				'f', 'o', 'o', 'b', 'a', 'r', 0x00,
 				0x07, 0x00, 0x00, 0x00, 'b', 'a', 'r', 'b', 'a', 'z', 0x00,
 			},
@@ -108,7 +106,7 @@ func TestAppend(t *testing.T) {
 			"AppendDocumentElement",
 			AppendDocumentElement,
 			[]interface{}{make([]byte, 0), "foobar", []byte{0x05, 0x00, 0x00, 0x00, 0x00}},
-			[]byte{byte(bsontype.EmbeddedDocument),
+			[]byte{byte(TypeEmbeddedDocument),
 				'f', 'o', 'o', 'b', 'a', 'r', 0x00,
 				0x05, 0x00, 0x00, 0x00, 0x00,
 			},
@@ -123,7 +121,7 @@ func TestAppend(t *testing.T) {
 			"AppendArrayElement",
 			AppendArrayElement,
 			[]interface{}{make([]byte, 0), "foobar", []byte{0x05, 0x00, 0x00, 0x00, 0x00}},
-			[]byte{byte(bsontype.Array),
+			[]byte{byte(TypeArray),
 				'f', 'o', 'o', 'b', 'a', 'r', 0x00,
 				0x05, 0x00, 0x00, 0x00, 0x00,
 			},
@@ -131,10 +129,10 @@ func TestAppend(t *testing.T) {
 		{
 			"BuildArray",
 			BuildArray,
-			[]interface{}{make([]byte, 0), Value{Type: bsontype.Double, Data: AppendDouble(nil, 3.14159)}},
+			[]interface{}{make([]byte, 0), Value{Type: TypeDouble, Data: AppendDouble(nil, 3.14159)}},
 			[]byte{
 				0x10, 0x00, 0x00, 0x00,
-				byte(bsontype.Double), '0', 0x00,
+				byte(TypeDouble), '0', 0x00,
 				pi[0], pi[1], pi[2], pi[3], pi[4], pi[5], pi[6], pi[7],
 				0x00,
 			},
@@ -142,11 +140,11 @@ func TestAppend(t *testing.T) {
 		{
 			"BuildArrayElement",
 			BuildArrayElement,
-			[]interface{}{make([]byte, 0), "foobar", Value{Type: bsontype.Double, Data: AppendDouble(nil, 3.14159)}},
-			[]byte{byte(bsontype.Array),
+			[]interface{}{make([]byte, 0), "foobar", Value{Type: TypeDouble, Data: AppendDouble(nil, 3.14159)}},
+			[]byte{byte(TypeArray),
 				'f', 'o', 'o', 'b', 'a', 'r', 0x00,
 				0x10, 0x00, 0x00, 0x00,
-				byte(bsontype.Double), '0', 0x00,
+				byte(TypeDouble), '0', 0x00,
 				pi[0], pi[1], pi[2], pi[3], pi[4], pi[5], pi[6], pi[7],
 				0x00,
 			},
@@ -161,7 +159,7 @@ func TestAppend(t *testing.T) {
 			"AppendBinaryElement Subtype 2",
 			AppendBinaryElement,
 			[]interface{}{make([]byte, 0), "foobar", byte(0x02), []byte{0x01, 0x02, 0x03}},
-			[]byte{byte(bsontype.Binary),
+			[]byte{byte(TypeBinary),
 				'f', 'o', 'o', 'b', 'a', 'r', 0x00,
 				0x07, 0x00, 0x00, 0x00,
 				0x02,
@@ -178,7 +176,7 @@ func TestAppend(t *testing.T) {
 			"AppendBinaryElement",
 			AppendBinaryElement,
 			[]interface{}{make([]byte, 0), "foobar", byte(0xFF), []byte{0x01, 0x02, 0x03}},
-			[]byte{byte(bsontype.Binary),
+			[]byte{byte(TypeBinary),
 				'f', 'o', 'o', 'b', 'a', 'r', 0x00,
 				0x03, 0x00, 0x00, 0x00,
 				0xFF,
@@ -189,14 +187,14 @@ func TestAppend(t *testing.T) {
 			"AppendUndefinedElement",
 			AppendUndefinedElement,
 			[]interface{}{make([]byte, 0), "foobar"},
-			[]byte{byte(bsontype.Undefined), 'f', 'o', 'o', 'b', 'a', 'r', 0x00},
+			[]byte{byte(TypeUndefined), 'f', 'o', 'o', 'b', 'a', 'r', 0x00},
 		},
 		{
 			"AppendObjectID",
 			AppendObjectID,
 			[]interface{}{
 				make([]byte, 0),
-				primitive.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
+				[12]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
 			},
 			[]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
 		},
@@ -205,9 +203,9 @@ func TestAppend(t *testing.T) {
 			AppendObjectIDElement,
 			[]interface{}{
 				make([]byte, 0), "foobar",
-				primitive.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
+				[12]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
 			},
-			[]byte{byte(bsontype.ObjectID),
+			[]byte{byte(TypeObjectID),
 				'f', 'o', 'o', 'b', 'a', 'r', 0x00,
 				0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C,
 			},
@@ -228,7 +226,7 @@ func TestAppend(t *testing.T) {
 			"AppendBooleanElement",
 			AppendBooleanElement,
 			[]interface{}{make([]byte, 0), "foobar", true},
-			[]byte{byte(bsontype.Boolean), 'f', 'o', 'o', 'b', 'a', 'r', 0x00, 0x01},
+			[]byte{byte(TypeBoolean), 'f', 'o', 'o', 'b', 'a', 'r', 0x00, 0x01},
 		},
 		{
 			"AppendDateTime",
@@ -240,13 +238,13 @@ func TestAppend(t *testing.T) {
 			"AppendDateTimeElement",
 			AppendDateTimeElement,
 			[]interface{}{make([]byte, 0), "foobar", int64(256)},
-			[]byte{byte(bsontype.DateTime), 'f', 'o', 'o', 'b', 'a', 'r', 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+			[]byte{byte(TypeDateTime), 'f', 'o', 'o', 'b', 'a', 'r', 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
 		},
 		{
 			"AppendNullElement",
 			AppendNullElement,
 			[]interface{}{make([]byte, 0), "foobar"},
-			[]byte{byte(bsontype.Null), 'f', 'o', 'o', 'b', 'a', 'r', 0x00},
+			[]byte{byte(TypeNull), 'f', 'o', 'o', 'b', 'a', 'r', 0x00},
 		},
 		{
 			"AppendRegex",
@@ -258,7 +256,7 @@ func TestAppend(t *testing.T) {
 			"AppendRegexElement",
 			AppendRegexElement,
 			[]interface{}{make([]byte, 0), "foobar", "bar", "baz"},
-			[]byte{byte(bsontype.Regex),
+			[]byte{byte(TypeRegex),
 				'f', 'o', 'o', 'b', 'a', 'r', 0x00,
 				'b', 'a', 'r', 0x00, 'b', 'a', 'z', 0x00,
 			},
@@ -269,7 +267,7 @@ func TestAppend(t *testing.T) {
 			[]interface{}{
 				make([]byte, 0),
 				"foobar",
-				primitive.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
+				[12]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
 			},
 			[]byte{
 				0x07, 0x00, 0x00, 0x00, 'f', 'o', 'o', 'b', 'a', 'r', 0x00,
@@ -282,9 +280,9 @@ func TestAppend(t *testing.T) {
 			[]interface{}{
 				make([]byte, 0), "foobar",
 				"barbaz",
-				primitive.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
+				[12]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
 			},
-			[]byte{byte(bsontype.DBPointer),
+			[]byte{byte(TypeDBPointer),
 				'f', 'o', 'o', 'b', 'a', 'r', 0x00,
 				0x07, 0x00, 0x00, 0x00, 'b', 'a', 'r', 'b', 'a', 'z', 0x00,
 				0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C,
@@ -300,7 +298,7 @@ func TestAppend(t *testing.T) {
 			"AppendJavaScriptElement",
 			AppendJavaScriptElement,
 			[]interface{}{make([]byte, 0), "foobar", "barbaz"},
-			[]byte{byte(bsontype.JavaScript),
+			[]byte{byte(TypeJavaScript),
 				'f', 'o', 'o', 'b', 'a', 'r', 0x00,
 				0x07, 0x00, 0x00, 0x00, 'b', 'a', 'r', 'b', 'a', 'z', 0x00,
 			},
@@ -315,7 +313,7 @@ func TestAppend(t *testing.T) {
 			"AppendSymbolElement",
 			AppendSymbolElement,
 			[]interface{}{make([]byte, 0), "foobar", "barbaz"},
-			[]byte{byte(bsontype.Symbol),
+			[]byte{byte(TypeSymbol),
 				'f', 'o', 'o', 'b', 'a', 'r', 0x00,
 				0x07, 0x00, 0x00, 0x00, 'b', 'a', 'r', 'b', 'a', 'z', 0x00,
 			},
@@ -334,7 +332,7 @@ func TestAppend(t *testing.T) {
 			"AppendCodeWithScopeElement",
 			AppendCodeWithScopeElement,
 			[]interface{}{make([]byte, 0), "foobar", "barbaz", []byte{0x05, 0x00, 0x00, 0x00, 0x00}},
-			[]byte{byte(bsontype.CodeWithScope),
+			[]byte{byte(TypeCodeWithScope),
 				'f', 'o', 'o', 'b', 'a', 'r', 0x00,
 				0x14, 0x00, 0x00, 0x00,
 				0x07, 0x00, 0x00, 0x00, 'b', 'a', 'r', 'b', 'a', 'z', 0x00,
@@ -351,7 +349,7 @@ func TestAppend(t *testing.T) {
 			"AppendInt32Element",
 			AppendInt32Element,
 			[]interface{}{make([]byte, 0), "foobar", int32(256)},
-			[]byte{byte(bsontype.Int32), 'f', 'o', 'o', 'b', 'a', 'r', 0x00, 0x00, 0x01, 0x00, 0x00},
+			[]byte{byte(TypeInt32), 'f', 'o', 'o', 'b', 'a', 'r', 0x00, 0x00, 0x01, 0x00, 0x00},
 		},
 		{
 			"AppendTimestamp",
@@ -363,7 +361,7 @@ func TestAppend(t *testing.T) {
 			"AppendTimestampElement",
 			AppendTimestampElement,
 			[]interface{}{make([]byte, 0), "foobar", uint32(65536), uint32(256)},
-			[]byte{byte(bsontype.Timestamp), 'f', 'o', 'o', 'b', 'a', 'r', 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00},
+			[]byte{byte(TypeTimestamp), 'f', 'o', 'o', 'b', 'a', 'r', 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00},
 		},
 		{
 			"AppendInt64",
@@ -375,12 +373,12 @@ func TestAppend(t *testing.T) {
 			"AppendInt64Element",
 			AppendInt64Element,
 			[]interface{}{make([]byte, 0), "foobar", int64(4294967296)},
-			[]byte{byte(bsontype.Int64), 'f', 'o', 'o', 'b', 'a', 'r', 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00},
+			[]byte{byte(TypeInt64), 'f', 'o', 'o', 'b', 'a', 'r', 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00},
 		},
 		{
 			"AppendDecimal128",
 			AppendDecimal128,
-			[]interface{}{make([]byte, 0), primitive.NewDecimal128(4294967296, 65536)},
+			[]interface{}{make([]byte, 0), uint64(4294967296), uint64(65536)},
 			[]byte{
 				0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
 				0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -389,9 +387,9 @@ func TestAppend(t *testing.T) {
 		{
 			"AppendDecimal128Element",
 			AppendDecimal128Element,
-			[]interface{}{make([]byte, 0), "foobar", primitive.NewDecimal128(4294967296, 65536)},
+			[]interface{}{make([]byte, 0), "foobar", uint64(4294967296), uint64(65536)},
 			[]byte{
-				byte(bsontype.Decimal128), 'f', 'o', 'o', 'b', 'a', 'r', 0x00,
+				byte(TypeDecimal128), 'f', 'o', 'o', 'b', 'a', 'r', 0x00,
 				0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
 				0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
 			},
@@ -400,13 +398,13 @@ func TestAppend(t *testing.T) {
 			"AppendMaxKeyElement",
 			AppendMaxKeyElement,
 			[]interface{}{make([]byte, 0), "foobar"},
-			[]byte{byte(bsontype.MaxKey), 'f', 'o', 'o', 'b', 'a', 'r', 0x00},
+			[]byte{byte(TypeMaxKey), 'f', 'o', 'o', 'b', 'a', 'r', 0x00},
 		},
 		{
 			"AppendMinKeyElement",
 			AppendMinKeyElement,
 			[]interface{}{make([]byte, 0), "foobar"},
-			[]byte{byte(bsontype.MinKey), 'f', 'o', 'o', 'b', 'a', 'r', 0x00},
+			[]byte{byte(TypeMinKey), 'f', 'o', 'o', 'b', 'a', 'r', 0x00},
 		},
 	}
 
@@ -451,13 +449,13 @@ func TestRead(t *testing.T) {
 			"ReadType/not enough bytes",
 			ReadType,
 			[]byte{},
-			[]interface{}{bsontype.Type(0), []byte{}, false},
+			[]interface{}{Type(0), []byte{}, false},
 		},
 		{
 			"ReadType/success",
 			ReadType,
 			[]byte{0x0A},
-			[]interface{}{bsontype.Null, []byte{}, true},
+			[]interface{}{TypeNull, []byte{}, true},
 		},
 		{
 			"ReadKey/not enough bytes",
@@ -475,19 +473,19 @@ func TestRead(t *testing.T) {
 			"ReadHeader/not enough bytes (type)",
 			ReadHeader,
 			[]byte{},
-			[]interface{}{bsontype.Type(0), "", []byte{}, false},
+			[]interface{}{Type(0), "", []byte{}, false},
 		},
 		{
 			"ReadHeader/not enough bytes (key)",
 			ReadHeader,
 			[]byte{0x0A, 'f', 'o', 'o'},
-			[]interface{}{bsontype.Type(0), "", []byte{0x0A, 'f', 'o', 'o'}, false},
+			[]interface{}{Type(0), "", []byte{0x0A, 'f', 'o', 'o'}, false},
 		},
 		{
 			"ReadHeader/success",
 			ReadHeader,
 			[]byte{0x0A, 'f', 'o', 'o', 'b', 'a', 'r', 0x00},
-			[]interface{}{bsontype.Null, "foobar", []byte{}, true},
+			[]interface{}{TypeNull, "foobar", []byte{}, true},
 		},
 		{
 			"ReadDouble/not enough bytes",
@@ -604,14 +602,14 @@ func TestRead(t *testing.T) {
 			"ReadObjectID/not enough bytes",
 			ReadObjectID,
 			[]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06},
-			[]interface{}{primitive.ObjectID{}, []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06}, false},
+			[]interface{}{[12]byte{}, []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06}, false},
 		},
 		{
 			"ReadObjectID/success",
 			ReadObjectID,
 			[]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
 			[]interface{}{
-				primitive.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
+				[12]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
 				[]byte{}, true,
 			},
 		},
@@ -661,13 +659,13 @@ func TestRead(t *testing.T) {
 			"ReadDBPointer/not enough bytes (ns)",
 			ReadDBPointer,
 			[]byte{},
-			[]interface{}{"", primitive.ObjectID{}, []byte{}, false},
+			[]interface{}{"", [12]byte{}, []byte{}, false},
 		},
 		{
 			"ReadDBPointer/not enough bytes (objectID)",
 			ReadDBPointer,
 			[]byte{0x04, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00},
-			[]interface{}{"", primitive.ObjectID{}, []byte{0x04, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00}, false},
+			[]interface{}{"", [12]byte{}, []byte{0x04, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00}, false},
 		},
 		{
 			"ReadDBPointer/success",
@@ -677,7 +675,7 @@ func TestRead(t *testing.T) {
 				0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C,
 			},
 			[]interface{}{
-				"foo", primitive.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
+				"foo", [12]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
 				[]byte{}, true,
 			},
 		},
@@ -806,13 +804,13 @@ func TestRead(t *testing.T) {
 			"ReadDecimal128/not enough bytes (low)",
 			ReadDecimal128,
 			[]byte{},
-			[]interface{}{primitive.Decimal128{}, []byte{}, false},
+			[]interface{}{uint64(0), uint64(0), []byte{}, false},
 		},
 		{
 			"ReadDecimal128/not enough bytes (high)",
 			ReadDecimal128,
 			[]byte{0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00},
-			[]interface{}{primitive.Decimal128{}, []byte{0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00}, false},
+			[]interface{}{uint64(0), uint64(0), []byte{0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00}, false},
 		},
 		{
 			"ReadDecimal128/success",
@@ -821,7 +819,7 @@ func TestRead(t *testing.T) {
 				0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
 				0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
 			},
-			[]interface{}{primitive.NewDecimal128(4294967296, 16777216), []byte{}, true},
+			[]interface{}{uint64(4294967296), uint64(16777216), []byte{}, true},
 		},
 	}
 
@@ -841,7 +839,7 @@ func TestRead(t *testing.T) {
 			for idx := range results {
 				got := results[idx].Interface()
 				want := tc.expected[idx]
-				if !cmp.Equal(got, want, cmp.Comparer(compareDecimal128)) {
+				if !cmp.Equal(got, want) {
 					t.Errorf("Result %d does not match. got %v; want %v", idx, got, want)
 				}
 			}
@@ -954,19 +952,4 @@ func TestInvalidBytes(t *testing.T) {
 		assert.False(t, ok, "expected not ok response for invalid length read")
 		assert.Equal(t, 4, len(src), "expected src to contain the size parameter still")
 	})
-}
-
-func compareDecimal128(d1, d2 primitive.Decimal128) bool {
-	d1H, d1L := d1.GetBytes()
-	d2H, d2L := d2.GetBytes()
-
-	if d1H != d2H {
-		return false
-	}
-
-	if d1L != d2L {
-		return false
-	}
-
-	return true
 }

@@ -20,13 +20,14 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 	"unsafe"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/httputil"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/creds"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt/options"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/httputil"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/auth/creds"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mongocrypt/options"
 )
 
 type kmsProvider interface {
@@ -53,6 +54,7 @@ func NewMongoCrypt(opts *options.MongoCryptOptions) (*MongoCrypt, error) {
 	if wrapped == nil {
 		return nil, errors.New("could not create new mongocrypt object")
 	}
+	C.mongocrypt_setopt_retry_kms(wrapped, true)
 	httpClient := opts.HTTPClient
 	if httpClient == nil {
 		httpClient = httputil.DefaultHTTPClient
@@ -85,8 +87,19 @@ func NewMongoCrypt(opts *options.MongoCryptOptions) (*MongoCrypt, error) {
 	}
 
 	if opts.BypassQueryAnalysis {
-		C.mongocrypt_setopt_bypass_query_analysis(wrapped)
+		C.mongocrypt_setopt_bypass_query_analysis(crypt.wrapped)
 	}
+
+	var keyExpirationMs uint64 = 60_000 // 60,000 ms
+	if opts.KeyExpiration != nil {
+		if *opts.KeyExpiration <= 0 {
+			keyExpirationMs = 0
+		} else {
+			// find the ceiling integer millisecond for the expiration
+			keyExpirationMs = uint64((*opts.KeyExpiration + time.Millisecond - 1) / time.Millisecond)
+		}
+	}
+	C.mongocrypt_setopt_key_expiration(crypt.wrapped, C.uint64_t(keyExpirationMs))
 
 	// If loading the crypt_shared library isn't disabled, set the default library search path "$SYSTEM"
 	// and set a library override path if one was provided.

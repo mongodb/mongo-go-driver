@@ -7,17 +7,14 @@
 package bson
 
 import (
-	"errors"
+	"bytes"
 	"math/rand"
 	"reflect"
 	"sync"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/bson/bsonrw"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 func TestUnmarshal(t *testing.T) {
@@ -43,175 +40,48 @@ func TestUnmarshal(t *testing.T) {
 }
 
 func TestUnmarshalWithRegistry(t *testing.T) {
-	for _, tc := range unmarshalingTestCases() {
-		t.Run(tc.name, func(t *testing.T) {
-			// Make a copy of the test data so we can modify it later.
-			data := make([]byte, len(tc.data))
-			copy(data, tc.data)
+	t.Parallel()
 
-			// Assert that unmarshaling the input data results in the expected value.
-			got := reflect.New(tc.sType).Interface()
-			err := UnmarshalWithRegistry(DefaultRegistry, data, got)
-			noerr(t, err)
-			assert.Equal(t, tc.want, got, "Did not unmarshal as expected.")
-
-			// Fill the input data slice with random bytes and then assert that the result still
-			// matches the expected value.
-			_, err = rand.Read(data)
-			noerr(t, err)
-			assert.Equal(t, tc.want, got, "unmarshaled value does not match expected after modifying the input bytes")
-		})
-	}
-}
-
-func TestUnmarshalWithContext(t *testing.T) {
-	for _, tc := range unmarshalingTestCases() {
-		t.Run(tc.name, func(t *testing.T) {
-			// Make a copy of the test data so we can modify it later.
-			data := make([]byte, len(tc.data))
-			copy(data, tc.data)
-
-			// Assert that unmarshaling the input data results in the expected value.
-			dc := bsoncodec.DecodeContext{Registry: DefaultRegistry}
-			got := reflect.New(tc.sType).Interface()
-			err := UnmarshalWithContext(dc, data, got)
-			noerr(t, err)
-			assert.Equal(t, tc.want, got, "Did not unmarshal as expected.")
-
-			// Fill the input data slice with random bytes and then assert that the result still
-			// matches the expected value.
-			_, err = rand.Read(data)
-			noerr(t, err)
-			assert.Equal(t, tc.want, got, "unmarshaled value does not match expected after modifying the input bytes")
-		})
-	}
-}
-
-func TestUnmarshalExtJSONWithRegistry(t *testing.T) {
-	t.Run("UnmarshalExtJSONWithContext", func(t *testing.T) {
-		type teststruct struct{ Foo int }
-		var got teststruct
-		data := []byte("{\"foo\":1}")
-		err := UnmarshalExtJSONWithRegistry(DefaultRegistry, data, true, &got)
-		noerr(t, err)
-		want := teststruct{1}
-		assert.Equal(t, want, got, "Did not unmarshal as expected.")
-	})
-
-	t.Run("UnmarshalExtJSONInvalidInput", func(t *testing.T) {
-		data := []byte("invalid")
-		err := UnmarshalExtJSONWithRegistry(DefaultRegistry, data, true, &M{})
-		if !errors.Is(err, bsonrw.ErrInvalidJSON) {
-			t.Fatalf("wanted ErrInvalidJSON, got %v", err)
-		}
-	})
-}
-
-func TestUnmarshalExtJSONWithContext(t *testing.T) {
-	type fooInt struct {
-		Foo int
-	}
-
-	type fooString struct {
-		Foo string
-	}
-
-	type fooBytes struct {
-		Foo []byte
-	}
-
-	var cases = []struct {
-		name  string
-		sType reflect.Type
-		want  interface{}
-		data  []byte
+	testCases := []struct {
+		name     string
+		val      interface{}
+		bsontype Type
+		bytes    []byte
 	}{
 		{
-			name:  "Small struct",
-			sType: reflect.TypeOf(fooInt{}),
-			data:  []byte(`{"foo":1}`),
-			want:  &fooInt{Foo: 1},
+			name:     "SliceCodec binary",
+			val:      []byte("hello world"),
+			bsontype: TypeBinary,
+			bytes:    bsoncore.AppendBinary(nil, TypeBinaryGeneric, []byte("hello world")),
 		},
 		{
-			name:  "Valid surrogate pair",
-			sType: reflect.TypeOf(fooString{}),
-			data:  []byte(`{"foo":"\uD834\uDd1e"}`),
-			want:  &fooString{Foo: "𝄞"},
-		},
-		{
-			name:  "Valid surrogate pair with other values",
-			sType: reflect.TypeOf(fooString{}),
-			data:  []byte(`{"foo":"abc \uD834\uDd1e 123"}`),
-			want:  &fooString{Foo: "abc 𝄞 123"},
-		},
-		{
-			name:  "High surrogate value with no following low surrogate value",
-			sType: reflect.TypeOf(fooString{}),
-			data:  []byte(`{"foo":"abc \uD834 123"}`),
-			want:  &fooString{Foo: "abc � 123"},
-		},
-		{
-			name:  "High surrogate value at end of string",
-			sType: reflect.TypeOf(fooString{}),
-			data:  []byte(`{"foo":"\uD834"}`),
-			want:  &fooString{Foo: "�"},
-		},
-		{
-			name:  "Low surrogate value with no preceding high surrogate value",
-			sType: reflect.TypeOf(fooString{}),
-			data:  []byte(`{"foo":"abc \uDd1e 123"}`),
-			want:  &fooString{Foo: "abc � 123"},
-		},
-		{
-			name:  "Low surrogate value at end of string",
-			sType: reflect.TypeOf(fooString{}),
-			data:  []byte(`{"foo":"\uDd1e"}`),
-			want:  &fooString{Foo: "�"},
-		},
-		{
-			name:  "High surrogate value with non-surrogate unicode value",
-			sType: reflect.TypeOf(fooString{}),
-			data:  []byte(`{"foo":"\uD834\u00BF"}`),
-			want:  &fooString{Foo: "�¿"},
-		},
-		// GODRIVER-2311
-		// Test that ExtJSON-encoded binary unmarshals correctly to a bson.D and that the
-		// unmarshaled value does not reference the same underlying byte array as the input.
-		{
-			name:  "bson.D with binary",
-			sType: reflect.TypeOf(D{}),
-			data:  []byte(`{"foo": {"$binary": {"subType": "0", "base64": "AAECAwQF"}}}`),
-			want:  &D{{"foo", primitive.Binary{Subtype: 0, Data: []byte{0, 1, 2, 3, 4, 5}}}},
-		},
-		// GODRIVER-2311
-		// Test that ExtJSON-encoded binary unmarshals correctly to a struct and that the
-		// unmarshaled value does not reference thesame  underlying byte array as the input.
-		{
-			name:  "struct with binary",
-			sType: reflect.TypeOf(fooBytes{}),
-			data:  []byte(`{"foo": {"$binary": {"subType": "0", "base64": "AAECAwQF"}}}`),
-			want:  &fooBytes{Foo: []byte{0, 1, 2, 3, 4, 5}},
+			name:     "SliceCodec string",
+			val:      []byte("hello world"),
+			bsontype: TypeString,
+			bytes:    bsoncore.AppendString(nil, "hello world"),
 		},
 	}
+	reg := NewRegistry()
+	reg.RegisterTypeDecoder(reflect.TypeOf([]byte{}), &sliceCodec{})
+	for _, tc := range testCases {
+		tc := tc
 
-	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			// Make a copy of the test data so we can modify it later.
-			data := make([]byte, len(tc.data))
-			copy(data, tc.data)
+			t.Parallel()
 
 			// Assert that unmarshaling the input data results in the expected value.
-			got := reflect.New(tc.sType).Interface()
-			dc := bsoncodec.DecodeContext{Registry: DefaultRegistry}
-			err := UnmarshalExtJSONWithContext(dc, data, true, got)
+			gotValue := reflect.New(reflect.TypeOf(tc.val))
+			dec := NewDecoder(newValueReader(tc.bsontype, bytes.NewReader(tc.bytes)))
+			dec.SetRegistry(reg)
+			err := dec.Decode(gotValue.Interface())
 			noerr(t, err)
-			assert.Equal(t, tc.want, got, "Did not unmarshal as expected.")
+			assert.Equal(t, tc.val, gotValue.Elem().Interface(), "value mismatch; expected %s, got %s", tc.val, gotValue.Elem())
 
 			// Fill the input data slice with random bytes and then assert that the result still
 			// matches the expected value.
-			_, err = rand.Read(data)
+			_, err = rand.Read(tc.bytes)
 			noerr(t, err)
-			assert.Equal(t, tc.want, got, "unmarshaled value does not match expected after modifying the input bytes")
+			assert.Equal(t, tc.val, gotValue.Elem().Interface(), "unmarshaled value does not match expected after modifying the input bytes")
 		})
 	}
 }
@@ -222,7 +92,7 @@ func TestCachingDecodersNotSharedAcrossRegistries(t *testing.T) {
 	// different Registry is used.
 
 	// Create a custom Registry that negates BSON int32 values when decoding.
-	var decodeInt32 bsoncodec.ValueDecoderFunc = func(_ bsoncodec.DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
+	var decodeInt32 ValueDecoderFunc = func(_ DecodeContext, vr ValueReader, val reflect.Value) error {
 		i32, err := vr.ReadInt32()
 		if err != nil {
 			return err
@@ -231,9 +101,8 @@ func TestCachingDecodersNotSharedAcrossRegistries(t *testing.T) {
 		val.SetInt(int64(-1 * i32))
 		return nil
 	}
-	customReg := NewRegistryBuilder().
-		RegisterTypeDecoder(tInt32, decodeInt32).
-		Build()
+	customReg := NewRegistry()
+	customReg.RegisterTypeDecoder(tInt32, decodeInt32)
 
 	docBytes := bsoncore.BuildDocumentFromElements(
 		nil,
@@ -253,7 +122,9 @@ func TestCachingDecodersNotSharedAcrossRegistries(t *testing.T) {
 		assert.Equal(t, int32(1), first.X, "expected X value to be 1, got %v", first.X)
 
 		var second Struct
-		err = UnmarshalWithRegistry(customReg, docBytes, &second)
+		dec := NewDecoder(NewDocumentReader(bytes.NewReader(docBytes)))
+		dec.SetRegistry(customReg)
+		err = dec.Decode(&second)
 		assert.Nil(t, err, "Unmarshal error: %v", err)
 		assert.Equal(t, int32(-1), second.X, "expected X value to be -1, got %v", second.X)
 	})
@@ -268,7 +139,9 @@ func TestCachingDecodersNotSharedAcrossRegistries(t *testing.T) {
 		assert.Equal(t, int32(1), *first.X, "expected X value to be 1, got %v", *first.X)
 
 		var second Struct
-		err = UnmarshalWithRegistry(customReg, docBytes, &second)
+		dec := NewDecoder(NewDocumentReader(bytes.NewReader(docBytes)))
+		dec.SetRegistry(customReg)
+		err = dec.Decode(&second)
 		assert.Nil(t, err, "Unmarshal error: %v", err)
 		assert.Equal(t, int32(-1), *second.X, "expected X value to be -1, got %v", *second.X)
 	})
@@ -412,6 +285,157 @@ func TestUnmarshalExtJSONWithUndefinedField(t *testing.T) {
 			responseDoc := unmarshalExpectedResponse(t, tc.testJSON)
 			assert.Equal(t, tc.expectedValue, responseDoc.DefinedField, "expected DefinedField to be %v, got %q",
 				tc.expectedValue, responseDoc.DefinedField)
+		})
+	}
+}
+
+func TestUnmarshalInterface(t *testing.T) {
+	t.Parallel()
+
+	type testCase struct {
+		name string
+		stub func() ([]byte, interface{}, func(*testing.T))
+	}
+	testCases := []testCase{
+		{
+			name: "struct with interface containing a concrete value",
+			stub: func() ([]byte, interface{}, func(*testing.T)) {
+				type testStruct struct {
+					Value interface{}
+				}
+				var value string
+
+				data := docToBytes(struct {
+					Value string
+				}{
+					Value: "foo",
+				})
+
+				receiver := testStruct{&value}
+
+				check := func(t *testing.T) {
+					t.Helper()
+					assert.Equal(t, "foo", value)
+				}
+
+				return data, &receiver, check
+			},
+		},
+		{
+			name: "struct with interface containing a struct",
+			stub: func() ([]byte, interface{}, func(*testing.T)) {
+				type demo struct {
+					Data string
+				}
+
+				type testStruct struct {
+					Value interface{}
+				}
+				var value demo
+
+				data := docToBytes(struct {
+					Value demo
+				}{
+					Value: demo{"foo"},
+				})
+
+				receiver := testStruct{&value}
+
+				check := func(t *testing.T) {
+					t.Helper()
+					assert.Equal(t, "foo", value.Data)
+				}
+
+				return data, &receiver, check
+			},
+		},
+		{
+			name: "struct with interface containing a slice",
+			stub: func() ([]byte, interface{}, func(*testing.T)) {
+				type testStruct struct {
+					Values interface{}
+				}
+				var values []string
+
+				data := docToBytes(struct {
+					Values []string
+				}{
+					Values: []string{"foo", "bar"},
+				})
+
+				receiver := testStruct{&values}
+
+				check := func(t *testing.T) {
+					t.Helper()
+					assert.Equal(t, []string{"foo", "bar"}, values)
+				}
+
+				return data, &receiver, check
+			},
+		},
+		{
+			name: "struct with interface containing an array",
+			stub: func() ([]byte, interface{}, func(*testing.T)) {
+				type testStruct struct {
+					Values interface{}
+				}
+				var values [2]string
+
+				data := docToBytes(struct {
+					Values []string
+				}{
+					Values: []string{"foo", "bar"},
+				})
+
+				receiver := testStruct{&values}
+
+				check := func(t *testing.T) {
+					t.Helper()
+					assert.Equal(t, [2]string{"foo", "bar"}, values)
+				}
+
+				return data, &receiver, check
+			},
+		},
+		{
+			name: "struct with interface array containing concrete values",
+			stub: func() ([]byte, interface{}, func(*testing.T)) {
+				type testStruct struct {
+					Values [3]interface{}
+				}
+				var str string
+				var i, j int
+
+				data := docToBytes(struct {
+					Values []interface{}
+				}{
+					Values: []interface{}{"foo", 42, nil},
+				})
+
+				receiver := testStruct{[3]interface{}{&str, &i, &j}}
+
+				check := func(t *testing.T) {
+					t.Helper()
+					assert.Equal(t, "foo", str)
+					assert.Equal(t, 42, i)
+					assert.Equal(t, 0, j)
+					assert.Equal(t, testStruct{[3]interface{}{&str, &i, nil}}, receiver)
+				}
+
+				return data, &receiver, check
+			},
+		},
+	}
+	for _, tc := range testCases {
+		tc := tc
+
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			data, receiver, check := tc.stub()
+			err := Unmarshal(data, receiver)
+			noerr(t, err)
+			check(t)
 		})
 	}
 }
@@ -581,15 +605,15 @@ func TestUnmarshalByteSlicesUseDistinctArrays(t *testing.T) {
 	}
 
 	type fooBinary struct {
-		Foo primitive.Binary
+		Foo Binary
 	}
 
 	type fooObjectID struct {
-		Foo primitive.ObjectID
+		Foo ObjectID
 	}
 
 	type fooDBPointer struct {
-		Foo primitive.DBPointer
+		Foo DBPointer
 	}
 
 	testCases := []struct {
@@ -622,10 +646,10 @@ func TestUnmarshalByteSlicesUseDistinctArrays(t *testing.T) {
 			}),
 			sType: reflect.TypeOf(D{}),
 			want: &D{
-				{"foo", primitive.Binary{Subtype: 0, Data: []byte{0, 1, 2, 3, 4, 5}}},
+				{"foo", Binary{Subtype: 0, Data: []byte{0, 1, 2, 3, 4, 5}}},
 			},
 			getByteSlice: func(val interface{}) []byte {
-				return (*(val.(*D)))[0].Value.(primitive.Binary).Data
+				return (*(val.(*D)))[0].Value.(Binary).Data
 			},
 		},
 		{
@@ -648,78 +672,78 @@ func TestUnmarshalByteSlicesUseDistinctArrays(t *testing.T) {
 			}),
 			sType: reflect.TypeOf(D{}),
 			want: &D{
-				{"foo", primitive.Binary{Subtype: 0, Data: myBytes{0, 1, 2, 3, 4, 5}}},
+				{"foo", Binary{Subtype: 0, Data: myBytes{0, 1, 2, 3, 4, 5}}},
 			},
 			getByteSlice: func(val interface{}) []byte {
-				return (*(val.(*D)))[0].Value.(primitive.Binary).Data
+				return (*(val.(*D)))[0].Value.(Binary).Data
 			},
 		},
 		{
-			description: "struct with primitive.Binary",
+			description: "struct with Binary",
 			data: docToBytes(fooBinary{
-				Foo: primitive.Binary{Subtype: 0, Data: []byte{0, 1, 2, 3, 4, 5}},
+				Foo: Binary{Subtype: 0, Data: []byte{0, 1, 2, 3, 4, 5}},
 			}),
 			sType: reflect.TypeOf(fooBinary{}),
 			want: &fooBinary{
-				Foo: primitive.Binary{Subtype: 0, Data: []byte{0, 1, 2, 3, 4, 5}},
+				Foo: Binary{Subtype: 0, Data: []byte{0, 1, 2, 3, 4, 5}},
 			},
 			getByteSlice: func(val interface{}) []byte {
 				return (val.(*fooBinary)).Foo.Data
 			},
 		},
 		{
-			description: "bson.D with primitive.Binary",
+			description: "bson.D with Binary",
 			data: docToBytes(D{
-				{"foo", primitive.Binary{Subtype: 0, Data: []byte{0, 1, 2, 3, 4, 5}}},
+				{"foo", Binary{Subtype: 0, Data: []byte{0, 1, 2, 3, 4, 5}}},
 			}),
 			sType: reflect.TypeOf(D{}),
 			want: &D{
-				{"foo", primitive.Binary{Subtype: 0, Data: []byte{0, 1, 2, 3, 4, 5}}},
+				{"foo", Binary{Subtype: 0, Data: []byte{0, 1, 2, 3, 4, 5}}},
 			},
 			getByteSlice: func(val interface{}) []byte {
-				return (*(val.(*D)))[0].Value.(primitive.Binary).Data
+				return (*(val.(*D)))[0].Value.(Binary).Data
 			},
 		},
 		{
-			description: "struct with primitive.ObjectID",
+			description: "struct with ObjectID",
 			data: docToBytes(fooObjectID{
-				Foo: primitive.ObjectID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
+				Foo: ObjectID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
 			}),
 			sType: reflect.TypeOf(fooObjectID{}),
 			want: &fooObjectID{
-				Foo: primitive.ObjectID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
+				Foo: ObjectID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
 			},
 			getByteSlice: func(val interface{}) []byte {
 				return (val.(*fooObjectID)).Foo[:]
 			},
 		},
 		{
-			description: "bson.D with primitive.ObjectID",
+			description: "bson.D with ObjectID",
 			data: docToBytes(D{
-				{"foo", primitive.ObjectID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}},
+				{"foo", ObjectID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}},
 			}),
 			sType: reflect.TypeOf(D{}),
 			want: &D{
-				{"foo", primitive.ObjectID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}},
+				{"foo", ObjectID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}},
 			},
 			getByteSlice: func(val interface{}) []byte {
-				oid := (*(val.(*D)))[0].Value.(primitive.ObjectID)
+				oid := (*(val.(*D)))[0].Value.(ObjectID)
 				return oid[:]
 			},
 		},
 		{
-			description: "struct with primitive.DBPointer",
+			description: "struct with DBPointer",
 			data: docToBytes(fooDBPointer{
-				Foo: primitive.DBPointer{
+				Foo: DBPointer{
 					DB:      "test",
-					Pointer: primitive.ObjectID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
+					Pointer: ObjectID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
 				},
 			}),
 			sType: reflect.TypeOf(fooDBPointer{}),
 			want: &fooDBPointer{
-				Foo: primitive.DBPointer{
+				Foo: DBPointer{
 					DB:      "test",
-					Pointer: primitive.ObjectID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
+					Pointer: ObjectID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
 				},
 			},
 			getByteSlice: func(val interface{}) []byte {
@@ -727,22 +751,22 @@ func TestUnmarshalByteSlicesUseDistinctArrays(t *testing.T) {
 			},
 		},
 		{
-			description: "bson.D with primitive.DBPointer",
+			description: "bson.D with DBPointer",
 			data: docToBytes(D{
-				{"foo", primitive.DBPointer{
+				{"foo", DBPointer{
 					DB:      "test",
-					Pointer: primitive.ObjectID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
+					Pointer: ObjectID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
 				}},
 			}),
 			sType: reflect.TypeOf(D{}),
 			want: &D{
-				{"foo", primitive.DBPointer{
+				{"foo", DBPointer{
 					DB:      "test",
-					Pointer: primitive.ObjectID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
+					Pointer: ObjectID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
 				}},
 			},
 			getByteSlice: func(val interface{}) []byte {
-				oid := (*(val.(*D)))[0].Value.(primitive.DBPointer).Pointer
+				oid := (*(val.(*D)))[0].Value.(DBPointer).Pointer
 				return oid[:]
 			},
 		},

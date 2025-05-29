@@ -28,4 +28,5 @@ const (
 	ListIndexesOp       = "listIndexes"       // ListIndexesOp is the name for listing indexes
 	ListDatabasesOp     = "listDatabases"     // ListDatabasesOp is the name for listing databases
 	UpdateOp            = "update"            // UpdateOp is the name for updating
+	BulkWriteOp         = "bulkWrite"         // BulkWriteOp is the name for client-level bulk write
 )
