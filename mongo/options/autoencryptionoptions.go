@@ -10,10 +10,10 @@ import (
 	"crypto/tls"
 	"net/http"
 
-	"go.mongodb.org/mongo-driver/internal/httputil"
+	"go.mongodb.org/mongo-driver/v2/internal/httputil"
 )
 
-// AutoEncryptionOptions represents options used to configure auto encryption/decryption behavior for a mongo.Client
+// AutoEncryptionOptions represents arguments used to configure auto encryption/decryption behavior for a mongo.Client
 // instance.
 //
 // Automatic encryption is an enterprise only feature that only applies to operations on a collection. Automatic
@@ -25,8 +25,10 @@ import (
 // If automatic encryption fails on an operation, use a MongoClient configured with bypassAutoEncryption=true and use
 // ClientEncryption.encrypt() to manually encrypt values.
 //
-// Enabling Client Side Encryption reduces the maximum document and message size (using a maxBsonObjectSize of 2MiB and
+// Enabling In-Use Encryption reduces the maximum document and message size (using a maxBsonObjectSize of 2MiB and
 // maxMessageSizeBytes of 6MB) and may have a negative performance impact.
+//
+// See corresponding setter methods for documentation.
 type AutoEncryptionOptions struct {
 	KeyVaultClientOptions *ClientOptions
 	KeyVaultNamespace     string
@@ -58,30 +60,34 @@ func AutoEncryption() *AutoEncryptionOptions {
 // mongo.Client except minPoolSize is set to 0 and AutoEncryptionOptions is omitted.
 func (a *AutoEncryptionOptions) SetKeyVaultClientOptions(opts *ClientOptions) *AutoEncryptionOptions {
 	a.KeyVaultClientOptions = opts
+
 	return a
 }
 
 // SetKeyVaultNamespace specifies the namespace of the key vault collection. This is required.
 func (a *AutoEncryptionOptions) SetKeyVaultNamespace(ns string) *AutoEncryptionOptions {
 	a.KeyVaultNamespace = ns
+
 	return a
 }
 
 // SetKmsProviders specifies options for KMS providers. This is required.
 func (a *AutoEncryptionOptions) SetKmsProviders(providers map[string]map[string]interface{}) *AutoEncryptionOptions {
 	a.KmsProviders = providers
+
 	return a
 }
 
 // SetSchemaMap specifies a map from namespace to local schema document. Schemas supplied in the schemaMap only apply
-// to configuring automatic encryption for client side encryption. Other validation rules in the JSON schema will not
-// be enforced by the driver and will result in an error.
+// to configuring automatic encryption for Client-Side Field Level Encryption. Other validation rules in the JSON schema
+// will not be enforced by the driver and will result in an error.
 //
 // Supplying a schemaMap provides more security than relying on JSON Schemas obtained from the server. It protects
 // against a malicious server advertising a false JSON Schema, which could trick the client into sending unencrypted
 // data that should be encrypted.
 func (a *AutoEncryptionOptions) SetSchemaMap(schemaMap map[string]interface{}) *AutoEncryptionOptions {
 	a.SchemaMap = schemaMap
+
 	return a
 }
 
@@ -95,6 +101,7 @@ func (a *AutoEncryptionOptions) SetSchemaMap(schemaMap map[string]interface{}) *
 // is set to 0 and AutoEncryptionOptions is omitted.
 func (a *AutoEncryptionOptions) SetBypassAutoEncryption(bypass bool) *AutoEncryptionOptions {
 	a.BypassAutoEncryption = &bypass
+
 	return a
 }
 
@@ -129,23 +136,16 @@ func (a *AutoEncryptionOptions) SetBypassAutoEncryption(bypass bool) *AutoEncryp
 // crypt_shared library cannot be loaded, Client creation will return an error. Must be a string.
 func (a *AutoEncryptionOptions) SetExtraOptions(extraOpts map[string]interface{}) *AutoEncryptionOptions {
 	a.ExtraOptions = extraOpts
+
 	return a
 }
 
 // SetTLSConfig specifies tls.Config instances for each KMS provider to use to configure TLS on all connections created
 // to the KMS provider.
-//
-// This should only be used to set custom TLS configurations. By default, the connection will use an empty tls.Config{} with MinVersion set to tls.VersionTLS12.
-func (a *AutoEncryptionOptions) SetTLSConfig(tlsOpts map[string]*tls.Config) *AutoEncryptionOptions {
-	tlsConfigs := make(map[string]*tls.Config)
-	for provider, config := range tlsOpts {
-		// use TLS min version 1.2 to enforce more secure hash algorithms and advanced cipher suites
-		if config.MinVersion == 0 {
-			config.MinVersion = tls.VersionTLS12
-		}
-		tlsConfigs[provider] = config
-	}
-	a.TLSConfig = tlsConfigs
+func (a *AutoEncryptionOptions) SetTLSConfig(cfg map[string]*tls.Config) *AutoEncryptionOptions {
+	// This should only be used to set custom TLS configurations. By default, the connection will use an empty tls.Config{} with MinVersion set to tls.VersionTLS12.
+	a.TLSConfig = cfg
+
 	return a
 }
 
@@ -153,6 +153,7 @@ func (a *AutoEncryptionOptions) SetTLSConfig(tlsOpts map[string]*tls.Config) *Au
 // EncryptedFieldsMap is used for Queryable Encryption.
 func (a *AutoEncryptionOptions) SetEncryptedFieldsMap(ef map[string]interface{}) *AutoEncryptionOptions {
 	a.EncryptedFieldsMap = ef
+
 	return a
 }
 
@@ -160,51 +161,6 @@ func (a *AutoEncryptionOptions) SetEncryptedFieldsMap(ef map[string]interface{})
 // Use this option when using explicit encryption with Queryable Encryption.
 func (a *AutoEncryptionOptions) SetBypassQueryAnalysis(bypass bool) *AutoEncryptionOptions {
 	a.BypassQueryAnalysis = &bypass
+
 	return a
-}
-
-// MergeAutoEncryptionOptions combines the argued AutoEncryptionOptions in a last-one wins fashion.
-//
-// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
-// single options struct instead.
-func MergeAutoEncryptionOptions(opts ...*AutoEncryptionOptions) *AutoEncryptionOptions {
-	aeo := AutoEncryption()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-
-		if opt.KeyVaultClientOptions != nil {
-			aeo.KeyVaultClientOptions = opt.KeyVaultClientOptions
-		}
-		if opt.KeyVaultNamespace != "" {
-			aeo.KeyVaultNamespace = opt.KeyVaultNamespace
-		}
-		if opt.KmsProviders != nil {
-			aeo.KmsProviders = opt.KmsProviders
-		}
-		if opt.SchemaMap != nil {
-			aeo.SchemaMap = opt.SchemaMap
-		}
-		if opt.BypassAutoEncryption != nil {
-			aeo.BypassAutoEncryption = opt.BypassAutoEncryption
-		}
-		if opt.ExtraOptions != nil {
-			aeo.ExtraOptions = opt.ExtraOptions
-		}
-		if opt.TLSConfig != nil {
-			aeo.TLSConfig = opt.TLSConfig
-		}
-		if opt.EncryptedFieldsMap != nil {
-			aeo.EncryptedFieldsMap = opt.EncryptedFieldsMap
-		}
-		if opt.BypassQueryAnalysis != nil {
-			aeo.BypassQueryAnalysis = opt.BypassQueryAnalysis
-		}
-		if opt.HTTPClient != nil {
-			aeo.HTTPClient = opt.HTTPClient
-		}
-	}
-
-	return aeo
 }

@@ -7,7 +7,7 @@
 package auth
 
 import (
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 )
 
 // Cred is the type of user credential

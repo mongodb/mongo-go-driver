@@ -7,18 +7,29 @@
 package options
 
 // DataKeyOptions represents all possible options used to create a new data key.
+//
+// See corresponding setter methods for documentation.
 type DataKeyOptions struct {
 	MasterKey   interface{}
 	KeyAltNames []string
-
-	// KeyMaterial is used to encrypt data. If omitted, keyMaterial is generated form a cryptographically secure random
-	// source. "Key Material" is used interchangeably with "dataKey" and "Data Encryption Key" (DEK).
 	KeyMaterial []byte
 }
 
+// DataKeyOptionsBuilder contains options to configure DataKey operations. Each
+// option can be set through setter functions. See documentation for each setter
+// function for an explanation of the option.
+type DataKeyOptionsBuilder struct {
+	Opts []func(*DataKeyOptions) error
+}
+
 // DataKey creates a new DataKeyOptions instance.
-func DataKey() *DataKeyOptions {
-	return &DataKeyOptions{}
+func DataKey() *DataKeyOptionsBuilder {
+	return &DataKeyOptionsBuilder{}
+}
+
+// List returns a list of DataKey setter functions.
+func (dk *DataKeyOptionsBuilder) List() []func(*DataKeyOptions) error {
+	return dk.Opts
 }
 
 // SetMasterKey specifies a KMS-specific key used to encrypt the new data key.
@@ -60,45 +71,37 @@ func DataKey() *DataKeyOptions {
 //	}
 //
 // If unset, "keyVersion" defaults to the key's primary version and "endpoint" defaults to "cloudkms.googleapis.com".
-func (dk *DataKeyOptions) SetMasterKey(masterKey interface{}) *DataKeyOptions {
-	dk.MasterKey = masterKey
+func (dk *DataKeyOptionsBuilder) SetMasterKey(masterKey interface{}) *DataKeyOptionsBuilder {
+	dk.Opts = append(dk.Opts, func(opts *DataKeyOptions) error {
+		opts.MasterKey = masterKey
+
+		return nil
+	})
+
 	return dk
 }
 
 // SetKeyAltNames specifies an optional list of string alternate names used to reference a key. If a key is created'
 // with alternate names, encryption may refer to the key by a unique alternate name instead of by _id.
-func (dk *DataKeyOptions) SetKeyAltNames(keyAltNames []string) *DataKeyOptions {
-	dk.KeyAltNames = keyAltNames
+func (dk *DataKeyOptionsBuilder) SetKeyAltNames(keyAltNames []string) *DataKeyOptionsBuilder {
+	dk.Opts = append(dk.Opts, func(opts *DataKeyOptions) error {
+		opts.KeyAltNames = keyAltNames
+
+		return nil
+	})
+
 	return dk
 }
 
-// SetKeyMaterial will set a custom keyMaterial to DataKeyOptions which can be used to encrypt data.
-func (dk *DataKeyOptions) SetKeyMaterial(keyMaterial []byte) *DataKeyOptions {
-	dk.KeyMaterial = keyMaterial
+// SetKeyMaterial will set a custom keyMaterial to DataKeyOptions which can be used to encrypt data. If omitted,
+// keyMaterial is generated form a cryptographically secure random source. "Key Material" is used interchangeably
+// with "dataKey" and "Data Encryption Key" (DEK).
+func (dk *DataKeyOptionsBuilder) SetKeyMaterial(keyMaterial []byte) *DataKeyOptionsBuilder {
+	dk.Opts = append(dk.Opts, func(opts *DataKeyOptions) error {
+		opts.KeyMaterial = keyMaterial
+
+		return nil
+	})
+
 	return dk
-}
-
-// MergeDataKeyOptions combines the argued DataKeyOptions in a last-one wins fashion.
-//
-// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
-// single options struct instead.
-func MergeDataKeyOptions(opts ...*DataKeyOptions) *DataKeyOptions {
-	dko := DataKey()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-
-		if opt.MasterKey != nil {
-			dko.MasterKey = opt.MasterKey
-		}
-		if opt.KeyAltNames != nil {
-			dko.KeyAltNames = opt.KeyAltNames
-		}
-		if opt.KeyMaterial != nil {
-			dko.KeyMaterial = opt.KeyMaterial
-		}
-	}
-
-	return dko
 }

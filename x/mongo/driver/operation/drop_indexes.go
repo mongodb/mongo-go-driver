@@ -12,20 +12,19 @@ import (
 	"fmt"
 	"time"
 
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/driverutil"
-	"go.mongodb.org/mongo-driver/mongo/description"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
 // DropIndexes performs an dropIndexes operation.
 type DropIndexes struct {
 	authenticator driver.Authenticator
 	index         any
-	maxTime       *time.Duration
 	session       *session.Client
 	clock         *session.ClusterClock
 	collection    string
@@ -95,7 +94,6 @@ func (di *DropIndexes) Execute(ctx context.Context) error {
 		Crypt:             di.crypt,
 		Database:          di.database,
 		Deployment:        di.deployment,
-		MaxTime:           di.maxTime,
 		Selector:          di.selector,
 		WriteConcern:      di.writeConcern,
 		ServerAPI:         di.serverAPI,
@@ -128,16 +126,6 @@ func (di *DropIndexes) Index(index any) *DropIndexes {
 	}
 
 	di.index = index
-	return di
-}
-
-// MaxTime specifies the maximum amount of time to allow the query to run on the server.
-func (di *DropIndexes) MaxTime(maxTime *time.Duration) *DropIndexes {
-	if di == nil {
-		di = new(DropIndexes)
-	}
-
-	di.maxTime = maxTime
 	return di
 }
 

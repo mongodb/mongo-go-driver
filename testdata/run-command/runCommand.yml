@@ -119,7 +119,7 @@ tests:
   - description: attaches the provided $readPreference to given command
     runOnRequirements:
       # Exclude single topology, which is most likely a standalone server
-      - topologies: [ replicaset, sharded-replicaset, load-balanced, sharded ]
+      - topologies: [ replicaset, load-balanced, sharded ]
     operations:
       - name: runCommand
         object: *db
@@ -143,7 +143,7 @@ tests:
       # This test assumes that the single topology contains a standalone server;
       # however, it is possible for a single topology to contain a direct
       # connection to another server type.
-      # See: https://github.com/mongodb/specifications/blob/master/source/server-selection/server-selection.rst#topology-type-single
+      # See: https://github.com/mongodb/specifications/blob/master/source/server-selection/server-selection.md#topology-type-single
       - topologies: [ single ]
     operations:
       - name: runCommand
@@ -250,7 +250,7 @@ tests:
       - minServerVersion: "4.0"
         topologies: [ replicaset ]
       - minServerVersion: "4.2"
-        topologies: [ sharded-replicaset, load-balanced ]
+        topologies: [ sharded, load-balanced ]
     operations:
       - name: withTransaction
         object: *session

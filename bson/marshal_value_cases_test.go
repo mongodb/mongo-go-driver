@@ -10,10 +10,8 @@ import (
 	"io"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 // helper type for testing MarshalValue that implements io.Reader
@@ -39,13 +37,13 @@ type marshalValueMarshaler struct {
 
 var _ ValueMarshaler = marshalValueMarshaler{}
 
-func (mvi marshalValueMarshaler) MarshalBSONValue() (bsontype.Type, []byte, error) {
-	return bsontype.Int32, bsoncore.AppendInt32(nil, int32(mvi.Foo)), nil
+func (mvi marshalValueMarshaler) MarshalBSONValue() (byte, []byte, error) {
+	return byte(TypeInt32), bsoncore.AppendInt32(nil, int32(mvi.Foo)), nil
 }
 
 var _ ValueUnmarshaler = &marshalValueMarshaler{}
 
-func (mvi *marshalValueMarshaler) UnmarshalBSONValue(_ bsontype.Type, b []byte) error {
+func (mvi *marshalValueMarshaler) UnmarshalBSONValue(_ byte, b []byte) error {
 	v, _, _ := bsoncore.ReadInt32(b)
 	mvi.Foo = int(v)
 	return nil
@@ -58,7 +56,7 @@ type marshalValueStruct struct {
 type marshalValueTestCase struct {
 	name     string
 	val      interface{}
-	bsontype bsontype.Type
+	bsontype Type
 	bytes    []byte
 }
 
@@ -66,12 +64,12 @@ func newMarshalValueTestCases(t *testing.T) []marshalValueTestCase {
 	t.Helper()
 
 	var (
-		oid           = primitive.NewObjectID()
-		regex         = primitive.Regex{Pattern: "pattern", Options: "imx"}
-		dbPointer     = primitive.DBPointer{DB: "db", Pointer: primitive.NewObjectID()}
-		codeWithScope = primitive.CodeWithScope{Code: "code", Scope: D{{"a", "b"}}}
-		decimal128    = primitive.NewDecimal128(5, 10)
-		structTest    = marshalValueStruct{Foo: 10}
+		oid                      = NewObjectID()
+		regex                    = Regex{Pattern: "pattern", Options: "imx"}
+		dbPointer                = DBPointer{DB: "db", Pointer: NewObjectID()}
+		codeWithScope            = CodeWithScope{Code: "code", Scope: D{{"a", "b"}}}
+		decimal128h, decimal128l = NewDecimal128(5, 10).GetBytes()
+		structTest               = marshalValueStruct{Foo: 10}
 	)
 	idx, scopeCore := bsoncore.AppendDocumentStart(nil)
 	scopeCore = bsoncore.AppendStringElement(scopeCore, "a", "b")
@@ -81,29 +79,29 @@ func newMarshalValueTestCases(t *testing.T) []marshalValueTestCase {
 	assert.Nil(t, err, "Marshal error: %v", err)
 
 	return []marshalValueTestCase{
-		{"double", 3.14, bsontype.Double, bsoncore.AppendDouble(nil, 3.14)},
-		{"string", "hello world", bsontype.String, bsoncore.AppendString(nil, "hello world")},
-		{"binary", primitive.Binary{1, []byte{1, 2}}, bsontype.Binary, bsoncore.AppendBinary(nil, 1, []byte{1, 2})},
-		{"undefined", primitive.Undefined{}, bsontype.Undefined, []byte{}},
-		{"object id", oid, bsontype.ObjectID, bsoncore.AppendObjectID(nil, oid)},
-		{"boolean", true, bsontype.Boolean, bsoncore.AppendBoolean(nil, true)},
-		{"datetime", primitive.DateTime(5), bsontype.DateTime, bsoncore.AppendDateTime(nil, 5)},
-		{"null", primitive.Null{}, bsontype.Null, []byte{}},
-		{"regex", regex, bsontype.Regex, bsoncore.AppendRegex(nil, regex.Pattern, regex.Options)},
-		{"dbpointer", dbPointer, bsontype.DBPointer, bsoncore.AppendDBPointer(nil, dbPointer.DB, dbPointer.Pointer)},
-		{"javascript", primitive.JavaScript("js"), bsontype.JavaScript, bsoncore.AppendJavaScript(nil, "js")},
-		{"symbol", primitive.Symbol("symbol"), bsontype.Symbol, bsoncore.AppendSymbol(nil, "symbol")},
-		{"code with scope", codeWithScope, bsontype.CodeWithScope, bsoncore.AppendCodeWithScope(nil, "code", scopeCore)},
-		{"int32", 5, bsontype.Int32, bsoncore.AppendInt32(nil, 5)},
-		{"int64", int64(5), bsontype.Int64, bsoncore.AppendInt64(nil, 5)},
-		{"timestamp", primitive.Timestamp{T: 1, I: 5}, bsontype.Timestamp, bsoncore.AppendTimestamp(nil, 1, 5)},
-		{"decimal128", decimal128, bsontype.Decimal128, bsoncore.AppendDecimal128(nil, decimal128)},
-		{"min key", primitive.MinKey{}, bsontype.MinKey, []byte{}},
-		{"max key", primitive.MaxKey{}, bsontype.MaxKey, []byte{}},
-		{"struct", structTest, bsontype.EmbeddedDocument, structCore},
-		{"D", D{{"foo", int32(10)}}, bsontype.EmbeddedDocument, structCore},
-		{"M", M{"foo": int32(10)}, bsontype.EmbeddedDocument, structCore},
-		{"ValueMarshaler", marshalValueMarshaler{Foo: 10}, bsontype.Int32, bsoncore.AppendInt32(nil, 10)},
+		{"double", 3.14, TypeDouble, bsoncore.AppendDouble(nil, 3.14)},
+		{"string", "hello world", TypeString, bsoncore.AppendString(nil, "hello world")},
+		{"binary", Binary{1, []byte{1, 2}}, TypeBinary, bsoncore.AppendBinary(nil, 1, []byte{1, 2})},
+		{"undefined", Undefined{}, TypeUndefined, []byte{}},
+		{"object id", oid, TypeObjectID, bsoncore.AppendObjectID(nil, oid)},
+		{"boolean", true, TypeBoolean, bsoncore.AppendBoolean(nil, true)},
+		{"datetime", DateTime(5), TypeDateTime, bsoncore.AppendDateTime(nil, 5)},
+		{"null", Null{}, TypeNull, []byte{}},
+		{"regex", regex, TypeRegex, bsoncore.AppendRegex(nil, regex.Pattern, regex.Options)},
+		{"dbpointer", dbPointer, TypeDBPointer, bsoncore.AppendDBPointer(nil, dbPointer.DB, dbPointer.Pointer)},
+		{"javascript", JavaScript("js"), TypeJavaScript, bsoncore.AppendJavaScript(nil, "js")},
+		{"symbol", Symbol("symbol"), TypeSymbol, bsoncore.AppendSymbol(nil, "symbol")},
+		{"code with scope", codeWithScope, TypeCodeWithScope, bsoncore.AppendCodeWithScope(nil, "code", scopeCore)},
+		{"int32", 5, TypeInt32, bsoncore.AppendInt32(nil, 5)},
+		{"int64", int64(5), TypeInt64, bsoncore.AppendInt64(nil, 5)},
+		{"timestamp", Timestamp{T: 1, I: 5}, TypeTimestamp, bsoncore.AppendTimestamp(nil, 1, 5)},
+		{"decimal128", NewDecimal128(decimal128h, decimal128l), TypeDecimal128, bsoncore.AppendDecimal128(nil, decimal128h, decimal128l)},
+		{"min key", MinKey{}, TypeMinKey, []byte{}},
+		{"max key", MaxKey{}, TypeMaxKey, []byte{}},
+		{"struct", structTest, TypeEmbeddedDocument, structCore},
+		{"D", D{{"foo", int32(10)}}, TypeEmbeddedDocument, structCore},
+		{"M", M{"foo": int32(10)}, TypeEmbeddedDocument, structCore},
+		{"ValueMarshaler", marshalValueMarshaler{Foo: 10}, TypeInt32, bsoncore.AppendInt32(nil, 10)},
 	}
 
 }
@@ -123,7 +121,7 @@ func newMarshalValueTestCasesWithInterfaceCore(t *testing.T) []marshalValueTestC
 
 	marshalValueTestCases = append(
 		marshalValueTestCases,
-		marshalValueTestCase{"interface", interfaceTest, bsontype.EmbeddedDocument, interfaceCore},
+		marshalValueTestCase{"interface", interfaceTest, TypeEmbeddedDocument, interfaceCore},
 	)
 
 	return marshalValueTestCases

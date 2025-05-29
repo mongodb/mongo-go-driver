@@ -9,7 +9,7 @@ package ptrutil
 import (
 	"testing"
 
-	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
 )
 
 func TestCompareInt64(t *testing.T) {

@@ -9,6 +9,7 @@ package bsoncore
 import (
 	"fmt"
 	"io"
+	"math"
 	"strconv"
 	"strings"
 )
@@ -82,34 +83,54 @@ func (a Array) DebugString() string {
 // String outputs an ExtendedJSON version of Array. If the Array is not valid, this method
 // returns an empty string.
 func (a Array) String() string {
-	if len(a) < 5 {
+	return a.StringN(math.MaxInt)
+}
+
+// StringN stringifies an array upto N bytes
+func (a Array) StringN(n int) string {
+	if lens, _, _ := ReadLength(a); lens < 5 || n <= 0 {
 		return ""
 	}
+
 	var buf strings.Builder
 	buf.WriteByte('[')
 
 	length, rem, _ := ReadLength(a) // We know we have enough bytes to read the length
-
 	length -= 4
 
 	var elem Element
 	var ok bool
-	for length > 1 {
-		elem, rem, ok = ReadElement(rem)
-		length -= int32(len(elem))
-		if !ok {
+
+	if n > 0 {
+		for length > 1 {
+			elem, rem, ok = ReadElement(rem)
+
+			length -= int32(len(elem))
+			if !ok {
+				return ""
+			}
+
+			str := elem.Value().StringN(n - buf.Len())
+
+			buf.WriteString(str)
+
+			if buf.Len() == n {
+				return buf.String()
+			}
+
+			if length > 1 {
+				buf.WriteByte(',')
+			}
+		}
+		if length != 1 { // Missing final null byte or inaccurate length
 			return ""
 		}
-		buf.WriteString(elem.Value().String())
-		if length > 1 {
-			buf.WriteByte(',')
-		}
-	}
-	if length != 1 { // Missing final null byte or inaccurate length
-		return ""
 	}
 
-	buf.WriteByte(']')
+	if buf.Len()+1 <= n {
+		buf.WriteByte(']')
+	}
+
 	return buf.String()
 }
 

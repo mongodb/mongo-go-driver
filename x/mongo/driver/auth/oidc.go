@@ -18,9 +18,10 @@ import (
 	"sync"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
 )
 
 // MongoDBOIDC is the string constant for the MONGODB-OIDC authentication mechanism.
@@ -178,7 +179,7 @@ func (oa *OIDCAuthenticator) setAllowedHosts() error {
 	return nil
 }
 
-func (oa *OIDCAuthenticator) validateConnectionAddressWithAllowedHosts(conn driver.Connection) error {
+func (oa *OIDCAuthenticator) validateConnectionAddressWithAllowedHosts(conn *mnet.Connection) error {
 	if oa.allowedHosts == nil {
 		// should be unreachable, but this is a safety check.
 		return newAuthError(fmt.Sprintf("%q missing", AllowedHostsProp), nil)
@@ -201,7 +202,7 @@ type oidcOneStep struct {
 }
 
 type oidcTwoStep struct {
-	conn driver.Connection
+	conn *mnet.Connection
 	oa   *OIDCAuthenticator
 }
 
@@ -361,7 +362,7 @@ func getGCPOIDCCallback(resource string, httpClient *http.Client) OIDCCallback {
 
 func (oa *OIDCAuthenticator) getAccessToken(
 	ctx context.Context,
-	conn driver.Connection,
+	conn *mnet.Connection,
 	args *OIDCArgs,
 	callback OIDCCallback,
 ) (string, error) {
@@ -412,7 +413,7 @@ func (oa *OIDCAuthenticator) getAccessToken(
 // tokenGenID of the OIDCAuthenticator. It should never actually be greater than, but only equal,
 // but this is a safety check, since extra invalidation is only a performance impact, not a
 // correctness impact.
-func (oa *OIDCAuthenticator) invalidateAccessToken(conn driver.Connection) {
+func (oa *OIDCAuthenticator) invalidateAccessToken(conn *mnet.Connection) {
 	oa.mu.Lock()
 	defer oa.mu.Unlock()
 	tokenGenID := conn.OIDCTokenGenID()
@@ -427,13 +428,13 @@ func (oa *OIDCAuthenticator) invalidateAccessToken(conn driver.Connection) {
 
 // Reauth reauthenticates the connection when the server returns a 391 code. Reauth is part of the
 // driver.Authenticator interface.
-func (oa *OIDCAuthenticator) Reauth(ctx context.Context, cfg *Config) error {
+func (oa *OIDCAuthenticator) Reauth(ctx context.Context, cfg *driver.AuthConfig) error {
 	oa.invalidateAccessToken(cfg.Connection)
 	return oa.Auth(ctx, cfg)
 }
 
 // Auth authenticates the connection.
-func (oa *OIDCAuthenticator) Auth(ctx context.Context, cfg *Config) error {
+func (oa *OIDCAuthenticator) Auth(ctx context.Context, cfg *driver.AuthConfig) error {
 	var err error
 
 	if cfg == nil {
@@ -483,7 +484,7 @@ func (oa *OIDCAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 	return newAuthError("no OIDC callback provided", nil)
 }
 
-func (oa *OIDCAuthenticator) doAuthHuman(ctx context.Context, cfg *Config, humanCallback OIDCCallback, idpInfo *IDPInfo, refreshToken *string) error {
+func (oa *OIDCAuthenticator) doAuthHuman(ctx context.Context, cfg *driver.AuthConfig, humanCallback OIDCCallback, idpInfo *IDPInfo, refreshToken *string) error {
 	// Ensure that the connection address is allowed by the allowed hosts.
 	err := oa.validateConnectionAddressWithAllowedHosts(cfg.Connection)
 	if err != nil {
@@ -520,7 +521,7 @@ func (oa *OIDCAuthenticator) doAuthHuman(ctx context.Context, cfg *Config, human
 	return ConductSaslConversation(subCtx, cfg, sourceExternal, ots)
 }
 
-func (oa *OIDCAuthenticator) doAuthMachine(ctx context.Context, cfg *Config, machineCallback OIDCCallback) error {
+func (oa *OIDCAuthenticator) doAuthMachine(ctx context.Context, cfg *driver.AuthConfig, machineCallback OIDCCallback) error {
 	subCtx, cancel := context.WithTimeout(ctx, machineCallbackTimeout)
 	accessToken, err := oa.getAccessToken(subCtx,
 		cfg.Connection,

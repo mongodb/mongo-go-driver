@@ -7,98 +7,99 @@
 package options
 
 import (
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 )
 
-// CollectionOptions represents options that can be used to configure a Collection.
+// CollectionOptions represents arguments that can be used to configure a Collection.
+//
+// See corresponding setter methods for documentation.
 type CollectionOptions struct {
-	// ReadConcern is the read concern to use for operations executed on the Collection. The default value is nil, which means that
-	// the read concern of the Database used to configure the Collection will be used.
-	ReadConcern *readconcern.ReadConcern
-
-	// WriteConcern is the write concern to use for operations executed on the Collection. The default value is nil, which means that
-	// the write concern of the Database used to configure the Collection will be used.
-	WriteConcern *writeconcern.WriteConcern
-
-	// ReadPreference is the read preference to use for operations executed on the Collection. The default value is nil, which means that
-	// the read preference of the Database used to configure the Collection will be used.
+	ReadConcern    *readconcern.ReadConcern
+	WriteConcern   *writeconcern.WriteConcern
 	ReadPreference *readpref.ReadPref
+	BSONOptions    *BSONOptions
+	Registry       *bson.Registry
+}
 
-	// BSONOptions configures optional BSON marshaling and unmarshaling
-	// behavior.
-	BSONOptions *BSONOptions
-
-	// Registry is the BSON registry to marshal and unmarshal documents for operations executed on the Collection. The default value
-	// is nil, which means that the registry of the Database used to configure the Collection will be used.
-	Registry *bsoncodec.Registry
+// CollectionOptionsBuilder contains options to configure a Collection instance.
+// Each option can be set through setter functions. See documentation for each
+// setter function for an explanation of the option.
+type CollectionOptionsBuilder struct {
+	Opts []func(*CollectionOptions) error
 }
 
 // Collection creates a new CollectionOptions instance.
-func Collection() *CollectionOptions {
-	return &CollectionOptions{}
+func Collection() *CollectionOptionsBuilder {
+	return &CollectionOptionsBuilder{}
 }
 
-// SetReadConcern sets the value for the ReadConcern field.
-func (c *CollectionOptions) SetReadConcern(rc *readconcern.ReadConcern) *CollectionOptions {
-	c.ReadConcern = rc
+// List returns a list of CollectionOptions setter functions.
+func (c *CollectionOptionsBuilder) List() []func(*CollectionOptions) error {
+	return c.Opts
+}
+
+// SetReadConcern sets the value for the ReadConcern field. ReadConcern is the read concern to use for
+// operations executed on the Collection. The default value is nil, which means that the read concern
+// of the Database used to configure the Collection will be used.
+func (c *CollectionOptionsBuilder) SetReadConcern(rc *readconcern.ReadConcern) *CollectionOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *CollectionOptions) error {
+		opts.ReadConcern = rc
+
+		return nil
+	})
+
 	return c
 }
 
-// SetWriteConcern sets the value for the WriteConcern field.
-func (c *CollectionOptions) SetWriteConcern(wc *writeconcern.WriteConcern) *CollectionOptions {
-	c.WriteConcern = wc
+// SetWriteConcern sets the value for the WriteConcern field. WriteConcern is the write concern to
+// use for operations executed on the Collection. The default value is nil, which means that the write
+// concern of the Database used to configure the Collection will be used.
+func (c *CollectionOptionsBuilder) SetWriteConcern(wc *writeconcern.WriteConcern) *CollectionOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *CollectionOptions) error {
+		opts.WriteConcern = wc
+
+		return nil
+	})
+
 	return c
 }
 
-// SetReadPreference sets the value for the ReadPreference field.
-func (c *CollectionOptions) SetReadPreference(rp *readpref.ReadPref) *CollectionOptions {
-	c.ReadPreference = rp
+// SetReadPreference sets the value for the ReadPreference field. ReadPreference is the read preference
+// to use for operations executed on the Collection. The default value is nil, which means that the
+// read preference of the Database used to configure the Collection will be used.
+func (c *CollectionOptionsBuilder) SetReadPreference(rp *readpref.ReadPref) *CollectionOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *CollectionOptions) error {
+		opts.ReadPreference = rp
+
+		return nil
+	})
+
 	return c
 }
 
-// SetBSONOptions configures optional BSON marshaling and unmarshaling behavior.
-func (c *CollectionOptions) SetBSONOptions(opts *BSONOptions) *CollectionOptions {
-	c.BSONOptions = opts
+// SetBSONOptions configures optional BSON marshaling and unmarshaling behavior. BSONOptions configures
+// optional BSON marshaling and unmarshaling behavior.
+func (c *CollectionOptionsBuilder) SetBSONOptions(bopts *BSONOptions) *CollectionOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *CollectionOptions) error {
+		opts.BSONOptions = bopts
+
+		return nil
+	})
+
 	return c
 }
 
-// SetRegistry sets the value for the Registry field.
-func (c *CollectionOptions) SetRegistry(r *bsoncodec.Registry) *CollectionOptions {
-	c.Registry = r
-	return c
-}
+// SetRegistry sets the value for the Registry field. Registry is the BSON registry to marshal and
+// unmarshal documents for operations executed on the Collection. The default value is nil, which
+// means that the registry of the Database used to configure the Collection will be used.
+func (c *CollectionOptionsBuilder) SetRegistry(r *bson.Registry) *CollectionOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *CollectionOptions) error {
+		opts.Registry = r
 
-// MergeCollectionOptions combines the given CollectionOptions instances into a single *CollectionOptions in a
-// last-one-wins fashion.
-//
-// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
-// single options struct instead.
-func MergeCollectionOptions(opts ...*CollectionOptions) *CollectionOptions {
-	c := Collection()
-
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.ReadConcern != nil {
-			c.ReadConcern = opt.ReadConcern
-		}
-		if opt.WriteConcern != nil {
-			c.WriteConcern = opt.WriteConcern
-		}
-		if opt.ReadPreference != nil {
-			c.ReadPreference = opt.ReadPreference
-		}
-		if opt.Registry != nil {
-			c.Registry = opt.Registry
-		}
-		if opt.BSONOptions != nil {
-			c.BSONOptions = opt.BSONOptions
-		}
-	}
-
+		return nil
+	})
 	return c
 }

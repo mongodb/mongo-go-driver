@@ -9,7 +9,7 @@ package driver
 import (
 	"errors"
 
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 // ErrDocumentTooLarge occurs when a document that is larger than the maximum size accepted by a

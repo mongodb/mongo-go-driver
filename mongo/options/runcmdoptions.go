@@ -7,41 +7,43 @@
 package options
 
 import (
-	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
 )
 
-// RunCmdOptions represents options that can be used to configure a RunCommand operation.
+// RunCmdOptions represents arguments that can be used to configure a RunCommand
+// operation.
+//
+// See corresponding setter methods for documentation.
 type RunCmdOptions struct {
-	// The read preference to use for the operation. The default value is nil, which means that the primary read
-	// preference will be used.
 	ReadPreference *readpref.ReadPref
 }
 
+// RunCmdOptionsBuilder contains options to configure runCommand operations.
+// Each option can be set through setter functions. See documentation for each
+// setter function for an explanation of the option.
+type RunCmdOptionsBuilder struct {
+	Opts []func(*RunCmdOptions) error
+}
+
 // RunCmd creates a new RunCmdOptions instance.
-func RunCmd() *RunCmdOptions {
-	return &RunCmdOptions{}
+func RunCmd() *RunCmdOptionsBuilder {
+	return &RunCmdOptionsBuilder{}
 }
 
-// SetReadPreference sets value for the ReadPreference field.
-func (rc *RunCmdOptions) SetReadPreference(rp *readpref.ReadPref) *RunCmdOptions {
-	rc.ReadPreference = rp
-	return rc
+// List returns a list of CountOptions setter functions.
+func (rc *RunCmdOptionsBuilder) List() []func(*RunCmdOptions) error {
+	return rc.Opts
 }
 
-// MergeRunCmdOptions combines the given RunCmdOptions instances into one *RunCmdOptions in a last-one-wins fashion.
-//
-// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
-// single options struct instead.
-func MergeRunCmdOptions(opts ...*RunCmdOptions) *RunCmdOptions {
-	rc := RunCmd()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.ReadPreference != nil {
-			rc.ReadPreference = opt.ReadPreference
-		}
-	}
+// SetReadPreference sets value for the ReadPreference field. Specifies the read preference
+// to use for the operation. The default value is nil, which means that the primary read
+// preference will be used.
+func (rc *RunCmdOptionsBuilder) SetReadPreference(rp *readpref.ReadPref) *RunCmdOptionsBuilder {
+	rc.Opts = append(rc.Opts, func(opts *RunCmdOptions) error {
+		opts.ReadPreference = rp
+
+		return nil
+	})
 
 	return rc
 }

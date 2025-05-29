@@ -56,6 +56,7 @@
     },
     {
       "description": "WTimeoutMS",
+      "skipReason": "GODRIVER-2348: the wtimeoutMS write concern option is not supported",
       "valid": true,
       "writeConcern": {
         "wtimeoutMS": 1000
@@ -68,6 +69,7 @@
     },
     {
       "description": "WTimeoutMS as an invalid number",
+      "skipReason": "GODRIVER-2348: the wtimeoutMS write concern option is not supported",
       "valid": false,
       "writeConcern": {
         "wtimeoutMS": -1000
@@ -114,6 +116,7 @@
     },
     {
       "description": "Unacknowledged with wtimeoutMS",
+      "skipReason": "GODRIVER-2348: the wtimeoutMS write concern option is not supported",
       "valid": true,
       "writeConcern": {
         "w": 0,
@@ -156,6 +159,7 @@
     },
     {
       "description": "Everything",
+      "skipReason": "GODRIVER-2348: the wtimeoutMS write concern option is not supported",
       "valid": true,
       "writeConcern": {
         "w": 3,

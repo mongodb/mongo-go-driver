@@ -7,22 +7,28 @@
 package mongo
 
 import (
+	"bytes"
+	"context"
 	"errors"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/ptrutil"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/topology"
 )
 
 const (
 	testDbName = "unitTestDb"
 )
 
-func setupColl(name string, opts ...*options.CollectionOptions) *Collection {
+func setupColl(name string, opts ...options.Lister[options.CollectionOptions]) *Collection {
 	db := setupDb(testDbName)
 	return db.Collection(name, opts...)
 }
@@ -46,8 +52,8 @@ func TestCollection(t *testing.T) {
 	t.Run("specified options", func(t *testing.T) {
 		rpPrimary := readpref.Primary()
 		rpSecondary := readpref.Secondary()
-		wc1 := writeconcern.New(writeconcern.W(5))
-		wc2 := writeconcern.New(writeconcern.W(10))
+		wc1 := &writeconcern.WriteConcern{W: 5}
+		wc2 := &writeconcern.WriteConcern{W: 10}
 		rcLocal := readconcern.Local()
 		rcMajority := readconcern.Majority()
 
@@ -64,7 +70,7 @@ func TestCollection(t *testing.T) {
 	t.Run("inherit options", func(t *testing.T) {
 		rpPrimary := readpref.Primary()
 		rcLocal := readconcern.Local()
-		wc1 := writeconcern.New(writeconcern.W(10))
+		wc1 := &writeconcern.WriteConcern{W: 10}
 
 		db := setupDb("foo", options.Database().SetReadPreference(rpPrimary).SetReadConcern(rcLocal))
 		coll := db.Collection("bar", options.Collection().SetWriteConcern(wc1))
@@ -75,12 +81,18 @@ func TestCollection(t *testing.T) {
 		}
 		compareColls(t, expected, coll)
 	})
-	t.Run("replace topology error", func(t *testing.T) {
+	t.Run("replaceErrors for disconnected topology", func(t *testing.T) {
 		coll := setupColl("foo")
 		doc := bson.D{}
 		update := bson.D{{"$update", bson.D{{"x", 1}}}}
 
-		_, err := coll.InsertOne(bgCtx, doc)
+		topo, ok := coll.client.deployment.(*topology.Topology)
+		require.True(t, ok, "client deployment is not a topology")
+
+		err := topo.Disconnect(context.Background())
+		require.NoError(t, err)
+
+		_, err = coll.InsertOne(bgCtx, doc)
 		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
 
 		_, err = coll.InsertMany(bgCtx, []interface{}{doc})
@@ -110,7 +122,7 @@ func TestCollection(t *testing.T) {
 		_, err = coll.CountDocuments(bgCtx, doc)
 		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
 
-		_, err = coll.Distinct(bgCtx, "x", doc)
+		err = coll.Distinct(bgCtx, "x", doc).Err()
 		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
 
 		_, err = coll.Find(bgCtx, doc)
@@ -141,10 +153,13 @@ func TestCollection(t *testing.T) {
 		assert.Equal(t, ErrNilDocument, err, "expected error %v, got %v", ErrNilDocument, err)
 
 		_, err = coll.InsertMany(bgCtx, nil)
-		assert.Equal(t, ErrEmptySlice, err, "expected error %v, got %v", ErrEmptySlice, err)
+		assert.Equal(t, ErrNotSlice, err, "expected error %v, got %v", ErrNotSlice, err)
 
 		_, err = coll.InsertMany(bgCtx, []interface{}{})
 		assert.Equal(t, ErrEmptySlice, err, "expected error %v, got %v", ErrEmptySlice, err)
+
+		_, err = coll.InsertMany(bgCtx, "x")
+		assert.Equal(t, ErrNotSlice, err, "expected error %v, got %v", ErrNotSlice, err)
 
 		_, err = coll.DeleteOne(bgCtx, nil)
 		assert.Equal(t, ErrNilDocument, err, "expected error %v, got %v", ErrNilDocument, err)
@@ -173,7 +188,7 @@ func TestCollection(t *testing.T) {
 		_, err = coll.CountDocuments(bgCtx, nil)
 		assert.Equal(t, ErrNilDocument, err, "expected error %v, got %v", ErrNilDocument, err)
 
-		_, err = coll.Distinct(bgCtx, "x", nil)
+		err = coll.Distinct(bgCtx, "x", nil).Err()
 		assert.Equal(t, ErrNilDocument, err, "expected error %v, got %v", ErrNilDocument, err)
 
 		_, err = coll.Find(bgCtx, nil)
@@ -213,4 +228,82 @@ func TestCollection(t *testing.T) {
 		_, err = coll.Watch(bgCtx, nil)
 		assert.Equal(t, aggErr, err, "expected error %v, got %v", aggErr, err)
 	})
+}
+
+func TestCollation(t *testing.T) {
+	t.Run("TestCollationToDocument", func(t *testing.T) {
+		c := &options.Collation{
+			Locale:          "locale",
+			CaseLevel:       true,
+			CaseFirst:       "first",
+			Strength:        1,
+			NumericOrdering: true,
+			Alternate:       "alternate",
+			MaxVariable:     "maxVariable",
+			Normalization:   true,
+			Backwards:       true,
+		}
+
+		doc := toDocument(c)
+		expected := bsoncore.BuildDocumentFromElements(nil,
+			bsoncore.AppendStringElement(nil, "locale", "locale"),
+			bsoncore.AppendBooleanElement(nil, "caseLevel", (true)),
+			bsoncore.AppendStringElement(nil, "caseFirst", ("first")),
+			bsoncore.AppendInt32Element(nil, "strength", (1)),
+			bsoncore.AppendBooleanElement(nil, "numericOrdering", (true)),
+			bsoncore.AppendStringElement(nil, "alternate", ("alternate")),
+			bsoncore.AppendStringElement(nil, "maxVariable", ("maxVariable")),
+			bsoncore.AppendBooleanElement(nil, "normalization", (true)),
+			bsoncore.AppendBooleanElement(nil, "backwards", (true)),
+		)
+
+		if !bytes.Equal(doc, expected) {
+			t.Fatalf("collation did not match expected. got %v; wanted %v", doc, expected)
+		}
+	})
+}
+
+func TestNewFindArgsFromFindOneArgs(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		args *options.FindOneOptions
+		want *options.FindOptions
+	}{
+		{
+			name: "nil",
+			args: nil,
+			want: &options.FindOptions{
+				Limit: ptrutil.Ptr(int64(-1)),
+			},
+		},
+		{
+			name: "empty",
+			args: &options.FindOneOptions{},
+			want: &options.FindOptions{
+				Limit: ptrutil.Ptr(int64(-1)),
+			},
+		},
+		{
+			name: "non empty",
+			args: &options.FindOneOptions{
+				Skip: ptrutil.Ptr(int64(1)),
+			},
+			want: &options.FindOptions{
+				Skip:  ptrutil.Ptr(int64(1)),
+				Limit: ptrutil.Ptr(int64(-1)),
+			},
+		},
+	}
+
+	for _, test := range tests {
+		test := test // Capture the range variable
+
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, test.want, newFindArgsFromFindOneArgs(test.args))
+		})
+	}
 }

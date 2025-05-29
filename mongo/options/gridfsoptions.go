@@ -7,13 +7,10 @@
 package options
 
 import (
-	"time"
-
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 )
 
 // DefaultName is the default name for a GridFS bucket.
@@ -25,317 +22,320 @@ var DefaultChunkSize int32 = 255 * 1024
 // DefaultRevision is the default revision number for a download by name operation.
 var DefaultRevision int32 = -1
 
-// BucketOptions represents options that can be used to configure GridFS bucket.
+// BucketOptions represents arguments that can be used to configure GridFS
+// bucket.
+//
+// See corresponding setter methods for documentation.
 type BucketOptions struct {
-	// The name of the bucket. The default value is "fs".
-	Name *string
-
-	// The number of bytes in each chunk in the bucket. The default value is 255 KiB.
+	Name           *string
 	ChunkSizeBytes *int32
-
-	// The write concern for the bucket. The default value is the write concern of the database from which the bucket
-	// is created.
-	WriteConcern *writeconcern.WriteConcern
-
-	// The read concern for the bucket. The default value is the read concern of the database from which the bucket
-	// is created.
-	ReadConcern *readconcern.ReadConcern
-
-	// The read preference for the bucket. The default value is the read preference of the database from which the
-	// bucket is created.
+	WriteConcern   *writeconcern.WriteConcern
+	ReadConcern    *readconcern.ReadConcern
 	ReadPreference *readpref.ReadPref
 }
 
+// BucketOptionsBuilder contains options to configure a gridfs bucket. Each
+// option can be set through setter functions. See documentation for each setter
+// function for an explanation of the option.
+type BucketOptionsBuilder struct {
+	Opts []func(*BucketOptions) error
+}
+
 // GridFSBucket creates a new BucketOptions instance.
-func GridFSBucket() *BucketOptions {
-	return &BucketOptions{
-		Name:           &DefaultName,
-		ChunkSizeBytes: &DefaultChunkSize,
-	}
+func GridFSBucket() *BucketOptionsBuilder {
+	bo := &BucketOptionsBuilder{}
+	bo.SetName(DefaultName).SetChunkSizeBytes(DefaultChunkSize)
+
+	return bo
 }
 
-// SetName sets the value for the Name field.
-func (b *BucketOptions) SetName(name string) *BucketOptions {
-	b.Name = &name
+// List returns a list of CountOptions setter functions.
+func (b *BucketOptionsBuilder) List() []func(*BucketOptions) error {
+	return b.Opts
+}
+
+// SetName sets the value for the Name field. Specifies the name of the bucket.
+// The default value is "fs".
+func (b *BucketOptionsBuilder) SetName(name string) *BucketOptionsBuilder {
+	b.Opts = append(b.Opts, func(opts *BucketOptions) error {
+		opts.Name = &name
+
+		return nil
+	})
+
 	return b
 }
 
-// SetChunkSizeBytes sets the value for the ChunkSize field.
-func (b *BucketOptions) SetChunkSizeBytes(i int32) *BucketOptions {
-	b.ChunkSizeBytes = &i
+// SetChunkSizeBytes sets the value for the ChunkSize field. Specifies the number
+// of bytes in each chunk in the bucket. The default value is 255 KiB.
+func (b *BucketOptionsBuilder) SetChunkSizeBytes(i int32) *BucketOptionsBuilder {
+	b.Opts = append(b.Opts, func(opts *BucketOptions) error {
+		opts.ChunkSizeBytes = &i
+
+		return nil
+	})
+
 	return b
 }
 
-// SetWriteConcern sets the value for the WriteConcern field.
-func (b *BucketOptions) SetWriteConcern(wc *writeconcern.WriteConcern) *BucketOptions {
-	b.WriteConcern = wc
+// SetWriteConcern sets the value for the WriteConcern field. Specifies the write
+// concern for the bucket. The default value is the write concern of the database
+// from which the bucket is created.
+func (b *BucketOptionsBuilder) SetWriteConcern(wc *writeconcern.WriteConcern) *BucketOptionsBuilder {
+	b.Opts = append(b.Opts, func(opts *BucketOptions) error {
+		opts.WriteConcern = wc
+
+		return nil
+	})
+
 	return b
 }
 
-// SetReadConcern sets the value for the ReadConcern field.
-func (b *BucketOptions) SetReadConcern(rc *readconcern.ReadConcern) *BucketOptions {
-	b.ReadConcern = rc
+// SetReadConcern sets the value for the ReadConcern field. Specifies the read
+// concern for the bucket. The default value is the read concern of the database
+// from which the bucket is created.
+func (b *BucketOptionsBuilder) SetReadConcern(rc *readconcern.ReadConcern) *BucketOptionsBuilder {
+	b.Opts = append(b.Opts, func(opts *BucketOptions) error {
+		opts.ReadConcern = rc
+
+		return nil
+	})
+
 	return b
 }
 
-// SetReadPreference sets the value for the ReadPreference field.
-func (b *BucketOptions) SetReadPreference(rp *readpref.ReadPref) *BucketOptions {
-	b.ReadPreference = rp
+// SetReadPreference sets the value for the ReadPreference field. Specifies the
+// read preference for the bucket. The default value is the read preference of
+// the database from which the bucket is created.
+func (b *BucketOptionsBuilder) SetReadPreference(rp *readpref.ReadPref) *BucketOptionsBuilder {
+	b.Opts = append(b.Opts, func(opts *BucketOptions) error {
+		opts.ReadPreference = rp
+
+		return nil
+	})
+
 	return b
 }
 
-// MergeBucketOptions combines the given BucketOptions instances into a single BucketOptions in a last-one-wins fashion.
+// GridFSUploadOptions represents arguments that can be used to configure a GridFS
+// upload operation.
 //
-// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
-// single options struct instead.
-func MergeBucketOptions(opts ...*BucketOptions) *BucketOptions {
-	b := GridFSBucket()
-
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.Name != nil {
-			b.Name = opt.Name
-		}
-		if opt.ChunkSizeBytes != nil {
-			b.ChunkSizeBytes = opt.ChunkSizeBytes
-		}
-		if opt.WriteConcern != nil {
-			b.WriteConcern = opt.WriteConcern
-		}
-		if opt.ReadConcern != nil {
-			b.ReadConcern = opt.ReadConcern
-		}
-		if opt.ReadPreference != nil {
-			b.ReadPreference = opt.ReadPreference
-		}
-	}
-
-	return b
-}
-
-// UploadOptions represents options that can be used to configure a GridFS upload operation.
-type UploadOptions struct {
-	// The number of bytes in each chunk in the bucket. The default value is DefaultChunkSize (255 KiB).
+// See corresponding setter methods for documentation.
+type GridFSUploadOptions struct {
 	ChunkSizeBytes *int32
-
-	// Additional application data that will be stored in the "metadata" field of the document in the files collection.
-	// The default value is nil, which means that the document in the files collection will not contain a "metadata"
-	// field.
-	Metadata interface{}
-
-	// The BSON registry to use for converting filters to BSON documents. The default value is bson.DefaultRegistry.
-	Registry *bsoncodec.Registry
+	Metadata       interface{}
+	Registry       *bson.Registry
 }
 
-// GridFSUpload creates a new UploadOptions instance.
-func GridFSUpload() *UploadOptions {
-	return &UploadOptions{Registry: bson.DefaultRegistry}
+// GridFSUploadOptionsBuilder contains options to configure a GridFS Upload.
+// Each option can be set through setter functions. See documentation for each
+// setter function for an explanation of the option.
+type GridFSUploadOptionsBuilder struct {
+	Opts []func(*GridFSUploadOptions) error
 }
 
-// SetChunkSizeBytes sets the value for the ChunkSize field.
-func (u *UploadOptions) SetChunkSizeBytes(i int32) *UploadOptions {
-	u.ChunkSizeBytes = &i
+// GridFSUpload creates a new GridFSUploadOptions instance.
+func GridFSUpload() *GridFSUploadOptionsBuilder {
+	opts := &GridFSUploadOptionsBuilder{}
+	opts.SetRegistry(defaultRegistry)
+
+	return opts
+}
+
+// List returns a list of GridFSUploadOptions setter functions.
+func (u *GridFSUploadOptionsBuilder) List() []func(*GridFSUploadOptions) error {
+	return u.Opts
+}
+
+// SetChunkSizeBytes sets the value for the ChunkSize field. Specifies the number of
+// bytes in each chunk in the bucket. The default value is DefaultChunkSize (255 KiB).
+func (u *GridFSUploadOptionsBuilder) SetChunkSizeBytes(i int32) *GridFSUploadOptionsBuilder {
+	u.Opts = append(u.Opts, func(opts *GridFSUploadOptions) error {
+		opts.ChunkSizeBytes = &i
+
+		return nil
+	})
+
 	return u
 }
 
-// SetMetadata sets the value for the Metadata field.
-func (u *UploadOptions) SetMetadata(doc interface{}) *UploadOptions {
-	u.Metadata = doc
+// SetMetadata sets the value for the Metadata field. Specifies additional application data
+// that will be stored in the "metadata" field of the document in the files collection.
+// The default value is nil, which means that the document in the files collection will
+// not contain a "metadata" field.
+func (u *GridFSUploadOptionsBuilder) SetMetadata(doc interface{}) *GridFSUploadOptionsBuilder {
+	u.Opts = append(u.Opts, func(opts *GridFSUploadOptions) error {
+		opts.Metadata = doc
+
+		return nil
+	})
+
 	return u
 }
 
-// MergeUploadOptions combines the given UploadOptions instances into a single UploadOptions in a last-one-wins fashion.
+// SetRegistry sets the bson codec registry for the Registry field. Specifies the BSON
+// registry to use for converting filters to BSON documents. The default value is
+// bson.NewRegistry().
+func (u *GridFSUploadOptionsBuilder) SetRegistry(registry *bson.Registry) *GridFSUploadOptionsBuilder {
+	u.Opts = append(u.Opts, func(opts *GridFSUploadOptions) error {
+		opts.Registry = registry
+
+		return nil
+	})
+
+	return u
+}
+
+// GridFSNameOptions represents arguments that can be used to configure a GridFS
+// DownloadByName operation.
 //
-// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
-// single options struct instead.
-func MergeUploadOptions(opts ...*UploadOptions) *UploadOptions {
-	u := GridFSUpload()
-
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.ChunkSizeBytes != nil {
-			u.ChunkSizeBytes = opt.ChunkSizeBytes
-		}
-		if opt.Metadata != nil {
-			u.Metadata = opt.Metadata
-		}
-		if opt.Registry != nil {
-			u.Registry = opt.Registry
-		}
-	}
-
-	return u
-}
-
-// NameOptions represents options that can be used to configure a GridFS DownloadByName operation.
-type NameOptions struct {
-	// Specifies the revision of the file to retrieve. Revision numbers are defined as follows:
-	//
-	// * 0 = the original stored file
-	// * 1 = the first revision
-	// * 2 = the second revision
-	// * etc..
-	// * -2 = the second most recent revision
-	// * -1 = the most recent revision.
-	//
-	// The default value is -1
+// See corresponding setter methods for documentation.
+type GridFSNameOptions struct {
 	Revision *int32
 }
 
-// GridFSName creates a new NameOptions instance.
-func GridFSName() *NameOptions {
-	return &NameOptions{}
+// GridFSNameOptionsBuilder contains options to configure a GridFS name. Each
+// option can be set through setter functions. See documentation for each setter
+// function for an explanation of the option.
+type GridFSNameOptionsBuilder struct {
+	Opts []func(*GridFSNameOptions) error
 }
 
-// SetRevision sets the value for the Revision field.
-func (n *NameOptions) SetRevision(r int32) *NameOptions {
-	n.Revision = &r
-	return n
+// GridFSName creates a new GridFSNameOptions instance.
+func GridFSName() *GridFSNameOptionsBuilder {
+	return &GridFSNameOptionsBuilder{}
 }
 
-// MergeNameOptions combines the given NameOptions instances into a single *NameOptions in a last-one-wins fashion.
+// List returns a list of GridFSNameOptions setter functions.
+func (n *GridFSNameOptionsBuilder) List() []func(*GridFSNameOptions) error {
+	return n.Opts
+}
+
+// SetRevision sets the value for the Revision field. Specifies the revision
+// of the file to retrieve. Revision numbers are defined as follows:
 //
-// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
-// single options struct instead.
-func MergeNameOptions(opts ...*NameOptions) *NameOptions {
-	n := GridFSName()
-	n.Revision = &DefaultRevision
+// * 0 = the original stored file
+// * 1 = the first revision
+// * 2 = the second revision
+// * etc..
+// * -2 = the second most recent revision
+// * -1 = the most recent revision.
+//
+// The default value is -1
+func (n *GridFSNameOptionsBuilder) SetRevision(r int32) *GridFSNameOptionsBuilder {
+	n.Opts = append(n.Opts, func(opts *GridFSNameOptions) error {
+		opts.Revision = &r
 
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.Revision != nil {
-			n.Revision = opt.Revision
-		}
-	}
+		return nil
+	})
 
 	return n
 }
 
-// GridFSFindOptions represents options that can be used to configure a GridFS Find operation.
+// GridFSFindOptions represents arguments that can be used to configure a GridFS
+// Find operation.
+//
+// See corresponding setter methods for documentation.
 type GridFSFindOptions struct {
-	// If true, the server can write temporary data to disk while executing the find operation. The default value
-	// is false. This option is only valid for MongoDB versions >= 4.4. For previous server versions, the server will
-	// return an error if this option is used.
-	AllowDiskUse *bool
-
-	// The maximum number of documents to be included in each batch returned by the server.
-	BatchSize *int32
-
-	// The maximum number of documents to return. The default value is 0, which means that all documents matching the
-	// filter will be returned. A negative limit specifies that the resulting documents should be returned in a single
-	// batch. The default value is 0.
-	Limit *int32
-
-	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
-	// is no time limit for query execution.
-	//
-	// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout option may be used
-	// in its place to control the amount of time that a single operation can run before returning an error. MaxTime
-	// is ignored if Timeout is set on the client.
-	MaxTime *time.Duration
-
-	// If true, the cursor created by the operation will not timeout after a period of inactivity. The default value
-	// is false.
+	AllowDiskUse    *bool
+	BatchSize       *int32
+	Limit           *int32
 	NoCursorTimeout *bool
+	Skip            *int32
+	Sort            interface{}
+}
 
-	// The number of documents to skip before adding documents to the result. The default value is 0.
-	Skip *int32
-
-	// A document specifying the order in which documents should be returned.  The driver will return an error if the
-	// sort parameter is a multi-key map.
-	Sort interface{}
+// GridFSFindOptionsBuilder contains options to configure find operations. Each
+// option can be set through setter functions. See documentation for each setter
+// function for an explanation of the option.
+type GridFSFindOptionsBuilder struct {
+	Opts []func(*GridFSFindOptions) error
 }
 
 // GridFSFind creates a new GridFSFindOptions instance.
-func GridFSFind() *GridFSFindOptions {
-	return &GridFSFindOptions{}
+func GridFSFind() *GridFSFindOptionsBuilder {
+	return &GridFSFindOptionsBuilder{}
 }
 
-// SetAllowDiskUse sets the value for the AllowDiskUse field.
-func (f *GridFSFindOptions) SetAllowDiskUse(b bool) *GridFSFindOptions {
-	f.AllowDiskUse = &b
+// List returns a list of GridFSFindOptions setter functions.
+func (f *GridFSFindOptionsBuilder) List() []func(*GridFSFindOptions) error {
+	return f.Opts
+}
+
+// SetAllowDiskUse sets the value for the AllowDiskUse field. If true, the server can
+// write temporary data to disk while executing the find operation. The default value
+// is false. This option is only valid for MongoDB versions >= 4.4. For previous server
+// versions, the server will return an error if this option is used.
+func (f *GridFSFindOptionsBuilder) SetAllowDiskUse(b bool) *GridFSFindOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *GridFSFindOptions) error {
+		opts.AllowDiskUse = &b
+
+		return nil
+	})
+
 	return f
 }
 
-// SetBatchSize sets the value for the BatchSize field.
-func (f *GridFSFindOptions) SetBatchSize(i int32) *GridFSFindOptions {
-	f.BatchSize = &i
+// SetBatchSize sets the value for the BatchSize field. Specifies the maximum number
+// of documents to be included in each batch returned by the server.
+func (f *GridFSFindOptionsBuilder) SetBatchSize(i int32) *GridFSFindOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *GridFSFindOptions) error {
+		opts.BatchSize = &i
+
+		return nil
+	})
+
 	return f
 }
 
-// SetLimit sets the value for the Limit field.
-func (f *GridFSFindOptions) SetLimit(i int32) *GridFSFindOptions {
-	f.Limit = &i
+// SetLimit sets the value for the Limit field. Specifies the maximum number of
+// documents to return. The default value is 0, which means that all documents
+// matching the filter will be returned. A negative limit specifies that the
+// resulting documents should be returned in a single batch. The default value is 0.
+func (f *GridFSFindOptionsBuilder) SetLimit(i int32) *GridFSFindOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *GridFSFindOptions) error {
+		opts.Limit = &i
+
+		return nil
+	})
+
 	return f
 }
 
-// SetMaxTime sets the value for the MaxTime field.
-//
-// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout
-// option may be used in its place to control the amount of time that a single operation can
-// run before returning an error. MaxTime is ignored if Timeout is set on the client.
-func (f *GridFSFindOptions) SetMaxTime(d time.Duration) *GridFSFindOptions {
-	f.MaxTime = &d
+// SetNoCursorTimeout sets the value for the NoCursorTimeout field. If true, the
+// cursor created by the operation will not timeout after a period of inactivity.
+// The default value is false.
+func (f *GridFSFindOptionsBuilder) SetNoCursorTimeout(b bool) *GridFSFindOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *GridFSFindOptions) error {
+		opts.NoCursorTimeout = &b
+
+		return nil
+	})
+
 	return f
 }
 
-// SetNoCursorTimeout sets the value for the NoCursorTimeout field.
-func (f *GridFSFindOptions) SetNoCursorTimeout(b bool) *GridFSFindOptions {
-	f.NoCursorTimeout = &b
+// SetSkip sets the value for the Skip field. Specifies the number of documents
+// to skip before adding documents to the result. The default value is 0.
+func (f *GridFSFindOptionsBuilder) SetSkip(i int32) *GridFSFindOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *GridFSFindOptions) error {
+		opts.Skip = &i
+
+		return nil
+	})
+
 	return f
 }
 
-// SetSkip sets the value for the Skip field.
-func (f *GridFSFindOptions) SetSkip(i int32) *GridFSFindOptions {
-	f.Skip = &i
+// SetSort sets the value for the Sort field. Sets a document specifying the order
+// in which documents should be returned. The driver will return an error if the
+// sort parameter is a multi-key map.
+func (f *GridFSFindOptionsBuilder) SetSort(sort interface{}) *GridFSFindOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *GridFSFindOptions) error {
+		opts.Sort = sort
+
+		return nil
+	})
+
 	return f
-}
-
-// SetSort sets the value for the Sort field.
-func (f *GridFSFindOptions) SetSort(sort interface{}) *GridFSFindOptions {
-	f.Sort = sort
-	return f
-}
-
-// MergeGridFSFindOptions combines the given GridFSFindOptions instances into a single GridFSFindOptions in a
-// last-one-wins fashion.
-//
-// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
-// single options struct instead.
-func MergeGridFSFindOptions(opts ...*GridFSFindOptions) *GridFSFindOptions {
-	fo := GridFSFind()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.AllowDiskUse != nil {
-			fo.AllowDiskUse = opt.AllowDiskUse
-		}
-		if opt.BatchSize != nil {
-			fo.BatchSize = opt.BatchSize
-		}
-		if opt.Limit != nil {
-			fo.Limit = opt.Limit
-		}
-		if opt.MaxTime != nil {
-			fo.MaxTime = opt.MaxTime
-		}
-		if opt.NoCursorTimeout != nil {
-			fo.NoCursorTimeout = opt.NoCursorTimeout
-		}
-		if opt.Skip != nil {
-			fo.Skip = opt.Skip
-		}
-		if opt.Sort != nil {
-			fo.Sort = opt.Sort
-		}
-	}
-
-	return fo
 }

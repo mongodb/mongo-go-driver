@@ -9,7 +9,7 @@ package options
 import (
 	"net/http"
 
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 // MongoCryptOptions specifies options to configure a MongoCrypt instance.

@@ -4,9 +4,8 @@
   "runOnRequirements": [
     {
       "minServerVersion": "4.2",
-      "maxServerVersion": "7.99",
       "topologies": [
-        "sharded-replicaset"
+        "sharded"
       ]
     }
   ],
@@ -53,7 +52,10 @@
       "description": "unpin after TransientTransactionError error on commit",
       "runOnRequirements": [
         {
-          "serverless": "forbid"
+          "serverless": "forbid",
+          "topologies": [
+            "sharded"
+          ]
         }
       ],
       "operations": [
@@ -164,7 +166,10 @@
       "description": "unpin after non-transient error on abort",
       "runOnRequirements": [
         {
-          "serverless": "forbid"
+          "serverless": "forbid",
+          "topologies": [
+            "sharded"
+          ]
         }
       ],
       "operations": [
@@ -234,6 +239,13 @@
     },
     {
       "description": "unpin after TransientTransactionError error on abort",
+      "runOnRequirements": [
+        {
+          "topologies": [
+            "sharded"
+          ]
+        }
+      ],
       "operations": [
         {
           "name": "startTransaction",

@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
 # run-awskms-test
 # Runs the awskms test.
+set -eu
 
-echo "Building build-kms-test ... begin"
-BUILD_TAGS="-tags=cse" \
-    PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
-    make build-kms-test
-echo "Building build-kms-test ... end"
+GO_BUILD_TAGS="cse" task setup-test
+task build-kms-test
 
 . ${DRIVERS_TOOLS}/.evergreen/secrets_handling/setup-secrets.sh drivers/atlas_connect
 export MONGODB_URI="$ATLAS_FREE"

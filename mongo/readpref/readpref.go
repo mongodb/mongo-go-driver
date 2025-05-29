@@ -5,7 +5,7 @@
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
 // Package readpref defines read preferences for MongoDB queries.
-package readpref // import "go.mongodb.org/mongo-driver/mongo/readpref"
+package readpref
 
 import (
 	"bytes"
@@ -13,7 +13,7 @@ import (
 	"fmt"
 	"time"
 
-	"go.mongodb.org/mongo-driver/tag"
+	"go.mongodb.org/mongo-driver/v2/tag"
 )
 
 var (

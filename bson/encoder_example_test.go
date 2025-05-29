@@ -12,21 +12,14 @@ import (
 	"fmt"
 	"io"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsonrw"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func ExampleEncoder() {
 	// Create an Encoder that writes BSON values to a bytes.Buffer.
 	buf := new(bytes.Buffer)
-	vw, err := bsonrw.NewBSONValueWriter(buf)
-	if err != nil {
-		panic(err)
-	}
-	encoder, err := bson.NewEncoder(vw)
-	if err != nil {
-		panic(err)
-	}
+	vw := bson.NewDocumentWriter(buf)
+	encoder := bson.NewEncoder(vw)
 
 	type Product struct {
 		Name  string `bson:"name"`
@@ -41,7 +34,7 @@ func ExampleEncoder() {
 		SKU:   "AB12345",
 		Price: 399,
 	}
-	err = encoder.Encode(product)
+	err := encoder.Encode(product)
 	if err != nil {
 		panic(err)
 	}
@@ -63,14 +56,8 @@ func (k CityState) String() string {
 func ExampleEncoder_StringifyMapKeysWithFmt() {
 	// Create an Encoder that writes BSON values to a bytes.Buffer.
 	buf := new(bytes.Buffer)
-	vw, err := bsonrw.NewBSONValueWriter(buf)
-	if err != nil {
-		panic(err)
-	}
-	encoder, err := bson.NewEncoder(vw)
-	if err != nil {
-		panic(err)
-	}
+	vw := bson.NewDocumentWriter(buf)
+	encoder := bson.NewEncoder(vw)
 
 	// Configure the Encoder to convert Go map keys to BSON document field names
 	// using fmt.Sprintf instead of the default string conversion logic.
@@ -81,7 +68,7 @@ func ExampleEncoder_StringifyMapKeysWithFmt() {
 	zipCodes := map[CityState][]int{
 		{City: "New York", State: "NY"}: {10001, 10301, 10451},
 	}
-	err = encoder.Encode(zipCodes)
+	err := encoder.Encode(zipCodes)
 	if err != nil {
 		panic(err)
 	}
@@ -94,14 +81,8 @@ func ExampleEncoder_StringifyMapKeysWithFmt() {
 func ExampleEncoder_UseJSONStructTags() {
 	// Create an Encoder that writes BSON values to a bytes.Buffer.
 	buf := new(bytes.Buffer)
-	vw, err := bsonrw.NewBSONValueWriter(buf)
-	if err != nil {
-		panic(err)
-	}
-	encoder, err := bson.NewEncoder(vw)
-	if err != nil {
-		panic(err)
-	}
+	vw := bson.NewDocumentWriter(buf)
+	encoder := bson.NewEncoder(vw)
 
 	type Product struct {
 		Name  string `json:"name"`
@@ -120,7 +101,7 @@ func ExampleEncoder_UseJSONStructTags() {
 		SKU:   "AB12345",
 		Price: 399,
 	}
-	err = encoder.Encode(product)
+	err := encoder.Encode(product)
 	if err != nil {
 		panic(err)
 	}
@@ -133,14 +114,8 @@ func ExampleEncoder_UseJSONStructTags() {
 func ExampleEncoder_multipleBSONDocuments() {
 	// Create an Encoder that writes BSON values to a bytes.Buffer.
 	buf := new(bytes.Buffer)
-	vw, err := bsonrw.NewBSONValueWriter(buf)
-	if err != nil {
-		panic(err)
-	}
-	encoder, err := bson.NewEncoder(vw)
-	if err != nil {
-		panic(err)
-	}
+	vw := bson.NewDocumentWriter(buf)
+	encoder := bson.NewEncoder(vw)
 
 	type Coordinate struct {
 		X int
@@ -183,14 +158,8 @@ func ExampleEncoder_extendedJSON() {
 	// Create an Encoder that writes canonical Extended JSON values to a
 	// bytes.Buffer.
 	buf := new(bytes.Buffer)
-	vw, err := bsonrw.NewExtJSONValueWriter(buf, true, false)
-	if err != nil {
-		panic(err)
-	}
-	encoder, err := bson.NewEncoder(vw)
-	if err != nil {
-		panic(err)
-	}
+	vw := bson.NewExtJSONValueWriter(buf, true, false)
+	encoder := bson.NewEncoder(vw)
 
 	type Product struct {
 		Name  string `bson:"name"`
@@ -205,7 +174,7 @@ func ExampleEncoder_extendedJSON() {
 		SKU:   "AB12345",
 		Price: 399,
 	}
-	err = encoder.Encode(product)
+	err := encoder.Encode(product)
 	if err != nil {
 		panic(err)
 	}
@@ -218,14 +187,8 @@ func ExampleEncoder_multipleExtendedJSONDocuments() {
 	// Create an Encoder that writes canonical Extended JSON values to a
 	// bytes.Buffer.
 	buf := new(bytes.Buffer)
-	vw, err := bsonrw.NewExtJSONValueWriter(buf, true, false)
-	if err != nil {
-		panic(err)
-	}
-	encoder, err := bson.NewEncoder(vw)
-	if err != nil {
-		panic(err)
-	}
+	vw := bson.NewExtJSONValueWriter(buf, true, false)
+	encoder := bson.NewEncoder(vw)
 
 	type Coordinate struct {
 		X int
@@ -261,19 +224,12 @@ func ExampleEncoder_IntMinSize() {
 	}
 
 	buf := new(bytes.Buffer)
-	vw, err := bsonrw.NewBSONValueWriter(buf)
-	if err != nil {
-		panic(err)
-	}
+	vw := bson.NewDocumentWriter(buf)
 
-	enc, err := bson.NewEncoder(vw)
-	if err != nil {
-		panic(err)
-	}
-
+	enc := bson.NewEncoder(vw)
 	enc.IntMinSize()
 
-	err = enc.Encode(foo{2})
+	err := enc.Encode(foo{2})
 	if err != nil {
 		panic(err)
 	}

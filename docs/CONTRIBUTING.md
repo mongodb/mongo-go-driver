@@ -6,7 +6,7 @@ We are building this software together and strongly encourage contributions from
 
 ## Requirements
 
-Go 1.22 or higher is required to run the driver test suite.
+Go 1.22 or higher is required to run the driver test suite.  We use [task](https://taskfile.dev/) as our task runner.
 
 ## Bug Fixes and New Features
 
@@ -17,18 +17,20 @@ Before starting to write code, look for existing [tickets](https://jira.mongodb.
 The Go Driver team uses GitHub to manage and review all code changes. Patches should generally be made against the master (default) branch and include relevant tests, if
 applicable.
 
-Code should compile and tests should pass under all Go versions which the driver currently supports. Currently the Go Driver supports a minimum version of Go 1.18 and requires Go 1.22 for development. Please run the following Make targets to validate your changes:
+Code should compile and tests should pass under all Go versions which the driver currently supports. Currently the Go Driver supports a minimum version of Go 1.18 and requires Go 1.22 for development. Please run the following `Taskfile` targets to validate your changes:
 
-- `make fmt`
-- `make lint` (requires [golangci-lint](https://github.com/golangci/golangci-lint) and [lll](https://github.com/walle/lll) to be installed and available in the `PATH`)
-- `make test`
-- `make test-race`
+- `task fmt`
+- `task lint`
+- `task test`
+- `task test-race`
 
 **Running the tests requires that you have a `mongod` server running on localhost, listening on the default port (27017). At minimum, please test against the latest release version of the MongoDB server.**
 
 If any tests do not pass, or relevant tests are not included, the patch will not be considered.
 
 If you are working on a bug or feature listed in Jira, please include the ticket number prefixed with GODRIVER in the commit message and GitHub pull request title, (e.g. GODRIVER-123). For the patch commit message itself, please follow the [How to Write a Git Commit Message](https://chris.beams.io/posts/git-commit/) guide.
+
+\=======
 
 ### Linting on commit
 
@@ -73,13 +75,13 @@ git config --global github.user <github_handle>
 If a Pull Request needs to be cherry-picked to a new branch, get the sha of the commit in the base branch, and then run
 
 ```bash
-bash etc/cherry-picker.sh <sha>
+task cherry-picker -- <sha>
 ```
 
 By default it will use `master` as the target branch.  The branch can be specified as the second argument, e.g.
 
 ```bash
-bash etc/cherry-picker.sh <sha> branch
+task cherry-picker -- <sha> branch
 ```
 
 It will create a new checkout in a temp dir, create a new branch, perform the cherry-pick, and then
@@ -87,9 +89,9 @@ prompt before creating a PR to the target branch.
 
 ## Testing / Development
 
-The driver tests can be run against several database configurations. The most simple configuration is a standalone mongod with no auth, no ssl, and no compression. To run these basic driver tests, make sure a standalone MongoDB server instance is running at localhost:27017. To run the tests, you can run `make` (on Windows, run `nmake`). This will run coverage, run go-lint, run go-vet, and build the examples.
+The driver tests can be run against several database configurations. The most simple configuration is a standalone mongod with no auth, no ssl, and no compression. To run these basic driver tests, make sure a standalone MongoDB server instance is running at localhost:27017. To run the tests, you can run `task`. This will run coverage, run go-lint, run go-vet, and build the examples.
 
-You can install `libmongocrypt` locally by running `bash etc/build-libmongocrypt.sh`, which will create an `install` directory
+You can install `libmongocrypt` locally by running `task install-libmongocrypt`, which will create an `install` directory
 in the repository top level directory.  On Windows you will also need to add `c:/libmongocrypt/` to your `PATH`.
 
 ### Testing Different Topologies
@@ -162,10 +164,10 @@ The following are the requirements for running the AWS Lambda tests locally:
 1. [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html)
 1. [Docker](https://www.docker.com/products/docker-desktop/)
 
-Local testing requires exporting the `MONGODB_URI` environment variables. To build the AWS Lambda image and invoke the `MongoDBFunction` lambda function use the `build-faas-awslambda` make target:
+Local testing requires exporting the `MONGODB_URI` environment variables. To build the AWS Lambda image and invoke the `MongoDBFunction` lambda function use the `build-faas-awslambda` Taskfile target:
 
 ```bash
-MONGODB_URI="mongodb://host.docker.internal:27017" make build-faas-awslambda
+MONGODB_URI="mongodb://host.docker.internal:27017" task build-faas-awslambda
 ```
 
 The usage of host.docker.internal comes from the [Docker networking documentation](https://docs.docker.com/desktop/networking/#i-want-to-connect-from-a-container-to-a-service-on-the-host).
@@ -181,7 +183,9 @@ However, some of the tests require secrets handling.  Please see the team [Wiki]
 The test suite can be run with or without the secrets as follows:
 
 ```bash
-MAKEFILE_TARGET=evg-test-versioned-api bash .evergreen/run-tests.sh
+task setup-env
+task setup-test
+task evg-test-versioned-api
 ```
 
 ### Load Balancer
@@ -205,7 +209,7 @@ MONGODB_URI='mongodb://localhost:27017,localhost:27018/' $PWD/drivers-evergreen-
 - Run the load balancer tests (or use the docker runner below with `evg-test-load-balancers`):
 
 ```bash
-make evg-test-load-balancers
+task evg-test-load-balancers
 ```
 
 ### Testing in Docker
@@ -225,18 +229,18 @@ See the readme in `$DRIVERS_TOOLS/.evergreen/docker` for more information on usa
 1. Finally, run the Go Driver tests using the following script in this repo:
 
 ```bash
-bash etc/run_docker.sh
+make run-docker
 ```
 
-The script takes an optional argument for the `MAKEFILE_TARGET` and allows for some environment variable overrides.
+The script takes an optional argument for the `TASKFILE_TARGET` and allows for some environment variable overrides.
 The docker container has the required binaries, including libmongocrypt.
-The entry script executes the desired `MAKEFILE_TARGET`.
+The entry script executes the desired `TASKFILE_TARGET`.
 
 For example, to test against a sharded cluster (make sure you started the server with a sharded_cluster),
 using enterprise auth, run:
 
 ```bash
-TOPOLOGY=sharded_cluster bash etc/run_docker.sh evg-test-enterprise-auth
+TOPOLOGY=sharded_cluster task run-docker -- evg-test-enterprise-auth
 ```
 
 ## Talk To Us

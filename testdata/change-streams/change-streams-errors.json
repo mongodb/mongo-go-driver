@@ -145,7 +145,7 @@
           "minServerVersion": "4.1.11",
           "topologies": [
             "replicaset",
-            "sharded-replicaset",
+            "sharded",
             "load-balanced"
           ]
         }
@@ -190,7 +190,7 @@
           "minServerVersion": "4.2",
           "topologies": [
             "replicaset",
-            "sharded-replicaset",
+            "sharded",
             "load-balanced"
           ]
         }

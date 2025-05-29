@@ -11,10 +11,12 @@ import (
 	"fmt"
 	"net/http"
 
-	"go.mongodb.org/mongo-driver/internal/httputil"
+	"go.mongodb.org/mongo-driver/v2/internal/httputil"
 )
 
-// ClientEncryptionOptions represents all possible options used to configure a ClientEncryption instance.
+// ClientEncryptionOptions represents all possible arguments used to configure a ClientEncryption instance.
+//
+// See corresponding setter methods for documentation.
 type ClientEncryptionOptions struct {
 	KeyVaultNamespace string
 	KmsProviders      map[string]map[string]interface{}
@@ -22,22 +24,45 @@ type ClientEncryptionOptions struct {
 	HTTPClient        *http.Client
 }
 
+// ClientEncryptionOptionsBuilder contains options to configure client
+// encryption operations. Each option can be set through setter functions. See
+// documentation for each setter function for an explanation of the option.
+type ClientEncryptionOptionsBuilder struct {
+	Opts []func(*ClientEncryptionOptions) error
+}
+
 // ClientEncryption creates a new ClientEncryptionOptions instance.
-func ClientEncryption() *ClientEncryptionOptions {
-	return &ClientEncryptionOptions{
-		HTTPClient: httputil.DefaultHTTPClient,
+func ClientEncryption() *ClientEncryptionOptionsBuilder {
+	return &ClientEncryptionOptionsBuilder{
+		Opts: []func(*ClientEncryptionOptions) error{
+			func(arg *ClientEncryptionOptions) error {
+				arg.HTTPClient = httputil.DefaultHTTPClient
+				return nil
+			},
+		},
 	}
 }
 
+// List returns a list of ClientEncryptionOptions setter functions.
+func (c *ClientEncryptionOptionsBuilder) List() []func(*ClientEncryptionOptions) error {
+	return c.Opts
+}
+
 // SetKeyVaultNamespace specifies the namespace of the key vault collection. This is required.
-func (c *ClientEncryptionOptions) SetKeyVaultNamespace(ns string) *ClientEncryptionOptions {
-	c.KeyVaultNamespace = ns
+func (c *ClientEncryptionOptionsBuilder) SetKeyVaultNamespace(ns string) *ClientEncryptionOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *ClientEncryptionOptions) error {
+		opts.KeyVaultNamespace = ns
+		return nil
+	})
 	return c
 }
 
 // SetKmsProviders specifies options for KMS providers. This is required.
-func (c *ClientEncryptionOptions) SetKmsProviders(providers map[string]map[string]interface{}) *ClientEncryptionOptions {
-	c.KmsProviders = providers
+func (c *ClientEncryptionOptionsBuilder) SetKmsProviders(providers map[string]map[string]interface{}) *ClientEncryptionOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *ClientEncryptionOptions) error {
+		opts.KmsProviders = providers
+		return nil
+	})
 	return c
 }
 
@@ -45,16 +70,13 @@ func (c *ClientEncryptionOptions) SetKmsProviders(providers map[string]map[strin
 // to the KMS provider.
 //
 // This should only be used to set custom TLS configurations. By default, the connection will use an empty tls.Config{} with MinVersion set to tls.VersionTLS12.
-func (c *ClientEncryptionOptions) SetTLSConfig(tlsOpts map[string]*tls.Config) *ClientEncryptionOptions {
-	tlsConfigs := make(map[string]*tls.Config)
-	for provider, config := range tlsOpts {
-		// use TLS min version 1.2 to enforce more secure hash algorithms and advanced cipher suites
-		if config.MinVersion == 0 {
-			config.MinVersion = tls.VersionTLS12
-		}
-		tlsConfigs[provider] = config
-	}
-	c.TLSConfig = tlsConfigs
+func (c *ClientEncryptionOptionsBuilder) SetTLSConfig(cfg map[string]*tls.Config) *ClientEncryptionOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *ClientEncryptionOptions) error {
+		opts.TLSConfig = cfg
+
+		return nil
+	})
+
 	return c
 }
 
@@ -119,32 +141,4 @@ func BuildTLSConfig(tlsOpts map[string]interface{}) (*tls.Config, error) {
 	}
 
 	return cfg, nil
-}
-
-// MergeClientEncryptionOptions combines the argued ClientEncryptionOptions in a last-one wins fashion.
-//
-// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
-// single options struct instead.
-func MergeClientEncryptionOptions(opts ...*ClientEncryptionOptions) *ClientEncryptionOptions {
-	ceo := ClientEncryption()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-
-		if opt.KeyVaultNamespace != "" {
-			ceo.KeyVaultNamespace = opt.KeyVaultNamespace
-		}
-		if opt.KmsProviders != nil {
-			ceo.KmsProviders = opt.KmsProviders
-		}
-		if opt.TLSConfig != nil {
-			ceo.TLSConfig = opt.TLSConfig
-		}
-		if opt.HTTPClient != nil {
-			ceo.HTTPClient = opt.HTTPClient
-		}
-	}
-
-	return ceo
 }

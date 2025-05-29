@@ -11,10 +11,11 @@ import (
 	"fmt"
 	"sync/atomic"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/internal/ptrutil"
-	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/internal/ptrutil"
+	"go.mongodb.org/mongo-driver/v2/mongo/address"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
 )
 
 var (
@@ -22,12 +23,12 @@ var (
 	MinSupportedMongoDBVersion = "3.6"
 
 	// SupportedWireVersions is the range of wire versions supported by the driver.
-	SupportedWireVersions = description.NewVersionRange(6, 25)
+	SupportedWireVersions = driverutil.NewVersionRange(driverutil.MinWireVersion, driverutil.MaxWireVersion)
 )
 
 type fsm struct {
 	description.Topology
-	maxElectionID    primitive.ObjectID
+	maxElectionID    bson.ObjectID
 	maxSetVersion    uint32
 	compatible       atomic.Value
 	compatibilityErr error
@@ -37,6 +38,14 @@ func newFSM() *fsm {
 	f := fsm{}
 	f.compatible.Store(true)
 	return &f
+}
+
+// isServerDataBearing returns true if the server is a data bearing server.
+func isServerDataBearing(srv description.Server) bool {
+	return srv.Kind == description.ServerKindRSPrimary ||
+		srv.Kind == description.ServerKindRSSecondary ||
+		srv.Kind == description.ServerKindMongos ||
+		srv.Kind == description.ServerKindStandalone
 }
 
 // selectFSMSessionTimeout selects the timeout to return for the topology's
@@ -54,8 +63,8 @@ func newFSM() *fsm {
 // still do not have a timeout. This function chooses the lowest of the existing
 // timeouts.
 func selectFSMSessionTimeout(f *fsm, s description.Server) *int64 {
-	oldMinutes := f.SessionTimeoutMinutesPtr
-	comp := ptrutil.CompareInt64(oldMinutes, s.SessionTimeoutMinutesPtr)
+	oldMinutes := f.SessionTimeoutMinutes
+	comp := ptrutil.CompareInt64(oldMinutes, s.SessionTimeoutMinutes)
 
 	// If the server is data-bearing and the current timeout exists and is
 	// either:
@@ -64,8 +73,8 @@ func selectFSMSessionTimeout(f *fsm, s description.Server) *int64 {
 	// 2. non-nil while the server timeout is nil
 	//
 	// then return the server timeout.
-	if s.DataBearing() && (comp == 1 || comp == 2) {
-		return s.SessionTimeoutMinutesPtr
+	if isServerDataBearing(s) && (comp == 1 || comp == 2) {
+		return s.SessionTimeoutMinutes
 	}
 
 	// If the current timeout exists and the server is not data-bearing OR
@@ -75,22 +84,22 @@ func selectFSMSessionTimeout(f *fsm, s description.Server) *int64 {
 		return oldMinutes
 	}
 
-	timeout := s.SessionTimeoutMinutesPtr
+	timeout := s.SessionTimeoutMinutes
 	for _, server := range f.Servers {
 		// If the server is not data-bearing, then we do not consider
 		// it's timeout whether set or not.
-		if !server.DataBearing() {
+		if !isServerDataBearing(server) {
 			continue
 		}
 
-		srvTimeout := server.SessionTimeoutMinutesPtr
+		srvTimeout := server.SessionTimeoutMinutes
 		comp := ptrutil.CompareInt64(timeout, srvTimeout)
 
 		if comp <= 0 { // timeout <= srvTimout
 			continue
 		}
 
-		timeout = server.SessionTimeoutMinutesPtr
+		timeout = server.SessionTimeoutMinutes
 	}
 
 	return timeout
@@ -116,11 +125,7 @@ func (f *fsm) apply(s description.Server) (description.Topology, description.Ser
 		SetName: f.SetName,
 	}
 
-	f.Topology.SessionTimeoutMinutesPtr = serverTimeoutMinutes
-
-	if serverTimeoutMinutes != nil {
-		f.SessionTimeoutMinutes = uint32(*serverTimeoutMinutes)
-	}
+	f.Topology.SessionTimeoutMinutes = serverTimeoutMinutes
 
 	if _, ok := f.findServer(s.Addr); !ok {
 		return f.Topology, s
@@ -130,13 +135,13 @@ func (f *fsm) apply(s description.Server) (description.Topology, description.Ser
 	switch f.Kind {
 	case description.Unknown:
 		updatedDesc = f.applyToUnknown(s)
-	case description.Sharded:
+	case description.TopologyKindSharded:
 		updatedDesc = f.applyToSharded(s)
-	case description.ReplicaSetNoPrimary:
+	case description.TopologyKindReplicaSetNoPrimary:
 		updatedDesc = f.applyToReplicaSetNoPrimary(s)
-	case description.ReplicaSetWithPrimary:
+	case description.TopologyKindReplicaSetWithPrimary:
 		updatedDesc = f.applyToReplicaSetWithPrimary(s)
-	case description.Single:
+	case description.TopologyKindSingle:
 		updatedDesc = f.applyToSingle(s)
 	}
 
@@ -178,13 +183,13 @@ func (f *fsm) apply(s description.Server) (description.Topology, description.Ser
 
 func (f *fsm) applyToReplicaSetNoPrimary(s description.Server) description.Server {
 	switch s.Kind {
-	case description.Standalone, description.Mongos:
+	case description.ServerKindStandalone, description.ServerKindMongos:
 		f.removeServerByAddr(s.Addr)
-	case description.RSPrimary:
+	case description.ServerKindRSPrimary:
 		f.updateRSFromPrimary(s)
-	case description.RSSecondary, description.RSArbiter, description.RSMember:
+	case description.ServerKindRSSecondary, description.ServerKindRSArbiter, description.ServerKindRSMember:
 		f.updateRSWithoutPrimary(s)
-	case description.Unknown, description.RSGhost:
+	case description.Unknown, description.ServerKindRSGhost:
 		f.replaceServer(s)
 	}
 
@@ -193,14 +198,14 @@ func (f *fsm) applyToReplicaSetNoPrimary(s description.Server) description.Serve
 
 func (f *fsm) applyToReplicaSetWithPrimary(s description.Server) description.Server {
 	switch s.Kind {
-	case description.Standalone, description.Mongos:
+	case description.ServerKindStandalone, description.ServerKindMongos:
 		f.removeServerByAddr(s.Addr)
 		f.checkIfHasPrimary()
-	case description.RSPrimary:
+	case description.ServerKindRSPrimary:
 		f.updateRSFromPrimary(s)
-	case description.RSSecondary, description.RSArbiter, description.RSMember:
+	case description.ServerKindRSSecondary, description.ServerKindRSArbiter, description.ServerKindRSMember:
 		f.updateRSWithPrimaryFromMember(s)
-	case description.Unknown, description.RSGhost:
+	case description.Unknown, description.ServerKindRSGhost:
 		f.replaceServer(s)
 		f.checkIfHasPrimary()
 	}
@@ -210,9 +215,11 @@ func (f *fsm) applyToReplicaSetWithPrimary(s description.Server) description.Ser
 
 func (f *fsm) applyToSharded(s description.Server) description.Server {
 	switch s.Kind {
-	case description.Mongos, description.Unknown:
+	case description.ServerKindMongos, description.Unknown:
 		f.replaceServer(s)
-	case description.Standalone, description.RSPrimary, description.RSSecondary, description.RSArbiter, description.RSMember, description.RSGhost:
+	case description.ServerKindStandalone, description.ServerKindRSPrimary,
+		description.ServerKindRSSecondary, description.ServerKindRSArbiter, description.ServerKindRSMember,
+		description.ServerKindRSGhost:
 		f.removeServerByAddr(s.Addr)
 	}
 
@@ -223,14 +230,15 @@ func (f *fsm) applyToSingle(s description.Server) description.Server {
 	switch s.Kind {
 	case description.Unknown:
 		f.replaceServer(s)
-	case description.Standalone, description.Mongos:
+	case description.ServerKindStandalone, description.ServerKindMongos:
 		if f.SetName != "" {
 			f.removeServerByAddr(s.Addr)
 			return s
 		}
 
 		f.replaceServer(s)
-	case description.RSPrimary, description.RSSecondary, description.RSArbiter, description.RSMember, description.RSGhost:
+	case description.ServerKindRSPrimary, description.ServerKindRSSecondary,
+		description.ServerKindRSArbiter, description.ServerKindRSMember, description.ServerKindRSGhost:
 		// A replica set name can be provided when creating a direct connection. In this case, if the set name returned
 		// by the hello response doesn't match up with the one provided during configuration, the server description
 		// is replaced with a default Unknown description.
@@ -252,17 +260,17 @@ func (f *fsm) applyToSingle(s description.Server) description.Server {
 
 func (f *fsm) applyToUnknown(s description.Server) description.Server {
 	switch s.Kind {
-	case description.Mongos:
-		f.setKind(description.Sharded)
+	case description.ServerKindMongos:
+		f.setKind(description.TopologyKindSharded)
 		f.replaceServer(s)
-	case description.RSPrimary:
+	case description.ServerKindRSPrimary:
 		f.updateRSFromPrimary(s)
-	case description.RSSecondary, description.RSArbiter, description.RSMember:
-		f.setKind(description.ReplicaSetNoPrimary)
+	case description.ServerKindRSSecondary, description.ServerKindRSArbiter, description.ServerKindRSMember:
+		f.setKind(description.TopologyKindReplicaSetNoPrimary)
 		f.updateRSWithoutPrimary(s)
-	case description.Standalone:
+	case description.ServerKindStandalone:
 		f.updateUnknownWithStandalone(s)
-	case description.Unknown, description.RSGhost:
+	case description.Unknown, description.ServerKindRSGhost:
 		f.replaceServer(s)
 	}
 
@@ -271,9 +279,9 @@ func (f *fsm) applyToUnknown(s description.Server) description.Server {
 
 func (f *fsm) checkIfHasPrimary() {
 	if _, ok := f.findPrimary(); ok {
-		f.setKind(description.ReplicaSetWithPrimary)
+		f.setKind(description.TopologyKindReplicaSetWithPrimary)
 	} else {
-		f.setKind(description.ReplicaSetNoPrimary)
+		f.setKind(description.TopologyKindReplicaSetNoPrimary)
 	}
 }
 
@@ -399,7 +407,7 @@ func (f *fsm) updateRSWithPrimaryFromMember(s description.Server) {
 	f.replaceServer(s)
 
 	if _, ok := f.findPrimary(); !ok {
-		f.setKind(description.ReplicaSetNoPrimary)
+		f.setKind(description.TopologyKindReplicaSetNoPrimary)
 	}
 }
 
@@ -431,7 +439,7 @@ func (f *fsm) updateUnknownWithStandalone(s description.Server) {
 		return
 	}
 
-	f.setKind(description.Single)
+	f.setKind(description.TopologyKindSingle)
 	f.replaceServer(s)
 }
 
@@ -443,7 +451,7 @@ func (f *fsm) addServer(addr address.Address) {
 
 func (f *fsm) findPrimary() (int, bool) {
 	for i, s := range f.Servers {
-		if s.Kind == description.RSPrimary {
+		if s.Kind == description.ServerKindRSPrimary {
 			return i, true
 		}
 	}

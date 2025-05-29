@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 // This example uses Raw to skip parsing a nested document in a BSON message.
