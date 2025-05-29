@@ -12,6 +12,7 @@ import (
 	"net"
 	"net/url"
 	"os/exec"
+	"runtime"
 	"strconv"
 	"testing"
 
@@ -117,6 +118,12 @@ func TestSessionsMongocryptdProse(t *testing.T) {
 	// Create a new instance of mtest (MongoDB testing framework) for this
 	// test and configure it to control server versions.
 	mt := mtest.New(t, mtOpts)
+
+	// TODO(GODRIVER-3529): 'TerminateProcess: Access is denied' error when
+	// killing mongocryptd process on Windows. It's unclear what is causing this.
+	if runtime.GOOS == "windows" {
+		mt.Skip("skipping to avoid 'TerminateProcess: Access is denied' error when killing mongocryptd process")
+	}
 
 	proseTest18 := "18. implicit session is ignored if connection does not support sessions"
 	mt.RunOpts(proseTest18, mtOpts, func(mt *mtest.T) {

@@ -143,7 +143,7 @@ func TestSDAMProse(t *testing.T) {
 				// The next update will be in ~500ms.
 				return false
 			}
-			assert.Eventually(t,
+			assert.Eventually(mt,
 				callback,
 				defaultCallbackTimeout,
 				500*time.Millisecond,
