@@ -9,7 +9,7 @@ package require
 import (
 	time "time"
 
-	assert "go.mongodb.org/mongo-driver/internal/assert"
+	assert "go.mongodb.org/mongo-driver/v2/internal/assert"
 )
 
 // TestingT is an interface wrapper around *testing.T

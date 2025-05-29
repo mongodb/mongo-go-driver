@@ -9,11 +9,13 @@ package driver
 import (
 	"context"
 	"errors"
+
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
 )
 
 // ExecuteExhaust reads a response from the provided StreamerConnection. This will error if the connection's
 // CurrentlyStreaming function returns false.
-func (op Operation) ExecuteExhaust(ctx context.Context, conn StreamerConnection) error {
+func (op Operation) ExecuteExhaust(ctx context.Context, conn *mnet.Connection) error {
 	if !conn.CurrentlyStreaming() {
 		return errors.New("exhaust read must be done with a connection that is currently streaming")
 	}
@@ -25,10 +27,9 @@ func (op Operation) ExecuteExhaust(ctx context.Context, conn StreamerConnection)
 	if op.ProcessResponseFn != nil {
 		// Server, ConnectionDescription, and CurrentIndex are unused in this mode.
 		info := ResponseInfo{
-			ServerResponse: res,
-			Connection:     conn,
+			Connection: conn,
 		}
-		if err = op.ProcessResponseFn(info); err != nil {
+		if err = op.ProcessResponseFn(ctx, res, info); err != nil {
 			return err
 		}
 	}

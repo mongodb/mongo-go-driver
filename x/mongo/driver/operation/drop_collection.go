@@ -12,13 +12,13 @@ import (
 	"fmt"
 	"time"
 
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/driverutil"
-	"go.mongodb.org/mongo-driver/mongo/description"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
 // DropCollection performs a drop operation.
@@ -79,9 +79,9 @@ func NewDropCollection() *DropCollection {
 // Result returns the result of executing this operation.
 func (dc *DropCollection) Result() DropCollectionResult { return dc.result }
 
-func (dc *DropCollection) processResponse(info driver.ResponseInfo) error {
+func (dc *DropCollection) processResponse(_ context.Context, resp bsoncore.Document, _ driver.ResponseInfo) error {
 	var err error
-	dc.result, err = buildDropCollectionResult(info.ServerResponse)
+	dc.result, err = buildDropCollectionResult(resp)
 	return err
 }
 

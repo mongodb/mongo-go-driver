@@ -10,8 +10,8 @@ import (
 	"fmt"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
 )
 
 func TestFSMSessionTimeout(t *testing.T) {
@@ -35,11 +35,11 @@ func TestFSMSessionTimeout(t *testing.T) {
 			name: "no session support on data-bearing server with session support on fsm",
 			f: &fsm{
 				Topology: description.Topology{
-					SessionTimeoutMinutesPtr: int64ToPtr(1),
+					SessionTimeoutMinutes: int64ToPtr(1),
 				},
 			},
 			s: description.Server{
-				Kind: description.RSPrimary,
+				Kind: description.ServerKindRSPrimary,
 			},
 			want: nil,
 		},
@@ -47,12 +47,12 @@ func TestFSMSessionTimeout(t *testing.T) {
 			name: "lower timeout on data-bearing server with session support on fsm",
 			f: &fsm{
 				Topology: description.Topology{
-					SessionTimeoutMinutesPtr: int64ToPtr(2),
+					SessionTimeoutMinutes: int64ToPtr(2),
 				},
 			},
 			s: description.Server{
-				Kind:                     description.RSPrimary,
-				SessionTimeoutMinutesPtr: int64ToPtr(1),
+				Kind:                  description.ServerKindRSPrimary,
+				SessionTimeoutMinutes: int64ToPtr(1),
 			},
 			want: int64ToPtr(1),
 		},
@@ -60,8 +60,8 @@ func TestFSMSessionTimeout(t *testing.T) {
 			name: "session support on data-bearing server with no session support on fsm with no servers",
 			f:    &fsm{Topology: description.Topology{}},
 			s: description.Server{
-				Kind:                     description.RSPrimary,
-				SessionTimeoutMinutesPtr: int64ToPtr(1),
+				Kind:                  description.ServerKindRSPrimary,
+				SessionTimeoutMinutes: int64ToPtr(1),
 			},
 			want: int64ToPtr(1),
 		},
@@ -70,14 +70,14 @@ func TestFSMSessionTimeout(t *testing.T) {
 			f: &fsm{Topology: description.Topology{
 				Servers: []description.Server{
 					{
-						Kind:                     description.RSPrimary,
-						SessionTimeoutMinutesPtr: int64ToPtr(1),
+						Kind:                  description.ServerKindRSPrimary,
+						SessionTimeoutMinutes: int64ToPtr(1),
 					},
 				},
 			}},
 			s: description.Server{
-				Kind:                     description.RSPrimary,
-				SessionTimeoutMinutesPtr: int64ToPtr(2),
+				Kind:                  description.ServerKindRSPrimary,
+				SessionTimeoutMinutes: int64ToPtr(2),
 			},
 			want: int64ToPtr(1),
 		},
@@ -86,14 +86,14 @@ func TestFSMSessionTimeout(t *testing.T) {
 			f: &fsm{Topology: description.Topology{
 				Servers: []description.Server{
 					{
-						Kind:                     description.RSPrimary,
-						SessionTimeoutMinutesPtr: int64ToPtr(3),
+						Kind:                  description.ServerKindRSPrimary,
+						SessionTimeoutMinutes: int64ToPtr(3),
 					},
 				},
 			}},
 			s: description.Server{
-				Kind:                     description.RSPrimary,
-				SessionTimeoutMinutesPtr: int64ToPtr(2),
+				Kind:                  description.ServerKindRSPrimary,
+				SessionTimeoutMinutes: int64ToPtr(2),
 			},
 			want: int64ToPtr(2),
 		},

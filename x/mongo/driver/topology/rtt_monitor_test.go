@@ -8,22 +8,23 @@ package topology
 
 import (
 	"bytes"
+	"container/list"
 	"context"
 	"io"
-	"math"
 	"net"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/require"
-	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/drivertest"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/mongo/address"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/drivertest"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
 )
 
 func makeHelloReply() []byte {
@@ -83,18 +84,19 @@ func (*mockSlowConn) SetReadDeadline(_ time.Time) error  { return nil }
 func (*mockSlowConn) SetWriteDeadline(_ time.Time) error { return nil }
 
 func TestRTTMonitor(t *testing.T) {
-	t.Run("measures the average, minimum and 90th percentile RTT", func(t *testing.T) {
+	t.Run("measures the average and minimum RTT", func(t *testing.T) {
 		t.Parallel()
 
 		dialer := DialerFunc(func(_ context.Context, _, _ string) (net.Conn, error) {
 			return newMockSlowConn(makeHelloReply(), 10*time.Millisecond), nil
 		})
 		rtt := newRTTMonitor(&rttConfig{
-			interval: 10 * time.Millisecond,
+			interval:       10 * time.Millisecond,
+			connectTimeout: defaultConnectionTimeout,
 			createConnectionFn: func() *connection {
 				return newConnection("", WithDialer(func(Dialer) Dialer { return dialer }))
 			},
-			createOperationFn: func(conn driver.Connection) *operation.Hello {
+			createOperationFn: func(conn *mnet.Connection) *operation.Hello {
 				return operation.NewHello().Deployment(driver.SingleConnectionDeployment{C: conn})
 			},
 		})
@@ -103,10 +105,10 @@ func TestRTTMonitor(t *testing.T) {
 
 		assert.Eventuallyf(
 			t,
-			func() bool { return rtt.EWMA() > 0 && rtt.Min() > 0 && rtt.P90() > 0 },
+			func() bool { return rtt.EWMA() > 0 && rtt.Min() > 0 },
 			1*time.Second,
 			10*time.Millisecond,
-			"expected EWMA(), Min() and P90() to return positive durations within 1 second")
+			"expected EWMA() and Min() to return positive durations within 1 second")
 		assert.True(
 			t,
 			rtt.EWMA() > 0,
@@ -117,46 +119,6 @@ func TestRTTMonitor(t *testing.T) {
 			rtt.Min() > 0,
 			"expected Min() to return a positive duration, got %v",
 			rtt.Min())
-		assert.True(
-			t,
-			rtt.P90() > 0,
-			"expected P90() to return a positive duration, got %v",
-			rtt.P90())
-	})
-
-	t.Run("creates the correct size samples slice", func(t *testing.T) {
-		t.Parallel()
-
-		cases := []struct {
-			desc           string
-			interval       time.Duration
-			wantSamplesLen int
-		}{
-			{
-				desc:           "default",
-				interval:       10 * time.Second,
-				wantSamplesLen: 30,
-			},
-			{
-				desc:           "min",
-				interval:       10 * time.Minute,
-				wantSamplesLen: 10,
-			},
-			{
-				desc:           "max",
-				interval:       1 * time.Millisecond,
-				wantSamplesLen: 500,
-			},
-		}
-		for _, tc := range cases {
-			t.Run(tc.desc, func(t *testing.T) {
-				rtt := newRTTMonitor(&rttConfig{
-					interval:     tc.interval,
-					minRTTWindow: 5 * time.Minute,
-				})
-				assert.Equal(t, tc.wantSamplesLen, len(rtt.samples), "expected samples length to match")
-			})
-		}
 	})
 
 	t.Run("can connect and disconnect repeatedly", func(t *testing.T) {
@@ -172,7 +134,7 @@ func TestRTTMonitor(t *testing.T) {
 					return dialer
 				}))
 			},
-			createOperationFn: func(conn driver.Connection) *operation.Hello {
+			createOperationFn: func(conn *mnet.Connection) *operation.Hello {
 				return operation.NewHello().Deployment(driver.SingleConnectionDeployment{C: conn})
 			},
 		})
@@ -189,11 +151,12 @@ func TestRTTMonitor(t *testing.T) {
 			return newMockSlowConn(makeHelloReply(), 10*time.Millisecond), nil
 		})
 		rtt := newRTTMonitor(&rttConfig{
-			interval: 10 * time.Millisecond,
+			connectTimeout: defaultConnectionTimeout,
+			interval:       10 * time.Millisecond,
 			createConnectionFn: func() *connection {
 				return newConnection("", WithDialer(func(Dialer) Dialer { return dialer }))
 			},
-			createOperationFn: func(conn driver.Connection) *operation.Hello {
+			createOperationFn: func(conn *mnet.Connection) *operation.Hello {
 				return operation.NewHello().Deployment(driver.SingleConnectionDeployment{C: conn})
 			},
 		})
@@ -213,12 +176,7 @@ func TestRTTMonitor(t *testing.T) {
 				1*time.Second,
 				10*time.Millisecond,
 				"expected Min() to return a positive duration within 1 second")
-			assert.Eventuallyf(
-				t,
-				func() bool { return rtt.P90() > 0 },
-				1*time.Second,
-				10*time.Millisecond,
-				"expected P90() to return a positive duration within 1 second")
+
 			rtt.reset()
 		}
 	})
@@ -292,12 +250,12 @@ func TestRTTMonitor(t *testing.T) {
 		}()
 
 		rtt := newRTTMonitor(&rttConfig{
-			interval: 10 * time.Millisecond,
-			timeout:  100 * time.Millisecond,
+			interval:       10 * time.Millisecond,
+			connectTimeout: 100 * time.Millisecond,
 			createConnectionFn: func() *connection {
 				return newConnection(address.Address(l.Addr().String()))
 			},
-			createOperationFn: func(conn driver.Connection) *operation.Hello {
+			createOperationFn: func(conn *mnet.Connection) *operation.Hello {
 				return operation.NewHello().Deployment(driver.SingleConnectionDeployment{C: conn})
 			},
 		})
@@ -315,12 +273,6 @@ func TestRTTMonitor(t *testing.T) {
 			1*time.Second,
 			10*time.Millisecond,
 			"expected Min() to return a positive duration within 1 second")
-		assert.Eventuallyf(
-			t,
-			func() bool { return rtt.P90() > 0 },
-			1*time.Second,
-			10*time.Millisecond,
-			"expected P90() to return a positive duration within 1 second")
 
 		rtt.disconnect()
 		l.Close()
@@ -328,149 +280,207 @@ func TestRTTMonitor(t *testing.T) {
 	})
 }
 
-func TestMin(t *testing.T) {
-	cases := []struct {
-		desc       string
-		samples    []time.Duration
-		minSamples int
-		want       time.Duration
+// makeArithmeticSamples will make an arithmetic sequence of time.Duration
+// samples starting at the lower value as ms and ending at the upper value as
+// ms. For example, if lower=1 and upder=4, then the return value will be
+// [1ms, 2ms, 3ms, 4ms].
+func makeArithmeticSamples(lower, upper int) []time.Duration {
+	samples := []time.Duration{}
+	for i := 0; i < upper-lower+1; i++ {
+		samples = append(samples, time.Duration(lower+i)*time.Millisecond)
+	}
+
+	return samples
+}
+
+func TestRTTMonitor_appendMovingMin(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		samples []time.Duration
+		want    []time.Duration
 	}{
 		{
-			desc:       "Should return the min for minSamples = 0",
-			samples:    []time.Duration{1, 0, 0, 0},
-			minSamples: 0,
-			want:       1,
+			name:    "singleton",
+			samples: makeArithmeticSamples(1, 1),
+			want:    makeArithmeticSamples(1, 1),
 		},
 		{
-			desc:       "Should return 0 for fewer than minSamples samples",
-			samples:    []time.Duration{1, 0, 0, 0},
-			minSamples: 2,
-			want:       0,
+			name:    "multiplicity",
+			samples: makeArithmeticSamples(1, 2),
+			want:    makeArithmeticSamples(1, 2),
 		},
 		{
-			desc:       "Should return 0 for empty samples slice",
-			samples:    []time.Duration{},
-			minSamples: 0,
-			want:       0,
+			name:    "exceed maxRTTSamples",
+			samples: makeArithmeticSamples(1, 11),
+			want:    makeArithmeticSamples(2, 11),
 		},
 		{
-			desc:       "Should return 0 for no valid samples",
-			samples:    []time.Duration{0, 0, 0},
-			minSamples: 0,
-			want:       0,
-		},
-		{
-			desc:       "Should return max int64 if all samples are max int64",
-			samples:    []time.Duration{math.MaxInt64, math.MaxInt64, math.MaxInt64},
-			minSamples: 0,
-			want:       math.MaxInt64,
-		},
-		{
-			desc:       "Should return the minimum if there are enough samples",
-			samples:    []time.Duration{1 * time.Second, 100 * time.Millisecond, 150 * time.Millisecond, 0, 0, 0},
-			minSamples: 3,
-			want:       100 * time.Millisecond,
-		},
-		{
-			desc:       "Should return 0 if there are are not enough samples",
-			samples:    []time.Duration{1 * time.Second, 100 * time.Millisecond, 0, 0, 0, 0},
-			minSamples: 3,
-			want:       0,
+			name:    "exceed maxRTTSamples but only with negative values",
+			samples: makeArithmeticSamples(-1, 9),
+			want:    makeArithmeticSamples(0, 9),
 		},
 	}
 
-	for _, tc := range cases {
-		tc := tc
-		t.Run(tc.desc, func(t *testing.T) {
+	for _, test := range tests {
+		test := test // capture the range variable
+
+		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := min(tc.samples, tc.minSamples)
-			assert.Equal(t, tc.want, got, "unexpected result from min()")
+			rtt := &rttMonitor{
+				movingMin: list.New(),
+			}
+
+			for _, sample := range test.samples {
+				rtt.appendMovingMin(sample)
+			}
+
+			pos := 0
+			for e := rtt.movingMin.Front(); e != nil; e = e.Next() {
+				assert.Equal(t, test.want[pos], e.Value)
+
+				pos++
+			}
 		})
 	}
 }
 
-func TestPercentile(t *testing.T) {
-	cases := []struct {
-		desc       string
-		samples    []time.Duration
-		minSamples int
-		percentile float64
-		want       time.Duration
+func TestRTTMonitor_min(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		samples []time.Duration
+		want    time.Duration
 	}{
 		{
-			desc:       "Should return 0 for fewer than minSamples samples",
-			samples:    []time.Duration{1, 0, 0, 0},
-			minSamples: 2,
-			percentile: 90.0,
-			want:       0,
+			name:    "empty",
+			samples: []time.Duration{},
+			want:    0,
 		},
 		{
-			desc:       "Should return 0 for empty samples slice",
-			samples:    []time.Duration{},
-			minSamples: 0,
-			percentile: 90.0,
-			want:       0,
+			name:    "one",
+			samples: makeArithmeticSamples(1, 1),
+			want:    0,
 		},
 		{
-			desc:       "Should return 0 for no valid samples",
-			samples:    []time.Duration{0, 0, 0},
-			minSamples: 0,
-			percentile: 90.0,
-			want:       0,
+			name:    "two",
+			samples: makeArithmeticSamples(1, 2),
+			want:    1 * time.Millisecond,
 		},
 		{
-			desc:       "First tertile when minSamples = 0",
-			samples:    []time.Duration{1, 2, 3, 0, 0, 0},
-			minSamples: 0,
-			percentile: 33.34,
-			want:       1,
+			name:    "non-unit lower bound",
+			samples: makeArithmeticSamples(2, 9),
+			want:    2 * time.Millisecond,
 		},
 		{
-			desc: "90th percentile when there are enough samples",
+			name:    "negative lower bound with 2 values",
+			samples: []time.Duration{-1, 1},
+			want:    0,
+		},
+		{
+			name: "negative lower bound with 3 values",
 			samples: []time.Duration{
-				100 * time.Millisecond,
-				200 * time.Millisecond,
-				300 * time.Millisecond,
-				400 * time.Millisecond,
-				500 * time.Millisecond,
-				600 * time.Millisecond,
-				700 * time.Millisecond,
-				800 * time.Millisecond,
-				900 * time.Millisecond,
-				1 * time.Second,
-				0, 0, 0},
-			minSamples: 10,
-			percentile: 90.0,
-			want:       900 * time.Millisecond,
+				-1 * time.Millisecond,
+				1 * time.Millisecond,
+				2 * time.Millisecond},
+			want: 1 * time.Millisecond,
 		},
 		{
-			desc: "10th percentile when there are enough samples",
+			name: "non-sequential",
 			samples: []time.Duration{
-				100 * time.Millisecond,
-				200 * time.Millisecond,
-				300 * time.Millisecond,
-				400 * time.Millisecond,
-				500 * time.Millisecond,
-				600 * time.Millisecond,
-				700 * time.Millisecond,
-				800 * time.Millisecond,
-				900 * time.Millisecond,
-				1 * time.Second,
-				0, 0, 0},
-			minSamples: 10,
-			percentile: 10.0,
-			want:       100 * time.Millisecond,
+				2 * time.Millisecond,
+				1 * time.Millisecond,
+			},
+			want: 1 * time.Millisecond,
 		},
 	}
 
-	for _, tc := range cases {
-		tc := tc
-		t.Run(tc.desc, func(t *testing.T) {
+	for _, test := range tests {
+		test := test // capture the range variable
+
+		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := percentile(tc.percentile, tc.samples, tc.minSamples)
-			assert.Equal(t, tc.want, got, "unexpected result from percentile()")
+			rtt := &rttMonitor{
+				movingMin: list.New(),
+			}
+
+			for _, sample := range test.samples {
+				rtt.appendMovingMin(sample)
+			}
+
+			assert.Equal(t, test.want, rtt.min())
+		})
+	}
+}
+
+func TestRTTMonitor_stddev(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		samples []time.Duration
+		want    float64
+	}{
+		{
+			name:    "empty",
+			samples: []time.Duration{},
+			want:    0,
+		},
+		{
+			name:    "one",
+			samples: makeArithmeticSamples(1, 1),
+			want:    0,
+		},
+		{
+			name:    "below maxRTTSamples",
+			samples: makeArithmeticSamples(1, 5),
+			want:    0,
+		},
+		{
+			name:    "equal maxRTTSamples",
+			samples: makeArithmeticSamples(1, 10),
+			want:    2.872281e+06,
+		},
+		{
+			name:    "exceed maxRTTSamples",
+			samples: makeArithmeticSamples(1, 15),
+			want:    2.872281e+06,
+		},
+		{
+			name: "non-sequential",
+			samples: []time.Duration{
+				2 * time.Millisecond,
+				1 * time.Millisecond,
+				4 * time.Millisecond,
+				3 * time.Millisecond,
+				7 * time.Millisecond,
+				12 * time.Millisecond,
+				6 * time.Millisecond,
+				8 * time.Millisecond,
+				5 * time.Millisecond,
+				13 * time.Millisecond,
+			},
+			want: 3.806573e+06,
+		},
+	}
+
+	for _, test := range tests {
+		test := test // capture the range variable
+
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			rtt := &rttMonitor{
+				movingMin: list.New(),
+			}
+			for _, sample := range test.samples {
+				rtt.appendMovingMin(sample)
+			}
+			assert.Equal(t, test.want, float64(rtt.stddev()))
 		})
 	}
 }

@@ -6,76 +6,74 @@
 
 package options
 
-import "time"
-
-// DistinctOptions represents options that can be used to configure a Distinct operation.
+// DistinctOptions represents arguments that can be used to configure a Distinct
+// operation.
+//
+// See corresponding setter methods for documentation.
 type DistinctOptions struct {
-	// Specifies a collation to use for string comparisons during the operation. This option is only valid for MongoDB
-	// versions >= 3.4. For previous server versions, the driver will return an error if this option is used. The
-	// default value is nil, which means the default collation of the collection will be used.
 	Collation *Collation
+	Comment   interface{}
+	Hint      interface{}
+}
 
-	// A string or document that will be included in server logs, profiling logs, and currentOp queries to help trace
-	// the operation. The default value is nil, which means that no comment will be included in the logs.
-	Comment interface{}
-
-	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
-	// is no time limit for query execution.
-	//
-	// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout option may be
-	// used in its place to control the amount of time that a single operation can run before returning an error.
-	// MaxTime is ignored if Timeout is set on the client.
-	MaxTime *time.Duration
+// DistinctOptionsBuilder contains options to configure distinct operations. Each
+// option can be set through setter functions. See documentation for each setter
+// function for an explanation of the option.
+type DistinctOptionsBuilder struct {
+	Opts []func(*DistinctOptions) error
 }
 
 // Distinct creates a new DistinctOptions instance.
-func Distinct() *DistinctOptions {
-	return &DistinctOptions{}
+func Distinct() *DistinctOptionsBuilder {
+	return &DistinctOptionsBuilder{}
 }
 
-// SetCollation sets the value for the Collation field.
-func (do *DistinctOptions) SetCollation(c *Collation) *DistinctOptions {
-	do.Collation = c
+// List returns a list of DistinctArg setter functions.
+func (do *DistinctOptionsBuilder) List() []func(*DistinctOptions) error {
+	return do.Opts
+}
+
+// SetCollation sets the value for the Collation field. Specifies a collation to
+// use for string comparisons during the operation. The default value is nil,
+// which means the default collation of the collection will be used.
+func (do *DistinctOptionsBuilder) SetCollation(c *Collation) *DistinctOptionsBuilder {
+	do.Opts = append(do.Opts, func(opts *DistinctOptions) error {
+		opts.Collation = c
+
+		return nil
+	})
+
 	return do
 }
 
-// SetComment sets the value for the Comment field.
-func (do *DistinctOptions) SetComment(comment interface{}) *DistinctOptions {
-	do.Comment = comment
+// SetComment sets the value for the Comment field. Specifies a string or document that
+// will be included in server logs, profiling logs, and currentOp queries to help trace
+// the operation. The default value is nil, which means that no comment will be included
+// in the logs.
+func (do *DistinctOptionsBuilder) SetComment(comment interface{}) *DistinctOptionsBuilder {
+	do.Opts = append(do.Opts, func(opts *DistinctOptions) error {
+		opts.Comment = comment
+
+		return nil
+	})
+
 	return do
 }
 
-// SetMaxTime sets the value for the MaxTime field.
+// SetHint specifies the index to use for the operation. This should either be
+// the index name as a string or the index specification as a document. This
+// option is only valid for MongoDB versions >= 7.1. Previous server versions
+// will return an error if an index hint is specified. Distinct returns an error
+// if the hint parameter is a multi-key map. The default value is nil, which
+// means that no index hint will be sent.
 //
-// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout
-// option may be used in its place to control the amount of time that a single operation can
-// run before returning an error. MaxTime is ignored if Timeout is set on the client.
-func (do *DistinctOptions) SetMaxTime(d time.Duration) *DistinctOptions {
-	do.MaxTime = &d
+// SetHint sets the Hint field.
+func (do *DistinctOptionsBuilder) SetHint(hint interface{}) *DistinctOptionsBuilder {
+	do.Opts = append(do.Opts, func(opts *DistinctOptions) error {
+		opts.Hint = hint
+
+		return nil
+	})
+
 	return do
-}
-
-// MergeDistinctOptions combines the given DistinctOptions instances into a single DistinctOptions in a last-one-wins
-// fashion.
-//
-// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
-// single options struct instead.
-func MergeDistinctOptions(opts ...*DistinctOptions) *DistinctOptions {
-	distinctOpts := Distinct()
-	for _, do := range opts {
-		if do == nil {
-			continue
-		}
-		if do.Collation != nil {
-			distinctOpts.Collation = do.Collation
-		}
-		if do.Comment != nil {
-			distinctOpts.Comment = do.Comment
-		}
-		if do.MaxTime != nil {
-			distinctOpts.MaxTime = do.MaxTime
-		}
-	}
-
-	return distinctOpts
 }

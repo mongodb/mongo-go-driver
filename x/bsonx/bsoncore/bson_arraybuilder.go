@@ -8,9 +8,6 @@ package bsoncore
 
 import (
 	"strconv"
-
-	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // ArrayBuilder builds a bson array
@@ -84,7 +81,7 @@ func (a *ArrayBuilder) AppendString(str string) *ArrayBuilder {
 }
 
 // AppendObjectID will append oid to ArrayBuilder.doc
-func (a *ArrayBuilder) AppendObjectID(oid primitive.ObjectID) *ArrayBuilder {
+func (a *ArrayBuilder) AppendObjectID(oid objectID) *ArrayBuilder {
 	a.arr = AppendObjectIDElement(a.arr, a.incrementKey(), oid)
 	return a
 }
@@ -127,7 +124,7 @@ func (a *ArrayBuilder) AppendRegex(pattern, options string) *ArrayBuilder {
 }
 
 // AppendDBPointer will append ns and oid to a.arr
-func (a *ArrayBuilder) AppendDBPointer(ns string, oid primitive.ObjectID) *ArrayBuilder {
+func (a *ArrayBuilder) AppendDBPointer(ns string, oid objectID) *ArrayBuilder {
 	a.arr = AppendDBPointerElement(a.arr, a.incrementKey(), ns, oid)
 	return a
 }
@@ -163,8 +160,8 @@ func (a *ArrayBuilder) AppendInt64(i64 int64) *ArrayBuilder {
 }
 
 // AppendDecimal128 will append d128 to a.arr
-func (a *ArrayBuilder) AppendDecimal128(d128 primitive.Decimal128) *ArrayBuilder {
-	a.arr = AppendDecimal128Element(a.arr, a.incrementKey(), d128)
+func (a *ArrayBuilder) AppendDecimal128(high, low uint64) *ArrayBuilder {
+	a.arr = AppendDecimal128Element(a.arr, a.incrementKey(), high, low)
 	return a
 }
 
@@ -189,7 +186,7 @@ func (a *ArrayBuilder) AppendValue(val Value) *ArrayBuilder {
 // StartArray starts building an inline Array. After this document is completed,
 // the user must call a.FinishArray
 func (a *ArrayBuilder) StartArray() *ArrayBuilder {
-	a.arr = AppendHeader(a.arr, bsontype.Array, a.incrementKey())
+	a.arr = AppendHeader(a.arr, TypeArray, a.incrementKey())
 	a.startArray()
 	return a
 }
