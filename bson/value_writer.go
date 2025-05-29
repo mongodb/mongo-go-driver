@@ -33,6 +33,29 @@ func putValueWriter(vw *valueWriter) {
 	}
 }
 
+var documentWriterPool = sync.Pool{
+	New: func() interface{} {
+		return newDocumentWriter(nil)
+	},
+}
+
+func getDocumentWriter(w io.Writer) *valueWriter {
+	vw := documentWriterPool.Get().(*valueWriter)
+
+	vw.reset(vw.buf)
+	vw.buf = vw.buf[:0]
+	vw.w = w
+
+	return vw
+}
+
+func putDocumentWriter(vw *valueWriter) {
+	if vw != nil {
+		vw.w = nil // don't leak the writer
+		documentWriterPool.Put(vw)
+	}
+}
+
 // This is here so that during testing we can change it and not require
 // allocating a 4GB slice.
 var maxSize = math.MaxInt32
