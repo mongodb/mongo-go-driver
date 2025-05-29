@@ -27,7 +27,7 @@ import (
 // requires a version of klauspost/compress that is not compatible with the Go
 // Driver. Must use GOWORK=off to run this test.
 
-const minSupportedVersion = "1.18"
+const minSupportedVersion = "1.19"
 
 func TestCompileCheck(t *testing.T) {
 	cwd, err := os.Getwd()
