@@ -1,4 +1,4 @@
-module go.mongodb.go/mongo-driver/examples/logger/logrus
+module go.mongodb.go/mongo-driver/v2/examples/logger/logrus
 
 go 1.23
 

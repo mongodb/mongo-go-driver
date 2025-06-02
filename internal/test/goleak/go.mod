@@ -1,4 +1,4 @@
-module go.mongodb.go/mongo-driver/internal/test/goleak
+module go.mongodb.go/mongo-driver/v2/internal/test/goleak
 
 go 1.22
 

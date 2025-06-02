@@ -1,4 +1,4 @@
-module go.mongodb.go/mongo-driver/examples/logger/zerolog
+module go.mongodb.go/mongo-driver/v2/examples/logger/zerolog
 
 go 1.23
 

@@ -1,4 +1,4 @@
-module go.mongodb.go/mongo-driver/internal/test/mongodb
+module go.mongodb.go/mongo-driver/v2/internal/cmd/faas/awslambda/mongodb
 
 go 1.23
 
