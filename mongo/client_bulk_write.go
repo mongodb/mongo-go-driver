@@ -44,6 +44,7 @@ type clientBulkWrite struct {
 	client                   *Client
 	selector                 description.ServerSelector
 	writeConcern             *writeconcern.WriteConcern
+	rawBucketsData           *bool
 
 	result ClientBulkWriteResult
 }
@@ -142,6 +143,9 @@ func (bw *clientBulkWrite) newCommand() func([]byte, description.SelectedServer)
 				return nil, err
 			}
 			dst = bsoncore.AppendDocumentElement(dst, "let", let)
+		}
+		if bw.rawBucketsData != nil {
+			dst = bsoncore.AppendBooleanElement(dst, "rawData", *bw.rawBucketsData)
 		}
 		return dst, nil
 	}

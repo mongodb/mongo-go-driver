@@ -956,6 +956,7 @@ func (c *Client) BulkWrite(ctx context.Context, writes []ClientBulkWrite,
 		client:                   c,
 		selector:                 selector,
 		writeConcern:             wc,
+		rawBucketsData:           bwo.RawBucketsData,
 	}
 	if bwo.VerboseResults == nil || !(*bwo.VerboseResults) {
 		op.errorsOnly = true

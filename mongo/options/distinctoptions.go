@@ -11,9 +11,10 @@ package options
 //
 // See corresponding setter methods for documentation.
 type DistinctOptions struct {
-	Collation *Collation
-	Comment   interface{}
-	Hint      interface{}
+	Collation      *Collation
+	Comment        interface{}
+	Hint           interface{}
+	RawBucketsData *bool
 }
 
 // DistinctOptionsBuilder contains options to configure distinct operations. Each
@@ -71,6 +72,18 @@ func (do *DistinctOptionsBuilder) SetComment(comment interface{}) *DistinctOptio
 func (do *DistinctOptionsBuilder) SetHint(hint interface{}) *DistinctOptionsBuilder {
 	do.Opts = append(do.Opts, func(opts *DistinctOptions) error {
 		opts.Hint = hint
+
+		return nil
+	})
+
+	return do
+}
+
+// SetRawBucketsData sets the value for the RawBucketsData field. If true, it allows the CRUD operations to access timeseries
+// collections on the bucket-level. This option is only valid for MongoDB versions >= 9.0. The default value is false.
+func (do *DistinctOptionsBuilder) SetRawBucketsData(rawBucketsData bool) *DistinctOptionsBuilder {
+	do.Opts = append(do.Opts, func(opts *DistinctOptions) error {
+		opts.RawBucketsData = &rawBucketsData
 
 		return nil
 	})
