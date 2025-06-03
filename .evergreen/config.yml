@@ -1983,10 +1983,6 @@ tasks:
 
   - name: "test-aws-lambda-deployed"
     commands:
-      - command: ec2.assume_role
-        params:
-          role_arn: ${LAMBDA_AWS_ROLE_ARN}
-          duration_seconds: 3600
       - command: shell.exec
         type: test
         params:
@@ -2361,10 +2357,12 @@ task_groups:
     setup_group:
       - func: fetch-source
       - func: prepare-resources
+      - func: assume-test-secrets-ec2-role
       - command: subprocess.exec
         params:
           working_dir: src/go.mongodb.org/mongo-driver
           binary: bash
+          add_expansions_to_env: true
           env:
             LAMBDA_STACK_NAME: dbx-go-lambda
             AWS_REGION: us-east-1
