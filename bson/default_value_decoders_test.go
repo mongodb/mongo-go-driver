@@ -75,7 +75,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&valueReaderWriter{BSONType: TypeBoolean},
 					nothing,
-					ValueDecoderError{Name: "BooleanDecodeValue", Kinds: []reflect.Kind{reflect.Bool}, Received: reflect.ValueOf(wrong)},
+					ValueDecoderError{
+						Name:     "BooleanDecodeValue",
+						Kinds:    []reflect.Kind{reflect.Bool},
+						Received: reflect.New(reflect.TypeOf(wrong)).Elem(),
+					},
 				},
 				{
 					"type not boolean",
@@ -741,7 +745,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&valueReaderWriter{BSONType: TypeDateTime, Return: int64(0)},
 					nothing,
-					ValueDecoderError{Name: "TimeDecodeValue", Types: []reflect.Type{tTime}, Received: reflect.ValueOf(wrong)},
+					ValueDecoderError{
+						Name:     "TimeDecodeValue",
+						Types:    []reflect.Type{tTime},
+						Received: reflect.New(reflect.TypeOf(wrong)).Elem(),
+					},
 				},
 				{
 					"ReadDateTime error",
@@ -795,7 +803,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&valueReaderWriter{},
 					nothing,
-					ValueDecoderError{Name: "MapDecodeValue", Kinds: []reflect.Kind{reflect.Map}, Received: reflect.ValueOf(wrong)},
+					ValueDecoderError{
+						Name:     "MapDecodeValue",
+						Kinds:    []reflect.Kind{reflect.Map},
+						Received: reflect.New(reflect.TypeOf(wrong)).Elem(),
+					},
 				},
 				{
 					"wrong kind (non-string key)",
@@ -873,7 +885,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&valueReaderWriter{},
 					nothing,
-					ValueDecoderError{Name: "ArrayDecodeValue", Kinds: []reflect.Kind{reflect.Array}, Received: reflect.ValueOf(wrong)},
+					ValueDecoderError{
+						Name:     "ArrayDecodeValue",
+						Kinds:    []reflect.Kind{reflect.Array},
+						Received: reflect.New(reflect.TypeOf(wrong)).Elem(),
+					},
 				},
 				{
 					"can set false",
@@ -967,7 +983,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&valueReaderWriter{},
 					nothing,
-					ValueDecoderError{Name: "SliceDecodeValue", Kinds: []reflect.Kind{reflect.Slice}, Received: reflect.ValueOf(wrong)},
+					ValueDecoderError{
+						Name:     "SliceDecodeValue",
+						Kinds:    []reflect.Kind{reflect.Slice},
+						Received: reflect.New(reflect.TypeOf(wrong)).Elem(),
+					},
 				},
 				{
 					"can set false",
@@ -1061,7 +1081,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&valueReaderWriter{BSONType: TypeObjectID},
 					nothing,
-					ValueDecoderError{Name: "ObjectIDDecodeValue", Types: []reflect.Type{tOID}, Received: reflect.ValueOf(wrong)},
+					ValueDecoderError{
+						Name:     "ObjectIDDecodeValue",
+						Types:    []reflect.Type{tOID},
+						Received: reflect.New(reflect.TypeOf(wrong)).Elem(),
+					},
 				},
 				{
 					"type not objectID",
@@ -1148,7 +1172,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&valueReaderWriter{BSONType: TypeDecimal128},
 					nothing,
-					ValueDecoderError{Name: "Decimal128DecodeValue", Types: []reflect.Type{tDecimal}, Received: reflect.ValueOf(wrong)},
+					ValueDecoderError{
+						Name:     "Decimal128DecodeValue",
+						Types:    []reflect.Type{tDecimal},
+						Received: reflect.New(reflect.TypeOf(wrong)).Elem(),
+					},
 				},
 				{
 					"type not decimal128",
@@ -1210,7 +1238,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&valueReaderWriter{BSONType: TypeObjectID},
 					nothing,
-					ValueDecoderError{Name: "JSONNumberDecodeValue", Types: []reflect.Type{tJSONNumber}, Received: reflect.ValueOf(wrong)},
+					ValueDecoderError{
+						Name:     "JSONNumberDecodeValue",
+						Types:    []reflect.Type{tJSONNumber},
+						Received: reflect.New(reflect.TypeOf(wrong)).Elem(),
+					},
 				},
 				{
 					"type not double/int32/int64",
@@ -1312,7 +1344,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&valueReaderWriter{BSONType: TypeString, Return: "http://example.com"},
 					nothing,
-					ValueDecoderError{Name: "URLDecodeValue", Types: []reflect.Type{tURL}, Received: reflect.ValueOf(int64(0))},
+					ValueDecoderError{
+						Name:     "URLDecodeValue",
+						Types:    []reflect.Type{tURL},
+						Received: reflect.New(reflect.TypeOf(int64(0))).Elem(),
+					},
 				},
 				{
 					"ReadString error",
@@ -1386,7 +1422,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&valueReaderWriter{BSONType: TypeBinary, Return: bsoncore.Value{Type: bsoncore.TypeBinary}},
 					nothing,
-					ValueDecoderError{Name: "ByteSliceDecodeValue", Types: []reflect.Type{tByteSlice}, Received: reflect.ValueOf(int64(0))},
+					ValueDecoderError{
+						Name:     "ByteSliceDecodeValue",
+						Types:    []reflect.Type{tByteSlice},
+						Received: reflect.New(reflect.TypeOf(int64(0))).Elem(),
+					},
 				},
 				{
 					"ReadBinary error",
@@ -1479,7 +1519,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					ValueDecoderError{
 						Name:     "ValueUnmarshalerDecodeValue",
 						Types:    []reflect.Type{tValueUnmarshaler},
-						Received: reflect.ValueOf(wrong),
+						Received: reflect.New(reflect.TypeOf(wrong)).Elem(),
 					},
 				},
 				{
@@ -1510,7 +1550,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					nil,
 					nothing,
-					ValueDecoderError{Name: "UnmarshalerDecodeValue", Types: []reflect.Type{tUnmarshaler}, Received: reflect.ValueOf(wrong)},
+					ValueDecoderError{
+						Name:     "UnmarshalerDecodeValue",
+						Types:    []reflect.Type{tUnmarshaler},
+						Received: reflect.New(reflect.TypeOf(wrong)).Elem(),
+					},
 				},
 				{
 					"copy error",
@@ -1589,7 +1633,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&valueReaderWriter{},
 					nothing,
-					ValueDecoderError{Name: "BinaryDecodeValue", Types: []reflect.Type{tBinary}, Received: reflect.ValueOf(wrong)},
+					ValueDecoderError{
+						Name:     "BinaryDecodeValue",
+						Types:    []reflect.Type{tBinary},
+						Received: reflect.New(reflect.TypeOf(wrong)).Elem(),
+					},
 				},
 				{
 					"type not binary",
@@ -1649,7 +1697,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&valueReaderWriter{BSONType: TypeUndefined},
 					nothing,
-					ValueDecoderError{Name: "UndefinedDecodeValue", Types: []reflect.Type{tUndefined}, Received: reflect.ValueOf(wrong)},
+					ValueDecoderError{
+						Name:     "UndefinedDecodeValue",
+						Types:    []reflect.Type{tUndefined},
+						Received: reflect.New(reflect.TypeOf(wrong)).Elem(),
+					},
 				},
 				{
 					"type not undefined",
@@ -1695,7 +1747,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&valueReaderWriter{BSONType: TypeDateTime},
 					nothing,
-					ValueDecoderError{Name: "DateTimeDecodeValue", Types: []reflect.Type{tDateTime}, Received: reflect.ValueOf(wrong)},
+					ValueDecoderError{
+						Name:     "DateTimeDecodeValue",
+						Types:    []reflect.Type{tDateTime},
+						Received: reflect.New(reflect.TypeOf(wrong)).Elem(),
+					},
 				},
 				{
 					"type not datetime",
@@ -1749,7 +1805,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&valueReaderWriter{BSONType: TypeNull},
 					nothing,
-					ValueDecoderError{Name: "NullDecodeValue", Types: []reflect.Type{tNull}, Received: reflect.ValueOf(wrong)},
+					ValueDecoderError{
+						Name:     "NullDecodeValue",
+						Types:    []reflect.Type{tNull},
+						Received: reflect.New(reflect.TypeOf(wrong)).Elem(),
+					},
 				},
 				{
 					"type not null",
@@ -1787,7 +1847,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&valueReaderWriter{BSONType: TypeRegex},
 					nothing,
-					ValueDecoderError{Name: "RegexDecodeValue", Types: []reflect.Type{tRegex}, Received: reflect.ValueOf(wrong)},
+					ValueDecoderError{
+						Name:     "RegexDecodeValue",
+						Types:    []reflect.Type{tRegex},
+						Received: reflect.New(reflect.TypeOf(wrong)).Elem(),
+					},
 				},
 				{
 					"type not regex",
@@ -1847,7 +1911,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&valueReaderWriter{BSONType: TypeDBPointer},
 					nothing,
-					ValueDecoderError{Name: "DBPointerDecodeValue", Types: []reflect.Type{tDBPointer}, Received: reflect.ValueOf(wrong)},
+					ValueDecoderError{
+						Name:     "DBPointerDecodeValue",
+						Types:    []reflect.Type{tDBPointer},
+						Received: reflect.New(reflect.TypeOf(wrong)).Elem(),
+					},
 				},
 				{
 					"type not dbpointer",
@@ -1912,7 +1980,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&valueReaderWriter{BSONType: TypeTimestamp},
 					nothing,
-					ValueDecoderError{Name: "TimestampDecodeValue", Types: []reflect.Type{tTimestamp}, Received: reflect.ValueOf(wrong)},
+					ValueDecoderError{
+						Name:     "TimestampDecodeValue",
+						Types:    []reflect.Type{tTimestamp},
+						Received: reflect.New(reflect.TypeOf(wrong)).Elem(),
+					},
 				},
 				{
 					"type not timestamp",
@@ -1972,7 +2044,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&valueReaderWriter{BSONType: TypeMinKey},
 					nothing,
-					ValueDecoderError{Name: "MinKeyDecodeValue", Types: []reflect.Type{tMinKey}, Received: reflect.ValueOf(wrong)},
+					ValueDecoderError{
+						Name:     "MinKeyDecodeValue",
+						Types:    []reflect.Type{tMinKey},
+						Received: reflect.New(reflect.TypeOf(wrong)).Elem(),
+					},
 				},
 				{
 					"type not null",
@@ -2026,7 +2102,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&valueReaderWriter{BSONType: TypeMaxKey},
 					nothing,
-					ValueDecoderError{Name: "MaxKeyDecodeValue", Types: []reflect.Type{tMaxKey}, Received: reflect.ValueOf(wrong)},
+					ValueDecoderError{
+						Name:     "MaxKeyDecodeValue",
+						Types:    []reflect.Type{tMaxKey},
+						Received: reflect.New(reflect.TypeOf(wrong)).Elem(),
+					},
 				},
 				{
 					"type not null",
@@ -2080,7 +2160,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&valueReaderWriter{BSONType: TypeJavaScript, Return: ""},
 					nothing,
-					ValueDecoderError{Name: "JavaScriptDecodeValue", Types: []reflect.Type{tJavaScript}, Received: reflect.ValueOf(wrong)},
+					ValueDecoderError{
+						Name:     "JavaScriptDecodeValue",
+						Types:    []reflect.Type{tJavaScript},
+						Received: reflect.New(reflect.TypeOf(wrong)).Elem(),
+					},
 				},
 				{
 					"type not Javascript",
@@ -2134,7 +2218,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&valueReaderWriter{BSONType: TypeSymbol, Return: ""},
 					nothing,
-					ValueDecoderError{Name: "SymbolDecodeValue", Types: []reflect.Type{tSymbol}, Received: reflect.ValueOf(wrong)},
+					ValueDecoderError{
+						Name:     "SymbolDecodeValue",
+						Types:    []reflect.Type{tSymbol},
+						Received: reflect.New(reflect.TypeOf(wrong)).Elem(),
+					},
 				},
 				{
 					"type not Symbol",
@@ -2191,7 +2279,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					ValueDecoderError{
 						Name:     "CoreDocumentDecodeValue",
 						Types:    []reflect.Type{tCoreDocument},
-						Received: reflect.ValueOf(wrong),
+						Received: reflect.New(reflect.TypeOf(wrong)).Elem(),
 					},
 				},
 				{
@@ -2203,7 +2291,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					ValueDecoderError{
 						Name:     "CoreDocumentDecodeValue",
 						Types:    []reflect.Type{tCoreDocument},
-						Received: reflect.ValueOf((*bsoncore.Document)(nil)),
+						Received: reflect.New(reflect.TypeOf((*bsoncore.Document)(nil))).Elem(),
 					},
 				},
 				{
@@ -2259,7 +2347,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					ValueDecoderError{
 						Name:     "CodeWithScopeDecodeValue",
 						Types:    []reflect.Type{tCodeWithScope},
-						Received: reflect.ValueOf(wrong),
+						Received: reflect.New(reflect.TypeOf(wrong)).Elem(),
 					},
 				},
 				{
@@ -2320,7 +2408,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					ValueDecoderError{
 						Name:     "CoreArrayDecodeValue",
 						Types:    []reflect.Type{tCoreArray},
-						Received: reflect.ValueOf(wrong),
+						Received: reflect.New(reflect.TypeOf(wrong)).Elem(),
 					},
 				},
 				{
@@ -2332,7 +2420,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					ValueDecoderError{
 						Name:     "CoreArrayDecodeValue",
 						Types:    []reflect.Type{tCoreArray},
-						Received: reflect.ValueOf((*bsoncore.Array)(nil)),
+						Received: reflect.New(reflect.TypeOf((*bsoncore.Array)(nil))).Elem(),
 					},
 				},
 			},

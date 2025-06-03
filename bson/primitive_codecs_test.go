@@ -507,7 +507,7 @@ func TestPrimitiveValueDecoders(t *testing.T) {
 					ValueDecoderError{
 						Name:     "RawValueDecodeValue",
 						Types:    []reflect.Type{tRawValue},
-						Received: reflect.ValueOf(wrong),
+						Received: reflect.New(reflect.TypeOf(wrong)).Elem(),
 					},
 				},
 				{
@@ -548,7 +548,11 @@ func TestPrimitiveValueDecoders(t *testing.T) {
 					nil,
 					&valueReaderWriter{},
 					nothing,
-					ValueDecoderError{Name: "RawDecodeValue", Types: []reflect.Type{tRaw}, Received: reflect.ValueOf(wrong)},
+					ValueDecoderError{
+						Name:     "RawDecodeValue",
+						Types:    []reflect.Type{tRaw},
+						Received: reflect.New(reflect.TypeOf(wrong)).Elem(),
+					},
 				},
 				{
 					"*Raw is nil",
@@ -559,7 +563,7 @@ func TestPrimitiveValueDecoders(t *testing.T) {
 					ValueDecoderError{
 						Name:     "RawDecodeValue",
 						Types:    []reflect.Type{tRaw},
-						Received: reflect.ValueOf((*Raw)(nil)),
+						Received: reflect.New(reflect.TypeOf((*Raw)(nil))).Elem(),
 					},
 				},
 				{
