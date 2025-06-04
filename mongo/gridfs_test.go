@@ -112,9 +112,24 @@ func TestGridFS(t *testing.T) {
 }
 
 func TestGridFSFile_UnmarshalBSON(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
 	cs := integtest.ConnString(t)
 
-	client, err := Connect(options.Client().ApplyURI(cs.Original))
+	clientOpts := options.Client().
+		ApplyURI(cs.Original).
+		SetReadPreference(readpref.Primary()).
+		SetWriteConcern(writeconcern.Majority()).
+		// Connect to a single host. For sharded clusters, this will pin to a single mongos, which avoids
+		// non-deterministic versioning errors in the server. This has no effect for replica sets because the driver
+		// will discover the other hosts during SDAM checks.
+		SetHosts(cs.Hosts[:1])
+
+	integtest.AddTestServerAPIVersion(clientOpts)
+
+	client, err := Connect(clientOpts)
 	require.NoError(t, err)
 
 	defer func() {
