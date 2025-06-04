@@ -112,7 +112,9 @@ func TestGridFS(t *testing.T) {
 }
 
 func TestGridFSFile_UnmarshalBSON(t *testing.T) {
-	client, err := Connect()
+	cs := integtest.ConnString(t)
+
+	client, err := Connect(options.Client().ApplyURI(cs.Original))
 	require.NoError(t, err)
 
 	defer func() {
