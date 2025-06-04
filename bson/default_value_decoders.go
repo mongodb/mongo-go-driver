@@ -1392,7 +1392,7 @@ func decodeDefault(dc DecodeContext, vr ValueReader, val reflect.Value) ([]refle
 				}
 			}
 		} else {
-			// For non-interface slices, or if we've exhuasted the pre-populated
+			// For non-interface slices, or if we've exhausted the pre-populated
 			// slots, we create a fresh value.
 
 			if vDecoder == nil {
