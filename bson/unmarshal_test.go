@@ -426,7 +426,7 @@ func TestUnmarshalInterface(t *testing.T) {
 			},
 		},
 		{
-			name: "struct with interface slice containing concrete values",
+			name: "overwriting prepopulated slice",
 			stub: func() ([]byte, interface{}, func(*testing.T)) {
 				type testStruct struct {
 					Values []interface{}
