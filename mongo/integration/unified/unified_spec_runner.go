@@ -25,6 +25,11 @@ import (
 
 var (
 	skippedTests = map[string]string{
+		// GODRIVER-3524: Change streams expanded events for MongoDB 8.2+
+		"Test array truncation":                                                    "See GODRIVER-3524",
+		"Test insert, update, replace, and delete event types":                     "See GODRIVER-3524",
+		"disambiguatedPaths is not present when showExpandedEvents is false/unset": "see GODRIVER-3524",
+
 		// GODRIVER-1773: This test runs a "find" with limit=4 and batchSize=3. It expects batchSize values of three for
 		// the "find" and one for the "getMore", but we send three for both.
 		"A successful find event with a getmore and the server kills the cursor (<= 4.4)": "See GODRIVER-1773",
