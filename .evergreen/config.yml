@@ -1977,6 +1977,7 @@ task_groups:
       - command: subprocess.exec
         params:
           binary: bash
+          add_expansions_to_env: true
           env:
             AZUREOIDC_VMNAME_PREFIX: "GO_DRIVER"
           args:
