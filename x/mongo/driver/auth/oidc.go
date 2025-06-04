@@ -13,46 +13,59 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"regexp"
 	"strings"
 	"sync"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
 )
 
 // MongoDBOIDC is the string constant for the MONGODB-OIDC authentication mechanism.
 const MongoDBOIDC = "MONGODB-OIDC"
 
-// EnvironmentProp is the property key name that specifies the environment for the OIDC authenticator.
-const EnvironmentProp = "ENVIRONMENT"
+// Valid authMechanismProperties keys for MONGODB-OIDC.
+const (
+	// EnvironmentProp is the property key name that specifies the environment for the OIDC authenticator.
+	EnvironmentProp = "ENVIRONMENT"
 
-// ResourceProp is the property key name that specifies the token resource for GCP and AZURE OIDC auth.
-const ResourceProp = "TOKEN_RESOURCE"
+	// ResourceProp is the property key name that specifies the token resource for GCP and AZURE OIDC auth.
+	ResourceProp = "TOKEN_RESOURCE"
 
-// AllowedHostsProp is the property key name that specifies the allowed hosts for the OIDC authenticator.
-const AllowedHostsProp = "ALLOWED_HOSTS"
+	// AllowedHostsProp is the property key name that specifies the allowed hosts for the OIDC authenticator.
+	AllowedHostsProp = "ALLOWED_HOSTS"
+)
 
-// AzureEnvironmentValue is the value for the Azure environment.
-const AzureEnvironmentValue = "azure"
+// Valid ENVIRONMENT authMechismProperty values for MONGODB-OIDC.
+const (
+	// AzureEnvironmentValue is the value for the Azure environment.
+	AzureEnvironmentValue = "azure"
 
-// GCPEnvironmentValue is the value for the GCP environment.
-const GCPEnvironmentValue = "gcp"
+	// GCPEnvironmentValue is the value for the GCP environment.
+	GCPEnvironmentValue = "gcp"
 
-// TestEnvironmentValue is the value for the test environment.
-const TestEnvironmentValue = "test"
+	// K8SEnvironmentValue is the value for Kubernetes environments.
+	K8SEnvironmentValue = "k8s"
 
-const apiVersion = 1
-const invalidateSleepTimeout = 100 * time.Millisecond
+	// TestEnvironmentValue is the value for the test environment.
+	TestEnvironmentValue = "test"
+)
 
-// The CSOT specification says to apply a 1-minute timeout if "CSOT is not applied". That's
-// ambiguous for the v1.x Go Driver because it could mean either "no timeout provided" or "CSOT not
-// enabled". Always use a maximum timeout duration of 1 minute, allowing us to ignore the ambiguity.
-// Contexts with a shorter timeout are unaffected.
-const machineCallbackTimeout = time.Minute
-const humanCallbackTimeout = 5 * time.Minute
+const (
+	apiVersion             = 1
+	invalidateSleepTimeout = 100 * time.Millisecond
+
+	// The CSOT specification says to apply a 1-minute timeout if "CSOT is not applied". That's
+	// ambiguous for the v1.x Go Driver because it could mean either "no timeout provided" or "CSOT not
+	// enabled". Always use a maximum timeout duration of 1 minute, allowing us to ignore the ambiguity.
+	// Contexts with a shorter timeout are unaffected.
+	machineCallbackTimeout = time.Minute
+	humanCallbackTimeout   = 5 * time.Minute
+)
 
 var defaultAllowedHosts = []*regexp.Regexp{
 	regexp.MustCompile(`^.*[.]mongodb[.]net(:\d+)?$`),
@@ -118,14 +131,12 @@ func newOIDCAuthenticator(cred *Cred, httpClient *http.Client) (Authenticator, e
 	if cred.Props != nil {
 		if env, ok := cred.Props[EnvironmentProp]; ok {
 			switch strings.ToLower(env) {
-			case AzureEnvironmentValue:
-				fallthrough
-			case GCPEnvironmentValue:
+			case AzureEnvironmentValue, GCPEnvironmentValue:
 				if _, ok := cred.Props[ResourceProp]; !ok {
 					return nil, fmt.Errorf("%q must be specified for %q %q", ResourceProp, env, EnvironmentProp)
 				}
 				fallthrough
-			case TestEnvironmentValue:
+			case K8SEnvironmentValue, TestEnvironmentValue:
 				if cred.OIDCMachineCallback != nil || cred.OIDCHumanCallback != nil {
 					return nil, fmt.Errorf("OIDC callbacks are not allowed for %q %q", env, EnvironmentProp)
 				}
@@ -178,7 +189,7 @@ func (oa *OIDCAuthenticator) setAllowedHosts() error {
 	return nil
 }
 
-func (oa *OIDCAuthenticator) validateConnectionAddressWithAllowedHosts(conn driver.Connection) error {
+func (oa *OIDCAuthenticator) validateConnectionAddressWithAllowedHosts(conn *mnet.Connection) error {
 	if oa.allowedHosts == nil {
 		// should be unreachable, but this is a safety check.
 		return newAuthError(fmt.Sprintf("%q missing", AllowedHostsProp), nil)
@@ -201,7 +212,7 @@ type oidcOneStep struct {
 }
 
 type oidcTwoStep struct {
-	conn driver.Connection
+	conn *mnet.Connection
 	oa   *OIDCAuthenticator
 }
 
@@ -280,6 +291,8 @@ func (oa *OIDCAuthenticator) providerCallback() (OIDCCallback, error) {
 			return nil, newAuthError(fmt.Sprintf("%q must be specified for GCP OIDC", ResourceProp), nil)
 		}
 		return getGCPOIDCCallback(resource, oa.httpClient), nil
+	case K8SEnvironmentValue:
+		return k8sOIDCCallback, nil
 	}
 
 	return nil, fmt.Errorf("%q %q not supported for MONGODB-OIDC", EnvironmentProp, env)
@@ -359,9 +372,32 @@ func getGCPOIDCCallback(resource string, httpClient *http.Client) OIDCCallback {
 	}
 }
 
+// k8sOIDCCallbackfunc is the callback for the Kubernetes token provider.
+func k8sOIDCCallback(context.Context, *OIDCArgs) (*OIDCCredential, error) {
+	// Check for the presence of the Azure and AWS token file path environment
+	// variables. If neither are set, use the GKE default token file path.
+	var path string
+	if p := os.Getenv("AZURE_FEDERATED_TOKEN_FILE"); p != "" {
+		path = p
+	} else if p := os.Getenv("AWS_WEB_IDENTITY_TOKEN_FILE"); p != "" {
+		path = p
+	} else {
+		path = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+	}
+
+	token, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("error reading OIDC token from %q: %w", path, err)
+	}
+
+	return &OIDCCredential{
+		AccessToken: string(token),
+	}, nil
+}
+
 func (oa *OIDCAuthenticator) getAccessToken(
 	ctx context.Context,
-	conn driver.Connection,
+	conn *mnet.Connection,
 	args *OIDCArgs,
 	callback OIDCCallback,
 ) (string, error) {
@@ -412,7 +448,7 @@ func (oa *OIDCAuthenticator) getAccessToken(
 // tokenGenID of the OIDCAuthenticator. It should never actually be greater than, but only equal,
 // but this is a safety check, since extra invalidation is only a performance impact, not a
 // correctness impact.
-func (oa *OIDCAuthenticator) invalidateAccessToken(conn driver.Connection) {
+func (oa *OIDCAuthenticator) invalidateAccessToken(conn *mnet.Connection) {
 	oa.mu.Lock()
 	defer oa.mu.Unlock()
 	tokenGenID := conn.OIDCTokenGenID()
@@ -427,13 +463,13 @@ func (oa *OIDCAuthenticator) invalidateAccessToken(conn driver.Connection) {
 
 // Reauth reauthenticates the connection when the server returns a 391 code. Reauth is part of the
 // driver.Authenticator interface.
-func (oa *OIDCAuthenticator) Reauth(ctx context.Context, cfg *Config) error {
+func (oa *OIDCAuthenticator) Reauth(ctx context.Context, cfg *driver.AuthConfig) error {
 	oa.invalidateAccessToken(cfg.Connection)
 	return oa.Auth(ctx, cfg)
 }
 
 // Auth authenticates the connection.
-func (oa *OIDCAuthenticator) Auth(ctx context.Context, cfg *Config) error {
+func (oa *OIDCAuthenticator) Auth(ctx context.Context, cfg *driver.AuthConfig) error {
 	var err error
 
 	if cfg == nil {
@@ -483,7 +519,7 @@ func (oa *OIDCAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 	return newAuthError("no OIDC callback provided", nil)
 }
 
-func (oa *OIDCAuthenticator) doAuthHuman(ctx context.Context, cfg *Config, humanCallback OIDCCallback, idpInfo *IDPInfo, refreshToken *string) error {
+func (oa *OIDCAuthenticator) doAuthHuman(ctx context.Context, cfg *driver.AuthConfig, humanCallback OIDCCallback, idpInfo *IDPInfo, refreshToken *string) error {
 	// Ensure that the connection address is allowed by the allowed hosts.
 	err := oa.validateConnectionAddressWithAllowedHosts(cfg.Connection)
 	if err != nil {
@@ -520,7 +556,7 @@ func (oa *OIDCAuthenticator) doAuthHuman(ctx context.Context, cfg *Config, human
 	return ConductSaslConversation(subCtx, cfg, sourceExternal, ots)
 }
 
-func (oa *OIDCAuthenticator) doAuthMachine(ctx context.Context, cfg *Config, machineCallback OIDCCallback) error {
+func (oa *OIDCAuthenticator) doAuthMachine(ctx context.Context, cfg *driver.AuthConfig, machineCallback OIDCCallback) error {
 	subCtx, cancel := context.WithTimeout(ctx, machineCallbackTimeout)
 	accessToken, err := oa.getAccessToken(subCtx,
 		cfg.Connection,

@@ -4,7 +4,7 @@ schemaVersion: "1.4"
 
 runOnRequirements:
   - minServerVersion: "6.0.0"
-    topologies: [ replicaset, sharded-replicaset, load-balanced ]
+    topologies: [ replicaset, sharded, load-balanced ]
     serverless: forbid
 
 createEntities:

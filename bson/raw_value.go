@@ -13,11 +13,7 @@ import (
 	"reflect"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/bson/bsonrw"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 // ErrNilContext is returned when the provided DecodeContext is nil.
@@ -31,10 +27,10 @@ var ErrNilRegistry = errors.New("Registry cannot be nil")
 //
 // A RawValue must be an individual BSON value. Use the Raw type for full BSON documents.
 type RawValue struct {
-	Type  bsontype.Type
+	Type  Type
 	Value []byte
 
-	r *bsoncodec.Registry
+	r *Registry
 }
 
 // IsZero reports whether the RawValue is zero, i.e. no data is present on
@@ -50,7 +46,7 @@ func (rv RawValue) IsZero() bool {
 func (rv RawValue) Unmarshal(val interface{}) error {
 	reg := rv.r
 	if reg == nil {
-		reg = DefaultRegistry
+		reg = defaultRegistry
 	}
 	return rv.UnmarshalWithRegistry(reg, val)
 }
@@ -70,12 +66,12 @@ func (rv RawValue) Equal(rv2 RawValue) bool {
 
 // UnmarshalWithRegistry performs the same unmarshalling as Unmarshal but uses the provided registry
 // instead of the one attached or the default registry.
-func (rv RawValue) UnmarshalWithRegistry(r *bsoncodec.Registry, val interface{}) error {
+func (rv RawValue) UnmarshalWithRegistry(r *Registry, val interface{}) error {
 	if r == nil {
 		return ErrNilRegistry
 	}
 
-	vr := bsonrw.NewBSONValueReader(rv.Type, rv.Value)
+	vr := newValueReader(rv.Type, bytes.NewReader(rv.Value))
 	rval := reflect.ValueOf(val)
 	if rval.Kind() != reflect.Ptr {
 		return fmt.Errorf("argument to Unmarshal* must be a pointer to a type, but got %v", rval)
@@ -85,21 +81,17 @@ func (rv RawValue) UnmarshalWithRegistry(r *bsoncodec.Registry, val interface{})
 	if err != nil {
 		return err
 	}
-	return dec.DecodeValue(bsoncodec.DecodeContext{Registry: r}, vr, rval)
+	return dec.DecodeValue(DecodeContext{Registry: r}, vr, rval)
 }
 
-// UnmarshalWithContext performs the same unmarshalling as Unmarshal but uses
-// the provided DecodeContext instead of the one attached or the default
-// registry.
-//
-// Deprecated: Use [RawValue.UnmarshalWithRegistry] with a custom registry to customize
-// unmarshal behavior instead.
-func (rv RawValue) UnmarshalWithContext(dc *bsoncodec.DecodeContext, val interface{}) error {
+// UnmarshalWithContext performs the same unmarshalling as Unmarshal but uses the provided DecodeContext
+// instead of the one attached or the default registry.
+func (rv RawValue) UnmarshalWithContext(dc *DecodeContext, val interface{}) error {
 	if dc == nil {
 		return ErrNilContext
 	}
 
-	vr := bsonrw.NewBSONValueReader(rv.Type, rv.Value)
+	vr := newValueReader(rv.Type, bytes.NewReader(rv.Value))
 	rval := reflect.ValueOf(val)
 	if rval.Kind() != reflect.Ptr {
 		return fmt.Errorf("argument to Unmarshal* must be a pointer to a type, but got %v", rval)
@@ -112,9 +104,11 @@ func (rv RawValue) UnmarshalWithContext(dc *bsoncodec.DecodeContext, val interfa
 	return dec.DecodeValue(*dc, vr, rval)
 }
 
-func convertFromCoreValue(v bsoncore.Value) RawValue { return RawValue{Type: v.Type, Value: v.Data} }
+func convertFromCoreValue(v bsoncore.Value) RawValue {
+	return RawValue{Type: Type(v.Type), Value: v.Data}
+}
 func convertToCoreValue(v RawValue) bsoncore.Value {
-	return bsoncore.Value{Type: v.Type, Data: v.Value}
+	return bsoncore.Value{Type: bsoncore.Type(v.Type), Data: v.Value}
 }
 
 // Validate ensures the value is a valid BSON value.
@@ -132,14 +126,14 @@ func (rv RawValue) String() string { return convertToCoreValue(rv).String() }
 func (rv RawValue) DebugString() string { return convertToCoreValue(rv).DebugString() }
 
 // Double returns the float64 value for this element.
-// It panics if e's BSON type is not bsontype.Double.
+// It panics if e's BSON type is not bson.TypeDouble.
 func (rv RawValue) Double() float64 { return convertToCoreValue(rv).Double() }
 
 // DoubleOK is the same as Double, but returns a boolean instead of panicking.
 func (rv RawValue) DoubleOK() (float64, bool) { return convertToCoreValue(rv).DoubleOK() }
 
 // StringValue returns the string value for this element.
-// It panics if e's BSON type is not bsontype.String.
+// It panics if e's BSON type is not bson.TypeString.
 //
 // NOTE: This method is called StringValue to avoid a collision with the String method which
 // implements the fmt.Stringer interface.
@@ -162,13 +156,14 @@ func (rv RawValue) DocumentOK() (Raw, bool) {
 
 // Array returns the BSON array the Value represents as an Array. It panics if the
 // value is a BSON type other than array.
-func (rv RawValue) Array() Raw { return Raw(convertToCoreValue(rv).Array()) }
+func (rv RawValue) Array() RawArray { return RawArray(convertToCoreValue(rv).Array()) }
 
 // ArrayOK is the same as Array, except it returns a boolean instead
 // of panicking.
-func (rv RawValue) ArrayOK() (Raw, bool) {
+func (rv RawValue) ArrayOK() (RawArray, bool) {
 	doc, ok := convertToCoreValue(rv).ArrayOK()
-	return Raw(doc), ok
+
+	return RawArray(doc), ok
 }
 
 // Binary returns the BSON binary value the Value represents. It panics if the value is a BSON type
@@ -183,11 +178,11 @@ func (rv RawValue) BinaryOK() (subtype byte, data []byte, ok bool) {
 
 // ObjectID returns the BSON objectid value the Value represents. It panics if the value is a BSON
 // type other than objectid.
-func (rv RawValue) ObjectID() primitive.ObjectID { return convertToCoreValue(rv).ObjectID() }
+func (rv RawValue) ObjectID() ObjectID { return convertToCoreValue(rv).ObjectID() }
 
 // ObjectIDOK is the same as ObjectID, except it returns a boolean instead of
 // panicking.
-func (rv RawValue) ObjectIDOK() (primitive.ObjectID, bool) {
+func (rv RawValue) ObjectIDOK() (ObjectID, bool) {
 	return convertToCoreValue(rv).ObjectIDOK()
 }
 
@@ -227,13 +222,13 @@ func (rv RawValue) RegexOK() (pattern, options string, ok bool) {
 
 // DBPointer returns the BSON dbpointer value the Value represents. It panics if the value is a BSON
 // type other than DBPointer.
-func (rv RawValue) DBPointer() (string, primitive.ObjectID) {
+func (rv RawValue) DBPointer() (string, ObjectID) {
 	return convertToCoreValue(rv).DBPointer()
 }
 
 // DBPointerOK is the same as DBPoitner, except that it returns a boolean
 // instead of panicking.
-func (rv RawValue) DBPointerOK() (string, primitive.ObjectID, bool) {
+func (rv RawValue) DBPointerOK() (string, ObjectID, bool) {
 	return convertToCoreValue(rv).DBPointerOK()
 }
 
@@ -275,20 +270,6 @@ func (rv RawValue) Int32() int32 { return convertToCoreValue(rv).Int32() }
 // panicking.
 func (rv RawValue) Int32OK() (int32, bool) { return convertToCoreValue(rv).Int32OK() }
 
-// AsInt32 returns a BSON number as an int32. If the BSON type is not a numeric one, this method
-// will panic.
-//
-// Deprecated: Use AsInt64 instead. If an int32 is required, convert the returned value to an int32
-// and perform any required overflow/underflow checking.
-func (rv RawValue) AsInt32() int32 { return convertToCoreValue(rv).AsInt32() }
-
-// AsInt32OK is the same as AsInt32, except that it returns a boolean instead of
-// panicking.
-//
-// Deprecated: Use AsInt64OK instead. If an int32 is required, convert the returned value to an
-// int32 and perform any required overflow/underflow checking.
-func (rv RawValue) AsInt32OK() (int32, bool) { return convertToCoreValue(rv).AsInt32OK() }
-
 // Timestamp returns the BSON timestamp value the Value represents. It panics if the value is a
 // BSON type other than timestamp.
 func (rv RawValue) Timestamp() (t, i uint32) { return convertToCoreValue(rv).Timestamp() }
@@ -315,10 +296,11 @@ func (rv RawValue) AsInt64OK() (int64, bool) { return convertToCoreValue(rv).AsI
 
 // Decimal128 returns the decimal the Value represents. It panics if the value is a BSON type other than
 // decimal.
-func (rv RawValue) Decimal128() primitive.Decimal128 { return convertToCoreValue(rv).Decimal128() }
+func (rv RawValue) Decimal128() Decimal128 { return NewDecimal128(convertToCoreValue(rv).Decimal128()) }
 
 // Decimal128OK is the same as Decimal128, except that it returns a boolean
 // instead of panicking.
-func (rv RawValue) Decimal128OK() (primitive.Decimal128, bool) {
-	return convertToCoreValue(rv).Decimal128OK()
+func (rv RawValue) Decimal128OK() (Decimal128, bool) {
+	h, l, ok := convertToCoreValue(rv).Decimal128OK()
+	return NewDecimal128(h, l), ok
 }

@@ -12,12 +12,12 @@ import (
 	"runtime"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/driverutil"
-	"go.mongodb.org/mongo-driver/internal/require"
-	"go.mongodb.org/mongo-driver/version"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/version"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 func assertDocsEqual(t *testing.T, got bsoncore.Document, want []byte) {
@@ -112,12 +112,22 @@ func TestAppendClientDriver(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name string
-		want []byte // Extend JSON
+		name                string
+		outerLibraryName    string
+		outerLibraryVersion string
+		want                []byte // Extend JSON
 	}{
 		{
-			name: "full",
-			want: []byte(fmt.Sprintf(`{"driver":{"name": %q, "version": %q}}`, driverName, version.Driver)),
+			name:                "full",
+			outerLibraryName:    "",
+			outerLibraryVersion: "",
+			want:                []byte(fmt.Sprintf(`{"driver":{"name": %q, "version": %q}}`, driverName, version.Driver)),
+		},
+		{
+			name:                "with outer library data",
+			outerLibraryName:    "outer-library-name",
+			outerLibraryVersion: "outer-library-version",
+			want:                []byte(fmt.Sprintf(`{"driver":{"name": "%s|outer-library-name", "version": "%s|outer-library-version"}}`, driverName, version.Driver)),
 		},
 	}
 
@@ -129,7 +139,7 @@ func TestAppendClientDriver(t *testing.T) {
 
 			cb := func(_ int, dst []byte) ([]byte, error) {
 				var err error
-				dst, err = appendClientDriver(dst)
+				dst, err = appendClientDriver(dst, test.outerLibraryName, test.outerLibraryVersion)
 
 				return dst, err
 			}
@@ -351,12 +361,19 @@ func TestAppendClientPlatform(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name string
-		want []byte // Extended JSON
+		name                 string
+		outerLibraryPlatform string
+		want                 []byte // Extended JSON
 	}{
 		{
-			name: "full",
-			want: []byte(fmt.Sprintf(`{"platform":%q}`, runtime.Version())),
+			name:                 "full",
+			outerLibraryPlatform: "",
+			want:                 []byte(fmt.Sprintf(`{"platform":%q}`, runtime.Version())),
+		},
+		{
+			name:                 "with outer library data",
+			outerLibraryPlatform: "outer-library-platform",
+			want:                 []byte(fmt.Sprintf(`{"platform":"%s|outer-library-platform"}`, runtime.Version())),
 		},
 	}
 
@@ -368,7 +385,7 @@ func TestAppendClientPlatform(t *testing.T) {
 
 			cb := func(_ int, dst []byte) ([]byte, error) {
 				var err error
-				dst = appendClientPlatform(dst)
+				dst = appendClientPlatform(dst, test.outerLibraryPlatform)
 
 				return dst, err
 			}
@@ -435,7 +452,7 @@ func TestEncodeClientMetadata(t *testing.T) {
 	t.Setenv("KUBERNETES_SERVICE_HOST", "0.0.0.0")
 
 	t.Run("nothing is omitted", func(t *testing.T) {
-		got, err := encodeClientMetadata("foo", maxClientMetadataSize)
+		got, err := encodeClientMetadata(NewHello().AppName("foo"), maxClientMetadataSize)
 		assert.Nil(t, err, "error in encodeClientMetadata: %v", err)
 
 		want := formatJSON(&clientMetadata{
@@ -458,10 +475,10 @@ func TestEncodeClientMetadata(t *testing.T) {
 
 	t.Run("env is omitted sub env.name", func(t *testing.T) {
 		// Calculate the full length of a bsoncore.Document.
-		temp, err := encodeClientMetadata("foo", maxClientMetadataSize)
+		temp, err := encodeClientMetadata(NewHello().AppName("foo"), maxClientMetadataSize)
 		require.NoError(t, err, "error constructing template: %v", err)
 
-		got, err := encodeClientMetadata("foo", len(temp)-1)
+		got, err := encodeClientMetadata(NewHello().AppName("foo"), len(temp)-1)
 		assert.Nil(t, err, "error in encodeClientMetadata: %v", err)
 
 		want := formatJSON(&clientMetadata{
@@ -482,7 +499,7 @@ func TestEncodeClientMetadata(t *testing.T) {
 
 	t.Run("os is omitted sub os.type", func(t *testing.T) {
 		// Calculate the full length of a bsoncore.Document.
-		temp, err := encodeClientMetadata("foo", maxClientMetadataSize)
+		temp, err := encodeClientMetadata(NewHello().AppName("foo"), maxClientMetadataSize)
 		require.NoError(t, err, "error constructing template: %v", err)
 
 		// Calculate what the environment costs.
@@ -499,7 +516,7 @@ func TestEncodeClientMetadata(t *testing.T) {
 		// Environment sub name.
 		envSubName := len(edst) - len(ndst)
 
-		got, err := encodeClientMetadata("foo", len(temp)-envSubName-1)
+		got, err := encodeClientMetadata(NewHello().AppName("foo"), len(temp)-envSubName-1)
 		assert.Nil(t, err, "error in encodeClientMetadata: %v", err)
 
 		want := formatJSON(&clientMetadata{
@@ -520,7 +537,7 @@ func TestEncodeClientMetadata(t *testing.T) {
 
 	t.Run("omit the env doc entirely", func(t *testing.T) {
 		// Calculate the full length of a bsoncore.Document.
-		temp, err := encodeClientMetadata("foo", maxClientMetadataSize)
+		temp, err := encodeClientMetadata(NewHello().AppName("foo"), maxClientMetadataSize)
 		require.NoError(t, err, "error constructing template: %v", err)
 
 		// Calculate what the environment costs.
@@ -533,7 +550,7 @@ func TestEncodeClientMetadata(t *testing.T) {
 		// Calculate what the environment plus the os.type costs.
 		envAndOSType := len(edst) + len(odst)
 
-		got, err := encodeClientMetadata("foo", len(temp)-envAndOSType-1)
+		got, err := encodeClientMetadata(NewHello().AppName("foo"), len(temp)-envAndOSType-1)
 		assert.Nil(t, err, "error in encodeClientMetadata: %v", err)
 
 		want := formatJSON(&clientMetadata{
@@ -548,7 +565,7 @@ func TestEncodeClientMetadata(t *testing.T) {
 
 	t.Run("omit the platform", func(t *testing.T) {
 		// Calculate the full length of a bsoncore.Document.
-		temp, err := encodeClientMetadata("foo", maxClientMetadataSize)
+		temp, err := encodeClientMetadata(NewHello().AppName("foo"), maxClientMetadataSize)
 		require.NoError(t, err, "error constructing template: %v", err)
 
 		// Calculate what the environment costs.
@@ -559,12 +576,12 @@ func TestEncodeClientMetadata(t *testing.T) {
 		odst := bsoncore.AppendStringElement(nil, "type", runtime.GOOS)
 
 		// Calculate what the platform costs
-		pdst := appendClientPlatform(nil)
+		pdst := appendClientPlatform(nil, "")
 
 		// Calculate what the environment plus the os.type costs.
 		envAndOSTypeAndPlatform := len(edst) + len(odst) + len(pdst)
 
-		got, err := encodeClientMetadata("foo", len(temp)-envAndOSTypeAndPlatform)
+		got, err := encodeClientMetadata(NewHello().AppName("foo"), len(temp)-envAndOSTypeAndPlatform)
 		assert.Nil(t, err, "error in encodeClientMetadata: %v", err)
 
 		want := formatJSON(&clientMetadata{
@@ -577,7 +594,7 @@ func TestEncodeClientMetadata(t *testing.T) {
 	})
 
 	t.Run("0 max len", func(t *testing.T) {
-		got, err := encodeClientMetadata("foo", 0)
+		got, err := encodeClientMetadata(NewHello().AppName("foo"), 0)
 		assert.Nil(t, err, "error in encodeClientMetadata: %v", err)
 		assert.Len(t, got, 0)
 	})
@@ -657,7 +674,7 @@ func BenchmarkClientMetadata(b *testing.B) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			_, err := encodeClientMetadata("foo", maxClientMetadataSize)
+			_, err := encodeClientMetadata(NewHello().AppName("foo"), maxClientMetadataSize)
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -680,7 +697,7 @@ func BenchmarkClientMetadtaLargeEnv(b *testing.B) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			_, err := encodeClientMetadata("foo", maxClientMetadataSize)
+			_, err := encodeClientMetadata(NewHello().AppName("foo"), maxClientMetadataSize)
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -694,7 +711,7 @@ func FuzzEncodeClientMetadata(f *testing.F) {
 			return
 		}
 
-		_, err := encodeClientMetadata(appname, maxClientMetadataSize)
+		_, err := encodeClientMetadata(NewHello().AppName(appname), maxClientMetadataSize)
 		if err != nil {
 			t.Fatalf("error appending client: %v", err)
 		}
@@ -704,7 +721,7 @@ func FuzzEncodeClientMetadata(f *testing.F) {
 			t.Fatalf("error appending client app name: %v", err)
 		}
 
-		_, err = appendClientDriver(b)
+		_, err = appendClientDriver(b, "", "")
 		if err != nil {
 			t.Fatalf("error appending client driver: %v", err)
 		}
@@ -739,6 +756,6 @@ func FuzzEncodeClientMetadata(f *testing.F) {
 			t.Fatalf("error appending client os t: %v", err)
 		}
 
-		appendClientPlatform(b)
+		appendClientPlatform(b, "")
 	})
 }

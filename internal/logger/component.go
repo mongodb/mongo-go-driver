@@ -10,7 +10,7 @@ import (
 	"os"
 	"strconv"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 const (
@@ -144,17 +144,16 @@ func EnvHasComponentVariables() bool {
 // Command is a struct defining common fields that must be included in all
 // commands.
 type Command struct {
-	// TODO(GODRIVER-2824): change the DriverConnectionID type to int64.
-	DriverConnectionID uint64              // Driver's ID for the connection
-	Name               string              // Command name
-	DatabaseName       string              // Database name
-	Message            string              // Message associated with the command
-	OperationID        int32               // Driver-generated operation ID
-	RequestID          int64               // Driver-generated request ID
-	ServerConnectionID *int64              // Server's ID for the connection used for the command
-	ServerHost         string              // Hostname or IP address for the server
-	ServerPort         string              // Port for the server
-	ServiceID          *primitive.ObjectID // ID for the command  in load balancer mode
+	DriverConnectionID int64          // Driver's ID for the connection
+	Name               string         // Command name
+	DatabaseName       string         // Database name
+	Message            string         // Message associated with the command
+	OperationID        int32          // Driver-generated operation ID
+	RequestID          int64          // Driver-generated request ID
+	ServerConnectionID *int64         // Server's ID for the connection used for the command
+	ServerHost         string         // Hostname or IP address for the server
+	ServerPort         string         // Port for the server
+	ServiceID          *bson.ObjectID // ID for the command  in load balancer mode
 }
 
 // SerializeCommand takes a command and a variable number of key-value pairs and
@@ -226,12 +225,12 @@ func SerializeConnection(conn Connection, extraKeysAndValues ...interface{}) Key
 
 // Server contains data that all server messages MAY contain.
 type Server struct {
-	DriverConnectionID uint64             // Driver's ID for the connection
-	TopologyID         primitive.ObjectID // Driver's unique ID for this topology
-	Message            string             // Message associated with the topology
-	ServerConnectionID *int64             // Server's ID for the connection
-	ServerHost         string             // Hostname or IP address for the server
-	ServerPort         string             // Port for the server
+	DriverConnectionID int64         // Driver's ID for the connection
+	TopologyID         bson.ObjectID // Driver's unique ID for this topology
+	Message            string        // Message associated with the topology
+	ServerConnectionID *int64        // Server's ID for the connection
+	ServerHost         string        // Hostname or IP address for the server
+	ServerPort         string        // Port for the server
 }
 
 // SerializeServer serializes a Server message into a slice of keys and
@@ -294,8 +293,8 @@ func SerializeServerSelection(srvSelection ServerSelection, extraKV ...interface
 
 // Topology contains data that all topology messages MAY contain.
 type Topology struct {
-	ID      primitive.ObjectID // Driver's unique ID for this topology
-	Message string             // Message associated with the topology
+	ID      bson.ObjectID // Driver's unique ID for this topology
+	Message string        // Message associated with the topology
 }
 
 // SerializeTopology serializes a Topology message into a slice of keys and

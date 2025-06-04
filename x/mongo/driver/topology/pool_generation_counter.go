@@ -10,7 +10,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 // Pool generation state constants.
@@ -27,23 +27,23 @@ type generationStats struct {
 }
 
 // poolGenerationMap tracks the version for each service ID present in a pool. For deployments that are not behind a
-// load balancer, there is only one service ID: primitive.NilObjectID. For load-balanced deployments, each server behind
+// load balancer, there is only one service ID: bson.NilObjectID. For load-balanced deployments, each server behind
 // the load balancer will have a unique service ID.
 type poolGenerationMap struct {
 	// state must be accessed using the atomic package and should be at the beginning of the struct.
 	// - atomic bug: https://pkg.go.dev/sync/atomic#pkg-note-BUG
 	// - suggested layout: https://go101.org/article/memory-layout.html
 	state         int64
-	generationMap map[primitive.ObjectID]*generationStats
+	generationMap map[bson.ObjectID]*generationStats
 
 	sync.Mutex
 }
 
 func newPoolGenerationMap() *poolGenerationMap {
 	pgm := &poolGenerationMap{
-		generationMap: make(map[primitive.ObjectID]*generationStats),
+		generationMap: make(map[bson.ObjectID]*generationStats),
 	}
-	pgm.generationMap[primitive.NilObjectID] = &generationStats{}
+	pgm.generationMap[bson.NilObjectID] = &generationStats{}
 	return pgm
 }
 
@@ -57,7 +57,7 @@ func (p *poolGenerationMap) disconnect() {
 
 // addConnection increments the connection count for the generation associated with the given service ID and returns the
 // generation number for the connection.
-func (p *poolGenerationMap) addConnection(serviceIDPtr *primitive.ObjectID) uint64 {
+func (p *poolGenerationMap) addConnection(serviceIDPtr *bson.ObjectID) uint64 {
 	serviceID := getServiceID(serviceIDPtr)
 	p.Lock()
 	defer p.Unlock()
@@ -77,7 +77,7 @@ func (p *poolGenerationMap) addConnection(serviceIDPtr *primitive.ObjectID) uint
 	return 0
 }
 
-func (p *poolGenerationMap) removeConnection(serviceIDPtr *primitive.ObjectID) {
+func (p *poolGenerationMap) removeConnection(serviceIDPtr *bson.ObjectID) {
 	serviceID := getServiceID(serviceIDPtr)
 	p.Lock()
 	defer p.Unlock()
@@ -96,7 +96,7 @@ func (p *poolGenerationMap) removeConnection(serviceIDPtr *primitive.ObjectID) {
 	}
 }
 
-func (p *poolGenerationMap) clear(serviceIDPtr *primitive.ObjectID) {
+func (p *poolGenerationMap) clear(serviceIDPtr *bson.ObjectID) {
 	serviceID := getServiceID(serviceIDPtr)
 	p.Lock()
 	defer p.Unlock()
@@ -106,7 +106,7 @@ func (p *poolGenerationMap) clear(serviceIDPtr *primitive.ObjectID) {
 	}
 }
 
-func (p *poolGenerationMap) stale(serviceIDPtr *primitive.ObjectID, knownGeneration uint64) bool {
+func (p *poolGenerationMap) stale(serviceIDPtr *bson.ObjectID, knownGeneration uint64) bool {
 	// If the map has been disconnected, all connections should be considered stale to ensure that they're closed.
 	if atomic.LoadInt64(&p.state) == generationDisconnected {
 		return true
@@ -118,7 +118,7 @@ func (p *poolGenerationMap) stale(serviceIDPtr *primitive.ObjectID, knownGenerat
 	return false
 }
 
-func (p *poolGenerationMap) getGeneration(serviceIDPtr *primitive.ObjectID) (uint64, bool) {
+func (p *poolGenerationMap) getGeneration(serviceIDPtr *bson.ObjectID) (uint64, bool) {
 	serviceID := getServiceID(serviceIDPtr)
 	p.Lock()
 	defer p.Unlock()
@@ -129,7 +129,7 @@ func (p *poolGenerationMap) getGeneration(serviceIDPtr *primitive.ObjectID) (uin
 	return 0, false
 }
 
-func (p *poolGenerationMap) getNumConns(serviceIDPtr *primitive.ObjectID) uint64 {
+func (p *poolGenerationMap) getNumConns(serviceIDPtr *bson.ObjectID) uint64 {
 	serviceID := getServiceID(serviceIDPtr)
 	p.Lock()
 	defer p.Unlock()
@@ -140,9 +140,9 @@ func (p *poolGenerationMap) getNumConns(serviceIDPtr *primitive.ObjectID) uint64
 	return 0
 }
 
-func getServiceID(oid *primitive.ObjectID) primitive.ObjectID {
+func getServiceID(oid *bson.ObjectID) bson.ObjectID {
 	if oid == nil {
-		return primitive.NilObjectID
+		return bson.NilObjectID
 	}
 	return *oid
 }

@@ -1,0 +1,83 @@
+{
+  "description": "Tests of Binary subtype 9, Vectors, with dtype PACKED_BIT",
+  "test_key": "vector",
+  "tests": [
+    {
+      "description": "Padding specified with no vector data PACKED_BIT",
+      "valid": false,
+      "vector": [],
+      "dtype_hex": "0x10",
+      "dtype_alias": "PACKED_BIT",
+      "padding": 1,
+      "canonical_bson": "1400000005766563746F72000200000009100100"
+    },
+    {
+      "description": "Simple Vector PACKED_BIT",
+      "valid": true,
+      "vector": [127, 7],
+      "dtype_hex": "0x10",
+      "dtype_alias": "PACKED_BIT",
+      "padding": 0,
+      "canonical_bson": "1600000005766563746F7200040000000910007F0700"
+    },
+    {
+      "description": "Empty Vector PACKED_BIT",
+      "valid": true,
+      "vector": [],
+      "dtype_hex": "0x10",
+      "dtype_alias": "PACKED_BIT",
+      "padding": 0,
+      "canonical_bson": "1400000005766563746F72000200000009100000"
+    },
+    {
+      "description": "PACKED_BIT with padding",
+      "valid": true,
+      "vector": [127, 7],
+      "dtype_hex": "0x10",
+      "dtype_alias": "PACKED_BIT",
+      "padding": 3,
+      "canonical_bson": "1600000005766563746F7200040000000910037F0700"
+    },
+    {
+      "description": "Overflow Vector PACKED_BIT",
+      "valid": false,
+      "vector": [256],
+      "dtype_hex": "0x10",
+      "dtype_alias": "PACKED_BIT",
+      "padding": 0
+    },
+    {
+      "description": "Underflow Vector PACKED_BIT",
+      "valid": false,
+      "vector": [-1],
+      "dtype_hex": "0x10",
+      "dtype_alias": "PACKED_BIT",
+      "padding": 0
+    },
+    {
+      "description": "Vector with float values PACKED_BIT",
+      "valid": false,
+      "vector": [127.5],
+      "dtype_hex": "0x10",
+      "dtype_alias": "PACKED_BIT",
+      "padding": 0
+    },
+    {
+      "description": "Exceeding maximum padding PACKED_BIT",
+      "valid": false,
+      "vector": [1],
+      "dtype_hex": "0x10",
+      "dtype_alias": "PACKED_BIT",
+      "padding": 8,
+      "canonical_bson": "1500000005766563746F7200030000000910080100"
+    },
+    {
+      "description": "Negative padding PACKED_BIT",
+      "valid": false,
+      "vector": [1],
+      "dtype_hex": "0x10",
+      "dtype_alias": "PACKED_BIT",
+      "padding": -1
+    }
+  ]
+}

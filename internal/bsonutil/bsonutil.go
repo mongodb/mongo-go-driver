@@ -9,7 +9,7 @@ package bsonutil
 import (
 	"fmt"
 
-	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 // StringSliceFromRawValue decodes the provided BSON value into a []string. This function returns an error if the value
@@ -37,9 +37,9 @@ func StringSliceFromRawValue(name string, val bson.RawValue) ([]string, error) {
 	return strs, nil
 }
 
-// RawToDocuments converts a bson.Raw that is internally an array of documents to []bson.Raw.
-func RawToDocuments(doc bson.Raw) []bson.Raw {
-	values, err := doc.Values()
+// RawArrayToDocuments converts an array of documents to []bson.Raw.
+func RawArrayToDocuments(arr bson.RawArray) []bson.Raw {
+	values, err := arr.Values()
 	if err != nil {
 		panic(fmt.Sprintf("error converting BSON document to values: %v", err))
 	}
