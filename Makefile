@@ -164,6 +164,7 @@ evg-test-load-balancers:
 evg-test-ocsp:
 	go test -v ./mongo -run TestOCSP $(OCSP_TLS_SHOULD_SUCCEED) >> test.suite
 
+<<<<<<< HEAD
 .PHONY: evg-test-serverless
 evg-test-serverless:
 	# Serverless should be tested with all unified tests as well as tests in the following components: CRUD, load balancer,
@@ -188,6 +189,8 @@ evg-test-serverless:
 	go test -exec "env PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH)" $(BUILD_TAGS) -v -timeout $(TEST_TIMEOUT)s ./mongo/integration -run TestClientSideEncryptionSpec >> test.suite
 	go test -exec "env PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH)" $(BUILD_TAGS) -v -timeout $(TEST_TIMEOUT)s ./mongo/integration -run TestClientSideEncryptionProse >> test.suite
 
+=======
+>>>>>>> 835c5e1d8 (GODRIVER-3560 Assume ec2 role explicitly in CI (#2080))
 .PHONY: evg-test-versioned-api
 evg-test-versioned-api:
 	# Versioned API related tests are in the mongo, integration and unified packages.
