@@ -26,6 +26,11 @@ timeout:
       script: |
         ls -la
 functions:
+  assume-test-secrets-ec2-role: 
+    - command: ec2.assume_role
+      params:
+        role_arn: ${aws_test_secrets_role}
+
   fetch-source:
     # Executes clone and applies the submitted patch, if any
     - command: git.get_project
@@ -233,9 +238,13 @@ functions:
         display_name: "test_suite.tgz"
 
   bootstrap-mongohoused:
+    - command: ec2.assume_role
+      params:
+        role_arn: ${aws_test_secrets_role}
     - command: subprocess.exec
       params:
         binary: "bash"
+        add_expansions_to_env: true
         args: 
           - ${DRIVERS_TOOLS}/.evergreen/atlas_data_lake/pull-mongohouse-image.sh
     - command: subprocess.exec
@@ -579,16 +588,6 @@ functions:
           TOPOLOGY="${TOPOLOGY}" \
           MONGO_GO_DRIVER_COMPRESSOR=${MONGO_GO_DRIVER_COMPRESSOR} \
           make evg-test-load-balancers
-
-  run-serverless-tests:
-    - command: shell.exec
-      type: test
-      params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
-        script: |
-          ${PREPARE_SHELL}
-          bash etc/run-serverless-test.sh
 
   run-atlas-data-lake-test:
     - command: shell.exec
@@ -1830,14 +1829,6 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
 
-  - name: "test-serverless"
-    tags: ["serverless"]
-    commands:
-      - func: start-cse-servers
-      - func: "run-serverless-tests"
-        vars:
-          MONGO_GO_DRIVER_COMPRESSOR: "snappy"
-
   - name: "testgcpkms-task"
     commands:
     - command: shell.exec
@@ -1896,10 +1887,12 @@ tasks:
 
   - name: "testawskms-task"
     commands:
+    - func: assume-test-secrets-ec2-role
     - command: shell.exec
       type: test
       params:
         shell: "bash"
+        add_expansions_to_env: true
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
@@ -1909,10 +1902,12 @@ tasks:
     # testawskms-fail-task runs without environment variables.
     # It is expected to fail to obtain credentials.
     commands:
+    - func: assume-test-secrets-ec2-role
     - command: shell.exec
       type: test
       params:
         shell: "bash"
+        add_expansions_to_env: true
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
@@ -1925,6 +1920,7 @@ tasks:
       type: test
       params:
         shell: "bash"
+        add_expansions_to_env: true
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
@@ -1957,10 +1953,12 @@ tasks:
     # testazurekms-fail-task runs without environment variables.
     # It is expected to fail to obtain credentials.
     commands:
+    - func: assume-test-secrets-ec2-role
     - command: shell.exec
       type: test
       params:
         shell: "bash"
+        add_expansions_to_env: true
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
@@ -1985,10 +1983,6 @@ tasks:
 
   - name: "test-aws-lambda-deployed"
     commands:
-      - command: ec2.assume_role
-        params:
-          role_arn: ${LAMBDA_AWS_ROLE_ARN}
-          duration_seconds: 3600
       - command: shell.exec
         type: test
         params:
@@ -2219,73 +2213,7 @@ axes:
         variables:
           GO_DIST: "/opt/golang/go1.22"
 
-  - id: os-serverless
-    display_name: OS
-    values:
-      - id: "rhel87"
-        display_name: "RHEL 8.7"
-        run_on: rhel8.7-small
-        variables:
-          GO_DIST: "/opt/golang/go1.22"
-
 task_groups:
-  - name: serverless_task_group
-    setup_group_can_fail_task: true
-    setup_group_timeout_secs: 1800 # 30 minutes
-    setup_group:
-      - func: fetch-source
-      - func: prepare-resources
-      - func: fix-absolute-paths
-      - func: make-files-executable
-      - func: start-cse-servers
-      - command: shell.exec
-        params:
-          shell: "bash"
-          script: |
-            ${PREPARE_SHELL}
-            bash ${DRIVERS_TOOLS}/.evergreen/serverless/setup-secrets.sh ${VAULT_NAME}
-            bash ${DRIVERS_TOOLS}/.evergreen/serverless/create-instance.sh
-      - command: expansions.update
-        params:
-          file: serverless-expansion.yml
-      - command: shell.exec
-        params:
-          shell: "bash"
-          script: |
-            ${PREPARE_SHELL}
-
-            # Find the crypt_shared library file in the current directory and set the CRYPT_SHARED_LIB_PATH to
-            # the path of that file. Only look for .so, .dll, or .dylib files to prevent matching any other
-            # downloaded files.
-            CRYPT_SHARED_LIB_PATH="$(find $(pwd) -maxdepth 1 -type f \
-              -name 'mongo_crypt_v1.so' -o \
-              -name 'mongo_crypt_v1.dll' -o \
-              -name 'mongo_crypt_v1.dylib')"
-
-            # If we're on Windows, convert the "cygdrive" path to Windows-style paths.
-            if [ "Windows_NT" = "$OS" ]; then
-                CRYPT_SHARED_LIB_PATH=$(cygpath -m $CRYPT_SHARED_LIB_PATH)
-            fi
-
-            echo "CRYPT_SHARED_LIB_PATH: $CRYPT_SHARED_LIB_PATH" >> crypt-expansion.yml
-
-      # Load the expansion file to make an evergreen variable with the current unique version
-      - command: expansions.update
-        params:
-          file: crypt-expansion.yml
-
-    teardown_group:
-      - command: shell.exec
-        params:
-          shell: "bash"
-          script: |
-            ${PREPARE_SHELL}
-            bash ${DRIVERS_TOOLS}/.evergreen/serverless/delete-instance.sh ${VAULT_NAME}
-      - func: handle-test-artifacts
-      - func: cleanup
-    tasks:
-      - ".serverless"
-
   - name: testgcpkms_task_group
     setup_group_can_fail_task: true
     setup_group_timeout_secs: 1800 # 30 minutes
@@ -2294,9 +2222,11 @@ task_groups:
       - func: prepare-resources
       - func: fix-absolute-paths
       - func: make-files-executable
+      - func: assume-test-secrets-ec2-role
       - command: shell.exec
         params:
           shell: "bash"
+          add_expansions_to_env: true
           script: |
             ${PREPARE_SHELL}
             $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/setup.sh
@@ -2321,9 +2251,11 @@ task_groups:
       - func: prepare-resources
       - func: fix-absolute-paths
       - func: make-files-executable
+      - func: assume-test-secrets-ec2-role
       - command: shell.exec
         params:
           shell: "bash"
+          add_expansions_to_env: true
           script: |
             ${PREPARE_SHELL}
             export AZUREKMS_VMNAME_PREFIX="GODRIVER"
@@ -2375,9 +2307,11 @@ task_groups:
       - func: prepare-resources
       - func: fix-absolute-paths
       - func: make-files-executable
+      - func: assume-test-secrets-ec2-role
       - command: subprocess.exec
         params:
           binary: bash
+          add_expansions_to_env: true
           env:
             AZUREOIDC_VMNAME_PREFIX: "GO_DRIVER"
           args:
@@ -2399,9 +2333,11 @@ task_groups:
       - func: prepare-resources
       - func: fix-absolute-paths
       - func: make-files-executable
+      - func: assume-test-secrets-ec2-role
       - command: subprocess.exec
         params:
           binary: bash
+          add_expansions_to_env: true
           env:
             AZUREOIDC_VMNAME_PREFIX: "GO_DRIVER"
           args:
@@ -2421,10 +2357,12 @@ task_groups:
     setup_group:
       - func: fetch-source
       - func: prepare-resources
+      - func: assume-test-secrets-ec2-role
       - command: subprocess.exec
         params:
           working_dir: src/go.mongodb.org/mongo-driver
           binary: bash
+          add_expansions_to_env: true
           env:
             LAMBDA_STACK_NAME: dbx-go-lambda
             AWS_REGION: us-east-1
@@ -2705,13 +2643,6 @@ buildvariants:
     display_name: "Load Balancer Support ${version} ${os-ssl-40}"
     tasks:
       - name: ".load-balancer"
-
-  - matrix_name: "serverless"
-    tags: ["pullrequest"]
-    matrix_spec: { os-serverless: "*" }
-    display_name: "Serverless ${os-serverless}"
-    tasks:
-      - "serverless_task_group"
 
   - matrix_name: "kms-kmip-test"
     matrix_spec: { version: ["7.0"], os-ssl-40: ["rhel87-64"] }
