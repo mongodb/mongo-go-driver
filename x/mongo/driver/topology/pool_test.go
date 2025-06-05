@@ -471,6 +471,7 @@ func TestPool_checkOut(t *testing.T) {
 
 		dialErr := errors.New("create new connection error")
 		p := newPool(poolConfig{
+			Address:        "testaddr",
 			ConnectTimeout: defaultConnectionTimeout,
 		}, WithDialer(func(Dialer) Dialer {
 			return DialerFunc(func(context.Context, string, string) (net.Conn, error) {
@@ -481,7 +482,7 @@ func TestPool_checkOut(t *testing.T) {
 		require.NoError(t, err)
 
 		_, err = p.checkOut(context.Background())
-		var want error = ConnectionError{Wrapped: dialErr, init: true}
+		var want error = ConnectionError{Wrapped: dialErr, init: true, message: "failed to connect to testaddr:27017"}
 		assert.Equalf(t, want, err, "should return error from calling checkOut()")
 		// If a connection initialization error occurs during checkOut, removing and closing the
 		// failed connection both happen asynchronously with the checkOut. Wait for up to 2s for
@@ -1205,7 +1206,7 @@ func TestBackgroundRead(t *testing.T) {
 		defer cancel()
 		_, err = conn.readWireMessage(ctx)
 		regex := regexp.MustCompile(
-			`^connection\(.*\[-\d+\]\) incomplete read of message header: context deadline exceeded: read tcp 127.0.0.1:.*->127.0.0.1:.*: i\/o timeout$`,
+			`^connection\(.*\[-\d+\]\) incomplete read of message header: context deadline exceeded: client timed out waiting for server response: read tcp 127.0.0.1:.*->127.0.0.1:.*: i\/o timeout$`,
 		)
 		assert.True(t, regex.MatchString(err.Error()), "error %q does not match pattern %q", err, regex)
 		assert.Nil(t, conn.awaitRemainingBytes, "conn.awaitRemainingBytes should be nil")
@@ -1245,7 +1246,7 @@ func TestBackgroundRead(t *testing.T) {
 		defer cancel()
 		_, err = conn.readWireMessage(ctx)
 		regex := regexp.MustCompile(
-			`^connection\(.*\[-\d+\]\) incomplete read of message header: context deadline exceeded: read tcp 127.0.0.1:.*->127.0.0.1:.*: i\/o timeout$`,
+			`^connection\(.*\[-\d+\]\) incomplete read of message header: context deadline exceeded: client timed out waiting for server response: read tcp 127.0.0.1:.*->127.0.0.1:.*: i\/o timeout$`,
 		)
 		assert.True(t, regex.MatchString(err.Error()), "error %q does not match pattern %q", err, regex)
 		err = p.checkIn(conn)
@@ -1292,7 +1293,7 @@ func TestBackgroundRead(t *testing.T) {
 		defer cancel()
 		_, err = conn.readWireMessage(ctx)
 		regex := regexp.MustCompile(
-			`^connection\(.*\[-\d+\]\) incomplete read of message header: context deadline exceeded: read tcp 127.0.0.1:.*->127.0.0.1:.*: i\/o timeout$`,
+			`^connection\(.*\[-\d+\]\) incomplete read of message header: context deadline exceeded: client timed out waiting for server response: read tcp 127.0.0.1:.*->127.0.0.1:.*: i\/o timeout$`,
 		)
 		assert.True(t, regex.MatchString(err.Error()), "error %q does not match pattern %q", err, regex)
 		err = p.checkIn(conn)
@@ -1344,7 +1345,7 @@ func TestBackgroundRead(t *testing.T) {
 		defer cancel()
 		_, err = conn.readWireMessage(ctx)
 		regex := regexp.MustCompile(
-			`^connection\(.*\[-\d+\]\) incomplete read of message header: context deadline exceeded: read tcp 127.0.0.1:.*->127.0.0.1:.*: i\/o timeout$`,
+			`^connection\(.*\[-\d+\]\) incomplete read of message header: context deadline exceeded: client timed out waiting for server response: read tcp 127.0.0.1:.*->127.0.0.1:.*: i\/o timeout$`,
 		)
 		assert.True(t, regex.MatchString(err.Error()), "error %q does not match pattern %q", err, regex)
 		err = p.checkIn(conn)
@@ -1398,7 +1399,7 @@ func TestBackgroundRead(t *testing.T) {
 		defer cancel()
 		_, err = conn.readWireMessage(ctx)
 		regex := regexp.MustCompile(
-			`^connection\(.*\[-\d+\]\) incomplete read of full message: context deadline exceeded: read tcp 127.0.0.1:.*->127.0.0.1:.*: i\/o timeout$`,
+			`^connection\(.*\[-\d+\]\) incomplete read of full message: context deadline exceeded: client timed out waiting for server response: read tcp 127.0.0.1:.*->127.0.0.1:.*: i\/o timeout$`,
 		)
 		assert.True(t, regex.MatchString(err.Error()), "error %q does not match pattern %q", err, regex)
 		err = p.checkIn(conn)
@@ -1448,7 +1449,7 @@ func TestBackgroundRead(t *testing.T) {
 		defer cancel()
 		_, err = conn.readWireMessage(ctx)
 		regex := regexp.MustCompile(
-			`^connection\(.*\[-\d+\]\) incomplete read of full message: context deadline exceeded: read tcp 127.0.0.1:.*->127.0.0.1:.*: i\/o timeout$`,
+			`^connection\(.*\[-\d+\]\) incomplete read of full message: context deadline exceeded: client timed out waiting for server response: read tcp 127.0.0.1:.*->127.0.0.1:.*: i\/o timeout$`,
 		)
 		assert.True(t, regex.MatchString(err.Error()), "error %q does not match pattern %q", err, regex)
 		err = p.checkIn(conn)

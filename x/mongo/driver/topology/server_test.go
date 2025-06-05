@@ -376,7 +376,7 @@ func TestServer(t *testing.T) {
 	}
 
 	authErr := ConnectionError{Wrapped: &auth.Error{}, init: true}
-	netErr := ConnectionError{Wrapped: &net.AddrError{}, init: true}
+	netErr := ConnectionError{Wrapped: &net.AddrError{}, init: true, message: "failed to connect to localhost:27017"}
 	for _, tt := range serverTestTable {
 		t.Run(tt.name, func(t *testing.T) {
 			var returnConnectionError bool
