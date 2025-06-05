@@ -10,9 +10,13 @@ task build-kms-test
 export MONGODB_URI="$ATLAS_FREE"
 
 if [ -z "${EXPECT_ERROR:-}" ]; then
-    . ${DRIVERS_TOOLS}/.evergreen/csfle/setup-secrets.sh
-    export AWS_SECRET_ACCESS_KEY=$FLE_AWS_SECRET_ACCESS_KEY
-    export AWS_ACCESS_KEY_ID=$FLE_AWS_ACCESS_KEY_ID
+  . ${DRIVERS_TOOLS}/.evergreen/csfle/setup-secrets.sh
+  export AWS_SECRET_ACCESS_KEY=$FLE_AWS_SECRET_ACCESS_KEY
+  export AWS_ACCESS_KEY_ID=$FLE_AWS_ACCESS_KEY_ID
 fi
+
+# AWS_SESSION_TOKEN is required to get credentials from the drivers/csfle vault
+# but interferes with the testkms binary causing UnrecognizedClientException.
+unset AWS_SESSION_TOKEN
 
 LD_LIBRARY_PATH=./install/libmongocrypt/lib64 PROVIDER='aws' ./testkms
