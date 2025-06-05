@@ -115,7 +115,8 @@ tests:
                 "field": "array",
                 "newSize": 2
               }
-            ]
+            ],
+            disambiguatedPaths: { $$unsetOrMatches: { $$exists: true } }
           }
         }
 
@@ -140,7 +141,6 @@ tests:
                 comment: *comment0
 
   - description: "Test with document comment - pre 4.4"
-    skipReason: "TODO(GODRIVER-2386): aggregate only supports string comments"
     runOnRequirements:
       - maxServerVersion: "4.2.99"
     operations:
@@ -723,6 +723,7 @@ tests:
             updatedFields: { x: 2 }
             removedFields: []
             truncatedArrays: { $$unsetOrMatches: { $$exists: true } }
+            disambiguatedPaths: { $$unsetOrMatches: { $$exists: true } }
       - name: iterateUntilDocumentOrError
         object: *changeStream0
         expectResult:
