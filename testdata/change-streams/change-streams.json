@@ -181,7 +181,12 @@
                   "field": "array",
                   "newSize": 2
                 }
-              ]
+              ],
+              "disambiguatedPaths": {
+                "$$unsetOrMatches": {
+                  "$$exists": true
+                }
+              }
             }
           }
         }
@@ -1406,6 +1411,11 @@
               },
               "removedFields": [],
               "truncatedArrays": {
+                "$$unsetOrMatches": {
+                  "$$exists": true
+                }
+              },
+              "disambiguatedPaths": {
                 "$$unsetOrMatches": {
                   "$$exists": true
                 }
