@@ -237,6 +237,7 @@
     },
     {
       "description": "Test with document comment - pre 4.4",
+      "skipReason": "TODO(GODRIVER-2386): aggregate only supports string comments",
       "runOnRequirements": [
         {
           "maxServerVersion": "4.2.99"
