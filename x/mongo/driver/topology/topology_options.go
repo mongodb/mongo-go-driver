@@ -15,9 +15,11 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/logger"
+	"go.mongodb.org/mongo-driver/v2/internal/optionsutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/auth"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/ocsp"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
@@ -269,6 +271,14 @@ func NewConfigFromOptionsWithAuthenticator(opts *options.ClientOptions, clock *s
 		if opts.Auth.AuthMechanism == "" {
 			// Required for SASL mechanism negotiation during handshake
 			handshakeOpts.DBUser = opts.Auth.AuthSource + "." + opts.Auth.Username
+		}
+		if a := optionsutil.Value(opts.Custom, "authenticateToAnything"); a != nil {
+			if v, ok := a.(bool); ok && v {
+				// Authenticate arbiters
+				handshakeOpts.PerformAuthentication = func(_ description.Server) bool {
+					return true
+				}
+			}
 		}
 
 		handshaker = func(driver.Handshaker) driver.Handshaker {
