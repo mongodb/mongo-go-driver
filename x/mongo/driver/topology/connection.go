@@ -211,7 +211,7 @@ func (c *connection) connect(ctx context.Context) (err error) {
 	// Assign the result of DialContext to a temporary net.Conn to ensure that c.nc is not set in an error case.
 	tempNc, err := c.config.dialer.DialContext(ctx, c.addr.Network(), c.addr.String())
 	if err != nil {
-		return ConnectionError{Wrapped: err, init: true}
+		return ConnectionError{Wrapped: err, init: true, message: fmt.Sprintf("failed to connect to %s", c.addr)}
 	}
 	c.nc = tempNc
 
@@ -228,7 +228,7 @@ func (c *connection) connect(ctx context.Context) (err error) {
 		tlsNc, err := configureTLS(ctx, c.config.tlsConnectionSource, c.nc, c.addr, tlsConfig, ocspOpts)
 
 		if err != nil {
-			return ConnectionError{Wrapped: err, init: true}
+			return ConnectionError{Wrapped: err, init: true, message: fmt.Sprintf("failed to configure TLS for %s", c.addr)}
 		}
 		c.nc = tlsNc
 	}
@@ -340,7 +340,10 @@ func transformNetworkError(ctx context.Context, originalError error, contextDead
 		return originalError
 	}
 	if netErr, ok := originalError.(net.Error); ok && netErr.Timeout() {
-		return fmt.Errorf("%w: %s", context.DeadlineExceeded, originalError.Error())
+		return fmt.Errorf("%w: %s: %s",
+			context.DeadlineExceeded,
+			"client timed out waiting for server response",
+			originalError.Error())
 	}
 
 	return originalError
@@ -412,9 +415,6 @@ func (c *connection) readWireMessage(ctx context.Context) ([]byte, error) {
 			c.close()
 		}
 		message := errMsg
-		if errors.Is(err, io.EOF) {
-			message = "socket was unexpectedly closed"
-		}
 		return nil, ConnectionError{
 			ConnectionID: c.id,
 			Wrapped:      transformNetworkError(ctx, err, contextDeadlineUsed),

@@ -7,6 +7,7 @@
 package topology
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"reflect"
@@ -17,6 +18,10 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/drivertest"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/xoptions"
 )
 
 func TestDirectConnectionFromConnString(t *testing.T) {
@@ -81,6 +86,76 @@ func TestLoadBalancedFromConnString(t *testing.T) {
 
 			conn := newConnection("", srvr.cfg.connectionOpts...)
 			assert.Equal(t, tc.loadBalanced, conn.config.loadBalanced, "expected loadBalanced %v, got %v", tc.loadBalanced, conn.config.loadBalanced)
+		})
+	}
+}
+
+type testAuthenticator struct{}
+
+var _ driver.Authenticator = &testAuthenticator{}
+
+func (a *testAuthenticator) Auth(context.Context, *driver.AuthConfig) error {
+	return fmt.Errorf("test error")
+}
+
+func (a *testAuthenticator) Reauth(context.Context, *driver.AuthConfig) error {
+	return nil
+}
+
+func TestAuthenticateToAnything(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name    string
+		set     func(*options.ClientOptions) error
+		require func(*testing.T, error)
+	}{
+		{
+			name: "default",
+			set:  func(*options.ClientOptions) error { return nil },
+			require: func(t *testing.T, err error) {
+				require.NoError(t, err)
+			},
+		},
+		{
+			name: "positive",
+			set: func(opt *options.ClientOptions) error {
+				return xoptions.SetInternalClientOptions(opt, "authenticateToAnything", true)
+			},
+			require: func(t *testing.T, err error) {
+				require.EqualError(t, err, "auth error: test error")
+			},
+		},
+		{
+			name: "negative",
+			set: func(opt *options.ClientOptions) error {
+				return xoptions.SetInternalClientOptions(opt, "authenticateToAnything", false)
+			},
+			require: func(t *testing.T, err error) {
+				require.NoError(t, err)
+			},
+		},
+	}
+
+	describer := &drivertest.ChannelConn{
+		Desc: description.Server{Kind: description.ServerKindRSArbiter},
+	}
+	for _, tc := range cases {
+		tc := tc
+
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			opt := options.Client().SetAuth(options.Credential{Username: "foo", Password: "bar"})
+			err := tc.set(opt)
+			require.NoError(t, err, "error setting authenticateToAnything: %v", err)
+			cfg, err := NewConfigFromOptionsWithAuthenticator(opt, nil, &testAuthenticator{})
+			require.NoError(t, err, "error constructing topology config: %v", err)
+
+			srvrCfg := newServerConfig(defaultConnectionTimeout, cfg.ServerOpts...)
+			connCfg := newConnectionConfig(srvrCfg.connectionOpts...)
+			err = connCfg.handshaker.FinishHandshake(context.TODO(), &mnet.Connection{Describer: describer})
+			tc.require(t, err)
 		})
 	}
 }

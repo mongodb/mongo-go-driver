@@ -1,4 +1,4 @@
-module go.mongodb.go/mongo-driver/examples/logger/zap
+module go.mongodb.go/mongo-driver/v2/examples/logger/zap
 
 go 1.23
 
