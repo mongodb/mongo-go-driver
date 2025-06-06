@@ -46,6 +46,7 @@ type Update struct {
 	serverAPI                *driver.ServerAPIOptions
 	let                      bsoncore.Document
 	timeout                  *time.Duration
+	rawBucketsData           *bool
 	logger                   *logger.Logger
 }
 
@@ -202,6 +203,9 @@ func (u *Update) command(dst []byte, desc description.SelectedServer) ([]byte, e
 	}
 	if u.let != nil {
 		dst = bsoncore.AppendDocumentElement(dst, "let", u.let)
+	}
+	if u.rawBucketsData != nil {
+		dst = bsoncore.AppendBooleanElement(dst, "rawData", *u.rawBucketsData)
 	}
 
 	return dst, nil
@@ -420,5 +424,15 @@ func (u *Update) Authenticator(authenticator driver.Authenticator) *Update {
 	}
 
 	u.authenticator = authenticator
+	return u
+}
+
+// RawBucketsData sets the rawData to access timeseries data in the compressed format.
+func (u *Update) RawBucketsData(rawBucketsData bool) *Update {
+	if u == nil {
+		u = new(Update)
+	}
+
+	u.rawBucketsData = &rawBucketsData
 	return u
 }

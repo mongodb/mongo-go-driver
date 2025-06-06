@@ -41,6 +41,7 @@ type Count struct {
 	result         CountResult
 	serverAPI      *driver.ServerAPIOptions
 	timeout        *time.Duration
+	rawBucketsData *bool
 }
 
 // CountResult represents a count result returned by the server.
@@ -146,6 +147,9 @@ func (c *Count) command(dst []byte, _ description.SelectedServer) ([]byte, error
 	}
 	if c.comment.Type != bsoncore.Type(0) {
 		dst = bsoncore.AppendValueElement(dst, "comment", c.comment)
+	}
+	if c.rawBucketsData != nil {
+		dst = bsoncore.AppendBooleanElement(dst, "rawData", *c.rawBucketsData)
 	}
 	return dst, nil
 }
@@ -308,5 +312,15 @@ func (c *Count) Authenticator(authenticator driver.Authenticator) *Count {
 	}
 
 	c.authenticator = authenticator
+	return c
+}
+
+// RawBucketsData sets the rawData to access timeseries data in the compressed format.
+func (c *Count) RawBucketsData(rawBucketsData bool) *Count {
+	if c == nil {
+		c = new(Count)
+	}
+
+	c.rawBucketsData = &rawBucketsData
 	return c
 }

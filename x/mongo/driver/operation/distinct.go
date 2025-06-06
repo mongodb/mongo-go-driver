@@ -43,6 +43,7 @@ type Distinct struct {
 	result         DistinctResult
 	serverAPI      *driver.ServerAPIOptions
 	timeout        *time.Duration
+	rawBucketsData *bool
 }
 
 // DistinctResult represents a distinct result returned by the server.
@@ -129,6 +130,9 @@ func (d *Distinct) command(dst []byte, desc description.SelectedServer) ([]byte,
 	}
 	if d.query != nil {
 		dst = bsoncore.AppendDocumentElement(dst, "query", d.query)
+	}
+	if d.rawBucketsData != nil {
+		dst = bsoncore.AppendBooleanElement(dst, "rawData", *d.rawBucketsData)
 	}
 	return dst, nil
 }
@@ -321,5 +325,15 @@ func (d *Distinct) Authenticator(authenticator driver.Authenticator) *Distinct {
 	}
 
 	d.authenticator = authenticator
+	return d
+}
+
+// RawBucketsData sets the rawData to access timeseries data in the compressed format.
+func (d *Distinct) RawBucketsData(rawBucketsData bool) *Distinct {
+	if d == nil {
+		d = new(Distinct)
+	}
+
+	d.rawBucketsData = &rawBucketsData
 	return d
 }

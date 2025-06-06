@@ -50,6 +50,7 @@ type FindAndModify struct {
 	serverAPI                *driver.ServerAPIOptions
 	let                      bsoncore.Document
 	timeout                  *time.Duration
+	rawBucketsData           *bool
 
 	result FindAndModifyResult
 }
@@ -210,6 +211,9 @@ func (fam *FindAndModify) command(dst []byte, desc description.SelectedServer) (
 	}
 	if fam.let != nil {
 		dst = bsoncore.AppendDocumentElement(dst, "let", fam.let)
+	}
+	if fam.rawBucketsData != nil {
+		dst = bsoncore.AppendBooleanElement(dst, "rawData", *fam.rawBucketsData)
 	}
 
 	return dst, nil
@@ -474,5 +478,15 @@ func (fam *FindAndModify) Authenticator(authenticator driver.Authenticator) *Fin
 	}
 
 	fam.authenticator = authenticator
+	return fam
+}
+
+// RawBucketsData sets the rawData to access timeseries data in the compressed format.
+func (fam *FindAndModify) RawBucketsData(rawBucketsData bool) *FindAndModify {
+	if fam == nil {
+		fam = new(FindAndModify)
+	}
+
+	fam.rawBucketsData = &rawBucketsData
 	return fam
 }

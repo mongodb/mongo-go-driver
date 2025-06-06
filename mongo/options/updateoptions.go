@@ -19,6 +19,7 @@ type UpdateOneOptions struct {
 	Upsert                   *bool
 	Let                      interface{}
 	Sort                     interface{}
+	RawBucketsData           *bool
 }
 
 // UpdateOneOptionsBuilder contains options to configure UpdateOne operations.
@@ -152,6 +153,18 @@ func (uo *UpdateOneOptionsBuilder) SetSort(s interface{}) *UpdateOneOptionsBuild
 	return uo
 }
 
+// SetRawBucketsData sets the value for the RawBucketsData field. If true, it allows the CRUD operations to access timeseries
+// collections on the bucket-level. This option is only valid for MongoDB versions >= 9.0. The default value is false.
+func (uo *UpdateOneOptionsBuilder) SetRawBucketsData(rawBucketsData bool) *UpdateOneOptionsBuilder {
+	uo.Opts = append(uo.Opts, func(opts *UpdateOneOptions) error {
+		opts.RawBucketsData = &rawBucketsData
+
+		return nil
+	})
+
+	return uo
+}
+
 // UpdateManyOptions represents arguments that can be used to configure UpdateMany
 // operations.
 //
@@ -164,6 +177,7 @@ type UpdateManyOptions struct {
 	Hint                     interface{}
 	Upsert                   *bool
 	Let                      interface{}
+	RawBucketsData           *bool
 }
 
 // UpdateManyOptionsBuilder contains options to configure UpdateMany operations.
@@ -275,6 +289,18 @@ func (uo *UpdateManyOptionsBuilder) SetUpsert(b bool) *UpdateManyOptionsBuilder 
 func (uo *UpdateManyOptionsBuilder) SetLet(l interface{}) *UpdateManyOptionsBuilder {
 	uo.Opts = append(uo.Opts, func(opts *UpdateManyOptions) error {
 		opts.Let = l
+
+		return nil
+	})
+
+	return uo
+}
+
+// SetRawBucketsData sets the value for the RawBucketsData field. If true, it allows the CRUD operations to access timeseries
+// collections on the bucket-level. This option is only valid for MongoDB versions >= 9.0. The default value is false.
+func (uo *UpdateManyOptionsBuilder) SetRawBucketsData(rawBucketsData bool) *UpdateManyOptionsBuilder {
+	uo.Opts = append(uo.Opts, func(opts *UpdateManyOptions) error {
+		opts.RawBucketsData = &rawBucketsData
 
 		return nil
 	})

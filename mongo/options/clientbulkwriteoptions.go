@@ -19,6 +19,7 @@ type ClientBulkWriteOptions struct {
 	Ordered                  *bool
 	Let                      interface{}
 	WriteConcern             *writeconcern.WriteConcern
+	RawBucketsData           *bool
 	VerboseResults           *bool
 }
 
@@ -101,6 +102,18 @@ func (b *ClientBulkWriteOptionsBuilder) SetLet(let interface{}) *ClientBulkWrite
 func (b *ClientBulkWriteOptionsBuilder) SetWriteConcern(wc *writeconcern.WriteConcern) *ClientBulkWriteOptionsBuilder {
 	b.Opts = append(b.Opts, func(opts *ClientBulkWriteOptions) error {
 		opts.WriteConcern = wc
+
+		return nil
+	})
+
+	return b
+}
+
+// SetRawBucketsData sets the value for the RawBucketsData field. If true, it allows the CRUD operations to access timeseries
+// collections on the bucket-level. This option is only valid for MongoDB versions >= 9.0. The default value is false.
+func (b *ClientBulkWriteOptionsBuilder) SetRawBucketsData(rawBucketsData bool) *ClientBulkWriteOptionsBuilder {
+	b.Opts = append(b.Opts, func(opts *ClientBulkWriteOptions) error {
+		opts.RawBucketsData = &rawBucketsData
 
 		return nil
 	})

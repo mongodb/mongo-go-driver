@@ -50,6 +50,7 @@ type Aggregate struct {
 	customOptions            map[string]bsoncore.Value
 	timeout                  *time.Duration
 	omitMaxTimeMS            bool
+	rawBucketsData           *bool
 
 	result driver.CursorResponse
 }
@@ -158,6 +159,9 @@ func (a *Aggregate) command(dst []byte, desc description.SelectedServer) ([]byte
 	}
 	if a.let != nil {
 		dst = bsoncore.AppendDocumentElement(dst, "let", a.let)
+	}
+	if a.rawBucketsData != nil {
+		dst = bsoncore.AppendBooleanElement(dst, "rawData", *a.rawBucketsData)
 	}
 	for optionName, optionValue := range a.customOptions {
 		dst = bsoncore.AppendValueElement(dst, optionName, optionValue)
@@ -429,5 +433,15 @@ func (a *Aggregate) OmitMaxTimeMS(omit bool) *Aggregate {
 	}
 
 	a.omitMaxTimeMS = omit
+	return a
+}
+
+// RawBucketsData sets the rawData to access timeseries data in the compressed format.
+func (a *Aggregate) RawBucketsData(rawBucketsData bool) *Aggregate {
+	if a == nil {
+		a = new(Aggregate)
+	}
+
+	a.rawBucketsData = &rawBucketsData
 	return a
 }

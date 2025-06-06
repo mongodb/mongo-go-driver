@@ -13,6 +13,7 @@ package options
 type InsertOneOptions struct {
 	BypassDocumentValidation *bool
 	Comment                  interface{}
+	RawBucketsData           *bool
 }
 
 // InsertOneOptionsBuilder represents functional options that configure an
@@ -53,6 +54,18 @@ func (ioo *InsertOneOptionsBuilder) SetComment(comment interface{}) *InsertOneOp
 	return ioo
 }
 
+// SetRawBucketsData sets the value for the RawBucketsData field. If true, it allows the CRUD operations to access timeseries
+// collections on the bucket-level. This option is only valid for MongoDB versions >= 9.0. The default value is false.
+func (ioo *InsertOneOptionsBuilder) SetRawBucketsData(rawBucketsData bool) *InsertOneOptionsBuilder {
+	ioo.Opts = append(ioo.Opts, func(ioo *InsertOneOptions) error {
+		ioo.RawBucketsData = &rawBucketsData
+
+		return nil
+	})
+
+	return ioo
+}
+
 // InsertManyOptions represents arguments that can be used to configure an
 // InsertMany operation.
 //
@@ -61,6 +74,7 @@ type InsertManyOptions struct {
 	BypassDocumentValidation *bool
 	Comment                  interface{}
 	Ordered                  *bool
+	RawBucketsData           *bool
 }
 
 // InsertManyOptionsBuilder contains options to configure insert operations.
@@ -115,6 +129,18 @@ func (imo *InsertManyOptionsBuilder) SetComment(comment interface{}) *InsertMany
 func (imo *InsertManyOptionsBuilder) SetOrdered(b bool) *InsertManyOptionsBuilder {
 	imo.Opts = append(imo.Opts, func(opts *InsertManyOptions) error {
 		opts.Ordered = &b
+
+		return nil
+	})
+
+	return imo
+}
+
+// SetRawBucketsData sets the value for the RawBucketsData field. If true, it allows the CRUD operations to access timeseries
+// collections on the bucket-level. This option is only valid for MongoDB versions >= 9.0. The default value is false.
+func (imo *InsertManyOptionsBuilder) SetRawBucketsData(rawBucketsData bool) *InsertManyOptionsBuilder {
+	imo.Opts = append(imo.Opts, func(opts *InsertManyOptions) error {
+		opts.RawBucketsData = &rawBucketsData
 
 		return nil
 	})
