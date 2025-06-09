@@ -403,6 +403,7 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
+        add_expansions_to_env: true
         script: |
           ${PREPARE_SHELL}
           export BASE_SHA=${revision}
@@ -415,6 +416,7 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
+        add_expansions_to_env: true
         script: |
           ${PREPARE_SHELL}
           export CONFIG=$PROJECT_DIRECTORY/.github/labeler.yml
@@ -427,6 +429,7 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
+        add_expansions_to_env: true
         script: |
           ${PREPARE_SHELL}
           export CONFIG=$PROJECT_DIRECTORY/.github/reviewers.txt
@@ -932,6 +935,7 @@ tasks:
   - name: pull-request-helpers
     allowed_requesters: ["patch", "github_pr"]
     commands:
+      - func: assume-test-secrets-ec2-role
       - func: "add PR reviewer"  
       - func: "add PR labels"
       - func: "create-api-report"
