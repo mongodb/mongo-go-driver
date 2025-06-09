@@ -31,4 +31,4 @@ set -x
 
 # For Go 1.16+, Go builds requires a go.mod file in the current working directory or a parent
 # directory. Spawn a new subshell, "cd" to the project directory, then run "go run".
-(cd ${PROJECT_DIRECTORY} && go run "./internal/cmd/testaws/main.go" | tee test.suite)
+(cd ${PROJECT_DIRECTORY} && go test -timeout 30m -v ./internal/test/aws/... | tee -a test.suite)
