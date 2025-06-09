@@ -11,11 +11,12 @@ package options
 //
 // See corresponding setter methods for documentation.
 type CountOptions struct {
-	Collation *Collation
-	Comment   interface{}
-	Hint      interface{}
-	Limit     *int64
-	Skip      *int64
+	Collation      *Collation
+	Comment        interface{}
+	Hint           interface{}
+	Limit          *int64
+	Skip           *int64
+	RawBucketsData *bool
 }
 
 // CountOptionsBuilder contains options to configure count operations. Each
@@ -93,6 +94,18 @@ func (co *CountOptionsBuilder) SetLimit(i int64) *CountOptionsBuilder {
 func (co *CountOptionsBuilder) SetSkip(i int64) *CountOptionsBuilder {
 	co.Opts = append(co.Opts, func(opts *CountOptions) error {
 		opts.Skip = &i
+
+		return nil
+	})
+
+	return co
+}
+
+// SetRawBucketsData sets the value for the RawBucketsData field. If true, it allows the CRUD operations to access timeseries
+// collections on the bucket-level. This option is only valid for MongoDB versions >= 9.0. The default value is false.
+func (co *CountOptionsBuilder) SetRawBucketsData(rawBucketsData bool) *CountOptionsBuilder {
+	co.Opts = append(co.Opts, func(opts *CountOptions) error {
+		opts.RawBucketsData = &rawBucketsData
 
 		return nil
 	})

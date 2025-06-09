@@ -244,6 +244,7 @@ func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
 		selector:                 selector,
 		writeConcern:             wc,
 		let:                      args.Let,
+		rawBucketsData:           args.RawBucketsData,
 	}
 
 	err = op.execute(ctx)
@@ -324,6 +325,9 @@ func (coll *Collection) insert(
 	if args.Ordered != nil {
 		op = op.Ordered(*args.Ordered)
 	}
+	if args.RawBucketsData != nil {
+		op = op.RawBucketsData(*args.RawBucketsData)
+	}
 	retry := driver.RetryNone
 	if coll.client.retryWrites {
 		retry = driver.RetryOncePerCommand
@@ -374,6 +378,9 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 	}
 	if args.Comment != nil {
 		imOpts.SetComment(args.Comment)
+	}
+	if args.RawBucketsData != nil {
+		imOpts = imOpts.SetRawBucketsData(*args.RawBucketsData)
 	}
 	res, err := coll.insert(ctx, []interface{}{document}, imOpts)
 
@@ -534,6 +541,9 @@ func (coll *Collection) delete(
 		}
 		op = op.Let(let)
 	}
+	if args.RawBucketsData != nil {
+		op = op.RawBucketsData(*args.RawBucketsData)
+	}
 
 	// deleteMany cannot be retried
 	retryMode := driver.RetryNone
@@ -571,10 +581,11 @@ func (coll *Collection) DeleteOne(
 		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 	deleteOptions := &options.DeleteManyOptions{
-		Collation: args.Collation,
-		Comment:   args.Comment,
-		Hint:      args.Hint,
-		Let:       args.Let,
+		Collation:      args.Collation,
+		Comment:        args.Comment,
+		Hint:           args.Hint,
+		Let:            args.Let,
+		RawBucketsData: args.RawBucketsData,
 	}
 
 	return coll.delete(ctx, filter, true, rrOne, deleteOptions)
@@ -681,6 +692,9 @@ func (coll *Collection) updateOrReplace(
 		}
 		op = op.Comment(comment)
 	}
+	if args.RawBucketsData != nil {
+		op = op.RawBucketsData(*args.RawBucketsData)
+	}
 	retry := driver.RetryNone
 	// retryable writes are only enabled updateOne/replaceOne operations
 	if !multi && coll.client.retryWrites {
@@ -775,6 +789,7 @@ func (coll *Collection) UpdateOne(
 		Hint:                     args.Hint,
 		Upsert:                   args.Upsert,
 		Let:                      args.Let,
+		RawBucketsData:           args.RawBucketsData,
 	}
 
 	return coll.updateOrReplace(ctx, f, update, false, rrOne, true, args.Sort, updateOptions)
@@ -865,6 +880,7 @@ func (coll *Collection) ReplaceOne(
 		Hint:                     args.Hint,
 		Let:                      args.Let,
 		Comment:                  args.Comment,
+		RawBucketsData:           args.RawBucketsData,
 	}
 
 	return coll.updateOrReplace(ctx, f, r, false, rrOne, false, args.Sort, updateOptions)
@@ -1036,6 +1052,9 @@ func aggregate(a aggregateParams, opts ...options.Lister[options.AggregateOption
 		}
 		op.CustomOptions(customOptions)
 	}
+	if args.RawBucketsData != nil {
+		op = op.RawBucketsData(*args.RawBucketsData)
+	}
 
 	retry := driver.RetryNone
 	if a.retryRead && !hasOutputStage {
@@ -1124,6 +1143,9 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 		}
 		op.Hint(hintVal)
 	}
+	if args.RawBucketsData != nil {
+		op = op.RawBucketsData(*args.RawBucketsData)
+	}
 	retry := driver.RetryNone
 	if coll.client.retryReads {
 		retry = driver.RetryOncePerCommand
@@ -1204,6 +1226,9 @@ func (coll *Collection) EstimatedDocumentCount(
 			return 0, err
 		}
 		op = op.Comment(comment)
+	}
+	if args.RawBucketsData != nil {
+		op = op.RawBucketsData(*args.RawBucketsData)
 	}
 
 	retry := driver.RetryNone
@@ -1293,6 +1318,9 @@ func (coll *Collection) Distinct(
 			return &DistinctResult{err: err}
 		}
 		op.Hint(hint)
+	}
+	if args.RawBucketsData != nil {
+		op = op.RawBucketsData(*args.RawBucketsData)
 	}
 	retry := driver.RetryNone
 	if coll.client.retryReads {
@@ -1497,6 +1525,9 @@ func (coll *Collection) find(
 		}
 		op.Sort(sort)
 	}
+	if args.RawBucketsData != nil {
+		op = op.RawBucketsData(*args.RawBucketsData)
+	}
 	retry := driver.RetryNone
 	if coll.client.retryReads {
 		retry = driver.RetryOncePerCommand
@@ -1530,6 +1561,7 @@ func newFindArgsFromFindOneArgs(args *options.FindOneOptions) *options.FindOptio
 		v.ShowRecordID = args.ShowRecordID
 		v.Skip = args.Skip
 		v.Sort = args.Sort
+		v.RawBucketsData = args.RawBucketsData
 	}
 	return v
 }
@@ -1692,6 +1724,9 @@ func (coll *Collection) FindOneAndDelete(
 		}
 		op = op.Let(let)
 	}
+	if args.RawBucketsData != nil {
+		op = op.RawBucketsData(*args.RawBucketsData)
+	}
 
 	return coll.findAndModify(ctx, op)
 }
@@ -1788,6 +1823,9 @@ func (coll *Collection) FindOneAndReplace(
 			return &SingleResult{err: err}
 		}
 		op = op.Let(let)
+	}
+	if args.RawBucketsData != nil {
+		op = op.RawBucketsData(*args.RawBucketsData)
 	}
 
 	return coll.findAndModify(ctx, op)
@@ -1897,6 +1935,9 @@ func (coll *Collection) FindOneAndUpdate(
 			return &SingleResult{err: err}
 		}
 		op = op.Let(let)
+	}
+	if args.RawBucketsData != nil {
+		op = op.RawBucketsData(*args.RawBucketsData)
 	}
 
 	return coll.findAndModify(ctx, op)

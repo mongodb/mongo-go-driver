@@ -24,26 +24,27 @@ import (
 
 // Delete performs a delete operation
 type Delete struct {
-	authenticator driver.Authenticator
-	comment       bsoncore.Value
-	deletes       []bsoncore.Document
-	ordered       *bool
-	session       *session.Client
-	clock         *session.ClusterClock
-	collection    string
-	monitor       *event.CommandMonitor
-	crypt         driver.Crypt
-	database      string
-	deployment    driver.Deployment
-	selector      description.ServerSelector
-	writeConcern  *writeconcern.WriteConcern
-	retry         *driver.RetryMode
-	hint          *bool
-	result        DeleteResult
-	serverAPI     *driver.ServerAPIOptions
-	let           bsoncore.Document
-	timeout       *time.Duration
-	logger        *logger.Logger
+	authenticator  driver.Authenticator
+	comment        bsoncore.Value
+	deletes        []bsoncore.Document
+	ordered        *bool
+	session        *session.Client
+	clock          *session.ClusterClock
+	collection     string
+	monitor        *event.CommandMonitor
+	crypt          driver.Crypt
+	database       string
+	deployment     driver.Deployment
+	selector       description.ServerSelector
+	writeConcern   *writeconcern.WriteConcern
+	retry          *driver.RetryMode
+	hint           *bool
+	result         DeleteResult
+	serverAPI      *driver.ServerAPIOptions
+	let            bsoncore.Document
+	timeout        *time.Duration
+	rawBucketsData *bool
+	logger         *logger.Logger
 }
 
 // DeleteResult represents a delete result returned by the server.
@@ -138,6 +139,9 @@ func (d *Delete) command(dst []byte, desc description.SelectedServer) ([]byte, e
 	}
 	if d.let != nil {
 		dst = bsoncore.AppendDocumentElement(dst, "let", d.let)
+	}
+	if d.rawBucketsData != nil {
+		dst = bsoncore.AppendBooleanElement(dst, "rawData", *d.rawBucketsData)
 	}
 	return dst, nil
 }
@@ -335,5 +339,15 @@ func (d *Delete) Authenticator(authenticator driver.Authenticator) *Delete {
 	}
 
 	d.authenticator = authenticator
+	return d
+}
+
+// RawBucketsData sets the rawData to access timeseries data in the compressed format.
+func (d *Delete) RawBucketsData(rawBucketsData bool) *Delete {
+	if d == nil {
+		d = new(Delete)
+	}
+
+	d.rawBucketsData = &rawBucketsData
 	return d
 }

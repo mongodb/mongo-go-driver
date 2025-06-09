@@ -42,6 +42,7 @@ type Insert struct {
 	result                   InsertResult
 	serverAPI                *driver.ServerAPIOptions
 	timeout                  *time.Duration
+	rawBucketsData           *bool
 	logger                   *logger.Logger
 }
 
@@ -131,6 +132,9 @@ func (i *Insert) command(dst []byte, desc description.SelectedServer) ([]byte, e
 	}
 	if i.ordered != nil {
 		dst = bsoncore.AppendBooleanElement(dst, "ordered", *i.ordered)
+	}
+	if i.rawBucketsData != nil {
+		dst = bsoncore.AppendBooleanElement(dst, "rawData", *i.rawBucketsData)
 	}
 	return dst, nil
 }
@@ -316,5 +320,15 @@ func (i *Insert) Authenticator(authenticator driver.Authenticator) *Insert {
 	}
 
 	i.authenticator = authenticator
+	return i
+}
+
+// RawBucketsData sets the rawData to access timeseries data in the compressed format.
+func (i *Insert) RawBucketsData(rawBucketsData bool) *Insert {
+	if i == nil {
+		i = new(Insert)
+	}
+
+	i.rawBucketsData = &rawBucketsData
 	return i
 }
