@@ -26,10 +26,11 @@ timeout:
       script: |
         ls -la
 functions:
-  assume-test-secrets-ec2-role: 
-    - command: ec2.assume_role
+  assume-test-secrets-ec2-role:
+    - command: ec2.assume_rol
       params:
         role_arn: ${aws_test_secrets_role}
+        duration_seconds: ${ec2_assume_role_duration|3600}
 
   fetch-source:
     # Executes clone and applies the submitted patch, if any
@@ -2361,10 +2362,7 @@ task_groups:
     setup_group:
       - func: fetch-source
       - func: prepare-resources
-      - command: ec2.assume_role
-        params:
-          role_arn: ${LAMBDA_AWS_ROLE_ARN}
-          duration_seconds: 3600
+      - func: assume-test-secrets-ec2-role
       - command: subprocess.exec
         params:
           working_dir: src/go.mongodb.org/mongo-driver
