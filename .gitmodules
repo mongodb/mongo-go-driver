@@ -1,3 +1,4 @@
 [submodule "specifications"]
 	path = testdata/specifications
-	url = https://github.com/mongodb/specifications
+	url = https://github.com/qingyang-hu/specifications.git
+	branch = drivers3064

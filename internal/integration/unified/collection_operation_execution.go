@@ -1500,6 +1500,8 @@ func createFindCursor(ctx context.Context, operation *operation) (*cursorResult,
 		case "maxAwaitTimeMS":
 			maxAwaitTimeMS := time.Duration(val.Int32()) * time.Millisecond
 			opts.SetMaxAwaitTime(maxAwaitTimeMS)
+		case "rawData":
+			opts.SetRawBucketsData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized find option %q", key)
 		}
