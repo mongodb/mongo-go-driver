@@ -30,7 +30,6 @@ functions:
     - command: ec2.assume_role
       params:
         role_arn: ${aws_test_secrets_role}
-        duration_seconds: ${ec2_assume_role_duration|3600}
 
   fetch-source:
     # Executes clone and applies the submitted patch, if any
