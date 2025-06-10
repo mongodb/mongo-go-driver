@@ -32,20 +32,6 @@ Resources:
         Variables:
           MONGODB_URI: !Ref MongoDbUri
 
-  ApplicationResourceGroup:
-    Type: AWS::ResourceGroups::Group
-    Properties:
-      Name:
-        Fn::Sub: ApplicationInsights-SAM-${AWS::StackName}
-      ResourceQuery:
-        Type: CLOUDFORMATION_STACK_1_0
-  ApplicationInsightsMonitoring:
-    Type: AWS::ApplicationInsights::Application
-    Properties:
-      ResourceGroupName:
-        Ref: ApplicationResourceGroup
-      AutoConfigurationEnabled: 'true'
-
 Outputs:
   MongoDBApi:
     Description: "API Gateway endpoint URL for Prod stage for MongoDB function"
