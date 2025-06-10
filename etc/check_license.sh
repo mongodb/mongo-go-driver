@@ -8,7 +8,7 @@ copyright=$"// Copyright (C) MongoDB, Inc. $year-present.
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 "
 
-add_copyright() {
+check_or_add_copyright() {
     file=$1
 
     # Check if first 24 bytes match first 24 bytes of copyright notice.
@@ -54,10 +54,23 @@ do
     esac
 done
 
-# Find all .go files and try to write a license notice.
-GO_FILES=$(find . -type f -name "*.go" -print)
+# Shift script arguments so $1 contains only optional filename args.
+# E.g. check_license.sh -a ./mongo/cursor.go
+shift "$((OPTIND - 1))"
+FILES=$1
 
-for file in $GO_FILES
+# If no filenames were passed, find all .go files and try to write a license
+# notice.
+if [ -z "$FILES" ]; then
+    FILES=$(find . -type f -name "*.go" -print)
+fi
+
+for file in $FILES
 do
-    add_copyright "$file"
+    # Skip any files that aren't .go files.
+    if [[ ! "$file" =~ .go$ ]]; then
+        continue
+    fi
+
+    check_or_add_copyright "$file"
 done

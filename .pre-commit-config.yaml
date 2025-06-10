@@ -65,3 +65,9 @@ repos:
     require_serial: true
     pass_filenames: false
     entry: etc/golangci-lint.sh
+
+  - id: check-licenses
+    name: check-licenses
+    language: system
+    types: [go]
+    entry: etc/check_license.sh
