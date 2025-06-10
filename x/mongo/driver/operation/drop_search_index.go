@@ -12,11 +12,11 @@ import (
 	"fmt"
 	"time"
 
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/mongo/description"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
 // DropSearchIndex performs an dropSearchIndex operation.
@@ -69,9 +69,9 @@ func NewDropSearchIndex(index string) *DropSearchIndex {
 // Result returns the result of executing this operation.
 func (dsi *DropSearchIndex) Result() DropSearchIndexResult { return dsi.result }
 
-func (dsi *DropSearchIndex) processResponse(info driver.ResponseInfo) error {
+func (dsi *DropSearchIndex) processResponse(_ context.Context, resp bsoncore.Document, _ driver.ResponseInfo) error {
 	var err error
-	dsi.result, err = buildDropSearchIndexResult(info.ServerResponse)
+	dsi.result, err = buildDropSearchIndexResult(resp)
 	return err
 }
 

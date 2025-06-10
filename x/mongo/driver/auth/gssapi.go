@@ -16,8 +16,8 @@ import (
 	"net"
 	"net/http"
 
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/internal/gssapi"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/auth/internal/gssapi"
 )
 
 // GSSAPI is the mechanism name for GSSAPI.
@@ -45,8 +45,8 @@ type GSSAPIAuthenticator struct {
 }
 
 // Auth authenticates the connection.
-func (a *GSSAPIAuthenticator) Auth(ctx context.Context, cfg *Config) error {
-	target := cfg.Description.Addr.String()
+func (a *GSSAPIAuthenticator) Auth(ctx context.Context, cfg *driver.AuthConfig) error {
+	target := cfg.Connection.Description().Addr.String()
 	hostname, _, err := net.SplitHostPort(target)
 	if err != nil {
 		return newAuthError(fmt.Sprintf("invalid endpoint (%s) specified: %s", target, err), nil)

@@ -1,11 +1,11 @@
 {
-  "metadata": {
-    "timestamp": "2024-09-18T19:38:39.584721+00:00"
-  },
-  "serialNumber": "urn:uuid:8813fc25-be9f-468d-b3bd-f5aca51680f6",
-  "version": 1,
-  "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
-  "bomFormat": "CycloneDX",
-  "specVersion": "1.5",
-  "vulnerabilities": []
-}
+    "metadata": {
+      "timestamp": "2024-05-02T17:36:29.429171+00:00"
+    },
+    "components": [],
+    "serialNumber": "urn:uuid:06a59521-ad52-420b-aee6-7d9ed15e1fd9",
+    "version": 1,
+    "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
+    "bomFormat": "CycloneDX",
+    "specVersion": "1.5"
+  }

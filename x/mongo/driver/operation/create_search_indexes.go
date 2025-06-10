@@ -12,12 +12,12 @@ import (
 	"fmt"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/mongo/description"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
 // CreateSearchIndexes performs a createSearchIndexes operation.
@@ -93,9 +93,9 @@ func NewCreateSearchIndexes(indexes bsoncore.Document) *CreateSearchIndexes {
 // Result returns the result of executing this operation.
 func (csi *CreateSearchIndexes) Result() CreateSearchIndexesResult { return csi.result }
 
-func (csi *CreateSearchIndexes) processResponse(info driver.ResponseInfo) error {
+func (csi *CreateSearchIndexes) processResponse(_ context.Context, resp bsoncore.Document, _ driver.ResponseInfo) error {
 	var err error
-	csi.result, err = buildCreateSearchIndexesResult(info.ServerResponse)
+	csi.result, err = buildCreateSearchIndexesResult(resp)
 	return err
 }
 

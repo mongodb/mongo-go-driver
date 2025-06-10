@@ -16,16 +16,16 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/spectest"
-	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/mongo/description"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/internal/spectest"
+	"go.mongodb.org/mongo-driver/v2/mongo/address"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
 )
 
 type response struct {
@@ -34,35 +34,35 @@ type response struct {
 }
 
 type Hello struct {
-	Arbiters                     []string           `bson:"arbiters,omitempty"`
-	ArbiterOnly                  bool               `bson:"arbiterOnly,omitempty"`
-	ClusterTime                  bson.Raw           `bson:"$clusterTime,omitempty"`
-	Compression                  []string           `bson:"compression,omitempty"`
-	ElectionID                   primitive.ObjectID `bson:"electionId,omitempty"`
-	Hidden                       bool               `bson:"hidden,omitempty"`
-	Hosts                        []string           `bson:"hosts,omitempty"`
-	HelloOK                      bool               `bson:"helloOk,omitempty"`
-	IsWritablePrimary            bool               `bson:"isWritablePrimary,omitempty"`
-	IsReplicaSet                 bool               `bson:"isreplicaset,omitempty"`
-	LastWrite                    *lastWriteDate     `bson:"lastWrite,omitempty"`
-	LogicalSessionTimeoutMinutes uint32             `bson:"logicalSessionTimeoutMinutes,omitempty"`
-	MaxBSONObjectSize            uint32             `bson:"maxBsonObjectSize,omitempty"`
-	MaxMessageSizeBytes          uint32             `bson:"maxMessageSizeBytes,omitempty"`
-	MaxWriteBatchSize            uint32             `bson:"maxWriteBatchSize,omitempty"`
-	Me                           string             `bson:"me,omitempty"`
-	MaxWireVersion               int32              `bson:"maxWireVersion,omitempty"`
-	MinWireVersion               int32              `bson:"minWireVersion,omitempty"`
-	Msg                          string             `bson:"msg,omitempty"`
-	OK                           int32              `bson:"ok"`
-	Passives                     []string           `bson:"passives,omitempty"`
-	Primary                      string             `bson:"primary,omitempty"`
-	ReadOnly                     bool               `bson:"readOnly,omitempty"`
-	SaslSupportedMechs           []string           `bson:"saslSupportedMechs,omitempty"`
-	Secondary                    bool               `bson:"secondary,omitempty"`
-	SetName                      string             `bson:"setName,omitempty"`
-	SetVersion                   uint32             `bson:"setVersion,omitempty"`
-	Tags                         map[string]string  `bson:"tags,omitempty"`
-	TopologyVersion              *topologyVersion   `bson:"topologyVersion,omitempty"`
+	Arbiters                     []string          `bson:"arbiters,omitempty"`
+	ArbiterOnly                  bool              `bson:"arbiterOnly,omitempty"`
+	ClusterTime                  bson.Raw          `bson:"$clusterTime,omitempty"`
+	Compression                  []string          `bson:"compression,omitempty"`
+	ElectionID                   bson.ObjectID     `bson:"electionId,omitempty"`
+	Hidden                       bool              `bson:"hidden,omitempty"`
+	Hosts                        []string          `bson:"hosts,omitempty"`
+	HelloOK                      bool              `bson:"helloOk,omitempty"`
+	IsWritablePrimary            bool              `bson:"isWritablePrimary,omitempty"`
+	IsReplicaSet                 bool              `bson:"isreplicaset,omitempty"`
+	LastWrite                    *lastWriteDate    `bson:"lastWrite,omitempty"`
+	LogicalSessionTimeoutMinutes uint32            `bson:"logicalSessionTimeoutMinutes,omitempty"`
+	MaxBSONObjectSize            uint32            `bson:"maxBsonObjectSize,omitempty"`
+	MaxMessageSizeBytes          uint32            `bson:"maxMessageSizeBytes,omitempty"`
+	MaxWriteBatchSize            uint32            `bson:"maxWriteBatchSize,omitempty"`
+	Me                           string            `bson:"me,omitempty"`
+	MaxWireVersion               int32             `bson:"maxWireVersion,omitempty"`
+	MinWireVersion               int32             `bson:"minWireVersion,omitempty"`
+	Msg                          string            `bson:"msg,omitempty"`
+	OK                           int32             `bson:"ok"`
+	Passives                     []string          `bson:"passives,omitempty"`
+	Primary                      string            `bson:"primary,omitempty"`
+	ReadOnly                     bool              `bson:"readOnly,omitempty"`
+	SaslSupportedMechs           []string          `bson:"saslSupportedMechs,omitempty"`
+	Secondary                    bool              `bson:"secondary,omitempty"`
+	SetName                      string            `bson:"setName,omitempty"`
+	SetVersion                   uint32            `bson:"setVersion,omitempty"`
+	Tags                         map[string]string `bson:"tags,omitempty"`
+	TopologyVersion              *topologyVersion  `bson:"topologyVersion,omitempty"`
 }
 
 type lastWriteDate struct {
@@ -73,7 +73,7 @@ type server struct {
 	Type            string
 	SetName         string
 	SetVersion      uint32
-	ElectionID      *primitive.ObjectID `bson:"electionId"`
+	ElectionID      *bson.ObjectID `bson:"electionId"`
 	MinWireVersion  *int32
 	MaxWireVersion  *int32
 	TopologyVersion *topologyVersion
@@ -81,7 +81,7 @@ type server struct {
 }
 
 type topologyVersion struct {
-	ProcessID primitive.ObjectID `bson:"processId"`
+	ProcessID bson.ObjectID `bson:"processId"`
 	Counter   int64
 }
 
@@ -155,7 +155,7 @@ type outcome struct {
 	SetName                      string
 	LogicalSessionTimeoutMinutes *int64
 	MaxSetVersion                uint32
-	MaxElectionID                primitive.ObjectID `bson:"maxElectionId"`
+	MaxElectionID                bson.ObjectID `bson:"maxElectionId"`
 	Compatible                   *bool
 	Events                       []monitoringEvent
 }
@@ -203,7 +203,7 @@ func serverClosed(e *event.ServerClosedEvent) {
 	lock.Unlock()
 }
 
-const testsDir string = "../../../../testdata/server-discovery-and-monitoring/"
+var testsDir = spectest.Path("server-discovery-and-monitoring/tests")
 
 var publishedEvents []interface{}
 var lock sync.Mutex
@@ -256,7 +256,7 @@ func applyResponses(t *testing.T, topo *Topology, responses []response, sub *dri
 		assert.Nil(t, err, "Marshal error: %v", err)
 
 		addr := address.Address(response.Host)
-		desc := description.NewServer(addr, doc)
+		desc := driverutil.NewServerDescription(addr, doc)
 		server, ok := topo.servers[addr]
 		if ok {
 			server.updateDescription(desc)
@@ -295,7 +295,7 @@ func applyErrors(t *testing.T, topo *Topology, errors []applicationError) {
 		var currError error
 		switch appErr.Type {
 		case "command":
-			currError = driver.ExtractErrorFromServerResponse(context.Background(), appErr.Response)
+			currError = driver.ExtractErrorFromServerResponse(appErr.Response)
 		case "network":
 			currError = driver.Error{
 				Labels:  []string{driver.NetworkError},
@@ -313,7 +313,7 @@ func applyErrors(t *testing.T, topo *Topology, errors []applicationError) {
 		assert.True(t, ok, "server not found: %v", appErr.Address)
 
 		desc := server.Description()
-		versionRange := description.NewVersionRange(0, *appErr.MaxWireVersion)
+		versionRange := driverutil.NewVersionRange(0, *appErr.MaxWireVersion)
 		desc.WireVersion = &versionRange
 
 		generation, _ := server.pool.generation.getGeneration(nil)
@@ -340,7 +340,7 @@ func applyErrors(t *testing.T, topo *Topology, errors []applicationError) {
 }
 
 func compareServerDescriptions(t *testing.T,
-	expected serverDescription, actual description.Server, idx int) {
+	expected serverDescription, actual event.ServerDescription, idx int) {
 	t.Helper()
 
 	assert.Equal(t, expected.Address, actual.Addr.String(),
@@ -369,16 +369,16 @@ func compareServerDescriptions(t *testing.T,
 	if expected.Type == "PossiblePrimary" {
 		expected.Type = "Unknown"
 	}
-	assert.Equal(t, expected.Type, actual.Kind.String(),
-		"%v: expected server kind %s, got %s", idx, expected.Type, actual.Kind.String())
+	assert.Equal(t, expected.Type, actual.Kind,
+		"%v: expected server kind %s, got %s", idx, expected.Type, actual.Kind)
 }
 
 func compareTopologyDescriptions(t *testing.T,
-	expected topologyDescription, actual description.Topology, idx int) {
+	expected topologyDescription, actual event.TopologyDescription, idx int) {
 	t.Helper()
 
-	assert.Equal(t, expected.TopologyType, actual.Kind.String(),
-		"%v: expected topology kind %s, got %s", idx, expected.TopologyType, actual.Kind.String())
+	assert.Equal(t, expected.TopologyType, actual.Kind,
+		"%v: expected topology kind %s, got %s", idx, expected.TopologyType, actual.Kind)
 	assert.Equal(t, len(expected.Servers), len(actual.Servers),
 		"%v: expected %d servers, got %d", idx, len(expected.Servers), len(actual.Servers))
 
@@ -462,11 +462,7 @@ func runTest(t *testing.T, directory string, filename string) {
 	content, err := ioutil.ReadFile(filepath)
 	assert.Nil(t, err, "ReadFile error: %v", err)
 
-	// Remove ".json" from filename.
-	filename = filename[:len(filename)-5]
-	testName := directory + "/" + filename + ":"
-
-	t.Run(testName, func(t *testing.T) {
+	t.Run(directory+"/"+filename, func(t *testing.T) {
 		var test testCase
 		err = bson.UnmarshalExtJSON(content, false, &test)
 		assert.Nil(t, err, "Unmarshal error: %v", err)
@@ -504,7 +500,7 @@ func runTest(t *testing.T, directory string, filename string) {
 
 			assert.Equal(t,
 				phase.Outcome.LogicalSessionTimeoutMinutes,
-				desc.SessionTimeoutMinutesPtr,
+				desc.SessionTimeoutMinutes,
 				"expected and actual logical session timeout minutes are different")
 
 			assert.Equal(t, phase.Outcome.MaxSetVersion, topo.fsm.maxSetVersion,
@@ -574,7 +570,7 @@ func TestHasStalePrimary(t *testing.T) {
 
 		srv := description.Server{
 			WireVersion: &description.VersionRange{Min: 17, Max: 17},
-			ElectionID:  primitive.NewObjectIDFromTimestamp(time.Now()),
+			ElectionID:  bson.NewObjectIDFromTimestamp(time.Now()),
 			SetVersion:  1,
 		}
 
@@ -592,7 +588,7 @@ func TestHasStalePrimary(t *testing.T) {
 
 		srv := description.Server{
 			WireVersion: &description.VersionRange{Min: 17, Max: 17},
-			ElectionID:  primitive.NewObjectIDFromTimestamp(time.Now()),
+			ElectionID:  bson.NewObjectIDFromTimestamp(time.Now()),
 			SetVersion:  2,
 		}
 
@@ -610,7 +606,7 @@ func TestHasStalePrimary(t *testing.T) {
 
 		srv := description.Server{
 			WireVersion: &description.VersionRange{Min: 17, Max: 17},
-			ElectionID:  primitive.NewObjectIDFromTimestamp(time.Now()),
+			ElectionID:  bson.NewObjectIDFromTimestamp(time.Now()),
 			SetVersion:  1,
 		}
 
@@ -627,13 +623,13 @@ func TestHasStalePrimary(t *testing.T) {
 		t.Parallel()
 
 		fsm := fsm{
-			maxElectionID: primitive.NewObjectIDFromTimestamp(time.Now()),
+			maxElectionID: bson.NewObjectIDFromTimestamp(time.Now()),
 			maxSetVersion: 2,
 		}
 
 		srv := description.Server{
 			WireVersion: &description.VersionRange{Min: 17, Max: 17},
-			ElectionID:  primitive.NewObjectIDFromTimestamp(time.Now().Add(time.Second)),
+			ElectionID:  bson.NewObjectIDFromTimestamp(time.Now().Add(time.Second)),
 			SetVersion:  1,
 		}
 
@@ -645,13 +641,13 @@ func TestHasStalePrimary(t *testing.T) {
 		t.Parallel()
 
 		fsm := fsm{
-			maxElectionID: primitive.NewObjectIDFromTimestamp(time.Now()),
+			maxElectionID: bson.NewObjectIDFromTimestamp(time.Now()),
 			maxSetVersion: 1,
 		}
 
 		srv := description.Server{
 			WireVersion: &description.VersionRange{Min: 17, Max: 17},
-			ElectionID:  primitive.NewObjectIDFromTimestamp(time.Now().Add(time.Second)),
+			ElectionID:  bson.NewObjectIDFromTimestamp(time.Now().Add(time.Second)),
 			SetVersion:  2,
 		}
 
@@ -663,13 +659,13 @@ func TestHasStalePrimary(t *testing.T) {
 		t.Parallel()
 
 		fsm := fsm{
-			maxElectionID: primitive.NewObjectIDFromTimestamp(time.Now()),
+			maxElectionID: bson.NewObjectIDFromTimestamp(time.Now()),
 			maxSetVersion: 1,
 		}
 
 		srv := description.Server{
 			WireVersion: &description.VersionRange{Min: 17, Max: 17},
-			ElectionID:  primitive.NewObjectIDFromTimestamp(time.Now().Add(time.Second)),
+			ElectionID:  bson.NewObjectIDFromTimestamp(time.Now().Add(time.Second)),
 			SetVersion:  1,
 		}
 
@@ -682,12 +678,12 @@ func TestHasStalePrimary(t *testing.T) {
 
 		srv := description.Server{
 			WireVersion: &description.VersionRange{Min: 17, Max: 17},
-			ElectionID:  primitive.NewObjectIDFromTimestamp(time.Now().Add(-time.Second)),
+			ElectionID:  bson.NewObjectIDFromTimestamp(time.Now().Add(-time.Second)),
 			SetVersion:  1,
 		}
 
 		fsm := fsm{
-			maxElectionID: primitive.NewObjectIDFromTimestamp(time.Now()),
+			maxElectionID: bson.NewObjectIDFromTimestamp(time.Now()),
 			maxSetVersion: 2,
 		}
 
@@ -700,12 +696,12 @@ func TestHasStalePrimary(t *testing.T) {
 
 		srv := description.Server{
 			WireVersion: &description.VersionRange{Min: 17, Max: 17},
-			ElectionID:  primitive.NewObjectIDFromTimestamp(time.Now().Add(-time.Second)),
+			ElectionID:  bson.NewObjectIDFromTimestamp(time.Now().Add(-time.Second)),
 			SetVersion:  2,
 		}
 
 		fsm := fsm{
-			maxElectionID: primitive.NewObjectIDFromTimestamp(time.Now()),
+			maxElectionID: bson.NewObjectIDFromTimestamp(time.Now()),
 			maxSetVersion: 1,
 		}
 
@@ -718,12 +714,12 @@ func TestHasStalePrimary(t *testing.T) {
 
 		srv := description.Server{
 			WireVersion: &description.VersionRange{Min: 17, Max: 17},
-			ElectionID:  primitive.NewObjectIDFromTimestamp(time.Now().Add(-time.Second)),
+			ElectionID:  bson.NewObjectIDFromTimestamp(time.Now().Add(-time.Second)),
 			SetVersion:  1,
 		}
 
 		fsm := fsm{
-			maxElectionID: primitive.NewObjectIDFromTimestamp(time.Now()),
+			maxElectionID: bson.NewObjectIDFromTimestamp(time.Now()),
 			maxSetVersion: 1,
 		}
 

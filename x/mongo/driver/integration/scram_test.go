@@ -12,13 +12,13 @@ import (
 	"os"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/internal/integtest"
-	"go.mongodb.org/mongo-driver/mongo/description"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/internal/integtest"
+	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 )
 
 type scramTestCase struct {
@@ -33,13 +33,13 @@ func TestSCRAM(t *testing.T) {
 		t.Skip("Skipping because authentication is required")
 	}
 
-	server, err := integtest.Topology(t).SelectServer(context.Background(), description.WriteSelector())
+	server, err := integtest.Topology(t).SelectServer(context.Background(), &serverselector.Write{})
 	noerr(t, err)
 	serverConnection, err := server.Connection(context.Background())
 	noerr(t, err)
 	defer serverConnection.Close()
 
-	if !serverConnection.Description().WireVersion.Includes(7) {
+	if !driverutil.VersionRangeIncludes(*serverConnection.Description().WireVersion, 7) {
 		t.Skip("Skipping because MongoDB 4.0 is needed for SCRAM-SHA-256")
 	}
 
@@ -59,7 +59,7 @@ func TestSCRAM(t *testing.T) {
 
 	// Verify that test (root) user is authenticated.  If this fails, the
 	// rest of the test can't succeed.
-	wc := writeconcern.New(writeconcern.WMajority())
+	wc := writeconcern.Majority()
 	collOne := integtest.ColName(t)
 	dropCollection(t, integtest.DBName(t), collOne)
 	insertDocs(t, integtest.DBName(t),
@@ -143,12 +143,11 @@ func testScramUserAuthWithMech(t *testing.T, c scramTestCase, mech string) error
 func runScramAuthTest(t *testing.T, credential options.Credential) error {
 	t.Helper()
 	topology := integtest.TopologyWithCredential(t, credential)
-	server, err := topology.SelectServer(context.Background(), description.WriteSelector())
+	server, err := topology.SelectServer(context.Background(), &serverselector.Write{})
 	noerr(t, err)
 
 	cmd := bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "dbstats", 1))
-	_, err = runCommand(server, integtest.DBName(t), cmd)
-	return err
+	return runCommand(server, integtest.DBName(t), cmd)
 }
 
 func createScramUsers(t *testing.T, s driver.Server, cases []scramTestCase) error {
@@ -156,20 +155,20 @@ func createScramUsers(t *testing.T, s driver.Server, cases []scramTestCase) erro
 	for _, c := range cases {
 		var values []bsoncore.Value
 		for _, v := range c.mechanisms {
-			values = append(values, bsoncore.Value{Type: bsontype.String, Data: bsoncore.AppendString(nil, v)})
+			values = append(values, bsoncore.Value{Type: bsoncore.TypeString, Data: bsoncore.AppendString(nil, v)})
 		}
 		newUserCmd := bsoncore.BuildDocumentFromElements(nil,
 			bsoncore.AppendStringElement(nil, "createUser", c.username),
 			bsoncore.AppendStringElement(nil, "pwd", c.password),
 			bsoncore.AppendArrayElement(nil, "roles", bsoncore.BuildArray(nil,
-				bsoncore.Value{Type: bsontype.EmbeddedDocument, Data: bsoncore.BuildDocumentFromElements(nil,
+				bsoncore.Value{Type: bsoncore.TypeEmbeddedDocument, Data: bsoncore.BuildDocumentFromElements(nil,
 					bsoncore.AppendStringElement(nil, "role", "readWrite"),
 					bsoncore.AppendStringElement(nil, "db", db),
 				)},
 			)),
 			bsoncore.AppendArrayElement(nil, "mechanisms", bsoncore.BuildArray(nil, values...)),
 		)
-		_, err := runCommand(s, db, newUserCmd)
+		err := runCommand(s, db, newUserCmd)
 		if err != nil {
 			return fmt.Errorf("Couldn't create user '%s' on db '%s': %w", c.username, integtest.DBName(t), err)
 		}

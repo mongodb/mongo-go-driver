@@ -12,21 +12,19 @@ import (
 	"fmt"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/driverutil"
-	"go.mongodb.org/mongo-driver/mongo/description"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
 // Count represents a count operation.
 type Count struct {
 	authenticator  driver.Authenticator
-	maxTime        *time.Duration
 	query          bsoncore.Document
 	session        *session.Client
 	clock          *session.ClusterClock
@@ -99,9 +97,9 @@ func NewCount() *Count {
 // Result returns the result of executing this operation.
 func (c *Count) Result() CountResult { return c.result }
 
-func (c *Count) processResponse(info driver.ResponseInfo) error {
+func (c *Count) processResponse(_ context.Context, resp bsoncore.Document, _ driver.ResponseInfo) error {
 	var err error
-	c.result, err = buildCountResult(info.ServerResponse)
+	c.result, err = buildCountResult(resp)
 	return err
 }
 
@@ -122,7 +120,6 @@ func (c *Count) Execute(ctx context.Context) error {
 		Crypt:             c.crypt,
 		Database:          c.database,
 		Deployment:        c.deployment,
-		MaxTime:           c.maxTime,
 		ReadConcern:       c.readConcern,
 		ReadPreference:    c.readPreference,
 		Selector:          c.selector,
@@ -147,20 +144,10 @@ func (c *Count) command(dst []byte, _ description.SelectedServer) ([]byte, error
 	if c.query != nil {
 		dst = bsoncore.AppendDocumentElement(dst, "query", c.query)
 	}
-	if c.comment.Type != bsontype.Type(0) {
+	if c.comment.Type != bsoncore.Type(0) {
 		dst = bsoncore.AppendValueElement(dst, "comment", c.comment)
 	}
 	return dst, nil
-}
-
-// MaxTime specifies the maximum amount of time to allow the query to run on the server.
-func (c *Count) MaxTime(maxTime *time.Duration) *Count {
-	if c == nil {
-		c = new(Count)
-	}
-
-	c.maxTime = maxTime
-	return c
 }
 
 // Query determines what results are returned from find.

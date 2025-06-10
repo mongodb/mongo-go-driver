@@ -18,8 +18,8 @@ import (
 
 	"github.com/xdg-go/scram"
 	"github.com/xdg-go/stringprep"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 )
 
 const (
@@ -86,7 +86,7 @@ type ScramAuthenticator struct {
 var _ SpeculativeAuthenticator = (*ScramAuthenticator)(nil)
 
 // Auth authenticates the provided connection by conducting a full SASL conversation.
-func (a *ScramAuthenticator) Auth(ctx context.Context, cfg *Config) error {
+func (a *ScramAuthenticator) Auth(ctx context.Context, cfg *driver.AuthConfig) error {
 	err := ConductSaslConversation(ctx, cfg, a.source, a.createSaslClient())
 	if err != nil {
 		return newAuthError("sasl conversation error", err)

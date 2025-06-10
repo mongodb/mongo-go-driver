@@ -6,50 +6,52 @@
 
 package options
 
-// RewrapManyDataKeyOptions represents all possible options used to decrypt and encrypt all matching data keys with a
-// possibly new masterKey.
+// RewrapManyDataKeyOptions represents all possible options used to decrypt and
+// encrypt all matching data keys with a possibly new masterKey.
+//
+// See corresponding setter methods for documentation.
 type RewrapManyDataKeyOptions struct {
-	// Provider identifies the new KMS provider. If omitted, encrypting uses the current KMS provider.
-	Provider *string
-
-	// MasterKey identifies the new masterKey. If omitted, rewraps with the current masterKey.
+	Provider  *string
 	MasterKey interface{}
 }
 
+// RewrapManyDataKeyOptionsBuilder contains options to configure rewraping a
+// data key. Each option can be set through setter functions. See documentation
+// for each setter function for an explanation of the option.
+type RewrapManyDataKeyOptionsBuilder struct {
+	Opts []func(*RewrapManyDataKeyOptions) error
+}
+
 // RewrapManyDataKey creates a new RewrapManyDataKeyOptions instance.
-func RewrapManyDataKey() *RewrapManyDataKeyOptions {
-	return new(RewrapManyDataKeyOptions)
+func RewrapManyDataKey() *RewrapManyDataKeyOptionsBuilder {
+	return new(RewrapManyDataKeyOptionsBuilder)
 }
 
-// SetProvider sets the value for the Provider field.
-func (rmdko *RewrapManyDataKeyOptions) SetProvider(provider string) *RewrapManyDataKeyOptions {
-	rmdko.Provider = &provider
+// List returns a list of CountOptions setter functions.
+func (rmdko *RewrapManyDataKeyOptionsBuilder) List() []func(*RewrapManyDataKeyOptions) error {
+	return rmdko.Opts
+}
+
+// SetProvider sets the value for the Provider field. Provider identifies the new KMS provider.
+// If omitted, encrypting uses the current KMS provider.
+func (rmdko *RewrapManyDataKeyOptionsBuilder) SetProvider(provider string) *RewrapManyDataKeyOptionsBuilder {
+	rmdko.Opts = append(rmdko.Opts, func(opts *RewrapManyDataKeyOptions) error {
+		opts.Provider = &provider
+
+		return nil
+	})
+
 	return rmdko
 }
 
-// SetMasterKey sets the value for the MasterKey field.
-func (rmdko *RewrapManyDataKeyOptions) SetMasterKey(masterKey interface{}) *RewrapManyDataKeyOptions {
-	rmdko.MasterKey = masterKey
-	return rmdko
-}
+// SetMasterKey sets the value for the MasterKey field. MasterKey identifies the new masterKey.
+// If omitted, rewraps with the current masterKey.
+func (rmdko *RewrapManyDataKeyOptionsBuilder) SetMasterKey(masterKey interface{}) *RewrapManyDataKeyOptionsBuilder {
+	rmdko.Opts = append(rmdko.Opts, func(opts *RewrapManyDataKeyOptions) error {
+		opts.MasterKey = masterKey
 
-// MergeRewrapManyDataKeyOptions combines the given RewrapManyDataKeyOptions instances into a single
-// RewrapManyDataKeyOptions in a last one wins fashion.
-//
-// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
-// single options struct instead.
-func MergeRewrapManyDataKeyOptions(opts ...*RewrapManyDataKeyOptions) *RewrapManyDataKeyOptions {
-	rmdkOpts := RewrapManyDataKey()
-	for _, rmdko := range opts {
-		if rmdko == nil {
-			continue
-		}
-		if provider := rmdko.Provider; provider != nil {
-			rmdkOpts.Provider = provider
-		}
-		if masterKey := rmdko.MasterKey; masterKey != nil {
-			rmdkOpts.MasterKey = masterKey
-		}
-	}
-	return rmdkOpts
+		return nil
+	})
+
+	return rmdko
 }
