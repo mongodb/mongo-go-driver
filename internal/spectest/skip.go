@@ -11,6 +11,11 @@ import "testing"
 // skipTests is a map of "fully-qualified test name" to "the reason for skipping
 // the test".
 var skipTests = map[string][]string{
+	// TODO(GODRIVER-3518): Test flexible numeric comparisons with $$lte
+	"Modifies $$lte operator test to also use floating point and Int64 types (GODRIVER-3518)": {
+		"TestUnifiedSpec/unified-test-format/tests/valid-pass/operator-lte.json/special_lte_matching_operator",
+	},
+
 	// SPEC-1403: This test checks to see if the correct error is thrown when auto
 	// encrypting with a server < 4.2. Currently, the test will fail because a
 	// server < 4.2 wouldn't have mongocryptd, so Client construction would fail

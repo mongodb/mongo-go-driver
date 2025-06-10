@@ -175,6 +175,29 @@ func TestDecodingInterfaces(t *testing.T) {
 				return data, &receiver, check
 			},
 		},
+		{
+			name: "overwriting prepopulated slice",
+			stub: func() ([]byte, interface{}, func(*testing.T)) {
+				type testStruct struct {
+					Values []interface{}
+				}
+
+				data := docToBytes(struct {
+					Values []interface{}
+				}{
+					Values: []interface{}{1, 2, 3},
+				})
+
+				receiver := testStruct{[]interface{}{7, 8}}
+
+				check := func(t *testing.T) {
+					t.Helper()
+					assert.Equal(t, testStruct{[]interface{}{1, 2, int32(3)}}, receiver)
+				}
+
+				return data, &receiver, check
+			},
+		},
 	}
 	for _, tc := range testCases {
 		tc := tc
