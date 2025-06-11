@@ -6,20 +6,7 @@ import (
 )
 
 func (p *pool) spawnConnection(ctx context.Context, w *wantConn, conn *connection) {
-	//// Relase slot when done.
-	//defer func() { <-p.sem }()
-
-	//// Simulate connection setup delay
-	//time.Sleep(1000 * time.Millisecond)
-
-	//// Register new conenction
-	//p.mu.Lock()
-	//p.nextID++
-	//conn := &conn{id: p.nextID}
-	//p.conns[conn.id] = conn
-	//p.mu.Unlock()
-
-	//w.ready <- conn // Notify the waiting goroutine that the connection is ready
+	// TODO
 }
 
 // hasSpace checks if the pool has space for a new connection.
