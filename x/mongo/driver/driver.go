@@ -268,11 +268,15 @@ func (rm RetryMode) Enabled() bool {
 	return rm == RetryOnce || rm == RetryOncePerCommand || rm == RetryContext
 }
 
-const noSession = "noSessionKey"
+type noSession struct{}
 
 // WithoutSession disables sessions.
 //
 // Warning: you almost certainly do not want this.
 func WithoutSession(ctx context.Context) context.Context {
-	return context.WithValue(ctx, noSession, struct{}{})
+	return context.WithValue(ctx, noSession{}, 1)
+}
+
+func withoutSession(ctx context.Context) bool {
+	return ctx.Value(noSession{}) != nil
 }

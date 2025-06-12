@@ -1084,9 +1084,9 @@ func (op Operation) createWireMessage(
 	// or less than 6, use OP_QUERY. Otherwise, use OP_MSG.
 	if desc.Kind != description.LoadBalanced && op.ServerAPI == nil &&
 		(desc.WireVersion == nil || desc.WireVersion.Max < wiremessage.OpmsgWireVersion) {
-		return op.createQueryWireMessage(maxTimeMS, dst, desc, ctx.Value(noSession) == nil)
+		return op.createQueryWireMessage(maxTimeMS, dst, desc, !withoutSession(ctx))
 	}
-	return op.createMsgWireMessage(ctx, maxTimeMS, dst, desc, conn, ctx.Value(noSession) == nil)
+	return op.createMsgWireMessage(ctx, maxTimeMS, dst, desc, conn, !withoutSession(ctx))
 }
 
 func (op Operation) addBatchArray(dst []byte) []byte {
