@@ -103,8 +103,12 @@ func (r *ReadPref) TagSets() []tag.Set {
 	return r.tagSets
 }
 
-// HedgeEnabled returns whether or not hedged reads are enabled for this read preference. If this option was not
-// specified during read preference construction, nil is returned.
+// HedgeEnabled returns whether or not hedged reads are enabled for this read
+// preference. If this option was not specified during read preference
+// construction, nil is returned.
+//
+// Deprecated: Hedged reads are deprecated in MongoDB 8.0 and may be removed in
+// a future MongoDB version.
 func (r *ReadPref) HedgeEnabled() *bool {
 	return r.hedgeEnabled
 }
