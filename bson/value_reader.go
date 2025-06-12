@@ -7,7 +7,7 @@
 package bson
 
 import (
-	"bufio"
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -16,12 +16,12 @@ import (
 	"sync"
 )
 
-var _ ValueReader = &valueReader{}
+var _ ValueReader = (*valueReader)(nil)
 
-// ErrEOA is the error returned when the end of a BSON array has been reached.
+// ErrEOA is returned when the end of a BSON array is reached.
 var ErrEOA = errors.New("end of array")
 
-// ErrEOD is the error returned when the end of a BSON document has been reached.
+// ErrEOD is returned when the end of a BSON document is reached.
 var ErrEOD = errors.New("end of document")
 
 type vrState struct {
@@ -30,349 +30,361 @@ type vrState struct {
 	end   int64
 }
 
-var bufioReaderPool = sync.Pool{
-	New: func() interface{} {
-		return bufio.NewReader(nil)
-	},
-}
-
 var vrPool = sync.Pool{
-	New: func() interface{} {
-		return &valueReader{
-			stack: make([]vrState, 1, 5),
-		}
-	},
+	New: func() interface{} { return new(valueReader) },
 }
 
-// valueReader is for reading BSON values.
+// valueReader reads BSON values from an in-memory []byte.
 type valueReader struct {
-	r      *bufio.Reader
+	d      []byte
 	offset int64
 
 	stack []vrState
 	frame int64
 }
 
-func getDocumentReader(r io.Reader) *valueReader {
+// NewDocumentReader reads all of r into memory and returns a ValueReader.
+func NewDocumentReader(r io.Reader) ValueReader {
+	buf, err := io.ReadAll(r)
+	if err != nil {
+		panic("bson: read error: " + err.Error())
+	}
 	vr := vrPool.Get().(*valueReader)
-
+	vr.d = buf
 	vr.offset = 0
 	vr.frame = 0
-
+	if vr.stack == nil {
+		vr.stack = make([]vrState, 1, 5)
+	}
 	vr.stack = vr.stack[:1]
 	vr.stack[0] = vrState{mode: mTopLevel}
-
-	br := bufioReaderPool.Get().(*bufio.Reader)
-	br.Reset(r)
-	vr.r = br
-
 	return vr
 }
 
+// putDocumentReader returns this reader to the pool.
 func putDocumentReader(vr *valueReader) {
 	if vr == nil {
 		return
 	}
-
-	bufioReaderPool.Put(vr.r)
-	vr.r = nil
-
+	vr.d = nil
 	vrPool.Put(vr)
 }
 
-// NewDocumentReader returns a ValueReader using b for the underlying BSON
-// representation.
-func NewDocumentReader(r io.Reader) ValueReader {
+// getDocumentReader returns a TopLevel valueReader over the entire BSON stream in r.
+func getDocumentReader(r io.Reader) *valueReader {
 	return newDocumentReader(r)
 }
 
-// newValueReader returns a ValueReader that starts in the Value mode instead of in top
-// level document mode. This enables the creation of a ValueReader for a single BSON value.
-func newValueReader(t Type, r io.Reader) ValueReader {
-	vr := newDocumentReader(r)
-	if len(vr.stack) == 0 {
-		vr.stack = make([]vrState, 1, 5)
+// newDocumentReader reads the entire BSON blob into memory and
+// returns a *valueReader in TopLevel mode.
+func newDocumentReader(r io.Reader) *valueReader {
+	buf, err := io.ReadAll(r)
+	if err != nil {
+		panic("bson: could not read document: " + err.Error())
 	}
-	vr.stack[0].mode = mValue
-	vr.stack[0].vType = t
+	vr := vrPool.Get().(*valueReader)
+	// ensure we have at least one slot in the stack
+	if cap(vr.stack) < 1 {
+		vr.stack = make([]vrState, 1, 5)
+	} else {
+		vr.stack = vr.stack[:1]
+	}
+	vr.stack[0] = vrState{mode: mTopLevel, end: int64(len(buf))}
+	vr.d = buf
+	vr.offset = 0
+	vr.frame = 0
 	return vr
 }
 
-func newDocumentReader(r io.Reader) *valueReader {
-	stack := make([]vrState, 1, 5)
-	stack[0] = vrState{
-		mode: mTopLevel,
+// newValueReader reads the single‐value BSON from r into a valueReader
+// that starts in Value mode for type t.
+func newValueReader(t Type, r io.Reader) ValueReader {
+	// slurp the entire document/value into memory
+	buf, err := io.ReadAll(r)
+	if err != nil {
+		panic("bson: could not read value: " + err.Error())
 	}
-	return &valueReader{
-		r:     bufio.NewReader(r),
-		stack: stack,
+
+	vr := vrPool.Get().(*valueReader)
+
+	// make sure the stack slice has at least one element
+	if cap(vr.stack) < 1 {
+		vr.stack = make([]vrState, 1, 5)
+	} else {
+		vr.stack = vr.stack[:1]
 	}
+
+	// set up the initial frame in "value" mode, with end = len(buf)
+	vr.stack[0] = vrState{
+		mode:  mValue,
+		vType: t,
+		end:   int64(len(buf)),
+	}
+
+	vr.d = buf    // point at the in-memory bytes
+	vr.offset = 0 // start at the beginning
+	vr.frame = 0  // only one frame
+
+	return vr
 }
 
+// ---------------- frame management ----------------
+
 func (vr *valueReader) advanceFrame() {
-	if vr.frame+1 >= int64(len(vr.stack)) { // We need to grow the stack
-		length := len(vr.stack)
-		if length+1 >= cap(vr.stack) {
-			// double it
+	if vr.frame+1 >= int64(len(vr.stack)) {
+		n := len(vr.stack)
+		if n+1 >= cap(vr.stack) {
 			buf := make([]vrState, 2*cap(vr.stack)+1)
 			copy(buf, vr.stack)
 			vr.stack = buf
 		}
-		vr.stack = vr.stack[:length+1]
+		vr.stack = vr.stack[:n+1]
 	}
 	vr.frame++
-
-	// Clean the stack
-	vr.stack[vr.frame].mode = 0
-	vr.stack[vr.frame].vType = 0
-	vr.stack[vr.frame].end = 0
+	vr.stack[vr.frame] = vrState{}
 }
 
-func (vr *valueReader) pushDocument() error {
-	vr.advanceFrame()
-
-	vr.stack[vr.frame].mode = mDocument
-
-	length, err := vr.readLength()
-	if err != nil {
-		return err
-	}
-	vr.stack[vr.frame].end = int64(length) + vr.offset - 4
-
-	return nil
-}
-
-func (vr *valueReader) pushArray() error {
-	vr.advanceFrame()
-
-	vr.stack[vr.frame].mode = mArray
-
-	length, err := vr.readLength()
-	if err != nil {
-		return err
-	}
-	vr.stack[vr.frame].end = int64(length) + vr.offset - 4
-
-	return nil
-}
-
-func (vr *valueReader) pushElement(t Type) {
-	vr.advanceFrame()
-
-	vr.stack[vr.frame].mode = mElement
-	vr.stack[vr.frame].vType = t
-}
-
-func (vr *valueReader) pushValue(t Type) {
-	vr.advanceFrame()
-
-	vr.stack[vr.frame].mode = mValue
-	vr.stack[vr.frame].vType = t
-}
-
-func (vr *valueReader) pushCodeWithScope() (int64, error) {
-	vr.advanceFrame()
-
-	vr.stack[vr.frame].mode = mCodeWithScope
-
-	length, err := vr.readLength()
-	if err != nil {
-		return 0, err
-	}
-	vr.stack[vr.frame].end = int64(length) + vr.offset - 4
-
-	return int64(length), nil
-}
-
-func (vr *valueReader) pop() error {
-	var cnt int
+func (vr *valueReader) pop() {
 	switch vr.stack[vr.frame].mode {
 	case mElement, mValue:
-		cnt = 1
-	case mDocument, mArray, mCodeWithScope:
-		cnt = 2 // we pop twice to jump over the vrElement: vrDocument -> vrElement -> vrDocument/TopLevel/etc...
-	}
-	for i := 0; i < cnt && vr.frame > 0; i++ {
-		if vr.offset < vr.stack[vr.frame].end {
-			_, err := vr.r.Discard(int(vr.stack[vr.frame].end - vr.offset))
-			if err != nil {
-				return err
-			}
-		}
 		vr.frame--
+	case mDocument, mArray, mCodeWithScope:
+		vr.frame -= 2
 	}
-	if vr.frame == 0 {
-		if vr.stack[0].end > vr.offset {
-			vr.stack[0].end -= vr.offset
-		} else {
-			vr.stack[0].end = 0
-		}
-		vr.offset = 0
-	}
-	return nil
 }
 
-func (vr *valueReader) invalidTransitionErr(destination mode, name string, modes []mode) error {
+// ---------------- error helpers ----------------
+
+func (vr *valueReader) invalidTransitionErr(dest mode, name string, modes []mode) error {
 	te := TransitionError{
 		name:        name,
 		current:     vr.stack[vr.frame].mode,
-		destination: destination,
+		destination: dest,
 		modes:       modes,
 		action:      "read",
 	}
-	if vr.frame != 0 {
+	if vr.frame > 0 {
 		te.parent = vr.stack[vr.frame-1].mode
 	}
 	return te
 }
 
 func (vr *valueReader) typeError(t Type) error {
-	return fmt.Errorf("positioned on %s, but attempted to read %s", vr.stack[vr.frame].vType, t)
+	return fmt.Errorf("positioned on %s but attempted to read %s", vr.stack[vr.frame].vType, t)
 }
 
 func (vr *valueReader) invalidDocumentLengthError() error {
-	return fmt.Errorf("document is invalid, end byte is at %d, but null byte found at %d", vr.stack[vr.frame].end, vr.offset)
+	s := vr.stack[vr.frame]
+	return fmt.Errorf("document invalid: end=%d but offset=%d", s.end, vr.offset)
 }
 
-func (vr *valueReader) ensureElementValue(t Type, destination mode, callerName string) error {
-	switch vr.stack[vr.frame].mode {
-	case mElement, mValue:
-		if vr.stack[vr.frame].vType != t {
-			return vr.typeError(t)
-		}
-	default:
-		return vr.invalidTransitionErr(destination, callerName, []mode{mElement, mValue})
-	}
-
-	return nil
-}
+// ---------------- basic inspectors ----------------
 
 func (vr *valueReader) Type() Type {
 	return vr.stack[vr.frame].vType
 }
 
-func (vr *valueReader) appendNextElement(dst []byte) ([]byte, error) {
-	var length int32
-	var err error
-	switch vr.stack[vr.frame].vType {
-	case TypeArray, TypeEmbeddedDocument, TypeCodeWithScope:
-		length, err = vr.peekLength()
-	case TypeBinary:
-		length, err = vr.peekLength()
-		length += 4 + 1 // binary length + subtype byte
-	case TypeBoolean:
-		length = 1
-	case TypeDBPointer:
-		length, err = vr.peekLength()
-		length += 4 + 12 // string length + ObjectID length
-	case TypeDateTime, TypeDouble, TypeInt64, TypeTimestamp:
-		length = 8
-	case TypeDecimal128:
-		length = 16
-	case TypeInt32:
-		length = 4
-	case TypeJavaScript, TypeString, TypeSymbol:
-		length, err = vr.peekLength()
-		length += 4
-	case TypeMaxKey, TypeMinKey, TypeNull, TypeUndefined:
-		length = 0
-	case TypeObjectID:
-		length = 12
-	case TypeRegex:
-		for n := 0; n < 2; n++ { // Read two C strings.
-			str, err := vr.r.ReadBytes(0x00)
-			if err != nil {
-				return nil, err
-			}
-			dst = append(dst, str...)
-			vr.offset += int64(len(str))
-		}
-		return dst, nil
-	default:
-		return nil, fmt.Errorf("attempted to read bytes of unknown BSON type %v", vr.stack[vr.frame].vType)
+func (vr *valueReader) ensureElementValue(t Type, dest mode, name string) error {
+	m := vr.stack[vr.frame].mode
+	if (m == mElement || m == mValue) && vr.stack[vr.frame].vType == t {
+		return nil
 	}
-	if err != nil {
-		return nil, err
-	}
-
-	buf, err := vr.r.Peek(int(length))
-	if err != nil {
-		if err == bufio.ErrBufferFull {
-			temp := make([]byte, length)
-			if _, err = io.ReadFull(vr.r, temp); err != nil {
-				return nil, err
-			}
-			dst = append(dst, temp...)
-			vr.offset += int64(len(temp))
-			return dst, nil
-		}
-
-		return nil, err
-	}
-
-	dst = append(dst, buf...)
-	if _, err = vr.r.Discard(int(length)); err != nil {
-		return nil, err
-	}
-
-	vr.offset += int64(length)
-	return dst, nil
+	return vr.invalidTransitionErr(dest, name, []mode{mElement, mValue})
 }
 
-func (vr *valueReader) readValueBytes(dst []byte) (Type, []byte, error) {
-	switch vr.stack[vr.frame].mode {
-	case mTopLevel:
-		length, err := vr.peekLength()
-		if err != nil {
-			return Type(0), nil, err
-		}
-		dst, err = vr.appendBytes(dst, length)
-		if err != nil {
-			return Type(0), nil, err
-		}
-		return Type(0), dst, nil
-	case mElement, mValue:
-		dst, err := vr.appendNextElement(dst)
-		if err != nil {
-			return Type(0), dst, err
-		}
-
-		t := vr.stack[vr.frame].vType
-		err = vr.pop()
-		if err != nil {
-			return Type(0), nil, err
-		}
-		return t, dst, nil
-	default:
-		return Type(0), nil, vr.invalidTransitionErr(0, "ReadValueBytes", []mode{mElement, mValue})
+func (vr *valueReader) peekLength() (int32, error) {
+	if vr.offset+4 > int64(len(vr.d)) {
+		return 0, io.EOF
 	}
+	return int32(binary.LittleEndian.Uint32(vr.d[vr.offset:])), nil
+}
+
+// ---------------- zero‐alloc raw readers ----------------
+
+// readBytes returns a subslice [offset, offset+length) or EOF.
+func (vr *valueReader) readBytes(length int32) ([]byte, error) {
+	if length < 0 || vr.offset+int64(length) > int64(len(vr.d)) {
+		return nil, io.EOF
+	}
+	start := vr.offset
+	vr.offset += int64(length)
+	return vr.d[start : start+int64(length)], nil
+}
+
+// appendBytes appends the next length bytes to dst.
+func (vr *valueReader) appendBytes(dst []byte, length int32) ([]byte, error) {
+	if length < 0 || vr.offset+int64(length) > int64(len(vr.d)) {
+		return nil, io.EOF
+	}
+	start := vr.offset
+	vr.offset += int64(length)
+	return append(dst, vr.d[start:start+int64(length)]...), nil
+}
+
+// skipBytes just advances offset.
+func (vr *valueReader) skipBytes(length int32) error {
+	if length < 0 || vr.offset+int64(length) > int64(len(vr.d)) {
+		return io.EOF
+	}
+	vr.offset += int64(length)
+	return nil
+}
+
+// readByte returns one byte or EOF.
+func (vr *valueReader) readByte() (byte, error) {
+	if vr.offset >= int64(len(vr.d)) {
+		return 0, io.EOF
+	}
+	b := vr.d[vr.offset]
+	vr.offset++
+	return b, nil
+}
+
+// skipCString finds the next NUL and skips past it.
+func (vr *valueReader) skipCString() error {
+	idx := bytes.IndexByte(vr.d[vr.offset:], 0x00)
+	if idx < 0 {
+		return io.EOF
+	}
+	vr.offset += int64(idx) + 1
+	return nil
+}
+
+// readCString extracts bytes up to the next NUL.
+func (vr *valueReader) readCString() (string, error) {
+	idx := bytes.IndexByte(vr.d[vr.offset:], 0x00)
+	if idx < 0 {
+		return "", io.EOF
+	}
+	start := vr.offset
+	vr.offset += int64(idx) + 1
+	return string(vr.d[start : start+int64(idx)]), nil
+}
+
+// readString reads a length-prefixed string (incl. trailing NUL).
+func (vr *valueReader) readString() (string, error) {
+	length, err := vr.readLength()
+	if err != nil {
+		return "", err
+	}
+	if length <= 0 || vr.offset+int64(length) > int64(len(vr.d)) {
+		return "", fmt.Errorf("invalid string length %d", length)
+	}
+	// must end with null
+	if vr.d[vr.offset+int64(length)-1] != 0 {
+		return "", fmt.Errorf("string missing trailing null")
+	}
+	start := vr.offset
+	vr.offset += int64(length)
+	return string(vr.d[start : start+int64(length)-1]), nil
+}
+
+func (vr *valueReader) readLength() (int32, error) {
+	return vr.readi32()
+}
+
+func (vr *valueReader) readi32() (int32, error) {
+	if vr.offset+4 > int64(len(vr.d)) {
+		return 0, io.EOF
+	}
+	start := vr.offset
+	vr.offset += 4
+	return int32(binary.LittleEndian.Uint32(vr.d[start:])), nil
+}
+
+func (vr *valueReader) readu32() (uint32, error) {
+	if vr.offset+4 > int64(len(vr.d)) {
+		return 0, io.EOF
+	}
+	start := vr.offset
+	vr.offset += 4
+	return binary.LittleEndian.Uint32(vr.d[start:]), nil
+}
+
+func (vr *valueReader) readi64() (int64, error) {
+	if vr.offset+8 > int64(len(vr.d)) {
+		return 0, io.EOF
+	}
+	start := vr.offset
+	vr.offset += 8
+	return int64(binary.LittleEndian.Uint64(vr.d[start:])), nil
+}
+
+func (vr *valueReader) readu64() (uint64, error) {
+	if vr.offset+8 > int64(len(vr.d)) {
+		return 0, io.EOF
+	}
+	start := vr.offset
+	vr.offset += 8
+	return binary.LittleEndian.Uint64(vr.d[start:]), nil
+}
+
+// ---------------- high-level readers ----------------
+
+func (vr *valueReader) ReadElement() (string, ValueReader, error) {
+	switch vr.stack[vr.frame].mode {
+	case mTopLevel, mDocument, mCodeWithScope:
+	default:
+		return "", nil, vr.invalidTransitionErr(mElement, "ReadElement",
+			[]mode{mTopLevel, mDocument, mCodeWithScope})
+	}
+	t, err := vr.readByte()
+	if err != nil {
+		return "", nil, err
+	}
+	if t == 0 {
+		if vr.offset != vr.stack[vr.frame].end {
+			return "", nil, vr.invalidDocumentLengthError()
+		}
+		vr.pop()
+		return "", nil, ErrEOD
+	}
+	name, err := vr.readCString()
+	if err != nil {
+		return "", nil, err
+	}
+	vr.pushElement(Type(t))
+	return name, vr, nil
+}
+
+func (vr *valueReader) ReadValue() (ValueReader, error) {
+	if vr.stack[vr.frame].mode != mArray {
+		return nil, vr.invalidTransitionErr(mValue, "ReadValue", []mode{mArray})
+	}
+	t, err := vr.readByte()
+	if err != nil {
+		return nil, err
+	}
+	if t == 0 {
+		if vr.offset != vr.stack[vr.frame].end {
+			return nil, vr.invalidDocumentLengthError()
+		}
+		vr.pop()
+		return nil, ErrEOA
+	}
+	if err := vr.skipCString(); err != nil {
+		return nil, err
+	}
+	vr.pushValue(Type(t))
+	return vr, nil
 }
 
 func (vr *valueReader) Skip() error {
-	switch vr.stack[vr.frame].mode {
-	case mElement, mValue:
-	default:
-		return vr.invalidTransitionErr(0, "Skip", []mode{mElement, mValue})
-	}
-
-	_, err := vr.appendNextElement(nil)
-	if err != nil {
-		return err
-	}
-
-	return vr.pop()
+	_, _, err := vr.readValueBytes(nil)
+	return err
 }
 
 func (vr *valueReader) ReadArray() (ArrayReader, error) {
 	if err := vr.ensureElementValue(TypeArray, mArray, "ReadArray"); err != nil {
 		return nil, err
 	}
-
-	err := vr.pushArray()
+	vr.advanceFrame()
+	size, err := vr.readLength()
 	if err != nil {
 		return nil, err
 	}
-
+	vr.stack[vr.frame].mode = mArray
+	vr.stack[vr.frame].end = int64(size) + vr.offset - 4
 	return vr, nil
 }
 
@@ -380,69 +392,55 @@ func (vr *valueReader) ReadBinary() (b []byte, btype byte, err error) {
 	if err := vr.ensureElementValue(TypeBinary, 0, "ReadBinary"); err != nil {
 		return nil, 0, err
 	}
-
 	length, err := vr.readLength()
 	if err != nil {
 		return nil, 0, err
 	}
-
 	btype, err = vr.readByte()
 	if err != nil {
 		return nil, 0, err
 	}
-
-	// Check length in case it is an old binary without a length.
 	if btype == 0x02 && length > 4 {
 		length, err = vr.readLength()
 		if err != nil {
 			return nil, 0, err
 		}
 	}
-
-	b = make([]byte, length)
-	err = vr.read(b)
+	b, err = vr.readBytes(length)
 	if err != nil {
 		return nil, 0, err
 	}
-
-	if err := vr.pop(); err != nil {
-		return nil, 0, err
-	}
-	return b, btype, nil
+	// copy so user doesn’t share underlying buffer
+	cp := make([]byte, len(b))
+	copy(cp, b)
+	vr.pop()
+	return cp, btype, nil
 }
 
 func (vr *valueReader) ReadBoolean() (bool, error) {
 	if err := vr.ensureElementValue(TypeBoolean, 0, "ReadBoolean"); err != nil {
 		return false, err
 	}
-
 	b, err := vr.readByte()
 	if err != nil {
 		return false, err
 	}
-
 	if b > 1 {
-		return false, fmt.Errorf("invalid byte for boolean, %b", b)
+		return false, fmt.Errorf("invalid boolean byte %b", b)
 	}
-
-	if err := vr.pop(); err != nil {
-		return false, err
-	}
+	vr.pop()
 	return b == 1, nil
 }
 
 func (vr *valueReader) ReadDocument() (DocumentReader, error) {
 	switch vr.stack[vr.frame].mode {
 	case mTopLevel:
-		length, err := vr.readLength()
+		size, err := vr.readLength()
 		if err != nil {
 			return nil, err
 		}
-		if length <= 4 {
-			return nil, fmt.Errorf("invalid string length: %d", length)
-		}
-
-		vr.stack[vr.frame].end = int64(length) + vr.offset - 4
+		vr.stack[vr.frame].mode = mDocument
+		vr.stack[vr.frame].end = int64(size) + vr.offset - 4
 		return vr, nil
 	case mElement, mValue:
 		if vr.stack[vr.frame].vType != TypeEmbeddedDocument {
@@ -451,73 +449,58 @@ func (vr *valueReader) ReadDocument() (DocumentReader, error) {
 	default:
 		return nil, vr.invalidTransitionErr(mDocument, "ReadDocument", []mode{mTopLevel, mElement, mValue})
 	}
-
-	err := vr.pushDocument()
+	vr.advanceFrame()
+	size, err := vr.readLength()
 	if err != nil {
 		return nil, err
 	}
-
+	vr.stack[vr.frame].mode = mDocument
+	vr.stack[vr.frame].end = int64(size) + vr.offset - 4
 	return vr, nil
 }
 
-func (vr *valueReader) ReadCodeWithScope() (code string, dr DocumentReader, err error) {
+func (vr *valueReader) ReadCodeWithScope() (string, DocumentReader, error) {
 	if err := vr.ensureElementValue(TypeCodeWithScope, 0, "ReadCodeWithScope"); err != nil {
 		return "", nil, err
 	}
-
-	totalLength, err := vr.readLength()
+	totalLen, err := vr.readLength()
 	if err != nil {
 		return "", nil, err
 	}
-	strLength, err := vr.readLength()
+	strLen, err := vr.readLength()
 	if err != nil {
 		return "", nil, err
 	}
-	if strLength <= 0 {
-		return "", nil, fmt.Errorf("invalid string length: %d", strLength)
+	if strLen <= 0 {
+		return "", nil, fmt.Errorf("invalid code length %d", strLen)
 	}
-	strBytes := make([]byte, strLength)
-	err = vr.read(strBytes)
+	buf, err := vr.readBytes(strLen)
 	if err != nil {
 		return "", nil, err
 	}
-	code = string(strBytes[:len(strBytes)-1])
-
-	size, err := vr.pushCodeWithScope()
-	if err != nil {
-		return "", nil, err
-	}
-
-	// The total length should equal:
-	// 4 (total length) + strLength + 4 (the length of str itself) + (document length)
-	componentsLength := int64(4+strLength+4) + size
-	if int64(totalLength) != componentsLength {
-		return "", nil, fmt.Errorf(
-			"length of CodeWithScope does not match lengths of components; total: %d; components: %d",
-			totalLength, componentsLength,
-		)
-	}
+	code := string(buf[:len(buf)-1])
+	vr.advanceFrame()
+	size := int64(totalLen) - (4 + int64(strLen))
+	vr.stack[vr.frame].mode = mCodeWithScope
+	vr.stack[vr.frame].end = vr.offset + size - 4
 	return code, vr, nil
 }
 
-func (vr *valueReader) ReadDBPointer() (ns string, oid ObjectID, err error) {
+func (vr *valueReader) ReadDBPointer() (string, ObjectID, error) {
 	if err := vr.ensureElementValue(TypeDBPointer, 0, "ReadDBPointer"); err != nil {
-		return "", oid, err
+		return "", ObjectID{}, err
 	}
-
-	ns, err = vr.readString()
-	if err != nil {
-		return "", oid, err
-	}
-
-	err = vr.read(oid[:])
+	ns, err := vr.readString()
 	if err != nil {
 		return "", ObjectID{}, err
 	}
-
-	if err := vr.pop(); err != nil {
+	oidBytes, err := vr.readBytes(12)
+	if err != nil {
 		return "", ObjectID{}, err
 	}
+	var oid ObjectID
+	copy(oid[:], oidBytes)
+	vr.pop()
 	return ns, oid, nil
 }
 
@@ -525,15 +508,11 @@ func (vr *valueReader) ReadDateTime() (int64, error) {
 	if err := vr.ensureElementValue(TypeDateTime, 0, "ReadDateTime"); err != nil {
 		return 0, err
 	}
-
 	i, err := vr.readi64()
 	if err != nil {
 		return 0, err
 	}
-
-	if err := vr.pop(); err != nil {
-		return 0, err
-	}
+	vr.pop()
 	return i, nil
 }
 
@@ -541,109 +520,99 @@ func (vr *valueReader) ReadDecimal128() (Decimal128, error) {
 	if err := vr.ensureElementValue(TypeDecimal128, 0, "ReadDecimal128"); err != nil {
 		return Decimal128{}, err
 	}
-
-	var b [16]byte
-	err := vr.read(b[:])
+	b, err := vr.readBytes(16)
 	if err != nil {
 		return Decimal128{}, err
 	}
-
-	l := binary.LittleEndian.Uint64(b[0:8])
-	h := binary.LittleEndian.Uint64(b[8:16])
-
-	if err := vr.pop(); err != nil {
-		return Decimal128{}, err
-	}
-	return NewDecimal128(h, l), nil
+	low := binary.LittleEndian.Uint64(b[0:8])
+	high := binary.LittleEndian.Uint64(b[8:16])
+	vr.pop()
+	return NewDecimal128(high, low), nil
 }
 
 func (vr *valueReader) ReadDouble() (float64, error) {
 	if err := vr.ensureElementValue(TypeDouble, 0, "ReadDouble"); err != nil {
 		return 0, err
 	}
-
-	u, err := vr.readu64()
+	bits, err := vr.readu64()
 	if err != nil {
 		return 0, err
 	}
-
-	if err := vr.pop(); err != nil {
-		return 0, err
-	}
-	return math.Float64frombits(u), nil
+	vr.pop()
+	return math.Float64frombits(bits), nil
 }
 
 func (vr *valueReader) ReadInt32() (int32, error) {
 	if err := vr.ensureElementValue(TypeInt32, 0, "ReadInt32"); err != nil {
 		return 0, err
 	}
-
-	if err := vr.pop(); err != nil {
+	i, err := vr.readi32()
+	if err != nil {
 		return 0, err
 	}
-	return vr.readi32()
+	vr.pop()
+	return i, nil
 }
 
 func (vr *valueReader) ReadInt64() (int64, error) {
 	if err := vr.ensureElementValue(TypeInt64, 0, "ReadInt64"); err != nil {
 		return 0, err
 	}
-
-	if err := vr.pop(); err != nil {
+	i, err := vr.readi64()
+	if err != nil {
 		return 0, err
 	}
-	return vr.readi64()
+	vr.pop()
+	return i, nil
 }
 
 func (vr *valueReader) ReadJavascript() (string, error) {
 	if err := vr.ensureElementValue(TypeJavaScript, 0, "ReadJavascript"); err != nil {
 		return "", err
 	}
-
-	if err := vr.pop(); err != nil {
+	s, err := vr.readString()
+	if err != nil {
 		return "", err
 	}
-	return vr.readString()
+	vr.pop()
+	return s, nil
 }
 
 func (vr *valueReader) ReadMaxKey() error {
 	if err := vr.ensureElementValue(TypeMaxKey, 0, "ReadMaxKey"); err != nil {
 		return err
 	}
-
-	return vr.pop()
+	vr.pop()
+	return nil
 }
 
 func (vr *valueReader) ReadMinKey() error {
 	if err := vr.ensureElementValue(TypeMinKey, 0, "ReadMinKey"); err != nil {
 		return err
 	}
-
-	return vr.pop()
+	vr.pop()
+	return nil
 }
 
 func (vr *valueReader) ReadNull() error {
 	if err := vr.ensureElementValue(TypeNull, 0, "ReadNull"); err != nil {
 		return err
 	}
-
-	return vr.pop()
+	vr.pop()
+	return nil
 }
 
 func (vr *valueReader) ReadObjectID() (ObjectID, error) {
 	if err := vr.ensureElementValue(TypeObjectID, 0, "ReadObjectID"); err != nil {
 		return ObjectID{}, err
 	}
-
-	var oid ObjectID
-	err := vr.read(oid[:])
+	oidBytes, err := vr.readBytes(12)
 	if err != nil {
 		return ObjectID{}, err
 	}
-
-	if err := vr.pop(); err != nil {
-		return ObjectID{}, err
-	}
+	var oid ObjectID
+	copy(oid[:], oidBytes)
+	vr.pop()
 	return oid, nil
 }
 
@@ -651,20 +620,15 @@ func (vr *valueReader) ReadRegex() (string, string, error) {
 	if err := vr.ensureElementValue(TypeRegex, 0, "ReadRegex"); err != nil {
 		return "", "", err
 	}
-
 	pattern, err := vr.readCString()
 	if err != nil {
 		return "", "", err
 	}
-
 	options, err := vr.readCString()
 	if err != nil {
 		return "", "", err
 	}
-
-	if err := vr.pop(); err != nil {
-		return "", "", err
-	}
+	vr.pop()
 	return pattern, options, nil
 }
 
@@ -672,42 +636,39 @@ func (vr *valueReader) ReadString() (string, error) {
 	if err := vr.ensureElementValue(TypeString, 0, "ReadString"); err != nil {
 		return "", err
 	}
-
-	if err := vr.pop(); err != nil {
+	s, err := vr.readString()
+	if err != nil {
 		return "", err
 	}
-	return vr.readString()
+	vr.pop()
+	return s, nil
 }
 
 func (vr *valueReader) ReadSymbol() (string, error) {
 	if err := vr.ensureElementValue(TypeSymbol, 0, "ReadSymbol"); err != nil {
 		return "", err
 	}
-
-	if err := vr.pop(); err != nil {
+	s, err := vr.readString()
+	if err != nil {
 		return "", err
 	}
-	return vr.readString()
+	vr.pop()
+	return s, nil
 }
 
-func (vr *valueReader) ReadTimestamp() (t uint32, i uint32, err error) {
+func (vr *valueReader) ReadTimestamp() (uint32, uint32, error) {
 	if err := vr.ensureElementValue(TypeTimestamp, 0, "ReadTimestamp"); err != nil {
 		return 0, 0, err
 	}
-
-	i, err = vr.readu32()
+	i, err := vr.readu32()
 	if err != nil {
 		return 0, 0, err
 	}
-
-	t, err = vr.readu32()
+	t, err := vr.readu32()
 	if err != nil {
 		return 0, 0, err
 	}
-
-	if err := vr.pop(); err != nil {
-		return 0, 0, err
-	}
+	vr.pop()
 	return t, i, nil
 }
 
@@ -715,184 +676,95 @@ func (vr *valueReader) ReadUndefined() error {
 	if err := vr.ensureElementValue(TypeUndefined, 0, "ReadUndefined"); err != nil {
 		return err
 	}
-
-	return vr.pop()
-}
-
-func (vr *valueReader) ReadElement() (string, ValueReader, error) {
-	switch vr.stack[vr.frame].mode {
-	case mTopLevel, mDocument, mCodeWithScope:
-	default:
-		return "", nil, vr.invalidTransitionErr(mElement, "ReadElement", []mode{mTopLevel, mDocument, mCodeWithScope})
-	}
-
-	t, err := vr.readByte()
-	if err != nil {
-		return "", nil, err
-	}
-
-	if t == 0 {
-		if vr.offset != vr.stack[vr.frame].end {
-			return "", nil, vr.invalidDocumentLengthError()
-		}
-
-		_ = vr.pop() // Ignore the error because the call here never reads from the underlying reader.
-		return "", nil, ErrEOD
-	}
-
-	name, err := vr.readCString()
-	if err != nil {
-		return "", nil, err
-	}
-
-	vr.pushElement(Type(t))
-	return name, vr, nil
-}
-
-func (vr *valueReader) ReadValue() (ValueReader, error) {
-	switch vr.stack[vr.frame].mode {
-	case mArray:
-	default:
-		return nil, vr.invalidTransitionErr(mValue, "ReadValue", []mode{mArray})
-	}
-
-	t, err := vr.readByte()
-	if err != nil {
-		return nil, err
-	}
-
-	if t == 0 {
-		if vr.offset != vr.stack[vr.frame].end {
-			return nil, vr.invalidDocumentLengthError()
-		}
-
-		_ = vr.pop() // Ignore the error because the call here never reads from the underlying reader.
-		return nil, ErrEOA
-	}
-
-	if _, err := vr.readCString(); err != nil {
-		return nil, err
-	}
-
-	vr.pushValue(Type(t))
-	return vr, nil
-}
-
-func (vr *valueReader) read(p []byte) error {
-	n, err := io.ReadFull(vr.r, p)
-	if err != nil {
-		return err
-	}
-	vr.offset += int64(n)
+	vr.pop()
 	return nil
 }
 
-func (vr *valueReader) appendBytes(dst []byte, length int32) ([]byte, error) {
-	buf := make([]byte, length)
-	err := vr.read(buf)
-	if err != nil {
-		return nil, err
-	}
-	return append(dst, buf...), nil
+func (vr *valueReader) pushElement(t Type) {
+	vr.advanceFrame()
+	vr.stack[vr.frame].mode = mElement
+	vr.stack[vr.frame].vType = t
 }
 
-func (vr *valueReader) readByte() (byte, error) {
-	b, err := vr.r.ReadByte()
-	if err != nil {
-		return 0x0, err
-	}
-	vr.offset++
-	return b, nil
+// pushValue starts a new “value” frame of type t (used in arrays).
+func (vr *valueReader) pushValue(t Type) {
+	vr.advanceFrame()
+	vr.stack[vr.frame].mode = mValue
+	vr.stack[vr.frame].vType = t
 }
 
-func (vr *valueReader) readCString() (string, error) {
-	str, err := vr.r.ReadString(0x00)
-	if err != nil {
-		return "", err
+// readValueBytes returns the raw bytes of the next value (or top‐level
+// document) without allocating intermediary buffers, then pops the frame.
+func (vr *valueReader) readValueBytes(dst []byte) (Type, []byte, error) {
+	switch vr.stack[vr.frame].mode {
+	case mTopLevel:
+		// top‐level: read entire document
+		length, err := vr.peekLength()
+		if err != nil {
+			return 0, nil, err
+		}
+		b, err := vr.readBytes(length)
+		return Type(0), append(dst, b...), err
+
+	case mElement, mValue:
+		// element/value frame: read just the value portion
+		t := vr.stack[vr.frame].vType
+
+		// figure out how many bytes this type occupies
+		// (use the same logic as appendNextElement but zero‐alloc)
+		var length int32
+		var err error
+		switch t {
+		case TypeString, TypeSymbol, TypeJavaScript:
+			// length‐prefixed UTF-8
+			length, err = vr.peekLength()
+			length += 4
+		case TypeBinary:
+			// length + subtype byte
+			length, err = vr.peekLength()
+			length += 4 + 1
+		case TypeInt32:
+			length = 4
+		case TypeInt64, TypeDateTime, TypeDouble, TypeTimestamp:
+			length = 8
+		case TypeDecimal128:
+			length = 16
+		case TypeObjectID:
+			length = 12
+		case TypeBoolean:
+			length = 1
+		case TypeMaxKey, TypeMinKey, TypeNull, TypeUndefined:
+			length = 0
+		case TypeArray, TypeEmbeddedDocument, TypeCodeWithScope:
+			length, err = vr.peekLength()
+		case TypeDBPointer:
+			length, err = vr.peekLength()
+			length += 4 + 12
+		case TypeRegex:
+			// find two C-strings
+			// first: up to NUL
+			idx := bytes.IndexByte(vr.d[vr.offset:], 0x00)
+			if idx < 0 {
+				return t, dst, io.EOF
+			}
+			// second: after that
+			idx2 := bytes.IndexByte(vr.d[vr.offset+int64(idx)+1:], 0x00)
+			if idx2 < 0 {
+				return t, dst, io.EOF
+			}
+			length = int32(idx + 1 + idx2 + 1)
+		default:
+			return t, dst, fmt.Errorf("unknown BSON type %v", t)
+		}
+		if err != nil {
+			return t, dst, err
+		}
+
+		b, err := vr.readBytes(length)
+		vr.pop()
+		return t, append(dst, b...), err
+
+	default:
+		return 0, nil, vr.invalidTransitionErr(0, "readValueBytes", []mode{mTopLevel, mElement, mValue})
 	}
-	l := len(str)
-	vr.offset += int64(l)
-	return str[:l-1], nil
-}
-
-func (vr *valueReader) readString() (string, error) {
-	length, err := vr.readLength()
-	if err != nil {
-		return "", err
-	}
-	if length <= 0 {
-		return "", fmt.Errorf("invalid string length: %d", length)
-	}
-
-	buf := make([]byte, length)
-	err = vr.read(buf)
-	if err != nil {
-		return "", err
-	}
-
-	if buf[length-1] != 0x00 {
-		return "", fmt.Errorf("string does not end with null byte, but with %v", buf[length-1])
-	}
-
-	return string(buf[:length-1]), nil
-}
-
-func (vr *valueReader) peekLength() (int32, error) {
-	buf, err := vr.r.Peek(4)
-	if err != nil {
-		return 0, err
-	}
-
-	return int32(binary.LittleEndian.Uint32(buf)), nil
-}
-
-func (vr *valueReader) readLength() (int32, error) {
-	l, err := vr.readi32()
-	if err != nil {
-		return 0, err
-	}
-	if l < 0 {
-		return 0, fmt.Errorf("invalid negative length: %d", l)
-	}
-	return l, nil
-}
-
-func (vr *valueReader) readi32() (int32, error) {
-	var buf [4]byte
-	err := vr.read(buf[:])
-	if err != nil {
-		return 0, err
-	}
-
-	return int32(binary.LittleEndian.Uint32(buf[:])), nil
-}
-
-func (vr *valueReader) readu32() (uint32, error) {
-	var buf [4]byte
-	err := vr.read(buf[:])
-	if err != nil {
-		return 0, err
-	}
-
-	return binary.LittleEndian.Uint32(buf[:]), nil
-}
-
-func (vr *valueReader) readi64() (int64, error) {
-	var buf [8]byte
-	err := vr.read(buf[:])
-	if err != nil {
-		return 0, err
-	}
-
-	return int64(binary.LittleEndian.Uint64(buf[:])), nil
-}
-
-func (vr *valueReader) readu64() (uint64, error) {
-	var buf [8]byte
-	err := vr.read(buf[:])
-	if err != nil {
-		return 0, err
-	}
-
-	return binary.LittleEndian.Uint64(buf[:]), nil
 }
