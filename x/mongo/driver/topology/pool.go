@@ -596,7 +596,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 
 	// If we didn't get an immediately available idle connection, also get in the queue for a new
 	// connection while we're waiting for an idle connection.
-	p.queueForNewConn(w)
+	p.queueForNewConn(ctx, w)
 	p.stateMu.RUnlock()
 
 	// Wait for either the wantConn to be ready or for the Context to time out.
@@ -1116,7 +1116,7 @@ func (p *pool) getOrQueueForIdleConn(w *wantConn) bool {
 	return false
 }
 
-func (p *pool) queueForNewConn(w *wantConn) {
+func (p *pool) queueForNewConn(ctx context.Context, w *wantConn) {
 	p.createConnectionsCond.L.Lock()
 	defer p.createConnectionsCond.L.Unlock()
 
@@ -1125,7 +1125,7 @@ func (p *pool) queueForNewConn(w *wantConn) {
 	p.createConnectionsCond.Signal()
 
 	// Try to spawn without blocking the caller.
-	go p.spawnConnectionIfNeeded()
+	go p.spawnConnectionIfNeeded(ctx)
 }
 
 func (p *pool) totalConnectionCount() int {
@@ -1216,7 +1216,7 @@ func (p *pool) maintain(ctx context.Context, wg *sync.WaitGroup) {
 
 		for i := 0; i < n; i++ {
 			w := newWantConn()
-			p.queueForNewConn(w)
+			p.queueForNewConn(ctx, w)
 			wantConns = append(wantConns, w)
 
 			// Start a goroutine for each new wantConn, waiting for it to be ready.
@@ -1402,4 +1402,150 @@ func (q *wantConnQueue) cleanFront() {
 		}
 		q.popFront()
 	}
+}
+
+func (p *pool) spawnConnection(w *wantConn, conn *connection) {
+	defer func() { <-p.connectionSem }() // Release slot when done, see maxConnecting.
+
+	// Perform dial/handshake with optional timeout.
+	start := time.Now()
+
+	// Pass the createConnections context to connect to allow pool close to
+	// cancel connection establishment so shutdown doesn't block indefinitely if
+	// connectTimeout=0.
+	//
+	// Per the specifications, an explicit value of connectTimeout=0 means the
+	// timeout is "infinite".
+	dialCtx := context.Background()
+	var cancel context.CancelFunc
+	if p.connectTimeout > 0 {
+		dialCtx, cancel = context.WithTimeout(dialCtx, p.connectTimeout)
+		defer cancel()
+	}
+
+	err := conn.connect(dialCtx)
+
+	if err != nil {
+		// Deliver error and run SDAM handshake error logic
+		w.tryDeliver(nil, err)
+
+		// If there's an error connecting the new connection, call the handshake error handler
+		// that implements the SDAM handshake error handling logic. This must be called after
+		// delivering the connection error to the waiting wantConn. If it's called before, the
+		// handshake error handler may clear the connection pool, leading to a different error
+		// message being delivered to the same waiting wantConn in idleConnWait when the wait
+		// queues are cleared.
+		if p.handshakeErrFn != nil {
+			p.handshakeErrFn(err, conn.generation, conn.desc.ServiceID)
+		}
+
+		_ = p.removeConnection(conn, reason{
+			loggerConn: logger.ReasonConnClosedError,
+			event:      event.ReasonError,
+		}, err)
+
+		_ = p.closeConnection(conn)
+
+		return
+	}
+
+	// emit "ConnectionReady"
+	duration := time.Since(start)
+	if mustLogPoolMessage(p) {
+		keysAndValues := logger.KeyValues{
+			logger.KeyDriverConnectionID, conn.driverConnectionID,
+			logger.KeyDurationMS, duration.Milliseconds(),
+		}
+
+		logPoolMessage(p, logger.ConnectionReady, keysAndValues...)
+	}
+
+	if p.monitor != nil {
+		p.monitor.Event(&event.PoolEvent{
+			Type:         event.ConnectionReady,
+			Address:      p.address.String(),
+			ConnectionID: conn.driverConnectionID,
+			Duration:     duration,
+		})
+	}
+
+	// deliver the connection or check it back in on spurious wakeup
+	if !w.tryDeliver(conn, nil) {
+		_ = p.checkInNoEvent(conn)
+	}
+}
+
+// hasSpace checks if the pool has space for a new connection.
+func (p *pool) hasSpace() bool {
+	return p.maxSize == 0 || uint64(len(p.conns)) < p.maxSize
+}
+
+// checkOutWaiting checks if there are any waiting connections that need to be
+// checked out.
+func (p *pool) checkOutWaiting() bool {
+	return p.newConnWait.len() > 0
+}
+
+// waitForNewConn blocks until there's both work and room in the pool (or the
+// context is canceled) then pops exactly one wantconn and creates+registers its
+// connection.
+func (p *pool) waitForNewConn(ctx context.Context) (*wantConn, *connection, bool) {
+	p.createConnectionsCond.L.Lock()
+	defer p.createConnectionsCond.L.Unlock()
+
+	for !(p.checkOutWaiting() && p.hasSpace()) && ctx.Err() == nil {
+		p.createConnectionsCond.Wait()
+	}
+
+	if ctx.Err() != nil {
+		return nil, nil, false
+	}
+
+	p.newConnWait.cleanFront()
+	w := p.newConnWait.popFront()
+	if w == nil {
+		return nil, nil, false
+	}
+
+	conn := newConnection(p.address, p.connOpts...)
+	conn.pool = p
+	conn.driverConnectionID = atomic.AddInt64(&p.nextID, 1)
+	p.conns[conn.driverConnectionID] = conn
+
+	return w, conn, true
+}
+
+// spawnConnectionIfNeeded takes on waiting waitConn (if any) and starts its
+// connection creation subject to the semaphore limit.
+func (p *pool) spawnConnectionIfNeeded(ctx context.Context) {
+	// Block until we're allowed to start another connection.
+	p.connectionSem <- struct{}{}
+
+	// Wait on pool space & context.
+	w, conn, ok := p.waitForNewConn(ctx)
+	if !ok {
+		<-p.connectionSem // Release slot on failure.
+
+		return
+	}
+
+	// Emit "ConnectionCreated"
+	if mustLogPoolMessage(p) {
+		keysAndValues := logger.KeyValues{
+			logger.KeyDriverConnectionID, conn.driverConnectionID,
+		}
+
+		logPoolMessage(p, logger.ConnectionCreated, keysAndValues...)
+	}
+
+	if p.monitor != nil {
+		p.monitor.Event(&event.PoolEvent{
+			Type:         event.ConnectionCreated,
+			Address:      p.address.String(),
+			ConnectionID: conn.driverConnectionID,
+		})
+	}
+
+	// Dial the connection and spawn it in the background.
+	go p.spawnConnection(w, conn)
 }
