@@ -34,7 +34,7 @@ tasks:
 
   build-compile-check-all: bash etc/run-compile-check-test.sh
 
-  build-aws-ecs-test: go build ${BUILD_TAGS} ./internal/cmd/testaws/main.go
+  build-aws-ecs-test: go test -c ./internal/test/aws -o aws.testbin
 
   cross-compile: 
     - GOOS=linux GOARCH=386 go build ./...

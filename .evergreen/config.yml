@@ -213,6 +213,7 @@ functions:
       type: test
       params:
         binary: bash
+        add_expansions_to_env: true
         env:
           BASE_SHA: "${revision}"
           HEAD_SHA: "${github_commit}"
@@ -223,6 +224,7 @@ functions:
       type: test
       params:
         binary: bash
+        add_expansions_to_env: true
         env:
           COMMIT: "${github_commit}"
           PR_TASK: apply-labels
@@ -233,6 +235,7 @@ functions:
       type: test
       params:
         binary: bash
+        add_expansions_to_env: true
         env:
           COMMIT: "${github_commit}"
           PR_TASK: assign-reviewer
@@ -647,6 +650,7 @@ tasks:
   - name: pull-request-helpers
     allowed_requesters: ["patch", "github_pr"]
     commands:
+      - func: assume-test-secrets-ec2-role
       - func: "add PR reviewer"  
       - func: "add PR labels"
       - func: "create-api-report"
@@ -1679,11 +1683,11 @@ tasks:
         type: test
         params:
           binary: bash
+          add_expansions_to_env: true
           env:
             TEST_LAMBDA_DIRECTORY: ${PROJECT_DIRECTORY}/internal/cmd/faas/awslambda
             LAMBDA_STACK_NAME: dbx-go-lambda
             AWS_REGION: us-east-1
-          include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
           args: [*task-runner, evg-test-deployed-lambda-aws]
 
   - name: "oidc-auth-test"
@@ -2063,6 +2067,7 @@ task_groups:
         params:
           working_dir: src/go.mongodb.org/mongo-driver
           binary: bash
+          add_expansions_to_env: true
           env:
             LAMBDA_STACK_NAME: dbx-go-lambda
             AWS_REGION: us-east-1
