@@ -19,6 +19,43 @@ type sliceCodec struct {
 	encodeNilAsEmpty bool
 }
 
+// decodeVectorBinary handles decoding of BSON Vector binary (subtype 9) into slices.
+// It returns errNotAVectorBinary if the binary data is not a Vector binary.
+// The method supports decoding into []int8 and []float32 slices.
+func (sc *sliceCodec) decodeVectorBinary(vr ValueReader, val reflect.Value) error {
+	elemType := val.Type().Elem()
+
+	if elemType != TInt8 && elemType != TFloat32 {
+		return errNotAVectorBinary
+	}
+
+	data, subtype, err := vr.ReadBinary()
+	if err != nil {
+		return err
+	}
+
+	if subtype != TypeBinaryVector {
+		return errNotAVectorBinary
+	}
+
+	switch elemType {
+	case TInt8:
+		int8Slice, err := DecodeVectorInt8(data)
+		if err != nil {
+			return err
+		}
+		val.Set(reflect.ValueOf(int8Slice))
+	case TFloat32:
+		float32Slice, err := DecodeVectorFloat32(data)
+		if err != nil {
+			return err
+		}
+		val.Set(reflect.ValueOf(float32Slice))
+	}
+
+	return nil
+}
+
 // EncodeValue is the ValueEncoder for slice types.
 func (sc *sliceCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Kind() != reflect.Slice {
@@ -29,8 +66,9 @@ func (sc *sliceCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.
 		return vw.WriteNull()
 	}
 
-	// If we have a []byte we want to treat it as a binary instead of as an array.
-	if val.Type().Elem() == tByte {
+	// Treat []byte as binary data, but skip for []int8 since it's a different type
+	// even though byte is an alias for uint8 which has the same underlying type as int8
+	if val.Type().Elem() == tByte && val.Type() != reflect.TypeOf([]int8{}) {
 		byteSlice := make([]byte, val.Len())
 		reflect.Copy(reflect.ValueOf(byteSlice), val)
 		return vw.WriteBinary(byteSlice)
@@ -97,6 +135,12 @@ func (sc *sliceCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.
 func (sc *sliceCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Kind() != reflect.Slice {
 		return ValueDecoderError{Name: "SliceDecodeValue", Kinds: []reflect.Kind{reflect.Slice}, Received: val}
+	}
+
+	if vr.Type() == TypeBinary {
+		if err := sc.decodeVectorBinary(vr, val); err != errNotAVectorBinary {
+			return err
+		}
 	}
 
 	switch vrType := vr.Type(); vrType {
