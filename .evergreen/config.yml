@@ -228,7 +228,7 @@ functions:
         display_name: "fuzz.tgz"
 
   bootstrap-mongohoused:
-    - command: ec2.assume_roleAdd commentMore actions
+    - command: ec2.assume_role
       params:
         role_arn: ${aws_test_secrets_role}
     - command: shell.exec
