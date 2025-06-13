@@ -1404,18 +1404,19 @@ func (q *wantConnQueue) cleanFront() {
 	}
 }
 
+// spawnConnection establishes a new connection and delivers it to a waiting
+// request. It handles dialing, handshaking, and error handling. This function
+// is intended to be run in its own goroutine.
 func (p *pool) spawnConnection(w *wantConn, conn *connection) {
-	defer func() { <-p.connectionSem }() // Release slot when done, see maxConnecting.
+	// Release a slot from the connection semaphore when this function returns.
+	// This ensures that another connection can be spawned.
+	defer func() { <-p.connectionSem }()
 
-	// Perform dial/handshake with optional timeout.
+	// Record the start time to calculate the total connection setup duration.
 	start := time.Now()
 
-	// Pass the createConnections context to connect to allow pool close to
-	// cancel connection establishment so shutdown doesn't block indefinitely if
-	// connectTimeout=0.
-	//
-	// Per the specifications, an explicit value of connectTimeout=0 means the
-	// timeout is "infinite".
+	// Create a context for the dial operation. If a connection timeout is
+	// configured, the context will be set to time out after that duration.
 	dialCtx := context.Background()
 	var cancel context.CancelFunc
 	if p.connectTimeout > 0 {
@@ -1423,18 +1424,14 @@ func (p *pool) spawnConnection(w *wantConn, conn *connection) {
 		defer cancel()
 	}
 
-	err := conn.connect(dialCtx)
-
-	if err != nil {
-		// Deliver error and run SDAM handshake error logic
+	// Attempt to connect
+	if err := conn.connect(dialCtx); err != nil {
+		// If connection fails, deliver the error to the waiting requester.
 		w.tryDeliver(nil, err)
 
-		// If there's an error connecting the new connection, call the handshake error handler
-		// that implements the SDAM handshake error handling logic. This must be called after
-		// delivering the connection error to the waiting wantConn. If it's called before, the
-		// handshake error handler may clear the connection pool, leading to a different error
-		// message being delivered to the same waiting wantConn in idleConnWait when the wait
-		// queues are cleared.
+		// If a handshake error handler is defined, invoke it to handle SDAM state
+		// changes. This is done after delivering the error to prevent race
+		// conditions where the pool might be cleared before the error is delivered.
 		if p.handshakeErrFn != nil {
 			p.handshakeErrFn(err, conn.generation, conn.desc.ServiceID)
 		}
@@ -1475,7 +1472,9 @@ func (p *pool) spawnConnection(w *wantConn, conn *connection) {
 	}
 }
 
-// hasSpace checks if the pool has space for a new connection.
+// hasSpace checks if the pool has space for a new connection. It returns
+// "true" if the maximum size is unlimited (0) or if the current number of
+// connections is less than the maximum size.
 func (p *pool) hasSpace() bool {
 	return p.maxSize == 0 || uint64(len(p.conns)) < p.maxSize
 }
