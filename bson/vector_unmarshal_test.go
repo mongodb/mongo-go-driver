@@ -7,8 +7,7 @@
 package bson
 
 import (
-	"encoding/binary"
-	"math"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -73,38 +72,25 @@ func TestUnmarshalVectorToSlices(t *testing.T) {
 	t.Run("int8 vector to []int8", func(t *testing.T) {
 		t.Parallel()
 
-		vectorData := []byte{
-			0x01,                   // int8 vector type
-			0x00,                   // padding
-			0x01, 0x02, 0x03, 0x04, // int8 values
-		}
-
-		bsonData := createBSONWithBinary(vectorData)
-
-		var result struct{ V []int8 }
-		err := Unmarshal(bsonData, &result)
+		doc := D{{"v", NewVector([]int8{-2, 1, 2, 3, 4})}}
+		bsonData, err := Marshal(doc)
 		require.NoError(t, err)
-		require.Equal(t, []int8{1, 2, 3, 4}, result.V)
+		var result struct{ V []int8 }
+		err = Unmarshal(bsonData, &result)
+		require.NoError(t, err)
+		require.Equal(t, []int8{-2, 1, 2, 3, 4}, result.V)
 	})
 
 	t.Run("float32 vector to []float32", func(t *testing.T) {
 		t.Parallel()
 
-		vectorData := make([]byte, 2+4*4) // type + padding + 4 float32s
-		vectorData[0] = 0x02              // float32 vector type
-		vectorData[1] = 0x00              // padding
-
-		binary.LittleEndian.PutUint32(vectorData[2:], math.Float32bits(1.0))
-		binary.LittleEndian.PutUint32(vectorData[6:], math.Float32bits(2.0))
-		binary.LittleEndian.PutUint32(vectorData[10:], math.Float32bits(3.0))
-		binary.LittleEndian.PutUint32(vectorData[14:], math.Float32bits(4.0))
-
-		bsonData := createBSONWithBinary(vectorData)
-
-		var result struct{ V []float32 }
-		err := Unmarshal(bsonData, &result)
+		doc := D{{"v", NewVector([]float32{1.1, 2.2, 3.3, 4.4})}}
+		bsonData, err := Marshal(doc)
 		require.NoError(t, err)
-		require.InEpsilonSlice(t, []float32{1.0, 2.0, 3.0, 4.0}, result.V, 0.0001)
+		var result struct{ V []float32 }
+		err = Unmarshal(bsonData, &result)
+		require.NoError(t, err)
+		require.InDeltaSlice(t, []float32{1.1, 2.2, 3.3, 4.4}, result.V, 0.001)
 	})
 
 	t.Run("invalid vector type to slice", func(t *testing.T) {
@@ -119,10 +105,14 @@ func TestUnmarshalVectorToSlices(t *testing.T) {
 
 		t.Run("to []int8", func(t *testing.T) {
 			t.Parallel()
+
+			vectorData := []byte{0x10, 0x00} // Invalid vector type
+			bsonData := createBSONWithBinary(vectorData)
+
 			var result struct{ V []int8 }
 			err := Unmarshal(bsonData, &result)
 			require.Error(t, err)
-			require.Contains(t, err.Error(), "invalid vector type: expected int8 vector (0x01)")
+			require.Contains(t, err.Error(), fmt.Sprintf("invalid vector type: expected int8 vector (0x%02x)", Int8Vector))
 		})
 
 		t.Run("to []float32", func(t *testing.T) {
@@ -130,30 +120,35 @@ func TestUnmarshalVectorToSlices(t *testing.T) {
 			var result struct{ V []float32 }
 			err := Unmarshal(bsonData, &result)
 			require.Error(t, err)
-			require.Contains(t, err.Error(), "invalid vector type: expected float32 vector (0x02)")
+			require.Contains(t, err.Error(), fmt.Sprintf("invalid vector type: expected float32 vector (0x%02x)", Float32Vector))
 		})
 	})
 
 	t.Run("invalid binary data", func(t *testing.T) {
 		t.Parallel()
 
-		invalidData := []byte{0x01, 0x01, 0x02, 0x03}
-		bsonData := createBSONWithBinary(invalidData)
+		vectorData := []byte{0x01, 0x00, 0x01, 0x02, 0x03, 0x04}
+		bsonData := createBSONWithBinary(vectorData)
 
 		t.Run("to []int8", func(t *testing.T) {
 			t.Parallel()
+
 			var result struct{ V []int8 }
 			err := Unmarshal(bsonData, &result)
 			require.Error(t, err)
-			require.Contains(t, err.Error(), "invalid vector: padding byte must be 0")
+			require.Contains(t, err.Error(), fmt.Sprintf("invalid vector type: expected int8 vector (0x%02x)", Int8Vector))
 		})
 
 		t.Run("to []float32", func(t *testing.T) {
 			t.Parallel()
+
+			vectorData := []byte{0x01, 0x00}
+			bsonData := createBSONWithBinary(vectorData)
+
 			var result struct{ V []float32 }
 			err := Unmarshal(bsonData, &result)
 			require.Error(t, err)
-			require.Contains(t, err.Error(), "invalid vector type: expected float32 vector (0x02)")
+			require.Contains(t, err.Error(), fmt.Sprintf("invalid vector type: expected float32 vector (0x%02x)", Float32Vector))
 		})
 	})
 }

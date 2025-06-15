@@ -7,6 +7,7 @@
 package mongo
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"reflect"
@@ -651,4 +652,189 @@ type bvMarsh struct {
 
 func (b bvMarsh) MarshalBSONValue() (byte, []byte, error) {
 	return byte(b.t), b.data, b.err
+}
+
+func TestVectorIntegration(t *testing.T) {
+	t.Run("roundtrip int8 vector", func(t *testing.T) {
+		if testing.Short() {
+			t.Skip("skipping integration test in short mode")
+		}
+		type vectorDoc struct {
+			ID  string `bson:"_id"`
+			Vec []int8 `bson:"v"`
+		}
+
+		ctx := context.Background()
+		client := setupClient()
+		defer func() {
+			_ = client.Disconnect(ctx)
+		}()
+
+		db := client.Database("test")
+		coll := db.Collection("vector_test")
+
+		_, _ = coll.DeleteMany(ctx, bson.M{"$or": []bson.M{
+			{"_id": "test_int8"},
+		}})
+
+		expected := vectorDoc{
+			ID:  "test_int8",
+			Vec: []int8{-2, -1, 0, 1, 2},
+		}
+
+		_, err := coll.InsertOne(ctx, expected)
+		if err != nil {
+			t.Fatalf("InsertOne error: %v", err)
+		}
+
+		var result vectorDoc
+		err = coll.FindOne(ctx, bson.M{"_id": "test_int8"}).Decode(&result)
+		if err != nil {
+			t.Fatalf("FindOne error: %v", err)
+		}
+
+		if !reflect.DeepEqual(expected.Vec, result.Vec) {
+			t.Errorf("vector data does not match. Expected %v, got %v", expected.Vec, result.Vec)
+		}
+	})
+
+	t.Run("roundtrip float32 vector", func(t *testing.T) {
+		if testing.Short() {
+			t.Skip("skipping integration test in short mode")
+		}
+		type vectorDoc struct {
+			ID  string    `bson:"_id"`
+			Vec []float32 `bson:"v"`
+		}
+
+		ctx := context.Background()
+		client := setupClient()
+		defer func() {
+			_ = client.Disconnect(ctx)
+		}()
+
+		db := client.Database("test")
+		coll := db.Collection("vector_test")
+
+		_, _ = coll.DeleteMany(ctx, bson.M{"$or": []bson.M{
+			{"_id": "test_float32"},
+		}})
+		expected := vectorDoc{
+			ID:  "test_float32",
+			Vec: []float32{-1.1, 0.0, 0.5, 1.1, 2.2},
+		}
+
+		_, err := coll.InsertOne(ctx, expected)
+		if err != nil {
+			t.Fatalf("InsertOne error: %v", err)
+		}
+
+		var result vectorDoc
+		err = coll.FindOne(ctx, bson.M{"_id": "test_float32"}).Decode(&result)
+		if err != nil {
+			t.Fatalf("FindOne error: %v", err)
+		}
+
+		if len(expected.Vec) != len(result.Vec) {
+			t.Fatalf("vector length mismatch: expected %d, got %d", len(expected.Vec), len(result.Vec))
+		}
+		for i := range expected.Vec {
+			if diff := expected.Vec[i] - result.Vec[i]; diff < -0.0001 || diff > 0.0001 {
+				t.Errorf("vector element %d mismatch: expected %v, got %v", i, expected.Vec[i], result.Vec[i])
+			}
+		}
+	})
+
+	t.Run("bson.NewVector with int8", func(t *testing.T) {
+		if testing.Short() {
+			t.Skip("skipping integration test in short mode")
+		}
+		type vectorDoc struct {
+			ID  string `bson:"_id"`
+			Vec []int8 `bson:"v"`
+		}
+
+		ctx := context.Background()
+		client := setupClient()
+		defer func() {
+			_ = client.Disconnect(ctx)
+		}()
+
+		db := client.Database("test")
+		coll := db.Collection("vector_test")
+
+		testID := "test_new_vector_int8"
+		_, _ = coll.DeleteMany(ctx, bson.M{"$or": []bson.M{
+			{"_id": testID},
+		}})
+
+		expected := []int8{-2, -1, 0, 1, 2}
+
+		_, err := coll.InsertOne(ctx, bson.D{
+			{Key: "_id", Value: testID},
+			{Key: "v", Value: bson.NewVector(expected)},
+		})
+		if err != nil {
+			t.Fatalf("InsertOne error: %v", err)
+		}
+
+		var result vectorDoc
+		err = coll.FindOne(ctx, bson.M{"_id": testID}).Decode(&result)
+		if err != nil {
+			t.Fatalf("FindOne error: %v", err)
+		}
+
+		if !reflect.DeepEqual(expected, result.Vec) {
+			t.Errorf("vector data does not match. Expected %v, got %v", expected, result.Vec)
+		}
+	})
+
+	t.Run("bson.NewVector with float32", func(t *testing.T) {
+		if testing.Short() {
+			t.Skip("skipping integration test in short mode")
+		}
+		type vectorDoc struct {
+			ID  string    `bson:"_id"`
+			Vec []float32 `bson:"v"`
+		}
+
+		ctx := context.Background()
+		client := setupClient()
+		defer func() {
+			_ = client.Disconnect(ctx)
+		}()
+
+		db := client.Database("test")
+		coll := db.Collection("vector_test")
+
+		testID := "test_new_vector_float32"
+		_, _ = coll.DeleteMany(ctx, bson.M{"$or": []bson.M{
+			{"_id": testID},
+		}})
+
+		expected := []float32{-1.1, 0.0, 0.5, 1.1, 2.2}
+
+		_, err := coll.InsertOne(ctx, bson.D{
+			{Key: "_id", Value: testID},
+			{Key: "v", Value: bson.NewVector(expected)},
+		})
+		if err != nil {
+			t.Fatalf("InsertOne error: %v", err)
+		}
+
+		var result vectorDoc
+		err = coll.FindOne(ctx, bson.M{"_id": testID}).Decode(&result)
+		if err != nil {
+			t.Fatalf("FindOne error: %v", err)
+		}
+
+		if len(expected) != len(result.Vec) {
+			t.Fatalf("vector length mismatch: expected %d, got %d", len(expected), len(result.Vec))
+		}
+		for i := range expected {
+			if diff := expected[i] - result.Vec[i]; diff < -0.0001 || diff > 0.0001 {
+				t.Errorf("vector element %d mismatch: expected %v, got %v", i, expected[i], result.Vec[i])
+			}
+		}
+	})
 }

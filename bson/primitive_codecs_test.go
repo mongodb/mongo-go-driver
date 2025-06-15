@@ -8,6 +8,7 @@ package bson
 
 import (
 	"bytes"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -1115,4 +1116,51 @@ func compareDecimal128(d1, d2 Decimal128) bool {
 	}
 
 	return true
+}
+
+func TestSliceCodec(t *testing.T) {
+	t.Run("[]byte is treated as binary data", func(t *testing.T) {
+		type testStruct struct {
+			B []byte `bson:"b"`
+		}
+
+		testData := testStruct{B: []byte{0x01, 0x02, 0x03}}
+		data, err := Marshal(testData)
+		assert.Nil(t, err, "Marshal error: %v", err)
+		var doc D
+		err = Unmarshal(data, &doc)
+		assert.Nil(t, err, "Unmarshal error: %v", err)
+
+		offset := 4 + 1 + 2
+		length := int32(binary.LittleEndian.Uint32(data[offset:]))
+		offset += 4 // Skip length
+		subtype := data[offset]
+		offset++ // Skip subtype
+		dataBytes := data[offset : offset+int(length)]
+
+		assert.Equal(t, byte(0x00), subtype, "Expected binary subtype 0x00")
+		assert.Equal(t, []byte{0x01, 0x02, 0x03}, dataBytes, "Binary data mismatch")
+	})
+
+	t.Run("[]int8 is not treated as binary data", func(t *testing.T) {
+		type testStruct struct {
+			I []int8 `bson:"i"`
+		}
+		testData := testStruct{I: []int8{1, 2, 3}}
+		data, err := Marshal(testData)
+		assert.Nil(t, err, "Marshal error: %v", err)
+
+		offset := 4 // Skip document length
+		assert.Equal(t, byte(0x04), data[offset], "Expected array type (0x04), got: 0x%02x", data[offset])
+
+		var result struct {
+			I []int32 `bson:"i"`
+		}
+		err = Unmarshal(data, &result)
+		assert.Nil(t, err, "Unmarshal result error: %v", err)
+		assert.Equal(t, 3, len(result.I), "Expected array length 3")
+		assert.Equal(t, int32(1), result.I[0], "Array element 0 mismatch")
+		assert.Equal(t, int32(2), result.I[1], "Array element 1 mismatch")
+		assert.Equal(t, int32(3), result.I[2], "Array element 2 mismatch")
+	})
 }

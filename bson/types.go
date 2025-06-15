@@ -77,7 +77,9 @@ const (
 )
 
 var tBool = reflect.TypeOf(false)
+var tFloat32 = reflect.TypeOf(float32(0))
 var tFloat64 = reflect.TypeOf(float64(0))
+var tInt8 = reflect.TypeOf(int8(0))
 var tInt32 = reflect.TypeOf(int32(0))
 var tInt64 = reflect.TypeOf(int64(0))
 var tString = reflect.TypeOf("")

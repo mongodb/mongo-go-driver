@@ -7,8 +7,10 @@
 package bson
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
+	"math"
 	"reflect"
 )
 
@@ -25,7 +27,7 @@ type sliceCodec struct {
 func (sc *sliceCodec) decodeVectorBinary(vr ValueReader, val reflect.Value) error {
 	elemType := val.Type().Elem()
 
-	if elemType != TInt8 && elemType != TFloat32 {
+	if elemType != tInt8 && elemType != tFloat32 {
 		return errNotAVectorBinary
 	}
 
@@ -39,14 +41,14 @@ func (sc *sliceCodec) decodeVectorBinary(vr ValueReader, val reflect.Value) erro
 	}
 
 	switch elemType {
-	case TInt8:
-		int8Slice, err := DecodeVectorInt8(data)
+	case tInt8:
+		int8Slice, err := decodeVectorInt8(data)
 		if err != nil {
 			return err
 		}
 		val.Set(reflect.ValueOf(int8Slice))
-	case TFloat32:
-		float32Slice, err := DecodeVectorFloat32(data)
+	case tFloat32:
+		float32Slice, err := decodeVectorFloat32(data)
 		if err != nil {
 			return err
 		}
@@ -66,8 +68,9 @@ func (sc *sliceCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.
 		return vw.WriteNull()
 	}
 
-	// Treat []byte as binary data, but skip for []int8 since it's a different type
-	// even though byte is an alias for uint8 which has the same underlying type as int8
+	// Treat []byte as binary data, but skip for []int8 since it's a different type.
+	// Even though byte is an alias for uint8 which has the same underlying type as int8,
+	// we want to maintain the semantic difference between []byte (binary data) and []int8 (array of integers).
 	if val.Type().Elem() == tByte && val.Type() != reflect.TypeOf([]int8{}) {
 		byteSlice := make([]byte, val.Len())
 		reflect.Copy(reflect.ValueOf(byteSlice), val)
@@ -137,12 +140,6 @@ func (sc *sliceCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect.
 		return ValueDecoderError{Name: "SliceDecodeValue", Kinds: []reflect.Kind{reflect.Slice}, Received: val}
 	}
 
-	if vr.Type() == TypeBinary {
-		if err := sc.decodeVectorBinary(vr, val); err != errNotAVectorBinary {
-			return err
-		}
-	}
-
 	switch vrType := vr.Type(); vrType {
 	case TypeArray:
 	case TypeNull:
@@ -156,6 +153,14 @@ func (sc *sliceCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect.
 			return fmt.Errorf("cannot decode document into %s", val.Type())
 		}
 	case TypeBinary:
+		err := sc.decodeVectorBinary(vr, val)
+		if err == nil {
+			return nil
+		}
+		if err != errNotAVectorBinary {
+			return err
+		}
+
 		if val.Type().Elem() != tByte {
 			return fmt.Errorf("SliceDecodeValue can only decode a binary into a byte array, got %v", vrType)
 		}
@@ -214,4 +219,63 @@ func (sc *sliceCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect.
 	val.Set(reflect.Append(val, elems...))
 
 	return nil
+}
+
+// decodeVectorInt8 decodes a BSON Vector binary value (subtype 9) into a []int8 slice.
+// The binary data should be in the format: [<vector type> <padding> <data>]
+// For int8 vectors, the vector type is Int8Vector (0x03).
+func decodeVectorInt8(data []byte) ([]int8, error) {
+	if len(data) < 2 {
+		return nil, fmt.Errorf("insufficient bytes to decode vector: expected at least 2 bytes")
+	}
+
+	vectorType := data[0]
+	if vectorType != Int8Vector {
+		return nil, fmt.Errorf("invalid vector type: expected int8 vector (0x%02x), got 0x%02x", Int8Vector, vectorType)
+	}
+
+	if padding := data[1]; padding != 0 {
+		return nil, fmt.Errorf("invalid vector: padding byte must be 0")
+	}
+
+	values := make([]int8, 0, len(data)-2)
+	for i := 2; i < len(data); i++ {
+		values = append(values, int8(data[i]))
+	}
+
+	return values, nil
+}
+
+// decodeVectorFloat32 decodes a BSON Vector binary value (subtype 9) into a []float32 slice.
+// The binary data should be in the format: [<vector type> <padding> <data>]
+// For float32 vectors, the vector type is Float32Vector (0x27) and data must be a multiple of 4 bytes.
+func decodeVectorFloat32(data []byte) ([]float32, error) {
+	if len(data) < 2 {
+		return nil, fmt.Errorf("insufficient bytes to decode vector: expected at least 2 bytes")
+	}
+
+	vectorType := data[0]
+	if vectorType != Float32Vector {
+		return nil, fmt.Errorf("invalid vector type: expected float32 vector (0x%02x), got 0x%02x", Float32Vector, vectorType)
+	}
+
+	if padding := data[1]; padding != 0 {
+		return nil, fmt.Errorf("invalid vector: padding byte must be 0")
+	}
+
+	floatData := data[2:]
+	if len(floatData)%4 != 0 {
+		return nil, fmt.Errorf("invalid float32 vector: data length must be a multiple of 4")
+	}
+
+	values := make([]float32, 0, len(floatData)/4)
+	for i := 0; i < len(floatData); i += 4 {
+		if i+4 > len(floatData) {
+			return nil, fmt.Errorf("invalid float32 vector: truncated data")
+		}
+		bits := binary.LittleEndian.Uint32(floatData[i : i+4])
+		values = append(values, math.Float32frombits(bits))
+	}
+
+	return values, nil
 }

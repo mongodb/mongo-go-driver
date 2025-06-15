@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"reflect"
 )
 
 // BSON binary vector types as described in https://bsonspec.org/spec.html.
@@ -27,13 +26,6 @@ var (
 	errNonZeroVectorPadding   = errors.New("padding must be 0")
 	errVectorPaddingTooLarge  = errors.New("padding cannot be larger than 7")
 	errNotAVectorBinary       = errors.New("not a vector binary")
-)
-
-var (
-	// TInt8 is the reflect.Type for int8
-	TInt8 = reflect.TypeOf(int8(0))
-	// TFloat32 is the reflect.Type for float32
-	TFloat32 = reflect.TypeOf(float32(0))
 )
 
 type vectorTypeError struct {
@@ -274,61 +266,4 @@ func newBitVector(b []byte) (Vector, error) {
 		return Vector{}, errInsufficientVectorData
 	}
 	return NewPackedBitVector(b[1:], b[0])
-}
-
-// DecodeVectorInt8 decodes a BSON Vector binary value (subtype 9) into a []int8 slice.
-// The binary data should be in the format: [<vector type> <padding> <data>]
-// For int8 vectors, the vector type is 0x01.
-func DecodeVectorInt8(data []byte) ([]int8, error) {
-	if len(data) < 2 {
-		return nil, errors.New("insufficient bytes to decode vector: expected at least 2 bytes")
-	}
-
-	vectorType := data[0]
-	if vectorType != 0x01 { // Int8Vector
-		return nil, errors.New("invalid vector type: expected int8 vector (0x01)")
-	}
-
-	if padding := data[1]; padding != 0 {
-		return nil, errors.New("invalid vector: padding byte must be 0")
-	}
-	values := make([]int8, 0, len(data)-2)
-	for i := 2; i < len(data); i++ {
-		values = append(values, int8(data[i]))
-	}
-
-	return values, nil
-}
-
-// DecodeVectorFloat32 decodes a BSON Vector binary value (subtype 9) into a []float32 slice.
-// The binary data should be in the format: [<vector type> <padding> <data>]
-// For float32 vectors, the vector type is 0x02 and data must be a multiple of 4 bytes.
-func DecodeVectorFloat32(data []byte) ([]float32, error) {
-	if len(data) < 2 {
-		return nil, errors.New("insufficient bytes to decode vector: expected at least 2 bytes")
-	}
-
-	vectorType := data[0]
-	if vectorType != 0x02 { // Float32Vector
-		return nil, errors.New("invalid vector type: expected float32 vector (0x02)")
-	}
-
-	if padding := data[1]; padding != 0 {
-		return nil, errors.New("invalid vector: padding byte must be 0")
-	}
-	floatData := data[2:]
-	if len(floatData)%4 != 0 {
-		return nil, errors.New("invalid float32 vector: data length must be a multiple of 4")
-	}
-
-	values := make([]float32, 0, len(floatData)/4)
-	for i := 0; i < len(floatData); i += 4 {
-		if i+4 > len(floatData) {
-			return nil, errors.New("invalid float32 vector: truncated data")
-		}
-		bits := binary.LittleEndian.Uint32(floatData[i : i+4])
-		values = append(values, math.Float32frombits(bits))
-	}
-
-	return values, nil
 }
