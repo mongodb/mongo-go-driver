@@ -25,6 +25,7 @@ var (
 	errInsufficientVectorData = errors.New("insufficient data")
 	errNonZeroVectorPadding   = errors.New("padding must be 0")
 	errVectorPaddingTooLarge  = errors.New("padding cannot be larger than 7")
+	errNotAVectorBinary       = errors.New("not a vector binary")
 )
 
 type vectorTypeError struct {
