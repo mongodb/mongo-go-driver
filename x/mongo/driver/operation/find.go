@@ -192,7 +192,8 @@ func (f *Find) command(dst []byte, desc description.SelectedServer) ([]byte, err
 	if f.tailable != nil {
 		dst = bsoncore.AppendBooleanElement(dst, "tailable", *f.tailable)
 	}
-	if f.rawBucketsData != nil {
+	// Set rawData for 8.2+ servers.
+	if f.rawBucketsData != nil && desc.WireVersion != nil && driverutil.VersionRangeIncludes(*desc.WireVersion, 27) {
 		dst = bsoncore.AppendBooleanElement(dst, "rawData", *f.rawBucketsData)
 	}
 	return dst, nil
