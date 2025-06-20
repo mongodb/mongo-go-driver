@@ -12,7 +12,7 @@ import (
 
 var DefaultHTTPClient = &http.Client{}
 
-// NewHTTPClient will return the globally-defined DefaultHHTTransport, updating
+// NewHTTPClient will return the globally-defined DefaultHTTPTransport, updating
 // the transport if it differs from the http package DefaultTransport.
 func NewHTTPClient() *http.Client {
 	client := DefaultHTTPClient
