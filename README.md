@@ -4,6 +4,9 @@
   <a href="https://pkg.go.dev/go.mongodb.org/mongo-driver/v2/mongo"><img src="etc/assets/godev-mongo-blue.svg" alt="docs"></a>
   <a href="https://pkg.go.dev/go.mongodb.org/mongo-driver/v2/bson"><img src="etc/assets/godev-bson-blue.svg" alt="docs"></a>
   <a href="https://www.mongodb.com/docs/drivers/go/current/"><img src="etc/assets/docs-mongodb-green.svg"></a>
+  <a href="https://securityscorecards.dev/viewer/?uri=github.com/mongodb/mongo-go-driver">
+    <img src="https://api.securityscorecards.dev/projects/github.com/mongodb/mongo-go-driver/badge" alt="OpenSSF Scorecard" />
+  </a>
 </p>
 
 # MongoDB Go Driver
