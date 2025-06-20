@@ -259,7 +259,6 @@ func evaluateSpecialComparison(ctx context.Context, assertionDoc bson.Raw, actua
 		} else {
 			expectedF64 = float64(assertionVal.AsInt64())
 		}
-
 		var actualF64 float64
 		if actual.Type == bson.TypeDouble {
 			actualF64 = actual.Double()
