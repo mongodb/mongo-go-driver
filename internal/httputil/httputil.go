@@ -10,9 +10,17 @@ import (
 	"net/http"
 )
 
-// DefaultHTTPClient is the default HTTP client used across the driver.
-var DefaultHTTPClient = &http.Client{
-	Transport: http.DefaultTransport.(*http.Transport).Clone(),
+var DefaultHTTPClient = &http.Client{}
+
+// NewHTTPClient will return the globally-defined DefaultHTTPClient, updating
+// the transport if it differs from the http package DefaultTransport.
+func NewHTTPClient() *http.Client {
+	client := DefaultHTTPClient
+	if _, ok := http.DefaultTransport.(*http.Transport); !ok {
+		client.Transport = http.DefaultTransport
+	}
+
+	return client
 }
 
 // CloseIdleHTTPConnections closes any connections which were previously
