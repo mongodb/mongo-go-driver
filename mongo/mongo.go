@@ -31,18 +31,6 @@ type Dialer interface {
 	DialContext(ctx context.Context, network, address string) (net.Conn, error)
 }
 
-// MarshalError is returned when attempting to marshal a value into a document
-// results in an error.
-type MarshalError struct {
-	Value interface{}
-	Err   error
-}
-
-// Error implements the error interface.
-func (me MarshalError) Error() string {
-	return fmt.Sprintf("cannot marshal type %s to a BSON Document: %v", reflect.TypeOf(me.Value), me.Err)
-}
-
 // Pipeline is a type that makes creating aggregation pipelines easier. It is a
 // helper and is intended for serializing to BSON.
 //
