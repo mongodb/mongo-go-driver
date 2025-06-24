@@ -1586,7 +1586,6 @@ func TestPool_PoolMonitor(t *testing.T) {
 }
 
 func TestPool_Error(t *testing.T) {
-
 	t.Parallel()
 
 	t.Run("should have TransientTransactionError", func(t *testing.T) {
@@ -1607,6 +1606,5 @@ func TestPool_Error(t *testing.T) {
 		}
 
 		p.close(context.Background())
-
 	})
 }
