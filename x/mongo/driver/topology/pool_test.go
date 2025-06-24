@@ -1594,7 +1594,7 @@ func TestPool_Error(t *testing.T) {
 		p := newPool(poolConfig{})
 		assert.Equalf(t, poolPaused, p.getState(), "expected new pool to be paused")
 
-		// Since new pool is paused, checkout should throw poolClearedError.
+		// Since new pool is paused, checkout should throw PoolClearedError.
 		_, err := p.checkOut(context.Background())
 
 		var pce poolClearedError
