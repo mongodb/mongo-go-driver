@@ -302,7 +302,7 @@ type ClientOptions struct {
 // Client creates a new ClientOptions instance.
 func Client() *ClientOptions {
 	opts := &ClientOptions{}
-	opts = opts.SetHTTPClient(httputil.DefaultHTTPClient)
+	opts = opts.SetHTTPClient(httputil.NewHTTPClient())
 
 	return opts
 }
