@@ -525,6 +525,16 @@ func TestClientOptions(t *testing.T) {
 	})
 }
 
+type nonDefaultTransport struct{}
+
+func (*nonDefaultTransport) RoundTrip(*http.Request) (*http.Response, error) { return nil, nil }
+
+func TestClientHTTPTransport(t *testing.T) {
+	http.DefaultTransport = &nonDefaultTransport{}
+	got := Client().HTTPClient.Transport
+	assert.Equal(t, &nonDefaultTransport{}, got)
+}
+
 func createCertPool(t *testing.T, paths ...string) *x509.CertPool {
 	t.Helper()
 
