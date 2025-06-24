@@ -504,7 +504,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 		}
 		return nil, ErrPoolClosed
 	case poolPaused:
-		err := poolClearedError{err: p.lastClearErr, address: p.address, errorLabels: []string{"TransientTransactionError"}}
+		err := poolClearedError{err: p.lastClearErr, address: p.address, errorLabels: []string{driver.TransientTransactionError}}
 		p.stateMu.RUnlock()
 
 		duration := time.Since(start)
@@ -1050,7 +1050,7 @@ func (p *pool) clearImpl(err error, serviceID *bson.ObjectID, interruptAllConnec
 	}
 
 	if serviceID == nil {
-		pcErr := poolClearedError{err: err, address: p.address, errorLabels: []string{"TransientTransactionError"}}
+		pcErr := poolClearedError{err: err, address: p.address, errorLabels: []string{driver.TransientTransactionError}}
 
 		// Clear the idle connections wait queue.
 		p.idleMu.Lock()

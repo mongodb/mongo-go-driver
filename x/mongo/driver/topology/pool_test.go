@@ -21,6 +21,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/eventtest"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo/address"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
 )
 
@@ -1599,8 +1600,7 @@ func TestPool_Error(t *testing.T) {
 
 		var pce poolClearedError
 		if errors.As(err, &pce) {
-			expectedLabel := "TransientTransactionError"
-			assert.Contains(t, pce.errorLabels, expectedLabel, `expected error to include the "TransientTransactionError" label`)
+			assert.Contains(t, pce.errorLabels, driver.TransientTransactionError, `expected error to include the "TransientTransactionError" label`)
 		} else {
 			t.Errorf("expected poolClearedError, got %v", err)
 		}
