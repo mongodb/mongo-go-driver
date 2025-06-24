@@ -1584,3 +1584,29 @@ func TestPool_PoolMonitor(t *testing.T) {
 			"expected ConnectionCheckOutFailed Duration to be set")
 	})
 }
+
+func TestPool_Error(t *testing.T) {
+
+	t.Parallel()
+
+	t.Run("should have TransientTransactionError", func(t *testing.T) {
+		t.Parallel()
+
+		p := newPool(poolConfig{})
+		assert.Equalf(t, poolPaused, p.getState(), "expected new pool to be paused")
+
+		// Since new pool is paused, checkout should throw poolClearedError.
+		_, err := p.checkOut(context.Background())
+
+		var pce poolClearedError
+		if errors.As(err, &pce) {
+			expectedLabel := "TransientTransactionError"
+			assert.Contains(t, pce.errorLabels, expectedLabel, `expected error to include the "TransientTransactionError" label`)
+		} else {
+			t.Errorf("expected poolClearedError, got %v", err)
+		}
+
+		p.close(context.Background())
+
+	})
+}
