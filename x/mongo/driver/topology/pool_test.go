@@ -1600,7 +1600,7 @@ func TestPool_Error(t *testing.T) {
 
 		var pce poolClearedError
 		if errors.As(err, &pce) {
-			assert.Contains(t, pce.errorLabels, driver.TransientTransactionError, `expected error to include the "TransientTransactionError" label`)
+			assert.Contains(t, pce, driver.TransientTransactionError, `expected error to include the "TransientTransactionError" label`)
 		} else {
 			t.Errorf("expected poolClearedError, got %v", err)
 		}

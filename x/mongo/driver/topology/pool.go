@@ -50,16 +50,15 @@ func (pe PoolError) Error() string { return string(pe) }
 // poolClearedError is an error returned when the connection pool is cleared or currently paused. It
 // is a retryable error.
 type poolClearedError struct {
-	err         error
-	address     address.Address
-	errorLabels []string
+	err     error
+	address address.Address
 }
 
 func (pce poolClearedError) Error() string {
-	return fmt.Sprintf(
-		"connection pool for %v was cleared because another operation failed with: %v",
-		pce.address,
-		pce.err)
+	wrappedErr := fmt.Errorf(
+		"%v: connection pool for %v was cleared because another operation failed with: %v %w",
+		driver.TransientTransactionError, pce.address, pce.err, pce)
+	return wrappedErr.Error()
 }
 
 // Retryable returns true. All poolClearedErrors are retryable.
@@ -504,7 +503,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 		}
 		return nil, ErrPoolClosed
 	case poolPaused:
-		err := poolClearedError{err: p.lastClearErr, address: p.address, errorLabels: []string{driver.TransientTransactionError}}
+		err := poolClearedError{err: p.lastClearErr, address: p.address}
 		p.stateMu.RUnlock()
 
 		duration := time.Since(start)
@@ -1050,7 +1049,7 @@ func (p *pool) clearImpl(err error, serviceID *bson.ObjectID, interruptAllConnec
 	}
 
 	if serviceID == nil {
-		pcErr := poolClearedError{err: err, address: p.address, errorLabels: []string{driver.TransientTransactionError}}
+		pcErr := poolClearedError{err: err, address: p.address}
 
 		// Clear the idle connections wait queue.
 		p.idleMu.Lock()
