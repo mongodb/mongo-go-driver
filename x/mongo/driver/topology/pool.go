@@ -55,10 +55,10 @@ type poolClearedError struct {
 }
 
 func (pce poolClearedError) Error() string {
-	wrappedErr := fmt.Errorf(
-		"%v: connection pool for %v was cleared because another operation failed with: %v %w",
-		driver.TransientTransactionError, pce.address, pce.err, pce)
-	return wrappedErr.Error()
+	return fmt.Sprintf(
+		"connection pool for %v was cleared because another operation failed with: %v",
+		pce.address,
+		pce.err)
 }
 
 // Retryable returns true. All poolClearedErrors are retryable.
@@ -503,7 +503,12 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 		}
 		return nil, ErrPoolClosed
 	case poolPaused:
-		err := poolClearedError{err: p.lastClearErr, address: p.address}
+		pcErr := poolClearedError{err: p.lastClearErr, address: p.address}
+		err := driver.Error{
+			Message: pcErr.Error(),
+			Labels:  []string{driver.TransientTransactionError},
+			Wrapped: pcErr,
+		}
 		p.stateMu.RUnlock()
 
 		duration := time.Since(start)

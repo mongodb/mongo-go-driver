@@ -1597,12 +1597,12 @@ func TestPool_Error(t *testing.T) {
 
 		// Since new pool is paused, checkout should throw PoolClearedError.
 		_, err := p.checkOut(context.Background())
-
-		var pce poolClearedError
-		if errors.As(err, &pce) {
-			assert.Contains(t, pce, driver.TransientTransactionError, `expected error to include the "TransientTransactionError" label`)
+		var le driver.Error
+		if errors.As(err, &le) {
+			assert.ErrorIs(t, poolClearedError{}, le.Unwrap(), "expect error to be PoolClearedError")
+			assert.True(t, le.HasErrorLabel(driver.TransientTransactionError), `expected error to include the "TransientTransactionError" label`)
 		} else {
-			t.Errorf("expected poolClearedError, got %v", err)
+			t.Errorf("expected labeled error, got %v", err)
 		}
 
 		p.close(context.Background())
