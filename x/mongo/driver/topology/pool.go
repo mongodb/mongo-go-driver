@@ -1055,11 +1055,7 @@ func (p *pool) clearImpl(err error, serviceID *bson.ObjectID, interruptAllConnec
 
 	if serviceID == nil {
 		pcErr := poolClearedError{err: err, address: p.address}
-		labeledErr := driver.Error{
-			Message: pcErr.Error(),
-			Labels:  []string{driver.TransientTransactionError},
-			Wrapped: pcErr,
-		}
+
 		// Clear the idle connections wait queue.
 		p.idleMu.Lock()
 		for {
@@ -1067,7 +1063,7 @@ func (p *pool) clearImpl(err error, serviceID *bson.ObjectID, interruptAllConnec
 			if w == nil {
 				break
 			}
-			w.tryDeliver(nil, labeledErr)
+			w.tryDeliver(nil, pcErr)
 		}
 		p.idleMu.Unlock()
 
@@ -1080,7 +1076,7 @@ func (p *pool) clearImpl(err error, serviceID *bson.ObjectID, interruptAllConnec
 			if w == nil {
 				break
 			}
-			w.tryDeliver(nil, labeledErr)
+			w.tryDeliver(nil, pcErr)
 		}
 		p.createConnectionsCond.L.Unlock()
 	}
