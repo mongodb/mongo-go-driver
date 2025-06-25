@@ -76,6 +76,10 @@ type RetryablePoolError interface {
 	Retryable() bool
 }
 
+type RetryablePendingResponseError interface {
+	Retryable() bool
+}
+
 // labeledError is an error that can have error labels added to it.
 type labeledError interface {
 	error

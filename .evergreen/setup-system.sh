@@ -4,7 +4,7 @@
 set -eu
 
 # Set up default environment variables.
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 PROJECT_DIRECTORY=$(dirname $SCRIPT_DIR)
 pushd $PROJECT_DIRECTORY
 ROOT_DIR=$(dirname $PROJECT_DIRECTORY)
@@ -40,18 +40,19 @@ PATH="${GOROOT}/bin:${GOPATH}/bin:${MONGODB_BINARIES}:${EXTRA_PATH}:${PATH}"
 
 # Get the current unique version of this checkout.
 if [ "${IS_PATCH:-}" = "true" ]; then
-    CURRENT_VERSION=$(git describe)-patch-${VERSION_ID}
+  CURRENT_VERSION=$(git describe)-patch-${VERSION_ID}
 else
-    CURRENT_VERSION=latest
+  CURRENT_VERSION=latest
 fi
 
 # Ensure a checkout of drivers-tools.
 if [ ! -d "$DRIVERS_TOOLS" ]; then
-  git clone https://github.com/mongodb-labs/drivers-evergreen-tools $DRIVERS_TOOLS
+  #git clone https://github.com/mongodb-labs/drivers-evergreen-tools $DRIVERS_TOOLS
+  git clone -b DRIVERS-2884 https://github.com/prestonvasquez/drivers-evergreen-tools $DRIVERS_TOOLS
 fi
 
 # Write the .env file for drivers-tools.
-cat <<EOT > ${DRIVERS_TOOLS}/.env
+cat <<EOT >${DRIVERS_TOOLS}/.env
 SKIP_LEGACY_SHELL=1
 DRIVERS_TOOLS="$DRIVERS_TOOLS"
 MONGO_ORCHESTRATION_HOME="$MONGO_ORCHESTRATION_HOME"
@@ -67,7 +68,7 @@ go env
 go install github.com/go-task/task/v3/cmd/task@v3.39.1
 
 # Write our own env file.
-cat <<EOT > env.sh
+cat <<EOT >env.sh
 export GOROOT="$GOROOT"
 export GOPATH="$GOPATH"
 export GOCACHE="$GOCACHE"
@@ -78,12 +79,12 @@ export PATH="$PATH"
 EOT
 
 if [ "Windows_NT" = "$OS" ]; then
-    echo "export USERPROFILE=$USERPROFILE" >> env.sh
-    echo "export HOME=$HOME" >> env.sh
+  echo "export USERPROFILE=$USERPROFILE" >>env.sh
+  echo "export HOME=$HOME" >>env.sh
 fi
 
 # source the env.sh file and write the expansion file.
-cat <<EOT > expansion.yml
+cat <<EOT >expansion.yml
 CURRENT_VERSION: "$CURRENT_VERSION"
 DRIVERS_TOOLS: "$DRIVERS_TOOLS"
 PROJECT_DIRECTORY: "$PROJECT_DIRECTORY"

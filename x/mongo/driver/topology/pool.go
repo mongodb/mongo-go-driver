@@ -986,6 +986,32 @@ func attemptPendingResponse(ctx context.Context, conn *connection, remainingTime
 	return int(totalRead), nil
 }
 
+// poolClearedError is an error returned when the connection pool is cleared or currently paused. It
+// is a retryable error.
+type pendingResponseError struct {
+	err error
+}
+
+var _ error = pendingResponseError{}
+var _ driver.RetryablePoolError = pendingResponseError{}
+
+func (pre pendingResponseError) Error() string {
+	if pre.err == nil {
+		return ""
+	}
+	return pre.err.Error()
+}
+
+// Retryable returns true. All poolClearedErrors are retryable.
+func (pendingResponseError) Retryable() bool { return true }
+
+func (pre pendingResponseError) Unwrap() error {
+	if pre.err == nil {
+		return nil
+	}
+	return pre.err
+}
+
 // awaitPendingResponse sets a new read deadline on the provided connection and
 // tries to read any bytes returned by the server. If there are any errors, the
 // connection will be checked back into the pool to be retried.
@@ -1044,9 +1070,9 @@ func awaitPendingResponse(ctx context.Context, pool *pool, conn *connection) err
 		}
 		if !isCSOTTimeout(err) {
 			if err := conn.close(); err != nil {
-				return err
+				return pendingResponseError{err: err}
 			}
-			return err
+			return pendingResponseError{err: err}
 		}
 	}
 
@@ -1058,12 +1084,12 @@ func awaitPendingResponse(ctx context.Context, pool *pool, conn *connection) err
 	// If the remaining time has been exceeded, then close the connection.
 	if endTime.Sub(pendingResponseState.start) > PendingResponseTimeout {
 		if err := conn.close(); err != nil {
-			return err
+			return pendingResponseError{err: err}
 		}
 	}
 
 	if err != nil {
-		return err
+		return pendingResponseError{err: err}
 	}
 
 	publishPendingResponseSucceeded(pool, conn, endDuration)

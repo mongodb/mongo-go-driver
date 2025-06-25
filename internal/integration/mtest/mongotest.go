@@ -59,6 +59,7 @@ type T struct {
 	connPendingReadStarted   int64
 	connPendingReadSucceeded int64
 	connPendingReadFailed    int64
+	connClosed               int64
 
 	*testing.T
 
@@ -355,6 +356,10 @@ func (t *T) NumberConnectionsCheckedOut() int {
 // started a pending read.
 func (t *T) NumberConnectionsPendingReadStarted() int {
 	return int(atomic.LoadInt64(&t.connPendingReadStarted))
+}
+
+func (t *T) NumberConnectionsClosed() int {
+	return int(atomic.LoadInt64(&t.connClosed))
 }
 
 func (t *T) NumberConnectionsPendingReadSucceeded() int {
@@ -666,8 +671,10 @@ func (t *T) createTestClient() {
 					atomic.AddInt64(&t.connPendingReadStarted, 1)
 				case event.ConnectionPendingResponseSucceeded:
 					atomic.AddInt64(&t.connPendingReadSucceeded, 1)
-				case event.ConnectionCheckOutFailed:
+				case event.ConnectionPendingResponseFailed:
 					atomic.AddInt64(&t.connPendingReadFailed, 1)
+				case event.ConnectionClosed:
+					atomic.AddInt64(&t.connClosed, 1)
 				}
 			},
 		})
