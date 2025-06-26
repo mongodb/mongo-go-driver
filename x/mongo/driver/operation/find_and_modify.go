@@ -212,7 +212,8 @@ func (fam *FindAndModify) command(dst []byte, desc description.SelectedServer) (
 	if fam.let != nil {
 		dst = bsoncore.AppendDocumentElement(dst, "let", fam.let)
 	}
-	if fam.rawBucketsData != nil {
+	// Set rawData for 8.2+ servers.
+	if fam.rawBucketsData != nil && desc.WireVersion != nil && driverutil.VersionRangeIncludes(*desc.WireVersion, 27) {
 		dst = bsoncore.AppendBooleanElement(dst, "rawData", *fam.rawBucketsData)
 	}
 

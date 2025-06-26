@@ -133,7 +133,8 @@ func (i *Insert) command(dst []byte, desc description.SelectedServer) ([]byte, e
 	if i.ordered != nil {
 		dst = bsoncore.AppendBooleanElement(dst, "ordered", *i.ordered)
 	}
-	if i.rawBucketsData != nil {
+	// Set rawData for 8.2+ servers.
+	if i.rawBucketsData != nil && desc.WireVersion != nil && driverutil.VersionRangeIncludes(*desc.WireVersion, 27) {
 		dst = bsoncore.AppendBooleanElement(dst, "rawData", *i.rawBucketsData)
 	}
 	return dst, nil

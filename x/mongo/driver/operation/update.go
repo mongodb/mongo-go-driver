@@ -204,7 +204,8 @@ func (u *Update) command(dst []byte, desc description.SelectedServer) ([]byte, e
 	if u.let != nil {
 		dst = bsoncore.AppendDocumentElement(dst, "let", u.let)
 	}
-	if u.rawBucketsData != nil {
+	// Set rawData for 8.2+ servers.
+	if u.rawBucketsData != nil && desc.WireVersion != nil && driverutil.VersionRangeIncludes(*desc.WireVersion, 27) {
 		dst = bsoncore.AppendBooleanElement(dst, "rawData", *u.rawBucketsData)
 	}
 

@@ -433,6 +433,8 @@ func executeDeleteOne(ctx context.Context, operation *operation) (*operationResu
 			opts.SetHint(hint)
 		case "let":
 			opts.SetLet(val.Document())
+		case "rawData":
+			opts.SetRawBucketsData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized deleteOne option %q", key)
 		}
@@ -487,6 +489,8 @@ func executeDeleteMany(ctx context.Context, operation *operation) (*operationRes
 			opts.SetHint(hint)
 		case "let":
 			opts.SetLet(val.Document())
+		case "rawData":
+			opts.SetRawBucketsData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized deleteMany option %q", key)
 		}
@@ -545,6 +549,8 @@ func executeDistinct(ctx context.Context, operation *operation) (*operationResul
 			// ensured an analogue exists, extend "skippedTestDescriptions" to avoid
 			// this error.
 			return nil, fmt.Errorf("the maxTimeMS collection option is not supported")
+		case "rawData":
+			opts.SetRawBucketsData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized distinct option %q", key)
 		}
@@ -842,6 +848,8 @@ func executeFindOneAndDelete(ctx context.Context, operation *operation) (*operat
 			opts.SetSort(val.Document())
 		case "let":
 			opts.SetLet(val.Document())
+		case "rawData":
+			opts.SetRawBucketsData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized findOneAndDelete option %q", key)
 		}
@@ -924,6 +932,8 @@ func executeFindOneAndReplace(ctx context.Context, operation *operation) (*opera
 			opts.SetSort(val.Document())
 		case "upsert":
 			opts.SetUpsert(val.Boolean())
+		case "rawData":
+			opts.SetRawBucketsData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized findOneAndReplace option %q", key)
 		}
@@ -1016,6 +1026,8 @@ func executeFindOneAndUpdate(ctx context.Context, operation *operation) (*operat
 			}
 		case "upsert":
 			opts.SetUpsert(val.Boolean())
+		case "rawData":
+			opts.SetRawBucketsData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized findOneAndUpdate option %q", key)
 		}
@@ -1062,6 +1074,8 @@ func executeInsertMany(ctx context.Context, operation *operation) (*operationRes
 			documents = bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...)
 		case "ordered":
 			opts.SetOrdered(val.Boolean())
+		case "rawData":
+			opts.SetRawBucketsData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized insertMany option %q", key)
 		}
@@ -1112,6 +1126,8 @@ func executeInsertOne(ctx context.Context, operation *operation) (*operationResu
 			opts.SetBypassDocumentValidation(val.Boolean())
 		case "comment":
 			opts.SetComment(val)
+		case "rawData":
+			opts.SetRawBucketsData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized insertOne option %q", key)
 		}
@@ -1302,6 +1318,8 @@ func executeReplaceOne(ctx context.Context, operation *operation) (*operationRes
 			opts.SetUpsert(val.Boolean())
 		case "let":
 			opts.SetLet(val.Document())
+		case "rawData":
+			opts.SetRawBucketsData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized replaceOne option %q", key)
 		}

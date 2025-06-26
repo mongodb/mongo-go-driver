@@ -131,7 +131,8 @@ func (d *Distinct) command(dst []byte, desc description.SelectedServer) ([]byte,
 	if d.query != nil {
 		dst = bsoncore.AppendDocumentElement(dst, "query", d.query)
 	}
-	if d.rawBucketsData != nil {
+	// Set rawData for 8.2+ servers.
+	if d.rawBucketsData != nil && desc.WireVersion != nil && driverutil.VersionRangeIncludes(*desc.WireVersion, 27) {
 		dst = bsoncore.AppendBooleanElement(dst, "rawData", *d.rawBucketsData)
 	}
 	return dst, nil
