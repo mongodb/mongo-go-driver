@@ -144,7 +144,8 @@ func (bw *clientBulkWrite) newCommand() func([]byte, description.SelectedServer)
 			}
 			dst = bsoncore.AppendDocumentElement(dst, "let", let)
 		}
-		if bw.rawBucketsData != nil {
+		// Set rawData for 8.2+ servers.
+		if bw.rawBucketsData != nil && desc.WireVersion != nil && driverutil.VersionRangeIncludes(*desc.WireVersion, 27) {
 			dst = bsoncore.AppendBooleanElement(dst, "rawData", *bw.rawBucketsData)
 		}
 		return dst, nil

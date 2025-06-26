@@ -140,7 +140,7 @@ func (c *Count) Execute(ctx context.Context) error {
 	return err
 }
 
-func (c *Count) command(dst []byte, _ description.SelectedServer) ([]byte, error) {
+func (c *Count) command(dst []byte, desc description.SelectedServer) ([]byte, error) {
 	dst = bsoncore.AppendStringElement(dst, "count", c.collection)
 	if c.query != nil {
 		dst = bsoncore.AppendDocumentElement(dst, "query", c.query)
@@ -148,7 +148,8 @@ func (c *Count) command(dst []byte, _ description.SelectedServer) ([]byte, error
 	if c.comment.Type != bsoncore.Type(0) {
 		dst = bsoncore.AppendValueElement(dst, "comment", c.comment)
 	}
-	if c.rawBucketsData != nil {
+	// Set rawData for 8.2+ servers.
+	if c.rawBucketsData != nil && desc.WireVersion != nil && driverutil.VersionRangeIncludes(*desc.WireVersion, 27) {
 		dst = bsoncore.AppendBooleanElement(dst, "rawData", *c.rawBucketsData)
 	}
 	return dst, nil

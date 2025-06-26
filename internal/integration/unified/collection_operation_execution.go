@@ -75,6 +75,8 @@ func executeAggregate(ctx context.Context, operation *operation) (*operationResu
 			pipeline = bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...)
 		case "let":
 			opts.SetLet(val.Document())
+		case "rawData":
+			opts.SetRawBucketsData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized aggregate option %q", key)
 		}
@@ -125,6 +127,8 @@ func executeBulkWrite(ctx context.Context, operation *operation) (*operationResu
 			}
 		case "let":
 			opts.SetLet(val.Document())
+		case "rawData":
+			opts.SetRawBucketsData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized bulkWrite option %q", key)
 		}
@@ -202,6 +206,8 @@ func executeCountDocuments(ctx context.Context, operation *operation) (*operatio
 			return nil, fmt.Errorf("the maxTimeMS collection option is not supported")
 		case "skip":
 			opts.SetSkip(int64(val.Int32()))
+		case "rawData":
+			opts.SetRawBucketsData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized countDocuments option %q", key)
 		}
@@ -696,6 +702,8 @@ func executeEstimatedDocumentCount(ctx context.Context, operation *operation) (*
 			// ensured an analogue exists, extend "skippedTestDescriptions" to avoid
 			// this error.
 			return nil, fmt.Errorf("the maxTimeMS collection option is not supported")
+		case "rawData":
+			opts.SetRawBucketsData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized estimatedDocumentCount option %q", key)
 		}

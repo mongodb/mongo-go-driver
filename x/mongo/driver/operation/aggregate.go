@@ -160,7 +160,8 @@ func (a *Aggregate) command(dst []byte, desc description.SelectedServer) ([]byte
 	if a.let != nil {
 		dst = bsoncore.AppendDocumentElement(dst, "let", a.let)
 	}
-	if a.rawBucketsData != nil {
+	// Set rawData for 8.2+ servers.
+	if a.rawBucketsData != nil && desc.WireVersion != nil && driverutil.VersionRangeIncludes(*desc.WireVersion, 27) {
 		dst = bsoncore.AppendBooleanElement(dst, "rawData", *a.rawBucketsData)
 	}
 	for optionName, optionValue := range a.customOptions {
