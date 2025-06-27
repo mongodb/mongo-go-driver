@@ -927,6 +927,10 @@ func attemptPendingResponse(ctx context.Context, conn *connection, remainingTime
 
 	size := pendingreadState.remainingBytes
 
+	// TODO: What happens when you do an aliveness check and read a byte?
+	// Need to make a test for this, otherwise size could be corrupted.
+	// aliveness check MUST only peek.
+
 	if size == 0 { // Question: Would this alawys equal to zero?
 		var sizeBuf [4]byte
 		if bytesRead, err := io.ReadFull(conn.nc, sizeBuf[:]); err != nil {
@@ -1031,6 +1035,7 @@ func awaitPendingResponse(ctx context.Context, pool *pool, conn *connection) err
 		remainingTime        = pendingResponseState.start.Add(PendingResponseTimeout).Sub(time.Now())
 		err                  error
 		bytesRead            int
+		alivenessCheck       bool
 	)
 
 	st := time.Now()
@@ -1038,6 +1043,7 @@ func awaitPendingResponse(ctx context.Context, pool *pool, conn *connection) err
 		// If there is no remaining time, we can just peek at the connection to check
 		// aliveness. In such cases, we don't want to close the connection.
 		bytesRead, err = peekConnectionAlive(conn)
+		alivenessCheck = true
 	} else {
 		bytesRead, err = attemptPendingResponse(ctx, conn, remainingTime)
 	}
@@ -1090,6 +1096,15 @@ func awaitPendingResponse(ctx context.Context, pool *pool, conn *connection) err
 
 	if err != nil {
 		return pendingResponseError{err: err}
+	}
+
+	// If the connection is alive but undrained we can check it back into the pool
+	// and return a pendingResponseError to indicate that the connection is
+	// alive and retryable.
+	if alivenessCheck {
+		_ = pool.checkInNoEvent(conn)
+
+		return pendingResponseError{err: fmt.Errorf("connection is alive and retryable: %w", err)}
 	}
 
 	publishPendingResponseSucceeded(pool, conn, endDuration)

@@ -43,6 +43,9 @@ const (
 	// Proxy specifies a client that proxies messages to the server and also stores parsed copies. The proxied
 	// messages can be retrieved via T.GetProxiedMessages or T.GetRawProxiedMessages.
 	Proxy
+	// MongoProxy specifies a client that communicates with a MongoDB proxy server
+	// as defined in Drivers Evergreen Tools.
+	MongoProxy
 )
 
 var (

@@ -2,7 +2,6 @@ package integration
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -17,21 +16,37 @@ import (
 func TestCMAPProse_PendingResponse_ConnectionAliveness(t *testing.T) {
 	const timeoutMS = 200 * time.Millisecond
 
-	// Establish a direct connection to the proxy.
-	proxyURI := "mongodb://127.0.0.1:28017/?directConnection=true"
-	//t.Setenv("MONGODB_URI", proxyURI)
-	//
-	// Print the MONGODB_URI environment variable for debugging purposes
-	fmt.Println("MONGODB_URI", os.Getenv("MONGODB_URI"))
+	// Skip on compressor due to proxy complexity.
+	if os.Getenv("MONGO_GO_DRIVER_COMPRESSOR") != "" {
+		t.Skip("Skipping test because MONGO_GO_DRIVER_COMPRESSOR is set, which is not supported by the proxy")
+	}
 
+	// Skip on auth due to proxy complexity.
+	if os.Getenv("AUTH") == "auth" {
+		t.Skip("Skipping test because AUTH is set")
+	}
+
+	// Skip on SSL due to proxy complexity.
+	if os.Getenv("SSL") == "ssl" {
+		t.Skip("Skipping test because SSL is set")
+	}
+
+	// Skip unless the proxy URI is set.
+	if os.Getenv("MONGO_PROXY_URI") == "" {
+		t.Skip("Skipping test because MONGO_PROXY_URI is not set")
+	}
+
+	//proxyURI := "mongodb://127.0.0.1:28017/?directConnection=true"
+	proxyURI := os.Getenv("MONGO_PROXY_URI")
+
+	// Establish a direct connection to the proxy via mtest.
 	clientOpts := options.Client().ApplyURI(proxyURI).SetMaxPoolSize(1).SetDirect(true)
-	mt := mtest.New(t, mtest.NewOptions().CreateClient(false).ClientOptions(clientOpts))
+	mt := mtest.New(t, mtest.NewOptions().ClientOptions(clientOpts).ClientType(mtest.MongoProxy))
 
-	fmt.Println("Running TestCMAPProse_PendingResponse_ConnectionAliveness...")
-
-	mt.Run("fails", func(mt *mtest.T) {
-		// Create a command document that instructs the proxy to dely 2x the
-		// timeoutMS for the operation then never respond.
+	opts := mtest.NewOptions().CreateCollection(false)
+	mt.RunOpts("fails", opts, func(mt *mtest.T) {
+		//Create a command document that instructs the proxy to dely 2x the
+		//timeoutMS for the operation then never respond.
 		proxyTest := bson.D{
 			{Key: "actions", Value: bson.A{
 				// Causes the timeout in the initial try.
@@ -62,19 +77,19 @@ func TestCMAPProse_PendingResponse_ConnectionAliveness(t *testing.T) {
 		defer cancel()
 
 		err := db.RunCommand(ctx, cmd).Err()
-		require.Error(mt, err, "expected command to fail due to timeout")
-		assert.ErrorIs(mt, err, context.DeadlineExceeded)
+		require.Error(t, err, "expected command to fail due to timeout")
+		assert.ErrorIs(t, err, context.DeadlineExceeded)
 
 		// Wait 3 seconds to ensure there is time left in the pending response state.
 		time.Sleep(3 * time.Second)
 
-		// Run an insertOne without a timeout. Expect the pending response to fail
-		// at the aliveness check. However, the insert should succeed since pending
-		// response failures are retryable.
+		//Run an insertOne without a timeout. Expect the pending response to fail
+		//at the aliveness check. However, the insert should succeed since pending
+		//response failures are retryable.
 		_, err = coll.InsertOne(context.Background(), myStruct{Name: "Bob", Age: 25})
-		require.NoError(mt, err, "expected insertOne to succeed after pending response aliveness check")
+		require.NoError(t, err, "expected insertOne to succeed after pending response aliveness check")
 
-		// There should be 1 ConnectionPendingResponseStarted event.
+		//There should be 1 ConnectionPendingResponseStarted event.
 		assert.Equal(mt, 1, mt.NumberConnectionsPendingReadStarted())
 
 		// There should be 1 ConnectionPendingResponseFailed event.
@@ -87,7 +102,7 @@ func TestCMAPProse_PendingResponse_ConnectionAliveness(t *testing.T) {
 		assert.Equal(mt, 1, mt.NumberConnectionsClosed())
 	})
 
-	mt.Run("succeeds", func(mt *mtest.T) {
+	mt.RunOpts("succeeds", opts, func(mt *mtest.T) {
 		// Create a command document that instructs the proxy to dely 2x the
 		// timeoutMS for the operation, then responds with exactly 1 byte for
 		// the alivness check and finally with the entire message.

@@ -550,8 +550,9 @@ functions:
     - command: subprocess.exec
       params:
         binary: bash
+        include_expansions_in_env: [AUTH, SSL, MONGODB_URI]
         background: true
-        args: ["${DRIVERS_TOOLS}/.evergreen/start-mongoproxy.sh"]
+        args: [*task-runner, start-mongoproxy]
 
   run-kms-tls-test:
     - command: subprocess.exec
@@ -684,13 +685,14 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
       - func: start-cse-servers
-      - func: start-mongoproxy
+      #- func: start-mongoproxy
       - func: run-tests
         vars:
           TOPOLOGY: "server"
           AUTH: "noauth"
           SSL: "nossl"
           MONGO_GO_DRIVER_COMPRESSOR: "snappy"
+          MONGO_PROXY_URI: "mongodb://127.0.0.1:28017/?directConnection=true"
 
   - name: test-standalone-noauth-nossl-zlib-compression
     tags: ["test", "standalone", "compression", "zlib"]
@@ -701,7 +703,7 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
       - func: start-cse-servers
-      - func: start-mongoproxy
+      #- func: start-mongoproxy
       - func: run-tests
         vars:
           TOPOLOGY: "server"
@@ -718,7 +720,7 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
       - func: start-cse-servers
-      - func: start-mongoproxy
+      #- func: start-mongoproxy
       - func: run-tests
         vars:
           TOPOLOGY: "server"
@@ -735,7 +737,7 @@ tasks:
           AUTH: "auth"
           SSL: "ssl"
       - func: start-cse-servers  
-      - func: start-mongoproxy
+      #- func: start-mongoproxy
       - func: run-tests
         vars:
           TOPOLOGY: "server"
@@ -751,7 +753,7 @@ tasks:
           AUTH: "auth"
           SSL: "nossl"
       - func: start-cse-servers
-      - func: start-mongoproxy
+      #- func: start-mongoproxy
       - func: run-tests
         vars:
           TOPOLOGY: "server"
@@ -767,7 +769,7 @@ tasks:
           AUTH: "auth"
           SSL: "ssl"
       - func: start-cse-servers
-      - func: start-mongoproxy
+      #- func: start-mongoproxy
       - func: run-tests
         vars:
           TOPOLOGY: "server"
@@ -784,7 +786,7 @@ tasks:
           AUTH: "auth"
           SSL: "ssl"
       - func: start-cse-servers  
-      - func: start-mongoproxy
+      #- func: start-mongoproxy
       - func: run-tests
         vars:
           TOPOLOGY: "server"
@@ -801,7 +803,7 @@ tasks:
           AUTH: "auth"
           SSL: "ssl"
       - func: start-cse-servers
-      - func: start-mongoproxy
+      #- func: start-mongoproxy
       - func: run-tests
         vars:
           TOPOLOGY: "server"
@@ -1222,7 +1224,7 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
       - func: start-cse-servers
-      - func: start-mongoproxy
+      #- func: start-mongoproxy
       - func: run-tests
         vars:
           TOPOLOGY: "replica_set"
@@ -1239,7 +1241,7 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
       - func: start-cse-servers
-      - func: start-mongoproxy
+      #- func: start-mongoproxy
       - func: run-tests
         vars:
           TOPOLOGY: "replica_set"
@@ -1255,7 +1257,7 @@ tasks:
           AUTH: "auth"
           SSL: "ssl"
       - func: start-cse-servers
-      - func: start-mongoproxy
+      #- func: start-mongoproxy
       - func: run-tests
         vars:
           TOPOLOGY: "replica_set"
@@ -1271,7 +1273,7 @@ tasks:
           AUTH: "auth"
           SSL: "ssl"
       - func: start-cse-servers
-      - func: start-mongoproxy
+      #- func: start-mongoproxy
       - func: run-tests
         vars:
           TOPOLOGY: "replica_set"
@@ -1290,7 +1292,7 @@ tasks:
           AUTH: "auth"
           SSL: "nossl"
       - func: start-cse-servers
-      - func: start-mongoproxy
+      #- func: start-mongoproxy
       - func: run-tests
         vars:
           TOPOLOGY: "replica_set"
@@ -1306,7 +1308,7 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
       - func: start-cse-servers
-      - func: start-mongoproxy
+      #- func: start-mongoproxy
       - func: run-tests
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1322,7 +1324,7 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
       - func: start-cse-servers
-      - func: start-mongoproxy
+      #- func: start-mongoproxy
       - func: run-tests
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1339,7 +1341,7 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
       - func: start-cse-servers
-      - func: start-mongoproxy
+      #- func: start-mongoproxy
       - func: run-tests
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1356,7 +1358,7 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
       - func: start-cse-servers
-      - func: start-mongoproxy
+      #- func: start-mongoproxy
       - func: run-tests
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1373,7 +1375,7 @@ tasks:
           AUTH: "auth"
           SSL: "ssl"
       - func: start-cse-servers
-      - func: start-mongoproxy
+      #- func: start-mongoproxy
       - func: run-tests
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1389,7 +1391,7 @@ tasks:
           AUTH: "auth"
           SSL: "ssl"
       - func: start-cse-servers
-      - func: start-mongoproxy
+      #- func: start-mongoproxy
       - func: run-tests
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1406,7 +1408,7 @@ tasks:
           AUTH: "auth"
           SSL: "ssl"
       - func: start-cse-servers
-      - func: start-mongoproxy
+      #- func: start-mongoproxy
       - func: run-tests
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1423,7 +1425,7 @@ tasks:
           AUTH: "auth"
           SSL: "ssl"
       - func: start-cse-servers
-      - func: start-mongoproxy
+      #- func: start-mongoproxy
       - func: run-tests
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1440,7 +1442,7 @@ tasks:
           AUTH: "auth"
           SSL: "nossl"
       - func: start-cse-servers
-      - func: start-mongoproxy
+      #- func: start-mongoproxy
       - func: run-tests
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1512,7 +1514,7 @@ tasks:
           SSL: "nossl"
           REQUIRE_API_VERSION: true
       - func: start-cse-servers
-      - func: start-mongoproxy
+      #- func: start-mongoproxy
       - func: run-versioned-api-test
         vars:
           TOPOLOGY: "server"
@@ -1530,7 +1532,7 @@ tasks:
           SSL: "nossl"
           REQUIRE_API_VERSION: true
       - func: start-cse-servers
-      - func: start-mongoproxy
+      #- func: start-mongoproxy
       - func: run-versioned-api-test
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1548,7 +1550,7 @@ tasks:
           SSL: "nossl"
           ORCHESTRATION_FILE: "versioned-api-testing.json"
       - func: start-cse-servers
-      - func: start-mongoproxy
+      #- func: start-mongoproxy
       - func: run-versioned-api-test
         vars:
           TOPOLOGY: "server"
@@ -1564,7 +1566,7 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
       - func: start-cse-servers
-      - func: start-mongoproxy
+      #- func: start-mongoproxy
       - func: run-kms-tls-test
         vars:
           KMS_TLS_TESTCASE: "INVALID_CERT"
@@ -1581,7 +1583,7 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
       - func: start-cse-servers
-      - func: start-mongoproxy
+      #- func: start-mongoproxy
       - func: run-kms-tls-test
         vars:
           KMS_TLS_TESTCASE: "INVALID_HOSTNAME"
@@ -1598,7 +1600,7 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
       - func: start-cse-servers
-      - func: start-mongoproxy
+      #- func: start-mongoproxy
       - func: run-kmip-tests
         vars:
           TOPOLOGY: "server"
@@ -1614,14 +1616,14 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
       - func: start-cse-servers
-      - func: start-mongoproxy
+      #- func: start-mongoproxy
       - func: run-retry-kms-requests
 
   - name: "test-serverless"
     tags: ["serverless"]
     commands:
       - func: start-cse-servers
-      - func: start-mongoproxy
+      #- func: start-mongoproxy
       - func: "run-serverless-tests"
         vars:
           MONGO_GO_DRIVER_COMPRESSOR: "snappy"
