@@ -490,7 +490,7 @@ func (c *connection) read(ctx context.Context) (bytesRead []byte, errMsg string,
 	// We do a ReadFull into an array here instead of doing an opportunistic ReadAtLeast into dst
 	// because there might be more than one wire message waiting to be read, for example when
 	// reading messages from an exhaust cursor.
-	n, err := io.ReadFull(c.br, sizeBuf[:]) // Use the buffered reader
+	n, err := io.ReadFull(c.nc, sizeBuf[:]) // Use the buffered reader
 	if err != nil {
 		if l := int32(n); l == 0 && isCSOTTimeout(err) && driverutil.HasMaxTimeMS(ctx) {
 			requestID, _ := driverutil.GetRequestID(ctx)
@@ -511,7 +511,7 @@ func (c *connection) read(ctx context.Context) (bytesRead []byte, errMsg string,
 	dst := make([]byte, size)
 	copy(dst, sizeBuf[:])
 
-	n, err = io.ReadFull(c.br, dst[4:]) // Use the buffered reader
+	n, err = io.ReadFull(c.nc, dst[4:]) // Use the buffered reader
 	if err != nil {
 		remainingBytes := size - 4 - int32(n)
 		if remainingBytes > 0 && isCSOTTimeout(err) && driverutil.HasMaxTimeMS(ctx) {
