@@ -223,6 +223,10 @@ func AddServerlessAuthCredentials(uri string) (string, error) {
 
 // ConnString gets the globally configured connection string.
 func ConnString(t *testing.T) *connstring.ConnString {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
 	connectionStringOnce.Do(func() {
 		uri, err := MongoDBURI()
 		require.NoError(t, err, "error constructing mongodb URI: %v", err)
