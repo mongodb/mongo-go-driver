@@ -1011,6 +1011,9 @@ func awaitPendingResponse(ctx context.Context, pool *pool, conn *connection) err
 		// If there is no remaining time, we can just peek at the connection to check
 		// aliveness. In such cases, we don't want to close the connection.
 		bytesRead, err = peekConnectionAlive(conn)
+
+		// Mark this attempt as alive but check the connection back it the pull and
+		// send a retryable error.
 		alivenessCheck = true
 	} else {
 		bytesRead, err = attemptPendingResponse(ctx, conn, remainingTime)
@@ -1042,6 +1045,7 @@ func awaitPendingResponse(ctx context.Context, pool *pool, conn *connection) err
 			nerr := net.Error(nil)
 			return errors.As(err, &nerr) && nerr.Timeout()
 		}
+
 		if !isCSOTTimeout(err) {
 			if err := conn.close(); err != nil {
 				return pendingResponseError{err: err}
@@ -1075,6 +1079,8 @@ func awaitPendingResponse(ctx context.Context, pool *pool, conn *connection) err
 
 		_ = pool.checkInNoEvent(conn)
 
+		// TODO this should be a special error noting that the remainting timeout
+		// has been exceeded.
 		return pendingResponseError{err: fmt.Errorf("connection is alive and retryable: %w", err)}
 	}
 

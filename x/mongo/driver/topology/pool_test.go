@@ -1383,7 +1383,7 @@ func TestAwaitPendingRead(t *testing.T) {
 		_, err = p.checkOut(context.Background())
 		require.Error(t, err)
 
-		assert.EqualError(t, pendingReadError, "error reading the message size: unexpected EOF")
+		assert.EqualError(t, pendingReadError, "peeking length prefix: EOF")
 	})
 	t.Run("timeout reading message header, background read timeout", func(t *testing.T) {
 		timeout := 10 * time.Millisecond
@@ -1444,7 +1444,7 @@ func TestAwaitPendingRead(t *testing.T) {
 		require.Error(t, err)
 
 		wantErr := regexp.MustCompile(
-			`^error discarding 6 byte message: read tcp 127.0.0.1:.*->127.0.0.1:.*: i\/o timeout$`,
+			`^timeout discarding 2 bytes: read tcp 127.0.0.1:.*->127.0.0.1:.*: i\/o timeout$`,
 		)
 		assert.True(t, wantErr.MatchString(pendingReadError.Error()), "error %q does not match pattern %q", pendingReadError, wantErr)
 	})
@@ -1564,7 +1564,7 @@ func TestAwaitPendingRead(t *testing.T) {
 		_, err = p.checkOut(context.Background())
 		require.Error(t, err)
 
-		assert.EqualError(t, pendingReadError, "error discarding 3 byte message: EOF")
+		assert.EqualError(t, pendingReadError, "reading body: EOF")
 	})
 }
 

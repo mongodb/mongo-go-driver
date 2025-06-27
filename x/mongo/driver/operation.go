@@ -645,6 +645,11 @@ func (op Operation) Execute(ctx context.Context) error {
 		if srvr == nil || conn == nil {
 			srvr, conn, err = op.getServerAndConnection(ctx, requestID, deprioritizedServers)
 			if err != nil {
+				// If the returned error is a context error, return it immediately.
+				if ctx.Err() != nil {
+					err = ctx.Err()
+				}
+
 				// If the returned error is retryable and there are retries remaining (negative
 				// retries means retry indefinitely), then retry the operation. Set the server
 				// and connection to nil to request a new server and connection.

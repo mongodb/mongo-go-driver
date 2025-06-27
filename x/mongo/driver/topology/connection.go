@@ -589,7 +589,6 @@ func (c *connection) isAlive() bool {
 	}
 	// Important: always reset the deadline after the check.
 	defer c.nc.SetReadDeadline(time.Time{})
-
 	_, err := c.br.Peek(1)
 	// The connection is alive if we got a timeout (meaning the connection is idle
 	// and waiting for data) or if we successfully peeked at a byte (err == nil).
