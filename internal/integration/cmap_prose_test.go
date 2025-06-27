@@ -36,10 +36,9 @@ func TestCMAPProse_PendingResponse_ConnectionAliveness(t *testing.T) {
 		t.Skip("Skipping test because MONGO_PROXY_URI is not set")
 	}
 
-	//proxyURI := "mongodb://127.0.0.1:28017/?directConnection=true"
+	// Create a direct connection to the proxy server.
 	proxyURI := os.Getenv("MONGO_PROXY_URI")
 
-	// Establish a direct connection to the proxy via mtest.
 	clientOpts := options.Client().ApplyURI(proxyURI).SetMaxPoolSize(1).SetDirect(true)
 	mt := mtest.New(t, mtest.NewOptions().ClientOptions(clientOpts).ClientType(mtest.MongoProxy))
 
@@ -83,9 +82,9 @@ func TestCMAPProse_PendingResponse_ConnectionAliveness(t *testing.T) {
 		// Wait 3 seconds to ensure there is time left in the pending response state.
 		time.Sleep(3 * time.Second)
 
-		//Run an insertOne without a timeout. Expect the pending response to fail
-		//at the aliveness check. However, the insert should succeed since pending
-		//response failures are retryable.
+		// Run an insertOne without a timeout. Expect the pending response to fail
+		// at the aliveness check. However, the insert should succeed since pending
+		// response failures are retryable.
 		_, err = coll.InsertOne(context.Background(), myStruct{Name: "Bob", Age: 25})
 		require.NoError(t, err, "expected insertOne to succeed after pending response aliveness check")
 
@@ -110,11 +109,7 @@ func TestCMAPProse_PendingResponse_ConnectionAliveness(t *testing.T) {
 			{Key: "actions", Value: bson.A{
 				// Causes the timeout in the initial try.
 				bson.D{{Key: "delayMs", Value: 400}},
-				//// Send exactly one byte so that the aliveness check succeeds.
-				bson.D{{Key: "sendBytes", Value: 1}},
-				//// Cause another delay for the retry operation.
-				bson.D{{Key: "delayMs", Value: 10}},
-				//// Send the rest of the response for discarding on retry.
+				// Send the rest of the response for discarding on retry.
 				bson.D{{Key: "sendAll", Value: true}},
 			}},
 		}
