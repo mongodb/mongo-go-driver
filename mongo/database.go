@@ -288,7 +288,7 @@ func (db *Database) RunCommandCursor(
 	op, sess, err := db.processRunCommand(ctx, runCommand, true, opts...)
 	if err != nil {
 		closeImplicitSession(sess)
-		return nil, replaceErrors(err)
+		return nil, wrapErrors(err)
 	}
 
 	if err = op.Execute(ctx); err != nil {
@@ -297,16 +297,16 @@ func (db *Database) RunCommandCursor(
 			return nil, errors.New(
 				"database response does not contain a cursor; try using RunCommand instead")
 		}
-		return nil, replaceErrors(err)
+		return nil, wrapErrors(err)
 	}
 
 	bc, err := op.ResultCursor()
 	if err != nil {
 		closeImplicitSession(sess)
-		return nil, replaceErrors(err)
+		return nil, wrapErrors(err)
 	}
 	cursor, err := newCursorWithSession(bc, db.bsonOpts, db.registry, sess)
-	return cursor, replaceErrors(err)
+	return cursor, wrapErrors(err)
 }
 
 // Drop drops the database on the server. This method ignores "namespace not found" errors so it is safe to drop
@@ -347,7 +347,7 @@ func (db *Database) Drop(ctx context.Context) error {
 
 	var driverErr driver.Error
 	if err != nil && (!errors.As(err, &driverErr) || !driverErr.NamespaceNotFound()) {
-		return replaceErrors(err)
+		return wrapErrors(err)
 	}
 	return nil
 }
@@ -497,16 +497,16 @@ func (db *Database) ListCollections(
 	err = op.Execute(ctx)
 	if err != nil {
 		closeImplicitSession(sess)
-		return nil, replaceErrors(err)
+		return nil, wrapErrors(err)
 	}
 
 	bc, err := op.Result(cursorOpts)
 	if err != nil {
 		closeImplicitSession(sess)
-		return nil, replaceErrors(err)
+		return nil, wrapErrors(err)
 	}
 	cursor, err := newCursorWithSession(bc, db.bsonOpts, db.registry, sess)
-	return cursor, replaceErrors(err)
+	return cursor, wrapErrors(err)
 }
 
 // ListCollectionNames executes a listCollections command and returns a slice containing the names of the collections
@@ -944,7 +944,7 @@ func (db *Database) executeCreateOperation(ctx context.Context, op *operation.Cr
 		Deployment(db.client.deployment).
 		Crypt(db.client.cryptFLE)
 
-	return replaceErrors(op.Execute(ctx))
+	return wrapErrors(op.Execute(ctx))
 }
 
 // GridFSBucket is used to construct a GridFS bucket which can be used as a

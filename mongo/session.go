@@ -292,7 +292,7 @@ func (s *Session) CommitTransaction(ctx context.Context) error {
 	// Return error without updating transaction state if it is a timeout, as the transaction has not
 	// actually been committed.
 	if IsTimeout(err) {
-		return replaceErrors(err)
+		return wrapErrors(err)
 	}
 	s.clientSession.Committing = false
 	commitErr := s.clientSession.CommitTransaction()
@@ -301,7 +301,7 @@ func (s *Session) CommitTransaction(ctx context.Context) error {
 	s.clientSession.UpdateCommitTransactionWriteConcern()
 
 	if err != nil {
-		return replaceErrors(err)
+		return wrapErrors(err)
 	}
 	return commitErr
 }
