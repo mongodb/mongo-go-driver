@@ -7,6 +7,7 @@
 package topology
 
 import (
+	"bufio" // Import bufio
 	"context"
 	"crypto/tls"
 	"encoding/binary"
@@ -60,7 +61,8 @@ type connection struct {
 	state int64
 
 	id                   string
-	nc                   net.Conn // When nil, the connection is closed.
+	nc                   net.Conn      // When nil, the connection is closed.
+	br                   *bufio.Reader // When non-nil, used to read from nc.
 	addr                 address.Address
 	idleTimeout          time.Duration
 	idleStart            atomic.Value // Stores a time.Time
@@ -241,6 +243,9 @@ func (c *connection) connect(ctx context.Context) (err error) {
 		}
 		c.nc = tlsNc
 	}
+
+	// Initialize the buffered reader now that we have a finalized net.Conn.
+	c.br = bufio.NewReader(c.nc)
 
 	// running hello and authentication is handled by a handshaker on the configuration instance.
 	handshaker := c.config.handshaker
@@ -485,7 +490,7 @@ func (c *connection) read(ctx context.Context) (bytesRead []byte, errMsg string,
 	// We do a ReadFull into an array here instead of doing an opportunistic ReadAtLeast into dst
 	// because there might be more than one wire message waiting to be read, for example when
 	// reading messages from an exhaust cursor.
-	n, err := io.ReadFull(c.nc, sizeBuf[:])
+	n, err := io.ReadFull(c.br, sizeBuf[:]) // Use the buffered reader
 	if err != nil {
 		if l := int32(n); l == 0 && isCSOTTimeout(err) && driverutil.HasMaxTimeMS(ctx) {
 			requestID, _ := driverutil.GetRequestID(ctx)
@@ -506,7 +511,7 @@ func (c *connection) read(ctx context.Context) (bytesRead []byte, errMsg string,
 	dst := make([]byte, size)
 	copy(dst, sizeBuf[:])
 
-	n, err = io.ReadFull(c.nc, dst[4:])
+	n, err = io.ReadFull(c.br, dst[4:]) // Use the buffered reader
 	if err != nil {
 		remainingBytes := size - 4 - int32(n)
 		if remainingBytes > 0 && isCSOTTimeout(err) && driverutil.HasMaxTimeMS(ctx) {
@@ -557,7 +562,7 @@ func (c *connection) closed() bool {
 // seconds. For frequently in-use connections, a network error during an
 // operation will be the first indication of a dead connection.
 func (c *connection) isAlive() bool {
-	if c.nc == nil {
+	if c.nc == nil || c.br == nil {
 		return false
 	}
 
@@ -574,20 +579,24 @@ func (c *connection) isAlive() bool {
 		return true
 	}
 
-	// Set a 1ms read deadline and attempt to read 1 byte from the connection.
-	// Expect it to block for 1ms then return a deadline exceeded error. If it
-	// returns any other error, the connection is not usable, so return false.
-	// If it doesn't return an error and actually reads data, the connection is
-	// also not usable, so return false.
-	//
-	// Note that we don't need to un-set the read deadline because the "read"
-	// and "write" methods always reset the deadlines.
-	err := c.nc.SetReadDeadline(time.Now().Add(1 * time.Millisecond))
-	if err != nil {
+	// Set a 1ms read deadline and attempt to peek at 1 byte from the connection's
+	// buffered reader. Expect it to block for 1ms then return a deadline exceeded error.
+	// If it returns a different error (e.g. io.EOF), the connection is dead. If it
+	// successfully peeks a byte, the connection is alive but we haven't consumed
+	// the byte from the stream.
+	if err := c.nc.SetReadDeadline(time.Now().Add(1 * time.Millisecond)); err != nil {
 		return false
 	}
-	var b [1]byte
-	_, err = c.nc.Read(b[:])
+	// Important: always reset the deadline after the check.
+	defer c.nc.SetReadDeadline(time.Time{})
+
+	_, err := c.br.Peek(1)
+	// The connection is alive if we got a timeout (meaning the connection is idle
+	// and waiting for data) or if we successfully peeked at a byte (err == nil).
+	// Any other error (e.g. io.EOF) means the connection is dead.
+	if err == nil {
+		return true
+	}
 	return errors.Is(err, os.ErrDeadlineExceeded)
 }
 

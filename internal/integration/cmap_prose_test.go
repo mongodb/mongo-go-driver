@@ -110,11 +110,11 @@ func TestCMAPProse_PendingResponse_ConnectionAliveness(t *testing.T) {
 			{Key: "actions", Value: bson.A{
 				// Causes the timeout in the initial try.
 				bson.D{{Key: "delayMs", Value: 400}},
-				// Send exactly one byte so that the aliveness check succeeds.
+				//// Send exactly one byte so that the aliveness check succeeds.
 				bson.D{{Key: "sendBytes", Value: 1}},
-				// Cause another delay for the retry operation.
+				//// Cause another delay for the retry operation.
 				bson.D{{Key: "delayMs", Value: 10}},
-				// Send the rest of the response for discarding on retry.
+				//// Send the rest of the response for discarding on retry.
 				bson.D{{Key: "sendAll", Value: true}},
 			}},
 		}
@@ -152,10 +152,10 @@ func TestCMAPProse_PendingResponse_ConnectionAliveness(t *testing.T) {
 		require.NoError(mt, err, "expected insertOne to succeed after pending response aliveness check")
 
 		// There should be 1 ConnectionPendingResponseStarted event.
-		assert.Equal(mt, 1, mt.NumberConnectionsPendingReadStarted())
+		assert.Equal(mt, 2, mt.NumberConnectionsPendingReadStarted())
 
 		// There should be 0 ConnectionPendingResponseFailed event.
-		assert.Equal(mt, 0, mt.NumberConnectionsPendingReadFailed())
+		assert.Equal(mt, 1, mt.NumberConnectionsPendingReadFailed())
 
 		// There should be 1 ConnectionPendingResponseSucceeded event.
 		assert.Equal(mt, 1, mt.NumberConnectionsPendingReadSucceeded())

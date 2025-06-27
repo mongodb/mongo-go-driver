@@ -7,11 +7,10 @@
 package topology
 
 import (
-	"bufio"
 	"context"
+	"encoding/binary"
 	"errors"
 	"fmt"
-	"io"
 	"net"
 	"sync"
 	"sync/atomic"
@@ -885,109 +884,78 @@ func publishPendingResponseSucceeded(pool *pool, conn *connection, dur time.Dura
 	}
 }
 
-// peekConnectionAlive checks if the connection is alive by peeking at the
-// buffered reader. If the connection is closed, it will return false.
 func peekConnectionAlive(conn *connection) (int, error) {
-	// Set a very short deadline to avoid blocking.
+	// very short deadline so we don’t block
 	if err := conn.nc.SetReadDeadline(time.Now().Add(1 * time.Millisecond)); err != nil {
 		return 0, err
 	}
-
-	// Wrap the connection in a buffered reader to use peek.
-	reader := bufio.NewReader(conn.nc)
-
-	// Try to peek at one byte.
-	bytes, err := reader.Peek(1)
+	// Peek(1) will fill the bufio.Reader’s buffer if needed,
+	// but will NOT advance it.
+	bytes, err := conn.br.Peek(1)
 	return len(bytes), err
 }
 
 func attemptPendingResponse(ctx context.Context, conn *connection, remainingTime time.Duration) (int, error) {
-	pendingreadState := conn.pendingResponseState
-	if pendingreadState == nil {
+	state := conn.pendingResponseState
+	if state == nil {
 		return 0, fmt.Errorf("no pending read state")
 	}
 
-	dl, contextDeadlineUsed := ctx.Deadline()
-	calculatedDeadline := time.Now().Add(remainingTime)
-
-	if contextDeadlineUsed {
-		// Use the minimum of the user-provided deadline and the calculated
-		// deadline.
-		if calculatedDeadline.Before(dl) {
-			dl = calculatedDeadline
-		}
+	// compute an absolute deadline combining ctx + our leftover
+	var dl time.Time
+	if dl0, ok := ctx.Deadline(); ok && time.Now().Add(remainingTime).After(dl0) {
+		dl = dl0
 	} else {
-		dl = calculatedDeadline
+		dl = time.Now().Add(remainingTime)
+	}
+	if err := conn.nc.SetReadDeadline(dl); err != nil {
+		return 0, fmt.Errorf("setting read deadline: %w", err)
 	}
 
-	err := conn.nc.SetReadDeadline(dl)
-	if err != nil {
-		return 0, fmt.Errorf("error setting a read deadline: %w", err)
-	}
+	totalRead := 0
 
-	size := pendingreadState.remainingBytes
-
-	// TODO: What happens when you do an aliveness check and read a byte?
-	// Need to make a test for this, otherwise size could be corrupted.
-	// aliveness check MUST only peek.
-
-	if size == 0 { // Question: Would this alawys equal to zero?
-		var sizeBuf [4]byte
-		if bytesRead, err := io.ReadFull(conn.nc, sizeBuf[:]); err != nil {
-			err = transformNetworkError(ctx, err, contextDeadlineUsed)
-
-			return bytesRead, fmt.Errorf("error reading the message size: %w", err)
-		}
-
-		size, err = conn.parseWmSizeBytes(sizeBuf)
+	// if we haven’t even parsed the 4-byte length yet, peek it
+	if state.remainingBytes == 0 {
+		hdr, err := conn.br.Peek(4)
 		if err != nil {
-			return int(size), transformNetworkError(ctx, err, contextDeadlineUsed)
+			return 0, fmt.Errorf("peeking length prefix: %w", err)
 		}
-		size -= 4
+		msgLen := int(binary.LittleEndian.Uint32(hdr))
+		// consume those 4 bytes now that we know the message length
+		if _, err := conn.br.Discard(4); err != nil {
+			return 0, fmt.Errorf("discarding length prefix: %w", err)
+		}
+		state.remainingBytes = int32(msgLen) - 4
 	}
 
-	const bufSize = 4096
-	buf := make([]byte, bufSize)
-
-	var totalRead int64
-
-	// Iterate every 4KB of the TCP stream, refreshing the remainingTimeout for
-	// each successful read to avoid closing while streaming large (upto 16MiB)
-	// response messages.
-	for totalRead < int64(size) {
-		newDeadline := time.Now().Add(time.Until(dl))
-		if err := conn.nc.SetReadDeadline(newDeadline); err != nil {
-			return int(totalRead), fmt.Errorf("error renewing read deadline: %w", err)
+	buf := make([]byte, 4096)
+	for state.remainingBytes > 0 {
+		// refresh the deadline so large messages don't time out
+		if err := conn.nc.SetReadDeadline(time.Now().Add(time.Until(dl))); err != nil {
+			return totalRead, fmt.Errorf("renewing deadline: %w", err)
 		}
 
-		remaining := int64(size) - totalRead
-
-		readSize := bufSize
-		if int64(readSize) > remaining {
-			readSize = int(remaining)
+		toRead := int32(len(buf))
+		if state.remainingBytes < toRead {
+			toRead = state.remainingBytes
 		}
 
-		n, err := conn.nc.Read(buf[:readSize])
+		n, err := conn.br.Read(buf[:toRead])
 		if n > 0 {
-			totalRead += int64(n)
+			totalRead += n
+			state.remainingBytes -= int32(n)
 		}
-
 		if err != nil {
-			// If the read times out, record the bytes left to read before exiting.
-			// Reduce the remainingTime.
-			nerr := net.Error(nil)
-			if l := int32(n); l == 0 && errors.As(err, &nerr) && nerr.Timeout() {
-				pendingreadState.remainingBytes = l + pendingreadState.remainingBytes
+			// if it's just a timeout, record how much is left
+			if ne, ok := err.(net.Error); ok && ne.Timeout() {
+				return totalRead, fmt.Errorf("timeout discarding %d bytes: %w",
+					state.remainingBytes, err)
 			}
-
-			err = transformNetworkError(ctx, err, contextDeadlineUsed)
-			return n, fmt.Errorf("error discarding %d byte message: %w", size, err)
+			return totalRead, fmt.Errorf("reading body: %w", err)
 		}
-
-		pendingreadState.start = time.Now()
 	}
 
-	return int(totalRead), nil
+	return totalRead + 4, nil
 }
 
 // poolClearedError is an error returned when the connection pool is cleared or currently paused. It
@@ -1102,6 +1070,9 @@ func awaitPendingResponse(ctx context.Context, pool *pool, conn *connection) err
 	// and return a pendingResponseError to indicate that the connection is
 	// alive and retryable.
 	if alivenessCheck {
+		dur := time.Since(st)
+		publishPendingResponseFailed(pool, conn, dur, err)
+
 		_ = pool.checkInNoEvent(conn)
 
 		return pendingResponseError{err: fmt.Errorf("connection is alive and retryable: %w", err)}
