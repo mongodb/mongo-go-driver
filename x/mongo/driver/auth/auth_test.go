@@ -35,7 +35,7 @@ func TestCreateAuthenticator(t *testing.T) {
 		{name: "", auth: &auth.DefaultAuthenticator{}},
 		{name: "SCRAM-SHA-1", auth: &auth.ScramAuthenticator{}},
 		{name: "SCRAM-SHA-256", auth: &auth.ScramAuthenticator{}},
-		{name: "MONGODB-CR", err: errors.New(`auth mechanism "MONGODB-CR" is not available in any supported version of MongoDB`)},
+		{name: "MONGODB-CR", err: errors.New(`auth mechanism "MONGODB-CR" is no longer available in any supported version of MongoDB`)},
 		{name: "PLAIN", auth: &auth.PlainAuthenticator{}},
 		{name: "MONGODB-X509", auth: &auth.MongoDBX509Authenticator{}},
 	}
@@ -50,7 +50,7 @@ func TestCreateAuthenticator(t *testing.T) {
 
 			a, err := auth.CreateAuthenticator(test.name, cred, &http.Client{})
 			if test.err != nil {
-				require.Equal(t, test.err, err)
+				require.EqualError(t, err, test.err.Error())
 				return
 			}
 			require.NoError(t, err)
