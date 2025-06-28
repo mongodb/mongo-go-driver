@@ -197,3 +197,10 @@ func TestPlainAuthenticator_SucceedsBoolean(t *testing.T) {
 	)
 	compareResponses(t, <-c.Written, expectedCmd, "$external")
 }
+
+func writeReplies(c chan []byte, docs ...bsoncore.Document) {
+	for _, doc := range docs {
+		reply := drivertest.MakeReply(doc)
+		c <- reply
+	}
+}

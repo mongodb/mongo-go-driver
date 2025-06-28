@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"go.mongodb.org/mongo-driver/v2/mongo/address"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
@@ -31,7 +32,6 @@ func init() {
 	RegisterAuthenticatorFactory("", newDefaultAuthenticator)
 	RegisterAuthenticatorFactory(SCRAMSHA1, newScramSHA1Authenticator)
 	RegisterAuthenticatorFactory(SCRAMSHA256, newScramSHA256Authenticator)
-	RegisterAuthenticatorFactory(MONGODBCR, newMongoDBCRAuthenticator)
 	RegisterAuthenticatorFactory(PLAIN, newPlainAuthenticator)
 	RegisterAuthenticatorFactory(GSSAPI, newGSSAPIAuthenticator)
 	RegisterAuthenticatorFactory(MongoDBX509, newMongoDBX509Authenticator)
@@ -41,6 +41,12 @@ func init() {
 
 // CreateAuthenticator creates an authenticator.
 func CreateAuthenticator(name string, cred *Cred, httpClient *http.Client) (Authenticator, error) {
+	// Return a custom error to indicate why auth mechanism "MONGODB-CR" is
+	// missing, even though it was previously available.
+	if strings.EqualFold(name, "MONGODB-CR") {
+		return nil, errors.New(`auth mechanism "MONGODB-CR" is no longer available in any supported version of MongoDB`)
+	}
+
 	if f, ok := authFactories[name]; ok {
 		return f(cred, httpClient)
 	}
