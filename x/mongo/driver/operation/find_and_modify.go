@@ -50,7 +50,7 @@ type FindAndModify struct {
 	serverAPI                *driver.ServerAPIOptions
 	let                      bsoncore.Document
 	timeout                  *time.Duration
-	rawBucketsData           *bool
+	rawData                  *bool
 
 	result FindAndModifyResult
 }
@@ -213,8 +213,8 @@ func (fam *FindAndModify) command(dst []byte, desc description.SelectedServer) (
 		dst = bsoncore.AppendDocumentElement(dst, "let", fam.let)
 	}
 	// Set rawData for 8.2+ servers.
-	if fam.rawBucketsData != nil && desc.WireVersion != nil && driverutil.VersionRangeIncludes(*desc.WireVersion, 27) {
-		dst = bsoncore.AppendBooleanElement(dst, "rawData", *fam.rawBucketsData)
+	if fam.rawData != nil && desc.WireVersion != nil && driverutil.VersionRangeIncludes(*desc.WireVersion, 27) {
+		dst = bsoncore.AppendBooleanElement(dst, "rawData", *fam.rawData)
 	}
 
 	return dst, nil
@@ -482,12 +482,12 @@ func (fam *FindAndModify) Authenticator(authenticator driver.Authenticator) *Fin
 	return fam
 }
 
-// RawBucketsData sets the rawData to access timeseries data in the compressed format.
-func (fam *FindAndModify) RawBucketsData(rawBucketsData bool) *FindAndModify {
+// RawData sets the rawData to access timeseries data in the compressed format.
+func (fam *FindAndModify) RawData(rawData bool) *FindAndModify {
 	if fam == nil {
 		fam = new(FindAndModify)
 	}
 
-	fam.rawBucketsData = &rawBucketsData
+	fam.rawData = &rawData
 	return fam
 }

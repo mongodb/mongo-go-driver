@@ -68,7 +68,7 @@ func createUpdateManyArguments(args bson.Raw) (*updateArguments, *options.Update
 		case "upsert":
 			opts.SetUpsert(val.Boolean())
 		case "rawData":
-			opts.SetRawBucketsData(val.Boolean())
+			opts.SetRawData(val.Boolean())
 		default:
 			return nil, nil, fmt.Errorf("unrecognized update option %q", key)
 		}
@@ -128,7 +128,7 @@ func createUpdateOneArguments(args bson.Raw) (*updateArguments, *options.UpdateO
 		case "sort":
 			opts.SetSort(val.Document())
 		case "rawData":
-			opts.SetRawBucketsData(val.Boolean())
+			opts.SetRawData(val.Boolean())
 		default:
 			return nil, nil, fmt.Errorf("unrecognized update option %q", key)
 		}
@@ -166,6 +166,8 @@ func createListCollectionsArguments(args bson.Raw) (*listCollectionsArguments, e
 			lca.filter = val.Document()
 		case "nameOnly":
 			lca.opts.SetNameOnly(val.Boolean())
+		case "rawData":
+			lca.opts.SetRawData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized listCollections option %q", key)
 		}

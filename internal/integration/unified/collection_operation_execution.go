@@ -76,7 +76,7 @@ func executeAggregate(ctx context.Context, operation *operation) (*operationResu
 		case "let":
 			opts.SetLet(val.Document())
 		case "rawData":
-			opts.SetRawBucketsData(val.Boolean())
+			opts.SetRawData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized aggregate option %q", key)
 		}
@@ -128,7 +128,7 @@ func executeBulkWrite(ctx context.Context, operation *operation) (*operationResu
 		case "let":
 			opts.SetLet(val.Document())
 		case "rawData":
-			opts.SetRawBucketsData(val.Boolean())
+			opts.SetRawData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized bulkWrite option %q", key)
 		}
@@ -207,7 +207,7 @@ func executeCountDocuments(ctx context.Context, operation *operation) (*operatio
 		case "skip":
 			opts.SetSkip(int64(val.Int32()))
 		case "rawData":
-			opts.SetRawBucketsData(val.Boolean())
+			opts.SetRawData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized countDocuments option %q", key)
 		}
@@ -231,6 +231,7 @@ func executeCreateIndex(ctx context.Context, operation *operation) (*operationRe
 
 	var keys bson.Raw
 	indexOpts := options.Index()
+	opts := options.CreateIndexes()
 
 	elems, err := operation.Arguments.Elements()
 	if err != nil {
@@ -285,6 +286,8 @@ func executeCreateIndex(ctx context.Context, operation *operation) (*operationRe
 			indexOpts.SetWeights(val.Document())
 		case "wildcardProjection":
 			indexOpts.SetWildcardProjection(val.Document())
+		case "rawData":
+			opts.SetRawData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized createIndex option %q", key)
 		}
@@ -297,7 +300,8 @@ func executeCreateIndex(ctx context.Context, operation *operation) (*operationRe
 		Keys:    keys,
 		Options: indexOpts,
 	}
-	name, err := coll.Indexes().CreateOne(ctx, model)
+
+	name, err := coll.Indexes().CreateOne(ctx, model, opts)
 	return newValueResult(bson.TypeString, bsoncore.AppendString(nil, name), err), nil
 }
 
@@ -440,7 +444,7 @@ func executeDeleteOne(ctx context.Context, operation *operation) (*operationResu
 		case "let":
 			opts.SetLet(val.Document())
 		case "rawData":
-			opts.SetRawBucketsData(val.Boolean())
+			opts.SetRawData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized deleteOne option %q", key)
 		}
@@ -496,7 +500,7 @@ func executeDeleteMany(ctx context.Context, operation *operation) (*operationRes
 		case "let":
 			opts.SetLet(val.Document())
 		case "rawData":
-			opts.SetRawBucketsData(val.Boolean())
+			opts.SetRawData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized deleteMany option %q", key)
 		}
@@ -556,7 +560,7 @@ func executeDistinct(ctx context.Context, operation *operation) (*operationResul
 			// this error.
 			return nil, fmt.Errorf("the maxTimeMS collection option is not supported")
 		case "rawData":
-			opts.SetRawBucketsData(val.Boolean())
+			opts.SetRawData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized distinct option %q", key)
 		}
@@ -605,6 +609,8 @@ func executeDropIndex(ctx context.Context, operation *operation) (*operationResu
 			// ensured an analogue exists, extend "skippedTestDescriptions" to avoid
 			// this error.
 			return nil, fmt.Errorf("the maxTimeMS collection option is not supported")
+		case "rawData":
+			dropIndexOpts.SetRawData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized dropIndex option %q", key)
 		}
@@ -703,7 +709,7 @@ func executeEstimatedDocumentCount(ctx context.Context, operation *operation) (*
 			// this error.
 			return nil, fmt.Errorf("the maxTimeMS collection option is not supported")
 		case "rawData":
-			opts.SetRawBucketsData(val.Boolean())
+			opts.SetRawData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized estimatedDocumentCount option %q", key)
 		}
@@ -857,7 +863,7 @@ func executeFindOneAndDelete(ctx context.Context, operation *operation) (*operat
 		case "let":
 			opts.SetLet(val.Document())
 		case "rawData":
-			opts.SetRawBucketsData(val.Boolean())
+			opts.SetRawData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized findOneAndDelete option %q", key)
 		}
@@ -941,7 +947,7 @@ func executeFindOneAndReplace(ctx context.Context, operation *operation) (*opera
 		case "upsert":
 			opts.SetUpsert(val.Boolean())
 		case "rawData":
-			opts.SetRawBucketsData(val.Boolean())
+			opts.SetRawData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized findOneAndReplace option %q", key)
 		}
@@ -1035,7 +1041,7 @@ func executeFindOneAndUpdate(ctx context.Context, operation *operation) (*operat
 		case "upsert":
 			opts.SetUpsert(val.Boolean())
 		case "rawData":
-			opts.SetRawBucketsData(val.Boolean())
+			opts.SetRawData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized findOneAndUpdate option %q", key)
 		}
@@ -1083,7 +1089,7 @@ func executeInsertMany(ctx context.Context, operation *operation) (*operationRes
 		case "ordered":
 			opts.SetOrdered(val.Boolean())
 		case "rawData":
-			opts.SetRawBucketsData(val.Boolean())
+			opts.SetRawData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized insertMany option %q", key)
 		}
@@ -1135,7 +1141,7 @@ func executeInsertOne(ctx context.Context, operation *operation) (*operationResu
 		case "comment":
 			opts.SetComment(val)
 		case "rawData":
-			opts.SetRawBucketsData(val.Boolean())
+			opts.SetRawData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized insertOne option %q", key)
 		}
@@ -1180,6 +1186,8 @@ func executeListIndexes(ctx context.Context, operation *operation) (*operationRe
 		switch key {
 		case "batchSize":
 			opts.SetBatchSize(val.Int32())
+		case "rawData":
+			opts.SetRawData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized listIndexes option: %q", key)
 		}
@@ -1327,7 +1335,7 @@ func executeReplaceOne(ctx context.Context, operation *operation) (*operationRes
 		case "let":
 			opts.SetLet(val.Document())
 		case "rawData":
-			opts.SetRawBucketsData(val.Boolean())
+			opts.SetRawData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized replaceOne option %q", key)
 		}
@@ -1527,7 +1535,7 @@ func createFindCursor(ctx context.Context, operation *operation) (*cursorResult,
 			maxAwaitTimeMS := time.Duration(val.Int32()) * time.Millisecond
 			opts.SetMaxAwaitTime(maxAwaitTimeMS)
 		case "rawData":
-			opts.SetRawBucketsData(val.Boolean())
+			opts.SetRawData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized find option %q", key)
 		}

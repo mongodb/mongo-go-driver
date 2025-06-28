@@ -35,7 +35,7 @@ type FindOptions struct {
 	Let             interface{}
 	Limit           *int64
 	NoCursorTimeout *bool
-	RawBucketsData  *bool
+	RawData         *bool
 }
 
 // FindOptionsBuilder represents functional options that configure an Findopts.
@@ -269,11 +269,11 @@ func (f *FindOptionsBuilder) SetSort(sort interface{}) *FindOptionsBuilder {
 	return f
 }
 
-// SetRawBucketsData sets the value for the RawBucketsData field. If true, it allows the CRUD operations to access timeseries
+// SetRawData sets the value for the RawData field. If true, it allows the CRUD operations to access timeseries
 // collections on the bucket-level. This option is only valid for MongoDB versions >= 9.0. The default value is false.
-func (f *FindOptionsBuilder) SetRawBucketsData(rawBucketsData bool) *FindOptionsBuilder {
+func (f *FindOptionsBuilder) SetRawData(rawData bool) *FindOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOptions) error {
-		opts.RawBucketsData = &rawBucketsData
+		opts.RawData = &rawData
 
 		return nil
 	})
@@ -298,7 +298,7 @@ type FindOneOptions struct {
 	ShowRecordID        *bool
 	Skip                *int64
 	Sort                interface{}
-	RawBucketsData      *bool
+	RawData             *bool
 }
 
 // FindOneOptionsBuilder represents functional options that configure an
@@ -450,11 +450,11 @@ func (f *FindOneOptionsBuilder) SetSort(sort interface{}) *FindOneOptionsBuilder
 	return f
 }
 
-// SetRawBucketsData sets the value for the RawBucketsData field. If true, it allows the CRUD operations to access timeseries
+// SetRawData sets the value for the RawData field. If true, it allows the CRUD operations to access timeseries
 // collections on the bucket-level. This option is only valid for MongoDB versions >= 9.0. The default value is false.
-func (f *FindOneOptionsBuilder) SetRawBucketsData(rawBucketsData bool) *FindOneOptionsBuilder {
+func (f *FindOneOptionsBuilder) SetRawData(rawData bool) *FindOneOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneOptions) error {
-		opts.RawBucketsData = &rawBucketsData
+		opts.RawData = &rawData
 		return nil
 	})
 
@@ -475,7 +475,7 @@ type FindOneAndReplaceOptions struct {
 	Upsert                   *bool
 	Hint                     interface{}
 	Let                      interface{}
-	RawBucketsData           *bool
+	RawData                  *bool
 }
 
 // FindOneAndReplaceOptionsBuilder contains options to perform a findAndModify
@@ -622,11 +622,11 @@ func (f *FindOneAndReplaceOptionsBuilder) SetLet(let interface{}) *FindOneAndRep
 	return f
 }
 
-// SetRawBucketsData sets the value for the RawBucketsData field. If true, it allows the CRUD operations to access timeseries
+// SetRawData sets the value for the RawData field. If true, it allows the CRUD operations to access timeseries
 // collections on the bucket-level. This option is only valid for MongoDB versions >= 9.0. The default value is false.
-func (f *FindOneAndReplaceOptionsBuilder) SetRawBucketsData(rawBucketsData bool) *FindOneAndReplaceOptionsBuilder {
+func (f *FindOneAndReplaceOptionsBuilder) SetRawData(rawData bool) *FindOneAndReplaceOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndReplaceOptions) error {
-		opts.RawBucketsData = &rawBucketsData
+		opts.RawData = &rawData
 
 		return nil
 	})
@@ -649,7 +649,7 @@ type FindOneAndUpdateOptions struct {
 	Upsert                   *bool
 	Hint                     interface{}
 	Let                      interface{}
-	RawBucketsData           *bool
+	RawData                  *bool
 }
 
 // FindOneAndUpdateOptionsBuilder contains options to configure a
@@ -810,11 +810,11 @@ func (f *FindOneAndUpdateOptionsBuilder) SetLet(let interface{}) *FindOneAndUpda
 	return f
 }
 
-// SetRawBucketsData sets the value for the RawBucketsData field. If true, it allows the CRUD operations to access timeseries
+// SetRawData sets the value for the RawData field. If true, it allows the CRUD operations to access timeseries
 // collections on the bucket-level. This option is only valid for MongoDB versions >= 9.0. The default value is false.
-func (f *FindOneAndUpdateOptionsBuilder) SetRawBucketsData(rawBucketsData bool) *FindOneAndUpdateOptionsBuilder {
+func (f *FindOneAndUpdateOptionsBuilder) SetRawData(rawData bool) *FindOneAndUpdateOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndUpdateOptions) error {
-		opts.RawBucketsData = &rawBucketsData
+		opts.RawData = &rawData
 
 		return nil
 	})
@@ -827,13 +827,13 @@ func (f *FindOneAndUpdateOptionsBuilder) SetRawBucketsData(rawBucketsData bool) 
 //
 // See corresponding setter methods for documentation.
 type FindOneAndDeleteOptions struct {
-	Collation      *Collation
-	Comment        interface{}
-	Projection     interface{}
-	Sort           interface{}
-	Hint           interface{}
-	Let            interface{}
-	RawBucketsData *bool
+	Collation  *Collation
+	Comment    interface{}
+	Projection interface{}
+	Sort       interface{}
+	Hint       interface{}
+	Let        interface{}
+	RawData    *bool
 }
 
 // FindOneAndDeleteOptionsBuilder contains options to configure delete
@@ -939,11 +939,11 @@ func (f *FindOneAndDeleteOptionsBuilder) SetLet(let interface{}) *FindOneAndDele
 	return f
 }
 
-// SetRawBucketsData sets the value for the RawBucketsData field. If true, it allows the CRUD operations to access timeseries
+// SetRawData sets the value for the RawData field. If true, it allows the CRUD operations to access timeseries
 // collections on the bucket-level. This option is only valid for MongoDB versions >= 9.0. The default value is false.
-func (f *FindOneAndDeleteOptionsBuilder) SetRawBucketsData(rawBucketsData bool) *FindOneAndDeleteOptionsBuilder {
+func (f *FindOneAndDeleteOptionsBuilder) SetRawData(rawData bool) *FindOneAndDeleteOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndDeleteOptions) error {
-		opts.RawBucketsData = &rawBucketsData
+		opts.RawData = &rawData
 
 		return nil
 	})

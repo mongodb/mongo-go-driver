@@ -101,6 +101,9 @@ func (iv IndexView) List(ctx context.Context, opts ...options.Lister[options.Lis
 		op = op.BatchSize(*args.BatchSize)
 		cursorOpts.BatchSize = *args.BatchSize
 	}
+	if args.RawData != nil {
+		op = op.RawData(*args.RawData)
+	}
 
 	retry := driver.RetryNone
 	if iv.coll.client.retryReads {
@@ -279,6 +282,9 @@ func (iv IndexView) CreateMany(
 
 		op.CommitQuorum(commitQuorum)
 	}
+	if args.RawData != nil {
+		op = op.RawData(*args.RawData)
+	}
 
 	_, err = processWriteError(op.Execute(ctx))
 	if err != nil {
@@ -376,7 +382,12 @@ func (iv IndexView) createOptionsDoc(opts options.Lister[options.IndexOptions]) 
 	return optsDoc, nil
 }
 
-func (iv IndexView) drop(ctx context.Context, index any, _ ...options.Lister[options.DropIndexesOptions]) error {
+func (iv IndexView) drop(ctx context.Context, index any, opts ...options.Lister[options.DropIndexesOptions]) error {
+	args, err := mongoutil.NewOptions[options.DropIndexesOptions](opts...)
+	if err != nil {
+		return fmt.Errorf("failed to construct options from builder: %w", err)
+	}
+
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -387,7 +398,7 @@ func (iv IndexView) drop(ctx context.Context, index any, _ ...options.Lister[opt
 		defer sess.EndSession()
 	}
 
-	err := iv.coll.client.validSession(sess)
+	err = iv.coll.client.validSession(sess)
 	if err != nil {
 		return err
 	}
@@ -407,6 +418,10 @@ func (iv IndexView) drop(ctx context.Context, index any, _ ...options.Lister[opt
 		Database(iv.coll.db.name).Collection(iv.coll.name).
 		Deployment(iv.coll.client.deployment).ServerAPI(iv.coll.client.serverAPI).
 		Timeout(iv.coll.client.timeout).Crypt(iv.coll.client.cryptFLE).Authenticator(iv.coll.client.authenticator)
+
+	if args.RawData != nil {
+		op = op.RawData(*args.RawData)
+	}
 
 	err = op.Execute(ctx)
 	if err != nil {

@@ -44,7 +44,7 @@ type clientBulkWrite struct {
 	client                   *Client
 	selector                 description.ServerSelector
 	writeConcern             *writeconcern.WriteConcern
-	rawBucketsData           *bool
+	rawData                  *bool
 
 	result ClientBulkWriteResult
 }
@@ -145,8 +145,8 @@ func (bw *clientBulkWrite) newCommand() func([]byte, description.SelectedServer)
 			dst = bsoncore.AppendDocumentElement(dst, "let", let)
 		}
 		// Set rawData for 8.2+ servers.
-		if bw.rawBucketsData != nil && desc.WireVersion != nil && driverutil.VersionRangeIncludes(*desc.WireVersion, 27) {
-			dst = bsoncore.AppendBooleanElement(dst, "rawData", *bw.rawBucketsData)
+		if bw.rawData != nil && desc.WireVersion != nil && driverutil.VersionRangeIncludes(*desc.WireVersion, 27) {
+			dst = bsoncore.AppendBooleanElement(dst, "rawData", *bw.rawData)
 		}
 		return dst, nil
 	}

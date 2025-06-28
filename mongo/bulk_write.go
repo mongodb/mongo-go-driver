@@ -39,7 +39,7 @@ type bulkWrite struct {
 	writeConcern             *writeconcern.WriteConcern
 	result                   BulkWriteResult
 	let                      interface{}
-	rawBucketsData           *bool
+	rawData                  *bool
 }
 
 func (bw *bulkWrite) execute(ctx context.Context) error {
@@ -210,8 +210,8 @@ func (bw *bulkWrite) runInsert(ctx context.Context, batch bulkWriteBatch) (opera
 	}
 	op = op.Retry(retry)
 
-	if bw.rawBucketsData != nil {
-		op.RawBucketsData(*bw.rawBucketsData)
+	if bw.rawData != nil {
+		op.RawData(*bw.rawData)
 	}
 
 	err := op.Execute(ctx)
@@ -287,8 +287,8 @@ func (bw *bulkWrite) runDelete(ctx context.Context, batch bulkWriteBatch) (opera
 	}
 	op = op.Retry(retry)
 
-	if bw.rawBucketsData != nil {
-		op.RawBucketsData(*bw.rawBucketsData)
+	if bw.rawData != nil {
+		op.RawData(*bw.rawData)
 	}
 
 	err := op.Execute(ctx)
@@ -424,8 +424,8 @@ func (bw *bulkWrite) runUpdate(ctx context.Context, batch bulkWriteBatch) (opera
 	}
 	op = op.Retry(retry)
 
-	if bw.rawBucketsData != nil {
-		op.RawBucketsData(*bw.rawBucketsData)
+	if bw.rawData != nil {
+		op.RawData(*bw.rawData)
 	}
 
 	err := op.Execute(ctx)

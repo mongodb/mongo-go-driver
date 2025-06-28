@@ -236,7 +236,7 @@ func executeClientBulkWrite(ctx context.Context, operation *operation) (*operati
 			}
 			opts.SetWriteConcern(c)
 		case "rawData":
-			opts.SetRawBucketsData(val.Boolean())
+			opts.SetRawData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized bulkWrite option %q", key)
 		}

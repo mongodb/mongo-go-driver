@@ -18,7 +18,7 @@ type ReplaceOptions struct {
 	Upsert                   *bool
 	Let                      interface{}
 	Sort                     interface{}
-	RawBucketsData           *bool
+	RawData                  *bool
 }
 
 // ReplaceOptionsBuilder contains options to configure replace operations. Each
@@ -138,11 +138,11 @@ func (ro *ReplaceOptionsBuilder) SetSort(s interface{}) *ReplaceOptionsBuilder {
 	return ro
 }
 
-// SetRawBucketsData sets the value for the RawBucketsData field. If true, it allows the CRUD operations to access timeseries
+// SetRawData sets the value for the RawData field. If true, it allows the CRUD operations to access timeseries
 // collections on the bucket-level. This option is only valid for MongoDB versions >= 9.0. The default value is false.
-func (ro *ReplaceOptionsBuilder) SetRawBucketsData(rawBucketsData bool) *ReplaceOptionsBuilder {
+func (ro *ReplaceOptionsBuilder) SetRawData(rawData bool) *ReplaceOptionsBuilder {
 	ro.Opts = append(ro.Opts, func(opts *ReplaceOptions) error {
-		opts.RawBucketsData = &rawBucketsData
+		opts.RawData = &rawData
 
 		return nil
 	})

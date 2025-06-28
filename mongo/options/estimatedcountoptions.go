@@ -11,8 +11,8 @@ package options
 //
 // See corresponding setter methods for documentation.
 type EstimatedDocumentCountOptions struct {
-	Comment        interface{}
-	RawBucketsData *bool
+	Comment interface{}
+	RawData *bool
 }
 
 // EstimatedDocumentCountOptionsBuilder contains options to estimate document
@@ -46,11 +46,11 @@ func (eco *EstimatedDocumentCountOptionsBuilder) SetComment(comment interface{})
 	return eco
 }
 
-// SetRawBucketsData sets the value for the RawBucketsData field. If true, it allows the CRUD operations to access timeseries
+// SetRawData sets the value for the RawData field. If true, it allows the CRUD operations to access timeseries
 // collections on the bucket-level. This option is only valid for MongoDB versions >= 9.0. The default value is false.
-func (eco *EstimatedDocumentCountOptionsBuilder) SetRawBucketsData(rawBucketsData bool) *EstimatedDocumentCountOptionsBuilder {
+func (eco *EstimatedDocumentCountOptionsBuilder) SetRawData(rawData bool) *EstimatedDocumentCountOptionsBuilder {
 	eco.Opts = append(eco.Opts, func(opts *EstimatedDocumentCountOptions) error {
-		opts.RawBucketsData = &rawBucketsData
+		opts.RawData = &rawData
 
 		return nil
 	})

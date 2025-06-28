@@ -24,27 +24,27 @@ import (
 
 // Delete performs a delete operation
 type Delete struct {
-	authenticator  driver.Authenticator
-	comment        bsoncore.Value
-	deletes        []bsoncore.Document
-	ordered        *bool
-	session        *session.Client
-	clock          *session.ClusterClock
-	collection     string
-	monitor        *event.CommandMonitor
-	crypt          driver.Crypt
-	database       string
-	deployment     driver.Deployment
-	selector       description.ServerSelector
-	writeConcern   *writeconcern.WriteConcern
-	retry          *driver.RetryMode
-	hint           *bool
-	result         DeleteResult
-	serverAPI      *driver.ServerAPIOptions
-	let            bsoncore.Document
-	timeout        *time.Duration
-	rawBucketsData *bool
-	logger         *logger.Logger
+	authenticator driver.Authenticator
+	comment       bsoncore.Value
+	deletes       []bsoncore.Document
+	ordered       *bool
+	session       *session.Client
+	clock         *session.ClusterClock
+	collection    string
+	monitor       *event.CommandMonitor
+	crypt         driver.Crypt
+	database      string
+	deployment    driver.Deployment
+	selector      description.ServerSelector
+	writeConcern  *writeconcern.WriteConcern
+	retry         *driver.RetryMode
+	hint          *bool
+	result        DeleteResult
+	serverAPI     *driver.ServerAPIOptions
+	let           bsoncore.Document
+	timeout       *time.Duration
+	rawData       *bool
+	logger        *logger.Logger
 }
 
 // DeleteResult represents a delete result returned by the server.
@@ -141,8 +141,8 @@ func (d *Delete) command(dst []byte, desc description.SelectedServer) ([]byte, e
 		dst = bsoncore.AppendDocumentElement(dst, "let", d.let)
 	}
 	// Set rawData for 8.2+ servers.
-	if d.rawBucketsData != nil && desc.WireVersion != nil && driverutil.VersionRangeIncludes(*desc.WireVersion, 27) {
-		dst = bsoncore.AppendBooleanElement(dst, "rawData", *d.rawBucketsData)
+	if d.rawData != nil && desc.WireVersion != nil && driverutil.VersionRangeIncludes(*desc.WireVersion, 27) {
+		dst = bsoncore.AppendBooleanElement(dst, "rawData", *d.rawData)
 	}
 	return dst, nil
 }
@@ -343,12 +343,12 @@ func (d *Delete) Authenticator(authenticator driver.Authenticator) *Delete {
 	return d
 }
 
-// RawBucketsData sets the rawData to access timeseries data in the compressed format.
-func (d *Delete) RawBucketsData(rawBucketsData bool) *Delete {
+// RawData sets the rawData to access timeseries data in the compressed format.
+func (d *Delete) RawData(rawData bool) *Delete {
 	if d == nil {
 		d = new(Delete)
 	}
 
-	d.rawBucketsData = &rawBucketsData
+	d.rawData = &rawData
 	return d
 }

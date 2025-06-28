@@ -487,6 +487,9 @@ func (db *Database) ListCollections(
 	if args.AuthorizedCollections != nil {
 		op = op.AuthorizedCollections(*args.AuthorizedCollections)
 	}
+	if args.RawData != nil {
+		op = op.RawData(*args.RawData)
+	}
 
 	retry := driver.RetryNone
 	if db.client.retryReads {

@@ -26,7 +26,7 @@ type AggregateOptions struct {
 	Hint                     interface{}
 	Let                      interface{}
 	Custom                   bson.M
-	RawBucketsData           *bool
+	RawData                  *bool
 }
 
 // AggregateOptionsBuilder contains options to configure aggregate operations.
@@ -165,11 +165,11 @@ func (ao *AggregateOptionsBuilder) SetCustom(c bson.M) *AggregateOptionsBuilder 
 	return ao
 }
 
-// SetRawBucketsData sets the value for the RawBucketsData field. If true, it allows the CRUD operations to access timeseries
+// SetRawData sets the value for the RawData field. If true, it allows the CRUD operations to access timeseries
 // collections on the bucket-level. This option is only valid for MongoDB versions >= 9.0. The default value is false.
-func (ao *AggregateOptionsBuilder) SetRawBucketsData(rawBucketsData bool) *AggregateOptionsBuilder {
+func (ao *AggregateOptionsBuilder) SetRawData(rawData bool) *AggregateOptionsBuilder {
 	ao.Opts = append(ao.Opts, func(opts *AggregateOptions) error {
-		opts.RawBucketsData = &rawBucketsData
+		opts.RawData = &rawData
 
 		return nil
 	})

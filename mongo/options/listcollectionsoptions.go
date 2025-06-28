@@ -14,6 +14,7 @@ type ListCollectionsOptions struct {
 	NameOnly              *bool
 	BatchSize             *int32
 	AuthorizedCollections *bool
+	RawData               *bool
 }
 
 // ListCollectionsOptionsBuilder contains options to configure list collection
@@ -64,6 +65,18 @@ func (lc *ListCollectionsOptionsBuilder) SetBatchSize(size int32) *ListCollectio
 func (lc *ListCollectionsOptionsBuilder) SetAuthorizedCollections(b bool) *ListCollectionsOptionsBuilder {
 	lc.Opts = append(lc.Opts, func(opts *ListCollectionsOptions) error {
 		opts.AuthorizedCollections = &b
+
+		return nil
+	})
+
+	return lc
+}
+
+// SetRawData sets the value for the RawData field. If true, it allows the CRUD operations to access timeseries
+// collections on the bucket-level. This option is only valid for MongoDB versions >= 9.0. The default value is false.
+func (lc *ListCollectionsOptionsBuilder) SetRawData(rawData bool) *ListCollectionsOptionsBuilder {
+	lc.Opts = append(lc.Opts, func(opts *ListCollectionsOptions) error {
+		opts.RawData = &rawData
 
 		return nil
 	})

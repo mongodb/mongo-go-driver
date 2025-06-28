@@ -12,6 +12,7 @@ package options
 // See corresponding setter methods for documentation.
 type CreateIndexesOptions struct {
 	CommitQuorum interface{}
+	RawData      *bool
 }
 
 // CreateIndexesOptionsBuilder contains options to create indexes. Each option
@@ -119,9 +120,23 @@ func (c *CreateIndexesOptionsBuilder) SetCommitQuorumVotingMembers() *CreateInde
 	return c
 }
 
+// SetRawData sets the value for the RawData field. If true, it allows the CRUD operations to access timeseries
+// collections on the bucket-level. This option is only valid for MongoDB versions >= 9.0. The default value is false.
+func (c *CreateIndexesOptionsBuilder) SetRawData(rawData bool) *CreateIndexesOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *CreateIndexesOptions) error {
+		opts.RawData = &rawData
+
+		return nil
+	})
+
+	return c
+}
+
 // DropIndexesOptions represents arguments that can be used to configure
 // IndexView.DropOne and IndexView.DropAll operations.
-type DropIndexesOptions struct{}
+type DropIndexesOptions struct {
+	RawData *bool
+}
 
 // DropIndexesOptionsBuilder contains options to configure dropping indexes.
 // Each option can be set through setter functions. See documentation for each
@@ -140,12 +155,25 @@ func (d *DropIndexesOptionsBuilder) List() []func(*DropIndexesOptions) error {
 	return d.Opts
 }
 
+// SetRawData sets the value for the RawData field. If true, it allows the CRUD operations to access timeseries
+// collections on the bucket-level. This option is only valid for MongoDB versions >= 9.0. The default value is false.
+func (d *DropIndexesOptionsBuilder) SetRawData(rawData bool) *DropIndexesOptionsBuilder {
+	d.Opts = append(d.Opts, func(opts *DropIndexesOptions) error {
+		opts.RawData = &rawData
+
+		return nil
+	})
+
+	return d
+}
+
 // ListIndexesOptions represents arguments that can be used to configure an
 // IndexView.List operation.
 //
 // See corresponding setter methods for documentation.
 type ListIndexesOptions struct {
 	BatchSize *int32
+	RawData   *bool
 }
 
 // ListIndexesOptionsBuilder contains options to configure count operations. Each
@@ -170,6 +198,18 @@ func (l *ListIndexesOptionsBuilder) List() []func(*ListIndexesOptions) error {
 func (l *ListIndexesOptionsBuilder) SetBatchSize(i int32) *ListIndexesOptionsBuilder {
 	l.Opts = append(l.Opts, func(opts *ListIndexesOptions) error {
 		opts.BatchSize = &i
+
+		return nil
+	})
+
+	return l
+}
+
+// SetRawData sets the value for the RawData field. If true, it allows the CRUD operations to access timeseries
+// collections on the bucket-level. This option is only valid for MongoDB versions >= 9.0. The default value is false.
+func (l *ListIndexesOptionsBuilder) SetRawData(rawData bool) *ListIndexesOptionsBuilder {
+	l.Opts = append(l.Opts, func(opts *ListIndexesOptions) error {
+		opts.RawData = &rawData
 
 		return nil
 	})

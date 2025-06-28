@@ -61,7 +61,7 @@ type Find struct {
 	result              driver.CursorResponse
 	serverAPI           *driver.ServerAPIOptions
 	timeout             *time.Duration
-	rawBucketsData      *bool
+	rawData             *bool
 	logger              *logger.Logger
 	omitMaxTimeMS       bool
 }
@@ -193,8 +193,8 @@ func (f *Find) command(dst []byte, desc description.SelectedServer) ([]byte, err
 		dst = bsoncore.AppendBooleanElement(dst, "tailable", *f.tailable)
 	}
 	// Set rawData for 8.2+ servers.
-	if f.rawBucketsData != nil && desc.WireVersion != nil && driverutil.VersionRangeIncludes(*desc.WireVersion, 27) {
-		dst = bsoncore.AppendBooleanElement(dst, "rawData", *f.rawBucketsData)
+	if f.rawData != nil && desc.WireVersion != nil && driverutil.VersionRangeIncludes(*desc.WireVersion, 27) {
+		dst = bsoncore.AppendBooleanElement(dst, "rawData", *f.rawData)
 	}
 	return dst, nil
 }
@@ -570,13 +570,13 @@ func (f *Find) Authenticator(authenticator driver.Authenticator) *Find {
 	return f
 }
 
-// RawBucketsData sets the rawData to access timeseries data in the compressed format.
-func (f *Find) RawBucketsData(rawBucketsData bool) *Find {
+// RawData sets the rawData to access timeseries data in the compressed format.
+func (f *Find) RawData(rawData bool) *Find {
 	if f == nil {
 		f = new(Find)
 	}
 
-	f.rawBucketsData = &rawBucketsData
+	f.rawData = &rawData
 	return f
 }
 
