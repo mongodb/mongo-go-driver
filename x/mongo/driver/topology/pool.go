@@ -503,7 +503,12 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 		}
 		return nil, ErrPoolClosed
 	case poolPaused:
-		err := poolClearedError{err: p.lastClearErr, address: p.address}
+		pcErr := poolClearedError{err: p.lastClearErr, address: p.address}
+		err := driver.Error{
+			Message: pcErr.Error(),
+			Labels:  []string{driver.TransientTransactionError},
+			Wrapped: pcErr,
+		}
 		p.stateMu.RUnlock()
 
 		duration := time.Since(start)
