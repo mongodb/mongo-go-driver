@@ -27,6 +27,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/httputil"
+	"go.mongodb.org/mongo-driver/v2/internal/optionsutil"
 	"go.mongodb.org/mongo-driver/v2/internal/ptrutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
@@ -156,6 +157,7 @@ func TestClientOptions(t *testing.T) {
 				cmp.Comparer(func(r1, r2 *bson.Registry) bool { return r1 == r2 }),
 				cmp.Comparer(func(cfg1, cfg2 *tls.Config) bool { return cfg1 == cfg2 }),
 				cmp.Comparer(func(fp1, fp2 *event.PoolMonitor) bool { return fp1 == fp2 }),
+				cmp.Comparer(optionsutil.Equal),
 				cmp.AllowUnexported(ClientOptions{}),
 				cmpopts.IgnoreFields(http.Client{}, "Transport"),
 			); diff != "" {
@@ -1253,6 +1255,7 @@ func TestApplyURI(t *testing.T) {
 				cmp.Comparer(func(r1, r2 *bson.Registry) bool { return r1 == r2 }),
 				cmp.Comparer(compareTLSConfig),
 				cmp.Comparer(compareErrors),
+				cmp.Comparer(optionsutil.Equal),
 				cmpopts.SortSlices(stringLess),
 				cmpopts.IgnoreFields(connstring.ConnString{}, "SSLClientCertificateKeyPassword"),
 				cmpopts.IgnoreFields(http.Client{}, "Transport"),

@@ -26,6 +26,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/httputil"
+	"go.mongodb.org/mongo-driver/v2/internal/optionsutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
@@ -286,14 +287,22 @@ type ClientOptions struct {
 	// encryption.
 	//
 	// Deprecated: This option is for internal use only and should not be set (see GODRIVER-2149). It may be
-	// changed or removed in any release.
+	// changed in any release. This option will be removed in 3.0 and replaced with the Custom options.Options
+	// pattern: SetInternalClientOptions(clientOptions, "crypt", myCrypt)
 	Crypt driver.Crypt
 
 	// Deployment specifies a custom deployment to use for the new Client.
 	//
+	// Deprecated: This option is for internal use only and should not be set. It may be changed in any release.
+	// This option will be removed in 3.0 and replaced with the Custom options.Options pattern:
+	// SetInternalClientOptions(clientOptions, "deployment", myDeployment)
+	Deployment driver.Deployment
+
+	// Custom specifies internal options for the new Client.
+	//
 	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
 	// release.
-	Deployment driver.Deployment
+	Custom optionsutil.Options
 
 	connString *connstring.ConnString
 	err        error

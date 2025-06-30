@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2025-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package integration
 
 import (
@@ -14,7 +20,7 @@ import (
 )
 
 func TestCMAPProse_PendingResponse_ConnectionAliveness(t *testing.T) {
-	const timeoutMS = 200 * time.Millisecond
+	const timeout = 200 * time.Millisecond
 
 	// Skip on compressor due to proxy complexity.
 	if os.Getenv("MONGO_GO_DRIVER_COMPRESSOR") != "" {
@@ -44,8 +50,8 @@ func TestCMAPProse_PendingResponse_ConnectionAliveness(t *testing.T) {
 
 	opts := mtest.NewOptions().CreateCollection(false)
 	mt.RunOpts("fails", opts, func(mt *mtest.T) {
-		//Create a command document that instructs the proxy to dely 2x the
-		//timeoutMS for the operation then never respond.
+		// Create a command document that instructs the proxy to dely 2x the
+		// timeoutMS for the operation then never respond.
 		proxyTest := bson.D{
 			{Key: "actions", Value: bson.A{
 				// Causes the timeout in the initial try.
@@ -72,7 +78,7 @@ func TestCMAPProse_PendingResponse_ConnectionAliveness(t *testing.T) {
 		_ = coll.Drop(context.Background()) // Ensure the collection is clean before the test.
 
 		// Run the command against the proxy with timeoutMS.
-		ctx, cancel := context.WithTimeout(context.Background(), timeoutMS)
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 
 		err := db.RunCommand(ctx, cmd).Err()
@@ -88,7 +94,7 @@ func TestCMAPProse_PendingResponse_ConnectionAliveness(t *testing.T) {
 		_, err = coll.InsertOne(context.Background(), myStruct{Name: "Bob", Age: 25})
 		require.NoError(t, err, "expected insertOne to succeed after pending response aliveness check")
 
-		//There should be 1 ConnectionPendingResponseStarted event.
+		// There should be 1 ConnectionPendingResponseStarted event.
 		assert.Equal(mt, 1, mt.NumberConnectionsPendingReadStarted())
 
 		// There should be 1 ConnectionPendingResponseFailed event.
@@ -131,7 +137,7 @@ func TestCMAPProse_PendingResponse_ConnectionAliveness(t *testing.T) {
 		_ = coll.Drop(context.Background()) // Ensure the collection is clean before the test.
 
 		// Run the command against the proxy with timeoutMS.
-		ctx, cancel := context.WithTimeout(context.Background(), timeoutMS)
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 
 		err := db.RunCommand(ctx, cmd).Err()

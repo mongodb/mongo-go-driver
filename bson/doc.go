@@ -4,30 +4,14 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-// Package bson is a library for reading, writing, and manipulating BSON. BSON is a binary serialization format used to
-// store documents and make remote procedure calls in MongoDB. The BSON specification is located at https://bsonspec.org.
-// The BSON library handles marshaling and unmarshaling of values through a configurable codec system. For a description
-// of the codec system and examples of registering custom codecs, see the bsoncodec package. For additional information
-// and usage examples, check out the [Work with BSON] page in the Go Driver docs site.
-//
-// # Raw BSON
-//
-// The Raw family of types is used to validate and retrieve elements from a slice of bytes. This
-// type is most useful when you want do lookups on BSON bytes without unmarshaling it into another
-// type.
-//
-// Example:
-//
-//	var raw bson.Raw = ... // bytes from somewhere
-//	err := raw.Validate()
-//	if err != nil { return err }
-//	val := raw.Lookup("foo")
-//	i32, ok := val.Int32OK()
-//	// do something with i32...
+// Package bson is a library for reading, writing, and manipulating BSON. BSON is a binary serialization
+// format used to store documents and make remote procedure calls in MongoDB. For more information about
+// the Go BSON library, including usage examples, check out the [Work with BSON] page in the Go Driver
+// docs site. For more information about BSON, see https://bsonspec.org.
 //
 // # Native Go Types
 //
-// The D and M types defined in this package can be used to build representations of BSON using native Go types. D is a
+// The [D] and [M] types defined in this package can be used to build representations of BSON using native Go types. D is a
 // slice and M is a map. For more information about the use cases for these types, see the documentation on the type
 // definitions.
 //
@@ -93,26 +77,16 @@
 //  5. When unmarshaling, a field of type interface{} will follow the D/M type mappings listed above. BSON documents
 //     unmarshaled into an interface{} field will be unmarshaled as a D.
 //
-// The encoding of each struct field can be customized by the "bson" struct tag.
-//
-// This tag behavior is configurable, and different struct tag behavior can be configured by initializing a new
-// bsoncodec.StructCodec with the desired tag parser and registering that StructCodec onto the Registry. By default, JSON
-// tags are not honored, but that can be enabled by creating a StructCodec with JSONFallbackStructTagParser, like below:
-//
-// Example:
-//
-//	structcodec, _ := bsoncodec.NewStructCodec(bsoncodec.JSONFallbackStructTagParser)
-//
-// The bson tag gives the name of the field, possibly followed by a comma-separated list of options.
-// The name may be empty in order to specify options without overriding the default field name. The following options can
-// be used to configure behavior:
+// The encoding of each struct field can be customized by the "bson" struct tag. The "bson" tag gives the name of the
+// field, followed by a comma-separated list of options. The name may be omitted in order to specify options without
+// overriding the default field name. The following options can be used to configure behavior:
 //
 //  1. omitempty: If the "omitempty" struct tag is specified on a field, the field will not be marshaled if it is set to
 //     an "empty" value. Numbers, booleans, and strings are considered empty if their value is equal to the zero value for
 //     the type (i.e. 0 for numbers, false for booleans, and "" for strings). Slices, maps, and arrays are considered
 //     empty if they are of length zero. Interfaces and pointers are considered empty if their value is nil. By default,
-//     structs are only considered empty if the struct type implements [bsoncodec.Zeroer] and the IsZero
-//     method returns true. Struct types that do not implement [bsoncodec.Zeroer] are never considered empty and will be
+//     structs are only considered empty if the struct type implements [Zeroer] and the "IsZero"
+//     method returns true. Struct types that do not implement [Zeroer] are never considered empty and will be
 //     marshaled as embedded documents. NOTE: It is recommended that this tag be used for all slice and map fields.
 //
 //  2. minsize: If the minsize struct tag is specified on a field of type int64, uint, uint32, or uint64 and the value of
@@ -134,22 +108,34 @@
 //     error will be returned. This tag can be used with fields that are pointers to structs. If an inlined pointer field
 //     is nil, it will not be marshaled. For fields that are not maps or structs, this tag is ignored.
 //
-// # Marshaling and Unmarshaling
+// # Raw BSON
 //
-// Manually marshaling and unmarshaling can be done with the Marshal and Unmarshal family of functions.
+// The Raw family of types is used to validate and retrieve elements from a slice of bytes. This
+// type is most useful when you want do lookups on BSON bytes without unmarshaling it into another
+// type.
 //
-// bsoncodec code provides a system for encoding values to BSON representations and decoding
-// values from BSON representations. This package considers both binary BSON and ExtendedJSON as
-// BSON representations. The types in this package enable a flexible system for handling this
-// encoding and decoding.
+// Example:
 //
-// The codec system is composed of two parts:
+//	var raw bson.Raw = ... // bytes from somewhere
+//	err := raw.Validate()
+//	if err != nil { return err }
+//	val := raw.Lookup("foo")
+//	i32, ok := val.Int32OK()
+//	// do something with i32...
+//
+// # Custom Registry
+//
+// The Go BSON library uses a [Registry] to define encoding and decoding behavior for different data types.
+// The default encoding and decoding behavior can be customized or extended by using a modified Registry.
+// The custom registry system is composed of two parts:
 //
 // 1) [ValueEncoder] and [ValueDecoder] that handle encoding and decoding Go values to and from BSON
 // representations.
 //
 // 2) A [Registry] that holds these ValueEncoders and ValueDecoders and provides methods for
 // retrieving them.
+//
+// To use a custom Registry, use [Encoder.SetRegistry] or [Decoder.SetRegistry].
 //
 // [Work with BSON]: https://www.mongodb.com/docs/drivers/go/current/fundamentals/bson/
 package bson

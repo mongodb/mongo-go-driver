@@ -10,6 +10,7 @@ import (
 	"context"
 	"testing"
 
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/integtest"
@@ -108,4 +109,72 @@ func TestGridFS(t *testing.T) {
 			})
 		}
 	})
+}
+
+func TestGridFSFile_UnmarshalBSON(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	cs := integtest.ConnString(t)
+
+	clientOpts := options.Client().
+		ApplyURI(cs.Original).
+		SetReadPreference(readpref.Primary()).
+		SetWriteConcern(writeconcern.Majority()).
+		// Connect to a single host. For sharded clusters, this will pin to a single mongos, which avoids
+		// non-deterministic versioning errors in the server. This has no effect for replica sets because the driver
+		// will discover the other hosts during SDAM checks.
+		SetHosts(cs.Hosts[:1])
+
+	integtest.AddTestServerAPIVersion(clientOpts)
+
+	client, err := Connect(clientOpts)
+	require.NoError(t, err)
+
+	defer func() {
+		err := client.Disconnect(context.Background())
+		require.NoError(t, err)
+	}()
+
+	// Get the database and create a GridFS bucket
+	db := client.Database("gridfs_test_db")
+
+	// Drop the collection
+	err = db.Collection("myfiles.files").Drop(context.Background())
+	require.NoError(t, err)
+
+	err = db.Collection("myfiles.chunks").Drop(context.Background())
+	require.NoError(t, err)
+
+	bucket := db.GridFSBucket(options.GridFSBucket().SetName("myfiles"))
+
+	// Data to upload
+	fileName := "example-file.txt"
+	fileContent := []byte("Hello GridFS! This is a test file.")
+
+	// Upload data into GridFS
+	uploadStream, err := bucket.OpenUploadStream(context.Background(), fileName)
+	require.NoError(t, err)
+
+	_, err = uploadStream.Write(fileContent)
+	require.NoError(t, err)
+
+	uploadStream.Close()
+
+	// Verify the file metadata
+	fileCursor, err := bucket.Find(context.Background(), bson.D{})
+	require.NoError(t, err)
+
+	for fileCursor.Next(context.Background()) {
+		var file GridFSFile
+		err := fileCursor.Decode(&file)
+		require.NoError(t, err)
+
+		assert.NotNil(t, file.ID)
+		assert.Equal(t, int64(34), file.Length)
+		assert.Equal(t, int32(261120), file.ChunkSize)
+		assert.NotNil(t, file.UploadDate)
+		assert.Equal(t, fileName, file.Name)
+	}
 }

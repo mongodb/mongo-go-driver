@@ -472,6 +472,7 @@ func TestPool_checkOut(t *testing.T) {
 
 		dialErr := errors.New("create new connection error")
 		p := newPool(poolConfig{
+			Address:        "testaddr",
 			ConnectTimeout: defaultConnectionTimeout,
 		}, WithDialer(func(Dialer) Dialer {
 			return DialerFunc(func(context.Context, string, string) (net.Conn, error) {
@@ -482,7 +483,7 @@ func TestPool_checkOut(t *testing.T) {
 		require.NoError(t, err)
 
 		_, err = p.checkOut(context.Background())
-		var want error = ConnectionError{Wrapped: dialErr, init: true}
+		var want error = ConnectionError{Wrapped: dialErr, init: true, message: "failed to connect to testaddr:27017"}
 		assert.Equalf(t, want, err, "should return error from calling checkOut()")
 		// If a connection initialization error occurs during checkOut, removing and closing the
 		// failed connection both happen asynchronously with the checkOut. Wait for up to 2s for
@@ -845,79 +846,6 @@ func TestPool_checkOut(t *testing.T) {
 
 		p.close(context.Background())
 	})
-	t.Run("discards connections closed by the server side", func(t *testing.T) {
-		t.Parallel()
-
-		cleanup := make(chan struct{})
-		defer close(cleanup)
-
-		ncs := make(chan net.Conn, 2)
-		addr := bootstrapConnections(t, 2, func(nc net.Conn) {
-			// Send all "server-side" connections to a channel so we can
-			// interact with them during the test.
-			ncs <- nc
-
-			<-cleanup
-			_ = nc.Close()
-		})
-
-		d := newdialer(&net.Dialer{})
-		p := newPool(poolConfig{
-			Address: address.Address(addr.String()),
-		}, WithDialer(func(Dialer) Dialer { return d }))
-		err := p.ready()
-		require.NoError(t, err)
-
-		// Add 1 idle connection to the pool by checking-out and checking-in
-		// a connection.
-		conn, err := p.checkOut(context.Background())
-		require.NoError(t, err)
-		err = p.checkIn(conn)
-		require.NoError(t, err)
-		assertConnectionsOpened(t, d, 1)
-		assert.Equalf(t, 1, p.availableConnectionCount(), "should be 1 idle connections in pool")
-		assert.Equalf(t, 1, p.totalConnectionCount(), "should be 1 total connection in pool")
-
-		// Make that connection appear as if it's been idle for a minute.
-		conn.idleStart.Store(time.Now().Add(-1 * time.Minute))
-
-		// Close the "server-side" of the connection we just created. The idle
-		// connection in the pool is now unusable because the "server-side"
-		// closed it.
-		nc := <-ncs
-		err = nc.Close()
-		require.NoError(t, err)
-
-		// In a separate goroutine, write a valid wire message to the 2nd
-		// connection that's about to be created. Stop waiting for a 2nd
-		// connection after 100ms to prevent leaking a goroutine.
-		go func() {
-			select {
-			case nc := <-ncs:
-				_, err := nc.Write([]byte{5, 0, 0, 0, 0})
-				require.NoError(t, err, "Write error")
-			case <-time.After(100 * time.Millisecond):
-			}
-		}()
-
-		// Check out a connection and try to read from it. Expect the pool to
-		// discard the connection that was closed by the "server-side" and
-		// return a newly created connection instead.
-		conn, err = p.checkOut(context.Background())
-		require.NoError(t, err)
-		msg, err := conn.readWireMessage(context.Background())
-		require.NoError(t, err)
-		assert.Equal(t, []byte{5, 0, 0, 0, 0}, msg)
-
-		err = p.checkIn(conn)
-		require.NoError(t, err)
-
-		assertConnectionsOpened(t, d, 2)
-		assert.Equalf(t, 1, p.availableConnectionCount(), "should be 1 idle connections in pool")
-		assert.Equalf(t, 1, p.totalConnectionCount(), "should be 1 total connection in pool")
-
-		p.close(context.Background())
-	})
 }
 
 func TestPool_checkIn(t *testing.T) {
@@ -1270,7 +1198,7 @@ func TestAwaitPendingRead(t *testing.T) {
 
 		_, err = conn.readWireMessage(ctx)
 		regex := regexp.MustCompile(
-			`^connection\(.*\[-\d+\]\) incomplete read of message header: context deadline exceeded: read tcp 127.0.0.1:.*->127.0.0.1:.*: i\/o timeout$`,
+			`^connection\(.*\[-\d+\]\) incomplete read of message header: context deadline exceeded: client timed out waiting for server response: read tcp 127.0.0.1:.*->127.0.0.1:.*: i\/o timeout$`,
 		)
 		assert.True(t, regex.MatchString(err.Error()), "error %q does not match pattern %q", err, regex)
 		assert.Nil(t, conn.pendingResponseState, "conn.awaitRemainingBytes should be nil")
@@ -1319,7 +1247,7 @@ func TestAwaitPendingRead(t *testing.T) {
 
 		_, err = conn.readWireMessage(ctx)
 		regex := regexp.MustCompile(
-			`^connection\(.*\[-\d+\]\) incomplete read of message header: context deadline exceeded: read tcp 127.0.0.1:.*->127.0.0.1:.*: i\/o timeout$`,
+			`^connection\(.*\[-\d+\]\) incomplete read of message header: context deadline exceeded: client timed out waiting for server response: read tcp 127.0.0.1:.*->127.0.0.1:.*: i\/o timeout$`,
 		)
 		assert.True(t, regex.MatchString(err.Error()), "error %q does not match pattern %q", err, regex)
 		err = p.checkIn(conn)
@@ -1374,7 +1302,7 @@ func TestAwaitPendingRead(t *testing.T) {
 
 		_, err = conn.readWireMessage(ctx)
 		regex := regexp.MustCompile(
-			`^connection\(.*\[-\d+\]\) incomplete read of message header: context deadline exceeded: read tcp 127.0.0.1:.*->127.0.0.1:.*: i\/o timeout$`,
+			`^connection\(.*\[-\d+\]\) incomplete read of message header: context deadline exceeded: client timed out waiting for server response: read tcp 127.0.0.1:.*->127.0.0.1:.*: i\/o timeout$`,
 		)
 		assert.True(t, regex.MatchString(err.Error()), "error %q does not match pattern %q", err, regex)
 		err = p.checkIn(conn)
@@ -1434,7 +1362,7 @@ func TestAwaitPendingRead(t *testing.T) {
 
 		_, err = conn.readWireMessage(ctx)
 		regex := regexp.MustCompile(
-			`^connection\(.*\[-\d+\]\) incomplete read of message header: context deadline exceeded: read tcp 127.0.0.1:.*->127.0.0.1:.*: i\/o timeout$`,
+			`^connection\(.*\[-\d+\]\) incomplete read of message header: context deadline exceeded: client timed out waiting for server response: read tcp 127.0.0.1:.*->127.0.0.1:.*: i\/o timeout$`,
 		)
 		assert.True(t, regex.MatchString(err.Error()), "error %q does not match pattern %q", err, regex)
 		err = p.checkIn(conn)
@@ -1496,7 +1424,7 @@ func TestAwaitPendingRead(t *testing.T) {
 
 		_, err = conn.readWireMessage(ctx)
 		regex := regexp.MustCompile(
-			`^connection\(.*\[-\d+\]\) incomplete read of full message: context deadline exceeded: read tcp 127.0.0.1:.*->127.0.0.1:.*: i\/o timeout$`,
+			`^connection\(.*\[-\d+\]\) incomplete read of full message: context deadline exceeded: client timed out waiting for server response: read tcp 127.0.0.1:.*->127.0.0.1:.*: i\/o timeout$`,
 		)
 		assert.True(t, regex.MatchString(err.Error()), "error %q does not match pattern %q", err, regex)
 		err = p.checkIn(conn)
@@ -1555,7 +1483,7 @@ func TestAwaitPendingRead(t *testing.T) {
 
 		_, err = conn.readWireMessage(ctx)
 		regex := regexp.MustCompile(
-			`^connection\(.*\[-\d+\]\) incomplete read of full message: context deadline exceeded: read tcp 127.0.0.1:.*->127.0.0.1:.*: i\/o timeout$`,
+			`^connection\(.*\[-\d+\]\) incomplete read of full message: context deadline exceeded: client timed out waiting for server response: read tcp 127.0.0.1:.*->127.0.0.1:.*: i\/o timeout$`,
 		)
 		assert.True(t, regex.MatchString(err.Error()), "error %q does not match pattern %q", err, regex)
 		err = p.checkIn(conn)

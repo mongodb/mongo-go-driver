@@ -10,10 +10,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"net"
+	"os"
+	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
 )
+
+var _ error = ConnectionError{}
 
 // ConnectionError represents a connection error.
 type ConnectionError struct {
@@ -28,21 +34,28 @@ type ConnectionError struct {
 
 // Error implements the error interface.
 func (e ConnectionError) Error() string {
-	message := e.message
+	var messages []string
 	if e.init {
-		fullMsg := "error occurred during connection handshake"
-		if message != "" {
-			fullMsg = fmt.Sprintf("%s: %s", fullMsg, message)
-		}
-		message = fullMsg
+		messages = append(messages, "error occurred during connection handshake")
 	}
-	if e.Wrapped != nil && message != "" {
-		return fmt.Sprintf("connection(%s) %s: %s", e.ConnectionID, message, e.Wrapped.Error())
+	if e.message != "" {
+		messages = append(messages, e.message)
 	}
 	if e.Wrapped != nil {
-		return fmt.Sprintf("connection(%s) %s", e.ConnectionID, e.Wrapped.Error())
+		if errors.Is(e.Wrapped, io.EOF) {
+			messages = append(messages, "connection closed unexpectedly by the other side")
+		}
+		if errors.Is(e.Wrapped, os.ErrDeadlineExceeded) {
+			messages = append(messages, "client timed out waiting for server response")
+		} else if err, ok := e.Wrapped.(net.Error); ok && err.Timeout() {
+			messages = append(messages, "client timed out waiting for server response")
+		}
+		messages = append(messages, e.Wrapped.Error())
 	}
-	return fmt.Sprintf("connection(%s) %s", e.ConnectionID, message)
+	if len(messages) > 0 {
+		return fmt.Sprintf("connection(%s) %s", e.ConnectionID, strings.Join(messages, ": "))
+	}
+	return fmt.Sprintf("connection(%s)", e.ConnectionID)
 }
 
 // Unwrap returns the underlying error.

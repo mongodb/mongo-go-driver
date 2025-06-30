@@ -76,6 +76,9 @@ type RetryablePoolError interface {
 	Retryable() bool
 }
 
+// RetryablePendingResponseError is an error that indicates that an error
+// occurred while reading a pending response caused by a socket timeout is
+// retryable.
 type RetryablePendingResponseError interface {
 	Retryable() bool
 }

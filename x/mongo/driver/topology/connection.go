@@ -15,7 +15,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -222,7 +221,7 @@ func (c *connection) connect(ctx context.Context) (err error) {
 	// Assign the result of DialContext to a temporary net.Conn to ensure that c.nc is not set in an error case.
 	tempNc, err := c.config.dialer.DialContext(ctx, c.addr.Network(), c.addr.String())
 	if err != nil {
-		return ConnectionError{Wrapped: err, init: true}
+		return ConnectionError{Wrapped: err, init: true, message: fmt.Sprintf("failed to connect to %s", c.addr)}
 	}
 	c.nc = tempNc
 
@@ -239,7 +238,7 @@ func (c *connection) connect(ctx context.Context) (err error) {
 		tlsNc, err := configureTLS(ctx, c.config.tlsConnectionSource, c.nc, c.addr, tlsConfig, ocspOpts)
 
 		if err != nil {
-			return ConnectionError{Wrapped: err, init: true}
+			return ConnectionError{Wrapped: err, init: true, message: fmt.Sprintf("failed to configure TLS for %s", c.addr)}
 		}
 		c.nc = tlsNc
 	}
@@ -354,7 +353,10 @@ func transformNetworkError(ctx context.Context, originalError error, contextDead
 		return originalError
 	}
 	if netErr, ok := originalError.(net.Error); ok && netErr.Timeout() {
-		return fmt.Errorf("%w: %s", context.DeadlineExceeded, originalError.Error())
+		return fmt.Errorf("%w: %s: %s",
+			context.DeadlineExceeded,
+			"client timed out waiting for server response",
+			originalError.Error())
 	}
 
 	return originalError
@@ -429,9 +431,6 @@ func (c *connection) readWireMessage(ctx context.Context) ([]byte, error) {
 		}
 		c.pendingResponseStateMu.Unlock()
 		message := errMsg
-		if errors.Is(err, io.EOF) {
-			message = "socket was unexpectedly closed"
-		}
 		return nil, ConnectionError{
 			ConnectionID: c.id,
 			Wrapped:      transformNetworkError(ctx, err, contextDeadlineUsed),
@@ -552,51 +551,6 @@ func (c *connection) close() error {
 // closed returns true if the connection has been closed by the driver.
 func (c *connection) closed() bool {
 	return atomic.LoadInt64(&c.state) == connDisconnected
-}
-
-// isAlive returns true if the connection is alive and ready to be used for an
-// operation.
-//
-// Note that the liveness check can be slow (at least 1ms), so isAlive only
-// checks the liveness of the connection if it's been idle for at least 10
-// seconds. For frequently in-use connections, a network error during an
-// operation will be the first indication of a dead connection.
-func (c *connection) isAlive() bool {
-	if c.nc == nil || c.br == nil {
-		return false
-	}
-
-	// If the connection has been idle for less than 10 seconds, skip the
-	// liveness check.
-	//
-	// The 10-seconds idle bypass is based on the liveness check implementation
-	// in the Python Driver. That implementation uses 1 second as the idle
-	// threshold, but we chose to be more conservative in the Go Driver because
-	// this is new behavior with unknown side-effects. See
-	// https://github.com/mongodb/mongo-python-driver/blob/e6b95f65953e01e435004af069a6976473eaf841/pymongo/synchronous/pool.py#L983-L985
-	idleStart, ok := c.idleStart.Load().(time.Time)
-	if !ok || idleStart.Add(10*time.Second).After(time.Now()) {
-		return true
-	}
-
-	// Set a 1ms read deadline and attempt to peek at 1 byte from the connection's
-	// buffered reader. Expect it to block for 1ms then return a deadline exceeded error.
-	// If it returns a different error (e.g. io.EOF), the connection is dead. If it
-	// successfully peeks a byte, the connection is alive but we haven't consumed
-	// the byte from the stream.
-	if err := c.nc.SetReadDeadline(time.Now().Add(1 * time.Millisecond)); err != nil {
-		return false
-	}
-	// Important: always reset the deadline after the check.
-	defer c.nc.SetReadDeadline(time.Time{})
-	_, err := c.br.Peek(1)
-	// The connection is alive if we got a timeout (meaning the connection is idle
-	// and waiting for data) or if we successfully peeked at a byte (err == nil).
-	// Any other error (e.g. io.EOF) means the connection is dead.
-	if err == nil {
-		return true
-	}
-	return errors.Is(err, os.ErrDeadlineExceeded)
 }
 
 func (c *connection) idleTimeoutExpired() bool {
