@@ -1141,11 +1141,9 @@ func (op Operation) createQueryWireMessage(maxTimeMS uint64, dst []byte, desc de
 		return dst, info, err
 	}
 
-	if withSession {
-		dst, err = op.addSession(dst, desc)
-		if err != nil {
-			return dst, info, err
-		}
+	dst, err = op.addSession(dst, desc)
+	if err != nil {
+		return dst, info, err
 	}
 
 	dst = op.addClusterTime(dst, desc)
