@@ -173,6 +173,29 @@ func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 		readSelect = makePinnedSelector(sess, readSelect)
 	}
 
+	if sess != nil {
+		if lsid, err := runCmdDoc.LookupErr("lsid"); err == nil {
+			sess.SessionID = lsid.Document()
+
+			elems, err := runCmdDoc.Elements()
+			if err != nil {
+				return nil, sess, err
+			}
+
+			elemsFiltered := [][]byte{}
+			for _, e := range elems {
+				if e.Key() == "lsid" {
+					continue
+				}
+				elemsFiltered = append(elemsFiltered, e)
+			}
+
+			fmt.Printf("before: %d, after: %d", len(elems), len(elemsFiltered))
+
+			runCmdDoc = bsoncore.Document(bsoncore.BuildDocument([]byte{}, elemsFiltered...))
+		}
+	}
+
 	var op *operation.Command
 	switch cursorCommand {
 	case true:
