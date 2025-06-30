@@ -173,6 +173,10 @@ func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 		readSelect = makePinnedSelector(sess, readSelect)
 	}
 
+	if lsid, err := runCmdDoc.LookupErr("lsid"); err == nil {
+		sess.SessionID = lsid.Document()
+	}
+
 	var op *operation.Command
 	switch cursorCommand {
 	case true:
