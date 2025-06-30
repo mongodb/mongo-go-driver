@@ -190,6 +190,8 @@ func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 				elemsFiltered = append(elemsFiltered, e)
 			}
 
+			fmt.Printf("before: %d, after: %d", len(elems), len(elemsFiltered))
+
 			runCmdDoc = bsoncore.Document(bsoncore.BuildDocument([]byte{}, elemsFiltered...))
 		}
 	}
