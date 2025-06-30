@@ -650,7 +650,7 @@ func (op Operation) Execute(ctx context.Context) error {
 			if err != nil {
 				// If the returned error is a context error, return it immediately.
 				if ctx.Err() != nil {
-					err = ctx.Err()
+					return err
 				}
 
 				// If the returned error is retryable and there are retries remaining (negative
