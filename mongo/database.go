@@ -176,6 +176,21 @@ func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 	if sess != nil {
 		if lsid, err := runCmdDoc.LookupErr("lsid"); err == nil {
 			sess.SessionID = lsid.Document()
+
+			elems, err := runCmdDoc.Elements()
+			if err != nil {
+				return nil, sess, err
+			}
+
+			elemsFiltered := [][]byte{}
+			for _, e := range elems {
+				if e.Key() == "lsid" {
+					continue
+				}
+				elemsFiltered = append(elemsFiltered, e)
+			}
+
+			runCmdDoc = bsoncore.Document(bsoncore.BuildDocument([]byte{}, elemsFiltered...))
 		}
 	}
 
