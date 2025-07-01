@@ -286,11 +286,11 @@ functions:
           echo "HTTP Status: $http_status"
 
   send-perf-pr-comment:
-    - command: shell.exec
+    - command: subprocess.exec
+      type: test
       params:
-        working_dir: src/go.mongodb.org/mongo-driver
         binary: bash
-        script: etc/perf-pr-comment.sh
+        args: [*task-runner, perf-pr-comment]
 
   run-enterprise-auth-tests:
     - command: ec2.assume_role
