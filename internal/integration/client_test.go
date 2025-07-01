@@ -687,7 +687,7 @@ func TestClient(t *testing.T) {
 					Data: failpoint.Data{
 						FailCommands:    []string{"find", "insert"},
 						BlockConnection: true,
-						BlockTimeMS:     500,
+						BlockTimeMS:     2000,
 					},
 				})
 
@@ -697,13 +697,13 @@ func TestClient(t *testing.T) {
 				wg.Add(50)
 
 				for i := 0; i < 50; i++ {
-					// Run 50 concurrent operations, each with a timeout of 50ms. Expect
+					// Run 50 concurrent operations, each with a timeout of 1s. Expect
 					// them to all return a timeout error because the failpoint
-					// blocks find operations for 50ms. Run 50 to increase the
+					// blocks find operations for 2s. Run 50 to increase the
 					// probability that an operation will time out in a way that
 					// can cause a retry.
 					go func() {
-						ctx, cancel := context.WithTimeout(context.Background(), 150*time.Millisecond)
+						ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 						err := tc.operation(ctx, mt.Coll)
 						cancel()
 						assert.ErrorIs(mt, err, context.DeadlineExceeded)
@@ -733,6 +733,10 @@ func TestClient(t *testing.T) {
 					"expected exactly 1 command started event per operation (50), but got %d",
 					len(evts)+pendingReadConns)
 				mt.ClearEvents()
+
+				// Wait for the failpoint to be unblocked.
+				time.Sleep(2 * time.Second)
+
 				mt.ClearFailPoints()
 			})
 		}
