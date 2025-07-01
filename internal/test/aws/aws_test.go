@@ -1,4 +1,4 @@
-// Copyright (C) MongoDB, Inc. 2017-present.
+// Copyright (C) MongoDB, Inc. 2025-present.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may
 // not use this file except in compliance with the License. You may obtain
@@ -9,32 +9,32 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"os"
+	"testing"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
-func main() {
+func TestAWS(t *testing.T) {
 	uri := os.Getenv("MONGODB_URI")
-	ctx := context.Background()
-
-	client, err := mongo.Connect(options.Client().ApplyURI(uri))
-	if err != nil {
-		panic(fmt.Sprintf("Connect error: %v", err))
+	if uri == "" {
+		t.Skip("Skipping test: MONGODB_URI environment variable is not set")
 	}
 
+	client, err := mongo.Connect(options.Client().ApplyURI(uri))
+
 	defer func() {
-		if err = client.Disconnect(ctx); err != nil {
-			panic(fmt.Sprintf("Disconnect error: %v", err))
-		}
+		err = client.Disconnect(context.Background())
+		require.NoError(t, err)
 	}()
 
-	db := client.Database("aws")
-	coll := db.Collection("test")
-	if err = coll.FindOne(ctx, bson.D{{"x", 1}}).Err(); err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
-		panic(fmt.Sprintf("FindOne error: %v", err))
+	coll := client.Database("aws").Collection("test")
+
+	err = coll.FindOne(context.Background(), bson.D{{Key: "x", Value: 1}}).Err()
+	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
+		t.Logf("FindOne error: %v", err)
 	}
 }

@@ -45,6 +45,10 @@ var (
 			Max: driverutil.MaxWireVersion,
 		},
 	}
+
+	// ErrNoResponsesRemaining is the error returned when the mocked connection is asked for a response and does not have
+	// any responses buffered.
+	ErrNoResponsesRemaining = errors.New("no responses remaining")
 )
 
 // connection implements the driver.Connection interface and responds to wire messages with pre-configured responses.
@@ -71,7 +75,7 @@ func (c *connection) SetOIDCTokenGenID(uint64) {
 func (c *connection) Read(_ context.Context) ([]byte, error) {
 	var dst []byte
 	if len(c.responses) == 0 {
-		return dst, errors.New("no responses remaining")
+		return dst, ErrNoResponsesRemaining
 	}
 	nextRes := c.responses[0]
 	c.responses = c.responses[1:]
