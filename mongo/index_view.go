@@ -117,16 +117,16 @@ func (iv IndexView) List(ctx context.Context, opts ...options.Lister[options.Lis
 			return newEmptyCursor(), nil
 		}
 
-		return nil, replaceErrors(err)
+		return nil, wrapErrors(err)
 	}
 
 	bc, err := op.Result(cursorOpts)
 	if err != nil {
 		closeImplicitSession(sess)
-		return nil, replaceErrors(err)
+		return nil, wrapErrors(err)
 	}
 	cursor, err := newCursorWithSession(bc, iv.coll.bsonOpts, iv.coll.registry, sess)
-	return cursor, replaceErrors(err)
+	return cursor, wrapErrors(err)
 }
 
 // ListSpecifications executes a List command and returns a slice of returned IndexSpecifications
@@ -410,7 +410,7 @@ func (iv IndexView) drop(ctx context.Context, index any, _ ...options.Lister[opt
 
 	err = op.Execute(ctx)
 	if err != nil {
-		return replaceErrors(err)
+		return wrapErrors(err)
 	}
 
 	return nil
