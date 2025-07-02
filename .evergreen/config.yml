@@ -290,7 +290,7 @@ functions:
       type: test
       params:
         binary: bash
-        include_expansions_in_env: [perf_uri]
+        include_expansions_in_env: [perf_uri_private_endpoint]
         args: [*task-runner, perf-pr-comment]
 
   run-enterprise-auth-tests:

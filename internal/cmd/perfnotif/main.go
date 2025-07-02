@@ -18,9 +18,9 @@ import (
 )
 
 func main() {
-	uri := os.Getenv("perf_uri")
+	uri := os.Getenv("perf_uri_private_endpoint")
 	if uri == "" {
-		log.Panic("perf_uri env variable is not set")
+		log.Panic("perf_uri_private_endpoint env variable is not set")
 	}
 
 	client, err := mongo.Connect(options.Client().ApplyURI(uri))
