@@ -48,9 +48,10 @@ var (
 func nextConnectionID() uint64 { return atomic.AddUint64(&globalConnectionID, 1) }
 
 type pendingResponseState struct {
-	remainingBytes int32
-	requestID      int32
-	start          time.Time
+	remainingBytes                   int32
+	sizeBytesReadBeforeSocketTimeout []byte
+	requestID                        int32
+	start                            time.Time
 }
 
 type connection struct {
@@ -491,13 +492,13 @@ func (c *connection) read(ctx context.Context) (bytesRead []byte, errMsg string,
 	// reading messages from an exhaust cursor.
 	n, err := io.ReadFull(c.nc, sizeBuf[:]) // Use the buffered reader
 	if err != nil {
-		if l := int32(n); l == 0 && isCSOTTimeout(err) && driverutil.HasMaxTimeMS(ctx) {
+		if isCSOTTimeout(err) && driverutil.HasMaxTimeMS(ctx) {
 			requestID, _ := driverutil.GetRequestID(ctx)
 
 			c.pendingResponseState = &pendingResponseState{
-				remainingBytes: l,
-				requestID:      requestID,
-				start:          time.Now(),
+				sizeBytesReadBeforeSocketTimeout: sizeBuf[:n],
+				requestID:                        requestID,
+				start:                            time.Now(),
 			}
 		}
 		return nil, "incomplete read of message header", err

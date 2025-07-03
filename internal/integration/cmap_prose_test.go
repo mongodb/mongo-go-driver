@@ -8,6 +8,7 @@ package integration
 
 import (
 	"context"
+	"math/rand"
 	"os"
 	"testing"
 	"time"
@@ -19,7 +20,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
-func TestCMAPProse_PendingResponse_ConnectionAliveness(t *testing.T) {
+func TestCMAPProse_PendingResponse(t *testing.T) {
 	const timeout = 200 * time.Millisecond
 
 	// Skip on compressor due to proxy complexity.
@@ -49,70 +50,22 @@ func TestCMAPProse_PendingResponse_ConnectionAliveness(t *testing.T) {
 	mt := mtest.New(t, mtest.NewOptions().ClientOptions(clientOpts).ClientType(mtest.MongoProxy))
 
 	opts := mtest.NewOptions().CreateCollection(false)
-	mt.RunOpts("fails", opts, func(mt *mtest.T) {
-		// Create a command document that instructs the proxy to dely 2x the
-		// timeoutMS for the operation then never respond.
+
+	// Ensure that if part of the header is received before a socket timeout,
+	// it does not cause a problem when the pool attempts to drain the connection.
+	// for the next operation.
+	//
+	// Path where the size has been determined while draining the pending
+	// response.
+	mt.RunOpts("recover partial header response", opts, func(mt *mtest.T) {
+		// Chose a random number between 1 and 3 to maximize coverage.
+		bytesToSend := rand.Intn(3) + 1
+
+		// The proxy should deliver 3 bytes from the header and then pause to cause
+		// a socket timeout.
 		proxyTest := bson.D{
 			{Key: "actions", Value: bson.A{
-				// Causes the timeout in the initial try.
-				bson.D{{Key: "delayMs", Value: 400}},
-				// Send nothing back to the client, ever.
-				bson.D{{Key: "sendBytes", Value: 0}},
-			}},
-		}
-
-		type myStruct struct {
-			Name string `bson:"name"`
-			Age  int    `bson:"age"`
-		}
-
-		cmd := bson.D{
-			{Key: "insert", Value: "mycoll"},
-			{Key: "documents", Value: bson.A{myStruct{Name: "Alice", Age: 30}}},
-			{Key: "proxyTest", Value: proxyTest},
-		}
-
-		db := mt.Client.Database("testdb")
-		coll := db.Collection("mycoll")
-
-		_ = coll.Drop(context.Background()) // Ensure the collection is clean before the test.
-
-		// Run the command against the proxy with timeoutMS.
-		ctx, cancel := context.WithTimeout(context.Background(), timeout)
-		defer cancel()
-
-		err := db.RunCommand(ctx, cmd).Err()
-		require.Error(t, err, "expected command to fail due to timeout")
-		assert.ErrorIs(t, err, context.DeadlineExceeded)
-
-		// Wait 3 seconds to ensure there is time left in the pending response state.
-		time.Sleep(3 * time.Second)
-
-		// Run an insertOne without a timeout. Expect the pending response to fail
-		// at the aliveness check. However, the insert should succeed since pending
-		// response failures are retryable.
-		_, err = coll.InsertOne(context.Background(), myStruct{Name: "Bob", Age: 25})
-		require.NoError(t, err, "expected insertOne to succeed after pending response aliveness check")
-
-		// There should be 1 ConnectionPendingResponseStarted event.
-		assert.Equal(mt, 1, mt.NumberConnectionsPendingReadStarted())
-
-		// There should be 1 ConnectionPendingResponseFailed event.
-		assert.Equal(mt, 1, mt.NumberConnectionsPendingReadFailed())
-
-		// There should be 0 ConnectionPendingResponseSucceeded event.
-		assert.Equal(mt, 0, mt.NumberConnectionsPendingReadSucceeded())
-
-		// There should be 1 ConnectionClosed event.
-		assert.Equal(mt, 1, mt.NumberConnectionsClosed())
-	})
-
-	mt.RunOpts("succeeds", opts, func(mt *mtest.T) {
-		// Create a command document that instructs the proxy to dely 2x the
-		// timeoutMS for the operation, then responds with exactly 1 byte for
-		// the alivness check and finally with the entire message.
-		proxyTest := bson.D{
-			{Key: "actions", Value: bson.A{
+				bson.D{{Key: "sendBytes", Value: bytesToSend}},
 				// Causes the timeout in the initial try.
 				bson.D{{Key: "delayMs", Value: 400}},
 				// Send the rest of the response for discarding on retry.
@@ -134,28 +87,156 @@ func TestCMAPProse_PendingResponse_ConnectionAliveness(t *testing.T) {
 		db := mt.Client.Database("testdb")
 		coll := db.Collection("mycoll")
 
-		_ = coll.Drop(context.Background()) // Ensure the collection is clean before the test.
-
-		// Run the command against the proxy with timeoutMS.
+		// Run the command against the proxy with deadline.
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 
 		err := db.RunCommand(ctx, cmd).Err()
+
+		// Expect the command to fail due to the timeout.
 		require.Error(mt, err, "expected command to fail due to timeout")
 		assert.ErrorIs(mt, err, context.DeadlineExceeded)
 
-		// Wait 3 seconds to ensure there is time left in the pending response state.
-		time.Sleep(3 * time.Second)
-
-		// Run an insertOne without a timeout. Expect the pending response to fail
-		// at the aliveness check.
+		// Run an insertOne without a timeout.
 		_, err = coll.InsertOne(context.Background(), myStruct{Name: "Bob", Age: 25})
-		require.NoError(mt, err, "expected insertOne to succeed after pending response aliveness check")
+		require.NoError(mt, err)
 
 		// There should be 1 ConnectionPendingResponseStarted event.
-		assert.Equal(mt, 2, mt.NumberConnectionsPendingReadStarted())
+		assert.Equal(mt, 1, mt.NumberConnectionsPendingReadStarted())
 
 		// There should be 0 ConnectionPendingResponseFailed event.
+		assert.Equal(mt, 0, mt.NumberConnectionsPendingReadFailed())
+
+		// There should be 1 ConnectionPendingResponseSucceeded event.
+		assert.Equal(mt, 1, mt.NumberConnectionsPendingReadSucceeded())
+
+		// The connection should not have been closed.
+		assert.Equal(mt, 0, mt.NumberConnectionsClosed())
+	})
+
+	// Unified spec tests block the entire response, so we need to ensure that if
+	// we send part of the response before a socket timeout, the connection
+	// will successfully drain the connection for a subsequent operation.
+	//
+	// Path where the size has been determined during the round trip.
+	mt.RunOpts("recover partial response", opts, func(mt *mtest.T) {
+		// The proxy should deliver 3 bytes from the header and then pause to cause
+		// a socket timeout.
+		proxyTest := bson.D{
+			{Key: "actions", Value: bson.A{
+				bson.D{{Key: "sendBytes", Value: 10}},
+				// Causes the timeout in the initial try.
+				bson.D{{Key: "delayMs", Value: 400}},
+				// Send the rest of the response for discarding on retry.
+				bson.D{{Key: "sendAll", Value: true}},
+			}},
+		}
+
+		type myStruct struct {
+			Name string `bson:"name"`
+			Age  int    `bson:"age"`
+		}
+
+		cmd := bson.D{
+			{Key: "insert", Value: "mycoll"},
+			{Key: "documents", Value: bson.A{myStruct{Name: "Alice", Age: 30}}},
+			{Key: "proxyTest", Value: proxyTest},
+		}
+
+		db := mt.Client.Database("testdb")
+		coll := db.Collection("mycoll")
+
+		// Run the command against the proxy with deadline.
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		defer cancel()
+
+		err := db.RunCommand(ctx, cmd).Err()
+
+		// Expect the command to fail due to the timeout.
+		require.Error(mt, err, "expected command to fail due to timeout")
+		assert.ErrorIs(mt, err, context.DeadlineExceeded)
+
+		// Run an insertOne without a timeout.
+		_, err = coll.InsertOne(context.Background(), myStruct{Name: "Bob", Age: 25})
+		require.NoError(mt, err)
+
+		// There should be 1 ConnectionPendingResponseStarted event.
+		assert.Equal(mt, 1, mt.NumberConnectionsPendingReadStarted())
+
+		// There should be 0 ConnectionPendingResponseFailed event.
+		assert.Equal(mt, 0, mt.NumberConnectionsPendingReadFailed())
+
+		// There should be 1 ConnectionPendingResponseSucceeded event.
+		assert.Equal(mt, 1, mt.NumberConnectionsPendingReadSucceeded())
+
+		// The connection should not have been closed.
+		assert.Equal(mt, 0, mt.NumberConnectionsClosed())
+	})
+
+	// Ensure that if part of the header is received before a socket timeout, and
+	// the connection idles in the pool for longer than 3 seconds, the required
+	// aliveness check for draining the connection does not attempt to discard
+	// bytes from the TCP stream.
+	//
+	// Path where an aliveness check is performed and does not pull data from the
+	// TCP stream.
+	mt.RunOpts("non-destructive aliveness check", opts, func(mt *mtest.T) {
+		rand.Seed(time.Now().UnixNano())
+
+		// Chose a random number between 1 and 3 to maximize coverage.
+		bytesToSend := rand.Intn(3) + 1
+
+		// The proxy should deliver 3 bytes from the header and then pause to cause
+		// a socket timeout.
+		proxyTest := bson.D{
+			{Key: "actions", Value: bson.A{
+				bson.D{{Key: "sendBytes", Value: bytesToSend}},
+				// Causes the timeout in the initial try.
+				bson.D{{Key: "delayMs", Value: 400}},
+				// Send the rest of the response for discarding on retry.
+				bson.D{{Key: "sendAll", Value: true}},
+			}},
+		}
+
+		type myStruct struct {
+			Name string `bson:"name"`
+			Age  int    `bson:"age"`
+		}
+
+		cmd := bson.D{
+			{Key: "insert", Value: "mycoll"},
+			{Key: "documents", Value: bson.A{myStruct{Name: "Alice", Age: 30}}},
+			{Key: "proxyTest", Value: proxyTest},
+		}
+
+		db := mt.Client.Database("testdb")
+		coll := db.Collection("mycoll")
+
+		// Run the command against the proxy with deadline.
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		defer cancel()
+
+		err := db.RunCommand(ctx, cmd).Err()
+
+		// Expect the command to fail due to the timeout.
+		require.Error(mt, err, "expected command to fail due to timeout")
+		assert.ErrorIs(mt, err, context.DeadlineExceeded)
+
+		// Wait for 3 seconds to ensure the connection idles longer than the
+		// window for draining the connection.
+		time.Sleep(3 * time.Second)
+
+		// Run an insertOne without a timeout.
+		_, err = coll.InsertOne(context.Background(), myStruct{Name: "Bob", Age: 25})
+		require.NoError(mt, err)
+
+		// There should be 1 ConnectionPendingResponseStarted event.
+		//   - One for the aliveness check
+		//   - One for the subsequent retry
+		assert.Equal(mt, 2, mt.NumberConnectionsPendingReadStarted())
+
+		// There should be 1 ConnectionPendingResponseFailed event from the
+		// aliveness check which should propagate a retryable error.
 		assert.Equal(mt, 1, mt.NumberConnectionsPendingReadFailed())
 
 		// There should be 1 ConnectionPendingResponseSucceeded event.

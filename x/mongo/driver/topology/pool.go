@@ -887,6 +887,7 @@ func peekConnectionAlive(conn *connection) (int, error) {
 	if err := conn.nc.SetReadDeadline(time.Now().Add(1 * time.Millisecond)); err != nil {
 		return 0, err
 	}
+
 	// Peek(1) will fill the bufio.Reader’s buffer if needed,
 	// but will NOT advance it.
 	bytes, err := conn.br.Peek(1)
@@ -914,16 +915,24 @@ func attemptPendingResponse(ctx context.Context, conn *connection, remainingTime
 
 	// if we haven’t even parsed the 4-byte length yet, peek it
 	if state.remainingBytes == 0 {
-		hdr, err := conn.br.Peek(4)
+		bytesLeft := 4 - len(state.sizeBytesReadBeforeSocketTimeout)
+		hdr, err := conn.br.Peek(bytesLeft)
 		if err != nil {
 			return 0, fmt.Errorf("peeking length prefix: %w", err)
 		}
+
+		// Combine hdr with state.sizeBytesReadBeforeSocketTimeout to get the full
+		// header.
+		if len(hdr) < 4 {
+			hdr = append(state.sizeBytesReadBeforeSocketTimeout, hdr...)
+		}
+
 		msgLen := int(binary.LittleEndian.Uint32(hdr))
 		// consume those 4 bytes now that we know the message length
-		if _, err := conn.br.Discard(4); err != nil {
+		if _, err := conn.br.Discard(bytesLeft); err != nil {
 			return 0, fmt.Errorf("discarding length prefix: %w", err)
 		}
-		state.remainingBytes = int32(msgLen) - 4
+		state.remainingBytes = int32(msgLen - 4)
 	}
 
 	buf := make([]byte, 4096)

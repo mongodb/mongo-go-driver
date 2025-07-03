@@ -1201,7 +1201,8 @@ func TestAwaitPendingRead(t *testing.T) {
 			`^connection\(.*\[-\d+\]\) incomplete read of message header: context deadline exceeded: client timed out waiting for server response: read tcp 127.0.0.1:.*->127.0.0.1:.*: i\/o timeout$`,
 		)
 		assert.True(t, regex.MatchString(err.Error()), "error %q does not match pattern %q", err, regex)
-		assert.Nil(t, conn.pendingResponseState, "conn.awaitRemainingBytes should be nil")
+		assert.NotNil(t, conn.pendingResponseState)
+		assert.Len(t, conn.pendingResponseState.sizeBytesReadBeforeSocketTimeout, 3)
 	})
 	t.Run("timeout reading message header, successful background read", func(t *testing.T) {
 		timeout := 10 * time.Millisecond
