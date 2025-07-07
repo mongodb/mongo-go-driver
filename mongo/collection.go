@@ -1127,6 +1127,9 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 		}
 		op.Hint(hintVal)
 	}
+	if args.RawData != nil {
+		op = op.RawData(*args.RawData)
+	}
 	retry := driver.RetryNone
 	if coll.client.retryReads {
 		retry = driver.RetryOncePerCommand
@@ -1207,6 +1210,9 @@ func (coll *Collection) EstimatedDocumentCount(
 			return 0, err
 		}
 		op = op.Comment(comment)
+	}
+	if args.RawData != nil {
+		op = op.RawData(*args.RawData)
 	}
 
 	retry := driver.RetryNone
