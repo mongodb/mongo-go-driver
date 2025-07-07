@@ -1036,6 +1036,9 @@ func aggregate(a aggregateParams, opts ...options.Lister[options.AggregateOption
 		}
 		op.CustomOptions(customOptions)
 	}
+	if args.RawData != nil {
+		op = op.RawData(*args.RawData)
+	}
 
 	retry := driver.RetryNone
 	if a.retryRead && !hasOutputStage {
