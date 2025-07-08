@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
+# perf-pr-comment
+# Generates a report of Go Driver perf changes for the current branch.
 
-set -e
-set -x
+set -eux
 
-echo "hello world - perf comment"
+go run ./internal/cmd/perfnotif/main.go
