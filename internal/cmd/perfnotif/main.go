@@ -7,6 +7,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"log"
@@ -48,33 +49,20 @@ func main() {
 	}
 	fmt.Println("Successfully connected to MongoDB Analytics node.")
 
-	commit := os.Getenv("COMMIT") // TODO: get PR from evergreen instead of just the commit, and use PR to get latest commit
+	commit := os.Getenv("COMMIT")
 	if commit == "" {
 		log.Panic("could not retrieve commit number")
 	}
 
 	coll := client.Database("expanded_metrics").Collection("change_points")
 	var changePoints []ChangePoint
-	changePoints, err = getDocsWithContext(coll, "50cf0c20d228975074c0010bfb688917e25934a4") // TODO: restore test commit
+	changePoints, err = getDocsWithContext(coll, commit)
 	if err != nil {
 		log.Panicf("Error retrieving and decoding documents from collection: %v.", err)
 	}
 
-	if len(changePoints) == 0 {
-		log.Panicf("Nothing was decoded")
-	}
-
-	fmt.Print("Documents:")
-	for _, cp := range changePoints {
-		fmt.Printf("  Project: %s, Task: %s, Test: %s, Measurement: %s, Triage Contexts: %v, H-Score: %f\n",
-			cp.TimeSeriesInfo.Project,
-			cp.TimeSeriesInfo.Task,
-			cp.TimeSeriesInfo.Test,
-			cp.TimeSeriesInfo.Measurement,
-			cp.TriageContexts,
-			cp.HScore,
-		)
-	}
+	var markdownComment = getMarkdownComment(changePoints)
+	fmt.Print(markdownComment.String())
 
 	err = client.Disconnect(context.Background())
 	if err != nil {
@@ -112,7 +100,7 @@ func getDocsWithContext(coll *mongo.Collection, commit string) ([]ChangePoint, e
 	}
 	defer cursor.Close(findCtx)
 
-	fmt.Printf("Successfully retrieved %d documents from commit %s.", cursor.RemainingBatchLength(), commit)
+	fmt.Printf("Successfully retrieved %d documents from commit %s.\n", cursor.RemainingBatchLength(), commit)
 
 	var changePoints []ChangePoint
 	for cursor.Next(findCtx) {
@@ -128,4 +116,26 @@ func getDocsWithContext(coll *mongo.Collection, commit string) ([]ChangePoint, e
 	}
 
 	return changePoints, nil
+}
+
+func getMarkdownComment(changePoints []ChangePoint) bytes.Buffer {
+	var buffer bytes.Buffer
+
+	buffer.WriteString("# 👋 GoDriver Performance Notification\n")
+
+	if len(changePoints) > 0 {
+		buffer.WriteString("The following benchmark tests had statistically significant changes (i.e., h-score > 0.6):\n")
+		buffer.WriteString("| Benchmark Test | Measurement | H-Score | Performance Baron |\n")
+		buffer.WriteString("|---|---|---|---|\n")
+
+		for _, cp := range changePoints {
+			var perfBaronLink = ""
+			fmt.Fprintf(&buffer, "| %s | %s | %f | %s |\n", cp.TimeSeriesInfo.Test, cp.TimeSeriesInfo.Measurement, cp.HScore, perfBaronLink)
+		}
+	} else {
+		buffer.WriteString("There were no significant changes to the performance to report.\n")
+	}
+	buffer.WriteString("For a comprehensive view of all microbenchmark results for this PR's commit, please visit this link.")
+
+	return buffer
 }
