@@ -86,6 +86,27 @@ func SetInternalBulkWriteOptions(a *options.BulkWriteOptionsBuilder, key string,
 	return nil
 }
 
+// SetInternalClientBulkWriteOptions sets internal options for ClientBulkWriteOptions.
+func SetInternalClientBulkWriteOptions(a *options.ClientBulkWriteOptionsBuilder, key string, option any) error {
+	typeErrFunc := func(t string) error {
+		return fmt.Errorf("unexpected type for %q: %T is not %s", key, option, t)
+	}
+	switch key {
+	case "rawData":
+		b, ok := option.(bool)
+		if !ok {
+			return typeErrFunc("bool")
+		}
+		a.Opts = append(a.Opts, func(opts *options.ClientBulkWriteOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
+			return nil
+		})
+	default:
+		return fmt.Errorf("unsupported option: %q", key)
+	}
+	return nil
+}
+
 // SetInternalCountOptions sets internal options for CountOptions.
 func SetInternalCountOptions(a *options.CountOptionsBuilder, key string, option any) error {
 	typeErrFunc := func(t string) error {
