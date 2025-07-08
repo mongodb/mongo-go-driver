@@ -324,6 +324,9 @@ func (coll *Collection) insert(
 	if args.Ordered != nil {
 		op = op.Ordered(*args.Ordered)
 	}
+	if args.RawData != nil {
+		op = op.RawData(*args.RawData)
+	}
 	retry := driver.RetryNone
 	if coll.client.retryWrites {
 		retry = driver.RetryOncePerCommand
@@ -374,6 +377,9 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 	}
 	if args.Comment != nil {
 		imOpts.SetComment(args.Comment)
+	}
+	if args.RawData != nil {
+		imOpts = imOpts.SetRawData(*args.RawData)
 	}
 	res, err := coll.insert(ctx, []interface{}{document}, imOpts)
 
