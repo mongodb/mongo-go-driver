@@ -246,6 +246,11 @@ func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
 		writeConcern:             wc,
 		let:                      args.Let,
 	}
+	if rawDataOpt := optionsutil.Value(args.Internal, "rawData"); rawDataOpt != nil {
+		if rawData, ok := rawDataOpt.(bool); ok {
+			op.rawData = &rawData
+		}
+	}
 
 	err = op.execute(ctx)
 
