@@ -39,7 +39,7 @@ func SetInternalClientOptions(opts *options.ClientOptions, key string, option an
 		}
 		opts.Custom = optionsutil.WithValue(opts.Custom, key, b)
 	default:
-		return fmt.Errorf("unsupported option: %s", key)
+		return fmt.Errorf("unsupported option: %q", key)
 	}
 	return nil
 }
@@ -60,7 +60,7 @@ func SetInternalAggregateOptions(a *options.AggregateOptionsBuilder, key string,
 			return nil
 		})
 	default:
-		return fmt.Errorf("unsupported option: %s", key)
+		return fmt.Errorf("unsupported option: %q", key)
 	}
 	return nil
 }
@@ -81,7 +81,7 @@ func SetInternalCountOptions(a *options.CountOptionsBuilder, key string, option 
 			return nil
 		})
 	default:
-		return fmt.Errorf("unsupported option: %s", key)
+		return fmt.Errorf("unsupported option: %q", key)
 	}
 	return nil
 }
@@ -102,7 +102,7 @@ func SetInternalDeleteOneOptions(a *options.DeleteOneOptionsBuilder, key string,
 			return nil
 		})
 	default:
-		return fmt.Errorf("unsupported option: %s", key)
+		return fmt.Errorf("unsupported option: %q", key)
 	}
 	return nil
 }
@@ -123,7 +123,7 @@ func SetInternalDeleteManyOptions(a *options.DeleteManyOptionsBuilder, key strin
 			return nil
 		})
 	default:
-		return fmt.Errorf("unsupported option: %s", key)
+		return fmt.Errorf("unsupported option: %q", key)
 	}
 	return nil
 }
@@ -144,7 +144,7 @@ func SetInternalDistinctOptions(a *options.DistinctOptionsBuilder, key string, o
 			return nil
 		})
 	default:
-		return fmt.Errorf("unsupported option: %s", key)
+		return fmt.Errorf("unsupported option: %q", key)
 	}
 	return nil
 }
@@ -165,7 +165,112 @@ func SetInternalEstimatedDocumentCountOptions(a *options.EstimatedDocumentCountO
 			return nil
 		})
 	default:
-		return fmt.Errorf("unsupported option: %s", key)
+		return fmt.Errorf("unsupported option: %q", key)
+	}
+	return nil
+}
+
+// SetInternalFindOptions sets internal options for FindOptions.
+func SetInternalFindOptions(a *options.FindOptionsBuilder, key string, option any) error {
+	typeErrFunc := func(t string) error {
+		return fmt.Errorf("unexpected type for %q: %T is not %s", key, option, t)
+	}
+	switch key {
+	case "rawData":
+		b, ok := option.(bool)
+		if !ok {
+			return typeErrFunc("bool")
+		}
+		a.Opts = append(a.Opts, func(opts *options.FindOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
+			return nil
+		})
+	default:
+		return fmt.Errorf("unsupported option: %q", key)
+	}
+	return nil
+}
+
+// SetInternalFindOneOptions sets internal options for FindOneOptions.
+func SetInternalFindOneOptions(a *options.FindOneOptionsBuilder, key string, option any) error {
+	typeErrFunc := func(t string) error {
+		return fmt.Errorf("unexpected type for %q: %T is not %s", key, option, t)
+	}
+	switch key {
+	case "rawData":
+		b, ok := option.(bool)
+		if !ok {
+			return typeErrFunc("bool")
+		}
+		a.Opts = append(a.Opts, func(opts *options.FindOneOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
+			return nil
+		})
+	default:
+		return fmt.Errorf("unsupported option: %q", key)
+	}
+	return nil
+}
+
+// SetInternalFindOneAndDeleteOptions sets internal options for FindOneAndDeleteOptions.
+func SetInternalFindOneAndDeleteOptions(a *options.FindOneAndDeleteOptionsBuilder, key string, option any) error {
+	typeErrFunc := func(t string) error {
+		return fmt.Errorf("unexpected type for %q: %T is not %s", key, option, t)
+	}
+	switch key {
+	case "rawData":
+		b, ok := option.(bool)
+		if !ok {
+			return typeErrFunc("bool")
+		}
+		a.Opts = append(a.Opts, func(opts *options.FindOneAndDeleteOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
+			return nil
+		})
+	default:
+		return fmt.Errorf("unsupported option: %q", key)
+	}
+	return nil
+}
+
+// SetInternalFindOneAndReplaceOptions sets internal options for FindOneAndReplaceOptions.
+func SetInternalFindOneAndReplaceOptions(a *options.FindOneAndReplaceOptionsBuilder, key string, option any) error {
+	typeErrFunc := func(t string) error {
+		return fmt.Errorf("unexpected type for %q: %T is not %s", key, option, t)
+	}
+	switch key {
+	case "rawData":
+		b, ok := option.(bool)
+		if !ok {
+			return typeErrFunc("bool")
+		}
+		a.Opts = append(a.Opts, func(opts *options.FindOneAndReplaceOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
+			return nil
+		})
+	default:
+		return fmt.Errorf("unsupported option: %q", key)
+	}
+	return nil
+}
+
+// SetInternalFindOneAndUpdateOptions sets internal options for FindOneAndUpdateOptions.
+func SetInternalFindOneAndUpdateOptions(a *options.FindOneAndUpdateOptionsBuilder, key string, option any) error {
+	typeErrFunc := func(t string) error {
+		return fmt.Errorf("unexpected type for %q: %T is not %s", key, option, t)
+	}
+	switch key {
+	case "rawData":
+		b, ok := option.(bool)
+		if !ok {
+			return typeErrFunc("bool")
+		}
+		a.Opts = append(a.Opts, func(opts *options.FindOneAndUpdateOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
+			return nil
+		})
+	default:
+		return fmt.Errorf("unsupported option: %q", key)
 	}
 	return nil
 }
@@ -186,7 +291,7 @@ func SetInternalInsertManyOptions(a *options.InsertManyOptionsBuilder, key strin
 			return nil
 		})
 	default:
-		return fmt.Errorf("unsupported option: %s", key)
+		return fmt.Errorf("unsupported option: %q", key)
 	}
 	return nil
 }
@@ -207,7 +312,7 @@ func SetInternalInsertOneOptions(a *options.InsertOneOptionsBuilder, key string,
 			return nil
 		})
 	default:
-		return fmt.Errorf("unsupported option: %s", key)
+		return fmt.Errorf("unsupported option: %q", key)
 	}
 	return nil
 }

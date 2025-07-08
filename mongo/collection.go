@@ -1536,6 +1536,11 @@ func (coll *Collection) find(
 		}
 		op.Sort(sort)
 	}
+	if rawDataOpt := optionsutil.Value(args.Internal, "rawData"); rawDataOpt != nil {
+		if rawData, ok := rawDataOpt.(bool); ok {
+			op = op.RawData(rawData)
+		}
+	}
 	retry := driver.RetryNone
 	if coll.client.retryReads {
 		retry = driver.RetryOncePerCommand
@@ -1569,6 +1574,7 @@ func newFindArgsFromFindOneArgs(args *options.FindOneOptions) *options.FindOptio
 		v.ShowRecordID = args.ShowRecordID
 		v.Skip = args.Skip
 		v.Sort = args.Sort
+		v.Internal = args.Internal
 	}
 	return v
 }
@@ -1731,6 +1737,11 @@ func (coll *Collection) FindOneAndDelete(
 		}
 		op = op.Let(let)
 	}
+	if rawDataOpt := optionsutil.Value(args.Internal, "rawData"); rawDataOpt != nil {
+		if rawData, ok := rawDataOpt.(bool); ok {
+			op = op.RawData(rawData)
+		}
+	}
 
 	return coll.findAndModify(ctx, op)
 }
@@ -1827,6 +1838,11 @@ func (coll *Collection) FindOneAndReplace(
 			return &SingleResult{err: err}
 		}
 		op = op.Let(let)
+	}
+	if rawDataOpt := optionsutil.Value(args.Internal, "rawData"); rawDataOpt != nil {
+		if rawData, ok := rawDataOpt.(bool); ok {
+			op = op.RawData(rawData)
+		}
 	}
 
 	return coll.findAndModify(ctx, op)
@@ -1936,6 +1952,11 @@ func (coll *Collection) FindOneAndUpdate(
 			return &SingleResult{err: err}
 		}
 		op = op.Let(let)
+	}
+	if rawDataOpt := optionsutil.Value(args.Internal, "rawData"); rawDataOpt != nil {
+		if rawData, ok := rawDataOpt.(bool); ok {
+			op = op.RawData(rawData)
+		}
 	}
 
 	return coll.findAndModify(ctx, op)

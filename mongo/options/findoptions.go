@@ -8,6 +8,8 @@ package options
 
 import (
 	"time"
+
+	"go.mongodb.org/mongo-driver/v2/internal/optionsutil"
 )
 
 // FindOptions represents arguments that can be used to configure a Find
@@ -35,6 +37,10 @@ type FindOptions struct {
 	Let             interface{}
 	Limit           *int64
 	NoCursorTimeout *bool
+
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	Internal optionsutil.Options
 }
 
 // FindOptionsBuilder represents functional options that configure an Findopts.
@@ -285,6 +291,10 @@ type FindOneOptions struct {
 	ShowRecordID        *bool
 	Skip                *int64
 	Sort                interface{}
+
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	Internal optionsutil.Options
 }
 
 // FindOneOptionsBuilder represents functional options that configure an
@@ -450,6 +460,10 @@ type FindOneAndReplaceOptions struct {
 	Upsert                   *bool
 	Hint                     interface{}
 	Let                      interface{}
+
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	Internal optionsutil.Options
 }
 
 // FindOneAndReplaceOptionsBuilder contains options to perform a findAndModify
@@ -611,6 +625,10 @@ type FindOneAndUpdateOptions struct {
 	Upsert                   *bool
 	Hint                     interface{}
 	Let                      interface{}
+
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	Internal optionsutil.Options
 }
 
 // FindOneAndUpdateOptionsBuilder contains options to configure a
@@ -782,6 +800,10 @@ type FindOneAndDeleteOptions struct {
 	Sort       interface{}
 	Hint       interface{}
 	Let        interface{}
+
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	Internal optionsutil.Options
 }
 
 // FindOneAndDeleteOptionsBuilder contains options to configure delete
