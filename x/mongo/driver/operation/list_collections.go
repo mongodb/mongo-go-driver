@@ -39,6 +39,7 @@ type ListCollections struct {
 	batchSize             *int32
 	serverAPI             *driver.ServerAPIOptions
 	timeout               *time.Duration
+	rawData               *bool
 }
 
 // NewListCollections constructs and returns a new ListCollections.
@@ -92,7 +93,7 @@ func (lc *ListCollections) Execute(ctx context.Context) error {
 
 }
 
-func (lc *ListCollections) command(dst []byte, _ description.SelectedServer) ([]byte, error) {
+func (lc *ListCollections) command(dst []byte, desc description.SelectedServer) ([]byte, error) {
 	dst = bsoncore.AppendInt32Element(dst, "listCollections", 1)
 	if lc.filter != nil {
 		dst = bsoncore.AppendDocumentElement(dst, "filter", lc.filter)
@@ -109,6 +110,11 @@ func (lc *ListCollections) command(dst []byte, _ description.SelectedServer) ([]
 		cursorDoc.AppendInt32("batchSize", *lc.batchSize)
 	}
 	dst = bsoncore.AppendDocumentElement(dst, "cursor", cursorDoc.Build())
+
+	// Set rawData for 8.2+ servers.
+	if lc.rawData != nil && desc.WireVersion != nil && driverutil.VersionRangeIncludes(*desc.WireVersion, 27) {
+		dst = bsoncore.AppendBooleanElement(dst, "rawData", *lc.rawData)
+	}
 
 	return dst, nil
 }
@@ -272,5 +278,15 @@ func (lc *ListCollections) Authenticator(authenticator driver.Authenticator) *Li
 	}
 
 	lc.authenticator = authenticator
+	return lc
+}
+
+// RawData sets the rawData to access timeseries data in the compressed format.
+func (lc *ListCollections) RawData(rawData bool) *ListCollections {
+	if lc == nil {
+		lc = new(ListCollections)
+	}
+
+	lc.rawData = &rawData
 	return lc
 }

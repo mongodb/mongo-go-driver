@@ -359,6 +359,27 @@ func SetInternalInsertOneOptions(a *options.InsertOneOptionsBuilder, key string,
 	return nil
 }
 
+// SetInternalListCollectionsOptions sets internal options for ListCollectionsOptions.
+func SetInternalListCollectionsOptions(a *options.ListCollectionsOptionsBuilder, key string, option any) error {
+	typeErrFunc := func(t string) error {
+		return fmt.Errorf("unexpected type for %q: %T is not %s", key, option, t)
+	}
+	switch key {
+	case "rawData":
+		b, ok := option.(bool)
+		if !ok {
+			return typeErrFunc("bool")
+		}
+		a.Opts = append(a.Opts, func(opts *options.ListCollectionsOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
+			return nil
+		})
+	default:
+		return fmt.Errorf("unsupported option: %q", key)
+	}
+	return nil
+}
+
 // SetInternalReplaceOptions sets internal options for ReplaceOptions.
 func SetInternalReplaceOptions(a *options.ReplaceOptionsBuilder, key string, option any) error {
 	typeErrFunc := func(t string) error {
