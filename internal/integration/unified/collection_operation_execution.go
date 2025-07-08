@@ -873,6 +873,11 @@ func executeFindOneAndDelete(ctx context.Context, operation *operation) (*operat
 			opts.SetSort(val.Document())
 		case "let":
 			opts.SetLet(val.Document())
+		case "rawData":
+			err = xoptions.SetInternalFindOneAndDeleteOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized findOneAndDelete option %q", key)
 		}
@@ -955,6 +960,11 @@ func executeFindOneAndReplace(ctx context.Context, operation *operation) (*opera
 			opts.SetSort(val.Document())
 		case "upsert":
 			opts.SetUpsert(val.Boolean())
+		case "rawData":
+			err = xoptions.SetInternalFindOneAndReplaceOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized findOneAndReplace option %q", key)
 		}
@@ -1047,6 +1057,11 @@ func executeFindOneAndUpdate(ctx context.Context, operation *operation) (*operat
 			}
 		case "upsert":
 			opts.SetUpsert(val.Boolean())
+		case "rawData":
+			err = xoptions.SetInternalFindOneAndUpdateOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized findOneAndUpdate option %q", key)
 		}
@@ -1541,6 +1556,11 @@ func createFindCursor(ctx context.Context, operation *operation) (*cursorResult,
 		case "maxAwaitTimeMS":
 			maxAwaitTimeMS := time.Duration(val.Int32()) * time.Millisecond
 			opts.SetMaxAwaitTime(maxAwaitTimeMS)
+		case "rawData":
+			err = xoptions.SetInternalFindOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized find option %q", key)
 		}
