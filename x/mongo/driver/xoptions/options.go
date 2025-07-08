@@ -316,3 +316,66 @@ func SetInternalInsertOneOptions(a *options.InsertOneOptionsBuilder, key string,
 	}
 	return nil
 }
+
+// SetInternalReplaceOptions sets internal options for ReplaceOptions.
+func SetInternalReplaceOptions(a *options.ReplaceOptionsBuilder, key string, option any) error {
+	typeErrFunc := func(t string) error {
+		return fmt.Errorf("unexpected type for %q: %T is not %s", key, option, t)
+	}
+	switch key {
+	case "rawData":
+		b, ok := option.(bool)
+		if !ok {
+			return typeErrFunc("bool")
+		}
+		a.Opts = append(a.Opts, func(opts *options.ReplaceOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
+			return nil
+		})
+	default:
+		return fmt.Errorf("unsupported option: %q", key)
+	}
+	return nil
+}
+
+// SetInternalUpdateManyOptions sets internal options for UpdateManyOptions.
+func SetInternalUpdateManyOptions(a *options.UpdateManyOptionsBuilder, key string, option any) error {
+	typeErrFunc := func(t string) error {
+		return fmt.Errorf("unexpected type for %q: %T is not %s", key, option, t)
+	}
+	switch key {
+	case "rawData":
+		b, ok := option.(bool)
+		if !ok {
+			return typeErrFunc("bool")
+		}
+		a.Opts = append(a.Opts, func(opts *options.UpdateManyOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
+			return nil
+		})
+	default:
+		return fmt.Errorf("unsupported option: %q", key)
+	}
+	return nil
+}
+
+// SetInternalUpdateOneOptions sets internal options for UpdateOneOptions.
+func SetInternalUpdateOneOptions(a *options.UpdateOneOptionsBuilder, key string, option any) error {
+	typeErrFunc := func(t string) error {
+		return fmt.Errorf("unexpected type for %q: %T is not %s", key, option, t)
+	}
+	switch key {
+	case "rawData":
+		b, ok := option.(bool)
+		if !ok {
+			return typeErrFunc("bool")
+		}
+		a.Opts = append(a.Opts, func(opts *options.UpdateOneOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
+			return nil
+		})
+	default:
+		return fmt.Errorf("unsupported option: %q", key)
+	}
+	return nil
+}
