@@ -1307,6 +1307,9 @@ func (coll *Collection) Distinct(
 		}
 		op.Hint(hint)
 	}
+	if args.RawData != nil {
+		op = op.RawData(*args.RawData)
+	}
 	retry := driver.RetryNone
 	if coll.client.retryReads {
 		retry = driver.RetryOncePerCommand
