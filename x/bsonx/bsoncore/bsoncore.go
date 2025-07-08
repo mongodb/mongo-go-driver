@@ -222,6 +222,15 @@ func AppendDocumentElement(dst []byte, key string, doc []byte) []byte {
 // BuildDocument will create a document with the given slice of elements and will append
 // it to dst and return the extended buffer.
 func BuildDocument(dst []byte, elems ...[]byte) []byte {
+	needed := 5
+	for _, elem := range elems {
+		needed += len(elem)
+	}
+	if cap(dst)-len(dst) < needed {
+		newDst := make([]byte, 0, len(dst)+needed)
+		newDst = append(newDst, dst...)
+		dst = newDst
+	}
 	idx, dst := ReserveLength(dst)
 	for _, elem := range elems {
 		dst = append(dst, elem...)
@@ -242,7 +251,7 @@ func BuildDocumentElement(dst []byte, key string, elems ...[]byte) []byte {
 	return BuildDocument(AppendHeader(dst, TypeEmbeddedDocument, key), elems...)
 }
 
-// BuildDocumentFromElements is an alaias for the BuildDocument function.
+// BuildDocumentFromElements is an alias for the BuildDocument function.
 var BuildDocumentFromElements = BuildDocument
 
 // ReadDocument will read a document from src. If there are not enough bytes it
@@ -274,6 +283,29 @@ func AppendArrayElement(dst []byte, key string, arr []byte) []byte {
 
 // BuildArray will append a BSON array to dst built from values.
 func BuildArray(dst []byte, values ...Value) []byte {
+	intLen := func(n int) int {
+		if n == 0 {
+			return 1 // Special case: 0 has one digit
+		}
+		count := 0
+		for n > 0 {
+			n /= 10
+			count++
+		}
+		return count
+	}
+
+	needed := 5
+	for pos, val := range values {
+		needed += 2
+		needed += intLen(pos)
+		needed += len(val.Data)
+	}
+	if cap(dst)-len(dst) < needed {
+		newDst := make([]byte, 0, len(dst)+needed)
+		newDst = append(newDst, dst...)
+		dst = newDst
+	}
 	idx, dst := ReserveLength(dst)
 	for pos, val := range values {
 		dst = AppendValueElement(dst, strconv.Itoa(pos), val)

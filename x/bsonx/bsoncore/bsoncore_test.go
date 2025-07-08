@@ -11,6 +11,7 @@ import (
 	"encoding/binary"
 	"math"
 	"reflect"
+	"strconv"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -952,4 +953,34 @@ func TestInvalidBytes(t *testing.T) {
 		assert.False(t, ok, "expected not ok response for invalid length read")
 		assert.Equal(t, 4, len(src), "expected src to contain the size parameter still")
 	})
+}
+
+func BenchmarkBuildDocument(b *testing.B) {
+	for _, size := range []int{10, 100, 1000} {
+		elements := make([][]byte, size)
+		for i := 0; i < size; i++ {
+			elements[i] = AppendDoubleElement(nil, "pi"+strconv.Itoa(i), 3.14159)
+		}
+		b.Run(strconv.Itoa(size), func(b *testing.B) {
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				BuildDocument(nil, elements...)
+			}
+		})
+	}
+}
+
+func BenchmarkBuildArray(b *testing.B) {
+	for _, size := range []int{10, 100, 1000} {
+		elements := make([]Value, size)
+		for i := 0; i < size; i++ {
+			elements[i] = Value{Type: TypeDouble, Data: AppendDouble(nil, 3.14159)}
+		}
+		b.Run(strconv.Itoa(size), func(b *testing.B) {
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				BuildArray(nil, elements...)
+			}
+		})
+	}
 }
