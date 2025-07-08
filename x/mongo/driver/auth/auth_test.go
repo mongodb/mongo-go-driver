@@ -8,6 +8,7 @@ package auth_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"testing"
@@ -29,11 +30,12 @@ func TestCreateAuthenticator(t *testing.T) {
 		name   string
 		source string
 		auth   auth.Authenticator
+		err    error
 	}{
 		{name: "", auth: &auth.DefaultAuthenticator{}},
 		{name: "SCRAM-SHA-1", auth: &auth.ScramAuthenticator{}},
 		{name: "SCRAM-SHA-256", auth: &auth.ScramAuthenticator{}},
-		{name: "MONGODB-CR", auth: &auth.MongoDBCRAuthenticator{}},
+		{name: "MONGODB-CR", err: errors.New(`auth mechanism "MONGODB-CR" is no longer available in any supported version of MongoDB`)},
 		{name: "PLAIN", auth: &auth.PlainAuthenticator{}},
 		{name: "MONGODB-X509", auth: &auth.MongoDBX509Authenticator{}},
 	}
@@ -47,6 +49,10 @@ func TestCreateAuthenticator(t *testing.T) {
 			}
 
 			a, err := auth.CreateAuthenticator(test.name, cred, &http.Client{})
+			if test.err != nil {
+				require.EqualError(t, err, test.err.Error())
+				return
+			}
 			require.NoError(t, err)
 			require.IsType(t, test.auth, a)
 		})

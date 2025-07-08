@@ -7,7 +7,6 @@ toolchain go1.23.1
 require (
 	github.com/stretchr/testify v1.10.0
 	github.com/testcontainers/testcontainers-go v0.35.0
-	golang.org/x/mod v0.24.0
 )
 
 require (

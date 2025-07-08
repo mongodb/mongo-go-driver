@@ -501,7 +501,19 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 		}
 		return nil, ErrPoolClosed
 	case poolPaused:
-		err := poolClearedError{err: p.lastClearErr, address: p.address}
+		// Wrap poolCleared in a driver.Error so we can add the
+		// "TransientTransactionError" label. This will add
+		// "TransientTransactionError" to all poolClearedError instances, not
+		// just those that happened during transactions. While that behavior is
+		// different than other places we add "TransientTransactionError", it is
+		// consistent with the Transactions specification and simplifies the
+		// code.
+		pcErr := poolClearedError{err: p.lastClearErr, address: p.address}
+		err := driver.Error{
+			Message: pcErr.Error(),
+			Labels:  []string{driver.TransientTransactionError},
+			Wrapped: pcErr,
+		}
 		p.stateMu.RUnlock()
 
 		duration := time.Since(start)
