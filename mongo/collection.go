@@ -534,6 +534,9 @@ func (coll *Collection) delete(
 		}
 		op = op.Let(let)
 	}
+	if args.RawData != nil {
+		op = op.RawData(*args.RawData)
+	}
 
 	// deleteMany cannot be retried
 	retryMode := driver.RetryNone
@@ -575,6 +578,7 @@ func (coll *Collection) DeleteOne(
 		Comment:   args.Comment,
 		Hint:      args.Hint,
 		Let:       args.Let,
+		RawData:   args.RawData,
 	}
 
 	return coll.delete(ctx, filter, true, rrOne, deleteOptions)

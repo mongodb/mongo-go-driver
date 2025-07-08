@@ -43,6 +43,7 @@ type Delete struct {
 	serverAPI     *driver.ServerAPIOptions
 	let           bsoncore.Document
 	timeout       *time.Duration
+	rawData       *bool
 	logger        *logger.Logger
 }
 
@@ -138,6 +139,10 @@ func (d *Delete) command(dst []byte, desc description.SelectedServer) ([]byte, e
 	}
 	if d.let != nil {
 		dst = bsoncore.AppendDocumentElement(dst, "let", d.let)
+	}
+	// Set rawData for 8.2+ servers.
+	if d.rawData != nil && desc.WireVersion != nil && driverutil.VersionRangeIncludes(*desc.WireVersion, 27) {
+		dst = bsoncore.AppendBooleanElement(dst, "rawData", *d.rawData)
 	}
 	return dst, nil
 }
@@ -335,5 +340,15 @@ func (d *Delete) Authenticator(authenticator driver.Authenticator) *Delete {
 	}
 
 	d.authenticator = authenticator
+	return d
+}
+
+// RawData sets the rawData to access timeseries data in the compressed format.
+func (d *Delete) RawData(rawData bool) *Delete {
+	if d == nil {
+		d = new(Delete)
+	}
+
+	d.rawData = &rawData
 	return d
 }
