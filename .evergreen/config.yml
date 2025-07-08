@@ -290,6 +290,8 @@ functions:
       type: test
       params:
         binary: bash
+        env:
+          COMMIT: "${github_commit}"
         include_expansions_in_env: [perf_uri_private_endpoint]
         args: [*task-runner, perf-pr-comment]
 
