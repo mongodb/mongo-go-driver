@@ -123,6 +123,8 @@ tasks:
 
   setup-encryption: bash etc/setup-encryption.sh
 
+  start-mongoproxy: bash etc/start-mongoproxy.sh
+
   evg-test:
     - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=$MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s -p 1 ./... >> test.suite
 

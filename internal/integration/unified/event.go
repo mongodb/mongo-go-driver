@@ -16,27 +16,30 @@ import (
 type monitoringEventType string
 
 const (
-	commandStartedEvent             monitoringEventType = "CommandStartedEvent"
-	commandSucceededEvent           monitoringEventType = "CommandSucceededEvent"
-	commandFailedEvent              monitoringEventType = "CommandFailedEvent"
-	poolCreatedEvent                monitoringEventType = "PoolCreatedEvent"
-	poolReadyEvent                  monitoringEventType = "PoolReadyEvent"
-	poolClearedEvent                monitoringEventType = "PoolClearedEvent"
-	poolClosedEvent                 monitoringEventType = "PoolClosedEvent"
-	connectionCreatedEvent          monitoringEventType = "ConnectionCreatedEvent"
-	connectionReadyEvent            monitoringEventType = "ConnectionReadyEvent"
-	connectionClosedEvent           monitoringEventType = "ConnectionClosedEvent"
-	connectionCheckOutStartedEvent  monitoringEventType = "ConnectionCheckOutStartedEvent"
-	connectionCheckOutFailedEvent   monitoringEventType = "ConnectionCheckOutFailedEvent"
-	connectionCheckedOutEvent       monitoringEventType = "ConnectionCheckedOutEvent"
-	connectionCheckedInEvent        monitoringEventType = "ConnectionCheckedInEvent"
-	serverDescriptionChangedEvent   monitoringEventType = "ServerDescriptionChangedEvent"
-	serverHeartbeatFailedEvent      monitoringEventType = "ServerHeartbeatFailedEvent"
-	serverHeartbeatStartedEvent     monitoringEventType = "ServerHeartbeatStartedEvent"
-	serverHeartbeatSucceededEvent   monitoringEventType = "ServerHeartbeatSucceededEvent"
-	topologyDescriptionChangedEvent monitoringEventType = "TopologyDescriptionChangedEvent"
-	topologyOpeningEvent            monitoringEventType = "TopologyOpeningEvent"
-	topologyClosedEvent             monitoringEventType = "TopologyClosedEvent"
+	commandStartedEvent                monitoringEventType = "CommandStartedEvent"
+	commandSucceededEvent              monitoringEventType = "CommandSucceededEvent"
+	commandFailedEvent                 monitoringEventType = "CommandFailedEvent"
+	poolCreatedEvent                   monitoringEventType = "PoolCreatedEvent"
+	poolReadyEvent                     monitoringEventType = "PoolReadyEvent"
+	poolClearedEvent                   monitoringEventType = "PoolClearedEvent"
+	poolClosedEvent                    monitoringEventType = "PoolClosedEvent"
+	connectionCreatedEvent             monitoringEventType = "ConnectionCreatedEvent"
+	connectionReadyEvent               monitoringEventType = "ConnectionReadyEvent"
+	connectionClosedEvent              monitoringEventType = "ConnectionClosedEvent"
+	connectionCheckOutStartedEvent     monitoringEventType = "ConnectionCheckOutStartedEvent"
+	connectionCheckOutFailedEvent      monitoringEventType = "ConnectionCheckOutFailedEvent"
+	connectionCheckedOutEvent          monitoringEventType = "ConnectionCheckedOutEvent"
+	connectionCheckedInEvent           monitoringEventType = "ConnectionCheckedInEvent"
+	connectionPendingResponseStarted   monitoringEventType = "ConnectionPendingResponseStarted"
+	connectionPendingResponseSucceeded monitoringEventType = "ConnectionPendingResponseSucceeded"
+	connectionPendingResponseFailed    monitoringEventType = "ConnectionPendingResponseFailed"
+	serverDescriptionChangedEvent      monitoringEventType = "ServerDescriptionChangedEvent"
+	serverHeartbeatFailedEvent         monitoringEventType = "ServerHeartbeatFailedEvent"
+	serverHeartbeatStartedEvent        monitoringEventType = "ServerHeartbeatStartedEvent"
+	serverHeartbeatSucceededEvent      monitoringEventType = "ServerHeartbeatSucceededEvent"
+	topologyDescriptionChangedEvent    monitoringEventType = "TopologyDescriptionChangedEvent"
+	topologyOpeningEvent               monitoringEventType = "TopologyOpeningEvent"
+	topologyClosedEvent                monitoringEventType = "TopologyClosedEvent"
 )
 
 func monitoringEventTypeFromString(eventStr string) (monitoringEventType, bool) {
@@ -69,6 +72,12 @@ func monitoringEventTypeFromString(eventStr string) (monitoringEventType, bool) 
 		return connectionCheckedOutEvent, true
 	case "connectioncheckedinevent":
 		return connectionCheckedInEvent, true
+	case "connectionpendingresponsestarted":
+		return connectionPendingResponseStarted, true
+	case "connectionpendingresponsesucceeded":
+		return connectionPendingResponseSucceeded, true
+	case "connectionpendingresponsefailed":
+		return connectionPendingResponseFailed, true
 	case "serverdescriptionchangedevent":
 		return serverDescriptionChangedEvent, true
 	case "serverheartbeatfailedevent":
@@ -112,6 +121,12 @@ func monitoringEventTypeFromPoolEvent(evt *event.PoolEvent) monitoringEventType 
 		return connectionCheckedOutEvent
 	case event.ConnectionCheckedIn:
 		return connectionCheckedInEvent
+	case event.ConnectionPendingResponseStarted:
+		return connectionPendingResponseStarted
+	case event.ConnectionPendingResponseSucceeded:
+		return connectionPendingResponseSucceeded
+	case event.ConnectionPendingResponseFailed:
+		return connectionPendingResponseFailed
 	default:
 		return ""
 	}
