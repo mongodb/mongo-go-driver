@@ -15,6 +15,7 @@ type DeleteOneOptions struct {
 	Comment   interface{}
 	Hint      interface{}
 	Let       interface{}
+	RawData   *bool
 }
 
 // DeleteOneOptionsBuilder contains options to configure DeleteOne operations. Each
@@ -93,6 +94,18 @@ func (do *DeleteOneOptionsBuilder) SetLet(let interface{}) *DeleteOneOptionsBuil
 	return do
 }
 
+// SetRawData sets the value for the RawData field. If true, it allows the CRUD operations to access timeseries
+// collections on the bucket-level. This option is only valid for MongoDB versions >= 9.0. The default value is false.
+func (do *DeleteOneOptionsBuilder) SetRawData(rawData bool) *DeleteOneOptionsBuilder {
+	do.Opts = append(do.Opts, func(opts *DeleteOneOptions) error {
+		opts.RawData = &rawData
+
+		return nil
+	})
+
+	return do
+}
+
 // DeleteManyOptions represents arguments that can be used to configure DeleteMany
 // operations.
 //
@@ -102,6 +115,7 @@ type DeleteManyOptions struct {
 	Comment   interface{}
 	Hint      interface{}
 	Let       interface{}
+	RawData   *bool
 }
 
 // DeleteManyOptionsBuilder contains options to configure DeleteMany operations.
@@ -173,6 +187,18 @@ func (do *DeleteManyOptionsBuilder) SetHint(hint interface{}) *DeleteManyOptions
 func (do *DeleteManyOptionsBuilder) SetLet(let interface{}) *DeleteManyOptionsBuilder {
 	do.Opts = append(do.Opts, func(opts *DeleteManyOptions) error {
 		opts.Let = let
+
+		return nil
+	})
+
+	return do
+}
+
+// SetRawData sets the value for the RawData field. If true, it allows the CRUD operations to access timeseries
+// collections on the bucket-level. This option is only valid for MongoDB versions >= 9.0. The default value is false.
+func (do *DeleteManyOptionsBuilder) SetRawData(rawData bool) *DeleteManyOptionsBuilder {
+	do.Opts = append(do.Opts, func(opts *DeleteManyOptions) error {
+		opts.RawData = &rawData
 
 		return nil
 	})

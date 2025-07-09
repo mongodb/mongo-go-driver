@@ -324,6 +324,9 @@ func (coll *Collection) insert(
 	if args.Ordered != nil {
 		op = op.Ordered(*args.Ordered)
 	}
+	if args.RawData != nil {
+		op = op.RawData(*args.RawData)
+	}
 	retry := driver.RetryNone
 	if coll.client.retryWrites {
 		retry = driver.RetryOncePerCommand
@@ -374,6 +377,9 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 	}
 	if args.Comment != nil {
 		imOpts.SetComment(args.Comment)
+	}
+	if args.RawData != nil {
+		imOpts = imOpts.SetRawData(*args.RawData)
 	}
 	res, err := coll.insert(ctx, []interface{}{document}, imOpts)
 
@@ -534,6 +540,9 @@ func (coll *Collection) delete(
 		}
 		op = op.Let(let)
 	}
+	if args.RawData != nil {
+		op = op.RawData(*args.RawData)
+	}
 
 	// deleteMany cannot be retried
 	retryMode := driver.RetryNone
@@ -575,6 +584,7 @@ func (coll *Collection) DeleteOne(
 		Comment:   args.Comment,
 		Hint:      args.Hint,
 		Let:       args.Let,
+		RawData:   args.RawData,
 	}
 
 	return coll.delete(ctx, filter, true, rrOne, deleteOptions)
@@ -1036,6 +1046,9 @@ func aggregate(a aggregateParams, opts ...options.Lister[options.AggregateOption
 		}
 		op.CustomOptions(customOptions)
 	}
+	if args.RawData != nil {
+		op = op.RawData(*args.RawData)
+	}
 
 	retry := driver.RetryNone
 	if a.retryRead && !hasOutputStage {
@@ -1124,6 +1137,9 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 		}
 		op.Hint(hintVal)
 	}
+	if args.RawData != nil {
+		op = op.RawData(*args.RawData)
+	}
 	retry := driver.RetryNone
 	if coll.client.retryReads {
 		retry = driver.RetryOncePerCommand
@@ -1204,6 +1220,9 @@ func (coll *Collection) EstimatedDocumentCount(
 			return 0, err
 		}
 		op = op.Comment(comment)
+	}
+	if args.RawData != nil {
+		op = op.RawData(*args.RawData)
 	}
 
 	retry := driver.RetryNone
@@ -1293,6 +1312,9 @@ func (coll *Collection) Distinct(
 			return &DistinctResult{err: err}
 		}
 		op.Hint(hint)
+	}
+	if args.RawData != nil {
+		op = op.RawData(*args.RawData)
 	}
 	retry := driver.RetryNone
 	if coll.client.retryReads {
