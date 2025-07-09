@@ -67,6 +67,8 @@ func createUpdateManyArguments(args bson.Raw) (*updateArguments, *options.Update
 			}
 		case "upsert":
 			opts.SetUpsert(val.Boolean())
+		case "rawData":
+			opts.SetRawData(val.Boolean())
 		default:
 			return nil, nil, fmt.Errorf("unrecognized update option %q", key)
 		}
@@ -125,6 +127,8 @@ func createUpdateOneArguments(args bson.Raw) (*updateArguments, *options.UpdateO
 			opts.SetUpsert(val.Boolean())
 		case "sort":
 			opts.SetSort(val.Document())
+		case "rawData":
+			opts.SetRawData(val.Boolean())
 		default:
 			return nil, nil, fmt.Errorf("unrecognized update option %q", key)
 		}
