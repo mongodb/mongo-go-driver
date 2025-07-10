@@ -143,7 +143,6 @@ func getMarkdownComment(changePoints []ChangePoint, commit string) bytes.Buffer 
 	if err != nil {
 		perfBaronLink = ""
 	}
-	fmt.Println(perfBaronLink)
 	buffer.WriteString("\n*For a comprehensive view of all microbenchmark results for this PR's commit, please visit [this link](" + perfBaronLink + ")*")
 
 	return buffer

@@ -4,4 +4,4 @@
 
 set -eux
 
-go run ./internal/cmd/perfnotif/main.go
+go run ./internal/cmd/perfnotif/main.go ./internal/cmd/perfnotif/generateperfbaronlink.go
