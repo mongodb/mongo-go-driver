@@ -61,7 +61,7 @@ func main() {
 		log.Panicf("Error retrieving and decoding documents from collection: %v.", err)
 	}
 
-	var markdownComment = getMarkdownComment(changePoints)
+	var markdownComment = getMarkdownComment(changePoints, commit)
 	fmt.Print(markdownComment.String())
 
 	err = client.Disconnect(context.Background())
@@ -118,7 +118,7 @@ func getDocsWithContext(coll *mongo.Collection, commit string) ([]ChangePoint, e
 	return changePoints, nil
 }
 
-func getMarkdownComment(changePoints []ChangePoint) bytes.Buffer {
+func getMarkdownComment(changePoints []ChangePoint, commit string) bytes.Buffer {
 	var buffer bytes.Buffer
 
 	buffer.WriteString("# 👋 GoDriver Performance Notification\n")
@@ -129,15 +129,22 @@ func getMarkdownComment(changePoints []ChangePoint) bytes.Buffer {
 		buffer.WriteString("|---|---|---|---|\n")
 
 		for _, cp := range changePoints {
-			// TODO: update this to dynamically generate link
-			var perfBaronLink = "https://performance-monitoring-and-analysis.server-tig.prod.corp.mongodb.com/baron"
+			perfBaronLink, err := GeneratePerfBaronLink(commit, cp.TimeSeriesInfo.Test)
+			if err != nil {
+				perfBaronLink = ""
+			}
 			fmt.Fprintf(&buffer, "| %s | %s | %f | [linked here](%s) |\n", cp.TimeSeriesInfo.Test, cp.TimeSeriesInfo.Measurement, cp.HScore, perfBaronLink)
 		}
 	} else {
 		buffer.WriteString("There were no significant changes to the performance to report.\n")
 	}
-	// TODO: update this to dynamically generate link
-	buffer.WriteString("*For a comprehensive view of all microbenchmark results for this PR's commit, please visit [this link](https://performance-monitoring-and-analysis.server-tig.prod.corp.mongodb.com/baron?change_point_filters=%5B%7B%22active%22%3Atrue%2C%22name%22%3A%22commit%22%2C%22operator%22%3A%22matches%22%2C%22type%22%3A%22regex%22%2C%22value%22%3A%22%22%7D%2C%7B%22active%22%3Atrue%2C%22name%22%3A%22commit_date%22%2C%22operator%22%3A%22after%22%2C%22type%22%3A%22date%22%7D%2C%7B%22active%22%3Atrue%2C%22name%22%3A%22calculated_on%22%2C%22operator%22%3A%22after%22%2C%22type%22%3A%22date%22%7D%2C%7B%22active%22%3Atrue%2C%22name%22%3A%22project%22%2C%22operator%22%3A%22matches%22%2C%22type%22%3A%22regex%22%2C%22value%22%3A%22mongo-go-driver%22%7D%2C%7B%22active%22%3Atrue%2C%22name%22%3A%22variant%22%2C%22operator%22%3A%22matches%22%2C%22type%22%3A%22regex%22%2C%22value%22%3A%22perf%22%7D%2C%7B%22active%22%3Atrue%2C%22name%22%3A%22task%22%2C%22operator%22%3A%22matches%22%2C%22type%22%3A%22regex%22%2C%22value%22%3A%22perf%22%7D%2C%7B%22active%22%3Atrue%2C%22name%22%3A%22test%22%2C%22operator%22%3A%22matches%22%2C%22type%22%3A%22regex%22%2C%22value%22%3A%22%22%7D%2C%7B%22active%22%3Atrue%2C%22name%22%3A%22measurement%22%2C%22operator%22%3A%22matches%22%2C%22type%22%3A%22regex%22%2C%22value%22%3A%22%22%7D%2C%7B%22active%22%3Atrue%2C%22name%22%3A%22args%22%2C%22operator%22%3A%22eq%22%2C%22type%22%3A%22json%22%7D%2C%7B%22active%22%3Atrue%2C%22name%22%3A%22percent_change%22%2C%22operator%22%3A%22gt%22%2C%22type%22%3A%22number%22%7D%2C%7B%22active%22%3Atrue%2C%22name%22%3A%22z_score_change%22%2C%22operator%22%3A%22gt%22%2C%22type%22%3A%22number%22%7D%2C%7B%22active%22%3Atrue%2C%22name%22%3A%22h_score%22%2C%22operator%22%3A%22gt%22%2C%22type%22%3A%22number%22%7D%2C%7B%22active%22%3Atrue%2C%22name%22%3A%22absolute_change%22%2C%22operator%22%3A%22gt%22%2C%22type%22%3A%22number%22%7D%2C%7B%22active%22%3Atrue%2C%22name%22%3A%22build_failures%22%2C%22operator%22%3A%22matches%22%2C%22type%22%3A%22regex%22%2C%22value%22%3A%22%22%7D%2C%7B%22active%22%3Atrue%2C%22name%22%3A%22bf_suggestions%22%2C%22operator%22%3A%22inlist%22%2C%22type%22%3A%22listSelect%22%7D%2C%7B%22active%22%3Atrue%2C%22name%22%3A%22triage_status%22%2C%22operator%22%3A%22inlist%22%2C%22type%22%3A%22listSelect%22%7D%2C%7B%22active%22%3Atrue%2C%22name%22%3A%22changeType%22%2C%22operator%22%3A%22inlist%22%2C%22type%22%3A%22listSelect%22%7D%2C%7B%22active%22%3Atrue%2C%22name%22%3A%22triage_contexts%22%2C%22operator%22%3A%22inlist%22%2C%22type%22%3A%22listSelect%22%2C%22value%22%3A%5B%22GoDriver+perf+%28h-score%29%22%5D%7D%5D).*")
+
+	perfBaronLink, err := GeneratePerfBaronLink(commit, "")
+	if err != nil {
+		perfBaronLink = ""
+	}
+	fmt.Println(perfBaronLink)
+	buffer.WriteString("\n*For a comprehensive view of all microbenchmark results for this PR's commit, please visit [this link](" + perfBaronLink + ")*")
 
 	return buffer
 }
