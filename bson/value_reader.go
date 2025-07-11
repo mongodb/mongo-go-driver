@@ -621,15 +621,21 @@ func (vr *valueReader) ReadDouble() (float64, error) {
 	return math.Float64frombits(u), nil
 }
 
+// ReadInt32 reads a BSON int32 value, advancing the reader position to the end
+// of the int32 value.
 func (vr *valueReader) ReadInt32() (int32, error) {
 	if err := vr.ensureElementValue(TypeInt32, 0, "ReadInt32"); err != nil {
+		return 0, err
+	}
+	i, err := vr.readi32()
+	if err != nil {
 		return 0, err
 	}
 
 	if err := vr.pop(); err != nil {
 		return 0, err
 	}
-	return vr.readi32()
+	return i, nil
 }
 
 func (vr *valueReader) ReadInt64() (int64, error) {
