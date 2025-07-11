@@ -293,7 +293,9 @@ func (vr *valueReader) Type() Type {
 	return vr.stack[vr.frame].vType
 }
 
-func (vr *valueReader) appendNextElement(dst []byte) ([]byte, error) {
+// peekLength returns the length of the next value in the stream without
+// offsetting the reader position.
+func peekNextValueSize(vr *valueReader, dst []byte) (int32, error) {
 	var length int32
 	var err error
 	switch vr.stack[vr.frame].vType {
@@ -321,46 +323,50 @@ func (vr *valueReader) appendNextElement(dst []byte) ([]byte, error) {
 	case TypeObjectID:
 		length = 12
 	case TypeRegex:
-		for n := 0; n < 2; n++ { // Read two C strings.
-			str, err := vr.r.ReadBytes(0x00)
-			if err != nil {
-				return nil, err
-			}
-			dst = append(dst, str...)
-			vr.offset += int64(len(str))
-		}
-		return dst, nil
+		length, err = vr.src.regexLength()
 	default:
-		return nil, fmt.Errorf("attempted to read bytes of unknown BSON type %v", vr.stack[vr.frame].vType)
-	}
-	if err != nil {
-		return nil, err
+		return 0, fmt.Errorf("attempted to read bytes of unknown BSON type %v", vr.stack[vr.frame].vType)
 	}
 
-	buf, err := vr.r.Peek(int(length))
-	if err != nil {
-		if err == bufio.ErrBufferFull {
-			temp := make([]byte, length)
-			if _, err = io.ReadFull(vr.r, temp); err != nil {
-				return nil, err
-			}
-			dst = append(dst, temp...)
-			vr.offset += int64(len(temp))
-			return dst, nil
-		}
-
-		return nil, err
-	}
-
-	dst = append(dst, buf...)
-	if _, err = vr.r.Discard(int(length)); err != nil {
-		return nil, err
-	}
-
-	vr.offset += int64(length)
-	return dst, nil
+	return length, err
 }
 
+// readBytes tries to grab the next n bytes zero-allocation using peek+discard.
+// If peek fails (e.g. bufio buffer full), it falls back to io.ReadFull.
+func readBytes(src valueReaderByteSrc, n int) ([]byte, error) {
+	if src.streamable() {
+		data := make([]byte, n)
+		if _, err := io.ReadFull(src, data); err != nil {
+			if errors.Is(err, io.ErrUnexpectedEOF) {
+				err = io.EOF // Convert io.ErrUnexpectedEOF to io.EOF for consistency.
+			}
+			return nil, err
+		}
+
+		return data, nil
+	}
+
+	// Zero-allocation path.
+	buf, err := src.peek(n)
+	if err != nil {
+		return nil, err
+	}
+
+	_, _ = src.discard(n) // Discard the bytes from the source.
+	return buf, nil
+}
+
+// readBytesValueReader returns a subslice [offset, offset+length) or EOF.
+func (vr *valueReader) readBytes(n int32) ([]byte, error) {
+	if n < 0 {
+		return nil, fmt.Errorf("invalid length: %d", n)
+	}
+
+	return readBytes(vr.src, int(n))
+}
+
+// readValueBytes returns the raw bytes of the next value (or top‐level
+// document) without allocating intermediary buffers, then pops the frame.
 func (vr *valueReader) readValueBytes(dst []byte) (Type, []byte, error) {
 	switch vr.stack[vr.frame].mode {
 	case mTopLevel:
@@ -368,25 +374,25 @@ func (vr *valueReader) readValueBytes(dst []byte) (Type, []byte, error) {
 		if err != nil {
 			return Type(0), nil, err
 		}
-		dst, err = vr.appendBytes(dst, length)
-		if err != nil {
-			return Type(0), nil, err
-		}
-		return Type(0), dst, nil
+		b, err := vr.readBytes(length)
+		return Type(0), append(dst, b...), err
 	case mElement, mValue:
-		dst, err := vr.appendNextElement(dst)
+		length, err := peekNextValueSize(vr, dst)
 		if err != nil {
 			return Type(0), dst, err
 		}
+
+		b, err := vr.readBytes(length)
 
 		t := vr.stack[vr.frame].vType
 		err = vr.pop()
 		if err != nil {
 			return Type(0), nil, err
 		}
-		return t, dst, nil
+
+		return t, append(dst, b...), err
 	default:
-		return Type(0), nil, vr.invalidTransitionErr(0, "ReadValueBytes", []mode{mElement, mValue})
+		return Type(0), nil, vr.invalidTransitionErr(0, "readValueBytes", []mode{mElement, mValue})
 	}
 }
 
@@ -397,7 +403,7 @@ func (vr *valueReader) Skip() error {
 		return vr.invalidTransitionErr(0, "Skip", []mode{mElement, mValue})
 	}
 
-	_, err := vr.appendNextElement(nil)
+	_, err := peekNextValueSize(vr, nil)
 	if err != nil {
 		return err
 	}
