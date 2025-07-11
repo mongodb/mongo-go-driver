@@ -425,7 +425,10 @@ func (vr *valueReader) ReadArray() (ArrayReader, error) {
 	return vr, nil
 }
 
-func (vr *valueReader) ReadBinary() (b []byte, btype byte, err error) {
+// ReadBinary reads a BSON binary value, returning the byte slice and the
+// type of the binary data (0x02 for old binary, 0x00 for new binary, etc.),
+// advancing the reader position to the end of the binary value.
+func (vr *valueReader) ReadBinary() ([]byte, byte, error) {
 	if err := vr.ensureElementValue(TypeBinary, 0, "ReadBinary"); err != nil {
 		return nil, 0, err
 	}
@@ -435,7 +438,7 @@ func (vr *valueReader) ReadBinary() (b []byte, btype byte, err error) {
 		return nil, 0, err
 	}
 
-	btype, err = vr.readByte()
+	btype, err := vr.readByte()
 	if err != nil {
 		return nil, 0, err
 	}
@@ -448,8 +451,7 @@ func (vr *valueReader) ReadBinary() (b []byte, btype byte, err error) {
 		}
 	}
 
-	b = make([]byte, length)
-	err = vr.read(b)
+	b, err := vr.readBytes(length)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -457,6 +459,7 @@ func (vr *valueReader) ReadBinary() (b []byte, btype byte, err error) {
 	if err := vr.pop(); err != nil {
 		return nil, 0, err
 	}
+
 	return b, btype, nil
 }
 
