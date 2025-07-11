@@ -7,7 +7,6 @@
 package bson
 
 import (
-	"bufio"
 	"bytes"
 	_ "embed"
 	"errors"
@@ -81,7 +80,7 @@ func TestValueReader(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				vr := &valueReader{
-					r: bufio.NewReader(bytes.NewReader(tc.data)),
+					src: &bufferedValueReader{buf: tc.data},
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -146,7 +145,7 @@ func TestValueReader(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				vr := &valueReader{
-					r: bufio.NewReader(bytes.NewReader(tc.data)),
+					src: &bufferedValueReader{buf: tc.data},
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -176,16 +175,16 @@ func TestValueReader(t *testing.T) {
 			}
 
 			// invalid length
-			vr.r = bufio.NewReader(bytes.NewReader([]byte{0x00, 0x00}))
+			vr.src = &bufferedValueReader{buf: []byte{0x00, 0x00}}
 			_, err := vr.ReadDocument()
-			if !errors.Is(err, io.ErrUnexpectedEOF) {
+			if !errors.Is(err, io.EOF) {
 				t.Errorf("Expected io.ErrUnexpectedEOF with document length too small. got %v; want %v", err, io.EOF)
 			}
-			if vr.offset != 0 {
-				t.Errorf("Expected 0 offset. got %d", vr.offset)
+			if vr.src.pos() != 0 {
+				t.Errorf("Expected 0 offset. got %d", vr.src.pos())
 			}
 
-			vr.r = bufio.NewReader(bytes.NewReader(doc))
+			vr.src = &bufferedValueReader{buf: doc}
 			_, err = vr.ReadDocument()
 			noerr(t, err)
 			if vr.stack[vr.frame].end != 5 {
@@ -215,8 +214,10 @@ func TestValueReader(t *testing.T) {
 			}
 
 			vr.stack[1].mode, vr.stack[1].vType = mElement, TypeEmbeddedDocument
-			vr.offset = 4
-			vr.r = bufio.NewReader(bytes.NewReader([]byte{0x05, 0x00, 0x00, 0x00, 0x00, 0x00}))
+			vr.src = &bufferedValueReader{
+				buf:    []byte{0x0A, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00},
+				offset: 4,
+			}
 			_, err = vr.ReadDocument()
 			noerr(t, err)
 			if len(vr.stack) != 3 {
@@ -228,13 +229,13 @@ func TestValueReader(t *testing.T) {
 			if vr.stack[2].end != 9 {
 				t.Errorf("End of embedded document is not correct. got %d; want %d", vr.stack[2].end, 9)
 			}
-			if vr.offset != 8 {
-				t.Errorf("Offset not incremented correctly. got %d; want %d", vr.offset, 8)
+			if vr.src.pos() != 8 {
+				t.Errorf("Offset not incremented correctly. got %d; want %d", vr.src.pos(), 8)
 			}
 
 			vr.frame--
 			_, err = vr.ReadDocument()
-			if !errors.Is(err, io.ErrUnexpectedEOF) {
+			if !errors.Is(err, io.EOF) {
 				t.Errorf("Should return error when attempting to read length with not enough bytes. got %v; want %v", err, io.EOF)
 			}
 		})
@@ -312,7 +313,7 @@ func TestValueReader(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				vr := &valueReader{
-					r: bufio.NewReader(bytes.NewReader(tc.data)),
+					src: &bufferedValueReader{buf: tc.data},
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -331,9 +332,11 @@ func TestValueReader(t *testing.T) {
 		}
 
 		t.Run("success", func(t *testing.T) {
+			doc := []byte{0x00, 0x00, 0x00, 0x00}
+			doc = append(doc, codeWithScope...)
+			doc = append(doc, 0x00)
 			vr := &valueReader{
-				offset: 4,
-				r:      bufio.NewReader(bytes.NewReader(codeWithScope)),
+				src: &bufferedValueReader{buf: doc, offset: 4},
 				stack: []vrState{
 					{mode: mTopLevel},
 					{mode: mElement, vType: TypeCodeWithScope},
@@ -355,8 +358,8 @@ func TestValueReader(t *testing.T) {
 			if vr.stack[2].end != 21 {
 				t.Errorf("End of scope is not correct. got %d; want %d", vr.stack[2].end, 21)
 			}
-			if vr.offset != 20 {
-				t.Errorf("Offset not incremented correctly. got %d; want %d", vr.offset, 20)
+			if vr.src.pos() != 20 {
+				t.Errorf("Offset not incremented correctly. got %d; want %d", vr.src.pos(), 20)
 			}
 		})
 	})
@@ -417,7 +420,7 @@ func TestValueReader(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				vr := &valueReader{
-					r: bufio.NewReader(bytes.NewReader(tc.data)),
+					src: &bufferedValueReader{buf: tc.data},
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -475,7 +478,7 @@ func TestValueReader(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				vr := &valueReader{
-					r: bufio.NewReader(bytes.NewReader(tc.data)),
+					src: &bufferedValueReader{buf: tc.data},
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -533,7 +536,7 @@ func TestValueReader(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				vr := &valueReader{
-					r: bufio.NewReader(bytes.NewReader(tc.data)),
+					src: &bufferedValueReader{buf: tc.data},
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -593,7 +596,7 @@ func TestValueReader(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				vr := &valueReader{
-					r: bufio.NewReader(bytes.NewReader(tc.data)),
+					src: &bufferedValueReader{buf: tc.data},
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -648,7 +651,7 @@ func TestValueReader(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				vr := &valueReader{
-					r: bufio.NewReader(bytes.NewReader(tc.data)),
+					src: &bufferedValueReader{buf: tc.data},
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -703,7 +706,7 @@ func TestValueReader(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				vr := &valueReader{
-					r: bufio.NewReader(bytes.NewReader(tc.data)),
+					src: &bufferedValueReader{buf: tc.data},
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -778,7 +781,7 @@ func TestValueReader(t *testing.T) {
 				append([]byte{0x40, 0x27, 0x00, 0x00}, testcstring...),
 				(*valueReader).ReadString,
 				"",
-				io.ErrUnexpectedEOF,
+				io.EOF,
 				TypeString,
 			},
 			{
@@ -858,7 +861,7 @@ func TestValueReader(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				vr := &valueReader{
-					r: bufio.NewReader(bytes.NewReader(tc.data)),
+					src: &bufferedValueReader{buf: tc.data},
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -939,6 +942,7 @@ func TestValueReader(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				vr := &valueReader{
+					src: &bufferedValueReader{buf: []byte{}},
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -990,7 +994,7 @@ func TestValueReader(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				vr := &valueReader{
-					r: bufio.NewReader(bytes.NewReader(tc.data)),
+					src: &bufferedValueReader{buf: tc.data},
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -1057,7 +1061,7 @@ func TestValueReader(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				vr := &valueReader{
-					r: bufio.NewReader(bytes.NewReader(tc.data)),
+					src: &bufferedValueReader{buf: tc.data},
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -1127,7 +1131,7 @@ func TestValueReader(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				vr := &valueReader{
-					r: bufio.NewReader(bytes.NewReader(tc.data)),
+					src: &bufferedValueReader{buf: tc.data},
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -1347,46 +1351,38 @@ func TestValueReader(t *testing.T) {
 				const startingEnd = 64
 				t.Run("Skip", func(t *testing.T) {
 					vr := &valueReader{
-						r: bufio.NewReader(bytes.NewReader(tc.data[tc.startingOffset:tc.offset])),
+						src: &bufferedValueReader{buf: tc.data, offset: tc.startingOffset},
 						stack: []vrState{
 							{mode: mTopLevel, end: startingEnd},
 							{mode: mElement, vType: tc.t},
 						},
-						frame:  1,
-						offset: tc.startingOffset,
+						frame: 1,
 					}
 
 					err := vr.Skip()
 					if !errequal(t, err, tc.err) {
 						t.Errorf("Did not receive expected error; got %v; want %v", err, tc.err)
 					}
-					if tc.err == nil {
-						offset := startingEnd - vr.stack[0].end
-						if offset != tc.offset {
-							t.Errorf("Offset not set at correct position; got %d; want %d", offset, tc.offset)
-						}
+					if tc.err == nil && vr.src.pos() != tc.offset {
+						t.Errorf("Offset not set at correct position; got %d; want %d", vr.src.pos(), tc.offset)
 					}
 				})
 				t.Run("ReadBytes", func(t *testing.T) {
 					vr := &valueReader{
-						r: bufio.NewReader(bytes.NewReader(tc.data[tc.startingOffset:tc.offset])),
+						src: &bufferedValueReader{buf: tc.data, offset: tc.startingOffset},
 						stack: []vrState{
 							{mode: mTopLevel, end: startingEnd},
 							{mode: mElement, vType: tc.t},
 						},
-						frame:  1,
-						offset: tc.startingOffset,
+						frame: 1,
 					}
 
 					_, got, err := vr.readValueBytes(nil)
 					if !errequal(t, err, tc.err) {
 						t.Errorf("Did not receive expected error; got %v; want %v", err, tc.err)
 					}
-					if tc.err == nil {
-						offset := startingEnd - vr.stack[0].end
-						if offset != tc.offset {
-							t.Errorf("Offset not set at correct position; got %d; want %d", vr.offset, tc.offset)
-						}
+					if tc.err == nil && vr.src.pos() != tc.offset {
+						t.Errorf("Offset not set at correct position; got %d; want %d", vr.src.pos(), tc.offset)
 					}
 					if tc.err == nil && !bytes.Equal(got, tc.data[tc.startingOffset:]) {
 						t.Errorf("Did not receive expected bytes. got %v; want %v", got, tc.data[tc.startingOffset:])
@@ -1417,7 +1413,7 @@ func TestValueReader(t *testing.T) {
 					"append bytes",
 					[]byte{0x01, 0x02, 0x03, 0x04},
 					Type(0),
-					io.ErrUnexpectedEOF,
+					io.EOF,
 				},
 			}
 
@@ -1426,7 +1422,7 @@ func TestValueReader(t *testing.T) {
 				t.Run(tc.name, func(t *testing.T) {
 					t.Parallel()
 					vr := &valueReader{
-						r: bufio.NewReader(bytes.NewReader(tc.want)),
+						src: &bufferedValueReader{buf: tc.want},
 						stack: []vrState{
 							{mode: mTopLevel},
 						},
@@ -1460,7 +1456,7 @@ func TestValueReader(t *testing.T) {
 	t.Run("ReadBytes", func(t *testing.T) {
 		vr := &valueReader{stack: []vrState{{mode: mTopLevel}, {mode: mDocument}}, frame: 1}
 		wanterr := (&valueReader{stack: []vrState{{mode: mTopLevel}, {mode: mDocument}}, frame: 1}).
-			invalidTransitionErr(0, "ReadValueBytes", []mode{mElement, mValue})
+			invalidTransitionErr(0, "readValueBytes", []mode{mElement, mValue})
 		_, _, goterr := vr.readValueBytes(nil)
 		if !cmp.Equal(goterr, wanterr, cmp.Comparer(assert.CompareErrors)) {
 			t.Errorf("Expected correct invalid transition error. got %v; want %v", goterr, wanterr)

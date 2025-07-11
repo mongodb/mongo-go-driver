@@ -122,7 +122,9 @@ func NewDocumentReader(r io.Reader) ValueReader {
 // ValueReader for a single BSON value.
 func newBufferedValueReader(t Type, b []byte) ValueReader {
 	bVR := newBufferedDocumentReader(b)
+
 	bVR.stack[0].vType = t
+	bVR.stack[0].mode = mValue
 
 	return bVR
 }
@@ -243,7 +245,7 @@ func (vr *valueReader) Type() Type {
 
 // peekLength returns the length of the next value in the stream without
 // offsetting the reader position.
-func peekNextValueSize(vr *valueReader, dst []byte) (int32, error) {
+func peekNextValueSize(vr *valueReader) (int32, error) {
 	var length int32
 	var err error
 	switch vr.stack[vr.frame].vType {
@@ -313,32 +315,31 @@ func (vr *valueReader) readBytes(n int32) ([]byte, error) {
 	return readBytes(vr.src, int(n))
 }
 
-// readValueBytes returns the raw bytes of the next value (or top‐level
-// document) without allocating intermediary buffers, then pops the frame.
 func (vr *valueReader) readValueBytes(dst []byte) (Type, []byte, error) {
 	switch vr.stack[vr.frame].mode {
 	case mTopLevel:
 		length, err := vr.peekLength()
 		if err != nil {
-			return Type(0), nil, err
+			return 0, nil, err
 		}
 		b, err := vr.readBytes(length)
 		return Type(0), append(dst, b...), err
 	case mElement, mValue:
-		length, err := peekNextValueSize(vr, dst)
+		t := vr.stack[vr.frame].vType
+
+		length, err := peekNextValueSize(vr)
 		if err != nil {
-			return Type(0), dst, err
+			return t, dst, err
 		}
 
 		b, err := vr.readBytes(length)
 
-		t := vr.stack[vr.frame].vType
-		err = vr.pop()
-		if err != nil {
+		if err := vr.pop(); err != nil {
 			return Type(0), nil, err
 		}
 
 		return t, append(dst, b...), err
+
 	default:
 		return Type(0), nil, vr.invalidTransitionErr(0, "readValueBytes", []mode{mElement, mValue})
 	}
@@ -351,7 +352,7 @@ func (vr *valueReader) Skip() error {
 		return vr.invalidTransitionErr(0, "Skip", []mode{mElement, mValue})
 	}
 
-	length, err := peekNextValueSize(vr, nil)
+	length, err := peekNextValueSize(vr)
 	if err != nil {
 		return err
 	}
@@ -418,11 +419,15 @@ func (vr *valueReader) ReadBinary() ([]byte, byte, error) {
 		return nil, 0, err
 	}
 
+	// copy so user doesn’t share underlying buffer
+	cp := make([]byte, len(b))
+	copy(cp, b)
+
 	if err := vr.pop(); err != nil {
 		return nil, 0, err
 	}
 
-	return b, btype, nil
+	return cp, btype, nil
 }
 
 // ReadBoolean reads a BSON boolean value, returning true or false, advancing
