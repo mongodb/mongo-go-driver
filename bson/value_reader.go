@@ -779,6 +779,8 @@ func (vr *valueReader) ReadSymbol() (string, error) {
 	return s, nil
 }
 
+// ReadTimestamp reads a BSON Timestamp value, advancing the reader to the end
+// of the Timestamp value.
 func (vr *valueReader) ReadTimestamp() (t uint32, i uint32, err error) {
 	if err := vr.ensureElementValue(TypeTimestamp, 0, "ReadTimestamp"); err != nil {
 		return 0, 0, err
