@@ -927,11 +927,10 @@ func (vr *valueReader) readString() (string, error) {
 }
 
 func (vr *valueReader) peekLength() (int32, error) {
-	buf, err := vr.r.Peek(4)
+	buf, err := vr.src.peek(4)
 	if err != nil {
 		return 0, err
 	}
-
 	return int32(binary.LittleEndian.Uint32(buf)), nil
 }
 
