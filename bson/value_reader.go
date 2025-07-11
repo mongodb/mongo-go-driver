@@ -165,13 +165,6 @@ func (vr *valueReader) advanceFrame() {
 	vr.stack[vr.frame].end = 0
 }
 
-func (vr *valueReader) pushValue(t Type) {
-	vr.advanceFrame()
-
-	vr.stack[vr.frame].mode = mValue
-	vr.stack[vr.frame].vType = t
-}
-
 func (vr *valueReader) pop() error {
 	var cnt int
 	switch vr.stack[vr.frame].mode {
@@ -840,6 +833,8 @@ func (vr *valueReader) ReadElement() (string, ValueReader, error) {
 	return name, vr, nil
 }
 
+// ReadValue reads the next value in the BSON array, advancing the to the end of
+// the value.
 func (vr *valueReader) ReadValue() (ValueReader, error) {
 	switch vr.stack[vr.frame].mode {
 	case mArray:
@@ -853,7 +848,7 @@ func (vr *valueReader) ReadValue() (ValueReader, error) {
 	}
 
 	if t == 0 {
-		if vr.offset != vr.stack[vr.frame].end {
+		if vr.src.pos() != vr.stack[vr.frame].end {
 			return nil, vr.invalidDocumentLengthError()
 		}
 
@@ -861,11 +856,15 @@ func (vr *valueReader) ReadValue() (ValueReader, error) {
 		return nil, ErrEOA
 	}
 
-	if _, err := vr.readCString(); err != nil {
+	_, err = vr.src.readSlice(0x00)
+	if err != nil {
 		return nil, err
 	}
 
-	vr.pushValue(Type(t))
+	vr.advanceFrame()
+
+	vr.stack[vr.frame].mode = mValue
+	vr.stack[vr.frame].vType = Type(t)
 	return vr, nil
 }
 
