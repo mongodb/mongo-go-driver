@@ -117,10 +117,14 @@ func NewDocumentReader(r io.Reader) ValueReader {
 	}
 }
 
-// newValueReader returns a ValueReader that starts in the Value mode instead of in top
-// level document mode. This enables the creation of a ValueReader for a single BSON value.
-func newValueReader(t Type, r io.Reader) ValueReader {
-	panic("TODO")
+// newBufferedValueReader returns a ValueReader that starts in the Value mode
+// instead of in top level document mode. This enables the creation of a
+// ValueReader for a single BSON value.
+func newBufferedValueReader(t Type, b []byte) ValueReader {
+	bVR := newBufferedDocumentReader(b)
+	bVR.stack[0].vType = t
+
+	return bVR
 }
 
 func newBufferedDocumentReader(b []byte) *valueReader {

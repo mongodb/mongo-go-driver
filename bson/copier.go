@@ -180,7 +180,10 @@ func copyValueFromBytes(dst ValueWriter, t Type, src []byte) error {
 	}
 
 	vr := newBufferedDocumentReader(src)
-	vr.pushElement(t)
+	vr.advanceFrame()
+
+	vr.stack[vr.frame].mode = mElement
+	vr.stack[vr.frame].vType = t
 
 	return copyValue(dst, vr)
 }
