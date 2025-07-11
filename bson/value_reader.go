@@ -230,22 +230,27 @@ func (vr *valueReader) pop() error {
 		cnt = 2 // we pop twice to jump over the vrElement: vrDocument -> vrElement -> vrDocument/TopLevel/etc...
 	}
 	for i := 0; i < cnt && vr.frame > 0; i++ {
-		if vr.offset < vr.stack[vr.frame].end {
-			_, err := vr.r.Discard(int(vr.stack[vr.frame].end - vr.offset))
+		if vr.src.pos() < vr.stack[vr.frame].end {
+			_, err := vr.src.discard(int(vr.stack[vr.frame].end - vr.src.pos()))
 			if err != nil {
 				return err
 			}
 		}
 		vr.frame--
 	}
-	if vr.frame == 0 {
-		if vr.stack[0].end > vr.offset {
-			vr.stack[0].end -= vr.offset
-		} else {
-			vr.stack[0].end = 0
+
+	if vr.src.streamable() {
+		if vr.frame == 0 {
+			if vr.stack[0].end > vr.src.pos() {
+				vr.stack[0].end -= vr.src.pos()
+			} else {
+				vr.stack[0].end = 0
+			}
+
+			vr.src.reset()
 		}
-		vr.offset = 0
 	}
+
 	return nil
 }
 
