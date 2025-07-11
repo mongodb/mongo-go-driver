@@ -165,13 +165,6 @@ func (vr *valueReader) advanceFrame() {
 	vr.stack[vr.frame].end = 0
 }
 
-func (vr *valueReader) pushElement(t Type) {
-	vr.advanceFrame()
-
-	vr.stack[vr.frame].mode = mElement
-	vr.stack[vr.frame].vType = t
-}
-
 func (vr *valueReader) pushValue(t Type) {
 	vr.advanceFrame()
 
@@ -803,7 +796,6 @@ func (vr *valueReader) ReadTimestamp() (uint32, uint32, error) {
 }
 
 // ReadUndefined reads a BSON Undefined value, advancing the reader position
-
 // to the end of the Undefined value.
 func (vr *valueReader) ReadUndefined() error {
 	if err := vr.ensureElementValue(TypeUndefined, 0, "ReadUndefined"); err != nil {
@@ -813,6 +805,8 @@ func (vr *valueReader) ReadUndefined() error {
 	return vr.pop()
 }
 
+// ReadElement reads the next element in the BSON document, advancing the
+// reader position to the end of the element.
 func (vr *valueReader) ReadElement() (string, ValueReader, error) {
 	switch vr.stack[vr.frame].mode {
 	case mTopLevel, mDocument, mCodeWithScope:
@@ -826,7 +820,7 @@ func (vr *valueReader) ReadElement() (string, ValueReader, error) {
 	}
 
 	if t == 0 {
-		if vr.offset != vr.stack[vr.frame].end {
+		if vr.src.pos() != vr.stack[vr.frame].end {
 			return "", nil, vr.invalidDocumentLengthError()
 		}
 
@@ -839,7 +833,10 @@ func (vr *valueReader) ReadElement() (string, ValueReader, error) {
 		return "", nil, err
 	}
 
-	vr.pushElement(Type(t))
+	vr.advanceFrame()
+
+	vr.stack[vr.frame].mode = mElement
+	vr.stack[vr.frame].vType = Type(t)
 	return name, vr, nil
 }
 
