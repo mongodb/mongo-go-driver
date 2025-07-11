@@ -907,21 +907,23 @@ func (vr *valueReader) readString() (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	if length <= 0 {
 		return "", fmt.Errorf("invalid string length: %d", length)
 	}
 
-	buf := make([]byte, length)
-	err = vr.read(buf)
+	raw, err := readBytes(vr.src, int(length))
 	if err != nil {
 		return "", err
 	}
 
-	if buf[length-1] != 0x00 {
-		return "", fmt.Errorf("string does not end with null byte, but with %v", buf[length-1])
+	// Check that the last byte is the NUL terminator.
+	if raw[len(raw)-1] != 0x00 {
+		return "", fmt.Errorf("string does not end with null byte, but with %v", raw[len(raw)-1])
 	}
 
-	return string(buf[:length-1]), nil
+	// Convert and strip the trailing NUL.
+	return string(raw[:len(raw)-1]), nil
 }
 
 func (vr *valueReader) peekLength() (int32, error) {
