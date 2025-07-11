@@ -16,6 +16,37 @@ import (
 	"sync"
 )
 
+type valueReaderByteSrc interface {
+	io.Reader
+	io.ByteReader
+
+	// Peek returns the next n bytes without advancing the cursor. It must return
+	// exactly n bytes or n error if fewer are available.
+	peek(n int) ([]byte, error)
+
+	// discard advanced the cursor by n bytes, returning the actual number
+	// discarded or an error if fewer were available.
+	discard(n int) (int, error)
+
+	// readSlice reads until (and including) the first occurrence of delim,
+	// returning the entire slice [start...delimiter] and advancing the cursor.
+	// past it. Returns an error if delim is not found.
+	readSlice(delim byte) ([]byte, error)
+
+	// pos returns the number of bytes consumed so far.
+	pos() int64
+
+	// regexLength returns the total byte length of a BSON regex value (two
+	// C-strings including their terminating NULs) in buffered mode.
+	regexLength() (int32, error)
+
+	// streamable returns true if this source can be used in a streaming context.
+	streamable() bool
+
+	// reset resets the source to its initial state.
+	reset()
+}
+
 var _ ValueReader = &valueReader{}
 
 // ErrEOA is the error returned when the end of a BSON array has been reached.
