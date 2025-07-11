@@ -868,24 +868,6 @@ func (vr *valueReader) ReadValue() (ValueReader, error) {
 	return vr, nil
 }
 
-func (vr *valueReader) read(p []byte) error {
-	n, err := io.ReadFull(vr.r, p)
-	if err != nil {
-		return err
-	}
-	vr.offset += int64(n)
-	return nil
-}
-
-func (vr *valueReader) appendBytes(dst []byte, length int32) ([]byte, error) {
-	buf := make([]byte, length)
-	err := vr.read(buf)
-	if err != nil {
-		return nil, err
-	}
-	return append(dst, buf...), nil
-}
-
 func (vr *valueReader) readByte() (byte, error) {
 	b, err := vr.src.ReadByte()
 	if err != nil {
