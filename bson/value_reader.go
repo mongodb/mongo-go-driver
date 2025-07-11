@@ -763,15 +763,20 @@ func (vr *valueReader) ReadString() (string, error) {
 	return s, nil
 }
 
+// ReadSymbol reads a BSON Symbol value, advancing the reader position to the
+// end of the Symbol value.
 func (vr *valueReader) ReadSymbol() (string, error) {
 	if err := vr.ensureElementValue(TypeSymbol, 0, "ReadSymbol"); err != nil {
 		return "", err
 	}
-
+	s, err := vr.readString()
+	if err != nil {
+		return "", err
+	}
 	if err := vr.pop(); err != nil {
 		return "", err
 	}
-	return vr.readString()
+	return s, nil
 }
 
 func (vr *valueReader) ReadTimestamp() (t uint32, i uint32, err error) {
