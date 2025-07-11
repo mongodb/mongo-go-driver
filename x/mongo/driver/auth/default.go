@@ -32,8 +32,8 @@ func newDefaultAuthenticator(cred *Cred, httpClient *http.Client) (Authenticator
 	}, nil
 }
 
-// DefaultAuthenticator uses SCRAM-SHA-1 or MONGODB-CR depending
-// on the server version.
+// DefaultAuthenticator uses SCRAM-SHA-1 or SCRAM-SHA-256, depending on the
+// server's SASL supported mechanisms.
 type DefaultAuthenticator struct {
 	Cred *Cred
 
@@ -53,18 +53,20 @@ func (a *DefaultAuthenticator) CreateSpeculativeConversation() (SpeculativeConve
 
 // Auth authenticates the connection.
 func (a *DefaultAuthenticator) Auth(ctx context.Context, cfg *driver.AuthConfig) error {
-	var actual Authenticator
-	var err error
+	actual, err := func() (Authenticator, error) {
+		// If a server provides a list of supported mechanisms, we choose
+		// SCRAM-SHA-256 if it exists or else MUST use SCRAM-SHA-1.
+		// Otherwise, we decide based on what is supported.
+		if saslSupportedMechs := cfg.HandshakeInfo.SaslSupportedMechs; saslSupportedMechs != nil {
+			for _, v := range saslSupportedMechs {
+				if v == SCRAMSHA256 {
+					return newScramSHA256Authenticator(a.Cred, a.httpClient)
+				}
+			}
+		}
 
-	switch chooseAuthMechanism(cfg) {
-	case SCRAMSHA256:
-		actual, err = newScramSHA256Authenticator(a.Cred, a.httpClient)
-	case SCRAMSHA1:
-		actual, err = newScramSHA1Authenticator(a.Cred, a.httpClient)
-	default:
-		actual, err = newMongoDBCRAuthenticator(a.Cred, a.httpClient)
-	}
-
+		return newScramSHA1Authenticator(a.Cred, a.httpClient)
+	}()
 	if err != nil {
 		return newAuthError("error creating authenticator", err)
 	}
@@ -75,19 +77,4 @@ func (a *DefaultAuthenticator) Auth(ctx context.Context, cfg *driver.AuthConfig)
 // Reauth reauthenticates the connection.
 func (a *DefaultAuthenticator) Reauth(_ context.Context, _ *driver.AuthConfig) error {
 	return newAuthError("DefaultAuthenticator does not support reauthentication", nil)
-}
-
-// If a server provides a list of supported mechanisms, we choose
-// SCRAM-SHA-256 if it exists or else MUST use SCRAM-SHA-1.
-// Otherwise, we decide based on what is supported.
-func chooseAuthMechanism(cfg *driver.AuthConfig) string {
-	if saslSupportedMechs := cfg.HandshakeInfo.SaslSupportedMechs; saslSupportedMechs != nil {
-		for _, v := range saslSupportedMechs {
-			if v == SCRAMSHA256 {
-				return v
-			}
-		}
-	}
-
-	return SCRAMSHA1
 }

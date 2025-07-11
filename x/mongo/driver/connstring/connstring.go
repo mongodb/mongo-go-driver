@@ -297,8 +297,6 @@ func (u *ConnString) setDefaultAuthParams(dbName string) error {
 		} else if u.AuthSource != "$external" {
 			return fmt.Errorf("auth source must be $external")
 		}
-	case "mongodb-cr":
-		fallthrough
 	case "scram-sha-1":
 		fallthrough
 	case "scram-sha-256":
@@ -696,16 +694,6 @@ func (u *ConnString) addOptions(connectionArgPairs []string) error {
 
 func (u *ConnString) validateAuth() error {
 	switch strings.ToLower(u.AuthMechanism) {
-	case "mongodb-cr":
-		if u.Username == "" {
-			return fmt.Errorf("username required for MONGO-CR")
-		}
-		if u.Password == "" {
-			return fmt.Errorf("password required for MONGO-CR")
-		}
-		if u.AuthMechanismProperties != nil {
-			return fmt.Errorf("MONGO-CR cannot have mechanism properties")
-		}
 	case "mongodb-x509":
 		if u.Password != "" {
 			return fmt.Errorf("password cannot be specified for MONGO-X509")
