@@ -584,17 +584,16 @@ func (vr *valueReader) ReadDateTime() (int64, error) {
 	return i, nil
 }
 
+// ReadDecimal128 reads a BSON Decimal128 value, advancing the reader
+// to the end of the Decimal128 value.
 func (vr *valueReader) ReadDecimal128() (Decimal128, error) {
 	if err := vr.ensureElementValue(TypeDecimal128, 0, "ReadDecimal128"); err != nil {
 		return Decimal128{}, err
 	}
-
-	var b [16]byte
-	err := vr.read(b[:])
+	b, err := vr.readBytes(16)
 	if err != nil {
 		return Decimal128{}, err
 	}
-
 	l := binary.LittleEndian.Uint64(b[0:8])
 	h := binary.LittleEndian.Uint64(b[8:16])
 
