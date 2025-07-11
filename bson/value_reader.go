@@ -802,6 +802,8 @@ func (vr *valueReader) ReadTimestamp() (t uint32, i uint32, err error) {
 	return t, i, nil
 }
 
+// ReadUndefined reads a BSON Undefined value, advancing the reader position
+// to the end of the Undefined value.
 func (vr *valueReader) ReadUndefined() error {
 	if err := vr.ensureElementValue(TypeUndefined, 0, "ReadUndefined"); err != nil {
 		return err
