@@ -463,6 +463,8 @@ func (vr *valueReader) ReadBinary() ([]byte, byte, error) {
 	return b, btype, nil
 }
 
+// ReadBoolean reads a BSON boolean value, returning true or false, advancing
+// the reader position to the end of the boolean value.
 func (vr *valueReader) ReadBoolean() (bool, error) {
 	if err := vr.ensureElementValue(TypeBoolean, 0, "ReadBoolean"); err != nil {
 		return false, err
