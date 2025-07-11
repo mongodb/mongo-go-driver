@@ -781,17 +781,17 @@ func (vr *valueReader) ReadSymbol() (string, error) {
 
 // ReadTimestamp reads a BSON Timestamp value, advancing the reader to the end
 // of the Timestamp value.
-func (vr *valueReader) ReadTimestamp() (t uint32, i uint32, err error) {
+func (vr *valueReader) ReadTimestamp() (uint32, uint32, error) {
 	if err := vr.ensureElementValue(TypeTimestamp, 0, "ReadTimestamp"); err != nil {
 		return 0, 0, err
 	}
 
-	i, err = vr.readu32()
+	i, err := vr.readu32()
 	if err != nil {
 		return 0, 0, err
 	}
 
-	t, err = vr.readu32()
+	t, err := vr.readu32()
 	if err != nil {
 		return 0, 0, err
 	}
@@ -803,6 +803,7 @@ func (vr *valueReader) ReadTimestamp() (t uint32, i uint32, err error) {
 }
 
 // ReadUndefined reads a BSON Undefined value, advancing the reader position
+
 // to the end of the Undefined value.
 func (vr *valueReader) ReadUndefined() error {
 	if err := vr.ensureElementValue(TypeUndefined, 0, "ReadUndefined"); err != nil {
