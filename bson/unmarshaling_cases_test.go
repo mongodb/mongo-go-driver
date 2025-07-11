@@ -7,7 +7,6 @@
 package bson
 
 import (
-	"bytes"
 	"reflect"
 )
 
@@ -269,7 +268,7 @@ func (mi *myInt64) UnmarshalBSONValue(t byte, b []byte) error {
 	}
 
 	if Type(t) == TypeInt64 {
-		i, err := newValueReader(TypeInt64, bytes.NewReader(b)).ReadInt64()
+		i, err := newBufferedValueReader(TypeInt64, b).ReadInt64()
 		if err != nil {
 			return err
 		}
@@ -284,7 +283,7 @@ func (mi *myInt64) UnmarshalBSON(b []byte) error {
 	if len(b) == 0 {
 		return nil
 	}
-	i, err := newValueReader(TypeInt64, bytes.NewReader(b)).ReadInt64()
+	i, err := newBufferedValueReader(TypeInt64, b).ReadInt64()
 	if err != nil {
 		return err
 	}
@@ -310,7 +309,7 @@ func (mb *myBytes) UnmarshalBSON(b []byte) error {
 	if len(b) == 0 {
 		return nil
 	}
-	b, _, err := newValueReader(TypeBinary, bytes.NewReader(b)).ReadBinary()
+	b, _, err := newBufferedValueReader(TypeBinary, b).ReadBinary()
 	if err != nil {
 		return err
 	}
@@ -324,7 +323,7 @@ func (ms *myString) UnmarshalBSON(b []byte) error {
 	if len(b) == 0 {
 		return nil
 	}
-	s, err := newValueReader(TypeString, bytes.NewReader(b)).ReadString()
+	s, err := newBufferedValueReader(TypeString, b).ReadString()
 	if err != nil {
 		return err
 	}
