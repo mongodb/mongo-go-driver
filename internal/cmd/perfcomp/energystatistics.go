@@ -624,7 +624,7 @@ func GetEnergyStatisticsAndProbabilities(x, y interface{}, permutations int) (*E
 	}, nil
 }
 
-func main() {
+func TestEnergyStatistics() {
 	// Initialize random number generator for reproducibility (optional, but good for tests)
 	seed := time.Now().UnixNano()
 	r := rand.New(rand.NewSource(seed))
