@@ -51,7 +51,7 @@ type RawData struct {
 	FailedRollupAttempts int64 `bson:"failed_rollup_attempts"`
 }
 
-func main() {
+func main1() {
 	uri := os.Getenv("perf_uri_private_endpoint")
 	if uri == "" {
 		log.Panic("perf_uri_private_endpoint env variable is not set")
