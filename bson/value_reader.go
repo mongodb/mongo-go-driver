@@ -638,15 +638,21 @@ func (vr *valueReader) ReadInt32() (int32, error) {
 	return i, nil
 }
 
+// ReadInt64 reads a BSON int64 value, advancing the reader position to the end
+// of the int64 value.
 func (vr *valueReader) ReadInt64() (int64, error) {
 	if err := vr.ensureElementValue(TypeInt64, 0, "ReadInt64"); err != nil {
+		return 0, err
+	}
+	i, err := vr.readi64()
+	if err != nil {
 		return 0, err
 	}
 
 	if err := vr.pop(); err != nil {
 		return 0, err
 	}
-	return vr.readi64()
+	return i, nil
 }
 
 func (vr *valueReader) ReadJavascript() (string, error) {
