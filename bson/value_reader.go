@@ -696,16 +696,20 @@ func (vr *valueReader) ReadNull() error {
 	return vr.pop()
 }
 
+// ReadObjectID reads a BSON ObjectID value, advancing the reader to the end of
+// the ObjectID value.
 func (vr *valueReader) ReadObjectID() (ObjectID, error) {
 	if err := vr.ensureElementValue(TypeObjectID, 0, "ReadObjectID"); err != nil {
 		return ObjectID{}, err
 	}
 
-	var oid ObjectID
-	err := vr.read(oid[:])
+	oidBytes, err := vr.readBytes(12)
 	if err != nil {
 		return ObjectID{}, err
 	}
+
+	var oid ObjectID
+	copy(oid[:], oidBytes)
 
 	if err := vr.pop(); err != nil {
 		return ObjectID{}, err
