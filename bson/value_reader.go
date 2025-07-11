@@ -106,7 +106,15 @@ func putBufferedDocumentReader(vr *valueReader) {
 // NewDocumentReader returns a ValueReader using b for the underlying BSON
 // representation.
 func NewDocumentReader(r io.Reader) ValueReader {
-	panic("TODO")
+	stack := make([]vrState, 1, 5)
+	stack[0] = vrState{
+		mode: mTopLevel,
+	}
+
+	return &valueReader{
+		src:   &streamingValueReader{br: bufio.NewReader(r), offset: 0},
+		stack: stack,
+	}
 }
 
 // newValueReader returns a ValueReader that starts in the Value mode instead of in top
