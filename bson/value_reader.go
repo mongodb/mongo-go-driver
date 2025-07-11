@@ -746,15 +746,21 @@ func (vr *valueReader) ReadRegex() (string, string, error) {
 	return pattern, options, nil
 }
 
+// ReadString reads a BSON String value, advancing the reader position to the
+// end of the String value.
 func (vr *valueReader) ReadString() (string, error) {
 	if err := vr.ensureElementValue(TypeString, 0, "ReadString"); err != nil {
+		return "", err
+	}
+	s, err := vr.readString()
+	if err != nil {
 		return "", err
 	}
 
 	if err := vr.pop(); err != nil {
 		return "", err
 	}
-	return vr.readString()
+	return s, nil
 }
 
 func (vr *valueReader) ReadSymbol() (string, error) {
