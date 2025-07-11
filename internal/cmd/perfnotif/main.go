@@ -8,9 +8,11 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -47,6 +49,48 @@ type RawData struct {
 		}
 	}
 	FailedRollupAttempts int64 `bson:"failed_rollup_attempts"`
+}
+
+func main() {
+	uri := os.Getenv("perf_uri_private_endpoint")
+	if uri == "" {
+		log.Panic("perf_uri_private_endpoint env variable is not set")
+	}
+
+	client, err1 := mongo.Connect(options.Client().ApplyURI(uri))
+	if err1 != nil {
+		log.Panicf("Error connecting client: %v", err1)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	err2 := client.Ping(ctx, nil)
+	if err2 != nil {
+		log.Panicf("Error pinging MongoDB Analytics: %v", err2)
+	}
+	fmt.Println("Successfully connected to MongoDB Analytics node.")
+
+	coll := client.Database("expanded_metrics").Collection("raw_results")
+	version := os.Getenv("VERSION")
+	if version == "" {
+		log.Panic("could not retrieve version")
+	}
+	rawData, err3 := findRawData(version, coll)
+	if err3 != nil {
+		log.Panicf("Error getting raw data: %v", err3)
+	}
+
+	commits, err := parseMainelineCommits(rawData)
+	if err != nil {
+		log.Panicf("Error parsing commits: %v", err)
+	}
+	fmt.Println(commits)
+
+	err0 := client.Disconnect(context.Background())
+	if err0 != nil {
+		log.Panicf("Failed to disconnect client: %v", err0)
+	}
+
 }
 
 // findRawData will get all of the rawData for the given version
@@ -87,44 +131,15 @@ func findRawData(version string, coll *mongo.Collection) ([]RawData, error) {
 	return rawData, nil
 }
 
-func main() {
-	uri := os.Getenv("perf_uri_private_endpoint")
-	if uri == "" {
-		log.Panic("perf_uri_private_endpoint env variable is not set")
+func parseMainelineCommits(rawData []RawData) ([]string, error) {
+	commits := make([]string, 0, len(rawData))
+	for _, rd := range rawData {
+		taskID := rd.Info.TaskID
+		pieces := strings.Split(taskID, "_") // Format: mongo_go_driver_perf_perf_<commit-SHA>_<timestamp>
+		if len(pieces) < 6 {
+			return nil, errors.New("task ID doesn't hold commit SHA")
+		}
+		commits = append(commits, pieces[5])
 	}
-
-	client, err1 := mongo.Connect(options.Client().ApplyURI(uri))
-	if err1 != nil {
-		log.Panicf("Error connecting client: %v", err1)
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	err2 := client.Ping(ctx, nil)
-	if err2 != nil {
-		log.Panicf("Error pinging MongoDB Analytics: %v", err2)
-	}
-	fmt.Println("Successfully connected to MongoDB Analytics node.")
-
-	commit := os.Getenv("COMMIT")
-	if commit == "" {
-		log.Panic("could not retrieve commit number")
-	}
-
-	coll := client.Database("expanded_metrics").Collection("raw_results")
-	version := os.Getenv("VERSION")
-	if version == "" {
-		log.Panic("could not retrieve version")
-	}
-	rawData, err3 := findRawData(version, coll)
-	if err3 != nil {
-		log.Panicf("Error getting raw data: %v", err3)
-	}
-	fmt.Println(rawData)
-
-	err0 := client.Disconnect(context.Background())
-	if err0 != nil {
-		log.Panicf("Failed to disconnect client: %v", err0)
-	}
-
+	return commits, nil
 }
