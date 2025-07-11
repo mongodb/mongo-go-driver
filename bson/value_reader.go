@@ -165,20 +165,6 @@ func (vr *valueReader) advanceFrame() {
 	vr.stack[vr.frame].end = 0
 }
 
-func (vr *valueReader) pushDocument() error {
-	vr.advanceFrame()
-
-	vr.stack[vr.frame].mode = mDocument
-
-	length, err := vr.readLength()
-	if err != nil {
-		return err
-	}
-	vr.stack[vr.frame].end = int64(length) + vr.offset - 4
-
-	return nil
-}
-
 func (vr *valueReader) pushElement(t Type) {
 	vr.advanceFrame()
 
@@ -485,6 +471,8 @@ func (vr *valueReader) ReadBoolean() (bool, error) {
 	return b == 1, nil
 }
 
+// ReadDocument reads a BSON embedded document, returning a DocumentReader,
+// advancing the reader position to the end of the document.
 func (vr *valueReader) ReadDocument() (DocumentReader, error) {
 	switch vr.stack[vr.frame].mode {
 	case mTopLevel:
@@ -496,7 +484,7 @@ func (vr *valueReader) ReadDocument() (DocumentReader, error) {
 			return nil, fmt.Errorf("invalid string length: %d", length)
 		}
 
-		vr.stack[vr.frame].end = int64(length) + vr.offset - 4
+		vr.stack[vr.frame].end = int64(length) + vr.src.pos() - 4
 		return vr, nil
 	case mElement, mValue:
 		if vr.stack[vr.frame].vType != TypeEmbeddedDocument {
@@ -506,10 +494,15 @@ func (vr *valueReader) ReadDocument() (DocumentReader, error) {
 		return nil, vr.invalidTransitionErr(mDocument, "ReadDocument", []mode{mTopLevel, mElement, mValue})
 	}
 
-	err := vr.pushDocument()
+	vr.advanceFrame()
+
+	size, err := vr.readLength()
 	if err != nil {
 		return nil, err
 	}
+
+	vr.stack[vr.frame].mode = mDocument
+	vr.stack[vr.frame].end = int64(size) + vr.src.pos() - 4
 
 	return vr, nil
 }
