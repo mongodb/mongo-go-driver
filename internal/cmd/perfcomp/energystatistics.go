@@ -19,16 +19,19 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
-// EnergyStatistics represents the E-statistic, Test statistic, and E-coefficient of inhomogeneity.
+// Class for representing Energy Statistics.
+// E - E-statistic
+// T - Test statistic
+// H - E-coefficient of inhomogeneity
 type EnergyStatistics struct {
 	E float64
 	T float64
 	H float64
 }
 
-// EnergyStatisticsWithProbabilities represents Energy Statistics and permutation test results.
+// Class for representing Energy Statistics and permutation test result.
 type EnergyStatisticsWithProbabilities struct {
-	EnergyStatistics // Embeds EnergyStatistics
+	EnergyStatistics
 	EPValue          float64
 	TPValue          float64
 	HPValue          float64
@@ -43,13 +46,12 @@ func _convert(series interface{}) (*mat.Dense, error) {
 
 	switch s := series.(type) {
 	case []float64:
-		// If 1D slice, treat as a column vector (N x 1)
 		data = s
 		rows = len(s)
 		cols = 1
 	case [][]float64:
 		if len(s) == 0 {
-			return mat.NewDense(0, 0, nil), nil // Empty matrix
+			return mat.NewDense(0, 0, nil), nil
 		}
 		rows = len(s)
 		cols = len(s[0])
@@ -57,7 +59,7 @@ func _convert(series interface{}) (*mat.Dense, error) {
 			if len(row) != cols {
 				return nil, errors.New("input [][]float64 has inconsistent row lengths")
 			}
-			data = append(data, row...) // Flatten the 2D slice into a 1D slice
+			data = append(data, row...)
 		}
 	case *mat.Dense:
 		// If it's already a mat.Dense, handle potential 1D row vector to column vector conversion
@@ -67,21 +69,19 @@ func _convert(series interface{}) (*mat.Dense, error) {
 			transposed.Copy(s.T())
 			return transposed, nil
 		}
-		return s, nil // Already in a suitable format
+		return s, nil
 	default:
 		return nil, errors.New("series is not the expected type ([]float64, [][]float64, or *mat.Dense)")
 	}
 
 	if len(data) == 0 {
-		return mat.NewDense(0, 0, nil), nil // Return empty matrix if no data
+		return mat.NewDense(0, 0, nil), nil
 	}
 
-	// Create a new Dense matrix with the collected data
 	return mat.NewDense(rows, cols, data), nil
 }
 
 // _getValidInput returns a valid form of input as a Gonum matrix.
-// It performs initial validation, ensuring the input is not empty.
 func _getValidInput(series interface{}) (*mat.Dense, error) {
 	m, err := _convert(series)
 	if err != nil {
@@ -100,21 +100,19 @@ func _getValidInput(series interface{}) (*mat.Dense, error) {
 func _getDistanceMatrix(series *mat.Dense) (*mat.Dense, error) {
 	r, c := series.Dims()
 	if r == 0 {
-		return mat.NewDense(0, 0, nil), nil // Return empty matrix for empty series
+		return mat.NewDense(0, 0, nil), nil
 	}
 
 	distMatrix := mat.NewDense(r, r, nil)
 
 	// Calculate Euclidean distance between each pair of rows
 	for i := 0; i < r; i++ {
-		// Extract row i as a vector
 		vecI := mat.NewVecDense(c, nil)
 		for k := 0; k < c; k++ {
 			vecI.SetVec(k, series.At(i, k))
 		}
 
-		for j := i; j < r; j++ { // Iterate from i to r-1 to fill upper triangle and diagonal
-			// Extract row j as a vector
+		for j := i; j < r; j++ {
 			vecJ := mat.NewVecDense(c, nil)
 			for k := 0; k < c; k++ {
 				vecJ.SetVec(k, series.At(j, k))
@@ -126,7 +124,7 @@ func _getDistanceMatrix(series *mat.Dense) (*mat.Dense, error) {
 			dist := floats.Norm(diff.RawVector().Data, 2) // Euclidean norm (L2 norm)
 
 			distMatrix.Set(i, j, dist)
-			distMatrix.Set(j, i, dist) // Distance matrix is symmetric
+			distMatrix.Set(j, i, dist)
 		}
 	}
 	return distMatrix, nil
@@ -136,7 +134,6 @@ func _getDistanceMatrix(series *mat.Dense) (*mat.Dense, error) {
 // It takes the sums of distances within distributions X (x), within Y (y), and between X and Y (xy),
 // along with their respective lengths (n, m).
 func _calculateStats(x, y, xy float64, n, m int) (e, t, h float64) {
-	// Calculate average distances
 	xyAvg := 0.0
 	if n > 0 && m > 0 {
 		xyAvg = xy / float64(n*m)
@@ -174,13 +171,11 @@ func _calculateStats(x, y, xy float64, n, m int) (e, t, h float64) {
 func _calculateTStats(distanceMatrix *mat.Dense) ([]float64, error) {
 	N, _ := distanceMatrix.Dims()
 	if N == 0 {
-		return []float64{}, nil // No statistics for empty matrix
+		return []float64{}, nil
 	}
 
 	statistics := make([]float64, N)
 
-	// Initialize 'y' sum: In Python, this is `np.sum(distance_matrix[row, row:])` for all rows,
-	// which sums the upper triangle (including diagonal) of the entire distance matrix.
 	initialYSum := 0.0
 	for r := 0; r < N; r++ {
 		for c := r; c < N; c++ {
@@ -188,21 +183,13 @@ func _calculateTStats(distanceMatrix *mat.Dense) ([]float64, error) {
 		}
 	}
 
-	// Initialize sums for the first partition (tau = 0)
 	xy := 0.0
 	x := 0.0
-	y := initialYSum // Initial 'y' contains the sum of all distances (as if all are in Y)
+	y := initialYSum
 
-	// Iterate through all possible partition points (tau)
 	for tau := 0; tau < N; tau++ {
-		// Calculate the test statistic for the current partition
-		// Note: The `_calculateStats` function expects `x` and `y` to represent sums over unique pairs (e.g., upper triangle).
-		// The way `x` and `y` are accumulated in this loop (via `columnDelta` and `rowDelta`) effectively sums over
-		// the full symmetric parts, making `2*x` and `2*y` in `_calculateStats` necessary to match the E-statistic definition.
 		_, t, _ := _calculateStats(x, y, xy, tau, N-tau)
 		statistics[tau] = t
-
-		// Update sums for the next iteration (moving the partition point `tau` one step to the right)
 
 		// columnDelta: sum |Xi - X_tau| for i < tau (distances from elements in X to the new element at tau)
 		columnDelta := 0.0
@@ -216,7 +203,6 @@ func _calculateTStats(distanceMatrix *mat.Dense) ([]float64, error) {
 			rowDelta += distanceMatrix.At(tau, cIdx)
 		}
 
-		// Update the sums based on the movement of tau
 		xy = xy - columnDelta + rowDelta // Distances between X and Y
 		x = x + columnDelta              // Distances within X
 		y = y - rowDelta                 // Distances within Y
@@ -230,7 +216,7 @@ func _calculateTStats(distanceMatrix *mat.Dense) ([]float64, error) {
 func _getNextSignificantChangePoint(
 	distances *mat.Dense,
 	changePoints []int,
-	memo map[[2]int]struct { // Memoization cache for window calculations
+	memo map[[2]int]struct {
 		idx int
 		val float64
 	},
@@ -239,14 +225,13 @@ func _getNextSignificantChangePoint(
 ) (int, error) {
 	N, _ := distances.Dims()
 	if N == 0 {
-		return -1, nil // No change point for empty distances
+		return -1, nil
 	}
 
-	// Define windows based on existing change points
 	windows := []int{0}
 	windows = append(windows, changePoints...)
 	windows = append(windows, N)
-	sort.Ints(windows) // Ensure windows are sorted using sort.Ints
+	sort.Ints(windows)
 
 	type candidate struct {
 		idx int
@@ -254,15 +239,13 @@ func _getNextSignificantChangePoint(
 	}
 	var candidates []candidate
 
-	// Iterate through each window to find the best candidate change point
 	for i := 0; i < len(windows)-1; i++ {
 		a, b := windows[i], windows[i+1]
-		boundsKey := [2]int{a, b} // Key for memoization
+		boundsKey := [2]int{a, b}
 
 		if val, ok := memo[boundsKey]; ok {
 			candidates = append(candidates, candidate{idx: val.idx, val: val.val})
 		} else {
-			// Extract sub-matrix for the current window
 			windowDistances := distances.Slice(a, b, a, b).(*mat.Dense)
 			stats, err := _calculateTStats(windowDistances)
 			if err != nil {
@@ -270,7 +253,7 @@ func _getNextSignificantChangePoint(
 			}
 
 			if len(stats) == 0 {
-				continue // Skip empty stats (e.g., for very small windows)
+				continue
 			}
 
 			// Find the index of the maximum T-statistic within the window
@@ -282,9 +265,9 @@ func _getNextSignificantChangePoint(
 					idx = k
 				}
 			}
-			newCandidate := candidate{idx: idx + a, val: maxStat} // Adjust index to global scale
+			newCandidate := candidate{idx: idx + a, val: maxStat}
 			candidates = append(candidates, newCandidate)
-			memo[boundsKey] = struct { // Store in memo for future use
+			memo[boundsKey] = struct {
 				idx int
 				val float64
 			}{idx: newCandidate.idx, val: newCandidate.val}
@@ -292,7 +275,7 @@ func _getNextSignificantChangePoint(
 	}
 
 	if len(candidates) == 0 {
-		return -1, nil // No valid candidates found
+		return -1, nil
 	}
 
 	// Find the overall best candidate among all windows
@@ -303,10 +286,9 @@ func _getNextSignificantChangePoint(
 		}
 	}
 
-	// Perform permutation test
 	betterNum := 0
 	src := rand.NewSource(time.Now().UnixNano())
-	r := rand.New(src) // New random source for each call to ensure different permutations
+	r := rand.New(src)
 
 	for p := 0; p < permutations; p++ {
 		permuteT := make([]float64, 0, len(windows)-1)
@@ -317,20 +299,17 @@ func _getNextSignificantChangePoint(
 				continue
 			}
 
-			// Create shuffled indices for the current window
 			rowIndices := make([]int, windowSize)
 			for k := 0; k < windowSize; k++ {
-				rowIndices[k] = k + a // Global indices
+				rowIndices[k] = k + a
 			}
 			r.Shuffle(len(rowIndices), func(i, j int) {
 				rowIndices[i], rowIndices[j] = rowIndices[j], rowIndices[i]
 			})
 
-			// Create shuffled sub-matrix using the shuffled global indices
 			shuffledDistances := mat.NewDense(windowSize, windowSize, nil)
 			for row := 0; row < windowSize; row++ {
 				for col := 0; col < windowSize; col++ {
-					// Use shuffled global indices to pick elements from the original distances matrix
 					shuffledDistances.Set(row, col, distances.At(rowIndices[row], rowIndices[col]))
 				}
 			}
@@ -344,7 +323,6 @@ func _getNextSignificantChangePoint(
 				continue
 			}
 
-			// Find the maximum T-statistic for the current permutation
 			maxPermuteStat := stats[0]
 			for _, s := range stats {
 				if s > maxPermuteStat {
@@ -355,10 +333,9 @@ func _getNextSignificantChangePoint(
 		}
 
 		if len(permuteT) == 0 {
-			continue // If all windows were empty or invalid for this permutation
+			continue
 		}
 
-		// Find the overall best T-statistic for this permutation
 		bestPermute := permuteT[0]
 		for _, val := range permuteT {
 			if val > bestPermute {
@@ -371,12 +348,11 @@ func _getNextSignificantChangePoint(
 		}
 	}
 
-	// Calculate probability (p-value)
 	probability := float64(betterNum) / float64(permutations+1)
 	if probability <= pvalue {
-		return bestCandidate.idx, nil // Return the significant change point
+		return bestCandidate.idx, nil
 	}
-	return -1, nil // No significant change point found
+	return -1, nil
 }
 
 // _getEnergyStatisticsFromDistanceMatrix returns energy statistics from a combined distance matrix.
@@ -412,8 +388,8 @@ func _getEnergyStatisticsFromDistanceMatrix(distanceMatrix *mat.Dense, n, m int)
 	// Sum distances between X and Y (bottom-left sub-matrix, which is equivalent to top-right due to symmetry)
 	xySum := 0.0
 	if n > 0 && m > 0 {
-		for r := n; r < lenDistanceMatrix; r++ { // Rows from Y partition
-			for c := 0; c < n; c++ { // Columns from X partition
+		for r := n; r < lenDistanceMatrix; r++ {
+			for c := 0; c < n; c++ {
 				xySum += distanceMatrix.At(r, c)
 			}
 		}
@@ -450,12 +426,12 @@ func EDivisive(series interface{}, pvalue float64, permutations int) ([]int, err
 			return nil, err
 		}
 		if significantChangePoint == -1 {
-			break // No more significant change points found
+			break
 		}
 		changePoints = append(changePoints, significantChangePoint)
 	}
 
-	sort.Ints(changePoints) // Ensure change points are sorted
+	sort.Ints(changePoints)
 	return changePoints, nil
 }
 
@@ -475,24 +451,20 @@ func GetEnergyStatistics(x, y interface{}) (*EnergyStatistics, error) {
 	n, _ := xMat.Dims()
 	m, _ := yMat.Dims()
 
-	// Ensure x and y have the same number of variables (columns)
 	_, xCols := xMat.Dims()
 	_, yCols := yMat.Dims()
 	if xCols != yCols {
 		return nil, errors.New("distributions x and y must have the same number of variables (columns)")
 	}
 
-	// Concatenate x and y into a single combined matrix
 	combinedRows := n + m
 	combinedData := make([]float64, combinedRows*xCols)
 
-	// Copy data from xMat
 	for r := 0; r < n; r++ {
 		for c := 0; c < xCols; c++ {
 			combinedData[r*xCols+c] = xMat.At(r, c)
 		}
 	}
-	// Copy data from yMat (offset by n rows)
 	for r := 0; r < m; r++ {
 		for c := 0; c < yCols; c++ {
 			combinedData[(n+r)*yCols+c] = yMat.At(r, c)
@@ -500,13 +472,11 @@ func GetEnergyStatistics(x, y interface{}) (*EnergyStatistics, error) {
 	}
 	combinedMat := mat.NewDense(combinedRows, xCols, combinedData)
 
-	// Calculate the distance matrix for the combined data
 	distances, err := _getDistanceMatrix(combinedMat)
 	if err != nil {
 		return nil, err
 	}
 
-	// Derive energy statistics from the combined distance matrix
 	return _getEnergyStatisticsFromDistanceMatrix(distances, n, m)
 }
 
@@ -525,24 +495,20 @@ func GetEnergyStatisticsAndProbabilities(x, y interface{}, permutations int) (*E
 	n, _ := xMat.Dims()
 	m, _ := yMat.Dims()
 
-	// Ensure x and y have the same number of variables (columns)
 	_, xCols := xMat.Dims()
 	_, yCols := yMat.Dims()
 	if xCols != yCols {
 		return nil, errors.New("distributions x and y must have the same number of variables (columns)")
 	}
 
-	// Concatenate x and y into a single combined matrix
 	combinedRows := n + m
 	combinedData := make([]float64, combinedRows*xCols)
 
-	// Copy data from xMat
 	for r := 0; r < n; r++ {
 		for c := 0; c < xCols; c++ {
 			combinedData[r*xCols+c] = xMat.At(r, c)
 		}
 	}
-	// Copy data from yMat (offset by n rows)
 	for r := 0; r < m; r++ {
 		for c := 0; c < yCols; c++ {
 			combinedData[(n+r)*yCols+c] = yMat.At(r, c)
@@ -550,7 +516,6 @@ func GetEnergyStatisticsAndProbabilities(x, y interface{}, permutations int) (*E
 	}
 	combinedMat := mat.NewDense(combinedRows, xCols, combinedData)
 
-	// Calculate the distance matrix for the combined data (this matrix will be shuffled)
 	distancesBetweenAll, err := _getDistanceMatrix(combinedMat)
 	if err != nil {
 		return nil, err
@@ -563,11 +528,9 @@ func GetEnergyStatisticsAndProbabilities(x, y interface{}, permutations int) (*E
 	countT := 0
 	countH := 0
 
-	// Initialize random number generator for shuffling
 	src := rand.NewSource(time.Now().UnixNano())
 	r := rand.New(src)
 
-	// Create initial row indices (0 to lenCombined-1)
 	rowIndices := make([]int, lenCombined)
 	for i := 0; i < lenCombined; i++ {
 		rowIndices[i] = i
@@ -581,7 +544,6 @@ func GetEnergyStatisticsAndProbabilities(x, y interface{}, permutations int) (*E
 
 	// Perform permutation test
 	for p := 0; p < permutations; p++ {
-		// Shuffle the row indices
 		r.Shuffle(len(rowIndices), func(i, j int) {
 			rowIndices[i], rowIndices[j] = rowIndices[j], rowIndices[i]
 		})
@@ -596,7 +558,6 @@ func GetEnergyStatisticsAndProbabilities(x, y interface{}, permutations int) (*E
 			}
 		}
 
-		// Calculate energy statistics for the shuffled data
 		shuffledEnergyStatistics, err := _getEnergyStatisticsFromDistanceMatrix(shuffledDistances, n, m)
 		if err != nil {
 			return nil, err
@@ -615,9 +576,9 @@ func GetEnergyStatisticsAndProbabilities(x, y interface{}, permutations int) (*E
 	}
 
 	// Calculate p-values
-	total := float64(permutations + 1) // Include the original observation in the total count
+	total := float64(permutations + 1)
 	return &EnergyStatisticsWithProbabilities{
-		EnergyStatistics: *energyStatistics, // Original statistics
+		EnergyStatistics: *energyStatistics,
 		EPValue:          float64(countE) / total,
 		TPValue:          float64(countT) / total,
 		HPValue:          float64(countH) / total,
@@ -663,8 +624,6 @@ func TestEnergyStatistics() {
 	// --- Test Case 2: y is the same as x (expected h around 0) ---
 
 	// Set y to be the same as x
-	// In Go, assigning a pointer means both variables point to the same underlying data.
-	// This correctly mimics `y = x` in Python where `y` becomes a reference to the same array.
 	y = x
 
 	fmt.Println("--- Expected h around 0 (y is the same as x) ---")
