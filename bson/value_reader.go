@@ -566,6 +566,8 @@ func (vr *valueReader) ReadDBPointer() (string, ObjectID, error) {
 	return ns, oid, nil
 }
 
+// ReadDateTime reads a BSON DateTime value, advancing the reader position to
+// the end of the DateTime value.
 func (vr *valueReader) ReadDateTime() (int64, error) {
 	if err := vr.ensureElementValue(TypeDateTime, 0, "ReadDateTime"); err != nil {
 		return 0, err
