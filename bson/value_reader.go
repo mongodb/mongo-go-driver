@@ -179,20 +179,6 @@ func (vr *valueReader) pushValue(t Type) {
 	vr.stack[vr.frame].vType = t
 }
 
-func (vr *valueReader) pushCodeWithScope() (int64, error) {
-	vr.advanceFrame()
-
-	vr.stack[vr.frame].mode = mCodeWithScope
-
-	length, err := vr.readLength()
-	if err != nil {
-		return 0, err
-	}
-	vr.stack[vr.frame].end = int64(length) + vr.offset - 4
-
-	return int64(length), nil
-}
-
 func (vr *valueReader) pop() error {
 	var cnt int
 	switch vr.stack[vr.frame].mode {
@@ -507,7 +493,9 @@ func (vr *valueReader) ReadDocument() (DocumentReader, error) {
 	return vr, nil
 }
 
-func (vr *valueReader) ReadCodeWithScope() (code string, dr DocumentReader, err error) {
+// ReadCodeWithScope reads a BSON CodeWithScope value, returning the code as a
+// string, advancing the reader position to the end of the CodeWithScope value.
+func (vr *valueReader) ReadCodeWithScope() (string, DocumentReader, error) {
 	if err := vr.ensureElementValue(TypeCodeWithScope, 0, "ReadCodeWithScope"); err != nil {
 		return "", nil, err
 	}
@@ -523,21 +511,26 @@ func (vr *valueReader) ReadCodeWithScope() (code string, dr DocumentReader, err 
 	if strLength <= 0 {
 		return "", nil, fmt.Errorf("invalid string length: %d", strLength)
 	}
-	strBytes := make([]byte, strLength)
-	err = vr.read(strBytes)
+	buf, err := vr.readBytes(strLength)
 	if err != nil {
 		return "", nil, err
 	}
-	code = string(strBytes[:len(strBytes)-1])
 
-	size, err := vr.pushCodeWithScope()
+	code := string(buf[:len(buf)-1])
+	vr.advanceFrame()
+
+	// Use readLength to ensure that we are not out of bounds.
+	size, err := vr.readLength()
 	if err != nil {
 		return "", nil, err
 	}
+
+	vr.stack[vr.frame].mode = mCodeWithScope
+	vr.stack[vr.frame].end = vr.src.pos() + int64(size) - 4
 
 	// The total length should equal:
 	// 4 (total length) + strLength + 4 (the length of str itself) + (document length)
-	componentsLength := int64(4+strLength+4) + size
+	componentsLength := int64(4+strLength+4) + int64(size)
 	if int64(totalLength) != componentsLength {
 		return "", nil, fmt.Errorf(
 			"length of CodeWithScope does not match lengths of components; total: %d; components: %d",
