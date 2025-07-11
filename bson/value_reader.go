@@ -179,20 +179,6 @@ func (vr *valueReader) pushDocument() error {
 	return nil
 }
 
-func (vr *valueReader) pushArray() error {
-	vr.advanceFrame()
-
-	vr.stack[vr.frame].mode = mArray
-
-	length, err := vr.readLength()
-	if err != nil {
-		return err
-	}
-	vr.stack[vr.frame].end = int64(length) + vr.offset - 4
-
-	return nil
-}
-
 func (vr *valueReader) pushElement(t Type) {
 	vr.advanceFrame()
 
@@ -416,15 +402,25 @@ func (vr *valueReader) Skip() error {
 	return vr.pop()
 }
 
+// ReadArray returns an ArrayReader for the next BSON array in the valueReader
+// source, advancing the reader position to the end of the array.
 func (vr *valueReader) ReadArray() (ArrayReader, error) {
 	if err := vr.ensureElementValue(TypeArray, mArray, "ReadArray"); err != nil {
 		return nil, err
 	}
 
-	err := vr.pushArray()
+	// Push a new frame for the array.
+	vr.advanceFrame()
+
+	// Read the 4-byte length.
+	size, err := vr.readLength()
 	if err != nil {
 		return nil, err
 	}
+
+	// Compute the end position: current position + total size - length.
+	vr.stack[vr.frame].mode = mArray
+	vr.stack[vr.frame].end = vr.src.pos() + int64(size) - 4
 
 	return vr, nil
 }
