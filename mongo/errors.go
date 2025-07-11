@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"reflect"
 	"strings"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -138,6 +139,12 @@ func wrapErrors(err error) error {
 			Code:    me.Code,
 			Message: me.Message,
 			wrapped: err,
+
+			// Set wrappedMsgOnly=true here so that the Code and Message are not
+			// repeated multiple times in the error string. We expect that the
+			// wrapped mongocrypt.Error already contains that info in the error
+			// string.
+			wrappedMsgOnly: true,
 		}
 	}
 
@@ -150,6 +157,12 @@ func wrapErrors(err error) error {
 		return MarshalError{
 			Value: marshalErr.Value,
 			Err:   err,
+
+			// Set wrappedMsgOnly=true here so that the Value is not repeated
+			// multiple times in the error string. We expect that the wrapped
+			// codecutil.MarshalError already contains that info in the error
+			// string.
+			wrappedMsgOnly: true,
 		}
 	}
 
@@ -227,15 +240,27 @@ func IsNetworkError(err error) bool {
 type MarshalError struct {
 	Value interface{}
 	Err   error
+
+	// If wrappedMsgOnly is true, Error() only returns the error message from
+	// the "Err" error.
+	//
+	// This is typically only set by the wrapErrors function, which uses
+	// MarshalError to wrap codecutil.MarshalError, allowing users to access the
+	// "Value" from the underlying error but preventing duplication in the error
+	// string.
+	wrappedMsgOnly bool
 }
 
 // Error implements the error interface.
 func (me MarshalError) Error() string {
-	// MarshalError in this package is only used as a wrapper for
-	// codecutil.MarshalError that provides access to the "Value". Return the
-	// error string without modifying it to prevent duplicating the error
-	// string.
-	return me.Err.Error()
+	// If the MarshalError was created with wrappedMsgOnly=true, only return the
+	// error from the wrapped error. See the MarshalError.wrappedMsgOnly docs
+	// for more info.
+	if me.wrappedMsgOnly {
+		return me.Err.Error()
+	}
+
+	return fmt.Sprintf("cannot marshal type %s to a BSON Document: %v", reflect.TypeOf(me.Value), me.Err)
 }
 
 func (me MarshalError) Unwrap() error { return me.Err }
@@ -245,15 +270,27 @@ type MongocryptError struct {
 	Code    int32
 	Message string
 	wrapped error
+
+	// If wrappedMsgOnly is true, Error() only returns the error message from
+	// the "wrapped" error.
+	//
+	// This is typically only set by the wrapErrors function, which uses
+	// MarshalError to wrap mongocrypt.Error, allowing users to access the
+	// "Code" and "Message" from the underlying error but preventing duplication
+	// in the error string.
+	wrappedMsgOnly bool
 }
 
 // Error implements the error interface.
 func (m MongocryptError) Error() string {
-	// MongocryptError in this package is only used as a wrapper for
-	// mongocrypt.Error that provides access to the "Code" and "Message". Return
-	// the error string without modifying it to prevent duplicating the error
-	// string.
-	return m.wrapped.Error()
+	// If the MongocryptError was created with wrappedMsgOnly=true, only return
+	// the error from the wrapped error. See the MongocryptError.wrappedMsgOnly
+	// docs for more info.
+	if m.wrappedMsgOnly {
+		return m.wrapped.Error()
+	}
+
+	return fmt.Sprintf("mongocrypt error %d: %v", m.Code, m.Message)
 }
 
 // Unwrap returns the underlying error.
@@ -344,7 +381,7 @@ type CommandError struct {
 	Raw     bson.Raw // The original server response containing the error.
 
 	// If wrappedMsgOnly is true, Error() only returns the error message from
-	// the Wrapped error.
+	// the "Wrapped" error.
 	//
 	// This is typically only set by the wrapErrors function, which uses
 	// CommandError to wrap driver.Error, allowing users to access the "Code",
@@ -356,7 +393,7 @@ type CommandError struct {
 // Error implements the error interface.
 func (e CommandError) Error() string {
 	// If the CommandError was created with wrappedMsgOnly=true, only return the
-	// error from the Wrapped error. See the CommandError.wrappedMsgOnly docs
+	// error from the wrapped error. See the CommandError.wrappedMsgOnly docs
 	// for more info.
 	if e.wrappedMsgOnly {
 		return e.Wrapped.Error()
