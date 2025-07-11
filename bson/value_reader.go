@@ -939,41 +939,37 @@ func (vr *valueReader) readLength() (int32, error) {
 }
 
 func (vr *valueReader) readi32() (int32, error) {
-	var buf [4]byte
-	err := vr.read(buf[:])
+	raw, err := readBytes(vr.src, 4)
 	if err != nil {
 		return 0, err
 	}
 
-	return int32(binary.LittleEndian.Uint32(buf[:])), nil
+	return int32(binary.LittleEndian.Uint32(raw)), nil
 }
 
 func (vr *valueReader) readu32() (uint32, error) {
-	var buf [4]byte
-	err := vr.read(buf[:])
+	raw, err := readBytes(vr.src, 4)
 	if err != nil {
 		return 0, err
 	}
 
-	return binary.LittleEndian.Uint32(buf[:]), nil
+	return binary.LittleEndian.Uint32(raw), nil
 }
 
 func (vr *valueReader) readi64() (int64, error) {
-	var buf [8]byte
-	err := vr.read(buf[:])
+	raw, err := readBytes(vr.src, 8)
 	if err != nil {
 		return 0, err
 	}
 
-	return int64(binary.LittleEndian.Uint64(buf[:])), nil
+	return int64(binary.LittleEndian.Uint64(raw)), nil
 }
 
 func (vr *valueReader) readu64() (uint64, error) {
-	var buf [8]byte
-	err := vr.read(buf[:])
+	raw, err := readBytes(vr.src, 8)
 	if err != nil {
 		return 0, err
 	}
 
-	return binary.LittleEndian.Uint64(buf[:]), nil
+	return binary.LittleEndian.Uint64(raw), nil
 }
