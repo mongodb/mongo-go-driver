@@ -655,15 +655,21 @@ func (vr *valueReader) ReadInt64() (int64, error) {
 	return i, nil
 }
 
+// ReadJavascript reads a BSON JavaScript value, advancing the reader
+// to the end of the JavaScript value.
 func (vr *valueReader) ReadJavascript() (string, error) {
 	if err := vr.ensureElementValue(TypeJavaScript, 0, "ReadJavascript"); err != nil {
+		return "", err
+	}
+	s, err := vr.readString()
+	if err != nil {
 		return "", err
 	}
 
 	if err := vr.pop(); err != nil {
 		return "", err
 	}
-	return vr.readString()
+	return s, nil
 }
 
 func (vr *valueReader) ReadMaxKey() error {
