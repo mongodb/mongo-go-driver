@@ -71,7 +71,7 @@ func main() {
 	fmt.Println("Successfully connected to MongoDB Analytics node.")
 
 	coll := client.Database("expanded_metrics").Collection("raw_results")
-	version := os.Getenv("VERSION")
+	version := os.Getenv("VERSION_ID")
 	if version == "" {
 		log.Panic("could not retrieve version")
 	}
