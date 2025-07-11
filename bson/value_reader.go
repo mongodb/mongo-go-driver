@@ -887,11 +887,10 @@ func (vr *valueReader) appendBytes(dst []byte, length int32) ([]byte, error) {
 }
 
 func (vr *valueReader) readByte() (byte, error) {
-	b, err := vr.r.ReadByte()
+	b, err := vr.src.ReadByte()
 	if err != nil {
 		return 0x0, err
 	}
-	vr.offset++
 	return b, nil
 }
 
