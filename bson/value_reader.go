@@ -403,7 +403,12 @@ func (vr *valueReader) Skip() error {
 		return vr.invalidTransitionErr(0, "Skip", []mode{mElement, mValue})
 	}
 
-	_, err := peekNextValueSize(vr, nil)
+	length, err := peekNextValueSize(vr, nil)
+	if err != nil {
+		return err
+	}
+
+	_, err = vr.src.discard(int(length))
 	if err != nil {
 		return err
 	}
