@@ -672,6 +672,8 @@ func (vr *valueReader) ReadJavascript() (string, error) {
 	return s, nil
 }
 
+// ReadMaxKey reads a BSON MaxKey value, advancing the reader position to the
+// end of the MaxKey value.
 func (vr *valueReader) ReadMaxKey() error {
 	if err := vr.ensureElementValue(TypeMaxKey, 0, "ReadMaxKey"); err != nil {
 		return err
@@ -680,6 +682,8 @@ func (vr *valueReader) ReadMaxKey() error {
 	return vr.pop()
 }
 
+// ReadMinKey reads a BSON MinKey value, advancing the reader position to the
+// end of the MinKey value.
 func (vr *valueReader) ReadMinKey() error {
 	if err := vr.ensureElementValue(TypeMinKey, 0, "ReadMinKey"); err != nil {
 		return err
@@ -688,6 +692,8 @@ func (vr *valueReader) ReadMinKey() error {
 	return vr.pop()
 }
 
+// REadNull reads a BSON Null value, advancing the reader position to the
+// end of the Null value.
 func (vr *valueReader) ReadNull() error {
 	if err := vr.ensureElementValue(TypeNull, 0, "ReadNull"); err != nil {
 		return err
