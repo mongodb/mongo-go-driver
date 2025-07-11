@@ -723,6 +723,8 @@ func (vr *valueReader) ReadObjectID() (ObjectID, error) {
 	return oid, nil
 }
 
+// ReadRegex reads a BSON Regex value, advancing the reader position to the
+// regex value.
 func (vr *valueReader) ReadRegex() (string, string, error) {
 	if err := vr.ensureElementValue(TypeRegex, 0, "ReadRegex"); err != nil {
 		return "", "", err
