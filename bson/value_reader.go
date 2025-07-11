@@ -935,14 +935,7 @@ func (vr *valueReader) peekLength() (int32, error) {
 }
 
 func (vr *valueReader) readLength() (int32, error) {
-	l, err := vr.readi32()
-	if err != nil {
-		return 0, err
-	}
-	if l < 0 {
-		return 0, fmt.Errorf("invalid negative length: %d", l)
-	}
-	return l, nil
+	return vr.readi32()
 }
 
 func (vr *valueReader) readi32() (int32, error) {
