@@ -540,20 +540,25 @@ func (vr *valueReader) ReadCodeWithScope() (string, DocumentReader, error) {
 	return code, vr, nil
 }
 
-func (vr *valueReader) ReadDBPointer() (ns string, oid ObjectID, err error) {
+// ReadDBPointer reads a BSON DBPointer value, returning the namespace, the
+// object ID, and an error if any, advancing the reader position to the end of
+// the DBPointer value.
+func (vr *valueReader) ReadDBPointer() (string, ObjectID, error) {
 	if err := vr.ensureElementValue(TypeDBPointer, 0, "ReadDBPointer"); err != nil {
-		return "", oid, err
+		return "", ObjectID{}, err
 	}
-
-	ns, err = vr.readString()
-	if err != nil {
-		return "", oid, err
-	}
-
-	err = vr.read(oid[:])
+	ns, err := vr.readString()
 	if err != nil {
 		return "", ObjectID{}, err
 	}
+
+	oidBytes, err := vr.readBytes(12)
+	if err != nil {
+		return "", ObjectID{}, err
+	}
+
+	var oid ObjectID
+	copy(oid[:], oidBytes)
 
 	if err := vr.pop(); err != nil {
 		return "", ObjectID{}, err
