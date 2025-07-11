@@ -122,6 +122,7 @@ func (*bufferedValueReader) streamable() bool {
 	return false
 }
 
-func (*bufferedValueReader) reset() {
-	// No resources to release for bufferedValueReader.
+func (b *bufferedValueReader) reset() {
+	b.buf = nil
+	b.offset = 0
 }

@@ -77,36 +77,28 @@ var vrPool = sync.Pool{
 
 // valueReader is for reading BSON values.
 type valueReader struct {
-	r      *bufio.Reader
+	src    valueReaderByteSrc
 	offset int64
 
 	stack []vrState
 	frame int64
 }
 
-func getDocumentReader(r io.Reader) *valueReader {
-	vr := vrPool.Get().(*valueReader)
-
-	vr.offset = 0
-	vr.frame = 0
-
-	vr.stack = vr.stack[:1]
-	vr.stack[0] = vrState{mode: mTopLevel}
-
-	br := bufioReaderPool.Get().(*bufio.Reader)
-	br.Reset(r)
-	vr.r = br
-
-	return vr
+func getBufferedDocumentReader(b []byte) *valueReader {
+	return newBufferedDocumentReader(b)
 }
 
-func putDocumentReader(vr *valueReader) {
+func putBufferedDocumentReader(vr *valueReader) {
 	if vr == nil {
 		return
 	}
 
-	bufioReaderPool.Put(vr.r)
-	vr.r = nil
+	vr.src.reset()
+
+	// Reset src and stack to avoid holding onto memory.
+	vr.src = nil
+	vr.frame = 0
+	vr.stack = vr.stack[:0]
 
 	vrPool.Put(vr)
 }
@@ -114,30 +106,36 @@ func putDocumentReader(vr *valueReader) {
 // NewDocumentReader returns a ValueReader using b for the underlying BSON
 // representation.
 func NewDocumentReader(r io.Reader) ValueReader {
-	return newBufferedDocumentReader(r)
+	panic("TODO")
 }
 
 // newValueReader returns a ValueReader that starts in the Value mode instead of in top
 // level document mode. This enables the creation of a ValueReader for a single BSON value.
 func newValueReader(t Type, r io.Reader) ValueReader {
-	vr := newBufferedDocumentReader(r)
-	if len(vr.stack) == 0 {
-		vr.stack = make([]vrState, 1, 5)
-	}
-	vr.stack[0].mode = mValue
-	vr.stack[0].vType = t
-	return vr
+	panic("TODO")
 }
 
-func newBufferedDocumentReader(r io.Reader) *valueReader {
-	stack := make([]vrState, 1, 5)
-	stack[0] = vrState{
+func newBufferedDocumentReader(b []byte) *valueReader {
+	vr := vrPool.Get().(*valueReader)
+
+	vr.src = &bufferedValueReader{}
+	vr.src.(*bufferedValueReader).buf = b
+	vr.src.(*bufferedValueReader).offset = 0
+
+	// Reset parse state.
+	vr.frame = 0
+	if cap(vr.stack) < 1 {
+		vr.stack = make([]vrState, 1, 5)
+	} else {
+		vr.stack = vr.stack[:1]
+	}
+
+	vr.stack[0] = vrState{
 		mode: mTopLevel,
+		end:  int64(len(b)),
 	}
-	return &valueReader{
-		r:     bufio.NewReader(r),
-		stack: stack,
-	}
+
+	return vr
 }
 
 func (vr *valueReader) advanceFrame() {

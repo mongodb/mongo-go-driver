@@ -7,7 +7,6 @@
 package bson
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -180,7 +179,7 @@ func copyValueFromBytes(dst ValueWriter, t Type, src []byte) error {
 		return wvb.writeValueBytes(t, src)
 	}
 
-	vr := newBufferedDocumentReader(bytes.NewReader(src))
+	vr := newBufferedDocumentReader(src)
 	vr.pushElement(t)
 
 	return copyValue(dst, vr)
