@@ -180,7 +180,7 @@ func copyValueFromBytes(dst ValueWriter, t Type, src []byte) error {
 		return wvb.writeValueBytes(t, src)
 	}
 
-	vr := newDocumentReader(bytes.NewReader(src))
+	vr := newBufferedDocumentReader(bytes.NewReader(src))
 	vr.pushElement(t)
 
 	return copyValue(dst, vr)

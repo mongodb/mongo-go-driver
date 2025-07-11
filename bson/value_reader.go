@@ -114,13 +114,13 @@ func putDocumentReader(vr *valueReader) {
 // NewDocumentReader returns a ValueReader using b for the underlying BSON
 // representation.
 func NewDocumentReader(r io.Reader) ValueReader {
-	return newDocumentReader(r)
+	return newBufferedDocumentReader(r)
 }
 
 // newValueReader returns a ValueReader that starts in the Value mode instead of in top
 // level document mode. This enables the creation of a ValueReader for a single BSON value.
 func newValueReader(t Type, r io.Reader) ValueReader {
-	vr := newDocumentReader(r)
+	vr := newBufferedDocumentReader(r)
 	if len(vr.stack) == 0 {
 		vr.stack = make([]vrState, 1, 5)
 	}
@@ -129,7 +129,7 @@ func newValueReader(t Type, r io.Reader) ValueReader {
 	return vr
 }
 
-func newDocumentReader(r io.Reader) *valueReader {
+func newBufferedDocumentReader(r io.Reader) *valueReader {
 	stack := make([]vrState, 1, 5)
 	stack[0] = vrState{
 		mode: mTopLevel,
