@@ -895,13 +895,11 @@ func (vr *valueReader) readByte() (byte, error) {
 }
 
 func (vr *valueReader) readCString() (string, error) {
-	str, err := vr.r.ReadString(0x00)
+	data, err := vr.src.readSlice(0x00)
 	if err != nil {
 		return "", err
 	}
-	l := len(str)
-	vr.offset += int64(l)
-	return str[:l-1], nil
+	return string(data[:len(data)-1]), nil
 }
 
 func (vr *valueReader) readString() (string, error) {
