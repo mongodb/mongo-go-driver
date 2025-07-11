@@ -603,6 +603,8 @@ func (vr *valueReader) ReadDecimal128() (Decimal128, error) {
 	return NewDecimal128(h, l), nil
 }
 
+// ReadDouble reads a BSON double value, advancing the reader position to
+// to the end of the double value.
 func (vr *valueReader) ReadDouble() (float64, error) {
 	if err := vr.ensureElementValue(TypeDouble, 0, "ReadDouble"); err != nil {
 		return 0, err
