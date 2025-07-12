@@ -934,6 +934,18 @@ func (p *pool) checkInNoEvent(conn *connection) error {
 		go func() {
 			_ = p.closeConnection(conn)
 		}()
+
+		// Since we are removing the connection, we should try to queue another
+		// in good faith in case the current idle wait queue is being awaited
+		// in a checkOut() call.
+		p.createConnectionsCond.L.Lock()
+		w := p.newConnWait.popFront()
+		p.createConnectionsCond.L.Unlock()
+
+		if w != nil {
+			p.queueForNewConn(context.Background(), w)
+		}
+
 		return nil
 	}
 
@@ -1128,15 +1140,29 @@ func (p *pool) getOrQueueForIdleConn(w *wantConn) bool {
 	return false
 }
 
+// queueForNewConn enqueues a checkout request and signals the
+// connection-creation state machine. It does NOT initiate dialing directly,
+// but places the wantConn into the pending queue and wakes a background worker
+// using sync.Cond. That worker will then dequeue in FIFO order and perform the
+// actual dial under it's own synchronization, preserving order.
 func (p *pool) queueForNewConn(ctx context.Context, w *wantConn) {
 	p.createConnectionsCond.L.Lock()
 	defer p.createConnectionsCond.L.Unlock()
 
+	// Remove any wantConn entries at the front that are no longer waiting. This
+	// keeps the queue clean and avoids delivering to canceled requests.
 	p.newConnWait.cleanFront()
+
+	// Enqueu this wantConn for allocation of a new connection.
 	p.newConnWait.pushBack(w)
+
+	// Signale on goroutine waiting in waitForNewConn that pool state changed and
+	// new wantConn is available. That goroutine will then dequeue under lock.
 	p.createConnectionsCond.Signal()
 
-	// Try to spawn without blocking the caller.
+	// Spawn a background worker to service the queue without blocking callers. We
+	// do NOT pass "w" here because the worker must re-acquite the queue lock and
+	// pick the next available wantConn in FIFO order via waitForNewConn.
 	go p.spawnConnectionIfNeeded(ctx)
 }
 
@@ -1529,6 +1555,11 @@ func (p *pool) waitForNewConn(ctx context.Context) (*wantConn, *connection, bool
 // spawnConnectionIfNeeded takes on waiting waitConn (if any) and starts its
 // connection creation subject to the semaphore limit.
 func (p *pool) spawnConnectionIfNeeded(ctx context.Context) {
+	if !p.hasSpace() {
+		// If the pool is full, we can't spawn a new connection.
+		return
+	}
+
 	// Block until we're allowed to start another connection.
 	p.connectionSem <- struct{}{}
 

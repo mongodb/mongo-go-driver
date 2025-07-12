@@ -11,6 +11,7 @@ import (
 	"errors"
 	"net"
 	"regexp"
+	"runtime"
 	"sync"
 	"testing"
 	"time"
@@ -1607,4 +1608,51 @@ func TestPool_Error(t *testing.T) {
 
 		p.close(context.Background())
 	})
+}
+
+// Test that if the pool is already at MaxPoolSize, a flood of checkOuts with
+// a background context spins up unbounded goroutines.
+func TestPool_unboundedGoroutines(t *testing.T) {
+	// Start a server that never response so no connection ever frees up.
+	addr := bootstrapConnections(t, 1, func(net.Conn) {
+		<-make(chan struct{})
+	})
+
+	// Create pool with exactly 1 slot and 1 dial slot.
+	p := newPool(poolConfig{
+		Address:        address.Address(addr.String()),
+		MaxPoolSize:    1,
+		MaxConnecting:  1,
+		ConnectTimeout: defaultConnectionTimeout,
+	})
+	require.NoError(t, p.ready(), "pool ready error")
+
+	// Drain the only connection so the pool is full.
+	c, err := p.checkOut(context.Background())
+	require.NoError(t, err, "checkOut error")
+
+	defer func() {
+		_ = p.checkIn(c)
+		p.close(context.Background())
+	}()
+
+	// Snapshot base goroutine count.
+	before := runtime.NumGoroutine()
+
+	// Flood with N background checkOuts
+	const N = 100
+	for i := 0; i < N; i++ {
+		go func() {
+			_, _ = p.checkOut(context.Background())
+		}()
+	}
+
+	// Give them a moment to spin up
+	time.Sleep(1000 * time.Millisecond)
+
+	after := runtime.NumGoroutine()
+	delta := after - before - N
+
+	assert.LessOrEqual(t, delta, int(p.maxConnecting))
+
 }
