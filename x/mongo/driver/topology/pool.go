@@ -1556,7 +1556,8 @@ func (p *pool) waitForNewConn(ctx context.Context) (*wantConn, *connection, bool
 // connection creation subject to the semaphore limit.
 func (p *pool) spawnConnectionIfNeeded(ctx context.Context) {
 	if !p.hasSpace() {
-		// If the pool is full, we can't spawn a new connection.
+		// If the pool is full, we can't spawn a new connection. This guard prevents
+		// spawning an unbound number of goroutines.
 		return
 	}
 
