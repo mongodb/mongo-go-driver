@@ -240,6 +240,7 @@ func benchmarkBSONDecoding(b *testing.B, canonicalOnly bool, source string) {
 
 	for i := 0; i < b.N; i++ {
 		recordMetrics(b, metrics, func(b *testing.B) {
+			time.Sleep(100 * time.Millisecond)
 			var out bson.D
 
 			err := bson.Unmarshal(raw, &out)
