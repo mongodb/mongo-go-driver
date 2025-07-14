@@ -85,18 +85,22 @@ func main() {
 	if err4 != nil {
 		log.Panicf("Error parsing commits: %v", err4)
 	}
-	fmt.Println(mainlineCommits)
 
 	mainlineVersion := "mongo_go_driver_" + mainlineCommits[0]
 	mainlineRawData, err5 := findRawData(mainlineVersion, coll)
 	if err5 != nil {
 		log.Panicf("Could not retrieve mainline raw data")
 	}
-	energyStats, err6 := getEnergyStatsFromRaw(patchRawData, mainlineRawData)
-	if err6 != nil {
-		log.Panicf("Could not process energy stats: %v", err6)
+
+	if len(mainlineRawData) != len(patchRawData) {
+		log.Panicf("Path and mainline data length do not match.")
 	}
-	fmt.Printf("H-score: %.4f (p-value: %.4f)\n", energyStats.H, energyStats.HPValue)
+
+	changePoints, err6 := getEnergyStatsForAllTests(patchRawData, mainlineRawData)
+	if err6 != nil {
+		log.Panicf("Could not get energy stats: %v", err6)
+	}
+	fmt.Printf("Significant change points length %d", len(changePoints))
 
 	err0 := client.Disconnect(context.Background())
 	if err0 != nil {
@@ -164,57 +168,24 @@ func parseMainelineCommits(rawData []RawData) ([]string, error) {
 	return commits, nil
 }
 
-func getEnergyStatsFromRaw(xRaw []RawData, yRaw []RawData) (*EnergyStatisticsWithProbabilities, error) {
+func getEnergyStatsForSingleTest(xRaw RawData, yRaw RawData) (*EnergyStatisticsWithProbabilities, error) {
 	permutations := 1000
-	var x [][]float64
-	var y [][]float64
+	var x []float64
+	var y []float64
 
-	// process xRaw and yRaw
-	for i := range xRaw {
-		sort.Slice(xRaw[i].Rollups.Stats, func(i, j int) bool {
-			return xRaw[i].Rollups.Stats[i].Name < xRaw[i].Rollups.Stats[j].Name
-		})
-		sort.Slice(yRaw[i].Rollups.Stats, func(i, j int) bool {
-			return yRaw[i].Rollups.Stats[i].Name < yRaw[i].Rollups.Stats[j].Name
-		})
+	sort.Slice(xRaw.Rollups.Stats, func(i, j int) bool {
+		return xRaw.Rollups.Stats[i].Name < xRaw.Rollups.Stats[j].Name
+	})
+	sort.Slice(yRaw.Rollups.Stats, func(i, j int) bool {
+		return yRaw.Rollups.Stats[i].Name < yRaw.Rollups.Stats[j].Name
+	})
 
-		var valsX []float64
-		for _, stat := range xRaw[i].Rollups.Stats {
-			valsX = append(valsX, stat.Val)
-		}
-		x = append(x, valsX)
-
-		var valsY []float64
-		for _, stat := range yRaw[i].Rollups.Stats {
-			valsY = append(valsY, stat.Val)
-		}
-		y = append(y, valsY)
+	for _, stat := range xRaw.Rollups.Stats {
+		x = append(x, stat.Val)
 	}
 
-	// pad rows with zeros to enforce consistent lengths
-	maxLength := 0
-	for _, row := range x {
-		if len(row) > maxLength {
-			maxLength = len(row)
-		}
-	}
-	for _, row := range y {
-		if len(row) > maxLength {
-			maxLength = len(row)
-		}
-	}
-
-	for i := range x {
-		if len(x[i]) < maxLength {
-			padding := make([]float64, maxLength-len(x[i]))
-			x[i] = append(x[i], padding...)
-		}
-	}
-	for i := range y {
-		if len(y[i]) < maxLength {
-			padding := make([]float64, maxLength-len(y[i]))
-			y[i] = append(y[i], padding...)
-		}
+	for _, stat := range yRaw.Rollups.Stats {
+		y = append(y, stat.Val)
 	}
 
 	if len(x) != len(y) {
@@ -227,4 +198,31 @@ func getEnergyStatsFromRaw(xRaw []RawData, yRaw []RawData) (*EnergyStatisticsWit
 	}
 
 	return energyStats, nil
+}
+
+func getEnergyStatsForAllTests(patchRawData []RawData, mainlineRawData []RawData) (map[string]float64, error) {
+
+	sort.Slice(patchRawData, func(i, j int) bool {
+		return patchRawData[i].Info.TestName < patchRawData[j].Info.TestName
+	})
+	sort.Slice(mainlineRawData, func(i, j int) bool {
+		return mainlineRawData[i].Info.TestName < mainlineRawData[j].Info.TestName
+	})
+
+	var changePoints = make(map[string]float64)
+	for i := range patchRawData {
+		var testname string
+		if testname := patchRawData[i].Info.TestName; testname != mainlineRawData[i].Info.TestName {
+			return nil, errors.New("tests do not match")
+		}
+		energyStats, err := getEnergyStatsForSingleTest(patchRawData[i], mainlineRawData[i])
+		if err != nil {
+			return nil, err
+		}
+		if energyStats.H >= 0.6 {
+			changePoints[testname] = energyStats.H
+		}
+		fmt.Printf("%s | H-score: %.4f (p-value: %.4f)\n", patchRawData[i].Info.TestName, energyStats.H, energyStats.HPValue)
+	}
+	return changePoints, nil
 }
