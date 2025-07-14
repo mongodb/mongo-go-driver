@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sort"
 	"strings"
 	"time"
 
@@ -36,8 +37,8 @@ type RawData struct {
 			Reason           interface{} `bson:"reason"`
 			User             interface{} `bson:"user"`
 		}
-		TestName string        `bson:"test_name"`
-		Args     []interface{} `bson:"args"`
+		TestName string                 `bson:"test_name"`
+		Args     map[string]interface{} `bson:"args"`
 	}
 	CreatedAt   interface{} `bson:"created_at"`
 	CompletedAt interface{} `bson:"completed_at"`
@@ -75,16 +76,27 @@ func main() {
 	if version == "" {
 		log.Panic("could not retrieve version")
 	}
-	rawData, err3 := findRawData(version, coll)
+	patchRawData, err3 := findRawData(version, coll)
 	if err3 != nil {
 		log.Panicf("Error getting raw data: %v", err3)
 	}
 
-	commits, err := parseMainelineCommits(rawData)
-	if err != nil {
-		log.Panicf("Error parsing commits: %v", err)
+	mainlineCommits, err4 := parseMainelineCommits(patchRawData)
+	if err4 != nil {
+		log.Panicf("Error parsing commits: %v", err4)
 	}
-	fmt.Println(commits)
+	fmt.Println(mainlineCommits)
+
+	mainlineVersion := "mongo_go_driver_" + mainlineCommits[0]
+	mainlineRawData, err5 := findRawData(mainlineVersion, coll)
+	if err5 != nil {
+		log.Panicf("Could not retrieve mainline raw data")
+	}
+	energyStats, err6 := getEnergyStatsFromRaw(patchRawData, mainlineRawData)
+	if err6 != nil {
+		log.Panicf("Could not process energy stats: %v", err6)
+	}
+	fmt.Printf("H-score: %.4f (p-value: %.4f)\n", energyStats.H, energyStats.HPValue)
 
 	err0 := client.Disconnect(context.Background())
 	if err0 != nil {
@@ -133,13 +145,86 @@ func findRawData(version string, coll *mongo.Collection) ([]RawData, error) {
 
 func parseMainelineCommits(rawData []RawData) ([]string, error) {
 	commits := make([]string, 0, len(rawData))
-	for _, rd := range rawData {
+	for i, rd := range rawData {
 		taskID := rd.Info.TaskID
-		pieces := strings.Split(taskID, "_") // Format: mongo_go_driver_perf_perf_<commit-SHA>_<timestamp>
-		if len(pieces) < 6 {
+		pieces := strings.Split(taskID, "_") // Format: mongo_go_driver_perf_perf_patch_<commit-SHA>_<version>_<timestamp>
+		for j, p := range pieces {
+			if p == "patch" {
+				if len(pieces) < j+2 {
+					return nil, errors.New("task ID doesn't hold commit SHA")
+				}
+				commits = append(commits, pieces[j+1])
+				break
+			}
+		}
+		if len(commits) < i+1 { // didn't find SHA in task_ID
 			return nil, errors.New("task ID doesn't hold commit SHA")
 		}
-		commits = append(commits, pieces[5])
 	}
 	return commits, nil
+}
+
+func getEnergyStatsFromRaw(xRaw []RawData, yRaw []RawData) (*EnergyStatisticsWithProbabilities, error) {
+	permutations := 1000
+	var x [][]float64
+	var y [][]float64
+
+	// process xRaw and yRaw
+	for i := range xRaw {
+		sort.Slice(xRaw[i].Rollups.Stats, func(i, j int) bool {
+			return xRaw[i].Rollups.Stats[i].Name < xRaw[i].Rollups.Stats[j].Name
+		})
+		sort.Slice(yRaw[i].Rollups.Stats, func(i, j int) bool {
+			return yRaw[i].Rollups.Stats[i].Name < yRaw[i].Rollups.Stats[j].Name
+		})
+
+		var valsX []float64
+		for _, stat := range xRaw[i].Rollups.Stats {
+			valsX = append(valsX, stat.Val)
+		}
+		x = append(x, valsX)
+
+		var valsY []float64
+		for _, stat := range yRaw[i].Rollups.Stats {
+			valsY = append(valsY, stat.Val)
+		}
+		y = append(y, valsY)
+	}
+
+	// pad rows with zeros to enforce consistent lengths
+	maxLength := 0
+	for _, row := range x {
+		if len(row) > maxLength {
+			maxLength = len(row)
+		}
+	}
+	for _, row := range y {
+		if len(row) > maxLength {
+			maxLength = len(row)
+		}
+	}
+
+	for i := range x {
+		if len(x[i]) < maxLength {
+			padding := make([]float64, maxLength-len(x[i]))
+			x[i] = append(x[i], padding...)
+		}
+	}
+	for i := range y {
+		if len(y[i]) < maxLength {
+			padding := make([]float64, maxLength-len(y[i]))
+			y[i] = append(y[i], padding...)
+		}
+	}
+
+	if len(x) != len(y) {
+		return nil, errors.New("x and y must be the same length")
+	}
+
+	energyStats, err := GetEnergyStatisticsAndProbabilities(x, y, permutations)
+	if err != nil {
+		return nil, err
+	}
+
+	return energyStats, nil
 }
