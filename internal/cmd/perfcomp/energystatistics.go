@@ -9,8 +9,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"log"
-	"math"
 	"math/rand"
 	"sort"
 	"time"
@@ -32,9 +30,9 @@ type EnergyStatistics struct {
 // Class for representing Energy Statistics and permutation test result.
 type EnergyStatisticsWithProbabilities struct {
 	EnergyStatistics
-	EPValue          float64
-	TPValue          float64
-	HPValue          float64
+	EPValue float64
+	TPValue float64
+	HPValue float64
 }
 
 // _convert converts a series into a 2-dimensional Gonum matrix of float64.
@@ -583,56 +581,4 @@ func GetEnergyStatisticsAndProbabilities(x, y interface{}, permutations int) (*E
 		TPValue:          float64(countT) / total,
 		HPValue:          float64(countH) / total,
 	}, nil
-}
-
-func TestEnergyStatistics() {
-	// Initialize random number generator for reproducibility (optional, but good for tests)
-	seed := time.Now().UnixNano()
-	r := rand.New(rand.NewSource(seed))
-
-	// --- Test Case 1: x and y are different distributions ---
-
-	// Generate x: 100x5 matrix with random values between 0 and 1 (mimics np.random.rand)
-	xData := make([]float64, 100*5)
-	for i := range xData {
-		xData[i] = r.Float64()
-	}
-	x := mat.NewDense(100, 5, xData)
-
-	// Generate y: 100x5 matrix with normal distribution (mean 1000, std dev 1) (mimics np.random.normal)
-	yData := make([]float64, 100*5)
-	for i := range yData {
-		// Box-Muller transform to get normally distributed numbers
-		u1, u2 := r.Float64(), r.Float64()
-		z0 := math.Sqrt(-2.0*math.Log(u1)) * math.Cos(2*math.Pi*u2)
-		yData[i] = 1000 + 1*z0 // mean + std_dev * z0
-	}
-	y := mat.NewDense(100, 5, yData)
-
-	permutations := 1000
-
-	fmt.Println("--- Expected h around 1 (x and y are different) ---")
-	energyStats1, err := GetEnergyStatisticsAndProbabilities(x, y, permutations)
-	if err != nil {
-		log.Fatalf("Error calculating energy statistics for different distributions: %v", err)
-	}
-
-	fmt.Printf("E-statistic: %.4f (p-value: %.4f)\n", energyStats1.E, energyStats1.EPValue)
-	fmt.Printf("Test statistic: %.4f (p-value: %.4f)\n", energyStats1.T, energyStats1.TPValue)
-	fmt.Printf("E-coefficient of inhomogeneity (h): %.4f (p-value: %.4f)\n\n", energyStats1.H, energyStats1.HPValue)
-
-	// --- Test Case 2: y is the same as x (expected h around 0) ---
-
-	// Set y to be the same as x
-	y = x
-
-	fmt.Println("--- Expected h around 0 (y is the same as x) ---")
-	energyStats2, err := GetEnergyStatisticsAndProbabilities(x, y, permutations)
-	if err != nil {
-		log.Fatalf("Error calculating energy statistics for identical distributions: %v", err)
-	}
-
-	fmt.Printf("E-statistic: %.4f (p-value: %.4f)\n", energyStats2.E, energyStats2.EPValue)
-	fmt.Printf("Test statistic: %.4f (p-value: %.4f)\n", energyStats2.T, energyStats2.TPValue)
-	fmt.Printf("E-coefficient of inhomogeneity (h): %.4f (p-value: %.4f)\n", energyStats2.H, energyStats2.HPValue)
 }
