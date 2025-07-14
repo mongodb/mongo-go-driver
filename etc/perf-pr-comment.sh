@@ -4,4 +4,4 @@
 
 set -eux
 
-go run ./internal/cmd/perfcomp/main.go
+go run ./internal/cmd/perfcomp/main.go ./internal/cmd/perfcomp/energystatistics.go
