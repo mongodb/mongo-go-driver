@@ -292,6 +292,7 @@ functions:
         binary: bash
         env:
           COMMIT: "${github_commit}"
+          VERSION_ID: ${version_id}
         include_expansions_in_env: [perf_uri_private_endpoint]
         args: [*task-runner, perf-pr-comment]
 
