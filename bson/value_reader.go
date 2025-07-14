@@ -243,7 +243,7 @@ func (vr *valueReader) Type() Type {
 	return vr.stack[vr.frame].vType
 }
 
-// peekLength returns the length of the next value in the stream without
+// peekNextValueSize returns the length of the next value in the stream without
 // offsetting the reader position.
 func peekNextValueSize(vr *valueReader) (int32, error) {
 	var length int32
