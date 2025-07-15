@@ -285,6 +285,17 @@ functions:
           echo "Response Body: $response_body"
           echo "HTTP Status: $http_status"
 
+  send-perf-pr-comment:
+    - command: subprocess.exec
+      type: test
+      params:
+        binary: bash
+        env:
+          COMMIT: "${github_commit}"
+          VERSION_ID: ${version_id}
+        include_expansions_in_env: [perf_uri_private_endpoint]
+        args: [*task-runner, perf-pr-comment]
+
   run-enterprise-auth-tests:
     - command: ec2.assume_role
       params:
