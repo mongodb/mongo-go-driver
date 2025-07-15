@@ -10,14 +10,15 @@ Go 1.23 or higher is required to run the driver test suite.  We use [task](https
 
 ## Bug Fixes and New Features
 
-Before starting to write code, look for existing [tickets](https://jira.mongodb.org/browse/GODRIVER) or [create one](https://jira.mongodb.org/secure/CreateIssue!default.jspa) for your bug, issue, or feature request. This helps the community avoid working on something that might not be of interest or which has already been addressed.
+Before starting to write code, look for existing [tickets](https://jira.mongodb.org/browse/GODRIVER) or [create one](https://jira.mongodb.org/secure/CreateIssue!default.jspa) for your bug, issue, or feature request. This helps the community avoid working on something that might not be of interest or which has already been addressed. Before working on features or larger bug fixes, consider discussing your ideas in the corresponding JIRA issue to ensure that they align with the project's goals and to get feedback from the maintainers. This also ensures that your work can be reviewed and merged more smoothly.
 
 ## Pull Requests & Patches
 
-The Go Driver team uses GitHub to manage and review all code changes. Patches should generally be made against the master (default) branch and include relevant tests, if
-applicable.
+The Go Driver team uses GitHub to manage and review all code changes. Pull requests containing new features should generally be made against the master (default) branch and include relevant tests. For bug fixes, please target the latest stable branch, e.g. `release/2.2` for the 2.2.x series). The bug fix will be merged up to newer branches automatically after your pull request has been merged. If you are unsure which branch to target, please ask in the corresponding JIRA issue, and if you've created a pull request against the wrong branch, we can help you change it.
 
-Code should compile and tests should pass under all Go versions which the driver currently supports. Currently the Go Driver supports a minimum version of Go 1.19 and requires Go 1.23 for development. Please run the following `Taskfile` targets to validate your changes:
+When creating a pull request, please ensure that your code adheres to the following guidelines:
+
+Code should compile and tests should pass under all Go versions which the driver currently supports. Currently, the Go Driver supports a minimum version of Go 1.19 and requires Go 1.23 for development. Please run the following `Taskfile` targets to validate your changes:
 
 - `task fmt`
 - `task lint`
