@@ -8,6 +8,7 @@ package bson
 
 import (
 	"bufio"
+	"io"
 )
 
 // streamingValueReader reads from an ioReader wrapped in a bufio.Reader. It
@@ -25,9 +26,12 @@ var _ valueReaderByteSrc = (*streamingValueReader)(nil)
 
 // Read reads up to len(p) bytes from the underlying bufio.Reader, advancing
 // the offset by the number of bytes read.
-func (s *streamingValueReader) Read(p []byte) (int, error) {
-	n, err := s.br.Read(p)
-	s.offset += int64(n)
+func (s *streamingValueReader) readExact(p []byte) (int, error) {
+	n, err := io.ReadFull(s.br, p)
+	if err == nil {
+		s.offset += int64(n)
+	}
+
 	return n, err
 }
 

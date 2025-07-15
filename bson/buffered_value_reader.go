@@ -23,7 +23,7 @@ var _ valueReaderByteSrc = (*bufferedValueReader)(nil)
 
 // Read reads up to len(p) bytes from the in-memory buffer, advancing the offset
 // by the number of bytes read.
-func (b *bufferedValueReader) Read(p []byte) (int, error) {
+func (b *bufferedValueReader) readExact(p []byte) (int, error) {
 	if b.offset >= int64(len(b.buf)) {
 		return 0, io.EOF
 	}

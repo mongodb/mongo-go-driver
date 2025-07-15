@@ -17,8 +17,9 @@ import (
 )
 
 type valueReaderByteSrc interface {
-	io.Reader
 	io.ByteReader
+
+	readExact(p []byte) (int, error)
 
 	// Peek returns the next n bytes without advancing the cursor. It must return
 	// exactly n bytes or n error if fewer are available.
@@ -59,12 +60,6 @@ type vrState struct {
 	mode  mode
 	vType Type
 	end   int64
-}
-
-var bufioReaderPool = sync.Pool{
-	New: func() interface{} {
-		return bufio.NewReader(nil)
-	},
 }
 
 var vrPool = sync.Pool{
@@ -286,10 +281,7 @@ func peekNextValueSize(vr *valueReader) (int32, error) {
 func readBytes(src valueReaderByteSrc, n int) ([]byte, error) {
 	if src.streamable() {
 		data := make([]byte, n)
-		if _, err := io.ReadFull(src, data); err != nil {
-			if errors.Is(err, io.ErrUnexpectedEOF) {
-				err = io.EOF // Convert io.ErrUnexpectedEOF to io.EOF for consistency.
-			}
+		if _, err := src.readExact(data); err != nil {
 			return nil, err
 		}
 
@@ -315,6 +307,7 @@ func (vr *valueReader) readBytes(n int32) ([]byte, error) {
 	return readBytes(vr.src, int(n))
 }
 
+//nolint:unparam
 func (vr *valueReader) readValueBytes(dst []byte) (Type, []byte, error) {
 	switch vr.stack[vr.frame].mode {
 	case mTopLevel:
