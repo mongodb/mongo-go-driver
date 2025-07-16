@@ -9,7 +9,9 @@ package bsoncore
 import (
 	"bytes"
 	"fmt"
-	"math"
+	"strings"
+
+	"go.mongodb.org/mongo-driver/v2/internal/bsoncoreutil"
 )
 
 // MalformedElementError represents a class of errors that RawElement methods return.
@@ -115,35 +117,78 @@ func (e Element) ValueErr() (Value, error) {
 
 // String implements the fmt.String interface. The output will be in extended JSON format.
 func (e Element) String() string {
-	return e.StringN(math.MaxInt)
+	str, _ := e.stringN(0)
+	return str
 }
 
 // StringN implements the fmt.String interface for upto N bytes. The output will be in extended JSON format.
 func (e Element) StringN(n int) string {
-	if len(e) == 0 {
+	if n <= 0 {
 		return ""
 	}
+	str, _ := e.stringN(n)
+	return str
+}
+
+// stringN stringify an element. If N is larger than 0, it will truncate the string to N bytes.
+func (e Element) stringN(n int) (string, bool) {
+	if len(e) == 0 {
+		return "", false
+	}
+	if n == 1 {
+		return `"`, true
+	}
+
 	t := Type(e[0])
 	idx := bytes.IndexByte(e[1:], 0x00)
-	if idx == -1 {
-		return ""
+	if idx <= 0 {
+		return "", false
 	}
-	key, valBytes := []byte(e[1:idx+1]), []byte(e[idx+2:])
-	val, _, valid := ReadValue(valBytes, t)
+	key := e[1 : idx+1]
+
+	var buf strings.Builder
+	buf.WriteByte('"')
+	const postfix = `": `
+	switch {
+	case n <= 0 || idx <= n-4:
+		buf.Write(key)
+		buf.WriteString(postfix)
+	case idx < n:
+		buf.Write(key)
+		buf.WriteString(postfix[:n-idx])
+	default:
+		buf.WriteString(bsoncoreutil.Truncate(string(key), n-1))
+	}
+
+	l := 0
+	if n > 0 {
+		if buf.Len() >= n {
+			return buf.String(), true
+		}
+		l = n - buf.Len()
+	}
+
+	val, _, valid := ReadValue(e[idx+2:], t)
 	if !valid {
-		return ""
+		return "", false
 	}
 
 	var str string
+	var truncated bool
 	if _, ok := val.StringValueOK(); ok {
-		str = val.StringN(n)
+		str, truncated = val.stringN(l)
 	} else if arr, ok := val.ArrayOK(); ok {
-		str = arr.StringN(n)
+		str, truncated = arr.stringN(l)
 	} else {
 		str = val.String()
+		if l > 0 && len(str) > l {
+			truncated = true
+			str = bsoncoreutil.Truncate(str, l)
+		}
 	}
 
-	return "\"" + string(key) + "\": " + str
+	buf.WriteString(str)
+	return buf.String(), truncated
 }
 
 // DebugString outputs a human readable version of RawElement. It will attempt to stringify the

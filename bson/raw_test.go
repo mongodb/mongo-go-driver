@@ -518,7 +518,7 @@ func createMassiveArraysDocument(arraySize int) D {
 func createUniqueVoluminousDocument(t *testing.T, size int) bsoncore.Document {
 	t.Helper()
 
-	docs := make(D, size)
+	docs := make(D, 0, size)
 
 	for i := 0; i < size; i++ {
 		docs = append(docs, E{
@@ -561,7 +561,7 @@ func createLargeSingleDoc(t *testing.T) bsoncore.Document {
 func createVoluminousArrayDocuments(t *testing.T, size int) bsoncore.Document {
 	t.Helper()
 
-	docs := make(D, size)
+	docs := make(D, 0, size)
 
 	for i := 0; i < size; i++ {
 		docs = append(docs, E{

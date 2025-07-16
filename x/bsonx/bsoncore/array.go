@@ -9,7 +9,6 @@ package bsoncore
 import (
 	"fmt"
 	"io"
-	"math"
 	"strconv"
 	"strings"
 )
@@ -83,55 +82,73 @@ func (a Array) DebugString() string {
 // String outputs an ExtendedJSON version of Array. If the Array is not valid, this method
 // returns an empty string.
 func (a Array) String() string {
-	return a.StringN(math.MaxInt)
+	str, _ := a.stringN(0)
+	return str
 }
 
 // StringN stringifies an array upto N bytes
 func (a Array) StringN(n int) string {
-	if lens, _, _ := ReadLength(a); lens < 5 || n <= 0 {
+	if n <= 0 {
 		return ""
+	}
+	str, _ := a.stringN(n)
+	return str
+}
+
+// stringN stringify an array. If N is larger than 0, it will truncate the string to N bytes.
+func (a Array) stringN(n int) (string, bool) {
+	if lens, _, _ := ReadLength(a); lens < 5 {
+		return "", false
 	}
 
 	var buf strings.Builder
 	buf.WriteByte('[')
 
 	length, rem, _ := ReadLength(a) // We know we have enough bytes to read the length
-	length -= 4
+	length -= (4 /* length bytes */ + 1 /* final null byte */)
 
+	var truncated bool
 	var elem Element
 	var ok bool
-
-	if n > 0 {
-		for length > 1 {
-			elem, rem, ok = ReadElement(rem)
-
-			length -= int32(len(elem))
-			if !ok {
-				return ""
+	var str string
+	first := true
+	for length > 0 && !truncated {
+		l := 0
+		if n > 0 {
+			if buf.Len() >= n {
+				truncated = true
+				break
 			}
-
-			str := elem.Value().StringN(n - buf.Len())
-
-			buf.WriteString(str)
-
-			if buf.Len() == n {
-				return buf.String()
-			}
-
-			if length > 1 {
-				buf.WriteByte(',')
+			l = n - buf.Len()
+		}
+		if !first {
+			buf.WriteByte(',')
+			if l > 0 {
+				l--
+				if l == 0 {
+					truncated = true
+					break
+				}
 			}
 		}
-		if length != 1 { // Missing final null byte or inaccurate length
-			return ""
+
+		elem, rem, ok = ReadElement(rem)
+		length -= int32(len(elem))
+		if !ok || length < 0 {
+			return "", true
 		}
+
+		str, truncated = elem.Value().stringN(l)
+		buf.WriteString(str)
+
+		first = false
 	}
 
-	if buf.Len()+1 <= n {
+	if n <= 0 || (buf.Len() < n && !truncated) {
 		buf.WriteByte(']')
 	}
 
-	return buf.String()
+	return buf.String(), truncated
 }
 
 // Values returns this array as a slice of values. The returned slice will contain valid values.

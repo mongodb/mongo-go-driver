@@ -10,11 +10,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math"
 	"strconv"
 	"strings"
-
-	"go.mongodb.org/mongo-driver/v2/internal/bsoncoreutil"
 )
 
 // ValidationError is an error type returned when attempting to validate a document or array.
@@ -264,58 +261,73 @@ func (d Document) DebugString() string {
 // String outputs an ExtendedJSON version of Document. If the document is not valid, this method
 // returns an empty string.
 func (d Document) String() string {
-	return d.StringN(math.MaxInt)
+	str, _ := d.stringN(0)
+	return str
 }
 
 // StringN stringifies a document upto N bytes
 func (d Document) StringN(n int) string {
-	if len(d) < 5 || n <= 0 {
+	if n <= 0 {
 		return ""
+	}
+	str, _ := d.stringN(n)
+	return str
+}
+
+// stringN stringify a document. If N is larger than 0, it will truncate the string to N bytes.
+func (d Document) stringN(n int) (string, bool) {
+	if len(d) < 5 {
+		return "", false
 	}
 
 	var buf strings.Builder
-
 	buf.WriteByte('{')
 
 	length, rem, _ := ReadLength(d)
-	length -= 4
+	length -= (4 /* length bytes */ + 1 /* final null byte */)
 
+	var truncated bool
 	var elem Element
 	var ok bool
-
+	var str string
 	first := true
-	truncated := false
-
-	if n > 0 {
-		for length > 1 {
-			if !first {
-				buf.WriteByte(',')
-			}
-			elem, rem, ok = ReadElement(rem)
-			length -= int32(len(elem))
-			if !ok {
-				return ""
-			}
-
-			str := elem.StringN(n)
-			if buf.Len()+len(str) > n {
-				truncatedStr := bsoncoreutil.Truncate(str, n-buf.Len())
-				buf.WriteString(truncatedStr)
-
+	for length > 0 && !truncated {
+		l := 0
+		if n > 0 {
+			if buf.Len() >= n {
 				truncated = true
 				break
 			}
-
-			buf.WriteString(str)
-			first = false
+			l = n - buf.Len()
 		}
+		if !first {
+			buf.WriteByte(',')
+			if l > 0 {
+				l--
+				if l == 0 {
+					truncated = true
+					break
+				}
+			}
+		}
+
+		elem, rem, ok = ReadElement(rem)
+		length -= int32(len(elem))
+		if !ok || length < 0 {
+			return "", true
+		}
+
+		str, truncated = elem.stringN(l)
+		buf.WriteString(str)
+
+		first = false
 	}
 
-	if !truncated {
+	if n <= 0 || (buf.Len() < n && !truncated) {
 		buf.WriteByte('}')
 	}
 
-	return buf.String()
+	return buf.String(), truncated
 }
 
 // Elements returns this document as a slice of elements. The returned slice will contain valid

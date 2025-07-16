@@ -832,7 +832,7 @@ func TestValue_StringN(t *testing.T) {
 			got := tc.val.StringN(tc.n)
 			assert.Equal(t, tc.want, got)
 			if tc.n >= 0 {
-				assert.LessOrEqual(t, len(got), tc.n)
+				assert.LessOrEqual(t, len(got), tc.n, "got %v, want %v", got, tc.want)
 			}
 		})
 	}
