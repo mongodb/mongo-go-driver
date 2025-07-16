@@ -87,29 +87,29 @@ func (a Array) String() string {
 }
 
 // StringN stringifies an array upto N bytes
-func (a Array) StringN(n int) string {
+func (a Array) StringN(n int) (string, bool) {
 	if n <= 0 {
-		return ""
+		if l, _, ok := ReadLength(a); !ok || l < 5 {
+			return "", false
+		}
+		return "", true
 	}
-	str, _ := a.stringN(n)
-	return str
+	return a.stringN(n)
 }
 
 // stringN stringify an array. If N is larger than 0, it will truncate the string to N bytes.
 func (a Array) stringN(n int) (string, bool) {
-	if lens, _, _ := ReadLength(a); lens < 5 {
+	length, rem, ok := ReadLength(a) // We know we have enough bytes to read the length
+	if !ok || length < 5 {
 		return "", false
 	}
+	length -= (4 /* length bytes */ + 1 /* final null byte */)
 
 	var buf strings.Builder
 	buf.WriteByte('[')
 
-	length, rem, _ := ReadLength(a) // We know we have enough bytes to read the length
-	length -= (4 /* length bytes */ + 1 /* final null byte */)
-
 	var truncated bool
 	var elem Element
-	var ok bool
 	var str string
 	first := true
 	for length > 0 && !truncated {
@@ -135,7 +135,7 @@ func (a Array) stringN(n int) (string, bool) {
 		elem, rem, ok = ReadElement(rem)
 		length -= int32(len(elem))
 		if !ok || length < 0 {
-			return "", true
+			return "", false
 		}
 
 		str, truncated = elem.Value().stringN(l)

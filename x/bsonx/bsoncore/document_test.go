@@ -529,7 +529,7 @@ func TestDocument_StringN(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
 			bs := tc.doc
-			got := bs.StringN(tc.n)
+			got, _ := bs.StringN(tc.n)
 			assert.Equal(t, tc.want, got)
 			if tc.n >= 0 {
 				assert.LessOrEqual(t, len(got), tc.n, "got %v, want %v", got, tc.want)

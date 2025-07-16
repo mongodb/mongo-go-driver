@@ -224,12 +224,12 @@ func (v Value) String() string {
 
 // StringN implements the fmt.String interface. This method will return values in extended JSON
 // format that will stringify a value upto N bytes. If the value is not valid, this returns an empty string
-func (v Value) StringN(n int) string {
+func (v Value) StringN(n int) (string, bool) {
+	str, truncated := v.stringN(n)
 	if n <= 0 {
-		return ""
+		return "", len(str) > 0
 	}
-	str, _ := v.stringN(n)
-	return str
+	return str, truncated
 }
 
 // stringN stringify a value. If N is larger than 0, it will truncate the string to N bytes.

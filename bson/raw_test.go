@@ -450,7 +450,7 @@ func BenchmarkRawString(b *testing.B) {
 			b.ReportAllocs()
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				_ = bsoncore.Document(bs).StringN(1024) // Assuming you want to limit to 1024 bytes for this benchmark
+				_, _ = bsoncore.Document(bs).StringN(1024) // Assuming you want to limit to 1024 bytes for this benchmark
 			}
 		})
 	}
@@ -473,7 +473,7 @@ func TestComplexDocuments_StringN(t *testing.T) {
 			bson, _ := Marshal(tc.doc)
 			bsonDoc := bsoncore.Document(bson)
 
-			got := bsonDoc.StringN(tc.n)
+			got, _ := bsonDoc.StringN(tc.n)
 			assert.Equal(t, tc.n, len(got))
 		})
 	}

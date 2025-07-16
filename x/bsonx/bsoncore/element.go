@@ -122,12 +122,11 @@ func (e Element) String() string {
 }
 
 // StringN implements the fmt.String interface for upto N bytes. The output will be in extended JSON format.
-func (e Element) StringN(n int) string {
+func (e Element) StringN(n int) (string, bool) {
 	if n <= 0 {
-		return ""
+		return "", len(e) > 0
 	}
-	str, _ := e.stringN(n)
-	return str
+	return e.stringN(n)
 }
 
 // stringN stringify an element. If N is larger than 0, it will truncate the string to N bytes.
@@ -155,7 +154,7 @@ func (e Element) stringN(n int) (string, bool) {
 		buf.WriteString(postfix)
 	case idx < n:
 		buf.Write(key)
-		buf.WriteString(postfix[:n-idx])
+		buf.WriteString(postfix[:n-idx-1])
 	default:
 		buf.WriteString(bsoncoreutil.Truncate(string(key), n-1))
 	}

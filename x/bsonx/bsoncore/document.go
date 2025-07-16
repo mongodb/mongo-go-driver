@@ -266,29 +266,29 @@ func (d Document) String() string {
 }
 
 // StringN stringifies a document upto N bytes
-func (d Document) StringN(n int) string {
+func (d Document) StringN(n int) (string, bool) {
 	if n <= 0 {
-		return ""
+		if l, _, ok := ReadLength(d); !ok || l < 5 {
+			return "", false
+		}
+		return "", true
 	}
-	str, _ := d.stringN(n)
-	return str
+	return d.stringN(n)
 }
 
 // stringN stringify a document. If N is larger than 0, it will truncate the string to N bytes.
 func (d Document) stringN(n int) (string, bool) {
-	if len(d) < 5 {
+	length, rem, ok := ReadLength(d)
+	if !ok || length < 5 {
 		return "", false
 	}
+	length -= (4 /* length bytes */ + 1 /* final null byte */)
 
 	var buf strings.Builder
 	buf.WriteByte('{')
 
-	length, rem, _ := ReadLength(d)
-	length -= (4 /* length bytes */ + 1 /* final null byte */)
-
 	var truncated bool
 	var elem Element
-	var ok bool
 	var str string
 	first := true
 	for length > 0 && !truncated {
@@ -314,7 +314,7 @@ func (d Document) stringN(n int) (string, bool) {
 		elem, rem, ok = ReadElement(rem)
 		length -= int32(len(elem))
 		if !ok || length < 0 {
-			return "", true
+			return "", false
 		}
 
 		str, truncated = elem.stringN(l)
