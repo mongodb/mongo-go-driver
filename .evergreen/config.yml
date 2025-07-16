@@ -687,6 +687,7 @@ tasks:
           binary: bash
           args: [*task-runner, driver-benchmark]
       - func: send-perf-data
+      - func: send-perf-pr-comment
 
   - name: test-standalone-noauth-nossl
     tags: ["test", "standalone"]

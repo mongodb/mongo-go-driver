@@ -14,7 +14,7 @@ import (
 
 // Given two matrices, this function returns
 // (e, t, h) = (E-statistic, test statistic, e-coefficient of inhomogeneity)
-func getEnergyStatistics(x, y *mat.Dense) (float64, float64, float64) {
+func GetEnergyStatistics(x, y *mat.Dense) (float64, float64, float64) {
 	n, _ := x.Dims()
 	m, _ := y.Dims()
 	nf := float64(n)

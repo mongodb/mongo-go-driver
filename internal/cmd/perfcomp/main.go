@@ -11,13 +11,16 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math"
 	"os"
+	"sort"
 	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"gonum.org/v1/gonum/mat"
 )
 
 type RawData struct {
@@ -49,6 +52,15 @@ type RawData struct {
 		}
 	}
 	FailedRollupAttempts int64 `bson:"failed_rollup_attempts"`
+}
+
+type EnergyStats struct {
+	Benchmark       string
+	PatchVersion    string
+	MainlineVersion string
+	E               float64
+	T               float64
+	H               float64
 }
 
 func main() {
@@ -98,7 +110,12 @@ func main() {
 		log.Panicf("Path and mainline data length do not match.")
 	}
 
-	// TODO: Calculate energy statistics
+	// Calculate energy statistics
+	energyStats, err := getEnergyStatsForAllBenchMarks(patchRawData, mainlineRawData)
+	if err != nil {
+		log.Panicf("Error calculating energy stats: %v", err)
+	}
+	fmt.Printf("Successfully retrieved %d energy stats.\n", len(energyStats))
 
 	// Disconnect client
 	err0 := client.Disconnect(context.Background())
@@ -164,4 +181,58 @@ func parseMainelineCommits(rawData []RawData) ([]string, error) {
 		}
 	}
 	return commits, nil
+}
+
+func getEnergyStatsForOneBenchmark(xRaw RawData, yRaw RawData) (*EnergyStats, error) {
+
+	var x []float64
+	var y []float64
+	for _, stat := range xRaw.Rollups.Stats {
+		x = append(x, stat.Val)
+	}
+	for _, stat := range yRaw.Rollups.Stats {
+		y = append(y, stat.Val)
+	}
+
+	for i := range (int)(math.Min((float64)(len(xRaw.Rollups.Stats)), float64(len(yRaw.Rollups.Stats)))) {
+		if xRaw.Rollups.Stats[i].Name != yRaw.Rollups.Stats[i].Name {
+			return nil, errors.New("measurements do not match")
+		}
+	}
+
+	e, t, h := GetEnergyStatistics(mat.NewDense(len(x), 1, x), mat.NewDense(len(y), 1, y))
+	return &EnergyStats{
+		Benchmark:       xRaw.Info.TestName,
+		PatchVersion:    xRaw.Info.Version,
+		MainlineVersion: yRaw.Info.Version,
+		E:               e,
+		T:               t,
+		H:               h,
+	}, nil
+}
+
+func getEnergyStatsForAllBenchMarks(patchRawData []RawData, mainlineRawData []RawData) ([]*EnergyStats, error) {
+
+	sort.Slice(patchRawData, func(i, j int) bool {
+		return patchRawData[i].Info.TestName < patchRawData[j].Info.TestName
+	})
+	sort.Slice(mainlineRawData, func(i, j int) bool {
+		return mainlineRawData[i].Info.TestName < mainlineRawData[j].Info.TestName
+	})
+
+	var energyStats []*EnergyStats
+	for i := range patchRawData {
+		if testname := patchRawData[i].Info.TestName; testname != mainlineRawData[i].Info.TestName {
+			return nil, errors.New("tests do not match")
+		}
+
+		es, err := getEnergyStatsForOneBenchmark(patchRawData[i], mainlineRawData[i])
+		if err != nil {
+			return nil, err
+		}
+		energyStats = append(energyStats, es)
+
+		fmt.Printf("%s | H-score: %.4f\n", es.Benchmark, es.H)
+	}
+	return energyStats, nil
 }

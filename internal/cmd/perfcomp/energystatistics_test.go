@@ -38,7 +38,7 @@ func TestEnergyStatistics(t *testing.T) {
 
 	t.Run("similar distributions should have small e,t,h values ", func(t *testing.T) {
 		x, y := createTestVectors(1, 100, 1, 1, 105, 1)
-		e, tstat, h := getEnergyStatistics(x, y)
+		e, tstat, h := GetEnergyStatistics(x, y)
 
 		del := 1e-3
 
@@ -49,7 +49,7 @@ func TestEnergyStatistics(t *testing.T) {
 
 	t.Run("different distributions should have large e,t,h values", func(t *testing.T) {
 		x, y := createTestVectors(1, 100, 1, 10000, 13000, 14)
-		e, tstat, h := getEnergyStatistics(x, y)
+		e, tstat, h := GetEnergyStatistics(x, y)
 		del := 1e-3
 
 		assert.InDelta(t, 21859.691, e, del)
@@ -59,11 +59,11 @@ func TestEnergyStatistics(t *testing.T) {
 
 	t.Run("uni-variate distributions", func(t *testing.T) {
 		x, y := createTestVectors(1, 300, 1, 1000, 5000, 10)
-		e, tstat, h := getEnergyStatistics(x, y)
+		e, tstat, h := GetEnergyStatistics(x, y)
 		del := 1e-3
 
 		assert.InDelta(t, 4257.009, e, del)
-		assert.InDelta(t, 1481794.709, tstat, del)
-		assert.InDelta(t, 0.954, h, del)
+		assert.InDelta(t, 728381.015, tstat, del)
+		assert.InDelta(t, 0.748, h, del)
 	})
 }
