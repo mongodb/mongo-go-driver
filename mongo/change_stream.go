@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
-	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/csot"
@@ -103,33 +102,6 @@ type changeStreamConfig struct {
 	crypt          driver.Crypt
 }
 
-// validChangeStreamTimeouts will return "false" if maxAwaitTimeMS is set,
-// timeoutMS is set to a non-zero value, and maxAwaitTimeMS is greater than or
-// equal to timeoutMS. Otherwise, the timeouts are valid.
-func validChangeStreamTimeouts(ctx context.Context, cs *ChangeStream) bool {
-	if cs.options == nil || cs.client == nil {
-		return true
-	}
-
-	maxAwaitTime := cs.options.MaxAwaitTime
-	timeout := cs.client.timeout
-
-	if maxAwaitTime == nil {
-		return true
-	}
-
-	if deadline, ok := ctx.Deadline(); ok {
-		ctxTimeout := time.Until(deadline)
-		timeout = &ctxTimeout
-	}
-
-	if timeout == nil {
-		return true
-	}
-
-	return *timeout <= 0 || *maxAwaitTime < *timeout
-}
-
 func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline interface{},
 	opts ...options.Lister[options.ChangeStreamOptions]) (*ChangeStream, error) {
 	if ctx == nil {
@@ -143,6 +115,10 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 	args, err := mongoutil.NewOptions[options.ChangeStreamOptions](opts...)
 	if err != nil {
 		return nil, err
+	}
+
+	if c := config.client; c != nil && !mongoutil.ValidMaxAwaitTimeMS(ctx, c.timeout, args.MaxAwaitTime) {
+		return nil, fmt.Errorf("MaxAwaitTime must be less than the operation timeout")
 	}
 
 	cs := &ChangeStream{
@@ -696,7 +672,11 @@ func (cs *ChangeStream) next(ctx context.Context, nonBlocking bool) bool {
 }
 
 func (cs *ChangeStream) loopNext(ctx context.Context, nonBlocking bool) {
-	if !validChangeStreamTimeouts(ctx, cs) {
+	// Sending a maxAwaitTimeMS option to the server that is less than or equal to
+	// the operation timeout will result in a socket timeout error. This block
+	// short-circuits that behavior.
+	if csOpts := cs.options; csOpts != nil && cs.client != nil &&
+		!mongoutil.ValidMaxAwaitTimeMS(ctx, cs.client.timeout, csOpts.MaxAwaitTime) {
 		cs.err = fmt.Errorf("MaxAwaitTime must be less than the operation timeout")
 
 		return

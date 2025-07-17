@@ -582,7 +582,6 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/client-side-operations-timeout/tests/sessions-override-operation-timeoutMS.json/timeoutMS_applied_to_withTransaction",
 		"TestUnifiedSpec/client-side-operations-timeout/tests/sessions-override-timeoutMS.json",
 		"TestUnifiedSpec/client-side-operations-timeout/tests/tailable-awaitData.json/error_if_timeoutMode_is_cursor_lifetime",
-		"TestUnifiedSpec/client-side-operations-timeout/tests/tailable-awaitData.json/error_if_maxAwaitTimeMS_is_greater_than_timeoutMS",
 		"TestUnifiedSpec/client-side-operations-timeout/tests/tailable-awaitData.json/timeoutMS_applied_to_find",
 		"TestUnifiedSpec/client-side-operations-timeout/tests/tailable-awaitData.json/timeoutMS_is_refreshed_for_getMore_if_maxAwaitTimeMS_is_not_set",
 		"TestUnifiedSpec/client-side-operations-timeout/tests/tailable-awaitData.json/timeoutMS_is_refreshed_for_getMore_if_maxAwaitTimeMS_is_set",
@@ -817,19 +816,8 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/transactions-convenient-api/tests/unified/commit.json/withTransaction_commits_after_callback_returns",
 	},
 
-	// GODRIVER-3473: the implementation of DRIVERS-2868 makes it clear that the
-	// Go Driver does not correctly implement the following validation for
-	// tailable awaitData cursors:
-	//
-	//     Drivers MUST error if this option is set, timeoutMS is set to a
-	//     non-zero value, and maxAwaitTimeMS is greater than or equal to
-	//     timeoutMS.
-	//
-	// Once GODRIVER-3473 is completed, we can continue running these tests.
-	"When constructing tailable awaitData cusors must validate, timeoutMS is set to a non-zero value, and maxAwaitTimeMS is greater than or equal to timeoutMS (GODRIVER-3473)": {
+	"Address CSOT Compliance Issue in for Timeout Handling in Cursor Constructors (GODRIVER-3480)": {
 		"TestUnifiedSpec/client-side-operations-timeout/tests/tailable-awaitData.json/apply_remaining_timeoutMS_if_less_than_maxAwaitTimeMS",
-		"TestUnifiedSpec/client-side-operations-timeout/tests/tailable-awaitData.json/error_if_maxAwaitTimeMS_is_equal_to_timeoutMS",
-		"TestUnifiedSpec/client-side-operations-timeout/tests/change-streams.json/error_if_maxAwaitTimeMS_is_equal_to_timeoutMS",
 	},
 }
 

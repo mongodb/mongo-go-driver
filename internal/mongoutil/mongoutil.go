@@ -7,7 +7,9 @@
 package mongoutil
 
 import (
+	"context"
 	"reflect"
+	"time"
 
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
@@ -82,4 +84,24 @@ func HostsFromURI(uri string) ([]string, error) {
 	opts := options.Client().ApplyURI(uri)
 
 	return opts.Hosts, nil
+}
+
+// ValidMaxAwaitTimeMS will return "false" if maxAwaitTimeMS is set, timeoutMS
+// is set to a non-zero value, and maxAwaitTimeMS is greater than or equal to
+// timeoutMS. Otherwise, the timeouts are valid.
+func ValidMaxAwaitTimeMS(ctx context.Context, timeout, maxAwaiTime *time.Duration) bool {
+	if maxAwaiTime == nil {
+		return true
+	}
+
+	if deadline, ok := ctx.Deadline(); ok {
+		ctxTimeout := time.Until(deadline)
+		timeout = &ctxTimeout
+	}
+
+	if timeout == nil {
+		return true
+	}
+
+	return *timeout <= 0 || *maxAwaiTime < *timeout
 }
