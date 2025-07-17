@@ -816,7 +816,7 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/transactions-convenient-api/tests/unified/commit.json/withTransaction_commits_after_callback_returns",
 	},
 
-	"Address CSOT Compliance Issue in for Timeout Handling in Cursor Constructors (GODRIVER-3480)": {
+	"Address CSOT Compliance Issue in Timeout Handling for Cursor Constructors (GODRIVER-3480)": {
 		"TestUnifiedSpec/client-side-operations-timeout/tests/tailable-awaitData.json/apply_remaining_timeoutMS_if_less_than_maxAwaitTimeMS",
 	},
 }

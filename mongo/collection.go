@@ -955,8 +955,7 @@ func aggregate(a aggregateParams, opts ...options.Lister[options.AggregateOption
 	}
 
 	// Sending a maxAwaitTimeMS option to the server that is less than or equal to
-	// the operation timeout will result in a socket timeout error. This block
-	// short-circuits that behavior.
+	// the operation timeout will result in a socket timeout error.
 	if c := a.client; c != nil && !mongoutil.ValidMaxAwaitTimeMS(a.ctx, c.timeout, args.MaxAwaitTime) {
 		return nil, fmt.Errorf("MaxAwaitTime must be less than the operation timeout")
 	}
@@ -1359,8 +1358,7 @@ func (coll *Collection) find(
 	}
 
 	// Sending a maxAwaitTimeMS option to the server that is less than or equal to
-	// the operation timeout will result in a socket timeout error. This block
-	// short-circuits that behavior.
+	// the operation timeout will result in a socket timeout error.
 	if c := coll.client; c != nil && !mongoutil.ValidMaxAwaitTimeMS(ctx, c.timeout, args.MaxAwaitTime) {
 		return nil, fmt.Errorf("MaxAwaitTime must be less than the operation timeout")
 	}

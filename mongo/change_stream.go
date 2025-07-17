@@ -673,8 +673,7 @@ func (cs *ChangeStream) next(ctx context.Context, nonBlocking bool) bool {
 
 func (cs *ChangeStream) loopNext(ctx context.Context, nonBlocking bool) {
 	// Sending a maxAwaitTimeMS option to the server that is less than or equal to
-	// the operation timeout will result in a socket timeout error. This block
-	// short-circuits that behavior.
+	// the operation timeout will result in a socket timeout error.
 	if csOpts := cs.options; csOpts != nil && cs.client != nil &&
 		!mongoutil.ValidMaxAwaitTimeMS(ctx, cs.client.timeout, csOpts.MaxAwaitTime) {
 		cs.err = fmt.Errorf("MaxAwaitTime must be less than the operation timeout")
