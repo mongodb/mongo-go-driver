@@ -7,9 +7,13 @@
 package mongoutil
 
 import (
+	"context"
 	"strings"
 	"testing"
+	"time"
 
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/ptrutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
@@ -31,4 +35,78 @@ func BenchmarkNewOptions(b *testing.B) {
 			_, _ = NewOptions[options.FindOptions](opts...)
 		}
 	})
+}
+
+func TestValidChangeStreamTimeouts(t *testing.T) {
+	tests := []struct {
+		name                     string
+		parent                   context.Context
+		maxAwaitTimeout, timeout *time.Duration
+		wantTimeout              time.Duration
+		want                     bool
+	}{
+		{
+			name:            "no context deadline and no timeouts",
+			parent:          context.Background(),
+			maxAwaitTimeout: nil,
+			timeout:         nil,
+			wantTimeout:     0,
+			want:            true,
+		},
+		{
+			name:            "no context deadline and maxAwaitTimeout",
+			parent:          context.Background(),
+			maxAwaitTimeout: ptrutil.Ptr(time.Duration(1)),
+			timeout:         nil,
+			wantTimeout:     0,
+			want:            true,
+		},
+		{
+			name:            "no context deadline and timeout",
+			parent:          context.Background(),
+			maxAwaitTimeout: nil,
+			timeout:         ptrutil.Ptr(time.Duration(1)),
+			wantTimeout:     0,
+			want:            true,
+		},
+		{
+			name:            "no context deadline and maxAwaitTime gt timeout",
+			parent:          context.Background(),
+			maxAwaitTimeout: ptrutil.Ptr(time.Duration(2)),
+			timeout:         ptrutil.Ptr(time.Duration(1)),
+			wantTimeout:     0,
+			want:            false,
+		},
+		{
+			name:            "no context deadline and maxAwaitTime lt timeout",
+			parent:          context.Background(),
+			maxAwaitTimeout: ptrutil.Ptr(time.Duration(1)),
+			timeout:         ptrutil.Ptr(time.Duration(2)),
+			wantTimeout:     0,
+			want:            true,
+		},
+		{
+			name:            "no context deadline and maxAwaitTime eq timeout",
+			parent:          context.Background(),
+			maxAwaitTimeout: ptrutil.Ptr(time.Duration(1)),
+			timeout:         ptrutil.Ptr(time.Duration(1)),
+			wantTimeout:     0,
+			want:            false,
+		},
+		{
+			name:            "no context deadline and maxAwaitTime with negative timeout",
+			parent:          context.Background(),
+			maxAwaitTimeout: ptrutil.Ptr(time.Duration(1)),
+			timeout:         ptrutil.Ptr(time.Duration(-1)),
+			wantTimeout:     0,
+			want:            true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := ValidMaxAwaitTimeMS(test.parent, test.timeout, test.maxAwaitTimeout)
+			assert.Equal(t, test.want, got)
+		})
+	}
 }

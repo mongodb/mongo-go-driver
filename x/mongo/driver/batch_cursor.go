@@ -381,8 +381,8 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 
 	bc.err = Operation{
 		CommandFn: func(dst []byte, _ description.SelectedServer) ([]byte, error) {
-			// If maxAwaitTime > remaining timeoutMS - minRoundTripTime, then use
-			// send remaining TimeoutMS - minRoundTripTime allowing the server an
+			// If maxAwaitTime > remaining timeoutMS - minRoundTripTime, then send
+			// remaining TimeoutMS - minRoundTripTime, allowing the server an
 			// opportunity to respond with an empty batch.
 			var maxTimeMS int64
 			if bc.maxAwaitTime != nil {

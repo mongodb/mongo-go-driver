@@ -954,6 +954,12 @@ func aggregate(a aggregateParams, opts ...options.Lister[options.AggregateOption
 		return nil, err
 	}
 
+	// Sending a maxAwaitTimeMS option to the server that is less than or equal to
+	// the operation timeout will result in a socket timeout error.
+	if c := a.client; c != nil && !mongoutil.ValidMaxAwaitTimeMS(a.ctx, c.timeout, args.MaxAwaitTime) {
+		return nil, fmt.Errorf("MaxAwaitTime must be less than the operation timeout")
+	}
+
 	cursorOpts := a.client.createBaseCursorOptions()
 
 	cursorOpts.MarshalValueEncoderFn = newEncoderFn(a.bsonOpts, a.registry)
@@ -1347,9 +1353,14 @@ func (coll *Collection) find(
 	omitMaxTimeMS bool,
 	args *options.FindOptions,
 ) (cur *Cursor, err error) {
-
 	if ctx == nil {
 		ctx = context.Background()
+	}
+
+	// Sending a maxAwaitTimeMS option to the server that is less than or equal to
+	// the operation timeout will result in a socket timeout error.
+	if c := coll.client; c != nil && !mongoutil.ValidMaxAwaitTimeMS(ctx, c.timeout, args.MaxAwaitTime) {
+		return nil, fmt.Errorf("MaxAwaitTime must be less than the operation timeout")
 	}
 
 	f, err := marshal(filter, coll.bsonOpts, coll.registry)
