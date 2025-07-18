@@ -27,6 +27,26 @@ var lorem []byte
 var testcstring = append(lorem, []byte{0x00}...)
 
 func TestValueReader(t *testing.T) {
+	type subtest struct {
+		name string
+		src  valueReaderByteSrc
+	}
+
+	newSubtests := func(b []byte) []subtest {
+		return []subtest{
+			{name: "buffered", src: &bufferedValueReader{buf: b}},
+			{name: "streaming", src: &streamingValueReader{br: bufio.NewReader(bytes.NewReader(b))}},
+		}
+	}
+
+	runSubtests := func(t *testing.T, b []byte, fn func(*testing.T, valueReaderByteSrc)) {
+		for _, stt := range newSubtests(b) {
+			t.Run(stt.name, func(t *testing.T) {
+				fn(t, stt.src)
+			})
+		}
+	}
+
 	t.Run("ReadBinary", func(t *testing.T) {
 		testCases := []struct {
 			name  string
@@ -80,28 +100,30 @@ func TestValueReader(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				vr := &valueReader{
-					r: bufio.NewReader(bytes.NewReader(tc.data)),
-					stack: []vrState{
-						{mode: mTopLevel},
-						{
-							mode:  mElement,
-							vType: tc.vType,
+				runSubtests(t, tc.data, func(t *testing.T, src valueReaderByteSrc) {
+					vr := &valueReader{
+						src: src,
+						stack: []vrState{
+							{mode: mTopLevel},
+							{
+								mode:  mElement,
+								vType: tc.vType,
+							},
 						},
-					},
-					frame: 1,
-				}
+						frame: 1,
+					}
 
-				b, btype, err := vr.ReadBinary()
-				if !errequal(t, err, tc.err) {
-					t.Errorf("Returned errors do not match. got %v; want %v", err, tc.err)
-				}
-				if btype != tc.btype {
-					t.Errorf("Incorrect binary type returned. got %v; want %v", btype, tc.btype)
-				}
-				if !bytes.Equal(b, tc.b) {
-					t.Errorf("Binary data does not match. got %v; want %v", b, tc.b)
-				}
+					b, btype, err := vr.ReadBinary()
+					if !errequal(t, err, tc.err) {
+						t.Errorf("Returned errors do not match. got %v; want %v", err, tc.err)
+					}
+					if btype != tc.btype {
+						t.Errorf("Incorrect binary type returned. got %v; want %v", btype, tc.btype)
+					}
+					if !bytes.Equal(b, tc.b) {
+						t.Errorf("Binary data does not match. got %v; want %v", b, tc.b)
+					}
+				})
 			})
 		}
 	})
@@ -145,98 +167,142 @@ func TestValueReader(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				vr := &valueReader{
-					r: bufio.NewReader(bytes.NewReader(tc.data)),
-					stack: []vrState{
-						{mode: mTopLevel},
-						{
-							mode:  mElement,
-							vType: tc.vType,
+				runSubtests(t, tc.data, func(t *testing.T, src valueReaderByteSrc) {
+					vr := &valueReader{
+						src: src,
+						stack: []vrState{
+							{mode: mTopLevel},
+							{
+								mode:  mElement,
+								vType: tc.vType,
+							},
 						},
-					},
-					frame: 1,
-				}
+						frame: 1,
+					}
 
-				boolean, err := vr.ReadBoolean()
-				if !errequal(t, err, tc.err) {
-					t.Errorf("Returned errors do not match. got %v; want %v", err, tc.err)
-				}
-				if boolean != tc.boolean {
-					t.Errorf("Incorrect boolean returned. got %v; want %v", boolean, tc.boolean)
-				}
+					boolean, err := vr.ReadBoolean()
+					if !errequal(t, err, tc.err) {
+						t.Errorf("Returned errors do not match. got %v; want %v", err, tc.err)
+					}
+					if boolean != tc.boolean {
+						t.Errorf("Incorrect boolean returned. got %v; want %v", boolean, tc.boolean)
+					}
+				})
 			})
 		}
 	})
 	t.Run("ReadDocument", func(t *testing.T) {
 		t.Run("TopLevel", func(t *testing.T) {
-			doc := []byte{0x05, 0x00, 0x00, 0x00, 0x00}
-			vr := &valueReader{
-				stack: []vrState{{mode: mTopLevel}},
-				frame: 0,
-			}
 
 			// invalid length
-			vr.r = bufio.NewReader(bytes.NewReader([]byte{0x00, 0x00}))
-			_, err := vr.ReadDocument()
-			if !errors.Is(err, io.ErrUnexpectedEOF) {
-				t.Errorf("Expected io.ErrUnexpectedEOF with document length too small. got %v; want %v", err, io.EOF)
-			}
-			if vr.offset != 0 {
-				t.Errorf("Expected 0 offset. got %d", vr.offset)
-			}
+			t.Run("invalid length", func(t *testing.T) {
+				runSubtests(t, []byte{0x00, 0x00}, func(t *testing.T, src valueReaderByteSrc) {
+					vr := &valueReader{
+						stack: []vrState{{mode: mTopLevel}},
+						frame: 0,
+						src:   src,
+					}
 
-			vr.r = bufio.NewReader(bytes.NewReader(doc))
-			_, err = vr.ReadDocument()
-			noerr(t, err)
-			if vr.stack[vr.frame].end != 5 {
-				t.Errorf("Incorrect end for document. got %d; want %d", vr.stack[vr.frame].end, 5)
-			}
+					var wantErr error
+					switch vr.src.(type) {
+					case *bufferedValueReader:
+						// The buffered case uses a peek+discard which returns io.EOF if the
+						// length is too small
+						wantErr = io.EOF
+					case *streamingValueReader:
+						// The streaming case actually attempts to read the length from the
+						// buffer
+						wantErr = io.ErrUnexpectedEOF
+					}
+
+					_, err := vr.ReadDocument()
+					if !errors.Is(err, wantErr) {
+						t.Errorf("Expected io.ErrUnexpectedEOF with document length too small. got %v; want %v", err, io.EOF)
+					}
+					if vr.src.pos() != 0 {
+						t.Errorf("Expected 0 offset. got %d", vr.src.pos())
+					}
+				})
+			})
+
+			t.Run("valid document with incorrect end", func(t *testing.T) {
+				runSubtests(t, []byte{0x05, 0x00, 0x00, 0x00, 0x00}, func(t *testing.T, src valueReaderByteSrc) {
+					vr := &valueReader{
+						stack: []vrState{{mode: mTopLevel}},
+						frame: 0,
+						src:   src,
+					}
+
+					_, err := vr.ReadDocument()
+					noerr(t, err)
+					if vr.stack[vr.frame].end != 5 {
+						t.Errorf("Incorrect end for document. got %d; want %d", vr.stack[vr.frame].end, 5)
+					}
+				})
+			})
 		})
+
 		t.Run("EmbeddedDocument", func(t *testing.T) {
-			vr := &valueReader{
-				stack: []vrState{
-					{mode: mTopLevel},
-					{mode: mElement, vType: TypeBoolean},
-				},
-				frame: 1,
-			}
+			runSubtests(t, []byte{0x0a, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00}, func(t *testing.T, src valueReaderByteSrc) {
+				vr := &valueReader{
+					stack: []vrState{
+						{mode: mTopLevel},
+						{mode: mElement, vType: TypeBoolean},
+					},
+					frame: 1,
+				}
 
-			var wanterr = (&valueReader{stack: []vrState{{mode: mElement, vType: TypeBoolean}}}).typeError(TypeEmbeddedDocument)
-			_, err := vr.ReadDocument()
-			if err == nil || err.Error() != wanterr.Error() {
-				t.Errorf("Incorrect returned error. got %v; want %v", err, wanterr)
-			}
+				var wanterr = (&valueReader{stack: []vrState{{mode: mElement, vType: TypeBoolean}}}).typeError(TypeEmbeddedDocument)
+				_, err := vr.ReadDocument()
+				if err == nil || err.Error() != wanterr.Error() {
+					t.Errorf("Incorrect returned error. got %v; want %v", err, wanterr)
+				}
 
-			vr.stack[1].mode = mArray
-			wanterr = vr.invalidTransitionErr(mDocument, "ReadDocument", []mode{mTopLevel, mElement, mValue})
-			_, err = vr.ReadDocument()
-			if err == nil || err.Error() != wanterr.Error() {
-				t.Errorf("Incorrect returned error. got %v; want %v", err, wanterr)
-			}
+				vr.stack[1].mode = mArray
+				wanterr = vr.invalidTransitionErr(mDocument, "ReadDocument", []mode{mTopLevel, mElement, mValue})
+				_, err = vr.ReadDocument()
+				if err == nil || err.Error() != wanterr.Error() {
+					t.Errorf("Incorrect returned error. got %v; want %v", err, wanterr)
+				}
 
-			vr.stack[1].mode, vr.stack[1].vType = mElement, TypeEmbeddedDocument
-			vr.offset = 4
-			vr.r = bufio.NewReader(bytes.NewReader([]byte{0x05, 0x00, 0x00, 0x00, 0x00, 0x00}))
-			_, err = vr.ReadDocument()
-			noerr(t, err)
-			if len(vr.stack) != 3 {
-				t.Errorf("Incorrect number of stack frames. got %d; want %d", len(vr.stack), 3)
-			}
-			if vr.stack[2].mode != mDocument {
-				t.Errorf("Incorrect mode set. got %v; want %v", vr.stack[2].mode, mDocument)
-			}
-			if vr.stack[2].end != 9 {
-				t.Errorf("End of embedded document is not correct. got %d; want %d", vr.stack[2].end, 9)
-			}
-			if vr.offset != 8 {
-				t.Errorf("Offset not incremented correctly. got %d; want %d", vr.offset, 8)
-			}
+				vr.stack[1].mode, vr.stack[1].vType = mElement, TypeEmbeddedDocument
+				vr.src = src
+				_, _ = vr.src.discard(4)
 
-			vr.frame--
-			_, err = vr.ReadDocument()
-			if !errors.Is(err, io.ErrUnexpectedEOF) {
-				t.Errorf("Should return error when attempting to read length with not enough bytes. got %v; want %v", err, io.EOF)
-			}
+				_, err = vr.ReadDocument()
+				noerr(t, err)
+				if len(vr.stack) != 3 {
+					t.Errorf("Incorrect number of stack frames. got %d; want %d", len(vr.stack), 3)
+				}
+				if vr.stack[2].mode != mDocument {
+					t.Errorf("Incorrect mode set. got %v; want %v", vr.stack[2].mode, mDocument)
+				}
+				if vr.stack[2].end != 9 {
+					t.Errorf("End of embedded document is not correct. got %d; want %d", vr.stack[2].end, 9)
+				}
+				if vr.src.pos() != 8 {
+					t.Errorf("Offset not incremented correctly. got %d; want %d", vr.src.pos(), 8)
+				}
+
+				vr.frame--
+				_, err = vr.ReadDocument()
+
+				var wantErr error
+				switch vr.src.(type) {
+				case *bufferedValueReader:
+					// The buffered case uses a peek+discard which returns io.EOF if the
+					// length is too small
+					wantErr = io.EOF
+				case *streamingValueReader:
+					// The streaming case actually attempts to read the length from the
+					// buffer
+					wantErr = io.ErrUnexpectedEOF
+				}
+
+				if !errors.Is(err, wantErr) {
+					t.Errorf("Should return error when attempting to read length with not enough bytes. got %v; want %v", err, io.EOF)
+				}
+			})
 		})
 	})
 	t.Run("ReadCodeWithScope", func(t *testing.T) {
@@ -311,53 +377,60 @@ func TestValueReader(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				vr := &valueReader{
-					r: bufio.NewReader(bytes.NewReader(tc.data)),
-					stack: []vrState{
-						{mode: mTopLevel},
-						{
-							mode:  mElement,
-							vType: tc.vType,
+				runSubtests(t, tc.data, func(t *testing.T, src valueReaderByteSrc) {
+					vr := &valueReader{
+						src: src,
+						stack: []vrState{
+							{mode: mTopLevel},
+							{
+								mode:  mElement,
+								vType: tc.vType,
+							},
 						},
-					},
-					frame: 1,
-				}
+						frame: 1,
+					}
 
-				_, _, err := vr.ReadCodeWithScope()
-				if !errequal(t, err, tc.err) {
-					t.Errorf("Returned errors do not match. got %v; want %v", err, tc.err)
-				}
+					_, _, err := vr.ReadCodeWithScope()
+					if !errequal(t, err, tc.err) {
+						t.Errorf("Returned errors do not match. got %v; want %v", err, tc.err)
+					}
+				})
 			})
 		}
 
 		t.Run("success", func(t *testing.T) {
-			vr := &valueReader{
-				offset: 4,
-				r:      bufio.NewReader(bytes.NewReader(codeWithScope)),
-				stack: []vrState{
-					{mode: mTopLevel},
-					{mode: mElement, vType: TypeCodeWithScope},
-				},
-				frame: 1,
-			}
+			doc := []byte{0x00, 0x00, 0x00, 0x00}
+			doc = append(doc, codeWithScope...)
+			doc = append(doc, 0x00)
+			runSubtests(t, doc, func(t *testing.T, src valueReaderByteSrc) {
+				vr := &valueReader{
+					src: src,
+					stack: []vrState{
+						{mode: mTopLevel},
+						{mode: mElement, vType: TypeCodeWithScope},
+					},
+					frame: 1,
+				}
+				_, _ = vr.src.discard(4) // discard the document length
 
-			code, _, err := vr.ReadCodeWithScope()
-			noerr(t, err)
-			if code != "foo" {
-				t.Errorf("Code does not match. got %s; want %s", code, "foo")
-			}
-			if len(vr.stack) != 3 {
-				t.Errorf("Incorrect number of stack frames. got %d; want %d", len(vr.stack), 3)
-			}
-			if vr.stack[2].mode != mCodeWithScope {
-				t.Errorf("Incorrect mode set. got %v; want %v", vr.stack[2].mode, mDocument)
-			}
-			if vr.stack[2].end != 21 {
-				t.Errorf("End of scope is not correct. got %d; want %d", vr.stack[2].end, 21)
-			}
-			if vr.offset != 20 {
-				t.Errorf("Offset not incremented correctly. got %d; want %d", vr.offset, 20)
-			}
+				code, _, err := vr.ReadCodeWithScope()
+				noerr(t, err)
+				if code != "foo" {
+					t.Errorf("Code does not match. got %s; want %s", code, "foo")
+				}
+				if len(vr.stack) != 3 {
+					t.Errorf("Incorrect number of stack frames. got %d; want %d", len(vr.stack), 3)
+				}
+				if vr.stack[2].mode != mCodeWithScope {
+					t.Errorf("Incorrect mode set. got %v; want %v", vr.stack[2].mode, mDocument)
+				}
+				if vr.stack[2].end != 21 {
+					t.Errorf("End of scope is not correct. got %d; want %d", vr.stack[2].end, 21)
+				}
+				if vr.src.pos() != 20 {
+					t.Errorf("Offset not incremented correctly. got %d; want %d", vr.src.pos(), 20)
+				}
+			})
 		})
 	})
 	t.Run("ReadDBPointer", func(t *testing.T) {
@@ -416,28 +489,30 @@ func TestValueReader(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				vr := &valueReader{
-					r: bufio.NewReader(bytes.NewReader(tc.data)),
-					stack: []vrState{
-						{mode: mTopLevel},
-						{
-							mode:  mElement,
-							vType: tc.vType,
+				runSubtests(t, tc.data, func(t *testing.T, src valueReaderByteSrc) {
+					vr := &valueReader{
+						src: src,
+						stack: []vrState{
+							{mode: mTopLevel},
+							{
+								mode:  mElement,
+								vType: tc.vType,
+							},
 						},
-					},
-					frame: 1,
-				}
+						frame: 1,
+					}
 
-				ns, oid, err := vr.ReadDBPointer()
-				if !errequal(t, err, tc.err) {
-					t.Errorf("Returned errors do not match. got %v; want %v", err, tc.err)
-				}
-				if ns != tc.ns {
-					t.Errorf("Incorrect namespace returned. got %v; want %v", ns, tc.ns)
-				}
-				if oid != tc.oid {
-					t.Errorf("ObjectIDs did not match. got %v; want %v", oid, tc.oid)
-				}
+					ns, oid, err := vr.ReadDBPointer()
+					if !errequal(t, err, tc.err) {
+						t.Errorf("Returned errors do not match. got %v; want %v", err, tc.err)
+					}
+					if ns != tc.ns {
+						t.Errorf("Incorrect namespace returned. got %v; want %v", ns, tc.ns)
+					}
+					if oid != tc.oid {
+						t.Errorf("ObjectIDs did not match. got %v; want %v", oid, tc.oid)
+					}
+				})
 			})
 		}
 	})
@@ -474,25 +549,27 @@ func TestValueReader(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				vr := &valueReader{
-					r: bufio.NewReader(bytes.NewReader(tc.data)),
-					stack: []vrState{
-						{mode: mTopLevel},
-						{
-							mode:  mElement,
-							vType: tc.vType,
+				runSubtests(t, tc.data, func(t *testing.T, src valueReaderByteSrc) {
+					vr := &valueReader{
+						src: src,
+						stack: []vrState{
+							{mode: mTopLevel},
+							{
+								mode:  mElement,
+								vType: tc.vType,
+							},
 						},
-					},
-					frame: 1,
-				}
+						frame: 1,
+					}
 
-				dt, err := vr.ReadDateTime()
-				if !errequal(t, err, tc.err) {
-					t.Errorf("Returned errors do not match. got %v; want %v", err, tc.err)
-				}
-				if dt != tc.dt {
-					t.Errorf("Incorrect datetime returned. got %d; want %d", dt, tc.dt)
-				}
+					dt, err := vr.ReadDateTime()
+					if !errequal(t, err, tc.err) {
+						t.Errorf("Returned errors do not match. got %v; want %v", err, tc.err)
+					}
+					if dt != tc.dt {
+						t.Errorf("Incorrect datetime returned. got %d; want %d", dt, tc.dt)
+					}
+				})
 			})
 		}
 	})
@@ -532,30 +609,32 @@ func TestValueReader(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				vr := &valueReader{
-					r: bufio.NewReader(bytes.NewReader(tc.data)),
-					stack: []vrState{
-						{mode: mTopLevel},
-						{
-							mode:  mElement,
-							vType: tc.vType,
+				runSubtests(t, tc.data, func(t *testing.T, src valueReaderByteSrc) {
+					vr := &valueReader{
+						src: src,
+						stack: []vrState{
+							{mode: mTopLevel},
+							{
+								mode:  mElement,
+								vType: tc.vType,
+							},
 						},
-					},
-					frame: 1,
-				}
+						frame: 1,
+					}
 
-				dc128, err := vr.ReadDecimal128()
-				if !errequal(t, err, tc.err) {
-					t.Errorf("Returned errors do not match. got %v; want %v", err, tc.err)
-				}
-				gotHigh, gotLow := dc128.GetBytes()
-				wantHigh, wantLow := tc.dc128.GetBytes()
-				if gotHigh != wantHigh {
-					t.Errorf("Retuired high byte does not match. got %d; want %d", gotHigh, wantHigh)
-				}
-				if gotLow != wantLow {
-					t.Errorf("Returned low byte does not match. got %d; want %d", gotLow, wantLow)
-				}
+					dc128, err := vr.ReadDecimal128()
+					if !errequal(t, err, tc.err) {
+						t.Errorf("Returned errors do not match. got %v; want %v", err, tc.err)
+					}
+					gotHigh, gotLow := dc128.GetBytes()
+					wantHigh, wantLow := tc.dc128.GetBytes()
+					if gotHigh != wantHigh {
+						t.Errorf("Retuired high byte does not match. got %d; want %d", gotHigh, wantHigh)
+					}
+					if gotLow != wantLow {
+						t.Errorf("Returned low byte does not match. got %d; want %d", gotLow, wantLow)
+					}
+				})
 			})
 		}
 	})
@@ -592,25 +671,27 @@ func TestValueReader(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				vr := &valueReader{
-					r: bufio.NewReader(bytes.NewReader(tc.data)),
-					stack: []vrState{
-						{mode: mTopLevel},
-						{
-							mode:  mElement,
-							vType: tc.vType,
+				runSubtests(t, tc.data, func(t *testing.T, src valueReaderByteSrc) {
+					vr := &valueReader{
+						src: src,
+						stack: []vrState{
+							{mode: mTopLevel},
+							{
+								mode:  mElement,
+								vType: tc.vType,
+							},
 						},
-					},
-					frame: 1,
-				}
+						frame: 1,
+					}
 
-				double, err := vr.ReadDouble()
-				if !errequal(t, err, tc.err) {
-					t.Errorf("Returned errors do not match. got %v; want %v", err, tc.err)
-				}
-				if double != tc.double {
-					t.Errorf("Incorrect double returned. got %f; want %f", double, tc.double)
-				}
+					double, err := vr.ReadDouble()
+					if !errequal(t, err, tc.err) {
+						t.Errorf("Returned errors do not match. got %v; want %v", err, tc.err)
+					}
+					if double != tc.double {
+						t.Errorf("Incorrect double returned. got %f; want %f", double, tc.double)
+					}
+				})
 			})
 		}
 	})
@@ -647,25 +728,27 @@ func TestValueReader(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				vr := &valueReader{
-					r: bufio.NewReader(bytes.NewReader(tc.data)),
-					stack: []vrState{
-						{mode: mTopLevel},
-						{
-							mode:  mElement,
-							vType: tc.vType,
+				runSubtests(t, tc.data, func(t *testing.T, src valueReaderByteSrc) {
+					vr := &valueReader{
+						src: src,
+						stack: []vrState{
+							{mode: mTopLevel},
+							{
+								mode:  mElement,
+								vType: tc.vType,
+							},
 						},
-					},
-					frame: 1,
-				}
+						frame: 1,
+					}
 
-				i32, err := vr.ReadInt32()
-				if !errequal(t, err, tc.err) {
-					t.Errorf("Returned errors do not match. got %v; want %v", err, tc.err)
-				}
-				if i32 != tc.i32 {
-					t.Errorf("Incorrect int32 returned. got %d; want %d", i32, tc.i32)
-				}
+					i32, err := vr.ReadInt32()
+					if !errequal(t, err, tc.err) {
+						t.Errorf("Returned errors do not match. got %v; want %v", err, tc.err)
+					}
+					if i32 != tc.i32 {
+						t.Errorf("Incorrect int32 returned. got %d; want %d", i32, tc.i32)
+					}
+				})
 			})
 		}
 	})
@@ -702,42 +785,46 @@ func TestValueReader(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				vr := &valueReader{
-					r: bufio.NewReader(bytes.NewReader(tc.data)),
-					stack: []vrState{
-						{mode: mTopLevel},
-						{
-							mode:  mElement,
-							vType: tc.vType,
+				runSubtests(t, tc.data, func(t *testing.T, src valueReaderByteSrc) {
+					vr := &valueReader{
+						src: src,
+						stack: []vrState{
+							{mode: mTopLevel},
+							{
+								mode:  mElement,
+								vType: tc.vType,
+							},
 						},
-					},
-					frame: 1,
-				}
+						frame: 1,
+					}
 
-				i64, err := vr.ReadInt64()
-				if !errequal(t, err, tc.err) {
-					t.Errorf("Returned errors do not match. got %v; want %v", err, tc.err)
-				}
-				if i64 != tc.i64 {
-					t.Errorf("Incorrect int64 returned. got %d; want %d", i64, tc.i64)
-				}
+					i64, err := vr.ReadInt64()
+					if !errequal(t, err, tc.err) {
+						t.Errorf("Returned errors do not match. got %v; want %v", err, tc.err)
+					}
+					if i64 != tc.i64 {
+						t.Errorf("Incorrect int64 returned. got %d; want %d", i64, tc.i64)
+					}
+				})
 			})
 		}
 	})
 	t.Run("ReadJavascript/ReadString/ReadSymbol", func(t *testing.T) {
 		testCases := []struct {
-			name  string
-			data  []byte
-			fn    func(*valueReader) (string, error)
-			css   string // code, string, symbol :P
-			err   error
-			vType Type
+			name          string
+			data          []byte
+			fn            func(*valueReader) (string, error)
+			css           string // code, string, symbol :P
+			streamingErr  error
+			bufferedError error
+			vType         Type
 		}{
 			{
 				"ReadJavascript/incorrect type",
 				[]byte{},
 				(*valueReader).ReadJavascript,
 				"",
+				(&valueReader{stack: []vrState{{vType: TypeEmbeddedDocument}}, frame: 0}).typeError(TypeJavaScript),
 				(&valueReader{stack: []vrState{{vType: TypeEmbeddedDocument}}, frame: 0}).typeError(TypeJavaScript),
 				TypeEmbeddedDocument,
 			},
@@ -747,6 +834,7 @@ func TestValueReader(t *testing.T) {
 				(*valueReader).ReadString,
 				"",
 				(&valueReader{stack: []vrState{{vType: TypeEmbeddedDocument}}, frame: 0}).typeError(TypeString),
+				(&valueReader{stack: []vrState{{vType: TypeEmbeddedDocument}}, frame: 0}).typeError(TypeString),
 				TypeEmbeddedDocument,
 			},
 			{
@@ -754,6 +842,7 @@ func TestValueReader(t *testing.T) {
 				[]byte{},
 				(*valueReader).ReadSymbol,
 				"",
+				(&valueReader{stack: []vrState{{vType: TypeEmbeddedDocument}}, frame: 0}).typeError(TypeSymbol),
 				(&valueReader{stack: []vrState{{vType: TypeEmbeddedDocument}}, frame: 0}).typeError(TypeSymbol),
 				TypeEmbeddedDocument,
 			},
@@ -763,6 +852,7 @@ func TestValueReader(t *testing.T) {
 				(*valueReader).ReadJavascript,
 				"",
 				io.EOF,
+				io.EOF,
 				TypeJavaScript,
 			},
 			{
@@ -770,6 +860,7 @@ func TestValueReader(t *testing.T) {
 				[]byte{},
 				(*valueReader).ReadString,
 				"",
+				io.EOF,
 				io.EOF,
 				TypeString,
 			},
@@ -779,6 +870,7 @@ func TestValueReader(t *testing.T) {
 				(*valueReader).ReadString,
 				"",
 				io.ErrUnexpectedEOF,
+				io.EOF,
 				TypeString,
 			},
 			{
@@ -786,6 +878,7 @@ func TestValueReader(t *testing.T) {
 				[]byte{},
 				(*valueReader).ReadSymbol,
 				"",
+				io.EOF,
 				io.EOF,
 				TypeSymbol,
 			},
@@ -795,6 +888,7 @@ func TestValueReader(t *testing.T) {
 				(*valueReader).ReadJavascript,
 				"",
 				fmt.Errorf("string does not end with null byte, but with %v", 0x05),
+				fmt.Errorf("string does not end with null byte, but with %v", 0x05),
 				TypeJavaScript,
 			},
 			{
@@ -802,6 +896,7 @@ func TestValueReader(t *testing.T) {
 				[]byte{0x01, 0x00, 0x00, 0x00, 0x05},
 				(*valueReader).ReadString,
 				"",
+				fmt.Errorf("string does not end with null byte, but with %v", 0x05),
 				fmt.Errorf("string does not end with null byte, but with %v", 0x05),
 				TypeString,
 			},
@@ -811,6 +906,7 @@ func TestValueReader(t *testing.T) {
 				(*valueReader).ReadString,
 				"",
 				fmt.Errorf("string does not end with null byte, but with %v", 0x20),
+				fmt.Errorf("string does not end with null byte, but with %v", 0x20),
 				TypeString,
 			},
 			{
@@ -818,6 +914,7 @@ func TestValueReader(t *testing.T) {
 				[]byte{0x01, 0x00, 0x00, 0x00, 0x05},
 				(*valueReader).ReadSymbol,
 				"",
+				fmt.Errorf("string does not end with null byte, but with %v", 0x05),
 				fmt.Errorf("string does not end with null byte, but with %v", 0x05),
 				TypeSymbol,
 			},
@@ -827,6 +924,7 @@ func TestValueReader(t *testing.T) {
 				(*valueReader).ReadJavascript,
 				"foo",
 				nil,
+				nil,
 				TypeJavaScript,
 			},
 			{
@@ -834,6 +932,7 @@ func TestValueReader(t *testing.T) {
 				[]byte{0x04, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00},
 				(*valueReader).ReadString,
 				"foo",
+				nil,
 				nil,
 				TypeString,
 			},
@@ -843,6 +942,7 @@ func TestValueReader(t *testing.T) {
 				(*valueReader).ReadString,
 				string(testcstring[:len(testcstring)-1]),
 				nil,
+				nil,
 				TypeString,
 			},
 			{
@@ -851,44 +951,57 @@ func TestValueReader(t *testing.T) {
 				(*valueReader).ReadSymbol,
 				"foo",
 				nil,
+				nil,
 				TypeSymbol,
 			},
 		}
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				vr := &valueReader{
-					r: bufio.NewReader(bytes.NewReader(tc.data)),
-					stack: []vrState{
-						{mode: mTopLevel},
-						{
-							mode:  mElement,
-							vType: tc.vType,
+				runSubtests(t, tc.data, func(t *testing.T, src valueReaderByteSrc) {
+					vr := &valueReader{
+						src: src,
+						stack: []vrState{
+							{mode: mTopLevel},
+							{
+								mode:  mElement,
+								vType: tc.vType,
+							},
 						},
-					},
-					frame: 1,
-				}
+						frame: 1,
+					}
 
-				css, err := tc.fn(vr)
-				if !errequal(t, err, tc.err) {
-					t.Errorf("Returned errors do not match. got %v; want %v", err, tc.err)
-				}
-				if css != tc.css {
-					t.Errorf("Incorrect (JavaScript,String,Symbol) returned. got %s; want %s", css, tc.css)
-				}
+					var wantErr error
+					switch src.(type) {
+					case *bufferedValueReader:
+						wantErr = tc.bufferedError
+					case *streamingValueReader:
+						wantErr = tc.streamingErr
+					}
+
+					css, err := tc.fn(vr)
+					if !errequal(t, err, wantErr) {
+						t.Errorf("Returned errors do not match. got %v; want %v", err, wantErr)
+					}
+					if css != tc.css {
+						t.Errorf("Incorrect (JavaScript,String,Symbol) returned. got %s; want %s", css, tc.css)
+					}
+				})
 			})
 		}
 	})
 	t.Run("ReadMaxKey/ReadMinKey/ReadNull/ReadUndefined", func(t *testing.T) {
 		testCases := []struct {
-			name  string
-			fn    func(*valueReader) error
-			err   error
-			vType Type
+			name         string
+			fn           func(*valueReader) error
+			streamingErr error
+			bufferedErr  error
+			vType        Type
 		}{
 			{
 				"ReadMaxKey/incorrect type",
 				(*valueReader).ReadMaxKey,
+				(&valueReader{stack: []vrState{{vType: TypeEmbeddedDocument}}, frame: 0}).typeError(TypeMaxKey),
 				(&valueReader{stack: []vrState{{vType: TypeEmbeddedDocument}}, frame: 0}).typeError(TypeMaxKey),
 				TypeEmbeddedDocument,
 			},
@@ -896,11 +1009,13 @@ func TestValueReader(t *testing.T) {
 				"ReadMaxKey/success",
 				(*valueReader).ReadMaxKey,
 				nil,
+				nil,
 				TypeMaxKey,
 			},
 			{
 				"ReadMinKey/incorrect type",
 				(*valueReader).ReadMinKey,
+				(&valueReader{stack: []vrState{{vType: TypeEmbeddedDocument}}, frame: 0}).typeError(TypeMinKey),
 				(&valueReader{stack: []vrState{{vType: TypeEmbeddedDocument}}, frame: 0}).typeError(TypeMinKey),
 				TypeEmbeddedDocument,
 			},
@@ -908,11 +1023,13 @@ func TestValueReader(t *testing.T) {
 				"ReadMinKey/success",
 				(*valueReader).ReadMinKey,
 				nil,
+				nil,
 				TypeMinKey,
 			},
 			{
 				"ReadNull/incorrect type",
 				(*valueReader).ReadNull,
+				(&valueReader{stack: []vrState{{vType: TypeEmbeddedDocument}}, frame: 0}).typeError(TypeNull),
 				(&valueReader{stack: []vrState{{vType: TypeEmbeddedDocument}}, frame: 0}).typeError(TypeNull),
 				TypeEmbeddedDocument,
 			},
@@ -920,11 +1037,13 @@ func TestValueReader(t *testing.T) {
 				"ReadNull/success",
 				(*valueReader).ReadNull,
 				nil,
+				nil,
 				TypeNull,
 			},
 			{
 				"ReadUndefined/incorrect type",
 				(*valueReader).ReadUndefined,
+				(&valueReader{stack: []vrState{{vType: TypeEmbeddedDocument}}, frame: 0}).typeError(TypeUndefined),
 				(&valueReader{stack: []vrState{{vType: TypeEmbeddedDocument}}, frame: 0}).typeError(TypeUndefined),
 				TypeEmbeddedDocument,
 			},
@@ -932,27 +1051,39 @@ func TestValueReader(t *testing.T) {
 				"ReadUndefined/success",
 				(*valueReader).ReadUndefined,
 				nil,
+				nil,
 				TypeUndefined,
 			},
 		}
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				vr := &valueReader{
-					stack: []vrState{
-						{mode: mTopLevel},
-						{
-							mode:  mElement,
-							vType: tc.vType,
+				runSubtests(t, []byte{}, func(t *testing.T, src valueReaderByteSrc) {
+					vr := &valueReader{
+						src: src,
+						stack: []vrState{
+							{mode: mTopLevel},
+							{
+								mode:  mElement,
+								vType: tc.vType,
+							},
 						},
-					},
-					frame: 1,
-				}
+						frame: 1,
+					}
 
-				err := tc.fn(vr)
-				if !errequal(t, err, tc.err) {
-					t.Errorf("Returned errors do not match. got %v; want %v", err, tc.err)
-				}
+					var wantErr error
+					switch src.(type) {
+					case *bufferedValueReader:
+						wantErr = tc.bufferedErr
+					case *streamingValueReader:
+						wantErr = tc.streamingErr
+					}
+
+					err := tc.fn(vr)
+					if !errequal(t, err, wantErr) {
+						t.Errorf("Returned errors do not match. got %v; want %v", err, wantErr)
+					}
+				})
 			})
 		}
 	})
@@ -989,25 +1120,27 @@ func TestValueReader(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				vr := &valueReader{
-					r: bufio.NewReader(bytes.NewReader(tc.data)),
-					stack: []vrState{
-						{mode: mTopLevel},
-						{
-							mode:  mElement,
-							vType: tc.vType,
+				runSubtests(t, tc.data, func(t *testing.T, src valueReaderByteSrc) {
+					vr := &valueReader{
+						src: src,
+						stack: []vrState{
+							{mode: mTopLevel},
+							{
+								mode:  mElement,
+								vType: tc.vType,
+							},
 						},
-					},
-					frame: 1,
-				}
+						frame: 1,
+					}
 
-				oid, err := vr.ReadObjectID()
-				if !errequal(t, err, tc.err) {
-					t.Errorf("Returned errors do not match. got %v; want %v", err, tc.err)
-				}
-				if oid != tc.oid {
-					t.Errorf("ObjectIDs did not match. got %v; want %v", oid, tc.oid)
-				}
+					oid, err := vr.ReadObjectID()
+					if !errequal(t, err, tc.err) {
+						t.Errorf("Returned errors do not match. got %v; want %v", err, tc.err)
+					}
+					if oid != tc.oid {
+						t.Errorf("ObjectIDs did not match. got %v; want %v", oid, tc.oid)
+					}
+				})
 			})
 		}
 	})
@@ -1056,28 +1189,30 @@ func TestValueReader(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				vr := &valueReader{
-					r: bufio.NewReader(bytes.NewReader(tc.data)),
-					stack: []vrState{
-						{mode: mTopLevel},
-						{
-							mode:  mElement,
-							vType: tc.vType,
+				runSubtests(t, tc.data, func(t *testing.T, src valueReaderByteSrc) {
+					vr := &valueReader{
+						src: src,
+						stack: []vrState{
+							{mode: mTopLevel},
+							{
+								mode:  mElement,
+								vType: tc.vType,
+							},
 						},
-					},
-					frame: 1,
-				}
+						frame: 1,
+					}
 
-				pattern, options, err := vr.ReadRegex()
-				if !errequal(t, err, tc.err) {
-					t.Errorf("Returned errors do not match. got %v; want %v", err, tc.err)
-				}
-				if pattern != tc.pattern {
-					t.Errorf("Incorrect pattern returned. got %s; want %s", pattern, tc.pattern)
-				}
-				if options != tc.options {
-					t.Errorf("Incorrect options returned. got %s; want %s", options, tc.options)
-				}
+					pattern, options, err := vr.ReadRegex()
+					if !errequal(t, err, tc.err) {
+						t.Errorf("Returned errors do not match. got %v; want %v", err, tc.err)
+					}
+					if pattern != tc.pattern {
+						t.Errorf("Incorrect pattern returned. got %s; want %s", pattern, tc.pattern)
+					}
+					if options != tc.options {
+						t.Errorf("Incorrect options returned. got %s; want %s", options, tc.options)
+					}
+				})
 			})
 		}
 	})
@@ -1126,28 +1261,30 @@ func TestValueReader(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				vr := &valueReader{
-					r: bufio.NewReader(bytes.NewReader(tc.data)),
-					stack: []vrState{
-						{mode: mTopLevel},
-						{
-							mode:  mElement,
-							vType: tc.vType,
+				runSubtests(t, tc.data, func(t *testing.T, src valueReaderByteSrc) {
+					vr := &valueReader{
+						src: src,
+						stack: []vrState{
+							{mode: mTopLevel},
+							{
+								mode:  mElement,
+								vType: tc.vType,
+							},
 						},
-					},
-					frame: 1,
-				}
+						frame: 1,
+					}
 
-				ts, incr, err := vr.ReadTimestamp()
-				if !errequal(t, err, tc.err) {
-					t.Errorf("Returned errors do not match. got %v; want %v", err, tc.err)
-				}
-				if ts != tc.ts {
-					t.Errorf("Incorrect timestamp returned. got %d; want %d", ts, tc.ts)
-				}
-				if incr != tc.incr {
-					t.Errorf("Incorrect increment returned. got %d; want %d", incr, tc.incr)
-				}
+					ts, incr, err := vr.ReadTimestamp()
+					if !errequal(t, err, tc.err) {
+						t.Errorf("Returned errors do not match. got %v; want %v", err, tc.err)
+					}
+					if ts != tc.ts {
+						t.Errorf("Incorrect timestamp returned. got %d; want %d", ts, tc.ts)
+					}
+					if incr != tc.incr {
+						t.Errorf("Incorrect increment returned. got %d; want %d", incr, tc.incr)
+					}
+				})
 			})
 		}
 	})
@@ -1347,13 +1484,303 @@ func TestValueReader(t *testing.T) {
 				const startingEnd = 64
 				t.Run("Skip", func(t *testing.T) {
 					vr := &valueReader{
-						r: bufio.NewReader(bytes.NewReader(tc.data[tc.startingOffset:tc.offset])),
+						src: &bufferedValueReader{buf: tc.data, offset: tc.startingOffset},
 						stack: []vrState{
 							{mode: mTopLevel, end: startingEnd},
 							{mode: mElement, vType: tc.t},
 						},
-						frame:  1,
-						offset: tc.startingOffset,
+						frame: 1,
+					}
+
+					err := vr.Skip()
+					if !errequal(t, err, tc.err) {
+						t.Errorf("Did not receive expected error; got %v; want %v", err, tc.err)
+					}
+					if tc.err == nil && vr.src.pos() != tc.offset {
+						t.Errorf("Offset not set at correct position; got %d; want %d", vr.src.pos(), tc.offset)
+					}
+				})
+				t.Run("ReadBytes", func(t *testing.T) {
+					vr := &valueReader{
+						src: &bufferedValueReader{buf: tc.data, offset: tc.startingOffset},
+						stack: []vrState{
+							{mode: mTopLevel, end: startingEnd},
+							{mode: mElement, vType: tc.t},
+						},
+						frame: 1,
+					}
+
+					_, got, err := vr.readValueBytes(nil)
+					if !errequal(t, err, tc.err) {
+						t.Errorf("Did not receive expected error; got %v; want %v", err, tc.err)
+					}
+					if tc.err == nil && vr.src.pos() != tc.offset {
+						t.Errorf("Offset not set at correct position; got %d; want %d", vr.src.pos(), tc.offset)
+					}
+					if tc.err == nil && !bytes.Equal(got, tc.data[tc.startingOffset:]) {
+						t.Errorf("Did not receive expected bytes. got %v; want %v", got, tc.data[tc.startingOffset:])
+					}
+				})
+			})
+		}
+		t.Run("ReadValueBytes/Top Level Doc", func(t *testing.T) {
+			testCases := []struct {
+				name     string
+				want     []byte
+				wantType Type
+				wantErr  error
+			}{
+				{
+					"success",
+					bsoncore.BuildDocument(nil, bsoncore.AppendDoubleElement(nil, "pi", 3.14159)),
+					Type(0),
+					nil,
+				},
+				{
+					"wrong length",
+					[]byte{0x01, 0x02, 0x03},
+					Type(0),
+					io.EOF,
+				},
+				{
+					"append bytes",
+					[]byte{0x01, 0x02, 0x03, 0x04},
+					Type(0),
+					io.EOF,
+				},
+			}
+
+			for _, tc := range testCases {
+				tc := tc
+				t.Run(tc.name, func(t *testing.T) {
+					t.Parallel()
+					vr := &valueReader{
+						src: &bufferedValueReader{buf: tc.want},
+						stack: []vrState{
+							{mode: mTopLevel},
+						},
+						frame: 0,
+					}
+					gotType, got, gotErr := vr.readValueBytes(nil)
+					if !errors.Is(gotErr, tc.wantErr) {
+						t.Errorf("Did not receive expected error. got %v; want %v", gotErr, tc.wantErr)
+					}
+					if tc.wantErr == nil && gotType != tc.wantType {
+						t.Errorf("Did not receive expected type. got %v; want %v", gotType, tc.wantType)
+					}
+					if tc.wantErr == nil && !bytes.Equal(got, tc.want) {
+						t.Errorf("Did not receive expected bytes. got %v; want %v", got, tc.want)
+					}
+				})
+			}
+		})
+	})
+
+	// This test is too complicated to try to abstract using subtests.
+	t.Run("ReadBytes & Skip (streaming)", func(t *testing.T) {
+		index, docb := bsoncore.ReserveLength(nil)
+		docb = bsoncore.AppendNullElement(docb, "foobar")
+		docb = append(docb, 0x00)
+		docb = bsoncore.UpdateLength(docb, index, int32(len(docb)))
+		cwsbytes := bsoncore.AppendCodeWithScope(nil, "var hellow = world;", docb)
+		strbytes := []byte{0x04, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00}
+		testCases := []struct {
+			name           string
+			t              Type
+			data           []byte
+			err            error
+			offset         int64
+			startingOffset int64
+		}{
+			{
+				"Array/invalid length",
+				TypeArray,
+				[]byte{0x01, 0x02, 0x03},
+				io.EOF, 0, 0,
+			},
+			{
+				"Array/not enough bytes",
+				TypeArray,
+				[]byte{0x0F, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03},
+				io.EOF, 0, 0,
+			},
+			{
+				"Array/success",
+				TypeArray,
+				[]byte{0x08, 0x00, 0x00, 0x00, 0x0A, '1', 0x00, 0x00},
+				nil, 8, 0,
+			},
+			{
+				"EmbeddedDocument/invalid length",
+				TypeEmbeddedDocument,
+				[]byte{0x01, 0x02, 0x03},
+				io.EOF, 0, 0,
+			},
+			{
+				"EmbeddedDocument/not enough bytes",
+				TypeEmbeddedDocument,
+				[]byte{0x0F, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03},
+				io.EOF, 0, 0,
+			},
+			{
+				"EmbeddedDocument/success",
+				TypeEmbeddedDocument,
+				[]byte{0x08, 0x00, 0x00, 0x00, 0x0A, 'A', 0x00, 0x00},
+				nil, 8, 0,
+			},
+			{
+				"CodeWithScope/invalid length",
+				TypeCodeWithScope,
+				[]byte{0x01, 0x02, 0x03},
+				io.EOF, 0, 0,
+			},
+			{
+				"CodeWithScope/not enough bytes",
+				TypeCodeWithScope,
+				[]byte{0x0F, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03},
+				io.EOF, 0, 0,
+			},
+			{
+				"CodeWithScope/success",
+				TypeCodeWithScope,
+				cwsbytes,
+				nil, 41, 0,
+			},
+			{
+				"Binary/invalid length",
+				TypeBinary,
+				[]byte{0x01, 0x02, 0x03},
+				io.EOF, 0, 0,
+			},
+			{
+				"Binary/not enough bytes",
+				TypeBinary,
+				[]byte{0x0F, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03},
+				io.EOF, 0, 0,
+			},
+			{
+				"Binary/success",
+				TypeBinary,
+				[]byte{0x03, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03},
+				nil, 8, 0,
+			},
+			{
+				"Boolean/invalid length",
+				TypeBoolean,
+				[]byte{},
+				io.EOF, 0, 0,
+			},
+			{
+				"Boolean/success",
+				TypeBoolean,
+				[]byte{0x01},
+				nil, 1, 0,
+			},
+			{
+				"DBPointer/invalid length",
+				TypeDBPointer,
+				[]byte{0x01, 0x02, 0x03},
+				io.EOF, 0, 0,
+			},
+			{
+				"DBPointer/not enough bytes",
+				TypeDBPointer,
+				[]byte{0x0F, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03},
+				io.EOF, 0, 0,
+			},
+			{
+				"DBPointer/success",
+				TypeDBPointer,
+				[]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
+				nil, 17, 0,
+			},
+			{"DBPointer/not enough bytes", TypeDateTime, []byte{0x01, 0x02, 0x03, 0x04}, io.EOF, 0, 0},
+			{"DBPointer/success", TypeDateTime, []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}, nil, 8, 0},
+			{"Double/not enough bytes", TypeDouble, []byte{0x01, 0x02, 0x03, 0x04}, io.EOF, 0, 0},
+			{"Double/success", TypeDouble, []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}, nil, 8, 0},
+			{"Int64/not enough bytes", TypeInt64, []byte{0x01, 0x02, 0x03, 0x04}, io.EOF, 0, 0},
+			{"Int64/success", TypeInt64, []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}, nil, 8, 0},
+			{"Timestamp/not enough bytes", TypeTimestamp, []byte{0x01, 0x02, 0x03, 0x04}, io.EOF, 0, 0},
+			{"Timestamp/success", TypeTimestamp, []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}, nil, 8, 0},
+			{
+				"Decimal128/not enough bytes",
+				TypeDecimal128,
+				[]byte{0x01, 0x02, 0x03, 0x04},
+				io.EOF, 0, 0,
+			},
+			{
+				"Decimal128/success",
+				TypeDecimal128,
+				[]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10},
+				nil, 16, 0,
+			},
+			{"Int32/not enough bytes", TypeInt32, []byte{0x01, 0x02}, io.EOF, 0, 0},
+			{"Int32/success", TypeInt32, []byte{0x01, 0x02, 0x03, 0x04}, nil, 4, 0},
+			{"Javascript/invalid length", TypeJavaScript, strbytes[:2], io.EOF, 0, 0},
+			{"Javascript/not enough bytes", TypeJavaScript, strbytes[:5], io.EOF, 0, 0},
+			{"Javascript/success", TypeJavaScript, strbytes, nil, 8, 0},
+			{"String/invalid length", TypeString, strbytes[:2], io.EOF, 0, 0},
+			{"String/not enough bytes", TypeString, strbytes[:5], io.EOF, 0, 0},
+			{"String/success", TypeString, strbytes, nil, 8, 0},
+			{"Symbol/invalid length", TypeSymbol, strbytes[:2], io.EOF, 0, 0},
+			{"Symbol/not enough bytes", TypeSymbol, strbytes[:5], io.EOF, 0, 0},
+			{"Symbol/success", TypeSymbol, strbytes, nil, 8, 0},
+			{"MaxKey/success", TypeMaxKey, []byte{}, nil, 0, 0},
+			{"MinKey/success", TypeMinKey, []byte{}, nil, 0, 0},
+			{"Null/success", TypeNull, []byte{}, nil, 0, 0},
+			{"Undefined/success", TypeUndefined, []byte{}, nil, 0, 0},
+			{
+				"ObjectID/not enough bytes",
+				TypeObjectID,
+				[]byte{0x01, 0x02, 0x03, 0x04},
+				io.EOF, 0, 0,
+			},
+			{
+				"ObjectID/success",
+				TypeObjectID,
+				[]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
+				nil, 12, 0,
+			},
+			{
+				"Regex/not enough bytes (first string)",
+				TypeRegex,
+				[]byte{'f', 'o', 'o'},
+				io.EOF, 0, 0,
+			},
+			{
+				"Regex/not enough bytes (second string)",
+				TypeRegex,
+				[]byte{'f', 'o', 'o', 0x00, 'b', 'a', 'r'},
+				io.EOF, 0, 0,
+			},
+			{
+				"Regex/success",
+				TypeRegex,
+				[]byte{0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00, 'i', 0x00},
+				nil, 9, 3,
+			},
+			{
+				"Unknown Type",
+				Type(0),
+				nil,
+				fmt.Errorf("attempted to read bytes of unknown BSON type %v", Type(0)), 0, 0,
+			},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				const startingEnd = 64
+				t.Run("Skip", func(t *testing.T) {
+					vr := &valueReader{
+						src: &streamingValueReader{
+							br:     bufio.NewReader(bytes.NewReader(tc.data[tc.startingOffset:tc.offset])),
+							offset: tc.startingOffset,
+						},
+						stack: []vrState{
+							{mode: mTopLevel, end: startingEnd},
+							{mode: mElement, vType: tc.t},
+						},
+						frame: 1,
 					}
 
 					err := vr.Skip()
@@ -1369,13 +1796,15 @@ func TestValueReader(t *testing.T) {
 				})
 				t.Run("ReadBytes", func(t *testing.T) {
 					vr := &valueReader{
-						r: bufio.NewReader(bytes.NewReader(tc.data[tc.startingOffset:tc.offset])),
+						src: &streamingValueReader{
+							br:     bufio.NewReader(bytes.NewReader(tc.data[tc.startingOffset:tc.offset])),
+							offset: tc.startingOffset,
+						},
 						stack: []vrState{
 							{mode: mTopLevel, end: startingEnd},
 							{mode: mElement, vType: tc.t},
 						},
-						frame:  1,
-						offset: tc.startingOffset,
+						frame: 1,
 					}
 
 					_, got, err := vr.readValueBytes(nil)
@@ -1426,7 +1855,9 @@ func TestValueReader(t *testing.T) {
 				t.Run(tc.name, func(t *testing.T) {
 					t.Parallel()
 					vr := &valueReader{
-						r: bufio.NewReader(bytes.NewReader(tc.want)),
+						src: &streamingValueReader{
+							br: bufio.NewReader(bytes.NewReader(tc.want)),
+						},
 						stack: []vrState{
 							{mode: mTopLevel},
 						},
@@ -1460,7 +1891,7 @@ func TestValueReader(t *testing.T) {
 	t.Run("ReadBytes", func(t *testing.T) {
 		vr := &valueReader{stack: []vrState{{mode: mTopLevel}, {mode: mDocument}}, frame: 1}
 		wanterr := (&valueReader{stack: []vrState{{mode: mTopLevel}, {mode: mDocument}}, frame: 1}).
-			invalidTransitionErr(0, "ReadValueBytes", []mode{mElement, mValue})
+			invalidTransitionErr(0, "readValueBytes", []mode{mElement, mValue})
 		_, _, goterr := vr.readValueBytes(nil)
 		if !cmp.Equal(goterr, wanterr, cmp.Comparer(assert.CompareErrors)) {
 			t.Errorf("Expected correct invalid transition error. got %v; want %v", goterr, wanterr)
