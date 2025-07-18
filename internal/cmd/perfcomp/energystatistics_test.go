@@ -66,4 +66,17 @@ func TestEnergyStatistics(t *testing.T) {
 		assert.InDelta(t, 728381.015, tstat, del)
 		assert.InDelta(t, 0.748, h, del)
 	})
+
+	t.Run("equal distributions should have all 0 values", func(t *testing.T) {
+		x := mat.NewDense(10, 1, []float64{1, 1, 1, 1, 1, 1, 1, 1, 1, 1})
+		y := mat.NewDense(1, 1, []float64{1})
+
+		e, tstat, h := GetEnergyStatistics(x, y)
+		del := 1e-3
+
+		assert.InDelta(t, 0.0, e, del)
+		assert.InDelta(t, 0.0, tstat, del)
+		assert.InDelta(t, 0.0, h, del)
+	})
+
 }

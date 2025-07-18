@@ -11,10 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"math"
 	"os"
-	"sort"
-	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -55,12 +52,14 @@ type RawData struct {
 }
 
 type EnergyStats struct {
-	Benchmark       string
-	PatchVersion    string
-	MainlineVersion string
-	E               float64
-	T               float64
-	H               float64
+	Benchmark          string
+	Measurement        string
+	PatchVersion       string
+	StableRegionValues []float64
+	PatchValues        []float64
+	E                  float64
+	T                  float64
+	H                  float64
 }
 
 func main() {
@@ -83,39 +82,25 @@ func main() {
 	}
 	fmt.Println("Successfully connected to MongoDB Analytics node.")
 
-	coll := client.Database("expanded_metrics").Collection("raw_results")
+	db := client.Database("expanded_metrics")
 	version := os.Getenv("VERSION_ID")
 	if version == "" {
 		log.Panic("could not retrieve version")
 	}
 
-	// Get and pre-process raw data
-	patchRawData, err3 := findRawData(version, coll)
+	// Get raw data, most recent stable region, and calculate energy stats
+	patchRawData, err3 := findRawData(version, db.Collection("raw_results"))
 	if err3 != nil {
 		log.Panicf("Error getting raw data: %v", err3)
 	}
 
-	mainlineCommits, err4 := parseMainelineCommits(patchRawData)
+	allEnergyStats, err4 := getEnergyStatsForAllBenchMarks(patchRawData, db.Collection("stable_regions"))
 	if err4 != nil {
-		log.Panicf("Error parsing commits: %v", err4)
+		log.Panicf("Error getting raw data: %v", err4)
 	}
-
-	mainlineVersion := "mongo_go_driver_" + mainlineCommits[0]
-	mainlineRawData, err5 := findRawData(mainlineVersion, coll)
-	if err5 != nil {
-		log.Panicf("Could not retrieve mainline raw data")
+	for _, es := range allEnergyStats {
+		fmt.Printf("%s | %s | E: %f | T: %f | H: %f\n", es.Benchmark, es.Measurement, es.E, es.T, es.H)
 	}
-
-	if len(mainlineRawData) != len(patchRawData) {
-		log.Panicf("Path and mainline data length do not match.")
-	}
-
-	// Calculate energy statistics
-	energyStats, err := getEnergyStatsForAllBenchMarks(patchRawData, mainlineRawData)
-	if err != nil {
-		log.Panicf("Error calculating energy stats: %v", err)
-	}
-	fmt.Printf("Successfully retrieved %d energy stats.\n", len(energyStats))
 
 	// Disconnect client
 	err0 := client.Disconnect(context.Background())
@@ -162,77 +147,82 @@ func findRawData(version string, coll *mongo.Collection) ([]RawData, error) {
 	return rawData, nil
 }
 
-func parseMainelineCommits(rawData []RawData) ([]string, error) {
-	commits := make([]string, 0, len(rawData))
-	for i, rd := range rawData {
-		taskID := rd.Info.TaskID
-		pieces := strings.Split(taskID, "_") // Format: mongo_go_driver_perf_perf_patch_<commit-SHA>_<version>_<timestamp>
-		for j, p := range pieces {
-			if p == "patch" {
-				if len(pieces) < j+2 {
-					return nil, errors.New("task ID doesn't hold commit SHA")
-				}
-				commits = append(commits, pieces[j+1])
-				break
-			}
-		}
-		if len(commits) < i+1 { // didn't find SHA in task_ID
-			return nil, errors.New("task ID doesn't hold commit SHA")
-		}
+func findLastStableRegion(testname string, measurement string, coll *mongo.Collection) ([]float64, error) {
+	filter := bson.D{
+		{"time_series_info.project", "mongo-go-driver"},
+		{"time_series_info.variant", "perf"},
+		{"time_series_info.task", "perf"},
+		{"time_series_info.test", testname},
+		{"time_series_info.measurement", measurement},
+		{"last", true},
+		{"contexts", []string{"GoDriver perf (h-score)"}},
 	}
-	return commits, nil
+	projection := bson.D{
+		{"values", 1},
+	}
+	findOptions := options.FindOne().SetSort(bson.D{{"end", -1}}).SetProjection(projection)
+
+	findCtx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
+	defer cancel()
+
+	var result bson.M
+	err := coll.FindOne(findCtx, filter, findOptions).Decode(&result)
+	if err != nil {
+		return nil, err
+	}
+
+	valuesSlice, ok := result["values"].(bson.A)
+	if !ok {
+		return nil, errors.New("values is not of type bson.A")
+	}
+	var values []float64
+	for _, v := range valuesSlice {
+		number, ok := v.(float64)
+		if !ok {
+			return nil, errors.New("value is not float64")
+		}
+		values = append(values, number)
+	}
+	return values, nil
 }
 
-func getEnergyStatsForOneBenchmark(xRaw RawData, yRaw RawData) (*EnergyStats, error) {
-
-	var x []float64
-	var y []float64
-	for _, stat := range xRaw.Rollups.Stats {
-		x = append(x, stat.Val)
-	}
-	for _, stat := range yRaw.Rollups.Stats {
-		y = append(y, stat.Val)
-	}
-
-	for i := range (int)(math.Min((float64)(len(xRaw.Rollups.Stats)), float64(len(yRaw.Rollups.Stats)))) {
-		if xRaw.Rollups.Stats[i].Name != yRaw.Rollups.Stats[i].Name {
-			return nil, errors.New("measurements do not match")
-		}
-	}
-
-	e, t, h := GetEnergyStatistics(mat.NewDense(len(x), 1, x), mat.NewDense(len(y), 1, y))
-	return &EnergyStats{
-		Benchmark:       xRaw.Info.TestName,
-		PatchVersion:    xRaw.Info.Version,
-		MainlineVersion: yRaw.Info.Version,
-		E:               e,
-		T:               t,
-		H:               h,
-	}, nil
-}
-
-func getEnergyStatsForAllBenchMarks(patchRawData []RawData, mainlineRawData []RawData) ([]*EnergyStats, error) {
-
-	sort.Slice(patchRawData, func(i, j int) bool {
-		return patchRawData[i].Info.TestName < patchRawData[j].Info.TestName
-	})
-	sort.Slice(mainlineRawData, func(i, j int) bool {
-		return mainlineRawData[i].Info.TestName < mainlineRawData[j].Info.TestName
-	})
-
+// For a specific test and measurement
+func getEnergyStatsForOneBenchmark(rd RawData, coll *mongo.Collection) ([]*EnergyStats, error) {
+	testname := rd.Info.TestName
 	var energyStats []*EnergyStats
-	for i := range patchRawData {
-		if testname := patchRawData[i].Info.TestName; testname != mainlineRawData[i].Info.TestName {
-			return nil, errors.New("tests do not match")
-		}
 
-		es, err := getEnergyStatsForOneBenchmark(patchRawData[i], mainlineRawData[i])
+	for i := range rd.Rollups.Stats {
+		measurement := rd.Rollups.Stats[i].Name
+		patchVal := []float64{rd.Rollups.Stats[i].Val}
+		stableRegionVals, err := findLastStableRegion(testname, measurement, coll)
 		if err != nil {
 			return nil, err
 		}
-		energyStats = append(energyStats, es)
-
-		fmt.Printf("%s | H-score: %.4f\n", es.Benchmark, es.H)
+		e, t, h := GetEnergyStatistics(mat.NewDense(len(stableRegionVals), 1, stableRegionVals), mat.NewDense(1, 1, patchVal))
+		es := EnergyStats{
+			Benchmark:          testname,
+			Measurement:        measurement,
+			PatchVersion:       rd.Info.Version,
+			StableRegionValues: stableRegionVals,
+			PatchValues:        patchVal,
+			E:                  e,
+			T:                  t,
+			H:                  h,
+		}
+		energyStats = append(energyStats, &es)
 	}
+
 	return energyStats, nil
+}
+
+func getEnergyStatsForAllBenchMarks(patchRawData []RawData, coll *mongo.Collection) ([]*EnergyStats, error) {
+	var allEnergyStats []*EnergyStats
+	for _, rd := range patchRawData {
+		energyStats, err := getEnergyStatsForOneBenchmark(rd, coll)
+		if err != nil {
+			return nil, err
+		}
+		allEnergyStats = append(allEnergyStats, energyStats...)
+	}
+	return allEnergyStats, nil
 }

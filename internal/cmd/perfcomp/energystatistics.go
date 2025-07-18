@@ -19,13 +19,34 @@ func GetEnergyStatistics(x, y *mat.Dense) (float64, float64, float64) {
 	m, _ := y.Dims()
 	nf := float64(n)
 	mf := float64(m)
-	A := getDistance(x, y) / (nf * mf) // E|X-Y|
-	B := getDistance(x, x) / (nf * nf) // E|X-X'|
-	C := getDistance(y, y) / (mf * mf) // E|Y-Y'|
+
+	var A float64 // E|X-Y|
+	if nf > 0 && mf > 0 {
+		A = getDistance(x, y) / (nf * mf)
+	} else {
+		A = 0
+	}
+	var B float64 // E|X-X'|
+	if nf > 0 {
+		B = getDistance(x, x) / (nf * nf)
+	} else {
+		B = 0
+	}
+	var C float64 // E|Y-Y'|
+	if mf > 0 {
+		C = getDistance(y, y) / (mf * mf)
+	} else {
+		C = 0
+	}
 
 	E := 2*A - B - C // D^2(F_x, F_y)
 	T := ((nf * mf) / (nf + mf)) * E
-	H := E / (2 * A)
+	var H float64
+	if A > 0 {
+		H = E / (2 * A)
+	} else {
+		H = 0
+	}
 	return E, T, H
 }
 
