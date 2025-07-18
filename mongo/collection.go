@@ -248,7 +248,7 @@ func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
 
 	err = op.execute(ctx)
 
-	return &op.result, replaceErrors(err)
+	return &op.result, wrapErrors(err)
 }
 
 func (coll *Collection) insert(
@@ -1049,15 +1049,15 @@ func aggregate(a aggregateParams, opts ...options.Lister[options.AggregateOption
 		if errors.As(err, &wce) && wce.WriteConcernError != nil {
 			return nil, *convertDriverWriteConcernError(wce.WriteConcernError)
 		}
-		return nil, replaceErrors(err)
+		return nil, wrapErrors(err)
 	}
 
 	bc, err := op.Result(cursorOpts)
 	if err != nil {
-		return nil, replaceErrors(err)
+		return nil, wrapErrors(err)
 	}
 	cursor, err := newCursorWithSession(bc, a.client.bsonOpts, a.registry, sess)
-	return cursor, replaceErrors(err)
+	return cursor, wrapErrors(err)
 }
 
 // CountDocuments returns the number of documents in the collection. For a fast count of the documents in the
@@ -1132,7 +1132,7 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 
 	err = op.Execute(ctx)
 	if err != nil {
-		return 0, replaceErrors(err)
+		return 0, wrapErrors(err)
 	}
 
 	batch := op.ResultCursorResponse().FirstBatch
@@ -1213,7 +1213,7 @@ func (coll *Collection) EstimatedDocumentCount(
 	op.Retry(retry)
 
 	err = op.Execute(ctx)
-	return op.Result().N, replaceErrors(err)
+	return op.Result().N, wrapErrors(err)
 }
 
 // Distinct executes a distinct command to find the unique values for a specified field in the collection.
@@ -1302,7 +1302,7 @@ func (coll *Collection) Distinct(
 
 	err = op.Execute(ctx)
 	if err != nil {
-		return &DistinctResult{err: replaceErrors(err)}
+		return &DistinctResult{err: wrapErrors(err)}
 	}
 
 	arr, ok := op.Result().Values.ArrayOK()
@@ -1504,12 +1504,12 @@ func (coll *Collection) find(
 	op = op.Retry(retry)
 
 	if err = op.Execute(ctx); err != nil {
-		return nil, replaceErrors(err)
+		return nil, wrapErrors(err)
 	}
 
 	bc, err := op.Result(cursorOpts)
 	if err != nil {
-		return nil, replaceErrors(err)
+		return nil, wrapErrors(err)
 	}
 	return newCursorWithSession(bc, coll.bsonOpts, coll.registry, sess)
 }
@@ -1560,7 +1560,7 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 		cur:      cursor,
 		bsonOpts: coll.bsonOpts,
 		reg:      coll.registry,
-		err:      replaceErrors(err),
+		err:      wrapErrors(err),
 	}
 }
 
@@ -2044,7 +2044,7 @@ func (coll *Collection) drop(ctx context.Context) error {
 	// ignore namespace not found errors
 	var driverErr driver.Error
 	if !errors.As(err, &driverErr) || !driverErr.NamespaceNotFound() {
-		return replaceErrors(err)
+		return wrapErrors(err)
 	}
 	return nil
 }
