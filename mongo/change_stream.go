@@ -376,7 +376,7 @@ AggregateExecuteLoop:
 		}
 	}
 	if err != nil {
-		cs.err = replaceErrors(err)
+		cs.err = wrapErrors(err)
 		return cs.err
 	}
 
@@ -384,7 +384,7 @@ AggregateExecuteLoop:
 	cr.Server = server
 
 	cs.cursor, cs.err = driver.NewBatchCursor(cr, cs.sess, cs.client.clock, cs.cursorOptions)
-	if cs.err = replaceErrors(cs.err); cs.err != nil {
+	if cs.err = wrapErrors(cs.err); cs.err != nil {
 		return cs.Err()
 	}
 
@@ -597,13 +597,13 @@ func (cs *ChangeStream) Decode(val interface{}) error {
 // Err returns the last error seen by the change stream, or nil if no errors has occurred.
 func (cs *ChangeStream) Err() error {
 	if cs.err != nil {
-		return replaceErrors(cs.err)
+		return wrapErrors(cs.err)
 	}
 	if cs.cursor == nil {
 		return nil
 	}
 
-	return replaceErrors(cs.cursor.Err())
+	return wrapErrors(cs.cursor.Err())
 }
 
 // Close closes this change stream and the underlying cursor. Next and TryNext must not be called after Close has been
@@ -619,7 +619,7 @@ func (cs *ChangeStream) Close(ctx context.Context) error {
 		return nil // cursor is already closed
 	}
 
-	cs.err = replaceErrors(cs.cursor.Close(ctx))
+	cs.err = wrapErrors(cs.cursor.Close(ctx))
 	cs.cursor = nil
 	return cs.Err()
 }
@@ -678,7 +678,7 @@ func (cs *ChangeStream) next(ctx context.Context, nonBlocking bool) bool {
 	if len(cs.batch) == 0 {
 		cs.loopNext(ctx, nonBlocking)
 		if cs.err != nil {
-			cs.err = replaceErrors(cs.err)
+			cs.err = wrapErrors(cs.err)
 			return false
 		}
 		if len(cs.batch) == 0 {
@@ -719,7 +719,7 @@ func (cs *ChangeStream) loopNext(ctx context.Context, nonBlocking bool) {
 			return
 		}
 
-		cs.err = replaceErrors(cs.cursor.Err())
+		cs.err = wrapErrors(cs.cursor.Err())
 		if cs.err == nil {
 			// Check if cursor is alive
 			if cs.ID() == 0 {
