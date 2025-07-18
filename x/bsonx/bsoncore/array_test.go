@@ -506,7 +506,7 @@ func TestArray_StringN(t *testing.T) {
 		},
 		{
 			description: "n>0, array EQ n",
-			n:           22,
+			n:           20,
 			values: []Value{
 				{
 					Type: TypeInt32,
@@ -573,10 +573,10 @@ func TestArray_StringN(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
-			got := Array(BuildArray(nil, tc.values...)).StringN(tc.n)
+			got, _ := Array(BuildArray(nil, tc.values...)).StringN(tc.n)
 			assert.Equal(t, tc.want, got)
 			if tc.n >= 0 {
-				assert.LessOrEqual(t, len(got), tc.n)
+				assert.LessOrEqual(t, len(got), tc.n, "got %v, want %v", got, tc.want)
 			}
 		})
 	}
