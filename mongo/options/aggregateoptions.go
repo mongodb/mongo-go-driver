@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/optionsutil"
 )
 
 // AggregateOptions represents arguments that can be used to configure an
@@ -26,7 +27,10 @@ type AggregateOptions struct {
 	Hint                     interface{}
 	Let                      interface{}
 	Custom                   bson.M
-	RawData                  *bool
+
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	CustomOptions optionsutil.Options
 }
 
 // AggregateOptionsBuilder contains options to configure aggregate operations.
@@ -158,18 +162,6 @@ func (ao *AggregateOptionsBuilder) SetLet(let interface{}) *AggregateOptionsBuil
 func (ao *AggregateOptionsBuilder) SetCustom(c bson.M) *AggregateOptionsBuilder {
 	ao.Opts = append(ao.Opts, func(opts *AggregateOptions) error {
 		opts.Custom = c
-
-		return nil
-	})
-
-	return ao
-}
-
-// SetRawData sets the value for the RawData field. If true, it allows the CRUD operations to access timeseries
-// collections on the bucket-level. This option is only valid for MongoDB versions >= 9.0. The default value is false.
-func (ao *AggregateOptionsBuilder) SetRawData(rawData bool) *AggregateOptionsBuilder {
-	ao.Opts = append(ao.Opts, func(opts *AggregateOptions) error {
-		opts.RawData = &rawData
 
 		return nil
 	})

@@ -17,6 +17,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/csfle"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
+	"go.mongodb.org/mongo-driver/v2/internal/optionsutil"
 	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
@@ -324,8 +325,10 @@ func (coll *Collection) insert(
 	if args.Ordered != nil {
 		op = op.Ordered(*args.Ordered)
 	}
-	if args.RawData != nil {
-		op = op.RawData(*args.RawData)
+	if rawDataOpt := optionsutil.Value(args.CustomOptions, "rawData"); rawDataOpt != nil {
+		if rawData, ok := rawDataOpt.(bool); ok {
+			op = op.RawData(rawData)
+		}
 	}
 	retry := driver.RetryNone
 	if coll.client.retryWrites {
@@ -378,8 +381,12 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 	if args.Comment != nil {
 		imOpts.SetComment(args.Comment)
 	}
-	if args.RawData != nil {
-		imOpts = imOpts.SetRawData(*args.RawData)
+	if rawDataOpt := optionsutil.Value(args.CustomOptions, "rawData"); rawDataOpt != nil {
+		imOpts.Opts = append(imOpts.Opts, func(opts *options.InsertManyOptions) error {
+			optionsutil.WithValue(opts.CustomOptions, "rawData", rawDataOpt)
+
+			return nil
+		})
 	}
 	res, err := coll.insert(ctx, []interface{}{document}, imOpts)
 
@@ -540,8 +547,10 @@ func (coll *Collection) delete(
 		}
 		op = op.Let(let)
 	}
-	if args.RawData != nil {
-		op = op.RawData(*args.RawData)
+	if rawDataOpt := optionsutil.Value(args.CustomOptions, "rawData"); rawDataOpt != nil {
+		if rawData, ok := rawDataOpt.(bool); ok {
+			op = op.RawData(rawData)
+		}
 	}
 
 	// deleteMany cannot be retried
@@ -580,11 +589,11 @@ func (coll *Collection) DeleteOne(
 		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 	deleteOptions := &options.DeleteManyOptions{
-		Collation: args.Collation,
-		Comment:   args.Comment,
-		Hint:      args.Hint,
-		Let:       args.Let,
-		RawData:   args.RawData,
+		Collation:     args.Collation,
+		Comment:       args.Comment,
+		Hint:          args.Hint,
+		Let:           args.Let,
+		CustomOptions: args.CustomOptions,
 	}
 
 	return coll.delete(ctx, filter, true, rrOne, deleteOptions)
@@ -1046,8 +1055,10 @@ func aggregate(a aggregateParams, opts ...options.Lister[options.AggregateOption
 		}
 		op.CustomOptions(customOptions)
 	}
-	if args.RawData != nil {
-		op = op.RawData(*args.RawData)
+	if rawDataOpt := optionsutil.Value(args.CustomOptions, "rawData"); rawDataOpt != nil {
+		if rawData, ok := rawDataOpt.(bool); ok {
+			op = op.RawData(rawData)
+		}
 	}
 
 	retry := driver.RetryNone
@@ -1137,8 +1148,10 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 		}
 		op.Hint(hintVal)
 	}
-	if args.RawData != nil {
-		op = op.RawData(*args.RawData)
+	if rawDataOpt := optionsutil.Value(args.CustomOptions, "rawData"); rawDataOpt != nil {
+		if rawData, ok := rawDataOpt.(bool); ok {
+			op = op.RawData(rawData)
+		}
 	}
 	retry := driver.RetryNone
 	if coll.client.retryReads {
@@ -1221,8 +1234,10 @@ func (coll *Collection) EstimatedDocumentCount(
 		}
 		op = op.Comment(comment)
 	}
-	if args.RawData != nil {
-		op = op.RawData(*args.RawData)
+	if rawDataOpt := optionsutil.Value(args.CustomOptions, "rawData"); rawDataOpt != nil {
+		if rawData, ok := rawDataOpt.(bool); ok {
+			op = op.RawData(rawData)
+		}
 	}
 
 	retry := driver.RetryNone
@@ -1313,8 +1328,10 @@ func (coll *Collection) Distinct(
 		}
 		op.Hint(hint)
 	}
-	if args.RawData != nil {
-		op = op.RawData(*args.RawData)
+	if rawDataOpt := optionsutil.Value(args.CustomOptions, "rawData"); rawDataOpt != nil {
+		if rawData, ok := rawDataOpt.(bool); ok {
+			op = op.RawData(rawData)
+		}
 	}
 	retry := driver.RetryNone
 	if coll.client.retryReads {

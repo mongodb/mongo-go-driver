@@ -19,6 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/xoptions"
 )
 
 // This file contains helpers to execute collection operations.
@@ -76,7 +77,10 @@ func executeAggregate(ctx context.Context, operation *operation) (*operationResu
 		case "let":
 			opts.SetLet(val.Document())
 		case "rawData":
-			opts.SetRawData(val.Boolean())
+			err = xoptions.SetInternalAggregateOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized aggregate option %q", key)
 		}
@@ -205,7 +209,10 @@ func executeCountDocuments(ctx context.Context, operation *operation) (*operatio
 		case "skip":
 			opts.SetSkip(int64(val.Int32()))
 		case "rawData":
-			opts.SetRawData(val.Boolean())
+			err = xoptions.SetInternalCountOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized countDocuments option %q", key)
 		}
@@ -438,7 +445,10 @@ func executeDeleteOne(ctx context.Context, operation *operation) (*operationResu
 		case "let":
 			opts.SetLet(val.Document())
 		case "rawData":
-			opts.SetRawData(val.Boolean())
+			err = xoptions.SetInternalDeleteOneOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized deleteOne option %q", key)
 		}
@@ -494,7 +504,10 @@ func executeDeleteMany(ctx context.Context, operation *operation) (*operationRes
 		case "let":
 			opts.SetLet(val.Document())
 		case "rawData":
-			opts.SetRawData(val.Boolean())
+			err = xoptions.SetInternalDeleteManyOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized deleteMany option %q", key)
 		}
@@ -554,7 +567,10 @@ func executeDistinct(ctx context.Context, operation *operation) (*operationResul
 			// this error.
 			return nil, fmt.Errorf("the maxTimeMS collection option is not supported")
 		case "rawData":
-			opts.SetRawData(val.Boolean())
+			err = xoptions.SetInternalDistinctOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized distinct option %q", key)
 		}
@@ -701,7 +717,10 @@ func executeEstimatedDocumentCount(ctx context.Context, operation *operation) (*
 			// this error.
 			return nil, fmt.Errorf("the maxTimeMS collection option is not supported")
 		case "rawData":
-			opts.SetRawData(val.Boolean())
+			err = xoptions.SetInternalEstimatedDocumentCountOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized estimatedDocumentCount option %q", key)
 		}
@@ -1075,7 +1094,10 @@ func executeInsertMany(ctx context.Context, operation *operation) (*operationRes
 		case "ordered":
 			opts.SetOrdered(val.Boolean())
 		case "rawData":
-			opts.SetRawData(val.Boolean())
+			err = xoptions.SetInternalInsertManyOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized insertMany option %q", key)
 		}
@@ -1127,7 +1149,10 @@ func executeInsertOne(ctx context.Context, operation *operation) (*operationResu
 		case "comment":
 			opts.SetComment(val)
 		case "rawData":
-			opts.SetRawData(val.Boolean())
+			err = xoptions.SetInternalInsertOneOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized insertOne option %q", key)
 		}

@@ -6,6 +6,8 @@
 
 package options
 
+import "go.mongodb.org/mongo-driver/v2/internal/optionsutil"
+
 // InsertOneOptions represents arguments that can be used to configure an InsertOne
 // operation.
 //
@@ -13,7 +15,10 @@ package options
 type InsertOneOptions struct {
 	BypassDocumentValidation *bool
 	Comment                  interface{}
-	RawData                  *bool
+
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	CustomOptions optionsutil.Options
 }
 
 // InsertOneOptionsBuilder represents functional options that configure an
@@ -54,18 +59,6 @@ func (ioo *InsertOneOptionsBuilder) SetComment(comment interface{}) *InsertOneOp
 	return ioo
 }
 
-// SetRawData sets the value for the RawData field. If true, it allows the CRUD operations to access timeseries
-// collections on the bucket-level. This option is only valid for MongoDB versions >= 9.0. The default value is false.
-func (ioo *InsertOneOptionsBuilder) SetRawData(rawData bool) *InsertOneOptionsBuilder {
-	ioo.Opts = append(ioo.Opts, func(ioo *InsertOneOptions) error {
-		ioo.RawData = &rawData
-
-		return nil
-	})
-
-	return ioo
-}
-
 // InsertManyOptions represents arguments that can be used to configure an
 // InsertMany operation.
 //
@@ -74,7 +67,10 @@ type InsertManyOptions struct {
 	BypassDocumentValidation *bool
 	Comment                  interface{}
 	Ordered                  *bool
-	RawData                  *bool
+
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	CustomOptions optionsutil.Options
 }
 
 // InsertManyOptionsBuilder contains options to configure insert operations.
@@ -129,18 +125,6 @@ func (imo *InsertManyOptionsBuilder) SetComment(comment interface{}) *InsertMany
 func (imo *InsertManyOptionsBuilder) SetOrdered(b bool) *InsertManyOptionsBuilder {
 	imo.Opts = append(imo.Opts, func(opts *InsertManyOptions) error {
 		opts.Ordered = &b
-
-		return nil
-	})
-
-	return imo
-}
-
-// SetRawData sets the value for the RawData field. If true, it allows the CRUD operations to access timeseries
-// collections on the bucket-level. This option is only valid for MongoDB versions >= 9.0. The default value is false.
-func (imo *InsertManyOptionsBuilder) SetRawData(rawData bool) *InsertManyOptionsBuilder {
-	imo.Opts = append(imo.Opts, func(opts *InsertManyOptions) error {
-		opts.RawData = &rawData
 
 		return nil
 	})

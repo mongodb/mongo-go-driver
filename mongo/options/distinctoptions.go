@@ -6,6 +6,8 @@
 
 package options
 
+import "go.mongodb.org/mongo-driver/v2/internal/optionsutil"
+
 // DistinctOptions represents arguments that can be used to configure a Distinct
 // operation.
 //
@@ -14,7 +16,10 @@ type DistinctOptions struct {
 	Collation *Collation
 	Comment   interface{}
 	Hint      interface{}
-	RawData   *bool
+
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	CustomOptions optionsutil.Options
 }
 
 // DistinctOptionsBuilder contains options to configure distinct operations. Each
@@ -72,18 +77,6 @@ func (do *DistinctOptionsBuilder) SetComment(comment interface{}) *DistinctOptio
 func (do *DistinctOptionsBuilder) SetHint(hint interface{}) *DistinctOptionsBuilder {
 	do.Opts = append(do.Opts, func(opts *DistinctOptions) error {
 		opts.Hint = hint
-
-		return nil
-	})
-
-	return do
-}
-
-// SetRawData sets the value for the RawData field. If true, it allows the CRUD operations to access timeseries
-// collections on the bucket-level. This option is only valid for MongoDB versions >= 9.0. The default value is false.
-func (do *DistinctOptionsBuilder) SetRawData(rawData bool) *DistinctOptionsBuilder {
-	do.Opts = append(do.Opts, func(opts *DistinctOptions) error {
-		opts.RawData = &rawData
 
 		return nil
 	})

@@ -6,13 +6,18 @@
 
 package options
 
+import "go.mongodb.org/mongo-driver/v2/internal/optionsutil"
+
 // EstimatedDocumentCountOptions represents arguments that can be used to configure
 // an EstimatedDocumentCount operation.
 //
 // See corresponding setter methods for documentation.
 type EstimatedDocumentCountOptions struct {
 	Comment interface{}
-	RawData *bool
+
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	CustomOptions optionsutil.Options
 }
 
 // EstimatedDocumentCountOptionsBuilder contains options to estimate document
@@ -39,18 +44,6 @@ func (eco *EstimatedDocumentCountOptionsBuilder) List() []func(*EstimatedDocumen
 func (eco *EstimatedDocumentCountOptionsBuilder) SetComment(comment interface{}) *EstimatedDocumentCountOptionsBuilder {
 	eco.Opts = append(eco.Opts, func(opts *EstimatedDocumentCountOptions) error {
 		opts.Comment = comment
-
-		return nil
-	})
-
-	return eco
-}
-
-// SetRawData sets the value for the RawData field. If true, it allows the CRUD operations to access timeseries
-// collections on the bucket-level. This option is only valid for MongoDB versions >= 9.0. The default value is false.
-func (eco *EstimatedDocumentCountOptionsBuilder) SetRawData(rawData bool) *EstimatedDocumentCountOptionsBuilder {
-	eco.Opts = append(eco.Opts, func(opts *EstimatedDocumentCountOptions) error {
-		opts.RawData = &rawData
 
 		return nil
 	})

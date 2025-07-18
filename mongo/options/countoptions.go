@@ -6,6 +6,8 @@
 
 package options
 
+import "go.mongodb.org/mongo-driver/v2/internal/optionsutil"
+
 // CountOptions represents arguments that can be used to configure a
 // CountDocuments operation.
 //
@@ -16,7 +18,10 @@ type CountOptions struct {
 	Hint      interface{}
 	Limit     *int64
 	Skip      *int64
-	RawData   *bool
+
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	CustomOptions optionsutil.Options
 }
 
 // CountOptionsBuilder contains options to configure count operations. Each
@@ -94,18 +99,6 @@ func (co *CountOptionsBuilder) SetLimit(i int64) *CountOptionsBuilder {
 func (co *CountOptionsBuilder) SetSkip(i int64) *CountOptionsBuilder {
 	co.Opts = append(co.Opts, func(opts *CountOptions) error {
 		opts.Skip = &i
-
-		return nil
-	})
-
-	return co
-}
-
-// SetRawData sets the value for the RawData field. If true, it allows the CRUD operations to access timeseries
-// collections on the bucket-level. This option is only valid for MongoDB versions >= 9.0. The default value is false.
-func (co *CountOptionsBuilder) SetRawData(rawData bool) *CountOptionsBuilder {
-	co.Opts = append(co.Opts, func(opts *CountOptions) error {
-		opts.RawData = &rawData
 
 		return nil
 	})
