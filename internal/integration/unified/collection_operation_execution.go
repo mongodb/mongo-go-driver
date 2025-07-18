@@ -19,6 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/xoptions"
 )
 
 // This file contains helpers to execute collection operations.
@@ -75,6 +76,11 @@ func executeAggregate(ctx context.Context, operation *operation) (*operationResu
 			pipeline = bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...)
 		case "let":
 			opts.SetLet(val.Document())
+		case "rawData":
+			err = xoptions.SetInternalAggregateOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized aggregate option %q", key)
 		}
@@ -125,6 +131,8 @@ func executeBulkWrite(ctx context.Context, operation *operation) (*operationResu
 			}
 		case "let":
 			opts.SetLet(val.Document())
+		case "rawData":
+			opts.SetRawData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized bulkWrite option %q", key)
 		}
@@ -202,6 +210,11 @@ func executeCountDocuments(ctx context.Context, operation *operation) (*operatio
 			return nil, fmt.Errorf("the maxTimeMS collection option is not supported")
 		case "skip":
 			opts.SetSkip(int64(val.Int32()))
+		case "rawData":
+			err = xoptions.SetInternalCountOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized countDocuments option %q", key)
 		}
@@ -433,6 +446,11 @@ func executeDeleteOne(ctx context.Context, operation *operation) (*operationResu
 			opts.SetHint(hint)
 		case "let":
 			opts.SetLet(val.Document())
+		case "rawData":
+			err = xoptions.SetInternalDeleteOneOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized deleteOne option %q", key)
 		}
@@ -487,6 +505,11 @@ func executeDeleteMany(ctx context.Context, operation *operation) (*operationRes
 			opts.SetHint(hint)
 		case "let":
 			opts.SetLet(val.Document())
+		case "rawData":
+			err = xoptions.SetInternalDeleteManyOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized deleteMany option %q", key)
 		}
@@ -545,6 +568,11 @@ func executeDistinct(ctx context.Context, operation *operation) (*operationResul
 			// ensured an analogue exists, extend "skippedTestDescriptions" to avoid
 			// this error.
 			return nil, fmt.Errorf("the maxTimeMS collection option is not supported")
+		case "rawData":
+			err = xoptions.SetInternalDistinctOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized distinct option %q", key)
 		}
@@ -690,6 +718,11 @@ func executeEstimatedDocumentCount(ctx context.Context, operation *operation) (*
 			// ensured an analogue exists, extend "skippedTestDescriptions" to avoid
 			// this error.
 			return nil, fmt.Errorf("the maxTimeMS collection option is not supported")
+		case "rawData":
+			err = xoptions.SetInternalEstimatedDocumentCountOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized estimatedDocumentCount option %q", key)
 		}
@@ -842,6 +875,8 @@ func executeFindOneAndDelete(ctx context.Context, operation *operation) (*operat
 			opts.SetSort(val.Document())
 		case "let":
 			opts.SetLet(val.Document())
+		case "rawData":
+			opts.SetRawData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized findOneAndDelete option %q", key)
 		}
@@ -924,6 +959,8 @@ func executeFindOneAndReplace(ctx context.Context, operation *operation) (*opera
 			opts.SetSort(val.Document())
 		case "upsert":
 			opts.SetUpsert(val.Boolean())
+		case "rawData":
+			opts.SetRawData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized findOneAndReplace option %q", key)
 		}
@@ -1016,6 +1053,8 @@ func executeFindOneAndUpdate(ctx context.Context, operation *operation) (*operat
 			}
 		case "upsert":
 			opts.SetUpsert(val.Boolean())
+		case "rawData":
+			opts.SetRawData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized findOneAndUpdate option %q", key)
 		}
@@ -1062,6 +1101,11 @@ func executeInsertMany(ctx context.Context, operation *operation) (*operationRes
 			documents = bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...)
 		case "ordered":
 			opts.SetOrdered(val.Boolean())
+		case "rawData":
+			err = xoptions.SetInternalInsertManyOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized insertMany option %q", key)
 		}
@@ -1112,6 +1156,11 @@ func executeInsertOne(ctx context.Context, operation *operation) (*operationResu
 			opts.SetBypassDocumentValidation(val.Boolean())
 		case "comment":
 			opts.SetComment(val)
+		case "rawData":
+			err = xoptions.SetInternalInsertOneOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized insertOne option %q", key)
 		}
@@ -1302,6 +1351,8 @@ func executeReplaceOne(ctx context.Context, operation *operation) (*operationRes
 			opts.SetUpsert(val.Boolean())
 		case "let":
 			opts.SetLet(val.Document())
+		case "rawData":
+			opts.SetRawData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized replaceOne option %q", key)
 		}
@@ -1500,6 +1551,8 @@ func createFindCursor(ctx context.Context, operation *operation) (*cursorResult,
 		case "maxAwaitTimeMS":
 			maxAwaitTimeMS := time.Duration(val.Int32()) * time.Millisecond
 			opts.SetMaxAwaitTime(maxAwaitTimeMS)
+		case "rawData":
+			opts.SetRawData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized find option %q", key)
 		}
