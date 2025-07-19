@@ -212,21 +212,6 @@ var skipTests = map[string][]string{
 	// TODO(GODRIVER-2016): Convert transactions spec tests to unified test
 	// format.
 	"Convert transactions spec tests to unified test format (GODRIVER-2016)": {
-		"TestUnifiedSpec/transactions/tests/unified/error-labels.json/do_not_add_UnknownTransactionCommitResult_label_to_MaxTimeMSExpired_inside_transaction",
-		"TestUnifiedSpec/transactions/tests/unified/error-labels.json/do_not_add_UnknownTransactionCommitResult_label_to_MaxTimeMSExpired_inside_transactions",
-		"TestUnifiedSpec/transactions/tests/unified/error-labels.json/add_UnknownTransactionCommitResult_label_to_MaxTimeMSExpired",
-		"TestUnifiedSpec/transactions/tests/unified/error-labels.json/add_UnknownTransactionCommitResult_label_to_writeConcernError_MaxTimeMSExpired",
-		"TestUnifiedSpec/transactions/tests/unified/retryable-commit.json/commitTransaction_applies_majority_write_concern_on_retries",
-		"TestUnifiedSpec/transactions/tests/unified/run-command.json/run_command_with_secondary_read_preference_in_client_option_and_primary_read_preference_in_transaction_options",
-		"TestUnifiedSpec/transactions/tests/unified/transaction-options.json/transaction_options_inherited_from_client",
-		"TestUnifiedSpec/transactions/tests/unified/transaction-options.json/transaction_options_inherited_from_defaultTransactionOptions",
-		"TestUnifiedSpec/transactions/tests/unified/transaction-options.json/startTransaction_options_override_defaults",
-		"TestUnifiedSpec/transactions/tests/unified/transaction-options.json/defaultTransactionOptions_override_client_options",
-		"TestUnifiedSpec/transactions/tests/unified/transaction-options.json/readConcern_local_in_defaultTransactionOptions",
-		"TestUnifiedSpec/transactions/tests/unified/transaction-options.json/readPreference_inherited_from_client",
-		"TestUnifiedSpec/transactions/tests/unified/transaction-options.json/readPreference_inherited_from_defaultTransactionOptions",
-		"TestUnifiedSpec/transactions/tests/unified/transaction-options.json/startTransaction_overrides_readPreference",
-		"TestUnifiedSpec/transactions/tests/unified/retryable-commit.json/commitTransaction_fails_after_Interrupted",
 		"TestUnifiedSpec/transactions-convenient-api/tests/unified/callback-retry.json/callback_is_not_retried_after_non-transient_error_(DuplicateKeyError)",
 		"TestUnifiedSpec/transactions-convenient-api/tests/unified/callback-retry.json/callback_succeeds_after_multiple_connection_errors",
 		"TestUnifiedSpec/transactions-convenient-api/tests/unified/commit-retry.json/commitTransaction_retry_only_overwrites_write_concern_w_option",
