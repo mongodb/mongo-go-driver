@@ -8,6 +8,8 @@ package options
 
 import (
 	"time"
+
+	"go.mongodb.org/mongo-driver/v2/internal/optionsutil"
 )
 
 // FindOptions represents arguments that can be used to configure a Find
@@ -35,7 +37,10 @@ type FindOptions struct {
 	Let             interface{}
 	Limit           *int64
 	NoCursorTimeout *bool
-	RawData         *bool
+
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	CustomOptions optionsutil.Options
 }
 
 // FindOptionsBuilder represents functional options that configure an Findopts.
@@ -269,18 +274,6 @@ func (f *FindOptionsBuilder) SetSort(sort interface{}) *FindOptionsBuilder {
 	return f
 }
 
-// SetRawData sets the value for the RawData field. If true, it allows the CRUD operations to access timeseries
-// collections on the bucket-level. This option is only valid for MongoDB versions >= 9.0. The default value is false.
-func (f *FindOptionsBuilder) SetRawData(rawData bool) *FindOptionsBuilder {
-	f.Opts = append(f.Opts, func(opts *FindOptions) error {
-		opts.RawData = &rawData
-
-		return nil
-	})
-
-	return f
-}
-
 // FindOneOptions represents arguments that can be used to configure a FindOne
 // operation.
 //
@@ -298,7 +291,10 @@ type FindOneOptions struct {
 	ShowRecordID        *bool
 	Skip                *int64
 	Sort                interface{}
-	RawData             *bool
+
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	CustomOptions optionsutil.Options
 }
 
 // FindOneOptionsBuilder represents functional options that configure an
@@ -450,17 +446,6 @@ func (f *FindOneOptionsBuilder) SetSort(sort interface{}) *FindOneOptionsBuilder
 	return f
 }
 
-// SetRawData sets the value for the RawData field. If true, it allows the CRUD operations to access timeseries
-// collections on the bucket-level. This option is only valid for MongoDB versions >= 9.0. The default value is false.
-func (f *FindOneOptionsBuilder) SetRawData(rawData bool) *FindOneOptionsBuilder {
-	f.Opts = append(f.Opts, func(opts *FindOneOptions) error {
-		opts.RawData = &rawData
-		return nil
-	})
-
-	return f
-}
-
 // FindOneAndReplaceOptions represents arguments that can be used to configure a
 // FindOneAndReplace instance.
 //
@@ -475,7 +460,10 @@ type FindOneAndReplaceOptions struct {
 	Upsert                   *bool
 	Hint                     interface{}
 	Let                      interface{}
-	RawData                  *bool
+
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	CustomOptions optionsutil.Options
 }
 
 // FindOneAndReplaceOptionsBuilder contains options to perform a findAndModify
@@ -622,18 +610,6 @@ func (f *FindOneAndReplaceOptionsBuilder) SetLet(let interface{}) *FindOneAndRep
 	return f
 }
 
-// SetRawData sets the value for the RawData field. If true, it allows the CRUD operations to access timeseries
-// collections on the bucket-level. This option is only valid for MongoDB versions >= 9.0. The default value is false.
-func (f *FindOneAndReplaceOptionsBuilder) SetRawData(rawData bool) *FindOneAndReplaceOptionsBuilder {
-	f.Opts = append(f.Opts, func(opts *FindOneAndReplaceOptions) error {
-		opts.RawData = &rawData
-
-		return nil
-	})
-
-	return f
-}
-
 // FindOneAndUpdateOptions represents arguments that can be used to configure a
 // FindOneAndUpdate options.
 //
@@ -649,7 +625,10 @@ type FindOneAndUpdateOptions struct {
 	Upsert                   *bool
 	Hint                     interface{}
 	Let                      interface{}
-	RawData                  *bool
+
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	CustomOptions optionsutil.Options
 }
 
 // FindOneAndUpdateOptionsBuilder contains options to configure a
@@ -810,18 +789,6 @@ func (f *FindOneAndUpdateOptionsBuilder) SetLet(let interface{}) *FindOneAndUpda
 	return f
 }
 
-// SetRawData sets the value for the RawData field. If true, it allows the CRUD operations to access timeseries
-// collections on the bucket-level. This option is only valid for MongoDB versions >= 9.0. The default value is false.
-func (f *FindOneAndUpdateOptionsBuilder) SetRawData(rawData bool) *FindOneAndUpdateOptionsBuilder {
-	f.Opts = append(f.Opts, func(opts *FindOneAndUpdateOptions) error {
-		opts.RawData = &rawData
-
-		return nil
-	})
-
-	return f
-}
-
 // FindOneAndDeleteOptions represents arguments that can be used to configure a
 // FindOneAndDelete operation.
 //
@@ -833,7 +800,10 @@ type FindOneAndDeleteOptions struct {
 	Sort       interface{}
 	Hint       interface{}
 	Let        interface{}
-	RawData    *bool
+
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	CustomOptions optionsutil.Options
 }
 
 // FindOneAndDeleteOptionsBuilder contains options to configure delete
@@ -932,18 +902,6 @@ func (f *FindOneAndDeleteOptionsBuilder) SetHint(hint interface{}) *FindOneAndDe
 func (f *FindOneAndDeleteOptionsBuilder) SetLet(let interface{}) *FindOneAndDeleteOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndDeleteOptions) error {
 		opts.Let = let
-
-		return nil
-	})
-
-	return f
-}
-
-// SetRawData sets the value for the RawData field. If true, it allows the CRUD operations to access timeseries
-// collections on the bucket-level. This option is only valid for MongoDB versions >= 9.0. The default value is false.
-func (f *FindOneAndDeleteOptionsBuilder) SetRawData(rawData bool) *FindOneAndDeleteOptionsBuilder {
-	f.Opts = append(f.Opts, func(opts *FindOneAndDeleteOptions) error {
-		opts.RawData = &rawData
 
 		return nil
 	})

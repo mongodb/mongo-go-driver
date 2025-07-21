@@ -132,7 +132,10 @@ func executeBulkWrite(ctx context.Context, operation *operation) (*operationResu
 		case "let":
 			opts.SetLet(val.Document())
 		case "rawData":
-			opts.SetRawData(val.Boolean())
+			err = xoptions.SetInternalBulkWriteOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized bulkWrite option %q", key)
 		}
@@ -876,7 +879,10 @@ func executeFindOneAndDelete(ctx context.Context, operation *operation) (*operat
 		case "let":
 			opts.SetLet(val.Document())
 		case "rawData":
-			opts.SetRawData(val.Boolean())
+			err = xoptions.SetInternalFindOneAndDeleteOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized findOneAndDelete option %q", key)
 		}
@@ -960,7 +966,10 @@ func executeFindOneAndReplace(ctx context.Context, operation *operation) (*opera
 		case "upsert":
 			opts.SetUpsert(val.Boolean())
 		case "rawData":
-			opts.SetRawData(val.Boolean())
+			err = xoptions.SetInternalFindOneAndReplaceOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized findOneAndReplace option %q", key)
 		}
@@ -1054,7 +1063,10 @@ func executeFindOneAndUpdate(ctx context.Context, operation *operation) (*operat
 		case "upsert":
 			opts.SetUpsert(val.Boolean())
 		case "rawData":
-			opts.SetRawData(val.Boolean())
+			err = xoptions.SetInternalFindOneAndUpdateOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized findOneAndUpdate option %q", key)
 		}
@@ -1352,7 +1364,10 @@ func executeReplaceOne(ctx context.Context, operation *operation) (*operationRes
 		case "let":
 			opts.SetLet(val.Document())
 		case "rawData":
-			opts.SetRawData(val.Boolean())
+			err = xoptions.SetInternalReplaceOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized replaceOne option %q", key)
 		}
@@ -1552,7 +1567,10 @@ func createFindCursor(ctx context.Context, operation *operation) (*cursorResult,
 			maxAwaitTimeMS := time.Duration(val.Int32()) * time.Millisecond
 			opts.SetMaxAwaitTime(maxAwaitTimeMS)
 		case "rawData":
-			opts.SetRawData(val.Boolean())
+			err = xoptions.SetInternalFindOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized find option %q", key)
 		}

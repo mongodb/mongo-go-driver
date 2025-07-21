@@ -6,6 +6,8 @@
 
 package options
 
+import "go.mongodb.org/mongo-driver/v2/internal/optionsutil"
+
 // UpdateOneOptions represents arguments that can be used to configure UpdateOne
 // operations.
 //
@@ -19,7 +21,10 @@ type UpdateOneOptions struct {
 	Upsert                   *bool
 	Let                      interface{}
 	Sort                     interface{}
-	RawData                  *bool
+
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	CustomOptions optionsutil.Options
 }
 
 // UpdateOneOptionsBuilder contains options to configure UpdateOne operations.
@@ -153,18 +158,6 @@ func (uo *UpdateOneOptionsBuilder) SetSort(s interface{}) *UpdateOneOptionsBuild
 	return uo
 }
 
-// SetRawData sets the value for the RawData field. If true, it allows the CRUD operations to access timeseries
-// collections on the bucket-level. This option is only valid for MongoDB versions >= 9.0. The default value is false.
-func (uo *UpdateOneOptionsBuilder) SetRawData(rawData bool) *UpdateOneOptionsBuilder {
-	uo.Opts = append(uo.Opts, func(opts *UpdateOneOptions) error {
-		opts.RawData = &rawData
-
-		return nil
-	})
-
-	return uo
-}
-
 // UpdateManyOptions represents arguments that can be used to configure UpdateMany
 // operations.
 //
@@ -177,7 +170,10 @@ type UpdateManyOptions struct {
 	Hint                     interface{}
 	Upsert                   *bool
 	Let                      interface{}
-	RawData                  *bool
+
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	CustomOptions optionsutil.Options
 }
 
 // UpdateManyOptionsBuilder contains options to configure UpdateMany operations.
@@ -289,18 +285,6 @@ func (uo *UpdateManyOptionsBuilder) SetUpsert(b bool) *UpdateManyOptionsBuilder 
 func (uo *UpdateManyOptionsBuilder) SetLet(l interface{}) *UpdateManyOptionsBuilder {
 	uo.Opts = append(uo.Opts, func(opts *UpdateManyOptions) error {
 		opts.Let = l
-
-		return nil
-	})
-
-	return uo
-}
-
-// SetRawData sets the value for the RawData field. If true, it allows the CRUD operations to access timeseries
-// collections on the bucket-level. This option is only valid for MongoDB versions >= 9.0. The default value is false.
-func (uo *UpdateManyOptionsBuilder) SetRawData(rawData bool) *UpdateManyOptionsBuilder {
-	uo.Opts = append(uo.Opts, func(opts *UpdateManyOptions) error {
-		opts.RawData = &rawData
 
 		return nil
 	})

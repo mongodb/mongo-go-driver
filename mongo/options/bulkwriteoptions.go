@@ -6,6 +6,8 @@
 
 package options
 
+import "go.mongodb.org/mongo-driver/v2/internal/optionsutil"
+
 // DefaultOrdered is the default value for the Ordered option in BulkWriteOptions.
 var DefaultOrdered = true
 
@@ -18,7 +20,10 @@ type BulkWriteOptions struct {
 	Comment                  interface{}
 	Ordered                  *bool
 	Let                      interface{}
-	RawData                  *bool
+
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	CustomOptions optionsutil.Options
 }
 
 // BulkWriteOptionsBuilder contains options to configure bulk write operations.
@@ -87,18 +92,6 @@ func (b *BulkWriteOptionsBuilder) SetBypassDocumentValidation(bypass bool) *Bulk
 func (b *BulkWriteOptionsBuilder) SetLet(let interface{}) *BulkWriteOptionsBuilder {
 	b.Opts = append(b.Opts, func(opts *BulkWriteOptions) error {
 		opts.Let = &let
-
-		return nil
-	})
-
-	return b
-}
-
-// SetRawData sets the value for the RawData field. If true, it allows the CRUD operations to access timeseries
-// collections on the bucket-level. This option is only valid for MongoDB versions >= 9.0. The default value is false.
-func (b *BulkWriteOptionsBuilder) SetRawData(rawData bool) *BulkWriteOptionsBuilder {
-	b.Opts = append(b.Opts, func(opts *BulkWriteOptions) error {
-		opts.RawData = &rawData
 
 		return nil
 	})

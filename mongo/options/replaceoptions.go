@@ -6,6 +6,8 @@
 
 package options
 
+import "go.mongodb.org/mongo-driver/v2/internal/optionsutil"
+
 // ReplaceOptions represents arguments that can be used to configure a ReplaceOne
 // operation.
 //
@@ -18,7 +20,10 @@ type ReplaceOptions struct {
 	Upsert                   *bool
 	Let                      interface{}
 	Sort                     interface{}
-	RawData                  *bool
+
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	CustomOptions optionsutil.Options
 }
 
 // ReplaceOptionsBuilder contains options to configure replace operations. Each
@@ -131,18 +136,6 @@ func (ro *ReplaceOptionsBuilder) SetLet(l interface{}) *ReplaceOptionsBuilder {
 func (ro *ReplaceOptionsBuilder) SetSort(s interface{}) *ReplaceOptionsBuilder {
 	ro.Opts = append(ro.Opts, func(opts *ReplaceOptions) error {
 		opts.Sort = s
-
-		return nil
-	})
-
-	return ro
-}
-
-// SetRawData sets the value for the RawData field. If true, it allows the CRUD operations to access timeseries
-// collections on the bucket-level. This option is only valid for MongoDB versions >= 9.0. The default value is false.
-func (ro *ReplaceOptionsBuilder) SetRawData(rawData bool) *ReplaceOptionsBuilder {
-	ro.Opts = append(ro.Opts, func(opts *ReplaceOptions) error {
-		opts.RawData = &rawData
 
 		return nil
 	})
