@@ -77,15 +77,16 @@ type StableRegion struct {
 }
 
 type EnergyStats struct {
-	Benchmark    string
-	Measurement  string
-	PatchVersion string
-	StableRegion StableRegion
-	PatchValues  []float64
-	E            float64
-	T            float64
-	H            float64
-	Z            float64
+	Benchmark     string
+	Measurement   string
+	PatchVersion  string
+	StableRegion  StableRegion
+	PatchValues   []float64
+	PercentChange float64
+	E             float64
+	T             float64
+	H             float64
+	Z             float64
 }
 
 func main() {
@@ -210,15 +211,16 @@ func getEnergyStatsForOneBenchmark(rd RawData, coll *mongo.Collection) ([]*Energ
 		}
 		e, t, h := GetEnergyStatistics(mat.NewDense(len(stableRegion.Values), 1, stableRegion.Values), mat.NewDense(1, 1, patchVal))
 		es := EnergyStats{
-			Benchmark:    testname,
-			Measurement:  measurement,
-			PatchVersion: rd.Info.Version,
-			StableRegion: *stableRegion,
-			PatchValues:  patchVal,
-			E:            e,
-			T:            t,
-			H:            h,
-			Z:            GetZScore(patchVal[0], stableRegion.Mean, stableRegion.Std),
+			Benchmark:     testname,
+			Measurement:   measurement,
+			PatchVersion:  rd.Info.Version,
+			StableRegion:  *stableRegion,
+			PatchValues:   patchVal,
+			PercentChange: GetPercentageChange(patchVal[0], stableRegion.Mean),
+			E:             e,
+			T:             t,
+			H:             h,
+			Z:             GetZScore(patchVal[0], stableRegion.Mean, stableRegion.Std),
 		}
 		energyStats = append(energyStats, &es)
 	}
@@ -245,12 +247,12 @@ func generatePRComment(energyStats []*EnergyStats, version string) string {
 
 	comment.WriteString("# 👋GoDriver Performance\n")
 	fmt.Fprintf(&comment, "The following benchmark tests for version %s had statistically significant changes (i.e., |z-score| > 1.96):\n", version)
-	comment.WriteString("| Benchmark | Measurement | H-Score | Z-Score | Stable Reg Avg,Med,Std | Patch Value |\n| --- | --- | --- | --- | --- | --- |\n")
+	comment.WriteString("| Benchmark | Measurement | H-Score | Z-Score | % Change | Stable Reg Avg,Med,Std | Patch Value |\n| --- | --- | --- | --- | --- | --- | --- |\n")
 	for _, es := range energyStats {
 		testCount += 1
 		// if es.H > 0.6 {
 		if es.Z > 1.96 || es.Z < -1.96 {
-			fmt.Fprintf(&comment, "| %s | %s | %.4f | %.4f | %.4f,%.4f,%.4f | %.4f |\n", es.Benchmark, es.Measurement, es.H, es.Z, es.StableRegion.Mean, es.StableRegion.Median, es.StableRegion.Std, es.PatchValues[0])
+			fmt.Fprintf(&comment, "| %s | %s | %.4f | %.4f | %.4f | %.4f,%.4f,%.4f | %.4f |\n", es.Benchmark, es.Measurement, es.H, es.Z, es.PercentChange, es.StableRegion.Mean, es.StableRegion.Median, es.StableRegion.Std, es.PatchValues[0])
 		}
 	}
 

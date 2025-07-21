@@ -72,3 +72,10 @@ func GetZScore(x, u, o float64) float64 {
 	}
 	return (x - u) / o
 }
+
+func GetPercentageChange(x, u float64) float64 {
+	if u == 0 {
+		return 0
+	}
+	return ((x - u ) / u) * 100
+}
