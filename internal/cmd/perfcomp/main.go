@@ -85,6 +85,7 @@ type EnergyStats struct {
 	E            float64
 	T            float64
 	H            float64
+	Z            float64
 }
 
 func main() {
@@ -217,6 +218,7 @@ func getEnergyStatsForOneBenchmark(rd RawData, coll *mongo.Collection) ([]*Energ
 			E:            e,
 			T:            t,
 			H:            h,
+			Z:            GetZScore(patchVal[0], stableRegion.Mean, stableRegion.Std),
 		}
 		energyStats = append(energyStats, &es)
 	}
@@ -242,12 +244,13 @@ func generatePRComment(energyStats []*EnergyStats, version string) string {
 	var testCount int64
 
 	comment.WriteString("# 👋GoDriver Performance\n")
-	fmt.Fprintf(&comment, "The following benchmark tests for version %s had statistically significant changes (i.e., h-score > 0.6):\n", version)
-	comment.WriteString("| Benchmark | Measurement | H-Score | Stable Reg Avg,Med,Std | Patch Value |\n| --- | --- | --- | --- | --- |\n")
+	fmt.Fprintf(&comment, "The following benchmark tests for version %s had statistically significant changes (i.e., |z-score| > 1.96):\n", version)
+	comment.WriteString("| Benchmark | Measurement | H-Score | Z-Score | Stable Reg Avg,Med,Std | Patch Value |\n| --- | --- | --- | --- | --- | --- |\n")
 	for _, es := range energyStats {
 		testCount += 1
-		if es.H > 0.6 {
-			fmt.Fprintf(&comment, "| %s | %s | %.4f | %.4f,%.4f,%.4f | %.4f |\n", es.Benchmark, es.Measurement, es.H, es.StableRegion.Mean, es.StableRegion.Median, es.StableRegion.Std, es.PatchValues[0])
+		// if es.H > 0.6 {
+		if es.Z > 1.96 || es.Z < -1.96 {
+			fmt.Fprintf(&comment, "| %s | %s | %.4f | %.4f | %.4f,%.4f,%.4f | %.4f |\n", es.Benchmark, es.Measurement, es.H, es.Z, es.StableRegion.Mean, es.StableRegion.Median, es.StableRegion.Std, es.PatchValues[0])
 		}
 	}
 

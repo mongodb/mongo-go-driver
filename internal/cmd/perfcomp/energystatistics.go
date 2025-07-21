@@ -65,3 +65,10 @@ func getDistance(x, y *mat.Dense) float64 {
 	}
 	return sum
 }
+
+func GetZScore(x, u, o float64) float64 {
+	if u == 0 || o == 0 {
+		return 0
+	}
+	return (x - u) / o
+}
