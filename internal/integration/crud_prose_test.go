@@ -903,6 +903,10 @@ func TestClientBulkWriteProse(t *testing.T) {
 			}}
 			_, err := mt.Client.BulkWrite(context.Background(), writes)
 			require.EqualError(mt, err, driver.ErrDocumentTooLarge.Error())
+			var cbwe mongo.ClientBulkWriteException
+			if errors.As(err, &cbwe) {
+				assert.Nil(mt, cbwe.PartialResult, "expected nil PartialResult in ClientBulkWriteException")
+			}
 		})
 		mt.Run("Case 2: namespace too large", func(mt *mtest.T) {
 			writes := []mongo.ClientBulkWrite{{
@@ -914,6 +918,10 @@ func TestClientBulkWriteProse(t *testing.T) {
 			}}
 			_, err := mt.Client.BulkWrite(context.Background(), writes)
 			require.EqualError(mt, err, driver.ErrDocumentTooLarge.Error())
+			var cbwe mongo.ClientBulkWriteException
+			if errors.As(err, &cbwe) {
+				assert.Nil(mt, cbwe.PartialResult, "expected nil PartialResult in ClientBulkWriteException")
+			}
 		})
 	})
 
@@ -943,6 +951,10 @@ func TestClientBulkWriteProse(t *testing.T) {
 		}}
 		_, err := mt.Client.BulkWrite(context.Background(), writes)
 		require.ErrorContains(mt, err, "bulkWrite does not currently support automatic encryption")
+		var cbwe mongo.ClientBulkWriteException
+		if errors.As(err, &cbwe) {
+			assert.Nil(mt, cbwe.PartialResult, "expected nil PartialResult in ClientBulkWriteException")
+		}
 	})
 
 	mt.Run("15. MongoClient.bulkWrite with unacknowledged write concern uses w:0 for all batches", func(mt *mtest.T) {
