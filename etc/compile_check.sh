@@ -6,7 +6,7 @@ set -x # show all commands being run
 
 COMPILE_CHECK_DIR="internal/cmd/compilecheck"
 ARCHITECTURES=("386" "arm" "arm64" "ppc64le" "s390x")
-BUILD_CMD="go build -buildvcs=false"
+BUILD_CMD="${GC} build -buildvcs=false"
 
 # compile_check will attempt to build the internal/test/compilecheck project
 # using the provided Go version. This is to simulate an end-to-end use case.

@@ -1,6 +1,4 @@
-go 1.23.0
-
-toolchain go1.23.10
+go 1.23
 
 use (
 	.
@@ -10,6 +8,5 @@ use (
 	./internal/cmd/benchmark
 	./internal/cmd/compilecheck
 	./internal/cmd/faas/awslambda/mongodb
-	./internal/cmd/perfcomp
 	./internal/test/goleak
 )
