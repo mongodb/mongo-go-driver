@@ -1,4 +1,6 @@
-go 1.23
+go 1.23.0
+
+toolchain go1.24.4
 
 use (
 	.
@@ -7,7 +9,7 @@ use (
 	./examples/_logger/zerolog
 	./internal/cmd/benchmark
 	./internal/cmd/compilecheck
-	./internal/cmd/perfcomp
 	./internal/cmd/faas/awslambda/mongodb
+	./internal/cmd/perfcomp
 	./internal/test/goleak
 )
