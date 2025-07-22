@@ -1,6 +1,8 @@
 module go.mongodb.go/mongo-driver/v2/internal/cmd/perfcomp
 
-go 1.23
+go 1.23.0
+
+toolchain go1.23.10
 
 replace go.mongodb.org/mongo-driver/v2 => ../../../
 
