@@ -85,6 +85,19 @@ tasks:
 
   update-notices: bash etc/generate_notices.pl > THIRD-PARTY-NOTICES
 
+  generate-sbom:
+    desc: Generate a CycloneDX SBOM
+    summary: |
+      The cyclonedx-gomod 'mod' subcommand is used to generate a CycloneDX SBOM with GOWORK=off to exclude example/test code.
+      The SBOM includes the aggregate of modules required by packages in the mongo-go-driver library, excluding examples, tests and test packages.
+      Task will run only when go.mod is newer than sbom.cdx.json.
+      TODO: Add libmongocrypt as an optional component via a merge once the libmongocrypt SBOM is updated with newer automation
+    method: timestamp
+    sources: [go.mod]
+    generates: [sbom.cdx.json]
+    cmd: |
+      GOWORK=off go run github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@v1.9.0 mod -type library -licenses -assert-licenses -output-version 1.5 -json -output sbom.cdx.json .
+  
   ### Local testing tasks. ###
   test: go test ${BUILD_TAGS} -timeout {{.TEST_TIMEOUT}}s -p 1 ./...
 
