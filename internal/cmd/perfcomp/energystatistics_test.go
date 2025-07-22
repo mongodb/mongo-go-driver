@@ -15,13 +15,13 @@ import (
 
 func createTestVectors(start1 int, stop1 int, step1 int, start2 int, stop2 int, step2 int) (*mat.Dense, *mat.Dense) {
 	xData := []float64{}
+	yData := []float64{}
+
 	i := start1
 	for i < stop1 {
 		xData = append(xData, float64(i))
 		i += step1
 	}
-
-	yData := []float64{}
 	j := start2
 	for j < stop2 {
 		yData = append(yData, float64(j))

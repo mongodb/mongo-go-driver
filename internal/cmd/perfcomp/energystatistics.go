@@ -66,6 +66,7 @@ func getDistance(x, y *mat.Dense) float64 {
 	return sum
 }
 
+// Get Z score for result x, compared to mean u and st dev o.
 func GetZScore(x, u, o float64) float64 {
 	if u == 0 || o == 0 {
 		return 0
@@ -73,6 +74,7 @@ func GetZScore(x, u, o float64) float64 {
 	return (x - u) / o
 }
 
+// Get percentage change for result x compared to mean u.
 func GetPercentageChange(x, u float64) float64 {
 	if u == 0 {
 		return 0

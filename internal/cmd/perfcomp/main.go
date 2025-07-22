@@ -77,16 +77,16 @@ type StableRegion struct {
 }
 
 type EnergyStats struct {
-	Benchmark     string
-	Measurement   string
-	PatchVersion  string
-	StableRegion  StableRegion
-	PatchValues   []float64
-	PercentChange float64
-	E             float64
-	T             float64
-	H             float64
-	Z             float64
+	Benchmark    string
+	Measurement  string
+	PatchVersion string
+	StableRegion StableRegion
+	PatchValues  []float64
+	PChange      float64
+	E            float64
+	T            float64
+	H            float64
+	Z            float64
 }
 
 func main() {
@@ -94,6 +94,11 @@ func main() {
 	uri := os.Getenv("perf_uri_private_endpoint")
 	if uri == "" {
 		log.Panic("perf_uri_private_endpoint env variable is not set")
+	}
+
+	version := os.Getenv("VERSION_ID")
+	if version == "" {
+		log.Panic("could not retrieve version")
 	}
 
 	client, err1 := mongo.Connect(options.Client().ApplyURI(uri))
@@ -110,10 +115,6 @@ func main() {
 	fmt.Println("Successfully connected to MongoDB Analytics node.")
 
 	db := client.Database("expanded_metrics")
-	version := os.Getenv("VERSION_ID")
-	if version == "" {
-		log.Panic("could not retrieve version")
-	}
 
 	// Get raw data, most recent stable region, and calculate energy stats
 	patchRawData, err3 := findRawData(version, db.Collection("raw_results"))
@@ -123,7 +124,7 @@ func main() {
 
 	allEnergyStats, err4 := getEnergyStatsForAllBenchMarks(patchRawData, db.Collection("stable_regions"))
 	if err4 != nil {
-		log.Panicf("Error getting raw data: %v", err4)
+		log.Panicf("Error getting energy statistics: %v", err4)
 	}
 	fmt.Println(generatePRComment(allEnergyStats, version))
 
@@ -132,7 +133,6 @@ func main() {
 	if err0 != nil {
 		log.Panicf("Failed to disconnect client: %v", err0)
 	}
-
 }
 
 func findRawData(version string, coll *mongo.Collection) ([]RawData, error) {
@@ -172,6 +172,7 @@ func findRawData(version string, coll *mongo.Collection) ([]RawData, error) {
 	return rawData, nil
 }
 
+// Find the most recent stable region of the mainline version for a specific test/measurement
 func findLastStableRegion(testname string, measurement string, coll *mongo.Collection) (*StableRegion, error) {
 	filter := bson.D{
 		{"time_series_info.project", "mongo-go-driver"},
@@ -193,7 +194,6 @@ func findLastStableRegion(testname string, measurement string, coll *mongo.Colle
 	if err != nil {
 		return nil, err
 	}
-
 	return sr, nil
 }
 
@@ -205,22 +205,27 @@ func getEnergyStatsForOneBenchmark(rd RawData, coll *mongo.Collection) ([]*Energ
 	for i := range rd.Rollups.Stats {
 		measurement := rd.Rollups.Stats[i].Name
 		patchVal := []float64{rd.Rollups.Stats[i].Val}
+
 		stableRegion, err := findLastStableRegion(testname, measurement, coll)
 		if err != nil {
 			return nil, err
 		}
+
+		pChange := GetPercentageChange(patchVal[0], stableRegion.Mean)
 		e, t, h := GetEnergyStatistics(mat.NewDense(len(stableRegion.Values), 1, stableRegion.Values), mat.NewDense(1, 1, patchVal))
+		z := GetZScore(patchVal[0], stableRegion.Mean, stableRegion.Std)
+
 		es := EnergyStats{
-			Benchmark:     testname,
-			Measurement:   measurement,
-			PatchVersion:  rd.Info.Version,
-			StableRegion:  *stableRegion,
-			PatchValues:   patchVal,
-			PercentChange: GetPercentageChange(patchVal[0], stableRegion.Mean),
-			E:             e,
-			T:             t,
-			H:             h,
-			Z:             GetZScore(patchVal[0], stableRegion.Mean, stableRegion.Std),
+			Benchmark:    testname,
+			Measurement:  measurement,
+			PatchVersion: rd.Info.Version,
+			StableRegion: *stableRegion,
+			PatchValues:  patchVal,
+			PChange:      pChange,
+			E:            e,
+			T:            t,
+			H:            h,
+			Z:            z,
 		}
 		energyStats = append(energyStats, &es)
 	}
@@ -241,25 +246,25 @@ func getEnergyStatsForAllBenchMarks(patchRawData []RawData, coll *mongo.Collecti
 }
 
 func generatePRComment(energyStats []*EnergyStats, version string) string {
-
 	var comment strings.Builder
-	var testCount int64
-
 	comment.WriteString("# 👋GoDriver Performance\n")
 	fmt.Fprintf(&comment, "The following benchmark tests for version %s had statistically significant changes (i.e., |z-score| > 1.96):\n", version)
-	comment.WriteString("| Benchmark | Measurement | H-Score | Z-Score | % Change | Stable Reg Avg,Med,Std | Patch Value |\n| --- | --- | --- | --- | --- | --- | --- |\n")
+	comment.WriteString("| Benchmark | Measurement | H-Score | Z-Score | % Change | Stable Reg | Patch Value |\n| --- | --- | --- | --- | --- | --- | --- |\n")
+
+	var testCount int64
 	for _, es := range energyStats {
-		testCount += 1
-		// if es.H > 0.6 {
 		if es.Z > 1.96 || es.Z < -1.96 {
-			fmt.Fprintf(&comment, "| %s | %s | %.4f | %.4f | %.4f | %.4f,%.4f,%.4f | %.4f |\n", es.Benchmark, es.Measurement, es.H, es.Z, es.PercentChange, es.StableRegion.Mean, es.StableRegion.Median, es.StableRegion.Std, es.PatchValues[0])
+			testCount += 1
+			fmt.Fprintf(&comment, "| %s | %s | %.4f | %.4f | %.4f | Avg: %.4f, Stdev: %.4f | %.4f |\n", es.Benchmark, es.Measurement, es.H, es.Z, es.PChange, es.StableRegion.Mean, es.StableRegion.Std, es.PatchValues[0])
 		}
 	}
 
 	if testCount == 0 {
+		comment.Reset()
+		comment.WriteString("# 👋GoDriver Performance\n")
 		comment.WriteString("There were no significant changes to the performance to report.")
 	}
-	comment.WriteString("\n*For a comprehensive view of all microbenchmark results for this PR's commit, please check out the Evergreen perf task for this patch.*")
 
+	comment.WriteString("\n*For a comprehensive view of all microbenchmark results for this PR's commit, please check out the Evergreen perf task for this patch.*")
 	return comment.String()
 }
