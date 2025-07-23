@@ -16,7 +16,7 @@ import (
 	"sync"
 )
 
-type valueReaderByteSrc interface {
+type byteSrc interface {
 	io.ByteReader
 
 	readExact(p []byte) (int, error)
@@ -72,7 +72,7 @@ var vrPool = sync.Pool{
 
 // valueReader is for reading BSON values.
 type valueReader struct {
-	src    valueReaderByteSrc
+	src    byteSrc
 	offset int64
 
 	stack []vrState
@@ -278,7 +278,7 @@ func peekNextValueSize(vr *valueReader) (int32, error) {
 
 // readBytes tries to grab the next n bytes zero-allocation using peek+discard.
 // If peek fails (e.g. bufio buffer full), it falls back to io.ReadFull.
-func readBytes(src valueReaderByteSrc, n int) ([]byte, error) {
+func readBytes(src byteSrc, n int) ([]byte, error) {
 	if src.streamable() {
 		data := make([]byte, n)
 		if _, err := src.readExact(data); err != nil {

@@ -22,7 +22,7 @@ type streamingByteSrc struct {
 	offset int64 // offset is the current read position in the buffer
 }
 
-var _ valueReaderByteSrc = (*streamingByteSrc)(nil)
+var _ byteSrc = (*streamingByteSrc)(nil)
 
 // Read reads up to len(p) bytes from the underlying bufio.Reader, advancing
 // the offset by the number of bytes read.

@@ -19,7 +19,7 @@ type bufferedByteSrc struct {
 	offset int64  // Current read index into buf
 }
 
-var _ valueReaderByteSrc = (*bufferedByteSrc)(nil)
+var _ byteSrc = (*bufferedByteSrc)(nil)
 
 // Read reads up to len(p) bytes from the in-memory buffer, advancing the offset
 // by the number of bytes read.
