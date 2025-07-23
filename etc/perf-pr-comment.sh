@@ -5,5 +5,5 @@
 set -eux
 
 pushd ./internal/cmd/perfcomp >/dev/null || exist
-GOWORK=off go run .
+GOWORK=off go run . ${VERSION_ID}
 popd >/dev/null

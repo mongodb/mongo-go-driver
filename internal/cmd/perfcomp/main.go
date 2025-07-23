@@ -97,9 +97,9 @@ func main() {
 		log.Panic("PERF_URI_PRIVATE_ENDPOINT env variable is not set")
 	}
 
-	version := os.Getenv("VERSION_ID")
+	version := os.Args[len(os.Args)-1]
 	if version == "" {
-		log.Panic("VERSION_ID env variable is not set")
+		log.Panic("could not get VERSION_ID")
 	}
 
 	client, err1 := mongo.Connect(options.Client().ApplyURI(uri))
