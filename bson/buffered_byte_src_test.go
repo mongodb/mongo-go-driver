@@ -68,7 +68,7 @@ func TestBufferedvalueReader_discard(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			reader := &bufferedValueReader{buf: tt.buf, offset: 0}
+			reader := &bufferedByteSrc{buf: tt.buf, offset: 0}
 			n, err := reader.discard(tt.n)
 			if tt.wantErr != nil {
 				assert.ErrorIs(t, err, tt.wantErr, "Expected error %v, got %v", tt.wantErr, err)
@@ -138,7 +138,7 @@ func TestBufferedvalueReader_peek(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			reader := &bufferedValueReader{buf: tt.buf, offset: tt.offset}
+			reader := &bufferedByteSrc{buf: tt.buf, offset: tt.offset}
 			n, err := reader.peek(tt.n)
 			if tt.wantErr != nil {
 				assert.ErrorIs(t, err, tt.wantErr, "Expected error %v, got %v", tt.wantErr, err)

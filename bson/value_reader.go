@@ -127,9 +127,9 @@ func newBufferedValueReader(t Type, b []byte) ValueReader {
 func newBufferedDocumentReader(b []byte) *valueReader {
 	vr := vrPool.Get().(*valueReader)
 
-	vr.src = &bufferedValueReader{}
-	vr.src.(*bufferedValueReader).buf = b
-	vr.src.(*bufferedValueReader).offset = 0
+	vr.src = &bufferedByteSrc{}
+	vr.src.(*bufferedByteSrc).buf = b
+	vr.src.(*bufferedByteSrc).offset = 0
 
 	// Reset parse state.
 	vr.frame = 0

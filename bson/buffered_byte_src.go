@@ -11,19 +11,19 @@ import (
 	"io"
 )
 
-// bufferedValueReader implements the low-level byteSrc interface by reading
+// bufferedByteSrc implements the low-level byteSrc interface by reading
 // directly from an in-memory byte slice. It provides efficient, zero-copy
 // access for parsing BSON when the entire document is buffered in memory.
-type bufferedValueReader struct {
+type bufferedByteSrc struct {
 	buf    []byte // entire BSON document
 	offset int64  // Current read index into buf
 }
 
-var _ valueReaderByteSrc = (*bufferedValueReader)(nil)
+var _ valueReaderByteSrc = (*bufferedByteSrc)(nil)
 
 // Read reads up to len(p) bytes from the in-memory buffer, advancing the offset
 // by the number of bytes read.
-func (b *bufferedValueReader) readExact(p []byte) (int, error) {
+func (b *bufferedByteSrc) readExact(p []byte) (int, error) {
 	if b.offset >= int64(len(b.buf)) {
 		return 0, io.EOF
 	}
@@ -33,7 +33,7 @@ func (b *bufferedValueReader) readExact(p []byte) (int, error) {
 }
 
 // ReadByte returns the single byte at buf[offset] and advances offset by 1.
-func (b *bufferedValueReader) ReadByte() (byte, error) {
+func (b *bufferedByteSrc) ReadByte() (byte, error) {
 	if b.offset >= int64(len(b.buf)) {
 		return 0, io.EOF
 	}
@@ -42,7 +42,7 @@ func (b *bufferedValueReader) ReadByte() (byte, error) {
 }
 
 // peek returns buf[offset:offset+n] without advancing offset.
-func (b *bufferedValueReader) peek(n int) ([]byte, error) {
+func (b *bufferedByteSrc) peek(n int) ([]byte, error) {
 	// Ensure we don't read past the end of the buffer.
 	if int64(n)+b.offset > int64(len(b.buf)) {
 		return b.buf[b.offset:], io.EOF
@@ -53,7 +53,7 @@ func (b *bufferedValueReader) peek(n int) ([]byte, error) {
 }
 
 // discard advances offset by n bytes, returning the number of bytes discarded.
-func (b *bufferedValueReader) discard(n int) (int, error) {
+func (b *bufferedByteSrc) discard(n int) (int, error) {
 	// Ensure we don't read past the end of the buffer.
 	if int64(n)+b.offset > int64(len(b.buf)) {
 		// If we have exceeded the buffer length, discard only up to the end.
@@ -70,7 +70,7 @@ func (b *bufferedValueReader) discard(n int) (int, error) {
 
 // readSlice scans buf[offset:] for the first occurrence of delim, returns
 // buf[offset:idx+1], and advances offset past it; errors if delim not found.
-func (b *bufferedValueReader) readSlice(delim byte) ([]byte, error) {
+func (b *bufferedByteSrc) readSlice(delim byte) ([]byte, error) {
 	// Ensure we don't read past the end of the buffer.
 	if b.offset >= int64(len(b.buf)) {
 		return nil, io.EOF
@@ -93,12 +93,12 @@ func (b *bufferedValueReader) readSlice(delim byte) ([]byte, error) {
 }
 
 // pos returns the current read position in the buffer.
-func (b *bufferedValueReader) pos() int64 {
+func (b *bufferedByteSrc) pos() int64 {
 	return b.offset
 }
 
 // regexLength will return the total byte length of a BSON regex value.
-func (b *bufferedValueReader) regexLength() (int32, error) {
+func (b *bufferedByteSrc) regexLength() (int32, error) {
 	rem := b.buf[b.offset:]
 
 	// Find end of the first C-string (pattern).
@@ -118,11 +118,11 @@ func (b *bufferedValueReader) regexLength() (int32, error) {
 	return int32(i + j + 2), nil
 }
 
-func (*bufferedValueReader) streamable() bool {
+func (*bufferedByteSrc) streamable() bool {
 	return false
 }
 
-func (b *bufferedValueReader) reset() {
+func (b *bufferedByteSrc) reset() {
 	b.buf = nil
 	b.offset = 0
 }

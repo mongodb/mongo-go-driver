@@ -81,7 +81,7 @@ func TestValueReader_ReadBinary(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Run("buffered", func(t *testing.T) {
 				vr := &valueReader{
-					src: &bufferedValueReader{buf: tc.data},
+					src: &bufferedByteSrc{buf: tc.data},
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -174,7 +174,7 @@ func TestValueReader_ReadBoolean(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Run("buffered", func(t *testing.T) {
 				vr := &valueReader{
-					src: &bufferedValueReader{buf: tc.data},
+					src: &bufferedByteSrc{buf: tc.data},
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -222,7 +222,7 @@ func TestValueReader_ReadBoolean(t *testing.T) {
 func TestValueReader_ReadDocument_TopLevel_InvalidLength(t *testing.T) {
 	t.Run("buffered", func(t *testing.T) {
 		vr := &valueReader{
-			src:   &bufferedValueReader{buf: []byte{0x00, 0x00}},
+			src:   &bufferedByteSrc{buf: []byte{0x00, 0x00}},
 			stack: []vrState{{mode: mTopLevel}},
 			frame: 0,
 		}
@@ -256,7 +256,7 @@ func TestValueReader_ReadDocument_TopLevel_InvalidLength(t *testing.T) {
 func TestValueReader_ReadDocument_TopLevel_ValidDocumentWithIncorrectEnd(t *testing.T) {
 	t.Run("buffered", func(t *testing.T) {
 		vr := &valueReader{
-			src:   &bufferedValueReader{buf: []byte{0x05, 0x00, 0x00, 0x00, 0x00}},
+			src:   &bufferedByteSrc{buf: []byte{0x05, 0x00, 0x00, 0x00, 0x00}},
 			stack: []vrState{{mode: mTopLevel}},
 			frame: 0,
 		}
@@ -287,7 +287,7 @@ func TestValueReader_ReadDocument_TopLevel_ValidDocumentWithIncorrectEnd(t *test
 func TestValueReader_ReadDocument_EmbeddedDocument(t *testing.T) {
 	t.Run("buffered", func(t *testing.T) {
 		vr := &valueReader{
-			src: &bufferedValueReader{buf: []byte{0x0a, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00}},
+			src: &bufferedByteSrc{buf: []byte{0x0a, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00}},
 			stack: []vrState{
 				{mode: mTopLevel},
 				{mode: mElement, vType: TypeBoolean},
@@ -461,7 +461,7 @@ func TestValueReader_ReadCodeWithScope(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Run("buffered", func(t *testing.T) {
 				vr := &valueReader{
-					src: &bufferedValueReader{buf: tc.data},
+					src: &bufferedByteSrc{buf: tc.data},
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -504,7 +504,7 @@ func TestValueReader_ReadCodeWithScope(t *testing.T) {
 		doc = append(doc, codeWithScope...)
 		doc = append(doc, 0x00)
 		vr := &valueReader{
-			src: &bufferedValueReader{buf: doc},
+			src: &bufferedByteSrc{buf: doc},
 			stack: []vrState{
 				{mode: mTopLevel},
 				{mode: mElement, vType: TypeCodeWithScope},
@@ -624,7 +624,7 @@ func TestValueReader_ReadDBPointer(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Run("buffered", func(t *testing.T) {
 				vr := &valueReader{
-					src: &bufferedValueReader{buf: tc.data},
+					src: &bufferedByteSrc{buf: tc.data},
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -710,7 +710,7 @@ func TestValueReader_ReadDateTime(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Run("buffered", func(t *testing.T) {
 				vr := &valueReader{
-					src: &bufferedValueReader{buf: tc.data},
+					src: &bufferedByteSrc{buf: tc.data},
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -793,7 +793,7 @@ func TestValueReader_ReadDecimal128(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Run("buffered", func(t *testing.T) {
 				vr := &valueReader{
-					src: &bufferedValueReader{buf: tc.data},
+					src: &bufferedByteSrc{buf: tc.data},
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -883,7 +883,7 @@ func TestValueReader_ReadDouble(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Run("buffered", func(t *testing.T) {
 				vr := &valueReader{
-					src: &bufferedValueReader{buf: tc.data},
+					src: &bufferedByteSrc{buf: tc.data},
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -963,7 +963,7 @@ func TestValueReader_ReadInt32(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Run("buffered", func(t *testing.T) {
 				vr := &valueReader{
-					src: &bufferedValueReader{buf: tc.data},
+					src: &bufferedByteSrc{buf: tc.data},
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -1043,7 +1043,7 @@ func TestValueReader_ReadInt64(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Run("buffered", func(t *testing.T) {
 				vr := &valueReader{
-					src: &bufferedValueReader{buf: tc.data},
+					src: &bufferedByteSrc{buf: tc.data},
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -1239,7 +1239,7 @@ func TestValueReader_ReadJavascript_ReadString_ReadSymbol(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Run("buffered", func(t *testing.T) {
 				vr := &valueReader{
-					src: &bufferedValueReader{buf: tc.data},
+					src: &bufferedByteSrc{buf: tc.data},
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -1356,7 +1356,7 @@ func TestValueReader_ReadMaxKey_ReadMinKey_ReadNull_ReadUndefined(t *testing.T) 
 		t.Run(tc.name, func(t *testing.T) {
 			t.Run("buffered", func(t *testing.T) {
 				vr := &valueReader{
-					src: &bufferedValueReader{buf: []byte{}},
+					src: &bufferedByteSrc{buf: []byte{}},
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -1432,7 +1432,7 @@ func TestValueReader_ReadObjectID(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Run("buffered", func(t *testing.T) {
 				vr := &valueReader{
-					src: &bufferedValueReader{buf: tc.data},
+					src: &bufferedByteSrc{buf: tc.data},
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -1524,7 +1524,7 @@ func TestValueReader_ReadRegex(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Run("buffered", func(t *testing.T) {
 				vr := &valueReader{
-					src: &bufferedValueReader{buf: tc.data},
+					src: &bufferedByteSrc{buf: tc.data},
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -1622,7 +1622,7 @@ func TestValueReader_ReadTimestamp(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Run("buffered", func(t *testing.T) {
 				vr := &valueReader{
-					src: &bufferedValueReader{buf: tc.data},
+					src: &bufferedByteSrc{buf: tc.data},
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -1987,7 +1987,7 @@ func TestValueReader_ReadBytes_Skip_Buffered(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Run("Skip", func(t *testing.T) {
 				vr := &valueReader{
-					src: &bufferedValueReader{buf: tc.data, offset: tc.startingOffset},
+					src: &bufferedByteSrc{buf: tc.data, offset: tc.startingOffset},
 					stack: []vrState{
 						{mode: mTopLevel, end: startingEnd},
 						{mode: mElement, vType: tc.t},
@@ -2005,7 +2005,7 @@ func TestValueReader_ReadBytes_Skip_Buffered(t *testing.T) {
 			})
 			t.Run("ReadBytes", func(t *testing.T) {
 				vr := &valueReader{
-					src: &bufferedValueReader{buf: tc.data, offset: tc.startingOffset},
+					src: &bufferedByteSrc{buf: tc.data, offset: tc.startingOffset},
 					stack: []vrState{
 						{mode: mTopLevel, end: startingEnd},
 						{mode: mElement, vType: tc.t},
@@ -2059,7 +2059,7 @@ func TestValueReader_ReadBytes_Skip_Buffered(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()
 				vr := &valueReader{
-					src: &bufferedValueReader{buf: tc.want},
+					src: &bufferedByteSrc{buf: tc.want},
 					stack: []vrState{
 						{mode: mTopLevel},
 					},
