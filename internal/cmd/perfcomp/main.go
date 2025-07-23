@@ -181,7 +181,7 @@ func findLastStableRegion(testname string, measurement string, coll *mongo.Colle
 		{"time_series_info.test", testname},
 		{"time_series_info.measurement", measurement},
 		{"last", true},
-		{"contexts", []string{"GoDriver perf (h-score)"}},
+		{"contexts", bson.D{{"$in", bson.A{"GoDriver perf task"}}}},
 	}
 
 	findOptions := options.FindOne().SetSort(bson.D{{"end", -1}})
