@@ -2028,8 +2028,19 @@ func TestCollection(t *testing.T) {
 	})
 }
 
-func initCollection(mt *mtest.T, coll *mongo.Collection) {
-	mt.Helper()
+func newCappedCollection(mt *mtest.T, name string) *mongo.Collection {
+	// Create a capped collection to test with a tailable awaitData cursor.
+	cappedOpts := options.CreateCollection().SetCapped(true).SetSizeInBytes(1024 * 64)
+	cappedColl := mt.CreateCollection(mtest.Collection{
+		Name:       name,
+		CreateOpts: cappedOpts,
+	}, true)
+
+	return cappedColl
+}
+
+func initCollection(tb testing.TB, coll *mongo.Collection) {
+	tb.Helper()
 
 	var docs []interface{}
 	for i := 1; i <= 5; i++ {
@@ -2037,7 +2048,7 @@ func initCollection(mt *mtest.T, coll *mongo.Collection) {
 	}
 
 	_, err := coll.InsertMany(context.Background(), docs)
-	assert.Nil(mt, err, "InsertMany error for initial data: %v", err)
+	assert.Nil(tb, err, "InsertMany error for initial data: %v", err)
 }
 
 func testAggregateWithOptions(mt *mtest.T, createIndex bool, opts options.Lister[options.AggregateOptions]) {
