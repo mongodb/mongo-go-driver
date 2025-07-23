@@ -17,15 +17,11 @@ func createTestVectors(start1 int, stop1 int, step1 int, start2 int, stop2 int, 
 	xData := []float64{}
 	yData := []float64{}
 
-	i := start1
-	for i < stop1 {
+	for i := start1; i < stop1; i += step1 {
 		xData = append(xData, float64(i))
-		i += step1
 	}
-	j := start2
-	for j < stop2 {
+	for j := start2; j < stop2; j += step2 {
 		yData = append(yData, float64(j))
-		j += step2
 	}
 
 	x := mat.NewDense(len(xData), 1, xData)
@@ -41,8 +37,8 @@ func TestEnergyStatistics(t *testing.T) {
 		e, tstat, h := GetEnergyStatistics(x, y)
 
 		del := 1e-3
-
-		assert.InDelta(t, 0.160, e, del) // |0.160 - e| < 1/100
+		// Limit precision of comparison to 3 digits after the decimal.
+		assert.InDelta(t, 0.160, e, del) // |0.160 - e| < 0.001
 		assert.InDelta(t, 8.136, tstat, del)
 		assert.InDelta(t, 0.002, h, del)
 	})
@@ -72,11 +68,10 @@ func TestEnergyStatistics(t *testing.T) {
 		y := mat.NewDense(1, 1, []float64{1})
 
 		e, tstat, h := GetEnergyStatistics(x, y)
-		del := 1e-3
 
-		assert.InDelta(t, 0.0, e, del)
-		assert.InDelta(t, 0.0, tstat, del)
-		assert.InDelta(t, 0.0, h, del)
+		assert.Equal(t, 0.0, e)
+		assert.Equal(t, 0.0, tstat)
+		assert.Equal(t, 0.0, h)
 	})
 
 }

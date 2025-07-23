@@ -292,7 +292,7 @@ functions:
         binary: bash
         env:
           VERSION_ID: ${version_id}
-        include_expansions_in_env: [perf_uri_private_endpoint]
+        include_expansions_in_env: [PERF_URI_PRIVATE_ENDPOINT]
         args: [*task-runner, perf-pr-comment]
 
   run-enterprise-auth-tests:

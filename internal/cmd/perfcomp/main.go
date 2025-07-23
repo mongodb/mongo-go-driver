@@ -10,6 +10,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"strings"
 	"time"
@@ -91,14 +92,14 @@ type EnergyStats struct {
 
 func main() {
 	// Connect to analytics node
-	uri := os.Getenv("perf_uri_private_endpoint")
+	uri := os.Getenv("PERF_URI_PRIVATE_ENDPOINT")
 	if uri == "" {
-		log.Panic("perf_uri_private_endpoint env variable is not set")
+		log.Panic("PERF_URI_PRIVATE_ENDPOINT env variable is not set")
 	}
 
 	version := os.Getenv("VERSION_ID")
 	if version == "" {
-		log.Panic("could not retrieve version")
+		log.Panic("VERSION_ID env variable is not set")
 	}
 
 	client, err1 := mongo.Connect(options.Client().ApplyURI(uri))
@@ -150,7 +151,11 @@ func findRawData(version string, coll *mongo.Collection) ([]RawData, error) {
 
 	cursor, err := coll.Find(findCtx, filter, findOptions)
 	if err != nil {
-		return nil, err
+		log.Panicf(
+			"Error retrieving raw data for version %q: %v",
+			version,
+			err,
+		)
 	}
 	defer cursor.Close(findCtx)
 
@@ -160,13 +165,20 @@ func findRawData(version string, coll *mongo.Collection) ([]RawData, error) {
 	for cursor.Next(findCtx) {
 		var rd RawData
 		if err := cursor.Decode(&rd); err != nil {
-			return nil, err
+			break
 		}
 		rawData = append(rawData, rd)
 	}
 
-	if err := cursor.Err(); err != nil {
-		return nil, err
+	if err == nil {
+		err = cursor.Err()
+	}
+	if err != nil {
+		log.Panicf(
+			"Error decoding raw data from version %q: %v",
+			version,
+			err,
+		)
 	}
 
 	return rawData, nil
@@ -208,7 +220,12 @@ func getEnergyStatsForOneBenchmark(rd RawData, coll *mongo.Collection) ([]*Energ
 
 		stableRegion, err := findLastStableRegion(testname, measurement, coll)
 		if err != nil {
-			return nil, err
+			log.Panicf(
+				"Error finding last stable region for test %q, measurement %q: %v",
+				testname,
+				measurement,
+				err,
+			)
 		}
 
 		pChange := GetPercentageChange(patchVal[0], stableRegion.Mean)
@@ -253,7 +270,7 @@ func generatePRComment(energyStats []*EnergyStats, version string) string {
 
 	var testCount int64
 	for _, es := range energyStats {
-		if es.Z > 1.96 || es.Z < -1.96 {
+		if math.Abs(es.Z) > 1.96 {
 			testCount += 1
 			fmt.Fprintf(&comment, "| %s | %s | %.4f | %.4f | %.4f | Avg: %.4f, Stdev: %.4f | %.4f |\n", es.Benchmark, es.Measurement, es.H, es.Z, es.PChange, es.StableRegion.Mean, es.StableRegion.Std, es.PatchValues[0])
 		}
