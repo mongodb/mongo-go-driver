@@ -99,7 +99,7 @@ func (a Array) StringN(n int) (string, bool) {
 
 // stringN stringify an array. If N is larger than 0, it will truncate the string to N bytes.
 func (a Array) stringN(n int) (string, bool) {
-	length, rem, ok := ReadLength(a) // We know we have enough bytes to read the length
+	length, rem, ok := ReadLength(a)
 	if !ok || length < 5 {
 		return "", false
 	}

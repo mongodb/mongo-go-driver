@@ -147,14 +147,14 @@ func (e Element) stringN(n int) (string, bool) {
 
 	var buf strings.Builder
 	buf.WriteByte('"')
-	const postfix = `": `
+	const suffix = `": `
 	switch {
 	case n <= 0 || idx <= n-4:
 		buf.Write(key)
-		buf.WriteString(postfix)
+		buf.WriteString(suffix)
 	case idx < n:
 		buf.Write(key)
-		buf.WriteString(postfix[:n-idx-1])
+		buf.WriteString(suffix[:n-idx-1])
 	default:
 		buf.WriteString(bsoncoreutil.Truncate(string(key), n-1))
 	}
