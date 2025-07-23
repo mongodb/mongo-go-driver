@@ -107,7 +107,7 @@ func NewDocumentReader(r io.Reader) ValueReader {
 	}
 
 	return &valueReader{
-		src:   &streamingValueReader{br: bufio.NewReader(r), offset: 0},
+		src:   &streamingByteSrc{br: bufio.NewReader(r), offset: 0},
 		stack: stack,
 	}
 }

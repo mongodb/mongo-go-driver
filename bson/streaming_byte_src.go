@@ -11,22 +11,22 @@ import (
 	"io"
 )
 
-// streamingValueReader reads from an ioReader wrapped in a bufio.Reader. It
+// streamingByteSrc reads from an ioReader wrapped in a bufio.Reader. It
 // first reads the BSON length header, then ensures it only ever reads exactly
 // that many bytes.
 //
 // Note: this approach trades memory usage for extra buffering and reader calls,
 // so it is less performanted than the in-memory bufferedValueReader.
-type streamingValueReader struct {
+type streamingByteSrc struct {
 	br     *bufio.Reader
 	offset int64 // offset is the current read position in the buffer
 }
 
-var _ valueReaderByteSrc = (*streamingValueReader)(nil)
+var _ valueReaderByteSrc = (*streamingByteSrc)(nil)
 
 // Read reads up to len(p) bytes from the underlying bufio.Reader, advancing
 // the offset by the number of bytes read.
-func (s *streamingValueReader) readExact(p []byte) (int, error) {
+func (s *streamingByteSrc) readExact(p []byte) (int, error) {
 	n, err := io.ReadFull(s.br, p)
 	if err == nil {
 		s.offset += int64(n)
@@ -36,7 +36,7 @@ func (s *streamingValueReader) readExact(p []byte) (int, error) {
 }
 
 // ReadByte returns the single byte at buf[offset] and advances offset by 1.
-func (s *streamingValueReader) ReadByte() (byte, error) {
+func (s *streamingByteSrc) ReadByte() (byte, error) {
 	c, err := s.br.ReadByte()
 	if err == nil {
 		s.offset++
@@ -45,12 +45,12 @@ func (s *streamingValueReader) ReadByte() (byte, error) {
 }
 
 // peek returns buf[offset:offset+n] without advancing offset.
-func (s *streamingValueReader) peek(n int) ([]byte, error) {
+func (s *streamingByteSrc) peek(n int) ([]byte, error) {
 	return s.br.Peek(n)
 }
 
 // discard advances offset by n bytes, returning the number of bytes discarded.
-func (s *streamingValueReader) discard(n int) (int, error) {
+func (s *streamingByteSrc) discard(n int) (int, error) {
 	m, err := s.br.Discard(n)
 	s.offset += int64(m)
 	return m, err
@@ -58,7 +58,7 @@ func (s *streamingValueReader) discard(n int) (int, error) {
 
 // readSlice scans buf[offset:] for the first occurrence of delim, returns
 // buf[offset:idx+1], and advances offset past it; errors if delim not found.
-func (s *streamingValueReader) readSlice(delim byte) ([]byte, error) {
+func (s *streamingByteSrc) readSlice(delim byte) ([]byte, error) {
 	data, err := s.br.ReadSlice(delim)
 	if err != nil {
 		return nil, err
@@ -68,12 +68,12 @@ func (s *streamingValueReader) readSlice(delim byte) ([]byte, error) {
 }
 
 // pos returns the current read position in the buffer.
-func (s *streamingValueReader) pos() int64 {
+func (s *streamingByteSrc) pos() int64 {
 	return s.offset
 }
 
 // regexLength will return the total byte length of a BSON regex value.
-func (s *streamingValueReader) regexLength() (int32, error) {
+func (s *streamingByteSrc) regexLength() (int32, error) {
 	var (
 		count    int32
 		nulCount int
@@ -95,10 +95,10 @@ func (s *streamingValueReader) regexLength() (int32, error) {
 	return count, nil
 }
 
-func (*streamingValueReader) streamable() bool {
+func (*streamingByteSrc) streamable() bool {
 	return true
 }
 
-func (s *streamingValueReader) reset() {
+func (s *streamingByteSrc) reset() {
 	s.offset = 0
 }

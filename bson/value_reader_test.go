@@ -106,7 +106,7 @@ func TestValueReader_ReadBinary(t *testing.T) {
 
 			t.Run("streaming", func(t *testing.T) {
 				vr := &valueReader{
-					src: &streamingValueReader{br: bufio.NewReader(bytes.NewReader(tc.data))},
+					src: &streamingByteSrc{br: bufio.NewReader(bytes.NewReader(tc.data))},
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -196,7 +196,7 @@ func TestValueReader_ReadBoolean(t *testing.T) {
 
 			t.Run("streaming", func(t *testing.T) {
 				vr := &valueReader{
-					src: &streamingValueReader{br: bufio.NewReader(bytes.NewReader(tc.data))},
+					src: &streamingByteSrc{br: bufio.NewReader(bytes.NewReader(tc.data))},
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -238,7 +238,7 @@ func TestValueReader_ReadDocument_TopLevel_InvalidLength(t *testing.T) {
 
 	t.Run("streaming", func(t *testing.T) {
 		vr := &valueReader{
-			src:   &streamingValueReader{br: bufio.NewReader(bytes.NewReader([]byte{0x00, 0x00}))},
+			src:   &streamingByteSrc{br: bufio.NewReader(bytes.NewReader([]byte{0x00, 0x00}))},
 			stack: []vrState{{mode: mTopLevel}},
 			frame: 0,
 		}
@@ -271,7 +271,7 @@ func TestValueReader_ReadDocument_TopLevel_ValidDocumentWithIncorrectEnd(t *test
 	t.Run("streaming", func(t *testing.T) {
 
 		vr := &valueReader{
-			src:   &streamingValueReader{br: bufio.NewReader(bytes.NewReader([]byte{0x05, 0x00, 0x00, 0x00, 0x00}))},
+			src:   &streamingByteSrc{br: bufio.NewReader(bytes.NewReader([]byte{0x05, 0x00, 0x00, 0x00, 0x00}))},
 			stack: []vrState{{mode: mTopLevel}},
 			frame: 0,
 		}
@@ -336,7 +336,7 @@ func TestValueReader_ReadDocument_EmbeddedDocument(t *testing.T) {
 
 	t.Run("streaming", func(t *testing.T) {
 		vr := &valueReader{
-			src: &streamingValueReader{
+			src: &streamingByteSrc{
 				br: bufio.NewReader(bytes.NewReader([]byte{0x0a, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00})),
 			},
 			stack: []vrState{
@@ -481,7 +481,7 @@ func TestValueReader_ReadCodeWithScope(t *testing.T) {
 
 		t.Run("streaming", func(t *testing.T) {
 			vr := &valueReader{
-				src: &streamingValueReader{br: bufio.NewReader(bytes.NewReader(tc.data))},
+				src: &streamingByteSrc{br: bufio.NewReader(bytes.NewReader(tc.data))},
 				stack: []vrState{
 					{mode: mTopLevel},
 					{
@@ -537,7 +537,7 @@ func TestValueReader_ReadCodeWithScope(t *testing.T) {
 		doc = append(doc, codeWithScope...)
 		doc = append(doc, 0x00)
 		vr := &valueReader{
-			src: &streamingValueReader{br: bufio.NewReader(bytes.NewReader(doc))},
+			src: &streamingByteSrc{br: bufio.NewReader(bytes.NewReader(doc))},
 			stack: []vrState{
 				{mode: mTopLevel},
 				{mode: mElement, vType: TypeCodeWithScope},
@@ -649,7 +649,7 @@ func TestValueReader_ReadDBPointer(t *testing.T) {
 
 			t.Run("streaming", func(t *testing.T) {
 				vr := &valueReader{
-					src: &streamingValueReader{br: bufio.NewReader(bytes.NewReader(tc.data))},
+					src: &streamingByteSrc{br: bufio.NewReader(bytes.NewReader(tc.data))},
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -732,7 +732,7 @@ func TestValueReader_ReadDateTime(t *testing.T) {
 
 			t.Run("streaming", func(t *testing.T) {
 				vr := &valueReader{
-					src: &streamingValueReader{br: bufio.NewReader(bytes.NewReader(tc.data))},
+					src: &streamingByteSrc{br: bufio.NewReader(bytes.NewReader(tc.data))},
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -820,7 +820,7 @@ func TestValueReader_ReadDecimal128(t *testing.T) {
 
 			t.Run("streaming", func(t *testing.T) {
 				vr := &valueReader{
-					src: &streamingValueReader{br: bufio.NewReader(bytes.NewReader(tc.data))},
+					src: &streamingByteSrc{br: bufio.NewReader(bytes.NewReader(tc.data))},
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -905,7 +905,7 @@ func TestValueReader_ReadDouble(t *testing.T) {
 
 			t.Run("streaming", func(t *testing.T) {
 				vr := &valueReader{
-					src: &streamingValueReader{br: bufio.NewReader(bytes.NewReader(tc.data))},
+					src: &streamingByteSrc{br: bufio.NewReader(bytes.NewReader(tc.data))},
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -985,7 +985,7 @@ func TestValueReader_ReadInt32(t *testing.T) {
 
 			t.Run("streaming", func(t *testing.T) {
 				vr := &valueReader{
-					src: &streamingValueReader{br: bufio.NewReader(bytes.NewReader(tc.data))},
+					src: &streamingByteSrc{br: bufio.NewReader(bytes.NewReader(tc.data))},
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -1065,7 +1065,7 @@ func TestValueReader_ReadInt64(t *testing.T) {
 
 			t.Run("streaming", func(t *testing.T) {
 				vr := &valueReader{
-					src: &streamingValueReader{br: bufio.NewReader(bytes.NewReader(tc.data))},
+					src: &streamingByteSrc{br: bufio.NewReader(bytes.NewReader(tc.data))},
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -1262,7 +1262,7 @@ func TestValueReader_ReadJavascript_ReadString_ReadSymbol(t *testing.T) {
 
 			t.Run("streaming", func(t *testing.T) {
 				vr := &valueReader{
-					src: &streamingValueReader{br: bufio.NewReader(bytes.NewReader(tc.data))},
+					src: &streamingByteSrc{br: bufio.NewReader(bytes.NewReader(tc.data))},
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -1376,7 +1376,7 @@ func TestValueReader_ReadMaxKey_ReadMinKey_ReadNull_ReadUndefined(t *testing.T) 
 
 			t.Run("streaming", func(t *testing.T) {
 				vr := &valueReader{
-					src: &streamingValueReader{br: bufio.NewReader(bytes.NewReader([]byte{}))},
+					src: &streamingByteSrc{br: bufio.NewReader(bytes.NewReader([]byte{}))},
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -1454,7 +1454,7 @@ func TestValueReader_ReadObjectID(t *testing.T) {
 
 			t.Run("streaming", func(t *testing.T) {
 				vr := &valueReader{
-					src: &streamingValueReader{br: bufio.NewReader(bytes.NewReader(tc.data))},
+					src: &streamingByteSrc{br: bufio.NewReader(bytes.NewReader(tc.data))},
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -1549,7 +1549,7 @@ func TestValueReader_ReadRegex(t *testing.T) {
 
 			t.Run("streaming", func(t *testing.T) {
 				vr := &valueReader{
-					src: &streamingValueReader{br: bufio.NewReader(bytes.NewReader(tc.data))},
+					src: &streamingByteSrc{br: bufio.NewReader(bytes.NewReader(tc.data))},
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -1647,7 +1647,7 @@ func TestValueReader_ReadTimestamp(t *testing.T) {
 
 			t.Run("streaming", func(t *testing.T) {
 				vr := &valueReader{
-					src: &streamingValueReader{br: bufio.NewReader(bytes.NewReader(tc.data))},
+					src: &streamingByteSrc{br: bufio.NewReader(bytes.NewReader(tc.data))},
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -2391,7 +2391,7 @@ func TestValueReader_ReadBytes_Skip_Streaming(t *testing.T) {
 			const startingEnd = 64
 			t.Run("Skip", func(t *testing.T) {
 				vr := &valueReader{
-					src: &streamingValueReader{
+					src: &streamingByteSrc{
 						br:     bufio.NewReader(bytes.NewReader(tc.data[tc.startingOffset:tc.offset])),
 						offset: tc.startingOffset,
 					},
@@ -2415,7 +2415,7 @@ func TestValueReader_ReadBytes_Skip_Streaming(t *testing.T) {
 			})
 			t.Run("ReadBytes", func(t *testing.T) {
 				vr := &valueReader{
-					src: &streamingValueReader{
+					src: &streamingByteSrc{
 						br:     bufio.NewReader(bytes.NewReader(tc.data[tc.startingOffset:tc.offset])),
 						offset: tc.startingOffset,
 					},
@@ -2475,7 +2475,7 @@ func TestValueReader_ReadBytes_Skip_Streaming(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()
 				vr := &valueReader{
-					src: &streamingValueReader{
+					src: &streamingByteSrc{
 						br: bufio.NewReader(bytes.NewReader(tc.want)),
 					},
 					stack: []vrState{
