@@ -168,13 +168,6 @@ func findRawData(version string, coll *mongo.Collection) ([]RawData, error) {
 			err,
 		)
 	}
-	if err != nil {
-		log.Panicf(
-			"Error decoding raw data from version %q: %v",
-			version,
-			err,
-		)
-	}
 
 	return rawData, nil
 }
