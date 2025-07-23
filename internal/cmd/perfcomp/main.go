@@ -144,12 +144,10 @@ func findRawData(version string, coll *mongo.Collection) ([]RawData, error) {
 		{"info.task_name", "perf"},
 	}
 
-	findOptions := options.Find()
-
 	findCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	cursor, err := coll.Find(findCtx, filter, findOptions)
+	cursor, err := coll.Find(findCtx, filter)
 	if err != nil {
 		log.Panicf(
 			"Error retrieving raw data for version %q: %v",
@@ -162,16 +160,13 @@ func findRawData(version string, coll *mongo.Collection) ([]RawData, error) {
 	fmt.Printf("Successfully retrieved %d docs from version %s.\n", cursor.RemainingBatchLength(), version)
 
 	var rawData []RawData
-	for cursor.Next(findCtx) {
-		var rd RawData
-		if err := cursor.Decode(&rd); err != nil {
-			break
-		}
-		rawData = append(rawData, rd)
-	}
-
-	if err == nil {
-		err = cursor.Err()
+	err = cursor.All(findCtx, &rawData)
+	if err != nil {
+		log.Panicf(
+			"Error decoding raw data from version %q: %v",
+			version,
+			err,
+		)
 	}
 	if err != nil {
 		log.Panicf(
