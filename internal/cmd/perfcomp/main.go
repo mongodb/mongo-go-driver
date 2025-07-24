@@ -21,46 +21,59 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
+// This module cannot be included in the workspace since it requires a version of Gonum that is not compatible with the Go Driver.
+// Must use GOWORK=off to run this test.
+
+type OverrideInfo struct {
+	OverrideMainline bool        `bson:"override_mainline"`
+	BaseOrder        interface{} `bson:"base_order"`
+	Reason           interface{} `bson:"reason"`
+	User             interface{} `bson:"user"`
+}
+
+type Info struct {
+	Project      string `bson:"project"`
+	Version      string `bson:"version"`
+	Variant      string `bson:"variant"`
+	Order        int64  `bson:"order"`
+	TaskName     string `bson:"task_name"`
+	TaskID       string `bson:"task_id"`
+	Execution    int64  `bson:"execution"`
+	Mainline     bool   `bson:"mainline"`
+	OverrideInfo OverrideInfo
+	TestName     string                 `bson:"test_name"`
+	Args         map[string]interface{} `bson:"args"`
+}
+
+type Stat struct {
+	Name     string      `bson:"name"`
+	Val      float64     `bson:"val"`
+	Metadata interface{} `bson:"metadata"`
+}
+
+type Rollups struct {
+	Stats []Stat
+}
+
 type RawData struct {
-	Info struct {
-		Project      string `bson:"project"`
-		Version      string `bson:"version"`
-		Variant      string `bson:"variant"`
-		Order        int64  `bson:"order"`
-		TaskName     string `bson:"task_name"`
-		TaskID       string `bson:"task_id"`
-		Execution    int64  `bson:"execution"`
-		Mainline     bool   `bson:"mainline"`
-		OverrideInfo struct {
-			OverrideMainline bool        `bson:"override_mainline"`
-			BaseOrder        interface{} `bson:"base_order"`
-			Reason           interface{} `bson:"reason"`
-			User             interface{} `bson:"user"`
-		}
-		TestName string                 `bson:"test_name"`
-		Args     map[string]interface{} `bson:"args"`
-	}
-	CreatedAt   interface{} `bson:"created_at"`
-	CompletedAt interface{} `bson:"completed_at"`
-	Rollups     struct {
-		Stats []struct {
-			Name     string      `bson:"name"`
-			Val      float64     `bson:"val"`
-			Metadata interface{} `bson:"metadata"`
-		}
-	}
+	Info                 Info
+	CreatedAt            interface{} `bson:"created_at"`
+	CompletedAt          interface{} `bson:"completed_at"`
+	Rollups              Rollups
 	FailedRollupAttempts int64 `bson:"failed_rollup_attempts"`
 }
 
+type TimeSeriesInfo struct {
+	Project     string                 `bson:"project"`
+	Variant     string                 `bson:"variant"`
+	Task        string                 `bson:"task"`
+	Test        string                 `bson:"test"`
+	Measurement string                 `bson:"measurement"`
+	Args        map[string]interface{} `bson:"args"`
+}
+
 type StableRegion struct {
-	TimeSeriesInfo struct {
-		Project     string                 `bson:"project"`
-		Variant     string                 `bson:"variant"`
-		Task        string                 `bson:"task"`
-		Test        string                 `bson:"test"`
-		Measurement string                 `bson:"measurement"`
-		Args        map[string]interface{} `bson:"args"`
-	}
+	TimeSeriesInfo         TimeSeriesInfo
 	Start                  interface{}   `bson:"start"`
 	End                    interface{}   `bson:"end"`
 	Values                 []float64     `bson:"values"`
@@ -78,61 +91,66 @@ type StableRegion struct {
 }
 
 type EnergyStats struct {
-	Benchmark    string
-	Measurement  string
-	PatchVersion string
-	StableRegion StableRegion
-	PatchValues  []float64
-	PChange      float64
-	E            float64
-	T            float64
-	H            float64
-	Z            float64
+	Benchmark       string
+	Measurement     string
+	PatchVersion    string
+	StableRegion    StableRegion
+	PatchValues     []float64
+	PercentChange   float64
+	EnergyStatistic float64
+	TestStatistic   float64
+	HScore          float64
+	ZScore          float64
 }
 
+const expandedMetricsDB = "expanded_metrics"
+const rawResultsColl = "raw_results"
+const stableRegionsColl = "stable_regions"
+
 func main() {
-	// Connect to analytics node
+	// Check for variables
 	uri := os.Getenv("PERF_URI_PRIVATE_ENDPOINT")
 	if uri == "" {
-		log.Panic("PERF_URI_PRIVATE_ENDPOINT env variable is not set")
+		log.Fatal("PERF_URI_PRIVATE_ENDPOINT env variable is not set")
 	}
 
 	version := os.Args[len(os.Args)-1]
 	if version == "" {
-		log.Panic("could not get VERSION_ID")
+		log.Fatal("could not get VERSION_ID")
 	}
 
-	client, err1 := mongo.Connect(options.Client().ApplyURI(uri))
-	if err1 != nil {
-		log.Panicf("Error connecting client: %v", err1)
+	// Connect to analytics node
+	client, err := mongo.Connect(options.Client().ApplyURI(uri))
+	if err != nil {
+		log.Fatalf("Error connecting client: %v", err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	err2 := client.Ping(ctx, nil)
-	if err2 != nil {
-		log.Panicf("Error pinging MongoDB Analytics: %v", err2)
+	err = client.Ping(ctx, nil)
+	if err != nil {
+		log.Fatalf("Error pinging MongoDB Analytics: %v", err)
 	}
-	fmt.Println("Successfully connected to MongoDB Analytics node.")
+	log.Println("Successfully connected to MongoDB Analytics node.")
 
-	db := client.Database("expanded_metrics")
+	db := client.Database(expandedMetricsDB)
 
 	// Get raw data, most recent stable region, and calculate energy stats
-	patchRawData, err3 := findRawData(version, db.Collection("raw_results"))
-	if err3 != nil {
-		log.Panicf("Error getting raw data: %v", err3)
+	patchRawData, err := findRawData(version, db.Collection(rawResultsColl))
+	if err != nil {
+		log.Fatalf("Error getting raw data: %v", err)
 	}
 
-	allEnergyStats, err4 := getEnergyStatsForAllBenchMarks(patchRawData, db.Collection("stable_regions"))
-	if err4 != nil {
-		log.Panicf("Error getting energy statistics: %v", err4)
+	allEnergyStats, err := getEnergyStatsForAllBenchMarks(patchRawData, db.Collection(stableRegionsColl))
+	if err != nil {
+		log.Fatalf("Error getting energy statistics: %v", err)
 	}
-	fmt.Println(generatePRComment(allEnergyStats, version))
+	log.Println(generatePRComment(allEnergyStats, version))
 
 	// Disconnect client
-	err0 := client.Disconnect(context.Background())
-	if err0 != nil {
-		log.Panicf("Failed to disconnect client: %v", err0)
+	err = client.Disconnect(context.Background())
+	if err != nil {
+		log.Fatalf("Failed to disconnect client: %v", err)
 	}
 }
 
@@ -149,27 +167,27 @@ func findRawData(version string, coll *mongo.Collection) ([]RawData, error) {
 
 	cursor, err := coll.Find(findCtx, filter)
 	if err != nil {
-		log.Panicf(
+		log.Fatalf(
 			"Error retrieving raw data for version %q: %v",
 			version,
 			err,
 		)
 	}
-	defer cursor.Close(findCtx)
+	defer func() { err = cursor.Close(findCtx) }()
 
-	fmt.Printf("Successfully retrieved %d docs from version %s.\n", cursor.RemainingBatchLength(), version)
+	log.Printf("Successfully retrieved %d docs from version %s.\n", cursor.RemainingBatchLength(), version)
 
 	var rawData []RawData
 	err = cursor.All(findCtx, &rawData)
 	if err != nil {
-		log.Panicf(
+		log.Fatalf(
 			"Error decoding raw data from version %q: %v",
 			version,
 			err,
 		)
 	}
 
-	return rawData, nil
+	return rawData, err
 }
 
 // Find the most recent stable region of the mainline version for a specific test/measurement
@@ -208,7 +226,7 @@ func getEnergyStatsForOneBenchmark(rd RawData, coll *mongo.Collection) ([]*Energ
 
 		stableRegion, err := findLastStableRegion(testname, measurement, coll)
 		if err != nil {
-			log.Panicf(
+			log.Fatalf(
 				"Error finding last stable region for test %q, measurement %q: %v",
 				testname,
 				measurement,
@@ -221,16 +239,16 @@ func getEnergyStatsForOneBenchmark(rd RawData, coll *mongo.Collection) ([]*Energ
 		z := GetZScore(patchVal[0], stableRegion.Mean, stableRegion.Std)
 
 		es := EnergyStats{
-			Benchmark:    testname,
-			Measurement:  measurement,
-			PatchVersion: rd.Info.Version,
-			StableRegion: *stableRegion,
-			PatchValues:  patchVal,
-			PChange:      pChange,
-			E:            e,
-			T:            t,
-			H:            h,
-			Z:            z,
+			Benchmark:       testname,
+			Measurement:     measurement,
+			PatchVersion:    rd.Info.Version,
+			StableRegion:    *stableRegion,
+			PatchValues:     patchVal,
+			PercentChange:   pChange,
+			EnergyStatistic: e,
+			TestStatistic:   t,
+			HScore:          h,
+			ZScore:          z,
 		}
 		energyStats = append(energyStats, &es)
 	}
@@ -258,9 +276,9 @@ func generatePRComment(energyStats []*EnergyStats, version string) string {
 
 	var testCount int64
 	for _, es := range energyStats {
-		if math.Abs(es.Z) > 1.96 {
+		if math.Abs(es.ZScore) > 1.96 {
 			testCount += 1
-			fmt.Fprintf(&comment, "| %s | %s | %.4f | %.4f | %.4f | Avg: %.4f, Stdev: %.4f | %.4f |\n", es.Benchmark, es.Measurement, es.H, es.Z, es.PChange, es.StableRegion.Mean, es.StableRegion.Std, es.PatchValues[0])
+			fmt.Fprintf(&comment, "| %s | %s | %.4f | %.4f | %.4f | Avg: %.4f, Stdev: %.4f | %.4f |\n", es.Benchmark, es.Measurement, es.HScore, es.ZScore, es.PercentChange, es.StableRegion.Mean, es.StableRegion.Std, es.PatchValues[0])
 		}
 	}
 
