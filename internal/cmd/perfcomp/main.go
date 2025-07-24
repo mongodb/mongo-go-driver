@@ -4,6 +4,9 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+// This module cannot be included in the workspace since it requires a version of Gonum that is not compatible with the Go Driver.
+// Must use GOWORK=off to run this test.
+
 package main
 
 import (
@@ -20,9 +23,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"gonum.org/v1/gonum/mat"
 )
-
-// This module cannot be included in the workspace since it requires a version of Gonum that is not compatible with the Go Driver.
-// Must use GOWORK=off to run this test.
 
 type OverrideInfo struct {
 	OverrideMainline bool        `bson:"override_mainline"`
@@ -278,7 +278,7 @@ func generatePRComment(energyStats []*EnergyStats, version string) string {
 	for _, es := range energyStats {
 		if math.Abs(es.ZScore) > 1.96 {
 			testCount += 1
-			fmt.Fprintf(&comment, "| %s | %s | %.4f | %.4f | %.4f | Avg: %.4f, Stdev: %.4f | %.4f |\n", es.Benchmark, es.Measurement, es.HScore, es.ZScore, es.PercentChange, es.StableRegion.Mean, es.StableRegion.Std, es.PatchValues[0])
+			fmt.Fprintf(&comment, "| %s | %s | %.4f | %.4f | %.4f | Avg: %.4f, Med: %.4f, Stdev: %.4f | %.4f |\n", es.Benchmark, es.Measurement, es.HScore, es.ZScore, es.PercentChange, es.StableRegion.Mean, es.StableRegion.Median, es.StableRegion.Std, es.PatchValues[0])
 		}
 	}
 
