@@ -34,7 +34,7 @@ func TestEnergyStatistics(t *testing.T) {
 
 	t.Run("similar distributions should have small e,t,h values ", func(t *testing.T) {
 		x, y := createTestVectors(1, 100, 1, 1, 105, 1)
-		e, tstat, h := GetEnergyStatistics(x, y)
+		e, tstat, h := getEnergyStatistics(x, y)
 
 		del := 1e-3
 		// Limit precision of comparison to 3 digits after the decimal.
@@ -45,7 +45,7 @@ func TestEnergyStatistics(t *testing.T) {
 
 	t.Run("different distributions should have large e,t,h values", func(t *testing.T) {
 		x, y := createTestVectors(1, 100, 1, 10000, 13000, 14)
-		e, tstat, h := GetEnergyStatistics(x, y)
+		e, tstat, h := getEnergyStatistics(x, y)
 		del := 1e-3
 
 		assert.InDelta(t, 21859.691, e, del)
@@ -55,7 +55,7 @@ func TestEnergyStatistics(t *testing.T) {
 
 	t.Run("uni-variate distributions", func(t *testing.T) {
 		x, y := createTestVectors(1, 300, 1, 1000, 5000, 10)
-		e, tstat, h := GetEnergyStatistics(x, y)
+		e, tstat, h := getEnergyStatistics(x, y)
 		del := 1e-3
 
 		assert.InDelta(t, 4257.009, e, del)
@@ -67,7 +67,7 @@ func TestEnergyStatistics(t *testing.T) {
 		x := mat.NewDense(10, 1, []float64{1, 1, 1, 1, 1, 1, 1, 1, 1, 1})
 		y := mat.NewDense(1, 1, []float64{1})
 
-		e, tstat, h := GetEnergyStatistics(x, y)
+		e, tstat, h := getEnergyStatistics(x, y)
 
 		assert.Equal(t, 0.0, e)
 		assert.Equal(t, 0.0, tstat)

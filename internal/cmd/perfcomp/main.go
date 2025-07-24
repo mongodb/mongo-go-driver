@@ -234,9 +234,9 @@ func getEnergyStatsForOneBenchmark(rd RawData, coll *mongo.Collection) ([]*Energ
 			)
 		}
 
-		pChange := GetPercentageChange(patchVal[0], stableRegion.Mean)
-		e, t, h := GetEnergyStatistics(mat.NewDense(len(stableRegion.Values), 1, stableRegion.Values), mat.NewDense(1, 1, patchVal))
-		z := GetZScore(patchVal[0], stableRegion.Mean, stableRegion.Std)
+		pChange := getPercentageChange(patchVal[0], stableRegion.Mean)
+		e, t, h := getEnergyStatistics(mat.NewDense(len(stableRegion.Values), 1, stableRegion.Values), mat.NewDense(1, 1, patchVal))
+		z := getZScore(patchVal[0], stableRegion.Mean, stableRegion.Std)
 
 		es := EnergyStats{
 			Benchmark:       testname,
@@ -290,4 +290,68 @@ func generatePRComment(energyStats []*EnergyStats, version string) string {
 
 	comment.WriteString("\n*For a comprehensive view of all microbenchmark results for this PR's commit, please check out the Evergreen perf task for this patch.*")
 	return comment.String()
+}
+
+// Given two matrices, this function returns
+// (e, t, h) = (E-statistic, test statistic, e-coefficient of inhomogeneity)
+func getEnergyStatistics(x, y *mat.Dense) (float64, float64, float64) {
+	n, _ := x.Dims()
+	m, _ := y.Dims()
+	nf := float64(n)
+	mf := float64(m)
+
+	var A float64 // E|X-Y|
+	if nf > 0 && mf > 0 {
+		A = getDistance(x, y) / (nf * mf)
+	} else {
+		A = 0
+	}
+	var B float64 // E|X-X'|
+	if nf > 0 {
+		B = getDistance(x, x) / (nf * nf)
+	} else {
+		B = 0
+	}
+	var C float64 // E|Y-Y'|
+	if mf > 0 {
+		C = getDistance(y, y) / (mf * mf)
+	} else {
+		C = 0
+	}
+
+	E := 2*A - B - C // D^2(F_x, F_y)
+	T := ((nf * mf) / (nf + mf)) * E
+	var H float64
+	if A > 0 {
+		H = E / (2 * A)
+	} else {
+		H = 0
+	}
+	return E, T, H
+}
+
+// Given two vectors (expected 1 col),
+// this function returns the sum of distances between each pair.
+func getDistance(x, y *mat.Dense) float64 {
+	xrows, _ := x.Dims()
+	yrows, _ := y.Dims()
+
+	var sum float64
+
+	for i := 0; i < xrows; i++ {
+		for j := 0; j < yrows; j++ {
+			sum += math.Sqrt(math.Pow((x.At(i, 0) - y.At(j, 0)), 2))
+		}
+	}
+	return sum
+}
+
+// Get Z score for result x, compared to mean u and st dev o.
+func getZScore(x, mu, sigma float64) float64 {
+	return (x - mu) / sigma
+}
+
+// Get percentage change for result x compared to mean u.
+func getPercentageChange(x, mu float64) float64 {
+	return ((x - mu) / mu) * 100
 }
