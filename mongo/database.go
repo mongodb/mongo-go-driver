@@ -131,7 +131,7 @@ func (db *Database) Collection(name string, opts ...options.Lister[options.Colle
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/aggregate/.
 func (db *Database) Aggregate(
 	ctx context.Context,
-	pipeline interface{},
+	pipeline any,
 	opts ...options.Lister[options.AggregateOptions],
 ) (*Cursor, error) {
 	a := aggregateParams{
@@ -153,7 +153,7 @@ func (db *Database) Aggregate(
 
 func (db *Database) processRunCommand(
 	ctx context.Context,
-	cmd interface{},
+	cmd any,
 	cursorCommand bool,
 	opts ...options.Lister[options.RunCmdOptions],
 ) (*operation.Command, *session.Client, error) {
@@ -236,7 +236,7 @@ func (db *Database) processRunCommand(
 // - maxTimeMS when Timeout is set on the Client
 func (db *Database) RunCommand(
 	ctx context.Context,
-	runCommand interface{},
+	runCommand any,
 	opts ...options.Lister[options.RunCmdOptions],
 ) *SingleResult {
 	if ctx == nil {
@@ -278,7 +278,7 @@ func (db *Database) RunCommand(
 // - maxTimeMS when Timeout is set on the Client
 func (db *Database) RunCommandCursor(
 	ctx context.Context,
-	runCommand interface{},
+	runCommand any,
 	opts ...options.Lister[options.RunCmdOptions],
 ) (*Cursor, error) {
 	if ctx == nil {
@@ -365,7 +365,7 @@ func (db *Database) Drop(ctx context.Context) error {
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/listCollections/.
 func (db *Database) ListCollectionSpecifications(
 	ctx context.Context,
-	filter interface{},
+	filter any,
 	opts ...options.Lister[options.ListCollectionsOptions],
 ) ([]CollectionSpecification, error) {
 	cursor, err := db.ListCollections(ctx, filter, opts...)
@@ -428,7 +428,7 @@ func (db *Database) ListCollectionSpecifications(
 // MongoDB version 2.6.
 func (db *Database) ListCollections(
 	ctx context.Context,
-	filter interface{},
+	filter any,
 	opts ...options.Lister[options.ListCollectionsOptions],
 ) (*Cursor, error) {
 	if ctx == nil {
@@ -525,7 +525,7 @@ func (db *Database) ListCollections(
 // MongoDB version 2.6.
 func (db *Database) ListCollectionNames(
 	ctx context.Context,
-	filter interface{},
+	filter any,
 	opts ...options.Lister[options.ListCollectionsOptions],
 ) ([]string, error) {
 	opts = append(opts, options.ListCollections().SetNameOnly(true))
@@ -569,7 +569,7 @@ func (db *Database) ListCollectionNames(
 //
 // The opts parameter can be used to specify options for change stream creation (see the options.ChangeStreamOptions
 // documentation).
-func (db *Database) Watch(ctx context.Context, pipeline interface{},
+func (db *Database) Watch(ctx context.Context, pipeline any,
 	opts ...options.Lister[options.ChangeStreamOptions]) (*ChangeStream, error) {
 
 	csConfig := changeStreamConfig{
@@ -616,7 +616,7 @@ func (db *Database) CreateCollection(ctx context.Context, name string, opts ...o
 
 // getEncryptedFieldsFromServer tries to get an "encryptedFields" document associated with collectionName by running the "listCollections" command.
 // Returns nil and no error if the listCollections command succeeds, but "encryptedFields" is not present.
-func (db *Database) getEncryptedFieldsFromServer(ctx context.Context, collectionName string) (interface{}, error) {
+func (db *Database) getEncryptedFieldsFromServer(ctx context.Context, collectionName string) (any, error) {
 	// Check if collection has an EncryptedFields configured server-side.
 	collSpecs, err := db.ListCollectionSpecifications(ctx, bson.D{{"name", collectionName}})
 	if err != nil {
@@ -646,7 +646,7 @@ func (db *Database) getEncryptedFieldsFromServer(ctx context.Context, collection
 
 // getEncryptedFieldsFromMap tries to get an "encryptedFields" document associated with collectionName by checking the client EncryptedFieldsMap.
 // Returns nil and no error if an EncryptedFieldsMap is not configured, or does not contain an entry for collectionName.
-func (db *Database) getEncryptedFieldsFromMap(collectionName string) interface{} {
+func (db *Database) getEncryptedFieldsFromMap(collectionName string) any {
 	// Check the EncryptedFieldsMap
 	efMap := db.client.encryptedFieldsMap
 	if efMap == nil {
@@ -666,7 +666,7 @@ func (db *Database) getEncryptedFieldsFromMap(collectionName string) interface{}
 func (db *Database) createCollectionWithEncryptedFields(
 	ctx context.Context,
 	name string,
-	ef interface{},
+	ef any,
 	opts ...options.Lister[options.CreateCollectionOptions],
 ) error {
 	efBSON, err := marshal(ef, db.bsonOpts, db.registry)
@@ -890,7 +890,7 @@ func (db *Database) createCollectionOperation(
 //
 // See https://www.mongodb.com/docs/manual/core/views/ for more information
 // about views.
-func (db *Database) CreateView(ctx context.Context, viewName, viewOn string, pipeline interface{},
+func (db *Database) CreateView(ctx context.Context, viewName, viewOn string, pipeline any,
 	opts ...options.Lister[options.CreateViewOptions]) error {
 
 	pipelineArray, _, err := marshalAggregatePipeline(pipeline, db.bsonOpts, db.registry)

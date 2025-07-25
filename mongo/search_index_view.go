@@ -37,7 +37,7 @@ type SearchIndexView struct {
 type SearchIndexModel struct {
 	// A document describing the definition for the search index. It cannot be nil.
 	// See https://www.mongodb.com/docs/atlas/atlas-search/create-index/ for reference.
-	Definition interface{}
+	Definition any
 
 	// The search index options.
 	Options *options.SearchIndexesOptionsBuilder
@@ -250,7 +250,7 @@ func (siv SearchIndexView) DropOne(
 func (siv SearchIndexView) UpdateOne(
 	ctx context.Context,
 	name string,
-	definition interface{},
+	definition any,
 	_ ...options.Lister[options.UpdateSearchIndexOptions],
 ) error {
 	if definition == nil {

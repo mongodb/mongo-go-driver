@@ -11,7 +11,7 @@ package options
 //
 // See corresponding setter methods for documentation.
 type EstimatedDocumentCountOptions struct {
-	Comment interface{}
+	Comment any
 }
 
 // EstimatedDocumentCountOptionsBuilder contains options to estimate document
@@ -35,7 +35,7 @@ func (eco *EstimatedDocumentCountOptionsBuilder) List() []func(*EstimatedDocumen
 // that will be included in server logs, profiling logs, and currentOp queries to help
 // trace the operation.  The default is nil, which means that no comment will be
 // included in the logs.
-func (eco *EstimatedDocumentCountOptionsBuilder) SetComment(comment interface{}) *EstimatedDocumentCountOptionsBuilder {
+func (eco *EstimatedDocumentCountOptionsBuilder) SetComment(comment any) *EstimatedDocumentCountOptionsBuilder {
 	eco.Opts = append(eco.Opts, func(opts *EstimatedDocumentCountOptions) error {
 		opts.Comment = comment
 

@@ -44,7 +44,7 @@ type IndexModel struct {
 	// A document describing which keys should be used for the index. It cannot be nil. This must be an order-preserving
 	// type such as bson.D. Map types such as bson.M are not valid. See https://www.mongodb.com/docs/manual/indexes/#indexes
 	// for examples of valid documents.
-	Keys interface{}
+	Keys any
 
 	// The options to use to create the index.
 	Options *options.IndexOptionsBuilder
@@ -443,7 +443,7 @@ func (iv IndexView) DropOne(
 // DropWithKey drops a collection index by key using the dropIndexes operation.
 //
 // This function is useful to drop an index using its key specification instead of its name.
-func (iv IndexView) DropWithKey(ctx context.Context, keySpecDocument interface{}, opts ...options.Lister[options.DropIndexesOptions]) error {
+func (iv IndexView) DropWithKey(ctx context.Context, keySpecDocument any, opts ...options.Lister[options.DropIndexesOptions]) error {
 	doc, err := marshal(keySpecDocument, iv.coll.bsonOpts, iv.coll.registry)
 	if err != nil {
 		return err

@@ -132,7 +132,7 @@ func (mc *mongocryptdClient) spawnProcess() error {
 }
 
 // createSpawnArgs creates arguments to spawn mcryptClient. It returns the path and a slice of arguments.
-func createSpawnArgs(opts map[string]interface{}) (string, []string) {
+func createSpawnArgs(opts map[string]any) (string, []string) {
 	var spawnArgs []string
 
 	// get command path

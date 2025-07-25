@@ -238,7 +238,7 @@ func IsNetworkError(err error) bool {
 // MarshalError is returned when attempting to marshal a value into a document
 // results in an error.
 type MarshalError struct {
-	Value interface{}
+	Value any
 	Err   error
 
 	// If wrappedMsgOnly is true, Error() only returns the error message from

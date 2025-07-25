@@ -123,7 +123,7 @@ func (b *BucketOptionsBuilder) SetReadPreference(rp *readpref.ReadPref) *BucketO
 // See corresponding setter methods for documentation.
 type GridFSUploadOptions struct {
 	ChunkSizeBytes *int32
-	Metadata       interface{}
+	Metadata       any
 	Registry       *bson.Registry
 }
 
@@ -163,7 +163,7 @@ func (u *GridFSUploadOptionsBuilder) SetChunkSizeBytes(i int32) *GridFSUploadOpt
 // that will be stored in the "metadata" field of the document in the files collection.
 // The default value is nil, which means that the document in the files collection will
 // not contain a "metadata" field.
-func (u *GridFSUploadOptionsBuilder) SetMetadata(doc interface{}) *GridFSUploadOptionsBuilder {
+func (u *GridFSUploadOptionsBuilder) SetMetadata(doc any) *GridFSUploadOptionsBuilder {
 	u.Opts = append(u.Opts, func(opts *GridFSUploadOptions) error {
 		opts.Metadata = doc
 
@@ -242,7 +242,7 @@ type GridFSFindOptions struct {
 	Limit           *int32
 	NoCursorTimeout *bool
 	Skip            *int32
-	Sort            interface{}
+	Sort            any
 }
 
 // GridFSFindOptionsBuilder contains options to configure find operations. Each
@@ -331,7 +331,7 @@ func (f *GridFSFindOptionsBuilder) SetSkip(i int32) *GridFSFindOptionsBuilder {
 // in which documents should be returned. The sort parameter is evaluated sequentially,
 // so the driver will return an error if it is a multi-key map (which is unordeded).
 // The default value is nil.
-func (f *GridFSFindOptionsBuilder) SetSort(sort interface{}) *GridFSFindOptionsBuilder {
+func (f *GridFSFindOptionsBuilder) SetSort(sort any) *GridFSFindOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *GridFSFindOptions) error {
 		opts.Sort = sort
 

@@ -493,7 +493,7 @@ func ExampleCollection_InsertMany() {
 	// Insert documents {name: "Alice"} and {name: "Bob"}.
 	// Set the Ordered option to false to allow both operations to happen even
 	// if one of them errors.
-	docs := []interface{}{
+	docs := []any{
 		bson.D{{"name", "Alice"}},
 		bson.D{{"name", "Bob"}},
 	}
@@ -761,7 +761,7 @@ func ExampleClient_StartSession_withTransaction() {
 	txnOpts.SetReadPreference(readpref.PrimaryPreferred())
 	result, err := sess.WithTransaction(
 		context.TODO(),
-		func(ctx context.Context) (interface{}, error) {
+		func(ctx context.Context) (any, error) {
 			// Use the context.Context as the Context parameter for
 			// InsertOne and FindOne so both operations are run in the same
 			// transaction.
@@ -1106,7 +1106,7 @@ func ExampleCollection_Find_primitiveRegex() {
 
 	// Create a slice of documents to insert. We will lookup a subset of
 	// these documents using regex.
-	toInsert := []interface{}{
+	toInsert := []any{
 		Pet{Type: "cat", Name: "Mo"},
 		Pet{Type: "dog", Name: "Loki"},
 	}
@@ -1147,7 +1147,7 @@ func ExampleCollection_Find_regex() {
 
 	// Create a slice of documents to insert. We will lookup a subset of
 	// these documents using regex.
-	toInsert := []interface{}{
+	toInsert := []any{
 		Pet{Type: "cat", Name: "Mo"},
 		Pet{Type: "dog", Name: "Loki"},
 	}

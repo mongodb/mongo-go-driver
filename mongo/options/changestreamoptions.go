@@ -18,14 +18,14 @@ import (
 type ChangeStreamOptions struct {
 	BatchSize                *int32
 	Collation                *Collation
-	Comment                  interface{}
+	Comment                  any
 	FullDocument             *FullDocument
 	FullDocumentBeforeChange *FullDocument
 	MaxAwaitTime             *time.Duration
-	ResumeAfter              interface{}
+	ResumeAfter              any
 	ShowExpandedEvents       *bool
 	StartAtOperationTime     *bson.Timestamp
-	StartAfter               interface{}
+	StartAfter               any
 	Custom                   bson.M
 	CustomPipeline           bson.M
 }
@@ -71,7 +71,7 @@ func (cso *ChangeStreamOptionsBuilder) SetCollation(c Collation) *ChangeStreamOp
 // SetComment sets the value for the Comment field. Specifies a string or document that will be included in
 // server logs, profiling logs, and currentOp queries to help trace the operation. The default is nil,
 // which means that no comment will be included in the logs.
-func (cso *ChangeStreamOptionsBuilder) SetComment(comment interface{}) *ChangeStreamOptionsBuilder {
+func (cso *ChangeStreamOptionsBuilder) SetComment(comment any) *ChangeStreamOptionsBuilder {
 	cso.Opts = append(cso.Opts, func(opts *ChangeStreamOptions) error {
 		opts.Comment = comment
 		return nil
@@ -114,7 +114,7 @@ func (cso *ChangeStreamOptionsBuilder) SetMaxAwaitTime(d time.Duration) *ChangeS
 // SetResumeAfter sets the value for the ResumeAfter field. Specifies a document specifying the logical starting
 // point for the change stream. Only changes corresponding to an oplog entry immediately after the resume token
 // will be returned. If this is specified, StartAtOperationTime and StartAfter must not be set.
-func (cso *ChangeStreamOptionsBuilder) SetResumeAfter(rt interface{}) *ChangeStreamOptionsBuilder {
+func (cso *ChangeStreamOptionsBuilder) SetResumeAfter(rt any) *ChangeStreamOptionsBuilder {
 	cso.Opts = append(cso.Opts, func(opts *ChangeStreamOptions) error {
 		opts.ResumeAfter = rt
 		return nil
@@ -151,7 +151,7 @@ func (cso *ChangeStreamOptionsBuilder) SetStartAtOperationTime(t *bson.Timestamp
 // the collection has been dropped and recreated or renamed. Only changes corresponding to an oplog entry
 // immediately after the specified token will be returned. If this is specified, ResumeAfter and
 // StartAtOperationTime must not be set. This option is only valid for MongoDB versions >= 4.1.1.
-func (cso *ChangeStreamOptionsBuilder) SetStartAfter(sa interface{}) *ChangeStreamOptionsBuilder {
+func (cso *ChangeStreamOptionsBuilder) SetStartAfter(sa any) *ChangeStreamOptionsBuilder {
 	cso.Opts = append(cso.Opts, func(opts *ChangeStreamOptions) error {
 		opts.StartAfter = sa
 		return nil
