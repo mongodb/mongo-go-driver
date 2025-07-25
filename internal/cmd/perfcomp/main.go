@@ -153,7 +153,6 @@ func main() {
 	db := client.Database(expandedMetricsDB)
 
 	// Get raw data, most recent stable region, and calculate energy stats
-
 	findCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
@@ -267,7 +266,6 @@ func getEnergyStatsForOneBenchmark(rd RawData, coll *mongo.Collection) ([]*Energ
 		} else {
 			zscore = getZScore(measVal, stableRegion.Mean, stableRegion.Std)
 			pChange = getPercentageChange(measVal, stableRegion.Mean)
-
 		}
 
 		es := EnergyStats{
@@ -348,6 +346,7 @@ func getEnergyStatistics(x, y *mat.Dense) (float64, float64, float64, error) {
 	} else {
 		A = 0
 	}
+
 	var B float64 // E|X-X'|
 	if xrowsf > 0 {
 		dist, err := getDistance(x, x)
@@ -358,6 +357,7 @@ func getEnergyStatistics(x, y *mat.Dense) (float64, float64, float64, error) {
 	} else {
 		B = 0
 	}
+
 	var C float64 // E|Y-Y'|
 	if yrowsf > 0 {
 		dist, err := getDistance(y, y)
