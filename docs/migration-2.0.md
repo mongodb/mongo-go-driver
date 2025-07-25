@@ -189,7 +189,7 @@ fmt.Printf("car-renting persons: %v\n", people)
 
 #### InsertMany
 
-The `documents` parameter in the `Collection.InsertMany` function signature has been changed from an `[]interface{}` type to an `any` type. This API no longer requires users to copy existing slice of documents to an `[]interface{}` slice.
+The `documents` parameter in the `Collection.InsertMany` function signature has been changed from an `[]any` type to an `any` type. This API no longer requires users to copy existing slice of documents to an `[]any` slice.
 
 ```go
 // v1
@@ -209,7 +209,7 @@ books := []book{
   },
 }
 
-booksi := make([]interface{}, len(books))
+booksi := make([]any, len(books))
 for i, book := range books {
   booksi[i] = book
 }
@@ -633,13 +633,13 @@ The following types are not valid for a `findOne` operation and have been remove
 
 ### FindOneAndUpdateOptions
 
-The `ArrayFilters` struct type has been removed in v2. As a result, the `ArrayFilters` field in the `FindOneAndUpdateOptions` struct now uses the `[]interface{}` type. The `ArrayFilters` field (now of type `[]interface{}`) serves the same purpose as the `Filters` field in the original `ArrayFilters` struct.
+The `ArrayFilters` struct type has been removed in v2. As a result, the `ArrayFilters` field in the `FindOneAndUpdateOptions` struct now uses the `[]any` type. The `ArrayFilters` field (now of type `[]any`) serves the same purpose as the `Filters` field in the original `ArrayFilters` struct.
 
 ### UpdateManyOptions / UpdateOneOptions
 
 The `UpdateOptions` has been separated into `UpdateManyOptions` and `UpdateOneOptions` to configure the corresponding `UpdateMany` and `UpdateOne` operations.
 
-The `ArrayFilters` struct type has been removed in v2. As a result, the `ArrayFilters` fields in the new `UpdateManyOptions` and `UpdateOneOptions` structs (which replace the old `UpdateOptions` struct) now use the `[]interface{}` type. The `ArrayFilters` field (now of type `[]interface{}`) serves the same purpose as the `Filters` field in the original `ArrayFilters` struct.
+The `ArrayFilters` struct type has been removed in v2. As a result, the `ArrayFilters` fields in the new `UpdateManyOptions` and `UpdateOneOptions` structs (which replace the old `UpdateOptions` struct) now use the `[]any` type. The `ArrayFilters` field (now of type `[]any`) serves the same purpose as the `Filters` field in the original `ArrayFilters` struct.
 
 ### Merge\*Options
 
