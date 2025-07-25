@@ -17,6 +17,7 @@ import (
 	"math"
 	"os"
 	"strings"
+	"text/tabwriter"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -303,15 +304,19 @@ func generatePRComment(energyStats []*EnergyStats, version string) string {
 	var comment strings.Builder
 	comment.WriteString("# 👋GoDriver Performance\n")
 	fmt.Fprintf(&comment, "The following benchmark tests for version %s had statistically significant changes (i.e., |z-score| > 1.96):\n", version)
-	comment.WriteString("| Benchmark | Measurement | H-Score | Z-Score | % Change | Stable Reg | Patch Value |\n| --- | --- | --- | --- | --- | --- | --- |\n")
+
+	w := tabwriter.NewWriter(&comment, 0, 0, 1, ' ', 0)
+	fmt.Fprintln(w, "| Benchmark\t| Measurement\t| H-Score\t| Z-Score\t| % Change\t| Stable Reg\t| Patch Value\t|")
+	fmt.Fprintln(w, "| ---------\t| -----------\t| -------\t| -------\t| --------\t| ----------\t| -----------\t|")
 
 	var testCount int64
 	for _, es := range energyStats {
 		if math.Abs(es.ZScore) > 1.96 {
 			testCount += 1
-			fmt.Fprintf(&comment, "| %s | %s | %.4f | %.4f | %.4f | Avg: %.4f, Med: %.4f, Stdev: %.4f | %.4f |\n", es.Benchmark, es.Measurement, es.HScore, es.ZScore, es.PercentChange, es.StableRegion.Mean, es.StableRegion.Median, es.StableRegion.Std, es.MeasurementVal)
+			fmt.Fprintf(w, "| %s\t| %s\t| %.4f\t| %.4f\t| %.4f\t| Avg: %.4f, Med: %.4f, Stdev: %.4f\t| %.4f\t|\n", es.Benchmark, es.Measurement, es.HScore, es.ZScore, es.PercentChange, es.StableRegion.Mean, es.StableRegion.Median, es.StableRegion.Std, es.MeasurementVal)
 		}
 	}
+	w.Flush()
 
 	if testCount == 0 {
 		comment.Reset()
