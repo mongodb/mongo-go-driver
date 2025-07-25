@@ -207,7 +207,7 @@ type BSONOptions struct {
 
 	// DefaultDocumentM causes the driver to always unmarshal documents into the
 	// bson.M type. This behavior is restricted to data typed as
-	// "interface{}" or "map[string]interface{}".
+	// "any" or "map[string]any".
 	DefaultDocumentM bool
 
 	// ObjectIDAsHexString causes the Decoder to decode object IDs to their hex

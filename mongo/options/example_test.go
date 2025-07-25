@@ -23,14 +23,14 @@ type CustomLogger struct {
 	mu sync.Mutex
 }
 
-func (logger *CustomLogger) Info(level int, msg string, _ ...interface{}) {
+func (logger *CustomLogger) Info(level int, msg string, _ ...any) {
 	logger.mu.Lock()
 	defer logger.mu.Unlock()
 
 	fmt.Fprintf(logger, "level=%d msg=%s\n", level, msg)
 }
 
-func (logger *CustomLogger) Error(err error, msg string, _ ...interface{}) {
+func (logger *CustomLogger) Error(err error, msg string, _ ...any) {
 	logger.mu.Lock()
 	defer logger.mu.Unlock()
 

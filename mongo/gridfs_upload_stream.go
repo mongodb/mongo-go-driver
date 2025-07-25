@@ -29,7 +29,7 @@ var ErrStreamClosed = errors.New("stream is closed or aborted")
 // metadata.
 type GridFSUploadStream struct {
 	*upload // chunk size and metadata
-	FileID  interface{}
+	FileID  any
 
 	chunkIndex  int
 	chunksColl  *Collection // collection to store file chunks
@@ -48,7 +48,7 @@ func newUploadStream(
 	ctx context.Context,
 	cancel context.CancelFunc,
 	up *upload,
-	fileID interface{},
+	fileID any,
 	filename string,
 	chunks, files *Collection,
 ) *GridFSUploadStream {
@@ -150,7 +150,7 @@ func (us *GridFSUploadStream) uploadChunks(ctx context.Context, uploadPartial bo
 		numChunks = int(math.Floor(chunks))
 	}
 
-	docs := make([]interface{}, numChunks)
+	docs := make([]any, numChunks)
 
 	begChunkIndex := us.chunkIndex
 	for i := 0; i < us.bufferIndex; i += int(us.chunkSize) {

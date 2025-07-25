@@ -50,7 +50,7 @@ type batchCursor interface {
 
 	// SetComment will set a user-configurable comment that can be used to
 	// identify the operation in server logs.
-	SetComment(interface{})
+	SetComment(any)
 }
 
 // changeStreamCursor is the interface implemented by batch cursors that also provide the functionality for retrieving

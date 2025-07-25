@@ -82,7 +82,7 @@ func NewClientEncryption(keyVaultClient *Client, opts ...options.Lister[options.
 // It returns the created collection and the encrypted fields document used to create it.
 func (ce *ClientEncryption) CreateEncryptedCollection(ctx context.Context,
 	db *Database, coll string, createOpts options.Lister[options.CreateCollectionOptions],
-	kmsProvider string, masterKey interface{}) (*Collection, bson.M, error) {
+	kmsProvider string, masterKey any) (*Collection, bson.M, error) {
 	if ce.closed {
 		return nil, nil, ErrClientDisconnected
 	}
@@ -273,7 +273,7 @@ func (ce *ClientEncryption) Encrypt(
 // {$and: [{$gt: [<fieldpath>, <value1>]}, {$lt: [<fieldpath>, <value2>]}]
 // $gt may also be $gte. $lt may also be $lte.
 // Only supported for queryType "range"
-func (ce *ClientEncryption) EncryptExpression(ctx context.Context, expr interface{}, result interface{}, opts ...options.Lister[options.EncryptOptions]) error {
+func (ce *ClientEncryption) EncryptExpression(ctx context.Context, expr any, result any, opts ...options.Lister[options.EncryptOptions]) error {
 	if ce.closed {
 		return ErrClientDisconnected
 	}
@@ -444,7 +444,7 @@ func setRewrapManyDataKeyWriteModels(rewrappedDocuments []bsoncore.Document, wri
 // libmongocrypt 1.5.2 is required. An error is returned if the detected version of libmongocrypt is less than 1.5.2.
 func (ce *ClientEncryption) RewrapManyDataKey(
 	ctx context.Context,
-	filter interface{},
+	filter any,
 	opts ...options.Lister[options.RewrapManyDataKeyOptions],
 ) (*RewrapManyDataKeyResult, error) {
 	// libmongocrypt versions 1.5.0 and 1.5.1 have a severe bug in RewrapManyDataKey.

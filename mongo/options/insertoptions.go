@@ -12,7 +12,7 @@ package options
 // See corresponding setter methods for documentation.
 type InsertOneOptions struct {
 	BypassDocumentValidation *bool
-	Comment                  interface{}
+	Comment                  any
 }
 
 // InsertOneOptionsBuilder represents functional options that configure an
@@ -45,7 +45,7 @@ func (ioo *InsertOneOptionsBuilder) SetBypassDocumentValidation(b bool) *InsertO
 
 // SetComment sets the value for the Comment field. Specifies a string or document that will be included in server logs, profiling logs, and currentOp queries to help trace
 // the operation.  The default value is nil, which means that no comment will be included in the logs.
-func (ioo *InsertOneOptionsBuilder) SetComment(comment interface{}) *InsertOneOptionsBuilder {
+func (ioo *InsertOneOptionsBuilder) SetComment(comment any) *InsertOneOptionsBuilder {
 	ioo.Opts = append(ioo.Opts, func(opts *InsertOneOptions) error {
 		opts.Comment = &comment
 		return nil
@@ -59,7 +59,7 @@ func (ioo *InsertOneOptionsBuilder) SetComment(comment interface{}) *InsertOneOp
 // See corresponding setter methods for documentation.
 type InsertManyOptions struct {
 	BypassDocumentValidation *bool
-	Comment                  interface{}
+	Comment                  any
 	Ordered                  *bool
 }
 
@@ -100,7 +100,7 @@ func (imo *InsertManyOptionsBuilder) SetBypassDocumentValidation(b bool) *Insert
 // SetComment sets the value for the Comment field. Specifies a string or document that will be
 // included in server logs, profiling logs, and currentOp queries to help trace the operation.
 // The default value is nil, which means that no comment will be included in the logs.
-func (imo *InsertManyOptionsBuilder) SetComment(comment interface{}) *InsertManyOptionsBuilder {
+func (imo *InsertManyOptionsBuilder) SetComment(comment any) *InsertManyOptionsBuilder {
 	imo.Opts = append(imo.Opts, func(opts *InsertManyOptions) error {
 		opts.Comment = comment
 
