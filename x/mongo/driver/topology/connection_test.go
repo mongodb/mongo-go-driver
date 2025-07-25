@@ -7,6 +7,7 @@
 package topology
 
 import (
+	"bufio"
 	"context"
 	"crypto/tls"
 	"errors"
@@ -380,7 +381,7 @@ func TestConnection(t *testing.T) {
 				t.Run("size read errors", func(t *testing.T) {
 					err := errors.New("Read error")
 					tnc := &testNetConn{readerr: err}
-					conn := &connection{id: "foobar", nc: tnc, state: connConnected}
+					conn := &connection{id: "foobar", nc: tnc, state: connConnected, br: bufio.NewReader(tnc)}
 					listener := newTestCancellationListener(false)
 					conn.cancellationListener = listener
 
@@ -397,7 +398,7 @@ func TestConnection(t *testing.T) {
 				t.Run("size too small errors", func(t *testing.T) {
 					err := errors.New("malformed message length: 3")
 					tnc := &testNetConn{readerr: err, buf: []byte{0x03, 0x00, 0x00, 0x00}}
-					conn := &connection{id: "foobar", nc: tnc, state: connConnected}
+					conn := &connection{id: "foobar", nc: tnc, state: connConnected, br: bufio.NewReader(tnc)}
 					listener := newTestCancellationListener(false)
 					conn.cancellationListener = listener
 
@@ -414,7 +415,7 @@ func TestConnection(t *testing.T) {
 				t.Run("full message read errors", func(t *testing.T) {
 					err := errors.New("Read error")
 					tnc := &testNetConn{readerr: err, buf: []byte{0x11, 0x00, 0x00, 0x00}}
-					conn := &connection{id: "foobar", nc: tnc, state: connConnected}
+					conn := &connection{id: "foobar", nc: tnc, state: connConnected, br: bufio.NewReader(tnc)}
 					listener := newTestCancellationListener(false)
 					conn.cancellationListener = listener
 
@@ -450,7 +451,7 @@ func TestConnection(t *testing.T) {
 							err := errors.New("length of read message too large")
 							tnc := &testNetConn{buf: make([]byte, len(tc.buffer))}
 							copy(tnc.buf, tc.buffer)
-							conn := &connection{id: "foobar", nc: tnc, state: connConnected, desc: tc.desc}
+							conn := &connection{id: "foobar", nc: tnc, state: connConnected, desc: tc.desc, br: bufio.NewReader(tnc)}
 							listener := newTestCancellationListener(false)
 							conn.cancellationListener = listener
 
@@ -467,7 +468,7 @@ func TestConnection(t *testing.T) {
 					want := []byte{0x0A, 0x00, 0x00, 0x00, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A}
 					tnc := &testNetConn{buf: make([]byte, len(want))}
 					copy(tnc.buf, want)
-					conn := &connection{id: "foobar", nc: tnc, state: connConnected}
+					conn := &connection{id: "foobar", nc: tnc, state: connConnected, br: bufio.NewReader(tnc)}
 					listener := newTestCancellationListener(false)
 					conn.cancellationListener = listener
 
@@ -497,7 +498,7 @@ func TestConnection(t *testing.T) {
 							readBuf := []byte{10, 0, 0, 0}
 							nc := newCancellationReadConn(&testNetConn{}, tc.skip, readBuf)
 
-							conn := &connection{id: "foobar", nc: nc, state: connConnected}
+							conn := &connection{id: "foobar", nc: nc, state: connConnected, br: bufio.NewReader(nc)}
 							listener := newTestCancellationListener(false)
 							conn.cancellationListener = listener
 
@@ -525,7 +526,7 @@ func TestConnection(t *testing.T) {
 				})
 				t.Run("closes connection if context is cancelled even if the socket read succeeds", func(t *testing.T) {
 					tnc := &testNetConn{buf: []byte{0x0A, 0x00, 0x00, 0x00, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A}}
-					conn := &connection{id: "foobar", nc: tnc, state: connConnected}
+					conn := &connection{id: "foobar", nc: tnc, state: connConnected, br: bufio.NewReader(tnc)}
 					listener := newTestCancellationListener(true)
 					conn.cancellationListener = listener
 
@@ -566,7 +567,7 @@ func TestConnection(t *testing.T) {
 		t.Run("cancellation listener callback", func(t *testing.T) {
 			t.Run("closes connection", func(t *testing.T) {
 				tnc := &testNetConn{}
-				conn := &connection{state: connConnected, nc: tnc}
+				conn := &connection{state: connConnected, nc: tnc, br: bufio.NewReader(tnc), id: "foobar"}
 
 				conn.cancellationListenerCallback()
 				assert.True(t, conn.state == connDisconnected, "expected connection state %v, got %v", connDisconnected,

@@ -26,7 +26,7 @@ timeout:
       args: [ls, -la]
 
 functions:
-  assume-test-secrets-ec2-role: 
+  assume-test-secrets-ec2-role:
     - command: ec2.assume_role
       params:
         role_arn: ${aws_test_secrets_role}
@@ -121,21 +121,21 @@ functions:
       params:
         binary: bash
         add_expansions_to_env: true
-        args: 
+        args:
           - ${DRIVERS_TOOLS}/.evergreen/atlas_data_lake/pull-mongohouse-image.sh
     - command: subprocess.exec
       params:
         binary: bash
-        args: 
+        args:
           - ${DRIVERS_TOOLS}/.evergreen/atlas_data_lake/run-mongohouse-image.sh
 
   bootstrap-mongo-orchestration:
     - command: subprocess.exec
       params:
         binary: bash
-        env: 
+        env:
           MONGODB_VERSION: ${VERSION}
-        include_expansions_in_env: [TOPOLOGY, AUTH, SSL, ORCHESTRATION_FILE, 
+        include_expansions_in_env: [TOPOLOGY, AUTH, SSL, ORCHESTRATION_FILE,
             REQUIRE_API_VERSION, LOAD_BALANCER]
         args: ["${DRIVERS_TOOLS}/.evergreen/run-orchestration.sh"]
     - command: expansions.update
@@ -146,7 +146,7 @@ functions:
     - command: subprocess.exec
       params:
         binary: bash
-        env: 
+        env:
           MONGODB_VERSION: ${VERSION}
         include_expansions_in_env: [TOPOLOGY, AUTH, SSL, ORCHESTRATION_FILE]
         args: ["${DRIVERS_TOOLS}/.evergreen/run-orchestration.sh"]
@@ -158,23 +158,23 @@ functions:
     - command: subprocess.exec
       params:
         binary: bash
-        args: 
+        args:
           # Ensure the instance profile is reassigned for aws tests.
           - ${DRIVERS_TOOLS}/.evergreen/auth_aws/teardown.sh
     - command: subprocess.exec
       params:
         binary: bash
-        args: 
+        args:
           - ${DRIVERS_TOOLS}/.evergreen/csfle/teardown.sh
     - command: subprocess.exec
       params:
         binary: bash
-        args: 
+        args:
           - ${DRIVERS_TOOLS}/.evergreen/ocsp/teardown.sh
     - command: subprocess.exec
       params:
         binary: bash
-        args: 
+        args:
           - ${DRIVERS_TOOLS}/.evergreen/teardown.sh
 
   assume-test-secrets-ec2-role:
@@ -200,7 +200,19 @@ functions:
         binary: bash
         env:
           GO_BUILD_TAGS: cse
-        include_expansions_in_env: ["TOPOLOGY", "AUTH", "SSL", "SKIP_CSOT_TESTS", "MONGODB_URI", "CRYPT_SHARED_LIB_PATH", "SKIP_CRYPT_SHARED_LIB", "RACE", "MONGO_GO_DRIVER_COMPRESSOR", "REQUIRE_API_VERSION", "LOAD_BALANCER"]
+        include_expansions_in_env:
+          - "TOPOLOGY"
+          - "AUTH"
+          - "SSL"
+          - "SKIP_CSOT_TESTS"
+          - "MONGODB_URI"
+          - "CRYPT_SHARED_LIB_PATH"
+          - "SKIP_CRYPT_SHARED_LIB"
+          - "RACE"
+          - "MONGO_GO_DRIVER_COMPRESSOR"
+          - "REQUIRE_API_VERSION"
+          - "LOAD_BALANCER"
+          - "MONGOPROXY"
         args: [*task-runner, setup-test]
     - command: subprocess.exec
       type: test
@@ -294,7 +306,7 @@ functions:
       params:
         binary: bash
         include_expansions_in_env: [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN]
-        env: 
+        env:
           TEST_ENTERPRISE_AUTH: plain
         args: [*task-runner, setup-test]
     - command: subprocess.exec
@@ -312,7 +324,7 @@ functions:
       params:
         binary: bash
         include_expansions_in_env: [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN]
-        env: 
+        env:
           TEST_ENTERPRISE_AUTH: gssapi
         args: [*task-runner, setup-test]
     - command: subprocess.exec
@@ -344,7 +356,7 @@ functions:
       type: test
       params:
         binary: bash
-        env: 
+        env:
           TOPOLOGY: server
           AUTH: auth
           SSL: ssl
@@ -362,9 +374,9 @@ functions:
       type: test
       params:
         binary: bash
-        env: 
+        env:
           GO_BUILD_TAGS: cse
-        include_expansions_in_env: [AUTH, SSL, MONGODB_URI, TOPOLOGY, MONGO_GO_DRIVER_COMPRESSOR, 
+        include_expansions_in_env: [AUTH, SSL, MONGODB_URI, TOPOLOGY, MONGO_GO_DRIVER_COMPRESSOR,
           REQUIRE_API_VERSION, SKIP_CRYPT_SHARED_LIB, CRYPT_SHARED_LIB_PATH]
         args: [*task-runner, setup-test]
     - command: subprocess.exec
@@ -379,7 +391,7 @@ functions:
       params:
         binary: bash
         include_expansions_in_env: [SINGLE_MONGOS_LB_URI, MULTI_MONGOS_LB_URI, AUTH, SSL, MONGO_GO_DRIVER_COMPRESSOR]
-        env: 
+        env:
           LOAD_BALANCER: "true"
         args: [*task-runner, setup-test]
     - command: subprocess.exec
@@ -393,7 +405,7 @@ functions:
       type: test
       params:
         binary: "bash"
-        env: 
+        env:
           AUTH: auth
           SSL: nossl
           TOPOLOGY: server
@@ -417,7 +429,7 @@ functions:
       type: test
       params:
         binary: "bash"
-        env: 
+        env:
           TOPOLOGY: sharded_cluster
           TASKFILE_TARGET: test-short
         args: [*task-runner, run-docker]
@@ -477,7 +489,7 @@ functions:
       params:
         include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
         binary: "bash"
-        args: 
+        args:
           - ${DRIVERS_TOOLS}/.evergreen/auth_aws/setup-secrets.sh
 
   run-aws-auth-test-with-regular-aws-credentials:
@@ -502,7 +514,7 @@ functions:
     - command: subprocess.exec
       type: test
       params:
-        binary: bash 
+        binary: bash
         include_expansions_in_env: [SKIP_EC2_AUTH_TEST]
         env:
           AWS_TEST: ec2
@@ -547,7 +559,7 @@ functions:
       type: test
       params:
         binary: bash
-        env: 
+        env:
           AWS_ROLE_SESSION_NAME: test
           AWS_TEST: web-identity
         include_expansions_in_env: [SKIP_WEB_IDENTITY_AUTH_TEST]
@@ -570,14 +582,25 @@ functions:
         binary: bash
         args: ["${DRIVERS_TOOLS}/.evergreen/csfle/await-servers.sh"]
 
+  start-mongoproxy:
+    - command: ec2.assume_role # TODO: not sure this is needd
+      params:
+        role_arn: ${aws_test_secrets_role}
+    - command: subprocess.exec
+      params:
+        binary: bash
+        include_expansions_in_env: [AUTH, SSL, MONGODB_URI]
+        background: true
+        args: [*task-runner, start-mongoproxy]
+
   run-kms-tls-test:
     - command: subprocess.exec
       type: test
       params:
         binary: "bash"
-        env: 
+        env:
           GO_BUILD_TAGS: cse
-        include_expansions_in_env: [AUTH, SSL, MONGODB_URI, TOPOLOGY, 
+        include_expansions_in_env: [AUTH, SSL, MONGODB_URI, TOPOLOGY,
           MONGO_GO_DRIVER_COMPRESSOR]
         args: [*task-runner, setup-test]
     - command: subprocess.exec
@@ -592,9 +615,9 @@ functions:
       type: test
       params:
         binary: "bash"
-        env: 
+        env:
           GO_BUILD_TAGS: cse
-        include_expansions_in_env: [AUTH, SSL, MONGODB_URI, TOPOLOGY, 
+        include_expansions_in_env: [AUTH, SSL, MONGODB_URI, TOPOLOGY,
           MONGO_GO_DRIVER_COMPRESSOR]
         args: [*task-runner, setup-test]
     - command: subprocess.exec
@@ -610,9 +633,9 @@ functions:
       type: test
       params:
         binary: "bash"
-        env: 
+        env:
           GO_BUILD_TAGS: cse
-        include_expansions_in_env: [AUTH, SSL, MONGODB_URI, TOPOLOGY, 
+        include_expansions_in_env: [AUTH, SSL, MONGODB_URI, TOPOLOGY,
           MONGO_GO_DRIVER_COMPRESSOR]
         args: [*task-runner, setup-test]
     - command: subprocess.exec
@@ -659,14 +682,14 @@ tasks:
     allowed_requesters: ["patch", "github_pr"]
     commands:
       - func: assume-test-secrets-ec2-role
-      - func: "add PR reviewer"  
+      - func: "add PR reviewer"
       - func: "add PR labels"
       - func: "create-api-report"
 
   - name: backport-pr
     allowed_requesters: ["commit"]
     commands:
-      - func: "backport pr"  
+      - func: "backport pr"
 
   - name: perf
     tags: ["performance"]
@@ -694,11 +717,13 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
       - func: start-cse-servers
+      - func: start-mongoproxy
       - func: run-tests
         vars:
           TOPOLOGY: "server"
           AUTH: "noauth"
           SSL: "nossl"
+          MONGOPROXY: "true"
 
   - name: test-standalone-noauth-nossl-snappy-compression
     tags: ["test", "standalone", "compression", "snappy"]
@@ -709,6 +734,7 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
       - func: start-cse-servers
+      #- func: start-mongoproxy
       - func: run-tests
         vars:
           TOPOLOGY: "server"
@@ -725,6 +751,7 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
       - func: start-cse-servers
+      #- func: start-mongoproxy
       - func: run-tests
         vars:
           TOPOLOGY: "server"
@@ -741,6 +768,7 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
       - func: start-cse-servers
+      #- func: start-mongoproxy
       - func: run-tests
         vars:
           TOPOLOGY: "server"
@@ -757,6 +785,7 @@ tasks:
           AUTH: "auth"
           SSL: "ssl"
       - func: start-cse-servers
+      #- func: start-mongoproxy
       - func: run-tests
         vars:
           TOPOLOGY: "server"
@@ -772,6 +801,7 @@ tasks:
           AUTH: "auth"
           SSL: "nossl"
       - func: start-cse-servers
+      #- func: start-mongoproxy
       - func: run-tests
         vars:
           TOPOLOGY: "server"
@@ -787,6 +817,7 @@ tasks:
           AUTH: "auth"
           SSL: "ssl"
       - func: start-cse-servers
+      #- func: start-mongoproxy
       - func: run-tests
         vars:
           TOPOLOGY: "server"
@@ -803,6 +834,7 @@ tasks:
           AUTH: "auth"
           SSL: "ssl"
       - func: start-cse-servers
+      #- func: start-mongoproxy
       - func: run-tests
         vars:
           TOPOLOGY: "server"
@@ -819,6 +851,7 @@ tasks:
           AUTH: "auth"
           SSL: "ssl"
       - func: start-cse-servers
+      #- func: start-mongoproxy
       - func: run-tests
         vars:
           TOPOLOGY: "server"
@@ -1239,6 +1272,7 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
       - func: start-cse-servers
+      #- func: start-mongoproxy
       - func: run-tests
         vars:
           TOPOLOGY: "replica_set"
@@ -1255,6 +1289,7 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
       - func: start-cse-servers
+      #- func: start-mongoproxy
       - func: run-tests
         vars:
           TOPOLOGY: "replica_set"
@@ -1270,6 +1305,7 @@ tasks:
           AUTH: "auth"
           SSL: "ssl"
       - func: start-cse-servers
+      #- func: start-mongoproxy
       - func: run-tests
         vars:
           TOPOLOGY: "replica_set"
@@ -1285,6 +1321,7 @@ tasks:
           AUTH: "auth"
           SSL: "ssl"
       - func: start-cse-servers
+      #- func: start-mongoproxy
       - func: run-tests
         vars:
           TOPOLOGY: "replica_set"
@@ -1303,6 +1340,7 @@ tasks:
           AUTH: "auth"
           SSL: "nossl"
       - func: start-cse-servers
+      #- func: start-mongoproxy
       - func: run-tests
         vars:
           TOPOLOGY: "replica_set"
@@ -1318,6 +1356,7 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
       - func: start-cse-servers
+      #- func: start-mongoproxy
       - func: run-tests
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1333,6 +1372,7 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
       - func: start-cse-servers
+      #- func: start-mongoproxy
       - func: run-tests
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1349,6 +1389,7 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
       - func: start-cse-servers
+      #- func: start-mongoproxy
       - func: run-tests
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1365,6 +1406,7 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
       - func: start-cse-servers
+      #- func: start-mongoproxy
       - func: run-tests
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1381,6 +1423,7 @@ tasks:
           AUTH: "auth"
           SSL: "ssl"
       - func: start-cse-servers
+      #- func: start-mongoproxy
       - func: run-tests
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1396,6 +1439,7 @@ tasks:
           AUTH: "auth"
           SSL: "ssl"
       - func: start-cse-servers
+      #- func: start-mongoproxy
       - func: run-tests
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1412,6 +1456,7 @@ tasks:
           AUTH: "auth"
           SSL: "ssl"
       - func: start-cse-servers
+      #- func: start-mongoproxy
       - func: run-tests
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1428,6 +1473,7 @@ tasks:
           AUTH: "auth"
           SSL: "ssl"
       - func: start-cse-servers
+      #- func: start-mongoproxy
       - func: run-tests
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1444,6 +1490,7 @@ tasks:
           AUTH: "auth"
           SSL: "nossl"
       - func: start-cse-servers
+      #- func: start-mongoproxy
       - func: run-tests
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1462,7 +1509,7 @@ tasks:
         vars:
           MONGO_GO_DRIVER_COMPRESSOR: "snappy"
 
-  # Build the compilecheck submodule with all supported versions of Go >= 
+  # Build the compilecheck submodule with all supported versions of Go >=
   # the minimum supported version.
   - name: go-build
     tags: ["compile-check"]
@@ -1515,6 +1562,7 @@ tasks:
           SSL: "nossl"
           REQUIRE_API_VERSION: true
       - func: start-cse-servers
+      #- func: start-mongoproxy
       - func: run-versioned-api-test
         vars:
           TOPOLOGY: "server"
@@ -1532,6 +1580,7 @@ tasks:
           SSL: "nossl"
           REQUIRE_API_VERSION: true
       - func: start-cse-servers
+      #- func: start-mongoproxy
       - func: run-versioned-api-test
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1549,6 +1598,7 @@ tasks:
           SSL: "nossl"
           ORCHESTRATION_FILE: "versioned-api-testing.json"
       - func: start-cse-servers
+      #- func: start-mongoproxy
       - func: run-versioned-api-test
         vars:
           TOPOLOGY: "server"
@@ -1564,6 +1614,7 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
       - func: start-cse-servers
+      #- func: start-mongoproxy
       - func: run-kms-tls-test
         vars:
           KMS_TLS_TESTCASE: "INVALID_CERT"
@@ -1580,6 +1631,7 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
       - func: start-cse-servers
+      #- func: start-mongoproxy
       - func: run-kms-tls-test
         vars:
           KMS_TLS_TESTCASE: "INVALID_HOSTNAME"
@@ -1596,6 +1648,7 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
       - func: start-cse-servers
+      #- func: start-mongoproxy
       - func: run-kmip-tests
         vars:
           TOPOLOGY: "server"
@@ -1611,6 +1664,7 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
       - func: start-cse-servers
+      #- func: start-mongoproxy
       - func: run-retry-kms-requests
 
   - name: "testgcpkms-task"
@@ -1653,7 +1707,7 @@ tasks:
       params:
         binary: "bash"
         add_expansions_to_env: true
-        env: 
+        env:
           EXPECT_ERROR: 'status=400'
         args: [*task-runner, test-awskms]
 
@@ -1909,13 +1963,13 @@ task_groups:
         params:
           binary: "bash"
           add_expansions_to_env: true
-          args: 
+          args:
             - ${DRIVERS_TOOLS}/.evergreen/csfle/gcpkms/setup.sh
     teardown_group:
       - command: subprocess.exec
         params:
           binary: "bash"
-          args: 
+          args:
             - ${DRIVERS_TOOLS}/.evergreen/csfle/gcpkms/teardown.sh
       - func: teardown
       - func: handle-test-artifacts
@@ -1933,7 +1987,7 @@ task_groups:
         params:
           binary: bash
           add_expansions_to_env: true
-          env: 
+          env:
             AZUREKMS_VMNAME_PREFIX: GODRIVER
           args:
             - ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/setup.sh
@@ -1941,7 +1995,7 @@ task_groups:
       - command: subprocess.exec
         params:
           binary: "bash"
-          args: 
+          args:
            - ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/teardown.sh
       - func: teardown
       - func: handle-test-artifacts
@@ -2164,7 +2218,7 @@ buildvariants:
       - rhel8.7-small
     expansions:
       GO_DIST: "/opt/golang/go1.23"
-    tasks: 
+    tasks:
       - name: "backport-pr"
 
   - name: atlas-test
