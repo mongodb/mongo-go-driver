@@ -25,10 +25,10 @@ import (
 )
 
 type OverrideInfo struct {
-	OverrideMainline bool        `bson:"override_mainline"`
-	BaseOrder        interface{} `bson:"base_order"`
-	Reason           interface{} `bson:"reason"`
-	User             interface{} `bson:"user"`
+	OverrideMainline bool `bson:"override_mainline"`
+	BaseOrder        any  `bson:"base_order"`
+	Reason           any  `bson:"reason"`
+	User             any  `bson:"user"`
 }
 
 type Info struct {
@@ -41,14 +41,14 @@ type Info struct {
 	Execution    int64  `bson:"execution"`
 	Mainline     bool   `bson:"mainline"`
 	OverrideInfo OverrideInfo
-	TestName     string                 `bson:"test_name"`
-	Args         map[string]interface{} `bson:"args"`
+	TestName     string         `bson:"test_name"`
+	Args         map[string]any `bson:"args"`
 }
 
 type Stat struct {
-	Name     string      `bson:"name"`
-	Val      float64     `bson:"val"`
-	Metadata interface{} `bson:"metadata"`
+	Name     string  `bson:"name"`
+	Val      float64 `bson:"val"`
+	Metadata any     `bson:"metadata"`
 }
 
 type Rollups struct {
@@ -57,37 +57,37 @@ type Rollups struct {
 
 type RawData struct {
 	Info                 Info
-	CreatedAt            interface{} `bson:"created_at"`
-	CompletedAt          interface{} `bson:"completed_at"`
+	CreatedAt            any `bson:"created_at"`
+	CompletedAt          any `bson:"completed_at"`
 	Rollups              Rollups
 	FailedRollupAttempts int64 `bson:"failed_rollup_attempts"`
 }
 
 type TimeSeriesInfo struct {
-	Project     string                 `bson:"project"`
-	Variant     string                 `bson:"variant"`
-	Task        string                 `bson:"task"`
-	Test        string                 `bson:"test"`
-	Measurement string                 `bson:"measurement"`
-	Args        map[string]interface{} `bson:"args"`
+	Project     string         `bson:"project"`
+	Variant     string         `bson:"variant"`
+	Task        string         `bson:"task"`
+	Test        string         `bson:"test"`
+	Measurement string         `bson:"measurement"`
+	Args        map[string]any `bson:"args"`
 }
 
 type StableRegion struct {
 	TimeSeriesInfo         TimeSeriesInfo
-	Start                  interface{}   `bson:"start"`
-	End                    interface{}   `bson:"end"`
-	Values                 []float64     `bson:"values"`
-	StartOrder             int64         `bson:"start_order"`
-	EndOrder               int64         `bson:"end_order"`
-	Mean                   float64       `bson:"mean"`
-	Std                    float64       `bson:"std"`
-	Median                 float64       `bson:"median"`
-	Max                    float64       `bson:"max"`
-	Min                    float64       `bson:"min"`
-	CoefficientOfVariation float64       `bson:"coefficient_of_variation"`
-	LastSuccessfulUpdate   interface{}   `bson:"last_successful_update"`
-	Last                   bool          `bson:"last"`
-	Contexts               []interface{} `bson:"contexts"`
+	Start                  any       `bson:"start"`
+	End                    any       `bson:"end"`
+	Values                 []float64 `bson:"values"`
+	StartOrder             int64     `bson:"start_order"`
+	EndOrder               int64     `bson:"end_order"`
+	Mean                   float64   `bson:"mean"`
+	Std                    float64   `bson:"std"`
+	Median                 float64   `bson:"median"`
+	Max                    float64   `bson:"max"`
+	Min                    float64   `bson:"min"`
+	CoefficientOfVariation float64   `bson:"coefficient_of_variation"`
+	LastSuccessfulUpdate   any       `bson:"last_successful_update"`
+	Last                   bool      `bson:"last"`
+	Contexts               []any     `bson:"contexts"`
 }
 
 type EnergyStats struct {
@@ -95,7 +95,7 @@ type EnergyStats struct {
 	Measurement     string
 	PatchVersion    string
 	StableRegion    StableRegion
-	PatchValues     []float64
+	MeasurementVal  float64
 	PercentChange   float64
 	EnergyStatistic float64
 	TestStatistic   float64
@@ -221,43 +221,48 @@ func getEnergyStatsForOneBenchmark(rd RawData, coll *mongo.Collection) ([]*Energ
 	var energyStats []*EnergyStats
 
 	for i := range rd.Rollups.Stats {
-		measurement := rd.Rollups.Stats[i].Name
-		patchVal := []float64{rd.Rollups.Stats[i].Val}
+		measName := rd.Rollups.Stats[i].Name
+		measVal := rd.Rollups.Stats[i].Val
 
-		stableRegion, err := findLastStableRegion(testname, measurement, coll)
+		stableRegion, err := findLastStableRegion(testname, measName, coll)
 		if err != nil {
 			log.Fatalf(
 				"Error finding last stable region for test %q, measurement %q: %v",
 				testname,
-				measurement,
+				measName,
 				err,
 			)
 		}
 
-		var z float64
+		// The performance analyzer compares the measurement value from the patch to a stable region that succeeds the latest change point.
+		// For example, if there were 5 measurements since the last change point, then the stable region is the 5 latest values for the measurement.
+		stabilityRegionVec := mat.NewDense(len(stableRegion.Values), 1, stableRegion.Values)
+		measValVec := mat.NewDense(1, 1, []float64{measVal}) // singleton
+
+		estat, tstat, hscore, err := getEnergyStatistics(stabilityRegionVec, measValVec)
+		var zscore float64
 		var pChange float64
-		e, t, h, err := getEnergyStatistics(mat.NewDense(len(stableRegion.Values), 1, stableRegion.Values), mat.NewDense(1, 1, patchVal))
 		if err != nil {
-			log.Printf("Could not calculate energy stats for test %q, measurement %q: %v", testname, measurement, err)
-			z = 0
+			log.Printf("Could not calculate energy stats for test %q, measurement %q: %v", testname, measName, err)
+			zscore = 0
 			pChange = 0
 		} else {
-			z = getZScore(patchVal[0], stableRegion.Mean, stableRegion.Std)
-			pChange = getPercentageChange(patchVal[0], stableRegion.Mean)
+			zscore = getZScore(measVal, stableRegion.Mean, stableRegion.Std)
+			pChange = getPercentageChange(measVal, stableRegion.Mean)
 
 		}
 
 		es := EnergyStats{
 			Benchmark:       testname,
-			Measurement:     measurement,
+			Measurement:     measName,
 			PatchVersion:    rd.Info.Version,
 			StableRegion:    *stableRegion,
-			PatchValues:     patchVal,
+			MeasurementVal:  measVal,
 			PercentChange:   pChange,
-			EnergyStatistic: e,
-			TestStatistic:   t,
-			HScore:          h,
-			ZScore:          z,
+			EnergyStatistic: estat,
+			TestStatistic:   tstat,
+			HScore:          hscore,
+			ZScore:          zscore,
 		}
 		energyStats = append(energyStats, &es)
 	}
@@ -287,7 +292,7 @@ func generatePRComment(energyStats []*EnergyStats, version string) string {
 	for _, es := range energyStats {
 		if math.Abs(es.ZScore) > 1.96 {
 			testCount += 1
-			fmt.Fprintf(&comment, "| %s | %s | %.4f | %.4f | %.4f | Avg: %.4f, Med: %.4f, Stdev: %.4f | %.4f |\n", es.Benchmark, es.Measurement, es.HScore, es.ZScore, es.PercentChange, es.StableRegion.Mean, es.StableRegion.Median, es.StableRegion.Std, es.PatchValues[0])
+			fmt.Fprintf(&comment, "| %s | %s | %.4f | %.4f | %.4f | Avg: %.4f, Med: %.4f, Stdev: %.4f | %.4f |\n", es.Benchmark, es.Measurement, es.HScore, es.ZScore, es.PercentChange, es.StableRegion.Mean, es.StableRegion.Median, es.StableRegion.Std, es.MeasurementVal)
 		}
 	}
 
