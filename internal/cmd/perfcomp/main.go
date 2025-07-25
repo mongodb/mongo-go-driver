@@ -11,6 +11,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
 	"math"
@@ -91,6 +92,7 @@ type StableRegion struct {
 }
 
 type EnergyStats struct {
+	Project         string
 	Benchmark       string
 	Measurement     string
 	PatchVersion    string
@@ -117,6 +119,13 @@ func main() {
 	version := os.Args[len(os.Args)-1]
 	if version == "" {
 		log.Fatal("could not get VERSION_ID")
+	}
+
+	// TODO (GODRIVER-3102): Map each project to a unique performance context,
+	// necessary for project switching to work since it's required for querying the stable region.
+	project := flag.String("project", "mongo-go-driver", "specify the name of an existing Evergreen project")
+	if project == nil {
+		log.Fatalf("must provide project")
 	}
 
 	// Connect to analytics node
@@ -148,7 +157,7 @@ func main() {
 	findCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	patchRawData, err := findRawData(findCtx, version, db.Collection(rawResultsColl))
+	patchRawData, err := findRawData(findCtx, *project, version, db.Collection(rawResultsColl))
 	if err != nil {
 		log.Fatalf("Error getting raw data: %v", err)
 	}
@@ -160,9 +169,9 @@ func main() {
 	log.Println(generatePRComment(allEnergyStats, version))
 }
 
-func findRawData(ctx context.Context, version string, coll *mongo.Collection) ([]RawData, error) {
+func findRawData(ctx context.Context, project string, version string, coll *mongo.Collection) ([]RawData, error) {
 	filter := bson.D{
-		{"info.project", "mongo-go-driver"},
+		{"info.project", project},
 		{"info.version", version},
 		{"info.variant", "perf"},
 		{"info.task_name", "perf"},
@@ -199,9 +208,9 @@ func findRawData(ctx context.Context, version string, coll *mongo.Collection) ([
 }
 
 // Find the most recent stable region of the mainline version for a specific test/measurement
-func findLastStableRegion(testname string, measurement string, coll *mongo.Collection) (*StableRegion, error) {
+func findLastStableRegion(project string, testname string, measurement string, coll *mongo.Collection) (*StableRegion, error) {
 	filter := bson.D{
-		{"time_series_info.project", "mongo-go-driver"},
+		{"time_series_info.project", project},
 		{"time_series_info.variant", "perf"},
 		{"time_series_info.task", "perf"},
 		{"time_series_info.test", testname},
@@ -229,10 +238,11 @@ func getEnergyStatsForOneBenchmark(rd RawData, coll *mongo.Collection) ([]*Energ
 	var energyStats []*EnergyStats
 
 	for i := range rd.Rollups.Stats {
+		project := rd.Info.Project
 		measName := rd.Rollups.Stats[i].Name
 		measVal := rd.Rollups.Stats[i].Val
 
-		stableRegion, err := findLastStableRegion(testname, measName, coll)
+		stableRegion, err := findLastStableRegion(project, testname, measName, coll)
 		if err != nil {
 			log.Fatalf(
 				"Error finding last stable region for test %q, measurement %q: %v",
@@ -244,10 +254,10 @@ func getEnergyStatsForOneBenchmark(rd RawData, coll *mongo.Collection) ([]*Energ
 
 		// The performance analyzer compares the measurement value from the patch to a stable region that succeeds the latest change point.
 		// For example, if there were 5 measurements since the last change point, then the stable region is the 5 latest values for the measurement.
-		stabilityRegionVec := mat.NewDense(len(stableRegion.Values), 1, stableRegion.Values)
+		stableRegionVec := mat.NewDense(len(stableRegion.Values), 1, stableRegion.Values)
 		measValVec := mat.NewDense(1, 1, []float64{measVal}) // singleton
 
-		estat, tstat, hscore, err := getEnergyStatistics(stabilityRegionVec, measValVec)
+		estat, tstat, hscore, err := getEnergyStatistics(stableRegionVec, measValVec)
 		var zscore float64
 		var pChange float64
 		if err != nil {
@@ -261,6 +271,7 @@ func getEnergyStatsForOneBenchmark(rd RawData, coll *mongo.Collection) ([]*Energ
 		}
 
 		es := EnergyStats{
+			Project:         project,
 			Benchmark:       testname,
 			Measurement:     measName,
 			PatchVersion:    rd.Info.Version,
