@@ -59,7 +59,7 @@ type LastErrorObject struct {
 	// True if an update modified an existing document
 	UpdatedExisting bool
 	// Object ID of the upserted document.
-	Upserted interface{}
+	Upserted any
 }
 
 // FindAndModifyResult represents a findAndModify result returned by the server.
