@@ -125,8 +125,16 @@ func main() {
 		log.Fatalf("Error connecting client: %v", err)
 	}
 
+	defer func() { // Defer disconnect client
+		err = client.Disconnect(context.Background())
+		if err != nil {
+			log.Fatalf("Failed to disconnect client: %v", err)
+		}
+	}()
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
+
 	err = client.Ping(ctx, nil)
 	if err != nil {
 		log.Fatalf("Error pinging MongoDB Analytics: %v", err)
@@ -136,7 +144,11 @@ func main() {
 	db := client.Database(expandedMetricsDB)
 
 	// Get raw data, most recent stable region, and calculate energy stats
-	patchRawData, err := findRawData(version, db.Collection(rawResultsColl))
+
+	findCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	patchRawData, err := findRawData(findCtx, version, db.Collection(rawResultsColl))
 	if err != nil {
 		log.Fatalf("Error getting raw data: %v", err)
 	}
@@ -146,15 +158,9 @@ func main() {
 		log.Fatalf("Error getting energy statistics: %v", err)
 	}
 	log.Println(generatePRComment(allEnergyStats, version))
-
-	// Disconnect client
-	err = client.Disconnect(context.Background())
-	if err != nil {
-		log.Fatalf("Failed to disconnect client: %v", err)
-	}
 }
 
-func findRawData(version string, coll *mongo.Collection) ([]RawData, error) {
+func findRawData(ctx context.Context, version string, coll *mongo.Collection) ([]RawData, error) {
 	filter := bson.D{
 		{"info.project", "mongo-go-driver"},
 		{"info.version", version},
@@ -162,10 +168,7 @@ func findRawData(version string, coll *mongo.Collection) ([]RawData, error) {
 		{"info.task_name", "perf"},
 	}
 
-	findCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	cursor, err := coll.Find(findCtx, filter)
+	cursor, err := coll.Find(ctx, filter)
 	if err != nil {
 		log.Fatalf(
 			"Error retrieving raw data for version %q: %v",
@@ -173,12 +176,17 @@ func findRawData(version string, coll *mongo.Collection) ([]RawData, error) {
 			err,
 		)
 	}
-	defer func() { err = cursor.Close(findCtx) }()
+	defer func() {
+		err = cursor.Close(ctx)
+		if err != nil {
+			log.Fatalf("Error closing cursor while retrieving raw data for version %q: %v", version, err)
+		}
+	}()
 
 	log.Printf("Successfully retrieved %d docs from version %s.\n", cursor.RemainingBatchLength(), version)
 
 	var rawData []RawData
-	err = cursor.All(findCtx, &rawData)
+	err = cursor.All(ctx, &rawData)
 	if err != nil {
 		log.Fatalf(
 			"Error decoding raw data from version %q: %v",
