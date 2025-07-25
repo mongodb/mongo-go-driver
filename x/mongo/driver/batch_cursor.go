@@ -545,6 +545,12 @@ func (bc *BatchCursor) getOperationDeployment() Deployment {
 	return SingleServerDeployment{bc.server}
 }
 
+// MaxAwaitTime returns the maximum amount of time the server will allow
+// the operations to execute. This is only valid for tailable awaitData cursors.
+func (bc *BatchCursor) MaxAwaitTime() *time.Duration {
+	return bc.maxAwaitTime
+}
+
 // loadBalancedCursorDeployment is used as a Deployment for getMore and killCursors commands when pinning to a
 // connection in load balanced mode. This type also functions as an ErrorProcessor to ensure that SDAM errors are
 // handled for these commands in this mode.

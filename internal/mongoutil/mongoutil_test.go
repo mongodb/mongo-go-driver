@@ -7,9 +7,13 @@
 package mongoutil
 
 import (
+	"context"
 	"strings"
 	"testing"
+	"time"
 
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/ptrutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
@@ -31,4 +35,78 @@ func BenchmarkNewOptions(b *testing.B) {
 			_, _ = NewOptions[options.FindOptions](opts...)
 		}
 	})
+}
+
+func TestValidChangeStreamTimeouts(t *testing.T) {
+	tests := []struct {
+		name        string
+		ctxTimeout  *time.Duration
+		timeout     *time.Duration
+		wantTimeout time.Duration
+		want        bool
+	}{
+		{
+			name:       "No timeout provided, no context deadline",
+			ctxTimeout: nil,
+			timeout:    nil,
+			want:       true,
+		},
+		{
+			name:       "Timeout shorter than context deadline",
+			ctxTimeout: ptrutil.Ptr(10 * time.Second),
+			timeout:    ptrutil.Ptr(1 * time.Second),
+			want:       true,
+		},
+		{
+			name:       "Timeout equal to context deadline",
+			ctxTimeout: ptrutil.Ptr(1 * time.Second),
+			timeout:    ptrutil.Ptr(1 * time.Second),
+			want:       false,
+		},
+		{
+			name:       "Timeout greater than context deadline",
+			ctxTimeout: ptrutil.Ptr(1 * time.Second),
+			timeout:    ptrutil.Ptr(10 * time.Second),
+			want:       false,
+		},
+		{
+			name:       "Context deadline already expired",
+			ctxTimeout: ptrutil.Ptr(-1 * time.Second),
+			timeout:    ptrutil.Ptr(1 * time.Second),
+			want:       true, // *timeout <= 0 branch in code
+		},
+		{
+			name:       "Timeout is zero, context deadline in future",
+			ctxTimeout: ptrutil.Ptr(10 * time.Second),
+			timeout:    ptrutil.Ptr(0 * time.Second),
+			want:       true,
+		},
+		{
+			name:       "Timeout is negative, context deadline in future",
+			ctxTimeout: ptrutil.Ptr(10 * time.Second),
+			timeout:    ptrutil.Ptr(-1 * time.Second),
+			want:       true,
+		},
+		{
+			name:       "Timeout provided, context has no deadline",
+			ctxTimeout: nil,
+			timeout:    ptrutil.Ptr(1 * time.Second),
+			want:       true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.Background()
+			if test.ctxTimeout != nil {
+				var cancel context.CancelFunc
+
+				ctx, cancel = context.WithTimeout(ctx, *test.ctxTimeout)
+				defer cancel()
+			}
+
+			got := TimeoutWithinContext(ctx, test.timeout)
+			assert.Equal(t, test.want, got)
+		})
+	}
 }
