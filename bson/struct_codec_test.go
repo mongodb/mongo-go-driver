@@ -18,7 +18,7 @@ func TestIsZero(t *testing.T) {
 	t.Parallel()
 	testCases := []struct {
 		description    string
-		value          interface{}
+		value          any
 		omitZeroStruct bool
 		want           bool
 	}{

@@ -14,7 +14,7 @@ import (
 type unmarshalingTestCase struct {
 	name  string
 	sType reflect.Type
-	want  interface{}
+	want  any
 	data  []byte
 }
 

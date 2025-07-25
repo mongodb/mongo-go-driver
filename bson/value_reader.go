@@ -31,13 +31,13 @@ type vrState struct {
 }
 
 var bufioReaderPool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		return bufio.NewReader(nil)
 	},
 }
 
 var vrPool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		return &valueReader{
 			stack: make([]vrState, 1, 5),
 		}

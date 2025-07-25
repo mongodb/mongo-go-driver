@@ -212,7 +212,7 @@ type marshalValueStruct struct {
 
 type marshalValueTestCase struct {
 	name     string
-	val      interface{}
+	val      any
 	bsontype Type
 	bytes    []byte
 }

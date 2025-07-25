@@ -15,7 +15,7 @@ import (
 // methods and is not consumable from outside of this package. The Encoders retrieved from this pool
 // must have both Reset and SetRegistry called on them.
 var encPool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		return new(Encoder)
 	},
 }
@@ -38,7 +38,7 @@ func NewEncoder(vw ValueWriter) *Encoder {
 // Encode writes the BSON encoding of val to the stream.
 //
 // See [Marshal] for details about BSON marshaling behavior.
-func (e *Encoder) Encode(val interface{}) error {
+func (e *Encoder) Encode(val any) error {
 	if marshaler, ok := val.(Marshaler); ok {
 		// TODO(skriptble): Should we have a MarshalAppender interface so that we can have []byte reuse?
 		buf, err := marshaler.MarshalBSON()

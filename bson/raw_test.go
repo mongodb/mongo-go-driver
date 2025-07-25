@@ -364,7 +364,7 @@ func BenchmarkRawString(b *testing.B) {
 
 	cases := []struct {
 		description string
-		value       interface{}
+		value       any
 	}{
 		{
 			description: "string",

@@ -23,7 +23,7 @@ func jttDiff(t *testing.T, expected, actual jsonTokenType, desc string) {
 	}
 }
 
-func jtvDiff(t *testing.T, expected, actual interface{}, desc string) {
+func jtvDiff(t *testing.T, expected, actual any, desc string) {
 	if diff := cmp.Diff(expected, actual); diff != "" {
 		t.Helper()
 		t.Errorf("%s: Incorrect JSON Token Value (-want, +got): %s\n", desc, diff)

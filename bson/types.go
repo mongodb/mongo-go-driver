@@ -83,7 +83,7 @@ var tInt64 = reflect.TypeOf(int64(0))
 var tString = reflect.TypeOf("")
 var tTime = reflect.TypeOf(time.Time{})
 
-var tEmpty = reflect.TypeOf((*interface{})(nil)).Elem()
+var tEmpty = reflect.TypeOf((*any)(nil)).Elem()
 var tByteSlice = reflect.TypeOf([]byte(nil))
 var tByte = reflect.TypeOf(byte(0x00))
 var tURL = reflect.TypeOf(url.URL{})

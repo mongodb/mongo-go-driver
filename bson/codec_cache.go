@@ -49,7 +49,7 @@ func (c *typeEncoderCache) LoadOrStore(rt reflect.Type, enc ValueEncoder) ValueE
 
 func (c *typeEncoderCache) Clone() *typeEncoderCache {
 	cc := new(typeEncoderCache)
-	c.cache.Range(func(k, v interface{}) bool {
+	c.cache.Range(func(k, v any) bool {
 		if k != nil && v != nil {
 			cc.cache.Store(k, v)
 		}
@@ -82,7 +82,7 @@ func (c *typeDecoderCache) LoadOrStore(rt reflect.Type, dec ValueDecoder) ValueD
 
 func (c *typeDecoderCache) Clone() *typeDecoderCache {
 	cc := new(typeDecoderCache)
-	c.cache.Range(func(k, v interface{}) bool {
+	c.cache.Range(func(k, v any) bool {
 		if k != nil && v != nil {
 			cc.cache.Store(k, v)
 		}

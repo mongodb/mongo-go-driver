@@ -43,12 +43,12 @@ func ExampleValueDecoder() {
 
 type llCodec struct {
 	t         *testing.T
-	decodeval interface{}
-	encodeval interface{}
+	decodeval any
+	encodeval any
 	err       error
 }
 
-func (llc *llCodec) EncodeValue(_ EncodeContext, _ ValueWriter, i interface{}) error {
+func (llc *llCodec) EncodeValue(_ EncodeContext, _ ValueWriter, i any) error {
 	if llc.err != nil {
 		return llc.err
 	}

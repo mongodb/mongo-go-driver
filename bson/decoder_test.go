@@ -44,14 +44,14 @@ func TestDecodingInterfaces(t *testing.T) {
 
 	type testCase struct {
 		name string
-		stub func() ([]byte, interface{}, func(*testing.T))
+		stub func() ([]byte, any, func(*testing.T))
 	}
 	testCases := []testCase{
 		{
 			name: "struct with interface containing a concrete value",
-			stub: func() ([]byte, interface{}, func(*testing.T)) {
+			stub: func() ([]byte, any, func(*testing.T)) {
 				type testStruct struct {
-					Value interface{}
+					Value any
 				}
 				var value string
 
@@ -73,13 +73,13 @@ func TestDecodingInterfaces(t *testing.T) {
 		},
 		{
 			name: "struct with interface containing a struct",
-			stub: func() ([]byte, interface{}, func(*testing.T)) {
+			stub: func() ([]byte, any, func(*testing.T)) {
 				type demo struct {
 					Data string
 				}
 
 				type testStruct struct {
-					Value interface{}
+					Value any
 				}
 				var value demo
 
@@ -101,9 +101,9 @@ func TestDecodingInterfaces(t *testing.T) {
 		},
 		{
 			name: "struct with interface containing a slice",
-			stub: func() ([]byte, interface{}, func(*testing.T)) {
+			stub: func() ([]byte, any, func(*testing.T)) {
 				type testStruct struct {
-					Values interface{}
+					Values any
 				}
 				var values []string
 
@@ -125,9 +125,9 @@ func TestDecodingInterfaces(t *testing.T) {
 		},
 		{
 			name: "struct with interface containing an array",
-			stub: func() ([]byte, interface{}, func(*testing.T)) {
+			stub: func() ([]byte, any, func(*testing.T)) {
 				type testStruct struct {
-					Values interface{}
+					Values any
 				}
 				var values [2]string
 
@@ -149,27 +149,27 @@ func TestDecodingInterfaces(t *testing.T) {
 		},
 		{
 			name: "struct with interface array containing concrete values",
-			stub: func() ([]byte, interface{}, func(*testing.T)) {
+			stub: func() ([]byte, any, func(*testing.T)) {
 				type testStruct struct {
-					Values [3]interface{}
+					Values [3]any
 				}
 				var str string
 				var i, j int
 
 				data := docToBytes(struct {
-					Values []interface{}
+					Values []any
 				}{
-					Values: []interface{}{"foo", 42, nil},
+					Values: []any{"foo", 42, nil},
 				})
 
-				receiver := testStruct{[3]interface{}{&str, &i, &j}}
+				receiver := testStruct{[3]any{&str, &i, &j}}
 
 				check := func(t *testing.T) {
 					t.Helper()
 					assert.Equal(t, "foo", str)
 					assert.Equal(t, 42, i)
 					assert.Equal(t, 0, j)
-					assert.Equal(t, testStruct{[3]interface{}{&str, &i, nil}}, receiver)
+					assert.Equal(t, testStruct{[3]any{&str, &i, nil}}, receiver)
 				}
 
 				return data, &receiver, check
@@ -177,22 +177,22 @@ func TestDecodingInterfaces(t *testing.T) {
 		},
 		{
 			name: "overwriting prepopulated slice",
-			stub: func() ([]byte, interface{}, func(*testing.T)) {
+			stub: func() ([]byte, any, func(*testing.T)) {
 				type testStruct struct {
-					Values []interface{}
+					Values []any
 				}
 
 				data := docToBytes(struct {
-					Values []interface{}
+					Values []any
 				}{
-					Values: []interface{}{1, 2, 3},
+					Values: []any{1, 2, 3},
 				})
 
-				receiver := testStruct{[]interface{}{7, 8}}
+				receiver := testStruct{[]any{7, 8}}
 
 				check := func(t *testing.T) {
 					t.Helper()
-					assert.Equal(t, testStruct{[]interface{}{1, 2, int32(3)}}, receiver)
+					assert.Equal(t, testStruct{[]any{1, 2, int32(3)}}, receiver)
 				}
 
 				return data, &receiver, check
@@ -478,8 +478,8 @@ func TestDecoderConfiguration(t *testing.T) {
 		description string
 		configure   func(*Decoder)
 		input       []byte
-		decodeInto  func() interface{}
-		want        interface{}
+		decodeInto  func() any
+		want        any
 	}{
 		// Test that AllowTruncatingDoubles causes the Decoder to unmarshal BSON doubles with
 		// fractional parts into Go integer types by truncating the fractional part.
@@ -500,7 +500,7 @@ func TestDecoderConfiguration(t *testing.T) {
 				AppendDouble("myUint32", 1.999).
 				AppendDouble("myUint64", 1.999).
 				Build(),
-			decodeInto: func() interface{} { return &truncateDoublesTest{} },
+			decodeInto: func() any { return &truncateDoublesTest{} },
 			want: &truncateDoublesTest{
 				MyInt:    1,
 				MyInt8:   1,
@@ -524,7 +524,7 @@ func TestDecoderConfiguration(t *testing.T) {
 			input: bsoncore.NewDocumentBuilder().
 				AppendBinary("myBinary", TypeBinaryGeneric, []byte{}).
 				Build(),
-			decodeInto: func() interface{} { return &D{} },
+			decodeInto: func() any { return &D{} },
 			want:       &D{{Key: "myBinary", Value: []byte{}}},
 		},
 		// Test that the default decoder always decodes BSON documents into bson.D values,
@@ -537,7 +537,7 @@ func TestDecoderConfiguration(t *testing.T) {
 					AppendString("myString", "test value").
 					Build()).
 				Build(),
-			decodeInto: func() interface{} { return M{} },
+			decodeInto: func() any { return M{} },
 			want: M{
 				"myDocument": D{{Key: "myString", Value: "test value"}},
 			},
@@ -554,7 +554,7 @@ func TestDecoderConfiguration(t *testing.T) {
 					AppendString("myString", "test value").
 					Build()).
 				Build(),
-			decodeInto: func() interface{} { return &D{} },
+			decodeInto: func() any { return &D{} },
 			want: &D{
 				{Key: "myDocument", Value: M{"myString": "test value"}},
 			},
@@ -571,7 +571,7 @@ func TestDecoderConfiguration(t *testing.T) {
 					return id
 				}()).
 				Build(),
-			decodeInto: func() interface{} { return &objectIDTest{} },
+			decodeInto: func() any { return &objectIDTest{} },
 			want:       &objectIDTest{ID: "5ef7fdd91c19e3222b41b839"},
 		},
 		// Test that UseJSONStructTags causes the Decoder to fall back to "json" struct tags if
@@ -584,7 +584,7 @@ func TestDecoderConfiguration(t *testing.T) {
 			input: bsoncore.NewDocumentBuilder().
 				AppendString("jsonFieldName", "test value").
 				Build(),
-			decodeInto: func() interface{} { return &jsonStructTest{} },
+			decodeInto: func() any { return &jsonStructTest{} },
 			want:       &jsonStructTest{StructFieldName: "test value"},
 		},
 		// Test that UseLocalTimeZone causes the Decoder to use the local time zone for decoded
@@ -597,7 +597,7 @@ func TestDecoderConfiguration(t *testing.T) {
 			input: bsoncore.NewDocumentBuilder().
 				AppendDateTime("myTime", 1684349179939).
 				Build(),
-			decodeInto: func() interface{} { return &localTimeZoneTest{} },
+			decodeInto: func() any { return &localTimeZoneTest{} },
 			want:       &localTimeZoneTest{MyTime: time.UnixMilli(1684349179939)},
 		},
 		// Test that ZeroMaps causes the Decoder to empty any Go map values before decoding BSON
@@ -612,7 +612,7 @@ func TestDecoderConfiguration(t *testing.T) {
 					AppendString("myString", "test value").
 					Build()).
 				Build(),
-			decodeInto: func() interface{} {
+			decodeInto: func() any {
 				return &zeroMapsTest{MyMap: map[string]string{"myExtraValue": "extra value"}}
 			},
 			want: &zeroMapsTest{MyMap: map[string]string{"myString": "test value"}},
@@ -627,7 +627,7 @@ func TestDecoderConfiguration(t *testing.T) {
 			input: bsoncore.NewDocumentBuilder().
 				AppendString("myString", "test value").
 				Build(),
-			decodeInto: func() interface{} {
+			decodeInto: func() any {
 				return &zeroStructsTest{MyInt: 1}
 			},
 			want: &zeroStructsTest{MyString: "test value"},
@@ -686,7 +686,7 @@ func TestDecoderConfiguration(t *testing.T) {
 
 		dec.DefaultDocumentM()
 
-		var got interface{}
+		var got any
 		err := dec.Decode(&got)
 		require.NoError(t, err, "Decode error")
 
@@ -708,7 +708,7 @@ func TestDecoderConfiguration(t *testing.T) {
 
 		dec := NewDecoder(NewDocumentReader(bytes.NewReader(input)))
 
-		var got interface{}
+		var got any
 		err := dec.Decode(&got)
 		require.NoError(t, err, "Decode error")
 

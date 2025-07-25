@@ -19,13 +19,13 @@ func FuzzDecode(f *testing.F) {
 	seedBSONCorpus(f)
 
 	f.Fuzz(func(t *testing.T, data []byte) {
-		for _, typ := range []func() interface{}{
-			func() interface{} { return new(D) },
-			func() interface{} { return new([]E) },
-			func() interface{} { return new(M) },
-			func() interface{} { return new(interface{}) },
-			func() interface{} { return make(map[string]interface{}) },
-			func() interface{} { return new([]interface{}) },
+		for _, typ := range []func() any{
+			func() any { return new(D) },
+			func() any { return new([]E) },
+			func() any { return new(M) },
+			func() any { return new(any) },
+			func() any { return make(map[string]any) },
+			func() any { return new([]any) },
 		} {
 			i := typ()
 			if err := Unmarshal(data, i); err != nil {
