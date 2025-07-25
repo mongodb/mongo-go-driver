@@ -143,7 +143,7 @@ func mustLogPoolMessage(pool *pool) bool {
 		logger.LevelDebug, logger.ComponentConnection)
 }
 
-func logPoolMessage(pool *pool, msg string, keysAndValues ...interface{}) {
+func logPoolMessage(pool *pool, msg string, keysAndValues ...any) {
 	host, port, err := net.SplitHostPort(pool.address.String())
 	if err != nil {
 		host = pool.address.String()

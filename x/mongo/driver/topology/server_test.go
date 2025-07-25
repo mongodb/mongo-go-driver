@@ -715,7 +715,7 @@ func TestServer(t *testing.T) {
 		}
 	})
 	t.Run("heartbeat monitoring", func(t *testing.T) {
-		var publishedEvents []interface{}
+		var publishedEvents []any
 
 		serverHeartbeatStarted := func(e *event.ServerHeartbeatStartedEvent) {
 			publishedEvents = append(publishedEvents, *e)

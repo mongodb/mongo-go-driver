@@ -504,7 +504,7 @@ func (op Operation) Validate() error {
 }
 
 var memoryPool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		// Start with 1kb buffers.
 		b := make([]byte, 1024)
 		// Return a pointer as the static analysis tool suggests.

@@ -22,9 +22,9 @@ func TestServerSelectionRTTSpec(t *testing.T) {
 
 	type testCase struct {
 		// AvgRttMs is either "NULL" or float
-		AvgRttMs  interface{} `json:"avg_rtt_ms"`
-		NewRttMs  float64     `json:"new_rtt_ms"`
-		NewAvgRtt float64     `json:"new_avg_rtt"`
+		AvgRttMs  any     `json:"avg_rtt_ms"`
+		NewRttMs  float64 `json:"new_rtt_ms"`
+		NewAvgRtt float64 `json:"new_avg_rtt"`
 	}
 
 	testsDir := spectest.Path("server-selection/tests/rtt")

@@ -21,50 +21,50 @@ func TestDocumentBuilder(t *testing.T) {
 
 	testCases := []struct {
 		name     string
-		fn       interface{}
-		params   []interface{}
+		fn       any
+		params   []any
 		expected []byte
 	}{
 		{
 			"AppendInt32",
 			NewDocumentBuilder().AppendInt32,
-			[]interface{}{"foobar", int32(256)},
+			[]any{"foobar", int32(256)},
 			BuildDocumentFromElements(nil, AppendInt32Element(nil, "foobar", 256)),
 		},
 		{
 			"AppendDouble",
 			NewDocumentBuilder().AppendDouble,
-			[]interface{}{"foobar", float64(3.14159)},
+			[]any{"foobar", float64(3.14159)},
 			BuildDocumentFromElements(nil, AppendDoubleElement(nil, "foobar", float64(3.14159))),
 		},
 		{
 			"AppendString",
 			NewDocumentBuilder().AppendString,
-			[]interface{}{"foobar", "x"},
+			[]any{"foobar", "x"},
 			BuildDocumentFromElements(nil, AppendStringElement(nil, "foobar", "x")),
 		},
 		{
 			"AppendDocument",
 			NewDocumentBuilder().AppendDocument,
-			[]interface{}{"foobar", []byte{0x05, 0x00, 0x00, 0x00, 0x00}},
+			[]any{"foobar", []byte{0x05, 0x00, 0x00, 0x00, 0x00}},
 			BuildDocumentFromElements(nil, AppendDocumentElement(nil, "foobar", []byte{0x05, 0x00, 0x00, 0x00, 0x00})),
 		},
 		{
 			"AppendArray",
 			NewDocumentBuilder().AppendArray,
-			[]interface{}{"foobar", []byte{0x05, 0x00, 0x00, 0x00, 0x00}},
+			[]any{"foobar", []byte{0x05, 0x00, 0x00, 0x00, 0x00}},
 			BuildDocumentFromElements(nil, AppendArrayElement(nil, "foobar", []byte{0x05, 0x00, 0x00, 0x00, 0x00})),
 		},
 		{
 			"AppendBinary",
 			NewDocumentBuilder().AppendBinary,
-			[]interface{}{"foobar", byte(0x02), []byte{0x01, 0x02, 0x03}},
+			[]any{"foobar", byte(0x02), []byte{0x01, 0x02, 0x03}},
 			BuildDocumentFromElements(nil, AppendBinaryElement(nil, "foobar", byte(0x02), []byte{0x01, 0x02, 0x03})),
 		},
 		{
 			"AppendObjectID",
 			NewDocumentBuilder().AppendObjectID,
-			[]interface{}{
+			[]any{
 				"foobar",
 				[12]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
 			},
@@ -74,79 +74,79 @@ func TestDocumentBuilder(t *testing.T) {
 		{
 			"AppendBoolean",
 			NewDocumentBuilder().AppendBoolean,
-			[]interface{}{"foobar", true},
+			[]any{"foobar", true},
 			BuildDocumentFromElements(nil, AppendBooleanElement(nil, "foobar", true)),
 		},
 		{
 			"AppendDateTime",
 			NewDocumentBuilder().AppendDateTime,
-			[]interface{}{"foobar", int64(256)},
+			[]any{"foobar", int64(256)},
 			BuildDocumentFromElements(nil, AppendDateTimeElement(nil, "foobar", int64(256))),
 		},
 		{
 			"AppendNull",
 			NewDocumentBuilder().AppendNull,
-			[]interface{}{"foobar"},
+			[]any{"foobar"},
 			BuildDocumentFromElements(nil, AppendNullElement(nil, "foobar")),
 		},
 		{
 			"AppendRegex",
 			NewDocumentBuilder().AppendRegex,
-			[]interface{}{"foobar", "bar", "baz"},
+			[]any{"foobar", "bar", "baz"},
 			BuildDocumentFromElements(nil, AppendRegexElement(nil, "foobar", "bar", "baz")),
 		},
 		{
 			"AppendJavaScript",
 			NewDocumentBuilder().AppendJavaScript,
-			[]interface{}{"foobar", "barbaz"},
+			[]any{"foobar", "barbaz"},
 			BuildDocumentFromElements(nil, AppendJavaScriptElement(nil, "foobar", "barbaz")),
 		},
 		{
 			"AppendCodeWithScope",
 			NewDocumentBuilder().AppendCodeWithScope,
-			[]interface{}{"foobar", "barbaz", Document([]byte{0x05, 0x00, 0x00, 0x00, 0x00})},
+			[]any{"foobar", "barbaz", Document([]byte{0x05, 0x00, 0x00, 0x00, 0x00})},
 			BuildDocumentFromElements(nil, AppendCodeWithScopeElement(nil, "foobar", "barbaz", Document([]byte{0x05, 0x00, 0x00, 0x00, 0x00}))),
 		},
 		{
 			"AppendTimestamp",
 			NewDocumentBuilder().AppendTimestamp,
-			[]interface{}{"foobar", uint32(65536), uint32(256)},
+			[]any{"foobar", uint32(65536), uint32(256)},
 			BuildDocumentFromElements(nil, AppendTimestampElement(nil, "foobar", uint32(65536), uint32(256))),
 		},
 		{
 			"AppendInt64",
 			NewDocumentBuilder().AppendInt64,
-			[]interface{}{"foobar", int64(4294967296)},
+			[]any{"foobar", int64(4294967296)},
 			BuildDocumentFromElements(nil, AppendInt64Element(nil, "foobar", int64(4294967296))),
 		},
 		{
 			"AppendDecimal128",
 			NewDocumentBuilder().AppendDecimal128,
-			[]interface{}{"foobar", uint64(4294967296), uint64(65536)},
+			[]any{"foobar", uint64(4294967296), uint64(65536)},
 			BuildDocumentFromElements(nil, AppendDecimal128Element(nil, "foobar", 4294967296, 65536)),
 		},
 		{
 			"AppendMaxKey",
 			NewDocumentBuilder().AppendMaxKey,
-			[]interface{}{"foobar"},
+			[]any{"foobar"},
 			BuildDocumentFromElements(nil, AppendMaxKeyElement(nil, "foobar")),
 		},
 		{
 			"AppendMinKey",
 			NewDocumentBuilder().AppendMinKey,
-			[]interface{}{"foobar"},
+			[]any{"foobar"},
 			BuildDocumentFromElements(nil, AppendMinKeyElement(nil, "foobar")),
 		},
 		{
 			"AppendSymbol",
 			NewDocumentBuilder().AppendSymbol,
-			[]interface{}{"foobar", "barbaz"},
+			[]any{"foobar", "barbaz"},
 			BuildDocumentFromElements(nil, AppendSymbolElement(nil, "foobar", "barbaz")),
 		},
 		{
 			"AppendDBPointer",
 			NewDocumentBuilder().AppendDBPointer,
-			[]interface{}{"foobar", "barbaz",
+			[]any{"foobar", "barbaz",
 				[12]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C}},
 			BuildDocumentFromElements(nil, AppendDBPointerElement(nil, "foobar", "barbaz",
 				[12]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C})),
@@ -154,7 +154,7 @@ func TestDocumentBuilder(t *testing.T) {
 		{
 			"AppendUndefined",
 			NewDocumentBuilder().AppendUndefined,
-			[]interface{}{"foobar"},
+			[]any{"foobar"},
 			BuildDocumentFromElements(nil, AppendUndefinedElement(nil, "foobar")),
 		},
 	}

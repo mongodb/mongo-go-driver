@@ -34,7 +34,7 @@ var ErrNoCursor = errors.New("database response does not contain a cursor")
 type BatchCursor struct {
 	clientSession        *session.Client
 	clock                *session.ClusterClock
-	comment              interface{}
+	comment              any
 	encoderFn            codecutil.EncoderFn
 	database             string
 	collection           string
@@ -531,7 +531,7 @@ func (bc *BatchCursor) SetMaxAwaitTime(dur time.Duration) {
 }
 
 // SetComment sets the comment for future getMore operations.
-func (bc *BatchCursor) SetComment(comment interface{}) {
+func (bc *BatchCursor) SetComment(comment any) {
 	bc.comment = comment
 }
 

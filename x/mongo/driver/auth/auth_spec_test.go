@@ -23,7 +23,7 @@ type credential struct {
 	Password  *string
 	Source    string
 	Mechanism string
-	MechProps map[string]interface{} `json:"mechanism_properties"`
+	MechProps map[string]any `json:"mechanism_properties"`
 }
 
 type testCase struct {
@@ -97,8 +97,8 @@ func runTest(t *testing.T, test testCase) {
 	}
 }
 
-// Convert each interface{} value in the map to a string.
-func mapInterfaceToString(m map[string]interface{}) map[string]string {
+// Convert each any value in the map to a string.
+func mapInterfaceToString(m map[string]any) map[string]string {
 	out := make(map[string]string)
 
 	for key, value := range m {

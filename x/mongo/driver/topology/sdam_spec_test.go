@@ -205,7 +205,7 @@ func serverClosed(e *event.ServerClosedEvent) {
 
 var testsDir = spectest.Path("server-discovery-and-monitoring/tests")
 
-var publishedEvents []interface{}
+var publishedEvents []any
 var lock sync.Mutex
 
 func (r *response) UnmarshalBSON(buf []byte) error {
