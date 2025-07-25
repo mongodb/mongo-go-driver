@@ -234,9 +234,18 @@ func getEnergyStatsForOneBenchmark(rd RawData, coll *mongo.Collection) ([]*Energ
 			)
 		}
 
-		pChange := getPercentageChange(patchVal[0], stableRegion.Mean)
-		e, t, h := getEnergyStatistics(mat.NewDense(len(stableRegion.Values), 1, stableRegion.Values), mat.NewDense(1, 1, patchVal))
-		z := getZScore(patchVal[0], stableRegion.Mean, stableRegion.Std)
+		var z float64
+		var pChange float64
+		e, t, h, err := getEnergyStatistics(mat.NewDense(len(stableRegion.Values), 1, stableRegion.Values), mat.NewDense(1, 1, patchVal))
+		if err != nil {
+			log.Printf("Could not calculate energy stats for test %q, measurement %q: %v", testname, measurement, err)
+			z = 0
+			pChange = 0
+		} else {
+			z = getZScore(patchVal[0], stableRegion.Mean, stableRegion.Std)
+			pChange = getPercentageChange(patchVal[0], stableRegion.Mean)
+
+		}
 
 		es := EnergyStats{
 			Benchmark:       testname,
@@ -294,64 +303,91 @@ func generatePRComment(energyStats []*EnergyStats, version string) string {
 
 // Given two matrices, this function returns
 // (e, t, h) = (E-statistic, test statistic, e-coefficient of inhomogeneity)
-func getEnergyStatistics(x, y *mat.Dense) (float64, float64, float64) {
-	n, _ := x.Dims()
-	m, _ := y.Dims()
-	nf := float64(n)
-	mf := float64(m)
+func getEnergyStatistics(x, y *mat.Dense) (float64, float64, float64, error) {
+	xrows, xcols := x.Dims()
+	yrows, ycols := y.Dims()
+
+	if xcols != ycols {
+		return 0, 0, 0, fmt.Errorf("both inputs must have the same number of columns")
+	}
+
+	xrowsf := float64(xrows)
+	yrowsf := float64(yrows)
 
 	var A float64 // E|X-Y|
-	if nf > 0 && mf > 0 {
-		A = getDistance(x, y) / (nf * mf)
+	if xrowsf > 0 && yrowsf > 0 {
+		dist, err := getDistance(x, y)
+		if err != nil {
+			return 0, 0, 0, err
+		}
+		A = dist / (xrowsf * yrowsf)
 	} else {
 		A = 0
 	}
 	var B float64 // E|X-X'|
-	if nf > 0 {
-		B = getDistance(x, x) / (nf * nf)
+	if xrowsf > 0 {
+		dist, err := getDistance(x, x)
+		if err != nil {
+			return 0, 0, 0, err
+		}
+		B = dist / (xrowsf * xrowsf)
 	} else {
 		B = 0
 	}
 	var C float64 // E|Y-Y'|
-	if mf > 0 {
-		C = getDistance(y, y) / (mf * mf)
+	if yrowsf > 0 {
+		dist, err := getDistance(y, y)
+		if err != nil {
+			return 0, 0, 0, err
+		}
+		C = dist / (yrowsf * yrowsf)
 	} else {
 		C = 0
 	}
 
 	E := 2*A - B - C // D^2(F_x, F_y)
-	T := ((nf * mf) / (nf + mf)) * E
+	T := ((xrowsf * yrowsf) / (xrowsf + yrowsf)) * E
 	var H float64
 	if A > 0 {
 		H = E / (2 * A)
 	} else {
 		H = 0
 	}
-	return E, T, H
+	return E, T, H, nil
 }
 
 // Given two vectors (expected 1 col),
 // this function returns the sum of distances between each pair.
-func getDistance(x, y *mat.Dense) float64 {
-	xrows, _ := x.Dims()
-	yrows, _ := y.Dims()
+func getDistance(x, y *mat.Dense) (float64, error) {
+	xrows, xcols := x.Dims()
+	yrows, ycols := y.Dims()
+
+	if xcols != 1 || ycols != 1 {
+		return 0, fmt.Errorf("both inputs must be column vectors")
+	}
 
 	var sum float64
 
 	for i := 0; i < xrows; i++ {
 		for j := 0; j < yrows; j++ {
-			sum += math.Sqrt(math.Pow((x.At(i, 0) - y.At(j, 0)), 2))
+			sum += math.Abs(x.At(i, 0) - y.At(j, 0))
 		}
 	}
-	return sum
+	return sum, nil
 }
 
 // Get Z score for result x, compared to mean u and st dev o.
 func getZScore(x, mu, sigma float64) float64 {
+	if sigma == 0 {
+		return math.NaN()
+	}
 	return (x - mu) / sigma
 }
 
 // Get percentage change for result x compared to mean u.
 func getPercentageChange(x, mu float64) float64 {
+	if mu == 0 {
+		return math.NaN()
+	}
 	return ((x - mu) / mu) * 100
 }
