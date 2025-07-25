@@ -28,7 +28,7 @@ func TestMarshalValue(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		val      interface{}
+		val      any
 		registry *bson.Registry
 		encFn    EncoderFn
 		want     string
@@ -49,7 +49,7 @@ func TestMarshalValue(t *testing.T) {
 		},
 		{
 			name:  "map",
-			val:   map[string]interface{}{"foo": "bar"},
+			val:   map[string]any{"foo": "bar"},
 			want:  `{"foo": "bar"}`,
 			encFn: testEncFn(t),
 		},

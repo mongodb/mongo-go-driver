@@ -22,7 +22,7 @@ var ErrNilValue = errors.New("value is nil")
 // MarshalError is returned when attempting to transform a value into a document
 // results in an error.
 type MarshalError struct {
-	Value interface{}
+	Value any
 	Err   error
 }
 
@@ -39,7 +39,7 @@ type EncoderFn func(io.Writer) *bson.Encoder
 
 // MarshalValue will attempt to encode the value with the encoder returned by
 // the encoder function.
-func MarshalValue(val interface{}, encFn EncoderFn) (bsoncore.Value, error) {
+func MarshalValue(val any, encFn EncoderFn) (bsoncore.Value, error) {
 	// If the val is already a bsoncore.Value, then do nothing.
 	if bval, ok := val.(bsoncore.Value); ok {
 		return bval, nil

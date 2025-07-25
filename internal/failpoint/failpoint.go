@@ -26,9 +26,9 @@ const (
 // https://github.com/mongodb/specifications/tree/HEAD/source/transactions/tests#server-fail-point
 type FailPoint struct {
 	ConfigureFailPoint string `bson:"configureFailPoint"`
-	// Mode should be a string, FailPointMode, or map[string]interface{}
-	Mode interface{} `bson:"mode"`
-	Data Data        `bson:"data"`
+	// Mode should be a string, FailPointMode, or map[string]any
+	Mode any  `bson:"mode"`
+	Data Data `bson:"data"`
 }
 
 // Mode configures when a fail point will be enabled. It is used to set the

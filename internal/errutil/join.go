@@ -77,7 +77,7 @@ func (e *joinError) Is(target error) bool {
 }
 
 // As calls [errors.As] with the first error in the slice.
-func (e *joinError) As(target interface{}) bool {
+func (e *joinError) As(target any) bool {
 	if len(e.errs) == 0 {
 		return false
 	}

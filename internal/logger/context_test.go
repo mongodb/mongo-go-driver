@@ -55,7 +55,7 @@ func TestContext_OperationName(t *testing.T) {
 	tests := []struct {
 		name   string
 		ctx    context.Context
-		opName interface{}
+		opName any
 		ok     bool
 	}{
 		{
@@ -141,7 +141,7 @@ func TestContext_OperationID(t *testing.T) {
 	tests := []struct {
 		name string
 		ctx  context.Context
-		opID interface{}
+		opID any
 		ok   bool
 	}{
 		{

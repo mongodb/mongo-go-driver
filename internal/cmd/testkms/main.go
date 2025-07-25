@@ -88,7 +88,7 @@ func main() {
 	}
 	defer func() { _ = keyVaultClient.Disconnect(context.Background()) }()
 
-	kmsProvidersMap := map[string]map[string]interface{}{
+	kmsProvidersMap := map[string]map[string]any{
 		provider: {},
 	}
 	ceOpts := options.ClientEncryption().SetKmsProviders(kmsProvidersMap).SetKeyVaultNamespace("keyvault.datakeys")

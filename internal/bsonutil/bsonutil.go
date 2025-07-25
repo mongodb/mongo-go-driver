@@ -52,9 +52,9 @@ func RawArrayToDocuments(arr bson.RawArray) []bson.Raw {
 	return out
 }
 
-// RawToInterfaces takes one or many bson.Raw documents and returns them as a []interface{}.
-func RawToInterfaces(docs ...bson.Raw) []interface{} {
-	out := make([]interface{}, len(docs))
+// RawToInterfaces takes one or many bson.Raw documents and returns them as a []any.
+func RawToInterfaces(docs ...bson.Raw) []any {
+	out := make([]any, len(docs))
 	for i := range docs {
 		out[i] = docs[i]
 	}

@@ -98,7 +98,7 @@ func InsertExamples(t *testing.T, db *mongo.Database) {
 
 		result, err := coll.InsertMany(
 			context.TODO(),
-			[]interface{}{
+			[]any{
 				bson.D{
 					{"item", "journal"},
 					{"qty", int32(25)},
@@ -149,7 +149,7 @@ func QueryToplevelFieldsExamples(t *testing.T, db *mongo.Database) {
 	{
 		// Start Example 6
 
-		docs := []interface{}{
+		docs := []any{
 			bson.D{
 				{"item", "journal"},
 				{"qty", 25},
@@ -318,7 +318,7 @@ func QueryEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 	{
 		// Start Example 14
 
-		docs := []interface{}{
+		docs := []any{
 			bson.D{
 				{"item", "journal"},
 				{"qty", 25},
@@ -480,7 +480,7 @@ func QueryArraysExamples(t *testing.T, db *mongo.Database) {
 	{
 		// Start Example 20
 
-		docs := []interface{}{
+		docs := []any{
 			bson.D{
 				{"item", "journal"},
 				{"qty", 25},
@@ -667,7 +667,7 @@ func QueryArrayEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 	{
 		// Start Example 29
 
-		docs := []interface{}{
+		docs := []any{
 			bson.D{
 				{"item", "journal"},
 				{"instock", bson.A{
@@ -897,7 +897,7 @@ func QueryNullMissingFieldsExamples(t *testing.T, db *mongo.Database) {
 	{
 		// Start Example 38
 
-		docs := []interface{}{
+		docs := []any{
 			bson.D{
 				{"_id", 1},
 				{"item", nil},
@@ -976,7 +976,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 	{
 		// Start Example 42
 
-		docs := []interface{}{
+		docs := []any{
 			bson.D{
 				{"item", "journal"},
 				{"status", "A"},
@@ -1361,7 +1361,7 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 	{
 		// Start Example 51
 
-		docs := []interface{}{
+		docs := []any{
 			bson.D{
 				{"item", "canvas"},
 				{"qty", 100},
@@ -1641,7 +1641,7 @@ func DeleteExamples(t *testing.T, db *mongo.Database) {
 
 	{
 		// Start Example 55
-		docs := []interface{}{
+		docs := []any{
 			bson.D{
 				{"item", "journal"},
 				{"qty", 25},
@@ -1985,7 +1985,7 @@ func WithTransactionExample(ctx context.Context) error {
 	barColl := client.Database("mydb1").Collection("bar", wcMajorityCollectionOpts)
 
 	// Step 1: Define the callback that specifies the sequence of operations to perform inside the transaction.
-	callback := func(sesctx context.Context) (interface{}, error) {
+	callback := func(sesctx context.Context) (any, error) {
 		// Important: You must pass sesctx as the Context parameter to the operations for them to be executed in the
 		// transaction.
 		if _, err := fooColl.InsertOne(sesctx, bson.D{{"abc", 1}}); err != nil {
@@ -2145,7 +2145,7 @@ func AggregationExamples(t *testing.T, db *mongo.Database) {
 	date20180205 := parseDate(t, "2018-02-05T06:03:00.000Z")
 	date20180111 := parseDate(t, "2018-01-11T07:15:00.000Z")
 
-	sales := []interface{}{
+	sales := []any{
 		bson.D{
 			{"date", date20180208},
 			{"items", bson.A{
@@ -2242,7 +2242,7 @@ func AggregationExamples(t *testing.T, db *mongo.Database) {
 			}},
 		},
 	}
-	airlines := []interface{}{
+	airlines := []any{
 		bson.D{
 			{"airline", 17},
 			{"name", "Air Canada"},
@@ -2314,7 +2314,7 @@ func AggregationExamples(t *testing.T, db *mongo.Database) {
 			{"base", "CYS"},
 		},
 	}
-	airAlliances := []interface{}{
+	airAlliances := []any{
 		bson.D{
 			{"name", "Star Alliance"},
 			{"airlines", bson.A{
@@ -2670,7 +2670,7 @@ func IndexExamples(t *testing.T, db *mongo.Database) {
 	err = restaurantsColl.Drop(ctx)
 	assert.NoError(t, err)
 
-	records := []interface{}{
+	records := []any{
 		bson.D{
 			{"student", "Marty McFly"},
 			{"classYear", 1986},
@@ -2691,7 +2691,7 @@ func IndexExamples(t *testing.T, db *mongo.Database) {
 			{"score", 99.9},
 		},
 	}
-	restaurants := []interface{}{
+	restaurants := []any{
 		bson.D{
 			{"name", "Chez Panisse"},
 			{"cuisine", "American/French"},
@@ -2884,7 +2884,7 @@ func StableAPIStrictCountExample(t *testing.T) {
 	// Start Versioned API Example 5
 
 	coll := client.Database("db").Collection("sales")
-	docs := []interface{}{
+	docs := []any{
 		bson.D{{"_id", 1}, {"item", "abc"}, {"price", 10}, {"quantity", 2}, {"date", "2021-01-01T08:00:00Z"}},
 		bson.D{{"_id", 2}, {"item", "jkl"}, {"price", 20}, {"quantity", 1}, {"date", "2021-02-03T09:00:00Z"}},
 		bson.D{{"_id", 3}, {"item", "xyz"}, {"price", 5}, {"quantity", 5}, {"date", "2021-02-03T09:05:00Z"}},
@@ -2938,7 +2938,7 @@ func StableAPIExamples() {
 
 func insertSnapshotQueryTestData(mt *mtest.T) {
 	catColl := mt.CreateCollection(mtest.Collection{Name: "cats"}, true)
-	_, err := catColl.InsertMany(context.Background(), []interface{}{
+	_, err := catColl.InsertMany(context.Background(), []any{
 		bson.D{
 			{"adoptable", false},
 			{"name", "Miyagi"},
@@ -2955,7 +2955,7 @@ func insertSnapshotQueryTestData(mt *mtest.T) {
 	assert.NoError(mt, err)
 
 	dogColl := mt.CreateCollection(mtest.Collection{Name: "dogs"}, true)
-	_, err = dogColl.InsertMany(context.Background(), []interface{}{
+	_, err = dogColl.InsertMany(context.Background(), []any{
 		bson.D{
 			{"adoptable", true},
 			{"name", "Cormac"},
@@ -2972,7 +2972,7 @@ func insertSnapshotQueryTestData(mt *mtest.T) {
 	assert.NoError(mt, err)
 
 	salesColl := mt.CreateCollection(mtest.Collection{Name: "sales"}, true)
-	_, err = salesColl.InsertMany(context.Background(), []interface{}{
+	_, err = salesColl.InsertMany(context.Background(), []any{
 		bson.D{
 			{"shoeType", "hiking boot"},
 			{"price", 30.0},
