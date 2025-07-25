@@ -8,7 +8,7 @@ package bsoncoreutil
 
 // Truncate truncates a given string for a certain width
 func Truncate(str string, width int) string {
-	if width == 0 {
+	if width <= 0 {
 		return ""
 	}
 
