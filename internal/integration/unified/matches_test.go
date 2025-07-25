@@ -30,7 +30,7 @@ func TestMatches(t *testing.T) {
 		assert.Nil(t, err, "UnmarshalExtJSON error: %v", err)
 		return val
 	}
-	marshalValue := func(t *testing.T, val interface{}) bson.RawValue {
+	marshalValue := func(t *testing.T, val any) bson.RawValue {
 		t.Helper()
 
 		valType, data, err := bson.MarshalValue(val)

@@ -25,10 +25,10 @@ var _ bson.Unmarshaler = (*serverAPIOptions)(nil)
 
 func (s *serverAPIOptions) UnmarshalBSON(data []byte) error {
 	var temp struct {
-		ServerAPIVersion  serverAPIVersion       `bson:"version"`
-		DeprecationErrors *bool                  `bson:"deprecationErrors"`
-		Strict            *bool                  `bson:"strict"`
-		Extra             map[string]interface{} `bson:",inline"`
+		ServerAPIVersion  serverAPIVersion `bson:"version"`
+		DeprecationErrors *bool            `bson:"deprecationErrors"`
+		Strict            *bool            `bson:"strict"`
+		Extra             map[string]any   `bson:",inline"`
 	}
 	if err := bson.Unmarshal(data, &temp); err != nil {
 		return fmt.Errorf("error unmarshalling to temporary serverAPIOptions object: %v", err)

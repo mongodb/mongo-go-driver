@@ -40,11 +40,11 @@ func TestRetryableWritesProse(t *testing.T) {
 		insertOneDoc := bson.D{{"x", 1}}
 		insertManyOrderedArgs := bson.D{
 			{"options", bson.D{{"ordered", true}}},
-			{"documents", []interface{}{insertOneDoc}},
+			{"documents", []any{insertOneDoc}},
 		}
 		insertManyUnorderedArgs := bson.D{
 			{"options", bson.D{{"ordered", true}}},
-			{"documents", []interface{}{insertOneDoc}},
+			{"documents", []any{insertOneDoc}},
 		}
 
 		testCases := []struct {
@@ -389,7 +389,7 @@ type crudOperation struct {
 
 type crudOutcome struct {
 	Error      bool               `bson:"error"` // only used by retryable writes tests
-	Result     interface{}        `bson:"result"`
+	Result     any                `bson:"result"`
 	Collection *outcomeCollection `bson:"collection"`
 }
 

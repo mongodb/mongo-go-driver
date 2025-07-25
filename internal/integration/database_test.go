@@ -345,7 +345,7 @@ func TestDatabase(t *testing.T) {
 	})
 
 	mt.RunOpts("run command cursor", noClientOpts, func(mt *mtest.T) {
-		var data []interface{}
+		var data []any
 		for i := 0; i < 5; i++ {
 			data = append(data, bson.D{{"x", i}})
 		}
@@ -363,8 +363,8 @@ func TestDatabase(t *testing.T) {
 		testCases := []struct {
 			name        string
 			collName    string
-			cmd         interface{}
-			toInsert    []interface{}
+			cmd         any
+			toInsert    []any
 			expectedErr error
 			numExpected int
 			minVersion  string

@@ -29,7 +29,7 @@ func parseDataKeyOptions(opts bson.Raw) (*options.DataKeyOptionsBuilder, error) 
 		val := elem.Value()
 		switch key {
 		case "masterKey":
-			masterKey := make(map[string]interface{})
+			masterKey := make(map[string]any)
 			if err := val.Unmarshal(&masterKey); err != nil {
 				return nil, fmt.Errorf("error unmarshaling 'masterKey': %w", err)
 			}

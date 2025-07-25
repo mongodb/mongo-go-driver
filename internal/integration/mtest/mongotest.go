@@ -394,7 +394,7 @@ type Collection struct {
 	Opts               *options.CollectionOptionsBuilder
 	CreateOpts         *options.CreateCollectionOptionsBuilder
 	ViewOn             string
-	ViewPipeline       interface{}
+	ViewPipeline       any
 	hasDifferentClient bool
 	created            *mongo.Collection // the actual collection that was created
 }
@@ -449,7 +449,7 @@ func (t *T) CreateCollection(coll Collection, createOnServer bool) *mongo.Collec
 
 // DropEncryptedCollection drops a collection with EncryptedFields.
 // The EncryptedFields option is not supported in Collection.Drop(). See GODRIVER-2413.
-func DropEncryptedCollection(t *T, coll *mongo.Collection, encryptedFields interface{}) {
+func DropEncryptedCollection(t *T, coll *mongo.Collection, encryptedFields any) {
 	t.Helper()
 
 	var efBSON bsoncore.Document
@@ -502,7 +502,7 @@ func (t *T) ClearCollections() {
 // in command monitoring channels. The fail point will automatically be disabled after this test has run.
 func (t *T) SetFailPoint(fp failpoint.FailPoint) {
 	// ensure mode fields are int32
-	if modeMap, ok := fp.Mode.(map[string]interface{}); ok {
+	if modeMap, ok := fp.Mode.(map[string]any); ok {
 		var key string
 		var err error
 
@@ -858,7 +858,7 @@ func (t *T) verifyConstraints() error {
 	return fmt.Errorf("no matching RunOnBlock; comparison errors: %v", runOnErrors)
 }
 
-func (t *T) interfaceToInt32(i interface{}) (int32, error) {
+func (t *T) interfaceToInt32(i any) (int32, error) {
 	switch conv := i.(type) {
 	case int:
 		return int32(conv), nil

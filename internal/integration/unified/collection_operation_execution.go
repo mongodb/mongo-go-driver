@@ -25,7 +25,7 @@ import (
 
 func executeAggregate(ctx context.Context, operation *operation) (*operationResult, error) {
 	var aggregator interface {
-		Aggregate(context.Context, interface{}, ...options.Lister[options.AggregateOptions]) (*mongo.Cursor, error)
+		Aggregate(context.Context, any, ...options.Lister[options.AggregateOptions]) (*mongo.Cursor, error)
 	}
 	var err error
 
@@ -37,7 +37,7 @@ func executeAggregate(ctx context.Context, operation *operation) (*operationResu
 		return nil, fmt.Errorf("no database or collection entity found with ID %q", operation.Object)
 	}
 
-	var pipeline []interface{}
+	var pipeline []any
 	opts := options.Aggregate()
 
 	elems, err := operation.Arguments.Elements()
@@ -314,7 +314,7 @@ func executeCreateSearchIndex(ctx context.Context, operation *operation) (*opera
 		switch key {
 		case "model":
 			var m struct {
-				Definition interface{}
+				Definition any
 				Name       *string
 				Type       *string
 			}
@@ -364,7 +364,7 @@ func executeCreateSearchIndexes(ctx context.Context, operation *operation) (*ope
 			}
 			for _, val := range vals {
 				var m struct {
-					Definition interface{}
+					Definition any
 					Name       *string
 					Type       *string
 				}
@@ -953,7 +953,7 @@ func executeFindOneAndUpdate(ctx context.Context, operation *operation) (*operat
 	}
 
 	var filter bson.Raw
-	var update interface{}
+	var update any
 	opts := options.FindOneAndUpdate()
 
 	elems, err := operation.Arguments.Elements()
@@ -1044,7 +1044,7 @@ func executeInsertMany(ctx context.Context, operation *operation) (*operationRes
 		return nil, err
 	}
 
-	var documents []interface{}
+	var documents []any
 	opts := options.InsertMany()
 
 	elems, err := operation.Arguments.Elements()
@@ -1073,7 +1073,7 @@ func executeInsertMany(ctx context.Context, operation *operation) (*operationRes
 	res, err := coll.InsertMany(ctx, documents, opts)
 	raw := emptyCoreDocument
 	if res != nil {
-		// We return InsertedIDs as []interface{} but the CRUD spec documents it as a map[int64]interface{}, so
+		// We return InsertedIDs as []any but the CRUD spec documents it as a map[int64]any, so
 		// comparisons will fail if we include it in the result document. This is marked as an optional field and is
 		// always surrounded in an $$unsetOrMatches assertion, so we leave it out of the document.
 		raw = bsoncore.NewDocumentBuilder().
@@ -1360,7 +1360,7 @@ func executeUpdateSearchIndex(ctx context.Context, operation *operation) (*opera
 	}
 
 	var name string
-	var definition interface{}
+	var definition any
 
 	elems, err := operation.Arguments.Elements()
 	if err != nil {
