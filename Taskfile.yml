@@ -85,6 +85,8 @@ tasks:
       - GOOS=linux GOARCH=ppc64le etc/golangci-lint.sh
       - GOOS=linux GOARCH=s390x etc/golangci-lint.sh
 
+  govulncheck: bash etc/govulncheck.sh
+
   update-notices: bash etc/generate_notices.pl > THIRD-PARTY-NOTICES
 
   ### Local testing tasks. ###

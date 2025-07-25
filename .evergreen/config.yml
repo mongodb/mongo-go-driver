@@ -657,6 +657,14 @@ tasks:
           binary: bash
           args: [*task-runner, check-fmt, check-license, check-modules, lint]
 
+  - name: govulncheck
+    tags: ["static-analysis"]
+    commands:
+      - command: subprocess.exec
+        params:
+          binary: bash
+          args: [*task-runner, govulncheck]
+
   - name: pull-request-helpers
     allowed_requesters: ["patch", "github_pr"]
     commands:
