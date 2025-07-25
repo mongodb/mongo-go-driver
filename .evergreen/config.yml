@@ -285,6 +285,16 @@ functions:
           echo "Response Body: $response_body"
           echo "HTTP Status: $http_status"
 
+  send-perf-pr-comment:
+    - command: subprocess.exec
+      type: test
+      params:
+        binary: bash
+        env:
+          VERSION_ID: ${version_id}
+        include_expansions_in_env: [PERF_URI_PRIVATE_ENDPOINT]
+        args: [*task-runner, perf-pr-comment]
+
   run-enterprise-auth-tests:
     - command: ec2.assume_role
       params:
@@ -684,6 +694,7 @@ tasks:
           binary: bash
           args: [*task-runner, driver-benchmark]
       - func: send-perf-data
+      - func: send-perf-pr-comment
 
   - name: test-standalone-noauth-nossl
     tags: ["test", "standalone"]

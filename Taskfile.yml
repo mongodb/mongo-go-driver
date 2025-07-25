@@ -70,6 +70,8 @@ tasks:
 
   pr-task: bash etc/pr-task.sh
 
+  perf-pr-comment: bash etc/perf-pr-comment.sh
+
   # Lint with various GOOS and GOARCH tasks to catch static analysis failures that may only affect
   # specific operating systems or architectures. For example, staticcheck will only check for 64-bit
   # alignment of atomically accessed variables on 32-bit architectures (see
