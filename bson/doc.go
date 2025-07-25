@@ -74,8 +74,8 @@
 //  4. A pointer field is marshaled as the underlying type if the pointer is non-nil. If the pointer is nil, it is
 //     marshaled as a BSON null value.
 //
-//  5. When unmarshaling, a field of type interface{} will follow the D/M type mappings listed above. BSON documents
-//     unmarshaled into an interface{} field will be unmarshaled as a D.
+//  5. When unmarshaling, a field of type any will follow the D/M type mappings listed above. BSON documents
+//     unmarshaled into an any field will be unmarshaled as a D.
 //
 // The encoding of each struct field can be customized by the "bson" struct tag. The "bson" tag gives the name of the
 // field, followed by a comma-separated list of options. The name may be omitted in order to specify options without
@@ -101,7 +101,7 @@
 //  4. inline: If the inline struct tag is specified for a struct or map field, the field will be "flattened" when
 //     marshaling and "un-flattened" when unmarshaling. This means that all of the fields in that struct/map will be
 //     pulled up one level and will become top-level fields rather than being fields in a nested document. For example,
-//     if a map field named "Map" with value map[string]interface{}{"foo": "bar"} is inlined, the resulting document will
+//     if a map field named "Map" with value map[string]any{"foo": "bar"} is inlined, the resulting document will
 //     be {"foo": "bar"} instead of {"map": {"foo": "bar"}}. There can only be one inlined map field in a struct. If
 //     there are duplicated fields in the resulting document when an inlined struct is marshaled, the inlined field will
 //     be overwritten. If there are duplicated fields in the resulting document when an inlined map is marshaled, an

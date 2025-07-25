@@ -17,7 +17,7 @@ var (
 
 	tInt            = reflect.TypeOf(int(0))
 	tM              = reflect.TypeOf(M{})
-	tInterfaceSlice = reflect.TypeOf([]interface{}{})
+	tInterfaceSlice = reflect.TypeOf([]any{})
 	tGetter         = reflect.TypeOf((*getter)(nil)).Elem()
 	tSetter         = reflect.TypeOf((*setter)(nil)).Elem()
 )
@@ -131,7 +131,7 @@ type setter interface {
 // If GetBSON returns return a non-nil error, the marshalling procedure
 // will stop and error out with the provided value.
 type getter interface {
-	GetBSON() (interface{}, error)
+	GetBSON() (any, error)
 }
 
 // setterDecodeValue is the ValueDecoderFunc for Setter types.

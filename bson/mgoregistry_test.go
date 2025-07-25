@@ -33,7 +33,7 @@ func wrapInDoc(data string) string {
 	return string(result)
 }
 
-func makeZeroDoc(value interface{}) (zero interface{}) {
+func makeZeroDoc(value any) (zero any) {
 	v := reflect.ValueOf(value)
 	t := v.Type()
 	switch t.Kind() {
@@ -51,7 +51,7 @@ func makeZeroDoc(value interface{}) (zero interface{}) {
 	return zero
 }
 
-func unmarshalWithRegistry(t *testing.T, r *Registry, data []byte, val interface{}) error {
+func unmarshalWithRegistry(t *testing.T, r *Registry, data []byte, val any) error {
 	t.Helper()
 
 	dec := NewDecoder(NewDocumentReader(bytes.NewReader(data)))
@@ -59,7 +59,7 @@ func unmarshalWithRegistry(t *testing.T, r *Registry, data []byte, val interface
 	return dec.Decode(val)
 }
 
-func testUnmarshal(t *testing.T, data string, obj interface{}) {
+func testUnmarshal(t *testing.T, data string, obj any) {
 	zero := makeZeroDoc(obj)
 	err := unmarshalWithRegistry(t, NewMgoRegistry(), []byte(data), zero)
 	assert.Nil(t, err, "expected nil error, got: %v", err)
@@ -67,7 +67,7 @@ func testUnmarshal(t *testing.T, data string, obj interface{}) {
 }
 
 type testItemType struct {
-	obj  interface{}
+	obj  any
 	data string
 }
 
@@ -77,7 +77,7 @@ type testItemType struct {
 var sampleItems = []testItemType{
 	{M{"hello": "world"},
 		"\x16\x00\x00\x00\x02hello\x00\x06\x00\x00\x00world\x00\x00"},
-	{M{"BSON": []interface{}{"awesome", float64(5.05), 1986}},
+	{M{"BSON": []any{"awesome", float64(5.05), 1986}},
 		"1\x00\x00\x00\x04BSON\x00&\x00\x00\x00\x020\x00\x08\x00\x00\x00" +
 			"awesome\x00\x011\x00333333\x14@\x102\x00\xc2\x07\x00\x00\x00\x00"},
 	{M{"slice": []uint8{1, 2}},
@@ -128,7 +128,7 @@ var allItems = []testItemType{
 		"\x02_\x00\x03\x00\x00\x00yo\x00"},
 	{M{"_": M{"a": true}},
 		"\x03_\x00\x09\x00\x00\x00\x08a\x00\x01\x00"},
-	{M{"_": []interface{}{true, false}},
+	{M{"_": []any{true, false}},
 		"\x04_\x00\r\x00\x00\x00\x080\x00\x01\x081\x00\x00\x00"},
 	{M{"_": []byte("yo")},
 		"\x05_\x00\x02\x00\x00\x00\x00yo"},
@@ -262,7 +262,7 @@ func TestUnmarshalNonNilInterface(t *testing.T) {
 	err := enc.Encode(M{"b": 2})
 	assert.Nil(t, err, "expected nil error, got: %v", err)
 	m := M{"a": 1}
-	var i interface{} = m
+	var i any = m
 	err = unmarshalWithRegistry(t, NewMgoRegistry(), buf.Bytes(), &i)
 	assert.Nil(t, err, "expected nil error, got: %v", err)
 	assert.True(t, reflect.DeepEqual(M{"b": 2}, i), "expected: %v, got: %v", M{"b": 2}, i)
@@ -271,7 +271,7 @@ func TestUnmarshalNonNilInterface(t *testing.T) {
 
 func TestPtrInline(t *testing.T) {
 	cases := []struct {
-		In  interface{}
+		In  any
 		Out M
 	}{
 		{
@@ -340,7 +340,7 @@ var oneWayMarshalItems = []testItemType{
 	{M{"": [2]bool{true, false}},
 		"\x04\x00\r\x00\x00\x00\x080\x00\x01\x081\x00\x00\x00"},
 
-	// The typed slice will be unmarshaled as []interface{}.
+	// The typed slice will be unmarshaled as []any.
 	{M{"": []bool{true, false}},
 		"\x04\x00\r\x00\x00\x00\x080\x00\x01\x081\x00\x00\x00"},
 
@@ -408,13 +408,13 @@ type specSample1 struct {
 }
 
 type specSample2 struct {
-	BSON []interface{} `bson:"BSON"`
+	BSON []any `bson:"BSON"`
 }
 
 var structSampleItems = []testItemType{
 	{&specSample1{"world"},
 		"\x16\x00\x00\x00\x02hello\x00\x06\x00\x00\x00world\x00\x00"},
-	{&specSample2{[]interface{}{"awesome", float64(5.05), 1986}},
+	{&specSample2{[]any{"awesome", float64(5.05), 1986}},
 		"1\x00\x00\x00\x04BSON\x00&\x00\x00\x00\x020\x00\x08\x00\x00\x00" +
 			"awesome\x00\x011\x00333333\x14@\x102\x00\xc2\x07\x00\x00\x00\x00"},
 }
@@ -468,7 +468,7 @@ func Test64bitInt(t *testing.T) {
 type prefixPtr string
 type prefixVal string
 
-func (t *prefixPtr) GetBSON() (interface{}, error) {
+func (t *prefixPtr) GetBSON() (any, error) {
 	if t == nil {
 		return nil, nil
 	}
@@ -498,7 +498,7 @@ func (t *prefixPtr) SetBSON(raw RawValue) error {
 	return nil
 }
 
-func (t prefixVal) GetBSON() (interface{}, error) {
+func (t prefixVal) GetBSON() (any, error) {
 	return "foo-" + string(t), nil
 }
 
@@ -633,7 +633,7 @@ func TestUnmarshalRawStructItems(t *testing.T) {
 // One-way marshaling tests.
 
 type dOnIface struct {
-	D interface{}
+	D any
 }
 
 type ignoreField struct {
@@ -766,7 +766,7 @@ var marshalErrorItems = []testItemType{
 		"Multiple ,inline maps in struct bson_test.inlineDupMap"},
 	{&inlineBadKeyMap{},
 		"Option ,inline needs a map with string keys in struct bson_test.inlineBadKeyMap"},
-	{&inlineMap{A: 1, M: map[string]interface{}{"a": 1}},
+	{&inlineMap{A: 1, M: map[string]any{"a": 1}},
 		`Can't have key "a" in inlined map; conflicts with struct field`},
 }
 
@@ -791,7 +791,7 @@ func TestMarshalErrorItems(t *testing.T) {
 // Unmarshalling error cases.
 
 type unmarshalErrorType struct {
-	obj  interface{}
+	obj  any
 	data string
 }
 
@@ -819,7 +819,7 @@ var unmarshalErrorItems = []unmarshalErrorType{
 	},
 	// Non-string and not numeric map key.
 	{
-		obj:  map[bool]interface{}{true: 1},
+		obj:  map[bool]any{true: 1},
 		data: "\x10true\x00\x01\x00\x00\x00",
 	},
 }
@@ -828,7 +828,7 @@ func TestUnmarshalErrorItems(t *testing.T) {
 	for i, item := range unmarshalErrorItems {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			data := []byte(wrapInDoc(item.data))
-			var value interface{}
+			var value any
 			switch reflect.ValueOf(item.obj).Kind() {
 			case reflect.Map, reflect.Ptr:
 				value = makeZeroDoc(item.obj)
@@ -844,7 +844,7 @@ func TestUnmarshalErrorItems(t *testing.T) {
 }
 
 type unmarshalRawErrorType struct {
-	obj interface{}
+	obj any
 	raw RawValue
 }
 
@@ -924,7 +924,7 @@ func TestUnmarshalMapDocumentTooShort(t *testing.T) {
 var setterResult = map[string]error{}
 
 type setterType struct {
-	Received interface{}
+	Received any
 }
 
 func (o *setterType) SetBSON(raw RawValue) error {
@@ -1050,11 +1050,11 @@ func TestUnmarshalSetterErrSetZero(t *testing.T) {
 // Getter test cases.
 
 type typeWithGetter struct {
-	result interface{}
+	result any
 	err    error
 }
 
-func (t *typeWithGetter) GetBSON() (interface{}, error) {
+func (t *typeWithGetter) GetBSON() (any, error) {
 	if t == nil {
 		return "<value is nil>", nil
 	}
@@ -1124,7 +1124,7 @@ func TestGetterErrors(t *testing.T) {
 
 type intGetter int64
 
-func (t intGetter) GetBSON() (interface{}, error) {
+func (t intGetter) GetBSON() (any, error) {
 	return int64(t), nil
 }
 
@@ -1165,8 +1165,8 @@ func TestMarshalWithGetterNil(t *testing.T) {
 // Cross-type conversion tests.
 
 type crossTypeItem struct {
-	obj1 interface{}
-	obj2 interface{}
+	obj1 any
+	obj2 any
 }
 
 type condStr struct {
@@ -1188,7 +1188,7 @@ type condFloat struct {
 	V float64 `bson:",omitempty"`
 }
 type condIface struct {
-	V interface{} `bson:",omitempty"`
+	V any `bson:",omitempty"`
 }
 type condPtr struct {
 	V *bool `bson:",omitempty"`
@@ -1216,7 +1216,7 @@ type shortUint struct {
 	V uint64 `bson:",minsize"`
 }
 type shortIface struct {
-	V interface{} `bson:",minsize"`
+	V any `bson:",minsize"`
 }
 type shortPtr struct {
 	V *int64 `bson:",minsize"`
@@ -1234,7 +1234,7 @@ type inlineDupName struct {
 }
 type inlineMap struct {
 	A int
-	M map[string]interface{} `bson:",inline"`
+	M map[string]any `bson:",inline"`
 }
 type inlineMapInt struct {
 	A int
@@ -1245,14 +1245,14 @@ type inlineMapMyM struct {
 	M MyM `bson:",inline"`
 }
 type inlineDupMap struct {
-	M1 map[string]interface{} `bson:",inline"`
-	M2 map[string]interface{} `bson:",inline"`
+	M1 map[string]any `bson:",inline"`
+	M2 map[string]any `bson:",inline"`
 }
 type inlineBadKeyMap struct {
 	M map[int]int `bson:",inline"`
 }
 type inlineUnexported struct {
-	M          map[string]interface{} `bson:",inline"`
+	M          map[string]any `bson:",inline"`
 	unexported `bson:",inline"`
 }
 type MStruct struct {
@@ -1272,7 +1272,7 @@ type unexported struct {
 
 type getterSetterD D
 
-func (s getterSetterD) GetBSON() (interface{}, error) {
+func (s getterSetterD) GetBSON() (any, error) {
 	if len(s) == 0 {
 		return D{}, nil
 	}
@@ -1301,7 +1301,7 @@ func (s *getterSetterD) SetBSON(raw RawValue) error {
 
 type getterSetterInt int
 
-func (i getterSetterInt) GetBSON() (interface{}, error) {
+func (i getterSetterInt) GetBSON() (any, error) {
 	return D{{"a", int(i)}}, nil
 }
 
@@ -1346,7 +1346,7 @@ func (s *ifaceSlice) SetBSON(raw RawValue) error {
 	return nil
 }
 
-func (s ifaceSlice) GetBSON() (interface{}, error) {
+func (s ifaceSlice) GetBSON() (any, error) {
 	return []int{len(s)}, nil
 }
 
@@ -1356,7 +1356,7 @@ type (
 	MyBool   bool
 	MyD      D
 	MyRawD   Raw
-	MyM      map[string]interface{}
+	MyM      map[string]any
 )
 
 var (
@@ -1506,30 +1506,30 @@ var twoWayCrossItems = []crossTypeItem{
 	{&condTime{time.Unix(123456789, 123e6).UTC()}, map[string]time.Time{"v": time.Unix(123456789, 123e6).UTC()}},
 	{&condTime{}, map[string]string{}},
 
-	{&condStruct{struct{ A []int }{[]int{1}}}, M{"v": M{"a": []interface{}{1}}}},
+	{&condStruct{struct{ A []int }{[]int{1}}}, M{"v": M{"a": []any{1}}}},
 	{&condStruct{struct{ A []int }{}}, M{}},
 
 	{&namedCondStr{"yo"}, map[string]string{"myv": "yo"}},
 	{&namedCondStr{}, map[string]string{}},
 
-	{&shortInt{1}, map[string]interface{}{"v": 1}},
-	{&shortInt{1 << 30}, map[string]interface{}{"v": 1 << 30}},
-	{&shortInt{1 << 31}, map[string]interface{}{"v": int64(1 << 31)}},
-	{&shortUint{1 << 30}, map[string]interface{}{"v": 1 << 30}},
-	{&shortUint{1 << 31}, map[string]interface{}{"v": int64(1 << 31)}},
-	{&shortIface{int64(1) << 31}, map[string]interface{}{"v": int64(1 << 31)}},
-	{&shortPtr{int64ptr}, map[string]interface{}{"v": intvar}},
+	{&shortInt{1}, map[string]any{"v": 1}},
+	{&shortInt{1 << 30}, map[string]any{"v": 1 << 30}},
+	{&shortInt{1 << 31}, map[string]any{"v": int64(1 << 31)}},
+	{&shortUint{1 << 30}, map[string]any{"v": 1 << 30}},
+	{&shortUint{1 << 31}, map[string]any{"v": int64(1 << 31)}},
+	{&shortIface{int64(1) << 31}, map[string]any{"v": int64(1 << 31)}},
+	{&shortPtr{int64ptr}, map[string]any{"v": intvar}},
 
-	{&shortNonEmptyInt{1}, map[string]interface{}{"v": 1}},
-	{&shortNonEmptyInt{1 << 31}, map[string]interface{}{"v": int64(1 << 31)}},
-	{&shortNonEmptyInt{}, map[string]interface{}{}},
+	{&shortNonEmptyInt{1}, map[string]any{"v": 1}},
+	{&shortNonEmptyInt{1 << 31}, map[string]any{"v": int64(1 << 31)}},
+	{&shortNonEmptyInt{}, map[string]any{}},
 
-	{&inlineInt{struct{ A, B int }{1, 2}}, map[string]interface{}{"a": 1, "b": 2}},
-	{&inlineMap{A: 1, M: map[string]interface{}{"b": 2}}, map[string]interface{}{"a": 1, "b": 2}},
-	{&inlineMap{A: 1, M: nil}, map[string]interface{}{"a": 1}},
+	{&inlineInt{struct{ A, B int }{1, 2}}, map[string]any{"a": 1, "b": 2}},
+	{&inlineMap{A: 1, M: map[string]any{"b": 2}}, map[string]any{"a": 1, "b": 2}},
+	{&inlineMap{A: 1, M: nil}, map[string]any{"a": 1}},
 	{&inlineMapInt{A: 1, M: map[string]int{"b": 2}}, map[string]int{"a": 1, "b": 2}},
 	{&inlineMapInt{A: 1, M: nil}, map[string]int{"a": 1}},
-	{&inlineUnexported{M: map[string]interface{}{"b": 1}, unexported: unexported{A: 2}}, map[string]interface{}{"b": 1, "a": 2}},
+	{&inlineUnexported{M: map[string]any{"b": 1}, unexported: unexported{A: 2}}, map[string]any{"b": 1, "a": 2}},
 
 	// []byte <=> Binary
 	{&struct{ B []byte }{[]byte("abc")}, map[string]Binary{"b": {Data: []byte("abc")}}},
@@ -1551,37 +1551,37 @@ var twoWayCrossItems = []crossTypeItem{
 	{&struct{ V [2]byte }{[...]byte{1, 2}}, map[string][2]byte{"v": {1, 2}}},
 
 	// zero time
-	{&struct{ V time.Time }{}, map[string]interface{}{"v": time.Time{}}},
+	{&struct{ V time.Time }{}, map[string]any{"v": time.Time{}}},
 
 	// zero time + 1 second + 1 millisecond; overflows int64 as nanoseconds
 	{&struct{ V time.Time }{time.Unix(-62135596799, 1e6).UTC()},
-		map[string]interface{}{"v": time.Unix(-62135596799, 1e6).UTC()}},
+		map[string]any{"v": time.Unix(-62135596799, 1e6).UTC()}},
 
 	// json.Number <=> int64, float64
-	{&struct{ N json.Number }{"5"}, map[string]interface{}{"n": int64(5)}},
-	{&struct{ N json.Number }{"5.05"}, map[string]interface{}{"n": 5.05}},
-	{&struct{ N json.Number }{"9223372036854776000"}, map[string]interface{}{"n": float64(1 << 63)}},
+	{&struct{ N json.Number }{"5"}, map[string]any{"n": int64(5)}},
+	{&struct{ N json.Number }{"5.05"}, map[string]any{"n": 5.05}},
+	{&struct{ N json.Number }{"9223372036854776000"}, map[string]any{"n": float64(1 << 63)}},
 
 	// D <=> non-struct getter/setter
 	{&D{{"a", 1}}, &getterSetterD{{"a", 1}, {"suffix", true}}},
 	{&D{{"a", 42}}, &gsintvar},
 
 	// Interface slice setter.
-	{&struct{ V ifaceSlice }{ifaceSlice{nil, nil, nil}}, M{"v": []interface{}{3}}},
+	{&struct{ V ifaceSlice }{ifaceSlice{nil, nil, nil}}, M{"v": []any{3}}},
 }
 
 // Same thing, but only one way (obj1 => obj2).
 var oneWayCrossItems = []crossTypeItem{
 	// Would get decoded into a int32 too in the opposite direction.
-	{&shortIface{int64(1) << 30}, map[string]interface{}{"v": 1 << 30}},
+	{&shortIface{int64(1) << 30}, map[string]any{"v": 1 << 30}},
 
 	// Ensure omitempty on struct with private fields works properly.
 	{&struct {
 		V struct{ v time.Time } `bson:",omitempty"`
-	}{}, map[string]interface{}{}},
+	}{}, map[string]any{}},
 
-	{&inlineMapMyM{A: 1, M: MyM{"b": MyM{"c": 3}}}, map[string]interface{}{"a": 1, "b": M{"c": 3}}},
-	{map[string]interface{}{"a": 1, "b": map[string]interface{}{"c": 3}}, &inlineMapMyM{A: 1, M: MyM{"b": M{"c": 3}}}},
+	{&inlineMapMyM{A: 1, M: MyM{"b": MyM{"c": 3}}}, map[string]any{"a": 1, "b": M{"c": 3}}},
+	{map[string]any{"a": 1, "b": map[string]any{"c": 3}}, &inlineMapMyM{A: 1, M: MyM{"b": M{"c": 3}}}},
 
 	{&D{{"a", D{{"b", 1}, {"c", 2}}}}, &D{{"a", M{"b": 1, "c": 2}}}},
 
@@ -1594,13 +1594,13 @@ var oneWayCrossItems = []crossTypeItem{
 	{&M{"a": M{"b": 1, "c": 2}}, MyM{"a": M{"b": 1, "c": 2}}},
 	{MyM{"a": MyM{"b": 1, "c": 2}}, &M{"a": M{"b": 1, "c": 2}}},
 
-	{map[string]interface{}{"a": map[string]interface{}{"b": 1, "c": 2}}, &M{"a": M{"b": 1, "c": 2}}},
+	{map[string]any{"a": map[string]any{"b": 1, "c": 2}}, &M{"a": M{"b": 1, "c": 2}}},
 
-	{&M{"a": M{"b": 1, "c": 2}}, map[MyString]interface{}{"a": M{"b": 1, "c": 2}}},
-	{map[MyString]interface{}{"a": map[MyString]interface{}{"b": 1, "c": 2}}, &M{"a": M{"b": 1, "c": 2}}},
+	{&M{"a": M{"b": 1, "c": 2}}, map[MyString]any{"a": M{"b": 1, "c": 2}}},
+	{map[MyString]any{"a": map[MyString]any{"b": 1, "c": 2}}, &M{"a": M{"b": 1, "c": 2}}},
 }
 
-func testCrossPair(t *testing.T, dump interface{}, load interface{}) {
+func testCrossPair(t *testing.T, dump any, load any) {
 	zero := makeZeroDoc(load)
 	buf := new(bytes.Buffer)
 	vw := NewDocumentWriter(buf)
@@ -1709,7 +1709,7 @@ func TestMarshalNotRespectNil(t *testing.T) {
 	type T struct {
 		Slice  []int
 		BSlice []byte
-		Map    map[string]interface{}
+		Map    map[string]any
 	}
 
 	testStruct1 := T{}
@@ -1739,8 +1739,8 @@ func TestMarshalRespectNil(t *testing.T) {
 		Slice    []int
 		SlicePtr *[]int
 		Ptr      *int
-		Map      map[string]interface{}
-		MapPtr   *map[string]interface{}
+		Map      map[string]any
+		MapPtr   *map[string]any
 	}
 
 	testStruct1 := T{}
@@ -1771,8 +1771,8 @@ func TestMarshalRespectNil(t *testing.T) {
 	testStruct1 = T{
 		Slice:    []int{},
 		SlicePtr: &[]int{},
-		Map:      map[string]interface{}{},
-		MapPtr:   &map[string]interface{}{},
+		Map:      map[string]any{},
+		MapPtr:   &map[string]any{},
 	}
 
 	assert.NotNil(t, testStruct1.Slice, "expected non-nil slice")
