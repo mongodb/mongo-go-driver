@@ -6,6 +6,8 @@
 
 package options
 
+import "go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
+
 // DefaultOrdered is the default value for the Ordered option in BulkWriteOptions.
 var DefaultOrdered = true
 
@@ -18,6 +20,7 @@ type BulkWriteOptions struct {
 	Comment                  interface{}
 	Ordered                  *bool
 	Let                      interface{}
+	WriteConcern             *writeconcern.WriteConcern
 }
 
 // BulkWriteOptionsBuilder contains options to configure bulk write operations.
@@ -86,6 +89,20 @@ func (b *BulkWriteOptionsBuilder) SetBypassDocumentValidation(bypass bool) *Bulk
 func (b *BulkWriteOptionsBuilder) SetLet(let interface{}) *BulkWriteOptionsBuilder {
 	b.Opts = append(b.Opts, func(opts *BulkWriteOptions) error {
 		opts.Let = &let
+
+		return nil
+	})
+
+	return b
+}
+
+// SetWriteConcern sets the WriteConcern for the BulkWrite operation, specifying the acknowledgment level required.
+// WriteConcern is the write concern to use for operations executed on the BulkWrite.
+// The default value is nil, which means that the write
+// concern of the Collection will be used to configure the BulkWrite WriteConcern.
+func (b *BulkWriteOptionsBuilder) SetWriteConcern(wc *writeconcern.WriteConcern) *BulkWriteOptionsBuilder {
+	b.Opts = append(b.Opts, func(opts *BulkWriteOptions) error {
+		opts.WriteConcern = wc
 
 		return nil
 	})
