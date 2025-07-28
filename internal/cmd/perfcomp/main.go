@@ -162,7 +162,7 @@ func main() {
 		log.Fatalf("Error getting raw data: %v", err)
 	}
 
-	allEnergyStats, err := getEnergyStatsForAllBenchMarks(patchRawData, db.Collection(stableRegionsColl))
+	allEnergyStats, err := getEnergyStatsForAllBenchMarks(findCtx, patchRawData, db.Collection(stableRegionsColl))
 	if err != nil {
 		log.Fatalf("Error getting energy statistics: %v", err)
 	}
@@ -208,7 +208,7 @@ func findRawData(ctx context.Context, project string, version string, coll *mong
 }
 
 // Find the most recent stable region of the mainline version for a specific test/measurement
-func findLastStableRegion(project string, testname string, measurement string, coll *mongo.Collection) (*StableRegion, error) {
+func findLastStableRegion(ctx context.Context, project string, testname string, measurement string, coll *mongo.Collection) (*StableRegion, error) {
 	filter := bson.D{
 		{"time_series_info.project", project},
 		{"time_series_info.variant", "perf"},
@@ -221,11 +221,8 @@ func findLastStableRegion(project string, testname string, measurement string, c
 
 	findOptions := options.FindOne().SetSort(bson.D{{"end", -1}})
 
-	findCtx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
-	defer cancel()
-
 	var sr *StableRegion
-	err := coll.FindOne(findCtx, filter, findOptions).Decode(&sr)
+	err := coll.FindOne(ctx, filter, findOptions).Decode(&sr)
 	if err != nil {
 		return nil, err
 	}
@@ -233,7 +230,7 @@ func findLastStableRegion(project string, testname string, measurement string, c
 }
 
 // For a specific test and measurement
-func getEnergyStatsForOneBenchmark(rd RawData, coll *mongo.Collection) ([]*EnergyStats, error) {
+func getEnergyStatsForOneBenchmark(ctx context.Context, rd RawData, coll *mongo.Collection) ([]*EnergyStats, error) {
 	testname := rd.Info.TestName
 	var energyStats []*EnergyStats
 
@@ -242,7 +239,7 @@ func getEnergyStatsForOneBenchmark(rd RawData, coll *mongo.Collection) ([]*Energ
 		measName := rd.Rollups.Stats[i].Name
 		measVal := rd.Rollups.Stats[i].Val
 
-		stableRegion, err := findLastStableRegion(project, testname, measName, coll)
+		stableRegion, err := findLastStableRegion(ctx, project, testname, measName, coll)
 		if err != nil {
 			log.Fatalf(
 				"Error finding last stable region for test %q, measurement %q: %v",
@@ -288,10 +285,10 @@ func getEnergyStatsForOneBenchmark(rd RawData, coll *mongo.Collection) ([]*Energ
 	return energyStats, nil
 }
 
-func getEnergyStatsForAllBenchMarks(patchRawData []RawData, coll *mongo.Collection) ([]*EnergyStats, error) {
+func getEnergyStatsForAllBenchMarks(ctx context.Context, patchRawData []RawData, coll *mongo.Collection) ([]*EnergyStats, error) {
 	var allEnergyStats []*EnergyStats
 	for _, rd := range patchRawData {
-		energyStats, err := getEnergyStatsForOneBenchmark(rd, coll)
+		energyStats, err := getEnergyStatsForOneBenchmark(ctx, rd, coll)
 		if err != nil {
 			return nil, err
 		}
