@@ -36,6 +36,7 @@ func NewAWSCredentialProvider(httpClient *http.Client, providers ...credentials.
 		credproviders.NewEnvProvider(),
 		credproviders.NewAssumeRoleProvider(httpClient, expiryWindow),
 		credproviders.NewECSProvider(httpClient, expiryWindow),
+		credproviders.NewEKSProvider(httpClient, expiryWindow),
 		credproviders.NewEC2Provider(httpClient, expiryWindow),
 	)
 
