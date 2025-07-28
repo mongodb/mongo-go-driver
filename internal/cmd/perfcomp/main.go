@@ -334,6 +334,9 @@ func getEnergyStatistics(x, y *mat.Dense) (float64, float64, float64, error) {
 	if xcols != ycols {
 		return 0, 0, 0, fmt.Errorf("both inputs must have the same number of columns")
 	}
+	if xrows == 0 || yrows == 0 {
+		return 0, 0, 0, fmt.Errorf("inputs cannot be empty")
+	}
 
 	xrowsf := float64(xrows)
 	yrowsf := float64(yrows)

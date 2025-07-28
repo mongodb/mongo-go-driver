@@ -82,6 +82,13 @@ func TestEnergyStatistics(t *testing.T) {
 		assert.NotEqual(t, nil, err)
 		assert.ErrorContains(t, err, "both inputs must have the same number of columns")
 
+		x.Reset()
+		y = &mat.Dense{}
+
+		_, _, _, err = getEnergyStatistics(x, y)
+		assert.NotEqual(t, nil, err)
+		assert.ErrorContains(t, err, "inputs cannot be empty")
+
 		x = mat.NewDense(2, 2, make([]float64, 4))
 		y = mat.NewDense(3, 2, make([]float64, 6))
 
