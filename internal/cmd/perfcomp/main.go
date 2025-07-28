@@ -216,7 +216,7 @@ func findLastStableRegion(ctx context.Context, project string, testname string, 
 		{"time_series_info.test", testname},
 		{"time_series_info.measurement", measurement},
 		{"last", true},
-		{"contexts", bson.D{{"$in", bson.A{"GoDriver perf task"}}}},
+		{"contexts", bson.D{{"$in", bson.A{"GoDriver perf task"}}}}, // TODO (GODRIVER-3102): Refactor perf context for project switching.
 	}
 
 	findOptions := options.FindOne().SetSort(bson.D{{"end", -1}})
