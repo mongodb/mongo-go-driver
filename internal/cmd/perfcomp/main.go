@@ -255,16 +255,12 @@ func getEnergyStatsForOneBenchmark(ctx context.Context, rd RawData, coll *mongo.
 		measValVec := mat.NewDense(1, 1, []float64{measVal}) // singleton
 
 		estat, tstat, hscore, err := getEnergyStatistics(stableRegionVec, measValVec)
-		var zscore float64
-		var pChange float64
 		if err != nil {
-			log.Printf("Could not calculate energy stats for test %q, measurement %q: %v", testname, measName, err)
-			zscore = 0
-			pChange = 0
-		} else {
-			zscore = getZScore(measVal, stableRegion.Mean, stableRegion.Std)
-			pChange = getPercentageChange(measVal, stableRegion.Mean)
+			return nil, fmt.Errorf("Could not calculate energy stats for test %q, measurement %q: %v", testname, measName, err)
 		}
+
+		zscore := getZScore(measVal, stableRegion.Mean, stableRegion.Std)
+		pChange := getPercentageChange(measVal, stableRegion.Mean)
 
 		es := EnergyStats{
 			Project:         project,
@@ -290,9 +286,10 @@ func getEnergyStatsForAllBenchMarks(ctx context.Context, patchRawData []RawData,
 	for _, rd := range patchRawData {
 		energyStats, err := getEnergyStatsForOneBenchmark(ctx, rd, coll)
 		if err != nil {
-			return nil, err
+			log.Printf("%v\n", err) // Even if energy calculation for one benchmark fails, we still want to show the ones that passed.
+		} else {
+			allEnergyStats = append(allEnergyStats, energyStats...)
 		}
-		allEnergyStats = append(allEnergyStats, energyStats...)
 	}
 	return allEnergyStats, nil
 }
