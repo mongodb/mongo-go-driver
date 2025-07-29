@@ -31,7 +31,6 @@ func createTestVectors(start1 int, stop1 int, step1 int, start2 int, stop2 int, 
 }
 
 func TestEnergyStatistics(t *testing.T) {
-
 	t.Run("similar distributions should have small e,t,h values ", func(t *testing.T) {
 		x, y := createTestVectors(1, 100, 1, 1, 105, 1)
 		e, tstat, h, _ := getEnergyStatistics(x, y)
@@ -96,5 +95,4 @@ func TestEnergyStatistics(t *testing.T) {
 		assert.NotEqual(t, nil, err)
 		assert.ErrorContains(t, err, "both inputs must be column vectors")
 	})
-
 }

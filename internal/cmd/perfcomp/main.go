@@ -256,7 +256,12 @@ func getEnergyStatsForOneBenchmark(ctx context.Context, rd RawData, coll *mongo.
 
 		estat, tstat, hscore, err := getEnergyStatistics(stableRegionVec, measValVec)
 		if err != nil {
-			return nil, fmt.Errorf("Could not calculate energy stats for test %q, measurement %q: %v", testname, measName, err)
+			log.Fatalf(
+				"Could not calculate energy stats for test %q, measurement %q: %v",
+				testname,
+				measName,
+				err,
+			)
 		}
 
 		zscore := getZScore(measVal, stableRegion.Mean, stableRegion.Std)
@@ -286,7 +291,11 @@ func getEnergyStatsForAllBenchMarks(ctx context.Context, patchRawData []RawData,
 	for _, rd := range patchRawData {
 		energyStats, err := getEnergyStatsForOneBenchmark(ctx, rd, coll)
 		if err != nil {
-			log.Printf("%v\n", err) // Even if energy calculation for one benchmark fails, we still want to show the ones that passed.
+			log.Fatalf(
+				"Could not get energy stats for %q: %v",
+				rd.Info.TestName,
+				err,
+			)
 		} else {
 			allEnergyStats = append(allEnergyStats, energyStats...)
 		}
