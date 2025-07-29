@@ -41,56 +41,56 @@ func TestAppend(t *testing.T) {
 
 	testCases := []struct {
 		name     string
-		fn       interface{}
-		params   []interface{}
+		fn       any
+		params   []any
 		expected []byte
 	}{
 		{
 			"AppendType",
 			AppendType,
-			[]interface{}{make([]byte, 0), TypeNull},
+			[]any{make([]byte, 0), TypeNull},
 			[]byte{byte(TypeNull)},
 		},
 		{
 			"AppendKey",
 			AppendKey,
-			[]interface{}{make([]byte, 0), "foobar"},
+			[]any{make([]byte, 0), "foobar"},
 			[]byte{'f', 'o', 'o', 'b', 'a', 'r', 0x00},
 		},
 		{
 			"AppendHeader",
 			AppendHeader,
-			[]interface{}{make([]byte, 0), TypeNull, "foobar"},
+			[]any{make([]byte, 0), TypeNull, "foobar"},
 			[]byte{byte(TypeNull), 'f', 'o', 'o', 'b', 'a', 'r', 0x00},
 		},
 		{
 			"AppendValueElement",
 			AppendValueElement,
-			[]interface{}{make([]byte, 0), "testing", Value{Type: TypeBoolean, Data: []byte{0x01}}},
+			[]any{make([]byte, 0), "testing", Value{Type: TypeBoolean, Data: []byte{0x01}}},
 			[]byte{byte(TypeBoolean), 't', 'e', 's', 't', 'i', 'n', 'g', 0x00, 0x01},
 		},
 		{
 			"AppendDouble",
 			AppendDouble,
-			[]interface{}{make([]byte, 0), float64(3.14159)},
+			[]any{make([]byte, 0), float64(3.14159)},
 			pi,
 		},
 		{
 			"AppendDoubleElement",
 			AppendDoubleElement,
-			[]interface{}{make([]byte, 0), "foobar", float64(3.14159)},
+			[]any{make([]byte, 0), "foobar", float64(3.14159)},
 			append([]byte{byte(TypeDouble), 'f', 'o', 'o', 'b', 'a', 'r', 0x00}, pi...),
 		},
 		{
 			"AppendString",
 			AppendString,
-			[]interface{}{make([]byte, 0), "barbaz"},
+			[]any{make([]byte, 0), "barbaz"},
 			[]byte{0x07, 0x00, 0x00, 0x00, 'b', 'a', 'r', 'b', 'a', 'z', 0x00},
 		},
 		{
 			"AppendStringElement",
 			AppendStringElement,
-			[]interface{}{make([]byte, 0), "foobar", "barbaz"},
+			[]any{make([]byte, 0), "foobar", "barbaz"},
 			[]byte{byte(TypeString),
 				'f', 'o', 'o', 'b', 'a', 'r', 0x00,
 				0x07, 0x00, 0x00, 0x00, 'b', 'a', 'r', 'b', 'a', 'z', 0x00,
@@ -99,13 +99,13 @@ func TestAppend(t *testing.T) {
 		{
 			"AppendDocument",
 			AppendDocument,
-			[]interface{}{[]byte{0x05, 0x00, 0x00, 0x00, 0x00}, []byte{0x05, 0x00, 0x00, 0x00, 0x00}},
+			[]any{[]byte{0x05, 0x00, 0x00, 0x00, 0x00}, []byte{0x05, 0x00, 0x00, 0x00, 0x00}},
 			[]byte{0x05, 0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00},
 		},
 		{
 			"AppendDocumentElement",
 			AppendDocumentElement,
-			[]interface{}{make([]byte, 0), "foobar", []byte{0x05, 0x00, 0x00, 0x00, 0x00}},
+			[]any{make([]byte, 0), "foobar", []byte{0x05, 0x00, 0x00, 0x00, 0x00}},
 			[]byte{byte(TypeEmbeddedDocument),
 				'f', 'o', 'o', 'b', 'a', 'r', 0x00,
 				0x05, 0x00, 0x00, 0x00, 0x00,
@@ -114,13 +114,13 @@ func TestAppend(t *testing.T) {
 		{
 			"AppendArray",
 			AppendArray,
-			[]interface{}{[]byte{0x05, 0x00, 0x00, 0x00, 0x00}, []byte{0x05, 0x00, 0x00, 0x00, 0x00}},
+			[]any{[]byte{0x05, 0x00, 0x00, 0x00, 0x00}, []byte{0x05, 0x00, 0x00, 0x00, 0x00}},
 			[]byte{0x05, 0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00},
 		},
 		{
 			"AppendArrayElement",
 			AppendArrayElement,
-			[]interface{}{make([]byte, 0), "foobar", []byte{0x05, 0x00, 0x00, 0x00, 0x00}},
+			[]any{make([]byte, 0), "foobar", []byte{0x05, 0x00, 0x00, 0x00, 0x00}},
 			[]byte{byte(TypeArray),
 				'f', 'o', 'o', 'b', 'a', 'r', 0x00,
 				0x05, 0x00, 0x00, 0x00, 0x00,
@@ -129,7 +129,7 @@ func TestAppend(t *testing.T) {
 		{
 			"BuildArray",
 			BuildArray,
-			[]interface{}{make([]byte, 0), Value{Type: TypeDouble, Data: AppendDouble(nil, 3.14159)}},
+			[]any{make([]byte, 0), Value{Type: TypeDouble, Data: AppendDouble(nil, 3.14159)}},
 			[]byte{
 				0x10, 0x00, 0x00, 0x00,
 				byte(TypeDouble), '0', 0x00,
@@ -140,7 +140,7 @@ func TestAppend(t *testing.T) {
 		{
 			"BuildArrayElement",
 			BuildArrayElement,
-			[]interface{}{make([]byte, 0), "foobar", Value{Type: TypeDouble, Data: AppendDouble(nil, 3.14159)}},
+			[]any{make([]byte, 0), "foobar", Value{Type: TypeDouble, Data: AppendDouble(nil, 3.14159)}},
 			[]byte{byte(TypeArray),
 				'f', 'o', 'o', 'b', 'a', 'r', 0x00,
 				0x10, 0x00, 0x00, 0x00,
@@ -152,13 +152,13 @@ func TestAppend(t *testing.T) {
 		{
 			"AppendBinary Subtype2",
 			AppendBinary,
-			[]interface{}{make([]byte, 0), byte(0x02), []byte{0x01, 0x02, 0x03}},
+			[]any{make([]byte, 0), byte(0x02), []byte{0x01, 0x02, 0x03}},
 			[]byte{0x07, 0x00, 0x00, 0x00, 0x02, 0x03, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03},
 		},
 		{
 			"AppendBinaryElement Subtype 2",
 			AppendBinaryElement,
-			[]interface{}{make([]byte, 0), "foobar", byte(0x02), []byte{0x01, 0x02, 0x03}},
+			[]any{make([]byte, 0), "foobar", byte(0x02), []byte{0x01, 0x02, 0x03}},
 			[]byte{byte(TypeBinary),
 				'f', 'o', 'o', 'b', 'a', 'r', 0x00,
 				0x07, 0x00, 0x00, 0x00,
@@ -169,13 +169,13 @@ func TestAppend(t *testing.T) {
 		{
 			"AppendBinary",
 			AppendBinary,
-			[]interface{}{make([]byte, 0), byte(0xFF), []byte{0x01, 0x02, 0x03}},
+			[]any{make([]byte, 0), byte(0xFF), []byte{0x01, 0x02, 0x03}},
 			[]byte{0x03, 0x00, 0x00, 0x00, 0xFF, 0x01, 0x02, 0x03},
 		},
 		{
 			"AppendBinaryElement",
 			AppendBinaryElement,
-			[]interface{}{make([]byte, 0), "foobar", byte(0xFF), []byte{0x01, 0x02, 0x03}},
+			[]any{make([]byte, 0), "foobar", byte(0xFF), []byte{0x01, 0x02, 0x03}},
 			[]byte{byte(TypeBinary),
 				'f', 'o', 'o', 'b', 'a', 'r', 0x00,
 				0x03, 0x00, 0x00, 0x00,
@@ -186,13 +186,13 @@ func TestAppend(t *testing.T) {
 		{
 			"AppendUndefinedElement",
 			AppendUndefinedElement,
-			[]interface{}{make([]byte, 0), "foobar"},
+			[]any{make([]byte, 0), "foobar"},
 			[]byte{byte(TypeUndefined), 'f', 'o', 'o', 'b', 'a', 'r', 0x00},
 		},
 		{
 			"AppendObjectID",
 			AppendObjectID,
-			[]interface{}{
+			[]any{
 				make([]byte, 0),
 				[12]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
 			},
@@ -201,7 +201,7 @@ func TestAppend(t *testing.T) {
 		{
 			"AppendObjectIDElement",
 			AppendObjectIDElement,
-			[]interface{}{
+			[]any{
 				make([]byte, 0), "foobar",
 				[12]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
 			},
@@ -213,49 +213,49 @@ func TestAppend(t *testing.T) {
 		{
 			"AppendBoolean (true)",
 			AppendBoolean,
-			[]interface{}{make([]byte, 0), true},
+			[]any{make([]byte, 0), true},
 			[]byte{0x01},
 		},
 		{
 			"AppendBoolean (false)",
 			AppendBoolean,
-			[]interface{}{make([]byte, 0), false},
+			[]any{make([]byte, 0), false},
 			[]byte{0x00},
 		},
 		{
 			"AppendBooleanElement",
 			AppendBooleanElement,
-			[]interface{}{make([]byte, 0), "foobar", true},
+			[]any{make([]byte, 0), "foobar", true},
 			[]byte{byte(TypeBoolean), 'f', 'o', 'o', 'b', 'a', 'r', 0x00, 0x01},
 		},
 		{
 			"AppendDateTime",
 			AppendDateTime,
-			[]interface{}{make([]byte, 0), int64(256)},
+			[]any{make([]byte, 0), int64(256)},
 			[]byte{0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
 		},
 		{
 			"AppendDateTimeElement",
 			AppendDateTimeElement,
-			[]interface{}{make([]byte, 0), "foobar", int64(256)},
+			[]any{make([]byte, 0), "foobar", int64(256)},
 			[]byte{byte(TypeDateTime), 'f', 'o', 'o', 'b', 'a', 'r', 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
 		},
 		{
 			"AppendNullElement",
 			AppendNullElement,
-			[]interface{}{make([]byte, 0), "foobar"},
+			[]any{make([]byte, 0), "foobar"},
 			[]byte{byte(TypeNull), 'f', 'o', 'o', 'b', 'a', 'r', 0x00},
 		},
 		{
 			"AppendRegex",
 			AppendRegex,
-			[]interface{}{make([]byte, 0), "bar", "baz"},
+			[]any{make([]byte, 0), "bar", "baz"},
 			[]byte{'b', 'a', 'r', 0x00, 'b', 'a', 'z', 0x00},
 		},
 		{
 			"AppendRegexElement",
 			AppendRegexElement,
-			[]interface{}{make([]byte, 0), "foobar", "bar", "baz"},
+			[]any{make([]byte, 0), "foobar", "bar", "baz"},
 			[]byte{byte(TypeRegex),
 				'f', 'o', 'o', 'b', 'a', 'r', 0x00,
 				'b', 'a', 'r', 0x00, 'b', 'a', 'z', 0x00,
@@ -264,7 +264,7 @@ func TestAppend(t *testing.T) {
 		{
 			"AppendDBPointer",
 			AppendDBPointer,
-			[]interface{}{
+			[]any{
 				make([]byte, 0),
 				"foobar",
 				[12]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
@@ -277,7 +277,7 @@ func TestAppend(t *testing.T) {
 		{
 			"AppendDBPointerElement",
 			AppendDBPointerElement,
-			[]interface{}{
+			[]any{
 				make([]byte, 0), "foobar",
 				"barbaz",
 				[12]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
@@ -291,13 +291,13 @@ func TestAppend(t *testing.T) {
 		{
 			"AppendJavaScript",
 			AppendJavaScript,
-			[]interface{}{make([]byte, 0), "barbaz"},
+			[]any{make([]byte, 0), "barbaz"},
 			[]byte{0x07, 0x00, 0x00, 0x00, 'b', 'a', 'r', 'b', 'a', 'z', 0x00},
 		},
 		{
 			"AppendJavaScriptElement",
 			AppendJavaScriptElement,
-			[]interface{}{make([]byte, 0), "foobar", "barbaz"},
+			[]any{make([]byte, 0), "foobar", "barbaz"},
 			[]byte{byte(TypeJavaScript),
 				'f', 'o', 'o', 'b', 'a', 'r', 0x00,
 				0x07, 0x00, 0x00, 0x00, 'b', 'a', 'r', 'b', 'a', 'z', 0x00,
@@ -306,13 +306,13 @@ func TestAppend(t *testing.T) {
 		{
 			"AppendSymbol",
 			AppendSymbol,
-			[]interface{}{make([]byte, 0), "barbaz"},
+			[]any{make([]byte, 0), "barbaz"},
 			[]byte{0x07, 0x00, 0x00, 0x00, 'b', 'a', 'r', 'b', 'a', 'z', 0x00},
 		},
 		{
 			"AppendSymbolElement",
 			AppendSymbolElement,
-			[]interface{}{make([]byte, 0), "foobar", "barbaz"},
+			[]any{make([]byte, 0), "foobar", "barbaz"},
 			[]byte{byte(TypeSymbol),
 				'f', 'o', 'o', 'b', 'a', 'r', 0x00,
 				0x07, 0x00, 0x00, 0x00, 'b', 'a', 'r', 'b', 'a', 'z', 0x00,
@@ -321,7 +321,7 @@ func TestAppend(t *testing.T) {
 		{
 			"AppendCodeWithScope",
 			AppendCodeWithScope,
-			[]interface{}{[]byte{0x05, 0x00, 0x00, 0x00, 0x00}, "foobar", []byte{0x05, 0x00, 0x00, 0x00, 0x00}},
+			[]any{[]byte{0x05, 0x00, 0x00, 0x00, 0x00}, "foobar", []byte{0x05, 0x00, 0x00, 0x00, 0x00}},
 			[]byte{0x05, 0x00, 0x00, 0x00, 0x00,
 				0x14, 0x00, 0x00, 0x00,
 				0x07, 0x00, 0x00, 0x00, 'f', 'o', 'o', 'b', 'a', 'r', 0x00,
@@ -331,7 +331,7 @@ func TestAppend(t *testing.T) {
 		{
 			"AppendCodeWithScopeElement",
 			AppendCodeWithScopeElement,
-			[]interface{}{make([]byte, 0), "foobar", "barbaz", []byte{0x05, 0x00, 0x00, 0x00, 0x00}},
+			[]any{make([]byte, 0), "foobar", "barbaz", []byte{0x05, 0x00, 0x00, 0x00, 0x00}},
 			[]byte{byte(TypeCodeWithScope),
 				'f', 'o', 'o', 'b', 'a', 'r', 0x00,
 				0x14, 0x00, 0x00, 0x00,
@@ -342,43 +342,43 @@ func TestAppend(t *testing.T) {
 		{
 			"AppendInt32",
 			AppendInt32,
-			[]interface{}{make([]byte, 0), int32(256)},
+			[]any{make([]byte, 0), int32(256)},
 			[]byte{0x00, 0x01, 0x00, 0x00},
 		},
 		{
 			"AppendInt32Element",
 			AppendInt32Element,
-			[]interface{}{make([]byte, 0), "foobar", int32(256)},
+			[]any{make([]byte, 0), "foobar", int32(256)},
 			[]byte{byte(TypeInt32), 'f', 'o', 'o', 'b', 'a', 'r', 0x00, 0x00, 0x01, 0x00, 0x00},
 		},
 		{
 			"AppendTimestamp",
 			AppendTimestamp,
-			[]interface{}{make([]byte, 0), uint32(65536), uint32(256)},
+			[]any{make([]byte, 0), uint32(65536), uint32(256)},
 			[]byte{0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00},
 		},
 		{
 			"AppendTimestampElement",
 			AppendTimestampElement,
-			[]interface{}{make([]byte, 0), "foobar", uint32(65536), uint32(256)},
+			[]any{make([]byte, 0), "foobar", uint32(65536), uint32(256)},
 			[]byte{byte(TypeTimestamp), 'f', 'o', 'o', 'b', 'a', 'r', 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00},
 		},
 		{
 			"AppendInt64",
 			AppendInt64,
-			[]interface{}{make([]byte, 0), int64(4294967296)},
+			[]any{make([]byte, 0), int64(4294967296)},
 			[]byte{0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00},
 		},
 		{
 			"AppendInt64Element",
 			AppendInt64Element,
-			[]interface{}{make([]byte, 0), "foobar", int64(4294967296)},
+			[]any{make([]byte, 0), "foobar", int64(4294967296)},
 			[]byte{byte(TypeInt64), 'f', 'o', 'o', 'b', 'a', 'r', 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00},
 		},
 		{
 			"AppendDecimal128",
 			AppendDecimal128,
-			[]interface{}{make([]byte, 0), uint64(4294967296), uint64(65536)},
+			[]any{make([]byte, 0), uint64(4294967296), uint64(65536)},
 			[]byte{
 				0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
 				0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -387,7 +387,7 @@ func TestAppend(t *testing.T) {
 		{
 			"AppendDecimal128Element",
 			AppendDecimal128Element,
-			[]interface{}{make([]byte, 0), "foobar", uint64(4294967296), uint64(65536)},
+			[]any{make([]byte, 0), "foobar", uint64(4294967296), uint64(65536)},
 			[]byte{
 				byte(TypeDecimal128), 'f', 'o', 'o', 'b', 'a', 'r', 0x00,
 				0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -397,13 +397,13 @@ func TestAppend(t *testing.T) {
 		{
 			"AppendMaxKeyElement",
 			AppendMaxKeyElement,
-			[]interface{}{make([]byte, 0), "foobar"},
+			[]any{make([]byte, 0), "foobar"},
 			[]byte{byte(TypeMaxKey), 'f', 'o', 'o', 'b', 'a', 'r', 0x00},
 		},
 		{
 			"AppendMinKeyElement",
 			AppendMinKeyElement,
-			[]interface{}{make([]byte, 0), "foobar"},
+			[]any{make([]byte, 0), "foobar"},
 			[]byte{byte(TypeMinKey), 'f', 'o', 'o', 'b', 'a', 'r', 0x00},
 		},
 	}
@@ -441,147 +441,147 @@ func TestRead(t *testing.T) {
 
 	testCases := []struct {
 		name     string
-		fn       interface{}
+		fn       any
 		param    []byte
-		expected []interface{}
+		expected []any
 	}{
 		{
 			"ReadType/not enough bytes",
 			ReadType,
 			[]byte{},
-			[]interface{}{Type(0), []byte{}, false},
+			[]any{Type(0), []byte{}, false},
 		},
 		{
 			"ReadType/success",
 			ReadType,
 			[]byte{0x0A},
-			[]interface{}{TypeNull, []byte{}, true},
+			[]any{TypeNull, []byte{}, true},
 		},
 		{
 			"ReadKey/not enough bytes",
 			ReadKey,
 			[]byte{},
-			[]interface{}{"", []byte{}, false},
+			[]any{"", []byte{}, false},
 		},
 		{
 			"ReadKey/success",
 			ReadKey,
 			[]byte{'f', 'o', 'o', 'b', 'a', 'r', 0x00},
-			[]interface{}{"foobar", []byte{}, true},
+			[]any{"foobar", []byte{}, true},
 		},
 		{
 			"ReadHeader/not enough bytes (type)",
 			ReadHeader,
 			[]byte{},
-			[]interface{}{Type(0), "", []byte{}, false},
+			[]any{Type(0), "", []byte{}, false},
 		},
 		{
 			"ReadHeader/not enough bytes (key)",
 			ReadHeader,
 			[]byte{0x0A, 'f', 'o', 'o'},
-			[]interface{}{Type(0), "", []byte{0x0A, 'f', 'o', 'o'}, false},
+			[]any{Type(0), "", []byte{0x0A, 'f', 'o', 'o'}, false},
 		},
 		{
 			"ReadHeader/success",
 			ReadHeader,
 			[]byte{0x0A, 'f', 'o', 'o', 'b', 'a', 'r', 0x00},
-			[]interface{}{TypeNull, "foobar", []byte{}, true},
+			[]any{TypeNull, "foobar", []byte{}, true},
 		},
 		{
 			"ReadDouble/not enough bytes",
 			ReadDouble,
 			[]byte{0x01, 0x02, 0x03, 0x04},
-			[]interface{}{float64(0.00), []byte{0x01, 0x02, 0x03, 0x04}, false},
+			[]any{float64(0.00), []byte{0x01, 0x02, 0x03, 0x04}, false},
 		},
 		{
 			"ReadDouble/success",
 			ReadDouble,
 			pi,
-			[]interface{}{float64(3.14159), []byte{}, true},
+			[]any{float64(3.14159), []byte{}, true},
 		},
 		{
 			"ReadString/not enough bytes (length)",
 			ReadString,
 			[]byte{},
-			[]interface{}{"", []byte{}, false},
+			[]any{"", []byte{}, false},
 		},
 		{
 			"ReadString/not enough bytes (value)",
 			ReadString,
 			[]byte{0x0F, 0x00, 0x00, 0x00},
-			[]interface{}{"", []byte{0x0F, 0x00, 0x00, 0x00}, false},
+			[]any{"", []byte{0x0F, 0x00, 0x00, 0x00}, false},
 		},
 		{
 			"ReadString/success",
 			ReadString,
 			[]byte{0x07, 0x00, 0x00, 0x00, 'f', 'o', 'o', 'b', 'a', 'r', 0x00},
-			[]interface{}{"foobar", []byte{}, true},
+			[]any{"foobar", []byte{}, true},
 		},
 		{
 			"ReadDocument/not enough bytes (length)",
 			ReadDocument,
 			[]byte{},
-			[]interface{}{Document(nil), []byte{}, false},
+			[]any{Document(nil), []byte{}, false},
 		},
 		{
 			"ReadDocument/not enough bytes (value)",
 			ReadDocument,
 			[]byte{0x0F, 0x00, 0x00, 0x00},
-			[]interface{}{Document(nil), []byte{0x0F, 0x00, 0x00, 0x00}, false},
+			[]any{Document(nil), []byte{0x0F, 0x00, 0x00, 0x00}, false},
 		},
 		{
 			"ReadDocument/success",
 			ReadDocument,
 			[]byte{0x0A, 0x00, 0x00, 0x00, 0x0A, 'f', 'o', 'o', 0x00, 0x00},
-			[]interface{}{Document{0x0A, 0x00, 0x00, 0x00, 0x0A, 'f', 'o', 'o', 0x00, 0x00}, []byte{}, true},
+			[]any{Document{0x0A, 0x00, 0x00, 0x00, 0x0A, 'f', 'o', 'o', 0x00, 0x00}, []byte{}, true},
 		},
 		{
 			"ReadArray/not enough bytes (length)",
 			ReadArray,
 			[]byte{},
-			[]interface{}{Array(nil), []byte{}, false},
+			[]any{Array(nil), []byte{}, false},
 		},
 		{
 			"ReadArray/not enough bytes (value)",
 			ReadArray,
 			[]byte{0x0F, 0x00, 0x00, 0x00},
-			[]interface{}{Array(nil), []byte{0x0F, 0x00, 0x00, 0x00}, false},
+			[]any{Array(nil), []byte{0x0F, 0x00, 0x00, 0x00}, false},
 		},
 		{
 			"ReadArray/success",
 			ReadArray,
 			[]byte{0x08, 0x00, 0x00, 0x00, 0x0A, '0', 0x00, 0x00},
-			[]interface{}{Array{0x08, 0x00, 0x00, 0x00, 0x0A, '0', 0x00, 0x00}, []byte{}, true},
+			[]any{Array{0x08, 0x00, 0x00, 0x00, 0x0A, '0', 0x00, 0x00}, []byte{}, true},
 		},
 		{
 			"ReadBinary/not enough bytes (length)",
 			ReadBinary,
 			[]byte{},
-			[]interface{}{byte(0), []byte(nil), []byte{}, false},
+			[]any{byte(0), []byte(nil), []byte{}, false},
 		},
 		{
 			"ReadBinary/not enough bytes (subtype)",
 			ReadBinary,
 			[]byte{0x0F, 0x00, 0x00, 0x00},
-			[]interface{}{byte(0), []byte(nil), []byte{0x0F, 0x00, 0x00, 0x00}, false},
+			[]any{byte(0), []byte(nil), []byte{0x0F, 0x00, 0x00, 0x00}, false},
 		},
 		{
 			"ReadBinary/not enough bytes (value)",
 			ReadBinary,
 			[]byte{0x0F, 0x00, 0x00, 0x00, 0x00},
-			[]interface{}{byte(0), []byte(nil), []byte{0x0F, 0x00, 0x00, 0x00, 0x00}, false},
+			[]any{byte(0), []byte(nil), []byte{0x0F, 0x00, 0x00, 0x00, 0x00}, false},
 		},
 		{
 			"ReadBinary/not enough bytes (subtype 2 length)",
 			ReadBinary,
 			[]byte{0x03, 0x00, 0x00, 0x00, 0x02, 0x0F, 0x00, 0x00},
-			[]interface{}{byte(0), []byte(nil), []byte{0x03, 0x00, 0x00, 0x00, 0x02, 0x0F, 0x00, 0x00}, false},
+			[]any{byte(0), []byte(nil), []byte{0x03, 0x00, 0x00, 0x00, 0x02, 0x0F, 0x00, 0x00}, false},
 		},
 		{
 			"ReadBinary/not enough bytes (subtype 2 value)",
 			ReadBinary,
 			[]byte{0x0F, 0x00, 0x00, 0x00, 0x02, 0x0F, 0x00, 0x00, 0x00, 0x01, 0x02},
-			[]interface{}{
+			[]any{
 				byte(0), []byte(nil),
 				[]byte{0x0F, 0x00, 0x00, 0x00, 0x02, 0x0F, 0x00, 0x00, 0x00, 0x01, 0x02}, false,
 			},
@@ -590,25 +590,25 @@ func TestRead(t *testing.T) {
 			"ReadBinary/success (subtype 2)",
 			ReadBinary,
 			[]byte{0x06, 0x00, 0x00, 0x00, 0x02, 0x02, 0x00, 0x00, 0x00, 0x01, 0x02},
-			[]interface{}{byte(0x02), []byte{0x01, 0x02}, []byte{}, true},
+			[]any{byte(0x02), []byte{0x01, 0x02}, []byte{}, true},
 		},
 		{
 			"ReadBinary/success",
 			ReadBinary,
 			[]byte{0x03, 0x00, 0x00, 0x00, 0xFF, 0x01, 0x02, 0x03},
-			[]interface{}{byte(0xFF), []byte{0x01, 0x02, 0x03}, []byte{}, true},
+			[]any{byte(0xFF), []byte{0x01, 0x02, 0x03}, []byte{}, true},
 		},
 		{
 			"ReadObjectID/not enough bytes",
 			ReadObjectID,
 			[]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06},
-			[]interface{}{[12]byte{}, []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06}, false},
+			[]any{[12]byte{}, []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06}, false},
 		},
 		{
 			"ReadObjectID/success",
 			ReadObjectID,
 			[]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
-			[]interface{}{
+			[]any{
 				[12]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
 				[]byte{}, true,
 			},
@@ -617,55 +617,55 @@ func TestRead(t *testing.T) {
 			"ReadBoolean/not enough bytes",
 			ReadBoolean,
 			[]byte{},
-			[]interface{}{false, []byte{}, false},
+			[]any{false, []byte{}, false},
 		},
 		{
 			"ReadBoolean/success",
 			ReadBoolean,
 			[]byte{0x01},
-			[]interface{}{true, []byte{}, true},
+			[]any{true, []byte{}, true},
 		},
 		{
 			"ReadDateTime/not enough bytes",
 			ReadDateTime,
 			[]byte{0x01, 0x02, 0x03, 0x04},
-			[]interface{}{int64(0), []byte{0x01, 0x02, 0x03, 0x04}, false},
+			[]any{int64(0), []byte{0x01, 0x02, 0x03, 0x04}, false},
 		},
 		{
 			"ReadDateTime/success",
 			ReadDateTime,
 			[]byte{0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00},
-			[]interface{}{int64(65536), []byte{}, true},
+			[]any{int64(65536), []byte{}, true},
 		},
 		{
 			"ReadRegex/not enough bytes (pattern)",
 			ReadRegex,
 			[]byte{},
-			[]interface{}{"", "", []byte{}, false},
+			[]any{"", "", []byte{}, false},
 		},
 		{
 			"ReadRegex/not enough bytes (options)",
 			ReadRegex,
 			[]byte{'f', 'o', 'o', 0x00},
-			[]interface{}{"", "", []byte{'f', 'o', 'o', 0x00}, false},
+			[]any{"", "", []byte{'f', 'o', 'o', 0x00}, false},
 		},
 		{
 			"ReadRegex/success",
 			ReadRegex,
 			[]byte{'f', 'o', 'o', 0x00, 'b', 'a', 'r', 0x00},
-			[]interface{}{"foo", "bar", []byte{}, true},
+			[]any{"foo", "bar", []byte{}, true},
 		},
 		{
 			"ReadDBPointer/not enough bytes (ns)",
 			ReadDBPointer,
 			[]byte{},
-			[]interface{}{"", [12]byte{}, []byte{}, false},
+			[]any{"", [12]byte{}, []byte{}, false},
 		},
 		{
 			"ReadDBPointer/not enough bytes (objectID)",
 			ReadDBPointer,
 			[]byte{0x04, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00},
-			[]interface{}{"", [12]byte{}, []byte{0x04, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00}, false},
+			[]any{"", [12]byte{}, []byte{0x04, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00}, false},
 		},
 		{
 			"ReadDBPointer/success",
@@ -674,7 +674,7 @@ func TestRead(t *testing.T) {
 				0x04, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00,
 				0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C,
 			},
-			[]interface{}{
+			[]any{
 				"foo", [12]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
 				[]byte{}, true,
 			},
@@ -683,49 +683,49 @@ func TestRead(t *testing.T) {
 			"ReadJavaScript/not enough bytes (length)",
 			ReadJavaScript,
 			[]byte{},
-			[]interface{}{"", []byte{}, false},
+			[]any{"", []byte{}, false},
 		},
 		{
 			"ReadJavaScript/not enough bytes (value)",
 			ReadJavaScript,
 			[]byte{0x0F, 0x00, 0x00, 0x00},
-			[]interface{}{"", []byte{0x0F, 0x00, 0x00, 0x00}, false},
+			[]any{"", []byte{0x0F, 0x00, 0x00, 0x00}, false},
 		},
 		{
 			"ReadJavaScript/success",
 			ReadJavaScript,
 			[]byte{0x07, 0x00, 0x00, 0x00, 'f', 'o', 'o', 'b', 'a', 'r', 0x00},
-			[]interface{}{"foobar", []byte{}, true},
+			[]any{"foobar", []byte{}, true},
 		},
 		{
 			"ReadSymbol/not enough bytes (length)",
 			ReadSymbol,
 			[]byte{},
-			[]interface{}{"", []byte{}, false},
+			[]any{"", []byte{}, false},
 		},
 		{
 			"ReadSymbol/not enough bytes (value)",
 			ReadSymbol,
 			[]byte{0x0F, 0x00, 0x00, 0x00},
-			[]interface{}{"", []byte{0x0F, 0x00, 0x00, 0x00}, false},
+			[]any{"", []byte{0x0F, 0x00, 0x00, 0x00}, false},
 		},
 		{
 			"ReadSymbol/success",
 			ReadSymbol,
 			[]byte{0x07, 0x00, 0x00, 0x00, 'f', 'o', 'o', 'b', 'a', 'r', 0x00},
-			[]interface{}{"foobar", []byte{}, true},
+			[]any{"foobar", []byte{}, true},
 		},
 		{
 			"ReadCodeWithScope/ not enough bytes (length)",
 			ReadCodeWithScope,
 			[]byte{},
-			[]interface{}{"", []byte(nil), []byte{}, false},
+			[]any{"", []byte(nil), []byte{}, false},
 		},
 		{
 			"ReadCodeWithScope/ not enough bytes (value)",
 			ReadCodeWithScope,
 			[]byte{0x0F, 0x00, 0x00, 0x00},
-			[]interface{}{"", []byte(nil), []byte{0x0F, 0x00, 0x00, 0x00}, false},
+			[]any{"", []byte(nil), []byte{0x0F, 0x00, 0x00, 0x00}, false},
 		},
 		{
 			"ReadCodeWithScope/not enough bytes (code value)",
@@ -735,7 +735,7 @@ func TestRead(t *testing.T) {
 				0x0F, 0x00, 0x00, 0x00,
 				'f', 'o', 'o', 0x00,
 			},
-			[]interface{}{
+			[]any{
 				"", []byte(nil),
 				[]byte{
 					0x0C, 0x00, 0x00, 0x00,
@@ -753,7 +753,7 @@ func TestRead(t *testing.T) {
 				0x07, 0x00, 0x00, 0x00, 'f', 'o', 'o', 'b', 'a', 'r', 0x00,
 				0x0A, 0x00, 0x00, 0x00, 0x0A, 'f', 'o', 'o', 0x00, 0x00,
 			},
-			[]interface{}{
+			[]any{
 				"foobar", []byte{0x0A, 0x00, 0x00, 0x00, 0x0A, 'f', 'o', 'o', 0x00, 0x00},
 				[]byte{}, true,
 			},
@@ -762,55 +762,55 @@ func TestRead(t *testing.T) {
 			"ReadInt32/not enough bytes",
 			ReadInt32,
 			[]byte{0x01},
-			[]interface{}{int32(0), []byte{0x01}, false},
+			[]any{int32(0), []byte{0x01}, false},
 		},
 		{
 			"ReadInt32/success",
 			ReadInt32,
 			[]byte{0x00, 0x01, 0x00, 0x00},
-			[]interface{}{int32(256), []byte{}, true},
+			[]any{int32(256), []byte{}, true},
 		},
 		{
 			"ReadTimestamp/not enough bytes (increment)",
 			ReadTimestamp,
 			[]byte{},
-			[]interface{}{uint32(0), uint32(0), []byte{}, false},
+			[]any{uint32(0), uint32(0), []byte{}, false},
 		},
 		{
 			"ReadTimestamp/not enough bytes (timestamp)",
 			ReadTimestamp,
 			[]byte{0x00, 0x01, 0x00, 0x00},
-			[]interface{}{uint32(0), uint32(0), []byte{0x00, 0x01, 0x00, 0x00}, false},
+			[]any{uint32(0), uint32(0), []byte{0x00, 0x01, 0x00, 0x00}, false},
 		},
 		{
 			"ReadTimestamp/success",
 			ReadTimestamp,
 			[]byte{0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00},
-			[]interface{}{uint32(65536), uint32(256), []byte{}, true},
+			[]any{uint32(65536), uint32(256), []byte{}, true},
 		},
 		{
 			"ReadInt64/not enough bytes",
 			ReadInt64,
 			[]byte{0x01},
-			[]interface{}{int64(0), []byte{0x01}, false},
+			[]any{int64(0), []byte{0x01}, false},
 		},
 		{
 			"ReadInt64/success",
 			ReadInt64,
 			[]byte{0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00},
-			[]interface{}{int64(4294967296), []byte{}, true},
+			[]any{int64(4294967296), []byte{}, true},
 		},
 		{
 			"ReadDecimal128/not enough bytes (low)",
 			ReadDecimal128,
 			[]byte{},
-			[]interface{}{uint64(0), uint64(0), []byte{}, false},
+			[]any{uint64(0), uint64(0), []byte{}, false},
 		},
 		{
 			"ReadDecimal128/not enough bytes (high)",
 			ReadDecimal128,
 			[]byte{0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00},
-			[]interface{}{uint64(0), uint64(0), []byte{0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00}, false},
+			[]any{uint64(0), uint64(0), []byte{0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00}, false},
 		},
 		{
 			"ReadDecimal128/success",
@@ -819,7 +819,7 @@ func TestRead(t *testing.T) {
 				0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
 				0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
 			},
-			[]interface{}{uint64(4294967296), uint64(16777216), []byte{}, true},
+			[]any{uint64(4294967296), uint64(16777216), []byte{}, true},
 		},
 	}
 
