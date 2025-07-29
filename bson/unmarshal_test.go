@@ -71,7 +71,7 @@ func TestUnmarshalWithRegistry(t *testing.T) {
 
 			// Assert that unmarshaling the input data results in the expected value.
 			gotValue := reflect.New(reflect.TypeOf(tc.val))
-			dec := NewDecoder(newValueReader(tc.bsontype, bytes.NewReader(tc.bytes)))
+			dec := NewDecoder(newBufferedValueReader(tc.bsontype, tc.bytes))
 			dec.SetRegistry(reg)
 			err := dec.Decode(gotValue.Interface())
 			noerr(t, err)

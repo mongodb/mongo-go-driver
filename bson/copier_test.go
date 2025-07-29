@@ -40,7 +40,7 @@ func TestCopier(t *testing.T) {
 			doc = bsoncore.AppendStringElement(doc, "Hello", "world")
 			doc, err := bsoncore.AppendDocumentEnd(doc, idx)
 			noerr(t, err)
-			src := newDocumentReader(bytes.NewReader(doc))
+			src := newBufferedDocumentReader(doc)
 			dst := newValueWriterFromSlice(make([]byte, 0))
 			want := doc
 			err = copyDocument(dst, src)
@@ -77,7 +77,7 @@ func TestCopier(t *testing.T) {
 			noerr(t, err)
 			doc, err = bsoncore.AppendDocumentEnd(doc, idx)
 			noerr(t, err)
-			src := newDocumentReader(bytes.NewReader(doc))
+			src := newBufferedDocumentReader(doc)
 
 			_, err = src.ReadDocument()
 			noerr(t, err)
@@ -450,7 +450,7 @@ func TestCopier(t *testing.T) {
 				idx,
 			)
 			noerr(t, err)
-			vr := newDocumentReader(bytes.NewReader(b))
+			vr := newBufferedDocumentReader(b)
 			_, err = vr.ReadDocument()
 			noerr(t, err)
 			_, _, err = vr.ReadElement()
@@ -489,7 +489,7 @@ func TestCopier(t *testing.T) {
 				idx,
 			)
 			noerr(t, err)
-			vr := newDocumentReader(bytes.NewReader(b))
+			vr := newBufferedDocumentReader(b)
 			_, err = vr.ReadDocument()
 			noerr(t, err)
 			_, _, err = vr.ReadElement()

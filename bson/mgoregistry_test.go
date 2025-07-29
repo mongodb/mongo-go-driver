@@ -485,7 +485,7 @@ func (t *prefixPtr) SetBSON(raw RawValue) error {
 	if err != nil {
 		return err
 	}
-	vr := newValueReader(raw.Type, bytes.NewReader(raw.Value))
+	vr := newBufferedValueReader(raw.Type, raw.Value)
 	err = decoder.DecodeValue(DecodeContext{Registry: NewMgoRegistry()}, vr, rval)
 	if err != nil {
 		return err
@@ -512,7 +512,7 @@ func (t *prefixVal) SetBSON(raw RawValue) error {
 	if err != nil {
 		return err
 	}
-	vr := newValueReader(raw.Type, bytes.NewReader(raw.Value))
+	vr := newBufferedValueReader(raw.Type, raw.Value)
 	err = decoder.DecodeValue(DecodeContext{Registry: NewMgoRegistry()}, vr, rval)
 	if err != nil {
 		return err
@@ -936,7 +936,7 @@ func (o *setterType) SetBSON(raw RawValue) error {
 	if raw.Type == 0x00 {
 		raw.Type = TypeEmbeddedDocument
 	}
-	vr := newValueReader(raw.Type, bytes.NewReader(raw.Value))
+	vr := newBufferedValueReader(raw.Type, raw.Value)
 	err = decoder.DecodeValue(DecodeContext{Registry: NewMgoRegistry()}, vr, rval)
 	if err != nil {
 		return err
@@ -1289,7 +1289,7 @@ func (s *getterSetterD) SetBSON(raw RawValue) error {
 	if raw.Type == 0x00 {
 		raw.Type = TypeEmbeddedDocument
 	}
-	vr := newValueReader(raw.Type, bytes.NewReader(raw.Value))
+	vr := newBufferedValueReader(raw.Type, raw.Value)
 	err = decoder.DecodeValue(DecodeContext{Registry: NewMgoRegistry()}, vr, rval)
 	if err != nil {
 		return err
@@ -1315,7 +1315,7 @@ func (i *getterSetterInt) SetBSON(raw RawValue) error {
 	if raw.Type == 0x00 {
 		raw.Type = TypeEmbeddedDocument
 	}
-	vr := newValueReader(raw.Type, bytes.NewReader(raw.Value))
+	vr := newBufferedValueReader(raw.Type, raw.Value)
 	err = decoder.DecodeValue(DecodeContext{Registry: NewMgoRegistry()}, vr, rval)
 	if err != nil {
 		return err
@@ -1337,7 +1337,7 @@ func (s *ifaceSlice) SetBSON(raw RawValue) error {
 	if err != nil {
 		return err
 	}
-	vr := newValueReader(raw.Type, bytes.NewReader(raw.Value))
+	vr := newBufferedValueReader(raw.Type, raw.Value)
 	err = decoder.DecodeValue(DecodeContext{Registry: NewMgoRegistry()}, vr, rval)
 	if err != nil {
 		return err
