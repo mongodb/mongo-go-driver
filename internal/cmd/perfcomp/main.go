@@ -16,6 +16,7 @@ import (
 	"log"
 	"math"
 	"os"
+	"sort"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -323,19 +324,25 @@ func generatePRComment(energyStats []*EnergyStats, version string) string {
 	fmt.Fprintln(w, "| Benchmark\t| Measurement\t| H-Score\t| Z-Score\t| % Change\t| Stable Reg\t| Patch Value\t|")
 	fmt.Fprintln(w, "| ---------\t| -----------\t| -------\t| -------\t| --------\t| ----------\t| -----------\t|")
 
-	var testCount int64
+	var significantEnergyStats []EnergyStats
 	for _, es := range energyStats {
-		if math.Abs(es.ZScore) > 1.96 {
-			testCount += 1
+		if es.Measurement != "iterations" && math.Abs(es.ZScore) > 1.96 {
+			significantEnergyStats = append(significantEnergyStats, *es)
+		}
+	}
+
+	if len(significantEnergyStats) == 0 {
+		comment.Reset()
+		fmt.Fprintf(&comment, "There were no significant changes to the performance to report for version %s.\n", version)
+	} else {
+		sort.Slice(significantEnergyStats, func(i, j int) bool {
+			return math.Abs(significantEnergyStats[i].PercentChange) > math.Abs(significantEnergyStats[j].PercentChange)
+		})
+		for _, es := range significantEnergyStats {
 			fmt.Fprintf(w, "| %s\t| %s\t| %.4f\t| %.4f\t| %.4f\t| Avg: %.4f, Med: %.4f, Stdev: %.4f\t| %.4f\t|\n", es.Benchmark, es.Measurement, es.HScore, es.ZScore, es.PercentChange, es.StableRegion.Mean, es.StableRegion.Median, es.StableRegion.Std, es.MeasurementVal)
 		}
 	}
 	w.Flush()
-
-	if testCount == 0 {
-		comment.Reset()
-		fmt.Fprintf(&comment, "There were no significant changes to the performance to report for version %s.\n", version)
-	}
 
 	comment.WriteString("\n*For a comprehensive view of all microbenchmark results for this PR's commit, please check out the Evergreen perf task for this patch.*")
 	return comment.String()
