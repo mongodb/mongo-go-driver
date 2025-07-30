@@ -166,7 +166,19 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error getting energy statistics: %v", err)
 	}
-	log.Println(generatePRComment(allEnergyStats, version))
+
+	// Log energy stats output
+	prComment := generatePRComment(allEnergyStats, version)
+	log.Println("👋GoDriver Performance")
+	log.Println(prComment)
+
+	// Save for PR comment if it is a PR run
+	commitSHA := os.Getenv("HEAD_SHA")
+	if commitSHA != "" {
+		fmt.Printf("Version ID: %s\n", version)
+		fmt.Printf("Commit SHA: %s\n", commitSHA) // Use fmt to print to stdout
+		fmt.Println(prComment)
+	}
 }
 
 func findRawData(ctx context.Context, project string, version string, coll *mongo.Collection) ([]RawData, error) {
@@ -305,8 +317,7 @@ func getEnergyStatsForAllBenchMarks(ctx context.Context, patchRawData []RawData,
 
 func generatePRComment(energyStats []*EnergyStats, version string) string {
 	var comment strings.Builder
-	comment.WriteString("# 👋GoDriver Performance\n")
-	fmt.Fprintf(&comment, "The following benchmark tests for version %s had statistically significant changes (i.e., |z-score| > 1.96):\n", version)
+	fmt.Fprintf(&comment, "The following benchmark tests for version %s had statistically significant changes (i.e., |z-score| > 1.96):\n\n", version)
 
 	w := tabwriter.NewWriter(&comment, 0, 0, 1, ' ', 0)
 	fmt.Fprintln(w, "| Benchmark\t| Measurement\t| H-Score\t| Z-Score\t| % Change\t| Stable Reg\t| Patch Value\t|")
@@ -323,8 +334,7 @@ func generatePRComment(energyStats []*EnergyStats, version string) string {
 
 	if testCount == 0 {
 		comment.Reset()
-		comment.WriteString("# 👋GoDriver Performance\n")
-		comment.WriteString("There were no significant changes to the performance to report.")
+		fmt.Fprintf(&comment, "There were no significant changes to the performance to report for version %s.\n", version)
 	}
 
 	comment.WriteString("\n*For a comprehensive view of all microbenchmark results for this PR's commit, please check out the Evergreen perf task for this patch.*")
