@@ -290,6 +290,7 @@ functions:
       type: test
       params:
         binary: bash
+        add_expansions_to_env: true
         env:
           VERSION_ID: ${version_id}
           BASE_SHA: "${revision}"
@@ -695,6 +696,7 @@ tasks:
         params:
           binary: bash
           args: [*task-runner, driver-benchmark]
+      - func: assume-test-secrets-ec2-role
       - func: send-perf-data
       - func: send-perf-pr-comment
 

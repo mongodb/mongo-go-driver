@@ -13,8 +13,8 @@ if [[ -n "${BASE_SHA+set}" && -n "${HEAD_SHA+set}" && "$BASE_SHA" != "$HEAD_SHA"
     # Parse and generate perf comparison comment.
     go run ./internal/cmd/perfcomp/parseperfcomp/main.go
     # Make the PR comment.
-    # target=$DRIVERS_TOOLS/.evergreen/github_app/create_or_modify_comment.sh
-    # bash $target -m "## 👋GoDriver Performance" -c "$(pwd)/perf-report.md" -h $HEAD_SHA -o "mongodb" -n "mongo-go-driver"
+    target=$DRIVERS_TOOLS/.evergreen/github_app/create_or_modify_comment.sh
+    bash $target -m "## 👋GoDriver Performance" -c "$(pwd)/perf-report.md" -h $HEAD_SHA -o "mongodb" -n "mongo-go-driver"
 else
     # Skip comment if it isn't a PR run.
     echo "Skipping Perf PR comment"
