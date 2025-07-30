@@ -76,6 +76,13 @@ type RetryablePoolError interface {
 	Retryable() bool
 }
 
+// RetryablePendingResponseError is an error that indicates that an error
+// occurred while reading a pending response caused by a socket timeout is
+// retryable.
+type RetryablePendingResponseError interface {
+	Retryable() bool
+}
+
 // labeledError is an error that can have error labels added to it.
 type labeledError interface {
 	error
@@ -641,6 +648,11 @@ func (op Operation) Execute(ctx context.Context) error {
 		if srvr == nil || conn == nil {
 			srvr, conn, err = op.getServerAndConnection(ctx, requestID, deprioritizedServers)
 			if err != nil {
+				// If the returned error is a context error, return it immediately.
+				if ctx.Err() != nil {
+					return err
+				}
+
 				// If the returned error is retryable and there are retries remaining (negative
 				// retries means retry indefinitely), then retry the operation. Set the server
 				// and connection to nil to request a new server and connection.
@@ -785,6 +797,14 @@ func (op Operation) Execute(ctx context.Context) error {
 			if moreToCome {
 				roundTrip = op.moreToComeRoundTrip
 			}
+
+			// Set context values to handle a pending read in case of a socket
+			// timeout.
+			if maxTimeMS != 0 {
+				ctx = driverutil.WithValueHasMaxTimeMS(ctx, true)
+				ctx = driverutil.WithRequestID(ctx, startedInfo.requestID)
+			}
+
 			res, err = roundTrip(ctx, conn, *wm)
 
 			if ep, ok := srvr.(ErrorProcessor); ok {
