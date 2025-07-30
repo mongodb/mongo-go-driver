@@ -169,7 +169,7 @@ func main() {
 
 	// Log energy stats output
 	prComment := generatePRComment(allEnergyStats, version)
-	log.Println("👋GoDriver Performance")
+	log.Println("👋 GoDriver Performance")
 	log.Println(prComment)
 
 	// Save for PR comment if it is a PR run
