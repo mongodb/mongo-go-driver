@@ -50,7 +50,12 @@ repos:
     - id: markdown-link-check
       exclude: ^(vendor)
 
-- repo: https://github.com/golangci/golangci-lint
-  rev: v1.60.1
+- repo: local
   hooks:
   - id: golangci-lint
+    name: golangci-lint
+    language: system
+    types: [go]
+    require_serial: true
+    pass_filenames: false
+    entry: etc/golangci-lint.sh
