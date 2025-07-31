@@ -211,7 +211,18 @@ func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
 		return nil, err
 	}
 
-	wc := coll.writeConcern
+	// Ensure opts have the default case at the front.
+	opts = append([]options.Lister[options.BulkWriteOptions]{options.BulkWrite()}, opts...)
+	args, err := mongoutil.NewOptions(opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	wc := args.WriteConcern
+	if wc == nil {
+		wc = coll.writeConcern
+	}
+
 	if sess.TransactionRunning() {
 		wc = nil
 	}
@@ -225,13 +236,6 @@ func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
 		if model == nil {
 			return nil, fmt.Errorf("invalid model at index %d: %w", i, ErrNilDocument)
 		}
-	}
-
-	// Ensure opts have the default case at the front.
-	opts = append([]options.Lister[options.BulkWriteOptions]{options.BulkWrite()}, opts...)
-	args, err := mongoutil.NewOptions(opts...)
-	if err != nil {
-		return nil, err
 	}
 
 	op := bulkWrite{
