@@ -52,7 +52,7 @@ func main() {
 			version = strings.Split(line, " ")[2]
 		} else if strings.Contains(line, "Commit SHA:") {
 			// parse commit SHA and write header
-			fmt.Fprintf(fWrite, "\n<details>\n<summary>%s</summary>\n\t<br>\n\n", line)
+			fmt.Fprintf(fWrite, "\n<details>\n<summary><b>%s</b></summary>\n\t<br>\n\n", line)
 		} else if strings.Contains(line, "version "+version) {
 			// dynamic Evergreen perf task link
 			evgLink, err = generateEvgLink(version, perfVariant)
