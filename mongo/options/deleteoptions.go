@@ -20,7 +20,7 @@ type DeleteOneOptions struct {
 
 	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
 	// release.
-	CustomOptions optionsutil.Options
+	Internal optionsutil.Options
 }
 
 // DeleteOneOptionsBuilder contains options to configure DeleteOne operations. Each
@@ -111,7 +111,7 @@ type DeleteManyOptions struct {
 
 	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
 	// release.
-	CustomOptions optionsutil.Options
+	Internal optionsutil.Options
 }
 
 // DeleteManyOptionsBuilder contains options to configure DeleteMany operations.

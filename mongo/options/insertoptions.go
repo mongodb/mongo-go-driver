@@ -18,7 +18,7 @@ type InsertOneOptions struct {
 
 	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
 	// release.
-	CustomOptions optionsutil.Options
+	Internal optionsutil.Options
 }
 
 // InsertOneOptionsBuilder represents functional options that configure an
@@ -70,7 +70,7 @@ type InsertManyOptions struct {
 
 	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
 	// release.
-	CustomOptions optionsutil.Options
+	Internal optionsutil.Options
 }
 
 // InsertManyOptionsBuilder contains options to configure insert operations.

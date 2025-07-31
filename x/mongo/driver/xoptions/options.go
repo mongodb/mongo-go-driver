@@ -56,7 +56,7 @@ func SetInternalAggregateOptions(a *options.AggregateOptionsBuilder, key string,
 			return typeErrFunc("bool")
 		}
 		a.Opts = append(a.Opts, func(opts *options.AggregateOptions) error {
-			opts.CustomOptions = optionsutil.WithValue(opts.CustomOptions, key, b)
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
 			return nil
 		})
 	default:
@@ -77,7 +77,7 @@ func SetInternalCountOptions(a *options.CountOptionsBuilder, key string, option 
 			return typeErrFunc("bool")
 		}
 		a.Opts = append(a.Opts, func(opts *options.CountOptions) error {
-			opts.CustomOptions = optionsutil.WithValue(opts.CustomOptions, key, b)
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
 			return nil
 		})
 	default:
@@ -98,7 +98,7 @@ func SetInternalDeleteOneOptions(a *options.DeleteOneOptionsBuilder, key string,
 			return typeErrFunc("bool")
 		}
 		a.Opts = append(a.Opts, func(opts *options.DeleteOneOptions) error {
-			opts.CustomOptions = optionsutil.WithValue(opts.CustomOptions, key, b)
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
 			return nil
 		})
 	default:
@@ -119,7 +119,7 @@ func SetInternalDeleteManyOptions(a *options.DeleteManyOptionsBuilder, key strin
 			return typeErrFunc("bool")
 		}
 		a.Opts = append(a.Opts, func(opts *options.DeleteManyOptions) error {
-			opts.CustomOptions = optionsutil.WithValue(opts.CustomOptions, key, b)
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
 			return nil
 		})
 	default:
@@ -140,7 +140,7 @@ func SetInternalDistinctOptions(a *options.DistinctOptionsBuilder, key string, o
 			return typeErrFunc("bool")
 		}
 		a.Opts = append(a.Opts, func(opts *options.DistinctOptions) error {
-			opts.CustomOptions = optionsutil.WithValue(opts.CustomOptions, key, b)
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
 			return nil
 		})
 	default:
@@ -161,7 +161,7 @@ func SetInternalEstimatedDocumentCountOptions(a *options.EstimatedDocumentCountO
 			return typeErrFunc("bool")
 		}
 		a.Opts = append(a.Opts, func(opts *options.EstimatedDocumentCountOptions) error {
-			opts.CustomOptions = optionsutil.WithValue(opts.CustomOptions, key, b)
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
 			return nil
 		})
 	default:
@@ -182,7 +182,7 @@ func SetInternalInsertManyOptions(a *options.InsertManyOptionsBuilder, key strin
 			return typeErrFunc("bool")
 		}
 		a.Opts = append(a.Opts, func(opts *options.InsertManyOptions) error {
-			opts.CustomOptions = optionsutil.WithValue(opts.CustomOptions, key, b)
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
 			return nil
 		})
 	default:
@@ -203,7 +203,7 @@ func SetInternalInsertOneOptions(a *options.InsertOneOptionsBuilder, key string,
 			return typeErrFunc("bool")
 		}
 		a.Opts = append(a.Opts, func(opts *options.InsertOneOptions) error {
-			opts.CustomOptions = optionsutil.WithValue(opts.CustomOptions, key, b)
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
 			return nil
 		})
 	default:

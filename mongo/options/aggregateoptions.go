@@ -30,7 +30,7 @@ type AggregateOptions struct {
 
 	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
 	// release.
-	CustomOptions optionsutil.Options
+	Internal optionsutil.Options
 }
 
 // AggregateOptionsBuilder contains options to configure aggregate operations.

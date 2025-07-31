@@ -17,7 +17,7 @@ type EstimatedDocumentCountOptions struct {
 
 	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
 	// release.
-	CustomOptions optionsutil.Options
+	Internal optionsutil.Options
 }
 
 // EstimatedDocumentCountOptionsBuilder contains options to estimate document

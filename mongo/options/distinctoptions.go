@@ -19,7 +19,7 @@ type DistinctOptions struct {
 
 	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
 	// release.
-	CustomOptions optionsutil.Options
+	Internal optionsutil.Options
 }
 
 // DistinctOptionsBuilder contains options to configure distinct operations. Each

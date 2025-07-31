@@ -21,7 +21,7 @@ type CountOptions struct {
 
 	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
 	// release.
-	CustomOptions optionsutil.Options
+	Internal optionsutil.Options
 }
 
 // CountOptionsBuilder contains options to configure count operations. Each
