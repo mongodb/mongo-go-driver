@@ -19,24 +19,24 @@ import (
 
 // finder is an object that implements FindOne and Find.
 type finder interface {
-	FindOne(context.Context, interface{}, ...options.Lister[options.FindOneOptions]) *mongo.SingleResult
-	Find(context.Context, interface{}, ...options.Lister[options.FindOptions]) (*mongo.Cursor, error)
+	FindOne(context.Context, any, ...options.Lister[options.FindOneOptions]) *mongo.SingleResult
+	Find(context.Context, any, ...options.Lister[options.FindOptions]) (*mongo.Cursor, error)
 }
 
 // mockFinder implements finder.
 type mockFinder struct {
-	docs     []interface{}
+	docs     []any
 	err      error
 	registry *bson.Registry
 }
 
 // FindOne mocks a findOne operation using NewSingleResultFromDocument.
-func (mf *mockFinder) FindOne(_ context.Context, _ interface{}, _ ...options.Lister[options.FindOneOptions]) *mongo.SingleResult {
+func (mf *mockFinder) FindOne(_ context.Context, _ any, _ ...options.Lister[options.FindOneOptions]) *mongo.SingleResult {
 	return mongo.NewSingleResultFromDocument(mf.docs[0], mf.err, mf.registry)
 }
 
 // Find mocks a find operation using NewCursorFromDocuments.
-func (mf *mockFinder) Find(context.Context, interface{}, ...options.Lister[options.FindOptions]) (*mongo.Cursor, error) {
+func (mf *mockFinder) Find(context.Context, any, ...options.Lister[options.FindOptions]) (*mongo.Cursor, error) {
 	return mongo.NewCursorFromDocuments(mf.docs, mf.err, mf.registry)
 }
 
@@ -69,12 +69,12 @@ func getItems(f finder) ([]ShopItem, error) {
 func TestMockFind(t *testing.T) {
 	mt := mtest.New(t, mtest.NewOptions().CreateClient(false))
 
-	insertItems := []interface{}{
+	insertItems := []any{
 		ShopItem{ID: 0, Price: 1.5},
 		ShopItem{ID: 1, Price: 5.7},
 		ShopItem{ID: 2, Price: 0.25},
 	}
-	insertItem := []interface{}{ShopItem{ID: 1, Price: 5.7}}
+	insertItem := []any{ShopItem{ID: 1, Price: 5.7}}
 
 	mt.Run("mongo.Collection can be passed as interface", func(mt *mtest.T) {
 		// Actually insert documents to collection.

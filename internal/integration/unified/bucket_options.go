@@ -24,12 +24,12 @@ var _ bson.Unmarshaler = (*gridFSBucketOptions)(nil)
 
 func (bo *gridFSBucketOptions) UnmarshalBSON(data []byte) error {
 	var temp struct {
-		Name      *string                `bson:"name"`
-		ChunkSize *int32                 `bson:"chunkSizeBytes"`
-		RC        *readConcern           `bson:"readConcern"`
-		RP        *ReadPreference        `bson:"readPreference"`
-		WC        *writeConcern          `bson:"writeConcern"`
-		Extra     map[string]interface{} `bson:",inline"`
+		Name      *string         `bson:"name"`
+		ChunkSize *int32          `bson:"chunkSizeBytes"`
+		RC        *readConcern    `bson:"readConcern"`
+		RP        *ReadPreference `bson:"readPreference"`
+		WC        *writeConcern   `bson:"writeConcern"`
+		Extra     map[string]any  `bson:",inline"`
 	}
 	if err := bson.Unmarshal(data, &temp); err != nil {
 		return fmt.Errorf("error unmarshalling to temporary gridFSBucketOptions object: %w", err)

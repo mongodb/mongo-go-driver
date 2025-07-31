@@ -78,7 +78,7 @@ func TestCSOTProse(t *testing.T) {
 			bigStringBuilder.WriteByte('a')
 		}
 		bigString := bigStringBuilder.String()
-		var docs []interface{}
+		var docs []any
 		for i := 0; i < 50; i++ {
 			docs = append(docs, bson.D{{"1mb", bigString}})
 		}

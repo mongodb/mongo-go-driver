@@ -51,7 +51,7 @@ func TestWriteErrorsWithLabels(t *testing.T) {
 		})
 
 		_, err := mt.Coll.InsertMany(context.Background(),
-			[]interface{}{
+			[]any{
 				bson.D{
 					{"a", 1},
 				},
@@ -169,7 +169,7 @@ func TestWriteErrorsDetails(t *testing.T) {
 				desc: "InsertMany schema validation errors should include Details",
 				operation: func(coll *mongo.Collection) error {
 					// Try to insert a document that doesn't contain the required properties.
-					_, err := coll.InsertMany(context.Background(), []interface{}{bson.D{{"nope", 1}}})
+					_, err := coll.InsertMany(context.Background(), []any{bson.D{{"nope", 1}}})
 					return err
 				},
 				expectBulkError:     true,
@@ -210,7 +210,7 @@ func TestWriteErrorsDetails(t *testing.T) {
 				{
 					_, err := mt.Coll.InsertMany(
 						context.Background(),
-						[]interface{}{
+						[]any{
 							bson.D{{"a", "str1"}, {"b", 1}},
 							bson.D{{"a", "str2"}, {"b", 2}},
 						})
@@ -704,7 +704,7 @@ func TestClientBulkWriteProse(t *testing.T) {
 					},
 				},
 			}
-			result, err := session.WithTransaction(context.Background(), func(ctx context.Context) (interface{}, error) {
+			result, err := session.WithTransaction(context.Background(), func(ctx context.Context) (any, error) {
 				return mt.Client.BulkWrite(ctx, models, options.ClientBulkWrite().SetVerboseResults(true))
 			})
 			require.NoError(mt, err, "BulkWrite error: %v", err)
@@ -935,7 +935,7 @@ func TestClientBulkWriteProse(t *testing.T) {
 
 		autoEncryptionOpts := options.AutoEncryption().
 			SetKeyVaultNamespace("db.coll").
-			SetKmsProviders(map[string]map[string]interface{}{
+			SetKmsProviders(map[string]map[string]any{
 				"aws": {
 					"accessKeyId":     "foo",
 					"secretAccessKey": "bar",
@@ -961,7 +961,7 @@ func TestClientBulkWriteProse(t *testing.T) {
 		type cmd struct {
 			Ops          []bson.D
 			WriteConcern struct {
-				W interface{}
+				W any
 			}
 		}
 		var bwCmd []cmd

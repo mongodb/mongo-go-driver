@@ -29,7 +29,7 @@ type logMessage struct {
 
 // newLogMessage will create a "logMessage" from the level and a slice of
 // arguments.
-func newLogMessage(level int, msg string, args ...interface{}) (*logMessage, error) {
+func newLogMessage(level int, msg string, args ...any) (*logMessage, error) {
 	logMessage := new(logMessage)
 
 	// Iterate over the literal levels until we get the first

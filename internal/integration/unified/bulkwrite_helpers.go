@@ -70,7 +70,7 @@ func createBulkWriteModel(rawModel bson.Raw) (mongo.WriteModel, error) {
 	case "updateOne":
 		uom := mongo.NewUpdateOneModel()
 		var filter bson.Raw
-		var update interface{}
+		var update any
 		var err error
 
 		elems, _ := args.Elements()
@@ -121,7 +121,7 @@ func createBulkWriteModel(rawModel bson.Raw) (mongo.WriteModel, error) {
 	case "updateMany":
 		umm := mongo.NewUpdateManyModel()
 		var filter bson.Raw
-		var update interface{}
+		var update any
 		var err error
 
 		elems, _ := args.Elements()
@@ -276,7 +276,7 @@ func createBulkWriteModel(rawModel bson.Raw) (mongo.WriteModel, error) {
 
 // createUpdateValue converts the provided RawValue to a value that can be passed to UpdateOne/UpdateMany functions.
 // This helper handles both document and pipeline-style updates.
-func createUpdateValue(updateVal bson.RawValue) (interface{}, error) {
+func createUpdateValue(updateVal bson.RawValue) (any, error) {
 	switch updateVal.Type {
 	case bson.TypeEmbeddedDocument:
 		return updateVal.Document(), nil

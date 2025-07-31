@@ -269,7 +269,7 @@ func TestGridFS(x *testing.T) {
 
 			testCases := []struct {
 				name   string
-				fileID interface{}
+				fileID any
 			}{
 				{"default ID", nil},
 				{"custom ID type", "customID"},

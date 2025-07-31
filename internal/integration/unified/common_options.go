@@ -28,8 +28,8 @@ func (rc *readConcern) toReadConcernOption() *readconcern.ReadConcern {
 }
 
 type writeConcern struct {
-	Journal *bool       `bson:"journal"`
-	W       interface{} `bson:"w"`
+	Journal *bool `bson:"journal"`
+	W       any   `bson:"w"`
 }
 
 func (wc *writeConcern) toWriteConcernOption() (*writeconcern.WriteConcern, error) {

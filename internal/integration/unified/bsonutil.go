@@ -73,7 +73,7 @@ func lookupInteger(doc bson.Raw, key string) int64 {
 	return doc.Lookup(key).AsInt64()
 }
 
-func mapKeys(m map[string]interface{}) []string {
+func mapKeys(m map[string]any) []string {
 	keys := make([]string, 0, len(m))
 	for k := range m {
 		keys = append(keys, k)

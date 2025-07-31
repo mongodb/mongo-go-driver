@@ -22,7 +22,7 @@ func newMissingArgumentError(arg string) error {
 
 type updateArguments struct {
 	filter bson.Raw
-	update interface{}
+	update any
 }
 
 func createUpdateManyArguments(args bson.Raw) (*updateArguments, *options.UpdateManyOptionsBuilder, error) {
@@ -201,8 +201,8 @@ func createCollation(args bson.Raw) (*options.Collation, error) {
 	return &collation, nil
 }
 
-func createHint(val bson.RawValue) (interface{}, error) {
-	var hint interface{}
+func createHint(val bson.RawValue) (any, error) {
+	var hint any
 
 	switch val.Type {
 	case bson.TypeString:
