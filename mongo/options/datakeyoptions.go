@@ -10,7 +10,7 @@ package options
 //
 // See corresponding setter methods for documentation.
 type DataKeyOptions struct {
-	MasterKey   interface{}
+	MasterKey   any
 	KeyAltNames []string
 	KeyMaterial []byte
 }
@@ -71,7 +71,7 @@ func (dk *DataKeyOptionsBuilder) List() []func(*DataKeyOptions) error {
 //	}
 //
 // If unset, "keyVersion" defaults to the key's primary version and "endpoint" defaults to "cloudkms.googleapis.com".
-func (dk *DataKeyOptionsBuilder) SetMasterKey(masterKey interface{}) *DataKeyOptionsBuilder {
+func (dk *DataKeyOptionsBuilder) SetMasterKey(masterKey any) *DataKeyOptionsBuilder {
 	dk.Opts = append(dk.Opts, func(opts *DataKeyOptions) error {
 		opts.MasterKey = masterKey
 

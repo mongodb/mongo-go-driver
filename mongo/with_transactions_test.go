@@ -78,7 +78,7 @@ func TestConvenientTransactions(t *testing.T) {
 		defer sess.EndSession(context.Background())
 
 		testErr := errors.New("test error")
-		_, err = sess.WithTransaction(context.Background(), func(context.Context) (interface{}, error) {
+		_, err = sess.WithTransaction(context.Background(), func(context.Context) (any, error) {
 			return nil, testErr
 		})
 		assert.Equal(t, testErr, err, "expected error %v, got %v", testErr, err)
@@ -92,7 +92,7 @@ func TestConvenientTransactions(t *testing.T) {
 		assert.Nil(t, err, "StartSession error: %v", err)
 		defer sess.EndSession(context.Background())
 
-		res, err := sess.WithTransaction(context.Background(), func(context.Context) (interface{}, error) {
+		res, err := sess.WithTransaction(context.Background(), func(context.Context) (any, error) {
 			return false, nil
 		})
 		assert.Nil(t, err, "WithTransaction error: %v", err)
@@ -112,7 +112,7 @@ func TestConvenientTransactions(t *testing.T) {
 			assert.Nil(t, err, "StartSession error: %v", err)
 			defer sess.EndSession(context.Background())
 
-			_, err = sess.WithTransaction(context.Background(), func(context.Context) (interface{}, error) {
+			_, err = sess.WithTransaction(context.Background(), func(context.Context) (any, error) {
 				return nil, CommandError{Name: "test Error", Labels: []string{driver.TransientTransactionError}}
 			})
 			assert.NotNil(t, err, "expected WithTransaction error, got nil")
@@ -144,7 +144,7 @@ func TestConvenientTransactions(t *testing.T) {
 			assert.Nil(t, err, "StartSession error: %v", err)
 			defer sess.EndSession(context.Background())
 
-			_, err = sess.WithTransaction(context.Background(), func(ctx context.Context) (interface{}, error) {
+			_, err = sess.WithTransaction(context.Background(), func(ctx context.Context) (any, error) {
 				_, err := coll.InsertOne(ctx, bson.D{{"x", 1}})
 				return nil, err
 			})
@@ -177,7 +177,7 @@ func TestConvenientTransactions(t *testing.T) {
 			assert.Nil(t, err, "StartSession error: %v", err)
 			defer sess.EndSession(context.Background())
 
-			_, err = sess.WithTransaction(context.Background(), func(ctx context.Context) (interface{}, error) {
+			_, err = sess.WithTransaction(context.Background(), func(ctx context.Context) (any, error) {
 				_, err := coll.InsertOne(ctx, bson.D{{"x", 1}})
 				return nil, err
 			})
@@ -242,7 +242,7 @@ func TestConvenientTransactions(t *testing.T) {
 		// insert succeeds, it cancels the Context created above and returns a non-retryable error, which forces
 		// WithTransaction to abort the txn.
 		callbackErr := errors.New("error")
-		callback := func(ctx context.Context) (interface{}, error) {
+		callback := func(ctx context.Context) (any, error) {
 			_, err = coll.InsertOne(ctx, bson.D{{"x", 1}})
 			if err != nil {
 				return nil, err
@@ -404,7 +404,7 @@ func TestConvenientTransactions(t *testing.T) {
 		// "commitTransaction" can be sent.
 		callback := func() bool {
 			transactionCtx, cancel := context.WithCancel(context.Background())
-			_, _ = sess.WithTransaction(transactionCtx, func(ctx context.Context) (interface{}, error) {
+			_, _ = sess.WithTransaction(transactionCtx, func(ctx context.Context) (any, error) {
 				_, err := coll.InsertOne(ctx, bson.M{"x": 1})
 				assert.NoError(t, err, "InsertOne error: %v", err)
 				cancel()
@@ -433,7 +433,7 @@ func TestConvenientTransactions(t *testing.T) {
 
 		// returnError tracks whether or not the callback is being retried
 		returnError := true
-		res, err := sess.WithTransaction(context.Background(), func(context.Context) (interface{}, error) {
+		res, err := sess.WithTransaction(context.Background(), func(context.Context) (any, error) {
 			if returnError {
 				returnError = false
 				return nil, fmt.Errorf("%w",
@@ -471,7 +471,7 @@ func TestConvenientTransactions(t *testing.T) {
 			withTransactionContext, cancel := context.WithTimeout(context.Background(), time.Nanosecond)
 			defer cancel()
 
-			_, _ = sess.WithTransaction(withTransactionContext, func(ctx context.Context) (interface{}, error) {
+			_, _ = sess.WithTransaction(withTransactionContext, func(ctx context.Context) (any, error) {
 				_, err := coll.InsertOne(ctx, bson.D{{}})
 				return nil, err
 			})
@@ -506,7 +506,7 @@ func TestConvenientTransactions(t *testing.T) {
 			withTransactionContext, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 			cancel()
 
-			_, _ = sess.WithTransaction(withTransactionContext, func(ctx context.Context) (interface{}, error) {
+			_, _ = sess.WithTransaction(withTransactionContext, func(ctx context.Context) (any, error) {
 				_, err := coll.InsertOne(ctx, bson.D{{}})
 				return nil, err
 			})
@@ -558,7 +558,7 @@ func TestConvenientTransactions(t *testing.T) {
 		defer sess.EndSession(context.Background())
 
 		callback := func() bool {
-			_, err = sess.WithTransaction(context.Background(), func(ctx context.Context) (interface{}, error) {
+			_, err = sess.WithTransaction(context.Background(), func(ctx context.Context) (any, error) {
 				// Set a timeout of 300ms to cause a timeout on first insertOne
 				// and force a retry.
 				c, cancel := context.WithTimeout(ctx, 300*time.Millisecond)
@@ -587,7 +587,7 @@ func TestConvenientTransactions(t *testing.T) {
 		defer sess.EndSession(context.Background())
 
 		count := 0
-		_, _ = sess.WithTransaction(context.Background(), func(context.Context) (interface{}, error) {
+		_, _ = sess.WithTransaction(context.Background(), func(context.Context) (any, error) {
 			count++
 			time.Sleep(10 * time.Millisecond)
 

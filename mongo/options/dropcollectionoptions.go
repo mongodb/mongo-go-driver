@@ -11,7 +11,7 @@ package options
 //
 // See corresponding setter methods for documentation.
 type DropCollectionOptions struct {
-	EncryptedFields interface{}
+	EncryptedFields any
 }
 
 // DropCollectionOptionsBuilder contains options to configure collection drop
@@ -34,7 +34,7 @@ func (d *DropCollectionOptionsBuilder) List() []func(*DropCollectionOptions) err
 // SetEncryptedFields sets the encrypted fields for encrypted collections.
 //
 // This option is only valid for MongoDB versions >= 6.0
-func (d *DropCollectionOptionsBuilder) SetEncryptedFields(encryptedFields interface{}) *DropCollectionOptionsBuilder {
+func (d *DropCollectionOptionsBuilder) SetEncryptedFields(encryptedFields any) *DropCollectionOptionsBuilder {
 	d.Opts = append(d.Opts, func(opts *DropCollectionOptions) error {
 		opts.EncryptedFields = encryptedFields
 

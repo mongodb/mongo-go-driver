@@ -33,13 +33,13 @@ import (
 type AutoEncryptionOptions struct {
 	KeyVaultClientOptions *ClientOptions
 	KeyVaultNamespace     string
-	KmsProviders          map[string]map[string]interface{}
-	SchemaMap             map[string]interface{}
+	KmsProviders          map[string]map[string]any
+	SchemaMap             map[string]any
 	BypassAutoEncryption  *bool
-	ExtraOptions          map[string]interface{}
+	ExtraOptions          map[string]any
 	TLSConfig             map[string]*tls.Config
 	HTTPClient            *http.Client
-	EncryptedFieldsMap    map[string]interface{}
+	EncryptedFieldsMap    map[string]any
 	BypassQueryAnalysis   *bool
 	KeyExpiration         *time.Duration
 }
@@ -74,7 +74,7 @@ func (a *AutoEncryptionOptions) SetKeyVaultNamespace(ns string) *AutoEncryptionO
 }
 
 // SetKmsProviders specifies options for KMS providers. This is required.
-func (a *AutoEncryptionOptions) SetKmsProviders(providers map[string]map[string]interface{}) *AutoEncryptionOptions {
+func (a *AutoEncryptionOptions) SetKmsProviders(providers map[string]map[string]any) *AutoEncryptionOptions {
 	a.KmsProviders = providers
 
 	return a
@@ -87,7 +87,7 @@ func (a *AutoEncryptionOptions) SetKmsProviders(providers map[string]map[string]
 // Supplying a schemaMap provides more security than relying on JSON Schemas obtained from the server. It protects
 // against a malicious server advertising a false JSON Schema, which could trick the client into sending unencrypted
 // data that should be encrypted.
-func (a *AutoEncryptionOptions) SetSchemaMap(schemaMap map[string]interface{}) *AutoEncryptionOptions {
+func (a *AutoEncryptionOptions) SetSchemaMap(schemaMap map[string]any) *AutoEncryptionOptions {
 	a.SchemaMap = schemaMap
 
 	return a
@@ -136,7 +136,7 @@ func (a *AutoEncryptionOptions) SetBypassAutoEncryption(bypass bool) *AutoEncryp
 // absolute path to the directory containing the linked libmongocrypt library. Setting an override
 // path disables the default system library search path. If an override path is specified but the
 // crypt_shared library cannot be loaded, Client creation will return an error. Must be a string.
-func (a *AutoEncryptionOptions) SetExtraOptions(extraOpts map[string]interface{}) *AutoEncryptionOptions {
+func (a *AutoEncryptionOptions) SetExtraOptions(extraOpts map[string]any) *AutoEncryptionOptions {
 	a.ExtraOptions = extraOpts
 
 	return a
@@ -153,7 +153,7 @@ func (a *AutoEncryptionOptions) SetTLSConfig(cfg map[string]*tls.Config) *AutoEn
 
 // SetEncryptedFieldsMap specifies a map from namespace to local EncryptedFieldsMap document.
 // EncryptedFieldsMap is used for Queryable Encryption.
-func (a *AutoEncryptionOptions) SetEncryptedFieldsMap(ef map[string]interface{}) *AutoEncryptionOptions {
+func (a *AutoEncryptionOptions) SetEncryptedFieldsMap(ef map[string]any) *AutoEncryptionOptions {
 	a.EncryptedFieldsMap = ef
 
 	return a

@@ -85,7 +85,7 @@ func newEmptyCursor() *Cursor {
 // bson.NewRegistry() will be used.
 //
 // The documents parameter must be a slice of documents. The slice may be nil or empty, but all elements must be non-nil.
-func NewCursorFromDocuments(documents []interface{}, preloadedErr error, registry *bson.Registry) (*Cursor, error) {
+func NewCursorFromDocuments(documents []any, preloadedErr error, registry *bson.Registry) (*Cursor, error) {
 	if registry == nil {
 		registry = defaultRegistry
 	}
@@ -276,7 +276,7 @@ func getDecoder(
 
 // Decode will unmarshal the current document into val and return any errors from the unmarshalling process without any
 // modification. If val is nil or is a typed nil, an error will be returned.
-func (c *Cursor) Decode(val interface{}) error {
+func (c *Cursor) Decode(val any) error {
 	dec := getDecoder(c.Current, c.bsonOpts, c.registry)
 
 	return dec.Decode(val)
@@ -298,7 +298,7 @@ func (c *Cursor) Close(ctx context.Context) error {
 // cursor has been iterated, any previously iterated documents will not be included in results.
 //
 // This method requires driver version >= 1.1.0.
-func (c *Cursor) All(ctx context.Context, results interface{}) error {
+func (c *Cursor) All(ctx context.Context, results any) error {
 	resultsVal := reflect.ValueOf(results)
 	if resultsVal.Kind() != reflect.Ptr {
 		return fmt.Errorf("results argument must be a pointer to a slice, but was a %s", resultsVal.Kind())
@@ -407,7 +407,7 @@ func (c *Cursor) SetMaxAwaitTime(dur time.Duration) {
 
 // SetComment will set a user-configurable comment that can be used to identify
 // the operation in server logs.
-func (c *Cursor) SetComment(comment interface{}) {
+func (c *Cursor) SetComment(comment any) {
 	c.bc.SetComment(comment)
 }
 

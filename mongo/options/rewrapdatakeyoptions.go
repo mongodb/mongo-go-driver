@@ -12,7 +12,7 @@ package options
 // See corresponding setter methods for documentation.
 type RewrapManyDataKeyOptions struct {
 	Provider  *string
-	MasterKey interface{}
+	MasterKey any
 }
 
 // RewrapManyDataKeyOptionsBuilder contains options to configure rewraping a
@@ -46,7 +46,7 @@ func (rmdko *RewrapManyDataKeyOptionsBuilder) SetProvider(provider string) *Rewr
 
 // SetMasterKey sets the value for the MasterKey field. MasterKey identifies the new masterKey.
 // If omitted, rewraps with the current masterKey.
-func (rmdko *RewrapManyDataKeyOptionsBuilder) SetMasterKey(masterKey interface{}) *RewrapManyDataKeyOptionsBuilder {
+func (rmdko *RewrapManyDataKeyOptionsBuilder) SetMasterKey(masterKey any) *RewrapManyDataKeyOptionsBuilder {
 	rmdko.Opts = append(rmdko.Opts, func(opts *RewrapManyDataKeyOptions) error {
 		opts.MasterKey = masterKey
 
