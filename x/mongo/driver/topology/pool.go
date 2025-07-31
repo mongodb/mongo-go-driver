@@ -888,9 +888,15 @@ func peekConnectionAlive(conn *connection) (int, error) {
 		return 0, err
 	}
 
+	// Figre out how many bytes are already buffered.
+	buffered := conn.br.Buffered()
+
 	// Peek(1) will fill the bufio.Reader’s buffer if needed,
 	// but will NOT advance it.
-	bytes, err := conn.br.Peek(1)
+	//
+	// Peek buffered+1 bytes, which will read exactly one new byte from the
+	// socket.
+	bytes, err := conn.br.Peek(buffered + 1)
 	return len(bytes), err
 }
 
