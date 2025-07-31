@@ -19,6 +19,8 @@ const parsePerfCompDir = "./internal/cmd/perfcomp/parseperfcomp/"
 const perfReportFileTxt = "perf-report.txt"
 const perfReportFileMd = "perf-report.md"
 const perfVariant = "^perf$"
+const hscoreDefLink = "https://en.wikipedia.org/wiki/Energy_distance#:~:text=E%2Dcoefficient%20of%20inhomogeneity"
+const zscoreDefLink = "https://en.wikipedia.org/wiki/Standard_score#Calculation"
 
 func main() {
 	var line string
@@ -71,6 +73,15 @@ func main() {
 			} else {
 				printUrlToLine(fWrite, line, evgLink, "Evergreen", 0)
 			}
+		} else if strings.Contains(line, ", ") {
+			line = strings.ReplaceAll(line, ", ", "<br>")
+			fmt.Fprintf(fWrite, "%s\n", line)
+		} else if strings.Contains(line, "H-Score") {
+			linkedWord := "[H-Score](" + hscoreDefLink + ")"
+			line = strings.ReplaceAll(line, "H-Score", linkedWord)
+			linkedWord = "[Z-Score](" + zscoreDefLink + ")"
+			line = strings.ReplaceAll(line, "Z-Score", linkedWord)
+			fmt.Fprintf(fWrite, "%s\n", line)
 		} else {
 			// all other regular lines
 			fmt.Fprintf(fWrite, "%s\n", line)
