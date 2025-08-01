@@ -39,7 +39,7 @@ func main() {
 	}
 	defer fWrite.Close()
 
-	fmt.Fprintf(fWrite, "## 👋 GoDriver Performance\n")
+	fmt.Fprintf(fWrite, "## 🧪 Performance Results\n")
 
 	// read the file line by line using scanner
 	scanner := bufio.NewScanner(fRead)
