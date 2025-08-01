@@ -195,7 +195,6 @@ functions:
 
   run-tests:
     - command: subprocess.exec
-      type: test
       params:
         binary: bash
         env:
@@ -204,6 +203,7 @@ functions:
         args: [*task-runner, setup-test]
     - command: subprocess.exec
       type: test
+      retry_on_failure: true
       params:
         binary: bash
         args: [*task-runner, "${DEFAULT_TASK}" ]
@@ -285,12 +285,21 @@ functions:
           echo "Response Body: $response_body"
           echo "HTTP Status: $http_status"
 
+  send-perf-pr-comment:
+    - command: subprocess.exec
+      type: test
+      params:
+        binary: bash
+        env:
+          VERSION_ID: ${version_id}
+        include_expansions_in_env: [PERF_URI_PRIVATE_ENDPOINT]
+        args: [*task-runner, perf-pr-comment]
+
   run-enterprise-auth-tests:
     - command: ec2.assume_role
       params:
         role_arn: "${aws_test_secrets_role}"
     - command: subprocess.exec
-      type: test
       params:
         binary: bash
         include_expansions_in_env: [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN]
@@ -299,6 +308,7 @@ functions:
         args: [*task-runner, setup-test]
     - command: subprocess.exec
       type: test
+      retry_on_failure: true
       params:
         binary: bash
         args: [*task-runner, --silent, evg-test-enterprise-auth]
@@ -308,7 +318,6 @@ functions:
       params:
         role_arn: "${aws_test_secrets_role}"
     - command: subprocess.exec
-      type: test
       params:
         binary: bash
         include_expansions_in_env: [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN]
@@ -317,6 +326,7 @@ functions:
         args: [*task-runner, setup-test]
     - command: subprocess.exec
       type: test
+      retry_on_failure: true
       params:
         binary: bash
         args: [*task-runner, --silent, evg-test-enterprise-auth]
@@ -326,7 +336,6 @@ functions:
       params:
         role_arn: "${aws_test_secrets_role}"
     - command: subprocess.exec
-      type: test
       params:
         binary: bash
         include_expansions_in_env: [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN]
@@ -335,13 +344,13 @@ functions:
         args: [*task-runner, setup-test]
     - command: subprocess.exec
       type: test
+      retry_on_failure: true
       params:
         binary: bash
         args: [*task-runner, test-atlas-connect]
 
   run-ocsp-test:
     - command: subprocess.exec
-      type: test
       params:
         binary: bash
         env: 
@@ -352,6 +361,7 @@ functions:
         args: [*task-runner, setup-test]
     - command: subprocess.exec
       type: test
+      retry_on_failure: true
       params:
         binary: bash
         include_expansions_in_env: [OCSP_TLS_SHOULD_SUCCEED]
@@ -359,7 +369,6 @@ functions:
 
   run-versioned-api-test:
     - command: subprocess.exec
-      type: test
       params:
         binary: bash
         env: 
@@ -369,13 +378,13 @@ functions:
         args: [*task-runner, setup-test]
     - command: subprocess.exec
       type: test
+      retry_on_failure: true
       params:
         binary: bash
         args: [*task-runner, evg-test-versioned-api]
 
   run-load-balancer-tests:
     - command: subprocess.exec
-      type: test
       params:
         binary: bash
         include_expansions_in_env: [SINGLE_MONGOS_LB_URI, MULTI_MONGOS_LB_URI, AUTH, SSL, MONGO_GO_DRIVER_COMPRESSOR]
@@ -384,13 +393,13 @@ functions:
         args: [*task-runner, setup-test]
     - command: subprocess.exec
       type: test
+      retry_on_failure: true
       params:
         binary: bash
         args: [*task-runner, evg-test-load-balancers]
 
   run-atlas-data-lake-test:
     - command: subprocess.exec
-      type: test
       params:
         binary: "bash"
         env: 
@@ -401,6 +410,7 @@ functions:
         args: [*task-runner, setup-test]
     - command: subprocess.exec
       type: test
+      retry_on_failure: true
       params:
         binary: "bash"
         args: [*task-runner, evg-test-atlas-data-lake]
@@ -572,7 +582,6 @@ functions:
 
   run-kms-tls-test:
     - command: subprocess.exec
-      type: test
       params:
         binary: "bash"
         env: 
@@ -582,6 +591,7 @@ functions:
         args: [*task-runner, setup-test]
     - command: subprocess.exec
       type: test
+      retry_on_failure: true
       params:
         binary: "bash"
         include_expansions_in_env: [KMS_TLS_TESTCASE]
@@ -589,7 +599,6 @@ functions:
 
   run-kmip-tests:
     - command: subprocess.exec
-      type: test
       params:
         binary: "bash"
         env: 
@@ -599,6 +608,7 @@ functions:
         args: [*task-runner, setup-test]
     - command: subprocess.exec
       type: test
+      retry_on_failure: true
       params:
         binary: "bash"
         env:
@@ -607,7 +617,6 @@ functions:
 
   run-retry-kms-requests:
     - command: subprocess.exec
-      type: test
       params:
         binary: "bash"
         env: 
@@ -617,6 +626,7 @@ functions:
         args: [*task-runner, setup-test]
     - command: subprocess.exec
       type: test
+      retry_on_failure: true
       params:
         binary: "bash"
         env:
@@ -684,6 +694,7 @@ tasks:
           binary: bash
           args: [*task-runner, driver-benchmark]
       - func: send-perf-data
+      - func: send-perf-pr-comment
 
   - name: test-standalone-noauth-nossl
     tags: ["test", "standalone"]

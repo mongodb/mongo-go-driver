@@ -42,8 +42,8 @@ type ValueUnmarshaler interface {
 // When unmarshaling BSON, if the BSON value is null and the Go value is a
 // pointer, the pointer is set to nil without calling UnmarshalBSONValue.
 func Unmarshal(data []byte, val any) error {
-	vr := getDocumentReader(bytes.NewReader(data))
-	defer putDocumentReader(vr)
+	vr := getBufferedDocumentReader(data)
+	defer putBufferedDocumentReader(vr)
 
 	if l, err := vr.peekLength(); err != nil {
 		return err
@@ -57,7 +57,7 @@ func Unmarshal(data []byte, val any) error {
 // stores the result in the value pointed to by val. If val is nil or not a pointer,
 // UnmarshalValue returns an error.
 func UnmarshalValue(t Type, data []byte, val any) error {
-	vr := newValueReader(t, bytes.NewReader(data))
+	vr := newBufferedValueReader(t, data)
 	return unmarshalFromReader(DecodeContext{Registry: defaultRegistry}, vr, val)
 }
 

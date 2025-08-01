@@ -167,7 +167,7 @@ func mustLogTopologyMessage(topo *Topology, level logger.Level) bool {
 		level, logger.ComponentTopology)
 }
 
-func logTopologyMessage(topo *Topology, level logger.Level, msg string, keysAndValues ...interface{}) {
+func logTopologyMessage(topo *Topology, level logger.Level, msg string, keysAndValues ...any) {
 	topo.cfg.logger.Print(level,
 		logger.ComponentTopology,
 		msg,
@@ -218,7 +218,7 @@ func logServerSelection(
 	level logger.Level,
 	msg string,
 	srvSelector description.ServerSelector,
-	keysAndValues ...interface{},
+	keysAndValues ...any,
 ) {
 	var srvSelectorString string
 

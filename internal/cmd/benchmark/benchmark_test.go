@@ -663,8 +663,8 @@ type poplarTestArtifact struct {
 // poplarTestMetrics was copied from
 // https://github.com/evergreen-ci/poplar/blob/8d03d2bacde0897cedd73ed79ddc167ed1ed4c77/report.go#L124
 type poplarTestMetrics struct {
-	Name    string      `bson:"name" json:"name" yaml:"name"`
-	Version int         `bson:"version,omitempty" json:"version,omitempty" yaml:"version,omitempty"`
-	Type    string      `bson:"type" json:"type" yaml:"type"`
-	Value   interface{} `bson:"value" json:"value" yaml:"value"`
+	Name    string `bson:"name" json:"name" yaml:"name"`
+	Version int    `bson:"version,omitempty" json:"version,omitempty" yaml:"version,omitempty"`
+	Type    string `bson:"type" json:"type" yaml:"type"`
+	Value   any    `bson:"value" json:"value" yaml:"value"`
 }

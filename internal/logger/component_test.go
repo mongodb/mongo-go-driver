@@ -31,7 +31,7 @@ func TestSerializeCommand(t *testing.T) {
 	tests := []struct {
 		name               string
 		cmd                Command
-		extraKeysAndValues []interface{}
+		extraKeysAndValues []any
 		want               KeyValues
 	}{
 		{
@@ -93,7 +93,7 @@ func TestSerializeConnection(t *testing.T) {
 	tests := []struct {
 		name               string
 		conn               Connection
-		extraKeysAndValues []interface{}
+		extraKeysAndValues []any
 		want               KeyValues
 	}{
 		{
@@ -139,7 +139,7 @@ func TestSerializeServer(t *testing.T) {
 	tests := []struct {
 		name               string
 		srv                Server
-		extraKeysAndValues []interface{}
+		extraKeysAndValues []any
 		want               KeyValues
 	}{
 		{
@@ -193,7 +193,7 @@ func TestSerializeTopology(t *testing.T) {
 	tests := []struct {
 		name               string
 		topo               Topology
-		extraKeysAndValues []interface{}
+		extraKeysAndValues []any
 		want               KeyValues
 	}{
 		{
