@@ -218,22 +218,15 @@ func idHex(id [12]byte) string {
 // String implements the fmt.String interface. This method will return values in extended JSON
 // format. If the value is not valid, this returns an empty string
 func (v Value) String() string {
-	str, _ := v.stringN(0)
+	str, _ := v.StringN(-1)
 	return str
 }
 
-// StringN implements the fmt.String interface. This method will return values in extended JSON
-// format that will stringify a value upto N bytes. If the value is not valid, this returns an empty string
+// StringN will return values in extended JSON format that will stringify a value upto N bytes.
+// If N is non-negative, it will truncate the string to N bytes. Otherwise, it will return the full
+// string representation. The second return value indicates whether the string was truncated or not.
+// If the value is not valid, this returns an empty string
 func (v Value) StringN(n int) (string, bool) {
-	str, truncated := v.stringN(n)
-	if n <= 0 {
-		return "", len(str) > 0
-	}
-	return str, truncated
-}
-
-// stringN stringify a value. If N is larger than 0, it will truncate the string to N bytes.
-func (v Value) stringN(n int) (string, bool) {
 	var str string
 	switch v.Type {
 	case TypeString:
@@ -247,13 +240,13 @@ func (v Value) stringN(n int) (string, bool) {
 		if !ok {
 			return "", false
 		}
-		return doc.stringN(n)
+		return doc.StringN(n)
 	case TypeArray:
 		arr, ok := v.ArrayOK()
 		if !ok {
 			return "", false
 		}
-		return arr.stringN(n)
+		return arr.StringN(n)
 	case TypeDouble:
 		f64, ok := v.DoubleOK()
 		if !ok {
@@ -352,7 +345,7 @@ func (v Value) stringN(n int) (string, bool) {
 	default:
 		str = ""
 	}
-	if n > 0 && len(str) > n {
+	if n >= 0 && len(str) > n {
 		return bsoncoreutil.Truncate(str, n), true
 	}
 	return str, false

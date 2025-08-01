@@ -117,22 +117,20 @@ func (e Element) ValueErr() (Value, error) {
 
 // String implements the fmt.String interface. The output will be in extended JSON format.
 func (e Element) String() string {
-	str, _ := e.stringN(0)
+	str, _ := e.StringN(-1)
 	return str
 }
 
-// StringN implements the fmt.String interface for upto N bytes. The output will be in extended JSON format.
+// StringN will return values in extended JSON format that will stringify an element upto N bytes.
+// If N is non-negative, it will truncate the string to N bytes. Otherwise, it will return the full
+// string representation. The second return value indicates whether the string was truncated or not.
+// If the element is not valid, this returns an empty string
 func (e Element) StringN(n int) (string, bool) {
-	if n <= 0 {
-		return "", len(e) > 0
-	}
-	return e.stringN(n)
-}
-
-// stringN stringify an element. If N is larger than 0, it will truncate the string to N bytes.
-func (e Element) stringN(n int) (string, bool) {
 	if len(e) == 0 {
 		return "", false
+	}
+	if n == 0 {
+		return "", true
 	}
 	if n == 1 {
 		return `"`, true
@@ -149,22 +147,27 @@ func (e Element) stringN(n int) (string, bool) {
 	buf.WriteByte('"')
 	const suffix = `": `
 	switch {
-	case n <= 0 || idx <= n-4:
+	case n < 0 || idx <= n-buf.Len()-len(suffix):
 		buf.Write(key)
 		buf.WriteString(suffix)
 	case idx < n:
 		buf.Write(key)
 		buf.WriteString(suffix[:n-idx-1])
+		return buf.String(), true
 	default:
 		buf.WriteString(bsoncoreutil.Truncate(string(key), n-1))
+		return buf.String(), true
 	}
 
-	l := 0
+	needStrLen := -1
+	// Set needStrLen if n is positive, meaning we want to limit the string length.
 	if n > 0 {
+		// Stop stringifying if we reach the limit, that also ensures needStrLen is
+		// greater than 0 if we need to limit the length.
 		if buf.Len() >= n {
 			return buf.String(), true
 		}
-		l = n - buf.Len()
+		needStrLen = n - buf.Len()
 	}
 
 	val, _, valid := ReadValue(e[idx+2:], t)
@@ -175,14 +178,14 @@ func (e Element) stringN(n int) (string, bool) {
 	var str string
 	var truncated bool
 	if _, ok := val.StringValueOK(); ok {
-		str, truncated = val.stringN(l)
+		str, truncated = val.StringN(needStrLen)
 	} else if arr, ok := val.ArrayOK(); ok {
-		str, truncated = arr.stringN(l)
+		str, truncated = arr.StringN(needStrLen)
 	} else {
 		str = val.String()
-		if l > 0 && len(str) > l {
+		if needStrLen > 0 && len(str) > needStrLen {
 			truncated = true
-			str = bsoncoreutil.Truncate(str, l)
+			str = bsoncoreutil.Truncate(str, needStrLen)
 		}
 	}
 

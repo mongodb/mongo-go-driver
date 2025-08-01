@@ -349,76 +349,78 @@ func TestArray(t *testing.T) {
 	})
 }
 
-func TestArray_Stringer(t *testing.T) {
-	testCases := []struct {
-		description string
-		array       Array
-		want        string
-	}{
-		{
-			description: "empty array",
-			array:       BuildArray(nil),
-			want:        `[]`,
-		},
-		{
-			description: "array with 1 element",
-			array: BuildArray(nil, Value{
+var arrayStringTestCases = []struct {
+	description string
+	array       Array
+	want        string
+}{
+	{
+		description: "empty array",
+		array:       BuildArray(nil),
+		want:        `[]`,
+	},
+	{
+		description: "array with 1 element",
+		array: BuildArray(nil, Value{
+			Type: TypeInt32,
+			Data: AppendInt32(nil, 123),
+		}),
+		want: `[{"$numberInt":"123"}]`,
+	},
+	{
+		description: "nested array",
+		array: BuildArray(nil, Value{
+			Type: TypeArray,
+			Data: BuildArray(nil, Value{
+				Type: TypeString,
+				Data: AppendString(nil, "abc"),
+			}),
+		}),
+		want: `[["abc"]]`,
+	},
+	{
+		description: "array with mixed types",
+		array: BuildArray(nil,
+			Value{
+				Type: TypeString,
+				Data: AppendString(nil, "abc"),
+			},
+			Value{
 				Type: TypeInt32,
 				Data: AppendInt32(nil, 123),
-			}),
-			want: `[{"$numberInt":"123"}]`,
-		},
-		{
-			description: "nested array",
-			array: BuildArray(nil, Value{
-				Type: TypeArray,
-				Data: BuildArray(nil, Value{
-					Type: TypeString,
-					Data: AppendString(nil, "abc"),
-				}),
-			}),
-			want: `[["abc"]]`,
-		},
-		{
-			description: "array with mixed types",
-			array: BuildArray(nil,
-				Value{
-					Type: TypeString,
-					Data: AppendString(nil, "abc"),
-				},
-				Value{
-					Type: TypeInt32,
-					Data: AppendInt32(nil, 123),
-				},
-				Value{
-					Type: TypeBoolean,
-					Data: AppendBoolean(nil, true),
-				},
-			),
-			want: `["abc",{"$numberInt":"123"},true]`,
-		},
-	}
+			},
+			Value{
+				Type: TypeBoolean,
+				Data: AppendBoolean(nil, true),
+			},
+		),
+		want: `["abc",{"$numberInt":"123"},true]`,
+	},
+}
 
-	for _, tc := range testCases {
-		t.Run(fmt.Sprintf("String %s", tc.description), func(t *testing.T) {
+func TestArray_String(t *testing.T) {
+	for _, tc := range arrayStringTestCases {
+		t.Run(tc.description, func(t *testing.T) {
 			got := tc.array.String()
-			assert.Equal(t, tc.want, got)
+			assert.Equal(t, tc.want, got, "expected string %s, got %s", tc.want, got)
 		})
 	}
+}
 
-	for _, tc := range testCases {
+func TestArray_StringN(t *testing.T) {
+	for _, tc := range arrayStringTestCases {
 		for n := -1; n <= len(tc.want)+1; n++ {
-			t.Run(fmt.Sprintf("StringN %s n==%d", tc.description, n), func(t *testing.T) {
-				got, _ := tc.array.StringN(n)
+			t.Run(fmt.Sprintf("%s n==%d", tc.description, n), func(t *testing.T) {
+				got, truncated := tc.array.StringN(n)
 				l := n
-				if l < 0 {
-					l = 0
-				}
-				if l > len(tc.want) {
+				toBeTruncated := true
+				if l >= len(tc.want) || l < 0 {
 					l = len(tc.want)
+					toBeTruncated = false
 				}
 				want := tc.want[:l]
-				assert.Equal(t, want, got, "got %v, want %v", got, want)
+				assert.Equal(t, want, got, "expected truncated string %s, got %s", want, got)
+				assert.Equal(t, toBeTruncated, truncated, "expected truncated to be %t, got %t", toBeTruncated, truncated)
 			})
 		}
 	}

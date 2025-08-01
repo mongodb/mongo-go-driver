@@ -82,28 +82,24 @@ func (a Array) DebugString() string {
 // String outputs an ExtendedJSON version of Array. If the Array is not valid, this method
 // returns an empty string.
 func (a Array) String() string {
-	str, _ := a.stringN(0)
+	str, _ := a.StringN(-1)
 	return str
 }
 
-// StringN stringifies an array upto N bytes
+// StringN stringifies an array. If N is non-negative, it will truncate the string to N bytes.
+// Otherwise, it will return the full string representation. The second return value indicates
+// whether the string was truncated or not.
 func (a Array) StringN(n int) (string, bool) {
-	if n <= 0 {
-		if l, _, ok := ReadLength(a); !ok || l < 5 {
-			return "", false
-		}
-		return "", true
-	}
-	return a.stringN(n)
-}
-
-// stringN stringify an array. If N is larger than 0, it will truncate the string to N bytes.
-func (a Array) stringN(n int) (string, bool) {
 	length, rem, ok := ReadLength(a)
 	if !ok || length < 5 {
 		return "", false
 	}
-	length -= (4 /* length bytes */ + 1 /* final null byte */)
+	length -= 4 // length bytes
+	length--    // final null byte
+
+	if n == 0 {
+		return "", true
+	}
 
 	var buf strings.Builder
 	buf.WriteByte('[')
@@ -113,19 +109,25 @@ func (a Array) stringN(n int) (string, bool) {
 	var str string
 	first := true
 	for length > 0 && !truncated {
-		l := 0
+		needStrLen := -1
+		// Set needStrLen if n is positive, meaning we want to limit the string length.
 		if n > 0 {
+			// Stop stringifying if we reach the limit, that also ensures needStrLen is
+			// greater than 0 if we need to limit the length.
 			if buf.Len() >= n {
 				truncated = true
 				break
 			}
-			l = n - buf.Len()
+			needStrLen = n - buf.Len()
 		}
+
+		// Append a comma if this is not the first element.
 		if !first {
 			buf.WriteByte(',')
-			if l > 0 {
-				l--
-				if l == 0 {
+			// If we are truncating, we need to account for the comma in the length.
+			if needStrLen > 0 {
+				needStrLen--
+				if needStrLen == 0 {
 					truncated = true
 					break
 				}
@@ -134,11 +136,13 @@ func (a Array) stringN(n int) (string, bool) {
 
 		elem, rem, ok = ReadElement(rem)
 		length -= int32(len(elem))
+		// Exit on malformed element.
 		if !ok || length < 0 {
 			return "", false
 		}
 
-		str, truncated = elem.Value().stringN(l)
+		// Delegate to StringN() on the element.
+		str, truncated = elem.Value().StringN(needStrLen)
 		buf.WriteString(str)
 
 		first = false
@@ -146,6 +150,8 @@ func (a Array) stringN(n int) (string, bool) {
 
 	if n <= 0 || (buf.Len() < n && !truncated) {
 		buf.WriteByte(']')
+	} else {
+		truncated = true
 	}
 
 	return buf.String(), truncated

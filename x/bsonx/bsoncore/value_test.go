@@ -677,262 +677,266 @@ func TestValue(t *testing.T) {
 	}
 }
 
-func TestValue_Stringer(t *testing.T) {
-	testObjectID := [12]byte{0x60, 0xd4, 0xc2, 0x1f, 0x4e, 0x60, 0x4a, 0x0c, 0x8b, 0x2e, 0x9c, 0x3f}
+var valueStringTestCases = []struct {
+	description string
+	val         Value
+	want        string
+}{
+	{
+		description: "string value",
+		val: Value{
+			Type: TypeString, Data: AppendString(nil, "abcdefgh")},
+		want: `"abcdefgh"`,
+	},
 
-	testCases := []struct {
-		description string
-		val         Value
-		want        string
-	}{
-		{
-			description: "string value",
-			val: Value{
-				Type: TypeString, Data: AppendString(nil, "abcdefgh")},
-			want: `"abcdefgh"`,
+	{
+		description: "value with special characters",
+		val: Value{
+			Type: TypeString,
+			Data: AppendString(nil, "!@#$%^&*()")},
+		want: `"!@#$%^\u0026*()"`,
+	},
+
+	{
+		description: "TypeEmbeddedDocument",
+		val: Value{
+			Type: TypeEmbeddedDocument,
+			Data: BuildDocument(nil,
+				AppendInt32Element(nil, "number", 123),
+			),
 		},
+		want: `{"number": {"$numberInt":"123"}}`,
+	},
 
-		{
-			description: "value with special characters",
-			val: Value{
-				Type: TypeString,
-				Data: AppendString(nil, "!@#$%^&*()")},
-			want: `"!@#$%^\u0026*()"`,
+	{
+		description: "TypeArray",
+		val: Value{
+			Type: TypeArray,
+			Data: BuildArray(nil,
+				Value{
+					Type: TypeString,
+					Data: AppendString(nil, "abc"),
+				},
+				Value{
+					Type: TypeInt32,
+					Data: AppendInt32(nil, 123),
+				},
+				Value{
+					Type: TypeBoolean,
+					Data: AppendBoolean(nil, true),
+				},
+			)},
+		want: `["abc",{"$numberInt":"123"},true]`,
+	},
+
+	{
+		description: "TypeDouble",
+		val: Value{
+			Type: TypeDouble,
+			Data: AppendDouble(nil, 123.456),
 		},
+		want: `{"$numberDouble":"123.456"}`,
+	},
 
-		{
-			description: "TypeEmbeddedDocument",
-			val: Value{
-				Type: TypeEmbeddedDocument,
-				Data: BuildDocument(nil,
-					AppendInt32Element(nil, "number", 123),
-				),
-			},
-			want: `{"number": {"$numberInt":"123"}}`,
+	{
+		description: "TypeBinary",
+		val: Value{
+			Type: TypeBinary,
+			Data: AppendBinary(nil, 0x00, []byte{0x01, 0x02, 0x03})},
+		want: `{"$binary":{"base64":"AQID","subType":"00"}}`,
+	},
+
+	{
+		description: "TypeUndefined",
+		val: Value{
+			Type: TypeUndefined,
 		},
+		want: `{"$undefined":true}`,
+	},
 
-		{
-			description: "TypeArray",
-			val: Value{
-				Type: TypeArray,
-				Data: BuildArray(nil,
-					Value{
-						Type: TypeString,
-						Data: AppendString(nil, "abc"),
-					},
-					Value{
-						Type: TypeInt32,
-						Data: AppendInt32(nil, 123),
-					},
-					Value{
-						Type: TypeBoolean,
-						Data: AppendBoolean(nil, true),
-					},
-				)},
-			want: `["abc",{"$numberInt":"123"},true]`,
+	{
+		description: "TypeObjectID",
+		val: Value{
+			Type: TypeObjectID,
+			Data: AppendObjectID(nil, [12]byte{0x60, 0xd4, 0xc2, 0x1f, 0x4e, 0x60, 0x4a, 0x0c, 0x8b, 0x2e, 0x9c, 0x3f}),
 		},
+		want: `{"$oid":"60d4c21f4e604a0c8b2e9c3f"}`,
+	},
 
-		{
-			description: "TypeDouble",
-			val: Value{
-				Type: TypeDouble,
-				Data: AppendDouble(nil, 123.456),
-			},
-			want: `{"$numberDouble":"123.456"}`,
+	{
+		description: "TypeBoolean",
+		val: Value{
+			Type: TypeBoolean,
+			Data: AppendBoolean(nil, true),
 		},
+		want: `true`,
+	},
 
-		{
-			description: "TypeBinary",
-			val: Value{
-				Type: TypeBinary,
-				Data: AppendBinary(nil, 0x00, []byte{0x01, 0x02, 0x03})},
-			want: `{"$binary":{"base64":"AQID","subType":"00"}}`,
+	{
+		description: "TypeDateTime",
+		val: Value{
+			Type: TypeDateTime,
+			Data: AppendDateTime(nil, 1234567890),
 		},
+		want: `{"$date":{"$numberLong":"1234567890"}}`,
+	},
 
-		{
-			description: "TypeUndefined",
-			val: Value{
-				Type: TypeUndefined,
-			},
-			want: `{"$undefined":true}`,
+	{
+		description: "TypeNull",
+		val: Value{
+			Type: TypeNull,
 		},
+		want: `null`,
+	},
 
-		{
-			description: "TypeObjectID",
-			val: Value{
-				Type: TypeObjectID,
-				Data: AppendObjectID(nil, testObjectID),
-			},
-			want: `{"$oid":"60d4c21f4e604a0c8b2e9c3f"}`,
+	{
+		description: "TypeRegex",
+		val: Value{
+			Type: TypeRegex,
+			Data: AppendRegex(nil, "pattern", "i"),
 		},
+		want: `{"$regularExpression":{"pattern":"pattern","options":"i"}}`,
+	},
 
-		{
-			description: "TypeBoolean",
-			val: Value{
-				Type: TypeBoolean,
-				Data: AppendBoolean(nil, true),
-			},
-			want: `true`,
+	{
+		description: "TypeDBPointer",
+		val: Value{
+			Type: TypeDBPointer,
+			Data: AppendDBPointer(nil, "namespace", [12]byte{0x60, 0xd4, 0xc2, 0x1f, 0x4e, 0x60, 0x4a, 0x0c, 0x8b, 0x2e, 0x9c, 0x3f}),
 		},
+		want: `{"$dbPointer":{"$ref":"namespace","$id":{"$oid":"60d4c21f4e604a0c8b2e9c3f"}}}`,
+	},
 
-		{
-			description: "TypeDateTime",
-			val: Value{
-				Type: TypeDateTime,
-				Data: AppendDateTime(nil, 1234567890),
-			},
-			want: `{"$date":{"$numberLong":"1234567890"}}`,
+	{
+		description: "TypeJavaScript",
+		val: Value{
+			Type: TypeJavaScript,
+			Data: AppendJavaScript(nil, "code"),
 		},
+		want: `{"$code":"code"}`,
+	},
 
-		{
-			description: "TypeNull",
-			val: Value{
-				Type: TypeNull,
-			},
-			want: `null`,
+	{
+		description: "TypeSymbol",
+		val: Value{
+			Type: TypeSymbol,
+			Data: AppendSymbol(nil, "symbol"),
 		},
+		want: `{"$symbol":"symbol"}`,
+	},
 
-		{
-			description: "TypeRegex",
-			val: Value{
-				Type: TypeRegex,
-				Data: AppendRegex(nil, "pattern", "i"),
-			},
-			want: `{"$regularExpression":{"pattern":"pattern","options":"i"}}`,
+	{
+		description: "TypeCodeWithScope",
+		val: Value{
+			Type: TypeCodeWithScope,
+			Data: AppendCodeWithScope(nil, "code",
+				BuildDocument(nil, AppendStringElement(nil, "key", "value")),
+			),
 		},
+		want: `{"$code":code,"$scope":{"key": "value"}}`,
+	},
 
-		{
-			description: "TypeDBPointer",
-			val: Value{
-				Type: TypeDBPointer,
-				Data: AppendDBPointer(nil, "namespace", testObjectID),
-			},
-			want: `{"$dbPointer":{"$ref":"namespace","$id":{"$oid":"60d4c21f4e604a0c8b2e9c3f"}}}`,
+	{
+		description: "TypeInt32",
+		val: Value{
+			Type: TypeInt32,
+			Data: AppendInt32(nil, 123),
 		},
+		want: `{"$numberInt":"123"}`,
+	},
 
-		{
-			description: "TypeJavaScript",
-			val: Value{
-				Type: TypeJavaScript,
-				Data: AppendJavaScript(nil, "code"),
-			},
-			want: `{"$code":"code"}`,
+	{
+		description: "TypeTimestamp",
+		val: Value{
+			Type: TypeTimestamp,
+			Data: AppendTimestamp(nil, 123, 456),
 		},
+		want: `{"$timestamp":{"t":123,"i":456}}`,
+	},
 
-		{
-			description: "TypeSymbol",
-			val: Value{
-				Type: TypeSymbol,
-				Data: AppendSymbol(nil, "symbol"),
-			},
-			want: `{"$symbol":"symbol"}`,
+	{
+		description: "TypeInt64",
+		val: Value{
+			Type: TypeInt64,
+			Data: AppendInt64(nil, 1234567890),
 		},
+		want: `{"$numberLong":"1234567890"}`,
+	},
 
-		{
-			description: "TypeCodeWithScope",
-			val: Value{
-				Type: TypeCodeWithScope,
-				Data: AppendCodeWithScope(nil, "code",
-					BuildDocument(nil, AppendStringElement(nil, "key", "value")),
-				),
-			},
-			want: `{"$code":code,"$scope":{"key": "value"}}`,
+	{
+		description: "TypeDecimal128",
+		val: Value{
+			Type: TypeDecimal128,
+			Data: AppendDecimal128(nil, 0x3040000000000000, 0x0000000000000000),
 		},
+		want: `{"$numberDecimal":"0"}`,
+	},
 
-		{
-			description: "TypeInt32",
-			val: Value{
-				Type: TypeInt32,
-				Data: AppendInt32(nil, 123),
-			},
-			want: `{"$numberInt":"123"}`,
+	{
+		description: "TypeMinKey",
+		val: Value{
+			Type: TypeMinKey,
 		},
+		want: `{"$minKey":1}`,
+	},
 
-		{
-			description: "TypeTimestamp",
-			val: Value{
-				Type: TypeTimestamp,
-				Data: AppendTimestamp(nil, 123, 456),
-			},
-			want: `{"$timestamp":{"t":123,"i":456}}`,
+	{
+		description: "TypeMaxKey",
+		val: Value{
+			Type: TypeMaxKey,
 		},
+		want: `{"$maxKey":1}`,
+	},
+}
 
-		{
-			description: "TypeInt64",
-			val: Value{
-				Type: TypeInt64,
-				Data: AppendInt64(nil, 1234567890),
-			},
-			want: `{"$numberLong":"1234567890"}`,
-		},
-
-		{
-			description: "TypeDecimal128",
-			val: Value{
-				Type: TypeDecimal128,
-				Data: AppendDecimal128(nil, 0x3040000000000000, 0x0000000000000000),
-			},
-			want: `{"$numberDecimal":"0"}`,
-		},
-
-		{
-			description: "TypeMinKey",
-			val: Value{
-				Type: TypeMinKey,
-			},
-			want: `{"$minKey":1}`,
-		},
-
-		{
-			description: "TypeMaxKey",
-			val: Value{
-				Type: TypeMaxKey,
-			},
-			want: `{"$maxKey":1}`,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(fmt.Sprintf("String %s", tc.description), func(t *testing.T) {
+func TestValue_String(t *testing.T) {
+	for _, tc := range valueStringTestCases {
+		t.Run(tc.description, func(t *testing.T) {
 			got := tc.val.String()
-			assert.Equal(t, tc.want, got)
+			assert.Equal(t, tc.want, got, "expected string %s, got %s", tc.want, got)
 		})
 	}
+}
 
-	for _, tc := range testCases {
+func TestValue_StringN(t *testing.T) {
+	for _, tc := range valueStringTestCases {
 		for n := -1; n <= len(tc.want)+1; n++ {
-			t.Run(fmt.Sprintf("StringN %s n==%d", tc.description, n), func(t *testing.T) {
-				got, _ := tc.val.StringN(n)
+			t.Run(fmt.Sprintf("%s n==%d", tc.description, n), func(t *testing.T) {
+				got, truncated := tc.val.StringN(n)
 				l := n
-				if l < 0 {
-					l = 0
-				}
-				if l > len(tc.want) {
+				toBeTruncated := true
+				if l >= len(tc.want) || l < 0 {
 					l = len(tc.want)
+					toBeTruncated = false
 				}
 				want := tc.want[:l]
-				assert.Equal(t, want, got, "got %v, want %v", got, want)
+				assert.Equal(t, want, got, "expected string %s, got %s", tc.want, got)
+				assert.Equal(t, toBeTruncated, truncated, "expected truncated to be %t, got %t", toBeTruncated, truncated)
 			})
 		}
 	}
+}
 
+func TestArray_StringN_Multibyte(t *testing.T) {
 	multiByteString := Value{
 		Type: TypeString,
 		Data: AppendString(nil, "𨉟呐㗂越"),
 	}
-	for _, tc := range []struct {
-		n    int
-		want string
+	for i, tc := range []struct {
+		n         int
+		want      string
+		truncated bool
 	}{
-		{6, `"𨉟`},
-		{8, `"𨉟`},
-		{10, `"𨉟呐`},
-		{15, `"𨉟呐㗂越"`},
-		{21, `"𨉟呐㗂越"`},
+		{6, `"𨉟`, true},
+		{8, `"𨉟`, true},
+		{10, `"𨉟呐`, true},
+		{15, `"𨉟呐㗂越"`, false},
+		{21, `"𨉟呐㗂越"`, false},
 	} {
-		t.Run(fmt.Sprintf("StringN multi-byte string n==%d", tc.n), func(t *testing.T) {
-			got, _ := multiByteString.StringN(tc.n)
-			assert.Equal(t, tc.want, got)
+		t.Run(fmt.Sprintf("case %d", i), func(t *testing.T) {
+			got, truncated := multiByteString.StringN(tc.n)
+			assert.Equal(t, tc.want, got, "expected string %s, got %s", tc.want, got)
+			assert.Equal(t, tc.truncated, truncated, "expected truncated to be %t, got %t", tc.truncated, truncated)
 		})
 	}
 }
