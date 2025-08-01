@@ -2028,8 +2028,8 @@ func TestCollection(t *testing.T) {
 	})
 }
 
-func initCollection(mt *mtest.T, coll *mongo.Collection) {
-	mt.Helper()
+func initCollection(tb testing.TB, coll *mongo.Collection) {
+	tb.Helper()
 
 	var docs []interface{}
 	for i := 1; i <= 5; i++ {
@@ -2037,7 +2037,7 @@ func initCollection(mt *mtest.T, coll *mongo.Collection) {
 	}
 
 	_, err := coll.InsertMany(context.Background(), docs)
-	assert.Nil(mt, err, "InsertMany error for initial data: %v", err)
+	assert.NoError(tb, err, "InsertMany error for initial data: %v", err)
 }
 
 func testAggregateWithOptions(mt *mtest.T, createIndex bool, opts options.Lister[options.AggregateOptions]) {

@@ -7,7 +7,9 @@
 package mongoutil
 
 import (
+	"context"
 	"reflect"
+	"time"
 
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
@@ -82,4 +84,18 @@ func HostsFromURI(uri string) ([]string, error) {
 	opts := options.Client().ApplyURI(uri)
 
 	return opts.Hosts, nil
+}
+
+// TimeoutWithinContext will return true if the provided timeout is nil or if
+// it is less than the context deadline. If the context does not have a
+// deadline, it will return true.
+func TimeoutWithinContext(ctx context.Context, timeout time.Duration) bool {
+	deadline, ok := ctx.Deadline()
+	if !ok {
+		return true
+	}
+
+	ctxTimeout := time.Until(deadline)
+
+	return ctxTimeout <= 0 || timeout < ctxTimeout
 }
