@@ -410,32 +410,6 @@ functions:
           export HEAD_SHA=${github_commit}
           bash etc/api_report.sh
 
-  "add PR labels":
-    - command: shell.exec
-      type: test
-      params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
-        add_expansions_to_env: true
-        script: |
-          ${PREPARE_SHELL}
-          export CONFIG=$PROJECT_DIRECTORY/.github/labeler.yml
-          export SCRIPT="$DRIVERS_TOOLS/.evergreen/github_app/apply-labels.sh"
-          bash $SCRIPT -l $CONFIG -h ${github_commit} -o "mongodb" -n "mongo-go-driver"
-
-  "add PR reviewer":
-    - command: shell.exec
-      type: test
-      params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
-        add_expansions_to_env: true
-        script: |
-          ${PREPARE_SHELL}
-          export CONFIG=$PROJECT_DIRECTORY/.github/reviewers.txt
-          export SCRIPT="$DRIVERS_TOOLS/.evergreen/github_app/assign-reviewer.sh"
-          bash $SCRIPT -p $CONFIG -h ${github_commit} -o "mongodb" -n "mongo-go-driver"
-
   "backport pr":
     - command: subprocess.exec
       type: test
@@ -936,8 +910,6 @@ tasks:
     allowed_requesters: ["patch", "github_pr"]
     commands:
       - func: assume-test-secrets-ec2-role
-      - func: "add PR reviewer"  
-      - func: "add PR labels"
       - func: "create-api-report"
 
   - name: backport-pr

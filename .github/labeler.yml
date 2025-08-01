@@ -1,15 +1,14 @@
-
 priority-3-low:
 - changed-files:
   - any-glob-to-any-file: '*'
 
 documentation:
 - changed-files:
-  - any-glob-to-any-file: 
+  - any-glob-to-any-file:
     - docs/**
     - examples/**
 
 dependencies:
 - changed-files:
-  - any-glob-to-any-file: 
+  - any-glob-to-any-file:
     - go.mod
