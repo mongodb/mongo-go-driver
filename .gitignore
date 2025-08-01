@@ -38,6 +38,10 @@ internal/cmd/compilecheck/compilecheck.so
 api-report.md
 api-report.txt
 
+# Ignore perf report files
+perf-report.md
+perf-report.txt
+
 # Ignore secrets files
 secrets-expansion.yml
 secrets-export.sh

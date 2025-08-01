@@ -16,6 +16,7 @@ import (
 	"log"
 	"math"
 	"os"
+	"sort"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -166,7 +167,19 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error getting energy statistics: %v", err)
 	}
-	log.Println(generatePRComment(allEnergyStats, version))
+
+	// Log energy stats output
+	prComment := generatePRComment(allEnergyStats, version)
+	log.Println("🧪 Performance Results")
+	log.Println(prComment)
+
+	// Save for PR comment if it is a PR run
+	commitSHA := os.Getenv("HEAD_SHA")
+	if commitSHA != "" {
+		fmt.Printf("Version ID: %s\n", version)
+		fmt.Printf("Commit SHA: %s\n", commitSHA) // Use fmt to print to stdout
+		fmt.Println(prComment)
+	}
 }
 
 func findRawData(ctx context.Context, project string, version string, coll *mongo.Collection) ([]RawData, error) {
@@ -305,27 +318,35 @@ func getEnergyStatsForAllBenchMarks(ctx context.Context, patchRawData []RawData,
 
 func generatePRComment(energyStats []*EnergyStats, version string) string {
 	var comment strings.Builder
-	comment.WriteString("# 👋GoDriver Performance\n")
-	fmt.Fprintf(&comment, "The following benchmark tests for version %s had statistically significant changes (i.e., |z-score| > 1.96):\n", version)
+	fmt.Fprintf(&comment, "The following benchmark tests for version %s had statistically significant changes (i.e., |z-score| > 1.96):\n\n", version)
 
 	w := tabwriter.NewWriter(&comment, 0, 0, 1, ' ', 0)
-	fmt.Fprintln(w, "| Benchmark\t| Measurement\t| H-Score\t| Z-Score\t| % Change\t| Stable Reg\t| Patch Value\t|")
-	fmt.Fprintln(w, "| ---------\t| -----------\t| -------\t| -------\t| --------\t| ----------\t| -----------\t|")
+	fmt.Fprintln(w, "| Benchmark\t| Measurement\t| % Change\t| Patch Value\t| Stable Region\t| H-Score\t| Z-Score\t| ")
+	fmt.Fprintln(w, "| ---------\t| -----------\t| --------\t| -----------\t| -------------\t| -------\t| -------\t|")
 
-	var testCount int64
+	var significantEnergyStats []EnergyStats
 	for _, es := range energyStats {
-		if math.Abs(es.ZScore) > 1.96 {
-			testCount += 1
-			fmt.Fprintf(w, "| %s\t| %s\t| %.4f\t| %.4f\t| %.4f\t| Avg: %.4f, Med: %.4f, Stdev: %.4f\t| %.4f\t|\n", es.Benchmark, es.Measurement, es.HScore, es.ZScore, es.PercentChange, es.StableRegion.Mean, es.StableRegion.Median, es.StableRegion.Std, es.MeasurementVal)
+		// The "iterations" measurement is the number of iterations that the Go
+		// benchmark suite had to run to converge on a benchmark measurement. It
+		// is not comparable between benchmark runs, so is not a useful
+		// measurement to print here. Omit it.
+		if es.Measurement != "iterations" && math.Abs(es.ZScore) > 1.96 {
+			significantEnergyStats = append(significantEnergyStats, *es)
+		}
+	}
+
+	if len(significantEnergyStats) == 0 {
+		comment.Reset()
+		fmt.Fprintf(&comment, "There were no significant changes to the performance to report for version %s.\n", version)
+	} else {
+		sort.Slice(significantEnergyStats, func(i, j int) bool {
+			return math.Abs(significantEnergyStats[i].PercentChange) > math.Abs(significantEnergyStats[j].PercentChange)
+		})
+		for _, es := range significantEnergyStats {
+			fmt.Fprintf(w, "| %s\t| %s\t| %.4f\t| %.4f\t| Avg: %.4f, Med: %.4f, Stdev: %.4f\t| %.4f\t| %.4f\t|\n", es.Benchmark, es.Measurement, es.PercentChange, es.MeasurementVal, es.StableRegion.Mean, es.StableRegion.Median, es.StableRegion.Std, es.HScore, es.ZScore)
 		}
 	}
 	w.Flush()
-
-	if testCount == 0 {
-		comment.Reset()
-		comment.WriteString("# 👋GoDriver Performance\n")
-		comment.WriteString("There were no significant changes to the performance to report.")
-	}
 
 	comment.WriteString("\n*For a comprehensive view of all microbenchmark results for this PR's commit, please check out the Evergreen perf task for this patch.*")
 	return comment.String()
