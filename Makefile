@@ -70,22 +70,18 @@ doc:
 fmt:
 	go fmt ./...
 
-.PHONY: install-golangci-lint
-install-golangci-lint:
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.60.1
-
 # Lint with various GOOS and GOARCH targets to catch static analysis failures that may only affect
 # specific operating systems or architectures. For example, staticcheck will only check for 64-bit
 # alignment of atomically accessed variables on 32-bit architectures (see
 # https://staticcheck.io/docs/checks#SA1027)
 .PHONY: lint
-lint: install-golangci-lint
-	GOOS=linux GOARCH=386 golangci-lint run --config .golangci.yml ./...
-	GOOS=linux GOARCH=arm golangci-lint run --config .golangci.yml ./...
-	GOOS=linux GOARCH=arm64 golangci-lint run --config .golangci.yml ./...
-	GOOS=linux GOARCH=amd64 golangci-lint run --config .golangci.yml ./...
-	GOOS=linux GOARCH=ppc64le golangci-lint run --config .golangci.yml ./...
-	GOOS=linux GOARCH=s390x golangci-lint run --config .golangci.yml ./...
+lint:
+	GOOS=linux GOARCH=386 etc/golangci-lint.sh
+	GOOS=linux GOARCH=arm etc/golangci-lint.sh
+	GOOS=linux GOARCH=arm64 etc/golangci-lint.sh
+	GOOS=linux GOARCH=amd64 etc/golangci-lint.sh
+	GOOS=linux GOARCH=ppc64le etc/golangci-lint.sh
+	GOOS=linux GOARCH=s390x etc/golangci-lint.sh
 
 .PHONY: update-notices
 update-notices:
