@@ -218,138 +218,137 @@ func idHex(id [12]byte) string {
 // String implements the fmt.String interface. This method will return values in extended JSON
 // format. If the value is not valid, this returns an empty string
 func (v Value) String() string {
-	return v.StringN(math.MaxInt)
+	str, _ := v.StringN(-1)
+	return str
 }
 
-// StringN implements the fmt.String interface. This method will return values in extended JSON
-// format that will stringify a value upto N bytes. If the value is not valid, this returns an empty string
-func (v Value) StringN(n int) string {
-	if n <= 0 {
-		return ""
-	}
-
+// StringN will return values in extended JSON format that will stringify a value upto N bytes.
+// If N is non-negative, it will truncate the string to N bytes. Otherwise, it will return the full
+// string representation. The second return value indicates whether the string was truncated or not.
+// If the value is not valid, this returns an empty string
+func (v Value) StringN(n int) (string, bool) {
+	var str string
 	switch v.Type {
 	case TypeString:
-		str, ok := v.StringValueOK()
+		s, ok := v.StringValueOK()
 		if !ok {
-			return ""
+			return "", false
 		}
-		str = escapeString(str)
-		if len(str) > n {
-			truncatedStr := bsoncoreutil.Truncate(str, n)
-			return truncatedStr
-		}
-		return str
+		str = escapeString(s)
 	case TypeEmbeddedDocument:
 		doc, ok := v.DocumentOK()
 		if !ok {
-			return ""
+			return "", false
 		}
 		return doc.StringN(n)
 	case TypeArray:
 		arr, ok := v.ArrayOK()
 		if !ok {
-			return ""
+			return "", false
 		}
 		return arr.StringN(n)
 	case TypeDouble:
 		f64, ok := v.DoubleOK()
 		if !ok {
-			return ""
+			return "", false
 		}
-		return bsoncoreutil.Truncate(fmt.Sprintf(`{"$numberDouble":"%s"}`, formatDouble(f64)), n)
+		str = fmt.Sprintf(`{"$numberDouble":"%s"}`, formatDouble(f64))
 	case TypeBinary:
 		subtype, data, ok := v.BinaryOK()
 		if !ok {
-			return ""
+			return "", false
 		}
-		return bsoncoreutil.Truncate(fmt.Sprintf(`{"$binary":{"base64":"%s","subType":"%02x"}}`, base64.StdEncoding.EncodeToString(data), subtype), n)
+		str = fmt.Sprintf(`{"$binary":{"base64":"%s","subType":"%02x"}}`, base64.StdEncoding.EncodeToString(data), subtype)
 	case TypeUndefined:
-		return bsoncoreutil.Truncate(`{"$undefined":true}`, n)
+		str = `{"$undefined":true}`
 	case TypeObjectID:
 		oid, ok := v.ObjectIDOK()
 		if !ok {
-			return ""
+			return "", false
 		}
-		return bsoncoreutil.Truncate(fmt.Sprintf(`{"$oid":"%s"}`, idHex(oid)), n)
+		str = fmt.Sprintf(`{"$oid":"%s"}`, idHex(oid))
 	case TypeBoolean:
 		b, ok := v.BooleanOK()
 		if !ok {
-			return ""
+			return "", false
 		}
-		return bsoncoreutil.Truncate(strconv.FormatBool(b), n)
+		str = strconv.FormatBool(b)
 	case TypeDateTime:
 		dt, ok := v.DateTimeOK()
 		if !ok {
-			return ""
+			return "", false
 		}
-		return bsoncoreutil.Truncate(fmt.Sprintf(`{"$date":{"$numberLong":"%d"}}`, dt), n)
+		str = fmt.Sprintf(`{"$date":{"$numberLong":"%d"}}`, dt)
 	case TypeNull:
-		return bsoncoreutil.Truncate("null", n)
+		str = "null"
 	case TypeRegex:
 		pattern, options, ok := v.RegexOK()
 		if !ok {
-			return ""
+			return "", false
 		}
-		return bsoncoreutil.Truncate(fmt.Sprintf(
+		str = fmt.Sprintf(
 			`{"$regularExpression":{"pattern":%s,"options":"%s"}}`,
 			escapeString(pattern), sortStringAlphebeticAscending(options),
-		), n)
+		)
 	case TypeDBPointer:
 		ns, pointer, ok := v.DBPointerOK()
 		if !ok {
-			return ""
+			return "", false
 		}
-		return bsoncoreutil.Truncate(fmt.Sprintf(`{"$dbPointer":{"$ref":%s,"$id":{"$oid":"%s"}}}`, escapeString(ns), idHex(pointer)), n)
+		str = fmt.Sprintf(`{"$dbPointer":{"$ref":%s,"$id":{"$oid":"%s"}}}`, escapeString(ns), idHex(pointer))
 	case TypeJavaScript:
 		js, ok := v.JavaScriptOK()
 		if !ok {
-			return ""
+			return "", false
 		}
-		return bsoncoreutil.Truncate(fmt.Sprintf(`{"$code":%s}`, escapeString(js)), n)
+		str = fmt.Sprintf(`{"$code":%s}`, escapeString(js))
 	case TypeSymbol:
 		symbol, ok := v.SymbolOK()
 		if !ok {
-			return ""
+			return "", false
 		}
-		return bsoncoreutil.Truncate(fmt.Sprintf(`{"$symbol":%s}`, escapeString(symbol)), n)
+		str = fmt.Sprintf(`{"$symbol":%s}`, escapeString(symbol))
 	case TypeCodeWithScope:
 		code, scope, ok := v.CodeWithScopeOK()
 		if !ok {
-			return ""
+			return "", false
 		}
-		return bsoncoreutil.Truncate(fmt.Sprintf(`{"$code":%s,"$scope":%s}`, code, scope), n)
+		str = fmt.Sprintf(`{"$code":%s,"$scope":%s}`, code, scope)
 	case TypeInt32:
 		i32, ok := v.Int32OK()
 		if !ok {
-			return ""
+			return "", false
 		}
-		return bsoncoreutil.Truncate(fmt.Sprintf(`{"$numberInt":"%d"}`, i32), n)
+		str = fmt.Sprintf(`{"$numberInt":"%d"}`, i32)
 	case TypeTimestamp:
 		t, i, ok := v.TimestampOK()
 		if !ok {
-			return ""
+			return "", false
 		}
-		return bsoncoreutil.Truncate(fmt.Sprintf(`{"$timestamp":{"t":%v,"i":%v}}`, t, i), n)
+		str = fmt.Sprintf(`{"$timestamp":{"t":%v,"i":%v}}`, t, i)
 	case TypeInt64:
 		i64, ok := v.Int64OK()
 		if !ok {
-			return ""
+			return "", false
 		}
-		return bsoncoreutil.Truncate(fmt.Sprintf(`{"$numberLong":"%d"}`, i64), n)
+		str = fmt.Sprintf(`{"$numberLong":"%d"}`, i64)
 	case TypeDecimal128:
 		h, l, ok := v.Decimal128OK()
 		if !ok {
-			return ""
+			return "", false
 		}
-		return bsoncoreutil.Truncate(fmt.Sprintf(`{"$numberDecimal":"%s"}`, decimal128.String(h, l)), n)
+		str = fmt.Sprintf(`{"$numberDecimal":"%s"}`, decimal128.String(h, l))
 	case TypeMinKey:
-		return bsoncoreutil.Truncate(`{"$minKey":1}`, n)
+		str = `{"$minKey":1}`
 	case TypeMaxKey:
-		return bsoncoreutil.Truncate(`{"$maxKey":1}`, n)
+		str = `{"$maxKey":1}`
 	default:
-		return ""
+		str = ""
 	}
+	if n >= 0 && len(str) > n {
+		return bsoncoreutil.Truncate(str, n), true
+	}
+	return str, false
 }
 
 // DebugString outputs a human readable version of Document. It will attempt to stringify the

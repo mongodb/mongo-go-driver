@@ -12,7 +12,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -413,127 +412,103 @@ func TestDocument(t *testing.T) {
 	})
 }
 
-func TestDocument_StringN(t *testing.T) {
-	var buf strings.Builder
-	for i := 0; i < 16000000; i++ {
-		buf.WriteString("abcdefgh")
-	}
-	str1k := buf.String()
-	str128 := str1k[:128]
-
-	testCases := []struct {
-		description string
-		n           int
-		doc         Document
-		want        string
-	}{
-		// n = 0 cases
-		{"n=0, document with 1 field", 0, BuildDocument(nil,
-			AppendStringElement(nil, "key", str128),
-		), ""},
-
-		{"n=0, empty document", 0, Document{}, ""},
-
-		{"n=0, document with nested documents", 0, BuildDocument(nil,
-			AppendDocumentElement(nil, "key", BuildDocument(nil,
-				AppendStringElement(nil, "nestedKey", str128),
-			)),
-		), ""},
-
-		{"n=0, document with mixed types", 0, BuildDocument(nil,
-			AppendStringElement(nil, "key", str128),
+var documentStringTestCases = []struct {
+	description string
+	doc         Document
+	want        string
+}{
+	{
+		description: "empty document",
+		doc:         BuildDocument(nil),
+		want:        `{}`,
+	},
+	{
+		description: "document with 1 field",
+		doc: BuildDocument(nil,
 			AppendInt32Element(nil, "number", 123),
-		), ""},
-
-		{"n=0, deeply nested document", 0, BuildDocument(nil,
-			AppendDocumentElement(nil, "a", BuildDocument(nil,
-				AppendDocumentElement(nil, "b", BuildDocument(nil,
-					AppendStringElement(nil, "c", str128),
-				)),
-			)),
-		), ""},
-
-		{"n=0, complex value", 0, BuildDocument(nil,
+		),
+		want: `{"number": {"$numberInt":"123"}}`,
+	},
+	{
+		description: "nested documents",
+		doc: BuildDocument(nil,
 			AppendDocumentElement(nil, "key", BuildDocument(nil,
-				AppendStringElement(nil, "nestedKey", str128),
+				AppendStringElement(nil, "nestedKey", "abc"),
 			)),
-		), ""},
-
-		// n < 0 cases
-		{"n<0, document with 1 field", -1, BuildDocument(nil,
-			AppendStringElement(nil, "key", str128),
-		), ""},
-
-		{"n<0, empty document", -1, Document{}, ""},
-
-		{"n<0, document with nested documents", -1, BuildDocument(nil,
-			AppendDocumentElement(nil, "key", BuildDocument(nil,
-				AppendStringElement(nil, "nestedKey", str128),
-			)),
-		), ""},
-
-		{"n<0, document with mixed types", -1, BuildDocument(nil,
-			AppendStringElement(nil, "key", str128),
+		),
+		want: `{"key": {"nestedKey": "abc"}}`,
+	},
+	{
+		description: "document with mixed types",
+		doc: BuildDocument(nil,
+			AppendStringElement(nil, "key", "abc"),
 			AppendInt32Element(nil, "number", 123),
-		), ""},
+			AppendBooleanElement(nil, "flag", true),
+		),
+		want: `{"key": "abc","number": {"$numberInt":"123"},"flag": true}`,
+	},
+}
 
-		{"n<0, deeply nested document", -1, BuildDocument(nil,
-			AppendDocumentElement(nil, "a", BuildDocument(nil,
-				AppendDocumentElement(nil, "b", BuildDocument(nil,
-					AppendStringElement(nil, "c", str128),
-				)),
-			)),
-		), ""},
-
-		{"n<0, complex value", -1, BuildDocument(nil,
-			AppendDocumentElement(nil, "key", BuildDocument(nil,
-				AppendStringElement(nil, "nestedKey", str128),
-			)),
-		), ""},
-
-		// n > 0 cases
-		{"n>0, document LT n", 3, BuildDocument(nil,
-			AppendStringElement(nil, "key", "value"),
-		), `{"k`},
-
-		{"n>0, document GT n", 25, BuildDocument(nil,
-			AppendStringElement(nil, "key", "value"),
-		), `{"key": "value"}`},
-
-		{"n>0, document EQ n", 16, BuildDocument(nil,
-			AppendStringElement(nil, "key", "value"),
-		), `{"key": "value"}`},
-
-		{"n>0, document with nested documents", 15, BuildDocument(nil,
-			AppendDocumentElement(nil, "key", BuildDocument(nil,
-				AppendStringElement(nil, "nestedKey", str128),
-			)),
-		), `{"key": {"neste`},
-
-		{"n>0, document with mixed types", 11, BuildDocument(nil,
-			AppendStringElement(nil, "key", str128),
-			AppendInt32Element(nil, "number", 123),
-		), `{"key": "ab`},
-
-		{"n>0, deeply nested document", 17, BuildDocument(nil,
-			AppendDocumentElement(nil, "a", BuildDocument(nil,
-				AppendDocumentElement(nil, "b", BuildDocument(nil,
-					AppendStringElement(nil, "c", str128),
-				)),
-			)),
-		), `{"a": {"b": {"c":`},
-
-		{"n>0, empty document", 10, Document{}, ""},
-	}
-
-	for _, tc := range testCases {
+func TestDocument_String(t *testing.T) {
+	for _, tc := range documentStringTestCases {
 		t.Run(tc.description, func(t *testing.T) {
-			bs := tc.doc
-			got := bs.StringN(tc.n)
-			assert.Equal(t, tc.want, got)
-			if tc.n >= 0 {
-				assert.LessOrEqual(t, len(got), tc.n)
-			}
+			got := tc.doc.String()
+			assert.Equal(t, tc.want, got, "expected string %s, got %s", tc.want, got)
+		})
+	}
+}
+
+func TestDocument_StringN(t *testing.T) {
+	for _, tc := range documentStringTestCases {
+		for n := -1; n <= len(tc.want)+1; n++ {
+			t.Run(fmt.Sprintf("%s n==%d", tc.description, n), func(t *testing.T) {
+				got, truncated := tc.doc.StringN(n)
+				l := n
+				toBeTruncated := true
+				if l >= len(tc.want) || l < 0 {
+					l = len(tc.want)
+					toBeTruncated = false
+				}
+				want := tc.want[:l]
+				assert.Equal(t, want, got, "expected truncated string %s, got %s", want, got)
+				assert.Equal(t, toBeTruncated, truncated, "expected truncated to be %t, got %t", toBeTruncated, truncated)
+			})
+		}
+	}
+}
+
+func TestDocument_StringN_Multibyte(t *testing.T) {
+	multiByteString := Document(BuildDocument(nil,
+		AppendStringElement(nil, "𨉟呐㗂越", "abc"),
+	))
+	for i, tc := range []struct {
+		n    int
+		want string
+	}{
+		{-1, `{"𨉟呐㗂越": "abc"}`},
+		{0, ``},
+		{1, `{`},
+		{2, `{"`},
+		{3, `{"`},
+		{4, `{"`},
+		{5, `{"`},
+		{6, `{"`},
+		{7, `{"𨉟`},
+		{8, `{"𨉟`},
+		{9, `{"𨉟`},
+		{10, `{"𨉟呐`},
+		{14, `{"𨉟呐㗂`},
+		{15, `{"𨉟呐㗂越`},
+		{16, `{"𨉟呐㗂越"`},
+		{17, `{"𨉟呐㗂越":`},
+		{18, `{"𨉟呐㗂越": `},
+		{19, `{"𨉟呐㗂越": "`},
+		{20, `{"𨉟呐㗂越": "a`},
+	} {
+		t.Run(fmt.Sprintf("case %d", i), func(t *testing.T) {
+			got, truncated := multiByteString.StringN(tc.n)
+			assert.Equal(t, tc.want, got, "expected truncated string %s, got %s", tc.want, got)
+			assert.Equal(t, tc.n != -1, truncated, "expected truncated to be %t, got %t", tc.n != -1, truncated)
 		})
 	}
 }

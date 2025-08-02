@@ -10,11 +10,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math"
 	"strconv"
 	"strings"
-
-	"go.mongodb.org/mongo-driver/v2/internal/bsoncoreutil"
 )
 
 // ValidationError is an error type returned when attempting to validate a document or array.
@@ -264,58 +261,79 @@ func (d Document) DebugString() string {
 // String outputs an ExtendedJSON version of Document. If the document is not valid, this method
 // returns an empty string.
 func (d Document) String() string {
-	return d.StringN(math.MaxInt)
+	str, _ := d.StringN(-1)
+	return str
 }
 
-// StringN stringifies a document upto N bytes
-func (d Document) StringN(n int) string {
-	if len(d) < 5 || n <= 0 {
-		return ""
+// StringN stringifies a document. If N is non-negative, it will truncate the string to N bytes.
+// Otherwise, it will return the full string representation. The second return value indicates
+// whether the string was truncated or not.
+func (d Document) StringN(n int) (string, bool) {
+	length, rem, ok := ReadLength(d)
+	if !ok || length < 5 {
+		return "", false
+	}
+	length -= 4 // length bytes
+	length--    // final null byte
+
+	if n == 0 {
+		return "", true
 	}
 
 	var buf strings.Builder
-
 	buf.WriteByte('{')
 
-	length, rem, _ := ReadLength(d)
-	length -= 4
-
+	var truncated bool
 	var elem Element
-	var ok bool
-
+	var str string
 	first := true
-	truncated := false
-
-	if n > 0 {
-		for length > 1 {
-			if !first {
-				buf.WriteByte(',')
-			}
-			elem, rem, ok = ReadElement(rem)
-			length -= int32(len(elem))
-			if !ok {
-				return ""
-			}
-
-			str := elem.StringN(n)
-			if buf.Len()+len(str) > n {
-				truncatedStr := bsoncoreutil.Truncate(str, n-buf.Len())
-				buf.WriteString(truncatedStr)
-
+	for length > 0 && !truncated {
+		needStrLen := -1
+		// Set needStrLen if n is positive, meaning we want to limit the string length.
+		if n > 0 {
+			// Stop stringifying if we reach the limit, that also ensures needStrLen is
+			// greater than 0 if we need to limit the length.
+			if buf.Len() >= n {
 				truncated = true
 				break
 			}
-
-			buf.WriteString(str)
-			first = false
+			needStrLen = n - buf.Len()
 		}
+
+		// Append a comma if this is not the first element.
+		if !first {
+			buf.WriteByte(',')
+			// If we are truncating, we need to account for the comma in the length.
+			if needStrLen > 0 {
+				needStrLen--
+				if needStrLen == 0 {
+					truncated = true
+					break
+				}
+			}
+		}
+
+		elem, rem, ok = ReadElement(rem)
+		length -= int32(len(elem))
+		// Exit on malformed element.
+		if !ok || length < 0 {
+			return "", false
+		}
+
+		// Delegate to StringN() on the element.
+		str, truncated = elem.StringN(needStrLen)
+		buf.WriteString(str)
+
+		first = false
 	}
 
-	if !truncated {
+	if n <= 0 || (buf.Len() < n && !truncated) {
 		buf.WriteByte('}')
+	} else {
+		truncated = true
 	}
 
-	return buf.String()
+	return buf.String(), truncated
 }
 
 // Elements returns this document as a slice of elements. The returned slice will contain valid
