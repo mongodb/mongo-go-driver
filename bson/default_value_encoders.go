@@ -18,7 +18,7 @@ import (
 )
 
 var bvwPool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		return new(valueWriter)
 	},
 }
@@ -26,7 +26,7 @@ var bvwPool = sync.Pool{
 var errInvalidValue = errors.New("cannot encode invalid element")
 
 var sliceWriterPool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		sw := make(sliceWriter, 0)
 		return &sw
 	},

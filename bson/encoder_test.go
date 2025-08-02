@@ -121,7 +121,7 @@ type testMarshaler struct {
 
 func (tm testMarshaler) MarshalBSON() ([]byte, error) { return tm.buf, tm.err }
 
-func docToBytes(d interface{}) []byte {
+func docToBytes(d any) []byte {
 	b, err := Marshal(d)
 	if err != nil {
 		panic(err)
@@ -152,7 +152,7 @@ func TestEncoderConfiguration(t *testing.T) {
 	testCases := []struct {
 		description string
 		configure   func(*Encoder)
-		input       interface{}
+		input       any
 		want        []byte
 		wantErr     error
 	}{

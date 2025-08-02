@@ -70,8 +70,8 @@ func ExampleDecoder_DefaultDocumentM() {
 	decoder := bson.NewDecoder(bson.NewDocumentReader(bytes.NewReader(data)))
 
 	type City struct {
-		Name       string      `bson:"name"`
-		Properties interface{} `bson:"properties"`
+		Name       string `bson:"name"`
+		Properties any    `bson:"properties"`
 	}
 
 	// Configure the Decoder to default to decoding BSON documents as the M

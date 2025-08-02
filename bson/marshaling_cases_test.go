@@ -9,7 +9,7 @@ package bson
 type marshalingTestCase struct {
 	name string
 	reg  *Registry
-	val  interface{}
+	val  any
 	want []byte
 }
 

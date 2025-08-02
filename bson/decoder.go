@@ -20,7 +20,7 @@ var ErrDecodeToNil = errors.New("cannot Decode to nil value")
 // methods and is not consumable from outside of this package. The Decoders retrieved from this pool
 // must have both Reset and SetRegistry called on them.
 var decPool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		return new(Decoder)
 	},
 }
@@ -44,7 +44,7 @@ func NewDecoder(vr ValueReader) *Decoder {
 // value pointed to by val.
 //
 // See [Unmarshal] for details about BSON unmarshaling behavior.
-func (d *Decoder) Decode(val interface{}) error {
+func (d *Decoder) Decode(val any) error {
 	if unmarshaler, ok := val.(Unmarshaler); ok {
 		// TODO(skriptble): Reuse a []byte here and use the AppendDocumentBytes method.
 		buf, err := copyDocumentToBytes(d.vr)
@@ -88,7 +88,7 @@ func (d *Decoder) SetRegistry(r *Registry) {
 }
 
 // DefaultDocumentM causes the Decoder to always unmarshal documents into the bson.M type. This
-// behavior is restricted to data typed as "interface{}" or "map[string]interface{}".
+// behavior is restricted to data typed as "any" or "map[string]any".
 func (d *Decoder) DefaultDocumentM() {
 	d.dc.defaultDocumentType = reflect.TypeOf(M{})
 }

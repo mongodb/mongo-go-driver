@@ -186,7 +186,7 @@ func (i invoked) String() string {
 type valueReaderWriter struct {
 	T        *testing.T
 	invoked  invoked
-	Return   interface{} // Can be a primitive or a bsoncore.Value
+	Return   any // Can be a primitive or a bsoncore.Value
 	BSONType Type
 	Err      error
 	ErrAfter invoked // error after this method is called

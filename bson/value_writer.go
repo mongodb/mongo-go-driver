@@ -21,7 +21,7 @@ import (
 var _ ValueWriter = &valueWriter{}
 
 var vwPool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		return new(valueWriter)
 	},
 }
@@ -34,7 +34,7 @@ func putValueWriter(vw *valueWriter) {
 }
 
 var documentWriterPool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		return newDocumentWriter(nil)
 	},
 }
