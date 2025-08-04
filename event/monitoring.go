@@ -75,17 +75,20 @@ const (
 
 // strings for pool command monitoring types
 const (
-	ConnectionPoolCreated     = "ConnectionPoolCreated"
-	ConnectionPoolReady       = "ConnectionPoolReady"
-	ConnectionPoolCleared     = "ConnectionPoolCleared"
-	ConnectionPoolClosed      = "ConnectionPoolClosed"
-	ConnectionCreated         = "ConnectionCreated"
-	ConnectionReady           = "ConnectionReady"
-	ConnectionClosed          = "ConnectionClosed"
-	ConnectionCheckOutStarted = "ConnectionCheckOutStarted"
-	ConnectionCheckOutFailed  = "ConnectionCheckOutFailed"
-	ConnectionCheckedOut      = "ConnectionCheckedOut"
-	ConnectionCheckedIn       = "ConnectionCheckedIn"
+	ConnectionPoolCreated              = "ConnectionPoolCreated"
+	ConnectionPoolReady                = "ConnectionPoolReady"
+	ConnectionPoolCleared              = "ConnectionPoolCleared"
+	ConnectionPoolClosed               = "ConnectionPoolClosed"
+	ConnectionCreated                  = "ConnectionCreated"
+	ConnectionReady                    = "ConnectionReady"
+	ConnectionClosed                   = "ConnectionClosed"
+	ConnectionCheckOutStarted          = "ConnectionCheckOutStarted"
+	ConnectionCheckOutFailed           = "ConnectionCheckOutFailed"
+	ConnectionCheckedOut               = "ConnectionCheckedOut"
+	ConnectionCheckedIn                = "ConnectionCheckedIn"
+	ConnectionPendingResponseStarted   = "ConnectionPendingResponseStarted"
+	ConnectionPendingResponseSucceeded = "ConnectionPendingResponseSucceeded"
+	ConnectionPendingResponseFailed    = "ConnectionPendingResponseFailed"
 )
 
 // MonitorPoolOptions contains pool options as formatted in pool events
@@ -108,6 +111,7 @@ type PoolEvent struct {
 	ServiceID    *bson.ObjectID `json:"serviceId"`
 	Interruption bool           `json:"interruptInUseConnections"`
 	Error        error          `json:"error"`
+	RequestID    int32          `json:"requestId"`
 }
 
 // PoolMonitor is a function that allows the user to gain access to events occurring in the pool
