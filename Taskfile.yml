@@ -11,7 +11,7 @@ tasks:
 
   ### Utility tasks. ###
   default: 
-    deps: [build, check-license, check-fmt, check-modules, lint, test-short]
+    deps: [build, check-license, check-fmt, check-modules, lint, test-short, generate-sbom]
 
   add-license: bash etc/check_license.sh -a
 
@@ -86,6 +86,17 @@ tasks:
       - GOOS=linux GOARCH=s390x etc/golangci-lint.sh
 
   govulncheck: bash etc/govulncheck.sh
+
+  generate-sbom:
+    desc: Generate a CycloneDX SBOM
+    summary: |
+      Generate a CycloneDX SBOM with the cyclonedx-gomod 'mod' subcommand
+      The SBOM includes the aggregate of modules required by packages in the mongo-go-driver library, excluding examples, tests and test packages.
+      Task will run only when go.mod is newer than sbom.cdx.json.
+    method: timestamp
+    sources: [go.mod]
+    generates: [sbom.json]
+    cmd: bash etc/generate-sbom.sh
 
   update-notices: bash etc/generate_notices.pl > THIRD-PARTY-NOTICES
 
