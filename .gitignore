@@ -37,6 +37,7 @@ internal/cmd/compilecheck/compilecheck.so
 # Ignore api report files
 api-report.md
 api-report.txt
+bin
 
 # Ignore perf report files
 perf-report.md
