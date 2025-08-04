@@ -144,6 +144,8 @@ func newCompareCommand() *cobra.Command {
 		// Validate the project flag
 		if project == "" {
 			log.Fatal("must provide project")
+		} else if project != "mongo-go-driver" {
+			log.Fatalf("support for project %q is not configured yet", project)
 		}
 
 		if err := runCompare(cmd, args, project); err != nil {
