@@ -70,7 +70,7 @@ const (
 type TestValueReaderWriter struct {
 	t        *testing.T
 	invoked  VRWInvoked
-	readval  interface{}
+	readval  any
 	bsontype Type
 	err      error
 	errAfter VRWInvoked // error after this method is called

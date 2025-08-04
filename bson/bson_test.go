@@ -305,7 +305,7 @@ func TestD_MarshalJSON(t *testing.T) {
 	testcases := []struct {
 		name     string
 		test     D
-		expected interface{}
+		expected any
 	}{
 		{
 			"nil",
@@ -329,21 +329,21 @@ func TestD_MarshalJSON(t *testing.T) {
 				{"g", D{{"foo", "bar"}}},
 			},
 			struct {
-				A int                    `json:"a"`
-				B bool                   `json:"b"`
-				C string                 `json:"c"`
-				D interface{}            `json:"d"`
-				E float32                `json:"e"`
-				F []interface{}          `json:"f"`
-				G map[string]interface{} `json:"g"`
+				A int            `json:"a"`
+				B bool           `json:"b"`
+				C string         `json:"c"`
+				D any            `json:"d"`
+				E float32        `json:"e"`
+				F []any          `json:"f"`
+				G map[string]any `json:"g"`
 			}{
 				A: 42,
 				B: true,
 				C: "answer",
 				D: nil,
 				E: 2.71828,
-				F: []interface{}{42, true, "answer", nil, 2.71828},
-				G: map[string]interface{}{"foo": "bar"},
+				F: []any{42, true, "answer", nil, 2.71828},
+				G: map[string]any{"foo": "bar"},
 			},
 		},
 	}
@@ -400,7 +400,7 @@ func TestD_UnmarshalJSON(t *testing.T) {
 					{"pi", 3.142},
 					{"boolean", true},
 					{"nothing", nil},
-					{"list", []interface{}{"hello world", 3.142, false, nil, D{{"Lorem", "ipsum"}}}},
+					{"list", []any{"hello world", 3.142, false, nil, D{{"Lorem", "ipsum"}}}},
 					{"document", D{{"foo", "bar"}}},
 				},
 			},
@@ -453,7 +453,7 @@ func TestD_UnmarshalJSON(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()
 
-				var a map[string]interface{}
+				var a map[string]any
 				want := json.Unmarshal([]byte(tc.test), &a)
 				var b D
 				got := json.Unmarshal([]byte(tc.test), &b)
