@@ -1029,6 +1029,7 @@ tests:
           - _id: 1
 
   - description: do not add UnknownTransactionCommitResult label to MaxTimeMSExpired inside transactions
+    skipReason: "GODRIVER-2348: maxTimeMS is deprecated"
 
     failPoint:
       configureFailPoint: failCommand
@@ -1109,6 +1110,7 @@ tests:
         data: []
 
   - description: add UnknownTransactionCommitResult label to MaxTimeMSExpired
+    skipReason: "GODRIVER-2348: maxCommitTimeMS is deprecated"
 
     failPoint:
       configureFailPoint: failCommand
@@ -1190,6 +1192,7 @@ tests:
           - _id: 1
 
   - description: add UnknownTransactionCommitResult label to writeConcernError MaxTimeMSExpired
+    skipReason: "GODRIVER-2348: maxCommitTimeMS is deprecated"
 
     failPoint:
       configureFailPoint: failCommand

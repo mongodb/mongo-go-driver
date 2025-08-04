@@ -15,12 +15,12 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/require"
-	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/mongo/description"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/dns"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/mongo/address"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/dns"
 )
 
 type mockResolver struct {
@@ -127,9 +127,9 @@ func compareHosts(t *testing.T, received []description.Server, expected []string
 
 func TestPollingSRVRecordsSpec(t *testing.T) {
 	for _, uri := range []string{
-		"mongodb+srv://test1.test.build.10gen.cc/?heartbeatFrequencyMS=100",
+		"mongodb+srv://test1.test.build.10gen.cc/?heartbeatFrequencyMS=500",
 		// Test with user:pass as a regression test for GODRIVER-2620
-		"mongodb+srv://user:pass@test1.test.build.10gen.cc/?heartbeatFrequencyMS=100",
+		"mongodb+srv://user:pass@test1.test.build.10gen.cc/?heartbeatFrequencyMS=500",
 	} {
 		t.Run(uri, func(t *testing.T) {
 			testPollingSRVRecordsSpec(t, uri)
@@ -169,7 +169,7 @@ func testPollingSRVRecordsSpec(t *testing.T, uri string) {
 
 func TestPollSRVRecords(t *testing.T) {
 	t.Run("Not unknown or sharded topology", func(t *testing.T) {
-		uri := "mongodb+srv://test1.test.build.10gen.cc/?heartbeatFrequencyMS=100"
+		uri := "mongodb+srv://test1.test.build.10gen.cc/?heartbeatFrequencyMS=500"
 		cfg, err := NewConfig(options.Client().ApplyURI(uri), nil)
 		require.NoError(t, err, "error constructing topology config: %v", err)
 
@@ -181,14 +181,10 @@ func TestPollSRVRecords(t *testing.T) {
 		err = topo.Connect()
 		require.NoError(t, err, "Could not Connect to the topology: %v", err)
 		topo.serversLock.Lock()
-		topo.fsm.Kind = description.Single
+		topo.fsm.Kind = description.TopologyKindSingle
 		topo.desc.Store(description.Topology{
-			Kind:                     topo.fsm.Kind,
-			Servers:                  topo.fsm.Servers,
-			SessionTimeoutMinutesPtr: topo.fsm.SessionTimeoutMinutesPtr,
-
-			// TODO(GODRIVER-2885): This field can be removed once
-			// legacy SessionTimeoutMinutes is removed.
+			Kind:                  topo.fsm.Kind,
+			Servers:               topo.fsm.Servers,
 			SessionTimeoutMinutes: topo.fsm.SessionTimeoutMinutes,
 		})
 		topo.serversLock.Unlock()
@@ -211,7 +207,7 @@ func TestPollSRVRecords(t *testing.T) {
 
 	})
 	t.Run("Failed Hostname Verification", func(t *testing.T) {
-		uri := "mongodb+srv://test1.test.build.10gen.cc/?heartbeatFrequencyMS=100"
+		uri := "mongodb+srv://test1.test.build.10gen.cc/?heartbeatFrequencyMS=500"
 		cfg, err := NewConfig(options.Client().ApplyURI(uri), nil)
 		require.NoError(t, err, "error constructing topology config: %v", err)
 
@@ -238,7 +234,7 @@ func TestPollSRVRecords(t *testing.T) {
 
 	})
 	t.Run("Return to polling time", func(t *testing.T) {
-		uri := "mongodb+srv://test1.test.build.10gen.cc/?heartbeatFrequencyMS=100"
+		uri := "mongodb+srv://test1.test.build.10gen.cc/?heartbeatFrequencyMS=500"
 		cfg, err := NewConfig(options.Client().ApplyURI(uri), nil)
 		require.NoError(t, err, "error constructing topology config: %v", err)
 
@@ -280,7 +276,7 @@ func TestPollingSRVRecordsLoadBalanced(t *testing.T) {
 	}
 
 	t.Run("pollingRequired is set to false", func(t *testing.T) {
-		topo := createLBTopology(t, "mongodb+srv://test24.test.build.10gen.cc/?heartbeatFrequencyMS=100")
+		topo := createLBTopology(t, "mongodb+srv://test24.test.build.10gen.cc/?heartbeatFrequencyMS=500")
 		assert.False(t, topo.pollingRequired, "expected SRV polling to not be required, but it is")
 	})
 
@@ -317,7 +313,7 @@ func TestPollSRVRecordsMaxHosts(t *testing.T) {
 	simulateSRVPoll := func(srvMaxHosts int, recordsToAdd []*net.SRV, recordsToRemove []*net.SRV) (*Topology, func(ctx context.Context) error) {
 		t.Helper()
 
-		uri := "mongodb+srv://test1.test.build.10gen.cc/?heartbeatFrequencyMS=100"
+		uri := "mongodb+srv://test1.test.build.10gen.cc/?heartbeatFrequencyMS=500"
 		cfg, err := NewConfig(options.Client().ApplyURI(uri).SetSRVMaxHosts(srvMaxHosts), nil)
 		require.NoError(t, err, "error constructing topology config: %v", err)
 
@@ -389,7 +385,7 @@ func TestPollSRVRecordsServiceName(t *testing.T) {
 	simulateSRVPoll := func(srvServiceName string, recordsToAdd []*net.SRV, recordsToRemove []*net.SRV) (*Topology, func(ctx context.Context) error) {
 		t.Helper()
 
-		uri := "mongodb+srv://test22.test.build.10gen.cc/?heartbeatFrequencyMS=100&srvServiceName=customname"
+		uri := "mongodb+srv://test22.test.build.10gen.cc/?heartbeatFrequencyMS=500&srvServiceName=customname"
 		cfg, err := NewConfig(options.Client().ApplyURI(uri).SetSRVServiceName(srvServiceName), nil)
 		require.NoError(t, err, "error constructing topology config: %v", err)
 

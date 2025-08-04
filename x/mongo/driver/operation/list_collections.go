@@ -11,13 +11,13 @@ import (
 	"errors"
 	"time"
 
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/driverutil"
-	"go.mongodb.org/mongo-driver/mongo/description"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
 // ListCollections performs a listCollections operation.
@@ -55,9 +55,12 @@ func (lc *ListCollections) Result(opts driver.CursorOptions) (*driver.BatchCurso
 	return driver.NewBatchCursor(lc.result, lc.session, lc.clock, opts)
 }
 
-func (lc *ListCollections) processResponse(info driver.ResponseInfo) error {
-	var err error
-	lc.result, err = driver.NewCursorResponse(info)
+func (lc *ListCollections) processResponse(_ context.Context, resp bsoncore.Document, info driver.ResponseInfo) error {
+	curDoc, err := driver.ExtractCursorDocument(resp)
+	if err != nil {
+		return err
+	}
+	lc.result, err = driver.NewCursorResponse(curDoc, info)
 	return err
 }
 

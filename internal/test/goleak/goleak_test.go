@@ -14,9 +14,9 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.uber.org/goleak"
 )
 
@@ -66,7 +66,7 @@ func TestGoroutineLeak(t *testing.T) {
 			if u := os.Getenv("MONGODB_URI"); u != "" {
 				base.ApplyURI(u)
 			}
-			client, err := mongo.Connect(context.Background(), base, tc.opts)
+			client, err := mongo.Connect(base, tc.opts)
 			require.NoError(t, err)
 
 			defer func() {

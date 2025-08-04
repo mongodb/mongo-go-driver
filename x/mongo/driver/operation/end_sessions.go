@@ -10,12 +10,12 @@ import (
 	"context"
 	"errors"
 
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/driverutil"
-	"go.mongodb.org/mongo-driver/mongo/description"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
 // EndSessions performs an endSessions operation.
@@ -39,9 +39,8 @@ func NewEndSessions(sessionIDs bsoncore.Document) *EndSessions {
 	}
 }
 
-func (es *EndSessions) processResponse(driver.ResponseInfo) error {
-	var err error
-	return err
+func (es *EndSessions) processResponse(context.Context, bsoncore.Document, driver.ResponseInfo) error {
+	return nil
 }
 
 // Execute runs this operations and returns an error if the operation did not execute successfully.

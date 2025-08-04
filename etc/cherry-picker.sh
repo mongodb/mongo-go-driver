@@ -2,7 +2,7 @@
 set -e
 
 sha=$1
-target=${2:-master}
+target=${2:-v1}
 dirname=$(mktemp -d)
 user=$(git config github.user)
 

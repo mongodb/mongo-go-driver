@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	"go.mongodb.org/mongo-driver/internal/aws/awserr"
+	"go.mongodb.org/mongo-driver/v2/internal/aws/awserr"
 	"golang.org/x/sync/singleflight"
 )
 

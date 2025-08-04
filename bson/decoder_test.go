@@ -13,17 +13,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/bson/bsonrw"
-	"go.mongodb.org/mongo-driver/bson/bsonrw/bsonrwtest"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/require"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
-func TestBasicDecode(t *testing.T) {
+func TestDecodeValue(t *testing.T) {
 	t.Parallel()
 
 	for _, tc := range unmarshalingTestCases() {
@@ -33,38 +28,238 @@ func TestBasicDecode(t *testing.T) {
 			t.Parallel()
 
 			got := reflect.New(tc.sType).Elem()
-			vr := bsonrw.NewBSONDocumentReader(tc.data)
-			reg := DefaultRegistry
+			vr := NewDocumentReader(bytes.NewReader(tc.data))
+			reg := defaultRegistry
 			decoder, err := reg.LookupDecoder(reflect.TypeOf(got))
 			noerr(t, err)
-			err = decoder.DecodeValue(bsoncodec.DecodeContext{Registry: reg}, vr, got)
+			err = decoder.DecodeValue(DecodeContext{Registry: reg}, vr, got)
 			noerr(t, err)
 			assert.Equal(t, tc.want, got.Addr().Interface(), "Results do not match.")
 		})
 	}
 }
 
-func TestDecoderv2(t *testing.T) {
+func TestDecodingInterfaces(t *testing.T) {
+	t.Parallel()
+
+	type testCase struct {
+		name string
+		stub func() ([]byte, interface{}, func(*testing.T))
+	}
+	testCases := []testCase{
+		{
+			name: "struct with interface containing a concrete value",
+			stub: func() ([]byte, interface{}, func(*testing.T)) {
+				type testStruct struct {
+					Value interface{}
+				}
+				var value string
+
+				data := docToBytes(struct {
+					Value string
+				}{
+					Value: "foo",
+				})
+
+				receiver := testStruct{&value}
+
+				check := func(t *testing.T) {
+					t.Helper()
+					assert.Equal(t, "foo", value)
+				}
+
+				return data, &receiver, check
+			},
+		},
+		{
+			name: "struct with interface containing a struct",
+			stub: func() ([]byte, interface{}, func(*testing.T)) {
+				type demo struct {
+					Data string
+				}
+
+				type testStruct struct {
+					Value interface{}
+				}
+				var value demo
+
+				data := docToBytes(struct {
+					Value demo
+				}{
+					Value: demo{"foo"},
+				})
+
+				receiver := testStruct{&value}
+
+				check := func(t *testing.T) {
+					t.Helper()
+					assert.Equal(t, "foo", value.Data)
+				}
+
+				return data, &receiver, check
+			},
+		},
+		{
+			name: "struct with interface containing a slice",
+			stub: func() ([]byte, interface{}, func(*testing.T)) {
+				type testStruct struct {
+					Values interface{}
+				}
+				var values []string
+
+				data := docToBytes(struct {
+					Values []string
+				}{
+					Values: []string{"foo", "bar"},
+				})
+
+				receiver := testStruct{&values}
+
+				check := func(t *testing.T) {
+					t.Helper()
+					assert.Equal(t, []string{"foo", "bar"}, values)
+				}
+
+				return data, &receiver, check
+			},
+		},
+		{
+			name: "struct with interface containing an array",
+			stub: func() ([]byte, interface{}, func(*testing.T)) {
+				type testStruct struct {
+					Values interface{}
+				}
+				var values [2]string
+
+				data := docToBytes(struct {
+					Values []string
+				}{
+					Values: []string{"foo", "bar"},
+				})
+
+				receiver := testStruct{&values}
+
+				check := func(t *testing.T) {
+					t.Helper()
+					assert.Equal(t, [2]string{"foo", "bar"}, values)
+				}
+
+				return data, &receiver, check
+			},
+		},
+		{
+			name: "struct with interface array containing concrete values",
+			stub: func() ([]byte, interface{}, func(*testing.T)) {
+				type testStruct struct {
+					Values [3]interface{}
+				}
+				var str string
+				var i, j int
+
+				data := docToBytes(struct {
+					Values []interface{}
+				}{
+					Values: []interface{}{"foo", 42, nil},
+				})
+
+				receiver := testStruct{[3]interface{}{&str, &i, &j}}
+
+				check := func(t *testing.T) {
+					t.Helper()
+					assert.Equal(t, "foo", str)
+					assert.Equal(t, 42, i)
+					assert.Equal(t, 0, j)
+					assert.Equal(t, testStruct{[3]interface{}{&str, &i, nil}}, receiver)
+				}
+
+				return data, &receiver, check
+			},
+		},
+		{
+			name: "overwriting prepopulated slice",
+			stub: func() ([]byte, interface{}, func(*testing.T)) {
+				type testStruct struct {
+					Values []interface{}
+				}
+
+				data := docToBytes(struct {
+					Values []interface{}
+				}{
+					Values: []interface{}{1, 2, 3},
+				})
+
+				receiver := testStruct{[]interface{}{7, 8}}
+
+				check := func(t *testing.T) {
+					t.Helper()
+					assert.Equal(t, testStruct{[]interface{}{1, 2, int32(3)}}, receiver)
+				}
+
+				return data, &receiver, check
+			},
+		},
+	}
+	for _, tc := range testCases {
+		tc := tc
+
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			data, receiver, check := tc.stub()
+			got := reflect.ValueOf(receiver).Elem()
+			vr := NewDocumentReader(bytes.NewReader(data))
+			reg := defaultRegistry
+			decoder, err := reg.LookupDecoder(got.Type())
+			noerr(t, err)
+			err = decoder.DecodeValue(DecodeContext{Registry: reg}, vr, got)
+			noerr(t, err)
+			check(t)
+		})
+	}
+}
+
+func TestDecoder(t *testing.T) {
 	t.Parallel()
 
 	t.Run("Decode", func(t *testing.T) {
 		t.Parallel()
 
-		for _, tc := range unmarshalingTestCases() {
-			tc := tc
+		t.Run("basic", func(t *testing.T) {
+			t.Parallel()
 
-			t.Run(tc.name, func(t *testing.T) {
-				t.Parallel()
+			for _, tc := range unmarshalingTestCases() {
+				tc := tc
 
-				got := reflect.New(tc.sType).Interface()
-				vr := bsonrw.NewBSONDocumentReader(tc.data)
-				dec, err := NewDecoderWithContext(bsoncodec.DecodeContext{Registry: DefaultRegistry}, vr)
-				noerr(t, err)
-				err = dec.Decode(got)
-				noerr(t, err)
-				assert.Equal(t, tc.want, got, "Results do not match.")
-			})
-		}
+				t.Run(tc.name, func(t *testing.T) {
+					t.Parallel()
+
+					got := reflect.New(tc.sType).Interface()
+					vr := NewDocumentReader(bytes.NewReader(tc.data))
+					dec := NewDecoder(vr)
+					err := dec.Decode(got)
+					noerr(t, err)
+					assert.Equal(t, tc.want, got, "Results do not match.")
+				})
+			}
+		})
+		t.Run("stream", func(t *testing.T) {
+			t.Parallel()
+
+			var buf bytes.Buffer
+			vr := NewDocumentReader(&buf)
+			dec := NewDecoder(vr)
+			for _, tc := range unmarshalingTestCases() {
+				tc := tc
+
+				t.Run(tc.name, func(t *testing.T) {
+					buf.Write(tc.data)
+					got := reflect.New(tc.sType).Interface()
+					err := dec.Decode(got)
+					noerr(t, err)
+					assert.Equal(t, tc.want, got, "Results do not match.")
+				})
+			}
+		})
 		t.Run("lookup error", func(t *testing.T) {
 			t.Parallel()
 
@@ -73,9 +268,8 @@ func TestDecoderv2(t *testing.T) {
 			_ = certainlydoesntexistelsewhereihope(func(string, string) string { return "" })
 
 			cdeih := func(string, string) string { return "certainlydoesntexistelsewhereihope" }
-			dec, err := NewDecoder(bsonrw.NewBSONDocumentReader([]byte{}))
-			noerr(t, err)
-			want := bsoncodec.ErrNoDecoder{Type: reflect.TypeOf(cdeih)}
+			dec := NewDecoder(NewDocumentReader(bytes.NewReader([]byte{})))
+			want := errNoDecoder{Type: reflect.TypeOf(cdeih)}
 			got := dec.Decode(&cdeih)
 			assert.Equal(t, want, got, "Received unexpected error.")
 		})
@@ -85,25 +279,25 @@ func TestDecoderv2(t *testing.T) {
 			testCases := []struct {
 				name    string
 				err     error
-				vr      bsonrw.ValueReader
+				vr      ValueReader
 				invoked bool
 			}{
 				{
 					"error",
 					errors.New("Unmarshaler error"),
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.EmbeddedDocument, Err: bsonrw.ErrEOD, ErrAfter: bsonrwtest.ReadElement},
+					&valueReaderWriter{BSONType: TypeEmbeddedDocument, Err: ErrEOD, ErrAfter: readElement},
 					true,
 				},
 				{
 					"copy error",
 					errors.New("copy error"),
-					&bsonrwtest.ValueReaderWriter{Err: errors.New("copy error"), ErrAfter: bsonrwtest.ReadDocument},
+					&valueReaderWriter{Err: errors.New("copy error"), ErrAfter: readDocument},
 					false,
 				},
 				{
 					"success",
 					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.EmbeddedDocument, Err: bsonrw.ErrEOD, ErrAfter: bsonrwtest.ReadElement},
+					&valueReaderWriter{BSONType: TypeEmbeddedDocument, Err: ErrEOD, ErrAfter: readElement},
 					true,
 				},
 			}
@@ -114,15 +308,14 @@ func TestDecoderv2(t *testing.T) {
 				t.Run(tc.name, func(t *testing.T) {
 					t.Parallel()
 
-					unmarshaler := &testUnmarshaler{err: tc.err}
-					dec, err := NewDecoder(tc.vr)
-					noerr(t, err)
+					unmarshaler := &testUnmarshaler{Err: tc.err}
+					dec := NewDecoder(tc.vr)
 					got := dec.Decode(unmarshaler)
 					want := tc.err
-					if !compareErrors(got, want) {
+					if !assert.CompareErrors(got, want) {
 						t.Errorf("Did not receive expected error. got %v; want %v", got, want)
 					}
-					if unmarshaler.invoked != tc.invoked {
+					if unmarshaler.Invoked != tc.invoked {
 						if tc.invoked {
 							t.Error("Expected to have UnmarshalBSON invoked, but it wasn't.")
 						} else {
@@ -132,17 +325,16 @@ func TestDecoderv2(t *testing.T) {
 				})
 			}
 
-			t.Run("Unmarshaler/success bsonrw.ValueReader", func(t *testing.T) {
+			t.Run("Unmarshaler/success ValueReader", func(t *testing.T) {
 				t.Parallel()
 
 				want := bsoncore.BuildDocument(nil, bsoncore.AppendDoubleElement(nil, "pi", 3.14159))
 				unmarshaler := &testUnmarshaler{}
-				vr := bsonrw.NewBSONDocumentReader(want)
-				dec, err := NewDecoder(vr)
+				vr := NewDocumentReader(bytes.NewReader(want))
+				dec := NewDecoder(vr)
+				err := dec.Decode(unmarshaler)
 				noerr(t, err)
-				err = dec.Decode(unmarshaler)
-				noerr(t, err)
-				got := unmarshaler.data
+				got := unmarshaler.Val
 				if !bytes.Equal(got, want) {
 					t.Errorf("Did not unmarshal properly. got %v; want %v", got, want)
 				}
@@ -152,20 +344,10 @@ func TestDecoderv2(t *testing.T) {
 	t.Run("NewDecoder", func(t *testing.T) {
 		t.Parallel()
 
-		t.Run("error", func(t *testing.T) {
-			t.Parallel()
-
-			_, got := NewDecoder(nil)
-			want := errors.New("cannot create a new Decoder with a nil ValueReader")
-			if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
-				t.Errorf("Was expecting error but got different error. got %v; want %v", got, want)
-			}
-		})
 		t.Run("success", func(t *testing.T) {
 			t.Parallel()
 
-			got, err := NewDecoder(bsonrw.NewBSONDocumentReader([]byte{}))
-			noerr(t, err)
+			got := NewDecoder(NewDocumentReader(bytes.NewReader([]byte{})))
 			if got == nil {
 				t.Errorf("Was expecting a non-nil Decoder, but got <nil>")
 			}
@@ -174,27 +356,10 @@ func TestDecoderv2(t *testing.T) {
 	t.Run("NewDecoderWithContext", func(t *testing.T) {
 		t.Parallel()
 
-		t.Run("errors", func(t *testing.T) {
-			t.Parallel()
-
-			dc := bsoncodec.DecodeContext{Registry: DefaultRegistry}
-			_, got := NewDecoderWithContext(dc, nil)
-			want := errors.New("cannot create a new Decoder with a nil ValueReader")
-			if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
-				t.Errorf("Was expecting error but got different error. got %v; want %v", got, want)
-			}
-		})
 		t.Run("success", func(t *testing.T) {
 			t.Parallel()
 
-			got, err := NewDecoderWithContext(bsoncodec.DecodeContext{}, bsonrw.NewBSONDocumentReader([]byte{}))
-			noerr(t, err)
-			if got == nil {
-				t.Errorf("Was expecting a non-nil Decoder, but got <nil>")
-			}
-			dc := bsoncodec.DecodeContext{Registry: DefaultRegistry}
-			got, err = NewDecoderWithContext(dc, bsonrw.NewBSONDocumentReader([]byte{}))
-			noerr(t, err)
+			got := NewDecoder(NewDocumentReader(bytes.NewReader([]byte{})))
 			if got == nil {
 				t.Errorf("Was expecting a non-nil Decoder, but got <nil>")
 			}
@@ -212,10 +377,9 @@ func TestDecoderv2(t *testing.T) {
 		got.Item = "apple"
 		got.Bonus = 2
 		data := docToBytes(D{{"item", "canvas"}, {"qty", 4}})
-		vr := bsonrw.NewBSONDocumentReader(data)
-		dec, err := NewDecoder(vr)
-		noerr(t, err)
-		err = dec.Decode(&got)
+		vr := NewDocumentReader(bytes.NewReader(data))
+		dec := NewDecoder(vr)
+		err := dec.Decode(&got)
 		noerr(t, err)
 		want := foo{Item: "canvas", Qty: 4, Bonus: 2}
 		assert.Equal(t, want, got, "Results do not match.")
@@ -223,48 +387,27 @@ func TestDecoderv2(t *testing.T) {
 	t.Run("Reset", func(t *testing.T) {
 		t.Parallel()
 
-		vr1, vr2 := bsonrw.NewBSONDocumentReader([]byte{}), bsonrw.NewBSONDocumentReader([]byte{})
-		dc := bsoncodec.DecodeContext{Registry: DefaultRegistry}
-		dec, err := NewDecoderWithContext(dc, vr1)
-		noerr(t, err)
+		vr1, vr2 := NewDocumentReader(bytes.NewReader([]byte{})), NewDocumentReader(bytes.NewReader([]byte{}))
+		dec := NewDecoder(vr1)
 		if dec.vr != vr1 {
 			t.Errorf("Decoder should use the value reader provided. got %v; want %v", dec.vr, vr1)
 		}
-		err = dec.Reset(vr2)
-		noerr(t, err)
+		dec.Reset(vr2)
 		if dec.vr != vr2 {
 			t.Errorf("Decoder should use the value reader provided. got %v; want %v", dec.vr, vr2)
-		}
-	})
-	t.Run("SetContext", func(t *testing.T) {
-		t.Parallel()
-
-		dc1 := bsoncodec.DecodeContext{Registry: DefaultRegistry}
-		dc2 := bsoncodec.DecodeContext{Registry: NewRegistryBuilder().Build()}
-		dec, err := NewDecoderWithContext(dc1, bsonrw.NewBSONDocumentReader([]byte{}))
-		noerr(t, err)
-		if !reflect.DeepEqual(dec.dc, dc1) {
-			t.Errorf("Decoder should use the Registry provided. got %v; want %v", dec.dc, dc1)
-		}
-		err = dec.SetContext(dc2)
-		noerr(t, err)
-		if !reflect.DeepEqual(dec.dc, dc2) {
-			t.Errorf("Decoder should use the Registry provided. got %v; want %v", dec.dc, dc2)
 		}
 	})
 	t.Run("SetRegistry", func(t *testing.T) {
 		t.Parallel()
 
-		r1, r2 := DefaultRegistry, NewRegistryBuilder().Build()
-		dc1 := bsoncodec.DecodeContext{Registry: r1}
-		dc2 := bsoncodec.DecodeContext{Registry: r2}
-		dec, err := NewDecoder(bsonrw.NewBSONDocumentReader([]byte{}))
-		noerr(t, err)
+		r1, r2 := defaultRegistry, NewRegistry()
+		dc1 := DecodeContext{Registry: r1}
+		dc2 := DecodeContext{Registry: r2}
+		dec := NewDecoder(NewDocumentReader(bytes.NewReader([]byte{})))
 		if !reflect.DeepEqual(dec.dc, dc1) {
 			t.Errorf("Decoder should use the Registry provided. got %v; want %v", dec.dc, dc1)
 		}
-		err = dec.SetRegistry(r2)
-		noerr(t, err)
+		dec.SetRegistry(r2)
 		if !reflect.DeepEqual(dec.dc, dc2) {
 			t.Errorf("Decoder should use the Registry provided. got %v; want %v", dec.dc, dc2)
 		}
@@ -273,12 +416,11 @@ func TestDecoderv2(t *testing.T) {
 		t.Parallel()
 
 		data := docToBytes(D{{"item", "canvas"}, {"qty", 4}})
-		vr := bsonrw.NewBSONDocumentReader(data)
-		dec, err := NewDecoder(vr)
-		noerr(t, err)
+		vr := NewDocumentReader(bytes.NewReader(data))
+		dec := NewDecoder(vr)
 
 		var got *D
-		err = dec.Decode(got)
+		err := dec.Decode(got)
 		if !errors.Is(err, ErrDecodeToNil) {
 			t.Fatalf("Decode error mismatch; expected %v, got %v", ErrDecodeToNil, err)
 		}
@@ -286,15 +428,15 @@ func TestDecoderv2(t *testing.T) {
 }
 
 type testUnmarshaler struct {
-	invoked bool
-	err     error
-	data    []byte
+	Invoked bool
+	Val     []byte
+	Err     error
 }
 
 func (tu *testUnmarshaler) UnmarshalBSON(d []byte) error {
-	tu.invoked = true
-	tu.data = d
-	return tu.err
+	tu.Invoked = true
+	tu.Val = d
+	return tu.Err
 }
 
 func TestDecoderConfiguration(t *testing.T) {
@@ -309,6 +451,10 @@ func TestDecoderConfiguration(t *testing.T) {
 		MyUint16 uint16
 		MyUint32 uint32
 		MyUint64 uint64
+	}
+
+	type objectIDTest struct {
+		ID string
 	}
 
 	type jsonStructTest struct {
@@ -376,18 +522,16 @@ func TestDecoderConfiguration(t *testing.T) {
 				dec.BinaryAsSlice()
 			},
 			input: bsoncore.NewDocumentBuilder().
-				AppendBinary("myBinary", bsontype.BinaryGeneric, []byte{}).
+				AppendBinary("myBinary", TypeBinaryGeneric, []byte{}).
 				Build(),
 			decodeInto: func() interface{} { return &D{} },
 			want:       &D{{Key: "myBinary", Value: []byte{}}},
 		},
-		// Test that DefaultDocumentD overrides the default "ancestor" logic and always decodes BSON
-		// documents into bson.D values, independent of the top-level Go value type.
+		// Test that the default decoder always decodes BSON documents into bson.D values,
+		// independent of the top-level Go value type.
 		{
-			description: "DefaultDocumentD nested",
-			configure: func(dec *Decoder) {
-				dec.DefaultDocumentD()
-			},
+			description: "DocumentD nested by default",
+			configure:   func(_ *Decoder) {},
 			input: bsoncore.NewDocumentBuilder().
 				AppendDocument("myDocument", bsoncore.NewDocumentBuilder().
 					AppendString("myString", "test value").
@@ -398,8 +542,8 @@ func TestDecoderConfiguration(t *testing.T) {
 				"myDocument": D{{Key: "myString", Value: "test value"}},
 			},
 		},
-		// Test that DefaultDocumentM overrides the default "ancestor" logic and always decodes BSON
-		// documents into bson.M values, independent of the top-level Go value type.
+		// Test that DefaultDocumentM always decodes BSON documents into bson.M values,
+		// independent of the top-level Go value type.
 		{
 			description: "DefaultDocumentM nested",
 			configure: func(dec *Decoder) {
@@ -414,6 +558,21 @@ func TestDecoderConfiguration(t *testing.T) {
 			want: &D{
 				{Key: "myDocument", Value: M{"myString": "test value"}},
 			},
+		},
+		// Test that ObjectIDAsHexString causes the Decoder to decode object ID to hex.
+		{
+			description: "ObjectIDAsHexString",
+			configure: func(dec *Decoder) {
+				dec.ObjectIDAsHexString()
+			},
+			input: bsoncore.NewDocumentBuilder().
+				AppendObjectID("id", func() ObjectID {
+					id, _ := ObjectIDFromHex("5ef7fdd91c19e3222b41b839")
+					return id
+				}()).
+				Build(),
+			decodeInto: func() interface{} { return &objectIDTest{} },
+			want:       &objectIDTest{ID: "5ef7fdd91c19e3222b41b839"},
 		},
 		// Test that UseJSONStructTags causes the Decoder to fall back to "json" struct tags if
 		// "bson" struct tags are not available.
@@ -481,19 +640,39 @@ func TestDecoderConfiguration(t *testing.T) {
 		t.Run(tc.description, func(t *testing.T) {
 			t.Parallel()
 
-			dec, err := NewDecoder(bsonrw.NewBSONDocumentReader(tc.input))
-			require.NoError(t, err, "NewDecoder error")
+			dec := NewDecoder(NewDocumentReader(bytes.NewReader(tc.input)))
 
 			tc.configure(dec)
 
 			got := tc.decodeInto()
-			err = dec.Decode(got)
+			err := dec.Decode(got)
 			require.NoError(t, err, "Decode error")
 
 			assert.Equal(t, tc.want, got, "expected and actual decode results do not match")
 		})
 	}
 
+	t.Run("Decoding an object ID to string", func(t *testing.T) {
+		t.Parallel()
+
+		type objectIDTest struct {
+			ID string
+		}
+
+		doc := bsoncore.NewDocumentBuilder().
+			AppendObjectID("id", func() ObjectID {
+				id, _ := ObjectIDFromHex("5ef7fdd91c19e3222b41b839")
+				return id
+			}()).
+			Build()
+
+		dec := NewDecoder(NewDocumentReader(bytes.NewReader(doc)))
+
+		var got objectIDTest
+		err := dec.Decode(&got)
+		const want = "error decoding key id: decoding an object ID into a string is not supported by default (set Decoder.ObjectIDAsHexString to enable decoding as a hexadecimal string)"
+		assert.EqualError(t, err, want)
+	})
 	t.Run("DefaultDocumentM top-level", func(t *testing.T) {
 		t.Parallel()
 
@@ -503,13 +682,12 @@ func TestDecoderConfiguration(t *testing.T) {
 				Build()).
 			Build()
 
-		dec, err := NewDecoder(bsonrw.NewBSONDocumentReader(input))
-		require.NoError(t, err, "NewDecoder error")
+		dec := NewDecoder(NewDocumentReader(bytes.NewReader(input)))
 
 		dec.DefaultDocumentM()
 
 		var got interface{}
-		err = dec.Decode(&got)
+		err := dec.Decode(&got)
 		require.NoError(t, err, "Decode error")
 
 		want := M{
@@ -519,7 +697,7 @@ func TestDecoderConfiguration(t *testing.T) {
 		}
 		assert.Equal(t, want, got, "expected and actual decode results do not match")
 	})
-	t.Run("DefaultDocumentD top-level", func(t *testing.T) {
+	t.Run("Default decodes DocumentD for top-level", func(t *testing.T) {
 		t.Parallel()
 
 		input := bsoncore.NewDocumentBuilder().
@@ -528,13 +706,10 @@ func TestDecoderConfiguration(t *testing.T) {
 				Build()).
 			Build()
 
-		dec, err := NewDecoder(bsonrw.NewBSONDocumentReader(input))
-		require.NoError(t, err, "NewDecoder error")
-
-		dec.DefaultDocumentD()
+		dec := NewDecoder(NewDocumentReader(bytes.NewReader(input)))
 
 		var got interface{}
-		err = dec.Decode(&got)
+		err := dec.Decode(&got)
 		require.NoError(t, err, "Decode error")
 
 		want := D{

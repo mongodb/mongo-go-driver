@@ -12,16 +12,128 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"strings"
 	"sync"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 type mockLogSink struct{}
 
 func (mockLogSink) Info(int, string, ...interface{})    {}
 func (mockLogSink) Error(error, string, ...interface{}) {}
+
+func BenchmarkLoggerWithLargeDocuments(b *testing.B) {
+	// Define the large document test cases
+	testCases := []struct {
+		name   string
+		create func() bson.D
+	}{
+		{
+			name:   "LargeStrings",
+			create: func() bson.D { return createLargeStringsDocument(10) },
+		},
+		{
+			name:   "MassiveArrays",
+			create: func() bson.D { return createMassiveArraysDocument(100000) },
+		},
+		{
+			name:   "VeryVoluminousDocument",
+			create: func() bson.D { return createVoluminousDocument(100000) },
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		b.Run(tc.name, func(b *testing.B) {
+			// Run benchmark with logging and truncation enabled
+			b.Run("LoggingWithTruncation", func(b *testing.B) {
+				logger, err := New(mockLogSink{}, 0, map[Component]Level{
+					ComponentCommand: LevelDebug,
+				})
+				if err != nil {
+					b.Fatal(err)
+				}
+				bs, err := bson.Marshal(tc.create())
+				if err != nil {
+					b.Fatal(err)
+				}
+				b.ResetTimer()
+				for i := 0; i < b.N; i++ {
+					logger.Print(LevelInfo, ComponentCommand, FormatDocument(bs, 1024), "foo", "bar", "baz")
+
+				}
+			})
+
+			// Run benchmark with logging enabled without truncation
+			b.Run("LoggingWithoutTruncation", func(b *testing.B) {
+				logger, err := New(mockLogSink{}, 0, map[Component]Level{
+					ComponentCommand: LevelDebug,
+				})
+				if err != nil {
+					b.Fatal(err)
+				}
+				bs, err := bson.Marshal(tc.create())
+				if err != nil {
+					b.Fatal(err)
+				}
+				b.ResetTimer()
+				for i := 0; i < b.N; i++ {
+					msg := bsoncore.Document(bs).String()
+					logger.Print(LevelInfo, ComponentCommand, msg, "foo", "bar", "baz")
+
+				}
+			})
+
+			// Run benchmark without logging or truncation
+			b.Run("WithoutLoggingOrTruncation", func(b *testing.B) {
+				bs, err := bson.Marshal(tc.create())
+				if err != nil {
+					b.Fatal(err)
+				}
+				b.ResetTimer()
+				for i := 0; i < b.N; i++ {
+					_ = bsoncore.Document(bs).String()
+				}
+			})
+		})
+	}
+}
+
+// Helper functions to create large documents
+func createVoluminousDocument(numKeys int) bson.D {
+	d := make(bson.D, numKeys)
+	for i := 0; i < numKeys; i++ {
+		d = append(d, bson.E{Key: fmt.Sprintf("key%d", i), Value: "value"})
+	}
+	return d
+}
+
+func createLargeStringsDocument(sizeMB int) bson.D {
+	largeString := strings.Repeat("a", sizeMB*1024*1024)
+	return bson.D{
+		{Key: "largeString1", Value: largeString},
+		{Key: "largeString2", Value: largeString},
+		{Key: "largeString3", Value: largeString},
+		{Key: "largeString4", Value: largeString},
+	}
+}
+
+func createMassiveArraysDocument(arraySize int) bson.D {
+	massiveArray := make([]string, arraySize)
+	for i := 0; i < arraySize; i++ {
+		massiveArray[i] = "value"
+	}
+	return bson.D{
+		{Key: "massiveArray1", Value: massiveArray},
+		{Key: "massiveArray2", Value: massiveArray},
+		{Key: "massiveArray3", Value: massiveArray},
+		{Key: "massiveArray4", Value: massiveArray},
+	}
+}
 
 func BenchmarkLogger(b *testing.B) {
 	b.ReportAllocs()
@@ -287,54 +399,6 @@ func TestSelectedComponentLevels(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestTruncate(t *testing.T) {
-	t.Parallel()
-
-	for _, tcase := range []struct {
-		name     string
-		arg      string
-		width    uint
-		expected string
-	}{
-		{
-			name:     "empty",
-			arg:      "",
-			width:    0,
-			expected: "",
-		},
-		{
-			name:     "short",
-			arg:      "foo",
-			width:    DefaultMaxDocumentLength,
-			expected: "foo",
-		},
-		{
-			name:     "long",
-			arg:      "foo bar baz",
-			width:    9,
-			expected: "foo bar b...",
-		},
-		{
-			name:     "multi-byte",
-			arg:      "你好",
-			width:    4,
-			expected: "你...",
-		},
-	} {
-		tcase := tcase
-
-		t.Run(tcase.name, func(t *testing.T) {
-			t.Parallel()
-
-			actual := truncate(tcase.arg, tcase.width)
-			if actual != tcase.expected {
-				t.Errorf("expected %q, got %q", tcase.expected, actual)
-			}
-		})
-	}
-
 }
 
 func TestLogger_LevelComponentEnabled(t *testing.T) {

@@ -7,11 +7,8 @@
 package bson
 
 import (
+	"bytes"
 	"reflect"
-
-	"go.mongodb.org/mongo-driver/bson/bsonrw"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type unmarshalingTestCase struct {
@@ -115,26 +112,6 @@ func unmarshalingTestCases() []unmarshalingTestCase {
 			},
 			data: docToBytes(D{{"fooBar", int32(10)}}),
 		},
-		{
-			name:  "nil pointer and non-pointer type with literal null BSON",
-			sType: reflect.TypeOf(unmarshalBehaviorTestCase{}),
-			want: &unmarshalBehaviorTestCase{
-				BSONValueTracker: unmarshalBSONValueCallTracker{
-					called: true,
-				},
-				BSONValuePtrTracker: nil,
-				BSONTracker: unmarshalBSONCallTracker{
-					called: true,
-				},
-				BSONPtrTracker: nil,
-			},
-			data: docToBytes(D{
-				{Key: "bv_tracker", Value: nil},
-				{Key: "bv_ptr_tracker", Value: nil},
-				{Key: "b_tracker", Value: nil},
-				{Key: "b_ptr_tracker", Value: nil},
-			}),
-		},
 		// GODRIVER-2252
 		// Test that a struct of pointer types with UnmarshalBSON functions defined marshal and
 		// unmarshal to the same Go values when the pointer values are "nil".
@@ -196,6 +173,26 @@ func unmarshalingTestCases() []unmarshalingTestCase {
 			data:  docToBytes(valNonPtrStruct),
 		},
 		{
+			name:  "nil pointer and non-pointer type with literal null BSON",
+			sType: reflect.TypeOf(unmarshalBehaviorTestCase{}),
+			want: &unmarshalBehaviorTestCase{
+				BSONValueTracker: unmarshalBSONValueCallTracker{
+					called: true,
+				},
+				BSONValuePtrTracker: nil,
+				BSONTracker: unmarshalBSONCallTracker{
+					called: true,
+				},
+				BSONPtrTracker: nil,
+			},
+			data: docToBytes(D{
+				{Key: "bv_tracker", Value: nil},
+				{Key: "bv_ptr_tracker", Value: nil},
+				{Key: "b_tracker", Value: nil},
+				{Key: "b_ptr_tracker", Value: nil},
+			}),
+		},
+		{
 			name:  "nil pointer and non-pointer type with BSON minkey",
 			sType: reflect.TypeOf(unmarshalBehaviorTestCase{}),
 			want: &unmarshalBehaviorTestCase{
@@ -211,10 +208,10 @@ func unmarshalingTestCases() []unmarshalingTestCase {
 				BSONPtrTracker: nil,
 			},
 			data: docToBytes(D{
-				{Key: "bv_tracker", Value: primitive.MinKey{}},
-				{Key: "bv_ptr_tracker", Value: primitive.MinKey{}},
-				{Key: "b_tracker", Value: primitive.MinKey{}},
-				{Key: "b_ptr_tracker", Value: primitive.MinKey{}},
+				{Key: "bv_tracker", Value: MinKey{}},
+				{Key: "bv_ptr_tracker", Value: MinKey{}},
+				{Key: "b_tracker", Value: MinKey{}},
+				{Key: "b_ptr_tracker", Value: MinKey{}},
 			}),
 		},
 		{
@@ -233,10 +230,10 @@ func unmarshalingTestCases() []unmarshalingTestCase {
 				BSONPtrTracker: nil,
 			},
 			data: docToBytes(D{
-				{Key: "bv_tracker", Value: primitive.MaxKey{}},
-				{Key: "bv_ptr_tracker", Value: primitive.MaxKey{}},
-				{Key: "b_tracker", Value: primitive.MaxKey{}},
-				{Key: "b_ptr_tracker", Value: primitive.MaxKey{}},
+				{Key: "bv_tracker", Value: MaxKey{}},
+				{Key: "bv_ptr_tracker", Value: MaxKey{}},
+				{Key: "b_tracker", Value: MaxKey{}},
+				{Key: "b_ptr_tracker", Value: MaxKey{}},
 			}),
 		},
 	}
@@ -266,13 +263,13 @@ type myInt64 int64
 
 var _ ValueUnmarshaler = (*myInt64)(nil)
 
-func (mi *myInt64) UnmarshalBSONValue(t bsontype.Type, bytes []byte) error {
-	if len(bytes) == 0 {
+func (mi *myInt64) UnmarshalBSONValue(t byte, b []byte) error {
+	if len(b) == 0 {
 		return nil
 	}
 
-	if t == bsontype.Int64 {
-		i, err := bsonrw.NewBSONValueReader(bsontype.Int64, bytes).ReadInt64()
+	if Type(t) == TypeInt64 {
+		i, err := newValueReader(TypeInt64, bytes.NewReader(b)).ReadInt64()
 		if err != nil {
 			return err
 		}
@@ -283,11 +280,11 @@ func (mi *myInt64) UnmarshalBSONValue(t bsontype.Type, bytes []byte) error {
 	return nil
 }
 
-func (mi *myInt64) UnmarshalBSON(bytes []byte) error {
-	if len(bytes) == 0 {
+func (mi *myInt64) UnmarshalBSON(b []byte) error {
+	if len(b) == 0 {
 		return nil
 	}
-	i, err := bsonrw.NewBSONValueReader(bsontype.Int64, bytes).ReadInt64()
+	i, err := newValueReader(TypeInt64, bytes.NewReader(b)).ReadInt64()
 	if err != nil {
 		return err
 	}
@@ -309,11 +306,11 @@ func (mm *myMap) UnmarshalBSON(bytes []byte) error {
 
 type myBytes []byte
 
-func (mb *myBytes) UnmarshalBSON(bytes []byte) error {
-	if len(bytes) == 0 {
+func (mb *myBytes) UnmarshalBSON(b []byte) error {
+	if len(b) == 0 {
 		return nil
 	}
-	b, _, err := bsonrw.NewBSONValueReader(bsontype.Binary, bytes).ReadBinary()
+	b, _, err := newValueReader(TypeBinary, bytes.NewReader(b)).ReadBinary()
 	if err != nil {
 		return err
 	}
@@ -323,11 +320,11 @@ func (mb *myBytes) UnmarshalBSON(bytes []byte) error {
 
 type myString string
 
-func (ms *myString) UnmarshalBSON(bytes []byte) error {
-	if len(bytes) == 0 {
+func (ms *myString) UnmarshalBSON(b []byte) error {
+	if len(b) == 0 {
 		return nil
 	}
-	s, err := bsonrw.NewBSONValueReader(bsontype.String, bytes).ReadString()
+	s, err := newValueReader(TypeString, bytes.NewReader(b)).ReadString()
 	if err != nil {
 		return err
 	}
@@ -361,7 +358,7 @@ type unmarshalBehaviorTestCase struct {
 	BSONPtrTracker      *unmarshalBSONCallTracker      `bson:"b_ptr_tracker"`  // BSON unmarshaling by pointer.
 }
 
-func (tracker *unmarshalBSONValueCallTracker) UnmarshalBSONValue(bsontype.Type, []byte) error {
+func (tracker *unmarshalBSONValueCallTracker) UnmarshalBSONValue(byte, []byte) error {
 	tracker.called = true
 	return nil
 }

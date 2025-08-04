@@ -1,12 +1,12 @@
 {
   "description": "Transaction handling",
-  "schemaVersion": "1.1",
+  "schemaVersion": "1.3",
   "runOnRequirements": [
     {
       "minServerVersion": "4.9",
       "topologies": [
         "replicaset",
-        "sharded-replicaset",
+        "sharded",
         "load-balanced"
       ]
     }
@@ -92,7 +92,7 @@
         {
           "topologies": [
             "replicaset",
-            "sharded-replicaset",
+            "sharded",
             "load-balanced"
           ]
         }
@@ -221,7 +221,7 @@
         {
           "topologies": [
             "replicaset",
-            "sharded-replicaset",
+            "sharded",
             "load-balanced"
           ]
         }

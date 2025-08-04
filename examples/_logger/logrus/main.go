@@ -14,9 +14,9 @@ import (
 
 	"github.com/bombsimon/logrusr/v4"
 	"github.com/sirupsen/logrus"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 func main() {
@@ -39,7 +39,7 @@ func main() {
 		ApplyURI("mongodb://localhost:27017").
 		SetLoggerOptions(loggerOptions)
 
-	client, err := mongo.Connect(context.TODO(), clientOptions)
+	client, err := mongo.Connect(clientOptions)
 	if err != nil {
 		log.Fatalf("error connecting to MongoDB: %v", err)
 	}

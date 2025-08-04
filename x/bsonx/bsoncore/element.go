@@ -9,8 +9,7 @@ package bsoncore
 import (
 	"bytes"
 	"fmt"
-
-	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"math"
 )
 
 // MalformedElementError represents a class of errors that RawElement methods return.
@@ -70,7 +69,7 @@ func (e Element) Validate() error {
 	if idx == -1 {
 		return ErrElementMissingKey
 	}
-	return Value{Type: bsontype.Type(e[0]), Data: e[idx+2:]}.Validate()
+	return Value{Type: Type(e[0]), Data: e[idx+2:]}.Validate()
 }
 
 // CompareKey will compare this element's key to key. This method makes it easy to compare keys
@@ -107,7 +106,7 @@ func (e Element) ValueErr() (Value, error) {
 		return Value{}, ErrElementMissingKey
 	}
 
-	val, rem, exists := ReadValue(e[idx+2:], bsontype.Type(e[0]))
+	val, rem, exists := ReadValue(e[idx+2:], Type(e[0]))
 	if !exists {
 		return Value{}, NewInsufficientBytesError(e, rem)
 	}
@@ -116,10 +115,15 @@ func (e Element) ValueErr() (Value, error) {
 
 // String implements the fmt.String interface. The output will be in extended JSON format.
 func (e Element) String() string {
+	return e.StringN(math.MaxInt)
+}
+
+// StringN implements the fmt.String interface for upto N bytes. The output will be in extended JSON format.
+func (e Element) StringN(n int) string {
 	if len(e) == 0 {
 		return ""
 	}
-	t := bsontype.Type(e[0])
+	t := Type(e[0])
 	idx := bytes.IndexByte(e[1:], 0x00)
 	if idx == -1 {
 		return ""
@@ -129,7 +133,17 @@ func (e Element) String() string {
 	if !valid {
 		return ""
 	}
-	return "\"" + string(key) + "\": " + val.String()
+
+	var str string
+	if _, ok := val.StringValueOK(); ok {
+		str = val.StringN(n)
+	} else if arr, ok := val.ArrayOK(); ok {
+		str = arr.StringN(n)
+	} else {
+		str = val.String()
+	}
+
+	return "\"" + string(key) + "\": " + str
 }
 
 // DebugString outputs a human readable version of RawElement. It will attempt to stringify the
@@ -138,7 +152,7 @@ func (e Element) DebugString() string {
 	if len(e) == 0 {
 		return "<malformed>"
 	}
-	t := bsontype.Type(e[0])
+	t := Type(e[0])
 	idx := bytes.IndexByte(e[1:], 0x00)
 	if idx == -1 {
 		return fmt.Sprintf(`bson.Element{[%s]<malformed>}`, t)

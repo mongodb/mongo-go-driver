@@ -103,7 +103,6 @@ tests:
                 comment: *comment0
 
   - description: "aggregate with a document comment - pre 4.4"
-    skipReason: "TODO(GODRIVER-2386): aggregate only supports string comments"
     runOnRequirements:
       - minServerVersion: "3.6.0"
         maxServerVersion: "4.2.99"

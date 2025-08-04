@@ -5,7 +5,7 @@
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
 // Package address provides structured representations of network addresses.
-package address // import "go.mongodb.org/mongo-driver/mongo/address"
+package address
 
 import (
 	"net"
@@ -29,8 +29,11 @@ func (a Address) Network() string {
 // String is the canonical version of this address, e.g. localhost:27017,
 // 1.2.3.4:27017, example.com:27017.
 func (a Address) String() string {
-	// TODO: unicode case folding?
-	s := strings.ToLower(string(a))
+	s := string(a)
+	if a.Network() != "unix" {
+		// TODO: unicode case folding?
+		s = strings.ToLower(string(a))
+	}
 	if len(s) == 0 {
 		return ""
 	}

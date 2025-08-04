@@ -6,9 +6,9 @@
       "minServerVersion": "6.0.0",
       "topologies": [
         "replicaset",
-        "sharded-replicaset",
         "sharded"
-      ]
+      ],
+      "serverless": "forbid"
     }
   ],
   "createEntities": [
@@ -462,7 +462,6 @@
       "runOnRequirements": [
         {
           "topologies": [
-            "sharded-replicaset",
             "sharded"
           ]
         }

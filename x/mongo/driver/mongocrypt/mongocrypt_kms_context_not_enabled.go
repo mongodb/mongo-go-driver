@@ -37,3 +37,8 @@ func (kc *KmsContext) BytesNeeded() int32 {
 func (kc *KmsContext) FeedResponse([]byte) error {
 	panic(cseNotSupportedMsg)
 }
+
+// RequestError returns the source of the network error for KMS requests.
+func (kc *KmsContext) RequestError() error {
+	panic(cseNotSupportedMsg)
+}

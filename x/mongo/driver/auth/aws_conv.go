@@ -17,11 +17,10 @@ import (
 	"strings"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/internal/aws/credentials"
-	v4signer "go.mongodb.org/mongo-driver/internal/aws/signer/v4"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/aws/credentials"
+	v4signer "go.mongodb.org/mongo-driver/v2/internal/aws/signer/v4"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 type clientState int
@@ -41,8 +40,8 @@ type awsConversation struct {
 }
 
 type serverMessage struct {
-	Nonce primitive.Binary `bson:"s"`
-	Host  string           `bson:"h"`
+	Nonce bson.Binary `bson:"s"`
+	Host  string      `bson:"h"`
 }
 
 const (

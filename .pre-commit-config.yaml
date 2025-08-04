@@ -10,10 +10,10 @@ repos:
     - id: check-merge-conflict
     - id: check-json
     - id: end-of-file-fixer
-      exclude: ^vendor/
+      exclude: ^(vendor/|bson/testdata/lorem.txt)
       exclude_types: [json,yaml]
     - id: trailing-whitespace
-      exclude: ^(vendor/|internal/assert/assertions_test.go)
+      exclude: ^(vendor/|internal/assert/assertions_test.go|bson/testdata/lorem.txt)
       exclude_types: [json,yaml]
 
 - repo: https://github.com/executablebooks/mdformat
@@ -34,14 +34,14 @@ repos:
   hooks:
     - id: shellcheck
       name: shellcheck
-      args: ["--severity=error"]
+      args: ["--severity=warning"]
 
 - repo: https://github.com/codespell-project/codespell
   rev: "v2.2.6"
   hooks:
   - id: codespell
     args: ["-L", "te,fo,fle,alo,nin,compres,wil,collone,asess,sav,ot,wll,dne,nulll,hellow,aks"]
-    exclude: ^(vendor/|benchmark/operation_test.go)
+    exclude: ^(vendor/|internal/cmd/benchmark/operation_test.go|bson/testdata/)
     exclude_types: [json,yaml,pem]
 
 - repo: https://github.com/tcort/markdown-link-check
@@ -52,6 +52,12 @@ repos:
 
 - repo: local
   hooks:
+  - id: executable-shell
+    name: executable-shell
+    entry: chmod +x
+    language: system
+    types: [shell]
+
   - id: golangci-lint
     name: golangci-lint
     language: system

@@ -13,11 +13,11 @@ import (
 	"net/http"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/httputil"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/ocsp"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/httputil"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/ocsp"
 )
 
 // Dialer is used to make network connections.
@@ -45,16 +45,13 @@ var DefaultDialer Dialer = &net.Dialer{}
 type Handshaker = driver.Handshaker
 
 // generationNumberFn is a callback type used by a connection to fetch its generation number given its service ID.
-type generationNumberFn func(serviceID *primitive.ObjectID) uint64
+type generationNumberFn func(serviceID *bson.ObjectID) uint64
 
 type connectionConfig struct {
-	connectTimeout           time.Duration
 	dialer                   Dialer
 	handshaker               Handshaker
 	idleTimeout              time.Duration
 	cmdMonitor               *event.CommandMonitor
-	readTimeout              time.Duration
-	writeTimeout             time.Duration
 	tlsConfig                *tls.Config
 	httpClient               *http.Client
 	compressors              []string
@@ -69,7 +66,6 @@ type connectionConfig struct {
 
 func newConnectionConfig(opts ...ConnectionOption) *connectionConfig {
 	cfg := &connectionConfig{
-		connectTimeout:      30 * time.Second,
 		dialer:              nil,
 		tlsConnectionSource: defaultTLSConnectionSource,
 		httpClient:          httputil.DefaultHTTPClient,
@@ -107,14 +103,6 @@ func WithCompressors(fn func([]string) []string) ConnectionOption {
 	}
 }
 
-// WithConnectTimeout configures the maximum amount of time a dial will wait for a
-// Connect to complete. The default is 30 seconds.
-func WithConnectTimeout(fn func(time.Duration) time.Duration) ConnectionOption {
-	return func(c *connectionConfig) {
-		c.connectTimeout = fn(c.connectTimeout)
-	}
-}
-
 // WithDialer configures the Dialer to use when making a new connection to MongoDB.
 func WithDialer(fn func(Dialer) Dialer) ConnectionOption {
 	return func(c *connectionConfig) {
@@ -134,20 +122,6 @@ func WithHandshaker(fn func(Handshaker) Handshaker) ConnectionOption {
 func WithIdleTimeout(fn func(time.Duration) time.Duration) ConnectionOption {
 	return func(c *connectionConfig) {
 		c.idleTimeout = fn(c.idleTimeout)
-	}
-}
-
-// WithReadTimeout configures the maximum read time for a connection.
-func WithReadTimeout(fn func(time.Duration) time.Duration) ConnectionOption {
-	return func(c *connectionConfig) {
-		c.readTimeout = fn(c.readTimeout)
-	}
-}
-
-// WithWriteTimeout configures the maximum write time for a connection.
-func WithWriteTimeout(fn func(time.Duration) time.Duration) ConnectionOption {
-	return func(c *connectionConfig) {
-		c.writeTimeout = fn(c.writeTimeout)
 	}
 }
 
