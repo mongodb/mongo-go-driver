@@ -13,20 +13,37 @@ import (
 	"net/url"
 	"os"
 	"strings"
+
+	"github.com/spf13/cobra"
 )
 
-const parsePerfCompDir = "./internal/cmd/perfcomp/parseperfcomp/"
+const perfCompDir = "./internal/cmd/perfcomp/"
 const perfReportFileTxt = "perf-report.txt"
 const perfReportFileMd = "perf-report.md"
 const perfVariant = "^perf$"
 const hscoreDefLink = "https://en.wikipedia.org/wiki/Energy_distance#:~:text=E%2Dcoefficient%20of%20inhomogeneity"
 const zscoreDefLink = "https://en.wikipedia.org/wiki/Standard_score#Calculation"
 
-func main() {
+func newMdCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "mdreport",
+		Short: "generates markdown output after run",
+	}
+
+	cmd.Run = func(cmd *cobra.Command, args []string) {
+		if err := runMdCommand(cmd, args); err != nil {
+			log.Fatalf("failed to generate md: %v", err)
+		}
+	}
+
+	return cmd
+}
+
+func runMdCommand(cmd *cobra.Command, args []string) error {
 	var line string
 
 	// open file to read
-	fRead, err := os.Open(parsePerfCompDir + perfReportFileTxt)
+	fRead, err := os.Open(perfCompDir + perfReportFileTxt)
 	if err != nil {
 		log.Fatalf("Could not open %s: %v", perfReportFileTxt, err)
 	}
@@ -89,6 +106,7 @@ func main() {
 	}
 
 	fmt.Fprintf(fWrite, "</details>\n")
+	return nil
 }
 
 func generateEvgLink(version string, variant string) (string, error) {
