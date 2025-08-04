@@ -6,6 +6,8 @@
 
 package options
 
+import "go.mongodb.org/mongo-driver/v2/internal/optionsutil"
+
 // ReplaceOptions represents arguments that can be used to configure a ReplaceOne
 // operation.
 //
@@ -18,6 +20,10 @@ type ReplaceOptions struct {
 	Upsert                   *bool
 	Let                      interface{}
 	Sort                     interface{}
+
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	Internal optionsutil.Options
 }
 
 // ReplaceOptionsBuilder contains options to configure replace operations. Each

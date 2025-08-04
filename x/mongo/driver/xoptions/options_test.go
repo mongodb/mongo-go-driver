@@ -84,6 +84,6 @@ func TestSetInternalClientOptions(t *testing.T) {
 
 		opts := options.Client()
 		err := SetInternalClientOptions(opts, "unsupported", "unsupported")
-		require.EqualError(t, err, "unsupported option: unsupported")
+		require.EqualError(t, err, "unsupported option: \"unsupported\"")
 	})
 }
