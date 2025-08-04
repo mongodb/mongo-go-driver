@@ -21,7 +21,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
-func bytesFromDoc(doc interface{}) []byte {
+func bytesFromDoc(doc any) []byte {
 	b, err := Marshal(doc)
 	if err != nil {
 		panic(fmt.Errorf("Couldn't marshal BSON document: %w", err))
@@ -36,7 +36,7 @@ func TestPrimitiveValueEncoders(t *testing.T) {
 
 	type subtest struct {
 		name   string
-		val    interface{}
+		val    any
 		ectx   *EncodeContext
 		llvrw  *valueReaderWriter
 		invoke invoked
@@ -207,7 +207,7 @@ func TestPrimitiveValueEncoders(t *testing.T) {
 
 		testCases := []struct {
 			name  string
-			value interface{}
+			value any
 			b     []byte
 			err   error
 		}{
@@ -347,7 +347,7 @@ func TestPrimitiveValueEncoders(t *testing.T) {
 				nil,
 			},
 			{
-				"struct{[]interface{}}",
+				"struct{[]any}",
 				struct {
 					A []bool
 					B []int32
@@ -482,7 +482,7 @@ func TestPrimitiveValueDecoders(t *testing.T) {
 
 	type subtest struct {
 		name   string
-		val    interface{}
+		val    any
 		dctx   *DecodeContext
 		llvrw  *valueReaderWriter
 		invoke invoked
@@ -623,7 +623,7 @@ func TestPrimitiveValueDecoders(t *testing.T) {
 					if !cmp.Equal(invoked, rc.invoke) {
 						t.Errorf("Incorrect method invoked. got %v; want %v", invoked, rc.invoke)
 					}
-					var got interface{}
+					var got any
 					if val.IsValid() && val.CanInterface() {
 						got = val.Interface()
 					}
@@ -654,7 +654,7 @@ func TestPrimitiveValueDecoders(t *testing.T) {
 
 		testCases := []struct {
 			name  string
-			value interface{}
+			value any
 			b     []byte
 			err   error
 		}{
@@ -927,7 +927,7 @@ func TestPrimitiveValueDecoders(t *testing.T) {
 				nil,
 			},
 			{
-				"struct{[]interface{}}",
+				"struct{[]any}",
 				struct {
 					A []bool
 					B []int32

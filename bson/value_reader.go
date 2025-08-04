@@ -63,7 +63,7 @@ type vrState struct {
 }
 
 var vrPool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		return &valueReader{
 			stack: make([]vrState, 1, 5),
 		}
