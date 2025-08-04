@@ -246,6 +246,11 @@ func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
 		writeConcern:             wc,
 		let:                      args.Let,
 	}
+	if rawDataOpt := optionsutil.Value(args.Internal, "rawData"); rawDataOpt != nil {
+		if rawData, ok := rawDataOpt.(bool); ok {
+			op.rawData = &rawData
+		}
+	}
 
 	err = op.execute(ctx)
 
@@ -700,6 +705,11 @@ func (coll *Collection) updateOrReplace(
 		}
 		op = op.Comment(comment)
 	}
+	if rawDataOpt := optionsutil.Value(args.Internal, "rawData"); rawDataOpt != nil {
+		if rawData, ok := rawDataOpt.(bool); ok {
+			op = op.RawData(rawData)
+		}
+	}
 	retry := driver.RetryNone
 	// retryable writes are only enabled updateOne/replaceOne operations
 	if !multi && coll.client.retryWrites {
@@ -794,6 +804,7 @@ func (coll *Collection) UpdateOne(
 		Hint:                     args.Hint,
 		Upsert:                   args.Upsert,
 		Let:                      args.Let,
+		Internal:                 args.Internal,
 	}
 
 	return coll.updateOrReplace(ctx, f, update, false, rrOne, true, args.Sort, updateOptions)
@@ -884,6 +895,7 @@ func (coll *Collection) ReplaceOne(
 		Hint:                     args.Hint,
 		Let:                      args.Let,
 		Comment:                  args.Comment,
+		Internal:                 args.Internal,
 	}
 
 	return coll.updateOrReplace(ctx, f, r, false, rrOne, false, args.Sort, updateOptions)
@@ -1536,6 +1548,11 @@ func (coll *Collection) find(
 		}
 		op.Sort(sort)
 	}
+	if rawDataOpt := optionsutil.Value(args.Internal, "rawData"); rawDataOpt != nil {
+		if rawData, ok := rawDataOpt.(bool); ok {
+			op = op.RawData(rawData)
+		}
+	}
 	retry := driver.RetryNone
 	if coll.client.retryReads {
 		retry = driver.RetryOncePerCommand
@@ -1569,6 +1586,7 @@ func newFindArgsFromFindOneArgs(args *options.FindOneOptions) *options.FindOptio
 		v.ShowRecordID = args.ShowRecordID
 		v.Skip = args.Skip
 		v.Sort = args.Sort
+		v.Internal = args.Internal
 	}
 	return v
 }
@@ -1731,6 +1749,11 @@ func (coll *Collection) FindOneAndDelete(
 		}
 		op = op.Let(let)
 	}
+	if rawDataOpt := optionsutil.Value(args.Internal, "rawData"); rawDataOpt != nil {
+		if rawData, ok := rawDataOpt.(bool); ok {
+			op = op.RawData(rawData)
+		}
+	}
 
 	return coll.findAndModify(ctx, op)
 }
@@ -1827,6 +1850,11 @@ func (coll *Collection) FindOneAndReplace(
 			return &SingleResult{err: err}
 		}
 		op = op.Let(let)
+	}
+	if rawDataOpt := optionsutil.Value(args.Internal, "rawData"); rawDataOpt != nil {
+		if rawData, ok := rawDataOpt.(bool); ok {
+			op = op.RawData(rawData)
+		}
 	}
 
 	return coll.findAndModify(ctx, op)
@@ -1936,6 +1964,11 @@ func (coll *Collection) FindOneAndUpdate(
 			return &SingleResult{err: err}
 		}
 		op = op.Let(let)
+	}
+	if rawDataOpt := optionsutil.Value(args.Internal, "rawData"); rawDataOpt != nil {
+		if rawData, ok := rawDataOpt.(bool); ok {
+			op = op.RawData(rawData)
+		}
 	}
 
 	return coll.findAndModify(ctx, op)
