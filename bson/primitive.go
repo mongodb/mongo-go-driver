@@ -137,7 +137,7 @@ type Symbol string
 // CodeWithScope represents a BSON JavaScript code with scope value.
 type CodeWithScope struct {
 	Code  JavaScript
-	Scope interface{}
+	Scope any
 }
 
 func (cws CodeWithScope) String() string {
@@ -257,17 +257,17 @@ func (d *D) UnmarshalJSON(b []byte) error {
 // E represents a BSON element for a D. It is usually used inside a D.
 type E struct {
 	Key   string
-	Value interface{}
+	Value any
 }
 
 // M is an unordered representation of a BSON document. This type should be used when the order of the elements does not
-// matter. This type is handled as a regular map[string]interface{} when encoding and decoding. Elements will be
+// matter. This type is handled as a regular map[string]any when encoding and decoding. Elements will be
 // serialized in an undefined, random order. If the order of the elements matters, a D should be used instead.
 //
 // Example usage:
 //
 //	bson.M{"foo": "bar", "hello": "world", "pi": 3.14159}
-type M map[string]interface{}
+type M map[string]any
 
 func (m M) String() string {
 	b, err := MarshalExtJSON(m, true, false)
@@ -282,7 +282,7 @@ func (m M) String() string {
 // Example usage:
 //
 //	bson.A{"bar", "world", 3.14159, bson.D{{"qux", 12345}}}
-type A []interface{}
+type A []any
 
 func jsonDecodeD(dec *json.Decoder) (D, error) {
 	res := D{}
@@ -326,8 +326,8 @@ func jsonDecodeD(dec *json.Decoder) (D, error) {
 	return res, nil
 }
 
-func jsonDecodeSlice(dec *json.Decoder) ([]interface{}, error) {
-	var res []interface{}
+func jsonDecodeSlice(dec *json.Decoder) ([]any, error) {
+	var res []any
 	done := false
 	for !done {
 		t, err := dec.Token()
