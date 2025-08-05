@@ -406,7 +406,7 @@ func ReadMsgSectionDocumentSequence(src []byte) (identifier string, docs []bsonc
 // sequence data.
 func ReadMsgSectionRawDocumentSequence(src []byte) (identifier string, data []byte, rem []byte, ok bool) {
 	length, rem, ok := readi32(src)
-	if !ok || int(length) > len(src) || length-4 < 0 {
+	if !ok || int(length) > len(src) || length < 4 {
 		return "", nil, src, false
 	}
 

@@ -41,9 +41,9 @@ type ValueUnmarshaler interface {
 //
 // When unmarshaling BSON, if the BSON value is null and the Go value is a
 // pointer, the pointer is set to nil without calling UnmarshalBSONValue.
-func Unmarshal(data []byte, val interface{}) error {
-	vr := getDocumentReader(bytes.NewReader(data))
-	defer putDocumentReader(vr)
+func Unmarshal(data []byte, val any) error {
+	vr := getBufferedDocumentReader(data)
+	defer putBufferedDocumentReader(vr)
 
 	if l, err := vr.peekLength(); err != nil {
 		return err
@@ -56,8 +56,8 @@ func Unmarshal(data []byte, val interface{}) error {
 // UnmarshalValue parses the BSON value of type t with bson.NewRegistry() and
 // stores the result in the value pointed to by val. If val is nil or not a pointer,
 // UnmarshalValue returns an error.
-func UnmarshalValue(t Type, data []byte, val interface{}) error {
-	vr := newValueReader(t, bytes.NewReader(data))
+func UnmarshalValue(t Type, data []byte, val any) error {
+	vr := newBufferedValueReader(t, data)
 	return unmarshalFromReader(DecodeContext{Registry: defaultRegistry}, vr, val)
 }
 
@@ -70,7 +70,7 @@ func UnmarshalValue(t Type, data []byte, val interface{}) error {
 //
 // For more information about Extended JSON, see
 // https://www.mongodb.com/docs/manual/reference/mongodb-extended-json/
-func UnmarshalExtJSON(data []byte, canonicalOnly bool, val interface{}) error {
+func UnmarshalExtJSON(data []byte, canonicalOnly bool, val any) error {
 	ejvr, err := NewExtJSONValueReader(bytes.NewReader(data), canonicalOnly)
 	if err != nil {
 		return err
@@ -79,7 +79,7 @@ func UnmarshalExtJSON(data []byte, canonicalOnly bool, val interface{}) error {
 	return unmarshalFromReader(DecodeContext{Registry: defaultRegistry}, ejvr, val)
 }
 
-func unmarshalFromReader(dc DecodeContext, vr ValueReader, val interface{}) error {
+func unmarshalFromReader(dc DecodeContext, vr ValueReader, val any) error {
 	dec := decPool.Get().(*Decoder)
 	defer decPool.Put(dec)
 

@@ -34,7 +34,7 @@ tasks:
 
   build-compile-check-all: bash etc/run-compile-check-test.sh
 
-  build-aws-ecs-test: go build ${BUILD_TAGS} ./internal/cmd/testaws/main.go
+  build-aws-ecs-test: go test -c ./internal/test/aws -o aws.testbin
 
   cross-compile: 
     - GOOS=linux GOARCH=386 go build ./...
@@ -70,6 +70,8 @@ tasks:
 
   pr-task: bash etc/pr-task.sh
 
+  perf-pr-comment: bash etc/perf-pr-comment.sh
+
   # Lint with various GOOS and GOARCH tasks to catch static analysis failures that may only affect
   # specific operating systems or architectures. For example, staticcheck will only check for 64-bit
   # alignment of atomically accessed variables on 32-bit architectures (see
@@ -82,6 +84,8 @@ tasks:
       - GOOS=linux GOARCH=amd64 etc/golangci-lint.sh
       - GOOS=linux GOARCH=ppc64le etc/golangci-lint.sh
       - GOOS=linux GOARCH=s390x etc/golangci-lint.sh
+
+  govulncheck: bash etc/govulncheck.sh
 
   update-notices: bash etc/generate_notices.pl > THIRD-PARTY-NOTICES
 

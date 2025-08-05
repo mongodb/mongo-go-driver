@@ -130,6 +130,9 @@ func (d *timeoutDialer) DialContext(ctx context.Context, network, address string
 
 // TestServerHeartbeatTimeout tests timeout retry and preemptive canceling.
 func TestServerHeartbeatTimeout(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
 	if os.Getenv("DOCKER_RUNNING") != "" {
 		t.Skip("Skipping this test in docker.")
 	}
@@ -376,7 +379,7 @@ func TestServer(t *testing.T) {
 	}
 
 	authErr := ConnectionError{Wrapped: &auth.Error{}, init: true}
-	netErr := ConnectionError{Wrapped: &net.AddrError{}, init: true}
+	netErr := ConnectionError{Wrapped: &net.AddrError{}, init: true, message: "failed to connect to localhost:27017"}
 	for _, tt := range serverTestTable {
 		t.Run(tt.name, func(t *testing.T) {
 			var returnConnectionError bool
@@ -712,7 +715,7 @@ func TestServer(t *testing.T) {
 		}
 	})
 	t.Run("heartbeat monitoring", func(t *testing.T) {
-		var publishedEvents []interface{}
+		var publishedEvents []any
 
 		serverHeartbeatStarted := func(e *event.ServerHeartbeatStartedEvent) {
 			publishedEvents = append(publishedEvents, *e)

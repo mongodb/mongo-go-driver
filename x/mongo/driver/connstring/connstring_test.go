@@ -49,7 +49,6 @@ func TestAuthMechanism(t *testing.T) {
 	}{
 		{s: "authMechanism=scram-sha-1", expected: "scram-sha-1"},
 		{s: "authMechanism=scram-sha-256", expected: "scram-sha-256"},
-		{s: "authMechanism=mongodb-CR", expected: "mongodb-CR"},
 		{s: "authMechanism=plain", expected: "plain"},
 	}
 

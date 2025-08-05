@@ -46,7 +46,7 @@ const (
 
 type extJSONValue struct {
 	t Type
-	v interface{}
+	v any
 }
 
 type extJSONObject struct {

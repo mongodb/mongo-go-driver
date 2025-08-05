@@ -32,128 +32,128 @@ func TestDocumentWriter(t *testing.T) {
 	oid := ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C}
 	testCases := []struct {
 		name   string
-		fn     interface{}
-		params []interface{}
+		fn     any
+		params []any
 		want   []byte
 	}{
 		{
 			"WriteBinary",
 			(*valueWriter).WriteBinary,
-			[]interface{}{[]byte{0x01, 0x02, 0x03}},
+			[]any{[]byte{0x01, 0x02, 0x03}},
 			bsoncore.AppendBinaryElement(header, "foo", 0x00, []byte{0x01, 0x02, 0x03}),
 		},
 		{
 			"WriteBinaryWithSubtype (not 0x02)",
 			(*valueWriter).WriteBinaryWithSubtype,
-			[]interface{}{[]byte{0x01, 0x02, 0x03}, byte(0xFF)},
+			[]any{[]byte{0x01, 0x02, 0x03}, byte(0xFF)},
 			bsoncore.AppendBinaryElement(header, "foo", 0xFF, []byte{0x01, 0x02, 0x03}),
 		},
 		{
 			"WriteBinaryWithSubtype (0x02)",
 			(*valueWriter).WriteBinaryWithSubtype,
-			[]interface{}{[]byte{0x01, 0x02, 0x03}, byte(0x02)},
+			[]any{[]byte{0x01, 0x02, 0x03}, byte(0x02)},
 			bsoncore.AppendBinaryElement(header, "foo", 0x02, []byte{0x01, 0x02, 0x03}),
 		},
 		{
 			"WriteBoolean",
 			(*valueWriter).WriteBoolean,
-			[]interface{}{true},
+			[]any{true},
 			bsoncore.AppendBooleanElement(header, "foo", true),
 		},
 		{
 			"WriteDBPointer",
 			(*valueWriter).WriteDBPointer,
-			[]interface{}{"bar", oid},
+			[]any{"bar", oid},
 			bsoncore.AppendDBPointerElement(header, "foo", "bar", oid),
 		},
 		{
 			"WriteDateTime",
 			(*valueWriter).WriteDateTime,
-			[]interface{}{int64(12345678)},
+			[]any{int64(12345678)},
 			bsoncore.AppendDateTimeElement(header, "foo", 12345678),
 		},
 		{
 			"WriteDecimal128",
 			(*valueWriter).WriteDecimal128,
-			[]interface{}{NewDecimal128(10, 20)},
+			[]any{NewDecimal128(10, 20)},
 			bsoncore.AppendDecimal128Element(header, "foo", 10, 20),
 		},
 		{
 			"WriteDouble",
 			(*valueWriter).WriteDouble,
-			[]interface{}{float64(3.14159)},
+			[]any{float64(3.14159)},
 			bsoncore.AppendDoubleElement(header, "foo", 3.14159),
 		},
 		{
 			"WriteInt32",
 			(*valueWriter).WriteInt32,
-			[]interface{}{int32(123456)},
+			[]any{int32(123456)},
 			bsoncore.AppendInt32Element(header, "foo", 123456),
 		},
 		{
 			"WriteInt64",
 			(*valueWriter).WriteInt64,
-			[]interface{}{int64(1234567890)},
+			[]any{int64(1234567890)},
 			bsoncore.AppendInt64Element(header, "foo", 1234567890),
 		},
 		{
 			"WriteJavascript",
 			(*valueWriter).WriteJavascript,
-			[]interface{}{"var foo = 'bar';"},
+			[]any{"var foo = 'bar';"},
 			bsoncore.AppendJavaScriptElement(header, "foo", "var foo = 'bar';"),
 		},
 		{
 			"WriteMaxKey",
 			(*valueWriter).WriteMaxKey,
-			[]interface{}{},
+			[]any{},
 			bsoncore.AppendMaxKeyElement(header, "foo"),
 		},
 		{
 			"WriteMinKey",
 			(*valueWriter).WriteMinKey,
-			[]interface{}{},
+			[]any{},
 			bsoncore.AppendMinKeyElement(header, "foo"),
 		},
 		{
 			"WriteNull",
 			(*valueWriter).WriteNull,
-			[]interface{}{},
+			[]any{},
 			bsoncore.AppendNullElement(header, "foo"),
 		},
 		{
 			"WriteObjectID",
 			(*valueWriter).WriteObjectID,
-			[]interface{}{oid},
+			[]any{oid},
 			bsoncore.AppendObjectIDElement(header, "foo", oid),
 		},
 		{
 			"WriteRegex",
 			(*valueWriter).WriteRegex,
-			[]interface{}{"bar", "baz"},
+			[]any{"bar", "baz"},
 			bsoncore.AppendRegexElement(header, "foo", "bar", "abz"),
 		},
 		{
 			"WriteString",
 			(*valueWriter).WriteString,
-			[]interface{}{"hello, world!"},
+			[]any{"hello, world!"},
 			bsoncore.AppendStringElement(header, "foo", "hello, world!"),
 		},
 		{
 			"WriteSymbol",
 			(*valueWriter).WriteSymbol,
-			[]interface{}{"symbollolz"},
+			[]any{"symbollolz"},
 			bsoncore.AppendSymbolElement(header, "foo", "symbollolz"),
 		},
 		{
 			"WriteTimestamp",
 			(*valueWriter).WriteTimestamp,
-			[]interface{}{uint32(10), uint32(20)},
+			[]any{uint32(10), uint32(20)},
 			bsoncore.AppendTimestampElement(header, "foo", 10, 20),
 		},
 		{
 			"WriteUndefined",
 			(*valueWriter).WriteUndefined,
-			[]interface{}{},
+			[]any{},
 			bsoncore.AppendUndefinedElement(header, "foo"),
 		},
 	}

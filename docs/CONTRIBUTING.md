@@ -10,14 +10,15 @@ Go 1.23 or higher is required to run the driver test suite.  We use [task](https
 
 ## Bug Fixes and New Features
 
-Before starting to write code, look for existing [tickets](https://jira.mongodb.org/browse/GODRIVER) or [create one](https://jira.mongodb.org/secure/CreateIssue!default.jspa) for your bug, issue, or feature request. This helps the community avoid working on something that might not be of interest or which has already been addressed.
+Before starting to write code, look for existing [tickets](https://jira.mongodb.org/browse/GODRIVER) or [create one](https://jira.mongodb.org/secure/CreateIssue!default.jspa) for your bug, issue, or feature request. This helps the community avoid working on something that might not be of interest or which has already been addressed. Before working on features or larger bug fixes, consider discussing your ideas in the corresponding JIRA issue to ensure that they align with the project's goals and to get feedback from the maintainers. This also ensures that your work can be reviewed and merged more smoothly.
 
 ## Pull Requests & Patches
 
-The Go Driver team uses GitHub to manage and review all code changes. Patches should generally be made against the master (default) branch and include relevant tests, if
-applicable.
+The Go Driver team uses GitHub to manage and review all code changes. Pull requests containing new features should generally be made against the master (default) branch and include relevant tests. For bug fixes, please target the latest stable branch, e.g. `release/2.2` for the 2.2.x series). The bug fix will be merged up to newer branches automatically after your pull request has been merged. If you are unsure which branch to target, please ask in the corresponding JIRA issue, and if you've created a pull request against the wrong branch, we can help you change it.
 
-Code should compile and tests should pass under all Go versions which the driver currently supports. Currently the Go Driver supports a minimum version of Go 1.18 and requires Go 1.23 for development. Please run the following `Taskfile` targets to validate your changes:
+When creating a pull request, please ensure that your code adheres to the following guidelines:
+
+Code should compile and tests should pass under all Go versions which the driver currently supports. Currently, the Go Driver supports a minimum version of Go 1.19 and requires Go 1.23 for development. Please run the following `Taskfile` targets to validate your changes:
 
 - `task fmt`
 - `task lint`
@@ -29,8 +30,6 @@ Code should compile and tests should pass under all Go versions which the driver
 If any tests do not pass, or relevant tests are not included, the patch will not be considered.
 
 If you are working on a bug or feature listed in Jira, please include the ticket number prefixed with GODRIVER in the commit message and GitHub pull request title, (e.g. GODRIVER-123). For the patch commit message itself, please follow the [How to Write a Git Commit Message](https://chris.beams.io/posts/git-commit/) guide.
-
-\=======
 
 ### Linting on commit
 
@@ -48,6 +47,125 @@ After that, the checks will run on any changed files when committing.  To manual
 ```bash
 pre-commit run --all-files
 ```
+
+### Merge up GitHub Action
+
+PR [#1962](https://github.com/mongodb/mongo-go-driver/pull/1962) added the "Merge up" GitHub Actions workflow to automatically roll changes from old branches into new ones. This section outlines how this process works.
+
+#### Regression
+
+If a regression is identified in an older branch, the fix should be applied directly to the latest
+release branch. Once the pull request with the fix is merged into latest, the "Merge up" GitHub Action will
+automatically create a pull request to merge these changes into the master branch. This ensures that all bug fixes are
+incorporated into the latest codebase and actively supported versions.
+
+For example, suppose we have four minor release branches: release/2.0, release/2.1, release/2.2, and release/2.3. If a
+regression is found in the release/2.1 branch, you would create a pull request to fix the issue in the latest supported
+branch, release/2.3. Once this pull request is merged, the "Merge up" GitHub Action will automatically create a pull
+request to merge the changes from release/2.3 into the master branch. Then you can proceed to release release/2.3.latest+1.
+
+```mermaid
+gitGraph
+   commit tag: "Initial main setup"
+
+   branch release/2.0
+   checkout release/2.0
+   commit tag: "Initial release/2.0"
+
+   checkout main
+   branch release/2.1
+   checkout release/2.1
+   commit tag: "Bug introduced"
+
+   checkout main
+   branch release/2.2
+   checkout release/2.2
+   commit tag: "Initial release/2.2"
+
+   checkout main
+   branch release/2.3
+   checkout release/2.3
+   commit tag: "Initial release/2.3"
+
+   checkout release/2.1
+   commit tag: "Bug found in release/2.1"
+
+   checkout release/2.3
+   commit tag: "Bug fix applied in release/2.3 (Manual PR)"
+
+   checkout main
+   merge release/2.3 tag: "Merge fix from release/2.3 into master (GitHub Actions)"
+   commit
+```
+
+If necessary, it is also possible to apply the fix to the older branch where the bug was originally found. In our example,
+once the pull request is merged into release/2.1, the "Merge up" GitHub Action will initiate a series of pull requests
+to roll the fix forward: first into release/2.2, then into release/2.3, and finally into master. This process makes sure
+that the change cascades through every intermediate supported version.
+
+```mermaid
+gitGraph
+   commit tag: "Initial main setup"
+
+   branch release/2.0
+   checkout release/2.0
+   commit tag: "Initial release/2.0"
+
+   checkout main
+   branch release/2.1
+   checkout release/2.1
+   commit tag: "Bug introduced"
+
+   checkout main
+   branch release/2.2
+   checkout release/2.2
+   commit tag: "Initial release/2.2"
+
+   checkout main
+   branch release/2.3
+   checkout release/2.3
+   commit tag: "Initial release/2.3"
+
+   checkout release/2.1
+   commit tag: "Bug fix in release/2.1 (Manual PR)"
+
+   checkout release/2.2
+   merge release/2.1 tag: "Merge fix from release/2.1 (GitHub Actions)"
+   commit
+
+   checkout release/2.3
+   merge release/2.2 tag: "Merge updates from release/2.2 (GitHub Actions)"
+   commit
+
+   checkout main
+   merge release/2.3 tag: "Merge updates from release/2.3 (GitHub Actions)"
+   commit
+```
+
+#### Pull Request Management
+
+When the "Merge up" GitHub Action is enabled, multiple merge-up pull requests (such as PR1, PR2, and PR3) can be
+automatically created at the same time for different bug fixes or features that all target, for example, the
+release/2.x branch. At first, PR1, PR2, and PR3 exist side by side—each handling separate changes. When PR1 and PR2 are
+closed, the Action automatically combines their changes into PR3. This final PR3 then contains all updates,
+allowing you to merge everything into release/2.x+1 in a single, streamlined step.
+
+```mermaid
+flowchart LR
+   A[PR1: Merge up from release/2.x] --> B[Close PR1]
+   C[PR2: Merge up from release/2.x] --> D[Close PR2]
+
+   B --> E[PR3: Consolidated Final Pull Request]
+   D --> E
+    E --> F[release/2.x+1]
+    B[Close PR1]
+   D[Close PR2]
+   E[PR3: Includes changes from both PR1 and PR2]
+```
+
+#### Evergreen Config Merge Strategy
+
+Changes to the testing workflow should persist through all releases in a major version.
 
 ### Cherry-picking between branches
 

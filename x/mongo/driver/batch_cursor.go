@@ -34,7 +34,7 @@ var ErrNoCursor = errors.New("database response does not contain a cursor")
 type BatchCursor struct {
 	clientSession        *session.Client
 	clock                *session.ClusterClock
-	comment              interface{}
+	comment              any
 	encoderFn            codecutil.EncoderFn
 	database             string
 	collection           string
@@ -381,14 +381,40 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 
 	bc.err = Operation{
 		CommandFn: func(dst []byte, _ description.SelectedServer) ([]byte, error) {
+			// If maxAwaitTime > remaining timeoutMS - minRoundTripTime, then use
+			// send remaining TimeoutMS - minRoundTripTime allowing the server an
+			// opportunity to respond with an empty batch.
+			var maxTimeMS int64
+			if bc.maxAwaitTime != nil {
+				_, ctxDeadlineSet := ctx.Deadline()
+
+				if ctxDeadlineSet {
+					rttMonitor := bc.Server().RTTMonitor()
+
+					var ok bool
+					maxTimeMS, ok = driverutil.CalculateMaxTimeMS(ctx, rttMonitor.Min())
+					if !ok && maxTimeMS <= 0 {
+						return nil, fmt.Errorf(
+							"calculated server-side timeout (%v ms) is less than or equal to 0 (%v): %w",
+							maxTimeMS,
+							rttMonitor.Stats(),
+							ErrDeadlineWouldBeExceeded)
+					}
+				}
+
+				if !ctxDeadlineSet || bc.maxAwaitTime.Milliseconds() < maxTimeMS {
+					maxTimeMS = bc.maxAwaitTime.Milliseconds()
+				}
+			}
+
 			dst = bsoncore.AppendInt64Element(dst, "getMore", bc.id)
 			dst = bsoncore.AppendStringElement(dst, "collection", bc.collection)
 			if numToReturn > 0 {
 				dst = bsoncore.AppendInt32Element(dst, "batchSize", numToReturn)
 			}
 
-			if bc.maxAwaitTime != nil && *bc.maxAwaitTime > 0 {
-				dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", int64(*bc.maxAwaitTime)/int64(time.Millisecond))
+			if maxTimeMS > 0 {
+				dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", maxTimeMS)
 			}
 
 			comment, err := codecutil.MarshalValue(bc.comment, bc.encoderFn)
@@ -505,7 +531,7 @@ func (bc *BatchCursor) SetMaxAwaitTime(dur time.Duration) {
 }
 
 // SetComment sets the comment for future getMore operations.
-func (bc *BatchCursor) SetComment(comment interface{}) {
+func (bc *BatchCursor) SetComment(comment any) {
 	bc.comment = comment
 }
 
@@ -517,6 +543,12 @@ func (bc *BatchCursor) getOperationDeployment() Deployment {
 		}
 	}
 	return SingleServerDeployment{bc.server}
+}
+
+// MaxAwaitTime returns the maximum amount of time the server will allow
+// the operations to execute. This is only valid for tailable awaitData cursors.
+func (bc *BatchCursor) MaxAwaitTime() *time.Duration {
+	return bc.maxAwaitTime
 }
 
 // loadBalancedCursorDeployment is used as a Deployment for getMore and killCursors commands when pinning to a

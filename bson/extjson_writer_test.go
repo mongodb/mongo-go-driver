@@ -20,108 +20,108 @@ func TestExtJSONValueWriter(t *testing.T) {
 	oid := ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C}
 	testCases := []struct {
 		name   string
-		fn     interface{}
-		params []interface{}
+		fn     any
+		params []any
 	}{
 		{
 			"WriteBinary",
 			(*extJSONValueWriter).WriteBinary,
-			[]interface{}{[]byte{0x01, 0x02, 0x03}},
+			[]any{[]byte{0x01, 0x02, 0x03}},
 		},
 		{
 			"WriteBinaryWithSubtype (not 0x02)",
 			(*extJSONValueWriter).WriteBinaryWithSubtype,
-			[]interface{}{[]byte{0x01, 0x02, 0x03}, byte(0xFF)},
+			[]any{[]byte{0x01, 0x02, 0x03}, byte(0xFF)},
 		},
 		{
 			"WriteBinaryWithSubtype (0x02)",
 			(*extJSONValueWriter).WriteBinaryWithSubtype,
-			[]interface{}{[]byte{0x01, 0x02, 0x03}, byte(0x02)},
+			[]any{[]byte{0x01, 0x02, 0x03}, byte(0x02)},
 		},
 		{
 			"WriteBoolean",
 			(*extJSONValueWriter).WriteBoolean,
-			[]interface{}{true},
+			[]any{true},
 		},
 		{
 			"WriteDBPointer",
 			(*extJSONValueWriter).WriteDBPointer,
-			[]interface{}{"bar", oid},
+			[]any{"bar", oid},
 		},
 		{
 			"WriteDateTime",
 			(*extJSONValueWriter).WriteDateTime,
-			[]interface{}{int64(12345678)},
+			[]any{int64(12345678)},
 		},
 		{
 			"WriteDecimal128",
 			(*extJSONValueWriter).WriteDecimal128,
-			[]interface{}{NewDecimal128(10, 20)},
+			[]any{NewDecimal128(10, 20)},
 		},
 		{
 			"WriteDouble",
 			(*extJSONValueWriter).WriteDouble,
-			[]interface{}{float64(3.14159)},
+			[]any{float64(3.14159)},
 		},
 		{
 			"WriteInt32",
 			(*extJSONValueWriter).WriteInt32,
-			[]interface{}{int32(123456)},
+			[]any{int32(123456)},
 		},
 		{
 			"WriteInt64",
 			(*extJSONValueWriter).WriteInt64,
-			[]interface{}{int64(1234567890)},
+			[]any{int64(1234567890)},
 		},
 		{
 			"WriteJavascript",
 			(*extJSONValueWriter).WriteJavascript,
-			[]interface{}{"var foo = 'bar';"},
+			[]any{"var foo = 'bar';"},
 		},
 		{
 			"WriteMaxKey",
 			(*extJSONValueWriter).WriteMaxKey,
-			[]interface{}{},
+			[]any{},
 		},
 		{
 			"WriteMinKey",
 			(*extJSONValueWriter).WriteMinKey,
-			[]interface{}{},
+			[]any{},
 		},
 		{
 			"WriteNull",
 			(*extJSONValueWriter).WriteNull,
-			[]interface{}{},
+			[]any{},
 		},
 		{
 			"WriteObjectID",
 			(*extJSONValueWriter).WriteObjectID,
-			[]interface{}{oid},
+			[]any{oid},
 		},
 		{
 			"WriteRegex",
 			(*extJSONValueWriter).WriteRegex,
-			[]interface{}{"bar", "baz"},
+			[]any{"bar", "baz"},
 		},
 		{
 			"WriteString",
 			(*extJSONValueWriter).WriteString,
-			[]interface{}{"hello, world!"},
+			[]any{"hello, world!"},
 		},
 		{
 			"WriteSymbol",
 			(*extJSONValueWriter).WriteSymbol,
-			[]interface{}{"symbollolz"},
+			[]any{"symbollolz"},
 		},
 		{
 			"WriteTimestamp",
 			(*extJSONValueWriter).WriteTimestamp,
-			[]interface{}{uint32(10), uint32(20)},
+			[]any{uint32(10), uint32(20)},
 		},
 		{
 			"WriteUndefined",
 			(*extJSONValueWriter).WriteUndefined,
-			[]interface{}{},
+			[]any{},
 		},
 	}
 

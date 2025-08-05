@@ -110,7 +110,7 @@ func (e *zlibEncoder) Encode(dst, src []byte) ([]byte, error) {
 }
 
 var zstdBufPool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		s := make([]byte, 0)
 		return &s
 	},
@@ -147,7 +147,7 @@ func CompressPayload(in []byte, opts CompressionOpts) ([]byte, error) {
 }
 
 var zstdReaderPool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		r, _ := zstd.NewReader(nil)
 		return r
 	},
