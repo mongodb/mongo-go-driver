@@ -40,7 +40,7 @@ type testCase struct {
 	Warning     bool
 	Hosts       []host
 	Auth        *auth
-	Options     map[string]interface{}
+	Options     map[string]any
 }
 
 type testContainer struct {
@@ -167,7 +167,7 @@ func TestURIOptionsSpec(t *testing.T) {
 }
 
 // verifyConnStringOptions verifies the options on the connection string.
-func verifyConnStringOptions(t *testing.T, cs *connstring.ConnString, options map[string]interface{}) {
+func verifyConnStringOptions(t *testing.T, cs *connstring.ConnString, options map[string]any) {
 	// Check that all options are present.
 	for key, value := range options {
 
@@ -180,7 +180,7 @@ func verifyConnStringOptions(t *testing.T, cs *connstring.ConnString, options ma
 		case "authmechanism":
 			require.Equal(t, value, cs.AuthMechanism)
 		case "authmechanismproperties":
-			convertedMap := value.(map[string]interface{})
+			convertedMap := value.(map[string]any)
 			require.Equal(t,
 				mapInterfaceToString(convertedMap),
 				cs.AuthMechanismProperties)
@@ -216,11 +216,11 @@ func verifyConnStringOptions(t *testing.T, cs *connstring.ConnString, options ma
 		case "readpreference":
 			require.Equal(t, value, cs.ReadPreference)
 		case "readpreferencetags":
-			sm, ok := value.([]interface{})
+			sm, ok := value.([]any)
 			require.True(t, ok)
 			tags := make([]map[string]string, 0, len(sm))
 			for _, i := range sm {
-				m, ok := i.(map[string]interface{})
+				m, ok := i.(map[string]any)
 				require.True(t, ok)
 				tags = append(tags, mapInterfaceToString(m))
 			}
@@ -283,8 +283,8 @@ func verifyConnStringOptions(t *testing.T, cs *connstring.ConnString, options ma
 	}
 }
 
-// Convert each interface{} value in the map to a string.
-func mapInterfaceToString(m map[string]interface{}) map[string]string {
+// Convert each any value in the map to a string.
+func mapInterfaceToString(m map[string]any) map[string]string {
 	out := make(map[string]string)
 
 	for key, value := range m {
@@ -297,7 +297,7 @@ func mapInterfaceToString(m map[string]interface{}) map[string]string {
 // getIntFromInterface attempts to convert an empty interface value to an integer.
 //
 // Returns nil if it is not possible.
-func getIntFromInterface(i interface{}) *int64 {
+func getIntFromInterface(i any) *int64 {
 	var out int64
 
 	switch v := i.(type) {
@@ -328,8 +328,8 @@ func getIntFromInterface(i interface{}) *int64 {
 	return &out
 }
 
-func convertToStringSlice(i interface{}) []string {
-	s, ok := i.([]interface{})
+func convertToStringSlice(i any) []string {
+	s, ok := i.([]any)
 	if !ok {
 		return nil
 	}

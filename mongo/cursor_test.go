@@ -27,6 +27,8 @@ type testBatchCursor struct {
 	closed  bool
 }
 
+var _ batchCursor = (*testBatchCursor)(nil)
+
 func newTestBatchCursor(numBatches, batchSize int) *testBatchCursor {
 	batches := make([]*bsoncore.Iterator, 0, numBatches)
 
@@ -99,6 +101,7 @@ func (tbc *testBatchCursor) Close(context.Context) error {
 func (tbc *testBatchCursor) SetBatchSize(int32)            {}
 func (tbc *testBatchCursor) SetComment(any)                {}
 func (tbc *testBatchCursor) SetMaxAwaitTime(time.Duration) {}
+func (tbc *testBatchCursor) MaxAwaitTime() *time.Duration  { return nil }
 
 func TestCursor(t *testing.T) {
 	t.Run("TestAll", func(t *testing.T) {

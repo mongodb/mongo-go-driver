@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
-	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/csot"
@@ -101,33 +100,6 @@ type changeStreamConfig struct {
 	collectionName string
 	databaseName   string
 	crypt          driver.Crypt
-}
-
-// validChangeStreamTimeouts will return "false" if maxAwaitTimeMS is set,
-// timeoutMS is set to a non-zero value, and maxAwaitTimeMS is greater than or
-// equal to timeoutMS. Otherwise, the timeouts are valid.
-func validChangeStreamTimeouts(ctx context.Context, cs *ChangeStream) bool {
-	if cs.options == nil || cs.client == nil {
-		return true
-	}
-
-	maxAwaitTime := cs.options.MaxAwaitTime
-	timeout := cs.client.timeout
-
-	if maxAwaitTime == nil {
-		return true
-	}
-
-	if deadline, ok := ctx.Deadline(); ok {
-		ctxTimeout := time.Until(deadline)
-		timeout = &ctxTimeout
-	}
-
-	if timeout == nil {
-		return true
-	}
-
-	return *timeout <= 0 || *maxAwaitTime < *timeout
 }
 
 func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline any,
@@ -696,10 +668,33 @@ func (cs *ChangeStream) next(ctx context.Context, nonBlocking bool) bool {
 }
 
 func (cs *ChangeStream) loopNext(ctx context.Context, nonBlocking bool) {
-	if !validChangeStreamTimeouts(ctx, cs) {
-		cs.err = fmt.Errorf("MaxAwaitTime must be less than the operation timeout")
+	// To avoid unnecessary socket timeouts, we attempt to short-circuit tailable
+	// awaitData "getMore" operations by ensuring that the maxAwaitTimeMS is less
+	// than the operation timeout.
+	//
+	// The specifications assume that drivers iteratively apply the timeout
+	// provided at the constructor level (e.g., (*collection).Find) for tailable
+	// awaitData cursors:
+	//
+	//	If set, drivers MUST apply the timeoutMS option to the initial aggregate
+	//	operation. Drivers MUST also apply the original timeoutMS value to each
+	//	next call on the change stream but MUST NOT use it to derive a maxTimeMS
+	//	field for getMore commands.
+	//
+	// The Go Driver might decide to support the above behavior with DRIVERS-2722.
+	// The principal concern is that it would be unexpected for users to apply an
+	// operation-level timeout via contexts to a constructor and then that timeout
+	// later be applied while working with a resulting cursor. Instead, it is more
+	// idiomatic to apply the timeout to the context passed to Next or TryNext.
+	if cs.options != nil && !nonBlocking {
+		maxAwaitTime := cs.cursorOptions.MaxAwaitTime
 
-		return
+		// If maxAwaitTime is not set, this check is unnecessary.
+		if maxAwaitTime != nil && !mongoutil.TimeoutWithinContext(ctx, *maxAwaitTime) {
+			cs.err = fmt.Errorf("MaxAwaitTime must be less than the operation timeout")
+
+			return
+		}
 	}
 
 	// Apply the client-level timeout if the operation-level timeout is not set.
