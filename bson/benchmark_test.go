@@ -147,14 +147,14 @@ var nestedInstance = nestedtest1{
 const extendedBSONDir = "../testdata/extended_bson"
 
 var (
-	extJSONFiles   map[string]map[string]interface{}
+	extJSONFiles   map[string]map[string]any
 	extJSONFilesMu sync.Mutex
 )
 
 // readExtJSONFile reads the GZIP-compressed extended JSON document from the given filename in the
 // "extended BSON" test data directory (../testdata/extended_bson) and returns it as a
-// map[string]interface{}. It panics on any errors.
-func readExtJSONFile(filename string) map[string]interface{} {
+// map[string]any. It panics on any errors.
+func readExtJSONFile(filename string) map[string]any {
 	extJSONFilesMu.Lock()
 	defer extJSONFilesMu.Unlock()
 	if v, ok := extJSONFiles[filename]; ok {
@@ -182,14 +182,14 @@ func readExtJSONFile(filename string) map[string]interface{} {
 		panic(fmt.Sprintf("error reading GZIP contents of file: %s", err))
 	}
 
-	var v map[string]interface{}
+	var v map[string]any
 	err = UnmarshalExtJSON(data, false, &v)
 	if err != nil {
 		panic(fmt.Sprintf("error unmarshalling extended JSON: %s", err))
 	}
 
 	if extJSONFiles == nil {
-		extJSONFiles = make(map[string]map[string]interface{})
+		extJSONFiles = make(map[string]map[string]any)
 	}
 	extJSONFiles[filename] = v
 	return v

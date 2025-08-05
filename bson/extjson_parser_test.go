@@ -71,8 +71,8 @@ func expectSpecificError(expected error) expectedErrorFunc {
 	}
 }
 
-func specificDiff(name string) func(t *testing.T, expected, actual interface{}, desc string) {
-	return func(t *testing.T, expected, actual interface{}, desc string) {
+func specificDiff(name string) func(t *testing.T, expected, actual any, desc string) {
+	return func(t *testing.T, expected, actual any, desc string) {
 		if diff := cmp.Diff(expected, actual); diff != "" {
 			t.Helper()
 			t.Errorf("%s: Incorrect JSON %s (-want, +got): %s\n", desc, name, diff)
@@ -373,19 +373,19 @@ func TestExtJSONParserReadKeyReadValue(t *testing.T) {
 	}
 }
 
-type ejpExpectationTest func(t *testing.T, p *extJSONParser, expectedKey string, expectedType Type, expectedValue interface{})
+type ejpExpectationTest func(t *testing.T, p *extJSONParser, expectedKey string, expectedType Type, expectedValue any)
 
 type ejpTestCase struct {
 	f ejpExpectationTest
 	p *extJSONParser
 	k string
 	t Type
-	v interface{}
+	v any
 }
 
 // expectSingleValue is used for simple JSON types (strings, numbers, literals) and for extended JSON types that
 // have single key-value pairs (i.e. { "$minKey": 1 }, { "$numberLong": "42.42" })
-func expectSingleValue(t *testing.T, p *extJSONParser, expectedKey string, expectedType Type, expectedValue interface{}) {
+func expectSingleValue(t *testing.T, p *extJSONParser, expectedKey string, expectedType Type, expectedValue any) {
 	eVal := expectedValue.(*extJSONValue)
 
 	k, typ, err := p.readKey()
@@ -397,7 +397,7 @@ func expectSingleValue(t *testing.T, p *extJSONParser, expectedKey string, expec
 
 // expectMultipleValues is used for values that are subdocuments of known size and with known keys (such as extended
 // JSON types { "$timestamp": {"t": 1, "i": 1} } and { "$regularExpression": {"pattern": "", options: ""} })
-func expectMultipleValues(t *testing.T, p *extJSONParser, expectedKey string, expectedType Type, expectedValue interface{}) {
+func expectMultipleValues(t *testing.T, p *extJSONParser, expectedKey string, expectedType Type, expectedValue any) {
 	k, typ, err := p.readKey()
 	readKeyDiff(t, expectedKey, k, expectedType, typ, err, expectNoError, expectedKey)
 
@@ -433,7 +433,7 @@ type ejpSubDocumentTestValue struct {
 // expectSubDocument is used for embedded documents and code with scope types; it reads all the keys and values
 // in the embedded document (or scope for codeWithScope) and compares them to the expectedValue's list of (key, type,
 // value) triples
-func expectSubDocument(t *testing.T, p *extJSONParser, expectedKey string, expectedType Type, expectedValue interface{}) {
+func expectSubDocument(t *testing.T, p *extJSONParser, expectedKey string, expectedType Type, expectedValue any) {
 	subdoc := expectedValue.(ejpSubDocumentTestValue)
 
 	k, typ, err := p.readKey()
@@ -469,7 +469,7 @@ func expectSubDocument(t *testing.T, p *extJSONParser, expectedKey string, expec
 
 // expectArray takes the expectedKey, ignores the expectedType, and uses the expectedValue
 // as a slice of (type Type, value *extJSONValue) pairs
-func expectArray(t *testing.T, p *extJSONParser, expectedKey string, _ Type, expectedValue interface{}) {
+func expectArray(t *testing.T, p *extJSONParser, expectedKey string, _ Type, expectedValue any) {
 	ktvs := expectedValue.([]ejpKeyTypValTriple)
 
 	k, typ, err := p.readKey()

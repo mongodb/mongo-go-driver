@@ -53,7 +53,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 
 	type subtest struct {
 		name   string
-		val    interface{}
+		val    any
 		dctx   *DecodeContext
 		llvrw  *valueReaderWriter
 		invoke invoked
@@ -811,7 +811,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"wrong kind (non-string key)",
-					map[bool]interface{}{},
+					map[bool]any{},
 					&DecodeContext{Registry: buildDefaultRegistry()},
 					&valueReaderWriter{},
 					readElement,
@@ -819,7 +819,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"ReadDocument Error",
-					make(map[string]interface{}),
+					make(map[string]any),
 					nil,
 					&valueReaderWriter{Err: errors.New("rd error"), ErrAfter: readDocument},
 					readDocument,
@@ -835,7 +835,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"ReadElement Error",
-					make(map[string]interface{}),
+					make(map[string]any),
 					&DecodeContext{Registry: buildDefaultRegistry()},
 					&valueReaderWriter{Err: errors.New("re error"), ErrAfter: readElement},
 					readElement,
@@ -851,7 +851,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"wrong BSON type",
-					map[string]interface{}{},
+					map[string]any{},
 					nil,
 					&valueReaderWriter{BSONType: TypeString},
 					nothing,
@@ -859,7 +859,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"decode null",
-					(map[string]interface{})(nil),
+					(map[string]any)(nil),
 					nil,
 					&valueReaderWriter{BSONType: TypeNull},
 					readNull,
@@ -867,7 +867,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"decode undefined",
-					(map[string]interface{})(nil),
+					(map[string]any)(nil),
 					nil,
 					&valueReaderWriter{BSONType: TypeUndefined},
 					readUndefined,
@@ -901,7 +901,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"Not Type Array",
-					[1]interface{}{},
+					[1]any{},
 					nil,
 					&valueReaderWriter{BSONType: TypeString},
 					nothing,
@@ -909,7 +909,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"ReadArray Error",
-					[1]interface{}{},
+					[1]any{},
 					nil,
 					&valueReaderWriter{Err: errors.New("ra error"), ErrAfter: readArray, BSONType: TypeArray},
 					readArray,
@@ -999,7 +999,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"Not Type Array",
-					[]interface{}{},
+					[]any{},
 					nil,
 					&valueReaderWriter{BSONType: TypeInt32},
 					nothing,
@@ -1007,7 +1007,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"ReadArray Error",
-					[]interface{}{},
+					[]any{},
 					nil,
 					&valueReaderWriter{Err: errors.New("ra error"), ErrAfter: readArray, BSONType: TypeArray},
 					readArray,
@@ -2440,7 +2440,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 						llvrw = rc.llvrw
 					}
 					llvrw.T = t
-					// var got interface{}
+					// var got any
 					if rc.val == cansetreflectiontest { // We're doing a CanSet reflection test
 						err := tc.vd.DecodeValue(dc, llvrw, reflect.Value{})
 						if !assert.CompareErrors(err, rc.err) {
@@ -2492,7 +2492,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					if !cmp.Equal(invoked, rc.invoke) {
 						t.Errorf("Incorrect method invoked. got %v; want %v", invoked, rc.invoke)
 					}
-					var got interface{}
+					var got any
 					if val.IsValid() && val.CanInterface() {
 						got = val.Interface()
 					}
@@ -2600,7 +2600,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 
 		testCases := []struct {
 			name  string
-			value interface{}
+			value any
 			b     []byte
 			err   error
 		}{
@@ -2681,8 +2681,8 @@ func TestDefaultValueDecoders(t *testing.T) {
 				nil,
 			},
 			{
-				"map[mystring]interface{}",
-				map[mystring]interface{}{"pi": 3.14159},
+				"map[mystring]any",
+				map[mystring]any{"pi": 3.14159},
 				buildDocument(bsoncore.AppendDoubleElement(nil, "pi", 3.14159)),
 				nil,
 			},
@@ -2925,20 +2925,20 @@ func TestDefaultValueDecoders(t *testing.T) {
 					AJ *ObjectID
 					AK *ObjectID
 					AL testValueUnmarshaler
-					AM interface{}
-					AN interface{}
-					AO interface{}
+					AM any
+					AN any
+					AO any
 					AP D
 					AQ A
 					AR [2]E
 					AS []byte
-					AT map[string]interface{}
+					AT map[string]any
 					AU CodeWithScope
 					AV M
 					AW D
-					AX map[string]interface{}
+					AX map[string]any
 					AY []E
-					AZ interface{}
+					AZ any
 				}{
 					A: true,
 					B: 123,
@@ -2982,7 +2982,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					AU: CodeWithScope{Code: "var hello = 'world';", Scope: D{{"pi", 3.14159}}},
 					AV: M{"foo": D{{"bar", "baz"}}},
 					AW: D{{"foo", D{{"bar", "baz"}}}},
-					AX: map[string]interface{}{"foo": D{{"bar", "baz"}}},
+					AX: map[string]any{"foo": D{{"bar", "baz"}}},
 					AY: []E{{"foo", D{{"bar", "baz"}}}},
 					AZ: D{{"foo", D{{"bar", "baz"}}}},
 				},
@@ -3043,7 +3043,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				nil,
 			},
 			{
-				"struct{[]interface{}}",
+				"struct{[]any}",
 				struct {
 					A []bool
 					B []int32
@@ -3245,7 +3245,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 	t.Run("error path", func(t *testing.T) {
 		testCases := []struct {
 			name  string
-			value interface{}
+			value any
 			b     []byte
 			err   error
 		}{
@@ -3284,7 +3284,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		t.Run("DecodeValue", func(t *testing.T) {
 			testCases := []struct {
 				name     string
-				val      interface{}
+				val      any
 				bsontype Type
 			}{
 				{
@@ -3458,7 +3458,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 			}
 		})
 
-		t.Run("non-interface{}", func(t *testing.T) {
+		t.Run("non-any", func(t *testing.T) {
 			val := uint64(1234567890)
 			want := ValueDecoderError{Name: "EmptyInterfaceDecodeValue", Types: []reflect.Type{tEmpty}, Received: reflect.ValueOf(val)}
 			got := (&emptyInterfaceCodec{}).DecodeValue(DecodeContext{}, nil, reflect.ValueOf(val))
@@ -3467,8 +3467,8 @@ func TestDefaultValueDecoders(t *testing.T) {
 			}
 		})
 
-		t.Run("nil *interface{}", func(t *testing.T) {
-			var val interface{}
+		t.Run("nil *any", func(t *testing.T) {
+			var val any
 			want := ValueDecoderError{Name: "EmptyInterfaceDecodeValue", Types: []reflect.Type{tEmpty}, Received: reflect.ValueOf(val)}
 			got := (&emptyInterfaceCodec{}).DecodeValue(DecodeContext{}, nil, reflect.ValueOf(val))
 			if !assert.CompareErrors(got, want) {
@@ -3489,7 +3489,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 			data := bsoncore.BuildDocument(nil, bsoncore.AppendDoubleElement(nil, "pi", 3.14159))
 			vr := NewDocumentReader(bytes.NewReader(data))
 			want := D{{"pi", 3.14159}}
-			var got interface{}
+			var got any
 			val := reflect.ValueOf(&got).Elem()
 			err := (&emptyInterfaceCodec{}).DecodeValue(DecodeContext{Registry: buildDefaultRegistry()}, vr, val)
 			noerr(t, err)
@@ -3499,7 +3499,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		})
 		t.Run("custom type map entry", func(t *testing.T) {
 			// registering a custom type map entry for both Type(0) anad TypeEmbeddedDocument should cause
-			// the top-level to decode to registered type when unmarshalling to interface{}
+			// the top-level to decode to registered type when unmarshalling to any
 
 			topLevelReg := &Registry{
 				typeEncoders: new(typeEncoderCache),
@@ -3542,7 +3542,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				{"embedded", embeddedReg},
 			}
 			for _, tc := range testCases {
-				var got interface{}
+				var got any
 				vr := NewDocumentReader(bytes.NewReader(doc))
 				val := reflect.ValueOf(&got).Elem()
 
@@ -3601,7 +3601,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		emptyInterfaceErrorRegistry := newTestRegistry()
 		emptyInterfaceErrorRegistry.RegisterTypeDecoder(tEmpty, ValueDecoderFunc(emptyInterfaceErrorDecode))
 
-		// Set up a document {foo: 10} and an error that would happen if the value were decoded into interface{}
+		// Set up a document {foo: 10} and an error that would happen if the value were decoded into any
 		// using the registry defined above.
 		docBytes := bsoncore.BuildDocumentFromElements(
 			nil,
@@ -3612,11 +3612,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 			wrapped: decodeValueError,
 		}
 
-		// Set up struct definitions where Foo maps to interface{} and string. When decoded using the registry defined
-		// above, the interface{} struct will get an error when calling DecodeValue and the string struct will get an
+		// Set up struct definitions where Foo maps to any and string. When decoded using the registry defined
+		// above, the any struct will get an error when calling DecodeValue and the string struct will get an
 		// error when looking up a decoder.
 		type emptyInterfaceStruct struct {
-			Foo interface{}
+			Foo any
 		}
 		type stringStruct struct {
 			Foo string
@@ -3632,7 +3632,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 
 		// Test a deeply nested struct mixed with maps and slices.
 		// Build document {"first": {"second": {"randomKey": {"third": [{}, {"fourth": "value"}]}}}}
-		type inner3 struct{ Fourth interface{} }
+		type inner3 struct{ Fourth any }
 		type inner2 struct{ Third []inner3 }
 		type inner1 struct{ Second map[string]inner2 }
 		type outer struct{ First inner1 }
@@ -3650,7 +3650,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		inner1Doc := buildDocument(bsoncore.AppendDocumentElement(nil, "second", inner2Map))
 		outerDoc := buildDocument(bsoncore.AppendDocumentElement(nil, "first", inner1Doc))
 
-		// Use a registry that has all default decoders with the custom interface{} decoder that always errors.
+		// Use a registry that has all default decoders with the custom any decoder that always errors.
 		nestedRegistry := &Registry{
 			typeEncoders: new(typeEncoderCache),
 			typeDecoders: new(typeDecoderCache),
@@ -3666,7 +3666,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 
 		testCases := []struct {
 			name     string
-			val      interface{}
+			val      any
 			vr       ValueReader
 			registry *Registry // buildDefaultRegistry will be used if this is nil
 			decoder  ValueDecoder
@@ -3721,7 +3721,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 			{
 				// DecodeValue error when decoding into a map.
 				"map",
-				map[string]interface{}{},
+				map[string]any{},
 				NewDocumentReader(bytes.NewReader(docBytes)),
 				emptyInterfaceErrorRegistry,
 				&mapCodec{},

@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
@@ -175,6 +176,32 @@ func (c *Cursor) next(ctx context.Context, nonBlocking bool) bool {
 	if ctx == nil {
 		ctx = context.Background()
 	}
+
+	// To avoid unnecessary socket timeouts, we attempt to short-circuit tailable
+	// awaitData "getMore" operations by ensuring that the maxAwaitTimeMS is less
+	// than the operation timeout.
+	//
+	// The specifications assume that drivers iteratively apply the timeout
+	// provided at the constructor level (e.g., (*collection).Find) for tailable
+	// awaitData cursors:
+	//
+	//   If set, drivers MUST apply the timeoutMS option to the initial aggregate
+	//   operation. Drivers MUST also apply the original timeoutMS value to each
+	//   next call on the change stream but MUST NOT use it to derive a maxTimeMS
+	//   field for getMore commands.
+	//
+	// The Go Driver might decide to support the above behavior with DRIVERS-2722.
+	// The principal concern is that it would be unexpected for users to apply an
+	// operation-level timeout via contexts to a constructor and then that timeout
+	// later be applied while working with a resulting cursor. Instead, it is more
+	// idiomatic to apply the timeout to the context passed to Next or TryNext.
+	maxAwaitTime := c.bc.MaxAwaitTime() //
+	if maxAwaitTime != nil && !nonBlocking && !mongoutil.TimeoutWithinContext(ctx, *maxAwaitTime) {
+		c.err = fmt.Errorf("MaxAwaitTime must be less than the operation timeout")
+
+		return false
+	}
+
 	val, err := c.batch.Next()
 	switch {
 	case err == nil:
@@ -194,7 +221,7 @@ func (c *Cursor) next(ctx context.Context, nonBlocking bool) bool {
 		// If we don't have a next batch
 		if !c.bc.Next(ctx) {
 			// Do we have an error? If so we return false.
-			c.err = replaceErrors(c.bc.Err())
+			c.err = wrapErrors(c.bc.Err())
 			if c.err != nil {
 				return false
 			}
@@ -289,7 +316,7 @@ func (c *Cursor) Err() error { return c.err }
 // the first call, any subsequent calls will not change the state.
 func (c *Cursor) Close(ctx context.Context) error {
 	defer c.closeImplicitSession()
-	return replaceErrors(c.bc.Close(ctx))
+	return wrapErrors(c.bc.Close(ctx))
 }
 
 // All iterates the cursor and decodes each document into results. The results parameter must be a pointer to a slice.
@@ -336,7 +363,7 @@ func (c *Cursor) All(ctx context.Context, results interface{}) error {
 		batch = c.bc.Batch()
 	}
 
-	if err = replaceErrors(c.bc.Err()); err != nil {
+	if err = wrapErrors(c.bc.Err()); err != nil {
 		return err
 	}
 

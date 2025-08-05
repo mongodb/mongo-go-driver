@@ -43,7 +43,7 @@ func (rv RawValue) IsZero() bool {
 // error is returned. This method will use the registry used to create the RawValue, if the RawValue
 // was created from partial BSON processing, or it will use the default registry. Users wishing to
 // specify the registry to use should use UnmarshalWithRegistry.
-func (rv RawValue) Unmarshal(val interface{}) error {
+func (rv RawValue) Unmarshal(val any) error {
 	reg := rv.r
 	if reg == nil {
 		reg = defaultRegistry
@@ -66,12 +66,12 @@ func (rv RawValue) Equal(rv2 RawValue) bool {
 
 // UnmarshalWithRegistry performs the same unmarshalling as Unmarshal but uses the provided registry
 // instead of the one attached or the default registry.
-func (rv RawValue) UnmarshalWithRegistry(r *Registry, val interface{}) error {
+func (rv RawValue) UnmarshalWithRegistry(r *Registry, val any) error {
 	if r == nil {
 		return ErrNilRegistry
 	}
 
-	vr := newValueReader(rv.Type, bytes.NewReader(rv.Value))
+	vr := newBufferedValueReader(rv.Type, rv.Value)
 	rval := reflect.ValueOf(val)
 	if rval.Kind() != reflect.Ptr {
 		return fmt.Errorf("argument to Unmarshal* must be a pointer to a type, but got %v", rval)
@@ -86,12 +86,12 @@ func (rv RawValue) UnmarshalWithRegistry(r *Registry, val interface{}) error {
 
 // UnmarshalWithContext performs the same unmarshalling as Unmarshal but uses the provided DecodeContext
 // instead of the one attached or the default registry.
-func (rv RawValue) UnmarshalWithContext(dc *DecodeContext, val interface{}) error {
+func (rv RawValue) UnmarshalWithContext(dc *DecodeContext, val any) error {
 	if dc == nil {
 		return ErrNilContext
 	}
 
-	vr := newValueReader(rv.Type, bytes.NewReader(rv.Value))
+	vr := newBufferedValueReader(rv.Type, rv.Value)
 	rval := reflect.ValueOf(val)
 	if rval.Kind() != reflect.Ptr {
 		return fmt.Errorf("argument to Unmarshal* must be a pointer to a type, but got %v", rval)

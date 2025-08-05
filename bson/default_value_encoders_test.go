@@ -63,7 +63,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 
 	type subtest struct {
 		name   string
-		val    interface{}
+		val    any
 		ectx   *EncodeContext
 		llvrw  *valueReaderWriter
 		invoke invoked
@@ -223,7 +223,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				},
 				{
 					"WriteDocument Error",
-					map[string]interface{}{},
+					map[string]any{},
 					nil,
 					&valueReaderWriter{Err: errors.New("wd error"), ErrAfter: writeDocument},
 					writeDocument,
@@ -239,7 +239,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				},
 				{
 					"WriteDocumentElement Error",
-					map[string]interface{}{"foo": "bar"},
+					map[string]any{"foo": "bar"},
 					&EncodeContext{Registry: buildDefaultRegistry()},
 					&valueReaderWriter{Err: errors.New("wde error"), ErrAfter: writeDocumentElement},
 					writeDocumentElement,
@@ -247,7 +247,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				},
 				{
 					"EncodeValue Error",
-					map[string]interface{}{"foo": "bar"},
+					map[string]any{"foo": "bar"},
 					&EncodeContext{Registry: buildDefaultRegistry()},
 					&valueReaderWriter{Err: errors.New("ev error"), ErrAfter: writeString},
 					writeString,
@@ -255,7 +255,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				},
 				{
 					"empty map/success",
-					map[string]interface{}{},
+					map[string]any{},
 					&EncodeContext{Registry: newTestRegistry()},
 					&valueReaderWriter{},
 					writeDocumentEnd,
@@ -279,7 +279,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				},
 				{
 					"non-string key success",
-					map[int]interface{}{
+					map[int]any{
 						1: "foobar",
 					},
 					&EncodeContext{Registry: buildDefaultRegistry()},
@@ -429,7 +429,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				},
 				{
 					"empty slice/success",
-					[]interface{}{},
+					[]any{},
 					&EncodeContext{Registry: newTestRegistry()},
 					&valueReaderWriter{},
 					writeArrayEnd,
@@ -1142,7 +1142,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 
 		testCases := []struct {
 			name  string
-			value interface{}
+			value any
 			b     []byte
 			err   error
 		}{
@@ -1474,7 +1474,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					AC Decimal128
 					AD *time.Time
 					AE testValueMarshaler
-					AF map[string]interface{}
+					AF map[string]any
 					AG CodeWithScope
 				}{
 					A: true,
@@ -1536,7 +1536,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				nil,
 			},
 			{
-				"struct{[]interface{}}",
+				"struct{[]any}",
 				struct {
 					A []bool
 					B []int32
@@ -1674,7 +1674,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 	t.Run("error path", func(t *testing.T) {
 		testCases := []struct {
 			name  string
-			value interface{}
+			value any
 			err   error
 		}{
 			{

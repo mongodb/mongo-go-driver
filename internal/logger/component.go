@@ -75,10 +75,10 @@ const (
 )
 
 // KeyValues is a list of key-value pairs.
-type KeyValues []interface{}
+type KeyValues []any
 
 // Add adds a key-value pair to an instance of a KeyValues list.
-func (kvs *KeyValues) Add(key string, value interface{}) {
+func (kvs *KeyValues) Add(key string, value any) {
 	*kvs = append(*kvs, key, value)
 }
 
@@ -157,9 +157,9 @@ type Command struct {
 }
 
 // SerializeCommand takes a command and a variable number of key-value pairs and
-// returns a slice of interface{} that can be passed to the logger for
+// returns a slice of any that can be passed to the logger for
 // structured logging.
-func SerializeCommand(cmd Command, extraKeysAndValues ...interface{}) KeyValues {
+func SerializeCommand(cmd Command, extraKeysAndValues ...any) KeyValues {
 	// Initialize the boilerplate keys and values.
 	keysAndValues := KeyValues{
 		KeyCommandName, cmd.Name,
@@ -203,7 +203,7 @@ type Connection struct {
 
 // SerializeConnection serializes a Connection message into a slice of keys and
 // values that can be passed to a logger.
-func SerializeConnection(conn Connection, extraKeysAndValues ...interface{}) KeyValues {
+func SerializeConnection(conn Connection, extraKeysAndValues ...any) KeyValues {
 	// Initialize the boilerplate keys and values.
 	keysAndValues := KeyValues{
 		KeyMessage, conn.Message,
@@ -235,7 +235,7 @@ type Server struct {
 
 // SerializeServer serializes a Server message into a slice of keys and
 // values that can be passed to a logger.
-func SerializeServer(srv Server, extraKV ...interface{}) KeyValues {
+func SerializeServer(srv Server, extraKV ...any) KeyValues {
 	// Initialize the boilerplate keys and values.
 	keysAndValues := KeyValues{
 		KeyDriverConnectionID, srv.DriverConnectionID,
@@ -272,7 +272,7 @@ type ServerSelection struct {
 
 // SerializeServerSelection serializes a Topology message into a slice of keys
 // and values that can be passed to a logger.
-func SerializeServerSelection(srvSelection ServerSelection, extraKV ...interface{}) KeyValues {
+func SerializeServerSelection(srvSelection ServerSelection, extraKV ...any) KeyValues {
 	keysAndValues := KeyValues{
 		KeySelector, srvSelection.Selector,
 		KeyOperation, srvSelection.Operation,
@@ -299,7 +299,7 @@ type Topology struct {
 
 // SerializeTopology serializes a Topology message into a slice of keys and
 // values that can be passed to a logger.
-func SerializeTopology(topo Topology, extraKV ...interface{}) KeyValues {
+func SerializeTopology(topo Topology, extraKV ...any) KeyValues {
 	keysAndValues := KeyValues{
 		KeyTopologyID, topo.ID.Hex(),
 	}

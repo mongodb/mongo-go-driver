@@ -23,8 +23,8 @@ import (
 
 type mockLogSink struct{}
 
-func (mockLogSink) Info(int, string, ...interface{})    {}
-func (mockLogSink) Error(error, string, ...interface{}) {}
+func (mockLogSink) Info(int, string, ...any)    {}
+func (mockLogSink) Error(error, string, ...any) {}
 
 func BenchmarkLoggerWithLargeDocuments(b *testing.B) {
 	// Define the large document test cases
@@ -159,9 +159,9 @@ func BenchmarkLogger(b *testing.B) {
 	})
 }
 
-func mockKeyValues(length int) (KeyValues, map[string]interface{}) {
+func mockKeyValues(length int) (KeyValues, map[string]any) {
 	keysAndValues := KeyValues{}
-	m := map[string]interface{}{}
+	m := map[string]any{}
 
 	for i := 0; i < length; i++ {
 		keyName := fmt.Sprintf("key%d", i)
@@ -214,7 +214,7 @@ func TestIOSinkInfo(t *testing.T) {
 
 	dec := json.NewDecoder(buf)
 	for dec.More() {
-		var m map[string]interface{}
+		var m map[string]any
 		if err := dec.Decode(&m); err != nil {
 			t.Fatalf("error unmarshaling JSON: %v", err)
 		}

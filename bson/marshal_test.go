@@ -161,7 +161,7 @@ func TestCachingEncodersNotSharedAcrossRegistries(t *testing.T) {
 
 	// Helper function to run the test and make assertions. The provided original value should result in the document
 	// {"x": {$numberInt: 1}} when marshalled with the default registry.
-	verifyResults := func(t *testing.T, original interface{}) {
+	verifyResults := func(t *testing.T, original any) {
 		// Marshal using the default and custom registries. Assert that the result is {x: 1} and {x: -1}, respectively.
 
 		first, err := Marshal(original)
@@ -244,7 +244,7 @@ func TestNullBytes(t *testing.T) {
 func TestMarshalExtJSONIndent(t *testing.T) {
 	type indentTestCase struct {
 		name            string
-		val             interface{}
+		val             any
 		expectedExtJSON string
 	}
 
@@ -259,8 +259,8 @@ func TestMarshalExtJSONIndent(t *testing.T) {
 		{
 			"embedded struct",
 			struct {
-				Embedded interface{} `json:"embedded"`
-				Foo      string      `json:"foo"`
+				Embedded any    `json:"embedded"`
+				Foo      string `json:"foo"`
 			}{
 				Embedded: struct {
 					Name string `json:"name"`

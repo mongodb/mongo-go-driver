@@ -157,7 +157,7 @@ func TestWithTimeout(t *testing.T) {
 		timeout      *time.Duration
 		wantTimeout  time.Duration
 		wantDeadline bool
-		wantValues   []interface{}
+		wantValues   []any
 	}{
 		{
 			name:         "deadline set with non-zero timeout",
@@ -165,7 +165,7 @@ func TestWithTimeout(t *testing.T) {
 			timeout:      ptrutil.Ptr(time.Duration(2)),
 			wantTimeout:  1,
 			wantDeadline: true,
-			wantValues:   []interface{}{},
+			wantValues:   []any{},
 		},
 		{
 			name:         "deadline set with zero timeout",
@@ -173,7 +173,7 @@ func TestWithTimeout(t *testing.T) {
 			timeout:      ptrutil.Ptr(time.Duration(0)),
 			wantTimeout:  1,
 			wantDeadline: true,
-			wantValues:   []interface{}{},
+			wantValues:   []any{},
 		},
 		{
 			name:         "deadline set with nil timeout",
@@ -181,7 +181,7 @@ func TestWithTimeout(t *testing.T) {
 			timeout:      nil,
 			wantTimeout:  1,
 			wantDeadline: true,
-			wantValues:   []interface{}{},
+			wantValues:   []any{},
 		},
 		{
 			name:         "deadline unset with non-zero timeout",
@@ -189,7 +189,7 @@ func TestWithTimeout(t *testing.T) {
 			timeout:      ptrutil.Ptr(time.Duration(1)),
 			wantTimeout:  1,
 			wantDeadline: true,
-			wantValues:   []interface{}{},
+			wantValues:   []any{},
 		},
 		{
 			name:         "deadline unset with zero timeout",
@@ -197,7 +197,7 @@ func TestWithTimeout(t *testing.T) {
 			timeout:      ptrutil.Ptr(time.Duration(0)),
 			wantTimeout:  0,
 			wantDeadline: false,
-			wantValues:   []interface{}{clientLevel{}},
+			wantValues:   []any{clientLevel{}},
 		},
 		{
 			name:         "deadline unset with nil timeout",
@@ -205,7 +205,7 @@ func TestWithTimeout(t *testing.T) {
 			timeout:      nil,
 			wantTimeout:  0,
 			wantDeadline: false,
-			wantValues:   []interface{}{},
+			wantValues:   []any{},
 		},
 		{
 			// If "clientLevel" has been set, but a new timeout is applied
@@ -216,7 +216,7 @@ func TestWithTimeout(t *testing.T) {
 			timeout:      ptrutil.Ptr(time.Duration(1)),
 			wantTimeout:  0,
 			wantDeadline: false,
-			wantValues:   []interface{}{},
+			wantValues:   []any{},
 		},
 	}
 
