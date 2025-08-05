@@ -2,9 +2,17 @@ name: "CodeQL"
 
 on:
   push:
-    branches: [ "v1", "cloud-*", "master", "release/*" ]
+    branches:
+      - "v1"
+      - "cloud-*"
+      - "master"
+      - "release/*"
   pull_request:
-    branches: [ "v1", "cloud-*", "master", "release/*" ]
+    branches:
+      - "v1"
+      - "cloud-*"
+      - "master"
+      - "release/*"
   schedule:
     - cron: '36 17 * * 0'
   workflow_call:
