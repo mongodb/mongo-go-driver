@@ -54,7 +54,7 @@ func newLogger(olm *observeLogMessages, bufSize int, ignoreMessages []*logMessag
 
 // Info implements the logger.Sink interface's "Info" method for printing log
 // messages.
-func (log *Logger) Info(level int, msg string, args ...interface{}) {
+func (log *Logger) Info(level int, msg string, args ...any) {
 	log.orderMu.Lock()
 	defer log.orderMu.Unlock()
 
@@ -100,7 +100,7 @@ func (log *Logger) Info(level int, msg string, args ...interface{}) {
 // Error implements the logger.Sink interface's "Error" method for printing log
 // errors. In this case, if an error occurs we will simply treat it as
 // informational.
-func (log *Logger) Error(err error, msg string, args ...interface{}) {
+func (log *Logger) Error(err error, msg string, args ...any) {
 	args = append(args, "error", err)
 	log.Info(int(logger.LevelInfo), msg, args)
 }

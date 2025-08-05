@@ -141,7 +141,7 @@ func createAutoEncryptionOptions(t testing.TB, opts bson.Raw) *options.AutoEncry
 			tlsConfigs := createTLSOptsMap(t, opt.Document())
 			aeo.SetKmsProviders(createKmsProvidersMap(t, opt.Document())).SetTLSConfig(tlsConfigs)
 		case "schemaMap":
-			var schemaMap map[string]interface{}
+			var schemaMap map[string]any
 			err := bson.Unmarshal(opt.Document(), &schemaMap)
 			if err != nil {
 				t.Fatalf("error creating schema map: %v", err)
@@ -154,7 +154,7 @@ func createAutoEncryptionOptions(t testing.TB, opts bson.Raw) *options.AutoEncry
 		case "bypassAutoEncryption":
 			aeo.SetBypassAutoEncryption(opt.Boolean())
 		case "encryptedFieldsMap":
-			var encryptedFieldsMap map[string]interface{}
+			var encryptedFieldsMap map[string]any
 			err := bson.Unmarshal(opt.Document(), &encryptedFieldsMap)
 			if err != nil {
 				t.Fatalf("error creating encryptedFieldsMap: %v", err)
@@ -185,7 +185,7 @@ func createTLSOptsMap(t testing.TB, opts bson.Raw) map[string]*tls.Config {
 		provider := elem.Key()
 
 		if provider == "kmip" {
-			tlsOptsMap := map[string]interface{}{
+			tlsOptsMap := map[string]any{
 				"tlsCertificateKeyFile": tlsClientCertificateKeyFileKMIP,
 				"tlsCAFile":             tlsCAFileKMIP,
 			}
@@ -201,10 +201,10 @@ func createTLSOptsMap(t testing.TB, opts bson.Raw) map[string]*tls.Config {
 	return tlsMap
 }
 
-func createKmsProvidersMap(t testing.TB, opts bson.Raw) map[string]map[string]interface{} {
+func createKmsProvidersMap(t testing.TB, opts bson.Raw) map[string]map[string]any {
 	t.Helper()
 
-	kmsMap := make(map[string]map[string]interface{})
+	kmsMap := make(map[string]map[string]any)
 	elems, _ := opts.Elements()
 
 	for _, elem := range elems {
@@ -213,25 +213,25 @@ func createKmsProvidersMap(t testing.TB, opts bson.Raw) map[string]map[string]in
 
 		switch provider {
 		case "aws":
-			awsMap := map[string]interface{}{
+			awsMap := map[string]any{
 				"accessKeyId":     awsAccessKeyID,
 				"secretAccessKey": awsSecretAccessKey,
 			}
 			kmsMap["aws"] = awsMap
 		case "azure":
-			kmsMap["azure"] = map[string]interface{}{
+			kmsMap["azure"] = map[string]any{
 				"tenantId":     azureTenantID,
 				"clientId":     azureClientID,
 				"clientSecret": azureClientSecret,
 			}
 		case "gcp":
-			kmsMap["gcp"] = map[string]interface{}{
+			kmsMap["gcp"] = map[string]any{
 				"email":      gcpEmail,
 				"privateKey": gcpPrivateKey,
 			}
 		case "local":
 			_, key := providerOpt.Document().Lookup("key").Binary()
-			localMap := map[string]interface{}{
+			localMap := map[string]any{
 				"key": key,
 			}
 			kmsMap["local"] = localMap
@@ -245,7 +245,7 @@ func createKmsProvidersMap(t testing.TB, opts bson.Raw) map[string]map[string]in
 			if awsTempSessionToken == "" {
 				t.Fatal("AWS temp session token not set")
 			}
-			awsMap := map[string]interface{}{
+			awsMap := map[string]any{
 				"accessKeyId":     awsTempAccessKeyID,
 				"secretAccessKey": awsTempSecretAccessKey,
 				"sessionToken":    awsTempSessionToken,
@@ -258,13 +258,13 @@ func createKmsProvidersMap(t testing.TB, opts bson.Raw) map[string]map[string]in
 			if awsTempSecretAccessKey == "" {
 				t.Fatal("AWS temp secret access key not set")
 			}
-			awsMap := map[string]interface{}{
+			awsMap := map[string]any{
 				"accessKeyId":     awsTempAccessKeyID,
 				"secretAccessKey": awsTempSecretAccessKey,
 			}
 			kmsMap["aws"] = awsMap
 		case "kmip":
-			kmipMap := map[string]interface{}{
+			kmipMap := map[string]any{
 				"endpoint": "localhost:5698",
 			}
 			kmsMap["kmip"] = kmipMap
@@ -440,7 +440,7 @@ func createReadPref(opt bson.RawValue) *readpref.ReadPref {
 }
 
 // retrieve the error associated with a result.
-func errorFromResult(t testing.TB, result interface{}) *operationError {
+func errorFromResult(t testing.TB, result any) *operationError {
 	t.Helper()
 
 	// embedded doc will be unmarshalled as Raw
@@ -551,7 +551,7 @@ func verifyError(expected *operationError, actual error) error {
 }
 
 // get the underlying value of i as an int64. returns nil if i is not an int, int32, or int64 type.
-func getIntFromInterface(i interface{}) *int64 {
+func getIntFromInterface(i any) *int64 {
 	var out int64
 
 	switch v := i.(type) {

@@ -36,7 +36,7 @@ func clamDefaultTruncLimitOp(ctx context.Context, mt *mtest.T, coll *mongo.Colle
 
 	// Construct an array of docs containing the document {"x" : "y"}
 	// repeated "documentSize" times.
-	docs := []interface{}{}
+	docs := []any{}
 	for i := 0; i < documentsSize; i++ {
 		docs = append(docs, bson.D{{"x", "y"}})
 	}
@@ -346,7 +346,7 @@ func TestCommandLoggingAndMonitoringProse(t *testing.T) {
 			sinkCtx, sinkCancel := context.WithDeadline(ctx, time.Now().Add(deadline))
 			defer sinkCancel()
 
-			validator := func(order int, _ int, _ string, keysAndValues ...interface{}) error {
+			validator := func(order int, _ int, _ string, keysAndValues ...any) error {
 				// If the order exceeds the length of the
 				// "orderedCaseValidators," then throw an error.
 				if order >= len(tcase.orderedLogValidators) {

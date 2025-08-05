@@ -114,11 +114,11 @@ func (e *expectedEvents) UnmarshalBSON(data []byte) error {
 	// We use the "eventType" value to determine which struct field should be used to deserialize the "events" array.
 
 	var temp struct {
-		ClientID          string                 `bson:"client"`
-		EventType         string                 `bson:"eventType"`
-		Events            bson.RawValue          `bson:"events"`
-		IgnoreExtraEvents *bool                  `bson:"ignoreExtraEvents"`
-		Extra             map[string]interface{} `bson:",inline"`
+		ClientID          string         `bson:"client"`
+		EventType         string         `bson:"eventType"`
+		Events            bson.RawValue  `bson:"events"`
+		IgnoreExtraEvents *bool          `bson:"ignoreExtraEvents"`
+		Extra             map[string]any `bson:",inline"`
 	}
 	if err := bson.Unmarshal(data, &temp); err != nil {
 		return fmt.Errorf("error unmarshalling to temporary expectedEvents object: %w", err)
@@ -132,7 +132,7 @@ func (e *expectedEvents) UnmarshalBSON(data []byte) error {
 		return fmt.Errorf("expected 'events' to be an array but got a %q", temp.Events.Type)
 	}
 
-	var target interface{}
+	var target any
 	switch temp.EventType {
 	case "command", "":
 		target = &e.CommandEvents
@@ -418,7 +418,7 @@ func verifyServerConnectionID(expectedHasSCID bool, scid *int64) error {
 	return nil
 }
 
-func newEventVerificationError(idx int, client *clientEntity, msg string, args ...interface{}) error {
+func newEventVerificationError(idx int, client *clientEntity, msg string, args ...any) error {
 	fullMsg := fmt.Sprintf(msg, args...)
 	return fmt.Errorf("event comparison failed at index %d: %s; all events found for client: %s", idx, fullMsg,
 		stringifyEventsForClient(client))

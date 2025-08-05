@@ -214,7 +214,7 @@ func TestIndexView(t *testing.T) {
 				name             string
 				opts             *options.CreateIndexesOptionsBuilder
 				expectError      bool
-				expectedValue    interface{} // ignored if expectError is true
+				expectedValue    any // ignored if expectError is true
 				minServerVersion string
 				maxServerVersion string
 			}{
@@ -239,7 +239,7 @@ func TestIndexView(t *testing.T) {
 					sentBSONValue, err := cmd.LookupErr("commitQuorum")
 					assert.Nil(mt, err, "expected commitQuorum in command %s", cmd)
 
-					var sentValue interface{}
+					var sentValue any
 					err = sentBSONValue.Unmarshal(&sentValue)
 					assert.Nil(mt, err, "Unmarshal error: %v", err)
 
@@ -360,7 +360,7 @@ func TestIndexView(t *testing.T) {
 				name             string
 				opts             *options.CreateIndexesOptionsBuilder
 				expectError      bool
-				expectedValue    interface{} // ignored if expectError is true
+				expectedValue    any // ignored if expectError is true
 				minServerVersion string
 				maxServerVersion string
 			}{
@@ -385,7 +385,7 @@ func TestIndexView(t *testing.T) {
 					sentBSONValue, err := cmd.LookupErr("commitQuorum")
 					assert.Nil(mt, err, "expected commitQuorum in command %s", cmd)
 
-					var sentValue interface{}
+					var sentValue any
 					err = sentBSONValue.Unmarshal(&sentValue)
 					assert.Nil(mt, err, "Unmarshal error: %v", err)
 

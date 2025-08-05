@@ -29,12 +29,12 @@ func TestCSOTClientSideEncryptionProse(t *testing.T) {
 
 	mt.RunOpts("2. maxTimeMS is not set for commands sent to mongocryptd",
 		noClientOpts, func(mt *mtest.T) {
-			kmsProviders := map[string]map[string]interface{}{
+			kmsProviders := map[string]map[string]any{
 				"local": {
 					"key": localMasterKey,
 				},
 			}
-			mongocryptdSpawnArgs := map[string]interface{}{
+			mongocryptdSpawnArgs := map[string]any{
 				// Pass a custom pidfilepath to ensure a new mongocryptd process is spawned.
 				"mongocryptdSpawnArgs": []string{"--port=23000", "--pidfilepath=TestCSOTClientSideEncryptionProse_1.pid"},
 				"mongocryptdURI":       "mongodb://localhost:23000",
