@@ -219,28 +219,6 @@ functions:
           HEAD_SHA: "${github_commit}"
         args: [*task-runner, api-report]
 
-  "add PR labels":
-    - command: subprocess.exec
-      type: test
-      params:
-        binary: bash
-        add_expansions_to_env: true
-        env:
-          COMMIT: "${github_commit}"
-          PR_TASK: apply-labels
-        args: [*task-runner, pr-task]
-
-  "add PR reviewer":
-    - command: subprocess.exec
-      type: test
-      params:
-        binary: bash
-        add_expansions_to_env: true
-        env:
-          COMMIT: "${github_commit}"
-          PR_TASK: assign-reviewer
-        args: [*task-runner, pr-task]
-
   "backport pr":
     - command: subprocess.exec
       type: test
@@ -669,8 +647,6 @@ tasks:
     allowed_requesters: ["patch", "github_pr"]
     commands:
       - func: assume-test-secrets-ec2-role
-      - func: "add PR reviewer"  
-      - func: "add PR labels"
       - func: "create-api-report"
 
   - name: backport-pr

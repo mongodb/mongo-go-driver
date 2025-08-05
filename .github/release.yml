@@ -2,20 +2,24 @@ changelog:
   exclude:
     labels:
       - ignore-for-release
+      - github_actions
       - submodules
     authors:
       - mongodb-drivers-pr-bot
   categories:
-    - title: Breaking Changes 🛠
+    - title: ⚠️ Breaking Changes
       labels:
-        - breaking-change
-    - title: New Features
+        - breaking
+    - title: ✨ New Features
       labels:
         - enhancement
-    - title: Fixed
+        - feature
+    - title: 🐛 Fixed
       labels:
         - bug
-        - fixed
-    - title: Other Changes
+    - title: 📦 Dependency Updates
+      labels:
+        - dependencies
+    - title: 📝 Other Changes
       labels:
         - "*"
