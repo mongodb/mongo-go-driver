@@ -508,6 +508,26 @@ func TestSessionsProse(t *testing.T) {
 		assert.True(mt, limitedSessionUse, limitedSessMsg, len(ops))
 
 	})
+
+	clustertimeopts := mtest.NewOptions().ClientType(mtest.Pinned).ClientOptions(options.Client().SetDirect(true))
+	mt.RunOpts("20 Drivers do not gossip $clusterTime on SDAM commands", clustertimeopts, func(mt *mtest.T) {
+		res, err := mt.DB.RunCommand(context.Background(), bson.D{{"ping", 1}}).Raw()
+		require.NoError(mt, err, "expected no error, got: %v", err)
+		mt.Log("result of ping command:", res)
+
+		// assert $clusterTime was sent to server
+		started := mt.GetStartedEvent()
+		require.NotNil(mt, started, "expected started event, got nil")
+		_, err = started.Command.LookupErr("$clusterTime")
+		require.NoError(mt, err, "$clusterTime not sent")
+
+		// record response cluster time
+		succeeded := mt.GetSucceededEvent()
+		require.NotNil(mt, succeeded, "expected succeeded event, got nil")
+		replyClusterTimeVal, err := succeeded.Reply.LookupErr("$clusterTime")
+		require.NoError(mt, err, "$clusterTime not found in response")
+		mt.Fatalf("$clusterTime: %v", replyClusterTimeVal)
+	})
 }
 
 type sessionFunction struct {
