@@ -15,19 +15,19 @@ import (
 )
 
 type testLogSink struct {
-	logs       chan func() (int, string, []interface{})
+	logs       chan func() (int, string, []any)
 	bufferSize int
 	logsCount  int
 	errsCh     chan error
 }
 
-type logValidator func(order int, lvl int, msg string, kv ...interface{}) error
+type logValidator func(order int, lvl int, msg string, kv ...any) error
 
 func newTestLogSink(ctx context.Context, mt *mtest.T, bufferSize int, validator logValidator) *testLogSink {
 	mt.Helper()
 
 	sink := &testLogSink{
-		logs:       make(chan func() (int, string, []interface{}), bufferSize),
+		logs:       make(chan func() (int, string, []any), bufferSize),
 		errsCh:     make(chan error, bufferSize),
 		bufferSize: bufferSize,
 	}
@@ -58,8 +58,8 @@ func newTestLogSink(ctx context.Context, mt *mtest.T, bufferSize int, validator 
 	return sink
 }
 
-func (sink *testLogSink) Info(level int, msg string, keysAndValues ...interface{}) {
-	sink.logs <- func() (int, string, []interface{}) {
+func (sink *testLogSink) Info(level int, msg string, keysAndValues ...any) {
+	sink.logs <- func() (int, string, []any) {
 		return level, msg, keysAndValues
 	}
 
@@ -68,7 +68,7 @@ func (sink *testLogSink) Info(level int, msg string, keysAndValues ...interface{
 	}
 }
 
-func (sink *testLogSink) Error(err error, msg string, keysAndValues ...interface{}) {
+func (sink *testLogSink) Error(err error, msg string, keysAndValues ...any) {
 	keysAndValues = append(keysAndValues, "error", err)
 	sink.Info(int(logger.LevelInfo), msg, keysAndValues)
 }
@@ -77,7 +77,7 @@ func (sink *testLogSink) errs() <-chan error {
 	return sink.errsCh
 }
 
-func findLogValue(mt *mtest.T, key string, values ...interface{}) interface{} {
+func findLogValue(mt *mtest.T, key string, values ...any) any {
 	mt.Helper()
 
 	for i := 0; i < len(values); i += 2 {
@@ -89,7 +89,7 @@ func findLogValue(mt *mtest.T, key string, values ...interface{}) interface{} {
 	return nil
 }
 
-type truncValidator func(values ...interface{}) error
+type truncValidator func(values ...any) error
 
 // newTruncValidator will return a logger validator for validating truncated
 // messages. It takes the key for the portion of the document to validate
@@ -99,7 +99,7 @@ type truncValidator func(values ...interface{}) error
 func newTruncValidator(mt *mtest.T, key string, cond func(string) error) truncValidator {
 	mt.Helper()
 
-	return func(values ...interface{}) error {
+	return func(values ...any) error {
 		cmd := findLogValue(mt, key, values...)
 		if cmd == nil {
 			return fmt.Errorf("%q not found in keys and values", key)

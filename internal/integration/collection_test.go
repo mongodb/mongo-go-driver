@@ -127,7 +127,7 @@ func TestCollection(t *testing.T) {
 
 			want1 := int32(11)
 			want2 := int32(12)
-			docs := []interface{}{
+			docs := []any{
 				bson.D{{"_id", want1}},
 				bson.D{{"x", 6}},
 				bson.D{{"_id", want2}},
@@ -147,7 +147,7 @@ func TestCollection(t *testing.T) {
 				megabyte = 10 * 10 * 10 * 10 * 10 * 10
 				numDocs  = 700000
 			)
-			var docs []interface{}
+			var docs []any
 			total := uint32(0)
 			expectedDocSize := uint32(26)
 			for i := 0; i < numDocs; i++ {
@@ -169,7 +169,7 @@ func TestCollection(t *testing.T) {
 		mt.Run("large document batches", func(mt *mtest.T) {
 			mt.Parallel()
 
-			docs := []interface{}{create16MBDocument(mt), create16MBDocument(mt), create16MBDocument(mt)}
+			docs := []any{create16MBDocument(mt), create16MBDocument(mt), create16MBDocument(mt)}
 			_, err := mt.Coll.InsertMany(context.Background(), docs)
 			assert.Nil(mt, err, "InsertMany error: %v", err)
 			evt := mt.GetStartedEvent()
@@ -180,7 +180,7 @@ func TestCollection(t *testing.T) {
 		mt.RunOpts("write error", noClientOpts, func(mt *mtest.T) {
 			mt.Parallel()
 
-			docs := []interface{}{
+			docs := []any{
 				bson.D{{"_id", bson.NewObjectID()}},
 				bson.D{{"_id", bson.NewObjectID()}},
 				bson.D{{"_id", bson.NewObjectID()}},
@@ -213,7 +213,7 @@ func TestCollection(t *testing.T) {
 			mt.Parallel()
 
 			id := int32(15)
-			docs := []interface{}{
+			docs := []any{
 				bson.D{{"_id", id}},
 				bson.D{{"_id", id}},
 				bson.D{{"x", 6}},
@@ -262,7 +262,7 @@ func TestCollection(t *testing.T) {
 
 			// force multiple batches
 			numDocs := 700000
-			var docs []interface{}
+			var docs []any
 			for i := 0; i < numDocs; i++ {
 				d := bson.D{
 					{"a", int32(i)},
@@ -287,7 +287,7 @@ func TestCollection(t *testing.T) {
 		wcCollOpts := options.Collection().SetWriteConcern(impossibleWc)
 		wcTestOpts := mtest.NewOptions().CollectionOptions(wcCollOpts).Topologies(mtest.ReplicaSet)
 		mt.RunOpts("write concern error", wcTestOpts, func(mt *mtest.T) {
-			_, err := mt.Coll.InsertMany(context.Background(), []interface{}{bson.D{{"_id", 1}}})
+			_, err := mt.Coll.InsertMany(context.Background(), []any{bson.D{{"_id", 1}}})
 			we, ok := err.(mongo.BulkWriteException)
 			assert.True(mt, ok, "expected error type %v, got %v", mongo.BulkWriteException{}, err)
 			assert.NotNil(mt, we.WriteConcernError, "expected write concern error, got %+v", err)
@@ -505,7 +505,7 @@ func TestCollection(t *testing.T) {
 
 			testCases := []struct {
 				name   string
-				update interface{}
+				update any
 			}{
 				{"bson Document", bsoncore.Document(docBytes)},
 				{"bson Raw", bson.Raw(docBytes)},
@@ -538,7 +538,7 @@ func TestCollection(t *testing.T) {
 		mt.RunOpts("found", noClientOpts, func(mt *mtest.T) {
 			testCases := []struct {
 				name string
-				id   interface{}
+				id   any
 			}{
 				{"objectID", bson.NewObjectID()},
 				{"string", "foo"},
@@ -1049,7 +1049,7 @@ func TestCollection(t *testing.T) {
 			}
 			for _, tc := range testCases {
 				mt.Run(tc.name, func(mt *mtest.T) {
-					var insertDocs []interface{}
+					var insertDocs []any
 					for i := 1; i <= 201; i++ {
 						insertDocs = append(insertDocs, bson.D{{"x", int32(i)}})
 					}
@@ -1062,7 +1062,7 @@ func TestCollection(t *testing.T) {
 					cursor, err := mt.Coll.Find(context.Background(), bson.D{}, findOptions)
 					assert.Nil(mt, err, "Find error: %v", err)
 
-					var docs []interface{}
+					var docs []any
 					err = cursor.All(context.Background(), &docs)
 					assert.Nil(mt, err, "All error: %v", err)
 					if (201 - tc.skip) < tc.limit {
@@ -1097,7 +1097,7 @@ func TestCollection(t *testing.T) {
 			}
 			for _, tc := range testCases {
 				mt.Run(tc.name, func(mt *mtest.T) {
-					var insertDocs []interface{}
+					var insertDocs []any
 					for i := 1; i <= 201; i++ {
 						insertDocs = append(insertDocs, bson.D{{"x", int32(i)}})
 					}
@@ -1108,7 +1108,7 @@ func TestCollection(t *testing.T) {
 					cursor, err := mt.Coll.Find(context.Background(), bson.D{}, opts)
 					assert.Nil(mt, err, "Find error with limit %v: %v", tc.limit, err)
 
-					var docs []interface{}
+					var docs []any
 					err = cursor.All(context.Background(), &docs)
 					assert.Nil(mt, err, "All error with limit %v: %v", tc.limit, err)
 
@@ -1511,7 +1511,7 @@ func TestCollection(t *testing.T) {
 		})
 
 		mt.Run("insert many", func(mt *mtest.T) {
-			docs := []interface{}{
+			docs := []any{
 				bson.D{{"x", 1}},
 				bson.D{{"y", 1}},
 			}
@@ -2031,7 +2031,7 @@ func TestCollection(t *testing.T) {
 func initCollection(tb testing.TB, coll *mongo.Collection) {
 	tb.Helper()
 
-	var docs []interface{}
+	var docs []any
 	for i := 1; i <= 5; i++ {
 		docs = append(docs, bson.D{{"x", int32(i)}})
 	}

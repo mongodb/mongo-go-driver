@@ -15,7 +15,7 @@ import (
 // under a single interface (e.g. mongo.Cursor and mongo.ChangeStream).
 type cursor interface {
 	Close(context.Context) error
-	Decode(interface{}) error
+	Decode(any) error
 	Err() error
 	Next(context.Context) bool
 	TryNext(context.Context) bool

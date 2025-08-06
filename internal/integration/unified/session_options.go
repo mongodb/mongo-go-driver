@@ -24,10 +24,10 @@ var _ bson.Unmarshaler = (*transactionOptions)(nil)
 
 func (to *transactionOptions) UnmarshalBSON(data []byte) error {
 	var temp struct {
-		RC    *readConcern           `bson:"readConcern"`
-		RP    *ReadPreference        `bson:"readPreference"`
-		WC    *writeConcern          `bson:"writeConcern"`
-		Extra map[string]interface{} `bson:",inline"`
+		RC    *readConcern    `bson:"readConcern"`
+		RP    *ReadPreference `bson:"readPreference"`
+		WC    *writeConcern   `bson:"writeConcern"`
+		Extra map[string]any  `bson:",inline"`
 	}
 	if err := bson.Unmarshal(data, &temp); err != nil {
 		return fmt.Errorf("error unmarshalling to temporary transactionOptions object: %v", err)
@@ -67,10 +67,10 @@ var _ bson.Unmarshaler = (*sessionOptions)(nil)
 
 func (so *sessionOptions) UnmarshalBSON(data []byte) error {
 	var temp struct {
-		Causal     *bool                  `bson:"causalConsistency"`
-		TxnOptions *transactionOptions    `bson:"defaultTransactionOptions"`
-		Snapshot   *bool                  `bson:"snapshot"`
-		Extra      map[string]interface{} `bson:",inline"`
+		Causal     *bool               `bson:"causalConsistency"`
+		TxnOptions *transactionOptions `bson:"defaultTransactionOptions"`
+		Snapshot   *bool               `bson:"snapshot"`
+		Extra      map[string]any      `bson:",inline"`
 	}
 	if err := bson.Unmarshal(data, &temp); err != nil {
 		return fmt.Errorf("error unmarshalling to temporary sessionOptions object: %v", err)

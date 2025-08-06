@@ -210,10 +210,10 @@ func TestSessionsProse(t *testing.T) {
 		CreateClient(false)
 
 	mt.RunOpts("3 clusterTime in commands", clusterTimeOpts, func(mt *mtest.T) {
-		serverStatus := sessionFunction{"server status", "database", "RunCommand", []interface{}{bson.D{{"serverStatus", 1}}}}
-		insert := sessionFunction{"insert one", "collection", "InsertOne", []interface{}{bson.D{{"x", 1}}}}
-		agg := sessionFunction{"aggregate", "collection", "Aggregate", []interface{}{mongo.Pipeline{}}}
-		find := sessionFunction{"find", "collection", "Find", []interface{}{bson.D{}}}
+		serverStatus := sessionFunction{"server status", "database", "RunCommand", []any{bson.D{{"serverStatus", 1}}}}
+		insert := sessionFunction{"insert one", "collection", "InsertOne", []any{bson.D{{"x", 1}}}}
+		agg := sessionFunction{"aggregate", "collection", "Aggregate", []any{mongo.Pipeline{}}}
+		find := sessionFunction{"find", "collection", "Find", []any{bson.D{}}}
 
 		sessionFunctions := []sessionFunction{serverStatus, insert, agg, find}
 		for _, sf := range sessionFunctions {
@@ -338,7 +338,7 @@ func TestSessionsProse(t *testing.T) {
 		func(mt *mtest.T) {
 			// Client-side cursor that exhausts the results after a getMore immediately returns the implicit session to the pool.
 
-			var docs []interface{}
+			var docs []any
 			for i := 0; i < 5; i++ {
 				docs = append(docs, bson.D{{"x", i}})
 			}
@@ -369,7 +369,7 @@ func TestSessionsProse(t *testing.T) {
 	})
 
 	mt.Run("11 for every combination of topology and readPreference, ensure that find and getMore both send the same session id", func(mt *mtest.T) {
-		var docs []interface{}
+		var docs []any
 		for i := 0; i < 3; i++ {
 			docs = append(docs, bson.D{{"x", i}})
 		}
@@ -514,7 +514,7 @@ type sessionFunction struct {
 	name   string
 	target string
 	fnName string
-	params []interface{} // should not include context
+	params []any // should not include context
 }
 
 func (sf sessionFunction) execute(mt *mtest.T, sess *mongo.Session) error {
@@ -556,7 +556,7 @@ func (sf sessionFunction) execute(mt *mtest.T, sess *mongo.Session) error {
 }
 
 func createFunctionsSlice() []sessionFunction {
-	insertManyDocs := []interface{}{bson.D{{"x", 1}}}
+	insertManyDocs := []any{bson.D{{"x", 1}}}
 	fooIndex := mongo.IndexModel{
 		Keys:    bson.D{{"foo", -1}},
 		Options: options.Index().SetName("fooIndex"),
@@ -565,27 +565,27 @@ func createFunctionsSlice() []sessionFunction {
 	updateDoc := bson.D{{"$inc", bson.D{{"x", 1}}}}
 
 	return []sessionFunction{
-		{"list databases", "client", "ListDatabases", []interface{}{bson.D{}}},
-		{"insert one", "collection", "InsertOne", []interface{}{bson.D{{"x", 1}}}},
-		{"insert many", "collection", "InsertMany", []interface{}{insertManyDocs}},
-		{"delete one", "collection", "DeleteOne", []interface{}{bson.D{}}},
-		{"delete many", "collection", "DeleteMany", []interface{}{bson.D{}}},
-		{"update one", "collection", "UpdateOne", []interface{}{bson.D{}, updateDoc}},
-		{"update many", "collection", "UpdateMany", []interface{}{bson.D{}, updateDoc}},
-		{"replace one", "collection", "ReplaceOne", []interface{}{bson.D{}, bson.D{}}},
-		{"aggregate", "collection", "Aggregate", []interface{}{mongo.Pipeline{}}},
+		{"list databases", "client", "ListDatabases", []any{bson.D{}}},
+		{"insert one", "collection", "InsertOne", []any{bson.D{{"x", 1}}}},
+		{"insert many", "collection", "InsertMany", []any{insertManyDocs}},
+		{"delete one", "collection", "DeleteOne", []any{bson.D{}}},
+		{"delete many", "collection", "DeleteMany", []any{bson.D{}}},
+		{"update one", "collection", "UpdateOne", []any{bson.D{}, updateDoc}},
+		{"update many", "collection", "UpdateMany", []any{bson.D{}, updateDoc}},
+		{"replace one", "collection", "ReplaceOne", []any{bson.D{}, bson.D{}}},
+		{"aggregate", "collection", "Aggregate", []any{mongo.Pipeline{}}},
 		{"estimated document count", "collection", "EstimatedDocumentCount", nil},
-		{"distinct", "collection", "Distinct", []interface{}{"field", bson.D{}}},
-		{"find", "collection", "Find", []interface{}{bson.D{}}},
-		{"find one and delete", "collection", "FindOneAndDelete", []interface{}{bson.D{}}},
-		{"find one and replace", "collection", "FindOneAndReplace", []interface{}{bson.D{}, bson.D{}}},
-		{"find one and update", "collection", "FindOneAndUpdate", []interface{}{bson.D{}, updateDoc}},
+		{"distinct", "collection", "Distinct", []any{"field", bson.D{}}},
+		{"find", "collection", "Find", []any{bson.D{}}},
+		{"find one and delete", "collection", "FindOneAndDelete", []any{bson.D{}}},
+		{"find one and replace", "collection", "FindOneAndReplace", []any{bson.D{}, bson.D{}}},
+		{"find one and update", "collection", "FindOneAndUpdate", []any{bson.D{}, updateDoc}},
 		{"drop collection", "collection", "Drop", nil},
-		{"list collections", "database", "ListCollections", []interface{}{bson.D{}}},
+		{"list collections", "database", "ListCollections", []any{bson.D{}}},
 		{"drop database", "database", "Drop", nil},
-		{"create one index", "indexView", "CreateOne", []interface{}{fooIndex}},
-		{"create many indexes", "indexView", "CreateMany", []interface{}{manyIndexes}},
-		{"drop one index", "indexView", "DropOne", []interface{}{"barIndex"}},
+		{"create one index", "indexView", "CreateOne", []any{fooIndex}},
+		{"create many indexes", "indexView", "CreateMany", []any{manyIndexes}},
+		{"drop one index", "indexView", "DropOne", []any{"barIndex"}},
 		{"drop all indexes", "indexView", "DropAll", nil},
 		{"list indexes", "indexView", "List", nil},
 	}
@@ -610,7 +610,7 @@ func sessionIDsEqual(mt *mtest.T, id1, id2 bson.Raw) bool {
 	return bytes.Equal(firstUUID, secondUUID)
 }
 
-func interfaceSliceToValueSlice(args []interface{}) []reflect.Value {
+func interfaceSliceToValueSlice(args []any) []reflect.Value {
 	vals := make([]reflect.Value, 0, len(args))
 	for _, arg := range args {
 		vals = append(vals, reflect.ValueOf(arg))
