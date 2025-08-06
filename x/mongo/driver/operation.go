@@ -158,13 +158,43 @@ type ResponseInfo struct {
 }
 
 func redactStartedInformationCmd(info startedInformation) bson.Raw {
+	intLen := func(n int) int {
+		if n == 0 {
+			return 1 // Special case: 0 has one digit
+		}
+		count := 0
+		for n > 0 {
+			n /= 10
+			count++
+		}
+		return count
+	}
+
 	var cmdCopy bson.Raw
 
 	// Make a copy of the command. Redact if the command is security
 	// sensitive and cannot be monitored. If there was a type 1 payload for
 	// the current batch, convert it to a BSON array
 	if !info.redacted {
-		cmdCopy = make([]byte, 0, len(info.cmd))
+		cmdLen := len(info.cmd)
+		for _, seq := range info.documentSequences {
+			cmdLen += 7 // 2 (header) + 4 (array length) + 1 (array end)
+			cmdLen += len(seq.identifier)
+			data := seq.data
+			i := 0
+			for {
+				doc, rest, ok := bsoncore.ReadDocument(data)
+				if !ok {
+					break
+				}
+				data = rest
+				cmdLen += len(doc)
+				cmdLen += intLen(i)
+				i++
+			}
+		}
+
+		cmdCopy = make([]byte, 0, cmdLen)
 		cmdCopy = append(cmdCopy, info.cmd...)
 
 		if len(info.documentSequences) > 0 {
@@ -1808,7 +1838,6 @@ func (op Operation) createReadPref(desc description.SelectedServer, isOpQuery bo
 	// TODO if supplied readPreference was "overwritten" with primary in description.selectForReplicaSet.
 	if desc.Server.Kind == description.ServerKindStandalone || (isOpQuery &&
 		desc.Server.Kind != description.ServerKindMongos) ||
-
 		op.Type == Write || (op.IsOutputAggregate && desc.Server.WireVersion.Max < 13) {
 		// Don't send read preference for:
 		// 1. all standalones
