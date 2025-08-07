@@ -2078,10 +2078,12 @@ task_groups:
   - name: test-search-index-task-group
     setup_group:
       - func: setup-system
+      - func: assume-test-secrets-ec2-role
       - command: subprocess.exec
         params:
           working_dir: src/go.mongodb.org/mongo-driver
           binary: bash
+          include_expansions_in_env: [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN]
           env:
             MONGODB_VERSION: "7.0"
             LAMBDA_STACK_NAME: dbx-go-lambda
