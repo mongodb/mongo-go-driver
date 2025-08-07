@@ -241,10 +241,9 @@ func FormatDocument(msg bson.Raw, width uint) string {
 		return "{}"
 	}
 
-	str := bsoncore.Document(msg).StringN(int(width))
+	str, truncated := bsoncore.Document(msg).StringN(int(width))
 
-	// If the last byte is not a closing bracket, then the document was truncated
-	if len(str) > 0 && str[len(str)-1] != '}' {
+	if truncated {
 		str += TruncationSuffix
 	}
 
