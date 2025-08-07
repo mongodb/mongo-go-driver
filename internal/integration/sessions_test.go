@@ -511,6 +511,15 @@ func TestSessionsProse(t *testing.T) {
 	})
 
 	mt.Run("20 Drivers do not gossip $clusterTime on SDAM commands", func(mt *mtest.T) {
+		serverMonitor := &event.ServerMonitor{
+			ServerHeartbeatStarted: func(e *event.ServerHeartbeatStartedEvent) {
+				fmt.Println("Server heartbeat started:", e.ConnectionID)
+			},
+			ServerHeartbeatSucceeded: func(e *event.ServerHeartbeatSucceededEvent) {
+				fmt.Println("Server heartbeat succeeded:", e.ConnectionID, e.Duration, e.Reply)
+			},
+		}
+
 		opts := options.Client().
 			ApplyURI(mtest.ClusterURI()).
 			SetHosts([]string{mtest.ClusterConnString().Hosts[0]}).
@@ -523,7 +532,8 @@ func TestSessionsProse(t *testing.T) {
 				Succeeded: func(ctx context.Context, cse *event.CommandSucceededEvent) {
 					fmt.Println("Command succeeded:", cse.CommandName, cse.Reply)
 				},
-			})
+			}).
+			SetServerMonitor(serverMonitor)
 
 		client, err := mongo.Connect(opts)
 		require.NoError(mt, err, "expected no error connecting to client, got: %v", err)
