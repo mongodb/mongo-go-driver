@@ -86,6 +86,27 @@ func SetInternalBulkWriteOptions(a *options.BulkWriteOptionsBuilder, key string,
 	return nil
 }
 
+// SetInternalClientBulkWriteOptions sets internal options for ClientBulkWriteOptions.
+func SetInternalClientBulkWriteOptions(a *options.ClientBulkWriteOptionsBuilder, key string, option any) error {
+	typeErrFunc := func(t string) error {
+		return fmt.Errorf("unexpected type for %q: %T is not %s", key, option, t)
+	}
+	switch key {
+	case "rawData":
+		b, ok := option.(bool)
+		if !ok {
+			return typeErrFunc("bool")
+		}
+		a.Opts = append(a.Opts, func(opts *options.ClientBulkWriteOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
+			return nil
+		})
+	default:
+		return fmt.Errorf("unsupported option: %q", key)
+	}
+	return nil
+}
+
 // SetInternalCountOptions sets internal options for CountOptions.
 func SetInternalCountOptions(a *options.CountOptionsBuilder, key string, option any) error {
 	typeErrFunc := func(t string) error {
@@ -98,6 +119,27 @@ func SetInternalCountOptions(a *options.CountOptionsBuilder, key string, option 
 			return typeErrFunc("bool")
 		}
 		a.Opts = append(a.Opts, func(opts *options.CountOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
+			return nil
+		})
+	default:
+		return fmt.Errorf("unsupported option: %q", key)
+	}
+	return nil
+}
+
+// SetInternalCreateIndexesOptions sets internal options for CreateIndexesOptions.
+func SetInternalCreateIndexesOptions(a *options.CreateIndexesOptionsBuilder, key string, option any) error {
+	typeErrFunc := func(t string) error {
+		return fmt.Errorf("unexpected type for %q: %T is not %s", key, option, t)
+	}
+	switch key {
+	case "rawData":
+		b, ok := option.(bool)
+		if !ok {
+			return typeErrFunc("bool")
+		}
+		a.Opts = append(a.Opts, func(opts *options.CreateIndexesOptions) error {
 			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
 			return nil
 		})
@@ -161,6 +203,27 @@ func SetInternalDistinctOptions(a *options.DistinctOptionsBuilder, key string, o
 			return typeErrFunc("bool")
 		}
 		a.Opts = append(a.Opts, func(opts *options.DistinctOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
+			return nil
+		})
+	default:
+		return fmt.Errorf("unsupported option: %q", key)
+	}
+	return nil
+}
+
+// SetInternalDropIndexesOptions sets internal options for DropIndexesOptions.
+func SetInternalDropIndexesOptions(a *options.DropIndexesOptionsBuilder, key string, option any) error {
+	typeErrFunc := func(t string) error {
+		return fmt.Errorf("unexpected type for %q: %T is not %s", key, option, t)
+	}
+	switch key {
+	case "rawData":
+		b, ok := option.(bool)
+		if !ok {
+			return typeErrFunc("bool")
+		}
+		a.Opts = append(a.Opts, func(opts *options.DropIndexesOptions) error {
 			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
 			return nil
 		})
@@ -329,6 +392,48 @@ func SetInternalInsertOneOptions(a *options.InsertOneOptionsBuilder, key string,
 			return typeErrFunc("bool")
 		}
 		a.Opts = append(a.Opts, func(opts *options.InsertOneOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
+			return nil
+		})
+	default:
+		return fmt.Errorf("unsupported option: %q", key)
+	}
+	return nil
+}
+
+// SetInternalListCollectionsOptions sets internal options for ListCollectionsOptions.
+func SetInternalListCollectionsOptions(a *options.ListCollectionsOptionsBuilder, key string, option any) error {
+	typeErrFunc := func(t string) error {
+		return fmt.Errorf("unexpected type for %q: %T is not %s", key, option, t)
+	}
+	switch key {
+	case "rawData":
+		b, ok := option.(bool)
+		if !ok {
+			return typeErrFunc("bool")
+		}
+		a.Opts = append(a.Opts, func(opts *options.ListCollectionsOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
+			return nil
+		})
+	default:
+		return fmt.Errorf("unsupported option: %q", key)
+	}
+	return nil
+}
+
+// SetInternalListIndexesOptions sets internal options for ListIndexesOptions.
+func SetInternalListIndexesOptions(a *options.ListIndexesOptionsBuilder, key string, option any) error {
+	typeErrFunc := func(t string) error {
+		return fmt.Errorf("unexpected type for %q: %T is not %s", key, option, t)
+	}
+	switch key {
+	case "rawData":
+		b, ok := option.(bool)
+		if !ok {
+			return typeErrFunc("bool")
+		}
+		a.Opts = append(a.Opts, func(opts *options.ListIndexesOptions) error {
 			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
 			return nil
 		})
