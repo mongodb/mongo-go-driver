@@ -627,7 +627,7 @@ func isLegacyHandshake(srvAPI *driver.ServerAPIOptions, loadbalanced bool) bool 
 
 func (h *Hello) createOperation() driver.Operation {
 	op := driver.Operation{
-		Clock:      h.clock,
+		// Clock:      h.clock,
 		CommandFn:  h.command,
 		Database:   "admin",
 		Deployment: h.d,

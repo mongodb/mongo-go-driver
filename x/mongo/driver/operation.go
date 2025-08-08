@@ -1711,7 +1711,6 @@ func (op Operation) addClusterTime(dst []byte, desc description.SelectedServer) 
 		return dst
 	}
 	return append(bsoncore.AppendHeader(dst, bsoncore.Type(val.Type), "$clusterTime"), val.Value...)
-	// return bsoncore.AppendDocumentElement(dst, "$clusterTime", clusterTime)
 }
 
 // calculateMaxTimeMS calculates the value of the 'maxTimeMS' field to potentially append
