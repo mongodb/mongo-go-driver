@@ -9,6 +9,7 @@ package operation
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"runtime"
 	"strconv"
@@ -609,6 +610,7 @@ func (h *Hello) Execute(ctx context.Context) error {
 		return errors.New("a Hello must have a Deployment set before Execute can be called")
 	}
 
+	fmt.Println("Executing Hello operation...")
 	return h.createOperation().Execute(ctx)
 }
 
@@ -627,7 +629,7 @@ func isLegacyHandshake(srvAPI *driver.ServerAPIOptions, loadbalanced bool) bool 
 
 func (h *Hello) createOperation() driver.Operation {
 	op := driver.Operation{
-		// Clock:      h.clock,
+		Clock:      h.clock,
 		CommandFn:  h.command,
 		Database:   "admin",
 		Deployment: h.d,
