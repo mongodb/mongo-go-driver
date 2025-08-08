@@ -6,6 +6,8 @@
 
 package options
 
+import "go.mongodb.org/mongo-driver/v2/internal/optionsutil"
+
 // UpdateOneOptions represents arguments that can be used to configure UpdateOne
 // operations.
 //
@@ -19,6 +21,10 @@ type UpdateOneOptions struct {
 	Upsert                   *bool
 	Let                      interface{}
 	Sort                     interface{}
+
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	Internal optionsutil.Options
 }
 
 // UpdateOneOptionsBuilder contains options to configure UpdateOne operations.
@@ -164,6 +170,10 @@ type UpdateManyOptions struct {
 	Hint                     interface{}
 	Upsert                   *bool
 	Let                      interface{}
+
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	Internal optionsutil.Options
 }
 
 // UpdateManyOptionsBuilder contains options to configure UpdateMany operations.

@@ -34,6 +34,7 @@ type ListIndexes struct {
 	crypt         driver.Crypt
 	serverAPI     *driver.ServerAPIOptions
 	timeout       *time.Duration
+	rawData       *bool
 
 	result driver.CursorResponse
 }
@@ -91,16 +92,19 @@ func (li *ListIndexes) Execute(ctx context.Context) error {
 
 }
 
-func (li *ListIndexes) command(dst []byte, _ description.SelectedServer) ([]byte, error) {
+func (li *ListIndexes) command(dst []byte, desc description.SelectedServer) ([]byte, error) {
 	dst = bsoncore.AppendStringElement(dst, "listIndexes", li.collection)
 	cursorIdx, cursorDoc := bsoncore.AppendDocumentStart(nil)
 
 	if li.batchSize != nil {
-
 		cursorDoc = bsoncore.AppendInt32Element(cursorDoc, "batchSize", *li.batchSize)
 	}
 	cursorDoc, _ = bsoncore.AppendDocumentEnd(cursorDoc, cursorIdx)
 	dst = bsoncore.AppendDocumentElement(dst, "cursor", cursorDoc)
+	// Set rawData for 8.2+ servers.
+	if li.rawData != nil && desc.WireVersion != nil && driverutil.VersionRangeIncludes(*desc.WireVersion, 27) {
+		dst = bsoncore.AppendBooleanElement(dst, "rawData", *li.rawData)
+	}
 
 	return dst, nil
 }
@@ -233,5 +237,15 @@ func (li *ListIndexes) Authenticator(authenticator driver.Authenticator) *ListIn
 	}
 
 	li.authenticator = authenticator
+	return li
+}
+
+// RawData sets the rawData to access timeseries data in the compressed format.
+func (li *ListIndexes) RawData(rawData bool) *ListIndexes {
+	if li == nil {
+		li = new(ListIndexes)
+	}
+
+	li.rawData = &rawData
 	return li
 }

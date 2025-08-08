@@ -16,6 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/csfle"
 	"go.mongodb.org/mongo-driver/v2/internal/csot"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
+	"go.mongodb.org/mongo-driver/v2/internal/optionsutil"
 	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
@@ -486,6 +487,11 @@ func (db *Database) ListCollections(
 	}
 	if args.AuthorizedCollections != nil {
 		op = op.AuthorizedCollections(*args.AuthorizedCollections)
+	}
+	if rawDataOpt := optionsutil.Value(args.Internal, "rawData"); rawDataOpt != nil {
+		if rawData, ok := rawDataOpt.(bool); ok {
+			op = op.RawData(rawData)
+		}
 	}
 
 	retry := driver.RetryNone

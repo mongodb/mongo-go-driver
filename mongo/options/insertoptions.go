@@ -6,6 +6,8 @@
 
 package options
 
+import "go.mongodb.org/mongo-driver/v2/internal/optionsutil"
+
 // InsertOneOptions represents arguments that can be used to configure an InsertOne
 // operation.
 //
@@ -13,6 +15,10 @@ package options
 type InsertOneOptions struct {
 	BypassDocumentValidation *bool
 	Comment                  interface{}
+
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	Internal optionsutil.Options
 }
 
 // InsertOneOptionsBuilder represents functional options that configure an
@@ -61,6 +67,10 @@ type InsertManyOptions struct {
 	BypassDocumentValidation *bool
 	Comment                  interface{}
 	Ordered                  *bool
+
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	Internal optionsutil.Options
 }
 
 // InsertManyOptionsBuilder contains options to configure insert operations.

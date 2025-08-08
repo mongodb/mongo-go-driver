@@ -46,6 +46,7 @@ type Update struct {
 	serverAPI                *driver.ServerAPIOptions
 	let                      bsoncore.Document
 	timeout                  *time.Duration
+	rawData                  *bool
 	logger                   *logger.Logger
 }
 
@@ -202,6 +203,10 @@ func (u *Update) command(dst []byte, desc description.SelectedServer) ([]byte, e
 	}
 	if u.let != nil {
 		dst = bsoncore.AppendDocumentElement(dst, "let", u.let)
+	}
+	// Set rawData for 8.2+ servers.
+	if u.rawData != nil && desc.WireVersion != nil && driverutil.VersionRangeIncludes(*desc.WireVersion, 27) {
+		dst = bsoncore.AppendBooleanElement(dst, "rawData", *u.rawData)
 	}
 
 	return dst, nil
@@ -420,5 +425,15 @@ func (u *Update) Authenticator(authenticator driver.Authenticator) *Update {
 	}
 
 	u.authenticator = authenticator
+	return u
+}
+
+// RawData sets the rawData to access timeseries data in the compressed format.
+func (u *Update) RawData(rawData bool) *Update {
+	if u == nil {
+		u = new(Update)
+	}
+
+	u.rawData = &rawData
 	return u
 }

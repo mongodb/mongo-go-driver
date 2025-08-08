@@ -12,6 +12,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/bsonutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/xoptions"
 )
 
 // newMissingArgumentError creates an error to convey that an argument that is required to run an operation is missing
@@ -67,6 +68,11 @@ func createUpdateManyArguments(args bson.Raw) (*updateArguments, *options.Update
 			}
 		case "upsert":
 			opts.SetUpsert(val.Boolean())
+		case "rawData":
+			err := xoptions.SetInternalUpdateManyOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, nil, err
+			}
 		default:
 			return nil, nil, fmt.Errorf("unrecognized update option %q", key)
 		}
@@ -125,6 +131,11 @@ func createUpdateOneArguments(args bson.Raw) (*updateArguments, *options.UpdateO
 			opts.SetUpsert(val.Boolean())
 		case "sort":
 			opts.SetSort(val.Document())
+		case "rawData":
+			err := xoptions.SetInternalUpdateOneOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, nil, err
+			}
 		default:
 			return nil, nil, fmt.Errorf("unrecognized update option %q", key)
 		}
@@ -162,6 +173,11 @@ func createListCollectionsArguments(args bson.Raw) (*listCollectionsArguments, e
 			lca.filter = val.Document()
 		case "nameOnly":
 			lca.opts.SetNameOnly(val.Boolean())
+		case "rawData":
+			err := xoptions.SetInternalListCollectionsOptions(lca.opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized listCollections option %q", key)
 		}

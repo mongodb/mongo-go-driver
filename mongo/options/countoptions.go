@@ -6,6 +6,8 @@
 
 package options
 
+import "go.mongodb.org/mongo-driver/v2/internal/optionsutil"
+
 // CountOptions represents arguments that can be used to configure a
 // CountDocuments operation.
 //
@@ -16,6 +18,10 @@ type CountOptions struct {
 	Hint      interface{}
 	Limit     *int64
 	Skip      *int64
+
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	Internal optionsutil.Options
 }
 
 // CountOptionsBuilder contains options to configure count operations. Each

@@ -37,6 +37,7 @@ type DropIndexes struct {
 	result        DropIndexesResult
 	serverAPI     *driver.ServerAPIOptions
 	timeout       *time.Duration
+	rawData       *bool
 }
 
 // DropIndexesResult represents a dropIndexes result returned by the server.
@@ -104,7 +105,7 @@ func (di *DropIndexes) Execute(ctx context.Context) error {
 
 }
 
-func (di *DropIndexes) command(dst []byte, _ description.SelectedServer) ([]byte, error) {
+func (di *DropIndexes) command(dst []byte, desc description.SelectedServer) ([]byte, error) {
 	dst = bsoncore.AppendStringElement(dst, "dropIndexes", di.collection)
 
 	switch t := di.index.(type) {
@@ -114,6 +115,10 @@ func (di *DropIndexes) command(dst []byte, _ description.SelectedServer) ([]byte
 		if di.index != nil {
 			dst = bsoncore.AppendDocumentElement(dst, "index", t)
 		}
+	}
+	// Set rawData for 8.2+ servers.
+	if di.rawData != nil && desc.WireVersion != nil && driverutil.VersionRangeIncludes(*desc.WireVersion, 27) {
+		dst = bsoncore.AppendBooleanElement(dst, "rawData", *di.rawData)
 	}
 
 	return dst, nil
@@ -246,5 +251,15 @@ func (di *DropIndexes) Authenticator(authenticator driver.Authenticator) *DropIn
 	}
 
 	di.authenticator = authenticator
+	return di
+}
+
+// RawData sets the rawData to access timeseries data in the compressed format.
+func (di *DropIndexes) RawData(rawData bool) *DropIndexes {
+	if di == nil {
+		di = new(DropIndexes)
+	}
+
+	di.rawData = &rawData
 	return di
 }
