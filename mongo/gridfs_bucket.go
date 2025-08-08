@@ -80,7 +80,7 @@ func (b *GridFSBucket) OpenUploadStream(
 // client-level timeout will be used to cap the lifetime of the stream.
 func (b *GridFSBucket) OpenUploadStreamWithID(
 	ctx context.Context,
-	fileID interface{},
+	fileID any,
 	filename string,
 	opts ...options.Lister[options.GridFSUploadOptions],
 ) (*GridFSUploadStream, error) {
@@ -129,7 +129,7 @@ func (b *GridFSBucket) UploadFromStream(
 // client-level timeout will be used to cap the lifetime of the stream.
 func (b *GridFSBucket) UploadFromStreamWithID(
 	ctx context.Context,
-	fileID interface{},
+	fileID any,
 	filename string,
 	source io.Reader,
 	opts ...options.Lister[options.GridFSUploadOptions],
@@ -170,7 +170,7 @@ func (b *GridFSBucket) UploadFromStreamWithID(
 // The context provided to this method controls the entire lifetime of an
 // upload stream io.Writer. If the context does set a deadline, then the
 // client-level timeout will be used to cap the lifetime of the stream.
-func (b *GridFSBucket) OpenDownloadStream(ctx context.Context, fileID interface{}) (*GridFSDownloadStream, error) {
+func (b *GridFSBucket) OpenDownloadStream(ctx context.Context, fileID any) (*GridFSDownloadStream, error) {
 	return b.openDownloadStream(ctx, bson.D{{"_id", fileID}})
 }
 
@@ -185,7 +185,7 @@ func (b *GridFSBucket) OpenDownloadStream(ctx context.Context, fileID interface{
 // The context provided to this method controls the entire lifetime of an
 // upload stream io.Writer. If the context does set a deadline, then the
 // client-level timeout will be used to cap the lifetime of the stream.
-func (b *GridFSBucket) DownloadToStream(ctx context.Context, fileID interface{}, stream io.Writer) (int64, error) {
+func (b *GridFSBucket) DownloadToStream(ctx context.Context, fileID any, stream io.Writer) (int64, error) {
 	ds, err := b.OpenDownloadStream(ctx, fileID)
 	if err != nil {
 		return 0, err
@@ -254,7 +254,7 @@ func (b *GridFSBucket) DownloadToStreamByName(
 // Delete deletes all chunks and metadata associated with the file with the
 // given file ID and runs the underlying delete operations with the provided
 // context.
-func (b *GridFSBucket) Delete(ctx context.Context, fileID interface{}) error {
+func (b *GridFSBucket) Delete(ctx context.Context, fileID any) error {
 	ctx, cancel := csot.WithTimeout(ctx, b.db.client.timeout)
 	defer cancel()
 
@@ -274,7 +274,7 @@ func (b *GridFSBucket) Delete(ctx context.Context, fileID interface{}) error {
 // runs the underlying find query with the provided context.
 func (b *GridFSBucket) Find(
 	ctx context.Context,
-	filter interface{},
+	filter any,
 	opts ...options.Lister[options.GridFSFindOptions],
 ) (*Cursor, error) {
 	args, err := mongoutil.NewOptions[options.GridFSFindOptions](opts...)
@@ -306,7 +306,7 @@ func (b *GridFSBucket) Find(
 }
 
 // Rename renames the stored file with the specified file ID.
-func (b *GridFSBucket) Rename(ctx context.Context, fileID interface{}, newFilename string) error {
+func (b *GridFSBucket) Rename(ctx context.Context, fileID any, newFilename string) error {
 	res, err := b.filesColl.UpdateOne(ctx,
 		bson.D{{"_id", fileID}},
 		bson.D{{"$set", bson.D{{"filename", newFilename}}}},
@@ -348,7 +348,7 @@ func (b *GridFSBucket) GetChunksCollection() *Collection {
 
 func (b *GridFSBucket) openDownloadStream(
 	ctx context.Context,
-	filter interface{},
+	filter any,
 	opts ...options.Lister[options.FindOneOptions],
 ) (*GridFSDownloadStream, error) {
 	ctx, cancel := csot.WithTimeout(ctx, b.db.client.timeout)
@@ -398,12 +398,12 @@ func (b *GridFSBucket) downloadToStream(ds *GridFSDownloadStream, stream io.Writ
 	return copied, ds.Close()
 }
 
-func (b *GridFSBucket) deleteChunks(ctx context.Context, fileID interface{}) error {
+func (b *GridFSBucket) deleteChunks(ctx context.Context, fileID any) error {
 	_, err := b.chunksColl.DeleteMany(ctx, bson.D{{"files_id", fileID}})
 	return err
 }
 
-func (b *GridFSBucket) findChunks(ctx context.Context, fileID interface{}) (*Cursor, error) {
+func (b *GridFSBucket) findChunks(ctx context.Context, fileID any) (*Cursor, error) {
 	chunksCursor, err := b.chunksColl.Find(ctx,
 		bson.D{{"files_id", fileID}},
 		options.Find().SetSort(bson.D{{"n", 1}})) // sort by chunk index

@@ -73,8 +73,8 @@
 //	if err != nil { return err }
 //	// do something with result...
 //
-// All Client, Collection, and Database methods that take parameters of type interface{}
-// will return ErrNilDocument if nil is passed in for an interface{}.
+// All Client, Collection, and Database methods that take parameters of type any
+// will return ErrNilDocument if nil is passed in for an any.
 //
 // Additional examples can be found under the examples directory in the driver's repository and
 // on the MongoDB website.
