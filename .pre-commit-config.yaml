@@ -71,3 +71,10 @@ repos:
     language: system
     types: [go]
     entry: etc/check_license.sh
+
+  - id: sbom-currency
+    name: sbom-currency
+    language: system
+    types: [json]
+    require_serial: true
+    entry: etc/generate-sbom.sh -c
