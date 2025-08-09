@@ -385,13 +385,6 @@ var skipTests = map[string][]string{
 		"TestBsonBinaryVectorSpec/Tests_of_Binary_subtype_9,_Vectors,_with_dtype_FLOAT32/Insufficient_vector_data_with_5_bytes_FLOAT32/Marshaling",
 	},
 
-	// TODO(GODRIVER-3521): Extend Legacy Unified Spec Runner to include
-	// client-side-encryption timeoutMS.
-	"Extend Legacy Unified Spec Runner for client-side-encryption timeoutMS (GODRIVER-3521)": {
-		"TestClientSideEncryptionSpec/timeoutMS.json/remaining_timeoutMS_applied_to_find_to_get_keyvault_data",
-		"TestClientSideEncryptionSpec/timeoutMS.json/timeoutMS_applied_to_listCollections_to_get_collection_schema",
-	},
-
 	// TODO(GODRIVER-3486): Support auto encryption in unified tests.
 	"Support auto encryption in unified tests (GODRIVER-3486)": {
 		"TestUnifiedSpec/unified-test-format/tests/valid-pass/poc-queryable-encryption.json/insert,_replace,_and_find_with_queryable_encryption",
