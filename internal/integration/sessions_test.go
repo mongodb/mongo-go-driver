@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
@@ -507,6 +508,55 @@ func TestSessionsProse(t *testing.T) {
 		limitedSessMsg := "expected session count to be less than the number of operations: %v"
 		assert.True(mt, limitedSessionUse, limitedSessMsg, len(ops))
 
+	})
+
+	mt.Run("20 Drivers do not gossip $clusterTime on SDAM commands", func(mt *mtest.T) {
+		serverMonitor := &event.ServerMonitor{
+			ServerHeartbeatStarted: func(e *event.ServerHeartbeatStartedEvent) {
+				fmt.Println("Server heartbeat started:", e.ConnectionID)
+			},
+			ServerHeartbeatSucceeded: func(e *event.ServerHeartbeatSucceededEvent) {
+				fmt.Println("Server heartbeat succeeded:", e.ConnectionID, e.Duration, e.Reply)
+			},
+		}
+
+		opts := options.Client().
+			ApplyURI(mtest.ClusterURI()).
+			SetHosts([]string{mtest.ClusterConnString().Hosts[0]}).
+			SetDirect(true).
+			SetHeartbeatInterval(500 * time.Millisecond).
+			SetMonitor(&event.CommandMonitor{
+				Started: func(ctx context.Context, cse *event.CommandStartedEvent) {
+					fmt.Println("Command started:", cse.CommandName, cse.Command)
+				},
+				Succeeded: func(ctx context.Context, cse *event.CommandSucceededEvent) {
+					fmt.Println("Command succeeded:", cse.CommandName, cse.Reply)
+				},
+			}).
+			SetServerMonitor(serverMonitor)
+
+		client, err := mongo.Connect(opts)
+		require.NoError(mt, err, "expected no error connecting to client, got: %v", err)
+		defer client.Disconnect(context.Background())
+
+		res, err := client.Database("admin").RunCommand(context.Background(), bson.D{
+			{"ping", 1},
+		}).Raw()
+		require.NoError(mt, err, "expected no error, got: %v", err)
+		mt.Log("result of ping command:", res)
+
+		mt.Client.Database("test").Collection("test").InsertOne(context.Background(), bson.D{{"advance", "$clusterTime"}})
+
+		time.Sleep(3 * time.Second)
+
+		res, err = client.Database("admin").RunCommand(context.Background(), bson.D{
+			{"ping", 1},
+		}).Raw()
+		require.NoError(mt, err, "expected no error, got: %v", err)
+		mt.Log("result of ping command:", res)
+		replyClusterTimeVal, err := res.LookupErr("$clusterTime")
+		require.NoError(mt, err, "$clusterTime not found in response")
+		mt.Fatalf("$clusterTime: %v", replyClusterTimeVal)
 	})
 }
 
