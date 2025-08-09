@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/bsonutil"
 	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
 	"go.mongodb.org/mongo-driver/v2/internal/handshake"
@@ -639,6 +640,14 @@ func (h *Hello) createOperation() driver.Operation {
 		},
 		ServerAPI:     h.serverAPI,
 		OmitMaxTimeMS: h.omitMaxTimeMS,
+		CommandMonitor: &event.CommandMonitor{
+			Started: func(ctx context.Context, e *event.CommandStartedEvent) {
+				fmt.Println("Hello started:", e.CommandName, e.Command)
+			},
+			Succeeded: func(ctx context.Context, e *event.CommandSucceededEvent) {
+				fmt.Println("Hello succeeded:", e.CommandName, e.Reply)
+			},
+		},
 	}
 
 	if isLegacyHandshake(h.serverAPI, h.loadBalanced) {
