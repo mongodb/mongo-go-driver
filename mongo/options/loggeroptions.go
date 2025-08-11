@@ -63,10 +63,10 @@ type LogSink interface {
 	//
 	// "Level V(0) is the default, and logger.V(0).Info() has the same
 	// meaning as logger.Info()."
-	Info(level int, message string, keysAndValues ...interface{})
+	Info(level int, message string, keysAndValues ...any)
 
 	// Error logs an error message with the given key/value pairs
-	Error(err error, message string, keysAndValues ...interface{})
+	Error(err error, message string, keysAndValues ...any)
 }
 
 // LoggerOptions represent arguments used to configure Logging in the Go Driver.

@@ -83,7 +83,7 @@ type Client struct {
 	cryptFLE            driver.Crypt
 	metadataClientFLE   *Client
 	internalClientFLE   *Client
-	encryptedFieldsMap  map[string]interface{}
+	encryptedFieldsMap  map[string]any
 	authenticator       driver.Authenticator
 }
 
@@ -681,7 +681,7 @@ func (c *Client) Database(name string, opts ...options.Lister[options.DatabaseOp
 // The opts parameter can be used to specify options for this operation (see the options.ListDatabasesOptions documentation).
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/listDatabases/.
-func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...options.Lister[options.ListDatabasesOptions]) (ListDatabasesResult, error) {
+func (c *Client) ListDatabases(ctx context.Context, filter any, opts ...options.Lister[options.ListDatabasesOptions]) (ListDatabasesResult, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -759,7 +759,7 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 // documentation.)
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/listDatabases/.
-func (c *Client) ListDatabaseNames(ctx context.Context, filter interface{}, opts ...options.Lister[options.ListDatabasesOptions]) ([]string, error) {
+func (c *Client) ListDatabaseNames(ctx context.Context, filter any, opts ...options.Lister[options.ListDatabasesOptions]) ([]string, error) {
 	opts = append(opts, options.ListDatabases().SetNameOnly(true))
 
 	res, err := c.ListDatabases(ctx, filter, opts...)
@@ -842,7 +842,7 @@ func (c *Client) UseSessionWithOptions(
 //
 // The opts parameter can be used to specify options for change stream creation (see the options.ChangeStreamOptions
 // documentation).
-func (c *Client) Watch(ctx context.Context, pipeline interface{},
+func (c *Client) Watch(ctx context.Context, pipeline any,
 	opts ...options.Lister[options.ChangeStreamOptions]) (*ChangeStream, error) {
 	csConfig := changeStreamConfig{
 		readConcern:    c.readConcern,

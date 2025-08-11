@@ -47,7 +47,7 @@ type Collection struct {
 // aggregateParams is used to store information to configure an Aggregate operation.
 type aggregateParams struct {
 	ctx            context.Context
-	pipeline       interface{}
+	pipeline       any
 	client         *Client
 	bsonOpts       *options.BSONOptions
 	registry       *bson.Registry
@@ -259,15 +259,15 @@ func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
 
 func (coll *Collection) insert(
 	ctx context.Context,
-	documents []interface{},
+	documents []any,
 	opts ...options.Lister[options.InsertManyOptions],
-) ([]interface{}, error) {
+) ([]any, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	result := make([]interface{}, len(documents))
+	result := make([]any, len(documents))
 	docs := make([]bsoncore.Document, len(documents))
 
 	for i, doc := range documents {
@@ -371,7 +371,7 @@ func (coll *Collection) insert(
 // The opts parameter can be used to specify options for the operation (see the options.InsertOneOptions documentation.)
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/insert/.
-func (coll *Collection) InsertOne(ctx context.Context, document interface{},
+func (coll *Collection) InsertOne(ctx context.Context, document any,
 	opts ...options.Lister[options.InsertOneOptions]) (*InsertOneResult, error) {
 
 	args, err := mongoutil.NewOptions(opts...)
@@ -393,7 +393,7 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 			return nil
 		})
 	}
-	res, err := coll.insert(ctx, []interface{}{document}, imOpts)
+	res, err := coll.insert(ctx, []any{document}, imOpts)
 
 	rr, err := processWriteError(err)
 	if rr&rrOne == 0 && rr.isAcknowledged() {
@@ -419,7 +419,7 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/insert/.
 func (coll *Collection) InsertMany(
 	ctx context.Context,
-	documents interface{},
+	documents any,
 	opts ...options.Lister[options.InsertManyOptions],
 ) (*InsertManyResult, error) {
 
@@ -431,7 +431,7 @@ func (coll *Collection) InsertMany(
 		return nil, fmt.Errorf("invalid documents: %w", ErrEmptySlice)
 	}
 
-	docSlice := make([]interface{}, 0, dv.Len())
+	docSlice := make([]any, 0, dv.Len())
 	for i := 0; i < dv.Len(); i++ {
 		docSlice = append(docSlice, dv.Index(i).Interface())
 	}
@@ -469,7 +469,7 @@ func (coll *Collection) InsertMany(
 
 func (coll *Collection) delete(
 	ctx context.Context,
-	filter interface{},
+	filter any,
 	deleteOne bool,
 	expectedRr returnResult,
 	args *options.DeleteManyOptions,
@@ -586,7 +586,7 @@ func (coll *Collection) delete(
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/delete/.
 func (coll *Collection) DeleteOne(
 	ctx context.Context,
-	filter interface{},
+	filter any,
 	opts ...options.Lister[options.DeleteOneOptions],
 ) (*DeleteResult, error) {
 	args, err := mongoutil.NewOptions[options.DeleteOneOptions](opts...)
@@ -616,7 +616,7 @@ func (coll *Collection) DeleteOne(
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/delete/.
 func (coll *Collection) DeleteMany(
 	ctx context.Context,
-	filter interface{},
+	filter any,
 	opts ...options.Lister[options.DeleteManyOptions],
 ) (*DeleteResult, error) {
 	args, err := mongoutil.NewOptions[options.DeleteManyOptions](opts...)
@@ -630,11 +630,11 @@ func (coll *Collection) DeleteMany(
 func (coll *Collection) updateOrReplace(
 	ctx context.Context,
 	filter bsoncore.Document,
-	update interface{},
+	update any,
 	multi bool,
 	expectedRr returnResult,
 	checkDollarKey bool,
-	sort interface{},
+	sort any,
 	args *options.UpdateManyOptions,
 ) (*UpdateResult, error) {
 
@@ -753,8 +753,8 @@ func (coll *Collection) updateOrReplace(
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/update/.
 func (coll *Collection) UpdateByID(
 	ctx context.Context,
-	id interface{},
-	update interface{},
+	id any,
+	update any,
 	opts ...options.Lister[options.UpdateOneOptions],
 ) (*UpdateResult, error) {
 	if id == nil {
@@ -779,8 +779,8 @@ func (coll *Collection) UpdateByID(
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/update/.
 func (coll *Collection) UpdateOne(
 	ctx context.Context,
-	filter interface{},
-	update interface{},
+	filter any,
+	update any,
 	opts ...options.Lister[options.UpdateOneOptions],
 ) (*UpdateResult, error) {
 	if ctx == nil {
@@ -825,8 +825,8 @@ func (coll *Collection) UpdateOne(
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/update/.
 func (coll *Collection) UpdateMany(
 	ctx context.Context,
-	filter interface{},
-	update interface{},
+	filter any,
+	update any,
 	opts ...options.Lister[options.UpdateManyOptions],
 ) (*UpdateResult, error) {
 	if ctx == nil {
@@ -861,8 +861,8 @@ func (coll *Collection) UpdateMany(
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/update/.
 func (coll *Collection) ReplaceOne(
 	ctx context.Context,
-	filter interface{},
-	replacement interface{},
+	filter any,
+	replacement any,
 	opts ...options.Lister[options.ReplaceOptions],
 ) (*UpdateResult, error) {
 	if ctx == nil {
@@ -914,7 +914,7 @@ func (coll *Collection) ReplaceOne(
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/aggregate/.
 func (coll *Collection) Aggregate(
 	ctx context.Context,
-	pipeline interface{},
+	pipeline any,
 	opts ...options.Lister[options.AggregateOptions],
 ) (*Cursor, error) {
 	a := aggregateParams{
@@ -1104,7 +1104,7 @@ func aggregate(a aggregateParams, opts ...options.Lister[options.AggregateOption
 // result in a full collection scan.
 //
 // The opts parameter can be used to specify options for the operation (see the options.CountOptions documentation).
-func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
+func (coll *Collection) CountDocuments(ctx context.Context, filter any,
 	opts ...options.Lister[options.CountOptions]) (int64, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -1275,7 +1275,7 @@ func (coll *Collection) EstimatedDocumentCount(
 func (coll *Collection) Distinct(
 	ctx context.Context,
 	fieldName string,
-	filter interface{},
+	filter any,
 	opts ...options.Lister[options.DistinctOptions],
 ) *DistinctResult {
 	if ctx == nil {
@@ -1378,7 +1378,7 @@ func (coll *Collection) Distinct(
 // The opts parameter can be used to specify options for the operation (see the options.FindOptions documentation).
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/find/.
-func (coll *Collection) Find(ctx context.Context, filter interface{},
+func (coll *Collection) Find(ctx context.Context, filter any,
 	opts ...options.Lister[options.FindOptions]) (*Cursor, error) {
 	args, err := mongoutil.NewOptions(opts...)
 	if err != nil {
@@ -1394,7 +1394,7 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 
 func (coll *Collection) find(
 	ctx context.Context,
-	filter interface{},
+	filter any,
 	omitMaxTimeMS bool,
 	args *options.FindOptions,
 ) (cur *Cursor, err error) {
@@ -1600,7 +1600,7 @@ func newFindArgsFromFindOneArgs(args *options.FindOneOptions) *options.FindOptio
 // The opts parameter can be used to specify options for this operation (see the options.FindOneOptions documentation).
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/find/.
-func (coll *Collection) FindOne(ctx context.Context, filter interface{},
+func (coll *Collection) FindOne(ctx context.Context, filter any,
 	opts ...options.Lister[options.FindOneOptions]) *SingleResult {
 
 	if ctx == nil {
@@ -1691,7 +1691,7 @@ func (coll *Collection) findAndModify(ctx context.Context, op *operation.FindAnd
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/findAndModify/.
 func (coll *Collection) FindOneAndDelete(
 	ctx context.Context,
-	filter interface{},
+	filter any,
 	opts ...options.Lister[options.FindOneAndDeleteOptions]) *SingleResult {
 
 	f, err := marshal(filter, coll.bsonOpts, coll.registry)
@@ -1774,8 +1774,8 @@ func (coll *Collection) FindOneAndDelete(
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/findAndModify/.
 func (coll *Collection) FindOneAndReplace(
 	ctx context.Context,
-	filter interface{},
-	replacement interface{},
+	filter any,
+	replacement any,
 	opts ...options.Lister[options.FindOneAndReplaceOptions],
 ) *SingleResult {
 
@@ -1877,8 +1877,8 @@ func (coll *Collection) FindOneAndReplace(
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/findAndModify/.
 func (coll *Collection) FindOneAndUpdate(
 	ctx context.Context,
-	filter interface{},
-	update interface{},
+	filter any,
+	update any,
 	opts ...options.Lister[options.FindOneAndUpdateOptions]) *SingleResult {
 
 	if ctx == nil {
@@ -1987,7 +1987,7 @@ func (coll *Collection) FindOneAndUpdate(
 //
 // The opts parameter can be used to specify options for change stream creation (see the options.ChangeStreamOptions
 // documentation).
-func (coll *Collection) Watch(ctx context.Context, pipeline interface{},
+func (coll *Collection) Watch(ctx context.Context, pipeline any,
 	opts ...options.Lister[options.ChangeStreamOptions]) (*ChangeStream, error) {
 
 	csConfig := changeStreamConfig{
@@ -2048,7 +2048,7 @@ func (coll *Collection) Drop(ctx context.Context, opts ...options.Lister[options
 }
 
 // dropEncryptedCollection drops a collection with EncryptedFields.
-func (coll *Collection) dropEncryptedCollection(ctx context.Context, ef interface{}) error {
+func (coll *Collection) dropEncryptedCollection(ctx context.Context, ef any) error {
 	efBSON, err := marshal(ef, coll.bsonOpts, coll.registry)
 	if err != nil {
 		return fmt.Errorf("error transforming document: %w", err)
@@ -2241,7 +2241,7 @@ func makeOutputAggregateSelector(
 // isUnorderedMap returns true if val is a map with more than 1 element. It is typically used to
 // check for unordered Go values that are used in nested command documents where different field
 // orders mean different things. Examples are the "sort" and "hint" fields.
-func isUnorderedMap(val interface{}) bool {
+func isUnorderedMap(val any) bool {
 	refValue := reflect.ValueOf(val)
 	return refValue.Kind() == reflect.Map && refValue.Len() > 1
 }

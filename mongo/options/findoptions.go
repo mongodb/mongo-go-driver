@@ -19,22 +19,22 @@ import (
 type FindOptions struct {
 	AllowPartialResults *bool
 	Collation           *Collation
-	Comment             interface{}
-	Hint                interface{}
-	Max                 interface{}
+	Comment             any
+	Hint                any
+	Max                 any
 	MaxAwaitTime        *time.Duration
-	Min                 interface{}
+	Min                 any
 	OplogReplay         *bool
-	Projection          interface{}
+	Projection          any
 	ReturnKey           *bool
 	ShowRecordID        *bool
 	Skip                *int64
-	Sort                interface{}
+	Sort                any
 	// The above are in common with FindOneopts.
 	AllowDiskUse    *bool
 	BatchSize       *int32
 	CursorType      *CursorType
-	Let             interface{}
+	Let             any
 	Limit           *int64
 	NoCursorTimeout *bool
 
@@ -107,7 +107,7 @@ func (f *FindOptionsBuilder) SetCollation(collation *Collation) *FindOptionsBuil
 // SetComment sets the value for the Comment field. Specifies a string or document that will be
 // included in server logs, profiling logs, and currentOp queries to help trace the operation.
 // The default is nil, which means that no comment will be included in the logs.
-func (f *FindOptionsBuilder) SetComment(comment interface{}) *FindOptionsBuilder {
+func (f *FindOptionsBuilder) SetComment(comment any) *FindOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOptions) error {
 		opts.Comment = &comment
 		return nil
@@ -130,7 +130,7 @@ func (f *FindOptionsBuilder) SetCursorType(ct CursorType) *FindOptionsBuilder {
 // This should either be the index name as a string or the index specification as a document.
 // The driver will return an error if the hint parameter is a multi-key map. The default
 // value is nil, which means that no hint will be sent.
-func (f *FindOptionsBuilder) SetHint(hint interface{}) *FindOptionsBuilder {
+func (f *FindOptionsBuilder) SetHint(hint any) *FindOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOptions) error {
 		opts.Hint = hint
 		return nil
@@ -143,7 +143,7 @@ func (f *FindOptionsBuilder) SetHint(hint interface{}) *FindOptionsBuilder {
 // for using this option. This must be a document mapping parameter names to values. Values
 // must be constant or closed expressions that do not reference document fields. Parameters
 // can then be accessed as variables in an aggregate expression context (e.g. "$$var").
-func (f *FindOptionsBuilder) SetLet(let interface{}) *FindOptionsBuilder {
+func (f *FindOptionsBuilder) SetLet(let any) *FindOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOptions) error {
 		opts.Let = let
 		return nil
@@ -165,7 +165,7 @@ func (f *FindOptionsBuilder) SetLimit(i int64) *FindOptionsBuilder {
 
 // SetMax sets the value for the Max field. Max is a document specifying the exclusive upper bound
 // for a specific index. The default value is nil, which means that there is no maximum value.
-func (f *FindOptionsBuilder) SetMax(max interface{}) *FindOptionsBuilder {
+func (f *FindOptionsBuilder) SetMax(max any) *FindOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOptions) error {
 		opts.Max = max
 		return nil
@@ -188,7 +188,7 @@ func (f *FindOptionsBuilder) SetMaxAwaitTime(d time.Duration) *FindOptionsBuilde
 
 // SetMin sets the value for the Min field. Min is a document specifying the inclusive lower bound
 // for a specific index. The default value is 0, which means that there is no minimum value.
-func (f *FindOptionsBuilder) SetMin(min interface{}) *FindOptionsBuilder {
+func (f *FindOptionsBuilder) SetMin(min any) *FindOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOptions) error {
 		opts.Min = min
 		return nil
@@ -223,7 +223,7 @@ func (f *FindOptionsBuilder) SetOplogReplay(b bool) *FindOptionsBuilder {
 // SetProjection sets the value for the Projection field. Projection is a document describing
 // which fields will be included in the documents returned by the Find operation. The
 // default value is nil, which means all fields will be included.
-func (f *FindOptionsBuilder) SetProjection(projection interface{}) *FindOptionsBuilder {
+func (f *FindOptionsBuilder) SetProjection(projection any) *FindOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOptions) error {
 		opts.Projection = projection
 		return nil
@@ -266,7 +266,7 @@ func (f *FindOptionsBuilder) SetSkip(i int64) *FindOptionsBuilder {
 // SetSort sets the value for the Sort field. Sort is a document specifying the order in which
 // documents should be returned. The sort parameter is evaluated sequentially, so the driver will
 // return an error if it is a multi-key map (which is unordeded). The default value is nil.
-func (f *FindOptionsBuilder) SetSort(sort interface{}) *FindOptionsBuilder {
+func (f *FindOptionsBuilder) SetSort(sort any) *FindOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOptions) error {
 		opts.Sort = sort
 		return nil
@@ -281,16 +281,16 @@ func (f *FindOptionsBuilder) SetSort(sort interface{}) *FindOptionsBuilder {
 type FindOneOptions struct {
 	AllowPartialResults *bool
 	Collation           *Collation
-	Comment             interface{}
-	Hint                interface{}
-	Max                 interface{}
-	Min                 interface{}
+	Comment             any
+	Hint                any
+	Max                 any
+	Min                 any
 	OplogReplay         *bool
-	Projection          interface{}
+	Projection          any
 	ReturnKey           *bool
 	ShowRecordID        *bool
 	Skip                *int64
-	Sort                interface{}
+	Sort                any
 
 	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
 	// release.
@@ -338,7 +338,7 @@ func (f *FindOneOptionsBuilder) SetCollation(collation *Collation) *FindOneOptio
 // SetComment sets the value for the Comment field. Specifies a string or document that will be
 // included in server logs, profiling logs, and currentOp queries to help trace the operation.
 // The default is nil, which means that no comment will be included in the logs.
-func (f *FindOneOptionsBuilder) SetComment(comment interface{}) *FindOneOptionsBuilder {
+func (f *FindOneOptionsBuilder) SetComment(comment any) *FindOneOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneOptions) error {
 		opts.Comment = &comment
 		return nil
@@ -350,7 +350,7 @@ func (f *FindOneOptionsBuilder) SetComment(comment interface{}) *FindOneOptionsB
 // This should either be the index name as a string or the index specification as a document.
 // The driver will return an error if the hint parameter is a multi-key map. The default value
 // is nil, which means that no hint will be sent.
-func (f *FindOneOptionsBuilder) SetHint(hint interface{}) *FindOneOptionsBuilder {
+func (f *FindOneOptionsBuilder) SetHint(hint any) *FindOneOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneOptions) error {
 		opts.Hint = hint
 		return nil
@@ -360,7 +360,7 @@ func (f *FindOneOptionsBuilder) SetHint(hint interface{}) *FindOneOptionsBuilder
 
 // SetMax sets the value for the Max field. Sets a document specifying the exclusive upper bound
 // for a specific index. The default value is nil, which means that there is no maximum value.
-func (f *FindOneOptionsBuilder) SetMax(max interface{}) *FindOneOptionsBuilder {
+func (f *FindOneOptionsBuilder) SetMax(max any) *FindOneOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneOptions) error {
 		opts.Max = max
 		return nil
@@ -370,7 +370,7 @@ func (f *FindOneOptionsBuilder) SetMax(max interface{}) *FindOneOptionsBuilder {
 
 // SetMin sets the value for the Min field. Sets a document specifying the inclusive lower bound
 // for a specific index. The default value is 0, which means that there is no minimum value.
-func (f *FindOneOptionsBuilder) SetMin(min interface{}) *FindOneOptionsBuilder {
+func (f *FindOneOptionsBuilder) SetMin(min any) *FindOneOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneOptions) error {
 		opts.Min = min
 		return nil
@@ -394,7 +394,7 @@ func (f *FindOneOptionsBuilder) SetOplogReplay(b bool) *FindOneOptionsBuilder {
 // SetProjection sets the value for the Projection field. Sets a document describing which fields
 // will be included in the document returned by the operation. The default value is nil, which
 // means all fields will be included.
-func (f *FindOneOptionsBuilder) SetProjection(projection interface{}) *FindOneOptionsBuilder {
+func (f *FindOneOptionsBuilder) SetProjection(projection any) *FindOneOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneOptions) error {
 		opts.Projection = projection
 		return nil
@@ -438,7 +438,7 @@ func (f *FindOneOptionsBuilder) SetSkip(i int64) *FindOneOptionsBuilder {
 // apply to the query. The first document in the sorted order will be returned. The sort
 // parameter is evaluated sequentially, so the driver will return an error if it is a multi-
 // key map (which is unordeded). The default value is nil.
-func (f *FindOneOptionsBuilder) SetSort(sort interface{}) *FindOneOptionsBuilder {
+func (f *FindOneOptionsBuilder) SetSort(sort any) *FindOneOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneOptions) error {
 		opts.Sort = sort
 		return nil
@@ -453,13 +453,13 @@ func (f *FindOneOptionsBuilder) SetSort(sort interface{}) *FindOneOptionsBuilder
 type FindOneAndReplaceOptions struct {
 	BypassDocumentValidation *bool
 	Collation                *Collation
-	Comment                  interface{}
-	Projection               interface{}
+	Comment                  any
+	Projection               any
 	ReturnDocument           *ReturnDocument
-	Sort                     interface{}
+	Sort                     any
 	Upsert                   *bool
-	Hint                     interface{}
-	Let                      interface{}
+	Hint                     any
+	Let                      any
 
 	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
 	// release.
@@ -513,7 +513,7 @@ func (f *FindOneAndReplaceOptionsBuilder) SetCollation(collation *Collation) *Fi
 // SetComment sets the value for the Comment field. Specifies a string or document that will be
 // included in server logs, profiling logs, and currentOp queries to help trace the operation.
 // The default value is nil, which means that no comment will be included in the logs.
-func (f *FindOneAndReplaceOptionsBuilder) SetComment(comment interface{}) *FindOneAndReplaceOptionsBuilder {
+func (f *FindOneAndReplaceOptionsBuilder) SetComment(comment any) *FindOneAndReplaceOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndReplaceOptions) error {
 		opts.Comment = comment
 
@@ -526,7 +526,7 @@ func (f *FindOneAndReplaceOptionsBuilder) SetComment(comment interface{}) *FindO
 // SetProjection sets the value for the Projection field. Sets a document describing which fields
 // will be included in the document returned by the operation. The default value is nil, which
 // means all fields will be included.
-func (f *FindOneAndReplaceOptionsBuilder) SetProjection(projection interface{}) *FindOneAndReplaceOptionsBuilder {
+func (f *FindOneAndReplaceOptionsBuilder) SetProjection(projection any) *FindOneAndReplaceOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndReplaceOptions) error {
 		opts.Projection = projection
 
@@ -554,7 +554,7 @@ func (f *FindOneAndReplaceOptionsBuilder) SetReturnDocument(rd ReturnDocument) *
 // If set, the first document in the sorted order will be replaced. The sort parameter is evaluated
 // sequentially, so the driver will return an error if it is a multi-key map (which is unordeded).
 // The default value is nil.
-func (f *FindOneAndReplaceOptionsBuilder) SetSort(sort interface{}) *FindOneAndReplaceOptionsBuilder {
+func (f *FindOneAndReplaceOptionsBuilder) SetSort(sort any) *FindOneAndReplaceOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndReplaceOptions) error {
 		opts.Sort = sort
 
@@ -584,7 +584,7 @@ func (f *FindOneAndReplaceOptionsBuilder) SetUpsert(b bool) *FindOneAndReplaceOp
 // with during an unacknowledged write operation. The driver will return an error if the
 // hint parameter is a multi-key map. The default value is nil, which means that no hint
 // will be sent.
-func (f *FindOneAndReplaceOptionsBuilder) SetHint(hint interface{}) *FindOneAndReplaceOptionsBuilder {
+func (f *FindOneAndReplaceOptionsBuilder) SetHint(hint any) *FindOneAndReplaceOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndReplaceOptions) error {
 		opts.Hint = hint
 
@@ -600,7 +600,7 @@ func (f *FindOneAndReplaceOptionsBuilder) SetHint(hint interface{}) *FindOneAndR
 // parameter names to values. Values must be constant or closed expressions that do not
 // reference document fields. Parameters can then be accessed as variables in an
 // aggregate expression context (e.g. "$$var").
-func (f *FindOneAndReplaceOptionsBuilder) SetLet(let interface{}) *FindOneAndReplaceOptionsBuilder {
+func (f *FindOneAndReplaceOptionsBuilder) SetLet(let any) *FindOneAndReplaceOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndReplaceOptions) error {
 		opts.Let = let
 
@@ -615,16 +615,16 @@ func (f *FindOneAndReplaceOptionsBuilder) SetLet(let interface{}) *FindOneAndRep
 //
 // See corresponding setter methods for documentation.
 type FindOneAndUpdateOptions struct {
-	ArrayFilters             []interface{}
+	ArrayFilters             []any
 	BypassDocumentValidation *bool
 	Collation                *Collation
-	Comment                  interface{}
-	Projection               interface{}
+	Comment                  any
+	Projection               any
 	ReturnDocument           *ReturnDocument
-	Sort                     interface{}
+	Sort                     any
 	Upsert                   *bool
-	Hint                     interface{}
-	Let                      interface{}
+	Hint                     any
+	Let                      any
 
 	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
 	// release.
@@ -652,7 +652,7 @@ func (f *FindOneAndUpdateOptionsBuilder) List() []func(*FindOneAndUpdateOptions)
 // set of filters specifying to which array elements an update should apply. The
 // default value is nil, which means the update will apply to all array
 // elements.
-func (f *FindOneAndUpdateOptionsBuilder) SetArrayFilters(filters []interface{}) *FindOneAndUpdateOptionsBuilder {
+func (f *FindOneAndUpdateOptionsBuilder) SetArrayFilters(filters []any) *FindOneAndUpdateOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndUpdateOptions) error {
 		opts.ArrayFilters = filters
 
@@ -692,7 +692,7 @@ func (f *FindOneAndUpdateOptionsBuilder) SetCollation(collation *Collation) *Fin
 // SetComment sets the value for the Comment field. Specifies a string or document that will be
 // included in server logs, profiling logs, and currentOp queries to help trace the operation.
 // The default value is nil, which means that no comment will be included in the logs.
-func (f *FindOneAndUpdateOptionsBuilder) SetComment(comment interface{}) *FindOneAndUpdateOptionsBuilder {
+func (f *FindOneAndUpdateOptionsBuilder) SetComment(comment any) *FindOneAndUpdateOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndUpdateOptions) error {
 		opts.Comment = comment
 
@@ -705,7 +705,7 @@ func (f *FindOneAndUpdateOptionsBuilder) SetComment(comment interface{}) *FindOn
 // SetProjection sets the value for the Projection field. Sets a document describing which fields
 // will be included in the document returned by the operation. The default value is nil, which
 // means all fields will be included.
-func (f *FindOneAndUpdateOptionsBuilder) SetProjection(projection interface{}) *FindOneAndUpdateOptionsBuilder {
+func (f *FindOneAndUpdateOptionsBuilder) SetProjection(projection any) *FindOneAndUpdateOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndUpdateOptions) error {
 		opts.Projection = projection
 
@@ -733,7 +733,7 @@ func (f *FindOneAndUpdateOptionsBuilder) SetReturnDocument(rd ReturnDocument) *F
 // If set, the first document in the sorted order will be updated. The sort parameter is evaluated
 // sequentially, so the driver will return an error if it is a multi-key map (which is unordeded).
 // The default value is nil.
-func (f *FindOneAndUpdateOptionsBuilder) SetSort(sort interface{}) *FindOneAndUpdateOptionsBuilder {
+func (f *FindOneAndUpdateOptionsBuilder) SetSort(sort any) *FindOneAndUpdateOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndUpdateOptions) error {
 		opts.Sort = sort
 
@@ -763,7 +763,7 @@ func (f *FindOneAndUpdateOptionsBuilder) SetUpsert(b bool) *FindOneAndUpdateOpti
 // with during an unacknowledged write operation. The driver will return an error if the
 // hint parameter is a multi-key map. The default value is nil, which means that no hint
 // will be sent.
-func (f *FindOneAndUpdateOptionsBuilder) SetHint(hint interface{}) *FindOneAndUpdateOptionsBuilder {
+func (f *FindOneAndUpdateOptionsBuilder) SetHint(hint any) *FindOneAndUpdateOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndUpdateOptions) error {
 		opts.Hint = hint
 
@@ -779,7 +779,7 @@ func (f *FindOneAndUpdateOptionsBuilder) SetHint(hint interface{}) *FindOneAndUp
 // to values. Values must be constant or closed expressions that do not reference document
 // fields. Parameters can then be accessed as variables in an aggregate expression context
 // (e.g. "$$var").
-func (f *FindOneAndUpdateOptionsBuilder) SetLet(let interface{}) *FindOneAndUpdateOptionsBuilder {
+func (f *FindOneAndUpdateOptionsBuilder) SetLet(let any) *FindOneAndUpdateOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndUpdateOptions) error {
 		opts.Let = let
 
@@ -795,11 +795,11 @@ func (f *FindOneAndUpdateOptionsBuilder) SetLet(let interface{}) *FindOneAndUpda
 // See corresponding setter methods for documentation.
 type FindOneAndDeleteOptions struct {
 	Collation  *Collation
-	Comment    interface{}
-	Projection interface{}
-	Sort       interface{}
-	Hint       interface{}
-	Let        interface{}
+	Comment    any
+	Projection any
+	Sort       any
+	Hint       any
+	Let        any
 
 	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
 	// release.
@@ -839,7 +839,7 @@ func (f *FindOneAndDeleteOptionsBuilder) SetCollation(collation *Collation) *Fin
 // SetComment sets the value for the Comment field. Specifies a string or document that will be
 // included in server logs, profiling logs, and currentOp queries to help trace the operation.
 // The default value is nil, which means that no comment will be included in the logs.
-func (f *FindOneAndDeleteOptionsBuilder) SetComment(comment interface{}) *FindOneAndDeleteOptionsBuilder {
+func (f *FindOneAndDeleteOptionsBuilder) SetComment(comment any) *FindOneAndDeleteOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndDeleteOptions) error {
 		opts.Comment = comment
 
@@ -852,7 +852,7 @@ func (f *FindOneAndDeleteOptionsBuilder) SetComment(comment interface{}) *FindOn
 // SetProjection sets the value for the Projection field. Sets a document describing which fields
 // will be included in the document returned by the operation. The default value is nil, which
 // means all fields will be included.
-func (f *FindOneAndDeleteOptionsBuilder) SetProjection(projection interface{}) *FindOneAndDeleteOptionsBuilder {
+func (f *FindOneAndDeleteOptionsBuilder) SetProjection(projection any) *FindOneAndDeleteOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndDeleteOptions) error {
 		opts.Projection = projection
 
@@ -867,7 +867,7 @@ func (f *FindOneAndDeleteOptionsBuilder) SetProjection(projection interface{}) *
 // If set, the first document in the sorted order will be deleted. The sort parameter is evaluated
 // sequentially, so the driver will return an error if it is a multi-key map (which is unordeded).
 // The default value is nil.
-func (f *FindOneAndDeleteOptionsBuilder) SetSort(sort interface{}) *FindOneAndDeleteOptionsBuilder {
+func (f *FindOneAndDeleteOptionsBuilder) SetSort(sort any) *FindOneAndDeleteOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndDeleteOptions) error {
 		opts.Sort = sort
 
@@ -884,7 +884,7 @@ func (f *FindOneAndDeleteOptionsBuilder) SetSort(sort interface{}) *FindOneAndDe
 // error if this option is specified. The driver will return an error if this option is used
 // with during an unacknowledged write operation. The driver will return an error if the hint
 // parameter is a multi-key map. The default value is nil, which means that no hint will be sent.
-func (f *FindOneAndDeleteOptionsBuilder) SetHint(hint interface{}) *FindOneAndDeleteOptionsBuilder {
+func (f *FindOneAndDeleteOptionsBuilder) SetHint(hint any) *FindOneAndDeleteOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndDeleteOptions) error {
 		opts.Hint = hint
 
@@ -899,7 +899,7 @@ func (f *FindOneAndDeleteOptionsBuilder) SetHint(hint interface{}) *FindOneAndDe
 // report an error for using this option. This must be a document mapping parameter names to
 // values. Values must be constant or closed expressions that do not reference document fields.
 // Parameters can then be accessed as variables in an aggregate expression context (e.g. "$$var").
-func (f *FindOneAndDeleteOptionsBuilder) SetLet(let interface{}) *FindOneAndDeleteOptionsBuilder {
+func (f *FindOneAndDeleteOptionsBuilder) SetLet(let any) *FindOneAndDeleteOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneAndDeleteOptions) error {
 		opts.Let = let
 
