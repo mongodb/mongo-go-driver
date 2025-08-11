@@ -2056,8 +2056,9 @@ task_groups:
         params:
           working_dir: src/go.mongodb.org/mongo-driver
           binary: bash
-          add_expansions_to_env: true
+          include_expansions_in_env: [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN]
           env:
+            MONGODB_VERSION: ${VERSION}
             LAMBDA_STACK_NAME: dbx-go-lambda
           args:
             - ${DRIVERS_TOOLS}/.evergreen/atlas/setup.sh
@@ -2089,7 +2090,7 @@ task_groups:
           binary: bash
           include_expansions_in_env: [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN]
           env:
-            MONGODB_VERSION: "7.0"
+            MONGODB_VERSION: ${VERSION}
             LAMBDA_STACK_NAME: dbx-go-lambda
           args:
             - ${DRIVERS_TOOLS}/.evergreen/atlas/setup.sh
