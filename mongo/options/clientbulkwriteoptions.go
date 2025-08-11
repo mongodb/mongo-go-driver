@@ -7,6 +7,7 @@
 package options
 
 import (
+	"go.mongodb.org/mongo-driver/v2/internal/optionsutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 )
 
@@ -20,6 +21,10 @@ type ClientBulkWriteOptions struct {
 	Let                      any
 	WriteConcern             *writeconcern.WriteConcern
 	VerboseResults           *bool
+
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	Internal optionsutil.Options
 }
 
 // ClientBulkWriteOptionsBuilder contains options to configure client-level bulk

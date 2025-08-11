@@ -6,12 +6,18 @@
 
 package options
 
+import "go.mongodb.org/mongo-driver/v2/internal/optionsutil"
+
 // CreateIndexesOptions represents arguments that can be used to configure
 // IndexView.CreateOne and IndexView.CreateMany operations.
 //
 // See corresponding setter methods for documentation.
 type CreateIndexesOptions struct {
 	CommitQuorum any
+
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	Internal optionsutil.Options
 }
 
 // CreateIndexesOptionsBuilder contains options to create indexes. Each option
@@ -121,7 +127,11 @@ func (c *CreateIndexesOptionsBuilder) SetCommitQuorumVotingMembers() *CreateInde
 
 // DropIndexesOptions represents arguments that can be used to configure
 // IndexView.DropOne and IndexView.DropAll operations.
-type DropIndexesOptions struct{}
+type DropIndexesOptions struct {
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	Internal optionsutil.Options
+}
 
 // DropIndexesOptionsBuilder contains options to configure dropping indexes.
 // Each option can be set through setter functions. See documentation for each
@@ -146,6 +156,10 @@ func (d *DropIndexesOptionsBuilder) List() []func(*DropIndexesOptions) error {
 // See corresponding setter methods for documentation.
 type ListIndexesOptions struct {
 	BatchSize *int32
+
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	Internal optionsutil.Options
 }
 
 // ListIndexesOptionsBuilder contains options to configure count operations. Each

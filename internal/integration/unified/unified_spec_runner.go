@@ -197,10 +197,10 @@ func (tc *TestCase) EndLoop() {
 
 // LoggerSkipper is passed to TestCase.Run to allow it to perform logging and skipping operations
 type LoggerSkipper interface {
-	Log(args ...interface{})
-	Logf(format string, args ...interface{})
-	Skip(args ...interface{})
-	Skipf(format string, args ...interface{})
+	Log(args ...any)
+	Logf(format string, args ...any)
+	Skip(args ...any)
+	Skipf(format string, args ...any)
 }
 
 // skipTestError indicates that a test must be skipped because the runner cannot execute it (e.g. the test requires

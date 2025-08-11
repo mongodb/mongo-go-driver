@@ -24,10 +24,10 @@ var _ bson.Unmarshaler = (*dbOrCollectionOptions)(nil)
 // to their corresponding Go objects.
 func (d *dbOrCollectionOptions) UnmarshalBSON(data []byte) error {
 	var temp struct {
-		RC    *readConcern           `bson:"readConcern"`
-		RP    *ReadPreference        `bson:"readPreference"`
-		WC    *writeConcern          `bson:"writeConcern"`
-		Extra map[string]interface{} `bson:",inline"`
+		RC    *readConcern    `bson:"readConcern"`
+		RP    *ReadPreference `bson:"readPreference"`
+		WC    *writeConcern   `bson:"writeConcern"`
+		Extra map[string]any  `bson:",inline"`
 	}
 	if err := bson.Unmarshal(data, &temp); err != nil {
 		return fmt.Errorf("error unmarshalling to temporary dbOrCollectionOptions object: %w", err)

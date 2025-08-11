@@ -6,6 +6,8 @@
 
 package options
 
+import "go.mongodb.org/mongo-driver/v2/internal/optionsutil"
+
 // DeleteOneOptions represents arguments that can be used to configure DeleteOne
 // operations.
 //
@@ -15,6 +17,10 @@ type DeleteOneOptions struct {
 	Comment   any
 	Hint      any
 	Let       any
+
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	Internal optionsutil.Options
 }
 
 // DeleteOneOptionsBuilder contains options to configure DeleteOne operations. Each
@@ -102,6 +108,10 @@ type DeleteManyOptions struct {
 	Comment   any
 	Hint      any
 	Let       any
+
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	Internal optionsutil.Options
 }
 
 // DeleteManyOptionsBuilder contains options to configure DeleteMany operations.

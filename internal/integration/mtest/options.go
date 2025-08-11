@@ -74,7 +74,7 @@ func (r *RunOnBlock) UnmarshalBSON(data []byte) error {
 		Auth             *bool                    `bson:"auth"`
 		AuthEnabled      *bool                    `bson:"authEnabled"`
 		CSFLE            *bool                    `bson:"csfle"`
-		Extra            map[string]interface{}   `bson:",inline"`
+		Extra            map[string]any           `bson:",inline"`
 	}
 	if err := bson.Unmarshal(data, &temp); err != nil {
 		return fmt.Errorf("error unmarshalling to temporary RunOnBlock object: %w", err)

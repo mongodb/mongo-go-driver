@@ -63,7 +63,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 	defaultKvClientOptions := options.Client().ApplyURI(mtest.ClusterURI())
 	integtest.AddTestServerAPIVersion(defaultKvClientOptions)
-	fullKmsProvidersMap := map[string]map[string]interface{}{
+	fullKmsProvidersMap := map[string]map[string]any{
 		"aws": {
 			"accessKeyId":     awsAccessKeyID,
 			"secretAccessKey": awsSecretAccessKey,
@@ -183,10 +183,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				}},
 			}},
 		}
-		schemaMap := map[string]interface{}{"db.coll": schema}
+		schemaMap := map[string]any{"db.coll": schema}
 		tlsConfig := make(map[string]*tls.Config)
 		if tlsCAFileKMIP != "" && tlsClientCertificateKeyFileKMIP != "" {
-			tlsOpts := map[string]interface{}{
+			tlsOpts := map[string]any{
 				"tlsCertificateKeyFile": tlsClientCertificateKeyFileKMIP,
 				"tlsCAFile":             tlsCAFileKMIP,
 			}
@@ -224,7 +224,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		kmipMasterKey := bson.D{}
 		testCases := []struct {
 			provider  string
-			masterKey interface{}
+			masterKey any
 		}{
 			{"local", nil},
 			{"aws", awsMasterKey},
@@ -322,12 +322,12 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
 				// setup options structs
-				kmsProviders := map[string]map[string]interface{}{
+				kmsProviders := map[string]map[string]any{
 					"local": {
 						"key": localMasterKey,
 					},
 				}
-				schemaMap := map[string]interface{}{"db.coll": readJSONFile(mt, "external-schema.json")}
+				schemaMap := map[string]any{"db.coll": readJSONFile(mt, "external-schema.json")}
 				aeo := options.AutoEncryption().
 					SetKmsProviders(kmsProviders).
 					SetKeyVaultNamespace(kvNamespace).
@@ -378,7 +378,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		}
 	})
 	mt.Run("4. bson size limits", func(mt *mtest.T) {
-		kmsProviders := map[string]map[string]interface{}{
+		kmsProviders := map[string]map[string]any{
 			"local": {
 				"key": localMasterKey,
 			},
@@ -438,7 +438,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		cpt.cseStarted = cpt.cseStarted[:0]
 		firstDoc := bson.D{{"_id", "over_2mib_1"}, {"unencrypted", complete2mbStr}}
 		secondDoc := bson.D{{"_id", "over_2mib_2"}, {"unencrypted", complete2mbStr}}
-		_, err = cpt.cseColl.InsertMany(context.Background(), []interface{}{firstDoc, secondDoc})
+		_, err = cpt.cseColl.InsertMany(context.Background(), []any{firstDoc, secondDoc})
 		assert.Nil(mt, err, "InsertMany error for small documents: %v", err)
 		assert.Equal(mt, 2, len(cpt.cseStarted), "expected 2 insert events, got %d", len(cpt.cseStarted))
 
@@ -459,7 +459,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		secondBulkDoc, _ = bsoncore.AppendDocumentEnd(secondBulkDoc, 0)
 
 		cpt.cseStarted = cpt.cseStarted[:0]
-		_, err = cpt.cseColl.InsertMany(context.Background(), []interface{}{firstBulkDoc, secondBulkDoc})
+		_, err = cpt.cseColl.InsertMany(context.Background(), []any{firstBulkDoc, secondBulkDoc})
 		assert.Nil(mt, err, "InsertMany error for large documents: %v", err)
 		assert.Equal(mt, 2, len(cpt.cseStarted), "expected 2 insert events, got %d", len(cpt.cseStarted))
 
@@ -481,7 +481,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 	mt.Run("5. views are prohibited", func(mt *mtest.T) {
 		mt.Parallel()
 
-		kmsProviders := map[string]map[string]interface{}{
+		kmsProviders := map[string]map[string]any{
 			"local": {
 				"key": localMasterKey,
 			},
@@ -514,13 +514,13 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			mt.Skipf("Skipping test as KMS_MOCK_SERVERS_RUNNING is not set")
 		}
 		corpusSchema := readJSONFile(mt, "corpus-schema.json")
-		localSchemaMap := map[string]interface{}{
+		localSchemaMap := map[string]any{
 			"db.coll": corpusSchema,
 		}
 
 		tlsConfig := make(map[string]*tls.Config)
 		if tlsCAFileKMIP != "" && tlsClientCertificateKeyFileKMIP != "" {
-			tlsOpts := map[string]interface{}{
+			tlsOpts := map[string]any{
 				"tlsCertificateKeyFile": tlsClientCertificateKeyFileKMIP,
 				"tlsCAFile":             tlsCAFileKMIP,
 			}
@@ -569,7 +569,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				}
 
 				// Manually insert keys for each KMS provider into the key vault.
-				_, err := cpt.keyVaultColl.InsertMany(context.Background(), []interface{}{
+				_, err := cpt.keyVaultColl.InsertMany(context.Background(), []any{
 					readJSONFile(mt, "corpus-key-local.json"),
 					readJSONFile(mt, "corpus-key-aws.json"),
 					readJSONFile(mt, "corpus-key-azure.json"),
@@ -747,7 +747,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		}
 	})
 	mt.Run("7. custom endpoint", func(mt *mtest.T) {
-		validKmsProviders := map[string]map[string]interface{}{
+		validKmsProviders := map[string]map[string]any{
 			"aws": {
 				"accessKeyId":     awsAccessKeyID,
 				"secretAccessKey": awsSecretAccessKey,
@@ -770,7 +770,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 		tlsConfig := make(map[string]*tls.Config)
 		if tlsCAFileKMIP != "" && tlsClientCertificateKeyFileKMIP != "" {
-			tlsOpts := map[string]interface{}{
+			tlsOpts := map[string]any{
 				"tlsCertificateKeyFile": tlsClientCertificateKeyFileKMIP,
 				"tlsCAFile":             tlsCAFileKMIP,
 			}
@@ -784,7 +784,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			SetKeyVaultNamespace(kvNamespace).
 			SetTLSConfig(tlsConfig)
 
-		invalidKmsProviders := map[string]map[string]interface{}{
+		invalidKmsProviders := map[string]map[string]any{
 			"azure": {
 				"tenantId":                 azureTenantID,
 				"clientId":                 azureClientID,
@@ -806,60 +806,60 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			SetKeyVaultNamespace(kvNamespace).
 			SetTLSConfig(tlsConfig)
 
-		awsSuccessWithoutEndpoint := map[string]interface{}{
+		awsSuccessWithoutEndpoint := map[string]any{
 			"region": "us-east-1",
 			"key":    "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
 		}
-		awsSuccessWithEndpoint := map[string]interface{}{
+		awsSuccessWithEndpoint := map[string]any{
 			"region":   "us-east-1",
 			"key":      "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
 			"endpoint": "kms.us-east-1.amazonaws.com",
 		}
-		awsSuccessWithHTTPSEndpoint := map[string]interface{}{
+		awsSuccessWithHTTPSEndpoint := map[string]any{
 			"region":   "us-east-1",
 			"key":      "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
 			"endpoint": "kms.us-east-1.amazonaws.com:443",
 		}
-		awsFailureConnectionError := map[string]interface{}{
+		awsFailureConnectionError := map[string]any{
 			"keyId":    "1",
 			"endpoint": "localhost:12345",
 		}
-		awsFailureInvalidEndpoint := map[string]interface{}{
+		awsFailureInvalidEndpoint := map[string]any{
 			"region":   "us-east-1",
 			"key":      "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
 			"endpoint": "kms.us-east-2.amazonaws.com",
 		}
-		awsFailureParseError := map[string]interface{}{
+		awsFailureParseError := map[string]any{
 			"region":   "us-east-1",
 			"key":      "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
 			"endpoint": "doesnotexist.invalid",
 		}
-		azure := map[string]interface{}{
+		azure := map[string]any{
 			"keyVaultEndpoint": "key-vault-csfle.vault.azure.net",
 			"keyName":          "key-name-csfle",
 		}
-		gcpSuccess := map[string]interface{}{
+		gcpSuccess := map[string]any{
 			"projectId": "devprod-drivers",
 			"location":  "global",
 			"keyRing":   "key-ring-csfle",
 			"keyName":   "key-name-csfle",
 			"endpoint":  "cloudkms.googleapis.com:443",
 		}
-		gcpFailure := map[string]interface{}{
+		gcpFailure := map[string]any{
 			"projectId": "devprod-drivers",
 			"location":  "global",
 			"keyRing":   "key-ring-csfle",
 			"keyName":   "key-name-csfle",
 			"endpoint":  "doesnotexist.invalid:443",
 		}
-		kmipSuccessWithoutEndpoint := map[string]interface{}{
+		kmipSuccessWithoutEndpoint := map[string]any{
 			"keyId": "1",
 		}
-		kmipSuccessWithEndpoint := map[string]interface{}{
+		kmipSuccessWithEndpoint := map[string]any{
 			"keyId":    "1",
 			"endpoint": "localhost:5698",
 		}
-		kmipFailureInvalidEndpoint := map[string]interface{}{
+		kmipFailureInvalidEndpoint := map[string]any{
 			"keyId":    "1",
 			"endpoint": "doesnotexist.invalid:5698",
 		}
@@ -876,7 +876,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		testCases := []struct {
 			name                                  string
 			provider                              string
-			masterKey                             interface{}
+			masterKey                             any
 			errorSubstring                        []string
 			testInvalidClientEncryption           bool
 			invalidClientEncryptionErrorSubstring []string
@@ -1030,12 +1030,12 @@ func TestClientSideEncryptionProse(t *testing.T) {
 	mt.RunOpts("8. bypass mongocryptd spawning", noClientOpts, func(mt *mtest.T) {
 		mt.Parallel()
 
-		kmsProviders := map[string]map[string]interface{}{
+		kmsProviders := map[string]map[string]any{
 			"local": {
 				"key": localMasterKey,
 			},
 		}
-		schemaMap := map[string]interface{}{
+		schemaMap := map[string]any{
 			"db.coll": readJSONFile(mt, "external-schema.json"),
 		}
 
@@ -1043,25 +1043,25 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		// with mongocryptd instances spawned by previous tests. Explicitly disable loading the
 		// crypt_shared library to make sure we're testing mongocryptd spawning behavior that is not
 		// influenced by loading the crypt_shared library.
-		mongocryptdBypassSpawnTrue := map[string]interface{}{
+		mongocryptdBypassSpawnTrue := map[string]any{
 			"mongocryptdBypassSpawn":              true,
 			"mongocryptdURI":                      "mongodb://localhost:27021/db?serverSelectionTimeoutMS=1000",
 			"mongocryptdSpawnArgs":                []string{"--pidfilepath=bypass-spawning-mongocryptd.pid", "--port=27021"},
 			"__cryptSharedLibDisabledForTestOnly": true, // Disable loading the crypt_shared library.
 		}
-		mongocryptdBypassSpawnFalse := map[string]interface{}{
+		mongocryptdBypassSpawnFalse := map[string]any{
 			"mongocryptdBypassSpawn":              false,
 			"mongocryptdSpawnArgs":                []string{"--pidfilepath=bypass-spawning-mongocryptd.pid", "--port=27021"},
 			"__cryptSharedLibDisabledForTestOnly": true, // Disable loading the crypt_shared library.
 		}
-		mongocryptdBypassSpawnNotSet := map[string]interface{}{
+		mongocryptdBypassSpawnNotSet := map[string]any{
 			"mongocryptdSpawnArgs":                []string{"--pidfilepath=bypass-spawning-mongocryptd.pid", "--port=27021"},
 			"__cryptSharedLibDisabledForTestOnly": true, // Disable loading the crypt_shared library.
 		}
 
 		testCases := []struct {
 			name                    string
-			mongocryptdOpts         map[string]interface{}
+			mongocryptdOpts         map[string]any
 			setBypassAutoEncryption bool
 			bypassAutoEncryption    bool
 			bypassQueryAnalysis     bool
@@ -1097,7 +1097,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			{
 				name:         "use shared library",
 				useSharedLib: true,
-				mongocryptdOpts: map[string]interface{}{
+				mongocryptdOpts: map[string]any{
 					"mongocryptdURI":       "mongodb://localhost:27021/db?serverSelectionTimeoutMS=1000",
 					"mongocryptdSpawnArgs": []string{"--pidfilepath=bypass-spawning-mongocryptd.pid", "--port=27021"},
 					"cryptSharedLibPath":   os.Getenv("CRYPT_SHARED_LIB_PATH"),
@@ -1174,10 +1174,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		}
 		decodeJSONFile(mt, "change-streams-test.json", &testConfig)
 
-		schemaMap := map[string]interface{}{
+		schemaMap := map[string]any{
 			"db.coll": testConfig.JSONSchema,
 		}
-		kmsProviders := map[string]map[string]interface{}{
+		kmsProviders := map[string]map[string]any{
 			"aws": {
 				"accessKeyId":     awsAccessKeyID,
 				"secretAccessKey": awsSecretAccessKey,
@@ -1318,7 +1318,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				d := newDeadlockTest(mt)
 				defer d.disconnect(mt)
 
-				kmsProviders := map[string]map[string]interface{}{
+				kmsProviders := map[string]map[string]any{
 					"local": {"key": localMasterKey},
 				}
 				aeOpts := options.AutoEncryption()
@@ -1449,7 +1449,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			mt.Fatal("Env vars CSFLE_TLS_CA_FILE and CSFLE_TLS_CLIENT_CERT_FILE must be set")
 		}
 
-		validKmsProviders := map[string]map[string]interface{}{
+		validKmsProviders := map[string]map[string]any{
 			"aws": {
 				"accessKeyId":     awsAccessKeyID,
 				"secretAccessKey": awsSecretAccessKey,
@@ -1470,7 +1470,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			},
 		}
 
-		expiredKmsProviders := map[string]map[string]interface{}{
+		expiredKmsProviders := map[string]map[string]any{
 			"aws": {
 				"accessKeyId":     awsAccessKeyID,
 				"secretAccessKey": awsSecretAccessKey,
@@ -1491,7 +1491,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			},
 		}
 
-		invalidKmsProviders := map[string]map[string]interface{}{
+		invalidKmsProviders := map[string]map[string]any{
 			"aws": {
 				"accessKeyId":     awsAccessKeyID,
 				"secretAccessKey": awsSecretAccessKey,
@@ -1518,7 +1518,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			SetKeyVaultNamespace(kvNamespace)
 
 		// make TLS opts containing client certificate and CA file
-		clientAndCATLSConfig, err := options.BuildTLSConfig(map[string]interface{}{
+		clientAndCATLSConfig, err := options.BuildTLSConfig(map[string]any{
 			"tlsCertificateKeyFile": tlsClientCertificateKeyFileKMIP,
 			"tlsCAFile":             tlsCAFileKMIP,
 		})
@@ -1536,7 +1536,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			})
 
 		// make TLS opts containing only CA file
-		caTLSConfig, err := options.BuildTLSConfig(map[string]interface{}{
+		caTLSConfig, err := options.BuildTLSConfig(map[string]any{
 			"tlsCAFile": tlsCAFileKMIP,
 		})
 		assert.Nil(mt, err, "BuildTLSConfig error: %v", err)
@@ -1563,44 +1563,44 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				"kmip":  caTLSConfig,
 			})
 
-		awsMasterKeyNoClientCert := map[string]interface{}{
+		awsMasterKeyNoClientCert := map[string]any{
 			"region":   "us-east-1",
 			"key":      "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
 			"endpoint": "127.0.0.1:9002",
 		}
-		awsMasterKeyWithTLS := map[string]interface{}{
+		awsMasterKeyWithTLS := map[string]any{
 			"region":   "us-east-1",
 			"key":      "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
 			"endpoint": "127.0.0.1:9002",
 		}
-		awsMasterKeyExpired := map[string]interface{}{
+		awsMasterKeyExpired := map[string]any{
 			"region":   "us-east-1",
 			"key":      "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
 			"endpoint": "127.0.0.1:9000",
 		}
-		awsMasterKeyInvalidHostname := map[string]interface{}{
+		awsMasterKeyInvalidHostname := map[string]any{
 			"region":   "us-east-1",
 			"key":      "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
 			"endpoint": "127.0.0.1:9001",
 		}
-		azureMasterKey := map[string]interface{}{
+		azureMasterKey := map[string]any{
 			"keyVaultEndpoint": "doesnotexist.invalid",
 			"keyName":          "foo",
 		}
-		gcpMasterKey := map[string]interface{}{
+		gcpMasterKey := map[string]any{
 			"projectId": "foo",
 			"location":  "bar",
 			"keyRing":   "baz",
 			"keyName":   "foo",
 		}
-		kmipMasterKey := map[string]interface{}{}
+		kmipMasterKey := map[string]any{}
 
 		testCases := []struct {
 			name                     string
-			masterKeyNoClientCert    interface{}
-			masterKeyWithTLS         interface{}
-			masterKeyExpired         interface{}
-			masterKeyInvalidHostname interface{}
+			masterKeyNoClientCert    any
+			masterKeyWithTLS         any
+			masterKeyExpired         any
+			masterKeyInvalidHostname any
 			tlsError                 string
 			expiredError             string
 			invalidHostnameError     string
@@ -2020,7 +2020,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 			tlsConfig := make(map[string]*tls.Config)
 			if tlsCAFileKMIP != "" && tlsClientCertificateKeyFileKMIP != "" {
-				tlsOpts := map[string]interface{}{
+				tlsOpts := map[string]any{
 					"tlsCertificateKeyFile": tlsClientCertificateKeyFileKMIP,
 					"tlsCAFile":             tlsCAFileKMIP,
 				}
@@ -2161,7 +2161,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 	mt.RunOpts("18. Azure IMDS Credentials", noClientOpts, func(mt *mtest.T) {
 		buf := new(bytes.Buffer)
-		kmsProvidersMap := map[string]map[string]interface{}{
+		kmsProvidersMap := map[string]map[string]any{
 			"azure": {},
 		}
 		vw := bson.NewDocumentWriter(buf)
@@ -2270,7 +2270,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				return
 			}
 
-			kmsProviders := map[string]map[string]interface{}{
+			kmsProviders := map[string]map[string]any{
 				"local": {
 					"key": localMasterKey,
 				},
@@ -2284,7 +2284,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			defer listener.Close()
 
 			uri := "mongodb://" + listener.Addr().String()
-			mongocryptdSpawnArgs := map[string]interface{}{
+			mongocryptdSpawnArgs := map[string]any{
 				"mongocryptdURI":     uri,
 				"cryptSharedLibPath": cryptSharedLibPath,
 			}
@@ -3011,7 +3011,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		tlsCAFile := os.Getenv("KMS_FAILPOINT_CA_FILE")
 		require.NotEqual(mt, tlsCAFile, "", "failed to load CA file")
 
-		clientAndCATlsMap := map[string]interface{}{
+		clientAndCATlsMap := map[string]any{
 			"tlsCAFile": tlsCAFile,
 		}
 		tlsCfg, err := options.BuildTLSConfig(clientAndCATlsMap)
@@ -3037,7 +3037,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			return res.Body.Close()
 		}
 
-		kmsProviders := map[string]map[string]interface{}{
+		kmsProviders := map[string]map[string]any{
 			"aws": {
 				"accessKeyId":     awsAccessKeyID,
 				"secretAccessKey": awsSecretAccessKey,
@@ -3057,7 +3057,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 		dataKeys := []struct {
 			provider  string
-			masterKey interface{}
+			masterKey any
 		}{
 			{"aws", bson.D{
 				{"region", "foo"},
@@ -3235,7 +3235,7 @@ func readJSONFile(mt *mtest.T, file string) bson.Raw {
 	return doc
 }
 
-func decodeJSONFile(mt *mtest.T, file string, val interface{}) bson.Raw {
+func decodeJSONFile(mt *mtest.T, file string, val any) bson.Raw {
 	mt.Helper()
 
 	content, err := ioutil.ReadFile(filepath.Join(clientEncryptionProseDir, file))
@@ -3303,7 +3303,7 @@ func newDeadlockTest(mt *mtest.T) *deadlockTest {
 	err = d.clientTest.Database("db").CreateCollection(context.Background(), "coll", createOpts)
 	assert.Nil(mt, err, "CreateCollection error: %v", err)
 
-	kmsProviders := map[string]map[string]interface{}{
+	kmsProviders := map[string]map[string]any{
 		"local": {"key": localMasterKey},
 	}
 	ceOpts := options.ClientEncryption().SetKmsProviders(kmsProviders).SetKeyVaultNamespace("keyvault.datakeys")

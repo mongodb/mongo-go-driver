@@ -1,4 +1,4 @@
-priority-3-low:
+review-priority-normal:
 - changed-files:
   - any-glob-to-any-file: '*'
 

@@ -6,12 +6,18 @@
 
 package options
 
+import "go.mongodb.org/mongo-driver/v2/internal/optionsutil"
+
 // EstimatedDocumentCountOptions represents arguments that can be used to configure
 // an EstimatedDocumentCount operation.
 //
 // See corresponding setter methods for documentation.
 type EstimatedDocumentCountOptions struct {
 	Comment any
+
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	Internal optionsutil.Options
 }
 
 // EstimatedDocumentCountOptionsBuilder contains options to estimate document

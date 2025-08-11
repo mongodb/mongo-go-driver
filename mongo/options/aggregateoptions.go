@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/optionsutil"
 )
 
 // AggregateOptions represents arguments that can be used to configure an
@@ -26,6 +27,10 @@ type AggregateOptions struct {
 	Hint                     any
 	Let                      any
 	Custom                   bson.M
+
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	Internal optionsutil.Options
 }
 
 // AggregateOptionsBuilder contains options to configure aggregate operations.

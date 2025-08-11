@@ -6,6 +6,8 @@
 
 package options
 
+import "go.mongodb.org/mongo-driver/v2/internal/optionsutil"
+
 // DefaultOrdered is the default value for the Ordered option in BulkWriteOptions.
 var DefaultOrdered = true
 
@@ -18,6 +20,10 @@ type BulkWriteOptions struct {
 	Comment                  any
 	Ordered                  *bool
 	Let                      any
+
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	Internal optionsutil.Options
 }
 
 // BulkWriteOptionsBuilder contains options to configure bulk write operations.
