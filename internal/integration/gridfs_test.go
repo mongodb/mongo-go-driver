@@ -414,7 +414,7 @@ func TestGridFS(x *testing.T) {
 			cancel()
 
 			_, err = ds.Skip(int64(len(fileData)))
-			assert.Error(mt, err, "expected error from Skip, got nil")
+			assert.Error(mt, err, "expected error from Skip")
 			assert.ErrorIs(mt, context.Canceled, err)
 		})
 	})
