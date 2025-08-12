@@ -10,7 +10,7 @@ dotenv: ['.test.env']
 tasks:
 
   ### Utility tasks. ###
-  default: 
+  default:
     deps: [build, check-license, check-fmt, check-modules, lint, test-short]
 
   add-license: bash etc/check_license.sh -a
@@ -36,7 +36,7 @@ tasks:
 
   build-aws-ecs-test: go test -c ./internal/test/aws -o aws.testbin
 
-  cross-compile: 
+  cross-compile:
     - GOOS=linux GOARCH=386 go build ./...
     - GOOS=linux GOARCH=arm go build ./...
     - GOOS=linux GOARCH=arm64 go build ./...
@@ -44,7 +44,7 @@ tasks:
     - GOOS=linux GOARCH=ppc64le go build ./...
     - GOOS=linux GOARCH=s390x go build ./...
 
-  check-fmt: 
+  check-fmt:
     deps: [install-lll]
     cmds:
       - bash etc/check_fmt.sh
@@ -57,9 +57,9 @@ tasks:
 
   api-report: bash etc/api_report.sh
 
-  install-libmongocrypt: 
+  install-libmongocrypt:
     cmds: [bash etc/install-libmongocrypt.sh]
-    status: 
+    status:
       - test -d install || test -d /cygdrive/c/libmongocrypt/bin
 
   run-docker: bash etc/run_docker.sh
@@ -76,7 +76,7 @@ tasks:
   # specific operating systems or architectures. For example, staticcheck will only check for 64-bit
   # alignment of atomically accessed variables on 32-bit architectures (see
   # https://staticcheck.io/docs/checks#SA1027)
-  lint: 
+  lint:
     cmds:
       - GOOS=linux GOARCH=386 etc/golangci-lint.sh
       - GOOS=linux GOARCH=arm etc/golangci-lint.sh
@@ -104,8 +104,8 @@ tasks:
 
   test-oidc-remote: bash etc/run-oidc-remote-test.sh
 
-  test-atlas-connect: 
-    - go test -v -run ^TestAtlas$ go.mongodb.org/mongo-driver/v2/internal/cmd/testatlas -args "$ATLAS_REPL" "$ATLAS_SHRD" "$ATLAS_FREE" "$ATLAS_TLS11" "$ATLAS_TLS12" "$ATLAS_SERVERLESS" "$ATLAS_SRV_REPL" "$ATLAS_SRV_SHRD" "$ATLAS_SRV_FREE" "$ATLAS_SRV_TLS11" "$ATLAS_SRV_TLS12" "$ATLAS_SRV_SERVERLESS" >> test.suite
+  test-atlas-connect:
+    - go test -v -run ^TestAtlas$ go.mongodb.org/mongo-driver/v2/internal/cmd/testatlas >> test.suite
 
   test-awskms: bash etc/run-awskms-test.sh
 
@@ -117,9 +117,9 @@ tasks:
 
   ### Local FaaS tasks. ###
   build-faas-awslambda:
-    requires: 
+    requires:
       vars: [MONGODB_URI]
-    cmds: 
+    cmds:
       - make -c internal/cmd/faas/awslambda
 
   ### Evergreen specific tasks. ###
@@ -134,7 +134,7 @@ tasks:
     - ATLAS_DATA_LAKE_INTEGRATION_TEST=true go test -v ./internal/integration/unified -run TestUnifiedSpec/atlas-data-lake-testing >> spec_test.suite
     - ATLAS_DATA_LAKE_INTEGRATION_TEST=true go test -v ./internal/integration -run TestAtlasDataLake >> spec_test.suite
 
-  evg-test-enterprise-auth: 
+  evg-test-enterprise-auth:
     - go run -tags gssapi ./internal/cmd/testentauth/main.go
 
   evg-test-oidc-auth:
@@ -188,15 +188,15 @@ tasks:
   ### Benchmark specific tasks and support. ###
   benchmark:
     deps: [perf-files]
-    cmds: 
+    cmds:
       - go test ${BUILD_TAGS} -benchmem -bench=. ./benchmark | test benchmark.suite
 
-  driver-benchmark: 
-    cmds: 
+  driver-benchmark:
+    cmds:
       - go test ./internal/cmd/benchmark -v --fullRun | tee perf.suite
 
   ### Internal tasks. ###
-  install-lll: 
+  install-lll:
     internal: true
     cmds:
       - go install github.com/walle/lll/...@latest
