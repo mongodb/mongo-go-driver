@@ -817,3 +817,18 @@ func WithinDurationf(t TestingT, expected time.Time, actual time.Time, delta tim
 	}
 	t.FailNow()
 }
+
+// NotEmpty asserts that the specified object is NOT [Empty].
+//
+//	if require.NotEmpty(t, obj) {
+//	  require.Equal(t, "two", obj[1])
+//	}
+func NotEmpty(t TestingT, object interface{}, msgAndArgs ...interface{}) {
+	if h, ok := t.(tHelper); ok {
+		h.Helper()
+	}
+	if assert.NotEmpty(t, object, msgAndArgs...) {
+		return
+	}
+	t.FailNow()
+}
