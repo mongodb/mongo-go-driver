@@ -4,6 +4,9 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build atlastest
+// +build atlastest
+
 package main
 
 import (
@@ -122,9 +125,7 @@ func TestAtlas(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(fmt.Sprintf("%s (%s)", tc.name, tc.envVar), func(t *testing.T) {
 			uri := os.Getenv(tc.envVar)
-			if uri == "" {
-				t.Skipf("Environment variable %q is not set", tc.envVar)
-			}
+			require.NotEmpty(t, uri, "Environment variable %s is not set", tc.envVar)
 
 			if tc.certKeyFile != "" {
 				uri = addTLSCertKeyFile(t, tc.certKeyFile, uri)

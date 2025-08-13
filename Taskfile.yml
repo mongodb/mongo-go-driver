@@ -105,7 +105,7 @@ tasks:
   test-oidc-remote: bash etc/run-oidc-remote-test.sh
 
   test-atlas-connect:
-    - go test -v -run ^TestAtlas$ go.mongodb.org/mongo-driver/v2/internal/cmd/testatlas >> test.suite
+    - go test -v -run ^TestAtlas$ go.mongodb.org/mongo-driver/v2/internal/cmd/testatlas -tags atlastest >> test.suite
 
   test-awskms: bash etc/run-awskms-test.sh
 
