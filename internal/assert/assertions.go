@@ -1073,3 +1073,20 @@ func buildErrorChainString(err error) string {
 	}
 	return chain
 }
+
+// NotEmpty asserts that the specified object is NOT [Empty].
+//
+//	if assert.NotEmpty(t, obj) {
+//	  assert.Equal(t, "two", obj[1])
+//	}
+func NotEmpty(t TestingT, object interface{}, msgAndArgs ...interface{}) bool {
+	pass := !isEmpty(object)
+	if !pass {
+		if h, ok := t.(tHelper); ok {
+			h.Helper()
+		}
+		Fail(t, fmt.Sprintf("Should NOT be empty, but was %v", object), msgAndArgs...)
+	}
+
+	return pass
+}
