@@ -20,6 +20,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/internal/israce"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
@@ -74,19 +75,19 @@ func TestGridFS(x *testing.T) {
 				bucket := mt.DB.GridFSBucket(options.GridFSBucket().SetChunkSizeBytes(chunkSize))
 
 				ustream, err := bucket.OpenUploadStream(context.Background(), "foo")
-				assert.Nil(mt, err, "OpenUploadStream error: %v", err)
+				require.NoError(mt, err, "OpenUploadStream error: %v", err)
 
 				id := ustream.FileID
 				_, err = ustream.Write(data)
-				assert.Nil(mt, err, "Write error: %v", err)
+				require.NoError(mt, err, "Write error: %v", err)
 				err = ustream.Close()
-				assert.Nil(mt, err, "Close error: %v", err)
+				require.NoError(mt, err, "Close error: %v", err)
 
 				dstream, err := bucket.OpenDownloadStream(context.Background(), id)
-				assert.Nil(mt, err, "OpenDownloadStream error")
+				require.NoError(mt, err, "OpenDownloadStream error")
 				dst := make([]byte, tc.read)
 				_, err = dstream.Read(dst)
-				assert.Nil(mt, err, "Read error: %v", err)
+				require.NoError(mt, err, "Read error: %v", err)
 
 				n, err := dstream.Skip(tc.skip)
 				assert.Equal(mt, tc.expectedSkipErr, err, "expected error on Skip: %v, got %v", tc.expectedSkipErr, err)
@@ -114,7 +115,7 @@ func TestGridFS(x *testing.T) {
 		mt.Cleanup(cancel)
 
 		_, err := bucket.UploadFromStream(uploadCtx, "filename", r)
-		assert.Nil(mt, err, "UploadFromStream error: %v", err)
+		require.NoError(mt, err, "UploadFromStream error: %v", err)
 
 		findCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		mt.Cleanup(cancel)
@@ -169,7 +170,7 @@ func TestGridFS(x *testing.T) {
 							}},
 						},
 					)
-					assert.Nil(mt, res.Err(), "createIndexes error: %v", res.Err())
+					require.NoError(mt, res.Err(), "createIndexes error: %v", res.Err())
 
 					res = mt.DB.RunCommand(context.Background(),
 						bson.D{
@@ -179,7 +180,7 @@ func TestGridFS(x *testing.T) {
 							}},
 						},
 					)
-					assert.Nil(mt, res.Err(), "createIndexes error: %v", res.Err())
+					require.NoError(mt, res.Err(), "createIndexes error: %v", res.Err())
 
 					mt.ClearEvents()
 
@@ -189,7 +190,7 @@ func TestGridFS(x *testing.T) {
 					}()
 
 					_, err := bucket.OpenUploadStream(context.Background(), "filename")
-					assert.Nil(mt, err, "OpenUploadStream error: %v", err)
+					require.NoError(mt, err, "OpenUploadStream error: %v", err)
 
 					mt.FilterStartedEvents(func(evt *event.CommandStartedEvent) bool {
 						return evt.CommandName == "createIndexes"
@@ -215,7 +216,7 @@ func TestGridFS(x *testing.T) {
 							}},
 						},
 					)
-					assert.Nil(mt, res.Err(), "createIndexes error: %v", res.Err())
+					require.NoError(mt, res.Err(), "createIndexes error: %v", res.Err())
 
 					res = mt.DB.RunCommand(context.Background(),
 						bson.D{
@@ -225,7 +226,7 @@ func TestGridFS(x *testing.T) {
 							}},
 						},
 					)
-					assert.Nil(mt, res.Err(), "createIndexes error: %v", res.Err())
+					require.NoError(mt, res.Err(), "createIndexes error: %v", res.Err())
 
 					mt.ClearEvents()
 					var fileContent []byte
@@ -236,7 +237,7 @@ func TestGridFS(x *testing.T) {
 					}()
 
 					_, err := bucket.UploadFromStream(context.Background(), "filename", bytes.NewBuffer(fileContent))
-					assert.Nil(mt, err, "UploadFromStream error: %v", err)
+					require.NoError(mt, err, "UploadFromStream error: %v", err)
 
 					mt.FilterStartedEvents(func(evt *event.CommandStartedEvent) bool {
 						return evt.CommandName == "createIndexes"
@@ -264,7 +265,7 @@ func TestGridFS(x *testing.T) {
 			fileData := []byte{1, 2, 3, 4}
 			fileMetadata := bson.D{{"k1", "v1"}, {"k2", "v2"}}
 			rawMetadata, err := bson.Marshal(fileMetadata)
-			assert.Nil(mt, err, "Marshal error: %v", err)
+			require.NoError(mt, err, "Marshal error: %v", err)
 			uploadOpts := options.GridFSUpload().SetMetadata(fileMetadata)
 
 			testCases := []struct {
@@ -288,13 +289,13 @@ func TestGridFS(x *testing.T) {
 					} else {
 						err = bucket.UploadFromStreamWithID(context.Background(), tc.fileID, fileName, dataReader, uploadOpts)
 					}
-					assert.Nil(mt, err, "error uploading file: %v", err)
+					require.NoError(mt, err, "error uploading file: %v", err)
 
 					// The uploadDate field is calculated when the upload is complete. Manually fetch it from the
 					// fs.files collection to use in assertions.
 					filesColl := mt.DB.Collection("fs.files")
 					uploadedFileDoc, err := filesColl.FindOne(context.Background(), bson.D{}).Raw()
-					assert.Nil(mt, err, "FindOne error: %v", err)
+					require.NoError(mt, err, "FindOne error: %v", err)
 					uploadTime := uploadedFileDoc.Lookup("uploadDate").Time().UTC()
 
 					expectedFile := &mongo.GridFSFile{
@@ -309,13 +310,13 @@ func TestGridFS(x *testing.T) {
 					// stream to the expected File object.
 					mt.RunOpts("OpenDownloadStream", noClientOpts, func(mt *mtest.T) {
 						downloadStream, err := bucket.OpenDownloadStream(context.Background(), uploadedFileID)
-						assert.Nil(mt, err, "OpenDownloadStream error: %v", err)
+						require.NoError(mt, err, "OpenDownloadStream error: %v", err)
 						actualFile := downloadStream.GetFile()
 						assert.Equal(mt, expectedFile, actualFile, "expected file %v, got %v", expectedFile, actualFile)
 					})
 					mt.RunOpts("OpenDownloadStreamByName", noClientOpts, func(mt *mtest.T) {
 						downloadStream, err := bucket.OpenDownloadStreamByName(context.Background(), fileName)
-						assert.Nil(mt, err, "OpenDownloadStream error: %v", err)
+						require.NoError(mt, err, "OpenDownloadStream error: %v", err)
 						actualFile := downloadStream.GetFile()
 						assert.Equal(mt, expectedFile, actualFile, "expected file %v, got %v", expectedFile, actualFile)
 					})
@@ -332,13 +333,13 @@ func TestGridFS(x *testing.T) {
 			fileData := []byte("hello world")
 			uploadOpts := options.GridFSUpload().SetChunkSizeBytes(4)
 			fileID, err := bucket.UploadFromStream(context.Background(), "file", bytes.NewReader(fileData), uploadOpts)
-			assert.Nil(mt, err, "UploadFromStream error: %v", err)
+			require.NoError(mt, err, "UploadFromStream error: %v", err)
 
 			// If the bucket's chunk size was used, this would error because the actual chunk size is 4 and the bucket
 			// chunk size is 255 KB.
 			var downloadBuffer bytes.Buffer
 			_, err = bucket.DownloadToStream(context.Background(), fileID, &downloadBuffer)
-			assert.Nil(mt, err, "DownloadToStream error: %v", err)
+			require.NoError(mt, err, "DownloadToStream error: %v", err)
 
 			downloadedBytes := downloadBuffer.Bytes()
 			assert.Equal(mt, fileData, downloadedBytes, "expected bytes %s, got %s", fileData, downloadedBytes)
@@ -354,7 +355,7 @@ func TestGridFS(x *testing.T) {
 				{"filename", "filename"},
 			}
 			_, err := mt.DB.Collection("fs.files").InsertOne(context.Background(), filesDoc)
-			assert.Nil(mt, err, "InsertOne error for files collection: %v", err)
+			require.NoError(mt, err, "InsertOne error for files collection: %v", err)
 
 			bucket := mt.DB.GridFSBucket()
 			defer func() { _ = bucket.Drop(context.Background()) }()
@@ -376,7 +377,7 @@ func TestGridFS(x *testing.T) {
 
 			dataReader := bytes.NewReader(fileData)
 			_, err := bucket.UploadFromStream(context.Background(), fileName, dataReader)
-			assert.Nil(mt, err, "UploadFromStream error: %v", err)
+			require.NoError(mt, err, "UploadFromStream error: %v", err)
 
 			ctx, cancel := context.WithCancel(context.Background())
 
@@ -403,17 +404,17 @@ func TestGridFS(x *testing.T) {
 
 			dataReader := bytes.NewReader(fileData)
 			_, err := bucket.UploadFromStream(context.Background(), fileName, dataReader)
-			assert.Nil(mt, err, "UploadFromStream error: %v", err)
+			require.NoError(mt, err, "UploadFromStream error: %v", err)
 
 			ctx, cancel := context.WithCancel(context.Background())
 
 			ds, err := bucket.OpenDownloadStreamByName(ctx, fileName)
-			assert.Nil(mt, err, "OpenDownloadStreamByName error: %v", err)
+			require.NoError(mt, err, "OpenDownloadStreamByName error: %v", err)
 
 			cancel()
 
 			_, err = ds.Skip(int64(len(fileData)))
-			assert.NotNil(mt, err, "expected error from Skip, got nil")
+			assert.Error(mt, err, "expected error from Skip")
 			assert.ErrorIs(mt, context.Canceled, err)
 		})
 	})
@@ -441,7 +442,7 @@ func TestGridFS(x *testing.T) {
 				defer func() { _ = bucket.Drop(context.Background()) }()
 
 				_, err := bucket.UploadFromStream(context.Background(), "accessors-test-file", bytes.NewReader(fileData))
-				assert.Nil(mt, err, "UploadFromStream error: %v", err)
+				require.NoError(mt, err, "UploadFromStream error: %v", err)
 
 				bucketName := tc.bucketName
 				if bucketName == "" {
@@ -499,7 +500,7 @@ func TestGridFS(x *testing.T) {
 				mt.Cleanup(cancel)
 
 				_, err := bucket.UploadFromStream(ctx, "filename", bytes.NewReader(p))
-				assert.Nil(mt, err, "UploadFromStream error: %v", err)
+				require.NoError(mt, err, "UploadFromStream error: %v", err)
 
 				var w *bytes.Buffer
 				if test.bufSize == -1 {
@@ -509,7 +510,7 @@ func TestGridFS(x *testing.T) {
 				}
 
 				_, err = bucket.DownloadToStreamByName(ctx, "filename", w)
-				assert.Nil(mt, err, "DownloadToStreamByName error: %v", err)
+				require.NoError(mt, err, "DownloadToStreamByName error: %v", err)
 				assert.Equal(mt, p, w.Bytes(), "downloaded file did not match p")
 			})
 		}
@@ -524,7 +525,7 @@ func TestGridFS(x *testing.T) {
 			_ = cursor.Close(context.Background())
 		}()
 
-		assert.Nil(mt, err, "Find error: %v", err)
+		assert.NoError(mt, err, "Find error: %v", err)
 	})
 }
 
@@ -533,7 +534,7 @@ func assertGridFSCollectionState(mt *mtest.T, coll *mongo.Collection, expectedNa
 
 	assert.Equal(mt, expectedName, coll.Name(), "expected collection name %v, got %v", expectedName, coll.Name())
 	count, err := coll.CountDocuments(context.Background(), bson.D{})
-	assert.Nil(mt, err, "CountDocuments error: %v", err)
+	require.NoError(mt, err, "CountDocuments error: %v", err)
 	assert.Equal(mt, expectedNumDocuments, count, "expected %d documents in collection, got %d", expectedNumDocuments,
 		count)
 }
@@ -541,7 +542,7 @@ func assertGridFSCollectionState(mt *mtest.T, coll *mongo.Collection, expectedNa
 func findIndex(ctx context.Context, mt *mtest.T, coll *mongo.Collection, unique bool, keys ...string) {
 	mt.Helper()
 	cur, err := coll.Indexes().List(ctx)
-	assert.Nil(mt, err, "Indexes List error: %v", err)
+	require.NoError(mt, err, "Indexes List error: %v", err)
 
 	foundIndex := false
 	for cur.Next(ctx) {
@@ -566,7 +567,7 @@ func skipRoundTripTest(mt *mtest.T) {
 		context.Background(),
 		bson.D{{"serverStatus", 1}},
 	).Decode(&serverStatus)
-	assert.Nil(mt, err, "serverStatus error %v", err)
+	require.NoError(mt, err, "serverStatus error %v", err)
 
 	// can run on non-sharded clusters or on sharded cluster with auth/ssl disabled
 	_, err = serverStatus.LookupErr("sharding")
