@@ -569,7 +569,7 @@ func TestSessionsProse(t *testing.T) {
 		require.Len(mt, startedEvents, 2, "expected 2 started events, got: %v", len(startedEvents))
 		require.Equal(mt, "ping", startedEvents[1].CommandName, "expected second command to be ping, got: %v", startedEvents[1].CommandName)
 		currentClusterTime, err := startedEvents[1].Command.LookupErr("$clusterTime")
-		require.NoError(mt, err, "$clusterTime not found in commane")
+		require.NoError(mt, err, "$clusterTime not found in command")
 		assert.Equal(mt, initialClusterTime, currentClusterTime, "expected same cluster time, got %v and %v", initialClusterTime, currentClusterTime)
 	})
 }
