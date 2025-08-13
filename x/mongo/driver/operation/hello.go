@@ -24,7 +24,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
-	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
 // maxClientMetadataSize is the maximum size of the client metadata document
@@ -42,7 +41,6 @@ type Hello struct {
 	compressors        []string
 	saslSupportedMechs string
 	d                  driver.Deployment
-	clock              *session.ClusterClock
 	speculativeAuth    bsoncore.Document
 	topologyVersion    *description.TopologyVersion
 	maxAwaitTimeMS     *int64
@@ -66,16 +64,6 @@ func NewHello() *Hello { return &Hello{} }
 // AppName sets the application name in the client metadata sent in this operation.
 func (h *Hello) AppName(appname string) *Hello {
 	h.appname = appname
-	return h
-}
-
-// ClusterClock sets the cluster clock for this operation.
-func (h *Hello) ClusterClock(clock *session.ClusterClock) *Hello {
-	if h == nil {
-		h = new(Hello)
-	}
-
-	h.clock = clock
 	return h
 }
 
@@ -627,7 +615,6 @@ func isLegacyHandshake(srvAPI *driver.ServerAPIOptions, loadbalanced bool) bool 
 
 func (h *Hello) createOperation() driver.Operation {
 	op := driver.Operation{
-		Clock:      h.clock,
 		CommandFn:  h.command,
 		Database:   "admin",
 		Deployment: h.d,
@@ -652,7 +639,6 @@ func (h *Hello) GetHandshakeInformation(ctx context.Context, _ address.Address, 
 	deployment := driver.SingleConnectionDeployment{C: conn}
 
 	op := driver.Operation{
-		Clock:      h.clock,
 		CommandFn:  h.handshakeCommand,
 		Deployment: deployment,
 		Database:   "admin",

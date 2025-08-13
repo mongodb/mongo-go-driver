@@ -13,10 +13,12 @@ import (
 	"fmt"
 	"reflect"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
@@ -507,6 +509,68 @@ func TestSessionsProse(t *testing.T) {
 		limitedSessMsg := "expected session count to be less than the number of operations: %v"
 		assert.True(mt, limitedSessionUse, limitedSessMsg, len(ops))
 
+	})
+
+	mt.ResetClient(options.Client())
+	client := mt.Client
+	heartbeatStarted := make(chan struct{})
+	heartbeatSucceeded := make(chan struct{})
+	var clusterTimeAdvanced uint32
+	serverMonitor := &event.ServerMonitor{
+		ServerHeartbeatStarted: func(*event.ServerHeartbeatStartedEvent) {
+			if atomic.LoadUint32(&clusterTimeAdvanced) == 1 {
+				select {
+				case heartbeatStarted <- struct{}{}:
+					// NOOP
+				default:
+					// NOOP
+				}
+			}
+		},
+		ServerHeartbeatSucceeded: func(*event.ServerHeartbeatSucceededEvent) {
+			if atomic.LoadUint32(&clusterTimeAdvanced) == 1 {
+				select {
+				case heartbeatSucceeded <- struct{}{}:
+					// NOOP
+				default:
+					// NOOP
+				}
+			}
+		},
+	}
+	pingOpts := mtest.NewOptions().
+		CreateCollection(false).
+		ClientOptions(options.Client().
+			SetServerMonitor(serverMonitor).
+			SetHeartbeatInterval(500 * time.Millisecond). // Minimum interval
+			SetDirect(true)).
+		ClientType(mtest.Pinned)
+	mt.RunOpts("20 Drivers do not gossip $clusterTime on SDAM commands", pingOpts, func(mt *mtest.T) {
+		err := mt.Client.Ping(context.Background(), readpref.Primary())
+		assert.NoError(mt, err, "expected no error, got: %v", err)
+
+		_, err = client.Database("test").Collection("test").InsertOne(context.Background(), bson.D{{"advance", "$clusterTime"}})
+		require.NoError(mt, err, "expected no error inserting document, got: %v", err)
+
+		atomic.StoreUint32(&clusterTimeAdvanced, 1)
+		<-heartbeatStarted
+		<-heartbeatSucceeded
+
+		err = mt.Client.Ping(context.Background(), readpref.Primary())
+		require.NoError(mt, err, "expected no error, got: %v", err)
+
+		succeededEvents := mt.GetAllSucceededEvents()
+		require.Len(mt, succeededEvents, 2, "expected 2 succeeded events, got: %v", len(succeededEvents))
+		require.Equal(mt, "ping", succeededEvents[0].CommandName, "expected first command to be ping, got: %v", succeededEvents[0].CommandName)
+		initialClusterTime, err := succeededEvents[0].Reply.LookupErr("$clusterTime")
+		require.NoError(mt, err, "$clusterTime not found in response")
+
+		startedEvents := mt.GetAllStartedEvents()
+		require.Len(mt, startedEvents, 2, "expected 2 started events, got: %v", len(startedEvents))
+		require.Equal(mt, "ping", startedEvents[1].CommandName, "expected second command to be ping, got: %v", startedEvents[1].CommandName)
+		currentClusterTime, err := startedEvents[1].Command.LookupErr("$clusterTime")
+		require.NoError(mt, err, "$clusterTime not found in commane")
+		assert.Equal(mt, initialClusterTime, currentClusterTime, "expected same cluster time, got %v and %v", initialClusterTime, currentClusterTime)
 	})
 }
 
