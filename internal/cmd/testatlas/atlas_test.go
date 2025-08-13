@@ -216,7 +216,7 @@ func createAtlasX509DevCertKeyFileNoUser(t *testing.T) string {
 	keyBytes, err := base64.StdEncoding.DecodeString(b64)
 	require.NoError(t, err, "failed to decode ATLAS_X509_DEV_CERT_NOUSER_BASE64")
 
-	keyFilePath := t.TempDir() + "/atlas_x509_dev_cert_no_user.pem"
+	keyFilePath := filepath.Join(t.TempDir(), "atlas_x509_dev_cert_no_user.pem")
 
 	err = os.WriteFile(keyFilePath, keyBytes, 0600)
 	require.NoError(t, err, "failed to write ATLAS_X509_DEV_CERT_NOUSER_BASE64 to file")
