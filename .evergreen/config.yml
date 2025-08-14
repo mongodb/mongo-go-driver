@@ -644,7 +644,7 @@ tasks:
           args: [*task-runner, govulncheck]
 
   - name: generate-sbom
-    tags: ["ssdlc"]
+    tags: ["ssdlc", "static-analysis"]
     commands:
       - command: subprocess.exec
         params:
