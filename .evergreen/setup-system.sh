@@ -47,7 +47,8 @@ fi
 
 # Ensure a checkout of drivers-tools.
 if [ ! -d "$DRIVERS_TOOLS" ]; then
-  git clone https://github.com/mongodb-labs/drivers-evergreen-tools $DRIVERS_TOOLS
+  #git clone https://github.com/mongodb-labs/drivers-evergreen-tools $DRIVERS_TOOLS
+  git clone -b perfcomp https://github.com/zhouselena/drivers-evergreen-tools.git $DRIVERS_TOOLS
 fi
 
 # Write the .env file for drivers-tools.
