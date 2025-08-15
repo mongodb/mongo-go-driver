@@ -842,7 +842,6 @@ func (s *Server) setupHeartbeatConnection(ctx context.Context) error {
 func (s *Server) createBaseOperation(conn *mnet.Connection) *operation.Hello {
 	return operation.
 		NewHello().
-		ClusterClock(s.cfg.clock).
 		Deployment(driver.SingleConnectionDeployment{C: conn}).
 		ServerAPI(s.cfg.serverAPI)
 }

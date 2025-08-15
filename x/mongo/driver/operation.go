@@ -1133,9 +1133,11 @@ func (op Operation) readWireMessage(ctx context.Context, conn *mnet.Connection) 
 
 	// decode
 	res, err := op.decodeResult(opcode, rem)
-	// Update cluster/operation time and recovery tokens before handling the error to ensure we're properly updating
-	// everything.
-	op.updateClusterTimes(res)
+	// When a cluster clock is given, update cluster/operation time and recovery tokens before handling the error
+	// to ensure we're properly updating everything.
+	if op.Clock != nil {
+		op.updateClusterTimes(res)
+	}
 	op.updateOperationTime(res)
 	op.Client.UpdateRecoveryToken(bson.Raw(res))
 
@@ -1729,7 +1731,10 @@ func (op Operation) addClusterTime(dst []byte, desc description.SelectedServer) 
 	if (clock == nil && client == nil) || !sessionsSupported(desc.WireVersion) {
 		return dst
 	}
-	clusterTime := clock.GetClusterTime()
+	var clusterTime bson.Raw
+	if clock != nil {
+		clusterTime = clock.GetClusterTime()
+	}
 	if client != nil {
 		clusterTime = session.MaxClusterTime(clusterTime, client.ClusterTime)
 	}
@@ -1741,7 +1746,6 @@ func (op Operation) addClusterTime(dst []byte, desc description.SelectedServer) 
 		return dst
 	}
 	return append(bsoncore.AppendHeader(dst, bsoncore.Type(val.Type), "$clusterTime"), val.Value...)
-	// return bsoncore.AppendDocumentElement(dst, "$clusterTime", clusterTime)
 }
 
 // calculateMaxTimeMS calculates the value of the 'maxTimeMS' field to potentially append
