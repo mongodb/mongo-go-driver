@@ -103,6 +103,7 @@ func (ah *authHandshaker) GetHandshakeInformation(
 		AppName(ah.options.AppName).
 		Compressors(ah.options.Compressors).
 		SASLSupportedMechs(ah.options.DBUser).
+		ClusterClock(ah.options.ClusterClock).
 		ServerAPI(ah.options.ServerAPI).
 		LoadBalanced(ah.options.LoadBalanced).
 		OuterLibraryName(ah.options.OuterLibraryName).

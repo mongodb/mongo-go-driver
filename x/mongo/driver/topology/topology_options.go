@@ -290,6 +290,7 @@ func NewConfigFromOptionsWithAuthenticator(opts *options.ClientOptions, clock *s
 			return operation.NewHello().
 				AppName(appName).
 				Compressors(comps).
+				ClusterClock(clock).
 				ServerAPI(serverAPI).
 				LoadBalanced(loadBalanced).
 				OuterLibraryName(outerLibraryName).
