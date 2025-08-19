@@ -422,18 +422,9 @@ func (coll *Collection) InsertMany(
 	documents any,
 	opts ...options.Lister[options.InsertManyOptions],
 ) (*InsertManyResult, error) {
-
-	dv := reflect.ValueOf(documents)
-	if dv.Kind() != reflect.Slice {
-		return nil, fmt.Errorf("invalid documents: %w", ErrNotSlice)
-	}
-	if dv.Len() == 0 {
-		return nil, fmt.Errorf("invalid documents: %w", ErrEmptySlice)
-	}
-
-	docSlice := make([]any, 0, dv.Len())
-	for i := 0; i < dv.Len(); i++ {
-		docSlice = append(docSlice, dv.Index(i).Interface())
+	docSlice, err := _switch(documents)
+	if err != nil {
+		return nil, err
 	}
 
 	result, err := coll.insert(ctx, docSlice, opts...)
@@ -465,6 +456,44 @@ func (coll *Collection) InsertMany(
 		WriteConcernError: writeException.WriteConcernError,
 		Labels:            writeException.Labels,
 	}
+}
+
+func _switch(documents interface{}) ([]any, error) {
+
+	bytes, err := bson.Marshal(struct {
+		Arr any `bson:"arr"`
+	}{Arr: documents})
+	if err != nil {
+		return nil, fmt.Errorf("invalid documents: %w", err)
+	}
+
+	raw := bson.Raw(bytes).Lookup("arr")
+
+	var docSlice []any
+	switch raw.Type {
+	case bson.TypeArray:
+		elems, err := raw.Array().Values()
+		if err != nil {
+			return nil, fmt.Errorf("invalid documents: %w", err)
+		}
+
+		if len(elems) == 0 {
+			return nil, fmt.Errorf("invalid documents: %w", ErrEmptySlice)
+		}
+
+		docSlice = make([]any, len(elems))
+		for i, elem := range elems {
+			var doc any
+			if err := bson.Unmarshal(elem.Value, &doc); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal document: %w", err)
+			}
+			docSlice[i] = doc
+		}
+	default:
+		return nil, fmt.Errorf("invalid documents: %w", ErrNotSlice)
+	}
+
+	return docSlice, nil
 }
 
 func (coll *Collection) delete(
