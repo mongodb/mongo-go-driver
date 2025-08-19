@@ -472,7 +472,7 @@ func _switch(documents interface{}) ([]any, error) {
 	var docSlice []any
 	switch raw.Type {
 	case bson.TypeArray:
-		elems, err := raw.Array().Values()
+		elems, err := bson.Raw(raw.Array()).Elements()
 		if err != nil {
 			return nil, fmt.Errorf("invalid documents: %w", err)
 		}
@@ -483,11 +483,7 @@ func _switch(documents interface{}) ([]any, error) {
 
 		docSlice = make([]any, len(elems))
 		for i, elem := range elems {
-			var doc any
-			if err := bson.Unmarshal(elem.Value, &doc); err != nil {
-				return nil, fmt.Errorf("failed to unmarshal document: %w", err)
-			}
-			docSlice[i] = doc
+			docSlice[i] = elem.Value().Document()
 		}
 	default:
 		return nil, fmt.Errorf("invalid documents: %w", ErrNotSlice)
