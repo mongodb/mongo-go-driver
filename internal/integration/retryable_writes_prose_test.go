@@ -155,8 +155,12 @@ func TestRetryableWritesProse(t *testing.T) {
 		SetPoolMonitor(tpm.PoolMonitor).SetHeartbeatInterval(500 * time.Millisecond).
 		SetHosts(hosts[:1])
 
-	mtPceOpts := mtest.NewOptions().ClientOptions(pceOpts).MinServerVersion("4.3").
-		Topologies(mtest.ReplicaSet, mtest.Sharded)
+	mtPceOpts := mtest.NewOptions().
+		ClientOptions(pceOpts).
+		MinServerVersion("4.3").
+		// TODO(GODRIVER-3328): FailPoints are not currently reliable on sharded
+		// topologies. Allow running on sharded topologies once that is fixed.
+		Topologies(mtest.ReplicaSet)
 	mt.RunOpts("PoolClearedError retryability", mtPceOpts, func(mt *mtest.T) {
 		// Force Find to block for 1 second once.
 		mt.SetFailPoint(failpoint.FailPoint{
@@ -287,7 +291,7 @@ func TestRetryableWritesProse(t *testing.T) {
 			require.True(mt, err.(mongo.WriteException).HasErrorCode(int(shutdownInProgressErrorCode)))
 		})
 
-	mtOpts = mtest.NewOptions().Topologies(mtest.Sharded).MinServerVersion("4.2")
+	mtOpts = mtest.NewOptions().Topologies(mtest.Sharded).MinServerVersion("4.2").AllowFailPointsOnSharded()
 	mt.RunOpts("retrying in sharded cluster", mtOpts, func(mt *mtest.T) {
 		tests := []struct {
 			name string
