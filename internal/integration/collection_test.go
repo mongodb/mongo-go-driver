@@ -49,13 +49,13 @@ func TestCollection(t *testing.T) {
 			id := bson.NewObjectID()
 			doc := bson.D{{"_id", id}, {"x", 1}}
 			res, err := mt.Coll.InsertOne(context.Background(), doc)
-			assert.Nil(mt, err, "InsertOne error: %v", err)
+			require.NoError(mt, err, "InsertOne error: %v", err)
 			assert.Equal(mt, id, res.InsertedID, "expected inserted ID %v, got %v", id, res.InsertedID)
 		})
 		mt.Run("write error", func(mt *mtest.T) {
 			doc := bson.D{{"_id", 1}}
 			_, err := mt.Coll.InsertOne(context.Background(), doc)
-			assert.Nil(mt, err, "InsertOne error: %v", err)
+			require.NoError(mt, err, "InsertOne error: %v", err)
 
 			_, err = mt.Coll.InsertOne(context.Background(), doc)
 			we, ok := err.(mongo.WriteException)
@@ -104,13 +104,13 @@ func TestCollection(t *testing.T) {
 				mt.Run(testCase.name, func(mt *mtest.T) {
 					doc := bson.D{{"x", 1}}
 					_, err := mt.Coll.InsertOne(context.Background(), doc, testCase.opts...)
-					assert.Nil(mt, err, "InsertOne error: %v", err)
+					require.NoError(mt, err, "InsertOne error: %v", err)
 					optName := "bypassDocumentValidation"
 					evt := mt.GetStartedEvent()
 
 					val, err := evt.Command.LookupErr(optName)
 					if testCase.expectOptionSet {
-						assert.Nil(mt, err, "expected %v to be set but got: %v", optName, err)
+						require.NoError(mt, err, "expected %v to be set but got: %v", optName, err)
 						assert.True(mt, val.Boolean(), "expected %v to be true but got: %v", optName, val.Boolean())
 						return
 					}
@@ -134,7 +134,7 @@ func TestCollection(t *testing.T) {
 			}
 
 			res, err := mt.Coll.InsertMany(context.Background(), docs)
-			assert.Nil(mt, err, "InsertMany error: %v", err)
+			require.NoError(mt, err, "InsertMany error: %v", err)
 			assert.Equal(mt, 3, len(res.InsertedIDs), "expected 3 inserted IDs, got %v", len(res.InsertedIDs))
 			assert.Equal(mt, want1, res.InsertedIDs[0], "expected inserted ID %v, got %v", want1, res.InsertedIDs[0])
 			assert.NotNil(mt, res.InsertedIDs[1], "expected ID but got nil")
@@ -163,7 +163,7 @@ func TestCollection(t *testing.T) {
 			}
 			assert.True(mt, total > 16*megabyte, "expected total greater than 16mb but got %v", total)
 			res, err := mt.Coll.InsertMany(context.Background(), docs)
-			assert.Nil(mt, err, "InsertMany error: %v", err)
+			require.NoError(mt, err, "InsertMany error: %v", err)
 			assert.Equal(mt, numDocs, len(res.InsertedIDs), "expected %v inserted IDs, got %v", numDocs, len(res.InsertedIDs))
 		})
 		mt.Run("large document batches", func(mt *mtest.T) {
@@ -171,7 +171,7 @@ func TestCollection(t *testing.T) {
 
 			docs := []any{create16MBDocument(mt), create16MBDocument(mt), create16MBDocument(mt)}
 			_, err := mt.Coll.InsertMany(context.Background(), docs)
-			assert.Nil(mt, err, "InsertMany error: %v", err)
+			require.NoError(mt, err, "InsertMany error: %v", err)
 			evt := mt.GetStartedEvent()
 			assert.Equal(mt, "insert", evt.CommandName, "expected 'insert' event, got '%v'", evt.CommandName)
 			evt = mt.GetStartedEvent()
@@ -197,7 +197,7 @@ func TestCollection(t *testing.T) {
 			for _, tc := range testCases {
 				mt.Run(tc.name, func(mt *mtest.T) {
 					_, err := mt.Coll.InsertMany(context.Background(), docs)
-					assert.Nil(mt, err, "InsertMany error: %v", err)
+					require.NoError(mt, err, "InsertMany error: %v", err)
 					_, err = mt.Coll.InsertMany(context.Background(), docs, options.InsertMany().SetOrdered(tc.ordered))
 
 					we, ok := err.(mongo.BulkWriteException)
@@ -297,20 +297,20 @@ func TestCollection(t *testing.T) {
 		mt.Run("found", func(mt *mtest.T) {
 			initCollection(mt, mt.Coll)
 			res, err := mt.Coll.DeleteOne(context.Background(), bson.D{{"x", 1}})
-			assert.Nil(mt, err, "DeleteOne error: %v", err)
+			require.NoError(mt, err, "DeleteOne error: %v", err)
 			assert.Equal(mt, int64(1), res.DeletedCount, "expected DeletedCount 1, got %v", res.DeletedCount)
 		})
 		mt.Run("not found", func(mt *mtest.T) {
 			initCollection(mt, mt.Coll)
 			res, err := mt.Coll.DeleteOne(context.Background(), bson.D{{"x", 0}})
-			assert.Nil(mt, err, "DeleteOne error: %v", err)
+			require.NoError(mt, err, "DeleteOne error: %v", err)
 			assert.Equal(mt, int64(0), res.DeletedCount, "expected DeletedCount 0, got %v", res.DeletedCount)
 		})
 		mt.RunOpts("not found with options", mtest.NewOptions().MinServerVersion("3.4"), func(mt *mtest.T) {
 			initCollection(mt, mt.Coll)
 			opts := options.DeleteOne().SetCollation(&options.Collation{Locale: "en_US"})
 			res, err := mt.Coll.DeleteOne(context.Background(), bson.D{{"x", 0}}, opts)
-			assert.Nil(mt, err, "DeleteOne error: %v", err)
+			require.NoError(mt, err, "DeleteOne error: %v", err)
 			assert.Equal(mt, int64(0), res.DeletedCount, "expected DeletedCount 0, got %v", res.DeletedCount)
 		})
 		mt.RunOpts("write error", mtest.NewOptions().MaxServerVersion("5.0.7"), func(mt *mtest.T) {
@@ -335,7 +335,7 @@ func TestCollection(t *testing.T) {
 			// 2.6 returns right away if the document doesn't exist
 			filter := bson.D{{"x", 1}}
 			_, err := mt.Coll.InsertOne(context.Background(), filter)
-			assert.Nil(mt, err, "InsertOne error: %v", err)
+			require.NoError(mt, err, "InsertOne error: %v", err)
 
 			mt.CloneCollection(options.Collection().SetWriteConcern(impossibleWc))
 			_, err = mt.Coll.DeleteOne(context.Background(), filter)
@@ -349,11 +349,11 @@ func TestCollection(t *testing.T) {
 			_, err := indexView.CreateOne(context.Background(), mongo.IndexModel{
 				Keys: bson.D{{"x", 1}},
 			})
-			assert.Nil(mt, err, "CreateOne error: %v", err)
+			require.NoError(mt, err, "CreateOne error: %v", err)
 
 			opts := options.DeleteOne().SetHint(bson.M{"x": 1})
 			res, err := mt.Coll.DeleteOne(context.Background(), bson.D{{"x", 1}}, opts)
-			assert.Nil(mt, err, "DeleteOne error: %v", err)
+			require.NoError(mt, err, "DeleteOne error: %v", err)
 			assert.Equal(mt, int64(1), res.DeletedCount, "expected DeletedCount 1, got %v", res.DeletedCount)
 		})
 		mt.RunOpts("multikey map index", mtest.NewOptions().MinServerVersion("4.4"), func(mt *mtest.T) {
@@ -366,20 +366,20 @@ func TestCollection(t *testing.T) {
 		mt.Run("found", func(mt *mtest.T) {
 			initCollection(mt, mt.Coll)
 			res, err := mt.Coll.DeleteMany(context.Background(), bson.D{{"x", bson.D{{"$gte", 3}}}})
-			assert.Nil(mt, err, "DeleteMany error: %v", err)
+			require.NoError(mt, err, "DeleteMany error: %v", err)
 			assert.Equal(mt, int64(3), res.DeletedCount, "expected DeletedCount 3, got %v", res.DeletedCount)
 		})
 		mt.Run("not found", func(mt *mtest.T) {
 			initCollection(mt, mt.Coll)
 			res, err := mt.Coll.DeleteMany(context.Background(), bson.D{{"x", bson.D{{"$lt", 1}}}})
-			assert.Nil(mt, err, "DeleteMany error: %v", err)
+			require.NoError(mt, err, "DeleteMany error: %v", err)
 			assert.Equal(mt, int64(0), res.DeletedCount, "expected DeletedCount 0, got %v", res.DeletedCount)
 		})
 		mt.RunOpts("not found with options", mtest.NewOptions().MinServerVersion("3.4"), func(mt *mtest.T) {
 			initCollection(mt, mt.Coll)
 			opts := options.DeleteMany().SetCollation(&options.Collation{Locale: "en_US"})
 			res, err := mt.Coll.DeleteMany(context.Background(), bson.D{{"x", bson.D{{"$lt", 1}}}}, opts)
-			assert.Nil(mt, err, "DeleteMany error: %v", err)
+			require.NoError(mt, err, "DeleteMany error: %v", err)
 			assert.Equal(mt, int64(0), res.DeletedCount, "expected DeletedCount 0, got %v", res.DeletedCount)
 		})
 		mt.RunOpts("write error", mtest.NewOptions().MaxServerVersion("5.0.7"), func(mt *mtest.T) {
@@ -404,7 +404,7 @@ func TestCollection(t *testing.T) {
 			// 2.6 server returns right away if the document doesn't exist
 			filter := bson.D{{"x", 1}}
 			_, err := mt.Coll.InsertOne(context.Background(), filter)
-			assert.Nil(mt, err, "InsertOne error: %v", err)
+			require.NoError(mt, err, "InsertOne error: %v", err)
 
 			mt.CloneCollection(options.Collection().SetWriteConcern(impossibleWc))
 			_, err = mt.Coll.DeleteMany(context.Background(), filter)
@@ -418,11 +418,11 @@ func TestCollection(t *testing.T) {
 			_, err := indexView.CreateOne(context.Background(), mongo.IndexModel{
 				Keys: bson.D{{"x", 1}},
 			})
-			assert.Nil(mt, err, "index CreateOne error: %v", err)
+			require.NoError(mt, err, "index CreateOne error: %v", err)
 
 			opts := options.DeleteOne().SetHint(bson.M{"x": 1})
 			res, err := mt.Coll.DeleteOne(context.Background(), bson.D{{"x", 1}}, opts)
-			assert.Nil(mt, err, "DeleteOne error: %v", err)
+			require.NoError(mt, err, "DeleteOne error: %v", err)
 			assert.Equal(mt, int64(1), res.DeletedCount, "expected DeletedCount 1, got %v", res.DeletedCount)
 		})
 		mt.RunOpts("multikey map index", mtest.NewOptions().MinServerVersion("4.4"), func(mt *mtest.T) {
@@ -442,7 +442,7 @@ func TestCollection(t *testing.T) {
 			update := bson.D{{"$inc", bson.D{{"x", 1}}}}
 
 			res, err := mt.Coll.UpdateOne(context.Background(), filter, update)
-			assert.Nil(mt, err, "UpdateOne error: %v", err)
+			require.NoError(mt, err, "UpdateOne error: %v", err)
 			assert.Equal(mt, int64(1), res.MatchedCount, "expected matched count 1, got %v", res.MatchedCount)
 			assert.Equal(mt, int64(1), res.ModifiedCount, "expected matched count 1, got %v", res.ModifiedCount)
 			assert.Nil(mt, res.UpsertedID, "expected upserted ID nil, got %v", res.UpsertedID)
@@ -453,7 +453,7 @@ func TestCollection(t *testing.T) {
 			update := bson.D{{"$inc", bson.D{{"x", 1}}}}
 
 			res, err := mt.Coll.UpdateOne(context.Background(), filter, update)
-			assert.Nil(mt, err, "UpdateOne error: %v", err)
+			require.NoError(mt, err, "UpdateOne error: %v", err)
 			assert.Equal(mt, int64(0), res.MatchedCount, "expected matched count 0, got %v", res.MatchedCount)
 			assert.Equal(mt, int64(0), res.ModifiedCount, "expected matched count 0, got %v", res.ModifiedCount)
 			assert.Nil(mt, res.UpsertedID, "expected upserted ID nil, got %v", res.UpsertedID)
@@ -464,7 +464,7 @@ func TestCollection(t *testing.T) {
 			update := bson.D{{"$inc", bson.D{{"x", 1}}}}
 
 			res, err := mt.Coll.UpdateOne(context.Background(), filter, update, options.UpdateOne().SetUpsert(true))
-			assert.Nil(mt, err, "UpdateOne error: %v", err)
+			require.NoError(mt, err, "UpdateOne error: %v", err)
 			assert.Equal(mt, int64(0), res.MatchedCount, "expected matched count 0, got %v", res.MatchedCount)
 			assert.Equal(mt, int64(0), res.ModifiedCount, "expected matched count 0, got %v", res.ModifiedCount)
 			assert.NotNil(mt, res.UpsertedID, "expected upserted ID, got nil")
@@ -473,7 +473,7 @@ func TestCollection(t *testing.T) {
 			filter := bson.D{{"_id", "foo"}}
 			update := bson.D{{"$set", bson.D{{"_id", 3.14159}}}}
 			_, err := mt.Coll.InsertOne(context.Background(), filter)
-			assert.Nil(mt, err, "InsertOne error: %v", err)
+			require.NoError(mt, err, "InsertOne error: %v", err)
 
 			_, err = mt.Coll.UpdateOne(context.Background(), filter, update)
 			we, ok := err.(mongo.WriteException)
@@ -488,7 +488,7 @@ func TestCollection(t *testing.T) {
 			filter := bson.D{{"_id", "foo"}}
 			update := bson.D{{"$set", bson.D{{"pi", 3.14159}}}}
 			_, err := mt.Coll.InsertOne(context.Background(), filter)
-			assert.Nil(mt, err, "InsertOne error: %v", err)
+			require.NoError(mt, err, "InsertOne error: %v", err)
 
 			mt.CloneCollection(options.Collection().SetWriteConcern(impossibleWc))
 			_, err = mt.Coll.UpdateOne(context.Background(), filter, update)
@@ -501,7 +501,7 @@ func TestCollection(t *testing.T) {
 			// a slice/array
 			doc := bson.D{{"$set", bson.D{{"x", 2}}}}
 			docBytes, err := bson.Marshal(doc)
-			assert.Nil(mt, err, "Marshal error: %v", err)
+			require.NoError(mt, err, "Marshal error: %v", err)
 
 			testCases := []struct {
 				name   string
@@ -516,10 +516,10 @@ func TestCollection(t *testing.T) {
 				mt.Run(tc.name, func(mt *mtest.T) {
 					filter := bson.D{{"x", 1}}
 					_, err := mt.Coll.InsertOne(context.Background(), filter)
-					assert.Nil(mt, err, "InsertOne error: %v", err)
+					require.NoError(mt, err, "InsertOne error: %v", err)
 
 					res, err := mt.Coll.UpdateOne(context.Background(), filter, tc.update)
-					assert.Nil(mt, err, "UpdateOne error: %v", err)
+					require.NoError(mt, err, "UpdateOne error: %v", err)
 					assert.Equal(mt, int64(1), res.MatchedCount, "expected matched count 1, got %v", res.MatchedCount)
 					assert.Equal(mt, int64(1), res.ModifiedCount, "expected modified count 1, got %v", res.ModifiedCount)
 				})
@@ -548,12 +548,12 @@ func TestCollection(t *testing.T) {
 				mt.Run(tc.name, func(mt *mtest.T) {
 					doc := bson.D{{"_id", tc.id}, {"x", 1}}
 					_, err := mt.Coll.InsertOne(context.Background(), doc)
-					assert.Nil(mt, err, "InsertOne error: %v", err)
+					require.NoError(mt, err, "InsertOne error: %v", err)
 
 					update := bson.D{{"$inc", bson.D{{"x", 1}}}}
 
 					res, err := mt.Coll.UpdateByID(context.Background(), tc.id, update)
-					assert.Nil(mt, err, "UpdateByID error: %v", err)
+					require.NoError(mt, err, "UpdateByID error: %v", err)
 					assert.Equal(mt, int64(1), res.MatchedCount, "expected matched count 1, got %v", res.MatchedCount)
 					assert.Equal(mt, int64(1), res.ModifiedCount, "expected modified count 1, got %v", res.ModifiedCount)
 					assert.Nil(mt, res.UpsertedID, "expected upserted ID nil, got %v", res.UpsertedID)
@@ -564,12 +564,12 @@ func TestCollection(t *testing.T) {
 			id := bson.NewObjectID()
 			doc := bson.D{{"_id", id}, {"x", 1}}
 			_, err := mt.Coll.InsertOne(context.Background(), doc)
-			assert.Nil(mt, err, "InsertOne error: %v", err)
+			require.NoError(mt, err, "InsertOne error: %v", err)
 
 			update := bson.D{{"$inc", bson.D{{"x", 1}}}}
 
 			res, err := mt.Coll.UpdateByID(context.Background(), 0, update)
-			assert.Nil(mt, err, "UpdateByID error: %v", err)
+			require.NoError(mt, err, "UpdateByID error: %v", err)
 			assert.Equal(mt, int64(0), res.MatchedCount, "expected matched count 0, got %v", res.MatchedCount)
 			assert.Equal(mt, int64(0), res.ModifiedCount, "expected modified count 0, got %v", res.ModifiedCount)
 			assert.Nil(mt, res.UpsertedID, "expected upserted ID nil, got %v", res.UpsertedID)
@@ -577,13 +577,13 @@ func TestCollection(t *testing.T) {
 		mt.Run("upsert", func(mt *mtest.T) {
 			doc := bson.D{{"_id", bson.NewObjectID()}, {"x", 1}}
 			_, err := mt.Coll.InsertOne(context.Background(), doc)
-			assert.Nil(mt, err, "InsertOne error: %v", err)
+			require.NoError(mt, err, "InsertOne error: %v", err)
 
 			update := bson.D{{"$inc", bson.D{{"x", 1}}}}
 
 			id := "blah"
 			res, err := mt.Coll.UpdateByID(context.Background(), id, update, options.UpdateOne().SetUpsert(true))
-			assert.Nil(mt, err, "UpdateByID error: %v", err)
+			require.NoError(mt, err, "UpdateByID error: %v", err)
 			assert.Equal(mt, int64(0), res.MatchedCount, "expected matched count 0, got %v", res.MatchedCount)
 			assert.Equal(mt, int64(0), res.ModifiedCount, "expected modified count 0, got %v", res.ModifiedCount)
 			assert.Equal(mt, res.UpsertedID, id, "expected upserted ID %v, got %v", id, res.UpsertedID)
@@ -592,7 +592,7 @@ func TestCollection(t *testing.T) {
 			id := "foo"
 			update := bson.D{{"$set", bson.D{{"_id", 3.14159}}}}
 			_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"_id", id}})
-			assert.Nil(mt, err, "InsertOne error: %v", err)
+			require.NoError(mt, err, "InsertOne error: %v", err)
 
 			_, err = mt.Coll.UpdateByID(context.Background(), id, update)
 			se, ok := err.(mongo.ServerError)
@@ -604,7 +604,7 @@ func TestCollection(t *testing.T) {
 			id := "foo"
 			update := bson.D{{"$set", bson.D{{"pi", 3.14159}}}}
 			_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"_id", id}})
-			assert.Nil(mt, err, "InsertOne error: %v", err)
+			require.NoError(mt, err, "InsertOne error: %v", err)
 
 			mt.CloneCollection(options.Collection().SetWriteConcern(impossibleWc))
 			_, err = mt.Coll.UpdateByID(context.Background(), id, update)
@@ -624,7 +624,7 @@ func TestCollection(t *testing.T) {
 			update := bson.D{{"$inc", bson.D{{"x", 1}}}}
 
 			res, err := mt.Coll.UpdateMany(context.Background(), filter, update)
-			assert.Nil(mt, err, "UpdateMany error: %v", err)
+			require.NoError(mt, err, "UpdateMany error: %v", err)
 			assert.Equal(mt, int64(3), res.MatchedCount, "expected matched count 3, got %v", res.MatchedCount)
 			assert.Equal(mt, int64(3), res.ModifiedCount, "expected modified count 3, got %v", res.ModifiedCount)
 			assert.Nil(mt, res.UpsertedID, "expected upserted ID nil, got %v", res.UpsertedID)
@@ -635,7 +635,7 @@ func TestCollection(t *testing.T) {
 			update := bson.D{{"$inc", bson.D{{"x", 1}}}}
 
 			res, err := mt.Coll.UpdateMany(context.Background(), filter, update)
-			assert.Nil(mt, err, "UpdateMany error: %v", err)
+			require.NoError(mt, err, "UpdateMany error: %v", err)
 			assert.Equal(mt, int64(0), res.MatchedCount, "expected matched count 0, got %v", res.MatchedCount)
 			assert.Equal(mt, int64(0), res.ModifiedCount, "expected modified count 0, got %v", res.ModifiedCount)
 			assert.Nil(mt, res.UpsertedID, "expected upserted ID nil, got %v", res.UpsertedID)
@@ -646,7 +646,7 @@ func TestCollection(t *testing.T) {
 			update := bson.D{{"$inc", bson.D{{"x", 1}}}}
 
 			res, err := mt.Coll.UpdateMany(context.Background(), filter, update, options.UpdateMany().SetUpsert(true))
-			assert.Nil(mt, err, "UpdateMany error: %v", err)
+			require.NoError(mt, err, "UpdateMany error: %v", err)
 			assert.Equal(mt, int64(0), res.MatchedCount, "expected matched count 0, got %v", res.MatchedCount)
 			assert.Equal(mt, int64(0), res.ModifiedCount, "expected modified count 0, got %v", res.ModifiedCount)
 			assert.NotNil(mt, res.UpsertedID, "expected upserted ID, got nil")
@@ -655,7 +655,7 @@ func TestCollection(t *testing.T) {
 			filter := bson.D{{"_id", "foo"}}
 			update := bson.D{{"$set", bson.D{{"_id", 3.14159}}}}
 			_, err := mt.Coll.InsertOne(context.Background(), filter)
-			assert.Nil(mt, err, "InsertOne error: %v", err)
+			require.NoError(mt, err, "InsertOne error: %v", err)
 
 			_, err = mt.Coll.UpdateMany(context.Background(), filter, update)
 			we, ok := err.(mongo.WriteException)
@@ -670,7 +670,7 @@ func TestCollection(t *testing.T) {
 			filter := bson.D{{"_id", "foo"}}
 			update := bson.D{{"$set", bson.D{{"pi", 3.14159}}}}
 			_, err := mt.Coll.InsertOne(context.Background(), filter)
-			assert.Nil(mt, err, "InsertOne error: %v", err)
+			require.NoError(mt, err, "InsertOne error: %v", err)
 
 			mt.CloneCollection(options.Collection().SetWriteConcern(impossibleWc))
 			_, err = mt.Coll.UpdateMany(context.Background(), filter, update)
@@ -686,7 +686,7 @@ func TestCollection(t *testing.T) {
 			replacement := bson.D{{"y", 1}}
 
 			res, err := mt.Coll.ReplaceOne(context.Background(), filter, replacement)
-			assert.Nil(mt, err, "ReplaceOne error: %v", err)
+			require.NoError(mt, err, "ReplaceOne error: %v", err)
 			assert.Equal(mt, int64(1), res.MatchedCount, "expected matched count 1, got %v", res.MatchedCount)
 			assert.Equal(mt, int64(1), res.ModifiedCount, "expected modified count 1, got %v", res.ModifiedCount)
 			assert.Nil(mt, res.UpsertedID, "expected upserted ID nil, got %v", res.UpsertedID)
@@ -697,7 +697,7 @@ func TestCollection(t *testing.T) {
 			replacement := bson.D{{"y", 1}}
 
 			res, err := mt.Coll.ReplaceOne(context.Background(), filter, replacement)
-			assert.Nil(mt, err, "ReplaceOne error: %v", err)
+			require.NoError(mt, err, "ReplaceOne error: %v", err)
 			assert.Equal(mt, int64(0), res.MatchedCount, "expected matched count 0, got %v", res.MatchedCount)
 			assert.Equal(mt, int64(0), res.ModifiedCount, "expected modified count 0, got %v", res.ModifiedCount)
 			assert.Nil(mt, res.UpsertedID, "expected upserted ID nil, got %v", res.UpsertedID)
@@ -708,7 +708,7 @@ func TestCollection(t *testing.T) {
 			replacement := bson.D{{"y", 1}}
 
 			res, err := mt.Coll.ReplaceOne(context.Background(), filter, replacement, options.Replace().SetUpsert(true))
-			assert.Nil(mt, err, "ReplaceOne error: %v", err)
+			require.NoError(mt, err, "ReplaceOne error: %v", err)
 			assert.Equal(mt, int64(0), res.MatchedCount, "expected matched count 0, got %v", res.MatchedCount)
 			assert.Equal(mt, int64(0), res.ModifiedCount, "expected modified count 0, got %v", res.ModifiedCount)
 			assert.NotNil(mt, res.UpsertedID, "expected upserted ID, got nil")
@@ -717,7 +717,7 @@ func TestCollection(t *testing.T) {
 			filter := bson.D{{"_id", "foo"}}
 			replacement := bson.D{{"_id", 3.14159}}
 			_, err := mt.Coll.InsertOne(context.Background(), filter)
-			assert.Nil(mt, err, "InsertOne error: %v", err)
+			require.NoError(mt, err, "InsertOne error: %v", err)
 
 			_, err = mt.Coll.ReplaceOne(context.Background(), filter, replacement)
 			we, ok := err.(mongo.WriteException)
@@ -733,7 +733,7 @@ func TestCollection(t *testing.T) {
 			filter := bson.D{{"_id", "foo"}}
 			replacement := bson.D{{"pi", 3.14159}}
 			_, err := mt.Coll.InsertOne(context.Background(), filter)
-			assert.Nil(mt, err, "InsertOne error: %v", err)
+			require.NoError(mt, err, "InsertOne error: %v", err)
 
 			mt.CloneCollection(options.Collection().SetWriteConcern(impossibleWc))
 			_, err = mt.Coll.ReplaceOne(context.Background(), filter, replacement)
@@ -754,7 +754,7 @@ func TestCollection(t *testing.T) {
 				bson.D{{"$sort", bson.D{{"x", 1}}}},
 			}
 			cursor, err := mt.Coll.Aggregate(context.Background(), pipeline)
-			assert.Nil(mt, err, "Aggregate error: %v", err)
+			require.NoError(mt, err, "Aggregate error: %v", err)
 
 			for i := 2; i < 5; i++ {
 				assert.True(mt, cursor.Next(context.Background()), "expected Next true, got false (i=%v)", i)
@@ -762,7 +762,7 @@ func TestCollection(t *testing.T) {
 				assert.Equal(mt, 1, len(elems), "expected doc with 1 element, got %v", cursor.Current)
 
 				num, err := cursor.Current.LookupErr("x")
-				assert.Nil(mt, err, "x not found in document %v", cursor.Current)
+				require.NoError(mt, err, "x not found in document %v", cursor.Current)
 				assert.Equal(mt, bson.TypeInt32, num.Type, "expected 'x' type %v, got %v", bson.TypeInt32, num.Type)
 				assert.Equal(mt, int32(i), num.Int32(), "expected x value %v, got %v", i, num.Int32())
 			}
@@ -814,14 +814,14 @@ func TestCollection(t *testing.T) {
 			// Run aggregate with custom options set.
 			mt.ClearEvents()
 			_, err := mt.Coll.Aggregate(context.Background(), mongo.Pipeline{}, opts)
-			assert.Nil(mt, err, "Aggregate error: %v", err)
+			require.NoError(mt, err, "Aggregate error: %v", err)
 
 			// Assert that custom option is passed to the aggregate expression.
 			evt := mt.GetStartedEvent()
 			assert.Equal(mt, "aggregate", evt.CommandName, "expected command 'aggregate' got, %q", evt.CommandName)
 
 			aduVal, err := evt.Command.LookupErr("allowDiskUse")
-			assert.Nil(mt, err, "expected field 'allowDiskUse' in started command not found")
+			require.NoError(mt, err, "expected field 'allowDiskUse' in started command not found")
 			adu, ok := aduVal.BooleanOK()
 			assert.True(mt, ok, "expected field 'allowDiskUse' to be boolean, got %v", aduVal.Type.String())
 			assert.True(mt, adu, "expected field 'allowDiskUse' to be true, got false")
@@ -850,10 +850,10 @@ func TestCollection(t *testing.T) {
 					_, err := indexView.CreateOne(context.Background(), mongo.IndexModel{
 						Keys: bson.D{{"x", 1}},
 					})
-					assert.Nil(mt, err, "CreateOne error: %v", err)
+					require.NoError(mt, err, "CreateOne error: %v", err)
 
 					count, err := mt.Coll.CountDocuments(context.Background(), tc.filter, tc.opts)
-					assert.Nil(mt, err, "CountDocuments error: %v", err)
+					require.NoError(mt, err, "CountDocuments error: %v", err)
 					assert.Equal(mt, tc.count, count, "expected count %v, got %v", tc.count, count)
 				})
 			}
@@ -877,7 +877,7 @@ func TestCollection(t *testing.T) {
 			mt.Run(tc.name, func(mt *mtest.T) {
 				initCollection(mt, mt.Coll)
 				count, err := mt.Coll.EstimatedDocumentCount(context.Background(), tc.opts)
-				assert.Nil(mt, err, "EstimatedDocumentCount error: %v", err)
+				require.NoError(mt, err, "EstimatedDocumentCount error: %v", err)
 				assert.Equal(mt, tc.count, count, "expected count %v, got %v", tc.count, count)
 			})
 		}
@@ -931,12 +931,12 @@ func TestCollection(t *testing.T) {
 		mt.Run("found", func(mt *mtest.T) {
 			initCollection(mt, mt.Coll)
 			cursor, err := mt.Coll.Find(context.Background(), bson.D{}, options.Find().SetSort(bson.D{{"x", 1}}))
-			assert.Nil(mt, err, "Find error: %v", err)
+			require.NoError(mt, err, "Find error: %v", err)
 
 			results := make([]int, 0, 5)
 			for cursor.Next(context.Background()) {
 				x, err := cursor.Current.LookupErr("x")
-				assert.Nil(mt, err, "x not found in document %v", cursor.Current)
+				require.NoError(mt, err, "x not found in document %v", cursor.Current)
 				assert.Equal(mt, bson.TypeInt32, x.Type, "expected x type %v, got %v", bson.TypeInt32, x.Type)
 				results = append(results, int(x.Int32()))
 			}
@@ -948,21 +948,21 @@ func TestCollection(t *testing.T) {
 			initCollection(mt, mt.Coll)
 			for _, batchSize := range []int32{2, 3, 4} {
 				cursor, err := mt.Coll.Find(context.Background(), bson.D{}, options.Find().SetLimit(3).SetBatchSize(batchSize))
-				assert.Nil(mt, err, "Find error: %v", err)
+				require.NoError(mt, err, "Find error: %v", err)
 
 				numReceived := 0
 				for cursor.Next(context.Background()) {
 					numReceived++
 				}
 				err = cursor.Err()
-				assert.Nil(mt, err, "cursor error: %v", err)
+				require.NoError(mt, err, "cursor error: %v", err)
 				assert.Equal(mt, 3, numReceived, "expected 3 results, got %v", numReceived)
 			}
 		})
 		mt.Run("not found", func(mt *mtest.T) {
 			initCollection(mt, mt.Coll)
 			cursor, err := mt.Coll.Find(context.Background(), bson.D{{"x", 6}})
-			assert.Nil(mt, err, "Find error: %v", err)
+			require.NoError(mt, err, "Find error: %v", err)
 			assert.False(mt, cursor.Next(context.Background()), "expected no documents, found %v", cursor.Current)
 		})
 		mt.Run("invalid identifier error", func(mt *mtest.T) {
@@ -973,7 +973,7 @@ func TestCollection(t *testing.T) {
 		mt.Run("negative limit", func(mt *mtest.T) {
 			initCollection(mt, mt.Coll)
 			c, err := mt.Coll.Find(context.Background(), bson.D{}, options.Find().SetLimit(-2))
-			assert.Nil(mt, err, "Find error: %v", err)
+			require.NoError(mt, err, "Find error: %v", err)
 			// single batch returned so cursor should have ID 0
 			assert.Equal(mt, int64(0), c.ID(), "expected cursor ID 0, got %v", c.ID())
 
@@ -986,7 +986,7 @@ func TestCollection(t *testing.T) {
 		mt.Run("exhaust cursor", func(mt *mtest.T) {
 			initCollection(mt, mt.Coll)
 			c, err := mt.Coll.Find(context.Background(), bson.D{})
-			assert.Nil(mt, err, "Find error: %v", err)
+			require.NoError(mt, err, "Find error: %v", err)
 
 			var numDocs int
 			for c.Next(context.Background()) {
@@ -994,28 +994,28 @@ func TestCollection(t *testing.T) {
 			}
 			assert.Equal(mt, 5, numDocs, "expected 5 documents, got %v", numDocs)
 			err = c.Close(context.Background())
-			assert.Nil(mt, err, "Close error: %v", err)
+			require.NoError(mt, err, "Close error: %v", err)
 		})
 		mt.Run("hint", func(mt *mtest.T) {
 			_, err := mt.Coll.Find(context.Background(), bson.D{}, options.Find().SetHint("_id_"))
-			assert.Nil(mt, err, "Find error with string hint: %v", err)
+			require.NoError(mt, err, "Find error with string hint: %v", err)
 
 			_, err = mt.Coll.Find(context.Background(), bson.D{}, options.Find().SetHint(bson.D{{"_id", 1}}))
-			assert.Nil(mt, err, "Find error with document hint: %v", err)
+			require.NoError(mt, err, "Find error with document hint: %v", err)
 
 			_, err = mt.Coll.Find(context.Background(), bson.D{}, options.Find().SetHint("foobar"))
 			_, ok := err.(mongo.CommandError)
 			assert.True(mt, ok, "expected error type %v, got %v", mongo.CommandError{}, err)
 
 			_, err = mt.Coll.Find(context.Background(), bson.D{}, options.Find().SetHint(bson.M{"_id": 1}))
-			assert.Nil(mt, err, "Find error with single key map hint: %v", err)
+			require.NoError(mt, err, "Find error with single key map hint: %v", err)
 
 			_, err = mt.Coll.Find(context.Background(), bson.D{}, options.Find().SetHint(bson.M{"_id": 1, "x": 1}))
 			assert.Equal(mt, mongo.ErrMapForOrderedArgument{"hint"}, err, "expected error %v, got %v", mongo.ErrMapForOrderedArgument{"hint"}, err)
 		})
 		mt.Run("sort", func(mt *mtest.T) {
 			_, err := mt.Coll.Find(context.Background(), bson.D{}, options.Find().SetSort(bson.M{"_id": 1}))
-			assert.Nil(mt, err, "Find error with single key map sort: %v", err)
+			require.NoError(mt, err, "Find error with single key map sort: %v", err)
 			_, err = mt.Coll.Find(context.Background(), bson.D{}, options.Find().SetSort(bson.M{"_id": 1, "x": 1}))
 			assert.Equal(mt, mongo.ErrMapForOrderedArgument{"sort"}, err, "expected error %v, got %v", mongo.ErrMapForOrderedArgument{"sort"}, err)
 		})
@@ -1055,16 +1055,16 @@ func TestCollection(t *testing.T) {
 					}
 
 					_, err := mt.Coll.InsertMany(context.Background(), insertDocs)
-					assert.Nil(mt, err, "InsertMany error for initial data: %v", err)
+					require.NoError(mt, err, "InsertMany error for initial data: %v", err)
 
 					findOptions := options.Find().SetLimit(tc.limit).SetBatchSize(tc.batchSize).
 						SetSkip(tc.skip)
 					cursor, err := mt.Coll.Find(context.Background(), bson.D{}, findOptions)
-					assert.Nil(mt, err, "Find error: %v", err)
+					require.NoError(mt, err, "Find error: %v", err)
 
 					var docs []any
 					err = cursor.All(context.Background(), &docs)
-					assert.Nil(mt, err, "All error: %v", err)
+					require.NoError(mt, err, "All error: %v", err)
 					if (201 - tc.skip) < tc.limit {
 						assert.Equal(mt, int(201-tc.skip), len(docs), "expected number of docs to be %v, got %v", int(201-tc.skip), len(docs))
 					} else {
@@ -1103,14 +1103,14 @@ func TestCollection(t *testing.T) {
 					}
 
 					_, err := mt.Coll.InsertMany(context.Background(), insertDocs)
-					assert.Nil(mt, err, "InsertMany error for initial data: %v", err)
+					require.NoError(mt, err, "InsertMany error for initial data: %v", err)
 					opts := options.Find().SetSkip(0).SetLimit(tc.limit)
 					cursor, err := mt.Coll.Find(context.Background(), bson.D{}, opts)
-					assert.Nil(mt, err, "Find error with limit %v: %v", tc.limit, err)
+					require.NoError(mt, err, "Find error with limit %v: %v", tc.limit, err)
 
 					var docs []any
 					err = cursor.All(context.Background(), &docs)
-					assert.Nil(mt, err, "All error with limit %v: %v", tc.limit, err)
+					require.NoError(mt, err, "All error with limit %v: %v", tc.limit, err)
 
 					assert.Equal(mt, int(tc.limit), len(docs), "expected number of docs to be %v, got %v", tc.limit, len(docs))
 				})
@@ -1137,17 +1137,17 @@ func TestCollection(t *testing.T) {
 			started := mt.GetStartedEvent()
 			assert.NotNil(mt, started, "expected CommandStartedEvent, got nil")
 			limitVal, err := started.Command.LookupErr("limit")
-			assert.Nil(mt, err, "limit not found in command")
+			require.NoError(mt, err, "limit not found in command")
 			limit := limitVal.Int64()
 			assert.Equal(mt, int64(1), limit, "expected limit 1, got %v", limit)
 		})
 		mt.Run("found", func(mt *mtest.T) {
 			initCollection(mt, mt.Coll)
 			res, err := mt.Coll.FindOne(context.Background(), bson.D{{"x", 1}}).Raw()
-			assert.Nil(mt, err, "FindOne error: %v", err)
+			require.NoError(mt, err, "FindOne error: %v", err)
 
 			x, err := res.LookupErr("x")
-			assert.Nil(mt, err, "x not found in document %v", res)
+			require.NoError(mt, err, "x not found in document %v", res)
 			assert.Equal(mt, bson.TypeInt32, x.Type, "expected x type %v, got %v", bson.TypeInt32, x.Type)
 			got := x.Int32()
 			assert.Equal(mt, int32(1), got, "expected x value 1, got %v", got)
@@ -1160,7 +1160,7 @@ func TestCollection(t *testing.T) {
 			indexName, err := indexView.CreateOne(context.Background(), mongo.IndexModel{
 				Keys: bson.D{{"x", 1}},
 			})
-			assert.Nil(mt, err, "CreateOne error: %v", err)
+			require.NoError(mt, err, "CreateOne error: %v", err)
 
 			mt.ClearEvents()
 			expectedComment := "here's a query for ya"
@@ -1183,10 +1183,10 @@ func TestCollection(t *testing.T) {
 				SetSkip(0).
 				SetSort(bson.D{{"x", int32(1)}})
 			res, err := mt.Coll.FindOne(context.Background(), bson.D{}, opts).Raw()
-			assert.Nil(mt, err, "FindOne error: %v", err)
+			require.NoError(mt, err, "FindOne error: %v", err)
 
 			x, err := res.LookupErr("x")
-			assert.Nil(mt, err, "x not found in document %v", res)
+			require.NoError(mt, err, "x not found in document %v", res)
 			assert.Equal(mt, bson.TypeInt32, x.Type, "expected x type %v, got %v", bson.TypeInt32, x.Type)
 			got := x.Int32()
 			assert.Equal(mt, int32(1), got, "expected x value 1, got %v", got)
@@ -1237,7 +1237,7 @@ func TestCollection(t *testing.T) {
 					_, err := indexView.CreateOne(context.Background(), mongo.IndexModel{
 						Keys: bson.D{{"x", 1}},
 					})
-					assert.Nil(mt, err, "CreateOne error: %v", err)
+					require.NoError(mt, err, "CreateOne error: %v", err)
 
 					res, err := mt.Coll.FindOne(context.Background(), bson.D{{"x", 1}}, tc.opts).Raw()
 
@@ -1247,9 +1247,9 @@ func TestCollection(t *testing.T) {
 						return
 					}
 
-					assert.Nil(mt, err, "FindOne error: %v", err)
+					require.NoError(mt, err, "FindOne error: %v", err)
 					x, err := res.LookupErr("x")
-					assert.Nil(mt, err, "x not found in document %v", res)
+					require.NoError(mt, err, "x not found in document %v", res)
 					got, ok := x.Int32OK()
 					assert.True(mt, ok, "expected x type int32, got %v", x.Type)
 					assert.Equal(mt, int32(1), got, "expected x value 1, got %v", got)
@@ -1261,10 +1261,10 @@ func TestCollection(t *testing.T) {
 		mt.Run("found", func(mt *mtest.T) {
 			initCollection(mt, mt.Coll)
 			res, err := mt.Coll.FindOneAndDelete(context.Background(), bson.D{{"x", 3}}).Raw()
-			assert.Nil(mt, err, "FindOneAndDelete error: %v", err)
+			require.NoError(mt, err, "FindOneAndDelete error: %v", err)
 
 			elem, err := res.LookupErr("x")
-			assert.Nil(mt, err, "x not found in result %v", res)
+			require.NoError(mt, err, "x not found in result %v", res)
 			assert.Equal(mt, bson.TypeInt32, elem.Type, "expected x type %v, got %v", bson.TypeInt32, elem.Type)
 			x := elem.Int32()
 			assert.Equal(mt, int32(3), x, "expected x value 3, got %v", x)
@@ -1272,7 +1272,7 @@ func TestCollection(t *testing.T) {
 		mt.Run("found ignore result", func(mt *mtest.T) {
 			initCollection(mt, mt.Coll)
 			err := mt.Coll.FindOneAndDelete(context.Background(), bson.D{{"x", 3}}).Err()
-			assert.Nil(mt, err, "FindOneAndDelete error: %v", err)
+			require.NoError(mt, err, "FindOneAndDelete error: %v", err)
 		})
 		mt.Run("not found", func(mt *mtest.T) {
 			initCollection(mt, mt.Coll)
@@ -1297,7 +1297,7 @@ func TestCollection(t *testing.T) {
 					_, err := indexView.CreateOne(context.Background(), mongo.IndexModel{
 						Keys: bson.D{{"x", 1}},
 					})
-					assert.Nil(mt, err, "CreateOne error: %v", err)
+					require.NoError(mt, err, "CreateOne error: %v", err)
 
 					res, err := mt.Coll.FindOneAndDelete(context.Background(), bson.D{{"x", 1}}, tc.opts).Raw()
 
@@ -1307,9 +1307,9 @@ func TestCollection(t *testing.T) {
 						return
 					}
 
-					assert.Nil(mt, err, "FindOneAndDelete error: %v", err)
+					require.NoError(mt, err, "FindOneAndDelete error: %v", err)
 					x, err := res.LookupErr("x")
-					assert.Nil(mt, err, "x not found in document %v", res)
+					require.NoError(mt, err, "x not found in document %v", res)
 					got, ok := x.Int32OK()
 					assert.True(mt, ok, "expected x type int32, got %v", x.Type)
 					assert.Equal(mt, int32(1), got, "expected x value 1, got %v", got)
@@ -1332,9 +1332,9 @@ func TestCollection(t *testing.T) {
 			replacement := bson.D{{"y", 3}}
 
 			res, err := mt.Coll.FindOneAndReplace(context.Background(), filter, replacement).Raw()
-			assert.Nil(mt, err, "FindOneAndReplace error: %v", err)
+			require.NoError(mt, err, "FindOneAndReplace error: %v", err)
 			elem, err := res.LookupErr("x")
-			assert.Nil(mt, err, "x not found in result %v", res)
+			require.NoError(mt, err, "x not found in result %v", res)
 			assert.Equal(mt, bson.TypeInt32, elem.Type, "expected x type %v, got %v", bson.TypeInt32, elem.Type)
 			x := elem.Int32()
 			assert.Equal(mt, int32(3), x, "expected x value 3, got %v", x)
@@ -1345,7 +1345,7 @@ func TestCollection(t *testing.T) {
 			replacement := bson.D{{"y", 3}}
 
 			err := mt.Coll.FindOneAndReplace(context.Background(), filter, replacement).Err()
-			assert.Nil(mt, err, "FindOneAndReplace error: %v", err)
+			assert.NoError(mt, err, "FindOneAndReplace error: %v", err)
 		})
 		mt.Run("not found", func(mt *mtest.T) {
 			initCollection(mt, mt.Coll)
@@ -1373,7 +1373,7 @@ func TestCollection(t *testing.T) {
 					_, err := indexView.CreateOne(context.Background(), mongo.IndexModel{
 						Keys: bson.D{{"x", 1}},
 					})
-					assert.Nil(mt, err, "CreateOne error: %v", err)
+					require.NoError(mt, err, "CreateOne error: %v", err)
 
 					res, err := mt.Coll.FindOneAndReplace(context.Background(), bson.D{{"x", 1}}, bson.D{{"y", 3}}, tc.opts).Raw()
 
@@ -1383,9 +1383,9 @@ func TestCollection(t *testing.T) {
 						return
 					}
 
-					assert.Nil(mt, err, "FindOneAndReplace error: %v", err)
+					require.NoError(mt, err, "FindOneAndReplace error: %v", err)
 					x, err := res.LookupErr("x")
-					assert.Nil(mt, err, "x not found in document %v", res)
+					require.NoError(mt, err, "x not found in document %v", res)
 					got, ok := x.Int32OK()
 					assert.True(mt, ok, "expected x type int32, got %v", x.Type)
 					assert.Equal(mt, int32(1), got, "expected x value 1, got %v", got)
@@ -1410,9 +1410,9 @@ func TestCollection(t *testing.T) {
 			update := bson.D{{"$set", bson.D{{"x", 6}}}}
 
 			res, err := mt.Coll.FindOneAndUpdate(context.Background(), filter, update).Raw()
-			assert.Nil(mt, err, "FindOneAndUpdate error: %v", err)
+			require.NoError(mt, err, "FindOneAndUpdate error: %v", err)
 			elem, err := res.LookupErr("x")
-			assert.Nil(mt, err, "x not found in result %v", res)
+			require.NoError(mt, err, "x not found in result %v", res)
 			assert.Equal(mt, bson.TypeInt32, elem.Type, "expected x type %v, got %v", bson.TypeInt32, elem.Type)
 			x := elem.Int32()
 			assert.Equal(mt, int32(3), x, "expected x value 3, got %v", x)
@@ -1427,7 +1427,7 @@ func TestCollection(t *testing.T) {
 			update := bson.D{{"$set", bson.D{{"x", 6}}}}
 
 			err := mt.Coll.FindOneAndUpdate(context.Background(), filter, update).Err()
-			assert.Nil(mt, err, "FindOneAndUpdate error: %v", err)
+			assert.NoError(mt, err, "FindOneAndUpdate error: %v", err)
 		})
 		mt.Run("not found", func(mt *mtest.T) {
 			initCollection(mt, mt.Coll)
@@ -1455,7 +1455,7 @@ func TestCollection(t *testing.T) {
 					_, err := indexView.CreateOne(context.Background(), mongo.IndexModel{
 						Keys: bson.D{{"x", 1}},
 					})
-					assert.Nil(mt, err, "CreateOne error: %v", err)
+					require.NoError(mt, err, "CreateOne error: %v", err)
 
 					res, err := mt.Coll.FindOneAndUpdate(context.Background(), bson.D{{"x", 1}}, bson.D{{"$set", bson.D{{"x", 6}}}}, tc.opts).Raw()
 
@@ -1465,9 +1465,9 @@ func TestCollection(t *testing.T) {
 						return
 					}
 
-					assert.Nil(mt, err, "FindOneAndUpdate error: %v", err)
+					require.NoError(mt, err, "FindOneAndUpdate error: %v", err)
 					x, err := res.LookupErr("x")
-					assert.Nil(mt, err, "x not found in document %v", res)
+					require.NoError(mt, err, "x not found in document %v", res)
 					got, ok := x.Int32OK()
 					assert.True(mt, ok, "expected x type int32, got %v", x.Type)
 					assert.Equal(mt, int32(1), got, "expected x value 1, got %v", got)
@@ -1711,7 +1711,7 @@ func TestCollection(t *testing.T) {
 			for _, tc := range testCases {
 				mt.Run(tc.name, func(mt *mtest.T) {
 					_, err := mt.Coll.InsertOne(context.Background(), filter)
-					assert.Nil(mt, err, "InsertOne error: %v", err)
+					require.NoError(mt, err, "InsertOne error: %v", err)
 					res, err := mt.Coll.BulkWrite(context.Background(), models, options.BulkWrite().SetOrdered(tc.ordered))
 					assert.Equal(mt, tc.modifiedCount, res.ModifiedCount,
 						"expected modified count %v, got %v", tc.modifiedCount, res.ModifiedCount)
@@ -1865,7 +1865,7 @@ func TestCollection(t *testing.T) {
 				mongo.NewDeleteOneModel().SetFilter(bson.D{{"_id", "id4"}}),
 			}
 			res, err := mt.Coll.BulkWrite(context.Background(), models, options.BulkWrite().SetOrdered(false))
-			assert.Nil(mt, err, "bulkwrite error: %v", err)
+			require.NoError(mt, err, "bulkwrite error: %v", err)
 
 			assert.Equal(mt, len(res.UpsertedIDs), 2, "expected 2 UpsertedIDs, got %v", len(res.UpsertedIDs))
 			assert.Equal(mt, res.UpsertedIDs[1].(string), id1, "expected UpsertedIDs[1] to be %v, got %v", id1, res.UpsertedIDs[1])
@@ -1903,7 +1903,7 @@ func TestCollection(t *testing.T) {
 
 			mt.ClearEvents()
 			res, err := mt.Coll.BulkWrite(context.Background(), insertModels)
-			assert.Nil(mt, err, "BulkWrite error: %v", err)
+			require.NoError(mt, err, "BulkWrite error: %v", err)
 			assert.Equal(mt, int64(numDocs), res.InsertedCount, "expected %v inserted documents, got %v", numDocs, res.InsertedCount)
 			mt.FilterStartedEvents(func(evt *event.CommandStartedEvent) bool {
 				return evt.CommandName == "insert"
@@ -1914,7 +1914,7 @@ func TestCollection(t *testing.T) {
 
 			mt.ClearEvents()
 			res, err = mt.Coll.BulkWrite(context.Background(), deleteModels)
-			assert.Nil(mt, err, "BulkWrite error: %v", err)
+			require.NoError(mt, err, "BulkWrite error: %v", err)
 			assert.Equal(mt, int64(numDocs), res.DeletedCount, "expected %v deleted documents, got %v", numDocs, res.DeletedCount)
 			mt.FilterStartedEvents(func(evt *event.CommandStartedEvent) bool {
 				return evt.CommandName == "delete"
@@ -1971,7 +1971,7 @@ func TestCollection(t *testing.T) {
 
 			mt.ClearEvents()
 			res, err := mt.Coll.BulkWrite(context.Background(), models)
-			assert.Nil(mt, err, "BulkWrite error: %v", err)
+			require.NoError(mt, err, "BulkWrite error: %v", err)
 
 			mt.FilterStartedEvents(func(evt *event.CommandStartedEvent) bool {
 				return evt.CommandName == "update"
@@ -2014,10 +2014,10 @@ func TestCollection(t *testing.T) {
 			for _, tc := range testCases {
 				mt.RunOpts(tc.name, mtest.NewOptions().MinServerVersion("4.4"), func(mt *mtest.T) {
 					_, err := mt.Coll.InsertOne(context.Background(), filter)
-					assert.Nil(mt, err, "InsertOne error: %v", err)
+					require.NoError(mt, err, "InsertOne error: %v", err)
 					_, err = mt.Coll.BulkWrite(context.Background(), tc.models)
 					if tc.errParam == "" {
-						assert.Nil(mt, err, "expected nil error, got %v", err)
+						require.NoError(mt, err, "expected nil error, got %v", err)
 						return
 					}
 					expErr := mongo.ErrMapForOrderedArgument{tc.errParam}
@@ -2049,7 +2049,7 @@ func testAggregateWithOptions(mt *mtest.T, createIndex bool, opts options.Lister
 		_, err := indexView.CreateOne(context.Background(), mongo.IndexModel{
 			Keys: bson.D{{"x", 1}},
 		})
-		assert.Nil(mt, err, "CreateOne error: %v", err)
+		require.NoError(mt, err, "CreateOne error: %v", err)
 	}
 
 	pipeline := mongo.Pipeline{
@@ -2059,7 +2059,7 @@ func testAggregateWithOptions(mt *mtest.T, createIndex bool, opts options.Lister
 	}
 
 	cursor, err := mt.Coll.Aggregate(context.Background(), pipeline, opts)
-	assert.Nil(mt, err, "Aggregate error: %v", err)
+	require.NoError(mt, err, "Aggregate error: %v", err)
 
 	for i := 2; i < 5; i++ {
 		assert.True(mt, cursor.Next(context.Background()), "expected Next true, got false")
@@ -2067,7 +2067,7 @@ func testAggregateWithOptions(mt *mtest.T, createIndex bool, opts options.Lister
 		assert.Equal(mt, 1, len(elems), "expected doc with 1 element, got %v", cursor.Current)
 
 		num, err := cursor.Current.LookupErr("x")
-		assert.Nil(mt, err, "x not found in document %v", cursor.Current)
+		require.NoError(mt, err, "x not found in document %v", cursor.Current)
 		assert.Equal(mt, bson.TypeInt32, num.Type, "expected 'x' type %v, got %v", bson.TypeInt32, num.Type)
 		assert.Equal(mt, int32(i), num.Int32(), "expected x value %v, got %v", i, num.Int32())
 	}
@@ -2111,10 +2111,10 @@ func assertGetMoreCommandsAreMonitored(mt *mtest.T, cmdName string, cursorFn fun
 	mt.ClearEvents()
 
 	cursor, err := cursorFn()
-	assert.Nil(mt, err, "error creating cursor: %v", err)
+	require.NoError(mt, err, "error creating cursor: %v", err)
 	var docs []bson.D
 	err = cursor.All(context.Background(), &docs)
-	assert.Nil(mt, err, "All error: %v", err)
+	require.NoError(mt, err, "All error: %v", err)
 
 	// Only assert that the initial command and at least one getMore were sent. The exact number of getMore's required
 	// is not important.
@@ -2131,9 +2131,9 @@ func assertKillCursorsCommandsAreMonitored(mt *mtest.T, cmdName string, cursorFn
 	mt.ClearEvents()
 
 	cursor, err := cursorFn()
-	assert.Nil(mt, err, "error creating cursor: %v", err)
+	require.NoError(mt, err, "error creating cursor: %v", err)
 	err = cursor.Close(context.Background())
-	assert.Nil(mt, err, "Close error: %v", err)
+	require.NoError(mt, err, "Close error: %v", err)
 
 	evt := mt.GetStartedEvent()
 	assert.Equal(mt, cmdName, evt.CommandName, "expected command %q, got %q", cmdName, evt.CommandName)
