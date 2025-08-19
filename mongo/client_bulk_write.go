@@ -45,6 +45,8 @@ type clientBulkWrite struct {
 	selector                 description.ServerSelector
 	writeConcern             *writeconcern.WriteConcern
 	rawData                  *bool
+	bypassEmptyTsReplacement *bool
+	commandCallback          func([]byte, description.SelectedServer) ([]byte, error)
 
 	result ClientBulkWriteResult
 }
@@ -122,7 +124,8 @@ func (bw *clientBulkWrite) execute(ctx context.Context) error {
 }
 
 func (bw *clientBulkWrite) newCommand() func([]byte, description.SelectedServer) ([]byte, error) {
-	return func(dst []byte, desc description.SelectedServer) ([]byte, error) {
+	return func(cmd []byte, desc description.SelectedServer) ([]byte, error) {
+		var dst []byte
 		dst = bsoncore.AppendInt32Element(dst, "bulkWrite", 1)
 
 		dst = bsoncore.AppendBooleanElement(dst, "errorsOnly", bw.errorsOnly)
@@ -148,7 +151,19 @@ func (bw *clientBulkWrite) newCommand() func([]byte, description.SelectedServer)
 		if bw.rawData != nil && desc.WireVersion != nil && driverutil.VersionRangeIncludes(*desc.WireVersion, 27) {
 			dst = bsoncore.AppendBooleanElement(dst, "rawData", *bw.rawData)
 		}
-		return dst, nil
+		if bw.bypassEmptyTsReplacement != nil {
+			dst = bsoncore.AppendBooleanElement(dst, "bypassEmptyTsReplacement", *bw.bypassEmptyTsReplacement)
+		}
+		if bw.commandCallback != nil {
+			var err error
+			dst, err = bw.commandCallback(dst, desc)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		cmd = append(cmd, dst...)
+		return cmd, nil
 	}
 }
 

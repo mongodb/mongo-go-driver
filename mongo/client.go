@@ -963,6 +963,16 @@ func (c *Client) BulkWrite(ctx context.Context, writes []ClientBulkWrite,
 			op.rawData = &rawData
 		}
 	}
+	if bypassEmptyTsReplacementOpt := optionsutil.Value(bwo.Internal, "bypassEmptyTsReplacement"); bypassEmptyTsReplacementOpt != nil {
+		if bypassEmptyTsReplacement, ok := bypassEmptyTsReplacementOpt.(bool); ok {
+			op.bypassEmptyTsReplacement = &bypassEmptyTsReplacement
+		}
+	}
+	if commandCallbackOpt := optionsutil.Value(bwo.Internal, "commandCallback"); commandCallbackOpt != nil {
+		if commandCallback, ok := commandCallbackOpt.(func([]byte, description.SelectedServer) ([]byte, error)); ok {
+			op.commandCallback = commandCallback
+		}
+	}
 	if bwo.VerboseResults == nil || !(*bwo.VerboseResults) {
 		op.errorsOnly = true
 	} else if !acknowledged {
