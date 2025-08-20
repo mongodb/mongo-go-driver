@@ -1345,7 +1345,7 @@ func TestCollection(t *testing.T) {
 			replacement := bson.D{{"y", 3}}
 
 			err := mt.Coll.FindOneAndReplace(context.Background(), filter, replacement).Err()
-			assert.NoError(mt, err, "FindOneAndReplace error: %v", err)
+			require.NoError(mt, err, "FindOneAndReplace error: %v", err)
 		})
 		mt.Run("not found", func(mt *mtest.T) {
 			initCollection(mt, mt.Coll)
