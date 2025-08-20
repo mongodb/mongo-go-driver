@@ -1427,7 +1427,7 @@ func TestCollection(t *testing.T) {
 			update := bson.D{{"$set", bson.D{{"x", 6}}}}
 
 			err := mt.Coll.FindOneAndUpdate(context.Background(), filter, update).Err()
-			assert.NoError(mt, err, "FindOneAndUpdate error: %v", err)
+			require.NoError(mt, err, "FindOneAndUpdate error: %v", err)
 		})
 		mt.Run("not found", func(mt *mtest.T) {
 			initCollection(mt, mt.Coll)
