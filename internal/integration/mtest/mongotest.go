@@ -368,7 +368,9 @@ func (t *T) ResetClient(opts *options.ClientOptions) {
 		t.clientOpts = opts
 	}
 
-	_ = t.Client.Disconnect(context.Background())
+	if t.Client != nil {
+		_ = t.Client.Disconnect(context.Background())
+	}
 	t.createTestClient()
 	t.DB = t.Client.Database(t.dbName)
 	t.Coll = t.DB.Collection(t.collName, t.collOpts)
