@@ -513,8 +513,8 @@ func TestSessionsProse(t *testing.T) {
 
 	mt.ResetClient(options.Client())
 	client := mt.Client
-	heartbeatStarted := make(chan struct{})
-	heartbeatSucceeded := make(chan struct{})
+	heartbeatStarted := make(chan struct{}, 1)
+	heartbeatSucceeded := make(chan struct{}, 1)
 	var clusterTimeAdvanced uint32
 	serverMonitor := &event.ServerMonitor{
 		ServerHeartbeatStarted: func(*event.ServerHeartbeatStartedEvent) {
@@ -546,6 +546,16 @@ func TestSessionsProse(t *testing.T) {
 			SetDirect(true)).
 		ClientType(mtest.Pinned)
 	mt.RunOpts("20 Drivers do not gossip $clusterTime on SDAM commands", pingOpts, func(mt *mtest.T) {
+		wait := func(mt *mtest.T, ch <-chan struct{}, label string) {
+			mt.Helper()
+
+			select {
+			case <-ch:
+			case <-time.After(5 * time.Second):
+				mt.Fatalf("timed out waiting for %s", label)
+			}
+		}
+
 		err := mt.Client.Ping(context.Background(), readpref.Primary())
 		assert.NoError(mt, err, "expected no error, got: %v", err)
 
@@ -553,8 +563,8 @@ func TestSessionsProse(t *testing.T) {
 		require.NoError(mt, err, "expected no error inserting document, got: %v", err)
 
 		atomic.StoreUint32(&clusterTimeAdvanced, 1)
-		<-heartbeatStarted
-		<-heartbeatSucceeded
+		wait(mt, heartbeatStarted, "ServerHeartbeatStartedEvent")
+		wait(mt, heartbeatSucceeded, "ServerHeartbeatSucceededEvent")
 
 		err = mt.Client.Ping(context.Background(), readpref.Primary())
 		require.NoError(mt, err, "expected no error, got: %v", err)
