@@ -60,6 +60,18 @@ func (bw *clientBulkWrite) execute(ctx context.Context) error {
 			return fmt.Errorf("error from model at index %d: %w", i, ErrNilDocument)
 		}
 	}
+	newCommand := func(dst []byte, desc description.SelectedServer) ([]byte, error) {
+		var cmd []byte
+		cmd, err := bw.newCommand()(cmd, desc)
+		if err == nil && bw.commandCallback != nil {
+			cmd, err = bw.commandCallback(cmd, desc)
+		}
+		if err != nil {
+			return nil, err
+		}
+		dst = append(dst, cmd...)
+		return dst, nil
+	}
 	batches := &modelBatches{
 		session:    bw.session,
 		client:     bw.client,
@@ -69,7 +81,7 @@ func (bw *clientBulkWrite) execute(ctx context.Context) error {
 		retryMode:  driver.RetryOnce,
 	}
 	err := driver.Operation{
-		CommandFn:         bw.newCommand(),
+		CommandFn:         newCommand,
 		ProcessResponseFn: batches.processResponse,
 		Client:            bw.session,
 		Clock:             bw.client.clock,
@@ -124,8 +136,7 @@ func (bw *clientBulkWrite) execute(ctx context.Context) error {
 }
 
 func (bw *clientBulkWrite) newCommand() func([]byte, description.SelectedServer) ([]byte, error) {
-	return func(cmd []byte, desc description.SelectedServer) ([]byte, error) {
-		var dst []byte
+	return func(dst []byte, desc description.SelectedServer) ([]byte, error) {
 		dst = bsoncore.AppendInt32Element(dst, "bulkWrite", 1)
 
 		dst = bsoncore.AppendBooleanElement(dst, "errorsOnly", bw.errorsOnly)
@@ -154,16 +165,7 @@ func (bw *clientBulkWrite) newCommand() func([]byte, description.SelectedServer)
 		if bw.bypassEmptyTsReplacement != nil {
 			dst = bsoncore.AppendBooleanElement(dst, "bypassEmptyTsReplacement", *bw.bypassEmptyTsReplacement)
 		}
-		if bw.commandCallback != nil {
-			var err error
-			dst, err = bw.commandCallback(dst, desc)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		cmd = append(cmd, dst...)
-		return cmd, nil
+		return dst, nil
 	}
 }
 
