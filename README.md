@@ -78,7 +78,7 @@ use the `Ping` method:
 ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 defer cancel()
 
-client.Ping(ctx, readpref.Primary())
+_ = client.Ping(ctx, readpref.Primary())
 ```
 
 To insert a document into a collection, first retrieve a `Database` and then `Collection` instance from the `Client`:
