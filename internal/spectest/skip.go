@@ -821,6 +821,26 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/client-side-operations-timeout/tests/change-streams.json/error_if_maxAwaitTimeMS_is_equal_to_timeoutMS",
 		"TestUnifiedSpec/client-side-operations-timeout/tests/tailable-awaitData.json/error_if_maxAwaitTimeMS_is_greater_than_timeoutMS",
 	},
+
+	// TODO(GODRIVER-3641): Ensure Driver Errors for Tailable AwaitData Cursors on
+	// Invalid maxAwaitTimeMS.
+	"Ensure Driver Errors for Tailable AwaitData Cursors on Invalid maxAwaitTimeMS (GODRIVER-3641)": {
+		"TestUnifiedSpec/client-side-operations-timeout/tests/tailable-awaitData.json/error_on_find_if_maxAwaitTimeMS_is_greater_than_timeoutMS",
+		"TestUnifiedSpec/client-side-operations-timeout/tests/tailable-awaitData.json/error_on_aggregate_if_maxAwaitTimeMS_is_greater_than_timeoutMS",
+		"TestUnifiedSpec/client-side-operations-timeout/tests/tailable-awaitData.json/error_on_watch_if_maxAwaitTimeMS_is_greater_than_timeoutMS",
+		"TestUnifiedSpec/client-side-operations-timeout/tests/tailable-awaitData.json/error_on_find_if_maxAwaitTimeMS_is_equal_to_timeoutMS",
+		"TestUnifiedSpec/client-side-operations-timeout/tests/tailable-awaitData.json/error_on_aggregate_if_maxAwaitTimeMS_is_equal_to_timeoutMS",
+		"TestUnifiedSpec/client-side-operations-timeout/tests/tailable-awaitData.json/error_on_watch_if_maxAwaitTimeMS_is_equal_to_timeoutMS",
+	},
+
+	// TODO(GODRIVER-3620): Support text indexes with auto encryption.
+	"Support text indexes with auto encryption (GODRIVER-3620)": {
+		"TestUnifiedSpec/client-side-encryption/tests/unified/QE-Text-cleanupStructuredEncryptionData.json",
+		"TestUnifiedSpec/client-side-encryption/tests/unified/QE-Text-compactStructuredEncryptionData.json",
+		"TestUnifiedSpec/client-side-encryption/tests/unified/QE-Text-prefixPreview.json",
+		"TestUnifiedSpec/client-side-encryption/tests/unified/QE-Text-substringPreview.json",
+		"TestUnifiedSpec/client-side-encryption/tests/unified/QE-Text-suffixPreview.json",
+	},
 }
 
 // CheckSkip checks if the fully-qualified test name matches a list of skipped test names for a given reason.
