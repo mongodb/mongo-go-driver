@@ -198,7 +198,7 @@ functions:
       params:
         binary: bash
         env:
-          GO_BUILD_TAGS: cse
+          GO_BUILD_TAGS: "cse,mongointernal"
         include_expansions_in_env: ["TOPOLOGY", "AUTH", "SSL", "SKIP_CSOT_TESTS", "MONGODB_URI", "CRYPT_SHARED_LIB_PATH", "SKIP_CRYPT_SHARED_LIB", "RACE", "MONGO_GO_DRIVER_COMPRESSOR", "REQUIRE_API_VERSION", "LOAD_BALANCER"]
         args: [*task-runner, setup-test]
     - command: subprocess.exec
