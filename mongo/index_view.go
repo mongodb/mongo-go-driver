@@ -131,7 +131,12 @@ func (iv IndexView) List(ctx context.Context, opts ...options.Lister[options.Lis
 		closeImplicitSession(sess)
 		return nil, wrapErrors(err)
 	}
-	cursor, err := newCursorWithSession(bc, iv.coll.bsonOpts, iv.coll.registry, sess)
+	cursor, err := newCursorWithSession(bc, iv.coll.bsonOpts, iv.coll.registry, sess,
+
+		// This value is included for completeness, but a server will never return
+		// a tailable awaitData cursor from a listIndexes operation.
+		withCursorOptionClientTimeout(iv.coll.client.timeout))
+
 	return cursor, wrapErrors(err)
 }
 
