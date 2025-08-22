@@ -45,6 +45,8 @@ type clientBulkWrite struct {
 	selector                 description.ServerSelector
 	writeConcern             *writeconcern.WriteConcern
 	rawData                  *bool
+	bypassEmptyTsReplacement *bool
+	commandCallback          func([]byte, description.SelectedServer) ([]byte, error)
 
 	result ClientBulkWriteResult
 }
@@ -58,6 +60,18 @@ func (bw *clientBulkWrite) execute(ctx context.Context) error {
 			return fmt.Errorf("error from model at index %d: %w", i, ErrNilDocument)
 		}
 	}
+	newCommand := func(dst []byte, desc description.SelectedServer) ([]byte, error) {
+		var cmd []byte
+		cmd, err := bw.newCommand()(cmd, desc)
+		if err == nil && bw.commandCallback != nil {
+			cmd, err = bw.commandCallback(cmd, desc)
+		}
+		if err != nil {
+			return nil, err
+		}
+		dst = append(dst, cmd...)
+		return dst, nil
+	}
 	batches := &modelBatches{
 		session:    bw.session,
 		client:     bw.client,
@@ -67,7 +81,7 @@ func (bw *clientBulkWrite) execute(ctx context.Context) error {
 		retryMode:  driver.RetryOnce,
 	}
 	err := driver.Operation{
-		CommandFn:         bw.newCommand(),
+		CommandFn:         newCommand,
 		ProcessResponseFn: batches.processResponse,
 		Client:            bw.session,
 		Clock:             bw.client.clock,
@@ -147,6 +161,9 @@ func (bw *clientBulkWrite) newCommand() func([]byte, description.SelectedServer)
 		// Set rawData for 8.2+ servers.
 		if bw.rawData != nil && desc.WireVersion != nil && driverutil.VersionRangeIncludes(*desc.WireVersion, 27) {
 			dst = bsoncore.AppendBooleanElement(dst, "rawData", *bw.rawData)
+		}
+		if bw.bypassEmptyTsReplacement != nil {
+			dst = bsoncore.AppendBooleanElement(dst, "bypassEmptyTsReplacement", *bw.bypassEmptyTsReplacement)
 		}
 		return dst, nil
 	}

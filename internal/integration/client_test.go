@@ -31,7 +31,9 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/xoptions"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -838,8 +840,41 @@ func TestClient_BulkWrite(t *testing.T) {
 		}
 
 		_, err := mt.Client.BulkWrite(context.Background(), writes)
-		require.NoError(t, err)
-		assert.Equal(t, 2, bulkWrites, "expected %d bulkWrites, got %d", 2, bulkWrites)
+		require.NoError(mt, err)
+		assert.Equal(mt, 2, bulkWrites, "expected %d bulkWrites, got %d", 2, bulkWrites)
+	})
+	mt.Run("test options callback", func(mt *mtest.T) {
+		mt.Parallel()
+
+		insertOneModel := mongo.NewClientInsertOneModel().SetDocument(bson.D{{"x", 1}})
+		writes := []mongo.ClientBulkWrite{{
+			Database:   "foo",
+			Collection: "bar",
+			Model:      insertOneModel,
+		}}
+
+		marshalValue := func(val interface{}) bson.RawValue {
+			t.Helper()
+
+			valType, data, err := bson.MarshalValue(val)
+			require.Nil(t, err, "MarshalValue error: %v", err)
+			return bson.RawValue{
+				Type:  valType,
+				Value: data,
+			}
+		}
+
+		opts := options.ClientBulkWrite()
+		err := xoptions.SetInternalClientBulkWriteOptions(opts, "commandCallback", func(dst []byte, _ description.SelectedServer) ([]byte, error) {
+			dst = bsoncore.AppendStringElement(dst, "foo", "bar")
+			return dst, nil
+		})
+		require.NoError(mt, err)
+		_, _ = mt.Client.BulkWrite(context.Background(), writes, opts)
+		evt := mt.GetStartedEvent()
+		val := evt.Command.Lookup("foo")
+		expected := marshalValue("bar")
+		assert.Equal(mt, expected, val, "expected value to be %s", expected.String())
 	})
 }
 
