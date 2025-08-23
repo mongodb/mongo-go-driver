@@ -319,116 +319,190 @@ func parseMaxAwaitTime(mt *mtest.T, evt *event.CommandStartedEvent) int64 {
 	return got
 }
 
-func TestCursor_tailableAwaitData(t *testing.T) {
+func tadcFindFactory(ctx context.Context, mt *mtest.T) (*mongo.Cursor, func() error) {
+	mt.Helper()
+
+	initCollection(mt, mt.Coll)
+	cur, err := mt.Coll.Find(ctx, bson.D{{"x", 1}},
+		options.Find().SetBatchSize(1).SetCursorType(options.TailableAwait))
+	require.NoError(mt, err, "Find error: %v", err)
+
+	return cur, func() error { return cur.Close(context.Background()) }
+}
+
+func tadcAggregateFactory(ctx context.Context, mt *mtest.T) (*mongo.Cursor, func() error) {
+	mt.Helper()
+
+	initCollection(mt, mt.Coll)
+
+	opts := options.Aggregate().SetMaxAwaitTime(100 * time.Millisecond)
+	pipe := mongo.Pipeline{{{"$changeStream", bson.D{}}}}
+
+	cursor, err := mt.Coll.Aggregate(ctx, pipe, opts)
+	require.NoError(mt, err, "Aggregate error: %v", err)
+
+	return cursor, func() error { return cursor.Close(context.Background()) }
+}
+
+func tadcRunCommandCursorFactory(ctx context.Context, mt *mtest.T) (*mongo.Cursor, func() error) {
+	mt.Helper()
+
+	initCollection(mt, mt.Coll)
+
+	cur, err := mt.DB.RunCommandCursor(ctx, bson.D{
+		{"find", mt.Coll.Name()},
+		{"filter", bson.D{{"x", 1}}},
+		{"tailable", true},
+		{"awaitData", true},
+		{"batchSize", int32(1)},
+	})
+	require.NoError(mt, err, "RunCommandCursor error: %v", err)
+
+	return cur, func() error { return cur.Close(context.Background()) }
+}
+
+// For tailable awaitData cursors, the maxTimeMS for a getMore should be
+// min(maxAwaitTimeMS, remaining timeoutMS - minRoundTripTime) to allow the
+// server more opportunities to respond with an empty batch before a
+// client-side timeout.
+func TestCursor_tailableAwaitData_applyRemainingTimeout(t *testing.T) {
+	const timeout = 2000 * time.Millisecond
+
+	// Setup mtest instance.
 	mt := mtest.New(t, mtest.NewOptions().CreateClient(false))
 
 	cappedOpts := options.CreateCollection().SetCapped(true).
 		SetSizeInBytes(1024 * 64)
 
 	// TODO(SERVER-96344): mongos doesn't honor a failpoint's full blockTimeMS.
-	mtOpts := mtest.NewOptions().MinServerVersion("4.4").
-		Topologies(mtest.ReplicaSet, mtest.LoadBalanced, mtest.Single).
-		CollectionCreateOptions(cappedOpts)
+	baseTopologies := []mtest.TopologyKind{mtest.Single, mtest.LoadBalanced, mtest.ReplicaSet}
 
-	mt.RunOpts("apply remaining timeoutMS if less than maxAwaitTimeMS", mtOpts, func(mt *mtest.T) {
-		initCollection(mt, mt.Coll)
+	type testCase struct {
+		name       string
+		factory    func(ctx context.Context, mt *mtest.T) (*mongo.Cursor, func() error)
+		opTimeout  bool
+		topologies []mtest.TopologyKind
 
-		// Create a 30ms failpoint for getMore.
-		mt.SetFailPoint(failpoint.FailPoint{
-			ConfigureFailPoint: "failCommand",
-			Mode: failpoint.Mode{
-				Times: 1,
-			},
-			Data: failpoint.Data{
-				FailCommands:    []string{"getMore"},
-				BlockConnection: true,
-				BlockTimeMS:     30,
-			},
-		})
+		// Operations that insert a document into the collection will require that
+		// an initial batch be consumed to ensure that the getMore is sent in
+		// subsequent Next calls.
+		consumeFirstBatch bool
+	}
 
-		// Create a find cursor with a 100ms maxAwaitTimeMS and a tailable awaitData
-		// cursor type.
-		opts := options.Find().
-			SetBatchSize(1).
-			SetMaxAwaitTime(100 * time.Millisecond).
-			SetCursorType(options.TailableAwait)
+	cases := []testCase{
+		{
+			name:              "find client-level timeout",
+			factory:           tadcFindFactory,
+			topologies:        baseTopologies,
+			opTimeout:         false,
+			consumeFirstBatch: true,
+		},
+		{
+			name:              "find operation-level timeout",
+			factory:           tadcFindFactory,
+			topologies:        baseTopologies,
+			opTimeout:         true,
+			consumeFirstBatch: true,
+		},
+		{
+			name:              "aggregate with $changeStream client-level timeout",
+			factory:           tadcAggregateFactory,
+			topologies:        []mtest.TopologyKind{mtest.ReplicaSet, mtest.LoadBalanced},
+			opTimeout:         false,
+			consumeFirstBatch: false,
+		},
+		{
+			name:              "aggregate with $changeStream operation-level timeout",
+			factory:           tadcAggregateFactory,
+			topologies:        []mtest.TopologyKind{mtest.ReplicaSet, mtest.LoadBalanced},
+			opTimeout:         true,
+			consumeFirstBatch: false,
+		},
+		{
+			name:              "runCommandCursor client-level timeout",
+			factory:           tadcRunCommandCursorFactory,
+			topologies:        baseTopologies,
+			opTimeout:         false,
+			consumeFirstBatch: true,
+		},
+		{
+			name:              "runCommandCursor operation-level timeout",
+			factory:           tadcRunCommandCursorFactory,
+			topologies:        baseTopologies,
+			opTimeout:         true,
+			consumeFirstBatch: true,
+		},
+	}
 
-		cursor, err := mt.Coll.Find(context.Background(), bson.D{{"x", 2}}, opts)
-		require.NoError(mt, err)
+	mtOpts := mtest.NewOptions().CollectionCreateOptions(cappedOpts)
 
-		defer cursor.Close(context.Background())
+	for _, tc := range cases {
+		caseOpts := mtOpts
+		caseOpts = caseOpts.Topologies(tc.topologies...)
 
-		// Use a 200ms timeout that caps the lifetime of cursor.Next. The underlying
-		// getMore loop should run at least two times: the first getMore will block
-		// for 30ms on the getMore and then an additional 100ms for the
-		// maxAwaitTimeMS. The second getMore will then use the remaining ~70ms
-		// left on the timeout.
-		ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
-		defer cancel()
-
-		// Iterate twice to force a getMore
-		cursor.Next(ctx)
-
-		mt.ClearEvents()
-		cursor.Next(ctx)
-
-		require.Error(mt, cursor.Err(), "expected error from cursor.Next")
-		assert.ErrorIs(mt, cursor.Err(), context.DeadlineExceeded, "expected context deadline exceeded error")
-
-		// Collect all started events to find the getMore commands.
-		startedEvents := mt.GetAllStartedEvents()
-
-		var getMoreStartedEvents []*event.CommandStartedEvent
-		for _, evt := range startedEvents {
-			if evt.CommandName == "getMore" {
-				getMoreStartedEvents = append(getMoreStartedEvents, evt)
-			}
+		if !tc.opTimeout {
+			caseOpts = mtOpts.ClientOptions(options.Client().SetTimeout(timeout))
 		}
 
-		// The first getMore should have a maxTimeMS of <= 100ms.
-		assert.LessOrEqual(mt, parseMaxAwaitTime(mt, getMoreStartedEvents[0]), int64(100))
+		mt.RunOpts(tc.name, caseOpts, func(mt *mtest.T) {
+			mt.SetFailPoint(failpoint.FailPoint{
+				ConfigureFailPoint: "failCommand",
+				Mode:               failpoint.Mode{Times: 1},
+				Data: failpoint.Data{
+					FailCommands:    []string{"getMore"},
+					BlockConnection: true,
+					BlockTimeMS:     300,
+				},
+			})
 
-		// The second getMore should have a maxTimeMS of <=71, indicating that we
-		// are using the time remaining in the context rather than the
-		// maxAwaitTimeMS.
-		assert.LessOrEqual(mt, parseMaxAwaitTime(mt, getMoreStartedEvents[1]), int64(71))
-	})
+			ctx := context.Background()
 
-	mtOpts.Topologies(mtest.ReplicaSet, mtest.Sharded, mtest.LoadBalanced, mtest.Single)
+			var cancel context.CancelFunc
+			if tc.opTimeout {
+				ctx, cancel = context.WithTimeout(ctx, timeout)
+				defer cancel()
+			}
 
-	mt.RunOpts("apply maxAwaitTimeMS if less than remaining timeout", mtOpts, func(mt *mtest.T) {
-		initCollection(mt, mt.Coll)
-		mt.ClearEvents()
+			cur, cleanup := tc.factory(ctx, mt)
+			defer func() { assert.NoError(mt, cleanup()) }()
 
-		// Create a find cursor
-		opts := options.Find().SetBatchSize(1).SetMaxAwaitTime(50 * time.Millisecond)
+			require.NoError(mt, cur.Err())
 
-		cursor, err := mt.Coll.Find(context.Background(), bson.D{}, opts)
-		require.NoError(mt, err)
+			cur.SetMaxAwaitTime(1000 * time.Millisecond)
 
-		_ = mt.GetStartedEvent() // Empty find from started list.
+			if tc.consumeFirstBatch {
+				assert.True(mt, cur.Next(ctx)) // consume first batch item
+			}
 
-		defer cursor.Close(context.Background())
+			mt.ClearEvents()
+			assert.False(mt, cur.Next(ctx))
 
-		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-		defer cancel()
+			require.Error(mt, cur.Err(), "expected error from cursor.Next")
+			assert.ErrorIs(mt, cur.Err(), context.DeadlineExceeded, "expected context deadline exceeded error")
 
-		// Iterate twice to force a getMore
-		cursor.Next(ctx)
-		cursor.Next(ctx)
+			getMoreEvts := []*event.CommandStartedEvent{}
+			for _, evt := range mt.GetAllStartedEvents() {
+				if evt.CommandName == "getMore" {
+					getMoreEvts = append(getMoreEvts, evt)
+				}
+			}
 
-		cmd := mt.GetStartedEvent().Command
+			require.Len(mt, getMoreEvts, 2)
 
-		maxTimeMSRaw, err := cmd.LookupErr("maxTimeMS")
-		require.NoError(mt, err)
+			// The first getMore should have a maxTimeMS of <= 100ms but greater
+			// than 71ms, indicating that the maxAwaitTimeMS was used.
+			assert.LessOrEqual(mt, parseMaxAwaitTime(mt, getMoreEvts[0]), int64(1000))
+			assert.Greater(mt, parseMaxAwaitTime(mt, getMoreEvts[0]), int64(710))
 
-		got, ok := maxTimeMSRaw.AsInt64OK()
-		require.True(mt, ok)
-
-		assert.LessOrEqual(mt, got, int64(50))
-	})
+			// The second getMore should have a maxTimeMS of <=71, indicating that we
+			// are using the time remaining in the context rather than the
+			// maxAwaitTimeMS.
+			assert.LessOrEqual(mt, parseMaxAwaitTime(mt, getMoreEvts[1]), int64(710))
+		})
+	}
 }
 
+// For tailable awaitData cursors, the maxTimeMS for a getMore should be
 func TestCursor_tailableAwaitData_ShortCircuitingGetMore(t *testing.T) {
 	mt := mtest.New(t, mtest.NewOptions().CreateClient(false))
 
