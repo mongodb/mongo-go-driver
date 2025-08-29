@@ -237,7 +237,7 @@ func TestCursor_All(t *testing.T) {
 
 		var docs []bson.D
 		err = cursor.All(context.Background(), &docs)
-		assert.NotNil(mt, err, "expected change stream error, got nil")
+		require.Error(mt, err, "expected change stream error, got nil")
 
 		// make sure that a mongo.CommandError is returned instead of a driver.Error
 		mongoErr, ok := err.(mongo.CommandError)
