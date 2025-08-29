@@ -155,7 +155,10 @@ func TestCursor_RemainingBatchLength(t *testing.T) {
 
 		// The initial batch length should be equal to the batchSize. Do batchSize Next calls to exhaust the current
 		// batch and assert that no getMore was done.
-		assertCursorBatchLength(mt, cursor, batchSize)
+		assert.Equal(mt,
+			batchSize,
+			cursor.RemainingBatchLength(),
+			"expected remaining batch length to match")
 		for i := 0; i < batchSize; i++ {
 			prevLength := cursor.RemainingBatchLength()
 			if !cursor.Next(context.Background()) {
@@ -163,7 +166,10 @@ func TestCursor_RemainingBatchLength(t *testing.T) {
 			}
 
 			// Each successful Next call should decrement batch length by 1.
-			assertCursorBatchLength(mt, cursor, prevLength-1)
+			assert.Equal(mt,
+				prevLength-1,
+				cursor.RemainingBatchLength(),
+				"expected remaining batch length to match")
 		}
 		evt := mt.GetStartedEvent()
 		assert.Nil(mt, evt, "expected no events, got %v", evt)
@@ -171,14 +177,20 @@ func TestCursor_RemainingBatchLength(t *testing.T) {
 		// The batch is exhausted, so the batch length should be 0. Do one Next call, which should do a getMore and
 		// fetch batchSize more documents. The batch length after the call should be (batchSize-1) because Next consumes
 		// one document.
-		assertCursorBatchLength(mt, cursor, 0)
+		assert.Equal(mt,
+			0,
+			cursor.RemainingBatchLength(),
+			"expected remaining batch length to match")
 
 		assert.True(mt, cursor.Next(context.Background()), "expected Next to return true; cursor err: %v", cursor.Err())
 		evt = mt.GetStartedEvent()
 		assert.NotNil(mt, evt, "expected CommandStartedEvent, got nil")
 		assert.Equal(mt, "getMore", evt.CommandName, "expected command %q, got %q", "getMore", evt.CommandName)
 
-		assertCursorBatchLength(mt, cursor, batchSize-1)
+		assert.Equal(mt,
+			batchSize-1,
+			cursor.RemainingBatchLength(),
+			"expected remaining batch length to match")
 	})
 	mt.RunOpts("first batch is empty", mtest.NewOptions().ClientType(mtest.Mock), func(mt *mtest.T) {
 		// Test that the cursor reports the correct value for RemainingBatchLength if the first batch is empty.
@@ -209,10 +221,16 @@ func TestCursor_RemainingBatchLength(t *testing.T) {
 			}
 
 			assert.Nil(mt, cursor.Err(), "cursor error: %v", err)
-			assertCursorBatchLength(mt, cursor, 0)
+			assert.Equal(mt,
+				0,
+				cursor.RemainingBatchLength(),
+				"expected remaining batch length to match")
 		}
 		// TryNext consumes one document so the remaining batch size should be len(getMoreBatch)-1.
-		assertCursorBatchLength(mt, cursor, len(getMoreBatch)-1)
+		assert.Equal(mt,
+			len(getMoreBatch)-1,
+			cursor.RemainingBatchLength(),
+			"expected remaining batch length to match")
 	})
 }
 
@@ -616,9 +634,4 @@ func tryNextGetmoreError(mt *mtest.T, cursor tryNextCursor) {
 	assert.Equal(mt, testErr.Message, mongoErr.Message, "expected message %v, got: %v", testErr.Message, mongoErr.Message)
 	assert.Equal(mt, testErr.Name, mongoErr.Name, "expected name %v, got: %v", testErr.Name, mongoErr.Name)
 	assert.Equal(mt, testErr.Labels, mongoErr.Labels, "expected labels %v, got: %v", testErr.Labels, mongoErr.Labels)
-}
-
-func assertCursorBatchLength(mt *mtest.T, cursor *mongo.Cursor, expected int) {
-	batchLen := cursor.RemainingBatchLength()
-	assert.Equal(mt, expected, batchLen, "expected remaining batch length %d, got %d", expected, batchLen)
 }
