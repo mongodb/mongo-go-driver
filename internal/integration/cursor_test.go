@@ -119,7 +119,7 @@ func TestCursor_TryNext(t *testing.T) {
 		findRes := mtest.CreateCursorResponse(50, "foo.bar", mtest.FirstBatch)
 		mt.AddMockResponses(findRes)
 		cursor, err := mt.Coll.Find(context.Background(), bson.D{})
-		assert.Nil(mt, err, "Find error: %v", err)
+		require.NoError(mt, err, "Find error: %v", err)
 		defer cursor.Close(context.Background())
 		tryNextGetmoreError(mt, cursor)
 	})
