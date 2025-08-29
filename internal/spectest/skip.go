@@ -841,6 +841,11 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/client-side-encryption/tests/unified/QE-Text-substringPreview.json",
 		"TestUnifiedSpec/client-side-encryption/tests/unified/QE-Text-suffixPreview.json",
 	},
+
+	// TODO(GODRIVER-3403): Support queryable encryption in Client.BulkWrite.
+	"Support queryable encryption in Client.BulkWrite (GODRIVER-3403)": {
+		"TestUnifiedSpec/crud/tests/unified/client-bulkWrite-qe.json",
+	},
 }
 
 // CheckSkip checks if the fully-qualified test name matches a list of skipped test names for a given reason.
