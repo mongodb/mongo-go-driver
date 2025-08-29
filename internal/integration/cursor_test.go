@@ -102,7 +102,7 @@ func TestCursor_TryNext(t *testing.T) {
 		// insert a document because a tailable cursor will only have a non-zero ID if the initial Find matches
 		// at least one document
 		_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"x", 1}})
-		assert.Nil(mt, err, "InsertOne error: %v", err)
+		require.NoError(mt, err, "InsertOne error: %v", err)
 
 		cursor, err := mt.Coll.Find(context.Background(), bson.D{}, options.Find().SetCursorType(options.Tailable))
 		assert.Nil(mt, err, "Find error: %v", err)
