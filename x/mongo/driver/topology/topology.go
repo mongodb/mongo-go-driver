@@ -687,14 +687,22 @@ func (t *Topology) selectServerFromSubscription(
 	subscriptionCh <-chan description.Topology,
 	srvSelector description.ServerSelector,
 ) ([]description.Server, error) {
-
 	current := t.Description()
+	serverCfg := newServerConfig(t.cfg.ConnectTimeout, t.cfg.ServerOpts...)
+	interval := serverCfg.heartbeatInterval
+	if interval <= 0 {
+		interval = 10 * time.Second
+	}
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
 	for {
 		select {
 		case <-ctx.Done():
 			return nil, ServerSelectionError{Wrapped: ctx.Err(), Desc: current}
 		case current = <-subscriptionCh:
-		default:
+		case <-ticker.C:
+			t.RequestImmediateCheck()
+			current = t.Description()
 		}
 
 		suitable, err := t.selectServerFromDescription(current, srvSelector)
