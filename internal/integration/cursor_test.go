@@ -105,7 +105,7 @@ func TestCursor_TryNext(t *testing.T) {
 		require.NoError(mt, err, "InsertOne error: %v", err)
 
 		cursor, err := mt.Coll.Find(context.Background(), bson.D{}, options.Find().SetCursorType(options.Tailable))
-		assert.Nil(mt, err, "Find error: %v", err)
+		require.NoError(mt, err, "Find error: %v", err)
 		defer cursor.Close(context.Background())
 
 		// first call to TryNext should return 1 document
