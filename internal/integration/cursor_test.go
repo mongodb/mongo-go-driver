@@ -148,7 +148,7 @@ func TestCursor_RemainingBatchLength(t *testing.T) {
 			SetCursorType(options.TailableAwait).
 			SetMaxAwaitTime(100 * time.Millisecond)
 		cursor, err := mt.Coll.Find(context.Background(), bson.D{}, findOpts)
-		assert.Nil(mt, err, "Find error: %v", err)
+		require.NoError(mt, err, "Find error: %v", err)
 		defer cursor.Close(context.Background())
 
 		mt.ClearEvents()
