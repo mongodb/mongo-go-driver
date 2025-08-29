@@ -263,7 +263,7 @@ func TestCursor_All(t *testing.T) {
 		// Call All with the canceled context and expect context.Canceled.
 		var docs []bson.D
 		err = cur.All(canceledCtx, &docs)
-		assert.NotNil(mt, err, "expected error for All, got nil")
+		require.Error(mt, err, "expected error for All, got nil")
 		assert.True(mt, errors.Is(err, context.Canceled),
 			"expected context.Canceled error, got %v", err)
 
