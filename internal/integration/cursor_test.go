@@ -307,7 +307,7 @@ func TestCursor_Close(t *testing.T) {
 		})
 		initCollection(mt, mt.Coll)
 		cursor, err := mt.Coll.Find(context.Background(), bson.D{}, options.Find().SetBatchSize(2))
-		assert.Nil(mt, err, "Find error: %v", err)
+		require.NoError(mt, err, "Find error: %v", err)
 
 		err = cursor.Close(context.Background())
 		assert.NotNil(mt, err, "expected change stream error, got nil")
