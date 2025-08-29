@@ -16,17 +16,17 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
-// NewSessionWithID returns a Session with the given sessionID document. The
+// NewSessionWithLSID returns a Session with the given sessionID document. The
 // sessionID is a BSON document with key "id" containing a 16-byte UUID (binary
 // subtype 4).
 //
-// Sessions returned by NewSessionWithID are never added to the driver's session
-// pool. Calling EndSession on a Session returned by NewSessionWithID will
-// panic.
+// Sessions returned by NewSessionWithLSID are never added to the driver's
+// session pool. Calling "EndSession" or "ClientSession.SetServer" on a Session
+// returned by NewSessionWithLSID will panic.
 //
-// NewSessionWithID is intended only for internal use and may be changed or
+// NewSessionWithLSID is intended only for internal use and may be changed or
 // removed at any time.
-func NewSessionWithID(client *Client, sessionID bson.Raw) *Session {
+func NewSessionWithLSID(client *Client, sessionID bson.Raw) *Session {
 	return &Session{
 		clientSession: &session.Client{
 			Server: &session.Server{
