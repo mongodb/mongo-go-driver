@@ -310,7 +310,7 @@ func TestCursor_Close(t *testing.T) {
 		require.NoError(mt, err, "Find error: %v", err)
 
 		err = cursor.Close(context.Background())
-		assert.NotNil(mt, err, "expected change stream error, got nil")
+		require.Error(mt, err, "expected change stream error, got nil")
 
 		// make sure that a mongo.CommandError is returned instead of a driver.Error
 		mongoErr, ok := err.(mongo.CommandError)
