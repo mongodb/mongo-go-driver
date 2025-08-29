@@ -63,7 +63,7 @@ Make sure to defer a call to `Disconnect` after instantiating your client:
 
 ```go
 defer func() {
-    if err = client.Disconnect(ctx); err != nil {
+    if err := client.Disconnect(ctx); err != nil {
         panic(err)
     }
 }()
@@ -75,7 +75,7 @@ Calling `Connect` does not block for server discovery. If you wish to know if a 
 use the `Ping` method:
 
 ```go
-ctx, cancel = context.WithTimeout(context.Background(), 2*time.Second)
+ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 defer cancel()
 
 _ = client.Ping(ctx, readpref.Primary())
@@ -90,7 +90,7 @@ collection := client.Database("testing").Collection("numbers")
 The `Collection` instance can then be used to insert documents:
 
 ```go
-ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
+ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 defer cancel()
 
 res, _ := collection.InsertOne(ctx, bson.D{{"name", "pi"}, {"value", 3.14159}})
@@ -117,7 +117,7 @@ import (
 Several query methods return a cursor, which can be used like this:
 
 ```go
-ctx, cancel = context.WithTimeout(context.Background(), 30*time.Second)
+ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 defer cancel()
 
 cur, err := collection.Find(ctx, bson.D{})
@@ -148,10 +148,10 @@ var result struct {
 }
 
 filter := bson.D{{"name", "pi"}}
-ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
+ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 defer cancel()
 
-err = collection.FindOne(ctx, filter).Decode(&result)
+err := collection.FindOne(ctx, filter).Decode(&result)
 if errors.Is(err, mongo.ErrNoDocuments) {
     // Do something when no record was found
 } else if err != nil {
