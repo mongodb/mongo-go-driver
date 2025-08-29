@@ -90,7 +90,7 @@ func TestCursor_TryNext(t *testing.T) {
 
 		initCollection(mt, mt.Coll)
 		cursor, err := mt.Coll.Find(context.Background(), bson.D{})
-		assert.Nil(mt, err, "Find error: %v", err)
+		require.NoError(mt, err, "Find error: %v", err)
 		defer cursor.Close(context.Background())
 		tryNextExistingBatchTest(mt, cursor)
 	})
