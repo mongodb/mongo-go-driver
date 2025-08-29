@@ -251,7 +251,7 @@ func TestCursor_All(t *testing.T) {
 		// Find with batchSize 2 so All will run getMore for next 3 docs and error.
 		cur, err := mt.Coll.Find(context.Background(), bson.D{},
 			options.Find().SetBatchSize(2))
-		assert.Nil(mt, err, "Find error: %v", err)
+		require.NoError(mt, err, "Find error: %v", err)
 
 		// Create a context and immediately cancel it.
 		canceledCtx, cancel := context.WithCancel(context.Background())
