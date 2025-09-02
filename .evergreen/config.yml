@@ -146,12 +146,9 @@ functions:
         script: |
           ${PREPARE_SHELL}
           rm -rf $DRIVERS_TOOLS
-          if [ "${project}" = "drivers-tools" ]; then
-            # If this was a patch build, doing a fresh clone would not actually test the patch
-            cp -R ${PROJECT_DIRECTORY}/ $DRIVERS_TOOLS
-          else
-            git clone https://github.com/mongodb-labs/drivers-evergreen-tools.git $DRIVERS_TOOLS
-          fi
+          git clone https://github.com/mongodb-labs/drivers-evergreen-tools.git $DRIVERS_TOOLS
+          # Pin drivers-evergreen-tools to revision 98f6b0e (Aug 20, 2025).
+          git -C $DRIVERS_TOOLS checkout 98f6b0e
           echo "{ \"releases\": { \"default\": \"$MONGODB_BINARIES\" }}" > $MONGO_ORCHESTRATION_HOME/orchestration.config
     - command: shell.exec
       params:
@@ -384,7 +381,7 @@ functions:
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
-          ${BUILD_ENV|} BUILD_TAGS=${BUILD_TAGS|-tags=cse,gssapi} make ${targets}
+          ${BUILD_ENV|} BUILD_TAGS=${BUILD_TAGS|-tags=cse,gssapi,mongointernal} make ${targets}
 
   run-tests:
     - command: shell.exec
