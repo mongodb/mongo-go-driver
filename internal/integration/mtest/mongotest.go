@@ -84,10 +84,11 @@ type T struct {
 	requireAPIVersion *bool
 
 	// options copied to sub-tests
-	clientType  ClientType
-	clientOpts  *options.ClientOptions
-	collOpts    *options.CollectionOptionsBuilder
-	shareClient *bool
+	clientType               ClientType
+	clientOpts               *options.ClientOptions
+	collOpts                 *options.CollectionOptionsBuilder
+	shareClient              *bool
+	allowFailPointsOnSharded bool
 
 	baseOpts *Options // used to create subtests
 
@@ -128,6 +129,9 @@ func newT(wrapped *testing.T, opts ...*Options) *T {
 	t.baseOpts = NewOptions().ClientOptions(t.clientOpts).CollectionOptions(t.collOpts).ClientType(t.clientType)
 	if t.shareClient != nil {
 		t.baseOpts.ShareClient(*t.shareClient)
+	}
+	if t.allowFailPointsOnSharded {
+		t.baseOpts.AllowFailPointsOnSharded()
 	}
 
 	return t
@@ -386,7 +390,9 @@ func (t *T) ResetClient(opts *options.ClientOptions) {
 		t.clientOpts = opts
 	}
 
-	_ = t.Client.Disconnect(context.Background())
+	if t.Client != nil {
+		_ = t.Client.Disconnect(context.Background())
+	}
 	t.createTestClient()
 	t.DB = t.Client.Database(t.dbName)
 	t.Coll = t.DB.Collection(t.collName, t.collOpts)
@@ -416,7 +422,7 @@ type Collection struct {
 	Opts               *options.CollectionOptionsBuilder
 	CreateOpts         *options.CreateCollectionOptionsBuilder
 	ViewOn             string
-	ViewPipeline       interface{}
+	ViewPipeline       any
 	hasDifferentClient bool
 	created            *mongo.Collection // the actual collection that was created
 }
@@ -471,7 +477,7 @@ func (t *T) CreateCollection(coll Collection, createOnServer bool) *mongo.Collec
 
 // DropEncryptedCollection drops a collection with EncryptedFields.
 // The EncryptedFields option is not supported in Collection.Drop(). See GODRIVER-2413.
-func DropEncryptedCollection(t *T, coll *mongo.Collection, encryptedFields interface{}) {
+func DropEncryptedCollection(t *T, coll *mongo.Collection, encryptedFields any) {
 	t.Helper()
 
 	var efBSON bsoncore.Document
@@ -523,8 +529,23 @@ func (t *T) ClearCollections() {
 // SetFailPoint sets a fail point for the client associated with T. Commands to create the failpoint will appear
 // in command monitoring channels. The fail point will automatically be disabled after this test has run.
 func (t *T) SetFailPoint(fp failpoint.FailPoint) {
+	// Do not allow failpoints to be used on sharded topologies unless
+	// specifically configured to allow it.
+	//
+	// On sharded topologies, failpoints are applied to only a single mongoS. If
+	// the driver is connected to multiple mongoS instances, there's a
+	// possibility a different mongoS will be selected for a subsequent command.
+	// In that case, the failpoint is effectively ignored, leading to a test
+	// failure that is extremely difficult to diagnose.
+	//
+	// TODO(GODRIVER-3328): Remove this once we set failpoints on every mongoS
+	// in sharded topologies.
+	if testContext.topoKind == Sharded && !t.allowFailPointsOnSharded {
+		t.Fatalf("cannot use failpoints with sharded topologies unless AllowFailPointsOnSharded is set")
+	}
+
 	// ensure mode fields are int32
-	if modeMap, ok := fp.Mode.(map[string]interface{}); ok {
+	if modeMap, ok := fp.Mode.(map[string]any); ok {
 		var key string
 		var err error
 
@@ -895,7 +916,7 @@ func (t *T) verifyConstraints() error {
 	return fmt.Errorf("no matching RunOnBlock; comparison errors: %v", runOnErrors)
 }
 
-func (t *T) interfaceToInt32(i interface{}) (int32, error) {
+func (t *T) interfaceToInt32(i any) (int32, error) {
 	switch conv := i.(type) {
 	case int:
 		return int32(conv), nil

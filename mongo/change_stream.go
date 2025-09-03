@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
-	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/csot"
@@ -103,34 +102,7 @@ type changeStreamConfig struct {
 	crypt          driver.Crypt
 }
 
-// validChangeStreamTimeouts will return "false" if maxAwaitTimeMS is set,
-// timeoutMS is set to a non-zero value, and maxAwaitTimeMS is greater than or
-// equal to timeoutMS. Otherwise, the timeouts are valid.
-func validChangeStreamTimeouts(ctx context.Context, cs *ChangeStream) bool {
-	if cs.options == nil || cs.client == nil {
-		return true
-	}
-
-	maxAwaitTime := cs.options.MaxAwaitTime
-	timeout := cs.client.timeout
-
-	if maxAwaitTime == nil {
-		return true
-	}
-
-	if deadline, ok := ctx.Deadline(); ok {
-		ctxTimeout := time.Until(deadline)
-		timeout = &ctxTimeout
-	}
-
-	if timeout == nil {
-		return true
-	}
-
-	return *timeout <= 0 || *maxAwaitTime < *timeout
-}
-
-func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline interface{},
+func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline any,
 	opts ...options.Lister[options.ChangeStreamOptions]) (*ChangeStream, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -376,7 +348,7 @@ AggregateExecuteLoop:
 		}
 	}
 	if err != nil {
-		cs.err = replaceErrors(err)
+		cs.err = wrapErrors(err)
 		return cs.err
 	}
 
@@ -384,7 +356,7 @@ AggregateExecuteLoop:
 	cr.Server = server
 
 	cs.cursor, cs.err = driver.NewBatchCursor(cr, cs.sess, cs.client.clock, cs.cursorOptions)
-	if cs.err = replaceErrors(cs.err); cs.err != nil {
+	if cs.err = wrapErrors(cs.err); cs.err != nil {
 		return cs.Err()
 	}
 
@@ -429,7 +401,7 @@ func (cs *ChangeStream) storeResumeToken() error {
 	return nil
 }
 
-func (cs *ChangeStream) buildPipelineSlice(pipeline interface{}) error {
+func (cs *ChangeStream) buildPipelineSlice(pipeline any) error {
 	val := reflect.ValueOf(pipeline)
 	if !val.IsValid() || !(val.Kind() == reflect.Slice) {
 		cs.err = errors.New("can only marshal slices and arrays into aggregation pipelines, but got invalid")
@@ -585,7 +557,7 @@ func (cs *ChangeStream) SetBatchSize(size int32) {
 
 // Decode will unmarshal the current event document into val and return any errors from the unmarshalling process
 // without any modification. If val is nil or is a typed nil, an error will be returned.
-func (cs *ChangeStream) Decode(val interface{}) error {
+func (cs *ChangeStream) Decode(val any) error {
 	if cs.cursor == nil {
 		return ErrNilCursor
 	}
@@ -597,13 +569,13 @@ func (cs *ChangeStream) Decode(val interface{}) error {
 // Err returns the last error seen by the change stream, or nil if no errors has occurred.
 func (cs *ChangeStream) Err() error {
 	if cs.err != nil {
-		return replaceErrors(cs.err)
+		return wrapErrors(cs.err)
 	}
 	if cs.cursor == nil {
 		return nil
 	}
 
-	return replaceErrors(cs.cursor.Err())
+	return wrapErrors(cs.cursor.Err())
 }
 
 // Close closes this change stream and the underlying cursor. Next and TryNext must not be called after Close has been
@@ -619,7 +591,7 @@ func (cs *ChangeStream) Close(ctx context.Context) error {
 		return nil // cursor is already closed
 	}
 
-	cs.err = replaceErrors(cs.cursor.Close(ctx))
+	cs.err = wrapErrors(cs.cursor.Close(ctx))
 	cs.cursor = nil
 	return cs.Err()
 }
@@ -678,7 +650,7 @@ func (cs *ChangeStream) next(ctx context.Context, nonBlocking bool) bool {
 	if len(cs.batch) == 0 {
 		cs.loopNext(ctx, nonBlocking)
 		if cs.err != nil {
-			cs.err = replaceErrors(cs.err)
+			cs.err = wrapErrors(cs.err)
 			return false
 		}
 		if len(cs.batch) == 0 {
@@ -696,10 +668,33 @@ func (cs *ChangeStream) next(ctx context.Context, nonBlocking bool) bool {
 }
 
 func (cs *ChangeStream) loopNext(ctx context.Context, nonBlocking bool) {
-	if !validChangeStreamTimeouts(ctx, cs) {
-		cs.err = fmt.Errorf("MaxAwaitTime must be less than the operation timeout")
+	// To avoid unnecessary socket timeouts, we attempt to short-circuit tailable
+	// awaitData "getMore" operations by ensuring that the maxAwaitTimeMS is less
+	// than the operation timeout.
+	//
+	// The specifications assume that drivers iteratively apply the timeout
+	// provided at the constructor level (e.g., (*collection).Find) for tailable
+	// awaitData cursors:
+	//
+	//	If set, drivers MUST apply the timeoutMS option to the initial aggregate
+	//	operation. Drivers MUST also apply the original timeoutMS value to each
+	//	next call on the change stream but MUST NOT use it to derive a maxTimeMS
+	//	field for getMore commands.
+	//
+	// The Go Driver might decide to support the above behavior with DRIVERS-2722.
+	// The principal concern is that it would be unexpected for users to apply an
+	// operation-level timeout via contexts to a constructor and then that timeout
+	// later be applied while working with a resulting cursor. Instead, it is more
+	// idiomatic to apply the timeout to the context passed to Next or TryNext.
+	if cs.options != nil && !nonBlocking {
+		maxAwaitTime := cs.cursorOptions.MaxAwaitTime
 
-		return
+		// If maxAwaitTime is not set, this check is unnecessary.
+		if maxAwaitTime != nil && !mongoutil.TimeoutWithinContext(ctx, *maxAwaitTime) {
+			cs.err = fmt.Errorf("MaxAwaitTime must be less than the operation timeout")
+
+			return
+		}
 	}
 
 	// Apply the client-level timeout if the operation-level timeout is not set.
@@ -719,7 +714,7 @@ func (cs *ChangeStream) loopNext(ctx context.Context, nonBlocking bool) {
 			return
 		}
 
-		cs.err = replaceErrors(cs.cursor.Err())
+		cs.err = wrapErrors(cs.cursor.Err())
 		if cs.err == nil {
 			// Check if cursor is alive
 			if cs.ID() == 0 {

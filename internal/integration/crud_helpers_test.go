@@ -44,7 +44,7 @@ var (
 )
 
 // create an update document or pipeline from a bson.RawValue
-func createUpdate(mt *mtest.T, updateVal bson.RawValue) interface{} {
+func createUpdate(mt *mtest.T, updateVal bson.RawValue) any {
 	switch updateVal.Type {
 	case bson.TypeEmbeddedDocument:
 		return updateVal.Document()
@@ -64,10 +64,10 @@ func createUpdate(mt *mtest.T, updateVal bson.RawValue) interface{} {
 }
 
 // create a hint string or document from a bson.RawValue
-func createHint(mt *mtest.T, val bson.RawValue) interface{} {
+func createHint(mt *mtest.T, val bson.RawValue) any {
 	mt.Helper()
 
-	var hint interface{}
+	var hint any
 	switch val.Type {
 	case bson.TypeString:
 		hint = val.StringValue()
@@ -155,18 +155,18 @@ func runCommandOnAllServers(commandFn func(client *mongo.Client) error) error {
 
 // aggregator is an interface used to run collection and database-level aggregations
 type aggregator interface {
-	Aggregate(context.Context, interface{}, ...options.Lister[options.AggregateOptions]) (*mongo.Cursor, error)
+	Aggregate(context.Context, any, ...options.Lister[options.AggregateOptions]) (*mongo.Cursor, error)
 }
 
 // watcher is an interface used to create client, db, and collection-level change streams
 type watcher interface {
-	Watch(context.Context, interface{}, ...options.Lister[options.ChangeStreamOptions]) (*mongo.ChangeStream, error)
+	Watch(context.Context, any, ...options.Lister[options.ChangeStreamOptions]) (*mongo.ChangeStream, error)
 }
 
 func executeAggregate(mt *mtest.T, agg aggregator, sess *mongo.Session, args bson.Raw) (*mongo.Cursor, error) {
 	mt.Helper()
 
-	var pipeline []interface{}
+	var pipeline []any
 	opts := options.Aggregate()
 
 	elems, _ := args.Elements()
@@ -204,7 +204,7 @@ func executeAggregate(mt *mtest.T, agg aggregator, sess *mongo.Session, args bso
 func executeWatch(mt *mtest.T, w watcher, sess *mongo.Session, args bson.Raw) (*mongo.ChangeStream, error) {
 	mt.Helper()
 
-	pipeline := []interface{}{}
+	pipeline := []any{}
 	elems, _ := args.Elements()
 	for _, elem := range elems {
 		key := elem.Key()
@@ -305,7 +305,7 @@ func executeInsertOne(mt *mtest.T, sess *mongo.Session, args bson.Raw) (*mongo.I
 func executeInsertMany(mt *mtest.T, sess *mongo.Session, args bson.Raw) (*mongo.InsertManyResult, error) {
 	mt.Helper()
 
-	var docs []interface{}
+	var docs []any
 	opts := options.InsertMany()
 
 	elems, _ := args.Elements()
@@ -691,7 +691,7 @@ func executeFindOneAndUpdate(mt *mtest.T, sess *mongo.Session, args bson.Raw) *m
 	mt.Helper()
 
 	filter := emptyDoc
-	var update interface{} = emptyDoc
+	var update any = emptyDoc
 	opts := options.FindOneAndUpdate()
 
 	elems, _ := args.Elements()
@@ -873,7 +873,7 @@ func executeUpdateOne(mt *mtest.T, sess *mongo.Session, args bson.Raw) (*mongo.U
 	mt.Helper()
 
 	filter := emptyDoc
-	var update interface{} = emptyDoc
+	var update any = emptyDoc
 	opts := options.UpdateOne()
 
 	elems, _ := args.Elements()
@@ -925,7 +925,7 @@ func executeUpdateMany(mt *mtest.T, sess *mongo.Session, args bson.Raw) (*mongo.
 	mt.Helper()
 
 	filter := emptyDoc
-	var update interface{} = emptyDoc
+	var update any = emptyDoc
 	opts := options.UpdateMany()
 
 	elems, _ := args.Elements()
@@ -1066,7 +1066,7 @@ func executeWithTransaction(mt *mtest.T, sess *mongo.Session, args bson.Raw) err
 	assert.Nil(mt, err, "error creating withTransactionArgs: %v", err)
 	opts := createTransactionOptions(mt, testArgs.Options)
 
-	_, err = sess.WithTransaction(context.Background(), func(_ context.Context) (interface{}, error) {
+	_, err = sess.WithTransaction(context.Background(), func(_ context.Context) (any, error) {
 		err := runWithTransactionOperations(mt, testArgs.Callback.Operations, sess)
 		return nil, err
 	}, opts)
@@ -1437,7 +1437,7 @@ func executeAdminCommand(mt *mtest.T, op *operation) {
 func executeAdminCommandWithRetry(
 	mt *mtest.T,
 	client *mongo.Client,
-	cmd interface{},
+	cmd any,
 	opts ...options.Lister[options.RunCmdOptions],
 ) {
 	mt.Helper()
@@ -1459,7 +1459,7 @@ func executeAdminCommandWithRetry(
 }
 
 // verification function to use for all count operations
-func verifyCountResult(mt *mtest.T, actualResult int64, expectedResult interface{}) {
+func verifyCountResult(mt *mtest.T, actualResult int64, expectedResult any) {
 	mt.Helper()
 	if expectedResult == nil {
 		return
@@ -1470,7 +1470,7 @@ func verifyCountResult(mt *mtest.T, actualResult int64, expectedResult interface
 	assert.Equal(mt, *expected, actualResult, "count mismatch; expected %v, got %v", *expected, actualResult)
 }
 
-func verifyBulkWriteResult(mt *mtest.T, actualResult *mongo.BulkWriteResult, expectedResult interface{}) {
+func verifyBulkWriteResult(mt *mtest.T, actualResult *mongo.BulkWriteResult, expectedResult any) {
 	mt.Helper()
 
 	if expectedResult == nil {
@@ -1478,12 +1478,12 @@ func verifyBulkWriteResult(mt *mtest.T, actualResult *mongo.BulkWriteResult, exp
 	}
 
 	var expected struct {
-		InsertedCount int64                  `bson:"insertedCount"`
-		MatchedCount  int64                  `bson:"matchedCount"`
-		ModifiedCount int64                  `bson:"modifiedCount"`
-		DeletedCount  int64                  `bson:"deletedCount"`
-		UpsertedCount int64                  `bson:"upsertedCount"`
-		UpsertedIDs   map[string]interface{} `bson:"upsertedIds"`
+		InsertedCount int64          `bson:"insertedCount"`
+		MatchedCount  int64          `bson:"matchedCount"`
+		ModifiedCount int64          `bson:"modifiedCount"`
+		DeletedCount  int64          `bson:"deletedCount"`
+		UpsertedCount int64          `bson:"upsertedCount"`
+		UpsertedIDs   map[string]any `bson:"upsertedIds"`
 	}
 	err := bson.Unmarshal(expectedResult.(bson.Raw), &expected)
 	assert.Nil(mt, err, "error creating BulkWriteResult: %v", err)
@@ -1510,7 +1510,7 @@ func verifyBulkWriteResult(mt *mtest.T, actualResult *mongo.BulkWriteResult, exp
 	}
 }
 
-func verifyUpdateResult(mt *mtest.T, res *mongo.UpdateResult, result interface{}) {
+func verifyUpdateResult(mt *mtest.T, res *mongo.UpdateResult, result any) {
 	mt.Helper()
 
 	if result == nil {
@@ -1538,7 +1538,7 @@ func verifyUpdateResult(mt *mtest.T, res *mongo.UpdateResult, result interface{}
 		"upserted count mismatch; expected %v, got %v", expected.UpsertedCount, actualUpsertedCount)
 }
 
-func verifyDeleteResult(mt *mtest.T, res *mongo.DeleteResult, result interface{}) {
+func verifyDeleteResult(mt *mtest.T, res *mongo.DeleteResult, result any) {
 	mt.Helper()
 
 	if result == nil {
@@ -1557,7 +1557,7 @@ func verifyDeleteResult(mt *mtest.T, res *mongo.DeleteResult, result interface{}
 func verifyDistinctResult(
 	mt *mtest.T,
 	got bson.RawArray,
-	want interface{},
+	want any,
 ) {
 	mt.Helper()
 
@@ -1585,7 +1585,7 @@ func verifyDistinctResult(
 	}
 }
 
-func verifyInsertOneResult(mt *mtest.T, actualResult *mongo.InsertOneResult, expectedResult interface{}) {
+func verifyInsertOneResult(mt *mtest.T, actualResult *mongo.InsertOneResult, expectedResult any) {
 	mt.Helper()
 
 	if expectedResult == nil {
@@ -1608,7 +1608,7 @@ func verifyInsertOneResult(mt *mtest.T, actualResult *mongo.InsertOneResult, exp
 	}
 }
 
-func verifyInsertManyResult(mt *mtest.T, actualResult *mongo.InsertManyResult, expectedResult interface{}) {
+func verifyInsertManyResult(mt *mtest.T, actualResult *mongo.InsertManyResult, expectedResult any) {
 	mt.Helper()
 
 	if expectedResult == nil {
@@ -1616,7 +1616,7 @@ func verifyInsertManyResult(mt *mtest.T, actualResult *mongo.InsertManyResult, e
 	}
 
 	assert.NotNil(mt, actualResult, "expected InsertMany result %v but got nil", expectedResult)
-	var expected struct{ InsertedIDs map[string]interface{} }
+	var expected struct{ InsertedIDs map[string]any }
 	err := bson.Unmarshal(expectedResult.(bson.Raw), &expected)
 	assert.Nil(mt, err, "error creating expected InsertMany result: %v", err)
 
@@ -1633,7 +1633,7 @@ func verifyInsertManyResult(mt *mtest.T, actualResult *mongo.InsertManyResult, e
 	}
 }
 
-func verifyListDatabasesResult(mt *mtest.T, actualResult mongo.ListDatabasesResult, expectedResult interface{}) {
+func verifyListDatabasesResult(mt *mtest.T, actualResult mongo.ListDatabasesResult, expectedResult any) {
 	mt.Helper()
 
 	if expectedResult == nil {
@@ -1647,7 +1647,7 @@ func verifyListDatabasesResult(mt *mtest.T, actualResult mongo.ListDatabasesResu
 	assert.Equal(mt, expected, actualResult, "ListDatabasesResult mismatch; expected %v, got %v", expected, actualResult)
 }
 
-func verifyCursorResult(mt *mtest.T, cur *mongo.Cursor, result interface{}) {
+func verifyCursorResult(mt *mtest.T, cur *mongo.Cursor, result any) {
 	mt.Helper()
 
 	// The Atlas Data Lake tests expect a getMore to be sent even though the operation does not have a Result field.
@@ -1673,7 +1673,7 @@ func verifyCursorResult(mt *mtest.T, cur *mongo.Cursor, result interface{}) {
 func verifySingleResult(
 	mt *mtest.T,
 	actualResult *mongo.SingleResult,
-	expectedResult interface{},
+	expectedResult any,
 ) {
 	mt.Helper()
 

@@ -19,13 +19,14 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/xoptions"
 )
 
 // This file contains helpers to execute client operations.
 
 func executeCreateChangeStream(ctx context.Context, operation *operation) (*operationResult, error) {
 	var watcher interface {
-		Watch(context.Context, interface{}, ...options.Lister[options.ChangeStreamOptions]) (*mongo.ChangeStream, error)
+		Watch(context.Context, any, ...options.Lister[options.ChangeStreamOptions]) (*mongo.ChangeStream, error)
 	}
 	var err error
 
@@ -40,7 +41,7 @@ func executeCreateChangeStream(ctx context.Context, operation *operation) (*oper
 		return nil, fmt.Errorf("no client, database, or collection entity found with ID %q", operation.Object)
 	}
 
-	var pipeline []interface{}
+	var pipeline []any
 	opts := options.ChangeStream()
 
 	elems, _ := operation.Arguments.Elements()
@@ -235,6 +236,11 @@ func executeClientBulkWrite(ctx context.Context, operation *operation) (*operati
 				return nil, err
 			}
 			opts.SetWriteConcern(c)
+		case "rawData":
+			err = xoptions.SetInternalClientBulkWriteOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized bulkWrite option %q", key)
 		}
@@ -324,8 +330,8 @@ func createClientUpdateOneModel(value bson.Raw) (*mongo.ClientBulkWrite, error) 
 	var v struct {
 		Namespace    string
 		Filter       bson.Raw
-		Update       interface{}
-		ArrayFilters []interface{}
+		Update       any
+		ArrayFilters []any
 		Collation    *options.Collation
 		Hint         *bson.RawValue
 		Upsert       *bool
@@ -335,14 +341,14 @@ func createClientUpdateOneModel(value bson.Raw) (*mongo.ClientBulkWrite, error) 
 	if err != nil {
 		return nil, err
 	}
-	var hint interface{}
+	var hint any
 	if v.Hint != nil {
 		hint, err = createHint(*v.Hint)
 		if err != nil {
 			return nil, err
 		}
 	}
-	var sort interface{}
+	var sort any
 	if v.Sort != nil {
 		sort = v.Sort.Document()
 	}
@@ -369,8 +375,8 @@ func createClientUpdateManyModel(value bson.Raw) (*mongo.ClientBulkWrite, error)
 	var v struct {
 		Namespace    string
 		Filter       bson.Raw
-		Update       interface{}
-		ArrayFilters []interface{}
+		Update       any
+		ArrayFilters []any
 		Collation    *options.Collation
 		Hint         *bson.RawValue
 		Upsert       *bool
@@ -379,7 +385,7 @@ func createClientUpdateManyModel(value bson.Raw) (*mongo.ClientBulkWrite, error)
 	if err != nil {
 		return nil, err
 	}
-	var hint interface{}
+	var hint any
 	if v.Hint != nil {
 		hint, err = createHint(*v.Hint)
 		if err != nil {
@@ -418,14 +424,14 @@ func createClientReplaceOneModel(value bson.Raw) (*mongo.ClientBulkWrite, error)
 	if err != nil {
 		return nil, err
 	}
-	var hint interface{}
+	var hint any
 	if v.Hint != nil {
 		hint, err = createHint(*v.Hint)
 		if err != nil {
 			return nil, err
 		}
 	}
-	var sort interface{}
+	var sort any
 	if v.Sort != nil {
 		sort = v.Sort.Document()
 	}
@@ -455,7 +461,7 @@ func createClientDeleteOneModel(value bson.Raw) (*mongo.ClientBulkWrite, error) 
 	if err != nil {
 		return nil, err
 	}
-	var hint interface{}
+	var hint any
 	if v.Hint != nil {
 		hint, err = createHint(*v.Hint)
 		if err != nil {
@@ -485,7 +491,7 @@ func createClientDeleteManyModel(value bson.Raw) (*mongo.ClientBulkWrite, error)
 	if err != nil {
 		return nil, err
 	}
-	var hint interface{}
+	var hint any
 	if v.Hint != nil {
 		hint, err = createHint(*v.Hint)
 		if err != nil {

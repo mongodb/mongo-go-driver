@@ -170,7 +170,7 @@ func TestJoin_ErrorsAs(t *testing.T) {
 	tests := []struct {
 		desc   string
 		errs   []error
-		target interface{}
+		target any
 	}{{
 		desc:   "one error with a matching target",
 		errs:   []error{err1},

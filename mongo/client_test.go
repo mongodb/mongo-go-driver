@@ -470,7 +470,7 @@ func TestClient(t *testing.T) {
 		}
 		for _, tc := range testCases {
 			t.Run(tc.description, func(t *testing.T) {
-				extraOptions := map[string]interface{}{
+				extraOptions := map[string]any{
 					// Set a mongocryptd path that does not exist. If Connect() attempts to start
 					// mongocryptd, it will cause an error.
 					"mongocryptdPath": "/does/not/exist",
@@ -489,7 +489,7 @@ func TestClient(t *testing.T) {
 
 				_, err := newClient(options.Client().
 					SetAutoEncryptionOptions(options.AutoEncryption().
-						SetKmsProviders(map[string]map[string]interface{}{
+						SetKmsProviders(map[string]map[string]any{
 							"local": {"key": make([]byte, 96)},
 						}).
 						SetExtraOptions(extraOptions)))

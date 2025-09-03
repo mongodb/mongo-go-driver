@@ -29,6 +29,6 @@ func newBackgroundContext(ctx context.Context) context.Context {
 	}
 }
 
-func (b *backgroundContext) Value(key interface{}) interface{} {
+func (b *backgroundContext) Value(key any) any {
 	return b.childValuesCtx.Value(key)
 }

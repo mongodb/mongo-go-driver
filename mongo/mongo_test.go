@@ -31,7 +31,7 @@ func TestEnsureID(t *testing.T) {
 		doc    bsoncore.Document
 		oid    bson.ObjectID
 		want   bsoncore.Document
-		wantID interface{}
+		wantID any
 	}{
 		{
 			description: "missing _id should be first element",
@@ -195,7 +195,7 @@ func TestMarshalAggregatePipeline(t *testing.T) {
 
 	testCases := []struct {
 		name           string
-		pipeline       interface{}
+		pipeline       any
 		arr            bson.A
 		hasOutputStage bool
 		err            error
@@ -246,7 +246,7 @@ func TestMarshalAggregatePipeline(t *testing.T) {
 		},
 		{
 			"bson.A/success",
-			bson.A{bson.D{{"$limit", int32(12345)}}, map[string]interface{}{"$count": "foobar"}},
+			bson.A{bson.D{{"$limit", int32(12345)}}, map[string]any{"$count": "foobar"}},
 			bson.A{
 				bson.D{{"$limit", int(12345)}},
 				bson.D{{"$count", "foobar"}},
@@ -263,7 +263,7 @@ func TestMarshalAggregatePipeline(t *testing.T) {
 		},
 		{
 			"bson.A/success",
-			bson.A{bson.D{{"$limit", int32(12345)}}, map[string]interface{}{"$count": "foobar"}},
+			bson.A{bson.D{{"$limit", int32(12345)}}, map[string]any{"$count": "foobar"}},
 			bson.A{
 				bson.D{{"$limit", int32(12345)}},
 				bson.D{{"$count", "foobar"}},
@@ -272,15 +272,15 @@ func TestMarshalAggregatePipeline(t *testing.T) {
 			nil,
 		},
 		{
-			"[]interface{}/error",
-			[]interface{}{"5"},
+			"[]any/error",
+			[]any{"5"},
 			nil,
 			false,
 			MarshalError{Value: "", Err: errors.New("WriteString can only write while positioned on a Element or Value but is positioned on a TopLevel")},
 		},
 		{
-			"[]interface{}/success",
-			[]interface{}{bson.D{{"$limit", int32(12345)}}, map[string]interface{}{"$count": "foobar"}},
+			"[]any/success",
+			[]any{bson.D{{"$limit", int32(12345)}}, map[string]any{"$count": "foobar"}},
 			bson.A{
 				bson.D{{"$limit", int32(12345)}},
 				bson.D{{"$count", "foobar"}},
@@ -341,14 +341,14 @@ func TestMarshalAggregatePipeline(t *testing.T) {
 		},
 		{
 			"array/error",
-			[1]interface{}{int64(42)},
+			[1]any{int64(42)},
 			nil,
 			false,
 			MarshalError{Value: int64(0), Err: errors.New("WriteInt64 can only write while positioned on a Element or Value but is positioned on a TopLevel")},
 		},
 		{
 			"array/success",
-			[1]interface{}{bson.D{{"$limit", int64(12345)}}},
+			[1]any{bson.D{{"$limit", int64(12345)}}},
 			bson.A{
 				bson.D{{"$limit", int64(12345)}},
 			},
@@ -357,14 +357,14 @@ func TestMarshalAggregatePipeline(t *testing.T) {
 		},
 		{
 			"slice/error",
-			[]interface{}{int64(42)},
+			[]any{int64(42)},
 			nil,
 			false,
 			MarshalError{Value: int64(0), Err: errors.New("WriteInt64 can only write while positioned on a Element or Value but is positioned on a TopLevel")},
 		},
 		{
 			"slice/success",
-			[]interface{}{bson.D{{"$limit", int64(12345)}}},
+			[]any{bson.D{{"$limit", int64(12345)}}},
 			bson.A{
 				bson.D{{"$limit", int64(12345)}},
 			},
@@ -526,7 +526,7 @@ func TestMarshalValue(t *testing.T) {
 
 	testCases := []struct {
 		name     string
-		value    interface{}
+		value    any
 		bsonOpts *options.BSONOptions
 		registry *bson.Registry
 		want     bsoncore.Value
@@ -560,7 +560,7 @@ func TestMarshalValue(t *testing.T) {
 			value: struct {
 				Int         int64
 				NilBytes    []byte
-				NilMap      map[string]interface{}
+				NilMap      map[string]any
 				NilStrings  []string
 				ZeroStruct  struct{ X int } `bson:"_,omitempty"`
 				StringerMap map[*bson.RawValue]bool

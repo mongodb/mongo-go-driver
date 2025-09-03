@@ -41,7 +41,7 @@ type SingleResult struct {
 //
 // The document parameter must be a non-nil document.
 func NewSingleResultFromDocument(
-	document interface{},
+	document any,
 	err error,
 	registry *bson.Registry,
 ) *SingleResult {
@@ -52,7 +52,7 @@ func NewSingleResultFromDocument(
 		registry = defaultRegistry
 	}
 
-	cur, createErr := NewCursorFromDocuments([]interface{}{document}, err, registry)
+	cur, createErr := NewCursorFromDocuments([]any{document}, err, registry)
 	if createErr != nil {
 		return &SingleResult{err: createErr}
 	}
@@ -70,7 +70,7 @@ func NewSingleResultFromDocument(
 //
 // If the operation was successful and returned a document, Decode will return any errors from the unmarshalling process
 // without any modification. If v is nil or is a typed nil, an error will be returned.
-func (sr *SingleResult) Decode(v interface{}) error {
+func (sr *SingleResult) Decode(v any) error {
 	if sr.err != nil {
 		return sr.err
 	}

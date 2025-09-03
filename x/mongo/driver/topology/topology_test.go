@@ -537,10 +537,10 @@ type mockLogSink struct {
 	msgs []string
 }
 
-func (s *mockLogSink) Info(_ int, msg string, _ ...interface{}) {
+func (s *mockLogSink) Info(_ int, msg string, _ ...any) {
 	s.msgs = append(s.msgs, msg)
 }
-func (*mockLogSink) Error(error, string, ...interface{}) {
+func (*mockLogSink) Error(error, string, ...any) {
 	// Do nothing.
 }
 

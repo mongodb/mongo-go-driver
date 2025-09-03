@@ -7,8 +7,8 @@
 package bsoncore
 
 import (
+	"fmt"
 	"reflect"
-	"strings"
 	"testing"
 	"time"
 
@@ -79,10 +79,10 @@ func TestValue(t *testing.T) {
 
 	testCases := []struct {
 		name     string
-		fn       interface{}
+		fn       any
 		val      Value
 		panicErr error
-		ret      []interface{}
+		ret      []any
 	}{
 		{
 			"Double/Not Double", Value.Double, Value{Type: TypeString},
@@ -97,22 +97,22 @@ func TestValue(t *testing.T) {
 		{
 			"Double/Success", Value.Double, Value{Type: TypeDouble, Data: AppendDouble(nil, 3.14159)},
 			nil,
-			[]interface{}{float64(3.14159)},
+			[]any{float64(3.14159)},
 		},
 		{
 			"DoubleOK/Not Double", Value.DoubleOK, Value{Type: TypeString},
 			nil,
-			[]interface{}{float64(0), false},
+			[]any{float64(0), false},
 		},
 		{
 			"DoubleOK/Insufficient Bytes", Value.DoubleOK, Value{Type: TypeDouble, Data: []byte{0x01, 0x02, 0x03, 0x04}},
 			nil,
-			[]interface{}{float64(0), false},
+			[]any{float64(0), false},
 		},
 		{
 			"DoubleOK/Success", Value.DoubleOK, Value{Type: TypeDouble, Data: AppendDouble(nil, 3.14159)},
 			nil,
-			[]interface{}{float64(3.14159), true},
+			[]any{float64(3.14159), true},
 		},
 		{
 			"StringValue/Not String", Value.StringValue, Value{Type: TypeDouble},
@@ -132,27 +132,27 @@ func TestValue(t *testing.T) {
 		{
 			"StringValue/Success", Value.StringValue, Value{Type: TypeString, Data: AppendString(nil, "hello, world!")},
 			nil,
-			[]interface{}{"hello, world!"},
+			[]any{"hello, world!"},
 		},
 		{
 			"StringValueOK/Not String", Value.StringValueOK, Value{Type: TypeDouble},
 			nil,
-			[]interface{}{"", false},
+			[]any{"", false},
 		},
 		{
 			"StringValueOK/Insufficient Bytes", Value.StringValueOK, Value{Type: TypeString, Data: []byte{0x01, 0x02, 0x03, 0x04}},
 			nil,
-			[]interface{}{"", false},
+			[]any{"", false},
 		},
 		{
 			"StringValueOK/Zero Length", Value.StringValueOK, Value{Type: TypeString, Data: []byte{0x00, 0x00, 0x00, 0x00}},
 			nil,
-			[]interface{}{"", false},
+			[]any{"", false},
 		},
 		{
 			"StringValueOK/Success", Value.StringValueOK, Value{Type: TypeString, Data: AppendString(nil, "hello, world!")},
 			nil,
-			[]interface{}{"hello, world!", true},
+			[]any{"hello, world!", true},
 		},
 		{
 			"Document/Not Document", Value.Document, Value{Type: TypeString},
@@ -167,22 +167,22 @@ func TestValue(t *testing.T) {
 		{
 			"Document/Success", Value.Document, Value{Type: TypeEmbeddedDocument, Data: []byte{0x05, 0x00, 0x00, 0x00, 0x00}},
 			nil,
-			[]interface{}{Document{0x05, 0x00, 0x00, 0x00, 0x00}},
+			[]any{Document{0x05, 0x00, 0x00, 0x00, 0x00}},
 		},
 		{
 			"DocumentOK/Not Document", Value.DocumentOK, Value{Type: TypeString},
 			nil,
-			[]interface{}{Document(nil), false},
+			[]any{Document(nil), false},
 		},
 		{
 			"DocumentOK/Insufficient Bytes", Value.DocumentOK, Value{Type: TypeEmbeddedDocument, Data: []byte{0x01, 0x02, 0x03, 0x04}},
 			nil,
-			[]interface{}{Document(nil), false},
+			[]any{Document(nil), false},
 		},
 		{
 			"DocumentOK/Success", Value.DocumentOK, Value{Type: TypeEmbeddedDocument, Data: []byte{0x05, 0x00, 0x00, 0x00, 0x00}},
 			nil,
-			[]interface{}{Document{0x05, 0x00, 0x00, 0x00, 0x00}, true},
+			[]any{Document{0x05, 0x00, 0x00, 0x00, 0x00}, true},
 		},
 		{
 			"Array/Not Array", Value.Array, Value{Type: TypeString},
@@ -197,22 +197,22 @@ func TestValue(t *testing.T) {
 		{
 			"Array/Success", Value.Array, Value{Type: TypeArray, Data: []byte{0x05, 0x00, 0x00, 0x00, 0x00}},
 			nil,
-			[]interface{}{Array{0x05, 0x00, 0x00, 0x00, 0x00}},
+			[]any{Array{0x05, 0x00, 0x00, 0x00, 0x00}},
 		},
 		{
 			"ArrayOK/Not Array", Value.ArrayOK, Value{Type: TypeString},
 			nil,
-			[]interface{}{Array(nil), false},
+			[]any{Array(nil), false},
 		},
 		{
 			"ArrayOK/Insufficient Bytes", Value.ArrayOK, Value{Type: TypeArray, Data: []byte{0x01, 0x02, 0x03, 0x04}},
 			nil,
-			[]interface{}{Array(nil), false},
+			[]any{Array(nil), false},
 		},
 		{
 			"ArrayOK/Success", Value.ArrayOK, Value{Type: TypeArray, Data: []byte{0x05, 0x00, 0x00, 0x00, 0x00}},
 			nil,
-			[]interface{}{Array{0x05, 0x00, 0x00, 0x00, 0x00}, true},
+			[]any{Array{0x05, 0x00, 0x00, 0x00, 0x00}, true},
 		},
 		{
 			"Binary/Not Binary", Value.Binary, Value{Type: TypeString},
@@ -227,22 +227,22 @@ func TestValue(t *testing.T) {
 		{
 			"Binary/Success", Value.Binary, Value{Type: TypeBinary, Data: AppendBinary(nil, 0xFF, []byte{0x01, 0x02, 0x03})},
 			nil,
-			[]interface{}{byte(0xFF), []byte{0x01, 0x02, 0x03}},
+			[]any{byte(0xFF), []byte{0x01, 0x02, 0x03}},
 		},
 		{
 			"BinaryOK/Not Binary", Value.BinaryOK, Value{Type: TypeString},
 			nil,
-			[]interface{}{byte(0x00), []byte(nil), false},
+			[]any{byte(0x00), []byte(nil), false},
 		},
 		{
 			"BinaryOK/Insufficient Bytes", Value.BinaryOK, Value{Type: TypeBinary, Data: []byte{0x01, 0x02, 0x03, 0x04}},
 			nil,
-			[]interface{}{byte(0x00), []byte(nil), false},
+			[]any{byte(0x00), []byte(nil), false},
 		},
 		{
 			"BinaryOK/Success", Value.BinaryOK, Value{Type: TypeBinary, Data: AppendBinary(nil, 0xFF, []byte{0x01, 0x02, 0x03})},
 			nil,
-			[]interface{}{byte(0xFF), []byte{0x01, 0x02, 0x03}, true},
+			[]any{byte(0xFF), []byte{0x01, 0x02, 0x03}, true},
 		},
 		{
 			"ObjectID/Not ObjectID", Value.ObjectID, Value{Type: TypeString},
@@ -257,22 +257,22 @@ func TestValue(t *testing.T) {
 		{
 			"ObjectID/Success", Value.ObjectID, Value{Type: TypeObjectID, Data: AppendObjectID(nil, [12]byte{0x01, 0x02})},
 			nil,
-			[]interface{}{[12]byte{0x01, 0x02}},
+			[]any{[12]byte{0x01, 0x02}},
 		},
 		{
 			"ObjectIDOK/Not ObjectID", Value.ObjectIDOK, Value{Type: TypeString},
 			nil,
-			[]interface{}{[12]byte{}, false},
+			[]any{[12]byte{}, false},
 		},
 		{
 			"ObjectIDOK/Insufficient Bytes", Value.ObjectIDOK, Value{Type: TypeObjectID, Data: []byte{0x01, 0x02, 0x03, 0x04}},
 			nil,
-			[]interface{}{[12]byte{}, false},
+			[]any{[12]byte{}, false},
 		},
 		{
 			"ObjectIDOK/Success", Value.ObjectIDOK, Value{Type: TypeObjectID, Data: AppendObjectID(nil, [12]byte{0x01, 0x02})},
 			nil,
-			[]interface{}{[12]byte{0x01, 0x02}, true},
+			[]any{[12]byte{0x01, 0x02}, true},
 		},
 		{
 			"Boolean/Not Boolean", Value.Boolean, Value{Type: TypeString},
@@ -287,22 +287,22 @@ func TestValue(t *testing.T) {
 		{
 			"Boolean/Success", Value.Boolean, Value{Type: TypeBoolean, Data: AppendBoolean(nil, true)},
 			nil,
-			[]interface{}{true},
+			[]any{true},
 		},
 		{
 			"BooleanOK/Not Boolean", Value.BooleanOK, Value{Type: TypeString},
 			nil,
-			[]interface{}{false, false},
+			[]any{false, false},
 		},
 		{
 			"BooleanOK/Insufficient Bytes", Value.BooleanOK, Value{Type: TypeBoolean, Data: []byte{}},
 			nil,
-			[]interface{}{false, false},
+			[]any{false, false},
 		},
 		{
 			"BooleanOK/Success", Value.BooleanOK, Value{Type: TypeBoolean, Data: AppendBoolean(nil, true)},
 			nil,
-			[]interface{}{true, true},
+			[]any{true, true},
 		},
 		{
 			"DateTime/Not DateTime", Value.DateTime, Value{Type: TypeString},
@@ -317,22 +317,22 @@ func TestValue(t *testing.T) {
 		{
 			"DateTime/Success", Value.DateTime, Value{Type: TypeDateTime, Data: AppendDateTime(nil, 12345)},
 			nil,
-			[]interface{}{int64(12345)},
+			[]any{int64(12345)},
 		},
 		{
 			"DateTimeOK/Not DateTime", Value.DateTimeOK, Value{Type: TypeString},
 			nil,
-			[]interface{}{int64(0), false},
+			[]any{int64(0), false},
 		},
 		{
 			"DateTimeOK/Insufficient Bytes", Value.DateTimeOK, Value{Type: TypeDateTime, Data: []byte{0x01, 0x02, 0x03}},
 			nil,
-			[]interface{}{int64(0), false},
+			[]any{int64(0), false},
 		},
 		{
 			"DateTimeOK/Success", Value.DateTimeOK, Value{Type: TypeDateTime, Data: AppendDateTime(nil, 12345)},
 			nil,
-			[]interface{}{int64(12345), true},
+			[]any{int64(12345), true},
 		},
 		{
 			"Time/Not DateTime", Value.Time, Value{Type: TypeString},
@@ -347,22 +347,22 @@ func TestValue(t *testing.T) {
 		{
 			"Time/Success", Value.Time, Value{Type: TypeDateTime, Data: AppendTime(nil, now)},
 			nil,
-			[]interface{}{now},
+			[]any{now},
 		},
 		{
 			"TimeOK/Not DateTime", Value.TimeOK, Value{Type: TypeString},
 			nil,
-			[]interface{}{time.Time{}, false},
+			[]any{time.Time{}, false},
 		},
 		{
 			"TimeOK/Insufficient Bytes", Value.TimeOK, Value{Type: TypeDateTime, Data: []byte{0x01, 0x02, 0x03}},
 			nil,
-			[]interface{}{time.Time{}, false},
+			[]any{time.Time{}, false},
 		},
 		{
 			"TimeOK/Success", Value.TimeOK, Value{Type: TypeDateTime, Data: AppendTime(nil, now)},
 			nil,
-			[]interface{}{now, true},
+			[]any{now, true},
 		},
 		{
 			"Regex/Not Regex", Value.Regex, Value{Type: TypeString},
@@ -377,22 +377,22 @@ func TestValue(t *testing.T) {
 		{
 			"Regex/Success", Value.Regex, Value{Type: TypeRegex, Data: AppendRegex(nil, "/abcdefg/", "hijkl")},
 			nil,
-			[]interface{}{"/abcdefg/", "hijkl"},
+			[]any{"/abcdefg/", "hijkl"},
 		},
 		{
 			"RegexOK/Not Regex", Value.RegexOK, Value{Type: TypeString},
 			nil,
-			[]interface{}{"", "", false},
+			[]any{"", "", false},
 		},
 		{
 			"RegexOK/Insufficient Bytes", Value.RegexOK, Value{Type: TypeRegex, Data: []byte{0x01, 0x02, 0x03}},
 			nil,
-			[]interface{}{"", "", false},
+			[]any{"", "", false},
 		},
 		{
 			"RegexOK/Success", Value.RegexOK, Value{Type: TypeRegex, Data: AppendRegex(nil, "/abcdefg/", "hijkl")},
 			nil,
-			[]interface{}{"/abcdefg/", "hijkl", true},
+			[]any{"/abcdefg/", "hijkl", true},
 		},
 		{
 			"DBPointer/Not DBPointer", Value.DBPointer, Value{Type: TypeString},
@@ -407,22 +407,22 @@ func TestValue(t *testing.T) {
 		{
 			"DBPointer/Success", Value.DBPointer, Value{Type: TypeDBPointer, Data: AppendDBPointer(nil, "foobar", oid)},
 			nil,
-			[]interface{}{"foobar", oid},
+			[]any{"foobar", oid},
 		},
 		{
 			"DBPointerOK/Not DBPointer", Value.DBPointerOK, Value{Type: TypeString},
 			nil,
-			[]interface{}{"", [12]byte{}, false},
+			[]any{"", [12]byte{}, false},
 		},
 		{
 			"DBPointerOK/Insufficient Bytes", Value.DBPointerOK, Value{Type: TypeDBPointer, Data: []byte{0x01, 0x02, 0x03}},
 			nil,
-			[]interface{}{"", [12]byte{}, false},
+			[]any{"", [12]byte{}, false},
 		},
 		{
 			"DBPointerOK/Success", Value.DBPointerOK, Value{Type: TypeDBPointer, Data: AppendDBPointer(nil, "foobar", oid)},
 			nil,
-			[]interface{}{"foobar", oid, true},
+			[]any{"foobar", oid, true},
 		},
 		{
 			"JavaScript/Not JavaScript", Value.JavaScript, Value{Type: TypeString},
@@ -437,22 +437,22 @@ func TestValue(t *testing.T) {
 		{
 			"JavaScript/Success", Value.JavaScript, Value{Type: TypeJavaScript, Data: AppendJavaScript(nil, "var hello = 'world';")},
 			nil,
-			[]interface{}{"var hello = 'world';"},
+			[]any{"var hello = 'world';"},
 		},
 		{
 			"JavaScriptOK/Not JavaScript", Value.JavaScriptOK, Value{Type: TypeString},
 			nil,
-			[]interface{}{"", false},
+			[]any{"", false},
 		},
 		{
 			"JavaScriptOK/Insufficient Bytes", Value.JavaScriptOK, Value{Type: TypeJavaScript, Data: []byte{0x01, 0x02, 0x03}},
 			nil,
-			[]interface{}{"", false},
+			[]any{"", false},
 		},
 		{
 			"JavaScriptOK/Success", Value.JavaScriptOK, Value{Type: TypeJavaScript, Data: AppendJavaScript(nil, "var hello = 'world';")},
 			nil,
-			[]interface{}{"var hello = 'world';", true},
+			[]any{"var hello = 'world';", true},
 		},
 		{
 			"Symbol/Not Symbol", Value.Symbol, Value{Type: TypeString},
@@ -467,22 +467,22 @@ func TestValue(t *testing.T) {
 		{
 			"Symbol/Success", Value.Symbol, Value{Type: TypeSymbol, Data: AppendSymbol(nil, "symbol123456")},
 			nil,
-			[]interface{}{"symbol123456"},
+			[]any{"symbol123456"},
 		},
 		{
 			"SymbolOK/Not Symbol", Value.SymbolOK, Value{Type: TypeString},
 			nil,
-			[]interface{}{"", false},
+			[]any{"", false},
 		},
 		{
 			"SymbolOK/Insufficient Bytes", Value.SymbolOK, Value{Type: TypeSymbol, Data: []byte{0x01, 0x02, 0x03}},
 			nil,
-			[]interface{}{"", false},
+			[]any{"", false},
 		},
 		{
 			"SymbolOK/Success", Value.SymbolOK, Value{Type: TypeSymbol, Data: AppendSymbol(nil, "symbol123456")},
 			nil,
-			[]interface{}{"symbol123456", true},
+			[]any{"symbol123456", true},
 		},
 		{
 			"CodeWithScope/Not CodeWithScope", Value.CodeWithScope, Value{Type: TypeString},
@@ -497,22 +497,22 @@ func TestValue(t *testing.T) {
 		{
 			"CodeWithScope/Success", Value.CodeWithScope, Value{Type: TypeCodeWithScope, Data: AppendCodeWithScope(nil, "var hello = 'world';", Document{0x05, 0x00, 0x00, 0x00, 0x00})},
 			nil,
-			[]interface{}{"var hello = 'world';", Document{0x05, 0x00, 0x00, 0x00, 0x00}},
+			[]any{"var hello = 'world';", Document{0x05, 0x00, 0x00, 0x00, 0x00}},
 		},
 		{
 			"CodeWithScopeOK/Not CodeWithScope", Value.CodeWithScopeOK, Value{Type: TypeString},
 			nil,
-			[]interface{}{"", Document(nil), false},
+			[]any{"", Document(nil), false},
 		},
 		{
 			"CodeWithScopeOK/Insufficient Bytes", Value.CodeWithScopeOK, Value{Type: TypeCodeWithScope, Data: []byte{0x01, 0x02, 0x03}},
 			nil,
-			[]interface{}{"", Document(nil), false},
+			[]any{"", Document(nil), false},
 		},
 		{
 			"CodeWithScopeOK/Success", Value.CodeWithScopeOK, Value{Type: TypeCodeWithScope, Data: AppendCodeWithScope(nil, "var hello = 'world';", Document{0x05, 0x00, 0x00, 0x00, 0x00})},
 			nil,
-			[]interface{}{"var hello = 'world';", Document{0x05, 0x00, 0x00, 0x00, 0x00}, true},
+			[]any{"var hello = 'world';", Document{0x05, 0x00, 0x00, 0x00, 0x00}, true},
 		},
 		{
 			"Int32/Not Int32", Value.Int32, Value{Type: TypeString},
@@ -527,22 +527,22 @@ func TestValue(t *testing.T) {
 		{
 			"Int32/Success", Value.Int32, Value{Type: TypeInt32, Data: AppendInt32(nil, 1234)},
 			nil,
-			[]interface{}{int32(1234)},
+			[]any{int32(1234)},
 		},
 		{
 			"Int32OK/Not Int32", Value.Int32OK, Value{Type: TypeString},
 			nil,
-			[]interface{}{int32(0), false},
+			[]any{int32(0), false},
 		},
 		{
 			"Int32OK/Insufficient Bytes", Value.Int32OK, Value{Type: TypeInt32, Data: []byte{0x01, 0x02, 0x03}},
 			nil,
-			[]interface{}{int32(0), false},
+			[]any{int32(0), false},
 		},
 		{
 			"Int32OK/Success", Value.Int32OK, Value{Type: TypeInt32, Data: AppendInt32(nil, 1234)},
 			nil,
-			[]interface{}{int32(1234), true},
+			[]any{int32(1234), true},
 		},
 		{
 			"Timestamp/Not Timestamp", Value.Timestamp, Value{Type: TypeString},
@@ -557,22 +557,22 @@ func TestValue(t *testing.T) {
 		{
 			"Timestamp/Success", Value.Timestamp, Value{Type: TypeTimestamp, Data: AppendTimestamp(nil, 12345, 67890)},
 			nil,
-			[]interface{}{uint32(12345), uint32(67890)},
+			[]any{uint32(12345), uint32(67890)},
 		},
 		{
 			"TimestampOK/Not Timestamp", Value.TimestampOK, Value{Type: TypeString},
 			nil,
-			[]interface{}{uint32(0), uint32(0), false},
+			[]any{uint32(0), uint32(0), false},
 		},
 		{
 			"TimestampOK/Insufficient Bytes", Value.TimestampOK, Value{Type: TypeTimestamp, Data: []byte{0x01, 0x02, 0x03}},
 			nil,
-			[]interface{}{uint32(0), uint32(0), false},
+			[]any{uint32(0), uint32(0), false},
 		},
 		{
 			"TimestampOK/Success", Value.TimestampOK, Value{Type: TypeTimestamp, Data: AppendTimestamp(nil, 12345, 67890)},
 			nil,
-			[]interface{}{uint32(12345), uint32(67890), true},
+			[]any{uint32(12345), uint32(67890), true},
 		},
 		{
 			"Int64/Not Int64", Value.Int64, Value{Type: TypeString},
@@ -587,22 +587,22 @@ func TestValue(t *testing.T) {
 		{
 			"Int64/Success", Value.Int64, Value{Type: TypeInt64, Data: AppendInt64(nil, 1234567890)},
 			nil,
-			[]interface{}{int64(1234567890)},
+			[]any{int64(1234567890)},
 		},
 		{
 			"Int64OK/Not Int64", Value.Int64OK, Value{Type: TypeString},
 			nil,
-			[]interface{}{int64(0), false},
+			[]any{int64(0), false},
 		},
 		{
 			"Int64OK/Insufficient Bytes", Value.Int64OK, Value{Type: TypeInt64, Data: []byte{0x01, 0x02, 0x03}},
 			nil,
-			[]interface{}{int64(0), false},
+			[]any{int64(0), false},
 		},
 		{
 			"Int64OK/Success", Value.Int64OK, Value{Type: TypeInt64, Data: AppendInt64(nil, 1234567890)},
 			nil,
-			[]interface{}{int64(1234567890), true},
+			[]any{int64(1234567890), true},
 		},
 		{
 			"Decimal128/Not Decimal128", Value.Decimal128, Value{Type: TypeString},
@@ -617,27 +617,27 @@ func TestValue(t *testing.T) {
 		{
 			"Decimal128/Success", Value.Decimal128, Value{Type: TypeDecimal128, Data: AppendDecimal128(nil, 12345, 67890)},
 			nil,
-			[]interface{}{uint64(12345), uint64(67890)},
+			[]any{uint64(12345), uint64(67890)},
 		},
 		{
 			"Decimal128OK/Not Decimal128", Value.Decimal128OK, Value{Type: TypeString},
 			nil,
-			[]interface{}{uint64(0), uint64(0), false},
+			[]any{uint64(0), uint64(0), false},
 		},
 		{
 			"Decimal128OK/Insufficient Bytes", Value.Decimal128OK, Value{Type: TypeDecimal128, Data: []byte{0x01, 0x02, 0x03}},
 			nil,
-			[]interface{}{uint64(0), uint64(0), false},
+			[]any{uint64(0), uint64(0), false},
 		},
 		{
 			"Decimal128OK/Success", Value.Decimal128OK, Value{Type: TypeDecimal128, Data: AppendDecimal128(nil, 12345, 67890)},
 			nil,
-			[]interface{}{uint64(12345), uint64(67890), true},
+			[]any{uint64(12345), uint64(67890), true},
 		},
 		{
 			"Timestamp.String/Success", Value.String, Value{Type: TypeTimestamp, Data: AppendTimestamp(nil, 12345, 67890)},
 			nil,
-			[]interface{}{"{\"$timestamp\":{\"t\":12345,\"i\":67890}}"},
+			[]any{"{\"$timestamp\":{\"t\":12345,\"i\":67890}}"},
 		},
 	}
 
@@ -677,84 +677,40 @@ func TestValue(t *testing.T) {
 	}
 }
 
-func TestValue_StringN(t *testing.T) {
-	var buf strings.Builder
-	for i := 0; i < 16000000; i++ {
-		buf.WriteString("abcdefgh")
-	}
-	str1k := buf.String()
-	str128 := str1k[:128]
-	testObjectID := [12]byte{0x60, 0xd4, 0xc2, 0x1f, 0x4e, 0x60, 0x4a, 0x0c, 0x8b, 0x2e, 0x9c, 0x3f}
+var valueStringTestCases = []struct {
+	description string
+	val         Value
+	want        string
+}{
+	{
+		description: "string value",
+		val: Value{
+			Type: TypeString, Data: AppendString(nil, "abcdefgh")},
+		want: `"abcdefgh"`,
+	},
 
-	testCases := []struct {
-		description string
-		n           int
-		val         Value
-		want        string
-	}{
-		// n = 0 cases
-		{"n=0, single value", 0, Value{
-			Type: TypeString, Data: AppendString(nil, "abcdefgh")}, ""},
+	{
+		description: "value with special characters",
+		val: Value{
+			Type: TypeString,
+			Data: AppendString(nil, "!@#$%^&*()")},
+		want: `"!@#$%^\u0026*()"`,
+	},
 
-		{"n=0, large string value", 0, Value{
-			Type: TypeString, Data: AppendString(nil, "abcdefgh")}, ""},
+	{
+		description: "TypeEmbeddedDocument",
+		val: Value{
+			Type: TypeEmbeddedDocument,
+			Data: BuildDocument(nil,
+				AppendInt32Element(nil, "number", 123),
+			),
+		},
+		want: `{"number": {"$numberInt":"123"}}`,
+	},
 
-		{"n=0, value with special characters", 0, Value{
-			Type: TypeString, Data: AppendString(nil, "!@#$%^&*()")}, ""},
-
-		// n < 0 cases
-		{"n<0, single value", -1, Value{
-			Type: TypeString, Data: AppendString(nil, "abcdefgh")}, ""},
-
-		{"n<0, large string value", -1, Value{
-			Type: TypeString, Data: AppendString(nil, "abcdefgh")}, ""},
-
-		{"n<0, value with special characters", -1, Value{
-			Type: TypeString, Data: AppendString(nil, "!@#$%^&*()")}, ""},
-
-		// n > 0 cases
-		{"n>0, string LT n", 4, Value{
-			Type: TypeString, Data: AppendString(nil, "foo")}, `"foo`},
-
-		{"n>0, string GT n", 10, Value{
-			Type: TypeString, Data: AppendString(nil, "foo")}, `"foo"`},
-
-		{"n>0, string EQ n", 5, Value{
-			Type: TypeString, Data: AppendString(nil, "foo")}, `"foo"`},
-
-		{"n>0, multi-byte string LT n", 10, Value{
-			Type: TypeString, Data: AppendString(nil, "𨉟呐㗂越")}, `"𨉟呐`},
-
-		{"n>0, multi-byte string GT n", 21, Value{
-			Type: TypeString, Data: AppendString(nil, "𨉟呐㗂越")}, `"𨉟呐㗂越"`},
-
-		{"n>0, multi-byte string EQ n", 15, Value{
-			Type: TypeString, Data: AppendString(nil, "𨉟呐㗂越")}, `"𨉟呐㗂越"`},
-
-		{"n>0, multi-byte string exact character boundary", 6, Value{
-			Type: TypeString, Data: AppendString(nil, "𨉟呐㗂越")}, `"𨉟`},
-
-		{"n>0, multi-byte string mid character", 8, Value{
-			Type: TypeString, Data: AppendString(nil, "𨉟呐㗂越")}, `"𨉟`},
-
-		{"n>0, multi-byte string edge case", 10, Value{
-			Type: TypeString, Data: AppendString(nil, "𨉟呐㗂越")}, `"𨉟呐`},
-
-		{"n>0, single value", 10, Value{
-			Type: TypeString, Data: AppendString(nil, str128)}, `"abcdefgha`},
-
-		{"n>0, large string value", 10, Value{
-			Type: TypeString, Data: AppendString(nil, str1k)}, `"abcdefgha`},
-
-		{"n>0, value with special characters", 5, Value{
-			Type: TypeString, Data: AppendString(nil, "!@#$%^&*()")}, `"!@#$`},
-
-		// Extended cases for each type
-		{"n>0, TypeEmbeddedDocument", 10, Value{
-			Type: TypeEmbeddedDocument, Data: BuildDocument(nil,
-				AppendStringElement(nil, "key", "value"))}, `{"key": "v`},
-
-		{"n>0, TypeArray", 10, Value{
+	{
+		description: "TypeArray",
+		val: Value{
 			Type: TypeArray,
 			Data: BuildArray(nil,
 				Value{
@@ -769,71 +725,218 @@ func TestValue_StringN(t *testing.T) {
 					Type: TypeBoolean,
 					Data: AppendBoolean(nil, true),
 				},
-			)}, `["abc",{"$`},
+			)},
+		want: `["abc",{"$numberInt":"123"},true]`,
+	},
 
-		{"n>0, TypeDouble", 10, Value{
-			Type: TypeDouble, Data: AppendDouble(nil, 123.456)}, `{"$numberD`},
+	{
+		description: "TypeDouble",
+		val: Value{
+			Type: TypeDouble,
+			Data: AppendDouble(nil, 123.456),
+		},
+		want: `{"$numberDouble":"123.456"}`,
+	},
 
-		{"n>0, TypeBinary", 10, Value{
-			Type: TypeBinary, Data: AppendBinary(nil, 0x00, []byte{0x01, 0x02, 0x03})}, `{"$binary"`},
+	{
+		description: "TypeBinary",
+		val: Value{
+			Type: TypeBinary,
+			Data: AppendBinary(nil, 0x00, []byte{0x01, 0x02, 0x03})},
+		want: `{"$binary":{"base64":"AQID","subType":"00"}}`,
+	},
 
-		{"n>0, TypeUndefined", 10, Value{
-			Type: TypeUndefined}, `{"$undefin`},
+	{
+		description: "TypeUndefined",
+		val: Value{
+			Type: TypeUndefined,
+		},
+		want: `{"$undefined":true}`,
+	},
 
-		{"n>0, TypeObjectID", 10, Value{
-			Type: TypeObjectID, Data: AppendObjectID(nil, testObjectID)}, `{"$oid":"6`},
+	{
+		description: "TypeObjectID",
+		val: Value{
+			Type: TypeObjectID,
+			Data: AppendObjectID(nil, [12]byte{0x60, 0xd4, 0xc2, 0x1f, 0x4e, 0x60, 0x4a, 0x0c, 0x8b, 0x2e, 0x9c, 0x3f}),
+		},
+		want: `{"$oid":"60d4c21f4e604a0c8b2e9c3f"}`,
+	},
 
-		{"n>0, TypeBoolean", 3, Value{
-			Type: TypeBoolean, Data: AppendBoolean(nil, true)}, `tru`},
+	{
+		description: "TypeBoolean",
+		val: Value{
+			Type: TypeBoolean,
+			Data: AppendBoolean(nil, true),
+		},
+		want: `true`,
+	},
 
-		{"n>0, TypeDateTime", 10, Value{
-			Type: TypeDateTime, Data: AppendDateTime(nil, 1234567890)}, `{"$date":{`},
+	{
+		description: "TypeDateTime",
+		val: Value{
+			Type: TypeDateTime,
+			Data: AppendDateTime(nil, 1234567890),
+		},
+		want: `{"$date":{"$numberLong":"1234567890"}}`,
+	},
 
-		{"n>0, TypeNull", 3, Value{
-			Type: TypeNull}, `nul`},
+	{
+		description: "TypeNull",
+		val: Value{
+			Type: TypeNull,
+		},
+		want: `null`,
+	},
 
-		{"n>0, TypeRegex", 10, Value{
-			Type: TypeRegex, Data: AppendRegex(nil, "pattern", "options")}, `{"$regular`},
+	{
+		description: "TypeRegex",
+		val: Value{
+			Type: TypeRegex,
+			Data: AppendRegex(nil, "pattern", "i"),
+		},
+		want: `{"$regularExpression":{"pattern":"pattern","options":"i"}}`,
+	},
 
-		{"n>0, TypeDBPointer", 15, Value{
-			Type: TypeDBPointer, Data: AppendDBPointer(nil, "namespace", testObjectID)}, `{"$dbPointer":{`},
+	{
+		description: "TypeDBPointer",
+		val: Value{
+			Type: TypeDBPointer,
+			Data: AppendDBPointer(nil, "namespace", [12]byte{0x60, 0xd4, 0xc2, 0x1f, 0x4e, 0x60, 0x4a, 0x0c, 0x8b, 0x2e, 0x9c, 0x3f}),
+		},
+		want: `{"$dbPointer":{"$ref":"namespace","$id":{"$oid":"60d4c21f4e604a0c8b2e9c3f"}}}`,
+	},
 
-		{"n>0, TypeJavaScript", 15, Value{
-			Type: TypeJavaScript, Data: AppendJavaScript(nil, "code")}, `{"$code":"code"`},
+	{
+		description: "TypeJavaScript",
+		val: Value{
+			Type: TypeJavaScript,
+			Data: AppendJavaScript(nil, "code"),
+		},
+		want: `{"$code":"code"}`,
+	},
 
-		{"n>0, TypeSymbol", 10, Value{
-			Type: TypeSymbol, Data: AppendSymbol(nil, "symbol")}, `{"$symbol"`},
+	{
+		description: "TypeSymbol",
+		val: Value{
+			Type: TypeSymbol,
+			Data: AppendSymbol(nil, "symbol"),
+		},
+		want: `{"$symbol":"symbol"}`,
+	},
 
-		{"n>0, TypeCodeWithScope", 10, Value{
-			Type: TypeCodeWithScope, Data: AppendCodeWithScope(nil, "code", BuildDocument(nil,
-				AppendStringElement(nil, "key", "value")))}, `{"$code":c`},
+	{
+		description: "TypeCodeWithScope",
+		val: Value{
+			Type: TypeCodeWithScope,
+			Data: AppendCodeWithScope(nil, "code",
+				BuildDocument(nil, AppendStringElement(nil, "key", "value")),
+			),
+		},
+		want: `{"$code":code,"$scope":{"key": "value"}}`,
+	},
 
-		{"n>0, TypeInt32", 10, Value{
-			Type: TypeInt32, Data: AppendInt32(nil, 123)}, `{"$numberI`},
+	{
+		description: "TypeInt32",
+		val: Value{
+			Type: TypeInt32,
+			Data: AppendInt32(nil, 123),
+		},
+		want: `{"$numberInt":"123"}`,
+	},
 
-		{"n>0, TypeTimestamp", 10, Value{
-			Type: TypeTimestamp, Data: AppendTimestamp(nil, 123, 456)}, `{"$timesta`},
+	{
+		description: "TypeTimestamp",
+		val: Value{
+			Type: TypeTimestamp,
+			Data: AppendTimestamp(nil, 123, 456),
+		},
+		want: `{"$timestamp":{"t":123,"i":456}}`,
+	},
 
-		{"n>0, TypeInt64", 10, Value{
-			Type: TypeInt64, Data: AppendInt64(nil, 1234567890)}, `{"$numberL`},
+	{
+		description: "TypeInt64",
+		val: Value{
+			Type: TypeInt64,
+			Data: AppendInt64(nil, 1234567890),
+		},
+		want: `{"$numberLong":"1234567890"}`,
+	},
 
-		{"n>0, TypeDecimal128", 10, Value{
-			Type: TypeDecimal128, Data: AppendDecimal128(nil, 0x3040000000000000, 0x0000000000000000)}, `{"$numberD`},
+	{
+		description: "TypeDecimal128",
+		val: Value{
+			Type: TypeDecimal128,
+			Data: AppendDecimal128(nil, 0x3040000000000000, 0x0000000000000000),
+		},
+		want: `{"$numberDecimal":"0"}`,
+	},
 
-		{"n>0, TypeMinKey", 10, Value{
-			Type: TypeMinKey}, `{"$minKey"`},
+	{
+		description: "TypeMinKey",
+		val: Value{
+			Type: TypeMinKey,
+		},
+		want: `{"$minKey":1}`,
+	},
 
-		{"n>0, TypeMaxKey", 10, Value{
-			Type: TypeMaxKey}, `{"$maxKey"`},
-	}
+	{
+		description: "TypeMaxKey",
+		val: Value{
+			Type: TypeMaxKey,
+		},
+		want: `{"$maxKey":1}`,
+	},
+}
 
-	for _, tc := range testCases {
+func TestValue_String(t *testing.T) {
+	for _, tc := range valueStringTestCases {
 		t.Run(tc.description, func(t *testing.T) {
-			got := tc.val.StringN(tc.n)
-			assert.Equal(t, tc.want, got)
-			if tc.n >= 0 {
-				assert.LessOrEqual(t, len(got), tc.n)
-			}
+			got := tc.val.String()
+			assert.Equal(t, tc.want, got, "expected string %s, got %s", tc.want, got)
+		})
+	}
+}
+
+func TestValue_StringN(t *testing.T) {
+	for _, tc := range valueStringTestCases {
+		for n := -1; n <= len(tc.want)+1; n++ {
+			t.Run(fmt.Sprintf("%s n==%d", tc.description, n), func(t *testing.T) {
+				got, truncated := tc.val.StringN(n)
+				l := n
+				toBeTruncated := true
+				if l >= len(tc.want) || l < 0 {
+					l = len(tc.want)
+					toBeTruncated = false
+				}
+				want := tc.want[:l]
+				assert.Equal(t, want, got, "expected string %s, got %s", tc.want, got)
+				assert.Equal(t, toBeTruncated, truncated, "expected truncated to be %t, got %t", toBeTruncated, truncated)
+			})
+		}
+	}
+}
+
+func TestArray_StringN_Multibyte(t *testing.T) {
+	multiByteString := Value{
+		Type: TypeString,
+		Data: AppendString(nil, "𨉟呐㗂越"),
+	}
+	for i, tc := range []struct {
+		n         int
+		want      string
+		truncated bool
+	}{
+		{6, `"𨉟`, true},
+		{8, `"𨉟`, true},
+		{10, `"𨉟呐`, true},
+		{15, `"𨉟呐㗂越"`, false},
+		{21, `"𨉟呐㗂越"`, false},
+	} {
+		t.Run(fmt.Sprintf("case %d", i), func(t *testing.T) {
+			got, truncated := multiByteString.StringN(tc.n)
+			assert.Equal(t, tc.want, got, "expected string %s, got %s", tc.want, got)
+			assert.Equal(t, tc.truncated, truncated, "expected truncated to be %t, got %t", tc.truncated, truncated)
 		})
 	}
 }

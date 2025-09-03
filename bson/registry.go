@@ -65,7 +65,7 @@ func (entme errNoTypeMapEntry) Error() string {
 // for any value whose type implements bson.Marshaler, regardless of the value's concrete type.
 //
 // 3. Type map entries - This can be used to associate a BSON type with a Go type. These type
-// associations are used when decoding into a bson.D/bson.M or a struct field of type interface{}.
+// associations are used when decoding into a bson.D/bson.M or a struct field of type any.
 // For example, by default, BSON int32 and int64 values decode as Go int32 and int64 instances,
 // respectively, when decoding into a bson.D. The following code would change the behavior so these
 // values decode as Go int instances instead:
@@ -214,7 +214,7 @@ func (r *Registry) RegisterInterfaceDecoder(iface reflect.Type, dec ValueDecoder
 // mapping is decoding situations where an empty interface is used and a default type needs to be
 // created and decoded into.
 //
-// By default, BSON documents will decode into interface{} values as bson.D. To change the default type for BSON
+// By default, BSON documents will decode into any values as bson.D. To change the default type for BSON
 // documents, a type map entry for TypeEmbeddedDocument should be registered. For example, to force BSON documents
 // to decode to bson.Raw, use the following code:
 //

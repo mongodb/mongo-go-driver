@@ -228,7 +228,7 @@ func mustLogServerMessage(srv *Server) bool {
 		logger.LevelDebug, logger.ComponentTopology)
 }
 
-func logServerMessage(srv *Server, msg string, keysAndValues ...interface{}) {
+func logServerMessage(srv *Server, msg string, keysAndValues ...any) {
 	serverHost, serverPort, err := net.SplitHostPort(srv.address.String())
 	if err != nil {
 		serverHost = srv.address.String()
@@ -842,7 +842,6 @@ func (s *Server) setupHeartbeatConnection(ctx context.Context) error {
 func (s *Server) createBaseOperation(conn *mnet.Connection) *operation.Hello {
 	return operation.
 		NewHello().
-		ClusterClock(s.cfg.clock).
 		Deployment(driver.SingleConnectionDeployment{C: conn}).
 		ServerAPI(s.cfg.serverAPI)
 }

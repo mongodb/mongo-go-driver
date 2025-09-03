@@ -24,7 +24,7 @@ func Example_clientSideEncryption() {
 	if _, err := rand.Read(localKey); err != nil {
 		log.Panic(err)
 	}
-	kmsProviders := map[string]map[string]interface{}{
+	kmsProviders := map[string]map[string]any{
 		"local": {
 			"key": localKey,
 		},
@@ -71,7 +71,7 @@ func Example_clientSideEncryptionCreateKey() {
 	uri := "mongodb://localhost:27017"
 	// kmsProviders would have to be populated with the correct KMS provider
 	// information before it's used.
-	var kmsProviders map[string]map[string]interface{}
+	var kmsProviders map[string]map[string]any
 
 	// Create Client and ClientEncryption
 	clientEncryptionOpts := options.ClientEncryption().
@@ -128,7 +128,7 @@ func Example_clientSideEncryptionCreateKey() {
 	// Configure a Client with auto encryption using the new schema
 	dbName := "test"
 	collName := "coll"
-	schemaMap := map[string]interface{}{
+	schemaMap := map[string]any{
 		dbName + "." + collName: schemaDoc,
 	}
 	autoEncryptionOpts := options.AutoEncryption().
@@ -154,7 +154,7 @@ func Example_explictEncryption() {
 	// localMasterKey must be the same master key that was used to create the
 	// encryption key.
 	var localMasterKey []byte
-	kmsProviders := map[string]map[string]interface{}{
+	kmsProviders := map[string]map[string]any{
 		"local": {
 			"key": localMasterKey,
 		},
@@ -268,7 +268,7 @@ func Example_explictEncryptionWithAutomaticDecryption() {
 	// localMasterKey must be the same master key that was used to create the
 	// encryption key.
 	var localMasterKey []byte
-	kmsProviders := map[string]map[string]interface{}{
+	kmsProviders := map[string]map[string]any{
 		"local": {
 			"key": localMasterKey,
 		},

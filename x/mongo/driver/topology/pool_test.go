@@ -22,6 +22,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/eventtest"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo/address"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
 )
 
@@ -1614,5 +1615,28 @@ func TestPool_PoolMonitor(t *testing.T) {
 		assert.Positive(t,
 			events[2].Duration,
 			"expected ConnectionCheckOutFailed Duration to be set")
+	})
+}
+
+func TestPool_Error(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should have TransientTransactionError", func(t *testing.T) {
+		t.Parallel()
+
+		p := newPool(poolConfig{})
+		assert.Equalf(t, poolPaused, p.getState(), "expected new pool to be paused")
+
+		// Since new pool is paused, checkout should throw PoolClearedError.
+		_, err := p.checkOut(context.Background())
+		var le driver.Error
+		if errors.As(err, &le) {
+			assert.ErrorIs(t, poolClearedError{}, le.Unwrap(), "expect error to be PoolClearedError")
+			assert.True(t, le.HasErrorLabel(driver.TransientTransactionError), `expected error to include the "TransientTransactionError" label`)
+		} else {
+			t.Errorf("expected labeled error, got %v", err)
+		}
+
+		p.close(context.Background())
 	})
 }

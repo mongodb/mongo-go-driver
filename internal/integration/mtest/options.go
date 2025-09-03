@@ -77,7 +77,7 @@ func (r *RunOnBlock) UnmarshalBSON(data []byte) error {
 		Auth             *bool                    `bson:"auth"`
 		AuthEnabled      *bool                    `bson:"authEnabled"`
 		CSFLE            *bool                    `bson:"csfle"`
-		Extra            map[string]interface{}   `bson:",inline"`
+		Extra            map[string]any           `bson:",inline"`
 	}
 	if err := bson.Unmarshal(data, &temp); err != nil {
 		return fmt.Errorf("error unmarshalling to temporary RunOnBlock object: %w", err)
@@ -281,6 +281,21 @@ func (op *Options) AtlasDataLake(adl bool) *Options {
 func (op *Options) RequireAPIVersion(rav bool) *Options {
 	op.optFuncs = append(op.optFuncs, func(t *T) {
 		t.requireAPIVersion = &rav
+	})
+	return op
+}
+
+// AllowFailPointsOnSharded bypasses the check for failpoints used on sharded
+// topologies.
+//
+// Failpoints are generally unreliable on sharded topologies, but can be used if
+// the failpoint is explicitly applied to every mongoS node in the cluster.
+//
+// TODO(GODRIVER-3328): Remove this option once we set failpoints on every
+// mongoS in sharded topologies.
+func (op *Options) AllowFailPointsOnSharded() *Options {
+	op.optFuncs = append(op.optFuncs, func(t *T) {
+		t.allowFailPointsOnSharded = true
 	})
 	return op
 }

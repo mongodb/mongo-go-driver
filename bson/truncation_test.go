@@ -23,7 +23,7 @@ type outputArgs struct {
 	Val  *int64
 }
 
-func unmarshalWithContext(t *testing.T, dc DecodeContext, data []byte, val interface{}) error {
+func unmarshalWithContext(t *testing.T, dc DecodeContext, data []byte, val any) error {
 	t.Helper()
 
 	vr := NewDocumentReader(bytes.NewReader(data))

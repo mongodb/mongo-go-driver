@@ -126,9 +126,9 @@ func (s *Session) EndSession(ctx context.Context) {
 // see the Client.StartSession method documentation.
 func (s *Session) WithTransaction(
 	ctx context.Context,
-	fn func(ctx context.Context) (interface{}, error),
+	fn func(ctx context.Context) (any, error),
 	opts ...options.Lister[options.TransactionOptions],
-) (interface{}, error) {
+) (any, error) {
 	timeout := time.NewTimer(withTransactionTimeout)
 	defer timeout.Stop()
 	var err error
@@ -292,7 +292,7 @@ func (s *Session) CommitTransaction(ctx context.Context) error {
 	// Return error without updating transaction state if it is a timeout, as the transaction has not
 	// actually been committed.
 	if IsTimeout(err) {
-		return replaceErrors(err)
+		return wrapErrors(err)
 	}
 	s.clientSession.Committing = false
 	commitErr := s.clientSession.CommitTransaction()
@@ -301,7 +301,7 @@ func (s *Session) CommitTransaction(ctx context.Context) error {
 	s.clientSession.UpdateCommitTransactionWriteConcern()
 
 	if err != nil {
-		return replaceErrors(err)
+		return wrapErrors(err)
 	}
 	return commitErr
 }

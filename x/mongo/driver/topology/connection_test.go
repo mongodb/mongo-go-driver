@@ -585,7 +585,7 @@ func TestConnection(t *testing.T) {
 				}
 			}()
 
-			var want, got interface{}
+			var want, got any
 
 			want = ErrConnectionClosed
 			got = conn.Write(context.Background(), nil)

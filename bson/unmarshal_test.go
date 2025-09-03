@@ -44,7 +44,7 @@ func TestUnmarshalWithRegistry(t *testing.T) {
 
 	testCases := []struct {
 		name     string
-		val      interface{}
+		val      any
 		bsontype Type
 		bytes    []byte
 	}{
@@ -71,7 +71,7 @@ func TestUnmarshalWithRegistry(t *testing.T) {
 
 			// Assert that unmarshaling the input data results in the expected value.
 			gotValue := reflect.New(reflect.TypeOf(tc.val))
-			dec := NewDecoder(newValueReader(tc.bsontype, bytes.NewReader(tc.bytes)))
+			dec := NewDecoder(newBufferedValueReader(tc.bsontype, tc.bytes))
 			dec.SetRegistry(reg)
 			err := dec.Decode(gotValue.Interface())
 			noerr(t, err)
@@ -151,7 +151,7 @@ func TestUnmarshalExtJSONWithUndefinedField(t *testing.T) {
 	// When unmarshalling extJSON, fields that are undefined in the destination struct are skipped.
 	// This process must not skip other, defined fields and must not raise errors.
 	type expectedResponse struct {
-		DefinedField interface{}
+		DefinedField any
 	}
 
 	unmarshalExpectedResponse := func(t *testing.T, extJSON string) *expectedResponse {
@@ -165,7 +165,7 @@ func TestUnmarshalExtJSONWithUndefinedField(t *testing.T) {
 	testCases := []struct {
 		name          string
 		testJSON      string
-		expectedValue interface{}
+		expectedValue any
 	}{
 		{
 			"no array",
@@ -294,14 +294,14 @@ func TestUnmarshalInterface(t *testing.T) {
 
 	type testCase struct {
 		name string
-		stub func() ([]byte, interface{}, func(*testing.T))
+		stub func() ([]byte, any, func(*testing.T))
 	}
 	testCases := []testCase{
 		{
 			name: "struct with interface containing a concrete value",
-			stub: func() ([]byte, interface{}, func(*testing.T)) {
+			stub: func() ([]byte, any, func(*testing.T)) {
 				type testStruct struct {
-					Value interface{}
+					Value any
 				}
 				var value string
 
@@ -323,13 +323,13 @@ func TestUnmarshalInterface(t *testing.T) {
 		},
 		{
 			name: "struct with interface containing a struct",
-			stub: func() ([]byte, interface{}, func(*testing.T)) {
+			stub: func() ([]byte, any, func(*testing.T)) {
 				type demo struct {
 					Data string
 				}
 
 				type testStruct struct {
-					Value interface{}
+					Value any
 				}
 				var value demo
 
@@ -351,9 +351,9 @@ func TestUnmarshalInterface(t *testing.T) {
 		},
 		{
 			name: "struct with interface containing a slice",
-			stub: func() ([]byte, interface{}, func(*testing.T)) {
+			stub: func() ([]byte, any, func(*testing.T)) {
 				type testStruct struct {
-					Values interface{}
+					Values any
 				}
 				var values []string
 
@@ -375,9 +375,9 @@ func TestUnmarshalInterface(t *testing.T) {
 		},
 		{
 			name: "struct with interface containing an array",
-			stub: func() ([]byte, interface{}, func(*testing.T)) {
+			stub: func() ([]byte, any, func(*testing.T)) {
 				type testStruct struct {
-					Values interface{}
+					Values any
 				}
 				var values [2]string
 
@@ -399,27 +399,27 @@ func TestUnmarshalInterface(t *testing.T) {
 		},
 		{
 			name: "struct with interface array containing concrete values",
-			stub: func() ([]byte, interface{}, func(*testing.T)) {
+			stub: func() ([]byte, any, func(*testing.T)) {
 				type testStruct struct {
-					Values [3]interface{}
+					Values [3]any
 				}
 				var str string
 				var i, j int
 
 				data := docToBytes(struct {
-					Values []interface{}
+					Values []any
 				}{
-					Values: []interface{}{"foo", 42, nil},
+					Values: []any{"foo", 42, nil},
 				})
 
-				receiver := testStruct{[3]interface{}{&str, &i, &j}}
+				receiver := testStruct{[3]any{&str, &i, &j}}
 
 				check := func(t *testing.T) {
 					t.Helper()
 					assert.Equal(t, "foo", str)
 					assert.Equal(t, 42, i)
 					assert.Equal(t, 0, j)
-					assert.Equal(t, testStruct{[3]interface{}{&str, &i, nil}}, receiver)
+					assert.Equal(t, testStruct{[3]any{&str, &i, nil}}, receiver)
 				}
 
 				return data, &receiver, check
@@ -427,21 +427,21 @@ func TestUnmarshalInterface(t *testing.T) {
 		},
 		{
 			name: "overwriting prepopulated slice",
-			stub: func() ([]byte, interface{}, func(*testing.T)) {
+			stub: func() ([]byte, any, func(*testing.T)) {
 				type testStruct struct {
-					Values []interface{}
+					Values []any
 				}
 				data := docToBytes(struct {
-					Values []interface{}
+					Values []any
 				}{
-					Values: []interface{}{1, 2, 3},
+					Values: []any{1, 2, 3},
 				})
 
-				receiver := testStruct{[]interface{}{7, 8}}
+				receiver := testStruct{[]any{7, 8}}
 
 				check := func(t *testing.T) {
 					t.Helper()
-					assert.Equal(t, testStruct{[]interface{}{1, 2, int32(3)}}, receiver)
+					assert.Equal(t, testStruct{[]any{1, 2, int32(3)}}, receiver)
 				}
 
 				return data, &receiver, check
@@ -642,11 +642,11 @@ func TestUnmarshalByteSlicesUseDistinctArrays(t *testing.T) {
 		description string
 		data        []byte
 		sType       reflect.Type
-		want        interface{}
+		want        any
 
 		// getByteSlice returns the byte slice from the unmarshaled value, allowing the test to
 		// inspect the addresses of the underlying byte array.
-		getByteSlice func(interface{}) []byte
+		getByteSlice func(any) []byte
 	}{
 		{
 			description: "struct with byte slice",
@@ -657,7 +657,7 @@ func TestUnmarshalByteSlicesUseDistinctArrays(t *testing.T) {
 			want: &fooBytes{
 				Foo: []byte{0, 1, 2, 3, 4, 5},
 			},
-			getByteSlice: func(val interface{}) []byte {
+			getByteSlice: func(val any) []byte {
 				return (val.(*fooBytes)).Foo
 			},
 		},
@@ -670,7 +670,7 @@ func TestUnmarshalByteSlicesUseDistinctArrays(t *testing.T) {
 			want: &D{
 				{"foo", Binary{Subtype: 0, Data: []byte{0, 1, 2, 3, 4, 5}}},
 			},
-			getByteSlice: func(val interface{}) []byte {
+			getByteSlice: func(val any) []byte {
 				return (*(val.(*D)))[0].Value.(Binary).Data
 			},
 		},
@@ -683,7 +683,7 @@ func TestUnmarshalByteSlicesUseDistinctArrays(t *testing.T) {
 			want: &fooMyBytes{
 				Foo: myBytes{0, 1, 2, 3, 4, 5},
 			},
-			getByteSlice: func(val interface{}) []byte {
+			getByteSlice: func(val any) []byte {
 				return (val.(*fooMyBytes)).Foo
 			},
 		},
@@ -696,7 +696,7 @@ func TestUnmarshalByteSlicesUseDistinctArrays(t *testing.T) {
 			want: &D{
 				{"foo", Binary{Subtype: 0, Data: myBytes{0, 1, 2, 3, 4, 5}}},
 			},
-			getByteSlice: func(val interface{}) []byte {
+			getByteSlice: func(val any) []byte {
 				return (*(val.(*D)))[0].Value.(Binary).Data
 			},
 		},
@@ -709,7 +709,7 @@ func TestUnmarshalByteSlicesUseDistinctArrays(t *testing.T) {
 			want: &fooBinary{
 				Foo: Binary{Subtype: 0, Data: []byte{0, 1, 2, 3, 4, 5}},
 			},
-			getByteSlice: func(val interface{}) []byte {
+			getByteSlice: func(val any) []byte {
 				return (val.(*fooBinary)).Foo.Data
 			},
 		},
@@ -722,7 +722,7 @@ func TestUnmarshalByteSlicesUseDistinctArrays(t *testing.T) {
 			want: &D{
 				{"foo", Binary{Subtype: 0, Data: []byte{0, 1, 2, 3, 4, 5}}},
 			},
-			getByteSlice: func(val interface{}) []byte {
+			getByteSlice: func(val any) []byte {
 				return (*(val.(*D)))[0].Value.(Binary).Data
 			},
 		},
@@ -735,7 +735,7 @@ func TestUnmarshalByteSlicesUseDistinctArrays(t *testing.T) {
 			want: &fooObjectID{
 				Foo: ObjectID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
 			},
-			getByteSlice: func(val interface{}) []byte {
+			getByteSlice: func(val any) []byte {
 				return (val.(*fooObjectID)).Foo[:]
 			},
 		},
@@ -748,7 +748,7 @@ func TestUnmarshalByteSlicesUseDistinctArrays(t *testing.T) {
 			want: &D{
 				{"foo", ObjectID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}},
 			},
-			getByteSlice: func(val interface{}) []byte {
+			getByteSlice: func(val any) []byte {
 				oid := (*(val.(*D)))[0].Value.(ObjectID)
 				return oid[:]
 			},
@@ -768,7 +768,7 @@ func TestUnmarshalByteSlicesUseDistinctArrays(t *testing.T) {
 					Pointer: ObjectID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
 				},
 			},
-			getByteSlice: func(val interface{}) []byte {
+			getByteSlice: func(val any) []byte {
 				return (val.(*fooDBPointer)).Foo.Pointer[:]
 			},
 		},
@@ -787,7 +787,7 @@ func TestUnmarshalByteSlicesUseDistinctArrays(t *testing.T) {
 					Pointer: ObjectID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
 				}},
 			},
-			getByteSlice: func(val interface{}) []byte {
+			getByteSlice: func(val any) []byte {
 				oid := (*(val.(*D)))[0].Value.(DBPointer).Pointer
 				return oid[:]
 			},

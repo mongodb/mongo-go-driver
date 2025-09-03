@@ -78,7 +78,7 @@ func TestCSOTProse(t *testing.T) {
 			bigStringBuilder.WriteByte('a')
 		}
 		bigString := bigStringBuilder.String()
-		var docs []interface{}
+		var docs []any
 		for i := 0; i < 50; i++ {
 			docs = append(docs, bson.D{{"1mb", bigString}})
 		}
@@ -238,7 +238,10 @@ func TestCSOTProse_GridFS(t *testing.T) {
 	mt := mtest.New(t, mtest.NewOptions().CreateClient(false))
 
 	mt.RunOpts("6. gridfs - upload", mtest.NewOptions().MinServerVersion("4.4"), func(mt *mtest.T) {
-		mt.Run("uploads via openUploadStream can be timed out", func(mt *mtest.T) {
+		// TODO(GODRIVER-3328): FailPoints are not currently reliable on sharded
+		// topologies. Allow running on sharded topologies once that is fixed.
+		noShardedOpts := mtest.NewOptions().Topologies(mtest.Single, mtest.ReplicaSet, mtest.LoadBalanced)
+		mt.RunOpts("uploads via openUploadStream can be timed out", noShardedOpts, func(mt *mtest.T) {
 			// Drop and re-create the db.fs.files and db.fs.chunks collections.
 			err := mt.Client.Database("db").Collection("fs.files").Drop(context.Background())
 			assert.NoError(mt, err, "failed to drop files")
@@ -298,7 +301,9 @@ func TestCSOTProse_GridFS(t *testing.T) {
 			assert.Error(t, err, context.DeadlineExceeded)
 		})
 
-		mt.Run("Aborting an upload stream can be timed out", func(mt *mtest.T) {
+		// TODO(GODRIVER-3328): FailPoints are not currently reliable on sharded
+		// topologies. Allow running on sharded topologies once that is fixed.
+		mt.RunOpts("Aborting an upload stream can be timed out", noShardedOpts, func(mt *mtest.T) {
 			// Drop and re-create the db.fs.files and db.fs.chunks collections.
 			err := mt.Client.Database("db").Collection("fs.files").Drop(context.Background())
 			assert.NoError(mt, err, "failed to drop files")
@@ -414,7 +419,12 @@ func TestCSOTProse_GridFS(t *testing.T) {
 	})
 
 	const test62 = "6.2 gridfs - upload with operation-level timeout"
-	mt.RunOpts(test62, mtest.NewOptions().MinServerVersion("4.4"), func(mt *mtest.T) {
+	mtOpts := mtest.NewOptions().
+		MinServerVersion("4.4").
+		// TODO(GODRIVER-3328): FailPoints are not currently reliable on sharded
+		// topologies. Allow running on sharded topologies once that is fixed.
+		Topologies(mtest.Single, mtest.ReplicaSet, mtest.LoadBalanced)
+	mt.RunOpts(test62, mtOpts, func(mt *mtest.T) {
 		// Drop and re-create the db.fs.files and db.fs.chunks collections.
 		err := mt.Client.Database("db").Collection("fs.files").Drop(context.Background())
 		assert.NoError(mt, err, "failed to drop files")

@@ -18,6 +18,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/httputil"
 	"go.mongodb.org/mongo-driver/v2/internal/logger"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
+	"go.mongodb.org/mongo-driver/v2/internal/optionsutil"
 	"go.mongodb.org/mongo-driver/v2/internal/ptrutil"
 	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
 	"go.mongodb.org/mongo-driver/v2/internal/uuid"
@@ -82,7 +83,7 @@ type Client struct {
 	cryptFLE            driver.Crypt
 	metadataClientFLE   *Client
 	internalClientFLE   *Client
-	encryptedFieldsMap  map[string]interface{}
+	encryptedFieldsMap  map[string]any
 	authenticator       driver.Authenticator
 }
 
@@ -239,7 +240,7 @@ func newClient(opts ...*options.ClientOptions) (*Client, error) {
 	if client.deployment == nil {
 		client.deployment, err = topology.New(cfg)
 		if err != nil {
-			return nil, replaceErrors(err)
+			return nil, wrapErrors(err)
 		}
 	}
 
@@ -261,7 +262,7 @@ func (c *Client) connect() error {
 	if connector, ok := c.deployment.(driver.Connector); ok {
 		err := connector.Connect()
 		if err != nil {
-			return replaceErrors(err)
+			return wrapErrors(err)
 		}
 	}
 
@@ -293,7 +294,7 @@ func (c *Client) connect() error {
 	if subscriber, ok := c.deployment.(driver.Subscriber); ok {
 		sub, err := subscriber.Subscribe()
 		if err != nil {
-			return replaceErrors(err)
+			return wrapErrors(err)
 		}
 		updateChan = sub.Updates
 	}
@@ -350,7 +351,7 @@ func (c *Client) Disconnect(ctx context.Context) error {
 	}
 
 	if disconnector, ok := c.deployment.(driver.Disconnector); ok {
-		return replaceErrors(disconnector.Disconnect(ctx))
+		return wrapErrors(disconnector.Disconnect(ctx))
 	}
 
 	return nil
@@ -381,7 +382,7 @@ func (c *Client) Ping(ctx context.Context, rp *readpref.ReadPref) error {
 		{"ping", 1},
 	}, options.RunCmd().SetReadPreference(rp))
 
-	return replaceErrors(res.Err())
+	return wrapErrors(res.Err())
 }
 
 // StartSession starts a new session configured with the given options.
@@ -434,7 +435,7 @@ func (c *Client) StartSession(opts ...options.Lister[options.SessionOptions]) (*
 
 	sess, err := session.NewClientSession(c.sessionPool, c.id, coreOpts)
 	if err != nil {
-		return nil, replaceErrors(err)
+		return nil, wrapErrors(err)
 	}
 
 	return &Session{
@@ -680,7 +681,7 @@ func (c *Client) Database(name string, opts ...options.Lister[options.DatabaseOp
 // The opts parameter can be used to specify options for this operation (see the options.ListDatabasesOptions documentation).
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/listDatabases/.
-func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...options.Lister[options.ListDatabasesOptions]) (ListDatabasesResult, error) {
+func (c *Client) ListDatabases(ctx context.Context, filter any, opts ...options.Lister[options.ListDatabasesOptions]) (ListDatabasesResult, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -741,7 +742,7 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 
 	err = op.Execute(ctx)
 	if err != nil {
-		return ListDatabasesResult{}, replaceErrors(err)
+		return ListDatabasesResult{}, wrapErrors(err)
 	}
 
 	return newListDatabasesResultFromOperation(op.Result()), nil
@@ -758,7 +759,7 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 // documentation.)
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/listDatabases/.
-func (c *Client) ListDatabaseNames(ctx context.Context, filter interface{}, opts ...options.Lister[options.ListDatabasesOptions]) ([]string, error) {
+func (c *Client) ListDatabaseNames(ctx context.Context, filter any, opts ...options.Lister[options.ListDatabasesOptions]) ([]string, error) {
 	opts = append(opts, options.ListDatabases().SetNameOnly(true))
 
 	res, err := c.ListDatabases(ctx, filter, opts...)
@@ -841,7 +842,7 @@ func (c *Client) UseSessionWithOptions(
 //
 // The opts parameter can be used to specify options for change stream creation (see the options.ChangeStreamOptions
 // documentation).
-func (c *Client) Watch(ctx context.Context, pipeline interface{},
+func (c *Client) Watch(ctx context.Context, pipeline any,
 	opts ...options.Lister[options.ChangeStreamOptions]) (*ChangeStream, error) {
 	csConfig := changeStreamConfig{
 		readConcern:    c.readConcern,
@@ -957,6 +958,11 @@ func (c *Client) BulkWrite(ctx context.Context, writes []ClientBulkWrite,
 		selector:                 selector,
 		writeConcern:             wc,
 	}
+	if rawDataOpt := optionsutil.Value(bwo.Internal, "rawData"); rawDataOpt != nil {
+		if rawData, ok := rawDataOpt.(bool); ok {
+			op.rawData = &rawData
+		}
+	}
 	if bwo.VerboseResults == nil || !(*bwo.VerboseResults) {
 		op.errorsOnly = true
 	} else if !acknowledged {
@@ -965,7 +971,7 @@ func (c *Client) BulkWrite(ctx context.Context, writes []ClientBulkWrite,
 	op.result.Acknowledged = acknowledged
 	op.result.HasVerboseResults = !op.errorsOnly
 	err = op.execute(ctx)
-	return &op.result, replaceErrors(err)
+	return &op.result, wrapErrors(err)
 }
 
 // newLogger will use the LoggerOptions to create an internal logger and publish

@@ -6,16 +6,22 @@
 
 package options
 
+import "go.mongodb.org/mongo-driver/v2/internal/optionsutil"
+
 // CountOptions represents arguments that can be used to configure a
 // CountDocuments operation.
 //
 // See corresponding setter methods for documentation.
 type CountOptions struct {
 	Collation *Collation
-	Comment   interface{}
-	Hint      interface{}
+	Comment   any
+	Hint      any
 	Limit     *int64
 	Skip      *int64
+
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	Internal optionsutil.Options
 }
 
 // CountOptionsBuilder contains options to configure count operations. Each
@@ -51,7 +57,7 @@ func (co *CountOptionsBuilder) SetCollation(c *Collation) *CountOptionsBuilder {
 // SetComment sets the value for the Comment field. Specifies a string or document that will be included
 // in server logs, profiling logs, and currentOp queries to help trace the operation. The default is nil,
 // which means that no comment will be included in the logs.
-func (co *CountOptionsBuilder) SetComment(comment interface{}) *CountOptionsBuilder {
+func (co *CountOptionsBuilder) SetComment(comment any) *CountOptionsBuilder {
 	co.Opts = append(co.Opts, func(opts *CountOptions) error {
 		opts.Comment = comment
 
@@ -65,7 +71,7 @@ func (co *CountOptionsBuilder) SetComment(comment interface{}) *CountOptionsBuil
 // either be the index name as a string or the index specification as a document. The driver will return
 // an error if the hint parameter is a multi-key map. The default value is nil, which means that no hint
 // will be sent.
-func (co *CountOptionsBuilder) SetHint(h interface{}) *CountOptionsBuilder {
+func (co *CountOptionsBuilder) SetHint(h any) *CountOptionsBuilder {
 	co.Opts = append(co.Opts, func(opts *CountOptions) error {
 		opts.Hint = h
 

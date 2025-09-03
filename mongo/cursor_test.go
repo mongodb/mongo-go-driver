@@ -27,6 +27,8 @@ type testBatchCursor struct {
 	closed  bool
 }
 
+var _ batchCursor = (*testBatchCursor)(nil)
+
 func newTestBatchCursor(numBatches, batchSize int) *testBatchCursor {
 	batches := make([]*bsoncore.Iterator, 0, numBatches)
 
@@ -97,8 +99,9 @@ func (tbc *testBatchCursor) Close(context.Context) error {
 }
 
 func (tbc *testBatchCursor) SetBatchSize(int32)            {}
-func (tbc *testBatchCursor) SetComment(interface{})        {}
+func (tbc *testBatchCursor) SetComment(any)                {}
 func (tbc *testBatchCursor) SetMaxAwaitTime(time.Duration) {}
+func (tbc *testBatchCursor) MaxAwaitTime() *time.Duration  { return nil }
 
 func TestCursor(t *testing.T) {
 	t.Run("TestAll", func(t *testing.T) {
@@ -201,7 +204,7 @@ func TestCursor(t *testing.T) {
 		})
 
 		t.Run("does not error given interface as parameter", func(t *testing.T) {
-			var docs interface{} = []bson.D{}
+			var docs any = []bson.D{}
 
 			cursor, err := newCursor(newTestBatchCursor(1, 5), nil, nil)
 			require.NoError(t, err, "newCursor error: %v", err)
@@ -211,7 +214,7 @@ func TestCursor(t *testing.T) {
 			assert.Len(t, docs.([]bson.D), 5, "expected 5 documents, got %v", len(docs.([]bson.D)))
 		})
 		t.Run("errors when not given pointer to slice", func(t *testing.T) {
-			var docs interface{} = "test"
+			var docs any = "test"
 
 			cursor, err := newCursor(newTestBatchCursor(1, 5), nil, nil)
 			require.NoError(t, err, "newCursor error: %v", err)
@@ -246,7 +249,7 @@ func TestCursor(t *testing.T) {
 func TestNewCursorFromDocuments(t *testing.T) {
 	// Mock documents returned by Find in a Cursor.
 	t.Run("mock Find", func(t *testing.T) {
-		findResult := []interface{}{
+		findResult := []any{
 			bson.D{{"_id", 0}, {"foo", "bar"}},
 			bson.D{{"_id", 1}, {"baz", "qux"}},
 			bson.D{{"_id", 2}, {"quux", "quuz"}},
@@ -282,7 +285,7 @@ func TestNewCursorFromDocuments(t *testing.T) {
 	// Mock an error in a Cursor.
 	t.Run("mock Find with error", func(t *testing.T) {
 		mockErr := fmt.Errorf("mock error")
-		findResult := []interface{}{bson.D{{"_id", 0}, {"foo", "bar"}}}
+		findResult := []any{bson.D{{"_id", 0}, {"foo", "bar"}}}
 		cur, err := NewCursorFromDocuments(findResult, mockErr, nil)
 		require.NoError(t, err, "NewCursorFromDocuments error: %v", err)
 
@@ -331,7 +334,7 @@ func TestGetDecoder(t *testing.T) {
 
 func BenchmarkNewCursorFromDocuments(b *testing.B) {
 	// Prepare sample data
-	documents := []interface{}{
+	documents := []any{
 		bson.D{{"_id", 0}, {"foo", "bar"}},
 		bson.D{{"_id", 1}, {"baz", "qux"}},
 		bson.D{{"_id", 2}, {"quux", "quuz"}},

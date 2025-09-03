@@ -50,7 +50,12 @@ type batchCursor interface {
 
 	// SetComment will set a user-configurable comment that can be used to
 	// identify the operation in server logs.
-	SetComment(interface{})
+	SetComment(any)
+
+	// MaxAwaitTime returns the maximum amount of time the server will allow
+	// the operations to execute. This is only valid for tailable awaitData
+	// cursors.
+	MaxAwaitTime() *time.Duration
 }
 
 // changeStreamCursor is the interface implemented by batch cursors that also provide the functionality for retrieving

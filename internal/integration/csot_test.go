@@ -126,7 +126,7 @@ func TestCSOT_maxTimeMS(t *testing.T) {
 			desc:        "InsertMany",
 			commandName: "insert",
 			operation: func(ctx context.Context, coll *mongo.Collection) error {
-				_, err := coll.InsertMany(ctx, []interface{}{bson.D{}})
+				_, err := coll.InsertMany(ctx, []any{bson.D{}})
 				return err
 			},
 			sendsMaxTimeMS:                   true,
@@ -224,7 +224,7 @@ func TestCSOT_maxTimeMS(t *testing.T) {
 			desc:        "Cursor getMore",
 			commandName: "getMore",
 			setup: func(coll *mongo.Collection) error {
-				_, err := coll.InsertMany(context.Background(), []interface{}{bson.D{}, bson.D{}})
+				_, err := coll.InsertMany(context.Background(), []any{bson.D{}, bson.D{}})
 				return err
 			},
 			operation: func(ctx context.Context, coll *mongo.Collection) error {

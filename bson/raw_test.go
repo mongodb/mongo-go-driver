@@ -364,7 +364,7 @@ func BenchmarkRawString(b *testing.B) {
 
 	cases := []struct {
 		description string
-		value       interface{}
+		value       any
 	}{
 		{
 			description: "string",
@@ -450,7 +450,7 @@ func BenchmarkRawString(b *testing.B) {
 			b.ReportAllocs()
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				_ = bsoncore.Document(bs).StringN(1024) // Assuming you want to limit to 1024 bytes for this benchmark
+				_, _ = bsoncore.Document(bs).StringN(1024) // Assuming you want to limit to 1024 bytes for this benchmark
 			}
 		})
 	}
@@ -473,7 +473,7 @@ func TestComplexDocuments_StringN(t *testing.T) {
 			bson, _ := Marshal(tc.doc)
 			bsonDoc := bsoncore.Document(bson)
 
-			got := bsonDoc.StringN(tc.n)
+			got, _ := bsonDoc.StringN(tc.n)
 			assert.Equal(t, tc.n, len(got))
 		})
 	}
@@ -518,7 +518,7 @@ func createMassiveArraysDocument(arraySize int) D {
 func createUniqueVoluminousDocument(t *testing.T, size int) bsoncore.Document {
 	t.Helper()
 
-	docs := make(D, size)
+	docs := make(D, 0, size)
 
 	for i := 0; i < size; i++ {
 		docs = append(docs, E{
@@ -561,7 +561,7 @@ func createLargeSingleDoc(t *testing.T) bsoncore.Document {
 func createVoluminousArrayDocuments(t *testing.T, size int) bsoncore.Document {
 	t.Helper()
 
-	docs := make(D, size)
+	docs := make(D, 0, size)
 
 	for i := 0; i < size; i++ {
 		docs = append(docs, E{

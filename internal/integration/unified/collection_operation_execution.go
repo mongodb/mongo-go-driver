@@ -19,13 +19,14 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/xoptions"
 )
 
 // This file contains helpers to execute collection operations.
 
 func executeAggregate(ctx context.Context, operation *operation) (*operationResult, error) {
 	var aggregator interface {
-		Aggregate(context.Context, interface{}, ...options.Lister[options.AggregateOptions]) (*mongo.Cursor, error)
+		Aggregate(context.Context, any, ...options.Lister[options.AggregateOptions]) (*mongo.Cursor, error)
 	}
 	var err error
 
@@ -37,7 +38,7 @@ func executeAggregate(ctx context.Context, operation *operation) (*operationResu
 		return nil, fmt.Errorf("no database or collection entity found with ID %q", operation.Object)
 	}
 
-	var pipeline []interface{}
+	var pipeline []any
 	opts := options.Aggregate()
 
 	elems, err := operation.Arguments.Elements()
@@ -75,6 +76,11 @@ func executeAggregate(ctx context.Context, operation *operation) (*operationResu
 			pipeline = bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...)
 		case "let":
 			opts.SetLet(val.Document())
+		case "rawData":
+			err = xoptions.SetInternalAggregateOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized aggregate option %q", key)
 		}
@@ -125,6 +131,11 @@ func executeBulkWrite(ctx context.Context, operation *operation) (*operationResu
 			}
 		case "let":
 			opts.SetLet(val.Document())
+		case "rawData":
+			err = xoptions.SetInternalBulkWriteOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized bulkWrite option %q", key)
 		}
@@ -202,6 +213,11 @@ func executeCountDocuments(ctx context.Context, operation *operation) (*operatio
 			return nil, fmt.Errorf("the maxTimeMS collection option is not supported")
 		case "skip":
 			opts.SetSkip(int64(val.Int32()))
+		case "rawData":
+			err = xoptions.SetInternalCountOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized countDocuments option %q", key)
 		}
@@ -225,6 +241,7 @@ func executeCreateIndex(ctx context.Context, operation *operation) (*operationRe
 
 	var keys bson.Raw
 	indexOpts := options.Index()
+	opts := options.CreateIndexes()
 
 	elems, err := operation.Arguments.Elements()
 	if err != nil {
@@ -279,6 +296,11 @@ func executeCreateIndex(ctx context.Context, operation *operation) (*operationRe
 			indexOpts.SetWeights(val.Document())
 		case "wildcardProjection":
 			indexOpts.SetWildcardProjection(val.Document())
+		case "rawData":
+			err = xoptions.SetInternalCreateIndexesOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized createIndex option %q", key)
 		}
@@ -291,7 +313,8 @@ func executeCreateIndex(ctx context.Context, operation *operation) (*operationRe
 		Keys:    keys,
 		Options: indexOpts,
 	}
-	name, err := coll.Indexes().CreateOne(ctx, model)
+
+	name, err := coll.Indexes().CreateOne(ctx, model, opts)
 	return newValueResult(bson.TypeString, bsoncore.AppendString(nil, name), err), nil
 }
 
@@ -314,7 +337,7 @@ func executeCreateSearchIndex(ctx context.Context, operation *operation) (*opera
 		switch key {
 		case "model":
 			var m struct {
-				Definition interface{}
+				Definition any
 				Name       *string
 				Type       *string
 			}
@@ -364,7 +387,7 @@ func executeCreateSearchIndexes(ctx context.Context, operation *operation) (*ope
 			}
 			for _, val := range vals {
 				var m struct {
-					Definition interface{}
+					Definition any
 					Name       *string
 					Type       *string
 				}
@@ -433,6 +456,11 @@ func executeDeleteOne(ctx context.Context, operation *operation) (*operationResu
 			opts.SetHint(hint)
 		case "let":
 			opts.SetLet(val.Document())
+		case "rawData":
+			err = xoptions.SetInternalDeleteOneOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized deleteOne option %q", key)
 		}
@@ -487,6 +515,11 @@ func executeDeleteMany(ctx context.Context, operation *operation) (*operationRes
 			opts.SetHint(hint)
 		case "let":
 			opts.SetLet(val.Document())
+		case "rawData":
+			err = xoptions.SetInternalDeleteManyOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized deleteMany option %q", key)
 		}
@@ -545,6 +578,11 @@ func executeDistinct(ctx context.Context, operation *operation) (*operationResul
 			// ensured an analogue exists, extend "skippedTestDescriptions" to avoid
 			// this error.
 			return nil, fmt.Errorf("the maxTimeMS collection option is not supported")
+		case "rawData":
+			err = xoptions.SetInternalDistinctOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized distinct option %q", key)
 		}
@@ -593,6 +631,11 @@ func executeDropIndex(ctx context.Context, operation *operation) (*operationResu
 			// ensured an analogue exists, extend "skippedTestDescriptions" to avoid
 			// this error.
 			return nil, fmt.Errorf("the maxTimeMS collection option is not supported")
+		case "rawData":
+			err = xoptions.SetInternalDropIndexesOptions(dropIndexOpts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized dropIndex option %q", key)
 		}
@@ -690,6 +733,11 @@ func executeEstimatedDocumentCount(ctx context.Context, operation *operation) (*
 			// ensured an analogue exists, extend "skippedTestDescriptions" to avoid
 			// this error.
 			return nil, fmt.Errorf("the maxTimeMS collection option is not supported")
+		case "rawData":
+			err = xoptions.SetInternalEstimatedDocumentCountOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized estimatedDocumentCount option %q", key)
 		}
@@ -842,6 +890,11 @@ func executeFindOneAndDelete(ctx context.Context, operation *operation) (*operat
 			opts.SetSort(val.Document())
 		case "let":
 			opts.SetLet(val.Document())
+		case "rawData":
+			err = xoptions.SetInternalFindOneAndDeleteOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized findOneAndDelete option %q", key)
 		}
@@ -924,6 +977,11 @@ func executeFindOneAndReplace(ctx context.Context, operation *operation) (*opera
 			opts.SetSort(val.Document())
 		case "upsert":
 			opts.SetUpsert(val.Boolean())
+		case "rawData":
+			err = xoptions.SetInternalFindOneAndReplaceOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized findOneAndReplace option %q", key)
 		}
@@ -953,7 +1011,7 @@ func executeFindOneAndUpdate(ctx context.Context, operation *operation) (*operat
 	}
 
 	var filter bson.Raw
-	var update interface{}
+	var update any
 	opts := options.FindOneAndUpdate()
 
 	elems, err := operation.Arguments.Elements()
@@ -1016,6 +1074,11 @@ func executeFindOneAndUpdate(ctx context.Context, operation *operation) (*operat
 			}
 		case "upsert":
 			opts.SetUpsert(val.Boolean())
+		case "rawData":
+			err = xoptions.SetInternalFindOneAndUpdateOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized findOneAndUpdate option %q", key)
 		}
@@ -1044,7 +1107,7 @@ func executeInsertMany(ctx context.Context, operation *operation) (*operationRes
 		return nil, err
 	}
 
-	var documents []interface{}
+	var documents []any
 	opts := options.InsertMany()
 
 	elems, err := operation.Arguments.Elements()
@@ -1062,6 +1125,11 @@ func executeInsertMany(ctx context.Context, operation *operation) (*operationRes
 			documents = bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...)
 		case "ordered":
 			opts.SetOrdered(val.Boolean())
+		case "rawData":
+			err = xoptions.SetInternalInsertManyOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized insertMany option %q", key)
 		}
@@ -1073,7 +1141,7 @@ func executeInsertMany(ctx context.Context, operation *operation) (*operationRes
 	res, err := coll.InsertMany(ctx, documents, opts)
 	raw := emptyCoreDocument
 	if res != nil {
-		// We return InsertedIDs as []interface{} but the CRUD spec documents it as a map[int64]interface{}, so
+		// We return InsertedIDs as []any but the CRUD spec documents it as a map[int64]any, so
 		// comparisons will fail if we include it in the result document. This is marked as an optional field and is
 		// always surrounded in an $$unsetOrMatches assertion, so we leave it out of the document.
 		raw = bsoncore.NewDocumentBuilder().
@@ -1112,6 +1180,11 @@ func executeInsertOne(ctx context.Context, operation *operation) (*operationResu
 			opts.SetBypassDocumentValidation(val.Boolean())
 		case "comment":
 			opts.SetComment(val)
+		case "rawData":
+			err = xoptions.SetInternalInsertOneOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized insertOne option %q", key)
 		}
@@ -1156,6 +1229,11 @@ func executeListIndexes(ctx context.Context, operation *operation) (*operationRe
 		switch key {
 		case "batchSize":
 			opts.SetBatchSize(val.Int32())
+		case "rawData":
+			err = xoptions.SetInternalListIndexesOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized listIndexes option: %q", key)
 		}
@@ -1302,6 +1380,11 @@ func executeReplaceOne(ctx context.Context, operation *operation) (*operationRes
 			opts.SetUpsert(val.Boolean())
 		case "let":
 			opts.SetLet(val.Document())
+		case "rawData":
+			err = xoptions.SetInternalReplaceOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized replaceOne option %q", key)
 		}
@@ -1360,7 +1443,7 @@ func executeUpdateSearchIndex(ctx context.Context, operation *operation) (*opera
 	}
 
 	var name string
-	var definition interface{}
+	var definition any
 
 	elems, err := operation.Arguments.Elements()
 	if err != nil {
@@ -1500,6 +1583,11 @@ func createFindCursor(ctx context.Context, operation *operation) (*cursorResult,
 		case "maxAwaitTimeMS":
 			maxAwaitTimeMS := time.Duration(val.Int32()) * time.Millisecond
 			opts.SetMaxAwaitTime(maxAwaitTimeMS)
+		case "rawData":
+			err = xoptions.SetInternalFindOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized find option %q", key)
 		}

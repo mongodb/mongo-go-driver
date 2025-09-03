@@ -34,7 +34,7 @@ var ErrNoCursor = errors.New("database response does not contain a cursor")
 type BatchCursor struct {
 	clientSession        *session.Client
 	clock                *session.ClusterClock
-	comment              interface{}
+	comment              any
 	encoderFn            codecutil.EncoderFn
 	database             string
 	collection           string
@@ -531,7 +531,7 @@ func (bc *BatchCursor) SetMaxAwaitTime(dur time.Duration) {
 }
 
 // SetComment sets the comment for future getMore operations.
-func (bc *BatchCursor) SetComment(comment interface{}) {
+func (bc *BatchCursor) SetComment(comment any) {
 	bc.comment = comment
 }
 
@@ -543,6 +543,12 @@ func (bc *BatchCursor) getOperationDeployment() Deployment {
 		}
 	}
 	return SingleServerDeployment{bc.server}
+}
+
+// MaxAwaitTime returns the maximum amount of time the server will allow
+// the operations to execute. This is only valid for tailable awaitData cursors.
+func (bc *BatchCursor) MaxAwaitTime() *time.Duration {
+	return bc.maxAwaitTime
 }
 
 // loadBalancedCursorDeployment is used as a Deployment for getMore and killCursors commands when pinning to a

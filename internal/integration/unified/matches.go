@@ -384,7 +384,7 @@ func convertStringToBSONType(typeStr string) (bson.Type, error) {
 // newMatchingError creates an error to convey that BSON value comparison failed at the provided key path. If the
 // key path is empty (e.g. because the values being compared were not documents), the error message will contain the
 // phrase "top-level" instead of the path.
-func newMatchingError(keyPath, msg string, args ...interface{}) error {
+func newMatchingError(keyPath, msg string, args ...any) error {
 	fullMsg := fmt.Sprintf(msg, args...)
 	if keyPath == "" {
 		return fmt.Errorf("comparison error at top-level: %s", fullMsg)

@@ -15,7 +15,7 @@ import (
 const defaultDstCap = 256
 
 var extjPool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		return new(extJSONValueWriter)
 	},
 }
@@ -43,7 +43,7 @@ type ValueMarshaler interface {
 
 // Pool of buffers for marshalling BSON.
 var bufPool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		return new(bytes.Buffer)
 	},
 }
@@ -54,7 +54,7 @@ var bufPool = sync.Pool{
 // Marshal will use the default registry created by NewRegistry to recursively
 // marshal val into a []byte. Marshal will inspect struct tags and alter the
 // marshaling process accordingly.
-func Marshal(val interface{}) ([]byte, error) {
+func Marshal(val any) ([]byte, error) {
 	sw := bufPool.Get().(*bytes.Buffer)
 	defer func() {
 		// Proper usage of a sync.Pool requires each entry to have approximately
@@ -94,7 +94,7 @@ func Marshal(val interface{}) ([]byte, error) {
 //
 // MarshalValue will use bson.NewRegistry() to transform val into a BSON value. If val is a struct, this function will
 // inspect struct tags and alter the marshalling process accordingly.
-func MarshalValue(val interface{}) (Type, []byte, error) {
+func MarshalValue(val any) (Type, []byte, error) {
 	sw := bufPool.Get().(*bytes.Buffer)
 	defer func() {
 		// Proper usage of a sync.Pool requires each entry to have approximately
@@ -143,7 +143,7 @@ func MarshalValue(val interface{}) (Type, []byte, error) {
 }
 
 // MarshalExtJSON returns the extended JSON encoding of val.
-func MarshalExtJSON(val interface{}, canonical, escapeHTML bool) ([]byte, error) {
+func MarshalExtJSON(val any, canonical, escapeHTML bool) ([]byte, error) {
 	sw := sliceWriter(make([]byte, 0, defaultDstCap))
 	ejvw := extjPool.Get().(*extJSONValueWriter)
 	ejvw.reset(sw, canonical, escapeHTML)
@@ -175,7 +175,7 @@ func IndentExtJSON(dst *bytes.Buffer, src []byte, prefix, indent string) error {
 
 // MarshalExtJSONIndent returns the extended JSON encoding of val with each line with prefixed
 // and indented.
-func MarshalExtJSONIndent(val interface{}, canonical, escapeHTML bool, prefix, indent string) ([]byte, error) {
+func MarshalExtJSONIndent(val any, canonical, escapeHTML bool, prefix, indent string) ([]byte, error) {
 	marshaled, err := MarshalExtJSON(val, canonical, escapeHTML)
 	if err != nil {
 		return nil, err

@@ -36,10 +36,10 @@ const maxDocumentLengthEnvVar = "MONGODB_LOG_MAX_DOCUMENT_LENGTH"
 type LogSink interface {
 	// Info logs a non-error message with the given key/value pairs. The
 	// level argument is provided for optional logging.
-	Info(level int, msg string, keysAndValues ...interface{})
+	Info(level int, msg string, keysAndValues ...any)
 
 	// Error logs an error, with the given message and key/value pairs.
-	Error(err error, msg string, keysAndValues ...interface{})
+	Error(err error, msg string, keysAndValues ...any)
 }
 
 // Logger represents the configuration for the internal logger.
@@ -112,7 +112,7 @@ func (logger *Logger) LevelComponentEnabled(level Level, component Component) bo
 // this function is implemented based on the go-logr/logr LogSink interface,
 // which is why "Print" has a message parameter. Any duplication in code is
 // intentional to adhere to the logr pattern.
-func (logger *Logger) Print(level Level, component Component, msg string, keysAndValues ...interface{}) {
+func (logger *Logger) Print(level Level, component Component, msg string, keysAndValues ...any) {
 	// If the level is not enabled for the component, then
 	// skip the message.
 	if !logger.LevelComponentEnabled(level, component) {
@@ -130,7 +130,7 @@ func (logger *Logger) Print(level Level, component Component, msg string, keysAn
 // Error logs an error, with the given message and key/value pairs.
 // It functions similarly to Print, but may have unique behavior, and should be
 // preferred for logging errors.
-func (logger *Logger) Error(err error, msg string, keysAndValues ...interface{}) {
+func (logger *Logger) Error(err error, msg string, keysAndValues ...any) {
 	if logger.Sink == nil {
 		return
 	}
@@ -241,10 +241,9 @@ func FormatDocument(msg bson.Raw, width uint) string {
 		return "{}"
 	}
 
-	str := bsoncore.Document(msg).StringN(int(width))
+	str, truncated := bsoncore.Document(msg).StringN(int(width))
 
-	// If the last byte is not a closing bracket, then the document was truncated
-	if len(str) > 0 && str[len(str)-1] != '}' {
+	if truncated {
 		str += TruncationSuffix
 	}
 

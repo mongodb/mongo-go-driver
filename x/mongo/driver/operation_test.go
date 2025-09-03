@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"strconv"
 	"testing"
 	"time"
 
@@ -1059,6 +1060,33 @@ func TestMarshalBSONWriteConcern(t *testing.T) {
 
 			if gotErr != nil {
 				assert.EqualError(t, gotErr, test.wantErr)
+			}
+		})
+	}
+}
+
+func BenchmarkRedactStartedInformationCmd(b *testing.B) {
+	for _, size := range []int{0, 1, 5, 10, 100, 1000} {
+		info := startedInformation{
+			cmd: make([]byte, 100),
+			documentSequences: make([]struct {
+				identifier string
+				data       []byte
+			}, size),
+		}
+		for i := 0; i < size; i++ {
+			info.documentSequences[i] = struct {
+				identifier string
+				data       []byte
+			}{
+				identifier: strconv.Itoa(i),
+				data:       make([]byte, 100),
+			}
+		}
+		b.Run(strconv.Itoa(size), func(b *testing.B) {
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				redactStartedInformationCmd(info)
 			}
 		})
 	}

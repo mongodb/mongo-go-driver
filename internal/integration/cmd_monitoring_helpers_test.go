@@ -295,7 +295,7 @@ func checkExpectations(mt *mtest.T, expectations *[]*expectation, id0, id1 bson.
 }
 
 // newMatchError appends `expected` and `actual` BSON data to an error.
-func newMatchError(mt *mtest.T, expected bson.Raw, actual bson.Raw, format string, args ...interface{}) error {
+func newMatchError(mt *mtest.T, expected bson.Raw, actual bson.Raw, format string, args ...any) error {
 	mt.Helper()
 	msg := fmt.Sprintf(format, args...)
 	expectedJSON, err := bson.MarshalExtJSON(expected, true, false)

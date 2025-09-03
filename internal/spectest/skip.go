@@ -212,21 +212,6 @@ var skipTests = map[string][]string{
 	// TODO(GODRIVER-2016): Convert transactions spec tests to unified test
 	// format.
 	"Convert transactions spec tests to unified test format (GODRIVER-2016)": {
-		"TestUnifiedSpec/transactions/tests/unified/error-labels.json/do_not_add_UnknownTransactionCommitResult_label_to_MaxTimeMSExpired_inside_transaction",
-		"TestUnifiedSpec/transactions/tests/unified/error-labels.json/do_not_add_UnknownTransactionCommitResult_label_to_MaxTimeMSExpired_inside_transactions",
-		"TestUnifiedSpec/transactions/tests/unified/error-labels.json/add_UnknownTransactionCommitResult_label_to_MaxTimeMSExpired",
-		"TestUnifiedSpec/transactions/tests/unified/error-labels.json/add_UnknownTransactionCommitResult_label_to_writeConcernError_MaxTimeMSExpired",
-		"TestUnifiedSpec/transactions/tests/unified/retryable-commit.json/commitTransaction_applies_majority_write_concern_on_retries",
-		"TestUnifiedSpec/transactions/tests/unified/run-command.json/run_command_with_secondary_read_preference_in_client_option_and_primary_read_preference_in_transaction_options",
-		"TestUnifiedSpec/transactions/tests/unified/transaction-options.json/transaction_options_inherited_from_client",
-		"TestUnifiedSpec/transactions/tests/unified/transaction-options.json/transaction_options_inherited_from_defaultTransactionOptions",
-		"TestUnifiedSpec/transactions/tests/unified/transaction-options.json/startTransaction_options_override_defaults",
-		"TestUnifiedSpec/transactions/tests/unified/transaction-options.json/defaultTransactionOptions_override_client_options",
-		"TestUnifiedSpec/transactions/tests/unified/transaction-options.json/readConcern_local_in_defaultTransactionOptions",
-		"TestUnifiedSpec/transactions/tests/unified/transaction-options.json/readPreference_inherited_from_client",
-		"TestUnifiedSpec/transactions/tests/unified/transaction-options.json/readPreference_inherited_from_defaultTransactionOptions",
-		"TestUnifiedSpec/transactions/tests/unified/transaction-options.json/startTransaction_overrides_readPreference",
-		"TestUnifiedSpec/transactions/tests/unified/retryable-commit.json/commitTransaction_fails_after_Interrupted",
 		"TestUnifiedSpec/transactions-convenient-api/tests/unified/callback-retry.json/callback_is_not_retried_after_non-transient_error_(DuplicateKeyError)",
 		"TestUnifiedSpec/transactions-convenient-api/tests/unified/callback-retry.json/callback_succeeds_after_multiple_connection_errors",
 		"TestUnifiedSpec/transactions-convenient-api/tests/unified/commit-retry.json/commitTransaction_retry_only_overwrites_write_concern_w_option",
@@ -582,7 +567,6 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/client-side-operations-timeout/tests/sessions-override-operation-timeoutMS.json/timeoutMS_applied_to_withTransaction",
 		"TestUnifiedSpec/client-side-operations-timeout/tests/sessions-override-timeoutMS.json",
 		"TestUnifiedSpec/client-side-operations-timeout/tests/tailable-awaitData.json/error_if_timeoutMode_is_cursor_lifetime",
-		"TestUnifiedSpec/client-side-operations-timeout/tests/tailable-awaitData.json/error_if_maxAwaitTimeMS_is_greater_than_timeoutMS",
 		"TestUnifiedSpec/client-side-operations-timeout/tests/tailable-awaitData.json/timeoutMS_applied_to_find",
 		"TestUnifiedSpec/client-side-operations-timeout/tests/tailable-awaitData.json/timeoutMS_is_refreshed_for_getMore_if_maxAwaitTimeMS_is_not_set",
 		"TestUnifiedSpec/client-side-operations-timeout/tests/tailable-awaitData.json/timeoutMS_is_refreshed_for_getMore_if_maxAwaitTimeMS_is_set",
@@ -817,19 +801,50 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/transactions-convenient-api/tests/unified/commit.json/withTransaction_commits_after_callback_returns",
 	},
 
-	// GODRIVER-3473: the implementation of DRIVERS-2868 makes it clear that the
-	// Go Driver does not correctly implement the following validation for
-	// tailable awaitData cursors:
+	"Address CSOT Compliance Issue in Timeout Handling for Cursor Constructors (GODRIVER-3480)": {
+		"TestUnifiedSpec/client-side-operations-timeout/tests/tailable-awaitData.json/apply_remaining_timeoutMS_if_less_than_maxAwaitTimeMS",
+	},
+
+	// The Go Driver does not support "iteration" mode for cursors. That is,
+	// we do not apply the timeout used to construct the cursor when using the
+	// cursor, rather we apply the context-level timeout if one is provided. It's
+	// doubtful that we will ever support this mode, so we skip these tests.
 	//
-	//     Drivers MUST error if this option is set, timeoutMS is set to a
-	//     non-zero value, and maxAwaitTimeMS is greater than or equal to
-	//     timeoutMS.
+	// If we do ever support this mode, it will be done as part of DRIVERS-2722
+	// which does not currently have driver-specific tickets.
 	//
-	// Once GODRIVER-3473 is completed, we can continue running these tests.
-	"When constructing tailable awaitData cusors must validate, timeoutMS is set to a non-zero value, and maxAwaitTimeMS is greater than or equal to timeoutMS (GODRIVER-3473)": {
+	// Note that we have integration tests that cover the cases described in these
+	// tests upto what is supported in the Go Driver. See GODRIVER-3473
+	"Change CSOT default cursor timeout mode to ITERATION (DRIVERS-2772)": {
 		"TestUnifiedSpec/client-side-operations-timeout/tests/tailable-awaitData.json/apply_remaining_timeoutMS_if_less_than_maxAwaitTimeMS",
 		"TestUnifiedSpec/client-side-operations-timeout/tests/tailable-awaitData.json/error_if_maxAwaitTimeMS_is_equal_to_timeoutMS",
 		"TestUnifiedSpec/client-side-operations-timeout/tests/change-streams.json/error_if_maxAwaitTimeMS_is_equal_to_timeoutMS",
+		"TestUnifiedSpec/client-side-operations-timeout/tests/tailable-awaitData.json/error_if_maxAwaitTimeMS_is_greater_than_timeoutMS",
+	},
+
+	// TODO(GODRIVER-3641): Ensure Driver Errors for Tailable AwaitData Cursors on
+	// Invalid maxAwaitTimeMS.
+	"Ensure Driver Errors for Tailable AwaitData Cursors on Invalid maxAwaitTimeMS (GODRIVER-3641)": {
+		"TestUnifiedSpec/client-side-operations-timeout/tests/tailable-awaitData.json/error_on_find_if_maxAwaitTimeMS_is_greater_than_timeoutMS",
+		"TestUnifiedSpec/client-side-operations-timeout/tests/tailable-awaitData.json/error_on_aggregate_if_maxAwaitTimeMS_is_greater_than_timeoutMS",
+		"TestUnifiedSpec/client-side-operations-timeout/tests/tailable-awaitData.json/error_on_watch_if_maxAwaitTimeMS_is_greater_than_timeoutMS",
+		"TestUnifiedSpec/client-side-operations-timeout/tests/tailable-awaitData.json/error_on_find_if_maxAwaitTimeMS_is_equal_to_timeoutMS",
+		"TestUnifiedSpec/client-side-operations-timeout/tests/tailable-awaitData.json/error_on_aggregate_if_maxAwaitTimeMS_is_equal_to_timeoutMS",
+		"TestUnifiedSpec/client-side-operations-timeout/tests/tailable-awaitData.json/error_on_watch_if_maxAwaitTimeMS_is_equal_to_timeoutMS",
+	},
+
+	// TODO(GODRIVER-3620): Support text indexes with auto encryption.
+	"Support text indexes with auto encryption (GODRIVER-3620)": {
+		"TestUnifiedSpec/client-side-encryption/tests/unified/QE-Text-cleanupStructuredEncryptionData.json",
+		"TestUnifiedSpec/client-side-encryption/tests/unified/QE-Text-compactStructuredEncryptionData.json",
+		"TestUnifiedSpec/client-side-encryption/tests/unified/QE-Text-prefixPreview.json",
+		"TestUnifiedSpec/client-side-encryption/tests/unified/QE-Text-substringPreview.json",
+		"TestUnifiedSpec/client-side-encryption/tests/unified/QE-Text-suffixPreview.json",
+	},
+
+	// TODO(GODRIVER-3403): Support queryable encryption in Client.BulkWrite.
+	"Support queryable encryption in Client.BulkWrite (GODRIVER-3403)": {
+		"TestUnifiedSpec/crud/tests/unified/client-bulkWrite-qe.json",
 	},
 }
 

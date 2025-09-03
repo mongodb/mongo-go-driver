@@ -68,7 +68,7 @@ type ContextDialer interface {
 // Credential can be used to provide authentication options when configuring a Client.
 //
 // AuthMechanism: the mechanism to use for authentication. Supported values include "SCRAM-SHA-256", "SCRAM-SHA-1",
-// "MONGODB-CR", "PLAIN", "GSSAPI", "MONGODB-X509", and "MONGODB-AWS". This can also be set through the "authMechanism"
+// "PLAIN", "GSSAPI", "MONGODB-X509", and "MONGODB-AWS". This can also be set through the "authMechanism"
 // URI option. (e.g. "authMechanism=PLAIN"). For more information, see
 // https://www.mongodb.com/docs/manual/core/authentication-mechanisms/.
 //
@@ -207,7 +207,7 @@ type BSONOptions struct {
 
 	// DefaultDocumentM causes the driver to always unmarshal documents into the
 	// bson.M type. This behavior is restricted to data typed as
-	// "interface{}" or "map[string]interface{}".
+	// "any" or "map[string]any".
 	DefaultDocumentM bool
 
 	// ObjectIDAsHexString causes the Decoder to decode object IDs to their hex
@@ -311,7 +311,7 @@ type ClientOptions struct {
 // Client creates a new ClientOptions instance.
 func Client() *ClientOptions {
 	opts := &ClientOptions{}
-	opts = opts.SetHTTPClient(httputil.DefaultHTTPClient)
+	opts = opts.SetHTTPClient(httputil.NewHTTPClient())
 
 	return opts
 }

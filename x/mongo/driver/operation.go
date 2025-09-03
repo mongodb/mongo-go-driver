@@ -165,13 +165,43 @@ type ResponseInfo struct {
 }
 
 func redactStartedInformationCmd(info startedInformation) bson.Raw {
+	intLen := func(n int) int {
+		if n == 0 {
+			return 1 // Special case: 0 has one digit
+		}
+		count := 0
+		for n > 0 {
+			n /= 10
+			count++
+		}
+		return count
+	}
+
 	var cmdCopy bson.Raw
 
 	// Make a copy of the command. Redact if the command is security
 	// sensitive and cannot be monitored. If there was a type 1 payload for
 	// the current batch, convert it to a BSON array
 	if !info.redacted {
-		cmdCopy = make([]byte, 0, len(info.cmd))
+		cmdLen := len(info.cmd)
+		for _, seq := range info.documentSequences {
+			cmdLen += 7 // 2 (header) + 4 (array length) + 1 (array end)
+			cmdLen += len(seq.identifier)
+			data := seq.data
+			i := 0
+			for {
+				doc, rest, ok := bsoncore.ReadDocument(data)
+				if !ok {
+					break
+				}
+				data = rest
+				cmdLen += len(doc)
+				cmdLen += intLen(i)
+				i++
+			}
+		}
+
+		cmdCopy = make([]byte, 0, cmdLen)
 		cmdCopy = append(cmdCopy, info.cmd...)
 
 		if len(info.documentSequences) > 0 {
@@ -511,7 +541,7 @@ func (op Operation) Validate() error {
 }
 
 var memoryPool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		// Start with 1kb buffers.
 		b := make([]byte, 1024)
 		// Return a pointer as the static analysis tool suggests.
@@ -1123,9 +1153,11 @@ func (op Operation) readWireMessage(ctx context.Context, conn *mnet.Connection) 
 
 	// decode
 	res, err := op.decodeResult(opcode, rem)
-	// Update cluster/operation time and recovery tokens before handling the error to ensure we're properly updating
-	// everything.
-	op.updateClusterTimes(res)
+	// When a cluster clock is given, update cluster/operation time and recovery tokens before handling the error
+	// to ensure we're properly updating everything.
+	if op.Clock != nil {
+		op.updateClusterTimes(res)
+	}
 	op.updateOperationTime(res)
 	op.Client.UpdateRecoveryToken(bson.Raw(res))
 
@@ -1719,7 +1751,10 @@ func (op Operation) addClusterTime(dst []byte, desc description.SelectedServer) 
 	if (clock == nil && client == nil) || !sessionsSupported(desc.WireVersion) {
 		return dst
 	}
-	clusterTime := clock.GetClusterTime()
+	var clusterTime bson.Raw
+	if clock != nil {
+		clusterTime = clock.GetClusterTime()
+	}
 	if client != nil {
 		clusterTime = session.MaxClusterTime(clusterTime, client.ClusterTime)
 	}
@@ -1731,7 +1766,6 @@ func (op Operation) addClusterTime(dst []byte, desc description.SelectedServer) 
 		return dst
 	}
 	return append(bsoncore.AppendHeader(dst, bsoncore.Type(val.Type), "$clusterTime"), val.Value...)
-	// return bsoncore.AppendDocumentElement(dst, "$clusterTime", clusterTime)
 }
 
 // calculateMaxTimeMS calculates the value of the 'maxTimeMS' field to potentially append
@@ -1828,7 +1862,6 @@ func (op Operation) createReadPref(desc description.SelectedServer, isOpQuery bo
 	// TODO if supplied readPreference was "overwritten" with primary in description.selectForReplicaSet.
 	if desc.Server.Kind == description.ServerKindStandalone || (isOpQuery &&
 		desc.Server.Kind != description.ServerKindMongos) ||
-
 		op.Type == Write || (op.IsOutputAggregate && desc.Server.WireVersion.Max < 13) {
 		// Don't send read preference for:
 		// 1. all standalones

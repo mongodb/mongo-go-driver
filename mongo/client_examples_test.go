@@ -449,8 +449,8 @@ func ExampleConnect_bSONOptions() {
 	// Define a struct that contains a map and a slice and uses "json" struct
 	// tags to specify field names.
 	type myDocument struct {
-		MyMap   map[string]interface{} `json:"a"`
-		MySlice []string               `json:"b"`
+		MyMap   map[string]any `json:"a"`
+		MySlice []string       `json:"b"`
 	}
 
 	// Insert an instance of the struct with all empty fields. Expect the

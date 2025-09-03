@@ -58,7 +58,7 @@ func TestSetInternalClientOptions(t *testing.T) {
 
 		opts := options.Client()
 		err := SetInternalClientOptions(opts, "crypt", &drivertest.MockDeployment{})
-		require.EqualError(t, err, "unexpected type for crypt: *drivertest.MockDeployment is not driver.Crypt")
+		require.EqualError(t, err, "unexpected type for \"crypt\": *drivertest.MockDeployment is not driver.Crypt")
 	})
 
 	t.Run("set deployment", func(t *testing.T) {
@@ -76,7 +76,7 @@ func TestSetInternalClientOptions(t *testing.T) {
 
 		opts := options.Client()
 		err := SetInternalClientOptions(opts, "deployment", driver.NewCrypt(&driver.CryptOptions{}))
-		require.EqualError(t, err, "unexpected type for deployment: *driver.crypt is not driver.Deployment")
+		require.EqualError(t, err, "unexpected type for \"deployment\": *driver.crypt is not driver.Deployment")
 	})
 
 	t.Run("set unsupported option", func(t *testing.T) {
@@ -84,6 +84,6 @@ func TestSetInternalClientOptions(t *testing.T) {
 
 		opts := options.Client()
 		err := SetInternalClientOptions(opts, "unsupported", "unsupported")
-		require.EqualError(t, err, "unsupported option: unsupported")
+		require.EqualError(t, err, "unsupported option: \"unsupported\"")
 	})
 }

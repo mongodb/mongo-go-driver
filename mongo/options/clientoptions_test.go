@@ -52,10 +52,10 @@ func TestClientOptions(t *testing.T) {
 	t.Run("Set", func(t *testing.T) {
 		testCases := []struct {
 			name        string
-			fn          interface{} // method to be run
-			arg         interface{} // argument for method
-			field       string      // field to be set
-			dereference bool        // Should we compare a pointer or the field
+			fn          any    // method to be run
+			arg         any    // argument for method
+			field       string // field to be set
+			dereference bool   // Should we compare a pointer or the field
 		}{
 			{"AppName", (*ClientOptions).SetAppName, "example-application", "AppName", true},
 			{"Auth", (*ClientOptions).SetAuth, Credential{Username: "foo", Password: "bar"}, "Auth", true},
@@ -524,6 +524,22 @@ func TestClientOptions(t *testing.T) {
 				assert.Equal(t, tc.err, err, "want error %v, got error %v", tc.err, err)
 			})
 		}
+	})
+}
+
+type nonDefaultTransport struct{}
+
+func (*nonDefaultTransport) RoundTrip(*http.Request) (*http.Response, error) { return nil, nil }
+
+func TestClientHTTPTransport(t *testing.T) {
+	t.Run("Default client", func(t *testing.T) {
+		got := Client().HTTPClient
+		assert.Equal(t, http.DefaultClient, got)
+	})
+	t.Run("Non-default global transport", func(t *testing.T) {
+		http.DefaultTransport = &nonDefaultTransport{}
+		got := Client().HTTPClient.Transport
+		assert.Equal(t, &nonDefaultTransport{}, got)
 	})
 }
 

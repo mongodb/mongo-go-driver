@@ -6,6 +6,8 @@
 
 package options
 
+import "go.mongodb.org/mongo-driver/v2/internal/optionsutil"
+
 // ReplaceOptions represents arguments that can be used to configure a ReplaceOne
 // operation.
 //
@@ -13,11 +15,15 @@ package options
 type ReplaceOptions struct {
 	BypassDocumentValidation *bool
 	Collation                *Collation
-	Comment                  interface{}
-	Hint                     interface{}
+	Comment                  any
+	Hint                     any
 	Upsert                   *bool
-	Let                      interface{}
-	Sort                     interface{}
+	Let                      any
+	Sort                     any
+
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	Internal optionsutil.Options
 }
 
 // ReplaceOptionsBuilder contains options to configure replace operations. Each
@@ -67,7 +73,7 @@ func (ro *ReplaceOptionsBuilder) SetCollation(c *Collation) *ReplaceOptionsBuild
 // SetComment sets the value for the Comment field. Specifies a string or document that will
 // be included in server logs, profiling logs, and currentOp queries to help trace the operation.
 // The default value is nil, which means that no comment will be included in the logs.
-func (ro *ReplaceOptionsBuilder) SetComment(comment interface{}) *ReplaceOptionsBuilder {
+func (ro *ReplaceOptionsBuilder) SetComment(comment any) *ReplaceOptionsBuilder {
 	ro.Opts = append(ro.Opts, func(opts *ReplaceOptions) error {
 		opts.Comment = comment
 
@@ -85,7 +91,7 @@ func (ro *ReplaceOptionsBuilder) SetComment(comment interface{}) *ReplaceOptions
 // an unacknowledged write operation. The driver will return an error if the
 // hint parameter is a multi-key map. The default value is nil, which means that
 // no hint will be sent.
-func (ro *ReplaceOptionsBuilder) SetHint(h interface{}) *ReplaceOptionsBuilder {
+func (ro *ReplaceOptionsBuilder) SetHint(h any) *ReplaceOptionsBuilder {
 	ro.Opts = append(ro.Opts, func(opts *ReplaceOptions) error {
 		opts.Hint = h
 
@@ -112,7 +118,7 @@ func (ro *ReplaceOptionsBuilder) SetUpsert(b bool) *ReplaceOptionsBuilder {
 // for using this option. This must be a document mapping parameter names to values. Values
 // must be constant or closed expressions that do not reference document fields. Parameters
 // can then be accessed as variables in an aggregate expression context (e.g. "$$var").
-func (ro *ReplaceOptionsBuilder) SetLet(l interface{}) *ReplaceOptionsBuilder {
+func (ro *ReplaceOptionsBuilder) SetLet(l any) *ReplaceOptionsBuilder {
 	ro.Opts = append(ro.Opts, func(opts *ReplaceOptions) error {
 		opts.Let = l
 
@@ -127,7 +133,7 @@ func (ro *ReplaceOptionsBuilder) SetLet(l interface{}) *ReplaceOptionsBuilder {
 // set, the first document in the sorted order will be replaced. This option is only valid for MongoDB
 // versions >= 8.0. The sort parameter is evaluated sequentially, so the driver will return an error
 // if it is a multi-key map (which is unordeded). The default value is nil.
-func (ro *ReplaceOptionsBuilder) SetSort(s interface{}) *ReplaceOptionsBuilder {
+func (ro *ReplaceOptionsBuilder) SetSort(s any) *ReplaceOptionsBuilder {
 	ro.Opts = append(ro.Opts, func(opts *ReplaceOptions) error {
 		opts.Sort = s
 

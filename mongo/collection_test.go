@@ -95,7 +95,7 @@ func TestCollection(t *testing.T) {
 		_, err = coll.InsertOne(bgCtx, doc)
 		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
 
-		_, err = coll.InsertMany(bgCtx, []interface{}{doc})
+		_, err = coll.InsertMany(bgCtx, []any{doc})
 		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
 
 		_, err = coll.DeleteOne(bgCtx, doc)
@@ -155,7 +155,7 @@ func TestCollection(t *testing.T) {
 		_, err = coll.InsertMany(bgCtx, nil)
 		assert.True(t, errors.Is(err, ErrNotSlice), "expected error %v, got %v", ErrNotSlice, err)
 
-		_, err = coll.InsertMany(bgCtx, []interface{}{})
+		_, err = coll.InsertMany(bgCtx, []any{})
 		assert.True(t, errors.Is(err, ErrEmptySlice), "expected error %v, got %v", ErrEmptySlice, err)
 
 		_, err = coll.InsertMany(bgCtx, "x")

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/optionsutil"
 )
 
 // AggregateOptions represents arguments that can be used to configure an
@@ -22,10 +23,14 @@ type AggregateOptions struct {
 	BypassDocumentValidation *bool
 	Collation                *Collation
 	MaxAwaitTime             *time.Duration
-	Comment                  interface{}
-	Hint                     interface{}
-	Let                      interface{}
+	Comment                  any
+	Hint                     any
+	Let                      any
 	Custom                   bson.M
+
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	Internal optionsutil.Options
 }
 
 // AggregateOptionsBuilder contains options to configure aggregate operations.
@@ -111,7 +116,7 @@ func (ao *AggregateOptionsBuilder) SetMaxAwaitTime(d time.Duration) *AggregateOp
 // SetComment sets the value for the Comment field. Specifies a string or document that will be included in
 // server logs, profiling logs, and currentOp queries to help trace the operation. The default is nil,
 // which means that no comment will be included in the logs.
-func (ao *AggregateOptionsBuilder) SetComment(comment interface{}) *AggregateOptionsBuilder {
+func (ao *AggregateOptionsBuilder) SetComment(comment any) *AggregateOptionsBuilder {
 	ao.Opts = append(ao.Opts, func(opts *AggregateOptions) error {
 		opts.Comment = comment
 
@@ -125,7 +130,7 @@ func (ao *AggregateOptionsBuilder) SetComment(comment interface{}) *AggregateOpt
 // either be the index name as a string or the index specification as a document. The hint does not apply to
 // $lookup and $graphLookup aggregation stages. The driver will return an error if the hint parameter
 // is a multi-key map. The default value is nil, which means that no hint will be sent.
-func (ao *AggregateOptionsBuilder) SetHint(h interface{}) *AggregateOptionsBuilder {
+func (ao *AggregateOptionsBuilder) SetHint(h any) *AggregateOptionsBuilder {
 	ao.Opts = append(ao.Opts, func(opts *AggregateOptions) error {
 		opts.Hint = h
 
@@ -140,7 +145,7 @@ func (ao *AggregateOptionsBuilder) SetHint(h interface{}) *AggregateOptionsBuild
 // option. This must be a document mapping parameter names to values. Values must be constant or closed
 // expressions that do not reference document fields. Parameters can then be accessed as variables in
 // an aggregate expression context (e.g. "$$var").
-func (ao *AggregateOptionsBuilder) SetLet(let interface{}) *AggregateOptionsBuilder {
+func (ao *AggregateOptionsBuilder) SetLet(let any) *AggregateOptionsBuilder {
 	ao.Opts = append(ao.Opts, func(opts *AggregateOptions) error {
 		opts.Let = let
 

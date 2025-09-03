@@ -893,9 +893,9 @@ func TestClient_BSONOptions(t *testing.T) {
 	testCases := []struct {
 		name       string
 		bsonOpts   *options.BSONOptions
-		doc        interface{}
-		decodeInto func() interface{}
-		want       interface{}
+		doc        any
+		decodeInto func() any
+		want       any
 		wantRaw    bson.Raw
 	}{
 		{
@@ -908,7 +908,7 @@ func TestClient_BSONOptions(t *testing.T) {
 				B: "banana",
 				C: "carrot",
 			},
-			decodeInto: func() interface{} { return &jsonTagsTest{} },
+			decodeInto: func() any { return &jsonTagsTest{} },
 			want: &jsonTagsTest{
 				A: "apple",
 				B: "banana",
@@ -926,7 +926,7 @@ func TestClient_BSONOptions(t *testing.T) {
 				IntMinSize: true,
 			},
 			doc:        bson.D{{Key: "x", Value: int64(1)}},
-			decodeInto: func() interface{} { return &bson.D{} },
+			decodeInto: func() any { return &bson.D{} },
 			want:       &bson.D{{Key: "x", Value: int32(1)}},
 			wantRaw: bson.Raw(bsoncore.NewDocumentBuilder().
 				AppendInt32("x", 1).
@@ -938,7 +938,7 @@ func TestClient_BSONOptions(t *testing.T) {
 				NilMapAsEmpty: true,
 			},
 			doc:        bson.D{{Key: "x", Value: map[string]string(nil)}},
-			decodeInto: func() interface{} { return &bson.D{} },
+			decodeInto: func() any { return &bson.D{} },
 			want:       &bson.D{{Key: "x", Value: bson.D{}}},
 			wantRaw: bson.Raw(bsoncore.NewDocumentBuilder().
 				AppendDocument("x", bsoncore.NewDocumentBuilder().Build()).
@@ -950,7 +950,7 @@ func TestClient_BSONOptions(t *testing.T) {
 				NilSliceAsEmpty: true,
 			},
 			doc:        bson.D{{Key: "x", Value: []int(nil)}},
-			decodeInto: func() interface{} { return &bson.D{} },
+			decodeInto: func() any { return &bson.D{} },
 			want:       &bson.D{{Key: "x", Value: bson.A{}}},
 			wantRaw: bson.Raw(bsoncore.NewDocumentBuilder().
 				AppendArray("x", bsoncore.NewDocumentBuilder().Build()).
@@ -962,7 +962,7 @@ func TestClient_BSONOptions(t *testing.T) {
 				NilByteSliceAsEmpty: true,
 			},
 			doc:        bson.D{{Key: "x", Value: []byte(nil)}},
-			decodeInto: func() interface{} { return &bson.D{} },
+			decodeInto: func() any { return &bson.D{} },
 			want:       &bson.D{{Key: "x", Value: bson.Binary{Data: []byte{}}}},
 			wantRaw: bson.Raw(bsoncore.NewDocumentBuilder().
 				AppendBinary("x", 0, nil).
@@ -974,7 +974,7 @@ func TestClient_BSONOptions(t *testing.T) {
 				OmitZeroStruct: true,
 			},
 			doc:        omitemptyTest{},
-			decodeInto: func() interface{} { return &bson.D{} },
+			decodeInto: func() any { return &bson.D{} },
 			want:       &bson.D{},
 			wantRaw:    bson.Raw(bsoncore.NewDocumentBuilder().Build()),
 		},
@@ -987,7 +987,7 @@ func TestClient_BSONOptions(t *testing.T) {
 			doc: struct {
 				X jsonTagsTest `bson:"x"`
 			}{},
-			decodeInto: func() interface{} { return &bson.D{} },
+			decodeInto: func() any { return &bson.D{} },
 			want:       &bson.D{},
 			wantRaw:    bson.Raw(bsoncore.NewDocumentBuilder().Build()),
 		},
@@ -997,7 +997,7 @@ func TestClient_BSONOptions(t *testing.T) {
 				StringifyMapKeysWithFmt: true,
 			},
 			doc:        map[intKey]string{intKey(42): "foo"},
-			decodeInto: func() interface{} { return &bson.D{} },
+			decodeInto: func() any { return &bson.D{} },
 			want:       &bson.D{{"42", "foo"}},
 			wantRaw: bson.Raw(bsoncore.NewDocumentBuilder().
 				AppendString("42", "foo").
@@ -1009,7 +1009,7 @@ func TestClient_BSONOptions(t *testing.T) {
 				AllowTruncatingDoubles: true,
 			},
 			doc:        bson.D{{Key: "x", Value: 3.14}},
-			decodeInto: func() interface{} { return &truncatingDoublesTest{} },
+			decodeInto: func() any { return &truncatingDoublesTest{} },
 			want:       &truncatingDoublesTest{3},
 			wantRaw: bson.Raw(bsoncore.NewDocumentBuilder().
 				AppendDouble("x", 3.14).
@@ -1021,7 +1021,7 @@ func TestClient_BSONOptions(t *testing.T) {
 				BinaryAsSlice: true,
 			},
 			doc:        bson.D{{Key: "x", Value: []byte{42}}},
-			decodeInto: func() interface{} { return &bson.D{} },
+			decodeInto: func() any { return &bson.D{} },
 			want:       &bson.D{{Key: "x", Value: []byte{42}}},
 			wantRaw: bson.Raw(bsoncore.NewDocumentBuilder().
 				AppendBinary("x", 0, []byte{42}).
@@ -1033,7 +1033,7 @@ func TestClient_BSONOptions(t *testing.T) {
 				DefaultDocumentM: true,
 			},
 			doc:        bson.D{{Key: "doc", Value: bson.D{{Key: "a", Value: int64(1)}}}},
-			decodeInto: func() interface{} { return &bson.D{} },
+			decodeInto: func() any { return &bson.D{} },
 			want:       &bson.D{{Key: "doc", Value: bson.M{"a": int64(1)}}},
 		},
 		{
@@ -1042,7 +1042,7 @@ func TestClient_BSONOptions(t *testing.T) {
 				UseLocalTimeZone: true,
 			},
 			doc:        bson.D{{Key: "x", Value: timestamp}},
-			decodeInto: func() interface{} { return &timeZoneTest{} },
+			decodeInto: func() any { return &timeZoneTest{} },
 			want:       &timeZoneTest{timestamp.In(time.Local)},
 		},
 		{
@@ -1051,7 +1051,7 @@ func TestClient_BSONOptions(t *testing.T) {
 				ZeroMaps: true,
 			},
 			doc: bson.D{{"a", "apple"}, {"b", "banana"}},
-			decodeInto: func() interface{} {
+			decodeInto: func() any {
 				return &map[string]string{
 					"b": "berry",
 					"c": "carrot",
@@ -1068,7 +1068,7 @@ func TestClient_BSONOptions(t *testing.T) {
 				ZeroStructs: true,
 			},
 			doc: bson.D{{"a", "apple"}, {"x", "broccoli"}},
-			decodeInto: func() interface{} {
+			decodeInto: func() any {
 				return &jsonTagsTest{
 					B: "banana",
 					C: "carrot",
@@ -1182,7 +1182,7 @@ func TestClientStress(t *testing.T) {
 		findOne := func(coll *mongo.Collection, timeout time.Duration) error {
 			ctx, cancel := context.WithTimeout(context.Background(), timeout)
 			defer cancel()
-			var res map[string]interface{}
+			var res map[string]any
 			return coll.FindOne(ctx, bson.D{{Key: "_id", Value: oid}}).Decode(&res)
 		}
 
