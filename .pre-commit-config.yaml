@@ -49,6 +49,8 @@ repos:
   hooks:
     - id: markdown-link-check
       exclude: ^(vendor)
+      # Retry when the endpoint returns HTTP 429 (Too Many Requests)
+      args: [-r]
 
 - repo: local
   hooks:
