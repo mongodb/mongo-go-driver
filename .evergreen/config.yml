@@ -148,6 +148,7 @@ functions:
           rm -rf $DRIVERS_TOOLS
           git clone https://github.com/mongodb-labs/drivers-evergreen-tools.git $DRIVERS_TOOLS
           # Pin drivers-evergreen-tools to revision 98f6b0e (Aug 20, 2025).
+		 # In leu of cutting a dedicated branch, please cherry-pick any required changes inline.
           git -C $DRIVERS_TOOLS checkout 98f6b0e
           echo "{ \"releases\": { \"default\": \"$MONGODB_BINARIES\" }}" > $MONGO_ORCHESTRATION_HOME/orchestration.config
     - command: shell.exec
