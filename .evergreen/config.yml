@@ -146,12 +146,15 @@ functions:
         script: |
           ${PREPARE_SHELL}
           rm -rf $DRIVERS_TOOLS
-          if [ "${project}" = "drivers-tools" ]; then
-            # If this was a patch build, doing a fresh clone would not actually test the patch
-            cp -R ${PROJECT_DIRECTORY}/ $DRIVERS_TOOLS
-          else
-            git clone https://github.com/mongodb-labs/drivers-evergreen-tools.git $DRIVERS_TOOLS
-          fi
+          git clone https://github.com/mongodb-labs/drivers-evergreen-tools.git $DRIVERS_TOOLS
+
+          # Pin drivers-evergreen-tools to revision 98f6b0e (Aug 20, 2025).
+          # In leu of cutting a dedicated branch, please cherry-pick any required changes inline.
+          # For example:
+          #   git -C $DRIVERS_TOOLS checkout 98f6b0e
+          #   git -C $DRIVERS_TOOLS cherry-pick <sha> # needed for <reason>
+          git -C $DRIVERS_TOOLS checkout 98f6b0e
+
           echo "{ \"releases\": { \"default\": \"$MONGODB_BINARIES\" }}" > $MONGO_ORCHESTRATION_HOME/orchestration.config
     - command: shell.exec
       params:
