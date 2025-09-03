@@ -816,18 +816,23 @@ func verifyRunOnBlockConstraint(rob RunOnBlock) error {
 		return err
 	}
 
-	if rob.CSFLE != nil {
-		if *rob.CSFLE && !IsCSFLEEnabled() {
-			return fmt.Errorf("runOnBlock requires CSFLE to be enabled. Build with the cse tag to enable")
-		} else if !*rob.CSFLE && IsCSFLEEnabled() {
-			return fmt.Errorf("runOnBlock requires CSFLE to be disabled. Build without the cse tag to disable")
-		}
-		if *rob.CSFLE {
-			if err := verifyVersionConstraints("4.2", ""); err != nil {
-				return err
-			}
+	// TODO(GODRIVER-3486): Once auto encryption is supported by the unified test
+	// format,this check should be removed.
+	if rob.CSFLEEnabled() && rob.CSFLE.Options != nil {
+		return fmt.Errorf("Auto encryption required (GODRIVER-3486)")
+	}
+
+	if rob.CSFLEEnabled() && !IsCSFLEEnabled() {
+		return fmt.Errorf("runOnBlock requires CSFLE to be enabled. Build with the cse tag to enable")
+	} else if !rob.CSFLEEnabled() && IsCSFLEEnabled() {
+		return fmt.Errorf("runOnBlock requires CSFLE to be disabled. Build without the cse tag to disable")
+	}
+	if rob.CSFLEEnabled() {
+		if err := verifyVersionConstraints("4.2", ""); err != nil {
+			return err
 		}
 	}
+
 	return nil
 }
 

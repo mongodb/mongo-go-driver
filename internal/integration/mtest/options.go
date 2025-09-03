@@ -49,6 +49,45 @@ var (
 	falseBool = false
 )
 
+// CSFLEOptions holds configuration for Client-Side Field Level Encryption
+// (CSFLE).
+type CSFLEOptions struct{}
+
+// CSFLE models the runOnRequirements.csfle field in Unified Test Format tests.
+//
+// The csfle field accepts either:
+//   - a boolean: true enables CSFLE with no options; false disables CSFLE
+//     (Options is nil).
+//   - an object: Options is populated from the document and Boolean is set to
+//     false.
+type CSFLE struct {
+	Boolean bool
+	Options *CSFLEOptions
+}
+
+// UnmarshalBSON implements custom BSON unmarshalling for CSFLE, accepting
+// either a boolean or an embedded document. If a document is provided, Options
+// is set and Boolean is false. If a boolean is provided, Boolean is set and
+// Options is nil.
+func (csfle *CSFLE) UnmarshalBSON(data []byte) error {
+	embRawValue := bson.RawValue{Type: bson.TypeEmbeddedDocument, Value: data}
+	if err := embRawValue.Unmarshal(&csfle.Options); err == nil {
+		csfle.Boolean = false
+
+		return nil
+	}
+
+	rawValue := bson.RawValue{Type: bson.TypeBoolean, Value: data}
+	if b, ok := rawValue.BooleanOK(); ok {
+		csfle.Boolean = b
+		csfle.Options = nil
+
+		return nil
+	}
+
+	return fmt.Errorf("error unmarshalling CSFLE: %s", data)
+}
+
 // RunOnBlock describes a constraint for a test.
 type RunOnBlock struct {
 	MinServerVersion string                   `bson:"minServerVersion"`
@@ -58,7 +97,11 @@ type RunOnBlock struct {
 	ServerParameters map[string]bson.RawValue `bson:"serverParameters"`
 	Auth             *bool                    `bson:"auth"`
 	AuthEnabled      *bool                    `bson:"authEnabled"`
-	CSFLE            *bool                    `bson:"csfle"`
+	CSFLE            *CSFLE                   `bson:"csfleConfiguration"`
+}
+
+func (r *RunOnBlock) CSFLEEnabled() bool {
+	return r.CSFLE != nil && (r.CSFLE.Boolean || r.CSFLE.Options != nil)
 }
 
 // UnmarshalBSON implements custom BSON unmarshalling behavior for RunOnBlock because some test formats use the
@@ -73,7 +116,7 @@ func (r *RunOnBlock) UnmarshalBSON(data []byte) error {
 		ServerParameters map[string]bson.RawValue `bson:"serverParameters"`
 		Auth             *bool                    `bson:"auth"`
 		AuthEnabled      *bool                    `bson:"authEnabled"`
-		CSFLE            *bool                    `bson:"csfle"`
+		CSFLE            *CSFLE                   `bson:"csfle"`
 		Extra            map[string]any           `bson:",inline"`
 	}
 	if err := bson.Unmarshal(data, &temp); err != nil {
