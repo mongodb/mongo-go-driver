@@ -87,27 +87,19 @@ type Client struct {
 	authenticator       driver.Authenticator
 }
 
-// Connect creates a new Client and then initializes it using the Connect method.
+// Connect creates a new Client with the given configuration options.
 //
-// When creating an options.ClientOptions, the order the methods are called matters. Later Set*
-// methods will overwrite the values from previous Set* method invocations. This includes the
-// ApplyURI method. This allows callers to determine the order of precedence for option
-// application. For instance, if ApplyURI is called before SetAuth, the Credential from
-// SetAuth will overwrite the values from the connection string. If ApplyURI is called
+// Connect returns an error if the configuration options are invalid, but does
+// not validate that the MongoDB deployment is reachable. To verify that the
+// deployment is reachable, call [Client.Ping].
+//
+// When creating an [options.ClientOptions], the order the methods are called
+// matters. Later option setter calls overwrite the values from previous option
+// setter calls, including the ApplyURI method. This allows callers to
+// determine the order of precedence for setting options. For instance, if
+// ApplyURI is called before SetAuth, the Credential from SetAuth will
+// overwrite the values from the connection string. If ApplyURI is called
 // after SetAuth, then its values will overwrite those from SetAuth.
-//
-// The opts parameter is processed using options.MergeClientOptions, which will overwrite entire
-// option fields of previous options, there is no partial overwriting. For example, if Username is
-// set in the Auth field for the first option, and Password is set for the second but with no
-// Username, after the merge the Username field will be empty.
-//
-// The NewClient function does not do any I/O and returns an error if the given options are invalid.
-// The Client.Connect method starts background goroutines to monitor the state of the deployment and does not do
-// any I/O in the main goroutine to prevent the main goroutine from blocking. Therefore, it will not error if the
-// deployment is down.
-//
-// The Client.Ping method can be used to verify that the deployment is successfully connected and the
-// Client was correctly configured.
 func Connect(opts ...*options.ClientOptions) (*Client, error) {
 	c, err := newClient(opts...)
 	if err != nil {

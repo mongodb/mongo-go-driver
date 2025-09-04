@@ -34,14 +34,17 @@ func TestRetryableReadsProse(t *testing.T) {
 		SetPoolMonitor(tpm.PoolMonitor).SetHeartbeatInterval(500 * time.Millisecond).
 		SetHosts(hosts[:1])
 
-	mtOpts := mtest.NewOptions().ClientOptions(clientOpts).MinServerVersion("4.3")
-	mt := mtest.New(t, mtOpts)
+	mt := mtest.New(t, mtest.NewOptions().ClientOptions(clientOpts))
 
-	mt.Run("PoolClearedError retryability", func(mt *mtest.T) {
-		if mtest.ClusterTopologyKind() == mtest.LoadBalanced {
-			mt.Skip("skipping as load balanced topology has different pool clearing behavior")
-		}
-
+	mtOpts := mtest.NewOptions().
+		MinServerVersion("4.3").
+		// Load-balanced topologies have a different behavior for clearing the
+		// pool, so don't run the test on load-balanced topologies
+		//
+		// TODO(GODRIVER-3328): FailPoints are not currently reliable on sharded
+		// topologies. Allow running on sharded topologies once that is fixed.
+		Topologies(mtest.Single, mtest.ReplicaSet)
+	mt.RunOpts("PoolClearedError retryability", mtOpts, func(mt *mtest.T) {
 		// Insert a document to test collection.
 		_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"x", 1}})
 		assert.Nil(mt, err, "InsertOne error: %v", err)
@@ -106,7 +109,7 @@ func TestRetryableReadsProse(t *testing.T) {
 		}
 	})
 
-	mtOpts = mtest.NewOptions().Topologies(mtest.Sharded).MinServerVersion("4.2")
+	mtOpts = mtest.NewOptions().Topologies(mtest.Sharded).MinServerVersion("4.2").AllowFailPointsOnSharded()
 	mt.RunOpts("retrying in sharded cluster", mtOpts, func(mt *mtest.T) {
 		tests := []struct {
 			name string
