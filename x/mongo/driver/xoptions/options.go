@@ -12,6 +12,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/optionsutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
 )
 
 // SetInternalClientOptions sets internal options for ClientOptions.
@@ -99,6 +100,24 @@ func SetInternalClientBulkWriteOptions(a *options.ClientBulkWriteOptionsBuilder,
 		}
 		a.Opts = append(a.Opts, func(opts *options.ClientBulkWriteOptions) error {
 			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
+			return nil
+		})
+	case "bypassEmptyTsReplacement":
+		b, ok := option.(bool)
+		if !ok {
+			return typeErrFunc("bool")
+		}
+		a.Opts = append(a.Opts, func(opts *options.ClientBulkWriteOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
+			return nil
+		})
+	case "commandCallback":
+		cb, ok := option.(func([]byte, description.SelectedServer) ([]byte, error))
+		if !ok {
+			return typeErrFunc("func([]byte, description.SelectedServer) ([]byte, error)")
+		}
+		a.Opts = append(a.Opts, func(opts *options.ClientBulkWriteOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, cb)
 			return nil
 		})
 	default:
