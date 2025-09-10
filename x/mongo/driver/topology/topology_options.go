@@ -11,6 +11,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
+	"sync/atomic"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/event"
@@ -139,14 +140,51 @@ func NewConfig(opts *options.ClientOptions, clock *session.ClusterClock) (*Confi
 			return nil, fmt.Errorf("error creating authenticator: %w", err)
 		}
 	}
-	return NewConfigFromOptionsWithAuthenticator(opts, clock, authenticator)
+	return NewAuthenticatorConfig(authenticator,
+		WithAuthConfigClock(clock),
+		WithAuthConfigClientOptions(opts),
+	)
 }
 
-// NewConfigFromOptionsWithAuthenticator will translate data from client options into a
+type authConfigOptions struct {
+	clock      *session.ClusterClock
+	opts       *options.ClientOptions
+	driverInfo *atomic.Pointer[options.DriverInfo]
+}
+
+type AuthConfigOption func(*authConfigOptions)
+
+func WithAuthConfigClock(clock *session.ClusterClock) AuthConfigOption {
+	return func(co *authConfigOptions) {
+		co.clock = clock
+	}
+}
+
+func WithAuthConfigClientOptions(opts *options.ClientOptions) AuthConfigOption {
+	return func(co *authConfigOptions) {
+		co.opts = opts
+	}
+}
+
+func WithAuthConfigDriverInfo(driverInfo *atomic.Pointer[options.DriverInfo]) AuthConfigOption {
+	return func(co *authConfigOptions) {
+		co.driverInfo = driverInfo
+	}
+}
+
+// NewAuthenticatorConfig will translate data from client options into a
 // topology config for building non-default deployments. Server and topology
 // options are not honored if a custom deployment is used. It uses a passed in
 // authenticator to authenticate the connection.
-func NewConfigFromOptionsWithAuthenticator(opts *options.ClientOptions, clock *session.ClusterClock, authenticator driver.Authenticator) (*Config, error) {
+func NewAuthenticatorConfig(authenticator driver.Authenticator, clientOpts ...AuthConfigOption) (*Config, error) {
+	settings := authConfigOptions{}
+	for _, apply := range clientOpts {
+		apply(&settings)
+	}
+
+	opts := settings.opts
+	clock := settings.clock
+
 	var serverAPI *driver.ServerAPIOptions
 
 	if err := opts.Validate(); err != nil {
@@ -200,23 +238,8 @@ func NewConfigFromOptionsWithAuthenticator(opts *options.ClientOptions, clock *s
 		}))
 	}
 
-	var outerLibraryName, outerLibraryVersion, outerLibraryPlatform string
 	if opts.DriverInfo != nil {
-		outerLibraryName = opts.DriverInfo.Name
-		outerLibraryVersion = opts.DriverInfo.Version
-		outerLibraryPlatform = opts.DriverInfo.Platform
-
-		serverOpts = append(serverOpts, WithOuterLibraryName(func(string) string {
-			return outerLibraryName
-		}))
-
-		serverOpts = append(serverOpts, WithOuterLibraryVersion(func(string) string {
-			return outerLibraryVersion
-		}))
-
-		serverOpts = append(serverOpts, WithOuterLibraryPlatform(func(string) string {
-			return outerLibraryPlatform
-		}))
+		serverOpts = append(serverOpts, WithDriverInfo(settings.driverInfo))
 	}
 
 	// Compressors & ZlibLevel
@@ -257,15 +280,18 @@ func NewConfigFromOptionsWithAuthenticator(opts *options.ClientOptions, clock *s
 	var handshaker func(driver.Handshaker) driver.Handshaker
 	if authenticator != nil {
 		handshakeOpts := &auth.HandshakeOptions{
-			AppName:              appName,
-			Authenticator:        authenticator,
-			Compressors:          comps,
-			ServerAPI:            serverAPI,
-			LoadBalanced:         loadBalanced,
-			ClusterClock:         clock,
-			OuterLibraryName:     outerLibraryName,
-			OuterLibraryVersion:  outerLibraryVersion,
-			OuterLibraryPlatform: outerLibraryPlatform,
+			AppName:       appName,
+			Authenticator: authenticator,
+			Compressors:   comps,
+			ServerAPI:     serverAPI,
+			LoadBalanced:  loadBalanced,
+			ClusterClock:  clock,
+		}
+
+		if driverInfo := settings.driverInfo; driverInfo != nil && driverInfo.Load() != nil {
+			handshakeOpts.OuterLibraryName = driverInfo.Load().Name
+			handshakeOpts.OuterLibraryVersion = driverInfo.Load().Version
+			handshakeOpts.OuterLibraryPlatform = driverInfo.Load().Platform
 		}
 
 		if opts.Auth.AuthMechanism == "" {
@@ -287,6 +313,13 @@ func NewConfigFromOptionsWithAuthenticator(opts *options.ClientOptions, clock *s
 
 	} else {
 		handshaker = func(driver.Handshaker) driver.Handshaker {
+			var outerLibraryName, outerLibraryVersion, outerLibraryPlatform string
+			if driverInfo := settings.driverInfo; driverInfo != nil && driverInfo.Load() != nil {
+				outerLibraryName = driverInfo.Load().Name
+				outerLibraryVersion = driverInfo.Load().Version
+				outerLibraryPlatform = driverInfo.Load().Platform
+			}
+
 			return operation.NewHello().
 				AppName(appName).
 				Compressors(comps).

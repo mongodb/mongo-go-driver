@@ -9,17 +9,16 @@ package integration
 import (
 	"context"
 	"os"
-	"reflect"
-	"runtime"
 	"testing"
+	"time"
 
-	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
-	"go.mongodb.org/mongo-driver/v2/internal/handshake"
+	"go.mongodb.org/mongo-driver/v2/internal/assert/assertbsoncore"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/v2/internal/ptrutil"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/internal/test"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
-	"go.mongodb.org/mongo-driver/v2/version"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage"
 )
@@ -34,40 +33,6 @@ func TestHandshakeProse(t *testing.T) {
 	opts := mtest.NewOptions().
 		CreateCollection(false).
 		ClientType(mtest.Proxy)
-
-	clientMetadata := func(env bson.D, info *options.DriverInfo) bson.D {
-		var (
-			driverName    = "mongo-go-driver"
-			driverVersion = version.Driver
-			platform      = runtime.Version()
-		)
-
-		if info != nil {
-			driverName = driverName + "|" + info.Name
-			driverVersion = driverVersion + "|" + info.Version
-			platform = platform + "|" + info.Platform
-		}
-
-		elems := bson.D{
-			{Key: "driver", Value: bson.D{
-				{Key: "name", Value: driverName},
-				{Key: "version", Value: driverVersion},
-			}},
-			{Key: "os", Value: bson.D{
-				{Key: "type", Value: runtime.GOOS},
-				{Key: "architecture", Value: runtime.GOARCH},
-			}},
-		}
-
-		elems = append(elems, bson.E{Key: "platform", Value: platform})
-
-		// If env is empty, don't include it in the metadata.
-		if env != nil && !reflect.DeepEqual(env, bson.D{}) {
-			elems = append(elems, bson.E{Key: "env", Value: env})
-		}
-
-		return elems
-	}
 
 	driverInfo := &options.DriverInfo{
 		Name:     "outer-library-name",
@@ -88,11 +53,11 @@ func TestHandshakeProse(t *testing.T) {
 	t.Setenv("FUNCTION_REGION", "")
 	t.Setenv("VERCEL_REGION", "")
 
-	for _, test := range []struct {
+	testCases := []struct {
 		name string
 		env  map[string]string
 		opts *options.ClientOptions
-		want bson.D
+		want []byte
 	}{
 		{
 			name: "1. valid AWS",
@@ -102,11 +67,11 @@ func TestHandshakeProse(t *testing.T) {
 				"AWS_LAMBDA_FUNCTION_MEMORY_SIZE": "1024",
 			},
 			opts: nil,
-			want: clientMetadata(bson.D{
-				{Key: "name", Value: "aws.lambda"},
-				{Key: "memory_mb", Value: 1024},
-				{Key: "region", Value: "us-east-2"},
-			}, nil),
+			want: test.EncodeClientMetadata(mt,
+				test.WithClientMetadataEnvName("aws.lambda"),
+				test.WithClientMetadataEnvMemoryMB(ptrutil.Ptr(1024)),
+				test.WithClientMetadataEnvRegion("us-east-2"),
+			),
 		},
 		{
 			name: "2. valid Azure",
@@ -114,9 +79,9 @@ func TestHandshakeProse(t *testing.T) {
 				"FUNCTIONS_WORKER_RUNTIME": "node",
 			},
 			opts: nil,
-			want: clientMetadata(bson.D{
-				{Key: "name", Value: "azure.func"},
-			}, nil),
+			want: test.EncodeClientMetadata(mt,
+				test.WithClientMetadataEnvName("azure.func"),
+			),
 		},
 		{
 			name: "3. valid GCP",
@@ -127,12 +92,12 @@ func TestHandshakeProse(t *testing.T) {
 				"FUNCTION_REGION":      "us-central1",
 			},
 			opts: nil,
-			want: clientMetadata(bson.D{
-				{Key: "name", Value: "gcp.func"},
-				{Key: "memory_mb", Value: 1024},
-				{Key: "region", Value: "us-central1"},
-				{Key: "timeout_sec", Value: 60},
-			}, nil),
+			want: test.EncodeClientMetadata(mt,
+				test.WithClientMetadataEnvName("gcp.func"),
+				test.WithClientMetadataEnvMemoryMB(ptrutil.Ptr(1024)),
+				test.WithClientMetadataEnvRegion("us-central1"),
+				test.WithClientMetadataEnvTimeoutSec(ptrutil.Ptr(60)),
+			),
 		},
 		{
 			name: "4. valid Vercel",
@@ -141,10 +106,10 @@ func TestHandshakeProse(t *testing.T) {
 				"VERCEL_REGION": "cdg1",
 			},
 			opts: nil,
-			want: clientMetadata(bson.D{
-				{Key: "name", Value: "vercel"},
-				{Key: "region", Value: "cdg1"},
-			}, nil),
+			want: test.EncodeClientMetadata(mt,
+				test.WithClientMetadataEnvName("vercel"),
+				test.WithClientMetadataEnvRegion("cdg1"),
+			),
 		},
 		{
 			name: "5. invalid multiple providers",
@@ -153,7 +118,7 @@ func TestHandshakeProse(t *testing.T) {
 				"FUNCTIONS_WORKER_RUNTIME": "node",
 			},
 			opts: nil,
-			want: clientMetadata(nil, nil),
+			want: test.EncodeClientMetadata(mt),
 		},
 		{
 			name: "6. invalid long string",
@@ -168,9 +133,9 @@ func TestHandshakeProse(t *testing.T) {
 				}(),
 			},
 			opts: nil,
-			want: clientMetadata(bson.D{
-				{Key: "name", Value: "aws.lambda"},
-			}, nil),
+			want: test.EncodeClientMetadata(mt,
+				test.WithClientMetadataEnvName("aws.lambda"),
+			),
 		},
 		{
 			name: "7. invalid wrong types",
@@ -179,9 +144,9 @@ func TestHandshakeProse(t *testing.T) {
 				"AWS_LAMBDA_FUNCTION_MEMORY_SIZE": "big",
 			},
 			opts: nil,
-			want: clientMetadata(bson.D{
-				{Key: "name", Value: "aws.lambda"},
-			}, nil),
+			want: test.EncodeClientMetadata(mt,
+				test.WithClientMetadataEnvName("aws.lambda"),
+			),
 		},
 		{
 			name: "8. Invalid - AWS_EXECUTION_ENV does not start with \"AWS_Lambda_\"",
@@ -189,51 +154,38 @@ func TestHandshakeProse(t *testing.T) {
 				"AWS_EXECUTION_ENV": "EC2",
 			},
 			opts: nil,
-			want: clientMetadata(nil, nil),
+			want: test.EncodeClientMetadata(mt),
 		},
 		{
 			name: "driver info included",
 			opts: options.Client().SetDriverInfo(driverInfo),
-			want: clientMetadata(nil, driverInfo),
+			want: test.EncodeClientMetadata(mt,
+				test.WithClientMetadataDriverName("outer-library-name"),
+				test.WithClientMetadataDriverVersion("outer-library-version"),
+				test.WithClientMetadataDriverPlatform("outer-library-platform"),
+			),
 		},
-	} {
-		test := test
+	}
 
-		mt.RunOpts(test.name, opts, func(mt *mtest.T) {
-			for k, v := range test.env {
+	for _, tc := range testCases {
+		mt.RunOpts(tc.name, opts, func(mt *mtest.T) {
+			for k, v := range tc.env {
 				mt.Setenv(k, v)
 			}
 
-			if test.opts != nil {
-				mt.ResetClient(test.opts)
+			if tc.opts != nil {
+				mt.ResetClient(tc.opts)
 			}
 
 			// Ping the server to ensure the handshake has completed.
 			err := mt.Client.Ping(context.Background(), nil)
 			require.NoError(mt, err, "Ping error: %v", err)
 
-			messages := mt.GetProxiedMessages()
-			handshakeMessage := messages[:1][0]
+			firstMessage := mt.GetProxyCapture().TryNext()
+			require.NotNil(mt, firstMessage, "expected to capture a proxied message")
 
-			hello := handshake.LegacyHello
-			if os.Getenv("REQUIRE_API_VERSION") == "true" {
-				hello = "hello"
-			}
-
-			assert.Equal(mt, hello, handshakeMessage.CommandName)
-
-			// Lookup the "client" field in the command document.
-			clientVal, err := handshakeMessage.Sent.Command.LookupErr("client")
-			require.NoError(mt, err, "expected command %s to contain client field", handshakeMessage.Sent.Command)
-
-			got, ok := clientVal.DocumentOK()
-			require.True(mt, ok, "expected client field to be a document, got %s", clientVal.Type)
-
-			wantBytes, err := bson.Marshal(test.want)
-			require.NoError(mt, err, "error marshaling want document: %v", err)
-
-			want := bsoncore.Document(wantBytes)
-			assert.Equal(mt, want, got, "want: %v, got: %v", want, got)
+			assert.True(mt, firstMessage.IsHandshake(), "expected first message to be a handshake")
+			assertbsoncore.HandshakeClientMetadata(mt, tc.want, firstMessage.Sent.Command)
 		})
 	}
 }
@@ -249,13 +201,13 @@ func TestLoadBalancedConnectionHandshake(t *testing.T) {
 		err := mt.Client.Ping(context.Background(), nil)
 		require.NoError(mt, err, "Ping error: %v", err)
 
-		messages := mt.GetProxiedMessages()
-		handshakeMessage := messages[:1][0]
+		firstMessage := mt.GetProxyCapture().TryNext()
+		require.NotNil(mt, firstMessage, "expected to capture a proxied message")
 
 		// Per the specifications, if loadBalanced=true, drivers MUST use the hello
 		// command for the initial handshake and use the OP_MSG protocol.
-		assert.Equal(mt, "hello", handshakeMessage.CommandName)
-		assert.Equal(mt, wiremessage.OpMsg, handshakeMessage.Sent.OpCode)
+		assert.True(mt, firstMessage.IsHandshake(), "expected first message to be a handshake")
+		assert.Equal(mt, wiremessage.OpMsg, firstMessage.Sent.OpCode)
 	})
 
 	opts := mtest.NewOptions().ClientType(mtest.Proxy).Topologies(
@@ -269,21 +221,385 @@ func TestLoadBalancedConnectionHandshake(t *testing.T) {
 		err := mt.Client.Ping(context.Background(), nil)
 		require.NoError(mt, err, "Ping error: %v", err)
 
-		messages := mt.GetProxiedMessages()
-		handshakeMessage := messages[:1][0]
+		firstMessage := mt.GetProxyCapture().TryNext()
+		require.NotNil(mt, firstMessage, "expected to capture a proxied message")
 
 		want := wiremessage.OpQuery
-
-		hello := handshake.LegacyHello
 		if os.Getenv("REQUIRE_API_VERSION") == "true" {
-			hello = "hello"
-
 			// If the server API version is requested, then we should use OP_MSG
 			// regardless of the topology
 			want = wiremessage.OpMsg
 		}
 
-		assert.Equal(mt, hello, handshakeMessage.CommandName)
-		assert.Equal(mt, want, handshakeMessage.Sent.OpCode)
+		assert.True(mt, firstMessage.IsHandshake(), "expected first message to be a handshake")
+		assert.Equal(mt, want, firstMessage.Sent.OpCode)
 	})
+}
+
+// Test 1: Test that the driver updates metadata
+// Test 2: Multiple Successive Metadata Updates
+// Test 3: Multiple Successive Metadata Updates with Duplicate Data
+func TestHandshakeProse_AppendMetadata_Test1_Test2_Test3(t *testing.T) {
+	mt := mtest.New(t)
+
+	initialDriverInfo := options.DriverInfo{
+		Name:     "library",
+		Version:  "1.2",
+		Platform: "Library Platform",
+	}
+
+	testCases := []struct {
+		name       string
+		driverInfo options.DriverInfo
+		want       options.DriverInfo
+
+		// append initialDriverInfo using client.AppendDriverInfo instead of as a
+		// client-level constructor.
+		append bool
+	}{
+		{
+			name: "test1.1: append new driver info",
+			driverInfo: options.DriverInfo{
+				Name:     "framework",
+				Version:  "2.0",
+				Platform: "Framework Platform",
+			},
+			want: options.DriverInfo{
+				Name:     "library|framework",
+				Version:  "1.2|2.0",
+				Platform: "Library Platform|Framework Platform",
+			},
+			append: false,
+		},
+		{
+			name: "test1.2: append with no platform",
+			driverInfo: options.DriverInfo{
+				Name:     "framework",
+				Version:  "2.0",
+				Platform: "",
+			},
+			want: options.DriverInfo{
+				Name:     "library|framework",
+				Version:  "1.2|2.0",
+				Platform: "Library Platform",
+			},
+			append: false,
+		},
+		{
+			name: "test1.3: append with no version",
+			driverInfo: options.DriverInfo{
+				Name:     "framework",
+				Version:  "",
+				Platform: "Framework Platform",
+			},
+			want: options.DriverInfo{
+				Name:     "library|framework",
+				Version:  "1.2",
+				Platform: "Library Platform|Framework Platform",
+			},
+			append: false,
+		},
+		{
+			name: "test1.4: append with name only",
+			driverInfo: options.DriverInfo{
+				Name:     "framework",
+				Version:  "",
+				Platform: "",
+			},
+			want: options.DriverInfo{
+				Name:     "library|framework",
+				Version:  "1.2",
+				Platform: "Library Platform",
+			},
+			append: false,
+		},
+		{
+			name: "test2.1: append new driver info after appending",
+			driverInfo: options.DriverInfo{
+				Name:     "framework",
+				Version:  "2.0",
+				Platform: "Framework Platform",
+			},
+			want: options.DriverInfo{
+				Name:     "library|framework",
+				Version:  "1.2|2.0",
+				Platform: "Library Platform|Framework Platform",
+			},
+			append: true,
+		},
+		{
+			name: "test2.2: append with no platform after appending",
+			driverInfo: options.DriverInfo{
+				Name:     "framework",
+				Version:  "2.0",
+				Platform: "",
+			},
+			want: options.DriverInfo{
+				Name:     "library|framework",
+				Version:  "1.2|2.0",
+				Platform: "Library Platform",
+			},
+			append: true,
+		},
+		{
+			name: "test2.3: append with no version after appending",
+			driverInfo: options.DriverInfo{
+				Name:     "framework",
+				Version:  "",
+				Platform: "Framework Platform",
+			},
+			want: options.DriverInfo{
+				Name:     "library|framework",
+				Version:  "1.2",
+				Platform: "Library Platform|Framework Platform",
+			},
+			append: true,
+		},
+		{
+			name: "test2.4: append with name only after appending",
+			driverInfo: options.DriverInfo{
+				Name:     "framework",
+				Version:  "",
+				Platform: "",
+			},
+			want: options.DriverInfo{
+				Name:     "library|framework",
+				Version:  "1.2",
+				Platform: "Library Platform",
+			},
+			append: true,
+		},
+		{
+			name: "test3.1: same driver info after appending",
+			driverInfo: options.DriverInfo{
+				Name:     "library",
+				Version:  "1.2",
+				Platform: "Library Platform",
+			},
+			want: options.DriverInfo{
+				Name:     "library",
+				Version:  "1.2",
+				Platform: "Library Platform",
+			},
+			append: true,
+		},
+		{
+			name: "test3.2: same version and platform after appending",
+			driverInfo: options.DriverInfo{
+				Name:     "framework",
+				Version:  "1.2",
+				Platform: "Library Platform",
+			},
+			want: options.DriverInfo{
+				Name:     "library|framework",
+				Version:  "1.2",
+				Platform: "Library Platform",
+			},
+			append: true,
+		},
+		{
+			name: "test3.3: same name and platform after appending",
+			driverInfo: options.DriverInfo{
+				Name:     "library",
+				Version:  "2.0",
+				Platform: "Library Platform",
+			},
+			want: options.DriverInfo{
+				Name:     "library",
+				Version:  "1.2|2.0",
+				Platform: "Library Platform",
+			},
+			append: true,
+		},
+		{
+			name: "test3.4: same name and version after appending",
+			driverInfo: options.DriverInfo{
+				Name:     "library",
+				Version:  "1.2",
+				Platform: "Framework Platform",
+			},
+			want: options.DriverInfo{
+				Name:     "library",
+				Version:  "1.2",
+				Platform: "Library Platform|Framework Platform",
+			},
+			append: true,
+		},
+		{
+			name: "test3.5: same platform after appending",
+			driverInfo: options.DriverInfo{
+				Name:     "framework",
+				Version:  "2.0",
+				Platform: "Library Platform",
+			},
+			want: options.DriverInfo{
+				Name:     "library|framework",
+				Version:  "1.2|2.0",
+				Platform: "Library Platform",
+			},
+			append: true,
+		},
+		{
+			name: "test3.6: same version after appending",
+			driverInfo: options.DriverInfo{
+				Name:     "framework",
+				Version:  "1.2",
+				Platform: "Framework Platform",
+			},
+			want: options.DriverInfo{
+				Name:     "library|framework",
+				Version:  "1.2",
+				Platform: "Library Platform|Framework Platform",
+			},
+			append: true,
+		},
+		{
+			name: "test3.7: same name after appending",
+			driverInfo: options.DriverInfo{
+				Name:     "library",
+				Version:  "2.0",
+				Platform: "Framework Platform",
+			},
+			want: options.DriverInfo{
+				Name:     "library",
+				Version:  "1.2|2.0",
+				Platform: "Library Platform|Framework Platform",
+			},
+			append: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		// Create a top-level client that can be shared among sub-tests. This is
+		// necessary to test appending driver info to an existing client.
+		opts := mtest.NewOptions().CreateClient(false).ClientType(mtest.Proxy)
+
+		mt.RunOpts(tc.name, opts, func(mt *mtest.T) {
+			clientOpts := options.Client().
+				// Set idle timeout to 1ms to force new connections to be created
+				// throughout the lifetime of the test.
+				SetMaxConnIdleTime(1 * time.Millisecond)
+
+			if !tc.append {
+				clientOpts = clientOpts.SetDriverInfo(&initialDriverInfo)
+			}
+
+			mt.ResetClient(clientOpts)
+
+			if tc.append {
+				mt.Client.AppendDriverInfo(initialDriverInfo)
+			}
+
+			// Send a ping command to the server and verify that the command succeeded.
+			err := mt.Client.Ping(context.Background(), nil)
+			require.NoError(mt, err, "Ping error: %v", err)
+
+			// Save intercepted `client` document as `initialClientMetadata`.
+			initialClientMetadata := mt.GetProxyCapture().TryNext()
+
+			require.NotNil(mt, initialClientMetadata, "expected to capture a proxied message")
+			assert.True(mt, initialClientMetadata.IsHandshake(), "expected first message to be a handshake")
+
+			// Wait 5ms for the connection to become idle.
+			time.Sleep(20 * time.Millisecond)
+
+			mt.Client.AppendDriverInfo(tc.driverInfo)
+
+			// Drain the proxy
+			mt.GetProxyCapture().Drain()
+
+			// Send a ping command to the server and verify that the command succeeded.
+			err = mt.Client.Ping(context.Background(), nil)
+			require.NoError(mt, err, "Ping error: %v", err)
+
+			// Capture the first message sent after appending driver info.
+			gotMessage := mt.GetProxyCapture().TryNext()
+			require.NotNil(mt, gotMessage, "expected to capture a proxied message")
+			assert.True(mt, gotMessage.IsHandshake(), "expected first message to be a handshake")
+
+			want := test.EncodeClientMetadata(mt,
+				test.WithClientMetadataDriverName(tc.want.Name),
+				test.WithClientMetadataDriverVersion(tc.want.Version),
+				test.WithClientMetadataDriverPlatform(tc.want.Platform),
+			)
+
+			assertbsoncore.HandshakeClientMetadata(mt, want, gotMessage.Sent.Command)
+		})
+	}
+}
+
+// Test 4: Multiple Metadata Updates with Duplicate Dataa
+func TestHandshakeProse_AppendMetadata_Test4(t *testing.T) {
+	opts := mtest.NewOptions().ClientType(mtest.Proxy)
+	mt := mtest.New(t, opts)
+
+	clientOpts := options.Client().
+		// Set idle timeout to 1ms to force new connections to be created
+		// throughout the lifetime of the test.
+		SetMaxConnIdleTime(1 * time.Millisecond)
+
+	// 1. Create a top-level client that can be shared among sub-tests. This is
+	// necessary to test appending driver info to an existing client.
+	mt.ResetClient(clientOpts)
+
+	originalDriverInfo := options.DriverInfo{
+		Name:     "library",
+		Version:  "1.2",
+		Platform: "Library Platform",
+	}
+
+	// 2. Append initial driver info using client.AppendDriverInfo.
+	mt.Client.AppendDriverInfo(originalDriverInfo)
+
+	// 3. Send a ping command to the server and verify that the command succeeded.
+	err := mt.Client.Ping(context.Background(), nil)
+	require.NoError(mt, err, "Ping error: %v", err)
+
+	// 4. Wait 5ms for the connection to become idle.
+	time.Sleep(5 * time.Millisecond)
+
+	// 5. Append new driver info.
+	mt.Client.AppendDriverInfo(options.DriverInfo{
+		Name:     "framework",
+		Version:  "2.0",
+		Platform: "Framework Platform",
+	})
+
+	// Drain the proxy to ensure we only capture messages after appending.
+	mt.GetProxyCapture().Drain()
+
+	// 6. Send a ping command to the server and verify that the command succeeded.
+	err = mt.Client.Ping(context.Background(), nil)
+	require.NoError(mt, err, "Ping error: %v", err)
+
+	// 7. Save intercepted `client` document as `clientMetadata`.
+	clientMetadata := mt.GetProxyCapture().TryNext()
+
+	require.NotNil(mt, clientMetadata, "expected to capture a proxied message")
+	assert.True(mt, clientMetadata.IsHandshake(), "expected first message to be a handshake")
+
+	// 8. Wait 5ms for the connection to become idle.
+	time.Sleep(5 * time.Millisecond)
+
+	// Drain the proxy to ensure we only capture messages after appending.
+	mt.GetProxyCapture().Drain()
+
+	// 9. Append the original driver info again.
+	mt.Client.AppendDriverInfo(originalDriverInfo)
+
+	// 10. Send a ping command to the server and verify that the command succeeded.
+	err = mt.Client.Ping(context.Background(), nil)
+	require.NoError(mt, err, "Ping error: %v", err)
+
+	// 11. Save intercepted `client` document as `clientMetadata`.
+	updatedClientMetadata := mt.GetProxyCapture().TryNext()
+
+	require.NotNil(mt, updatedClientMetadata, "expected to capture a proxied message")
+	assert.True(mt, updatedClientMetadata.IsHandshake(), "expected first message to be a handshake")
+
+	// 12. Assert that `clientMetadata` is identical to `updatedClientMetadata`.
+	want := bsoncore.Document(clientMetadata.Sent.Command)
+	got := bsoncore.Document(updatedClientMetadata.Sent.Command)
+
+	assert.Equal(mt, want, got, "expected: %s, got: %s", want, got)
 }

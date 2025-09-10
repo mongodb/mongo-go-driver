@@ -128,7 +128,9 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 		// executeWithTransaction internally verifies results/errors for each operation, so it doesn't return a result.
 		return newEmptyResult(), executeWithTransaction(ctx, op, loopDone)
 
-	// Client operations
+		// Client operations
+	case "appendMetadata":
+		return executeAppendMetadata(ctx, op)
 	case "createChangeStream":
 		return executeCreateChangeStream(ctx, op)
 	case "listDatabases":

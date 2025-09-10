@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sync/atomic"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -56,24 +57,25 @@ var (
 // The Client type opens and closes connections automatically and maintains a pool of idle connections. For
 // connection pool configuration options, see documentation for the ClientOptions type in the mongo/options package.
 type Client struct {
-	id             uuid.UUID
-	deployment     driver.Deployment
-	localThreshold time.Duration
-	retryWrites    bool
-	retryReads     bool
-	clock          *session.ClusterClock
-	readPreference *readpref.ReadPref
-	readConcern    *readconcern.ReadConcern
-	writeConcern   *writeconcern.WriteConcern
-	bsonOpts       *options.BSONOptions
-	registry       *bson.Registry
-	monitor        *event.CommandMonitor
-	serverAPI      *driver.ServerAPIOptions
-	serverMonitor  *event.ServerMonitor
-	sessionPool    *session.Pool
-	timeout        *time.Duration
-	httpClient     *http.Client
-	logger         *logger.Logger
+	id                uuid.UUID
+	deployment        driver.Deployment
+	localThreshold    time.Duration
+	retryWrites       bool
+	retryReads        bool
+	clock             *session.ClusterClock
+	readPreference    *readpref.ReadPref
+	readConcern       *readconcern.ReadConcern
+	writeConcern      *writeconcern.WriteConcern
+	bsonOpts          *options.BSONOptions
+	registry          *bson.Registry
+	monitor           *event.CommandMonitor
+	serverAPI         *driver.ServerAPIOptions
+	serverMonitor     *event.ServerMonitor
+	sessionPool       *session.Pool
+	timeout           *time.Duration
+	httpClient        *http.Client
+	logger            *logger.Logger
+	currentDriverInfo *atomic.Pointer[options.DriverInfo]
 
 	// in-use encryption fields
 	isAutoEncryptionSet bool
@@ -132,7 +134,11 @@ func newClient(opts ...*options.ClientOptions) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	client := &Client{id: id}
+
+	client := &Client{
+		id:                id,
+		currentDriverInfo: &atomic.Pointer[options.DriverInfo]{},
+	}
 
 	// ClusterClock
 	client.clock = new(session.ClusterClock)
@@ -217,7 +223,16 @@ func newClient(opts ...*options.ClientOptions) (*Client, error) {
 		}
 	}
 
-	cfg, err := topology.NewConfigFromOptionsWithAuthenticator(clientOpts, client.clock, client.authenticator)
+	if clientOpts.DriverInfo != nil {
+		client.AppendDriverInfo(*clientOpts.DriverInfo)
+	}
+
+	cfg, err := topology.NewAuthenticatorConfig(client.authenticator,
+		topology.WithAuthConfigClock(client.clock),
+		topology.WithAuthConfigClientOptions(clientOpts),
+		topology.WithAuthConfigDriverInfo(client.currentDriverInfo),
+	)
+
 	if err != nil {
 		return nil, err
 	}
@@ -292,6 +307,51 @@ func (c *Client) connect() error {
 	}
 	c.sessionPool = session.NewPool(updateChan)
 	return nil
+}
+
+// AppendDriverInfo appends the provided DriverInfo to the driver information
+// that will be sent to the server in handshake requests when establishing new
+// connections. The provided info will overwrite any existing values.
+//
+// AppendsDriverInfo appends the provided [options.DriverInfo] to the metadata
+// (e.g. name, version, platform) that will be sent to the server in handshake
+// requests when establishing new connections. The provided info will overwrite
+// any existing values.
+//
+// Metadata is limited to 512 bytes; any excess will be truncated.
+//
+// TODO: Should this send a sentinel error if appending is rejectd? It could
+// require blocking, which is annoying.
+func (c *Client) AppendDriverInfo(info options.DriverInfo) {
+	if c == nil {
+		return
+	}
+
+	if old := c.currentDriverInfo.Load(); old != nil {
+		if old.Name != "" && info.Name != "" && old.Name != info.Name {
+			info.Name = old.Name + "|" + info.Name
+		} else if old.Name != "" {
+			info.Name = old.Name
+		}
+
+		if old.Version != "" && info.Version != "" && old.Version != info.Version {
+			info.Version = old.Version + "|" + info.Version
+		} else if old.Version != "" {
+			info.Version = old.Version
+		}
+
+		if old.Platform != "" && info.Platform != "" && old.Platform != info.Platform {
+			info.Platform = old.Platform + "|" + info.Platform
+		} else if old.Platform != "" {
+			info.Platform = old.Platform
+		}
+	}
+
+	// Copy-on-write so that the info stored in the client is immutable.
+	copy := new(options.DriverInfo)
+	*copy = info
+
+	c.currentDriverInfo.Store(copy)
 }
 
 // Disconnect closes sockets to the topology referenced by this Client. It will

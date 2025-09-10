@@ -11,9 +11,11 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"os"
 	"sync"
 	"time"
 
+	"go.mongodb.org/mongo-driver/v2/internal/handshake"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
@@ -32,7 +34,7 @@ type proxyDialer struct {
 	*net.Dialer
 	sync.Mutex
 
-	messages []*ProxyMessage
+	//messages []*ProxyMessage
 	// sentMap temporarily stores the message sent to the server using the requestID so it can map requests to their
 	// responses.
 	sentMap sync.Map
@@ -40,13 +42,16 @@ type proxyDialer struct {
 	// differ. This can happen if a connection is dialed to a host name, in which case the reported remote address will
 	// be the resolved IP address.
 	addressTranslations sync.Map
+
+	proxyCapture *ProxyCapture
 }
 
 var _ options.ContextDialer = (*proxyDialer)(nil)
 
 func newProxyDialer() *proxyDialer {
 	return &proxyDialer{
-		Dialer: &net.Dialer{Timeout: 30 * time.Second},
+		Dialer:       &net.Dialer{Timeout: 30 * time.Second},
+		proxyCapture: newProxyCapture(100),
 	}
 }
 
@@ -121,19 +126,8 @@ func (p *proxyDialer) storeReceivedMessage(wm []byte, addr string) error {
 		Sent:          sent,
 		Received:      parsed,
 	}
-	p.messages = append(p.messages, msgPair)
+	p.proxyCapture.Capture(msgPair)
 	return nil
-}
-
-// Messages returns a slice of proxied messages. This slice is a copy of the messages proxied so far and will not be
-// updated for messages proxied after this call.
-func (p *proxyDialer) Messages() []*ProxyMessage {
-	p.Lock()
-	defer p.Unlock()
-
-	copiedMessages := make([]*ProxyMessage, len(p.messages))
-	copy(copiedMessages, p.messages)
-	return copiedMessages
 }
 
 // proxyConn is a net.Conn that wraps a network connection. All messages sent/received through a proxyConn are stored
@@ -183,4 +177,13 @@ func (pc *proxyConn) Read(buffer []byte) (int, error) {
 	}
 
 	return n, nil
+}
+
+func (msg *ProxyMessage) IsHandshake() bool {
+	hello := handshake.LegacyHello
+	if os.Getenv("REQUIRE_API_VERSION") == "true" {
+		hello = "hello"
+	}
+
+	return hello == msg.CommandName
 }

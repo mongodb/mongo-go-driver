@@ -19,12 +19,13 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/assert/assertbsoncore"
 	"go.mongodb.org/mongo-driver/v2/internal/eventtest"
 	"go.mongodb.org/mongo-driver/v2/internal/failpoint"
-	"go.mongodb.org/mongo-driver/v2/internal/handshake"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/internal/integtest"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/internal/test"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
@@ -456,26 +457,12 @@ func TestClient(t *testing.T) {
 		err := mt.Client.Ping(context.Background(), mtest.PrimaryRp)
 		assert.Nil(mt, err, "Ping error: %v", err)
 
-		msgPairs := mt.GetProxiedMessages()
-		assert.True(mt, len(msgPairs) >= 2, "expected at least 2 events sent, got %v", len(msgPairs))
+		want := test.EncodeClientMetadata(mt, test.WithClientMentadataAppName("foo"))
+		for i := 0; i < 2; i++ {
+			message := mt.GetProxyCapture().TryNext()
+			require.NotNil(mt, message, "expected handshake message, got nil")
 
-		// First two messages should be connection handshakes: one for the heartbeat connection and the other for the
-		// application connection.
-		for idx, pair := range msgPairs[:2] {
-			helloCommand := handshake.LegacyHello
-			//  Expect "hello" command name with API version.
-			if os.Getenv("REQUIRE_API_VERSION") == "true" {
-				helloCommand = "hello"
-			}
-			assert.Equal(mt, pair.CommandName, helloCommand, "expected command name %s at index %d, got %s", helloCommand, idx,
-				pair.CommandName)
-
-			sent := pair.Sent
-			appNameVal, err := sent.Command.LookupErr("client", "application", "name")
-			assert.Nil(mt, err, "expected command %s at index %d to contain app name", sent.Command, idx)
-			appName := appNameVal.StringValue()
-			assert.Equal(mt, testAppName, appName, "expected app name %v at index %d, got %v", testAppName, idx,
-				appName)
+			assertbsoncore.HandshakeClientMetadata(mt, want, message.Sent.Command)
 		}
 	})
 
@@ -604,24 +591,32 @@ func TestClient(t *testing.T) {
 		err := mt.Client.Ping(context.Background(), mtest.PrimaryRp)
 		assert.Nil(mt, err, "Ping error: %v", err)
 
-		msgPairs := mt.GetProxiedMessages()
-		assert.True(mt, len(msgPairs) >= 3, "expected at least 3 events, got %v", len(msgPairs))
+		proxyCapture := mt.GetProxyCapture()
 
 		// The first message should be a connection handshake.
-		pair := msgPairs[0]
-		assert.Equal(mt, handshake.LegacyHello, pair.CommandName, "expected command name %s at index 0, got %s",
-			handshake.LegacyHello, pair.CommandName)
-		assert.Equal(mt, wiremessage.OpQuery, pair.Sent.OpCode,
-			"expected 'OP_QUERY' OpCode in wire message, got %q", pair.Sent.OpCode.String())
+		firstMessage := proxyCapture.TryNext()
+		require.NotNil(mt, firstMessage, "expected handshake message, got nil")
 
-		// Look for a saslContinue in the remaining proxied messages and assert that it uses the OP_MSG OpCode, as wire
-		// version is now known to be >= 6.
+		assert.True(t, firstMessage.IsHandshake())
+
+		opCode := firstMessage.Sent.OpCode
+		assert.Equal(mt, wiremessage.OpQuery, opCode,
+			"expected 'OP_MSG' OpCode in wire message, got %q", opCode.String())
+
+		// Look for a saslContinue in the remaining proxied messages and assert that
+		// it uses the OP_MSG OpCode, as wire version is now known to be >= 6.
 		var saslContinueFound bool
-		for _, pair := range msgPairs[1:] {
-			if pair.CommandName == "saslContinue" {
+		for {
+			message := proxyCapture.TryNext()
+			if message == nil {
+				break
+			}
+
+			if message.CommandName == "saslContinue" {
 				saslContinueFound = true
-				assert.Equal(mt, wiremessage.OpMsg, pair.Sent.OpCode,
-					"expected 'OP_MSG' OpCode in wire message, got %s", pair.Sent.OpCode.String())
+				opCode := message.Sent.OpCode
+				assert.Equal(mt, wiremessage.OpMsg, opCode,
+					"expected 'OP_MSG' OpCode in wire message, got %q", opCode.String())
 				break
 			}
 		}
@@ -634,18 +629,18 @@ func TestClient(t *testing.T) {
 		err := mt.Client.Ping(context.Background(), mtest.PrimaryRp)
 		assert.Nil(mt, err, "Ping error: %v", err)
 
-		msgPairs := mt.GetProxiedMessages()
-		assert.True(mt, len(msgPairs) >= 3, "expected at least 3 events, got %v", len(msgPairs))
-
 		// First three messages should be connection handshakes: one for the heartbeat connection, another for the
 		// application connection, and a final one for the RTT monitor connection.
-		for idx, pair := range msgPairs[:3] {
-			assert.Equal(mt, "hello", pair.CommandName, "expected command name 'hello' at index %d, got %s", idx,
-				pair.CommandName)
+		for idx := 0; idx < 3; idx++ {
+			message := mt.GetProxyCapture().TryNext()
+			require.NotNil(mt, message, "expected handshake message, got nil")
+
+			assert.True(t, message.IsHandshake())
 
 			// Assert that appended OpCode is OP_MSG when API version is set.
-			assert.Equal(mt, wiremessage.OpMsg, pair.Sent.OpCode,
-				"expected 'OP_MSG' OpCode in wire message, got %q", pair.Sent.OpCode.String())
+			opCode := message.Sent.OpCode
+			assert.Equal(mt, wiremessage.OpMsg, opCode,
+				"expected 'OP_MSG' OpCode in wire message, got %q", opCode.String())
 		}
 	})
 

@@ -60,24 +60,25 @@ type T struct {
 	*testing.T
 
 	// members for only this T instance
-	createClient      *bool
-	createCollection  *bool
-	runOn             []RunOnBlock
-	mockDeployment    *drivertest.MockDeployment // nil if the test is not being run against a mock
-	mockResponses     []bson.D
-	createdColls      []*Collection // collections created in this test
-	proxyDialer       *proxyDialer
-	dbName, collName  string
-	failPointNames    []string
-	minServerVersion  string
-	maxServerVersion  string
-	validTopologies   []TopologyKind
-	auth              *bool
-	enterprise        *bool
-	dataLake          *bool
-	ssl               *bool
-	collCreateOpts    *options.CreateCollectionOptionsBuilder
-	requireAPIVersion *bool
+	createClient              *bool
+	createCollection          *bool
+	runOn                     []RunOnBlock
+	mockDeployment            *drivertest.MockDeployment // nil if the test is not being run against a mock
+	mockResponses             []bson.D
+	createdColls              []*Collection // collections created in this test
+	proxyDialer               *proxyDialer
+	proxyDialerHandshakeQueue <-chan *ProxyMessage // FIFO queue of handshake messages sent by the proxy dialer
+	dbName, collName          string
+	failPointNames            []string
+	minServerVersion          string
+	maxServerVersion          string
+	validTopologies           []TopologyKind
+	auth                      *bool
+	enterprise                *bool
+	dataLake                  *bool
+	ssl                       *bool
+	collCreateOpts            *options.CreateCollectionOptionsBuilder
+	requireAPIVersion         *bool
 
 	// options copied to sub-tests
 	clientType               ClientType
@@ -338,13 +339,13 @@ func (t *T) FilterFailedEvents(filter func(*event.CommandFailedEvent) bool) {
 	t.failed = newEvents
 }
 
-// GetProxiedMessages returns the messages proxied to the server by the test. If the client type is not Proxy, this
-// returns nil.
-func (t *T) GetProxiedMessages() []*ProxyMessage {
+// GetProxyCapture returns the ProxyCapture used by the test. If the client
+// type is not Proxy, this returns nil.
+func (t *T) GetProxyCapture() *ProxyCapture {
 	if t.proxyDialer == nil {
 		return nil
 	}
-	return t.proxyDialer.Messages()
+	return t.proxyDialer.proxyCapture
 }
 
 // NumberConnectionsCheckedOut returns the number of connections checked out from the test Client.
