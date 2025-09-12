@@ -149,7 +149,7 @@ func TestAuthenticateToAnything(t *testing.T) {
 			opt := options.Client().SetAuth(options.Credential{Username: "foo", Password: "bar"})
 			err := tc.set(opt)
 			require.NoError(t, err, "error setting authenticateToAnything: %v", err)
-			cfg, err := NewAuthenticatorConfig(opt, nil, &testAuthenticator{})
+			cfg, err := NewAuthenticatorConfig(nil, WithAuthConfigClientOptions(opt))
 			require.NoError(t, err, "error constructing topology config: %v", err)
 
 			srvrCfg := newServerConfig(defaultConnectionTimeout, cfg.ServerOpts...)

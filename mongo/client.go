@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -76,6 +77,7 @@ type Client struct {
 	httpClient        *http.Client
 	logger            *logger.Logger
 	currentDriverInfo *atomic.Pointer[options.DriverInfo]
+	seenDriverInfo    sync.Map
 
 	// in-use encryption fields
 	isAutoEncryptionSet bool
@@ -318,12 +320,11 @@ func (c *Client) connect() error {
 // requests when establishing new connections. The provided info will overwrite
 // any existing values.
 //
-// Metadata is limited to 512 bytes; any excess will be truncated.
+// Repeated calls to appendMetadata with equivalent DriverInfo is a no-op.
 //
-// TODO: Should this send a sentinel error if appending is rejectd? It could
-// require blocking, which is annoying.
+// Metadata is limited to 512 bytes; any excess will be truncated.
 func (c *Client) AppendDriverInfo(info options.DriverInfo) {
-	if c == nil {
+	if _, loaded := c.seenDriverInfo.LoadOrStore(info, struct{}{}); loaded {
 		return
 	}
 
@@ -348,10 +349,10 @@ func (c *Client) AppendDriverInfo(info options.DriverInfo) {
 	}
 
 	// Copy-on-write so that the info stored in the client is immutable.
-	copy := new(options.DriverInfo)
-	*copy = info
+	infoCopy := new(options.DriverInfo)
+	*infoCopy = info
 
-	c.currentDriverInfo.Store(copy)
+	c.currentDriverInfo.Store(infoCopy)
 }
 
 // Disconnect closes sockets to the topology referenced by this Client. It will

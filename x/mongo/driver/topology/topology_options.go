@@ -152,20 +152,24 @@ type authConfigOptions struct {
 	driverInfo *atomic.Pointer[options.DriverInfo]
 }
 
+// AuthConfigOption is a function that configures authConfigOptions.
 type AuthConfigOption func(*authConfigOptions)
 
+// WithAuthConfigClock sets the cluster clock in authConfigOptions.
 func WithAuthConfigClock(clock *session.ClusterClock) AuthConfigOption {
 	return func(co *authConfigOptions) {
 		co.clock = clock
 	}
 }
 
+// WithAuthConfigClientOptions sets the client options in authConfigOptions.
 func WithAuthConfigClientOptions(opts *options.ClientOptions) AuthConfigOption {
 	return func(co *authConfigOptions) {
 		co.opts = opts
 	}
 }
 
+// WithAuthConfigDriverInfo sets the driver info in authConfigOptions.
 func WithAuthConfigDriverInfo(driverInfo *atomic.Pointer[options.DriverInfo]) AuthConfigOption {
 	return func(co *authConfigOptions) {
 		co.driverInfo = driverInfo
@@ -238,7 +242,7 @@ func NewAuthenticatorConfig(authenticator driver.Authenticator, clientOpts ...Au
 		}))
 	}
 
-	if opts.DriverInfo != nil {
+	if settings.driverInfo != nil {
 		serverOpts = append(serverOpts, WithDriverInfo(settings.driverInfo))
 	}
 

@@ -19,7 +19,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/internal/test"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
-	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage"
 )
 
@@ -528,8 +527,8 @@ func TestHandshakeProse_AppendMetadata_Test1_Test2_Test3(t *testing.T) {
 	}
 }
 
-// Test 4: Multiple Metadata Updates with Duplicate Dataa
-func TestHandshakeProse_AppendMetadata_Test4(t *testing.T) {
+// Test 4: Multiple Metadata Updates with Duplicate Data.
+func TestHandshakeProse_AppendMetadata_MultipleUpdatesWithDuplicateFields(t *testing.T) {
 	opts := mtest.NewOptions().ClientType(mtest.Proxy)
 	mt := mtest.New(t, opts)
 
@@ -597,9 +596,350 @@ func TestHandshakeProse_AppendMetadata_Test4(t *testing.T) {
 	require.NotNil(mt, updatedClientMetadata, "expected to capture a proxied message")
 	assert.True(mt, updatedClientMetadata.IsHandshake(), "expected first message to be a handshake")
 
-	// 12. Assert that `clientMetadata` is identical to `updatedClientMetadata`.
-	want := bsoncore.Document(clientMetadata.Sent.Command)
-	got := bsoncore.Document(updatedClientMetadata.Sent.Command)
+	assertbsoncore.HandshakeClientMetadata(mt, clientMetadata.Sent.Command, updatedClientMetadata.Sent.Command)
+}
 
-	assert.Equal(mt, want, got, "expected: %s, got: %s", want, got)
+// Test 5: Metadata is not appended if identical to initial metadata
+func TestHandshakeProse_AppendMetadata_NotAppendedIfIdentical(t *testing.T) {
+	opts := mtest.NewOptions().ClientType(mtest.Proxy)
+	mt := mtest.New(t, opts)
+
+	originalDriverInfo := options.DriverInfo{
+		Name:     "library",
+		Version:  "1.2",
+		Platform: "Library Platform",
+	}
+
+	clientOpts := options.Client().
+		// Set idle timeout to 1ms to force new connections to be created
+		// throughout the lifetime of the test.
+		SetMaxConnIdleTime(1 * time.Millisecond).
+		SetDriverInfo(&originalDriverInfo)
+
+	// 1. Create a top-level client that can be shared among sub-tests. This is
+	// necessary to test appending driver info to an existing client.
+	mt.ResetClient(clientOpts)
+
+	// Drain the proxy to ensure we only capture messages after appending.
+	mt.GetProxyCapture().Drain()
+
+	// 2. Send a ping command to the server and verify that the command succeeded.
+	err := mt.Client.Ping(context.Background(), nil)
+	require.NoError(mt, err, "Ping error: %v", err)
+
+	clientMetadata := mt.GetProxyCapture().TryNext()
+	require.NotNil(mt, clientMetadata, "expected to capture a proxied message")
+	assert.True(mt, clientMetadata.IsHandshake(), "expected first message to be a handshake")
+
+	// 3. Wait 5ms for the connection to become idle.
+	time.Sleep(5 * time.Millisecond)
+
+	// 5. Append new driver info.
+	mt.Client.AppendDriverInfo(options.DriverInfo{
+		Name:     "library",
+		Version:  "1.2",
+		Platform: "Library Platform",
+	})
+
+	// Drain the proxy to ensure we only capture messages after appending.
+	mt.GetProxyCapture().Drain()
+
+	// 6. Send a ping command to the server and verify that the command succeeded.
+	err = mt.Client.Ping(context.Background(), nil)
+	require.NoError(mt, err, "Ping error: %v", err)
+
+	// 7.  Save intercepted `client` document as `updatedClientMetadata`.
+	updatedClientMetadata := mt.GetProxyCapture().TryNext()
+	require.NotNil(mt, updatedClientMetadata, "expected to capture a proxied message")
+	assert.True(mt, updatedClientMetadata.IsHandshake(), "expected first message to be a handshake")
+
+	assertbsoncore.HandshakeClientMetadata(mt, clientMetadata.Sent.Command, updatedClientMetadata.Sent.Command)
+}
+
+// Test 6: Metadata is not appended if identical to initial metadata (separated
+// by non-identical metadata)
+func TestHandshakeProse_AppendMetadata_NotAppendedIfIdentical_NonSequential(t *testing.T) {
+	opts := mtest.NewOptions().ClientType(mtest.Proxy)
+	mt := mtest.New(t, opts)
+
+	originalDriverInfo := options.DriverInfo{
+		Name:     "library",
+		Version:  "1.2",
+		Platform: "Library Platform",
+	}
+
+	clientOpts := options.Client().
+		// Set idle timeout to 1ms to force new connections to be created
+		// throughout the lifetime of the test.
+		SetMaxConnIdleTime(1 * time.Millisecond).
+		SetDriverInfo(&originalDriverInfo)
+
+	// 1. Create a top-level client that can be shared among sub-tests. This is
+	// necessary to test appending driver info to an existing client.
+	mt.ResetClient(clientOpts)
+
+	// Drain the proxy to ensure we only capture messages after appending.
+	mt.GetProxyCapture().Drain()
+
+	// 2. Send a ping command to the server and verify that the command succeeded.
+	err := mt.Client.Ping(context.Background(), nil)
+	require.NoError(mt, err, "Ping error: %v", err)
+
+	// 3. Wait 5ms for the connection to become idle.
+	time.Sleep(5 * time.Millisecond)
+
+	// 4. Append new driver info.
+	mt.Client.AppendDriverInfo(options.DriverInfo{
+		Name:     "framework",
+		Version:  "1.2",
+		Platform: "Framework Platform",
+	})
+
+	// Drain the proxy to ensure we only capture messages after appending.
+	mt.GetProxyCapture().Drain()
+
+	// 5. Send a ping command to the server and verify that the command succeeded.
+	err = mt.Client.Ping(context.Background(), nil)
+	require.NoError(mt, err, "Ping error: %v", err)
+
+	// 6. Save intercepted `client` document as `clientMetadata`.
+	clientMetadata := mt.GetProxyCapture().TryNext()
+	require.NotNil(mt, clientMetadata, "expected to capture a proxied message")
+	assert.True(mt, clientMetadata.IsHandshake(), "expected first message to be a handshake")
+
+	// 7. Wait 5ms for the connection to become idle.
+	time.Sleep(5 * time.Millisecond)
+
+	// 8. Append new driver info.
+	mt.Client.AppendDriverInfo(options.DriverInfo{
+		Name:     "library",
+		Version:  "1.2",
+		Platform: "Library Platform",
+	})
+
+	// Drain the proxy to ensure we only capture messages after appending.
+	mt.GetProxyCapture().Drain()
+
+	// 9. Send a `ping` command to the server and verify that the command
+	// succeeds.
+	err = mt.Client.Ping(context.Background(), nil)
+	require.NoError(mt, err, "Ping error: %v", err)
+
+	// 10. Save intercepted `client` document as `updatedClientMetadata`.
+	updatedClientMetadata := mt.GetProxyCapture().TryNext()
+	require.NotNil(mt, updatedClientMetadata, "expected to capture a proxied message")
+	assert.True(mt, updatedClientMetadata.IsHandshake(), "expected first message to be a handshake")
+
+	assertbsoncore.HandshakeClientMetadata(mt, clientMetadata.Sent.Command, updatedClientMetadata.Sent.Command)
+}
+
+// Test 7: Empty strings are considered unset when appending duplicate metadata.
+func TestHandshakeProse_AppendMetadata_EmptyStrings(t *testing.T) {
+	mt := mtest.New(t)
+
+	testCases := []struct {
+		name               string
+		initialDriverInfo  options.DriverInfo
+		toAppendDriverInfo options.DriverInfo
+	}{
+		{
+			name: "name empty",
+			initialDriverInfo: options.DriverInfo{
+				Name:     "",
+				Version:  "1.2",
+				Platform: "Library Platform",
+			},
+			toAppendDriverInfo: options.DriverInfo{
+				Name:     "",
+				Version:  "1.2",
+				Platform: "Library Platform",
+			},
+		},
+		{
+			name: "version empty",
+			initialDriverInfo: options.DriverInfo{
+				Name:     "library",
+				Version:  "",
+				Platform: "Library Platform",
+			},
+			toAppendDriverInfo: options.DriverInfo{
+				Name:     "library",
+				Version:  "",
+				Platform: "Library Platform",
+			},
+		},
+		{
+			name: "platform empty",
+			initialDriverInfo: options.DriverInfo{
+				Name:     "library",
+				Version:  "1.2",
+				Platform: "",
+			},
+			toAppendDriverInfo: options.DriverInfo{
+				Name:     "library",
+				Version:  "1.2",
+				Platform: "",
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		// Create a top-level client that can be shared among sub-tests. This is
+		// necessary to test appending driver info to an existing client.
+		opts := mtest.NewOptions().CreateClient(false).ClientType(mtest.Proxy)
+		mt.RunOpts(tc.name, opts, func(mt *mtest.T) {
+			// 1. Create a `MongoClient` instance.
+			clientOpts := options.Client().
+				// Set idle timeout to 1ms to force new connections to be created
+				// throughout the lifetime of the test.
+				SetMaxConnIdleTime(1 * time.Millisecond)
+
+			mt.ResetClient(clientOpts)
+
+			// 2. Append the `DriverInfoOptions` from the selected test case from
+			// the initial metadata section.
+			mt.Client.AppendDriverInfo(tc.initialDriverInfo)
+
+			mt.GetProxyCapture().Drain()
+
+			// 3. Send a `ping` command to the server and verify that the command
+			// succeeds.
+			err := mt.Client.Ping(context.Background(), nil)
+			require.NoError(mt, err, "Ping error: %v", err)
+
+			// 4. Save intercepted `client` document as `initialClientMetadata`.
+			initialClientMetadata := mt.GetProxyCapture().TryNext()
+
+			require.NotNil(mt, initialClientMetadata, "expected to capture a proxied message")
+			assert.True(mt, initialClientMetadata.IsHandshake(), "expected first message to be a handshake")
+
+			// 5. Wait 5ms for the connection to become idle.
+			time.Sleep(20 * time.Millisecond)
+
+			// 6. Append the `DriverInfoOptions` from the selected test case from
+			// the appended metadata section.
+			mt.Client.AppendDriverInfo(tc.toAppendDriverInfo)
+
+			// Drain the proxy
+			mt.GetProxyCapture().Drain()
+
+			// 7. Send a `ping` command to the server and verify the command
+			// succeeds.
+			err = mt.Client.Ping(context.Background(), nil)
+			require.NoError(mt, err, "Ping error: %v", err)
+
+			// Capture the first message sent after appending driver info.
+			updatedClientMetadata := mt.GetProxyCapture().TryNext()
+			require.NotNil(mt, updatedClientMetadata, "expected to capture a proxied message")
+			assert.True(mt, updatedClientMetadata.IsHandshake(), "expected first message to be a handshake")
+
+			assertbsoncore.HandshakeClientMetadata(mt, initialClientMetadata.Sent.Command,
+				updatedClientMetadata.Sent.Command)
+		})
+	}
+}
+
+// Test 8: Empty strings are considered unset when appending metadata identical
+// to initial metadata
+func TestHandshakeProse_AppendMetadata_EmptyStrings_InitializedClient(t *testing.T) {
+	mt := mtest.New(t)
+
+	testCases := []struct {
+		name               string
+		initialDriverInfo  options.DriverInfo
+		toAppendDriverInfo options.DriverInfo
+	}{
+		{
+			name: "name empty",
+			initialDriverInfo: options.DriverInfo{
+				Name:     "",
+				Version:  "1.2",
+				Platform: "Library Platform",
+			},
+			toAppendDriverInfo: options.DriverInfo{
+				Name:     "",
+				Version:  "1.2",
+				Platform: "Library Platform",
+			},
+		},
+		{
+			name: "version empty",
+			initialDriverInfo: options.DriverInfo{
+				Name:     "library",
+				Version:  "",
+				Platform: "Library Platform",
+			},
+			toAppendDriverInfo: options.DriverInfo{
+				Name:     "library",
+				Version:  "",
+				Platform: "Library Platform",
+			},
+		},
+		{
+			name: "platform empty",
+			initialDriverInfo: options.DriverInfo{
+				Name:     "library",
+				Version:  "1.2",
+				Platform: "",
+			},
+			toAppendDriverInfo: options.DriverInfo{
+				Name:     "library",
+				Version:  "1.2",
+				Platform: "",
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc // Avoid implicit memory aliasing in for loop.
+
+		// Create a top-level client that can be shared among sub-tests. This is
+		// necessary to test appending driver info to an existing client.
+		opts := mtest.NewOptions().CreateClient(false).ClientType(mtest.Proxy)
+		mt.RunOpts(tc.name, opts, func(mt *mtest.T) {
+			// 1. Create a `MongoClient` instance.
+			clientOpts := options.Client().
+				// Set idle timeout to 1ms to force new connections to be created
+				// throughout the lifetime of the test.
+				SetMaxConnIdleTime(1 * time.Millisecond).
+				SetDriverInfo(&tc.initialDriverInfo)
+
+			mt.ResetClient(clientOpts)
+
+			// 2. Send a `ping` command to the server and verify that the command
+			// succeeds.
+			err := mt.Client.Ping(context.Background(), nil)
+			require.NoError(mt, err, "Ping error: %v", err)
+
+			// 3. Save intercepted `client` document as `initialClientMetadata`.
+			initialClientMetadata := mt.GetProxyCapture().TryNext()
+
+			require.NotNil(mt, initialClientMetadata, "expected to capture a proxied message")
+			assert.True(mt, initialClientMetadata.IsHandshake(), "expected first message to be a handshake")
+
+			// 4. Wait 5ms for the connection to become idle.
+			time.Sleep(20 * time.Millisecond)
+
+			// 5. Append the `DriverInfoOptions` from the selected test case from
+			// the appended metadata section.
+			mt.Client.AppendDriverInfo(tc.toAppendDriverInfo)
+
+			// Drain the proxy
+			mt.GetProxyCapture().Drain()
+
+			// 6. Send a `ping` command to the server and verify the command
+			// succeeds.
+			err = mt.Client.Ping(context.Background(), nil)
+			require.NoError(mt, err, "Ping error: %v", err)
+
+			// 7. Store the response as `updatedClientMetadata`.
+			updatedClientMetadata := mt.GetProxyCapture().TryNext()
+			require.NotNil(mt, updatedClientMetadata, "expected to capture a proxied message")
+			assert.True(mt, updatedClientMetadata.IsHandshake(), "expected first message to be a handshake")
+
+			// 8. Assert that `initialClientMetadata` is identical to `updatedClientMetadata`.
+			assertbsoncore.HandshakeClientMetadata(mt, initialClientMetadata.Sent.Command,
+				updatedClientMetadata.Sent.Command)
+		})
+	}
 }

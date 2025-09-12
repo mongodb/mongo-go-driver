@@ -323,8 +323,7 @@ func executeAppendMetadata(ctx context.Context, op *operation) (*operationResult
 		key := elem.Key()
 		val := elem.Value()
 
-		switch key {
-		case "driverInfoOptions":
+		if key == "driverInfoOptions" {
 			if err = bson.Unmarshal(val.Value, &driverInfo); err != nil {
 				return nil, fmt.Errorf("error unmarshaling driverInfoOptions: %w", err)
 			}

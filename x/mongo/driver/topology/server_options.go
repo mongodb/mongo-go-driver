@@ -102,9 +102,9 @@ func WithServerAppName(fn func(string) string) ServerOption {
 // WithDriverInfo sets at atomic pointer to the server configuration, which will
 // be used to create the "driver" section on handshake commands. An atomic
 // pointer is used so that the driver info can be updated concurrently.
-func WithDriverInfo(into *atomic.Pointer[options.DriverInfo]) ServerOption {
+func WithDriverInfo(info *atomic.Pointer[options.DriverInfo]) ServerOption {
 	return func(cfg *serverConfig) {
-		cfg.driverInfo = into
+		cfg.driverInfo = info
 	}
 }
 

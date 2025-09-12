@@ -34,7 +34,6 @@ type proxyDialer struct {
 	*net.Dialer
 	sync.Mutex
 
-	//messages []*ProxyMessage
 	// sentMap temporarily stores the message sent to the server using the requestID so it can map requests to their
 	// responses.
 	sentMap sync.Map

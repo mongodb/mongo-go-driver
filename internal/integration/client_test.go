@@ -457,7 +457,7 @@ func TestClient(t *testing.T) {
 		err := mt.Client.Ping(context.Background(), mtest.PrimaryRp)
 		assert.Nil(mt, err, "Ping error: %v", err)
 
-		want := test.EncodeClientMetadata(mt, test.WithClientMentadataAppName("foo"))
+		want := test.EncodeClientMetadata(mt, test.WithClientMetadataAppName("foo"))
 		for i := 0; i < 2; i++ {
 			message := mt.GetProxyCapture().TryNext()
 			require.NotNil(mt, message, "expected handshake message, got nil")

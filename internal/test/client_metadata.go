@@ -30,13 +30,6 @@ type clientMetadataOptions struct {
 // metadata.
 type ClientMetadataOption func(*clientMetadataOptions)
 
-// Existing (note the typo in the function name). Kept for compatibility.
-func WithClientMentadataAppName(name string) ClientMetadataOption {
-	return func(o *clientMetadataOptions) {
-		o.appName = name
-	}
-}
-
 // WithClientMetadataAppName sets the application name included in client metadata.
 func WithClientMetadataAppName(name string) ClientMetadataOption {
 	return func(o *clientMetadataOptions) {
