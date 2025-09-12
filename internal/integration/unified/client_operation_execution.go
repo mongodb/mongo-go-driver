@@ -307,6 +307,34 @@ func executeClientBulkWrite(ctx context.Context, operation *operation) (*operati
 	return newDocumentResult(rawBuilder.Build(), err), nil
 }
 
+func executeAppendMetadata(ctx context.Context, op *operation) (*operationResult, error) {
+	client, err := entities(ctx).client(op.Object)
+	if err != nil {
+		return nil, fmt.Errorf("error getting client entity: %w", err)
+	}
+
+	elems, err := op.Arguments.Elements()
+	if err != nil {
+		return nil, fmt.Errorf("error getting appendMetadata arguments: %w", err)
+	}
+
+	driverInfo := options.DriverInfo{}
+	for _, elem := range elems {
+		key := elem.Key()
+		val := elem.Value()
+
+		if key == "driverInfoOptions" {
+			if err = bson.Unmarshal(val.Value, &driverInfo); err != nil {
+				return nil, fmt.Errorf("error unmarshaling driverInfoOptions: %w", err)
+			}
+		}
+	}
+
+	client.AppendDriverInfo(driverInfo)
+
+	return newEmptyResult(), nil
+}
+
 func createClientInsertOneModel(value bson.Raw) (*mongo.ClientBulkWrite, error) {
 	var v struct {
 		Namespace string
