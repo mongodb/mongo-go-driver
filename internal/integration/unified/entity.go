@@ -82,6 +82,12 @@ type entityOptions struct {
 	DatabaseID string `bson:"database"`
 
 	ClientEncryptionOpts *clientEncryptionOpts `bson:"clientEncryptionOpts"`
+
+	// If true, the unified spec runner must wait for the connection pool to be
+	// populated for all servers according to the minPoolSize option. If false,
+	// not specified, or if minPoolSize equals 0, there is no need to wait for any
+	// specific pool state.
+	AwaitMinPoolSize bool `bson:"awaitMinPoolSize"`
 }
 
 func (eo *entityOptions) setHeartbeatFrequencyMS(freq time.Duration) {
