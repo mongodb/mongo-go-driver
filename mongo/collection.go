@@ -1092,7 +1092,13 @@ func aggregate(a aggregateParams, opts ...options.Lister[options.AggregateOption
 	if err != nil {
 		return nil, wrapErrors(err)
 	}
-	cursor, err := newCursorWithSession(bc, a.client.bsonOpts, a.registry, sess)
+	cursor, err := newCursorWithSession(bc, a.client.bsonOpts, a.registry, sess,
+
+		// The only way the server will return a tailable/awaitData cursor for an
+		// aggregate operation is for the first stage in the pipeline to
+		// be $changeStream, this is the only time maxAwaitTimeMS should be applied.
+		// For this reason, we pass the client timeout to the cursor.
+		withCursorOptionClientTimeout(a.client.timeout))
 	return cursor, wrapErrors(err)
 }
 
@@ -1567,7 +1573,9 @@ func (coll *Collection) find(
 	if err != nil {
 		return nil, wrapErrors(err)
 	}
-	return newCursorWithSession(bc, coll.bsonOpts, coll.registry, sess)
+
+	return newCursorWithSession(bc, coll.bsonOpts, coll.registry, sess,
+		withCursorOptionClientTimeout(coll.client.timeout))
 }
 
 func newFindArgsFromFindOneArgs(args *options.FindOneOptions) *options.FindOptions {

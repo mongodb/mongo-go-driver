@@ -306,7 +306,8 @@ func (db *Database) RunCommandCursor(
 		closeImplicitSession(sess)
 		return nil, wrapErrors(err)
 	}
-	cursor, err := newCursorWithSession(bc, db.bsonOpts, db.registry, sess)
+	cursor, err := newCursorWithSession(bc, db.bsonOpts, db.registry, sess,
+		withCursorOptionClientTimeout(db.client.timeout))
 	return cursor, wrapErrors(err)
 }
 
@@ -511,7 +512,8 @@ func (db *Database) ListCollections(
 		closeImplicitSession(sess)
 		return nil, wrapErrors(err)
 	}
-	cursor, err := newCursorWithSession(bc, db.bsonOpts, db.registry, sess)
+	cursor, err := newCursorWithSession(bc, db.bsonOpts, db.registry, sess,
+		withCursorOptionClientTimeout(db.client.timeout))
 	return cursor, wrapErrors(err)
 }
 
