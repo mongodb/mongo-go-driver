@@ -309,14 +309,6 @@ func (op *Options) Enterprise(ent bool) *Options {
 	return op
 }
 
-// AtlasDataLake specifies whether this test should only be run against Atlas Data Lake servers. Defaults to false.
-func (op *Options) AtlasDataLake(adl bool) *Options {
-	op.optFuncs = append(op.optFuncs, func(t *T) {
-		t.dataLake = &adl
-	})
-	return op
-}
-
 // RequireAPIVersion specifies whether this test should only be run when REQUIRE_API_VERSION is true. Defaults to false.
 func (op *Options) RequireAPIVersion(rav bool) *Options {
 	op.optFuncs = append(op.optFuncs, func(t *T) {

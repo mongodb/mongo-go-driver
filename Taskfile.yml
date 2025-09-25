@@ -130,10 +130,6 @@ tasks:
   evg-test:
     - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=$MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s -p 1 ./... >> test.suite
 
-  evg-test-atlas-data-lake:
-    - ATLAS_DATA_LAKE_INTEGRATION_TEST=true go test -v ./internal/integration/unified -run TestUnifiedSpec/atlas-data-lake-testing >> spec_test.suite
-    - ATLAS_DATA_LAKE_INTEGRATION_TEST=true go test -v ./internal/integration -run TestAtlasDataLake >> spec_test.suite
-
   evg-test-enterprise-auth:
     - go run -tags gssapi ./internal/cmd/testentauth/main.go
 

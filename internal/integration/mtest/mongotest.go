@@ -74,7 +74,6 @@ type T struct {
 	validTopologies   []TopologyKind
 	auth              *bool
 	enterprise        *bool
-	dataLake          *bool
 	ssl               *bool
 	collCreateOpts    *options.CreateCollectionOptionsBuilder
 	requireAPIVersion *bool
@@ -854,10 +853,6 @@ func (t *T) verifyConstraints() error {
 	if t.enterprise != nil && *t.enterprise != testContext.enterpriseServer {
 		return fmt.Errorf("test requires enterprise value: %v, cluster enterprise value: %v", *t.enterprise,
 			testContext.enterpriseServer)
-	}
-	if t.dataLake != nil && *t.dataLake != testContext.dataLake {
-		return fmt.Errorf("test requires cluster to be data lake: %v, cluster is data lake: %v", *t.dataLake,
-			testContext.dataLake)
 	}
 	if t.requireAPIVersion != nil && *t.requireAPIVersion != testContext.requireAPIVersion {
 		return fmt.Errorf("test requires RequireAPIVersion value: %v, local RequireAPIVersion value: %v", *t.requireAPIVersion,
