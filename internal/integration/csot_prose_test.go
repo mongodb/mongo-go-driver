@@ -179,7 +179,7 @@ func TestCSOTProse(t *testing.T) {
 	})
 
 	mt.RunOpts("11. multi-batch bulkWrites", mtest.NewOptions().MinServerVersion("8.0").
-		AtlasDataLake(false).Topologies(mtest.Single), func(mt *mtest.T) {
+		Topologies(mtest.Single), func(mt *mtest.T) {
 		coll := mt.CreateCollection(mtest.Collection{DB: "db", Name: "coll"}, false)
 		err := coll.Drop(context.Background())
 		require.NoError(mt, err, "Drop error: %v", err)

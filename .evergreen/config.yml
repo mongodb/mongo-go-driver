@@ -379,23 +379,6 @@ functions:
         binary: bash
         args: [*task-runner, evg-test-load-balancers]
 
-  run-atlas-data-lake-test:
-    - command: subprocess.exec
-      params:
-        binary: "bash"
-        env: 
-          AUTH: auth
-          SSL: nossl
-          TOPOLOGY: server
-          MONGODB_URI: "mongodb://mhuser:pencil@localhost"
-        args: [*task-runner, setup-test]
-    - command: subprocess.exec
-      type: test
-      retry_on_failure: true
-      params:
-        binary: "bash"
-        args: [*task-runner, evg-test-atlas-data-lake]
-
   run-docker-test:
     - command: subprocess.exec
       type: test
@@ -1160,11 +1143,6 @@ tasks:
         vars:
           OCSP_ALGORITHM: "ecdsa"
           OCSP_TLS_SHOULD_SUCCEED: "false"
-
-  - name: test-atlas-data-lake
-    commands:
-      - func: bootstrap-mongohoused
-      - func: run-atlas-data-lake-test
 
   - name: test-docker-runner
     commands:
@@ -2170,16 +2148,6 @@ buildvariants:
       GO_DIST: "/opt/golang/go1.23"
     tasks:
       - name: "atlas-test"
-
-  - name: atlas-data-lake-test
-    tags: ["pullrequest"]
-    display_name: "Atlas Data Lake Test"
-    run_on:
-      - ubuntu2004-large
-    expansions:
-      GO_DIST: "/opt/golang/go1.23"
-    tasks:
-      - name: "test-atlas-data-lake"
 
   - name: docker-runner-test
     tags: ["pullrequest"]

@@ -768,11 +768,6 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/change-streams/tests/unified/change-streams.json/Test_array_truncation",
 	},
 
-	// TODO(DRIVERS-3153): Re-enable once resolved.
-	"Re-enable test following DRIVERS-3153 resolution (DRIVERS-3153)": {
-		"TestUnifiedSpec/atlas-data-lake-testing/tests/unified/getMore.json/A_successful_find_event_with_getMore",
-	},
-
 	// TODO(GODRIVER-3137): Gossip cluster time from internal MongoClient to
 	// session entities.
 	"Must advance cluster times in unified spec runner (GODRIVER-3137)": {
