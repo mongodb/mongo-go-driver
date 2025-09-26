@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: mongodb-labs/drivers-github-tools/secure-checkout@v2
+      - uses: mongodb-labs/drivers-github-tools/secure-checkout@v3
         with:
           app_id: ${{ vars.PR_APP_ID }}
           private_key: ${{ secrets.PR_APP_PRIVATE_KEY }}
