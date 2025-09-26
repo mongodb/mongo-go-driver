@@ -7,7 +7,7 @@ set -ex
 # Note: this needs to be updated if the listed Go version has vulnerabilities
 # discovered because they will show up in the scan results along with Go Driver
 # and dependency vulnerabilities.
-GO_VERSION=1.24.5
+GO_VERSION=1.25.1
 
 go install golang.org/dl/go$GO_VERSION@latest
 go${GO_VERSION} download
