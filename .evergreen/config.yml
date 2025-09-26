@@ -625,6 +625,7 @@ tasks:
     tags: ["static-analysis"]
     commands:
       - command: subprocess.exec
+        type: test
         params:
           binary: bash
           args: [*task-runner, govulncheck]
