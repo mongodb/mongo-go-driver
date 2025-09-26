@@ -694,7 +694,6 @@ func (t *Topology) selectServerFromSubscription(
 		case <-ctx.Done():
 			return nil, ServerSelectionError{Wrapped: ctx.Err(), Desc: current}
 		case current = <-subscriptionCh:
-		default:
 		}
 
 		suitable, err := t.selectServerFromDescription(current, srvSelector)
