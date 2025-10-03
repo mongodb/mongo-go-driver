@@ -191,15 +191,15 @@ If compressors are set, the Go Driver negotiates with the server to select the f
 
 Messages compress when both parties enable network compression; otherwise, messages remain uncompressed
 
-## Feedback
+## Support / Feedback
 
-For help with the driver, please post in the [MongoDB Community Forums](https://developer.mongodb.com/community/forums/tag/golang/).
+For issues with, questions about, or feedback for the Go Driver, please look into our [support channels](https://www.mongodb.com/docs/manual/support/), including [StackOverflow](https://stackoverflow.com/questions/tagged/mongodb%20go?sort=Newest).
 
-New features and bugs can be reported on jira: https://jira.mongodb.org/browse/GODRIVER
+New features and bugs can be reported on the [GODRIVER Jira project](https://jira.mongodb.org/browse/GODRIVER).
 
 ## Contribution
 
-Check out the [project page](https://jira.mongodb.org/browse/GODRIVER) for tickets that need completing. See our [contribution guidelines](docs/CONTRIBUTING.md) for details.
+Check out the [GODRIVER Jira project](https://jira.mongodb.org/browse/GODRIVER) for tickets that need completing. See our [contribution guidelines](docs/CONTRIBUTING.md) for details.
 
 ## Continuous Integration
 
