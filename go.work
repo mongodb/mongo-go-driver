@@ -1,4 +1,4 @@
-go 1.23
+go 1.23.0
 
 use (
 	.
@@ -8,5 +8,6 @@ use (
 	./internal/cmd/benchmark
 	./internal/cmd/compilecheck
 	./internal/cmd/faas/awslambda/mongodb
+	./internal/test/compilecheck
 	./internal/test/goleak
 )
