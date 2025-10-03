@@ -67,12 +67,6 @@ func TestAtlas(t *testing.T) {
 			wantErr:     "",
 		},
 		{
-			name:        "Atlas with serverless",
-			envVar:      "ATLAS_SERVERLESS",
-			certKeyFile: "",
-			wantErr:     "",
-		},
-		{
 			name:        "Atlas with srv file on replica set",
 			envVar:      "ATLAS_SRV_REPL",
 			certKeyFile: "",
@@ -99,12 +93,6 @@ func TestAtlas(t *testing.T) {
 		{
 			name:        "Atlas with srv file on TLS 1.2",
 			envVar:      "ATLAS_SRV_TLS12",
-			certKeyFile: "",
-			wantErr:     "",
-		},
-		{
-			name:        "Atlas with srv file on serverless",
-			envVar:      "ATLAS_SRV_SERVERLESS",
 			certKeyFile: "",
 			wantErr:     "",
 		},
