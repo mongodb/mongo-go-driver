@@ -955,6 +955,11 @@ func (c *Client) BulkWrite(ctx context.Context, writes []ClientBulkWrite,
 			op.rawData = &rawData
 		}
 	}
+	if additionalCmd := optionsutil.Value(bwo.Internal, "addCommandFields"); additionalCmd != nil {
+		if ac, ok := additionalCmd.(bson.D); ok {
+			op.additionalCmd = ac
+		}
+	}
 	if bwo.VerboseResults == nil || !(*bwo.VerboseResults) {
 		op.errorsOnly = true
 	} else if !acknowledged {

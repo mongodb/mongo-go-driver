@@ -51,6 +51,7 @@ type FindAndModify struct {
 	let                      bsoncore.Document
 	timeout                  *time.Duration
 	rawData                  *bool
+	additionalCmd            bson.D
 
 	result FindAndModifyResult
 }
@@ -215,6 +216,13 @@ func (fam *FindAndModify) command(dst []byte, desc description.SelectedServer) (
 	// Set rawData for 8.2+ servers.
 	if fam.rawData != nil && desc.WireVersion != nil && driverutil.VersionRangeIncludes(*desc.WireVersion, 27) {
 		dst = bsoncore.AppendBooleanElement(dst, "rawData", *fam.rawData)
+	}
+	if len(fam.additionalCmd) > 0 {
+		doc, err := bson.Marshal(fam.additionalCmd)
+		if err != nil {
+			return nil, err
+		}
+		dst = append(dst, doc[4:len(doc)-1]...)
 	}
 
 	return dst, nil
@@ -489,5 +497,15 @@ func (fam *FindAndModify) RawData(rawData bool) *FindAndModify {
 	}
 
 	fam.rawData = &rawData
+	return fam
+}
+
+// AdditionalCmd sets additional command fields to be attached.
+func (fam *FindAndModify) AdditionalCmd(d bson.D) *FindAndModify {
+	if fam == nil {
+		fam = new(FindAndModify)
+	}
+
+	fam.additionalCmd = d
 	return fam
 }

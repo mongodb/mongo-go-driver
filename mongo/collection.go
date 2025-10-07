@@ -251,6 +251,11 @@ func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
 			op.rawData = &rawData
 		}
 	}
+	if rawDataOpt := optionsutil.Value(args.Internal, "addCommandFields"); rawDataOpt != nil {
+		if d, ok := rawDataOpt.(bson.D); ok {
+			op.additionalCmd = d
+		}
+	}
 
 	err = op.execute(ctx)
 
@@ -335,6 +340,11 @@ func (coll *Collection) insert(
 			op = op.RawData(rawData)
 		}
 	}
+	if rawDataOpt := optionsutil.Value(args.Internal, "addCommandFields"); rawDataOpt != nil {
+		if d, ok := rawDataOpt.(bson.D); ok {
+			op = op.AdditionalCmd(d)
+		}
+	}
 	retry := driver.RetryNone
 	if coll.client.retryWrites {
 		retry = driver.RetryOncePerCommand
@@ -388,7 +398,14 @@ func (coll *Collection) InsertOne(ctx context.Context, document any,
 	}
 	if rawDataOpt := optionsutil.Value(args.Internal, "rawData"); rawDataOpt != nil {
 		imOpts.Opts = append(imOpts.Opts, func(opts *options.InsertManyOptions) error {
-			optionsutil.WithValue(opts.Internal, "rawData", rawDataOpt)
+			opts.Internal = optionsutil.WithValue(opts.Internal, "rawData", rawDataOpt)
+
+			return nil
+		})
+	}
+	if rawDataOpt := optionsutil.Value(args.Internal, "addCommandFields"); rawDataOpt != nil {
+		imOpts.Opts = append(imOpts.Opts, func(opts *options.InsertManyOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, "addCommandFields", rawDataOpt)
 
 			return nil
 		})
@@ -708,6 +725,11 @@ func (coll *Collection) updateOrReplace(
 	if rawDataOpt := optionsutil.Value(args.Internal, "rawData"); rawDataOpt != nil {
 		if rawData, ok := rawDataOpt.(bool); ok {
 			op = op.RawData(rawData)
+		}
+	}
+	if rawDataOpt := optionsutil.Value(args.Internal, "addCommandFields"); rawDataOpt != nil {
+		if d, ok := rawDataOpt.(bson.D); ok {
+			op = op.AdditionalCmd(d)
 		}
 	}
 	retry := driver.RetryNone
@@ -1864,6 +1886,11 @@ func (coll *Collection) FindOneAndReplace(
 			op = op.RawData(rawData)
 		}
 	}
+	if rawDataOpt := optionsutil.Value(args.Internal, "addCommandFields"); rawDataOpt != nil {
+		if d, ok := rawDataOpt.(bson.D); ok {
+			op = op.AdditionalCmd(d)
+		}
+	}
 
 	return coll.findAndModify(ctx, op)
 }
@@ -1976,6 +2003,11 @@ func (coll *Collection) FindOneAndUpdate(
 	if rawDataOpt := optionsutil.Value(args.Internal, "rawData"); rawDataOpt != nil {
 		if rawData, ok := rawDataOpt.(bool); ok {
 			op = op.RawData(rawData)
+		}
+	}
+	if rawDataOpt := optionsutil.Value(args.Internal, "addCommandFields"); rawDataOpt != nil {
+		if d, ok := rawDataOpt.(bson.D); ok {
+			op = op.AdditionalCmd(d)
 		}
 	}
 
