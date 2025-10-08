@@ -463,6 +463,8 @@ func runTest(t *testing.T, directory string, filename string) {
 	assert.Nil(t, err, "ReadFile error: %v", err)
 
 	t.Run(directory+"/"+filename, func(t *testing.T) {
+		spectest.CheckSkip(t)
+
 		var test testCase
 		err = bson.UnmarshalExtJSON(content, false, &test)
 		assert.Nil(t, err, "Unmarshal error: %v", err)

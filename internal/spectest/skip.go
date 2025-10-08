@@ -841,6 +841,18 @@ var skipTests = map[string][]string{
 	"Support queryable encryption in Client.BulkWrite (GODRIVER-3403)": {
 		"TestUnifiedSpec/crud/tests/unified/client-bulkWrite-qe.json",
 	},
+
+	// Pre-4.2 SDAM tests
+	"Pre-4.2 SDAM tests": {
+		"TestSDAMSpec/errors/pre-42-InterruptedAtShutdown.json",
+		"TestSDAMSpec/errors/pre-42-InterruptedDueToReplStateChange.json",
+		"TestSDAMSpec/errors/pre-42-LegacyNotPrimary.json",
+		"TestSDAMSpec/errors/pre-42-NotPrimaryNoSecondaryOk.json",
+		"TestSDAMSpec/errors/pre-42-NotPrimaryOrSecondary.json",
+		"TestSDAMSpec/errors/pre-42-NotWritablePrimary.json",
+		"TestSDAMSpec/errors/pre-42-PrimarySteppedDown.json",
+		"TestSDAMSpec/errors/pre-42-ShutdownInProgress.json",
+	},
 }
 
 // CheckSkip checks if the fully-qualified test name matches a list of skipped test names for a given reason.
