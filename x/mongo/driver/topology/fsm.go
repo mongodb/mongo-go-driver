@@ -20,7 +20,7 @@ import (
 
 var (
 	// MinSupportedMongoDBVersion is the version string for the lowest MongoDB version supported by the driver.
-	MinSupportedMongoDBVersion = "4.0"
+	MinSupportedMongoDBVersion = "4.2"
 
 	// SupportedWireVersions is the range of wire versions supported by the driver.
 	SupportedWireVersions = driverutil.NewVersionRange(driverutil.MinWireVersion, driverutil.MaxWireVersion)

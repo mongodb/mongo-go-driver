@@ -259,34 +259,6 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		assert.Nil(mt, cs.Err(), "change stream error: %v", cs.Err())
 	})
 
-	startAtOpTimeOpts := mtest.NewOptions().MinServerVersion("4.0").MaxServerVersion("4.0.6")
-	mt.RunOpts("include startAtOperationTime", startAtOpTimeOpts, func(mt *mtest.T) {
-		// $changeStream stage for ChangeStream against a server >=4.0 and <4.0.7 that has not received any results yet
-		// MUST include a startAtOperationTime option when resuming a changestream.
-
-		cs, err := mt.Coll.Watch(context.Background(), mongo.Pipeline{})
-		assert.Nil(mt, err, "Watch error: %v", err)
-		defer closeStream(cs)
-
-		generateEvents(mt, 1)
-		// kill cursor to force resumable error
-		killChangeStreamCursor(mt, cs)
-
-		mt.ClearEvents()
-		// change stream should resume once and get new change
-		assert.True(mt, cs.Next(context.Background()), "expected Next to return true, got false")
-		// Next should cause getMore, killCursors, and aggregate to run
-		assert.NotNil(mt, mt.GetStartedEvent(), "expected getMore event, got nil")
-		assert.NotNil(mt, mt.GetStartedEvent(), "expected killCursors event, got nil")
-		aggEvent := mt.GetStartedEvent()
-		assert.NotNil(mt, aggEvent, "expected aggregate event, got nil")
-		assert.Equal(mt, "aggregate", aggEvent.CommandName, "expected command name 'aggregate', got '%v'", aggEvent.CommandName)
-
-		// check for startAtOperationTime in pipeline
-		csStage := aggEvent.Command.Lookup("pipeline").Array().Index(0).Document() // $changeStream stage
-		_, err = csStage.Lookup("$changeStream").Document().LookupErr("startAtOperationTime")
-		assert.Nil(mt, err, "startAtOperationTime not included in aggregate command")
-	})
 	mt.RunOpts("decode does not panic", noClientOpts, func(mt *mtest.T) {
 		testCases := []struct {
 			name             string
@@ -415,53 +387,6 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 						}
 						// at end of batch, the resume token should equal the PBRT of the aggregate
 						compareResumeTokens(mt, cs, aggPbrt)
-					})
-				}
-			})
-
-			noPbrtOpts := mtest.NewOptions().MaxServerVersion("4.0.6")
-			mt.RunOpts("without PBRT support", noPbrtOpts, func(mt *mtest.T) {
-				collName := mt.Coll.Name()
-				dbName := mt.Coll.Database().Name()
-				cs, err := mt.Coll.Watch(context.Background(), mongo.Pipeline{})
-				assert.Nil(mt, err, "Watch error: %v", err)
-				defer closeStream(cs)
-
-				compareResumeTokens(mt, cs, nil) // should be no resume token because no PBRT
-				numEvents := 5
-				generateEvents(mt, numEvents)
-				// iterate once to get a resume token
-				assert.True(mt, cs.Next(context.Background()), "expected Next to return true, got false")
-				token := cs.ResumeToken()
-				assert.NotNil(mt, token, "expected resume token, got nil")
-
-				testCases := []struct {
-					name            string
-					opts            *options.ChangeStreamOptionsBuilder
-					iterateStream   bool // whether or not resulting change stream should be iterated
-					initialToken    bson.Raw
-					numDocsExpected int
-				}{
-					{"resumeAfter", options.ChangeStream().SetResumeAfter(token), true, token, numEvents - 1},
-					{"no options", nil, false, nil, 0},
-				}
-				for _, tc := range testCases {
-					mt.Run(tc.name, func(mt *mtest.T) {
-						coll := mt.Client.Database(dbName).Collection(collName)
-						cs, err := coll.Watch(context.Background(), mongo.Pipeline{}, tc.opts)
-						assert.Nil(mt, err, "Watch error: %v", err)
-						defer closeStream(cs)
-
-						compareResumeTokens(mt, cs, tc.initialToken)
-						if !tc.iterateStream {
-							return
-						}
-
-						for i := 0; i < tc.numDocsExpected; i++ {
-							assert.True(mt, cs.Next(context.Background()), "expected Next to return true, got false")
-							// current resume token should always equal _id of current document
-							compareResumeTokens(mt, cs, cs.Current.Lookup("_id").Document())
-						}
 					})
 				}
 			})
@@ -824,17 +749,6 @@ func generateEvents(mt *mtest.T, numEvents int) {
 		_, err := mt.Coll.InsertOne(context.Background(), doc)
 		assert.Nil(mt, err, "InsertOne error on document %v: %v", doc, err)
 	}
-}
-
-func killChangeStreamCursor(mt *mtest.T, cs *mongo.ChangeStream) {
-	mt.Helper()
-
-	db := mt.Coll.Database().Client().Database("admin")
-	err := db.RunCommand(context.Background(), bson.D{
-		{"killCursors", mt.Coll.Name()},
-		{"cursors", bson.A{cs.ID()}},
-	}).Err()
-	assert.Nil(mt, err, "killCursors error: %v", err)
 }
 
 // returns pbrt, operationTime from aggregate command response
