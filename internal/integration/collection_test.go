@@ -2060,19 +2060,19 @@ func TestBypassEmptyTsReplacement(t *testing.T) {
 			expected bson.RawValue
 		}{
 			{
-				"empty",
-				nil,
-				bson.RawValue{},
+				name:     "empty",
+				opts:     nil,
+				expected: bson.RawValue{},
 			},
 			{
-				"false",
-				newOpts(bson.D{{"bypassEmptyTsReplacement", false}}),
-				marshalValue(false),
+				name:     "false",
+				opts:     newOpts(bson.D{{"bypassEmptyTsReplacement", false}}),
+				expected: marshalValue(false),
 			},
 			{
-				"true",
-				newOpts(bson.D{{"bypassEmptyTsReplacement", true}}),
-				marshalValue(true),
+				name:     "true",
+				opts:     newOpts(bson.D{{"bypassEmptyTsReplacement", true}}),
+				expected: marshalValue(true),
 			},
 		}
 		for _, tc := range testCases {
@@ -2104,19 +2104,19 @@ func TestBypassEmptyTsReplacement(t *testing.T) {
 			expected bson.RawValue
 		}{
 			{
-				"empty",
-				nil,
-				bson.RawValue{},
+				name:     "empty",
+				opts:     nil,
+				expected: bson.RawValue{},
 			},
 			{
-				"false",
-				newOpts(bson.D{{"bypassEmptyTsReplacement", false}}),
-				marshalValue(false),
+				name:     "false",
+				opts:     newOpts(bson.D{{"bypassEmptyTsReplacement", false}}),
+				expected: marshalValue(false),
 			},
 			{
-				"true",
-				newOpts(bson.D{{"bypassEmptyTsReplacement", true}}),
-				marshalValue(true),
+				name:     "true",
+				opts:     newOpts(bson.D{{"bypassEmptyTsReplacement", true}}),
+				expected: marshalValue(true),
 			},
 		}
 		for _, tc := range testCases {
@@ -2146,19 +2146,19 @@ func TestBypassEmptyTsReplacement(t *testing.T) {
 			expected bson.RawValue
 		}{
 			{
-				"empty",
-				nil,
-				bson.RawValue{},
+				name:     "empty",
+				opts:     nil,
+				expected: bson.RawValue{},
 			},
 			{
-				"false",
-				newOpts(bson.D{{"bypassEmptyTsReplacement", false}}),
-				marshalValue(false),
+				name:     "false",
+				opts:     newOpts(bson.D{{"bypassEmptyTsReplacement", false}}),
+				expected: marshalValue(false),
 			},
 			{
-				"true",
-				newOpts(bson.D{{"bypassEmptyTsReplacement", true}}),
-				marshalValue(true),
+				name:     "true",
+				opts:     newOpts(bson.D{{"bypassEmptyTsReplacement", true}}),
+				expected: marshalValue(true),
 			},
 		}
 		for _, tc := range testCases {
@@ -2188,19 +2188,19 @@ func TestBypassEmptyTsReplacement(t *testing.T) {
 			expected bson.RawValue
 		}{
 			{
-				"empty",
-				nil,
-				bson.RawValue{},
+				name:     "empty",
+				opts:     nil,
+				expected: bson.RawValue{},
 			},
 			{
-				"false",
-				newOpts(bson.D{{"bypassEmptyTsReplacement", false}}),
-				marshalValue(false),
+				name:     "false",
+				opts:     newOpts(bson.D{{"bypassEmptyTsReplacement", false}}),
+				expected: marshalValue(false),
 			},
 			{
-				"true",
-				newOpts(bson.D{{"bypassEmptyTsReplacement", true}}),
-				marshalValue(true),
+				name:     "true",
+				opts:     newOpts(bson.D{{"bypassEmptyTsReplacement", true}}),
+				expected: marshalValue(true),
 			},
 		}
 		for _, tc := range testCases {
@@ -2230,19 +2230,19 @@ func TestBypassEmptyTsReplacement(t *testing.T) {
 			expected bson.RawValue
 		}{
 			{
-				"empty",
-				nil,
-				bson.RawValue{},
+				name:     "empty",
+				opts:     nil,
+				expected: bson.RawValue{},
 			},
 			{
-				"false",
-				newOpts(bson.D{{"bypassEmptyTsReplacement", false}}),
-				marshalValue(false),
+				name:     "false",
+				opts:     newOpts(bson.D{{"bypassEmptyTsReplacement", false}}),
+				expected: marshalValue(false),
 			},
 			{
-				"true",
-				newOpts(bson.D{{"bypassEmptyTsReplacement", true}}),
-				marshalValue(true),
+				name:     "true",
+				opts:     newOpts(bson.D{{"bypassEmptyTsReplacement", true}}),
+				expected: marshalValue(true),
 			},
 		}
 		for _, tc := range testCases {
@@ -2272,19 +2272,19 @@ func TestBypassEmptyTsReplacement(t *testing.T) {
 			expected bson.RawValue
 		}{
 			{
-				"empty",
-				nil,
-				bson.RawValue{},
+				name:     "empty",
+				opts:     nil,
+				expected: bson.RawValue{},
 			},
 			{
-				"false",
-				newOpts(bson.D{{"bypassEmptyTsReplacement", false}}),
-				marshalValue(false),
+				name:     "false",
+				opts:     newOpts(bson.D{{"bypassEmptyTsReplacement", false}}),
+				expected: marshalValue(false),
 			},
 			{
-				"true",
-				newOpts(bson.D{{"bypassEmptyTsReplacement", true}}),
-				marshalValue(true),
+				name:     "true",
+				opts:     newOpts(bson.D{{"bypassEmptyTsReplacement", true}}),
+				expected: marshalValue(true),
 			},
 		}
 		for _, tc := range testCases {
@@ -2317,19 +2317,19 @@ func TestBypassEmptyTsReplacement(t *testing.T) {
 			expected bson.RawValue
 		}{
 			{
-				"empty",
-				nil,
-				bson.RawValue{},
+				name:     "empty",
+				opts:     nil,
+				expected: bson.RawValue{},
 			},
 			{
-				"false",
-				newOpts(bson.D{{"bypassEmptyTsReplacement", false}}),
-				marshalValue(false),
+				name:     "false",
+				opts:     newOpts(bson.D{{"bypassEmptyTsReplacement", false}}),
+				expected: marshalValue(false),
 			},
 			{
-				"true",
-				newOpts(bson.D{{"bypassEmptyTsReplacement", true}}),
-				marshalValue(true),
+				name:     "true",
+				opts:     newOpts(bson.D{{"bypassEmptyTsReplacement", true}}),
+				expected: marshalValue(true),
 			},
 		}
 		for _, tc := range testCases {
@@ -2358,20 +2358,20 @@ func TestBypassEmptyTsReplacement(t *testing.T) {
 			model mongo.WriteModel
 		}{
 			{
-				"insert one",
-				mongo.NewInsertOneModel().SetDocument(bson.D{{"_id", "id1"}}),
+				name:  "insert one",
+				model: mongo.NewInsertOneModel().SetDocument(bson.D{{"_id", "id1"}}),
 			},
 			{
-				"update one",
-				mongo.NewUpdateOneModel().SetFilter(bson.D{{"_id", "id3"}}).SetUpdate(bson.D{{"$set", bson.D{{"_id", 3.14159}}}}),
+				name:  "update one",
+				model: mongo.NewUpdateOneModel().SetFilter(bson.D{{"_id", "id3"}}).SetUpdate(bson.D{{"$set", bson.D{{"_id", 3.14159}}}}),
 			},
 			{
-				"update many",
-				mongo.NewUpdateManyModel().SetFilter(bson.D{{"_id", "id3"}}).SetUpdate(bson.D{{"$set", bson.D{{"_id", 3.14159}}}}),
+				name:  "update many",
+				model: mongo.NewUpdateManyModel().SetFilter(bson.D{{"_id", "id3"}}).SetUpdate(bson.D{{"$set", bson.D{{"_id", 3.14159}}}}),
 			},
 			{
-				"replace one",
-				mongo.NewReplaceOneModel().SetFilter(bson.D{{"_id", "id3"}}).SetReplacement(bson.D{{"_id", 3.14159}}),
+				name:  "replace one",
+				model: mongo.NewReplaceOneModel().SetFilter(bson.D{{"_id", "id3"}}).SetReplacement(bson.D{{"_id", 3.14159}}),
 			},
 		}
 
@@ -2381,19 +2381,19 @@ func TestBypassEmptyTsReplacement(t *testing.T) {
 			expected bson.RawValue
 		}{
 			{
-				"empty",
-				options.BulkWrite(),
-				bson.RawValue{},
+				name:     "empty",
+				opts:     options.BulkWrite(),
+				expected: bson.RawValue{},
 			},
 			{
-				"false",
-				newOpts(bson.D{{"bypassEmptyTsReplacement", false}}),
-				marshalValue(false),
+				name:     "false",
+				opts:     newOpts(bson.D{{"bypassEmptyTsReplacement", false}}),
+				expected: marshalValue(false),
 			},
 			{
-				"true",
-				newOpts(bson.D{{"bypassEmptyTsReplacement", true}}),
-				marshalValue(true),
+				name:     "true",
+				opts:     newOpts(bson.D{{"bypassEmptyTsReplacement", true}}),
+				expected: marshalValue(true),
 			},
 		}
 		for _, m := range models {
