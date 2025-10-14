@@ -12,6 +12,7 @@ import (
 	"net"
 	"os"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -25,11 +26,11 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/internal/integtest"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
-	"go.mongodb.org/mongo-driver/v2/internal/test"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/version"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage"
@@ -457,7 +458,21 @@ func TestClient(t *testing.T) {
 		err := mt.Client.Ping(context.Background(), mtest.PrimaryRp)
 		assert.Nil(mt, err, "Ping error: %v", err)
 
-		want := test.EncodeClientMetadata(mt, test.WithClientMetadataAppName("foo"))
+		want := mustMarshalBSON(bson.D{
+			{Key: "driver", Value: bson.D{
+				{Key: "name", Value: "mongo-go-driver"},
+				{Key: "version", Value: version.Driver},
+			}},
+			{Key: "os", Value: bson.D{
+				{Key: "type", Value: runtime.GOOS},
+				{Key: "architecture", Value: runtime.GOARCH},
+			}},
+			{Key: "platform", Value: runtime.Version()},
+			{Key: "application", Value: bson.D{
+				bson.E{Key: "name", Value: "foo"},
+			}},
+		})
+
 		for i := 0; i < 2; i++ {
 			message := mt.GetProxyCapture().TryNext()
 			require.NotNil(mt, message, "expected handshake message, got nil")
