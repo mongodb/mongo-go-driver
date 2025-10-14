@@ -74,7 +74,6 @@ type T struct {
 	validTopologies   []TopologyKind
 	auth              *bool
 	enterprise        *bool
-	dataLake          *bool
 	ssl               *bool
 	collCreateOpts    *options.CreateCollectionOptionsBuilder
 	requireAPIVersion *bool
@@ -816,18 +815,23 @@ func verifyRunOnBlockConstraint(rob RunOnBlock) error {
 		return err
 	}
 
-	if rob.CSFLE != nil {
-		if *rob.CSFLE && !IsCSFLEEnabled() {
-			return fmt.Errorf("runOnBlock requires CSFLE to be enabled. Build with the cse tag to enable")
-		} else if !*rob.CSFLE && IsCSFLEEnabled() {
-			return fmt.Errorf("runOnBlock requires CSFLE to be disabled. Build without the cse tag to disable")
-		}
-		if *rob.CSFLE {
-			if err := verifyVersionConstraints("4.2", ""); err != nil {
-				return err
-			}
+	// TODO(GODRIVER-3486): Once auto encryption is supported by the unified test
+	// format,this check should be removed.
+	if rob.CSFLEEnabled() && rob.CSFLE.Options != nil {
+		return fmt.Errorf("Auto encryption required (GODRIVER-3486)")
+	}
+
+	if rob.CSFLEEnabled() && !IsCSFLEEnabled() {
+		return fmt.Errorf("runOnBlock requires CSFLE to be enabled. Build with the cse tag to enable")
+	} else if !rob.CSFLEEnabled() && IsCSFLEEnabled() {
+		return fmt.Errorf("runOnBlock requires CSFLE to be disabled. Build without the cse tag to disable")
+	}
+	if rob.CSFLEEnabled() {
+		if err := verifyVersionConstraints("4.2", ""); err != nil {
+			return err
 		}
 	}
+
 	return nil
 }
 
@@ -849,10 +853,6 @@ func (t *T) verifyConstraints() error {
 	if t.enterprise != nil && *t.enterprise != testContext.enterpriseServer {
 		return fmt.Errorf("test requires enterprise value: %v, cluster enterprise value: %v", *t.enterprise,
 			testContext.enterpriseServer)
-	}
-	if t.dataLake != nil && *t.dataLake != testContext.dataLake {
-		return fmt.Errorf("test requires cluster to be data lake: %v, cluster is data lake: %v", *t.dataLake,
-			testContext.dataLake)
 	}
 	if t.requireAPIVersion != nil && *t.requireAPIVersion != testContext.requireAPIVersion {
 		return fmt.Errorf("test requires RequireAPIVersion value: %v, local RequireAPIVersion value: %v", *t.requireAPIVersion,

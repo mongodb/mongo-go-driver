@@ -417,7 +417,7 @@ func TestErrorsCodeNamePropagated(t *testing.T) {
 }
 
 func TestClientBulkWriteProse(t *testing.T) {
-	mtOpts := mtest.NewOptions().MinServerVersion("8.0").AtlasDataLake(false).ClientType(mtest.Pinned)
+	mtOpts := mtest.NewOptions().MinServerVersion("8.0").ClientType(mtest.Pinned)
 	mt := mtest.New(t, mtOpts)
 
 	mt.Run("3. MongoClient.bulkWrite batch splits a writeModels input with greater than maxWriteBatchSize operations", func(mt *mtest.T) {
@@ -660,7 +660,7 @@ func TestClientBulkWriteProse(t *testing.T) {
 	})
 
 	mt.RunOpts("8. MongoClient.bulkWrite handles a cursor requiring getMore within a transaction",
-		mtest.NewOptions().MinServerVersion("8.0").AtlasDataLake(false).ClientType(mtest.Pinned).
+		mtest.NewOptions().MinServerVersion("8.0").ClientType(mtest.Pinned).
 			Topologies(mtest.ReplicaSet, mtest.Sharded, mtest.LoadBalanced, mtest.ShardedReplicaSet),
 		func(mt *mtest.T) {
 			var getMoreCalled int

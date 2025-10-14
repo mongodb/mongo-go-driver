@@ -36,7 +36,6 @@ var (
 		"server-discovery-and-monitoring/tests/unified",
 		"run-command/tests/unified",
 		"index-management/tests",
-		"atlas-data-lake-testing/tests/unified",
 		"mongodb-handshake/tests/unified",
 	}
 	failDirectories = []string{

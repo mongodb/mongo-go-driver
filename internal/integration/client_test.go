@@ -734,7 +734,7 @@ func TestClient(t *testing.T) {
 func TestClient_BulkWrite(t *testing.T) {
 	mt := mtest.New(t, noClientOpts)
 
-	mtBulkWriteOpts := mtest.NewOptions().MinServerVersion("8.0").AtlasDataLake(false).ClientType(mtest.Pinned)
+	mtBulkWriteOpts := mtest.NewOptions().MinServerVersion("8.0").ClientType(mtest.Pinned)
 	mt.RunOpts("bulk write with nil filter", mtBulkWriteOpts, func(mt *mtest.T) {
 		mt.Parallel()
 

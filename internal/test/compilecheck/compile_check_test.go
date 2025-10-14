@@ -19,12 +19,6 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 )
 
-// TODO(GODRIVER-3515): This module cannot be included in the workspace since it
-// requires a version of klauspost/compress that is not compatible with the Go
-// Driver. Must use GOWORK=off to run this test.
-
-// TODO(GODRIVER-3592): Add "1.25" to the list when Go 1.25 is released.
-// Estimated release date is August 2025.
 var versions = []string{
 	"1.19",
 	"1.20",
@@ -32,6 +26,7 @@ var versions = []string{
 	"1.22",
 	"1.23",
 	"1.24",
+	"1.25",
 }
 
 func TestCompileCheck(t *testing.T) {

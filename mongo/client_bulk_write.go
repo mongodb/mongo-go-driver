@@ -476,7 +476,11 @@ func (mb *modelBatches) processResponse(ctx context.Context, resp bsoncore.Docum
 		return err
 	}
 	var cursor *Cursor
-	cursor, err = newCursor(bCursor, mb.client.bsonOpts, mb.client.registry)
+	cursor, err = newCursor(bCursor, mb.client.bsonOpts, mb.client.registry,
+
+		// This op doesn't return a cursor to the user, so setting the client
+		// timeout should be a no-op.
+		withCursorOptionClientTimeout(mb.client.timeout))
 	if err != nil {
 		return err
 	}
