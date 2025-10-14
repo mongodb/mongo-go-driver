@@ -15,11 +15,12 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
-	"go.mongodb.org/mongo-driver/v2/internal/assert/assertbsoncore"
+	"go.mongodb.org/mongo-driver/v2/internal/assert/assertbson"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/version"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage"
 )
 
@@ -277,7 +278,9 @@ func TestHandshakeProse(t *testing.T) {
 			require.NotNil(mt, firstMessage, "expected to capture a proxied message")
 
 			assert.True(mt, firstMessage.IsHandshake(), "expected first message to be a handshake")
-			assertbsoncore.HandshakeClientMetadata(mt, tc.want, firstMessage.Sent.Command)
+
+			clientMetadata := clientMetadataFromHandshake(mt, firstMessage.Sent.Command)
+			assertbson.EqualDocument(mt, tc.want, clientMetadata)
 		})
 	}
 }
@@ -699,7 +702,8 @@ func TestHandshakeProse_AppendMetadata_Test1_Test2_Test3(t *testing.T) {
 			require.NotNil(mt, gotMessage, "expected to capture a proxied message")
 			assert.True(mt, gotMessage.IsHandshake(), "expected first message to be a handshake")
 
-			assertbsoncore.HandshakeClientMetadata(mt, tc.want, gotMessage.Sent.Command)
+			clientMetadata := clientMetadataFromHandshake(mt, gotMessage.Sent.Command)
+			assertbson.EqualDocument(mt, tc.want, clientMetadata)
 		})
 	}
 }
@@ -785,7 +789,8 @@ func TestHandshakeProse_AppendMetadata_MultipleUpdatesWithDuplicateFields(t *tes
 	require.NotNil(mt, updatedClientMetadata, "expected to capture a proxied message")
 	assert.True(mt, updatedClientMetadata.IsHandshake(), "expected first message to be a handshake")
 
-	assertbsoncore.HandshakeClientMetadata(mt, want, updatedClientMetadata.Sent.Command)
+	clientMetadata := clientMetadataFromHandshake(mt, updatedClientMetadata.Sent.Command)
+	assertbson.EqualDocument(mt, want, clientMetadata)
 }
 
 // Test 5: Metadata is not appended if identical to initial metadata
@@ -854,7 +859,9 @@ func TestHandshakeProse_AppendMetadata_NotAppendedIfIdentical(t *testing.T) {
 	require.NotNil(mt, updatedClientMetadata, "expected to capture a proxied message")
 	assert.True(mt, updatedClientMetadata.IsHandshake(), "expected first message to be a handshake")
 
-	assertbsoncore.HandshakeClientMetadata(mt, want, updatedClientMetadata.Sent.Command)
+	clientMetadata := clientMetadataFromHandshake(mt, updatedClientMetadata.Sent.Command)
+	assertbson.EqualDocument(mt, want, clientMetadata)
+
 }
 
 // Test 6: Metadata is not appended if identical to initial metadata (separated
@@ -944,7 +951,8 @@ func TestHandshakeProse_AppendMetadata_NotAppendedIfIdentical_NonSequential(t *t
 	require.NotNil(mt, updatedClientMetadata, "expected to capture a proxied message")
 	assert.True(mt, updatedClientMetadata.IsHandshake(), "expected first message to be a handshake")
 
-	assertbsoncore.HandshakeClientMetadata(mt, want, updatedClientMetadata.Sent.Command)
+	clientMetadata := clientMetadataFromHandshake(mt, updatedClientMetadata.Sent.Command)
+	assertbson.EqualDocument(mt, want, clientMetadata)
 }
 
 // Test 7: Empty strings are considered unset when appending duplicate metadata.
@@ -1085,7 +1093,8 @@ func TestHandshakeProse_AppendMetadata_EmptyStrings(t *testing.T) {
 			require.NotNil(mt, updatedClientMetadata, "expected to capture a proxied message")
 			assert.True(mt, updatedClientMetadata.IsHandshake(), "expected first message to be a handshake")
 
-			assertbsoncore.HandshakeClientMetadata(mt, tc.want, updatedClientMetadata.Sent.Command)
+			clientMetadata := clientMetadataFromHandshake(mt, updatedClientMetadata.Sent.Command)
+			assertbson.EqualDocument(mt, tc.want, clientMetadata)
 		})
 	}
 }
@@ -1227,11 +1236,13 @@ func TestHandshakeProse_AppendMetadata_EmptyStrings_InitializedClient(t *testing
 			assert.True(mt, updatedClientMetadata.IsHandshake(), "expected first message to be a handshake")
 
 			// 8. Assert that `initialClientMetadata` is identical to `updatedClientMetadata`.
-			assertbsoncore.HandshakeClientMetadata(mt, tc.want, updatedClientMetadata.Sent.Command)
+			clientMetadata := clientMetadataFromHandshake(mt, updatedClientMetadata.Sent.Command)
+			assertbson.EqualDocument(mt, tc.want, clientMetadata)
 		})
 	}
 }
 
+// mustMarshalBSON marshals a value to BSON. It panics if any error occurs.
 func mustMarshalBSON(val interface{}) []byte {
 	bytes, err := bson.Marshal(val)
 	if err != nil {
@@ -1239,4 +1250,18 @@ func mustMarshalBSON(val interface{}) []byte {
 	}
 
 	return bytes
+}
+
+// clientMetadataFromHandshake returns the BSON document from the "client" field
+// of the command document.
+func clientMetadataFromHandshake(mt *mtest.T, cmd bsoncore.Document) []byte {
+	mt.Helper()
+
+	client, err := cmd.LookupErr("client")
+	require.NoError(mt, err, "no client field in handshake command document")
+
+	clientDoc, ok := client.DocumentOK()
+	require.True(mt, ok, "the client field is not a BSON document")
+
+	return clientDoc
 }

@@ -20,7 +20,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
-	"go.mongodb.org/mongo-driver/v2/internal/assert/assertbsoncore"
+	"go.mongodb.org/mongo-driver/v2/internal/assert/assertbson"
 	"go.mongodb.org/mongo-driver/v2/internal/eventtest"
 	"go.mongodb.org/mongo-driver/v2/internal/failpoint"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
@@ -477,7 +477,8 @@ func TestClient(t *testing.T) {
 			message := mt.GetProxyCapture().TryNext()
 			require.NotNil(mt, message, "expected handshake message, got nil")
 
-			assertbsoncore.HandshakeClientMetadata(mt, want, message.Sent.Command)
+			clientMetadata := clientMetadataFromHandshake(mt, message.Sent.Command)
+			assertbson.EqualDocument(mt, want, clientMetadata)
 		}
 	})
 
@@ -1096,7 +1097,7 @@ func TestClient_BSONOptions(t *testing.T) {
 				got, err := sr.Raw()
 				require.NoError(mt, err, "Raw error")
 
-				assert.EqualBSON(mt, tc.wantRaw, got)
+				assertbson.EqualDocument(mt, tc.wantRaw, got)
 			}
 		})
 	}
