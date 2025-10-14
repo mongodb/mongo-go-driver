@@ -292,10 +292,12 @@ func NewAuthenticatorConfig(authenticator driver.Authenticator, clientOpts ...Au
 			ClusterClock:  clock,
 		}
 
-		if driverInfo := settings.driverInfo; driverInfo != nil && driverInfo.Load() != nil {
-			handshakeOpts.OuterLibraryName = driverInfo.Load().Name
-			handshakeOpts.OuterLibraryVersion = driverInfo.Load().Version
-			handshakeOpts.OuterLibraryPlatform = driverInfo.Load().Platform
+		if settings.driverInfo != nil {
+			if di := settings.driverInfo.Load(); di != nil {
+				handshakeOpts.OuterLibraryName = di.Name
+				handshakeOpts.OuterLibraryVersion = di.Version
+				handshakeOpts.OuterLibraryPlatform = di.Platform
+			}
 		}
 
 		if opts.Auth.AuthMechanism == "" {
@@ -317,22 +319,22 @@ func NewAuthenticatorConfig(authenticator driver.Authenticator, clientOpts ...Au
 
 	} else {
 		handshaker = func(driver.Handshaker) driver.Handshaker {
-			var outerLibraryName, outerLibraryVersion, outerLibraryPlatform string
-			if driverInfo := settings.driverInfo; driverInfo != nil && driverInfo.Load() != nil {
-				outerLibraryName = driverInfo.Load().Name
-				outerLibraryVersion = driverInfo.Load().Version
-				outerLibraryPlatform = driverInfo.Load().Platform
-			}
-
-			return operation.NewHello().
+			op := operation.NewHello().
 				AppName(appName).
 				Compressors(comps).
 				ClusterClock(clock).
 				ServerAPI(serverAPI).
-				LoadBalanced(loadBalanced).
-				OuterLibraryName(outerLibraryName).
-				OuterLibraryVersion(outerLibraryVersion).
-				OuterLibraryPlatform(outerLibraryPlatform)
+				LoadBalanced(loadBalanced)
+
+			if settings.driverInfo != nil {
+				if di := settings.driverInfo.Load(); di != nil {
+					op = op.OuterLibraryName(di.Name).
+						OuterLibraryVersion(di.Version).
+						OuterLibraryPlatform(di.Platform)
+				}
+			}
+
+			return op
 		}
 	}
 
