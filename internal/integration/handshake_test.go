@@ -732,7 +732,7 @@ func TestHandshakeProse_AppendMetadata_MultipleUpdatesWithDuplicateFields(t *tes
 	require.NoError(mt, err, "Ping error: %v", err)
 
 	// 4. Wait 5ms for the connection to become idle.
-	time.Sleep(5 * time.Millisecond)
+	time.Sleep(20 * time.Millisecond)
 
 	// 5. Append new driver info.
 	mt.Client.AppendDriverInfo(options.DriverInfo{
@@ -749,13 +749,25 @@ func TestHandshakeProse_AppendMetadata_MultipleUpdatesWithDuplicateFields(t *tes
 	require.NoError(mt, err, "Ping error: %v", err)
 
 	// 7. Save intercepted `client` document as `clientMetadata`.
-	clientMetadata := mt.GetProxyCapture().TryNext()
-
-	require.NotNil(mt, clientMetadata, "expected to capture a proxied message")
-	assert.True(mt, clientMetadata.IsHandshake(), "expected first message to be a handshake")
+	//
+	// NOTE: The Go Driver statically defineds the expected client
+	// metadata value to make the tests more reliable and prevent
+	// false-positive assertion results. That deviates from the prose
+	// test.
+	want := mustMarshalBSON(bson.D{
+		{Key: "driver", Value: bson.D{
+			{Key: "name", Value: "mongo-go-driver|library|framework"},
+			{Key: "version", Value: version.Driver + "|1.2|2.0"},
+		}},
+		{Key: "os", Value: bson.D{
+			{Key: "type", Value: runtime.GOOS},
+			{Key: "architecture", Value: runtime.GOARCH},
+		}},
+		{Key: "platform", Value: runtime.Version() + "|Library Platform|Framework Platform"},
+	})
 
 	// 8. Wait 5ms for the connection to become idle.
-	time.Sleep(5 * time.Millisecond)
+	time.Sleep(20 * time.Millisecond)
 
 	// Drain the proxy to ensure we only capture messages after appending.
 	mt.GetProxyCapture().Drain()
@@ -773,7 +785,7 @@ func TestHandshakeProse_AppendMetadata_MultipleUpdatesWithDuplicateFields(t *tes
 	require.NotNil(mt, updatedClientMetadata, "expected to capture a proxied message")
 	assert.True(mt, updatedClientMetadata.IsHandshake(), "expected first message to be a handshake")
 
-	assertbsoncore.HandshakeClientMetadata(mt, clientMetadata.Sent.Command, updatedClientMetadata.Sent.Command)
+	assertbsoncore.HandshakeClientMetadata(mt, want, updatedClientMetadata.Sent.Command)
 }
 
 // Test 5: Metadata is not appended if identical to initial metadata
@@ -804,12 +816,24 @@ func TestHandshakeProse_AppendMetadata_NotAppendedIfIdentical(t *testing.T) {
 	err := mt.Client.Ping(context.Background(), nil)
 	require.NoError(mt, err, "Ping error: %v", err)
 
-	clientMetadata := mt.GetProxyCapture().TryNext()
-	require.NotNil(mt, clientMetadata, "expected to capture a proxied message")
-	assert.True(mt, clientMetadata.IsHandshake(), "expected first message to be a handshake")
+	// NOTE: The Go Driver statically defineds the expected client
+	// metadata value to make the tests more reliable and prevent
+	// false-positive assertion results. That deviates from the prose
+	// test.
+	want := mustMarshalBSON(bson.D{
+		{Key: "driver", Value: bson.D{
+			{Key: "name", Value: "mongo-go-driver|library"},
+			{Key: "version", Value: version.Driver + "|1.2"},
+		}},
+		{Key: "os", Value: bson.D{
+			{Key: "type", Value: runtime.GOOS},
+			{Key: "architecture", Value: runtime.GOARCH},
+		}},
+		{Key: "platform", Value: runtime.Version() + "|Library Platform"},
+	})
 
 	// 3. Wait 5ms for the connection to become idle.
-	time.Sleep(5 * time.Millisecond)
+	time.Sleep(20 * time.Millisecond)
 
 	// 5. Append new driver info.
 	mt.Client.AppendDriverInfo(options.DriverInfo{
@@ -830,7 +854,7 @@ func TestHandshakeProse_AppendMetadata_NotAppendedIfIdentical(t *testing.T) {
 	require.NotNil(mt, updatedClientMetadata, "expected to capture a proxied message")
 	assert.True(mt, updatedClientMetadata.IsHandshake(), "expected first message to be a handshake")
 
-	assertbsoncore.HandshakeClientMetadata(mt, clientMetadata.Sent.Command, updatedClientMetadata.Sent.Command)
+	assertbsoncore.HandshakeClientMetadata(mt, want, updatedClientMetadata.Sent.Command)
 }
 
 // Test 6: Metadata is not appended if identical to initial metadata (separated
@@ -863,7 +887,7 @@ func TestHandshakeProse_AppendMetadata_NotAppendedIfIdentical_NonSequential(t *t
 	require.NoError(mt, err, "Ping error: %v", err)
 
 	// 3. Wait 5ms for the connection to become idle.
-	time.Sleep(5 * time.Millisecond)
+	time.Sleep(20 * time.Millisecond)
 
 	// 4. Append new driver info.
 	mt.Client.AppendDriverInfo(options.DriverInfo{
@@ -880,12 +904,25 @@ func TestHandshakeProse_AppendMetadata_NotAppendedIfIdentical_NonSequential(t *t
 	require.NoError(mt, err, "Ping error: %v", err)
 
 	// 6. Save intercepted `client` document as `clientMetadata`.
-	clientMetadata := mt.GetProxyCapture().TryNext()
-	require.NotNil(mt, clientMetadata, "expected to capture a proxied message")
-	assert.True(mt, clientMetadata.IsHandshake(), "expected first message to be a handshake")
+	//
+	// NOTE: The Go Driver statically defineds the expected client
+	// metadata value to make the tests more reliable and prevent
+	// false-positive assertion results. That deviates from the prose
+	// test.
+	want := mustMarshalBSON(bson.D{
+		{Key: "driver", Value: bson.D{
+			{Key: "name", Value: "mongo-go-driver|library|framework"},
+			{Key: "version", Value: version.Driver + "|1.2"},
+		}},
+		{Key: "os", Value: bson.D{
+			{Key: "type", Value: runtime.GOOS},
+			{Key: "architecture", Value: runtime.GOARCH},
+		}},
+		{Key: "platform", Value: runtime.Version() + "|Library Platform|Framework Platform"},
+	})
 
 	// 7. Wait 5ms for the connection to become idle.
-	time.Sleep(5 * time.Millisecond)
+	time.Sleep(20 * time.Millisecond)
 
 	// 8. Append new driver info.
 	mt.Client.AppendDriverInfo(options.DriverInfo{
@@ -907,7 +944,7 @@ func TestHandshakeProse_AppendMetadata_NotAppendedIfIdentical_NonSequential(t *t
 	require.NotNil(mt, updatedClientMetadata, "expected to capture a proxied message")
 	assert.True(mt, updatedClientMetadata.IsHandshake(), "expected first message to be a handshake")
 
-	assertbsoncore.HandshakeClientMetadata(mt, clientMetadata.Sent.Command, updatedClientMetadata.Sent.Command)
+	assertbsoncore.HandshakeClientMetadata(mt, want, updatedClientMetadata.Sent.Command)
 }
 
 // Test 7: Empty strings are considered unset when appending duplicate metadata.
@@ -918,6 +955,7 @@ func TestHandshakeProse_AppendMetadata_EmptyStrings(t *testing.T) {
 		name               string
 		initialDriverInfo  options.DriverInfo
 		toAppendDriverInfo options.DriverInfo
+		want               []byte
 	}{
 		{
 			name: "name empty",
@@ -931,6 +969,17 @@ func TestHandshakeProse_AppendMetadata_EmptyStrings(t *testing.T) {
 				Version:  "1.2",
 				Platform: "Library Platform",
 			},
+			want: mustMarshalBSON(bson.D{
+				{Key: "driver", Value: bson.D{
+					{Key: "name", Value: "mongo-go-driver"},
+					{Key: "version", Value: version.Driver + "|1.2"},
+				}},
+				{Key: "os", Value: bson.D{
+					{Key: "type", Value: runtime.GOOS},
+					{Key: "architecture", Value: runtime.GOARCH},
+				}},
+				{Key: "platform", Value: runtime.Version() + "|Library Platform"},
+			}),
 		},
 		{
 			name: "version empty",
@@ -944,6 +993,17 @@ func TestHandshakeProse_AppendMetadata_EmptyStrings(t *testing.T) {
 				Version:  "",
 				Platform: "Library Platform",
 			},
+			want: mustMarshalBSON(bson.D{
+				{Key: "driver", Value: bson.D{
+					{Key: "name", Value: "mongo-go-driver|library"},
+					{Key: "version", Value: version.Driver},
+				}},
+				{Key: "os", Value: bson.D{
+					{Key: "type", Value: runtime.GOOS},
+					{Key: "architecture", Value: runtime.GOARCH},
+				}},
+				{Key: "platform", Value: runtime.Version() + "|Library Platform"},
+			}),
 		},
 		{
 			name: "platform empty",
@@ -957,6 +1017,17 @@ func TestHandshakeProse_AppendMetadata_EmptyStrings(t *testing.T) {
 				Version:  "1.2",
 				Platform: "",
 			},
+			want: mustMarshalBSON(bson.D{
+				{Key: "driver", Value: bson.D{
+					{Key: "name", Value: "mongo-go-driver|library"},
+					{Key: "version", Value: version.Driver + "|1.2"},
+				}},
+				{Key: "os", Value: bson.D{
+					{Key: "type", Value: runtime.GOOS},
+					{Key: "architecture", Value: runtime.GOARCH},
+				}},
+				{Key: "platform", Value: runtime.Version()},
+			}),
 		},
 	}
 
@@ -985,10 +1056,14 @@ func TestHandshakeProse_AppendMetadata_EmptyStrings(t *testing.T) {
 			require.NoError(mt, err, "Ping error: %v", err)
 
 			// 4. Save intercepted `client` document as `initialClientMetadata`.
-			initialClientMetadata := mt.GetProxyCapture().TryNext()
-
-			require.NotNil(mt, initialClientMetadata, "expected to capture a proxied message")
-			assert.True(mt, initialClientMetadata.IsHandshake(), "expected first message to be a handshake")
+			//
+			// NOTE: The Go Driver statically defineds the expected client
+			// metadata value to make the tests more reliable and prevent
+			// false-positive assertion results. That deviates from the prose
+			// test.
+			//
+			// See the "want" field in each test case for the expected client
+			// metadata value.
 
 			// 5. Wait 5ms for the connection to become idle.
 			time.Sleep(20 * time.Millisecond)
@@ -1010,8 +1085,7 @@ func TestHandshakeProse_AppendMetadata_EmptyStrings(t *testing.T) {
 			require.NotNil(mt, updatedClientMetadata, "expected to capture a proxied message")
 			assert.True(mt, updatedClientMetadata.IsHandshake(), "expected first message to be a handshake")
 
-			assertbsoncore.HandshakeClientMetadata(mt, initialClientMetadata.Sent.Command,
-				updatedClientMetadata.Sent.Command)
+			assertbsoncore.HandshakeClientMetadata(mt, tc.want, updatedClientMetadata.Sent.Command)
 		})
 	}
 }
@@ -1025,6 +1099,7 @@ func TestHandshakeProse_AppendMetadata_EmptyStrings_InitializedClient(t *testing
 		name               string
 		initialDriverInfo  options.DriverInfo
 		toAppendDriverInfo options.DriverInfo
+		want               []byte
 	}{
 		{
 			name: "name empty",
@@ -1038,6 +1113,17 @@ func TestHandshakeProse_AppendMetadata_EmptyStrings_InitializedClient(t *testing
 				Version:  "1.2",
 				Platform: "Library Platform",
 			},
+			want: mustMarshalBSON(bson.D{
+				{Key: "driver", Value: bson.D{
+					{Key: "name", Value: "mongo-go-driver"},
+					{Key: "version", Value: version.Driver + "|1.2"},
+				}},
+				{Key: "os", Value: bson.D{
+					{Key: "type", Value: runtime.GOOS},
+					{Key: "architecture", Value: runtime.GOARCH},
+				}},
+				{Key: "platform", Value: runtime.Version() + "|Library Platform"},
+			}),
 		},
 		{
 			name: "version empty",
@@ -1051,6 +1137,17 @@ func TestHandshakeProse_AppendMetadata_EmptyStrings_InitializedClient(t *testing
 				Version:  "",
 				Platform: "Library Platform",
 			},
+			want: mustMarshalBSON(bson.D{
+				{Key: "driver", Value: bson.D{
+					{Key: "name", Value: "mongo-go-driver|library"},
+					{Key: "version", Value: version.Driver},
+				}},
+				{Key: "os", Value: bson.D{
+					{Key: "type", Value: runtime.GOOS},
+					{Key: "architecture", Value: runtime.GOARCH},
+				}},
+				{Key: "platform", Value: runtime.Version() + "|Library Platform"},
+			}),
 		},
 		{
 			name: "platform empty",
@@ -1064,6 +1161,17 @@ func TestHandshakeProse_AppendMetadata_EmptyStrings_InitializedClient(t *testing
 				Version:  "1.2",
 				Platform: "",
 			},
+			want: mustMarshalBSON(bson.D{
+				{Key: "driver", Value: bson.D{
+					{Key: "name", Value: "mongo-go-driver|library"},
+					{Key: "version", Value: version.Driver + "|1.2"},
+				}},
+				{Key: "os", Value: bson.D{
+					{Key: "type", Value: runtime.GOOS},
+					{Key: "architecture", Value: runtime.GOARCH},
+				}},
+				{Key: "platform", Value: runtime.Version()},
+			}),
 		},
 	}
 
@@ -1089,10 +1197,14 @@ func TestHandshakeProse_AppendMetadata_EmptyStrings_InitializedClient(t *testing
 			require.NoError(mt, err, "Ping error: %v", err)
 
 			// 3. Save intercepted `client` document as `initialClientMetadata`.
-			initialClientMetadata := mt.GetProxyCapture().TryNext()
-
-			require.NotNil(mt, initialClientMetadata, "expected to capture a proxied message")
-			assert.True(mt, initialClientMetadata.IsHandshake(), "expected first message to be a handshake")
+			//
+			// NOTE: The Go Driver statically defineds the expected client
+			// metadata value to make the tests more reliable and prevent
+			// false-positive assertion results. That deviates from the prose
+			// test.
+			//
+			// See the "want" field in each test case for the expected client
+			// metadata value.
 
 			// 4. Wait 5ms for the connection to become idle.
 			time.Sleep(20 * time.Millisecond)
@@ -1115,8 +1227,7 @@ func TestHandshakeProse_AppendMetadata_EmptyStrings_InitializedClient(t *testing
 			assert.True(mt, updatedClientMetadata.IsHandshake(), "expected first message to be a handshake")
 
 			// 8. Assert that `initialClientMetadata` is identical to `updatedClientMetadata`.
-			assertbsoncore.HandshakeClientMetadata(mt, initialClientMetadata.Sent.Command,
-				updatedClientMetadata.Sent.Command)
+			assertbsoncore.HandshakeClientMetadata(mt, tc.want, updatedClientMetadata.Sent.Command)
 		})
 	}
 }
