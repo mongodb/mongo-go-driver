@@ -32,6 +32,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/xoptions"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -838,9 +839,94 @@ func TestClient_BulkWrite(t *testing.T) {
 		}
 
 		_, err := mt.Client.BulkWrite(context.Background(), writes)
-		require.NoError(t, err)
-		assert.Equal(t, 2, bulkWrites, "expected %d bulkWrites, got %d", 2, bulkWrites)
+		require.NoError(mt, err)
+		assert.Equal(mt, 2, bulkWrites, "expected %d bulkWrites, got %d", 2, bulkWrites)
 	})
+}
+
+func TestClient_BulkWrite_AddCommandFields(t *testing.T) {
+	newOpts := func(option bson.D) *options.ClientBulkWriteOptionsBuilder {
+		opts := options.ClientBulkWrite()
+		err := xoptions.SetInternalClientBulkWriteOptions(opts, "addCommandFields", option)
+		require.NoError(t, err, "unexpected error: %v", err)
+		return opts
+	}
+
+	marshalValue := func(val interface{}) bson.RawValue {
+		t.Helper()
+
+		valType, data, err := bson.MarshalValue(val)
+		require.NoError(t, err, "MarshalValue error: %v", err)
+		return bson.RawValue{
+			Type:  valType,
+			Value: data,
+		}
+	}
+
+	models := []struct {
+		name  string
+		model mongo.ClientWriteModel
+	}{
+		{
+			name:  "insert one",
+			model: mongo.NewClientInsertOneModel().SetDocument(bson.D{{"x", 1}}),
+		},
+		{
+			name:  "update one",
+			model: mongo.NewClientUpdateOneModel().SetFilter(bson.D{{"x", 1}}).SetUpdate(bson.D{{"$set", bson.D{{"x", 3.14159}}}}),
+		},
+		{
+			name:  "update many",
+			model: mongo.NewClientUpdateManyModel().SetFilter(bson.D{{"x", 1}}).SetUpdate(bson.D{{"$set", bson.D{{"x", 3.14159}}}}),
+		},
+		{
+			name:  "replace one",
+			model: mongo.NewClientReplaceOneModel().SetFilter(bson.D{{"x", 1}}).SetReplacement(bson.D{{"x", 3.14159}}),
+		},
+	}
+
+	testCases := []struct {
+		name     string
+		opts     *options.ClientBulkWriteOptionsBuilder
+		expected bson.RawValue
+	}{
+		{
+			name:     "empty",
+			opts:     options.ClientBulkWrite(),
+			expected: bson.RawValue{},
+		},
+		{
+			name:     "false",
+			opts:     newOpts(bson.D{{"bypassEmptyTsReplacement", false}}),
+			expected: marshalValue(false),
+		},
+		{
+			name:     "true",
+			opts:     newOpts(bson.D{{"bypassEmptyTsReplacement", true}}),
+			expected: marshalValue(true),
+		},
+	}
+
+	mtBulkWriteOpts := mtest.NewOptions().MinServerVersion("8.0").ClientType(mtest.Pinned)
+	mt := mtest.New(t, noClientOpts)
+	for _, m := range models {
+		for _, tc := range testCases {
+			mt.RunOpts(fmt.Sprintf("%s %s", m.name, tc.name), mtBulkWriteOpts, func(mt *mtest.T) {
+				mt.Parallel()
+
+				writes := []mongo.ClientBulkWrite{{
+					Database:   "foo",
+					Collection: "bar",
+					Model:      m.model,
+				}}
+				_, err := mt.Client.BulkWrite(context.Background(), writes, tc.opts)
+				require.NoError(mt, err, "BulkWrite error: %v", err)
+				evt := mt.GetStartedEvent()
+				val := evt.Command.Lookup("bypassEmptyTsReplacement")
+				assert.Equal(mt, tc.expected, val, "expected bypassEmptyTsReplacement to be %s", tc.expected.String())
+			})
+		}
+	}
 }
 
 func TestClient_BSONOptions(t *testing.T) {
