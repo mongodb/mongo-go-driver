@@ -131,14 +131,8 @@ func TestDocumentationExamples(t *testing.T) {
 		docexamples.ChangeStreamExamples(mt.T, csdb)
 	})
 
-	// Causal consistency examples cannot run on 4.0.
-	// TODO(GODRIVER-2238): Remove version filtering once failures on 4.0 sharded clusters are fixed.
-	mtOpts = mtest.NewOptions().MinServerVersion("4.2").Topologies(mtest.ReplicaSet)
-	mt.RunOpts("CausalConsistencyExamples/post4.2", mtOpts, func(mt *mtest.T) {
-		docexamples.CausalConsistencyExamples(mt.Client)
-	})
-	mtOpts = mtest.NewOptions().MaxServerVersion("4.0").Topologies(mtest.ReplicaSet)
-	mt.RunOpts("CausalConsistencyExamples/pre4.0", mtOpts, func(mt *mtest.T) {
+	mtOpts = mtest.NewOptions().Topologies(mtest.ReplicaSet)
+	mt.RunOpts("CausalConsistencyExamples", mtOpts, func(mt *mtest.T) {
 		docexamples.CausalConsistencyExamples(mt.Client)
 	})
 }

@@ -135,7 +135,7 @@ func (cso *ChangeStreamOptionsBuilder) SetShowExpandedEvents(see bool) *ChangeSt
 }
 
 // SetStartAtOperationTime sets the value for the StartAtOperationTime field. If specified, the change stream
-// will only return changes that occurred at or after the given timestamp. This MongoDB versions >= 4.0.
+// will only return changes that occurred at or after the given timestamp.
 // If this is specified, ResumeAfter and StartAfter must not be set.
 func (cso *ChangeStreamOptionsBuilder) SetStartAtOperationTime(t *bson.Timestamp) *ChangeStreamOptionsBuilder {
 	cso.Opts = append(cso.Opts, func(opts *ChangeStreamOptions) error {
