@@ -188,6 +188,7 @@ func NewAuthenticatorConfig(authenticator driver.Authenticator, clientOpts ...Au
 
 	opts := settings.opts
 	clock := settings.clock
+	driverInfo := settings.driverInfo
 
 	var serverAPI *driver.ServerAPIOptions
 
@@ -242,8 +243,8 @@ func NewAuthenticatorConfig(authenticator driver.Authenticator, clientOpts ...Au
 		}))
 	}
 
-	if settings.driverInfo != nil {
-		serverOpts = append(serverOpts, WithDriverInfo(settings.driverInfo))
+	if driverInfo != nil {
+		serverOpts = append(serverOpts, WithDriverInfo(driverInfo))
 	}
 
 	// Compressors & ZlibLevel
@@ -283,37 +284,38 @@ func NewAuthenticatorConfig(authenticator driver.Authenticator, clientOpts ...Au
 	// Handshaker
 	var handshaker func(driver.Handshaker) driver.Handshaker
 	if authenticator != nil {
-		handshakeOpts := &auth.HandshakeOptions{
-			AppName:       appName,
-			Authenticator: authenticator,
-			Compressors:   comps,
-			ServerAPI:     serverAPI,
-			LoadBalanced:  loadBalanced,
-			ClusterClock:  clock,
-		}
-
-		if settings.driverInfo != nil {
-			if di := settings.driverInfo.Load(); di != nil {
-				handshakeOpts.OuterLibraryName = di.Name
-				handshakeOpts.OuterLibraryVersion = di.Version
-				handshakeOpts.OuterLibraryPlatform = di.Platform
+		handshaker = func(driver.Handshaker) driver.Handshaker {
+			handshakeOpts := &auth.HandshakeOptions{
+				AppName:       appName,
+				Authenticator: authenticator,
+				Compressors:   comps,
+				ServerAPI:     serverAPI,
+				LoadBalanced:  loadBalanced,
+				ClusterClock:  clock,
 			}
-		}
 
-		if opts.Auth.AuthMechanism == "" {
-			// Required for SASL mechanism negotiation during handshake
-			handshakeOpts.DBUser = opts.Auth.AuthSource + "." + opts.Auth.Username
-		}
-		if a := optionsutil.Value(opts.Custom, "authenticateToAnything"); a != nil {
-			if v, ok := a.(bool); ok && v {
-				// Authenticate arbiters
-				handshakeOpts.PerformAuthentication = func(_ description.Server) bool {
-					return true
+			if opts.Auth.AuthMechanism == "" {
+				// Required for SASL mechanism negotiation during handshake
+				handshakeOpts.DBUser = opts.Auth.AuthSource + "." + opts.Auth.Username
+			}
+
+			if a := optionsutil.Value(opts.Custom, "authenticateToAnything"); a != nil {
+				if v, ok := a.(bool); ok && v {
+					// Authenticate arbiters
+					handshakeOpts.PerformAuthentication = func(_ description.Server) bool {
+						return true
+					}
 				}
 			}
-		}
 
-		handshaker = func(driver.Handshaker) driver.Handshaker {
+			if driverInfo != nil {
+				if di := driverInfo.Load(); di != nil {
+					handshakeOpts.OuterLibraryName = di.Name
+					handshakeOpts.OuterLibraryVersion = di.Version
+					handshakeOpts.OuterLibraryPlatform = di.Platform
+				}
+			}
+
 			return auth.Handshaker(nil, handshakeOpts)
 		}
 
@@ -326,8 +328,8 @@ func NewAuthenticatorConfig(authenticator driver.Authenticator, clientOpts ...Au
 				ServerAPI(serverAPI).
 				LoadBalanced(loadBalanced)
 
-			if settings.driverInfo != nil {
-				if di := settings.driverInfo.Load(); di != nil {
+			if driverInfo != nil {
+				if di := driverInfo.Load(); di != nil {
 					op = op.OuterLibraryName(di.Name).
 						OuterLibraryVersion(di.Version).
 						OuterLibraryPlatform(di.Platform)
