@@ -460,6 +460,9 @@ func TestClient(t *testing.T) {
 		assert.Nil(mt, err, "Ping error: %v", err)
 
 		want := mustMarshalBSON(bson.D{
+			{Key: "application", Value: bson.D{
+				bson.E{Key: "name", Value: "foo"},
+			}},
 			{Key: "driver", Value: bson.D{
 				{Key: "name", Value: "mongo-go-driver"},
 				{Key: "version", Value: version.Driver},
@@ -469,9 +472,6 @@ func TestClient(t *testing.T) {
 				{Key: "architecture", Value: runtime.GOARCH},
 			}},
 			{Key: "platform", Value: runtime.Version()},
-			{Key: "application", Value: bson.D{
-				bson.E{Key: "name", Value: "foo"},
-			}},
 		})
 
 		for i := 0; i < 2; i++ {
