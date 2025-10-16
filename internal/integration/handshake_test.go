@@ -16,6 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/assert/assertbson"
+	"go.mongodb.org/mongo-driver/v2/internal/handshake"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -261,6 +262,8 @@ func TestHandshakeProse(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
+		tc := tc // Avoid implicit memory aliasing in for loop.
+
 		mt.RunOpts(tc.name, opts, func(mt *mtest.T) {
 			for k, v := range tc.env {
 				mt.Setenv(k, v)
@@ -301,7 +304,7 @@ func TestLoadBalancedConnectionHandshake(t *testing.T) {
 
 		// Per the specifications, if loadBalanced=true, drivers MUST use the hello
 		// command for the initial handshake and use the OP_MSG protocol.
-		assert.True(mt, firstMessage.IsHandshake(), "expected first message to be a handshake")
+		assert.Equal(mt, "hello", firstMessage.CommandName)
 		assert.Equal(mt, wiremessage.OpMsg, firstMessage.Sent.OpCode)
 	})
 
@@ -320,13 +323,17 @@ func TestLoadBalancedConnectionHandshake(t *testing.T) {
 		require.NotNil(mt, firstMessage, "expected to capture a proxied message")
 
 		want := wiremessage.OpQuery
+
+		hello := handshake.LegacyHello
 		if os.Getenv("REQUIRE_API_VERSION") == "true" {
+			hello = "hello"
+
 			// If the server API version is requested, then we should use OP_MSG
 			// regardless of the topology
 			want = wiremessage.OpMsg
 		}
 
-		assert.True(mt, firstMessage.IsHandshake(), "expected first message to be a handshake")
+		assert.Equal(mt, hello, firstMessage, "expected first message to be a handshake")
 		assert.Equal(mt, want, firstMessage.Sent.OpCode)
 	})
 }
@@ -655,6 +662,8 @@ func TestHandshakeProse_AppendMetadata_Test1_Test2_Test3(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
+		tc := tc // Avoid implicit memory aliasing in for loop.
+
 		// Create a top-level client that can be shared among sub-tests. This is
 		// necessary to test appending driver info to an existing client.
 		opts := mtest.NewOptions().CreateClient(false).ClientType(mtest.Proxy)
@@ -686,7 +695,7 @@ func TestHandshakeProse_AppendMetadata_Test1_Test2_Test3(t *testing.T) {
 			assert.True(mt, initialClientMetadata.IsHandshake(), "expected first message to be a handshake")
 
 			// Wait 5ms for the connection to become idle.
-			time.Sleep(20 * time.Millisecond)
+			time.Sleep(5 * time.Millisecond)
 
 			mt.Client.AppendDriverInfo(tc.driverInfo)
 
@@ -736,7 +745,7 @@ func TestHandshakeProse_AppendMetadata_MultipleUpdatesWithDuplicateFields(t *tes
 	require.NoError(mt, err, "Ping error: %v", err)
 
 	// 4. Wait 5ms for the connection to become idle.
-	time.Sleep(20 * time.Millisecond)
+	time.Sleep(5 * time.Millisecond)
 
 	// 5. Append new driver info.
 	mt.Client.AppendDriverInfo(options.DriverInfo{
@@ -771,7 +780,7 @@ func TestHandshakeProse_AppendMetadata_MultipleUpdatesWithDuplicateFields(t *tes
 	})
 
 	// 8. Wait 5ms for the connection to become idle.
-	time.Sleep(20 * time.Millisecond)
+	time.Sleep(5 * time.Millisecond)
 
 	// Drain the proxy to ensure we only capture messages after appending.
 	mt.GetProxyCapture().Drain()
@@ -838,7 +847,7 @@ func TestHandshakeProse_AppendMetadata_NotAppendedIfIdentical(t *testing.T) {
 	})
 
 	// 3. Wait 5ms for the connection to become idle.
-	time.Sleep(20 * time.Millisecond)
+	time.Sleep(5 * time.Millisecond)
 
 	// 5. Append new driver info.
 	mt.Client.AppendDriverInfo(options.DriverInfo{
@@ -894,7 +903,7 @@ func TestHandshakeProse_AppendMetadata_NotAppendedIfIdentical_NonSequential(t *t
 	require.NoError(mt, err, "Ping error: %v", err)
 
 	// 3. Wait 5ms for the connection to become idle.
-	time.Sleep(20 * time.Millisecond)
+	time.Sleep(5 * time.Millisecond)
 
 	// 4. Append new driver info.
 	mt.Client.AppendDriverInfo(options.DriverInfo{
@@ -929,7 +938,7 @@ func TestHandshakeProse_AppendMetadata_NotAppendedIfIdentical_NonSequential(t *t
 	})
 
 	// 7. Wait 5ms for the connection to become idle.
-	time.Sleep(20 * time.Millisecond)
+	time.Sleep(5 * time.Millisecond)
 
 	// 8. Append new driver info.
 	mt.Client.AppendDriverInfo(options.DriverInfo{
@@ -1040,6 +1049,8 @@ func TestHandshakeProse_AppendMetadata_EmptyStrings(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
+		tc := tc // Avoid implicit memory aliasing in for loop.
+
 		// Create a top-level client that can be shared among sub-tests. This is
 		// necessary to test appending driver info to an existing client.
 		opts := mtest.NewOptions().CreateClient(false).ClientType(mtest.Proxy)
@@ -1074,7 +1085,7 @@ func TestHandshakeProse_AppendMetadata_EmptyStrings(t *testing.T) {
 			// metadata value.
 
 			// 5. Wait 5ms for the connection to become idle.
-			time.Sleep(20 * time.Millisecond)
+			time.Sleep(5 * time.Millisecond)
 
 			// 6. Append the `DriverInfoOptions` from the selected test case from
 			// the appended metadata section.
@@ -1216,7 +1227,7 @@ func TestHandshakeProse_AppendMetadata_EmptyStrings_InitializedClient(t *testing
 			// metadata value.
 
 			// 4. Wait 5ms for the connection to become idle.
-			time.Sleep(20 * time.Millisecond)
+			time.Sleep(5 * time.Millisecond)
 
 			// 5. Append the `DriverInfoOptions` from the selected test case from
 			// the appended metadata section.
