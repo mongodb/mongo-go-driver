@@ -201,16 +201,6 @@ func (op *Options) CreateCollection(create bool) *Options {
 	return op
 }
 
-// ShareClient specifies whether or not a test should pass its client down to sub-tests. This should be set when calling
-// New() if the inheriting behavior is desired. This option must not be used if the test accesses command monitoring
-// events.
-func (op *Options) ShareClient(share bool) *Options {
-	op.optFuncs = append(op.optFuncs, func(t *T) {
-		t.shareClient = &share
-	})
-	return op
-}
-
 // CollectionName specifies the name for the collection for the test.
 func (op *Options) CollectionName(collName string) *Options {
 	op.optFuncs = append(op.optFuncs, func(t *T) {
