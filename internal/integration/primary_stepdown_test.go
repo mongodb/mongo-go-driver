@@ -55,25 +55,16 @@ func TestConnectionsSurvivePrimaryStepDown(t *testing.T) {
 	})
 	mt.RunOpts("server errors", noClientOpts, func(mt *mtest.T) {
 		testCases := []struct {
-			name                   string
-			minVersion, maxVersion string
-			errCode                int32
-			poolCleared            bool
+			name        string
+			errCode     int32
+			poolCleared bool
 		}{
-			{"notPrimary keep pool", "4.2", "", errorNotPrimary, false},
-			{"notPrimary reset pool", "4.0", "4.0", errorNotPrimary, true},
-			{"shutdown in progress reset pool", "4.0", "", errorShutdownInProgress, true},
-			{"interrupted at shutdown reset pool", "4.0", "", errorInterruptedAtShutdown, true},
+			{"notPrimary keep pool", errorNotPrimary, false},
+			{"shutdown in progress reset pool", errorShutdownInProgress, true},
+			{"interrupted at shutdown reset pool", errorInterruptedAtShutdown, true},
 		}
 		for _, tc := range testCases {
-			opts := mtest.NewOptions()
-			if tc.minVersion != "" {
-				opts.MinServerVersion(tc.minVersion)
-			}
-			if tc.maxVersion != "" {
-				opts.MaxServerVersion(tc.maxVersion)
-			}
-			mt.RunOpts(tc.name, opts, func(mt *mtest.T) {
+			mt.Run(tc.name, func(mt *mtest.T) {
 				tpm := eventtest.NewTestPoolMonitor()
 				mt.ResetClient(options.Client().
 					SetRetryWrites(false).

@@ -1011,10 +1011,11 @@ func (c *Client) BulkWrite(ctx context.Context, writes []ClientBulkWrite,
 		selector:                 selector,
 		writeConcern:             wc,
 	}
-	if rawDataOpt := optionsutil.Value(bwo.Internal, "rawData"); rawDataOpt != nil {
-		if rawData, ok := rawDataOpt.(bool); ok {
-			op.rawData = &rawData
-		}
+	if rawData, ok := optionsutil.Value(bwo.Internal, "rawData").(bool); ok {
+		op.rawData = &rawData
+	}
+	if additionalCmd, ok := optionsutil.Value(bwo.Internal, "addCommandFields").(bson.D); ok {
+		op.additionalCmd = additionalCmd
 	}
 	if bwo.VerboseResults == nil || !(*bwo.VerboseResults) {
 		op.errorsOnly = true

@@ -9,6 +9,7 @@ package integration
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -22,6 +23,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/drivertest"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/xoptions"
 )
 
 const (
@@ -2025,6 +2027,386 @@ func TestCollection(t *testing.T) {
 				})
 			}
 		})
+	})
+}
+
+func TestBypassEmptyTsReplacement(t *testing.T) {
+	mt := mtest.New(t, mtest.NewOptions().CreateClient(false).MinServerVersion("5.0"))
+
+	marshalValue := func(val interface{}) bson.RawValue {
+		t.Helper()
+
+		valType, data, err := bson.MarshalValue(val)
+		require.NoError(t, err, "MarshalValue error: %v", err)
+		return bson.RawValue{
+			Type:  valType,
+			Value: data,
+		}
+	}
+
+	mt.Run("insert one", func(mt *mtest.T) {
+		doc := bson.D{{"x", 42}}
+
+		newOpts := func(option bson.D) *options.InsertOneOptionsBuilder {
+			opts := options.InsertOne()
+			err := xoptions.SetInternalInsertOneOptions(opts, "addCommandFields", option)
+			require.NoError(mt, err, "unexpected error: %v", err)
+			return opts
+		}
+
+		testCases := []struct {
+			name     string
+			opts     *options.InsertOneOptionsBuilder
+			expected bson.RawValue
+		}{
+			{
+				name:     "empty",
+				opts:     nil,
+				expected: bson.RawValue{},
+			},
+			{
+				name:     "false",
+				opts:     newOpts(bson.D{{"bypassEmptyTsReplacement", false}}),
+				expected: marshalValue(false),
+			},
+			{
+				name:     "true",
+				opts:     newOpts(bson.D{{"bypassEmptyTsReplacement", true}}),
+				expected: marshalValue(true),
+			},
+		}
+		for _, tc := range testCases {
+			mt.Run(tc.name, func(mt *mtest.T) {
+				_, err := mt.Coll.InsertOne(context.Background(), doc, tc.opts)
+				require.NoError(mt, err, "InsertOne error: %v", err)
+				evt := mt.GetStartedEvent()
+				val := evt.Command.Lookup("bypassEmptyTsReplacement")
+				assert.Equal(mt, tc.expected, val, "expected bypassEmptyTsReplacement to be %s in %v", tc.expected.String())
+			})
+		}
+	})
+	mt.Run("insert many", func(mt *mtest.T) {
+		docs := []interface{}{
+			bson.D{{"x", 42}},
+			bson.D{{"y", "foo"}},
+		}
+
+		newOpts := func(option bson.D) *options.InsertManyOptionsBuilder {
+			opts := options.InsertMany()
+			err := xoptions.SetInternalInsertManyOptions(opts, "addCommandFields", option)
+			require.NoError(mt, err, "unexpected error: %v", err)
+			return opts
+		}
+
+		testCases := []struct {
+			name     string
+			opts     *options.InsertManyOptionsBuilder
+			expected bson.RawValue
+		}{
+			{
+				name:     "empty",
+				opts:     nil,
+				expected: bson.RawValue{},
+			},
+			{
+				name:     "false",
+				opts:     newOpts(bson.D{{"bypassEmptyTsReplacement", false}}),
+				expected: marshalValue(false),
+			},
+			{
+				name:     "true",
+				opts:     newOpts(bson.D{{"bypassEmptyTsReplacement", true}}),
+				expected: marshalValue(true),
+			},
+		}
+		for _, tc := range testCases {
+			mt.Run(tc.name, func(mt *mtest.T) {
+				_, err := mt.Coll.InsertMany(context.Background(), docs, tc.opts)
+				require.NoError(mt, err, "InsertMany error: %v", err)
+				evt := mt.GetStartedEvent()
+				val := evt.Command.Lookup("bypassEmptyTsReplacement")
+				assert.Equal(mt, tc.expected, val, "expected bypassEmptyTsReplacement to be %s", tc.expected.String())
+			})
+		}
+	})
+	mt.Run("update one", func(mt *mtest.T) {
+		filter := bson.D{{"x", 42}}
+		update := bson.D{{"$inc", bson.D{{"x", 1}}}}
+
+		newOpts := func(option bson.D) *options.UpdateOneOptionsBuilder {
+			opts := options.UpdateOne()
+			err := xoptions.SetInternalUpdateOneOptions(opts, "addCommandFields", option)
+			require.NoError(mt, err, "unexpected error: %v", err)
+			return opts
+		}
+
+		testCases := []struct {
+			name     string
+			opts     *options.UpdateOneOptionsBuilder
+			expected bson.RawValue
+		}{
+			{
+				name:     "empty",
+				opts:     nil,
+				expected: bson.RawValue{},
+			},
+			{
+				name:     "false",
+				opts:     newOpts(bson.D{{"bypassEmptyTsReplacement", false}}),
+				expected: marshalValue(false),
+			},
+			{
+				name:     "true",
+				opts:     newOpts(bson.D{{"bypassEmptyTsReplacement", true}}),
+				expected: marshalValue(true),
+			},
+		}
+		for _, tc := range testCases {
+			mt.Run(tc.name, func(mt *mtest.T) {
+				_, err := mt.Coll.UpdateOne(context.Background(), filter, update, tc.opts)
+				require.NoError(mt, err, "UpdateOne error: %v", err)
+				evt := mt.GetStartedEvent()
+				val := evt.Command.Lookup("bypassEmptyTsReplacement")
+				assert.Equal(mt, tc.expected, val, "expected bypassEmptyTsReplacement to be %s", tc.expected.String())
+			})
+		}
+	})
+	mt.Run("update many", func(mt *mtest.T) {
+		filter := bson.D{{"x", 42}}
+		update := bson.D{{"$inc", bson.D{{"x", 1}}}}
+
+		newOpts := func(option bson.D) *options.UpdateManyOptionsBuilder {
+			opts := options.UpdateMany()
+			err := xoptions.SetInternalUpdateManyOptions(opts, "addCommandFields", option)
+			require.NoError(mt, err, "unexpected error: %v", err)
+			return opts
+		}
+
+		testCases := []struct {
+			name     string
+			opts     *options.UpdateManyOptionsBuilder
+			expected bson.RawValue
+		}{
+			{
+				name:     "empty",
+				opts:     nil,
+				expected: bson.RawValue{},
+			},
+			{
+				name:     "false",
+				opts:     newOpts(bson.D{{"bypassEmptyTsReplacement", false}}),
+				expected: marshalValue(false),
+			},
+			{
+				name:     "true",
+				opts:     newOpts(bson.D{{"bypassEmptyTsReplacement", true}}),
+				expected: marshalValue(true),
+			},
+		}
+		for _, tc := range testCases {
+			mt.Run(tc.name, func(mt *mtest.T) {
+				_, err := mt.Coll.UpdateMany(context.Background(), filter, update, tc.opts)
+				require.NoError(mt, err, "UpdateMany error: %v", err)
+				evt := mt.GetStartedEvent()
+				val := evt.Command.Lookup("bypassEmptyTsReplacement")
+				assert.Equal(mt, tc.expected, val, "expected bypassEmptyTsReplacement to be %s", tc.expected.String())
+			})
+		}
+	})
+	mt.Run("replace one", func(mt *mtest.T) {
+		filter := bson.D{{"x", 42}}
+		replacement := bson.D{{"y", "foo"}}
+
+		newOpts := func(option bson.D) *options.ReplaceOptionsBuilder {
+			opts := options.Replace()
+			err := xoptions.SetInternalReplaceOptions(opts, "addCommandFields", option)
+			require.NoError(mt, err, "unexpected error: %v", err)
+			return opts
+		}
+
+		testCases := []struct {
+			name     string
+			opts     *options.ReplaceOptionsBuilder
+			expected bson.RawValue
+		}{
+			{
+				name:     "empty",
+				opts:     nil,
+				expected: bson.RawValue{},
+			},
+			{
+				name:     "false",
+				opts:     newOpts(bson.D{{"bypassEmptyTsReplacement", false}}),
+				expected: marshalValue(false),
+			},
+			{
+				name:     "true",
+				opts:     newOpts(bson.D{{"bypassEmptyTsReplacement", true}}),
+				expected: marshalValue(true),
+			},
+		}
+		for _, tc := range testCases {
+			mt.Run(tc.name, func(mt *mtest.T) {
+				_, err := mt.Coll.ReplaceOne(context.Background(), filter, replacement, tc.opts)
+				require.NoError(mt, err, "ReplaceOne error: %v", err)
+				evt := mt.GetStartedEvent()
+				val := evt.Command.Lookup("bypassEmptyTsReplacement")
+				assert.Equal(mt, tc.expected, val, "expected bypassEmptyTsReplacement to be %s", tc.expected.String())
+			})
+		}
+	})
+	mt.Run("find one and update", func(mt *mtest.T) {
+		filter := bson.D{{"x", 1}}
+		update := bson.D{{"$inc", bson.D{{"x", 1}}}}
+
+		newOpts := func(option bson.D) *options.FindOneAndUpdateOptionsBuilder {
+			opts := options.FindOneAndUpdate()
+			err := xoptions.SetInternalFindOneAndUpdateOptions(opts, "addCommandFields", option)
+			require.NoError(mt, err, "unexpected error: %v", err)
+			return opts
+		}
+
+		testCases := []struct {
+			name     string
+			opts     *options.FindOneAndUpdateOptionsBuilder
+			expected bson.RawValue
+		}{
+			{
+				name:     "empty",
+				opts:     nil,
+				expected: bson.RawValue{},
+			},
+			{
+				name:     "false",
+				opts:     newOpts(bson.D{{"bypassEmptyTsReplacement", false}}),
+				expected: marshalValue(false),
+			},
+			{
+				name:     "true",
+				opts:     newOpts(bson.D{{"bypassEmptyTsReplacement", true}}),
+				expected: marshalValue(true),
+			},
+		}
+		for _, tc := range testCases {
+			mt.Run(tc.name, func(mt *mtest.T) {
+				initCollection(mt, mt.Coll)
+				mt.ClearEvents()
+
+				_, err := mt.Coll.FindOneAndUpdate(context.Background(), filter, update, tc.opts).Raw()
+				require.NoError(mt, err, "FindOneAndUpdate error: %v", err)
+				evt := mt.GetStartedEvent()
+				val := evt.Command.Lookup("bypassEmptyTsReplacement")
+				assert.Equal(mt, tc.expected, val, "expected bypassEmptyTsReplacement to be %s", tc.expected.String())
+			})
+		}
+	})
+	mt.Run("find one and replace", func(mt *mtest.T) {
+		filter := bson.D{{"x", 1}}
+		replacement := bson.D{{"y", "foo"}}
+
+		newOpts := func(option bson.D) *options.FindOneAndReplaceOptionsBuilder {
+			opts := options.FindOneAndReplace()
+			err := xoptions.SetInternalFindOneAndReplaceOptions(opts, "addCommandFields", option)
+			require.NoError(mt, err, "unexpected error: %v", err)
+			return opts
+		}
+
+		testCases := []struct {
+			name     string
+			opts     *options.FindOneAndReplaceOptionsBuilder
+			expected bson.RawValue
+		}{
+			{
+				name:     "empty",
+				opts:     nil,
+				expected: bson.RawValue{},
+			},
+			{
+				name:     "false",
+				opts:     newOpts(bson.D{{"bypassEmptyTsReplacement", false}}),
+				expected: marshalValue(false),
+			},
+			{
+				name:     "true",
+				opts:     newOpts(bson.D{{"bypassEmptyTsReplacement", true}}),
+				expected: marshalValue(true),
+			},
+		}
+		for _, tc := range testCases {
+			mt.Run(tc.name, func(mt *mtest.T) {
+				initCollection(mt, mt.Coll)
+				mt.ClearEvents()
+
+				_, err := mt.Coll.FindOneAndReplace(context.Background(), filter, replacement, tc.opts).Raw()
+				require.NoError(mt, err, "FindOneAndReplace error: %v", err)
+				evt := mt.GetStartedEvent()
+				val := evt.Command.Lookup("bypassEmptyTsReplacement")
+				assert.Equal(mt, tc.expected, val, "expected bypassEmptyTsReplacement to be %s", tc.expected.String())
+			})
+		}
+	})
+	mt.Run("bulk write", func(mt *mtest.T) {
+		newOpts := func(option bson.D) *options.BulkWriteOptionsBuilder {
+			opts := options.BulkWrite()
+			err := xoptions.SetInternalBulkWriteOptions(opts, "addCommandFields", option)
+			require.NoError(mt, err, "unexpected error: %v", err)
+			return opts
+		}
+
+		models := []struct {
+			name  string
+			model mongo.WriteModel
+		}{
+			{
+				name:  "insert one",
+				model: mongo.NewInsertOneModel().SetDocument(bson.D{{"_id", "id1"}}),
+			},
+			{
+				name:  "update one",
+				model: mongo.NewUpdateOneModel().SetFilter(bson.D{{"_id", "id3"}}).SetUpdate(bson.D{{"$set", bson.D{{"_id", 3.14159}}}}),
+			},
+			{
+				name:  "update many",
+				model: mongo.NewUpdateManyModel().SetFilter(bson.D{{"_id", "id3"}}).SetUpdate(bson.D{{"$set", bson.D{{"_id", 3.14159}}}}),
+			},
+			{
+				name:  "replace one",
+				model: mongo.NewReplaceOneModel().SetFilter(bson.D{{"_id", "id3"}}).SetReplacement(bson.D{{"_id", 3.14159}}),
+			},
+		}
+
+		testCases := []struct {
+			name     string
+			opts     *options.BulkWriteOptionsBuilder
+			expected bson.RawValue
+		}{
+			{
+				name:     "empty",
+				opts:     options.BulkWrite(),
+				expected: bson.RawValue{},
+			},
+			{
+				name:     "false",
+				opts:     newOpts(bson.D{{"bypassEmptyTsReplacement", false}}),
+				expected: marshalValue(false),
+			},
+			{
+				name:     "true",
+				opts:     newOpts(bson.D{{"bypassEmptyTsReplacement", true}}),
+				expected: marshalValue(true),
+			},
+		}
+		for _, m := range models {
+			for _, tc := range testCases {
+				mt.Run(fmt.Sprintf("%s %s", m.name, tc.name), func(mt *mtest.T) {
+					_, err := mt.Coll.BulkWrite(context.Background(), []mongo.WriteModel{m.model}, tc.opts)
+					require.NoError(mt, err, "BulkWrite error: %v", err)
+					evt := mt.GetStartedEvent()
+					val := evt.Command.Lookup("bypassEmptyTsReplacement")
+					assert.Equal(mt, tc.expected, val, "expected bypassEmptyTsReplacement to be %s", tc.expected.String())
+				})
+			}
+		}
 	})
 }
 

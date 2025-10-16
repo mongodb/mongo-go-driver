@@ -299,12 +299,10 @@ func NewAuthenticatorConfig(authenticator driver.Authenticator, clientOpts ...Au
 				handshakeOpts.DBUser = opts.Auth.AuthSource + "." + opts.Auth.Username
 			}
 
-			if a := optionsutil.Value(opts.Custom, "authenticateToAnything"); a != nil {
-				if v, ok := a.(bool); ok && v {
-					// Authenticate arbiters
-					handshakeOpts.PerformAuthentication = func(_ description.Server) bool {
-						return true
-					}
+			if auth, ok := optionsutil.Value(opts.Custom, "authenticateToAnything").(bool); ok && auth {
+				// Authenticate arbiters
+				handshakeOpts.PerformAuthentication = func(_ description.Server) bool {
+					return true
 				}
 			}
 
