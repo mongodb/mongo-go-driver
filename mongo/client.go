@@ -311,16 +311,11 @@ func (c *Client) connect() error {
 	return nil
 }
 
-// AppendDriverInfo appends the provided DriverInfo to the driver information
-// that will be sent to the server in handshake requests when establishing new
-// connections. The provided info will overwrite any existing values.
-//
-// AppendsDriverInfo appends the provided [options.DriverInfo] to the metadata
+// AppendDriverInfo appends the provided [options.DriverInfo] to the metadata
 // (e.g. name, version, platform) that will be sent to the server in handshake
-// requests when establishing new connections. The provided info will overwrite
-// any existing values.
+// requests when establishing new connections.
 //
-// Repeated calls to appendMetadata with equivalent DriverInfo is a no-op.
+// Repeated calls to AppendDriverInfo with equivalent DriverInfo is a no-op.
 //
 // Metadata is limited to 512 bytes; any excess will be truncated.
 func (c *Client) AppendDriverInfo(info options.DriverInfo) {
