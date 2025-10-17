@@ -82,7 +82,6 @@ type T struct {
 	clientType               ClientType
 	clientOpts               *options.ClientOptions
 	collOpts                 *options.CollectionOptionsBuilder
-	shareClient              *bool
 	allowFailPointsOnSharded bool
 
 	baseOpts *Options // used to create subtests
@@ -122,9 +121,6 @@ func newT(wrapped *testing.T, opts ...*Options) *T {
 
 	// create a set of base options for sub-tests
 	t.baseOpts = NewOptions().ClientOptions(t.clientOpts).CollectionOptions(t.collOpts).ClientType(t.clientType)
-	if t.shareClient != nil {
-		t.baseOpts.ShareClient(*t.shareClient)
-	}
 	if t.allowFailPointsOnSharded {
 		t.baseOpts.AllowFailPointsOnSharded()
 	}
@@ -142,12 +138,6 @@ func New(wrapped *testing.T, opts ...*Options) *T {
 	}
 
 	t := newT(wrapped, opts...)
-
-	// only create a client if it needs to be shared in sub-tests
-	// otherwise, a new client will be created for each subtest
-	if t.shareClient != nil && *t.shareClient {
-		t.createTestClient()
-	}
 
 	wrapped.Cleanup(t.cleanup)
 
@@ -192,16 +182,10 @@ func (t *T) RunOpts(name string, opts *Options, callback func(mt *T)) {
 			sub.AddMockResponses(sub.mockResponses...)
 		}
 
-		// for shareClient, inherit the client from the parent
-		if sub.shareClient != nil && *sub.shareClient && sub.clientType == t.clientType {
-			sub.Client = t.Client
+		if sub.createClient == nil || *sub.createClient {
+			sub.createTestClient()
 		}
-		// only create a client if not already set
-		if sub.Client == nil {
-			if sub.createClient == nil || *sub.createClient {
-				sub.createTestClient()
-			}
-		}
+
 		// create a collection for this test
 		if sub.Client != nil {
 			sub.createTestCollection()
@@ -222,10 +206,8 @@ func (t *T) RunOpts(name string, opts *Options, callback func(mt *T)) {
 				sub.ClearFailPoints()
 				sub.ClearCollections()
 			}
-			// only disconnect client if it's not being shared
-			if sub.shareClient == nil || !*sub.shareClient {
-				_ = sub.Client.Disconnect(context.Background())
-			}
+
+			_ = sub.Client.Disconnect(context.Background())
 			assert.Equal(sub, 0, sessions, "%v sessions checked out", sessions)
 			assert.Equal(sub, 0, conns, "%v connections checked out", conns)
 		}()
