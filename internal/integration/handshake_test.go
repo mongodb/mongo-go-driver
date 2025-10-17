@@ -333,7 +333,7 @@ func TestLoadBalancedConnectionHandshake(t *testing.T) {
 			want = wiremessage.OpMsg
 		}
 
-		assert.Equal(mt, hello, firstMessage, "expected first message to be a handshake")
+		assert.Equal(mt, hello, firstMessage.CommandName, "expected first message to be a handshake")
 		assert.Equal(mt, want, firstMessage.Sent.OpCode)
 	})
 }
