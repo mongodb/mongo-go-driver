@@ -55,7 +55,7 @@ func TestEqualDocument(t *testing.T) {
 
 			got := EqualDocument(new(testing.T), tc.expected, tc.actual)
 			if got != tc.want {
-				t.Errorf("EqualBSON(%#v, %#v) = %v, want %v", tc.expected, tc.actual, got, tc.want)
+				t.Errorf("EqualDocument(%#v, %#v) = %v, want %v", tc.expected, tc.actual, got, tc.want)
 			}
 		})
 	}
