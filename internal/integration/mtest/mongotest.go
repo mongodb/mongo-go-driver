@@ -337,13 +337,13 @@ func (t *T) FilterFailedEvents(filter func(*event.CommandFailedEvent) bool) {
 	t.failed = newEvents
 }
 
-// GetProxiedMessages returns the messages proxied to the server by the test. If the client type is not Proxy, this
-// returns nil.
-func (t *T) GetProxiedMessages() []*ProxyMessage {
+// GetProxyCapture returns the ProxyCapture used by the test. If the client
+// type is not Proxy, this returns nil.
+func (t *T) GetProxyCapture() *ProxyCapture {
 	if t.proxyDialer == nil {
 		return nil
 	}
-	return t.proxyDialer.Messages()
+	return t.proxyDialer.proxyCapture
 }
 
 // NumberConnectionsCheckedOut returns the number of connections checked out from the test Client.

@@ -7,11 +7,13 @@
 package topology
 
 import (
+	"sync/atomic"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/logger"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
@@ -32,6 +34,7 @@ type serverConfig struct {
 	monitoringDisabled   bool
 	serverAPI            *driver.ServerAPIOptions
 	loadBalanced         bool
+	driverInfo           *atomic.Pointer[options.DriverInfo]
 
 	// Connection pool options.
 	maxConns             uint64
@@ -41,11 +44,6 @@ type serverConfig struct {
 	logger               *logger.Logger
 	poolMaxIdleTime      time.Duration
 	poolMaintainInterval time.Duration
-
-	// Fields provided by a library that wraps the Go Driver.
-	outerLibraryName     string
-	outerLibraryVersion  string
-	outerLibraryPlatform string
 }
 
 func newServerConfig(connectTimeout time.Duration, opts ...ServerOption) *serverConfig {
@@ -101,27 +99,12 @@ func WithServerAppName(fn func(string) string) ServerOption {
 	}
 }
 
-// WithOuterLibraryName configures the name for the outer library to include
-// in the drivers section of the handshake metadata.
-func WithOuterLibraryName(fn func(string) string) ServerOption {
+// WithDriverInfo sets at atomic pointer to the server configuration, which will
+// be used to create the "driver" section on handshake commands. An atomic
+// pointer is used so that the driver info can be updated concurrently.
+func WithDriverInfo(info *atomic.Pointer[options.DriverInfo]) ServerOption {
 	return func(cfg *serverConfig) {
-		cfg.outerLibraryName = fn(cfg.outerLibraryName)
-	}
-}
-
-// WithOuterLibraryVersion configures the version for the outer library to
-// include in the drivers section of the handshake metadata.
-func WithOuterLibraryVersion(fn func(string) string) ServerOption {
-	return func(cfg *serverConfig) {
-		cfg.outerLibraryVersion = fn(cfg.outerLibraryVersion)
-	}
-}
-
-// WithOuterLibraryPlatform configures the platform for the outer library to
-// include in the platform section of the handshake metadata.
-func WithOuterLibraryPlatform(fn func(string) string) ServerOption {
-	return func(cfg *serverConfig) {
-		cfg.outerLibraryPlatform = fn(cfg.outerLibraryPlatform)
+		cfg.driverInfo = info
 	}
 }
 

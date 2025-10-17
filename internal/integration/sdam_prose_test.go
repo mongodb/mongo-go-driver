@@ -69,7 +69,7 @@ func TestSDAMProse(t *testing.T) {
 		}
 		start := time.Now()
 		time.Sleep(2 * time.Second)
-		messages := mt.GetProxiedMessages()
+		messages := mt.GetProxyCapture().Drain()
 		duration := time.Since(start)
 
 		hosts, err := mongoutil.HostsFromURI(mtest.ClusterURI())
