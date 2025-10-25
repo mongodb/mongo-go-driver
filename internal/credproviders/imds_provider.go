@@ -41,8 +41,8 @@ func NewAzureProvider(httpClient *http.Client, expiryWindow time.Duration) *Azur
 	}
 }
 
-// RetrieveWithContext retrieves the keys from the Azure service.
-func (a *AzureProvider) RetrieveWithContext(ctx context.Context) (credentials.Value, error) {
+// Retrieve retrieves the keys from the Azure service.
+func (a *AzureProvider) Retrieve(ctx context.Context) (credentials.Value, error) {
 	v := credentials.Value{ProviderName: AzureProviderName}
 	req, err := http.NewRequest(http.MethodGet, azureURI, nil)
 	if err != nil {
@@ -90,11 +90,6 @@ func (a *AzureProvider) RetrieveWithContext(ctx context.Context) (credentials.Va
 	}
 
 	return v, err
-}
-
-// Retrieve retrieves the keys from the Azure service.
-func (a *AzureProvider) Retrieve() (credentials.Value, error) {
-	return a.RetrieveWithContext(context.Background())
 }
 
 // IsExpired returns if the credentials have been retrieved.

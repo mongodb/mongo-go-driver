@@ -116,6 +116,7 @@ type Credential struct {
 	PasswordSet             bool
 	OIDCMachineCallback     OIDCCallback
 	OIDCHumanCallback       OIDCCallback
+	AwsCredentialsProvider  CredentialsProvider
 }
 
 // OIDCCallback is the type for both Human and Machine Callback flows.
@@ -142,6 +143,17 @@ type IDPInfo struct {
 	Issuer        string
 	ClientID      string
 	RequestScopes []string
+}
+
+// CredentialsProvider is the function type that returns AWS credentials.
+type CredentialsProvider func(context.Context) (Credentials, error)
+
+// Credentials represents AWS credentials.
+type Credentials struct {
+	AccessKeyID        string
+	SecretAccessKey    string
+	SessionToken       string
+	ExpirationCallback func() bool
 }
 
 // BSONOptions are optional BSON marshaling and unmarshaling behaviors.

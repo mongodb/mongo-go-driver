@@ -52,18 +52,11 @@ func (v Value) HasKeys() bool {
 type Provider interface {
 	// Retrieve returns nil if it successfully retrieved the value.
 	// Error is returned if the value were not obtainable, or empty.
-	Retrieve() (Value, error)
+	Retrieve(context.Context) (Value, error)
 
 	// IsExpired returns if the credentials are no longer valid, and need
 	// to be retrieved.
 	IsExpired() bool
-}
-
-// ProviderWithContext is a Provider that can retrieve credentials with a Context
-type ProviderWithContext interface {
-	Provider
-
-	RetrieveWithContext(context.Context) (Value, error)
 }
 
 // A Credentials provides concurrency safe retrieval of AWS credentials Value.
@@ -143,13 +136,7 @@ func (c *Credentials) singleRetrieve(ctx context.Context) (interface{}, error) {
 		return curCreds, nil
 	}
 
-	var creds Value
-	var err error
-	if p, ok := c.provider.(ProviderWithContext); ok {
-		creds, err = p.RetrieveWithContext(ctx)
-	} else {
-		creds, err = c.provider.Retrieve()
-	}
+	creds, err := c.provider.Retrieve(ctx)
 	if err == nil {
 		c.creds = creds
 	}
