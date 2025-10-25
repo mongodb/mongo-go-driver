@@ -3177,11 +3177,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 						return cred, nil
 					},
 				})
-			clientEncryption, err := mongo.NewClientEncryption(keyVaultClient, ceo)
-			assert.NoErrorf(mt, err, "error on NewClientEncryption: %v", err)
-
-			dkOpts := options.DataKey()
-			_, err = clientEncryption.CreateDataKey(context.Background(), "aws", dkOpts)
+			_, err = mongo.NewClientEncryption(keyVaultClient, ceo)
 			assert.Error(mt, err, "expected an error")
 		})
 		mt.Run("Case 2: ClientEncryption with credentialProviders works", func(mt *mtest.T) {
@@ -3254,27 +3250,20 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			keyVaultClient, err := mongo.Connect(opts)
 			assert.NoErrorf(mt, err, "error on Connect: %v", err)
 
+			var calledCount int
 			ceo := options.ClientEncryption().
 				SetKeyVaultNamespace("keyvault.datakeys").
 				SetKmsProviders(map[string]map[string]any{
-					"aws": {
-						"accessKeyId":     awsAccessKeyID,
-						"secretAccessKey": awsSecretAccessKey,
-					},
+					"aws": map[string]any{},
 				}).
 				SetCredentialProviders(map[string]options.CredentialsProvider{
 					"aws": func(ctx context.Context) (options.Credentials, error) {
-						var cred options.Credentials
-						provider := credproviders.NewEnvProvider()
-						c, err := provider.Retrieve(ctx)
-						if err != nil {
-							return cred, err
-						}
-						cred.AccessKeyID = c.AccessKeyID
-						cred.SecretAccessKey = c.SecretAccessKey
-						cred.SessionToken = c.SessionToken
-						cred.ExpirationCallback = provider.IsExpired
-						return cred, nil
+						calledCount++
+						return options.Credentials{
+							AccessKeyID:        awsAccessKeyID,
+							SecretAccessKey:    awsSecretAccessKey,
+							ExpirationCallback: func() bool { return false },
+						}, nil
 					},
 				})
 			clientEncryption, err := mongo.NewClientEncryption(keyVaultClient, ceo)
@@ -3283,6 +3272,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			dkOpts := options.DataKey()
 			_, err = clientEncryption.CreateDataKey(context.Background(), "aws", dkOpts)
 			assert.NoErrorf(mt, err, "unexpected error %v", err)
+			assert.Equal(mt, 1, calledCount, "expected credential provider to be called once")
 		})
 	})
 }
