@@ -27,27 +27,35 @@ func newMongoDBAWSAuthenticator(cred *Cred, httpClient *http.Client) (Authentica
 	if httpClient == nil {
 		return nil, errors.New("httpClient must not be nil")
 	}
-	return &MongoDBAWSAuthenticator{
-		credentials: &credproviders.StaticProvider{
-			Value: credentials.Value{
-				AccessKeyID:     cred.Username,
-				SecretAccessKey: cred.Password,
-				SessionToken:    cred.Props["AWS_SESSION_TOKEN"],
+	authenticator := MongoDBAWSAuthenticator{
+		providers: []credentials.Provider{
+			&credproviders.StaticProvider{
+				Value: credentials.Value{
+					AccessKeyID:     cred.Username,
+					SecretAccessKey: cred.Password,
+					SessionToken:    cred.Props["AWS_SESSION_TOKEN"],
+				},
 			},
 		},
 		httpClient: httpClient,
-	}, nil
+	}
+	if cred.AwsCredentialsProvider != nil {
+		authenticator.providers = append(authenticator.providers, &credproviders.AwsProvider{
+			Provider: cred.AwsCredentialsProvider,
+		})
+	}
+	return &authenticator, nil
 }
 
 // MongoDBAWSAuthenticator uses AWS-IAM credentials over SASL to authenticate a connection.
 type MongoDBAWSAuthenticator struct {
-	credentials *credproviders.StaticProvider
-	httpClient  *http.Client
+	providers  []credentials.Provider
+	httpClient *http.Client
 }
 
 // Auth authenticates the connection.
 func (a *MongoDBAWSAuthenticator) Auth(ctx context.Context, cfg *driver.AuthConfig) error {
-	providers := creds.NewAWSCredentialProvider(a.httpClient, a.credentials)
+	providers := creds.NewAWSCredentialProvider(a.httpClient, a.providers...)
 	adapter := &awsSaslAdapter{
 		conversation: &awsConversation{
 			credentials: providers.Cred,

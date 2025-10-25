@@ -38,3 +38,37 @@ func TestAWS(t *testing.T) {
 		t.Logf("FindOne error: %v", err)
 	}
 }
+
+func TestAWSCustomCredentialProviders(t *testing.T) {
+	uri := os.Getenv("MONGODB_URI")
+	if uri == "" {
+		t.Skip("Skipping test: MONGODB_URI environment variable is not set")
+	}
+
+	var calledCount int
+	awsCredential := options.Credential{
+		AuthMechanism: "MONGODB-AWS",
+		AwsCredentialsProvider: func(_ context.Context) (options.Credentials, error) {
+			calledCount++
+			return options.Credentials{
+				AccessKeyID:        os.Getenv("AWS_ACCESS_KEY_ID"),
+				SecretAccessKey:    os.Getenv("AWS_SECRET_ACCESS_KEY"),
+				ExpirationCallback: func() bool { return false },
+			}, nil
+		},
+	}
+	client, err := mongo.Connect(options.Client().ApplyURI(uri).SetAuth(awsCredential))
+
+	defer func() {
+		err = client.Disconnect(context.Background())
+		require.NoError(t, err)
+	}()
+
+	coll := client.Database("aws").Collection("test")
+
+	err = coll.FindOne(context.Background(), bson.D{{Key: "x", Value: 1}}).Err()
+	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
+		t.Logf("FindOne error: %v", err)
+	}
+	require.Equalf(t, 1, calledCount, "expected custom AWS credential provider to be called once")
+}

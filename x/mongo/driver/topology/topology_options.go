@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/credproviders"
 	"go.mongodb.org/mongo-driver/v2/internal/logger"
 	"go.mongodb.org/mongo-driver/v2/internal/optionsutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -112,14 +113,28 @@ func ConvertCreds(cred *options.Credential) *driver.Cred {
 		}
 	}
 
+	var awsCredentialsProvider credproviders.AwsCredentialsProvider
+	if cred.AwsCredentialsProvider != nil {
+		awsCredentialsProvider = func(ctx context.Context) (credproviders.AwsCredentials, error) {
+			creds, err := cred.AwsCredentialsProvider(ctx)
+			return credproviders.AwsCredentials{
+				AccessKeyID:        creds.AccessKeyID,
+				SecretAccessKey:    creds.SecretAccessKey,
+				SessionToken:       creds.SessionToken,
+				ExpirationCallback: creds.ExpirationCallback,
+			}, err
+		}
+	}
+
 	return &auth.Cred{
-		Source:              cred.AuthSource,
-		Username:            cred.Username,
-		Password:            cred.Password,
-		PasswordSet:         cred.PasswordSet,
-		Props:               cred.AuthMechanismProperties,
-		OIDCMachineCallback: oidcMachineCallback,
-		OIDCHumanCallback:   oidcHumanCallback,
+		Source:                 cred.AuthSource,
+		Username:               cred.Username,
+		Password:               cred.Password,
+		PasswordSet:            cred.PasswordSet,
+		Props:                  cred.AuthMechanismProperties,
+		OIDCMachineCallback:    oidcMachineCallback,
+		OIDCHumanCallback:      oidcHumanCallback,
+		AwsCredentialsProvider: awsCredentialsProvider,
 	}
 }
 

@@ -24,6 +24,7 @@ import (
 	"unsafe"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/aws/credentials"
 	"go.mongodb.org/mongo-driver/v2/internal/httputil"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/auth/creds"
@@ -35,9 +36,10 @@ type kmsProvider interface {
 }
 
 type MongoCrypt struct {
-	wrapped      *C.mongocrypt_t
-	kmsProviders map[string]kmsProvider
-	httpClient   *http.Client
+	wrapped       *C.mongocrypt_t
+	kmsProviders  map[string]kmsProvider
+	httpClient    *http.Client
+	credProviders map[string]credentials.Provider
 }
 
 // Version returns the version string for the loaded libmongocrypt, or an empty string
@@ -64,7 +66,11 @@ func NewMongoCrypt(opts *options.MongoCryptOptions) (*MongoCrypt, error) {
 		kmsProviders["gcp"] = creds.NewGCPCredentialProvider(httpClient)
 	}
 	if needsKmsProvider(opts.KmsProviders, "aws") {
-		kmsProviders["aws"] = creds.NewAWSCredentialProvider(httpClient)
+		var providers []credentials.Provider
+		if provider, ok := opts.CredentialProviders["aws"]; ok {
+			providers = append(providers, provider)
+		}
+		kmsProviders["aws"] = creds.NewAWSCredentialProvider(httpClient, providers...)
 	}
 	if needsKmsProvider(opts.KmsProviders, "azure") {
 		kmsProviders["azure"] = creds.NewAzureCredentialProvider(httpClient)
