@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"time"
 
+	"go.mongodb.org/mongo-driver/v2/internal/aws/credentials"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
@@ -23,6 +24,7 @@ type MongoCryptOptions struct {
 	CryptSharedLibOverridePath string
 	HTTPClient                 *http.Client
 	KeyExpiration              *time.Duration
+	CredentialProviders        map[string]credentials.Provider
 }
 
 // MongoCrypt creates a new MongoCryptOptions instance.
@@ -77,5 +79,11 @@ func (mo *MongoCryptOptions) SetHTTPClient(httpClient *http.Client) *MongoCryptO
 // The granularity is in milliseconds. Any sub-millisecond fraction will be rounded up.
 func (mo *MongoCryptOptions) SetKeyExpiration(expiration *time.Duration) *MongoCryptOptions {
 	mo.KeyExpiration = expiration
+	return mo
+}
+
+// SetCredentialProviders sets the custom credential providers.
+func (mo *MongoCryptOptions) SetCredentialProviders(providers map[string]credentials.Provider) *MongoCryptOptions {
+	mo.CredentialProviders = providers
 	return mo
 }

@@ -267,10 +267,11 @@ func ExampleConnect_aWS() {
 	// The order in which the driver searches for credentials is:
 	//
 	// 1. Credentials passed through the URI
-	// 2. Environment variables
-	// 3. ECS endpoint if and only if AWS_CONTAINER_CREDENTIALS_RELATIVE_URI is
+	// 2. Custom AWS credential provider
+	// 3. Environment variables
+	// 4. ECS endpoint if and only if AWS_CONTAINER_CREDENTIALS_RELATIVE_URI is
 	//    set
-	// 4. EC2 endpoint
+	// 5. EC2 endpoint
 	//
 	// The following examples set the appropriate credentials via the
 	// ClientOptions.SetAuth method. All of these credentials can be specified
@@ -352,6 +353,29 @@ func ExampleConnect_aWS() {
 		panic(err)
 	}
 	_ = ecClient
+
+	// Custom AWS credential provider
+
+	// Applications can authenticate using a custom AWS credential provider as
+	// well.
+	credential := options.Credential{
+		AuthMechanism: "MONGODB-AWS",
+		AwsCredentialsProvider: func(_ context.Context) (
+			options.Credentials, error) {
+			return options.Credentials{
+				AccessKeyID:        accessKeyID,
+				SecretAccessKey:    secretAccessKey,
+				SessionToken:       sessionToken,
+				ExpirationCallback: func() bool { return false },
+			}, nil
+		},
+	}
+	awsClient, err := mongo.Connect(
+		options.Client().SetAuth(credential))
+	if err != nil {
+		panic(err)
+	}
+	_ = awsClient
 }
 
 func ExampleConnect_stableAPI() {

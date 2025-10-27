@@ -14,6 +14,14 @@ import (
 	"io"
 )
 
+// Credentials represents AWS credentials.
+type Credentials struct {
+	AccessKeyID        string
+	SecretAccessKey    string
+	SessionToken       string
+	ExpirationCallback func() bool
+}
+
 // ReadSeekCloser wraps a io.Reader returning a ReaderSeekerCloser. Allows the
 // SDK to accept an io.Reader that is not also an io.Seeker for unsigned
 // streaming payload API operations.

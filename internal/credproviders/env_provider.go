@@ -7,6 +7,7 @@
 package credproviders
 
 import (
+	"context"
 	"os"
 
 	"go.mongodb.org/mongo-driver/v2/internal/aws/credentials"
@@ -46,7 +47,7 @@ func NewEnvProvider() *EnvProvider {
 }
 
 // Retrieve retrieves the keys from the environment.
-func (e *EnvProvider) Retrieve() (credentials.Value, error) {
+func (e *EnvProvider) Retrieve(_ context.Context) (credentials.Value, error) {
 	e.retrieved = false
 
 	v := credentials.Value{

@@ -49,8 +49,8 @@ func NewECSProvider(httpClient *http.Client, expiryWindow time.Duration) *ECSPro
 	}
 }
 
-// RetrieveWithContext retrieves the keys from the AWS service.
-func (e *ECSProvider) RetrieveWithContext(ctx context.Context) (credentials.Value, error) {
+// Retrieve retrieves the keys from the AWS service.
+func (e *ECSProvider) Retrieve(ctx context.Context) (credentials.Value, error) {
 	const defaultHTTPTimeout = 10 * time.Second
 
 	v := credentials.Value{ProviderName: ecsProviderName}
@@ -99,11 +99,6 @@ func (e *ECSProvider) RetrieveWithContext(ctx context.Context) (credentials.Valu
 	e.expiration = ecsResp.Expiration.Add(-e.expiryWindow)
 
 	return v, nil
-}
-
-// Retrieve retrieves the keys from the AWS service.
-func (e *ECSProvider) Retrieve() (credentials.Value, error) {
-	return e.RetrieveWithContext(context.Background())
 }
 
 // IsExpired returns true if the credentials are expired.
