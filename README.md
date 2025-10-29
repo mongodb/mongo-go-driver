@@ -1,6 +1,6 @@
 <p style="text-align:center; font-size:1.25em; font-weight:bold; color:red; padding:2em;">
 This version of the Go driver is no longer actively developed and will not receive new features.
-For new features, please upgrade to the next major version.
+For access to the latest features and improvements, we encourage you to upgrade to the new major version (v2.x).
 Bug fixes and critical updates to this version will be made available until early 2026.
 </p>
 
