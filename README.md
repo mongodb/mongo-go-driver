@@ -1,3 +1,9 @@
+<p style="text-align:center; font-size:1.25em; font-weight:bold; color:red; padding:2em;">
+This version of the Go driver is no longer actively developed and will not receive new features.
+For new features, please upgrade to the next major version.
+Bug fixes and critical updates to this version will be made available until early 2026.
+</p>
+
 <p align="center"><img src="etc/assets/mongo-gopher.png" width="250"></p>
 <p align="center">
   <a href="https://goreportcard.com/report/go.mongodb.org/mongo-driver"><img src="https://goreportcard.com/badge/go.mongodb.org/mongo-driver"></a>
