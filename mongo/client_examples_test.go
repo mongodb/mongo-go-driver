@@ -363,10 +363,9 @@ func ExampleConnect_aWS() {
 		AwsCredentialsProvider: func(_ context.Context) (
 			options.Credentials, error) {
 			return options.Credentials{
-				AccessKeyID:        accessKeyID,
-				SecretAccessKey:    secretAccessKey,
-				SessionToken:       sessionToken,
-				ExpirationCallback: func() bool { return false },
+				AccessKeyID:     accessKeyID,
+				SecretAccessKey: secretAccessKey,
+				SessionToken:    sessionToken,
 			}, nil
 		},
 	}

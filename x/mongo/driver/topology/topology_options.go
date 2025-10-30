@@ -118,12 +118,7 @@ func ConvertCreds(cred *options.Credential) *driver.Cred {
 	if cred.AwsCredentialsProvider != nil {
 		awsCredentialsProvider = func(ctx context.Context) (aws.Credentials, error) {
 			creds, err := cred.AwsCredentialsProvider(ctx)
-			return aws.Credentials{
-				AccessKeyID:        creds.AccessKeyID,
-				SecretAccessKey:    creds.SecretAccessKey,
-				SessionToken:       creds.SessionToken,
-				ExpirationCallback: creds.ExpirationCallback,
-			}, err
+			return aws.Credentials(creds), err
 		}
 	}
 

@@ -40,8 +40,8 @@ func (a *AwsProvider) Retrieve(ctx context.Context) (credentials.Value, error) {
 
 // IsExpired returns true if the credentials have not been retrieved.
 func (a *AwsProvider) IsExpired() bool {
-	if a.credentials == nil || a.credentials.ExpirationCallback == nil {
+	if a.credentials == nil {
 		return true
 	}
-	return a.credentials.ExpirationCallback()
+	return a.credentials.Expired()
 }

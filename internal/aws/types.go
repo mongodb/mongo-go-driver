@@ -12,14 +12,29 @@ package aws
 
 import (
 	"io"
+	"time"
 )
 
 // Credentials represents AWS credentials.
 type Credentials struct {
-	AccessKeyID        string
-	SecretAccessKey    string
-	SessionToken       string
-	ExpirationCallback func() bool
+	AccessKeyID     string
+	SecretAccessKey string
+	SessionToken    string
+	Source          string
+	CanExpire       bool
+	Expires         time.Time
+	AccountID       string
+}
+
+func (v Credentials) Expired() bool {
+	if v.CanExpire {
+		// Calling Round(0) on the current time will truncate the monotonic
+		// reading only. Ensures credential expiry time is always based on
+		// reported wall-clock time.
+		return !v.Expires.After(time.Now().Round(0))
+	}
+
+	return false
 }
 
 // ReadSeekCloser wraps a io.Reader returning a ReaderSeekerCloser. Allows the

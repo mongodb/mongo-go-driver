@@ -659,16 +659,11 @@ func (c *Client) newMongoCrypt(opts *options.AutoEncryptionOptions) (*mongocrypt
 		if k == "aws" && fn != nil {
 			providers[k] = &credproviders.AwsProvider{
 				Provider: func(ctx context.Context) (aws.Credentials, error) {
-					var creds aws.Credentials
 					c, err := fn(ctx)
 					if err != nil {
-						return creds, err
+						return aws.Credentials{}, err
 					}
-					creds.AccessKeyID = c.AccessKeyID
-					creds.SecretAccessKey = c.SecretAccessKey
-					creds.SessionToken = c.SessionToken
-					creds.ExpirationCallback = c.ExpirationCallback
-					return creds, nil
+					return aws.Credentials(c), nil
 				},
 			}
 		}

@@ -25,7 +25,6 @@ import (
 	"github.com/youmark/pkcs8"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
-	"go.mongodb.org/mongo-driver/v2/internal/aws"
 	"go.mongodb.org/mongo-driver/v2/internal/httputil"
 	"go.mongodb.org/mongo-driver/v2/internal/optionsutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
@@ -117,7 +116,7 @@ type Credential struct {
 	PasswordSet             bool
 	OIDCMachineCallback     OIDCCallback
 	OIDCHumanCallback       OIDCCallback
-	AwsCredentialsProvider  func(context.Context) (Credentials, error)
+	AwsCredentialsProvider  CredentialsProvider
 }
 
 // OIDCCallback is the type for both Human and Machine Callback flows.
@@ -150,7 +149,15 @@ type IDPInfo struct {
 type CredentialsProvider func(context.Context) (Credentials, error)
 
 // Credentials represents AWS credentials.
-type Credentials aws.Credentials
+type Credentials struct {
+	AccessKeyID     string
+	SecretAccessKey string
+	SessionToken    string
+	Source          string
+	CanExpire       bool
+	Expires         time.Time
+	AccountID       string
+}
 
 // BSONOptions are optional BSON marshaling and unmarshaling behaviors.
 type BSONOptions struct {
