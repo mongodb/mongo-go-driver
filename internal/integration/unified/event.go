@@ -37,6 +37,9 @@ const (
 	topologyDescriptionChangedEvent monitoringEventType = "TopologyDescriptionChangedEvent"
 	topologyOpeningEvent            monitoringEventType = "TopologyOpeningEvent"
 	topologyClosedEvent             monitoringEventType = "TopologyClosedEvent"
+
+	// sentinel: indicates "use pooled (CMAP) sequence".
+	poolAnyEvent monitoringEventType = "_PoolAny"
 )
 
 func monitoringEventTypeFromString(eventStr string) (monitoringEventType, bool) {
