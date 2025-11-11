@@ -7,7 +7,6 @@
 package unified
 
 import (
-	"sync/atomic"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/v2/event"
@@ -169,66 +168,4 @@ func Test_eventSequencer_setCutoff(t *testing.T) {
 	// Verify counter incremented but cutoff didn't
 	assert.Equal(t, int64(3), client.eventSequencer.counter.Load(), "counter should be 3")
 	assert.Equal(t, int64(2), client.eventSequencer.cutoff.Load(), "cutoff should still be 2")
-}
-
-func Test_eventSequencer_shouldFilter(t *testing.T) {
-	es := &eventSequencer{
-		seqByEventType: map[monitoringEventType][]int64{
-			serverDescriptionChangedEvent: {1, 2, 3, 4, 5},
-		},
-	}
-	es.counter = atomic.Int64{}
-	es.counter.Store(5)
-
-	tests := []struct {
-		name      string
-		cutoff    int64
-		eventType monitoringEventType
-		index     int
-		expected  bool
-	}{
-		{
-			name:      "no cutoff",
-			cutoff:    0,
-			eventType: serverDescriptionChangedEvent,
-			index:     0,
-			expected:  false,
-		},
-		{
-			name:      "before cutoff",
-			cutoff:    3,
-			eventType: serverDescriptionChangedEvent,
-			index:     0,
-			expected:  true, // seq=1 <= 3
-		},
-		{
-			name:      "at cutoff",
-			cutoff:    3,
-			eventType: serverDescriptionChangedEvent,
-			index:     2,
-			expected:  true, // seq=3 <= 3
-		},
-		{
-			name:      "after cutoff",
-			cutoff:    3,
-			eventType: serverDescriptionChangedEvent,
-			index:     3,
-			expected:  false, // seq=4 > 3
-		},
-		{
-			name:      "last event",
-			cutoff:    3,
-			eventType: serverDescriptionChangedEvent,
-			index:     4,
-			expected:  false, // seq=5 > 3
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			es.cutoff.Store(tt.cutoff)
-			result := es.shouldFilter(tt.eventType, tt.index)
-			assert.Equal(t, tt.expected, result, "shouldFilter result mismatch")
-		})
-	}
 }

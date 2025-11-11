@@ -84,24 +84,6 @@ func (es *eventSequencer) recordPooledEvent() {
 	es.mu.Unlock()
 }
 
-// shouldFilter returns true if the event at the given index should be filtered.
-func (es *eventSequencer) shouldFilter(eventType monitoringEventType, index int) bool {
-	cutoff := es.cutoff.Load()
-	if cutoff == 0 {
-		return false
-	}
-
-	es.mu.RLock()
-	defer es.mu.RUnlock()
-
-	seqs, ok := es.seqByEventType[eventType]
-	if !ok || index < 0 || index >= len(seqs) {
-		return false
-	}
-
-	return seqs[index] <= cutoff
-}
-
 // clientEntity is a wrapper for a mongo.Client object that also holds additional information required during test
 // execution.
 type clientEntity struct {
