@@ -6,7 +6,7 @@ We are building this software together and strongly encourage contributions from
 
 ## Requirements
 
-Go 1.23 or higher is required to run the driver test suite.  We use [task](https://taskfile.dev/) as our task runner.
+Go 1.25 or higher is required to run the driver test suite.  We use [task](https://taskfile.dev/) as our task runner.
 
 ## Bug Fixes and New Features
 
