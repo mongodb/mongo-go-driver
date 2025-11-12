@@ -1,6 +1,6 @@
 module go.mongodb.go/mongo-driver/v2/internal/cmd/faas/awslambda/mongodb
 
-go 1.23
+go 1.25
 
 replace go.mongodb.org/mongo-driver/v2 => ../../../../../
 

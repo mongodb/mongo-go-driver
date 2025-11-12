@@ -6,7 +6,7 @@ We are building this software together and strongly encourage contributions from
 
 ## Requirements
 
-Go 1.23 or higher is required to run the driver test suite.  We use [task](https://taskfile.dev/) as our task runner.
+Go 1.25 or higher is required to run the driver test suite.  We use [task](https://taskfile.dev/) as our task runner.
 
 ## Bug Fixes and New Features
 
@@ -18,7 +18,7 @@ The Go Driver team uses GitHub to manage and review all code changes. Pull reque
 
 When creating a pull request, please ensure that your code adheres to the following guidelines:
 
-Code should compile and tests should pass under all Go versions which the driver currently supports. Currently, the Go Driver supports a minimum version of Go 1.19 and requires Go 1.23 for development. Please run the following `Taskfile` targets to validate your changes:
+Code should compile and tests should pass under all Go versions which the driver currently supports. Currently, the Go Driver supports a minimum version of Go 1.19 and requires Go 1.25 for development. Please run the following `Taskfile` targets to validate your changes:
 
 - `task fmt`
 - `task lint`
