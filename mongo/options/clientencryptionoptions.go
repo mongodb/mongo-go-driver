@@ -19,11 +19,12 @@ import (
 //
 // See corresponding setter methods for documentation.
 type ClientEncryptionOptions struct {
-	KeyVaultNamespace string
-	KmsProviders      map[string]map[string]any
-	TLSConfig         map[string]*tls.Config
-	HTTPClient        *http.Client
-	KeyExpiration     *time.Duration
+	KeyVaultNamespace   string
+	KmsProviders        map[string]map[string]any
+	TLSConfig           map[string]*tls.Config
+	HTTPClient          *http.Client
+	KeyExpiration       *time.Duration
+	CredentialProviders map[string]CredentialsProvider
 }
 
 // ClientEncryptionOptionsBuilder contains options to configure client
@@ -91,6 +92,15 @@ func (c *ClientEncryptionOptionsBuilder) SetKeyExpiration(expiration time.Durati
 		return nil
 	})
 
+	return c
+}
+
+// SetCredentialProviders specifies options for custom credential providers.
+func (c *ClientEncryptionOptionsBuilder) SetCredentialProviders(providers map[string]CredentialsProvider) *ClientEncryptionOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *ClientEncryptionOptions) error {
+		opts.CredentialProviders = providers
+		return nil
+	})
 	return c
 }
 
