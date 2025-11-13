@@ -42,6 +42,9 @@ var (
 
 	awsAccessKeyID     = os.Getenv("FLE_AWS_KEY")
 	awsSecretAccessKey = os.Getenv("FLE_AWS_SECRET")
+	azureTenantID      = os.Getenv("FLE_AZURE_TENANTID")
+	azureClientID      = os.Getenv("FLE_AZURE_CLIENTID")
+	azureClientSecret  = os.Getenv("FLE_AZURE_CLIENTSECRET")
 )
 
 // clientEntity is a wrapper for a mongo.Client object that also holds additional information required during test
@@ -291,6 +294,12 @@ func createAutoEncryptionOptions(opts bson.Raw) (*options.AutoEncryptionOptions,
 					providers["aws"] = map[string]any{
 						"accessKeyId":     awsAccessKeyID,
 						"secretAccessKey": awsSecretAccessKey,
+					}
+				case "azure":
+					providers["azure"] = map[string]any{
+						"tenantId":     azureTenantID,
+						"clientId":     azureClientID,
+						"clientSecret": azureClientSecret,
 					}
 				case "local":
 					_, key := providerOpt.Document().Lookup("key").Binary()
