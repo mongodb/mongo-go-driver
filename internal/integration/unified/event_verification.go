@@ -312,7 +312,7 @@ func verifyCommandEvents(ctx context.Context, client *clientEntity, expectedEven
 }
 
 func verifyCMAPEvents(client *clientEntity, expectedEvents *expectedEvents) error {
-	pooled := client.poolEvents()
+	pooled := filterEventsBySeq(client, client.pooled, poolAnyEvent)
 	if len(expectedEvents.CMAPEvents) == 0 && len(pooled) != 0 {
 		return fmt.Errorf("expected no cmap events to be sent but got %s", stringifyEventsForClient(client))
 	}
@@ -443,7 +443,7 @@ func stringifyEventsForClient(client *clientEntity) string {
 	}
 
 	str.WriteString("\nPool Events\n\n")
-	for _, evt := range client.poolEvents() {
+	for _, evt := range filterEventsBySeq(client, client.pooled, poolAnyEvent) {
 		str.WriteString(fmt.Sprintf("[%s] Event Type: %q\n", evt.Address, evt.Type))
 	}
 
@@ -522,13 +522,13 @@ func getNextTopologyClosedEvent(
 
 func verifySDAMEvents(client *clientEntity, expectedEvents *expectedEvents) error {
 	var (
-		changed   = client.serverDescriptionChanged
-		started   = client.serverHeartbeatStartedEvent
-		succeeded = client.serverHeartbeatSucceeded
-		failed    = client.serverHeartbeatFailedEvent
-		tchanged  = client.topologyDescriptionChanged
-		topening  = client.topologyOpening
-		tclosed   = client.topologyClosed
+		changed   = filterEventsBySeq(client, client.serverDescriptionChanged, serverDescriptionChangedEvent)
+		started   = filterEventsBySeq(client, client.serverHeartbeatStartedEvent, serverHeartbeatStartedEvent)
+		succeeded = filterEventsBySeq(client, client.serverHeartbeatSucceeded, serverHeartbeatSucceededEvent)
+		failed    = filterEventsBySeq(client, client.serverHeartbeatFailedEvent, serverHeartbeatFailedEvent)
+		tchanged  = filterEventsBySeq(client, client.topologyDescriptionChanged, topologyDescriptionChangedEvent)
+		topening  = filterEventsBySeq(client, client.topologyOpening, topologyOpeningEvent)
+		tclosed   = filterEventsBySeq(client, client.topologyClosed, topologyClosedEvent)
 	)
 
 	vol := func() int {
