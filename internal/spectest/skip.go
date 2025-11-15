@@ -392,19 +392,6 @@ var skipTests = map[string][]string{
 		"TestClientSideEncryptionSpec/timeoutMS.json/timeoutMS_applied_to_listCollections_to_get_collection_schema",
 	},
 
-	// TODO(GODRIVER-3486): Support auto encryption in unified tests.
-	"Support auto encryption in unified tests (GODRIVER-3486)": {
-		"TestUnifiedSpec/unified-test-format/tests/valid-pass/poc-queryable-encryption.json/insert,_replace,_and_find_with_queryable_encryption",
-	},
-
-	// TODO(DRIVERS-3106): Support auto encryption in unified tests.
-	"Support auto encryption in unified tests (DRIVERS-3106)": {
-		"TestUnifiedSpec/client-side-encryption/tests/unified/localSchema.json/A_local_schema_should_override",
-		"TestUnifiedSpec/client-side-encryption/tests/unified/localSchema.json/A_local_schema_with_no_encryption_is_an_error",
-		"TestUnifiedSpec/client-side-encryption/tests/unified/fle2v2-BypassQueryAnalysis.json/BypassQueryAnalysis_decrypts",
-		"TestUnifiedSpec/client-side-encryption/tests/unified/fle2v2-EncryptedFields-vs-EncryptedFieldsMap.json/encryptedFieldsMap_is_preferred_over_remote_encryptedFields",
-	},
-
 	// TODO(GODRIVER-3076): CSFLE/QE Support for more than 1 KMS provider per
 	// type.
 	"Support multiple KMS providers per type (GODRIVER-3076)": {
