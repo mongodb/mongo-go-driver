@@ -8,6 +8,7 @@ package unified
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"os"
 	"strings"
@@ -302,7 +303,11 @@ func createAutoEncryptionOptions(opts bson.Raw) (*options.AutoEncryptionOptions,
 						"clientSecret": azureClientSecret,
 					}
 				case "local":
-					_, key := providerOpt.Document().Lookup("key").Binary()
+					str := providerOpt.Document().Lookup("key").StringValue()
+					key, err := base64.StdEncoding.DecodeString(str)
+					if err != nil {
+						return nil, err
+					}
 					providers["local"] = map[string]any{
 						"key": key,
 					}
@@ -321,6 +326,8 @@ func createAutoEncryptionOptions(opts bson.Raw) (*options.AutoEncryptionOptions,
 		case "keyVaultNamespace":
 			kvnsFound = true
 			aeo.SetKeyVaultNamespace(opt.StringValue())
+		case "bypassQueryAnalysis":
+			aeo.SetBypassQueryAnalysis(opt.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized option: %v", name)
 		}
