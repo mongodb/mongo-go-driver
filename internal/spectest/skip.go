@@ -45,6 +45,11 @@ var skipTests = map[string][]string{
 		"TestAuthSpec/connection-string.json/must_raise_an_error_when_the_hostname_canonicalization_is_invalid",
 	},
 
+	// TODO(GODRIVER-3614): Remove support for specifying MONGODB-AWS authentication properties explicitly
+	"Should throw an exception if username provided (MONGODB-AWS) (GODRIVER-3614)": {
+		"TestAuthSpec/connection-string.json/should_throw_an_exception_if_username_and_password_provided_(MONGODB-AWS)",
+	},
+
 	// TODO(GODRIVER-2183): Implementation of Socks5 Proxy Support is pending.
 	"Requires Socks5 Proxy Support (GODRIVER-2183)": {
 		"TestURIOptionsSpec/proxy-options.json/proxyPort_without_proxyHost",
