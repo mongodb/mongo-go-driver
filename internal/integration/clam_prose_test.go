@@ -418,7 +418,7 @@ func TestCommandFailedEvent_Codes(t *testing.T) {
 			},
 		})
 
-		_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"x", 1}})
+		_, err := mt.Coll.InsertOne(context.Background(), struct{ X int }{X: 1})
 		require.Error(mt, err, "expected InsertOne error, got nil")
 
 		failedEvent := mt.GetFailedEvent()
