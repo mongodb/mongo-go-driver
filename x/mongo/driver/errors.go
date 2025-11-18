@@ -566,3 +566,21 @@ func ExtractErrorFromServerResponse(doc bsoncore.Document) error {
 
 	return nil
 }
+
+// errorCodes extracts error codes from a driver.Error representing an ok:0
+// command failure. Since ok:0 indicates the command failed before processing
+// any operations, only a single error code is returned. Returns nil if the
+// error is not a driver.Error (e.g., network errors, WriteCommandError for
+// ok:1 responses).
+//
+// This function may be updated in the future to extract multiple error codes in
+// an ok:1 scenario. In such cases, there can be multiple error codes via
+// WriteErrors which represent individual operation failures within the context
+// of a write command.
+func errorCodes(err error) []int32 {
+	if driversErr, ok := err.(Error); ok {
+		return []int32{driversErr.Code}
+	}
+
+	return nil
+}
