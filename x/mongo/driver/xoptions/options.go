@@ -9,6 +9,7 @@ package xoptions
 import (
 	"fmt"
 
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/optionsutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
@@ -80,6 +81,15 @@ func SetInternalBulkWriteOptions(a *options.BulkWriteOptionsBuilder, key string,
 			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
 			return nil
 		})
+	case "addCommandFields":
+		d, ok := option.(bson.D)
+		if !ok {
+			return typeErrFunc("bson.D")
+		}
+		a.Opts = append(a.Opts, func(opts *options.BulkWriteOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, d)
+			return nil
+		})
 	default:
 		return fmt.Errorf("unsupported option: %q", key)
 	}
@@ -99,6 +109,15 @@ func SetInternalClientBulkWriteOptions(a *options.ClientBulkWriteOptionsBuilder,
 		}
 		a.Opts = append(a.Opts, func(opts *options.ClientBulkWriteOptions) error {
 			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
+			return nil
+		})
+	case "addCommandFields":
+		d, ok := option.(bson.D)
+		if !ok {
+			return typeErrFunc("bson.D")
+		}
+		a.Opts = append(a.Opts, func(opts *options.ClientBulkWriteOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, d)
 			return nil
 		})
 	default:
@@ -332,6 +351,15 @@ func SetInternalFindOneAndReplaceOptions(a *options.FindOneAndReplaceOptionsBuil
 			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
 			return nil
 		})
+	case "addCommandFields":
+		d, ok := option.(bson.D)
+		if !ok {
+			return typeErrFunc("bson.D")
+		}
+		a.Opts = append(a.Opts, func(opts *options.FindOneAndReplaceOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, d)
+			return nil
+		})
 	default:
 		return fmt.Errorf("unsupported option: %q", key)
 	}
@@ -351,6 +379,15 @@ func SetInternalFindOneAndUpdateOptions(a *options.FindOneAndUpdateOptionsBuilde
 		}
 		a.Opts = append(a.Opts, func(opts *options.FindOneAndUpdateOptions) error {
 			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
+			return nil
+		})
+	case "addCommandFields":
+		d, ok := option.(bson.D)
+		if !ok {
+			return typeErrFunc("bson.D")
+		}
+		a.Opts = append(a.Opts, func(opts *options.FindOneAndUpdateOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, d)
 			return nil
 		})
 	default:
@@ -374,6 +411,15 @@ func SetInternalInsertManyOptions(a *options.InsertManyOptionsBuilder, key strin
 			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
 			return nil
 		})
+	case "addCommandFields":
+		d, ok := option.(bson.D)
+		if !ok {
+			return typeErrFunc("bson.D")
+		}
+		a.Opts = append(a.Opts, func(opts *options.InsertManyOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, d)
+			return nil
+		})
 	default:
 		return fmt.Errorf("unsupported option: %q", key)
 	}
@@ -393,6 +439,15 @@ func SetInternalInsertOneOptions(a *options.InsertOneOptionsBuilder, key string,
 		}
 		a.Opts = append(a.Opts, func(opts *options.InsertOneOptions) error {
 			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
+			return nil
+		})
+	case "addCommandFields":
+		d, ok := option.(bson.D)
+		if !ok {
+			return typeErrFunc("bson.D")
+		}
+		a.Opts = append(a.Opts, func(opts *options.InsertOneOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, d)
 			return nil
 		})
 	default:
@@ -458,6 +513,15 @@ func SetInternalReplaceOptions(a *options.ReplaceOptionsBuilder, key string, opt
 			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
 			return nil
 		})
+	case "addCommandFields":
+		d, ok := option.(bson.D)
+		if !ok {
+			return typeErrFunc("bson.D")
+		}
+		a.Opts = append(a.Opts, func(opts *options.ReplaceOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, d)
+			return nil
+		})
 	default:
 		return fmt.Errorf("unsupported option: %q", key)
 	}
@@ -479,6 +543,15 @@ func SetInternalUpdateManyOptions(a *options.UpdateManyOptionsBuilder, key strin
 			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
 			return nil
 		})
+	case "addCommandFields":
+		d, ok := option.(bson.D)
+		if !ok {
+			return typeErrFunc("bson.D")
+		}
+		a.Opts = append(a.Opts, func(opts *options.UpdateManyOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, d)
+			return nil
+		})
 	default:
 		return fmt.Errorf("unsupported option: %q", key)
 	}
@@ -498,6 +571,15 @@ func SetInternalUpdateOneOptions(a *options.UpdateOneOptionsBuilder, key string,
 		}
 		a.Opts = append(a.Opts, func(opts *options.UpdateOneOptions) error {
 			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
+			return nil
+		})
+	case "addCommandFields":
+		d, ok := option.(bson.D)
+		if !ok {
+			return typeErrFunc("bson.D")
+		}
+		a.Opts = append(a.Opts, func(opts *options.UpdateOneOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, d)
 			return nil
 		})
 	default:

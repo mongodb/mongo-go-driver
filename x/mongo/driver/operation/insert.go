@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"time"
 
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
 	"go.mongodb.org/mongo-driver/v2/internal/logger"
@@ -43,6 +44,7 @@ type Insert struct {
 	serverAPI                *driver.ServerAPIOptions
 	timeout                  *time.Duration
 	rawData                  *bool
+	additionalCmd            bson.D
 	logger                   *logger.Logger
 }
 
@@ -136,6 +138,13 @@ func (i *Insert) command(dst []byte, desc description.SelectedServer) ([]byte, e
 	// Set rawData for 8.2+ servers.
 	if i.rawData != nil && desc.WireVersion != nil && driverutil.VersionRangeIncludes(*desc.WireVersion, 27) {
 		dst = bsoncore.AppendBooleanElement(dst, "rawData", *i.rawData)
+	}
+	if len(i.additionalCmd) > 0 {
+		doc, err := bson.Marshal(i.additionalCmd)
+		if err != nil {
+			return nil, err
+		}
+		dst = append(dst, doc[4:len(doc)-1]...)
 	}
 	return dst, nil
 }
@@ -331,5 +340,15 @@ func (i *Insert) RawData(rawData bool) *Insert {
 	}
 
 	i.rawData = &rawData
+	return i
+}
+
+// AdditionalCmd sets additional command fields to be attached.
+func (i *Insert) AdditionalCmd(d bson.D) *Insert {
+	if i == nil {
+		i = new(Insert)
+	}
+
+	i.additionalCmd = d
 	return i
 }

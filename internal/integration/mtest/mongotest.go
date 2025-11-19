@@ -74,16 +74,15 @@ type T struct {
 	validTopologies   []TopologyKind
 	auth              *bool
 	enterprise        *bool
-	dataLake          *bool
 	ssl               *bool
 	collCreateOpts    *options.CreateCollectionOptionsBuilder
 	requireAPIVersion *bool
 
 	// options copied to sub-tests
-	clientType  ClientType
-	clientOpts  *options.ClientOptions
-	collOpts    *options.CollectionOptionsBuilder
-	shareClient *bool
+	clientType               ClientType
+	clientOpts               *options.ClientOptions
+	collOpts                 *options.CollectionOptionsBuilder
+	allowFailPointsOnSharded bool
 
 	baseOpts *Options // used to create subtests
 
@@ -122,8 +121,8 @@ func newT(wrapped *testing.T, opts ...*Options) *T {
 
 	// create a set of base options for sub-tests
 	t.baseOpts = NewOptions().ClientOptions(t.clientOpts).CollectionOptions(t.collOpts).ClientType(t.clientType)
-	if t.shareClient != nil {
-		t.baseOpts.ShareClient(*t.shareClient)
+	if t.allowFailPointsOnSharded {
+		t.baseOpts.AllowFailPointsOnSharded()
 	}
 
 	return t
@@ -139,12 +138,6 @@ func New(wrapped *testing.T, opts ...*Options) *T {
 	}
 
 	t := newT(wrapped, opts...)
-
-	// only create a client if it needs to be shared in sub-tests
-	// otherwise, a new client will be created for each subtest
-	if t.shareClient != nil && *t.shareClient {
-		t.createTestClient()
-	}
 
 	wrapped.Cleanup(t.cleanup)
 
@@ -189,16 +182,10 @@ func (t *T) RunOpts(name string, opts *Options, callback func(mt *T)) {
 			sub.AddMockResponses(sub.mockResponses...)
 		}
 
-		// for shareClient, inherit the client from the parent
-		if sub.shareClient != nil && *sub.shareClient && sub.clientType == t.clientType {
-			sub.Client = t.Client
+		if sub.createClient == nil || *sub.createClient {
+			sub.createTestClient()
 		}
-		// only create a client if not already set
-		if sub.Client == nil {
-			if sub.createClient == nil || *sub.createClient {
-				sub.createTestClient()
-			}
-		}
+
 		// create a collection for this test
 		if sub.Client != nil {
 			sub.createTestCollection()
@@ -219,10 +206,8 @@ func (t *T) RunOpts(name string, opts *Options, callback func(mt *T)) {
 				sub.ClearFailPoints()
 				sub.ClearCollections()
 			}
-			// only disconnect client if it's not being shared
-			if sub.shareClient == nil || !*sub.shareClient {
-				_ = sub.Client.Disconnect(context.Background())
-			}
+
+			_ = sub.Client.Disconnect(context.Background())
 			assert.Equal(sub, 0, sessions, "%v sessions checked out", sessions)
 			assert.Equal(sub, 0, conns, "%v connections checked out", conns)
 		}()
@@ -334,13 +319,13 @@ func (t *T) FilterFailedEvents(filter func(*event.CommandFailedEvent) bool) {
 	t.failed = newEvents
 }
 
-// GetProxiedMessages returns the messages proxied to the server by the test. If the client type is not Proxy, this
-// returns nil.
-func (t *T) GetProxiedMessages() []*ProxyMessage {
+// GetProxyCapture returns the ProxyCapture used by the test. If the client
+// type is not Proxy, this returns nil.
+func (t *T) GetProxyCapture() *ProxyCapture {
 	if t.proxyDialer == nil {
 		return nil
 	}
-	return t.proxyDialer.Messages()
+	return t.proxyDialer.proxyCapture
 }
 
 // NumberConnectionsCheckedOut returns the number of connections checked out from the test Client.
@@ -364,7 +349,9 @@ func (t *T) ResetClient(opts *options.ClientOptions) {
 		t.clientOpts = opts
 	}
 
-	_ = t.Client.Disconnect(context.Background())
+	if t.Client != nil {
+		_ = t.Client.Disconnect(context.Background())
+	}
 	t.createTestClient()
 	t.DB = t.Client.Database(t.dbName)
 	t.Coll = t.DB.Collection(t.collName, t.collOpts)
@@ -501,6 +488,21 @@ func (t *T) ClearCollections() {
 // SetFailPoint sets a fail point for the client associated with T. Commands to create the failpoint will appear
 // in command monitoring channels. The fail point will automatically be disabled after this test has run.
 func (t *T) SetFailPoint(fp failpoint.FailPoint) {
+	// Do not allow failpoints to be used on sharded topologies unless
+	// specifically configured to allow it.
+	//
+	// On sharded topologies, failpoints are applied to only a single mongoS. If
+	// the driver is connected to multiple mongoS instances, there's a
+	// possibility a different mongoS will be selected for a subsequent command.
+	// In that case, the failpoint is effectively ignored, leading to a test
+	// failure that is extremely difficult to diagnose.
+	//
+	// TODO(GODRIVER-3328): Remove this once we set failpoints on every mongoS
+	// in sharded topologies.
+	if testContext.topoKind == Sharded && !t.allowFailPointsOnSharded {
+		t.Fatalf("cannot use failpoints with sharded topologies unless AllowFailPointsOnSharded is set")
+	}
+
 	// ensure mode fields are int32
 	if modeMap, ok := fp.Mode.(map[string]any); ok {
 		var key string
@@ -795,18 +797,23 @@ func verifyRunOnBlockConstraint(rob RunOnBlock) error {
 		return err
 	}
 
-	if rob.CSFLE != nil {
-		if *rob.CSFLE && !IsCSFLEEnabled() {
-			return fmt.Errorf("runOnBlock requires CSFLE to be enabled. Build with the cse tag to enable")
-		} else if !*rob.CSFLE && IsCSFLEEnabled() {
-			return fmt.Errorf("runOnBlock requires CSFLE to be disabled. Build without the cse tag to disable")
-		}
-		if *rob.CSFLE {
-			if err := verifyVersionConstraints("4.2", ""); err != nil {
-				return err
-			}
+	// TODO(GODRIVER-3486): Once auto encryption is supported by the unified test
+	// format,this check should be removed.
+	if rob.CSFLEEnabled() && rob.CSFLE.Options != nil {
+		return fmt.Errorf("Auto encryption required (GODRIVER-3486)")
+	}
+
+	if rob.CSFLEEnabled() && !IsCSFLEEnabled() {
+		return fmt.Errorf("runOnBlock requires CSFLE to be enabled. Build with the cse tag to enable")
+	} else if !rob.CSFLEEnabled() && IsCSFLEEnabled() {
+		return fmt.Errorf("runOnBlock requires CSFLE to be disabled. Build without the cse tag to disable")
+	}
+	if rob.CSFLEEnabled() {
+		if err := verifyVersionConstraints("4.2", ""); err != nil {
+			return err
 		}
 	}
+
 	return nil
 }
 
@@ -828,10 +835,6 @@ func (t *T) verifyConstraints() error {
 	if t.enterprise != nil && *t.enterprise != testContext.enterpriseServer {
 		return fmt.Errorf("test requires enterprise value: %v, cluster enterprise value: %v", *t.enterprise,
 			testContext.enterpriseServer)
-	}
-	if t.dataLake != nil && *t.dataLake != testContext.dataLake {
-		return fmt.Errorf("test requires cluster to be data lake: %v, cluster is data lake: %v", *t.dataLake,
-			testContext.dataLake)
 	}
 	if t.requireAPIVersion != nil && *t.requireAPIVersion != testContext.requireAPIVersion {
 		return fmt.Errorf("test requires RequireAPIVersion value: %v, local RequireAPIVersion value: %v", *t.requireAPIVersion,

@@ -24,7 +24,7 @@ The MongoDB Go driver follows [semantic versioning](https://semver.org/) for its
 
 - Go 1.19 or higher. We aim to support the latest versions of Go.
 - Go 1.23 or higher is required to run the driver test suite.
-- MongoDB 4.0 and higher.
+- MongoDB 4.2 and higher.
 
 ## Installation
 
@@ -63,7 +63,7 @@ Make sure to defer a call to `Disconnect` after instantiating your client:
 
 ```go
 defer func() {
-    if err = client.Disconnect(ctx); err != nil {
+    if err := client.Disconnect(ctx); err != nil {
         panic(err)
     }
 }()
@@ -75,7 +75,7 @@ Calling `Connect` does not block for server discovery. If you wish to know if a 
 use the `Ping` method:
 
 ```go
-ctx, cancel = context.WithTimeout(context.Background(), 2*time.Second)
+ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 defer cancel()
 
 _ = client.Ping(ctx, readpref.Primary())
@@ -90,7 +90,7 @@ collection := client.Database("testing").Collection("numbers")
 The `Collection` instance can then be used to insert documents:
 
 ```go
-ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
+ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 defer cancel()
 
 res, _ := collection.InsertOne(ctx, bson.D{{"name", "pi"}, {"value", 3.14159}})
@@ -117,7 +117,7 @@ import (
 Several query methods return a cursor, which can be used like this:
 
 ```go
-ctx, cancel = context.WithTimeout(context.Background(), 30*time.Second)
+ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 defer cancel()
 
 cur, err := collection.Find(ctx, bson.D{})
@@ -148,10 +148,10 @@ var result struct {
 }
 
 filter := bson.D{{"name", "pi"}}
-ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
+ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 defer cancel()
 
-err = collection.FindOne(ctx, filter).Decode(&result)
+err := collection.FindOne(ctx, filter).Decode(&result)
 if errors.Is(err, mongo.ErrNoDocuments) {
     // Do something when no record was found
 } else if err != nil {
@@ -191,15 +191,15 @@ If compressors are set, the Go Driver negotiates with the server to select the f
 
 Messages compress when both parties enable network compression; otherwise, messages remain uncompressed
 
-## Feedback
+## Support / Feedback
 
-For help with the driver, please post in the [MongoDB Community Forums](https://developer.mongodb.com/community/forums/tag/golang/).
+For issues with, questions about, or feedback for the Go Driver, please look into our [support channels](https://www.mongodb.com/docs/manual/support/), including [StackOverflow](https://stackoverflow.com/questions/tagged/mongodb%20go?sort=Newest).
 
-New features and bugs can be reported on jira: https://jira.mongodb.org/browse/GODRIVER
+New features and bugs can be reported on the [GODRIVER Jira project](https://jira.mongodb.org/browse/GODRIVER).
 
 ## Contribution
 
-Check out the [project page](https://jira.mongodb.org/browse/GODRIVER) for tickets that need completing. See our [contribution guidelines](docs/CONTRIBUTING.md) for details.
+Check out the [GODRIVER Jira project](https://jira.mongodb.org/browse/GODRIVER) for tickets that need completing. See our [contribution guidelines](docs/CONTRIBUTING.md) for details.
 
 ## Continuous Integration
 

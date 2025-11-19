@@ -65,8 +65,7 @@ func (lc *ListCollectionsOptionsBuilder) SetBatchSize(size int32) *ListCollectio
 
 // SetAuthorizedCollections sets the value for the AuthorizedCollections field. If true, and
 // NameOnly is true, limits the documents returned to only contain collections the user is
-// authorized to use. The default value is false. This option is only valid for MongoDB server
-// versions >= 4.0. Server versions < 4.0 ignore this option.
+// authorized to use. The default value is false.
 func (lc *ListCollectionsOptionsBuilder) SetAuthorizedCollections(b bool) *ListCollectionsOptionsBuilder {
 	lc.Opts = append(lc.Opts, func(opts *ListCollectionsOptions) error {
 		opts.AuthorizedCollections = &b

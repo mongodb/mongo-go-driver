@@ -11,7 +11,6 @@ package assert
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 	"time"
 	"unsafe"
@@ -69,26 +68,6 @@ func DifferentAddressRanges(t TestingT, a, b []byte) (ok bool) {
 		overlapLow, overlapHigh)
 
 	return false
-}
-
-// EqualBSON asserts that the expected and actual BSON binary values are equal.
-// If the values are not equal, it prints both the binary and Extended JSON diff
-// of the BSON values. The provided BSON value types must implement the
-// fmt.Stringer interface.
-func EqualBSON(t TestingT, expected, actual interface{}) bool {
-	if h, ok := t.(tHelper); ok {
-		h.Helper()
-	}
-
-	return Equal(t,
-		expected,
-		actual,
-		`expected and actual BSON values do not match
-As Extended JSON:
-Expected: %s
-Actual  : %s`,
-		expected.(fmt.Stringer).String(),
-		actual.(fmt.Stringer).String())
 }
 
 // Soon runs the provided callback and fails the passed-in test if the callback

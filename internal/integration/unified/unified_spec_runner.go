@@ -99,9 +99,6 @@ func runTestFile(t *testing.T, filepath string, expectValidFail bool, opts ...*O
 	mtOpts := mtest.NewOptions().
 		RunOn(fileReqs...).
 		CreateClient(false)
-	if strings.Contains(filepath, "atlas-data-lake-testing") {
-		mtOpts.AtlasDataLake(true)
-	}
 	mt := mtest.New(t, mtOpts)
 
 	for _, testCase := range testCases {

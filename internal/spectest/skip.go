@@ -768,11 +768,6 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/change-streams/tests/unified/change-streams.json/Test_array_truncation",
 	},
 
-	// TODO(DRIVERS-3153): Re-enable once resolved.
-	"Re-enable test following DRIVERS-3153 resolution (DRIVERS-3153)": {
-		"TestUnifiedSpec/atlas-data-lake-testing/tests/unified/getMore.json/A_successful_find_event_with_getMore",
-	},
-
 	// TODO(GODRIVER-3137): Gossip cluster time from internal MongoClient to
 	// session entities.
 	"Must advance cluster times in unified spec runner (GODRIVER-3137)": {
@@ -820,6 +815,43 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/client-side-operations-timeout/tests/tailable-awaitData.json/error_if_maxAwaitTimeMS_is_equal_to_timeoutMS",
 		"TestUnifiedSpec/client-side-operations-timeout/tests/change-streams.json/error_if_maxAwaitTimeMS_is_equal_to_timeoutMS",
 		"TestUnifiedSpec/client-side-operations-timeout/tests/tailable-awaitData.json/error_if_maxAwaitTimeMS_is_greater_than_timeoutMS",
+	},
+
+	// TODO(GODRIVER-3641): Ensure Driver Errors for Tailable AwaitData Cursors on
+	// Invalid maxAwaitTimeMS.
+	"Ensure Driver Errors for Tailable AwaitData Cursors on Invalid maxAwaitTimeMS (GODRIVER-3641)": {
+		"TestUnifiedSpec/client-side-operations-timeout/tests/tailable-awaitData.json/error_on_find_if_maxAwaitTimeMS_is_greater_than_timeoutMS",
+		"TestUnifiedSpec/client-side-operations-timeout/tests/tailable-awaitData.json/error_on_aggregate_if_maxAwaitTimeMS_is_greater_than_timeoutMS",
+		"TestUnifiedSpec/client-side-operations-timeout/tests/tailable-awaitData.json/error_on_watch_if_maxAwaitTimeMS_is_greater_than_timeoutMS",
+		"TestUnifiedSpec/client-side-operations-timeout/tests/tailable-awaitData.json/error_on_find_if_maxAwaitTimeMS_is_equal_to_timeoutMS",
+		"TestUnifiedSpec/client-side-operations-timeout/tests/tailable-awaitData.json/error_on_aggregate_if_maxAwaitTimeMS_is_equal_to_timeoutMS",
+		"TestUnifiedSpec/client-side-operations-timeout/tests/tailable-awaitData.json/error_on_watch_if_maxAwaitTimeMS_is_equal_to_timeoutMS",
+	},
+
+	// TODO(GODRIVER-3620): Support text indexes with auto encryption.
+	"Support text indexes with auto encryption (GODRIVER-3620)": {
+		"TestUnifiedSpec/client-side-encryption/tests/unified/QE-Text-cleanupStructuredEncryptionData.json",
+		"TestUnifiedSpec/client-side-encryption/tests/unified/QE-Text-compactStructuredEncryptionData.json",
+		"TestUnifiedSpec/client-side-encryption/tests/unified/QE-Text-prefixPreview.json",
+		"TestUnifiedSpec/client-side-encryption/tests/unified/QE-Text-substringPreview.json",
+		"TestUnifiedSpec/client-side-encryption/tests/unified/QE-Text-suffixPreview.json",
+	},
+
+	// TODO(GODRIVER-3403): Support queryable encryption in Client.BulkWrite.
+	"Support queryable encryption in Client.BulkWrite (GODRIVER-3403)": {
+		"TestUnifiedSpec/crud/tests/unified/client-bulkWrite-qe.json",
+	},
+
+	// Pre-4.2 SDAM tests
+	"Pre-4.2 SDAM tests": {
+		"TestSDAMSpec/errors/pre-42-InterruptedAtShutdown.json",
+		"TestSDAMSpec/errors/pre-42-InterruptedDueToReplStateChange.json",
+		"TestSDAMSpec/errors/pre-42-LegacyNotPrimary.json",
+		"TestSDAMSpec/errors/pre-42-NotPrimaryNoSecondaryOk.json",
+		"TestSDAMSpec/errors/pre-42-NotPrimaryOrSecondary.json",
+		"TestSDAMSpec/errors/pre-42-NotWritablePrimary.json",
+		"TestSDAMSpec/errors/pre-42-PrimarySteppedDown.json",
+		"TestSDAMSpec/errors/pre-42-ShutdownInProgress.json",
 	},
 }
 

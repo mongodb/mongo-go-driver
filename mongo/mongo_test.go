@@ -14,6 +14,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/assert/assertbson"
 	"go.mongodb.org/mongo-driver/v2/internal/codecutil"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -603,7 +604,7 @@ func TestMarshalValue(t *testing.T) {
 			t.Parallel()
 
 			got, err := marshalValue(tc.value, tc.bsonOpts, tc.registry)
-			assert.EqualBSON(t, tc.want, got)
+			assertbson.EqualValue(t, tc.want, got)
 			assert.Equal(t, tc.wantErr, err, "expected and actual error do not match")
 		})
 	}

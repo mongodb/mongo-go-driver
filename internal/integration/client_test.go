@@ -12,6 +12,7 @@ import (
 	"net"
 	"os"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -19,9 +20,9 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/assert/assertbson"
 	"go.mongodb.org/mongo-driver/v2/internal/eventtest"
 	"go.mongodb.org/mongo-driver/v2/internal/failpoint"
-	"go.mongodb.org/mongo-driver/v2/internal/handshake"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/internal/integtest"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
@@ -29,9 +30,11 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/version"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/xoptions"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -456,26 +459,27 @@ func TestClient(t *testing.T) {
 		err := mt.Client.Ping(context.Background(), mtest.PrimaryRp)
 		assert.Nil(mt, err, "Ping error: %v", err)
 
-		msgPairs := mt.GetProxiedMessages()
-		assert.True(mt, len(msgPairs) >= 2, "expected at least 2 events sent, got %v", len(msgPairs))
+		want := mustMarshalBSON(bson.D{
+			{Key: "application", Value: bson.D{
+				bson.E{Key: "name", Value: "foo"},
+			}},
+			{Key: "driver", Value: bson.D{
+				{Key: "name", Value: "mongo-go-driver"},
+				{Key: "version", Value: version.Driver},
+			}},
+			{Key: "os", Value: bson.D{
+				{Key: "type", Value: runtime.GOOS},
+				{Key: "architecture", Value: runtime.GOARCH},
+			}},
+			{Key: "platform", Value: runtime.Version()},
+		})
 
-		// First two messages should be connection handshakes: one for the heartbeat connection and the other for the
-		// application connection.
-		for idx, pair := range msgPairs[:2] {
-			helloCommand := handshake.LegacyHello
-			//  Expect "hello" command name with API version.
-			if os.Getenv("REQUIRE_API_VERSION") == "true" {
-				helloCommand = "hello"
-			}
-			assert.Equal(mt, pair.CommandName, helloCommand, "expected command name %s at index %d, got %s", helloCommand, idx,
-				pair.CommandName)
+		for i := 0; i < 2; i++ {
+			message := mt.GetProxyCapture().TryNext()
+			require.NotNil(mt, message, "expected handshake message, got nil")
 
-			sent := pair.Sent
-			appNameVal, err := sent.Command.LookupErr("client", "application", "name")
-			assert.Nil(mt, err, "expected command %s at index %d to contain app name", sent.Command, idx)
-			appName := appNameVal.StringValue()
-			assert.Equal(mt, testAppName, appName, "expected app name %v at index %d, got %v", testAppName, idx,
-				appName)
+			clientMetadata := clientMetadataFromHandshake(mt, message.Sent.Command)
+			assertbson.EqualDocument(mt, want, clientMetadata)
 		}
 	})
 
@@ -604,24 +608,32 @@ func TestClient(t *testing.T) {
 		err := mt.Client.Ping(context.Background(), mtest.PrimaryRp)
 		assert.Nil(mt, err, "Ping error: %v", err)
 
-		msgPairs := mt.GetProxiedMessages()
-		assert.True(mt, len(msgPairs) >= 3, "expected at least 3 events, got %v", len(msgPairs))
+		proxyCapture := mt.GetProxyCapture()
 
 		// The first message should be a connection handshake.
-		pair := msgPairs[0]
-		assert.Equal(mt, handshake.LegacyHello, pair.CommandName, "expected command name %s at index 0, got %s",
-			handshake.LegacyHello, pair.CommandName)
-		assert.Equal(mt, wiremessage.OpQuery, pair.Sent.OpCode,
-			"expected 'OP_QUERY' OpCode in wire message, got %q", pair.Sent.OpCode.String())
+		firstMessage := proxyCapture.TryNext()
+		require.NotNil(mt, firstMessage, "expected handshake message, got nil")
 
-		// Look for a saslContinue in the remaining proxied messages and assert that it uses the OP_MSG OpCode, as wire
-		// version is now known to be >= 6.
+		assert.True(t, firstMessage.IsHandshake())
+
+		opCode := firstMessage.Sent.OpCode
+		assert.Equal(mt, wiremessage.OpQuery, opCode,
+			"expected 'OP_MSG' OpCode in wire message, got %q", opCode.String())
+
+		// Look for a saslContinue in the remaining proxied messages and assert that
+		// it uses the OP_MSG OpCode, as wire version is now known to be >= 6.
 		var saslContinueFound bool
-		for _, pair := range msgPairs[1:] {
-			if pair.CommandName == "saslContinue" {
+		for {
+			message := proxyCapture.TryNext()
+			if message == nil {
+				break
+			}
+
+			if message.CommandName == "saslContinue" {
 				saslContinueFound = true
-				assert.Equal(mt, wiremessage.OpMsg, pair.Sent.OpCode,
-					"expected 'OP_MSG' OpCode in wire message, got %s", pair.Sent.OpCode.String())
+				opCode := message.Sent.OpCode
+				assert.Equal(mt, wiremessage.OpMsg, opCode,
+					"expected 'OP_MSG' OpCode in wire message, got %q", opCode.String())
 				break
 			}
 		}
@@ -634,18 +646,18 @@ func TestClient(t *testing.T) {
 		err := mt.Client.Ping(context.Background(), mtest.PrimaryRp)
 		assert.Nil(mt, err, "Ping error: %v", err)
 
-		msgPairs := mt.GetProxiedMessages()
-		assert.True(mt, len(msgPairs) >= 3, "expected at least 3 events, got %v", len(msgPairs))
-
 		// First three messages should be connection handshakes: one for the heartbeat connection, another for the
 		// application connection, and a final one for the RTT monitor connection.
-		for idx, pair := range msgPairs[:3] {
-			assert.Equal(mt, "hello", pair.CommandName, "expected command name 'hello' at index %d, got %s", idx,
-				pair.CommandName)
+		for idx := 0; idx < 3; idx++ {
+			message := mt.GetProxyCapture().TryNext()
+			require.NotNil(mt, message, "expected handshake message, got nil")
+
+			assert.True(t, message.IsHandshake())
 
 			// Assert that appended OpCode is OP_MSG when API version is set.
-			assert.Equal(mt, wiremessage.OpMsg, pair.Sent.OpCode,
-				"expected 'OP_MSG' OpCode in wire message, got %q", pair.Sent.OpCode.String())
+			opCode := message.Sent.OpCode
+			assert.Equal(mt, wiremessage.OpMsg, opCode,
+				"expected 'OP_MSG' OpCode in wire message, got %q", opCode.String())
 		}
 	})
 
@@ -724,7 +736,7 @@ func TestClient(t *testing.T) {
 func TestClient_BulkWrite(t *testing.T) {
 	mt := mtest.New(t, noClientOpts)
 
-	mtBulkWriteOpts := mtest.NewOptions().MinServerVersion("8.0").AtlasDataLake(false).ClientType(mtest.Pinned)
+	mtBulkWriteOpts := mtest.NewOptions().MinServerVersion("8.0").ClientType(mtest.Pinned)
 	mt.RunOpts("bulk write with nil filter", mtBulkWriteOpts, func(mt *mtest.T) {
 		mt.Parallel()
 
@@ -838,9 +850,94 @@ func TestClient_BulkWrite(t *testing.T) {
 		}
 
 		_, err := mt.Client.BulkWrite(context.Background(), writes)
-		require.NoError(t, err)
-		assert.Equal(t, 2, bulkWrites, "expected %d bulkWrites, got %d", 2, bulkWrites)
+		require.NoError(mt, err)
+		assert.Equal(mt, 2, bulkWrites, "expected %d bulkWrites, got %d", 2, bulkWrites)
 	})
+}
+
+func TestClient_BulkWrite_AddCommandFields(t *testing.T) {
+	newOpts := func(option bson.D) *options.ClientBulkWriteOptionsBuilder {
+		opts := options.ClientBulkWrite()
+		err := xoptions.SetInternalClientBulkWriteOptions(opts, "addCommandFields", option)
+		require.NoError(t, err, "unexpected error: %v", err)
+		return opts
+	}
+
+	marshalValue := func(val interface{}) bson.RawValue {
+		t.Helper()
+
+		valType, data, err := bson.MarshalValue(val)
+		require.NoError(t, err, "MarshalValue error: %v", err)
+		return bson.RawValue{
+			Type:  valType,
+			Value: data,
+		}
+	}
+
+	models := []struct {
+		name  string
+		model mongo.ClientWriteModel
+	}{
+		{
+			name:  "insert one",
+			model: mongo.NewClientInsertOneModel().SetDocument(bson.D{{"x", 1}}),
+		},
+		{
+			name:  "update one",
+			model: mongo.NewClientUpdateOneModel().SetFilter(bson.D{{"x", 1}}).SetUpdate(bson.D{{"$set", bson.D{{"x", 3.14159}}}}),
+		},
+		{
+			name:  "update many",
+			model: mongo.NewClientUpdateManyModel().SetFilter(bson.D{{"x", 1}}).SetUpdate(bson.D{{"$set", bson.D{{"x", 3.14159}}}}),
+		},
+		{
+			name:  "replace one",
+			model: mongo.NewClientReplaceOneModel().SetFilter(bson.D{{"x", 1}}).SetReplacement(bson.D{{"x", 3.14159}}),
+		},
+	}
+
+	testCases := []struct {
+		name     string
+		opts     *options.ClientBulkWriteOptionsBuilder
+		expected bson.RawValue
+	}{
+		{
+			name:     "empty",
+			opts:     options.ClientBulkWrite(),
+			expected: bson.RawValue{},
+		},
+		{
+			name:     "false",
+			opts:     newOpts(bson.D{{"bypassEmptyTsReplacement", false}}),
+			expected: marshalValue(false),
+		},
+		{
+			name:     "true",
+			opts:     newOpts(bson.D{{"bypassEmptyTsReplacement", true}}),
+			expected: marshalValue(true),
+		},
+	}
+
+	mtBulkWriteOpts := mtest.NewOptions().MinServerVersion("8.0").ClientType(mtest.Pinned)
+	mt := mtest.New(t, noClientOpts)
+	for _, m := range models {
+		for _, tc := range testCases {
+			mt.RunOpts(fmt.Sprintf("%s %s", m.name, tc.name), mtBulkWriteOpts, func(mt *mtest.T) {
+				mt.Parallel()
+
+				writes := []mongo.ClientBulkWrite{{
+					Database:   "foo",
+					Collection: "bar",
+					Model:      m.model,
+				}}
+				_, err := mt.Client.BulkWrite(context.Background(), writes, tc.opts)
+				require.NoError(mt, err, "BulkWrite error: %v", err)
+				evt := mt.GetStartedEvent()
+				val := evt.Command.Lookup("bypassEmptyTsReplacement")
+				assert.Equal(mt, tc.expected, val, "expected bypassEmptyTsReplacement to be %s", tc.expected.String())
+			})
+		}
+	}
 }
 
 func TestClient_BSONOptions(t *testing.T) {
@@ -1086,7 +1183,7 @@ func TestClient_BSONOptions(t *testing.T) {
 				got, err := sr.Raw()
 				require.NoError(mt, err, "Raw error")
 
-				assert.EqualBSON(mt, tc.wantRaw, got)
+				assertbson.EqualDocument(mt, tc.wantRaw, got)
 			}
 		})
 	}

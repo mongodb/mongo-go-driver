@@ -49,6 +49,45 @@ var (
 	falseBool = false
 )
 
+// CSFLEOptions holds configuration for Client-Side Field Level Encryption
+// (CSFLE).
+type CSFLEOptions struct{}
+
+// CSFLE models the runOnRequirements.csfle field in Unified Test Format tests.
+//
+// The csfle field accepts either:
+//   - a boolean: true enables CSFLE with no options; false disables CSFLE
+//     (Options is nil).
+//   - an object: Options is populated from the document and Boolean is set to
+//     false.
+type CSFLE struct {
+	Boolean bool
+	Options *CSFLEOptions
+}
+
+// UnmarshalBSON implements custom BSON unmarshalling for CSFLE, accepting
+// either a boolean or an embedded document. If a document is provided, Options
+// is set and Boolean is false. If a boolean is provided, Boolean is set and
+// Options is nil.
+func (csfle *CSFLE) UnmarshalBSON(data []byte) error {
+	embRawValue := bson.RawValue{Type: bson.TypeEmbeddedDocument, Value: data}
+	if err := embRawValue.Unmarshal(&csfle.Options); err == nil {
+		csfle.Boolean = false
+
+		return nil
+	}
+
+	rawValue := bson.RawValue{Type: bson.TypeBoolean, Value: data}
+	if b, ok := rawValue.BooleanOK(); ok {
+		csfle.Boolean = b
+		csfle.Options = nil
+
+		return nil
+	}
+
+	return fmt.Errorf("error unmarshalling CSFLE: %s", data)
+}
+
 // RunOnBlock describes a constraint for a test.
 type RunOnBlock struct {
 	MinServerVersion string                   `bson:"minServerVersion"`
@@ -58,7 +97,11 @@ type RunOnBlock struct {
 	ServerParameters map[string]bson.RawValue `bson:"serverParameters"`
 	Auth             *bool                    `bson:"auth"`
 	AuthEnabled      *bool                    `bson:"authEnabled"`
-	CSFLE            *bool                    `bson:"csfle"`
+	CSFLE            *CSFLE                   `bson:"csfleConfiguration"`
+}
+
+func (r *RunOnBlock) CSFLEEnabled() bool {
+	return r.CSFLE != nil && (r.CSFLE.Boolean || r.CSFLE.Options != nil)
 }
 
 // UnmarshalBSON implements custom BSON unmarshalling behavior for RunOnBlock because some test formats use the
@@ -73,7 +116,7 @@ func (r *RunOnBlock) UnmarshalBSON(data []byte) error {
 		ServerParameters map[string]bson.RawValue `bson:"serverParameters"`
 		Auth             *bool                    `bson:"auth"`
 		AuthEnabled      *bool                    `bson:"authEnabled"`
-		CSFLE            *bool                    `bson:"csfle"`
+		CSFLE            *CSFLE                   `bson:"csfle"`
 		Extra            map[string]any           `bson:",inline"`
 	}
 	if err := bson.Unmarshal(data, &temp); err != nil {
@@ -154,16 +197,6 @@ func (op *Options) CreateClient(create bool) *Options {
 func (op *Options) CreateCollection(create bool) *Options {
 	op.optFuncs = append(op.optFuncs, func(t *T) {
 		t.createCollection = &create
-	})
-	return op
-}
-
-// ShareClient specifies whether or not a test should pass its client down to sub-tests. This should be set when calling
-// New() if the inheriting behavior is desired. This option must not be used if the test accesses command monitoring
-// events.
-func (op *Options) ShareClient(share bool) *Options {
-	op.optFuncs = append(op.optFuncs, func(t *T) {
-		t.shareClient = &share
 	})
 	return op
 }
@@ -266,18 +299,25 @@ func (op *Options) Enterprise(ent bool) *Options {
 	return op
 }
 
-// AtlasDataLake specifies whether this test should only be run against Atlas Data Lake servers. Defaults to false.
-func (op *Options) AtlasDataLake(adl bool) *Options {
-	op.optFuncs = append(op.optFuncs, func(t *T) {
-		t.dataLake = &adl
-	})
-	return op
-}
-
 // RequireAPIVersion specifies whether this test should only be run when REQUIRE_API_VERSION is true. Defaults to false.
 func (op *Options) RequireAPIVersion(rav bool) *Options {
 	op.optFuncs = append(op.optFuncs, func(t *T) {
 		t.requireAPIVersion = &rav
+	})
+	return op
+}
+
+// AllowFailPointsOnSharded bypasses the check for failpoints used on sharded
+// topologies.
+//
+// Failpoints are generally unreliable on sharded topologies, but can be used if
+// the failpoint is explicitly applied to every mongoS node in the cluster.
+//
+// TODO(GODRIVER-3328): Remove this option once we set failpoints on every
+// mongoS in sharded topologies.
+func (op *Options) AllowFailPointsOnSharded() *Options {
+	op.optFuncs = append(op.optFuncs, func(t *T) {
+		t.allowFailPointsOnSharded = true
 	})
 	return op
 }

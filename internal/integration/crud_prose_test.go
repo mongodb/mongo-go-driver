@@ -417,7 +417,7 @@ func TestErrorsCodeNamePropagated(t *testing.T) {
 }
 
 func TestClientBulkWriteProse(t *testing.T) {
-	mtOpts := mtest.NewOptions().MinServerVersion("8.0").AtlasDataLake(false).ClientType(mtest.Pinned)
+	mtOpts := mtest.NewOptions().MinServerVersion("8.0").ClientType(mtest.Pinned)
 	mt := mtest.New(t, mtOpts)
 
 	mt.Run("3. MongoClient.bulkWrite batch splits a writeModels input with greater than maxWriteBatchSize operations", func(mt *mtest.T) {
@@ -499,7 +499,10 @@ func TestClientBulkWriteProse(t *testing.T) {
 		assert.Equal(mt, 1, opsCnt[1], "expected %d secondEvent.command.ops, got: %d", 1, opsCnt[1])
 	})
 
-	mt.Run("5. MongoClient.bulkWrite collects WriteConcernErrors across batches", func(mt *mtest.T) {
+	// TODO(GODRIVER-3328): FailPoints are not currently reliable on sharded
+	// topologies. Allow running on sharded topologies once that is fixed.
+	noShardedOpts := mtest.NewOptions().Topologies(mtest.Single, mtest.ReplicaSet, mtest.LoadBalanced)
+	mt.RunOpts("5. MongoClient.bulkWrite collects WriteConcernErrors across batches", noShardedOpts, func(mt *mtest.T) {
 		var eventCnt int
 		monitor := &event.CommandMonitor{
 			Started: func(_ context.Context, e *event.CommandStartedEvent) {
@@ -657,7 +660,7 @@ func TestClientBulkWriteProse(t *testing.T) {
 	})
 
 	mt.RunOpts("8. MongoClient.bulkWrite handles a cursor requiring getMore within a transaction",
-		mtest.NewOptions().MinServerVersion("8.0").AtlasDataLake(false).ClientType(mtest.Pinned).
+		mtest.NewOptions().MinServerVersion("8.0").ClientType(mtest.Pinned).
 			Topologies(mtest.ReplicaSet, mtest.Sharded, mtest.LoadBalanced, mtest.ShardedReplicaSet),
 		func(mt *mtest.T) {
 			var getMoreCalled int
@@ -715,7 +718,9 @@ func TestClientBulkWriteProse(t *testing.T) {
 			assert.Equal(mt, 1, getMoreCalled, "expected %d getMore call, got: %d", 1, getMoreCalled)
 		})
 
-	mt.Run("9. MongoClient.bulkWrite handles a getMore error", func(mt *mtest.T) {
+	// TODO(GODRIVER-3328): FailPoints are not currently reliable on sharded
+	// topologies. Allow running on sharded topologies once that is fixed.
+	mt.RunOpts("9. MongoClient.bulkWrite handles a getMore error", noShardedOpts, func(mt *mtest.T) {
 		var getMoreCalled int
 		var killCursorsCalled int
 		monitor := &event.CommandMonitor{
