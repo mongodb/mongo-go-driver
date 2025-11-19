@@ -1,6 +1,6 @@
 module go.mongodb.go/mongo-driver/v2/internal/cmd/compilecheck
 
-go 1.19
+go 1.23
 
 replace go.mongodb.org/mongo-driver/v2 => ../../../
 
@@ -10,7 +10,7 @@ require go.mongodb.org/mongo-driver/v2 v2.0.0-alpha2
 
 require (
 	github.com/golang/snappy v1.0.0 // indirect
-	github.com/klauspost/compress v1.16.7 // indirect
+	github.com/klauspost/compress v1.17.6 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect
 	github.com/xdg-go/stringprep v1.0.4 // indirect
