@@ -15,6 +15,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/internal/mathutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
@@ -407,8 +408,19 @@ func (mb *modelBatches) appendBatches(fn functionSet, dst []byte, maxCount, tota
 		return 0, dst[:l], nil
 	}
 
-	dst = fn.updateLength(dst, opsIdx, int32(len(dst[opsIdx:])))
-	nsDst = fn.updateLength(nsDst, nsIdx, int32(len(nsDst[nsIdx:])))
+	dstLenI32, err := mathutil.SafeConvertNumeric[int32](len(dst[opsIdx:]))
+	if err != nil {
+		return 0, nil, err
+	}
+
+	dst = fn.updateLength(dst, opsIdx, dstLenI32)
+
+	nsDstLenI32, err := mathutil.SafeConvertNumeric[int32](len(nsDst[nsIdx:]))
+	if err != nil {
+		return 0, nil, err
+	}
+
+	nsDst = fn.updateLength(nsDst, nsIdx, nsDstLenI32)
 	dst = append(dst, nsDst...)
 
 	mb.retryMode = driver.RetryNone
@@ -600,7 +612,12 @@ type clientInsertDoc struct {
 func (d *clientInsertDoc) marshal(bsonOpts *options.BSONOptions, registry *bson.Registry) (any, bsoncore.Document, error) {
 	uidx, doc := bsoncore.AppendDocumentStart(nil)
 
-	doc = bsoncore.AppendInt32Element(doc, "insert", int32(d.namespace))
+	namespaceI32, err := mathutil.SafeConvertNumeric[int32](d.namespace)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	doc = bsoncore.AppendInt32Element(doc, "insert", namespaceI32)
 	f, err := marshal(d.document, bsonOpts, registry)
 	if err != nil {
 		return nil, nil, err
@@ -631,7 +648,12 @@ type clientUpdateDoc struct {
 func (d *clientUpdateDoc) marshal(bsonOpts *options.BSONOptions, registry *bson.Registry) (bsoncore.Document, error) {
 	uidx, doc := bsoncore.AppendDocumentStart(nil)
 
-	doc = bsoncore.AppendInt32Element(doc, "update", int32(d.namespace))
+	namespaceI32, err := mathutil.SafeConvertNumeric[int32](d.namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	doc = bsoncore.AppendInt32Element(doc, "update", namespaceI32)
 
 	if d.filter == nil {
 		return nil, fmt.Errorf("update filter cannot be nil")
@@ -702,7 +724,12 @@ type clientDeleteDoc struct {
 func (d *clientDeleteDoc) marshal(bsonOpts *options.BSONOptions, registry *bson.Registry) (bsoncore.Document, error) {
 	didx, doc := bsoncore.AppendDocumentStart(nil)
 
-	doc = bsoncore.AppendInt32Element(doc, "delete", int32(d.namespace))
+	namespaceI32, err := mathutil.SafeConvertNumeric[int32](d.namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	doc = bsoncore.AppendInt32Element(doc, "delete", namespaceI32)
 
 	if d.filter == nil {
 		return nil, fmt.Errorf("delete filter cannot be nil")

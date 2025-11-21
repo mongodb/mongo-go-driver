@@ -7,14 +7,13 @@
 package mongo
 
 import (
-	"errors"
-
 	"context"
+	"errors"
+	"math"
 	"time"
 
-	"math"
-
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/mathutil"
 )
 
 // uploadBufferSize is the size in bytes of one stream batch. Chunks will be written to the db after the sum of chunk
@@ -99,10 +98,7 @@ func (us *GridFSUploadStream) Write(p []byte) (int, error) {
 	}
 
 	origLen := len(p)
-	for {
-		if len(p) == 0 {
-			break
-		}
+	for len(p) != 0 {
 
 		n := copy(us.buffer[us.bufferIndex:], p) // copy as much as possible
 		p = p[n:]
@@ -163,10 +159,14 @@ func (us *GridFSUploadStream) uploadChunks(ctx context.Context, uploadPartial bo
 			endIndex = us.bufferIndex
 		}
 		chunkData := us.buffer[i:endIndex]
+		chunkIndex, err := mathutil.SafeConvertNumeric[int32](us.chunkIndex)
+		if err != nil {
+			return err
+		}
 		docs[us.chunkIndex-begChunkIndex] = bson.D{
 			{"_id", bson.NewObjectID()},
 			{"files_id", us.FileID},
-			{"n", int32(us.chunkIndex)},
+			{"n", chunkIndex},
 			{"data", bson.Binary{Subtype: 0x00, Data: chunkData}},
 		}
 		us.chunkIndex++
