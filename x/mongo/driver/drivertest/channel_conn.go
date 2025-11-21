@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 
+	"go.mongodb.org/mongo-driver/v2/internal/mathutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/address"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
@@ -105,7 +106,13 @@ func MakeReply(doc bsoncore.Document) []byte {
 	dst = wiremessage.AppendReplyStartingFrom(dst, 0)
 	dst = wiremessage.AppendReplyNumberReturned(dst, 1)
 	dst = append(dst, doc...)
-	return bsoncore.UpdateLength(dst, idx, int32(len(dst[idx:])))
+
+	wmLen, err := mathutil.SafeConvertNumeric[int32](len(dst[idx:]))
+	if err != nil {
+		panic("reply size exceeds int32")
+	}
+
+	return bsoncore.UpdateLength(dst, idx, wmLen)
 }
 
 // GetCommandFromQueryWireMessage returns the command sent in an OP_QUERY wire message.

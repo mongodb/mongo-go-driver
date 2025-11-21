@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/internal/handshake"
+	"go.mongodb.org/mongo-driver/v2/internal/mathutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
@@ -168,7 +169,13 @@ func (pc *proxyConn) Read(buffer []byte) (int, error) {
 	// buffer to the end of a four-byte slice and using UpdateLength to set the length bytes.
 	idx, wm := bsoncore.ReserveLength(nil)
 	wm = append(wm, buffer...)
-	wm = bsoncore.UpdateLength(wm, idx, int32(len(wm[idx:])))
+
+	wmLen, err := mathutil.SafeConvertNumeric[int32](len(wm))
+	if err != nil {
+		return 0, fmt.Errorf("wire message size %d exceeds maximum int32 size: %w", len(wm), err)
+	}
+
+	wm = bsoncore.UpdateLength(wm, idx, wmLen)
 
 	if err := pc.dialer.storeReceivedMessage(wm, pc.RemoteAddr().String()); err != nil {
 		wrapped := fmt.Errorf("error storing received message: %w", err)

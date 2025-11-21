@@ -215,10 +215,7 @@ func TestCursor_RemainingBatchLength(t *testing.T) {
 		defer cursor.Close(context.Background())
 		mt.ClearEvents()
 
-		for {
-			if cursor.TryNext(context.Background()) {
-				break
-			}
+		for !cursor.TryNext(context.Background()) {
 
 			assert.Nil(mt, cursor.Err(), "cursor error: %v", err)
 			assert.Equal(mt,
