@@ -15,6 +15,7 @@ import (
 
 	"github.com/golang/snappy"
 	"github.com/klauspost/compress/zstd"
+	"go.mongodb.org/mongo-driver/v2/internal/mathutil"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage"
 )
 
@@ -162,9 +163,17 @@ func DecompressPayload(in []byte, opts CompressionOpts) ([]byte, error) {
 		l, err := snappy.DecodedLen(in)
 		if err != nil {
 			return nil, fmt.Errorf("decoding compressed length %w", err)
-		} else if int32(l) != opts.UncompressedSize {
+		}
+
+		li32, err := mathutil.SafeConvertNumeric[int32](l)
+		if err != nil {
+			return nil, fmt.Errorf("decompression size %v overflows int32: %w", l, err)
+		}
+
+		if li32 != opts.UncompressedSize {
 			return nil, fmt.Errorf("unexpected decompression size, expected %v but got %v", opts.UncompressedSize, l)
 		}
+
 		out := make([]byte, opts.UncompressedSize)
 		return snappy.Decode(out, in)
 	case wiremessage.CompressorZLib:

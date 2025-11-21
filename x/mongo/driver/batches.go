@@ -7,9 +7,11 @@
 package driver
 
 import (
+	"fmt"
 	"io"
 	"strconv"
 
+	"go.mongodb.org/mongo-driver/v2/internal/mathutil"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage"
 )
@@ -56,7 +58,13 @@ func (b *Batches) AppendBatchSequence(dst []byte, maxCount, totalSize int) (int,
 	if n == 0 {
 		return 0, dst[:l], nil
 	}
-	dst = bsoncore.UpdateLength(dst, idx, int32(len(dst[idx:])))
+
+	dlen, err := mathutil.SafeConvertNumeric[int32](len(dst[idx:]))
+	if err != nil {
+		return 0, nil, fmt.Errorf("batch sequence size %d exceeds maximum int32 size: %w", len(dst[idx:]), err)
+	}
+
+	dst = bsoncore.UpdateLength(dst, idx, dlen)
 	return n, dst, nil
 }
 

@@ -24,6 +24,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
 	"go.mongodb.org/mongo-driver/v2/internal/handshake"
 	"go.mongodb.org/mongo-driver/v2/internal/logger"
+	"go.mongodb.org/mongo-driver/v2/internal/mathutil"
 	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
 	"go.mongodb.org/mongo-driver/v2/mongo/address"
 	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
@@ -475,7 +476,7 @@ func (op Operation) getServerAndConnection(
 	server, err := op.selectServer(ctx, requestID, deprioritized)
 	if err != nil {
 		if op.Client != nil &&
-			!(op.Client.Committing || op.Client.Aborting) && op.Client.TransactionRunning() {
+			(!op.Client.Committing && !op.Client.Aborting) && op.Client.TransactionRunning() {
 			err = Error{
 				Message: err.Error(),
 				Labels:  []string{TransientTransactionError},
@@ -747,7 +748,6 @@ func (op Operation) Execute(ctx context.Context) error {
 		var moreToCome bool
 		var startedInfo startedInformation
 		*wm, moreToCome, startedInfo, err = op.createWireMessage(ctx, maxTimeMS, (*wm)[:0], desc, conn, requestID)
-
 		if err != nil {
 			return err
 		}
@@ -792,7 +792,7 @@ func (op Operation) Execute(ctx context.Context) error {
 			serverConnID:       startedInfo.serverConnID,
 			redacted:           startedInfo.redacted,
 			serviceID:          startedInfo.serviceID,
-			serverAddress:      desc.Server.Addr,
+			serverAddress:      desc.Addr,
 		}
 
 		startedTime := time.Now()
@@ -845,7 +845,7 @@ func (op Operation) Execute(ctx context.Context) error {
 			retryableErr := tt.Retryable(connDesc.Kind, connDesc.WireVersion)
 			preRetryWriteLabelVersion := connDesc.WireVersion != nil && connDesc.WireVersion.Max < 9
 			inTransaction := op.Client != nil &&
-				!(op.Client.Committing || op.Client.Aborting) && op.Client.TransactionRunning()
+				(!op.Client.Committing && !op.Client.Aborting) && op.Client.TransactionRunning()
 			// If retry is enabled and the operation isn't in a transaction, add a RetryableWriteError label for
 			// retryable errors from pre-4.4 servers
 			if retryableErr && preRetryWriteLabelVersion && retryEnabled && !inTransaction {
@@ -900,10 +900,16 @@ func (op Operation) Execute(ctx context.Context) error {
 				}
 			}
 			if op.Client != nil && op.Client.Committing && tt.WriteConcernError != nil {
+				// MongoDB only supports 64-bit platforms where int is 32 bits, and BSON
+				// encodes the code field as an int32. Drivers currently deserialize, so
+				// representing errorCodes as 32-bit integers keeps us aligned with what
+				// the server actually sends.
+				code, _ := mathutil.SafeConvertNumeric[int32](tt.WriteConcernError.Code)
+
 				// When running commitTransaction we return WriteConcernErrors as an Error.
 				err := Error{
 					Name:    tt.WriteConcernError.Name,
-					Code:    int32(tt.WriteConcernError.Code),
+					Code:    code,
 					Message: tt.WriteConcernError.Message,
 					Labels:  tt.Labels,
 					Raw:     tt.Raw,
@@ -961,7 +967,7 @@ func (op Operation) Execute(ctx context.Context) error {
 				retryableErr = tt.RetryableWrite(connDesc.WireVersion)
 				preRetryWriteLabelVersion := connDesc.WireVersion != nil && connDesc.WireVersion.Max < 9
 				inTransaction := op.Client != nil &&
-					!(op.Client.Committing || op.Client.Aborting) && op.Client.TransactionRunning()
+					(!op.Client.Committing && !op.Client.Aborting) && op.Client.TransactionRunning()
 				// If retryWrites is enabled and the operation isn't in a transaction, add a RetryableWriteError label
 				// for network errors and retryable errors from pre-4.4 servers
 				if retryEnabled && !inTransaction &&
@@ -1081,7 +1087,7 @@ func (op Operation) retryable(desc description.Server) bool {
 			return true
 		}
 		if retryWritesSupported(desc) &&
-			op.Client != nil && !(op.Client.TransactionInProgress() || op.Client.TransactionStarting()) &&
+			op.Client != nil && (!op.Client.TransactionInProgress() && !op.Client.TransactionStarting()) &&
 			op.WriteConcern.Acknowledged() {
 			return true
 		}
@@ -1089,7 +1095,7 @@ func (op Operation) retryable(desc description.Server) bool {
 		if op.Client != nil && (op.Client.Committing || op.Client.Aborting) {
 			return true
 		}
-		if op.Client == nil || !(op.Client.TransactionInProgress() || op.Client.TransactionStarting()) {
+		if op.Client == nil || (!op.Client.TransactionInProgress() && !op.Client.TransactionStarting()) {
 			return true
 		}
 	}
@@ -1335,10 +1341,8 @@ func (op Operation) createMsgWireMessage(
 	if err != nil {
 		return dst, nil, err
 	}
-	retryWrite := false
-	if op.retryable(conn.Description()) && op.RetryMode != nil && op.RetryMode.Enabled() {
-		retryWrite = true
-	}
+	retryWrite := op.retryable(conn.Description()) && op.RetryMode != nil && op.RetryMode.Enabled()
+
 	dst, err = op.addSession(dst, desc, retryWrite)
 	if err != nil {
 		return dst, nil, err
@@ -1478,7 +1482,13 @@ func (op Operation) createWireMessage(
 		moreToCome = true
 	}
 	info.requestID = requestID
-	return bsoncore.UpdateLength(dst, wmindex, int32(len(dst[wmindex:]))), moreToCome, info, nil
+
+	wmLen, err := mathutil.SafeConvertNumeric[int32](len(dst[wmindex:]))
+	if err != nil {
+		return nil, false, info, fmt.Errorf("wire message length %d exceeds maximum int32: %w", len(dst[wmindex:]), err)
+	}
+
+	return bsoncore.UpdateLength(dst, wmindex, wmLen), moreToCome, info, nil
 }
 
 func (op Operation) addEncryptCommandFields(ctx context.Context, dst []byte, desc description.SelectedServer) (int, []byte, error) {
@@ -1842,7 +1852,7 @@ func (op Operation) createReadPref(desc description.SelectedServer, isOpQuery bo
 	// TODO if supplied readPreference was "overwritten" with primary in description.selectForReplicaSet.
 	if desc.Server.Kind == description.ServerKindStandalone || (isOpQuery &&
 		desc.Server.Kind != description.ServerKindMongos) ||
-		op.Type == Write || (op.IsOutputAggregate && desc.Server.WireVersion.Max < 13) {
+		op.Type == Write || (op.IsOutputAggregate && desc.WireVersion.Max < 13) {
 		// Don't send read preference for:
 		// 1. all standalones
 		// 2. non-mongos when using OP_QUERY
@@ -2000,7 +2010,14 @@ func (Operation) decodeOpReply(wm []byte) opReply {
 		reply.err = ErrCursorNotFound
 		return reply
 	}
-	if reply.numReturned != int32(len(reply.documents)) {
+
+	replyLen, err := mathutil.SafeConvertNumeric[int32](len(reply.documents))
+	if err != nil {
+		reply.err = fmt.Errorf("number of documents %d exceeds maximum int32: %w", len(reply.documents), err)
+		return reply
+	}
+
+	if reply.numReturned != replyLen {
 		reply.err = ErrReplyDocumentMismatch
 		return reply
 	}
