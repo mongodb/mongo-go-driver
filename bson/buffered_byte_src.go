@@ -9,6 +9,8 @@ package bson
 import (
 	"bytes"
 	"io"
+
+	"go.mongodb.org/mongo-driver/v2/internal/mathutil"
 )
 
 // bufferedByteSrc implements the low-level byteSrc interface by reading
@@ -115,7 +117,12 @@ func (b *bufferedByteSrc) regexLength() (int32, error) {
 
 	// Total length = first C-string length (pattern) + second C-string length
 	// (options) + 2 null terminators
-	return int32(i + j + 2), nil
+	length, err := mathutil.SafeConvertNumeric[int32](i + j + 2)
+	if err != nil {
+		return 0, err
+	}
+
+	return length, nil
 }
 
 func (*bufferedByteSrc) streamable() bool {

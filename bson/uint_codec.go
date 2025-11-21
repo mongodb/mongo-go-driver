@@ -27,6 +27,7 @@ var _ typeDecoder = &uintCodec{}
 func (uic *uintCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
 	switch val.Kind() {
 	case reflect.Uint8, reflect.Uint16:
+		// nolint:gosec // G115: uint8 and uint16 fit within int32
 		return vw.WriteInt32(int32(val.Uint()))
 	case reflect.Uint, reflect.Uint32, reflect.Uint64:
 		u64 := val.Uint()
@@ -35,6 +36,7 @@ func (uic *uintCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.
 		useMinSize := ec.minSize || (uic.encodeToMinSize && val.Kind() != reflect.Uint64)
 
 		if u64 <= math.MaxInt32 && useMinSize {
+			// nolint:gosec // G115: checked against MaxInt32
 			return vw.WriteInt32(int32(u64))
 		}
 		if u64 > math.MaxInt64 {

@@ -14,6 +14,7 @@ import (
 	"reflect"
 	"sync"
 
+	"go.mongodb.org/mongo-driver/v2/internal/mathutil"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
@@ -120,17 +121,30 @@ func fitsIn32Bits(i int64) bool {
 func intEncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
 	switch val.Kind() {
 	case reflect.Int8, reflect.Int16, reflect.Int32:
-		return vw.WriteInt32(int32(val.Int()))
+		i64 := val.Int()
+		i32, err := mathutil.SafeConvertNumeric[int32](i64)
+		if err != nil {
+			return ValueEncoderError{Name: "IntEncodeValue", Kinds: []reflect.Kind{val.Kind()}, Received: val}
+		}
+		return vw.WriteInt32(i32)
 	case reflect.Int:
 		i64 := val.Int()
 		if fitsIn32Bits(i64) {
-			return vw.WriteInt32(int32(i64))
+			i32, err := mathutil.SafeConvertNumeric[int32](i64)
+			if err != nil {
+				return ValueEncoderError{Name: "IntEncodeValue", Kinds: []reflect.Kind{reflect.Int}, Received: val}
+			}
+			return vw.WriteInt32(i32)
 		}
 		return vw.WriteInt64(i64)
 	case reflect.Int64:
 		i64 := val.Int()
 		if ec.minSize && fitsIn32Bits(i64) {
-			return vw.WriteInt32(int32(i64))
+			i32, err := mathutil.SafeConvertNumeric[int32](i64)
+			if err != nil {
+				return ValueEncoderError{Name: "IntEncodeValue", Kinds: []reflect.Kind{reflect.Int64}, Received: val}
+			}
+			return vw.WriteInt32(i32)
 		}
 		return vw.WriteInt64(i64)
 	}
@@ -369,7 +383,8 @@ func binaryEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error
 func vectorEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
 	t := val.Type()
 	if !val.IsValid() || t != tVector {
-		return ValueEncoderError{Name: "VectorEncodeValue",
+		return ValueEncoderError{
+			Name:     "VectorEncodeValue",
 			Types:    []reflect.Type{tVector},
 			Received: val,
 		}
