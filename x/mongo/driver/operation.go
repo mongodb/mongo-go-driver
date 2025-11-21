@@ -747,7 +747,6 @@ func (op Operation) Execute(ctx context.Context) error {
 		var moreToCome bool
 		var startedInfo startedInformation
 		*wm, moreToCome, startedInfo, err = op.createWireMessage(ctx, maxTimeMS, (*wm)[:0], desc, conn, requestID)
-
 		if err != nil {
 			return err
 		}
@@ -2231,6 +2230,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 
 	failedEvent := &event.CommandFailedEvent{
 		Failure:              info.cmdErr,
+		Codes:                errorCodes(info.cmdErr),
 		CommandFinishedEvent: finished,
 	}
 	op.CommandMonitor.Failed(ctx, failedEvent)

@@ -14,9 +14,11 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/failpoint"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/internal/integtest"
 	"go.mongodb.org/mongo-driver/v2/internal/logger"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
@@ -198,7 +200,6 @@ func clamMultiByteTruncLogs(mt *mtest.T) []truncValidator {
 
 	// Insert started.
 	validators[0] = newTruncValidator(mt, cmd, func(cmd string) error {
-
 		// Remove the suffix from the command string.
 		cmd = cmd[:len(cmd)-len(logger.TruncationSuffix)]
 
@@ -395,4 +396,34 @@ func TestCommandLoggingAndMonitoringProse(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCommandFailedEvent_Codes(t *testing.T) {
+	clientOpts := options.Client().SetRetryWrites(false)
+
+	mtOpts := mtest.NewOptions().MinServerVersion("8.0").ClientType(mtest.Pinned).ClientOptions(clientOpts)
+	mt := mtest.New(t, mtOpts)
+
+	mt.Run("Top level code", func(mt *mtest.T) {
+		mt.ResetClient(options.Client().SetRetryWrites(false))
+
+		mt.SetFailPoint(failpoint.FailPoint{
+			ConfigureFailPoint: "failCommand",
+			Mode: failpoint.Mode{
+				Times: 1,
+			},
+			Data: failpoint.Data{
+				FailCommands: []string{"insert"},
+				ErrorCode:    1,
+			},
+		})
+
+		_, err := mt.Coll.InsertOne(context.Background(), struct{ X int }{X: 1})
+		require.Error(mt, err, "expected InsertOne error, got nil")
+
+		failedEvent := mt.GetFailedEvent()
+
+		require.NotNil(mt, failedEvent, "expected CommandFailedEvent, got nil")
+		require.Equal(mt, []int32{1}, failedEvent.Codes, "expected Codes to be [1], got %+v", failedEvent.Codes)
+	})
 }

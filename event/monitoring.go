@@ -54,6 +54,7 @@ type CommandSucceededEvent struct {
 type CommandFailedEvent struct {
 	CommandFinishedEvent
 	Failure error
+	Codes   []int32
 }
 
 // CommandMonitor represents a monitor that is triggered for different events.
