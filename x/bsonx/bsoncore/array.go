@@ -11,6 +11,8 @@ import (
 	"io"
 	"strconv"
 	"strings"
+
+	"go.mongodb.org/mongo-driver/v2/internal/mathutil"
 )
 
 // NewArrayLengthError creates and returns an error for when the length of an array exceeds the
@@ -64,7 +66,13 @@ func (a Array) DebugString() string {
 	var ok bool
 	for length > 1 {
 		elem, rem, ok = ReadElement(rem)
-		length -= int32(len(elem))
+
+		elemLenI32, err := mathutil.SafeConvertNumeric[int32](len(elem))
+		if err != nil {
+			panic("array element length exceeds max int32")
+		}
+
+		length -= elemLenI32
 		if !ok {
 			buf.WriteString(fmt.Sprintf("<malformed (%d)>", length))
 			break
@@ -135,7 +143,11 @@ func (a Array) StringN(n int) (string, bool) {
 		}
 
 		elem, rem, ok = ReadElement(rem)
-		length -= int32(len(elem))
+		elemLen, err := mathutil.SafeConvertNumeric[int32](len(elem))
+		if err != nil {
+			return "", false
+		}
+		length -= elemLen
 		// Exit on malformed element.
 		if !ok || length < 0 {
 			return "", false
@@ -183,13 +195,17 @@ func (a Array) Validate() error {
 	var keyNum int64
 	for length > 1 {
 		elem, rem, ok = ReadElement(rem)
-		length -= int32(len(elem))
+		elemLen, err := mathutil.SafeConvertNumeric[int32](len(elem))
+		if err != nil {
+			return NewArrayLengthError(len(elem), len(a))
+		}
+		length -= elemLen
 		if !ok {
 			return NewInsufficientBytesError(a, rem)
 		}
 
 		// validate element
-		err := elem.Validate()
+		err = elem.Validate()
 		if err != nil {
 			return err
 		}

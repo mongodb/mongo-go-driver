@@ -14,6 +14,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"go.mongodb.org/mongo-driver/v2/internal/binaryutil"
+	"go.mongodb.org/mongo-driver/v2/internal/mathutil"
 )
 
 const (
@@ -206,7 +209,11 @@ func AppendDocumentEnd(dst []byte, index int32) ([]byte, error) {
 		return dst, fmt.Errorf("not enough bytes available after index to write length")
 	}
 	dst = append(dst, 0x00)
-	dst = UpdateLength(dst, index, int32(len(dst[index:])))
+	length, err := mathutil.SafeConvertNumeric[int32](len(dst[index:]))
+	if err != nil {
+		return dst, fmt.Errorf("document length %d exceeds int32", len(dst[index:]))
+	}
+	dst = UpdateLength(dst, index, length)
 	return dst, nil
 }
 
@@ -227,7 +234,12 @@ func BuildDocument(dst []byte, elems ...[]byte) []byte {
 		dst = append(dst, elem...)
 	}
 	dst = append(dst, 0x00)
-	dst = UpdateLength(dst, idx, int32(len(dst[idx:])))
+	length, err := mathutil.SafeConvertNumeric[int32](len(dst[idx:]))
+	if err != nil {
+		panic(fmt.Errorf("document length %d overflows int32: %w", len(dst[idx:]), err))
+	}
+
+	dst = UpdateLength(dst, idx, length)
 	return dst
 }
 
@@ -279,7 +291,12 @@ func BuildArray(dst []byte, values ...Value) []byte {
 		dst = AppendValueElement(dst, strconv.Itoa(pos), val)
 	}
 	dst = append(dst, 0x00)
-	dst = UpdateLength(dst, idx, int32(len(dst[idx:])))
+	length, err := mathutil.SafeConvertNumeric[int32](len(dst[idx:]))
+	if err != nil {
+		panic(fmt.Errorf("array length %d overflows int32: %w", len(dst[idx:]), err))
+	}
+
+	dst = UpdateLength(dst, idx, length)
 	return dst
 }
 
@@ -297,7 +314,12 @@ func AppendBinary(dst []byte, subtype byte, b []byte) []byte {
 	if subtype == 0x02 {
 		return appendBinarySubtype2(dst, subtype, b)
 	}
-	dst = append(appendLength(dst, int32(len(b))), subtype)
+	length, err := mathutil.SafeConvertNumeric[int32](len(b))
+	if err != nil {
+		panic(fmt.Errorf("binary length %d overflows int32: %w", len(b), err))
+	}
+
+	dst = append(appendLength(dst, length), subtype)
 	return append(dst, b...)
 }
 
@@ -385,7 +407,7 @@ func ReadBoolean(src []byte) (bool, []byte, bool) {
 }
 
 // AppendDateTime will append dt to dst and return the extended buffer.
-func AppendDateTime(dst []byte, dt int64) []byte { return appendi64(dst, dt) }
+func AppendDateTime(dst []byte, dt int64) []byte { return binaryutil.AppendI64(dst, dt) }
 
 // AppendDateTimeElement will append a BSON datetime element using key and dt to dst
 // and return the extended buffer.
@@ -395,7 +417,9 @@ func AppendDateTimeElement(dst []byte, key string, dt int64) []byte {
 
 // ReadDateTime will read an int64 datetime from src. If there are not enough bytes it
 // will return false.
-func ReadDateTime(src []byte) (int64, []byte, bool) { return readi64(src) }
+func ReadDateTime(src []byte) (int64, []byte, bool) {
+	return binaryutil.ReadI64(src)
+}
 
 // AppendTime will append time as a BSON DateTime to dst and return the extended buffer.
 func AppendTime(dst []byte, t time.Time) []byte {
@@ -411,7 +435,7 @@ func AppendTimeElement(dst []byte, key string, t time.Time) []byte {
 // ReadTime will read an time.Time datetime from src. If there are not enough bytes it
 // will return false.
 func ReadTime(src []byte) (time.Time, []byte, bool) {
-	dt, rem, ok := readi64(src)
+	dt, rem, ok := binaryutil.ReadI64(src)
 	return time.Unix(dt/1e3, dt%1e3*1e6), rem, ok
 }
 
@@ -501,7 +525,11 @@ func ReadSymbol(src []byte) (symbol string, rem []byte, ok bool) { return readst
 
 // AppendCodeWithScope will append code and scope to dst and return the extended buffer.
 func AppendCodeWithScope(dst []byte, code string, scope []byte) []byte {
-	length := int32(4 + 4 + len(code) + 1 + len(scope)) // length of cws, length of code, code, 0x00, scope
+	lengthVal := 4 + 4 + len(code) + 1 + len(scope) // length of cws, length of code, code, 0x00, scope
+	length, err := mathutil.SafeConvertNumeric[int32](lengthVal)
+	if err != nil {
+		panic(fmt.Errorf("code with scope length %d overflows int32: %w", lengthVal, err))
+	}
 	dst = appendLength(dst, length)
 
 	return append(appendstring(dst, code), scope...)
@@ -535,7 +563,9 @@ func ReadCodeWithScope(src []byte) (code string, scope []byte, rem []byte, ok bo
 }
 
 // AppendInt32 will append i32 to dst and return the extended buffer.
-func AppendInt32(dst []byte, i32 int32) []byte { return appendi32(dst, i32) }
+func AppendInt32(dst []byte, i32 int32) []byte {
+	return binaryutil.AppendI32(dst, i32)
+}
 
 // AppendInt32Element will append a BSON int32 element using key and i32 to dst
 // and return the extended buffer.
@@ -545,7 +575,9 @@ func AppendInt32Element(dst []byte, key string, i32 int32) []byte {
 
 // ReadInt32 will read an int32 from src. If there are not enough bytes it
 // will return false.
-func ReadInt32(src []byte) (int32, []byte, bool) { return readi32(src) }
+func ReadInt32(src []byte) (int32, []byte, bool) {
+	return binaryutil.ReadI32(src)
+}
 
 // AppendTimestamp will append t and i to dst and return the extended buffer.
 func AppendTimestamp(dst []byte, t, i uint32) []byte {
@@ -573,7 +605,7 @@ func ReadTimestamp(src []byte) (t, i uint32, rem []byte, ok bool) {
 }
 
 // AppendInt64 will append i64 to dst and return the extended buffer.
-func AppendInt64(dst []byte, i64 int64) []byte { return appendi64(dst, i64) }
+func AppendInt64(dst []byte, i64 int64) []byte { return binaryutil.AppendI64(dst, i64) }
 
 // AppendInt64Element will append a BSON int64 element using key and i64 to dst
 // and return the extended buffer.
@@ -583,7 +615,9 @@ func AppendInt64Element(dst []byte, key string, i64 int64) []byte {
 
 // ReadInt64 will read an int64 from src. If there are not enough bytes it
 // will return false.
-func ReadInt64(src []byte) (int64, []byte, bool) { return readi64(src) }
+func ReadInt64(src []byte) (int64, []byte, bool) {
+	return binaryutil.ReadI64(src)
+}
 
 // AppendDecimal128 will append high and low parts of a d128 to dst and return the extended buffer.
 func AppendDecimal128(dst []byte, high, low uint64) []byte {
@@ -681,7 +715,13 @@ func valueLength(src []byte, t Type) (int32, bool) {
 			ok = false
 			break
 		}
-		length = int32(int64(regex) + 1 + int64(pattern) + 1)
+		sum := int64(regex) + 1 + int64(pattern) + 1
+		length64, err := mathutil.SafeConvertNumeric[int32](sum)
+		if err != nil {
+			ok = false
+			break
+		}
+		length = length64
 	default:
 		ok = false
 	}
@@ -702,52 +742,34 @@ func readValue(src []byte, t Type) ([]byte, []byte, bool) {
 // and the []byte with reserved space.
 func ReserveLength(dst []byte) (int32, []byte) {
 	index := len(dst)
-	return int32(index), append(dst, 0x00, 0x00, 0x00, 0x00)
+	index32, err := mathutil.SafeConvertNumeric[int32](index)
+	if err != nil {
+		panic(fmt.Errorf("reserve length index %d overflows int32: %w", index, err))
+	}
+	return index32, append(dst, 0x00, 0x00, 0x00, 0x00)
 }
 
 // UpdateLength updates the length at index with length and returns the []byte.
 func UpdateLength(dst []byte, index, length int32) []byte {
-	binary.LittleEndian.PutUint32(dst[index:], uint32(length))
+	if length < 0 {
+		panic("UpdateLength: negative length")
+	}
+
+	binaryutil.PutI32(dst, int(index), length)
 	return dst
 }
 
-func appendLength(dst []byte, l int32) []byte { return appendi32(dst, l) }
-
-func appendi32(dst []byte, i32 int32) []byte {
-	b := []byte{0, 0, 0, 0}
-	binary.LittleEndian.PutUint32(b, uint32(i32))
-	return append(dst, b...)
-}
+func appendLength(dst []byte, l int32) []byte { return binaryutil.AppendI32(dst, l) }
 
 // ReadLength reads an int32 length from src and returns the length and the remaining bytes. If
 // there aren't enough bytes to read a valid length, src is returned unomdified and the returned
 // bool will be false.
 func ReadLength(src []byte) (int32, []byte, bool) {
-	ln, src, ok := readi32(src)
+	ln, src, ok := binaryutil.ReadI32(src)
 	if ln < 0 {
 		return ln, src, false
 	}
 	return ln, src, ok
-}
-
-func readi32(src []byte) (int32, []byte, bool) {
-	if len(src) < 4 {
-		return 0, src, false
-	}
-	return int32(binary.LittleEndian.Uint32(src)), src[4:], true
-}
-
-func appendi64(dst []byte, i64 int64) []byte {
-	b := []byte{0, 0, 0, 0, 0, 0, 0, 0}
-	binary.LittleEndian.PutUint64(b, uint64(i64))
-	return append(dst, b...)
-}
-
-func readi64(src []byte) (int64, []byte, bool) {
-	if len(src) < 8 {
-		return 0, src, false
-	}
-	return int64(binary.LittleEndian.Uint64(src)), src[8:], true
 }
 
 func appendu32(dst []byte, u32 uint32) []byte {
@@ -796,7 +818,11 @@ func readcstringbytes(src []byte) ([]byte, []byte, bool) {
 }
 
 func appendstring(dst []byte, s string) []byte {
-	l := int32(len(s) + 1)
+	lengthVal := len(s) + 1
+	l, err := mathutil.SafeConvertNumeric[int32](lengthVal)
+	if err != nil {
+		panic(fmt.Errorf("string length %d overflows int32: %w", lengthVal, err))
+	}
 	dst = appendLength(dst, l)
 	dst = append(dst, s...)
 	return append(dst, 0x00)
@@ -831,9 +857,20 @@ func readLengthBytes(src []byte) ([]byte, []byte, bool) {
 }
 
 func appendBinarySubtype2(dst []byte, subtype byte, b []byte) []byte {
-	dst = appendLength(dst, int32(len(b)+4)) // The bytes we'll encode need to be 4 larger for the length bytes
+	lengthVal := len(b) + 4 // The bytes we'll encode need to be 4 larger for the length bytes
+	length, err := mathutil.SafeConvertNumeric[int32](lengthVal)
+	if err != nil {
+		panic(fmt.Errorf("binary subtype 0x02 length %d overflows int32: %w", lengthVal, err))
+	}
+
+	dst = appendLength(dst, length)
 	dst = append(dst, subtype)
-	dst = appendLength(dst, int32(len(b)))
+	bLength, err := mathutil.SafeConvertNumeric[int32](len(b))
+	if err != nil {
+		panic(fmt.Errorf("binary subtype 0x02 data length %d overflows int32: %w", len(b), err))
+	}
+
+	dst = appendLength(dst, bLength)
 	return append(dst, b...)
 }
 

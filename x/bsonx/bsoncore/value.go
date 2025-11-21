@@ -20,6 +20,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/internal/bsoncoreutil"
 	"go.mongodb.org/mongo-driver/v2/internal/decimal128"
+	"go.mongodb.org/mongo-driver/v2/internal/mathutil"
 )
 
 // ElementTypeError specifies that a method to obtain a BSON value an incorrect type was called on a bson.Value.
@@ -83,7 +84,11 @@ func (v Value) AsInt32() int32 {
 		if !ok {
 			panic(NewInsufficientBytesError(v.Data, v.Data))
 		}
-		i32 = int32(i64)
+		var convErr error
+		i32, convErr = mathutil.SafeConvertNumeric[int32](i64)
+		if convErr != nil {
+			panic(fmt.Sprintf("bsoncore.Value.AsInt32: int64 value %d overflows int32", i64))
+		}
 	case TypeDecimal128:
 		panic(ElementTypeError{"bsoncore.Value.AsInt32", v.Type})
 	}
@@ -97,13 +102,15 @@ func (v Value) AsInt32OK() (int32, bool) {
 		return 0, false
 	}
 	var i32 int32
+	var convErr error
 	switch v.Type {
 	case TypeDouble:
 		f64, _, ok := ReadDouble(v.Data)
 		if !ok {
 			return 0, false
 		}
-		i32 = int32(f64)
+
+		i32, convErr = mathutil.SafeConvertNumeric[int32](int64(f64))
 	case TypeInt32:
 		var ok bool
 		i32, _, ok = ReadInt32(v.Data)
@@ -115,10 +122,16 @@ func (v Value) AsInt32OK() (int32, bool) {
 		if !ok {
 			return 0, false
 		}
-		i32 = int32(i64)
+
+		i32, convErr = mathutil.SafeConvertNumeric[int32](i64)
 	case TypeDecimal128:
 		return 0, false
 	}
+
+	if convErr != nil {
+		return 0, false
+	}
+
 	return i32, true
 }
 
