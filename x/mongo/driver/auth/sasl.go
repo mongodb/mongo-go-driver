@@ -11,6 +11,7 @@ import (
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/mathutil"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
@@ -127,9 +128,14 @@ func (sc *saslConversation) Finish(ctx context.Context, cfg *driver.AuthConfig, 
 			return nil
 		}
 
+		cidI32, err := mathutil.SafeConvertNumeric[int32](cid)
+		if err != nil {
+			return fmt.Errorf("conversation ID %d is too large to encode: %w", cid, err)
+		}
+
 		doc := bsoncore.BuildDocumentFromElements(nil,
 			bsoncore.AppendInt32Element(nil, "saslContinue", 1),
-			bsoncore.AppendInt32Element(nil, "conversationId", int32(cid)),
+			bsoncore.AppendInt32Element(nil, "conversationId", cidI32),
 			bsoncore.AppendBinaryElement(nil, "payload", 0x00, payload),
 		)
 		saslContinueCmd := operation.NewCommand(doc).
