@@ -15,6 +15,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/bsonutil"
+	"go.mongodb.org/mongo-driver/v2/internal/mathutil"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -1144,8 +1145,12 @@ func executeInsertMany(ctx context.Context, operation *operation) (*operationRes
 		// We return InsertedIDs as []any but the CRUD spec documents it as a map[int64]any, so
 		// comparisons will fail if we include it in the result document. This is marked as an optional field and is
 		// always surrounded in an $$unsetOrMatches assertion, so we leave it out of the document.
+		insertedCount, err := mathutil.SafeConvertNumeric[int32](len(res.InsertedIDs))
+		if err != nil {
+			return nil, err
+		}
 		raw = bsoncore.NewDocumentBuilder().
-			AppendInt32("insertedCount", int32(len(res.InsertedIDs))).
+			AppendInt32("insertedCount", insertedCount).
 			AppendInt32("deletedCount", 0).
 			AppendInt32("matchedCount", 0).
 			AppendInt32("modifiedCount", 0).

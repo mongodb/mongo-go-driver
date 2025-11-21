@@ -18,15 +18,14 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/mathutil"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
-var (
-	// ErrEntityMapOpen is returned when a slice entity is accessed while the EntityMap is open
-	ErrEntityMapOpen = errors.New("slices cannot be accessed while EntityMap is open")
-)
+// ErrEntityMapOpen is returned when a slice entity is accessed while the EntityMap is open
+var ErrEntityMapOpen = errors.New("slices cannot be accessed while EntityMap is open")
 
 var (
 	tlsCAFile                   = os.Getenv("CSFLE_TLS_CA_FILE")
@@ -96,17 +95,23 @@ func (eo *entityOptions) setHeartbeatFrequencyMS(freq time.Duration) {
 	}
 
 	if _, ok := eo.URIOptions["heartbeatFrequencyMS"]; !ok {
+		freqMS, err := mathutil.SafeConvertNumeric[int32](int64(freq.Milliseconds()))
+		if err != nil {
+			panic(fmt.Sprintf("heartbeatFrequencyMS value %d overflows int32", freq.Milliseconds()))
+		}
+
 		// The UST values for heartbeatFrequencyMS are given as int32,
 		// so we need to cast the frequency as int32 before setting it
 		// on the URIOptions map.
-		eo.URIOptions["heartbeatFrequencyMS"] = int32(freq.Milliseconds())
+		eo.URIOptions["heartbeatFrequencyMS"] = freqMS
 	}
 }
 
 // newCollectionEntityOptions constructs an entity options object for a
 // collection.
 func newCollectionEntityOptions(id string, databaseID string, collectionName string,
-	opts *dbOrCollectionOptions) *entityOptions {
+	opts *dbOrCollectionOptions,
+) *entityOptions {
 	options := &entityOptions{
 		ID:                id,
 		DatabaseID:        databaseID,
@@ -598,7 +603,6 @@ func getKmsCredential(kmsDocument bson.Raw, credentialName string, envVar string
 		return "", fmt.Errorf("unable to get environment value for %v. Please set the CSFLE environment variable: %v", credentialName, envVar)
 	}
 	return os.Getenv(envVar), nil
-
 }
 
 func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) error {

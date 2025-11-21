@@ -20,6 +20,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/internal/integtest"
 	"go.mongodb.org/mongo-driver/v2/internal/logger"
+	"go.mongodb.org/mongo-driver/v2/internal/mathutil"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
@@ -91,7 +92,12 @@ func awaitMinimumPoolSize(ctx context.Context, entity *clientEntity, minPoolSize
 		case <-awaitCtx.Done():
 			return fmt.Errorf("timed out waiting for client to reach minPoolSize")
 		case <-ticker.C:
-			if uint64(entity.eventsCount[connectionReadyEvent]) >= minPoolSize {
+			creCount, err := mathutil.SafeConvertNumeric[uint64](int(entity.eventsCount[connectionReadyEvent]))
+			if err != nil {
+				return fmt.Errorf("connectionReadyEvent count %d exceeds maximum uint64 size: %w", entity.eventsCount[connectionReadyEvent], err)
+			}
+
+			if creCount >= minPoolSize {
 				return nil
 			}
 		}
@@ -261,7 +267,7 @@ func (c *clientEntity) disconnect(ctx context.Context) error {
 		return nil
 	}
 
-	if err := c.Client.Disconnect(ctx); err != nil {
+	if err := c.Disconnect(ctx); err != nil {
 		return err
 	}
 
@@ -665,11 +671,26 @@ func setClientOptionsFromURIOptions(clientOpts *options.ClientOptions, uriOpts b
 		case "maxidletimems":
 			clientOpts.SetMaxConnIdleTime(time.Duration(value.(int32)) * time.Millisecond)
 		case "minpoolsize":
-			clientOpts.SetMinPoolSize(uint64(value.(int32)))
+			minPoolSize, err := mathutil.SafeConvertNumeric[uint64](int(value.(int32)))
+			if err != nil {
+				return fmt.Errorf("minPoolSize value %d is out of range: %w", value.(int32), err)
+			}
+
+			clientOpts.SetMinPoolSize(minPoolSize)
 		case "maxpoolsize":
-			clientOpts.SetMaxPoolSize(uint64(value.(int32)))
+			maxPoolSize, err := mathutil.SafeConvertNumeric[uint64](int(value.(int32)))
+			if err != nil {
+				return fmt.Errorf("maxPoolSize value %d is out of range: %w", value.(int32), err)
+			}
+
+			clientOpts.SetMaxPoolSize(maxPoolSize)
 		case "maxconnecting":
-			clientOpts.SetMaxConnecting(uint64(value.(int32)))
+			maxConnecting, err := mathutil.SafeConvertNumeric[uint64](int(value.(int32)))
+			if err != nil {
+				return fmt.Errorf("maxConnecting value %d is out of range: %w", value.(int32), err)
+			}
+
+			clientOpts.SetMaxConnecting(maxConnecting)
 		case "readconcernlevel":
 			clientOpts.SetReadConcern(&readconcern.ReadConcern{Level: value.(string)})
 		case "retryreads":

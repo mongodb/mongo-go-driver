@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/mathutil"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
@@ -199,28 +200,38 @@ func extractErrorDetails(err error) (errorDetails, bool) {
 		details.raw = converted.Raw
 	case mongo.WriteException:
 		if converted.WriteConcernError != nil {
-			details.codes = append(details.codes, int32(converted.WriteConcernError.Code))
+			if code, err := mathutil.SafeConvertNumeric[int32](converted.WriteConcernError.Code); err == nil {
+				details.codes = append(details.codes, code)
+			}
 			details.codeNames = append(details.codeNames, converted.WriteConcernError.Name)
 		}
 		for _, we := range converted.WriteErrors {
-			details.codes = append(details.codes, int32(we.Code))
+			if code, err := mathutil.SafeConvertNumeric[int32](we.Code); err == nil {
+				details.codes = append(details.codes, code)
+			}
 		}
 		details.labels = converted.Labels
 		details.raw = converted.Raw
 	case mongo.BulkWriteException:
 		if converted.WriteConcernError != nil {
-			details.codes = append(details.codes, int32(converted.WriteConcernError.Code))
+			if code, err := mathutil.SafeConvertNumeric[int32](converted.WriteConcernError.Code); err == nil {
+				details.codes = append(details.codes, code)
+			}
 			details.codeNames = append(details.codeNames, converted.WriteConcernError.Name)
 		}
 		for _, we := range converted.WriteErrors {
-			details.codes = append(details.codes, int32(we.Code))
+			if code, err := mathutil.SafeConvertNumeric[int32](we.Code); err == nil {
+				details.codes = append(details.codes, code)
+			}
 			details.raw = we.Raw
 		}
 		details.labels = converted.Labels
 	case mongo.ClientBulkWriteException:
 		if converted.WriteError != nil {
 			details.raw = converted.WriteError.Raw
-			details.codes = append(details.codes, int32(converted.WriteError.Code))
+			if code, err := mathutil.SafeConvertNumeric[int32](converted.WriteError.Code); err == nil {
+				details.codes = append(details.codes, code)
+			}
 		}
 	default:
 		return errorDetails{}, false
