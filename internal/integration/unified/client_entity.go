@@ -8,7 +8,9 @@ package unified
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
+	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -32,11 +34,19 @@ import (
 // exceed the default truncation length.
 const defaultMaxDocumentLen = 10_000
 
-// Security-sensitive commands that should be ignored in command monitoring by default.
-var securitySensitiveCommands = []string{
-	"authenticate", "saslStart", "saslContinue", "getnonce",
-	"createUser", "updateUser", "copydbgetnonce", "copydbsaslstart", "copydb",
-}
+var (
+	// Security-sensitive commands that should be ignored in command monitoring by default.
+	securitySensitiveCommands = []string{
+		"authenticate", "saslStart", "saslContinue", "getnonce",
+		"createUser", "updateUser", "copydbgetnonce", "copydbsaslstart", "copydb",
+	}
+
+	awsAccessKeyID     = os.Getenv("FLE_AWS_KEY")
+	awsSecretAccessKey = os.Getenv("FLE_AWS_SECRET")
+	azureTenantID      = os.Getenv("FLE_AZURE_TENANTID")
+	azureClientID      = os.Getenv("FLE_AZURE_CLIENTID")
+	azureClientSecret  = os.Getenv("FLE_AZURE_CLIENTSECRET")
+)
 
 // clientEntity is a wrapper for a mongo.Client object that also holds additional information required during test
 // execution.
@@ -217,6 +227,13 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 	} else {
 		integtest.AddTestServerAPIVersion(clientOpts)
 	}
+	if entityOptions.AutoEncryptOpts != nil {
+		aeo, err := createAutoEncryptionOptions(entityOptions.AutoEncryptOpts)
+		if err != nil {
+			return nil, fmt.Errorf("error parsing auto encryption options: %w", err)
+		}
+		clientOpts.SetAutoEncryptionOptions(aeo)
+	}
 	for _, cmd := range entityOptions.IgnoredCommands {
 		entity.ignoredCommands[cmd] = struct{}{}
 	}
@@ -249,6 +266,77 @@ func getURIForClient(opts *entityOptions) string {
 	default:
 		return mtest.MultiMongosLoadBalancerURI()
 	}
+}
+
+func createAutoEncryptionOptions(opts bson.Raw) (*options.AutoEncryptionOptions, error) {
+	aeo := options.AutoEncryption()
+	var kvnsFound bool
+	elems, err := opts.Elements()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, elem := range elems {
+		name := elem.Key()
+		opt := elem.Value()
+
+		switch name {
+		case "kmsProviders":
+			providers := make(map[string]map[string]any)
+			elems, err := opt.Document().Elements()
+			if err != nil {
+				return nil, err
+			}
+			for _, elem := range elems {
+				provider := elem.Key()
+				providerOpt := elem.Value()
+				switch provider {
+				case "aws":
+					providers["aws"] = map[string]any{
+						"accessKeyId":     awsAccessKeyID,
+						"secretAccessKey": awsSecretAccessKey,
+					}
+				case "azure":
+					providers["azure"] = map[string]any{
+						"tenantId":     azureTenantID,
+						"clientId":     azureClientID,
+						"clientSecret": azureClientSecret,
+					}
+				case "local":
+					str := providerOpt.Document().Lookup("key").StringValue()
+					key, err := base64.StdEncoding.DecodeString(str)
+					if err != nil {
+						return nil, err
+					}
+					providers["local"] = map[string]any{
+						"key": key,
+					}
+				default:
+					return nil, fmt.Errorf("unrecognized KMS provider: %v", provider)
+				}
+			}
+			aeo.SetKmsProviders(providers)
+		case "schemaMap":
+			var schemaMap map[string]any
+			err := bson.Unmarshal(opt.Document(), &schemaMap)
+			if err != nil {
+				return nil, err
+			}
+			aeo.SetSchemaMap(schemaMap)
+		case "keyVaultNamespace":
+			kvnsFound = true
+			aeo.SetKeyVaultNamespace(opt.StringValue())
+		case "bypassQueryAnalysis":
+			aeo.SetBypassQueryAnalysis(opt.Boolean())
+		default:
+			return nil, fmt.Errorf("unrecognized option: %v", name)
+		}
+	}
+	if !kvnsFound {
+		aeo.SetKeyVaultNamespace("keyvault.datakeys")
+	}
+
+	return aeo, nil
 }
 
 // disconnect disconnects the client associated with this entity. It is an

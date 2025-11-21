@@ -52,6 +52,7 @@ type entityOptions struct {
 	ID string `bson:"id"`
 
 	// Options for client entities.
+	AutoEncryptOpts          bson.Raw                      `bson:"autoEncryptOpts"`
 	URIOptions               bson.M                        `bson:"uriOptions"`
 	UseMultipleMongoses      *bool                         `bson:"useMultipleMongoses"`
 	ObserveEvents            []string                      `bson:"observeEvents"`
