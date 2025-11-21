@@ -16,6 +16,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/bsoncoreutil"
+	"go.mongodb.org/mongo-driver/v2/internal/mathutil"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
@@ -28,8 +29,10 @@ const DefaultMaxDocumentLength = 1000
 // toward the max document length.
 const TruncationSuffix = "..."
 
-const logSinkPathEnvVar = "MONGODB_LOG_PATH"
-const maxDocumentLengthEnvVar = "MONGODB_LOG_MAX_DOCUMENT_LENGTH"
+const (
+	logSinkPathEnvVar       = "MONGODB_LOG_PATH"
+	maxDocumentLengthEnvVar = "MONGODB_LOG_MAX_DOCUMENT_LENGTH"
+)
 
 // LogSink represents a logging implementation, this interface should be 1-1
 // with the exported "LogSink" interface in the mongo/options package.
@@ -185,7 +188,7 @@ func selectLogSink(sink LogSink) (LogSink, *os.File, error) {
 	}
 
 	if path != "" {
-		logFile, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
+		logFile, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0o666)
 		if err != nil {
 			return nil, nil, fmt.Errorf("unable to open log file: %w", err)
 		}
@@ -241,7 +244,13 @@ func FormatDocument(msg bson.Raw, width uint) string {
 		return "{}"
 	}
 
-	str, truncated := bsoncore.Document(msg).StringN(int(width))
+	widthi, err := mathutil.SafeConvertNumeric[int](width)
+	if err != nil {
+		// Propagate warning about width being too large to format.
+		return "[WARNING] width too large to format document for logging, exceeds max int"
+	}
+
+	str, truncated := bsoncore.Document(msg).StringN(widthi)
 
 	if truncated {
 		str += TruncationSuffix
@@ -253,7 +262,14 @@ func FormatDocument(msg bson.Raw, width uint) string {
 // FormatString formats a String for logging. The string is truncated
 // to the given width.
 func FormatString(str string, width uint) string {
-	strTrunc := bsoncoreutil.Truncate(str, int(width))
+	var strTrunc string
+	widthi, err := mathutil.SafeConvertNumeric[int](width)
+	if err != nil {
+		// Propagate warning about width being too large to format.
+		return "[WARNING] width too large to format string for logging, exceeds max int"
+	}
+
+	strTrunc = bsoncoreutil.Truncate(str, widthi)
 
 	// Checks if the string was truncating by comparing the lengths of the two strings.
 	if len(strTrunc) < len(str) {
