@@ -13,6 +13,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net"
 	"strings"
 	"sync"
@@ -20,6 +21,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/internal/mathutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/address"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
@@ -226,7 +228,6 @@ func (c *connection) connect(ctx context.Context) (err error) {
 			HTTPClient:              c.config.httpClient,
 		}
 		tlsNc, err := configureTLS(ctx, c.config.tlsConnectionSource, c.nc, c.addr, tlsConfig, ocspOpts)
-
 		if err != nil {
 			return ConnectionError{Wrapped: err, init: true, message: fmt.Sprintf("failed to configure TLS for %s", c.addr)}
 		}
@@ -427,7 +428,12 @@ func (c *connection) readWireMessage(ctx context.Context) ([]byte, error) {
 
 func (c *connection) parseWmSizeBytes(wmSizeBytes [4]byte) (int32, error) {
 	// read the length as an int32
-	size := int32(binary.LittleEndian.Uint32(wmSizeBytes[:]))
+	rawSize := binary.LittleEndian.Uint32(wmSizeBytes[:])
+	if rawSize > uint32(math.MaxInt32) {
+		return 0, fmt.Errorf("message length exceeds int32 max: %d", rawSize)
+	}
+
+	size := int32(rawSize)
 
 	if size < 4 {
 		return 0, fmt.Errorf("malformed message length: %d", size)
@@ -475,7 +481,12 @@ func (c *connection) read(ctx context.Context) (bytesRead []byte, errMsg string,
 	// reading messages from an exhaust cursor.
 	n, err := io.ReadFull(c.nc, sizeBuf[:])
 	if err != nil {
-		if l := int32(n); l == 0 && isCSOTTimeout(err) {
+		nI32, convErr := mathutil.SafeConvertNumeric[int32](n)
+		if convErr != nil {
+			return nil, "incomplete read of message header", convErr
+		}
+
+		if l := nI32; l == 0 && isCSOTTimeout(err) {
 			c.awaitRemainingBytes = &l
 		}
 		return nil, "incomplete read of message header", err
@@ -490,7 +501,12 @@ func (c *connection) read(ctx context.Context) (bytesRead []byte, errMsg string,
 
 	n, err = io.ReadFull(c.nc, dst[4:])
 	if err != nil {
-		remainingBytes := size - 4 - int32(n)
+		nI32, convErr := mathutil.SafeConvertNumeric[int32](n)
+		if convErr != nil {
+			return dst, "incomplete read of full message", convErr
+		}
+
+		remainingBytes := size - 4 - nI32
 		if remainingBytes > 0 && isCSOTTimeout(err) {
 			c.awaitRemainingBytes = &remainingBytes
 		}
@@ -586,15 +602,17 @@ func (c *connection) SetOIDCTokenGenID(genID uint64) {
 // *connection to a Handshaker.
 type initConnection struct{ *connection }
 
-var _ mnet.ReadWriteCloser = initConnection{}
-var _ mnet.Describer = initConnection{}
-var _ mnet.Streamer = initConnection{}
+var (
+	_ mnet.ReadWriteCloser = initConnection{}
+	_ mnet.Describer       = initConnection{}
+	_ mnet.Streamer        = initConnection{}
+)
 
 func (c initConnection) Description() description.Server {
 	if c.connection == nil {
 		return description.Server{}
 	}
-	return c.connection.desc
+	return c.desc
 }
 func (c initConnection) Close() error             { return nil }
 func (c initConnection) ID() string               { return c.id }
@@ -606,18 +624,23 @@ func (c initConnection) LocalAddress() address.Address {
 	}
 	return address.Address(c.nc.LocalAddr().String())
 }
+
 func (c initConnection) Write(ctx context.Context, wm []byte) error {
 	return c.writeWireMessage(ctx, wm)
 }
+
 func (c initConnection) Read(ctx context.Context) ([]byte, error) {
 	return c.readWireMessage(ctx)
 }
+
 func (c initConnection) SetStreaming(streaming bool) {
 	c.setStreaming(streaming)
 }
+
 func (c initConnection) CurrentlyStreaming() bool {
 	return c.getCurrentlyStreaming()
 }
+
 func (c initConnection) SupportsStreaming() bool {
 	return c.canStream
 }
@@ -639,11 +662,13 @@ type Connection struct {
 	mu sync.RWMutex
 }
 
-var _ mnet.ReadWriteCloser = (*Connection)(nil)
-var _ mnet.Describer = (*Connection)(nil)
-var _ mnet.Compressor = (*Connection)(nil)
-var _ mnet.Pinner = (*Connection)(nil)
-var _ driver.Expirable = (*Connection)(nil)
+var (
+	_ mnet.ReadWriteCloser = (*Connection)(nil)
+	_ mnet.Describer       = (*Connection)(nil)
+	_ mnet.Compressor      = (*Connection)(nil)
+	_ mnet.Pinner          = (*Connection)(nil)
+	_ driver.Expirable     = (*Connection)(nil)
+)
 
 // WriteWireMessage handles writing a wire message to the underlying connection.
 func (c *Connection) Write(ctx context.Context, wm []byte) error {
@@ -684,7 +709,13 @@ func (c *Connection) CompressWireMessage(src, dst []byte) ([]byte, error) {
 	}
 	idx, dst := wiremessage.AppendHeaderStart(dst, reqid, respto, wiremessage.OpCompressed)
 	dst = wiremessage.AppendCompressedOriginalOpCode(dst, origcode)
-	dst = wiremessage.AppendCompressedUncompressedSize(dst, int32(len(rem)))
+
+	remI32, err := mathutil.SafeConvertNumeric[int32](len(rem))
+	if err != nil {
+		return nil, err
+	}
+
+	dst = wiremessage.AppendCompressedUncompressedSize(dst, remI32)
 	dst = wiremessage.AppendCompressedCompressorID(dst, c.connection.compressor)
 	opts := driver.CompressionOpts{
 		Compressor: c.connection.compressor,
@@ -696,7 +727,11 @@ func (c *Connection) CompressWireMessage(src, dst []byte) ([]byte, error) {
 		return nil, err
 	}
 	dst = wiremessage.AppendCompressedCompressedMessage(dst, compressed)
-	return bsoncore.UpdateLength(dst, idx, int32(len(dst[idx:]))), nil
+	length, err := mathutil.SafeConvertNumeric[int32](len(dst[idx:]))
+	if err != nil {
+		return nil, err
+	}
+	return bsoncore.UpdateLength(dst, idx, length), nil
 }
 
 // Description returns the server description of the server this connection is connected to.

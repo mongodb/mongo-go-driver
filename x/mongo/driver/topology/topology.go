@@ -772,7 +772,7 @@ func (t *Topology) pollSRVRecords(hosts string) {
 			return
 		}
 		topoKind := t.Description().Kind
-		if !(topoKind == description.Unknown || topoKind == description.TopologyKindSharded) {
+		if topoKind != description.Unknown && topoKind != description.TopologyKindSharded {
 			break
 		}
 
