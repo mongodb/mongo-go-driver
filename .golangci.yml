@@ -1,16 +1,9 @@
-run:
-  timeout: 5m
-
+version: "2"
 linters:
-  disable-all: true
-  # TODO(GODRIVER-2156): Enable all commented-out linters.
+  default: none
   enable:
     - errcheck
-    # - errorlint
-    - exportloopref
     - gocritic
-    - goimports
-    - gosimple
     - gosec
     - govet
     - ineffassign
@@ -21,95 +14,129 @@ linters:
     - prealloc
     - revive
     - staticcheck
-    - typecheck
-    - unused
     - unconvert
     - unparam
+    - unused
+  settings:
+    errcheck:
+      exclude-functions:
+        - .errcheck-excludes
+    govet:
+      disable:
+        - cgocall
+        - composites
+    paralleltest:
+      # Ignore missing calls to `t.Parallel()` and only report incorrect uses of
+      # `t.Parallel()`.
+      ignore-missing: true
+    staticcheck:
+      checks:
+        - all
+        # Disable deprecation warnings for now.
+        - -SA1012
+        # Disable "do not pass a nil Context" to allow testing nil contexts in
+        # tests.
+        - -SA1019
+  exclusions:
+    generated: lax
+    rules:
+      # Ignore some linters for example code that is intentionally simplified.
+      - linters:
+          - errcheck
+          - revive
+        path: examples/
+      # Disable "unused" linter for code files that depend on the
+      # "mongocrypt.MongoCrypt" type because the linter build doesn't work
+      # correctly with CGO enabled. As a result, all calls to a
+      # "mongocrypt.MongoCrypt" API appear to always panic (see
+      # mongocrypt_not_enabled.go), leading to confusing messages about unused
+      # code.
+      - linters:
+          - unused
+        path: x/mongo/driver/crypt.go|mongo/(crypt_retrievers|mongocryptd).go
+      # Ignore "TLS MinVersion too low", "TLS InsecureSkipVerify set true", and
+      # "Use of weak random number generator (math/rand instead of crypto/rand)"
+      # in tests. Disable gosec entirely for test files to reduce noise.
+      - linters:
+          - gosec
+        path: _test\.go
+      # Ignore missing comments for exported variable/function/type for code in
+      # the "internal" and "benchmark" directories.
+      - path: (internal\/|benchmark\/)
+        text: exported (.+) should have comment( \(or a comment on this block\))? or be unexported
+      # Ignore missing package comments for directories that aren't frequently
+      # used by external users.
+      - path: (internal\/|benchmark\/|x\/|cmd\/|mongo\/integration\/)
+        text: should have a package comment
 
-linters-settings:
-  errcheck:
-    exclude-functions: .errcheck-excludes
-  govet:
-    disable:
-      - cgocall
-      - composites
-  paralleltest:
-    # Ignore missing calls to `t.Parallel()` and only report incorrect uses of `t.Parallel()`.
-    ignore-missing: true
-  staticcheck:
-    checks: [
-      "all",
-      "-SA1019", # Disable deprecation warnings for now.
-      "-SA1012", # Disable "do not pass a nil Context" to allow testing nil contexts in tests.
-    ]
+      # Add all default excluded issues except issues related to exported
+      # types/functions not having comments; we want those warnings. The
+      # defaults are copied from the "--exclude-use-default" documentation on
+      # https://golangci-lint.run/usage/configuration/#command-line-options
+      #
+      ## Defaults ##
+      #
+      # EXC0001 errcheck: Almost all programs ignore errors on these functions
+      # and in most cases it's ok
+      - path: (.+)\.go$
+        text: Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*print(f|ln)?|os\.(Un)?Setenv). is not checked
+      # EXC0003 golint: False positive when tests are defined in package 'test'
+      - path: (.+)\.go$
+        text: func name will be used as test\.Test.* by other packages, and that stutters; consider calling this
+      # EXC0004 govet: Common false positives
+      - path: (.+)\.go$
+        text: (possible misuse of unsafe.Pointer|should have signature)
+      # EXC0005 staticcheck: Developers tend to write in C-style with an explicit 'break' in a 'switch', so it's ok to ignore
+      - path: (.+)\.go$
+        text: ineffective break statement. Did you mean to break out of the outer loop
+      # EXC0006 gosec: Too many false-positives on 'unsafe' usage
+      - path: (.+)\.go$
+        text: Use of unsafe calls should be audited
+      # EXC0007 gosec: Too many false-positives for parametrized shell calls
+      - path: (.+)\.go$
+        text: Subprocess launch(ed with variable|ing should be audited)
+      # EXC0008 gosec: Duplicated errcheck checks
+      - path: (.+)\.go$
+        text: (G104|G307)
+      # EXC0009 gosec: Too many issues in popular repos
+      - path: (.+)\.go$
+        text: (Expect directory permissions to be 0750 or less|Expect file permissions to be 0600 or less)
+      # EXC0010 gosec: False positive is triggered by
+      # 'src, err := ioutil.ReadFile(filename)'
+      - path: (.+)\.go$
+        text: Potential file inclusion via variable
+      ## End Defaults ##
 
-issues:
-  exclude-dirs-use-default: false
-  exclude-dirs:
-    - (^|/)testdata($|/)
-    - (^|/)etc($|/)
-    # Disable all linters for copied third-party code.
-    - internal/rand
-    - internal/aws
-    - internal/assert
-  exclude-use-default: false
-  exclude:
-    # Add all default excluded issues except issues related to exported types/functions not having
-    # comments; we want those warnings. The defaults are copied from the "--exclude-use-default"
-    # documentation on https://golangci-lint.run/usage/configuration/#command-line-options
-    ## Defaults ##
-    # EXC0001 errcheck: Almost all programs ignore errors on these functions and in most cases it's ok
-    - Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*print(f|ln)?|os\.(Un)?Setenv). is not checked
-    # EXC0003 golint: False positive when tests are defined in package 'test'
-    - func name will be used as test\.Test.* by other packages, and that stutters; consider calling this
-    # EXC0004 govet: Common false positives
-    - (possible misuse of unsafe.Pointer|should have signature)
-    # EXC0005 staticcheck: Developers tend to write in C-style with an explicit 'break' in a 'switch', so it's ok to ignore
-    - ineffective break statement. Did you mean to break out of the outer loop
-    # EXC0006 gosec: Too many false-positives on 'unsafe' usage
-    - Use of unsafe calls should be audited
-    # EXC0007 gosec: Too many false-positives for parametrized shell calls
-    - Subprocess launch(ed with variable|ing should be audited)
-    # EXC0008 gosec: Duplicated errcheck checks
-    - (G104|G307)
-    # EXC0009 gosec: Too many issues in popular repos
-    - (Expect directory permissions to be 0750 or less|Expect file permissions to be 0600 or less)
-    # EXC0010 gosec: False positive is triggered by 'src, err := ioutil.ReadFile(filename)'
-    - Potential file inclusion via variable
-    ## End Defaults ##
+      # Ignore capitalization warning for this weird field name.
+      - path: (.+)\.go$
+        text: "var-naming: struct field CqCssWxW should be CqCSSWxW"
 
-    # Ignore capitalization warning for this weird field name.
-    - "var-naming: struct field CqCssWxW should be CqCSSWxW"
-    # Ignore warnings for common "wiremessage.Read..." usage because the safest way to use that API
-    # is by assigning possibly unused returned byte buffers.
-    - "SA4006: this value of `wm` is never used"
-    - "SA4006: this value of `rem` is never used"
-    - "ineffectual assignment to wm"
-    - "ineffectual assignment to rem"
-
-  exclude-rules:
-    # Ignore some linters for example code that is intentionally simplified.
-    - path: examples/
-      linters:
-        - revive
-        - errcheck
-    # Disable "unused" linter for code files that depend on the "mongocrypt.MongoCrypt" type because
-    # the linter build doesn't work correctly with CGO enabled. As a result, all calls to a
-    # "mongocrypt.MongoCrypt" API appear to always panic (see mongocrypt_not_enabled.go), leading
-    # to confusing messages about unused code.
-    - path: x/mongo/driver/crypt.go|mongo/(crypt_retrievers|mongocryptd).go
-      linters:
-        - unused
-    # Ignore "TLS MinVersion too low", "TLS InsecureSkipVerify set true", and "Use of weak random
-    # number generator (math/rand instead of crypto/rand)" in tests.
-    - path: _test\.go
-      text: G401|G402|G404
-      linters:
-        - gosec
-    # Ignore missing comments for exported variable/function/type for code in the "internal" and
-    # "benchmark" directories.
-    - path: (internal\/|benchmark\/)
-      text: exported (.+) should have comment( \(or a comment on this block\))? or be unexported
-    # Ignore missing package comments for directories that aren't frequently used by external users.
-    - path: (internal\/|benchmark\/|x\/|cmd\/|mongo\/integration\/)
-      text: should have a package comment
+      # Ignore warnings for common "wiremessage.Read..." usage because the
+      # safest way to use that API is by assigning possibly unused returned byte
+      # buffers.
+      - path: (.+)\.go$
+        text: "SA4006: this value of `wm` is never used"
+      - path: (.+)\.go$
+        text: "SA4006: this value of `rem` is never used"
+      - path: (.+)\.go$
+        text: ineffectual assignment to wm
+      - path: (.+)\.go$
+        text: ineffectual assignment to rem
+    paths:
+      - (^|/)testdata($|/)
+      - (^|/)etc($|/)
+      # Disable all linters for copied third-party code.
+      - internal/rand
+      - internal/aws
+      - internal/assert
+formatters:
+  enable:
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - (^|/)testdata($|/)
+      - (^|/)etc($|/)
+      - internal/rand
+      - internal/aws
+      - internal/assert

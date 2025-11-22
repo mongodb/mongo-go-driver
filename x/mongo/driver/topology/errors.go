@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"go.mongodb.org/mongo-driver/v2/internal/mathutil"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
 )
 
@@ -118,13 +119,24 @@ func (w WaitQueueTimeoutError) Error() string {
 
 	msg := fmt.Sprintf("%s; total connections: %d, maxPoolSize: %d, ", errorMsg, w.totalConnections, w.maxPoolSize)
 	if pinnedConnections := w.pinnedConnections; pinnedConnections != nil {
-		openConnectionCount := uint64(w.totalConnections) -
+		var totcalConnectionsWarning string
+
+		totalConnections, err := mathutil.SafeConvertNumeric[uint64](w.totalConnections)
+		if err != nil {
+			totcalConnectionsWarning = fmt.Sprintf("[WARNING]: totalConnections is negative (%d); this may indicate a bug in the driver. ",
+				w.totalConnections)
+			totalConnections = 0
+		}
+
+		openConnectionCount := totalConnections -
 			pinnedConnections.cursorConnections -
 			pinnedConnections.transactionConnections
-		msg += fmt.Sprintf("connections in use by cursors: %d, connections in use by transactions: %d, connections in use by other operations: %d, ",
+
+		msg += fmt.Sprintf("connections in use by cursors: %d, connections in use by transactions: %d, connections in use by other operations: %d%s, ",
 			pinnedConnections.cursorConnections,
 			pinnedConnections.transactionConnections,
 			openConnectionCount,
+			totcalConnectionsWarning,
 		)
 	}
 	msg += fmt.Sprintf("idle connections: %d, wait duration: %s", w.availableConnections, w.waitDuration.String())

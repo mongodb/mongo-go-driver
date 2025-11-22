@@ -15,6 +15,7 @@ import (
 	"strings"
 	"sync"
 
+	"go.mongodb.org/mongo-driver/v2/internal/mathutil"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
@@ -138,7 +139,12 @@ func (vw *valueWriter) push(m mode) {
 }
 
 func (vw *valueWriter) reserveLength() {
-	vw.stack[vw.frame].start = int32(len(vw.buf))
+	start, err := mathutil.SafeConvertNumeric[int32](len(vw.buf))
+	if err != nil {
+		panic(fmt.Errorf("valueWriter buffer length %d overflows int32: %w", len(vw.buf), err))
+	}
+
+	vw.stack[vw.frame].start = start
 	vw.buf = append(vw.buf, 0x00, 0x00, 0x00, 0x00)
 }
 

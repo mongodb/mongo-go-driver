@@ -18,6 +18,7 @@ import (
 	"strings"
 
 	"go.mongodb.org/mongo-driver/v2/internal/codecutil"
+	"go.mongodb.org/mongo-driver/v2/internal/mathutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 
@@ -179,7 +180,12 @@ func ensureID(
 	// Remove and re-write the BSON document length header.
 	const int32Len = 4
 	doc = append(doc, olddoc[int32Len:]...)
-	doc = bsoncore.UpdateLength(doc, 0, int32(len(doc)))
+	docLength, err := mathutil.SafeConvertNumeric[int32](len(doc))
+	if err != nil {
+		return nil, nil, fmt.Errorf("document length %d overflows int32: %w", len(doc), err)
+	}
+
+	doc = bsoncore.UpdateLength(doc, 0, docLength)
 
 	return doc, oid, nil
 }

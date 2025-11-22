@@ -19,6 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/codecutil"
 	"go.mongodb.org/mongo-driver/v2/internal/csot"
 	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/internal/mathutil"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
@@ -213,7 +214,14 @@ func NewBatchCursor(
 	}
 
 	if firstBatch != nil {
-		bc.numReturned = int32(firstBatch.Count())
+		numReturned, err := mathutil.SafeConvertNumeric[int32](int64(firstBatch.Count()))
+		if err != nil {
+			// This should never happen unless the server is returning more than 2
+			// billion documents in a single batch.
+			return nil, fmt.Errorf("batch size %d exceeds int32 limit: %w", firstBatch.Count(), err)
+		}
+
+		bc.numReturned = numReturned
 	}
 
 	bc.currentBatch = firstBatch
@@ -446,8 +454,15 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 			bc.currentBatch.List = batch
 			bc.currentBatch.Reset()
 
+			numReturned, err := mathutil.SafeConvertNumeric[int32](int64(bc.currentBatch.Count()))
+			if err != nil {
+				// This should never happen unless the server is returning more than 2
+				// billion documents in a single batch.
+				return fmt.Errorf("batch size %d exceeds int32 limit: %w", bc.currentBatch.Count(), err)
+			}
+
 			// Required for legacy operations which don't support limit.
-			bc.numReturned += int32(bc.currentBatch.Count())
+			bc.numReturned += numReturned
 
 			pbrt, err := response.LookupErr("cursor", "postBatchResumeToken")
 			if err != nil {
@@ -559,9 +574,11 @@ type loadBalancedCursorDeployment struct {
 	conn           *mnet.Connection
 }
 
-var _ Deployment = (*loadBalancedCursorDeployment)(nil)
-var _ Server = (*loadBalancedCursorDeployment)(nil)
-var _ ErrorProcessor = (*loadBalancedCursorDeployment)(nil)
+var (
+	_ Deployment     = (*loadBalancedCursorDeployment)(nil)
+	_ Server         = (*loadBalancedCursorDeployment)(nil)
+	_ ErrorProcessor = (*loadBalancedCursorDeployment)(nil)
+)
 
 func (lbcd *loadBalancedCursorDeployment) SelectServer(context.Context, description.ServerSelector) (Server, error) {
 	return lbcd, nil

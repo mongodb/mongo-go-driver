@@ -14,6 +14,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/bsonutil"
 	"go.mongodb.org/mongo-driver/v2/internal/handshake"
+	"go.mongodb.org/mongo-driver/v2/internal/mathutil"
 	"go.mongodb.org/mongo-driver/v2/internal/ptrutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/address"
 	"go.mongodb.org/mongo-driver/v2/tag"
@@ -314,21 +315,36 @@ func NewServerDescription(addr address.Address, response bson.Raw) description.S
 				desc.LastError = fmt.Errorf("expected 'maxBsonObjectSize' to be an integer but it's a BSON %s", element.Value().Type)
 				return desc
 			}
-			desc.MaxDocumentSize = uint32(i64)
+			size, err := mathutil.SafeConvertNumeric[uint32](i64)
+			if err != nil {
+				desc.LastError = fmt.Errorf("maxBsonObjectSize value out of range: %d", i64)
+				return desc
+			}
+			desc.MaxDocumentSize = size
 		case "maxMessageSizeBytes":
 			i64, ok := element.Value().AsInt64OK()
 			if !ok {
 				desc.LastError = fmt.Errorf("expected 'maxMessageSizeBytes' to be an integer but it's a BSON %s", element.Value().Type)
 				return desc
 			}
-			desc.MaxMessageSize = uint32(i64)
+			size, err := mathutil.SafeConvertNumeric[uint32](i64)
+			if err != nil {
+				desc.LastError = fmt.Errorf("maxMessageSizeBytes value out of range: %d", i64)
+				return desc
+			}
+			desc.MaxMessageSize = size
 		case "maxWriteBatchSize":
 			i64, ok := element.Value().AsInt64OK()
 			if !ok {
 				desc.LastError = fmt.Errorf("expected 'maxWriteBatchSize' to be an integer but it's a BSON %s", element.Value().Type)
 				return desc
 			}
-			desc.MaxBatchCount = uint32(i64)
+			count, err := mathutil.SafeConvertNumeric[uint32](i64)
+			if err != nil {
+				desc.LastError = fmt.Errorf("maxWriteBatchSize value out of range: %d", i64)
+				return desc
+			}
+			desc.MaxBatchCount = count
 		case "me":
 			me, ok := element.Value().StringValueOK()
 			if !ok {
@@ -338,18 +354,28 @@ func NewServerDescription(addr address.Address, response bson.Raw) description.S
 			desc.CanonicalAddr = address.Address(me).Canonicalize()
 		case "maxWireVersion":
 			verMax, ok := element.Value().AsInt64OK()
-			versionRange.Max = int32(verMax)
 			if !ok {
-				desc.LastError = fmt.Errorf("expected 'maxWireVersion' to be an integer but it's a BSON %s", element.Value().Type)
+				desc.LastError = fmt.Errorf("invalid maxWireVersion value")
 				return desc
 			}
+			max, err := mathutil.SafeConvertNumeric[int32](verMax)
+			if err != nil {
+				desc.LastError = fmt.Errorf("invalid maxWireVersion value: %w", err)
+				return desc
+			}
+			versionRange.Max = max
 		case "minWireVersion":
 			verMin, ok := element.Value().AsInt64OK()
-			versionRange.Min = int32(verMin)
 			if !ok {
-				desc.LastError = fmt.Errorf("expected 'minWireVersion' to be an integer but it's a BSON %s", element.Value().Type)
+				desc.LastError = fmt.Errorf("invalid minWireVersion value")
 				return desc
 			}
+			min, err := mathutil.SafeConvertNumeric[int32](verMin)
+			if err != nil {
+				desc.LastError = fmt.Errorf("invalid minWireVersion value: %w", err)
+				return desc
+			}
+			versionRange.Min = min
 		case "msg":
 			msg, ok = element.Value().StringValueOK()
 			if !ok {
@@ -416,7 +442,12 @@ func NewServerDescription(addr address.Address, response bson.Raw) description.S
 				desc.LastError = fmt.Errorf("expected 'setVersion' to be an integer but it's a BSON %s", element.Value().Type)
 				return desc
 			}
-			desc.SetVersion = uint32(i64)
+			version, err := mathutil.SafeConvertNumeric[uint32](i64)
+			if err != nil {
+				desc.LastError = fmt.Errorf("setVersion value out of range: %d", i64)
+				return desc
+			}
+			desc.SetVersion = version
 		case "tags":
 			m, err := decodeStringMap(element, "tags")
 			if err != nil {

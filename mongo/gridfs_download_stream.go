@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/mathutil"
 )
 
 // ErrMissingChunk indicates that the number of chunks read from the server is
@@ -260,7 +261,12 @@ func (ds *GridFSDownloadStream) fillBuffer(ctx context.Context) error {
 
 	var chunkIndexInt32 int32
 	if chunkIndexInt64, ok := chunkIndex.Int64OK(); ok {
-		chunkIndexInt32 = int32(chunkIndexInt64)
+		var convErr error
+
+		chunkIndexInt32, convErr = mathutil.SafeConvertNumeric[int32](chunkIndexInt64)
+		if convErr != nil {
+			return convErr
+		}
 	} else {
 		chunkIndexInt32 = chunkIndex.Int32()
 	}
@@ -278,7 +284,10 @@ func (ds *GridFSDownloadStream) fillBuffer(ctx context.Context) error {
 	_, dataBytes := data.Binary()
 	copied := copy(ds.buffer, dataBytes)
 
-	bytesLen := int32(len(dataBytes))
+	bytesLen, err := mathutil.SafeConvertNumeric[int32](len(dataBytes))
+	if err != nil {
+		return err
+	}
 	if ds.expectedChunk == ds.numChunks {
 		// final chunk can be fewer than ds.chunkSize bytes
 		bytesDownloaded := int64(ds.chunkSize) * (int64(ds.expectedChunk) - int64(1))

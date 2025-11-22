@@ -20,6 +20,8 @@ import (
 	"io"
 	"sync/atomic"
 	"time"
+
+	"go.mongodb.org/mongo-driver/v2/internal/mathutil"
 )
 
 // ErrInvalidHex indicates that a hex string cannot be converted to an ObjectID.
@@ -31,11 +33,15 @@ type ObjectID [12]byte
 // NilObjectID is the zero value for ObjectID.
 var NilObjectID ObjectID
 
-var objectIDCounter = readRandomUint32()
-var processUnique = processUniqueBytes()
+var (
+	objectIDCounter = readRandomUint32()
+	processUnique   = processUniqueBytes()
+)
 
-var _ encoding.TextMarshaler = ObjectID{}
-var _ encoding.TextUnmarshaler = &ObjectID{}
+var (
+	_ encoding.TextMarshaler   = ObjectID{}
+	_ encoding.TextUnmarshaler = &ObjectID{}
+)
 
 // NewObjectID generates a new ObjectID.
 func NewObjectID() ObjectID {
@@ -46,7 +52,11 @@ func NewObjectID() ObjectID {
 func NewObjectIDFromTimestamp(timestamp time.Time) ObjectID {
 	var b [12]byte
 
-	binary.BigEndian.PutUint32(b[0:4], uint32(timestamp.Unix()))
+	secs, err := mathutil.SafeConvertNumeric[uint32](timestamp.Unix())
+	if err != nil {
+		secs = 0
+	}
+	binary.BigEndian.PutUint32(b[0:4], secs)
 	copy(b[4:9], processUnique[:])
 	putUint24(b[9:12], atomic.AddUint32(&objectIDCounter, 1))
 
