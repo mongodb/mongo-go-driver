@@ -9,6 +9,7 @@ package unified
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -24,6 +25,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
 )
 
 // There are no automated tests for truncation. Given that, setting the
@@ -52,13 +54,9 @@ var securitySensitiveCommands = []string{
 // Sequencing is thread-safe to support concurrent operations that may generate
 // events (e.g., connection checkouts generating CMAP events).
 type eventSequencer struct {
-	counter atomic.Int64
-	cutoff  atomic.Int64
-
-	mu sync.RWMutex
-
-	// pool events are heterogeneous, so we track their sequence separately
-	poolSeq        []int64
+	counter        atomic.Int64
+	cutoff         atomic.Int64
+	mu             sync.RWMutex
 	seqByEventType map[monitoringEventType][]int64
 }
 
@@ -73,14 +71,6 @@ func (es *eventSequencer) recordEvent(eventType monitoringEventType) {
 
 	es.mu.Lock()
 	es.seqByEventType[eventType] = append(es.seqByEventType[eventType], next)
-	es.mu.Unlock()
-}
-
-func (es *eventSequencer) recordPooledEvent() {
-	next := es.counter.Add(1)
-
-	es.mu.Lock()
-	es.poolSeq = append(es.poolSeq, next)
 	es.mu.Unlock()
 }
 
@@ -367,30 +357,22 @@ func filterEventsBySeq[T any](c *clientEntity, events []T, eventType monitoringE
 	c.eventSequencer.mu.RLock()
 
 	// Snapshot to minimize time under locks and avoid races
-	localEvents := append([]T(nil), events...)
-
-	var seqSlice []int64
-	if eventType == poolAnyEvent {
-		seqSlice = c.eventSequencer.poolSeq
-	} else {
-		seqSlice = c.eventSequencer.seqByEventType[eventType]
-	}
-
-	localSeqs := append([]int64(nil), seqSlice...)
+	eventsSnapshot := slices.Clone(events)
+	seqSnapshot := slices.Clone(c.eventSequencer.seqByEventType[eventType])
 
 	c.eventSequencer.mu.RUnlock()
 	c.eventProcessMu.RUnlock()
 
 	// guard against index out of range.
-	n := len(localEvents)
-	if len(localSeqs) < n {
-		n = len(localSeqs)
+	n := len(eventsSnapshot)
+	if len(seqSnapshot) < n {
+		n = len(seqSnapshot)
 	}
 
 	filtered := make([]T, 0, n)
 	for i := 0; i < n; i++ {
-		if localSeqs[i] > cutoff {
-			filtered = append(filtered, localEvents[i])
+		if seqSnapshot[i] > cutoff {
+			filtered = append(filtered, eventsSnapshot[i])
 		}
 	}
 
@@ -585,7 +567,7 @@ func (c *clientEntity) processPoolEvent(evt *event.PoolEvent) {
 	if _, ok := c.observedEvents[eventType]; ok {
 		c.eventProcessMu.Lock()
 		c.pooled = append(c.pooled, evt)
-		c.eventSequencer.recordPooledEvent()
+		c.eventSequencer.recordEvent(eventType)
 		c.eventProcessMu.Unlock()
 	}
 
@@ -802,9 +784,65 @@ func evaluateUseMultipleMongoses(clientOpts *options.ClientOptions, useMultipleM
 	return nil
 }
 
-// awaitMinimumPoolSize waits for the client's connection pool to reach the
-// specified minimum size, then clears all CMAP and SDAM events that occurred
-// during pool initialization.
+// checkAllPoolsReady checks if all connection pools have reached the minimum
+// pool size by counting ConnectionReady events per address and comparing
+// against the data-bearing servers in the topology.
+//
+// This approach uses topology events to determine how many servers we expect,
+// then verifies each server's pool has reached minPoolSize. This prevents false
+// positives where we return early before all servers are discovered.
+func checkAllPoolsReady(
+	pooledEvents []*event.PoolEvent,
+	topologyEvents []*event.TopologyDescriptionChangedEvent,
+	minPoolSize uint64,
+) bool {
+	if len(topologyEvents) == 0 {
+		return false
+	}
+
+	// Use the most recent topology description
+	latestTopology := topologyEvents[len(topologyEvents)-1].NewDescription
+
+	// Get addresses of data-bearing servers from topology
+	expectedServers := make(map[string]bool)
+	for _, server := range latestTopology.Servers {
+		// Only track data-bearing servers
+		if server.Kind != "" &&
+			server.Kind != description.ServerKindRSArbiter.String() &&
+			server.Kind != description.ServerKindLoadBalancer.String() &&
+			server.Kind != description.ServerKindRSGhost.String() &&
+			server.Kind != description.ServerKindMongos.String() &&
+			server.Kind != description.ServerKindRSMember.String() {
+			expectedServers[server.Addr.String()] = true
+		}
+	}
+
+	// If no data-bearing servers yet, not ready
+	if len(expectedServers) == 0 {
+		return false
+	}
+
+	// Count ConnectionReady events per address
+	readyByAddress := make(map[string]int)
+	for _, evt := range pooledEvents {
+		if evt.Type == event.ConnectionReady {
+			readyByAddress[evt.Address]++
+		}
+	}
+
+	// Check if all expected servers have reached minPoolSize
+	for address := range expectedServers {
+		if uint64(readyByAddress[address]) < minPoolSize {
+			return false
+		}
+	}
+
+	return true
+}
+
+// awaitMinimumPoolSize waits for each of the client's connection pools to reach
+// the specified minimum size, then clears all CMAP and SDAM events that
+// occurred during pool initialization.
 func awaitMinimumPoolSize(ctx context.Context, entity *clientEntity, minPoolSize uint64, timeoutMS int) error {
 	awaitCtx, cancel := context.WithTimeout(ctx, time.Duration(timeoutMS)*time.Millisecond)
 	defer cancel()
@@ -817,9 +855,12 @@ func awaitMinimumPoolSize(ctx context.Context, entity *clientEntity, minPoolSize
 		case <-awaitCtx.Done():
 			return fmt.Errorf("timed out waiting for client to reach minPoolSize")
 		case <-ticker.C:
-			if uint64(entity.getEventCount(connectionReadyEvent)) >= minPoolSize {
-				entity.eventSequencer.setCutoff()
+			entity.eventProcessMu.RLock()
+			ready := checkAllPoolsReady(entity.pooled, entity.topologyDescriptionChanged, minPoolSize)
+			entity.eventProcessMu.RUnlock()
 
+			if ready {
+				entity.eventSequencer.setCutoff()
 				return nil
 			}
 		}

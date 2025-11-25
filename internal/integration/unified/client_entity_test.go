@@ -11,12 +11,14 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/mongo/address"
 )
 
 // Helper functions to condense event recording in tests
 func recordPoolEvent(c *clientEntity) {
 	c.pooled = append(c.pooled, &event.PoolEvent{})
-	c.eventSequencer.recordPooledEvent()
+	c.eventSequencer.recordEvent(poolAnyEvent)
 }
 
 func recordServerDescChanged(c *clientEntity) {
@@ -168,4 +170,133 @@ func Test_eventSequencer_setCutoff(t *testing.T) {
 	// Verify counter incremented but cutoff didn't
 	assert.Equal(t, int64(3), client.eventSequencer.counter.Load(), "counter should be 3")
 	assert.Equal(t, int64(2), client.eventSequencer.cutoff.Load(), "cutoff should still be 2")
+}
+
+func Test_checkAllPoolsReady(t *testing.T) {
+	tests := []struct {
+		name           string
+		minPoolSize    uint64
+		poolEvents     []*event.PoolEvent
+		topologyEvents []*event.TopologyDescriptionChangedEvent
+		want           bool
+	}{
+		{
+			name:        "single pool reaches minPoolSize",
+			minPoolSize: 2,
+			poolEvents: []*event.PoolEvent{
+				{Type: event.ConnectionReady, Address: "localhost:27017"},
+				{Type: event.ConnectionReady, Address: "localhost:27017"},
+			},
+			topologyEvents: []*event.TopologyDescriptionChangedEvent{
+				{
+					NewDescription: event.TopologyDescription{
+						Servers: []event.ServerDescription{
+							{Addr: address.Address("localhost:27017"), Kind: "RSPrimary"},
+						},
+					},
+				},
+			},
+			want: true,
+		},
+		{
+			name:        "multiple pools all reach minPoolSize",
+			minPoolSize: 2,
+			poolEvents: []*event.PoolEvent{
+				{Type: event.ConnectionReady, Address: "localhost:27017"},
+				{Type: event.ConnectionReady, Address: "localhost:27017"},
+				{Type: event.ConnectionReady, Address: "localhost:27018"},
+				{Type: event.ConnectionReady, Address: "localhost:27018"},
+				{Type: event.ConnectionReady, Address: "localhost:27019"},
+				{Type: event.ConnectionReady, Address: "localhost:27019"},
+			},
+			topologyEvents: []*event.TopologyDescriptionChangedEvent{
+				{
+					NewDescription: event.TopologyDescription{
+						Servers: []event.ServerDescription{
+							{Addr: address.Address("localhost:27017"), Kind: "RSPrimary"},
+							{Addr: address.Address("localhost:27018"), Kind: "RSSecondary"},
+							{Addr: address.Address("localhost:27019"), Kind: "RSSecondary"},
+						},
+					},
+				},
+			},
+			want: true,
+		},
+		{
+			name:        "total connections sufficient but not per-pool",
+			minPoolSize: 3,
+			poolEvents: []*event.PoolEvent{
+				// Total of 6 connections, but unevenly distributed
+				{Type: event.ConnectionReady, Address: "localhost:27017"},
+				{Type: event.ConnectionReady, Address: "localhost:27017"},
+				{Type: event.ConnectionReady, Address: "localhost:27017"},
+				{Type: event.ConnectionReady, Address: "localhost:27017"},
+				{Type: event.ConnectionReady, Address: "localhost:27018"},
+				{Type: event.ConnectionReady, Address: "localhost:27018"},
+			},
+			topologyEvents: []*event.TopologyDescriptionChangedEvent{
+				{
+					NewDescription: event.TopologyDescription{
+						Servers: []event.ServerDescription{
+							{Addr: address.Address("localhost:27017"), Kind: "RSPrimary"},
+							{Addr: address.Address("localhost:27018"), Kind: "RSSecondary"},
+						},
+					},
+				},
+			},
+			want: false,
+		},
+		{
+			name:        "ignores non-ConnectionReady events",
+			minPoolSize: 2,
+			poolEvents: []*event.PoolEvent{
+				{Type: event.ConnectionCreated, Address: "localhost:27017"},
+				{Type: event.ConnectionReady, Address: "localhost:27017"},
+				{Type: event.ConnectionReady, Address: "localhost:27017"},
+				{Type: event.ConnectionCheckedOut, Address: "localhost:27017"},
+			},
+			topologyEvents: []*event.TopologyDescriptionChangedEvent{
+				{
+					NewDescription: event.TopologyDescription{
+						Servers: []event.ServerDescription{
+							{Addr: address.Address("localhost:27017"), Kind: "RSPrimary"},
+						},
+					},
+				},
+			},
+			want: true,
+		},
+		{
+			name:           "no pools returns false",
+			minPoolSize:    1,
+			poolEvents:     []*event.PoolEvent{},
+			topologyEvents: []*event.TopologyDescriptionChangedEvent{},
+			want:           false,
+		},
+		{
+			name:        "no ConnectionReady events returns false",
+			minPoolSize: 1,
+			poolEvents: []*event.PoolEvent{
+				{Type: event.ConnectionCreated, Address: "localhost:27017"},
+				{Type: event.ConnectionCheckedOut, Address: "localhost:27017"},
+			},
+			topologyEvents: []*event.TopologyDescriptionChangedEvent{
+				{
+					NewDescription: event.TopologyDescription{
+						Servers: []event.ServerDescription{
+							{Addr: address.Address("localhost:27017"), Kind: "RSPrimary"},
+						},
+					},
+				},
+			},
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := checkAllPoolsReady(tt.poolEvents, tt.topologyEvents, tt.minPoolSize)
+			require.Equal(t, tt.want, got)
+		})
+	}
 }
