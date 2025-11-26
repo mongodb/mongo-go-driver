@@ -522,7 +522,7 @@ func (v Value) BinaryOK() (subtype byte, data []byte, ok bool) {
 
 // ObjectID returns the BSON objectid value the Value represents. It panics if the value is a BSON
 // type other than objectid.
-func (v Value) ObjectID() objectID {
+func (v Value) ObjectID() [12]byte {
 	if v.Type != TypeObjectID {
 		panic(ElementTypeError{"bsoncore.Value.ObjectID", v.Type})
 	}
@@ -535,7 +535,7 @@ func (v Value) ObjectID() objectID {
 
 // ObjectIDOK is the same as ObjectID, except it returns a boolean instead of
 // panicking.
-func (v Value) ObjectIDOK() (objectID, bool) {
+func (v Value) ObjectIDOK() ([12]byte, bool) {
 	if v.Type != TypeObjectID {
 		return objectID{}, false
 	}
@@ -652,7 +652,7 @@ func (v Value) RegexOK() (pattern, options string, ok bool) {
 
 // DBPointer returns the BSON dbpointer value the Value represents. It panics if the value is a BSON
 // type other than DBPointer.
-func (v Value) DBPointer() (string, objectID) {
+func (v Value) DBPointer() (string, [12]byte) {
 	if v.Type != TypeDBPointer {
 		panic(ElementTypeError{"bsoncore.Value.DBPointer", v.Type})
 	}
@@ -665,7 +665,7 @@ func (v Value) DBPointer() (string, objectID) {
 
 // DBPointerOK is the same as DBPoitner, except that it returns a boolean
 // instead of panicking.
-func (v Value) DBPointerOK() (string, objectID, bool) {
+func (v Value) DBPointerOK() (string, [12]byte, bool) {
 	if v.Type != TypeDBPointer {
 		return "", objectID{}, false
 	}
