@@ -10,6 +10,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"math"
 	"net"
 	"sync"
 	"sync/atomic"
@@ -18,6 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/logger"
+	"go.mongodb.org/mongo-driver/v2/internal/mathutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/address"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 )
@@ -158,7 +160,6 @@ func logPoolMessage(pool *pool, msg string, keysAndValues ...any) {
 			ServerHost: host,
 			ServerPort: port,
 		}, keysAndValues...)...)
-
 }
 
 type reason struct {
@@ -241,7 +242,7 @@ func newPool(config poolConfig, connOpts ...ConnectionOption) *pool {
 	var ctx context.Context
 	ctx, pool.cancelBackgroundCtx = context.WithCancel(context.Background())
 
-	for i := 0; i < int(pool.maxConnecting); i++ {
+	for i := uint64(0); i < pool.maxConnecting; i++ {
 		pool.backgroundDone.Add(1)
 		go pool.createConnections(ctx, pool.backgroundDone)
 	}
@@ -1357,7 +1358,16 @@ func (p *pool) maintain(ctx context.Context, wg *sync.WaitGroup) {
 		// the number of connections requested to max 10 at a time to prevent overshooting
 		// minPoolSize in case other checkOut() calls are requesting new connections, too.
 		total := p.totalConnectionCount()
-		n := int(p.minSize) - total - len(wantConns)
+
+		// Since this is a forced mod 10 operation, we can safely ignore overflows.
+		minSize, err := mathutil.SafeConvertNumeric[int](p.minSize)
+		if err != nil {
+			// Ignore overflow here because this is only used to drive pool growth
+			// hints.
+			minSize = math.MaxInt
+		}
+
+		n := minSize - total - len(wantConns)
 		if n > 10 {
 			n = 10
 		}

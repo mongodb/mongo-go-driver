@@ -16,6 +16,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/csfle"
+	"go.mongodb.org/mongo-driver/v2/internal/mathutil"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/v2/internal/optionsutil"
 	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
@@ -191,8 +192,8 @@ func (coll *Collection) Database() *Database {
 //
 // The opts parameter can be used to specify options for the operation (see the options.BulkWriteOptions documentation.)
 func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
-	opts ...options.Lister[options.BulkWriteOptions]) (*BulkWriteResult, error) {
-
+	opts ...options.Lister[options.BulkWriteOptions],
+) (*BulkWriteResult, error) {
 	if len(models) == 0 {
 		return nil, fmt.Errorf("invalid models: %w", ErrEmptySlice)
 	}
@@ -263,7 +264,6 @@ func (coll *Collection) insert(
 	documents []any,
 	opts ...options.Lister[options.InsertManyOptions],
 ) ([]any, error) {
-
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -374,8 +374,8 @@ func (coll *Collection) insert(
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/insert/.
 func (coll *Collection) InsertOne(ctx context.Context, document any,
-	opts ...options.Lister[options.InsertOneOptions]) (*InsertOneResult, error) {
-
+	opts ...options.Lister[options.InsertOneOptions],
+) (*InsertOneResult, error) {
 	args, err := mongoutil.NewOptions(opts...)
 	if err != nil {
 		return nil, err
@@ -431,7 +431,6 @@ func (coll *Collection) InsertMany(
 	documents any,
 	opts ...options.Lister[options.InsertManyOptions],
 ) (*InsertManyResult, error) {
-
 	dv := reflect.ValueOf(documents)
 	if dv.Kind() != reflect.Slice {
 		return nil, fmt.Errorf("invalid documents: %w", ErrNotSlice)
@@ -483,7 +482,6 @@ func (coll *Collection) delete(
 	expectedRr returnResult,
 	args *options.DeleteManyOptions,
 ) (*DeleteResult, error) {
-
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -644,7 +642,6 @@ func (coll *Collection) updateOrReplace(
 	sort any,
 	args *options.UpdateManyOptions,
 ) (*UpdateResult, error) {
-
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -1023,7 +1020,7 @@ func aggregate(a aggregateParams, opts ...options.Lister[options.AggregateOption
 		op.AllowDiskUse(*args.AllowDiskUse)
 	}
 	// ignore batchSize of 0 with $out
-	if args.BatchSize != nil && !(*args.BatchSize == 0 && hasOutputStage) {
+	if args.BatchSize != nil && (*args.BatchSize != 0 || !hasOutputStage) {
 		op.BatchSize(*args.BatchSize)
 		cursorOpts.BatchSize = *args.BatchSize
 	}
@@ -1117,7 +1114,8 @@ func aggregate(a aggregateParams, opts ...options.Lister[options.AggregateOption
 //
 // The opts parameter can be used to specify options for the operation (see the options.CountOptions documentation).
 func (coll *Collection) CountDocuments(ctx context.Context, filter any,
-	opts ...options.Lister[options.CountOptions]) (int64, error) {
+	opts ...options.Lister[options.CountOptions],
+) (int64, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -1385,7 +1383,8 @@ func (coll *Collection) Distinct(
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/find/.
 func (coll *Collection) Find(ctx context.Context, filter any,
-	opts ...options.Lister[options.FindOptions]) (*Cursor, error) {
+	opts ...options.Lister[options.FindOptions],
+) (*Cursor, error) {
 	args, err := mongoutil.NewOptions(opts...)
 	if err != nil {
 		return nil, err
@@ -1404,7 +1403,6 @@ func (coll *Collection) find(
 	omitMaxTimeMS bool,
 	args *options.FindOptions,
 ) (cur *Cursor, err error) {
-
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -1502,7 +1500,13 @@ func (coll *Collection) find(
 			limit = -1 * limit
 			op.SingleBatch(true)
 		}
-		cursorOpts.Limit = int32(limit)
+
+		var convErr error
+		cursorOpts.Limit, convErr = mathutil.SafeConvertNumeric[int32](limit)
+		if convErr != nil {
+			return nil, convErr
+		}
+
 		op.Limit(limit)
 	}
 	if args.Max != nil {
@@ -1607,8 +1611,8 @@ func newFindArgsFromFindOneArgs(args *options.FindOneOptions) *options.FindOptio
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/find/.
 func (coll *Collection) FindOne(ctx context.Context, filter any,
-	opts ...options.Lister[options.FindOneOptions]) *SingleResult {
-
+	opts ...options.Lister[options.FindOneOptions],
+) *SingleResult {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -1698,8 +1702,8 @@ func (coll *Collection) findAndModify(ctx context.Context, op *operation.FindAnd
 func (coll *Collection) FindOneAndDelete(
 	ctx context.Context,
 	filter any,
-	opts ...options.Lister[options.FindOneAndDeleteOptions]) *SingleResult {
-
+	opts ...options.Lister[options.FindOneAndDeleteOptions],
+) *SingleResult {
 	f, err := marshal(filter, coll.bsonOpts, coll.registry)
 	if err != nil {
 		return &SingleResult{err: err}
@@ -1782,7 +1786,6 @@ func (coll *Collection) FindOneAndReplace(
 	replacement any,
 	opts ...options.Lister[options.FindOneAndReplaceOptions],
 ) *SingleResult {
-
 	f, err := marshal(filter, coll.bsonOpts, coll.registry)
 	if err != nil {
 		return &SingleResult{err: err}
@@ -1884,8 +1887,8 @@ func (coll *Collection) FindOneAndUpdate(
 	ctx context.Context,
 	filter any,
 	update any,
-	opts ...options.Lister[options.FindOneAndUpdateOptions]) *SingleResult {
-
+	opts ...options.Lister[options.FindOneAndUpdateOptions],
+) *SingleResult {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -1994,8 +1997,8 @@ func (coll *Collection) FindOneAndUpdate(
 // The opts parameter can be used to specify options for change stream creation (see the options.ChangeStreamOptions
 // documentation).
 func (coll *Collection) Watch(ctx context.Context, pipeline any,
-	opts ...options.Lister[options.ChangeStreamOptions]) (*ChangeStream, error) {
-
+	opts ...options.Lister[options.ChangeStreamOptions],
+) (*ChangeStream, error) {
 	csConfig := changeStreamConfig{
 		readConcern:    coll.readConcern,
 		readPreference: coll.readPreference,
@@ -2139,7 +2142,12 @@ func toDocument(co *options.Collation) bson.Raw {
 		doc = bsoncore.AppendStringElement(doc, "caseFirst", co.CaseFirst)
 	}
 	if co.Strength != 0 {
-		doc = bsoncore.AppendInt32Element(doc, "strength", int32(co.Strength))
+		strength, err := mathutil.SafeConvertNumeric[int32](co.Strength)
+		if err != nil {
+			panic(fmt.Errorf("collation strength %d overflows int32: %w", co.Strength, err))
+		}
+
+		doc = bsoncore.AppendInt32Element(doc, "strength", strength)
 	}
 	if co.NumericOrdering {
 		doc = bsoncore.AppendBooleanElement(doc, "numericOrdering", true)

@@ -5,8 +5,6 @@
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
 //go:build gssapi && (windows || linux || darwin)
-// +build gssapi
-// +build windows linux darwin
 
 package auth
 

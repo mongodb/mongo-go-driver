@@ -20,6 +20,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/csfle"
 	"go.mongodb.org/mongo-driver/v2/internal/failpoint"
+	"go.mongodb.org/mongo-driver/v2/internal/mathutil"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -600,7 +601,7 @@ func (t *T) createTestClient() {
 	}
 
 	// Setup command monitor
-	var customMonitor = clientOpts.Monitor
+	customMonitor := clientOpts.Monitor
 	clientOpts.SetMonitor(&event.CommandMonitor{
 		Started: func(ctx context.Context, cse *event.CommandStartedEvent) {
 			if customMonitor != nil && customMonitor.Started != nil {
@@ -862,16 +863,5 @@ func (t *T) verifyConstraints() error {
 }
 
 func (t *T) interfaceToInt32(i any) (int32, error) {
-	switch conv := i.(type) {
-	case int:
-		return int32(conv), nil
-	case int32:
-		return conv, nil
-	case int64:
-		return int32(conv), nil
-	case float64:
-		return int32(conv), nil
-	}
-
-	return 0, fmt.Errorf("type %T cannot be converted to int32", i)
+	return mathutil.SafeConvertNumeric[int32](i)
 }

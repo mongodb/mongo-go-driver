@@ -5,7 +5,6 @@
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
 //go:build !cse
-// +build !cse
 
 // Package mongocrypt is intended for internal use only. It is made available to
 // facilitate use cases that require access to internal MongoDB driver

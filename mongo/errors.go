@@ -364,10 +364,12 @@ func hasErrorCode(srvErr ServerError, code int) bool {
 	return false
 }
 
-var _ ServerError = CommandError{}
-var _ ServerError = WriteError{}
-var _ ServerError = WriteException{}
-var _ ServerError = BulkWriteException{}
+var (
+	_ ServerError = CommandError{}
+	_ ServerError = WriteError{}
+	_ ServerError = WriteException{}
+	_ ServerError = BulkWriteException{}
+)
 
 var _ error = ClientBulkWriteException{}
 

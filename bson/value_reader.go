@@ -14,6 +14,8 @@ import (
 	"io"
 	"math"
 	"sync"
+
+	"go.mongodb.org/mongo-driver/v2/internal/binaryutil"
 )
 
 type byteSrc interface {
@@ -916,7 +918,7 @@ func (vr *valueReader) peekLength() (int32, error) {
 	if err != nil {
 		return 0, err
 	}
-	return int32(binary.LittleEndian.Uint32(buf)), nil
+	return binaryutil.ReadI32Unsafe(buf), nil
 }
 
 func (vr *valueReader) readLength() (int32, error) {
@@ -929,7 +931,11 @@ func (vr *valueReader) readi32() (int32, error) {
 		return 0, err
 	}
 
-	return int32(binary.LittleEndian.Uint32(raw)), nil
+	value, _, ok := binaryutil.ReadI32(raw)
+	if !ok {
+		return 0, fmt.Errorf("insufficient bytes to read int32")
+	}
+	return value, nil
 }
 
 func (vr *valueReader) readu32() (uint32, error) {
@@ -947,6 +953,9 @@ func (vr *valueReader) readi64() (int64, error) {
 		return 0, err
 	}
 
+	// BSON stores signed integers using two's complement.
+	// This uint64->int64 conversion is intentional bit reinterpretation per BSON spec.
+	// nolint:gosec // G115: BSON spec requires reinterpreting bits, not validating range
 	return int64(binary.LittleEndian.Uint64(raw)), nil
 }
 

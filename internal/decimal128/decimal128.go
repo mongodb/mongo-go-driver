@@ -30,6 +30,7 @@ func divmod(h, l uint64, div uint32) (qh, ql uint64, rem uint32) {
 	d := cr<<32 + l&(1<<32-1)
 	dq := d / div64
 	dr := d % div64
+	//nolint:gosec // G115: dr is result of modulo, always fits in uint32
 	return (aq<<32 | bq), (cq<<32 | dq), uint32(dr)
 }
 
@@ -54,11 +55,13 @@ func String(h, l uint64) string {
 	if h>>61&3 == 3 {
 		// Bits: 1*sign 2*ignored 14*exponent 111*significand.
 		// Implicit 0b100 prefix in significand.
+		//nolint:gosec // G115: 14-bit value always fits in int
 		exp = int(h >> 47 & (1<<14 - 1))
 		// Spec says all of these values are out of range.
 		high, low = 0, 0
 	} else {
 		// Bits: 1*sign 14*exponent 113*significand
+		//nolint:gosec // G115: 14-bit value always fits in int
 		exp = int(h >> 49 & (1<<14 - 1))
 		high = h & (1<<49 - 1)
 	}

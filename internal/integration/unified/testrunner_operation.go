@@ -14,6 +14,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/v2/internal/mathutil"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
@@ -205,7 +206,11 @@ func executeTestRunnerOperation(ctx context.Context, op *operation, loopDone <-c
 			return err
 		}
 
-		expected := int32(lookupInteger(args, "connections"))
+		expected, err := mathutil.SafeConvertNumeric[int32](lookupInteger(args, "connections"))
+		if err != nil {
+			return fmt.Errorf("'connections' argument is out of int32 range: %w", err)
+		}
+
 		actual := client.numberConnectionsCheckedOut()
 		if expected != actual {
 			return fmt.Errorf("expected %d connections to be checked out, got %d", expected, actual)

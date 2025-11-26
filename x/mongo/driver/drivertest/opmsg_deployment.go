@@ -9,11 +9,13 @@ package drivertest
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/csot"
 	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/internal/mathutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/address"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
@@ -56,8 +58,10 @@ type connection struct {
 	responses []bson.D // responses to send when ReadWireMessage is called
 }
 
-var _ mnet.ReadWriteCloser = &connection{}
-var _ mnet.Describer = &connection{}
+var (
+	_ mnet.ReadWriteCloser = &connection{}
+	_ mnet.Describer       = &connection{}
+)
 
 // Write is a no-op.
 func (c *connection) Write(context.Context, []byte) error {
@@ -86,7 +90,13 @@ func (c *connection) Read(_ context.Context) ([]byte, error) {
 	dst = wiremessage.AppendMsgSectionType(dst, wiremessage.SingleDocument)
 	resBytes, _ := bson.Marshal(nextRes)
 	dst = append(dst, resBytes...)
-	dst = bsoncore.UpdateLength(dst, wmindex, int32(len(dst[wmindex:])))
+
+	wmLen, err := mathutil.SafeConvertNumeric[int32](len(dst[wmindex:]))
+	if err != nil {
+		return nil, fmt.Errorf("response size %d exceeds int32: %w", len(dst[wmindex:]), err)
+	}
+
+	dst = bsoncore.UpdateLength(dst, wmindex, wmLen)
 	return dst, nil
 }
 
@@ -132,11 +142,13 @@ type MockDeployment struct {
 	updates chan description.Topology
 }
 
-var _ driver.Deployment = &MockDeployment{}
-var _ driver.Server = &MockDeployment{}
-var _ driver.Connector = &MockDeployment{}
-var _ driver.Disconnector = &MockDeployment{}
-var _ driver.Subscriber = &MockDeployment{}
+var (
+	_ driver.Deployment   = &MockDeployment{}
+	_ driver.Server       = &MockDeployment{}
+	_ driver.Connector    = &MockDeployment{}
+	_ driver.Disconnector = &MockDeployment{}
+	_ driver.Subscriber   = &MockDeployment{}
+)
 
 // SelectServer implements the Deployment interface. This method does not use the
 // description.SelectedServer provided and instead returns itself. The Connections returned from the

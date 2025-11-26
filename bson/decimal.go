@@ -74,11 +74,13 @@ func (d Decimal128) BigInt() (*big.Int, int, error) {
 	if high>>61&3 == 3 {
 		// Bits: 1*sign 2*ignored 14*exponent 111*significand.
 		// Implicit 0b100 prefix in significand.
+		// nolint:gosec // G115: bitmasked to 14 bits, safe conversion
 		exp = int(high >> 47 & (1<<14 - 1))
 		// Spec says all of these values are out of range.
 		high, low = 0, 0
 	} else {
 		// Bits: 1*sign 14*exponent 113*significand
+		// nolint:gosec // G115: bitmasked to 14 bits, safe conversion
 		exp = int(high >> 49 & (1<<14 - 1))
 		high &= (1<<49 - 1)
 	}
@@ -314,6 +316,7 @@ func ParseDecimal128FromBigInt(bi *big.Int, exp int) (Decimal128, bool) {
 		l = l<<8 | uint64(b[i])
 	}
 
+	// nolint:gosec // G115: exp is within MinDecimal128Exp to MaxDecimal128Exp range
 	h |= uint64(exp-MinDecimal128Exp) & uint64(1<<14-1) << 49
 	if bi.Sign() == -1 {
 		h |= 1 << 63

@@ -12,6 +12,9 @@ import (
 	"io"
 	"strconv"
 	"strings"
+
+	"go.mongodb.org/mongo-driver/v2/internal/binaryutil"
+	"go.mongodb.org/mongo-driver/v2/internal/mathutil"
 )
 
 // ValidationError is an error type returned when attempting to validate a document or array.
@@ -112,7 +115,7 @@ func newBufferFromReader(r io.Reader) ([]byte, error) {
 		return nil, err
 	}
 
-	length, _, _ := readi32(lengthBytes[:]) // ignore ok since we always have enough bytes to read a length
+	length, _, _ := binaryutil.ReadI32(lengthBytes[:]) // ignore ok since we always have enough bytes to read a length
 	if length < 0 {
 		return nil, ErrInvalidLength
 	}
@@ -156,11 +159,16 @@ func (d Document) LookupErr(key ...string) (Value, error) {
 	var elem Element
 	for length > 1 {
 		elem, rem, ok = ReadElement(rem)
-		length -= int32(len(elem))
+		elemLen, err := mathutil.SafeConvertNumeric[int32](len(elem))
+		if err != nil {
+			return Value{}, fmt.Errorf("element length %d overflows int32: %w", len(elem), err)
+		}
+		length -= elemLen
 		if !ok {
 			return Value{}, NewInsufficientBytesError(d, rem)
 		}
 		// We use `KeyBytes` rather than `Key` to avoid a needless string alloc.
+		// nolint:gosec // G602: key length is validated at function entry
 		if string(elem.KeyBytes()) != key[0] {
 			continue
 		}
@@ -216,7 +224,11 @@ func indexErr(b []byte, index uint) (Element, error) {
 	var elem Element
 	for length > 1 {
 		elem, rem, ok = ReadElement(rem)
-		length -= int32(len(elem))
+		elemLen, err := mathutil.SafeConvertNumeric[int32](len(elem))
+		if err != nil {
+			return nil, fmt.Errorf("element length %d overflows int32: %w", len(elem), err)
+		}
+		length -= elemLen
 		if !ok {
 			return nil, NewInsufficientBytesError(b, rem)
 		}
@@ -246,7 +258,12 @@ func (d Document) DebugString() string {
 	var ok bool
 	for length > 1 {
 		elem, rem, ok = ReadElement(rem)
-		length -= int32(len(elem))
+		elemLen, err := mathutil.SafeConvertNumeric[int32](len(elem))
+		if err != nil {
+			buf.WriteString(fmt.Sprintf("<overflow (%d)>", len(elem)))
+			break
+		}
+		length -= elemLen
 		if !ok {
 			buf.WriteString(fmt.Sprintf("<malformed (%d)>", length))
 			break
@@ -314,7 +331,11 @@ func (d Document) StringN(n int) (string, bool) {
 		}
 
 		elem, rem, ok = ReadElement(rem)
-		length -= int32(len(elem))
+		elemLen, err := mathutil.SafeConvertNumeric[int32](len(elem))
+		if err != nil {
+			return "", false
+		}
+		length -= elemLen
 		// Exit on malformed element.
 		if !ok || length < 0 {
 			return "", false
@@ -351,7 +372,11 @@ func (d Document) Elements() ([]Element, error) {
 	var elems []Element
 	for length > 1 {
 		elem, rem, ok = ReadElement(rem)
-		length -= int32(len(elem))
+		elemLen, err := mathutil.SafeConvertNumeric[int32](len(elem))
+		if err != nil {
+			return elems, fmt.Errorf("element length %d overflows int32: %w", len(elem), err)
+		}
+		length -= elemLen
 		if !ok {
 			return elems, NewInsufficientBytesError(d, rem)
 		}
@@ -382,7 +407,11 @@ func values(b []byte) ([]Value, error) {
 	var vals []Value
 	for length > 1 {
 		elem, rem, ok = ReadElement(rem)
-		length -= int32(len(elem))
+		elemLen, err := mathutil.SafeConvertNumeric[int32](len(elem))
+		if err != nil {
+			return vals, fmt.Errorf("element length %d overflows int32: %w", len(elem), err)
+		}
+		length -= elemLen
 		if !ok {
 			return vals, NewInsufficientBytesError(b, rem)
 		}
@@ -412,11 +441,15 @@ func (d Document) Validate() error {
 
 	for length > 1 {
 		elem, rem, ok = ReadElement(rem)
-		length -= int32(len(elem))
+		elemLen, err := mathutil.SafeConvertNumeric[int32](len(elem))
+		if err != nil {
+			return fmt.Errorf("element length %d overflows int32: %w", len(elem), err)
+		}
+		length -= elemLen
 		if !ok {
 			return NewInsufficientBytesError(d, rem)
 		}
-		err := elem.Validate()
+		err = elem.Validate()
 		if err != nil {
 			return err
 		}

@@ -576,7 +576,7 @@ func (h *Hello) handshakeCommand(dst []byte, desc description.SelectedServer) ([
 func (h *Hello) command(dst []byte, desc description.SelectedServer) ([]byte, error) {
 	// Use "hello" if topology is LoadBalanced, API version is declared or server
 	// has responded with "helloOk". Otherwise, use legacy hello.
-	if h.loadBalanced || h.serverAPI != nil || desc.Server.HelloOK {
+	if h.loadBalanced || h.serverAPI != nil || desc.HelloOK {
 		dst = bsoncore.AppendInt32Element(dst, "hello", 1)
 	} else {
 		dst = bsoncore.AppendInt32Element(dst, handshake.LegacyHello, 1)
