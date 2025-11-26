@@ -115,7 +115,7 @@ func newT(wrapped *testing.T, opts ...*Options) *T {
 		t.collName = t.Name()
 	}
 	if t.dbName == "" {
-		t.dbName = TestDb
+		t.dbName = TestDB
 	}
 	t.collName = sanitizeCollectionName(t.dbName, t.collName)
 
@@ -600,7 +600,7 @@ func (t *T) createTestClient() {
 	}
 
 	// Setup command monitor
-	var customMonitor = clientOpts.Monitor
+	customMonitor := clientOpts.Monitor
 	clientOpts.SetMonitor(&event.CommandMonitor{
 		Started: func(ctx context.Context, cse *event.CommandStartedEvent) {
 			if customMonitor != nil && customMonitor.Started != nil {
@@ -800,7 +800,7 @@ func verifyRunOnBlockConstraint(rob RunOnBlock) error {
 	// TODO(GODRIVER-3486): Once auto encryption is supported by the unified test
 	// format,this check should be removed.
 	if rob.CSFLEEnabled() && rob.CSFLE.Options != nil {
-		return fmt.Errorf("Auto encryption required (GODRIVER-3486)")
+		return fmt.Errorf("auto encryption required (GODRIVER-3486)")
 	}
 
 	if rob.CSFLEEnabled() && !IsCSFLEEnabled() {
