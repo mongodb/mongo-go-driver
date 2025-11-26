@@ -235,12 +235,12 @@ func executeTestRunnerOperation(ctx context.Context, op *operation, loopDone <-c
 		}
 		return nil
 	case "wait":
-		waitMS, err := convertValueToMilliseconds(args.Lookup("ms"))
+		waitDur, err := convertValueToMilliseconds(args.Lookup("ms"))
 		if err != nil {
 			return err
 		}
 
-		time.Sleep(waitMS)
+		time.Sleep(waitDur)
 
 		return nil
 	case "runOnThread":
