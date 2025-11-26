@@ -427,8 +427,10 @@ func runOperationInThread(t *testing.T, operation map[string]any, testInfo *test
 			t.Fatalf("unable to find thread to wait for: %v", threadName)
 		}
 
-		for atomic.LoadInt32(&thread.JobsCompleted) != atomic.LoadInt32(&thread.JobsAssigned) {
-
+		for {
+			if atomic.LoadInt32(&thread.JobsCompleted) == atomic.LoadInt32(&thread.JobsAssigned) {
+				break
+			}
 		}
 	case "waitForEvent":
 		var targetCount int
