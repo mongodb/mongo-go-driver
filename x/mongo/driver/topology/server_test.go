@@ -365,7 +365,7 @@ func TestServerConnectionTimeout(t *testing.T) {
 }
 
 func TestServer(t *testing.T) {
-	var serverTestTable = []struct {
+	serverTestTable := []struct {
 		name            string
 		connectionError bool
 		networkError    bool
@@ -1280,7 +1280,7 @@ func includesClientMetadata(t *testing.T, wm []byte) bool {
 		t.Fatal("could not read numberToReturn")
 	}
 	var query bsoncore.Document
-	query, wm, ok = wiremessage.ReadQueryQuery(wm)
+	query, _, ok = wiremessage.ReadQueryQuery(wm)
 	if !ok {
 		t.Fatal("could not read query")
 	}

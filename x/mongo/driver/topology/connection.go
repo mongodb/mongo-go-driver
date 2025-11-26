@@ -654,7 +654,7 @@ var (
 	_ driver.Expirable     = (*Connection)(nil)
 )
 
-// WriteWireMessage handles writing a wire message to the underlying connection.
+// Write handles writing a wire message to the underlying connection.
 func (c *Connection) Write(ctx context.Context, wm []byte) error {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -664,8 +664,8 @@ func (c *Connection) Write(ctx context.Context, wm []byte) error {
 	return c.connection.writeWireMessage(ctx, wm)
 }
 
-// ReadWireMessage handles reading a wire message from the underlying connection. The dst parameter
-// will be overwritten with the new wire message.
+// Read handles reading a wire message from the underlying connection. The dst
+// parameter will be overwritten with the new wire message.
 func (c *Connection) Read(ctx context.Context) ([]byte, error) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
