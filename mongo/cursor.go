@@ -185,6 +185,11 @@ func (c *Cursor) Next(ctx context.Context) bool {
 	return c.next(ctx, false)
 }
 
+// CurrentRaw returns the Current struct member.
+func (c *Cursor) CurrentRaw() bson.Raw {
+	return c.Current
+}
+
 // TryNext attempts to get the next document for this cursor. It returns true if there were no errors and the next
 // document is available. This is only recommended for use with tailable cursors as a non-blocking alternative to
 // Next. See https://www.mongodb.com/docs/manual/core/tailable-cursors/ for more information about tailable cursors.

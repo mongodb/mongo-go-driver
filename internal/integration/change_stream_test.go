@@ -379,6 +379,8 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 
 						for i := 0; i < numExpectedEvents; i++ {
 							assert.True(mt, cs.Next(context.Background()), "expected Next to return true, got false")
+							assert.Equal(mt, cs.CurrentRaw(), cs.Current, "CurrentRaw should return Current")
+
 							// while we're not at the last doc in the batch, the resume token should be the _id of the
 							// document
 							if i != numExpectedEvents-1 {
