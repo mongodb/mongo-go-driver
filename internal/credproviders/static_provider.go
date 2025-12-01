@@ -45,7 +45,7 @@ func verify(v credentials.Value) error {
 func (s *StaticProvider) Retrieve() (credentials.Value, error) {
 	if !s.verified {
 		s.err = verify(s.Value)
-		s.Value.ProviderName = staticProviderName
+		s.ProviderName = staticProviderName
 		s.verified = true
 	}
 	return s.Value, s.err
