@@ -99,10 +99,7 @@ func (us *GridFSUploadStream) Write(p []byte) (int, error) {
 	}
 
 	origLen := len(p)
-	for {
-		if len(p) == 0 {
-			break
-		}
+	for len(p) != 0 {
 
 		n := copy(us.buffer[us.bufferIndex:], p) // copy as much as possible
 		p = p[n:]

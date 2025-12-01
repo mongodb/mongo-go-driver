@@ -73,8 +73,10 @@ type slowConnDialer struct {
 	delay  time.Duration
 }
 
-var slowConnDialerDelay = 300 * time.Millisecond
-var reducedHeartbeatInterval = 500 * time.Millisecond
+var (
+	slowConnDialerDelay      = 300 * time.Millisecond
+	reducedHeartbeatInterval = 500 * time.Millisecond
+)
 
 func newSlowConnDialer(delay time.Duration) *slowConnDialer {
 	return &slowConnDialer{
@@ -228,7 +230,7 @@ func TestClient(t *testing.T) {
 			testCases := []struct {
 				name             string
 				filter           bson.D
-				hasTestDb        bool
+				hasTestDB        bool
 				minServerVersion string
 			}{
 				{"empty", bson.D{}, true, ""},
@@ -247,12 +249,12 @@ func TestClient(t *testing.T) {
 
 					var found bool
 					for _, db := range res.Databases {
-						if db.Name == mtest.TestDb {
+						if db.Name == mtest.TestDB {
 							found = true
 							break
 						}
 					}
-					assert.Equal(mt, tc.hasTestDb, found, "expected to find test db: %v, found: %v", tc.hasTestDb, found)
+					assert.Equal(mt, tc.hasTestDB, found, "expected to find test db: %v, found: %v", tc.hasTestDB, found)
 				})
 			}
 		})
@@ -279,7 +281,7 @@ func TestClient(t *testing.T) {
 			testCases := []struct {
 				name             string
 				filter           bson.D
-				hasTestDb        bool
+				hasTestDB        bool
 				minServerVersion string
 			}{
 				{"no filter", bson.D{}, true, ""},
@@ -298,12 +300,12 @@ func TestClient(t *testing.T) {
 
 					var found bool
 					for _, db := range dbs {
-						if db == mtest.TestDb {
+						if db == mtest.TestDB {
 							found = true
 							break
 						}
 					}
-					assert.Equal(mt, tc.hasTestDb, found, "expected to find test db: %v, found: %v", tc.hasTestDb, found)
+					assert.Equal(mt, tc.hasTestDB, found, "expected to find test db: %v, found: %v", tc.hasTestDB, found)
 				})
 			}
 		})
