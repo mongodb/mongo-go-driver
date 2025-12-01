@@ -31,7 +31,7 @@ func TestSearchIndexProse(t *testing.T) {
 
 	const timeout = 5 * time.Minute
 
-	uri := os.Getenv("TEST_INDEX_URI")
+	uri := os.Getenv("SEARCH_INDEX_URI")
 	if uri == "" {
 		t.Skip("skipping")
 	}

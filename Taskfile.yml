@@ -160,7 +160,7 @@ tasks:
 
   evg-test-search-index:
     # Use the long timeout to wait for the responses from the server.
-    - go test ./internal/integration -run TestSearchIndexProse -v -timeout {{.LONG_TEST_TIMEOUT}}s >> test.suite
+    - go test ./internal/integration -run TestSearchIndex -v -timeout {{.LONG_TEST_TIMEOUT}}s >> test.suite
 
   evg-test-ocsp:
     - go test -v ./mongo -run TestOCSP ${OCSP_TLS_SHOULD_SUCCEED} >> test.suite
