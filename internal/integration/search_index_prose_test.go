@@ -57,12 +57,15 @@ func TestSearchIndexProse(t *testing.T) {
 		require.NoError(mt, err, "failed to create index")
 		require.Equal(mt, searchName, index, "unmatched name")
 
+		awaitCtx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+		defer cancel()
+
 		var doc bson.Raw
 		for doc == nil {
-			cursor, err := view.List(ctx, opts)
+			cursor, err := view.List(awaitCtx, opts)
 			require.NoError(mt, err, "failed to list")
 
-			if !cursor.Next(ctx) {
+			if !cursor.Next(awaitCtx) {
 				break
 			}
 			name := cursor.Current.Lookup("name").StringValue()
@@ -110,7 +113,7 @@ func TestSearchIndexProse(t *testing.T) {
 			require.Contains(mt, indexes, *args.Name)
 		}
 
-		getDocument := func(opts *options.SearchIndexesOptionsBuilder) bson.Raw {
+		getDocument := func(ctx context.Context, opts *options.SearchIndexesOptionsBuilder) bson.Raw {
 			for {
 				cursor, err := view.List(ctx, opts)
 				require.NoError(mt, err, "failed to list")
@@ -138,7 +141,10 @@ func TestSearchIndexProse(t *testing.T) {
 			go func(opts *options.SearchIndexesOptionsBuilder) {
 				defer wg.Done()
 
-				doc := getDocument(opts)
+				ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+				defer cancel()
+
+				doc := getDocument(ctx, opts)
 				require.NotNil(mt, doc, "got empty document")
 
 				args, err := mongoutil.NewOptions[options.SearchIndexesOptions](opts)
@@ -173,12 +179,14 @@ func TestSearchIndexProse(t *testing.T) {
 		require.NoError(mt, err, "failed to create index")
 		require.Equal(mt, searchName, index, "unmatched name")
 
+		createOneCtx, createOneCancel := context.WithTimeout(context.Background(), 1*time.Minute)
+		defer createOneCancel()
 		var doc bson.Raw
 		for doc == nil {
-			cursor, err := view.List(ctx, opts)
+			cursor, err := view.List(createOneCtx, opts)
 			require.NoError(mt, err, "failed to list")
 
-			if !cursor.Next(ctx) {
+			if !cursor.Next(createOneCtx) {
 				break
 			}
 			name := cursor.Current.Lookup("name").StringValue()
@@ -194,11 +202,13 @@ func TestSearchIndexProse(t *testing.T) {
 
 		err = view.DropOne(ctx, searchName)
 		require.NoError(mt, err, "failed to drop index")
+		dropOneCtx, dropOneCancel := context.WithTimeout(context.Background(), 1*time.Minute)
+		defer dropOneCancel()
 		for {
-			cursor, err := view.List(ctx, opts)
+			cursor, err := view.List(dropOneCtx, opts)
 			require.NoError(mt, err, "failed to list")
 
-			if !cursor.Next(ctx) {
+			if !cursor.Next(dropOneCtx) {
 				break
 			}
 			mt.Logf("cursor: %s, sleep 5 seconds...", cursor.Current.String())
@@ -224,12 +234,14 @@ func TestSearchIndexProse(t *testing.T) {
 		require.NoError(mt, err, "failed to create index")
 		require.Equal(mt, searchName, index, "unmatched name")
 
+		createOneCtx, createOneCancel := context.WithTimeout(context.Background(), 1*time.Minute)
+		defer createOneCancel()
 		var doc bson.Raw
 		for doc == nil {
-			cursor, err := view.List(ctx, opts)
+			cursor, err := view.List(createOneCtx, opts)
 			require.NoError(mt, err, "failed to list")
 
-			if !cursor.Next(ctx) {
+			if !cursor.Next(createOneCtx) {
 				break
 			}
 			name := cursor.Current.Lookup("name").StringValue()
@@ -248,11 +260,13 @@ func TestSearchIndexProse(t *testing.T) {
 		require.NoError(mt, err, "failed to marshal definition")
 		err = view.UpdateOne(ctx, searchName, definition)
 		require.NoError(mt, err, "failed to update index")
+		updateOneCtx, updateOneCancel := context.WithTimeout(context.Background(), 1*time.Minute)
+		defer updateOneCancel()
 		for doc == nil {
-			cursor, err := view.List(ctx, opts)
+			cursor, err := view.List(updateOneCtx, opts)
 			require.NoError(mt, err, "failed to list")
 
-			if !cursor.Next(ctx) {
+			if !cursor.Next(updateOneCtx) {
 				break
 			}
 			name := cursor.Current.Lookup("name").StringValue()
@@ -302,12 +316,14 @@ func TestSearchIndexProse(t *testing.T) {
 			})
 			require.NoError(mt, err, "failed to create index")
 			require.Equal(mt, searchName, index, "unmatched name")
+			awaitCtx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+			defer cancel()
 			var doc bson.Raw
 			for doc == nil {
-				cursor, err := view.List(ctx, opts)
+				cursor, err := view.List(awaitCtx, opts)
 				require.NoError(mt, err, "failed to list")
 
-				if !cursor.Next(ctx) {
+				if !cursor.Next(awaitCtx) {
 					break
 				}
 				name := cursor.Current.Lookup("name").StringValue()
@@ -348,12 +364,14 @@ func TestSearchIndexProse(t *testing.T) {
 			})
 			require.NoError(mt, err, "failed to create index")
 			require.Equal(mt, indexName, index, "unmatched name")
+			implicitCtx, implicitCancel := context.WithTimeout(context.Background(), 1*time.Minute)
+			defer implicitCancel()
 			var doc bson.Raw
 			for doc == nil {
-				cursor, err := view.List(ctx, opts)
+				cursor, err := view.List(implicitCtx, opts)
 				require.NoError(mt, err, "failed to list")
 
-				if !cursor.Next(ctx) {
+				if !cursor.Next(implicitCtx) {
 					break
 				}
 				name := cursor.Current.Lookup("name").StringValue()
@@ -376,12 +394,14 @@ func TestSearchIndexProse(t *testing.T) {
 			})
 			require.NoError(mt, err, "failed to create index")
 			require.Equal(mt, indexName, index, "unmatched name")
+			explicitCtx, explicitCancel := context.WithTimeout(context.Background(), 1*time.Minute)
+			defer explicitCancel()
 			doc = nil
 			for doc == nil {
-				cursor, err := view.List(ctx, opts)
+				cursor, err := view.List(explicitCtx, opts)
 				require.NoError(mt, err, "failed to list")
 
-				if !cursor.Next(ctx) {
+				if !cursor.Next(explicitCtx) {
 					break
 				}
 				name := cursor.Current.Lookup("name").StringValue()
@@ -417,12 +437,14 @@ func TestSearchIndexProse(t *testing.T) {
 			})
 			require.NoError(mt, err, "failed to create index")
 			require.Equal(mt, indexName, index, "unmatched name")
+			vectorCtx, vectorCancel := context.WithTimeout(context.Background(), 1*time.Minute)
+			defer vectorCancel()
 			doc = nil
 			for doc == nil {
-				cursor, err := view.List(ctx, opts)
+				cursor, err := view.List(vectorCtx, opts)
 				require.NoError(mt, err, "failed to list")
 
-				if !cursor.Next(ctx) {
+				if !cursor.Next(vectorCtx) {
 					break
 				}
 				name := cursor.Current.Lookup("name").StringValue()
@@ -474,8 +496,6 @@ func TestSearchIndexProse(t *testing.T) {
 		})
 
 	mt.Run("case 9: Drivers use server default for unspecified name (`default`) and type (`search`)", func(mt *mtest.T) {
-		ctx := context.Background()
-
 		view := mt.Coll.SearchIndexes()
 		definition := bson.D{
 			{"mappings", bson.D{
@@ -484,12 +504,15 @@ func TestSearchIndexProse(t *testing.T) {
 		}
 		opts := options.SearchIndexes()
 
-		indexName, err := view.CreateOne(ctx, mongo.SearchIndexModel{
+		indexName, err := view.CreateOne(context.Background(), mongo.SearchIndexModel{
 			Definition: definition,
 			Options:    opts,
 		})
 		require.NoError(mt, err, "failed to create index")
 		require.Equal(mt, "default", indexName)
+
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+		defer cancel()
 
 		var doc bson.Raw
 		for doc == nil {
