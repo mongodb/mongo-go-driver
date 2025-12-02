@@ -137,7 +137,6 @@ func (v Value) AsInt64() int64 {
 		}
 		i64 = int64(f64)
 	case TypeInt32:
-		var ok bool
 		i32, _, ok := ReadInt32(v.Data)
 		if !ok {
 			panic(NewInsufficientBytesError(v.Data, v.Data))
@@ -170,7 +169,6 @@ func (v Value) AsInt64OK() (int64, bool) {
 		}
 		i64 = int64(f64)
 	case TypeInt32:
-		var ok bool
 		i32, _, ok := ReadInt32(v.Data)
 		if !ok {
 			return 0, false
