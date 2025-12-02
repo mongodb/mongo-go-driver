@@ -1,8 +1,8 @@
 module go.mongodb.go/mongo-driver/v2/internal/test/compilecheck
 
-go 1.23.0
+go 1.25.0
 
-toolchain go1.23.1
+toolchain go1.25.3
 
 require (
 	github.com/stretchr/testify v1.10.0

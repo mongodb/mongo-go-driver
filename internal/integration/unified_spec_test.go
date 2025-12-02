@@ -69,7 +69,7 @@ func decodeTestData(dc bson.DecodeContext, vr bson.ValueReader, val reflect.Valu
 	switch vr.Type() {
 	case bson.TypeArray:
 		docsVal := val.FieldByName("Documents")
-		decoder, err := dc.Registry.LookupDecoder(docsVal.Type())
+		decoder, err := dc.LookupDecoder(docsVal.Type())
 		if err != nil {
 			return err
 		}
@@ -77,7 +77,7 @@ func decodeTestData(dc bson.DecodeContext, vr bson.ValueReader, val reflect.Valu
 		return decoder.DecodeValue(dc, vr, docsVal)
 	case bson.TypeEmbeddedDocument:
 		gridfsDataVal := val.FieldByName("GridFSData")
-		decoder, err := dc.Registry.LookupDecoder(gridfsDataVal.Type())
+		decoder, err := dc.LookupDecoder(gridfsDataVal.Type())
 		if err != nil {
 			return err
 		}
