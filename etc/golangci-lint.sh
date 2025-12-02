@@ -3,7 +3,7 @@ set -ex
 
 # Keep this in sync with go version used in static-analysis Evergreen build variant.
 GO_VERSION=1.25.0
-GOLANGCI_LINT_VERSION=1.60.1
+GOLANGCI_LINT_VERSION=2.6.2
 
 # Unset the cross-compiler overrides while downloading binaries.
 GOOS_ORIG=${GOOS:-}

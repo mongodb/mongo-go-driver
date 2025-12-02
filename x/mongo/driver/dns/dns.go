@@ -114,10 +114,10 @@ func validateSRVResult(recordFromSRV, inputHostName string) error {
 	separatedInputDomain := strings.Split(strings.ToLower(inputHostName), ".")
 	separatedRecord := strings.Split(strings.ToLower(recordFromSRV), ".")
 	if l := len(separatedInputDomain); l < 3 && len(separatedRecord) <= l {
-		return fmt.Errorf("Server record (%d levels) should have more domain levels than parent URI (%d levels)", l, len(separatedRecord))
+		return fmt.Errorf("server record (%d levels) should have more domain levels than parent URI (%d levels)", l, len(separatedRecord))
 	}
 	if len(separatedRecord) < len(separatedInputDomain) {
-		return errors.New("Domain suffix from SRV record not matched input domain")
+		return errors.New("domain suffix from SRV record not matched input domain")
 	}
 
 	inputDomainSuffix := separatedInputDomain
@@ -129,7 +129,7 @@ func validateSRVResult(recordFromSRV, inputHostName string) error {
 	recordDomainSuffix := separatedRecord[domainSuffixOffset:]
 	for ix, label := range inputDomainSuffix {
 		if label != recordDomainSuffix[ix] {
-			return errors.New("Domain suffix from SRV record not matched input domain")
+			return errors.New("domain suffix from SRV record not matched input domain")
 		}
 	}
 	return nil
@@ -145,11 +145,11 @@ func validateTXTResult(paramsFromTXT []string) error {
 	for _, param := range paramsFromTXT {
 		kv := strings.SplitN(param, "=", 2)
 		if len(kv) != 2 {
-			return errors.New("Invalid TXT record")
+			return errors.New("invalid TXT record")
 		}
 		key := strings.ToLower(kv[0])
 		if _, ok := allowedTXTOptions[key]; !ok {
-			return fmt.Errorf("Cannot specify option '%s' in TXT record", kv[0])
+			return fmt.Errorf("cannot specify option '%s' in TXT record", kv[0])
 		}
 	}
 	return nil
