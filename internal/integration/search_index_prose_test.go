@@ -70,7 +70,7 @@ func TestSearchIndexProse(t *testing.T) {
 			if name == searchName && queryable {
 				doc = cursor.Current
 			} else {
-				t.Logf("cursor: %s, sleep 5 seconds...", cursor.Current.String())
+				mt.Logf("cursor: %s, sleep 5 seconds...", cursor.Current.String())
 				time.Sleep(5 * time.Second)
 			}
 		}
@@ -127,7 +127,7 @@ func TestSearchIndexProse(t *testing.T) {
 				if name == *args.Name && queryable {
 					return cursor.Current
 				}
-				t.Logf("cursor: %s, sleep 5 seconds...", cursor.Current.String())
+				mt.Logf("cursor: %s, sleep 5 seconds...", cursor.Current.String())
 				time.Sleep(5 * time.Second)
 			}
 		}
@@ -186,7 +186,7 @@ func TestSearchIndexProse(t *testing.T) {
 			if name == searchName && queryable {
 				doc = cursor.Current
 			} else {
-				t.Logf("cursor: %s, sleep 5 seconds...", cursor.Current.String())
+				mt.Logf("cursor: %s, sleep 5 seconds...", cursor.Current.String())
 				time.Sleep(5 * time.Second)
 			}
 		}
@@ -201,7 +201,7 @@ func TestSearchIndexProse(t *testing.T) {
 			if !cursor.Next(ctx) {
 				break
 			}
-			t.Logf("cursor: %s, sleep 5 seconds...", cursor.Current.String())
+			mt.Logf("cursor: %s, sleep 5 seconds...", cursor.Current.String())
 			time.Sleep(5 * time.Second)
 		}
 	})
@@ -237,7 +237,7 @@ func TestSearchIndexProse(t *testing.T) {
 			if name == searchName && queryable {
 				doc = cursor.Current
 			} else {
-				t.Logf("cursor: %s, sleep 5 seconds...", cursor.Current.String())
+				mt.Logf("cursor: %s, sleep 5 seconds...", cursor.Current.String())
 				time.Sleep(5 * time.Second)
 			}
 		}
@@ -262,7 +262,7 @@ func TestSearchIndexProse(t *testing.T) {
 			if name == searchName && queryable && status == "READY" && bytes.Equal(latestDefinition, expected) {
 				doc = cursor.Current
 			} else {
-				t.Logf("cursor: %s, sleep 5 seconds...", cursor.Current.String())
+				mt.Logf("cursor: %s, sleep 5 seconds...", cursor.Current.String())
 				time.Sleep(5 * time.Second)
 			}
 		}
@@ -315,7 +315,7 @@ func TestSearchIndexProse(t *testing.T) {
 				if name == searchName && queryable {
 					doc = cursor.Current
 				} else {
-					t.Logf("cursor: %s, sleep 5 seconds...", cursor.Current.String())
+					mt.Logf("cursor: %s, sleep 5 seconds...", cursor.Current.String())
 					time.Sleep(5 * time.Second)
 				}
 			}
@@ -363,7 +363,7 @@ func TestSearchIndexProse(t *testing.T) {
 					doc = cursor.Current
 					assert.Equal(mt, indexType, "search")
 				} else {
-					t.Logf("cursor: %s, sleep 5 seconds...", cursor.Current.String())
+					mt.Logf("cursor: %s, sleep 5 seconds...", cursor.Current.String())
 					time.Sleep(5 * time.Second)
 				}
 			}
@@ -391,7 +391,7 @@ func TestSearchIndexProse(t *testing.T) {
 					doc = cursor.Current
 					assert.Equal(mt, indexType, "search")
 				} else {
-					t.Logf("cursor: %s, sleep 5 seconds...", cursor.Current.String())
+					mt.Logf("cursor: %s, sleep 5 seconds...", cursor.Current.String())
 					time.Sleep(5 * time.Second)
 				}
 			}
@@ -432,7 +432,7 @@ func TestSearchIndexProse(t *testing.T) {
 					doc = cursor.Current
 					assert.Equal(mt, indexType, "vectorSearch")
 				} else {
-					t.Logf("cursor: %s, sleep 5 seconds...", cursor.Current.String())
+					mt.Logf("cursor: %s, sleep 5 seconds...", cursor.Current.String())
 					time.Sleep(5 * time.Second)
 				}
 			}
@@ -472,4 +472,43 @@ func TestSearchIndexProse(t *testing.T) {
 			})
 			assert.ErrorContains(mt, err, "Attribute mappings missing")
 		})
+
+	mt.Run("case 9: Drivers use server default for unspecified name (`default`) and type (`search`)", func(mt *mtest.T) {
+		ctx := context.Background()
+
+		view := mt.Coll.SearchIndexes()
+		definition := bson.D{
+			{"mappings", bson.D{
+				{"dynamic", true},
+			}},
+		}
+		opts := options.SearchIndexes()
+
+		indexName, err := view.CreateOne(ctx, mongo.SearchIndexModel{
+			Definition: definition,
+			Options:    opts,
+		})
+		require.NoError(mt, err, "failed to create index")
+		require.Equal(mt, "default", indexName)
+
+		var doc bson.Raw
+		for doc == nil {
+			cursor, err := view.List(ctx, opts)
+			require.NoError(mt, err, "failed to list")
+
+			if !cursor.Next(ctx) {
+				break
+			}
+			name := cursor.Current.Lookup("name").StringValue()
+			queryable := cursor.Current.Lookup("queryable").Boolean()
+			indexType := cursor.Current.Lookup("type").StringValue()
+			if name == indexName && queryable {
+				doc = cursor.Current
+				require.Equal(mt, indexType, "search")
+			} else {
+				mt.Logf("cursor: %s, sleep 5 seconds...", cursor.Current.String())
+				time.Sleep(5 * time.Second)
+			}
+		}
+	})
 }
