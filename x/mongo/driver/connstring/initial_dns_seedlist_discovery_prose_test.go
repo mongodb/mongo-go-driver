@@ -69,7 +69,7 @@ func TestInitialDNSSeedlistDiscoveryProse(t *testing.T) {
 				t.Parallel()
 
 				_, err := newTestParser(c.record).parse(c.uri)
-				assert.ErrorContains(t, err, "Domain suffix from SRV record not matched input domain")
+				assert.ErrorContains(t, err, "domain suffix from SRV record not matched input domain")
 			})
 		}
 	})
@@ -91,7 +91,7 @@ func TestInitialDNSSeedlistDiscoveryProse(t *testing.T) {
 
 				_, err := newTestParser(c.record).parse(c.uri)
 				expected := fmt.Sprintf(
-					"Server record (%d levels) should have more domain levels than parent URI (%d levels)",
+					"server record (%d levels) should have more domain levels than parent URI (%d levels)",
 					c.labels, c.labels,
 				)
 				assert.ErrorContains(t, err, expected)
@@ -115,7 +115,7 @@ func TestInitialDNSSeedlistDiscoveryProse(t *testing.T) {
 				t.Parallel()
 
 				_, err := newTestParser(c.record).parse(c.uri)
-				assert.ErrorContains(t, err, "Domain suffix from SRV record not matched input domain")
+				assert.ErrorContains(t, err, "domain suffix from SRV record not matched input domain")
 			})
 		}
 	})

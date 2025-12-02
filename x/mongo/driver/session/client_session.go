@@ -422,9 +422,10 @@ func (c *Client) StartTransaction(opts *TransactionOptions) error {
 // CheckCommitTransaction checks to see if allowed to commit transaction and returns
 // an error if not allowed.
 func (c *Client) CheckCommitTransaction() error {
-	if c.TransactionState == None {
+	switch c.TransactionState {
+	case None:
 		return ErrNoTransactStarted
-	} else if c.TransactionState == Aborted {
+	case Aborted:
 		return ErrCommitAfterAbort
 	}
 	return nil
@@ -462,12 +463,12 @@ func (c *Client) UpdateCommitTransactionWriteConcern() {
 // CheckAbortTransaction checks to see if allowed to abort transaction and returns
 // an error if not allowed.
 func (c *Client) CheckAbortTransaction() error {
-	switch {
-	case c.TransactionState == None:
+	switch c.TransactionState {
+	case None:
 		return ErrNoTransactStarted
-	case c.TransactionState == Committed:
+	case Committed:
 		return ErrAbortAfterCommit
-	case c.TransactionState == Aborted:
+	case Aborted:
 		return ErrAbortTwice
 	}
 	return nil
@@ -506,13 +507,14 @@ func (c *Client) ApplyCommand(desc description.Server) error {
 		// Do not change state if committing after already committed
 		return nil
 	}
-	if c.TransactionState == Starting {
+	switch c.TransactionState {
+	case Starting:
 		c.TransactionState = InProgress
 		// If this is in a transaction and the server is a mongos, pin it
 		if desc.Kind == description.ServerKindMongos {
 			c.PinnedServerAddr = &desc.Addr
 		}
-	} else if c.TransactionState == Committed || c.TransactionState == Aborted {
+	case Committed, Aborted:
 		c.TransactionState = None
 		return c.clearTransactionOpts()
 	}

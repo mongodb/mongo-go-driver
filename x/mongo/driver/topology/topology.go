@@ -549,10 +549,10 @@ func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelect
 			// try again if there are no servers available
 			if mustLogServerSelection(t, logger.LevelInfo) {
 				elapsed := time.Since(startTime)
-				remainingTimeMS := t.cfg.ServerSelectionTimeout - elapsed
+				remainingTime := t.cfg.ServerSelectionTimeout - elapsed
 
 				logServerSelection(ctx, t, logger.LevelInfo, logger.ServerSelectionWaiting, ss,
-					logger.KeyRemainingTimeMS, remainingTimeMS.Milliseconds())
+					logger.KeyRemainingTimeMS, remainingTime.Milliseconds())
 			}
 
 			continue
@@ -687,7 +687,6 @@ func (t *Topology) selectServerFromSubscription(
 	subscriptionCh <-chan description.Topology,
 	srvSelector description.ServerSelector,
 ) ([]description.Server, error) {
-
 	current := t.Description()
 	for {
 		select {
@@ -713,7 +712,6 @@ func (t *Topology) selectServerFromDescription(
 	desc description.Topology,
 	srvSelector description.ServerSelector,
 ) ([]description.Server, error) {
-
 	// Unlike selectServerFromSubscription, this code path does not check ctx.Done or selectionState.timeoutChan because
 	// selecting a server from a description is not a blocking operation.
 
@@ -772,7 +770,7 @@ func (t *Topology) pollSRVRecords(hosts string) {
 			return
 		}
 		topoKind := t.Description().Kind
-		if !(topoKind == description.Unknown || topoKind == description.TopologyKindSharded) {
+		if topoKind != description.Unknown && topoKind != description.TopologyKindSharded {
 			break
 		}
 

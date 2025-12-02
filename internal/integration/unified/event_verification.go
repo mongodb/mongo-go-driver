@@ -429,22 +429,22 @@ func stringifyEventsForClient(client *clientEntity) string {
 
 	str.WriteString("\n\nStarted Events\n\n")
 	for _, evt := range client.startedEvents() {
-		str.WriteString(fmt.Sprintf("[%s] %s\n", evt.ConnectionID, evt.Command))
+		fmt.Fprintf(str, "[%s] %s\n", evt.ConnectionID, evt.Command)
 	}
 
 	str.WriteString("\nSucceeded Events\n\n")
 	for _, evt := range client.succeededEvents() {
-		str.WriteString(fmt.Sprintf("[%s] CommandName: %s, Reply: %s\n", evt.ConnectionID, evt.CommandName, evt.Reply))
+		fmt.Fprintf(str, "[%s] CommandName: %s, Reply: %s\n", evt.ConnectionID, evt.CommandName, evt.Reply)
 	}
 
 	str.WriteString("\nFailed Events\n\n")
 	for _, evt := range client.failedEvents() {
-		str.WriteString(fmt.Sprintf("[%s] CommandName: %s, Failure: %s\n", evt.ConnectionID, evt.CommandName, evt.Failure))
+		fmt.Fprintf(str, "[%s] CommandName: %s, Failure: %s\n", evt.ConnectionID, evt.CommandName, evt.Failure)
 	}
 
 	str.WriteString("\nPool Events\n\n")
 	for _, evt := range client.poolEvents() {
-		str.WriteString(fmt.Sprintf("[%s] Event Type: %q\n", evt.Address, evt.Type))
+		fmt.Fprintf(str, "[%s] Event Type: %q\n", evt.Address, evt.Type)
 	}
 
 	return str.String()
