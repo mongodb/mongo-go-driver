@@ -251,18 +251,8 @@ func evaluateSpecialComparison(ctx context.Context, assertionDoc bson.Raw, actua
 
 		// Numeric values can be compared even if their types are different (e.g. if expected is an int32 and actual
 		// is an int64).
-		var expectedF64 float64
-		if assertionVal.Type == bson.TypeDouble {
-			expectedF64 = assertionVal.Double()
-		} else {
-			expectedF64 = assertionVal.AsFloat64()
-		}
-		var actualF64 float64
-		if actual.Type == bson.TypeDouble {
-			actualF64 = actual.Double()
-		} else {
-			actualF64 = actual.AsFloat64()
-		}
+		var expectedF64 = assertionVal.AsFloat64()
+		var actualF64 = actual.AsFloat64()
 
 		if actualF64 > expectedF64 {
 			return fmt.Errorf("expected numeric value %f to be less than or equal %f", actualF64, expectedF64)
