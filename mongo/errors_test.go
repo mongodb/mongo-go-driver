@@ -760,3 +760,79 @@ func (n netErr) Temporary() bool {
 }
 
 var _ net.Error = (*netErr)(nil)
+
+func TestErrorCodesFrom(t *testing.T) {
+	tests := []struct {
+		name  string
+		input error
+		want  []int
+	}{
+		{
+			name:  "nil error",
+			input: nil,
+			want:  nil,
+		},
+		{
+			name:  "non-server error",
+			input: errors.New("boom"),
+			want:  []int{},
+		},
+		{
+			name:  "CommandError single code",
+			input: CommandError{Code: 123},
+			want:  []int{123},
+		},
+		{
+			name:  "WriteError single code",
+			input: WriteError{Code: 45},
+			want:  []int{45},
+		},
+		{
+			name:  "WriteException write errors only",
+			input: WriteException{WriteErrors: WriteErrors{{Code: 1}, {Code: 2}}},
+			want:  []int{1, 2},
+		},
+		{
+			name:  "WriteException with write concern error",
+			input: WriteException{WriteErrors: WriteErrors{{Code: 1}}, WriteConcernError: &WriteConcernError{Code: 64}},
+			want:  []int{1, 64},
+		},
+		{
+			name: "BulkWriteException write errors only",
+			input: BulkWriteException{
+				WriteErrors: []BulkWriteError{
+					{WriteError: WriteError{Code: 10}},
+					{WriteError: WriteError{Code: 11}},
+				},
+			},
+			want: []int{10, 11},
+		},
+		{
+			name: "BulkWriteException with write concern error",
+			input: BulkWriteException{
+				WriteErrors: []BulkWriteError{
+					{WriteError: WriteError{Code: 10}},
+					{WriteError: WriteError{Code: 11}},
+				},
+				WriteConcernError: &WriteConcernError{Code: 79},
+			},
+			want: []int{10, 11, 79},
+		},
+		{
+			name:  "driver.Error wraps to CommandError",
+			input: driver.Error{Code: 91, Message: "shutdown in progress"},
+			want:  []int{91},
+		},
+		{
+			name:  "wrapped driver.Error",
+			input: fmt.Errorf("context: %w", driver.Error{Code: 262, Message: "ExceededTimeLimit"}),
+			want:  []int{262},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			require.Equal(t, tt.want, ErrorCodesFrom(tt.input))
+		})
+	}
+}
