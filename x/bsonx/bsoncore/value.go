@@ -190,7 +190,7 @@ func (v Value) AsInt64OK() (int64, bool) {
 // will panic.
 func (v Value) AsFloat64() float64 {
 	if !v.IsNumber() {
-		return 0
+		panic(ElementTypeError{"bsoncore.Value.AsFloat64", v.Type})
 	}
 	var f64 float64
 	switch v.Type {
