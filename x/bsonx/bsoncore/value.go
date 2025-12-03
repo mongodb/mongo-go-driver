@@ -250,7 +250,7 @@ func (v Value) AsFloat64OK() (float64, bool) {
 	return f64, true
 }
 
-// Equal compaes v to v2 and returns true if they are equal.
+// Equal compares v to v2 and returns true if they are equal.
 func (v Value) Equal(v2 Value) bool {
 	if v.Type != v2.Type {
 		return false
