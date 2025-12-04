@@ -559,6 +559,23 @@ func TestDecoderConfiguration(t *testing.T) {
 				{Key: "myDocument", Value: M{"myString": "test value"}},
 			},
 		},
+		// Test that DefaultDocumentMap always decodes BSON documents into
+		// map[string]any values, independent of the top-level Go value type.
+		{
+			description: "DefaultDocumentMap nested",
+			configure: func(dec *Decoder) {
+				dec.DefaultDocumentMap()
+			},
+			input: bsoncore.NewDocumentBuilder().
+				AppendDocument("myDocument", bsoncore.NewDocumentBuilder().
+					AppendString("myString", "test value").
+					Build()).
+				Build(),
+			decodeInto: func() any { return &D{} },
+			want: &D{
+				{Key: "myDocument", Value: map[string]any{"myString": "test value"}},
+			},
+		},
 		// Test that ObjectIDAsHexString causes the Decoder to decode object ID to hex.
 		{
 			description: "ObjectIDAsHexString",
@@ -692,6 +709,30 @@ func TestDecoderConfiguration(t *testing.T) {
 
 		want := M{
 			"myDocument": M{
+				"myString": "test value",
+			},
+		}
+		assert.Equal(t, want, got, "expected and actual decode results do not match")
+	})
+	t.Run("DefaultDocumentMap top-level", func(t *testing.T) {
+		t.Parallel()
+
+		input := bsoncore.NewDocumentBuilder().
+			AppendDocument("myDocument", bsoncore.NewDocumentBuilder().
+				AppendString("myString", "test value").
+				Build()).
+			Build()
+
+		dec := NewDecoder(NewDocumentReader(bytes.NewReader(input)))
+
+		dec.DefaultDocumentMap()
+
+		var got any
+		err := dec.Decode(&got)
+		require.NoError(t, err, "Decode error")
+
+		want := map[string]any{
+			"myDocument": map[string]any{
 				"myString": "test value",
 			},
 		}

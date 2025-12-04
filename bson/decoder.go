@@ -93,6 +93,13 @@ func (d *Decoder) DefaultDocumentM() {
 	d.dc.defaultDocumentType = reflect.TypeOf(M{})
 }
 
+// DefaultDocumentMap causes the Decoder to always unmarshal documents into the
+// map[string]any type. This behavior is restricted to data typed as "any" or
+// "map[string]any".
+func (d *Decoder) DefaultDocumentMap() {
+	d.dc.defaultDocumentType = reflect.TypeOf(map[string]any{})
+}
+
 // AllowTruncatingDoubles causes the Decoder to truncate the fractional part of BSON "double" values
 // when attempting to unmarshal them into a Go integer (int, int8, int16, int32, or int64) struct
 // field. The truncation logic does not apply to BSON "decimal128" values.
