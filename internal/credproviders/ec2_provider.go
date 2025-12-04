@@ -146,8 +146,8 @@ func (e *EC2Provider) getCredentials(ctx context.Context, token string, role str
 	return v, ec2Resp.Expiration, nil
 }
 
-// RetrieveWithContext retrieves the keys from the AWS service.
-func (e *EC2Provider) RetrieveWithContext(ctx context.Context) (credentials.Value, error) {
+// Retrieve retrieves the keys from the AWS service.
+func (e *EC2Provider) Retrieve(ctx context.Context) (credentials.Value, error) {
 	v := credentials.Value{ProviderName: ec2ProviderName}
 
 	token, err := e.getToken(ctx)
@@ -170,11 +170,6 @@ func (e *EC2Provider) RetrieveWithContext(ctx context.Context) (credentials.Valu
 	e.expiration = exp.Add(-e.expiryWindow)
 
 	return v, nil
-}
-
-// Retrieve retrieves the keys from the AWS service.
-func (e *EC2Provider) Retrieve() (credentials.Value, error) {
-	return e.RetrieveWithContext(context.Background())
 }
 
 // IsExpired returns true if the credentials are expired.
