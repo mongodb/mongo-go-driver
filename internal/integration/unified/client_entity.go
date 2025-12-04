@@ -567,7 +567,7 @@ func (c *clientEntity) processPoolEvent(evt *event.PoolEvent) {
 	if _, ok := c.observedEvents[eventType]; ok {
 		c.eventProcessMu.Lock()
 		c.pooled = append(c.pooled, evt)
-		c.eventSequencer.recordEvent(eventType)
+		c.eventSequencer.recordEvent(poolAnyEvent)
 		c.eventProcessMu.Unlock()
 	}
 
@@ -810,8 +810,7 @@ func checkAllPoolsReady(
 		if server.Kind != "" &&
 			server.Kind != description.ServerKindRSArbiter.String() &&
 			server.Kind != description.ServerKindLoadBalancer.String() &&
-			server.Kind != description.ServerKindRSGhost.String() &&
-			server.Kind != description.ServerKindRSMember.String() {
+			server.Kind != description.ServerKindRSGhost.String() {
 			expectedServers[server.Addr.String()] = true
 		}
 	}
