@@ -811,7 +811,6 @@ func checkAllPoolsReady(
 			server.Kind != description.ServerKindRSArbiter.String() &&
 			server.Kind != description.ServerKindLoadBalancer.String() &&
 			server.Kind != description.ServerKindRSGhost.String() &&
-			server.Kind != description.ServerKindMongos.String() &&
 			server.Kind != description.ServerKindRSMember.String() {
 			expectedServers[server.Addr.String()] = true
 		}

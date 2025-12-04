@@ -35,13 +35,11 @@ func Test_eventSequencer(t *testing.T) {
 	tests := []struct {
 		name           string
 		setupEvents    func(*clientEntity)
-		cutoffAfter    int // Set cutoff after this many events (0 = no cutoff)
 		expectedPooled int
 		expectedSDAM   map[monitoringEventType]int
 	}{
 		{
-			name:        "no cutoff filters nothing",
-			cutoffAfter: 0,
+			name: "no cutoff filters nothing",
 			setupEvents: func(c *clientEntity) {
 				recordPoolEvent(c)
 				recordPoolEvent(c)
@@ -55,12 +53,11 @@ func Test_eventSequencer(t *testing.T) {
 			},
 		},
 		{
-			name:        "cutoff after 2 pool events filters first 2",
-			cutoffAfter: 2,
+			name: "cutoff after 2 pool events filters first 2",
 			setupEvents: func(c *clientEntity) {
 				recordPoolEvent(c)
 				recordPoolEvent(c)
-				// Cutoff will be set here (after event 2)
+				c.eventSequencer.setCutoff()
 				recordPoolEvent(c)
 				recordPoolEvent(c)
 				recordPoolEvent(c)
@@ -69,14 +66,13 @@ func Test_eventSequencer(t *testing.T) {
 			expectedSDAM:   map[monitoringEventType]int{},
 		},
 		{
-			name:        "cutoff filters mixed pool and SDAM events",
-			cutoffAfter: 4,
+			name: "cutoff filters mixed pool and SDAM events",
 			setupEvents: func(c *clientEntity) {
 				recordPoolEvent(c)
 				recordServerDescChanged(c)
 				recordPoolEvent(c)
 				recordTopologyOpening(c)
-				// Cutoff will be set here (after event 4)
+				c.eventSequencer.setCutoff()
 				recordPoolEvent(c)
 				recordServerDescChanged(c)
 				recordTopologyOpening(c)
@@ -88,13 +84,12 @@ func Test_eventSequencer(t *testing.T) {
 			},
 		},
 		{
-			name:        "cutoff after all events filters everything",
-			cutoffAfter: 3,
+			name: "cutoff after all events filters everything",
 			setupEvents: func(c *clientEntity) {
 				recordPoolEvent(c)
 				recordPoolEvent(c)
 				recordServerDescChanged(c)
-				// Cutoff will be set here (after all 3 events)
+				c.eventSequencer.setCutoff()
 			},
 			expectedPooled: 0,
 			expectedSDAM: map[monitoringEventType]int{
@@ -114,12 +109,6 @@ func Test_eventSequencer(t *testing.T) {
 
 			// Setup events
 			tt.setupEvents(client)
-
-			// Set cutoff if specified
-			if tt.cutoffAfter > 0 {
-				// Manually set cutoff to the specified event sequence
-				client.eventSequencer.cutoff.Store(int64(tt.cutoffAfter))
-			}
 
 			// Test pool event filtering
 			filteredPool := filterEventsBySeq(client, client.pooled, poolAnyEvent)
