@@ -279,7 +279,7 @@ func (c *clientEntity) disconnect(ctx context.Context) error {
 		return nil
 	}
 
-	if err := c.Client.Disconnect(ctx); err != nil {
+	if err := c.Disconnect(ctx); err != nil {
 		return err
 	}
 
