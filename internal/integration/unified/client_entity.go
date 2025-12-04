@@ -809,7 +809,6 @@ func checkAllPoolsReady(
 		// Only track data-bearing servers
 		if server.Kind != "" &&
 			server.Kind != description.ServerKindRSArbiter.String() &&
-			server.Kind != description.ServerKindLoadBalancer.String() &&
 			server.Kind != description.ServerKindRSGhost.String() {
 			expectedServers[server.Addr.String()] = true
 		}
