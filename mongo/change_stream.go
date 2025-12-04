@@ -602,6 +602,11 @@ func (cs *ChangeStream) ResumeToken() bson.Raw {
 	return cs.resumeToken
 }
 
+// CurrentRaw returns the Current struct member.
+func (c *ChangeStream) CurrentRaw() bson.Raw {
+	return c.Current
+}
+
 // Next gets the next event for this change stream. It returns true if there
 // were no errors and the next event document is available.
 //

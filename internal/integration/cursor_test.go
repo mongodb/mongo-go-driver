@@ -110,6 +110,8 @@ func TestCursor_TryNext(t *testing.T) {
 
 		// first call to TryNext should return 1 document
 		assert.True(mt, cursor.TryNext(context.Background()), "expected Next to return true, got false")
+		assert.Equal(mt, cursor.CurrentRaw(), cursor.Current, "CurrentRaw should return Current")
+
 		// TryNext should attempt one getMore
 		mt.ClearEvents()
 		assert.False(mt, cursor.TryNext(context.Background()), "unexpected document %v", cursor.Current)
