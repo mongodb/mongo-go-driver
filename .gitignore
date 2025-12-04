@@ -31,10 +31,6 @@ bin
 internal/cmd/faas/awslambda/.aws-sam
 internal/cmd/faas/awslambda/events/event.json
 
-# Ignore compiled binaries from the compilecheck
-internal/cmd/compilecheck/compilecheck
-internal/cmd/compilecheck/compilecheck.so
-
 # Ignore api report files
 api-report.md
 api-report.txt
