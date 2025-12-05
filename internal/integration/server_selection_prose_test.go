@@ -112,7 +112,7 @@ func TestServerSelectionProse(t *testing.T) {
 
 	mt := mtest.New(t, mtest.NewOptions().CreateClient(false))
 
-	mtOpts := mtest.NewOptions().Topologies(mtest.Sharded).MinServerVersion("4.9")
+	mtOpts := mtest.NewOptions().Topologies(mtest.Sharded).MinServerVersion("4.9").AllowFailPointsOnSharded()
 	mt.RunOpts("operationCount-based selection within latency window, with failpoint", mtOpts, func(mt *mtest.T) {
 		_, err := mt.Coll.InsertOne(context.Background(), bson.D{})
 		require.NoError(mt, err, "InsertOne() error")

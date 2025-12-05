@@ -25,11 +25,11 @@ import (
 )
 
 const (
-	testDbName = "unitTestDb"
+	testDBName = "unitTestDB"
 )
 
 func setupColl(name string, opts ...options.Lister[options.CollectionOptions]) *Collection {
-	db := setupDb(testDbName)
+	db := setupDB(testDBName)
 	return db.Collection(name, opts...)
 }
 
@@ -72,7 +72,7 @@ func TestCollection(t *testing.T) {
 		rcLocal := readconcern.Local()
 		wc1 := &writeconcern.WriteConcern{W: 10}
 
-		db := setupDb("foo", options.Database().SetReadPreference(rpPrimary).SetReadConcern(rcLocal))
+		db := setupDB("foo", options.Database().SetReadPreference(rpPrimary).SetReadConcern(rcLocal))
 		coll := db.Collection("bar", options.Collection().SetWriteConcern(wc1))
 		expected := &Collection{
 			readPreference: rpPrimary,
@@ -95,7 +95,7 @@ func TestCollection(t *testing.T) {
 		_, err = coll.InsertOne(bgCtx, doc)
 		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
 
-		_, err = coll.InsertMany(bgCtx, []interface{}{doc})
+		_, err = coll.InsertMany(bgCtx, []any{doc})
 		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
 
 		_, err = coll.DeleteOne(bgCtx, doc)
@@ -143,7 +143,7 @@ func TestCollection(t *testing.T) {
 	t.Run("database accessor", func(t *testing.T) {
 		coll := setupColl("bar")
 		dbName := coll.Database().Name()
-		assert.Equal(t, testDbName, dbName, "expected db name %v, got %v", testDbName, dbName)
+		assert.Equal(t, testDBName, dbName, "expected db name %v, got %v", testDBName, dbName)
 	})
 	t.Run("nil document error", func(t *testing.T) {
 		coll := setupColl("foo")
@@ -155,7 +155,7 @@ func TestCollection(t *testing.T) {
 		_, err = coll.InsertMany(bgCtx, nil)
 		assert.True(t, errors.Is(err, ErrNotSlice), "expected error %v, got %v", ErrNotSlice, err)
 
-		_, err = coll.InsertMany(bgCtx, []interface{}{})
+		_, err = coll.InsertMany(bgCtx, []any{})
 		assert.True(t, errors.Is(err, ErrEmptySlice), "expected error %v, got %v", ErrEmptySlice, err)
 
 		_, err = coll.InsertMany(bgCtx, "x")

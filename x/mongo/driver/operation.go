@@ -158,13 +158,43 @@ type ResponseInfo struct {
 }
 
 func redactStartedInformationCmd(info startedInformation) bson.Raw {
+	intLen := func(n int) int {
+		if n == 0 {
+			return 1 // Special case: 0 has one digit
+		}
+		count := 0
+		for n > 0 {
+			n /= 10
+			count++
+		}
+		return count
+	}
+
 	var cmdCopy bson.Raw
 
 	// Make a copy of the command. Redact if the command is security
 	// sensitive and cannot be monitored. If there was a type 1 payload for
 	// the current batch, convert it to a BSON array
 	if !info.redacted {
-		cmdCopy = make([]byte, 0, len(info.cmd))
+		cmdLen := len(info.cmd)
+		for _, seq := range info.documentSequences {
+			cmdLen += 7 // 2 (header) + 4 (array length) + 1 (array end)
+			cmdLen += len(seq.identifier)
+			data := seq.data
+			i := 0
+			for {
+				doc, rest, ok := bsoncore.ReadDocument(data)
+				if !ok {
+					break
+				}
+				data = rest
+				cmdLen += len(doc)
+				cmdLen += intLen(i)
+				i++
+			}
+		}
+
+		cmdCopy = make([]byte, 0, cmdLen)
 		cmdCopy = append(cmdCopy, info.cmd...)
 
 		if len(info.documentSequences) > 0 {
@@ -445,7 +475,7 @@ func (op Operation) getServerAndConnection(
 	server, err := op.selectServer(ctx, requestID, deprioritized)
 	if err != nil {
 		if op.Client != nil &&
-			!(op.Client.Committing || op.Client.Aborting) && op.Client.TransactionRunning() {
+			(!op.Client.Committing && !op.Client.Aborting) && op.Client.TransactionRunning() {
 			err = Error{
 				Message: err.Error(),
 				Labels:  []string{TransientTransactionError},
@@ -762,7 +792,7 @@ func (op Operation) Execute(ctx context.Context) error {
 			serverConnID:       startedInfo.serverConnID,
 			redacted:           startedInfo.redacted,
 			serviceID:          startedInfo.serviceID,
-			serverAddress:      desc.Server.Addr,
+			serverAddress:      desc.Addr,
 		}
 
 		startedTime := time.Now()
@@ -815,7 +845,7 @@ func (op Operation) Execute(ctx context.Context) error {
 			retryableErr := tt.Retryable(connDesc.Kind, connDesc.WireVersion)
 			preRetryWriteLabelVersion := connDesc.WireVersion != nil && connDesc.WireVersion.Max < 9
 			inTransaction := op.Client != nil &&
-				!(op.Client.Committing || op.Client.Aborting) && op.Client.TransactionRunning()
+				(!op.Client.Committing && !op.Client.Aborting) && op.Client.TransactionRunning()
 			// If retry is enabled and the operation isn't in a transaction, add a RetryableWriteError label for
 			// retryable errors from pre-4.4 servers
 			if retryableErr && preRetryWriteLabelVersion && retryEnabled && !inTransaction {
@@ -931,7 +961,7 @@ func (op Operation) Execute(ctx context.Context) error {
 				retryableErr = tt.RetryableWrite(connDesc.WireVersion)
 				preRetryWriteLabelVersion := connDesc.WireVersion != nil && connDesc.WireVersion.Max < 9
 				inTransaction := op.Client != nil &&
-					!(op.Client.Committing || op.Client.Aborting) && op.Client.TransactionRunning()
+					(!op.Client.Committing && !op.Client.Aborting) && op.Client.TransactionRunning()
 				// If retryWrites is enabled and the operation isn't in a transaction, add a RetryableWriteError label
 				// for network errors and retryable errors from pre-4.4 servers
 				if retryEnabled && !inTransaction &&
@@ -1051,7 +1081,7 @@ func (op Operation) retryable(desc description.Server) bool {
 			return true
 		}
 		if retryWritesSupported(desc) &&
-			op.Client != nil && !(op.Client.TransactionInProgress() || op.Client.TransactionStarting()) &&
+			op.Client != nil && (!op.Client.TransactionInProgress() && !op.Client.TransactionStarting()) &&
 			op.WriteConcern.Acknowledged() {
 			return true
 		}
@@ -1059,7 +1089,7 @@ func (op Operation) retryable(desc description.Server) bool {
 		if op.Client != nil && (op.Client.Committing || op.Client.Aborting) {
 			return true
 		}
-		if op.Client == nil || !(op.Client.TransactionInProgress() || op.Client.TransactionStarting()) {
+		if op.Client == nil || (!op.Client.TransactionInProgress() && !op.Client.TransactionStarting()) {
 			return true
 		}
 	}
@@ -1103,9 +1133,11 @@ func (op Operation) readWireMessage(ctx context.Context, conn *mnet.Connection) 
 
 	// decode
 	res, err := op.decodeResult(opcode, rem)
-	// Update cluster/operation time and recovery tokens before handling the error to ensure we're properly updating
-	// everything.
-	op.updateClusterTimes(res)
+	// When a cluster clock is given, update cluster/operation time and recovery tokens before handling the error
+	// to ensure we're properly updating everything.
+	if op.Clock != nil {
+		op.updateClusterTimes(res)
+	}
 	op.updateOperationTime(res)
 	op.Client.UpdateRecoveryToken(bson.Raw(res))
 
@@ -1303,10 +1335,8 @@ func (op Operation) createMsgWireMessage(
 	if err != nil {
 		return dst, nil, err
 	}
-	retryWrite := false
-	if op.retryable(conn.Description()) && op.RetryMode != nil && op.RetryMode.Enabled() {
-		retryWrite = true
-	}
+	retryWrite := op.retryable(conn.Description()) && op.RetryMode != nil && op.RetryMode.Enabled()
+
 	dst, err = op.addSession(dst, desc, retryWrite)
 	if err != nil {
 		return dst, nil, err
@@ -1699,7 +1729,10 @@ func (op Operation) addClusterTime(dst []byte, desc description.SelectedServer) 
 	if (clock == nil && client == nil) || !sessionsSupported(desc.WireVersion) {
 		return dst
 	}
-	clusterTime := clock.GetClusterTime()
+	var clusterTime bson.Raw
+	if clock != nil {
+		clusterTime = clock.GetClusterTime()
+	}
 	if client != nil {
 		clusterTime = session.MaxClusterTime(clusterTime, client.ClusterTime)
 	}
@@ -1711,7 +1744,6 @@ func (op Operation) addClusterTime(dst []byte, desc description.SelectedServer) 
 		return dst
 	}
 	return append(bsoncore.AppendHeader(dst, bsoncore.Type(val.Type), "$clusterTime"), val.Value...)
-	// return bsoncore.AppendDocumentElement(dst, "$clusterTime", clusterTime)
 }
 
 // calculateMaxTimeMS calculates the value of the 'maxTimeMS' field to potentially append
@@ -1808,8 +1840,7 @@ func (op Operation) createReadPref(desc description.SelectedServer, isOpQuery bo
 	// TODO if supplied readPreference was "overwritten" with primary in description.selectForReplicaSet.
 	if desc.Server.Kind == description.ServerKindStandalone || (isOpQuery &&
 		desc.Server.Kind != description.ServerKindMongos) ||
-
-		op.Type == Write || (op.IsOutputAggregate && desc.Server.WireVersion.Max < 13) {
+		op.Type == Write || (op.IsOutputAggregate && desc.WireVersion.Max < 13) {
 		// Don't send read preference for:
 		// 1. all standalones
 		// 2. non-mongos when using OP_QUERY

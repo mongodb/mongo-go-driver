@@ -6,19 +6,25 @@
 
 package options
 
+import "go.mongodb.org/mongo-driver/v2/internal/optionsutil"
+
 // UpdateOneOptions represents arguments that can be used to configure UpdateOne
 // operations.
 //
 // See corresponding setter methods for documentation.
 type UpdateOneOptions struct {
-	ArrayFilters             []interface{}
+	ArrayFilters             []any
 	BypassDocumentValidation *bool
 	Collation                *Collation
-	Comment                  interface{}
-	Hint                     interface{}
+	Comment                  any
+	Hint                     any
 	Upsert                   *bool
-	Let                      interface{}
-	Sort                     interface{}
+	Let                      any
+	Sort                     any
+
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	Internal optionsutil.Options
 }
 
 // UpdateOneOptionsBuilder contains options to configure UpdateOne operations.
@@ -42,7 +48,7 @@ func (uo *UpdateOneOptionsBuilder) List() []func(*UpdateOneOptions) error {
 // set of filters specifying to which array elements an update should apply. The
 // default value is nil, which means the update will apply to all array
 // elements.
-func (uo *UpdateOneOptionsBuilder) SetArrayFilters(af []interface{}) *UpdateOneOptionsBuilder {
+func (uo *UpdateOneOptionsBuilder) SetArrayFilters(af []any) *UpdateOneOptionsBuilder {
 	uo.Opts = append(uo.Opts, func(opts *UpdateOneOptions) error {
 		opts.ArrayFilters = af
 
@@ -82,7 +88,7 @@ func (uo *UpdateOneOptionsBuilder) SetCollation(c *Collation) *UpdateOneOptionsB
 // SetComment sets the value for the Comment field. Specifies a string or document that will be
 // included in server logs, profiling logs, and currentOp queries to help trace the operation.
 // The default value is nil, which means that no comment will be included in the logs.
-func (uo *UpdateOneOptionsBuilder) SetComment(comment interface{}) *UpdateOneOptionsBuilder {
+func (uo *UpdateOneOptionsBuilder) SetComment(comment any) *UpdateOneOptionsBuilder {
 	uo.Opts = append(uo.Opts, func(opts *UpdateOneOptions) error {
 		opts.Comment = comment
 
@@ -100,7 +106,7 @@ func (uo *UpdateOneOptionsBuilder) SetComment(comment interface{}) *UpdateOneOpt
 // an unacknowledged write operation. The driver will return an error if the
 // hint parameter is a multi-key map. The default value is nil, which means that
 // no hint will be sent.
-func (uo *UpdateOneOptionsBuilder) SetHint(h interface{}) *UpdateOneOptionsBuilder {
+func (uo *UpdateOneOptionsBuilder) SetHint(h any) *UpdateOneOptionsBuilder {
 	uo.Opts = append(uo.Opts, func(opts *UpdateOneOptions) error {
 		opts.Hint = h
 
@@ -127,7 +133,7 @@ func (uo *UpdateOneOptionsBuilder) SetUpsert(b bool) *UpdateOneOptionsBuilder {
 // this option. This must be a document mapping parameter names to values. Values must be constant
 // or closed expressions that do not reference document fields. Parameters can then be accessed
 // as variables in an aggregate expression context (e.g. "$$var").
-func (uo *UpdateOneOptionsBuilder) SetLet(l interface{}) *UpdateOneOptionsBuilder {
+func (uo *UpdateOneOptionsBuilder) SetLet(l any) *UpdateOneOptionsBuilder {
 	uo.Opts = append(uo.Opts, func(opts *UpdateOneOptions) error {
 		opts.Let = l
 
@@ -142,7 +148,7 @@ func (uo *UpdateOneOptionsBuilder) SetLet(l interface{}) *UpdateOneOptionsBuilde
 // set, the first document in the sorted order will be updated. This option is only valid for MongoDB
 // versions >= 8.0. The sort parameter is evaluated sequentially, so the driver will return an error
 // if it is a multi-key map (which is unordeded). The default value is nil.
-func (uo *UpdateOneOptionsBuilder) SetSort(s interface{}) *UpdateOneOptionsBuilder {
+func (uo *UpdateOneOptionsBuilder) SetSort(s any) *UpdateOneOptionsBuilder {
 	uo.Opts = append(uo.Opts, func(opts *UpdateOneOptions) error {
 		opts.Sort = s
 
@@ -157,13 +163,17 @@ func (uo *UpdateOneOptionsBuilder) SetSort(s interface{}) *UpdateOneOptionsBuild
 //
 // See corresponding setter methods for documentation.
 type UpdateManyOptions struct {
-	ArrayFilters             []interface{}
+	ArrayFilters             []any
 	BypassDocumentValidation *bool
 	Collation                *Collation
-	Comment                  interface{}
-	Hint                     interface{}
+	Comment                  any
+	Hint                     any
 	Upsert                   *bool
-	Let                      interface{}
+	Let                      any
+
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	Internal optionsutil.Options
 }
 
 // UpdateManyOptionsBuilder contains options to configure UpdateMany operations.
@@ -187,7 +197,7 @@ func (uo *UpdateManyOptionsBuilder) List() []func(*UpdateManyOptions) error {
 // set of filters specifying to which array elements an update should apply. The
 // default value is nil, which means the update will apply to all array
 // elements.
-func (uo *UpdateManyOptionsBuilder) SetArrayFilters(af []interface{}) *UpdateManyOptionsBuilder {
+func (uo *UpdateManyOptionsBuilder) SetArrayFilters(af []any) *UpdateManyOptionsBuilder {
 	uo.Opts = append(uo.Opts, func(opts *UpdateManyOptions) error {
 		opts.ArrayFilters = af
 
@@ -227,7 +237,7 @@ func (uo *UpdateManyOptionsBuilder) SetCollation(c *Collation) *UpdateManyOption
 // SetComment sets the value for the Comment field. Specifies a string or document that will be
 // included in server logs, profiling logs, and currentOp queries to help trace the operation.
 // The default value is nil, which means that no comment will be included in the logs.
-func (uo *UpdateManyOptionsBuilder) SetComment(comment interface{}) *UpdateManyOptionsBuilder {
+func (uo *UpdateManyOptionsBuilder) SetComment(comment any) *UpdateManyOptionsBuilder {
 	uo.Opts = append(uo.Opts, func(opts *UpdateManyOptions) error {
 		opts.Comment = comment
 
@@ -245,7 +255,7 @@ func (uo *UpdateManyOptionsBuilder) SetComment(comment interface{}) *UpdateManyO
 // an unacknowledged write operation. The driver will return an error if the
 // hint parameter is a multi-key map. The default value is nil, which means that
 // no hint will be sent.
-func (uo *UpdateManyOptionsBuilder) SetHint(h interface{}) *UpdateManyOptionsBuilder {
+func (uo *UpdateManyOptionsBuilder) SetHint(h any) *UpdateManyOptionsBuilder {
 	uo.Opts = append(uo.Opts, func(opts *UpdateManyOptions) error {
 		opts.Hint = h
 
@@ -272,7 +282,7 @@ func (uo *UpdateManyOptionsBuilder) SetUpsert(b bool) *UpdateManyOptionsBuilder 
 // this option. This must be a document mapping parameter names to values. Values must be constant
 // or closed expressions that do not reference document fields. Parameters can then be accessed
 // as variables in an aggregate expression context (e.g. "$$var").
-func (uo *UpdateManyOptionsBuilder) SetLet(l interface{}) *UpdateManyOptionsBuilder {
+func (uo *UpdateManyOptionsBuilder) SetLet(l any) *UpdateManyOptionsBuilder {
 	uo.Opts = append(uo.Opts, func(opts *UpdateManyOptions) error {
 		opts.Let = l
 

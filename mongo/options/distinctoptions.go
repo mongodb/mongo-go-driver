@@ -6,14 +6,20 @@
 
 package options
 
+import "go.mongodb.org/mongo-driver/v2/internal/optionsutil"
+
 // DistinctOptions represents arguments that can be used to configure a Distinct
 // operation.
 //
 // See corresponding setter methods for documentation.
 type DistinctOptions struct {
 	Collation *Collation
-	Comment   interface{}
-	Hint      interface{}
+	Comment   any
+	Hint      any
+
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	Internal optionsutil.Options
 }
 
 // DistinctOptionsBuilder contains options to configure distinct operations. Each
@@ -50,7 +56,7 @@ func (do *DistinctOptionsBuilder) SetCollation(c *Collation) *DistinctOptionsBui
 // will be included in server logs, profiling logs, and currentOp queries to help trace
 // the operation. The default value is nil, which means that no comment will be included
 // in the logs.
-func (do *DistinctOptionsBuilder) SetComment(comment interface{}) *DistinctOptionsBuilder {
+func (do *DistinctOptionsBuilder) SetComment(comment any) *DistinctOptionsBuilder {
 	do.Opts = append(do.Opts, func(opts *DistinctOptions) error {
 		opts.Comment = comment
 
@@ -68,7 +74,7 @@ func (do *DistinctOptionsBuilder) SetComment(comment interface{}) *DistinctOptio
 // means that no index hint will be sent.
 //
 // SetHint sets the Hint field.
-func (do *DistinctOptionsBuilder) SetHint(hint interface{}) *DistinctOptionsBuilder {
+func (do *DistinctOptionsBuilder) SetHint(hint any) *DistinctOptionsBuilder {
 	do.Opts = append(do.Opts, func(opts *DistinctOptions) error {
 		opts.Hint = hint
 

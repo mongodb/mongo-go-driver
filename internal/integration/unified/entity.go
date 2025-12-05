@@ -82,6 +82,12 @@ type entityOptions struct {
 	DatabaseID string `bson:"database"`
 
 	ClientEncryptionOpts *clientEncryptionOpts `bson:"clientEncryptionOpts"`
+
+	// If true, the unified spec runner must wait for the connection pool to be
+	// populated for all servers according to the minPoolSize option. If false,
+	// not specified, or if minPoolSize equals 0, there is no need to wait for any
+	// specific pool state.
+	AwaitMinPoolSize bool `bson:"awaitMinPoolSize"`
 }
 
 func (eo *entityOptions) setHeartbeatFrequencyMS(freq time.Duration) {
@@ -597,11 +603,11 @@ func getKmsCredential(kmsDocument bson.Raw, credentialName string, envVar string
 
 func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) error {
 	// Construct KMS providers.
-	kmsProviders := make(map[string]map[string]interface{})
+	kmsProviders := make(map[string]map[string]any)
 	ceo := entityOptions.ClientEncryptionOpts
 	tlsconf := make(map[string]*tls.Config)
 	if aws, ok := ceo.KmsProviders["aws"]; ok {
-		kmsProviders["aws"] = make(map[string]interface{})
+		kmsProviders["aws"] = make(map[string]any)
 
 		awsSessionToken, err := getKmsCredential(aws, "sessionToken", "CSFLE_AWS_TEMP_SESSION_TOKEN", "")
 		if err != nil {
@@ -646,7 +652,7 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 	}
 
 	if azure, ok := ceo.KmsProviders["azure"]; ok {
-		kmsProviders["azure"] = make(map[string]interface{})
+		kmsProviders["azure"] = make(map[string]any)
 
 		azureTenantID, err := getKmsCredential(azure, "tenantId", "FLE_AZURE_TENANTID", "")
 		if err != nil {
@@ -674,7 +680,7 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 	}
 
 	if gcp, ok := ceo.KmsProviders["gcp"]; ok {
-		kmsProviders["gcp"] = make(map[string]interface{})
+		kmsProviders["gcp"] = make(map[string]any)
 
 		gcpEmail, err := getKmsCredential(gcp, "email", "FLE_GCP_EMAIL", "")
 		if err != nil {
@@ -694,7 +700,7 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 	}
 
 	if kmip, ok := ceo.KmsProviders["kmip"]; ok {
-		kmsProviders["kmip"] = make(map[string]interface{})
+		kmsProviders["kmip"] = make(map[string]any)
 
 		kmipEndpoint, err := getKmsCredential(kmip, "endpoint", "", "localhost:5698")
 		if err != nil {
@@ -702,7 +708,7 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 		}
 
 		if tlsClientCertificateKeyFile != "" && tlsCAFile != "" {
-			cfg, err := options.BuildTLSConfig(map[string]interface{}{
+			cfg, err := options.BuildTLSConfig(map[string]any{
 				"tlsCertificateKeyFile": tlsClientCertificateKeyFile,
 				"tlsCAFile":             tlsCAFile,
 			})
@@ -718,7 +724,7 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 	}
 
 	if local, ok := ceo.KmsProviders["local"]; ok {
-		kmsProviders["local"] = make(map[string]interface{})
+		kmsProviders["local"] = make(map[string]any)
 
 		defaultLocalKeyBase64 := "Mng0NCt4ZHVUYUJCa1kxNkVyNUR1QURhZ2h2UzR2d2RrZzh0cFBwM3R6NmdWMDFBMUN3YkQ5aXRRMkhGRGdQV09wOGVNYUMxT2k3NjZKelhaQmRCZGJkTXVyZG9uSjFk"
 		localKey, err := getKmsCredential(local, "key", "", defaultLocalKeyBase64)

@@ -52,10 +52,10 @@ func TestClientOptions(t *testing.T) {
 	t.Run("Set", func(t *testing.T) {
 		testCases := []struct {
 			name        string
-			fn          interface{} // method to be run
-			arg         interface{} // argument for method
-			field       string      // field to be set
-			dereference bool        // Should we compare a pointer or the field
+			fn          any    // method to be run
+			arg         any    // argument for method
+			field       string // field to be set
+			dereference bool   // Should we compare a pointer or the field
 		}{
 			{"AppName", (*ClientOptions).SetAppName, "example-application", "AppName", true},
 			{"Auth", (*ClientOptions).SetAuth, Credential{Username: "foo", Password: "bar"}, "Auth", true},

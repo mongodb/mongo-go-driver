@@ -20,7 +20,7 @@ import (
 
 var (
 	// MinSupportedMongoDBVersion is the version string for the lowest MongoDB version supported by the driver.
-	MinSupportedMongoDBVersion = "4.0"
+	MinSupportedMongoDBVersion = "4.2"
 
 	// SupportedWireVersions is the range of wire versions supported by the driver.
 	SupportedWireVersions = driverutil.NewVersionRange(driverutil.MinWireVersion, driverutil.MaxWireVersion)
@@ -125,7 +125,7 @@ func (f *fsm) apply(s description.Server) (description.Topology, description.Ser
 		SetName: f.SetName,
 	}
 
-	f.Topology.SessionTimeoutMinutes = serverTimeoutMinutes
+	f.SessionTimeoutMinutes = serverTimeoutMinutes
 
 	if _, ok := f.findServer(s.Addr); !ok {
 		return f.Topology, s
@@ -157,7 +157,7 @@ func (f *fsm) apply(s description.Server) (description.Topology, description.Ser
 					SupportedWireVersions.Min,
 					MinSupportedMongoDBVersion,
 				)
-				f.Topology.CompatibilityErr = f.compatibilityErr
+				f.CompatibilityErr = f.compatibilityErr
 				return f.Topology, s
 			}
 
@@ -169,7 +169,7 @@ func (f *fsm) apply(s description.Server) (description.Topology, description.Ser
 					server.WireVersion.Min,
 					SupportedWireVersions.Max,
 				)
-				f.Topology.CompatibilityErr = f.compatibilityErr
+				f.CompatibilityErr = f.compatibilityErr
 				return f.Topology, s
 			}
 		}

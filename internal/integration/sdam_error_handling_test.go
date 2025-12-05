@@ -5,7 +5,6 @@
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
 //go:build go1.13
-// +build go1.13
 
 package integration
 
@@ -36,7 +35,6 @@ func TestSDAMErrorHandling(t *testing.T) {
 	baseMtOpts := func() *mtest.Options {
 		mtOpts := mtest.NewOptions().
 			Topologies(mtest.ReplicaSet, mtest.Single). // Don't run on sharded clusters to avoid complexity of sharded failpoints.
-			MinServerVersion("4.0").                    // 4.0+ is required to use failpoints on replica sets.
 			ClientOptions(baseClientOpts())
 
 		if mtest.ClusterTopologyKind() == mtest.Sharded {
@@ -241,7 +239,6 @@ func TestSDAMErrorHandling(t *testing.T) {
 			// This causes the SDAM error handling code path to think we've already handled this state change and
 			// ignore the error because it's stale. To avoid this altogether, we cap the test to <= 4.2.
 			serverErrorsMtOpts := baseMtOpts().
-				MinServerVersion("4.0"). // failCommand support
 				MaxServerVersion("4.2").
 				ClientOptions(baseClientOpts().SetRetryWrites(false))
 

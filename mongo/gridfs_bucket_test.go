@@ -19,7 +19,7 @@ import (
 func TestBucket_openDownloadStream(t *testing.T) {
 	tests := []struct {
 		name   string
-		filter interface{}
+		filter any
 		err    error
 	}{
 		{

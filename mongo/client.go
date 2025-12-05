@@ -11,6 +11,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -18,6 +20,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/httputil"
 	"go.mongodb.org/mongo-driver/v2/internal/logger"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
+	"go.mongodb.org/mongo-driver/v2/internal/optionsutil"
 	"go.mongodb.org/mongo-driver/v2/internal/ptrutil"
 	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
 	"go.mongodb.org/mongo-driver/v2/internal/uuid"
@@ -55,24 +58,26 @@ var (
 // The Client type opens and closes connections automatically and maintains a pool of idle connections. For
 // connection pool configuration options, see documentation for the ClientOptions type in the mongo/options package.
 type Client struct {
-	id             uuid.UUID
-	deployment     driver.Deployment
-	localThreshold time.Duration
-	retryWrites    bool
-	retryReads     bool
-	clock          *session.ClusterClock
-	readPreference *readpref.ReadPref
-	readConcern    *readconcern.ReadConcern
-	writeConcern   *writeconcern.WriteConcern
-	bsonOpts       *options.BSONOptions
-	registry       *bson.Registry
-	monitor        *event.CommandMonitor
-	serverAPI      *driver.ServerAPIOptions
-	serverMonitor  *event.ServerMonitor
-	sessionPool    *session.Pool
-	timeout        *time.Duration
-	httpClient     *http.Client
-	logger         *logger.Logger
+	id                uuid.UUID
+	deployment        driver.Deployment
+	localThreshold    time.Duration
+	retryWrites       bool
+	retryReads        bool
+	clock             *session.ClusterClock
+	readPreference    *readpref.ReadPref
+	readConcern       *readconcern.ReadConcern
+	writeConcern      *writeconcern.WriteConcern
+	bsonOpts          *options.BSONOptions
+	registry          *bson.Registry
+	monitor           *event.CommandMonitor
+	serverAPI         *driver.ServerAPIOptions
+	serverMonitor     *event.ServerMonitor
+	sessionPool       *session.Pool
+	timeout           *time.Duration
+	httpClient        *http.Client
+	logger            *logger.Logger
+	currentDriverInfo *atomic.Pointer[options.DriverInfo]
+	seenDriverInfo    sync.Map
 
 	// in-use encryption fields
 	isAutoEncryptionSet bool
@@ -82,31 +87,23 @@ type Client struct {
 	cryptFLE            driver.Crypt
 	metadataClientFLE   *Client
 	internalClientFLE   *Client
-	encryptedFieldsMap  map[string]interface{}
+	encryptedFieldsMap  map[string]any
 	authenticator       driver.Authenticator
 }
 
-// Connect creates a new Client and then initializes it using the Connect method.
+// Connect creates a new Client with the given configuration options.
 //
-// When creating an options.ClientOptions, the order the methods are called matters. Later Set*
-// methods will overwrite the values from previous Set* method invocations. This includes the
-// ApplyURI method. This allows callers to determine the order of precedence for option
-// application. For instance, if ApplyURI is called before SetAuth, the Credential from
-// SetAuth will overwrite the values from the connection string. If ApplyURI is called
+// Connect returns an error if the configuration options are invalid, but does
+// not validate that the MongoDB deployment is reachable. To verify that the
+// deployment is reachable, call [Client.Ping].
+//
+// When creating an [options.ClientOptions], the order the methods are called
+// matters. Later option setter calls overwrite the values from previous option
+// setter calls, including the ApplyURI method. This allows callers to
+// determine the order of precedence for setting options. For instance, if
+// ApplyURI is called before SetAuth, the Credential from SetAuth will
+// overwrite the values from the connection string. If ApplyURI is called
 // after SetAuth, then its values will overwrite those from SetAuth.
-//
-// The opts parameter is processed using options.MergeClientOptions, which will overwrite entire
-// option fields of previous options, there is no partial overwriting. For example, if Username is
-// set in the Auth field for the first option, and Password is set for the second but with no
-// Username, after the merge the Username field will be empty.
-//
-// The NewClient function does not do any I/O and returns an error if the given options are invalid.
-// The Client.Connect method starts background goroutines to monitor the state of the deployment and does not do
-// any I/O in the main goroutine to prevent the main goroutine from blocking. Therefore, it will not error if the
-// deployment is down.
-//
-// The Client.Ping method can be used to verify that the deployment is successfully connected and the
-// Client was correctly configured.
 func Connect(opts ...*options.ClientOptions) (*Client, error) {
 	c, err := newClient(opts...)
 	if err != nil {
@@ -139,7 +136,11 @@ func newClient(opts ...*options.ClientOptions) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	client := &Client{id: id}
+
+	client := &Client{
+		id:                id,
+		currentDriverInfo: &atomic.Pointer[options.DriverInfo]{},
+	}
 
 	// ClusterClock
 	client.clock = new(session.ClusterClock)
@@ -224,7 +225,16 @@ func newClient(opts ...*options.ClientOptions) (*Client, error) {
 		}
 	}
 
-	cfg, err := topology.NewConfigFromOptionsWithAuthenticator(clientOpts, client.clock, client.authenticator)
+	if clientOpts.DriverInfo != nil {
+		client.AppendDriverInfo(*clientOpts.DriverInfo)
+	}
+
+	cfg, err := topology.NewAuthenticatorConfig(client.authenticator,
+		topology.WithAuthConfigClock(client.clock),
+		topology.WithAuthConfigClientOptions(clientOpts),
+		topology.WithAuthConfigDriverInfo(client.currentDriverInfo),
+	)
+
 	if err != nil {
 		return nil, err
 	}
@@ -299,6 +309,45 @@ func (c *Client) connect() error {
 	}
 	c.sessionPool = session.NewPool(updateChan)
 	return nil
+}
+
+// AppendDriverInfo appends the provided [options.DriverInfo] to the metadata
+// (e.g. name, version, platform) that will be sent to the server in handshake
+// requests when establishing new connections.
+//
+// Repeated calls to AppendDriverInfo with equivalent DriverInfo is a no-op.
+//
+// Metadata is limited to 512 bytes; any excess will be truncated.
+func (c *Client) AppendDriverInfo(info options.DriverInfo) {
+	if _, loaded := c.seenDriverInfo.LoadOrStore(info, struct{}{}); loaded {
+		return
+	}
+
+	if old := c.currentDriverInfo.Load(); old != nil {
+		if old.Name != "" && info.Name != "" && old.Name != info.Name {
+			info.Name = old.Name + "|" + info.Name
+		} else if old.Name != "" {
+			info.Name = old.Name
+		}
+
+		if old.Version != "" && info.Version != "" && old.Version != info.Version {
+			info.Version = old.Version + "|" + info.Version
+		} else if old.Version != "" {
+			info.Version = old.Version
+		}
+
+		if old.Platform != "" && info.Platform != "" && old.Platform != info.Platform {
+			info.Platform = old.Platform + "|" + info.Platform
+		} else if old.Platform != "" {
+			info.Platform = old.Platform
+		}
+	}
+
+	// Copy-on-write so that the info stored in the client is immutable.
+	infoCopy := new(options.DriverInfo)
+	*infoCopy = info
+
+	c.currentDriverInfo.Store(infoCopy)
 }
 
 // Disconnect closes sockets to the topology referenced by this Client. It will
@@ -680,7 +729,7 @@ func (c *Client) Database(name string, opts ...options.Lister[options.DatabaseOp
 // The opts parameter can be used to specify options for this operation (see the options.ListDatabasesOptions documentation).
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/listDatabases/.
-func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...options.Lister[options.ListDatabasesOptions]) (ListDatabasesResult, error) {
+func (c *Client) ListDatabases(ctx context.Context, filter any, opts ...options.Lister[options.ListDatabasesOptions]) (ListDatabasesResult, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -758,7 +807,7 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 // documentation.)
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/listDatabases/.
-func (c *Client) ListDatabaseNames(ctx context.Context, filter interface{}, opts ...options.Lister[options.ListDatabasesOptions]) ([]string, error) {
+func (c *Client) ListDatabaseNames(ctx context.Context, filter any, opts ...options.Lister[options.ListDatabasesOptions]) ([]string, error) {
 	opts = append(opts, options.ListDatabases().SetNameOnly(true))
 
 	res, err := c.ListDatabases(ctx, filter, opts...)
@@ -841,7 +890,7 @@ func (c *Client) UseSessionWithOptions(
 //
 // The opts parameter can be used to specify options for change stream creation (see the options.ChangeStreamOptions
 // documentation).
-func (c *Client) Watch(ctx context.Context, pipeline interface{},
+func (c *Client) Watch(ctx context.Context, pipeline any,
 	opts ...options.Lister[options.ChangeStreamOptions]) (*ChangeStream, error) {
 	csConfig := changeStreamConfig{
 		readConcern:    c.readConcern,
@@ -956,6 +1005,12 @@ func (c *Client) BulkWrite(ctx context.Context, writes []ClientBulkWrite,
 		client:                   c,
 		selector:                 selector,
 		writeConcern:             wc,
+	}
+	if rawData, ok := optionsutil.Value(bwo.Internal, "rawData").(bool); ok {
+		op.rawData = &rawData
+	}
+	if additionalCmd, ok := optionsutil.Value(bwo.Internal, "addCommandFields").(bson.D); ok {
+		op.additionalCmd = additionalCmd
 	}
 	if bwo.VerboseResults == nil || !(*bwo.VerboseResults) {
 		op.errorsOnly = true

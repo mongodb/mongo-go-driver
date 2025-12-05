@@ -31,22 +31,41 @@ type Cursor struct {
 	// to Next or TryNext. If continued access is required, a copy must be made.
 	Current bson.Raw
 
-	bc            batchCursor
-	batch         *bsoncore.Iterator
-	batchLength   int
-	bsonOpts      *options.BSONOptions
-	registry      *bson.Registry
-	clientSession *session.Client
+	bc               batchCursor
+	batch            *bsoncore.Iterator
+	batchLength      int
+	bsonOpts         *options.BSONOptions
+	registry         *bson.Registry
+	clientSession    *session.Client
+	clientTimeout    time.Duration
+	hasClientTimeout bool
 
 	err error
+}
+
+type cursorOptions struct {
+	clientTimeout    time.Duration
+	hasClientTimeout bool
+}
+
+type cursorOption func(*cursorOptions)
+
+func withCursorOptionClientTimeout(dur *time.Duration) cursorOption {
+	return func(opts *cursorOptions) {
+		if dur != nil && *dur > 0 {
+			opts.clientTimeout = *dur
+			opts.hasClientTimeout = true
+		}
+	}
 }
 
 func newCursor(
 	bc batchCursor,
 	bsonOpts *options.BSONOptions,
 	registry *bson.Registry,
+	opts ...cursorOption,
 ) (*Cursor, error) {
-	return newCursorWithSession(bc, bsonOpts, registry, nil)
+	return newCursorWithSession(bc, bsonOpts, registry, nil, opts...)
 }
 
 func newCursorWithSession(
@@ -54,6 +73,7 @@ func newCursorWithSession(
 	bsonOpts *options.BSONOptions,
 	registry *bson.Registry,
 	clientSession *session.Client,
+	opts ...cursorOption,
 ) (*Cursor, error) {
 	if registry == nil {
 		registry = defaultRegistry
@@ -61,11 +81,19 @@ func newCursorWithSession(
 	if bc == nil {
 		return nil, errors.New("batch cursor must not be nil")
 	}
+
+	cursorOpts := &cursorOptions{}
+	for _, opt := range opts {
+		opt(cursorOpts)
+	}
+
 	c := &Cursor{
-		bc:            bc,
-		bsonOpts:      bsonOpts,
-		registry:      registry,
-		clientSession: clientSession,
+		bc:               bc,
+		bsonOpts:         bsonOpts,
+		registry:         registry,
+		clientSession:    clientSession,
+		clientTimeout:    cursorOpts.clientTimeout,
+		hasClientTimeout: cursorOpts.hasClientTimeout,
 	}
 	if bc.ID() == 0 {
 		c.closeImplicitSession()
@@ -86,7 +114,7 @@ func newEmptyCursor() *Cursor {
 // bson.NewRegistry() will be used.
 //
 // The documents parameter must be a slice of documents. The slice may be nil or empty, but all elements must be non-nil.
-func NewCursorFromDocuments(documents []interface{}, preloadedErr error, registry *bson.Registry) (*Cursor, error) {
+func NewCursorFromDocuments(documents []any, preloadedErr error, registry *bson.Registry) (*Cursor, error) {
 	if registry == nil {
 		registry = defaultRegistry
 	}
@@ -140,11 +168,17 @@ func NewCursorFromDocuments(documents []interface{}, preloadedErr error, registr
 // ID returns the ID of this cursor, or 0 if the cursor has been closed or exhausted.
 func (c *Cursor) ID() int64 { return c.bc.ID() }
 
-// Next gets the next document for this cursor. It returns true if there were no errors and the cursor has not been
-// exhausted.
+// Next gets the next document for this cursor. It returns true if there were no
+// errors and the cursor has not been exhausted.
 //
-// Next blocks until a document is available or an error occurs. If the context expires, the cursor's error will
-// be set to ctx.Err(). In case of an error, Next will return false.
+// Next blocks until a document is available or an error occurs. If the context
+// expires, the cursor's error will be set to ctx.Err(). In case of an error,
+// Next will return false.
+//
+// If MaxAwaitTime is set, the operation will be bound by the Context's
+// deadline. If the context does not have a deadline, the operation will be
+// bound by the client-level timeout, if one is set. If MaxAwaitTime is greater
+// than the user-provided timeout, Next will return false.
 //
 // If Next returns false, subsequent calls will also return false.
 func (c *Cursor) Next(ctx context.Context) bool {
@@ -175,6 +209,15 @@ func (c *Cursor) next(ctx context.Context, nonBlocking bool) bool {
 
 	if ctx == nil {
 		ctx = context.Background()
+	}
+
+	// If the context does not have a deadline we defer to a client-level timeout,
+	// if one is set.
+	if _, ok := ctx.Deadline(); !ok && c.hasClientTimeout {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, c.clientTimeout)
+
+		defer cancel()
 	}
 
 	// To avoid unnecessary socket timeouts, we attempt to short-circuit tailable
@@ -303,7 +346,7 @@ func getDecoder(
 
 // Decode will unmarshal the current document into val and return any errors from the unmarshalling process without any
 // modification. If val is nil or is a typed nil, an error will be returned.
-func (c *Cursor) Decode(val interface{}) error {
+func (c *Cursor) Decode(val any) error {
 	dec := getDecoder(c.Current, c.bsonOpts, c.registry)
 
 	return dec.Decode(val)
@@ -325,7 +368,7 @@ func (c *Cursor) Close(ctx context.Context) error {
 // cursor has been iterated, any previously iterated documents will not be included in results.
 //
 // This method requires driver version >= 1.1.0.
-func (c *Cursor) All(ctx context.Context, results interface{}) error {
+func (c *Cursor) All(ctx context.Context, results any) error {
 	resultsVal := reflect.ValueOf(results)
 	if resultsVal.Kind() != reflect.Ptr {
 		return fmt.Errorf("results argument must be a pointer to a slice, but was a %s", resultsVal.Kind())
@@ -434,7 +477,7 @@ func (c *Cursor) SetMaxAwaitTime(dur time.Duration) {
 
 // SetComment will set a user-configurable comment that can be used to identify
 // the operation in server logs.
-func (c *Cursor) SetComment(comment interface{}) {
+func (c *Cursor) SetComment(comment any) {
 	c.bc.SetComment(comment)
 }
 

@@ -38,6 +38,7 @@ type CreateIndexes struct {
 	result        CreateIndexesResult
 	serverAPI     *driver.ServerAPIOptions
 	timeout       *time.Duration
+	rawData       *bool
 }
 
 // CreateIndexesResult represents a createIndexes result returned by the server.
@@ -132,6 +133,10 @@ func (ci *CreateIndexes) command(dst []byte, desc description.SelectedServer) ([
 	}
 	if ci.indexes != nil {
 		dst = bsoncore.AppendArrayElement(dst, "indexes", ci.indexes)
+	}
+	// Set rawData for 8.2+ servers.
+	if ci.rawData != nil && desc.WireVersion != nil && driverutil.VersionRangeIncludes(*desc.WireVersion, 27) {
+		dst = bsoncore.AppendBooleanElement(dst, "rawData", *ci.rawData)
 	}
 	return dst, nil
 }
@@ -275,5 +280,15 @@ func (ci *CreateIndexes) Authenticator(authenticator driver.Authenticator) *Crea
 	}
 
 	ci.authenticator = authenticator
+	return ci
+}
+
+// RawData sets the rawData to access timeseries data in the compressed format.
+func (ci *CreateIndexes) RawData(rawData bool) *CreateIndexes {
+	if ci == nil {
+		ci = new(CreateIndexes)
+	}
+
+	ci.rawData = &rawData
 	return ci
 }

@@ -69,7 +69,7 @@ func decodeTestData(dc bson.DecodeContext, vr bson.ValueReader, val reflect.Valu
 	switch vr.Type() {
 	case bson.TypeArray:
 		docsVal := val.FieldByName("Documents")
-		decoder, err := dc.Registry.LookupDecoder(docsVal.Type())
+		decoder, err := dc.LookupDecoder(docsVal.Type())
 		if err != nil {
 			return err
 		}
@@ -77,7 +77,7 @@ func decodeTestData(dc bson.DecodeContext, vr bson.ValueReader, val reflect.Valu
 		return decoder.DecodeValue(dc, vr, docsVal)
 	case bson.TypeEmbeddedDocument:
 		gridfsDataVal := val.FieldByName("GridFSData")
-		decoder, err := dc.Registry.LookupDecoder(gridfsDataVal.Type())
+		decoder, err := dc.LookupDecoder(gridfsDataVal.Type())
 		if err != nil {
 			return err
 		}
@@ -110,14 +110,14 @@ type testCase struct {
 }
 
 type operation struct {
-	Name              string      `bson:"name"`
-	Object            string      `bson:"object"`
-	CollectionOptions bson.Raw    `bson:"collectionOptions"`
-	DatabaseOptions   bson.Raw    `bson:"databaseOptions"`
-	Result            interface{} `bson:"result"`
-	Arguments         bson.Raw    `bson:"arguments"`
-	Error             bool        `bson:"error"`
-	CommandName       string      `bson:"command_name"`
+	Name              string   `bson:"name"`
+	Object            string   `bson:"object"`
+	CollectionOptions bson.Raw `bson:"collectionOptions"`
+	DatabaseOptions   bson.Raw `bson:"databaseOptions"`
+	Result            any      `bson:"result"`
+	Arguments         bson.Raw `bson:"arguments"`
+	Error             bool     `bson:"error"`
+	CommandName       string   `bson:"command_name"`
 
 	// set in code after determining whether or not result represents an error
 	opError *operationError
@@ -125,19 +125,19 @@ type operation struct {
 
 type expectation struct {
 	CommandStartedEvent *struct {
-		CommandName  string                 `bson:"command_name"`
-		DatabaseName string                 `bson:"database_name"`
-		Command      bson.Raw               `bson:"command"`
-		Extra        map[string]interface{} `bson:",inline"`
+		CommandName  string         `bson:"command_name"`
+		DatabaseName string         `bson:"database_name"`
+		Command      bson.Raw       `bson:"command"`
+		Extra        map[string]any `bson:",inline"`
 	} `bson:"command_started_event"`
 	CommandSucceededEvent *struct {
-		CommandName string                 `bson:"command_name"`
-		Reply       bson.Raw               `bson:"reply"`
-		Extra       map[string]interface{} `bson:",inline"`
+		CommandName string         `bson:"command_name"`
+		Reply       bson.Raw       `bson:"reply"`
+		Extra       map[string]any `bson:",inline"`
 	} `bson:"command_succeeded_event"`
 	CommandFailedEvent *struct {
-		CommandName string                 `bson:"command_name"`
-		Extra       map[string]interface{} `bson:",inline"`
+		CommandName string         `bson:"command_name"`
+		Extra       map[string]any `bson:",inline"`
 	} `bson:"command_failed_event"`
 }
 
@@ -146,8 +146,8 @@ type outcome struct {
 }
 
 type outcomeCollection struct {
-	Name string      `bson:"name"`
-	Data interface{} `bson:"data"`
+	Name string `bson:"name"`
+	Data any    `bson:"data"`
 }
 
 type operationError struct {
@@ -273,7 +273,7 @@ func runSpecTestCase(mt *mtest.T, test *testCase, testFile testFile) {
 
 			if !bypassAutoEncryption && !bypassQueryAnalysis {
 				if aeOpts.ExtraOptions == nil {
-					aeOpts.ExtraOptions = make(map[string]interface{})
+					aeOpts.ExtraOptions = make(map[string]any)
 				}
 
 				for k, v := range getCryptSharedLibExtraOptions() {
@@ -963,12 +963,12 @@ func getTopologyFromClient(client *mongo.Client) *topology.Topology {
 
 // getCryptSharedLibExtraOptions returns an AutoEncryption extra options map with crypt_shared
 // library path information if the CRYPT_SHARED_LIB_PATH environment variable is set.
-func getCryptSharedLibExtraOptions() map[string]interface{} {
+func getCryptSharedLibExtraOptions() map[string]any {
 	path := os.Getenv("CRYPT_SHARED_LIB_PATH")
 	if path == "" {
 		return nil
 	}
-	return map[string]interface{}{
+	return map[string]any{
 		"cryptSharedLibRequired": true,
 		"cryptSharedLibPath":     path,
 	}

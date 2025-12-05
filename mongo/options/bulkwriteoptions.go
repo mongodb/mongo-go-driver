@@ -6,6 +6,8 @@
 
 package options
 
+import "go.mongodb.org/mongo-driver/v2/internal/optionsutil"
+
 // DefaultOrdered is the default value for the Ordered option in BulkWriteOptions.
 var DefaultOrdered = true
 
@@ -15,9 +17,13 @@ var DefaultOrdered = true
 // See corresponding setter methods for documentation.
 type BulkWriteOptions struct {
 	BypassDocumentValidation *bool
-	Comment                  interface{}
+	Comment                  any
 	Ordered                  *bool
-	Let                      interface{}
+	Let                      any
+
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	Internal optionsutil.Options
 }
 
 // BulkWriteOptionsBuilder contains options to configure bulk write operations.
@@ -43,7 +49,7 @@ func (b *BulkWriteOptionsBuilder) List() []func(*BulkWriteOptions) error {
 // SetComment sets the value for the Comment field. Specifies a string or document that will be included in
 // server logs, profiling logs, and currentOp queries to help tracethe operation.  The default value is nil,
 // which means that no comment will be included in the logs.
-func (b *BulkWriteOptionsBuilder) SetComment(comment interface{}) *BulkWriteOptionsBuilder {
+func (b *BulkWriteOptionsBuilder) SetComment(comment any) *BulkWriteOptionsBuilder {
 	b.Opts = append(b.Opts, func(opts *BulkWriteOptions) error {
 		opts.Comment = comment
 
@@ -83,7 +89,7 @@ func (b *BulkWriteOptionsBuilder) SetBypassDocumentValidation(bypass bool) *Bulk
 // This option is only valid for MongoDB versions >= 5.0. Older servers will report an error for using this option.
 // This must be a document mapping parameter names to values. Values must be constant or closed expressions that do not
 // reference document fields. Parameters can then be accessed as variables in an aggregate expression context (e.g. "$$var").
-func (b *BulkWriteOptionsBuilder) SetLet(let interface{}) *BulkWriteOptionsBuilder {
+func (b *BulkWriteOptionsBuilder) SetLet(let any) *BulkWriteOptionsBuilder {
 	b.Opts = append(b.Opts, func(opts *BulkWriteOptions) error {
 		opts.Let = &let
 

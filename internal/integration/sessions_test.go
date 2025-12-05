@@ -13,10 +13,12 @@ import (
 	"fmt"
 	"reflect"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
@@ -210,10 +212,10 @@ func TestSessionsProse(t *testing.T) {
 		CreateClient(false)
 
 	mt.RunOpts("3 clusterTime in commands", clusterTimeOpts, func(mt *mtest.T) {
-		serverStatus := sessionFunction{"server status", "database", "RunCommand", []interface{}{bson.D{{"serverStatus", 1}}}}
-		insert := sessionFunction{"insert one", "collection", "InsertOne", []interface{}{bson.D{{"x", 1}}}}
-		agg := sessionFunction{"aggregate", "collection", "Aggregate", []interface{}{mongo.Pipeline{}}}
-		find := sessionFunction{"find", "collection", "Find", []interface{}{bson.D{}}}
+		serverStatus := sessionFunction{"server status", "database", "RunCommand", []any{bson.D{{"serverStatus", 1}}}}
+		insert := sessionFunction{"insert one", "collection", "InsertOne", []any{bson.D{{"x", 1}}}}
+		agg := sessionFunction{"aggregate", "collection", "Aggregate", []any{mongo.Pipeline{}}}
+		find := sessionFunction{"find", "collection", "Find", []any{bson.D{}}}
 
 		sessionFunctions := []sessionFunction{serverStatus, insert, agg, find}
 		for _, sf := range sessionFunctions {
@@ -338,7 +340,7 @@ func TestSessionsProse(t *testing.T) {
 		func(mt *mtest.T) {
 			// Client-side cursor that exhausts the results after a getMore immediately returns the implicit session to the pool.
 
-			var docs []interface{}
+			var docs []any
 			for i := 0; i < 5; i++ {
 				docs = append(docs, bson.D{{"x", i}})
 			}
@@ -369,7 +371,7 @@ func TestSessionsProse(t *testing.T) {
 	})
 
 	mt.Run("11 for every combination of topology and readPreference, ensure that find and getMore both send the same session id", func(mt *mtest.T) {
-		var docs []interface{}
+		var docs []any
 		for i := 0; i < 3; i++ {
 			docs = append(docs, bson.D{{"x", i}})
 		}
@@ -508,13 +510,85 @@ func TestSessionsProse(t *testing.T) {
 		assert.True(mt, limitedSessionUse, limitedSessMsg, len(ops))
 
 	})
+
+	mt.ResetClient(options.Client())
+	client := mt.Client
+	heartbeatStarted := make(chan struct{}, 1)
+	heartbeatSucceeded := make(chan struct{}, 1)
+	var clusterTimeAdvanced uint32
+	serverMonitor := &event.ServerMonitor{
+		ServerHeartbeatStarted: func(*event.ServerHeartbeatStartedEvent) {
+			if atomic.LoadUint32(&clusterTimeAdvanced) == 1 {
+				select {
+				case heartbeatStarted <- struct{}{}:
+					// NOOP
+				default:
+					// NOOP
+				}
+			}
+		},
+		ServerHeartbeatSucceeded: func(*event.ServerHeartbeatSucceededEvent) {
+			if atomic.LoadUint32(&clusterTimeAdvanced) == 1 {
+				select {
+				case heartbeatSucceeded <- struct{}{}:
+					// NOOP
+				default:
+					// NOOP
+				}
+			}
+		},
+	}
+	pingOpts := mtest.NewOptions().
+		CreateCollection(false).
+		ClientOptions(options.Client().
+			SetServerMonitor(serverMonitor).
+			SetHeartbeatInterval(500 * time.Millisecond). // Minimum interval
+			SetDirect(true)).
+		ClientType(mtest.Pinned)
+	mt.RunOpts("20 Drivers do not gossip $clusterTime on SDAM commands", pingOpts, func(mt *mtest.T) {
+		wait := func(mt *mtest.T, ch <-chan struct{}, label string) {
+			mt.Helper()
+
+			select {
+			case <-ch:
+			case <-time.After(5 * time.Second):
+				mt.Fatalf("timed out waiting for %s", label)
+			}
+		}
+
+		err := mt.Client.Ping(context.Background(), readpref.Primary())
+		assert.NoError(mt, err, "expected no error, got: %v", err)
+
+		_, err = client.Database("test").Collection("test").InsertOne(context.Background(), bson.D{{"advance", "$clusterTime"}})
+		require.NoError(mt, err, "expected no error inserting document, got: %v", err)
+
+		atomic.StoreUint32(&clusterTimeAdvanced, 1)
+		wait(mt, heartbeatStarted, "ServerHeartbeatStartedEvent")
+		wait(mt, heartbeatSucceeded, "ServerHeartbeatSucceededEvent")
+
+		err = mt.Client.Ping(context.Background(), readpref.Primary())
+		require.NoError(mt, err, "expected no error, got: %v", err)
+
+		succeededEvents := mt.GetAllSucceededEvents()
+		require.Len(mt, succeededEvents, 2, "expected 2 succeeded events, got: %v", len(succeededEvents))
+		require.Equal(mt, "ping", succeededEvents[0].CommandName, "expected first command to be ping, got: %v", succeededEvents[0].CommandName)
+		initialClusterTime, err := succeededEvents[0].Reply.LookupErr("$clusterTime")
+		require.NoError(mt, err, "$clusterTime not found in response")
+
+		startedEvents := mt.GetAllStartedEvents()
+		require.Len(mt, startedEvents, 2, "expected 2 started events, got: %v", len(startedEvents))
+		require.Equal(mt, "ping", startedEvents[1].CommandName, "expected second command to be ping, got: %v", startedEvents[1].CommandName)
+		currentClusterTime, err := startedEvents[1].Command.LookupErr("$clusterTime")
+		require.NoError(mt, err, "$clusterTime not found in command")
+		assert.Equal(mt, initialClusterTime, currentClusterTime, "expected same cluster time, got %v and %v", initialClusterTime, currentClusterTime)
+	})
 }
 
 type sessionFunction struct {
 	name   string
 	target string
 	fnName string
-	params []interface{} // should not include context
+	params []any // should not include context
 }
 
 func (sf sessionFunction) execute(mt *mtest.T, sess *mongo.Session) error {
@@ -556,7 +630,7 @@ func (sf sessionFunction) execute(mt *mtest.T, sess *mongo.Session) error {
 }
 
 func createFunctionsSlice() []sessionFunction {
-	insertManyDocs := []interface{}{bson.D{{"x", 1}}}
+	insertManyDocs := []any{bson.D{{"x", 1}}}
 	fooIndex := mongo.IndexModel{
 		Keys:    bson.D{{"foo", -1}},
 		Options: options.Index().SetName("fooIndex"),
@@ -565,27 +639,27 @@ func createFunctionsSlice() []sessionFunction {
 	updateDoc := bson.D{{"$inc", bson.D{{"x", 1}}}}
 
 	return []sessionFunction{
-		{"list databases", "client", "ListDatabases", []interface{}{bson.D{}}},
-		{"insert one", "collection", "InsertOne", []interface{}{bson.D{{"x", 1}}}},
-		{"insert many", "collection", "InsertMany", []interface{}{insertManyDocs}},
-		{"delete one", "collection", "DeleteOne", []interface{}{bson.D{}}},
-		{"delete many", "collection", "DeleteMany", []interface{}{bson.D{}}},
-		{"update one", "collection", "UpdateOne", []interface{}{bson.D{}, updateDoc}},
-		{"update many", "collection", "UpdateMany", []interface{}{bson.D{}, updateDoc}},
-		{"replace one", "collection", "ReplaceOne", []interface{}{bson.D{}, bson.D{}}},
-		{"aggregate", "collection", "Aggregate", []interface{}{mongo.Pipeline{}}},
+		{"list databases", "client", "ListDatabases", []any{bson.D{}}},
+		{"insert one", "collection", "InsertOne", []any{bson.D{{"x", 1}}}},
+		{"insert many", "collection", "InsertMany", []any{insertManyDocs}},
+		{"delete one", "collection", "DeleteOne", []any{bson.D{}}},
+		{"delete many", "collection", "DeleteMany", []any{bson.D{}}},
+		{"update one", "collection", "UpdateOne", []any{bson.D{}, updateDoc}},
+		{"update many", "collection", "UpdateMany", []any{bson.D{}, updateDoc}},
+		{"replace one", "collection", "ReplaceOne", []any{bson.D{}, bson.D{}}},
+		{"aggregate", "collection", "Aggregate", []any{mongo.Pipeline{}}},
 		{"estimated document count", "collection", "EstimatedDocumentCount", nil},
-		{"distinct", "collection", "Distinct", []interface{}{"field", bson.D{}}},
-		{"find", "collection", "Find", []interface{}{bson.D{}}},
-		{"find one and delete", "collection", "FindOneAndDelete", []interface{}{bson.D{}}},
-		{"find one and replace", "collection", "FindOneAndReplace", []interface{}{bson.D{}, bson.D{}}},
-		{"find one and update", "collection", "FindOneAndUpdate", []interface{}{bson.D{}, updateDoc}},
+		{"distinct", "collection", "Distinct", []any{"field", bson.D{}}},
+		{"find", "collection", "Find", []any{bson.D{}}},
+		{"find one and delete", "collection", "FindOneAndDelete", []any{bson.D{}}},
+		{"find one and replace", "collection", "FindOneAndReplace", []any{bson.D{}, bson.D{}}},
+		{"find one and update", "collection", "FindOneAndUpdate", []any{bson.D{}, updateDoc}},
 		{"drop collection", "collection", "Drop", nil},
-		{"list collections", "database", "ListCollections", []interface{}{bson.D{}}},
+		{"list collections", "database", "ListCollections", []any{bson.D{}}},
 		{"drop database", "database", "Drop", nil},
-		{"create one index", "indexView", "CreateOne", []interface{}{fooIndex}},
-		{"create many indexes", "indexView", "CreateMany", []interface{}{manyIndexes}},
-		{"drop one index", "indexView", "DropOne", []interface{}{"barIndex"}},
+		{"create one index", "indexView", "CreateOne", []any{fooIndex}},
+		{"create many indexes", "indexView", "CreateMany", []any{manyIndexes}},
+		{"drop one index", "indexView", "DropOne", []any{"barIndex"}},
 		{"drop all indexes", "indexView", "DropAll", nil},
 		{"list indexes", "indexView", "List", nil},
 	}
@@ -610,7 +684,7 @@ func sessionIDsEqual(mt *mtest.T, id1, id2 bson.Raw) bool {
 	return bytes.Equal(firstUUID, secondUUID)
 }
 
-func interfaceSliceToValueSlice(args []interface{}) []reflect.Value {
+func interfaceSliceToValueSlice(args []any) []reflect.Value {
 	vals := make([]reflect.Value, 0, len(args))
 	for _, arg := range args {
 		vals = append(vals, reflect.ValueOf(arg))

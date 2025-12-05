@@ -75,6 +75,29 @@ type clientEntity struct {
 	logQueue chan orderedLogMessage
 }
 
+// awaitMinimumPoolSize waits for the client's connection pool to reach the
+// specified minimum size. This is a best effort operation that times out after
+// some predefined amount of time to avoid blocking tests indefinitely.
+func awaitMinimumPoolSize(ctx context.Context, entity *clientEntity, minPoolSize uint64) error {
+	// Don't spend longer than 500ms awaiting minPoolSize.
+	awaitCtx, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
+	defer cancel()
+
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-awaitCtx.Done():
+			return fmt.Errorf("timed out waiting for client to reach minPoolSize")
+		case <-ticker.C:
+			if uint64(entity.eventsCount[connectionReadyEvent]) >= minPoolSize {
+				return nil
+			}
+		}
+	}
+}
+
 func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOptions) (*clientEntity, error) {
 	// The "configureFailPoint" command should always be ignored.
 	ignoredCommands := map[string]struct{}{
@@ -203,6 +226,12 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 		return nil, fmt.Errorf("error creating mongo.Client: %w", err)
 	}
 
+	if entityOptions.AwaitMinPoolSize && clientOpts.MinPoolSize != nil && *clientOpts.MinPoolSize > 0 {
+		if err := awaitMinimumPoolSize(ctx, entity, *clientOpts.MinPoolSize); err != nil {
+			return nil, err
+		}
+	}
+
 	entity.Client = client
 	return entity, nil
 }
@@ -232,7 +261,7 @@ func (c *clientEntity) disconnect(ctx context.Context) error {
 		return nil
 	}
 
-	if err := c.Client.Disconnect(ctx); err != nil {
+	if err := c.Disconnect(ctx); err != nil {
 		return err
 	}
 

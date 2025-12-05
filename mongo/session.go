@@ -126,9 +126,9 @@ func (s *Session) EndSession(ctx context.Context) {
 // see the Client.StartSession method documentation.
 func (s *Session) WithTransaction(
 	ctx context.Context,
-	fn func(ctx context.Context) (interface{}, error),
+	fn func(ctx context.Context) (any, error),
 	opts ...options.Lister[options.TransactionOptions],
-) (interface{}, error) {
+) (any, error) {
 	timeout := time.NewTimer(withTransactionTimeout)
 	defer timeout.Stop()
 	var err error

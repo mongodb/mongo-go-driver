@@ -51,7 +51,7 @@ func TestWriteErrorsWithLabels(t *testing.T) {
 		})
 
 		_, err := mt.Coll.InsertMany(context.Background(),
-			[]interface{}{
+			[]any{
 				bson.D{
 					{"a", 1},
 				},
@@ -169,7 +169,7 @@ func TestWriteErrorsDetails(t *testing.T) {
 				desc: "InsertMany schema validation errors should include Details",
 				operation: func(coll *mongo.Collection) error {
 					// Try to insert a document that doesn't contain the required properties.
-					_, err := coll.InsertMany(context.Background(), []interface{}{bson.D{{"nope", 1}}})
+					_, err := coll.InsertMany(context.Background(), []any{bson.D{{"nope", 1}}})
 					return err
 				},
 				expectBulkError:     true,
@@ -210,7 +210,7 @@ func TestWriteErrorsDetails(t *testing.T) {
 				{
 					_, err := mt.Coll.InsertMany(
 						context.Background(),
-						[]interface{}{
+						[]any{
 							bson.D{{"a", "str1"}, {"b", 1}},
 							bson.D{{"a", "str2"}, {"b", 2}},
 						})
@@ -417,7 +417,7 @@ func TestErrorsCodeNamePropagated(t *testing.T) {
 }
 
 func TestClientBulkWriteProse(t *testing.T) {
-	mtOpts := mtest.NewOptions().MinServerVersion("8.0").AtlasDataLake(false).ClientType(mtest.Pinned)
+	mtOpts := mtest.NewOptions().MinServerVersion("8.0").ClientType(mtest.Pinned)
 	mt := mtest.New(t, mtOpts)
 
 	mt.Run("3. MongoClient.bulkWrite batch splits a writeModels input with greater than maxWriteBatchSize operations", func(mt *mtest.T) {
@@ -499,7 +499,10 @@ func TestClientBulkWriteProse(t *testing.T) {
 		assert.Equal(mt, 1, opsCnt[1], "expected %d secondEvent.command.ops, got: %d", 1, opsCnt[1])
 	})
 
-	mt.Run("5. MongoClient.bulkWrite collects WriteConcernErrors across batches", func(mt *mtest.T) {
+	// TODO(GODRIVER-3328): FailPoints are not currently reliable on sharded
+	// topologies. Allow running on sharded topologies once that is fixed.
+	noShardedOpts := mtest.NewOptions().Topologies(mtest.Single, mtest.ReplicaSet, mtest.LoadBalanced)
+	mt.RunOpts("5. MongoClient.bulkWrite collects WriteConcernErrors across batches", noShardedOpts, func(mt *mtest.T) {
 		var eventCnt int
 		monitor := &event.CommandMonitor{
 			Started: func(_ context.Context, e *event.CommandStartedEvent) {
@@ -657,7 +660,7 @@ func TestClientBulkWriteProse(t *testing.T) {
 	})
 
 	mt.RunOpts("8. MongoClient.bulkWrite handles a cursor requiring getMore within a transaction",
-		mtest.NewOptions().MinServerVersion("8.0").AtlasDataLake(false).ClientType(mtest.Pinned).
+		mtest.NewOptions().MinServerVersion("8.0").ClientType(mtest.Pinned).
 			Topologies(mtest.ReplicaSet, mtest.Sharded, mtest.LoadBalanced, mtest.ShardedReplicaSet),
 		func(mt *mtest.T) {
 			var getMoreCalled int
@@ -704,7 +707,7 @@ func TestClientBulkWriteProse(t *testing.T) {
 					},
 				},
 			}
-			result, err := session.WithTransaction(context.Background(), func(ctx context.Context) (interface{}, error) {
+			result, err := session.WithTransaction(context.Background(), func(ctx context.Context) (any, error) {
 				return mt.Client.BulkWrite(ctx, models, options.ClientBulkWrite().SetVerboseResults(true))
 			})
 			require.NoError(mt, err, "BulkWrite error: %v", err)
@@ -715,7 +718,9 @@ func TestClientBulkWriteProse(t *testing.T) {
 			assert.Equal(mt, 1, getMoreCalled, "expected %d getMore call, got: %d", 1, getMoreCalled)
 		})
 
-	mt.Run("9. MongoClient.bulkWrite handles a getMore error", func(mt *mtest.T) {
+	// TODO(GODRIVER-3328): FailPoints are not currently reliable on sharded
+	// topologies. Allow running on sharded topologies once that is fixed.
+	mt.RunOpts("9. MongoClient.bulkWrite handles a getMore error", noShardedOpts, func(mt *mtest.T) {
 		var getMoreCalled int
 		var killCursorsCalled int
 		monitor := &event.CommandMonitor{
@@ -935,7 +940,7 @@ func TestClientBulkWriteProse(t *testing.T) {
 
 		autoEncryptionOpts := options.AutoEncryption().
 			SetKeyVaultNamespace("db.coll").
-			SetKmsProviders(map[string]map[string]interface{}{
+			SetKmsProviders(map[string]map[string]any{
 				"aws": {
 					"accessKeyId":     "foo",
 					"secretAccessKey": "bar",
@@ -961,7 +966,7 @@ func TestClientBulkWriteProse(t *testing.T) {
 		type cmd struct {
 			Ops          []bson.D
 			WriteConcern struct {
-				W interface{}
+				W any
 			}
 		}
 		var bwCmd []cmd

@@ -12,7 +12,6 @@ import (
 	"os"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
 	"go.mongodb.org/mongo-driver/v2/internal/integtest"
 	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -38,10 +37,6 @@ func TestSCRAM(t *testing.T) {
 	serverConnection, err := server.Connection(context.Background())
 	noerr(t, err)
 	defer serverConnection.Close()
-
-	if !driverutil.VersionRangeIncludes(*serverConnection.Description().WireVersion, 7) {
-		t.Skip("Skipping because MongoDB 4.0 is needed for SCRAM-SHA-256")
-	}
 
 	// Unicode constants for testing
 	var romanFour = "\u2163" // ROMAN NUMERAL FOUR -> SASL prepped is "IV"

@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"strconv"
 	"testing"
 	"time"
 
@@ -385,7 +386,8 @@ func TestOperation(t *testing.T) {
 		rpWithTags := bsoncore.BuildDocumentFromElements(nil,
 			bsoncore.AppendStringElement(nil, "mode", "secondaryPreferred"),
 			bsoncore.BuildArrayElement(nil, "tags",
-				bsoncore.Value{Type: bsoncore.TypeEmbeddedDocument,
+				bsoncore.Value{
+					Type: bsoncore.TypeEmbeddedDocument,
 					Data: bsoncore.BuildDocumentFromElements(nil,
 						bsoncore.AppendStringElement(nil, "disk", "ssd"),
 						bsoncore.AppendStringElement(nil, "use", "reporting"),
@@ -407,7 +409,8 @@ func TestOperation(t *testing.T) {
 		rpWithAllOptions := bsoncore.BuildDocumentFromElements(nil,
 			bsoncore.AppendStringElement(nil, "mode", "secondaryPreferred"),
 			bsoncore.BuildArrayElement(nil, "tags",
-				bsoncore.Value{Type: bsoncore.TypeEmbeddedDocument,
+				bsoncore.Value{
+					Type: bsoncore.TypeEmbeddedDocument,
 					Data: bsoncore.BuildDocumentFromElements(nil,
 						bsoncore.AppendStringElement(nil, "disk", "ssd"),
 						bsoncore.AppendStringElement(nil, "use", "reporting"),
@@ -694,7 +697,7 @@ func assertExhaustAllowedSet(t *testing.T, wm []byte, expected bool) {
 	if !ok {
 		t.Fatal("could not read wm header")
 	}
-	flags, wm, ok := wiremessage.ReadMsgFlags(wm)
+	flags, _, ok := wiremessage.ReadMsgFlags(wm)
 	if !ok {
 		t.Fatal("could not read wm flags")
 	}
@@ -1059,6 +1062,33 @@ func TestMarshalBSONWriteConcern(t *testing.T) {
 
 			if gotErr != nil {
 				assert.EqualError(t, gotErr, test.wantErr)
+			}
+		})
+	}
+}
+
+func BenchmarkRedactStartedInformationCmd(b *testing.B) {
+	for _, size := range []int{0, 1, 5, 10, 100, 1000} {
+		info := startedInformation{
+			cmd: make([]byte, 100),
+			documentSequences: make([]struct {
+				identifier string
+				data       []byte
+			}, size),
+		}
+		for i := 0; i < size; i++ {
+			info.documentSequences[i] = struct {
+				identifier string
+				data       []byte
+			}{
+				identifier: strconv.Itoa(i),
+				data:       make([]byte, 100),
+			}
+		}
+		b.Run(strconv.Itoa(size), func(b *testing.B) {
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				redactStartedInformationCmd(info)
 			}
 		})
 	}

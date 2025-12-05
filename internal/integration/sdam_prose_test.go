@@ -69,7 +69,7 @@ func TestSDAMProse(t *testing.T) {
 		}
 		start := time.Now()
 		time.Sleep(2 * time.Second)
-		messages := mt.GetProxiedMessages()
+		messages := mt.GetProxyCapture().Drain()
 		duration := time.Since(start)
 
 		hosts, err := mongoutil.HostsFromURI(mtest.ClusterURI())
@@ -98,7 +98,10 @@ func TestSDAMProse(t *testing.T) {
 			SetAppName("streamingRttTest")
 		mtOpts := mtest.NewOptions().
 			MinServerVersion("4.4").
-			ClientOptions(clientOpts)
+			ClientOptions(clientOpts).
+			// TODO(GODRIVER-3328): FailPoints are not currently reliable on sharded
+			// clusters. Remove this exclusion once we fix that.
+			Topologies(mtest.Single, mtest.ReplicaSet, mtest.LoadBalanced)
 		mt.RunOpts("rtt is continuously updated", mtOpts, func(mt *mtest.T) {
 			// Test that the RTT monitor updates the RTT for server descriptions.
 

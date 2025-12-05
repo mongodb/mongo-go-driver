@@ -49,6 +49,9 @@ repos:
   hooks:
     - id: markdown-link-check
       exclude: ^(vendor)
+      # If the endpoint returns HTTP 429 (Too Many Requests), consider it a
+      # successful check.
+      args: ["-a 200,206,429"]
 
 - repo: local
   hooks:

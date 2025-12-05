@@ -5,7 +5,6 @@
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
 //go:build cse
-// +build cse
 
 package integration
 
@@ -37,7 +36,7 @@ func createDataKeyAndEncrypt(mt *mtest.T, keyName string) bson.Binary {
 
 	integtest.AddTestServerAPIVersion(kvClientOpts)
 
-	kmsProvidersMap := map[string]map[string]interface{}{
+	kmsProvidersMap := map[string]map[string]any{
 		"local": {"key": localMasterKey},
 	}
 
@@ -95,7 +94,7 @@ func TestClientSideEncryptionWithExplicitSessions(t *testing.T) {
 	verifyClientSideEncryptionVarsSet(t)
 	mt := mtest.New(t, mtest.NewOptions().MinServerVersion("4.2").Enterprise(true).CreateClient(false))
 
-	kmsProvidersMap := map[string]map[string]interface{}{
+	kmsProvidersMap := map[string]map[string]any{
 		"local": {"key": localMasterKey},
 	}
 
@@ -111,7 +110,7 @@ func TestClientSideEncryptionWithExplicitSessions(t *testing.T) {
 			}},
 		}},
 	}
-	schemaMap := map[string]interface{}{"db.coll": schema}
+	schemaMap := map[string]any{"db.coll": schema}
 
 	mt.Run("automatic encryption", func(mt *mtest.T) {
 		createDataKeyAndEncrypt(mt, "myKey")
@@ -343,7 +342,7 @@ func (c *customCrypt) RewrapDataKey(_ context.Context, _ []byte,
 func TestClientSideEncryptionCustomCrypt(t *testing.T) {
 	mt := mtest.New(t, mtest.NewOptions().MinServerVersion("4.2").Enterprise(true).CreateClient(false))
 
-	kmsProvidersMap := map[string]map[string]interface{}{
+	kmsProvidersMap := map[string]map[string]any{
 		"local": {"key": localMasterKey},
 	}
 
@@ -493,7 +492,7 @@ func TestFLE2DocsExample(t *testing.T) {
 			assert.Nil(mt, err, "error in Drop: %v", err)
 		}
 
-		kmsProvidersMap := map[string]map[string]interface{}{
+		kmsProvidersMap := map[string]map[string]any{
 			"local": {"key": localMasterKey},
 		}
 
@@ -618,7 +617,7 @@ func TestFLE2CreateCollectionWithAutoEncryption(t *testing.T) {
 			assert.Nil(mt, err, "error in Drop: %v", err)
 		}
 
-		kmsProvidersMap := map[string]map[string]interface{}{
+		kmsProvidersMap := map[string]map[string]any{
 			"local": {"key": localMasterKey},
 		}
 

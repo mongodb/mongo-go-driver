@@ -12,6 +12,7 @@ import (
 	"net"
 	"os"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -19,9 +20,9 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/assert/assertbson"
 	"go.mongodb.org/mongo-driver/v2/internal/eventtest"
 	"go.mongodb.org/mongo-driver/v2/internal/failpoint"
-	"go.mongodb.org/mongo-driver/v2/internal/handshake"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/internal/integtest"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
@@ -29,9 +30,11 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/version"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/xoptions"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -70,8 +73,10 @@ type slowConnDialer struct {
 	delay  time.Duration
 }
 
-var slowConnDialerDelay = 300 * time.Millisecond
-var reducedHeartbeatInterval = 500 * time.Millisecond
+var (
+	slowConnDialerDelay      = 300 * time.Millisecond
+	reducedHeartbeatInterval = 500 * time.Millisecond
+)
 
 func newSlowConnDialer(delay time.Duration) *slowConnDialer {
 	return &slowConnDialer{
@@ -225,7 +230,7 @@ func TestClient(t *testing.T) {
 			testCases := []struct {
 				name             string
 				filter           bson.D
-				hasTestDb        bool
+				hasTestDB        bool
 				minServerVersion string
 			}{
 				{"empty", bson.D{}, true, ""},
@@ -244,12 +249,12 @@ func TestClient(t *testing.T) {
 
 					var found bool
 					for _, db := range res.Databases {
-						if db.Name == mtest.TestDb {
+						if db.Name == mtest.TestDB {
 							found = true
 							break
 						}
 					}
-					assert.Equal(mt, tc.hasTestDb, found, "expected to find test db: %v, found: %v", tc.hasTestDb, found)
+					assert.Equal(mt, tc.hasTestDB, found, "expected to find test db: %v, found: %v", tc.hasTestDB, found)
 				})
 			}
 		})
@@ -276,7 +281,7 @@ func TestClient(t *testing.T) {
 			testCases := []struct {
 				name             string
 				filter           bson.D
-				hasTestDb        bool
+				hasTestDB        bool
 				minServerVersion string
 			}{
 				{"no filter", bson.D{}, true, ""},
@@ -295,12 +300,12 @@ func TestClient(t *testing.T) {
 
 					var found bool
 					for _, db := range dbs {
-						if db == mtest.TestDb {
+						if db == mtest.TestDB {
 							found = true
 							break
 						}
 					}
-					assert.Equal(mt, tc.hasTestDb, found, "expected to find test db: %v, found: %v", tc.hasTestDb, found)
+					assert.Equal(mt, tc.hasTestDB, found, "expected to find test db: %v, found: %v", tc.hasTestDB, found)
 				})
 			}
 		})
@@ -456,26 +461,27 @@ func TestClient(t *testing.T) {
 		err := mt.Client.Ping(context.Background(), mtest.PrimaryRp)
 		assert.Nil(mt, err, "Ping error: %v", err)
 
-		msgPairs := mt.GetProxiedMessages()
-		assert.True(mt, len(msgPairs) >= 2, "expected at least 2 events sent, got %v", len(msgPairs))
+		want := mustMarshalBSON(bson.D{
+			{Key: "application", Value: bson.D{
+				bson.E{Key: "name", Value: "foo"},
+			}},
+			{Key: "driver", Value: bson.D{
+				{Key: "name", Value: "mongo-go-driver"},
+				{Key: "version", Value: version.Driver},
+			}},
+			{Key: "os", Value: bson.D{
+				{Key: "type", Value: runtime.GOOS},
+				{Key: "architecture", Value: runtime.GOARCH},
+			}},
+			{Key: "platform", Value: runtime.Version()},
+		})
 
-		// First two messages should be connection handshakes: one for the heartbeat connection and the other for the
-		// application connection.
-		for idx, pair := range msgPairs[:2] {
-			helloCommand := handshake.LegacyHello
-			//  Expect "hello" command name with API version.
-			if os.Getenv("REQUIRE_API_VERSION") == "true" {
-				helloCommand = "hello"
-			}
-			assert.Equal(mt, pair.CommandName, helloCommand, "expected command name %s at index %d, got %s", helloCommand, idx,
-				pair.CommandName)
+		for i := 0; i < 2; i++ {
+			message := mt.GetProxyCapture().TryNext()
+			require.NotNil(mt, message, "expected handshake message, got nil")
 
-			sent := pair.Sent
-			appNameVal, err := sent.Command.LookupErr("client", "application", "name")
-			assert.Nil(mt, err, "expected command %s at index %d to contain app name", sent.Command, idx)
-			appName := appNameVal.StringValue()
-			assert.Equal(mt, testAppName, appName, "expected app name %v at index %d, got %v", testAppName, idx,
-				appName)
+			clientMetadata := clientMetadataFromHandshake(mt, message.Sent.Command)
+			assertbson.EqualDocument(mt, want, clientMetadata)
 		}
 	})
 
@@ -604,24 +610,32 @@ func TestClient(t *testing.T) {
 		err := mt.Client.Ping(context.Background(), mtest.PrimaryRp)
 		assert.Nil(mt, err, "Ping error: %v", err)
 
-		msgPairs := mt.GetProxiedMessages()
-		assert.True(mt, len(msgPairs) >= 3, "expected at least 3 events, got %v", len(msgPairs))
+		proxyCapture := mt.GetProxyCapture()
 
 		// The first message should be a connection handshake.
-		pair := msgPairs[0]
-		assert.Equal(mt, handshake.LegacyHello, pair.CommandName, "expected command name %s at index 0, got %s",
-			handshake.LegacyHello, pair.CommandName)
-		assert.Equal(mt, wiremessage.OpQuery, pair.Sent.OpCode,
-			"expected 'OP_QUERY' OpCode in wire message, got %q", pair.Sent.OpCode.String())
+		firstMessage := proxyCapture.TryNext()
+		require.NotNil(mt, firstMessage, "expected handshake message, got nil")
 
-		// Look for a saslContinue in the remaining proxied messages and assert that it uses the OP_MSG OpCode, as wire
-		// version is now known to be >= 6.
+		assert.True(t, firstMessage.IsHandshake())
+
+		opCode := firstMessage.Sent.OpCode
+		assert.Equal(mt, wiremessage.OpQuery, opCode,
+			"expected 'OP_MSG' OpCode in wire message, got %q", opCode.String())
+
+		// Look for a saslContinue in the remaining proxied messages and assert that
+		// it uses the OP_MSG OpCode, as wire version is now known to be >= 6.
 		var saslContinueFound bool
-		for _, pair := range msgPairs[1:] {
-			if pair.CommandName == "saslContinue" {
+		for {
+			message := proxyCapture.TryNext()
+			if message == nil {
+				break
+			}
+
+			if message.CommandName == "saslContinue" {
 				saslContinueFound = true
-				assert.Equal(mt, wiremessage.OpMsg, pair.Sent.OpCode,
-					"expected 'OP_MSG' OpCode in wire message, got %s", pair.Sent.OpCode.String())
+				opCode := message.Sent.OpCode
+				assert.Equal(mt, wiremessage.OpMsg, opCode,
+					"expected 'OP_MSG' OpCode in wire message, got %q", opCode.String())
 				break
 			}
 		}
@@ -634,18 +648,18 @@ func TestClient(t *testing.T) {
 		err := mt.Client.Ping(context.Background(), mtest.PrimaryRp)
 		assert.Nil(mt, err, "Ping error: %v", err)
 
-		msgPairs := mt.GetProxiedMessages()
-		assert.True(mt, len(msgPairs) >= 3, "expected at least 3 events, got %v", len(msgPairs))
-
 		// First three messages should be connection handshakes: one for the heartbeat connection, another for the
 		// application connection, and a final one for the RTT monitor connection.
-		for idx, pair := range msgPairs[:3] {
-			assert.Equal(mt, "hello", pair.CommandName, "expected command name 'hello' at index %d, got %s", idx,
-				pair.CommandName)
+		for idx := 0; idx < 3; idx++ {
+			message := mt.GetProxyCapture().TryNext()
+			require.NotNil(mt, message, "expected handshake message, got nil")
+
+			assert.True(t, message.IsHandshake())
 
 			// Assert that appended OpCode is OP_MSG when API version is set.
-			assert.Equal(mt, wiremessage.OpMsg, pair.Sent.OpCode,
-				"expected 'OP_MSG' OpCode in wire message, got %q", pair.Sent.OpCode.String())
+			opCode := message.Sent.OpCode
+			assert.Equal(mt, wiremessage.OpMsg, opCode,
+				"expected 'OP_MSG' OpCode in wire message, got %q", opCode.String())
 		}
 	})
 
@@ -724,7 +738,7 @@ func TestClient(t *testing.T) {
 func TestClient_BulkWrite(t *testing.T) {
 	mt := mtest.New(t, noClientOpts)
 
-	mtBulkWriteOpts := mtest.NewOptions().MinServerVersion("8.0").AtlasDataLake(false).ClientType(mtest.Pinned)
+	mtBulkWriteOpts := mtest.NewOptions().MinServerVersion("8.0").ClientType(mtest.Pinned)
 	mt.RunOpts("bulk write with nil filter", mtBulkWriteOpts, func(mt *mtest.T) {
 		mt.Parallel()
 
@@ -838,9 +852,94 @@ func TestClient_BulkWrite(t *testing.T) {
 		}
 
 		_, err := mt.Client.BulkWrite(context.Background(), writes)
-		require.NoError(t, err)
-		assert.Equal(t, 2, bulkWrites, "expected %d bulkWrites, got %d", 2, bulkWrites)
+		require.NoError(mt, err)
+		assert.Equal(mt, 2, bulkWrites, "expected %d bulkWrites, got %d", 2, bulkWrites)
 	})
+}
+
+func TestClient_BulkWrite_AddCommandFields(t *testing.T) {
+	newOpts := func(option bson.D) *options.ClientBulkWriteOptionsBuilder {
+		opts := options.ClientBulkWrite()
+		err := xoptions.SetInternalClientBulkWriteOptions(opts, "addCommandFields", option)
+		require.NoError(t, err, "unexpected error: %v", err)
+		return opts
+	}
+
+	marshalValue := func(val interface{}) bson.RawValue {
+		t.Helper()
+
+		valType, data, err := bson.MarshalValue(val)
+		require.NoError(t, err, "MarshalValue error: %v", err)
+		return bson.RawValue{
+			Type:  valType,
+			Value: data,
+		}
+	}
+
+	models := []struct {
+		name  string
+		model mongo.ClientWriteModel
+	}{
+		{
+			name:  "insert one",
+			model: mongo.NewClientInsertOneModel().SetDocument(bson.D{{"x", 1}}),
+		},
+		{
+			name:  "update one",
+			model: mongo.NewClientUpdateOneModel().SetFilter(bson.D{{"x", 1}}).SetUpdate(bson.D{{"$set", bson.D{{"x", 3.14159}}}}),
+		},
+		{
+			name:  "update many",
+			model: mongo.NewClientUpdateManyModel().SetFilter(bson.D{{"x", 1}}).SetUpdate(bson.D{{"$set", bson.D{{"x", 3.14159}}}}),
+		},
+		{
+			name:  "replace one",
+			model: mongo.NewClientReplaceOneModel().SetFilter(bson.D{{"x", 1}}).SetReplacement(bson.D{{"x", 3.14159}}),
+		},
+	}
+
+	testCases := []struct {
+		name     string
+		opts     *options.ClientBulkWriteOptionsBuilder
+		expected bson.RawValue
+	}{
+		{
+			name:     "empty",
+			opts:     options.ClientBulkWrite(),
+			expected: bson.RawValue{},
+		},
+		{
+			name:     "false",
+			opts:     newOpts(bson.D{{"bypassEmptyTsReplacement", false}}),
+			expected: marshalValue(false),
+		},
+		{
+			name:     "true",
+			opts:     newOpts(bson.D{{"bypassEmptyTsReplacement", true}}),
+			expected: marshalValue(true),
+		},
+	}
+
+	mtBulkWriteOpts := mtest.NewOptions().MinServerVersion("8.0").ClientType(mtest.Pinned)
+	mt := mtest.New(t, noClientOpts)
+	for _, m := range models {
+		for _, tc := range testCases {
+			mt.RunOpts(fmt.Sprintf("%s %s", m.name, tc.name), mtBulkWriteOpts, func(mt *mtest.T) {
+				mt.Parallel()
+
+				writes := []mongo.ClientBulkWrite{{
+					Database:   "foo",
+					Collection: "bar",
+					Model:      m.model,
+				}}
+				_, err := mt.Client.BulkWrite(context.Background(), writes, tc.opts)
+				require.NoError(mt, err, "BulkWrite error: %v", err)
+				evt := mt.GetStartedEvent()
+				val := evt.Command.Lookup("bypassEmptyTsReplacement")
+				assert.Equal(mt, tc.expected, val, "expected bypassEmptyTsReplacement to be %s", tc.expected.String())
+			})
+		}
+	}
 }
 
 func TestClient_BSONOptions(t *testing.T) {
@@ -871,9 +970,9 @@ func TestClient_BSONOptions(t *testing.T) {
 	testCases := []struct {
 		name       string
 		bsonOpts   *options.BSONOptions
-		doc        interface{}
-		decodeInto func() interface{}
-		want       interface{}
+		doc        any
+		decodeInto func() any
+		want       any
 		wantRaw    bson.Raw
 	}{
 		{
@@ -886,7 +985,7 @@ func TestClient_BSONOptions(t *testing.T) {
 				B: "banana",
 				C: "carrot",
 			},
-			decodeInto: func() interface{} { return &jsonTagsTest{} },
+			decodeInto: func() any { return &jsonTagsTest{} },
 			want: &jsonTagsTest{
 				A: "apple",
 				B: "banana",
@@ -904,7 +1003,7 @@ func TestClient_BSONOptions(t *testing.T) {
 				IntMinSize: true,
 			},
 			doc:        bson.D{{Key: "x", Value: int64(1)}},
-			decodeInto: func() interface{} { return &bson.D{} },
+			decodeInto: func() any { return &bson.D{} },
 			want:       &bson.D{{Key: "x", Value: int32(1)}},
 			wantRaw: bson.Raw(bsoncore.NewDocumentBuilder().
 				AppendInt32("x", 1).
@@ -916,7 +1015,7 @@ func TestClient_BSONOptions(t *testing.T) {
 				NilMapAsEmpty: true,
 			},
 			doc:        bson.D{{Key: "x", Value: map[string]string(nil)}},
-			decodeInto: func() interface{} { return &bson.D{} },
+			decodeInto: func() any { return &bson.D{} },
 			want:       &bson.D{{Key: "x", Value: bson.D{}}},
 			wantRaw: bson.Raw(bsoncore.NewDocumentBuilder().
 				AppendDocument("x", bsoncore.NewDocumentBuilder().Build()).
@@ -928,7 +1027,7 @@ func TestClient_BSONOptions(t *testing.T) {
 				NilSliceAsEmpty: true,
 			},
 			doc:        bson.D{{Key: "x", Value: []int(nil)}},
-			decodeInto: func() interface{} { return &bson.D{} },
+			decodeInto: func() any { return &bson.D{} },
 			want:       &bson.D{{Key: "x", Value: bson.A{}}},
 			wantRaw: bson.Raw(bsoncore.NewDocumentBuilder().
 				AppendArray("x", bsoncore.NewDocumentBuilder().Build()).
@@ -940,7 +1039,7 @@ func TestClient_BSONOptions(t *testing.T) {
 				NilByteSliceAsEmpty: true,
 			},
 			doc:        bson.D{{Key: "x", Value: []byte(nil)}},
-			decodeInto: func() interface{} { return &bson.D{} },
+			decodeInto: func() any { return &bson.D{} },
 			want:       &bson.D{{Key: "x", Value: bson.Binary{Data: []byte{}}}},
 			wantRaw: bson.Raw(bsoncore.NewDocumentBuilder().
 				AppendBinary("x", 0, nil).
@@ -952,7 +1051,7 @@ func TestClient_BSONOptions(t *testing.T) {
 				OmitZeroStruct: true,
 			},
 			doc:        omitemptyTest{},
-			decodeInto: func() interface{} { return &bson.D{} },
+			decodeInto: func() any { return &bson.D{} },
 			want:       &bson.D{},
 			wantRaw:    bson.Raw(bsoncore.NewDocumentBuilder().Build()),
 		},
@@ -965,7 +1064,7 @@ func TestClient_BSONOptions(t *testing.T) {
 			doc: struct {
 				X jsonTagsTest `bson:"x"`
 			}{},
-			decodeInto: func() interface{} { return &bson.D{} },
+			decodeInto: func() any { return &bson.D{} },
 			want:       &bson.D{},
 			wantRaw:    bson.Raw(bsoncore.NewDocumentBuilder().Build()),
 		},
@@ -975,7 +1074,7 @@ func TestClient_BSONOptions(t *testing.T) {
 				StringifyMapKeysWithFmt: true,
 			},
 			doc:        map[intKey]string{intKey(42): "foo"},
-			decodeInto: func() interface{} { return &bson.D{} },
+			decodeInto: func() any { return &bson.D{} },
 			want:       &bson.D{{"42", "foo"}},
 			wantRaw: bson.Raw(bsoncore.NewDocumentBuilder().
 				AppendString("42", "foo").
@@ -987,7 +1086,7 @@ func TestClient_BSONOptions(t *testing.T) {
 				AllowTruncatingDoubles: true,
 			},
 			doc:        bson.D{{Key: "x", Value: 3.14}},
-			decodeInto: func() interface{} { return &truncatingDoublesTest{} },
+			decodeInto: func() any { return &truncatingDoublesTest{} },
 			want:       &truncatingDoublesTest{3},
 			wantRaw: bson.Raw(bsoncore.NewDocumentBuilder().
 				AppendDouble("x", 3.14).
@@ -999,7 +1098,7 @@ func TestClient_BSONOptions(t *testing.T) {
 				BinaryAsSlice: true,
 			},
 			doc:        bson.D{{Key: "x", Value: []byte{42}}},
-			decodeInto: func() interface{} { return &bson.D{} },
+			decodeInto: func() any { return &bson.D{} },
 			want:       &bson.D{{Key: "x", Value: []byte{42}}},
 			wantRaw: bson.Raw(bsoncore.NewDocumentBuilder().
 				AppendBinary("x", 0, []byte{42}).
@@ -1011,7 +1110,7 @@ func TestClient_BSONOptions(t *testing.T) {
 				DefaultDocumentM: true,
 			},
 			doc:        bson.D{{Key: "doc", Value: bson.D{{Key: "a", Value: int64(1)}}}},
-			decodeInto: func() interface{} { return &bson.D{} },
+			decodeInto: func() any { return &bson.D{} },
 			want:       &bson.D{{Key: "doc", Value: bson.M{"a": int64(1)}}},
 		},
 		{
@@ -1020,7 +1119,7 @@ func TestClient_BSONOptions(t *testing.T) {
 				UseLocalTimeZone: true,
 			},
 			doc:        bson.D{{Key: "x", Value: timestamp}},
-			decodeInto: func() interface{} { return &timeZoneTest{} },
+			decodeInto: func() any { return &timeZoneTest{} },
 			want:       &timeZoneTest{timestamp.In(time.Local)},
 		},
 		{
@@ -1029,7 +1128,7 @@ func TestClient_BSONOptions(t *testing.T) {
 				ZeroMaps: true,
 			},
 			doc: bson.D{{"a", "apple"}, {"b", "banana"}},
-			decodeInto: func() interface{} {
+			decodeInto: func() any {
 				return &map[string]string{
 					"b": "berry",
 					"c": "carrot",
@@ -1046,7 +1145,7 @@ func TestClient_BSONOptions(t *testing.T) {
 				ZeroStructs: true,
 			},
 			doc: bson.D{{"a", "apple"}, {"x", "broccoli"}},
-			decodeInto: func() interface{} {
+			decodeInto: func() any {
 				return &jsonTagsTest{
 					B: "banana",
 					C: "carrot",
@@ -1086,7 +1185,7 @@ func TestClient_BSONOptions(t *testing.T) {
 				got, err := sr.Raw()
 				require.NoError(mt, err, "Raw error")
 
-				assert.EqualBSON(mt, tc.wantRaw, got)
+				assertbson.EqualDocument(mt, tc.wantRaw, got)
 			}
 		})
 	}
@@ -1160,7 +1259,7 @@ func TestClientStress(t *testing.T) {
 		findOne := func(coll *mongo.Collection, timeout time.Duration) error {
 			ctx, cancel := context.WithTimeout(context.Background(), timeout)
 			defer cancel()
-			var res map[string]interface{}
+			var res map[string]any
 			return coll.FindOne(ctx, bson.D{{Key: "_id", Value: oid}}).Decode(&res)
 		}
 
