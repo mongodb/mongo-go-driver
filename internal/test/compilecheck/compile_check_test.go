@@ -12,6 +12,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -19,17 +20,19 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 )
 
-var versions = []string{
-	"1.19",
-	"1.20",
-	"1.21",
-	"1.22",
-	"1.23",
-	"1.24",
-	"1.25",
+func getVersions(t *testing.T) []string {
+	t.Helper()
+
+	env := os.Getenv("GO_VERSIONS")
+	if env == "" {
+		t.Skip("GO_VERSIONS environment variable not set")
+	}
+
+	return strings.Split(env, ",")
 }
 
 func TestCompileCheck(t *testing.T) {
+	versions := getVersions(t)
 	cwd, err := os.Getwd()
 	require.NoError(t, err)
 
