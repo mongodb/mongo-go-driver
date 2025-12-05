@@ -630,6 +630,14 @@ tasks:
           binary: bash
           args: [*task-runner, govulncheck]
 
+  - name: generate-sbom
+    tags: ["ssdlc", "static-analysis"]
+    commands:
+      - command: subprocess.exec
+        params:
+          binary: bash
+          args: [*task-runner, generate-sbom]
+
   - name: pull-request-helpers
     allowed_requesters: ["patch", "github_pr"]
     commands:
