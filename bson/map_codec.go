@@ -79,7 +79,6 @@ func (mc *mapCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Va
 // true if the provided key exists, this is mainly used for inline maps in the
 // struct codec.
 func (mc *mapCodec) encodeMapElements(ec EncodeContext, dw DocumentWriter, val reflect.Value, collisionFn func(string) bool) error {
-
 	elemType := val.Type().Elem()
 	encoder, err := ec.LookupEncoder(elemType)
 	if err != nil && elemType.Kind() != reflect.Interface {
@@ -237,8 +236,10 @@ func (mc *mapCodec) encodeKey(val reflect.Value, encodeKeysWithStringer bool) (s
 	return "", fmt.Errorf("unsupported key type: %v", val.Type())
 }
 
-var keyUnmarshalerType = reflect.TypeOf((*KeyUnmarshaler)(nil)).Elem()
-var textUnmarshalerType = reflect.TypeOf((*encoding.TextUnmarshaler)(nil)).Elem()
+var (
+	keyUnmarshalerType  = reflect.TypeOf((*KeyUnmarshaler)(nil)).Elem()
+	textUnmarshalerType = reflect.TypeOf((*encoding.TextUnmarshaler)(nil)).Elem()
+)
 
 func (mc *mapCodec) decodeKey(key string, keyType reflect.Type) (reflect.Value, error) {
 	keyVal := reflect.ValueOf(key)
@@ -278,7 +279,7 @@ func (mc *mapCodec) decodeKey(key string, keyType reflect.Type) (reflect.Value, 
 			if mc.encodeKeysWithStringer {
 				parsed, err := strconv.ParseFloat(key, 64)
 				if err != nil {
-					return keyVal, fmt.Errorf("Map key is defined to be a decimal type (%v) but got error %w", keyType.Kind(), err)
+					return keyVal, fmt.Errorf("map key is defined to be a decimal type (%v) but got error %w", keyType.Kind(), err)
 				}
 				keyVal = reflect.ValueOf(parsed)
 				break

@@ -350,7 +350,7 @@ func AppendObjectIDElement(dst []byte, key string, oid objectID) []byte {
 
 // ReadObjectID will read an ObjectID from src. If there are not enough bytes it
 // will return false.
-func ReadObjectID(src []byte) (objectID, []byte, bool) {
+func ReadObjectID(src []byte) ([12]byte, []byte, bool) {
 	var oid objectID
 	idLen := cap(oid)
 	if len(src) < idLen {
@@ -461,7 +461,7 @@ func AppendDBPointerElement(dst []byte, key, ns string, oid objectID) []byte {
 
 // ReadDBPointer will read a ns and oid from src. If there are not enough bytes it
 // will return false.
-func ReadDBPointer(src []byte) (ns string, oid objectID, rem []byte, ok bool) {
+func ReadDBPointer(src []byte) (ns string, oid [12]byte, rem []byte, ok bool) {
 	ns, rem, ok = readstring(src)
 	if !ok {
 		return "", objectID{}, src, false
