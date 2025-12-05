@@ -15,6 +15,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/docker/docker/api/types/container"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
@@ -46,12 +47,12 @@ func TestCompileCheck(t *testing.T) {
 			t.Parallel()
 
 			req := testcontainers.ContainerRequest{
-				Image: image,
-				Cmd:   []string{"tail", "-f", "/dev/null"},
-				Mounts: []testcontainers.ContainerMount{
-					testcontainers.BindMount(rootDir, "/workspace"),
-				},
+				Image:      image,
+				Cmd:        []string{"tail", "-f", "/dev/null"},
 				WorkingDir: "/workspace",
+				HostConfigModifier: func(hostConfig *container.HostConfig) {
+					hostConfig.Binds = []string{fmt.Sprintf("%s:/workspace", rootDir)}
+				},
 				Env: map[string]string{
 					"GC": "go",
 					// Compilation modules are not part of the workspace as testcontainers requires
