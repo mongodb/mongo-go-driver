@@ -364,10 +364,12 @@ func hasErrorCode(srvErr ServerError, code int) bool {
 	return false
 }
 
-var _ ServerError = CommandError{}
-var _ ServerError = WriteError{}
-var _ ServerError = WriteException{}
-var _ ServerError = BulkWriteException{}
+var (
+	_ ServerError = CommandError{}
+	_ ServerError = WriteError{}
+	_ ServerError = WriteException{}
+	_ ServerError = BulkWriteException{}
+)
 
 var _ error = ClientBulkWriteException{}
 
@@ -900,4 +902,18 @@ func joinBatchErrors(errs []error) string {
 	fmt.Fprint(&buf, "]")
 
 	return buf.String()
+}
+
+// ErrorCodes returns the list of server error codes contained in err.
+func ErrorCodes(err error) []int {
+	if err == nil {
+		return nil
+	}
+
+	var ec interface{ ErrorCodes() []int }
+	if errors.As(wrapErrors(err), &ec) {
+		return ec.ErrorCodes()
+	}
+
+	return []int{}
 }
