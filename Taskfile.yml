@@ -1,14 +1,13 @@
 # See https://taskfile.dev/usage/
-version: '3'
+version: "3"
 
 env:
   TEST_TIMEOUT: 1800
   LONG_TEST_TIMEOUT: 3600
 
-dotenv: ['.test.env']
+dotenv: [".test.env"]
 
 tasks:
-
   ### Utility tasks. ###
   default:
     deps: [build, check-license, check-fmt, check-modules, lint, test-short]
@@ -160,7 +159,7 @@ tasks:
 
   evg-test-search-index:
     # Use the long timeout to wait for the responses from the server.
-    - go test ./internal/integration -run ^TestSearchIndexProse$ -v -timeout {{.LONG_TEST_TIMEOUT}}s >> test.suite
+    - go test ./internal/integration -run TestSearchIndexProse -v -timeout {{.LONG_TEST_TIMEOUT}}s >> test.suite
 
   evg-test-ocsp:
     - go test -v ./mongo -run TestOCSP ${OCSP_TLS_SHOULD_SUCCEED} >> test.suite

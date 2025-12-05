@@ -496,42 +496,53 @@ func TestSearchIndexProse(t *testing.T) {
 		})
 
 	mt.Run("case 9: Drivers use server default for unspecified name (`default`) and type (`search`)", func(mt *mtest.T) {
-		view := mt.Coll.SearchIndexes()
-		definition := bson.D{
-			{"mappings", bson.D{
-				{"dynamic", true},
-			}},
+		cases := []struct {
+			name string
+			opts *options.SearchIndexesOptionsBuilder
+		}{
+			{name: "empty options", opts: options.SearchIndexes()},
+			{name: "nil options", opts: nil},
 		}
-		opts := options.SearchIndexes()
 
-		indexName, err := view.CreateOne(context.Background(), mongo.SearchIndexModel{
-			Definition: definition,
-			Options:    opts,
-		})
-		require.NoError(mt, err, "failed to create index")
-		require.Equal(mt, "default", indexName)
+		for _, tc := range cases {
+			mt.Run(tc.name, func(mt *mtest.T) {
+				view := mt.Coll.SearchIndexes()
+				definition := bson.D{
+					{"mappings", bson.D{
+						{"dynamic", true},
+					}},
+				}
 
-		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
-		defer cancel()
+				indexName, err := view.CreateOne(context.Background(), mongo.SearchIndexModel{
+					Definition: definition,
+					Options:    tc.opts,
+				})
+				require.NoError(mt, err, "failed to create index")
+				require.Equal(mt, "default", indexName)
 
-		var doc bson.Raw
-		for doc == nil {
-			cursor, err := view.List(ctx, opts)
-			require.NoError(mt, err, "failed to list")
+				ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+				defer cancel()
 
-			if !cursor.Next(ctx) {
-				break
-			}
-			name := cursor.Current.Lookup("name").StringValue()
-			queryable := cursor.Current.Lookup("queryable").Boolean()
-			indexType := cursor.Current.Lookup("type").StringValue()
-			if name == indexName && queryable {
-				doc = cursor.Current
-				require.Equal(mt, indexType, "search")
-			} else {
-				mt.Logf("cursor: %s, sleep 5 seconds...", cursor.Current.String())
-				time.Sleep(5 * time.Second)
-			}
+				var doc bson.Raw
+				for doc == nil {
+					cursor, err := view.List(ctx, tc.opts)
+					require.NoError(mt, err, "failed to list")
+
+					if !cursor.Next(ctx) {
+						break
+					}
+					name := cursor.Current.Lookup("name").StringValue()
+					queryable := cursor.Current.Lookup("queryable").Boolean()
+					indexType := cursor.Current.Lookup("type").StringValue()
+					if name == indexName && queryable {
+						doc = cursor.Current
+						require.Equal(mt, indexType, "search")
+					} else {
+						mt.Logf("cursor: %s, sleep 5 seconds...", cursor.Current.String())
+						time.Sleep(5 * time.Second)
+					}
+				}
+			})
 		}
 	})
 }
