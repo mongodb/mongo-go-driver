@@ -12,24 +12,28 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
+	"github.com/docker/docker/api/types/container"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
 )
 
-var versions = []string{
-	"1.19",
-	"1.20",
-	"1.21",
-	"1.22",
-	"1.23",
-	"1.24",
-	"1.25",
+func getVersions(t *testing.T) []string {
+	t.Helper()
+
+	env := os.Getenv("GO_VERSIONS")
+	if env == "" {
+		t.Skip("GO_VERSIONS environment variable not set")
+	}
+
+	return strings.Split(env, ",")
 }
 
 func TestCompileCheck(t *testing.T) {
+	versions := getVersions(t)
 	cwd, err := os.Getwd()
 	require.NoError(t, err)
 
@@ -43,12 +47,12 @@ func TestCompileCheck(t *testing.T) {
 			t.Parallel()
 
 			req := testcontainers.ContainerRequest{
-				Image: image,
-				Cmd:   []string{"tail", "-f", "/dev/null"},
-				Mounts: []testcontainers.ContainerMount{
-					testcontainers.BindMount(rootDir, "/workspace"),
-				},
+				Image:      image,
+				Cmd:        []string{"tail", "-f", "/dev/null"},
 				WorkingDir: "/workspace",
+				HostConfigModifier: func(hostConfig *container.HostConfig) {
+					hostConfig.Binds = []string{fmt.Sprintf("%s:/workspace", rootDir)}
+				},
 				Env: map[string]string{
 					"GC": "go",
 					// Compilation modules are not part of the workspace as testcontainers requires
