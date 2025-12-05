@@ -92,7 +92,7 @@ tasks:
     summary: |
       Generate a CycloneDX SBOM with the cyclonedx-gomod 'mod' subcommand
       The SBOM includes the aggregate of modules required by packages in the mongo-go-driver library, excluding examples, tests and test packages.
-      Task will run only when go.mod is newer than sbom.cdx.json.
+      Task will run only when go.mod is newer than sbom.json.
     method: timestamp
     sources: [go.mod]
     generates: [sbom.json]

@@ -78,6 +78,6 @@ repos:
   - id: sbom-currency
     name: sbom-currency
     language: system
-    types: [json]
+    files: ^(go\.mod)$
     require_serial: true
     entry: etc/generate-sbom.sh -c
