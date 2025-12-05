@@ -7,29 +7,52 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
+	"github.com/docker/docker/api/types/container"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
 )
 
-var versions = []string{
-	"1.19",
-	"1.20",
-	"1.21",
-	"1.22",
-	"1.23",
-	"1.24",
-	"1.25",
+const mainGo = `package main
+
+import (
+	"fmt"
+
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+)
+
+func main() {
+	_, _ = mongo.Connect(options.Client())
+	fmt.Println(bson.D{{Key: "key", Value: "value"}})
+}
+`
+
+var architectures = []string{"386", "arm", "arm64", "amd64", "ppc64le", "s390x"}
+
+func getVersions(t *testing.T) []string {
+	t.Helper()
+
+	env := os.Getenv("GO_VERSIONS")
+	if env == "" {
+		t.Skip("GO_VERSIONS environment variable not set")
+	}
+
+	return strings.Split(env, ",")
 }
 
 func TestCompileCheck(t *testing.T) {
+	versions := getVersions(t)
 	cwd, err := os.Getwd()
 	require.NoError(t, err)
 
@@ -43,18 +66,17 @@ func TestCompileCheck(t *testing.T) {
 			t.Parallel()
 
 			req := testcontainers.ContainerRequest{
-				Image: image,
-				Cmd:   []string{"tail", "-f", "/dev/null"},
-				Mounts: []testcontainers.ContainerMount{
-					testcontainers.BindMount(rootDir, "/workspace"),
+				Image:      image,
+				Cmd:        []string{"tail", "-f", "/dev/null"},
+				WorkingDir: "/app",
+				HostConfigModifier: func(hostConfig *container.HostConfig) {
+					hostConfig.Binds = []string{fmt.Sprintf("%s:/driver", rootDir)}
 				},
-				WorkingDir: "/workspace",
-				Env: map[string]string{
-					"GC": "go",
-					// Compilation modules are not part of the workspace as testcontainers requires
-					// a version of klauspost/compress not supported by the Go Driver / other modules
-					// in the workspace.
-					"GOWORK": "off",
+				Files: []testcontainers.ContainerFile{
+					{
+						ContainerFilePath: "/app/main.go",
+						Reader:            bytes.NewReader([]byte(mainGo)),
+					},
 				},
 			}
 
@@ -71,14 +93,47 @@ func TestCompileCheck(t *testing.T) {
 				require.NoError(t, err)
 			}()
 
-			exitCode, outputReader, err := container.Exec(context.Background(), []string{"bash", "etc/compile_check.sh"})
+			// Initialize go module and set up replace directive to use local driver.
+			setupCmds := [][]string{
+				{"go", "mod", "init", "app"},
+				{"go", "mod", "edit", "-replace", "go.mongodb.org/mongo-driver/v2=/driver"},
+				{"go", "mod", "tidy"},
+			}
+
+			for _, cmd := range setupCmds {
+				exitCode, outputReader, err := container.Exec(context.Background(), cmd)
+				require.NoError(t, err)
+
+				output, err := io.ReadAll(outputReader)
+				require.NoError(t, err)
+
+				require.Equal(t, 0, exitCode, "command %v failed: %s", cmd, output)
+			}
+
+			// Standard build.
+			exitCode, outputReader, err := container.Exec(context.Background(), []string{"go", "build", "./..."})
 			require.NoError(t, err)
 
 			output, err := io.ReadAll(outputReader)
 			require.NoError(t, err)
 
-			t.Logf("output: %s", output)
-			assert.Equal(t, 0, exitCode)
+			require.Equal(t, 0, exitCode, "standard build failed: %s", output)
+
+			// Check build with various architectures.
+			for _, arch := range architectures {
+				exitCode, outputReader, err := container.Exec(
+					context.Background(),
+					[]string{"sh", "-c", fmt.Sprintf("GOOS=linux GOARCH=%s go build ./...", arch)},
+				)
+				require.NoError(t, err)
+
+				output, err := io.ReadAll(outputReader)
+				require.NoError(t, err)
+
+				assert.Equal(t, 0, exitCode, "build for GOARCH=%s failed: %s", arch, output)
+			}
+
+			t.Logf("compilation checks passed for %s", image)
 		})
 	}
 }

@@ -25,12 +25,10 @@ tasks:
       - go build ./...
       - go build ${BUILD_TAGS} ./...
       - task: build-tests
-      - task: build-compile-check
+      - task: build-compile-check-all
       - task: cross-compile
 
   build-tests: go test -short ${BUILD_TAGS} -run ^$$ ./...
-
-  build-compile-check: bash etc/compile_check.sh
 
   build-compile-check-all: bash etc/run-compile-check-test.sh
 
