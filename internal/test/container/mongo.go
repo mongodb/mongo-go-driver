@@ -74,7 +74,7 @@ func NewMongo(t *testing.T, ctx context.Context, optionFuncs ...MongoOption) (*m
 		t.Helper()
 
 		require.NoError(t, testcontainers.TerminateContainer(mongolocalContainer),
-			"failed to terminate atlaslocal container")
+			"failed to terminate MongoDB container")
 	}
 
 	connString, err := mongolocalContainer.ConnectionString(ctx)
