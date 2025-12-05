@@ -38,7 +38,7 @@ func main() {
 }
 `
 
-var architectures = []string{"386", "arm", "arm64", "ppc64le", "s390x"}
+var architectures = []string{"386", "arm", "arm64", "amd64", "ppc64le", "s390x"}
 
 func getVersions(t *testing.T) []string {
 	t.Helper()
