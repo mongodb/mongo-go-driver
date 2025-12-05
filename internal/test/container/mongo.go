@@ -68,7 +68,7 @@ func NewMongo(t *testing.T, ctx context.Context, optionFuncs ...MongoOption) (*m
 	}
 
 	mongolocalContainer, err := mongodb.Run(ctx, image, containerOpts...)
-	require.NoError(t, err, "failed to start atlaslocal container")
+	require.NoError(t, err, "failed to start MongoDB container")
 
 	tdFunc := func(t *testing.T) {
 		t.Helper()
