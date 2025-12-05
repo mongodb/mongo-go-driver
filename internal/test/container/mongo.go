@@ -67,17 +67,17 @@ func NewMongo(t *testing.T, ctx context.Context, optionFuncs ...MongoOption) (*m
 		containerOpts = append(containerOpts, testcontainers.WithWaitStrategy(waitStrategy))
 	}
 
-	mongolocalContainer, err := mongodb.Run(ctx, image, containerOpts...)
+	mongoContainer, err := mongodb.Run(ctx, image, containerOpts...)
 	require.NoError(t, err, "failed to start MongoDB container")
 
 	tdFunc := func(t *testing.T) {
 		t.Helper()
 
-		require.NoError(t, testcontainers.TerminateContainer(mongolocalContainer),
+		require.NoError(t, testcontainers.TerminateContainer(mongoContainer),
 			"failed to terminate MongoDB container")
 	}
 
-	connString, err := mongolocalContainer.ConnectionString(ctx)
+	connString, err := mongoContainer.ConnectionString(ctx)
 	if err != nil {
 		tdFunc(t)
 		t.Fatalf("failed to get connection string: %s", err)
