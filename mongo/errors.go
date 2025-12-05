@@ -904,8 +904,8 @@ func joinBatchErrors(errs []error) string {
 	return buf.String()
 }
 
-// ErrorCodesFrom returns the list of server error codes contained in err.
-func ErrorCodesFrom(err error) []int {
+// ErrorCodes returns the list of server error codes contained in err.
+func ErrorCodes(err error) []int {
 	if err == nil {
 		return nil
 	}
