@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
-  "serialNumber": "urn:uuid:03582aab-e289-4eb8-9a85-eebdc4b8bf8a",
+  "serialNumber": "urn:uuid:e425de21-e2e7-462f-9e9e-8717ba68514e",
   "version": 1,
   "metadata": {
-    "timestamp": "2025-08-04T16:09:43-04:00",
+    "timestamp": "2025-12-04T18:42:32-08:00",
     "tools": [
       {
         "vendor": "CycloneDX",
@@ -14,23 +14,23 @@
         "hashes": [
           {
             "alg": "MD5",
-            "content": "56b744e437c1ba4bb7f443b5846a21d2"
+            "content": "a87d4648b958d7e04c61971d2df2b020"
           },
           {
             "alg": "SHA-1",
-            "content": "10ec58662be68ba3dfba7b2488d6585632f0a5c0"
+            "content": "b742b751dba5c90d13996a46302a7605142f5e54"
           },
           {
             "alg": "SHA-256",
-            "content": "0102cf3082192b20c8e8c99c12ad54808eb0dbeb6627ea8ea5e2df117732f134"
+            "content": "2e1cba54adc4999b6e023f937d9e7d809a49d3f1fe928e44915d7930e26787e7"
           },
           {
             "alg": "SHA-384",
-            "content": "1e2c8756c2d4facfd910c938f68b5635626413a56b2aeefe0c6b8e79182ec0974242c3a38fcee85ccb3e227aa4adfbce"
+            "content": "75c49bc565c88d862b55d6c0bef098b1a7d4d9b12ed248157079385931652b7e8df0d8e93f8355f075c3cbadb9039f45"
           },
           {
             "alg": "SHA-512",
-            "content": "afffbed84e1bbc5320974be54df7bf58165ef40c4ba6d87f02494bdf2b6f19a1e3ccdc873dcd993c00eab29920ee94d8c6ee5f3fb09d4915b33e276260f8661a"
+            "content": "c543586507ca06db1d728cc1daaf09f6ce18e6ba0b6d77f80c05b87c5bb4a9c5065ddc51637efe69dea6c0f6f9e9a8fd3bb5cb873369b9d414d6eb97b4fe2023"
           }
         ],
         "externalReferences": [
@@ -46,10 +46,10 @@
       }
     ],
     "component": {
-      "bom-ref": "pkg:golang/go.mongodb.org/mongo-driver/v2@v2.2.3-0.20250605220432-a0f897bda6ce?type=module",
+      "bom-ref": "pkg:golang/go.mongodb.org/mongo-driver/v2@v2.4.1-0.20251028034235-9bd07db1ed8f?type=module",
       "type": "library",
       "name": "go.mongodb.org/mongo-driver/v2",
-      "version": "v2.2.3-0.20250605220432-a0f897bda6ce",
+      "version": "v2.4.1-0.20251028034235-9bd07db1ed8f",
       "licenses": [
         {
           "license": {
@@ -57,7 +57,7 @@
           }
         }
       ],
-      "purl": "pkg:golang/go.mongodb.org/mongo-driver/v2@v2.2.3-0.20250605220432-a0f897bda6ce"
+      "purl": "pkg:golang/go.mongodb.org/mongo-driver/v2@v2.4.1-0.20251028034235-9bd07db1ed8f"
     }
   },
   "components": [
@@ -116,15 +116,15 @@
       ]
     },
     {
-      "bom-ref": "pkg:golang/github.com/klauspost/compress@v1.16.7?type=module",
+      "bom-ref": "pkg:golang/github.com/klauspost/compress@v1.17.6?type=module",
       "type": "library",
       "name": "github.com/klauspost/compress",
-      "version": "v1.16.7",
+      "version": "v1.17.6",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "da693730f18dccacb112b030f186a885887af7ea5ae2c210482d1f3c608547d2"
+          "content": "eb47aad84fe395fc105edbd911e0546000ecf81c0a056511218f868f67911a32"
         }
       ],
       "licenses": [
@@ -134,7 +134,7 @@
           }
         }
       ],
-      "purl": "pkg:golang/github.com/klauspost/compress@v1.16.7",
+      "purl": "pkg:golang/github.com/klauspost/compress@v1.17.6",
       "externalReferences": [
         {
           "url": "https://github.com/klauspost/compress",
@@ -170,15 +170,15 @@
       ]
     },
     {
-      "bom-ref": "pkg:golang/github.com/xdg-go/scram@v1.1.2?type=module",
+      "bom-ref": "pkg:golang/github.com/xdg-go/scram@v1.2.0?type=module",
       "type": "library",
       "name": "github.com/xdg-go/scram",
-      "version": "v1.1.2",
+      "version": "v1.2.0",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "1475f92390788b884a455441085471ab589045e8fb58ede1841b897fe514c926"
+          "content": "6d8285d801301b9aea77506e993e20027bf053f33d9c1a76a534b1799c3b5afb"
         }
       ],
       "licenses": [
@@ -188,7 +188,7 @@
           }
         }
       ],
-      "purl": "pkg:golang/github.com/xdg-go/scram@v1.1.2",
+      "purl": "pkg:golang/github.com/xdg-go/scram@v1.2.0",
       "externalReferences": [
         {
           "url": "https://github.com/xdg-go/scram",
@@ -316,12 +316,12 @@
   ],
   "dependencies": [
     {
-      "ref": "pkg:golang/go.mongodb.org/mongo-driver/v2@v2.2.3-0.20250605220432-a0f897bda6ce?type=module",
+      "ref": "pkg:golang/go.mongodb.org/mongo-driver/v2@v2.4.1-0.20251028034235-9bd07db1ed8f?type=module",
       "dependsOn": [
         "pkg:golang/github.com/davecgh/go-spew@v1.1.1?type=module",
         "pkg:golang/github.com/golang/snappy@v1.0.0?type=module",
-        "pkg:golang/github.com/klauspost/compress@v1.16.7?type=module",
-        "pkg:golang/github.com/xdg-go/scram@v1.1.2?type=module",
+        "pkg:golang/github.com/klauspost/compress@v1.17.6?type=module",
+        "pkg:golang/github.com/xdg-go/scram@v1.2.0?type=module",
         "pkg:golang/github.com/xdg-go/stringprep@v1.0.4?type=module",
         "pkg:golang/github.com/youmark/pkcs8@v0.0.0-20240726163527-a2c0da244d78?type=module",
         "pkg:golang/golang.org/x/crypto@v0.33.0?type=module",
@@ -335,16 +335,17 @@
       "ref": "pkg:golang/github.com/golang/snappy@v1.0.0?type=module"
     },
     {
-      "ref": "pkg:golang/github.com/klauspost/compress@v1.16.7?type=module"
+      "ref": "pkg:golang/github.com/klauspost/compress@v1.17.6?type=module"
     },
     {
       "ref": "pkg:golang/github.com/xdg-go/pbkdf2@v1.0.0?type=module"
     },
     {
-      "ref": "pkg:golang/github.com/xdg-go/scram@v1.1.2?type=module",
+      "ref": "pkg:golang/github.com/xdg-go/scram@v1.2.0?type=module",
       "dependsOn": [
         "pkg:golang/github.com/xdg-go/pbkdf2@v1.0.0?type=module",
-        "pkg:golang/github.com/xdg-go/stringprep@v1.0.4?type=module"
+        "pkg:golang/github.com/xdg-go/stringprep@v1.0.4?type=module",
+        "pkg:golang/golang.org/x/text@v0.22.0?type=module"
       ]
     },
     {
