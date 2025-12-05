@@ -26,7 +26,7 @@ type mongoOptions struct {
 	image           string
 }
 
-// MongoOption is a function that configures NewAtlasLocal.
+// MongoOption is a function that configures NewMongo.
 type MongoOption func(*mongoOptions)
 
 // WithMongoClientOptions configures the mongo.Client options used to connect.
