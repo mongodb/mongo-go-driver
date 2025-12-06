@@ -27,9 +27,10 @@ type collectionData struct {
 }
 
 type createOptions struct {
-	Capped          *bool  `bson:"capped"`
-	SizeInBytes     *int64 `bson:"size"`
-	EncryptedFields any    `bson:"encryptedFields"`
+	Capped          *bool    `bson:"capped"`
+	SizeInBytes     *int64   `bson:"size"`
+	EncryptedFields bson.Raw `bson:"encryptedFields"`
+	Validator       bson.Raw `bson:"validator"`
 }
 
 // createCollection configures the collection represented by the receiver using the internal client. This function
@@ -52,6 +53,9 @@ func (c *collectionData) createCollection(ctx context.Context) error {
 		}
 		if c.Options.EncryptedFields != nil {
 			createOpts = createOpts.SetEncryptedFields(c.Options.EncryptedFields)
+		}
+		if c.Options.Validator != nil {
+			createOpts = createOpts.SetValidator(c.Options.Validator)
 		}
 
 		if err := db.CreateCollection(ctx, c.CollectionName, createOpts); err != nil {

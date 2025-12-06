@@ -390,6 +390,14 @@ var skipTests = map[string][]string{
 	"Extend Legacy Unified Spec Runner for client-side-encryption timeoutMS (GODRIVER-3521)": {
 		"TestClientSideEncryptionSpec/timeoutMS.json/remaining_timeoutMS_applied_to_find_to_get_keyvault_data",
 		"TestClientSideEncryptionSpec/timeoutMS.json/timeoutMS_applied_to_listCollections_to_get_collection_schema",
+		"TestUnifiedSpec/client-side-encryption/tests/unified/timeoutMS.json/remaining_timeoutMS_applied_to_find_to_get_keyvault_data",
+		"TestUnifiedSpec/client-side-encryption/tests/unified/timeoutMS.json/timeoutMS_applied_to_listCollections_to_get_collection_schema",
+	},
+
+	// TODO(GODRIVER-3403): Support QE with Client.bulkWrite
+	"Support QE with Client.bulkWrite (GODRIVER-3403)": {
+		"TestUnifiedSpec/client-side-encryption/tests/unified/client-bulkWrite-qe.json/client_bulkWrite_QE_replaceOne",
+		"TestUnifiedSpec/client-side-encryption/tests/unified/client-bulkWrite-qe.json/client_bulkWrite_QE_with_multiple_replace_fails",
 	},
 
 	// TODO(GODRIVER-3076): CSFLE/QE Support for more than 1 KMS provider per

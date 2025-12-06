@@ -8,9 +8,8 @@ package unified
 
 import (
 	"context"
-	"encoding/base64"
+	"crypto/tls"
 	"fmt"
-	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -34,19 +33,11 @@ import (
 // exceed the default truncation length.
 const defaultMaxDocumentLen = 10_000
 
-var (
-	// Security-sensitive commands that should be ignored in command monitoring by default.
-	securitySensitiveCommands = []string{
-		"authenticate", "saslStart", "saslContinue", "getnonce",
-		"createUser", "updateUser", "copydbgetnonce", "copydbsaslstart", "copydb",
-	}
-
-	awsAccessKeyID     = os.Getenv("FLE_AWS_KEY")
-	awsSecretAccessKey = os.Getenv("FLE_AWS_SECRET")
-	azureTenantID      = os.Getenv("FLE_AZURE_TENANTID")
-	azureClientID      = os.Getenv("FLE_AZURE_CLIENTID")
-	azureClientSecret  = os.Getenv("FLE_AZURE_CLIENTSECRET")
-)
+// Security-sensitive commands that should be ignored in command monitoring by default.
+var securitySensitiveCommands = []string{
+	"authenticate", "saslStart", "saslContinue", "getnonce",
+	"createUser", "updateUser", "copydbgetnonce", "copydbsaslstart", "copydb",
+}
 
 // clientEntity is a wrapper for a mongo.Client object that also holds additional information required during test
 // execution.
@@ -288,31 +279,27 @@ func createAutoEncryptionOptions(opts bson.Raw) (*options.AutoEncryptionOptions,
 				return nil, err
 			}
 			for _, elem := range elems {
-				provider := elem.Key()
-				providerOpt := elem.Value()
-				switch provider {
-				case "aws":
-					providers["aws"] = map[string]any{
-						"accessKeyId":     awsAccessKeyID,
-						"secretAccessKey": awsSecretAccessKey,
-					}
-				case "azure":
-					providers["azure"] = map[string]any{
-						"tenantId":     azureTenantID,
-						"clientId":     azureClientID,
-						"clientSecret": azureClientSecret,
-					}
-				case "local":
-					str := providerOpt.Document().Lookup("key").StringValue()
-					key, err := base64.StdEncoding.DecodeString(str)
+				key := elem.Key()
+				opt := elem.Value().Document()
+				provider, err := getKmsProvider(key, opt)
+				if err != nil {
+					return nil, err
+				}
+				if provider == nil {
+					continue
+				}
+				providers[key] = provider
+				if key == "kmip" && tlsClientCertificateKeyFile != "" && tlsCAFile != "" {
+					cfg, err := options.BuildTLSConfig(map[string]any{
+						"tlsCertificateKeyFile": tlsClientCertificateKeyFile,
+						"tlsCAFile":             tlsCAFile,
+					})
 					if err != nil {
-						return nil, err
+						return nil, fmt.Errorf("error constructing tls config: %w", err)
 					}
-					providers["local"] = map[string]any{
-						"key": key,
-					}
-				default:
-					return nil, fmt.Errorf("unrecognized KMS provider: %v", provider)
+					aeo.SetTLSConfig(map[string]*tls.Config{
+						"kmip": cfg,
+					})
 				}
 			}
 			aeo.SetKmsProviders(providers)
@@ -320,12 +307,21 @@ func createAutoEncryptionOptions(opts bson.Raw) (*options.AutoEncryptionOptions,
 			var schemaMap map[string]any
 			err := bson.Unmarshal(opt.Document(), &schemaMap)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("error creating schema map: %v", err)
 			}
 			aeo.SetSchemaMap(schemaMap)
 		case "keyVaultNamespace":
 			kvnsFound = true
 			aeo.SetKeyVaultNamespace(opt.StringValue())
+		case "bypassAutoEncryption":
+			aeo.SetBypassAutoEncryption(opt.Boolean())
+		case "encryptedFieldsMap":
+			var encryptedFieldsMap map[string]any
+			err := bson.Unmarshal(opt.Document(), &encryptedFieldsMap)
+			if err != nil {
+				return nil, fmt.Errorf("error creating encryptedFieldsMap: %v", err)
+			}
+			aeo.SetEncryptedFieldsMap(encryptedFieldsMap)
 		case "bypassQueryAnalysis":
 			aeo.SetBypassQueryAnalysis(opt.Boolean())
 		default:

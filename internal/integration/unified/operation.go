@@ -275,6 +275,21 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 	case "decrypt":
 		return executeDecrypt(ctx, op)
 
+	case "assertIndexNotExists":
+		db := lookupString(op.Arguments, "databaseName")
+		coll := lookupString(op.Arguments, "collectionName")
+		index := lookupString(op.Arguments, "indexName")
+		return newErrorResult(nil), verifyIndexExists(ctx, db, coll, index, false)
+	case "assertIndexExists":
+		db := lookupString(op.Arguments, "databaseName")
+		coll := lookupString(op.Arguments, "collectionName")
+		index := lookupString(op.Arguments, "indexName")
+		return newErrorResult(nil), verifyIndexExists(ctx, db, coll, index, true)
+	case "assertCollectionExists":
+		db := lookupString(op.Arguments, "databaseName")
+		coll := lookupString(op.Arguments, "collectionName")
+		return newErrorResult(nil), verifyCollectionExists(ctx, db, coll, true)
+
 	// Unsupported operations
 	case "count", "listIndexNames", "mapReduce":
 		return nil, newSkipTestError(fmt.Sprintf("the %q operation is not supported", op.Name))
