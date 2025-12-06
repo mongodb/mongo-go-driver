@@ -8,6 +8,7 @@ package unified
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"strings"
 	"sync"
@@ -217,6 +218,13 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 	} else {
 		integtest.AddTestServerAPIVersion(clientOpts)
 	}
+	if entityOptions.AutoEncryptOpts != nil {
+		aeo, err := createAutoEncryptionOptions(entityOptions.AutoEncryptOpts)
+		if err != nil {
+			return nil, fmt.Errorf("error parsing auto encryption options: %w", err)
+		}
+		clientOpts.SetAutoEncryptionOptions(aeo)
+	}
 	for _, cmd := range entityOptions.IgnoredCommands {
 		entity.ignoredCommands[cmd] = struct{}{}
 	}
@@ -249,6 +257,82 @@ func getURIForClient(opts *entityOptions) string {
 	default:
 		return mtest.MultiMongosLoadBalancerURI()
 	}
+}
+
+func createAutoEncryptionOptions(opts bson.Raw) (*options.AutoEncryptionOptions, error) {
+	aeo := options.AutoEncryption()
+	var kvnsFound bool
+	elems, err := opts.Elements()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, elem := range elems {
+		name := elem.Key()
+		opt := elem.Value()
+
+		switch name {
+		case "kmsProviders":
+			providers := make(map[string]map[string]any)
+			elems, err := opt.Document().Elements()
+			if err != nil {
+				return nil, err
+			}
+			for _, elem := range elems {
+				key := elem.Key()
+				opt := elem.Value().Document()
+				provider, err := getKmsProvider(key, opt)
+				if err != nil {
+					return nil, err
+				}
+				if provider == nil {
+					continue
+				}
+				providers[key] = provider
+				if key == "kmip" && tlsClientCertificateKeyFile != "" && tlsCAFile != "" {
+					cfg, err := options.BuildTLSConfig(map[string]any{
+						"tlsCertificateKeyFile": tlsClientCertificateKeyFile,
+						"tlsCAFile":             tlsCAFile,
+					})
+					if err != nil {
+						return nil, fmt.Errorf("error constructing tls config: %w", err)
+					}
+					aeo.SetTLSConfig(map[string]*tls.Config{
+						"kmip": cfg,
+					})
+				}
+			}
+			aeo.SetKmsProviders(providers)
+		case "schemaMap":
+			var schemaMap map[string]any
+			err := bson.Unmarshal(opt.Document(), &schemaMap)
+			if err != nil {
+				return nil, fmt.Errorf("error creating schema map: %v", err)
+			}
+			aeo.SetSchemaMap(schemaMap)
+		case "keyVaultNamespace":
+			kvnsFound = true
+			aeo.SetKeyVaultNamespace(opt.StringValue())
+		case "bypassAutoEncryption":
+			aeo.SetBypassAutoEncryption(opt.Boolean())
+		case "encryptedFieldsMap":
+			var encryptedFieldsMap map[string]any
+			err := bson.Unmarshal(opt.Document(), &encryptedFieldsMap)
+			if err != nil {
+				return nil, fmt.Errorf("error creating encryptedFieldsMap: %v", err)
+			}
+			aeo.SetEncryptedFieldsMap(encryptedFieldsMap)
+		case "bypassQueryAnalysis":
+			aeo.SetBypassQueryAnalysis(opt.Boolean())
+		default:
+			return nil, fmt.Errorf("unrecognized option: %v", name)
+		}
+	}
+	if !kvnsFound {
+		aeo.SetKeyVaultNamespace("keyvault.datakeys")
+	}
+
+	return aeo, nil
 }
 
 // disconnect disconnects the client associated with this entity. It is an

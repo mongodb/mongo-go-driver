@@ -150,6 +150,19 @@ func verifyValuesMatchInner(ctx context.Context, expected, actual bson.RawValue)
 		return nil
 	}
 
+	if expected.Type == bson.TypeDecimal128 {
+		if actual.Type != bson.TypeDecimal128 {
+			return newMatchingError(keyPath, "expected value to be a decimal type but got a %s", actual.Type)
+		}
+		expectedDecimal := expected.Decimal128()
+		actualDecimal := actual.Decimal128()
+		eh, el := expectedDecimal.GetBytes()
+		ah, al := actualDecimal.GetBytes()
+		if eh != ah || el != al {
+			return newMatchingError(keyPath, "expected decimal value %v, got %v", expectedDecimal, actualDecimal)
+		}
+		return nil
+	}
 	// Numeric values must be considered equal even if their types are different (e.g. if expected is an int32 and
 	// actual is an int64).
 	if expected.IsNumber() {

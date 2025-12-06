@@ -13,6 +13,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"regexp"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -33,6 +34,8 @@ var (
 	tlsClientCertificateKeyFile = os.Getenv("CSFLE_TLS_CLIENT_CERT_FILE")
 )
 
+var placeholderDoc = bsoncore.NewDocumentBuilder().AppendInt32("$$placeholder", 1).Build()
+
 type storeEventsAsEntitiesConfig struct {
 	EventListID string   `bson:"id"`
 	Events      []string `bson:"events"`
@@ -52,6 +55,7 @@ type entityOptions struct {
 	ID string `bson:"id"`
 
 	// Options for client entities.
+	AutoEncryptOpts          bson.Raw                      `bson:"autoEncryptOpts"`
 	URIOptions               bson.M                        `bson:"uriOptions"`
 	UseMultipleMongoses      *bool                         `bson:"useMultipleMongoses"`
 	ObserveEvents            []string                      `bson:"observeEvents"`
@@ -503,6 +507,24 @@ func (em *EntityMap) close(ctx context.Context) []error {
 		}
 	}
 
+	// Clear automatically created collections used for queryable encryption
+	re := regexp.MustCompile("^enxcol_.*.e(sc|coc)$")
+	for id, db := range em.dbEntites {
+		colls, err := db.ListCollectionNames(ctx, bson.D{})
+		if err != nil {
+			errs = append(errs, fmt.Errorf("error listing collections in database with ID %q: %w", id, err))
+			continue
+		}
+		for _, coll := range colls {
+			if re.MatchString(coll) {
+				_, err = db.Collection(coll).DeleteMany(ctx, bson.D{})
+				if err != nil {
+					errs = append(errs, fmt.Errorf("error clearing collection %q: %w", coll, err))
+				}
+			}
+		}
+	}
+
 	for id, client := range em.clientEntities {
 		if ok := em.keyVaultClientIDs[id]; ok {
 			// Client will be closed in clientEncryption.Close()
@@ -563,13 +585,13 @@ func (em *EntityMap) addDatabaseEntity(entityOptions *entityOptions) error {
 // getKmsCredential processes a value of an input KMS provider credential.
 // An empty document returns from the environment.
 // A string is returned as-is.
-func getKmsCredential(kmsDocument bson.Raw, credentialName string, envVar string, defaultValue string) (string, error) {
+func getKmsCredential(kmsDocument bson.Raw, credentialName string, envVar string, defaultValue string) (any, error) {
 	credentialVal, err := kmsDocument.LookupErr(credentialName)
 	if errors.Is(err, bsoncore.ErrElementNotFound) {
-		return "", nil
+		return nil, nil
 	}
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if str, ok := credentialVal.StringValueOK(); ok {
@@ -579,26 +601,118 @@ func getKmsCredential(kmsDocument bson.Raw, credentialName string, envVar string
 	var ok bool
 	var doc bson.Raw
 	if doc, ok = credentialVal.DocumentOK(); !ok {
-		return "", fmt.Errorf("expected String or Document for %v, got: %v", credentialName, credentialVal)
+		return nil, fmt.Errorf("expected String or Document for %v, got: %v", credentialName, credentialVal)
 	}
-
-	placeholderDoc := bsoncore.NewDocumentBuilder().AppendInt32("$$placeholder", 1).Build()
 
 	// Check if document is a placeholder.
 	if !bytes.Equal(doc, placeholderDoc) {
-		return "", fmt.Errorf("unexpected non-empty document for %v: %v", credentialName, doc)
+		return nil, fmt.Errorf("unexpected non-empty document for %v: %v", credentialName, doc)
 	}
+
 	if envVar == "" {
 		return defaultValue, nil
 	}
-	if os.Getenv(envVar) == "" {
-		if defaultValue != "" {
-			return defaultValue, nil
-		}
-		return "", fmt.Errorf("unable to get environment value for %v. Please set the CSFLE environment variable: %v", credentialName, envVar)
+	if value := os.Getenv(envVar); value != "" {
+		return value, nil
 	}
-	return os.Getenv(envVar), nil
+	if defaultValue != "" {
+		return defaultValue, nil
+	}
+	return nil, fmt.Errorf("unable to get environment value for %v. Please set the CSFLE environment variable: %v", credentialName, envVar)
+}
 
+func getKmsProvider(key string, opt bson.Raw) (map[string]any, error) {
+	provider := make(map[string]any)
+	switch key {
+	case "aws":
+		accessKeyID := "FLE_AWS_KEY"
+		secretAccessKey := "FLE_AWS_SECRET"
+
+		// replace with temporary access, if sessionToken placeholder exists
+		v, err := getKmsCredential(opt, "sessionToken", "", "$$placeholder")
+		if err != nil {
+			return nil, err
+		}
+		if v == "$$placeholder" {
+			provider["sessionToken"] = os.Getenv("CSFLE_AWS_TEMP_SESSION_TOKEN")
+			accessKeyID = "CSFLE_AWS_TEMP_ACCESS_KEY_ID"
+			secretAccessKey = "CSFLE_AWS_TEMP_SECRET_ACCESS_KEY"
+		} else if v != nil {
+			provider["sessionToken"] = v
+		}
+
+		for _, e := range []struct {
+			key    string
+			envVar string
+		}{
+			{"accessKeyId", accessKeyID},
+			{"secretAccessKey", secretAccessKey},
+		} {
+			v, err = getKmsCredential(opt, e.key, e.envVar, "")
+			if err != nil {
+				return nil, err
+			}
+			if v != nil {
+				provider[e.key] = v
+			}
+		}
+	case "azure":
+		for _, e := range []struct {
+			key    string
+			envVar string
+		}{
+			{"tenantId", "FLE_AZURE_TENANTID"},
+			{"clientId", "FLE_AZURE_CLIENTID"},
+			{"clientSecret", "FLE_AZURE_CLIENTSECRET"},
+		} {
+			v, err := getKmsCredential(opt, e.key, e.envVar, "")
+			if err != nil {
+				return nil, err
+			}
+			if v != nil {
+				provider[e.key] = v
+			}
+		}
+	case "gcp":
+		for _, e := range []struct {
+			key    string
+			envVar string
+		}{
+			{"email", "FLE_GCP_EMAIL"},
+			{"privateKey", "FLE_GCP_PRIVATEKEY"},
+		} {
+			v, err := getKmsCredential(opt, e.key, e.envVar, "")
+			if err != nil {
+				return nil, err
+			}
+			if v != nil {
+				provider[e.key] = v
+			}
+		}
+	case "kmip":
+		v, err := getKmsCredential(opt, "endpoint", "", "localhost:5698")
+		if err != nil {
+			return nil, err
+		}
+		if v != nil {
+			provider["endpoint"] = v
+		}
+	case "local", "local:name2":
+		defaultLocalKeyBase64 := "Mng0NCt4ZHVUYUJCa1kxNkVyNUR1QURhZ2h2UzR2d2RrZzh0cFBwM3R6NmdWMDFBMUN3YkQ5aXRRMkhGRGdQV09wOGVNYUMxT2k3NjZKelhaQmRCZGJkTXVyZG9uSjFk"
+		v, err := getKmsCredential(opt, "key", "", defaultLocalKeyBase64)
+		if err != nil {
+			return nil, err
+		}
+		if v != nil {
+			provider["key"] = v
+		}
+	default:
+		return nil, fmt.Errorf("unrecognized KMS provider: %s", key)
+	}
+	if len(provider) == 0 {
+		return nil, nil
+	}
+	return provider, nil
 }
 
 func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) error {
@@ -606,108 +720,16 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 	kmsProviders := make(map[string]map[string]any)
 	ceo := entityOptions.ClientEncryptionOpts
 	tlsconf := make(map[string]*tls.Config)
-	if aws, ok := ceo.KmsProviders["aws"]; ok {
-		kmsProviders["aws"] = make(map[string]any)
-
-		awsSessionToken, err := getKmsCredential(aws, "sessionToken", "CSFLE_AWS_TEMP_SESSION_TOKEN", "")
+	for key, opt := range ceo.KmsProviders {
+		provider, err := getKmsProvider(key, opt)
 		if err != nil {
 			return err
 		}
-		if awsSessionToken != "" {
-			// Get temporary AWS credentials.
-			kmsProviders["aws"]["sessionToken"] = awsSessionToken
-			awsAccessKeyID, err := getKmsCredential(aws, "accessKeyId", "CSFLE_AWS_TEMP_ACCESS_KEY_ID", "")
-			if err != nil {
-				return err
-			}
-			if awsAccessKeyID != "" {
-				kmsProviders["aws"]["accessKeyId"] = awsAccessKeyID
-			}
-
-			awsSecretAccessKey, err := getKmsCredential(aws, "secretAccessKey", "CSFLE_AWS_TEMP_SECRET_ACCESS_KEY", "")
-			if err != nil {
-				return err
-			}
-			if awsSecretAccessKey != "" {
-				kmsProviders["aws"]["secretAccessKey"] = awsSecretAccessKey
-			}
-		} else {
-			awsAccessKeyID, err := getKmsCredential(aws, "accessKeyId", "FLE_AWS_KEY", "")
-			if err != nil {
-				return err
-			}
-			if awsAccessKeyID != "" {
-				kmsProviders["aws"]["accessKeyId"] = awsAccessKeyID
-			}
-
-			awsSecretAccessKey, err := getKmsCredential(aws, "secretAccessKey", "FLE_AWS_SECRET", "")
-			if err != nil {
-				return err
-			}
-			if awsSecretAccessKey != "" {
-				kmsProviders["aws"]["secretAccessKey"] = awsSecretAccessKey
-			}
+		if provider == nil {
+			continue
 		}
-
-	}
-
-	if azure, ok := ceo.KmsProviders["azure"]; ok {
-		kmsProviders["azure"] = make(map[string]any)
-
-		azureTenantID, err := getKmsCredential(azure, "tenantId", "FLE_AZURE_TENANTID", "")
-		if err != nil {
-			return err
-		}
-		if azureTenantID != "" {
-			kmsProviders["azure"]["tenantId"] = azureTenantID
-		}
-
-		azureClientID, err := getKmsCredential(azure, "clientId", "FLE_AZURE_CLIENTID", "")
-		if err != nil {
-			return err
-		}
-		if azureClientID != "" {
-			kmsProviders["azure"]["clientId"] = azureClientID
-		}
-
-		azureClientSecret, err := getKmsCredential(azure, "clientSecret", "FLE_AZURE_CLIENTSECRET", "")
-		if err != nil {
-			return err
-		}
-		if azureClientSecret != "" {
-			kmsProviders["azure"]["clientSecret"] = azureClientSecret
-		}
-	}
-
-	if gcp, ok := ceo.KmsProviders["gcp"]; ok {
-		kmsProviders["gcp"] = make(map[string]any)
-
-		gcpEmail, err := getKmsCredential(gcp, "email", "FLE_GCP_EMAIL", "")
-		if err != nil {
-			return err
-		}
-		if gcpEmail != "" {
-			kmsProviders["gcp"]["email"] = gcpEmail
-		}
-
-		gcpPrivateKey, err := getKmsCredential(gcp, "privateKey", "FLE_GCP_PRIVATEKEY", "")
-		if err != nil {
-			return err
-		}
-		if gcpPrivateKey != "" {
-			kmsProviders["gcp"]["privateKey"] = gcpPrivateKey
-		}
-	}
-
-	if kmip, ok := ceo.KmsProviders["kmip"]; ok {
-		kmsProviders["kmip"] = make(map[string]any)
-
-		kmipEndpoint, err := getKmsCredential(kmip, "endpoint", "", "localhost:5698")
-		if err != nil {
-			return err
-		}
-
-		if tlsClientCertificateKeyFile != "" && tlsCAFile != "" {
+		kmsProviders[key] = provider
+		if key == "kmip" && tlsClientCertificateKeyFile != "" && tlsCAFile != "" {
 			cfg, err := options.BuildTLSConfig(map[string]any{
 				"tlsCertificateKeyFile": tlsClientCertificateKeyFile,
 				"tlsCAFile":             tlsCAFile,
@@ -716,23 +738,6 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 				return fmt.Errorf("error constructing tls config: %w", err)
 			}
 			tlsconf["kmip"] = cfg
-		}
-
-		if kmipEndpoint != "" {
-			kmsProviders["kmip"]["endpoint"] = kmipEndpoint
-		}
-	}
-
-	if local, ok := ceo.KmsProviders["local"]; ok {
-		kmsProviders["local"] = make(map[string]any)
-
-		defaultLocalKeyBase64 := "Mng0NCt4ZHVUYUJCa1kxNkVyNUR1QURhZ2h2UzR2d2RrZzh0cFBwM3R6NmdWMDFBMUN3YkQ5aXRRMkhGRGdQV09wOGVNYUMxT2k3NjZKelhaQmRCZGJkTXVyZG9uSjFk"
-		localKey, err := getKmsCredential(local, "key", "", defaultLocalKeyBase64)
-		if err != nil {
-			return err
-		}
-		if localKey != "" {
-			kmsProviders["local"]["key"] = localKey
 		}
 	}
 
