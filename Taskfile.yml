@@ -1,14 +1,13 @@
 # See https://taskfile.dev/usage/
-version: '3'
+version: "3"
 
 env:
   TEST_TIMEOUT: 1800
   LONG_TEST_TIMEOUT: 3600
 
-dotenv: ['.test.env']
+dotenv: [".test.env"]
 
 tasks:
-
   ### Utility tasks. ###
   default:
     deps: [build, check-license, check-fmt, check-modules, lint, test-short]
