@@ -1,6 +1,6 @@
 review-priority-normal:
   - changed-files:
-      - any-glob-to-any-file: '*'
+      - any-glob-to-any-file: "*"
 documentation:
   - changed-files:
       - any-glob-to-any-file:

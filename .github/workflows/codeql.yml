@@ -15,7 +15,7 @@ on:
       - "release/*"
       - "feature/*"
   schedule:
-    - cron: '36 17 * * 0'
+    - cron: "36 17 * * 0"
   workflow_call:
     inputs:
       ref:
@@ -24,7 +24,7 @@ on:
 jobs:
   analyze:
     name: Analyze (go)
-    runs-on: 'ubuntu-latest'
+    runs-on: "ubuntu-latest"
     timeout-minutes: 360
     permissions:
       # required for all workflows

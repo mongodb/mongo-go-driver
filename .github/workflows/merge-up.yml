@@ -25,8 +25,8 @@ jobs:
         uses: alcaeus/automatic-merge-up-action@1.0.1
         with:
           ref: ${{ github.ref_name }}
-          branchNamePattern: 'release/<major>.<minor>'
-          devBranchNamePattern: 'v<major>'
-          fallbackBranch: 'master'
+          branchNamePattern: "release/<major>.<minor>"
+          devBranchNamePattern: "v<major>"
+          fallbackBranch: "master"
           ignoredBranches: ${{ vars.IGNORED_MERGE_UP_BRANCHES }}
           enableAutoMerge: true
