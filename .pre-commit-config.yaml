@@ -1,76 +1,71 @@
-
 repos:
-- repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v4.5.0
-  hooks:
-    - id: check-case-conflict
-    - id: check-executables-have-shebangs
-    - id: check-added-large-files
-    - id: check-case-conflict
-    - id: check-merge-conflict
-    - id: check-json
-    - id: end-of-file-fixer
-      exclude: ^(vendor/|bson/testdata/lorem.txt)
-      exclude_types: [json,yaml]
-    - id: trailing-whitespace
-      exclude: ^(vendor/|internal/assert/assertions_test.go|bson/testdata/lorem.txt)
-      exclude_types: [json,yaml]
-
-- repo: https://github.com/executablebooks/mdformat
-  rev: 0.7.17
-  hooks:
-    - id: mdformat
-      exclude: ^vendor/
-
-- repo: https://github.com/python-jsonschema/check-jsonschema
-  rev: 0.27.0
-  hooks:
-    - id: check-github-workflows
-
-# We use the Python version instead of the original version which seems to require Docker
-# https://github.com/koalaman/shellcheck-precommit
-- repo: https://github.com/shellcheck-py/shellcheck-py
-  rev: v0.9.0.6
-  hooks:
-    - id: shellcheck
-      name: shellcheck
-      args: ["--severity=warning"]
-
-- repo: https://github.com/codespell-project/codespell
-  rev: "v2.2.6"
-  hooks:
-  - id: codespell
-    args: ["-L", "te,fo,fle,alo,nin,compres,wil,collone,asess,sav,ot,wll,dne,nulll,hellow,aks"]
-    exclude: ^(vendor/|internal/cmd/benchmark/operation_test.go|bson/testdata/)
-    exclude_types: [json,yaml,pem]
-
-- repo: https://github.com/tcort/markdown-link-check
-  rev: v3.11.2
-  hooks:
-    - id: markdown-link-check
-      exclude: ^(vendor)
-      # If the endpoint returns HTTP 429 (Too Many Requests), consider it a
-      # successful check.
-      args: ["-a 200,206,429"]
-
-- repo: local
-  hooks:
-  - id: executable-shell
-    name: executable-shell
-    entry: chmod +x
-    language: system
-    types: [shell]
-
-  - id: golangci-lint
-    name: golangci-lint
-    language: system
-    types: [go]
-    require_serial: true
-    pass_filenames: false
-    entry: etc/golangci-lint.sh
-
-  - id: check-licenses
-    name: check-licenses
-    language: system
-    types: [go]
-    entry: etc/check_license.sh
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: check-case-conflict
+      - id: check-executables-have-shebangs
+      - id: check-added-large-files
+      - id: check-case-conflict
+      - id: check-merge-conflict
+      - id: check-json
+      - id: end-of-file-fixer
+        exclude: ^(vendor/|bson/testdata/lorem.txt)
+        exclude_types: [json, yaml]
+      - id: trailing-whitespace
+        exclude: ^(vendor/|internal/assert/assertions_test.go|bson/testdata/lorem.txt)
+        exclude_types: [json, yaml]
+  - repo: https://github.com/executablebooks/mdformat
+    rev: 0.7.17
+    hooks:
+      - id: mdformat
+        exclude: ^vendor/
+  - repo: https://github.com/python-jsonschema/check-jsonschema
+    rev: 0.27.0
+    hooks:
+      - id: check-github-workflows
+  # We use the Python version instead of the original version which seems to require Docker
+  # https://github.com/koalaman/shellcheck-precommit
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.9.0.6
+    hooks:
+      - id: shellcheck
+        name: shellcheck
+        args: ["--severity=warning"]
+  - repo: https://github.com/codespell-project/codespell
+    rev: "v2.2.6"
+    hooks:
+      - id: codespell
+        args: ["-L", "te,fo,fle,alo,nin,compres,wil,collone,asess,sav,ot,wll,dne,nulll,hellow,aks"]
+        exclude: ^(vendor/|internal/cmd/benchmark/operation_test.go|bson/testdata/)
+        exclude_types: [json, yaml, pem]
+  - repo: https://github.com/tcort/markdown-link-check
+    rev: v3.11.2
+    hooks:
+      - id: markdown-link-check
+        exclude: ^(vendor)
+        # If the endpoint returns HTTP 429 (Too Many Requests), consider it a
+        # successful check.
+        args: ["-a 200,206,429"]
+  - repo: local
+    hooks:
+      - id: executable-shell
+        name: executable-shell
+        entry: chmod +x
+        language: system
+        types: [shell]
+      - id: golangci-lint
+        name: golangci-lint
+        language: system
+        types: [go]
+        require_serial: true
+        pass_filenames: false
+        entry: etc/golangci-lint.sh
+      - id: check-licenses
+        name: check-licenses
+        language: system
+        types: [go]
+        entry: etc/check_license.sh
+  - repo: https://github.com/google/yamlfmt
+    rev: v0.10.0
+    hooks:
+      - id: yamlfmt

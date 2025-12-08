@@ -69,7 +69,6 @@ linters:
       # used by external users.
       - path: (internal\/|benchmark\/|x\/|cmd\/|mongo\/integration\/)
         text: should have a package comment
-
       # Add all default excluded issues except issues related to exported
       # types/functions not having comments; we want those warnings. The
       # defaults are copied from the "--exclude-use-default" documentation on
@@ -106,12 +105,11 @@ linters:
       # 'src, err := ioutil.ReadFile(filename)'
       - path: (.+)\.go$
         text: Potential file inclusion via variable
-      ## End Defaults ##
-
       # Ignore capitalization warning for this weird field name.
       - path: (.+)\.go$
-        text: "var-naming: struct field CqCssWxW should be CqCSSWxW"
+        ## End Defaults ##
 
+        text: "var-naming: struct field CqCssWxW should be CqCSSWxW"
       # Ignore warnings for common "wiremessage.Read..." usage because the
       # safest way to use that API is by assigning possibly unused returned byte
       # buffers.

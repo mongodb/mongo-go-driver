@@ -7,11 +7,9 @@ Parameters:
   MongoDbUri:
     Type: String
     Description: The MongoDB connection string.
-
 Globals:
   Function:
     Timeout: 30
-
 Resources:
   MongoDBFunction:
     Type: AWS::Serverless::Function
@@ -31,7 +29,6 @@ Resources:
       Environment:
         Variables:
           MONGODB_URI: !Ref MongoDbUri
-
 Outputs:
   MongoDBApi:
     Description: "API Gateway endpoint URL for Prod stage for MongoDB function"
