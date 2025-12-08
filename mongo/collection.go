@@ -1023,7 +1023,7 @@ func aggregate(a aggregateParams, opts ...options.Lister[options.AggregateOption
 		op.AllowDiskUse(*args.AllowDiskUse)
 	}
 	// ignore batchSize of 0 with $out
-	if args.BatchSize != nil && !(*args.BatchSize == 0 && hasOutputStage) {
+	if args.BatchSize != nil && (*args.BatchSize != 0 || !hasOutputStage) {
 		op.BatchSize(*args.BatchSize)
 		cursorOpts.BatchSize = *args.BatchSize
 	}

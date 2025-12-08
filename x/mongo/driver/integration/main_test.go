@@ -133,7 +133,7 @@ func dropCollection(t *testing.T, dbname, colname string) {
 	err := operation.NewCommand(bsoncore.BuildDocument(nil, bsoncore.AppendStringElement(nil, "drop", colname))).
 		Database(dbname).ServerSelector(&serverselector.Write{}).Deployment(integtest.Topology(t)).
 		Execute(context.Background())
-	if de, ok := err.(driver.Error); err != nil && !(ok && de.NamespaceNotFound()) {
+	if de, ok := err.(driver.Error); err != nil && (!ok || !de.NamespaceNotFound()) {
 		require.NoError(t, err)
 	}
 }

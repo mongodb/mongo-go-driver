@@ -88,7 +88,7 @@ func (c *collectionData) verifyContents(ctx context.Context) error {
 
 	cursor, err := coll.Find(ctx, bson.D{}, options.Find().SetSort(bson.M{"_id": 1}))
 	if err != nil {
-		return fmt.Errorf("Find error: %w", err)
+		return fmt.Errorf("find error: %w", err)
 	}
 	defer cursor.Close(ctx)
 

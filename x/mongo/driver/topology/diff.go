@@ -45,15 +45,15 @@ type topologyDiff struct {
 }
 
 // diffTopology compares the two topology descriptions and returns the difference.
-func diffTopology(old, new description.Topology) topologyDiff {
+func diffTopology(oldtopo, newtopo description.Topology) topologyDiff {
 	var diff topologyDiff
 
 	oldServers := make(map[string]bool)
-	for _, s := range old.Servers {
+	for _, s := range oldtopo.Servers {
 		oldServers[s.Addr.String()] = true
 	}
 
-	for _, s := range new.Servers {
+	for _, s := range newtopo.Servers {
 		addr := s.Addr.String()
 		if oldServers[addr] {
 			delete(oldServers, addr)
@@ -62,7 +62,7 @@ func diffTopology(old, new description.Topology) topologyDiff {
 		}
 	}
 
-	for _, s := range old.Servers {
+	for _, s := range oldtopo.Servers {
 		addr := s.Addr.String()
 		if oldServers[addr] {
 			diff.Removed = append(diff.Removed, s)

@@ -68,7 +68,7 @@ func (ac *awsConversation) Step(challenge []byte) (response []byte, err error) {
 		ac.state = clientDone
 		ac.valid = true
 	default:
-		response, err = nil, errors.New("Conversation already completed")
+		response, err = nil, errors.New("conversation already completed")
 	}
 	return
 }
