@@ -34,7 +34,7 @@ tasks:
     dir: internal/test/compilecheck
     env:
       GOWORK: off
-      GOTOOLCHAIN: local
+      GOTOOLCHAIN: auto
       GO_VERSIONS: "1.19"
       COMPILECHECK_USE_DOCKER: "0"
     cmds:
