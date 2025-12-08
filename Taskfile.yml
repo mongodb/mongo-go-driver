@@ -25,9 +25,21 @@ tasks:
       - go build ./...
       - go build ${BUILD_TAGS} ./...
       - task: build-tests
+      - task: compilecheck-119
       - task: cross-compile
 
   build-tests: go test -short ${BUILD_TAGS} -run ^$$ ./...
+
+  compilecheck-119:
+    dir: internal/test/compilecheck
+    env:
+      GOWORK: off
+      GOTOOLCHAIN: local
+      GO_VERSIONS: "1.19"
+      COMPILECHECK_USE_DOCKER: "0"
+    cmds:
+      - go mod download
+      - go test -v -run '^TestCompileCheck/golang:1\.19$'
 
   build-compile-check-all: bash etc/run-compile-check-test.sh
 
