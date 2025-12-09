@@ -53,9 +53,8 @@ jobs:
 
       - name: Build (CodeQL-instrumented)
         shell: bash
-        env:
-          GOTOOLCHAIN: local
         run: |
+          export PATH="$(dirname "$CODEQL_ACTION_GO_BINARY"):$PATH"
           task build
           #go build ./...
           #go build ${BUILD_TAGS} ./...
