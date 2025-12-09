@@ -48,9 +48,6 @@ jobs:
           languages: go
           build-mode: manual
 
-      - name: Install Taskfile support
-        uses: arduino/setup-task@v2
-
       - name: Build (CodeQL-instrumented)
         shell: bash
         env:
