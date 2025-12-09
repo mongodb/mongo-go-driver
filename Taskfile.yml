@@ -35,7 +35,6 @@ tasks:
       GOWORK: off
       GOTOOLCHAIN: auto
       GO_VERSIONS: "1.19"
-      COMPILECHECK_USE_DOCKER: "0"
     cmds:
       - go mod download
       - go test -v -run '^TestCompileCheck/golang:1\.19$'
