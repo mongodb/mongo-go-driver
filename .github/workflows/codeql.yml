@@ -55,7 +55,8 @@ jobs:
         shell: bash
         env:
           GOTOOLCHAIN: local
-        run: go build ./...
+        #run: go build ./...
+        run: task build
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
