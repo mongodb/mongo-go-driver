@@ -7,7 +7,6 @@ on:
       - reopened
       - labeled
       - unlabeled
-
 jobs:
   check_labels:
     name: Check labels
