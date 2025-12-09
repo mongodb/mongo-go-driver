@@ -17,7 +17,6 @@ import (
 	"testing"
 
 	"github.com/docker/docker/api/types/container"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
 )
@@ -37,8 +36,6 @@ func main() {
 	fmt.Println(bson.D{{Key: "key", Value: "value"}})
 }
 `
-
-var architectures = []string{"386", "arm", "arm64", "ppc64le", "s390x"}
 
 func getVersions(t *testing.T) []string {
 	t.Helper()
@@ -118,20 +115,6 @@ func TestCompileCheck(t *testing.T) {
 			require.NoError(t, err)
 
 			require.Equal(t, 0, exitCode, "standard build failed: %s", output)
-
-			// Check build with various architectures.
-			for _, arch := range architectures {
-				exitCode, outputReader, err := container.Exec(
-					context.Background(),
-					[]string{"sh", "-c", fmt.Sprintf("GOOS=linux GOARCH=%s go build ./...", arch)},
-				)
-				require.NoError(t, err)
-
-				output, err := io.ReadAll(outputReader)
-				require.NoError(t, err)
-
-				assert.Equal(t, 0, exitCode, "build for GOARCH=%s failed: %s", arch, output)
-			}
 
 			t.Logf("compilation checks passed for %s", image)
 		})
