@@ -761,7 +761,7 @@ func (n netErr) Temporary() bool {
 
 var _ net.Error = (*netErr)(nil)
 
-func TestErrorCodesFrom(t *testing.T) {
+func TestErrorCodes(t *testing.T) {
 	tests := []struct {
 		name  string
 		input error

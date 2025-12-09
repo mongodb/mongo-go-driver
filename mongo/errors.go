@@ -334,6 +334,12 @@ type LabeledError interface {
 	HasErrorLabel(string) bool
 }
 
+type errorCoder interface {
+	ErrorCodes() []int
+}
+
+var _ errorCoder = ServerError(nil)
+
 // ServerError is the interface implemented by errors returned from the server. Custom implementations of this
 // interface should not be used in production.
 type ServerError interface {
@@ -910,7 +916,7 @@ func ErrorCodes(err error) []int {
 		return nil
 	}
 
-	var ec interface{ ErrorCodes() []int }
+	var ec errorCoder
 	if errors.As(wrapErrors(err), &ec) {
 		return ec.ErrorCodes()
 	}
