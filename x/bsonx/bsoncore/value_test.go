@@ -635,6 +635,246 @@ func TestValue(t *testing.T) {
 			[]any{uint64(12345), uint64(67890), true},
 		},
 		{
+			"AsInt32/Not Number", Value.AsInt32, Value{Type: TypeString},
+			ElementTypeError{"bsoncore.Value.AsInt32", TypeString},
+			nil,
+		},
+		{
+			"AsInt32/Double/Insufficient Bytes", Value.AsInt32, Value{Type: TypeDouble, Data: []byte{0x01, 0x02, 0x03}},
+			NewInsufficientBytesError([]byte{0x01, 0x02, 0x03}, []byte{0x01, 0x02, 0x03}),
+			nil,
+		},
+		{
+			"AsInt32/Int32/Insufficient Bytes", Value.AsInt32, Value{Type: TypeInt32, Data: []byte{0x01, 0x02}},
+			NewInsufficientBytesError([]byte{0x01, 0x02}, []byte{0x01, 0x02}),
+			nil,
+		},
+		{
+			"AsInt32/Int64/Insufficient Bytes", Value.AsInt32, Value{Type: TypeInt64, Data: []byte{0x01, 0x02, 0x03}},
+			NewInsufficientBytesError([]byte{0x01, 0x02, 0x03}, []byte{0x01, 0x02, 0x03}),
+			nil,
+		},
+		{
+			"AsInt32/Decimal128", Value.AsInt32, Value{Type: TypeDecimal128, Data: AppendDecimal128(nil, 12345, 67890)},
+			ElementTypeError{"bsoncore.Value.AsInt32", TypeDecimal128},
+			nil,
+		},
+		{
+			"AsInt32/From Double", Value.AsInt32, Value{Type: TypeDouble, Data: AppendDouble(nil, 42.7)},
+			nil,
+			[]any{int32(42)},
+		},
+		{
+			"AsInt32/From Int32", Value.AsInt32, Value{Type: TypeInt32, Data: AppendInt32(nil, 12345)},
+			nil,
+			[]any{int32(12345)},
+		},
+		{
+			"AsInt32/From Int64", Value.AsInt32, Value{Type: TypeInt64, Data: AppendInt64(nil, 98765)},
+			nil,
+			[]any{int32(98765)},
+		},
+		{
+			"AsInt32OK/Not Number", Value.AsInt32OK, Value{Type: TypeString},
+			nil,
+			[]any{int32(0), false},
+		},
+		{
+			"AsInt32OK/Double/Insufficient Bytes", Value.AsInt32OK, Value{Type: TypeDouble, Data: []byte{0x01, 0x02, 0x03}},
+			nil,
+			[]any{int32(0), false},
+		},
+		{
+			"AsInt32OK/Int32/Insufficient Bytes", Value.AsInt32OK, Value{Type: TypeInt32, Data: []byte{0x01, 0x02}},
+			nil,
+			[]any{int32(0), false},
+		},
+		{
+			"AsInt32OK/Int64/Insufficient Bytes", Value.AsInt32OK, Value{Type: TypeInt64, Data: []byte{0x01, 0x02, 0x03}},
+			nil,
+			[]any{int32(0), false},
+		},
+		{
+			"AsInt32OK/Decimal128", Value.AsInt32OK, Value{Type: TypeDecimal128, Data: AppendDecimal128(nil, 12345, 67890)},
+			nil,
+			[]any{int32(0), false},
+		},
+		{
+			"AsInt32OK/From Double", Value.AsInt32OK, Value{Type: TypeDouble, Data: AppendDouble(nil, 42.7)},
+			nil,
+			[]any{int32(42), true},
+		},
+		{
+			"AsInt32OK/From Int32", Value.AsInt32OK, Value{Type: TypeInt32, Data: AppendInt32(nil, 12345)},
+			nil,
+			[]any{int32(12345), true},
+		},
+		{
+			"AsInt32OK/From Int64", Value.AsInt32OK, Value{Type: TypeInt64, Data: AppendInt64(nil, 98765)},
+			nil,
+			[]any{int32(98765), true},
+		},
+		{
+			"AsInt64/Not Number", Value.AsInt64, Value{Type: TypeString},
+			ElementTypeError{"bsoncore.Value.AsInt64", TypeString},
+			nil,
+		},
+		{
+			"AsInt64/Double/Insufficient Bytes", Value.AsInt64, Value{Type: TypeDouble, Data: []byte{0x01, 0x02, 0x03}},
+			NewInsufficientBytesError([]byte{0x01, 0x02, 0x03}, []byte{0x01, 0x02, 0x03}),
+			nil,
+		},
+		{
+			"AsInt64/Int32/Insufficient Bytes", Value.AsInt64, Value{Type: TypeInt32, Data: []byte{0x01, 0x02}},
+			NewInsufficientBytesError([]byte{0x01, 0x02}, []byte{0x01, 0x02}),
+			nil,
+		},
+		{
+			"AsInt64/Int64/Insufficient Bytes", Value.AsInt64, Value{Type: TypeInt64, Data: []byte{0x01, 0x02, 0x03}},
+			NewInsufficientBytesError([]byte{0x01, 0x02, 0x03}, []byte{0x01, 0x02, 0x03}),
+			nil,
+		},
+		{
+			"AsInt64/Decimal128", Value.AsInt64, Value{Type: TypeDecimal128, Data: AppendDecimal128(nil, 12345, 67890)},
+			ElementTypeError{"bsoncore.Value.AsInt64", TypeDecimal128},
+			nil,
+		},
+		{
+			"AsInt64/From Double", Value.AsInt64, Value{Type: TypeDouble, Data: AppendDouble(nil, 123456.9)},
+			nil,
+			[]any{int64(123456)},
+		},
+		{
+			"AsInt64/From Int32", Value.AsInt64, Value{Type: TypeInt32, Data: AppendInt32(nil, 12345)},
+			nil,
+			[]any{int64(12345)},
+		},
+		{
+			"AsInt64/From Int64", Value.AsInt64, Value{Type: TypeInt64, Data: AppendInt64(nil, 9876543210)},
+			nil,
+			[]any{int64(9876543210)},
+		},
+		{
+			"AsInt64OK/Not Number", Value.AsInt64OK, Value{Type: TypeString},
+			nil,
+			[]any{int64(0), false},
+		},
+		{
+			"AsInt64OK/Double/Insufficient Bytes", Value.AsInt64OK, Value{Type: TypeDouble, Data: []byte{0x01, 0x02, 0x03}},
+			nil,
+			[]any{int64(0), false},
+		},
+		{
+			"AsInt64OK/Int32/Insufficient Bytes", Value.AsInt64OK, Value{Type: TypeInt32, Data: []byte{0x01, 0x02}},
+			nil,
+			[]any{int64(0), false},
+		},
+		{
+			"AsInt64OK/Int64/Insufficient Bytes", Value.AsInt64OK, Value{Type: TypeInt64, Data: []byte{0x01, 0x02, 0x03}},
+			nil,
+			[]any{int64(0), false},
+		},
+		{
+			"AsInt64OK/Decimal128", Value.AsInt64OK, Value{Type: TypeDecimal128, Data: AppendDecimal128(nil, 12345, 67890)},
+			nil,
+			[]any{int64(0), false},
+		},
+		{
+			"AsInt64OK/From Double", Value.AsInt64OK, Value{Type: TypeDouble, Data: AppendDouble(nil, 123456.9)},
+			nil,
+			[]any{int64(123456), true},
+		},
+		{
+			"AsInt64OK/From Int32", Value.AsInt64OK, Value{Type: TypeInt32, Data: AppendInt32(nil, 12345)},
+			nil,
+			[]any{int64(12345), true},
+		},
+		{
+			"AsInt64OK/From Int64", Value.AsInt64OK, Value{Type: TypeInt64, Data: AppendInt64(nil, 9876543210)},
+			nil,
+			[]any{int64(9876543210), true},
+		},
+		{
+			"AsFloat64/Not Number", Value.AsFloat64, Value{Type: TypeString},
+			ElementTypeError{"bsoncore.Value.AsFloat64", TypeString},
+			nil,
+		},
+		{
+			"AsFloat64/Double/Insufficient Bytes", Value.AsFloat64, Value{Type: TypeDouble, Data: []byte{0x01, 0x02, 0x03}},
+			NewInsufficientBytesError([]byte{0x01, 0x02, 0x03}, []byte{0x01, 0x02, 0x03}),
+			nil,
+		},
+		{
+			"AsFloat64/Int32/Insufficient Bytes", Value.AsFloat64, Value{Type: TypeInt32, Data: []byte{0x01, 0x02}},
+			NewInsufficientBytesError([]byte{0x01, 0x02}, []byte{0x01, 0x02}),
+			nil,
+		},
+		{
+			"AsFloat64/Int64/Insufficient Bytes", Value.AsFloat64, Value{Type: TypeInt64, Data: []byte{0x01, 0x02, 0x03}},
+			NewInsufficientBytesError([]byte{0x01, 0x02, 0x03}, []byte{0x01, 0x02, 0x03}),
+			nil,
+		},
+		{
+			"AsFloat64/Decimal128", Value.AsFloat64, Value{Type: TypeDecimal128, Data: AppendDecimal128(nil, 12345, 67890)},
+			ElementTypeError{"bsoncore.Value.AsFloat64", TypeDecimal128},
+			nil,
+		},
+		{
+			"AsFloat64/From Double", Value.AsFloat64, Value{Type: TypeDouble, Data: AppendDouble(nil, 3.14159)},
+			nil,
+			[]any{float64(3.14159)},
+		},
+		{
+			"AsFloat64/From Int32", Value.AsFloat64, Value{Type: TypeInt32, Data: AppendInt32(nil, 42)},
+			nil,
+			[]any{float64(42)},
+		},
+		{
+			"AsFloat64/From Int64", Value.AsFloat64, Value{Type: TypeInt64, Data: AppendInt64(nil, 1234567890)},
+			nil,
+			[]any{float64(1234567890)},
+		},
+		{
+			"AsFloat64OK/Not Number", Value.AsFloat64OK, Value{Type: TypeString},
+			nil,
+			[]any{float64(0), false},
+		},
+		{
+			"AsFloat64OK/Double/Insufficient Bytes", Value.AsFloat64OK, Value{Type: TypeDouble, Data: []byte{0x01, 0x02, 0x03}},
+			nil,
+			[]any{float64(0), false},
+		},
+		{
+			"AsFloat64OK/Int32/Insufficient Bytes", Value.AsFloat64OK, Value{Type: TypeInt32, Data: []byte{0x01, 0x02}},
+			nil,
+			[]any{float64(0), false},
+		},
+		{
+			"AsFloat64OK/Int64/Insufficient Bytes", Value.AsFloat64OK, Value{Type: TypeInt64, Data: []byte{0x01, 0x02, 0x03}},
+			nil,
+			[]any{float64(0), false},
+		},
+		{
+			"AsFloat64OK/Decimal128", Value.AsFloat64OK, Value{Type: TypeDecimal128, Data: AppendDecimal128(nil, 12345, 67890)},
+			nil,
+			[]any{float64(0), false},
+		},
+		{
+			"AsFloat64OK/From Double", Value.AsFloat64OK, Value{Type: TypeDouble, Data: AppendDouble(nil, 3.14159)},
+			nil,
+			[]any{float64(3.14159), true},
+		},
+		{
+			"AsFloat64OK/From Int32", Value.AsFloat64OK, Value{Type: TypeInt32, Data: AppendInt32(nil, 42)},
+			nil,
+			[]any{float64(42), true},
+		},
+		{
+			"AsFloat64OK/From Int64", Value.AsFloat64OK, Value{Type: TypeInt64, Data: AppendInt64(nil, 1234567890)},
+			nil,
+			[]any{float64(1234567890), true},
+		},
+		{
 			"Timestamp.String/Success", Value.String, Value{Type: TypeTimestamp, Data: AppendTimestamp(nil, 12345, 67890)},
 			nil,
 			[]any{"{\"$timestamp\":{\"t\":12345,\"i\":67890}}"},
