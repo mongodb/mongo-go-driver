@@ -407,7 +407,7 @@ functions:
       params:
         binary: "bash"
         env:
-          TEST_SEARCH_INDEX: "${MONGODB_URI}"
+          SEARCH_INDEX_URI: "${SEARCH_INDEX_URI}"
         args: [*task-runner, evg-test-search-index]
   add-aws-auth-variables-to-file:
     - command: ec2.assume_role
@@ -1916,12 +1916,21 @@ task_groups:
         params:
           working_dir: src/go.mongodb.org/mongo-driver
           binary: bash
-          include_expansions_in_env: [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN]
+          include_expansions_in_env: [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN, MONGODB_URI]
           env:
             MONGODB_VERSION: ${VERSION}
             LAMBDA_STACK_NAME: dbx-go-lambda
           args:
             - ${DRIVERS_TOOLS}/.evergreen/atlas/setup.sh
+      - command: expansions.update
+        params:
+          file: src/go.mongodb.org/mongo-driver/atlas-expansion.yml
+      - command: shell.exec
+        params:
+          working_dir: src/go.mongodb.org/mongo-driver
+          shell: bash
+          script: |-
+            echo "SEARCH_INDEX_URI: ${MONGODB_URI}" > atlas-expansion.yml
       - command: expansions.update
         params:
           file: src/go.mongodb.org/mongo-driver/atlas-expansion.yml
