@@ -123,13 +123,13 @@ func (siv SearchIndexView) CreateMany(
 		}
 
 		var iidx int32
+		iidx, indexes = bsoncore.AppendDocumentElementStart(indexes, strconv.Itoa(i))
 		if model.Options != nil {
 			searchIndexArgs, err := mongoutil.NewOptions[options.SearchIndexesOptions](model.Options)
 			if err != nil {
 				return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 			}
 
-			iidx, indexes = bsoncore.AppendDocumentElementStart(indexes, strconv.Itoa(i))
 			if searchIndexArgs.Name != nil {
 				indexes = bsoncore.AppendStringElement(indexes, "name", *searchIndexArgs.Name)
 			}
