@@ -22,13 +22,9 @@ tasks:
   build-tests: go test -short ${BUILD_TAGS} -run ^$$ ./...
   compilecheck-119:
     dir: internal/test/compilecheck
-    env:
-      GOWORK: off
-      GOTOOLCHAIN: auto
-      GO_VERSIONS: "1.19"
     cmds:
       - go mod download
-      - go test -v -run '^TestCompileCheck/golang:1\.19$'
+      - GOTOOLCHAIN=auto go test -v -run '^TestCompileCheck/golang:1\.19$'
   build-compile-check-all: bash etc/run-compile-check-test.sh
   build-aws-ecs-test: go test -c ./internal/test/aws -o aws.testbin
   cross-compile:

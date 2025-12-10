@@ -13,7 +13,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/docker/docker/api/types/container"
@@ -37,25 +36,20 @@ func main() {
 }
 `
 
-func getVersions(t *testing.T) []string {
-	t.Helper()
-
-	env := os.Getenv("GO_VERSIONS")
-	if env == "" {
-		t.Skip("GO_VERSIONS environment variable not set")
-	}
-
-	return strings.Split(env, ",")
-}
+// goVersions is the list of Go versions to test compilation against.
+// To run tests for specific version(s), use the -run flag:
+//
+//	go test -v -run '^TestCompileCheck/golang:1.19$'
+//	go test -v -run '^TestCompileCheck/golang:1\.(19|20)$'
+var goVersions = []string{"1.19", "1.20", "1.21", "1.22", "1.23", "1.24", "1.25"}
 
 func TestCompileCheck(t *testing.T) {
-	versions := getVersions(t)
 	cwd, err := os.Getwd()
 	require.NoError(t, err)
 
 	rootDir := filepath.Dir(filepath.Dir(filepath.Dir(cwd)))
 
-	for _, version := range versions {
+	for _, version := range goVersions {
 		version := version // Capture range variable.
 
 		image := fmt.Sprintf("golang:%s", version)
@@ -63,7 +57,8 @@ func TestCompileCheck(t *testing.T) {
 			t.Parallel()
 
 			req := testcontainers.ContainerRequest{
-				Image:      image,
+				Image: image,
+				// Keep container running so we can Exec commands into it.
 				Cmd:        []string{"tail", "-f", "/dev/null"},
 				WorkingDir: "/app",
 				HostConfigModifier: func(hostConfig *container.HostConfig) {
