@@ -100,8 +100,18 @@ type RunOnBlock struct {
 	CSFLE            *CSFLE                   `bson:"csfleConfiguration"`
 }
 
+// CSFLEEnabled returns true if CSFLE support is explicitly required in the
+// "runOnRequirement" block. It returns false if the CSFLE requirement is
+// unspecified or explicitly false.
 func (r *RunOnBlock) CSFLEEnabled() bool {
 	return r.CSFLE != nil && (r.CSFLE.Boolean || r.CSFLE.Options != nil)
+}
+
+// CSFLEDisabled returns true if CSFLE support is explicitly forbidden in the
+// "runOnRequirement" block. It returns false if the CSFLE requirement is
+// unspecified or explicitly true.
+func (r *RunOnBlock) CSFLEDisabled() bool {
+	return r.CSFLE != nil && !r.CSFLE.Boolean
 }
 
 // UnmarshalBSON implements custom BSON unmarshalling behavior for RunOnBlock because some test formats use the
