@@ -22,7 +22,6 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 )
 
-// getLibmongocryptVersion parses LIBMONGOCRYPT_TAG from etc/install-libmongocrypt.sh.
 func getLibmongocryptVersion(rootDir string) (string, error) {
 	file, err := os.Open(filepath.Join(rootDir, "etc", "install-libmongocrypt.sh"))
 	if err != nil {
@@ -155,19 +154,16 @@ func TestCompileCheck(t *testing.T) {
 
 			require.Equal(t, 0, exitCode, "dynamic linking build failed: %s", output)
 
-			// Build with tags (requires installing libmongocrypt and gssapi).
+			// Build with tags (install libmongocrypt and gssapi headers).
 			libmongocryptVersion, err := getLibmongocryptVersion(rootDir)
 			require.NoError(t, err)
 
-			libmongocryptURL := "https://github.com/mongodb/libmongocrypt/releases/download/" +
-				libmongocryptVersion + "/libmongocrypt-linux-x86_64-" + libmongocryptVersion + ".tar.gz"
-
 			installCmds := [][]string{
 				{"apt-get", "update"},
-				{"apt-get", "install", "-y", "libkrb5-dev"}, // gssapi headers
-				{"sh", "-c", "curl -L " + libmongocryptURL + " | tar -xz"},
-				{"sh", "-c", "cp -r bin lib include /usr/local/"},
-				{"ldconfig"},
+				{"apt-get", "install", "-y", "libkrb5-dev", "cmake", "libssl-dev", "git"},
+				{"git", "clone", "--depth=1", "--branch", libmongocryptVersion,
+					"https://github.com/mongodb/libmongocrypt", "/tmp/libmongocrypt"},
+				{"sh", "-c", "cd /tmp/libmongocrypt && ./.evergreen/compile.sh"},
 			}
 
 			for _, cmd := range installCmds {
@@ -181,7 +177,9 @@ func TestCompileCheck(t *testing.T) {
 			}
 
 			exitCode, outputReader, err = container.Exec(context.Background(), []string{
-				"go", "build", "-buildvcs=false", "-tags=cse,gssapi,mongointernal", "./...",
+				"sh", "-c", "PKG_CONFIG_PATH=/tmp/libmongocrypt/install/lib/pkgconfig " +
+					"LD_LIBRARY_PATH=/tmp/libmongocrypt/install/lib " +
+					"go build -buildvcs=false -tags=cse,gssapi,mongointernal ./...",
 			})
 			require.NoError(t, err)
 
