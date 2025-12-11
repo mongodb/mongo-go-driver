@@ -42,6 +42,20 @@ func main() {
 //	go test -v -run '^TestCompileCheck/golang:1.19$'
 //	go test -v -run '^TestCompileCheck/golang:1\.(19|20)$'
 var goVersions = []string{"1.19", "1.20", "1.21", "1.22", "1.23", "1.24", "1.25"}
+var architectures = []string{
+	"386",
+	"amd64",
+	"arm",
+	"arm64",
+	"mips",
+	"mips64",
+	"mips64le",
+	"mipsle",
+	"ppc64",
+	"ppc64le",
+	"riscv64",
+	"s390x",
+}
 
 func TestCompileCheck(t *testing.T) {
 	cwd, err := os.Getwd()
@@ -103,13 +117,45 @@ func TestCompileCheck(t *testing.T) {
 			}
 
 			// Standard build.
-			exitCode, outputReader, err := container.Exec(context.Background(), []string{"go", "build", "./..."})
+			exitCode, outputReader, err := container.Exec(context.Background(), []string{"go", "build", "-buildvcs=false", "./..."})
 			require.NoError(t, err)
 
 			output, err := io.ReadAll(outputReader)
 			require.NoError(t, err)
 
 			require.Equal(t, 0, exitCode, "standard build failed: %s", output)
+
+			exitCode, outputReader, err = container.Exec(context.Background(), []string{"go", "build", "-buildvcs=false", "-buildmode=plugin", "./..."})
+			require.NoError(t, err)
+
+			output, err = io.ReadAll(outputReader)
+			require.NoError(t, err)
+
+			require.Equal(t, 0, exitCode, "dynamic linking build failed: %s", output)
+
+			// Build with tags.
+			exitCode, outputReader, err = container.Exec(context.Background(), []string{
+				"go", "build", "-buildvcs=false", "-tags=cse,gssapi,mongointernal", "./...",
+			})
+			require.NoError(t, err)
+
+			output, err = io.ReadAll(outputReader)
+			require.NoError(t, err)
+
+			require.Equal(t, 0, exitCode, "build with build tags failed: %s", output)
+
+			for _, architecture := range architectures {
+				exitCode, outputReader, err := container.Exec(
+					context.Background(),
+					[]string{"sh", "-c", fmt.Sprintf("GOOS=linux GOARCH=%s go build -buildvcs=false ./...", architecture)},
+				)
+				require.NoError(t, err)
+
+				output, err := io.ReadAll(outputReader)
+				require.NoError(t, err)
+
+				require.Equal(t, 0, exitCode, "build failed for architecture %s: %s", architecture, output)
+			}
 
 			t.Logf("compilation checks passed for %s", image)
 		})
