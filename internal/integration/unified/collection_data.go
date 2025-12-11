@@ -27,8 +27,10 @@ type collectionData struct {
 }
 
 type createOptions struct {
-	Capped      *bool  `bson:"capped"`
-	SizeInBytes *int64 `bson:"size"`
+	Capped          *bool    `bson:"capped"`
+	SizeInBytes     *int64   `bson:"size"`
+	EncryptedFields bson.Raw `bson:"encryptedFields"`
+	Validator       bson.Raw `bson:"validator"`
 }
 
 // createCollection configures the collection represented by the receiver using the internal client. This function
@@ -49,14 +51,18 @@ func (c *collectionData) createCollection(ctx context.Context) error {
 		if c.Options.SizeInBytes != nil {
 			createOpts = createOpts.SetSizeInBytes(*c.Options.SizeInBytes)
 		}
+		if c.Options.EncryptedFields != nil {
+			createOpts = createOpts.SetEncryptedFields(c.Options.EncryptedFields)
+		}
+		if c.Options.Validator != nil {
+			createOpts = createOpts.SetValidator(c.Options.Validator)
+		}
 
 		if err := db.CreateCollection(ctx, c.CollectionName, createOpts); err != nil {
 			return fmt.Errorf("error creating collection: %w", err)
 		}
-	}
-
-	// If neither documents nor options are provided, still create the collection with write concern "majority".
-	if len(c.Documents) == 0 && c.Options == nil {
+	} else {
+		// If no options are provided, still create the collection with write concern "majority".
 		// The write concern has to be manually specified in the command document because RunCommand does not honor
 		// the database's write concern.
 		create := bson.D{
@@ -68,13 +74,15 @@ func (c *collectionData) createCollection(ctx context.Context) error {
 		if err := db.RunCommand(ctx, create).Err(); err != nil {
 			return fmt.Errorf("error creating collection: %w", err)
 		}
-		return nil
 	}
 
-	docs := bsonutil.RawToInterfaces(c.Documents...)
-	if _, err := coll.InsertMany(ctx, docs); err != nil {
-		return fmt.Errorf("error inserting data: %w", err)
+	if len(c.Documents) != 0 {
+		docs := bsonutil.RawToInterfaces(c.Documents...)
+		if _, err := coll.InsertMany(ctx, docs); err != nil {
+			return fmt.Errorf("error inserting data: %w", err)
+		}
 	}
+
 	return nil
 }
 
