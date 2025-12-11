@@ -7,18 +7,40 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
 )
+
+// getLibmongocryptVersion parses LIBMONGOCRYPT_TAG from etc/install-libmongocrypt.sh.
+func getLibmongocryptVersion(rootDir string) (string, error) {
+	file, err := os.Open(filepath.Join(rootDir, "etc", "install-libmongocrypt.sh"))
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "LIBMONGOCRYPT_TAG=") {
+			version := strings.TrimPrefix(line, "LIBMONGOCRYPT_TAG=")
+			version = strings.Trim(version, `"'`)
+			return version, nil
+		}
+	}
+	return "", fmt.Errorf("LIBMONGOCRYPT_TAG not found in install-libmongocrypt.sh")
+}
 
 const mainGo = `package main
 
@@ -133,7 +155,31 @@ func TestCompileCheck(t *testing.T) {
 
 			require.Equal(t, 0, exitCode, "dynamic linking build failed: %s", output)
 
-			// Build with tags.
+			// Build with tags (requires installing libmongocrypt and gssapi).
+			libmongocryptVersion, err := getLibmongocryptVersion(rootDir)
+			require.NoError(t, err)
+
+			libmongocryptURL := "https://github.com/mongodb/libmongocrypt/releases/download/" +
+				libmongocryptVersion + "/libmongocrypt-linux-x86_64-" + libmongocryptVersion + ".tar.gz"
+
+			installCmds := [][]string{
+				{"apt-get", "update"},
+				{"apt-get", "install", "-y", "libkrb5-dev"}, // gssapi headers
+				{"sh", "-c", "curl -L " + libmongocryptURL + " | tar -xz"},
+				{"sh", "-c", "cp -r bin lib include /usr/local/"},
+				{"ldconfig"},
+			}
+
+			for _, cmd := range installCmds {
+				exitCode, outputReader, err = container.Exec(context.Background(), cmd)
+				require.NoError(t, err)
+
+				output, err = io.ReadAll(outputReader)
+				require.NoError(t, err)
+
+				require.Equal(t, 0, exitCode, "install command %v failed: %s", cmd, output)
+			}
+
 			exitCode, outputReader, err = container.Exec(context.Background(), []string{
 				"go", "build", "-buildvcs=false", "-tags=cse,gssapi,mongointernal", "./...",
 			})
