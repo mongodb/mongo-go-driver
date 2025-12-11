@@ -36,6 +36,8 @@ var (
 
 var placeholderDoc = bsoncore.NewDocumentBuilder().AppendInt32("$$placeholder", 1).Build()
 
+const defaultLocalKeyBase64 = "Mng0NCt4ZHVUYUJCa1kxNkVyNUR1QURhZ2h2UzR2d2RrZzh0cFBwM3R6NmdWMDFBMUN3YkQ5aXRRMkhGRGdQV09wOGVNYUMxT2k3NjZKelhaQmRCZGJkTXVyZG9uSjFk"
+
 type storeEventsAsEntitiesConfig struct {
 	EventListID string   `bson:"id"`
 	Events      []string `bson:"events"`
@@ -517,7 +519,7 @@ func (em *EntityMap) close(ctx context.Context) []error {
 		}
 		for _, coll := range colls {
 			if re.MatchString(coll) {
-				_, err = db.Collection(coll).DeleteMany(ctx, bson.D{})
+				err = db.Collection(coll).Drop(ctx)
 				if err != nil {
 					errs = append(errs, fmt.Errorf("error clearing collection %q: %w", coll, err))
 				}
@@ -645,8 +647,8 @@ func getKmsProvider(key string, opt bson.Raw) (map[string]any, error) {
 			key    string
 			envVar string
 		}{
-			{"accessKeyId", accessKeyID},
-			{"secretAccessKey", secretAccessKey},
+			{key: "accessKeyId", envVar: accessKeyID},
+			{key: "secretAccessKey", envVar: secretAccessKey},
 		} {
 			v, err = getKmsCredential(opt, e.key, e.envVar, "")
 			if err != nil {
@@ -661,9 +663,9 @@ func getKmsProvider(key string, opt bson.Raw) (map[string]any, error) {
 			key    string
 			envVar string
 		}{
-			{"tenantId", "FLE_AZURE_TENANTID"},
-			{"clientId", "FLE_AZURE_CLIENTID"},
-			{"clientSecret", "FLE_AZURE_CLIENTSECRET"},
+			{key: "tenantId", envVar: "FLE_AZURE_TENANTID"},
+			{key: "clientId", envVar: "FLE_AZURE_CLIENTID"},
+			{key: "clientSecret", envVar: "FLE_AZURE_CLIENTSECRET"},
 		} {
 			v, err := getKmsCredential(opt, e.key, e.envVar, "")
 			if err != nil {
@@ -678,8 +680,8 @@ func getKmsProvider(key string, opt bson.Raw) (map[string]any, error) {
 			key    string
 			envVar string
 		}{
-			{"email", "FLE_GCP_EMAIL"},
-			{"privateKey", "FLE_GCP_PRIVATEKEY"},
+			{key: "email", envVar: "FLE_GCP_EMAIL"},
+			{key: "privateKey", envVar: "FLE_GCP_PRIVATEKEY"},
 		} {
 			v, err := getKmsCredential(opt, e.key, e.envVar, "")
 			if err != nil {
@@ -698,7 +700,6 @@ func getKmsProvider(key string, opt bson.Raw) (map[string]any, error) {
 			provider["endpoint"] = v
 		}
 	case "local", "local:name2":
-		defaultLocalKeyBase64 := "Mng0NCt4ZHVUYUJCa1kxNkVyNUR1QURhZ2h2UzR2d2RrZzh0cFBwM3R6NmdWMDFBMUN3YkQ5aXRRMkhGRGdQV09wOGVNYUMxT2k3NjZKelhaQmRCZGJkTXVyZG9uSjFk"
 		v, err := getKmsCredential(opt, "key", "", defaultLocalKeyBase64)
 		if err != nil {
 			return nil, err

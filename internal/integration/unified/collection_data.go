@@ -62,7 +62,7 @@ func (c *collectionData) createCollection(ctx context.Context) error {
 			return fmt.Errorf("error creating collection: %w", err)
 		}
 	} else {
-		// If options are provided, still create the collection with write concern "majority".
+		// If no options are provided, still create the collection with write concern "majority".
 		// The write concern has to be manually specified in the command document because RunCommand does not honor
 		// the database's write concern.
 		create := bson.D{

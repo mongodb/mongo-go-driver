@@ -259,6 +259,7 @@ func getURIForClient(opts *entityOptions) string {
 	}
 }
 
+// TODO(GODRIVER-3726): Need to update the logic to an Unmarshal method.
 func createAutoEncryptionOptions(opts bson.Raw) (*options.AutoEncryptionOptions, error) {
 	aeo := options.AutoEncryption()
 	var kvnsFound bool
