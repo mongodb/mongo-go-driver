@@ -160,10 +160,10 @@ func TestCompileCheck(t *testing.T) {
 
 			installCmds := [][]string{
 				{"apt-get", "update"},
-				{"apt-get", "install", "-y", "libkrb5-dev", "cmake", "libssl-dev", "git"},
+				{"apt-get", "install", "-y", "libkrb5-dev", "cmake", "libssl-dev", "git", "pkg-config"},
 				{"git", "clone", "--depth=1", "--branch", libmongocryptVersion,
 					"https://github.com/mongodb/libmongocrypt", "/tmp/libmongocrypt"},
-				{"sh", "-c", "cd /tmp/libmongocrypt && ./.evergreen/compile.sh"},
+				{"sh", "-c", "cd /tmp && ./libmongocrypt/.evergreen/compile.sh"},
 			}
 
 			for _, cmd := range installCmds {
@@ -177,8 +177,8 @@ func TestCompileCheck(t *testing.T) {
 			}
 
 			exitCode, outputReader, err = container.Exec(context.Background(), []string{
-				"sh", "-c", "PKG_CONFIG_PATH=/tmp/libmongocrypt/install/lib/pkgconfig " +
-					"LD_LIBRARY_PATH=/tmp/libmongocrypt/install/lib " +
+				"sh", "-c", "PKG_CONFIG_PATH=/tmp/install/lib/pkgconfig " +
+					"LD_LIBRARY_PATH=/tmp/install/lib " +
 					"go build -buildvcs=false -tags=cse,gssapi,mongointernal ./...",
 			})
 			require.NoError(t, err)
