@@ -152,9 +152,10 @@ func TestCompileCheck(t *testing.T) {
 			}
 
 			// The install script creates an "install" directory in the current working directory (/app).
+			// libmongocrypt may install to lib or lib64 depending on the system.
 			exitCode, outputReader, err = container.Exec(context.Background(), []string{
-				"sh", "-c", "PKG_CONFIG_PATH=/app/install/lib/pkgconfig " +
-					"LD_LIBRARY_PATH=/app/install/lib " +
+				"sh", "-c", "PKG_CONFIG_PATH=/app/install/lib/pkgconfig:/app/install/lib64/pkgconfig " +
+					"LD_LIBRARY_PATH=/app/install/lib:/app/install/lib64 " +
 					"go build -buildvcs=false -tags=cse,gssapi,mongointernal ./...",
 			})
 			require.NoError(t, err)
