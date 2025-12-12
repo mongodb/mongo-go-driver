@@ -34,7 +34,13 @@ var (
 	tlsClientCertificateKeyFile = os.Getenv("CSFLE_TLS_CLIENT_CERT_FILE")
 )
 
-var placeholderDoc = bsoncore.NewDocumentBuilder().AppendInt32("$$placeholder", 1).Build()
+var (
+	// qeCollectionPattern matches collections automatically created for
+	// queryable encryption.
+	qeCollectionPattern = regexp.MustCompile("^enxcol_.*.e(sc|coc)$")
+
+	placeholderDoc = bsoncore.NewDocumentBuilder().AppendInt32("$$placeholder", 1).Build()
+)
 
 const defaultLocalKeyBase64 = "Mng0NCt4ZHVUYUJCa1kxNkVyNUR1QURhZ2h2UzR2d2RrZzh0cFBwM3R6NmdWMDFBMUN3YkQ5aXRRMkhGRGdQV09wOGVNYUMxT2k3NjZKelhaQmRCZGJkTXVyZG9uSjFk"
 
@@ -510,7 +516,6 @@ func (em *EntityMap) close(ctx context.Context) []error {
 	}
 
 	// Clear automatically created collections used for queryable encryption
-	re := regexp.MustCompile("^enxcol_.*.e(sc|coc)$")
 	for id, db := range em.dbEntites {
 		colls, err := db.ListCollectionNames(ctx, bson.D{})
 		if err != nil {
@@ -518,7 +523,7 @@ func (em *EntityMap) close(ctx context.Context) []error {
 			continue
 		}
 		for _, coll := range colls {
-			if re.MatchString(coll) {
+			if qeCollectionPattern.MatchString(coll) {
 				err = db.Collection(coll).Drop(ctx)
 				if err != nil {
 					errs = append(errs, fmt.Errorf("error clearing collection %q: %w", coll, err))
@@ -710,9 +715,6 @@ func getKmsProvider(key string, opt bson.Raw) (map[string]any, error) {
 	default:
 		return nil, fmt.Errorf("unrecognized KMS provider: %s", key)
 	}
-	if len(provider) == 0 {
-		return nil, nil
-	}
 	return provider, nil
 }
 
@@ -726,7 +728,7 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 		if err != nil {
 			return err
 		}
-		if provider == nil {
+		if len(provider) == 0 {
 			continue
 		}
 		kmsProviders[key] = provider
