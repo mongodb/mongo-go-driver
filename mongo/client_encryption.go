@@ -14,6 +14,9 @@ import (
 	"strings"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/aws"
+	"go.mongodb.org/mongo-driver/v2/internal/aws/credentials"
+	"go.mongodb.org/mongo-driver/v2/internal/credproviders"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
@@ -53,6 +56,21 @@ func NewClientEncryption(keyVaultClient *Client, opts ...options.Lister[options.
 		return nil, fmt.Errorf("error creating KMS providers map: %w", err)
 	}
 
+	providers := make(map[string]credentials.Provider)
+	for k, fn := range cea.CredentialProviders {
+		if k == "aws" && fn != nil {
+			providers[k] = &credproviders.AwsProvider{
+				Provider: func(ctx context.Context) (aws.Credentials, error) {
+					c, err := fn(ctx)
+					if err != nil {
+						return aws.Credentials{}, err
+					}
+					return aws.Credentials(c), nil
+				},
+			}
+		}
+	}
+
 	mc, err := mongocrypt.NewMongoCrypt(mcopts.MongoCrypt().
 		SetKmsProviders(kmsProviders).
 		// Explicitly disable loading the crypt_shared library for the Crypt used for
@@ -60,7 +78,8 @@ func NewClientEncryption(keyVaultClient *Client, opts ...options.Lister[options.
 		// have the crypt_shared library installed if they're using ClientEncryption.
 		SetCryptSharedLibDisabled(true).
 		SetHTTPClient(cea.HTTPClient).
-		SetKeyExpiration(cea.KeyExpiration))
+		SetKeyExpiration(cea.KeyExpiration).
+		SetCredentialProviders(providers))
 	if err != nil {
 		return nil, err
 	}
