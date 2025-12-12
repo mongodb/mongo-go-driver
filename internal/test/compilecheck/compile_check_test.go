@@ -139,6 +139,7 @@ func TestCompileCheck(t *testing.T) {
 				{"apt-get", "update"},
 				{"apt-get", "install", "-y", "libkrb5-dev", "cmake", "libssl-dev", "git", "pkg-config"},
 				{"bash", "/driver/etc/install-libmongocrypt.sh"},
+				{"sh", "-c", "test -d install || test -d /cygdrive/c/libmongocrypt/bin"},
 			}
 
 			for _, cmd := range installCmds {
