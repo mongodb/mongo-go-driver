@@ -26,11 +26,6 @@ timeout:
       args: [ls, -la]
 
 functions:
-  assume-test-secrets-ec2-role: 
-    - command: ec2.assume_role
-      params:
-        role_arn: ${aws_test_secrets_role}
-
   setup-system:
     # Executes clone and applies the submitted patch, if any
     - command: git.get_project
@@ -597,6 +592,22 @@ functions:
           KMS_FAILPOINT_CA_FILE: "${DRIVERS_TOOLS}/.evergreen/x509gen/ca.pem"
           KMS_FAILPOINT_SERVER_RUNNING: "true"
         args: [*task-runner, evg-test-retry-kms-requests]
+
+  run-client-side-encryption-test:
+    - command: subprocess.exec
+      params:
+        binary: "bash"
+        env: 
+          GO_BUILD_TAGS: cse
+        include_expansions_in_env: [AUTH, SSL, MONGODB_URI, TOPOLOGY, 
+          MONGO_GO_DRIVER_COMPRESSOR]
+        args: [*task-runner, setup-test]
+    - command: subprocess.exec
+      type: test
+      retry_on_failure: true
+      params:
+        binary: "bash"
+        args: [*task-runner, evg-test-client-side-encryption]
 
   run-fuzz-tests:
     - command: subprocess.exec
@@ -1572,6 +1583,21 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
 
+  - name: "test-client-side-encryption"
+    tags: ["client-side-encryption-test"]
+    commands:
+      - func: bootstrap-mongo-orchestration
+        vars:
+          TOPOLOGY: "server"
+          AUTH: "noauth"
+          SSL: "nossl"
+      - func: start-cse-servers
+      - func: run-client-side-encryption-test
+        vars:
+          TOPOLOGY: "server"
+          AUTH: "noauth"
+          SSL: "nossl"
+
   - name: "test-retry-kms-requests"
     tags: ["kms-test"]
     commands:
@@ -2252,6 +2278,12 @@ buildvariants:
     display_name: "KMS TEST ${os-ssl-40}"
     tasks:
       - name: ".kms-test"
+
+  - matrix_name: "client-side-encryption-test"
+    matrix_spec: { version: ["7.0"], os-ssl-40: ["rhel87-64"] }
+    display_name: "Client Side Encryption Tests ${os-ssl-40}"
+    tasks:
+      - name: ".client-side-encryption-test"
 
   - matrix_name: "load-balancer-test"
     tags: ["pullrequest"]
