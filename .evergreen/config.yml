@@ -2280,7 +2280,7 @@ buildvariants:
       - name: ".kms-test"
 
   - matrix_name: "client-side-encryption-test"
-    matrix_spec: { version: ["7.0"], os-ssl-40: ["rhel87-64"] }
+    matrix_spec: { version: ["latest"], os-ssl-40: ["rhel87-64"] }
     display_name: "Client Side Encryption Tests ${os-ssl-40}"
     tasks:
       - name: ".client-side-encryption-test"
