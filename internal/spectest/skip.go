@@ -241,12 +241,6 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/interruptInUse-pool-clear.json/Error_returned_from_connection_pool_clear_with_interruptInUseConnections=true_is_retryable_for_write",
 	},
 
-	// TODO(GODRIVER-2843): Fix and unskip these test cases.
-	"Test fails frequently, needs fixing (GODRIVER-2843)": {
-		"TestUnifiedSpec/sessions/snapshot-sessions.json/Find_operation_with_snapshot",
-		"TestUnifiedSpec/sessions/snapshot-sessions.json/Write_commands_with_snapshot_session_do_not_affect_snapshot_reads",
-	},
-
 	// TODO(GODRIVER-3043): Avoid Appending Write/Read Concern in Atlas Search
 	// Index Helper Commands.
 	"Sync tests but avoid write/read concern bug (GODRIVER-3043)": {
@@ -857,6 +851,15 @@ var skipTests = map[string][]string{
 		"TestSDAMSpec/errors/pre-42-NotWritablePrimary.json",
 		"TestSDAMSpec/errors/pre-42-PrimarySteppedDown.json",
 		"TestSDAMSpec/errors/pre-42-ShutdownInProgress.json",
+	},
+
+	// TODO(GODRIVER-3663): Expose atClusterTime parameter in snapshot sessions
+	"Expose atClusterTime parameter in snapshot sessions (GODRIVER-3663)": {
+		"TestUnifiedSpec/sessions/tests/snapshot-sessions.json/Find_operation_with_snapshot_and_snapshot_time",
+		"TestUnifiedSpec/sessions/tests/snapshot-sessions.json/Distinct_operation_with_snapshot_and_snapshot_time",
+		"TestUnifiedSpec/sessions/tests/snapshot-sessions.json/Aggregate_operation_with_snapshot_and_snapshot_time",
+		"TestUnifiedSpec/sessions/tests/snapshot-sessions.json/countDocuments_operation_with_snapshot_and_snapshot_time",
+		"TestUnifiedSpec/sessions/tests/snapshot-sessions.json/Mixed_operation_with_snapshot_and_snapshotTime",
 	},
 }
 
