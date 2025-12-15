@@ -10,13 +10,11 @@ on:
   # To guarantee Maintained check is occasionally updated. See
   # https://github.com/ossf/scorecard/blob/main/docs/checks.md#maintained
   schedule:
-    - cron: '24 21 * * 1'
+    - cron: "24 21 * * 1"
   push:
-    branches: [ "master" ]
-
+    branches: ["master"]
 # Declare default permissions as read only.
 permissions: read-all
-
 jobs:
   analysis:
     name: Scorecard analysis
@@ -31,13 +29,11 @@ jobs:
       # Uncomment the permissions below if installing in a private repository.
       # contents: read
       # actions: read
-
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v6
         with:
           persist-credentials: false
-
       - name: "Run analysis"
         uses: ossf/scorecard-action@4eaacf0543bb3f2c246792bd56e8cdeffafb205a # v2.4.3
         with:
@@ -57,10 +53,8 @@ jobs:
           #   - `publish_results` will always be set to `false`, regardless
           #     of the value entered here.
           publish_results: true
-
           # (Optional) Uncomment file_mode if you have a .gitattributes with files marked export-ignore
           # file_mode: git
-
       # Upload the results as artifacts (optional). Commenting out will disable uploads of run results in SARIF
       # format to the repository Actions tab.
       - name: "Upload artifact"
@@ -69,7 +63,6 @@ jobs:
           name: SARIF file
           path: results.sarif
           retention-days: 5
-
       # Upload the results to GitHub's code scanning dashboard (optional).
       # Commenting out will disable upload of results to your repo's Code Scanning dashboard
       - name: "Upload to code-scanning"
