@@ -917,6 +917,12 @@ func ErrorCodes(err error) []int {
 	}
 
 	var ec errorCoder
+	// First check if the error is already wrapped (common case)
+	if errors.As(err, &ec) {
+		return ec.ErrorCodes()
+	}
+
+	// Only wrap if necessary (for internal errors)
 	if errors.As(wrapErrors(err), &ec) {
 		return ec.ErrorCodes()
 	}
