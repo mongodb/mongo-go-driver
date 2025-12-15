@@ -7,7 +7,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -15,7 +14,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/docker/docker/api/types/container"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
 )
@@ -61,63 +59,47 @@ func TestCompileCheck(t *testing.T) {
 	cwd, err := os.Getwd()
 	require.NoError(t, err)
 
+	// Navigate up from internal/test/compilecheck to the project root.
 	rootDir := filepath.Dir(filepath.Dir(filepath.Dir(cwd)))
 
-	for _, version := range goVersions {
-		version := version // Capture range variable.
+	// Build the image and start one container we can reuse for all subtests.
+	req := testcontainers.ContainerRequest{
+		FromDockerfile: testcontainers.FromDockerfile{
+			Context:       rootDir,
+			Dockerfile:    "Dockerfile",
+			PrintBuildLog: true,
+		},
+		Entrypoint: []string{"tail", "-f", "/dev/null"},
+		WorkingDir: "/workspace",
+	}
 
-		image := fmt.Sprintf("golang:%s", version)
-		t.Run(image, func(t *testing.T) {
-			t.Parallel()
+	genReq := testcontainers.GenericContainerRequest{ContainerRequest: req, Started: true}
 
-			req := testcontainers.ContainerRequest{
-				Image: image,
-				// Keep container running so we can Exec commands into it.
-				Cmd:        []string{"tail", "-f", "/dev/null"},
-				WorkingDir: "/app",
-				HostConfigModifier: func(hostConfig *container.HostConfig) {
-					hostConfig.Binds = []string{fmt.Sprintf("%s:/driver", rootDir)}
-				},
-				Files: []testcontainers.ContainerFile{
-					{
-						ContainerFilePath: "/app/main.go",
-						Reader:            bytes.NewReader([]byte(mainGo)),
-					},
-				},
-			}
+	container, err := testcontainers.GenericContainer(context.Background(), genReq)
+	require.NoError(t, err)
 
-			genReq := testcontainers.GenericContainerRequest{
-				ContainerRequest: req,
-				Started:          true,
-			}
+	defer func() {
+		require.NoError(t, container.Terminate(context.Background()))
+	}()
 
-			container, err := testcontainers.GenericContainer(context.Background(), genReq)
+	for _, ver := range goVersions {
+		ver := ver // capture
+		t.Run("go:"+ver, func(t *testing.T) {
+			cmd := fmt.Sprintf("PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%[1]s.0+auto go version || PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%[1]s go version", ver)
+
+			exit, out, err := container.Exec(context.Background(), []string{"bash", "-lc", cmd})
 			require.NoError(t, err)
 
-			defer func() {
-				err := container.Terminate(context.Background())
-				require.NoError(t, err)
-			}()
+			b, err := io.ReadAll(out)
 
-			// Initialize go module and set up replace directive to use local driver.
-			setupCmds := [][]string{
-				{"go", "mod", "init", "app"},
-				{"go", "mod", "edit", "-replace", "go.mongodb.org/mongo-driver/v2=/driver"},
-				{"go", "mod", "tidy"},
-			}
-
-			for _, cmd := range setupCmds {
-				exitCode, outputReader, err := container.Exec(context.Background(), cmd)
-				require.NoError(t, err)
-
-				output, err := io.ReadAll(outputReader)
-				require.NoError(t, err)
-
-				require.Equal(t, 0, exitCode, "command %v failed: %s", cmd, output)
-			}
+			require.NoError(t, err)
+			require.Equal(t, 0, exit, "go version failed: %s", b)
+			require.Contains(t, string(b), "go"+ver, "unexpected go version: %s", b)
 
 			// Standard build.
-			exitCode, outputReader, err := container.Exec(context.Background(), []string{"go", "build", "-buildvcs=false", "./..."})
+			exitCode, outputReader, err := container.Exec(context.Background(), []string{
+				"sh", "-c", fmt.Sprintf("PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%s go build -buildvcs=false ./...", ver),
+			})
 			require.NoError(t, err)
 
 			output, err := io.ReadAll(outputReader)
@@ -125,7 +107,10 @@ func TestCompileCheck(t *testing.T) {
 
 			require.Equal(t, 0, exitCode, "standard build failed: %s", output)
 
-			exitCode, outputReader, err = container.Exec(context.Background(), []string{"go", "build", "-buildvcs=false", "-buildmode=plugin", "./..."})
+			// Dynamic linking build.
+			exitCode, outputReader, err = container.Exec(context.Background(), []string{
+				"sh", "-c", fmt.Sprintf("PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%s go build -buildvcs=false -buildmode=plugin ./...", ver),
+			})
 			require.NoError(t, err)
 
 			output, err = io.ReadAll(outputReader)
@@ -133,31 +118,9 @@ func TestCompileCheck(t *testing.T) {
 
 			require.Equal(t, 0, exitCode, "dynamic linking build failed: %s", output)
 
-			// Build with tags (install libmongocrypt and gssapi headers).
-			// Use the driver's install-libmongocrypt.sh script which is mounted at /driver.
-			installCmds := [][]string{
-				{"apt-get", "update"},
-				{"apt-get", "install", "-y", "libkrb5-dev", "cmake", "libssl-dev", "git", "pkg-config"},
-				{"bash", "/driver/etc/install-libmongocrypt.sh"},
-				{"sh", "-c", "test -d install || test -d /cygdrive/c/libmongocrypt/bin"},
-			}
-
-			for _, cmd := range installCmds {
-				exitCode, outputReader, err = container.Exec(context.Background(), cmd)
-				require.NoError(t, err)
-
-				output, err = io.ReadAll(outputReader)
-				require.NoError(t, err)
-
-				require.Equal(t, 0, exitCode, "install command %v failed: %s", cmd, output)
-			}
-
-			// The install script creates an "install" directory in the current working directory (/app).
-			// libmongocrypt may install to lib or lib64 depending on the system.
+			// Build with build tags.
 			exitCode, outputReader, err = container.Exec(context.Background(), []string{
-				"sh", "-c", "PKG_CONFIG_PATH=/app/install/lib/pkgconfig:/app/install/lib64/pkgconfig " +
-					"LD_LIBRARY_PATH=/app/install/lib:/app/install/lib64 " +
-					"go build -buildvcs=false -tags=cse,gssapi,mongointernal ./...",
+				"sh", "-c", fmt.Sprintf("PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%s go build -buildvcs=false -tags=cse,gssapi,mongointernal ./...", ver),
 			})
 			require.NoError(t, err)
 
@@ -166,10 +129,11 @@ func TestCompileCheck(t *testing.T) {
 
 			require.Equal(t, 0, exitCode, "build with build tags failed: %s", output)
 
+			// Build for each architecture.
 			for _, architecture := range architectures {
 				exitCode, outputReader, err := container.Exec(
 					context.Background(),
-					[]string{"sh", "-c", fmt.Sprintf("GOOS=linux GOARCH=%s go build -buildvcs=false ./...", architecture)},
+					[]string{"sh", "-c", fmt.Sprintf("PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%s GOOS=linux GOARCH=%s go build -buildvcs=false ./...", ver, architecture)},
 				)
 				require.NoError(t, err)
 
@@ -179,7 +143,7 @@ func TestCompileCheck(t *testing.T) {
 				require.Equal(t, 0, exitCode, "build failed for architecture %s: %s", architecture, output)
 			}
 
-			t.Logf("compilation checks passed for %s", image)
+			t.Logf("compilation checks passed for Go ver %s", ver)
 		})
 	}
 }
