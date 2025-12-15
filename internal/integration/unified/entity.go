@@ -24,10 +24,8 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
-var (
-	// ErrEntityMapOpen is returned when a slice entity is accessed while the EntityMap is open
-	ErrEntityMapOpen = errors.New("slices cannot be accessed while EntityMap is open")
-)
+// ErrEntityMapOpen is returned when a slice entity is accessed while the EntityMap is open
+var ErrEntityMapOpen = errors.New("slices cannot be accessed while EntityMap is open")
 
 var (
 	tlsCAFile                   = os.Getenv("CSFLE_TLS_CA_FILE")
@@ -95,11 +93,10 @@ type entityOptions struct {
 
 	ClientEncryptionOpts *clientEncryptionOpts `bson:"clientEncryptionOpts"`
 
-	// If true, the unified spec runner must wait for the connection pool to be
-	// populated for all servers according to the minPoolSize option. If false,
-	// not specified, or if minPoolSize equals 0, there is no need to wait for any
-	// specific pool state.
-	AwaitMinPoolSize bool `bson:"awaitMinPoolSize"`
+	// Maximum duration (in milliseconds) that the test runner MUST wait for each
+	// connection pool to be populated with minPoolSize. Any CMAP and SDAM events
+	// that occur before the pool is populated will be ignored.
+	AwaitMinPoolSizeMS *int `bson:"awaitMinPoolSizeMS"`
 }
 
 func (eo *entityOptions) setHeartbeatFrequencyMS(freq time.Duration) {
@@ -118,7 +115,8 @@ func (eo *entityOptions) setHeartbeatFrequencyMS(freq time.Duration) {
 // newCollectionEntityOptions constructs an entity options object for a
 // collection.
 func newCollectionEntityOptions(id string, databaseID string, collectionName string,
-	opts *dbOrCollectionOptions) *entityOptions {
+	opts *dbOrCollectionOptions,
+) *entityOptions {
 	options := &entityOptions{
 		ID:                id,
 		DatabaseID:        databaseID,
