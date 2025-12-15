@@ -23,7 +23,7 @@ tasks:
     dir: internal/test/compilecheck
     cmds:
       - go mod download
-      - GOTOOLCHAIN=auto go test -v -run '^TestCompileCheck/golang:1\.19$'
+      - GOTOOLCHAIN=auto go test -v -run '^TestCompileCheck/go:1\.19$'
   build-compile-check-all: bash etc/run-compile-check-test.sh
   build-aws-ecs-test: go test -c ./internal/test/aws -o aws.testbin
   check-fmt:

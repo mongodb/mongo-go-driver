@@ -37,8 +37,8 @@ func main() {
 // goVersions is the list of Go versions to test compilation against.
 // To run tests for specific version(s), use the -run flag:
 //
-//	go test -v -run '^TestCompileCheck/golang:1.19$'
-//	go test -v -run '^TestCompileCheck/golang:1\.(19|20)$'
+//	go test -v -run '^TestCompileCheck/go:1.19$'
+//	go test -v -run '^TestCompileCheck/go:1\.(19|20)$'
 var goVersions = []string{"1.19", "1.20", "1.21", "1.22", "1.23", "1.24", "1.25"}
 var architectures = []string{
 	"386",
