@@ -69,7 +69,7 @@ type CSFLE struct {
 
 // UnmarshalBSON implements custom BSON unmarshalling for CSFLE, accepting
 // either a boolean or an embedded document. If a document is provided, Options
-// is set and Boolean is false. If a boolean is provided, Boolean is set and
+// is set and Boolean is true. If a boolean is provided, Boolean is set and
 // Options is nil.
 func (csfle *CSFLE) UnmarshalBSON(data []byte) error {
 	embRawValue := bson.RawValue{Type: bson.TypeEmbeddedDocument, Value: data}
