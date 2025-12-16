@@ -198,7 +198,6 @@ func clamMultiByteTruncLogs(mt *mtest.T) []truncValidator {
 
 	// Insert started.
 	validators[0] = newTruncValidator(mt, cmd, func(cmd string) error {
-
 		// Remove the suffix from the command string.
 		cmd = cmd[:len(cmd)-len(logger.TruncationSuffix)]
 
