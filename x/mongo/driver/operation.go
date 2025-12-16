@@ -747,7 +747,6 @@ func (op Operation) Execute(ctx context.Context) error {
 		var moreToCome bool
 		var startedInfo startedInformation
 		*wm, moreToCome, startedInfo, err = op.createWireMessage(ctx, maxTimeMS, (*wm)[:0], desc, conn, requestID)
-
 		if err != nil {
 			return err
 		}
