@@ -82,6 +82,14 @@ func TestCompileCheck(t *testing.T) {
 		require.NoError(t, container.Terminate(context.Background()))
 	}()
 
+	// Write main.go into the container.
+	exitCode, outputReader, err := container.Exec(context.Background(), []string{"sh", "-c", fmt.Sprintf("cat > /workspace/main.go << 'GOFILE'\n%s\nGOFILE", mainGo)})
+	require.NoError(t, err)
+
+	output, err := io.ReadAll(outputReader)
+	require.NoError(t, err)
+	require.Equal(t, 0, exitCode, "failed to write main.go: %s", output)
+
 	for _, ver := range goVersions {
 		ver := ver // capture
 		t.Run("go:"+ver, func(t *testing.T) {
