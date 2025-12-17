@@ -39,6 +39,8 @@ const goMod = `module compilecheck
 go 1.19
 
 require go.mongodb.org/mongo-driver/v2 v2.1.0
+
+replace go.mongodb.org/mongo-driver/v2 => /mongo-go-driver
 `
 
 // goVersions is the list of Go versions to test compilation against.
@@ -66,7 +68,6 @@ func TestCompileCheck(t *testing.T) {
 	cwd, err := os.Getwd()
 	require.NoError(t, err)
 
-	// Navigate up from internal/test/compilecheck to the project root.
 	rootDir := filepath.Dir(filepath.Dir(filepath.Dir(cwd)))
 
 	// Build the image and start one container we can reuse for all subtests.
@@ -85,9 +86,9 @@ func TestCompileCheck(t *testing.T) {
 	container, err := testcontainers.GenericContainer(context.Background(), genReq)
 	require.NoError(t, err)
 
-	defer func() {
+	t.Cleanup(func() {
 		require.NoError(t, container.Terminate(context.Background()))
-	}()
+	})
 
 	// Write main.go into the container.
 	exitCode, outputReader, err := container.Exec(context.Background(), []string{"sh", "-c", fmt.Sprintf("cat > /workspace/main.go << 'GOFILE'\n%s\nGOFILE", mainGo)})
@@ -105,7 +106,6 @@ func TestCompileCheck(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 0, exitCode, "failed to write go.mod: %s", output)
 
-	// Download dependencies using go mod tidy to ensure go.sum has all entries.
 	exitCode, outputReader, err = container.Exec(context.Background(), []string{"sh", "-c", "cd /workspace && PATH=/usr/local/go/bin:$PATH go mod tidy 2>&1"})
 	require.NoError(t, err)
 
@@ -116,6 +116,19 @@ func TestCompileCheck(t *testing.T) {
 	for _, ver := range goVersions {
 		ver := ver // capture
 		t.Run("go:"+ver, func(t *testing.T) {
+			t.Parallel()
+
+			// Each version gets its own workspace to avoid conflicts when running in parallel.
+			workspace := fmt.Sprintf("/workspace-%s", ver)
+
+			setupCmd := fmt.Sprintf("mkdir -p %[1]s && cp /workspace/main.go /workspace/go.mod /workspace/go.sum %[1]s/", workspace)
+			exitCode, outputReader, err := container.Exec(context.Background(), []string{"sh", "-c", setupCmd})
+			require.NoError(t, err)
+
+			output, err := io.ReadAll(outputReader)
+			require.NoError(t, err)
+			require.Equal(t, 0, exitCode, "failed to setup workspace: %s", output)
+
 			cmd := fmt.Sprintf("PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%[1]s.0+auto go version || PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%[1]s go version", ver)
 
 			exit, out, err := container.Exec(context.Background(), []string{"bash", "-lc", cmd})
@@ -128,19 +141,19 @@ func TestCompileCheck(t *testing.T) {
 			require.Contains(t, string(b), "go"+ver, "unexpected go version: %s", b)
 
 			// Standard build.
-			exitCode, outputReader, err := container.Exec(context.Background(), []string{
-				"sh", "-c", fmt.Sprintf("cd /workspace && PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%[1]s.0 go build -buildvcs=false -o /dev/null main.go 2>&1 || PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%[1]s go build -buildvcs=false -o /dev/null main.go 2>&1", ver),
+			exitCode, outputReader, err = container.Exec(context.Background(), []string{
+				"sh", "-c", fmt.Sprintf("cd %[2]s && PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%[1]s.0 go build -buildvcs=false -o /dev/null main.go 2>&1 || PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%[1]s go build -buildvcs=false -o /dev/null main.go 2>&1", ver, workspace),
 			})
 			require.NoError(t, err)
 
-			output, err := io.ReadAll(outputReader)
+			output, err = io.ReadAll(outputReader)
 			require.NoError(t, err)
 
 			require.Equal(t, 0, exitCode, "standard build failed: %s", output)
 
 			// Dynamic linking build.
 			exitCode, outputReader, err = container.Exec(context.Background(), []string{
-				"sh", "-c", fmt.Sprintf("cd /workspace && PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%[1]s.0 go build -buildvcs=false -buildmode=plugin -o /dev/null main.go 2>&1 || PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%[1]s go build -buildvcs=false -buildmode=plugin -o /dev/null main.go 2>&1", ver),
+				"sh", "-c", fmt.Sprintf("cd %[2]s && PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%[1]s.0 go build -buildvcs=false -buildmode=plugin -o /dev/null main.go 2>&1 || PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%[1]s go build -buildvcs=false -buildmode=plugin -o /dev/null main.go 2>&1", ver, workspace),
 			})
 			require.NoError(t, err)
 
@@ -151,7 +164,7 @@ func TestCompileCheck(t *testing.T) {
 
 			// Build with build tags.
 			exitCode, outputReader, err = container.Exec(context.Background(), []string{
-				"sh", "-c", fmt.Sprintf("cd /workspace && PKG_CONFIG_PATH=/root/install/libmongocrypt/lib/pkgconfig CGO_CFLAGS='-I/root/install/libmongocrypt/include' CGO_LDFLAGS='-L/root/install/libmongocrypt/lib -Wl,-rpath,/root/install/libmongocrypt/lib' PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%[1]s.0 go build -buildvcs=false -tags=cse,gssapi -o /dev/null main.go 2>&1 || PKG_CONFIG_PATH=/root/install/libmongocrypt/lib/pkgconfig CGO_CFLAGS='-I/root/install/libmongocrypt/include' CGO_LDFLAGS='-L/root/install/libmongocrypt/lib -Wl,-rpath,/root/install/libmongocrypt/lib' PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%[1]s go build -buildvcs=false -tags=cse,gssapi -o /dev/null main.go 2>&1", ver),
+				"sh", "-c", fmt.Sprintf("cd %[2]s && PKG_CONFIG_PATH=/root/install/libmongocrypt/lib/pkgconfig CGO_CFLAGS='-I/root/install/libmongocrypt/include' CGO_LDFLAGS='-L/root/install/libmongocrypt/lib -Wl,-rpath,/root/install/libmongocrypt/lib' PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%[1]s.0 go build -buildvcs=false -tags=cse,gssapi -o /dev/null main.go 2>&1 || PKG_CONFIG_PATH=/root/install/libmongocrypt/lib/pkgconfig CGO_CFLAGS='-I/root/install/libmongocrypt/include' CGO_LDFLAGS='-L/root/install/libmongocrypt/lib -Wl,-rpath,/root/install/libmongocrypt/lib' PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%[1]s go build -buildvcs=false -tags=cse,gssapi -o /dev/null main.go 2>&1", ver, workspace),
 			})
 			require.NoError(t, err)
 
@@ -164,7 +177,7 @@ func TestCompileCheck(t *testing.T) {
 			for _, architecture := range architectures {
 				exitCode, outputReader, err := container.Exec(
 					context.Background(),
-					[]string{"sh", "-c", fmt.Sprintf("cd /workspace && PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%[1]s.0 GOOS=linux GOARCH=%[2]s go build -buildvcs=false -o /dev/null main.go 2>&1 || PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%[1]s GOOS=linux GOARCH=%[2]s go build -buildvcs=false -o /dev/null main.go 2>&1", ver, architecture)},
+					[]string{"sh", "-c", fmt.Sprintf("cd %[3]s && PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%[1]s.0 GOOS=linux GOARCH=%[2]s go build -buildvcs=false -o /dev/null main.go 2>&1 || PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%[1]s GOOS=linux GOARCH=%[2]s go build -buildvcs=false -o /dev/null main.go 2>&1", ver, architecture, workspace)},
 				)
 				require.NoError(t, err)
 
