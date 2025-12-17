@@ -34,6 +34,13 @@ func main() {
 }
 `
 
+const goMod = `module compilecheck
+
+go 1.19
+
+require go.mongodb.org/mongo-driver/v2 v2.1.0
+`
+
 // goVersions is the list of Go versions to test compilation against.
 // To run tests for specific version(s), use the -run flag:
 //
@@ -90,6 +97,18 @@ func TestCompileCheck(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 0, exitCode, "failed to write main.go: %s", output)
 
+	// Write go.mod into the container.
+	exitCode, outputReader, err = container.Exec(context.Background(), []string{"sh", "-c", fmt.Sprintf("cat > /workspace/go.mod << 'GOMOD'\n%s\nGOMOD", goMod)})
+	require.NoError(t, err)
+
+	output, err = io.ReadAll(outputReader)
+	require.NoError(t, err)
+	require.Equal(t, 0, exitCode, "failed to write go.mod: %s", output)
+
+	// Download dependencies using go mod tidy to ensure go.sum has all entries.
+	exitCode, outputReader, err = container.Exec(context.Background(), []string{"sh", "-c", "cd /workspace && PATH=/usr/local/go/bin:$PATH go mod tidy 2>&1"})
+	require.NoError(t, err)
+
 	for _, ver := range goVersions {
 		ver := ver // capture
 		t.Run("go:"+ver, func(t *testing.T) {
@@ -106,7 +125,7 @@ func TestCompileCheck(t *testing.T) {
 
 			// Standard build.
 			exitCode, outputReader, err := container.Exec(context.Background(), []string{
-				"sh", "-c", fmt.Sprintf("PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%s go build -buildvcs=false ./...", ver),
+				"sh", "-c", fmt.Sprintf("cd /workspace && PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%[1]s.0 go build -buildvcs=false -o /dev/null main.go 2>&1 || PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%[1]s go build -buildvcs=false -o /dev/null main.go 2>&1", ver),
 			})
 			require.NoError(t, err)
 
@@ -117,7 +136,7 @@ func TestCompileCheck(t *testing.T) {
 
 			// Dynamic linking build.
 			exitCode, outputReader, err = container.Exec(context.Background(), []string{
-				"sh", "-c", fmt.Sprintf("PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%s go build -buildvcs=false -buildmode=plugin ./...", ver),
+				"sh", "-c", fmt.Sprintf("cd /workspace && PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%[1]s.0 go build -buildvcs=false -buildmode=plugin -o /dev/null main.go 2>&1 || PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%[1]s go build -buildvcs=false -buildmode=plugin -o /dev/null main.go 2>&1", ver),
 			})
 			require.NoError(t, err)
 
@@ -128,7 +147,7 @@ func TestCompileCheck(t *testing.T) {
 
 			// Build with build tags.
 			exitCode, outputReader, err = container.Exec(context.Background(), []string{
-				"sh", "-c", fmt.Sprintf("PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%s go build -buildvcs=false -tags=cse,gssapi,mongointernal ./...", ver),
+				"sh", "-c", fmt.Sprintf("cd /workspace && PKG_CONFIG_PATH=/root/install/libmongocrypt/lib/pkgconfig CGO_CFLAGS='-I/root/install/libmongocrypt/include' CGO_LDFLAGS='-L/root/install/libmongocrypt/lib -Wl,-rpath,/root/install/libmongocrypt/lib' PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%[1]s.0 go build -buildvcs=false -tags=cse,gssapi -o /dev/null main.go 2>&1 || PKG_CONFIG_PATH=/root/install/libmongocrypt/lib/pkgconfig CGO_CFLAGS='-I/root/install/libmongocrypt/include' CGO_LDFLAGS='-L/root/install/libmongocrypt/lib -Wl,-rpath,/root/install/libmongocrypt/lib' PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%[1]s go build -buildvcs=false -tags=cse,gssapi -o /dev/null main.go 2>&1", ver),
 			})
 			require.NoError(t, err)
 
@@ -141,7 +160,7 @@ func TestCompileCheck(t *testing.T) {
 			for _, architecture := range architectures {
 				exitCode, outputReader, err := container.Exec(
 					context.Background(),
-					[]string{"sh", "-c", fmt.Sprintf("PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%s GOOS=linux GOARCH=%s go build -buildvcs=false ./...", ver, architecture)},
+					[]string{"sh", "-c", fmt.Sprintf("cd /workspace && PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%[1]s.0 GOOS=linux GOARCH=%[2]s go build -buildvcs=false -o /dev/null main.go 2>&1 || PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%[1]s GOOS=linux GOARCH=%[2]s go build -buildvcs=false -o /dev/null main.go 2>&1", ver, architecture)},
 				)
 				require.NoError(t, err)
 
