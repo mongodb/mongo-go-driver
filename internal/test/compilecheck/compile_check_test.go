@@ -109,6 +109,10 @@ func TestCompileCheck(t *testing.T) {
 	exitCode, outputReader, err = container.Exec(context.Background(), []string{"sh", "-c", "cd /workspace && PATH=/usr/local/go/bin:$PATH go mod tidy 2>&1"})
 	require.NoError(t, err)
 
+	output, err = io.ReadAll(outputReader)
+	require.NoError(t, err)
+	require.Equal(t, 0, exitCode, "failed to tidy dependencies: %s", output)
+
 	for _, ver := range goVersions {
 		ver := ver // capture
 		t.Run("go:"+ver, func(t *testing.T) {
