@@ -1385,42 +1385,33 @@ func TestClientSideEncryptionProse(t *testing.T) {
 	// running. See specification for port numbers and necessary arguments:
 	// https://github.com/mongodb/specifications/blob/master/source/client-side-encryption/tests/README.md#10-kms-tls-tests
 	mt.RunOpts("10. kms tls tests", noClientOpts, func(mt *mtest.T) {
-		kmsTlsTestcase := os.Getenv("KMS_TLS_TESTCASE")
-		if kmsTlsTestcase == "" {
-			mt.Skipf("Skipping test as KMS_TLS_TESTCASE is not set")
+		if os.Getenv("KMS_MOCK_SERVERS_RUNNING") == "" {
+			mt.Skipf("Skipping test as KMS_MOCK_SERVERS_RUNNING is not set")
 		}
 
 		testcases := []struct {
 			name       string
 			port       int
-			envValue   string
 			errMessage string
 		}{
 			{
 				"invalid certificate",
 				9000,
-				"INVALID_CERT",
 				"expired",
 			},
 			{
 				"invalid hostname",
 				9001,
-				"INVALID_HOSTNAME",
 				"SANs",
 			},
 		}
 
 		for _, tc := range testcases {
 			mt.Run(tc.name, func(mt *mtest.T) {
-				// Only run test if correct KMS mock server is running.
-				if kmsTlsTestcase != tc.envValue {
-					mt.Skipf("Skipping test as KMS_TLS_TESTCASE is set to %q, expected %v", kmsTlsTestcase, tc.envValue)
-				}
-
 				ceo := options.ClientEncryption().
 					SetKmsProviders(fullKmsProvidersMap).
 					SetKeyVaultNamespace(kvNamespace)
-				cpt := setup(mt, nil, nil, ceo)
+				cpt := setup(mt, nil, defaultKvClientOptions, ceo)
 				defer cpt.teardown(mt)
 
 				_, err := cpt.clientEnc.CreateDataKey(context.Background(), "aws", options.DataKey().SetMasterKey(
@@ -1430,9 +1421,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 						{"endpoint", fmt.Sprintf("127.0.0.1:%d", tc.port)},
 					},
 				))
-				assert.NotNil(mt, err, "expected CreateDataKey error, got nil")
-				assert.True(mt, strings.Contains(err.Error(), tc.errMessage),
-					"expected CreateDataKey error to contain %v, got %v", tc.errMessage, err.Error())
+				assert.ErrorContains(mt, err, tc.errMessage)
 			})
 		}
 	})
