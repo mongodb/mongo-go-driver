@@ -12,6 +12,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -62,6 +63,23 @@ var architectures = []string{
 	"ppc64le",
 	"riscv64",
 	"s390x",
+}
+
+// goBuild constructs a build command that tries GOTOOLCHAIN=goX.Y.0 first, then falls back to goX.Y.
+func goBuild(ver, workdir string, env, extraFlags []string) string {
+	baseEnv := "PATH=/usr/local/go/bin:$PATH"
+	envStr := baseEnv
+	if len(env) > 0 {
+		envStr = strings.Join(env, " ") + " " + baseEnv
+	}
+
+	flags := "-buildvcs=false"
+	if len(extraFlags) > 0 {
+		flags += " " + strings.Join(extraFlags, " ")
+	}
+
+	return fmt.Sprintf("cd %s && %s GOTOOLCHAIN=go%s.0 go build %s -o /dev/null main.go 2>&1 || %s GOTOOLCHAIN=go%s go build %s -o /dev/null main.go 2>&1",
+		workdir, envStr, ver, flags, envStr, ver, flags)
 }
 
 func TestCompileCheck(t *testing.T) {
@@ -142,7 +160,7 @@ func TestCompileCheck(t *testing.T) {
 
 			// Standard build.
 			exitCode, outputReader, err = container.Exec(context.Background(), []string{
-				"sh", "-c", fmt.Sprintf("cd %[2]s && PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%[1]s.0 go build -buildvcs=false -o /dev/null main.go 2>&1 || PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%[1]s go build -buildvcs=false -o /dev/null main.go 2>&1", ver, workspace),
+				"sh", "-c", goBuild(ver, workspace, nil, nil),
 			})
 			require.NoError(t, err)
 
@@ -153,7 +171,7 @@ func TestCompileCheck(t *testing.T) {
 
 			// Dynamic linking build.
 			exitCode, outputReader, err = container.Exec(context.Background(), []string{
-				"sh", "-c", fmt.Sprintf("cd %[2]s && PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%[1]s.0 go build -buildvcs=false -buildmode=plugin -o /dev/null main.go 2>&1 || PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%[1]s go build -buildvcs=false -buildmode=plugin -o /dev/null main.go 2>&1", ver, workspace),
+				"sh", "-c", goBuild(ver, workspace, nil, []string{"-buildmode=plugin"}),
 			})
 			require.NoError(t, err)
 
@@ -163,8 +181,13 @@ func TestCompileCheck(t *testing.T) {
 			require.Equal(t, 0, exitCode, "dynamic linking build failed: %s", output)
 
 			// Build with build tags.
+			cgoEnv := []string{
+				"PKG_CONFIG_PATH=/root/install/libmongocrypt/lib/pkgconfig",
+				"CGO_CFLAGS='-I/root/install/libmongocrypt/include'",
+				"CGO_LDFLAGS='-L/root/install/libmongocrypt/lib -Wl,-rpath,/root/install/libmongocrypt/lib'",
+			}
 			exitCode, outputReader, err = container.Exec(context.Background(), []string{
-				"sh", "-c", fmt.Sprintf("cd %[2]s && PKG_CONFIG_PATH=/root/install/libmongocrypt/lib/pkgconfig CGO_CFLAGS='-I/root/install/libmongocrypt/include' CGO_LDFLAGS='-L/root/install/libmongocrypt/lib -Wl,-rpath,/root/install/libmongocrypt/lib' PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%[1]s.0 go build -buildvcs=false -tags=cse,gssapi -o /dev/null main.go 2>&1 || PKG_CONFIG_PATH=/root/install/libmongocrypt/lib/pkgconfig CGO_CFLAGS='-I/root/install/libmongocrypt/include' CGO_LDFLAGS='-L/root/install/libmongocrypt/lib -Wl,-rpath,/root/install/libmongocrypt/lib' PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%[1]s go build -buildvcs=false -tags=cse,gssapi -o /dev/null main.go 2>&1", ver, workspace),
+				"sh", "-c", goBuild(ver, workspace, cgoEnv, []string{"-tags=cse,gssapi,mongointernal"}),
 			})
 			require.NoError(t, err)
 
@@ -175,9 +198,10 @@ func TestCompileCheck(t *testing.T) {
 
 			// Build for each architecture.
 			for _, architecture := range architectures {
-				exitCode, outputReader, err := container.Exec(
+				archEnv := []string{"GOOS=linux", "GOARCH=" + architecture}
+				exitCode, outputReader, err = container.Exec(
 					context.Background(),
-					[]string{"sh", "-c", fmt.Sprintf("cd %[3]s && PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%[1]s.0 GOOS=linux GOARCH=%[2]s go build -buildvcs=false -o /dev/null main.go 2>&1 || PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%[1]s GOOS=linux GOARCH=%[2]s go build -buildvcs=false -o /dev/null main.go 2>&1", ver, architecture, workspace)},
+					[]string{"sh", "-c", goBuild(ver, workspace, archEnv, nil)},
 				)
 				require.NoError(t, err)
 
