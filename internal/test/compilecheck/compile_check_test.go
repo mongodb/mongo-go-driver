@@ -136,6 +136,10 @@ func TestCompileCheck(t *testing.T) {
 		t.Run("go:"+ver, func(t *testing.T) {
 			t.Parallel()
 
+			t.Cleanup(func() {
+				t.Logf("compilation checks passed for Go ver %s", ver)
+			})
+
 			// Each version gets its own workspace to avoid conflicts when running in parallel.
 			workspace := fmt.Sprintf("/workspace-%s", ver)
 
@@ -198,20 +202,23 @@ func TestCompileCheck(t *testing.T) {
 
 			// Build for each architecture.
 			for _, architecture := range architectures {
-				archEnv := []string{"GOOS=linux", "GOARCH=" + architecture}
-				exitCode, outputReader, err = container.Exec(
-					context.Background(),
-					[]string{"sh", "-c", goBuild(ver, workspace, archEnv, nil)},
-				)
-				require.NoError(t, err)
+				architecture := architecture // capture
+				t.Run("arch:"+architecture, func(t *testing.T) {
+					t.Parallel()
 
-				output, err := io.ReadAll(outputReader)
-				require.NoError(t, err)
+					archEnv := []string{"GOOS=linux", "GOARCH=" + architecture}
+					exitCode, outputReader, err := container.Exec(
+						context.Background(),
+						[]string{"sh", "-c", goBuild(ver, workspace, archEnv, nil)},
+					)
+					require.NoError(t, err)
 
-				require.Equal(t, 0, exitCode, "build failed for architecture %s: %s", architecture, output)
+					output, err := io.ReadAll(outputReader)
+					require.NoError(t, err)
+
+					require.Equal(t, 0, exitCode, "build failed for architecture %s: %s", architecture, output)
+				})
 			}
-
-			t.Logf("compilation checks passed for Go ver %s", ver)
 		})
 	}
 }
