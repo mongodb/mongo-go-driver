@@ -851,6 +851,11 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/sessions/tests/snapshot-sessions.json/countDocuments_operation_with_snapshot_and_snapshot_time",
 		"TestUnifiedSpec/sessions/tests/snapshot-sessions.json/Mixed_operation_with_snapshot_and_snapshotTime",
 	},
+
+	// TODO(DRIVERS-3356): Unskip this test when the spec test bug is fixed.
+	"Handshake spec test 'metadata-not-propagated.yml' fails on sharded clusters (DRIVERS-3356)": {
+		"TestUnifiedSpec/mongodb-handshake/tests/unified/metadata-not-propagated.json/metadata_append_does_not_create_new_connections_or_close_existing_ones_and_no_hello_command_is_sent",
+	},
 }
 
 // CheckSkip checks if the fully-qualified test name matches a list of skipped test names for a given reason.
