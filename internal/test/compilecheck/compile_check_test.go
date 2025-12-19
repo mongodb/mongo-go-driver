@@ -35,21 +35,20 @@ func main() {
 }
 `
 
-const goMod = `module compilecheck
-
-go 1.19
-
-require go.mongodb.org/mongo-driver/v2 v2.1.0
-
-replace go.mongodb.org/mongo-driver/v2 => /mongo-go-driver
-`
-
 // goVersions is the list of Go versions to test compilation against.
 // To run tests for specific version(s), use the -run flag:
 //
 //	go test -v -run '^TestCompileCheck/go:1.19$'
 //	go test -v -run '^TestCompileCheck/go:1\.(19|20)$'
-var goVersions = []string{"1.19", "1.20", "1.21", "1.22", "1.23", "1.24", "1.25"}
+var goVersions = []string{
+	"1.19", // Minimum supported Go version for mongo-driver v2
+	"1.20",
+	"1.21",
+	"1.22",
+	"1.23",
+	"1.24",
+	"1.25", // Test suite Go Version
+}
 var architectures = []string{
 	"386",
 	"amd64",
@@ -65,21 +64,56 @@ var architectures = []string{
 	"s390x",
 }
 
-// goBuild constructs a build command that tries GOTOOLCHAIN=goX.Y.0 first, then falls back to goX.Y.
-func goBuild(ver, workdir string, env, extraFlags []string) string {
-	baseEnv := "PATH=/usr/local/go/bin:$PATH"
-	envStr := baseEnv
-	if len(env) > 0 {
-		envStr = strings.Join(env, " ") + " " + baseEnv
+// goExecConfig contains optional configuration for execGo.
+type goExecConfig struct {
+	version string            // Optional: Go version to use with GOTOOLCHAIN. If empty, uses default.
+	env     map[string]string // Optional: Additional environment variables.
+}
+
+// execContainer executes a shell command in the container and validates its output.
+func execContainer(t *testing.T, c testcontainers.Container, cmd string) string {
+	t.Helper()
+
+	exit, out, err := c.Exec(context.Background(), []string{"bash", "-lc", cmd})
+	require.NoError(t, err)
+
+	b, err := io.ReadAll(out)
+	require.NoError(t, err)
+	require.Equal(t, 0, exit, "command failed: %s", b)
+
+	s := string(b)
+	// Strip leading non-printable bytes (some Docker/TTY combos emit these).
+	for len(s) > 0 && s[0] < 0x20 {
+		s = s[1:]
+	}
+	return s
+}
+
+// execGo runs a Go command, trying GOTOOLCHAIN=goX.Y.0 first, then goX.Y.
+func execGo(t *testing.T, c testcontainers.Container, cfg *goExecConfig, args ...string) string {
+	t.Helper()
+
+	if cfg == nil {
+		cfg = &goExecConfig{}
 	}
 
-	flags := "-buildvcs=false"
-	if len(extraFlags) > 0 {
-		flags += " " + strings.Join(extraFlags, " ")
+	envParts := []string{"PATH=/usr/local/go/bin:$PATH"}
+	for k, v := range cfg.env {
+		envParts = append(envParts, fmt.Sprintf("%s=%s", k, v))
+	}
+	envStr := strings.Join(envParts, " ")
+	goArgs := strings.Join(args, " ")
+
+	var cmd string
+	if cfg.version != "" {
+		primaryCmd := fmt.Sprintf("%s GOTOOLCHAIN=go%s.0 go %s 2>&1", envStr, cfg.version, goArgs)
+		fallbackCmd := fmt.Sprintf("%s GOTOOLCHAIN=go%s go %s 2>&1", envStr, cfg.version, goArgs)
+		cmd = fmt.Sprintf("%s || %s", primaryCmd, fallbackCmd)
+	} else {
+		cmd = fmt.Sprintf("%s go %s 2>&1", envStr, goArgs)
 	}
 
-	return fmt.Sprintf("cd %s && %s GOTOOLCHAIN=go%s.0 go build %s -o /dev/null main.go 2>&1 || %s GOTOOLCHAIN=go%s go build %s -o /dev/null main.go 2>&1",
-		workdir, envStr, ver, flags, envStr, ver, flags)
+	return execContainer(t, c, cmd)
 }
 
 func TestCompileCheck(t *testing.T) {
@@ -95,6 +129,13 @@ func TestCompileCheck(t *testing.T) {
 			Dockerfile:    "Dockerfile",
 			PrintBuildLog: true,
 		},
+		Files: []testcontainers.ContainerFile{
+			{
+				Reader:            strings.NewReader(mainGo),
+				ContainerFilePath: "/workspace/main.go",
+				FileMode:          0o644,
+			},
+		},
 		Entrypoint: []string{"tail", "-f", "/dev/null"},
 		WorkingDir: "/workspace",
 	}
@@ -108,97 +149,39 @@ func TestCompileCheck(t *testing.T) {
 		require.NoError(t, container.Terminate(context.Background()))
 	})
 
-	// Write main.go into the container.
-	exitCode, outputReader, err := container.Exec(context.Background(), []string{"sh", "-c", fmt.Sprintf("cat > /workspace/main.go << 'GOFILE'\n%s\nGOFILE", mainGo)})
-	require.NoError(t, err)
+	// Initialize Go module and download dependencies using the test suite Go version.
+	execGo(t, container, &goExecConfig{version: "1.25"}, "mod", "init", "compilecheck")
+	execGo(t, container, nil, "mod", "edit", "-replace=go.mongodb.org/mongo-driver/v2=/mongo-go-driver")
+	execGo(t, container, &goExecConfig{version: "1.25"}, "mod", "tidy")
 
-	output, err := io.ReadAll(outputReader)
-	require.NoError(t, err)
-	require.Equal(t, 0, exitCode, "failed to write main.go: %s", output)
-
-	// Write go.mod into the container.
-	exitCode, outputReader, err = container.Exec(context.Background(), []string{"sh", "-c", fmt.Sprintf("cat > /workspace/go.mod << 'GOMOD'\n%s\nGOMOD", goMod)})
-	require.NoError(t, err)
-
-	output, err = io.ReadAll(outputReader)
-	require.NoError(t, err)
-	require.Equal(t, 0, exitCode, "failed to write go.mod: %s", output)
-
-	exitCode, outputReader, err = container.Exec(context.Background(), []string{"sh", "-c", "cd /workspace && PATH=/usr/local/go/bin:$PATH go mod tidy 2>&1"})
-	require.NoError(t, err)
-
-	output, err = io.ReadAll(outputReader)
-	require.NoError(t, err)
-	require.Equal(t, 0, exitCode, "failed to tidy dependencies: %s", output)
+	// Set minimum Go version to what the driver claims (first version in our test list).
+	execGo(t, container, nil, "mod", "edit", "-go="+goVersions[0])
 
 	for _, ver := range goVersions {
 		ver := ver // capture
 		t.Run("go:"+ver, func(t *testing.T) {
 			t.Parallel()
 
-			t.Cleanup(func() {
-				t.Logf("compilation checks passed for Go ver %s", ver)
-			})
+			versionCfg := &goExecConfig{version: ver}
 
-			// Each version gets its own workspace to avoid conflicts when running in parallel.
-			workspace := fmt.Sprintf("/workspace-%s", ver)
+			// Verify the Go version is available.
+			versionOutput := execGo(t, container, versionCfg, "version")
+			require.Contains(t, versionOutput, "go"+ver, "unexpected go version: %s", versionOutput)
 
-			setupCmd := fmt.Sprintf("mkdir -p %[1]s && cp /workspace/main.go /workspace/go.mod /workspace/go.sum %[1]s/", workspace)
-			exitCode, outputReader, err := container.Exec(context.Background(), []string{"sh", "-c", setupCmd})
-			require.NoError(t, err)
-
-			output, err := io.ReadAll(outputReader)
-			require.NoError(t, err)
-			require.Equal(t, 0, exitCode, "failed to setup workspace: %s", output)
-
-			cmd := fmt.Sprintf("PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%[1]s.0+auto go version || PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go%[1]s go version", ver)
-
-			exit, out, err := container.Exec(context.Background(), []string{"bash", "-lc", cmd})
-			require.NoError(t, err)
-
-			b, err := io.ReadAll(out)
-
-			require.NoError(t, err)
-			require.Equal(t, 0, exit, "go version failed: %s", b)
-			require.Contains(t, string(b), "go"+ver, "unexpected go version: %s", b)
-
-			// Standard build.
-			exitCode, outputReader, err = container.Exec(context.Background(), []string{
-				"sh", "-c", goBuild(ver, workspace, nil, nil),
-			})
-			require.NoError(t, err)
-
-			output, err = io.ReadAll(outputReader)
-			require.NoError(t, err)
-
-			require.Equal(t, 0, exitCode, "standard build failed: %s", output)
+			execGo(t, container, versionCfg, "build", "-buildvcs=false", "-o", "/dev/null", "main.go")
 
 			// Dynamic linking build.
-			exitCode, outputReader, err = container.Exec(context.Background(), []string{
-				"sh", "-c", goBuild(ver, workspace, nil, []string{"-buildmode=plugin"}),
-			})
-			require.NoError(t, err)
-
-			output, err = io.ReadAll(outputReader)
-			require.NoError(t, err)
-
-			require.Equal(t, 0, exitCode, "dynamic linking build failed: %s", output)
+			execGo(t, container, versionCfg, "build", "-buildvcs=false", "-buildmode=plugin", "-o", "/dev/null", "main.go")
 
 			// Build with build tags.
-			cgoEnv := []string{
-				"PKG_CONFIG_PATH=/root/install/libmongocrypt/lib/pkgconfig",
-				"CGO_CFLAGS='-I/root/install/libmongocrypt/include'",
-				"CGO_LDFLAGS='-L/root/install/libmongocrypt/lib -Wl,-rpath,/root/install/libmongocrypt/lib'",
-			}
-			exitCode, outputReader, err = container.Exec(context.Background(), []string{
-				"sh", "-c", goBuild(ver, workspace, cgoEnv, []string{"-tags=cse,gssapi,mongointernal"}),
-			})
-			require.NoError(t, err)
-
-			output, err = io.ReadAll(outputReader)
-			require.NoError(t, err)
-
-			require.Equal(t, 0, exitCode, "build with build tags failed: %s", output)
+			execGo(t, container, &goExecConfig{
+				version: ver,
+				env: map[string]string{
+					"PKG_CONFIG_PATH": "/root/install/libmongocrypt/lib/pkgconfig",
+					"CGO_CFLAGS":      "'-I/root/install/libmongocrypt/include'",
+					"CGO_LDFLAGS":     "'-L/root/install/libmongocrypt/lib -Wl,-rpath,/root/install/libmongocrypt/lib'",
+				},
+			}, "build", "-buildvcs=false", "-tags=cse,gssapi,mongointernal", "-o", "/dev/null", "main.go")
 
 			// Build for each architecture.
 			for _, architecture := range architectures {
@@ -206,17 +189,16 @@ func TestCompileCheck(t *testing.T) {
 				t.Run("arch:"+architecture, func(t *testing.T) {
 					t.Parallel()
 
-					archEnv := []string{"GOOS=linux", "GOARCH=" + architecture}
-					exitCode, outputReader, err := container.Exec(
-						context.Background(),
-						[]string{"sh", "-c", goBuild(ver, workspace, archEnv, nil)},
-					)
-					require.NoError(t, err)
+					// Standard build.
+					execGo(t, container, &goExecConfig{
+						version: ver,
+						env: map[string]string{
+							"GOOS":   "linux",
+							"GOARCH": architecture,
+						},
+					}, "build", "-buildvcs=false", "-o", "/dev/null", "main.go")
 
-					output, err := io.ReadAll(outputReader)
-					require.NoError(t, err)
-
-					require.Equal(t, 0, exitCode, "build failed for architecture %s: %s", architecture, output)
+					t.Logf("compilation checks passed for go%s on %s", ver, architecture)
 				})
 			}
 		})
