@@ -508,7 +508,6 @@ func TestSessionsProse(t *testing.T) {
 
 		limitedSessMsg := "expected session count to be less than the number of operations: %v"
 		assert.True(mt, limitedSessionUse, limitedSessMsg, len(ops))
-
 	})
 
 	mt.ResetClient(options.Client())
@@ -581,6 +580,81 @@ func TestSessionsProse(t *testing.T) {
 		currentClusterTime, err := startedEvents[1].Command.LookupErr("$clusterTime")
 		require.NoError(mt, err, "$clusterTime not found in command")
 		assert.Equal(mt, initialClusterTime, currentClusterTime, "expected same cluster time, got %v and %v", initialClusterTime, currentClusterTime)
+	})
+}
+
+func TestSessionsProse_21_SettingSnapshotTimeWithoutSnapshot(t *testing.T) {
+	// 21. Having snapshotTime set and snapshot set to false is not allowed.
+	mtOpts := mtest.
+		NewOptions().
+		MinServerVersion("5.0").
+		Topologies(mtest.ReplicaSet, mtest.Sharded)
+
+	mt := mtest.New(t, mtOpts)
+
+	mt.Setup()
+	defer mt.Teardown()
+
+	// Start a session by calling startSession with snapshot = false and
+	// snapshotTime = new Timestamp(1).
+	sessOpts := options.Session().SetSnapshot(false).SetSnapshotTime(bson.Timestamp{T: 1})
+
+	_, err := mt.Client.StartSession(sessOpts)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "snapshotTime cannot be set when snapshot is false")
+}
+
+func TestSessionsProse_22_SnapshotTimeGetterReturnsErrorForNonSnapshotSessions(t *testing.T) {
+	// 22. Retrieving `snapshotTime` on a non-snapshot session raises an error
+	t.Skip("Skipping test for prose 22; Go driver does not have a getter that raises an error.")
+}
+
+func TestSessionsProse_23_EnsureSnapshotTimeIsImmutable(t *testing.T) {
+	// 23. Ensure `snapshotTime` is Read-Only
+
+	mtOpts := mtest.
+		NewOptions().
+		MinServerVersion("5.0").
+		Topologies(mtest.ReplicaSet, mtest.Sharded)
+
+	mt := mtest.New(t, mtOpts)
+
+	mt.Run("multiple ClientSession calls isolation", func(mt *mtest.T) {
+		sess, err := mt.Client.StartSession(options.Session().SetSnapshot(false))
+		require.NoError(mt, err)
+		defer sess.EndSession(context.Background())
+
+		// Verify initial state
+		require.Empty(mt, sess.ClientSession().SnapshotTime)
+
+		// Attempt mutation through one ClientSession() call
+		client1 := sess.ClientSession()
+		client1.SnapshotTime = bson.Timestamp{T: 1}
+
+		// Second ClientSession() call should return independent copy
+		require.Empty(mt, sess.ClientSession().SnapshotTime)
+	})
+
+	mt.Run("snapshotTime copy is immutable", func(mt *mtest.T) {
+		originalTS := bson.Timestamp{T: 100, I: 5}
+		sess, err := mt.Client.StartSession(
+			options.Session().SetSnapshot(true).SetSnapshotTime(originalTS),
+		)
+		require.NoError(mt, err)
+		defer sess.EndSession(context.Background())
+
+		// Verify initial state
+		cs := sess.ClientSession()
+		require.True(mt, cs.SnapshotTimeSet)
+		require.Equal(mt, originalTS, cs.SnapshotTime)
+
+		// Mutate the copy and verify it doesn't affect the session.
+		cs.SnapshotTime = bson.Timestamp{T: 999, I: 888}
+		cs.SnapshotTimeSet = false
+
+		cs2 := sess.ClientSession()
+		require.True(mt, cs2.SnapshotTimeSet)
+		require.Equal(mt, originalTS, cs2.SnapshotTime)
 	})
 }
 
