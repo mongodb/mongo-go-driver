@@ -593,7 +593,7 @@ func TestSessionsProse_21_SettingSnapshotTimeWithoutSnapshot(t *testing.T) {
 	mt := mtest.New(t, mtOpts)
 
 	mt.Setup()
-	defer mt.Teardown()
+	mt.Cleanup(mt.Teardown)
 
 	// Start a session by calling startSession with snapshot = false and
 	// snapshotTime = new Timestamp(1).

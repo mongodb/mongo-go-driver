@@ -223,8 +223,10 @@ func (t *T) Teardown() {
 func (t *T) RunOpts(name string, opts *Options, callback func(mt *T)) {
 	t.T.Run(name, func(wrapped *testing.T) {
 		sub := newT(wrapped, t.baseOpts, opts)
+
 		sub.Setup()
-		defer sub.Teardown()
+		t.Cleanup(sub.Teardown)
+
 		callback(sub)
 	})
 }
