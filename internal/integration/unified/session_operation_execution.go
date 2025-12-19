@@ -112,3 +112,27 @@ func executeWithTransaction(ctx context.Context, op *operation, loopDone <-chan 
 	}, temp.TransactionOptionsBuilder)
 	return err
 }
+
+func executeGetSnapshotTime(ctx context.Context, op *operation) (*operationResult, error) {
+	entityID := op.ResultEntityID
+	if entityID == nil {
+		return nil, fmt.Errorf("getSnapshotTime operation requires a result entity ID")
+	}
+
+	sess, err := entities(ctx).session(op.Object)
+	if err != nil {
+		return nil, err
+	}
+
+	clientSess := sess.ClientSession()
+
+	if !clientSess.SnapshotTimeSet {
+		return nil, fmt.Errorf("session has no snapshot time to store in entity %q", *entityID)
+	}
+
+	if err := entities(ctx).addBSONEntity(*entityID, clientSess.SnapshotTime); err != nil {
+		return nil, fmt.Errorf("error storing result as BSON entity: %w", err)
+	}
+
+	return newEmptyResult(), nil
+}
