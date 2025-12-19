@@ -443,7 +443,7 @@ func waitForEvent(ctx context.Context, args waitForEventArguments) error {
 	}
 }
 
-func extractClientSession(sess *mongo.Session) *session.Client {
+func extractClientSession(sess *mongo.Session) session.Client {
 	return sess.ClientSession()
 }
 
