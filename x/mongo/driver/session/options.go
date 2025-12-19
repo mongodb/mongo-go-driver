@@ -7,6 +7,7 @@
 package session
 
 import (
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
@@ -19,6 +20,7 @@ type ClientOptions struct {
 	DefaultWriteConcern   *writeconcern.WriteConcern
 	DefaultReadPreference *readpref.ReadPref
 	Snapshot              *bool
+	SnapshotTime          *bson.Timestamp
 }
 
 // TransactionOptions represents all possible options for starting a transaction in a session.
@@ -48,6 +50,9 @@ func mergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		}
 		if opt.Snapshot != nil {
 			c.Snapshot = opt.Snapshot
+		}
+		if opt.SnapshotTime != nil {
+			c.SnapshotTime = opt.SnapshotTime
 		}
 	}
 

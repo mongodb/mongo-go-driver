@@ -234,7 +234,6 @@ func newClient(opts ...*options.ClientOptions) (*Client, error) {
 		topology.WithAuthConfigClientOptions(clientOpts),
 		topology.WithAuthConfigDriverInfo(client.currentDriverInfo),
 	)
-
 	if err != nil {
 		return nil, err
 	}
@@ -477,8 +476,13 @@ func (c *Client) StartSession(opts ...options.Lister[options.SessionOptions]) (*
 			coreOpts.DefaultReadPreference = rp
 		}
 	}
+
 	if sessArgs.Snapshot != nil {
 		coreOpts.Snapshot = sessArgs.Snapshot
+	}
+
+	if sessArgs.SnapshotTime != nil {
+		coreOpts.SnapshotTime = sessArgs.SnapshotTime
 	}
 
 	sess, err := session.NewClientSession(c.sessionPool, c.id, coreOpts)
@@ -891,7 +895,8 @@ func (c *Client) UseSessionWithOptions(
 // The opts parameter can be used to specify options for change stream creation (see the options.ChangeStreamOptions
 // documentation).
 func (c *Client) Watch(ctx context.Context, pipeline any,
-	opts ...options.Lister[options.ChangeStreamOptions]) (*ChangeStream, error) {
+	opts ...options.Lister[options.ChangeStreamOptions],
+) (*ChangeStream, error) {
 	csConfig := changeStreamConfig{
 		readConcern:    c.readConcern,
 		readPreference: c.readPreference,
@@ -931,7 +936,8 @@ type ClientBulkWrite struct {
 
 // BulkWrite performs a client-level bulk write operation.
 func (c *Client) BulkWrite(ctx context.Context, writes []ClientBulkWrite,
-	opts ...options.Lister[options.ClientBulkWriteOptions]) (*ClientBulkWriteResult, error) {
+	opts ...options.Lister[options.ClientBulkWriteOptions],
+) (*ClientBulkWriteResult, error) {
 	// TODO(GODRIVER-3403): Remove after support for QE with Client.bulkWrite.
 	if c.isAutoEncryptionSet {
 		return nil, errors.New("bulkWrite does not currently support automatic encryption")
