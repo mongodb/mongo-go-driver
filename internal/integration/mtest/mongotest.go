@@ -169,51 +169,62 @@ func (t *T) Run(name string, callback func(mt *T)) {
 	t.RunOpts(name, NewOptions(), callback)
 }
 
-// RunOpts creates a new T instance for a sub-test with the given options. If the current environment does not satisfy
-// constraints specified in the options, the new sub-test will be skipped automatically. If the test is not skipped,
-// the callback will be run with the new T instance. RunOpts creates a new collection with the given name which is
-// available to the callback through the T.Coll variable and is dropped after the callback returns.
+// Setup initializes the test client and collection for this T instance. This is
+// automatically called by RunOpts but can be called manually when using New()
+// directly.
+func (t *T) Setup() {
+	// add any mock responses for this test
+	if t.clientType == Mock && len(t.mockResponses) > 0 {
+		t.AddMockResponses(t.mockResponses...)
+	}
+
+	if t.createClient == nil || *t.createClient {
+		t.createTestClient()
+	}
+
+	// create a collection for this test
+	if t.Client != nil {
+		t.createTestCollection()
+	}
+
+	// clear any events that may have happened during setup
+	t.ClearEvents()
+}
+
+// Teardown cleans up test resources and asserts that all sessions and
+// connections are closed. When using New() directly, this should be called via
+// defer after Setup().
+func (t *T) Teardown() {
+	if t.Client == nil {
+		return
+	}
+
+	// store number of sessions and connections checked out here but assert that they're equal to 0 after
+	// cleaning up test resources to make sure resources are always cleared
+	sessions := t.Client.NumberSessionsInProgress()
+	conns := t.NumberConnectionsCheckedOut()
+
+	if t.clientType != Mock {
+		t.ClearFailPoints()
+		t.ClearCollections()
+	}
+
+	_ = t.Client.Disconnect(context.Background())
+	assert.Equal(t, 0, sessions, "%v sessions checked out", sessions)
+	assert.Equal(t, 0, conns, "%v connections checked out", conns)
+}
+
+// RunOpts creates a new T instance for a sub-test with the given options. If
+// the current environment does not satisfy constraints specified in the
+// options, the new sub-test will be skipped automatically. If the test is not
+// skipped, the callback will be run with the new T instance. RunOpts creates a
+// new collection with the given name which is available to the callback through
+// the T.Coll variable and is dropped after the callback returns.
 func (t *T) RunOpts(name string, opts *Options, callback func(mt *T)) {
 	t.T.Run(name, func(wrapped *testing.T) {
 		sub := newT(wrapped, t.baseOpts, opts)
-
-		// add any mock responses for this test
-		if sub.clientType == Mock && len(sub.mockResponses) > 0 {
-			sub.AddMockResponses(sub.mockResponses...)
-		}
-
-		if sub.createClient == nil || *sub.createClient {
-			sub.createTestClient()
-		}
-
-		// create a collection for this test
-		if sub.Client != nil {
-			sub.createTestCollection()
-		}
-
-		// defer dropping all collections if the test is using a client
-		defer func() {
-			if sub.Client == nil {
-				return
-			}
-
-			// store number of sessions and connections checked out here but assert that they're equal to 0 after
-			// cleaning up test resources to make sure resources are always cleared
-			sessions := sub.Client.NumberSessionsInProgress()
-			conns := sub.NumberConnectionsCheckedOut()
-
-			if sub.clientType != Mock {
-				sub.ClearFailPoints()
-				sub.ClearCollections()
-			}
-
-			_ = sub.Client.Disconnect(context.Background())
-			assert.Equal(sub, 0, sessions, "%v sessions checked out", sessions)
-			assert.Equal(sub, 0, conns, "%v connections checked out", conns)
-		}()
-
-		// clear any events that may have happened during setup and run the test
-		sub.ClearEvents()
+		sub.Setup()
+		defer sub.Teardown()
 		callback(sub)
 	})
 }
