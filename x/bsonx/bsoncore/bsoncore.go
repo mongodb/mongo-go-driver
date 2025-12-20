@@ -387,7 +387,7 @@ func ReadBoolean(src []byte) (bool, []byte, bool) {
 }
 
 // AppendDateTime will append dt to dst and return the extended buffer.
-func AppendDateTime(dst []byte, dt int64) []byte { return appendi64(dst, dt) }
+func AppendDateTime(dst []byte, dt int64) []byte { return binaryutil.Append64(dst, dt) }
 
 // AppendDateTimeElement will append a BSON datetime element using key and dt to dst
 // and return the extended buffer.
@@ -575,7 +575,7 @@ func ReadTimestamp(src []byte) (t, i uint32, rem []byte, ok bool) {
 }
 
 // AppendInt64 will append i64 to dst and return the extended buffer.
-func AppendInt64(dst []byte, i64 int64) []byte { return appendi64(dst, i64) }
+func AppendInt64(dst []byte, i64 int64) []byte { return binaryutil.Append64(dst, i64) }
 
 // AppendInt64Element will append a BSON int64 element using key and i64 to dst
 // and return the extended buffer.
@@ -731,12 +731,6 @@ func readi32(src []byte) (int32, []byte, bool) {
 		return 0, src, false
 	}
 	return int32(binary.LittleEndian.Uint32(src)), src[4:], true
-}
-
-func appendi64(dst []byte, i64 int64) []byte {
-	b := []byte{0, 0, 0, 0, 0, 0, 0, 0}
-	binary.LittleEndian.PutUint64(b, uint64(i64))
-	return append(dst, b...)
 }
 
 func readi64(src []byte) (int64, []byte, bool) {

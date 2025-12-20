@@ -315,7 +315,7 @@ func TestAppendi64(t *testing.T) {
 		t.Run(tc.desc, func(t *testing.T) {
 			t.Parallel()
 
-			b := appendi64(tc.dst, tc.x)
+			b := binaryutil.Append64(tc.dst, tc.x)
 			assert.Equal(t, tc.want, b, "bytes do not match")
 		})
 	}

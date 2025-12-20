@@ -285,7 +285,7 @@ func AppendQueryNumberToReturn(dst []byte, nor int32) []byte {
 
 // AppendReplyCursorID appends the cursor ID to dst.
 func AppendReplyCursorID(dst []byte, id int64) []byte {
-	return appendi64(dst, id)
+	return binaryutil.Append64(dst, id)
 }
 
 // AppendReplyStartingFrom appends the starting from field to dst.
@@ -334,7 +334,7 @@ func AppendGetMoreNumberToReturn(dst []byte, numToReturn int32) []byte {
 
 // AppendGetMoreCursorID appends the cursorID field to dst.
 func AppendGetMoreCursorID(dst []byte, cursorID int64) []byte {
-	return appendi64(dst, cursorID)
+	return binaryutil.Append64(dst, cursorID)
 }
 
 // AppendKillCursorsZero appends the zero field to dst.
@@ -350,7 +350,7 @@ func AppendKillCursorsNumberIDs(dst []byte, numIDs int32) []byte {
 // AppendKillCursorsCursorIDs appends each the cursorIDs field to dst.
 func AppendKillCursorsCursorIDs(dst []byte, cursors []int64) []byte {
 	for _, cursor := range cursors {
-		dst = appendi64(dst, cursor)
+		dst = binaryutil.Append64(dst, cursor)
 	}
 	return dst
 }
@@ -565,12 +565,6 @@ func ReadKillCursorsCursorIDs(src []byte, numIDs int32) (cursorIDs []int64, rem 
 		cursorIDs = append(cursorIDs, id)
 	}
 	return cursorIDs, src, true
-}
-
-func appendi64(dst []byte, x int64) []byte {
-	b := []byte{0, 0, 0, 0, 0, 0, 0, 0}
-	binary.LittleEndian.PutUint64(b, uint64(x))
-	return append(dst, b...)
 }
 
 func appendCString(b []byte, str string) []byte {
