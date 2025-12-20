@@ -142,7 +142,7 @@ func ReadValue(src []byte, t Type) (Value, []byte, bool) {
 
 // AppendDouble will append f to dst and return the extended buffer.
 func AppendDouble(dst []byte, f float64) []byte {
-	return appendu64(dst, math.Float64bits(f))
+	return binaryutil.Append64(dst, math.Float64bits(f))
 }
 
 // AppendDoubleElement will append a BSON double element using key and f to dst
@@ -589,7 +589,7 @@ func ReadInt64(src []byte) (int64, []byte, bool) { return readi64(src) }
 
 // AppendDecimal128 will append high and low parts of a d128 to dst and return the extended buffer.
 func AppendDecimal128(dst []byte, high, low uint64) []byte {
-	return appendu64(appendu64(dst, low), high)
+	return binaryutil.Append64(binaryutil.Append64(dst, low), high)
 }
 
 // AppendDecimal128Element will append high and low parts of a BSON bson.Decimal128 element using key and
@@ -746,12 +746,6 @@ func readu32(src []byte) (uint32, []byte, bool) {
 	}
 
 	return binary.LittleEndian.Uint32(src), src[4:], true
-}
-
-func appendu64(dst []byte, u64 uint64) []byte {
-	b := []byte{0, 0, 0, 0, 0, 0, 0, 0}
-	binary.LittleEndian.PutUint64(b, u64)
-	return append(dst, b...)
 }
 
 func readu64(src []byte) (uint64, []byte, bool) {
