@@ -21,3 +21,22 @@ func Append32[T ~uint32 | ~int32](dst []byte, v T) []byte {
 
 	return dst
 }
+
+func Append64[T ~uint64 | ~int64](dst []byte, v T) []byte {
+	n := len(dst)
+	dst = append(dst, 0, 0, 0, 0, 0, 0, 0, 0)
+
+	b := dst[n:]
+	_ = b[7] // early bounds check
+
+	b[0] = byte(v)
+	b[1] = byte(v >> 8)
+	b[2] = byte(v >> 16)
+	b[3] = byte(v >> 24)
+	b[4] = byte(v >> 32)
+	b[5] = byte(v >> 40)
+	b[6] = byte(v >> 48)
+	b[7] = byte(v >> 56)
+
+	return dst
+}
