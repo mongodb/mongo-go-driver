@@ -14,6 +14,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"go.mongodb.org/mongo-driver/v2/internal/binaryutil"
 )
 
 const (
@@ -549,7 +551,7 @@ func ReadInt32(src []byte) (int32, []byte, bool) { return readi32(src) }
 
 // AppendTimestamp will append t and i to dst and return the extended buffer.
 func AppendTimestamp(dst []byte, t, i uint32) []byte {
-	return appendu32(appendu32(dst, i), t) // i is the lower 4 bytes, t is the higher 4 bytes
+	return binaryutil.Append32(binaryutil.Append32(dst, i), t) // i is the lower 4 bytes, t is the higher 4 bytes
 }
 
 // AppendTimestampElement will append a BSON timestamp element using key, t, and
@@ -748,12 +750,6 @@ func readi64(src []byte) (int64, []byte, bool) {
 		return 0, src, false
 	}
 	return int64(binary.LittleEndian.Uint64(src)), src[8:], true
-}
-
-func appendu32(dst []byte, u32 uint32) []byte {
-	b := []byte{0, 0, 0, 0}
-	binary.LittleEndian.PutUint32(b, u32)
-	return append(dst, b...)
 }
 
 func readu32(src []byte) (uint32, []byte, bool) {
