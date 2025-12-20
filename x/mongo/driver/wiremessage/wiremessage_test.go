@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/binaryutil"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
@@ -262,7 +263,7 @@ func TestAppendi32(t *testing.T) {
 		t.Run(tc.desc, func(t *testing.T) {
 			t.Parallel()
 
-			b := appendi32(tc.dst, tc.x)
+			b := binaryutil.Append32(tc.dst, tc.x)
 			assert.Equal(t, tc.want, b, "bytes do not match")
 		})
 	}

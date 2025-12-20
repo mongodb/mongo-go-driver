@@ -19,6 +19,7 @@ import (
 	"strings"
 	"sync/atomic"
 
+	"go.mongodb.org/mongo-driver/v2/internal/binaryutil"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
@@ -219,18 +220,18 @@ const (
 // starts in dst and the updated slice.
 func AppendHeaderStart(dst []byte, reqid, respto int32, opcode OpCode) (index int32, b []byte) {
 	index, dst = bsoncore.ReserveLength(dst)
-	dst = appendi32(dst, reqid)
-	dst = appendi32(dst, respto)
-	dst = appendi32(dst, int32(opcode))
+	dst = binaryutil.Append32(dst, reqid)
+	dst = binaryutil.Append32(dst, respto)
+	dst = binaryutil.Append32(dst, int32(opcode))
 	return index, dst
 }
 
 // AppendHeader appends a header to dst.
 func AppendHeader(dst []byte, length, reqid, respto int32, opcode OpCode) []byte {
-	dst = appendi32(dst, length)
-	dst = appendi32(dst, reqid)
-	dst = appendi32(dst, respto)
-	dst = appendi32(dst, int32(opcode))
+	dst = binaryutil.Append32(dst, length)
+	dst = binaryutil.Append32(dst, reqid)
+	dst = binaryutil.Append32(dst, respto)
+	dst = binaryutil.Append32(dst, int32(opcode))
 	return dst
 }
 
@@ -249,17 +250,17 @@ func ReadHeader(src []byte) (length, requestID, responseTo int32, opcode OpCode,
 
 // AppendQueryFlags appends the flags for an OP_QUERY wire message.
 func AppendQueryFlags(dst []byte, flags QueryFlag) []byte {
-	return appendi32(dst, int32(flags))
+	return binaryutil.Append32(dst, int32(flags))
 }
 
 // AppendMsgFlags appends the flags for an OP_MSG wire message.
 func AppendMsgFlags(dst []byte, flags MsgFlag) []byte {
-	return appendi32(dst, int32(flags))
+	return binaryutil.Append32(dst, int32(flags))
 }
 
 // AppendReplyFlags appends the flags for an OP_REPLY wire message.
 func AppendReplyFlags(dst []byte, flags ReplyFlag) []byte {
-	return appendi32(dst, int32(flags))
+	return binaryutil.Append32(dst, int32(flags))
 }
 
 // AppendMsgSectionType appends the section type to dst.
@@ -274,12 +275,12 @@ func AppendQueryFullCollectionName(dst []byte, ns string) []byte {
 
 // AppendQueryNumberToSkip appends the number to skip to dst.
 func AppendQueryNumberToSkip(dst []byte, skip int32) []byte {
-	return appendi32(dst, skip)
+	return binaryutil.Append32(dst, skip)
 }
 
 // AppendQueryNumberToReturn appends the number to return to dst.
 func AppendQueryNumberToReturn(dst []byte, nor int32) []byte {
-	return appendi32(dst, nor)
+	return binaryutil.Append32(dst, nor)
 }
 
 // AppendReplyCursorID appends the cursor ID to dst.
@@ -289,22 +290,24 @@ func AppendReplyCursorID(dst []byte, id int64) []byte {
 
 // AppendReplyStartingFrom appends the starting from field to dst.
 func AppendReplyStartingFrom(dst []byte, sf int32) []byte {
-	return appendi32(dst, sf)
+	return binaryutil.Append32(dst, sf)
 }
 
 // AppendReplyNumberReturned appends the number returned to dst.
 func AppendReplyNumberReturned(dst []byte, nr int32) []byte {
-	return appendi32(dst, nr)
+	return binaryutil.Append32(dst, nr)
 }
 
 // AppendCompressedOriginalOpCode appends the original opcode to dst.
 func AppendCompressedOriginalOpCode(dst []byte, opcode OpCode) []byte {
-	return appendi32(dst, int32(opcode))
+	return binaryutil.Append32(dst, int32(opcode))
 }
 
 // AppendCompressedUncompressedSize appends the uncompressed size of a
 // compressed wiremessage to dst.
-func AppendCompressedUncompressedSize(dst []byte, size int32) []byte { return appendi32(dst, size) }
+func AppendCompressedUncompressedSize(dst []byte, size int32) []byte {
+	return binaryutil.Append32(dst, size)
+}
 
 // AppendCompressedCompressorID appends the ID of the compressor to dst.
 func AppendCompressedCompressorID(dst []byte, id CompressorID) []byte {
@@ -316,7 +319,7 @@ func AppendCompressedCompressedMessage(dst []byte, msg []byte) []byte { return a
 
 // AppendGetMoreZero appends the zero field to dst.
 func AppendGetMoreZero(dst []byte) []byte {
-	return appendi32(dst, 0)
+	return binaryutil.Append32(dst, int32(0))
 }
 
 // AppendGetMoreFullCollectionName appends the fullCollectionName field to dst.
@@ -326,7 +329,7 @@ func AppendGetMoreFullCollectionName(dst []byte, ns string) []byte {
 
 // AppendGetMoreNumberToReturn appends the numberToReturn field to dst.
 func AppendGetMoreNumberToReturn(dst []byte, numToReturn int32) []byte {
-	return appendi32(dst, numToReturn)
+	return binaryutil.Append32(dst, numToReturn)
 }
 
 // AppendGetMoreCursorID appends the cursorID field to dst.
@@ -336,12 +339,12 @@ func AppendGetMoreCursorID(dst []byte, cursorID int64) []byte {
 
 // AppendKillCursorsZero appends the zero field to dst.
 func AppendKillCursorsZero(dst []byte) []byte {
-	return appendi32(dst, 0)
+	return binaryutil.Append32(dst, int32(0))
 }
 
 // AppendKillCursorsNumberIDs appends the numberOfCursorIDs field to dst.
 func AppendKillCursorsNumberIDs(dst []byte, numIDs int32) []byte {
-	return appendi32(dst, numIDs)
+	return binaryutil.Append32(dst, numIDs)
 }
 
 // AppendKillCursorsCursorIDs appends each the cursorIDs field to dst.
@@ -562,12 +565,6 @@ func ReadKillCursorsCursorIDs(src []byte, numIDs int32) (cursorIDs []int64, rem 
 		cursorIDs = append(cursorIDs, id)
 	}
 	return cursorIDs, src, true
-}
-
-func appendi32(dst []byte, x int32) []byte {
-	b := []byte{0, 0, 0, 0}
-	binary.LittleEndian.PutUint32(b, uint32(x))
-	return append(dst, b...)
 }
 
 func appendi64(dst []byte, x int64) []byte {

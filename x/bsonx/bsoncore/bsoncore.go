@@ -537,7 +537,7 @@ func ReadCodeWithScope(src []byte) (code string, scope []byte, rem []byte, ok bo
 }
 
 // AppendInt32 will append i32 to dst and return the extended buffer.
-func AppendInt32(dst []byte, i32 int32) []byte { return appendi32(dst, i32) }
+func AppendInt32(dst []byte, i32 int32) []byte { return binaryutil.Append32(dst, i32) }
 
 // AppendInt32Element will append a BSON int32 element using key and i32 to dst
 // and return the extended buffer.
@@ -713,13 +713,7 @@ func UpdateLength(dst []byte, index, length int32) []byte {
 	return dst
 }
 
-func appendLength(dst []byte, l int32) []byte { return appendi32(dst, l) }
-
-func appendi32(dst []byte, i32 int32) []byte {
-	b := []byte{0, 0, 0, 0}
-	binary.LittleEndian.PutUint32(b, uint32(i32))
-	return append(dst, b...)
-}
+func appendLength(dst []byte, l int32) []byte { return binaryutil.Append32(dst, l) }
 
 // ReadLength reads an int32 length from src and returns the length and the remaining bytes. If
 // there aren't enough bytes to read a valid length, src is returned unomdified and the returned
