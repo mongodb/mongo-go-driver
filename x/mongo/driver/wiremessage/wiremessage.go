@@ -488,7 +488,7 @@ func ReadReplyFlags(src []byte) (flags ReplyFlag, rem []byte, ok bool) {
 
 // ReadReplyCursorID reads a cursor ID from src.
 func ReadReplyCursorID(src []byte) (cursorID int64, rem []byte, ok bool) {
-	return readi64(src)
+	return binaryutil.ReadI64(src)
 }
 
 // ReadReplyStartingFrom reads the starting from src.
@@ -557,7 +557,7 @@ func ReadKillCursorsCursorIDs(src []byte, numIDs int32) (cursorIDs []int64, rem 
 	var i int32
 	var id int64
 	for i = 0; i < numIDs; i++ {
-		id, src, ok = readi64(src)
+		id, src, ok = binaryutil.ReadI64(src)
 		if !ok {
 			return cursorIDs, src, false
 		}
@@ -574,13 +574,6 @@ func appendCString(b []byte, str string) []byte {
 
 func readi32unsafe(src []byte) int32 {
 	return int32(binary.LittleEndian.Uint32(src))
-}
-
-func readi64(src []byte) (int64, []byte, bool) {
-	if len(src) < 8 {
-		return 0, src, false
-	}
-	return int64(binary.LittleEndian.Uint64(src)), src[8:], true
 }
 
 func readcstring(src []byte) (string, []byte, bool) {

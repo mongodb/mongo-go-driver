@@ -480,7 +480,7 @@ func TestReadi64(t *testing.T) {
 		t.Run(tc.desc, func(t *testing.T) {
 			t.Parallel()
 
-			x, rem, ok := readi64(tc.src)
+			x, rem, ok := binaryutil.ReadI64(tc.src)
 			assert.Equal(t, tc.want, x, "int64 result does not match")
 			assert.Equal(t, tc.wantRem, rem, "remaining bytes do not match")
 			assert.Equal(t, tc.wantOK, ok, "OK does not match")

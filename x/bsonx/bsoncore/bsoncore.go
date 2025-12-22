@@ -397,7 +397,7 @@ func AppendDateTimeElement(dst []byte, key string, dt int64) []byte {
 
 // ReadDateTime will read an int64 datetime from src. If there are not enough bytes it
 // will return false.
-func ReadDateTime(src []byte) (int64, []byte, bool) { return readi64(src) }
+func ReadDateTime(src []byte) (int64, []byte, bool) { return binaryutil.ReadI64(src) }
 
 // AppendTime will append time as a BSON DateTime to dst and return the extended buffer.
 func AppendTime(dst []byte, t time.Time) []byte {
@@ -413,7 +413,7 @@ func AppendTimeElement(dst []byte, key string, t time.Time) []byte {
 // ReadTime will read an time.Time datetime from src. If there are not enough bytes it
 // will return false.
 func ReadTime(src []byte) (time.Time, []byte, bool) {
-	dt, rem, ok := readi64(src)
+	dt, rem, ok := binaryutil.ReadI64(src)
 	return time.Unix(dt/1e3, dt%1e3*1e6), rem, ok
 }
 
@@ -585,7 +585,7 @@ func AppendInt64Element(dst []byte, key string, i64 int64) []byte {
 
 // ReadInt64 will read an int64 from src. If there are not enough bytes it
 // will return false.
-func ReadInt64(src []byte) (int64, []byte, bool) { return readi64(src) }
+func ReadInt64(src []byte) (int64, []byte, bool) { return binaryutil.ReadI64(src) }
 
 // AppendDecimal128 will append high and low parts of a d128 to dst and return the extended buffer.
 func AppendDecimal128(dst []byte, high, low uint64) []byte {
@@ -724,13 +724,6 @@ func ReadLength(src []byte) (int32, []byte, bool) {
 		return ln, src, false
 	}
 	return ln, src, ok
-}
-
-func readi64(src []byte) (int64, []byte, bool) {
-	if len(src) < 8 {
-		return 0, src, false
-	}
-	return int64(binary.LittleEndian.Uint64(src)), src[8:], true
 }
 
 // keep in sync with readcstringbytes
