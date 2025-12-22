@@ -7,6 +7,8 @@
 // Package binaryutil provides utility functions for working with binary data.
 package binaryutil
 
+import "encoding/binary"
+
 func Append32[T ~uint32 | ~int32](dst []byte, v T) []byte {
 	n := len(dst)
 	dst = append(dst, 0, 0, 0, 0)
@@ -39,4 +41,11 @@ func Append64[T ~uint64 | ~int64](dst []byte, v T) []byte {
 	b[7] = byte(v >> 56)
 
 	return dst
+}
+
+func Read32[T ~uint32 | ~int32](src []byte) (T, []byte, bool) {
+	if len(src) < 4 {
+		return 0, src, false
+	}
+	return T(binary.LittleEndian.Uint32(src)), src[4:], true
 }
