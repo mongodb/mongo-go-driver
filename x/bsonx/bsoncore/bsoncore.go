@@ -547,7 +547,7 @@ func AppendInt32Element(dst []byte, key string, i32 int32) []byte {
 
 // ReadInt32 will read an int32 from src. If there are not enough bytes it
 // will return false.
-func ReadInt32(src []byte) (int32, []byte, bool) { return readi32(src) }
+func ReadInt32(src []byte) (int32, []byte, bool) { return binaryutil.ReadI32(src) }
 
 // AppendTimestamp will append t and i to dst and return the extended buffer.
 func AppendTimestamp(dst []byte, t, i uint32) []byte {
@@ -719,18 +719,11 @@ func appendLength(dst []byte, l int32) []byte { return binaryutil.Append32(dst, 
 // there aren't enough bytes to read a valid length, src is returned unomdified and the returned
 // bool will be false.
 func ReadLength(src []byte) (int32, []byte, bool) {
-	ln, src, ok := readi32(src)
+	ln, src, ok := binaryutil.ReadI32(src)
 	if ln < 0 {
 		return ln, src, false
 	}
 	return ln, src, ok
-}
-
-func readi32(src []byte) (int32, []byte, bool) {
-	if len(src) < 4 {
-		return 0, src, false
-	}
-	return int32(binary.LittleEndian.Uint32(src)), src[4:], true
 }
 
 func readi64(src []byte) (int64, []byte, bool) {
