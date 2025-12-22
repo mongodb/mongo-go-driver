@@ -14,7 +14,6 @@
 package wiremessage
 
 import (
-	"bytes"
 	"encoding/binary"
 	"strings"
 	"sync/atomic"
@@ -417,7 +416,7 @@ func ReadMsgSectionRawDocumentSequence(src []byte) (identifier string, data []by
 	// rest will be the rest of the wire message after this document sequence.
 	rem, rest := rem[:length-4], rem[length-4:]
 
-	identifier, rem, ok = readcstring(rem)
+	identifier, rem, ok = binaryutil.ReadCString(rem)
 	if !ok {
 		return "", nil, src, false
 	}
@@ -445,7 +444,7 @@ func ReadQueryFlags(src []byte) (flags QueryFlag, rem []byte, ok bool) {
 // Deprecated: Construct wiremessages with OpMsg and use the ReadMsg* functions
 // instead.
 func ReadQueryFullCollectionName(src []byte) (collname string, rem []byte, ok bool) {
-	return readcstring(src)
+	return binaryutil.ReadCString(src)
 }
 
 // ReadQueryNumberToSkip reads the number to skip from src.
@@ -574,12 +573,4 @@ func appendCString(b []byte, str string) []byte {
 
 func readi32unsafe(src []byte) int32 {
 	return int32(binary.LittleEndian.Uint32(src))
-}
-
-func readcstring(src []byte) (string, []byte, bool) {
-	idx := bytes.IndexByte(src, 0x00)
-	if idx < 0 {
-		return "", src, false
-	}
-	return string(src[:idx]), src[idx+1:], true
 }

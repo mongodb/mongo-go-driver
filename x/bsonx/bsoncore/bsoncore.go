@@ -62,7 +62,7 @@ func ReadType(src []byte) (Type, []byte, bool) {
 // ReadKey will read a key from src. The 0x00 byte will not be present
 // in the returned string. If there are not enough bytes available, false is
 // returned.
-func ReadKey(src []byte) (string, []byte, bool) { return readcstring(src) }
+func ReadKey(src []byte) (string, []byte, bool) { return binaryutil.ReadCString(src) }
 
 // ReadKeyBytes will read a key from src as bytes. The 0x00 byte will
 // not be present in the returned string. If there are not enough bytes
@@ -439,11 +439,11 @@ func AppendRegexElement(dst []byte, key, pattern, options string) []byte {
 // ReadRegex will read a pattern and options from src. If there are not enough bytes it
 // will return false.
 func ReadRegex(src []byte) (pattern, options string, rem []byte, ok bool) {
-	pattern, rem, ok = readcstring(src)
+	pattern, rem, ok = binaryutil.ReadCString(src)
 	if !ok {
 		return "", "", src, false
 	}
-	options, rem, ok = readcstring(rem)
+	options, rem, ok = binaryutil.ReadCString(rem)
 	if !ok {
 		return "", "", src, false
 	}
@@ -724,14 +724,6 @@ func ReadLength(src []byte) (int32, []byte, bool) {
 		return ln, src, false
 	}
 	return ln, src, ok
-}
-
-func readcstring(src []byte) (string, []byte, bool) {
-	idx := bytes.IndexByte(src, 0x00)
-	if idx < 0 {
-		return "", src, false
-	}
-	return string(src[:idx]), src[idx+1:], true
 }
 
 func appendstring(dst []byte, s string) []byte {
