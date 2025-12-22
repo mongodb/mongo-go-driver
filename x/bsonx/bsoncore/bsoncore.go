@@ -154,7 +154,7 @@ func AppendDoubleElement(dst []byte, key string, f float64) []byte {
 // ReadDouble will read a float64 from src. If there are not enough bytes it
 // will return false.
 func ReadDouble(src []byte) (float64, []byte, bool) {
-	bits, src, ok := readu64(src)
+	bits, src, ok := binaryutil.ReadU64(src)
 	if !ok {
 		return 0, src, false
 	}
@@ -601,12 +601,12 @@ func AppendDecimal128Element(dst []byte, key string, high, low uint64) []byte {
 // ReadDecimal128 will read high and low parts of a bson.Decimal128 from src. If there are not enough bytes it
 // will return false.
 func ReadDecimal128(src []byte) (high uint64, low uint64, rem []byte, ok bool) {
-	low, rem, ok = readu64(src)
+	low, rem, ok = binaryutil.ReadU64(src)
 	if !ok {
 		return 0, 0, src, false
 	}
 
-	high, rem, ok = readu64(rem)
+	high, rem, ok = binaryutil.ReadU64(rem)
 	if !ok {
 		return 0, 0, src, false
 	}
@@ -731,13 +731,6 @@ func readi64(src []byte) (int64, []byte, bool) {
 		return 0, src, false
 	}
 	return int64(binary.LittleEndian.Uint64(src)), src[8:], true
-}
-
-func readu64(src []byte) (uint64, []byte, bool) {
-	if len(src) < 8 {
-		return 0, src, false
-	}
-	return binary.LittleEndian.Uint64(src), src[8:], true
 }
 
 // keep in sync with readcstringbytes
