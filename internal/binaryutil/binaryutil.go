@@ -7,7 +7,10 @@
 // Package binaryutil provides utility functions for working with binary data.
 package binaryutil
 
-import "encoding/binary"
+import (
+	"bytes"
+	"encoding/binary"
+)
 
 func Append32[T ~uint32 | ~int32](dst []byte, v T) []byte {
 	n := len(dst)
@@ -71,4 +74,20 @@ func ReadU64(src []byte) (uint64, []byte, bool) {
 
 func ReadI64(src []byte) (int64, []byte, bool) {
 	return read64[int64](src)
+}
+
+func ReadCStringBytes(src []byte) ([]byte, []byte, bool) {
+	idx := bytes.IndexByte(src, 0x00)
+	if idx < 0 {
+		return nil, src, false
+	}
+	return src[:idx], src[idx+1:], true
+}
+
+func ReadCString(src []byte) (string, []byte, bool) {
+	cstr, rem, ok := ReadCStringBytes(src)
+	if !ok {
+		return "", src, false
+	}
+	return string(cstr), rem, true
 }
