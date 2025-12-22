@@ -563,11 +563,11 @@ func AppendTimestampElement(dst []byte, key string, t, i uint32) []byte {
 // ReadTimestamp will read t and i from src. If there are not enough bytes it
 // will return false.
 func ReadTimestamp(src []byte) (t, i uint32, rem []byte, ok bool) {
-	i, rem, ok = readu32(src)
+	i, rem, ok = binaryutil.ReadU32(src)
 	if !ok {
 		return 0, 0, src, false
 	}
-	t, rem, ok = readu32(rem)
+	t, rem, ok = binaryutil.ReadU32(rem)
 	if !ok {
 		return 0, 0, src, false
 	}
@@ -738,14 +738,6 @@ func readi64(src []byte) (int64, []byte, bool) {
 		return 0, src, false
 	}
 	return int64(binary.LittleEndian.Uint64(src)), src[8:], true
-}
-
-func readu32(src []byte) (uint32, []byte, bool) {
-	if len(src) < 4 {
-		return 0, src, false
-	}
-
-	return binary.LittleEndian.Uint32(src), src[4:], true
 }
 
 func readu64(src []byte) (uint64, []byte, bool) {
