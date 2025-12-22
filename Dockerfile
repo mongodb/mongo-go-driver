@@ -31,7 +31,6 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
     ca-certificates \
     curl \
     wget \
-    sudo \
     tzdata \
     pkg-config \
     gpg \
