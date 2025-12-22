@@ -43,9 +43,17 @@ func Append64[T ~uint64 | ~int64](dst []byte, v T) []byte {
 	return dst
 }
 
-func Read32[T ~uint32 | ~int32](src []byte) (T, []byte, bool) {
+func read32[T ~uint32 | ~int32](src []byte) (T, []byte, bool) {
 	if len(src) < 4 {
 		return 0, src, false
 	}
 	return T(binary.LittleEndian.Uint32(src)), src[4:], true
+}
+
+func ReadU32(src []byte) (uint32, []byte, bool) {
+	return read32[uint32](src)
+}
+
+func ReadI32(src []byte) (int32, []byte, bool) {
+	return read32[int32](src)
 }
