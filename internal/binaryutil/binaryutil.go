@@ -57,3 +57,18 @@ func ReadU32(src []byte) (uint32, []byte, bool) {
 func ReadI32(src []byte) (int32, []byte, bool) {
 	return read32[int32](src)
 }
+
+func read64[T ~uint64 | ~int64](src []byte) (T, []byte, bool) {
+	if len(src) < 8 {
+		return 0, src, false
+	}
+	return T(binary.LittleEndian.Uint64(src)), src[8:], true
+}
+
+func ReadU64(src []byte) (uint64, []byte, bool) {
+	return read64[uint64](src)
+}
+
+func ReadI64(src []byte) (int64, []byte, bool) {
+	return read64[int64](src)
+}
