@@ -11,7 +11,9 @@ import (
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/testutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
 func executeAbortTransaction(ctx context.Context, operation *operation) (*operationResult, error) {
@@ -124,7 +126,7 @@ func executeGetSnapshotTime(ctx context.Context, op *operation) (*operationResul
 		return nil, err
 	}
 
-	clientSess := sess.ClientSession()
+	clientSess := testutil.GetUnexportedFieldAs[*session.Client](sess, "clientSession")
 
 	if !clientSess.SnapshotTimeSet {
 		return nil, fmt.Errorf("session has no snapshot time to store in entity %q", *entityID)

@@ -28,6 +28,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/internal/integtest"
 	"go.mongodb.org/mongo-driver/v2/internal/spectest"
+	"go.mongodb.org/mongo-driver/v2/internal/testutil"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/address"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -428,12 +429,12 @@ func executeGridFSOperation(mt *mtest.T, bucket *mongo.GridFSBucket, op *operati
 
 func executeTestRunnerOperation(mt *mtest.T, testCase *testCase, op *operation, sess *mongo.Session) error {
 	var (
-		clientSession session.Client
+		clientSession *session.Client
 		hasSession    bool
 	)
 
 	if sess != nil {
-		clientSession = sess.ClientSession()
+		clientSession = testutil.GetUnexportedFieldAs[*session.Client](sess, "clientSession")
 		hasSession = true
 	}
 

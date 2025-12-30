@@ -76,18 +76,6 @@ func SessionFromContext(ctx context.Context) *Session {
 	return sess
 }
 
-// ClientSession returns the experimental client session.
-//
-// Deprecated: This method is for internal use only and should not be used (see
-// GODRIVER-2700). It may be changed or removed in any release.
-func (s *Session) ClientSession() session.Client {
-	if s.clientSession == nil {
-		return session.Client{}
-	}
-
-	return *s.clientSession // Return a copy to prevent mutation.
-}
-
 // ID returns the current ID document associated with the session. The ID
 // document is in the form {"id": <BSON binary value>}.
 func (s *Session) ID() bson.Raw {
@@ -314,6 +302,11 @@ func (s *Session) CommitTransaction(ctx context.Context) error {
 // session.
 func (s *Session) ClusterTime() bson.Raw {
 	return s.clientSession.ClusterTime
+}
+
+// SnapshotTime returns the current snapshot time associated with the session.
+func (s *Session) SnapshotTime() bson.Timestamp {
+	return s.clientSession.SnapshotTime
 }
 
 // AdvanceClusterTime advances the cluster time for a session. This method

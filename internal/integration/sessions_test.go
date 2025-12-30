@@ -23,6 +23,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/internal/testutil"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
@@ -38,14 +39,14 @@ func TestSessionPool(t *testing.T) {
 		sess, err := mt.Client.StartSession()
 		assert.Nil(mt, err, "StartSession error: %v", err)
 		defer sess.EndSession(context.Background())
-		initialLastUsedTime := sess.ClientSession().LastUsed
+		initialLastUsedTime := testutil.GetUnexportedFieldAs[*session.Client](sess, "clientSession").LastUsed
 
 		err = mongo.WithSession(context.Background(), sess, func(sc context.Context) error {
 			return mt.Client.Ping(sc, readpref.Primary())
 		})
 		assert.Nil(mt, err, "WithSession error: %v", err)
 
-		newLastUsedTime := sess.ClientSession().LastUsed
+		newLastUsedTime := testutil.GetUnexportedFieldAs[*session.Client](sess, "clientSession").LastUsed
 		assert.True(mt, newLastUsedTime.After(initialLastUsedTime),
 			"last used time %s is not after the initial last used time %s", newLastUsedTime, initialLastUsedTime)
 	})
@@ -619,43 +620,22 @@ func TestSessionsProse_23_EnsureSnapshotTimeIsImmutable(t *testing.T) {
 
 	mt := mtest.New(t, mtOpts)
 
-	mt.Run("multiple ClientSession calls isolation", func(mt *mtest.T) {
-		sess, err := mt.Client.StartSession(options.Session().SetSnapshot(false))
-		require.NoError(mt, err)
-		defer sess.EndSession(context.Background())
+	mt.Setup()
+	mt.Cleanup(mt.Teardown)
 
-		// Verify initial state
-		require.Empty(mt, sess.ClientSession().SnapshotTime)
+	sess, err := mt.Client.StartSession(options.Session().SetSnapshot(false))
+	require.NoError(mt, err)
+	defer sess.EndSession(context.Background())
 
-		// Attempt mutation through one ClientSession() call
-		client1 := sess.ClientSession()
-		client1.SnapshotTime = bson.Timestamp{T: 1}
+	// Verify initial state
+	require.Empty(mt, sess.SnapshotTime())
 
-		// Second ClientSession() call should return independent copy
-		require.Empty(mt, sess.ClientSession().SnapshotTime)
-	})
+	// Attempt mutation through one GetClientSessionFromSession call
+	snapshotTime := sess.SnapshotTime()
+	snapshotTime.I = 1
 
-	mt.Run("snapshotTime copy is immutable", func(mt *mtest.T) {
-		originalTS := bson.Timestamp{T: 100, I: 5}
-		sess, err := mt.Client.StartSession(
-			options.Session().SetSnapshot(true).SetSnapshotTime(originalTS),
-		)
-		require.NoError(mt, err)
-		defer sess.EndSession(context.Background())
-
-		// Verify initial state
-		cs := sess.ClientSession()
-		require.True(mt, cs.SnapshotTimeSet)
-		require.Equal(mt, originalTS, cs.SnapshotTime)
-
-		// Mutate the copy and verify it doesn't affect the session.
-		cs.SnapshotTime = bson.Timestamp{T: 999, I: 888}
-		cs.SnapshotTimeSet = false
-
-		cs2 := sess.ClientSession()
-		require.True(mt, cs2.SnapshotTimeSet)
-		require.Equal(mt, originalTS, cs2.SnapshotTime)
-	})
+	// Second GetClientSessionFromSession call should return independent copy
+	require.Empty(mt, sess.SnapshotTime())
 }
 
 type sessionFunction struct {
