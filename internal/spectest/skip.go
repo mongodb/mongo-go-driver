@@ -856,6 +856,28 @@ var skipTests = map[string][]string{
 	"Handshake spec test 'metadata-not-propagated.yml' fails on sharded clusters (DRIVERS-3356)": {
 		"TestUnifiedSpec/mongodb-handshake/tests/unified/metadata-not-propagated.json/metadata_append_does_not_create_new_connections_or_close_existing_ones_and_no_hello_command_is_sent",
 	},
+
+	// TODO(GODRIVER-3637): Implement client backpressure.
+	"Implement client backpressure (GODRIVER-3637)": {
+		"TestServerSelectionSpec/server_selection/ReplicaSetNoPrimary/read/DeprioritizedNearest.json",
+		"TestServerSelectionSpec/server_selection/ReplicaSetNoPrimary/read/DeprioritizedPrimaryPreferred.json",
+		"TestServerSelectionSpec/server_selection/ReplicaSetNoPrimary/read/DeprioritizedSecondary.json",
+		"TestServerSelectionSpec/server_selection/ReplicaSetNoPrimary/read/DeprioritizedSecondaryPreferred.json",
+		"TestServerSelectionSpec/server_selection/ReplicaSetWithPrimary/read/DeprioritizedNearest.json",
+		"TestServerSelectionSpec/server_selection/ReplicaSetWithPrimary/read/DeprioritizedPrimaryPreferred.json",
+		"TestServerSelectionSpec/server_selection/ReplicaSetWithPrimary/read/DeprioritizedSecondaryPreferred.json",
+		"TestServerSelectionSpec/server_selection/Sharded/read/DeprioritizedNearest.json",
+		"TestServerSelectionSpec/server_selection/Sharded/read/DeprioritizedPrimary.json",
+		"TestServerSelectionSpec/server_selection/Sharded/read/DeprioritizedPrimaryPreferred.json",
+		"TestServerSelectionSpec/server_selection/Sharded/read/DeprioritizedSecondary.json",
+		"TestServerSelectionSpec/server_selection/Sharded/read/DeprioritizedSecondaryPreferred.json",
+		"TestServerSelectionSpec/server_selection/Sharded/write/DeprioritizedNearest.json",
+		"TestServerSelectionSpec/server_selection/Sharded/write/DeprioritizedPrimary.json",
+		"TestServerSelectionSpec/server_selection/Sharded/write/DeprioritizedPrimaryPreferred.json",
+		"TestServerSelectionSpec/server_selection/Sharded/write/DeprioritizedSecondary.json",
+		"TestServerSelectionSpec/server_selection/Sharded/write/DeprioritizedSecondaryPreferred.json",
+		"TestSDAMSpec/errors/error_handling_handshake.json",
+	},
 }
 
 // CheckSkip checks if the fully-qualified test name matches a list of skipped test names for a given reason.
