@@ -859,6 +859,7 @@ var skipTests = map[string][]string{
 
 	// TODO(GODRIVER-3637): Implement client backpressure.
 	"Implement client backpressure (GODRIVER-3637)": {
+		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/backpressure-network-error-fail.json/apply_backpressure_on_network_connection_errors_during_connection_establishment",
 		"TestServerSelectionSpec/server_selection/ReplicaSetNoPrimary/read/DeprioritizedNearest.json",
 		"TestServerSelectionSpec/server_selection/ReplicaSetNoPrimary/read/DeprioritizedPrimaryPreferred.json",
 		"TestServerSelectionSpec/server_selection/ReplicaSetNoPrimary/read/DeprioritizedSecondary.json",
