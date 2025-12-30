@@ -173,6 +173,8 @@ func (t *T) Run(name string, callback func(mt *T)) {
 // automatically called by RunOpts but can be called manually when using New()
 // directly.
 func (t *T) Setup() {
+	t.Cleanup(t.teardown)
+
 	// add any mock responses for this test
 	if t.clientType == Mock && len(t.mockResponses) > 0 {
 		t.AddMockResponses(t.mockResponses...)
@@ -191,16 +193,17 @@ func (t *T) Setup() {
 	t.ClearEvents()
 }
 
-// Teardown cleans up test resources and asserts that all sessions and
+// teardown cleans up test resources and asserts that all sessions and
 // connections are closed. When using New() directly, this should be called via
 // defer after Setup().
-func (t *T) Teardown() {
+func (t *T) teardown() {
 	if t.Client == nil {
 		return
 	}
 
-	// store number of sessions and connections checked out here but assert that they're equal to 0 after
-	// cleaning up test resources to make sure resources are always cleared
+	// store number of sessions and connections checked out here but assert that
+	// they're equal to 0 after cleaning up test resources to make sure resources
+	// are always cleared.
 	sessions := t.Client.NumberSessionsInProgress()
 	conns := t.NumberConnectionsCheckedOut()
 
@@ -225,7 +228,7 @@ func (t *T) RunOpts(name string, opts *Options, callback func(mt *T)) {
 		sub := newT(wrapped, t.baseOpts, opts)
 
 		sub.Setup()
-		t.Cleanup(sub.Teardown)
+		t.Cleanup(sub.teardown)
 
 		callback(sub)
 	})

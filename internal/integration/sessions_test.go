@@ -594,7 +594,6 @@ func TestSessionsProse_21_SettingSnapshotTimeWithoutSnapshot(t *testing.T) {
 	mt := mtest.New(t, mtOpts)
 
 	mt.Setup()
-	mt.Cleanup(mt.Teardown)
 
 	// Start a session by calling startSession with snapshot = false and
 	// snapshotTime = new Timestamp(1).
@@ -621,7 +620,6 @@ func TestSessionsProse_23_EnsureSnapshotTimeIsImmutable(t *testing.T) {
 	mt := mtest.New(t, mtOpts)
 
 	mt.Setup()
-	mt.Cleanup(mt.Teardown)
 
 	sess, err := mt.Client.StartSession(options.Session().SetSnapshot(false))
 	require.NoError(mt, err)
