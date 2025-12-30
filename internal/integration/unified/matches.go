@@ -23,8 +23,10 @@ type keyPathCtxKey struct{}
 // extraKeysAllowedCtxKey is used as a key for a Context object. The value conveys whether or not the document under
 // test can contain extra keys. For example, if the expected document is {x: 1}, the document {x: 1, y: 1} would match
 // if the value for this key is true.
-type extraKeysAllowedCtxKey struct{}
-type extraKeysAllowedRootMatchCtxKey struct{}
+type (
+	extraKeysAllowedCtxKey          struct{}
+	extraKeysAllowedRootMatchCtxKey struct{}
+)
 
 func makeMatchContext(ctx context.Context, keyPath string, extraKeysAllowed bool) context.Context {
 	ctx = context.WithValue(ctx, keyPathCtxKey{}, keyPath)
@@ -264,8 +266,8 @@ func evaluateSpecialComparison(ctx context.Context, assertionDoc bson.Raw, actua
 
 		// Numeric values can be compared even if their types are different (e.g. if expected is an int32 and actual
 		// is an int64).
-		var expectedF64 = assertionVal.AsFloat64()
-		var actualF64 = actual.AsFloat64()
+		expectedF64 := assertionVal.AsFloat64()
+		actualF64 := actual.AsFloat64()
 
 		if actualF64 > expectedF64 {
 			return fmt.Errorf("expected numeric value %f to be less than or equal %f", actualF64, expectedF64)

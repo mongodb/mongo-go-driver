@@ -1589,7 +1589,7 @@ func (op Operation) addReadConcern(dst []byte, desc description.SelectedServer) 
 			data = bsoncore.AppendTimestampElement(data, "afterClusterTime", client.OperationTime.T, client.OperationTime.I)
 			data, _ = bsoncore.AppendDocumentEnd(data, 0)
 		}
-		if client.Snapshot && client.SnapshotTime != nil {
+		if client.Snapshot && client.SnapshotTimeSet {
 			data = data[:len(data)-1] // remove the null byte
 			data = bsoncore.AppendTimestampElement(data, "atClusterTime", client.SnapshotTime.T, client.SnapshotTime.I)
 			data, _ = bsoncore.AppendDocumentEnd(data, 0)
