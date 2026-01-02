@@ -57,8 +57,8 @@ func NewAssumeRoleProvider(httpClient *http.Client, expiryWindow time.Duration) 
 	}
 }
 
-// RetrieveWithContext retrieves the keys from the AWS service.
-func (a *AssumeRoleProvider) RetrieveWithContext(ctx context.Context) (credentials.Value, error) {
+// Retrieve retrieves the keys from the AWS service.
+func (a *AssumeRoleProvider) Retrieve(ctx context.Context) (credentials.Value, error) {
 	const defaultHTTPTimeout = 10 * time.Second
 
 	v := credentials.Value{ProviderName: assumeRoleProviderName}
@@ -135,11 +135,6 @@ func (a *AssumeRoleProvider) RetrieveWithContext(ctx context.Context) (credentia
 	a.expiration = time.Unix(sec, 0).Add(-a.expiryWindow)
 
 	return v, nil
-}
-
-// Retrieve retrieves the keys from the AWS service.
-func (a *AssumeRoleProvider) Retrieve() (credentials.Value, error) {
-	return a.RetrieveWithContext(context.Background())
 }
 
 // IsExpired returns true if the credentials are expired.

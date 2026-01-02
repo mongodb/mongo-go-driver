@@ -11,6 +11,8 @@
 package credentials
 
 import (
+	"context"
+
 	"go.mongodb.org/mongo-driver/v2/internal/aws/awserr"
 )
 
@@ -45,10 +47,10 @@ func NewChainCredentials(providers []Provider) *Credentials {
 //
 // If a provider is found it will be cached and any calls to IsExpired()
 // will return the expired state of the cached provider.
-func (c *ChainProvider) Retrieve() (Value, error) {
+func (c *ChainProvider) Retrieve(ctx context.Context) (Value, error) {
 	var errs = make([]error, 0, len(c.Providers))
 	for _, p := range c.Providers {
-		creds, err := p.Retrieve()
+		creds, err := p.Retrieve(ctx)
 		if err == nil {
 			c.curr = p
 			return creds, nil

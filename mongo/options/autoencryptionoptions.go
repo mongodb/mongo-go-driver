@@ -42,6 +42,7 @@ type AutoEncryptionOptions struct {
 	EncryptedFieldsMap    map[string]any
 	BypassQueryAnalysis   *bool
 	KeyExpiration         *time.Duration
+	CredentialProviders   map[string]CredentialsProvider
 }
 
 // AutoEncryption creates a new AutoEncryptionOptions configured with default values.
@@ -172,5 +173,11 @@ func (a *AutoEncryptionOptions) SetBypassQueryAnalysis(bypass bool) *AutoEncrypt
 func (a *AutoEncryptionOptions) SetKeyExpiration(expiration time.Duration) *AutoEncryptionOptions {
 	a.KeyExpiration = &expiration
 
+	return a
+}
+
+// SetCredentialProviders specifies options for custom credential providers.
+func (a *AutoEncryptionOptions) SetCredentialProviders(providers map[string]CredentialsProvider) *AutoEncryptionOptions {
+	a.CredentialProviders = providers
 	return a
 }
