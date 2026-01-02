@@ -9,7 +9,6 @@ package binaryutil
 
 import (
 	"bytes"
-	"encoding/binary"
 )
 
 func Append32[T ~uint32 | ~int32](dst []byte, v T) []byte {
@@ -46,34 +45,72 @@ func Append64[T ~uint64 | ~int64](dst []byte, v T) []byte {
 	return dst
 }
 
-func read32[T ~uint32 | ~int32](src []byte) (T, []byte, bool) {
+func ReadU32(src []byte) (uint32, []byte, bool) {
 	if len(src) < 4 {
 		return 0, src, false
 	}
-	return T(binary.LittleEndian.Uint32(src)), src[4:], true
-}
 
-func ReadU32(src []byte) (uint32, []byte, bool) {
-	return read32[uint32](src)
+	_ = src[3] // bounds check hint to compiler
+
+	value := uint32(src[0]) |
+		uint32(src[1])<<8 |
+		uint32(src[2])<<16 |
+		uint32(src[3])<<24
+
+	return value, src[4:], true
 }
 
 func ReadI32(src []byte) (int32, []byte, bool) {
-	return read32[int32](src)
-}
-
-func read64[T ~uint64 | ~int64](src []byte) (T, []byte, bool) {
-	if len(src) < 8 {
+	if len(src) < 4 {
 		return 0, src, false
 	}
-	return T(binary.LittleEndian.Uint64(src)), src[8:], true
+
+	_ = src[3] // bounds check hint to compiler
+
+	value := int32(src[0]) |
+		int32(src[1])<<8 |
+		int32(src[2])<<16 |
+		int32(src[3])<<24
+
+	return value, src[4:], true
 }
 
 func ReadU64(src []byte) (uint64, []byte, bool) {
-	return read64[uint64](src)
+	if len(src) < 8 {
+		return 0, src, false
+	}
+
+	_ = src[7] // bounds check hint to compiler
+
+	value := uint64(src[0]) |
+		uint64(src[1])<<8 |
+		uint64(src[2])<<16 |
+		uint64(src[3])<<24 |
+		uint64(src[4])<<32 |
+		uint64(src[5])<<40 |
+		uint64(src[6])<<48 |
+		uint64(src[7])<<56
+
+	return value, src[8:], true
 }
 
 func ReadI64(src []byte) (int64, []byte, bool) {
-	return read64[int64](src)
+	if len(src) < 8 {
+		return 0, src, false
+	}
+
+	_ = src[7] // bounds check hint to compiler
+
+	value := int64(src[0]) |
+		int64(src[1])<<8 |
+		int64(src[2])<<16 |
+		int64(src[3])<<24 |
+		int64(src[4])<<32 |
+		int64(src[5])<<40 |
+		int64(src[6])<<48 |
+		int64(src[7])<<56
+
+	return value, src[8:], true
 }
 
 func ReadCStringBytes(src []byte) ([]byte, []byte, bool) {
