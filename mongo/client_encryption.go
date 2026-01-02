@@ -53,14 +53,12 @@ func NewClientEncryption(keyVaultClient *Client, opts ...options.Lister[options.
 		return nil, fmt.Errorf("error creating KMS providers map: %w", err)
 	}
 
-	mc, err := mongocrypt.NewMongoCrypt(mcopts.MongoCrypt().
-		SetKmsProviders(kmsProviders).
-		// Explicitly disable loading the crypt_shared library for the Crypt used for
-		// ClientEncryption because it's only needed for AutoEncryption and we don't expect users to
-		// have the crypt_shared library installed if they're using ClientEncryption.
-		SetCryptSharedLibDisabled(true).
-		SetHTTPClient(cea.HTTPClient).
-		SetKeyExpiration(cea.KeyExpiration))
+	mc, err := mongocrypt.NewMongoCrypt(&mcopts.MongoCryptOptions{
+		KmsProviders:           kmsProviders,
+		CryptSharedLibDisabled: true,
+		HTTPClient:             cea.HTTPClient,
+		KeyExpiration:          cea.KeyExpiration,
+	})
 	if err != nil {
 		return nil, err
 	}
