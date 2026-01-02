@@ -651,15 +651,16 @@ func (c *Client) newMongoCrypt(opts *options.AutoEncryptionOptions) (*mongocrypt
 	bypassAutoEncryption := opts.BypassAutoEncryption != nil && *opts.BypassAutoEncryption
 	bypassQueryAnalysis := opts.BypassQueryAnalysis != nil && *opts.BypassQueryAnalysis
 
-	mc, err := mongocrypt.NewMongoCrypt(mcopts.MongoCrypt().
-		SetKmsProviders(kmsProviders).
-		SetLocalSchemaMap(cryptSchemaMap).
-		SetBypassQueryAnalysis(bypassQueryAnalysis).
-		SetEncryptedFieldsMap(cryptEncryptedFieldsMap).
-		SetCryptSharedLibDisabled(cryptSharedLibDisabled || bypassAutoEncryption).
-		SetCryptSharedLibOverridePath(cryptSharedLibPath).
-		SetHTTPClient(opts.HTTPClient).
-		SetKeyExpiration(opts.KeyExpiration))
+	mc, err := mongocrypt.NewMongoCrypt(&mcopts.MongoCryptOptions{
+		KmsProviders:               kmsProviders,
+		LocalSchemaMap:             cryptSchemaMap,
+		BypassQueryAnalysis:        bypassQueryAnalysis,
+		EncryptedFieldsMap:         cryptEncryptedFieldsMap,
+		CryptSharedLibDisabled:     cryptSharedLibDisabled || bypassAutoEncryption,
+		CryptSharedLibOverridePath: cryptSharedLibPath,
+		HTTPClient:                 opts.HTTPClient,
+		KeyExpiration:              opts.KeyExpiration,
+	})
 	if err != nil {
 		return nil, err
 	}

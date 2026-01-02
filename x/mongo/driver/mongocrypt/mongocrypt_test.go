@@ -61,7 +61,9 @@ func createMongoCrypt(t *testing.T) *MongoCrypt {
 		AppendDocument("local", localProvider).
 		Build()
 
-	cryptOpts := options.MongoCrypt().SetKmsProviders(kmsProviders)
+	cryptOpts := &options.MongoCryptOptions{
+		KmsProviders: kmsProviders,
+	}
 	crypt, err := NewMongoCrypt(cryptOpts)
 	noerr(t, err)
 	if crypt == nil {
@@ -216,7 +218,10 @@ func TestMongoCrypt(t *testing.T) {
 				AppendString("secretAccessKey", "example").
 				FinishDocument().
 				Build()
-			cryptOpts := options.MongoCrypt().SetKmsProviders(kmsProviders).SetLocalSchemaMap(schemaMap)
+			cryptOpts := &options.MongoCryptOptions{
+				KmsProviders:   kmsProviders,
+				LocalSchemaMap: schemaMap,
+			}
 			crypt, err := NewMongoCrypt(cryptOpts)
 			noerr(t, err)
 			defer crypt.Close()
