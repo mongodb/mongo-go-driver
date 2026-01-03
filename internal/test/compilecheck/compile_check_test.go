@@ -155,12 +155,12 @@ func TestCompileCheck(t *testing.T) {
 	testSuiteVersion := goVersions[len(goVersions)-1]
 
 	// Initialize Go module and download dependencies using the test suite Go version.
-	execGo(t, container, &goExecConfig{version: testSuiteVersion}, "mod", "init", "compilecheck")
-	execGo(t, container, nil, "mod", "edit", "-replace=go.mongodb.org/mongo-driver/v2=/mongo-go-driver")
-	execGo(t, container, &goExecConfig{version: testSuiteVersion}, "mod", "tidy")
+	_ = execGo(t, container, &goExecConfig{version: testSuiteVersion}, "mod", "init", "compilecheck")
+	_ = execGo(t, container, nil, "mod", "edit", "-replace=go.mongodb.org/mongo-driver/v2=/mongo-go-driver")
+	_ = execGo(t, container, &goExecConfig{version: testSuiteVersion}, "mod", "tidy")
 
 	// Set minimum Go version to what the driver claims (first version in our test list).
-	execGo(t, container, nil, "mod", "edit", "-go="+goVersions[0])
+	_ = execGo(t, container, nil, "mod", "edit", "-go="+goVersions[0])
 
 	for _, ver := range goVersions {
 		ver := ver // capture
@@ -173,13 +173,13 @@ func TestCompileCheck(t *testing.T) {
 			versionOutput := execGo(t, container, versionCfg, "version")
 			require.Contains(t, versionOutput, "go"+ver, "unexpected go version: %s", versionOutput)
 
-			execGo(t, container, versionCfg, "build", "-buildvcs=false", "-o", "/dev/null", "main.go")
+			_ = execGo(t, container, versionCfg, "build", "-buildvcs=false", "-o", "/dev/null", "main.go")
 
 			// Dynamic linking build.
-			execGo(t, container, versionCfg, "build", "-buildvcs=false", "-buildmode=plugin", "-o", "/dev/null", "main.go")
+			_ = execGo(t, container, versionCfg, "build", "-buildvcs=false", "-buildmode=plugin", "-o", "/dev/null", "main.go")
 
 			// Build with build tags.
-			execGo(t, container, &goExecConfig{
+			_ = execGo(t, container, &goExecConfig{
 				version: ver,
 				env: map[string]string{
 					"PKG_CONFIG_PATH": "/root/install/libmongocrypt/lib/pkgconfig",
@@ -195,7 +195,7 @@ func TestCompileCheck(t *testing.T) {
 					t.Parallel()
 
 					// Standard build.
-					execGo(t, container, &goExecConfig{
+					_ = execGo(t, container, &goExecConfig{
 						version: ver,
 						env: map[string]string{
 							"GOOS":   "linux",
