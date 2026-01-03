@@ -14,11 +14,11 @@
 package wiremessage
 
 import (
-	"bytes"
 	"encoding/binary"
 	"strings"
 	"sync/atomic"
 
+	"go.mongodb.org/mongo-driver/v2/internal/binaryutil"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
@@ -219,18 +219,18 @@ const (
 // starts in dst and the updated slice.
 func AppendHeaderStart(dst []byte, reqid, respto int32, opcode OpCode) (index int32, b []byte) {
 	index, dst = bsoncore.ReserveLength(dst)
-	dst = appendi32(dst, reqid)
-	dst = appendi32(dst, respto)
-	dst = appendi32(dst, int32(opcode))
+	dst = binaryutil.Append32(dst, reqid)
+	dst = binaryutil.Append32(dst, respto)
+	dst = binaryutil.Append32(dst, int32(opcode))
 	return index, dst
 }
 
 // AppendHeader appends a header to dst.
 func AppendHeader(dst []byte, length, reqid, respto int32, opcode OpCode) []byte {
-	dst = appendi32(dst, length)
-	dst = appendi32(dst, reqid)
-	dst = appendi32(dst, respto)
-	dst = appendi32(dst, int32(opcode))
+	dst = binaryutil.Append32(dst, length)
+	dst = binaryutil.Append32(dst, reqid)
+	dst = binaryutil.Append32(dst, respto)
+	dst = binaryutil.Append32(dst, int32(opcode))
 	return dst
 }
 
@@ -249,17 +249,17 @@ func ReadHeader(src []byte) (length, requestID, responseTo int32, opcode OpCode,
 
 // AppendQueryFlags appends the flags for an OP_QUERY wire message.
 func AppendQueryFlags(dst []byte, flags QueryFlag) []byte {
-	return appendi32(dst, int32(flags))
+	return binaryutil.Append32(dst, int32(flags))
 }
 
 // AppendMsgFlags appends the flags for an OP_MSG wire message.
 func AppendMsgFlags(dst []byte, flags MsgFlag) []byte {
-	return appendi32(dst, int32(flags))
+	return binaryutil.Append32(dst, int32(flags))
 }
 
 // AppendReplyFlags appends the flags for an OP_REPLY wire message.
 func AppendReplyFlags(dst []byte, flags ReplyFlag) []byte {
-	return appendi32(dst, int32(flags))
+	return binaryutil.Append32(dst, int32(flags))
 }
 
 // AppendMsgSectionType appends the section type to dst.
@@ -274,37 +274,39 @@ func AppendQueryFullCollectionName(dst []byte, ns string) []byte {
 
 // AppendQueryNumberToSkip appends the number to skip to dst.
 func AppendQueryNumberToSkip(dst []byte, skip int32) []byte {
-	return appendi32(dst, skip)
+	return binaryutil.Append32(dst, skip)
 }
 
 // AppendQueryNumberToReturn appends the number to return to dst.
 func AppendQueryNumberToReturn(dst []byte, nor int32) []byte {
-	return appendi32(dst, nor)
+	return binaryutil.Append32(dst, nor)
 }
 
 // AppendReplyCursorID appends the cursor ID to dst.
 func AppendReplyCursorID(dst []byte, id int64) []byte {
-	return appendi64(dst, id)
+	return binaryutil.Append64(dst, id)
 }
 
 // AppendReplyStartingFrom appends the starting from field to dst.
 func AppendReplyStartingFrom(dst []byte, sf int32) []byte {
-	return appendi32(dst, sf)
+	return binaryutil.Append32(dst, sf)
 }
 
 // AppendReplyNumberReturned appends the number returned to dst.
 func AppendReplyNumberReturned(dst []byte, nr int32) []byte {
-	return appendi32(dst, nr)
+	return binaryutil.Append32(dst, nr)
 }
 
 // AppendCompressedOriginalOpCode appends the original opcode to dst.
 func AppendCompressedOriginalOpCode(dst []byte, opcode OpCode) []byte {
-	return appendi32(dst, int32(opcode))
+	return binaryutil.Append32(dst, int32(opcode))
 }
 
 // AppendCompressedUncompressedSize appends the uncompressed size of a
 // compressed wiremessage to dst.
-func AppendCompressedUncompressedSize(dst []byte, size int32) []byte { return appendi32(dst, size) }
+func AppendCompressedUncompressedSize(dst []byte, size int32) []byte {
+	return binaryutil.Append32(dst, size)
+}
 
 // AppendCompressedCompressorID appends the ID of the compressor to dst.
 func AppendCompressedCompressorID(dst []byte, id CompressorID) []byte {
@@ -316,7 +318,7 @@ func AppendCompressedCompressedMessage(dst []byte, msg []byte) []byte { return a
 
 // AppendGetMoreZero appends the zero field to dst.
 func AppendGetMoreZero(dst []byte) []byte {
-	return appendi32(dst, 0)
+	return binaryutil.Append32(dst, int32(0))
 }
 
 // AppendGetMoreFullCollectionName appends the fullCollectionName field to dst.
@@ -326,35 +328,35 @@ func AppendGetMoreFullCollectionName(dst []byte, ns string) []byte {
 
 // AppendGetMoreNumberToReturn appends the numberToReturn field to dst.
 func AppendGetMoreNumberToReturn(dst []byte, numToReturn int32) []byte {
-	return appendi32(dst, numToReturn)
+	return binaryutil.Append32(dst, numToReturn)
 }
 
 // AppendGetMoreCursorID appends the cursorID field to dst.
 func AppendGetMoreCursorID(dst []byte, cursorID int64) []byte {
-	return appendi64(dst, cursorID)
+	return binaryutil.Append64(dst, cursorID)
 }
 
 // AppendKillCursorsZero appends the zero field to dst.
 func AppendKillCursorsZero(dst []byte) []byte {
-	return appendi32(dst, 0)
+	return binaryutil.Append32(dst, int32(0))
 }
 
 // AppendKillCursorsNumberIDs appends the numberOfCursorIDs field to dst.
 func AppendKillCursorsNumberIDs(dst []byte, numIDs int32) []byte {
-	return appendi32(dst, numIDs)
+	return binaryutil.Append32(dst, numIDs)
 }
 
 // AppendKillCursorsCursorIDs appends each the cursorIDs field to dst.
 func AppendKillCursorsCursorIDs(dst []byte, cursors []int64) []byte {
 	for _, cursor := range cursors {
-		dst = appendi64(dst, cursor)
+		dst = binaryutil.Append64(dst, cursor)
 	}
 	return dst
 }
 
 // ReadMsgFlags reads the OP_MSG flags from src.
 func ReadMsgFlags(src []byte) (flags MsgFlag, rem []byte, ok bool) {
-	i32, rem, ok := readi32(src)
+	i32, rem, ok := binaryutil.ReadI32(src)
 	return MsgFlag(i32), rem, ok
 }
 
@@ -405,7 +407,7 @@ func ReadMsgSectionDocumentSequence(src []byte) (identifier string, docs []bsonc
 // ReadMsgSectionRawDocumentSequence reads an identifier and document sequence from src and returns the raw document
 // sequence data.
 func ReadMsgSectionRawDocumentSequence(src []byte) (identifier string, data []byte, rem []byte, ok bool) {
-	length, rem, ok := readi32(src)
+	length, rem, ok := binaryutil.ReadI32(src)
 	if !ok || int(length) > len(src) || length < 4 {
 		return "", nil, src, false
 	}
@@ -414,7 +416,7 @@ func ReadMsgSectionRawDocumentSequence(src []byte) (identifier string, data []by
 	// rest will be the rest of the wire message after this document sequence.
 	rem, rest := rem[:length-4], rem[length-4:]
 
-	identifier, rem, ok = readcstring(rem)
+	identifier, rem, ok = binaryutil.ReadCString(rem)
 	if !ok {
 		return "", nil, src, false
 	}
@@ -424,7 +426,7 @@ func ReadMsgSectionRawDocumentSequence(src []byte) (identifier string, data []by
 
 // ReadMsgChecksum reads a checksum from src.
 func ReadMsgChecksum(src []byte) (checksum uint32, rem []byte, ok bool) {
-	i32, rem, ok := readi32(src)
+	i32, rem, ok := binaryutil.ReadI32(src)
 	return uint32(i32), rem, ok
 }
 
@@ -433,7 +435,7 @@ func ReadMsgChecksum(src []byte) (checksum uint32, rem []byte, ok bool) {
 // Deprecated: Construct wiremessages with OpMsg and use the ReadMsg* functions
 // instead.
 func ReadQueryFlags(src []byte) (flags QueryFlag, rem []byte, ok bool) {
-	i32, rem, ok := readi32(src)
+	i32, rem, ok := binaryutil.ReadI32(src)
 	return QueryFlag(i32), rem, ok
 }
 
@@ -442,7 +444,7 @@ func ReadQueryFlags(src []byte) (flags QueryFlag, rem []byte, ok bool) {
 // Deprecated: Construct wiremessages with OpMsg and use the ReadMsg* functions
 // instead.
 func ReadQueryFullCollectionName(src []byte) (collname string, rem []byte, ok bool) {
-	return readcstring(src)
+	return binaryutil.ReadCString(src)
 }
 
 // ReadQueryNumberToSkip reads the number to skip from src.
@@ -450,7 +452,7 @@ func ReadQueryFullCollectionName(src []byte) (collname string, rem []byte, ok bo
 // Deprecated: Construct wiremessages with OpMsg and use the ReadMsg* functions
 // instead.
 func ReadQueryNumberToSkip(src []byte) (nts int32, rem []byte, ok bool) {
-	return readi32(src)
+	return binaryutil.ReadI32(src)
 }
 
 // ReadQueryNumberToReturn reads the number to return from src.
@@ -458,7 +460,7 @@ func ReadQueryNumberToSkip(src []byte) (nts int32, rem []byte, ok bool) {
 // Deprecated: Construct wiremessages with OpMsg and use the ReadMsg* functions
 // instead.
 func ReadQueryNumberToReturn(src []byte) (ntr int32, rem []byte, ok bool) {
-	return readi32(src)
+	return binaryutil.ReadI32(src)
 }
 
 // ReadQueryQuery reads the query from src.
@@ -479,23 +481,23 @@ func ReadQueryReturnFieldsSelector(src []byte) (rfs bsoncore.Document, rem []byt
 
 // ReadReplyFlags reads OP_REPLY flags from src.
 func ReadReplyFlags(src []byte) (flags ReplyFlag, rem []byte, ok bool) {
-	i32, rem, ok := readi32(src)
+	i32, rem, ok := binaryutil.ReadI32(src)
 	return ReplyFlag(i32), rem, ok
 }
 
 // ReadReplyCursorID reads a cursor ID from src.
 func ReadReplyCursorID(src []byte) (cursorID int64, rem []byte, ok bool) {
-	return readi64(src)
+	return binaryutil.ReadI64(src)
 }
 
 // ReadReplyStartingFrom reads the starting from src.
 func ReadReplyStartingFrom(src []byte) (startingFrom int32, rem []byte, ok bool) {
-	return readi32(src)
+	return binaryutil.ReadI32(src)
 }
 
 // ReadReplyNumberReturned reads the numbered returned from src.
 func ReadReplyNumberReturned(src []byte) (numberReturned int32, rem []byte, ok bool) {
-	return readi32(src)
+	return binaryutil.ReadI32(src)
 }
 
 // ReadReplyDocuments reads as many documents as possible from src
@@ -521,14 +523,14 @@ func ReadReplyDocument(src []byte) (doc bsoncore.Document, rem []byte, ok bool) 
 
 // ReadCompressedOriginalOpCode reads the original opcode from src.
 func ReadCompressedOriginalOpCode(src []byte) (opcode OpCode, rem []byte, ok bool) {
-	i32, rem, ok := readi32(src)
+	i32, rem, ok := binaryutil.ReadI32(src)
 	return OpCode(i32), rem, ok
 }
 
 // ReadCompressedUncompressedSize reads the uncompressed size of a
 // compressed wiremessage to dst.
 func ReadCompressedUncompressedSize(src []byte) (size int32, rem []byte, ok bool) {
-	return readi32(src)
+	return binaryutil.ReadI32(src)
 }
 
 // ReadCompressedCompressorID reads the ID of the compressor to dst.
@@ -541,12 +543,12 @@ func ReadCompressedCompressorID(src []byte) (id CompressorID, rem []byte, ok boo
 
 // ReadKillCursorsZero reads the zero field from src.
 func ReadKillCursorsZero(src []byte) (zero int32, rem []byte, ok bool) {
-	return readi32(src)
+	return binaryutil.ReadI32(src)
 }
 
 // ReadKillCursorsNumberIDs reads the numberOfCursorIDs field from src.
 func ReadKillCursorsNumberIDs(src []byte) (numIDs int32, rem []byte, ok bool) {
-	return readi32(src)
+	return binaryutil.ReadI32(src)
 }
 
 // ReadKillCursorsCursorIDs reads numIDs cursor IDs from src.
@@ -554,7 +556,7 @@ func ReadKillCursorsCursorIDs(src []byte, numIDs int32) (cursorIDs []int64, rem 
 	var i int32
 	var id int64
 	for i = 0; i < numIDs; i++ {
-		id, src, ok = readi64(src)
+		id, src, ok = binaryutil.ReadI64(src)
 		if !ok {
 			return cursorIDs, src, false
 		}
@@ -564,45 +566,11 @@ func ReadKillCursorsCursorIDs(src []byte, numIDs int32) (cursorIDs []int64, rem 
 	return cursorIDs, src, true
 }
 
-func appendi32(dst []byte, x int32) []byte {
-	b := []byte{0, 0, 0, 0}
-	binary.LittleEndian.PutUint32(b, uint32(x))
-	return append(dst, b...)
-}
-
-func appendi64(dst []byte, x int64) []byte {
-	b := []byte{0, 0, 0, 0, 0, 0, 0, 0}
-	binary.LittleEndian.PutUint64(b, uint64(x))
-	return append(dst, b...)
-}
-
 func appendCString(b []byte, str string) []byte {
 	b = append(b, str...)
 	return append(b, 0x00)
 }
 
-func readi32(src []byte) (int32, []byte, bool) {
-	if len(src) < 4 {
-		return 0, src, false
-	}
-	return readi32unsafe(src), src[4:], true
-}
-
 func readi32unsafe(src []byte) int32 {
 	return int32(binary.LittleEndian.Uint32(src))
-}
-
-func readi64(src []byte) (int64, []byte, bool) {
-	if len(src) < 8 {
-		return 0, src, false
-	}
-	return int64(binary.LittleEndian.Uint64(src)), src[8:], true
-}
-
-func readcstring(src []byte) (string, []byte, bool) {
-	idx := bytes.IndexByte(src, 0x00)
-	if idx < 0 {
-		return "", src, false
-	}
-	return string(src[:idx]), src[idx+1:], true
 }
