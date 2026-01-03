@@ -49,6 +49,7 @@ var goVersions = []string{
 	"1.24",
 	"1.25", // Test suite Go Version
 }
+
 var architectures = []string{
 	"386",
 	"amd64",
