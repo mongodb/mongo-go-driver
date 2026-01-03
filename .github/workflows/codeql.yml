@@ -32,6 +32,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.0"
       # Initializes the CodeQL tools for scanning.
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
@@ -40,8 +44,19 @@ jobs:
           build-mode: manual
       - name: Install Taskfile support
         uses: arduino/setup-task@v2
-      - shell: bash
-        run: task build
+      - name: Install libmongocrypt
+        run: task install-libmongocrypt
+      - name: Build (CodeQL-instrumented)
+        shell: bash
+        env:
+          GOTOOLCHAIN: local
+        run: |
+          # TODO(GODRIVER-3723): Run using taskfile targets.
+          go build ./...
+          go build ${BUILD_TAGS} ./...
+          go test -short ${BUILD_TAGS} -run ^$$ ./...
+
+          go test -v ./internal/test/compilecheck -run '^TestCompileCheck/go:1\.19$'
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
         with:
