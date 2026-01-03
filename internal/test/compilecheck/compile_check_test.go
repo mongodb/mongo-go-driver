@@ -152,10 +152,12 @@ func TestCompileCheck(t *testing.T) {
 		require.NoError(t, container.Terminate(context.Background()))
 	})
 
+	testSuiteVersion := goVersions[len(goVersions)-1]
+
 	// Initialize Go module and download dependencies using the test suite Go version.
-	execGo(t, container, &goExecConfig{version: "1.25"}, "mod", "init", "compilecheck")
+	execGo(t, container, &goExecConfig{version: testSuiteVersion}, "mod", "init", "compilecheck")
 	execGo(t, container, nil, "mod", "edit", "-replace=go.mongodb.org/mongo-driver/v2=/mongo-go-driver")
-	execGo(t, container, &goExecConfig{version: "1.25"}, "mod", "tidy")
+	execGo(t, container, &goExecConfig{version: testSuiteVersion}, "mod", "tidy")
 
 	// Set minimum Go version to what the driver claims (first version in our test list).
 	execGo(t, container, nil, "mod", "edit", "-go="+goVersions[0])
