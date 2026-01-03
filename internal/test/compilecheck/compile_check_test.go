@@ -137,6 +137,8 @@ func TestCompileCheck(t *testing.T) {
 				FileMode:          0o644,
 			},
 		},
+		// Entrypoint is set to "tail -f /dev/null" so the container stays running and available to execute multiple shell commands as needed during tests.
+		// This keeps the container alive and ready for exec calls, rather than immediately exiting.
 		Entrypoint: []string{"tail", "-f", "/dev/null"},
 		WorkingDir: "/workspace",
 	}
