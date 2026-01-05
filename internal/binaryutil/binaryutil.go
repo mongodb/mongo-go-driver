@@ -9,6 +9,7 @@ package binaryutil
 
 import (
 	"bytes"
+	"encoding/binary"
 )
 
 // Append32 appends a uint32 or int32 value to dst in little-endian byte order.
@@ -66,14 +67,7 @@ func ReadU32(src []byte) (uint32, []byte, bool) {
 		return 0, src, false
 	}
 
-	_ = src[3] // bounds check hint to compiler
-
-	value := uint32(src[0]) |
-		uint32(src[1])<<8 |
-		uint32(src[2])<<16 |
-		uint32(src[3])<<24
-
-	return value, src[4:], true
+	return binary.LittleEndian.Uint32(src), src[4:], true
 }
 
 // ReadI32 reads an int32 from src in little-endian byte order.
@@ -108,18 +102,7 @@ func ReadU64(src []byte) (uint64, []byte, bool) {
 		return 0, src, false
 	}
 
-	_ = src[7] // bounds check hint to compiler
-
-	value := uint64(src[0]) |
-		uint64(src[1])<<8 |
-		uint64(src[2])<<16 |
-		uint64(src[3])<<24 |
-		uint64(src[4])<<32 |
-		uint64(src[5])<<40 |
-		uint64(src[6])<<48 |
-		uint64(src[7])<<56
-
-	return value, src[8:], true
+	return binary.LittleEndian.Uint64(src), src[8:], true
 }
 
 // ReadI64 reads an int64 from src in little-endian byte order.
