@@ -386,7 +386,9 @@ func TestClient(t *testing.T) {
 				sess, err := mt.Client.StartSession(tc.opts)
 				assert.Nil(mt, err, "StartSession error: %v", err)
 				defer sess.EndSession(context.Background())
-				consistent := testutil.GetUnexportedFieldAs[*session.Client](sess, "clientSession")
+				clientSession := testutil.GetUnexportedFieldAs[*session.Client](sess, "clientSession")
+
+				consistent := clientSession.Consistent
 				assert.Equal(mt, tc.consistent, consistent, "expected consistent to be %v, got %v", tc.consistent, consistent)
 			})
 		}
