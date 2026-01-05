@@ -44,8 +44,6 @@ jobs:
           build-mode: manual
       - name: Install Taskfile support
         uses: arduino/setup-task@v2
-      - name: Install libmongocrypt
-        run: task install-libmongocrypt
       - name: Build (CodeQL-instrumented)
         shell: bash
         env:
