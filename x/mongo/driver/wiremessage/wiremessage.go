@@ -221,7 +221,7 @@ func AppendHeaderStart(dst []byte, reqid, respto int32, opcode OpCode) (index in
 	index, dst = bsoncore.ReserveLength(dst)
 	dst = binaryutil.Append32(dst, reqid)
 	dst = binaryutil.Append32(dst, respto)
-	dst = binaryutil.Append32(dst, int32(opcode))
+	dst = binaryutil.Append32(dst, opcode)
 	return index, dst
 }
 
@@ -230,7 +230,7 @@ func AppendHeader(dst []byte, length, reqid, respto int32, opcode OpCode) []byte
 	dst = binaryutil.Append32(dst, length)
 	dst = binaryutil.Append32(dst, reqid)
 	dst = binaryutil.Append32(dst, respto)
-	dst = binaryutil.Append32(dst, int32(opcode))
+	dst = binaryutil.Append32(dst, opcode)
 	return dst
 }
 
@@ -249,17 +249,17 @@ func ReadHeader(src []byte) (length, requestID, responseTo int32, opcode OpCode,
 
 // AppendQueryFlags appends the flags for an OP_QUERY wire message.
 func AppendQueryFlags(dst []byte, flags QueryFlag) []byte {
-	return binaryutil.Append32(dst, int32(flags))
+	return binaryutil.Append32(dst, flags)
 }
 
 // AppendMsgFlags appends the flags for an OP_MSG wire message.
 func AppendMsgFlags(dst []byte, flags MsgFlag) []byte {
-	return binaryutil.Append32(dst, int32(flags))
+	return binaryutil.Append32(dst, flags)
 }
 
 // AppendReplyFlags appends the flags for an OP_REPLY wire message.
 func AppendReplyFlags(dst []byte, flags ReplyFlag) []byte {
-	return binaryutil.Append32(dst, int32(flags))
+	return binaryutil.Append32(dst, flags)
 }
 
 // AppendMsgSectionType appends the section type to dst.
@@ -299,7 +299,7 @@ func AppendReplyNumberReturned(dst []byte, nr int32) []byte {
 
 // AppendCompressedOriginalOpCode appends the original opcode to dst.
 func AppendCompressedOriginalOpCode(dst []byte, opcode OpCode) []byte {
-	return binaryutil.Append32(dst, int32(opcode))
+	return binaryutil.Append32(dst, opcode)
 }
 
 // AppendCompressedUncompressedSize appends the uncompressed size of a
