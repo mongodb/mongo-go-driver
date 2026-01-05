@@ -44,8 +44,6 @@ jobs:
           build-mode: manual
       - name: Build (CodeQL-instrumented)
         shell: bash
-        env:
-          GOTOOLCHAIN: local
         run: |
           # TODO(GODRIVER-3723): Run using taskfile targets.
           go build ./...
