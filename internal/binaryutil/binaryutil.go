@@ -16,44 +16,32 @@ import (
 // Byte shifting is done directly to prevent overflow security errors, in
 // compliance with gosec G115.
 //
-// See: https://cs.opensource.google/go/go/+/refs/tags/go1.19:src/encoding/binary/binary.go;l=84
+// See: https://cs.opensource.google/go/go/+/refs/tags/go1.19:src/encoding/binary/binary.go;l=92
 func Append32[T ~uint32 | ~int32](dst []byte, v T) []byte {
-	n := len(dst)
-	dst = append(dst, 0, 0, 0, 0)
-
-	b := dst[n:]
-	_ = b[3] // early bounds check
-
-	b[0] = byte(v)
-	b[1] = byte(v >> 8)
-	b[2] = byte(v >> 16)
-	b[3] = byte(v >> 24)
-
-	return dst
+	return append(dst,
+		byte(v),
+		byte(v>>8),
+		byte(v>>16),
+		byte(v>>24),
+	)
 }
 
 // Append64 appends a uint64 or int64 value to dst in little-endian byte order.
 // Byte shifting is done directly to prevent overflow security errors, in
 // compliance with gosec G115.
 //
-// See: https://cs.opensource.google/go/go/+/refs/tags/go1.19:src/encoding/binary/binary.go;l=92
+// See: https://cs.opensource.google/go/go/+/refs/tags/go1.19:src/encoding/binary/binary.go;l=119
 func Append64[T ~uint64 | ~int64](dst []byte, v T) []byte {
-	n := len(dst)
-	dst = append(dst, 0, 0, 0, 0, 0, 0, 0, 0)
-
-	b := dst[n:]
-	_ = b[7] // early bounds check
-
-	b[0] = byte(v)
-	b[1] = byte(v >> 8)
-	b[2] = byte(v >> 16)
-	b[3] = byte(v >> 24)
-	b[4] = byte(v >> 32)
-	b[5] = byte(v >> 40)
-	b[6] = byte(v >> 48)
-	b[7] = byte(v >> 56)
-
-	return dst
+	return append(dst,
+		byte(v),
+		byte(v>>8),
+		byte(v>>16),
+		byte(v>>24),
+		byte(v>>32),
+		byte(v>>40),
+		byte(v>>48),
+		byte(v>>56),
+	)
 }
 
 // ReadU32 reads a uint32 from src in little-endian byte order.
