@@ -1,7 +1,7 @@
 # Dockerfile for Go Driver local development.
 
 # Build libmongocrypt in a separate build stage.
-FROM --platform=linux/amd64 golang:1.25.5-trixie AS libmongocrypt
+FROM golang:1.25.5-trixie AS libmongocrypt
 
 RUN apt-get -qq update && \
   apt-get -qqy install --no-install-recommends \
