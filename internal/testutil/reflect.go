@@ -11,9 +11,9 @@ import (
 	"unsafe"
 )
 
-// GetUnexportedField uses reflection and unsafe to read an unexported field
+// getUnexportedField uses reflection and unsafe to read an unexported field
 // named fieldName from a struct pointer v, and returns it as interface{}.
-func GetUnexportedField(v interface{}, fieldName string) interface{} {
+func getUnexportedField(v any, fieldName string) any {
 	rv := reflect.ValueOf(v)
 	if rv.Kind() != reflect.Ptr || rv.IsNil() {
 		panic("GetUnexportedField: v must be a non-nil pointer to struct")
@@ -36,6 +36,6 @@ func GetUnexportedField(v interface{}, fieldName string) interface{} {
 
 // GetUnexportedFieldAs is a generic wrapper around GetUnexportedField that
 // returns the field value with the correct type.
-func GetUnexportedFieldAs[T any](v interface{}, fieldName string) T {
-	return GetUnexportedField(v, fieldName).(T)
+func GetUnexportedFieldAs[T any](v any, fieldName string) T {
+	return getUnexportedField(v, fieldName).(T)
 }
