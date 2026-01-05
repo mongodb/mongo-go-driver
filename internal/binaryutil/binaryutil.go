@@ -44,12 +44,9 @@ func Append64[T ~uint64 | ~int64](dst []byte, v T) []byte {
 	)
 }
 
-// ReadU32 reads a uint32 from src in little-endian byte order.
-// Byte shifting is done directly to prevent overflow security errors, in
-// compliance with gosec G115. ReadU32 and ReadI32 are separate functions to
-// avoid unsafe casting between unsigned and signed integers.
-//
-// See: https://cs.opensource.google/go/go/+/refs/tags/go1.19:src/encoding/binary/binary.go;l=79
+// ReadU32 reads a uint32 from src in little-endian byte order. ReadU32 and
+// ReadI32 are separate functions to avoid unsafe casting between unsigned and
+// signed integers.
 func ReadU32(src []byte) (uint32, []byte, bool) {
 	if len(src) < 4 {
 		return 0, src, false
@@ -79,12 +76,9 @@ func ReadI32(src []byte) (int32, []byte, bool) {
 	return value, src[4:], true
 }
 
-// ReadU64 reads a uint64 from src in little-endian byte order.
-// Byte shifting is done directly to prevent overflow security errors, in
-// compliance with gosec G115. ReadU64 and ReadI64 are separate functions to
-// avoid unsafe casting between unsigned and signed integers.
-//
-// See: https://cs.opensource.google/go/go/+/refs/tags/go1.19:src/encoding/binary/binary.go;l=101
+// ReadU64 reads a uint64 from src in little-endian byte order. ReadU64 and
+// ReadI64 are separate functions to avoid unsafe casting between unsigned and
+// signed integers.
 func ReadU64(src []byte) (uint64, []byte, bool) {
 	if len(src) < 8 {
 		return 0, src, false
