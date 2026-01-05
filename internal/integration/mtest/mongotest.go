@@ -228,7 +228,6 @@ func (t *T) RunOpts(name string, opts *Options, callback func(mt *T)) {
 		sub := newT(wrapped, t.baseOpts, opts)
 
 		sub.Setup()
-		t.Cleanup(sub.teardown)
 
 		callback(sub)
 	})
