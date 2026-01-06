@@ -54,20 +54,3 @@ type RewrapManyDataKeyOptions struct {
 	// MasterKey identifies the new masterKey. If omitted, rewraps with the current masterKey.
 	MasterKey bsoncore.Document
 }
-
-// RewrapManyDataKey creates a new RewrapManyDataKeyOptions instance.
-func RewrapManyDataKey() *RewrapManyDataKeyOptions {
-	return new(RewrapManyDataKeyOptions)
-}
-
-// SetProvider sets the value for the Provider field.
-func (rmdko *RewrapManyDataKeyOptions) SetProvider(provider string) *RewrapManyDataKeyOptions {
-	rmdko.Provider = &provider
-	return rmdko
-}
-
-// SetMasterKey sets the value for the MasterKey field.
-func (rmdko *RewrapManyDataKeyOptions) SetMasterKey(masterKey bsoncore.Document) *RewrapManyDataKeyOptions {
-	rmdko.MasterKey = masterKey
-	return rmdko
-}

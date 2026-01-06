@@ -471,7 +471,7 @@ func (ce *ClientEncryption) RewrapManyDataKey(
 	}
 
 	// Transfer rmdko options to /x/ package options to publish the mongocrypt feed.
-	co := mcopts.RewrapManyDataKey()
+	co := &mcopts.RewrapManyDataKeyOptions{}
 	if args.MasterKey != nil {
 		keyDoc, err := marshal(
 			args.MasterKey,
@@ -480,10 +480,10 @@ func (ce *ClientEncryption) RewrapManyDataKey(
 		if err != nil {
 			return nil, err
 		}
-		co.SetMasterKey(keyDoc)
+		co.MasterKey = keyDoc
 	}
 	if args.Provider != nil {
-		co.SetProvider(*args.Provider)
+		co.Provider = args.Provider
 	}
 
 	// Prepare the filters and rewrap the data key using mongocrypt.
