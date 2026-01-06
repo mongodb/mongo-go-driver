@@ -266,8 +266,7 @@ func TestSearchIndexProse(t *testing.T) {
 			name := cursor.Current.Lookup("name").StringValue()
 			queryable := cursor.Current.Lookup("queryable").Boolean()
 			status := cursor.Current.Lookup("status").StringValue()
-			latestDefinition, ok := cursor.Current.Lookup("latestDefinition", "mappings", "dynamic").BooleanOK()
-			if name == searchName && queryable && status == "READY" && ok && latestDefinition {
+			if name == searchName && queryable && status == "READY" {
 				doc = cursor.Current
 			} else {
 				mt.Logf("cursor: %s, sleep 5 seconds...", cursor.Current.String())
@@ -275,6 +274,8 @@ func TestSearchIndexProse(t *testing.T) {
 			}
 		}
 		require.NotNil(mt, doc, "got empty document")
+		require.True(mt, doc.Lookup("latestDefinition", "mappings", "dynamic").Boolean(),
+			"expected latestDefinition.mappings.dynamic to be true")
 	})
 
 	mt.Run("case 5: dropSearchIndex suppresses namespace not found errors", func(mt *mtest.T) {
