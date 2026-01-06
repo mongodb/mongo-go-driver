@@ -70,7 +70,7 @@ func createEncryptedDocForBench(b *testing.B, crypt *MongoCrypt, iter int) bsonc
 		Data:    []byte("aaaaaaaaaaaaaaaa"),
 	}
 
-	encryptOpts := options.ExplicitEncryption().SetAlgorithm(algorithm).SetKeyID(keyID)
+	encryptOpts := &options.ExplicitEncryptionOptions{Algorithm: algorithm, KeyID: &keyID}
 	doc := bsoncore.NewDocumentBuilder().AppendString("v", fmt.Sprintf("value %04v", iter)).Build()
 
 	encryptCtx, err := crypt.CreateExplicitEncryptionContext(doc, encryptOpts)
