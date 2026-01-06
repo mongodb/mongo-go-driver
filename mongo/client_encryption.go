@@ -211,18 +211,18 @@ func (ce *ClientEncryption) CreateDataKey(
 func transformExplicitEncryptionOptions(opts ...options.Lister[options.EncryptOptions]) *mcopts.ExplicitEncryptionOptions {
 	args, _ := mongoutil.NewOptions[options.EncryptOptions](opts...)
 
-	transformed := mcopts.ExplicitEncryption()
+	transformed := &mcopts.ExplicitEncryptionOptions{}
 	if args.KeyID != nil {
-		transformed.SetKeyID(*args.KeyID)
+		transformed.KeyID = args.KeyID
 	}
 	if args.KeyAltName != nil {
-		transformed.SetKeyAltName(*args.KeyAltName)
+		transformed.KeyAltName = args.KeyAltName
 	}
-	transformed.SetAlgorithm(args.Algorithm)
-	transformed.SetQueryType(args.QueryType)
+	transformed.Algorithm = args.Algorithm
+	transformed.QueryType = args.QueryType
 
 	if args.ContentionFactor != nil {
-		transformed.SetContentionFactor(*args.ContentionFactor)
+		transformed.ContentionFactor = args.ContentionFactor
 	}
 
 	if args.RangeOptions != nil {
@@ -244,7 +244,7 @@ func transformExplicitEncryptionOptions(opts ...options.Lister[options.EncryptOp
 		if rangeArgs.TrimFactor != nil {
 			transformedRange.TrimFactor = rangeArgs.TrimFactor
 		}
-		transformed.SetRangeOptions(transformedRange)
+		transformed.RangeOptions = &transformedRange
 	}
 	return transformed
 }
