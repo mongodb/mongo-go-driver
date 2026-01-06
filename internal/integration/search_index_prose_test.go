@@ -266,8 +266,8 @@ func TestSearchIndexProse(t *testing.T) {
 			name := cursor.Current.Lookup("name").StringValue()
 			queryable := cursor.Current.Lookup("queryable").Boolean()
 			status := cursor.Current.Lookup("status").StringValue()
-			latestDefinition := cursor.Current.Lookup("latestDefinition", "mappings", "dynamic").Boolean()
-			if name == searchName && queryable && status == "READY" && latestDefinition {
+			latestDefinition, ok := cursor.Current.Lookup("latestDefinition", "mappings", "dynamic").BooleanOK()
+			if name == searchName && queryable && status == "READY" && ok && latestDefinition {
 				doc = cursor.Current
 			} else {
 				mt.Logf("cursor: %s, sleep 5 seconds...", cursor.Current.String())
