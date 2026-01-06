@@ -174,7 +174,9 @@ func (ce *ClientEncryption) CreateDataKey(
 		return bson.Binary{}, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 
-	co := mcopts.DataKey().SetKeyAltNames(args.KeyAltNames)
+	co := &mcopts.DataKeyOptions{
+		KeyAltNames: args.KeyAltNames,
+	}
 	if args.MasterKey != nil {
 		keyDoc, err := marshal(
 			args.MasterKey,
@@ -183,10 +185,10 @@ func (ce *ClientEncryption) CreateDataKey(
 		if err != nil {
 			return bson.Binary{}, err
 		}
-		co.SetMasterKey(keyDoc)
+		co.MasterKey = keyDoc
 	}
 	if args.KeyMaterial != nil {
-		co.SetKeyMaterial(args.KeyMaterial)
+		co.KeyMaterial = args.KeyMaterial
 	}
 
 	// create data key document
