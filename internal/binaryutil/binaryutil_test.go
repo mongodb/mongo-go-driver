@@ -7,6 +7,7 @@
 package binaryutil
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"math"
@@ -312,14 +313,8 @@ func TestAppend32MatchesStdlib(t *testing.T) {
 			t.Parallel()
 			got := Append32(nil, v)
 			want := binary.LittleEndian.AppendUint32(nil, v)
-			if len(got) != len(want) {
-				t.Errorf("Append32(%#x): len = %d, want %d", v, len(got), len(want))
-				return
-			}
-			for i := range got {
-				if got[i] != want[i] {
-					t.Errorf("Append32(%#x): byte %d = %#x, want %#x", v, i, got[i], want[i])
-				}
+			if !bytes.Equal(got, want) {
+				t.Errorf("Append32(%#x): got %v, want %v", v, got, want)
 			}
 		})
 	}
@@ -333,14 +328,8 @@ func TestAppend64MatchesStdlib(t *testing.T) {
 			t.Parallel()
 			got := Append64(nil, v)
 			want := binary.LittleEndian.AppendUint64(nil, v)
-			if len(got) != len(want) {
-				t.Errorf("Append64(%#x): len = %d, want %d", v, len(got), len(want))
-				return
-			}
-			for i := range got {
-				if got[i] != want[i] {
-					t.Errorf("Append64(%#x): byte %d = %#x, want %#x", v, i, got[i], want[i])
-				}
+			if !bytes.Equal(got, want) {
+				t.Errorf("Append64(%#x): got %v, want %v", v, got, want)
 			}
 		})
 	}
@@ -522,10 +511,8 @@ func TestReadU32ReturnsRemaining(t *testing.T) {
 	}
 	// Verify remaining bytes are correct.
 	want := []byte{0x05, 0x06, 0x07, 0x08}
-	for i := range rem {
-		if rem[i] != want[i] {
-			t.Errorf("ReadU32: remaining[%d] = %#x, want %#x", i, rem[i], want[i])
-		}
+	if !bytes.Equal(rem, want) {
+		t.Errorf("ReadU32: remaining = %v, want %v", rem, want)
 	}
 }
 
@@ -540,10 +527,8 @@ func TestReadU64ReturnsRemaining(t *testing.T) {
 		t.Errorf("ReadU64: remaining len = %d, want 2", len(rem))
 	}
 	want := []byte{0x09, 0x0a}
-	for i := range rem {
-		if rem[i] != want[i] {
-			t.Errorf("ReadU64: remaining[%d] = %#x, want %#x", i, rem[i], want[i])
-		}
+	if !bytes.Equal(rem, want) {
+		t.Errorf("ReadU64: remaining = %v, want %v", rem, want)
 	}
 }
 
@@ -739,13 +724,8 @@ func TestAppend32ByteOrder(t *testing.T) {
 	// 0x04030201 in little-endian should be [0x01, 0x02, 0x03, 0x04].
 	buf := Append32(nil, uint32(0x04030201))
 	want := []byte{0x01, 0x02, 0x03, 0x04}
-	if len(buf) != 4 {
-		t.Fatalf("Append32: len = %d, want 4", len(buf))
-	}
-	for i := range want {
-		if buf[i] != want[i] {
-			t.Errorf("Append32: byte %d = %#x, want %#x", i, buf[i], want[i])
-		}
+	if !bytes.Equal(buf, want) {
+		t.Errorf("Append32: got %v, want %v", buf, want)
 	}
 }
 
@@ -754,13 +734,8 @@ func TestAppend64ByteOrder(t *testing.T) {
 	// 0x0807060504030201 in little-endian should be [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08].
 	buf := Append64(nil, uint64(0x0807060504030201))
 	want := []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}
-	if len(buf) != 8 {
-		t.Fatalf("Append64: len = %d, want 8", len(buf))
-	}
-	for i := range want {
-		if buf[i] != want[i] {
-			t.Errorf("Append64: byte %d = %#x, want %#x", i, buf[i], want[i])
-		}
+	if !bytes.Equal(buf, want) {
+		t.Errorf("Append64: got %v, want %v", buf, want)
 	}
 }
 
