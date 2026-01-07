@@ -176,6 +176,7 @@ func (ce *ClientEncryption) CreateDataKey(
 
 	co := &mcopts.DataKeyOptions{
 		KeyAltNames: args.KeyAltNames,
+		KeyMaterial: args.KeyMaterial,
 	}
 	if args.MasterKey != nil {
 		keyDoc, err := marshal(
@@ -186,9 +187,6 @@ func (ce *ClientEncryption) CreateDataKey(
 			return bson.Binary{}, err
 		}
 		co.MasterKey = keyDoc
-	}
-	if args.KeyMaterial != nil {
-		co.KeyMaterial = args.KeyMaterial
 	}
 
 	// create data key document
