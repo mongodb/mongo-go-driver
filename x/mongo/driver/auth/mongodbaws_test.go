@@ -14,7 +14,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
-	"go.mongodb.org/mongo-driver/v2/internal/aws"
+	"go.mongodb.org/mongo-driver/v2/internal/aws/credentials"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
@@ -58,11 +58,24 @@ func TestGetRegion(t *testing.T) {
 
 }
 
+type awsCredentialsProvider struct {
+	cnt int
+}
+
+func (a *awsCredentialsProvider) Retrieve(_ context.Context) (credentials.Value, error) {
+	a.cnt++
+	return credentials.Value{}, nil
+}
+
+func (*awsCredentialsProvider) IsExpired() bool {
+	return false
+}
+
 func TestAWSCustomCredentialProvider(t *testing.T) {
 	t.Setenv("AWS_ACCESS_KEY_ID", "AWS_ACCESS_KEY_ID")
 	t.Setenv("AWS_SECRET_ACCESS_KEY", "AWS_SECRET_ACCESS_KEY")
 
-	var cnt int
+	provider := &awsCredentialsProvider{}
 	for _, tc := range []struct {
 		name string
 		cred *Cred
@@ -71,28 +84,22 @@ func TestAWSCustomCredentialProvider(t *testing.T) {
 		{
 			name: "provider with cred",
 			cred: &Cred{
-				Username: "user",
-				Password: "pass",
-				Props:    map[string]string{"AWS_SESSION_TOKEN": "token"},
-				AwsCredentialsProvider: func(_ context.Context) (aws.Credentials, error) {
-					cnt++
-					return aws.Credentials{}, nil
-				},
+				Username:               "user",
+				Password:               "pass",
+				Props:                  map[string]string{"AWS_SESSION_TOKEN": "token"},
+				AWSCredentialsProvider: provider,
 			},
 			cnt: 0,
 		},
 		{
 			name: "provider with empty cred",
 			cred: &Cred{
-				AwsCredentialsProvider: func(_ context.Context) (aws.Credentials, error) {
-					cnt++
-					return aws.Credentials{}, nil
-				},
+				AWSCredentialsProvider: provider,
 			},
 			cnt: 1,
 		},
 	} {
-		cnt = 0
+		provider.cnt = 0
 		t.Run(tc.name, func(t *testing.T) {
 			authenticator, err := newMongoDBAWSAuthenticator(
 				tc.cred,
@@ -125,7 +132,7 @@ func TestAWSCustomCredentialProvider(t *testing.T) {
 
 			err = authenticator.Auth(context.Background(), &driver.AuthConfig{Connection: mnetconn})
 			assert.NoErrorf(t, err, "expected no error but got %v", err)
-			assert.Equalf(t, tc.cnt, cnt, "expected provider to be called %v times but got %v", tc.cnt, cnt)
+			assert.Equalf(t, tc.cnt, provider.cnt, "expected provider to be called %v times but got %v", tc.cnt, provider.cnt)
 		})
 	}
 }

@@ -246,6 +246,25 @@ func ExampleConnect_kerberos() {
 	_ = client
 }
 
+type awsCredentialsProvider struct {
+	accessKeyID     string
+	secretAccessKey string
+	sessionToken    string
+}
+
+func (a *awsCredentialsProvider) Retrieve(_ context.Context) (
+	options.AWSCredentials, error) {
+	return options.AWSCredentials{
+		AccessKeyID:     a.accessKeyID,
+		SecretAccessKey: a.secretAccessKey,
+		SessionToken:    a.sessionToken,
+	}, nil
+}
+
+func (*awsCredentialsProvider) Expired() bool {
+	return false
+}
+
 func ExampleConnect_aWS() {
 	// Configure a Client with authentication using the MONGODB-AWS
 	// authentication mechanism. Credentials for this mechanism can come from
@@ -358,16 +377,15 @@ func ExampleConnect_aWS() {
 
 	// Applications can authenticate using a custom AWS credential provider as
 	// well.
+	awsCredentialProvider := &awsCredentialsProvider{
+		accessKeyID:     accessKeyID,
+		secretAccessKey: secretAccessKey,
+		sessionToken:    sessionToken,
+	}
+
 	credential := options.Credential{
-		AuthMechanism: "MONGODB-AWS",
-		AwsCredentialsProvider: func(_ context.Context) (
-			options.Credentials, error) {
-			return options.Credentials{
-				AccessKeyID:     accessKeyID,
-				SecretAccessKey: secretAccessKey,
-				SessionToken:    sessionToken,
-			}, nil
-		},
+		AuthMechanism:          "MONGODB-AWS",
+		AWSCredentialsProvider: awsCredentialProvider,
 	}
 	awsClient, err := mongo.Connect(
 		options.Client().SetAuth(credential))

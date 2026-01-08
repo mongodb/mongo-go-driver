@@ -31,18 +31,18 @@ import (
 //
 // See corresponding setter methods for documentation.
 type AutoEncryptionOptions struct {
-	KeyVaultClientOptions *ClientOptions
-	KeyVaultNamespace     string
-	KmsProviders          map[string]map[string]any
-	SchemaMap             map[string]any
-	BypassAutoEncryption  *bool
-	ExtraOptions          map[string]any
-	TLSConfig             map[string]*tls.Config
-	HTTPClient            *http.Client
-	EncryptedFieldsMap    map[string]any
-	BypassQueryAnalysis   *bool
-	KeyExpiration         *time.Duration
-	CredentialProviders   map[string]CredentialsProvider
+	KeyVaultClientOptions  *ClientOptions
+	KeyVaultNamespace      string
+	KmsProviders           map[string]map[string]any
+	SchemaMap              map[string]any
+	BypassAutoEncryption   *bool
+	ExtraOptions           map[string]any
+	TLSConfig              map[string]*tls.Config
+	HTTPClient             *http.Client
+	EncryptedFieldsMap     map[string]any
+	BypassQueryAnalysis    *bool
+	KeyExpiration          *time.Duration
+	AWSCredentialsProvider AWSCredentialsProvider
 }
 
 // AutoEncryption creates a new AutoEncryptionOptions configured with default values.
@@ -176,8 +176,8 @@ func (a *AutoEncryptionOptions) SetKeyExpiration(expiration time.Duration) *Auto
 	return a
 }
 
-// SetCredentialProviders specifies options for custom credential providers.
-func (a *AutoEncryptionOptions) SetCredentialProviders(providers map[string]CredentialsProvider) *AutoEncryptionOptions {
-	a.CredentialProviders = providers
+// SetAWSCredentialsProvider specifies options for custom AWS credential provider.
+func (a *AutoEncryptionOptions) SetAWSCredentialsProvider(provider AWSCredentialsProvider) *AutoEncryptionOptions {
+	a.AWSCredentialsProvider = provider
 	return a
 }

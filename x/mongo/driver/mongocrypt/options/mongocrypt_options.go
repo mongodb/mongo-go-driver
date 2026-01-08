@@ -24,7 +24,7 @@ type MongoCryptOptions struct {
 	CryptSharedLibOverridePath string
 	HTTPClient                 *http.Client
 	KeyExpiration              *time.Duration
-	CredentialProviders        map[string]credentials.Provider
+	AWSCredentialsProvider     credentials.Provider
 }
 
 // MongoCrypt creates a new MongoCryptOptions instance.
@@ -82,8 +82,8 @@ func (mo *MongoCryptOptions) SetKeyExpiration(expiration *time.Duration) *MongoC
 	return mo
 }
 
-// SetCredentialProviders sets the custom credential providers.
-func (mo *MongoCryptOptions) SetCredentialProviders(providers map[string]credentials.Provider) *MongoCryptOptions {
-	mo.CredentialProviders = providers
+// SetAWSCredentialsProvider sets the custom AWS credential provider.
+func (mo *MongoCryptOptions) SetAWSCredentialsProvider(provider credentials.Provider) *MongoCryptOptions {
+	mo.AWSCredentialsProvider = provider
 	return mo
 }

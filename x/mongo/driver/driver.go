@@ -17,7 +17,7 @@ import (
 	"context"
 	"time"
 
-	"go.mongodb.org/mongo-driver/v2/internal/aws"
+	"go.mongodb.org/mongo-driver/v2/internal/aws/credentials"
 	"go.mongodb.org/mongo-driver/v2/internal/csot"
 	"go.mongodb.org/mongo-driver/v2/mongo/address"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
@@ -81,7 +81,13 @@ type Cred struct {
 	Props                  map[string]string
 	OIDCMachineCallback    OIDCCallback
 	OIDCHumanCallback      OIDCCallback
-	AwsCredentialsProvider func(context.Context) (aws.Credentials, error)
+	AWSCredentialsProvider AWSCredentialsProvider
+}
+
+// AWSCredentialsProvider is the interface used to retrieve AWS credentials.
+type AWSCredentialsProvider interface {
+	Retrieve(ctx context.Context) (credentials.Value, error)
+	IsExpired() bool
 }
 
 // Deployment is implemented by types that can select a server from a deployment.

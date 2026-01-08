@@ -14,9 +14,7 @@ import (
 	"strings"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
-	"go.mongodb.org/mongo-driver/v2/internal/aws"
 	"go.mongodb.org/mongo-driver/v2/internal/aws/credentials"
-	"go.mongodb.org/mongo-driver/v2/internal/credproviders"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
@@ -31,6 +29,27 @@ type ClientEncryption struct {
 	keyVaultClient *Client
 	keyVaultColl   *Collection
 	closed         bool
+}
+
+type awsCredentialsProvider struct {
+	provider options.AWSCredentialsProvider
+}
+
+func (p awsCredentialsProvider) Retrieve(ctx context.Context) (credentials.Value, error) {
+	creds, err := p.provider.Retrieve(ctx)
+	if err != nil {
+		return credentials.Value{}, err
+	}
+	return credentials.Value{
+		AccessKeyID:     creds.AccessKeyID,
+		SecretAccessKey: creds.SecretAccessKey,
+		SessionToken:    creds.SessionToken,
+		ProviderName:    "AwsProvider",
+	}, nil
+}
+
+func (p awsCredentialsProvider) IsExpired() bool {
+	return p.provider.Expired()
 }
 
 // NewClientEncryption creates a new ClientEncryption instance configured with the given options.
@@ -56,30 +75,19 @@ func NewClientEncryption(keyVaultClient *Client, opts ...options.Lister[options.
 		return nil, fmt.Errorf("error creating KMS providers map: %w", err)
 	}
 
-	providers := make(map[string]credentials.Provider)
-	for k, fn := range cea.CredentialProviders {
-		if k == "aws" && fn != nil {
-			providers[k] = &credproviders.AwsProvider{
-				Provider: func(ctx context.Context) (aws.Credentials, error) {
-					c, err := fn(ctx)
-					if err != nil {
-						return aws.Credentials{}, err
-					}
-					return aws.Credentials(c), nil
-				},
-			}
-		}
-	}
-
-	mc, err := mongocrypt.NewMongoCrypt(mcopts.MongoCrypt().
+	cryptOpts := mcopts.MongoCrypt().
 		SetKmsProviders(kmsProviders).
 		// Explicitly disable loading the crypt_shared library for the Crypt used for
 		// ClientEncryption because it's only needed for AutoEncryption and we don't expect users to
 		// have the crypt_shared library installed if they're using ClientEncryption.
 		SetCryptSharedLibDisabled(true).
 		SetHTTPClient(cea.HTTPClient).
-		SetKeyExpiration(cea.KeyExpiration).
-		SetCredentialProviders(providers))
+		SetKeyExpiration(cea.KeyExpiration)
+	if cea.AWSCredentialsProvider != nil {
+		cryptOpts = cryptOpts.SetAWSCredentialsProvider(awsCredentialsProvider{cea.AWSCredentialsProvider})
+	}
+
+	mc, err := mongocrypt.NewMongoCrypt(cryptOpts)
 	if err != nil {
 		return nil, err
 	}

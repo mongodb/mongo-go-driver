@@ -35,10 +35,9 @@ type kmsProvider interface {
 }
 
 type MongoCrypt struct {
-	wrapped       *C.mongocrypt_t
-	kmsProviders  map[string]kmsProvider
-	httpClient    *http.Client
-	credProviders map[string]credentials.Provider
+	wrapped      *C.mongocrypt_t
+	kmsProviders map[string]kmsProvider
+	httpClient   *http.Client
 }
 
 // Version returns the version string for the loaded libmongocrypt, or an empty string
@@ -64,14 +63,14 @@ func NewMongoCrypt(opts *options.MongoCryptOptions) (*MongoCrypt, error) {
 	if needsKmsProvider(opts.KmsProviders, "gcp") {
 		kmsProviders["gcp"] = creds.NewGCPCredentialProvider(httpClient)
 	}
-	provider, ok := opts.CredentialProviders["aws"]
+	awsCredentialsProvider := opts.AWSCredentialsProvider
 	if needsKmsProvider(opts.KmsProviders, "aws") {
 		var providers []credentials.Provider
-		if ok {
-			providers = append(providers, provider)
+		if awsCredentialsProvider != nil {
+			providers = append(providers, awsCredentialsProvider)
 		}
 		kmsProviders["aws"] = creds.NewAWSCredentialProvider(httpClient, providers...)
-	} else if ok {
+	} else if awsCredentialsProvider != nil {
 		return nil, fmt.Errorf("can only provide a custom AWS credential provider " +
 			"when the state machine is configured for automatic AWS credential fetching")
 	}

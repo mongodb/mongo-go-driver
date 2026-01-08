@@ -17,9 +17,6 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
-	"go.mongodb.org/mongo-driver/v2/internal/aws"
-	"go.mongodb.org/mongo-driver/v2/internal/aws/credentials"
-	"go.mongodb.org/mongo-driver/v2/internal/credproviders"
 	"go.mongodb.org/mongo-driver/v2/internal/httputil"
 	"go.mongodb.org/mongo-driver/v2/internal/logger"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
@@ -654,22 +651,7 @@ func (c *Client) newMongoCrypt(opts *options.AutoEncryptionOptions) (*mongocrypt
 	bypassAutoEncryption := opts.BypassAutoEncryption != nil && *opts.BypassAutoEncryption
 	bypassQueryAnalysis := opts.BypassQueryAnalysis != nil && *opts.BypassQueryAnalysis
 
-	providers := make(map[string]credentials.Provider)
-	for k, fn := range opts.CredentialProviders {
-		if k == "aws" && fn != nil {
-			providers[k] = &credproviders.AwsProvider{
-				Provider: func(ctx context.Context) (aws.Credentials, error) {
-					c, err := fn(ctx)
-					if err != nil {
-						return aws.Credentials{}, err
-					}
-					return aws.Credentials(c), nil
-				},
-			}
-		}
-	}
-
-	mc, err := mongocrypt.NewMongoCrypt(mcopts.MongoCrypt().
+	cryptOpts := mcopts.MongoCrypt().
 		SetKmsProviders(kmsProviders).
 		SetLocalSchemaMap(cryptSchemaMap).
 		SetBypassQueryAnalysis(bypassQueryAnalysis).
@@ -677,8 +659,11 @@ func (c *Client) newMongoCrypt(opts *options.AutoEncryptionOptions) (*mongocrypt
 		SetCryptSharedLibDisabled(cryptSharedLibDisabled || bypassAutoEncryption).
 		SetCryptSharedLibOverridePath(cryptSharedLibPath).
 		SetHTTPClient(opts.HTTPClient).
-		SetKeyExpiration(opts.KeyExpiration).
-		SetCredentialProviders(providers))
+		SetKeyExpiration(opts.KeyExpiration)
+	if opts.AWSCredentialsProvider != nil {
+		cryptOpts = cryptOpts.SetAWSCredentialsProvider(awsCredentialsProvider{opts.AWSCredentialsProvider})
+	}
+	mc, err := mongocrypt.NewMongoCrypt(cryptOpts)
 	if err != nil {
 		return nil, err
 	}

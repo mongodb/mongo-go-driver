@@ -18,8 +18,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
-	"go.mongodb.org/mongo-driver/v2/internal/aws/credentials"
-	v4signer "go.mongodb.org/mongo-driver/v2/internal/aws/signer/v4"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
@@ -32,16 +30,37 @@ const (
 	clientDone
 )
 
-type awsConversation struct {
-	state       clientState
-	valid       bool
-	nonce       []byte
-	credentials *credentials.Credentials
+type awsSigner interface {
+	Sign(ctx context.Context, request *http.Request, body, service, region string, signTime time.Time) error
 }
 
-type serverMessage struct {
-	Nonce bson.Binary `bson:"s"`
-	Host  string      `bson:"h"`
+type awsSaslAdapter struct {
+	signer awsSigner
+
+	state clientState
+	nonce []byte
+}
+
+var _ SaslClient = (*awsSaslAdapter)(nil)
+
+func (a *awsSaslAdapter) Start() (string, []byte, error) {
+	step, err := a.step(nil)
+	if err != nil {
+		return MongoDBAWS, nil, err
+	}
+	return MongoDBAWS, step, nil
+}
+
+func (a *awsSaslAdapter) Next(_ context.Context, challenge []byte) ([]byte, error) {
+	step, err := a.step(challenge)
+	if err != nil {
+		return nil, err
+	}
+	return step, nil
+}
+
+func (a *awsSaslAdapter) Completed() bool {
+	return a.state == clientDone
 }
 
 const (
@@ -51,38 +70,25 @@ const (
 	responceNonceLength = 64
 )
 
-// Step takes a string provided from a server (or just an empty string for the
+// step takes a string provided from a server (or just an empty string for the
 // very first conversation step) and attempts to move the authentication
 // conversation forward.  It returns a string to be sent to the server or an
 // error if the server message is invalid.  Calling Step after a conversation
 // completes is also an error.
-func (ac *awsConversation) Step(challenge []byte) (response []byte, err error) {
-	switch ac.state {
+func (a *awsSaslAdapter) step(challenge []byte) (response []byte, err error) {
+	switch a.state {
 	case clientStarting:
-		ac.state = clientFirst
-		response = ac.firstMsg()
+		a.state = clientFirst
+		response = a.firstMsg()
 	case clientFirst:
-		ac.state = clientFinal
-		response, err = ac.finalMsg(challenge)
+		a.state = clientFinal
+		response, err = a.finalMsg(challenge)
 	case clientFinal:
-		ac.state = clientDone
-		ac.valid = true
+		a.state = clientDone
 	default:
 		response, err = nil, errors.New("conversation already completed")
 	}
 	return
-}
-
-// Done returns true if the conversation is completed or has errored.
-func (ac *awsConversation) Done() bool {
-	return ac.state == clientDone
-}
-
-// Valid returns true if the conversation successfully authenticated with the
-// server, including counter-validation that the server actually has the
-// user's stored credentials.
-func (ac *awsConversation) Valid() bool {
-	return ac.valid
 }
 
 func getRegion(host string) (string, error) {
@@ -111,20 +117,23 @@ func getRegion(host string) (string, error) {
 	return region, nil
 }
 
-func (ac *awsConversation) firstMsg() []byte {
+func (a *awsSaslAdapter) firstMsg() []byte {
 	// Values are cached for use in final message parameters
-	ac.nonce = make([]byte, 32)
-	_, _ = rand.Read(ac.nonce)
+	a.nonce = make([]byte, 32)
+	_, _ = rand.Read(a.nonce)
 
 	idx, msg := bsoncore.AppendDocumentStart(nil)
 	msg = bsoncore.AppendInt32Element(msg, "p", 110)
-	msg = bsoncore.AppendBinaryElement(msg, "r", 0x00, ac.nonce)
+	msg = bsoncore.AppendBinaryElement(msg, "r", 0x00, a.nonce)
 	msg, _ = bsoncore.AppendDocumentEnd(msg, idx)
 	return msg
 }
 
-func (ac *awsConversation) finalMsg(s1 []byte) ([]byte, error) {
-	var sm serverMessage
+func (a *awsSaslAdapter) finalMsg(s1 []byte) ([]byte, error) {
+	var sm struct {
+		Nonce bson.Binary `bson:"s"`
+		Host  string      `bson:"h"`
+	}
 	err := bson.Unmarshal(s1, &sm)
 	if err != nil {
 		return nil, err
@@ -137,7 +146,7 @@ func (ac *awsConversation) finalMsg(s1 []byte) ([]byte, error) {
 	if len(sm.Nonce.Data) != responceNonceLength {
 		return nil, fmt.Errorf("server reply nonce was not %v bytes", responceNonceLength)
 	}
-	if !bytes.HasPrefix(sm.Nonce.Data, ac.nonce) {
+	if !bytes.HasPrefix(sm.Nonce.Data, a.nonce) {
 		return nil, errors.New("server nonce did not extend client nonce")
 	}
 
@@ -146,31 +155,24 @@ func (ac *awsConversation) finalMsg(s1 []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	creds, err := ac.credentials.GetWithContext(context.Background())
-	if err != nil {
-		return nil, err
-	}
-
 	currentTime := time.Now().UTC()
 	body := "Action=GetCallerIdentity&Version=2011-06-15"
 
+	timeStr := currentTime.Format(amzDateFormat)
 	// Create http.Request
-	req, _ := http.NewRequest("POST", "/", strings.NewReader(body))
+	req, err := http.NewRequest("POST", "/", strings.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	req.Host = sm.Host
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Content-Length", "43")
-	req.Host = sm.Host
-	req.Header.Set("X-Amz-Date", currentTime.Format(amzDateFormat))
-	if len(creds.SessionToken) > 0 {
-		req.Header.Set("X-Amz-Security-Token", creds.SessionToken)
-	}
+	req.Header.Set("X-Amz-Date", timeStr)
 	req.Header.Set("X-MongoDB-Server-Nonce", base64.StdEncoding.EncodeToString(sm.Nonce.Data))
 	req.Header.Set("X-MongoDB-GS2-CB-Flag", "n")
 
-	// Create signer with credentials
-	signer := v4signer.NewSigner(ac.credentials)
-
 	// Get signed header
-	_, err = signer.Sign(req, strings.NewReader(body), "sts", region, currentTime)
+	err = a.signer.Sign(context.Background(), req, body, "sts", region, currentTime)
 	if err != nil {
 		return nil, err
 	}
@@ -178,9 +180,9 @@ func (ac *awsConversation) finalMsg(s1 []byte) ([]byte, error) {
 	// create message
 	idx, msg := bsoncore.AppendDocumentStart(nil)
 	msg = bsoncore.AppendStringElement(msg, "a", req.Header.Get("Authorization"))
-	msg = bsoncore.AppendStringElement(msg, "d", req.Header.Get("X-Amz-Date"))
-	if len(creds.SessionToken) > 0 {
-		msg = bsoncore.AppendStringElement(msg, "t", creds.SessionToken)
+	msg = bsoncore.AppendStringElement(msg, "d", timeStr)
+	if sessionToken := req.Header.Get("X-Amz-Security-Token"); len(sessionToken) > 0 {
+		msg = bsoncore.AppendStringElement(msg, "t", sessionToken)
 	}
 	msg, _ = bsoncore.AppendDocumentEnd(msg, idx)
 
