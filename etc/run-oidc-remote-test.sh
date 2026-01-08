@@ -8,7 +8,7 @@ echo "Running remote MONGODB-OIDC authentication tests on $OIDC_ENV"
 DRIVERS_TAR_FILE=/tmp/mongo-go-driver.tar.gz
 # we need to statically link libc to avoid the situation where the VM has a different
 # version of libc
-go build -tags osusergo,netgo -ldflags '-w -extldflags "-static -lgcc -lc"' -o test ./internal/cmd/testoidcauth/main.go
+go test -c -tags osusergo,netgo -ldflags '-w -extldflags "-static -lgcc -lc"' -o test ./internal/test/oidcauth
 rm "$DRIVERS_TAR_FILE" || true
 tar -cf $DRIVERS_TAR_FILE ./test
 tar -uf $DRIVERS_TAR_FILE ./etc
@@ -20,7 +20,7 @@ if [ $OIDC_ENV == "azure" ]; then
     # Define the command to run on the azure VM.
     # Ensure that we source the environment file created for us, set up any other variables we need,
     # and then run our test suite on the vm.
-    export AZUREOIDC_TEST_CMD="PROJECT_DIRECTORY='.' OIDC_ENV=azure OIDC=oidc ./etc/run-oidc-test.sh ./test"
+    export AZUREOIDC_TEST_CMD="PROJECT_DIRECTORY='.' OIDC_ENV=azure OIDC=oidc ./etc/run-oidc-test.sh ./test -test.v"
     bash ${DRIVERS_TOOLS}/.evergreen/auth_oidc/azure/run-driver-test.sh
 
 elif [ $OIDC_ENV == "gcp" ]; then
@@ -28,13 +28,13 @@ elif [ $OIDC_ENV == "gcp" ]; then
     # Define the command to run on the gcp VM.
     # Ensure that we source the environment file created for us, set up any other variables we need,
     # and then run our test suite on the vm.
-    export GCPOIDC_TEST_CMD="PROJECT_DIRECTORY='.' OIDC_ENV=gcp OIDC=oidc ./etc/run-oidc-test.sh ./test"
+    export GCPOIDC_TEST_CMD="PROJECT_DIRECTORY='.' OIDC_ENV=gcp OIDC=oidc ./etc/run-oidc-test.sh ./test -test.v"
     bash ${DRIVERS_TOOLS}/.evergreen/auth_oidc/gcp/run-driver-test.sh
 
 elif [ $OIDC_ENV == "k8s" ]; then
     export K8S_VARIANT=${VARIANT}
     export K8S_DRIVERS_TAR_FILE=$DRIVERS_TAR_FILE
-    export K8S_TEST_CMD="PROJECT_DIRECTORY='.' OIDC_ENV=k8s OIDC=oidc ./etc/run-oidc-test.sh ./test"
+    export K8S_TEST_CMD="PROJECT_DIRECTORY='.' OIDC_ENV=k8s OIDC=oidc ./etc/run-oidc-test.sh ./test -test.v"
     bash ${DRIVERS_TOOLS}/.evergreen/auth_oidc/k8s/setup-pod.sh
     bash ${DRIVERS_TOOLS}/.evergreen/auth_oidc/k8s/run-driver-test.sh
     bash ${DRIVERS_TOOLS}/.evergreen/auth_oidc/k8s/teardown-pod.sh
