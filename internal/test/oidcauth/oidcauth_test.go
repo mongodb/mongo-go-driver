@@ -757,106 +757,6 @@ func TestMachine_4_3_WriteCommandsFailIfReauthenticationFails(t *testing.T) {
 	}
 }
 
-func TestMachine_5_1_AzureWithNoUsername(t *testing.T) {
-	if os.Getenv("OIDC_ENV") != "azure" {
-		t.Skip("Skipping: test only runs when OIDC_ENV=azure")
-	}
-
-	opts := options.Client().ApplyURI(uriSingle)
-	if opts == nil {
-		t.Fatalf("failed parsing uri: %q", uriSingle)
-	}
-	client, err := mongo.Connect(opts)
-	if err != nil {
-		t.Fatalf("failed connecting client: %v", err)
-	}
-	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
-
-	coll := client.Database("test").Collection("test")
-
-	_, err = coll.Find(context.Background(), bson.D{})
-	if err != nil {
-		t.Fatalf("failed executing Find: %v", err)
-	}
-}
-
-func TestMachine_5_2_AzureWithBadUsername(t *testing.T) {
-	if os.Getenv("OIDC_ENV") != "azure" {
-		t.Skip("Skipping: test only runs when OIDC_ENV=azure")
-	}
-
-	opts := options.Client().ApplyURI(uriSingle)
-
-	if opts == nil {
-		t.Fatalf("failed parsing uri: %q", uriSingle)
-	}
-	if opts.Auth == nil || opts.Auth.AuthMechanism != "MONGODB-OIDC" {
-		t.Fatal("expected URI to contain MONGODB-OIDC auth information")
-	}
-
-	opts.Auth.Username = "bad"
-
-	client, err := mongo.Connect(opts)
-	if err != nil {
-		t.Fatalf("failed connecting client: %v", err)
-	}
-	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
-
-	coll := client.Database("test").Collection("test")
-
-	_, err = coll.Find(context.Background(), bson.D{})
-	if err == nil {
-		t.Fatal("Find succeeded when it should fail")
-	}
-}
-
-func TestMachine_6_1_GCPWithNoUsername(t *testing.T) {
-	if os.Getenv("OIDC_ENV") != "gcp" {
-		t.Skip("Skipping: test only runs when OIDC_ENV=gcp")
-	}
-
-	opts := options.Client().ApplyURI(uriSingle)
-	client, err := mongo.Connect(opts)
-	if err != nil {
-		t.Fatalf("failed connecting client: %v", err)
-	}
-	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
-
-	coll := client.Database("test").Collection("test")
-
-	_, err = coll.Find(context.Background(), bson.D{})
-	if err != nil {
-		t.Fatalf("failed executing Find: %v", err)
-	}
-}
-
-// TestMachine_K8s tests the "k8s" Kubernetes OIDC environment. There is no specified
-// prose test for "k8s", so this test simply checks that you can run a "find"
-// with the provided conn string.
-func TestMachine_K8s(t *testing.T) {
-	if os.Getenv("OIDC_ENV") != "k8s" {
-		t.Skip("Skipping: test only runs when OIDC_ENV=k8s")
-	}
-
-	if !strings.Contains(uriSingle, "ENVIRONMENT:k8s") {
-		t.Fatal("expected MONGODB_URI_SINGLE to specify ENVIRONMENT:k8s for Kubernetes test")
-	}
-
-	opts := options.Client().ApplyURI(uriSingle)
-	client, err := mongo.Connect(opts)
-	if err != nil {
-		t.Fatalf("failed connecting client: %v", err)
-	}
-	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
-
-	coll := client.Database("test").Collection("test")
-
-	_, err = coll.Find(context.Background(), bson.D{})
-	if err != nil {
-		t.Fatalf("failed executing Find: %v", err)
-	}
-}
-
 func TestHuman_1_1_SinglePrincipalImplicitUsername(t *testing.T) {
 	if os.Getenv("OIDC_ENV") != "" {
 		t.Skip("Skipping: test only runs when OIDC_ENV is empty")
@@ -1908,5 +1808,105 @@ func TestHuman_4_4_ReauthenticationFails(t *testing.T) {
 	countMutex.Unlock()
 	if callbackFailed != nil {
 		t.Fatal(callbackFailed)
+	}
+}
+
+func TestMachine_5_1_AzureWithNoUsername(t *testing.T) {
+	if os.Getenv("OIDC_ENV") != "azure" {
+		t.Skip("Skipping: test only runs when OIDC_ENV=azure")
+	}
+
+	opts := options.Client().ApplyURI(uriSingle)
+	if opts == nil {
+		t.Fatalf("failed parsing uri: %q", uriSingle)
+	}
+	client, err := mongo.Connect(opts)
+	if err != nil {
+		t.Fatalf("failed connecting client: %v", err)
+	}
+	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
+
+	coll := client.Database("test").Collection("test")
+
+	_, err = coll.Find(context.Background(), bson.D{})
+	if err != nil {
+		t.Fatalf("failed executing Find: %v", err)
+	}
+}
+
+func TestMachine_5_2_AzureWithBadUsername(t *testing.T) {
+	if os.Getenv("OIDC_ENV") != "azure" {
+		t.Skip("Skipping: test only runs when OIDC_ENV=azure")
+	}
+
+	opts := options.Client().ApplyURI(uriSingle)
+
+	if opts == nil {
+		t.Fatalf("failed parsing uri: %q", uriSingle)
+	}
+	if opts.Auth == nil || opts.Auth.AuthMechanism != "MONGODB-OIDC" {
+		t.Fatal("expected URI to contain MONGODB-OIDC auth information")
+	}
+
+	opts.Auth.Username = "bad"
+
+	client, err := mongo.Connect(opts)
+	if err != nil {
+		t.Fatalf("failed connecting client: %v", err)
+	}
+	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
+
+	coll := client.Database("test").Collection("test")
+
+	_, err = coll.Find(context.Background(), bson.D{})
+	if err == nil {
+		t.Fatal("Find succeeded when it should fail")
+	}
+}
+
+func TestMachine_6_1_GCPWithNoUsername(t *testing.T) {
+	if os.Getenv("OIDC_ENV") != "gcp" {
+		t.Skip("Skipping: test only runs when OIDC_ENV=gcp")
+	}
+
+	opts := options.Client().ApplyURI(uriSingle)
+	client, err := mongo.Connect(opts)
+	if err != nil {
+		t.Fatalf("failed connecting client: %v", err)
+	}
+	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
+
+	coll := client.Database("test").Collection("test")
+
+	_, err = coll.Find(context.Background(), bson.D{})
+	if err != nil {
+		t.Fatalf("failed executing Find: %v", err)
+	}
+}
+
+// TestMachine_K8s tests the "k8s" Kubernetes OIDC environment. There is no specified
+// prose test for "k8s", so this test simply checks that you can run a "find"
+// with the provided conn string.
+func TestMachine_K8s(t *testing.T) {
+	if os.Getenv("OIDC_ENV") != "k8s" {
+		t.Skip("Skipping: test only runs when OIDC_ENV=k8s")
+	}
+
+	if !strings.Contains(uriSingle, "ENVIRONMENT:k8s") {
+		t.Fatal("expected MONGODB_URI_SINGLE to specify ENVIRONMENT:k8s for Kubernetes test")
+	}
+
+	opts := options.Client().ApplyURI(uriSingle)
+	client, err := mongo.Connect(opts)
+	if err != nil {
+		t.Fatalf("failed connecting client: %v", err)
+	}
+	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
+
+	coll := client.Database("test").Collection("test")
+
+	_, err = coll.Find(context.Background(), bson.D{})
+	if err != nil {
+		t.Fatalf("failed executing Find: %v", err)
 	}
 }
