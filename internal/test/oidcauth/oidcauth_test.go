@@ -8,7 +8,6 @@ package oidcauth
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -1006,7 +1005,7 @@ func TestHuman_1_6_AllowedHostsBlocked(t *testing.T) {
 
 	var callbackFailed error
 
-	t.Run("empty_allowed_hosts", func(t *testing.T) {
+	{
 		cb := func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 			expiry := time.Now().Add(time.Hour)
 			tokenFile := tokenFile("test_user1")
@@ -1030,7 +1029,7 @@ func TestHuman_1_6_AllowedHostsBlocked(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed connecting client: %v", err)
 		}
-		t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
+		defer func() { _ = client.Disconnect(context.Background()) }()
 
 		coll := client.Database("test").Collection("test")
 
@@ -1038,9 +1037,9 @@ func TestHuman_1_6_AllowedHostsBlocked(t *testing.T) {
 		if err == nil {
 			t.Fatal("Find succeeded when it should fail with empty 'ALLOWED_HOSTS'")
 		}
-	})
+	}
 
-	t.Run("mismatched_allowed_hosts", func(t *testing.T) {
+	{
 		cb := func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 			expiry := time.Now().Add(time.Hour)
 			tokenFile := tokenFile("test_user1")
@@ -1064,7 +1063,7 @@ func TestHuman_1_6_AllowedHostsBlocked(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed connecting client: %v", err)
 		}
-		t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
+		defer func() { _ = client.Disconnect(context.Background()) }()
 
 		coll := client.Database("test").Collection("test")
 
@@ -1072,7 +1071,7 @@ func TestHuman_1_6_AllowedHostsBlocked(t *testing.T) {
 		if err == nil {
 			t.Fatal("Find succeeded when it should fail with 'ALLOWED_HOSTS' 'example.com'")
 		}
-	})
+	}
 
 	if callbackFailed != nil {
 		t.Fatal(callbackFailed)
@@ -1759,7 +1758,7 @@ func TestHuman_4_4_ReauthenticationFails(t *testing.T) {
 			AccessToken:  badToken,
 			ExpiresAt:    &expiry,
 			RefreshToken: &badToken,
-		}, errors.New("failed to refresh token")
+		}, fmt.Errorf("failed to refresh token")
 	})
 	if err != nil {
 		t.Fatalf("failed connecting client: %v", err)
