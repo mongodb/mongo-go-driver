@@ -126,12 +126,10 @@ func TestMachine_1_1_CallbackIsCalled(t *testing.T) {
 			RefreshToken: nil,
 		}, nil
 	})
-
-	defer func() { _ = client.Disconnect(context.Background()) }()
-
 	if err != nil {
 		t.Fatalf("failed connecting client: %v", err)
 	}
+	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
 
@@ -174,12 +172,10 @@ func TestMachine_1_2_CallbackIsCalledOnlyOnce(t *testing.T) {
 			RefreshToken: nil,
 		}, nil
 	})
-
-	defer func() { _ = client.Disconnect(context.Background()) }()
-
 	if err != nil {
 		t.Fatalf("failed connecting client: %v", err)
 	}
+	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	var wg sync.WaitGroup
 
@@ -251,12 +247,10 @@ func TestMachine_2_1_ValidCallbackInputs(t *testing.T) {
 			RefreshToken: nil,
 		}, nil
 	})
-
-	defer func() { _ = client.Disconnect(context.Background()) }()
-
 	if err != nil {
 		t.Fatalf("failed connecting client: %v", err)
 	}
+	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
 
@@ -293,12 +287,10 @@ func TestMachine_2_3_OIDCCallbackReturnMissingData(t *testing.T) {
 			RefreshToken: nil,
 		}, nil
 	})
-
-	defer func() { _ = client.Disconnect(context.Background()) }()
-
 	if err != nil {
 		t.Fatalf("failed connecting client: %v", err)
 	}
+	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
 
@@ -381,12 +373,10 @@ func TestMachine_3_1_FailureWithCachedTokens(t *testing.T) {
 			RefreshToken: nil,
 		}, nil
 	})
-
-	defer func() { _ = client.Disconnect(context.Background()) }()
-
 	if err != nil {
 		t.Fatalf("failed connecting client: %v", err)
 	}
+	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	// Poison the cache with a random token
 	clientElem := reflect.ValueOf(client).Elem()
@@ -434,12 +424,10 @@ func TestMachine_3_2_AuthFailuresWithoutCachedTokens(t *testing.T) {
 			RefreshToken: nil,
 		}, nil
 	})
-
-	defer func() { _ = client.Disconnect(context.Background()) }()
-
 	if err != nil {
 		t.Fatalf("failed connecting client: %v", err)
 	}
+	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
 	_, err = coll.Find(context.Background(), bson.D{})
@@ -466,12 +454,10 @@ func TestMachine_3_3_UnexpectedErrorCodeDoesNotClearCache(t *testing.T) {
 	countMutex := sync.Mutex{}
 
 	adminClient, err := connectAdminClient()
-
-	defer func() { _ = adminClient.Disconnect(context.Background()) }()
-
 	if err != nil {
 		t.Fatalf("failed connecting admin client: %v", err)
 	}
+	t.Cleanup(func() { _ = adminClient.Disconnect(context.Background()) })
 
 	client, err := connectWithMachineCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
@@ -489,12 +475,10 @@ func TestMachine_3_3_UnexpectedErrorCodeDoesNotClearCache(t *testing.T) {
 			RefreshToken: nil,
 		}, nil
 	})
-
-	defer func() { _ = client.Disconnect(context.Background()) }()
-
 	if err != nil {
 		t.Fatalf("failed connecting client: %v", err)
 	}
+	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
 
@@ -548,11 +532,10 @@ func TestMachine_4_1_ReauthenticationSucceeds(t *testing.T) {
 	countMutex := sync.Mutex{}
 
 	adminClient, err := connectAdminClient()
-	defer func() { _ = adminClient.Disconnect(context.Background()) }()
-
 	if err != nil {
 		t.Fatalf("failed connecting admin client: %v", err)
 	}
+	t.Cleanup(func() { _ = adminClient.Disconnect(context.Background()) })
 
 	client, err := connectWithMachineCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
@@ -570,12 +553,10 @@ func TestMachine_4_1_ReauthenticationSucceeds(t *testing.T) {
 			RefreshToken: nil,
 		}, nil
 	})
-
-	defer func() { _ = client.Disconnect(context.Background()) }()
-
 	if err != nil {
 		t.Fatalf("failed connecting client: %v", err)
 	}
+	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
 	res := adminClient.Database("admin").RunCommand(context.Background(), bson.D{
@@ -620,11 +601,10 @@ func TestMachine_4_2_ReadCommandsFailIfReauthenticationFails(t *testing.T) {
 	countMutex := sync.Mutex{}
 
 	adminClient, err := connectAdminClient()
-	defer func() { _ = adminClient.Disconnect(context.Background()) }()
-
 	if err != nil {
 		t.Fatalf("failed connecting admin client: %v", err)
 	}
+	t.Cleanup(func() { _ = adminClient.Disconnect(context.Background()) })
 
 	client, err := connectWithMachineCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
@@ -651,12 +631,10 @@ func TestMachine_4_2_ReadCommandsFailIfReauthenticationFails(t *testing.T) {
 		}, nil
 
 	})
-
-	defer func() { _ = client.Disconnect(context.Background()) }()
-
 	if err != nil {
 		t.Fatalf("failed connecting client: %v", err)
 	}
+	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
 	_, err = coll.Find(context.Background(), bson.D{})
@@ -707,11 +685,10 @@ func TestMachine_4_3_WriteCommandsFailIfReauthenticationFails(t *testing.T) {
 	countMutex := sync.Mutex{}
 
 	adminClient, err := connectAdminClient()
-	defer func() { _ = adminClient.Disconnect(context.Background()) }()
-
 	if err != nil {
 		t.Fatalf("failed connecting admin client: %v", err)
 	}
+	t.Cleanup(func() { _ = adminClient.Disconnect(context.Background()) })
 
 	client, err := connectWithMachineCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
@@ -737,12 +714,10 @@ func TestMachine_4_3_WriteCommandsFailIfReauthenticationFails(t *testing.T) {
 			RefreshToken: nil,
 		}, nil
 	})
-
-	defer func() { _ = client.Disconnect(context.Background()) }()
-
 	if err != nil {
 		t.Fatalf("failed connecting client: %v", err)
 	}
+	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
 	_, err = coll.InsertOne(context.Background(), bson.D{})
@@ -795,7 +770,7 @@ func TestMachine_5_1_AzureWithNoUsername(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed connecting client: %v", err)
 	}
-	defer func() { _ = client.Disconnect(context.Background()) }()
+	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
 
@@ -825,7 +800,7 @@ func TestMachine_5_2_AzureWithBadUsername(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed connecting client: %v", err)
 	}
-	defer func() { _ = client.Disconnect(context.Background()) }()
+	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
 
@@ -845,7 +820,7 @@ func TestMachine_6_1_GCPWithNoUsername(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed connecting client: %v", err)
 	}
-	defer func() { _ = client.Disconnect(context.Background()) }()
+	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
 
@@ -872,7 +847,7 @@ func TestMachine_K8s(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed connecting client: %v", err)
 	}
-	defer func() { _ = client.Disconnect(context.Background()) }()
+	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
 
@@ -907,12 +882,10 @@ func TestHuman_1_1_SinglePrincipalImplicitUsername(t *testing.T) {
 			RefreshToken: nil,
 		}, nil
 	})
-
-	defer func() { _ = client.Disconnect(context.Background()) }()
-
 	if err != nil {
 		t.Fatalf("failed connecting client: %v", err)
 	}
+	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
 
@@ -958,7 +931,7 @@ func TestHuman_1_2_SinglePrincipalExplicitUsername(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed connecting client: %v", err)
 	}
-	defer func() { _ = client.Disconnect(context.Background()) }()
+	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
 
@@ -1010,7 +983,7 @@ func TestHuman_1_3_MultiplePrincipalUser1(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed connecting client: %v", err)
 	}
-	defer func() { _ = client.Disconnect(context.Background()) }()
+	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
 
@@ -1062,7 +1035,7 @@ func TestHuman_1_4_MultiplePrincipalUser2(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed connecting client: %v", err)
 	}
-	defer func() { _ = client.Disconnect(context.Background()) }()
+	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
 
@@ -1108,7 +1081,7 @@ func TestHuman_1_5_MultiplePrincipalNoUser(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed connecting client: %v", err)
 	}
-	defer func() { _ = client.Disconnect(context.Background()) }()
+	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
 
@@ -1157,7 +1130,7 @@ func TestHuman_1_6_AllowedHostsBlocked(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed connecting client: %v", err)
 		}
-		defer func() { _ = client.Disconnect(context.Background()) }()
+		t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 		coll := client.Database("test").Collection("test")
 
@@ -1191,7 +1164,7 @@ func TestHuman_1_6_AllowedHostsBlocked(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed connecting client: %v", err)
 		}
-		defer func() { _ = client.Disconnect(context.Background()) }()
+		t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 		coll := client.Database("test").Collection("test")
 
@@ -1248,12 +1221,10 @@ func TestHuman_1_8_MachineIDPHumanCallback(t *testing.T) {
 			RefreshToken: nil,
 		}, nil
 	})
-
-	defer func() { _ = client.Disconnect(context.Background()) }()
-
 	if err != nil {
 		t.Fatalf("failed connecting client: %v", err)
 	}
+	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
 
@@ -1302,12 +1273,10 @@ func TestHuman_2_1_ValidCallbackInputs(t *testing.T) {
 			RefreshToken: nil,
 		}, nil
 	})
-
-	defer func() { _ = client.Disconnect(context.Background()) }()
-
 	if err != nil {
 		t.Fatalf("failed connecting client: %v", err)
 	}
+	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
 
@@ -1339,12 +1308,10 @@ func TestHuman_2_2_CallbackReturnsMissingData(t *testing.T) {
 		callbackCount++
 		return &options.OIDCCredential{}, nil
 	})
-
-	defer func() { _ = client.Disconnect(context.Background()) }()
-
 	if err != nil {
 		t.Fatalf("failed connecting client: %v", err)
 	}
+	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
 
@@ -1372,7 +1339,7 @@ func TestHuman_2_3_RefreshTokenIsPassedToCallback(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed connecting admin client: %v", err)
 	}
-	defer func() { _ = adminClient.Disconnect(context.Background()) }()
+	t.Cleanup(func() { _ = adminClient.Disconnect(context.Background()) })
 
 	client, err := connectWithHumanCB(uriSingle, func(_ context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
@@ -1397,12 +1364,10 @@ func TestHuman_2_3_RefreshTokenIsPassedToCallback(t *testing.T) {
 			RefreshToken: &rt,
 		}, nil
 	})
-
-	defer func() { _ = client.Disconnect(context.Background()) }()
-
 	if err != nil {
 		t.Fatalf("failed connecting client: %v", err)
 	}
+	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	res := adminClient.Database("admin").RunCommand(context.Background(), bson.D{
 		{Key: "configureFailPoint", Value: "failCommand"},
@@ -1446,7 +1411,7 @@ func TestHuman_3_1_UsesSpeculativeAuth(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed connecting admin client: %v", err)
 	}
-	defer func() { _ = adminClient.Disconnect(context.Background()) }()
+	t.Cleanup(func() { _ = adminClient.Disconnect(context.Background()) })
 
 	client, err := connectWithHumanCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		// the callback should not even be called due to spec auth.
@@ -1456,7 +1421,7 @@ func TestHuman_3_1_UsesSpeculativeAuth(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed connecting client: %v", err)
 	}
-	defer func() { _ = client.Disconnect(context.Background()) }()
+	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	// We deviate from the Prose test since the failPoint on find with no error code does not seem to
 	// work. Rather we put an access token in the cache to force speculative auth.
@@ -1509,7 +1474,7 @@ func TestHuman_3_2_DoesNotUseSpeculativeAuth(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed connecting admin client: %v", err)
 	}
-	defer func() { _ = adminClient.Disconnect(context.Background()) }()
+	t.Cleanup(func() { _ = adminClient.Disconnect(context.Background()) })
 
 	client, err := connectWithHumanCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		expiry := time.Now().Add(time.Hour)
@@ -1524,12 +1489,10 @@ func TestHuman_3_2_DoesNotUseSpeculativeAuth(t *testing.T) {
 			RefreshToken: nil,
 		}, nil
 	})
-
-	defer func() { _ = client.Disconnect(context.Background()) }()
-
 	if err != nil {
 		t.Fatalf("failed connecting client: %v", err)
 	}
+	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	res := adminClient.Database("admin").RunCommand(context.Background(), bson.D{
 		{Key: "configureFailPoint", Value: "failCommand"},
@@ -1572,8 +1535,7 @@ func TestHuman_4_1_ReauthenticationSucceeds(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed connecting admin client: %v", err)
 	}
-
-	defer func() { _ = adminClient.Disconnect(context.Background()) }()
+	t.Cleanup(func() { _ = adminClient.Disconnect(context.Background()) })
 
 	clearChannels := func(s chan *event.CommandStartedEvent, succ chan *event.CommandSucceededEvent, f chan *event.CommandFailedEvent) {
 		for len(s) > 0 {
@@ -1622,7 +1584,7 @@ func TestHuman_4_1_ReauthenticationSucceeds(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed connecting client: %v", err)
 	}
-	defer func() { _ = client.Disconnect(context.Background()) }()
+	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 	clearChannels(started, succeeded, failed)
 
 	coll := client.Database("test").Collection("test")
@@ -1710,7 +1672,7 @@ func TestHuman_4_2_ReauthenticationSucceedsNoRefreshToken(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed connecting admin client: %v", err)
 	}
-	defer func() { _ = adminClient.Disconnect(context.Background()) }()
+	t.Cleanup(func() { _ = adminClient.Disconnect(context.Background()) })
 
 	client, err := connectWithHumanCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
@@ -1728,12 +1690,10 @@ func TestHuman_4_2_ReauthenticationSucceedsNoRefreshToken(t *testing.T) {
 			RefreshToken: nil,
 		}, nil
 	})
-
-	defer func() { _ = client.Disconnect(context.Background()) }()
-
 	if err != nil {
 		t.Fatalf("failed connecting client: %v", err)
 	}
+	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
 
@@ -1793,7 +1753,7 @@ func TestHuman_4_3_ReauthenticationSucceedsAfterRefreshFails(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed connecting admin client: %v", err)
 	}
-	defer func() { _ = adminClient.Disconnect(context.Background()) }()
+	t.Cleanup(func() { _ = adminClient.Disconnect(context.Background()) })
 
 	client, err := connectWithHumanCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
@@ -1812,12 +1772,10 @@ func TestHuman_4_3_ReauthenticationSucceedsAfterRefreshFails(t *testing.T) {
 			RefreshToken: &refreshToken,
 		}, nil
 	})
-
-	defer func() { _ = client.Disconnect(context.Background()) }()
-
 	if err != nil {
 		t.Fatalf("failed connecting client: %v", err)
 	}
+	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
 
@@ -1877,7 +1835,7 @@ func TestHuman_4_4_ReauthenticationFails(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed connecting admin client: %v", err)
 	}
-	defer func() { _ = adminClient.Disconnect(context.Background()) }()
+	t.Cleanup(func() { _ = adminClient.Disconnect(context.Background()) })
 
 	client, err := connectWithHumanCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
@@ -1903,12 +1861,10 @@ func TestHuman_4_4_ReauthenticationFails(t *testing.T) {
 			RefreshToken: &badToken,
 		}, errors.New("failed to refresh token")
 	})
-
-	defer func() { _ = client.Disconnect(context.Background()) }()
-
 	if err != nil {
 		t.Fatalf("failed connecting client: %v", err)
 	}
+	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
 
