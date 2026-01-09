@@ -97,6 +97,13 @@ func connectWithMachineCBAndProperties(uri string, cb options.OIDCCallback, prop
 }
 
 func TestMain(m *testing.M) {
+	// Skip all tests if OIDC environment is not configured.
+	// These tests require specific OIDC infrastructure and environment variables.
+	// This skip is added to prevent the tests from running on go test ./... evergreen tasks
+	if os.Getenv("MONGODB_URI_SINGLE") == "" {
+		fmt.Println("Skipping OIDC tests: MONGODB_URI_SINGLE not set")
+		os.Exit(0)
+	}
 	os.Exit(m.Run())
 }
 
