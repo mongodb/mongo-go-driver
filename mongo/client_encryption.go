@@ -243,6 +243,27 @@ func transformExplicitEncryptionOptions(opts ...options.Lister[options.EncryptOp
 		}
 		transformed.SetRangeOptions(transformedRange)
 	}
+	if args.TextOptions != nil {
+		textArgs, _ := mongoutil.NewOptions[options.TextOptions](args.TextOptions)
+
+		transformedText := mcopts.ExplicitTextOptions{
+			CaseSensitive:      textArgs.CaseSensitive,
+			DiacriticSensitive: textArgs.DiacriticSensitive,
+		}
+		if textArgs.Substring != nil {
+			substringOpts := mcopts.SubstringOptions(*textArgs.Substring)
+			transformedText.Substring = &substringOpts
+		}
+		if textArgs.Prefix != nil {
+			prefixOpts := mcopts.PrefixOptions(*textArgs.Prefix)
+			transformedText.Prefix = &prefixOpts
+		}
+		if textArgs.Suffix != nil {
+			suffixOpts := mcopts.SuffixOptions(*textArgs.Suffix)
+			transformedText.Suffix = &suffixOpts
+		}
+		transformed.SetTextOptions(transformedText)
+	}
 	return transformed
 }
 
