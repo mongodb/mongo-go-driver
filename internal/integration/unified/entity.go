@@ -259,17 +259,17 @@ func (em *EntityMap) addBSONEntity(id string, val any) error {
 		return err
 	}
 
-	typ, bytes, err := bson.MarshalValue(val)
-	if err != nil {
-		return fmt.Errorf("error marshaling BSON value for entity ID %q: %w", id, err)
-	}
-
 	em.allEntities[id] = struct{}{}
 
 	// If val is already a bson.RawValue, use it directly to preserve the original
 	// type and bytes. If not, construct a new bson.RawValue.
 	rv, ok := val.(bson.RawValue)
 	if !ok {
+		typ, bytes, err := bson.MarshalValue(val)
+		if err != nil {
+			return fmt.Errorf("error marshaling BSON value for entity ID %q: %w", id, err)
+		}
+
 		rv = bson.RawValue{
 			Type:  typ,
 			Value: bytes,
