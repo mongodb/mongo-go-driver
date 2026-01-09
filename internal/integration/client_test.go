@@ -26,6 +26,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/internal/integtest"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/internal/testutil"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
@@ -33,6 +34,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/version"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/xoptions"
 	"golang.org/x/sync/errgroup"
@@ -384,7 +386,9 @@ func TestClient(t *testing.T) {
 				sess, err := mt.Client.StartSession(tc.opts)
 				assert.Nil(mt, err, "StartSession error: %v", err)
 				defer sess.EndSession(context.Background())
-				consistent := sess.ClientSession().Consistent
+				clientSession := testutil.GetUnexportedFieldAs[*session.Client](sess, "clientSession")
+
+				consistent := clientSession.Consistent
 				assert.Equal(mt, tc.consistent, consistent, "expected consistent to be %v, got %v", tc.consistent, consistent)
 			})
 		}
