@@ -11,7 +11,6 @@ import "testing"
 // skipTests is a map of "fully-qualified test name" to "the reason for skipping
 // the test".
 var skipTests = map[string][]string{
-
 	// SPEC-1403: This test checks to see if the correct error is thrown when auto
 	// encrypting with a server < 4.2. Currently, the test will fail because a
 	// server < 4.2 wouldn't have mongocryptd, so Client construction would fail
@@ -841,15 +840,6 @@ var skipTests = map[string][]string{
 		"TestSDAMSpec/errors/pre-42-NotWritablePrimary.json",
 		"TestSDAMSpec/errors/pre-42-PrimarySteppedDown.json",
 		"TestSDAMSpec/errors/pre-42-ShutdownInProgress.json",
-	},
-
-	// TODO(GODRIVER-3663): Expose atClusterTime parameter in snapshot sessions
-	"Expose atClusterTime parameter in snapshot sessions (GODRIVER-3663)": {
-		"TestUnifiedSpec/sessions/tests/snapshot-sessions.json/Find_operation_with_snapshot_and_snapshot_time",
-		"TestUnifiedSpec/sessions/tests/snapshot-sessions.json/Distinct_operation_with_snapshot_and_snapshot_time",
-		"TestUnifiedSpec/sessions/tests/snapshot-sessions.json/Aggregate_operation_with_snapshot_and_snapshot_time",
-		"TestUnifiedSpec/sessions/tests/snapshot-sessions.json/countDocuments_operation_with_snapshot_and_snapshot_time",
-		"TestUnifiedSpec/sessions/tests/snapshot-sessions.json/Mixed_operation_with_snapshot_and_snapshotTime",
 	},
 
 	// TODO(DRIVERS-3356): Unskip this test when the spec test bug is fixed.

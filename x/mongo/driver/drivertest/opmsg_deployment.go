@@ -56,8 +56,10 @@ type connection struct {
 	responses []bson.D // responses to send when ReadWireMessage is called
 }
 
-var _ mnet.ReadWriteCloser = &connection{}
-var _ mnet.Describer = &connection{}
+var (
+	_ mnet.ReadWriteCloser = &connection{}
+	_ mnet.Describer       = &connection{}
+)
 
 // Write is a no-op.
 func (c *connection) Write(context.Context, []byte) error {
@@ -132,11 +134,13 @@ type MockDeployment struct {
 	updates chan description.Topology
 }
 
-var _ driver.Deployment = &MockDeployment{}
-var _ driver.Server = &MockDeployment{}
-var _ driver.Connector = &MockDeployment{}
-var _ driver.Disconnector = &MockDeployment{}
-var _ driver.Subscriber = &MockDeployment{}
+var (
+	_ driver.Deployment   = &MockDeployment{}
+	_ driver.Server       = &MockDeployment{}
+	_ driver.Connector    = &MockDeployment{}
+	_ driver.Disconnector = &MockDeployment{}
+	_ driver.Subscriber   = &MockDeployment{}
+)
 
 // SelectServer implements the Deployment interface. This method does not use the
 // description.SelectedServer provided and instead returns itself. The Connections returned from the
