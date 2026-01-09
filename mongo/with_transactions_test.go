@@ -123,7 +123,8 @@ func TestConvenientTransactions(t *testing.T) {
 		})
 		t.Run("unknown transaction commit result", func(t *testing.T) {
 			// set failpoint
-			failpoint := bson.D{{"configureFailPoint", "failCommand"},
+			failpoint := bson.D{
+				{"configureFailPoint", "failCommand"},
 				{"mode", "alwaysOn"},
 				{"data", bson.D{
 					{"failCommands", bson.A{"commitTransaction"}},
@@ -156,7 +157,8 @@ func TestConvenientTransactions(t *testing.T) {
 		})
 		t.Run("commit transient transaction error", func(t *testing.T) {
 			// set failpoint
-			failpoint := bson.D{{"configureFailPoint", "failCommand"},
+			failpoint := bson.D{
+				{"configureFailPoint", "failCommand"},
 				{"mode", "alwaysOn"},
 				{"data", bson.D{
 					{"failCommands", bson.A{"commitTransaction"}},
@@ -327,7 +329,7 @@ func TestConvenientTransactions(t *testing.T) {
 				"expected timeout error error; got %v", commitErr)
 
 			// Assert session state is not Committed.
-			clientSession := session.ClientSession()
+			clientSession := session.clientSession
 			assert.False(t, clientSession.TransactionCommitted(), "expected session state to not be Committed")
 
 			// AbortTransaction without error.
@@ -533,7 +535,8 @@ func TestConvenientTransactions(t *testing.T) {
 		}()
 
 		// Set failpoint to block insertOne once for 500ms.
-		failpoint := bson.D{{"configureFailPoint", "failCommand"},
+		failpoint := bson.D{
+			{"configureFailPoint", "failCommand"},
 			{"mode", bson.D{
 				{"times", 1},
 			}},
@@ -577,7 +580,6 @@ func TestConvenientTransactions(t *testing.T) {
 			withTransactionTimeout,
 			time.Millisecond,
 			"expected transaction to be passed within 2s")
-
 	})
 	t.Run("retries correctly for joined errors", func(t *testing.T) {
 		withTransactionTimeout = 500 * time.Millisecond
