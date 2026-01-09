@@ -18,29 +18,6 @@ type DataKeyOptions struct {
 	MasterKey   bsoncore.Document
 }
 
-// DataKey creates a new DataKeyOptions instance.
-func DataKey() *DataKeyOptions {
-	return &DataKeyOptions{}
-}
-
-// SetKeyAltNames specifies alternate key names.
-func (dko *DataKeyOptions) SetKeyAltNames(names []string) *DataKeyOptions {
-	dko.KeyAltNames = names
-	return dko
-}
-
-// SetMasterKey specifies the master key.
-func (dko *DataKeyOptions) SetMasterKey(key bsoncore.Document) *DataKeyOptions {
-	dko.MasterKey = key
-	return dko
-}
-
-// SetKeyMaterial specifies the key material.
-func (dko *DataKeyOptions) SetKeyMaterial(keyMaterial []byte) *DataKeyOptions {
-	dko.KeyMaterial = keyMaterial
-	return dko
-}
-
 // QueryType describes the type of query the result of Encrypt is used for.
 type QueryType int
 
@@ -68,47 +45,6 @@ type ExplicitRangeOptions struct {
 	Precision  *int32
 }
 
-// ExplicitEncryption creates a new ExplicitEncryptionOptions instance.
-func ExplicitEncryption() *ExplicitEncryptionOptions {
-	return &ExplicitEncryptionOptions{}
-}
-
-// SetKeyID sets the key identifier.
-func (eeo *ExplicitEncryptionOptions) SetKeyID(keyID bson.Binary) *ExplicitEncryptionOptions {
-	eeo.KeyID = &keyID
-	return eeo
-}
-
-// SetKeyAltName sets the key alternative name.
-func (eeo *ExplicitEncryptionOptions) SetKeyAltName(keyAltName string) *ExplicitEncryptionOptions {
-	eeo.KeyAltName = &keyAltName
-	return eeo
-}
-
-// SetAlgorithm specifies an encryption algorithm.
-func (eeo *ExplicitEncryptionOptions) SetAlgorithm(algorithm string) *ExplicitEncryptionOptions {
-	eeo.Algorithm = algorithm
-	return eeo
-}
-
-// SetQueryType specifies the query type.
-func (eeo *ExplicitEncryptionOptions) SetQueryType(queryType string) *ExplicitEncryptionOptions {
-	eeo.QueryType = queryType
-	return eeo
-}
-
-// SetContentionFactor specifies the contention factor.
-func (eeo *ExplicitEncryptionOptions) SetContentionFactor(contentionFactor int64) *ExplicitEncryptionOptions {
-	eeo.ContentionFactor = &contentionFactor
-	return eeo
-}
-
-// SetRangeOptions specifies the range options.
-func (eeo *ExplicitEncryptionOptions) SetRangeOptions(ro ExplicitRangeOptions) *ExplicitEncryptionOptions {
-	eeo.RangeOptions = &ro
-	return eeo
-}
-
 // RewrapManyDataKeyOptions represents all possible options used to decrypt and encrypt all matching data keys with a
 // possibly new masterKey.
 type RewrapManyDataKeyOptions struct {
@@ -117,21 +53,4 @@ type RewrapManyDataKeyOptions struct {
 
 	// MasterKey identifies the new masterKey. If omitted, rewraps with the current masterKey.
 	MasterKey bsoncore.Document
-}
-
-// RewrapManyDataKey creates a new RewrapManyDataKeyOptions instance.
-func RewrapManyDataKey() *RewrapManyDataKeyOptions {
-	return new(RewrapManyDataKeyOptions)
-}
-
-// SetProvider sets the value for the Provider field.
-func (rmdko *RewrapManyDataKeyOptions) SetProvider(provider string) *RewrapManyDataKeyOptions {
-	rmdko.Provider = &provider
-	return rmdko
-}
-
-// SetMasterKey sets the value for the MasterKey field.
-func (rmdko *RewrapManyDataKeyOptions) SetMasterKey(masterKey bsoncore.Document) *RewrapManyDataKeyOptions {
-	rmdko.MasterKey = masterKey
-	return rmdko
 }
