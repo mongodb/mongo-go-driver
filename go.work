@@ -10,4 +10,5 @@ use (
 	./internal/cmd/faas/awslambda/mongodb
 	./internal/test/compilecheck
 	./internal/test/goleak
+	./mongoaws
 )
