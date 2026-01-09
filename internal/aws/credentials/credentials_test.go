@@ -33,7 +33,7 @@ type stubProvider struct {
 	err            error
 }
 
-func (s *stubProvider) Retrieve() (Value, error) {
+func (s *stubProvider) Retrieve(_ context.Context) (Value, error) {
 	s.retrievedCount++
 	s.expired = false
 	s.creds.ProviderName = "stubProvider"
@@ -133,7 +133,7 @@ func (e *MockProvider) IsExpired() bool {
 	return e.expiration.Before(curTime())
 }
 
-func (*MockProvider) Retrieve() (Value, error) {
+func (*MockProvider) Retrieve(_ context.Context) (Value, error) {
 	return Value{}, nil
 }
 
@@ -162,9 +162,9 @@ type stubProviderConcurrent struct {
 	done chan struct{}
 }
 
-func (s *stubProviderConcurrent) Retrieve() (Value, error) {
+func (s *stubProviderConcurrent) Retrieve(ctx context.Context) (Value, error) {
 	<-s.done
-	return s.stubProvider.Retrieve()
+	return s.stubProvider.Retrieve(ctx)
 }
 
 func TestCredentialsGetConcurrent(t *testing.T) {
