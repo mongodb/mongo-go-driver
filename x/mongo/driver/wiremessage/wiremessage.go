@@ -14,7 +14,6 @@
 package wiremessage
 
 import (
-	"encoding/binary"
 	"strings"
 	"sync/atomic"
 
@@ -240,10 +239,11 @@ func ReadHeader(src []byte) (length, requestID, responseTo int32, opcode OpCode,
 		return 0, 0, 0, 0, src, false
 	}
 
-	length = readi32unsafe(src)
-	requestID = readi32unsafe(src[4:])
-	responseTo = readi32unsafe(src[8:])
-	opcode = OpCode(readi32unsafe(src[12:]))
+	length, _, _ = binaryutil.ReadI32(src)
+	requestID, _, _ = binaryutil.ReadI32(src[4:])
+	responseTo, _, _ = binaryutil.ReadI32(src[8:])
+	opcodeVal, _, _ := binaryutil.ReadI32(src[12:])
+	opcode = OpCode(opcodeVal)
 	return length, requestID, responseTo, opcode, src[16:], true
 }
 
@@ -362,9 +362,12 @@ func ReadMsgFlags(src []byte) (flags MsgFlag, rem []byte, ok bool) {
 
 // IsMsgMoreToCome returns if the provided wire message is an OP_MSG with the more to come flag set.
 func IsMsgMoreToCome(wm []byte) bool {
-	return len(wm) >= 20 &&
-		OpCode(readi32unsafe(wm[12:16])) == OpMsg &&
-		MsgFlag(readi32unsafe(wm[16:20]))&MoreToCome == MoreToCome
+	if len(wm) < 20 {
+		return false
+	}
+	opcode, _, _ := binaryutil.ReadI32(wm[12:16])
+	flag, _, _ := binaryutil.ReadI32(wm[16:20])
+	return OpCode(opcode) == OpMsg && MsgFlag(flag)&MoreToCome == MoreToCome
 }
 
 // ReadMsgSectionType reads the section type from src.
@@ -569,8 +572,4 @@ func ReadKillCursorsCursorIDs(src []byte, numIDs int32) (cursorIDs []int64, rem 
 func appendCString(b []byte, str string) []byte {
 	b = append(b, str...)
 	return append(b, 0x00)
-}
-
-func readi32unsafe(src []byte) int32 {
-	return int32(binary.LittleEndian.Uint32(src))
 }
