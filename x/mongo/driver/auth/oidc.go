@@ -75,6 +75,7 @@ var defaultAllowedHosts = []*regexp.Regexp{
 	regexp.MustCompile(`^localhost(:\d+)?$`),
 	regexp.MustCompile(`^127[.]0[.]0[.]1(:\d+)?$`),
 	regexp.MustCompile(`^::1(:\d+)?$`),
+	regexp.MustCompile(`^.*[.]mongo[.]com(:\d+)?$`),
 }
 
 // OIDCCallback is a function that takes a context and OIDCArgs and returns an OIDCCredential.
