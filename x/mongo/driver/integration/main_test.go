@@ -17,6 +17,8 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/integtest"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
@@ -145,12 +147,20 @@ func autoInsertDocs(t *testing.T, writeConcern *writeconcern.WriteConcern, docs 
 
 // insertDocs inserts the docs into the test cluster.
 func insertDocs(t *testing.T, dbname, colname string, writeConcern *writeconcern.WriteConcern, docs ...bsoncore.Document) {
-	err := operation.NewInsert(docs...).
-		Collection(colname).
-		Database(dbname).
-		Deployment(integtest.Topology(t)).
-		ServerSelector(&serverselector.Write{}).
-		WriteConcern(writeConcern).
-		Execute(context.Background())
+	t.Helper()
+
+	// The initial call to integtest.Topology drops the database used by the
+	// tests, so we have to call it here first to prevent the existing test code
+	// from dropping the database after we've inserted data.
+	integtest.Topology(t)
+
+	client, err := mongo.Connect(options.Client().ApplyURI(connectionString.Original).SetWriteConcern(writeConcern))
+	require.NoError(t, err)
+	defer func() {
+		_ = client.Disconnect(context.Background())
+	}()
+
+	coll := client.Database(dbname).Collection(colname)
+	_, err = coll.InsertMany(context.Background(), docs)
 	require.NoError(t, err)
 }

@@ -254,13 +254,30 @@ func newEntityMap() *EntityMap {
 	return em
 }
 
-func (em *EntityMap) addBSONEntity(id string, val bson.RawValue) error {
+func (em *EntityMap) addBSONEntity(id string, val any) error {
 	if err := em.verifyEntityDoesNotExist(id); err != nil {
 		return err
 	}
 
 	em.allEntities[id] = struct{}{}
-	em.bsonValues[id] = val
+
+	// If val is already a bson.RawValue, use it directly to preserve the original
+	// type and bytes. If not, construct a new bson.RawValue.
+	rv, ok := val.(bson.RawValue)
+	if !ok {
+		typ, bytes, err := bson.MarshalValue(val)
+		if err != nil {
+			return fmt.Errorf("error marshaling BSON value for entity ID %q: %w", id, err)
+		}
+
+		rv = bson.RawValue{
+			Type:  typ,
+			Value: bytes,
+		}
+	}
+
+	em.bsonValues[id] = rv
+
 	return nil
 }
 
@@ -790,6 +807,22 @@ func (em *EntityMap) addSessionEntity(entityOptions *entityOptions) error {
 	sessionOpts := options.Session()
 	if entityOptions.SessionOptions != nil {
 		sessionOpts = entityOptions.SessionOptions.SessionOptionsBuilder
+
+		// Resolve snapshot time from EntityMap if specified
+		if entityOptions.SessionOptions.snapshotTimeID != nil {
+			snapshotTimeID := *entityOptions.SessionOptions.snapshotTimeID
+			RawTS, err := em.BSONValue(snapshotTimeID)
+			if err != nil {
+				return fmt.Errorf("error retrieving snapshot time for entity %q: %w", snapshotTimeID, err)
+			}
+
+			t, i, ok := RawTS.TimestampOK()
+			if !ok {
+				return fmt.Errorf("snapshot time entity %q is not a timestamp", snapshotTimeID)
+			}
+
+			sessionOpts.SetSnapshotTime(bson.Timestamp{T: t, I: i})
+		}
 	}
 
 	sess, err := client.StartSession(sessionOpts)
