@@ -319,7 +319,7 @@ func (m *MongoCrypt) createExplicitEncryptionContext(opts *options.ExplicitEncry
 			substringDoc = bsoncore.AppendInt32Element(substringDoc, "strMaxQueryLength", opts.TextOptions.Substring.StrMaxQueryLength)
 			substringDoc, err := bsoncore.AppendDocumentEnd(substringDoc, substringIdx)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("error building substring doc: %w", err)
 			}
 			mongocryptDoc = bsoncore.AppendDocumentElement(mongocryptDoc, "substring", substringDoc)
 		}
@@ -329,7 +329,7 @@ func (m *MongoCrypt) createExplicitEncryptionContext(opts *options.ExplicitEncry
 			prefixDoc = bsoncore.AppendInt32Element(prefixDoc, "strMaxQueryLength", opts.TextOptions.Prefix.StrMaxQueryLength)
 			prefixDoc, err := bsoncore.AppendDocumentEnd(prefixDoc, prefixIdx)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("error building prefix doc: %w", err)
 			}
 			mongocryptDoc = bsoncore.AppendDocumentElement(mongocryptDoc, "prefix", prefixDoc)
 		}
@@ -339,7 +339,7 @@ func (m *MongoCrypt) createExplicitEncryptionContext(opts *options.ExplicitEncry
 			suffixDoc = bsoncore.AppendInt32Element(suffixDoc, "strMaxQueryLength", opts.TextOptions.Suffix.StrMaxQueryLength)
 			suffixDoc, err := bsoncore.AppendDocumentEnd(suffixDoc, suffixIdx)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("error building suffix doc: %w", err)
 			}
 			mongocryptDoc = bsoncore.AppendDocumentElement(mongocryptDoc, "suffix", suffixDoc)
 		}
@@ -348,14 +348,14 @@ func (m *MongoCrypt) createExplicitEncryptionContext(opts *options.ExplicitEncry
 
 		mongocryptDoc, err := bsoncore.AppendDocumentEnd(mongocryptDoc, idx)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error building text options doc: %w", err)
 		}
 
 		mongocryptBinary := newBinaryFromBytes(mongocryptDoc)
 		defer mongocryptBinary.close()
 
 		if ok := C.mongocrypt_ctx_setopt_algorithm_text(ctx.wrapped, mongocryptBinary.wrapped); !ok {
-			return nil, ctx.createErrorFromStatus()
+			return nil, fmt.Errorf("error setting text algorithm option: %w", ctx.createErrorFromStatus())
 		}
 	}
 

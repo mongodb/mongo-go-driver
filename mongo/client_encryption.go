@@ -205,8 +205,11 @@ func (ce *ClientEncryption) CreateDataKey(
 }
 
 // transformExplicitEncryptionOptions creates explicit encryption options to be passed to libmongocrypt.
-func transformExplicitEncryptionOptions(opts ...options.Lister[options.EncryptOptions]) *mcopts.ExplicitEncryptionOptions {
-	args, _ := mongoutil.NewOptions[options.EncryptOptions](opts...)
+func transformExplicitEncryptionOptions(opts ...options.Lister[options.EncryptOptions]) (*mcopts.ExplicitEncryptionOptions, error) {
+	args, err := mongoutil.NewOptions[options.EncryptOptions](opts...)
+	if err != nil {
+		return nil, err
+	}
 
 	transformed := mcopts.ExplicitEncryption()
 	if args.KeyID != nil {
@@ -223,7 +226,10 @@ func transformExplicitEncryptionOptions(opts ...options.Lister[options.EncryptOp
 	}
 
 	if args.RangeOptions != nil {
-		rangeArgs, _ := mongoutil.NewOptions[options.RangeOptions](args.RangeOptions)
+		rangeArgs, err := mongoutil.NewOptions[options.RangeOptions](args.RangeOptions)
+		if err != nil {
+			return nil, err
+		}
 
 		var transformedRange mcopts.ExplicitRangeOptions
 		if rangeArgs.Min != nil {
@@ -244,7 +250,10 @@ func transformExplicitEncryptionOptions(opts ...options.Lister[options.EncryptOp
 		transformed.SetRangeOptions(transformedRange)
 	}
 	if args.TextOptions != nil {
-		textArgs, _ := mongoutil.NewOptions[options.TextOptions](args.TextOptions)
+		textArgs, err := mongoutil.NewOptions[options.TextOptions](args.TextOptions)
+		if err != nil {
+			return nil, err
+		}
 
 		transformedText := mcopts.ExplicitTextOptions{
 			CaseSensitive:      textArgs.CaseSensitive,
@@ -264,7 +273,7 @@ func transformExplicitEncryptionOptions(opts ...options.Lister[options.EncryptOp
 		}
 		transformed.SetTextOptions(transformedText)
 	}
-	return transformed
+	return transformed, nil
 }
 
 // Encrypt encrypts a BSON value with the given key and algorithm. Returns an encrypted value (BSON binary of subtype 6).
@@ -277,7 +286,10 @@ func (ce *ClientEncryption) Encrypt(
 		return bson.Binary{}, ErrClientDisconnected
 	}
 
-	transformed := transformExplicitEncryptionOptions(opts...)
+	transformed, err := transformExplicitEncryptionOptions(opts...)
+	if err != nil {
+		return bson.Binary{}, err
+	}
 	subtype, data, err := ce.crypt.EncryptExplicit(ctx, bsoncore.Value{Type: bsoncore.Type(val.Type), Data: val.Value}, transformed)
 	if err != nil {
 		return bson.Binary{}, err
@@ -299,7 +311,10 @@ func (ce *ClientEncryption) EncryptExpression(ctx context.Context, expr any, res
 		return ErrClientDisconnected
 	}
 
-	transformed := transformExplicitEncryptionOptions(opts...)
+	transformed, err := transformExplicitEncryptionOptions(opts...)
+	if err != nil {
+		return err
+	}
 
 	exprDoc, err := marshal(expr, nil, nil)
 	if err != nil {
