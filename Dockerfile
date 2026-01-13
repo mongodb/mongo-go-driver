@@ -43,6 +43,8 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
   update-ca-certificates && \
   rm -rf /var/lib/apt/lists/*
 
+# Install taskfile
+RUN go install github.com/go-task/task/v3/cmd/task@latest
 
 COPY etc/docker_entry.sh /root/docker_entry.sh
 COPY --from=libmongocrypt /root/install /root/install
