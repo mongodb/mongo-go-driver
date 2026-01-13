@@ -6,6 +6,8 @@
 
 package options
 
+import "go.mongodb.org/mongo-driver/v2/bson"
+
 // DefaultCausalConsistency is the default value for the CausalConsistency option.
 var DefaultCausalConsistency = true
 
@@ -16,6 +18,7 @@ type SessionOptions struct {
 	CausalConsistency         *bool
 	DefaultTransactionOptions *TransactionOptionsBuilder
 	Snapshot                  *bool
+	SnapshotTime              *bson.Timestamp
 }
 
 // SessionOptionsBuilder represents functional options that configure a Sessionopts.
@@ -65,6 +68,19 @@ func (s *SessionOptionsBuilder) SetDefaultTransactionOptions(dt *TransactionOpti
 func (s *SessionOptionsBuilder) SetSnapshot(b bool) *SessionOptionsBuilder {
 	s.Opts = append(s.Opts, func(opts *SessionOptions) error {
 		opts.Snapshot = &b
+		return nil
+	})
+	return s
+}
+
+// SetSnapshotTime sets the value for the SnapshotTime field. Specifies the
+// timestamp to use for snapshot reads within the session. This option can only
+// be set if Snapshot is set to true. If not provided, the snapshot time will be
+// determined automatically from the atClusterTime of the first read operation
+// performed in the session. The default value is nil.
+func (s *SessionOptionsBuilder) SetSnapshotTime(t bson.Timestamp) *SessionOptionsBuilder {
+	s.Opts = append(s.Opts, func(opts *SessionOptions) error {
+		opts.SnapshotTime = &t
 		return nil
 	})
 	return s

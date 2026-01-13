@@ -18,6 +18,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/csfle"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/v2/internal/optionsutil"
+	"go.mongodb.org/mongo-driver/v2/internal/ptrutil"
 	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
@@ -306,12 +307,23 @@ func (coll *Collection) insert(
 
 	selector := makePinnedSelector(sess, coll.writeSelector)
 
-	op := operation.NewInsert(docs...).
-		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.monitor).
-		ServerSelector(selector).ClusterClock(coll.client.clock).
-		Database(coll.db.name).Collection(coll.name).
-		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).Ordered(true).
-		ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).Logger(coll.client.logger).Authenticator(coll.client.authenticator)
+	op := insert{
+		documents:     docs,
+		session:       sess,
+		writeConcern:  wc,
+		monitor:       coll.client.monitor,
+		selector:      selector,
+		clock:         coll.client.clock,
+		database:      coll.db.name,
+		collection:    coll.name,
+		deployment:    coll.client.deployment,
+		crypt:         coll.client.cryptFLE,
+		ordered:       ptrutil.Ptr(true),
+		serverAPI:     coll.client.serverAPI,
+		timeout:       coll.client.timeout,
+		logger:        coll.client.logger,
+		authenticator: coll.client.authenticator,
+	}
 
 	args, err := mongoutil.NewOptions[options.InsertManyOptions](opts...)
 	if err != nil {
@@ -319,29 +331,29 @@ func (coll *Collection) insert(
 	}
 
 	if args.BypassDocumentValidation != nil && *args.BypassDocumentValidation {
-		op = op.BypassDocumentValidation(*args.BypassDocumentValidation)
+		op.bypassDocumentValidation = args.BypassDocumentValidation
 	}
 	if args.Comment != nil {
 		comment, err := marshalValue(args.Comment, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return nil, err
 		}
-		op = op.Comment(comment)
+		op.comment = comment
 	}
 	if args.Ordered != nil {
-		op = op.Ordered(*args.Ordered)
+		op.ordered = args.Ordered
 	}
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
-		op = op.RawData(rawData)
+		op.rawData = &rawData
 	}
 	if additionalCmd, ok := optionsutil.Value(args.Internal, "addCommandFields").(bson.D); ok {
-		op = op.AdditionalCmd(additionalCmd)
+		op.additionalCmd = additionalCmd
 	}
 	retry := driver.RetryNone
 	if coll.client.retryWrites {
 		retry = driver.RetryOncePerCommand
 	}
-	op = op.Retry(retry)
+	op.retry = &retry
 
 	err = op.Execute(ctx)
 	var wce driver.WriteCommandError
@@ -1023,7 +1035,7 @@ func aggregate(a aggregateParams, opts ...options.Lister[options.AggregateOption
 		op.AllowDiskUse(*args.AllowDiskUse)
 	}
 	// ignore batchSize of 0 with $out
-	if args.BatchSize != nil && !(*args.BatchSize == 0 && hasOutputStage) {
+	if args.BatchSize != nil && (*args.BatchSize != 0 || !hasOutputStage) {
 		op.BatchSize(*args.BatchSize)
 		cursorOpts.BatchSize = *args.BatchSize
 	}

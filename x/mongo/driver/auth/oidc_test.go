@@ -24,6 +24,7 @@ func TestCreatePatternsForGlobs(t *testing.T) {
 			"localhost",
 			"127.0.0.1",
 			"::1",
+			"*.mongo.com",
 		}
 
 		check, err := createPatternsForGlobs(hosts)
@@ -37,6 +38,7 @@ func TestCreatePatternsForGlobs(t *testing.T) {
 				regexp.MustCompile(`^localhost(:\d+)?$`),
 				regexp.MustCompile(`^127[.]0[.]0[.]1(:\d+)?$`),
 				regexp.MustCompile(`^::1(:\d+)?$`),
+				regexp.MustCompile(`^.*[.]mongo[.]com(:\d+)?$`),
 			},
 			check,
 		)

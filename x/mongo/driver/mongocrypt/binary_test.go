@@ -5,7 +5,6 @@
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
 //go:build cse
-// +build cse
 
 package mongocrypt
 
@@ -71,7 +70,7 @@ func createEncryptedDocForBench(b *testing.B, crypt *MongoCrypt, iter int) bsonc
 		Data:    []byte("aaaaaaaaaaaaaaaa"),
 	}
 
-	encryptOpts := options.ExplicitEncryption().SetAlgorithm(algorithm).SetKeyID(keyID)
+	encryptOpts := &options.ExplicitEncryptionOptions{Algorithm: algorithm, KeyID: &keyID}
 	doc := bsoncore.NewDocumentBuilder().AppendString("v", fmt.Sprintf("value %04v", iter)).Build()
 
 	encryptCtx, err := crypt.CreateExplicitEncryptionContext(doc, encryptOpts)
@@ -142,7 +141,9 @@ func newCryptForBench(b *testing.B) *MongoCrypt {
 		AppendDocument("local", localProvider).
 		Build()
 
-	cryptOpts := options.MongoCrypt().SetKmsProviders(kmsProviders)
+	cryptOpts := &options.MongoCryptOptions{
+		KmsProviders: kmsProviders,
+	}
 
 	crypt, err := NewMongoCrypt(cryptOpts)
 

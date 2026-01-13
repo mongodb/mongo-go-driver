@@ -428,6 +428,7 @@ func runOperationInThread(t *testing.T, operation map[string]any, testInfo *test
 		}
 
 		for {
+			// nolint:staticcheck // QF1006: staticcheck solution onflicts with revive
 			if atomic.LoadInt32(&thread.JobsCompleted) == atomic.LoadInt32(&thread.JobsAssigned) {
 				break
 			}

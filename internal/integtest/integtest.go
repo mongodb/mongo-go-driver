@@ -29,12 +29,14 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/topology"
 )
 
-var connectionString *connstring.ConnString
-var connectionStringOnce sync.Once
-var connectionStringErr error
-var liveTopology *topology.Topology
-var liveTopologyOnce sync.Once
-var liveTopologyErr error
+var (
+	connectionString     *connstring.ConnString
+	connectionStringOnce sync.Once
+	connectionStringErr  error
+	liveTopology         *topology.Topology
+	liveTopologyOnce     sync.Once
+	liveTopologyErr      error
+)
 
 // AddOptionsToURI appends connection string options to a URI.
 func AddOptionsToURI(uri string, opts ...string) string {

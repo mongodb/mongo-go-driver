@@ -7,7 +7,6 @@ on:
       - reopened
       - labeled
       - unlabeled
-
 jobs:
   check_labels:
     name: Check labels
@@ -15,5 +14,5 @@ jobs:
     steps:
       - uses: docker://agilepathway/pull-request-label-checker:latest
         with:
-          one_of: bug,feature,enhancement,documentation,dependencies,ignore-for-release
+          one_of: bug,feature,enhancement,documentation,dependencies,ignore-for-release,ci/cd
           repo_token: ${{ secrets.GITHUB_TOKEN }}
