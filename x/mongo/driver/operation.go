@@ -629,12 +629,7 @@ func (op Operation) Execute(ctx context.Context) error {
 		// If we got a connection, close it immediately to release pool resources
 		// for subsequent retries.
 		if conn != nil {
-			// If we are dealing with a sharded cluster, then mark the failed server
-			// as "deprioritized".
-			if op.Deployment.Kind() == description.TopologyKindSharded {
-				deprioritizedServers = []description.Server{conn.Description()}
-			}
-
+			deprioritizedServers = []description.Server{conn.Description()}
 			conn.Close()
 		}
 
