@@ -417,14 +417,14 @@ func (oss *opServerSelector) SelectServer(
 	topo description.Topology,
 	candidates []description.Server,
 ) ([]description.Server, error) {
-	selectedServers, err := oss.selector.SelectServer(topo, candidates)
+	filteredCandidates := filterDeprioritizedServers(candidates, oss.deprioritizedServers)
+
+	selectedServers, err := oss.selector.SelectServer(topo, filteredCandidates)
 	if err != nil {
 		return nil, err
 	}
 
-	filteredServers := filterDeprioritizedServers(selectedServers, oss.deprioritizedServers)
-
-	return filteredServers, nil
+	return selectedServers, nil
 }
 
 // selectServer handles performing server selection for an operation.
