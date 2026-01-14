@@ -669,15 +669,13 @@ func (sf sessionFunction) execute(mt *mtest.T, sess *mongo.Session) error {
 
 	if sess != nil {
 		return mongo.WithSession(context.Background(), sess, func(sc context.Context) error {
-			valueArgs := make([]reflect.Value, 0, 1+len(paramsValues))
-			valueArgs = append(valueArgs, reflect.ValueOf(sc))
+			valueArgs := []reflect.Value{reflect.ValueOf(sc)}
 			valueArgs = append(valueArgs, paramsValues...)
 			returnValues := fn.Call(valueArgs)
 			return extractReturnError(returnValues)
 		})
 	}
-	valueArgs := make([]reflect.Value, 0, 1+len(paramsValues))
-	valueArgs = append(valueArgs, reflect.ValueOf(context.Background()))
+	valueArgs := []reflect.Value{reflect.ValueOf(context.Background())}
 	valueArgs = append(valueArgs, paramsValues...)
 	returnValues := fn.Call(valueArgs)
 	return extractReturnError(returnValues)

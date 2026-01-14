@@ -872,7 +872,7 @@ func TestBuild(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Run("BuildDocument", func(t *testing.T) {
-				elems := make([]byte, 0, len(tc.elems))
+				elems := make([]byte, 0)
 				for _, elem := range tc.elems {
 					elems = append(elems, elem...)
 				}
