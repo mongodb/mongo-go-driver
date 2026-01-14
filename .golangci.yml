@@ -4,7 +4,7 @@ linters:
   enable:
     - errcheck
     - gocritic
-    # TODO(GODRIVER-3712): Enable gosec in golangci-lint version 2.6.2
+    # TODO(GODRIVER-3712): Enable gosec in golangci-lint version 2.8.0
     #- gosec
     - govet
     - ineffassign
