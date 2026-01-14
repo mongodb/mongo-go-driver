@@ -20,6 +20,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/auth"
@@ -132,25 +133,17 @@ func TestMachine_1_1_CallbackIsCalled(t *testing.T) {
 			RefreshToken: nil,
 		}, nil
 	})
-	if err != nil {
-		t.Fatalf("failed connecting client: %v", err)
-	}
+	require.NoError(t, err, "failed connecting client")
 	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
 
 	_, err = coll.Find(context.Background(), bson.D{})
-	if err != nil {
-		t.Fatalf("failed executing Find: %v", err)
-	}
+	require.NoError(t, err, "failed executing Find")
 	countMutex.Lock()
 	defer countMutex.Unlock()
-	if callbackCount != 1 {
-		t.Fatalf("expected callback count to be 1, got %d", callbackCount)
-	}
-	if callbackFailed != nil {
-		t.Fatal(callbackFailed)
-	}
+	require.Equal(t, 1, callbackCount, "expected callback count to be 1")
+	require.NoError(t, callbackFailed, "callback failed")
 }
 
 func TestMachine_1_2_CallbackIsCalledOnlyOnce(t *testing.T) {
@@ -178,9 +171,7 @@ func TestMachine_1_2_CallbackIsCalledOnlyOnce(t *testing.T) {
 			RefreshToken: nil,
 		}, nil
 	})
-	if err != nil {
-		t.Fatalf("failed connecting client: %v", err)
-	}
+	require.NoError(t, err, "failed connecting client")
 	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	var wg sync.WaitGroup
@@ -201,15 +192,9 @@ func TestMachine_1_2_CallbackIsCalledOnlyOnce(t *testing.T) {
 	wg.Wait()
 	countMutex.Lock()
 	defer countMutex.Unlock()
-	if callbackCount != 1 {
-		t.Fatalf("expected callback count to be 1, got %d", callbackCount)
-	}
-	if callbackFailed != nil {
-		t.Fatal(callbackFailed)
-	}
-	if findFailed != nil {
-		t.Fatal(findFailed)
-	}
+	require.Equal(t, 1, callbackCount, "expected callback count to be 1")
+	require.NoError(t, callbackFailed, "callback failed")
+	require.NoError(t, findFailed, "find failed")
 }
 
 func TestMachine_2_1_ValidCallbackInputs(t *testing.T) {
@@ -253,25 +238,17 @@ func TestMachine_2_1_ValidCallbackInputs(t *testing.T) {
 			RefreshToken: nil,
 		}, nil
 	})
-	if err != nil {
-		t.Fatalf("failed connecting client: %v", err)
-	}
+	require.NoError(t, err, "failed connecting client")
 	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
 
 	_, err = coll.Find(context.Background(), bson.D{})
-	if err != nil {
-		t.Fatalf("failed executing Find: %v", err)
-	}
+	require.NoError(t, err, "failed executing Find")
 	countMutex.Lock()
 	defer countMutex.Unlock()
-	if callbackCount != 1 {
-		t.Fatalf("expected callback count to be 1, got %d", callbackCount)
-	}
-	if callbackFailed != nil {
-		t.Fatal(callbackFailed)
-	}
+	require.Equal(t, 1, callbackCount, "expected callback count to be 1")
+	require.NoError(t, callbackFailed, "callback failed")
 }
 
 func TestMachine_2_3_OIDCCallbackReturnMissingData(t *testing.T) {
@@ -293,22 +270,16 @@ func TestMachine_2_3_OIDCCallbackReturnMissingData(t *testing.T) {
 			RefreshToken: nil,
 		}, nil
 	})
-	if err != nil {
-		t.Fatalf("failed connecting client: %v", err)
-	}
+	require.NoError(t, err, "failed connecting client")
 	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
 
 	_, err = coll.Find(context.Background(), bson.D{})
-	if err == nil {
-		t.Fatal("should have failed to execute Find, but succeeded")
-	}
+	require.Error(t, err, "should have failed to execute Find, but succeeded")
 	countMutex.Lock()
 	defer countMutex.Unlock()
-	if callbackCount != 1 {
-		t.Fatalf("expected callback count to be 1, got %d", callbackCount)
-	}
+	require.Equal(t, 1, callbackCount, "expected callback count to be 1")
 }
 
 func TestMachine_2_4_InvalidClientConfigurationWithCallback(t *testing.T) {
@@ -326,9 +297,7 @@ func TestMachine_2_4_InvalidClientConfigurationWithCallback(t *testing.T) {
 	},
 		map[string]string{"ENVIRONMENT": "test"},
 	)
-	if err == nil {
-		t.Fatal("succeeded building client when it should fail")
-	}
+	require.Error(t, err, "should have failed to build client when it should fail")
 }
 
 func TestMachine_2_5_InvalidUseOfAllowedHosts(t *testing.T) {
@@ -349,9 +318,7 @@ func TestMachine_2_5_InvalidUseOfAllowedHosts(t *testing.T) {
 			"ALLOWED_HOSTS": "",
 		},
 	)
-	if err == nil {
-		t.Fatal("succeeded building client when it should fail")
-	}
+	require.Error(t, err, "should have failed to build client when it should fail")
 }
 
 func TestMachine_3_1_FailureWithCachedTokens(t *testing.T) {
@@ -379,9 +346,7 @@ func TestMachine_3_1_FailureWithCachedTokens(t *testing.T) {
 			RefreshToken: nil,
 		}, nil
 	})
-	if err != nil {
-		t.Fatalf("failed connecting client: %v", err)
-	}
+	require.NoError(t, err, "failed connecting client")
 	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	// Poison the cache with a random token
@@ -397,17 +362,11 @@ func TestMachine_3_1_FailureWithCachedTokens(t *testing.T) {
 	coll := client.Database("test").Collection("test")
 
 	_, err = coll.Find(context.Background(), bson.D{})
-	if err != nil {
-		t.Fatalf("failed executing Find: %v", err)
-	}
+	require.NoError(t, err, "failed executing Find")
 	countMutex.Lock()
 	defer countMutex.Unlock()
-	if callbackCount != 1 {
-		t.Fatalf("expected callback count to be 1, got %d", callbackCount)
-	}
-	if callbackFailed != nil {
-		t.Fatal(callbackFailed)
-	}
+	require.Equal(t, 1, callbackCount, "expected callback count to be 1")
+	require.NoError(t, callbackFailed, "callback failed")
 }
 
 func TestMachine_3_2_AuthFailuresWithoutCachedTokens(t *testing.T) {
@@ -430,24 +389,16 @@ func TestMachine_3_2_AuthFailuresWithoutCachedTokens(t *testing.T) {
 			RefreshToken: nil,
 		}, nil
 	})
-	if err != nil {
-		t.Fatalf("failed connecting client: %v", err)
-	}
+	require.NoError(t, err, "failed connecting client")
 	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
 	_, err = coll.Find(context.Background(), bson.D{})
-	if err == nil {
-		t.Fatal("Find succeeded when it should fail")
-	}
+	require.Error(t, err, "should have failed to execute Find, but succeeded")
 	countMutex.Lock()
 	defer countMutex.Unlock()
-	if callbackCount != 1 {
-		t.Fatalf("expected callback count to be 1, got %d", callbackCount)
-	}
-	if callbackFailed != nil {
-		t.Fatal(callbackFailed)
-	}
+	require.Equal(t, 1, callbackCount, "expected callback count to be 1")
+	require.NoError(t, callbackFailed, "callback failed")
 }
 
 func TestMachine_3_3_UnexpectedErrorCodeDoesNotClearCache(t *testing.T) {
@@ -460,9 +411,7 @@ func TestMachine_3_3_UnexpectedErrorCodeDoesNotClearCache(t *testing.T) {
 	countMutex := sync.Mutex{}
 
 	adminClient, err := connectAdminClient()
-	if err != nil {
-		t.Fatalf("failed connecting admin client: %v", err)
-	}
+	require.NoError(t, err, "failed connecting admin client")
 	t.Cleanup(func() { _ = adminClient.Disconnect(context.Background()) })
 
 	client, err := connectWithMachineCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
@@ -481,9 +430,7 @@ func TestMachine_3_3_UnexpectedErrorCodeDoesNotClearCache(t *testing.T) {
 			RefreshToken: nil,
 		}, nil
 	})
-	if err != nil {
-		t.Fatalf("failed connecting client: %v", err)
-	}
+	require.NoError(t, err, "failed connecting client")
 	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
@@ -501,31 +448,19 @@ func TestMachine_3_3_UnexpectedErrorCodeDoesNotClearCache(t *testing.T) {
 		}},
 	})
 
-	if res.Err() != nil {
-		t.Fatalf("failed setting failpoint: %v", res.Err())
-	}
+	require.NoError(t, res.Err(), "failed setting failpoint")
 
 	_, err = coll.Find(context.Background(), bson.D{})
-	if err == nil {
-		t.Fatal("Find succeeded when it should fail")
-	}
+	require.Error(t, err, "should have failed to execute Find, but succeeded")
 
 	countMutex.Lock()
 	defer countMutex.Unlock()
-	if callbackCount != 1 {
-		t.Fatalf("expected callback count to be 1, got %d", callbackCount)
-	}
+	require.Equal(t, 1, callbackCount, "expected callback count to be 1")
 
 	_, err = coll.Find(context.Background(), bson.D{})
-	if err != nil {
-		t.Fatalf("failed executing Find: %v", err)
-	}
-	if callbackCount != 1 {
-		t.Fatalf("expected callback count to be 1, got %d", callbackCount)
-	}
-	if callbackFailed != nil {
-		t.Fatal(callbackFailed)
-	}
+	require.NoError(t, err, "failed executing Find")
+	require.Equal(t, 1, callbackCount, "expected callback count to be 1")
+	require.NoError(t, callbackFailed, "callback failed")
 }
 
 func TestMachine_4_1_ReauthenticationSucceeds(t *testing.T) {
@@ -538,9 +473,7 @@ func TestMachine_4_1_ReauthenticationSucceeds(t *testing.T) {
 	countMutex := sync.Mutex{}
 
 	adminClient, err := connectAdminClient()
-	if err != nil {
-		t.Fatalf("failed connecting admin client: %v", err)
-	}
+	require.NoError(t, err, "failed connecting admin client")
 	t.Cleanup(func() { _ = adminClient.Disconnect(context.Background()) })
 
 	client, err := connectWithMachineCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
@@ -559,9 +492,7 @@ func TestMachine_4_1_ReauthenticationSucceeds(t *testing.T) {
 			RefreshToken: nil,
 		}, nil
 	})
-	if err != nil {
-		t.Fatalf("failed connecting client: %v", err)
-	}
+	require.NoError(t, err, "failed connecting client")
 	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
@@ -578,22 +509,14 @@ func TestMachine_4_1_ReauthenticationSucceeds(t *testing.T) {
 		}},
 	})
 
-	if res.Err() != nil {
-		t.Fatalf("failed setting failpoint: %v", res.Err())
-	}
+	require.NoError(t, res.Err(), "failed setting failpoint")
 
 	_, err = coll.Find(context.Background(), bson.D{})
-	if err != nil {
-		t.Fatalf("failed executing Find: %v", err)
-	}
+	require.NoError(t, err, "failed executing Find")
 	countMutex.Lock()
 	defer countMutex.Unlock()
-	if callbackCount != 2 {
-		t.Fatalf("expected callback count to be 2, got %d", callbackCount)
-	}
-	if callbackFailed != nil {
-		t.Fatal(callbackFailed)
-	}
+	require.Equal(t, 2, callbackCount, "expected callback count to be 2")
+	require.NoError(t, callbackFailed, "callback failed")
 }
 
 func TestMachine_4_2_ReadCommandsFailIfReauthenticationFails(t *testing.T) {
@@ -607,9 +530,7 @@ func TestMachine_4_2_ReadCommandsFailIfReauthenticationFails(t *testing.T) {
 	countMutex := sync.Mutex{}
 
 	adminClient, err := connectAdminClient()
-	if err != nil {
-		t.Fatalf("failed connecting admin client: %v", err)
-	}
+	require.NoError(t, err, "failed connecting admin client")
 	t.Cleanup(func() { _ = adminClient.Disconnect(context.Background()) })
 
 	client, err := connectWithMachineCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
@@ -637,16 +558,12 @@ func TestMachine_4_2_ReadCommandsFailIfReauthenticationFails(t *testing.T) {
 		}, nil
 
 	})
-	if err != nil {
-		t.Fatalf("failed connecting client: %v", err)
-	}
+	require.NoError(t, err, "failed connecting client")
 	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
 	_, err = coll.Find(context.Background(), bson.D{})
-	if err != nil {
-		t.Fatalf("failed executing Find: %v", err)
-	}
+	require.NoError(t, err, "failed executing Find")
 
 	res := adminClient.Database("admin").RunCommand(context.Background(), bson.D{
 		{Key: "configureFailPoint", Value: "failCommand"},
@@ -661,23 +578,15 @@ func TestMachine_4_2_ReadCommandsFailIfReauthenticationFails(t *testing.T) {
 		}},
 	})
 
-	if res.Err() != nil {
-		t.Fatalf("failed setting failpoint: %v", res.Err())
-	}
+	require.NoError(t, res.Err(), "failed setting failpoint")
 
 	_, err = coll.Find(context.Background(), bson.D{})
-	if err == nil {
-		t.Fatal("Find succeeded when it should fail")
-	}
+	require.Error(t, err, "should have failed to execute Find, but succeeded")
 
 	countMutex.Lock()
 	defer countMutex.Unlock()
-	if callbackCount != 2 {
-		t.Fatalf("expected callback count to be 2, got %d", callbackCount)
-	}
-	if callbackFailed != nil {
-		t.Fatal(callbackFailed)
-	}
+	require.Equal(t, 2, callbackCount, "expected callback count to be 2")
+	require.NoError(t, callbackFailed, "callback failed")
 }
 
 func TestMachine_4_3_WriteCommandsFailIfReauthenticationFails(t *testing.T) {
@@ -691,9 +600,7 @@ func TestMachine_4_3_WriteCommandsFailIfReauthenticationFails(t *testing.T) {
 	countMutex := sync.Mutex{}
 
 	adminClient, err := connectAdminClient()
-	if err != nil {
-		t.Fatalf("failed connecting admin client: %v", err)
-	}
+	require.NoError(t, err, "failed connecting admin client")
 	t.Cleanup(func() { _ = adminClient.Disconnect(context.Background()) })
 
 	client, err := connectWithMachineCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
@@ -720,16 +627,12 @@ func TestMachine_4_3_WriteCommandsFailIfReauthenticationFails(t *testing.T) {
 			RefreshToken: nil,
 		}, nil
 	})
-	if err != nil {
-		t.Fatalf("failed connecting client: %v", err)
-	}
+	require.NoError(t, err, "failed connecting client")
 	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
 	_, err = coll.InsertOne(context.Background(), bson.D{})
-	if err != nil {
-		t.Fatalf("failed executing Insert: %v", err)
-	}
+	require.NoError(t, err, "failed executing Insert")
 
 	res := adminClient.Database("admin").RunCommand(context.Background(), bson.D{
 		{Key: "configureFailPoint", Value: "failCommand"},
@@ -744,23 +647,15 @@ func TestMachine_4_3_WriteCommandsFailIfReauthenticationFails(t *testing.T) {
 		}},
 	})
 
-	if res.Err() != nil {
-		t.Fatalf("failed setting failpoint: %v", res.Err())
-	}
+	require.NoError(t, res.Err(), "failed setting failpoint")
 
 	_, err = coll.InsertOne(context.Background(), bson.D{})
-	if err == nil {
-		t.Fatal("Insert succeeded when it should fail")
-	}
+	require.Error(t, err, "should have failed to execute Insert, but succeeded")
 
 	countMutex.Lock()
 	defer countMutex.Unlock()
-	if callbackCount != 2 {
-		t.Fatalf("expected callback count to be 2, got %d", callbackCount)
-	}
-	if callbackFailed != nil {
-		t.Fatal(callbackFailed)
-	}
+	require.Equal(t, 2, callbackCount, "expected callback count to be 2")
+	require.NoError(t, callbackFailed, "callback failed")
 }
 
 func TestHuman_1_1_SinglePrincipalImplicitUsername(t *testing.T) {
@@ -788,25 +683,17 @@ func TestHuman_1_1_SinglePrincipalImplicitUsername(t *testing.T) {
 			RefreshToken: nil,
 		}, nil
 	})
-	if err != nil {
-		t.Fatalf("failed connecting client: %v", err)
-	}
+	require.NoError(t, err, "failed connecting client")
 	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
 
 	_, err = coll.Find(context.Background(), bson.D{})
-	if err != nil {
-		t.Fatalf("failed executing Find: %v", err)
-	}
+	require.NoError(t, err, "failed executing Find")
 	countMutex.Lock()
 	defer countMutex.Unlock()
-	if callbackCount != 1 {
-		t.Fatalf("expected callback count to be 1, got %d", callbackCount)
-	}
-	if callbackFailed != nil {
-		t.Fatal(callbackFailed)
-	}
+	require.Equal(t, 1, callbackCount, "expected callback count to be 1")
+	require.NoError(t, callbackFailed, "callback failed")
 }
 
 func TestHuman_1_2_SinglePrincipalExplicitUsername(t *testing.T) {
@@ -834,25 +721,17 @@ func TestHuman_1_2_SinglePrincipalExplicitUsername(t *testing.T) {
 			RefreshToken: nil,
 		}, nil
 	})
-	if err != nil {
-		t.Fatalf("failed connecting client: %v", err)
-	}
+	require.NoError(t, err, "failed connecting client")
 	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
 
 	_, err = coll.Find(context.Background(), bson.D{})
-	if err != nil {
-		t.Fatalf("failed executing Find: %v", err)
-	}
+	require.NoError(t, err, "failed executing Find")
 	countMutex.Lock()
 	defer countMutex.Unlock()
-	if callbackCount != 1 {
-		t.Fatalf("expected callback count to be 1, got %d", callbackCount)
-	}
-	if callbackFailed != nil {
-		t.Fatal(callbackFailed)
-	}
+	require.Equal(t, 1, callbackCount, "expected callback count to be 1")
+	require.NoError(t, callbackFailed, "callback failed")
 }
 
 func TestHuman_1_3_MultiplePrincipalUser1(t *testing.T) {
@@ -886,25 +765,17 @@ func TestHuman_1_3_MultiplePrincipalUser1(t *testing.T) {
 	}
 	opts := options.Client().ApplyURI(uriMulti).SetAuth(cred)
 	client, err := mongo.Connect(opts)
-	if err != nil {
-		t.Fatalf("failed connecting client: %v", err)
-	}
+	require.NoError(t, err, "failed connecting client")
 	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
 
 	_, err = coll.Find(context.Background(), bson.D{})
-	if err != nil {
-		t.Fatalf("failed executing Find: %v", err)
-	}
+	require.NoError(t, err, "failed executing Find")
 	countMutex.Lock()
 	defer countMutex.Unlock()
-	if callbackCount != 1 {
-		t.Fatalf("expected callback count to be 1, got %d", callbackCount)
-	}
-	if callbackFailed != nil {
-		t.Fatal(callbackFailed)
-	}
+	require.Equal(t, 1, callbackCount, "expected callback count to be 1")
+	require.NoError(t, callbackFailed, "callback failed")
 }
 
 func TestHuman_1_4_MultiplePrincipalUser2(t *testing.T) {
@@ -938,25 +809,17 @@ func TestHuman_1_4_MultiplePrincipalUser2(t *testing.T) {
 	}
 	opts := options.Client().ApplyURI(uriMulti).SetAuth(cred)
 	client, err := mongo.Connect(opts)
-	if err != nil {
-		t.Fatalf("failed connecting client: %v", err)
-	}
+	require.NoError(t, err, "failed connecting client")
 	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
 
 	_, err = coll.Find(context.Background(), bson.D{})
-	if err != nil {
-		t.Fatalf("failed executing Find: %v", err)
-	}
+	require.NoError(t, err, "failed executing Find")
 	countMutex.Lock()
 	defer countMutex.Unlock()
-	if callbackCount != 1 {
-		t.Fatalf("expected callback count to be 1, got %d", callbackCount)
-	}
-	if callbackFailed != nil {
-		t.Fatal(callbackFailed)
-	}
+	require.Equal(t, 1, callbackCount, "expected callback count to be 1")
+	require.NoError(t, callbackFailed, "callback failed")
 }
 
 func TestHuman_1_5_MultiplePrincipalNoUser(t *testing.T) {
@@ -984,25 +847,17 @@ func TestHuman_1_5_MultiplePrincipalNoUser(t *testing.T) {
 			RefreshToken: nil,
 		}, nil
 	})
-	if err != nil {
-		t.Fatalf("failed connecting client: %v", err)
-	}
+	require.NoError(t, err, "failed connecting client")
 	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
 
 	_, err = coll.Find(context.Background(), bson.D{})
-	if err == nil {
-		t.Fatal("Find succeeded when it should fail")
-	}
+	require.Error(t, err, "should have failed to execute Find, but succeeded")
 	countMutex.Lock()
 	defer countMutex.Unlock()
-	if callbackCount != 0 {
-		t.Fatalf("expected callback count to be 0, got %d", callbackCount)
-	}
-	if callbackFailed != nil {
-		t.Fatal(callbackFailed)
-	}
+	require.Equal(t, 0, callbackCount, "expected callback count to be 0")
+	require.NoError(t, callbackFailed, "callback failed")
 }
 
 func TestHuman_1_6_AllowedHostsBlocked(t *testing.T) {
@@ -1033,17 +888,13 @@ func TestHuman_1_6_AllowedHostsBlocked(t *testing.T) {
 		}
 		opts := options.Client().ApplyURI(uriMulti).SetAuth(cred)
 		client, err := mongo.Connect(opts)
-		if err != nil {
-			t.Fatalf("failed connecting client: %v", err)
-		}
+		require.NoError(t, err, "failed connecting client")
 		defer func() { _ = client.Disconnect(context.Background()) }()
 
 		coll := client.Database("test").Collection("test")
 
 		_, err = coll.Find(context.Background(), bson.D{})
-		if err == nil {
-			t.Fatal("Find succeeded when it should fail with empty 'ALLOWED_HOSTS'")
-		}
+		require.Error(t, err, "should have failed to execute Find, but succeeded")
 	}
 
 	{
@@ -1067,22 +918,16 @@ func TestHuman_1_6_AllowedHostsBlocked(t *testing.T) {
 		}
 		opts := options.Client().ApplyURI("mongodb://localhost/?authMechanism=MONGODB-OIDC&ignored=example.com").SetAuth(cred)
 		client, err := mongo.Connect(opts)
-		if err != nil {
-			t.Fatalf("failed connecting client: %v", err)
-		}
+		require.NoError(t, err, "failed connecting client")
 		defer func() { _ = client.Disconnect(context.Background()) }()
 
 		coll := client.Database("test").Collection("test")
 
 		_, err = coll.Find(context.Background(), bson.D{})
-		if err == nil {
-			t.Fatal("Find succeeded when it should fail with 'ALLOWED_HOSTS' 'example.com'")
-		}
+		require.Error(t, err, "should have failed to execute Find, but succeeded")
 	}
 
-	if callbackFailed != nil {
-		t.Fatal(callbackFailed)
-	}
+	require.NoError(t, callbackFailed, "callback failed")
 }
 
 func TestHuman_1_7_AllowedHostsInConnectionStringIgnored(t *testing.T) {
@@ -1093,9 +938,7 @@ func TestHuman_1_7_AllowedHostsInConnectionStringIgnored(t *testing.T) {
 	uri := "mongodb+srv://example.com/?authMechanism=MONGODB-OIDC&authMechanismProperties=ALLOWED_HOSTS:%5B%22example.com%22%5D"
 	opts := options.Client().ApplyURI(uri)
 	err := opts.Validate()
-	if err == nil {
-		t.Fatal("succeeded in applying URI which should produce an error")
-	}
+	require.Error(t, err, "should have failed to apply URI which should produce an error")
 }
 
 func TestHuman_1_8_MachineIDPHumanCallback(t *testing.T) {
@@ -1127,25 +970,17 @@ func TestHuman_1_8_MachineIDPHumanCallback(t *testing.T) {
 			RefreshToken: nil,
 		}, nil
 	})
-	if err != nil {
-		t.Fatalf("failed connecting client: %v", err)
-	}
+	require.NoError(t, err, "failed connecting client")
 	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
 
 	_, err = coll.Find(context.Background(), bson.D{})
-	if err != nil {
-		t.Fatalf("failed executing Find: %v", err)
-	}
+	require.NoError(t, err, "failed executing Find")
 	countMutex.Lock()
 	defer countMutex.Unlock()
-	if callbackCount != 1 {
-		t.Fatalf("expected callback count to be 1, got %d", callbackCount)
-	}
-	if callbackFailed != nil {
-		t.Fatal(callbackFailed)
-	}
+	require.Equal(t, 1, callbackCount, "expected callback count to be 1")
+	require.NoError(t, callbackFailed, "callback failed")
 }
 
 func TestHuman_2_1_ValidCallbackInputs(t *testing.T) {
@@ -1179,25 +1014,17 @@ func TestHuman_2_1_ValidCallbackInputs(t *testing.T) {
 			RefreshToken: nil,
 		}, nil
 	})
-	if err != nil {
-		t.Fatalf("failed connecting client: %v", err)
-	}
+	require.NoError(t, err, "failed connecting client")
 	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
 
 	_, err = coll.Find(context.Background(), bson.D{})
-	if err != nil {
-		t.Fatalf("failed executing Find: %v", err)
-	}
+	require.NoError(t, err, "failed executing Find")
 	countMutex.Lock()
 	defer countMutex.Unlock()
-	if callbackCount != 1 {
-		t.Fatalf("expected callback count to be 1, got %d", callbackCount)
-	}
-	if callbackFailed != nil {
-		t.Fatal(callbackFailed)
-	}
+	require.Equal(t, 1, callbackCount, "expected callback count to be 1")
+	require.NoError(t, callbackFailed, "callback failed")
 }
 
 func TestHuman_2_2_CallbackReturnsMissingData(t *testing.T) {
@@ -1214,22 +1041,16 @@ func TestHuman_2_2_CallbackReturnsMissingData(t *testing.T) {
 		callbackCount++
 		return &options.OIDCCredential{}, nil
 	})
-	if err != nil {
-		t.Fatalf("failed connecting client: %v", err)
-	}
+	require.NoError(t, err, "failed connecting client")
 	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
 
 	_, err = coll.Find(context.Background(), bson.D{})
-	if err == nil {
-		t.Fatal("Find succeeded when it should fail")
-	}
+	require.Error(t, err, "Find should have failed")
 	countMutex.Lock()
 	defer countMutex.Unlock()
-	if callbackCount != 1 {
-		t.Fatalf("expected callback count to be 1, got %d", callbackCount)
-	}
+	require.Equal(t, 1, callbackCount, "expected callback count to be 1")
 }
 
 func TestHuman_2_3_RefreshTokenIsPassedToCallback(t *testing.T) {
@@ -1242,9 +1063,7 @@ func TestHuman_2_3_RefreshTokenIsPassedToCallback(t *testing.T) {
 	countMutex := sync.Mutex{}
 
 	adminClient, err := connectAdminClient()
-	if err != nil {
-		t.Fatalf("failed connecting admin client: %v", err)
-	}
+	require.NoError(t, err, "failed connecting admin client")
 	t.Cleanup(func() { _ = adminClient.Disconnect(context.Background()) })
 
 	client, err := connectWithHumanCB(uriSingle, func(_ context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
@@ -1270,9 +1089,7 @@ func TestHuman_2_3_RefreshTokenIsPassedToCallback(t *testing.T) {
 			RefreshToken: &rt,
 		}, nil
 	})
-	if err != nil {
-		t.Fatalf("failed connecting client: %v", err)
-	}
+	require.NoError(t, err, "failed connecting client")
 	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	res := adminClient.Database("admin").RunCommand(context.Background(), bson.D{
@@ -1288,24 +1105,16 @@ func TestHuman_2_3_RefreshTokenIsPassedToCallback(t *testing.T) {
 		}},
 	})
 
-	if res.Err() != nil {
-		t.Fatal("failed to set failpoint")
-	}
+	require.NoError(t, res.Err(), "failed to set failpoint")
 
 	coll := client.Database("test").Collection("test")
 
 	_, err = coll.Find(context.Background(), bson.D{})
-	if err != nil {
-		t.Fatalf("failed executing Find: %v", err)
-	}
+	require.NoError(t, err, "failed executing Find")
 	countMutex.Lock()
 	defer countMutex.Unlock()
-	if callbackCount != 2 {
-		t.Fatalf("expected callback count to be 2, got %d", callbackCount)
-	}
-	if callbackFailed != nil {
-		t.Fatal(callbackFailed)
-	}
+	require.Equal(t, 2, callbackCount, "expected callback count to be 2")
+	require.NoError(t, callbackFailed, "callback failed")
 }
 
 func TestHuman_3_1_UsesSpeculativeAuth(t *testing.T) {
@@ -1314,9 +1123,7 @@ func TestHuman_3_1_UsesSpeculativeAuth(t *testing.T) {
 	}
 
 	adminClient, err := connectAdminClient()
-	if err != nil {
-		t.Fatalf("failed connecting admin client: %v", err)
-	}
+	require.NoError(t, err, "failed connecting admin client")
 	t.Cleanup(func() { _ = adminClient.Disconnect(context.Background()) })
 
 	client, err := connectWithHumanCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
@@ -1324,18 +1131,14 @@ func TestHuman_3_1_UsesSpeculativeAuth(t *testing.T) {
 		return &options.OIDCCredential{}, nil
 	})
 
-	if err != nil {
-		t.Fatalf("failed connecting client: %v", err)
-	}
+	require.NoError(t, err, "failed connecting client")
 	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	// We deviate from the Prose test since the failPoint on find with no error code does not seem to
 	// work. Rather we put an access token in the cache to force speculative auth.
 	tokenFile := tokenFile("test_user1")
 	accessToken, err := os.ReadFile(tokenFile)
-	if err != nil {
-		t.Fatalf("failed reading token file: %v", err)
-	}
+	require.NoError(t, err, "failed reading token file")
 	clientElem := reflect.ValueOf(client).Elem()
 	authenticatorField := clientElem.FieldByName("authenticator")
 	authenticatorField = reflect.NewAt(
@@ -1358,15 +1161,11 @@ func TestHuman_3_1_UsesSpeculativeAuth(t *testing.T) {
 		}},
 	})
 
-	if res.Err() != nil {
-		t.Fatal("failed to set failpoint")
-	}
+	require.NoError(t, res.Err(), "failed to set failpoint")
 
 	coll := client.Database("test").Collection("test")
 	_, err = coll.Find(context.Background(), bson.D{})
-	if err != nil {
-		t.Fatalf("failed executing Find: %v", err)
-	}
+	require.NoError(t, err, "failed executing Find")
 }
 
 func TestHuman_3_2_DoesNotUseSpeculativeAuth(t *testing.T) {
@@ -1377,9 +1176,7 @@ func TestHuman_3_2_DoesNotUseSpeculativeAuth(t *testing.T) {
 	var callbackFailed error
 
 	adminClient, err := connectAdminClient()
-	if err != nil {
-		t.Fatalf("failed connecting admin client: %v", err)
-	}
+	require.NoError(t, err, "failed connecting admin client")
 	t.Cleanup(func() { _ = adminClient.Disconnect(context.Background()) })
 
 	client, err := connectWithHumanCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
@@ -1395,9 +1192,7 @@ func TestHuman_3_2_DoesNotUseSpeculativeAuth(t *testing.T) {
 			RefreshToken: nil,
 		}, nil
 	})
-	if err != nil {
-		t.Fatalf("failed connecting client: %v", err)
-	}
+	require.NoError(t, err, "failed connecting client")
 	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	res := adminClient.Database("admin").RunCommand(context.Background(), bson.D{
@@ -1413,19 +1208,13 @@ func TestHuman_3_2_DoesNotUseSpeculativeAuth(t *testing.T) {
 		}},
 	})
 
-	if res.Err() != nil {
-		t.Fatal("failed to set failpoint")
-	}
+	require.NoError(t, res.Err(), "failed to set failpoint")
 
 	coll := client.Database("test").Collection("test")
 
 	_, err = coll.Find(context.Background(), bson.D{})
-	if err == nil {
-		t.Fatal("Find succeeded when it should fail")
-	}
-	if callbackFailed != nil {
-		t.Fatal(callbackFailed)
-	}
+	require.Error(t, err, "Find should have failed")
+	require.NoError(t, callbackFailed, "callback failed")
 }
 
 func TestHuman_4_1_ReauthenticationSucceeds(t *testing.T) {
@@ -1438,9 +1227,7 @@ func TestHuman_4_1_ReauthenticationSucceeds(t *testing.T) {
 	countMutex := sync.Mutex{}
 
 	adminClient, err := connectAdminClient()
-	if err != nil {
-		t.Fatalf("failed connecting admin client: %v", err)
-	}
+	require.NoError(t, err, "failed connecting admin client")
 	t.Cleanup(func() { _ = adminClient.Disconnect(context.Background()) })
 
 	clearChannels := func(s chan *event.CommandStartedEvent, succ chan *event.CommandSucceededEvent, f chan *event.CommandFailedEvent) {
@@ -1487,21 +1274,15 @@ func TestHuman_4_1_ReauthenticationSucceeds(t *testing.T) {
 			RefreshToken: nil,
 		}, nil
 	}, &monitor)
-	if err != nil {
-		t.Fatalf("failed connecting client: %v", err)
-	}
+	require.NoError(t, err, "failed connecting client")
 	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 	clearChannels(started, succeeded, failed)
 
 	coll := client.Database("test").Collection("test")
 	_, err = coll.Find(context.Background(), bson.D{})
-	if err != nil {
-		t.Fatal("Find failed when it should succeed")
-	}
+	require.NoError(t, err, "failed executing Find")
 	countMutex.Lock()
-	if callbackCount != 1 {
-		t.Fatalf("expected callback count to be 1, got %d", callbackCount)
-	}
+	require.Equal(t, 1, callbackCount, "expected callback count to be 1")
 	countMutex.Unlock()
 	clearChannels(started, succeeded, failed)
 
@@ -1518,51 +1299,31 @@ func TestHuman_4_1_ReauthenticationSucceeds(t *testing.T) {
 		}},
 	})
 
-	if res.Err() != nil {
-		t.Fatalf("failed setting failpoint: %v", res.Err())
-	}
+	require.NoError(t, res.Err(), "failed setting failpoint")
 
 	_, err = coll.Find(context.Background(), bson.D{})
-	if err != nil {
-		t.Fatal("Second find failed when it should succeed")
-	}
+	require.NoError(t, err, "failed executing Find")
 	countMutex.Lock()
-	if callbackCount != 2 {
-		t.Fatalf("expected callback count to be 2, got %d", callbackCount)
-	}
+	require.Equal(t, 2, callbackCount, "expected callback count to be 2")
 	countMutex.Unlock()
 
-	if len(started) != 2 {
-		t.Fatalf("expected 2 finds started, found %d", len(started))
-	}
+	require.Equal(t, 2, len(started), "expected 2 finds started")
 	for len(started) > 0 {
 		ste := <-started
-		if ste.CommandName != "find" {
-			t.Fatalf("found unexpected command started %s", ste.CommandName)
-		}
+		require.Equal(t, "find", ste.CommandName, "found unexpected command started")
 	}
-	if len(succeeded) != 1 {
-		t.Fatalf("expected 1 finds succeed, found %d", len(succeeded))
-	}
+	require.Equal(t, 1, len(succeeded), "expected 1 finds succeed")
 	for len(succeeded) > 0 {
 		sue := <-succeeded
-		if sue.CommandName != "find" {
-			t.Fatalf("found unexpected command succeeded %s", sue.CommandName)
-		}
+		require.Equal(t, "find", sue.CommandName, "found unexpected command succeeded")
 	}
-	if len(failed) != 1 {
-		t.Fatalf("expected 1 finds failed, found %d", len(failed))
-	}
+	require.Equal(t, 1, len(failed), "expected 1 finds failed")
 	for len(failed) > 0 {
 		fe := <-failed
-		if fe.CommandName != "find" {
-			t.Fatalf("found unexpected command failed %s", fe.CommandName)
-		}
+		require.Equal(t, "find", fe.CommandName, "found unexpected command failed")
 	}
 
-	if callbackFailed != nil {
-		t.Fatal(callbackFailed)
-	}
+	require.NoError(t, callbackFailed, "callback failed")
 }
 
 func TestHuman_4_2_ReauthenticationSucceedsNoRefreshToken(t *testing.T) {
@@ -1575,9 +1336,7 @@ func TestHuman_4_2_ReauthenticationSucceedsNoRefreshToken(t *testing.T) {
 	countMutex := sync.Mutex{}
 
 	adminClient, err := connectAdminClient()
-	if err != nil {
-		t.Fatalf("failed connecting admin client: %v", err)
-	}
+	require.NoError(t, err, "failed connecting admin client")
 	t.Cleanup(func() { _ = adminClient.Disconnect(context.Background()) })
 
 	client, err := connectWithHumanCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
@@ -1596,22 +1355,16 @@ func TestHuman_4_2_ReauthenticationSucceedsNoRefreshToken(t *testing.T) {
 			RefreshToken: nil,
 		}, nil
 	})
-	if err != nil {
-		t.Fatalf("failed connecting client: %v", err)
-	}
+	require.NoError(t, err, "failed connecting client")
 	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
 
 	_, err = coll.Find(context.Background(), bson.D{})
-	if err != nil {
-		t.Fatalf("failed executing Find: %v", err)
-	}
+	require.NoError(t, err, "failed executing Find")
 
 	countMutex.Lock()
-	if callbackCount != 1 {
-		t.Fatalf("expected callback count to be 1, got %d", callbackCount)
-	}
+	require.Equal(t, 1, callbackCount, "expected callback count to be 1")
 	countMutex.Unlock()
 
 	res := adminClient.Database("admin").RunCommand(context.Background(), bson.D{
@@ -1627,23 +1380,15 @@ func TestHuman_4_2_ReauthenticationSucceedsNoRefreshToken(t *testing.T) {
 		}},
 	})
 
-	if res.Err() != nil {
-		t.Fatal("failed to set failpoint")
-	}
+	require.NoError(t, res.Err(), "failed to set failpoint")
 
 	_, err = coll.Find(context.Background(), bson.D{})
-	if err != nil {
-		t.Fatalf("failed executing Find: %v", err)
-	}
+	require.NoError(t, err, "failed executing Find")
 
 	countMutex.Lock()
-	if callbackCount != 2 {
-		t.Fatalf("expected callback count to be 2, got %d", callbackCount)
-	}
+	require.Equal(t, 2, callbackCount, "expected callback count to be 2")
 	countMutex.Unlock()
-	if callbackFailed != nil {
-		t.Fatal(callbackFailed)
-	}
+	require.NoError(t, callbackFailed, "callback failed")
 }
 
 func TestHuman_4_3_ReauthenticationSucceedsAfterRefreshFails(t *testing.T) {
@@ -1656,9 +1401,7 @@ func TestHuman_4_3_ReauthenticationSucceedsAfterRefreshFails(t *testing.T) {
 	countMutex := sync.Mutex{}
 
 	adminClient, err := connectAdminClient()
-	if err != nil {
-		t.Fatalf("failed connecting admin client: %v", err)
-	}
+	require.NoError(t, err, "failed connecting admin client")
 	t.Cleanup(func() { _ = adminClient.Disconnect(context.Background()) })
 
 	client, err := connectWithHumanCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
@@ -1678,22 +1421,16 @@ func TestHuman_4_3_ReauthenticationSucceedsAfterRefreshFails(t *testing.T) {
 			RefreshToken: &refreshToken,
 		}, nil
 	})
-	if err != nil {
-		t.Fatalf("failed connecting client: %v", err)
-	}
+	require.NoError(t, err, "failed connecting client")
 	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
 
 	_, err = coll.Find(context.Background(), bson.D{})
-	if err != nil {
-		t.Fatalf("failed executing Find: %v", err)
-	}
+	require.NoError(t, err, "failed executing Find")
 
 	countMutex.Lock()
-	if callbackCount != 1 {
-		t.Fatalf("expected callback count to be 1, got %d", callbackCount)
-	}
+	require.Equal(t, 1, callbackCount, "expected callback count to be 1")
 	countMutex.Unlock()
 
 	res := adminClient.Database("admin").RunCommand(context.Background(), bson.D{
@@ -1709,23 +1446,15 @@ func TestHuman_4_3_ReauthenticationSucceedsAfterRefreshFails(t *testing.T) {
 		}},
 	})
 
-	if res.Err() != nil {
-		t.Fatal("failed to set failpoint")
-	}
+	require.NoError(t, res.Err(), "failed to set failpoint")
 
 	_, err = coll.Find(context.Background(), bson.D{})
-	if err != nil {
-		t.Fatalf("failed executing Find: %v", err)
-	}
+	require.NoError(t, err, "failed executing Find")
 
 	countMutex.Lock()
-	if callbackCount != 2 {
-		t.Fatalf("expected callback count to be 2, got %d", callbackCount)
-	}
+	require.Equal(t, 2, callbackCount, "expected callback count to be 2")
 	countMutex.Unlock()
-	if callbackFailed != nil {
-		t.Fatal(callbackFailed)
-	}
+	require.NoError(t, callbackFailed, "callback failed")
 }
 
 func TestHuman_4_4_ReauthenticationFails(t *testing.T) {
@@ -1738,9 +1467,7 @@ func TestHuman_4_4_ReauthenticationFails(t *testing.T) {
 	countMutex := sync.Mutex{}
 
 	adminClient, err := connectAdminClient()
-	if err != nil {
-		t.Fatalf("failed connecting admin client: %v", err)
-	}
+	require.NoError(t, err, "failed connecting admin client")
 	t.Cleanup(func() { _ = adminClient.Disconnect(context.Background()) })
 
 	client, err := connectWithHumanCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
@@ -1767,22 +1494,16 @@ func TestHuman_4_4_ReauthenticationFails(t *testing.T) {
 			RefreshToken: &badToken,
 		}, fmt.Errorf("failed to refresh token")
 	})
-	if err != nil {
-		t.Fatalf("failed connecting client: %v", err)
-	}
+	require.NoError(t, err, "failed connecting client")
 	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
 
 	_, err = coll.Find(context.Background(), bson.D{})
-	if err != nil {
-		t.Fatalf("failed executing Find: %v", err)
-	}
+	require.NoError(t, err, "failed executing Find")
 
 	countMutex.Lock()
-	if callbackCount != 1 {
-		t.Fatalf("expected callback count to be 1, got %d", callbackCount)
-	}
+	require.Equal(t, 1, callbackCount, "expected callback count to be 1")
 	countMutex.Unlock()
 
 	res := adminClient.Database("admin").RunCommand(context.Background(), bson.D{
@@ -1798,23 +1519,15 @@ func TestHuman_4_4_ReauthenticationFails(t *testing.T) {
 		}},
 	})
 
-	if res.Err() != nil {
-		t.Fatal("failed to set failpoint")
-	}
+	require.NoError(t, res.Err(), "failed to set failpoint")
 
 	_, err = coll.Find(context.Background(), bson.D{})
-	if err == nil {
-		t.Fatal("Find succeeded when it should fail")
-	}
+	require.Error(t, err, "Find should have failed")
 
 	countMutex.Lock()
-	if callbackCount != 3 {
-		t.Fatalf("expected callback count to be 3, got %d", callbackCount)
-	}
+	require.Equal(t, 3, callbackCount, "expected callback count to be 3")
 	countMutex.Unlock()
-	if callbackFailed != nil {
-		t.Fatal(callbackFailed)
-	}
+	require.NoError(t, callbackFailed, "callback failed")
 }
 
 func TestMachine_5_1_AzureWithNoUsername(t *testing.T) {
@@ -1823,21 +1536,15 @@ func TestMachine_5_1_AzureWithNoUsername(t *testing.T) {
 	}
 
 	opts := options.Client().ApplyURI(uriSingle)
-	if opts == nil {
-		t.Fatalf("failed parsing uri: %q", uriSingle)
-	}
+	require.Nil(t, opts, "failed parsing uri: %q", uriSingle)
 	client, err := mongo.Connect(opts)
-	if err != nil {
-		t.Fatalf("failed connecting client: %v", err)
-	}
+	require.NoError(t, err, "failed connecting client")
 	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
 
 	_, err = coll.Find(context.Background(), bson.D{})
-	if err != nil {
-		t.Fatalf("failed executing Find: %v", err)
-	}
+	require.NoError(t, err, "failed executing Find")
 }
 
 func TestMachine_5_2_AzureWithBadUsername(t *testing.T) {
@@ -1847,27 +1554,23 @@ func TestMachine_5_2_AzureWithBadUsername(t *testing.T) {
 
 	opts := options.Client().ApplyURI(uriSingle)
 
-	if opts == nil {
-		t.Fatalf("failed parsing uri: %q", uriSingle)
-	}
-	if opts.Auth == nil || opts.Auth.AuthMechanism != "MONGODB-OIDC" {
-		t.Fatal("expected URI to contain MONGODB-OIDC auth information")
-	}
+	require.Nil(t, opts, "failed parsing uri: %q", uriSingle)
+	require.True(
+		t,
+		opts.Auth == nil || opts.Auth.AuthMechanism != "MONGODB-OIDC",
+		"expected URI to contain MONGODB-OIDC auth information",
+	)
 
 	opts.Auth.Username = "bad"
 
 	client, err := mongo.Connect(opts)
-	if err != nil {
-		t.Fatalf("failed connecting client: %v", err)
-	}
+	require.NoError(t, err, "failed connecting client")
 	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
 
 	_, err = coll.Find(context.Background(), bson.D{})
-	if err == nil {
-		t.Fatal("Find succeeded when it should fail")
-	}
+	require.Error(t, err, "Find should have failed")
 }
 
 func TestMachine_6_1_GCPWithNoUsername(t *testing.T) {
@@ -1877,17 +1580,13 @@ func TestMachine_6_1_GCPWithNoUsername(t *testing.T) {
 
 	opts := options.Client().ApplyURI(uriSingle)
 	client, err := mongo.Connect(opts)
-	if err != nil {
-		t.Fatalf("failed connecting client: %v", err)
-	}
+	require.NoError(t, err, "failed connecting client")
 	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
 
 	_, err = coll.Find(context.Background(), bson.D{})
-	if err != nil {
-		t.Fatalf("failed executing Find: %v", err)
-	}
+	require.NoError(t, err, "failed executing Find")
 }
 
 // TestMachine_K8s tests the "k8s" Kubernetes OIDC environment. There is no specified
@@ -1898,21 +1597,15 @@ func TestMachine_K8s(t *testing.T) {
 		t.Skip("Skipping: test only runs when OIDC_ENV=k8s")
 	}
 
-	if !strings.Contains(uriSingle, "ENVIRONMENT:k8s") {
-		t.Fatal("expected MONGODB_URI_SINGLE to specify ENVIRONMENT:k8s for Kubernetes test")
-	}
+	require.False(t, strings.Contains(uriSingle, "ENVIRONMENT:k8s"), "expected MONGODB_URI_SINGLE to specify ENVIRONMENT:k8s for Kubernetes test")
 
 	opts := options.Client().ApplyURI(uriSingle)
 	client, err := mongo.Connect(opts)
-	if err != nil {
-		t.Fatalf("failed connecting client: %v", err)
-	}
+	require.NoError(t, err, "failed connecting client")
 	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
 	coll := client.Database("test").Collection("test")
 
 	_, err = coll.Find(context.Background(), bson.D{})
-	if err != nil {
-		t.Fatalf("failed executing Find: %v", err)
-	}
+	require.NoError(t, err, "failed executing Find")
 }
