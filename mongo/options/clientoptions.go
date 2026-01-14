@@ -117,6 +117,25 @@ type Credential struct {
 	OIDCMachineCallback     OIDCCallback
 	OIDCHumanCallback       OIDCCallback
 	AWSCredentialsProvider  AWSCredentialsProvider
+	AWSSigner               AWSSigner
+}
+
+// OIDCCallback is the type for both Human and Machine Callback flows.
+// RefreshToken will always be nil in the OIDCArgs for the Machine flow.
+type OIDCCallback func(context.Context, *OIDCArgs) (*OIDCCredential, error)
+
+// OIDCArgs contains the arguments for the OIDC callback.
+type OIDCArgs struct {
+	Version      int
+	IDPInfo      *IDPInfo
+	RefreshToken *string
+}
+
+// OIDCCredential contains the access token and refresh token.
+type OIDCCredential struct {
+	AccessToken  string
+	ExpiresAt    *time.Time
+	RefreshToken *string
 }
 
 // AWSCredentialsProvider is the interface used to retrieve AWS credentials.
@@ -136,22 +155,10 @@ type AWSCredentials struct {
 	AccountID       string
 }
 
-// OIDCCallback is the type for both Human and Machine Callback flows.
-// RefreshToken will always be nil in the OIDCArgs for the Machine flow.
-type OIDCCallback func(context.Context, *OIDCArgs) (*OIDCCredential, error)
-
-// OIDCArgs contains the arguments for the OIDC callback.
-type OIDCArgs struct {
-	Version      int
-	IDPInfo      *IDPInfo
-	RefreshToken *string
-}
-
-// OIDCCredential contains the access token and refresh token.
-type OIDCCredential struct {
-	AccessToken  string
-	ExpiresAt    *time.Time
-	RefreshToken *string
+// AWSSigner is an interface to a AWS SigV4 signer that can sign HTTP requests.
+type AWSSigner interface {
+	Sign(ctx context.Context, creds AWSCredentials, r *http.Request,
+		payload, service, region string, signingTime time.Time) error
 }
 
 // IDPInfo contains the information needed to perform OIDC authentication with

@@ -130,6 +130,10 @@ func ConvertCreds(credOpts *options.Credential) *driver.Cred {
 		}
 	}
 
+	if credOpts.AWSSigner != nil {
+		cred.AWSSigner = awsSigner{credOpts.AWSSigner}
+	}
+
 	return cred
 }
 
@@ -146,12 +150,33 @@ func (p awsCredentialsProvider) Retrieve(ctx context.Context) (credentials.Value
 		AccessKeyID:     creds.AccessKeyID,
 		SecretAccessKey: creds.SecretAccessKey,
 		SessionToken:    creds.SessionToken,
+		Source:          creds.Source,
+		CanExpire:       creds.CanExpire,
+		Expires:         creds.Expires,
+		AccountID:       creds.AccountID,
 		ProviderName:    "AwsProvider",
 	}, nil
 }
 
 func (p awsCredentialsProvider) IsExpired() bool {
 	return p.provider.Expired()
+}
+
+type awsSigner struct {
+	signer options.AWSSigner
+}
+
+func (s awsSigner) Sign(ctx context.Context, creds credentials.Value, r *http.Request,
+	payload, service, region string, signingTime time.Time) error {
+	return s.signer.Sign(ctx, options.AWSCredentials{
+		AccessKeyID:     creds.AccessKeyID,
+		SecretAccessKey: creds.SecretAccessKey,
+		SessionToken:    creds.SessionToken,
+		Source:          creds.Source,
+		CanExpire:       creds.CanExpire,
+		Expires:         creds.Expires,
+		AccountID:       creds.AccountID,
+	}, r, payload, service, region, signingTime)
 }
 
 // NewConfig will translate data from client options into a topology config for

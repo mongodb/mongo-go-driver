@@ -33,6 +33,19 @@ type Value struct {
 	// AWS Session Token
 	SessionToken string
 
+	// Source of the credentials
+	Source string
+
+	// States if the credentials can expire or not.
+	CanExpire bool
+
+	// The time the credentials will expire at. Should be ignored if CanExpire
+	// is false.
+	Expires time.Time
+
+	// The ID of the account for the credentials.
+	AccountID string
+
 	// Provider used to get credentials
 	ProviderName string
 }

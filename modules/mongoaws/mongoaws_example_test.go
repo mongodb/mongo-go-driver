@@ -8,6 +8,7 @@ package mongoaws
 
 import (
 	"github.com/aws/aws-sdk-go-v2/aws"
+	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
@@ -17,6 +18,23 @@ func ExampleNewCredentialsProvider() {
 	credential := options.Credential{
 		AuthMechanism:          "MONGODB-AWS",
 		AWSCredentialsProvider: awsCredentialProvider,
+	}
+	client, err := mongo.Connect(
+		options.Client().SetAuth(credential))
+	if err != nil {
+		panic(err)
+	}
+	_ = client
+}
+
+func ExampleNewSigner() {
+	awsCredentialProvider := NewCredentialsProvider(aws.NewConfig())
+	awsSigner := NewSigner(v4.NewSigner())
+	_ = awsSigner
+	credential := options.Credential{
+		AuthMechanism:          "MONGODB-AWS",
+		AWSCredentialsProvider: awsCredentialProvider,
+		AWSSigner:              awsSigner,
 	}
 	client, err := mongo.Connect(
 		options.Client().SetAuth(credential))

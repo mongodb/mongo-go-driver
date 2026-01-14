@@ -230,7 +230,7 @@ func principalStepRequest(principal string) []byte {
 	return doc.Build()
 }
 
-func (oos *oidcOneStep) Start() (string, []byte, error) {
+func (oos *oidcOneStep) Start(context.Context) (string, []byte, error) {
 	return MongoDBOIDC, jwtStepRequest(oos.accessToken), nil
 }
 
@@ -242,7 +242,7 @@ func (*oidcOneStep) Completed() bool {
 	return true
 }
 
-func (ots *oidcTwoStep) Start() (string, []byte, error) {
+func (ots *oidcTwoStep) Start(context.Context) (string, []byte, error) {
 	return MongoDBOIDC, principalStepRequest(ots.oa.userName), nil
 }
 

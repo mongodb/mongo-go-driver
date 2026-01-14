@@ -119,7 +119,7 @@ type scramSaslAdapter struct {
 var _ SaslClient = (*scramSaslAdapter)(nil)
 var _ ExtraOptionsSaslClient = (*scramSaslAdapter)(nil)
 
-func (a *scramSaslAdapter) Start() (string, []byte, error) {
+func (a *scramSaslAdapter) Start(context.Context) (string, []byte, error) {
 	step, err := a.conversation.Step("")
 	if err != nil {
 		return a.mechanism, nil, err

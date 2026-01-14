@@ -43,16 +43,16 @@ type awsSaslAdapter struct {
 
 var _ SaslClient = (*awsSaslAdapter)(nil)
 
-func (a *awsSaslAdapter) Start() (string, []byte, error) {
-	step, err := a.step(nil)
+func (a *awsSaslAdapter) Start(ctx context.Context) (string, []byte, error) {
+	step, err := a.step(ctx, nil)
 	if err != nil {
 		return MongoDBAWS, nil, err
 	}
 	return MongoDBAWS, step, nil
 }
 
-func (a *awsSaslAdapter) Next(_ context.Context, challenge []byte) ([]byte, error) {
-	step, err := a.step(challenge)
+func (a *awsSaslAdapter) Next(ctx context.Context, challenge []byte) ([]byte, error) {
+	step, err := a.step(ctx, challenge)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +67,7 @@ const (
 	amzDateFormat       = "20060102T150405Z"
 	defaultRegion       = "us-east-1"
 	maxHostLength       = 255
-	responceNonceLength = 64
+	responseNonceLength = 64
 )
 
 // step takes a string provided from a server (or just an empty string for the
@@ -75,14 +75,14 @@ const (
 // conversation forward.  It returns a string to be sent to the server or an
 // error if the server message is invalid.  Calling Step after a conversation
 // completes is also an error.
-func (a *awsSaslAdapter) step(challenge []byte) (response []byte, err error) {
+func (a *awsSaslAdapter) step(ctx context.Context, challenge []byte) (response []byte, err error) {
 	switch a.state {
 	case clientStarting:
 		a.state = clientFirst
 		response = a.firstMsg()
 	case clientFirst:
 		a.state = clientFinal
-		response, err = a.finalMsg(challenge)
+		response, err = a.finalMsg(ctx, challenge)
 	case clientFinal:
 		a.state = clientDone
 	default:
@@ -129,7 +129,7 @@ func (a *awsSaslAdapter) firstMsg() []byte {
 	return msg
 }
 
-func (a *awsSaslAdapter) finalMsg(s1 []byte) ([]byte, error) {
+func (a *awsSaslAdapter) finalMsg(ctx context.Context, s1 []byte) ([]byte, error) {
 	var sm struct {
 		Nonce bson.Binary `bson:"s"`
 		Host  string      `bson:"h"`
@@ -143,8 +143,8 @@ func (a *awsSaslAdapter) finalMsg(s1 []byte) ([]byte, error) {
 	if sm.Nonce.Subtype != 0x00 {
 		return nil, errors.New("server reply contained unexpected binary subtype")
 	}
-	if len(sm.Nonce.Data) != responceNonceLength {
-		return nil, fmt.Errorf("server reply nonce was not %v bytes", responceNonceLength)
+	if len(sm.Nonce.Data) != responseNonceLength {
+		return nil, fmt.Errorf("server reply nonce was not %v bytes", responseNonceLength)
 	}
 	if !bytes.HasPrefix(sm.Nonce.Data, a.nonce) {
 		return nil, errors.New("server nonce did not extend client nonce")
@@ -158,7 +158,6 @@ func (a *awsSaslAdapter) finalMsg(s1 []byte) ([]byte, error) {
 	currentTime := time.Now().UTC()
 	body := "Action=GetCallerIdentity&Version=2011-06-15"
 
-	timeStr := currentTime.Format(amzDateFormat)
 	// Create http.Request
 	req, err := http.NewRequest("POST", "/", strings.NewReader(body))
 	if err != nil {
@@ -167,12 +166,12 @@ func (a *awsSaslAdapter) finalMsg(s1 []byte) ([]byte, error) {
 	req.Host = sm.Host
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Content-Length", "43")
-	req.Header.Set("X-Amz-Date", timeStr)
+	req.Header.Set("X-Amz-Date", currentTime.Format(amzDateFormat))
 	req.Header.Set("X-MongoDB-Server-Nonce", base64.StdEncoding.EncodeToString(sm.Nonce.Data))
 	req.Header.Set("X-MongoDB-GS2-CB-Flag", "n")
 
 	// Get signed header
-	err = a.signer.Sign(context.Background(), req, body, "sts", region, currentTime)
+	err = a.signer.Sign(ctx, req, body, "sts", region, currentTime)
 	if err != nil {
 		return nil, err
 	}
@@ -180,7 +179,7 @@ func (a *awsSaslAdapter) finalMsg(s1 []byte) ([]byte, error) {
 	// create message
 	idx, msg := bsoncore.AppendDocumentStart(nil)
 	msg = bsoncore.AppendStringElement(msg, "a", req.Header.Get("Authorization"))
-	msg = bsoncore.AppendStringElement(msg, "d", timeStr)
+	msg = bsoncore.AppendStringElement(msg, "d", req.Header.Get("X-Amz-Date"))
 	if sessionToken := req.Header.Get("X-Amz-Security-Token"); len(sessionToken) > 0 {
 		msg = bsoncore.AppendStringElement(msg, "t", sessionToken)
 	}

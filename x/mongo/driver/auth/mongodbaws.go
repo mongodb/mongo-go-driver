@@ -27,6 +27,19 @@ func newMongoDBAWSAuthenticator(cred *Cred, httpClient *http.Client) (Authentica
 	if cred.Source != "" && cred.Source != sourceExternal {
 		return nil, newAuthError("MONGODB-AWS source must be empty or $external", nil)
 	}
+
+	if cred.AWSSigner != nil {
+		if cred.AWSCredentialsProvider == nil {
+			return nil, errors.New("AWSCredentialsProvider is required when AWSSigner is set")
+		}
+		return &MongoDBAWSAuthenticator{
+			signer: customSigner{
+				provider: cred.AWSCredentialsProvider,
+				signer:   cred.AWSSigner,
+			},
+		}, nil
+	}
+
 	if httpClient == nil {
 		return nil, errors.New("httpClient must not be nil")
 	}
@@ -45,16 +58,15 @@ func newMongoDBAWSAuthenticator(cred *Cred, httpClient *http.Client) (Authentica
 	}
 
 	return &MongoDBAWSAuthenticator{
-		signer: &builtInV4Signer{
-			providers:  providers,
-			httpClient: httpClient,
+		signer: builtInV4Signer{
+			creds: creds.NewAWSCredentialProvider(httpClient, providers...).Cred,
 		},
 	}, nil
 }
 
 // MongoDBAWSAuthenticator uses AWS-IAM credentials over SASL to authenticate a connection.
 type MongoDBAWSAuthenticator struct {
-	signer *builtInV4Signer
+	signer awsSigner
 }
 
 // Auth authenticates the connection.
@@ -75,13 +87,26 @@ func (a *MongoDBAWSAuthenticator) Reauth(_ context.Context, _ *driver.AuthConfig
 }
 
 type builtInV4Signer struct {
-	providers  []credentials.Provider
-	httpClient *http.Client
+	creds *credentials.Credentials
 }
 
-func (b *builtInV4Signer) Sign(_ context.Context, req *http.Request, body, service, region string, signTime time.Time) error {
-	awsProvider := creds.NewAWSCredentialProvider(b.httpClient, b.providers...)
-	signer := v4signer.NewSigner(awsProvider.Cred)
+func (s builtInV4Signer) Sign(_ context.Context, req *http.Request, body, service, region string, signTime time.Time) error {
+	signer := v4signer.NewSigner(s.creds)
 	_, err := signer.Sign(req, strings.NewReader(body), service, region, signTime)
 	return err
+}
+
+type customSigner struct {
+	provider credentials.Provider
+	signer   driver.AWSSigner
+}
+
+func (s customSigner) Sign(
+	ctx context.Context, req *http.Request, body, service, region string,
+	signTime time.Time) error {
+	creds, err := s.provider.Retrieve(ctx)
+	if err != nil {
+		return err
+	}
+	return s.signer.Sign(ctx, creds, req, body, service, region, signTime)
 }
