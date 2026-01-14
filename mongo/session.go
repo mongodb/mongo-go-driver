@@ -252,7 +252,7 @@ func (s *Session) AbortTransaction(ctx context.Context) error {
 		Deployment(s.deployment).WriteConcern(s.clientSession.CurrentWc).ServerSelector(selector).
 		Retry(driver.RetryOncePerCommand).CommandMonitor(s.client.monitor).
 		RecoveryToken(bsoncore.Document(s.clientSession.RecoveryToken)).ServerAPI(s.client.serverAPI).
-		Authenticator(s.client.authenticator).Execute(ctx)
+		Authenticator(s.client.authenticator).Logger(s.client.logger).Execute(ctx)
 
 	s.clientSession.Aborting = false
 	_ = s.clientSession.AbortTransaction()
@@ -286,7 +286,7 @@ func (s *Session) CommitTransaction(ctx context.Context) error {
 		Session(s.clientSession).ClusterClock(s.client.clock).Database("admin").Deployment(s.deployment).
 		WriteConcern(s.clientSession.CurrentWc).ServerSelector(selector).Retry(driver.RetryOncePerCommand).
 		CommandMonitor(s.client.monitor).RecoveryToken(bsoncore.Document(s.clientSession.RecoveryToken)).
-		ServerAPI(s.client.serverAPI).Authenticator(s.client.authenticator)
+		ServerAPI(s.client.serverAPI).Authenticator(s.client.authenticator).Logger(s.client.logger)
 
 	err = op.Execute(ctx)
 	// Return error without updating transaction state if it is a timeout, as the transaction has not

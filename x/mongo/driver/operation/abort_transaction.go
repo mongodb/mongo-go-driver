@@ -12,6 +12,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/internal/logger"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
@@ -34,6 +35,7 @@ type AbortTransaction struct {
 	writeConcern  *writeconcern.WriteConcern
 	retry         *driver.RetryMode
 	serverAPI     *driver.ServerAPIOptions
+	logger        *logger.Logger
 }
 
 // NewAbortTransaction constructs and returns a new AbortTransaction.
@@ -67,12 +69,11 @@ func (at *AbortTransaction) Execute(ctx context.Context) error {
 		ServerAPI:         at.serverAPI,
 		Name:              driverutil.AbortTransactionOp,
 		Authenticator:     at.authenticator,
+		Logger:            at.logger,
 	}.Execute(ctx)
-
 }
 
 func (at *AbortTransaction) command(dst []byte, _ description.SelectedServer) ([]byte, error) {
-
 	dst = bsoncore.AppendInt32Element(dst, "abortTransaction", 1)
 	if at.recoveryToken != nil {
 		dst = bsoncore.AppendDocumentElement(dst, "recoveryToken", at.recoveryToken)
@@ -208,5 +209,15 @@ func (at *AbortTransaction) Authenticator(authenticator driver.Authenticator) *A
 	}
 
 	at.authenticator = authenticator
+	return at
+}
+
+// Logger sets the logger for this operation.
+func (at *AbortTransaction) Logger(logger *logger.Logger) *AbortTransaction {
+	if at == nil {
+		at = new(AbortTransaction)
+	}
+
+	at.logger = logger
 	return at
 }
