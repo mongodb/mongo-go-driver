@@ -1536,7 +1536,7 @@ func TestMachine_5_1_AzureWithNoUsername(t *testing.T) {
 	}
 
 	opts := options.Client().ApplyURI(uriSingle)
-	require.Nil(t, opts, "failed parsing uri: %q", uriSingle)
+	require.NotNil(t, opts, "failed parsing uri: %q", uriSingle)
 	client, err := mongo.Connect(opts)
 	require.NoError(t, err, "failed connecting client")
 	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
@@ -1554,7 +1554,7 @@ func TestMachine_5_2_AzureWithBadUsername(t *testing.T) {
 
 	opts := options.Client().ApplyURI(uriSingle)
 
-	require.Nil(t, opts, "failed parsing uri: %q", uriSingle)
+	require.NotNil(t, opts, "failed parsing uri: %q", uriSingle)
 	require.True(
 		t,
 		opts.Auth == nil || opts.Auth.AuthMechanism != "MONGODB-OIDC",
@@ -1597,7 +1597,7 @@ func TestMachine_K8s(t *testing.T) {
 		t.Skip("Skipping: test only runs when OIDC_ENV=k8s")
 	}
 
-	require.False(t, strings.Contains(uriSingle, "ENVIRONMENT:k8s"), "expected MONGODB_URI_SINGLE to specify ENVIRONMENT:k8s for Kubernetes test")
+	require.True(t, strings.Contains(uriSingle, "ENVIRONMENT:k8s"), "expected MONGODB_URI_SINGLE to specify ENVIRONMENT:k8s for Kubernetes test")
 
 	opts := options.Client().ApplyURI(uriSingle)
 	client, err := mongo.Connect(opts)
