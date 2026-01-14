@@ -500,7 +500,8 @@ func TestValueReader_ReadCodeWithScope(t *testing.T) {
 	}
 
 	t.Run("buffered success", func(t *testing.T) {
-		doc := []byte{0x00, 0x00, 0x00, 0x00}
+		doc := make([]byte, 0, 4+len(codeWithScope)+1)
+		doc = append(doc, 0x00, 0x00, 0x00, 0x00)
 		doc = append(doc, codeWithScope...)
 		doc = append(doc, 0x00)
 		vr := &valueReader{
@@ -533,7 +534,8 @@ func TestValueReader_ReadCodeWithScope(t *testing.T) {
 	})
 
 	t.Run("streaming success", func(t *testing.T) {
-		doc := []byte{0x00, 0x00, 0x00, 0x00}
+		doc := make([]byte, 0, 4+len(codeWithScope)+1)
+		doc = append(doc, 0x00, 0x00, 0x00, 0x00)
 		doc = append(doc, codeWithScope...)
 		doc = append(doc, 0x00)
 		vr := &valueReader{

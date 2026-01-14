@@ -288,19 +288,6 @@ func BenchmarkUnmarshal(b *testing.B) {
 		dst   func() any
 	}
 
-	cases := []testcase{
-		{
-			desc:  "simple struct",
-			value: encodetestInstance,
-			dst:   func() any { return &encodetest{} },
-		},
-		{
-			desc:  "nested struct",
-			value: nestedInstance,
-			dst:   func() any { return &encodetest{} },
-		},
-	}
-
 	inputs := []struct {
 		name  string
 		value any
@@ -340,6 +327,21 @@ func BenchmarkUnmarshal(b *testing.B) {
 			dst:  func() any { return &D{} },
 		},
 	}
+
+	cases := make([]testcase, 0, 2+len(destinations)*len(inputs))
+
+	cases = append(cases,
+		testcase{
+			desc:  "simple struct",
+			value: encodetestInstance,
+			dst:   func() any { return &encodetest{} },
+		},
+		testcase{
+			desc:  "nested struct",
+			value: nestedInstance,
+			dst:   func() any { return &encodetest{} },
+		},
+	)
 
 	for _, input := range inputs {
 		for _, dest := range destinations {

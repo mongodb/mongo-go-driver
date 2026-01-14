@@ -243,7 +243,8 @@ func createSpeculativeSCRAMHandshake(payloads [][]byte) []bsoncore.Document {
 // 3. saslContinue reply with done:true
 func createRegularSCRAMHandshake(payloads [][]byte) []bsoncore.Document {
 	hello := bsoncore.BuildDocumentFromElements(nil, handshakeHelloElements...)
-	responses := []bsoncore.Document{hello}
+	responses := make([]bsoncore.Document, 0, 1+len(payloads))
+	responses = append(responses, hello)
 
 	for idx, payload := range payloads {
 		responses = append(responses, createSCRAMServerResponse(payload, idx == len(payloads)-1))

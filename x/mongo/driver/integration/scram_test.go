@@ -148,7 +148,7 @@ func runScramAuthTest(t *testing.T, credential options.Credential) error {
 func createScramUsers(t *testing.T, s driver.Server, cases []scramTestCase) error {
 	db := integtest.DBName(t)
 	for _, c := range cases {
-		var values []bsoncore.Value
+		values := make([]bsoncore.Value, 0, len(c.mechanisms))
 		for _, v := range c.mechanisms {
 			values = append(values, bsoncore.Value{Type: bsoncore.TypeString, Data: bsoncore.AppendString(nil, v)})
 		}
