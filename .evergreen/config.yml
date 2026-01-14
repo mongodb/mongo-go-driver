@@ -1622,7 +1622,7 @@ axes:
       - id: "windows-64"
         display_name: "Windows 64-bit"
         run_on:
-          - windows-vsCurrent-small
+          - windows-2022-latest-small
         variables:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
           GO_DIST: "C:\\golang\\go1.25"
@@ -1652,7 +1652,7 @@ axes:
       - id: "windows-64"
         display_name: "Windows 64-bit"
         run_on:
-          - windows-vsCurrent-small
+          - windows-2022-latest-small
         variables:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
           GO_DIST: "C:\\golang\\go1.25"
@@ -1687,10 +1687,10 @@ axes:
   - id: os-aws-auth
     display_name: OS
     values:
-      - id: "windows-64-vsCurrent-latest-small"
+      - id: "windows-64-2022-latest-small"
         display_name: "Windows 64-bit"
         run_on:
-          - windows-vsCurrent-small
+          - windows-2022-latest-small
         variables:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
           GO_DIST: "C:\\golang\\go1.25"
