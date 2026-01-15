@@ -73,160 +73,22 @@ const (
 	maxBsonObjSize                = 16777216            // max bytes in BSON object
 )
 
-func TestClientSideEncryptionProse(t *testing.T) {
-	t.Parallel()
+func newCSE_T(t *testing.T, opts *mtest.Options) *mtest.T {
+	t.Helper()
 
 	verifyClientSideEncryptionVarsSet(t)
-	mt := mtest.New(t, mtest.NewOptions().MinServerVersion("4.2").Enterprise(true).CreateClient(false))
+	mt := mtest.New(t, opts.Enterprise(true))
 
 	defaultKvClientOptions := options.Client().ApplyURI(mtest.ClusterURI())
 	integtest.AddTestServerAPIVersion(defaultKvClientOptions)
 
-	mt.Run(
-		"1. custom key material test",
-		testCustomKeyMaterialTest,
-	)
-
-	mt.RunOpts(
-		"2. data key and double encryption",
-		noClientOpts,
-		testDataKeyAndDoubleEncryption,
-	)
-
-	mt.RunOpts(
-		"3. external key vault test",
-		noClientOpts,
-		testExternalKeyVaultTest,
-	)
-
-	mt.Run(
-		"4. bson size limits",
-		testBSONSizeLimitsAndBatchSplitting,
-	)
-
-	mt.Run(
-		"5. views are prohibited",
-		testViewsAreProhibited,
-	)
-
-	mt.RunOpts(
-		"6. corpus test",
-		noClientOpts,
-		testCorpusTest,
-	)
-
-	mt.Run(
-		"7. custom endpoint",
-		testCustomEndpointTest,
-	)
-
-	mt.RunOpts(
-		"8. bypass mongocryptd spawning",
-		noClientOpts,
-		testBypassSpawningMongocryptd,
-	)
-
-	mt.RunOpts(
-		"9. deadlock tests",
-		noClientOpts,
-		testDeadlockTests,
-	)
-
-	// These tests only run when 3 KMS HTTP servers and 1 KMS KMIP server are
-	// running. See specification for port numbers and necessary arguments:
-	// https://github.com/mongodb/specifications/blob/master/source/client-side-encryption/tests/README.md#10-kms-tls-tests
-	mt.RunOpts(
-		"10. kms tls tests",
-		noClientOpts,
-		testKMSTLSTests,
-	)
-
-	// These tests only run when 3 KMS HTTP servers and 1 KMS KMIP server are
-	// running. See specification for port numbers and necessary arguments:
-	// https://github.com/mongodb/specifications/blob/master/source/client-side-encryption/tests/README.md#11-kms-tls-options-tests
-	mt.RunOpts(
-		"11. kms tls options tests",
-		noClientOpts,
-		testKMSTLSOptionsTests,
-	)
-
-	topoOpts := mtest.NewOptions().Topologies(mtest.ReplicaSet, mtest.LoadBalanced, mtest.ShardedReplicaSet)
-
-	// Only test MongoDB Server 7.0+. MongoDB Server 7.0 introduced a backwards breaking change to the Queryable Encryption (QE) protocol: QEv2.
-	// libmongocrypt is configured to use the QEv2 protocol.
-	mt.RunOpts(
-		"12. explicit encryption",
-		topoOpts.MinServerVersion("7.0"),
-		testExplicitEncryption,
-	)
-
-	mt.RunOpts(
-		"13. unique index on keyAltNames",
-		topoOpts.MinServerVersion("4.2"),
-		testUniqueIndexOnKeyAltNames,
-	)
-
-	mt.RunOpts(
-		"16. rewrap",
-		topoOpts.MinServerVersion("4.2"),
-		testRewrap,
-	)
-
-	mt.RunOpts(
-		"18. azure imds credentials",
-		noClientOpts,
-		testAzureIMDSCredentials,
-	)
-
-	mt.RunOpts(
-		"20. bypass creating mongocryptd client when shared library is loaded",
-		noClientOpts,
-		testBypassCreatingMongocryptdClientWhenSharedLibraryIsLoaded,
-	)
-
-	// qeRunOpts are requirements for Queryable Encryption.
-	qeRunOpts := mtest.NewOptions().Topologies(mtest.ReplicaSet, mtest.Sharded, mtest.LoadBalanced, mtest.ShardedReplicaSet)
-
-	// Only test MongoDB Server 7.0+. MongoDB Server 7.0 introduced a backwards breaking change to the Queryable Encryption (QE) protocol: QEv2.
-	// libmongocrypt is configured to use the QEv2 protocol.
-	mt.RunOpts(
-		"21. automatic data encryption keys",
-		qeRunOpts.MinServerVersion("7.0"),
-		testAutomaticDataEncryptionKeys,
-	)
-
-	mt.RunOpts(
-		"22. range explicit encryption",
-		qeRunOpts.MinServerVersion("8.0"),
-		testRangeExplicitEncryption,
-	)
-
-	mt.RunOpts(
-		"23. range explicit encryption applies defaults",
-		qeRunOpts.MinServerVersion("8.0"),
-		testRangeExplicitEncryptionAppliesDefaults,
-	)
-
-	mt.RunOpts(
-		"24. kms retry tests",
-		noClientOpts,
-		testKMSRetryTests,
-	)
-
-	mt.RunOpts(
-		"27. text Explicit Encryption",
-		qeRunOpts.MinServerVersion("8.2"),
-		testTextExplicitEncryption,
-	)
-
-	mt.RunOpts(
-		"change streams",
-		mtest.NewOptions().CreateClient(false).Topologies(mtest.ReplicaSet),
-		testChangeStreams,
-	)
+	return mt
 }
 
-func testCustomKeyMaterialTest(mt *mtest.T) {
+func TestClientSideEncryptionProse_1_custom_key_material_test(t *testing.T) {
+	mt := newCSE_T(t, mtest.NewOptions())
+	mt.Setup()
+
 	const (
 		dkCollection = "datakeys"
 		idKey        = "_id"
@@ -314,7 +176,10 @@ func testCustomKeyMaterialTest(mt *mtest.T) {
 	assert.Equal(mt, actual, expected, "expected: %v, got: %v", actual, expected)
 }
 
-func testDataKeyAndDoubleEncryption(mt *mtest.T) {
+func TestClientSideEncryptionProse_2_data_key_and_double_encryption(t *testing.T) {
+	mt := newCSE_T(t, noClientOpts)
+	mt.Setup()
+
 	// set up options structs
 	schema := bson.D{
 		{"bsonType", "object"},
@@ -456,7 +321,10 @@ func testDataKeyAndDoubleEncryption(mt *mtest.T) {
 	}
 }
 
-func testExternalKeyVaultTest(mt *mtest.T) {
+func TestClientSideEncryptionProse_3_external_key_vault_test(t *testing.T) {
+	mt := newCSE_T(t, noClientOpts)
+	mt.Setup()
+
 	testCases := []struct {
 		name          string
 		externalVault bool
@@ -524,7 +392,10 @@ func testExternalKeyVaultTest(mt *mtest.T) {
 	}
 }
 
-func testBSONSizeLimitsAndBatchSplitting(mt *mtest.T) {
+func TestClientSideEncryptionProse_4_bson_size_limits_and_batch_splitting(t *testing.T) {
+	mt := newCSE_T(t, mtest.NewOptions())
+	mt.Setup()
+
 	kmsProviders := map[string]map[string]any{
 		"local": {
 			"key": localMasterKey,
@@ -626,8 +497,11 @@ func testBSONSizeLimitsAndBatchSplitting(mt *mtest.T) {
 	assert.NotNil(mt, err, "expected InsertOne error for document over 16MiB, got nil")
 }
 
-func testViewsAreProhibited(mt *mtest.T) {
-	mt.Parallel()
+func TestClientSideEncryptionProse_5_views_are_prohibited(t *testing.T) {
+	t.Parallel()
+
+	mt := newCSE_T(t, mtest.NewOptions())
+	mt.Setup()
 
 	kmsProviders := map[string]map[string]any{
 		"local": {
@@ -658,133 +532,10 @@ func testViewsAreProhibited(mt *mtest.T) {
 		"expected error '%v' to contain substring '%v'", errStr, viewErrSubstr)
 }
 
-func testBypassSpawningMongocryptd(mt *mtest.T) {
-	mt.Parallel()
+func TestClientSideEncryptionProse_6_corpus_test(t *testing.T) {
+	mt := newCSE_T(t, noClientOpts)
+	mt.Setup()
 
-	kmsProviders := map[string]map[string]any{
-		"local": {
-			"key": localMasterKey,
-		},
-	}
-	schemaMap := map[string]any{
-		"db.coll": readJSONFile(mt, "external-schema.json"),
-	}
-
-	// All mongocryptd options use port 27021 instead of the default 27020 to avoid interference
-	// with mongocryptd instances spawned by previous tests. Explicitly disable loading the
-	// crypt_shared library to make sure we're testing mongocryptd spawning behavior that is not
-	// influenced by loading the crypt_shared library.
-	mongocryptdBypassSpawnTrue := map[string]any{
-		"mongocryptdBypassSpawn":              true,
-		"mongocryptdURI":                      "mongodb://localhost:27021/db?serverSelectionTimeoutMS=1000",
-		"mongocryptdSpawnArgs":                []string{"--pidfilepath=bypass-spawning-mongocryptd.pid", "--port=27021"},
-		"__cryptSharedLibDisabledForTestOnly": true, // Disable loading the crypt_shared library.
-	}
-	mongocryptdBypassSpawnFalse := map[string]any{
-		"mongocryptdBypassSpawn":              false,
-		"mongocryptdSpawnArgs":                []string{"--pidfilepath=bypass-spawning-mongocryptd.pid", "--port=27021"},
-		"__cryptSharedLibDisabledForTestOnly": true, // Disable loading the crypt_shared library.
-	}
-	mongocryptdBypassSpawnNotSet := map[string]any{
-		"mongocryptdSpawnArgs":                []string{"--pidfilepath=bypass-spawning-mongocryptd.pid", "--port=27021"},
-		"__cryptSharedLibDisabledForTestOnly": true, // Disable loading the crypt_shared library.
-	}
-
-	testCases := []struct {
-		name                    string
-		mongocryptdOpts         map[string]any
-		setBypassAutoEncryption bool
-		bypassAutoEncryption    bool
-		bypassQueryAnalysis     bool
-		useSharedLib            bool
-	}{
-		{
-			name:            "mongocryptdBypassSpawn only",
-			mongocryptdOpts: mongocryptdBypassSpawnTrue,
-		},
-		{
-			name:                    "bypassAutoEncryption only",
-			mongocryptdOpts:         mongocryptdBypassSpawnNotSet,
-			setBypassAutoEncryption: true,
-			bypassAutoEncryption:    true,
-		},
-		{
-			name:                    "mongocryptdBypassSpawn false, bypassAutoEncryption true",
-			mongocryptdOpts:         mongocryptdBypassSpawnFalse,
-			setBypassAutoEncryption: true,
-			bypassAutoEncryption:    true,
-		},
-		{
-			name:                    "mongocryptdBypassSpawn true, bypassAutoEncryption false",
-			mongocryptdOpts:         mongocryptdBypassSpawnTrue,
-			setBypassAutoEncryption: true,
-			bypassAutoEncryption:    false,
-		},
-		{
-			name:                "bypassQueryAnalysis only",
-			mongocryptdOpts:     mongocryptdBypassSpawnNotSet,
-			bypassQueryAnalysis: true,
-		},
-		{
-			name:         "use shared library",
-			useSharedLib: true,
-			mongocryptdOpts: map[string]any{
-				"mongocryptdURI":       "mongodb://localhost:27021/db?serverSelectionTimeoutMS=1000",
-				"mongocryptdSpawnArgs": []string{"--pidfilepath=bypass-spawning-mongocryptd.pid", "--port=27021"},
-				"cryptSharedLibPath":   os.Getenv("CRYPT_SHARED_LIB_PATH"),
-				"cryptSharedRequired":  true,
-			},
-		},
-	}
-	for _, tc := range testCases {
-		mt.Run(tc.name, func(mt *mtest.T) {
-			if tc.useSharedLib && os.Getenv("CRYPT_SHARED_LIB_PATH") == "" {
-				mt.Skip("CRYPT_SHARED_LIB_PATH not set, skipping")
-				return
-			}
-			aeo := options.AutoEncryption().
-				SetKmsProviders(kmsProviders).
-				SetKeyVaultNamespace(kvNamespace).
-				SetSchemaMap(schemaMap).
-				SetExtraOptions(tc.mongocryptdOpts)
-			if tc.setBypassAutoEncryption {
-				aeo.SetBypassAutoEncryption(tc.bypassAutoEncryption)
-			}
-			aeo.SetBypassQueryAnalysis(tc.bypassQueryAnalysis)
-			cpt := setup(mt, aeo, nil, nil)
-			defer cpt.teardown(mt)
-
-			_, err := cpt.cseColl.InsertOne(context.Background(), bson.D{{"unencrypted", "test"}})
-
-			// Check for mongocryptd server selection error if auto encryption needed mongocryptd.
-			if !(tc.setBypassAutoEncryption && tc.bypassAutoEncryption) && !tc.bypassQueryAnalysis && !tc.useSharedLib {
-				assert.NotNil(mt, err, "expected InsertOne error, got nil")
-				mcryptErr, ok := err.(mongo.MongocryptdError)
-				assert.True(mt, ok, "expected error type %T, got %v of type %T", mongo.MongocryptdError{}, err, err)
-				assert.True(mt, strings.Contains(mcryptErr.Error(), "server selection error"),
-					"expected mongocryptd server selection error, got %v", err)
-				return
-			}
-
-			// If mongocryptd was not needed, the command should succeed. Create a new client to connect to
-			// mongocryptd and verify it is not running.
-			assert.Nil(mt, err, "InsertOne error: %v", err)
-
-			mcryptOpts := options.Client().ApplyURI("mongodb://localhost:27021").
-				SetServerSelectionTimeout(1 * time.Second)
-			integtest.AddTestServerAPIVersion(mcryptOpts)
-			mcryptClient, err := mongo.Connect(mcryptOpts)
-			assert.Nil(mt, err, "mongocryptd Connect error: %v", err)
-
-			err = mcryptClient.Database("admin").RunCommand(context.Background(), bson.D{{handshake.LegacyHelloLowercase, 1}}).Err()
-			assert.NotNil(mt, err, "expected mongocryptd legacy hello error, got nil")
-			assert.True(mt, strings.Contains(err.Error(), "server selection error"),
-				"expected mongocryptd server selection error, got %v", err)
-		})
-	}
-}
-
-func testCorpusTest(mt *mtest.T) {
 	if "" == os.Getenv("KMS_MOCK_SERVERS_RUNNING") {
 		mt.Skipf("Skipping test as KMS_MOCK_SERVERS_RUNNING is not set")
 	}
@@ -1024,7 +775,10 @@ func testCorpusTest(mt *mtest.T) {
 	}
 }
 
-func testCustomEndpointTest(mt *mtest.T) {
+func TestClientSideEncryptionProse_7_custom_endpoint_test(t *testing.T) {
+	mt := newCSE_T(t, mtest.NewOptions())
+	mt.Setup()
+
 	defaultKvClientOptions := options.Client().ApplyURI(mtest.ClusterURI())
 
 	validKmsProviders := map[string]map[string]any{
@@ -1308,7 +1062,139 @@ func testCustomEndpointTest(mt *mtest.T) {
 	}
 }
 
-func testDeadlockTests(mt *mtest.T) {
+func TestClientSideEncryptionProse_8_bypass_spawning_mongocryptd(t *testing.T) {
+	t.Parallel()
+
+	mt := newCSE_T(t, noClientOpts)
+	mt.Setup()
+
+	kmsProviders := map[string]map[string]any{
+		"local": {
+			"key": localMasterKey,
+		},
+	}
+	schemaMap := map[string]any{
+		"db.coll": readJSONFile(mt, "external-schema.json"),
+	}
+
+	// All mongocryptd options use port 27021 instead of the default 27020 to avoid interference
+	// with mongocryptd instances spawned by previous tests. Explicitly disable loading the
+	// crypt_shared library to make sure we're testing mongocryptd spawning behavior that is not
+	// influenced by loading the crypt_shared library.
+	mongocryptdBypassSpawnTrue := map[string]any{
+		"mongocryptdBypassSpawn":              true,
+		"mongocryptdURI":                      "mongodb://localhost:27021/db?serverSelectionTimeoutMS=1000",
+		"mongocryptdSpawnArgs":                []string{"--pidfilepath=bypass-spawning-mongocryptd.pid", "--port=27021"},
+		"__cryptSharedLibDisabledForTestOnly": true, // Disable loading the crypt_shared library.
+	}
+	mongocryptdBypassSpawnFalse := map[string]any{
+		"mongocryptdBypassSpawn":              false,
+		"mongocryptdSpawnArgs":                []string{"--pidfilepath=bypass-spawning-mongocryptd.pid", "--port=27021"},
+		"__cryptSharedLibDisabledForTestOnly": true, // Disable loading the crypt_shared library.
+	}
+	mongocryptdBypassSpawnNotSet := map[string]any{
+		"mongocryptdSpawnArgs":                []string{"--pidfilepath=bypass-spawning-mongocryptd.pid", "--port=27021"},
+		"__cryptSharedLibDisabledForTestOnly": true, // Disable loading the crypt_shared library.
+	}
+
+	testCases := []struct {
+		name                    string
+		mongocryptdOpts         map[string]any
+		setBypassAutoEncryption bool
+		bypassAutoEncryption    bool
+		bypassQueryAnalysis     bool
+		useSharedLib            bool
+	}{
+		{
+			name:            "mongocryptdBypassSpawn only",
+			mongocryptdOpts: mongocryptdBypassSpawnTrue,
+		},
+		{
+			name:                    "bypassAutoEncryption only",
+			mongocryptdOpts:         mongocryptdBypassSpawnNotSet,
+			setBypassAutoEncryption: true,
+			bypassAutoEncryption:    true,
+		},
+		{
+			name:                    "mongocryptdBypassSpawn false, bypassAutoEncryption true",
+			mongocryptdOpts:         mongocryptdBypassSpawnFalse,
+			setBypassAutoEncryption: true,
+			bypassAutoEncryption:    true,
+		},
+		{
+			name:                    "mongocryptdBypassSpawn true, bypassAutoEncryption false",
+			mongocryptdOpts:         mongocryptdBypassSpawnTrue,
+			setBypassAutoEncryption: true,
+			bypassAutoEncryption:    false,
+		},
+		{
+			name:                "bypassQueryAnalysis only",
+			mongocryptdOpts:     mongocryptdBypassSpawnNotSet,
+			bypassQueryAnalysis: true,
+		},
+		{
+			name:         "use shared library",
+			useSharedLib: true,
+			mongocryptdOpts: map[string]any{
+				"mongocryptdURI":       "mongodb://localhost:27021/db?serverSelectionTimeoutMS=1000",
+				"mongocryptdSpawnArgs": []string{"--pidfilepath=bypass-spawning-mongocryptd.pid", "--port=27021"},
+				"cryptSharedLibPath":   os.Getenv("CRYPT_SHARED_LIB_PATH"),
+				"cryptSharedRequired":  true,
+			},
+		},
+	}
+	for _, tc := range testCases {
+		mt.Run(tc.name, func(mt *mtest.T) {
+			if tc.useSharedLib && os.Getenv("CRYPT_SHARED_LIB_PATH") == "" {
+				mt.Skip("CRYPT_SHARED_LIB_PATH not set, skipping")
+				return
+			}
+			aeo := options.AutoEncryption().
+				SetKmsProviders(kmsProviders).
+				SetKeyVaultNamespace(kvNamespace).
+				SetSchemaMap(schemaMap).
+				SetExtraOptions(tc.mongocryptdOpts)
+			if tc.setBypassAutoEncryption {
+				aeo.SetBypassAutoEncryption(tc.bypassAutoEncryption)
+			}
+			aeo.SetBypassQueryAnalysis(tc.bypassQueryAnalysis)
+			cpt := setup(mt, aeo, nil, nil)
+			defer cpt.teardown(mt)
+
+			_, err := cpt.cseColl.InsertOne(context.Background(), bson.D{{"unencrypted", "test"}})
+
+			// Check for mongocryptd server selection error if auto encryption needed mongocryptd.
+			if !(tc.setBypassAutoEncryption && tc.bypassAutoEncryption) && !tc.bypassQueryAnalysis && !tc.useSharedLib {
+				assert.NotNil(mt, err, "expected InsertOne error, got nil")
+				mcryptErr, ok := err.(mongo.MongocryptdError)
+				assert.True(mt, ok, "expected error type %T, got %v of type %T", mongo.MongocryptdError{}, err, err)
+				assert.True(mt, strings.Contains(mcryptErr.Error(), "server selection error"),
+					"expected mongocryptd server selection error, got %v", err)
+				return
+			}
+
+			// If mongocryptd was not needed, the command should succeed. Create a new client to connect to
+			// mongocryptd and verify it is not running.
+			assert.Nil(mt, err, "InsertOne error: %v", err)
+
+			mcryptOpts := options.Client().ApplyURI("mongodb://localhost:27021").
+				SetServerSelectionTimeout(1 * time.Second)
+			integtest.AddTestServerAPIVersion(mcryptOpts)
+			mcryptClient, err := mongo.Connect(mcryptOpts)
+			assert.Nil(mt, err, "mongocryptd Connect error: %v", err)
+
+			err = mcryptClient.Database("admin").RunCommand(context.Background(), bson.D{{handshake.LegacyHelloLowercase, 1}}).Err()
+			assert.NotNil(mt, err, "expected mongocryptd legacy hello error, got nil")
+			assert.True(mt, strings.Contains(err.Error(), "server selection error"),
+				"expected mongocryptd server selection error, got %v", err)
+		})
+	}
+}
+
+func TestClientSideEncryptionProse_9_deadlock_tests(t *testing.T) {
+	mt := newCSE_T(t, noClientOpts)
+	mt.Setup()
+
 	testcases := []struct {
 		description                            string
 		maxPoolSize                            uint64
@@ -1450,7 +1336,10 @@ func testDeadlockTests(mt *mtest.T) {
 	}
 }
 
-func testKMSTLSTests(mt *mtest.T) {
+func TestClientSideEncryptionProse_10_kms_tls_tests(t *testing.T) {
+	mt := newCSE_T(t, noClientOpts)
+	mt.Setup()
+
 	if os.Getenv("KMS_MOCK_SERVERS_RUNNING") == "" {
 		mt.Skipf("Skipping test as KMS_MOCK_SERVERS_RUNNING is not set")
 	}
@@ -1494,7 +1383,10 @@ func testKMSTLSTests(mt *mtest.T) {
 	}
 }
 
-func testKMSTLSOptionsTests(mt *mtest.T) {
+func TestClientSideEncryptionProse_11_kms_tls_options_tests(t *testing.T) {
+	mt := newCSE_T(t, noClientOpts)
+	mt.Setup()
+
 	if os.Getenv("KMS_MOCK_SERVERS_RUNNING") == "" {
 		mt.Skipf("Skipping test as KMS_MOCK_SERVERS_RUNNING is not set")
 	}
@@ -1726,7 +1618,12 @@ func testKMSTLSOptionsTests(mt *mtest.T) {
 	}
 }
 
-func testExplicitEncryption(mt *mtest.T) {
+var topoOpts = mtest.NewOptions().Topologies(mtest.ReplicaSet, mtest.LoadBalanced, mtest.ShardedReplicaSet)
+
+func TestClientSideEncryptionProse_12_explicit_encryption(t *testing.T) {
+	mt := newCSE_T(t, topoOpts.MinServerVersion("7.0"))
+	mt.Setup()
+
 	// Test Setup ... begin
 	encryptedFields := readJSONFile(mt, "encrypted-fields.json")
 	key1Document := readJSONFile(mt, "key1-document.json")
@@ -1911,7 +1808,10 @@ func testExplicitEncryption(mt *mtest.T) {
 	})
 }
 
-func testUniqueIndexOnKeyAltNames(mt *mtest.T) {
+func TestClientSideEncryptionProse_13_unique_index_on_keyAltNames(t *testing.T) {
+	mt := newCSE_T(t, topoOpts.MinServerVersion("4.2"))
+	mt.Setup()
+
 	const (
 		dkCollection  = "datakeys"
 		idKey         = "_id"
@@ -2050,7 +1950,10 @@ func testUniqueIndexOnKeyAltNames(mt *mtest.T) {
 
 }
 
-func testRewrap(mt *mtest.T) {
+func TestClientSideEncryptionProse_16_rewrap(t *testing.T) {
+	mt := newCSE_T(t, topoOpts.MinServerVersion("4.2"))
+	mt.Setup()
+
 	mt.Run("Case 1: Rewrap with separate ClientEncryption", func(mt *mtest.T) {
 		dataKeyMap := map[string]bson.M{
 			"aws": {
@@ -2211,7 +2114,10 @@ func testRewrap(mt *mtest.T) {
 	})
 }
 
-func testAzureIMDSCredentials(mt *mtest.T) {
+func TestClientSideEncryptionProse_18_azure_imds_credentials(t *testing.T) {
+	mt := newCSE_T(t, noClientOpts)
+	mt.Setup()
+
 	buf := new(bytes.Buffer)
 	kmsProvidersMap := map[string]map[string]any{
 		"azure": {},
@@ -2314,7 +2220,10 @@ func testAzureIMDSCredentials(mt *mtest.T) {
 	})
 }
 
-func testBypassCreatingMongocryptdClientWhenSharedLibraryIsLoaded(mt *mtest.T) {
+func TestClientSideEncryptionProse_20_bypass_creating_mongocryptd_client_when_shared_library_is_loaded(t *testing.T) {
+	mt := newCSE_T(t, noClientOpts)
+	mt.Setup()
+
 	cryptSharedLibPath := os.Getenv("CRYPT_SHARED_LIB_PATH")
 	if cryptSharedLibPath == "" {
 		mt.Skip("CRYPT_SHARED_LIB_PATH not set, skipping")
@@ -2357,7 +2266,13 @@ func testBypassCreatingMongocryptdClientWhenSharedLibraryIsLoaded(mt *mtest.T) {
 	assert.Nil(mt, err, "InsertOne error: %v", err)
 }
 
-func testAutomaticDataEncryptionKeys(mt *mtest.T) {
+// qeRunOpts are requirements for Queryable Encryption.
+var qeRunOpts = mtest.NewOptions().Topologies(mtest.ReplicaSet, mtest.Sharded, mtest.LoadBalanced, mtest.ShardedReplicaSet)
+
+func TestClientSideEncryptionProse_21_automatic_data_encryption_keys(t *testing.T) {
+	mt := newCSE_T(t, qeRunOpts.MinServerVersion("7.0"))
+	mt.Setup()
+
 	setup := func() (*mongo.Client, *mongo.ClientEncryption, error) {
 		opts := options.Client().ApplyURI(mtest.ClusterURI())
 		integtest.AddTestServerAPIVersion(opts)
@@ -2517,7 +2432,10 @@ func testAutomaticDataEncryptionKeys(mt *mtest.T) {
 	}
 }
 
-func testRangeExplicitEncryption(mt *mtest.T) {
+func TestClientSideEncryptionProse_22_range_explicit_encryption(t *testing.T) {
+	mt := newCSE_T(t, qeRunOpts.MinServerVersion("8.0"))
+	mt.Setup()
+
 	type testcase struct {
 		typeStr       string
 		field         string
@@ -2982,7 +2900,10 @@ func testRangeExplicitEncryption(mt *mtest.T) {
 	}
 }
 
-func testRangeExplicitEncryptionAppliesDefaults(mt *mtest.T) {
+func TestClientSideEncryptionProse_23_range_explicit_encryption_applies_defaults(t *testing.T) {
+	mt := newCSE_T(t, qeRunOpts.MinServerVersion("8.0"))
+	mt.Setup()
+
 	err := mt.Client.Database("keyvault").Collection("datakeys").Drop(context.Background())
 	assert.Nil(mt, err, "error on Drop: %v", err)
 
@@ -3046,13 +2967,16 @@ func testRangeExplicitEncryptionAppliesDefaults(mt *mtest.T) {
 	})
 }
 
-func testKMSRetryTests(mt *mtest.T) {
+func TestClientSideEncryptionProse_24_kmw_retry_tests(t *testing.T) {
+	t.Parallel()
+
+	mt := newCSE_T(t, noClientOpts)
+	mt.Setup()
+
 	kmsTlsTestcase := os.Getenv("KMS_FAILPOINT_SERVER_RUNNING")
 	if kmsTlsTestcase == "" {
 		mt.Skipf("Skipping test as KMS_FAILPOINT_SERVER_RUNNING is not set")
 	}
-
-	mt.Parallel()
 
 	tlsCAFile := os.Getenv("KMS_FAILPOINT_CA_FILE")
 	require.NotEqual(mt, tlsCAFile, "", "failed to load CA file")
@@ -3192,7 +3116,10 @@ func testKMSRetryTests(mt *mtest.T) {
 	}
 }
 
-func testTextExplicitEncryption(mt *mtest.T) {
+func TestClientSideEncryptionProse_27_text_explicit_encryption(t *testing.T) {
+	mt := newCSE_T(t, qeRunOpts.MinServerVersion("8.2"))
+	mt.Setup()
+
 	encryptedFields := readJSONFile(mt, "encryptedFields-prefix-suffix.json")
 	key1Document := readJSONFile(mt, "key1-document.json")
 	subtype, data := key1Document.Lookup("_id").Binary()
@@ -3509,7 +3436,10 @@ func testTextExplicitEncryption(mt *mtest.T) {
 	})
 }
 
-func testChangeStreams(mt *mtest.T) {
+func TestChangeStreams(t *testing.T) {
+	mt := newCSE_T(t, mtest.NewOptions().CreateClient(false).Topologies(mtest.ReplicaSet))
+	mt.Setup()
+
 	// Change streams can't easily fit into the spec test format because of their tailable nature, so there are two
 	// prose tests for them instead:
 	//
