@@ -60,6 +60,9 @@ linters:
       # in tests. Disable gosec entirely for test files to reduce noise.
       - linters:
           - gosec
+        path: _test\.go
+      # Ignore prealloc warnings for test files.
+      - linters:
           - prealloc
         path: _test\.go
       # Ignore missing comments for exported variable/function/type for code in
