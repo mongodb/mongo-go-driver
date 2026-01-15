@@ -297,6 +297,8 @@ func runTest(t *testing.T, testsDir string, directory string, filename string) {
 	require.NoError(t, err)
 
 	t.Run(directory+"/"+filename, func(t *testing.T) {
+		spectest.CheckSkip(t)
+
 		var test testCase
 		require.NoError(t, bson.UnmarshalExtJSON(content, true, &test))
 

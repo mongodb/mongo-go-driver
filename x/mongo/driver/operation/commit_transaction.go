@@ -12,6 +12,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/internal/logger"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
@@ -33,6 +34,7 @@ type CommitTransaction struct {
 	writeConcern  *writeconcern.WriteConcern
 	retry         *driver.RetryMode
 	serverAPI     *driver.ServerAPIOptions
+	logger        *logger.Logger
 }
 
 // NewCommitTransaction constructs and returns a new CommitTransaction.
@@ -66,12 +68,11 @@ func (ct *CommitTransaction) Execute(ctx context.Context) error {
 		ServerAPI:         ct.serverAPI,
 		Name:              driverutil.CommitTransactionOp,
 		Authenticator:     ct.authenticator,
+		Logger:            ct.logger,
 	}.Execute(ctx)
-
 }
 
 func (ct *CommitTransaction) command(dst []byte, _ description.SelectedServer) ([]byte, error) {
-
 	dst = bsoncore.AppendInt32Element(dst, "commitTransaction", 1)
 	if ct.recoveryToken != nil {
 		dst = bsoncore.AppendDocumentElement(dst, "recoveryToken", ct.recoveryToken)
@@ -197,5 +198,15 @@ func (ct *CommitTransaction) Authenticator(authenticator driver.Authenticator) *
 	}
 
 	ct.authenticator = authenticator
+	return ct
+}
+
+// Logger sets the logger for this operation.
+func (ct *CommitTransaction) Logger(logger *logger.Logger) *CommitTransaction {
+	if ct == nil {
+		ct = new(CommitTransaction)
+	}
+
+	ct.logger = logger
 	return ct
 }
