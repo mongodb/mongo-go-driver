@@ -41,7 +41,7 @@ func (p *CredentialsProvider) Retrieve(ctx context.Context) (options.AWSCredenti
 	// Check if credentials are cached, and not expired.
 	select {
 	case curCreds, ok := <-p.asyncIsExpired():
-		// ok will only be true, of the credentials were not expired. ok will
+		// ok will only be true, if the credentials were not expired. ok will
 		// be false and have no value if the credentials are expired.
 		if ok {
 			return options.AWSCredentials(curCreds), nil
