@@ -1555,7 +1555,7 @@ func TestMachine_5_2_AzureWithBadUsername(t *testing.T) {
 	opts := options.Client().ApplyURI(uriSingle)
 
 	require.NotNil(t, opts, "failed parsing uri: %q", uriSingle)
-	require.True(
+	require.False(
 		t,
 		opts.Auth == nil || opts.Auth.AuthMechanism != "MONGODB-OIDC",
 		"expected URI to contain MONGODB-OIDC auth information",
