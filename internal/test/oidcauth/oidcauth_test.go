@@ -1312,7 +1312,7 @@ func TestHuman_4_1_ReauthenticationSucceeds(t *testing.T) {
 		ste := <-started
 		require.Equal(t, "find", ste.CommandName, "found unexpected command started")
 	}
-	require.Equal(t, 1, len(succeeded), "expected 1 finds succeed")
+	require.Equal(t, 1, len(succeeded), "expected 1 find to succeed")
 	for len(succeeded) > 0 {
 		sue := <-succeeded
 		require.Equal(t, "find", sue.CommandName, "found unexpected command succeeded")
