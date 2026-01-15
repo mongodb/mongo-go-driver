@@ -102,6 +102,7 @@ func (ro *RangeOptionsBuilder) SetPrecision(precision int32) *RangeOptionsBuilde
 // TextOptions specifies index options for a Queryable Encryption field supporting "text" queries.
 //
 // See corresponding setter methods for documentation.
+//
 // Beta: This is a preview feature and should only be used for experimental workloads.
 // It is not intended for public use. It is subject to breaking changes.
 type TextOptions struct {
@@ -113,6 +114,7 @@ type TextOptions struct {
 }
 
 // SubstringOptions specifies options to support substring queries.
+//
 // Beta: This is a preview feature and should only be used for experimental workloads.
 // It is not intended for public use. It is subject to breaking changes.
 type SubstringOptions struct {
@@ -122,6 +124,7 @@ type SubstringOptions struct {
 }
 
 // PrefixOptions specifies options to support prefix queries.
+//
 // Beta: This is a preview feature and should only be used for experimental workloads.
 // It is not intended for public use. It is subject to breaking changes.
 type PrefixOptions struct {
@@ -130,6 +133,7 @@ type PrefixOptions struct {
 }
 
 // SuffixOptions specifies options to support suffix queries.
+//
 // Beta: This is a preview feature and should only be used for experimental workloads.
 // It is not intended for public use. It is subject to breaking changes.
 type SuffixOptions struct {
@@ -140,6 +144,7 @@ type SuffixOptions struct {
 // TextOptionsBuilder contains options to configure TextOptions for queryable
 // encryption. Each option can be set through setter functions. See
 // documentation for each setter function for an explanation of the option.
+//
 // Beta: This is a preview feature and should only be used for experimental workloads.
 // It is not intended for public use. It is subject to breaking changes.
 type TextOptionsBuilder struct {
@@ -147,6 +152,7 @@ type TextOptionsBuilder struct {
 }
 
 // Text creates a new TextOptions instance.
+//
 // Beta: This is a preview feature and should only be used for experimental workloads.
 // It is not intended for public use. It is subject to breaking changes.
 func Text() *TextOptionsBuilder {
@@ -159,6 +165,7 @@ func (to *TextOptionsBuilder) List() []func(*TextOptions) error {
 }
 
 // SetSubstring sets the text index substring value.
+//
 // Beta: This is a preview feature and should only be used for experimental workloads.
 // It is not intended for public use. It is subject to breaking changes.
 func (to *TextOptionsBuilder) SetSubstring(substring SubstringOptions) *TextOptionsBuilder {
@@ -172,6 +179,7 @@ func (to *TextOptionsBuilder) SetSubstring(substring SubstringOptions) *TextOpti
 }
 
 // SetPrefix sets the text index prefix value.
+//
 // Beta: This is a preview feature and should only be used for experimental workloads.
 // It is not intended for public use. It is subject to breaking changes.
 func (to *TextOptionsBuilder) SetPrefix(prefix PrefixOptions) *TextOptionsBuilder {
@@ -185,6 +193,7 @@ func (to *TextOptionsBuilder) SetPrefix(prefix PrefixOptions) *TextOptionsBuilde
 }
 
 // SetSuffix sets the text index suffix value.
+//
 // Beta: This is a preview feature and should only be used for experimental workloads.
 // It is not intended for public use. It is subject to breaking changes.
 func (to *TextOptionsBuilder) SetSuffix(suffix SuffixOptions) *TextOptionsBuilder {
@@ -198,6 +207,7 @@ func (to *TextOptionsBuilder) SetSuffix(suffix SuffixOptions) *TextOptionsBuilde
 }
 
 // SetCaseSensitive sets the text index caseSensitive value.
+//
 // Beta: This is a preview feature and should only be used for experimental workloads.
 // It is not intended for public use. It is subject to breaking changes.
 func (to *TextOptionsBuilder) SetCaseSensitive(caseSensitive bool) *TextOptionsBuilder {
@@ -211,6 +221,7 @@ func (to *TextOptionsBuilder) SetCaseSensitive(caseSensitive bool) *TextOptionsB
 }
 
 // SetDiacriticSensitive sets the text index diacriticSensitive value.
+//
 // Beta: This is a preview feature and should only be used for experimental workloads.
 // It is not intended for public use. It is subject to breaking changes.
 func (to *TextOptionsBuilder) SetDiacriticSensitive(diacriticSensitive bool) *TextOptionsBuilder {
@@ -330,6 +341,7 @@ func (e *EncryptOptionsBuilder) SetRangeOptions(ro *RangeOptionsBuilder) *Encryp
 }
 
 // SetTextOptions specifies the options to use for text queries.
+//
 // Beta: This is a preview feature and should only be used for experimental workloads.
 // It is not intended for public use. It is subject to breaking changes.
 func (e *EncryptOptionsBuilder) SetTextOptions(to *TextOptionsBuilder) *EncryptOptionsBuilder {
