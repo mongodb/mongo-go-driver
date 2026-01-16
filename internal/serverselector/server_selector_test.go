@@ -282,14 +282,14 @@ func selectServers(t *testing.T, test *testCase) error {
 		}
 	}
 
-	// Compose deprioritized selector with read/write selector if there are deprioritized servers
+	// Compose deprioritized selector with read/write selector if there are deprioritized servers.
+	// This mirrors the pattern used in opServerSelector.SelectServer in x/mongo/driver/operation.go.
+	// These two implementations must stay in sync.
 	baseSelector := selector
 	if len(deprioritizedServers) > 0 {
-		selector = &Composite{
-			Selectors: []description.ServerSelector{
-				&Deprioritized{DeprioritizedServers: deprioritizedServers},
-				baseSelector,
-			},
+		selector = &Deprioritized{
+			DeprioritizedServers: deprioritizedServers,
+			InnerSelector:        baseSelector,
 		}
 	}
 
@@ -303,16 +303,18 @@ func selectServers(t *testing.T, test *testCase) error {
 	latencySelector := &Latency{Latency: time.Duration(15) * time.Millisecond}
 
 	// Build selector chain for latency window: Deprioritized -> baseSelector -> Latency
+	// This mirrors the pattern used in opServerSelector.SelectServer in x/mongo/driver/operation.go.
 	var latencySelectorChain description.ServerSelector = &Composite{
 		Selectors: []description.ServerSelector{baseSelector, latencySelector},
 	}
 	if len(deprioritizedServers) > 0 {
-		latencySelectorChain = &Composite{
-			Selectors: []description.ServerSelector{
-				&Deprioritized{DeprioritizedServers: deprioritizedServers},
-				baseSelector,
-				latencySelector,
-			},
+		// Wrap baseSelector + latencySelector with Deprioritized
+		baseWithLatency := &Composite{
+			Selectors: []description.ServerSelector{baseSelector, latencySelector},
+		}
+		latencySelectorChain = &Deprioritized{
+			DeprioritizedServers: deprioritizedServers,
+			InnerSelector:        baseWithLatency,
 		}
 	}
 
@@ -1428,7 +1430,14 @@ func TestDeprioritizedSelector(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			selector := &Deprioritized{DeprioritizedServers: tc.deprioritized}
+			// Use a pass-through selector as InnerSelector to test deprioritization logic
+			passthrough := Func(func(_ description.Topology, s []description.Server) ([]description.Server, error) {
+				return s, nil
+			})
+			selector := &Deprioritized{
+				DeprioritizedServers: tc.deprioritized,
+				InnerSelector:        passthrough,
+			}
 			got, err := selector.SelectServer(description.Topology{}, tc.candidates)
 			require.NoError(t, err)
 			assert.ElementsMatch(t, got, tc.want)

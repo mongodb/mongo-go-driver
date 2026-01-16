@@ -376,6 +376,11 @@ type opServerSelector struct {
 
 // SelectServer will filter candidates with operation-specific logic before
 // passing them onto the user-defined or default selector.
+//
+// NOTE: This implementation must stay in sync with the test helper selectServers
+// in internal/serverselector/server_selector_test.go. Both use the same pattern
+// of wrapping the base selector with Deprioritized to apply deprioritization
+// before read/write preferences per GODRIVER-3719.
 func (oss *opServerSelector) SelectServer(
 	topo description.Topology,
 	candidates []description.Server,
