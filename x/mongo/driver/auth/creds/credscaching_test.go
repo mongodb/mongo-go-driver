@@ -53,20 +53,30 @@ func TestAWSCredentialProviderCaching(t *testing.T) {
 	t.Setenv(urienv, testEndpoint)
 
 	testCases := []struct {
-		expiration time.Duration
-		reqCount   uint32
+		expiration  time.Duration
+		reqCount    uint32
+		assertError func(t assert.TestingT, err error) bool
 	}{
 		{
 			expiration: 20 * time.Minute,
 			reqCount:   1,
+			assertError: func(t assert.TestingT, err error) bool {
+				return assert.NoError(t, err, "error in GetCredentialsDoc")
+			},
 		},
 		{
 			expiration: 5 * time.Minute,
 			reqCount:   2,
+			assertError: func(t assert.TestingT, err error) bool {
+				return assert.ErrorContains(t, err, "credentials are invalid")
+			},
 		},
 		{
 			expiration: -1 * time.Minute,
 			reqCount:   2,
+			assertError: func(t assert.TestingT, err error) bool {
+				return assert.ErrorContains(t, err, "credentials are invalid")
+			},
 		},
 	}
 	for _, tc := range testCases {
@@ -108,9 +118,9 @@ func TestAWSCredentialProviderCaching(t *testing.T) {
 			p := AWSCredentialProvider{credentials.NewChainCredentials([]credentials.Provider{env, ecs})}
 			var err error
 			_, err = p.GetCredentialsDoc(context.Background())
-			assert.NoError(t, err, "error in GetCredentialsDoc")
+			tc.assertError(t, err)
 			_, err = p.GetCredentialsDoc(context.Background())
-			assert.NoError(t, err, "error in GetCredentialsDoc")
+			tc.assertError(t, err)
 			assert.Equal(t, tc.reqCount, atomic.LoadUint32(&cnt), "expected and actual credentials retrieval count don't match")
 		})
 	}

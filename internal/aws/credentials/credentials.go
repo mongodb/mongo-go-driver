@@ -12,7 +12,7 @@ package credentials
 
 import (
 	"context"
-	"sync"
+	"sync/atomic"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/internal/aws/awserr"
@@ -50,6 +50,18 @@ type Value struct {
 	ProviderName string
 }
 
+// Expired returns if the credentials have expired.
+func (v Value) Expired() bool {
+	if v.CanExpire {
+		// Calling Round(0) on the current time will truncate the monotonic
+		// reading only. Ensures credential expiry time is always based on
+		// reported wall-clock time.
+		return !v.Expires.After(time.Now().Round(0))
+	}
+
+	return false
+}
+
 // HasKeys returns if the credentials Value has both AccessKeyID and
 // SecretAccessKey value set.
 func (v Value) HasKeys() bool {
@@ -66,10 +78,6 @@ type Provider interface {
 	// Retrieve returns nil if it successfully retrieved the value.
 	// Error is returned if the value were not obtainable, or empty.
 	Retrieve(context.Context) (Value, error)
-
-	// IsExpired returns if the credentials are no longer valid, and need
-	// to be retrieved.
-	IsExpired() bool
 }
 
 // A Credentials provides concurrency safe retrieval of AWS credentials Value.
@@ -85,13 +93,12 @@ type Provider interface {
 //
 // The first Credentials.Get() will always call Provider.Retrieve() to get the
 // first instance of the credentials Value. All calls to Get() after that
-// will return the cached credentials Value until IsExpired() returns true.
+// will return the cached credentials Value until Expired() returns true.
 type Credentials struct {
-	sf singleflight.Group
-
-	m        sync.RWMutex
-	creds    Value
 	provider Provider
+
+	creds atomic.Value
+	sf    singleflight.Group
 }
 
 // NewCredentials returns a pointer to a new Credentials with the provider set.
@@ -102,34 +109,18 @@ func NewCredentials(provider Provider) *Credentials {
 	return c
 }
 
-// GetWithContext returns the credentials value, or error if the credentials
+// Get returns the credentials value, or error if the credentials
 // Value failed to be retrieved. Will return early if the passed in context is
 // canceled.
 //
 // Will return the cached credentials Value if it has not expired. If the
 // credentials Value has expired the Provider's Retrieve() will be called
 // to refresh the credentials.
-//
-// If Credentials.Expire() was called the credentials Value will be force
-// expired, and the next call to Get() will cause them to be refreshed.
-func (c *Credentials) GetWithContext(ctx context.Context) (Value, error) {
-	// Check if credentials are cached, and not expired.
-	select {
-	case curCreds, ok := <-c.asyncIsExpired():
-		// ok will only be true, of the credentials were not expired. ok will
-		// be false and have no value if the credentials are expired.
-		if ok {
-			return curCreds, nil
-		}
-	case <-ctx.Done():
-		return Value{}, awserr.New("RequestCanceled",
-			"request context canceled", ctx.Err())
-	}
-
+func (c *Credentials) Get(ctx context.Context) (Value, error) {
 	// Cannot pass context down to the actual retrieve, because the first
 	// context would cancel the whole group when there is not direct
 	// association of items in the group.
-	resCh := c.sf.DoChan("", func() (interface{}, error) {
+	resCh := c.sf.DoChan("", func() (any, error) {
 		return c.singleRetrieve(&suppressedContext{ctx})
 	})
 	select {
@@ -141,43 +132,33 @@ func (c *Credentials) GetWithContext(ctx context.Context) (Value, error) {
 	}
 }
 
-func (c *Credentials) singleRetrieve(ctx context.Context) (interface{}, error) {
-	c.m.Lock()
-	defer c.m.Unlock()
-
-	if curCreds := c.creds; !c.isExpiredLocked(curCreds) {
-		return curCreds, nil
+func (c *Credentials) singleRetrieve(ctx context.Context) (any, error) {
+	if currCreds, ok := c.getCreds(); ok && !currCreds.Expired() {
+		return currCreds, nil
 	}
 
-	creds, err := c.provider.Retrieve(ctx)
+	newCreds, err := c.provider.Retrieve(ctx)
 	if err == nil {
-		c.creds = creds
+		c.creds.Store(&newCreds)
 	}
 
-	return creds, err
+	return newCreds, err
 }
 
-// asyncIsExpired returns a channel of credentials Value. If the channel is
-// closed the credentials are expired and credentials value are not empty.
-func (c *Credentials) asyncIsExpired() <-chan Value {
-	ch := make(chan Value, 1)
-	go func() {
-		c.m.RLock()
-		defer c.m.RUnlock()
+// getCreds returns the currently stored credentials and true. Returning false
+// if no credentials were stored.
+func (c *Credentials) getCreds() (Value, bool) {
+	v := c.creds.Load()
+	if v == nil {
+		return Value{}, false
+	}
 
-		if curCreds := c.creds; !c.isExpiredLocked(curCreds) {
-			ch <- curCreds
-		}
+	val := v.(*Value)
+	if val == nil || !val.HasKeys() {
+		return Value{}, false
+	}
 
-		close(ch)
-	}()
-
-	return ch
-}
-
-// isExpiredLocked helper method wrapping the definition of expired credentials.
-func (c *Credentials) isExpiredLocked(creds interface{}) bool {
-	return creds == nil || creds.(Value) == Value{} || c.provider.IsExpired()
+	return *val, true
 }
 
 type suppressedContext struct {

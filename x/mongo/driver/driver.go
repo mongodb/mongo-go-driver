@@ -89,7 +89,6 @@ type Cred struct {
 // AWSCredentialsProvider is the interface used to retrieve AWS credentials.
 type AWSCredentialsProvider interface {
 	Retrieve(ctx context.Context) (credentials.Value, error)
-	IsExpired() bool
 }
 
 // AWSSigner is an interface to a AWS SigV4 signer that can sign HTTP requests.

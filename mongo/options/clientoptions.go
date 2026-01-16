@@ -141,7 +141,6 @@ type OIDCCredential struct {
 // AWSCredentialsProvider is the interface used to retrieve AWS credentials.
 type AWSCredentialsProvider interface {
 	Retrieve(ctx context.Context) (AWSCredentials, error)
-	Expired() bool
 }
 
 // AWSCredentials represents AWS credentials.

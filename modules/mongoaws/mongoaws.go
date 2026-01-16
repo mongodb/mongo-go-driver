@@ -11,12 +11,10 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
-	"golang.org/x/sync/singleflight"
 
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
@@ -32,10 +30,7 @@ var _ options.AWSCredentialsProvider = (*CredentialsProvider)(nil)
 // MongoDB Go driver. It provides caching and concurrency safe credentials retrieval
 // via the provider's retrieve method.
 type CredentialsProvider struct {
-	sf       singleflight.Group
-	m        sync.RWMutex
 	provider aws.CredentialsProvider
-	creds    *aws.Credentials
 }
 
 // NewCredentialsProvider returns a CredentialsProvider that wraps AWS
@@ -46,104 +41,10 @@ func NewCredentialsProvider(provider aws.CredentialsProvider) *CredentialsProvid
 	}
 }
 
-// Retrieve returns the credentials. If the credentials have already been
-// retrieved, and not expired the cached credentials will be returned. If the
-// credentials have not been retrieved yet, or expired the provider's Retrieve
-// method will be called.
+// Retrieve returns the credentials.
 func (p *CredentialsProvider) Retrieve(ctx context.Context) (options.AWSCredentials, error) {
-	// Check if credentials are cached, and not expired.
-	select {
-	case curCreds, ok := <-p.asyncIsExpired():
-		// ok will only be true, if the credentials were not expired. ok will
-		// be false and have no value if the credentials are expired.
-		if ok {
-			return options.AWSCredentials(curCreds), nil
-		}
-	case <-ctx.Done():
-		return options.AWSCredentials{}, ctx.Err()
-	}
-
-	// Cannot pass context down to the actual retrieve, because the first
-	// context would cancel the whole group when there is not direct
-	// association of items in the group.
-	resCh := p.sf.DoChan("", func() (any, error) {
-		return p.singleRetrieve(&suppressedContext{ctx})
-	})
-	select {
-	case res := <-resCh:
-		if res.Err != nil {
-			return options.AWSCredentials{}, res.Err
-		}
-		creds := res.Val.(aws.Credentials)
-		return options.AWSCredentials(creds), nil
-	case <-ctx.Done():
-		return options.AWSCredentials{}, ctx.Err()
-	}
-}
-
-func (p *CredentialsProvider) singleRetrieve(ctx context.Context) (any, error) {
-	p.m.Lock()
-	defer p.m.Unlock()
-
-	if !p.isExpired() {
-		curCreds := *p.creds
-		return curCreds, nil
-	}
-
 	creds, err := p.provider.Retrieve(ctx)
-	if err == nil {
-		curCreds := creds
-		p.creds = &curCreds
-	}
-
-	return creds, err
-}
-
-// asyncIsExpired returns a channel of credentials Value. If the channel is
-// closed the credentials are expired and credentials value are not empty.
-func (p *CredentialsProvider) asyncIsExpired() <-chan aws.Credentials {
-	ch := make(chan aws.Credentials, 1)
-	go func() {
-		p.m.RLock()
-		defer p.m.RUnlock()
-
-		if !p.isExpired() {
-			curCreds := *p.creds
-			ch <- curCreds
-		}
-
-		close(ch)
-	}()
-
-	return ch
-}
-
-func (p *CredentialsProvider) isExpired() bool {
-	return p.creds == nil || p.creds.Expired()
-}
-
-// Expired returns if the cached credentials are no longer valid, and need
-// to be retrieved.
-func (p *CredentialsProvider) Expired() bool {
-	p.m.RLock()
-	defer p.m.RUnlock()
-	return p.isExpired()
-}
-
-type suppressedContext struct {
-	context.Context
-}
-
-func (s *suppressedContext) Deadline() (deadline time.Time, ok bool) {
-	return time.Time{}, false
-}
-
-func (s *suppressedContext) Done() <-chan struct{} {
-	return nil
-}
-
-func (s *suppressedContext) Err() error {
-	return nil
+	return options.AWSCredentials(creds), err
 }
 
 var _ options.AWSSigner = (*Signer)(nil)

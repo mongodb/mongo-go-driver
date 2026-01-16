@@ -51,10 +51,3 @@ func (s *StaticProvider) Retrieve(_ context.Context) (credentials.Value, error) 
 	}
 	return s.Value, s.err
 }
-
-// IsExpired returns if the credentials are expired.
-//
-// For StaticProvider, the credentials never expired.
-func (s *StaticProvider) IsExpired() bool {
-	return false
-}

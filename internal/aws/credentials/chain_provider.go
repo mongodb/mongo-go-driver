@@ -12,26 +12,19 @@ package credentials
 
 import (
 	"context"
+	"errors"
 
 	"go.mongodb.org/mongo-driver/v2/internal/aws/awserr"
 )
 
-// A ChainProvider will search for a provider which returns credentials
-// and cache that provider until Retrieve is called again.
-//
 // The ChainProvider provides a way of chaining multiple providers together
 // which will pick the first available using priority order of the Providers
 // in the list.
 //
 // If none of the Providers retrieve valid credentials Value, ChainProvider's
-// Retrieve() will return the error ErrNoValidProvidersFoundInChain.
-//
-// If a Provider is found which returns valid credentials Value ChainProvider
-// will cache that Provider for all calls to IsExpired(), until Retrieve is
-// called again.
+// Retrieve() will return an error.
 type ChainProvider struct {
 	Providers []Provider
-	curr      Provider
 }
 
 // NewChainCredentials returns a pointer to a new Credentials object
@@ -44,31 +37,19 @@ func NewChainCredentials(providers []Provider) *Credentials {
 
 // Retrieve returns the credentials value or error if no provider returned
 // without error.
-//
-// If a provider is found it will be cached and any calls to IsExpired()
-// will return the expired state of the cached provider.
 func (c *ChainProvider) Retrieve(ctx context.Context) (Value, error) {
 	var errs = make([]error, 0, len(c.Providers))
 	for _, p := range c.Providers {
 		creds, err := p.Retrieve(ctx)
 		if err == nil {
-			c.curr = p
-			return creds, nil
+			if !creds.Expired() && creds.HasKeys() {
+				return creds, nil
+			}
+			err = errors.New("credentials are invalid")
 		}
 		errs = append(errs, err)
 	}
-	c.curr = nil
 
 	var err = awserr.NewBatchError("NoCredentialProviders", "no valid providers in chain", errs)
 	return Value{}, err
-}
-
-// IsExpired will returned the expired state of the currently cached provider
-// if there is one.  If there is no current provider, true will be returned.
-func (c *ChainProvider) IsExpired() bool {
-	if c.curr != nil {
-		return c.curr.IsExpired()
-	}
-
-	return true
 }

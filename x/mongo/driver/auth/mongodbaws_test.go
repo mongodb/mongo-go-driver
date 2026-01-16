@@ -68,10 +68,6 @@ func (a *testAWSCredentialsProvider) Retrieve(_ context.Context) (credentials.Va
 	return credentials.Value{}, nil
 }
 
-func (*testAWSCredentialsProvider) IsExpired() bool {
-	return false
-}
-
 type testAWSSigner struct {
 	cnt int
 }

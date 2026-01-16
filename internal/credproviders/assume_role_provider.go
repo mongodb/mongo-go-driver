@@ -33,12 +33,11 @@ type AssumeRoleProvider struct {
 	AwsRoleSessionNameEnv      EnvVar
 
 	httpClient *http.Client
-	expiration time.Time
 
 	// expiryWindow will allow the credentials to trigger refreshing prior to the credentials actually expiring.
 	// This is beneficial so expiring credentials do not cause request to fail unexpectedly due to exceptions.
 	//
-	// So a ExpiryWindow of 10s would cause calls to IsExpired() to return true
+	// So a ExpiryWindow of 10s would cause calls to Expired() to return true
 	// 10 seconds before the credentials are actually expired.
 	expiryWindow time.Duration
 }
@@ -131,13 +130,9 @@ func (a *AssumeRoleProvider) Retrieve(ctx context.Context) (credentials.Value, e
 	if !v.HasKeys() {
 		return v, errors.New("failed to retrieve web identity keys")
 	}
+	v.CanExpire = true
 	sec := int64(stsResp.Response.Result.Credentials.Expiration)
-	a.expiration = time.Unix(sec, 0).Add(-a.expiryWindow)
+	v.Expires = time.Unix(sec, 0).Add(-a.expiryWindow)
 
 	return v, nil
-}
-
-// IsExpired returns true if the credentials are expired.
-func (a *AssumeRoleProvider) IsExpired() bool {
-	return a.expiration.Before(time.Now())
 }

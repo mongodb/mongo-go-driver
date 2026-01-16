@@ -261,10 +261,6 @@ func (a *awsCredentialsProvider) Retrieve(_ context.Context) (
 	}, nil
 }
 
-func (*awsCredentialsProvider) Expired() bool {
-	return false
-}
-
 func ExampleConnect_aWS() {
 	// Configure a Client with authentication using the MONGODB-AWS
 	// authentication mechanism. Credentials for this mechanism can come from

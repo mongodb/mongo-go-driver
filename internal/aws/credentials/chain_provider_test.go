@@ -19,18 +19,13 @@ import (
 )
 
 type secondStubProvider struct {
-	creds   Value
-	expired bool
-	err     error
+	creds Value
+	err   error
 }
 
 func (s *secondStubProvider) Retrieve(_ context.Context) (Value, error) {
-	s.expired = false
 	s.creds.ProviderName = "secondStubProvider"
 	return s.creds, s.err
-}
-func (s *secondStubProvider) IsExpired() bool {
-	return s.expired
 }
 
 func TestChainProviderWithNames(t *testing.T) {
@@ -106,49 +101,11 @@ func TestChainProviderGet(t *testing.T) {
 	}
 }
 
-func TestChainProviderIsExpired(t *testing.T) {
-	stubProvider := &stubProvider{expired: true}
-	p := &ChainProvider{
-		Providers: []Provider{
-			stubProvider,
-		},
-	}
-
-	ctx := context.Background()
-
-	if !p.IsExpired() {
-		t.Errorf("Expect expired to be true before any Retrieve")
-	}
-	_, err := p.Retrieve(ctx)
-	if err != nil {
-		t.Errorf("Expect no error, got %v", err)
-	}
-	if p.IsExpired() {
-		t.Errorf("Expect not expired after retrieve")
-	}
-
-	stubProvider.expired = true
-	if !p.IsExpired() {
-		t.Errorf("Expect return of expired provider")
-	}
-
-	_, err = p.Retrieve(ctx)
-	if err != nil {
-		t.Errorf("Expect no error, got %v", err)
-	}
-	if p.IsExpired() {
-		t.Errorf("Expect not expired after retrieve")
-	}
-}
-
 func TestChainProviderWithNoProvider(t *testing.T) {
 	p := &ChainProvider{
 		Providers: []Provider{},
 	}
 
-	if !p.IsExpired() {
-		t.Errorf("Expect expired with no providers")
-	}
 	_, err := p.Retrieve(context.Background())
 	if err.Error() != "NoCredentialProviders: no valid providers in chain" {
 		t.Errorf("Expect no providers error returned, got %v", err)
@@ -167,9 +124,6 @@ func TestChainProviderWithNoValidProvider(t *testing.T) {
 		},
 	}
 
-	if !p.IsExpired() {
-		t.Errorf("Expect expired with no providers")
-	}
 	_, err := p.Retrieve(context.Background())
 
 	expectErr := awserr.NewBatchError("NoCredentialProviders", "no valid providers in chain", errs)

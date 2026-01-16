@@ -52,10 +52,6 @@ func (p awsCredentialsProvider) Retrieve(ctx context.Context) (credentials.Value
 	}, nil
 }
 
-func (p awsCredentialsProvider) IsExpired() bool {
-	return p.provider.Expired()
-}
-
 // NewClientEncryption creates a new ClientEncryption instance configured with the given options.
 func NewClientEncryption(keyVaultClient *Client, opts ...options.Lister[options.ClientEncryptionOptions]) (*ClientEncryption, error) {
 	if keyVaultClient == nil {

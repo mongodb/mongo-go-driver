@@ -30,8 +30,6 @@ type EnvProvider struct {
 	AwsAccessKeyIDEnv     EnvVar
 	AwsSecretAccessKeyEnv EnvVar
 	AwsSessionTokenEnv    EnvVar
-
-	retrieved bool
 }
 
 // NewEnvProvider returns a pointer to an ECS credential provider.
@@ -48,23 +46,17 @@ func NewEnvProvider() *EnvProvider {
 
 // Retrieve retrieves the keys from the environment.
 func (e *EnvProvider) Retrieve(_ context.Context) (credentials.Value, error) {
-	e.retrieved = false
-
 	v := credentials.Value{
 		AccessKeyID:     e.AwsAccessKeyIDEnv.Get(),
 		SecretAccessKey: e.AwsSecretAccessKeyEnv.Get(),
 		SessionToken:    e.AwsSessionTokenEnv.Get(),
 		ProviderName:    envProviderName,
+		CanExpire:       false,
 	}
 	err := verify(v)
-	if err == nil {
-		e.retrieved = true
+	if err != nil {
+		v.CanExpire = true
 	}
 
 	return v, err
-}
-
-// IsExpired returns true if the credentials have not been retrieved.
-func (e *EnvProvider) IsExpired() bool {
-	return !e.retrieved
 }

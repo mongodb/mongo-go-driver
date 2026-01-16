@@ -32,12 +32,11 @@ const (
 // An EC2Provider retrieves credentials from EC2 metadata.
 type EC2Provider struct {
 	httpClient *http.Client
-	expiration time.Time
 
 	// expiryWindow will allow the credentials to trigger refreshing prior to the credentials actually expiring.
 	// This is beneficial so expiring credentials do not cause request to fail unexpectedly due to exceptions.
 	//
-	// So a ExpiryWindow of 10s would cause calls to IsExpired() to return true
+	// So a ExpiryWindow of 10s would cause calls to Expired() to return true
 	// 10 seconds before the credentials are actually expired.
 	expiryWindow time.Duration
 }
@@ -167,12 +166,8 @@ func (e *EC2Provider) Retrieve(ctx context.Context) (credentials.Value, error) {
 	if !v.HasKeys() {
 		return v, errors.New("failed to retrieve EC2 keys")
 	}
-	e.expiration = exp.Add(-e.expiryWindow)
+	v.CanExpire = true
+	v.Expires = exp.Add(-e.expiryWindow)
 
 	return v, nil
-}
-
-// IsExpired returns true if the credentials are expired.
-func (e *EC2Provider) IsExpired() bool {
-	return e.expiration.Before(time.Now())
 }

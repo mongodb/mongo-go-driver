@@ -158,10 +158,6 @@ func (p awsCredentialsProvider) Retrieve(ctx context.Context) (credentials.Value
 	}, nil
 }
 
-func (p awsCredentialsProvider) IsExpired() bool {
-	return p.provider.Expired()
-}
-
 type awsSigner struct {
 	signer options.AWSSigner
 }

@@ -3158,10 +3158,6 @@ func (p *awsCredentialsProvider) Retrieve(ctx context.Context) (options.AWSCrede
 	}, nil
 }
 
-func (p *awsCredentialsProvider) Expired() bool {
-	return false
-}
-
 func TestCustomAwsCredentialsProse(t *testing.T) {
 	mt := mtest.New(t, mtest.NewOptions().CreateClient(false))
 

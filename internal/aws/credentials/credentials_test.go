@@ -12,35 +12,20 @@ package credentials
 
 import (
 	"context"
-	"sync"
 	"testing"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/internal/aws/awserr"
 )
 
-func isExpired(c *Credentials) bool {
-	c.m.RLock()
-	defer c.m.RUnlock()
-
-	return c.isExpiredLocked(c.creds)
-}
-
 type stubProvider struct {
-	creds          Value
-	retrievedCount int
-	expired        bool
-	err            error
+	creds Value
+	err   error
 }
 
 func (s *stubProvider) Retrieve(_ context.Context) (Value, error) {
-	s.retrievedCount++
-	s.expired = false
 	s.creds.ProviderName = "stubProvider"
 	return s.creds, s.err
-}
-func (s *stubProvider) IsExpired() bool {
-	return s.expired
 }
 
 func TestCredentialsGet(t *testing.T) {
@@ -50,10 +35,9 @@ func TestCredentialsGet(t *testing.T) {
 			SecretAccessKey: "SECRET",
 			SessionToken:    "",
 		},
-		expired: true,
 	})
 
-	creds, err := c.GetWithContext(context.Background())
+	creds, err := c.Get(context.Background())
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
@@ -69,34 +53,11 @@ func TestCredentialsGet(t *testing.T) {
 }
 
 func TestCredentialsGetWithError(t *testing.T) {
-	c := NewCredentials(&stubProvider{err: awserr.New("provider error", "", nil), expired: true})
+	c := NewCredentials(&stubProvider{err: awserr.New("provider error", "", nil)})
 
-	_, err := c.GetWithContext(context.Background())
+	_, err := c.Get(context.Background())
 	if e, a := "provider error", err.(awserr.Error).Code(); e != a {
 		t.Errorf("Expected provider error, %v got %v", e, a)
-	}
-}
-
-func TestCredentialsExpire(t *testing.T) {
-	stub := &stubProvider{}
-	c := NewCredentials(stub)
-
-	stub.expired = false
-	if !isExpired(c) {
-		t.Errorf("Expected to start out expired")
-	}
-
-	_, err := c.GetWithContext(context.Background())
-	if err != nil {
-		t.Errorf("Expected no err, got %v", err)
-	}
-	if isExpired(c) {
-		t.Errorf("Expected not to be expired")
-	}
-
-	stub.expired = true
-	if !isExpired(c) {
-		t.Errorf("Expected to be expired")
 	}
 }
 
@@ -105,56 +66,13 @@ func TestCredentialsGetWithProviderName(t *testing.T) {
 
 	c := NewCredentials(stub)
 
-	creds, err := c.GetWithContext(context.Background())
+	creds, err := c.Get(context.Background())
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
 	if e, a := creds.ProviderName, "stubProvider"; e != a {
 		t.Errorf("Expected provider name to match, %v got %v", e, a)
 	}
-}
-
-type MockProvider struct {
-	// The date/time when to expire on
-	expiration time.Time
-
-	// If set will be used by IsExpired to determine the current time.
-	// Defaults to time.Now if CurrentTime is not set.  Available for testing
-	// to be able to mock out the current time.
-	CurrentTime func() time.Time
-}
-
-// IsExpired returns if the credentials are expired.
-func (e *MockProvider) IsExpired() bool {
-	curTime := e.CurrentTime
-	if curTime == nil {
-		curTime = time.Now
-	}
-	return e.expiration.Before(curTime())
-}
-
-func (*MockProvider) Retrieve(_ context.Context) (Value, error) {
-	return Value{}, nil
-}
-
-func TestCredentialsIsExpired_Race(_ *testing.T) {
-	creds := NewChainCredentials([]Provider{&MockProvider{}})
-
-	starter := make(chan struct{})
-	var wg sync.WaitGroup
-	wg.Add(10)
-	for i := 0; i < 10; i++ {
-		go func() {
-			defer wg.Done()
-			<-starter
-			for i := 0; i < 100; i++ {
-				isExpired(creds)
-			}
-		}()
-	}
-	close(starter)
-
-	wg.Wait()
 }
 
 type stubProviderConcurrent struct {
@@ -177,7 +95,7 @@ func TestCredentialsGetConcurrent(t *testing.T) {
 
 	for i := 0; i < 2; i++ {
 		go func() {
-			_, err := c.GetWithContext(context.Background())
+			_, err := c.Get(context.Background())
 			if err != nil {
 				t.Errorf("Expected no err, got %v", err)
 			}
@@ -186,6 +104,7 @@ func TestCredentialsGetConcurrent(t *testing.T) {
 	}
 
 	// Validates that a single call to Retrieve is shared between two calls to Get
+	time.Sleep(10 * time.Millisecond)
 	stub.done <- struct{}{}
 	<-done
 	<-done

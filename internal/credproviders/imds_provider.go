@@ -28,7 +28,6 @@ const (
 // An AzureProvider retrieves credentials from Azure IMDS.
 type AzureProvider struct {
 	httpClient   *http.Client
-	expiration   time.Time
 	expiryWindow time.Duration
 }
 
@@ -36,7 +35,6 @@ type AzureProvider struct {
 func NewAzureProvider(httpClient *http.Client, expiryWindow time.Duration) *AzureProvider {
 	return &AzureProvider{
 		httpClient:   httpClient,
-		expiration:   time.Time{},
 		expiryWindow: expiryWindow,
 	}
 }
@@ -85,14 +83,10 @@ func (a *AzureProvider) Retrieve(ctx context.Context) (credentials.Value, error)
 	if err != nil {
 		return v, err
 	}
+	v.CanExpire = true
 	if expiration := expiresIn - a.expiryWindow; expiration > 0 {
-		a.expiration = time.Now().Add(expiration)
+		v.Expires = time.Now().Add(expiration)
 	}
 
 	return v, err
-}
-
-// IsExpired returns if the credentials have been retrieved.
-func (a *AzureProvider) IsExpired() bool {
-	return a.expiration.Before(time.Now())
 }
