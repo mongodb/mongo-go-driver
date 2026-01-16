@@ -17,4 +17,4 @@
 // NewSigner() adapts an AWS HTTPSigner to be used in:
 //
 //	ClientOptions
-package mongoaws
+package awsauth
