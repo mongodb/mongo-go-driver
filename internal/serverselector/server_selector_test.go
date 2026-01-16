@@ -8,7 +8,7 @@ package serverselector
 
 import (
 	"errors"
-	"io/ioutil"
+	"os"
 	"path"
 	"testing"
 	"time"
@@ -292,8 +292,10 @@ func selectServers(t *testing.T, test *testCase) error {
 
 func runTest(t *testing.T, testsDir string, directory string, filename string) {
 	filepath := path.Join(testsDir, directory, filename)
-	content, err := ioutil.ReadFile(filepath)
-	require.NoError(t, err)
+	content, err := os.ReadFile(filepath)
+	if err != nil {
+		t.Fatalf("failed to read file %s: %v", filepath, err)
+	}
 
 	t.Run(directory+"/"+filename, func(t *testing.T) {
 		spectest.CheckSkip(t)
