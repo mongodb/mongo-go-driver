@@ -85,6 +85,10 @@ func newCSE_T(t *testing.T, opts *mtest.Options) *mtest.T {
 	return mt
 }
 
+func newNoClientOpts() *mtest.Options {
+	return mtest.NewOptions().CreateClient(false)
+}
+
 func TestClientSideEncryptionProse_1_custom_key_material_test(t *testing.T) {
 	mt := newCSE_T(t, mtest.NewOptions())
 	mt.Setup()
@@ -177,7 +181,7 @@ func TestClientSideEncryptionProse_1_custom_key_material_test(t *testing.T) {
 }
 
 func TestClientSideEncryptionProse_2_data_key_and_double_encryption(t *testing.T) {
-	mt := newCSE_T(t, noClientOpts)
+	mt := newCSE_T(t, newNoClientOpts())
 	mt.Setup()
 
 	// set up options structs
@@ -322,7 +326,7 @@ func TestClientSideEncryptionProse_2_data_key_and_double_encryption(t *testing.T
 }
 
 func TestClientSideEncryptionProse_3_external_key_vault_test(t *testing.T) {
-	mt := newCSE_T(t, noClientOpts)
+	mt := newCSE_T(t, newNoClientOpts())
 	mt.Setup()
 
 	testCases := []struct {
@@ -533,7 +537,7 @@ func TestClientSideEncryptionProse_5_views_are_prohibited(t *testing.T) {
 }
 
 func TestClientSideEncryptionProse_6_corpus_test(t *testing.T) {
-	mt := newCSE_T(t, noClientOpts)
+	mt := newCSE_T(t, newNoClientOpts())
 	mt.Setup()
 
 	if "" == os.Getenv("KMS_MOCK_SERVERS_RUNNING") {
@@ -1065,7 +1069,7 @@ func TestClientSideEncryptionProse_7_custom_endpoint_test(t *testing.T) {
 func TestClientSideEncryptionProse_8_bypass_spawning_mongocryptd(t *testing.T) {
 	t.Parallel()
 
-	mt := newCSE_T(t, noClientOpts)
+	mt := newCSE_T(t, newNoClientOpts())
 	mt.Setup()
 
 	kmsProviders := map[string]map[string]any{
@@ -1192,7 +1196,7 @@ func TestClientSideEncryptionProse_8_bypass_spawning_mongocryptd(t *testing.T) {
 }
 
 func TestClientSideEncryptionProse_9_deadlock_tests(t *testing.T) {
-	mt := newCSE_T(t, noClientOpts)
+	mt := newCSE_T(t, newNoClientOpts())
 	mt.Setup()
 
 	testcases := []struct {
@@ -1337,7 +1341,7 @@ func TestClientSideEncryptionProse_9_deadlock_tests(t *testing.T) {
 }
 
 func TestClientSideEncryptionProse_10_kms_tls_tests(t *testing.T) {
-	mt := newCSE_T(t, noClientOpts)
+	mt := newCSE_T(t, newNoClientOpts())
 	mt.Setup()
 
 	if os.Getenv("KMS_MOCK_SERVERS_RUNNING") == "" {
@@ -1384,7 +1388,7 @@ func TestClientSideEncryptionProse_10_kms_tls_tests(t *testing.T) {
 }
 
 func TestClientSideEncryptionProse_11_kms_tls_options_tests(t *testing.T) {
-	mt := newCSE_T(t, noClientOpts)
+	mt := newCSE_T(t, newNoClientOpts())
 	mt.Setup()
 
 	if os.Getenv("KMS_MOCK_SERVERS_RUNNING") == "" {
@@ -1618,10 +1622,12 @@ func TestClientSideEncryptionProse_11_kms_tls_options_tests(t *testing.T) {
 	}
 }
 
-var topoOpts = mtest.NewOptions().Topologies(mtest.ReplicaSet, mtest.LoadBalanced, mtest.ShardedReplicaSet)
+func newTopoOpts() *mtest.Options {
+	return mtest.NewOptions().Topologies(mtest.ReplicaSet, mtest.LoadBalanced, mtest.ShardedReplicaSet)
+}
 
 func TestClientSideEncryptionProse_12_explicit_encryption(t *testing.T) {
-	mt := newCSE_T(t, topoOpts.MinServerVersion("7.0"))
+	mt := newCSE_T(t, newTopoOpts().MinServerVersion("7.0"))
 	mt.Setup()
 
 	// Test Setup ... begin
@@ -1809,7 +1815,7 @@ func TestClientSideEncryptionProse_12_explicit_encryption(t *testing.T) {
 }
 
 func TestClientSideEncryptionProse_13_unique_index_on_keyAltNames(t *testing.T) {
-	mt := newCSE_T(t, topoOpts.MinServerVersion("4.2"))
+	mt := newCSE_T(t, newTopoOpts().MinServerVersion("4.2"))
 	mt.Setup()
 
 	const (
@@ -1951,7 +1957,7 @@ func TestClientSideEncryptionProse_13_unique_index_on_keyAltNames(t *testing.T) 
 }
 
 func TestClientSideEncryptionProse_16_rewrap(t *testing.T) {
-	mt := newCSE_T(t, topoOpts.MinServerVersion("4.2"))
+	mt := newCSE_T(t, newTopoOpts().MinServerVersion("4.2"))
 	mt.Setup()
 
 	mt.Run("Case 1: Rewrap with separate ClientEncryption", func(mt *mtest.T) {
@@ -2115,7 +2121,7 @@ func TestClientSideEncryptionProse_16_rewrap(t *testing.T) {
 }
 
 func TestClientSideEncryptionProse_18_azure_imds_credentials(t *testing.T) {
-	mt := newCSE_T(t, noClientOpts)
+	mt := newCSE_T(t, newNoClientOpts())
 	mt.Setup()
 
 	buf := new(bytes.Buffer)
@@ -2221,7 +2227,7 @@ func TestClientSideEncryptionProse_18_azure_imds_credentials(t *testing.T) {
 }
 
 func TestClientSideEncryptionProse_20_bypass_creating_mongocryptd_client_when_shared_library_is_loaded(t *testing.T) {
-	mt := newCSE_T(t, noClientOpts)
+	mt := newCSE_T(t, newTopoOpts())
 	mt.Setup()
 
 	cryptSharedLibPath := os.Getenv("CRYPT_SHARED_LIB_PATH")
@@ -2266,11 +2272,13 @@ func TestClientSideEncryptionProse_20_bypass_creating_mongocryptd_client_when_sh
 	assert.Nil(mt, err, "InsertOne error: %v", err)
 }
 
-// qeRunOpts are requirements for Queryable Encryption.
-var qeRunOpts = mtest.NewOptions().Topologies(mtest.ReplicaSet, mtest.Sharded, mtest.LoadBalanced, mtest.ShardedReplicaSet)
+// newQEOpts creates Options for Queryable Encryption.
+func newQEOpts() *mtest.Options {
+	return mtest.NewOptions().Topologies(mtest.ReplicaSet, mtest.Sharded, mtest.LoadBalanced, mtest.ShardedReplicaSet)
+}
 
 func TestClientSideEncryptionProse_21_automatic_data_encryption_keys(t *testing.T) {
-	mt := newCSE_T(t, qeRunOpts.MinServerVersion("7.0"))
+	mt := newCSE_T(t, newQEOpts().MinServerVersion("7.0"))
 	mt.Setup()
 
 	setup := func() (*mongo.Client, *mongo.ClientEncryption, error) {
@@ -2433,7 +2441,7 @@ func TestClientSideEncryptionProse_21_automatic_data_encryption_keys(t *testing.
 }
 
 func TestClientSideEncryptionProse_22_range_explicit_encryption(t *testing.T) {
-	mt := newCSE_T(t, qeRunOpts.MinServerVersion("8.0"))
+	mt := newCSE_T(t, newQEOpts().MinServerVersion("8.0"))
 	mt.Setup()
 
 	type testcase struct {
@@ -2901,7 +2909,7 @@ func TestClientSideEncryptionProse_22_range_explicit_encryption(t *testing.T) {
 }
 
 func TestClientSideEncryptionProse_23_range_explicit_encryption_applies_defaults(t *testing.T) {
-	mt := newCSE_T(t, qeRunOpts.MinServerVersion("8.0"))
+	mt := newCSE_T(t, newQEOpts().MinServerVersion("8.0"))
 	mt.Setup()
 
 	err := mt.Client.Database("keyvault").Collection("datakeys").Drop(context.Background())
@@ -2970,7 +2978,7 @@ func TestClientSideEncryptionProse_23_range_explicit_encryption_applies_defaults
 func TestClientSideEncryptionProse_24_kmw_retry_tests(t *testing.T) {
 	t.Parallel()
 
-	mt := newCSE_T(t, noClientOpts)
+	mt := newCSE_T(t, newNoClientOpts())
 	mt.Setup()
 
 	kmsTlsTestcase := os.Getenv("KMS_FAILPOINT_SERVER_RUNNING")
@@ -3117,7 +3125,7 @@ func TestClientSideEncryptionProse_24_kmw_retry_tests(t *testing.T) {
 }
 
 func TestClientSideEncryptionProse_27_text_explicit_encryption(t *testing.T) {
-	mt := newCSE_T(t, qeRunOpts.MinServerVersion("8.2"))
+	mt := newCSE_T(t, newQEOpts().MinServerVersion("8.2"))
 	mt.Setup()
 
 	encryptedFields := readJSONFile(mt, "encryptedFields-prefix-suffix.json")
