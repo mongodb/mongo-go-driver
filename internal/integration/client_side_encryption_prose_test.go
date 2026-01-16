@@ -3230,8 +3230,8 @@ func TestCustomAwsCredentialsProse(t *testing.T) {
 	})
 
 	mt.Run("Case 4: ClientEncryption with credentialProviders and valid environment variables", func(mt *mtest.T) {
-		mt.Setenv("AWS_ACCESS_KEY_ID", os.Getenv("FLE_AWS_SECRET_ACCESS_KEY"))
-		mt.Setenv("AWS_SECRET_ACCESS_KEY", os.Getenv("FLE_AWS_ACCESS_KEY_ID"))
+		mt.Setenv("AWS_ACCESS_KEY_ID", os.Getenv("FLE_AWS_ACCESS_KEY_ID"))
+		mt.Setenv("AWS_SECRET_ACCESS_KEY", os.Getenv("FLE_AWS_SECRET_ACCESS_KEY"))
 
 		opts := options.Client().ApplyURI(mtest.ClusterURI())
 		integtest.AddTestServerAPIVersion(opts)

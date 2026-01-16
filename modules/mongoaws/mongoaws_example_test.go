@@ -1,4 +1,4 @@
-// Copyright (C) MongoDB, Inc. 2026-present.
+// Copyright (C) MongoDB, Inc. 2017-present.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may
 // not use this file except in compliance with the License. You may obtain
@@ -14,7 +14,7 @@ import (
 )
 
 func ExampleNewCredentialsProvider() {
-	awsCredentialProvider := NewCredentialsProvider(aws.NewConfig())
+	awsCredentialProvider := NewCredentialsProvider(aws.NewConfig().Credentials)
 	credential := options.Credential{
 		AuthMechanism:          "MONGODB-AWS",
 		AWSCredentialsProvider: awsCredentialProvider,
@@ -28,7 +28,7 @@ func ExampleNewCredentialsProvider() {
 }
 
 func ExampleNewSigner() {
-	awsCredentialProvider := NewCredentialsProvider(aws.NewConfig())
+	awsCredentialProvider := NewCredentialsProvider(aws.NewConfig().Credentials)
 	awsSigner := NewSigner(v4.NewSigner())
 	_ = awsSigner
 	credential := options.Credential{

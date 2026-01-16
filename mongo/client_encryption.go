@@ -44,6 +44,10 @@ func (p awsCredentialsProvider) Retrieve(ctx context.Context) (credentials.Value
 		AccessKeyID:     creds.AccessKeyID,
 		SecretAccessKey: creds.SecretAccessKey,
 		SessionToken:    creds.SessionToken,
+		Source:          creds.Source,
+		CanExpire:       creds.CanExpire,
+		Expires:         creds.Expires,
+		AccountID:       creds.AccountID,
 		ProviderName:    "AwsProvider",
 	}, nil
 }
