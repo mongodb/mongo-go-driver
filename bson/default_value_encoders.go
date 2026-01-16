@@ -369,7 +369,8 @@ func binaryEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error
 func vectorEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
 	t := val.Type()
 	if !val.IsValid() || t != tVector {
-		return ValueEncoderError{Name: "VectorEncodeValue",
+		return ValueEncoderError{
+			Name:     "VectorEncodeValue",
 			Types:    []reflect.Type{tVector},
 			Received: val,
 		}

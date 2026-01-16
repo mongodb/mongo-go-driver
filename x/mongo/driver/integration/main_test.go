@@ -28,9 +28,11 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/topology"
 )
 
-var host *string
-var connectionString *connstring.ConnString
-var dbName string
+var (
+	host             *string
+	connectionString *connstring.ConnString
+	dbName           string
+)
 
 func TestMain(m *testing.M) {
 	flag.Parse()

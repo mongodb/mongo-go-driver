@@ -21,12 +21,10 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
 )
 
-var (
-	x509Response bsoncore.Document = bsoncore.BuildDocumentFromElements(nil,
-		bsoncore.AppendStringElement(nil, "dbname", "$external"),
-		bsoncore.AppendStringElement(nil, "user", "username"),
-		bsoncore.AppendInt32Element(nil, "ok", 1),
-	)
+var x509Response bsoncore.Document = bsoncore.BuildDocumentFromElements(nil,
+	bsoncore.AppendStringElement(nil, "dbname", "$external"),
+	bsoncore.AppendStringElement(nil, "user", "username"),
+	bsoncore.AppendInt32Element(nil, "ok", 1),
 )
 
 func TestSpeculativeX509(t *testing.T) {

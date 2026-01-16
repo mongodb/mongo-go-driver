@@ -46,7 +46,6 @@ func NewListIndexes() *ListIndexes {
 
 // Result returns the result of executing this operation.
 func (li *ListIndexes) Result(opts driver.CursorOptions) (*driver.BatchCursor, error) {
-
 	clientSession := li.session
 
 	clock := li.clock
@@ -61,7 +60,6 @@ func (li *ListIndexes) processResponse(_ context.Context, resp bsoncore.Document
 	}
 	li.result, err = driver.NewCursorResponse(curDoc, info)
 	return err
-
 }
 
 // Execute runs this operations and returns an error if the operation did not execute successfully.
@@ -89,7 +87,6 @@ func (li *ListIndexes) Execute(ctx context.Context) error {
 		Name:           driverutil.ListIndexesOp,
 		Authenticator:  li.authenticator,
 	}.Execute(ctx)
-
 }
 
 func (li *ListIndexes) command(dst []byte, desc description.SelectedServer) ([]byte, error) {

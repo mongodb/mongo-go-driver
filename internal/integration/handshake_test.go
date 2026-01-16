@@ -870,7 +870,6 @@ func TestHandshakeProse_AppendMetadata_NotAppendedIfIdentical(t *testing.T) {
 
 	clientMetadata := clientMetadataFromHandshake(mt, updatedClientMetadata.Sent.Command)
 	assertbson.EqualDocument(mt, want, clientMetadata)
-
 }
 
 // Test 6: Metadata is not appended if identical to initial metadata (separated

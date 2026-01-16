@@ -529,13 +529,15 @@ func BenchmarkLookupEncoder(b *testing.B) {
 	})
 }
 
-type fakeType1 struct{}
-type fakeType2 struct{}
-type fakeType4 struct{}
-type fakeType5 func(string, string) string
-type fakeStructCodec struct{ *fakeCodec }
-type fakeSliceCodec struct{ *fakeCodec }
-type fakeMapCodec struct{ *fakeCodec }
+type (
+	fakeType1       struct{}
+	fakeType2       struct{}
+	fakeType4       struct{}
+	fakeType5       func(string, string) string
+	fakeStructCodec struct{ *fakeCodec }
+	fakeSliceCodec  struct{ *fakeCodec }
+	fakeMapCodec    struct{ *fakeCodec }
+)
 
 type fakeCodec struct {
 	// num is used to differentiate fakeCodec instances and to force Go to allocate a new value in
@@ -548,14 +550,17 @@ type fakeCodec struct {
 func (*fakeCodec) EncodeValue(EncodeContext, ValueWriter, reflect.Value) error {
 	return nil
 }
+
 func (*fakeCodec) DecodeValue(DecodeContext, ValueReader, reflect.Value) error {
 	return nil
 }
 
-type testInterface1 interface{ test1() }
-type testInterface2 interface{ test2() }
-type testInterface3 interface{ test3() }
-type testInterface4 interface{ test4() }
+type (
+	testInterface1 interface{ test1() }
+	testInterface2 interface{ test2() }
+	testInterface3 interface{ test3() }
+	testInterface4 interface{ test4() }
+)
 
 type testInterface1Impl struct{}
 
