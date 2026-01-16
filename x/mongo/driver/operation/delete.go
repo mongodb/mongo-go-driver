@@ -118,7 +118,6 @@ func (d *Delete) Execute(ctx context.Context) error {
 		Name:              driverutil.DeleteOp,
 		Authenticator:     d.authenticator,
 	}.Execute(ctx)
-
 }
 
 func (d *Delete) command(dst []byte, desc description.SelectedServer) ([]byte, error) {

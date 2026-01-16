@@ -49,5 +49,4 @@ func TestGSSAPIAuthenticator(t *testing.T) {
 			t.Fatalf("expected err, got nil")
 		}
 	})
-
 }

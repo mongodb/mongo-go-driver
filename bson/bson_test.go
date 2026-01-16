@@ -299,6 +299,7 @@ func TestMStringer(t *testing.T) {
 
 	assert.Equal(t, want, res, "returned string did not unmarshal to the expected document, returned string: %s", got)
 }
+
 func TestD_MarshalJSON(t *testing.T) {
 	t.Parallel()
 
@@ -562,7 +563,6 @@ func TestMapCodec(t *testing.T) {
 		err = Unmarshal(doc, &got)
 		assert.Nil(t, err, "Unmarshal error: %v", err)
 		assert.Equal(t, mapObj, got, "expected result %v, got %v", mapObj, got)
-
 	})
 
 	t.Run("keys implements encoding.TextMarshaler and encoding.TextUnmarshaler", func(t *testing.T) {
@@ -581,7 +581,6 @@ func TestMapCodec(t *testing.T) {
 		err = Unmarshal(doc, &got)
 		assert.Nil(t, err, "Unmarshal error: %v", err)
 		assert.Equal(t, mapObj, got, "expected result %v, got %v", mapObj, got)
-
 	})
 }
 

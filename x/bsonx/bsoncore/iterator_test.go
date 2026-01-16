@@ -263,7 +263,6 @@ func TestIterator_Next(t *testing.T) {
 			assert.ErrorIs(t, err, io.EOF)
 		})
 	}
-
 }
 
 // BenchmarkNext measures the performance of the Next function.

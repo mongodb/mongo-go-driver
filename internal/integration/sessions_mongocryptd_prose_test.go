@@ -105,7 +105,6 @@ func newTestSessionMongocryptdProseClient(mt *mtest.T) *mongo.Client {
 	require.NoError(mt, err, "could not connect to mongocryptd: %v", err)
 
 	return client
-
 }
 
 func TestSessionsMongocryptdProse(t *testing.T) {

@@ -76,7 +76,8 @@ func awaitSaturation(ctx context.Context, mt *mtest.T, monitor *eventtest.TestPo
 // this is to test the reliability of the server selection algorithm, which can be verified with the `counts` map and
 // `event.PoolEvent` slice.
 func runsServerSelection(mt *mtest.T, monitor *eventtest.TestPoolMonitor,
-	threadCount, opCount int) (map[string]int, []*event.PoolEvent) {
+	threadCount, opCount int,
+) (map[string]int, []*event.PoolEvent) {
 	var wg sync.WaitGroup
 	for i := 0; i < threadCount; i++ {
 		wg.Add(1)

@@ -181,7 +181,6 @@ func TestSDAMProse(t *testing.T) {
 		pingTime := time.Since(start)
 		assert.True(mt, pingTime > 2000*time.Millisecond && pingTime < 3500*time.Millisecond,
 			"expected Ping to take between 2 and 3.5 seconds, took %v seconds", pingTime.Seconds())
-
 	})
 }
 

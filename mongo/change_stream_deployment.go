@@ -21,12 +21,13 @@ type changeStreamDeployment struct {
 	conn         *mnet.Connection
 }
 
-var _ driver.Deployment = (*changeStreamDeployment)(nil)
-var _ driver.Server = (*changeStreamDeployment)(nil)
-var _ driver.ErrorProcessor = (*changeStreamDeployment)(nil)
+var (
+	_ driver.Deployment     = (*changeStreamDeployment)(nil)
+	_ driver.Server         = (*changeStreamDeployment)(nil)
+	_ driver.ErrorProcessor = (*changeStreamDeployment)(nil)
+)
 
 func (c *changeStreamDeployment) SelectServer(context.Context, description.ServerSelector) (driver.Server, error) {
-
 	return c, nil
 }
 

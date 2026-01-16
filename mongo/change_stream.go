@@ -103,7 +103,8 @@ type changeStreamConfig struct {
 }
 
 func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline any,
-	opts ...options.Lister[options.ChangeStreamOptions]) (*ChangeStream, error) {
+	opts ...options.Lister[options.ChangeStreamOptions],
+) (*ChangeStream, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}

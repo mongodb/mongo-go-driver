@@ -107,7 +107,6 @@ func (dc *DropCollection) Execute(ctx context.Context) error {
 		Name:              driverutil.DropOp,
 		Authenticator:     dc.authenticator,
 	}.Execute(ctx)
-
 }
 
 func (dc *DropCollection) command(dst []byte, _ description.SelectedServer) ([]byte, error) {

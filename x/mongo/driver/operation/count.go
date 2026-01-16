@@ -129,7 +129,6 @@ func (c *Count) Execute(ctx context.Context) error {
 		Name:              driverutil.CountOp,
 		Authenticator:     c.authenticator,
 	}.Execute(ctx)
-
 	// Swallow error if NamespaceNotFound(26) is returned from aggregate on non-existent namespace
 	if err != nil {
 		dErr, ok := err.(driver.Error)

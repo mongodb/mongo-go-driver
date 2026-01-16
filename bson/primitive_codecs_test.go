@@ -32,7 +32,7 @@ func bytesFromDoc(doc any) []byte {
 func TestPrimitiveValueEncoders(t *testing.T) {
 	t.Parallel()
 
-	var wrong = func(string, string) string { return "wrong" }
+	wrong := func(string, string) string { return "wrong" }
 
 	type subtest struct {
 		name   string
@@ -191,7 +191,7 @@ func TestPrimitiveValueEncoders(t *testing.T) {
 
 		oid := NewObjectID()
 		oids := []ObjectID{NewObjectID(), NewObjectID(), NewObjectID()}
-		var str = new(string)
+		str := new(string)
 		*str = "bar"
 		now := time.Now().Truncate(time.Millisecond)
 		murl, err := url.Parse("https://mongodb.com/random-url?hello=world")
@@ -476,7 +476,7 @@ func TestPrimitiveValueEncoders(t *testing.T) {
 }
 
 func TestPrimitiveValueDecoders(t *testing.T) {
-	var wrong = func(string, string) string { return "wrong" }
+	wrong := func(string, string) string { return "wrong" }
 
 	const cansetreflectiontest = "cansetreflectiontest"
 
@@ -638,7 +638,7 @@ func TestPrimitiveValueDecoders(t *testing.T) {
 	t.Run("success path", func(t *testing.T) {
 		oid := NewObjectID()
 		oids := []ObjectID{NewObjectID(), NewObjectID(), NewObjectID()}
-		var str = new(string)
+		str := new(string)
 		*str = "bar"
 		now := time.Now().Truncate(time.Millisecond)
 		murl, err := url.Parse("https://mongodb.com/random-url?hello=world")
@@ -1080,6 +1080,7 @@ func (tvu *testValueUnmarshaler) UnmarshalBSONValue(t byte, val []byte) error {
 	tvu.t, tvu.val = Type(t), val
 	return tvu.err
 }
+
 func (tvu testValueUnmarshaler) Equal(tvu2 testValueUnmarshaler) bool {
 	return tvu.t == tvu2.t && bytes.Equal(tvu.val, tvu2.val)
 }

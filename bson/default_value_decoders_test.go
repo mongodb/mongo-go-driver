@@ -24,7 +24,7 @@ import (
 )
 
 func TestDefaultValueDecoders(t *testing.T) {
-	var wrong = func(string, string) string { return "wrong" }
+	wrong := func(string, string) string { return "wrong" }
 
 	type mybool bool
 	type myint8 int8
@@ -47,9 +47,9 @@ func TestDefaultValueDecoders(t *testing.T) {
 
 	now := time.Now().Truncate(time.Millisecond)
 	d128 := NewDecimal128(12345, 67890)
-	var pbool = func(b bool) *bool { return &b }
-	var pi32 = func(i32 int32) *int32 { return &i32 }
-	var pi64 = func(i64 int64) *int64 { return &i64 }
+	pbool := func(b bool) *bool { return &b }
+	pi32 := func(i32 int32) *int32 { return &i32 }
+	pi64 := func(i64 int64) *int64 { return &i64 }
 
 	type subtest struct {
 		name   string
@@ -2584,7 +2584,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 	t.Run("success path", func(t *testing.T) {
 		oid := NewObjectID()
 		oids := []ObjectID{NewObjectID(), NewObjectID(), NewObjectID()}
-		var str = new(string)
+		str := new(string)
 		*str = "bar"
 		now := time.Now().Truncate(time.Millisecond).UTC()
 		murl, err := url.Parse("https://mongodb.com/random-url?hello=world")

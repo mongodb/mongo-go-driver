@@ -18,15 +18,15 @@ import (
 )
 
 var datakeyopts = map[string]bson.M{
-	"aws": bson.M{
+	"aws": {
 		"region": "us-east-1",
 		"key":    "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
 	},
-	"azure": bson.M{
+	"azure": {
 		"keyVaultEndpoint": "",
 		"keyName":          "",
 	},
-	"gcp": bson.M{
+	"gcp": {
 		"projectId": "devprod-drivers",
 		"location":  "global",
 		"keyRing":   "key-ring-csfle",

@@ -18,12 +18,10 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
-var (
-	ignoredKillAllSessionsErrors = []int{
-		11601, // Interrupted, for SERVER-38335 on server versions below 4.2
-		13,    // Unauthorized, for SERVER-54216 on atlas
-	}
-)
+var ignoredKillAllSessionsErrors = []int{
+	11601, // Interrupted, for SERVER-38335 on server versions below 4.2
+	13,    // Unauthorized, for SERVER-54216 on atlas
+}
 
 // terminateOpenSessions executes a killAllSessions command to ensure that sessions left open on the server by a test
 // do not cause future tests to hang.

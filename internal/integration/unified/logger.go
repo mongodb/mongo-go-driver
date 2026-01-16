@@ -89,7 +89,8 @@ func (log *Logger) Info(level int, msg string, args ...any) {
 	// validation.
 	log.logQueue <- orderedLogMessage{
 		order:      log.lastOrder + 1,
-		logMessage: logMessage}
+		logMessage: logMessage,
+	}
 
 	// If the order has reached the buffer size, then close the channel.
 	if log.lastOrder == log.bufSize {

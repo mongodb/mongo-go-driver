@@ -91,5 +91,4 @@ func TestAggregate(t *testing.T) {
 			t.Errorf("Expected no error from allowing disk use, but got %v", err)
 		}
 	})
-
 }

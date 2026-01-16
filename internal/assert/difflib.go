@@ -94,8 +94,8 @@ func NewMatcher(a, b []string) *SequenceMatcher {
 }
 
 func NewMatcherWithJunk(a, b []string, autoJunk bool,
-	isJunk func(string) bool) *SequenceMatcher {
-
+	isJunk func(string) bool,
+) *SequenceMatcher {
 	m := SequenceMatcher{IsJunk: isJunk, autoJunk: autoJunk}
 	m.SetSeqs(a, b)
 	return &m
@@ -430,8 +430,10 @@ func (m *SequenceMatcher) GetGroupedOpCodes(n int) [][]OpCode {
 		// End the current group and start a new one whenever
 		// there is a large range with no changes.
 		if c.Tag == 'e' && i2-i1 > nn {
-			group = append(group, OpCode{c.Tag, i1, min(i2, i1+n),
-				j1, min(j2, j1+n)})
+			group = append(group, OpCode{
+				c.Tag, i1, min(i2, i1+n),
+				j1, min(j2, j1+n),
+			})
 			groups = append(groups, group)
 			group = []OpCode{}
 			i1, j1 = max(i1, i2-n), max(j1, j2-n)

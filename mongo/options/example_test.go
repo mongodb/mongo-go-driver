@@ -54,7 +54,6 @@ func ExampleClientOptions_SetLoggerOptions_customLogger() {
 		SetLoggerOptions(loggerOptions)
 
 	client, err := mongo.Connect(clientOptions)
-
 	if err != nil {
 		log.Panicf("error connecting to MongoDB: %v", err)
 	}

@@ -39,9 +39,7 @@ import (
 	mongocryptopts "go.mongodb.org/mongo-driver/v2/x/mongo/driver/mongocrypt/options"
 )
 
-var (
-	localMasterKey = []byte("2x44+xduTaBBkY16Er5DuADaghvS4vwdkg8tpPp3tz6gV01A1CwbD9itQ2HFDgPWOp8eMaC1Oi766JzXZBdBdbdMurdonJ1d")
-)
+var localMasterKey = []byte("2x44+xduTaBBkY16Er5DuADaghvS4vwdkg8tpPp3tz6gV01A1CwbD9itQ2HFDgPWOp8eMaC1Oi766JzXZBdBdbdMurdonJ1d")
 
 const (
 	clientEncryptionProseDir      = "../../testdata/client-side-encryption-prose"
@@ -1870,7 +1868,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 		var cse *cseProseTest
 
-		var initialize = func() bson.Binary {
+		initialize := func() bson.Binary {
 			// Create a ClientEncryption object (referred to as client_encryption) with client set as the keyVaultClient.
 			// Using client, drop the collection keyvault.datakeys.
 			cse = setup(mt, nil, defaultKvClientOptions, options.ClientEncryption().
@@ -1907,7 +1905,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			return defKeyID
 		}
 
-		var validateAddKeyAltName = func(mt *mtest.T, cse *cseProseTest, res *mongo.SingleResult, expected ...string) {
+		validateAddKeyAltName := func(mt *mtest.T, cse *cseProseTest, res *mongo.SingleResult, expected ...string) {
 			assert.Nil(mt, res.Err(), "error adding key alt name: %v", res.Err())
 
 			resbytes, err := res.Raw()
@@ -1994,7 +1992,6 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			res = cse.clientEnc.AddKeyAltName(context.Background(), defKeyID, defKeyAltName)
 			validateAddKeyAltName(mt, cse, res, defKeyAltName)
 		})
-
 	})
 
 	mt.RunOpts("16. Rewrap", runOpts, func(mt *mtest.T) {
@@ -2350,7 +2347,6 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 		for _, tc := range testcases {
 			mt.Run(tc.kmsProvider, func(mt *mtest.T) {
-
 				mt.Run("case 1: simple creation and validation", func(mt *mtest.T) {
 					client, clientEnc, err := setup()
 					assert.Nil(mt, err, "setup error: %v", err)
@@ -3173,7 +3169,8 @@ type cseProseTest struct {
 }
 
 func setup(mt *mtest.T, aeo *options.AutoEncryptionOptions, kvClientOpts *options.ClientOptions,
-	ceo options.Lister[options.ClientEncryptionOptions]) *cseProseTest {
+	ceo options.Lister[options.ClientEncryptionOptions],
+) *cseProseTest {
 	mt.Helper()
 	var cpt cseProseTest
 	var err error

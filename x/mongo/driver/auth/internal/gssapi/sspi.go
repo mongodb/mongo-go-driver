@@ -11,6 +11,7 @@ package gssapi
 
 // #include "sspi_wrapper.h"
 import "C"
+
 import (
 	"context"
 	"fmt"
@@ -122,7 +123,6 @@ func (sc *SaslClient) Start() (string, []byte, error) {
 }
 
 func (sc *SaslClient) Next(_ context.Context, challenge []byte) ([]byte, error) {
-
 	var outBuf C.PVOID
 	var outBufLen C.ULONG
 
@@ -181,8 +181,10 @@ func (sc *SaslClient) getError(prefix string) error {
 	return getError(prefix, sc.state.status)
 }
 
-var initOnce sync.Once
-var initError error
+var (
+	initOnce  sync.Once
+	initError error
+)
 
 func initSSPI() {
 	rc := C.sspi_init()

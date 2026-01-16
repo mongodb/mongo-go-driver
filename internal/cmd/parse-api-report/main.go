@@ -17,8 +17,8 @@ import (
 func main() {
 	var line string
 	var suppress bool
-	var foundChange = false
-	var foundSummary = false
+	foundChange := false
+	foundSummary := false
 
 	// open file to read
 	fRead, err := os.Open("api-report.txt")

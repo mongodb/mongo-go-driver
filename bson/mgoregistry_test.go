@@ -75,15 +75,23 @@ type testItemType struct {
 // Samples from bsonspec.org:
 
 var sampleItems = []testItemType{
-	{M{"hello": "world"},
-		"\x16\x00\x00\x00\x02hello\x00\x06\x00\x00\x00world\x00\x00"},
-	{M{"BSON": []any{"awesome", float64(5.05), 1986}},
+	{
+		M{"hello": "world"},
+		"\x16\x00\x00\x00\x02hello\x00\x06\x00\x00\x00world\x00\x00",
+	},
+	{
+		M{"BSON": []any{"awesome", float64(5.05), 1986}},
 		"1\x00\x00\x00\x04BSON\x00&\x00\x00\x00\x020\x00\x08\x00\x00\x00" +
-			"awesome\x00\x011\x00333333\x14@\x102\x00\xc2\x07\x00\x00\x00\x00"},
-	{M{"slice": []uint8{1, 2}},
-		"\x13\x00\x00\x00\x05slice\x00\x02\x00\x00\x00\x00\x01\x02\x00"},
-	{M{"slice": []byte{1, 2}},
-		"\x13\x00\x00\x00\x05slice\x00\x02\x00\x00\x00\x00\x01\x02\x00"},
+			"awesome\x00\x011\x00333333\x14@\x102\x00\xc2\x07\x00\x00\x00\x00",
+	},
+	{
+		M{"slice": []uint8{1, 2}},
+		"\x13\x00\x00\x00\x05slice\x00\x02\x00\x00\x00\x00\x01\x02\x00",
+	},
+	{
+		M{"slice": []byte{1, 2}},
+		"\x13\x00\x00\x00\x05slice\x00\x02\x00\x00\x00\x00\x01\x02\x00",
+	},
 }
 
 func TestMarshalSampleItems(t *testing.T) {
@@ -120,55 +128,99 @@ func TestUnmarshalSampleItems(t *testing.T) {
 // Note that all of them should be supported as two-way conversions.
 
 var allItems = []testItemType{
-	{M{},
-		""},
-	{M{"_": float64(5.05)},
-		"\x01_\x00333333\x14@"},
-	{M{"_": "yo"},
-		"\x02_\x00\x03\x00\x00\x00yo\x00"},
-	{M{"_": M{"a": true}},
-		"\x03_\x00\x09\x00\x00\x00\x08a\x00\x01\x00"},
-	{M{"_": []any{true, false}},
-		"\x04_\x00\r\x00\x00\x00\x080\x00\x01\x081\x00\x00\x00"},
-	{M{"_": []byte("yo")},
-		"\x05_\x00\x02\x00\x00\x00\x00yo"},
-	{M{"_": Binary{Subtype: 0x80, Data: []byte("udef")}},
-		"\x05_\x00\x04\x00\x00\x00\x80udef"},
+	{
+		M{},
+		"",
+	},
+	{
+		M{"_": float64(5.05)},
+		"\x01_\x00333333\x14@",
+	},
+	{
+		M{"_": "yo"},
+		"\x02_\x00\x03\x00\x00\x00yo\x00",
+	},
+	{
+		M{"_": M{"a": true}},
+		"\x03_\x00\x09\x00\x00\x00\x08a\x00\x01\x00",
+	},
+	{
+		M{"_": []any{true, false}},
+		"\x04_\x00\r\x00\x00\x00\x080\x00\x01\x081\x00\x00\x00",
+	},
+	{
+		M{"_": []byte("yo")},
+		"\x05_\x00\x02\x00\x00\x00\x00yo",
+	},
+	{
+		M{"_": Binary{Subtype: 0x80, Data: []byte("udef")}},
+		"\x05_\x00\x04\x00\x00\x00\x80udef",
+	},
 	{M{"_": Undefined{}}, // Obsolete, but still seen in the wild.
 		"\x06_\x00"},
-	{M{"_": ObjectID{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B}},
-		"\x07_\x00\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B"}, // technically this is not the same as the original mgo test
-	{M{"_": DBPointer{DB: "testnamespace", Pointer: ObjectID{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B}}},
-		"\x0C_\x00\x0e\x00\x00\x00testnamespace\x00\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B"},
-	{M{"_": false},
-		"\x08_\x00\x00"},
-	{M{"_": true},
-		"\x08_\x00\x01"},
+	{
+		M{"_": ObjectID{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B}},
+		"\x07_\x00\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B",
+	}, // technically this is not the same as the original mgo test
+	{
+		M{"_": DBPointer{DB: "testnamespace", Pointer: ObjectID{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B}}},
+		"\x0C_\x00\x0e\x00\x00\x00testnamespace\x00\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B",
+	},
+	{
+		M{"_": false},
+		"\x08_\x00\x00",
+	},
+	{
+		M{"_": true},
+		"\x08_\x00\x01",
+	},
 	{M{"_": time.Unix(0, 258e6).UTC()}, // Note the NS <=> MS conversion.
 		"\x09_\x00\x02\x01\x00\x00\x00\x00\x00\x00"},
-	{M{"_": nil},
-		"\x0A_\x00"},
-	{M{"_": Regex{Pattern: "ab", Options: "cd"}},
-		"\x0B_\x00ab\x00cd\x00"},
-	{M{"_": JavaScript("code")},
-		"\x0D_\x00\x05\x00\x00\x00code\x00"},
-	{M{"_": Symbol("sym")},
-		"\x0E_\x00\x04\x00\x00\x00sym\x00"},
-	{M{"_": CodeWithScope{Code: "code", Scope: D{{"", nil}}}},
+	{
+		M{"_": nil},
+		"\x0A_\x00",
+	},
+	{
+		M{"_": Regex{Pattern: "ab", Options: "cd"}},
+		"\x0B_\x00ab\x00cd\x00",
+	},
+	{
+		M{"_": JavaScript("code")},
+		"\x0D_\x00\x05\x00\x00\x00code\x00",
+	},
+	{
+		M{"_": Symbol("sym")},
+		"\x0E_\x00\x04\x00\x00\x00sym\x00",
+	},
+	{
+		M{"_": CodeWithScope{Code: "code", Scope: D{{"", nil}}}},
 		"\x0F_\x00\x14\x00\x00\x00\x05\x00\x00\x00code\x00" +
-			"\x07\x00\x00\x00\x0A\x00\x00"},
-	{M{"_": 258},
-		"\x10_\x00\x02\x01\x00\x00"},
-	{M{"_": Timestamp{0, 258}},
-		"\x11_\x00\x02\x01\x00\x00\x00\x00\x00\x00"},
-	{M{"_": int64(258)},
-		"\x12_\x00\x02\x01\x00\x00\x00\x00\x00\x00"},
-	{M{"_": int64(258 << 32)},
-		"\x12_\x00\x00\x00\x00\x00\x02\x01\x00\x00"},
-	{M{"_": MaxKey{}},
-		"\x7F_\x00"},
-	{M{"_": MinKey{}},
-		"\xFF_\x00"},
+			"\x07\x00\x00\x00\x0A\x00\x00",
+	},
+	{
+		M{"_": 258},
+		"\x10_\x00\x02\x01\x00\x00",
+	},
+	{
+		M{"_": Timestamp{0, 258}},
+		"\x11_\x00\x02\x01\x00\x00\x00\x00\x00\x00",
+	},
+	{
+		M{"_": int64(258)},
+		"\x12_\x00\x02\x01\x00\x00\x00\x00\x00\x00",
+	},
+	{
+		M{"_": int64(258 << 32)},
+		"\x12_\x00\x00\x00\x00\x00\x02\x01\x00\x00",
+	},
+	{
+		M{"_": MaxKey{}},
+		"\x7F_\x00",
+	},
+	{
+		M{"_": MinKey{}},
+		"\xFF_\x00",
+	},
 }
 
 func TestMarshalAllItems(t *testing.T) {
@@ -320,66 +372,102 @@ var js = JavaScript("code")
 
 var oneWayMarshalItems = []testItemType{
 	// These are being passed as pointers, and will unmarshal as values.
-	{M{"": &Binary{Subtype: 0x02, Data: []byte("old")}},
-		"\x05\x00\x07\x00\x00\x00\x02\x03\x00\x00\x00old"},
-	{M{"": &Binary{Subtype: 0x80, Data: []byte("udef")}},
-		"\x05\x00\x04\x00\x00\x00\x80udef"},
-	{M{"": &Regex{Pattern: "ab", Options: "cd"}},
-		"\x0B\x00ab\x00cd\x00"},
-	{M{"": &js},
-		"\x0D\x00\x05\x00\x00\x00code\x00"},
-	{M{"": &CodeWithScope{Code: "code", Scope: M{"": nil}}},
+	{
+		M{"": &Binary{Subtype: 0x02, Data: []byte("old")}},
+		"\x05\x00\x07\x00\x00\x00\x02\x03\x00\x00\x00old",
+	},
+	{
+		M{"": &Binary{Subtype: 0x80, Data: []byte("udef")}},
+		"\x05\x00\x04\x00\x00\x00\x80udef",
+	},
+	{
+		M{"": &Regex{Pattern: "ab", Options: "cd"}},
+		"\x0B\x00ab\x00cd\x00",
+	},
+	{
+		M{"": &js},
+		"\x0D\x00\x05\x00\x00\x00code\x00",
+	},
+	{
+		M{"": &CodeWithScope{Code: "code", Scope: M{"": nil}}},
 		"\x0F\x00\x14\x00\x00\x00\x05\x00\x00\x00code\x00" +
-			"\x07\x00\x00\x00\x0A\x00\x00"},
+			"\x07\x00\x00\x00\x0A\x00\x00",
+	},
 
 	// There's no float32 type in BSON.  Will encode as a float64.
-	{M{"": float32(5.05)},
-		"\x01\x00\x00\x00\x00@33\x14@"},
+	{
+		M{"": float32(5.05)},
+		"\x01\x00\x00\x00\x00@33\x14@",
+	},
 
 	// The array will be unmarshaled as a slice instead.
-	{M{"": [2]bool{true, false}},
-		"\x04\x00\r\x00\x00\x00\x080\x00\x01\x081\x00\x00\x00"},
+	{
+		M{"": [2]bool{true, false}},
+		"\x04\x00\r\x00\x00\x00\x080\x00\x01\x081\x00\x00\x00",
+	},
 
 	// The typed slice will be unmarshaled as []any.
-	{M{"": []bool{true, false}},
-		"\x04\x00\r\x00\x00\x00\x080\x00\x01\x081\x00\x00\x00"},
+	{
+		M{"": []bool{true, false}},
+		"\x04\x00\r\x00\x00\x00\x080\x00\x01\x081\x00\x00\x00",
+	},
 
 	// Will unmarshal as a []byte.
-	{M{"": Binary{Subtype: 0x00, Data: []byte("yo")}},
-		"\x05\x00\x02\x00\x00\x00\x00yo"},
-	{M{"": Binary{Subtype: 0x02, Data: []byte("old")}},
-		"\x05\x00\x07\x00\x00\x00\x02\x03\x00\x00\x00old"},
+	{
+		M{"": Binary{Subtype: 0x00, Data: []byte("yo")}},
+		"\x05\x00\x02\x00\x00\x00\x00yo",
+	},
+	{
+		M{"": Binary{Subtype: 0x02, Data: []byte("old")}},
+		"\x05\x00\x07\x00\x00\x00\x02\x03\x00\x00\x00old",
+	},
 
 	// No way to preserve the type information here. We might encode as a zero
 	// value, but this would mean that pointer values in structs wouldn't be
 	// able to correctly distinguish between unset and set to the zero value.
-	{M{"": (*byte)(nil)},
-		"\x0A\x00"},
+	{
+		M{"": (*byte)(nil)},
+		"\x0A\x00",
+	},
 
 	// No int types smaller than int32 in BSON. Could encode this as a char,
 	// but it would still be ambiguous, take more, and be awkward in Go when
 	// loaded without typing information.
-	{M{"": byte(8)},
-		"\x10\x00\x08\x00\x00\x00"},
+	{
+		M{"": byte(8)},
+		"\x10\x00\x08\x00\x00\x00",
+	},
 
 	// There are no unsigned types in BSON.  Will unmarshal as int32 or int64.
-	{M{"": uint32(258)},
-		"\x10\x00\x02\x01\x00\x00"},
-	{M{"": uint64(258)},
-		"\x12\x00\x02\x01\x00\x00\x00\x00\x00\x00"},
-	{M{"": uint64(258 << 32)},
-		"\x12\x00\x00\x00\x00\x00\x02\x01\x00\x00"},
+	{
+		M{"": uint32(258)},
+		"\x10\x00\x02\x01\x00\x00",
+	},
+	{
+		M{"": uint64(258)},
+		"\x12\x00\x02\x01\x00\x00\x00\x00\x00\x00",
+	},
+	{
+		M{"": uint64(258 << 32)},
+		"\x12\x00\x00\x00\x00\x00\x02\x01\x00\x00",
+	},
 
 	// This will unmarshal as int.
-	{M{"": int32(258)},
-		"\x10\x00\x02\x01\x00\x00"},
+	{
+		M{"": int32(258)},
+		"\x10\x00\x02\x01\x00\x00",
+	},
 
 	// That's a special case. The unsigned value is too large for an int32,
 	// so an int64 is used instead.
-	{M{"": uint32(1<<32 - 1)},
-		"\x12\x00\xFF\xFF\xFF\xFF\x00\x00\x00\x00"},
-	{M{"": uint(1<<32 - 1)},
-		"\x12\x00\xFF\xFF\xFF\xFF\x00\x00\x00\x00"},
+	{
+		M{"": uint32(1<<32 - 1)},
+		"\x12\x00\xFF\xFF\xFF\xFF\x00\x00\x00\x00",
+	},
+	{
+		M{"": uint(1<<32 - 1)},
+		"\x12\x00\xFF\xFF\xFF\xFF\x00\x00\x00\x00",
+	},
 }
 
 func TestOneWayMarshalItems(t *testing.T) {
@@ -412,11 +500,15 @@ type specSample2 struct {
 }
 
 var structSampleItems = []testItemType{
-	{&specSample1{"world"},
-		"\x16\x00\x00\x00\x02hello\x00\x06\x00\x00\x00world\x00\x00"},
-	{&specSample2{[]any{"awesome", float64(5.05), 1986}},
+	{
+		&specSample1{"world"},
+		"\x16\x00\x00\x00\x02hello\x00\x06\x00\x00\x00world\x00\x00",
+	},
+	{
+		&specSample2{[]any{"awesome", float64(5.05), 1986}},
 		"1\x00\x00\x00\x04BSON\x00&\x00\x00\x00\x020\x00\x08\x00\x00\x00" +
-			"awesome\x00\x011\x00333333\x14@\x102\x00\xc2\x07\x00\x00\x00\x00"},
+			"awesome\x00\x011\x00333333\x14@\x102\x00\xc2\x07\x00\x00\x00\x00",
+	},
 }
 
 func TestMarshalStructSampleItems(t *testing.T) {
@@ -465,8 +557,10 @@ func Test64bitInt(t *testing.T) {
 // --------------------------------------------------------------------------
 // Generic two-way struct marshaling tests.
 
-type prefixPtr string
-type prefixVal string
+type (
+	prefixPtr string
+	prefixVal string
+)
 
 func (t *prefixPtr) GetBSON() (any, error) {
 	if t == nil {
@@ -525,64 +619,100 @@ func (t *prefixVal) SetBSON(raw RawValue) error {
 	return nil
 }
 
-var bytevar = byte(8)
-var byteptr = &bytevar
-var prefixptr = prefixPtr("bar")
-var prefixval = prefixVal("bar")
+var (
+	bytevar   = byte(8)
+	byteptr   = &bytevar
+	prefixptr = prefixPtr("bar")
+	prefixval = prefixVal("bar")
+)
 
 var structItems = []testItemType{
-	{&struct{ Ptr *byte }{nil},
-		"\x0Aptr\x00"},
-	{&struct{ Ptr *byte }{&bytevar},
-		"\x10ptr\x00\x08\x00\x00\x00"},
-	{&struct{ Ptr **byte }{&byteptr},
-		"\x10ptr\x00\x08\x00\x00\x00"},
-	{&struct{ Byte byte }{8},
-		"\x10byte\x00\x08\x00\x00\x00"},
-	{&struct{ Byte byte }{0},
-		"\x10byte\x00\x00\x00\x00\x00"},
-	{&struct {
-		V byte `bson:"Tag"`
-	}{8},
-		"\x10Tag\x00\x08\x00\x00\x00"},
-	{&struct {
-		V *struct {
-			Byte byte
-		}
-	}{&struct{ Byte byte }{8}},
-		"\x03v\x00" + "\x0f\x00\x00\x00\x10byte\x00\b\x00\x00\x00\x00"},
+	{
+		&struct{ Ptr *byte }{nil},
+		"\x0Aptr\x00",
+	},
+	{
+		&struct{ Ptr *byte }{&bytevar},
+		"\x10ptr\x00\x08\x00\x00\x00",
+	},
+	{
+		&struct{ Ptr **byte }{&byteptr},
+		"\x10ptr\x00\x08\x00\x00\x00",
+	},
+	{
+		&struct{ Byte byte }{8},
+		"\x10byte\x00\x08\x00\x00\x00",
+	},
+	{
+		&struct{ Byte byte }{0},
+		"\x10byte\x00\x00\x00\x00\x00",
+	},
+	{
+		&struct {
+			V byte `bson:"Tag"`
+		}{8},
+		"\x10Tag\x00\x08\x00\x00\x00",
+	},
+	{
+		&struct {
+			V *struct {
+				Byte byte
+			}
+		}{&struct{ Byte byte }{8}},
+		"\x03v\x00" + "\x0f\x00\x00\x00\x10byte\x00\b\x00\x00\x00\x00",
+	},
 	{&struct{ priv byte }{}, ""},
 
 	// The order of the dumped fields should be the same in the struct.
-	{&struct{ A, C, B, D, F, E *byte }{},
-		"\x0Aa\x00\x0Ac\x00\x0Ab\x00\x0Ad\x00\x0Af\x00\x0Ae\x00"},
+	{
+		&struct{ A, C, B, D, F, E *byte }{},
+		"\x0Aa\x00\x0Ac\x00\x0Ab\x00\x0Ad\x00\x0Af\x00\x0Ae\x00",
+	},
 
-	{&struct{ V RawValue }{RawValue{Type: 0x03, Value: []byte("\x0f\x00\x00\x00\x10byte\x00\b\x00\x00\x00\x00")}},
-		"\x03v\x00" + "\x0f\x00\x00\x00\x10byte\x00\b\x00\x00\x00\x00"},
-	{&struct{ V RawValue }{RawValue{Type: 0x10, Value: []byte("\x00\x00\x00\x00")}},
-		"\x10v\x00" + "\x00\x00\x00\x00"},
+	{
+		&struct{ V RawValue }{RawValue{Type: 0x03, Value: []byte("\x0f\x00\x00\x00\x10byte\x00\b\x00\x00\x00\x00")}},
+		"\x03v\x00" + "\x0f\x00\x00\x00\x10byte\x00\b\x00\x00\x00\x00",
+	},
+	{
+		&struct{ V RawValue }{RawValue{Type: 0x10, Value: []byte("\x00\x00\x00\x00")}},
+		"\x10v\x00" + "\x00\x00\x00\x00",
+	},
 
 	// Byte arrays.
-	{&struct{ V [2]byte }{[2]byte{'y', 'o'}},
-		"\x05v\x00\x02\x00\x00\x00\x00yo"},
+	{
+		&struct{ V [2]byte }{[2]byte{'y', 'o'}},
+		"\x05v\x00\x02\x00\x00\x00\x00yo",
+	},
 
-	{&struct{ V prefixPtr }{prefixPtr("buzz")},
-		"\x02v\x00\x09\x00\x00\x00foo-buzz\x00"},
+	{
+		&struct{ V prefixPtr }{prefixPtr("buzz")},
+		"\x02v\x00\x09\x00\x00\x00foo-buzz\x00",
+	},
 
-	{&struct{ V *prefixPtr }{&prefixptr},
-		"\x02v\x00\x08\x00\x00\x00foo-bar\x00"},
+	{
+		&struct{ V *prefixPtr }{&prefixptr},
+		"\x02v\x00\x08\x00\x00\x00foo-bar\x00",
+	},
 
-	{&struct{ V *prefixPtr }{nil},
-		"\x0Av\x00"},
+	{
+		&struct{ V *prefixPtr }{nil},
+		"\x0Av\x00",
+	},
 
-	{&struct{ V prefixVal }{prefixVal("buzz")},
-		"\x02v\x00\x09\x00\x00\x00foo-buzz\x00"},
+	{
+		&struct{ V prefixVal }{prefixVal("buzz")},
+		"\x02v\x00\x09\x00\x00\x00foo-buzz\x00",
+	},
 
-	{&struct{ V *prefixVal }{&prefixval},
-		"\x02v\x00\x08\x00\x00\x00foo-bar\x00"},
+	{
+		&struct{ V *prefixVal }{&prefixval},
+		"\x02v\x00\x08\x00\x00\x00foo-bar\x00",
+	},
 
-	{&struct{ V *prefixVal }{nil},
-		"\x0Av\x00"},
+	{
+		&struct{ V *prefixVal }{nil},
+		"\x0Av\x00",
+	},
 }
 
 func TestMarshalStructItems(t *testing.T) {
@@ -644,15 +774,23 @@ type ignoreField struct {
 
 var marshalItems = []testItemType{
 	// Ordered document dump.  Will unmarshal as a dictionary by default.
-	{D{{"a", nil}, {"c", nil}, {"b", nil}, {"d", nil}, {"f", nil}, {"e", true}},
-		"\x0Aa\x00\x0Ac\x00\x0Ab\x00\x0Ad\x00\x0Af\x00\x08e\x00\x01"},
-	{MyD{{"a", nil}, {"c", nil}, {"b", nil}, {"d", nil}, {"f", nil}, {"e", true}},
-		"\x0Aa\x00\x0Ac\x00\x0Ab\x00\x0Ad\x00\x0Af\x00\x08e\x00\x01"},
-	{&dOnIface{D{{"a", nil}, {"c", nil}, {"b", nil}, {"d", true}}},
-		"\x03d\x00" + wrapInDoc("\x0Aa\x00\x0Ac\x00\x0Ab\x00\x08d\x00\x01")},
+	{
+		D{{"a", nil}, {"c", nil}, {"b", nil}, {"d", nil}, {"f", nil}, {"e", true}},
+		"\x0Aa\x00\x0Ac\x00\x0Ab\x00\x0Ad\x00\x0Af\x00\x08e\x00\x01",
+	},
+	{
+		MyD{{"a", nil}, {"c", nil}, {"b", nil}, {"d", nil}, {"f", nil}, {"e", true}},
+		"\x0Aa\x00\x0Ac\x00\x0Ab\x00\x0Ad\x00\x0Af\x00\x08e\x00\x01",
+	},
+	{
+		&dOnIface{D{{"a", nil}, {"c", nil}, {"b", nil}, {"d", true}}},
+		"\x03d\x00" + wrapInDoc("\x0Aa\x00\x0Ac\x00\x0Ab\x00\x08d\x00\x01"),
+	},
 
-	{&ignoreField{"before", "ignore", "after"},
-		"\x02before\x00\a\x00\x00\x00before\x00\x02after\x00\x06\x00\x00\x00after\x00"},
+	{
+		&ignoreField{"before", "ignore", "after"},
+		"\x02before\x00\a\x00\x00\x00before\x00\x02after\x00\x06\x00\x00\x00after\x00",
+	},
 
 	// Marshalling a Raw document does nothing.
 	// {RawValue{Type: 0x03, Value: []byte(wrapInDoc("anything"))},
@@ -684,38 +822,54 @@ type intAlias int
 
 var unmarshalItems = []testItemType{
 	// Field is private.  Should not attempt to unmarshal it.
-	{&struct{ priv byte }{},
-		"\x10priv\x00\x08\x00\x00\x00"},
+	{
+		&struct{ priv byte }{},
+		"\x10priv\x00\x08\x00\x00\x00",
+	},
 
 	// Ignore non-existing field.
-	{&struct{ Byte byte }{9},
-		"\x10boot\x00\x08\x00\x00\x00" + "\x10byte\x00\x09\x00\x00\x00"},
+	{
+		&struct{ Byte byte }{9},
+		"\x10boot\x00\x08\x00\x00\x00" + "\x10byte\x00\x09\x00\x00\x00",
+	},
 
 	// Do not unmarshal on ignored field.
-	{&ignoreField{"before", "", "after"},
+	{
+		&ignoreField{"before", "", "after"},
 		"\x02before\x00\a\x00\x00\x00before\x00" +
 			"\x02-\x00\a\x00\x00\x00ignore\x00" +
-			"\x02after\x00\x06\x00\x00\x00after\x00"},
+			"\x02after\x00\x06\x00\x00\x00after\x00",
+	},
 
 	// Ordered document.
-	{&struct{ D }{D{{"a", nil}, {"c", nil}, {"b", nil}, {"d", true}}},
-		"\x03d\x00" + wrapInDoc("\x0Aa\x00\x0Ac\x00\x0Ab\x00\x08d\x00\x01")},
+	{
+		&struct{ D }{D{{"a", nil}, {"c", nil}, {"b", nil}, {"d", true}}},
+		"\x03d\x00" + wrapInDoc("\x0Aa\x00\x0Ac\x00\x0Ab\x00\x08d\x00\x01"),
+	},
 
 	// Decode old binary.
-	{M{"_": []byte("old")},
-		"\x05_\x00\x07\x00\x00\x00\x02\x03\x00\x00\x00old"},
+	{
+		M{"_": []byte("old")},
+		"\x05_\x00\x07\x00\x00\x00\x02\x03\x00\x00\x00old",
+	},
 
 	// Decode old binary without length. According to the spec, this shouldn't happen.
-	{M{"_": []byte("old")},
-		"\x05_\x00\x03\x00\x00\x00\x02old"},
+	{
+		M{"_": []byte("old")},
+		"\x05_\x00\x03\x00\x00\x00\x02old",
+	},
 
 	// int key maps
-	{map[int]string{10: "s"},
-		"\x0210\x00\x02\x00\x00\x00s\x00"},
+	{
+		map[int]string{10: "s"},
+		"\x0210\x00\x02\x00\x00\x00s\x00",
+	},
 
 	//// event if type is alias to int
-	{map[intAlias]string{10: "s"},
-		"\x0210\x00\x02\x00\x00\x00s\x00"},
+	{
+		map[intAlias]string{10: "s"},
+		"\x0210\x00\x02\x00\x00\x00s\x00",
+	},
 }
 
 func TestUnmarshalOneWayItems(t *testing.T) {
@@ -746,28 +900,50 @@ type structWithDupKeys struct {
 }
 
 var marshalErrorItems = []testItemType{
-	{M{"": uint64(1 << 63)},
-		"BSON has no uint64 type, and value is too large to fit correctly in an int64"},
-	{int64(123),
-		"Can't marshal int64 as a BSON document"},
-	{M{"": 1i},
-		"Can't marshal complex128 in a BSON document"},
-	{&structWithDupKeys{},
-		"Duplicated key 'name' in struct bson_test.structWithDupKeys"},
-	{RawValue{Type: 0xA, Value: []byte{}},
-		"Attempted to marshal Raw kind 10 as a document"},
-	{Raw{},
-		"Attempted to marshal empty Raw document"},
-	{M{"w": Raw{}},
-		"Attempted to marshal empty Raw document"},
-	{&inlineDupName{1, struct{ A, B int }{2, 3}},
-		"Duplicated key 'a' in struct bson_test.inlineDupName"},
-	{&inlineDupMap{},
-		"Multiple ,inline maps in struct bson_test.inlineDupMap"},
-	{&inlineBadKeyMap{},
-		"Option ,inline needs a map with string keys in struct bson_test.inlineBadKeyMap"},
-	{&inlineMap{A: 1, M: map[string]any{"a": 1}},
-		`Can't have key "a" in inlined map; conflicts with struct field`},
+	{
+		M{"": uint64(1 << 63)},
+		"BSON has no uint64 type, and value is too large to fit correctly in an int64",
+	},
+	{
+		int64(123),
+		"Can't marshal int64 as a BSON document",
+	},
+	{
+		M{"": 1i},
+		"Can't marshal complex128 in a BSON document",
+	},
+	{
+		&structWithDupKeys{},
+		"Duplicated key 'name' in struct bson_test.structWithDupKeys",
+	},
+	{
+		RawValue{Type: 0xA, Value: []byte{}},
+		"Attempted to marshal Raw kind 10 as a document",
+	},
+	{
+		Raw{},
+		"Attempted to marshal empty Raw document",
+	},
+	{
+		M{"w": Raw{}},
+		"Attempted to marshal empty Raw document",
+	},
+	{
+		&inlineDupName{1, struct{ A, B int }{2, 3}},
+		"Duplicated key 'a' in struct bson_test.inlineDupName",
+	},
+	{
+		&inlineDupMap{},
+		"Multiple ,inline maps in struct bson_test.inlineDupMap",
+	},
+	{
+		&inlineBadKeyMap{},
+		"Option ,inline needs a map with string keys in struct bson_test.inlineBadKeyMap",
+	},
+	{
+		&inlineMap{A: 1, M: map[string]any{"a": 1}},
+		`Can't have key "a" in inlined map; conflicts with struct field`,
+	},
 }
 
 func TestMarshalErrorItems(t *testing.T) {
@@ -1443,16 +1619,20 @@ var twoWayCrossItems = []crossTypeItem{
 	{&struct{ S []byte }{[]byte("def")}, &struct{ S Symbol }{"def"}},
 	{&struct{ S string }{"ghi"}, &struct{ S Symbol }{"ghi"}},
 
-	{&struct{ S string }{"0123456789ab"},
-		&struct{ S ObjectID }{ObjectID{0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x61, 0x62}}},
+	{
+		&struct{ S string }{"0123456789ab"},
+		&struct{ S ObjectID }{ObjectID{0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x61, 0x62}},
+	},
 
 	// map <=> struct
-	{&struct {
-		A struct {
-			B, C int
-		}
-	}{struct{ B, C int }{1, 2}},
-		map[string]map[string]int{"a": {"b": 1, "c": 2}}},
+	{
+		&struct {
+			A struct {
+				B, C int
+			}
+		}{struct{ B, C int }{1, 2}},
+		map[string]map[string]int{"a": {"b": 1, "c": 2}},
+	},
 
 	{&struct{ A Symbol }{"abc"}, map[string]string{"a": "abc"}},
 	{&struct{ A Symbol }{"abc"}, map[string][]byte{"a": []byte("abc")}},
@@ -1554,8 +1734,10 @@ var twoWayCrossItems = []crossTypeItem{
 	{&struct{ V time.Time }{}, map[string]any{"v": time.Time{}}},
 
 	// zero time + 1 second + 1 millisecond; overflows int64 as nanoseconds
-	{&struct{ V time.Time }{time.Unix(-62135596799, 1e6).UTC()},
-		map[string]any{"v": time.Unix(-62135596799, 1e6).UTC()}},
+	{
+		&struct{ V time.Time }{time.Unix(-62135596799, 1e6).UTC()},
+		map[string]any{"v": time.Unix(-62135596799, 1e6).UTC()},
+	},
 
 	// json.Number <=> int64, float64
 	{&struct{ N json.Number }{"5"}, map[string]any{"n": int64(5)}},
