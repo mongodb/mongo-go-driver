@@ -1275,3 +1275,125 @@ func TestVersionRangeIncludes(t *testing.T) {
 		}
 	}
 }
+
+func TestDeprioritizedSelector(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name          string
+		deprioritized []description.Server
+		candidates    []description.Server
+		want          []description.Server
+	}{
+		{
+			name:       "empty",
+			candidates: []description.Server{},
+			want:       []description.Server{},
+		},
+		{
+			name:       "nil candidates",
+			candidates: nil,
+			want:       []description.Server{},
+		},
+		{
+			name: "nil deprioritized server list",
+			candidates: []description.Server{
+				{
+					Addr: address.Address("mongodb://localhost:27017"),
+				},
+			},
+			want: []description.Server{
+				{
+					Addr: address.Address("mongodb://localhost:27017"),
+				},
+			},
+		},
+		{
+			name: "deprioritize single server candidate list",
+			candidates: []description.Server{
+				{
+					Addr: address.Address("mongodb://localhost:27017"),
+				},
+			},
+			deprioritized: []description.Server{
+				{
+					Addr: address.Address("mongodb://localhost:27017"),
+				},
+			},
+			want: []description.Server{
+				// Since all available servers were deprioritized, then the selector
+				// should return all candidates.
+				{
+					Addr: address.Address("mongodb://localhost:27017"),
+				},
+			},
+		},
+		{
+			name: "deprioritize one server in multi server candidate list",
+			candidates: []description.Server{
+				{
+					Addr: address.Address("mongodb://localhost:27017"),
+				},
+				{
+					Addr: address.Address("mongodb://localhost:27018"),
+				},
+				{
+					Addr: address.Address("mongodb://localhost:27019"),
+				},
+			},
+			deprioritized: []description.Server{
+				{
+					Addr: address.Address("mongodb://localhost:27017"),
+				},
+			},
+			want: []description.Server{
+				{
+					Addr: address.Address("mongodb://localhost:27018"),
+				},
+				{
+					Addr: address.Address("mongodb://localhost:27019"),
+				},
+			},
+		},
+		{
+			name: "deprioritize multiple servers in multi server candidate list",
+			deprioritized: []description.Server{
+				{
+					Addr: address.Address("mongodb://localhost:27017"),
+				},
+				{
+					Addr: address.Address("mongodb://localhost:27018"),
+				},
+			},
+			candidates: []description.Server{
+				{
+					Addr: address.Address("mongodb://localhost:27017"),
+				},
+				{
+					Addr: address.Address("mongodb://localhost:27018"),
+				},
+				{
+					Addr: address.Address("mongodb://localhost:27019"),
+				},
+			},
+			want: []description.Server{
+				{
+					Addr: address.Address("mongodb://localhost:27019"),
+				},
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		tc := tc // Capture the range variable.
+
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			selector := &Deprioritized{DeprioritizedServers: tc.deprioritized}
+			got, err := selector.SelectServer(description.Topology{}, tc.candidates)
+			require.NoError(t, err)
+			assert.ElementsMatch(t, got, tc.want)
+		})
+	}
+}

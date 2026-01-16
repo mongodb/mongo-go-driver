@@ -366,43 +366,6 @@ func (op Operation) shouldEncrypt() bool {
 	return op.Crypt != nil && !op.Crypt.BypassAutoEncryption()
 }
 
-// filterDeprioritizedServers will filter out the server candidates that have
-// been deprioritized by the operation due to failure.
-//
-// The server selector should try to select a server that is not in the
-// deprioritization list. However, if this is not possible (e.g. there are no
-// other healthy servers in the cluster), the selector may return a
-// deprioritized server.
-func filterDeprioritizedServers(candidates, deprioritized []description.Server) []description.Server {
-	if len(deprioritized) == 0 {
-		return candidates
-	}
-
-	dpaSet := make(map[address.Address]*description.Server)
-	for i, srv := range deprioritized {
-		dpaSet[srv.Addr] = &deprioritized[i]
-	}
-
-	allowed := []description.Server{}
-
-	// Iterate over the candidates and append them to the allowdIndexes slice if
-	// they are not in the deprioritizedServers list.
-	for _, candidate := range candidates {
-		if srv, ok := dpaSet[candidate.Addr]; !ok || !driverutil.EqualServers(*srv, candidate) {
-			allowed = append(allowed, candidate)
-		}
-	}
-
-	// If nothing is allowed, then all available servers must have been
-	// deprioritized. In this case, return the candidates list as-is so that the
-	// selector can find a suitable server
-	if len(allowed) == 0 {
-		return candidates
-	}
-
-	return allowed
-}
-
 // opServerSelector is a wrapper for the server selector that is assigned to the
 // operation. The purpose of this wrapper is to filter candidates with
 // operation-specific logic, such as deprioritizing failing servers.
@@ -417,7 +380,13 @@ func (oss *opServerSelector) SelectServer(
 	topo description.Topology,
 	candidates []description.Server,
 ) ([]description.Server, error) {
-	filteredCandidates := filterDeprioritizedServers(candidates, oss.deprioritizedServers)
+	deprioritizer := &serverselector.Deprioritized{
+		DeprioritizedServers: oss.deprioritizedServers,
+	}
+	filteredCandidates, err := deprioritizer.SelectServer(topo, candidates)
+	if err != nil {
+		return nil, err
+	}
 
 	selectedServers, err := oss.selector.SelectServer(topo, filteredCandidates)
 	if err != nil {

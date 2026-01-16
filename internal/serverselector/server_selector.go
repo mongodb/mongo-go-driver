@@ -11,6 +11,8 @@ import (
 	"math"
 	"time"
 
+	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/mongo/address"
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
 	"go.mongodb.org/mongo-driver/v2/tag"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
@@ -176,6 +178,48 @@ func (selector *Write) SelectServer(
 		}
 		return result, nil
 	}
+}
+
+// Deprioritized filters out deprioritized servers from candidates.
+// If all candidates are deprioritized, returns all candidates as fallback.
+type Deprioritized struct {
+	DeprioritizedServers []description.Server
+}
+
+var _ description.ServerSelector = &Deprioritized{}
+
+// SelectServer filters out deprioritized servers from candidates.
+func (d *Deprioritized) SelectServer(
+	_ description.Topology,
+	candidates []description.Server,
+) ([]description.Server, error) {
+	if len(d.DeprioritizedServers) == 0 {
+		return candidates, nil
+	}
+
+	dpaSet := make(map[address.Address]*description.Server)
+	for i, srv := range d.DeprioritizedServers {
+		dpaSet[srv.Addr] = &d.DeprioritizedServers[i]
+	}
+
+	allowed := []description.Server{}
+
+	// Iterate over the candidates and append them to the allowed slice if
+	// they are not in the deprioritizedServers list.
+	for _, candidate := range candidates {
+		if srv, ok := dpaSet[candidate.Addr]; !ok || !driverutil.EqualServers(*srv, candidate) {
+			allowed = append(allowed, candidate)
+		}
+	}
+
+	// If nothing is allowed, then all available servers must have been
+	// deprioritized. In this case, return the candidates list as-is so that the
+	// selector can find a suitable server
+	if len(allowed) == 0 {
+		return candidates, nil
+	}
+
+	return allowed, nil
 }
 
 // Func is a function that can be used as a ServerSelector.
