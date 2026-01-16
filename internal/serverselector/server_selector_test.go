@@ -57,6 +57,7 @@ type testCase struct {
 	SuitableServers      []*serverDesc `bson:"suitable_servers"`
 	InLatencyWindow      []*serverDesc `bson:"in_latency_window"`
 	HeartbeatFrequencyMS *int          `bson:"heartbeatFrequencyMS"`
+	DeprioritizedServers []*serverDesc `bson:"deprioritized_servers"`
 	Error                *bool
 }
 
@@ -177,6 +178,46 @@ func TestMaxStalenessSpec(t *testing.T) {
 
 var selectorTestsDir = spectest.Path("server-selection/tests")
 
+func convertServerDesc(t *testing.T, serverDescription *serverDesc, baseTime time.Time, heartbeatFreqMS *int) description.Server {
+	t.Helper()
+
+	server := description.Server{
+		Addr: address.Address(serverDescription.Address),
+		Kind: serverKindFromString(t, serverDescription.Type),
+	}
+
+	if serverDescription.AverageRTTMS != nil {
+		server.AverageRTT = time.Duration(*serverDescription.AverageRTTMS) * time.Millisecond
+		server.AverageRTTSet = true
+	}
+
+	if heartbeatFreqMS != nil {
+		server.HeartbeatInterval = time.Duration(*heartbeatFreqMS) * time.Millisecond
+	}
+
+	if serverDescription.LastUpdateTime != nil {
+		ms := int64(*serverDescription.LastUpdateTime)
+		server.LastUpdateTime = time.Unix(ms/1e3, ms%1e3/1e6)
+	}
+
+	if serverDescription.LastWrite != nil {
+		i := serverDescription.LastWrite.LastWriteDate
+		timeWithOffset := baseTime.Add(time.Duration(i) * time.Millisecond)
+		server.LastWriteTime = timeWithOffset
+	}
+
+	if serverDescription.MaxWireVersion != nil {
+		versionRange := driverutil.NewVersionRange(0, *serverDescription.MaxWireVersion)
+		server.WireVersion = &versionRange
+	}
+
+	if serverDescription.Tags != nil {
+		server.Tags = tag.NewTagSetFromMap(serverDescription.Tags)
+	}
+
+	return server
+}
+
 func selectServers(t *testing.T, test *testCase) error {
 	servers := make([]description.Server, 0, len(test.TopologyDescription.Servers))
 
@@ -186,40 +227,7 @@ func selectServers(t *testing.T, test *testCase) error {
 	baseTime := time.Now()
 
 	for _, serverDescription := range test.TopologyDescription.Servers {
-		server := description.Server{
-			Addr: address.Address(serverDescription.Address),
-			Kind: serverKindFromString(t, serverDescription.Type),
-		}
-
-		if serverDescription.AverageRTTMS != nil {
-			server.AverageRTT = time.Duration(*serverDescription.AverageRTTMS) * time.Millisecond
-			server.AverageRTTSet = true
-		}
-
-		if test.HeartbeatFrequencyMS != nil {
-			server.HeartbeatInterval = time.Duration(*test.HeartbeatFrequencyMS) * time.Millisecond
-		}
-
-		if serverDescription.LastUpdateTime != nil {
-			ms := int64(*serverDescription.LastUpdateTime)
-			server.LastUpdateTime = time.Unix(ms/1e3, ms%1e3/1e6)
-		}
-
-		if serverDescription.LastWrite != nil {
-			i := serverDescription.LastWrite.LastWriteDate
-
-			timeWithOffset := baseTime.Add(time.Duration(i) * time.Millisecond)
-			server.LastWriteTime = timeWithOffset
-		}
-
-		if serverDescription.MaxWireVersion != nil {
-			versionRange := driverutil.NewVersionRange(0, *serverDescription.MaxWireVersion)
-			server.WireVersion = &versionRange
-		}
-
-		if serverDescription.Tags != nil {
-			server.Tags = tag.NewTagSetFromMap(serverDescription.Tags)
-		}
+		server := convertServerDesc(t, serverDescription, baseTime, test.HeartbeatFrequencyMS)
 
 		if test.ReadPreference.MaxStaleness != nil && server.WireVersion == nil {
 			server.WireVersion = &description.VersionRange{Max: 21}
@@ -231,6 +239,12 @@ func selectServers(t *testing.T, test *testCase) error {
 	c := description.Topology{
 		Kind:    topologyKindFromString(t, test.TopologyDescription.Type),
 		Servers: servers,
+	}
+
+	// Convert deprioritized servers from test JSON to description.Server
+	var deprioritizedServers []description.Server
+	for _, srvDesc := range test.DeprioritizedServers {
+		deprioritizedServers = append(deprioritizedServers, convertServerDesc(t, srvDesc, baseTime, test.HeartbeatFrequencyMS))
 	}
 
 	if len(test.ReadPreference.Mode) == 0 {
@@ -268,7 +282,18 @@ func selectServers(t *testing.T, test *testCase) error {
 		}
 	}
 
-	result, err := selector.SelectServer(c, c.Servers)
+	// Compose deprioritized selector with read/write selector if there are deprioritized servers
+	baseSelector := selector
+	if len(deprioritizedServers) > 0 {
+		selector = &Composite{
+			Selectors: []description.ServerSelector{
+				&Deprioritized{DeprioritizedServers: deprioritizedServers},
+				baseSelector,
+			},
+		}
+	}
+
+	result, err := selector.SelectServer(c, servers)
 	if err != nil {
 		return err
 	}
@@ -276,11 +301,22 @@ func selectServers(t *testing.T, test *testCase) error {
 	compareServers(t, test.SuitableServers, result)
 
 	latencySelector := &Latency{Latency: time.Duration(15) * time.Millisecond}
-	selector = &Composite{
-		Selectors: []description.ServerSelector{selector, latencySelector},
+
+	// Build selector chain for latency window: Deprioritized -> baseSelector -> Latency
+	var latencySelectorChain description.ServerSelector = &Composite{
+		Selectors: []description.ServerSelector{baseSelector, latencySelector},
+	}
+	if len(deprioritizedServers) > 0 {
+		latencySelectorChain = &Composite{
+			Selectors: []description.ServerSelector{
+				&Deprioritized{DeprioritizedServers: deprioritizedServers},
+				baseSelector,
+				latencySelector,
+			},
+		}
 	}
 
-	result, err = selector.SelectServer(c, c.Servers)
+	result, err = latencySelectorChain.SelectServer(c, servers)
 	if err != nil {
 		return err
 	}
