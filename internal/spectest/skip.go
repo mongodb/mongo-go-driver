@@ -815,15 +815,6 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/client-side-operations-timeout/tests/tailable-awaitData.json/error_on_watch_if_maxAwaitTimeMS_is_equal_to_timeoutMS",
 	},
 
-	// TODO(GODRIVER-3620): Support text indexes with auto encryption.
-	"Support text indexes with auto encryption (GODRIVER-3620)": {
-		"TestUnifiedSpec/client-side-encryption/tests/unified/QE-Text-cleanupStructuredEncryptionData.json",
-		"TestUnifiedSpec/client-side-encryption/tests/unified/QE-Text-compactStructuredEncryptionData.json",
-		"TestUnifiedSpec/client-side-encryption/tests/unified/QE-Text-prefixPreview.json",
-		"TestUnifiedSpec/client-side-encryption/tests/unified/QE-Text-substringPreview.json",
-		"TestUnifiedSpec/client-side-encryption/tests/unified/QE-Text-suffixPreview.json",
-	},
-
 	// TODO(GODRIVER-3403): Support queryable encryption in Client.BulkWrite.
 	"Support queryable encryption in Client.BulkWrite (GODRIVER-3403)": {
 		"TestUnifiedSpec/crud/tests/unified/client-bulkWrite-qe.json",
