@@ -184,17 +184,18 @@ func (selector *Write) SelectServer(
 // If all candidates are deprioritized, returns all candidates as fallback.
 type Deprioritized struct {
 	DeprioritizedServers []description.Server
+	InnerSelector        description.ServerSelector
 }
 
 var _ description.ServerSelector = &Deprioritized{}
 
 // SelectServer filters out deprioritized servers from candidates.
 func (d *Deprioritized) SelectServer(
-	_ description.Topology,
+	topo description.Topology,
 	candidates []description.Server,
 ) ([]description.Server, error) {
 	if len(d.DeprioritizedServers) == 0 {
-		return candidates, nil
+		return d.InnerSelector.SelectServer(topo, candidates)
 	}
 
 	dpaSet := make(map[address.Address]*description.Server)
@@ -213,13 +214,22 @@ func (d *Deprioritized) SelectServer(
 	}
 
 	// If nothing is allowed, then all available servers must have been
-	// deprioritized. In this case, return the candidates list as-is so that the
-	// selector can find a suitable server
+	// deprioritized. In this case, run the inner selector to find a suitable server.
 	if len(allowed) == 0 {
-		return candidates, nil
+		return d.InnerSelector.SelectServer(topo, candidates)
 	}
 
-	return allowed, nil
+	result, err := d.InnerSelector.SelectServer(topo, allowed)
+	if err != nil {
+		return nil, err
+	}
+
+	// If the inner selector returns no servers, then fallback to filtering over all candidates.
+	if len(result) == 0 {
+		return d.InnerSelector.SelectServer(topo, candidates)
+	}
+
+	return result, nil
 }
 
 // Func is a function that can be used as a ServerSelector.

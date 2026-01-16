@@ -382,13 +382,9 @@ func (oss *opServerSelector) SelectServer(
 ) ([]description.Server, error) {
 	deprioritizer := &serverselector.Deprioritized{
 		DeprioritizedServers: oss.deprioritizedServers,
+		InnerSelector:        oss.selector,
 	}
-	filteredCandidates, err := deprioritizer.SelectServer(topo, candidates)
-	if err != nil {
-		return nil, err
-	}
-
-	selectedServers, err := oss.selector.SelectServer(topo, filteredCandidates)
+	selectedServers, err := deprioritizer.SelectServer(topo, candidates)
 	if err != nil {
 		return nil, err
 	}
