@@ -567,8 +567,8 @@ func (op Operation) Execute(ctx context.Context) error {
 	currIndex := 0
 
 	// deprioritizedServers are a running list of servers that should be
-	// deprioritized during server selection. Per the specifications, we should
-	// only ever deprioritize the "previous server".
+	// deprioritized during server selection. Servers are accumulated across
+	// retry attempts to avoid repeatedly selecting servers that have failed.
 	var deprioritizedServers []description.Server
 
 	// resetForRetry records the error that caused the retry, decrements retries, and resets the
@@ -598,7 +598,7 @@ func (op Operation) Execute(ctx context.Context) error {
 		// If we got a connection, close it immediately to release pool resources
 		// for subsequent retries.
 		if conn != nil {
-			deprioritizedServers = []description.Server{conn.Description()}
+			deprioritizedServers = append(deprioritizedServers, conn.Description())
 			conn.Close()
 		}
 
