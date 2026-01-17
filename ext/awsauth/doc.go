@@ -11,7 +11,7 @@
 // NewCredentialsProvider() adapts an AWS CredentialsProvider to be used in:
 //
 //	ClientOptions
-//	ClinetEncryptionOptions
+//	ClientEncryptionOptions
 //	AutoEncryptionOptions
 //
 // NewSigner() adapts an AWS HTTPSigner to be used in:
