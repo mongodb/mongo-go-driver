@@ -18,7 +18,7 @@ import (
 
 // SaslClient is the client piece of a sasl conversation.
 type SaslClient interface {
-	Start() (string, []byte, error)
+	Start(ctx context.Context) (string, []byte, error)
 	Next(ctx context.Context, challenge []byte) ([]byte, error)
 	Completed() bool
 }
@@ -59,10 +59,10 @@ func newSaslConversation(client SaslClient, source string, speculative bool) *sa
 
 // FirstMessage returns the first message to be sent to the server. This message contains a "db" field so it can be used
 // for speculative authentication.
-func (sc *saslConversation) FirstMessage() (bsoncore.Document, error) {
+func (sc *saslConversation) FirstMessage(ctx context.Context) (bsoncore.Document, error) {
 	var payload []byte
 	var err error
-	sc.mechanism, payload, err = sc.client.Start()
+	sc.mechanism, payload, err = sc.client.Start(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -156,7 +156,7 @@ func (sc *saslConversation) Finish(ctx context.Context, cfg *driver.AuthConfig, 
 func ConductSaslConversation(ctx context.Context, cfg *driver.AuthConfig, authSource string, client SaslClient) error {
 	// Create a non-speculative SASL conversation.
 	conversation := newSaslConversation(client, authSource, false)
-	saslStartDoc, err := conversation.FirstMessage()
+	saslStartDoc, err := conversation.FirstMessage(ctx)
 	if err != nil {
 		return newError(err, conversation.mechanism)
 	}

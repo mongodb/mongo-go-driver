@@ -29,12 +29,11 @@ type ECSProvider struct {
 	AwsContainerCredentialsRelativeURIEnv EnvVar
 
 	httpClient *http.Client
-	expiration time.Time
 
 	// expiryWindow will allow the credentials to trigger refreshing prior to the credentials actually expiring.
 	// This is beneficial so expiring credentials do not cause request to fail unexpectedly due to exceptions.
 	//
-	// So a ExpiryWindow of 10s would cause calls to IsExpired() to return true
+	// So a ExpiryWindow of 10s would cause calls to Expired() to return true
 	// 10 seconds before the credentials are actually expired.
 	expiryWindow time.Duration
 }
@@ -49,8 +48,8 @@ func NewECSProvider(httpClient *http.Client, expiryWindow time.Duration) *ECSPro
 	}
 }
 
-// RetrieveWithContext retrieves the keys from the AWS service.
-func (e *ECSProvider) RetrieveWithContext(ctx context.Context) (credentials.Value, error) {
+// Retrieve retrieves the keys from the AWS service.
+func (e *ECSProvider) Retrieve(ctx context.Context) (credentials.Value, error) {
 	const defaultHTTPTimeout = 10 * time.Second
 
 	v := credentials.Value{ProviderName: ecsProviderName}
@@ -96,17 +95,8 @@ func (e *ECSProvider) RetrieveWithContext(ctx context.Context) (credentials.Valu
 	if !v.HasKeys() {
 		return v, errors.New("failed to retrieve ECS keys")
 	}
-	e.expiration = ecsResp.Expiration.Add(-e.expiryWindow)
+	v.CanExpire = true
+	v.Expires = ecsResp.Expiration.Add(-e.expiryWindow)
 
 	return v, nil
-}
-
-// Retrieve retrieves the keys from the AWS service.
-func (e *ECSProvider) Retrieve() (credentials.Value, error) {
-	return e.RetrieveWithContext(context.Background())
-}
-
-// IsExpired returns true if the credentials are expired.
-func (e *ECSProvider) IsExpired() bool {
-	return e.expiration.Before(time.Now())
 }

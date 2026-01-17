@@ -135,7 +135,7 @@ func (v4 Signer) signWithBody(r *http.Request, body io.ReadSeeker, service, regi
 	}
 
 	var err error
-	ctx.credValues, err = v4.Credentials.GetWithContext(r.Context())
+	ctx.credValues, err = v4.Credentials.Get(r.Context())
 	if err != nil {
 		return http.Header{}, err
 	}

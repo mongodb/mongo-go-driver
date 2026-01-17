@@ -11,6 +11,7 @@
 package credentials
 
 import (
+	"context"
 	"reflect"
 	"testing"
 
@@ -18,18 +19,13 @@ import (
 )
 
 type secondStubProvider struct {
-	creds   Value
-	expired bool
-	err     error
+	creds Value
+	err   error
 }
 
-func (s *secondStubProvider) Retrieve() (Value, error) {
-	s.expired = false
+func (s *secondStubProvider) Retrieve(_ context.Context) (Value, error) {
 	s.creds.ProviderName = "secondStubProvider"
 	return s.creds, s.err
-}
-func (s *secondStubProvider) IsExpired() bool {
-	return s.expired
 }
 
 func TestChainProviderWithNames(t *testing.T) {
@@ -54,7 +50,7 @@ func TestChainProviderWithNames(t *testing.T) {
 		},
 	}
 
-	creds, err := p.Retrieve()
+	creds, err := p.Retrieve(context.Background())
 	if err != nil {
 		t.Errorf("Expect no error, got %v", err)
 	}
@@ -90,7 +86,7 @@ func TestChainProviderGet(t *testing.T) {
 		},
 	}
 
-	creds, err := p.Retrieve()
+	creds, err := p.Retrieve(context.Background())
 	if err != nil {
 		t.Errorf("Expect no error, got %v", err)
 	}
@@ -105,48 +101,12 @@ func TestChainProviderGet(t *testing.T) {
 	}
 }
 
-func TestChainProviderIsExpired(t *testing.T) {
-	stubProvider := &stubProvider{expired: true}
-	p := &ChainProvider{
-		Providers: []Provider{
-			stubProvider,
-		},
-	}
-
-	if !p.IsExpired() {
-		t.Errorf("Expect expired to be true before any Retrieve")
-	}
-	_, err := p.Retrieve()
-	if err != nil {
-		t.Errorf("Expect no error, got %v", err)
-	}
-	if p.IsExpired() {
-		t.Errorf("Expect not expired after retrieve")
-	}
-
-	stubProvider.expired = true
-	if !p.IsExpired() {
-		t.Errorf("Expect return of expired provider")
-	}
-
-	_, err = p.Retrieve()
-	if err != nil {
-		t.Errorf("Expect no error, got %v", err)
-	}
-	if p.IsExpired() {
-		t.Errorf("Expect not expired after retrieve")
-	}
-}
-
 func TestChainProviderWithNoProvider(t *testing.T) {
 	p := &ChainProvider{
 		Providers: []Provider{},
 	}
 
-	if !p.IsExpired() {
-		t.Errorf("Expect expired with no providers")
-	}
-	_, err := p.Retrieve()
+	_, err := p.Retrieve(context.Background())
 	if err.Error() != "NoCredentialProviders: no valid providers in chain" {
 		t.Errorf("Expect no providers error returned, got %v", err)
 	}
@@ -164,10 +124,7 @@ func TestChainProviderWithNoValidProvider(t *testing.T) {
 		},
 	}
 
-	if !p.IsExpired() {
-		t.Errorf("Expect expired with no providers")
-	}
-	_, err := p.Retrieve()
+	_, err := p.Retrieve(context.Background())
 
 	expectErr := awserr.NewBatchError("NoCredentialProviders", "no valid providers in chain", errs)
 	if e, a := expectErr, err; !reflect.DeepEqual(e, a) {

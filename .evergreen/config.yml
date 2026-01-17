@@ -517,6 +517,20 @@ functions:
         binary: "bash"
         include_expansions_in_env: [KMS_TLS_TESTCASE]
         args: [*task-runner, evg-test-kms]
+  run-custom-aws-credentials-test:
+    - command: subprocess.exec
+      params:
+        binary: "bash"
+        env:
+          GO_BUILD_TAGS: cse
+        include_expansions_in_env: [AUTH, SSL, MONGODB_URI, TOPOLOGY, MONGO_GO_DRIVER_COMPRESSOR]
+        args: [*task-runner, setup-test]
+    - command: subprocess.exec
+      type: test
+      retry_on_failure: true
+      params:
+        binary: "bash"
+        args: [*task-runner, evg-test-custom-aws-credentials]
   run-kmip-tests:
     - command: subprocess.exec
       params:
@@ -1438,6 +1452,16 @@ tasks:
           TOPOLOGY: "server"
           AUTH: "noauth"
           SSL: "nossl"
+  - name: "test-custom-aws-credentials"
+    tags: ["kms-test"]
+    commands:
+      - func: bootstrap-mongo-orchestration
+        vars:
+          TOPOLOGY: "server"
+          AUTH: "noauth"
+          SSL: "nossl"
+      - func: start-cse-servers
+      - func: run-custom-aws-credentials-test
   - name: "test-kms-kmip"
     tags: ["kms-kmip"]
     commands:

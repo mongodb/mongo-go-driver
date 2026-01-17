@@ -15,8 +15,10 @@ package driver
 
 import (
 	"context"
+	"net/http"
 	"time"
 
+	"go.mongodb.org/mongo-driver/v2/internal/aws/credentials"
 	"go.mongodb.org/mongo-driver/v2/internal/csot"
 	"go.mongodb.org/mongo-driver/v2/mongo/address"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
@@ -73,13 +75,26 @@ type Authenticator interface {
 
 // Cred is a user's credential.
 type Cred struct {
-	Source              string
-	Username            string
-	Password            string
-	PasswordSet         bool
-	Props               map[string]string
-	OIDCMachineCallback OIDCCallback
-	OIDCHumanCallback   OIDCCallback
+	Source                 string
+	Username               string
+	Password               string
+	PasswordSet            bool
+	Props                  map[string]string
+	OIDCMachineCallback    OIDCCallback
+	OIDCHumanCallback      OIDCCallback
+	AWSCredentialsProvider AWSCredentialsProvider
+	AWSSigner              AWSSigner
+}
+
+// AWSCredentialsProvider is the interface used to retrieve AWS credentials.
+type AWSCredentialsProvider interface {
+	Retrieve(ctx context.Context) (credentials.Value, error)
+}
+
+// AWSSigner is an interface to a AWS SigV4 signer that can sign HTTP requests.
+type AWSSigner interface {
+	Sign(ctx context.Context, creds credentials.Value, r *http.Request,
+		payload, service, region string, signingTime time.Time) error
 }
 
 // Deployment is implemented by types that can select a server from a deployment.

@@ -64,7 +64,7 @@ type plainSaslClient struct {
 
 var _ SaslClient = (*plainSaslClient)(nil)
 
-func (c *plainSaslClient) Start() (string, []byte, error) {
+func (c *plainSaslClient) Start(context.Context) (string, []byte, error) {
 	b := []byte("\x00" + c.username + "\x00" + c.password)
 	return PLAIN, b, nil
 }

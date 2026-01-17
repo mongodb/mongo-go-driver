@@ -71,7 +71,7 @@ func (sc *SaslClient) Close() {
 	C.gssapi_client_destroy(&sc.state)
 }
 
-func (sc *SaslClient) Start() (string, []byte, error) {
+func (sc *SaslClient) Start(context.Context) (string, []byte, error) {
 	const mechName = "GSSAPI"
 
 	cservicePrincipalName := C.CString(sc.servicePrincipalName)
