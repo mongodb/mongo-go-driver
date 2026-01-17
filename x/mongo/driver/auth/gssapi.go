@@ -51,7 +51,6 @@ func (a *GSSAPIAuthenticator) Auth(ctx context.Context, cfg *driver.AuthConfig) 
 	}
 
 	client, err := gssapi.New(hostname, a.Username, a.Password, a.PasswordSet, a.Props)
-
 	if err != nil {
 		return newAuthError("error creating gssapi", err)
 	}

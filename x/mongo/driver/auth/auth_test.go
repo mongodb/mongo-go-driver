@@ -25,7 +25,6 @@ import (
 )
 
 func TestCreateAuthenticator(t *testing.T) {
-
 	tests := []struct {
 		name   string
 		source string

@@ -67,11 +67,9 @@ func (ct *CommitTransaction) Execute(ctx context.Context) error {
 		Name:              driverutil.CommitTransactionOp,
 		Authenticator:     ct.authenticator,
 	}.Execute(ctx)
-
 }
 
 func (ct *CommitTransaction) command(dst []byte, _ description.SelectedServer) ([]byte, error) {
-
 	dst = bsoncore.AppendInt32Element(dst, "commitTransaction", 1)
 	if ct.recoveryToken != nil {
 		dst = bsoncore.AppendDocumentElement(dst, "recoveryToken", ct.recoveryToken)

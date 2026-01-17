@@ -119,7 +119,6 @@ func (csi *CreateSearchIndexes) Execute(ctx context.Context) error {
 		Timeout:           csi.timeout,
 		Authenticator:     csi.authenticator,
 	}.Execute(ctx)
-
 }
 
 func (csi *CreateSearchIndexes) command(dst []byte, _ description.SelectedServer) ([]byte, error) {

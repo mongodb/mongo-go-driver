@@ -52,8 +52,10 @@ type Undefined struct{}
 // DateTime represents the BSON datetime value.
 type DateTime int64
 
-var _ json.Marshaler = DateTime(0)
-var _ json.Unmarshaler = (*DateTime)(nil)
+var (
+	_ json.Marshaler   = DateTime(0)
+	_ json.Unmarshaler = (*DateTime)(nil)
+)
 
 // MarshalJSON marshal to time type.
 func (d DateTime) MarshalJSON() ([]byte, error) {

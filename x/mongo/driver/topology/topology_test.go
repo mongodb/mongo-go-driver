@@ -576,6 +576,7 @@ type mockLogSink struct {
 func (s *mockLogSink) Info(_ int, msg string, _ ...any) {
 	s.msgs = append(s.msgs, msg)
 }
+
 func (*mockLogSink) Error(error, string, ...any) {
 	// Do nothing.
 }

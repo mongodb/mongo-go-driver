@@ -64,7 +64,6 @@ func NewAggregate(pipeline bsoncore.Document) *Aggregate {
 
 // Result returns the result of executing this operation.
 func (a *Aggregate) Result(opts driver.CursorOptions) (*driver.BatchCursor, error) {
-
 	clientSession := a.session
 
 	clock := a.clock
@@ -85,7 +84,6 @@ func (a *Aggregate) processResponse(_ context.Context, resp bsoncore.Document, i
 	}
 	a.result, err = driver.NewCursorResponse(curDoc, info)
 	return err
-
 }
 
 // Execute runs this operations and returns an error if the operation did not execute successfully.
@@ -118,7 +116,6 @@ func (a *Aggregate) Execute(ctx context.Context) error {
 		Authenticator:                  a.authenticator,
 		OmitMaxTimeMS:                  a.omitMaxTimeMS,
 	}.Execute(ctx)
-
 }
 
 func (a *Aggregate) command(dst []byte, desc description.SelectedServer) ([]byte, error) {
@@ -130,14 +127,12 @@ func (a *Aggregate) command(dst []byte, desc description.SelectedServer) ([]byte
 
 	cursorIdx, cursorDoc := bsoncore.AppendDocumentStart(nil)
 	if a.allowDiskUse != nil {
-
 		dst = bsoncore.AppendBooleanElement(dst, "allowDiskUse", *a.allowDiskUse)
 	}
 	if a.batchSize != nil {
 		cursorDoc = bsoncore.AppendInt32Element(cursorDoc, "batchSize", *a.batchSize)
 	}
 	if a.bypassDocumentValidation != nil {
-
 		dst = bsoncore.AppendBooleanElement(dst, "bypassDocumentValidation", *a.bypassDocumentValidation)
 	}
 	if a.collation != nil {
@@ -150,11 +145,9 @@ func (a *Aggregate) command(dst []byte, desc description.SelectedServer) ([]byte
 		dst = bsoncore.AppendValueElement(dst, "comment", a.comment)
 	}
 	if a.hint.Type != bsoncore.Type(0) {
-
 		dst = bsoncore.AppendValueElement(dst, "hint", a.hint)
 	}
 	if a.pipeline != nil {
-
 		dst = bsoncore.AppendArrayElement(dst, "pipeline", a.pipeline)
 	}
 	if a.let != nil {

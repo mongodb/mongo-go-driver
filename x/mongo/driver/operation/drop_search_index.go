@@ -95,7 +95,6 @@ func (dsi *DropSearchIndex) Execute(ctx context.Context) error {
 		Timeout:           dsi.timeout,
 		Authenticator:     dsi.authenticator,
 	}.Execute(ctx)
-
 }
 
 func (dsi *DropSearchIndex) command(dst []byte, _ description.SelectedServer) ([]byte, error) {

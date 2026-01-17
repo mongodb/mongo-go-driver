@@ -333,8 +333,8 @@ func (c *customCrypt) BypassAutoEncryption() bool {
 // RewrapDataKey attempts to rewrap the document data keys matching the filter, preparing the re-wrapped documents to
 // be returned as a slice of bsoncore.Document.
 func (c *customCrypt) RewrapDataKey(_ context.Context, _ []byte,
-	_ *mcopts.RewrapManyDataKeyOptions) ([]bsoncore.Document, error) {
-
+	_ *mcopts.RewrapManyDataKeyOptions,
+) ([]bsoncore.Document, error) {
 	c.numRewrapDataKeyCalls++
 	return nil, nil
 }

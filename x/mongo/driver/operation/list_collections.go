@@ -90,7 +90,6 @@ func (lc *ListCollections) Execute(ctx context.Context) error {
 		Name:              driverutil.ListCollectionsOp,
 		Authenticator:     lc.authenticator,
 	}.Execute(ctx)
-
 }
 
 func (lc *ListCollections) command(dst []byte, desc description.SelectedServer) ([]byte, error) {

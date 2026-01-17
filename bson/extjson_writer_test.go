@@ -151,8 +151,10 @@ func TestExtJSONValueWriter(t *testing.T) {
 				if strings.Contains(fnName, "WriteBinary") {
 					fnName = "WriteBinaryWithSubtype"
 				}
-				want := TransitionError{current: mTopLevel, name: fnName, modes: []mode{mElement, mValue},
-					action: "write"}
+				want := TransitionError{
+					current: mTopLevel, name: fnName, modes: []mode{mElement, mValue},
+					action: "write",
+				}
 				if !assert.CompareErrors(got, want) {
 					t.Errorf("Errors do not match. got %v; want %v", got, want)
 				}
@@ -163,8 +165,10 @@ func TestExtJSONValueWriter(t *testing.T) {
 	t.Run("WriteArray", func(t *testing.T) {
 		ejvw := newExtJSONWriter(io.Discard, true, true, false)
 		ejvw.push(mArray)
-		want := TransitionError{current: mArray, destination: mArray, parent: mTopLevel,
-			name: "WriteArray", modes: []mode{mElement, mValue}, action: "write"}
+		want := TransitionError{
+			current: mArray, destination: mArray, parent: mTopLevel,
+			name: "WriteArray", modes: []mode{mElement, mValue}, action: "write",
+		}
 		_, got := ejvw.WriteArray()
 		if !assert.CompareErrors(got, want) {
 			t.Errorf("Did not get expected error. got %v; want %v", got, want)
@@ -173,8 +177,10 @@ func TestExtJSONValueWriter(t *testing.T) {
 	t.Run("WriteCodeWithScope", func(t *testing.T) {
 		ejvw := newExtJSONWriter(io.Discard, true, true, false)
 		ejvw.push(mArray)
-		want := TransitionError{current: mArray, destination: mCodeWithScope, parent: mTopLevel,
-			name: "WriteCodeWithScope", modes: []mode{mElement, mValue}, action: "write"}
+		want := TransitionError{
+			current: mArray, destination: mCodeWithScope, parent: mTopLevel,
+			name: "WriteCodeWithScope", modes: []mode{mElement, mValue}, action: "write",
+		}
 		_, got := ejvw.WriteCodeWithScope("")
 		if !assert.CompareErrors(got, want) {
 			t.Errorf("Did not get expected error. got %v; want %v", got, want)
@@ -183,8 +189,10 @@ func TestExtJSONValueWriter(t *testing.T) {
 	t.Run("WriteDocument", func(t *testing.T) {
 		ejvw := newExtJSONWriter(io.Discard, true, true, false)
 		ejvw.push(mArray)
-		want := TransitionError{current: mArray, destination: mDocument, parent: mTopLevel,
-			name: "WriteDocument", modes: []mode{mElement, mValue, mTopLevel}, action: "write"}
+		want := TransitionError{
+			current: mArray, destination: mDocument, parent: mTopLevel,
+			name: "WriteDocument", modes: []mode{mElement, mValue, mTopLevel}, action: "write",
+		}
 		_, got := ejvw.WriteDocument()
 		if !assert.CompareErrors(got, want) {
 			t.Errorf("Did not get expected error. got %v; want %v", got, want)
@@ -193,12 +201,14 @@ func TestExtJSONValueWriter(t *testing.T) {
 	t.Run("WriteDocumentElement", func(t *testing.T) {
 		ejvw := newExtJSONWriter(io.Discard, true, true, false)
 		ejvw.push(mElement)
-		want := TransitionError{current: mElement,
+		want := TransitionError{
+			current:     mElement,
 			destination: mElement,
 			parent:      mTopLevel,
 			name:        "WriteDocumentElement",
 			modes:       []mode{mDocument, mTopLevel, mCodeWithScope},
-			action:      "write"}
+			action:      "write",
+		}
 		_, got := ejvw.WriteDocumentElement("")
 		if !assert.CompareErrors(got, want) {
 			t.Errorf("Did not get expected error. got %v; want %v", got, want)
@@ -216,12 +226,14 @@ func TestExtJSONValueWriter(t *testing.T) {
 	t.Run("WriteArrayElement", func(t *testing.T) {
 		ejvw := newExtJSONWriter(io.Discard, true, true, false)
 		ejvw.push(mElement)
-		want := TransitionError{current: mElement,
+		want := TransitionError{
+			current:     mElement,
 			destination: mValue,
 			parent:      mTopLevel,
 			name:        "WriteArrayElement",
 			modes:       []mode{mArray},
-			action:      "write"}
+			action:      "write",
+		}
 		_, got := ejvw.WriteArrayElement()
 		if !assert.CompareErrors(got, want) {
 			t.Errorf("Did not get expected error. got %v; want %v", got, want)
@@ -240,8 +252,10 @@ func TestExtJSONValueWriter(t *testing.T) {
 	t.Run("WriteBytes", func(t *testing.T) {
 		t.Run("writeElementHeader error", func(t *testing.T) {
 			ejvw := newExtJSONWriterFromSlice(nil, true, true)
-			want := TransitionError{current: mTopLevel, destination: mode(0),
-				name: "WriteBinaryWithSubtype", modes: []mode{mElement, mValue}, action: "write"}
+			want := TransitionError{
+				current: mTopLevel, destination: mode(0),
+				name: "WriteBinaryWithSubtype", modes: []mode{mElement, mValue}, action: "write",
+			}
 			got := ejvw.WriteBinaryWithSubtype(nil, (byte)(TypeEmbeddedDocument))
 			if !assert.CompareErrors(got, want) {
 				t.Errorf("Did not received expected error. got %v; want %v", got, want)

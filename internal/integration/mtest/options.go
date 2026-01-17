@@ -45,9 +45,7 @@ const (
 	Proxy
 )
 
-var (
-	falseBool = false
-)
+var falseBool = false
 
 // CSFLEOptions holds configuration for Client-Side Field Level Encryption
 // (CSFLE).

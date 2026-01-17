@@ -109,5 +109,4 @@ func TestCalculateMaxTimeMS(t *testing.T) {
 			}
 		})
 	}
-
 }

@@ -11,8 +11,10 @@ import (
 	"reflect"
 )
 
-var tRawValue = reflect.TypeOf(RawValue{})
-var tRaw = reflect.TypeOf(Raw(nil))
+var (
+	tRawValue = reflect.TypeOf(RawValue{})
+	tRaw      = reflect.TypeOf(Raw(nil))
+)
 
 // registerPrimitiveCodecs will register the encode and decode methods attached to PrimitiveCodecs
 // with the provided RegistryBuilder. if rb is nil, a new empty RegistryBuilder will be created.

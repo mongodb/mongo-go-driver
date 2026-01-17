@@ -55,5 +55,4 @@ func TestTruncate(t *testing.T) {
 			assert.Equal(t, tcase.expected, actual)
 		})
 	}
-
 }

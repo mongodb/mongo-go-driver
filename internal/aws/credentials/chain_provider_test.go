@@ -28,6 +28,7 @@ func (s *secondStubProvider) Retrieve() (Value, error) {
 	s.creds.ProviderName = "secondStubProvider"
 	return s.creds, s.err
 }
+
 func (s *secondStubProvider) IsExpired() bool {
 	return s.expired
 }
@@ -72,7 +73,6 @@ func TestChainProviderWithNames(t *testing.T) {
 	if v := creds.SessionToken; len(v) != 0 {
 		t.Errorf("Expect session token to be empty, %v", v)
 	}
-
 }
 
 func TestChainProviderGet(t *testing.T) {
