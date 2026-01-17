@@ -27,12 +27,15 @@ tasks:
   build-compile-check-all: bash etc/run-compile-check-test.sh
   build-aws-ecs-test: go test -c ./internal/test/aws -o aws.testbin
   check-fmt:
-    deps: [install-lll]
+    deps: [install-lll, install-gofumpt]
     cmds:
       - bash etc/check_fmt.sh
   check-modules: bash etc/check_modules.sh
   doc: godoc -http=:6060 -index
-  fmt: go fmt ./...
+  fmt:
+    deps: [install-gofumpt]
+    cmds:
+      - gofumpt -w .
   api-report: bash etc/api_report.sh
   install-libmongocrypt:
     cmds: [bash etc/install-libmongocrypt.sh]
@@ -129,6 +132,12 @@ tasks:
     cmds:
       - go test ./internal/cmd/benchmark -v --fullRun | tee perf.suite
   ### Internal tasks. ###
+  install-gofumpt:
+    internal: true
+    cmds:
+      - go install mvdan.cc/gofumpt@latest
+    status:
+      - command -v gofumpt
   install-lll:
     internal: true
     cmds:
