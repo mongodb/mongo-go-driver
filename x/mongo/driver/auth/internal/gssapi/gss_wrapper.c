@@ -72,8 +72,9 @@ int gssapi_error_desc(
             free(*desc);
         }
 
-        *desc = malloc(desc_buffer.length+1);
-        memcpy(*desc, desc_buffer.value, desc_buffer.length+1);
+        *desc = malloc(desc_buffer.length + 1);
+        memcpy(*desc, desc_buffer.value, desc_buffer.length);
+        (*desc)[desc_buffer.length] = '\0';
 
         gss_release_buffer(&local_min_stat, &desc_buffer);
     }
@@ -144,8 +145,9 @@ int gssapi_client_username(
         return GSSAPI_ERROR;
     }
 
-	*username = malloc(name_buffer.length+1);
-	memcpy(*username, name_buffer.value, name_buffer.length+1);
+    *username = malloc(name_buffer.length + 1);
+    memcpy(*username, name_buffer.value, name_buffer.length);
+    (*username)[name_buffer.length] = '\0';
 
     gss_release_buffer(&ignored, &name_buffer);
     gss_release_name(&ignored, &name);
