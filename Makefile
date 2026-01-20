@@ -126,9 +126,7 @@ evg-test-atlas-data-lake:
 
 .PHONY: evg-test-enterprise-auth
 evg-test-enterprise-auth:
-	# Sanitize to ensure no memory errors occur in C code used for GSSAPI
-	# authentication.
-	CGO_CFLAGS="-fsanitize=address" CGO_LDFLAGS="-fsanitize=address" go run -tags gssapi ./cmd/testentauth/main.go
+	go run -tags gssapi ./cmd/testentauth/main.go
 
 .PHONY: evg-test-oidc-auth
 evg-test-oidc-auth:
