@@ -135,7 +135,7 @@ tasks:
   install-gofumpt:
     internal: true
     cmds:
-      - go install mvdan.cc/gofumpt@latest
+      - go install mvdan.cc/gofumpt@v0.9.2
     status:
       - command -v gofumpt
   install-lll:
