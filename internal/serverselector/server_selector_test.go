@@ -1369,7 +1369,7 @@ func TestDeprioritizedSelector(t *testing.T) {
 			},
 		},
 		{
-			name: "deprioritize one server in multi server candidate list",
+			name: "deprioritize one server in multi-server candidate list",
 			candidates: []description.Server{
 				{
 					Addr: address.Address("mongodb://localhost:27017"),
@@ -1396,7 +1396,7 @@ func TestDeprioritizedSelector(t *testing.T) {
 			},
 		},
 		{
-			name: "deprioritize multiple servers in multi server candidate list",
+			name: "deprioritize multiple servers in multi-server candidate list",
 			deprioritized: []description.Server{
 				{
 					Addr: address.Address("mongodb://localhost:27017"),
