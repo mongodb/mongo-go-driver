@@ -107,6 +107,7 @@ func (rv RawValue) UnmarshalWithContext(dc *DecodeContext, val any) error {
 func convertFromCoreValue(v bsoncore.Value) RawValue {
 	return RawValue{Type: Type(v.Type), Value: v.Data}
 }
+
 func convertToCoreValue(v RawValue) bsoncore.Value {
 	return bsoncore.Value{Type: bsoncore.Type(v.Type), Data: v.Value}
 }

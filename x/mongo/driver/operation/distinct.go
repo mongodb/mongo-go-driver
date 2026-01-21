@@ -108,7 +108,6 @@ func (d *Distinct) Execute(ctx context.Context) error {
 		Name:              driverutil.DistinctOp,
 		Authenticator:     d.authenticator,
 	}.Execute(ctx)
-
 }
 
 func (d *Distinct) command(dst []byte, desc description.SelectedServer) ([]byte, error) {

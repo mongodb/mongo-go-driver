@@ -25,8 +25,10 @@ const (
 	serverSelectionTimeoutStr     = "server selection error"
 )
 
-var defaultTimeoutArgs = []string{"--idleShutdownTimeoutSecs=60"}
-var databaseOpts = options.Database().SetReadConcern(&readconcern.ReadConcern{}).SetReadPreference(readpref.Primary())
+var (
+	defaultTimeoutArgs = []string{"--idleShutdownTimeoutSecs=60"}
+	databaseOpts       = options.Database().SetReadConcern(&readconcern.ReadConcern{}).SetReadPreference(readpref.Primary())
+)
 
 type mongocryptdClient struct {
 	bypassSpawn bool

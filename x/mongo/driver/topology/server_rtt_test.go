@@ -19,7 +19,6 @@ import (
 
 // Test case for all server selection rtt spec tests.
 func TestServerSelectionRTTSpec(t *testing.T) {
-
 	type testCase struct {
 		// AvgRttMs is either "NULL" or float
 		AvgRttMs  any     `json:"avg_rtt_ms"`

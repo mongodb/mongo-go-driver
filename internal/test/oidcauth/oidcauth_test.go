@@ -26,10 +26,12 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/auth"
 )
 
-var uriAdmin = os.Getenv("MONGODB_URI")
-var uriSingle = os.Getenv("MONGODB_URI_SINGLE")
-var uriMulti = os.Getenv("MONGODB_URI_MULTI")
-var oidcTokenDir = os.Getenv("OIDC_TOKEN_DIR")
+var (
+	uriAdmin     = os.Getenv("MONGODB_URI")
+	uriSingle    = os.Getenv("MONGODB_URI_SINGLE")
+	uriMulti     = os.Getenv("MONGODB_URI_MULTI")
+	oidcTokenDir = os.Getenv("OIDC_TOKEN_DIR")
+)
 
 var oidcDomain = os.Getenv("OIDC_DOMAIN")
 
@@ -556,7 +558,6 @@ func TestMachine_4_2_ReadCommandsFailIfReauthenticationFails(t *testing.T) {
 			ExpiresAt:    &expiry,
 			RefreshToken: nil,
 		}, nil
-
 	})
 	require.NoError(t, err, "failed connecting client")
 	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })

@@ -172,9 +172,11 @@ func (d *Decimal128) UnmarshalJSON(b []byte) error {
 	return err
 }
 
-var dNaN = Decimal128{0x1F << 58, 0}
-var dPosInf = Decimal128{0x1E << 58, 0}
-var dNegInf = Decimal128{0x3E << 58, 0}
+var (
+	dNaN    = Decimal128{0x1F << 58, 0}
+	dPosInf = Decimal128{0x1E << 58, 0}
+	dNegInf = Decimal128{0x3E << 58, 0}
+)
 
 func dErr(s string) (Decimal128, error) {
 	return dNaN, fmt.Errorf("cannot parse %q as a decimal128", s)
