@@ -362,7 +362,8 @@ func tadcAggregateFactory(ctx context.Context, mt *mtest.T, coll mongo.Collectio
 
 	initCollection(mt, &coll)
 	opts := options.Aggregate()
-	pipeline := mongo.Pipeline{{{"$changeStream", bson.D{{"fullDocument", "default"}}}},
+	pipeline := mongo.Pipeline{
+		{{"$changeStream", bson.D{{"fullDocument", "default"}}}},
 		{{"$match", bson.D{
 			{"operationType", "insert"},
 			{"fullDocment.__nomatch", 1},
