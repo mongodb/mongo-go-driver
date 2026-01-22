@@ -21,9 +21,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 )
 
-var (
-	gridfsConnsCheckedOut int
-)
+var gridfsConnsCheckedOut int
 
 func TestGridFS(t *testing.T) {
 	if testing.Short() {

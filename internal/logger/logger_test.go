@@ -64,7 +64,6 @@ func BenchmarkLoggerWithLargeDocuments(b *testing.B) {
 				b.ResetTimer()
 				for i := 0; i < b.N; i++ {
 					logger.Print(LevelInfo, ComponentCommand, FormatDocument(bs, 1024), "foo", "bar", "baz")
-
 				}
 			})
 
@@ -146,7 +145,6 @@ func BenchmarkLogger(b *testing.B) {
 		logger, err := New(mockLogSink{}, 0, map[Component]Level{
 			ComponentCommand: LevelDebug,
 		})
-
 		if err != nil {
 			b.Fatal(err)
 		}

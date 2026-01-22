@@ -68,7 +68,6 @@ func TestChainProviderWithNames(t *testing.T) {
 	if v := creds.SessionToken; len(v) != 0 {
 		t.Errorf("Expect session token to be empty, %v", v)
 	}
-
 }
 
 func TestChainProviderGet(t *testing.T) {

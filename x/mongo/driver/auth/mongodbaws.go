@@ -103,7 +103,8 @@ type customSigner struct {
 
 func (s customSigner) Sign(
 	ctx context.Context, req *http.Request, body, service, region string,
-	signTime time.Time) error {
+	signTime time.Time,
+) error {
 	creds, err := s.provider.Retrieve(ctx)
 	if err != nil {
 		return err

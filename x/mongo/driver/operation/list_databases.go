@@ -140,7 +140,6 @@ func (ld *ListDatabases) processResponse(_ context.Context, resp bsoncore.Docume
 
 	ld.result, err = buildListDatabasesResult(resp)
 	return err
-
 }
 
 // Execute runs this operations and returns an error if the operation did not execute successfully.
@@ -168,21 +167,17 @@ func (ld *ListDatabases) Execute(ctx context.Context) error {
 		Name:           driverutil.ListDatabasesOp,
 		Authenticator:  ld.authenticator,
 	}.Execute(ctx)
-
 }
 
 func (ld *ListDatabases) command(dst []byte, _ description.SelectedServer) ([]byte, error) {
 	dst = bsoncore.AppendInt32Element(dst, "listDatabases", 1)
 	if ld.filter != nil {
-
 		dst = bsoncore.AppendDocumentElement(dst, "filter", ld.filter)
 	}
 	if ld.nameOnly != nil {
-
 		dst = bsoncore.AppendBooleanElement(dst, "nameOnly", *ld.nameOnly)
 	}
 	if ld.authorizedDatabases != nil {
-
 		dst = bsoncore.AppendBooleanElement(dst, "authorizedDatabases", *ld.authorizedDatabases)
 	}
 

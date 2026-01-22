@@ -38,7 +38,7 @@ func NewChainCredentials(providers []Provider) *Credentials {
 // Retrieve returns the credentials value or error if no provider returned
 // without error.
 func (c *ChainProvider) Retrieve(ctx context.Context) (Value, error) {
-	var errs = make([]error, 0, len(c.Providers))
+	errs := make([]error, 0, len(c.Providers))
 	for _, p := range c.Providers {
 		creds, err := p.Retrieve(ctx)
 		if err == nil {
@@ -50,6 +50,6 @@ func (c *ChainProvider) Retrieve(ctx context.Context) (Value, error) {
 		errs = append(errs, err)
 	}
 
-	var err = awserr.NewBatchError("NoCredentialProviders", "no valid providers in chain", errs)
+	err := awserr.NewBatchError("NoCredentialProviders", "no valid providers in chain", errs)
 	return Value{}, err
 }

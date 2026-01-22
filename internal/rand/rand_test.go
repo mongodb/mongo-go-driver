@@ -113,7 +113,7 @@ func generateNormalSamples(nsamples int, mean, stddev float64, seed uint64) []fl
 }
 
 func testNormalDistribution(t *testing.T, nsamples int, mean, stddev float64, seed uint64) {
-	//fmt.Printf("testing nsamples=%v mean=%v stddev=%v seed=%v\n", nsamples, mean, stddev, seed);
+	// fmt.Printf("testing nsamples=%v mean=%v stddev=%v seed=%v\n", nsamples, mean, stddev, seed);
 
 	samples := generateNormalSamples(nsamples, mean, stddev, seed)
 	errorScale := max(1.0, stddev) // Error scales with stddev
@@ -170,7 +170,7 @@ func generateExponentialSamples(nsamples int, rate float64, seed uint64) []float
 }
 
 func testExponentialDistribution(t *testing.T, nsamples int, rate float64, seed uint64) {
-	//fmt.Printf("testing nsamples=%v rate=%v seed=%v\n", nsamples, rate, seed)
+	// fmt.Printf("testing nsamples=%v rate=%v seed=%v\n", nsamples, rate, seed)
 
 	mean := 1 / rate
 	stddev := mean

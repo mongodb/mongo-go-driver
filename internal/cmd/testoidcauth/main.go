@@ -26,10 +26,12 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/auth"
 )
 
-var uriAdmin = os.Getenv("MONGODB_URI")
-var uriSingle = os.Getenv("MONGODB_URI_SINGLE")
-var uriMulti = os.Getenv("MONGODB_URI_MULTI")
-var oidcTokenDir = os.Getenv("OIDC_TOKEN_DIR")
+var (
+	uriAdmin     = os.Getenv("MONGODB_URI")
+	uriSingle    = os.Getenv("MONGODB_URI_SINGLE")
+	uriMulti     = os.Getenv("MONGODB_URI_MULTI")
+	oidcTokenDir = os.Getenv("OIDC_TOKEN_DIR")
+)
 
 var oidcDomain = os.Getenv("OIDC_DOMAIN")
 
@@ -655,7 +657,6 @@ func machine42ReadCommandsFailIfReauthenticationFails() error {
 			ExpiresAt:    &t,
 			RefreshToken: nil,
 		}, nil
-
 	})
 
 	defer func() { _ = client.Disconnect(context.Background()) }()
@@ -1120,7 +1121,6 @@ func human18MachineIDPHumanCallback() error {
 		return fmt.Errorf("human_1_8: expected callback count to be 1, got %d", callbackCount)
 	}
 	return callbackFailed
-
 }
 
 func human21validCallbackInputs() error {
@@ -1285,7 +1285,6 @@ func human31usesSpeculativeAuth() error {
 		// the callback should not even be called due to spec auth.
 		return &options.OIDCCredential{}, nil
 	})
-
 	if err != nil {
 		return fmt.Errorf("human_3_1: failed connecting client: %v", err)
 	}

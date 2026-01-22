@@ -27,8 +27,10 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
 )
 
-const minHeartbeatInterval = 500 * time.Millisecond
-const wireVersion42 = 8 // Wire version for MongoDB 4.2
+const (
+	minHeartbeatInterval = 500 * time.Millisecond
+	wireVersion42        = 8 // Wire version for MongoDB 4.2
+)
 
 // Server state constants.
 const (
@@ -611,7 +613,6 @@ func checkServerWithSignal(
 			conn.prevCanceled.Store(true)
 			_ = conn.close()
 		}
-
 	}(conn)
 
 	return checker.check(ctx)

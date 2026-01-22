@@ -91,7 +91,8 @@ type Connection struct {
 func NewConnection(component interface {
 	ReadWriteCloser
 	Describer
-}) *Connection {
+},
+) *Connection {
 	if _, ok := component.(*Connection); ok {
 		return component.(*Connection)
 	}

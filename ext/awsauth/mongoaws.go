@@ -64,7 +64,8 @@ func NewSigner(httpSigner v4.HTTPSigner) Signer {
 // Sign signs AWS v4 requests.
 func (s Signer) Sign(
 	ctx context.Context, creds options.AWSCredentials, r *http.Request,
-	payload, service, region string, signingTime time.Time) error {
+	payload, service, region string, signingTime time.Time,
+) error {
 	if len(payload) == 0 {
 		payload = emptyStringSHA256
 	} else {

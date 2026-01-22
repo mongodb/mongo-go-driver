@@ -27,8 +27,10 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
-const defaultServerSelectionTimeout = 30 * time.Second
-const defaultConnectionTimeout = 30 * time.Second
+const (
+	defaultServerSelectionTimeout = 30 * time.Second
+	defaultConnectionTimeout      = 30 * time.Second
+)
 
 // Config is used to construct a topology.
 type Config struct {
@@ -163,7 +165,8 @@ type awsSigner struct {
 }
 
 func (s awsSigner) Sign(ctx context.Context, creds credentials.Value, r *http.Request,
-	payload, service, region string, signingTime time.Time) error {
+	payload, service, region string, signingTime time.Time,
+) error {
 	return s.signer.Sign(ctx, options.AWSCredentials{
 		AccessKeyID:     creds.AccessKeyID,
 		SecretAccessKey: creds.SecretAccessKey,
@@ -367,7 +370,6 @@ func NewAuthenticatorConfig(authenticator driver.Authenticator, clientOpts ...Au
 
 			return auth.Handshaker(nil, handshakeOpts)
 		}
-
 	} else {
 		handshaker = func(driver.Handshaker) driver.Handshaker {
 			op := operation.NewHello().
