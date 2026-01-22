@@ -1,5 +1,6 @@
 # Dockerfile for Go Driver local development.
-FROM golang:1.25.6-trixie AS base
+# sha found via this command: docker inspect --format='{{index .RepoDigests 0}}' golang:1.25.6-trixie
+FROM golang:1.25.6-trixie@sha256:fb4b74a39c7318d53539ebda43ccd3ecba6e447a78591889c0efc0a7235ea8b3 AS base
 
 # Build libmongocrypt in a separate build stage.
 FROM base AS libmongocrypt
