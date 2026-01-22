@@ -3168,7 +3168,7 @@ func TestClientSideEncryptionProse_26_custom_aws_credentials(t *testing.T) {
 		ceo := options.ClientEncryption().
 			SetKeyVaultNamespace("keyvault.datakeys").
 			SetKmsProviders(map[string]map[string]any{
-				"aws": map[string]any{},
+				"aws": {},
 			}).
 			SetAWSCredentialsProvider(&provider)
 		clientEncryption, err := mongo.NewClientEncryption(keyVaultClient, ceo)
@@ -3214,7 +3214,7 @@ func TestClientSideEncryptionProse_26_custom_aws_credentials(t *testing.T) {
 		ceo := options.ClientEncryption().
 			SetKeyVaultNamespace("keyvault.datakeys").
 			SetKmsProviders(map[string]map[string]any{
-				"aws": map[string]any{},
+				"aws": {},
 			}).
 			SetAWSCredentialsProvider(&provider)
 		clientEncryption, err := mongo.NewClientEncryption(keyVaultClient, ceo)
