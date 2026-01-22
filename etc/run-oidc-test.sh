@@ -36,4 +36,14 @@ export TEST_AUTH_OIDC=1
 export COVERAGE=1
 export AUTH="auth"
 
-"$@"
+# In the test environment, run the tests directly
+# In other environments, run whatever command was passed as arguments
+if [ $OIDC_ENV == "test" ]; then
+    go test -v ./internal/test/oidcauth/... >> test.suite
+    go test -v -race ./internal/test/oidcauth/... >> test.suite
+else
+    # For non-test environments (azure, gcp, k8s), execute passed command if provided
+    if [ $# -gt 0 ]; then
+        "$@"
+    fi
+fi

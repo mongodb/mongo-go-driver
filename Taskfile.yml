@@ -67,7 +67,7 @@ tasks:
   test-race:
     - go test ${BUILD_TAGS} -timeout {{.TEST_TIMEOUT}}s -race -p 1 ./...
   test-short: go test ${BUILD_TAGS} -timeout 60s -short -race ./...
-  test-oidc: bash etc/run-oidc-test.sh 'task --silent evg-test-oidc-auth'
+  test-oidc: bash etc/run-oidc-test.sh
   test-oidc-remote: bash etc/run-oidc-remote-test.sh
   test-atlas-connect:
     - go test -v -run ^TestAtlas$ go.mongodb.org/mongo-driver/v2/internal/cmd/testatlas -tags atlastest >> test.suite
