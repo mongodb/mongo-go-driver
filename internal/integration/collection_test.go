@@ -34,14 +34,12 @@ const (
 	errorModifiedID             = 66
 )
 
-var (
-	// impossibleWc is a write concern that can't be satisfied and is used to test write concern errors
-	// for various operations. It includes a timeout because legacy servers will wait for all W nodes to respond,
-	// causing tests to hang.
-	impossibleWc = &writeconcern.WriteConcern{
-		W: 30,
-	}
-)
+// impossibleWc is a write concern that can't be satisfied and is used to test write concern errors
+// for various operations. It includes a timeout because legacy servers will wait for all W nodes to respond,
+// causing tests to hang.
+var impossibleWc = &writeconcern.WriteConcern{
+	W: 30,
+}
 
 func TestCollection(t *testing.T) {
 	mt := mtest.New(t, mtest.NewOptions().CreateClient(false))
@@ -842,8 +840,12 @@ func TestCollection(t *testing.T) {
 				{"filter", bson.D{{"x", bson.D{{"$gt", 2}}}}, nil, 3, mtest.NewOptions()},
 				{"limit", bson.D{}, options.Count().SetLimit(3), 3, mtest.NewOptions()},
 				{"skip", bson.D{}, options.Count().SetSkip(3), 2, mtest.NewOptions()},
-				{"single key map hint", bson.D{}, options.Count().SetHint(bson.M{"x": 1}), 5,
-					mtest.NewOptions().MinServerVersion("3.6")},
+				{
+					"single key map hint",
+					bson.D{},
+					options.Count().SetHint(bson.M{"x": 1}), 5,
+					mtest.NewOptions().MinServerVersion("3.6"),
+				},
 			}
 			for _, tc := range testCases {
 				mt.RunOpts(tc.name, tc.testOpts, func(mt *mtest.T) {
@@ -1214,7 +1216,6 @@ func TestCollection(t *testing.T) {
 			if err := compareDocs(mt, bson.Raw(optionsDoc), started.Command); err != nil {
 				mt.Fatalf("options mismatch: %v", err)
 			}
-
 		})
 		mt.Run("not found", func(mt *mtest.T) {
 			initCollection(mt, mt.Coll)
@@ -1543,7 +1544,6 @@ func TestCollection(t *testing.T) {
 
 			assert.ErrorIs(mt, res.Err(), mongo.ErrNoDocuments)
 			assert.False(mt, res.Acknowledged)
-
 		})
 
 		mt.Run("dropping a collection", func(mt *mtest.T) {
@@ -1853,7 +1853,6 @@ func TestCollection(t *testing.T) {
 				case *mongo.ReplaceOneModel:
 					assert.Equal(mt, writeErr.Index, 8, "expected index 8, got %v", writeErr.Index)
 				}
-
 			}
 		})
 		mt.Run("unordered upsertID index", func(mt *mtest.T) {

@@ -1828,7 +1828,7 @@ func TestClientSideEncryptionProse_13_unique_index_on_keyAltNames(t *testing.T) 
 
 	var cse *cseProseTest
 
-	var initialize = func() bson.Binary {
+	initialize := func() bson.Binary {
 		// Create a ClientEncryption object (referred to as client_encryption) with client set as the keyVaultClient.
 		// Using client, drop the collection keyvault.datakeys.
 		defaultKvClientOptions := options.Client().ApplyURI(mtest.ClusterURI())
@@ -1866,7 +1866,7 @@ func TestClientSideEncryptionProse_13_unique_index_on_keyAltNames(t *testing.T) 
 		return defKeyID
 	}
 
-	var validateAddKeyAltName = func(mt *mtest.T, cse *cseProseTest, res *mongo.SingleResult, expected ...string) {
+	validateAddKeyAltName := func(mt *mtest.T, cse *cseProseTest, res *mongo.SingleResult, expected ...string) {
 		assert.Nil(mt, res.Err(), "error adding key alt name: %v", res.Err())
 
 		resbytes, err := res.Raw()
@@ -1953,7 +1953,6 @@ func TestClientSideEncryptionProse_13_unique_index_on_keyAltNames(t *testing.T) 
 		res = cse.clientEnc.AddKeyAltName(context.Background(), defKeyID, defKeyAltName)
 		validateAddKeyAltName(mt, cse, res, defKeyAltName)
 	})
-
 }
 
 func TestClientSideEncryptionProse_16_rewrap(t *testing.T) {
@@ -2321,7 +2320,6 @@ func TestClientSideEncryptionProse_21_automatic_data_encryption_keys(t *testing.
 
 	for _, tc := range testcases {
 		mt.Run(tc.kmsProvider, func(mt *mtest.T) {
-
 			mt.Run("case 1: simple creation and validation", func(mt *mtest.T) {
 				client, clientEnc, err := setup()
 				assert.Nil(mt, err, "setup error: %v", err)
@@ -3560,7 +3558,8 @@ type cseProseTest struct {
 }
 
 func setup(mt *mtest.T, aeo *options.AutoEncryptionOptions, kvClientOpts *options.ClientOptions,
-	ceo options.Lister[options.ClientEncryptionOptions]) *cseProseTest {
+	ceo options.Lister[options.ClientEncryptionOptions],
+) *cseProseTest {
 	mt.Helper()
 	var cpt cseProseTest
 	var err error

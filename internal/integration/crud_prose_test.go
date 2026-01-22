@@ -115,7 +115,6 @@ func TestWriteErrorsWithLabels(t *testing.T) {
 		assert.True(mt, ok, "expected mongo.BulkWriteException, got %T", err)
 		assert.True(mt, we.HasErrorLabel(label), "expected error to have label: %v", label)
 	})
-
 }
 
 func TestWriteErrorsDetails(t *testing.T) {
@@ -301,7 +300,6 @@ func TestHintErrors(t *testing.T) {
 
 	expected := errors.New("the 'hint' command parameter requires a minimum server wire version of 5")
 	mt.Run("UpdateMany", func(mt *mtest.T) {
-
 		_, got := mt.Coll.UpdateMany(context.Background(), bson.D{{"a", 1}}, bson.D{{"$inc", bson.D{{"a", 1}}}},
 			options.UpdateMany().SetHint("_id_"))
 		assert.NotNil(mt, got, "expected non-nil error, got nil")
@@ -309,7 +307,6 @@ func TestHintErrors(t *testing.T) {
 	})
 
 	mt.Run("ReplaceOne", func(mt *mtest.T) {
-
 		_, got := mt.Coll.ReplaceOne(context.Background(), bson.D{{"a", 1}}, bson.D{{"a", 2}},
 			options.Replace().SetHint("_id_"))
 		assert.NotNil(mt, got, "expected non-nil error, got nil")

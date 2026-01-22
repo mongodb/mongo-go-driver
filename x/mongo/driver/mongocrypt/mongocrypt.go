@@ -14,6 +14,7 @@ package mongocrypt
 // #include <mongocrypt.h>
 // #include <stdlib.h>
 import "C"
+
 import (
 	"context"
 	"errors"

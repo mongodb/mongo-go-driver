@@ -83,7 +83,8 @@ func NewClientEncryption(keyVaultClient *Client, opts ...options.Lister[options.
 // It returns the created collection and the encrypted fields document used to create it.
 func (ce *ClientEncryption) CreateEncryptedCollection(ctx context.Context,
 	db *Database, coll string, createOpts options.Lister[options.CreateCollectionOptions],
-	kmsProvider string, masterKey any) (*Collection, bson.M, error) {
+	kmsProvider string, masterKey any,
+) (*Collection, bson.M, error) {
 	if ce.closed {
 		return nil, nil, ErrClientDisconnected
 	}
@@ -411,9 +412,13 @@ func (ce *ClientEncryption) RemoveKeyAltName(ctx context.Context, id bson.Binary
 	}
 
 	filter := bsoncore.NewDocumentBuilder().AppendBinary("_id", id.Subtype, id.Data).Build()
-	update := bson.A{bson.D{{"$set", bson.D{{"keyAltNames", bson.D{{"$cond", bson.A{bson.D{{"$eq",
-		bson.A{"$keyAltNames", bson.A{keyAltName}}}}, "$$REMOVE", bson.D{{"$filter",
-		bson.D{{"input", "$keyAltNames"}, {"cond", bson.D{{"$ne", bson.A{"$$this", keyAltName}}}}}}}}}}}}}}}
+	update := bson.A{bson.D{{"$set", bson.D{{"keyAltNames", bson.D{{"$cond", bson.A{bson.D{{
+		"$eq",
+		bson.A{"$keyAltNames", bson.A{keyAltName}},
+	}}, "$$REMOVE", bson.D{{
+		"$filter",
+		bson.D{{"input", "$keyAltNames"}, {"cond", bson.D{{"$ne", bson.A{"$$this", keyAltName}}}}},
+	}}}}}}}}}}
 	return ce.keyVaultColl.FindOneAndUpdate(ctx, filter, update)
 }
 
