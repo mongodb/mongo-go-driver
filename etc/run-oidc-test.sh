@@ -36,4 +36,4 @@ export TEST_AUTH_OIDC=1
 export COVERAGE=1
 export AUTH="auth"
 
-$1
+"$@"

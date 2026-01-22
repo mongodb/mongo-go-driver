@@ -21,7 +21,7 @@ if [ $OIDC_ENV == "azure" ]; then
     # Ensure that we source the environment file created for us, set up any other variables we need,
     # and then run our test suite on the vm.
     export AZUREOIDC_TEST_CMD="PROJECT_DIRECTORY='.' OIDC_ENV=azure OIDC=oidc ./etc/run-oidc-test.sh ./test -test.v"
-    bash ${DRIVERS_TOOLS}/.evergreen/auth_oidc/azure/run-driver-test.sh
+    bash ${DRIVERS_TOOLS}/.evergreen/auth_oidc/azure/run-driver-test.sh >> test.suite
 
 elif [ $OIDC_ENV == "gcp" ]; then
     export GCPOIDC_DRIVERS_TAR_FILE=$DRIVERS_TAR_FILE
@@ -29,14 +29,14 @@ elif [ $OIDC_ENV == "gcp" ]; then
     # Ensure that we source the environment file created for us, set up any other variables we need,
     # and then run our test suite on the vm.
     export GCPOIDC_TEST_CMD="PROJECT_DIRECTORY='.' OIDC_ENV=gcp OIDC=oidc ./etc/run-oidc-test.sh ./test -test.v"
-    bash ${DRIVERS_TOOLS}/.evergreen/auth_oidc/gcp/run-driver-test.sh
+    bash ${DRIVERS_TOOLS}/.evergreen/auth_oidc/gcp/run-driver-test.sh >> test.suite
 
 elif [ $OIDC_ENV == "k8s" ]; then
     export K8S_VARIANT=${VARIANT}
     export K8S_DRIVERS_TAR_FILE=$DRIVERS_TAR_FILE
     export K8S_TEST_CMD="PROJECT_DIRECTORY='.' OIDC_ENV=k8s OIDC=oidc ./etc/run-oidc-test.sh ./test -test.v"
     bash ${DRIVERS_TOOLS}/.evergreen/auth_oidc/k8s/setup-pod.sh
-    bash ${DRIVERS_TOOLS}/.evergreen/auth_oidc/k8s/run-driver-test.sh
+    bash ${DRIVERS_TOOLS}/.evergreen/auth_oidc/k8s/run-driver-test.sh >> test.suite
     bash ${DRIVERS_TOOLS}/.evergreen/auth_oidc/k8s/teardown-pod.sh
 
 else
