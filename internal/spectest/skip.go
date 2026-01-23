@@ -11,7 +11,6 @@ import "testing"
 // skipTests is a map of "fully-qualified test name" to "the reason for skipping
 // the test".
 var skipTests = map[string][]string{
-
 	// SPEC-1403: This test checks to see if the correct error is thrown when auto
 	// encrypting with a server < 4.2. Currently, the test will fail because a
 	// server < 4.2 wouldn't have mongocryptd, so Client construction would fail
@@ -43,6 +42,11 @@ var skipTests = map[string][]string{
 	// sspiHostnamecanonicalization=none/forward/forwardAndReverse for Kerberos
 	"Requires sspiHostnamecanonicalization=none/forward/forwardAndReverse support for Kerberos (GODRIVER-2129)": {
 		"TestAuthSpec/connection-string.json/must_raise_an_error_when_the_hostname_canonicalization_is_invalid",
+	},
+
+	// TODO(GODRIVER-3614): Remove support for specifying MONGODB-AWS authentication properties explicitly
+	"Should throw an exception if username provided (MONGODB-AWS) (GODRIVER-3614)": {
+		"TestAuthSpec/connection-string.json/should_throw_an_exception_if_username_and_password_provided_(MONGODB-AWS)",
 	},
 
 	// TODO(GODRIVER-2183): Implementation of Socks5 Proxy Support is pending.
@@ -852,6 +856,31 @@ var skipTests = map[string][]string{
 		"TestSDAMSpec/errors/pre-42-NotWritablePrimary.json",
 		"TestSDAMSpec/errors/pre-42-PrimarySteppedDown.json",
 		"TestSDAMSpec/errors/pre-42-ShutdownInProgress.json",
+	},
+
+	// TODO(GODRIVER-3637): Implement client backpressure.
+	"Implement client backpressure (GODRIVER-3637)": {
+		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/backpressure-network-error-fail.json/apply_backpressure_on_network_connection_errors_during_connection_establishment",
+		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/backpressure-server-description-unchanged-on-min-pool-size-population-error.json/the_server_description_is_not_changed_on_handshake_error_during_minPoolSize_population",
+		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/pool-clear-min-pool-size-error.json/Pool_is_not_cleared_on_handshake_error_during_minPoolSize_population",
+		"TestServerSelectionSpec/server_selection/ReplicaSetNoPrimary/read/DeprioritizedNearest.json",
+		"TestServerSelectionSpec/server_selection/ReplicaSetNoPrimary/read/DeprioritizedPrimaryPreferred.json",
+		"TestServerSelectionSpec/server_selection/ReplicaSetNoPrimary/read/DeprioritizedSecondary.json",
+		"TestServerSelectionSpec/server_selection/ReplicaSetNoPrimary/read/DeprioritizedSecondaryPreferred.json",
+		"TestServerSelectionSpec/server_selection/ReplicaSetWithPrimary/read/DeprioritizedNearest.json",
+		"TestServerSelectionSpec/server_selection/ReplicaSetWithPrimary/read/DeprioritizedPrimaryPreferred.json",
+		"TestServerSelectionSpec/server_selection/ReplicaSetWithPrimary/read/DeprioritizedSecondaryPreferred.json",
+		"TestServerSelectionSpec/server_selection/Sharded/read/DeprioritizedNearest.json",
+		"TestServerSelectionSpec/server_selection/Sharded/read/DeprioritizedPrimary.json",
+		"TestServerSelectionSpec/server_selection/Sharded/read/DeprioritizedPrimaryPreferred.json",
+		"TestServerSelectionSpec/server_selection/Sharded/read/DeprioritizedSecondary.json",
+		"TestServerSelectionSpec/server_selection/Sharded/read/DeprioritizedSecondaryPreferred.json",
+		"TestServerSelectionSpec/server_selection/Sharded/write/DeprioritizedNearest.json",
+		"TestServerSelectionSpec/server_selection/Sharded/write/DeprioritizedPrimary.json",
+		"TestServerSelectionSpec/server_selection/Sharded/write/DeprioritizedPrimaryPreferred.json",
+		"TestServerSelectionSpec/server_selection/Sharded/write/DeprioritizedSecondary.json",
+		"TestServerSelectionSpec/server_selection/Sharded/write/DeprioritizedSecondaryPreferred.json",
+		"TestSDAMSpec/errors/error_handling_handshake.json",
 	},
 }
 
