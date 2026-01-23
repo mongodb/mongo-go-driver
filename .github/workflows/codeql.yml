@@ -21,6 +21,8 @@ on:
       ref:
         required: true
         type: string
+permissions:
+  contents: read
 jobs:
   analyze:
     name: Analyze (go)
@@ -28,6 +30,7 @@ jobs:
     timeout-minutes: 360
     permissions:
       # required for all workflows
+      contents: read
       security-events: write
     steps:
       - name: Checkout repository
