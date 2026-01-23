@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/csot"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/v2/internal/randutil"
 	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
@@ -125,6 +126,12 @@ func (s *Session) WithTransaction(
 	fn func(ctx context.Context) (any, error),
 	opts ...options.Lister[options.TransactionOptions],
 ) (any, error) {
+	// Apply client timeout to context if set, so that ctx.Err() reflects the
+	// CSOT deadline and WithTransaction exits via the ctx.Err() check instead
+	// of retrying on TransientTransactionError.
+	ctx, cancel := csot.WithTimeout(ctx, s.client.timeout)
+	defer cancel()
+
 	transTimeout := withTransactionTimeout
 	if s.client.timeout != nil {
 		transTimeout = *s.client.timeout
@@ -286,6 +293,7 @@ func (s *Session) AbortTransaction(ctx context.Context) error {
 		serverAPI:                 s.client.serverAPI,
 		authenticator:             s.client.authenticator,
 		logger:                    s.client.logger,
+		timeout:                   s.client.timeout,
 	}
 	_ = op.execute(ctx)
 
@@ -333,6 +341,7 @@ func (s *Session) CommitTransaction(ctx context.Context) error {
 		serverAPI:                 s.client.serverAPI,
 		authenticator:             s.client.authenticator,
 		logger:                    s.client.logger,
+		timeout:                   s.client.timeout,
 	}
 
 	err = op.execute(ctx)

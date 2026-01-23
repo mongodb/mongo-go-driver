@@ -40,29 +40,37 @@ func IsTimeoutContext(ctx context.Context) bool {
 func WithTimeout(parent context.Context, timeout *time.Duration) (context.Context, context.CancelFunc) {
 	cancel := func() {}
 
-	if timeout == nil || IsTimeoutContext(parent) {
-		// In the following conditions, do nothing:
-		//	1. The parent already has a deadline
-		//	2. The parent does not have a deadline, but a client-level timeout has
-		//		 been applied.
-		//	3. The parent does not have a deadline, there is not client-level
-		//     timeout, and the timeout parameter DNE.
+	// If timeout is nil, do nothing.
+	if timeout == nil {
 		return parent, cancel
 	}
 
-	// If a client-level timeout has not been applied, then apply it.
-	parent = context.WithValue(parent, clientLevel{}, true)
+	// If the parent already has a deadline, don't override it.
+	if _, hasDeadline := parent.Deadline(); hasDeadline {
+		return parent, cancel
+	}
 
 	dur := *timeout
 
+	// If the client-level marker is already set but there's no deadline (e.g.,
+	// the deadline was stripped by newBackgroundContext), apply a fresh timeout
+	// if non-zero. This enables operations like AbortTransaction to include
+	// maxTimeMS even when called with a background context.
+	if isClientLevel(parent) {
+		if dur == 0 {
+			return parent, cancel
+		}
+		return context.WithTimeout(parent, dur)
+	}
+
+	// First time applying client-level timeout: set the marker.
+	parent = context.WithValue(parent, clientLevel{}, true)
+
 	if dur == 0 {
-		// If the parent does not have a deadline and the timeout is zero, then
-		// do nothing.
+		// 0 means infinite timeout, no deadline needed.
 		return parent, cancel
 	}
 
-	// If the parent does not have a dealine and the timeout is non-zero, then
-	// apply the timeout.
 	return context.WithTimeout(parent, dur)
 }
 
