@@ -67,7 +67,7 @@ tasks:
   test-race:
     - go test ${BUILD_TAGS} -timeout {{.TEST_TIMEOUT}}s -race -p 1 ./...
   test-short: go test ${BUILD_TAGS} -timeout 60s -short -race ./...
-  test-oidc: bash etc/run-oidc-test.sh 'task --silent evg-test-oidc-auth'
+  test-oidc: bash etc/run-oidc-test.sh
   test-oidc-remote: bash etc/run-oidc-remote-test.sh
   test-atlas-connect:
     - go test -v -run ^TestAtlas$ go.mongodb.org/mongo-driver/v2/internal/cmd/testatlas -tags atlastest >> test.suite
@@ -89,8 +89,8 @@ tasks:
   evg-test-enterprise-auth:
     - go run -tags gssapi ./internal/cmd/testentauth/main.go
   evg-test-oidc-auth:
-    - go run ./internal/cmd/testoidcauth/main.go
-    - go run -race ./internal/cmd/testoidcauth/main.go
+    - go test -v ./internal/test/oidcauth/... >> test.suite
+    - go test -v -race ./internal/test/oidcauth/... >> test.suite
   evg-test-kmip:
     - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./internal/integration -run TestClientSideEncryptionSpec/kmipKMS >> test.suite
   evg-test-client-side-encryption:
