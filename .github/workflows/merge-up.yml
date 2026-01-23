@@ -5,13 +5,15 @@ on:
       - release/*.*
       - v*
 permissions:
-  id-token: write
-  contents: write
-  pull-requests: write
+  contents: read
 jobs:
   merge-up:
     name: Create merge up pull request
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
     steps:
       - uses: mongodb-labs/drivers-github-tools/secure-checkout@v3
         with:
