@@ -12,6 +12,8 @@ on:
         description: "Push changes?"
         default: true
         type: boolean
+permissions:
+  contents: read
 defaults:
   run:
     shell: bash -eux {0}

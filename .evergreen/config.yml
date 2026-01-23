@@ -21,10 +21,6 @@ timeout:
       binary: bash
       args: [ls, -la]
 functions:
-  assume-test-secrets-ec2-role:
-    - command: ec2.assume_role
-      params:
-        role_arn: ${aws_test_secrets_role}
   setup-system:
     # Executes clone and applies the submitted patch, if any
     - command: git.get_project
@@ -502,21 +498,6 @@ functions:
       params:
         binary: bash
         args: ["${DRIVERS_TOOLS}/.evergreen/csfle/await-servers.sh"]
-  run-kms-tls-test:
-    - command: subprocess.exec
-      params:
-        binary: "bash"
-        env:
-          GO_BUILD_TAGS: cse
-        include_expansions_in_env: [AUTH, SSL, MONGODB_URI, TOPOLOGY, MONGO_GO_DRIVER_COMPRESSOR]
-        args: [*task-runner, setup-test]
-    - command: subprocess.exec
-      type: test
-      retry_on_failure: true
-      params:
-        binary: "bash"
-        include_expansions_in_env: [KMS_TLS_TESTCASE]
-        args: [*task-runner, evg-test-kms]
   run-kmip-tests:
     - command: subprocess.exec
       params:
@@ -533,13 +514,13 @@ functions:
         env:
           KMS_MOCK_SERVERS_RUNNING: "true"
         args: [*task-runner, evg-test-kmip]
-  run-retry-kms-requests:
+  run-client-side-encryption-test:
     - command: subprocess.exec
       params:
         binary: "bash"
         env:
           GO_BUILD_TAGS: cse
-        include_expansions_in_env: [AUTH, SSL, MONGODB_URI, TOPOLOGY, MONGO_GO_DRIVER_COMPRESSOR]
+        include_expansions_in_env: [AUTH, SSL, MONGODB_URI, TOPOLOGY, MONGO_GO_DRIVER_COMPRESSOR, CRYPT_SHARED_LIB_PATH]
         args: [*task-runner, setup-test]
     - command: subprocess.exec
       type: test
@@ -547,9 +528,10 @@ functions:
       params:
         binary: "bash"
         env:
+          KMS_MOCK_SERVERS_RUNNING: "true"
           KMS_FAILPOINT_CA_FILE: "${DRIVERS_TOOLS}/.evergreen/x509gen/ca.pem"
           KMS_FAILPOINT_SERVER_RUNNING: "true"
-        args: [*task-runner, evg-test-retry-kms-requests]
+        args: [*task-runner, evg-test-client-side-encryption]
   run-fuzz-tests:
     - command: subprocess.exec
       type: test
@@ -1408,36 +1390,6 @@ tasks:
           TOPOLOGY: "server"
           AUTH: "noauth"
           SSL: "nossl"
-  - name: "test-kms-tls-invalid-cert"
-    tags: ["kms-test"]
-    commands:
-      - func: bootstrap-mongo-orchestration
-        vars:
-          TOPOLOGY: "server"
-          AUTH: "noauth"
-          SSL: "nossl"
-      - func: start-cse-servers
-      - func: run-kms-tls-test
-        vars:
-          KMS_TLS_TESTCASE: "INVALID_CERT"
-          TOPOLOGY: "server"
-          AUTH: "noauth"
-          SSL: "nossl"
-  - name: "test-kms-tls-invalid-hostname"
-    tags: ["kms-test"]
-    commands:
-      - func: bootstrap-mongo-orchestration
-        vars:
-          TOPOLOGY: "server"
-          AUTH: "noauth"
-          SSL: "nossl"
-      - func: start-cse-servers
-      - func: run-kms-tls-test
-        vars:
-          KMS_TLS_TESTCASE: "INVALID_HOSTNAME"
-          TOPOLOGY: "server"
-          AUTH: "noauth"
-          SSL: "nossl"
   - name: "test-kms-kmip"
     tags: ["kms-kmip"]
     commands:
@@ -1452,16 +1404,20 @@ tasks:
           TOPOLOGY: "server"
           AUTH: "noauth"
           SSL: "nossl"
-  - name: "test-retry-kms-requests"
-    tags: ["kms-test"]
+  - name: "test-client-side-encryption"
+    tags: ["client-side-encryption-test"]
     commands:
       - func: bootstrap-mongo-orchestration
         vars:
-          TOPOLOGY: "server"
+          TOPOLOGY: "replica_set"
           AUTH: "noauth"
           SSL: "nossl"
       - func: start-cse-servers
-      - func: run-retry-kms-requests
+      - func: run-client-side-encryption-test
+        vars:
+          TOPOLOGY: "replica_set"
+          AUTH: "noauth"
+          SSL: "nossl"
   - name: "testgcpkms-task"
     commands:
       - command: subprocess.exec
@@ -2088,11 +2044,11 @@ buildvariants:
     display_name: "API Version ${version} ${os-ssl-40}"
     tasks:
       - name: ".versioned-api"
-  - matrix_name: "kms-test"
-    matrix_spec: {version: ["7.0"], os-ssl-40: ["rhel87-64"]}
-    display_name: "KMS TEST ${os-ssl-40}"
+  - matrix_name: "client-side-encryption-test"
+    matrix_spec: {version: ["latest"], os-ssl-40: ["rhel87-64"]}
+    display_name: "Client Side Encryption Tests ${os-ssl-40}"
     tasks:
-      - name: ".kms-test"
+      - name: ".client-side-encryption-test"
   - matrix_name: "load-balancer-test"
     tags: ["pullrequest"]
     matrix_spec: {version: ["5.0", "6.0", "7.0", "8.0"], os-ssl-40: ["rhel87-64"]}

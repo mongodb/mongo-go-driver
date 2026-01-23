@@ -137,7 +137,6 @@ func (u *Update) processResponse(_ context.Context, resp bsoncore.Document, info
 	}
 	u.result.Upserted = append(u.result.Upserted, ur.Upserted...)
 	return err
-
 }
 
 // Execute runs this operations and returns an error if the operation did not execute successfully.
@@ -171,7 +170,6 @@ func (u *Update) Execute(ctx context.Context) error {
 		Name:              driverutil.UpdateOp,
 		Authenticator:     u.authenticator,
 	}.Execute(ctx)
-
 }
 
 func (u *Update) command(dst []byte, desc description.SelectedServer) ([]byte, error) {
@@ -185,7 +183,6 @@ func (u *Update) command(dst []byte, desc description.SelectedServer) ([]byte, e
 		dst = bsoncore.AppendValueElement(dst, "comment", u.comment)
 	}
 	if u.ordered != nil {
-
 		dst = bsoncore.AppendBooleanElement(dst, "ordered", *u.ordered)
 	}
 	if u.hint != nil && *u.hint {

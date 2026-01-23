@@ -112,7 +112,6 @@ func (i *insert) Execute(ctx context.Context) error {
 		Name:              driverutil.InsertOp,
 		Authenticator:     i.authenticator,
 	}.Execute(ctx)
-
 }
 
 func (i *insert) command(dst []byte, desc description.SelectedServer) ([]byte, error) {

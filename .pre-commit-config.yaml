@@ -53,6 +53,13 @@ repos:
         entry: chmod +x
         language: system
         types: [shell]
+      - id: gofumpt
+        name: gofumpt
+        entry: gofumpt -w
+        language: golang
+        types: [go]
+        exclude: ^vendor/
+        additional_dependencies: [mvdan.cc/gofumpt@v0.9.2]
       - id: golangci-lint
         name: golangci-lint
         language: system

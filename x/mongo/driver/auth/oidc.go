@@ -90,10 +90,12 @@ type OIDCCredential = driver.OIDCCredential
 // IDPInfo contains the information needed to perform OIDC authentication with an Identity Provider.
 type IDPInfo = driver.IDPInfo
 
-var _ driver.Authenticator = (*OIDCAuthenticator)(nil)
-var _ SpeculativeAuthenticator = (*OIDCAuthenticator)(nil)
-var _ SaslClient = (*oidcOneStep)(nil)
-var _ SaslClient = (*oidcTwoStep)(nil)
+var (
+	_ driver.Authenticator     = (*OIDCAuthenticator)(nil)
+	_ SpeculativeAuthenticator = (*OIDCAuthenticator)(nil)
+	_ SaslClient               = (*oidcOneStep)(nil)
+	_ SaslClient               = (*oidcTwoStep)(nil)
+)
 
 // OIDCAuthenticator is synchronized and handles caching of the access token, refreshToken,
 // and IDPInfo. It also provides a mechanism to refresh the access token, but this functionality
