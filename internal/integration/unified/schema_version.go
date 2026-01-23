@@ -14,11 +14,9 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 )
 
-var (
-	supportedSchemaVersions = map[int]string{
-		1: "1.26",
-	}
-)
+var supportedSchemaVersions = map[int]string{
+	1: "1.26",
+}
 
 // checkSchemaVersion determines if the provided schema version is supported and returns an error if it is not.
 func checkSchemaVersion(version string) error {

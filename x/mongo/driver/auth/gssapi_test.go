@@ -5,7 +5,6 @@
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
 //go:build gssapi
-// +build gssapi
 
 package auth
 
@@ -50,5 +49,4 @@ func TestGSSAPIAuthenticator(t *testing.T) {
 			t.Fatalf("expected err, got nil")
 		}
 	})
-
 }

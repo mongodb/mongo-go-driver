@@ -8,6 +8,7 @@ package unified
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"strings"
 	"sync"
@@ -24,6 +25,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
 )
 
 // There are no automated tests for truncation. Given that, setting the
@@ -59,6 +61,8 @@ type clientEntity struct {
 	ignoredCommands             map[string]struct{}
 	observeSensitiveCommands    *bool
 	numConnsCheckedOut          int32
+	latestDesc                  event.TopologyDescription
+	connsPerServer              map[string]int
 
 	// These should not be changed after the clientEntity is initialized
 	observedEvents                      map[monitoringEventType]struct{}
@@ -73,29 +77,6 @@ type clientEntity struct {
 	entityMap *EntityMap
 
 	logQueue chan orderedLogMessage
-}
-
-// awaitMinimumPoolSize waits for the client's connection pool to reach the
-// specified minimum size. This is a best effort operation that times out after
-// some predefined amount of time to avoid blocking tests indefinitely.
-func awaitMinimumPoolSize(ctx context.Context, entity *clientEntity, minPoolSize uint64) error {
-	// Don't spend longer than 500ms awaiting minPoolSize.
-	awaitCtx, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
-	defer cancel()
-
-	ticker := time.NewTicker(100 * time.Millisecond)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-awaitCtx.Done():
-			return fmt.Errorf("timed out waiting for client to reach minPoolSize")
-		case <-ticker.C:
-			if uint64(entity.eventsCount[connectionReadyEvent]) >= minPoolSize {
-				return nil
-			}
-		}
-	}
 }
 
 func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOptions) (*clientEntity, error) {
@@ -118,6 +99,7 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 		serverDescriptionChangedEventsCount: make(map[serverDescriptionChangedEventInfo]int32),
 		entityMap:                           em,
 		observeSensitiveCommands:            entityOptions.ObserveSensitiveCommands,
+		connsPerServer:                      make(map[string]int),
 	}
 	entity.setRecordEvents(true)
 
@@ -217,6 +199,13 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 	} else {
 		integtest.AddTestServerAPIVersion(clientOpts)
 	}
+	if entityOptions.AutoEncryptOpts != nil {
+		aeo, err := createAutoEncryptionOptions(entityOptions.AutoEncryptOpts)
+		if err != nil {
+			return nil, fmt.Errorf("error parsing auto encryption options: %w", err)
+		}
+		clientOpts.SetAutoEncryptionOptions(aeo)
+	}
 	for _, cmd := range entityOptions.IgnoredCommands {
 		entity.ignoredCommands[cmd] = struct{}{}
 	}
@@ -226,8 +215,17 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 		return nil, fmt.Errorf("error creating mongo.Client: %w", err)
 	}
 
-	if entityOptions.AwaitMinPoolSize && clientOpts.MinPoolSize != nil && *clientOpts.MinPoolSize > 0 {
-		if err := awaitMinimumPoolSize(ctx, entity, *clientOpts.MinPoolSize); err != nil {
+	if entityOptions.AwaitMinPoolSizeMS != nil && *entityOptions.AwaitMinPoolSizeMS > 0 &&
+		clientOpts.MinPoolSize != nil && *clientOpts.MinPoolSize > 0 {
+
+		if err := func() error {
+			awaitDur := time.Duration(*entityOptions.AwaitMinPoolSizeMS) * time.Millisecond
+
+			awaitCtx, cancel := context.WithTimeout(ctx, awaitDur)
+			defer cancel()
+
+			return awaitMinimumPoolSize(awaitCtx, entity, *clientOpts.MinPoolSize)
+		}(); err != nil {
 			return nil, err
 		}
 	}
@@ -251,6 +249,83 @@ func getURIForClient(opts *entityOptions) string {
 	}
 }
 
+// TODO(GODRIVER-3726): Need to update the logic to an Unmarshal method.
+func createAutoEncryptionOptions(opts bson.Raw) (*options.AutoEncryptionOptions, error) {
+	aeo := options.AutoEncryption()
+	var kvnsFound bool
+	elems, err := opts.Elements()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, elem := range elems {
+		name := elem.Key()
+		opt := elem.Value()
+
+		switch name {
+		case "kmsProviders":
+			providers := make(map[string]map[string]any)
+			elems, err := opt.Document().Elements()
+			if err != nil {
+				return nil, err
+			}
+			for _, elem := range elems {
+				key := elem.Key()
+				opt := elem.Value().Document()
+				provider, err := getKmsProvider(key, opt)
+				if err != nil {
+					return nil, err
+				}
+				if provider == nil {
+					continue
+				}
+				providers[key] = provider
+				if key == "kmip" && tlsClientCertificateKeyFile != "" && tlsCAFile != "" {
+					cfg, err := options.BuildTLSConfig(map[string]any{
+						"tlsCertificateKeyFile": tlsClientCertificateKeyFile,
+						"tlsCAFile":             tlsCAFile,
+					})
+					if err != nil {
+						return nil, fmt.Errorf("error constructing tls config: %w", err)
+					}
+					aeo.SetTLSConfig(map[string]*tls.Config{
+						"kmip": cfg,
+					})
+				}
+			}
+			aeo.SetKmsProviders(providers)
+		case "schemaMap":
+			var schemaMap map[string]any
+			err := bson.Unmarshal(opt.Document(), &schemaMap)
+			if err != nil {
+				return nil, fmt.Errorf("error creating schema map: %v", err)
+			}
+			aeo.SetSchemaMap(schemaMap)
+		case "keyVaultNamespace":
+			kvnsFound = true
+			aeo.SetKeyVaultNamespace(opt.StringValue())
+		case "bypassAutoEncryption":
+			aeo.SetBypassAutoEncryption(opt.Boolean())
+		case "encryptedFieldsMap":
+			var encryptedFieldsMap map[string]any
+			err := bson.Unmarshal(opt.Document(), &encryptedFieldsMap)
+			if err != nil {
+				return nil, fmt.Errorf("error creating encryptedFieldsMap: %v", err)
+			}
+			aeo.SetEncryptedFieldsMap(encryptedFieldsMap)
+		case "bypassQueryAnalysis":
+			aeo.SetBypassQueryAnalysis(opt.Boolean())
+		default:
+			return nil, fmt.Errorf("unrecognized option: %v", name)
+		}
+	}
+	if !kvnsFound {
+		aeo.SetKeyVaultNamespace("keyvault.datakeys")
+	}
+
+	return aeo, nil
+}
+
 // disconnect disconnects the client associated with this entity. It is an
 // idempotent operation, unlike the mongo client's disconnect method. This
 // property will help avoid unnecessary errors when calling disconnect on a
@@ -261,7 +336,7 @@ func (c *clientEntity) disconnect(ctx context.Context) error {
 		return nil
 	}
 
-	if err := c.Client.Disconnect(ctx); err != nil {
+	if err := c.Disconnect(ctx); err != nil {
 		return err
 	}
 
@@ -476,6 +551,27 @@ func (c *clientEntity) processFailedEvent(_ context.Context, evt *event.CommandF
 	}
 }
 
+func (c *clientEntity) resetEventHistory() {
+	c.eventProcessMu.Lock()
+	defer c.eventProcessMu.Unlock()
+
+	c.pooled = nil
+	c.serverDescriptionChanged = nil
+	c.serverHeartbeatStartedEvent = nil
+	c.serverHeartbeatSucceeded = nil
+	c.serverHeartbeatFailedEvent = nil
+	c.topologyDescriptionChanged = nil
+	c.topologyOpening = nil
+	c.topologyClosed = nil
+}
+
+func (c *clientEntity) latestTopology() event.TopologyDescription {
+	c.eventProcessMu.RLock()
+	defer c.eventProcessMu.RUnlock()
+
+	return c.latestDesc
+}
+
 func getPoolEventDocument(evt *event.PoolEvent, eventType monitoringEventType) bson.Raw {
 	bsonBuilder := bsoncore.NewDocumentBuilder().
 		AppendString("name", string(eventType)).
@@ -506,12 +602,21 @@ func (c *clientEntity) processPoolEvent(evt *event.PoolEvent) {
 		return
 	}
 
-	// Update the connection counter. This happens even if we're not storing any events.
+	// Update the connection counter. This happens even if we're not storing any
+	// events.
 	switch evt.Type {
 	case event.ConnectionCheckedOut:
 		atomic.AddInt32(&c.numConnsCheckedOut, 1)
 	case event.ConnectionCheckedIn:
 		atomic.AddInt32(&c.numConnsCheckedOut, -1)
+	case event.ConnectionReady:
+		c.eventProcessMu.Lock()
+		c.connsPerServer[evt.Address]++
+		c.eventProcessMu.Unlock()
+	case event.ConnectionClosed:
+		c.eventProcessMu.Lock()
+		c.connsPerServer[evt.Address]--
+		c.eventProcessMu.Unlock()
 	}
 
 	eventType := monitoringEventTypeFromPoolEvent(evt)
@@ -527,6 +632,20 @@ func (c *clientEntity) processPoolEvent(evt *event.PoolEvent) {
 			c.entityMap.appendEventsEntity(id, eventBSON)
 		}
 	}
+}
+
+// connsReady returns the number of ready connections for the given server
+// address. If the server is not data-bearing, this method will return -1.
+func (c *clientEntity) connsReady(server event.ServerDescription) int {
+	c.eventProcessMu.RLock()
+	defer c.eventProcessMu.RUnlock()
+
+	if server.Kind == description.ServerKindRSArbiter.String() ||
+		server.Kind == description.ServerKindRSGhost.String() {
+		return -1
+	}
+
+	return c.connsPerServer[server.Addr.String()]
 }
 
 func (c *clientEntity) processServerDescriptionChangedEvent(evt *event.ServerDescriptionChangedEvent) {
@@ -600,6 +719,8 @@ func (c *clientEntity) processTopologyDescriptionChangedEvent(evt *event.Topolog
 	if !c.getRecordEvents() {
 		return
 	}
+
+	c.latestDesc = evt.NewDescription
 
 	if _, ok := c.observedEvents[topologyDescriptionChangedEvent]; ok {
 		c.topologyDescriptionChanged = append(c.topologyDescriptionChanged, evt)
@@ -723,4 +844,36 @@ func evaluateUseMultipleMongoses(clientOpts *options.ClientOptions, useMultipleM
 		return fmt.Errorf("multiple mongoses required but cluster URI %q only contains one host", mtest.ClusterURI())
 	}
 	return nil
+}
+
+// awaitMinimumPoolSize waits for the client's connection pool to reach the
+// specified minimum size. This is a best effort operation that times out after
+// some predefined amount of time to avoid blocking tests indefinitely.
+func awaitMinimumPoolSize(ctx context.Context, entity *clientEntity, minPoolSize uint64) error {
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("timed out waiting for client to reach minPoolSize")
+		case <-ticker.C:
+			ready := true
+			for _, server := range entity.latestTopology().Servers {
+				if r := entity.connsReady(server); r >= 0 && r < int(minPoolSize) {
+					ready = false
+
+					// If any server has less than minPoolSize connections, continue
+					// waiting.
+					break
+				}
+			}
+
+			if ready {
+				entity.resetEventHistory()
+
+				return nil
+			}
+		}
+	}
 }

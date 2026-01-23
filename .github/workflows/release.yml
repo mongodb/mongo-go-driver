@@ -1,5 +1,4 @@
 name: Release
-
 on:
   workflow_dispatch:
     inputs:
@@ -13,16 +12,15 @@ on:
         description: "Push changes?"
         default: true
         type: boolean
-
+permissions:
+  contents: read
 defaults:
   run:
     shell: bash -eux {0}
-
 env:
   # Changes per branch
   SILK_ASSET_GROUP: mongodb-go-driver
   EVERGREEN_PROJECT: mongo-go-driver
-
 jobs:
   pre-publish:
     environment: release
@@ -50,7 +48,6 @@ jobs:
           version: ${{ inputs.version }}
           push_changes: ${{ inputs.push_changes }}
           ignored_branches: ${{ vars.IGNORED_MERGE_UP_BRANCHES }}
-
   static-scan:
     needs: [pre-publish]
     permissions:
@@ -58,7 +55,6 @@ jobs:
     uses: ./.github/workflows/codeql.yml
     with:
       ref: ${{ github.ref }}
-
   publish:
     needs: [pre-publish, static-scan]
     runs-on: ubuntu-latest

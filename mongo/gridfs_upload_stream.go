@@ -7,12 +7,10 @@
 package mongo
 
 import (
-	"errors"
-
 	"context"
-	"time"
-
+	"errors"
 	"math"
+	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
@@ -99,10 +97,7 @@ func (us *GridFSUploadStream) Write(p []byte) (int, error) {
 	}
 
 	origLen := len(p)
-	for {
-		if len(p) == 0 {
-			break
-		}
+	for len(p) != 0 {
 
 		n := copy(us.buffer[us.bufferIndex:], p) // copy as much as possible
 		p = p[n:]

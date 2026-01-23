@@ -102,6 +102,13 @@ type Client struct {
 	Aborting       bool
 	Snapshot       bool
 
+	// SnapshotTime is the atClusterTime value for snapshot reads. This field is
+	// left immutable once set for the lifetime of the session. This guards
+	// against users updating custom snapshot times during transactions which
+	// could lead to a write conflict.
+	SnapshotTime    bson.Timestamp
+	SnapshotTimeSet bool
+
 	// options for the current transaction
 	// most recently set by transactionopt
 	CurrentRc       *readconcern.ReadConcern
@@ -119,7 +126,6 @@ type Client struct {
 	PinnedServerAddr *address.Address
 	RecoveryToken    bson.Raw
 	PinnedConnection LoadBalancedTransactionConnection
-	SnapshotTime     *bson.Timestamp
 }
 
 func getClusterTime(clusterTime bson.Raw) (uint32, uint32) {
@@ -192,6 +198,10 @@ func NewClientSession(pool *Pool, clientID uuid.UUID, opts ...*ClientOptions) (*
 	if mergedOpts.Snapshot != nil {
 		c.Snapshot = *mergedOpts.Snapshot
 	}
+	if mergedOpts.SnapshotTime != nil {
+		c.SnapshotTime = *mergedOpts.SnapshotTime
+		c.SnapshotTimeSet = true
+	}
 
 	// For explicit sessions, the default for causalConsistency is true, unless Snapshot is
 	// enabled, then it's false. Set the default and then allow any explicit causalConsistency
@@ -203,6 +213,10 @@ func NewClientSession(pool *Pool, clientID uuid.UUID, opts ...*ClientOptions) (*
 
 	if c.Consistent && c.Snapshot {
 		return nil, errors.New("causal consistency and snapshot cannot both be set for a session")
+	}
+
+	if c.SnapshotTimeSet && !c.Snapshot {
+		return nil, errors.New("snapshotTime cannot be set when snapshot is false")
 	}
 
 	if err := c.SetServer(); err != nil {
@@ -273,9 +287,13 @@ func (c *Client) UpdateRecoveryToken(response bson.Raw) {
 	c.RecoveryToken = token.Document()
 }
 
-// UpdateSnapshotTime updates the session's value for the atClusterTime field of ReadConcern.
+// UpdateSnapshotTime updates the session's value for the atClusterTime field of
+// ReadConcern.
 func (c *Client) UpdateSnapshotTime(response bsoncore.Document) {
-	if c == nil {
+	if c == nil || c.SnapshotTimeSet {
+		// Do nothing if session is nil or snapshot time is already set. The driver
+		// sends the same atClusterTime for all operations in a snapshot session so
+		// resetting is a potentially dangerous redundancy.
 		return
 	}
 
@@ -291,10 +309,11 @@ func (c *Client) UpdateSnapshotTime(response bsoncore.Document) {
 	}
 
 	t, i := ssTimeElem.Timestamp()
-	c.SnapshotTime = &bson.Timestamp{
+	c.SnapshotTime = bson.Timestamp{
 		T: t,
 		I: i,
 	}
+	c.SnapshotTimeSet = true
 }
 
 // ClearPinnedResources clears the pinned server and/or connection associated with the session.
@@ -422,9 +441,10 @@ func (c *Client) StartTransaction(opts *TransactionOptions) error {
 // CheckCommitTransaction checks to see if allowed to commit transaction and returns
 // an error if not allowed.
 func (c *Client) CheckCommitTransaction() error {
-	if c.TransactionState == None {
+	switch c.TransactionState {
+	case None:
 		return ErrNoTransactStarted
-	} else if c.TransactionState == Aborted {
+	case Aborted:
 		return ErrCommitAfterAbort
 	}
 	return nil
@@ -462,12 +482,12 @@ func (c *Client) UpdateCommitTransactionWriteConcern() {
 // CheckAbortTransaction checks to see if allowed to abort transaction and returns
 // an error if not allowed.
 func (c *Client) CheckAbortTransaction() error {
-	switch {
-	case c.TransactionState == None:
+	switch c.TransactionState {
+	case None:
 		return ErrNoTransactStarted
-	case c.TransactionState == Committed:
+	case Committed:
 		return ErrAbortAfterCommit
-	case c.TransactionState == Aborted:
+	case Aborted:
 		return ErrAbortTwice
 	}
 	return nil
@@ -506,13 +526,14 @@ func (c *Client) ApplyCommand(desc description.Server) error {
 		// Do not change state if committing after already committed
 		return nil
 	}
-	if c.TransactionState == Starting {
+	switch c.TransactionState {
+	case Starting:
 		c.TransactionState = InProgress
 		// If this is in a transaction and the server is a mongos, pin it
 		if desc.Kind == description.ServerKindMongos {
 			c.PinnedServerAddr = &desc.Addr
 		}
-	} else if c.TransactionState == Committed || c.TransactionState == Aborted {
+	case Committed, Aborted:
 		c.TransactionState = None
 		return c.clearTransactionOpts()
 	}

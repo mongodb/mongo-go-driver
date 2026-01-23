@@ -240,12 +240,6 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/interruptInUse-pool-clear.json/Error_returned_from_connection_pool_clear_with_interruptInUseConnections=true_is_retryable_for_write",
 	},
 
-	// TODO(GODRIVER-2843): Fix and unskip these test cases.
-	"Test fails frequently, needs fixing (GODRIVER-2843)": {
-		"TestUnifiedSpec/sessions/snapshot-sessions.json/Find_operation_with_snapshot",
-		"TestUnifiedSpec/sessions/snapshot-sessions.json/Write_commands_with_snapshot_session_do_not_affect_snapshot_reads",
-	},
-
 	// TODO(GODRIVER-3043): Avoid Appending Write/Read Concern in Atlas Search
 	// Index Helper Commands.
 	"Sync tests but avoid write/read concern bug (GODRIVER-3043)": {
@@ -394,19 +388,8 @@ var skipTests = map[string][]string{
 	"Extend Legacy Unified Spec Runner for client-side-encryption timeoutMS (GODRIVER-3521)": {
 		"TestClientSideEncryptionSpec/timeoutMS.json/remaining_timeoutMS_applied_to_find_to_get_keyvault_data",
 		"TestClientSideEncryptionSpec/timeoutMS.json/timeoutMS_applied_to_listCollections_to_get_collection_schema",
-	},
-
-	// TODO(GODRIVER-3486): Support auto encryption in unified tests.
-	"Support auto encryption in unified tests (GODRIVER-3486)": {
-		"TestUnifiedSpec/unified-test-format/tests/valid-pass/poc-queryable-encryption.json/insert,_replace,_and_find_with_queryable_encryption",
-	},
-
-	// TODO(DRIVERS-3106): Support auto encryption in unified tests.
-	"Support auto encryption in unified tests (DRIVERS-3106)": {
-		"TestUnifiedSpec/client-side-encryption/tests/unified/localSchema.json/A_local_schema_should_override",
-		"TestUnifiedSpec/client-side-encryption/tests/unified/localSchema.json/A_local_schema_with_no_encryption_is_an_error",
-		"TestUnifiedSpec/client-side-encryption/tests/unified/fle2v2-BypassQueryAnalysis.json/BypassQueryAnalysis_decrypts",
-		"TestUnifiedSpec/client-side-encryption/tests/unified/fle2v2-EncryptedFields-vs-EncryptedFieldsMap.json/encryptedFieldsMap_is_preferred_over_remote_encryptedFields",
+		"TestUnifiedSpec/client-side-encryption/tests/unified/timeoutMS.json/remaining_timeoutMS_applied_to_find_to_get_keyvault_data",
+		"TestUnifiedSpec/client-side-encryption/tests/unified/timeoutMS.json/timeoutMS_applied_to_listCollections_to_get_collection_schema",
 	},
 
 	// TODO(GODRIVER-3076): CSFLE/QE Support for more than 1 KMS provider per
@@ -832,18 +815,10 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/client-side-operations-timeout/tests/tailable-awaitData.json/error_on_watch_if_maxAwaitTimeMS_is_equal_to_timeoutMS",
 	},
 
-	// TODO(GODRIVER-3620): Support text indexes with auto encryption.
-	"Support text indexes with auto encryption (GODRIVER-3620)": {
-		"TestUnifiedSpec/client-side-encryption/tests/unified/QE-Text-cleanupStructuredEncryptionData.json",
-		"TestUnifiedSpec/client-side-encryption/tests/unified/QE-Text-compactStructuredEncryptionData.json",
-		"TestUnifiedSpec/client-side-encryption/tests/unified/QE-Text-prefixPreview.json",
-		"TestUnifiedSpec/client-side-encryption/tests/unified/QE-Text-substringPreview.json",
-		"TestUnifiedSpec/client-side-encryption/tests/unified/QE-Text-suffixPreview.json",
-	},
-
 	// TODO(GODRIVER-3403): Support queryable encryption in Client.BulkWrite.
 	"Support queryable encryption in Client.BulkWrite (GODRIVER-3403)": {
 		"TestUnifiedSpec/crud/tests/unified/client-bulkWrite-qe.json",
+		"TestUnifiedSpec/client-side-encryption/tests/unified/client-bulkWrite-qe.json",
 	},
 
 	// Pre-4.2 SDAM tests
@@ -856,6 +831,11 @@ var skipTests = map[string][]string{
 		"TestSDAMSpec/errors/pre-42-NotWritablePrimary.json",
 		"TestSDAMSpec/errors/pre-42-PrimarySteppedDown.json",
 		"TestSDAMSpec/errors/pre-42-ShutdownInProgress.json",
+	},
+
+	// TODO(DRIVERS-3356): Unskip this test when the spec test bug is fixed.
+	"Handshake spec test 'metadata-not-propagated.yml' fails on sharded clusters (DRIVERS-3356)": {
+		"TestUnifiedSpec/mongodb-handshake/tests/unified/metadata-not-propagated.json/metadata_append_does_not_create_new_connections_or_close_existing_ones_and_no_hello_command_is_sent",
 	},
 
 	// TODO(GODRIVER-3637): Implement client backpressure.

@@ -47,8 +47,10 @@ type testContainer struct {
 	Tests []testCase
 }
 
-var connstringTestsDir = spectest.Path("connection-string/tests")
-var urioptionsTestDir = spectest.Path("uri-options/tests")
+var (
+	connstringTestsDir = spectest.Path("connection-string/tests")
+	urioptionsTestDir  = spectest.Path("uri-options/tests")
+)
 
 func (h *host) toString() string {
 	switch h.Type {
@@ -112,7 +114,7 @@ func runTest(t *testing.T, test testCase, warningsError bool) {
 	// URI options, but don't with some of the older things, we do a switch on the filename
 	// here. We are trying to not break existing user applications that have unrecognized
 	// options.
-	if test.Valid && !(test.Warning && warningsError) {
+	if test.Valid && (!test.Warning || !warningsError) {
 		require.NoError(t, err)
 	} else {
 		require.Error(t, err)

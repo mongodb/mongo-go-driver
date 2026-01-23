@@ -64,7 +64,7 @@ func parseOpQuery(wm []byte) (*SentMessage, error) {
 		return nil, errors.New("failed to read number to return")
 	}
 
-	query, wm, ok := wiremessage.ReadQueryQuery(wm)
+	query, _, ok := wiremessage.ReadQueryQuery(wm)
 	if !ok {
 		return nil, errors.New("failed to read query")
 	}
@@ -163,7 +163,7 @@ func parseSentOpMsg(wm []byte) (*SentMessage, error) {
 		}
 
 		var data []byte
-		_, data, wm, ok = wiremessage.ReadMsgSectionRawDocumentSequence(wm)
+		_, data, _, ok = wiremessage.ReadMsgSectionRawDocumentSequence(wm)
 		if !ok {
 			return nil, errors.New("failed to read document sequence")
 		}

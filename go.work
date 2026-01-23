@@ -1,4 +1,4 @@
-go 1.23.0
+go 1.25.0
 
 use (
 	.
@@ -6,7 +6,6 @@ use (
 	./examples/_logger/zap
 	./examples/_logger/zerolog
 	./internal/cmd/benchmark
-	./internal/cmd/compilecheck
 	./internal/cmd/faas/awslambda/mongodb
 	./internal/test/compilecheck
 	./internal/test/goleak

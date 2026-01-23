@@ -1,28 +1,26 @@
 name: Create Release Branch
-
 on:
   workflow_dispatch:
     inputs:
-        branch_name:
-          description: The name of the new branch
-          required: true
-        version:
-          description: The version to set on the branch
-          required: true
-        base_ref:
-          description: The base reference for the branch
-        push_changes:
-          description: Whether to push the changes
-          default: "true"
-
+      branch_name:
+        description: The name of the new branch
+        required: true
+      version:
+        description: The version to set on the branch
+        required: true
+      base_ref:
+        description: The base reference for the branch
+      push_changes:
+        description: Whether to push the changes
+        default: "true"
+permissions:
+  contents: read
 concurrency:
   group: create-branch-${{ github.ref }}
   cancel-in-progress: true
-
 defaults:
   run:
     shell: bash -eux {0}
-
 jobs:
   create-branch:
     environment: release

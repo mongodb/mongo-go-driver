@@ -204,7 +204,6 @@ func TestPollSRVRecords(t *testing.T) {
 		expectedHosts := []string{"localhost.test.build.10gen.cc:27017", "localhost.test.build.10gen.cc:27018"}
 		compareHosts(t, actualHosts, expectedHosts)
 		_ = topo.Disconnect(context.Background())
-
 	})
 	t.Run("Failed Hostname Verification", func(t *testing.T) {
 		uri := "mongodb+srv://test1.test.build.10gen.cc/?heartbeatFrequencyMS=500"
@@ -231,7 +230,6 @@ func TestPollSRVRecords(t *testing.T) {
 		expectedHosts := []string{"localhost.test.build.10gen.cc:27017", "localhost.test.build.10gen.cc:27018", "localhost.test.build.10gen.cc:27020"}
 		compareHosts(t, desc.Servers, expectedHosts)
 		_ = topo.Disconnect(context.Background())
-
 	})
 	t.Run("Return to polling time", func(t *testing.T) {
 		uri := "mongodb+srv://test1.test.build.10gen.cc/?heartbeatFrequencyMS=500"

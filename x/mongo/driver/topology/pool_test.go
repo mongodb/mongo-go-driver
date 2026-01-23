@@ -788,7 +788,8 @@ func TestPool_checkOut(t *testing.T) {
 		// checkOut() completes is within 100ms.
 		var start time.Time
 		go func() {
-			c.close()
+			require.NoError(t, c.close())
+
 			start = time.Now()
 			err := p.checkIn(c)
 			require.NoError(t, err)
