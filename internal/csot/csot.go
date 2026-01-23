@@ -12,6 +12,7 @@ import (
 )
 
 type clientLevel struct{}
+type timeoutDurationKey struct{}
 
 func isClientLevel(ctx context.Context) bool {
 	val := ctx.Value(clientLevel{})
@@ -20,6 +21,19 @@ func isClientLevel(ctx context.Context) bool {
 	}
 
 	return val.(bool)
+}
+
+// GetTimeoutDuration retrieves the timeout duration stored in the context.
+// This is used to "refresh" the timeout for operations like abortTransaction.
+// Returns nil if no timeout duration was stored.
+func GetTimeoutDuration(ctx context.Context) *time.Duration {
+	val := ctx.Value(timeoutDurationKey{})
+	if val == nil {
+		return nil
+	}
+
+	dur := val.(time.Duration)
+	return &dur
 }
 
 // IsTimeoutContext checks if the provided context has been assigned a deadline
@@ -54,17 +68,23 @@ func WithTimeout(parent context.Context, timeout *time.Duration) (context.Contex
 
 	// If the client-level marker is already set but there's no deadline (e.g.,
 	// the deadline was stripped by newBackgroundContext), apply a fresh timeout
-	// if non-zero. This enables operations like AbortTransaction to include
-	// maxTimeMS even when called with a background context.
+	// using the stored duration. This enables operations like AbortTransaction
+	// to include maxTimeMS even when called with a background context.
 	if isClientLevel(parent) {
+		// Try to get the stored duration for refreshing (per CSOT spec).
+		storedDur := GetTimeoutDuration(parent)
+		if storedDur != nil {
+			dur = *storedDur
+		}
 		if dur == 0 {
 			return parent, cancel
 		}
 		return context.WithTimeout(parent, dur)
 	}
 
-	// First time applying client-level timeout: set the marker.
+	// First time applying client-level timeout: set the marker and store the duration.
 	parent = context.WithValue(parent, clientLevel{}, true)
+	parent = context.WithValue(parent, timeoutDurationKey{}, dur)
 
 	if dur == 0 {
 		// 0 means infinite timeout, no deadline needed.

@@ -132,6 +132,14 @@ func (s *Session) WithTransaction(
 	ctx, cancel := csot.WithTimeout(ctx, s.client.timeout)
 	defer cancel()
 
+	// Per the CSOT spec, WithTransaction must refresh the timeout for abort/commit
+	// operations. Get the timeout duration to use for refreshing. Try the context
+	// first (for operation-level timeouts), then fall back to client timeout.
+	timeoutDur := csot.GetTimeoutDuration(ctx)
+	if timeoutDur == nil {
+		timeoutDur = s.client.timeout
+	}
+
 	transTimeout := withTransactionTimeout
 	if s.client.timeout != nil {
 		transTimeout = *s.client.timeout
@@ -172,8 +180,11 @@ func (s *Session) WithTransaction(
 		if err != nil {
 			if s.clientSession.TransactionRunning() {
 				// Wrap the user-provided Context in a new one that behaves like context.Background() for deadlines and
-				// cancellations, but forwards Value requests to the original one.
-				_ = s.AbortTransaction(newBackgroundContext(ctx))
+				// cancellations, but forwards Value requests to the original one. Then apply a fresh timeout per the
+				// CSOT spec requirement to refresh the timeout for abortTransaction.
+				abortCtx, abortCancel := csot.WithTimeout(newBackgroundContext(ctx), timeoutDur)
+				_ = s.AbortTransaction(abortCtx)
+				abortCancel()
 			}
 
 			select {
@@ -204,14 +215,20 @@ func (s *Session) WithTransaction(
 		// simultaneously.
 		if ctx.Err() != nil {
 			// Wrap the user-provided Context in a new one that behaves like context.Background() for deadlines and
-			// cancellations, but forwards Value requests to the original one.
-			_ = s.AbortTransaction(newBackgroundContext(ctx))
+			// cancellations, but forwards Value requests to the original one. Then apply a fresh timeout per the
+			// CSOT spec requirement to refresh the timeout for abortTransaction.
+			abortCtx, abortCancel := csot.WithTimeout(newBackgroundContext(ctx), timeoutDur)
+			_ = s.AbortTransaction(abortCtx)
+			abortCancel()
 			return nil, ctx.Err()
 		}
 
 	CommitLoop:
 		for {
-			err = s.CommitTransaction(newBackgroundContext(ctx))
+			// Apply a fresh timeout for commit per the CSOT spec.
+			commitCtx, commitCancel := csot.WithTimeout(newBackgroundContext(ctx), timeoutDur)
+			err = s.CommitTransaction(commitCtx)
+			commitCancel()
 			// End when error is nil, as transaction has been committed.
 			if err == nil {
 				return res, nil
