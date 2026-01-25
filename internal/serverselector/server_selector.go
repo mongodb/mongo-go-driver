@@ -183,8 +183,8 @@ func (selector *Write) SelectServer(
 // Deprioritized filters out deprioritized servers from candidates.
 // If all candidates are deprioritized, returns all candidates as fallback.
 type Deprioritized struct {
-	DeprioritizedServers []description.Server
-	InnerSelector        description.ServerSelector
+	deprioritizedServers []description.Server
+	innerSelector        description.ServerSelector
 }
 
 var _ description.ServerSelector = &Deprioritized{}
@@ -194,13 +194,13 @@ func (d *Deprioritized) SelectServer(
 	topo description.Topology,
 	candidates []description.Server,
 ) ([]description.Server, error) {
-	if len(d.DeprioritizedServers) == 0 {
-		return d.InnerSelector.SelectServer(topo, candidates)
+	if len(d.deprioritizedServers) == 0 {
+		return d.innerSelector.SelectServer(topo, candidates)
 	}
 
 	dpaSet := make(map[address.Address]*description.Server)
-	for i, srv := range d.DeprioritizedServers {
-		dpaSet[srv.Addr] = &d.DeprioritizedServers[i]
+	for i, srv := range d.deprioritizedServers {
+		dpaSet[srv.Addr] = &d.deprioritizedServers[i]
 	}
 
 	allowed := []description.Server{}
@@ -216,20 +216,32 @@ func (d *Deprioritized) SelectServer(
 	// If nothing is allowed, then all available servers must have been
 	// deprioritized. In this case, run the inner selector to find a suitable server.
 	if len(allowed) == 0 {
-		return d.InnerSelector.SelectServer(topo, candidates)
+		return d.innerSelector.SelectServer(topo, candidates)
 	}
 
-	result, err := d.InnerSelector.SelectServer(topo, allowed)
+	result, err := d.innerSelector.SelectServer(topo, allowed)
 	if err != nil {
 		return nil, err
 	}
 
 	// If the inner selector returns no servers, then fallback to filtering over all candidates.
 	if len(result) == 0 {
-		return d.InnerSelector.SelectServer(topo, candidates)
+		return d.innerSelector.SelectServer(topo, candidates)
 	}
 
 	return result, nil
+}
+
+// NewDeprioritized wraps an inner selector to filter out deprioritized servers.
+// If deprioritized is empty, returns the inner selector unchanged.
+func NewDeprioritized(inner description.ServerSelector, deprioritized []description.Server) description.ServerSelector {
+	if len(deprioritized) == 0 {
+		return inner
+	}
+	return &Deprioritized{
+		deprioritizedServers: deprioritized,
+		innerSelector:        inner,
+	}
 }
 
 // Func is a function that can be used as a ServerSelector.
