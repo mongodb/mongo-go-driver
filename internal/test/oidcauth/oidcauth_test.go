@@ -99,6 +99,23 @@ func connectWithMachineCBAndProperties(uri string, cb options.OIDCCallback, prop
 	return mongo.Connect(optsBuilder)
 }
 
+// isCallbackTest returns true if running with a callback (not built-in integration)
+func isCallbackTest() bool {
+	env := os.Getenv("OIDC_ENV")
+	// Empty OIDC_ENV or "test" uses callbacks
+	return env == "" || env == "test"
+}
+
+// connectWithOIDC creates an OIDC client appropriate for the current environment
+// When using built-in integrations (azure, gcp, k8s), no callback is used
+// When using test environment, uses the provided callback
+func connectWithOIDC(uri string, cb options.OIDCCallback) (*mongo.Client, error) {
+	if isCallbackTest() {
+		return connectWithMachineCB(uri, cb)
+	}
+	return mongo.Connect(options.Client().ApplyURI(uri))
+}
+
 func TestMain(m *testing.M) {
 	// Skip all tests if OIDC environment is not configured.
 	// These tests require specific OIDC infrastructure and environment variables.
@@ -111,15 +128,11 @@ func TestMain(m *testing.M) {
 }
 
 func TestMachine_1_1_CallbackIsCalled(t *testing.T) {
-	if os.Getenv("OIDC_ENV") != "" {
-		t.Skip("Skipping: test only runs when OIDC_ENV is empty")
-	}
-
 	callbackCount := 0
 	var callbackFailed error
 	countMutex := sync.Mutex{}
 
-	client, err := connectWithMachineCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithOIDC(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -144,20 +157,18 @@ func TestMachine_1_1_CallbackIsCalled(t *testing.T) {
 	require.NoError(t, err, "failed executing Find")
 	countMutex.Lock()
 	defer countMutex.Unlock()
-	require.Equal(t, 1, callbackCount, "expected callback count to be 1")
-	require.NoError(t, callbackFailed, "callback failed")
+	if isCallbackTest() {
+		require.Equal(t, 1, callbackCount, "expected callback count to be 1")
+		require.NoError(t, callbackFailed, "callback failed")
+	}
 }
 
 func TestMachine_1_2_CallbackIsCalledOnlyOnce(t *testing.T) {
-	if os.Getenv("OIDC_ENV") != "" {
-		t.Skip("Skipping: test only runs when OIDC_ENV is empty")
-	}
-
 	callbackCount := 0
 	var callbackFailed error
 	countMutex := sync.Mutex{}
 
-	client, err := connectWithMachineCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithOIDC(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -194,14 +205,16 @@ func TestMachine_1_2_CallbackIsCalledOnlyOnce(t *testing.T) {
 	wg.Wait()
 	countMutex.Lock()
 	defer countMutex.Unlock()
-	require.Equal(t, 1, callbackCount, "expected callback count to be 1")
-	require.NoError(t, callbackFailed, "callback failed")
+	if isCallbackTest() {
+		require.Equal(t, 1, callbackCount, "expected callback count to be 1")
+		require.NoError(t, callbackFailed, "callback failed")
+	}
 	require.NoError(t, findFailed, "find failed")
 }
 
 func TestMachine_2_1_ValidCallbackInputs(t *testing.T) {
-	if os.Getenv("OIDC_ENV") != "" {
-		t.Skip("Skipping: test only runs when OIDC_ENV is empty")
+	if !isCallbackTest() {
+		t.Skip("Skipping: [callback-only] test")
 	}
 
 	callbackCount := 0
@@ -254,8 +267,8 @@ func TestMachine_2_1_ValidCallbackInputs(t *testing.T) {
 }
 
 func TestMachine_2_3_OIDCCallbackReturnMissingData(t *testing.T) {
-	if os.Getenv("OIDC_ENV") != "" {
-		t.Skip("Skipping: test only runs when OIDC_ENV is empty")
+	if !isCallbackTest() {
+		t.Skip("Skipping: [callback-only] test")
 	}
 
 	callbackCount := 0
@@ -285,8 +298,8 @@ func TestMachine_2_3_OIDCCallbackReturnMissingData(t *testing.T) {
 }
 
 func TestMachine_2_4_InvalidClientConfigurationWithCallback(t *testing.T) {
-	if os.Getenv("OIDC_ENV") != "" {
-		t.Skip("Skipping: test only runs when OIDC_ENV is empty")
+	if !isCallbackTest() {
+		t.Skip("Skipping: [callback-only] test")
 	}
 
 	_, err := connectWithMachineCBAndProperties(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
@@ -324,15 +337,11 @@ func TestMachine_2_5_InvalidUseOfAllowedHosts(t *testing.T) {
 }
 
 func TestMachine_3_1_FailureWithCachedTokens(t *testing.T) {
-	if os.Getenv("OIDC_ENV") != "" {
-		t.Skip("Skipping: test only runs when OIDC_ENV is empty")
-	}
-
 	callbackCount := 0
 	var callbackFailed error
 	countMutex := sync.Mutex{}
 
-	client, err := connectWithMachineCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithOIDC(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -367,13 +376,15 @@ func TestMachine_3_1_FailureWithCachedTokens(t *testing.T) {
 	require.NoError(t, err, "failed executing Find")
 	countMutex.Lock()
 	defer countMutex.Unlock()
-	require.Equal(t, 1, callbackCount, "expected callback count to be 1")
-	require.NoError(t, callbackFailed, "callback failed")
+	if isCallbackTest() {
+		require.Equal(t, 1, callbackCount, "expected callback count to be 1")
+		require.NoError(t, callbackFailed, "callback failed")
+	}
 }
 
 func TestMachine_3_2_AuthFailuresWithoutCachedTokens(t *testing.T) {
-	if os.Getenv("OIDC_ENV") != "" {
-		t.Skip("Skipping: test only runs when OIDC_ENV is empty")
+	if !isCallbackTest() {
+		t.Skip("Skipping: [callback-only] test")
 	}
 
 	callbackCount := 0
@@ -404,10 +415,6 @@ func TestMachine_3_2_AuthFailuresWithoutCachedTokens(t *testing.T) {
 }
 
 func TestMachine_3_3_UnexpectedErrorCodeDoesNotClearCache(t *testing.T) {
-	if os.Getenv("OIDC_ENV") != "" {
-		t.Skip("Skipping: test only runs when OIDC_ENV is empty")
-	}
-
 	callbackCount := 0
 	var callbackFailed error
 	countMutex := sync.Mutex{}
@@ -416,7 +423,7 @@ func TestMachine_3_3_UnexpectedErrorCodeDoesNotClearCache(t *testing.T) {
 	require.NoError(t, err, "failed connecting admin client")
 	t.Cleanup(func() { _ = adminClient.Disconnect(context.Background()) })
 
-	client, err := connectWithMachineCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithOIDC(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -457,19 +464,19 @@ func TestMachine_3_3_UnexpectedErrorCodeDoesNotClearCache(t *testing.T) {
 
 	countMutex.Lock()
 	defer countMutex.Unlock()
-	require.Equal(t, 1, callbackCount, "expected callback count to be 1")
+	if isCallbackTest() {
+		require.Equal(t, 1, callbackCount, "expected callback count to be 1")
+	}
 
 	_, err = coll.Find(context.Background(), bson.D{})
 	require.NoError(t, err, "failed executing Find")
-	require.Equal(t, 1, callbackCount, "expected callback count to be 1")
-	require.NoError(t, callbackFailed, "callback failed")
+	if isCallbackTest() {
+		require.Equal(t, 1, callbackCount, "expected callback count to be 1")
+		require.NoError(t, callbackFailed, "callback failed")
+	}
 }
 
 func TestMachine_4_1_ReauthenticationSucceeds(t *testing.T) {
-	if os.Getenv("OIDC_ENV") != "" {
-		t.Skip("Skipping: test only runs when OIDC_ENV is empty")
-	}
-
 	callbackCount := 0
 	var callbackFailed error
 	countMutex := sync.Mutex{}
@@ -478,7 +485,7 @@ func TestMachine_4_1_ReauthenticationSucceeds(t *testing.T) {
 	require.NoError(t, err, "failed connecting admin client")
 	t.Cleanup(func() { _ = adminClient.Disconnect(context.Background()) })
 
-	client, err := connectWithMachineCB(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithOIDC(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -517,13 +524,15 @@ func TestMachine_4_1_ReauthenticationSucceeds(t *testing.T) {
 	require.NoError(t, err, "failed executing Find")
 	countMutex.Lock()
 	defer countMutex.Unlock()
-	require.Equal(t, 2, callbackCount, "expected callback count to be 2")
-	require.NoError(t, callbackFailed, "callback failed")
+	if isCallbackTest() {
+		require.Equal(t, 2, callbackCount, "expected callback count to be 2")
+		require.NoError(t, callbackFailed, "callback failed")
+	}
 }
 
 func TestMachine_4_2_ReadCommandsFailIfReauthenticationFails(t *testing.T) {
-	if os.Getenv("OIDC_ENV") != "" {
-		t.Skip("Skipping: test only runs when OIDC_ENV is empty")
+	if !isCallbackTest() {
+		t.Skip("Skipping: [callback-only] test")
 	}
 
 	callbackCount := 0
@@ -591,8 +600,8 @@ func TestMachine_4_2_ReadCommandsFailIfReauthenticationFails(t *testing.T) {
 }
 
 func TestMachine_4_3_WriteCommandsFailIfReauthenticationFails(t *testing.T) {
-	if os.Getenv("OIDC_ENV") != "" {
-		t.Skip("Skipping: test only runs when OIDC_ENV is empty")
+	if !isCallbackTest() {
+		t.Skip("Skipping: [callback-only] test")
 	}
 
 	callbackCount := 0
