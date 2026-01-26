@@ -366,30 +366,6 @@ func (op Operation) shouldEncrypt() bool {
 	return op.Crypt != nil && !op.Crypt.BypassAutoEncryption()
 }
 
-// opServerSelector is a wrapper for the server selector that is assigned to the
-// operation. The purpose of this wrapper is to filter candidates with
-// operation-specific logic, such as deprioritizing failing servers.
-type opServerSelector struct {
-	selector             description.ServerSelector
-	deprioritizedServers []description.Server
-}
-
-// SelectServer will filter candidates with operation-specific logic before
-// passing them onto the user-defined or default selector.
-func (oss *opServerSelector) SelectServer(
-	topo description.Topology,
-	candidates []description.Server,
-) ([]description.Server, error) {
-	// Wrap the selector to filter out deprioritized servers.
-	selector := serverselector.NewDeprioritized(oss.selector, oss.deprioritizedServers)
-	selectedServers, err := selector.SelectServer(topo, candidates)
-	if err != nil {
-		return nil, err
-	}
-
-	return selectedServers, nil
-}
-
 // selectServer handles performing server selection for an operation.
 func (op Operation) selectServer(
 	ctx context.Context,
@@ -415,15 +391,13 @@ func (op Operation) selectServer(
 		}
 	}
 
-	oss := &opServerSelector{
-		selector:             selector,
-		deprioritizedServers: deprioritized,
-	}
+	// Wrap the selector to filter out deprioritized servers.
+	deprioritizedSelector := serverselector.NewDeprioritized(selector, deprioritized)
 
 	ctx = logger.WithOperationName(ctx, op.Name)
 	ctx = logger.WithOperationID(ctx, requestID)
 
-	return op.Deployment.SelectServer(ctx, oss)
+	return op.Deployment.SelectServer(ctx, deprioritizedSelector)
 }
 
 // getServerAndConnection should be used to retrieve a Server and Connection to execute an operation.
