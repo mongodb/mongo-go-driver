@@ -269,7 +269,6 @@ func TestValueReader_ReadDocument_TopLevel_ValidDocumentWithIncorrectEnd(t *test
 	})
 
 	t.Run("streaming", func(t *testing.T) {
-
 		vr := &valueReader{
 			src:   &streamingByteSrc{br: bufio.NewReader(bytes.NewReader([]byte{0x05, 0x00, 0x00, 0x00, 0x00}))},
 			stack: []vrState{{mode: mTopLevel}},
@@ -295,7 +294,7 @@ func TestValueReader_ReadDocument_EmbeddedDocument(t *testing.T) {
 			frame: 1,
 		}
 
-		var wanterr = (&valueReader{stack: []vrState{{mode: mElement, vType: TypeBoolean}}}).typeError(TypeEmbeddedDocument)
+		wanterr := (&valueReader{stack: []vrState{{mode: mElement, vType: TypeBoolean}}}).typeError(TypeEmbeddedDocument)
 		_, err := vr.ReadDocument()
 		if err == nil || err.Error() != wanterr.Error() {
 			t.Errorf("Incorrect returned error. got %v; want %v", err, wanterr)
@@ -346,7 +345,7 @@ func TestValueReader_ReadDocument_EmbeddedDocument(t *testing.T) {
 			frame: 1,
 		}
 
-		var wanterr = (&valueReader{stack: []vrState{{mode: mElement, vType: TypeBoolean}}}).typeError(TypeEmbeddedDocument)
+		wanterr := (&valueReader{stack: []vrState{{mode: mElement, vType: TypeBoolean}}}).typeError(TypeEmbeddedDocument)
 		_, err := vr.ReadDocument()
 		if err == nil || err.Error() != wanterr.Error() {
 			t.Errorf("Incorrect returned error. got %v; want %v", err, wanterr)

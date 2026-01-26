@@ -6,31 +6,21 @@
 # Go through all versions that may have been skipped to detect
 # when the task started failing
 stepback: true
-
 # Mark a failure as a system/bootstrap failure (purple box) rather then a task
 # failure by default.
 # Actual testing tasks are marked with `type: test`
 command_type: setup
-
 # Fail builds when pre tasks fail.
 pre_error_fails_task: true
-
 # Protect the CI from long or indefinite runtimes.
 exec_timeout_secs: 3600
-
 # What to do when evergreen hits the timeout (`post:` tasks are run automatically)
 timeout:
   - command: subprocess.exec
     params:
       binary: bash
       args: [ls, -la]
-
 functions:
-  assume-test-secrets-ec2-role: 
-    - command: ec2.assume_role
-      params:
-        role_arn: ${aws_test_secrets_role}
-
   setup-system:
     # Executes clone and applies the submitted patch, if any
     - command: git.get_project
@@ -63,7 +53,6 @@ functions:
         include_expansions_in_env: ["PROJECT_DIRECTORY"]
         args:
           - "${DRIVERS_TOOLS}/.evergreen/setup.sh"
-
   handle-test-artifacts:
     - command: gotest.parse_files
       params:
@@ -112,7 +101,6 @@ functions:
         permissions: public-read
         content_type: ${content_type|text/plain}
         display_name: test_suite.tgz
-
   bootstrap-mongohoused:
     - command: ec2.assume_role
       params:
@@ -121,68 +109,62 @@ functions:
       params:
         binary: bash
         add_expansions_to_env: true
-        args: 
+        args:
           - ${DRIVERS_TOOLS}/.evergreen/atlas_data_lake/pull-mongohouse-image.sh
     - command: subprocess.exec
       params:
         binary: bash
-        args: 
+        args:
           - ${DRIVERS_TOOLS}/.evergreen/atlas_data_lake/run-mongohouse-image.sh
-
   bootstrap-mongo-orchestration:
     - command: subprocess.exec
       params:
         binary: bash
-        env: 
+        env:
           MONGODB_VERSION: ${VERSION}
-        include_expansions_in_env: [TOPOLOGY, AUTH, SSL, ORCHESTRATION_FILE, 
-            REQUIRE_API_VERSION, LOAD_BALANCER]
+        include_expansions_in_env: [TOPOLOGY, AUTH, SSL, ORCHESTRATION_FILE, REQUIRE_API_VERSION, LOAD_BALANCER]
         args: ["${DRIVERS_TOOLS}/.evergreen/run-orchestration.sh"]
     - command: expansions.update
       params:
         file: mo-expansion.yml
-
   ocsp-bootstrap-mongo-orchestration:
     - command: subprocess.exec
       params:
         binary: bash
-        env: 
+        env:
           MONGODB_VERSION: ${VERSION}
         include_expansions_in_env: [TOPOLOGY, AUTH, SSL, ORCHESTRATION_FILE]
         args: ["${DRIVERS_TOOLS}/.evergreen/run-orchestration.sh"]
     - command: expansions.update
       params:
         file: mo-expansion.yml
-
   teardown:
     - command: subprocess.exec
       params:
         binary: bash
-        args: 
+        args:
           # Ensure the instance profile is reassigned for aws tests.
           - ${DRIVERS_TOOLS}/.evergreen/auth_aws/teardown.sh
     - command: subprocess.exec
       params:
         binary: bash
-        args: 
+        args:
           - ${DRIVERS_TOOLS}/.evergreen/csfle/teardown.sh
     - command: subprocess.exec
       params:
         binary: bash
-        args: 
+        args:
           - ${DRIVERS_TOOLS}/.evergreen/ocsp/teardown.sh
     - command: subprocess.exec
       params:
         binary: bash
-        args: 
+        args:
           - ${DRIVERS_TOOLS}/.evergreen/teardown.sh
-
   assume-test-secrets-ec2-role:
     - command: ec2.assume_role
       params:
         role_arn: ${aws_test_secrets_role}
         duration_seconds: 1800
-
   run-oidc-auth-test-with-test-credentials:
     - command: subprocess.exec
       type: test
@@ -192,7 +174,6 @@ functions:
           OIDC: oidc
         include_expansions_in_env: [DRIVERS_TOOLS, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN]
         args: [*task-runner, test-oidc]
-
   run-tests:
     - command: subprocess.exec
       params:
@@ -206,8 +187,7 @@ functions:
       retry_on_failure: true
       params:
         binary: bash
-        args: [*task-runner, "${DEFAULT_TASK}" ]
-
+        args: [*task-runner, "${DEFAULT_TASK}"]
   create-api-report:
     - command: subprocess.exec
       type: test
@@ -218,7 +198,6 @@ functions:
           BASE_SHA: "${revision}"
           HEAD_SHA: "${github_commit}"
         args: [*task-runner, api-report]
-
   "backport pr":
     - command: subprocess.exec
       type: test
@@ -228,7 +207,6 @@ functions:
           COMMIT: "${github_commit}"
           PR_TASK: backport-pr
         args: [*task-runner, pr-task]
-
   send-perf-data:
     # Here we begin to generate the request to send the data to SPS
     - command: shell.exec
@@ -262,7 +240,6 @@ functions:
 
           echo "Response Body: $response_body"
           echo "HTTP Status: $http_status"
-
   send-perf-pr-comment:
     - command: subprocess.exec
       type: test
@@ -275,7 +252,6 @@ functions:
           HEAD_SHA: "${github_commit}"
         include_expansions_in_env: [PERF_URI_PRIVATE_ENDPOINT]
         args: [*task-runner, perf-pr-comment]
-
   run-enterprise-auth-tests:
     - command: ec2.assume_role
       params:
@@ -284,7 +260,7 @@ functions:
       params:
         binary: bash
         include_expansions_in_env: [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN]
-        env: 
+        env:
           TEST_ENTERPRISE_AUTH: plain
         args: [*task-runner, setup-test]
     - command: subprocess.exec
@@ -293,7 +269,6 @@ functions:
       params:
         binary: bash
         args: [*task-runner, --silent, evg-test-enterprise-auth]
-
   run-enterprise-gssapi-auth-tests:
     - command: ec2.assume_role
       params:
@@ -302,7 +277,7 @@ functions:
       params:
         binary: bash
         include_expansions_in_env: [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN]
-        env: 
+        env:
           TEST_ENTERPRISE_AUTH: gssapi
         args: [*task-runner, setup-test]
     - command: subprocess.exec
@@ -311,7 +286,6 @@ functions:
       params:
         binary: bash
         args: [*task-runner, --silent, evg-test-enterprise-auth]
-
   run-atlas-test:
     - command: ec2.assume_role
       params:
@@ -329,12 +303,11 @@ functions:
       params:
         binary: bash
         args: [*task-runner, test-atlas-connect]
-
   run-ocsp-test:
     - command: subprocess.exec
       params:
         binary: bash
-        env: 
+        env:
           TOPOLOGY: server
           AUTH: auth
           SSL: ssl
@@ -347,15 +320,13 @@ functions:
         binary: bash
         include_expansions_in_env: [OCSP_TLS_SHOULD_SUCCEED]
         args: [*task-runner, evg-test-ocsp]
-
   run-versioned-api-test:
     - command: subprocess.exec
       params:
         binary: bash
-        env: 
+        env:
           GO_BUILD_TAGS: cse
-        include_expansions_in_env: [AUTH, SSL, MONGODB_URI, TOPOLOGY, MONGO_GO_DRIVER_COMPRESSOR, 
-          REQUIRE_API_VERSION, SKIP_CRYPT_SHARED_LIB, CRYPT_SHARED_LIB_PATH]
+        include_expansions_in_env: [AUTH, SSL, MONGODB_URI, TOPOLOGY, MONGO_GO_DRIVER_COMPRESSOR, REQUIRE_API_VERSION, SKIP_CRYPT_SHARED_LIB, CRYPT_SHARED_LIB_PATH]
         args: [*task-runner, setup-test]
     - command: subprocess.exec
       type: test
@@ -363,13 +334,12 @@ functions:
       params:
         binary: bash
         args: [*task-runner, evg-test-versioned-api]
-
   run-load-balancer-tests:
     - command: subprocess.exec
       params:
         binary: bash
         include_expansions_in_env: [SINGLE_MONGOS_LB_URI, MULTI_MONGOS_LB_URI, AUTH, SSL, MONGO_GO_DRIVER_COMPRESSOR]
-        env: 
+        env:
           LOAD_BALANCER: "true"
         args: [*task-runner, setup-test]
     - command: subprocess.exec
@@ -378,7 +348,6 @@ functions:
       params:
         binary: bash
         args: [*task-runner, evg-test-load-balancers]
-
   run-docker-test:
     - command: subprocess.exec
       type: test
@@ -391,11 +360,10 @@ functions:
       type: test
       params:
         binary: "bash"
-        env: 
+        env:
           TOPOLOGY: sharded_cluster
           TASKFILE_TARGET: test-short
         args: [*task-runner, run-docker]
-
   run-goleak-test:
     - command: subprocess.exec
       type: test
@@ -403,7 +371,6 @@ functions:
         binary: "bash"
         include_expansions_in_env: ["MONGODB_URI"]
         args: [*task-runner, test-goleak]
-
   "run oidc k8s test":
     - command: subprocess.exec
       type: test
@@ -413,7 +380,6 @@ functions:
         env:
           OIDC_ENV: k8s
         args: [*task-runner, test-oidc-remote]
-
   run-ocsp-server:
     - command: subprocess.exec
       params:
@@ -422,7 +388,6 @@ functions:
         include_expansions_in_env: [SERVER_TYPE, OCSP_ALGORITHM]
         args:
           - ${DRIVERS_TOOLS}/.evergreen/ocsp/setup.sh
-
   run-load-balancer:
     - command: subprocess.exec
       params:
@@ -432,16 +397,14 @@ functions:
     - command: expansions.update
       params:
         file: lb-expansion.yml
-
   run-search-index-tests:
     - command: subprocess.exec
       type: test
       params:
         binary: "bash"
         env:
-          TEST_SEARCH_INDEX: "${MONGODB_URI}"
+          SEARCH_INDEX_URI: "${SEARCH_INDEX_URI}"
         args: [*task-runner, evg-test-search-index]
-
   add-aws-auth-variables-to-file:
     - command: ec2.assume_role
       params:
@@ -451,9 +414,8 @@ functions:
       params:
         include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
         binary: "bash"
-        args: 
+        args:
           - ${DRIVERS_TOOLS}/.evergreen/auth_aws/setup-secrets.sh
-
   run-aws-auth-test-with-regular-aws-credentials:
     - command: subprocess.exec
       type: test
@@ -462,7 +424,6 @@ functions:
         env:
           AWS_TEST: regular
         args: [*task-runner, evg-test-aws]
-
   run-aws-auth-test-with-assume-role-credentials:
     - command: subprocess.exec
       type: test
@@ -471,17 +432,15 @@ functions:
         env:
           AWS_TEST: assume-role
         args: [*task-runner, evg-test-aws]
-
   run-aws-auth-test-with-aws-EC2-credentials:
     - command: subprocess.exec
       type: test
       params:
-        binary: bash 
+        binary: bash
         include_expansions_in_env: [SKIP_EC2_AUTH_TEST]
         env:
           AWS_TEST: ec2
         args: [*task-runner, evg-test-aws]
-
   run-aws-auth-test-with-aws-credentials-as-environment-variables:
     - command: subprocess.exec
       type: test
@@ -490,7 +449,6 @@ functions:
         env:
           AWS_TEST: env-creds
         args: [*task-runner, evg-test-aws]
-
   run-aws-auth-test-with-aws-credentials-and-session-token-as-environment-variables:
     - command: subprocess.exec
       type: test
@@ -499,7 +457,6 @@ functions:
         env:
           AWS_TEST: session-creds
         args: [*task-runner, evg-test-aws]
-
   run-aws-ECS-auth-test:
     - command: subprocess.exec
       type: test
@@ -507,7 +464,6 @@ functions:
         binary: "bash"
         include_expansions_in_env: [SKIP_ECS_AUTH_TEST]
         args: [*task-runner, evg-test-aws-ecs]
-
   run-aws-auth-test-with-aws-web-identity-credentials:
     - command: subprocess.exec
       type: test
@@ -521,12 +477,11 @@ functions:
       type: test
       params:
         binary: bash
-        env: 
+        env:
           AWS_ROLE_SESSION_NAME: test
           AWS_TEST: web-identity
         include_expansions_in_env: [SKIP_WEB_IDENTITY_AUTH_TEST]
         args: [*task-runner, evg-test-aws]
-
   start-cse-servers:
     - command: ec2.assume_role
       params:
@@ -543,32 +498,13 @@ functions:
       params:
         binary: bash
         args: ["${DRIVERS_TOOLS}/.evergreen/csfle/await-servers.sh"]
-
-  run-kms-tls-test:
-    - command: subprocess.exec
-      params:
-        binary: "bash"
-        env: 
-          GO_BUILD_TAGS: cse
-        include_expansions_in_env: [AUTH, SSL, MONGODB_URI, TOPOLOGY, 
-          MONGO_GO_DRIVER_COMPRESSOR]
-        args: [*task-runner, setup-test]
-    - command: subprocess.exec
-      type: test
-      retry_on_failure: true
-      params:
-        binary: "bash"
-        include_expansions_in_env: [KMS_TLS_TESTCASE]
-        args: [*task-runner, evg-test-kms]
-
   run-kmip-tests:
     - command: subprocess.exec
       params:
         binary: "bash"
-        env: 
+        env:
           GO_BUILD_TAGS: cse
-        include_expansions_in_env: [AUTH, SSL, MONGODB_URI, TOPOLOGY, 
-          MONGO_GO_DRIVER_COMPRESSOR]
+        include_expansions_in_env: [AUTH, SSL, MONGODB_URI, TOPOLOGY, MONGO_GO_DRIVER_COMPRESSOR]
         args: [*task-runner, setup-test]
     - command: subprocess.exec
       type: test
@@ -578,15 +514,13 @@ functions:
         env:
           KMS_MOCK_SERVERS_RUNNING: "true"
         args: [*task-runner, evg-test-kmip]
-
-  run-retry-kms-requests:
+  run-client-side-encryption-test:
     - command: subprocess.exec
       params:
         binary: "bash"
-        env: 
+        env:
           GO_BUILD_TAGS: cse
-        include_expansions_in_env: [AUTH, SSL, MONGODB_URI, TOPOLOGY, 
-          MONGO_GO_DRIVER_COMPRESSOR]
+        include_expansions_in_env: [AUTH, SSL, MONGODB_URI, TOPOLOGY, MONGO_GO_DRIVER_COMPRESSOR, CRYPT_SHARED_LIB_PATH]
         args: [*task-runner, setup-test]
     - command: subprocess.exec
       type: test
@@ -594,24 +528,21 @@ functions:
       params:
         binary: "bash"
         env:
+          KMS_MOCK_SERVERS_RUNNING: "true"
           KMS_FAILPOINT_CA_FILE: "${DRIVERS_TOOLS}/.evergreen/x509gen/ca.pem"
           KMS_FAILPOINT_SERVER_RUNNING: "true"
-        args: [*task-runner, evg-test-retry-kms-requests]
-
+        args: [*task-runner, evg-test-client-side-encryption]
   run-fuzz-tests:
     - command: subprocess.exec
       type: test
       params:
         binary: "bash"
         args: [*task-runner, run-fuzz]
-
 pre:
   - func: setup-system
-
 post:
   - func: teardown
   - func: handle-test-artifacts
-
 tasks:
   - name: static-analysis
     tags: ["static-analysis"]
@@ -620,7 +551,6 @@ tasks:
         params:
           binary: bash
           args: [*task-runner, check-fmt, check-license, check-modules, lint]
-
   - name: govulncheck
     tags: ["static-analysis"]
     commands:
@@ -629,18 +559,15 @@ tasks:
         params:
           binary: bash
           args: [*task-runner, govulncheck]
-
   - name: pull-request-helpers
     allowed_requesters: ["patch", "github_pr"]
     commands:
       - func: assume-test-secrets-ec2-role
       - func: "create-api-report"
-
   - name: backport-pr
     allowed_requesters: ["commit"]
     commands:
-      - func: "backport pr"  
-
+      - func: "backport pr"
   - name: perf
     tags: ["performance"]
     exec_timeout_secs: 7200
@@ -659,7 +586,6 @@ tasks:
       - func: assume-test-secrets-ec2-role
       - func: send-perf-data
       - func: send-perf-pr-comment
-
   - name: test-standalone-noauth-nossl
     tags: ["test", "standalone"]
     commands:
@@ -674,7 +600,6 @@ tasks:
           TOPOLOGY: "server"
           AUTH: "noauth"
           SSL: "nossl"
-
   - name: test-standalone-noauth-nossl-snappy-compression
     tags: ["test", "standalone", "compression", "snappy"]
     commands:
@@ -690,7 +615,6 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
           MONGO_GO_DRIVER_COMPRESSOR: "snappy"
-
   - name: test-standalone-noauth-nossl-zlib-compression
     tags: ["test", "standalone", "compression", "zlib"]
     commands:
@@ -706,7 +630,6 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
           MONGO_GO_DRIVER_COMPRESSOR: "zlib"
-
   - name: test-standalone-noauth-nossl-zstd-compression
     tags: ["test", "standalone", "compression", "zstd"]
     commands:
@@ -722,7 +645,6 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
           MONGO_GO_DRIVER_COMPRESSOR: "zstd"
-
   - name: test-standalone-auth-ssl
     tags: ["test", "standalone", "authssl"]
     commands:
@@ -737,7 +659,6 @@ tasks:
           TOPOLOGY: "server"
           AUTH: "auth"
           SSL: "ssl"
-
   - name: test-standalone-auth-nossl
     tags: ["test", "standalone", "authssl"]
     commands:
@@ -752,7 +673,6 @@ tasks:
           TOPOLOGY: "server"
           AUTH: "auth"
           SSL: "nossl"
-
   - name: test-standalone-auth-ssl-snappy-compression
     tags: ["test", "standalone", "authssl", "compression", "snappy"]
     commands:
@@ -768,7 +688,6 @@ tasks:
           AUTH: "auth"
           SSL: "ssl"
           MONGO_GO_DRIVER_COMPRESSOR: "snappy"
-
   - name: test-standalone-auth-ssl-zlib-compression
     tags: ["test", "standalone", "authssl", "compression", "zlib"]
     commands:
@@ -784,7 +703,6 @@ tasks:
           AUTH: "auth"
           SSL: "ssl"
           MONGO_GO_DRIVER_COMPRESSOR: "zlib"
-
   - name: test-standalone-auth-ssl-zstd-compression
     tags: ["test", "standalone", "authssl", "compression", "zstd"]
     commands:
@@ -800,7 +718,6 @@ tasks:
           AUTH: "auth"
           SSL: "ssl"
           MONGO_GO_DRIVER_COMPRESSOR: "zstd"
-
   - name: test-ocsp-rsa-valid-cert-server-staples
     tags: ["ocsp", "ocsp-rsa", "ocsp-staple"]
     commands:
@@ -815,7 +732,6 @@ tasks:
         vars:
           OCSP_ALGORITHM: "rsa"
           OCSP_TLS_SHOULD_SUCCEED: "true"
-
   - name: test-ocsp-rsa-invalid-cert-server-staples
     tags: ["ocsp", "ocsp-rsa", "ocsp-staple"]
     commands:
@@ -830,7 +746,6 @@ tasks:
         vars:
           OCSP_ALGORITHM: "rsa"
           OCSP_TLS_SHOULD_SUCCEED: "false"
-
   - name: test-ocsp-rsa-valid-cert-server-does-not-staple
     tags: ["ocsp", "ocsp-rsa"]
     commands:
@@ -845,7 +760,6 @@ tasks:
         vars:
           OCSP_ALGORITHM: "rsa"
           OCSP_TLS_SHOULD_SUCCEED: "true"
-
   - name: test-ocsp-rsa-invalid-cert-server-does-not-staple
     tags: ["ocsp", "ocsp-rsa"]
     commands:
@@ -860,7 +774,6 @@ tasks:
         vars:
           OCSP_ALGORITHM: "rsa"
           OCSP_TLS_SHOULD_SUCCEED: "false"
-
   - name: test-ocsp-rsa-soft-fail
     tags: ["ocsp", "ocsp-rsa"]
     commands:
@@ -871,7 +784,6 @@ tasks:
         vars:
           OCSP_ALGORITHM: "rsa"
           OCSP_TLS_SHOULD_SUCCEED: "true"
-
   - name: test-ocsp-rsa-malicious-invalid-cert-mustStaple-server-does-not-staple
     tags: ["ocsp", "ocsp-rsa"]
     commands:
@@ -886,7 +798,6 @@ tasks:
         vars:
           OCSP_ALGORITHM: "rsa"
           OCSP_TLS_SHOULD_SUCCEED: "false"
-
   - name: test-ocsp-rsa-malicious-no-responder-mustStaple-server-does-not-staple
     tags: ["ocsp", "ocsp-rsa"]
     commands:
@@ -897,7 +808,6 @@ tasks:
         vars:
           OCSP_ALGORITHM: "rsa"
           OCSP_TLS_SHOULD_SUCCEED: "false"
-
   - name: test-ocsp-rsa-delegate-valid-cert-server-staples
     tags: ["ocsp", "ocsp-rsa", "ocsp-staple"]
     commands:
@@ -912,7 +822,6 @@ tasks:
         vars:
           OCSP_ALGORITHM: "rsa"
           OCSP_TLS_SHOULD_SUCCEED: "true"
-
   - name: test-ocsp-rsa-delegate-invalid-cert-server-staples
     tags: ["ocsp", "ocsp-rsa", "ocsp-staple"]
     commands:
@@ -927,7 +836,6 @@ tasks:
         vars:
           OCSP_ALGORITHM: "rsa"
           OCSP_TLS_SHOULD_SUCCEED: "false"
-
   - name: test-ocsp-rsa-delegate-valid-cert-server-does-not-staple
     tags: ["ocsp", "ocsp-rsa"]
     commands:
@@ -942,7 +850,6 @@ tasks:
         vars:
           OCSP_ALGORITHM: "rsa"
           OCSP_TLS_SHOULD_SUCCEED: "true"
-
   - name: test-ocsp-rsa-delegate-invalid-cert-server-does-not-staple
     tags: ["ocsp", "ocsp-rsa"]
     commands:
@@ -957,7 +864,6 @@ tasks:
         vars:
           OCSP_ALGORITHM: "rsa"
           OCSP_TLS_SHOULD_SUCCEED: "false"
-
   - name: test-ocsp-rsa-delegate-malicious-invalid-cert-mustStaple-server-does-not-staple
     tags: ["ocsp", "ocsp-rsa"]
     commands:
@@ -972,7 +878,6 @@ tasks:
         vars:
           OCSP_ALGORITHM: "rsa"
           OCSP_TLS_SHOULD_SUCCEED: "false"
-
   - name: test-ocsp-ecdsa-valid-cert-server-staples
     tags: ["ocsp", "ocsp-ecdsa", "ocsp-staple"]
     commands:
@@ -987,7 +892,6 @@ tasks:
         vars:
           OCSP_ALGORITHM: "ecdsa"
           OCSP_TLS_SHOULD_SUCCEED: "true"
-
   - name: test-ocsp-ecdsa-invalid-cert-server-staples
     tags: ["ocsp", "ocsp-ecdsa", "ocsp-staple"]
     commands:
@@ -1002,7 +906,6 @@ tasks:
         vars:
           OCSP_ALGORITHM: "ecdsa"
           OCSP_TLS_SHOULD_SUCCEED: "false"
-
   - name: test-ocsp-ecdsa-valid-cert-server-does-not-staple
     tags: ["ocsp", "ocsp-ecdsa"]
     commands:
@@ -1017,7 +920,6 @@ tasks:
         vars:
           OCSP_ALGORITHM: "ecdsa"
           OCSP_TLS_SHOULD_SUCCEED: "true"
-
   - name: test-ocsp-ecdsa-invalid-cert-server-does-not-staple
     tags: ["ocsp", "ocsp-ecdsa"]
     commands:
@@ -1032,7 +934,6 @@ tasks:
         vars:
           OCSP_ALGORITHM: "ecdsa"
           OCSP_TLS_SHOULD_SUCCEED: "false"
-
   - name: test-ocsp-ecdsa-soft-fail
     tags: ["ocsp", "ocsp-ecdsa"]
     commands:
@@ -1043,7 +944,6 @@ tasks:
         vars:
           OCSP_ALGORITHM: "ecdsa"
           OCSP_TLS_SHOULD_SUCCEED: "true"
-
   - name: test-ocsp-ecdsa-malicious-invalid-cert-mustStaple-server-does-not-staple
     tags: ["ocsp", "ocsp-ecdsa"]
     commands:
@@ -1058,7 +958,6 @@ tasks:
         vars:
           OCSP_ALGORITHM: "ecdsa"
           OCSP_TLS_SHOULD_SUCCEED: "false"
-
   - name: test-ocsp-ecdsa-malicious-no-responder-mustStaple-server-does-not-staple
     tags: ["ocsp", "ocsp-ecdsa"]
     commands:
@@ -1069,7 +968,6 @@ tasks:
         vars:
           OCSP_ALGORITHM: "ecdsa"
           OCSP_TLS_SHOULD_SUCCEED: "false"
-
   - name: test-ocsp-ecdsa-delegate-valid-cert-server-staples
     tags: ["ocsp", "ocsp-ecdsa", "ocsp-staple"]
     commands:
@@ -1084,7 +982,6 @@ tasks:
         vars:
           OCSP_ALGORITHM: "ecdsa"
           OCSP_TLS_SHOULD_SUCCEED: "true"
-
   - name: test-ocsp-ecdsa-delegate-invalid-cert-server-staples
     tags: ["ocsp", "ocsp-ecdsa", "ocsp-staple"]
     commands:
@@ -1099,7 +996,6 @@ tasks:
         vars:
           OCSP_ALGORITHM: "ecdsa"
           OCSP_TLS_SHOULD_SUCCEED: "false"
-
   - name: test-ocsp-ecdsa-delegate-valid-cert-server-does-not-staple
     tags: ["ocsp", "ocsp-ecdsa"]
     commands:
@@ -1114,7 +1010,6 @@ tasks:
         vars:
           OCSP_ALGORITHM: "ecdsa"
           OCSP_TLS_SHOULD_SUCCEED: "true"
-
   - name: test-ocsp-ecdsa-delegate-invalid-cert-server-does-not-staple
     tags: ["ocsp", "ocsp-ecdsa"]
     commands:
@@ -1129,7 +1024,6 @@ tasks:
         vars:
           OCSP_ALGORITHM: "ecdsa"
           OCSP_TLS_SHOULD_SUCCEED: "false"
-
   - name: test-ocsp-ecdsa-delegate-malicious-invalid-cert-mustStaple-server-does-not-staple
     tags: ["ocsp", "ocsp-ecdsa"]
     commands:
@@ -1144,12 +1038,10 @@ tasks:
         vars:
           OCSP_ALGORITHM: "ecdsa"
           OCSP_TLS_SHOULD_SUCCEED: "false"
-
   - name: test-docker-runner
     commands:
       - func: bootstrap-mongo-orchestration
       - func: run-docker-test
-
   - name: test-goroutine-leaks-replicaset
     tags: ["goleak"]
     commands:
@@ -1159,7 +1051,6 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
       - func: run-goleak-test
-
   - name: test-goroutine-leaks-sharded
     tags: ["goleak"]
     commands:
@@ -1169,7 +1060,6 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
       - func: run-goleak-test
-
   - name: test-load-balancer-noauth-nossl
     tags: ["load-balancer"]
     commands:
@@ -1184,7 +1074,6 @@ tasks:
         vars:
           AUTH: "noauth"
           SSL: "nossl"
-
   - name: test-load-balancer-auth-ssl
     tags: ["load-balancer"]
     commands:
@@ -1199,7 +1088,6 @@ tasks:
         vars:
           AUTH: "auth"
           SSL: "ssl"
-
   - name: test-race
     tags: ["race"]
     commands:
@@ -1215,7 +1103,6 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
           RACE: "-race"
-
   - name: test-replicaset-noauth-nossl
     tags: ["test", "replicaset"]
     commands:
@@ -1230,7 +1117,6 @@ tasks:
           TOPOLOGY: "replica_set"
           AUTH: "noauth"
           SSL: "nossl"
-
   - name: test-replicaset-auth-ssl
     tags: ["test", "replicaset", "authssl"]
     commands:
@@ -1245,7 +1131,6 @@ tasks:
           TOPOLOGY: "replica_set"
           AUTH: "auth"
           SSL: "ssl"
-
   - name: test-replicaset-auth-ssl-mongocryptd
     tags: ["test", "replicaset", "authssl", "mongocryptd"]
     commands:
@@ -1263,7 +1148,6 @@ tasks:
           # Don't use the crypt_shared library, which should cause all of the tests to fall
           # back to using mongocryptd instead of crypt_shared.
           SKIP_CRYPT_SHARED_LIB: "true"
-
   - name: test-replicaset-auth-nossl
     tags: ["test", "replicaset", "authssl"]
     commands:
@@ -1278,7 +1162,6 @@ tasks:
           TOPOLOGY: "replica_set"
           AUTH: "auth"
           SSL: "nossl"
-
   - name: test-sharded-noauth-nossl
     tags: ["test", "sharded"]
     commands:
@@ -1293,7 +1176,6 @@ tasks:
           TOPOLOGY: "sharded_cluster"
           AUTH: "noauth"
           SSL: "nossl"
-
   - name: test-sharded-noauth-nossl-snappy-compression
     tags: ["test", "sharded", "compression", "snappy"]
     commands:
@@ -1309,7 +1191,6 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
           MONGO_GO_DRIVER_COMPRESSOR: "snappy"
-
   - name: test-sharded-noauth-nossl-zlib-compression
     tags: ["test", "sharded", "compression", "zlib"]
     commands:
@@ -1325,7 +1206,6 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
           MONGO_GO_DRIVER_COMPRESSOR: "zlib"
-
   - name: test-sharded-noauth-nossl-zstd-compression
     tags: ["test", "sharded", "compression", "zstd"]
     commands:
@@ -1341,7 +1221,6 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
           MONGO_GO_DRIVER_COMPRESSOR: "zstd"
-
   - name: test-sharded-auth-ssl
     tags: ["test", "sharded", "authssl"]
     commands:
@@ -1356,7 +1235,6 @@ tasks:
           TOPOLOGY: "sharded_cluster"
           AUTH: "auth"
           SSL: "ssl"
-
   - name: test-sharded-auth-ssl-snappy-compression
     tags: ["test", "sharded", "authssl", "compression", "snappy"]
     commands:
@@ -1372,7 +1250,6 @@ tasks:
           AUTH: "auth"
           SSL: "ssl"
           MONGO_GO_DRIVER_COMPRESSOR: "snappy"
-
   - name: test-sharded-auth-ssl-zlib-compression
     tags: ["test", "sharded", "authssl", "compression", "zlib"]
     commands:
@@ -1388,7 +1265,6 @@ tasks:
           AUTH: "auth"
           SSL: "ssl"
           MONGO_GO_DRIVER_COMPRESSOR: "zlib"
-
   - name: test-sharded-auth-ssl-zstd-compression
     tags: ["test", "sharded", "authssl", "compression", "zstd"]
     commands:
@@ -1404,7 +1280,6 @@ tasks:
           AUTH: "auth"
           SSL: "ssl"
           MONGO_GO_DRIVER_COMPRESSOR: "zstd"
-
   - name: test-sharded-auth-nossl
     tags: ["test", "sharded", "authssl"]
     commands:
@@ -1419,20 +1294,17 @@ tasks:
           TOPOLOGY: "sharded_cluster"
           AUTH: "auth"
           SSL: "nossl"
-
   - name: test-enterprise-auth-plain
     tags: ["test", "enterprise-auth"]
     commands:
       - func: run-enterprise-auth-tests
-
   - name: test-enterprise-auth-gssapi
     tags: ["test", "enterprise-auth"]
     commands:
       - func: run-enterprise-gssapi-auth-tests
         vars:
           MONGO_GO_DRIVER_COMPRESSOR: "snappy"
-
-  # Build the compilecheck submodule with all supported versions of Go >= 
+  # Build the compilecheck submodule with all supported versions of Go >=
   # the minimum supported version.
   - name: go-build
     tags: ["compile-check"]
@@ -1441,7 +1313,6 @@ tasks:
         params:
           binary: bash
           args: [*task-runner, build-compile-check-all]
-
   # Build with the same Go version that we're using for tests.
   - name: build
     tags: ["compile-check"]
@@ -1454,11 +1325,9 @@ tasks:
           env:
             GO_VERSION: ""
           args: [*task-runner, build]
-
   - name: "atlas-test"
     commands:
       - func: "run-atlas-test"
-
   - name: "aws-auth-test"
     commands:
       - func: bootstrap-mongo-orchestration
@@ -1474,7 +1343,6 @@ tasks:
       - func: run-aws-auth-test-with-aws-EC2-credentials
       - func: run-aws-ECS-auth-test
       - func: run-aws-auth-test-with-aws-web-identity-credentials
-
   - name: "test-standalone-versioned-api"
     tags: ["versioned-api"]
     commands:
@@ -1491,7 +1359,6 @@ tasks:
           AUTH: "auth"
           SSL: "nossl"
           REQUIRE_API_VERSION: true
-
   - name: "test-sharded-versioned-api"
     tags: ["versioned-api"]
     commands:
@@ -1508,7 +1375,6 @@ tasks:
           AUTH: "auth"
           SSL: "nossl"
           REQUIRE_API_VERSION: true
-
   - name: "test-standalone-versioned-api-test-commands"
     tags: ["versioned-api"]
     commands:
@@ -1524,39 +1390,6 @@ tasks:
           TOPOLOGY: "server"
           AUTH: "noauth"
           SSL: "nossl"
-
-  - name: "test-kms-tls-invalid-cert"
-    tags: ["kms-test"]
-    commands:
-      - func: bootstrap-mongo-orchestration
-        vars:
-          TOPOLOGY: "server"
-          AUTH: "noauth"
-          SSL: "nossl"
-      - func: start-cse-servers
-      - func: run-kms-tls-test
-        vars:
-          KMS_TLS_TESTCASE: "INVALID_CERT"
-          TOPOLOGY: "server"
-          AUTH: "noauth"
-          SSL: "nossl"
-
-  - name: "test-kms-tls-invalid-hostname"
-    tags: ["kms-test"]
-    commands:
-      - func: bootstrap-mongo-orchestration
-        vars:
-          TOPOLOGY: "server"
-          AUTH: "noauth"
-          SSL: "nossl"
-      - func: start-cse-servers
-      - func: run-kms-tls-test
-        vars:
-          KMS_TLS_TESTCASE: "INVALID_HOSTNAME"
-          TOPOLOGY: "server"
-          AUTH: "noauth"
-          SSL: "nossl"
-
   - name: "test-kms-kmip"
     tags: ["kms-kmip"]
     commands:
@@ -1571,90 +1404,85 @@ tasks:
           TOPOLOGY: "server"
           AUTH: "noauth"
           SSL: "nossl"
-
-  - name: "test-retry-kms-requests"
-    tags: ["kms-test"]
+  - name: "test-client-side-encryption"
+    tags: ["client-side-encryption-test"]
     commands:
       - func: bootstrap-mongo-orchestration
         vars:
-          TOPOLOGY: "server"
+          TOPOLOGY: "replica_set"
           AUTH: "noauth"
           SSL: "nossl"
       - func: start-cse-servers
-      - func: run-retry-kms-requests
-
+      - func: run-client-side-encryption-test
+        vars:
+          TOPOLOGY: "replica_set"
+          AUTH: "noauth"
+          SSL: "nossl"
   - name: "testgcpkms-task"
     commands:
-    - command: subprocess.exec
-      type: test
-      params:
-        binary: bash
-        args: [*task-runner, test-gcpkms]
-
+      - command: subprocess.exec
+        type: test
+        params:
+          binary: bash
+          args: [*task-runner, test-gcpkms]
   - name: "testgcpkms-fail-task"
     # testgcpkms-fail-task runs in a non-GCE environment.
     # It is expected to fail to obtain GCE credentials.
     commands:
-    - command: subprocess.exec
-      type: test
-      params:
-        binary: bash
-        env:
-          EXPECT_ERROR: "1"
-        args: [*task-runner, test-gcpkms]
-
+      - command: subprocess.exec
+        type: test
+        params:
+          binary: bash
+          env:
+            EXPECT_ERROR: "1"
+          args: [*task-runner, test-gcpkms]
   - name: "testawskms-task"
     commands:
-    - func: assume-test-secrets-ec2-role
-    - command: subprocess.exec
-      type: test
-      params:
-        binary: "bash"
-        add_expansions_to_env: true
-        args: [*task-runner, test-awskms]
-
+      - func: assume-test-secrets-ec2-role
+      - command: subprocess.exec
+        type: test
+        params:
+          binary: "bash"
+          add_expansions_to_env: true
+          args: [*task-runner, test-awskms]
   - name: "testawskms-fail-task"
     # testawskms-fail-task runs without environment variables.
     # It is expected to fail to obtain credentials.
     commands:
-    - func: assume-test-secrets-ec2-role
-    - command: subprocess.exec
-      type: test
-      params:
-        binary: "bash"
-        add_expansions_to_env: true
-        env: 
-          EXPECT_ERROR: 'status=400'
-        args: [*task-runner, test-awskms]
-
+      - func: assume-test-secrets-ec2-role
+      - command: subprocess.exec
+        type: test
+        params:
+          binary: "bash"
+          add_expansions_to_env: true
+          env:
+            EXPECT_ERROR: 'status=400'
+          args: [*task-runner, test-awskms]
   - name: "testazurekms-task"
     commands:
-    - command: subprocess.exec
-      type: test
-      params:
-        binary: bash
-        add_expansions_to_env: true
-        args: [*task-runner, test-azurekms]
-
+      - command: subprocess.exec
+        type: test
+        params:
+          binary: bash
+          add_expansions_to_env: true
+          args: [*task-runner, test-azurekms]
   - name: "testazurekms-fail-task"
     # testazurekms-fail-task runs without environment variables.
     # It is expected to fail to obtain credentials.
     commands:
-    - func: assume-test-secrets-ec2-role
-    - command: subprocess.exec
-      type: test
-      params:
-        binary: bash
-        add_expansions_to_env: true
-        env:
-          EXPECT_ERROR: "1"
-        args: [*task-runner, test-azurekms]
-
+      - func: assume-test-secrets-ec2-role
+      - command: subprocess.exec
+        type: test
+        params:
+          binary: bash
+          add_expansions_to_env: true
+          env:
+            EXPECT_ERROR: "1"
+          args: [*task-runner, test-azurekms]
   - name: "test-fuzz"
     commands:
       - func: bootstrap-mongo-orchestration
       - func: run-fuzz-tests
-
   - name: "test-aws-lambda-deployed"
     commands:
       - command: subprocess.exec
@@ -1667,44 +1495,39 @@ tasks:
             LAMBDA_STACK_NAME: dbx-go-lambda
             AWS_REGION: us-east-1
           args: [*task-runner, evg-test-deployed-lambda-aws]
-
   - name: "oidc-auth-test"
     commands:
       - func: "run-oidc-auth-test-with-test-credentials"
-
   - name: "oidc-auth-test-azure"
     commands:
-    - command: subprocess.exec
-      type: test
-      params:
-        binary: bash
-        env:
-          OIDC_ENV: azure
-        args: [*task-runner, test-oidc-remote]
-
+      - command: subprocess.exec
+        type: test
+        params:
+          binary: bash
+          env:
+            OIDC_ENV: azure
+          args: [*task-runner, test-oidc-remote]
   - name: "oidc-auth-test-gcp"
     commands:
-    - command: subprocess.exec
-      type: test
-      params:
-        binary: bash
-        env:
-          OIDC_ENV: gcp
-        args: [*task-runner, test-oidc-remote]
-
+      - command: subprocess.exec
+        type: test
+        params:
+          binary: bash
+          env:
+            OIDC_ENV: gcp
+          args: [*task-runner, test-oidc-remote]
   - name: "oidc-auth-test-k8s"
     commands:
-    - func: assume-test-secrets-ec2-role
-    - func: "run oidc k8s test"
-      vars:
-        VARIANT: eks
-    - func: "run oidc k8s test"
-      vars:
-        VARIANT: gke
-    - func: "run oidc k8s test"
-      vars:
-        VARIANT: aks
-
+      - func: assume-test-secrets-ec2-role
+      - func: "run oidc k8s test"
+        vars:
+          VARIANT: eks
+      - func: "run oidc k8s test"
+        vars:
+          VARIANT: gke
+      - func: "run oidc k8s test"
+        vars:
+          VARIANT: aks
   - name: "test-search-index"
     commands:
       - func: "bootstrap-mongo-orchestration"
@@ -1712,7 +1535,6 @@ tasks:
           VERSION: "latest"
           TOPOLOGY: "replica_set"
       - func: "run-search-index-tests"
-
 axes:
   - id: version
     display_name: MongoDB Version
@@ -1749,7 +1571,6 @@ axes:
         display_name: "latest"
         variables:
           VERSION: "latest"
-
   # OSes that require >= 3.2 for SSL
   - id: os-ssl-32
     display_name: OS
@@ -1757,7 +1578,7 @@ axes:
       - id: "windows-64"
         display_name: "Windows 64-bit"
         run_on:
-          - windows-vsCurrent-small
+          - windows-2022-latest-small
         variables:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
           GO_DIST: "C:\\golang\\go1.25"
@@ -1780,7 +1601,6 @@ axes:
           DEFAULT_TASK: evg-test-load-balancers
           # CSOT tests are unreliable on our slow macOS hosts.
           SKIP_CSOT_TESTS: true
-
   # OSes that require >= 4.0 for SSL
   - id: os-ssl-40
     display_name: OS
@@ -1788,7 +1608,7 @@ axes:
       - id: "windows-64"
         display_name: "Windows 64-bit"
         run_on:
-          - windows-vsCurrent-small
+          - windows-2022-latest-small
         variables:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
           GO_DIST: "C:\\golang\\go1.25"
@@ -1811,7 +1631,6 @@ axes:
           DEFAULT_TASK: evg-test-load-balancers
           # CSOT tests are unreliable on our slow macOS hosts.
           SKIP_CSOT_TESTS: true
-
   - id: ocsp-rhel-87
     display_name: OS
     values:
@@ -1821,14 +1640,13 @@ axes:
         variables:
           GO_DIST: "/opt/golang/go1.25"
           DEFAULT_TASK: evg-test
-
   - id: os-aws-auth
     display_name: OS
     values:
-      - id: "windows-64-vsCurrent-latest-small"
+      - id: "windows-64-2022-latest-small"
         display_name: "Windows 64-bit"
         run_on:
-          - windows-vsCurrent-small
+          - windows-2022-latest-small
         variables:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
           GO_DIST: "C:\\golang\\go1.25"
@@ -1854,7 +1672,6 @@ axes:
           DEFAULT_TASK: evg-test-load-balancers
           # CSOT tests are unreliable on our slow macOS hosts.
           SKIP_CSOT_TESTS: true
-
   - id: os-faas-80
     display_name: OS
     values:
@@ -1863,7 +1680,6 @@ axes:
         run_on: rhel8.7-large
         variables:
           GO_DIST: "/opt/golang/go1.25"
-
 task_groups:
   - name: testgcpkms_task_group
     setup_group_can_fail_task: true
@@ -1875,19 +1691,18 @@ task_groups:
         params:
           binary: "bash"
           add_expansions_to_env: true
-          args: 
+          args:
             - ${DRIVERS_TOOLS}/.evergreen/csfle/gcpkms/setup.sh
     teardown_group:
       - command: subprocess.exec
         params:
           binary: "bash"
-          args: 
+          args:
             - ${DRIVERS_TOOLS}/.evergreen/csfle/gcpkms/teardown.sh
       - func: teardown
       - func: handle-test-artifacts
     tasks:
       - testgcpkms-task
-
   - name: testazurekms_task_group
     setup_group_can_fail_task: true
     teardown_task_can_fail_task: true
@@ -1899,7 +1714,7 @@ task_groups:
         params:
           binary: bash
           add_expansions_to_env: true
-          env: 
+          env:
             AZUREKMS_VMNAME_PREFIX: GODRIVER
           args:
             - ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/setup.sh
@@ -1907,13 +1722,12 @@ task_groups:
       - command: subprocess.exec
         params:
           binary: "bash"
-          args: 
-           - ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/teardown.sh
+          args:
+            - ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/teardown.sh
       - func: teardown
       - func: handle-test-artifacts
     tasks:
       - testazurekms-task
-
   - name: testoidc_task_group
     setup_group_can_fail_task: true
     setup_group_timeout_secs: 1800
@@ -1943,7 +1757,6 @@ task_groups:
       - func: handle-test-artifacts
     tasks:
       - oidc-auth-test
-
   - name: testazureoidc_task_group
     setup_group_can_fail_task: true
     setup_group_timeout_secs: 1800
@@ -1970,7 +1783,6 @@ task_groups:
       - func: handle-test-artifacts
     tasks:
       - oidc-auth-test-azure
-
   - name: testgcpoidc_task_group
     setup_group_can_fail_task: true
     setup_group_timeout_secs: 1800
@@ -1997,7 +1809,6 @@ task_groups:
       - func: handle-test-artifacts
     tasks:
       - oidc-auth-test-gcp
-
   - name: testk8soidc_task_group
     setup_group_can_fail_task: true
     setup_group_timeout_secs: 1800
@@ -2022,7 +1833,6 @@ task_groups:
       - func: handle-test-artifacts
     tasks:
       - oidc-auth-test-k8s
-
   - name: test-aws-lambda-task-group
     setup_group:
       - func: setup-system
@@ -2054,7 +1864,6 @@ task_groups:
     setup_group_timeout_secs: 1800
     tasks:
       - test-aws-lambda-deployed
-
   - name: test-search-index-task-group
     setup_group:
       - func: setup-system
@@ -2063,12 +1872,21 @@ task_groups:
         params:
           working_dir: src/go.mongodb.org/mongo-driver
           binary: bash
-          include_expansions_in_env: [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN]
+          include_expansions_in_env: [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN, MONGODB_URI]
           env:
             MONGODB_VERSION: ${VERSION}
             LAMBDA_STACK_NAME: dbx-go-lambda
           args:
             - ${DRIVERS_TOOLS}/.evergreen/atlas/setup.sh
+      - command: expansions.update
+        params:
+          file: src/go.mongodb.org/mongo-driver/atlas-expansion.yml
+      - command: shell.exec
+        params:
+          working_dir: src/go.mongodb.org/mongo-driver
+          shell: bash
+          script: |-
+            echo "SEARCH_INDEX_URI: ${MONGODB_URI}" > atlas-expansion.yml
       - command: expansions.update
         params:
           file: src/go.mongodb.org/mongo-driver/atlas-expansion.yml
@@ -2085,7 +1903,6 @@ task_groups:
     setup_group_timeout_secs: 1800
     tasks:
       - test-search-index
-
 buildvariants:
   - name: static-analysis
     tags: ["pullrequest"]
@@ -2097,7 +1914,6 @@ buildvariants:
       GO_DIST: "/opt/golang/go1.25"
     tasks:
       - name: ".static-analysis"
-
   - name: pull-request-helpers
     tags: ["pullrequest"]
     display_name: "Pull Request Helpers"
@@ -2107,7 +1923,6 @@ buildvariants:
       GO_DIST: "/opt/golang/go1.25"
     tasks:
       - name: "pull-request-helpers"
-
   - name: perf
     tags: ["pullrequest"]
     display_name: "Performance"
@@ -2116,7 +1931,6 @@ buildvariants:
       GO_DIST: "/opt/golang/go1.25"
     tasks:
       - name: ".performance"
-
   - name: build-check
     tags: ["pullrequest"]
     display_name: "Compile Only Checks"
@@ -2126,16 +1940,14 @@ buildvariants:
       GO_DIST: "/opt/golang/go1.25"
     tasks:
       - name: ".compile-check"
-
   - name: backport-pr
     display_name: "Backport PR"
     run_on:
       - rhel8.7-small
     expansions:
       GO_DIST: "/opt/golang/go1.25"
-    tasks: 
+    tasks:
       - name: "backport-pr"
-
   - name: atlas-test
     tags: ["pullrequest"]
     display_name: "Atlas test"
@@ -2145,7 +1957,6 @@ buildvariants:
       GO_DIST: "/opt/golang/go1.25"
     tasks:
       - name: "atlas-test"
-
   - name: docker-runner-test
     tags: ["pullrequest"]
     display_name: "Docker Runner Test"
@@ -2155,7 +1966,6 @@ buildvariants:
       GO_DIST: "/opt/golang/go1.25"
     tasks:
       - name: "test-docker-runner"
-
   - name: goroutine-leaks-test
     tags: ["pullrequest"]
     display_name: "Goroutine Leaks Test"
@@ -2165,132 +1975,112 @@ buildvariants:
       GO_DIST: "/opt/golang/go1.25"
     tasks:
       - name: ".goleak"
-
   - matrix_name: "tests-rhel-44-plus-zlib-zstd-support"
     tags: ["pullrequest"]
-    matrix_spec: { version: ["4.2", "4.4", "5.0", "6.0", "7.0", "8.0"], os-ssl-40: ["rhel87-64"] }
+    matrix_spec: {version: ["4.2", "4.4", "5.0", "6.0", "7.0", "8.0"], os-ssl-40: ["rhel87-64"]}
     display_name: "${version} ${os-ssl-40}"
     tasks:
       - name: ".test !.enterprise-auth !.snappy"
-
   - matrix_name: "tests-windows-42-plus-zlib-zstd-support"
-    matrix_spec: { version: ["4.2", "4.4", "5.0", "6.0", "7.0"], os-ssl-40: ["windows-64"] }
+    matrix_spec: {version: ["4.2", "4.4", "5.0", "6.0", "7.0"], os-ssl-40: ["windows-64"]}
     display_name: "${version} ${os-ssl-40}"
     tasks:
       - name: ".test !.enterprise-auth !.snappy"
-
   - matrix_name: "tests-windows-80-zlib-zstd-support"
     tags: ["pullrequest"]
-    matrix_spec: { version: ["8.0"], os-ssl-40: ["windows-64"] }
+    matrix_spec: {version: ["8.0"], os-ssl-40: ["windows-64"]}
     display_name: "${version} ${os-ssl-40}"
     tasks:
       - name: ".test !.enterprise-auth !.snappy"
-
   - matrix_name: "tests-latest-zlib-zstd-support"
-    matrix_spec: { version: ["latest"], os-ssl-40: ["windows-64", "rhel87-64"] }
+    matrix_spec: {version: ["latest"], os-ssl-40: ["windows-64", "rhel87-64"]}
     display_name: "${version} ${os-ssl-40}"
     tasks:
       - name: ".test !.enterprise-auth !.snappy"
-
   - matrix_name: "enterprise-auth-tests"
-    matrix_spec: { os-ssl-32: "*" }
+    matrix_spec: {os-ssl-32: "*"}
     display_name: "Enterprise Auth - ${os-ssl-32}"
     tasks:
       - name: ".test .enterprise-auth"
-
   - matrix_name: "aws-auth-test"
-    matrix_spec: { version: ["4.4", "5.0", "6.0", "7.0", "8.0", "latest"], os-aws-auth: "*" }
+    matrix_spec: {version: ["4.4", "5.0", "6.0", "7.0", "8.0", "latest"], os-aws-auth: "*"}
     display_name: "MONGODB-AWS Auth ${version} ${os-aws-auth}"
     tasks:
       - name: "aws-auth-test"
-
   - matrix_name: "ocsp-test"
-    matrix_spec: { version: ["4.4", "5.0", "6.0", "7.0", "8.0", "latest"], ocsp-rhel-87: ["rhel87"] }
+    matrix_spec: {version: ["4.4", "5.0", "6.0", "7.0", "8.0", "latest"], ocsp-rhel-87: ["rhel87"]}
     display_name: "OCSP ${version} ${ocsp-rhel-87}"
     batchtime: 20160 # Use a batchtime of 14 days as suggested by the OCSP test README
     tasks:
       - name: ".ocsp"
-
   - matrix_name: "ocsp-test-windows"
-    matrix_spec: { version: ["4.4", "5.0", "6.0", "7.0", "8.0", "latest"], os-ssl-40: ["windows-64"] }
+    matrix_spec: {version: ["4.4", "5.0", "6.0", "7.0", "8.0", "latest"], os-ssl-40: ["windows-64"]}
     display_name: "OCSP ${version} ${os-ssl-40}"
     batchtime: 20160 # Use a batchtime of 14 days as suggested by the OCSP test README
     tasks:
       # Windows MongoDB servers do not staple OCSP responses and only support RSA.
       - name: ".ocsp-rsa !.ocsp-staple"
-
   - matrix_name: "ocsp-test-macos"
-    matrix_spec: { version: ["4.4", "5.0", "6.0", "7.0", "8.0", "latest"], os-ssl-40: ["macos"] }
+    matrix_spec: {version: ["4.4", "5.0", "6.0", "7.0", "8.0", "latest"], os-ssl-40: ["macos"]}
     display_name: "OCSP ${version} ${os-ssl-40}"
     batchtime: 20160 # Use a batchtime of 14 days as suggested by the OCSP test README
     tasks:
       # macos MongoDB servers do not staple OCSP responses and only support RSA.
       - name: ".ocsp-rsa !.ocsp-staple"
-
   - matrix_name: "race-test"
     tags: ["pullrequest"]
-    matrix_spec: { version: ["7.0"], os-ssl-40: ["rhel87-64"] }
+    matrix_spec: {version: ["7.0"], os-ssl-40: ["rhel87-64"]}
     display_name: "Race Detector Test"
     tasks:
       - name: ".race"
-
   - matrix_name: "versioned-api-test"
     tags: ["pullrequest"]
-    matrix_spec: { version: ["5.0", "6.0", "7.0", "8.0"], os-ssl-40: ["windows-64", "rhel87-64"] }
+    matrix_spec: {version: ["5.0", "6.0", "7.0", "8.0"], os-ssl-40: ["windows-64", "rhel87-64"]}
     display_name: "API Version ${version} ${os-ssl-40}"
     tasks:
       - name: ".versioned-api"
-
   - matrix_name: "versioned-api-latest-test"
-    matrix_spec: { version: ["latest"], os-ssl-40: ["windows-64", "rhel87-64"] }
+    matrix_spec: {version: ["latest"], os-ssl-40: ["windows-64", "rhel87-64"]}
     display_name: "API Version ${version} ${os-ssl-40}"
     tasks:
       - name: ".versioned-api"
-
-  - matrix_name: "kms-test"
-    matrix_spec: { version: ["7.0"], os-ssl-40: ["rhel87-64"] }
-    display_name: "KMS TEST ${os-ssl-40}"
+  - matrix_name: "client-side-encryption-test"
+    matrix_spec: {version: ["latest"], os-ssl-40: ["rhel87-64"]}
+    display_name: "Client Side Encryption Tests ${os-ssl-40}"
     tasks:
-      - name: ".kms-test"
-
+      - name: ".client-side-encryption-test"
   - matrix_name: "load-balancer-test"
     tags: ["pullrequest"]
-    matrix_spec: { version: ["5.0", "6.0", "7.0", "8.0"], os-ssl-40: ["rhel87-64"] }
+    matrix_spec: {version: ["5.0", "6.0", "7.0", "8.0"], os-ssl-40: ["rhel87-64"]}
     display_name: "Load Balancer Support ${version} ${os-ssl-40}"
     tasks:
       - name: ".load-balancer"
-
   - matrix_name: "load-balancer-latest-test"
-    matrix_spec: { version: ["latest"], os-ssl-40: ["rhel87-64"] }
+    matrix_spec: {version: ["latest"], os-ssl-40: ["rhel87-64"]}
     display_name: "Load Balancer Support ${version} ${os-ssl-40}"
     tasks:
       - name: ".load-balancer"
-
   - matrix_name: "kms-kmip-test"
-    matrix_spec: { version: ["7.0"], os-ssl-40: ["rhel87-64"] }
+    matrix_spec: {version: ["7.0"], os-ssl-40: ["rhel87-64"]}
     display_name: "KMS KMIP ${os-ssl-40}"
     tasks:
       - name: ".kms-kmip"
-
   - matrix_name: "fuzz-test"
-    matrix_spec: { version: ["5.0"], os-ssl-40: ["rhel87-64"] }
+    matrix_spec: {version: ["5.0"], os-ssl-40: ["rhel87-64"]}
     display_name: "Fuzz ${version} ${os-ssl-40}"
     tasks:
       - name: "test-fuzz"
         batchtime: 1440 # Run at most once per 24 hours.
-
   - matrix_name: "faas-test"
-    matrix_spec: { version: ["7.0"], os-faas-80: ["rhel87-large"] }
+    matrix_spec: {version: ["7.0"], os-faas-80: ["rhel87-large"]}
     display_name: "FaaS ${version} ${os-faas-80}"
     tasks:
       - test-aws-lambda-task-group
-
   - matrix_name: "searchindex-test"
-    matrix_spec: { version: ["7.0"], os-faas-80: ["rhel87-large"] }
+    matrix_spec: {version: ["7.0"], os-faas-80: ["rhel87-large"]}
     display_name: "Search Index ${version} ${os-faas-80}"
     tasks:
       - test-search-index-task-group
-
   - name: testgcpkms-variant
     display_name: "GCP KMS"
     run_on:
@@ -2301,7 +2091,6 @@ buildvariants:
       - name: testgcpkms_task_group
         batchtime: 20160 # Use a batchtime of 14 days as suggested by the CSFLE test README
       - testgcpkms-fail-task
-
   - name: testawskms-variant
     display_name: "AWS KMS"
     run_on:
@@ -2311,7 +2100,6 @@ buildvariants:
     tasks:
       - testawskms-task
       - testawskms-fail-task
-
   - name: testazurekms-variant
     display_name: "AZURE KMS"
     run_on:
@@ -2322,7 +2110,6 @@ buildvariants:
       - name: testazurekms_task_group
         batchtime: 20160 # Use a batchtime of 14 days as suggested by the CSFLE test README
       - testazurekms-fail-task
-
   - name: testoidc-variant
     display_name: "OIDC"
     run_on:

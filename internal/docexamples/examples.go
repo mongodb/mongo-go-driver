@@ -273,11 +273,13 @@ func QueryToplevelFieldsExamples(t *testing.T, db *mongo.Database) {
 		cursor, err := coll.Find(
 			context.TODO(),
 			bson.D{
-				{"$or",
+				{
+					"$or",
 					bson.A{
 						bson.D{{"status", "A"}},
 						bson.D{{"qty", bson.D{{"$lt", 30}}}},
-					}},
+					},
+				},
 			})
 
 		// End Example 12
@@ -304,7 +306,6 @@ func QueryToplevelFieldsExamples(t *testing.T, db *mongo.Database) {
 		assert.NoError(t, err)
 		requireCursorLength(t, cursor, 2)
 	}
-
 }
 
 // QueryEmbeddedDocumentsExamples contains examples for querying embedded document fields.
@@ -466,7 +467,6 @@ func QueryEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 		assert.NoError(t, err)
 		requireCursorLength(t, cursor, 1)
 	}
-
 }
 
 // QueryArraysExamples contains examples for querying array fields.
@@ -653,7 +653,6 @@ func QueryArraysExamples(t *testing.T, db *mongo.Database) {
 		assert.NoError(t, err)
 		requireCursorLength(t, cursor, 1)
 	}
-
 }
 
 // QueryArrayEmbeddedDocumentsExamples contains examples for querying fields with arrays and embedded documents.
@@ -1628,7 +1627,6 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 
 		assert.NoError(t, cursor.Err())
 	}
-
 }
 
 // DeleteExamples contains examples of delete operations.
@@ -2100,10 +2098,14 @@ func ChangeStreamExamples(t *testing.T, db *mongo.Database) {
 
 	{
 		// Start Changestream Example 4
-		pipeline := mongo.Pipeline{bson.D{{"$match", bson.D{{"$or",
-			bson.A{
-				bson.D{{"fullDocument.username", "alice"}},
-				bson.D{{"operationType", "delete"}}}}},
+		pipeline := mongo.Pipeline{bson.D{{
+			"$match", bson.D{{
+				"$or",
+				bson.A{
+					bson.D{{"fullDocument.username", "alice"}},
+					bson.D{{"operationType", "delete"}},
+				},
+			}},
 		}}}
 		cs, err := coll.Watch(ctx, pipeline)
 		assert.NoError(t, err)
@@ -2503,8 +2505,10 @@ func AggregationExamples(t *testing.T, db *mongo.Database) {
 			{
 				{"$lookup", bson.D{
 					{"from", "air_airlines"},
-					{"let", bson.D{
-						{"constituents", "$airlines"}},
+					{
+						"let", bson.D{
+							{"constituents", "$airlines"},
+						},
 					},
 					{"pipeline", bson.A{bson.D{
 						{"$match", bson.D{
@@ -2586,7 +2590,6 @@ func CausalConsistencyExamples(client *mongo.Client) error {
 
 		return nil
 	})
-
 	if err != nil {
 		return err
 	}
@@ -2615,7 +2618,6 @@ func CausalConsistencyExamples(client *mongo.Client) error {
 		session2.AdvanceOperationTime(operationTime)
 		// Run a find on session2, which should find all the writes from session1
 		cursor, err := coll.Find(ctx, bson.D{{"end", nil}})
-
 		if err != nil {
 			return err
 		}
@@ -2627,7 +2629,6 @@ func CausalConsistencyExamples(client *mongo.Client) error {
 
 		return cursor.Err()
 	})
-
 	if err != nil {
 		return err
 	}
@@ -3064,11 +3065,16 @@ func snapshotQueryRetailExample(mt *mtest.T) error {
 		// Count the total daily sales
 		const totalDailySalesOutput = "totalDailySales"
 		cursor, err := db.Collection("sales").Aggregate(ctx, mongo.Pipeline{
-			bson.D{{"$match",
-				bson.D{{"$expr",
-					bson.D{{"$gt",
-						bson.A{"$saleDate",
-							bson.D{{"$dateSubtract",
+			bson.D{{
+				"$match",
+				bson.D{{
+					"$expr",
+					bson.D{{
+						"$gt",
+						bson.A{
+							"$saleDate",
+							bson.D{{
+								"$dateSubtract",
 								bson.D{
 									{"startDate", "$$NOW"},
 									{"unit", "day"},
@@ -3105,7 +3111,7 @@ func snapshotQueryRetailExample(mt *mtest.T) error {
 	return nil
 }
 
-// SnapshotQuery examples runs examples of using sessions with Snapshot enabled.
+// SnapshotQueryExamples runs examples of using sessions with Snapshot enabled.
 // These appear at https://www.mongodb.com/docs/manual/tutorial/long-running-queries/.
 func SnapshotQueryExamples(mt *mtest.T) {
 	insertSnapshotQueryTestData(mt)

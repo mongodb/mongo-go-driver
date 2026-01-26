@@ -832,3 +832,26 @@ func NotEmpty(t TestingT, object interface{}, msgAndArgs ...interface{}) {
 	}
 	t.FailNow()
 }
+
+// Empty asserts that the given value is "empty".
+//
+// [Zero values] are "empty".
+//
+// Arrays are "empty" if every element is the zero value of the type (stricter than "empty").
+//
+// Slices, maps and channels with zero length are "empty".
+//
+// Pointer values are "empty" if the pointer is nil or if the pointed value is "empty".
+//
+//	require.Empty(t, obj)
+//
+// [Zero values]: https://go.dev/ref/spec#The_zero_value
+func Empty(t TestingT, object interface{}, msgAndArgs ...interface{}) {
+	if h, ok := t.(tHelper); ok {
+		h.Helper()
+	}
+	if assert.Empty(t, object, msgAndArgs...) {
+		return
+	}
+	t.FailNow()
+}

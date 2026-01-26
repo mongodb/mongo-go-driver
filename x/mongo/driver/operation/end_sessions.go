@@ -63,7 +63,6 @@ func (es *EndSessions) Execute(ctx context.Context) error {
 		Name:              driverutil.EndSessionsOp,
 		Authenticator:     es.authenticator,
 	}.Execute(ctx)
-
 }
 
 func (es *EndSessions) command(dst []byte, _ description.SelectedServer) ([]byte, error) {

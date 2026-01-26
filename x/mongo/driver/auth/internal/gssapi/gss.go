@@ -18,6 +18,7 @@ package gssapi
 #include "gss_wrapper.h"
 */
 import "C"
+
 import (
 	"context"
 	"fmt"
@@ -98,7 +99,6 @@ func (sc *SaslClient) Start() (string, []byte, error) {
 }
 
 func (sc *SaslClient) Next(_ context.Context, challenge []byte) ([]byte, error) {
-
 	var buf unsafe.Pointer
 	var bufLen C.size_t
 	var outBuf unsafe.Pointer

@@ -760,3 +760,146 @@ func (n netErr) Temporary() bool {
 }
 
 var _ net.Error = (*netErr)(nil)
+
+func TestErrorCodes(t *testing.T) {
+	tests := []struct {
+		name  string
+		input error
+		want  []int
+	}{
+		{
+			name:  "nil error",
+			input: nil,
+			want:  nil,
+		},
+		{
+			name:  "non-server error",
+			input: errors.New("boom"),
+			want:  []int{},
+		},
+		{
+			name:  "CommandError single code",
+			input: CommandError{Code: 1},
+			want:  []int{1},
+		},
+		{
+			name:  "WriteError single code",
+			input: WriteError{Code: 1},
+			want:  []int{1},
+		},
+		{
+			name:  "WriteException write errors only",
+			input: WriteException{WriteErrors: WriteErrors{{Code: 1}, {Code: 2}}},
+			want:  []int{1, 2},
+		},
+		{
+			name:  "WriteException with write concern error",
+			input: WriteException{WriteErrors: WriteErrors{{Code: 1}}, WriteConcernError: &WriteConcernError{Code: 2}},
+			want:  []int{1, 2},
+		},
+		{
+			name: "BulkWriteException write errors only",
+			input: BulkWriteException{
+				WriteErrors: []BulkWriteError{
+					{WriteError: WriteError{Code: 1}},
+					{WriteError: WriteError{Code: 2}},
+				},
+			},
+			want: []int{1, 2},
+		},
+		{
+			name: "BulkWriteException with write concern error",
+			input: BulkWriteException{
+				WriteErrors: []BulkWriteError{
+					{WriteError: WriteError{Code: 1}},
+					{WriteError: WriteError{Code: 2}},
+				},
+				WriteConcernError: &WriteConcernError{Code: 3},
+			},
+			want: []int{1, 2, 3},
+		},
+		{
+			name:  "driver.Error wraps to CommandError",
+			input: driver.Error{Code: 1, Message: "shutdown in progress"},
+			want:  []int{1},
+		},
+		{
+			name:  "wrapped driver.Error",
+			input: fmt.Errorf("context: %w", driver.Error{Code: 1, Message: "ExceededTimeLimit"}),
+			want:  []int{1},
+		},
+		{
+			input: wrapErrors(driver.Error{Code: 1, Message: "Custom error"}),
+			name:  "double wrapped driver.Error",
+			want:  []int{1},
+		},
+		{
+			name:  "already wrapped CommandError",
+			input: CommandError{Code: 1},
+			want:  []int{1},
+		},
+		{
+			name:  "CommandError wrapped in fmt.Errorf",
+			input: fmt.Errorf("operation failed: %w", CommandError{Code: 1}),
+			want:  []int{1},
+		},
+		{
+			name: "WriteException wrapped in fmt.Errorf",
+			input: fmt.Errorf("batch failed: %w", WriteException{
+				WriteErrors: WriteErrors{{Code: 1}, {Code: 2}},
+			}),
+			want: []int{1, 2},
+		},
+		{
+			name: "BulkWriteException with all error types",
+			input: BulkWriteException{
+				WriteErrors: []BulkWriteError{
+					{WriteError: WriteError{Code: 1}},
+					{WriteError: WriteError{Code: 2}},
+					{WriteError: WriteError{Code: 1}},
+				},
+				WriteConcernError: &WriteConcernError{Code: 2},
+			},
+			want: []int{1, 2, 1, 2},
+		},
+		{
+			name:  "driver.Error with multiple fields",
+			input: driver.Error{Code: 1, Message: "test", Name: "TestError", Labels: []string{"label1"}},
+			want:  []int{1},
+		},
+		{
+			name:  "topology.ErrTopologyClosed converts to ErrClientDisconnected",
+			input: topology.ErrTopologyClosed,
+			want:  []int{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			require.Equal(t, tt.want, ErrorCodes(tt.input))
+		})
+	}
+}
+
+func TestErrorCodesNoDoubleWrapping(t *testing.T) {
+	driverErr := driver.Error{Code: 1, Message: "test error"}
+
+	// Wrap it once
+	wrapped := wrapErrors(driverErr)
+	cmdErr, ok := wrapped.(CommandError)
+	require.True(t, ok, "wrapErrors should return CommandError")
+	require.Equal(t, int32(1), cmdErr.Code)
+
+	// Call ErrorCodes on the wrapped error
+	codes := ErrorCodes(wrapped)
+	require.Equal(t, []int{1}, codes)
+
+	// The wrapped error's structure should not have changed
+	cmdErrAfter, ok := wrapped.(CommandError)
+	require.True(t, ok, "error should still be CommandError")
+	require.Equal(t, cmdErr.Code, cmdErrAfter.Code)
+
+	// Verify that calling ErrorCodes again gives same result
+	codes2 := ErrorCodes(wrapped)
+	require.Equal(t, codes, codes2)
+}

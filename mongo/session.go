@@ -76,14 +76,6 @@ func SessionFromContext(ctx context.Context) *Session {
 	return sess
 }
 
-// ClientSession returns the experimental client session.
-//
-// Deprecated: This method is for internal use only and should not be used (see
-// GODRIVER-2700). It may be changed or removed in any release.
-func (s *Session) ClientSession() *session.Client {
-	return s.clientSession
-}
-
 // ID returns the current ID document associated with the session. The ID
 // document is in the form {"id": <BSON binary value>}.
 func (s *Session) ID() bson.Raw {
@@ -252,7 +244,7 @@ func (s *Session) AbortTransaction(ctx context.Context) error {
 		Deployment(s.deployment).WriteConcern(s.clientSession.CurrentWc).ServerSelector(selector).
 		Retry(driver.RetryOncePerCommand).CommandMonitor(s.client.monitor).
 		RecoveryToken(bsoncore.Document(s.clientSession.RecoveryToken)).ServerAPI(s.client.serverAPI).
-		Authenticator(s.client.authenticator).Execute(ctx)
+		Authenticator(s.client.authenticator).Logger(s.client.logger).Execute(ctx)
 
 	s.clientSession.Aborting = false
 	_ = s.clientSession.AbortTransaction()
@@ -286,7 +278,7 @@ func (s *Session) CommitTransaction(ctx context.Context) error {
 		Session(s.clientSession).ClusterClock(s.client.clock).Database("admin").Deployment(s.deployment).
 		WriteConcern(s.clientSession.CurrentWc).ServerSelector(selector).Retry(driver.RetryOncePerCommand).
 		CommandMonitor(s.client.monitor).RecoveryToken(bsoncore.Document(s.clientSession.RecoveryToken)).
-		ServerAPI(s.client.serverAPI).Authenticator(s.client.authenticator)
+		ServerAPI(s.client.serverAPI).Authenticator(s.client.authenticator).Logger(s.client.logger)
 
 	err = op.Execute(ctx)
 	// Return error without updating transaction state if it is a timeout, as the transaction has not
@@ -310,6 +302,11 @@ func (s *Session) CommitTransaction(ctx context.Context) error {
 // session.
 func (s *Session) ClusterTime() bson.Raw {
 	return s.clientSession.ClusterTime
+}
+
+// SnapshotTime returns the current snapshot time associated with the session.
+func (s *Session) SnapshotTime() bson.Timestamp {
+	return s.clientSession.SnapshotTime
 }
 
 // AdvanceClusterTime advances the cluster time for a session. This method

@@ -643,7 +643,7 @@ The `ArrayFilters` struct type has been removed in v2. As a result, the `ArrayFi
 
 ### Merge\*Options
 
-All functions that merge options have been removed in favor of a generic solution. See [GODRIVER-2696](https://jira.mongodb.org/browse/GODRIVER-2696) for more information.
+With the exception of `MergeClientOptions`, all functions that merge options have been removed in favor of a generic solution. `MergeClientOptions` is retained to allow combining `*ClientOptions` in a "last-one-wins" fashion. See [GODRIVER-2696](https://jira.mongodb.org/browse/GODRIVER-2696) for more information.
 
 ### MaxTime
 

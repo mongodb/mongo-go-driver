@@ -170,7 +170,6 @@ func TestMaxStalenessSpec(t *testing.T) {
 	} {
 		for _, file := range spectest.FindJSONFilesInDir(t,
 			path.Join(maxStalenessTestsDir, topology)) {
-
 			runTest(t, maxStalenessTestsDir, topology, file)
 		}
 	}
@@ -297,6 +296,8 @@ func runTest(t *testing.T, testsDir string, directory string, filename string) {
 	require.NoError(t, err)
 
 	t.Run(directory+"/"+filename, func(t *testing.T) {
+		spectest.CheckSkip(t)
+
 		var test testCase
 		require.NoError(t, bson.UnmarshalExtJSON(content, true, &test))
 
@@ -325,7 +326,6 @@ func TestServerSelectionSpec(t *testing.T) {
 
 			for _, file := range spectest.FindJSONFilesInDir(t,
 				path.Join(selectorTestsDir, subdirPath)) {
-
 				runTest(t, selectorTestsDir, subdirPath, file)
 			}
 		}
@@ -495,6 +495,7 @@ var readPrefTestPrimary = description.Server{
 	Tags:              tag.Set{tag.Tag{Name: "a", Value: "1"}},
 	WireVersion:       &description.VersionRange{Min: 6, Max: 21},
 }
+
 var readPrefTestSecondary1 = description.Server{
 	Addr:              address.Address("localhost:27018"),
 	HeartbeatInterval: time.Duration(10) * time.Second,
@@ -504,6 +505,7 @@ var readPrefTestSecondary1 = description.Server{
 	Tags:              tag.Set{tag.Tag{Name: "a", Value: "1"}},
 	WireVersion:       &description.VersionRange{Min: 6, Max: 21},
 }
+
 var readPrefTestSecondary2 = description.Server{
 	Addr:              address.Address("localhost:27018"),
 	HeartbeatInterval: time.Duration(10) * time.Second,
@@ -513,6 +515,7 @@ var readPrefTestSecondary2 = description.Server{
 	Tags:              tag.Set{tag.Tag{Name: "a", Value: "2"}},
 	WireVersion:       &description.VersionRange{Min: 6, Max: 21},
 }
+
 var readPrefTestTopology = description.Topology{
 	Kind:    description.TopologyKindReplicaSetWithPrimary,
 	Servers: []description.Server{readPrefTestPrimary, readPrefTestSecondary1, readPrefTestSecondary2},

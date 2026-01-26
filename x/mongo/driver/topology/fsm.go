@@ -125,7 +125,7 @@ func (f *fsm) apply(s description.Server) (description.Topology, description.Ser
 		SetName: f.SetName,
 	}
 
-	f.Topology.SessionTimeoutMinutes = serverTimeoutMinutes
+	f.SessionTimeoutMinutes = serverTimeoutMinutes
 
 	if _, ok := f.findServer(s.Addr); !ok {
 		return f.Topology, s
@@ -157,7 +157,7 @@ func (f *fsm) apply(s description.Server) (description.Topology, description.Ser
 					SupportedWireVersions.Min,
 					MinSupportedMongoDBVersion,
 				)
-				f.Topology.CompatibilityErr = f.compatibilityErr
+				f.CompatibilityErr = f.compatibilityErr
 				return f.Topology, s
 			}
 
@@ -169,7 +169,7 @@ func (f *fsm) apply(s description.Server) (description.Topology, description.Ser
 					server.WireVersion.Min,
 					SupportedWireVersions.Max,
 				)
-				f.Topology.CompatibilityErr = f.compatibilityErr
+				f.CompatibilityErr = f.compatibilityErr
 				return f.Topology, s
 			}
 		}

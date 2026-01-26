@@ -158,7 +158,6 @@ func logPoolMessage(pool *pool, msg string, keysAndValues ...any) {
 			ServerHost: host,
 			ServerPort: port,
 		}, keysAndValues...)...)
-
 }
 
 type reason struct {

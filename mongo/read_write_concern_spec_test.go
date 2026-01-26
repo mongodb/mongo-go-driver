@@ -246,16 +246,16 @@ func writeConcernFromRaw(t *testing.T, wcRaw bson.Raw) writeConcern {
 			switch val.Type {
 			case bson.TypeInt32:
 				w := int(val.Int32())
-				wc.WriteConcern.W = w
+				wc.W = w
 			case bson.TypeString:
-				wc.WriteConcern.W = val.StringValue()
+				wc.W = val.StringValue()
 			default:
 				t.Fatalf("unexpected type for w: %v", val.Type)
 			}
 		case "journal":
 			wc.jSet = true
 			j := val.Boolean()
-			wc.WriteConcern.Journal = &j
+			wc.Journal = &j
 		case "wtimeoutMS": // Do nothing, this field is deprecated
 			t.Skip("the wtimeoutMS write concern option is not supported")
 		default:

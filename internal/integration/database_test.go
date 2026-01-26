@@ -30,13 +30,11 @@ const (
 	listCollUncapped = "listcoll_uncapped"
 )
 
-var (
-	interfaceAsMapRegistry = func() *bson.Registry {
-		reg := bson.NewRegistry()
-		reg.RegisterTypeMapEntry(bson.TypeEmbeddedDocument, reflect.TypeOf(bson.M{}))
-		return reg
-	}()
-)
+var interfaceAsMapRegistry = func() *bson.Registry {
+	reg := bson.NewRegistry()
+	reg.RegisterTypeMapEntry(bson.TypeEmbeddedDocument, reflect.TypeOf(bson.M{}))
+	return reg
+}()
 
 func TestDatabase(t *testing.T) {
 	mt := mtest.New(t, mtest.NewOptions().CreateClient(false))
@@ -261,7 +259,6 @@ func TestDatabase(t *testing.T) {
 				"expected 'listCollections' command to be sent, got %q", evt.CommandName)
 			_, err = evt.Command.LookupErr("authorizedCollections")
 			assert.Nil(mt, err, "expected command to contain key 'authorizedCollections'")
-
 		})
 		mt.Run("getMore commands are monitored", func(mt *mtest.T) {
 			createCollections(mt, 2)
