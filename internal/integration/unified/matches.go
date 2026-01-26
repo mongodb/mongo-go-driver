@@ -23,8 +23,10 @@ type keyPathCtxKey struct{}
 // extraKeysAllowedCtxKey is used as a key for a Context object. The value conveys whether or not the document under
 // test can contain extra keys. For example, if the expected document is {x: 1}, the document {x: 1, y: 1} would match
 // if the value for this key is true.
-type extraKeysAllowedCtxKey struct{}
-type extraKeysAllowedRootMatchCtxKey struct{}
+type (
+	extraKeysAllowedCtxKey          struct{}
+	extraKeysAllowedRootMatchCtxKey struct{}
+)
 
 func makeMatchContext(ctx context.Context, keyPath string, extraKeysAllowed bool) context.Context {
 	ctx = context.WithValue(ctx, keyPathCtxKey{}, keyPath)
@@ -150,6 +152,19 @@ func verifyValuesMatchInner(ctx context.Context, expected, actual bson.RawValue)
 		return nil
 	}
 
+	if expected.Type == bson.TypeDecimal128 {
+		if actual.Type != bson.TypeDecimal128 {
+			return newMatchingError(keyPath, "expected value to be a decimal type but got a %s", actual.Type)
+		}
+		expectedDecimal := expected.Decimal128()
+		actualDecimal := actual.Decimal128()
+		eh, el := expectedDecimal.GetBytes()
+		ah, al := actualDecimal.GetBytes()
+		if eh != ah || el != al {
+			return newMatchingError(keyPath, "expected decimal value %v, got %v", expectedDecimal, actualDecimal)
+		}
+		return nil
+	}
 	// Numeric values must be considered equal even if their types are different (e.g. if expected is an int32 and
 	// actual is an int64).
 	if expected.IsNumber() {
@@ -245,26 +260,14 @@ func evaluateSpecialComparison(ctx context.Context, assertionDoc bson.Raw, actua
 		if assertionVal.Type != bson.TypeInt32 && assertionVal.Type != bson.TypeInt64 && assertionVal.Type != bson.TypeDouble {
 			return fmt.Errorf("expected assertionVal to be an Int32, Int64, or Double but got a %s", assertionVal.Type)
 		}
-		if actual.Type != bson.TypeInt32 && actual.Type != bson.TypeInt64 && assertionVal.Type != bson.TypeDouble {
+		if actual.Type != bson.TypeInt32 && actual.Type != bson.TypeInt64 && actual.Type != bson.TypeDouble {
 			return fmt.Errorf("expected value to be an Int32, Int64, or Double but got a %s", actual.Type)
 		}
 
 		// Numeric values can be compared even if their types are different (e.g. if expected is an int32 and actual
 		// is an int64).
-
-		// TODO(GODRIVER-3594): If we decide to add AsDoubleOK() as a method to RawValue, this following conversion should be updated.
-		var expectedF64 float64
-		if assertionVal.Type == bson.TypeDouble {
-			expectedF64 = assertionVal.Double()
-		} else {
-			expectedF64 = float64(assertionVal.AsInt64())
-		}
-		var actualF64 float64
-		if actual.Type == bson.TypeDouble {
-			actualF64 = actual.Double()
-		} else {
-			actualF64 = float64(actual.AsInt64())
-		}
+		expectedF64 := assertionVal.AsFloat64()
+		actualF64 := actual.AsFloat64()
 
 		if actualF64 > expectedF64 {
 			return fmt.Errorf("expected numeric value %f to be less than or equal %f", actualF64, expectedF64)

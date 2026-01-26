@@ -29,8 +29,8 @@ import (
 )
 
 const (
-	// TestDb specifies the name of default test database.
-	TestDb = "test"
+	// TestDB specifies the name of default test database.
+	TestDB = "test"
 )
 
 // testContext holds the global context for the integration tests. The testContext members should only be initialized
@@ -236,7 +236,7 @@ func Setup(setupOpts ...*SetupOptions) error {
 func Teardown() error {
 	// Dropping the test database causes an error against Atlas Data Lake.
 	if !testContext.dataLake {
-		if err := testContext.client.Database(TestDb).Drop(context.Background()); err != nil {
+		if err := testContext.client.Database(TestDB).Drop(context.Background()); err != nil {
 			return fmt.Errorf("error dropping test database: %w", err)
 		}
 	}
@@ -251,7 +251,7 @@ func Teardown() error {
 
 func getServerVersion() (string, error) {
 	var serverStatus bson.Raw
-	err := testContext.client.Database(TestDb).RunCommand(
+	err := testContext.client.Database(TestDB).RunCommand(
 		context.Background(),
 		bson.D{{"buildInfo", 1}},
 	).Decode(&serverStatus)

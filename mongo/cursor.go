@@ -423,8 +423,8 @@ func (c *Cursor) RemainingBatchLength() int {
 // addFromBatch adds all documents from batch to sliceVal starting at the given index. It returns the new slice value,
 // the next empty index in the slice, and an error if one occurs.
 func (c *Cursor) addFromBatch(sliceVal reflect.Value, elemType reflect.Type, batch *bsoncore.Iterator,
-	index int) (reflect.Value, int, error) {
-
+	index int,
+) (reflect.Value, int, error) {
 	docs, err := batch.Documents()
 	if err != nil {
 		return sliceVal, index, err

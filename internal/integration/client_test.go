@@ -26,6 +26,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/internal/integtest"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/internal/testutil"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
@@ -33,6 +34,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/version"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/xoptions"
 	"golang.org/x/sync/errgroup"
@@ -73,8 +75,10 @@ type slowConnDialer struct {
 	delay  time.Duration
 }
 
-var slowConnDialerDelay = 300 * time.Millisecond
-var reducedHeartbeatInterval = 500 * time.Millisecond
+var (
+	slowConnDialerDelay      = 300 * time.Millisecond
+	reducedHeartbeatInterval = 500 * time.Millisecond
+)
 
 func newSlowConnDialer(delay time.Duration) *slowConnDialer {
 	return &slowConnDialer{
@@ -228,7 +232,7 @@ func TestClient(t *testing.T) {
 			testCases := []struct {
 				name             string
 				filter           bson.D
-				hasTestDb        bool
+				hasTestDB        bool
 				minServerVersion string
 			}{
 				{"empty", bson.D{}, true, ""},
@@ -247,12 +251,12 @@ func TestClient(t *testing.T) {
 
 					var found bool
 					for _, db := range res.Databases {
-						if db.Name == mtest.TestDb {
+						if db.Name == mtest.TestDB {
 							found = true
 							break
 						}
 					}
-					assert.Equal(mt, tc.hasTestDb, found, "expected to find test db: %v, found: %v", tc.hasTestDb, found)
+					assert.Equal(mt, tc.hasTestDB, found, "expected to find test db: %v, found: %v", tc.hasTestDB, found)
 				})
 			}
 		})
@@ -279,7 +283,7 @@ func TestClient(t *testing.T) {
 			testCases := []struct {
 				name             string
 				filter           bson.D
-				hasTestDb        bool
+				hasTestDB        bool
 				minServerVersion string
 			}{
 				{"no filter", bson.D{}, true, ""},
@@ -298,12 +302,12 @@ func TestClient(t *testing.T) {
 
 					var found bool
 					for _, db := range dbs {
-						if db == mtest.TestDb {
+						if db == mtest.TestDB {
 							found = true
 							break
 						}
 					}
-					assert.Equal(mt, tc.hasTestDb, found, "expected to find test db: %v, found: %v", tc.hasTestDb, found)
+					assert.Equal(mt, tc.hasTestDB, found, "expected to find test db: %v, found: %v", tc.hasTestDB, found)
 				})
 			}
 		})
@@ -382,7 +386,9 @@ func TestClient(t *testing.T) {
 				sess, err := mt.Client.StartSession(tc.opts)
 				assert.Nil(mt, err, "StartSession error: %v", err)
 				defer sess.EndSession(context.Background())
-				consistent := sess.ClientSession().Consistent
+				clientSession := testutil.GetUnexportedFieldAs[*session.Client](sess, "clientSession")
+
+				consistent := clientSession.Consistent
 				assert.Equal(mt, tc.consistent, consistent, "expected consistent to be %v, got %v", tc.consistent, consistent)
 			})
 		}

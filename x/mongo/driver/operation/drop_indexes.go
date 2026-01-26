@@ -102,7 +102,6 @@ func (di *DropIndexes) Execute(ctx context.Context) error {
 		Name:              driverutil.DropIndexesOp,
 		Authenticator:     di.authenticator,
 	}.Execute(ctx)
-
 }
 
 func (di *DropIndexes) command(dst []byte, desc description.SelectedServer) ([]byte, error) {

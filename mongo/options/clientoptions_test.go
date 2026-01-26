@@ -459,13 +459,16 @@ func TestClientOptions(t *testing.T) {
 			},
 			{
 				name: "cannot set both OIDCMachineCallback and OIDCHumanCallback simultaneously",
-				opts: Client().SetAuth(Credential{AuthMechanism: "MONGODB-OIDC",
-					OIDCMachineCallback: emptyCb, OIDCHumanCallback: emptyCb}),
+				opts: Client().SetAuth(Credential{
+					AuthMechanism:       "MONGODB-OIDC",
+					OIDCMachineCallback: emptyCb, OIDCHumanCallback: emptyCb,
+				}),
 				err: fmt.Errorf("cannot set both OIDCMachineCallback and OIDCHumanCallback, only one may be specified"),
 			},
 			{
 				name: "cannot set ALLOWED_HOSTS without OIDCHumanCallback",
-				opts: Client().SetAuth(Credential{AuthMechanism: "MONGODB-OIDC",
+				opts: Client().SetAuth(Credential{
+					AuthMechanism:           "MONGODB-OIDC",
 					OIDCMachineCallback:     emptyCb,
 					AuthMechanismProperties: map[string]string{"ALLOWED_HOSTS": "www.example.com"},
 				}),
@@ -1221,7 +1224,8 @@ func TestApplyURI(t *testing.T) {
 				Hosts: []string{"example.com"},
 				Auth: &Credential{AuthMechanism: "MONGODB-OIDC", AuthSource: "$external", AuthMechanismProperties: map[string]string{
 					"ENVIRONMENT":    "azureManagedIdentities",
-					"TOKEN_RESOURCE": "mongodb://test-cluster"}},
+					"TOKEN_RESOURCE": "mongodb://test-cluster",
+				}},
 				HTTPClient: httputil.DefaultHTTPClient,
 				err:        nil,
 			},
@@ -1233,7 +1237,8 @@ func TestApplyURI(t *testing.T) {
 				Hosts: []string{"test.mongodb.net"},
 				Auth: &Credential{AuthMechanism: "MONGODB-OIDC", AuthSource: "$external", AuthMechanismProperties: map[string]string{
 					"ENVIRONMENT":    "gcp",
-					"TOKEN_RESOURCE": "mongodb://test-cluster"}},
+					"TOKEN_RESOURCE": "mongodb://test-cluster",
+				}},
 				HTTPClient: httputil.DefaultHTTPClient,
 				err:        nil,
 			},

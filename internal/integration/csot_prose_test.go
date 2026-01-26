@@ -472,7 +472,6 @@ func TestCSOTProse_GridFS(t *testing.T) {
 		bucket := client.Database("db").GridFSBucket()
 
 		mt.Run("UploadFromStream", func(mt *mtest.T) {
-
 			// If the operation-level context is not respected, then the client-level
 			// timeout will exceed deadline.
 			ctx, cancel := context.WithTimeout(context.Background(), 1000*time.Millisecond)

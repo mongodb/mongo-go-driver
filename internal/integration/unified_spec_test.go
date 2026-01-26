@@ -28,6 +28,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/internal/integtest"
 	"go.mongodb.org/mongo-driver/v2/internal/spectest"
+	"go.mongodb.org/mongo-driver/v2/internal/testutil"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/address"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -69,7 +70,7 @@ func decodeTestData(dc bson.DecodeContext, vr bson.ValueReader, val reflect.Valu
 	switch vr.Type() {
 	case bson.TypeArray:
 		docsVal := val.FieldByName("Documents")
-		decoder, err := dc.Registry.LookupDecoder(docsVal.Type())
+		decoder, err := dc.LookupDecoder(docsVal.Type())
 		if err != nil {
 			return err
 		}
@@ -77,7 +78,7 @@ func decodeTestData(dc bson.DecodeContext, vr bson.ValueReader, val reflect.Valu
 		return decoder.DecodeValue(dc, vr, docsVal)
 	case bson.TypeEmbeddedDocument:
 		gridfsDataVal := val.FieldByName("GridFSData")
-		decoder, err := dc.Registry.LookupDecoder(gridfsDataVal.Type())
+		decoder, err := dc.LookupDecoder(gridfsDataVal.Type())
 		if err != nil {
 			return err
 		}
@@ -161,13 +162,15 @@ var directories = []string{
 	"read-write-concern/tests/operation",
 }
 
-var checkOutcomeOpts = options.Collection().SetReadPreference(readpref.Primary()).SetReadConcern(readconcern.Local())
-var specTestRegistry = func() *bson.Registry {
-	reg := bson.NewRegistry()
-	reg.RegisterTypeMapEntry(bson.TypeEmbeddedDocument, reflect.TypeOf(bson.Raw{}))
-	reg.RegisterTypeDecoder(reflect.TypeOf(testData{}), bson.ValueDecoderFunc(decodeTestData))
-	return reg
-}()
+var (
+	checkOutcomeOpts = options.Collection().SetReadPreference(readpref.Primary()).SetReadConcern(readconcern.Local())
+	specTestRegistry = func() *bson.Registry {
+		reg := bson.NewRegistry()
+		reg.RegisterTypeMapEntry(bson.TypeEmbeddedDocument, reflect.TypeOf(bson.Raw{}))
+		reg.RegisterTypeDecoder(reflect.TypeOf(testData{}), bson.ValueDecoderFunc(decodeTestData))
+		return reg
+	}()
+)
 
 func TestUnifiedSpecs(t *testing.T) {
 	for _, specDir := range directories {
@@ -425,13 +428,34 @@ func executeGridFSOperation(mt *mtest.T, bucket *mongo.GridFSBucket, op *operati
 }
 
 func executeTestRunnerOperation(mt *mtest.T, testCase *testCase, op *operation, sess *mongo.Session) error {
-	var clientSession *session.Client
+	var (
+		clientSession *session.Client
+		hasSession    bool
+	)
+
 	if sess != nil {
-		clientSession = sess.ClientSession()
+		clientSession = testutil.GetUnexportedFieldAs[*session.Client](sess, "clientSession")
+		hasSession = true
+	}
+
+	requireSession := func(opName string) error {
+		if !hasSession {
+			return fmt.Errorf("%s requires a session", opName)
+		}
+
+		return nil
 	}
 
 	switch op.Name {
 	case "targetedFailPoint":
+		if err := requireSession(op.Name); err != nil {
+			return err
+		}
+
+		if clientSession.PinnedServerAddr == nil {
+			return fmt.Errorf("%s requires pinned session", op.Name)
+		}
+
 		fpDoc := op.Arguments.Lookup("failPoint")
 
 		var fp failpoint.FailPoint
@@ -439,9 +463,6 @@ func executeTestRunnerOperation(mt *mtest.T, testCase *testCase, op *operation, 
 			return fmt.Errorf("Unmarshal error: %w", err)
 		}
 
-		if clientSession == nil {
-			return errors.New("expected valid session, got nil")
-		}
 		targetHost := clientSession.PinnedServerAddr.String()
 		opts := options.Client().ApplyURI(mtest.ClusterURI()).SetHosts([]string{targetHost})
 		integtest.AddTestServerAPIVersion(opts)
@@ -462,6 +483,10 @@ func executeTestRunnerOperation(mt *mtest.T, testCase *testCase, op *operation, 
 		}
 		mt.SetFailPointFromDocument(fp.Document())
 	case "assertSessionTransactionState":
+		if err := requireSession(op.Name); err != nil {
+			return err
+		}
+
 		stateVal, err := op.Arguments.LookupErr("state")
 		if err != nil {
 			return fmt.Errorf("unable to find 'state' in arguments: %w", err)
@@ -471,9 +496,6 @@ func executeTestRunnerOperation(mt *mtest.T, testCase *testCase, op *operation, 
 			return errors.New("expected 'state' argument to be string")
 		}
 
-		if clientSession == nil {
-			return errors.New("expected valid session, got nil")
-		}
 		actualState := clientSession.TransactionState.String()
 
 		// actualState should match expectedState, but "in progress" is the same as
@@ -484,20 +506,22 @@ func executeTestRunnerOperation(mt *mtest.T, testCase *testCase, op *operation, 
 			return fmt.Errorf("expected transaction state %v, got %v", expectedState, actualState)
 		}
 	case "assertSessionPinned":
-		if clientSession == nil {
-			return errors.New("expected valid session, got nil")
+		if err := requireSession(op.Name); err != nil {
+			return err
 		}
+
 		if clientSession.PinnedServerAddr == nil {
 			return errors.New("expected pinned server, got nil")
 		}
 	case "assertSessionUnpinned":
-		if clientSession == nil {
-			return errors.New("expected valid session, got nil")
+		if err := requireSession(op.Name); err != nil {
+			return err
 		}
+
 		// We don't use a combined helper for assertSessionPinned and assertSessionUnpinned because the unpinned
 		// case provides the pinned server address in the error msg for debugging.
 		if clientSession.PinnedServerAddr != nil {
-			return fmt.Errorf("expected pinned server to be nil but got %q", clientSession.PinnedServerAddr)
+			return fmt.Errorf("expected pinned server to be nil but got %q", clientSession.PinnedServerAddr.String())
 		}
 	case "assertSameLsidOnLastTwoCommands":
 		first, second := lastTwoIDs(mt)

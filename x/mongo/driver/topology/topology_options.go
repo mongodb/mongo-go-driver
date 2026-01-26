@@ -26,8 +26,10 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
-const defaultServerSelectionTimeout = 30 * time.Second
-const defaultConnectionTimeout = 30 * time.Second
+const (
+	defaultServerSelectionTimeout = 30 * time.Second
+	defaultConnectionTimeout      = 30 * time.Second
+)
 
 // Config is used to construct a topology.
 type Config struct {
@@ -316,7 +318,6 @@ func NewAuthenticatorConfig(authenticator driver.Authenticator, clientOpts ...Au
 
 			return auth.Handshaker(nil, handshakeOpts)
 		}
-
 	} else {
 		handshaker = func(driver.Handshaker) driver.Handshaker {
 			op := operation.NewHello().

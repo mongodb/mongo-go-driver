@@ -110,7 +110,6 @@ func TestAuthSource(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 func TestConnect(t *testing.T) {

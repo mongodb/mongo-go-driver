@@ -18,6 +18,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/csfle"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/v2/internal/optionsutil"
+	"go.mongodb.org/mongo-driver/v2/internal/ptrutil"
 	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
@@ -191,8 +192,8 @@ func (coll *Collection) Database() *Database {
 //
 // The opts parameter can be used to specify options for the operation (see the options.BulkWriteOptions documentation.)
 func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
-	opts ...options.Lister[options.BulkWriteOptions]) (*BulkWriteResult, error) {
-
+	opts ...options.Lister[options.BulkWriteOptions],
+) (*BulkWriteResult, error) {
 	if len(models) == 0 {
 		return nil, fmt.Errorf("invalid models: %w", ErrEmptySlice)
 	}
@@ -263,7 +264,6 @@ func (coll *Collection) insert(
 	documents []any,
 	opts ...options.Lister[options.InsertManyOptions],
 ) ([]any, error) {
-
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -306,12 +306,23 @@ func (coll *Collection) insert(
 
 	selector := makePinnedSelector(sess, coll.writeSelector)
 
-	op := operation.NewInsert(docs...).
-		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.monitor).
-		ServerSelector(selector).ClusterClock(coll.client.clock).
-		Database(coll.db.name).Collection(coll.name).
-		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).Ordered(true).
-		ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).Logger(coll.client.logger).Authenticator(coll.client.authenticator)
+	op := insert{
+		documents:     docs,
+		session:       sess,
+		writeConcern:  wc,
+		monitor:       coll.client.monitor,
+		selector:      selector,
+		clock:         coll.client.clock,
+		database:      coll.db.name,
+		collection:    coll.name,
+		deployment:    coll.client.deployment,
+		crypt:         coll.client.cryptFLE,
+		ordered:       ptrutil.Ptr(true),
+		serverAPI:     coll.client.serverAPI,
+		timeout:       coll.client.timeout,
+		logger:        coll.client.logger,
+		authenticator: coll.client.authenticator,
+	}
 
 	args, err := mongoutil.NewOptions[options.InsertManyOptions](opts...)
 	if err != nil {
@@ -319,29 +330,29 @@ func (coll *Collection) insert(
 	}
 
 	if args.BypassDocumentValidation != nil && *args.BypassDocumentValidation {
-		op = op.BypassDocumentValidation(*args.BypassDocumentValidation)
+		op.bypassDocumentValidation = args.BypassDocumentValidation
 	}
 	if args.Comment != nil {
 		comment, err := marshalValue(args.Comment, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return nil, err
 		}
-		op = op.Comment(comment)
+		op.comment = comment
 	}
 	if args.Ordered != nil {
-		op = op.Ordered(*args.Ordered)
+		op.ordered = args.Ordered
 	}
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
-		op = op.RawData(rawData)
+		op.rawData = &rawData
 	}
 	if additionalCmd, ok := optionsutil.Value(args.Internal, "addCommandFields").(bson.D); ok {
-		op = op.AdditionalCmd(additionalCmd)
+		op.additionalCmd = additionalCmd
 	}
 	retry := driver.RetryNone
 	if coll.client.retryWrites {
 		retry = driver.RetryOncePerCommand
 	}
-	op = op.Retry(retry)
+	op.retry = &retry
 
 	err = op.Execute(ctx)
 	var wce driver.WriteCommandError
@@ -374,8 +385,8 @@ func (coll *Collection) insert(
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/insert/.
 func (coll *Collection) InsertOne(ctx context.Context, document any,
-	opts ...options.Lister[options.InsertOneOptions]) (*InsertOneResult, error) {
-
+	opts ...options.Lister[options.InsertOneOptions],
+) (*InsertOneResult, error) {
 	args, err := mongoutil.NewOptions(opts...)
 	if err != nil {
 		return nil, err
@@ -431,7 +442,6 @@ func (coll *Collection) InsertMany(
 	documents any,
 	opts ...options.Lister[options.InsertManyOptions],
 ) (*InsertManyResult, error) {
-
 	dv := reflect.ValueOf(documents)
 	if dv.Kind() != reflect.Slice {
 		return nil, fmt.Errorf("invalid documents: %w", ErrNotSlice)
@@ -483,7 +493,6 @@ func (coll *Collection) delete(
 	expectedRr returnResult,
 	args *options.DeleteManyOptions,
 ) (*DeleteResult, error) {
-
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -644,7 +653,6 @@ func (coll *Collection) updateOrReplace(
 	sort any,
 	args *options.UpdateManyOptions,
 ) (*UpdateResult, error) {
-
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -1023,7 +1031,7 @@ func aggregate(a aggregateParams, opts ...options.Lister[options.AggregateOption
 		op.AllowDiskUse(*args.AllowDiskUse)
 	}
 	// ignore batchSize of 0 with $out
-	if args.BatchSize != nil && !(*args.BatchSize == 0 && hasOutputStage) {
+	if args.BatchSize != nil && (*args.BatchSize != 0 || !hasOutputStage) {
 		op.BatchSize(*args.BatchSize)
 		cursorOpts.BatchSize = *args.BatchSize
 	}
@@ -1117,7 +1125,8 @@ func aggregate(a aggregateParams, opts ...options.Lister[options.AggregateOption
 //
 // The opts parameter can be used to specify options for the operation (see the options.CountOptions documentation).
 func (coll *Collection) CountDocuments(ctx context.Context, filter any,
-	opts ...options.Lister[options.CountOptions]) (int64, error) {
+	opts ...options.Lister[options.CountOptions],
+) (int64, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -1385,7 +1394,8 @@ func (coll *Collection) Distinct(
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/find/.
 func (coll *Collection) Find(ctx context.Context, filter any,
-	opts ...options.Lister[options.FindOptions]) (*Cursor, error) {
+	opts ...options.Lister[options.FindOptions],
+) (*Cursor, error) {
 	args, err := mongoutil.NewOptions(opts...)
 	if err != nil {
 		return nil, err
@@ -1404,7 +1414,6 @@ func (coll *Collection) find(
 	omitMaxTimeMS bool,
 	args *options.FindOptions,
 ) (cur *Cursor, err error) {
-
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -1607,8 +1616,8 @@ func newFindArgsFromFindOneArgs(args *options.FindOneOptions) *options.FindOptio
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/find/.
 func (coll *Collection) FindOne(ctx context.Context, filter any,
-	opts ...options.Lister[options.FindOneOptions]) *SingleResult {
-
+	opts ...options.Lister[options.FindOneOptions],
+) *SingleResult {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -1698,8 +1707,8 @@ func (coll *Collection) findAndModify(ctx context.Context, op *operation.FindAnd
 func (coll *Collection) FindOneAndDelete(
 	ctx context.Context,
 	filter any,
-	opts ...options.Lister[options.FindOneAndDeleteOptions]) *SingleResult {
-
+	opts ...options.Lister[options.FindOneAndDeleteOptions],
+) *SingleResult {
 	f, err := marshal(filter, coll.bsonOpts, coll.registry)
 	if err != nil {
 		return &SingleResult{err: err}
@@ -1782,7 +1791,6 @@ func (coll *Collection) FindOneAndReplace(
 	replacement any,
 	opts ...options.Lister[options.FindOneAndReplaceOptions],
 ) *SingleResult {
-
 	f, err := marshal(filter, coll.bsonOpts, coll.registry)
 	if err != nil {
 		return &SingleResult{err: err}
@@ -1884,8 +1892,8 @@ func (coll *Collection) FindOneAndUpdate(
 	ctx context.Context,
 	filter any,
 	update any,
-	opts ...options.Lister[options.FindOneAndUpdateOptions]) *SingleResult {
-
+	opts ...options.Lister[options.FindOneAndUpdateOptions],
+) *SingleResult {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -1994,8 +2002,8 @@ func (coll *Collection) FindOneAndUpdate(
 // The opts parameter can be used to specify options for change stream creation (see the options.ChangeStreamOptions
 // documentation).
 func (coll *Collection) Watch(ctx context.Context, pipeline any,
-	opts ...options.Lister[options.ChangeStreamOptions]) (*ChangeStream, error) {
-
+	opts ...options.Lister[options.ChangeStreamOptions],
+) (*ChangeStream, error) {
 	csConfig := changeStreamConfig{
 		readConcern:    coll.readConcern,
 		readPreference: coll.readPreference,

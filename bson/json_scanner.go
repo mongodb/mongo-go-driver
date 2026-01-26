@@ -100,7 +100,6 @@ func (js *jsonScanner) nextToken() (*jsonToken, error) {
 func (js *jsonScanner) readNextByte() (byte, error) {
 	if js.pos >= len(js.buf) {
 		err := js.readIntoBuf()
-
 		if err != nil {
 			return 0, err
 		}

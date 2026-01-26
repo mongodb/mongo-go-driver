@@ -120,7 +120,6 @@ func (ci *CreateIndexes) Execute(ctx context.Context) error {
 		Name:              driverutil.CreateIndexesOp,
 		Authenticator:     ci.authenticator,
 	}.Execute(ctx)
-
 }
 
 func (ci *CreateIndexes) command(dst []byte, desc description.SelectedServer) ([]byte, error) {

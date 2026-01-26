@@ -4,10 +4,9 @@ go 1.19
 
 require (
 	github.com/davecgh/go-spew v1.1.1
-	github.com/golang/snappy v1.0.0
 	github.com/google/go-cmp v0.6.0
-	github.com/klauspost/compress v1.16.7
-	github.com/xdg-go/scram v1.1.2
+	github.com/klauspost/compress v1.17.6
+	github.com/xdg-go/scram v1.2.0
 	github.com/xdg-go/stringprep v1.0.4
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78
 	golang.org/x/crypto v0.33.0
