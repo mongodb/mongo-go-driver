@@ -15,7 +15,6 @@ import (
 
 func TestCreatePatternsForGlobs(t *testing.T) {
 	t.Run("transform allowedHosts patterns", func(t *testing.T) {
-
 		hosts := []string{
 			"*.mongodb.net",
 			"*.mongodb-qa.net",

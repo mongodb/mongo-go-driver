@@ -119,7 +119,6 @@ func (fam *FindAndModify) processResponse(_ context.Context, resp bsoncore.Docum
 
 	fam.result, err = buildFindAndModifyResult(resp)
 	return err
-
 }
 
 // Execute runs this operations and returns an error if the operation did not execute successfully.
@@ -147,7 +146,6 @@ func (fam *FindAndModify) Execute(ctx context.Context) error {
 		Name:           driverutil.FindAndModifyOp,
 		Authenticator:  fam.authenticator,
 	}.Execute(ctx)
-
 }
 
 func (fam *FindAndModify) command(dst []byte, desc description.SelectedServer) ([]byte, error) {
@@ -160,7 +158,6 @@ func (fam *FindAndModify) command(dst []byte, desc description.SelectedServer) (
 		dst = bsoncore.AppendArrayElement(dst, "arrayFilters", fam.arrayFilters)
 	}
 	if fam.bypassDocumentValidation != nil {
-
 		dst = bsoncore.AppendBooleanElement(dst, "bypassDocumentValidation", *fam.bypassDocumentValidation)
 	}
 	if fam.collation != nil {
@@ -174,30 +171,24 @@ func (fam *FindAndModify) command(dst []byte, desc description.SelectedServer) (
 		dst = bsoncore.AppendValueElement(dst, "comment", fam.comment)
 	}
 	if fam.fields != nil {
-
 		dst = bsoncore.AppendDocumentElement(dst, "fields", fam.fields)
 	}
 	if fam.newDocument != nil {
-
 		dst = bsoncore.AppendBooleanElement(dst, "new", *fam.newDocument)
 	}
 	if fam.query != nil {
-
 		dst = bsoncore.AppendDocumentElement(dst, "query", fam.query)
 	}
 	if fam.remove != nil {
-
 		dst = bsoncore.AppendBooleanElement(dst, "remove", *fam.remove)
 	}
 	if fam.sort != nil {
-
 		dst = bsoncore.AppendDocumentElement(dst, "sort", fam.sort)
 	}
 	if fam.update.Data != nil {
 		dst = bsoncore.AppendValueElement(dst, "update", fam.update)
 	}
 	if fam.upsert != nil {
-
 		dst = bsoncore.AppendBooleanElement(dst, "upsert", *fam.upsert)
 	}
 	if fam.hint.Type != bsoncore.Type(0) {

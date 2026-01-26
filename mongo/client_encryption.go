@@ -83,7 +83,8 @@ func NewClientEncryption(keyVaultClient *Client, opts ...options.Lister[options.
 // It returns the created collection and the encrypted fields document used to create it.
 func (ce *ClientEncryption) CreateEncryptedCollection(ctx context.Context,
 	db *Database, coll string, createOpts options.Lister[options.CreateCollectionOptions],
-	kmsProvider string, masterKey any) (*Collection, bson.M, error) {
+	kmsProvider string, masterKey any,
+) (*Collection, bson.M, error) {
 	if ce.closed {
 		return nil, nil, ErrClientDisconnected
 	}
@@ -206,8 +207,11 @@ func (ce *ClientEncryption) CreateDataKey(
 }
 
 // transformExplicitEncryptionOptions creates explicit encryption options to be passed to libmongocrypt.
-func transformExplicitEncryptionOptions(opts ...options.Lister[options.EncryptOptions]) *mcopts.ExplicitEncryptionOptions {
-	args, _ := mongoutil.NewOptions[options.EncryptOptions](opts...)
+func transformExplicitEncryptionOptions(opts ...options.Lister[options.EncryptOptions]) (*mcopts.ExplicitEncryptionOptions, error) {
+	args, err := mongoutil.NewOptions[options.EncryptOptions](opts...)
+	if err != nil {
+		return nil, err
+	}
 
 	transformed := &mcopts.ExplicitEncryptionOptions{
 		KeyID:            args.KeyID,
@@ -218,7 +222,10 @@ func transformExplicitEncryptionOptions(opts ...options.Lister[options.EncryptOp
 	}
 
 	if args.RangeOptions != nil {
-		rangeArgs, _ := mongoutil.NewOptions[options.RangeOptions](args.RangeOptions)
+		rangeArgs, err := mongoutil.NewOptions[options.RangeOptions](args.RangeOptions)
+		if err != nil {
+			return nil, err
+		}
 
 		var transformedRange mcopts.ExplicitRangeOptions
 		if rangeArgs.Min != nil {
@@ -238,7 +245,31 @@ func transformExplicitEncryptionOptions(opts ...options.Lister[options.EncryptOp
 		}
 		transformed.RangeOptions = &transformedRange
 	}
-	return transformed
+	if args.TextOptions != nil {
+		textArgs, err := mongoutil.NewOptions[options.TextOptions](args.TextOptions)
+		if err != nil {
+			return nil, err
+		}
+
+		transformedText := mcopts.ExplicitTextOptions{
+			CaseSensitive:      textArgs.CaseSensitive,
+			DiacriticSensitive: textArgs.DiacriticSensitive,
+		}
+		if textArgs.Substring != nil {
+			substringOpts := mcopts.SubstringOptions(*textArgs.Substring)
+			transformedText.Substring = &substringOpts
+		}
+		if textArgs.Prefix != nil {
+			prefixOpts := mcopts.PrefixOptions(*textArgs.Prefix)
+			transformedText.Prefix = &prefixOpts
+		}
+		if textArgs.Suffix != nil {
+			suffixOpts := mcopts.SuffixOptions(*textArgs.Suffix)
+			transformedText.Suffix = &suffixOpts
+		}
+		transformed.SetTextOptions(transformedText)
+	}
+	return transformed, nil
 }
 
 // Encrypt encrypts a BSON value with the given key and algorithm. Returns an encrypted value (BSON binary of subtype 6).
@@ -251,7 +282,10 @@ func (ce *ClientEncryption) Encrypt(
 		return bson.Binary{}, ErrClientDisconnected
 	}
 
-	transformed := transformExplicitEncryptionOptions(opts...)
+	transformed, err := transformExplicitEncryptionOptions(opts...)
+	if err != nil {
+		return bson.Binary{}, err
+	}
 	subtype, data, err := ce.crypt.EncryptExplicit(ctx, bsoncore.Value{Type: bsoncore.Type(val.Type), Data: val.Value}, transformed)
 	if err != nil {
 		return bson.Binary{}, err
@@ -273,7 +307,10 @@ func (ce *ClientEncryption) EncryptExpression(ctx context.Context, expr any, res
 		return ErrClientDisconnected
 	}
 
-	transformed := transformExplicitEncryptionOptions(opts...)
+	transformed, err := transformExplicitEncryptionOptions(opts...)
+	if err != nil {
+		return err
+	}
 
 	exprDoc, err := marshal(expr, nil, nil)
 	if err != nil {
@@ -375,9 +412,13 @@ func (ce *ClientEncryption) RemoveKeyAltName(ctx context.Context, id bson.Binary
 	}
 
 	filter := bsoncore.NewDocumentBuilder().AppendBinary("_id", id.Subtype, id.Data).Build()
-	update := bson.A{bson.D{{"$set", bson.D{{"keyAltNames", bson.D{{"$cond", bson.A{bson.D{{"$eq",
-		bson.A{"$keyAltNames", bson.A{keyAltName}}}}, "$$REMOVE", bson.D{{"$filter",
-		bson.D{{"input", "$keyAltNames"}, {"cond", bson.D{{"$ne", bson.A{"$$this", keyAltName}}}}}}}}}}}}}}}
+	update := bson.A{bson.D{{"$set", bson.D{{"keyAltNames", bson.D{{"$cond", bson.A{bson.D{{
+		"$eq",
+		bson.A{"$keyAltNames", bson.A{keyAltName}},
+	}}, "$$REMOVE", bson.D{{
+		"$filter",
+		bson.D{{"input", "$keyAltNames"}, {"cond", bson.D{{"$ne", bson.A{"$$this", keyAltName}}}}},
+	}}}}}}}}}}
 	return ce.keyVaultColl.FindOneAndUpdate(ctx, filter, update)
 }
 

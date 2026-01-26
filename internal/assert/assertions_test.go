@@ -25,15 +25,13 @@ type AssertionTesterInterface interface {
 }
 
 // AssertionTesterConformingObject is an object that conforms to the AssertionTesterInterface interface
-type AssertionTesterConformingObject struct {
-}
+type AssertionTesterConformingObject struct{}
 
 func (a *AssertionTesterConformingObject) TestMethod() {
 }
 
 // AssertionTesterNonConformingObject is an object that does not conform to the AssertionTesterInterface interface
-type AssertionTesterNonConformingObject struct {
-}
+type AssertionTesterNonConformingObject struct{}
 
 func TestObjectsAreEqual(t *testing.T) {
 	cases := []struct {
@@ -66,7 +64,6 @@ func TestObjectsAreEqual(t *testing.T) {
 			if res != c.result {
 				t.Errorf("ObjectsAreEqual(%#v, %#v) should return %#v", c.expected, c.actual, c.result)
 			}
-
 		})
 	}
 
@@ -80,11 +77,9 @@ func TestObjectsAreEqual(t *testing.T) {
 	if ObjectsAreEqualValues(nil, 0) {
 		t.Fail()
 	}
-
 }
 
 func TestIsType(t *testing.T) {
-
 	mockT := new(testing.T)
 
 	if !IsType(mockT, new(AssertionTesterConformingObject), new(AssertionTesterConformingObject)) {
@@ -93,7 +88,6 @@ func TestIsType(t *testing.T) {
 	if IsType(mockT, new(AssertionTesterConformingObject), new(AssertionTesterNonConformingObject)) {
 		t.Error("IsType should return false: AssertionTesterConformingObject is not the same type as AssertionTesterNonConformingObject")
 	}
-
 }
 
 func TestEqual(t *testing.T) {
@@ -237,7 +231,6 @@ func TestFormatUnequalValues(t *testing.T) {
 }
 
 func TestNotNil(t *testing.T) {
-
 	mockT := new(testing.T)
 
 	if !NotNil(mockT, new(AssertionTesterConformingObject)) {
@@ -249,11 +242,9 @@ func TestNotNil(t *testing.T) {
 	if NotNil(mockT, (*struct{})(nil)) {
 		t.Error("NotNil should return false: object is (*struct{})(nil)")
 	}
-
 }
 
 func TestNil(t *testing.T) {
-
 	mockT := new(testing.T)
 
 	if !Nil(mockT, nil) {
@@ -265,11 +256,9 @@ func TestNil(t *testing.T) {
 	if Nil(mockT, new(AssertionTesterConformingObject)) {
 		t.Error("Nil should return false: object is not nil")
 	}
-
 }
 
 func TestTrue(t *testing.T) {
-
 	mockT := new(testing.T)
 
 	if !True(mockT, true) {
@@ -278,11 +267,9 @@ func TestTrue(t *testing.T) {
 	if True(mockT, false) {
 		t.Error("True should return false")
 	}
-
 }
 
 func TestFalse(t *testing.T) {
-
 	mockT := new(testing.T)
 
 	if !False(mockT, false) {
@@ -291,11 +278,9 @@ func TestFalse(t *testing.T) {
 	if False(mockT, true) {
 		t.Error("False should return false")
 	}
-
 }
 
 func TestNotEqual(t *testing.T) {
-
 	mockT := new(testing.T)
 
 	cases := []struct {
@@ -378,7 +363,6 @@ func TestNotEqualValues(t *testing.T) {
 }
 
 func TestContainsNotContains(t *testing.T) {
-
 	type A struct {
 		Name, Value string
 	}
@@ -442,7 +426,6 @@ func TestContainsNotContains(t *testing.T) {
 }
 
 func TestContainsFailMessage(t *testing.T) {
-
 	mockT := new(mockTestingT)
 
 	Contains(mockT, "Hello World", errors.New("Hello"))
@@ -470,7 +453,6 @@ func TestContainsNotContainsOnNilValue(t *testing.T) {
 }
 
 func Test_containsElement(t *testing.T) {
-
 	list1 := []string{"Foo", "Bar"}
 	list2 := []int{1, 2}
 	simpleMap := map[interface{}]interface{}{"Foo": "Bar"}
@@ -646,7 +628,6 @@ func TestDiffLists(t *testing.T) {
 }
 
 func TestNoError(t *testing.T) {
-
 	mockT := new(testing.T)
 
 	// start with a nil error
@@ -677,7 +658,6 @@ type customError struct{}
 func (*customError) Error() string { return "fail" }
 
 func TestError(t *testing.T) {
-
 	mockT := new(testing.T)
 
 	// start with a nil error
@@ -741,7 +721,6 @@ func TestErrorContains(t *testing.T) {
 }
 
 func Test_isEmpty(t *testing.T) {
-
 	chWithValue := make(chan struct{}, 1)
 	chWithValue <- struct{}{}
 
@@ -875,7 +854,6 @@ func TestLen(t *testing.T) {
 }
 
 func TestWithinDuration(t *testing.T) {
-
 	mockT := new(testing.T)
 	a := time.Now()
 	b := a.Add(10 * time.Second)
@@ -1137,15 +1115,14 @@ func (m *mockTestingT) Errorf(format string, args ...interface{}) {
 	m.args = args
 }
 
-type mockFailNowTestingT struct {
-}
+type mockFailNowTestingT struct{}
 
 func (m *mockFailNowTestingT) Errorf(string, ...interface{}) {}
 
 func (m *mockFailNowTestingT) FailNow() {}
 
 func TestBytesEqual(t *testing.T) {
-	var cases = []struct {
+	cases := []struct {
 		a, b []byte
 	}{
 		{make([]byte, 2), make([]byte, 2)},
@@ -1216,7 +1193,6 @@ func Test_validateEqualArgs(t *testing.T) {
 }
 
 func Test_truncatingFormat(t *testing.T) {
-
 	original := strings.Repeat("a", bufio.MaxScanTokenSize-102)
 	result := truncatingFormat(original)
 	Equal(t, fmt.Sprintf("%#v", original), result, "string should not be truncated")

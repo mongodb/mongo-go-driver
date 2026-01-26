@@ -1038,7 +1038,6 @@ func extractQueryArgsFromURI(uri string) ([]string, error) {
 		return nil, nil
 	}
 	return strings.FieldsFunc(uri, func(r rune) bool { return r == ';' || r == '&' }), nil
-
 }
 
 type extractedDatabase struct {

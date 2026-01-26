@@ -27,12 +27,15 @@ tasks:
   build-compile-check-all: bash etc/run-compile-check-test.sh
   build-aws-ecs-test: go test -c ./internal/test/aws -o aws.testbin
   check-fmt:
-    deps: [install-lll]
+    deps: [install-lll, install-gofumpt]
     cmds:
       - bash etc/check_fmt.sh
   check-modules: bash etc/check_modules.sh
   doc: godoc -http=:6060 -index
-  fmt: go fmt ./...
+  fmt:
+    deps: [install-gofumpt]
+    cmds:
+      - gofumpt -w .
   api-report: bash etc/api_report.sh
   install-libmongocrypt:
     cmds: [bash etc/install-libmongocrypt.sh]
@@ -64,7 +67,7 @@ tasks:
   test-race:
     - go test ${BUILD_TAGS} -timeout {{.TEST_TIMEOUT}}s -race -p 1 ./...
   test-short: go test ${BUILD_TAGS} -timeout 60s -short -race ./...
-  test-oidc: bash etc/run-oidc-test.sh 'task --silent evg-test-oidc-auth'
+  test-oidc: bash etc/run-oidc-test.sh
   test-oidc-remote: bash etc/run-oidc-remote-test.sh
   test-atlas-connect:
     - go test -v -run ^TestAtlas$ go.mongodb.org/mongo-driver/v2/internal/cmd/testatlas -tags atlastest >> test.suite
@@ -86,18 +89,12 @@ tasks:
   evg-test-enterprise-auth:
     - go run -tags gssapi ./internal/cmd/testentauth/main.go
   evg-test-oidc-auth:
-    - go run ./internal/cmd/testoidcauth/main.go
-    - go run -race ./internal/cmd/testoidcauth/main.go
+    - go test -v ./internal/test/oidcauth/... >> test.suite
+    - go test -v -race ./internal/test/oidcauth/... >> test.suite
   evg-test-kmip:
     - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./internal/integration -run TestClientSideEncryptionSpec/kmipKMS >> test.suite
-    - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./internal/integration -run TestClientSideEncryptionProse/data_key_and_double_encryption >> test.suite
-    - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./internal/integration -run TestClientSideEncryptionProse/corpus >> test.suite
-    - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./internal/integration -run TestClientSideEncryptionProse/custom_endpoint >> test.suite
-    - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./internal/integration -run TestClientSideEncryptionProse/kms_tls_options_test >> test.suite
-  evg-test-kms:
-    - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./internal/integration -run TestClientSideEncryptionProse/kms_tls_tests >> test.suite
-  evg-test-retry-kms-requests:
-    - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./internal/integration -run TestClientSideEncryptionProse/kms_retry_tests >> test.suite
+  evg-test-client-side-encryption:
+    - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./internal/integration -run TestClientSideEncryptionProse >> test.suite
   evg-test-load-balancers:
     # Load balancer should be tested with all unified tests as well as tests in the following
     # components: retryable reads, retryable writes, change streams, initial DNS seedlist discovery.
@@ -129,6 +126,12 @@ tasks:
     cmds:
       - go test ./internal/cmd/benchmark -v --fullRun | tee perf.suite
   ### Internal tasks. ###
+  install-gofumpt:
+    internal: true
+    cmds:
+      - go install mvdan.cc/gofumpt@v0.9.2
+    status:
+      - command -v gofumpt
   install-lll:
     internal: true
     cmds:
