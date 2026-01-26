@@ -892,7 +892,7 @@ fmt.Printf("b3.b type: %T\n", b3["b"])
 
 Use `Decoder.DefaultDocumentM()` or set the `DefaultDocumentM` field of `options.BSONOptions` to always decode documents into the `bson.M` type.
 
-For full V1 compatibility, use `Decoder.DefaultDocumentMap()` instead. While
+To decode documents into `map[string]any` instead of `bson.M`, use `Decoder.DefaultDocumentMap()`. While
 `bson.M` is defined as `type M map[string]any`, Go's type system treats `bson.M`
 and `map[string]any` as distinct types. This can break compatibility with
 libraries that expect actual `map[string]any` types.
