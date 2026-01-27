@@ -233,11 +233,7 @@ func (d *Deprioritized) SelectServer(
 }
 
 // NewDeprioritized wraps an inner selector to filter out deprioritized servers.
-// If deprioritized is empty, returns the inner selector unchanged.
 func NewDeprioritized(inner description.ServerSelector, deprioritized []description.Server) description.ServerSelector {
-	if len(deprioritized) == 0 {
-		return inner
-	}
 	return &Deprioritized{
 		deprioritizedServers: deprioritized,
 		innerSelector:        inner,

@@ -19,6 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/csot"
 	"go.mongodb.org/mongo-driver/v2/internal/handshake"
+	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
 	"go.mongodb.org/mongo-driver/v2/internal/uuid"
 	"go.mongodb.org/mongo-driver/v2/mongo/address"
 	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
@@ -79,10 +80,9 @@ func TestOperation(t *testing.T) {
 			_, err := op.selectServer(context.Background(), 1, nil)
 			noerr(t, err)
 
-			// When there are no deprioritized servers (nil passed above),
-			// NewDeprioritized returns the inner selector directly without wrapping.
-			if !cmp.Equal(d.params.selector, want) {
-				t.Errorf("Did not get expected server selector. got %v; want %v", d.params.selector, want)
+			// Selector is always wrapped with Deprioritized, even when deprioritized is nil.
+			if _, ok := d.params.selector.(*serverselector.Deprioritized); !ok {
+				t.Errorf("Expected Deprioritized wrapper around server selector, got %T", d.params.selector)
 			}
 		})
 		t.Run("uses a default server selector", func(t *testing.T) {
