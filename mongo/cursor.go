@@ -320,6 +320,9 @@ func getDecoder(
 		if opts.DefaultDocumentM {
 			dec.DefaultDocumentM()
 		}
+		if opts.DefaultDocumentMap {
+			dec.DefaultDocumentMap()
+		}
 		if opts.ObjectIDAsHexString {
 			dec.ObjectIDAsHexString()
 		}
