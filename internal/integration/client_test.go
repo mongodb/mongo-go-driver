@@ -1118,6 +1118,15 @@ func TestClient_BSONOptions(t *testing.T) {
 			want:       &bson.D{{Key: "doc", Value: bson.M{"a": int64(1)}}},
 		},
 		{
+			name: "DefaultDocumentMap",
+			bsonOpts: &options.BSONOptions{
+				DefaultDocumentMap: true,
+			},
+			doc:        bson.D{{Key: "doc", Value: bson.D{{Key: "a", Value: int64(1)}}}},
+			decodeInto: func() any { return &bson.D{} },
+			want:       &bson.D{{Key: "doc", Value: map[string]any{"a": int64(1)}}},
+		},
+		{
 			name: "UseLocalTimeZone",
 			bsonOpts: &options.BSONOptions{
 				UseLocalTimeZone: true,
