@@ -639,7 +639,6 @@ func TestSessionsProse_23_EnsureSnapshotTimeIsImmutable(t *testing.T) {
 func TestSession_TransactionRunning(t *testing.T) {
 	mtOpts := mtest.
 		NewOptions().
-		MinServerVersion("5.0").
 		Topologies(mtest.ReplicaSet, mtest.Sharded)
 
 	mt := mtest.New(t, mtOpts)
