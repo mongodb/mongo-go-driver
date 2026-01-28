@@ -1,12 +1,18 @@
 #!/usr/bin/env bash
 # check_fmt
-# Runs go fmt on all packages in the repo and checks that *_example_test.go files have wrapped lines.
+# Runs gofumpt on all packages in the repo and checks that *_example_test.go files have wrapped lines.
 
-gofmt_out="$(go fmt ./...)"
+# Check if gofumpt is installed
+if ! command -v gofumpt &> /dev/null; then
+  echo "gofumpt is not installed. Install it with: go install mvdan.cc/gofumpt@latest"
+  exit 1
+fi
 
-if [[ $gofmt_out ]]; then
-  echo "go fmt check failed for:";
-  sed -e 's/^/ - /' <<< "$gofmt_out";
+gofumpt_out="$(gofumpt -l .)"
+
+if [[ $gofumpt_out ]]; then
+  echo "gofumpt check failed for:";
+  sed -e 's/^/ - /' <<< "$gofumpt_out";
   exit 1;
 fi
 

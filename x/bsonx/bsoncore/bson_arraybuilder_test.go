@@ -145,8 +145,10 @@ func TestArrayBuilder(t *testing.T) {
 		{
 			"AppendDBPointer",
 			NewArrayBuilder().AppendDBPointer,
-			[]any{"barbaz",
-				[12]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C}},
+			[]any{
+				"barbaz",
+				[12]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
+			},
 			BuildDocumentFromElements(nil, AppendDBPointerElement(nil, "0", "barbaz",
 				[12]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C})),
 		},
@@ -159,7 +161,6 @@ func TestArrayBuilder(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-
 			fn := reflect.ValueOf(tc.fn)
 			if fn.Kind() != reflect.Func {
 				t.Fatalf("fn must be of kind Func but is a %v", fn.Kind())

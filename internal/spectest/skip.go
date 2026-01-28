@@ -815,15 +815,6 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/client-side-operations-timeout/tests/tailable-awaitData.json/error_on_watch_if_maxAwaitTimeMS_is_equal_to_timeoutMS",
 	},
 
-	// TODO(GODRIVER-3620): Support text indexes with auto encryption.
-	"Support text indexes with auto encryption (GODRIVER-3620)": {
-		"TestUnifiedSpec/client-side-encryption/tests/unified/QE-Text-cleanupStructuredEncryptionData.json",
-		"TestUnifiedSpec/client-side-encryption/tests/unified/QE-Text-compactStructuredEncryptionData.json",
-		"TestUnifiedSpec/client-side-encryption/tests/unified/QE-Text-prefixPreview.json",
-		"TestUnifiedSpec/client-side-encryption/tests/unified/QE-Text-substringPreview.json",
-		"TestUnifiedSpec/client-side-encryption/tests/unified/QE-Text-suffixPreview.json",
-	},
-
 	// TODO(GODRIVER-3403): Support queryable encryption in Client.BulkWrite.
 	"Support queryable encryption in Client.BulkWrite (GODRIVER-3403)": {
 		"TestUnifiedSpec/crud/tests/unified/client-bulkWrite-qe.json",
@@ -849,7 +840,8 @@ var skipTests = map[string][]string{
 
 	// TODO(GODRIVER-3637): Implement client backpressure.
 	"Implement client backpressure (GODRIVER-3637)": {
-		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/backpressure-network-error-fail.json/apply_backpressure_on_network_connection_errors_during_connection_establishment",
+		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/backpressure-network-error-fail-replicaset.json/apply_backpressure_on_network_connection_errors_during_connection_establishment",
+		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/backpressure-network-error-fail-single.json/apply_backpressure_on_network_connection_errors_during_connection_establishment",
 		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/backpressure-server-description-unchanged-on-min-pool-size-population-error.json/the_server_description_is_not_changed_on_handshake_error_during_minPoolSize_population",
 		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/pool-clear-min-pool-size-error.json/Pool_is_not_cleared_on_handshake_error_during_minPoolSize_population",
 		"TestServerSelectionSpec/server_selection/ReplicaSetNoPrimary/read/DeprioritizedNearest.json",

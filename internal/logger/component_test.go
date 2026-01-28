@@ -182,7 +182,6 @@ func TestSerializeServer(t *testing.T) {
 			verifySerialization(t, got, test.want)
 		})
 	}
-
 }
 
 func TestSerializeTopology(t *testing.T) {
@@ -225,5 +224,4 @@ func TestSerializeTopology(t *testing.T) {
 			verifySerialization(t, got, test.want)
 		})
 	}
-
 }

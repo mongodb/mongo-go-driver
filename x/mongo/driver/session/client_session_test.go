@@ -19,10 +19,12 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
 )
 
-var consistent = true
-var sessionOpts = &ClientOptions{
-	CausalConsistency: &consistent,
-}
+var (
+	consistent  = true
+	sessionOpts = &ClientOptions{
+		CausalConsistency: &consistent,
+	}
+)
 
 func compareOperationTimes(t *testing.T, expected *bson.Timestamp, actual *bson.Timestamp) {
 	if expected.T != actual.T {
@@ -35,9 +37,9 @@ func compareOperationTimes(t *testing.T, expected *bson.Timestamp, actual *bson.
 }
 
 func TestClientSession(t *testing.T) {
-	var clusterTime1 = bsoncore.BuildDocument(nil, bsoncore.AppendDocumentElement(nil, "$clusterTime", bsoncore.BuildDocument(nil, bsoncore.AppendTimestampElement(nil, "clusterTime", 10, 5))))
-	var clusterTime2 = bsoncore.BuildDocument(nil, bsoncore.AppendDocumentElement(nil, "$clusterTime", bsoncore.BuildDocument(nil, bsoncore.AppendTimestampElement(nil, "clusterTime", 5, 5))))
-	var clusterTime3 = bsoncore.BuildDocument(nil, bsoncore.AppendDocumentElement(nil, "$clusterTime", bsoncore.BuildDocument(nil, bsoncore.AppendTimestampElement(nil, "clusterTime", 5, 0))))
+	clusterTime1 := bsoncore.BuildDocument(nil, bsoncore.AppendDocumentElement(nil, "$clusterTime", bsoncore.BuildDocument(nil, bsoncore.AppendTimestampElement(nil, "clusterTime", 10, 5))))
+	clusterTime2 := bsoncore.BuildDocument(nil, bsoncore.AppendDocumentElement(nil, "$clusterTime", bsoncore.BuildDocument(nil, bsoncore.AppendTimestampElement(nil, "clusterTime", 5, 5))))
+	clusterTime3 := bsoncore.BuildDocument(nil, bsoncore.AppendDocumentElement(nil, "$clusterTime", bsoncore.BuildDocument(nil, bsoncore.AppendTimestampElement(nil, "clusterTime", 5, 0))))
 
 	t.Run("TestMaxClusterTime", func(t *testing.T) {
 		maxTime := MaxClusterTime(clusterTime1, clusterTime2)

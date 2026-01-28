@@ -62,7 +62,8 @@ func TestArray(t *testing.T) {
 			want error
 		}{
 			{"array null", Array{'\x08', '\x00', '\x00', '\x00', '\x0A', '0', '\x00', '\x00'}, nil},
-			{"array",
+			{
+				"array",
 				Array{
 					'\x1B', '\x00', '\x00', '\x00',
 					'\x02',
@@ -77,7 +78,8 @@ func TestArray(t *testing.T) {
 				},
 				nil,
 			},
-			{"subarray",
+			{
+				"subarray",
 				Array{
 					'\x13', '\x00', '\x00', '\x00',
 					'\x04',
@@ -87,14 +89,16 @@ func TestArray(t *testing.T) {
 				},
 				nil,
 			},
-			{"invalid key order",
+			{
+				"invalid key order",
 				Array{
 					'\x0B', '\x00', '\x00', '\x00', '\x0A', '2', '\x00',
 					'\x0A', '0', '\x00', '\x00', '\x00',
 				},
 				errors.New(`array key "2" is out of order or invalid`),
 			},
-			{"invalid key type",
+			{
+				"invalid key type",
 				Array{
 					'\x0B', '\x00', '\x00', '\x00', '\x0A', 'p', '\x00',
 					'\x0A', 'q', '\x00', '\x00', '\x00',
@@ -149,21 +153,24 @@ func TestArray(t *testing.T) {
 			index uint
 			want  Value
 		}{
-			{"first",
+			{
+				"first",
 				0,
 				Value{
 					Type: TypeString,
 					Data: []byte{0x04, 0x00, 0x00, 0x00, 0x62, 0x61, 0x72, 0x00},
 				},
 			},
-			{"second",
+			{
+				"second",
 				1,
 				Value{
 					Type: TypeString,
 					Data: []byte{0x04, 0x00, 0x00, 0x00, 0x62, 0x61, 0x7a, 0x00},
 				},
 			},
-			{"third",
+			{
+				"third",
 				2,
 				Value{
 					Type: TypeString,

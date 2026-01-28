@@ -13,6 +13,8 @@ on:
       push_changes:
         description: Whether to push the changes
         default: "true"
+permissions:
+  contents: read
 concurrency:
   group: create-branch-${{ github.ref }}
   cancel-in-progress: true

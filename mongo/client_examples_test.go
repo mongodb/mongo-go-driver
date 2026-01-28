@@ -563,7 +563,8 @@ func ExampleConnect_oIDC() {
 	// environment variable.
 	{
 		eksCallback := func(_ context.Context,
-			_ *options.OIDCArgs) (*options.OIDCCredential, error) {
+			_ *options.OIDCArgs,
+		) (*options.OIDCCredential, error) {
 			accessToken, err := os.ReadFile(
 				os.Getenv("AWS_WEB_IDENTITY_TOKEN_FILE"))
 			if err != nil {
@@ -610,7 +611,8 @@ func ExampleConnect_oIDC() {
 	// file location.
 	{
 		gkeCallback := func(_ context.Context,
-			_ *options.OIDCArgs) (*options.OIDCCredential, error) {
+			_ *options.OIDCArgs,
+		) (*options.OIDCCredential, error) {
 			accessToken, err := os.ReadFile(
 				"/var/run/secrets/kubernetes.io/serviceaccount/token")
 			if err != nil {
@@ -658,7 +660,8 @@ func ExampleConnect_oIDC() {
 	// for more information on various OIDC authentication flows.
 	{
 		humanCallback := func(ctx context.Context,
-			opts *options.OIDCArgs) (*options.OIDCCredential, error) {
+			opts *options.OIDCArgs,
+		) (*options.OIDCCredential, error) {
 			// idpInfo passed from the driver by asking the MongoDB server for
 			// the info configured for the username
 			idpInfo := opts.IDPInfo

@@ -531,7 +531,6 @@ func (ejp *extJSONParser) advanceState() {
 	}
 
 	jt, err := ejp.js.nextToken()
-
 	if err != nil {
 		ejp.err = err
 		ejp.s = jpsInvalidState
