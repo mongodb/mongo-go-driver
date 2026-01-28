@@ -1404,6 +1404,64 @@ func TestDeprioritizedSelector(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "deprioritize server with state change",
+			// Server was RSPrimary when deprioritized, but has since stepped down to RSSecondary.
+			// It should still be filtered out based on address alone.
+			deprioritized: []description.Server{
+				{
+					Addr: address.Address("mongodb://localhost:27017"),
+					Kind: description.ServerKindRSPrimary,
+				},
+			},
+			candidates: []description.Server{
+				{
+					Addr: address.Address("mongodb://localhost:27017"),
+					Kind: description.ServerKindRSSecondary, // State changed
+				},
+				{
+					Addr: address.Address("mongodb://localhost:27018"),
+					Kind: description.ServerKindRSSecondary,
+				},
+			},
+			want: []description.Server{
+				{
+					Addr: address.Address("mongodb://localhost:27018"),
+					Kind: description.ServerKindRSSecondary,
+				},
+			},
+		},
+		{
+			name: "deprioritize server with multiple property changes",
+			// Server had different RTT and tags when deprioritized.
+			// It should still be filtered out based on address alone.
+			deprioritized: []description.Server{
+				{
+					Addr:       address.Address("mongodb://localhost:27017"),
+					Kind:       description.ServerKindRSPrimary,
+					AverageRTT: 50 * time.Millisecond,
+				},
+			},
+			candidates: []description.Server{
+				{
+					Addr:       address.Address("mongodb://localhost:27017"),
+					Kind:       description.ServerKindRSSecondary,
+					AverageRTT: 5 * time.Millisecond,
+				},
+				{
+					Addr:       address.Address("mongodb://localhost:27018"),
+					Kind:       description.ServerKindRSPrimary,
+					AverageRTT: 25 * time.Millisecond,
+				},
+			},
+			want: []description.Server{
+				{
+					Addr:       address.Address("mongodb://localhost:27018"),
+					Kind:       description.ServerKindRSPrimary,
+					AverageRTT: 25 * time.Millisecond,
+				},
+			},
+		},
 	}
 
 	for _, tc := range tests {

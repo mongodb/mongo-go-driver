@@ -11,7 +11,6 @@ import (
 	"math"
 	"time"
 
-	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/address"
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
 	"go.mongodb.org/mongo-driver/v2/tag"
@@ -198,9 +197,9 @@ func (d *Deprioritized) SelectServer(
 		return d.innerSelector.SelectServer(topo, candidates)
 	}
 
-	dpaSet := make(map[address.Address]*description.Server)
-	for i, srv := range d.deprioritizedServers {
-		dpaSet[srv.Addr] = &d.deprioritizedServers[i]
+	deprioritizedAddrs := make(map[address.Address]struct{})
+	for _, srv := range d.deprioritizedServers {
+		deprioritizedAddrs[srv.Addr] = struct{}{}
 	}
 
 	allowed := []description.Server{}
@@ -208,7 +207,7 @@ func (d *Deprioritized) SelectServer(
 	// Iterate over the candidates and append them to the allowed slice if
 	// they are not in the deprioritizedServers list.
 	for _, candidate := range candidates {
-		if srv, ok := dpaSet[candidate.Addr]; !ok || !driverutil.EqualServers(*srv, candidate) {
+		if _, ok := deprioritizedAddrs[candidate.Addr]; !ok {
 			allowed = append(allowed, candidate)
 		}
 	}
