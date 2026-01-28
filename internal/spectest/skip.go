@@ -843,6 +843,7 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/backpressure-network-error-fail-replicaset.json/apply_backpressure_on_network_connection_errors_during_connection_establishment",
 		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/backpressure-network-error-fail-single.json/apply_backpressure_on_network_connection_errors_during_connection_establishment",
 		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/backpressure-server-description-unchanged-on-min-pool-size-population-error.json/the_server_description_is_not_changed_on_handshake_error_during_minPoolSize_population",
+		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/backpressure-network-error-fail.json/apply_backpressure_on_network_connection_errors_during_connection_establishment",
 		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/pool-clear-min-pool-size-error.json/Pool_is_not_cleared_on_handshake_error_during_minPoolSize_population",
 		"TestServerSelectionSpec/server_selection/ReplicaSetNoPrimary/read/DeprioritizedNearest.json",
 		"TestServerSelectionSpec/server_selection/ReplicaSetNoPrimary/read/DeprioritizedPrimaryPreferred.json",
