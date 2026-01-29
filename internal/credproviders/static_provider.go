@@ -13,9 +13,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/aws/credentials"
 )
 
-// staticProviderName provides a name of Static provider
-const staticProviderName = "StaticProvider"
-
 // A StaticProvider is a set of credentials which are set programmatically,
 // and will never expire.
 type StaticProvider struct {
@@ -45,7 +42,6 @@ func verify(v credentials.Value) error {
 func (s *StaticProvider) Retrieve(_ context.Context) (credentials.Value, error) {
 	if !s.verified {
 		s.err = verify(s.Value)
-		s.ProviderName = staticProviderName
 		s.verified = true
 	}
 	return s.Value, s.err

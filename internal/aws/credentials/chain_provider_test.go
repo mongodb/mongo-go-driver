@@ -18,22 +18,12 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/aws/awserr"
 )
 
-type secondStubProvider struct {
-	creds Value
-	err   error
-}
-
-func (s *secondStubProvider) Retrieve(_ context.Context) (Value, error) {
-	s.creds.ProviderName = "secondStubProvider"
-	return s.creds, s.err
-}
-
-func TestChainProviderWithNames(t *testing.T) {
+func TestChainProviderRetrieve(t *testing.T) {
 	p := &ChainProvider{
 		Providers: []Provider{
 			&stubProvider{err: awserr.New("FirstError", "first provider error", nil)},
 			&stubProvider{err: awserr.New("SecondError", "second provider error", nil)},
-			&secondStubProvider{
+			&stubProvider{
 				creds: Value{
 					AccessKeyID:     "AKIF",
 					SecretAccessKey: "NOSECRET",
@@ -54,45 +44,11 @@ func TestChainProviderWithNames(t *testing.T) {
 	if err != nil {
 		t.Errorf("Expect no error, got %v", err)
 	}
-	if e, a := "secondStubProvider", creds.ProviderName; e != a {
-		t.Errorf("Expect provider name to match, %v got, %v", e, a)
-	}
 
-	// Also check credentials
 	if e, a := "AKIF", creds.AccessKeyID; e != a {
 		t.Errorf("Expect access key ID to match, %v got %v", e, a)
 	}
 	if e, a := "NOSECRET", creds.SecretAccessKey; e != a {
-		t.Errorf("Expect secret access key to match, %v got %v", e, a)
-	}
-	if v := creds.SessionToken; len(v) != 0 {
-		t.Errorf("Expect session token to be empty, %v", v)
-	}
-}
-
-func TestChainProviderGet(t *testing.T) {
-	p := &ChainProvider{
-		Providers: []Provider{
-			&stubProvider{err: awserr.New("FirstError", "first provider error", nil)},
-			&stubProvider{err: awserr.New("SecondError", "second provider error", nil)},
-			&stubProvider{
-				creds: Value{
-					AccessKeyID:     "AKID",
-					SecretAccessKey: "SECRET",
-					SessionToken:    "",
-				},
-			},
-		},
-	}
-
-	creds, err := p.Retrieve(context.Background())
-	if err != nil {
-		t.Errorf("Expect no error, got %v", err)
-	}
-	if e, a := "AKID", creds.AccessKeyID; e != a {
-		t.Errorf("Expect access key ID to match, %v got %v", e, a)
-	}
-	if e, a := "SECRET", creds.SecretAccessKey; e != a {
 		t.Errorf("Expect secret access key to match, %v got %v", e, a)
 	}
 	if v := creds.SessionToken; len(v) != 0 {

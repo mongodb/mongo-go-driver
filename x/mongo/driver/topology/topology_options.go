@@ -156,7 +156,6 @@ func (p awsCredentialsProvider) Retrieve(ctx context.Context) (credentials.Value
 		CanExpire:       creds.CanExpire,
 		Expires:         creds.Expires,
 		AccountID:       creds.AccountID,
-		ProviderName:    "AwsProvider",
 	}, nil
 }
 

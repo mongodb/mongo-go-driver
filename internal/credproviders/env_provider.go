@@ -13,9 +13,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/aws/credentials"
 )
 
-// envProviderName provides a name of Env provider
-const envProviderName = "EnvProvider"
-
 // EnvVar is an environment variable
 type EnvVar string
 
@@ -50,11 +47,11 @@ func (e *EnvProvider) Retrieve(_ context.Context) (credentials.Value, error) {
 		AccessKeyID:     e.AwsAccessKeyIDEnv.Get(),
 		SecretAccessKey: e.AwsSecretAccessKeyEnv.Get(),
 		SessionToken:    e.AwsSessionTokenEnv.Get(),
-		ProviderName:    envProviderName,
 		CanExpire:       false,
 	}
 	err := verify(v)
 	if err != nil {
+		// Expire the credentials if invalid.
 		v.CanExpire = true
 	}
 

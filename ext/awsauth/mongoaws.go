@@ -10,6 +10,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"net/http"
 	"time"
 
@@ -26,19 +27,21 @@ const (
 
 var _ options.AWSCredentialsProvider = (*CredentialsProvider)(nil)
 
-// CredentialsProvider is an implementation of options.AWSCredentialsProvider in
-// MongoDB Go driver. It provides caching and concurrency safe credentials retrieval
-// via the provider's retrieve method.
+// CredentialsProvider adapts an AWS SDK v2 CredentialsProvider to the
+// options.AWSCredentialsProvider interface used by the MongoDB Go Driver.
 type CredentialsProvider struct {
 	provider aws.CredentialsProvider
 }
 
 // NewCredentialsProvider returns a CredentialsProvider that wraps AWS
-// CredentialsProvider. Provider is expected to not be nil.
-func NewCredentialsProvider(provider aws.CredentialsProvider) *CredentialsProvider {
-	return &CredentialsProvider{
-		provider: provider,
+// CredentialsProvider. CredentialsProvider is expected to not be nil.
+func NewCredentialsProvider(credentialsProvider aws.CredentialsProvider) (*CredentialsProvider, error) {
+	if credentialsProvider == nil {
+		return nil, errors.New("nil provider")
 	}
+	return &CredentialsProvider{
+		provider: credentialsProvider,
+	}, nil
 }
 
 // Retrieve returns the credentials.
@@ -49,20 +52,28 @@ func (p *CredentialsProvider) Retrieve(ctx context.Context) (options.AWSCredenti
 
 var _ options.AWSSigner = (*Signer)(nil)
 
-// Signer is an implementation of options.AWSSigner in MongoDB Go driver.
+// Signer adapts an AWS SDK v2 SigV4 HTTP signer to the options.AWSSigner
+// interface used by the MongoDB Go Driver.
 type Signer struct {
 	signer v4.HTTPSigner
 }
 
-// NewSigner creates a new Signer from the provided AWS HTTPSigner.
-func NewSigner(httpSigner v4.HTTPSigner) Signer {
-	return Signer{
-		signer: httpSigner,
+// NewSigner creates a new Signer from the provided AWS HTTPSigner. HTTPSigner
+// is expected to not be nil.
+func NewSigner(httpSigner v4.HTTPSigner) (*Signer, error) {
+	if httpSigner == nil {
+		return nil, errors.New("nil httpSigner")
 	}
+	return &Signer{
+		signer: httpSigner,
+	}, nil
 }
 
-// Sign signs AWS v4 requests.
-func (s Signer) Sign(
+// Sign signs AWS SigV4 requests.  The payload parameter should be the raw
+// request body. This method computes the SHA256 hash of the payload before
+// signing. If payload is empty, the precomputed hash of an empty string is
+// used.
+func (s *Signer) Sign(
 	ctx context.Context, creds options.AWSCredentials, r *http.Request,
 	payload, service, region string, signingTime time.Time,
 ) error {
@@ -72,6 +83,8 @@ func (s Signer) Sign(
 		hash := sha256.Sum256([]byte(payload))
 		payload = hex.EncodeToString(hash[:])
 	}
-	r.Header.Set("X-Amz-Security-Token", creds.SessionToken)
+	if creds.SessionToken != "" {
+		r.Header.Set("X-Amz-Security-Token", creds.SessionToken)
+	}
 	return s.signer.SignHTTP(ctx, aws.Credentials(creds), r, payload, service, region, signingTime)
 }

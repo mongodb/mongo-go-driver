@@ -4,9 +4,13 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-// This package allows credential providers and signers in v2 AWS SDK to be
+// This package allows credential providers and signers in AWS SDK v2 to be
 // supplied to the MongoDB Go Driver for use with the MONGODB-AWS authentication
 // mechanism.
+//
+// This package is a separate module to avoid adding the AWS SDK as a dependency
+// of the main driver. Users who don't need AWS authentication won't need to
+// import the AWS SDK.
 //
 // NewCredentialsProvider() adapts an AWS CredentialsProvider to be used in:
 //

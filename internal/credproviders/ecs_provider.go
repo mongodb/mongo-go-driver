@@ -18,9 +18,6 @@ import (
 )
 
 const (
-	// ecsProviderName provides a name of ECS provider
-	ecsProviderName = "ECSProvider"
-
 	awsRelativeURI = "http://169.254.170.2/"
 )
 
@@ -33,7 +30,7 @@ type ECSProvider struct {
 	// expiryWindow will allow the credentials to trigger refreshing prior to the credentials actually expiring.
 	// This is beneficial so expiring credentials do not cause request to fail unexpectedly due to exceptions.
 	//
-	// So a ExpiryWindow of 10s would cause calls to Expired() to return true
+	// E.g., an ExpiryWindow of 10s would cause calls to Expired() to return true
 	// 10 seconds before the credentials are actually expired.
 	expiryWindow time.Duration
 }
@@ -52,7 +49,7 @@ func NewECSProvider(httpClient *http.Client, expiryWindow time.Duration) *ECSPro
 func (e *ECSProvider) Retrieve(ctx context.Context) (credentials.Value, error) {
 	const defaultHTTPTimeout = 10 * time.Second
 
-	v := credentials.Value{ProviderName: ecsProviderName}
+	var v credentials.Value
 
 	relativeEcsURI := e.AwsContainerCredentialsRelativeURIEnv.Get()
 	if len(relativeEcsURI) == 0 {

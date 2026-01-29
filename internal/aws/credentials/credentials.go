@@ -45,9 +45,6 @@ type Value struct {
 
 	// The ID of the account for the credentials.
 	AccountID string
-
-	// Provider used to get credentials
-	ProviderName string
 }
 
 // Expired returns if the credentials have expired.

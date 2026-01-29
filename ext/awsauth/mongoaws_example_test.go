@@ -7,14 +7,23 @@
 package awsauth
 
 import (
-	"github.com/aws/aws-sdk-go-v2/aws"
+	"context"
+
 	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
+	"github.com/aws/aws-sdk-go-v2/config"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 func ExampleNewCredentialsProvider() {
-	awsCredentialProvider := NewCredentialsProvider(aws.NewConfig().Credentials)
+	cfg, err := config.LoadDefaultConfig(context.TODO())
+	if err != nil {
+		panic(err)
+	}
+	awsCredentialProvider, err := NewCredentialsProvider(cfg.Credentials)
+	if err != nil {
+		panic(err)
+	}
 	credential := options.Credential{
 		AuthMechanism:          "MONGODB-AWS",
 		AWSCredentialsProvider: awsCredentialProvider,
@@ -28,8 +37,18 @@ func ExampleNewCredentialsProvider() {
 }
 
 func ExampleNewSigner() {
-	awsCredentialProvider := NewCredentialsProvider(aws.NewConfig().Credentials)
-	awsSigner := NewSigner(v4.NewSigner())
+	cfg, err := config.LoadDefaultConfig(context.TODO())
+	if err != nil {
+		panic(err)
+	}
+	awsCredentialProvider, err := NewCredentialsProvider(cfg.Credentials)
+	if err != nil {
+		panic(err)
+	}
+	awsSigner, err := NewSigner(v4.NewSigner())
+	if err != nil {
+		panic(err)
+	}
 	_ = awsSigner
 	credential := options.Credential{
 		AuthMechanism:          "MONGODB-AWS",

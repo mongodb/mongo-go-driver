@@ -10,7 +10,6 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/internal/aws/credentials"
@@ -58,8 +57,8 @@ func newMongoDBAWSAuthenticator(cred *Cred, httpClient *http.Client) (Authentica
 	}
 
 	return &MongoDBAWSAuthenticator{
-		signer: builtInV4Signer{
-			creds: creds.NewAWSCredentialProvider(httpClient, providers...).Cred,
+		signer: v4signer.Signer{
+			Credentials: creds.NewAWSCredentialProvider(httpClient, providers...).Cred,
 		},
 	}, nil
 }
@@ -84,16 +83,6 @@ func (a *MongoDBAWSAuthenticator) Auth(ctx context.Context, cfg *driver.AuthConf
 // Reauth reauthenticates the connection.
 func (a *MongoDBAWSAuthenticator) Reauth(_ context.Context, _ *driver.AuthConfig) error {
 	return newAuthError("AWS authentication does not support reauthentication", nil)
-}
-
-type builtInV4Signer struct {
-	creds *credentials.Credentials
-}
-
-func (s builtInV4Signer) Sign(_ context.Context, req *http.Request, body, service, region string, signTime time.Time) error {
-	signer := v4signer.NewSigner(s.creds)
-	_, err := signer.Sign(req, strings.NewReader(body), service, region, signTime)
-	return err
 }
 
 type customSigner struct {

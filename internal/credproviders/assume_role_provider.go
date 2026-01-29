@@ -20,9 +20,6 @@ import (
 )
 
 const (
-	// assumeRoleProviderName provides a name of assume role provider
-	assumeRoleProviderName = "AssumeRoleProvider"
-
 	stsURI = `https://sts.amazonaws.com/?Action=AssumeRoleWithWebIdentity&RoleSessionName=%s&RoleArn=%s&WebIdentityToken=%s&Version=2011-06-15`
 )
 
@@ -37,7 +34,7 @@ type AssumeRoleProvider struct {
 	// expiryWindow will allow the credentials to trigger refreshing prior to the credentials actually expiring.
 	// This is beneficial so expiring credentials do not cause request to fail unexpectedly due to exceptions.
 	//
-	// So a ExpiryWindow of 10s would cause calls to Expired() to return true
+	// E.g., an ExpiryWindow of 10s would cause calls to Expired() to return true
 	// 10 seconds before the credentials are actually expired.
 	expiryWindow time.Duration
 }
@@ -60,7 +57,7 @@ func NewAssumeRoleProvider(httpClient *http.Client, expiryWindow time.Duration) 
 func (a *AssumeRoleProvider) Retrieve(ctx context.Context) (credentials.Value, error) {
 	const defaultHTTPTimeout = 10 * time.Second
 
-	v := credentials.Value{ProviderName: assumeRoleProviderName}
+	var v credentials.Value
 
 	roleArn := a.AwsRoleArnEnv.Get()
 	tokenFile := a.AwsWebIdentityTokenFileEnv.Get()

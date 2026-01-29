@@ -11,6 +11,7 @@
 package v4
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
@@ -97,11 +98,10 @@ type signingCtx struct {
 // is not needed as the full request context will be captured by the http.Request
 // value. It is included for reference though.
 //
-// Sign will set the request's Body to be the `body` parameter passed in. If
-// the body is not already an io.ReadCloser, it will be wrapped within one. If
-// a `nil` body parameter passed to Sign, the request's Body field will be
-// also set to nil. Its important to note that this functionality will not
-// change the request's ContentLength of the request.
+// Sign will set the request's Body to be the `body` parameter passed in. If an
+// empty body parameter passed to Sign, the request's Body field will be set to
+// nil. Its important to note that this functionality will not change the
+// request's ContentLength of the request.
 //
 // Sign differs from Presign in that it will sign the request using HTTP
 // header values. This type of signing is intended for http.Request values that
@@ -112,8 +112,13 @@ type signingCtx struct {
 // generated. To bypass the signer computing the hash you can set the
 // "X-Amz-Content-Sha256" header with a precomputed value. The signer will
 // only compute the hash if the request header value is empty.
-func (v4 Signer) Sign(r *http.Request, body io.ReadSeeker, service, region string, signTime time.Time) (http.Header, error) {
-	return v4.signWithBody(r, body, service, region, signTime)
+func (v4 Signer) Sign(_ context.Context, r *http.Request, body, service, region string, signTime time.Time) error {
+	var bodyReader io.ReadSeeker
+	if len(body) > 0 {
+		bodyReader = strings.NewReader(body)
+	}
+	_, err := v4.signWithBody(r, bodyReader, service, region, signTime)
+	return err
 }
 
 func (v4 Signer) signWithBody(r *http.Request, body io.ReadSeeker, service, region string, signTime time.Time) (http.Header, error) {

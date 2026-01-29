@@ -19,9 +19,6 @@ import (
 )
 
 const (
-	// ec2ProviderName provides a name of EC2 provider
-	ec2ProviderName = "EC2Provider"
-
 	awsEC2URI       = "http://169.254.169.254/"
 	awsEC2RolePath  = "latest/meta-data/iam/security-credentials/"
 	awsEC2TokenPath = "latest/api/token"
@@ -36,7 +33,7 @@ type EC2Provider struct {
 	// expiryWindow will allow the credentials to trigger refreshing prior to the credentials actually expiring.
 	// This is beneficial so expiring credentials do not cause request to fail unexpectedly due to exceptions.
 	//
-	// So a ExpiryWindow of 10s would cause calls to Expired() to return true
+	// E.g., an ExpiryWindow of 10s would cause calls to Expired() to return true
 	// 10 seconds before the credentials are actually expired.
 	expiryWindow time.Duration
 }
@@ -107,7 +104,7 @@ func (e *EC2Provider) getRoleName(ctx context.Context, token string) (string, er
 }
 
 func (e *EC2Provider) getCredentials(ctx context.Context, token string, role string) (credentials.Value, time.Time, error) {
-	v := credentials.Value{ProviderName: ec2ProviderName}
+	var v credentials.Value
 
 	pathWithRole := awsEC2URI + awsEC2RolePath + role
 	req, err := http.NewRequest(http.MethodGet, pathWithRole, nil)
@@ -147,7 +144,7 @@ func (e *EC2Provider) getCredentials(ctx context.Context, token string, role str
 
 // Retrieve retrieves the keys from the AWS service.
 func (e *EC2Provider) Retrieve(ctx context.Context) (credentials.Value, error) {
-	v := credentials.Value{ProviderName: ec2ProviderName}
+	var v credentials.Value
 
 	token, err := e.getToken(ctx)
 	if err != nil {

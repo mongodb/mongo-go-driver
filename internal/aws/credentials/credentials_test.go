@@ -24,7 +24,6 @@ type stubProvider struct {
 }
 
 func (s *stubProvider) Retrieve(_ context.Context) (Value, error) {
-	s.creds.ProviderName = "stubProvider"
 	return s.creds, s.err
 }
 
@@ -58,20 +57,6 @@ func TestCredentialsGetWithError(t *testing.T) {
 	_, err := c.Get(context.Background())
 	if e, a := "provider error", err.(awserr.Error).Code(); e != a {
 		t.Errorf("Expected provider error, %v got %v", e, a)
-	}
-}
-
-func TestCredentialsGetWithProviderName(t *testing.T) {
-	stub := &stubProvider{}
-
-	c := NewCredentials(stub)
-
-	creds, err := c.Get(context.Background())
-	if err != nil {
-		t.Errorf("Expected no error, got %v", err)
-	}
-	if e, a := creds.ProviderName, "stubProvider"; e != a {
-		t.Errorf("Expected provider name to match, %v got %v", e, a)
 	}
 }
 

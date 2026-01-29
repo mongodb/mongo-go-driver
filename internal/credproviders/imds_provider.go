@@ -19,9 +19,6 @@ import (
 )
 
 const (
-	// AzureProviderName provides a name of Azure provider
-	AzureProviderName = "AzureProvider"
-
 	azureURI = "http://169.254.169.254/metadata/identity/oauth2/token"
 )
 
@@ -41,7 +38,7 @@ func NewAzureProvider(httpClient *http.Client, expiryWindow time.Duration) *Azur
 
 // Retrieve retrieves the keys from the Azure service.
 func (a *AzureProvider) Retrieve(ctx context.Context) (credentials.Value, error) {
-	v := credentials.Value{ProviderName: AzureProviderName}
+	var v credentials.Value
 	req, err := http.NewRequest(http.MethodGet, azureURI, nil)
 	if err != nil {
 		return v, fmt.Errorf("unable to retrieve Azure credentials: %w", err)
