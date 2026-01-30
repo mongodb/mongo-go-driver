@@ -44,7 +44,7 @@ func NewAWSCredentialProvider(httpClient *http.Client, providers ...credentials.
 
 // GetCredentialsDoc generates AWS credentials.
 func (p AWSCredentialProvider) GetCredentialsDoc(ctx context.Context) (bsoncore.Document, error) {
-	creds, err := p.Cred.GetWithContext(ctx)
+	creds, err := p.Cred.Get(ctx)
 	if err != nil {
 		return nil, err
 	}

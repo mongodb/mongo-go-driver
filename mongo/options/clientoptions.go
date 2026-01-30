@@ -116,6 +116,8 @@ type Credential struct {
 	PasswordSet             bool
 	OIDCMachineCallback     OIDCCallback
 	OIDCHumanCallback       OIDCCallback
+	AWSCredentialsProvider  AWSCredentialsProvider
+	AWSSigner               AWSSigner
 }
 
 // OIDCCallback is the type for both Human and Machine Callback flows.
@@ -134,6 +136,28 @@ type OIDCCredential struct {
 	AccessToken  string
 	ExpiresAt    *time.Time
 	RefreshToken *string
+}
+
+// AWSCredentialsProvider is the interface used to retrieve AWS credentials.
+type AWSCredentialsProvider interface {
+	Retrieve(ctx context.Context) (AWSCredentials, error)
+}
+
+// AWSCredentials represents AWS credentials.
+type AWSCredentials struct {
+	AccessKeyID     string
+	SecretAccessKey string
+	SessionToken    string
+	Source          string
+	CanExpire       bool
+	Expires         time.Time
+	AccountID       string
+}
+
+// AWSSigner is an interface to a AWS SigV4 signer that can sign HTTP requests.
+type AWSSigner interface {
+	Sign(ctx context.Context, creds AWSCredentials, r *http.Request,
+		payload, service, region string, signingTime time.Time) error
 }
 
 // IDPInfo contains the information needed to perform OIDC authentication with

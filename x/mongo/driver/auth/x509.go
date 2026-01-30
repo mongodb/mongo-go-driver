@@ -39,7 +39,7 @@ type x509Conversation struct{}
 var _ SpeculativeConversation = (*x509Conversation)(nil)
 
 // FirstMessage returns the first message to be sent to the server.
-func (c *x509Conversation) FirstMessage() (bsoncore.Document, error) {
+func (c *x509Conversation) FirstMessage(context.Context) (bsoncore.Document, error) {
 	return createFirstX509Message(), nil
 }
 
