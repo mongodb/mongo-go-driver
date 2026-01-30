@@ -212,23 +212,16 @@ func (d *Deprioritized) SelectServer(
 		}
 	}
 
-	// If nothing is allowed, then all available servers must have been
-	// deprioritized. In this case, run the inner selector to find a suitable server.
-	if len(allowed) == 0 {
-		return d.innerSelector.SelectServer(topo, candidates)
+	if len(allowed) > 0 {
+		result, err := d.innerSelector.SelectServer(topo, allowed)
+		if err != nil {
+			return nil, err
+		}
+		if len(result) > 0 {
+			return result, nil
+		}
 	}
-
-	result, err := d.innerSelector.SelectServer(topo, allowed)
-	if err != nil {
-		return nil, err
-	}
-
-	// If the inner selector returns no servers, then fallback to filtering over all candidates.
-	if len(result) == 0 {
-		return d.innerSelector.SelectServer(topo, candidates)
-	}
-
-	return result, nil
+	return d.innerSelector.SelectServer(topo, candidates)
 }
 
 // NewDeprioritized wraps an inner selector to filter out deprioritized servers.
