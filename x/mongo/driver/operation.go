@@ -366,67 +366,6 @@ func (op Operation) shouldEncrypt() bool {
 	return op.Crypt != nil && !op.Crypt.BypassAutoEncryption()
 }
 
-// filterDeprioritizedServers will filter out the server candidates that have
-// been deprioritized by the operation due to failure.
-//
-// The server selector should try to select a server that is not in the
-// deprioritization list. However, if this is not possible (e.g. there are no
-// other healthy servers in the cluster), the selector may return a
-// deprioritized server.
-func filterDeprioritizedServers(candidates, deprioritized []description.Server) []description.Server {
-	if len(deprioritized) == 0 {
-		return candidates
-	}
-
-	dpaSet := make(map[address.Address]*description.Server)
-	for i, srv := range deprioritized {
-		dpaSet[srv.Addr] = &deprioritized[i]
-	}
-
-	allowed := []description.Server{}
-
-	// Iterate over the candidates and append them to the allowdIndexes slice if
-	// they are not in the deprioritizedServers list.
-	for _, candidate := range candidates {
-		if srv, ok := dpaSet[candidate.Addr]; !ok || !driverutil.EqualServers(*srv, candidate) {
-			allowed = append(allowed, candidate)
-		}
-	}
-
-	// If nothing is allowed, then all available servers must have been
-	// deprioritized. In this case, return the candidates list as-is so that the
-	// selector can find a suitable server
-	if len(allowed) == 0 {
-		return candidates
-	}
-
-	return allowed
-}
-
-// opServerSelector is a wrapper for the server selector that is assigned to the
-// operation. The purpose of this wrapper is to filter candidates with
-// operation-specific logic, such as deprioritizing failing servers.
-type opServerSelector struct {
-	selector             description.ServerSelector
-	deprioritizedServers []description.Server
-}
-
-// SelectServer will filter candidates with operation-specific logic before
-// passing them onto the user-defined or default selector.
-func (oss *opServerSelector) SelectServer(
-	topo description.Topology,
-	candidates []description.Server,
-) ([]description.Server, error) {
-	selectedServers, err := oss.selector.SelectServer(topo, candidates)
-	if err != nil {
-		return nil, err
-	}
-
-	filteredServers := filterDeprioritizedServers(selectedServers, oss.deprioritizedServers)
-
-	return filteredServers, nil
-}
-
 // selectServer handles performing server selection for an operation.
 func (op Operation) selectServer(
 	ctx context.Context,
@@ -452,15 +391,13 @@ func (op Operation) selectServer(
 		}
 	}
 
-	oss := &opServerSelector{
-		selector:             selector,
-		deprioritizedServers: deprioritized,
-	}
+	// Wrap the selector to filter out deprioritized servers.
+	deprioritizedSelector := serverselector.NewDeprioritized(selector, deprioritized)
 
 	ctx = logger.WithOperationName(ctx, op.Name)
 	ctx = logger.WithOperationID(ctx, requestID)
 
-	return op.Deployment.SelectServer(ctx, oss)
+	return op.Deployment.SelectServer(ctx, deprioritizedSelector)
 }
 
 // getServerAndConnection should be used to retrieve a Server and Connection to execute an operation.
@@ -598,8 +535,8 @@ func (op Operation) Execute(ctx context.Context) error {
 	currIndex := 0
 
 	// deprioritizedServers are a running list of servers that should be
-	// deprioritized during server selection. Per the specifications, we should
-	// only ever deprioritize the "previous server".
+	// deprioritized during server selection. Servers are accumulated across
+	// retry attempts to avoid repeatedly selecting servers that have failed.
 	var deprioritizedServers []description.Server
 
 	// resetForRetry records the error that caused the retry, decrements retries, and resets the
@@ -629,12 +566,7 @@ func (op Operation) Execute(ctx context.Context) error {
 		// If we got a connection, close it immediately to release pool resources
 		// for subsequent retries.
 		if conn != nil {
-			// If we are dealing with a sharded cluster, then mark the failed server
-			// as "deprioritized".
-			if op.Deployment.Kind() == description.TopologyKindSharded {
-				deprioritizedServers = []description.Server{conn.Description()}
-			}
-
+			deprioritizedServers = append(deprioritizedServers, conn.Description())
 			conn.Close()
 		}
 
