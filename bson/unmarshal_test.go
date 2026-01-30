@@ -839,3 +839,46 @@ func TestUnmarshalConcurrently(t *testing.T) {
 	}
 	wg.Wait()
 }
+
+func TestUnmarshalUnmatchedType(t *testing.T) {
+	t.Parallel()
+
+	raw, _ := Marshal(D{{"foo", 42}})
+
+	testcases := []struct {
+		name   string
+		val    any
+		errMsg string
+	}{
+		{
+			name: "array",
+			val: &struct {
+				Foo bsoncore.Array
+			}{},
+			errMsg: "cannot decode 32-bit integer into a bsoncore.Array",
+		},
+		{
+			name: "document",
+			val: &struct {
+				Foo bsoncore.Document
+			}{},
+			errMsg: "cannot decode 32-bit integer into a bsoncore.Document",
+		},
+		{
+			name: "raw",
+			val: &struct {
+				Foo Raw
+			}{},
+			errMsg: "cannot decode 32-bit integer into a bson.Raw",
+		},
+	}
+	for _, tc := range testcases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := Unmarshal(raw, tc.val)
+			assert.ErrorContains(t, err, tc.errMsg)
+		})
+	}
+}
