@@ -332,6 +332,12 @@ func (s *Session) Client() *Client {
 	return s.client
 }
 
+// TransactionRunning returns true if the session has started a transaction and
+// it hasn't been committed or aborted.
+func (s *Session) TransactionRunning() bool {
+	return s.clientSession != nil && s.clientSession.TransactionRunning()
+}
+
 // sessionFromContext checks for a sessionImpl in the argued context and returns the session if it
 // exists
 func sessionFromContext(ctx context.Context) *session.Client {

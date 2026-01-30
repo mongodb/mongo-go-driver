@@ -636,6 +636,59 @@ func TestSessionsProse_23_EnsureSnapshotTimeIsImmutable(t *testing.T) {
 	require.Empty(mt, sess.SnapshotTime())
 }
 
+func TestSession_TransactionRunning(t *testing.T) {
+	mtOpts := mtest.
+		NewOptions().
+		Topologies(mtest.ReplicaSet, mtest.Sharded)
+
+	mt := mtest.New(t, mtOpts)
+
+	mt.Run("empty session returns false", func(mt *mtest.T) {
+		require.False(mt, (&mongo.Session{}).TransactionRunning())
+	})
+
+	mt.Run("no transaction returns false", func(mt *mtest.T) {
+		sess, err := mt.Client.StartSession()
+		require.NoError(mt, err)
+
+		defer sess.EndSession(context.Background())
+
+		require.False(mt, sess.TransactionRunning())
+	})
+
+	mt.Run("transaction returns true", func(mt *mtest.T) {
+		sess, err := mt.Client.StartSession()
+		require.NoError(mt, err)
+
+		defer sess.EndSession(context.Background())
+
+		require.NoError(mt, sess.StartTransaction())
+		require.True(mt, sess.TransactionRunning())
+	})
+
+	mt.Run("after commit returns false", func(mt *mtest.T) {
+		sess, err := mt.Client.StartSession()
+		require.NoError(mt, err)
+
+		defer sess.EndSession(context.Background())
+
+		require.NoError(mt, sess.StartTransaction())
+		require.NoError(mt, sess.CommitTransaction(context.Background()))
+		require.False(mt, sess.TransactionRunning())
+	})
+
+	mt.Run("after abort returns false", func(mt *mtest.T) {
+		sess, err := mt.Client.StartSession()
+		require.NoError(mt, err)
+
+		defer sess.EndSession(context.Background())
+
+		require.NoError(mt, sess.StartTransaction())
+		require.NoError(mt, sess.AbortTransaction(context.Background()))
+		require.False(mt, sess.TransactionRunning())
+	})
+}
+
 type sessionFunction struct {
 	name   string
 	target string
