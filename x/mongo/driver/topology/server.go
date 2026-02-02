@@ -370,6 +370,11 @@ func (s *Server) ProcessHandshakeError(err error, startingGenerationNumber uint6
 		return
 	}
 
+	// Ignore errors that have a backpressure error label applied.
+	if ce, ok := err.(ConnectionError); ok && ce.HasErrorLabel("SystemOverloadedError") {
+		return
+	}
+
 	// Must hold the processErrorLock while updating the server description and clearing the pool.
 	// Not holding the lock leads to possible out-of-order processing of pool.clear() and
 	// pool.ready() calls from concurrent server description updates.

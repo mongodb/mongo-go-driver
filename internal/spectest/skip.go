@@ -837,15 +837,6 @@ var skipTests = map[string][]string{
 	"Handshake spec test 'metadata-not-propagated.yml' fails on sharded clusters (DRIVERS-3356)": {
 		"TestUnifiedSpec/mongodb-handshake/tests/unified/metadata-not-propagated.json/metadata_append_does_not_create_new_connections_or_close_existing_ones_and_no_hello_command_is_sent",
 	},
-
-	// TODO(GODRIVER-3637): Implement client backpressure.
-	"Implement client backpressure (GODRIVER-3637)": {
-		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/backpressure-network-error-fail-replicaset.json/apply_backpressure_on_network_connection_errors_during_connection_establishment",
-		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/backpressure-network-error-fail-single.json/apply_backpressure_on_network_connection_errors_during_connection_establishment",
-		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/backpressure-server-description-unchanged-on-min-pool-size-population-error.json/the_server_description_is_not_changed_on_handshake_error_during_minPoolSize_population",
-		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/pool-clear-min-pool-size-error.json/Pool_is_not_cleared_on_handshake_error_during_minPoolSize_population",
-		"TestSDAMSpec/errors/error_handling_handshake.json",
-	},
 }
 
 // CheckSkip checks if the fully-qualified test name matches a list of skipped test names for a given reason.
