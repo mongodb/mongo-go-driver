@@ -189,7 +189,7 @@ func TestServerHeartbeatStartedEvent(t *testing.T) {
 	t.Run("emits the first HeartbeatStartedEvent before the monitoring socket was created", func(t *testing.T) {
 		t.Parallel()
 
-		const addr = address.Address("localhost:9999")
+		const address = address.Address("localhost:9999")
 		expectedEvents := []string{
 			"serverHeartbeatStartedEvent",
 			"client connected",
@@ -199,7 +199,7 @@ func TestServerHeartbeatStartedEvent(t *testing.T) {
 
 		events := make(chan string)
 
-		listener, err := net.Listen("tcp", addr.String())
+		listener, err := net.Listen("tcp", address.String())
 		assert.NoError(t, err)
 		defer listener.Close()
 		go func() {
@@ -213,7 +213,7 @@ func TestServerHeartbeatStartedEvent(t *testing.T) {
 		}()
 
 		server := topology.NewServer(
-			addr,
+			address,
 			bson.NewObjectID(),
 			1*time.Second,
 			topology.WithServerMonitor(func(*event.ServerMonitor) *event.ServerMonitor {
