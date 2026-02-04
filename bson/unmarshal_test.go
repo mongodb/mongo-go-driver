@@ -839,3 +839,97 @@ func TestUnmarshalConcurrently(t *testing.T) {
 	}
 	wg.Wait()
 }
+
+func TestUnmarshalTypeCompatibility(t *testing.T) {
+	t.Parallel()
+
+	t.Run("negative", func(t *testing.T) {
+		t.Parallel()
+
+		testcases := []struct {
+			name   string
+			val    any
+			data   []byte
+			errMsg string
+		}{
+			{
+				name: "integer into a bson.Raw",
+				val: &struct {
+					Foo Raw
+				}{},
+				data:   docToBytes(D{{"foo", 42}}),
+				errMsg: "cannot decode 32-bit integer into a bson.Raw",
+			},
+			{
+				name: "integer into a bsoncore.Document",
+				val: &struct {
+					Foo bsoncore.Document
+				}{},
+				data:   docToBytes(D{{"foo", 42}}),
+				errMsg: "cannot decode 32-bit integer into a bsoncore.Document",
+			},
+			{
+				name: "integer into bsoncore.Array",
+				val: &struct {
+					Foo bsoncore.Array
+				}{},
+				data:   docToBytes(D{{"foo", 42}}),
+				errMsg: "cannot decode 32-bit integer into a bsoncore.Array",
+			},
+			{
+				name: "bson.D into bsoncore.Array",
+				val: &struct {
+					Foo bsoncore.Array
+				}{},
+				data:   docToBytes(D{{"foo", D{}}}),
+				errMsg: "cannot decode embedded document into a bsoncore.Array",
+			},
+			{
+				name: "bsoncore.Document into bsoncore.Array",
+				val: &struct {
+					Foo bsoncore.Array
+				}{},
+				data:   docToBytes(D{{"foo", bsoncore.NewDocumentBuilder().Build()}}),
+				errMsg: "cannot decode embedded document into a bsoncore.Array",
+			},
+		}
+		for _, tc := range testcases {
+			tc := tc
+			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
+
+				err := Unmarshal(tc.data, tc.val)
+				assert.ErrorContains(t, err, tc.errMsg)
+			})
+		}
+	})
+	t.Run("positive", func(t *testing.T) {
+		t.Parallel()
+
+		data := docToBytes(D{{"foo", A{true}}})
+		want := []byte(bsoncore.NewArrayBuilder().AppendBoolean(true).Build())
+
+		t.Run("bson.A into bson.Raw", func(t *testing.T) {
+			t.Parallel()
+
+			var val struct {
+				Foo Raw
+			}
+
+			err := Unmarshal(data, &val)
+			assert.NoError(t, err)
+			assert.Equal(t, want, []byte(val.Foo))
+		})
+		t.Run("bson.A into bsoncore.Document", func(t *testing.T) {
+			t.Parallel()
+
+			var val struct {
+				Foo bsoncore.Document
+			}
+
+			err := Unmarshal(data, &val)
+			assert.NoError(t, err)
+			assert.Equal(t, want, []byte(val.Foo))
+		})
+	})
+}
