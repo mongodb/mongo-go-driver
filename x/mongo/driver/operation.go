@@ -1107,6 +1107,16 @@ func (op Operation) networkError(err error) error {
 		labels = append(labels, UnknownTransactionCommitResult)
 	}
 
+	var le labeledError
+	if errors.As(err, &le) {
+		if le.HasErrorLabel(ErrSystemOverloadedError) {
+			labels = append(labels, ErrSystemOverloadedError)
+		}
+		if le.HasErrorLabel(ErrRetryableError) {
+			labels = append(labels, ErrRetryableError)
+		}
+	}
+
 	return Error{Message: err.Error(), Labels: labels, Wrapped: err}
 }
 
