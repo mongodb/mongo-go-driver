@@ -581,10 +581,9 @@ func (c *connection) wrapError(err error, shouldAddLabels bool, msg string) erro
 	}
 
 	ce := ConnectionError{
-		ConnectionID: c.id,
-		Wrapped:      err,
-		init:         true,
-		message:      msg,
+		Wrapped: err,
+		init:    true,
+		message: msg,
 	}
 
 	if shouldAddLabels {
