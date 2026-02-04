@@ -290,7 +290,7 @@ func (c *connection) connect(ctx context.Context) (err error) {
 
 	// We have a failed handshake here
 	if err != nil {
-		return ConnectionError{Wrapped: err, init: true}
+		return c.wrapError(err, true, "")
 	}
 
 	if len(c.desc.Compression) > 0 {
@@ -587,7 +587,6 @@ func (c *connection) wrapError(err error, shouldAddLabels bool, msg string) erro
 	}
 
 	if shouldAddLabels {
-		// Add SystemOverloadedError and RetryableError to backpressure-enabled errors.
 		ce.labels = append(ce.labels, driver.ErrSystemOverloadedError, driver.ErrRetryableError)
 	}
 

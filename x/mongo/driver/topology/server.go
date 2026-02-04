@@ -376,12 +376,6 @@ func (s *Server) ProcessHandshakeError(err error, startingGenerationNumber uint6
 		return
 	}
 
-	// Ignore errors that have a backpressure error label applied.
-	var ce labeledError
-	if errors.As(err, &ce) && ce.HasErrorLabel(driver.ErrSystemOverloadedError) {
-		return
-	}
-
 	// Must hold the processErrorLock while updating the server description and clearing the pool.
 	// Not holding the lock leads to possible out-of-order processing of pool.clear() and
 	// pool.ready() calls from concurrent server description updates.
@@ -392,6 +386,13 @@ func (s *Server) ProcessHandshakeError(err error, startingGenerationNumber uint6
 	// the description.Server appropriately. The description should not have a TopologyVersion because the staleness
 	// checking logic above has already determined that this description is not stale.
 	s.updateDescription(newServerDescriptionFromError(s.address, wrappedConnErr, nil))
+
+	// Ignore errors that have a backpressure error label applied.
+	var ce labeledError
+	if errors.As(err, &ce) && ce.HasErrorLabel(driver.ErrSystemOverloadedError) {
+		return
+	}
+
 	s.pool.clear(err, serviceID)
 	s.heartbeatListener.StopListening()
 }
