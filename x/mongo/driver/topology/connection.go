@@ -609,7 +609,7 @@ func (c *connection) wrapError(err error, shouldAddLabels bool, msg string) erro
 		message: msg,
 	}
 
-	if shouldAddLabels {
+	if shouldAddLabels && !errors.Is(err, context.Canceled) {
 		ce.labels = append(ce.labels, driver.ErrSystemOverloadedError, driver.ErrRetryableError)
 	}
 

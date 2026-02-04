@@ -498,11 +498,16 @@ func TestServer(t *testing.T) {
 			// description or pause the pool.
 			{"post-handshake errors are not ignored for load balancers", true, nil, nil, netErr.Wrapped, 5, 1},
 
-			// For non-LB clusters, the first error sets the server to Unknown and clears and pauses
-			// the pool. All subsequent attempts to check out a connection without updating the
-			// server description return an error because the pool is paused.
-			{"dial errors are not ignored for non-lb clusters", false, netErr.Wrapped, nil, nil, 1, 1},
-			{"initial handshake errors are not ignored for non-lb clusters", false, nil, netErr.Wrapped, nil, 1, 1},
+			// For non-LB clusters, network errors during dialing or handshake are labeled with
+			// SystemOverloadedError. Per the Backpressure specification, these errors update the
+			// server description to Unknown but do NOT clear the pool. Therefore, the generation
+			// number remains 0.
+			{"dial errors are ignored for pool clearing in non-lb clusters", false, netErr.Wrapped, nil, nil, 0, 1},
+			{"initial handshake errors are ignored for pool clearing in non-lb clusters", false, nil, netErr.Wrapped, nil, 0, 1},
+
+			// Post-handshake errors (errors occurring after the initial hello/handshake but before
+			// the connection is ready) do not receive backpressure labels and must still clear
+			// the pool, incrementing the generation to 1.
 			{"post-handshake errors are not ignored for non-lb clusters", false, nil, nil, netErr.Wrapped, 1, 1},
 		}
 		for _, tc := range testCases {
