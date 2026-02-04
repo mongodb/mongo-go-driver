@@ -30,8 +30,7 @@ type ConnectionError struct {
 	// during a connection handshake.
 	init    bool
 	message string
-	// labels are used to provide more context about the error (e.g., RetryableError).
-	labels []string
+	labels  []string
 }
 
 // Error implements the error interface.
