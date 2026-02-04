@@ -255,25 +255,23 @@ func (c *connection) connect(ctx context.Context) (err error) {
 
 	var handshakeInfo driver.HandshakeInformation
 	handshakeStartTime := time.Now()
+
 	iconn := initConnection{c}
 	handshakeConn := mnet.NewConnection(iconn)
 
 	handshakeInfo, err = handshaker.GetHandshakeInformation(ctx, c.addr, handshakeConn)
-	if err != nil {
-		// Always label network/timeout errors during hello
-		return c.wrapError(err, true, "")
-	}
+	if err == nil {
+		// We only need to retain the Description field as the connection's description. The authentication-related
+		// fields in handshakeInfo are tracked by the handshaker if necessary.
+		c.desc = handshakeInfo.Description
+		c.serverConnectionID = handshakeInfo.ServerConnectionID
+		c.helloRTT = time.Since(handshakeStartTime)
 
-	// We only need to retain the Description field as the connection's description. The authentication-related
-	// fields in handshakeInfo are tracked by the handshaker if necessary.
-	c.desc = handshakeInfo.Description
-	c.serverConnectionID = handshakeInfo.ServerConnectionID
-	c.helloRTT = time.Since(handshakeStartTime)
-
-	// If the application has indicated that the cluster is load balanced, ensure the server has included serviceId
-	// in its handshake response to signal that it knows it's behind an LB as well.
-	if c.config.loadBalanced && c.desc.ServiceID == nil {
-		err = errLoadBalancedStateMismatch
+		// If the application has indicated that the cluster is load balanced, ensure the server has included serviceId
+		// in its handshake response to signal that it knows it's behind an LB as well.
+		if c.config.loadBalanced && c.desc.ServiceID == nil {
+			err = errLoadBalancedStateMismatch
+		}
 	}
 	if err == nil {
 		// For load-balanced connections, the generation number depends on the service ID, which isn't known until the
@@ -294,7 +292,32 @@ func (c *connection) connect(ctx context.Context) (err error) {
 	}
 
 	if len(c.desc.Compression) > 0 {
-		c.setupCompression()
+	clientMethodLoop:
+		for _, method := range c.config.compressors {
+			for _, serverMethod := range c.desc.Compression {
+				if method != serverMethod {
+					continue
+				}
+
+				switch strings.ToLower(method) {
+				case "snappy":
+					c.compressor = wiremessage.CompressorSnappy
+				case "zlib":
+					c.compressor = wiremessage.CompressorZLib
+					c.zliblevel = wiremessage.DefaultZlibLevel
+					if c.config.zlibLevel != nil {
+						c.zliblevel = *c.config.zlibLevel
+					}
+				case "zstd":
+					c.compressor = wiremessage.CompressorZstd
+					c.zstdLevel = wiremessage.DefaultZstdLevel
+					if c.config.zstdLevel != nil {
+						c.zstdLevel = *c.config.zstdLevel
+					}
+				}
+				break clientMethodLoop
+			}
+		}
 	}
 	return nil
 }
@@ -591,35 +614,6 @@ func (c *connection) wrapError(err error, shouldAddLabels bool, msg string) erro
 	}
 
 	return ce
-}
-
-// setupCompression handles setting up the connection's compressor based on the server's supported compression methods.
-func (c *connection) setupCompression() {
-clientMethodLoop:
-	for _, method := range c.config.compressors {
-		for _, serverMethod := range c.desc.Compression {
-			if method != serverMethod {
-				continue
-			}
-			switch strings.ToLower(method) {
-			case "snappy":
-				c.compressor = wiremessage.CompressorSnappy
-			case "zlib":
-				c.compressor = wiremessage.CompressorZLib
-				c.zliblevel = wiremessage.DefaultZlibLevel
-				if c.config.zlibLevel != nil {
-					c.zliblevel = *c.config.zlibLevel
-				}
-			case "zstd":
-				c.compressor = wiremessage.CompressorZstd
-				c.zstdLevel = wiremessage.DefaultZstdLevel
-				if c.config.zstdLevel != nil {
-					c.zstdLevel = *c.config.zstdLevel
-				}
-			}
-			break clientMethodLoop
-		}
-	}
 }
 
 // initConnection is an adapter used during connection initialization. It has the minimum
