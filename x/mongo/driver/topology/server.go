@@ -39,6 +39,12 @@ const (
 	serverConnected
 )
 
+// labeledError is an error that can have error labels added to it.
+type labeledError interface {
+	error
+	HasErrorLabel(string) bool
+}
+
 func serverStateString(state int64) string {
 	switch state {
 	case serverDisconnected:
@@ -371,7 +377,8 @@ func (s *Server) ProcessHandshakeError(err error, startingGenerationNumber uint6
 	}
 
 	// Ignore errors that have a backpressure error label applied.
-	if ce, ok := err.(ConnectionError); ok && ce.HasErrorLabel("SystemOverloadedError") {
+	var ce labeledError
+	if errors.As(err, &ce) && ce.HasErrorLabel(driver.ErrSystemOverloadedError) {
 		return
 	}
 

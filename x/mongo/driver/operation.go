@@ -1106,6 +1106,7 @@ func (op Operation) networkError(err error) error {
 	if op.Client != nil && op.Client.Committing {
 		labels = append(labels, UnknownTransactionCommitResult)
 	}
+
 	return Error{Message: err.Error(), Labels: labels, Wrapped: err}
 }
 

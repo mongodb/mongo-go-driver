@@ -30,9 +30,8 @@ type ConnectionError struct {
 	// during a connection handshake.
 	init    bool
 	message string
-
-	// Labels are used to provide more context about the error (e.g., RetryableError).
-	Labels []string
+	// labels are used to provide more context about the error (e.g., RetryableError).
+	labels []string
 }
 
 // Error implements the error interface.
@@ -68,7 +67,7 @@ func (e ConnectionError) Unwrap() error {
 
 // HasErrorLabel returns true if the error contains the specified label.
 func (e ConnectionError) HasErrorLabel(label string) bool {
-	for _, l := range e.Labels {
+	for _, l := range e.labels {
 		if l == label {
 			return true
 		}

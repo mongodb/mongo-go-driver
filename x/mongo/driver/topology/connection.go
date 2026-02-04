@@ -255,7 +255,6 @@ func (c *connection) connect(ctx context.Context) (err error) {
 
 	var handshakeInfo driver.HandshakeInformation
 	handshakeStartTime := time.Now()
-
 	iconn := initConnection{c}
 	handshakeConn := mnet.NewConnection(iconn)
 
@@ -407,6 +406,7 @@ func (c *connection) readWireMessage(ctx context.Context) ([]byte, error) {
 			// connection because we don't know what the connection state is.
 			_ = c.close()
 		}
+
 		message := errMsg
 		return nil, ConnectionError{
 			ConnectionID: c.id,
@@ -588,8 +588,8 @@ func (c *connection) wrapError(err error, shouldAddLabels bool, msg string) erro
 	}
 
 	if shouldAddLabels {
-		// Spec: Add SystemOverloadedError and RetryableError to backpressure-enabled errors.
-		ce.Labels = append(ce.Labels, "SystemOverloadedError", "RetryableError")
+		// Add SystemOverloadedError and RetryableError to backpressure-enabled errors.
+		ce.labels = append(ce.labels, driver.ErrSystemOverloadedError, driver.ErrRetryableError)
 	}
 
 	return ce

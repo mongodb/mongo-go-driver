@@ -319,7 +319,6 @@ func TestConnectionPoolBackpressure(t *testing.T) {
 
 		var wg sync.WaitGroup
 		filter := bson.D{{Key: "$where", Value: "function() { sleep(2000); return true; }"}}
-
 		for i := 0; i < 100; i++ {
 			wg.Add(1)
 			go func() {
