@@ -260,19 +260,22 @@ func (c *connection) connect(ctx context.Context) (err error) {
 	handshakeConn := mnet.NewConnection(iconn)
 
 	handshakeInfo, err = handshaker.GetHandshakeInformation(ctx, c.addr, handshakeConn)
-	if err == nil {
-		// We only need to retain the Description field as the connection's description. The authentication-related
-		// fields in handshakeInfo are tracked by the handshaker if necessary.
-		c.desc = handshakeInfo.Description
-		c.serverConnectionID = handshakeInfo.ServerConnectionID
-		c.helloRTT = time.Since(handshakeStartTime)
-
-		// If the application has indicated that the cluster is load balanced, ensure the server has included serviceId
-		// in its handshake response to signal that it knows it's behind an LB as well.
-		if c.config.loadBalanced && c.desc.ServiceID == nil {
-			err = errLoadBalancedStateMismatch
-		}
+	if err != nil {
+		return c.wrapError(err, true, "")
 	}
+
+	// We only need to retain the Description field as the connection's description. The authentication-related
+	// fields in handshakeInfo are tracked by the handshaker if necessary.
+	c.desc = handshakeInfo.Description
+	c.serverConnectionID = handshakeInfo.ServerConnectionID
+	c.helloRTT = time.Since(handshakeStartTime)
+
+	// If the application has indicated that the cluster is load balanced, ensure the server has included serviceId
+	// in its handshake response to signal that it knows it's behind an LB as well.
+	if c.config.loadBalanced && c.desc.ServiceID == nil {
+		err = errLoadBalancedStateMismatch
+	}
+
 	if err == nil {
 		// For load-balanced connections, the generation number depends on the service ID, which isn't known until the
 		// initial MongoDB handshake is done. To account for this, we don't attempt to set the connection's generation
@@ -288,7 +291,7 @@ func (c *connection) connect(ctx context.Context) (err error) {
 
 	// We have a failed handshake here
 	if err != nil {
-		return c.wrapError(err, true, "")
+		return c.wrapError(err, false, "")
 	}
 
 	if len(c.desc.Compression) > 0 {
