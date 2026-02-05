@@ -48,8 +48,8 @@ func TestSDAMErrorHandling(t *testing.T) {
 	// blockConnection and appName.
 	mt.RunOpts("before handshake completes", baseMtOpts().Auth(true).MinServerVersion("4.4"), func(mt *mtest.T) {
 		mt.RunOpts("network errors", noClientOpts, func(mt *mtest.T) {
-			mt.Run("pool cleared on network timeout", func(mt *mtest.T) {
-				// Assert that the pool is cleared when a connection created by an application
+			mt.Run("pool not cleared on network timeout", func(mt *mtest.T) {
+				// Assert that the pool is not cleared when a connection created by an application
 				// operation thread encounters a timeout caused by socketTimeoutMS during
 				// handshaking.
 
@@ -86,12 +86,9 @@ func TestSDAMErrorHandling(t *testing.T) {
 				assert.True(mt, mongo.IsTimeout(err), "expected timeout error, got %v", err)
 				assert.True(mt, mongo.IsNetworkError(err), "expected network error, got %v", err)
 
-				// Assert that the pool is cleared within 2 seconds.
-				assert.Eventually(t,
-					tpm.IsPoolCleared,
-					2*time.Second,
-					100*time.Millisecond,
-					"expected pool is cleared within 2 seconds")
+				// Assert that the pool is not cleared even after 2 seconds.
+				time.Sleep(2 * time.Second)
+				assert.False(mt, tpm.IsPoolCleared(), "expected pool is not cleared within 2 seconds")
 			})
 
 			mt.RunOpts("pool cleared on non-timeout network error", noClientOpts, func(mt *mtest.T) {

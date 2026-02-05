@@ -9,6 +9,7 @@ package topology
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -45,6 +46,20 @@ var (
 )
 
 func nextConnectionID() uint64 { return atomic.AddUint64(&globalConnectionID, 1) }
+
+func isDNSError(err error) bool {
+	var dnsErr *net.DNSError
+	return errors.As(err, &dnsErr)
+}
+
+func isTLSCertError(err error) bool {
+	var hostnameErr x509.HostnameError
+	if errors.As(err, &hostnameErr) {
+		return true
+	}
+	var certErr x509.CertificateInvalidError
+	return errors.As(err, &certErr)
+}
 
 type connection struct {
 	// state must be accessed using the atomic package and should be at the beginning of the struct.
@@ -211,7 +226,7 @@ func (c *connection) connect(ctx context.Context) (err error) {
 	// Assign the result of DialContext to a temporary net.Conn to ensure that c.nc is not set in an error case.
 	tempNc, err := c.config.dialer.DialContext(ctx, c.addr.Network(), c.addr.String())
 	if err != nil {
-		return ConnectionError{Wrapped: err, init: true, message: fmt.Sprintf("failed to connect to %s", c.addr)}
+		return c.wrapError(err, !isDNSError(err), fmt.Sprintf("failed to connect to %s", c.addr))
 	}
 	c.nc = tempNc
 
@@ -227,7 +242,7 @@ func (c *connection) connect(ctx context.Context) (err error) {
 		}
 		tlsNc, err := configureTLS(ctx, c.config.tlsConnectionSource, c.nc, c.addr, tlsConfig, ocspOpts)
 		if err != nil {
-			return ConnectionError{Wrapped: err, init: true, message: fmt.Sprintf("failed to configure TLS for %s", c.addr)}
+			return c.wrapError(err, !isTLSCertError(err), fmt.Sprintf("failed to configure TLS for %s", c.addr))
 		}
 		c.nc = tlsNc
 	}
@@ -245,19 +260,22 @@ func (c *connection) connect(ctx context.Context) (err error) {
 	handshakeConn := mnet.NewConnection(iconn)
 
 	handshakeInfo, err = handshaker.GetHandshakeInformation(ctx, c.addr, handshakeConn)
-	if err == nil {
-		// We only need to retain the Description field as the connection's description. The authentication-related
-		// fields in handshakeInfo are tracked by the handshaker if necessary.
-		c.desc = handshakeInfo.Description
-		c.serverConnectionID = handshakeInfo.ServerConnectionID
-		c.helloRTT = time.Since(handshakeStartTime)
-
-		// If the application has indicated that the cluster is load balanced, ensure the server has included serviceId
-		// in its handshake response to signal that it knows it's behind an LB as well.
-		if c.config.loadBalanced && c.desc.ServiceID == nil {
-			err = errLoadBalancedStateMismatch
-		}
+	if err != nil {
+		return c.wrapError(err, true, "")
 	}
+
+	// We only need to retain the Description field as the connection's description. The authentication-related
+	// fields in handshakeInfo are tracked by the handshaker if necessary.
+	c.desc = handshakeInfo.Description
+	c.serverConnectionID = handshakeInfo.ServerConnectionID
+	c.helloRTT = time.Since(handshakeStartTime)
+
+	// If the application has indicated that the cluster is load balanced, ensure the server has included serviceId
+	// in its handshake response to signal that it knows it's behind an LB as well.
+	if c.config.loadBalanced && c.desc.ServiceID == nil {
+		err = errLoadBalancedStateMismatch
+	}
+
 	if err == nil {
 		// For load-balanced connections, the generation number depends on the service ID, which isn't known until the
 		// initial MongoDB handshake is done. To account for this, we don't attempt to set the connection's generation
@@ -273,7 +291,7 @@ func (c *connection) connect(ctx context.Context) (err error) {
 
 	// We have a failed handshake here
 	if err != nil {
-		return ConnectionError{Wrapped: err, init: true}
+		return c.wrapError(err, false, "")
 	}
 
 	if len(c.desc.Compression) > 0 {
@@ -414,6 +432,7 @@ func (c *connection) readWireMessage(ctx context.Context) ([]byte, error) {
 			// connection because we don't know what the connection state is.
 			_ = c.close()
 		}
+
 		message := errMsg
 		return nil, ConnectionError{
 			ConnectionID: c.id,
@@ -579,6 +598,25 @@ func (c *connection) OIDCTokenGenID() uint64 {
 
 func (c *connection) SetOIDCTokenGenID(genID uint64) {
 	c.oidcTokenGenID = genID
+}
+
+// wrapError creates a ConnectionError and conditionally adds backpressure labels.
+func (c *connection) wrapError(err error, shouldAddLabels bool, msg string) error {
+	if err == nil {
+		return nil
+	}
+
+	ce := ConnectionError{
+		Wrapped: err,
+		init:    true,
+		message: msg,
+	}
+
+	if shouldAddLabels && !errors.Is(err, context.Canceled) {
+		ce.labels = append(ce.labels, driver.ErrSystemOverloadedError, driver.ErrRetryableError)
+	}
+
+	return ce
 }
 
 // initConnection is an adapter used during connection initialization. It has the minimum

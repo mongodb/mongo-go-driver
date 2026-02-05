@@ -225,7 +225,7 @@ func TestServerConnectionTimeout(t *testing.T) {
 			connectTimeout:    defaultConnectionTimeout,
 		},
 		{
-			desc: "timeout error during dialing should clear the pool",
+			desc: "timeout error during dialing should not clear the pool",
 			dialer: func(Dialer) Dialer {
 				var d net.Dialer
 				return DialerFunc(func(ctx context.Context, network, addr string) (net.Conn, error) {
@@ -238,10 +238,10 @@ func TestServerConnectionTimeout(t *testing.T) {
 			operationTimeout:  1 * time.Minute,
 			connectTimeout:    100 * time.Millisecond,
 			expectErr:         true,
-			expectPoolCleared: true,
+			expectPoolCleared: false,
 		},
 		{
-			desc: "timeout error during dialing with no operation timeout should clear the pool",
+			desc: "timeout error during dialing with no operation timeout should clear not the pool",
 			dialer: func(Dialer) Dialer {
 				var d net.Dialer
 				return DialerFunc(func(ctx context.Context, network, addr string) (net.Conn, error) {
@@ -254,7 +254,7 @@ func TestServerConnectionTimeout(t *testing.T) {
 			operationTimeout:  0, // Uses a context.Background() with no timeout.
 			connectTimeout:    100 * time.Millisecond,
 			expectErr:         true,
-			expectPoolCleared: true,
+			expectPoolCleared: false,
 		},
 		{
 			desc: "dial errors unrelated to context timeouts should clear the pool",
@@ -443,13 +443,20 @@ func TestServer(t *testing.T) {
 			}
 
 			if tt.hasDesc {
-				require.Equal(t, s.Description().Kind, (description.ServerKind)(description.Unknown))
-				require.NotNil(t, s.Description().LastError)
+				desc := s.Description()
+				require.Equal(t, description.ServerKind(description.Unknown), desc.Kind)
+				if tt.connectionError {
+					require.NotNil(t, desc.LastError)
+				} else if tt.networkError {
+					require.Nil(t, desc.LastError, "expect LastError to be nil for handshake network error")
+				}
 			}
 
 			generation, _ := s.pool.generation.getGeneration(nil)
-			if (tt.connectionError || tt.networkError) && generation != 1 {
-				t.Errorf("Expected pool to be drained once on connection or network error. got %d; want %d", generation, 1)
+			if tt.connectionError {
+				assert.Equal(t, uint64(1), generation, "Expected pool to be cleared for auth error")
+			} else if tt.networkError {
+				assert.Equal(t, uint64(0), generation, "Expected pool not to be cleared for dialer error")
 			}
 		})
 	}
@@ -501,8 +508,8 @@ func TestServer(t *testing.T) {
 			// For non-LB clusters, the first error sets the server to Unknown and clears and pauses
 			// the pool. All subsequent attempts to check out a connection without updating the
 			// server description return an error because the pool is paused.
-			{"dial errors are not ignored for non-lb clusters", false, netErr.Wrapped, nil, nil, 1, 1},
-			{"initial handshake errors are not ignored for non-lb clusters", false, nil, netErr.Wrapped, nil, 1, 1},
+			{"dial errors are ignored for non-lb clusters", false, netErr.Wrapped, nil, nil, 0, 1},
+			{"initial handshake errors are ignored for non-lb clusters", false, nil, netErr.Wrapped, nil, 0, 1},
 			{"post-handshake errors are not ignored for non-lb clusters", false, nil, nil, netErr.Wrapped, 1, 1},
 		}
 		for _, tc := range testCases {
