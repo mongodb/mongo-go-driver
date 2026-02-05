@@ -287,7 +287,9 @@ func TestServerHeartbeatStartedEvent(t *testing.T) {
 }
 
 func TestConnectionPoolBackpressure(t *testing.T) {
-	mt := mtest.New(t, mtest.NewOptions().MinServerVersion("7.0"))
+	mt := mtest.New(t, mtest.NewOptions().
+		MinServerVersion("7.0").
+		Topologies(mtest.Single, mtest.ReplicaSet))
 
 	mt.Run("ingress rate limiting does not clear pool", func(mt *mtest.T) {
 		tpm := eventtest.NewTestPoolMonitor()
