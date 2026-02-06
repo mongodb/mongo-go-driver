@@ -22,7 +22,7 @@ import (
 // Finish takes the server response to the initial message and conducts the remainder of the conversation to
 // authenticate the provided connection.
 type SpeculativeConversation interface {
-	FirstMessage(ctx context.Context) (bsoncore.Document, error)
+	FirstMessage() (bsoncore.Document, error)
 	Finish(ctx context.Context, cfg *driver.AuthConfig, firstResponse bsoncore.Document) error
 }
 

@@ -133,7 +133,7 @@ func newTestStaticCredentials() *credentials.Credentials {
 func TestSignRequest(t *testing.T) {
 	req, body := buildRequest("{}")
 	signer := buildSigner()
-	_, err := signer.signWithBody(req, body, "dynamodb", "us-east-1", epochTime())
+	_, err := signer.Sign(req, body, "dynamodb", "us-east-1", epochTime())
 	if err != nil {
 		t.Errorf("Expected no err, got %v", err)
 	}
@@ -153,7 +153,7 @@ func TestSignRequest(t *testing.T) {
 func TestSignUnseekableBody(t *testing.T) {
 	req, body := buildRequestWithBodyReader("mock-service", "mock-region", bytes.NewBuffer([]byte("hello")))
 	signer := buildSigner()
-	_, err := signer.signWithBody(req, body, "mock-service", "mock-region", time.Now())
+	_, err := signer.Sign(req, body, "mock-service", "mock-region", time.Now())
 	if err == nil {
 		t.Fatalf("expect error signing request")
 	}
@@ -169,7 +169,7 @@ func TestSignPreComputedHashUnseekableBody(t *testing.T) {
 	signer := buildSigner()
 
 	req.Header.Set("X-Amz-Content-Sha256", "some-content-sha256")
-	_, err := signer.signWithBody(req, body, "mock-service", "mock-region", time.Now())
+	_, err := signer.Sign(req, body, "mock-service", "mock-region", time.Now())
 	if err != nil {
 		t.Fatalf("expect no error, got %v", err)
 	}
@@ -184,7 +184,7 @@ func TestSignPrecomputedBodyChecksum(t *testing.T) {
 	req, body := buildRequest("hello")
 	req.Header.Set("X-Amz-Content-Sha256", "PRECOMPUTED")
 	signer := buildSigner()
-	_, err := signer.signWithBody(req, body, "dynamodb", "us-east-1", time.Now())
+	_, err := signer.Sign(req, body, "dynamodb", "us-east-1", time.Now())
 	if err != nil {
 		t.Errorf("Expected no err, got %v", err)
 	}
@@ -218,7 +218,7 @@ func TestSignWithRequestBody(t *testing.T) {
 		t.Errorf("expect not no error, got %v", err)
 	}
 
-	_, err = signer.signWithBody(req, bytes.NewReader(expectBody), "service", "region", time.Now())
+	_, err = signer.Sign(req, bytes.NewReader(expectBody), "service", "region", time.Now())
 	if err != nil {
 		t.Errorf("expect not no error, got %v", err)
 	}
@@ -256,7 +256,7 @@ func TestSignWithRequestBody_Overwrite(t *testing.T) {
 		t.Errorf("expect not no error, got %v", err)
 	}
 
-	_, err = signer.signWithBody(req, nil, "service", "region", time.Now())
+	_, err = signer.Sign(req, nil, "service", "region", time.Now())
 	req.ContentLength = 0
 
 	if err != nil {
@@ -299,7 +299,7 @@ func TestSignWithBody_ReplaceRequestBody(t *testing.T) {
 	s := NewSigner(creds)
 	origBody := req.Body
 
-	_, err := s.signWithBody(req, seekerBody, "dynamodb", "us-east-1", time.Now())
+	_, err := s.Sign(req, seekerBody, "dynamodb", "us-east-1", time.Now())
 	if err != nil {
 		t.Fatalf("expect no error, got %v", err)
 	}

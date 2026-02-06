@@ -122,7 +122,7 @@ func (ah *authHandshaker) GetHandshakeInformation(
 			// cannot perform speculative authentication. An example of this is MONGODB-OIDC when there is
 			// no AccessToken in the cache.
 			if ah.conversation != nil {
-				firstMsg, err := ah.conversation.FirstMessage(ctx)
+				firstMsg, err := ah.conversation.FirstMessage()
 				if err != nil {
 					return driver.HandshakeInformation{}, newAuthError("failed to create speculative authentication message", err)
 				}

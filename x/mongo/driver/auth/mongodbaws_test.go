@@ -11,7 +11,6 @@ import (
 	"errors"
 	"net/http"
 	"testing"
-	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
@@ -65,15 +64,6 @@ type testAWSCredentialsProvider struct {
 func (a *testAWSCredentialsProvider) Retrieve(_ context.Context) (credentials.Value, error) {
 	a.cnt++
 	return credentials.Value{}, nil
-}
-
-type testAWSSigner struct {
-	cnt int
-}
-
-func (s *testAWSSigner) Sign(_ context.Context, _ credentials.Value, _ *http.Request, _, _, _ string, _ time.Time) error {
-	s.cnt++
-	return nil
 }
 
 func TestAWSCustomCredentialsProvider(t *testing.T) {
@@ -140,52 +130,6 @@ func TestAWSCustomCredentialsProvider(t *testing.T) {
 			assert.Equalf(t, tc.cnt, provider.cnt, "expected provider to be called %v times but got %v", tc.cnt, provider.cnt)
 		})
 	}
-}
-
-func TestAWSCustomSigner(t *testing.T) {
-	t.Setenv("AWS_ACCESS_KEY_ID", "AWS_ACCESS_KEY_ID")
-	t.Setenv("AWS_SECRET_ACCESS_KEY", "AWS_SECRET_ACCESS_KEY")
-
-	provider := &testAWSCredentialsProvider{}
-	signer := &testAWSSigner{}
-	cred := &Cred{
-		Username:               "user",
-		Password:               "pass",
-		Props:                  map[string]string{"AWS_SESSION_TOKEN": "token"},
-		AWSCredentialsProvider: provider,
-		AWSSigner:              signer,
-	}
-
-	authenticator, err := newMongoDBAWSAuthenticator(cred, nil)
-	require.NoErrorf(t, err, "unexpected error %v", err)
-
-	resps := make(chan []byte, 1)
-	written := make(chan []byte, 1)
-	var readErr chan error
-	go func() {
-		for {
-			processWm(resps, written, readErr)
-		}
-	}()
-
-	desc := description.Server{
-		WireVersion: &description.VersionRange{
-			Max: 6,
-		},
-	}
-	c := &drivertest.ChannelConn{
-		Written:  written,
-		ReadResp: resps,
-		ReadErr:  readErr,
-		Desc:     desc,
-	}
-
-	mnetconn := mnet.NewConnection(c)
-
-	err = authenticator.Auth(context.Background(), &driver.AuthConfig{Connection: mnetconn})
-	assert.NoErrorf(t, err, "expected no error but got %v", err)
-	assert.Equalf(t, 1, provider.cnt, "expected provider to be called once but got %v", provider.cnt)
-	assert.Equalf(t, 1, signer.cnt, "expected signer to be called once but got %v", signer.cnt)
 }
 
 func processWm(resps, written chan []byte, errChan chan error) {

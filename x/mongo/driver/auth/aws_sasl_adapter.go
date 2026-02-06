@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
+	v4signer "go.mongodb.org/mongo-driver/v2/internal/aws/signer/v4"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
@@ -30,12 +31,8 @@ const (
 	clientDone
 )
 
-type awsSigner interface {
-	Sign(ctx context.Context, request *http.Request, body, service, region string, signTime time.Time) error
-}
-
 type awsSaslAdapter struct {
-	signer awsSigner
+	signer *v4signer.Signer
 
 	state clientState
 	nonce []byte
@@ -43,16 +40,16 @@ type awsSaslAdapter struct {
 
 var _ SaslClient = (*awsSaslAdapter)(nil)
 
-func (a *awsSaslAdapter) Start(ctx context.Context) (string, []byte, error) {
-	step, err := a.step(ctx, nil)
+func (a *awsSaslAdapter) Start() (string, []byte, error) {
+	step, err := a.step(nil)
 	if err != nil {
 		return MongoDBAWS, nil, err
 	}
 	return MongoDBAWS, step, nil
 }
 
-func (a *awsSaslAdapter) Next(ctx context.Context, challenge []byte) ([]byte, error) {
-	step, err := a.step(ctx, challenge)
+func (a *awsSaslAdapter) Next(_ context.Context, challenge []byte) ([]byte, error) {
+	step, err := a.step(challenge)
 	if err != nil {
 		return nil, err
 	}
@@ -75,14 +72,14 @@ const (
 // conversation forward.  It returns a string to be sent to the server or an
 // error if the server message is invalid.  Calling Step after a conversation
 // completes is also an error.
-func (a *awsSaslAdapter) step(ctx context.Context, challenge []byte) (response []byte, err error) {
+func (a *awsSaslAdapter) step(challenge []byte) (response []byte, err error) {
 	switch a.state {
 	case clientStarting:
 		a.state = clientFirst
 		response = a.firstMsg()
 	case clientFirst:
 		a.state = clientFinal
-		response, err = a.finalMsg(ctx, challenge)
+		response, err = a.finalMsg(challenge)
 	case clientFinal:
 		a.state = clientDone
 	default:
@@ -129,7 +126,7 @@ func (a *awsSaslAdapter) firstMsg() []byte {
 	return msg
 }
 
-func (a *awsSaslAdapter) finalMsg(ctx context.Context, s1 []byte) ([]byte, error) {
+func (a *awsSaslAdapter) finalMsg(s1 []byte) ([]byte, error) {
 	var sm struct {
 		Nonce bson.Binary `bson:"s"`
 		Host  string      `bson:"h"`
@@ -171,7 +168,7 @@ func (a *awsSaslAdapter) finalMsg(ctx context.Context, s1 []byte) ([]byte, error
 	req.Header.Set("X-MongoDB-GS2-CB-Flag", "n")
 
 	// Get signed header
-	err = a.signer.Sign(ctx, req, body, "sts", region, currentTime)
+	_, err = a.signer.Sign(req, strings.NewReader(body), "sts", region, currentTime)
 	if err != nil {
 		return nil, err
 	}

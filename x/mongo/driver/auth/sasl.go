@@ -18,7 +18,7 @@ import (
 
 // SaslClient is the client piece of a sasl conversation.
 type SaslClient interface {
-	Start(ctx context.Context) (string, []byte, error)
+	Start() (string, []byte, error)
 	Next(ctx context.Context, challenge []byte) ([]byte, error)
 	Completed() bool
 }
@@ -59,10 +59,10 @@ func newSaslConversation(client SaslClient, source string, speculative bool) *sa
 
 // FirstMessage returns the first message to be sent to the server. This message contains a "db" field so it can be used
 // for speculative authentication.
-func (sc *saslConversation) FirstMessage(ctx context.Context) (bsoncore.Document, error) {
+func (sc *saslConversation) FirstMessage() (bsoncore.Document, error) {
 	var payload []byte
 	var err error
-	sc.mechanism, payload, err = sc.client.Start(ctx)
+	sc.mechanism, payload, err = sc.client.Start()
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +134,7 @@ func (sc *saslConversation) Finish(ctx context.Context, cfg *driver.AuthConfig, 
 		)
 		saslContinueCmd := operation.NewCommand(doc).
 			Database(sc.source).
-			Deployment(driver.SingleConnectionDeployment{cfg.Connection}).
+			Deployment(driver.SingleConnectionDeployment{C: cfg.Connection}).
 			ClusterClock(cfg.ClusterClock).
 			ServerAPI(cfg.ServerAPI)
 
@@ -156,13 +156,13 @@ func (sc *saslConversation) Finish(ctx context.Context, cfg *driver.AuthConfig, 
 func ConductSaslConversation(ctx context.Context, cfg *driver.AuthConfig, authSource string, client SaslClient) error {
 	// Create a non-speculative SASL conversation.
 	conversation := newSaslConversation(client, authSource, false)
-	saslStartDoc, err := conversation.FirstMessage(ctx)
+	saslStartDoc, err := conversation.FirstMessage()
 	if err != nil {
 		return newError(err, conversation.mechanism)
 	}
 	saslStartCmd := operation.NewCommand(saslStartDoc).
 		Database(authSource).
-		Deployment(driver.SingleConnectionDeployment{cfg.Connection}).
+		Deployment(driver.SingleConnectionDeployment{C: cfg.Connection}).
 		ClusterClock(cfg.ClusterClock).
 		ServerAPI(cfg.ServerAPI)
 	if err := saslStartCmd.Execute(ctx); err != nil {

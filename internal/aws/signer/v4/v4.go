@@ -11,7 +11,6 @@
 package v4
 
 import (
-	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
@@ -112,13 +111,8 @@ type signingCtx struct {
 // generated. To bypass the signer computing the hash you can set the
 // "X-Amz-Content-Sha256" header with a precomputed value. The signer will
 // only compute the hash if the request header value is empty.
-func (v4 Signer) Sign(_ context.Context, r *http.Request, body, service, region string, signTime time.Time) error {
-	var bodyReader io.ReadSeeker
-	if len(body) > 0 {
-		bodyReader = strings.NewReader(body)
-	}
-	_, err := v4.signWithBody(r, bodyReader, service, region, signTime)
-	return err
+func (v4 Signer) Sign(r *http.Request, body io.ReadSeeker, service, region string, signTime time.Time) (http.Header, error) {
+	return v4.signWithBody(r, body, service, region, signTime)
 }
 
 func (v4 Signer) signWithBody(r *http.Request, body io.ReadSeeker, service, region string, signTime time.Time) (http.Header, error) {
