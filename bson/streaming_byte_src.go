@@ -59,7 +59,7 @@ func (s *streamingByteSrc) discard(n int) (int, error) {
 // readSlice scans buf[offset:] for the first occurrence of delim, returns
 // buf[offset:idx+1], and advances offset past it; errors if delim not found.
 func (s *streamingByteSrc) readSlice(delim byte) ([]byte, error) {
-	data, err := s.br.ReadSlice(delim)
+	data, err := s.br.ReadBytes(delim)
 	if err != nil {
 		return nil, err
 	}
