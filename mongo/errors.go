@@ -89,10 +89,22 @@ func wrapErrors(err error) error {
 
 	var de driver.Error
 	if errors.As(err, &de) {
+		labels := de.Labels
+
+		var le LabeledError
+		if errors.As(err, &le) {
+			if le.HasErrorLabel(driver.ErrSystemOverloadedError) {
+				labels = append(labels, driver.ErrSystemOverloadedError)
+			}
+			if le.HasErrorLabel(driver.ErrRetryableError) {
+				labels = append(labels, driver.ErrRetryableError)
+			}
+		}
+
 		return CommandError{
 			Code:    de.Code,
 			Message: de.Message,
-			Labels:  de.Labels,
+			Labels:  labels,
 			Name:    de.Name,
 			Wrapped: err,
 			Raw:     bson.Raw(de.Raw),

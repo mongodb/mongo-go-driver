@@ -483,7 +483,12 @@ func TestPool_checkOut(t *testing.T) {
 		require.NoError(t, err)
 
 		_, err = p.checkOut(context.Background())
-		var want error = ConnectionError{Wrapped: dialErr, init: true, message: "failed to connect to testaddr:27017"}
+		var want error = ConnectionError{
+			Wrapped: dialErr,
+			init:    true,
+			message: "failed to connect to testaddr:27017",
+			labels:  []string{driver.ErrSystemOverloadedError, driver.ErrRetryableError},
+		}
 		assert.Equalf(t, want, err, "should return error from calling checkOut()")
 		// If a connection initialization error occurs during checkOut, removing and closing the
 		// failed connection both happen asynchronously with the checkOut. Wait for up to 2s for
