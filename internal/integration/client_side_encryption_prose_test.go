@@ -397,6 +397,9 @@ func TestClientSideEncryptionProse_3_external_key_vault_test(t *testing.T) {
 }
 
 func TestClientSideEncryptionProse_4_bson_size_limits_and_batch_splitting(t *testing.T) {
+	if os.Getenv("CRYPT_SHARED_LIB_PATH") == "" {
+		t.Skip("skipping large encryption tests on mongocryptd due to DRIVERS-3382")
+	}
 	mt := newCSE_T(t, mtest.NewOptions())
 	mt.Setup()
 
@@ -537,6 +540,9 @@ func TestClientSideEncryptionProse_5_views_are_prohibited(t *testing.T) {
 }
 
 func TestClientSideEncryptionProse_6_corpus_test(t *testing.T) {
+	if os.Getenv("CRYPT_SHARED_LIB_PATH") == "" {
+		t.Skip("skipping large encryption tests on mongocryptd due to DRIVERS-3382")
+	}
 	mt := newCSE_T(t, newNoClientOpts())
 	mt.Setup()
 
