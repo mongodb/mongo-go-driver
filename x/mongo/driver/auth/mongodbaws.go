@@ -12,6 +12,7 @@ import (
 	"net/http"
 
 	"go.mongodb.org/mongo-driver/v2/internal/aws/credentials"
+	v4signer "go.mongodb.org/mongo-driver/v2/internal/aws/signer/v4"
 	"go.mongodb.org/mongo-driver/v2/internal/credproviders"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/auth/creds"
@@ -24,36 +25,40 @@ func newMongoDBAWSAuthenticator(cred *Cred, httpClient *http.Client) (Authentica
 	if cred.Source != "" && cred.Source != sourceExternal {
 		return nil, newAuthError("MONGODB-AWS source must be empty or $external", nil)
 	}
+
 	if httpClient == nil {
 		return nil, errors.New("httpClient must not be nil")
 	}
-	return &MongoDBAWSAuthenticator{
-		credentials: &credproviders.StaticProvider{
+
+	providers := []credentials.Provider{
+		&credproviders.StaticProvider{
 			Value: credentials.Value{
 				AccessKeyID:     cred.Username,
 				SecretAccessKey: cred.Password,
 				SessionToken:    cred.Props["AWS_SESSION_TOKEN"],
 			},
 		},
-		httpClient: httpClient,
+	}
+	if cred.AWSCredentialsProvider != nil {
+		providers = append(providers, cred.AWSCredentialsProvider)
+	}
+
+	return &MongoDBAWSAuthenticator{
+		credentials: creds.NewAWSCredentialProvider(httpClient, providers...).Cred,
 	}, nil
 }
 
 // MongoDBAWSAuthenticator uses AWS-IAM credentials over SASL to authenticate a connection.
 type MongoDBAWSAuthenticator struct {
-	credentials *credproviders.StaticProvider
-	httpClient  *http.Client
+	credentials *credentials.Credentials
 }
 
 // Auth authenticates the connection.
 func (a *MongoDBAWSAuthenticator) Auth(ctx context.Context, cfg *driver.AuthConfig) error {
-	providers := creds.NewAWSCredentialProvider(a.httpClient, a.credentials)
-	adapter := &awsSaslAdapter{
-		conversation: &awsConversation{
-			credentials: providers.Cred,
-		},
+	awsSasl := &awsSaslAdapter{
+		signer: v4signer.NewSigner(a.credentials),
 	}
-	err := ConductSaslConversation(ctx, cfg, sourceExternal, adapter)
+	err := ConductSaslConversation(ctx, cfg, sourceExternal, awsSasl)
 	if err != nil {
 		return newAuthError("sasl conversation error", err)
 	}
@@ -63,30 +68,4 @@ func (a *MongoDBAWSAuthenticator) Auth(ctx context.Context, cfg *driver.AuthConf
 // Reauth reauthenticates the connection.
 func (a *MongoDBAWSAuthenticator) Reauth(_ context.Context, _ *driver.AuthConfig) error {
 	return newAuthError("AWS authentication does not support reauthentication", nil)
-}
-
-type awsSaslAdapter struct {
-	conversation *awsConversation
-}
-
-var _ SaslClient = (*awsSaslAdapter)(nil)
-
-func (a *awsSaslAdapter) Start() (string, []byte, error) {
-	step, err := a.conversation.Step(nil)
-	if err != nil {
-		return MongoDBAWS, nil, err
-	}
-	return MongoDBAWS, step, nil
-}
-
-func (a *awsSaslAdapter) Next(_ context.Context, challenge []byte) ([]byte, error) {
-	step, err := a.conversation.Step(challenge)
-	if err != nil {
-		return nil, err
-	}
-	return step, nil
-}
-
-func (a *awsSaslAdapter) Completed() bool {
-	return a.conversation.Done()
 }

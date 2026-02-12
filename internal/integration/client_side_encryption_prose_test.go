@@ -3128,6 +3128,114 @@ func TestClientSideEncryptionProse_24_kmw_retry_tests(t *testing.T) {
 	}
 }
 
+type awsCredentialsProvider struct {
+	cnt int
+}
+
+func (p *awsCredentialsProvider) Retrieve(ctx context.Context) (options.AWSCredentials, error) {
+	p.cnt++
+	return options.AWSCredentials{
+		AccessKeyID:     awsAccessKeyID,
+		SecretAccessKey: awsSecretAccessKey,
+	}, nil
+}
+
+func TestClientSideEncryptionProse_26_custom_aws_credentials(t *testing.T) {
+	mt := mtest.New(t, mtest.NewOptions().CreateClient(false))
+
+	mt.Run("Case 1: ClientEncryption with credentialProviders and incorrect kmsProviders", func(mt *mtest.T) {
+		opts := options.Client().ApplyURI(mtest.ClusterURI())
+		integtest.AddTestServerAPIVersion(opts)
+		keyVaultClient, err := mongo.Connect(opts)
+		assert.NoErrorf(mt, err, "error on Connect: %v", err)
+
+		var provider awsCredentialsProvider
+		ceo := options.ClientEncryption().
+			SetKeyVaultNamespace("keyvault.datakeys").
+			SetKmsProviders(map[string]map[string]any{
+				"aws": {
+					"accessKeyId":     awsAccessKeyID,
+					"secretAccessKey": awsSecretAccessKey,
+				},
+			}).
+			SetAWSCredentialsProvider(&provider)
+		_, err = mongo.NewClientEncryption(keyVaultClient, ceo)
+		assert.ErrorContains(mt, err, "can only provide a custom AWS credential provider",
+			"unexpected error: %v", err)
+	})
+
+	mt.Run("Case 2: ClientEncryption with credentialProviders works", func(mt *mtest.T) {
+		opts := options.Client().ApplyURI(mtest.ClusterURI())
+		integtest.AddTestServerAPIVersion(opts)
+		keyVaultClient, err := mongo.Connect(opts)
+		assert.NoErrorf(mt, err, "error on Connect: %v", err)
+
+		var provider awsCredentialsProvider
+		ceo := options.ClientEncryption().
+			SetKeyVaultNamespace("keyvault.datakeys").
+			SetKmsProviders(map[string]map[string]any{
+				"aws": {},
+			}).
+			SetAWSCredentialsProvider(&provider)
+		clientEncryption, err := mongo.NewClientEncryption(keyVaultClient, ceo)
+		assert.NoErrorf(mt, err, "error on NewClientEncryption: %v", err)
+
+		dkOpts := options.DataKey().SetMasterKey(bson.D{
+			{"region", "us-east-1"},
+			{"key", "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0"},
+		})
+		_, err = clientEncryption.CreateDataKey(context.Background(), "aws", dkOpts)
+		assert.NoErrorf(mt, err, "unexpected error %v", err)
+		assert.Equal(mt, 1, provider.cnt, "expected credential provider to be called once")
+	})
+
+	mt.Run("Case 3: AutoEncryptionOpts with credentialProviders and incorrect kmsProviders", func(mt *mtest.T) {
+		var provider awsCredentialsProvider
+		aeo := options.AutoEncryption().
+			SetKeyVaultNamespace("keyvault.datakeys").
+			SetKmsProviders(map[string]map[string]any{
+				"aws": {
+					"accessKeyId":     awsAccessKeyID,
+					"secretAccessKey": awsSecretAccessKey,
+				},
+			}).
+			SetAWSCredentialsProvider(&provider)
+		co := options.Client().SetAutoEncryptionOptions(aeo).ApplyURI(mtest.ClusterURI())
+		integtest.AddTestServerAPIVersion(co)
+		_, err := mongo.Connect(co)
+		assert.ErrorContainsf(mt, err, "can only provide a custom AWS credential provider",
+			"unexpected error: %v", err)
+	})
+
+	mt.Run("Case 4: ClientEncryption with credentialProviders and valid environment variables", func(mt *mtest.T) {
+		mt.Setenv("AWS_ACCESS_KEY_ID", os.Getenv("FLE_AWS_ACCESS_KEY_ID"))
+		mt.Setenv("AWS_SECRET_ACCESS_KEY", os.Getenv("FLE_AWS_SECRET_ACCESS_KEY"))
+
+		opts := options.Client().ApplyURI(mtest.ClusterURI())
+		integtest.AddTestServerAPIVersion(opts)
+		keyVaultClient, err := mongo.Connect(opts)
+		assert.NoErrorf(mt, err, "error on Connect: %v", err)
+
+		var provider awsCredentialsProvider
+		ceo := options.ClientEncryption().
+			SetKeyVaultNamespace("keyvault.datakeys").
+			SetKmsProviders(map[string]map[string]any{
+				"aws": {},
+			}).
+			SetAWSCredentialsProvider(&provider)
+		clientEncryption, err := mongo.NewClientEncryption(keyVaultClient, ceo)
+		assert.NoErrorf(mt, err, "error on NewClientEncryption: %v", err)
+
+		dkOpts := options.DataKey().SetMasterKey(bson.D{
+			{"region", "us-east-1"},
+			{"key", "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0"},
+		})
+		_, err = clientEncryption.CreateDataKey(context.Background(), "aws", dkOpts)
+		assert.NoErrorf(mt, err, "unexpected error %v", err)
+		assert.Equal(mt, 1, provider.cnt, "expected credential provider to be called once")
+	})
+}
+
 func TestClientSideEncryptionProse_27_text_explicit_encryption(t *testing.T) {
 	mt := newCSE_T(t, newQEOpts().MinServerVersion("8.2"))
 	mt.Setup()
