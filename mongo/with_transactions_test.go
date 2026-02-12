@@ -523,6 +523,9 @@ func TestConvenientTransactions(t *testing.T) {
 			"expected transaction to fail within 500ms")
 	})
 	t.Run("slow operation in callback retries", func(t *testing.T) {
+		if os.Getenv("TOPOLOGY") == "sharded_cluster" {
+			t.Skip("skipping on sharded clusters due to SERVER-96344; see GODRIVER-3801")
+		}
 		withTransactionTimeout = 2 * time.Second
 
 		coll := db.Collection("test")
