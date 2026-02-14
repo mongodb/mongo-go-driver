@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -26,7 +27,15 @@ import (
 // the method call is using.
 var ErrWrongClient = errors.New("session was not created by this client")
 
-var withTransactionTimeout = 120 * time.Second
+var (
+	withTransactionTimeout = 120 * time.Second
+	backoffInitial         = 5 * time.Millisecond
+	backoffMax             = 500 * time.Millisecond
+)
+
+var jitter interface {
+	Int63n(int64) int64
+} = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 // Session is a MongoDB logical session. Sessions can be used to enable causal
 // consistency for a group of operations or to execute operations in an ACID
@@ -121,10 +130,33 @@ func (s *Session) WithTransaction(
 	fn func(ctx context.Context) (any, error),
 	opts ...options.Lister[options.TransactionOptions],
 ) (any, error) {
-	timeout := time.NewTimer(withTransactionTimeout)
+	transTimeout := withTransactionTimeout
+	if s.client.timeout != nil {
+		transTimeout = *s.client.timeout
+	}
+	timeout := time.NewTimer(transTimeout)
 	defer timeout.Stop()
+	var expDur time.Duration
 	var err error
 	for {
+		if expDur == 0 {
+			expDur = backoffInitial
+		} else {
+			select {
+			case <-timeout.C:
+				return nil, err
+			default:
+			}
+			if expDur > backoffMax {
+				expDur = backoffMax
+			}
+			backoff := expDur * time.Duration(jitter.Int63n(512)) / 512
+			if expDur < backoffMax {
+				expDur += expDur / 2
+			}
+			time.Sleep(backoff)
+		}
+
 		err = s.StartTransaction(opts...)
 		if err != nil {
 			return nil, err
