@@ -846,7 +846,7 @@ func TestUnmarshalTypeCompatibility(t *testing.T) {
 	t.Run("negative", func(t *testing.T) {
 		t.Parallel()
 
-		testcases := []struct {
+		testCases := []struct {
 			name   string
 			val    any
 			data   []byte
@@ -893,7 +893,7 @@ func TestUnmarshalTypeCompatibility(t *testing.T) {
 				errMsg: "cannot decode embedded document into a bsoncore.Array",
 			},
 		}
-		for _, tc := range testcases {
+		for _, tc := range testCases {
 			tc := tc
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()
