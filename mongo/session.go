@@ -10,11 +10,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/rand"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
+	"go.mongodb.org/mongo-driver/v2/internal/randutil"
 	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
@@ -35,7 +35,7 @@ var (
 
 var jitter interface {
 	Int63n(int64) int64
-} = rand.New(rand.NewSource(time.Now().UnixNano()))
+} = randutil.NewLockedRand()
 
 // Session is a MongoDB logical session. Sessions can be used to enable causal
 // consistency for a group of operations or to execute operations in an ACID
@@ -142,11 +142,6 @@ func (s *Session) WithTransaction(
 		if expDur == 0 {
 			expDur = backoffInitial
 		} else {
-			select {
-			case <-timeout.C:
-				return nil, err
-			default:
-			}
 			if expDur > backoffMax {
 				expDur = backoffMax
 			}
@@ -154,7 +149,11 @@ func (s *Session) WithTransaction(
 			if expDur < backoffMax {
 				expDur += expDur / 2
 			}
-			time.Sleep(backoff)
+			select {
+			case <-timeout.C:
+				timeout.Reset(0)
+			case <-time.After(backoff):
+			}
 		}
 
 		err = s.StartTransaction(opts...)
