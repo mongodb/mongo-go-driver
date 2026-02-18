@@ -9,6 +9,7 @@ package topology
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"math/rand"
 	"net"
@@ -63,7 +64,10 @@ func TestConnection(t *testing.T) {
 		t.Run("connect", func(t *testing.T) {
 			t.Run("dialer error", func(t *testing.T) {
 				err := errors.New("dialer error")
-				var want error = ConnectionError{Wrapped: err, init: true, message: "failed to connect to testaddr:27017"}
+				var want error = driver.Error{
+					Labels:  []string{driver.ErrSystemOverloadedError, driver.ErrRetryableError, driver.NetworkError},
+					Wrapped: ConnectionError{Wrapped: err, init: true, message: "failed to connect to testaddr:27017"},
+				}
 				conn := newConnection(address.Address("testaddr"), WithDialer(func(Dialer) Dialer {
 					return DialerFunc(func(context.Context, string, string) (net.Conn, error) { return nil, err })
 				}))
@@ -73,6 +77,28 @@ func TestConnection(t *testing.T) {
 				}
 				connState := atomic.LoadInt64(&conn.state)
 				assert.Equal(t, connDisconnected, connState, "expected connection state %v, got %v", connDisconnected, connState)
+			})
+			t.Run("DNS dialer error does not get backpressure labels", func(t *testing.T) {
+				err := &net.DNSError{Err: "no such host"}
+				var want error = ConnectionError{Wrapped: err, init: true, message: "failed to connect to testaddr:27017"}
+				conn := newConnection(address.Address("testaddr"), WithDialer(func(Dialer) Dialer {
+					return DialerFunc(func(context.Context, string, string) (net.Conn, error) { return nil, err })
+				}))
+				got := conn.connect(context.Background())
+				if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
+					t.Errorf("errors do not match. got %v; want %v", got, want)
+				}
+			})
+			t.Run("x509 dialer error does not get backpressure labels", func(t *testing.T) {
+				err := &x509.HostnameError{Host: "testaddr", Certificate: &x509.Certificate{}}
+				var want error = ConnectionError{Wrapped: err, init: true, message: "failed to connect to testaddr:27017"}
+				conn := newConnection(address.Address("testaddr"), WithDialer(func(Dialer) Dialer {
+					return DialerFunc(func(context.Context, string, string) (net.Conn, error) { return nil, err })
+				}))
+				got := conn.connect(context.Background())
+				if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
+					t.Errorf("errors do not match. got %v; want %v", got, want)
+				}
 			})
 			t.Run("handshaker error", func(t *testing.T) {
 				err := errors.New("handshaker error")

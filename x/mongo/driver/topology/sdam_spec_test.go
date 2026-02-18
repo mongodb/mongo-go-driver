@@ -330,6 +330,15 @@ func applyErrors(t *testing.T, topo *Topology, errors []applicationError) {
 		}
 		conn := Connection{connection: &innerConn}
 
+		// Backpressure labels are applied to network/timeout errors during
+		// connection establishment.
+		if appErr.When == "beforeHandshakeCompletes" && (appErr.Type == "network" || appErr.Type == "timeout") {
+			if de, ok := currError.(driver.Error); ok {
+				de.Labels = append(de.Labels, driver.ErrSystemOverloadedError, driver.ErrRetryableError)
+				currError = de
+			}
+		}
+
 		switch appErr.When {
 		case "beforeHandshakeCompletes":
 			server.ProcessHandshakeError(currError, generation, nil)
