@@ -134,6 +134,7 @@ func (s *Session) WithTransaction(
 	if s.client.timeout != nil {
 		transTimeout = *s.client.timeout
 	}
+	startTime := time.Now()
 	timeout := time.NewTimer(transTimeout)
 	defer timeout.Stop()
 	var expDur time.Duration
@@ -146,13 +147,18 @@ func (s *Session) WithTransaction(
 				expDur = backoffMax
 			}
 			backoff := expDur * time.Duration(jitter.Int63n(512)) / 512
-			if expDur < backoffMax {
-				expDur += expDur / 2
+			if time.Since(startTime)+backoff > transTimeout {
+				return nil, err
 			}
+			sleep := time.NewTimer(backoff)
 			select {
 			case <-timeout.C:
-				timeout.Reset(0)
-			case <-time.After(backoff):
+				sleep.Stop()
+				return nil, err
+			case <-sleep.C:
+			}
+			if expDur < backoffMax {
+				expDur += expDur / 2
 			}
 		}
 
@@ -161,7 +167,8 @@ func (s *Session) WithTransaction(
 			return nil, err
 		}
 
-		res, err := fn(NewSessionContext(ctx, s))
+		var res any
+		res, err = fn(NewSessionContext(ctx, s))
 		if err != nil {
 			if s.clientSession.TransactionRunning() {
 				// Wrap the user-provided Context in a new one that behaves like context.Background() for deadlines and

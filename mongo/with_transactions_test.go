@@ -221,12 +221,12 @@ func TestConvenientTransactions(t *testing.T) {
 			require.NoError(t, err, "error setting failpoint: %v", err)
 
 			session, err := client.StartSession()
-			defer session.EndSession(bgCtx)
+			defer session.EndSession(context.Background())
 			require.NoError(t, err, "StartSession error: %v", err)
 
 			coll := db.Collection(t.Name())
 			startTime := time.Now()
-			_, err = session.WithTransaction(bgCtx, func(sesctx context.Context) (any, error) {
+			_, err = session.WithTransaction(context.Background(), func(sesctx context.Context) (any, error) {
 				if _, err := coll.InsertOne(sesctx, bson.D{}); err != nil {
 					return nil, err
 				}
