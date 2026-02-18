@@ -8,6 +8,7 @@ package bson
 
 import (
 	"bufio"
+	"bytes"
 	"io"
 )
 
@@ -56,15 +57,42 @@ func (s *streamingByteSrc) discard(n int) (int, error) {
 	return m, err
 }
 
-// readSlice scans buf[offset:] for the first occurrence of delim, returns
-// buf[offset:idx+1], and advances offset past it; errors if delim not found.
+// readSlice reads until the first occurrence of delim, returning a slice
+// containing the data up to and including the delimiter, and advances offset
+// past it; errors if delim not found.
 func (s *streamingByteSrc) readSlice(delim byte) ([]byte, error) {
-	data, err := s.br.ReadBytes(delim)
-	if err != nil {
-		return nil, err
+	var full [][]byte
+	var frag []byte
+	var err error
+	var n int
+
+	for {
+		if len(frag) > 0 {
+			// Make a copy of the fragment to accumulate full buffers.
+			buf := bytes.Clone(frag)
+			full = append(full, buf)
+		}
+		frag, err = s.br.ReadSlice(delim)
+		n += len(frag)
+		if err != bufio.ErrBufferFull {
+			break
+		}
 	}
-	s.offset += int64(len(data))
-	return data, nil
+	s.offset += int64(n)
+
+	// If ReadSlice is only called once, we can return the fragment directly.
+	if len(full) == 0 {
+		return frag, err
+	}
+
+	// Allocate new buffer to hold the full buffers and the fragment.
+	buf := make([]byte, n)
+	n = 0
+	for i := range full {
+		n += copy(buf[n:], full[i])
+	}
+	copy(buf[n:], frag)
+	return buf, err
 }
 
 // pos returns the current read position in the buffer.
