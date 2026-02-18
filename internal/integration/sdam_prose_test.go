@@ -19,6 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/eventtest"
 	"go.mongodb.org/mongo-driver/v2/internal/failpoint"
 	"go.mongodb.org/mongo-driver/v2/internal/handshake"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
@@ -282,5 +283,60 @@ func TestServerHeartbeatStartedEvent(t *testing.T) {
 		serversMu.Unlock()
 
 		assert.LessOrEqual(mt, heartbeatStartedCount.Load(), serverCount)
+	})
+}
+
+func TestConnectionPoolBackpressure(t *testing.T) {
+	mt := mtest.New(t, mtest.NewOptions().
+		MinServerVersion("7.0").
+		Topologies(mtest.Single, mtest.ReplicaSet))
+
+	mt.Run("ingress rate limiting does not clear pool", func(mt *mtest.T) {
+		tpm := eventtest.NewTestPoolMonitor()
+		mt.ResetClient(options.Client().
+			SetMaxConnecting(100).
+			SetPoolMonitor(tpm.PoolMonitor))
+
+		admin := mt.Client.Database("admin")
+		parameters := []struct {
+			name string
+			val  interface{}
+		}{
+			{"ingressConnectionEstablishmentRateLimiterEnabled", true},
+			{"ingressConnectionEstablishmentRatePerSec", 20},
+			{"ingressConnectionEstablishmentBurstCapacitySecs", 1},
+			{"ingressConnectionEstablishmentMaxQueueDepth", 1},
+		}
+		for _, p := range parameters {
+			err := admin.RunCommand(context.Background(), bson.D{{"setParameter", 1}, {p.name, p.val}}).Err()
+			require.NoError(mt, err)
+		}
+		defer func() {
+			time.Sleep(1 * time.Second)
+			_ = admin.RunCommand(context.Background(), bson.D{{"setParameter", 1}, {"ingressConnectionEstablishmentRateLimiterEnabled", false}})
+		}()
+
+		_, err := mt.Coll.InsertOne(context.Background(), bson.D{})
+		require.NoError(mt, err)
+
+		var wg sync.WaitGroup
+		filter := bson.D{{Key: "$where", Value: "function() { sleep(2000); return true; }"}}
+		for i := 0; i < 100; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				// Ignore errors raised by the command.
+				_ = mt.Coll.FindOne(context.Background(), filter).Err()
+			}()
+		}
+		wg.Wait()
+
+		checkOutFailedEvents := tpm.Events(func(evt *event.PoolEvent) bool {
+			return evt.Type == event.ConnectionCheckOutFailed
+		})
+		assert.True(mt, len(checkOutFailedEvents) >= 10,
+			"Expected >= 10 failures, got %d", len(checkOutFailedEvents))
+
+		assert.False(mt, tpm.IsPoolCleared(), "Pool should not have cleared")
 	})
 }

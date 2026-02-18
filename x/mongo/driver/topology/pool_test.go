@@ -483,7 +483,14 @@ func TestPool_checkOut(t *testing.T) {
 		require.NoError(t, err)
 
 		_, err = p.checkOut(context.Background())
-		var want error = ConnectionError{Wrapped: dialErr, init: true, message: "failed to connect to testaddr:27017"}
+		var want error = driver.Error{
+			Labels: []string{driver.ErrSystemOverloadedError, driver.ErrRetryableError, driver.NetworkError},
+			Wrapped: ConnectionError{
+				Wrapped: dialErr,
+				init:    true,
+				message: "failed to connect to testaddr:27017",
+			},
+		}
 		assert.Equalf(t, want, err, "should return error from calling checkOut()")
 		// If a connection initialization error occurs during checkOut, removing and closing the
 		// failed connection both happen asynchronously with the checkOut. Wait for up to 2s for
@@ -620,14 +627,15 @@ func TestPool_checkOut(t *testing.T) {
 		require.NoError(t, err)
 
 		_, err = p.checkOut(context.Background())
-		assert.IsTypef(t, ConnectionError{}, err, "expected a ConnectionError")
-		if err, ok := err.(ConnectionError); ok {
-			assert.Containsf(
-				t,
-				err.Unwrap().Error(),
-				"unable to write wire message to network: Write error",
-				"expected error to contain string")
-		}
+		assert.IsTypef(t, driver.Error{}, err, "expected a driver.Error")
+		driverErr := err.(driver.Error)
+		assert.IsTypef(t, ConnectionError{}, driverErr.Wrapped, "expected a ConnectionError")
+		connErr := driverErr.Wrapped.(ConnectionError)
+		assert.Containsf(
+			t,
+			connErr.Unwrap().Error(),
+			"unable to write wire message to network: Write error",
+			"expected error to contain string")
 		assert.Equalf(t, 0, p.availableConnectionCount(), "pool should have 0 available connections")
 		// On connect() failure, the connection is removed and closed after delivering the error
 		// to checkOut(), so it may still count toward the total connection count briefly. Wait
