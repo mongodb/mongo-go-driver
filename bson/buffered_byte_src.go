@@ -68,7 +68,7 @@ func (b *bufferedByteSrc) discard(n int) (int, error) {
 	return n, nil
 }
 
-// readSlice scans buf[offset:] for the first occurrence of delim, returns
+// readSlice reads buf[offset:] for the first occurrence of delim, returning
 // buf[offset:idx+1], and advances offset past it; errors if delim not found.
 func (b *bufferedByteSrc) readSlice(delim byte) ([]byte, error) {
 	// Ensure we don't read past the end of the buffer.
