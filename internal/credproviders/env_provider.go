@@ -7,13 +7,11 @@
 package credproviders
 
 import (
+	"context"
 	"os"
 
 	"go.mongodb.org/mongo-driver/v2/internal/aws/credentials"
 )
-
-// envProviderName provides a name of Env provider
-const envProviderName = "EnvProvider"
 
 // EnvVar is an environment variable
 type EnvVar string
@@ -29,8 +27,6 @@ type EnvProvider struct {
 	AwsAccessKeyIDEnv     EnvVar
 	AwsSecretAccessKeyEnv EnvVar
 	AwsSessionTokenEnv    EnvVar
-
-	retrieved bool
 }
 
 // NewEnvProvider returns a pointer to an ECS credential provider.
@@ -46,24 +42,18 @@ func NewEnvProvider() *EnvProvider {
 }
 
 // Retrieve retrieves the keys from the environment.
-func (e *EnvProvider) Retrieve() (credentials.Value, error) {
-	e.retrieved = false
-
+func (e *EnvProvider) Retrieve(_ context.Context) (credentials.Value, error) {
 	v := credentials.Value{
 		AccessKeyID:     e.AwsAccessKeyIDEnv.Get(),
 		SecretAccessKey: e.AwsSecretAccessKeyEnv.Get(),
 		SessionToken:    e.AwsSessionTokenEnv.Get(),
-		ProviderName:    envProviderName,
+		CanExpire:       false,
 	}
 	err := verify(v)
-	if err == nil {
-		e.retrieved = true
+	if err != nil {
+		// Expire the credentials if invalid.
+		v.CanExpire = true
 	}
 
 	return v, err
-}
-
-// IsExpired returns true if the credentials have not been retrieved.
-func (e *EnvProvider) IsExpired() bool {
-	return !e.retrieved
 }
