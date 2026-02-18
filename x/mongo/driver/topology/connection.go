@@ -211,7 +211,10 @@ func (c *connection) connect(ctx context.Context) (err error) {
 	// Assign the result of DialContext to a temporary net.Conn to ensure that c.nc is not set in an error case.
 	tempNc, err := c.config.dialer.DialContext(ctx, c.addr.Network(), c.addr.String())
 	if err != nil {
-		return ConnectionError{Wrapped: err, init: true, message: fmt.Sprintf("failed to connect to %s", c.addr)}
+		return driver.Error{
+			Labels:  []string{driver.ErrSystemOverloadedError, driver.ErrRetryableError, driver.NetworkError},
+			Wrapped: ConnectionError{Wrapped: err, init: true, message: fmt.Sprintf("failed to connect to %s", c.addr)},
+		}
 	}
 	c.nc = tempNc
 
@@ -227,7 +230,10 @@ func (c *connection) connect(ctx context.Context) (err error) {
 		}
 		tlsNc, err := configureTLS(ctx, c.config.tlsConnectionSource, c.nc, c.addr, tlsConfig, ocspOpts)
 		if err != nil {
-			return ConnectionError{Wrapped: err, init: true, message: fmt.Sprintf("failed to configure TLS for %s", c.addr)}
+			return driver.Error{
+				Labels:  []string{driver.ErrSystemOverloadedError, driver.ErrRetryableError, driver.NetworkError},
+				Wrapped: ConnectionError{Wrapped: err, init: true, message: fmt.Sprintf("failed to configure TLS for %s", c.addr)},
+			}
 		}
 		c.nc = tlsNc
 	}
@@ -245,34 +251,35 @@ func (c *connection) connect(ctx context.Context) (err error) {
 	handshakeConn := mnet.NewConnection(iconn)
 
 	handshakeInfo, err = handshaker.GetHandshakeInformation(ctx, c.addr, handshakeConn)
-	if err == nil {
-		// We only need to retain the Description field as the connection's description. The authentication-related
-		// fields in handshakeInfo are tracked by the handshaker if necessary.
-		c.desc = handshakeInfo.Description
-		c.serverConnectionID = handshakeInfo.ServerConnectionID
-		c.helloRTT = time.Since(handshakeStartTime)
-
-		// If the application has indicated that the cluster is load balanced, ensure the server has included serviceId
-		// in its handshake response to signal that it knows it's behind an LB as well.
-		if c.config.loadBalanced && c.desc.ServiceID == nil {
-			err = errLoadBalancedStateMismatch
-		}
-	}
-	if err == nil {
-		// For load-balanced connections, the generation number depends on the service ID, which isn't known until the
-		// initial MongoDB handshake is done. To account for this, we don't attempt to set the connection's generation
-		// number unless GetHandshakeInformation succeeds.
-		if c.config.loadBalanced {
-			c.setGenerationNumber()
-		}
-
-		// If we successfully finished the first part of the handshake and verified LB state, continue with the rest of
-		// the handshake.
-		err = handshaker.FinishHandshake(ctx, handshakeConn)
-	}
-
-	// We have a failed handshake here
 	if err != nil {
+		return driver.Error{
+			Labels:  []string{driver.ErrSystemOverloadedError, driver.ErrRetryableError, driver.NetworkError},
+			Wrapped: ConnectionError{Wrapped: err, init: true},
+		}
+	}
+
+	// We only need to retain the Description field as the connection's description. The authentication-related
+	// fields in handshakeInfo are tracked by the handshaker if necessary.
+	c.desc = handshakeInfo.Description
+	c.serverConnectionID = handshakeInfo.ServerConnectionID
+	c.helloRTT = time.Since(handshakeStartTime)
+
+	// If the application has indicated that the cluster is load balanced, ensure the server has included serviceId
+	// in its handshake response to signal that it knows it's behind an LB as well.
+	if c.config.loadBalanced && c.desc.ServiceID == nil {
+		return ConnectionError{Wrapped: errLoadBalancedStateMismatch, init: true}
+	}
+
+	// For load-balanced connections, the generation number depends on the service ID, which isn't known until the
+	// initial MongoDB handshake is done. To account for this, we don't attempt to set the connection's generation
+	// number unless GetHandshakeInformation succeeds.
+	if c.config.loadBalanced {
+		c.setGenerationNumber()
+	}
+
+	// If we successfully finished the first part of the handshake and verified LB state, continue with the rest of
+	// the handshake. Authentication errors are not connection establishment errors and do not get backpressure labels.
+	if err = handshaker.FinishHandshake(ctx, handshakeConn); err != nil {
 		return ConnectionError{Wrapped: err, init: true}
 	}
 
@@ -414,6 +421,7 @@ func (c *connection) readWireMessage(ctx context.Context) ([]byte, error) {
 			// connection because we don't know what the connection state is.
 			_ = c.close()
 		}
+
 		message := errMsg
 		return nil, ConnectionError{
 			ConnectionID: c.id,

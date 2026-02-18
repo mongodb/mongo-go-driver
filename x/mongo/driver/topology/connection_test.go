@@ -63,7 +63,10 @@ func TestConnection(t *testing.T) {
 		t.Run("connect", func(t *testing.T) {
 			t.Run("dialer error", func(t *testing.T) {
 				err := errors.New("dialer error")
-				var want error = ConnectionError{Wrapped: err, init: true, message: "failed to connect to testaddr:27017"}
+				var want error = driver.Error{
+					Labels:  []string{driver.ErrSystemOverloadedError, driver.ErrRetryableError, driver.NetworkError},
+					Wrapped: ConnectionError{Wrapped: err, init: true, message: "failed to connect to testaddr:27017"},
+				}
 				conn := newConnection(address.Address("testaddr"), WithDialer(func(Dialer) Dialer {
 					return DialerFunc(func(context.Context, string, string) (net.Conn, error) { return nil, err })
 				}))

@@ -31,17 +31,17 @@ jobs:
     outputs:
       version: ${{ steps.pre-publish.outputs.version }}
     steps:
-      - uses: mongodb-labs/drivers-github-tools/secure-checkout@v3
+      - uses: mongodb-labs/drivers-github-tools/secure-checkout@fac300d2aa6fe2ddd6316aa673df485941b882f0 #v3
         with:
           app_id: ${{ vars.APP_ID }}
           private_key: ${{ secrets.APP_PRIVATE_KEY }}
-      - uses: mongodb-labs/drivers-github-tools/setup@v3
+      - uses: mongodb-labs/drivers-github-tools/setup@fac300d2aa6fe2ddd6316aa673df485941b882f0 #v3
         with:
           aws_role_arn: ${{ secrets.AWS_ROLE_ARN }}
           aws_region_name: ${{ vars.AWS_REGION_NAME }}
           aws_secret_id: ${{ secrets.AWS_SECRET_ID }}
           artifactory_username: ${{ vars.ARTIFACTORY_USERNAME }}
-      - uses: mongodb-labs/drivers-github-tools/create-branch@v3
+      - uses: mongodb-labs/drivers-github-tools/create-branch@fac300d2aa6fe2ddd6316aa673df485941b882f0 #v3
         id: create-branch
         with:
           branch_name: ${{ inputs.branch_name }}

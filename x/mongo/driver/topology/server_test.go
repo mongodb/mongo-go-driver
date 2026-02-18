@@ -225,7 +225,7 @@ func TestServerConnectionTimeout(t *testing.T) {
 			connectTimeout:    defaultConnectionTimeout,
 		},
 		{
-			desc: "timeout error during dialing should clear the pool",
+			desc: "timeout error during dialing should not clear the pool due to backpressure",
 			dialer: func(Dialer) Dialer {
 				var d net.Dialer
 				return DialerFunc(func(ctx context.Context, network, addr string) (net.Conn, error) {
@@ -238,10 +238,10 @@ func TestServerConnectionTimeout(t *testing.T) {
 			operationTimeout:  1 * time.Minute,
 			connectTimeout:    100 * time.Millisecond,
 			expectErr:         true,
-			expectPoolCleared: true,
+			expectPoolCleared: false,
 		},
 		{
-			desc: "timeout error during dialing with no operation timeout should clear the pool",
+			desc: "timeout error during dialing with no operation timeout should not clear the pool due to the backpressure",
 			dialer: func(Dialer) Dialer {
 				var d net.Dialer
 				return DialerFunc(func(ctx context.Context, network, addr string) (net.Conn, error) {
@@ -254,10 +254,10 @@ func TestServerConnectionTimeout(t *testing.T) {
 			operationTimeout:  0, // Uses a context.Background() with no timeout.
 			connectTimeout:    100 * time.Millisecond,
 			expectErr:         true,
-			expectPoolCleared: true,
+			expectPoolCleared: false,
 		},
 		{
-			desc: "dial errors unrelated to context timeouts should clear the pool",
+			desc: "dial errors unrelated to context timeouts should not clear the pool due to backpressure",
 			dialer: func(Dialer) Dialer {
 				var d net.Dialer
 				return DialerFunc(func(ctx context.Context, _, _ string) (net.Conn, error) {
@@ -266,11 +266,11 @@ func TestServerConnectionTimeout(t *testing.T) {
 				})
 			},
 			expectErr:         true,
-			expectPoolCleared: true,
+			expectPoolCleared: false,
 			connectTimeout:    defaultConnectionTimeout,
 		},
 		{
-			desc: "operation context timeout with unrelated dial errors should clear the pool",
+			desc: "operation context timeout with unrelated dial errors should clear not the pool due to backpressure",
 			dialer: func(Dialer) Dialer {
 				var d net.Dialer
 				return DialerFunc(func(ctx context.Context, _, _ string) (net.Conn, error) {
@@ -285,7 +285,7 @@ func TestServerConnectionTimeout(t *testing.T) {
 			operationTimeout:  1 * time.Millisecond,
 			connectTimeout:    100 * time.Millisecond,
 			expectErr:         true,
-			expectPoolCleared: true,
+			expectPoolCleared: false,
 		},
 	}
 
@@ -374,11 +374,15 @@ func TestServer(t *testing.T) {
 		{"auth_error", true, false, false},
 		{"no_error", false, false, false},
 		{"network_error_no_desc", false, true, false},
-		{"network_error_desc", false, true, true},
+		{"network_error_desc", false, true, false},
 	}
 
 	authErr := ConnectionError{Wrapped: &auth.Error{}, init: true}
-	netErr := ConnectionError{Wrapped: &net.AddrError{}, init: true, message: "failed to connect to localhost:27017"}
+	rawNetErr := &net.AddrError{}
+	netErr := driver.Error{
+		Labels:  []string{driver.ErrSystemOverloadedError, driver.ErrRetryableError},
+		Wrapped: ConnectionError{Wrapped: rawNetErr, init: true, message: "failed to connect to localhost:27017"},
+	}
 	for _, tt := range serverTestTable {
 		t.Run(tt.name, func(t *testing.T) {
 			var returnConnectionError bool
@@ -403,7 +407,7 @@ func TestServer(t *testing.T) {
 							return DialerFunc(func(context.Context, string, string) (net.Conn, error) {
 								var err error
 								if tt.networkError && returnConnectionError {
-									err = netErr.Wrapped
+									err = rawNetErr
 								}
 								return &net.TCPConn{}, err
 							})
@@ -448,8 +452,11 @@ func TestServer(t *testing.T) {
 			}
 
 			generation, _ := s.pool.generation.getGeneration(nil)
-			if (tt.connectionError || tt.networkError) && generation != 1 {
-				t.Errorf("Expected pool to be drained once on connection or network error. got %d; want %d", generation, 1)
+			if tt.connectionError && generation != 1 {
+				t.Errorf("Expected pool to be drained once on connection error. got %d; want %d", generation, 1)
+			}
+			if tt.networkError && generation != 0 {
+				t.Errorf("Expected pool to not be drained on network error. got %d; want %d", generation, 0)
 			}
 		})
 	}
@@ -491,19 +498,18 @@ func TestServer(t *testing.T) {
 			numNewConns        uint64
 		}{
 			// For LB clusters, errors for dialing and the initial handshake are ignored.
-			{"dial errors are ignored for load balancers", true, netErr.Wrapped, nil, nil, 0, 1},
-			{"initial handshake errors are ignored for load balancers", true, nil, netErr.Wrapped, nil, 0, 1},
+			{"dial errors are ignored for load balancers", true, rawNetErr, nil, nil, 0, 1},
+			{"initial handshake errors are ignored for load balancers", true, nil, rawNetErr, nil, 0, 1},
 
 			// For LB clusters, post-handshake errors clear the pool, but do not update the server
 			// description or pause the pool.
-			{"post-handshake errors are not ignored for load balancers", true, nil, nil, netErr.Wrapped, 5, 1},
+			{"post-handshake errors are not ignored for load balancers", true, nil, nil, rawNetErr, 5, 1},
 
-			// For non-LB clusters, the first error sets the server to Unknown and clears and pauses
-			// the pool. All subsequent attempts to check out a connection without updating the
-			// server description return an error because the pool is paused.
-			{"dial errors are not ignored for non-lb clusters", false, netErr.Wrapped, nil, nil, 1, 1},
-			{"initial handshake errors are not ignored for non-lb clusters", false, nil, netErr.Wrapped, nil, 1, 1},
-			{"post-handshake errors are not ignored for non-lb clusters", false, nil, nil, netErr.Wrapped, 1, 1},
+			// For non-LB clusters, dial and initial handshake errors do not clear the pool or update
+			// the server description.
+			{"dial errors are ignored for non-lb clusters", false, rawNetErr, nil, nil, 0, 1},
+			{"initial handshake errors are ignored for non-lb clusters", false, nil, rawNetErr, nil, 0, 1},
+			{"post-handshake errors are not ignored for non-lb clusters", false, nil, nil, rawNetErr, 1, 1},
 		}
 		for _, tc := range testCases {
 			tc := tc // Capture range variable.
