@@ -90,7 +90,7 @@ func TestConnection(t *testing.T) {
 				}
 			})
 			t.Run("x509 dialer error does not get backpressure labels", func(t *testing.T) {
-				err := &x509.HostnameError{Host: "testaddr", Certificate: &x509.Certificate{}}
+				err := x509.HostnameError{Host: "testaddr", Certificate: &x509.Certificate{}}
 				var want error = ConnectionError{Wrapped: err, init: true, message: "failed to connect to testaddr:27017"}
 				conn := newConnection(address.Address("testaddr"), WithDialer(func(Dialer) Dialer {
 					return DialerFunc(func(context.Context, string, string) (net.Conn, error) { return nil, err })

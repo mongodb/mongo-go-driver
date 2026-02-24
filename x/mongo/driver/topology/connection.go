@@ -52,15 +52,16 @@ func isBackpressureEligible(err error) bool {
 	if errors.As(err, &dnsErr) {
 		return false
 	}
-	var hostErr *x509.HostnameError
+	// x509 errors are returned as values by the crypto/tls package
+	var hostErr x509.HostnameError
 	if errors.As(err, &hostErr) {
 		return false
 	}
-	var certErr *x509.CertificateInvalidError
+	var certErr x509.CertificateInvalidError
 	if errors.As(err, &certErr) {
 		return false
 	}
-	var unknownCAErr *x509.UnknownAuthorityError
+	var unknownCAErr x509.UnknownAuthorityError
 	return !errors.As(err, &unknownCAErr)
 }
 
