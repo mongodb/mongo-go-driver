@@ -20,6 +20,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/failpoint"
 	"go.mongodb.org/mongo-driver/v2/internal/integtest"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -101,6 +102,8 @@ func TestConvenientTransactions(t *testing.T) {
 		assert.False(t, resBool, "expected result false, got %v", resBool)
 	})
 	t.Run("retry timeout enforced", func(t *testing.T) {
+		timeout := withTransactionTimeout
+		defer func() { withTransactionTimeout = timeout }()
 		withTransactionTimeout = time.Second
 
 		coll := db.Collection(t.Name())
@@ -189,6 +192,56 @@ func TestConvenientTransactions(t *testing.T) {
 			assert.True(t, cmdErr.HasErrorLabel(driver.TransientTransactionError),
 				"expected error with label %v, got %v", driver.TransientTransactionError, cmdErr)
 		})
+	})
+	t.Run("retry backoff is enforced", func(t *testing.T) {
+		version, err := getServerVersion(dbAdmin)
+		require.NoError(t, err, "getServerVersion error: %v", err)
+		if compareVersions(version, "4.4") < 0 {
+			t.Skip("skipping versions < 4.4")
+		}
+
+		fp := failpoint.FailPoint{
+			ConfigureFailPoint: "failCommand",
+			Mode: failpoint.Mode{
+				Times: 13,
+			},
+			Data: failpoint.Data{
+				FailCommands: []string{"commitTransaction"},
+				ErrorCode:    251,
+			},
+		}
+
+		transWithJitter := func(t *testing.T, testJitter *testJitter) time.Duration {
+			j := jitter
+			defer func() { jitter = j }()
+
+			jitter = testJitter
+
+			err := dbAdmin.RunCommand(bgCtx, fp).Err()
+			require.NoError(t, err, "error setting failpoint: %v", err)
+
+			session, err := client.StartSession()
+			defer session.EndSession(context.Background())
+			require.NoError(t, err, "StartSession error: %v", err)
+
+			coll := db.Collection(t.Name())
+			startTime := time.Now()
+			_, err = session.WithTransaction(context.Background(), func(sesctx context.Context) (any, error) {
+				if _, err := coll.InsertOne(sesctx, bson.D{}); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			})
+			require.NoError(t, err, "WithTransaction error: %v", err)
+			return time.Since(startTime)
+		}
+		noBackoffTime := transWithJitter(t, &testJitter{ratio: 0})
+		withBackoffTime := transWithJitter(t, &testJitter{ratio: 1})
+		assert.InDelta(
+			t,
+			withBackoffTime, noBackoffTime+1_800*time.Millisecond, float64(500*time.Millisecond),
+			"with backoff time: %v, no backoff time: %v", withBackoffTime, noBackoffTime,
+		)
 	})
 	t.Run("abortTransaction does not time out", func(t *testing.T) {
 		// Create a special CommandMonitor that only records information about abortTransaction events and also
@@ -346,6 +399,8 @@ func TestConvenientTransactions(t *testing.T) {
 		})
 	})
 	t.Run("context error before commitTransaction does not retry and aborts", func(t *testing.T) {
+		timeout := withTransactionTimeout
+		defer func() { withTransactionTimeout = timeout }()
 		withTransactionTimeout = 2 * time.Second
 
 		// Create a special CommandMonitor that only records information about abortTransaction events.
@@ -453,6 +508,8 @@ func TestConvenientTransactions(t *testing.T) {
 		assert.False(t, resBool, "expected result false, got %v", resBool)
 	})
 	t.Run("expired context before callback does not retry", func(t *testing.T) {
+		timeout := withTransactionTimeout
+		defer func() { withTransactionTimeout = timeout }()
 		withTransactionTimeout = 2 * time.Second
 
 		coll := db.Collection("test")
@@ -488,6 +545,8 @@ func TestConvenientTransactions(t *testing.T) {
 			"expected transaction to fail within 500ms")
 	})
 	t.Run("canceled context before callback does not retry", func(t *testing.T) {
+		timeout := withTransactionTimeout
+		defer func() { withTransactionTimeout = timeout }()
 		withTransactionTimeout = 2 * time.Second
 
 		coll := db.Collection("test")
@@ -526,6 +585,8 @@ func TestConvenientTransactions(t *testing.T) {
 		if os.Getenv("TOPOLOGY") == "sharded_cluster" {
 			t.Skip("skipping on sharded clusters due to SERVER-96344; see GODRIVER-3801")
 		}
+		timeout := withTransactionTimeout
+		defer func() { withTransactionTimeout = timeout }()
 		withTransactionTimeout = 2 * time.Second
 
 		coll := db.Collection("test")
@@ -585,6 +646,8 @@ func TestConvenientTransactions(t *testing.T) {
 			"expected transaction to be passed within 2s")
 	})
 	t.Run("retries correctly for joined errors", func(t *testing.T) {
+		timeout := withTransactionTimeout
+		defer func() { withTransactionTimeout = timeout }()
 		withTransactionTimeout = 500 * time.Millisecond
 
 		sess, err := client.StartSession()
@@ -609,6 +672,21 @@ func TestConvenientTransactions(t *testing.T) {
 		})
 		assert.Greater(t, count, 1, "expected WithTransaction callback to be retried at least once")
 	})
+}
+
+type testJitter struct {
+	ratio float64
+}
+
+func (j *testJitter) Int63n(n int64) int64 {
+	if j.ratio <= 0 {
+		return 0
+	}
+	if j.ratio >= 1 {
+		return n
+	}
+	val := j.ratio * float64(n)
+	return int64(val)
 }
 
 func setupConvenientTransactions(t *testing.T, extraClientOpts ...*options.ClientOptions) *Client {
