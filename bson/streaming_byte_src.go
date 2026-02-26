@@ -8,7 +8,6 @@ package bson
 
 import (
 	"bufio"
-	"bytes"
 	"io"
 )
 
@@ -67,9 +66,10 @@ func (s *streamingByteSrc) readSlice(delim byte) ([]byte, error) {
 	var n int
 
 	for {
-		if len(frag) > 0 {
+		if l := len(frag); l > 0 {
 			// Make a copy of the fragment to accumulate full buffers.
-			buf := bytes.Clone(frag)
+			buf := make([]byte, l)
+			copy(buf, frag)
 			full = append(full, buf)
 		}
 		frag, err = s.br.ReadSlice(delim)
