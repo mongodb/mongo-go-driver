@@ -7,6 +7,7 @@
 package bson
 
 import (
+	"fmt"
 	"reflect"
 
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
@@ -29,6 +30,9 @@ func (ac *arrayCodec) EncodeValue(_ EncodeContext, vw ValueWriter, val reflect.V
 func (ac *arrayCodec) DecodeValue(_ DecodeContext, vr ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tCoreArray {
 		return ValueDecoderError{Name: "CoreArrayDecodeValue", Types: []reflect.Type{tCoreArray}, Received: val}
+	}
+	if vrType := vr.Type(); vrType != TypeArray {
+		return fmt.Errorf("cannot decode %v into a %s", vrType, val.Type())
 	}
 
 	if val.IsNil() {
