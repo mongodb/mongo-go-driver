@@ -134,7 +134,7 @@ func (sc *saslConversation) Finish(ctx context.Context, cfg *driver.AuthConfig, 
 		)
 		saslContinueCmd := operation.NewCommand(doc).
 			Database(sc.source).
-			Deployment(driver.SingleConnectionDeployment{cfg.Connection}).
+			Deployment(driver.SingleConnectionDeployment{C: cfg.Connection}).
 			ClusterClock(cfg.ClusterClock).
 			ServerAPI(cfg.ServerAPI)
 
@@ -162,7 +162,7 @@ func ConductSaslConversation(ctx context.Context, cfg *driver.AuthConfig, authSo
 	}
 	saslStartCmd := operation.NewCommand(saslStartDoc).
 		Database(authSource).
-		Deployment(driver.SingleConnectionDeployment{cfg.Connection}).
+		Deployment(driver.SingleConnectionDeployment{C: cfg.Connection}).
 		ClusterClock(cfg.ClusterClock).
 		ServerAPI(cfg.ServerAPI)
 	if err := saslStartCmd.Execute(ctx); err != nil {
