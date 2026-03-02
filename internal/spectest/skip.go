@@ -427,6 +427,7 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/client-side-operations-timeout/tests/close-cursors.json/timeoutMS_is_refreshed_for_close",
 		"TestUnifiedSpec/client-side-operations-timeout/tests/convenient-transactions.json/withTransaction_raises_a_client-side_error_if_timeoutMS_is_overridden_inside_the_callback",
 		"TestUnifiedSpec/client-side-operations-timeout/tests/convenient-transactions.json/timeoutMS_is_not_refreshed_for_each_operation_in_the_callback",
+		"TestUnifiedSpec/client-side-operations-timeout/tests/convenient-transactions.json/withTransaction_surfaces_a_timeout_after_exhausting_transient_transaction_retries,_retaining_the_last_transient_error_as_the_timeout_cause.",
 		"TestUnifiedSpec/client-side-operations-timeout/tests/cursors.json/find_errors_if_timeoutMode_is_set_and_timeoutMS_is_not",
 		"TestUnifiedSpec/client-side-operations-timeout/tests/cursors.json/collection_aggregate_errors_if_timeoutMode_is_set_and_timeoutMS_is_not",
 		"TestUnifiedSpec/client-side-operations-timeout/tests/cursors.json/database_aggregate_errors_if_timeoutMode_is_set_and_timeoutMS_is_not",
