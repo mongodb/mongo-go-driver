@@ -369,12 +369,11 @@ func TestServer(t *testing.T) {
 		name            string
 		connectionError bool
 		networkError    bool
-		hasDesc         bool
 	}{
-		{"auth_error", true, false, false},
-		{"no_error", false, false, false},
-		{"network_error_no_desc", false, true, false},
-		{"network_error_desc", false, true, false},
+		{"auth_error", true, false},
+		{"no_error", false, false},
+		{"network_error_no_desc", false, true},
+		{"network_error_desc", false, true},
 	}
 
 	authErr := ConnectionError{Wrapped: &auth.Error{}, init: true}
@@ -416,12 +415,6 @@ func TestServer(t *testing.T) {
 				}),
 			)
 
-			var desc *description.Server
-			descript := s.Description()
-			if tt.hasDesc {
-				desc = &descript
-				require.Nil(t, desc.LastError)
-			}
 			err := s.pool.ready()
 			require.NoError(t, err, "pool.ready() error")
 			defer s.pool.close(context.Background())
@@ -446,17 +439,17 @@ func TestServer(t *testing.T) {
 				t.Errorf("Expected error to be nil. got %v; want %v", err, "<nil>")
 			}
 
-			if tt.hasDesc {
-				require.Equal(t, s.Description().Kind, (description.ServerKind)(description.Unknown))
-				require.NotNil(t, s.Description().LastError)
+			if tt.connectionError || tt.networkError {
+				assert.Equal(t, s.Description().Kind, (description.ServerKind)(description.Unknown))
 			}
 
 			generation, _ := s.pool.generation.getGeneration(nil)
-			if tt.connectionError && generation != 1 {
-				t.Errorf("Expected pool to be drained once on connection error. got %d; want %d", generation, 1)
-			}
-			if tt.networkError && generation != 0 {
-				t.Errorf("Expected pool to not be drained on network error. got %d; want %d", generation, 0)
+			switch {
+			case tt.connectionError:
+				assert.Equal(t, uint64(1), generation, "Expected pool to be drained once on connection error. got %d; want %d", generation, 1)
+			case tt.networkError:
+				assert.NoError(t, s.Description().LastError, "Expected no LastError")
+				assert.Equal(t, uint64(0), generation, "Expected pool to not be drained on network error. got %d; want %d", generation, 1)
 			}
 		})
 	}

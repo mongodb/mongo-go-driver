@@ -47,22 +47,28 @@ var (
 
 func nextConnectionID() uint64 { return atomic.AddUint64(&globalConnectionID, 1) }
 
-func isBackpressureEligible(err error) bool {
+func wrapConnectionError(connErr ConnectionError) error {
 	var dnsErr *net.DNSError
-	if errors.As(err, &dnsErr) {
-		return false
+	if errors.As(connErr.Wrapped, &dnsErr) {
+		return connErr
 	}
 	// x509 errors are returned as values by the crypto/tls package
 	var hostErr x509.HostnameError
-	if errors.As(err, &hostErr) {
-		return false
+	if errors.As(connErr.Wrapped, &hostErr) {
+		return connErr
 	}
 	var certErr x509.CertificateInvalidError
-	if errors.As(err, &certErr) {
-		return false
+	if errors.As(connErr.Wrapped, &certErr) {
+		return connErr
 	}
 	var unknownCAErr x509.UnknownAuthorityError
-	return !errors.As(err, &unknownCAErr)
+	if errors.As(connErr.Wrapped, &unknownCAErr) {
+		return connErr
+	}
+	return driver.Error{
+		Labels:  []string{driver.ErrSystemOverloadedError, driver.ErrRetryableError, driver.NetworkError},
+		Wrapped: connErr,
+	}
 }
 
 type connection struct {
@@ -231,13 +237,7 @@ func (c *connection) connect(ctx context.Context) (err error) {
 	tempNc, err := c.config.dialer.DialContext(ctx, c.addr.Network(), c.addr.String())
 	if err != nil {
 		connErr := ConnectionError{Wrapped: err, init: true, message: fmt.Sprintf("failed to connect to %s", c.addr)}
-		if isBackpressureEligible(err) {
-			return driver.Error{
-				Labels:  []string{driver.ErrSystemOverloadedError, driver.ErrRetryableError, driver.NetworkError},
-				Wrapped: connErr,
-			}
-		}
-		return connErr
+		return wrapConnectionError(connErr)
 	}
 	c.nc = tempNc
 
@@ -254,13 +254,7 @@ func (c *connection) connect(ctx context.Context) (err error) {
 		tlsNc, err := configureTLS(ctx, c.config.tlsConnectionSource, c.nc, c.addr, tlsConfig, ocspOpts)
 		if err != nil {
 			connErr := ConnectionError{Wrapped: err, init: true, message: fmt.Sprintf("failed to configure TLS for %s", c.addr)}
-			if isBackpressureEligible(err) {
-				return driver.Error{
-					Labels:  []string{driver.ErrSystemOverloadedError, driver.ErrRetryableError, driver.NetworkError},
-					Wrapped: connErr,
-				}
-			}
-			return connErr
+			return wrapConnectionError(connErr)
 		}
 		c.nc = tlsNc
 	}
@@ -280,13 +274,7 @@ func (c *connection) connect(ctx context.Context) (err error) {
 	handshakeInfo, err = handshaker.GetHandshakeInformation(ctx, c.addr, handshakeConn)
 	if err != nil {
 		connErr := ConnectionError{Wrapped: err, init: true}
-		if isBackpressureEligible(err) {
-			return driver.Error{
-				Labels:  []string{driver.ErrSystemOverloadedError, driver.ErrRetryableError, driver.NetworkError},
-				Wrapped: connErr,
-			}
-		}
-		return connErr
+		return wrapConnectionError(connErr)
 	}
 
 	// We only need to retain the Description field as the connection's description. The authentication-related

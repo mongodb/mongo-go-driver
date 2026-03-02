@@ -483,7 +483,7 @@ func TestPool_checkOut(t *testing.T) {
 		require.NoError(t, err)
 
 		_, err = p.checkOut(context.Background())
-		var want error = driver.Error{
+		want := driver.Error{
 			Labels: []string{driver.ErrSystemOverloadedError, driver.ErrRetryableError, driver.NetworkError},
 			Wrapped: ConnectionError{
 				Wrapped: dialErr,
@@ -627,9 +627,9 @@ func TestPool_checkOut(t *testing.T) {
 		require.NoError(t, err)
 
 		_, err = p.checkOut(context.Background())
-		assert.IsTypef(t, driver.Error{}, err, "expected a driver.Error")
+		require.IsTypef(t, driver.Error{}, err, "expected a driver.Error")
 		driverErr := err.(driver.Error)
-		assert.IsTypef(t, ConnectionError{}, driverErr.Wrapped, "expected a ConnectionError")
+		require.IsTypef(t, ConnectionError{}, driverErr.Wrapped, "expected a ConnectionError")
 		connErr := driverErr.Wrapped.(ConnectionError)
 		assert.Containsf(
 			t,
