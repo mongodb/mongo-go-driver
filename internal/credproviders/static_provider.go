@@ -7,13 +7,11 @@
 package credproviders
 
 import (
+	"context"
 	"errors"
 
 	"go.mongodb.org/mongo-driver/v2/internal/aws/credentials"
 )
-
-// staticProviderName provides a name of Static provider
-const staticProviderName = "StaticProvider"
 
 // A StaticProvider is a set of credentials which are set programmatically,
 // and will never expire.
@@ -41,18 +39,10 @@ func verify(v credentials.Value) error {
 }
 
 // Retrieve returns the credentials or error if the credentials are invalid.
-func (s *StaticProvider) Retrieve() (credentials.Value, error) {
+func (s *StaticProvider) Retrieve(_ context.Context) (credentials.Value, error) {
 	if !s.verified {
 		s.err = verify(s.Value)
-		s.ProviderName = staticProviderName
 		s.verified = true
 	}
 	return s.Value, s.err
-}
-
-// IsExpired returns if the credentials are expired.
-//
-// For StaticProvider, the credentials never expired.
-func (s *StaticProvider) IsExpired() bool {
-	return false
 }
