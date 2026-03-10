@@ -146,7 +146,7 @@ func (wce WriteCommandError) Error() string {
 // Retryable returns true if the error is retryable
 func (wce WriteCommandError) Retryable(serverKind description.ServerKind, wireVersion *description.VersionRange) bool {
 	for _, label := range wce.Labels {
-		if label == RetryableWriteError {
+		if label == RetryableWriteError || label == ErrRetryableError {
 			return true
 		}
 	}
@@ -332,7 +332,7 @@ func (e Error) RetryableRead() bool {
 // RetryableWrite returns true if the error is retryable for a write operation
 func (e Error) RetryableWrite(wireVersion *description.VersionRange) bool {
 	for _, label := range e.Labels {
-		if label == NetworkError || label == RetryableWriteError {
+		if label == NetworkError || label == RetryableWriteError || label == ErrRetryableError {
 			return true
 		}
 	}
