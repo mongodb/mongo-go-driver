@@ -35,7 +35,8 @@ const (
 
 // isSystemOverloadedError detects overload errors
 func isSystemOverloadedError(err error) bool {
-	if lerr, ok := err.(mongo.LabeledError); ok && lerr.HasErrorLabel(errSystemOverloadedError) {
+	var lerr mongo.LabeledError
+	if errors.As(err, &lerr) && lerr.HasErrorLabel(errSystemOverloadedError) {
 		return true
 	}
 	return false
@@ -45,14 +46,13 @@ func isSystemOverloadedError(err error) bool {
 type tokenBucket struct {
 	capacity int
 	tokens   int
-	locker   *sync.Mutex
+	locker   sync.Mutex
 }
 
 func newTokenBucket(capacity int) *tokenBucket {
 	return &tokenBucket{
 		capacity: capacity,
 		tokens:   capacity,
-		locker:   new(sync.Mutex),
 	}
 }
 
@@ -119,7 +119,8 @@ func executeWithRetries(
 			tb.Deposit(retryToken)
 			break
 		}
-		if lerr, ok := err.(mongo.LabeledError); !ok || !lerr.HasErrorLabel(errRetryableError) {
+		var lerr mongo.LabeledError
+		if !errors.As(err, &lerr) || !lerr.HasErrorLabel(errRetryableError) {
 			break
 		}
 		if !tb.Consume(retryToken) {
