@@ -545,6 +545,7 @@ func (op Operation) Execute(ctx context.Context) error {
 		retries--
 		prevErr = err
 
+		var isOverloadedError bool
 		// Set the previous indefinite error to be returned in any case where a retryable write error does not have a
 		// NoWritesPerfomed label (the definite case).
 		if lerr, ok := err.(labeledError); ok {
@@ -561,12 +562,18 @@ func (op Operation) Execute(ctx context.Context) error {
 			if !lerr.HasErrorLabel(NoWritesPerformed) && lerr.HasErrorLabel(RetryableWriteError) {
 				prevIndefiniteErr = err
 			}
+
+			if lerr.HasErrorLabel(ErrSystemOverloadedError) {
+				isOverloadedError = true
+			}
 		}
 
 		// If we got a connection, close it immediately to release pool resources
 		// for subsequent retries.
 		if conn != nil {
-			deprioritizedServers = append(deprioritizedServers, conn.Description())
+			if op.Deployment.Kind() == description.TopologyKindSharded || isOverloadedError {
+				deprioritizedServers = append(deprioritizedServers, conn.Description())
+			}
 			conn.Close()
 		}
 

@@ -21,6 +21,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
 )
 
 func TestRetryableReadsProse(t *testing.T) {
@@ -198,6 +199,70 @@ func TestRetryableReadsProse(t *testing.T) {
 
 				assert.Equal(mt, tc.expectedFailCount, failCount)
 				assert.Equal(mt, tc.expectedSuccessCount, successCount)
+			})
+		}
+	})
+
+	mtOpts = mtest.NewOptions().Topologies(mtest.ReplicaSet).MinServerVersion("4.4")
+	mt.RunOpts("retrying reads in a replica set", mtOpts, func(mt *mtest.T) {
+		tests := []struct {
+			name              string
+			errLabels         []string
+			isServerIdentical bool
+		}{
+			{
+				name:              "overload errors",
+				errLabels:         []string{"RetryableError", "SystemOverloadedError"},
+				isServerIdentical: false,
+			},
+			{
+				name:              "non-overload errors",
+				errLabels:         []string{"RetryableError"},
+				isServerIdentical: true,
+			},
+		}
+
+		for _, tc := range tests {
+			mt.Run(tc.name, func(mt *mtest.T) {
+				failPoint := failpoint.FailPoint{
+					ConfigureFailPoint: "failCommand",
+					Mode: failpoint.Mode{
+						Times: 1,
+					},
+					Data: failpoint.Data{
+						FailCommands: []string{"find"},
+						ErrorLabels:  &tc.errLabels,
+						ErrorCode:    6,
+					},
+				}
+				mt.SetFailPoint(failPoint)
+
+				var failConns []string
+				var successConns []string
+
+				commandMonitor := &event.CommandMonitor{
+					Failed: func(_ context.Context, event *event.CommandFailedEvent) {
+						failConns = append(failConns, event.ConnectionID)
+					},
+					Succeeded: func(_ context.Context, event *event.CommandSucceededEvent) {
+						successConns = append(successConns, event.ConnectionID)
+					},
+				}
+
+				mt.ResetClient(options.Client().
+					SetRetryReads(true).
+					SetReadPreference(readpref.PrimaryPreferred()).
+					SetMonitor(commandMonitor))
+				_, err := mt.Coll.Find(context.Background(), bson.D{})
+				require.NoError(mt, err)
+				require.Len(mt, failConns, 1, "expected exactly one failed attempt, got %v", failConns)
+				require.Len(mt, successConns, 1, "expected exactly one successful attempt, got %v", successConns)
+				wanted := "different"
+				if tc.isServerIdentical {
+					wanted = "identical"
+				}
+				assert.Equal(mt, tc.isServerIdentical, failConns[0] == successConns[0],
+					"expected failed and succeeded events to have %s connection IDs, got %v and %v", wanted, failConns, successConns)
 			})
 		}
 	})
