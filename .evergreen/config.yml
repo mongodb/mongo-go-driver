@@ -1992,7 +1992,7 @@ buildvariants:
     display_name: "${version} ${os-ssl-40}"
     tasks:
       - name: ".test !.enterprise-auth !.snappy"
-  - matrix_name: "tests-latest-zlib-zstd-support"
+  - matrix_name: "tests-latest-rapid-zlib-zstd-support"
     matrix_spec: {version: ["latest", "rapid"], os-ssl-40: ["windows-64", "rhel87-64"]}
     display_name: "${version} ${os-ssl-40}"
     tasks:
@@ -2039,14 +2039,14 @@ buildvariants:
     display_name: "API Version ${version} ${os-ssl-40}"
     tasks:
       - name: ".versioned-api"
-  - matrix_name: "versioned-api-latest-test"
+  - matrix_name: "versioned-api-latest-rapid-test"
     matrix_spec: {version: ["latest", "rapid"], os-ssl-40: ["windows-64", "rhel87-64"]}
     display_name: "API Version ${version} ${os-ssl-40}"
     tasks:
       - name: ".versioned-api"
   - matrix_name: "client-side-encryption-test"
     matrix_spec: {version: ["latest", "rapid"], os-ssl-40: ["rhel87-64"]}
-    display_name: "Client Side Encryption Tests ${os-ssl-40}"
+    display_name: "Client Side Encryption Tests ${version} ${os-ssl-40}"
     tasks:
       - name: ".client-side-encryption-test"
   - matrix_name: "load-balancer-test"
@@ -2055,7 +2055,7 @@ buildvariants:
     display_name: "Load Balancer Support ${version} ${os-ssl-40}"
     tasks:
       - name: ".load-balancer"
-  - matrix_name: "load-balancer-latest-test"
+  - matrix_name: "load-balancer-latest-rapid-test"
     matrix_spec: {version: ["latest", "rapid"], os-ssl-40: ["rhel87-64"]}
     display_name: "Load Balancer Support ${version} ${os-ssl-40}"
     tasks:
