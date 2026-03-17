@@ -21,6 +21,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
 )
 
 func TestRetryableReadsProse(t *testing.T) {
@@ -198,6 +199,58 @@ func TestRetryableReadsProse(t *testing.T) {
 
 				assert.Equal(mt, tc.expectedFailCount, failCount)
 				assert.Equal(mt, tc.expectedSuccessCount, successCount)
+			})
+		}
+	})
+
+	mtOpts = mtest.NewOptions().Topologies(mtest.ReplicaSet).MinServerVersion("4.4").CreateClient(false)
+	mt.RunOpts("retrying reads in a replica set", mtOpts, func(mt *mtest.T) {
+		tests := []struct {
+			name              string
+			errLabels         []string
+			isServerIdentical bool
+		}{
+			{
+				name:              "overload errors",
+				errLabels:         []string{"RetryableError", "SystemOverloadedError"},
+				isServerIdentical: false,
+			},
+			{
+				name:              "non-overload errors",
+				errLabels:         []string{"RetryableError"},
+				isServerIdentical: true,
+			},
+		}
+
+		clientOpts := options.Client().SetRetryReads(true).SetReadPreference(readpref.PrimaryPreferred())
+		for _, tc := range tests {
+			mt.RunOpts(tc.name, mtest.NewOptions().ClientOptions(clientOpts), func(mt *mtest.T) {
+				failPoint := failpoint.FailPoint{
+					ConfigureFailPoint: "failCommand",
+					Mode: failpoint.Mode{
+						Times: 1,
+					},
+					Data: failpoint.Data{
+						FailCommands: []string{"find"},
+						ErrorLabels:  &tc.errLabels,
+						ErrorCode:    6,
+					},
+				}
+				mt.SetFailPoint(failPoint)
+				mt.ClearEvents()
+
+				_ = mt.Coll.FindOne(context.Background(), bson.D{})
+				succeeded := mt.GetAllSucceededEvents()
+				require.Len(mt, succeeded, 1, "expected exactly one succeeded attempt")
+				failed := mt.GetAllFailedEvents()
+				require.Len(mt, failed, 1, "expected exactly one failed attempt")
+				wanted := "different"
+				if tc.isServerIdentical {
+					wanted = "identical"
+				}
+				assert.Equal(mt, tc.isServerIdentical, failed[0].ConnectionID == succeeded[0].ConnectionID,
+					"expected failed and succeeded events to have %s connection IDs, got %v and %v", wanted,
+					failed[0].ConnectionID, succeeded[0].ConnectionID)
 			})
 		}
 	})
