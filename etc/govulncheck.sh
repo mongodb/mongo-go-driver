@@ -7,10 +7,11 @@ set -ex
 # Note: this needs to be updated if the listed Go version has vulnerabilities
 # discovered because they will show up in the scan results along with Go Driver
 # and dependency vulnerabilities.
-BASE_VERSION=1.25
-GO_VERSION=$(curl -s 'https://go.dev/dl/?mode=json'\
-    | jq -r '.[].version'\
-    | grep -m 1 -E "^go${BASE_VERSION}")
+VERSION_REGEX='1\\.25\\.[0-9]+'
+JQ_FILTER="first(.[] \
+| select(.stable == true and (.version | test(\"^go${VERSION_REGEX}$\"))) \
+| .version)"
+GO_VERSION=$(curl -sSfL 'https://golang.org/dl/?mode=json' | jq -r "$JQ_FILTER")
 
 go install golang.org/dl/$GO_VERSION@latest
 ${GO_VERSION} download
