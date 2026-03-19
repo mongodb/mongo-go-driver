@@ -41,7 +41,7 @@ jobs:
           go-version: "1.25.0"
       # Initializes the CodeQL tools for scanning.
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4.32.6 #immutable
+        uses: github/codeql-action/init@v4.33.0 #immutable
         with:
           languages: go
           build-mode: manual
@@ -54,6 +54,6 @@ jobs:
 
           go test -v ./internal/test/compilecheck -run '^TestCompileCheck/go:1\.19$'
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v4.32.6 #immutable
+        uses: github/codeql-action/analyze@v4.33.0 #immutable
         with:
           category: "/language:go"
