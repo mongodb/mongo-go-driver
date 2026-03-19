@@ -9,6 +9,7 @@ package integration
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -383,6 +384,138 @@ func TestRetryableWritesProse(t *testing.T) {
 				assert.Equal(mt, tc.expectedSuccessCount, successCount)
 			})
 		}
+	})
+}
+
+func TestErrorPropagationAfterEncounteringMultipleErrors(t *testing.T) {
+	mt := mtest.New(t, mtest.NewOptions().
+		MinServerVersion("6.0").
+		Topologies(mtest.ReplicaSet))
+
+	errorCodesContains := func(err error, code int) bool {
+		for _, ec := range mongo.ErrorCodes(err) {
+			if ec == code {
+				return true
+			}
+		}
+		return false
+	}
+
+	mt.Run("Case 1: Test that drivers return the correct error when receiving only errors without NoWritesPerformed", func(subt *mtest.T) {
+		defer subt.ClearFailPoints()
+
+		subt.SetFailPoint(failpoint.FailPoint{
+			ConfigureFailPoint: "failCommand",
+			Mode: failpoint.Mode{
+				Times: 1,
+			},
+			Data: failpoint.Data{
+				FailCommands: []string{"insert"},
+				ErrorLabels:  &[]string{"RetryableError", "SystemOverloadedError"},
+				ErrorCode:    91,
+			},
+		})
+
+		monitor := &event.CommandMonitor{
+			Failed: func(_ context.Context, event *event.CommandFailedEvent) {
+				if event.CommandName != "insert" {
+					return
+				}
+				if errorCodesContains(event.Failure, 91) {
+					subt.SetFailPoint(failpoint.FailPoint{
+						ConfigureFailPoint: "failCommand",
+						Mode:               failpoint.ModeAlwaysOn,
+						Data: failpoint.Data{
+							FailCommands: []string{"insert"},
+							ErrorLabels:  &[]string{"RetryableError", "SystemOverloadedError"},
+							ErrorCode:    10107,
+						},
+					})
+				}
+			},
+		}
+		mt.ResetClient(options.Client().SetRetryWrites(true).SetMonitor(monitor))
+		_, err := mt.Coll.InsertOne(context.Background(), bson.D{})
+		require.True(subt, errorCodesContains(err, 10107), "Expect the error code of the server error to be 10107")
+	})
+
+	mt.Run("Case 2: Test that drivers return the correct error when receiving only errors with NoWritesPerformed", func(subt *mtest.T) {
+		defer subt.ClearFailPoints()
+
+		subt.SetFailPoint(failpoint.FailPoint{
+			ConfigureFailPoint: "failCommand",
+			Mode: failpoint.Mode{
+				Times: 1,
+			},
+			Data: failpoint.Data{
+				FailCommands: []string{"insert"},
+				ErrorLabels:  &[]string{"RetryableError", "SystemOverloadedError", "NoWritesPerformed"},
+				ErrorCode:    91,
+			},
+		})
+
+		monitor := &event.CommandMonitor{
+			Failed: func(_ context.Context, event *event.CommandFailedEvent) {
+				if event.CommandName != "insert" {
+					return
+				}
+				if errorCodesContains(event.Failure, 91) {
+					subt.SetFailPoint(failpoint.FailPoint{
+						ConfigureFailPoint: "failCommand",
+						Mode:               failpoint.ModeAlwaysOn,
+						Data: failpoint.Data{
+							FailCommands: []string{"insert"},
+							ErrorLabels:  &[]string{"RetryableError", "SystemOverloadedError", "NoWritesPerformed"},
+							ErrorCode:    10107,
+						},
+					})
+				}
+			},
+		}
+		mt.ResetClient(options.Client().SetRetryWrites(true).SetMonitor(monitor))
+		_, err := mt.Coll.InsertOne(context.Background(), bson.D{})
+		require.True(subt, errorCodesContains(err, 91), "Expect the error code of the server error to be 91")
+	})
+
+	mt.Run("Case 3: Test that drivers return the correct error when receiving some errors with NoWritesPerformed and some without NoWritesPerformed", func(subt *mtest.T) {
+		defer subt.ClearFailPoints()
+
+		subt.SetFailPoint(failpoint.FailPoint{
+			ConfigureFailPoint: "failCommand",
+			Mode:               failpoint.ModeAlwaysOn,
+			Data: failpoint.Data{
+				FailCommands: []string{"insert"},
+				ErrorLabels:  &[]string{"RetryableError", "SystemOverloadedError", "NoWritesPerformed"},
+				ErrorCode:    91,
+			},
+		})
+
+		monitor := &event.CommandMonitor{
+			Failed: func(_ context.Context, event *event.CommandFailedEvent) {
+				if event.CommandName != "insert" {
+					return
+				}
+				if errorCodesContains(event.Failure, 91) {
+					subt.SetFailPoint(failpoint.FailPoint{
+						ConfigureFailPoint: "failCommand",
+						Mode: failpoint.Mode{
+							Times: 1,
+						},
+						Data: failpoint.Data{
+							FailCommands: []string{"insert"},
+							ErrorLabels:  &[]string{"RetryableError", "SystemOverloadedError"},
+							ErrorCode:    91,
+						},
+					})
+				}
+			},
+		}
+		mt.ResetClient(options.Client().SetRetryWrites(true).SetMonitor(monitor))
+		_, err := mt.Coll.InsertOne(context.Background(), bson.D{})
+		require.True(subt, errorCodesContains(err, 91), "Expect the error code of the server error to be 91")
+		var labeledError driver.Error
+		require.True(subt, errors.As(err, &labeledError), "expected error to be a labeled error")
+		require.NotContains(subt, labeledError.Labels, "NoWritesPerformed", "expected error labels to contain NoWritesPerformed")
 	})
 }
 
