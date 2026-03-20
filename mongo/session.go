@@ -219,7 +219,7 @@ func (s *Session) WithTransaction(
 
 			select {
 			case <-timeout.C:
-				return res, err
+				return res, TimeoutError{Wrapped: err}
 			default:
 			}
 

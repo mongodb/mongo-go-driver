@@ -834,6 +834,9 @@ type TimeoutError struct {
 
 // Error implements the error interface.
 func (e TimeoutError) Error() string {
+	if e.Wrapped == nil {
+		return "operation timed out"
+	}
 	return e.Wrapped.Error()
 }
 

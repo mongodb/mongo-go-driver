@@ -259,8 +259,8 @@ func executeTestRunnerOperation(ctx context.Context, op *operation, loopDone <-c
 			return fmt.Errorf("run on unknown thread: %s", thread)
 		}
 		routine.(*backgroundRoutine).addTask(threadOp.Name, func() error {
-			_, err = threadOp.execute(ctx, loopDone)
-			return err
+			_, execErr := threadOp.execute(ctx, loopDone)
+			return execErr
 		})
 		return nil
 	case "waitForThread":
