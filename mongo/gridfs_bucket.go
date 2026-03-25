@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sync/atomic"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/csot"
@@ -37,6 +38,8 @@ var ErrMissingGridFSChunkSize = errors.New("files collection document does not c
 
 // GridFSBucket represents a GridFS bucket.
 type GridFSBucket struct {
+	firstWriteDone uint32
+
 	db         *Database
 	chunksColl *Collection // collection to store file chunks
 	filesColl  *Collection // collection to store file metadata
@@ -47,9 +50,8 @@ type GridFSBucket struct {
 	rc        *readconcern.ReadConcern
 	rp        *readpref.ReadPref
 
-	firstWriteDone bool
-	readBuf        []byte
-	writeBuf       []byte
+	readBuf  []byte
+	writeBuf []byte
 }
 
 // upload contains options to upload a file to a bucket.
@@ -531,14 +533,10 @@ func (b *GridFSBucket) createIndexes(ctx context.Context) error {
 }
 
 func (b *GridFSBucket) checkFirstWrite(ctx context.Context) error {
-	if !b.firstWriteDone {
+	if atomic.CompareAndSwapUint32(&b.firstWriteDone, 0, 1) {
 		// before the first write operation, must determine if files collection is empty
 		// if so, create indexes if they do not already exist
-
-		if err := b.createIndexes(ctx); err != nil {
-			return err
-		}
-		b.firstWriteDone = true
+		return b.createIndexes(ctx)
 	}
 
 	return nil
