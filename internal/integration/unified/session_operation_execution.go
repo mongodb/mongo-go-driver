@@ -81,38 +81,47 @@ func executeStartTransaction(ctx context.Context, operation *operation) (*operat
 	return newErrorResult(sess.StartTransaction(opts)), nil
 }
 
-func executeWithTransaction(ctx context.Context, op *operation, loopDone <-chan struct{}) error {
+func executeWithTransaction(ctx context.Context, op *operation, loopDone <-chan struct{}) (*operationResult, error) {
 	sess, err := entities(ctx).session(op.Object)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Process the "callback" argument. This is an array of operation objects, each of which should be executed inside
 	// the transaction.
 	callback, err := op.Arguments.LookupErr("callback")
 	if err != nil {
-		return newMissingArgumentError("callback")
+		return nil, newMissingArgumentError("callback")
 	}
 	var operations []*operation
 	if err := callback.Unmarshal(&operations); err != nil {
-		return fmt.Errorf("error transforming callback option to slice of operations: %v", err)
+		return nil, fmt.Errorf("error transforming callback option to slice of operations: %v", err)
 	}
 
 	// Remove the "callback" field and process the other options.
 	var temp transactionOptions
 	if err := bson.Unmarshal(removeFieldsFromDocument(op.Arguments, "callback"), &temp); err != nil {
-		return fmt.Errorf("error unmarshalling arguments to transactionOptions: %v", err)
+		return nil, fmt.Errorf("error unmarshalling arguments to transactionOptions: %v", err)
 	}
 
-	_, err = sess.WithTransaction(ctx, func(ctx context.Context) (any, error) {
+	_, withTransErr := sess.WithTransaction(ctx, func(ctx context.Context) (any, error) {
+		var cbErr error
 		for idx, oper := range operations {
-			if err := oper.execute(ctx, loopDone); err != nil {
-				return nil, fmt.Errorf("error executing operation %q at index %d: %v", oper.Name, idx, err)
+			res, execErr := oper.execute(ctx, loopDone)
+			if execErr != nil {
+				err = fmt.Errorf("error executing operation %q at index %d: %v", oper.Name, idx, execErr)
+				return nil, nil
+			}
+			if cbErr == nil && res != nil {
+				cbErr = res.Err
 			}
 		}
-		return nil, nil
+		return nil, cbErr
 	}, temp.TransactionOptionsBuilder)
-	return err
+	if err != nil {
+		return nil, err
+	}
+	return &operationResult{Err: withTransErr}, nil
 }
 
 func executeGetSnapshotTime(ctx context.Context, op *operation) (*operationResult, error) {

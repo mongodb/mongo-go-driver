@@ -827,6 +827,34 @@ func (bwe ClientBulkWriteException) Error() string {
 	return "bulk write exception: " + strings.Join(causes, ", ")
 }
 
+// TimeoutError represents an error that occurred due to a timeout.
+type TimeoutError struct {
+	Wrapped error
+}
+
+// Error implements the error interface.
+func (e TimeoutError) Error() string {
+	if e.Wrapped == nil {
+		return "operation timed out"
+	}
+	return e.Wrapped.Error()
+}
+
+// Unwrap returns the underlying error.
+func (e TimeoutError) Unwrap() error {
+	return e.Wrapped
+}
+
+// HasErrorLabel returns true if the error contains the specified label.
+func (e TimeoutError) HasErrorLabel(label string) bool {
+	if label == "ExceededTimeLimitError" {
+		return true
+	} else if le := LabeledError(nil); errors.As(e.Wrapped, &le) {
+		return le.HasErrorLabel(label)
+	}
+	return false
+}
+
 // returnResult is used to determine if a function calling processWriteError should return
 // the result or return nil. Since the processWriteError function is used by many different
 // methods, both *One and *Many, we need a way to differentiate if the method should return

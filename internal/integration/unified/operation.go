@@ -28,26 +28,26 @@ type operation struct {
 
 // execute runs the operation and verifies the returned result and/or error. If the result needs to be saved as
 // an entity, it also updates the entityMap associated with ctx to do so.
-func (op *operation) execute(ctx context.Context, loopDone <-chan struct{}) error {
+func (op *operation) execute(ctx context.Context, loopDone <-chan struct{}) (*operationResult, error) {
 	res, err := op.run(ctx, loopDone)
 	if err != nil {
-		return fmt.Errorf("execution failed: %v", err)
+		return nil, fmt.Errorf("execution failed: %v", err)
 	}
 
 	if op.IgnoreResultAndError {
-		return nil
+		return nil, nil
 	}
 
 	if err := verifyOperationError(ctx, op.ExpectedError, res); err != nil {
-		return fmt.Errorf("error verification failed: %v", err)
+		return nil, fmt.Errorf("error verification failed: %v", err)
 	}
 
 	if op.ExpectedResult != nil {
 		if err := verifyOperationResult(ctx, *op.ExpectedResult, res); err != nil {
-			return fmt.Errorf("result verification failed: %v", err)
+			return nil, fmt.Errorf("result verification failed: %v", err)
 		}
 	}
-	return nil
+	return res, nil
 }
 
 // isCreateView will return true if the operation is to create a collection with a view.
@@ -125,8 +125,9 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 	case "startTransaction":
 		return executeStartTransaction(ctx, op)
 	case "withTransaction":
-		// executeWithTransaction internally verifies results/errors for each operation, so it doesn't return a result.
-		return newEmptyResult(), executeWithTransaction(ctx, op, loopDone)
+		// executeWithTransaction internally verifies results/errors for each operation.
+		// The error from WithTransaction() is wrapped in the result.
+		return executeWithTransaction(ctx, op, loopDone)
 	case "getSnapshotTime":
 		// executeGetSnapshotTime stores the snapshot time of the session as on
 		// the entity map for subsequent use.

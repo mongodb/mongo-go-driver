@@ -259,7 +259,8 @@ func executeTestRunnerOperation(ctx context.Context, op *operation, loopDone <-c
 			return fmt.Errorf("run on unknown thread: %s", thread)
 		}
 		routine.(*backgroundRoutine).addTask(threadOp.Name, func() error {
-			return threadOp.execute(ctx, loopDone)
+			_, execErr := threadOp.execute(ctx, loopDone)
+			return execErr
 		})
 		return nil
 	case "waitForThread":
@@ -323,7 +324,7 @@ func executeLoop(ctx context.Context, args *loopArgs, loopDone <-chan struct{}) 
 				if operation.Name == "loop" {
 					return fmt.Errorf("loop sub-operations should not include loop")
 				}
-				loopErr = operation.execute(ctx, loopDone)
+				_, loopErr = operation.execute(ctx, loopDone)
 
 				// if the operation errors, stop this loop
 				if loopErr != nil {
