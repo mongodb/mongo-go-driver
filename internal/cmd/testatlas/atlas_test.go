@@ -97,6 +97,12 @@ func TestAtlas(t *testing.T) {
 			wantErr:     "",
 		},
 		{
+			name:        "Atlas with no clientAuth EKU",
+			envVar:      "NO_CLIENT_AUTH_EKU",
+			certKeyFile: "",
+			wantErr:     "",
+		},
+		{
 			name:        "Atlas with X509 Dev",
 			envVar:      "ATLAS_X509_DEV",
 			certKeyFile: createAtlasX509DevCertKeyFile(t),

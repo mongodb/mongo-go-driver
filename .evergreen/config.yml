@@ -1948,13 +1948,10 @@ buildvariants:
       GO_DIST: "/opt/golang/go1.25"
     tasks:
       - name: "backport-pr"
-  - name: atlas-test
+  - matrix_name: atlas-test
     tags: ["pullrequest"]
-    display_name: "Atlas test"
-    run_on:
-      - rhel8.7-large
-    expansions:
-      GO_DIST: "/opt/golang/go1.25"
+    matrix_spec: {os-ssl-40: ["rhel87-64", "windows-64", "macos"]}
+    display_name: "Atlas test ${os-ssl-40}"
     tasks:
       - name: "atlas-test"
   - name: docker-runner-test
