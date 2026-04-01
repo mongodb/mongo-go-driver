@@ -148,13 +148,13 @@ func (s *Session) WithTransaction(
 			}
 			backoff := expDur * time.Duration(jitter.Int63n(512)) / 512
 			if time.Since(startTime)+backoff > transTimeout {
-				return nil, err
+				return nil, TimeoutError{Wrapped: err}
 			}
 			sleep := time.NewTimer(backoff)
 			select {
 			case <-timeout.C:
 				sleep.Stop()
-				return nil, err
+				return nil, TimeoutError{Wrapped: err}
 			case <-sleep.C:
 			}
 			if expDur < backoffMax {
@@ -178,7 +178,7 @@ func (s *Session) WithTransaction(
 
 			select {
 			case <-timeout.C:
-				return nil, err
+				return nil, TimeoutError{Wrapped: err}
 			default:
 			}
 
@@ -219,7 +219,7 @@ func (s *Session) WithTransaction(
 
 			select {
 			case <-timeout.C:
-				return res, err
+				return res, TimeoutError{Wrapped: err}
 			default:
 			}
 
