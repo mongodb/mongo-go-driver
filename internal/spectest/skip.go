@@ -843,6 +843,20 @@ var skipTests = map[string][]string{
 	"Backpressure SDAM test 'pool-clear-min-pool-size-error.yml' fails on standalone deployments": {
 		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/pool-clear-min-pool-size-error.json/Pool_is_not_cleared_on_handshake_error_during_minPoolSize_population",
 	},
+
+	// TODO(GODRIVER-3839): Support accessToken form of KMS providers, unified spec schema 1.28.
+	"Support accessToken form of KMS providers, unified spec schema 1.28": {
+		"TestUnifiedSpec/client-side-encryption/tests/unified/accessToken-azure.json/Auto_encrypt_using_access_token_Azure_credentials",
+		"TestUnifiedSpec/client-side-encryption/tests/unified/accessToken-azure.json/Explicit_encrypt_using_access_token_Azure_credentials",
+		"TestUnifiedSpec/client-side-encryption/tests/unified/accessToken-gcp.json/Auto_encrypt_using_access_token_GCP_credentials",
+		"TestUnifiedSpec/client-side-encryption/tests/unified/accessToken-gcp.json/Explicit_encrypt_using_access_token_GCP_credentials",
+		"TestURIOptionsSpec/client-backpressure-options.json/adaptiveRetries_with_invalid_value_causes_a_warning",
+	},
+
+	// TODO(GODRIVER-3637): Implement client backpressure.
+	"Implement client backpressure": {
+		"TestURIOptionsSpec/client-backpressure-options.json/adaptiveRetries_with_invalid_value_causes_a_warning",
+	},
 }
 
 // CheckSkip checks if the fully-qualified test name matches a list of skipped test names for a given reason.
