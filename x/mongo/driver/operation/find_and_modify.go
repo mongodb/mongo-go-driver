@@ -45,6 +45,7 @@ type FindAndModify struct {
 	selector                 description.ServerSelector
 	writeConcern             *writeconcern.WriteConcern
 	retry                    *driver.RetryMode
+	retryOverload            bool
 	crypt                    driver.Crypt
 	hint                     bsoncore.Value
 	serverAPI                *driver.ServerAPIOptions
@@ -132,6 +133,7 @@ func (fam *FindAndModify) Execute(ctx context.Context) error {
 		ProcessResponseFn: fam.processResponse,
 
 		RetryMode:      fam.retry,
+		RetryOverload:  fam.retryOverload,
 		Type:           driver.Write,
 		Client:         fam.session,
 		Clock:          fam.clock,
@@ -418,6 +420,17 @@ func (fam *FindAndModify) Retry(retry driver.RetryMode) *FindAndModify {
 	}
 
 	fam.retry = &retry
+	return fam
+}
+
+// RetryOverload indicates that the driver should retry operations that fail with a server
+// side overload error.
+func (fam *FindAndModify) RetryOverload(retryOverload bool) *FindAndModify {
+	if fam == nil {
+		fam = new(FindAndModify)
+	}
+
+	fam.retryOverload = retryOverload
 	return fam
 }
 

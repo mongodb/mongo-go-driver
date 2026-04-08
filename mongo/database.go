@@ -140,7 +140,6 @@ func (db *Database) Aggregate(
 		registry:       db.registry,
 		readConcern:    db.readConcern,
 		writeConcern:   db.writeConcern,
-		retryRead:      db.client.retryReads,
 		db:             db.name,
 		readSelector:   db.readSelector,
 		writeSelector:  db.writeSelector,
@@ -211,6 +210,7 @@ func (db *Database) processRunCommand(
 	return op.Session(sess).CommandMonitor(db.client.monitor).
 		ServerSelector(readSelect).ClusterClock(db.client.clock).
 		Database(db.name).Deployment(db.client.deployment).
+		RetryOverload(db.client.retryReads && db.client.retryWrites).
 		Crypt(db.client.cryptFLE).ReadPreference(args.ReadPreference).ServerAPI(db.client.serverAPI).
 		Timeout(db.client.timeout).Logger(db.client.logger).Authenticator(db.client.authenticator), sess, nil
 }
@@ -456,6 +456,11 @@ func (db *Database) ListCollections(
 		return nil, err
 	}
 
+	retry := driver.RetryNone
+	if db.client.retryReads {
+		retry = driver.RetryOncePerCommand
+	}
+
 	var selector description.ServerSelector
 
 	selector = &serverselector.Composite{
@@ -469,6 +474,7 @@ func (db *Database) ListCollections(
 
 	op := operation.NewListCollections(filterDoc).
 		Session(sess).ReadPreference(db.readPreference).CommandMonitor(db.client.monitor).
+		Retry(retry).RetryOverload(db.client.retryReads).
 		ServerSelector(selector).ClusterClock(db.client.clock).
 		Database(db.name).Deployment(db.client.deployment).Crypt(db.client.cryptFLE).
 		ServerAPI(db.client.serverAPI).Timeout(db.client.timeout).Authenticator(db.client.authenticator)
@@ -490,12 +496,6 @@ func (db *Database) ListCollections(
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
 		op = op.RawData(rawData)
 	}
-
-	retry := driver.RetryNone
-	if db.client.retryReads {
-		retry = driver.RetryOncePerCommand
-	}
-	op = op.Retry(retry)
 
 	err = op.Execute(ctx)
 	if err != nil {

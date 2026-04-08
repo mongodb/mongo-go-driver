@@ -760,6 +760,11 @@ func (c *Client) ListDatabases(ctx context.Context, filter any, opts ...options.
 		return ListDatabasesResult{}, err
 	}
 
+	retry := driver.RetryNone
+	if c.retryReads {
+		retry = driver.RetryOncePerCommand
+	}
+
 	var selector description.ServerSelector
 
 	selector = &serverselector.Composite{
@@ -777,6 +782,7 @@ func (c *Client) ListDatabases(ctx context.Context, filter any, opts ...options.
 	}
 	op := operation.NewListDatabases(filterDoc).
 		Session(sess).ReadPreference(c.readPreference).CommandMonitor(c.monitor).
+		Retry(retry).RetryOverload(c.retryReads).
 		ServerSelector(selector).ClusterClock(c.clock).Database("admin").Deployment(c.deployment).Crypt(c.cryptFLE).
 		ServerAPI(c.serverAPI).Timeout(c.timeout).Authenticator(c.authenticator)
 
@@ -786,12 +792,6 @@ func (c *Client) ListDatabases(ctx context.Context, filter any, opts ...options.
 	if lda.AuthorizedDatabases != nil {
 		op = op.AuthorizedDatabases(*lda.AuthorizedDatabases)
 	}
-
-	retry := driver.RetryNone
-	if c.retryReads {
-		retry = driver.RetryOncePerCommand
-	}
-	op.Retry(retry)
 
 	err = op.Execute(ctx)
 	if err != nil {
@@ -1012,6 +1012,7 @@ func (c *Client) BulkWrite(ctx context.Context, writes []ClientBulkWrite,
 		client:                   c,
 		selector:                 selector,
 		writeConcern:             wc,
+		retryOverload:            c.retryWrites,
 	}
 	if rawData, ok := optionsutil.Value(bwo.Internal, "rawData").(bool); ok {
 		op.rawData = &rawData

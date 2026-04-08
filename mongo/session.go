@@ -33,10 +33,6 @@ var (
 	backoffMax             = 500 * time.Millisecond
 )
 
-var jitter interface {
-	Int63n(int64) int64
-} = randutil.NewLockedRand()
-
 // Session is a MongoDB logical session. Sessions can be used to enable causal
 // consistency for a group of operations or to execute operations in an ACID
 // transaction. A new Session can be created from a Client instance. A Session
@@ -146,7 +142,7 @@ func (s *Session) WithTransaction(
 			if expDur > backoffMax {
 				expDur = backoffMax
 			}
-			backoff := expDur * time.Duration(jitter.Int63n(512)) / 512
+			backoff := expDur * time.Duration(randutil.JitterInt63n(512)) / 512
 			if time.Since(startTime)+backoff > transTimeout {
 				return nil, err
 			}

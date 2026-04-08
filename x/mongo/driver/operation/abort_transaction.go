@@ -61,6 +61,7 @@ func (at *AbortTransaction) Execute(ctx context.Context) error {
 		Client:            at.session,
 		Clock:             at.clock,
 		CommandMonitor:    at.monitor,
+		RetryOverload:     at.session != nil && at.session.RetryOverload,
 		Crypt:             at.crypt,
 		Database:          at.database,
 		Deployment:        at.deployment,

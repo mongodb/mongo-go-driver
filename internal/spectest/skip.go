@@ -261,12 +261,12 @@ var skipTests = map[string][]string{
 	// TODO(GODRIVER-3034): Drivers should unpin connections when ending a
 	// session.
 	"Unpin connections at session end (GODRIVER-3034)": {
-		"TestUnifiedSpec/transactions/unified/mongos-unpin.json/unpin_on_successful_abort",
-		"TestUnifiedSpec/transactions/unified/mongos-unpin.json/unpin_after_non-transient_error_on_abort",
-		"TestUnifiedSpec/transactions/unified/mongos-unpin.json/unpin_after_TransientTransactionError_error_on_abort",
-		"TestUnifiedSpec/transactions/unified/mongos-unpin.json/unpin_when_a_new_transaction_is_started",
-		"TestUnifiedSpec/transactions/unified/mongos-unpin.json/unpin_when_a_non-transaction_write_operation_uses_a_session",
-		"TestUnifiedSpec/transactions/unified/mongos-unpin.json/unpin_when_a_non-transaction_read_operation_uses_a_session",
+		"TestUnifiedSpec/transactions/tests/unified/mongos-unpin.json/unpin_on_successful_abort",
+		"TestUnifiedSpec/transactions/tests/unified/mongos-unpin.json/unpin_after_non-transient_error_on_abort",
+		"TestUnifiedSpec/transactions/tests/unified/mongos-unpin.json/unpin_after_TransientTransactionError_error_on_abort",
+		"TestUnifiedSpec/transactions/tests/unified/mongos-unpin.json/unpin_when_a_new_transaction_is_started",
+		"TestUnifiedSpec/transactions/tests/unified/mongos-unpin.json/unpin_when_a_non-transaction_write_operation_uses_a_session",
+		"TestUnifiedSpec/transactions/tests/unified/mongos-unpin.json/unpin_when_a_non-transaction_read_operation_uses_a_session",
 	},
 
 	// TODO(GODRIVER-3146): Convert retryable reads spec tests to unified test format.
@@ -759,7 +759,7 @@ var skipTests = map[string][]string{
 	// TODO(GODRIVER-3137): Gossip cluster time from internal MongoClient to
 	// session entities.
 	"Must advance cluster times in unified spec runner (GODRIVER-3137)": {
-		"TestUnifiedSpec/transactions/unified/mongos-unpin.json/unpin_after_TransientTransactionError_error_on_commit",
+		"TestUnifiedSpec/transactions/tests/unified/mongos-unpin.json/unpin_after_TransientTransactionError_error_on_commit",
 		// This test fails with the same error as GODRIVER-3137, but is not
 		// directly referenced as an impacted test case by DRIVERS-2816. It
 		// seems likely that the same change will resolve the failure, so I'm
@@ -850,12 +850,28 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/client-side-encryption/tests/unified/accessToken-azure.json/Explicit_encrypt_using_access_token_Azure_credentials",
 		"TestUnifiedSpec/client-side-encryption/tests/unified/accessToken-gcp.json/Auto_encrypt_using_access_token_GCP_credentials",
 		"TestUnifiedSpec/client-side-encryption/tests/unified/accessToken-gcp.json/Explicit_encrypt_using_access_token_GCP_credentials",
-		"TestURIOptionsSpec/client-backpressure-options.json/adaptiveRetries_with_invalid_value_causes_a_warning",
 	},
 
 	// TODO(GODRIVER-3637): Implement client backpressure.
 	"Implement client backpressure": {
 		"TestURIOptionsSpec/client-backpressure-options.json/adaptiveRetries_with_invalid_value_causes_a_warning",
+	},
+
+	// TODO(GODRIVER-3484): Rename WriteConcernFailed code name to WriteConcernTimeout.
+	"Rename WriteConcernFailed code name to WriteConcernTimeout": {
+		"TestUnifiedSpec/transactions/tests/unified/error-labels.json/add_UnknownTransactionCommitResult_label_to_MaxTimeMSExpired",
+		"TestUnifiedSpec/transactions/tests/unified/error-labels.json/do_not_add_UnknownTransactionCommitResult_label_to_MaxTimeMSExpired_inside_transactions",
+		"TestUnifiedSpec/transactions/tests/unified/error-labels.json/add_UnknownTransactionCommitResult_label_to_writeConcernError_MaxTimeMSExpired",
+	},
+
+	// GODRIVER-2348
+	"transactions CSOT Options": {
+		"TestUnifiedSpec/transactions/tests/unified/retryable-commit.json/commitTransaction_applies_majority_write_concern_on_retries",
+		"TestUnifiedSpec/transactions/tests/unified/transaction-options.json/transaction_options_inherited_from_client",
+		"TestUnifiedSpec/transactions/tests/unified/transaction-options.json/transaction_options_inherited_from_defaultTransactionOptions",
+		"TestUnifiedSpec/transactions/tests/unified/transaction-options.json/startTransaction_options_override_defaults",
+		"TestUnifiedSpec/transactions/tests/unified/transaction-options.json/defaultTransactionOptions_override_client_options",
+		"TestUnifiedSpec/transactions/tests/unified/transaction-options.json/readConcern_local_in_defaultTransactionOptions",
 	},
 }
 

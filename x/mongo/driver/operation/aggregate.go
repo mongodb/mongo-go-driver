@@ -41,6 +41,7 @@ type Aggregate struct {
 	readConcern              *readconcern.ReadConcern
 	readPreference           *readpref.ReadPref
 	retry                    *driver.RetryMode
+	retryOverload            bool
 	selector                 description.ServerSelector
 	writeConcern             *writeconcern.WriteConcern
 	crypt                    driver.Crypt
@@ -105,6 +106,7 @@ func (a *Aggregate) Execute(ctx context.Context) error {
 		ReadPreference:                 a.readPreference,
 		Type:                           driver.Read,
 		RetryMode:                      a.retry,
+		RetryOverload:                  a.retryOverload,
 		Selector:                       a.selector,
 		WriteConcern:                   a.writeConcern,
 		Crypt:                          a.crypt,
@@ -345,6 +347,17 @@ func (a *Aggregate) Retry(retry driver.RetryMode) *Aggregate {
 	}
 
 	a.retry = &retry
+	return a
+}
+
+// RetryOverload indicates that the driver should retry operations that fail with a server
+// side overload error.
+func (a *Aggregate) RetryOverload(retry bool) *Aggregate {
+	if a == nil {
+		a = new(Aggregate)
+	}
+
+	a.retryOverload = retry
 	return a
 }
 

@@ -29,6 +29,7 @@ type DropIndexes struct {
 	clock         *session.ClusterClock
 	collection    string
 	monitor       *event.CommandMonitor
+	retryOverload bool
 	crypt         driver.Crypt
 	database      string
 	deployment    driver.Deployment
@@ -92,6 +93,7 @@ func (di *DropIndexes) Execute(ctx context.Context) error {
 		Client:            di.session,
 		Clock:             di.clock,
 		CommandMonitor:    di.monitor,
+		RetryOverload:     di.retryOverload,
 		Crypt:             di.crypt,
 		Database:          di.database,
 		Deployment:        di.deployment,
@@ -170,6 +172,17 @@ func (di *DropIndexes) CommandMonitor(monitor *event.CommandMonitor) *DropIndexe
 	}
 
 	di.monitor = monitor
+	return di
+}
+
+// RetryOverload indicates that the driver should retry operations that fail with a server
+// side overload error.
+func (di *DropIndexes) RetryOverload(retryOverload bool) *DropIndexes {
+	if di == nil {
+		di = new(DropIndexes)
+	}
+
+	di.retryOverload = retryOverload
 	return di
 }
 

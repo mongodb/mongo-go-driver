@@ -30,6 +30,7 @@ type CreateIndexes struct {
 	clock         *session.ClusterClock
 	collection    string
 	monitor       *event.CommandMonitor
+	retryOverload bool
 	crypt         driver.Crypt
 	database      string
 	deployment    driver.Deployment
@@ -110,6 +111,7 @@ func (ci *CreateIndexes) Execute(ctx context.Context) error {
 		Client:            ci.session,
 		Clock:             ci.clock,
 		CommandMonitor:    ci.monitor,
+		RetryOverload:     ci.retryOverload,
 		Crypt:             ci.crypt,
 		Database:          ci.database,
 		Deployment:        ci.deployment,
@@ -199,6 +201,17 @@ func (ci *CreateIndexes) CommandMonitor(monitor *event.CommandMonitor) *CreateIn
 	}
 
 	ci.monitor = monitor
+	return ci
+}
+
+// RetryOverload indicates that the driver should retry operations that fail with a server
+// side overload error.
+func (ci *CreateIndexes) RetryOverload(retryOverload bool) *CreateIndexes {
+	if ci == nil {
+		ci = new(CreateIndexes)
+	}
+
+	ci.retryOverload = retryOverload
 	return ci
 }
 

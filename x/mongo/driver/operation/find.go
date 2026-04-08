@@ -58,6 +58,7 @@ type Find struct {
 	readPreference      *readpref.ReadPref
 	selector            description.ServerSelector
 	retry               *driver.RetryMode
+	retryOverload       bool
 	result              driver.CursorResponse
 	serverAPI           *driver.ServerAPIOptions
 	timeout             *time.Duration
@@ -98,6 +99,7 @@ func (f *Find) Execute(ctx context.Context) error {
 		CommandFn:         f.command,
 		ProcessResponseFn: f.processResponse,
 		RetryMode:         f.retry,
+		RetryOverload:     f.retryOverload,
 		Type:              driver.Read,
 		Client:            f.session,
 		Clock:             f.clock,
@@ -527,6 +529,17 @@ func (f *Find) Retry(retry driver.RetryMode) *Find {
 	}
 
 	f.retry = &retry
+	return f
+}
+
+// RetryOverload indicates that the driver should retry operations that fail with a server
+// side overload error.
+func (f *Find) RetryOverload(retryOverload bool) *Find {
+	if f == nil {
+		f = new(Find)
+	}
+
+	f.retryOverload = retryOverload
 	return f
 }
 

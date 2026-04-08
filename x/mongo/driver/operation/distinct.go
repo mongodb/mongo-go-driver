@@ -40,6 +40,7 @@ type Distinct struct {
 	readPreference *readpref.ReadPref
 	selector       description.ServerSelector
 	retry          *driver.RetryMode
+	retryOverload  bool
 	result         DistinctResult
 	serverAPI      *driver.ServerAPIOptions
 	timeout        *time.Duration
@@ -93,6 +94,7 @@ func (d *Distinct) Execute(ctx context.Context) error {
 		CommandFn:         d.command,
 		ProcessResponseFn: d.processResponse,
 		RetryMode:         d.retry,
+		RetryOverload:     d.retryOverload,
 		Type:              driver.Read,
 		Client:            d.session,
 		Clock:             d.clock,
@@ -295,6 +297,17 @@ func (d *Distinct) Retry(retry driver.RetryMode) *Distinct {
 	}
 
 	d.retry = &retry
+	return d
+}
+
+// RetryOverload indicates that the driver should retry operations that fail with a server
+// side overload error.
+func (d *Distinct) RetryOverload(retryOverload bool) *Distinct {
+	if d == nil {
+		d = new(Distinct)
+	}
+
+	d.retryOverload = retryOverload
 	return d
 }
 

@@ -35,6 +35,7 @@ type ListCollections struct {
 	readPreference        *readpref.ReadPref
 	selector              description.ServerSelector
 	retry                 *driver.RetryMode
+	retryOverload         bool
 	result                driver.CursorResponse
 	batchSize             *int32
 	serverAPI             *driver.ServerAPIOptions
@@ -75,6 +76,7 @@ func (lc *ListCollections) Execute(ctx context.Context) error {
 		CommandFn:         lc.command,
 		ProcessResponseFn: lc.processResponse,
 		RetryMode:         lc.retry,
+		RetryOverload:     lc.retryOverload,
 		Type:              driver.Read,
 		Client:            lc.session,
 		Clock:             lc.clock,
@@ -237,6 +239,17 @@ func (lc *ListCollections) Retry(retry driver.RetryMode) *ListCollections {
 	}
 
 	lc.retry = &retry
+	return lc
+}
+
+// RetryOverload indicates that the driver should retry operations that fail with a server
+// side overload error.
+func (lc *ListCollections) RetryOverload(retryOverload bool) *ListCollections {
+	if lc == nil {
+		lc = new(ListCollections)
+	}
+
+	lc.retryOverload = retryOverload
 	return lc
 }
 

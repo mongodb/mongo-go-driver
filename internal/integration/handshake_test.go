@@ -1252,6 +1252,25 @@ func TestHandshakeProse_AppendMetadata_EmptyStrings_InitializedClient(t *testing
 	}
 }
 
+// Test 9: Handshake documents include backpressure: true
+func TestHandshakeProse_Handshake_Documents(t *testing.T) {
+	mt := mtest.New(t,
+		mtest.NewOptions().CreateCollection(false).ClientType(mtest.Proxy),
+	)
+	mt.ResetClient(options.Client())
+	err := mt.Client.Ping(context.Background(), nil)
+	require.NoError(mt, err, "Ping error: %v", err)
+
+	firstMessage := mt.GetProxyCapture().TryNext()
+	require.NotNil(mt, firstMessage, "expected to capture a proxied message")
+
+	require.True(mt, firstMessage.IsHandshake(), "expected first message to be a handshake")
+
+	v, err := firstMessage.Sent.Command.LookupErr("backpressure")
+	require.NoError(mt, err, "expected backpressure field in handshake command document")
+	require.True(mt, v.Boolean(), "expected backpressure field to be true")
+}
+
 // mustMarshalBSON marshals a value to BSON. It panics if any error occurs.
 func mustMarshalBSON(val interface{}) []byte {
 	bytes, err := bson.Marshal(val)

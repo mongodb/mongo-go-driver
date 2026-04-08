@@ -35,6 +35,7 @@ type ListDatabases struct {
 	deployment          driver.Deployment
 	readPreference      *readpref.ReadPref
 	retry               *driver.RetryMode
+	retryOverload       bool
 	selector            description.ServerSelector
 	crypt               driver.Crypt
 	serverAPI           *driver.ServerAPIOptions
@@ -159,6 +160,7 @@ func (ld *ListDatabases) Execute(ctx context.Context) error {
 		Deployment:     ld.deployment,
 		ReadPreference: ld.readPreference,
 		RetryMode:      ld.retry,
+		RetryOverload:  ld.retryOverload,
 		Type:           driver.Read,
 		Selector:       ld.selector,
 		Crypt:          ld.crypt,
@@ -292,6 +294,17 @@ func (ld *ListDatabases) Retry(retry driver.RetryMode) *ListDatabases {
 	}
 
 	ld.retry = &retry
+	return ld
+}
+
+// RetryOverload indicates that the driver should retry operations that fail with a server
+// side overload error.
+func (ld *ListDatabases) RetryOverload(retryOverload bool) *ListDatabases {
+	if ld == nil {
+		ld = new(ListDatabases)
+	}
+
+	ld.retryOverload = retryOverload
 	return ld
 }
 

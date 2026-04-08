@@ -40,6 +40,7 @@ type insert struct {
 	selector                 description.ServerSelector
 	writeConcern             *writeconcern.WriteConcern
 	retry                    *driver.RetryMode
+	retryOverload            bool
 	result                   insertResult
 	serverAPI                *driver.ServerAPIOptions
 	timeout                  *time.Duration
@@ -97,6 +98,7 @@ func (i *insert) Execute(ctx context.Context) error {
 		ProcessResponseFn: i.processResponse,
 		Batches:           batches,
 		RetryMode:         i.retry,
+		RetryOverload:     i.retryOverload,
 		Type:              driver.Write,
 		Client:            i.session,
 		Clock:             i.clock,

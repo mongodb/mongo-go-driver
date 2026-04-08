@@ -38,6 +38,7 @@ type Count struct {
 	readPreference *readpref.ReadPref
 	selector       description.ServerSelector
 	retry          *driver.RetryMode
+	retryOverload  bool
 	result         CountResult
 	serverAPI      *driver.ServerAPIOptions
 	timeout        *time.Duration
@@ -114,6 +115,7 @@ func (c *Count) Execute(ctx context.Context) error {
 		CommandFn:         c.command,
 		ProcessResponseFn: c.processResponse,
 		RetryMode:         c.retry,
+		RetryOverload:     c.retryOverload,
 		Type:              driver.Read,
 		Client:            c.session,
 		Clock:             c.clock,
@@ -282,6 +284,17 @@ func (c *Count) Retry(retry driver.RetryMode) *Count {
 	}
 
 	c.retry = &retry
+	return c
+}
+
+// RetryOverload indicates that the driver should retry operations that fail with a server
+// side overload error.
+func (c *Count) RetryOverload(retryOverload bool) *Count {
+	if c == nil {
+		c = new(Count)
+	}
+
+	c.retryOverload = retryOverload
 	return c
 }
 
