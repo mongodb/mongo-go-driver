@@ -198,7 +198,6 @@ functions:
           BASE_SHA: "${revision}"
           HEAD_SHA: "${github_commit}"
         args: [*task-runner, api-report]
-
   send-perf-data:
     # Here we begin to generate the request to send the data to SPS
     - command: shell.exec
@@ -556,7 +555,6 @@ tasks:
     commands:
       - func: assume-test-secrets-ec2-role
       - func: "create-api-report"
-
   - name: perf
     tags: ["performance"]
     exec_timeout_secs: 7200
@@ -1929,7 +1927,6 @@ buildvariants:
       GO_DIST: "/opt/golang/go1.25"
     tasks:
       - name: ".compile-check"
-
   - name: atlas-test
     tags: ["pullrequest"]
     display_name: "Atlas test"
