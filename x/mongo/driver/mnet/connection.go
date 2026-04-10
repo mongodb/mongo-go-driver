@@ -90,14 +90,13 @@ type Connection struct {
 
 // Close closes the connection.
 func (c *Connection) Close() error {
-	var err error
-	if atomic.CompareAndSwapUint32(&c.closed, 0, 1) {
-		err = c.ReadWriteCloser.Close()
-	}
-	return err
+	// Logically mark the connection as closed.
+	atomic.StoreUint32(&c.closed, 1)
+
+	return c.ReadWriteCloser.Close()
 }
 
-// Closed returns true if the connection has been closed.
+// Closed returns true if the connection has been logically closed.
 func (c *Connection) Closed() bool {
 	return atomic.LoadUint32(&c.closed) == 1
 }
