@@ -24,6 +24,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
 	"go.mongodb.org/mongo-driver/v2/internal/handshake"
 	"go.mongodb.org/mongo-driver/v2/internal/logger"
+	"go.mongodb.org/mongo-driver/v2/internal/randutil"
 	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
 	"go.mongodb.org/mongo-driver/v2/mongo/address"
 	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
@@ -35,8 +36,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage"
 )
-
-const defaultLocalThreshold = 15 * time.Millisecond
 
 var (
 	// ErrNoDocCommandResponse occurs when the server indicated a response existed, but none was found.
@@ -69,6 +68,10 @@ const (
 	cryptMinWireVersion int32 = 8
 	// minimum wire version necessary to use read snapshots
 	readSnapshotMinWireVersion int32 = 13
+
+	defaultLocalThreshold = 15 * time.Millisecond
+	backoffInitial        = 100 * time.Millisecond
+	backoffMax            = 10_000 * time.Millisecond
 )
 
 // RetryablePoolError is a connection pool error that can be retried while executing an operation.
@@ -307,6 +310,10 @@ type Operation struct {
 	// possible unless RetryNone is used.
 	RetryMode *RetryMode
 
+	// RetryOverload indicates that the driver should retry operations that fail with a server side
+	// overload error.
+	RetryOverload bool
+
 	// Type specifies the kind of operation this is. There is only one mode that enables retry: Write.
 	// For more information about what this mode does, please refer to it's definition. Both Type and
 	// RetryMode must be set for retryability to be enabled.
@@ -493,9 +500,10 @@ func (op Operation) Execute(ctx context.Context) error {
 		if err := op.Client.StartCommand(); err != nil {
 			return err
 		}
+		op.Client.RetryOverload = op.RetryOverload
 	}
 
-	var retries int
+	var defaultRetries int
 	if op.RetryMode != nil {
 		switch op.Type {
 		case Write:
@@ -504,23 +512,23 @@ func (op Operation) Execute(ctx context.Context) error {
 			}
 			switch *op.RetryMode {
 			case RetryOnce, RetryOncePerCommand:
-				retries = 1
+				defaultRetries = 1
 			case RetryContext:
-				retries = -1
+				defaultRetries = -1
 			}
 		case Read:
 			switch *op.RetryMode {
 			case RetryOnce, RetryOncePerCommand:
-				retries = 1
+				defaultRetries = 1
 			case RetryContext:
-				retries = -1
+				defaultRetries = -1
 			}
 		}
 
 		// If context is a Timeout context, automatically set retries to -1 (infinite) if retrying is
 		// enabled.
 		if csot.IsTimeoutContext(ctx) && op.RetryMode.Enabled() {
-			retries = -1
+			defaultRetries = -1
 		}
 	}
 
@@ -530,9 +538,14 @@ func (op Operation) Execute(ctx context.Context) error {
 	var operationErr WriteCommandError
 	var prevErr error
 	var prevIndefiniteErr error
+	var expDur time.Duration
+	var transactionState session.TransactionState
+	var isOverloadedError bool
+	var attempt int
 	retrySupported := false
 	first := true
 	currIndex := 0
+	retries := defaultRetries
 
 	// deprioritizedServers are a running list of servers that should be
 	// deprioritized during server selection. Servers are accumulated across
@@ -541,30 +554,28 @@ func (op Operation) Execute(ctx context.Context) error {
 
 	// resetForRetry records the error that caused the retry, decrements retries, and resets the
 	// retry loop variables to request a new server and a new connection for the next attempt.
-	resetForRetry := func(err error) {
-		retries--
+	resetForRetry := func(err error) error {
+		attempt++
 		prevErr = err
 
-		var isOverloadedError bool
-		// Set the previous indefinite error to be returned in any case where a retryable write error does not have a
-		// NoWritesPerfomed label (the definite case).
+		// If the "prevIndefiniteErr" is nil, then the current error is the first error encountered
+		// during the retry attempt cycle.
+		if prevIndefiniteErr == nil {
+			prevIndefiniteErr = err
+		}
+
+		// Set the previous indefinite error to be returned only if:
+		// 1. The error does not have a NoWritesPerformed label (the definite case).
+		// 2. The error is not a driver exception (e.g. timeouts, network errors).
+		// 3. The error is not a CSOT timeout.
 		if lerr, ok := err.(labeledError); ok {
-			// If the "prevIndefiniteErr" is nil, then the current error is the first error encountered
-			// during the retry attempt cycle. We must persist the first error in the case where all
-			// following errors are labeled "NoWritesPerformed", which would otherwise raise nil as the
-			// error.
-			if prevIndefiniteErr == nil {
-				prevIndefiniteErr = lerr
-			}
-
-			// If the error is not labeled NoWritesPerformed and is retryable, then set the previous
-			// indefinite error to be the current error.
-			if !lerr.HasErrorLabel(NoWritesPerformed) && lerr.HasErrorLabel(RetryableWriteError) {
-				prevIndefiniteErr = err
-			}
-
-			if lerr.HasErrorLabel(ErrSystemOverloadedError) {
-				isOverloadedError = true
+			if !lerr.HasErrorLabel(NoWritesPerformed) {
+				var serverErr Error
+				isDriverException := !errors.As(err, &serverErr) || serverErr.Code == 0
+				isCSOTTimeout := errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled)
+				if !isDriverException && !isCSOTTimeout {
+					prevIndefiniteErr = err
+				}
 			}
 		}
 
@@ -577,9 +588,38 @@ func (op Operation) Execute(ctx context.Context) error {
 			conn.Close()
 		}
 
+		// Revert TransactionState as ApplyCommand() advances the state.
+		if op.Client != nil {
+			op.Client.TransactionState = transactionState
+		}
+
 		// Set the server and connection to nil to request a new server and connection.
 		srvr = nil
 		conn = nil
+
+		if isOverloadedError {
+			isOverloadedError = false
+			if expDur == 0 {
+				expDur = backoffInitial
+			} else {
+				expDur *= 2
+				if expDur > backoffMax {
+					expDur = backoffMax
+				}
+			}
+			backoff := expDur * time.Duration(randutil.JitterInt63n(512)) / 512
+			if deadline, ok := ctx.Deadline(); ok && time.Until(deadline) < backoff {
+				return err
+			}
+			sleep := time.NewTimer(backoff)
+			select {
+			case <-ctx.Done():
+				sleep.Stop()
+				return err
+			case <-sleep.C:
+			}
+		}
+		return nil
 	}
 
 	wm := memoryPool.Get().(*[]byte)
@@ -604,6 +644,9 @@ func (op Operation) Execute(ctx context.Context) error {
 			return prevErr
 		}
 
+		allowedRetries := retries
+		retries = defaultRetries
+
 		requestID := wiremessage.NextRequestID()
 
 		// If the server or connection are nil, try to select a new server and get a new connection.
@@ -613,8 +656,10 @@ func (op Operation) Execute(ctx context.Context) error {
 				// If the returned error is retryable and there are retries remaining (negative
 				// retries means retry indefinitely), then retry the operation. Set the server
 				// and connection to nil to request a new server and connection.
-				if rerr, ok := err.(RetryablePoolError); ok && rerr.Retryable() && retries != 0 {
-					resetForRetry(err)
+				if rerr, ok := err.(RetryablePoolError); ok && rerr.Retryable() && (allowedRetries < 0 || attempt < allowedRetries) {
+					if err = resetForRetry(err); err != nil {
+						return err
+					}
 					continue
 				}
 
@@ -642,6 +687,10 @@ func (op Operation) Execute(ctx context.Context) error {
 
 		// Run steps that must only be run on the first attempt, but not again for retries.
 		if first {
+			if op.Client != nil {
+				transactionState = op.Client.TransactionState
+			}
+
 			// Determine if retries are supported for the current operation on the current server
 			// description. Per the retryable writes specification, only determine this for the
 			// first server selected:
@@ -779,6 +828,11 @@ func (op Operation) Execute(ctx context.Context) error {
 				return ErrUnsupportedStorageEngine
 			}
 
+			isOverloadedError = tt.HasErrorLabel(ErrSystemOverloadedError)
+			if isOverloadedError && op.RetryOverload {
+				retries = 5
+				allowedRetries = retries
+			}
 			connDesc := conn.Description()
 			retryableErr := tt.Retryable(connDesc.Kind, connDesc.WireVersion)
 			preRetryWriteLabelVersion := connDesc.WireVersion != nil && connDesc.WireVersion.Max < 9
@@ -789,17 +843,21 @@ func (op Operation) Execute(ctx context.Context) error {
 			if retryableErr && preRetryWriteLabelVersion && retryEnabled && !inTransaction {
 				tt.Labels = append(tt.Labels, RetryableWriteError)
 			}
+			olRetryErr := tt.HasErrorLabel(ErrRetryableError) && isOverloadedError
+			needRetry := (retrySupported && retryEnabled && retryableErr) || (op.RetryOverload && olRetryErr)
 
 			// If retries are supported for the current operation on the first server description,
 			// the error is considered retryable, and there are retries remaining (negative retries
 			// means retry indefinitely), then retry the operation.
-			if retrySupported && retryEnabled && retryableErr && retries != 0 {
-				if op.Client != nil && op.Client.Committing {
+			if needRetry && (allowedRetries < 0 || attempt < allowedRetries) {
+				if op.Client != nil && op.Client.Committing && !olRetryErr {
 					// Apply majority write concern for retries
 					op.Client.UpdateCommitTransactionWriteConcern()
 					op.WriteConcern = op.Client.CurrentWc
 				}
-				resetForRetry(tt)
+				if err = resetForRetry(tt); err != nil {
+					return err
+				}
 				continue
 			}
 
@@ -879,7 +937,9 @@ func (op Operation) Execute(ctx context.Context) error {
 						op.Client.UpdateCommitTransactionWriteConcern()
 						op.WriteConcern = op.Client.CurrentWc
 					}
-					resetForRetry(tt)
+					if err = resetForRetry(tt); err != nil {
+						return err
+					}
 					continue
 				}
 			}
@@ -893,6 +953,11 @@ func (op Operation) Execute(ctx context.Context) error {
 				return ErrUnsupportedStorageEngine
 			}
 
+			isOverloadedError = tt.HasErrorLabel(ErrSystemOverloadedError)
+			if isOverloadedError && op.RetryOverload {
+				retries = 5
+				allowedRetries = retries
+			}
 			connDesc := conn.Description()
 			var retryableErr bool
 			if op.Type == Write {
@@ -909,17 +974,21 @@ func (op Operation) Execute(ctx context.Context) error {
 			} else {
 				retryableErr = tt.RetryableRead()
 			}
+			olRetryErr := tt.HasErrorLabel(ErrRetryableError) && isOverloadedError
+			needRetry := (retrySupported && retryEnabled && retryableErr) || (op.RetryOverload && olRetryErr)
 
 			// If retries are supported for the current operation on the first server description,
 			// the error is considered retryable, and there are retries remaining (negative retries
 			// means retry indefinitely), then retry the operation.
-			if retrySupported && retryEnabled && retryableErr && retries != 0 {
-				if op.Client != nil && op.Client.Committing {
+			if needRetry && (allowedRetries < 0 || attempt < allowedRetries) {
+				if op.Client != nil && op.Client.Committing && !olRetryErr {
 					// Apply majority write concern for retries
 					op.Client.UpdateCommitTransactionWriteConcern()
 					op.WriteConcern = op.Client.CurrentWc
 				}
-				resetForRetry(tt)
+				if err = resetForRetry(tt); err != nil {
+					return err
+				}
 				continue
 			}
 
@@ -998,6 +1067,12 @@ func (op Operation) Execute(ctx context.Context) error {
 					retries = 1
 				}
 			}
+			if op.Client != nil {
+				transactionState = op.Client.TransactionState
+			}
+			isOverloadedError = false
+			expDur = 0
+			attempt = 0
 			currIndex += startedInfo.processedBatches
 			op.Batches.AdvanceBatches(startedInfo.processedBatches)
 			continue

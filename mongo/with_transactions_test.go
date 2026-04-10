@@ -22,6 +22,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/failpoint"
 	"go.mongodb.org/mongo-driver/v2/internal/integtest"
+	"go.mongodb.org/mongo-driver/v2/internal/randutil"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
@@ -211,11 +212,8 @@ func TestConvenientTransactions(t *testing.T) {
 			},
 		}
 
-		transWithJitter := func(t *testing.T, testJitter *testJitter) time.Duration {
-			j := jitter
-			defer func() { jitter = j }()
-
-			jitter = testJitter
+		transWithJitter := func(t *testing.T, ratio float64) time.Duration {
+			defer randutil.SetJitterForTesting(ratio)()
 
 			err := dbAdmin.RunCommand(bgCtx, fp).Err()
 			require.NoError(t, err, "error setting failpoint: %v", err)
@@ -235,8 +233,8 @@ func TestConvenientTransactions(t *testing.T) {
 			require.NoError(t, err, "WithTransaction error: %v", err)
 			return time.Since(startTime)
 		}
-		noBackoffTime := transWithJitter(t, &testJitter{ratio: 0})
-		withBackoffTime := transWithJitter(t, &testJitter{ratio: 1})
+		noBackoffTime := transWithJitter(t, 0)
+		withBackoffTime := transWithJitter(t, 1)
 		assert.InDelta(
 			t,
 			withBackoffTime, noBackoffTime+1_800*time.Millisecond, float64(500*time.Millisecond),
@@ -672,21 +670,6 @@ func TestConvenientTransactions(t *testing.T) {
 		})
 		assert.Greater(t, count, 1, "expected WithTransaction callback to be retried at least once")
 	})
-}
-
-type testJitter struct {
-	ratio float64
-}
-
-func (j *testJitter) Int63n(n int64) int64 {
-	if j.ratio <= 0 {
-		return 0
-	}
-	if j.ratio >= 1 {
-		return n
-	}
-	val := j.ratio * float64(n)
-	return int64(val)
 }
 
 func setupConvenientTransactions(t *testing.T, extraClientOpts ...*options.ClientOptions) *Client {
