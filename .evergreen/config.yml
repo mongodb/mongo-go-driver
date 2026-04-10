@@ -198,15 +198,6 @@ functions:
           BASE_SHA: "${revision}"
           HEAD_SHA: "${github_commit}"
         args: [*task-runner, api-report]
-  "backport pr":
-    - command: subprocess.exec
-      type: test
-      params:
-        binary: bash
-        env:
-          COMMIT: "${github_commit}"
-          PR_TASK: backport-pr
-        args: [*task-runner, pr-task]
   send-perf-data:
     # Here we begin to generate the request to send the data to SPS
     - command: shell.exec
@@ -564,10 +555,6 @@ tasks:
     commands:
       - func: assume-test-secrets-ec2-role
       - func: "create-api-report"
-  - name: backport-pr
-    allowed_requesters: ["commit"]
-    commands:
-      - func: "backport pr"
   - name: perf
     tags: ["performance"]
     exec_timeout_secs: 7200
@@ -1940,14 +1927,6 @@ buildvariants:
       GO_DIST: "/opt/golang/go1.25"
     tasks:
       - name: ".compile-check"
-  - name: backport-pr
-    display_name: "Backport PR"
-    run_on:
-      - rhel8.7-small
-    expansions:
-      GO_DIST: "/opt/golang/go1.25"
-    tasks:
-      - name: "backport-pr"
   - name: atlas-test
     tags: ["pullrequest"]
     display_name: "Atlas test"
