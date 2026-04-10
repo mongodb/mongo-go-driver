@@ -5,7 +5,6 @@
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
 //go:build go1.13
-// +build go1.13
 
 package topology
 
@@ -16,6 +15,7 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo/address"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/auth"
 )
@@ -43,7 +43,7 @@ func TestConnectionErrors(t *testing.T) {
 					})
 				}),
 			)
-			defer conn.close()
+			defer func() { require.NoError(t, conn.close()) }()
 
 			ctx, cancel := context.WithCancel(context.Background())
 			cancel()

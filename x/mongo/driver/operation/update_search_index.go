@@ -97,7 +97,6 @@ func (usi *UpdateSearchIndex) Execute(ctx context.Context) error {
 		Timeout:           usi.timeout,
 		Authenticator:     usi.authenticator,
 	}.Execute(ctx)
-
 }
 
 func (usi *UpdateSearchIndex) command(dst []byte, _ description.SelectedServer) ([]byte, error) {

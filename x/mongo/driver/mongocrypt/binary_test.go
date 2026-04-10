@@ -5,7 +5,6 @@
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
 //go:build cse
-// +build cse
 
 package mongocrypt
 
@@ -71,7 +70,7 @@ func createEncryptedDocForBench(b *testing.B, crypt *MongoCrypt, iter int) bsonc
 		Data:    []byte("aaaaaaaaaaaaaaaa"),
 	}
 
-	encryptOpts := options.ExplicitEncryption().SetAlgorithm(algorithm).SetKeyID(keyID)
+	encryptOpts := &options.ExplicitEncryptionOptions{Algorithm: algorithm, KeyID: &keyID}
 	doc := bsoncore.NewDocumentBuilder().AppendString("v", fmt.Sprintf("value %04v", iter)).Build()
 
 	encryptCtx, err := crypt.CreateExplicitEncryptionContext(doc, encryptOpts)
@@ -132,7 +131,8 @@ func newCryptForBench(b *testing.B) *MongoCrypt {
 		0x48, 0x13, 0x3c, 0x9b, 0x50, 0xfc, 0xa7, 0x24,
 		0x7a, 0x2e, 0x02, 0x63, 0xa3, 0xc6, 0x16, 0x25,
 		0x51, 0x50, 0x78, 0x3e, 0x0f, 0xd8, 0x6e, 0x84,
-		0xa6, 0xec, 0x8d, 0x2d, 0x24, 0x47, 0xe5, 0xaf}
+		0xa6, 0xec, 0x8d, 0x2d, 0x24, 0x47, 0xe5, 0xaf,
+	}
 
 	localProvider := bsoncore.NewDocumentBuilder().
 		AppendBinary("key", 0, key).
@@ -142,7 +142,9 @@ func newCryptForBench(b *testing.B) *MongoCrypt {
 		AppendDocument("local", localProvider).
 		Build()
 
-	cryptOpts := options.MongoCrypt().SetKmsProviders(kmsProviders)
+	cryptOpts := &options.MongoCryptOptions{
+		KmsProviders: kmsProviders,
+	}
 
 	crypt, err := NewMongoCrypt(cryptOpts)
 

@@ -22,8 +22,10 @@ func init() {
 }
 
 // statically assert array size
-var _ = (kindEncoderCache{}).entries[reflect.UnsafePointer]
-var _ = (kindDecoderCache{}).entries[reflect.UnsafePointer]
+var (
+	_ = (kindEncoderCache{}).entries[reflect.UnsafePointer]
+	_ = (kindDecoderCache{}).entries[reflect.UnsafePointer]
+)
 
 type typeEncoderCache struct {
 	cache sync.Map // map[reflect.Type]ValueEncoder

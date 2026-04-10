@@ -5,12 +5,12 @@
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
 //go:build cse
-// +build cse
 
 package mongocrypt
 
 // #include <mongocrypt.h>
 import "C"
+
 import (
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )

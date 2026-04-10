@@ -107,6 +107,7 @@ func (rv RawValue) UnmarshalWithContext(dc *DecodeContext, val any) error {
 func convertFromCoreValue(v bsoncore.Value) RawValue {
 	return RawValue{Type: Type(v.Type), Value: v.Data}
 }
+
 func convertToCoreValue(v RawValue) bsoncore.Value {
 	return bsoncore.Value{Type: bsoncore.Type(v.Type), Data: v.Value}
 }
@@ -293,6 +294,14 @@ func (rv RawValue) AsInt64() int64 { return convertToCoreValue(rv).AsInt64() }
 // AsInt64OK is the same as AsInt64, except that it returns a boolean instead of
 // panicking.
 func (rv RawValue) AsInt64OK() (int64, bool) { return convertToCoreValue(rv).AsInt64OK() }
+
+// AsFloat64 returns a BSON number as a float64. If the BSON type is not a numeric one, this method
+// will panic.
+func (rv RawValue) AsFloat64() float64 { return convertToCoreValue(rv).AsFloat64() }
+
+// AsFloat64OK is the same as AsFloat64, except that it returns a boolean instead of
+// panicking.
+func (rv RawValue) AsFloat64OK() (float64, bool) { return convertToCoreValue(rv).AsFloat64OK() }
 
 // Decimal128 returns the decimal the Value represents. It panics if the value is a BSON type other than
 // decimal.

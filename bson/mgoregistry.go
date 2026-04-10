@@ -201,7 +201,7 @@ func getterEncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) erro
 		return vw.WriteNull()
 	}
 	vv := reflect.ValueOf(x)
-	encoder, err := ec.Registry.LookupEncoder(vv.Type())
+	encoder, err := ec.LookupEncoder(vv.Type())
 	if err != nil {
 		return err
 	}

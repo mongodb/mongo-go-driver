@@ -94,6 +94,51 @@ func ExampleDecoder_DefaultDocumentM() {
 	// Output: {"Name":"New York","Properties":{"elevation":10,"population":8804190,"state":"NY"}}
 }
 
+func ExampleDecoder_DefaultDocumentMap() {
+	// Marshal a BSON document that contains a city name and a nested document
+	// with various city properties.
+	doc := bson.D{
+		{Key: "name", Value: "New York"},
+		{Key: "properties", Value: bson.D{
+			{Key: "state", Value: "NY"},
+			{Key: "population", Value: 8_804_190},
+			{Key: "elevation", Value: 10},
+		}},
+	}
+	data, err := bson.Marshal(doc)
+	if err != nil {
+		panic(err)
+	}
+
+	// Create a Decoder that reads the marshaled BSON document and use it to unmarshal the document
+	// into a City struct.
+	decoder := bson.NewDecoder(bson.NewDocumentReader(bytes.NewReader(data)))
+
+	type City struct {
+		Name       string `bson:"name"`
+		Properties any    `bson:"properties"`
+	}
+
+	// Configure the Decoder to default to decoding BSON documents as a
+	// map[string]any type if the decode destination has no type information. The
+	// Properties field in the City struct will be decoded as map[string]any
+	// instead of the default "D".
+	decoder.DefaultDocumentMap()
+
+	var res City
+	err = decoder.Decode(&res)
+	if err != nil {
+		panic(err)
+	}
+
+	data, err = json.Marshal(res)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("%+v\n", string(data))
+	// Output: {"Name":"New York","Properties":{"elevation":10,"population":8804190,"state":"NY"}}
+}
+
 func ExampleDecoder_UseJSONStructTags() {
 	// Marshal a BSON document that contains the name, SKU, and price (in cents)
 	// of a product.

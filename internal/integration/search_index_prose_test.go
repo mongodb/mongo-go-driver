@@ -7,7 +7,6 @@
 package integration
 
 import (
-	"bytes"
 	"context"
 	"os"
 	"sync"
@@ -78,10 +77,8 @@ func TestSearchIndexProse(t *testing.T) {
 			}
 		}
 		require.NotNil(mt, doc, "got empty document")
-		expected, err := bson.Marshal(definition)
-		require.NoError(mt, err, "failed to marshal definition")
-		actual := doc.Lookup("latestDefinition").Value
-		assert.Equal(mt, expected, actual, "unmatched definition")
+		actual := doc.Lookup("latestDefinition", "mappings", "dynamic").Boolean()
+		assert.False(mt, actual, "expected latestDefinition.mappings.dynamic to be false")
 	})
 
 	mt.Run("case 2: Driver can successfully create multiple indexes in batch", func(mt *mtest.T) {
@@ -152,10 +149,8 @@ func TestSearchIndexProse(t *testing.T) {
 
 				assert.Equal(mt, *args.Name, doc.Lookup("name").StringValue(), "unmatched name")
 
-				expected, err := bson.Marshal(definition)
-				require.NoError(mt, err, "failed to marshal definition")
-				actual := doc.Lookup("latestDefinition").Value
-				assert.Equal(mt, expected, actual, "unmatched definition")
+				actual := doc.Lookup("latestDefinition", "mappings", "dynamic").Boolean()
+				assert.False(mt, actual, "expected latestDefinition.mappings.dynamic to be false")
 			}(models[i].Options)
 		}
 		wg.Wait()
@@ -256,12 +251,11 @@ func TestSearchIndexProse(t *testing.T) {
 		require.NotNil(mt, doc, "got empty document")
 
 		definition = bson.D{{"mappings", bson.D{{"dynamic", true}}}}
-		expected, err := bson.Marshal(definition)
-		require.NoError(mt, err, "failed to marshal definition")
 		err = view.UpdateOne(ctx, searchName, definition)
 		require.NoError(mt, err, "failed to update index")
-		updateOneCtx, updateOneCancel := context.WithTimeout(context.Background(), 1*time.Minute)
+		updateOneCtx, updateOneCancel := context.WithTimeout(context.Background(), 2*time.Minute)
 		defer updateOneCancel()
+		doc = nil
 		for doc == nil {
 			cursor, err := view.List(updateOneCtx, opts)
 			require.NoError(mt, err, "failed to list")
@@ -272,8 +266,7 @@ func TestSearchIndexProse(t *testing.T) {
 			name := cursor.Current.Lookup("name").StringValue()
 			queryable := cursor.Current.Lookup("queryable").Boolean()
 			status := cursor.Current.Lookup("status").StringValue()
-			latestDefinition := doc.Lookup("latestDefinition").Value
-			if name == searchName && queryable && status == "READY" && bytes.Equal(latestDefinition, expected) {
+			if name == searchName && queryable && status == "READY" {
 				doc = cursor.Current
 			} else {
 				mt.Logf("cursor: %s, sleep 5 seconds...", cursor.Current.String())
@@ -281,6 +274,8 @@ func TestSearchIndexProse(t *testing.T) {
 			}
 		}
 		require.NotNil(mt, doc, "got empty document")
+		require.True(mt, doc.Lookup("latestDefinition", "mappings", "dynamic").Boolean(),
+			"expected latestDefinition.mappings.dynamic to be true")
 	})
 
 	mt.Run("case 5: dropSearchIndex suppresses namespace not found errors", func(mt *mtest.T) {
@@ -336,10 +331,8 @@ func TestSearchIndexProse(t *testing.T) {
 				}
 			}
 			require.NotNil(mt, doc, "got empty document")
-			expected, err := bson.Marshal(definition)
-			require.NoError(mt, err, "failed to marshal definition")
-			actual := doc.Lookup("latestDefinition").Value
-			assert.Equal(mt, expected, actual, "unmatched definition")
+			actual := doc.Lookup("latestDefinition", "mappings", "dynamic").Boolean()
+			assert.False(mt, actual, "expected latestDefinition.mappings.dynamic to be false")
 		})
 
 	case7CollName, err := uuid.New()

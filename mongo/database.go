@@ -29,9 +29,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
-var (
-	defaultRunCmdOpts = []options.Lister[options.RunCmdOptions]{options.RunCmd().SetReadPreference(readpref.Primary())}
-)
+var defaultRunCmdOpts = []options.Lister[options.RunCmdOptions]{options.RunCmd().SetReadPreference(readpref.Primary())}
 
 // Database is a handle to a MongoDB database. It is safe for concurrent use by multiple goroutines.
 type Database struct {
@@ -576,8 +574,8 @@ func (db *Database) ListCollectionNames(
 // The opts parameter can be used to specify options for change stream creation (see the options.ChangeStreamOptions
 // documentation).
 func (db *Database) Watch(ctx context.Context, pipeline any,
-	opts ...options.Lister[options.ChangeStreamOptions]) (*ChangeStream, error) {
-
+	opts ...options.Lister[options.ChangeStreamOptions],
+) (*ChangeStream, error) {
 	csConfig := changeStreamConfig{
 		readConcern:    db.readConcern,
 		readPreference: db.readPreference,
@@ -700,7 +698,7 @@ func (db *Database) createCollectionWithEncryptedFields(
 		defer conn.Close()
 		wireVersionRange := conn.Description().WireVersion
 		if wireVersionRange.Max < QEv2WireVersion {
-			return fmt.Errorf("Driver support of Queryable Encryption is incompatible with server. Upgrade server to use Queryable Encryption. Got maxWireVersion %v but need maxWireVersion >= %v", wireVersionRange.Max, QEv2WireVersion)
+			return fmt.Errorf("driver support of Queryable Encryption is incompatible with server. Upgrade server to use Queryable Encryption. Got maxWireVersion %v but need maxWireVersion >= %v", wireVersionRange.Max, QEv2WireVersion)
 		}
 	}
 
@@ -897,8 +895,8 @@ func (db *Database) createCollectionOperation(
 // See https://www.mongodb.com/docs/manual/core/views/ for more information
 // about views.
 func (db *Database) CreateView(ctx context.Context, viewName, viewOn string, pipeline any,
-	opts ...options.Lister[options.CreateViewOptions]) error {
-
+	opts ...options.Lister[options.CreateViewOptions],
+) error {
 	pipelineArray, _, err := marshalAggregatePipeline(pipeline, db.bsonOpts, db.registry)
 	if err != nil {
 		return err
@@ -979,7 +977,7 @@ func (db *Database) GridFSBucket(opts ...options.Lister[options.BucketOptions]) 
 		b.rp = bo.ReadPreference
 	}
 
-	var collOpts = options.Collection().SetWriteConcern(b.wc).SetReadConcern(b.rc).SetReadPreference(b.rp)
+	collOpts := options.Collection().SetWriteConcern(b.wc).SetReadConcern(b.rc).SetReadPreference(b.rp)
 
 	b.chunksColl = db.Collection(b.name+".chunks", collOpts)
 	b.filesColl = db.Collection(b.name+".files", collOpts)

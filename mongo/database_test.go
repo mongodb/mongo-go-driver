@@ -22,7 +22,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/topology"
 )
 
-func setupDb(name string, opts ...options.Lister[options.DatabaseOptions]) *Database {
+func setupDB(name string, opts ...options.Lister[options.DatabaseOptions]) *Database {
 	client := setupClient()
 	return client.Database(name, opts...)
 }
@@ -42,7 +42,7 @@ func compareDbs(t *testing.T, expected, got *Database) {
 func TestDatabase(t *testing.T) {
 	t.Run("initialize", func(t *testing.T) {
 		name := "foo"
-		db := setupDb(name)
+		db := setupDB(name)
 		assert.Equal(t, name, db.Name(), "expected db name %v, got %v", name, db.Name())
 		assert.NotNil(t, db.Client(), "expected valid client, got nil")
 	})
@@ -64,7 +64,7 @@ func TestDatabase(t *testing.T) {
 				writeConcern:   wc2,
 				registry:       reg,
 			}
-			got := setupDb("foo", opts)
+			got := setupDB("foo", opts)
 			compareDbs(t, expected, got)
 		})
 		t.Run("inherit", func(t *testing.T) {
@@ -85,7 +85,7 @@ func TestDatabase(t *testing.T) {
 		})
 	})
 	t.Run("replaceErrors for disconnected topology", func(t *testing.T) {
-		db := setupDb("foo")
+		db := setupDB("foo")
 
 		topo, ok := db.client.deployment.(*topology.Topology)
 		require.True(t, ok, "client deployment is not a topology")
@@ -138,7 +138,7 @@ func TestDatabase(t *testing.T) {
 		})
 	})
 	t.Run("nil document error", func(t *testing.T) {
-		db := setupDb("foo")
+		db := setupDB("foo")
 
 		err := db.RunCommand(bgCtx, nil).Err()
 		assert.True(t, errors.Is(err, ErrNilDocument), "expected error %v, got %v", ErrNilDocument, err)

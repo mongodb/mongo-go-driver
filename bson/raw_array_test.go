@@ -150,7 +150,8 @@ func TestArray_Validate(t *testing.T) {
 		want error
 	}{
 		{"array null", RawArray{'\x08', '\x00', '\x00', '\x00', '\x0A', '0', '\x00', '\x00'}, nil},
-		{"array",
+		{
+			"array",
 			RawArray{
 				'\x1B', '\x00', '\x00', '\x00',
 				'\x02',
@@ -165,7 +166,8 @@ func TestArray_Validate(t *testing.T) {
 			},
 			nil,
 		},
-		{"subarray",
+		{
+			"subarray",
 			RawArray{
 				'\x13', '\x00', '\x00', '\x00',
 				'\x04',
@@ -175,14 +177,16 @@ func TestArray_Validate(t *testing.T) {
 			},
 			nil,
 		},
-		{"invalid key order",
+		{
+			"invalid key order",
 			RawArray{
 				'\x0B', '\x00', '\x00', '\x00', '\x0A', '2', '\x00',
 				'\x0A', '0', '\x00', '\x00', '\x00',
 			},
 			errors.New(`array key "2" is out of order or invalid`),
 		},
-		{"invalid key type",
+		{
+			"invalid key type",
 			RawArray{
 				'\x0B', '\x00', '\x00', '\x00', '\x0A', 'p', '\x00',
 				'\x0A', 'q', '\x00', '\x00', '\x00',
@@ -251,21 +255,24 @@ func TestArray_Index(t *testing.T) {
 		index uint
 		want  RawValue
 	}{
-		{"first",
+		{
+			"first",
 			0,
 			RawValue{
 				Type:  TypeString,
 				Value: []byte{0x04, 0x00, 0x00, 0x00, 0x62, 0x61, 0x72, 0x00},
 			},
 		},
-		{"second",
+		{
+			"second",
 			1,
 			RawValue{
 				Type:  TypeString,
 				Value: []byte{0x04, 0x00, 0x00, 0x00, 0x62, 0x61, 0x7a, 0x00},
 			},
 		},
-		{"third",
+		{
+			"third",
 			2,
 			RawValue{
 				Type:  TypeString,
@@ -424,8 +431,10 @@ func TestRawArray_Values(t *testing.T) {
 		},
 		{
 			name: "same",
-			arr: []byte{0x13, 0x00, 0x00, 0x00, 0x10, 0x30, 0x00, 0x01, 0x00, 0x00,
-				0x00, 0x10, 0x31, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00}, // [int32(1), int32(2)]
+			arr: []byte{
+				0x13, 0x00, 0x00, 0x00, 0x10, 0x30, 0x00, 0x01, 0x00, 0x00,
+				0x00, 0x10, 0x31, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00,
+			}, // [int32(1), int32(2)]
 			want: []RawValue{
 				{ // int32(1)
 					Type:  TypeInt32,
@@ -439,8 +448,10 @@ func TestRawArray_Values(t *testing.T) {
 		},
 		{
 			name: "mixed",
-			arr: []byte{0x17, 0x00, 0x00, 0x00, 0x10, 0x30, 0x00, 0x01, 0x00, 0x00,
-				0x00, 0x02, 0x31, 0x00, 0x04, 0x00, 0x00, 0x00, 0x66, 0x6F, 0x6F, 0x00, 0x00}, // [int32(1), "foo"]
+			arr: []byte{
+				0x17, 0x00, 0x00, 0x00, 0x10, 0x30, 0x00, 0x01, 0x00, 0x00,
+				0x00, 0x02, 0x31, 0x00, 0x04, 0x00, 0x00, 0x00, 0x66, 0x6F, 0x6F, 0x00, 0x00,
+			}, // [int32(1), "foo"]
 			want: []RawValue{
 				{ // int32(1)
 					Type:  TypeInt32,

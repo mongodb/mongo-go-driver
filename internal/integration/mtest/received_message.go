@@ -74,7 +74,7 @@ func parseOpReply(wm []byte) (*ReceivedMessage, error) {
 	}
 
 	var replyDocuments []bsoncore.Document
-	replyDocuments, wm, ok = wiremessage.ReadReplyDocuments(wm)
+	replyDocuments, _, ok = wiremessage.ReadReplyDocuments(wm)
 	if !ok {
 		return nil, errors.New("failed to read reply documents")
 	}
@@ -100,7 +100,7 @@ func parseReceivedOpMsg(wm []byte) (*ReceivedMessage, error) {
 		return nil, fmt.Errorf("error verifying section type for response document: %w", err)
 	}
 
-	response, wm, ok := wiremessage.ReadMsgSectionSingleDocument(wm)
+	response, _, ok := wiremessage.ReadMsgSectionSingleDocument(wm)
 	if !ok {
 		return nil, errors.New("failed to read response document")
 	}

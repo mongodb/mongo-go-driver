@@ -210,6 +210,11 @@ type BSONOptions struct {
 	// "any" or "map[string]any".
 	DefaultDocumentM bool
 
+	// DefaultDocumentMap causes the driver to always unmarshal documents into the
+	// map[string]any type. This behavior is restricted to data typed as "any" or
+	// "map[string]any".
+	DefaultDocumentMap bool
+
 	// ObjectIDAsHexString causes the Decoder to decode object IDs to their hex
 	// representation.
 	ObjectIDAsHexString bool

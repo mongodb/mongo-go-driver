@@ -65,10 +65,10 @@ func TestCausalConsistency_Supported(t *testing.T) {
 		evt := mt.GetSucceededEvent()
 		assert.Equal(mt, "find", evt.CommandName, "expected 'find' event, got '%v'", evt.CommandName)
 		serverT, serverI := evt.Reply.Lookup("operationTime").Timestamp()
-		serverTs := &bson.Timestamp{serverT, serverI}
-		sessionTs := sess.OperationTime()
-		assert.NotNil(mt, sessionTs, "expected session operation time, got nil")
-		assert.True(mt, serverTs.Equal(*sessionTs), "expected operation time %v, got %v", serverTs, sessionTs)
+		serverTS := &bson.Timestamp{serverT, serverI}
+		sessionTS := sess.OperationTime()
+		assert.NotNil(mt, sessionTS, "expected session operation time, got nil")
+		assert.True(mt, serverTS.Equal(*sessionTS), "expected operation time %v, got %v", serverTS, sessionTS)
 	})
 	mt.RunOpts("operation time sent", noClientOpts, func(mt *mtest.T) {
 		// findOne followed by another read operation should include operationTime returned by server for the first

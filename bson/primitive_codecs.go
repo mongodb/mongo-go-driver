@@ -11,8 +11,10 @@ import (
 	"reflect"
 )
 
-var tRawValue = reflect.TypeOf(RawValue{})
-var tRaw = reflect.TypeOf(Raw(nil))
+var (
+	tRawValue = reflect.TypeOf(RawValue{})
+	tRaw      = reflect.TypeOf(Raw(nil))
+)
 
 // registerPrimitiveCodecs will register the encode and decode methods attached to PrimitiveCodecs
 // with the provided RegistryBuilder. if rb is nil, a new empty RegistryBuilder will be created.
@@ -75,6 +77,11 @@ func rawEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
 func rawDecodeValue(_ DecodeContext, vr ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tRaw {
 		return ValueDecoderError{Name: "RawDecodeValue", Types: []reflect.Type{tRaw}, Received: val}
+	}
+	vrType := vr.Type()
+	isDocument := vrType == Type(0) || vrType == TypeEmbeddedDocument || vrType == TypeArray
+	if !isDocument {
+		return fmt.Errorf("cannot decode %v into a %s", vrType, val.Type())
 	}
 
 	if val.IsNil() {

@@ -259,7 +259,6 @@ func TestCMAPProse(t *testing.T) {
 					assert.Equal(t, event.ReasonPoolClosed, evt.Reason, "expected reason %q, got %q",
 						event.ReasonPoolClosed, evt.Reason)
 				}
-
 			})
 		})
 	})

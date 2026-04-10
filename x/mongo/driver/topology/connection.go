@@ -226,7 +226,6 @@ func (c *connection) connect(ctx context.Context) (err error) {
 			HTTPClient:              c.config.httpClient,
 		}
 		tlsNc, err := configureTLS(ctx, c.config.tlsConnectionSource, c.nc, c.addr, tlsConfig, ocspOpts)
-
 		if err != nil {
 			return ConnectionError{Wrapped: err, init: true, message: fmt.Sprintf("failed to configure TLS for %s", c.addr)}
 		}
@@ -365,7 +364,8 @@ func (c *connection) writeWireMessage(ctx context.Context, wm []byte) error {
 
 	err = c.write(ctx, wm)
 	if err != nil {
-		c.close()
+		_ = c.close()
+
 		return ConnectionError{
 			ConnectionID: c.id,
 			Wrapped:      transformNetworkError(ctx, err, contextDeadlineUsed),
@@ -412,7 +412,7 @@ func (c *connection) readWireMessage(ctx context.Context) ([]byte, error) {
 		if c.awaitRemainingBytes == nil {
 			// If the connection was not marked as awaiting response, close the
 			// connection because we don't know what the connection state is.
-			c.close()
+			_ = c.close()
 		}
 		message := errMsg
 		return nil, ConnectionError{
@@ -586,15 +586,17 @@ func (c *connection) SetOIDCTokenGenID(genID uint64) {
 // *connection to a Handshaker.
 type initConnection struct{ *connection }
 
-var _ mnet.ReadWriteCloser = initConnection{}
-var _ mnet.Describer = initConnection{}
-var _ mnet.Streamer = initConnection{}
+var (
+	_ mnet.ReadWriteCloser = initConnection{}
+	_ mnet.Describer       = initConnection{}
+	_ mnet.Streamer        = initConnection{}
+)
 
 func (c initConnection) Description() description.Server {
 	if c.connection == nil {
 		return description.Server{}
 	}
-	return c.connection.desc
+	return c.desc
 }
 func (c initConnection) Close() error             { return nil }
 func (c initConnection) ID() string               { return c.id }
@@ -606,18 +608,23 @@ func (c initConnection) LocalAddress() address.Address {
 	}
 	return address.Address(c.nc.LocalAddr().String())
 }
+
 func (c initConnection) Write(ctx context.Context, wm []byte) error {
 	return c.writeWireMessage(ctx, wm)
 }
+
 func (c initConnection) Read(ctx context.Context) ([]byte, error) {
 	return c.readWireMessage(ctx)
 }
+
 func (c initConnection) SetStreaming(streaming bool) {
 	c.setStreaming(streaming)
 }
+
 func (c initConnection) CurrentlyStreaming() bool {
 	return c.getCurrentlyStreaming()
 }
+
 func (c initConnection) SupportsStreaming() bool {
 	return c.canStream
 }
@@ -639,13 +646,15 @@ type Connection struct {
 	mu sync.RWMutex
 }
 
-var _ mnet.ReadWriteCloser = (*Connection)(nil)
-var _ mnet.Describer = (*Connection)(nil)
-var _ mnet.Compressor = (*Connection)(nil)
-var _ mnet.Pinner = (*Connection)(nil)
-var _ driver.Expirable = (*Connection)(nil)
+var (
+	_ mnet.ReadWriteCloser = (*Connection)(nil)
+	_ mnet.Describer       = (*Connection)(nil)
+	_ mnet.Compressor      = (*Connection)(nil)
+	_ mnet.Pinner          = (*Connection)(nil)
+	_ driver.Expirable     = (*Connection)(nil)
+)
 
-// WriteWireMessage handles writing a wire message to the underlying connection.
+// Write handles writing a wire message to the underlying connection.
 func (c *Connection) Write(ctx context.Context, wm []byte) error {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -655,8 +664,8 @@ func (c *Connection) Write(ctx context.Context, wm []byte) error {
 	return c.connection.writeWireMessage(ctx, wm)
 }
 
-// ReadWireMessage handles reading a wire message from the underlying connection. The dst parameter
-// will be overwritten with the new wire message.
+// Read handles reading a wire message from the underlying connection. The dst
+// parameter will be overwritten with the new wire message.
 func (c *Connection) Read(ctx context.Context) ([]byte, error) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()

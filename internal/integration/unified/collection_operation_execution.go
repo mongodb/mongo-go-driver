@@ -1581,8 +1581,8 @@ func createFindCursor(ctx context.Context, operation *operation) (*cursorResult,
 				opts.SetCursorType(options.NonTailable)
 			}
 		case "maxAwaitTimeMS":
-			maxAwaitTimeMS := time.Duration(val.Int32()) * time.Millisecond
-			opts.SetMaxAwaitTime(maxAwaitTimeMS)
+			maxAwaitTime := time.Duration(val.Int32()) * time.Millisecond
+			opts.SetMaxAwaitTime(maxAwaitTime)
 		case "rawData":
 			err = xoptions.SetInternalFindOptions(opts, key, val.Boolean())
 			if err != nil {

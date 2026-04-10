@@ -334,6 +334,12 @@ type LabeledError interface {
 	HasErrorLabel(string) bool
 }
 
+type errorCoder interface {
+	ErrorCodes() []int
+}
+
+var _ errorCoder = ServerError(nil)
+
 // ServerError is the interface implemented by errors returned from the server. Custom implementations of this
 // interface should not be used in production.
 type ServerError interface {
@@ -364,10 +370,12 @@ func hasErrorCode(srvErr ServerError, code int) bool {
 	return false
 }
 
-var _ ServerError = CommandError{}
-var _ ServerError = WriteError{}
-var _ ServerError = WriteException{}
-var _ ServerError = BulkWriteException{}
+var (
+	_ ServerError = CommandError{}
+	_ ServerError = WriteError{}
+	_ ServerError = WriteException{}
+	_ ServerError = BulkWriteException{}
+)
 
 var _ error = ClientBulkWriteException{}
 
@@ -900,4 +908,24 @@ func joinBatchErrors(errs []error) string {
 	fmt.Fprint(&buf, "]")
 
 	return buf.String()
+}
+
+// ErrorCodes returns the list of server error codes contained in err.
+func ErrorCodes(err error) []int {
+	if err == nil {
+		return nil
+	}
+
+	var ec errorCoder
+	// First check if the error is already wrapped (common case)
+	if errors.As(err, &ec) {
+		return ec.ErrorCodes()
+	}
+
+	// Only wrap if necessary (for internal errors)
+	if errors.As(wrapErrors(err), &ec) {
+		return ec.ErrorCodes()
+	}
+
+	return []int{}
 }

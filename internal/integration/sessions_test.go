@@ -23,6 +23,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/internal/testutil"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
@@ -38,14 +39,14 @@ func TestSessionPool(t *testing.T) {
 		sess, err := mt.Client.StartSession()
 		assert.Nil(mt, err, "StartSession error: %v", err)
 		defer sess.EndSession(context.Background())
-		initialLastUsedTime := sess.ClientSession().LastUsed
+		initialLastUsedTime := testutil.GetUnexportedFieldAs[*session.Client](sess, "clientSession").LastUsed
 
 		err = mongo.WithSession(context.Background(), sess, func(sc context.Context) error {
 			return mt.Client.Ping(sc, readpref.Primary())
 		})
 		assert.Nil(mt, err, "WithSession error: %v", err)
 
-		newLastUsedTime := sess.ClientSession().LastUsed
+		newLastUsedTime := testutil.GetUnexportedFieldAs[*session.Client](sess, "clientSession").LastUsed
 		assert.True(mt, newLastUsedTime.After(initialLastUsedTime),
 			"last used time %s is not after the initial last used time %s", newLastUsedTime, initialLastUsedTime)
 	})
@@ -508,7 +509,6 @@ func TestSessionsProse(t *testing.T) {
 
 		limitedSessMsg := "expected session count to be less than the number of operations: %v"
 		assert.True(mt, limitedSessionUse, limitedSessMsg, len(ops))
-
 	})
 
 	mt.ResetClient(options.Client())
@@ -582,6 +582,58 @@ func TestSessionsProse(t *testing.T) {
 		require.NoError(mt, err, "$clusterTime not found in command")
 		assert.Equal(mt, initialClusterTime, currentClusterTime, "expected same cluster time, got %v and %v", initialClusterTime, currentClusterTime)
 	})
+}
+
+func TestSessionsProse_21_SettingSnapshotTimeWithoutSnapshot(t *testing.T) {
+	// 21. Having snapshotTime set and snapshot set to false is not allowed.
+	mtOpts := mtest.
+		NewOptions().
+		MinServerVersion("5.0").
+		Topologies(mtest.ReplicaSet, mtest.Sharded)
+
+	mt := mtest.New(t, mtOpts)
+
+	mt.Setup()
+
+	// Start a session by calling startSession with snapshot = false and
+	// snapshotTime = new Timestamp(1).
+	sessOpts := options.Session().SetSnapshot(false).SetSnapshotTime(bson.Timestamp{T: 1})
+
+	_, err := mt.Client.StartSession(sessOpts)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "snapshotTime cannot be set when snapshot is false")
+}
+
+func TestSessionsProse_22_SnapshotTimeGetterReturnsErrorForNonSnapshotSessions(t *testing.T) {
+	// 22. Retrieving `snapshotTime` on a non-snapshot session raises an error
+	t.Skip("Skipping test for prose 22; Go driver does not have a getter that raises an error.")
+}
+
+func TestSessionsProse_23_EnsureSnapshotTimeIsImmutable(t *testing.T) {
+	// 23. Ensure `snapshotTime` is Read-Only
+
+	mtOpts := mtest.
+		NewOptions().
+		MinServerVersion("5.0").
+		Topologies(mtest.ReplicaSet, mtest.Sharded)
+
+	mt := mtest.New(t, mtOpts)
+
+	mt.Setup()
+
+	sess, err := mt.Client.StartSession(options.Session().SetSnapshot(false))
+	require.NoError(mt, err)
+	defer sess.EndSession(context.Background())
+
+	// Verify initial state
+	require.Empty(mt, sess.SnapshotTime())
+
+	// Attempt mutation through one GetClientSessionFromSession call
+	snapshotTime := sess.SnapshotTime()
+	snapshotTime.I = 1
+
+	// Second GetClientSessionFromSession call should return independent copy
+	require.Empty(mt, sess.SnapshotTime())
 }
 
 type sessionFunction struct {

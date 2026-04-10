@@ -79,7 +79,8 @@ func TestDocument(t *testing.T) {
 			want error
 		}{
 			{"null", Document{'\x08', '\x00', '\x00', '\x00', '\x0A', 'x', '\x00', '\x00'}, nil},
-			{"subdocument",
+			{
+				"subdocument",
 				Document{
 					'\x15', '\x00', '\x00', '\x00',
 					'\x03',
@@ -89,7 +90,8 @@ func TestDocument(t *testing.T) {
 				},
 				nil,
 			},
-			{"array",
+			{
+				"array",
 				Document{
 					'\x15', '\x00', '\x00', '\x00',
 					'\x04',
@@ -163,7 +165,8 @@ func TestDocument(t *testing.T) {
 			want Value
 			err  error
 		}{
-			{"first",
+			{
+				"first",
 				Document{
 					'\x08', '\x00', '\x00', '\x00', '\x0A', 'x', '\x00', '\x00',
 				},
@@ -171,7 +174,8 @@ func TestDocument(t *testing.T) {
 				Value{Type: TypeNull, Data: []byte{}},
 				nil,
 			},
-			{"first-second",
+			{
+				"first-second",
 				Document{
 					'\x15', '\x00', '\x00', '\x00',
 					'\x03',
@@ -183,7 +187,8 @@ func TestDocument(t *testing.T) {
 				Value{Type: TypeNull, Data: []byte{}},
 				nil,
 			},
-			{"first-second-array",
+			{
+				"first-second-array",
 				Document{
 					'\x15', '\x00', '\x00', '\x00',
 					'\x04',
@@ -239,17 +244,23 @@ func TestDocument(t *testing.T) {
 			index uint
 			want  Element
 		}{
-			{"first",
+			{
+				"first",
 				Document{0xe, 0x0, 0x0, 0x0, 0xa, 0x78, 0x0, 0xa, 0x79, 0x0, 0xa, 0x7a, 0x0, 0x0},
-				0, Element{0x0a, 0x78, 0x00},
+				0,
+				Element{0x0a, 0x78, 0x00},
 			},
-			{"second",
+			{
+				"second",
 				Document{0xe, 0x0, 0x0, 0x0, 0xa, 0x78, 0x0, 0xa, 0x79, 0x0, 0xa, 0x7a, 0x0, 0x0},
-				1, Element{0x0a, 0x79, 0x00},
+				1,
+				Element{0x0a, 0x79, 0x00},
 			},
-			{"third",
+			{
+				"third",
 				Document{0xe, 0x0, 0x0, 0x0, 0xa, 0x78, 0x0, 0xa, 0x79, 0x0, 0xa, 0x7a, 0x0, 0x0},
-				2, Element{0x0a, 0x7a, 0x00},
+				2,
+				Element{0x0a, 0x7a, 0x00},
 			},
 		}
 

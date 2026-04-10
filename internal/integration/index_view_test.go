@@ -29,8 +29,8 @@ type index struct {
 func TestIndexView(t *testing.T) {
 	mt := mtest.New(t, noClientOpts)
 
-	var pbool = func(b bool) *bool { return &b }
-	var pint32 = func(i int32) *int32 { return &i }
+	pbool := func(b bool) *bool { return &b }
+	pint32 := func(i int32) *int32 { return &i }
 
 	mt.Run("list", func(mt *mtest.T) {
 		// For server versions below 3.0, we internally execute List() as a legacy OP_QUERY against the system.indexes
@@ -264,7 +264,6 @@ func TestIndexView(t *testing.T) {
 			cmdErr, ok := err.(mongo.CommandError)
 			assert.True(mt, ok, "expected mongo.CommandError, got %T", err)
 			assert.Equal(mt, int32(100), cmdErr.Code, "expected error code 100, got %v", cmdErr.Code)
-
 		})
 		mt.Run("multi-key map", func(mt *mtest.T) {
 			iv := mt.Coll.Indexes()
@@ -417,7 +416,6 @@ func TestIndexView(t *testing.T) {
 			cmdErr, ok := err.(mongo.CommandError)
 			assert.True(mt, ok, "expected mongo.CommandError, got %T", err)
 			assert.Equal(mt, int32(100), cmdErr.Code, "expected error code 100, got %v", cmdErr.Code)
-
 		})
 		mt.Run("multi-key map", func(mt *mtest.T) {
 			iv := mt.Coll.Indexes()

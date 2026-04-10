@@ -643,7 +643,7 @@ The `ArrayFilters` struct type has been removed in v2. As a result, the `ArrayFi
 
 ### Merge\*Options
 
-All functions that merge options have been removed in favor of a generic solution. See [GODRIVER-2696](https://jira.mongodb.org/browse/GODRIVER-2696) for more information.
+With the exception of `MergeClientOptions`, all functions that merge options have been removed in favor of a generic solution. `MergeClientOptions` is retained to allow combining `*ClientOptions` in a "last-one-wins" fashion. See [GODRIVER-2696](https://jira.mongodb.org/browse/GODRIVER-2696) for more information.
 
 ### MaxTime
 
@@ -891,6 +891,33 @@ fmt.Printf("b3.b type: %T\n", b3["b"])
 ```
 
 Use `Decoder.DefaultDocumentM()` or set the `DefaultDocumentM` field of `options.BSONOptions` to always decode documents into the `bson.M` type.
+
+To decode documents into `map[string]any` instead of `bson.M`, use `Decoder.DefaultDocumentMap()`. While
+`bson.M` is defined as `type M map[string]any`, Go's type system treats `bson.M`
+and `map[string]any` as distinct types. This can break compatibility with
+libraries that expect actual `map[string]any` types.
+
+```go
+b1 := map[string]any{"a": 1, "b": map[string]any{"c": 2}}
+b2, _ := bson.Marshal(b1)
+
+decoder := bson.NewDecoder(bson.NewDocumentReader(bytes.NewReader(b2)))
+decoder.DefaultDocumentMap()
+
+var b3 map[string]any
+decoder.Decode(&b3)
+fmt.Printf("b3.b type: %T\n", b3["b"])
+// Output: b3.b type: map[string]interface {}
+```
+
+Or configure at the client level:
+
+```go
+clientOpts := options.Client().
+    SetBSONOptions(&options.BSONOptions{
+        DefaultDocumentMap: true,
+    })
+```
 
 #### NewDecoder
 

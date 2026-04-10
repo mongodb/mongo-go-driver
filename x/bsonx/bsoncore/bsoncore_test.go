@@ -91,7 +91,8 @@ func TestAppend(t *testing.T) {
 			"AppendStringElement",
 			AppendStringElement,
 			[]any{make([]byte, 0), "foobar", "barbaz"},
-			[]byte{byte(TypeString),
+			[]byte{
+				byte(TypeString),
 				'f', 'o', 'o', 'b', 'a', 'r', 0x00,
 				0x07, 0x00, 0x00, 0x00, 'b', 'a', 'r', 'b', 'a', 'z', 0x00,
 			},
@@ -106,7 +107,8 @@ func TestAppend(t *testing.T) {
 			"AppendDocumentElement",
 			AppendDocumentElement,
 			[]any{make([]byte, 0), "foobar", []byte{0x05, 0x00, 0x00, 0x00, 0x00}},
-			[]byte{byte(TypeEmbeddedDocument),
+			[]byte{
+				byte(TypeEmbeddedDocument),
 				'f', 'o', 'o', 'b', 'a', 'r', 0x00,
 				0x05, 0x00, 0x00, 0x00, 0x00,
 			},
@@ -121,7 +123,8 @@ func TestAppend(t *testing.T) {
 			"AppendArrayElement",
 			AppendArrayElement,
 			[]any{make([]byte, 0), "foobar", []byte{0x05, 0x00, 0x00, 0x00, 0x00}},
-			[]byte{byte(TypeArray),
+			[]byte{
+				byte(TypeArray),
 				'f', 'o', 'o', 'b', 'a', 'r', 0x00,
 				0x05, 0x00, 0x00, 0x00, 0x00,
 			},
@@ -141,7 +144,8 @@ func TestAppend(t *testing.T) {
 			"BuildArrayElement",
 			BuildArrayElement,
 			[]any{make([]byte, 0), "foobar", Value{Type: TypeDouble, Data: AppendDouble(nil, 3.14159)}},
-			[]byte{byte(TypeArray),
+			[]byte{
+				byte(TypeArray),
 				'f', 'o', 'o', 'b', 'a', 'r', 0x00,
 				0x10, 0x00, 0x00, 0x00,
 				byte(TypeDouble), '0', 0x00,
@@ -159,7 +163,8 @@ func TestAppend(t *testing.T) {
 			"AppendBinaryElement Subtype 2",
 			AppendBinaryElement,
 			[]any{make([]byte, 0), "foobar", byte(0x02), []byte{0x01, 0x02, 0x03}},
-			[]byte{byte(TypeBinary),
+			[]byte{
+				byte(TypeBinary),
 				'f', 'o', 'o', 'b', 'a', 'r', 0x00,
 				0x07, 0x00, 0x00, 0x00,
 				0x02,
@@ -176,7 +181,8 @@ func TestAppend(t *testing.T) {
 			"AppendBinaryElement",
 			AppendBinaryElement,
 			[]any{make([]byte, 0), "foobar", byte(0xFF), []byte{0x01, 0x02, 0x03}},
-			[]byte{byte(TypeBinary),
+			[]byte{
+				byte(TypeBinary),
 				'f', 'o', 'o', 'b', 'a', 'r', 0x00,
 				0x03, 0x00, 0x00, 0x00,
 				0xFF,
@@ -205,7 +211,8 @@ func TestAppend(t *testing.T) {
 				make([]byte, 0), "foobar",
 				[12]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
 			},
-			[]byte{byte(TypeObjectID),
+			[]byte{
+				byte(TypeObjectID),
 				'f', 'o', 'o', 'b', 'a', 'r', 0x00,
 				0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C,
 			},
@@ -256,7 +263,8 @@ func TestAppend(t *testing.T) {
 			"AppendRegexElement",
 			AppendRegexElement,
 			[]any{make([]byte, 0), "foobar", "bar", "baz"},
-			[]byte{byte(TypeRegex),
+			[]byte{
+				byte(TypeRegex),
 				'f', 'o', 'o', 'b', 'a', 'r', 0x00,
 				'b', 'a', 'r', 0x00, 'b', 'a', 'z', 0x00,
 			},
@@ -282,7 +290,8 @@ func TestAppend(t *testing.T) {
 				"barbaz",
 				[12]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
 			},
-			[]byte{byte(TypeDBPointer),
+			[]byte{
+				byte(TypeDBPointer),
 				'f', 'o', 'o', 'b', 'a', 'r', 0x00,
 				0x07, 0x00, 0x00, 0x00, 'b', 'a', 'r', 'b', 'a', 'z', 0x00,
 				0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C,
@@ -298,7 +307,8 @@ func TestAppend(t *testing.T) {
 			"AppendJavaScriptElement",
 			AppendJavaScriptElement,
 			[]any{make([]byte, 0), "foobar", "barbaz"},
-			[]byte{byte(TypeJavaScript),
+			[]byte{
+				byte(TypeJavaScript),
 				'f', 'o', 'o', 'b', 'a', 'r', 0x00,
 				0x07, 0x00, 0x00, 0x00, 'b', 'a', 'r', 'b', 'a', 'z', 0x00,
 			},
@@ -313,7 +323,8 @@ func TestAppend(t *testing.T) {
 			"AppendSymbolElement",
 			AppendSymbolElement,
 			[]any{make([]byte, 0), "foobar", "barbaz"},
-			[]byte{byte(TypeSymbol),
+			[]byte{
+				byte(TypeSymbol),
 				'f', 'o', 'o', 'b', 'a', 'r', 0x00,
 				0x07, 0x00, 0x00, 0x00, 'b', 'a', 'r', 'b', 'a', 'z', 0x00,
 			},
@@ -322,7 +333,8 @@ func TestAppend(t *testing.T) {
 			"AppendCodeWithScope",
 			AppendCodeWithScope,
 			[]any{[]byte{0x05, 0x00, 0x00, 0x00, 0x00}, "foobar", []byte{0x05, 0x00, 0x00, 0x00, 0x00}},
-			[]byte{0x05, 0x00, 0x00, 0x00, 0x00,
+			[]byte{
+				0x05, 0x00, 0x00, 0x00, 0x00,
 				0x14, 0x00, 0x00, 0x00,
 				0x07, 0x00, 0x00, 0x00, 'f', 'o', 'o', 'b', 'a', 'r', 0x00,
 				0x05, 0x00, 0x00, 0x00, 0x00,
@@ -332,7 +344,8 @@ func TestAppend(t *testing.T) {
 			"AppendCodeWithScopeElement",
 			AppendCodeWithScopeElement,
 			[]any{make([]byte, 0), "foobar", "barbaz", []byte{0x05, 0x00, 0x00, 0x00, 0x00}},
-			[]byte{byte(TypeCodeWithScope),
+			[]byte{
+				byte(TypeCodeWithScope),
 				'f', 'o', 'o', 'b', 'a', 'r', 0x00,
 				0x14, 0x00, 0x00, 0x00,
 				0x07, 0x00, 0x00, 0x00, 'b', 'a', 'r', 'b', 'a', 'z', 0x00,
@@ -583,7 +596,8 @@ func TestRead(t *testing.T) {
 			[]byte{0x0F, 0x00, 0x00, 0x00, 0x02, 0x0F, 0x00, 0x00, 0x00, 0x01, 0x02},
 			[]any{
 				byte(0), []byte(nil),
-				[]byte{0x0F, 0x00, 0x00, 0x00, 0x02, 0x0F, 0x00, 0x00, 0x00, 0x01, 0x02}, false,
+				[]byte{0x0F, 0x00, 0x00, 0x00, 0x02, 0x0F, 0x00, 0x00, 0x00, 0x01, 0x02},
+				false,
 			},
 		},
 		{
@@ -610,7 +624,8 @@ func TestRead(t *testing.T) {
 			[]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
 			[]any{
 				[12]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
-				[]byte{}, true,
+				[]byte{},
+				true,
 			},
 		},
 		{
@@ -675,8 +690,10 @@ func TestRead(t *testing.T) {
 				0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C,
 			},
 			[]any{
-				"foo", [12]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
-				[]byte{}, true,
+				"foo",
+				[12]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
+				[]byte{},
+				true,
 			},
 		},
 		{
@@ -754,8 +771,10 @@ func TestRead(t *testing.T) {
 				0x0A, 0x00, 0x00, 0x00, 0x0A, 'f', 'o', 'o', 0x00, 0x00,
 			},
 			[]any{
-				"foobar", []byte{0x0A, 0x00, 0x00, 0x00, 0x0A, 'f', 'o', 'o', 0x00, 0x00},
-				[]byte{}, true,
+				"foobar",
+				[]byte{0x0A, 0x00, 0x00, 0x00, 0x0A, 'f', 'o', 'o', 0x00, 0x00},
+				[]byte{},
+				true,
 			},
 		},
 		{

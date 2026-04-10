@@ -103,7 +103,8 @@ type changeStreamConfig struct {
 }
 
 func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline any,
-	opts ...options.Lister[options.ChangeStreamOptions]) (*ChangeStream, error) {
+	opts ...options.Lister[options.ChangeStreamOptions],
+) (*ChangeStream, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -403,7 +404,7 @@ func (cs *ChangeStream) storeResumeToken() error {
 
 func (cs *ChangeStream) buildPipelineSlice(pipeline any) error {
 	val := reflect.ValueOf(pipeline)
-	if !val.IsValid() || !(val.Kind() == reflect.Slice) {
+	if !val.IsValid() || (val.Kind() != reflect.Slice) {
 		cs.err = errors.New("can only marshal slices and arrays into aggregation pipelines, but got invalid")
 		return cs.err
 	}

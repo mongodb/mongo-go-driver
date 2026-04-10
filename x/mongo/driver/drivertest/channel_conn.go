@@ -36,7 +36,7 @@ func (c *ChannelConn) OIDCTokenGenID() uint64 {
 // (which is always 0)
 func (c *ChannelConn) SetOIDCTokenGenID(uint64) {}
 
-// WriteWireMessage implements the driver.Connection interface.
+// Write implements the driver.Connection interface.
 func (c *ChannelConn) Write(ctx context.Context, wm []byte) error {
 	// Copy wm in case it came from a buffer pool.
 	b := make([]byte, len(wm))
@@ -51,7 +51,7 @@ func (c *ChannelConn) Write(ctx context.Context, wm []byte) error {
 	return c.WriteErr
 }
 
-// ReadWireMessage implements the driver.Connection interface.
+// Read implements the driver.Connection interface.
 func (c *ChannelConn) Read(ctx context.Context) ([]byte, error) {
 	var wm []byte
 	var err error
@@ -133,7 +133,7 @@ func GetCommandFromQueryWireMessage(wm []byte) (bsoncore.Document, error) {
 	}
 
 	var query bsoncore.Document
-	query, wm, ok = wiremessage.ReadQueryQuery(wm)
+	query, _, ok = wiremessage.ReadQueryQuery(wm)
 	if !ok {
 		return nil, errors.New("could not read query")
 	}
@@ -157,7 +157,7 @@ func GetCommandFromMsgWireMessage(wm []byte) (bsoncore.Document, error) {
 		return nil, errors.New("could not read section type")
 	}
 
-	cmdDoc, wm, ok := wiremessage.ReadMsgSectionSingleDocument(wm)
+	cmdDoc, _, ok := wiremessage.ReadMsgSectionSingleDocument(wm)
 	if !ok {
 		return nil, errors.New("could not read command document")
 	}

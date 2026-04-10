@@ -5,7 +5,6 @@
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
 //go:build cse
-// +build cse
 
 package mongocrypt
 
@@ -15,6 +14,7 @@ package mongocrypt
 // #include <mongocrypt.h>
 // #include <stdlib.h>
 import "C"
+
 import (
 	"context"
 	"errors"
@@ -308,6 +308,55 @@ func (m *MongoCrypt) createExplicitEncryptionContext(opts *options.ExplicitEncry
 
 		if ok := C.mongocrypt_ctx_setopt_algorithm_range(ctx.wrapped, mongocryptBinary.wrapped); !ok {
 			return nil, ctx.createErrorFromStatus()
+		}
+	}
+
+	if opts.TextOptions != nil {
+		idx, mongocryptDoc := bsoncore.AppendDocumentStart(nil)
+		if opts.TextOptions.Substring != nil {
+			substringIdx, substringDoc := bsoncore.AppendDocumentStart(nil)
+			substringDoc = bsoncore.AppendInt32Element(substringDoc, "strMaxLength", opts.TextOptions.Substring.StrMaxLength)
+			substringDoc = bsoncore.AppendInt32Element(substringDoc, "strMinQueryLength", opts.TextOptions.Substring.StrMinQueryLength)
+			substringDoc = bsoncore.AppendInt32Element(substringDoc, "strMaxQueryLength", opts.TextOptions.Substring.StrMaxQueryLength)
+			substringDoc, err := bsoncore.AppendDocumentEnd(substringDoc, substringIdx)
+			if err != nil {
+				return nil, fmt.Errorf("error building substring doc: %w", err)
+			}
+			mongocryptDoc = bsoncore.AppendDocumentElement(mongocryptDoc, "substring", substringDoc)
+		}
+		if opts.TextOptions.Prefix != nil {
+			prefixIdx, prefixDoc := bsoncore.AppendDocumentStart(nil)
+			prefixDoc = bsoncore.AppendInt32Element(prefixDoc, "strMinQueryLength", opts.TextOptions.Prefix.StrMinQueryLength)
+			prefixDoc = bsoncore.AppendInt32Element(prefixDoc, "strMaxQueryLength", opts.TextOptions.Prefix.StrMaxQueryLength)
+			prefixDoc, err := bsoncore.AppendDocumentEnd(prefixDoc, prefixIdx)
+			if err != nil {
+				return nil, fmt.Errorf("error building prefix doc: %w", err)
+			}
+			mongocryptDoc = bsoncore.AppendDocumentElement(mongocryptDoc, "prefix", prefixDoc)
+		}
+		if opts.TextOptions.Suffix != nil {
+			suffixIdx, suffixDoc := bsoncore.AppendDocumentStart(nil)
+			suffixDoc = bsoncore.AppendInt32Element(suffixDoc, "strMinQueryLength", opts.TextOptions.Suffix.StrMinQueryLength)
+			suffixDoc = bsoncore.AppendInt32Element(suffixDoc, "strMaxQueryLength", opts.TextOptions.Suffix.StrMaxQueryLength)
+			suffixDoc, err := bsoncore.AppendDocumentEnd(suffixDoc, suffixIdx)
+			if err != nil {
+				return nil, fmt.Errorf("error building suffix doc: %w", err)
+			}
+			mongocryptDoc = bsoncore.AppendDocumentElement(mongocryptDoc, "suffix", suffixDoc)
+		}
+		mongocryptDoc = bsoncore.AppendBooleanElement(mongocryptDoc, "caseSensitive", opts.TextOptions.CaseSensitive)
+		mongocryptDoc = bsoncore.AppendBooleanElement(mongocryptDoc, "diacriticSensitive", opts.TextOptions.DiacriticSensitive)
+
+		mongocryptDoc, err := bsoncore.AppendDocumentEnd(mongocryptDoc, idx)
+		if err != nil {
+			return nil, fmt.Errorf("error building text options doc: %w", err)
+		}
+
+		mongocryptBinary := newBinaryFromBytes(mongocryptDoc)
+		defer mongocryptBinary.close()
+
+		if ok := C.mongocrypt_ctx_setopt_algorithm_text(ctx.wrapped, mongocryptBinary.wrapped); !ok {
+			return nil, fmt.Errorf("error setting text algorithm option: %w", ctx.createErrorFromStatus())
 		}
 	}
 

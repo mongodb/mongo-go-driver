@@ -110,7 +110,6 @@ func (ejv *extJSONValue) parseBinary() (b []byte, subType byte, err error) {
 
 	if !stFound {
 		return nil, 0, errors.New("missing subType field in $binary object")
-
 	}
 
 	return b, subType, nil
@@ -175,9 +174,7 @@ const (
 	rfc3339Milli = "2006-01-02T15:04:05.999Z07:00"
 )
 
-var (
-	timeFormats = []string{rfc3339Milli, "2006-01-02T15:04:05.999Z0700"}
-)
+var timeFormats = []string{rfc3339Milli, "2006-01-02T15:04:05.999Z0700"}
 
 func (ejv *extJSONValue) parseDateTime() (int64, error) {
 	switch ejv.t {
@@ -395,7 +392,6 @@ func (ejv *extJSONValue) parseRegex() (pattern, options string, err error) {
 
 	if !optFound {
 		return "", "", errors.New("missing options field in $regularExpression object")
-
 	}
 
 	return pattern, options, nil

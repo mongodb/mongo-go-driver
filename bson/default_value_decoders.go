@@ -1310,6 +1310,11 @@ func coreDocumentDecodeValue(_ DecodeContext, vr ValueReader, val reflect.Value)
 	if !val.CanSet() || val.Type() != tCoreDocument {
 		return ValueDecoderError{Name: "CoreDocumentDecodeValue", Types: []reflect.Type{tCoreDocument}, Received: val}
 	}
+	vrType := vr.Type()
+	isDocument := vrType == Type(0) || vrType == TypeEmbeddedDocument || vrType == TypeArray
+	if !isDocument {
+		return fmt.Errorf("cannot decode %v into a %s", vrType, val.Type())
+	}
 
 	if val.IsNil() {
 		val.Set(reflect.MakeSlice(val.Type(), 0, 0))

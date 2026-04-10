@@ -451,9 +451,11 @@ type codeNode struct {
 	MeanT    int64       `json:"mean_t"`
 }
 
-var codeJSON []byte
-var codeBSON []byte
-var codeStruct codeResponse
+var (
+	codeJSON   []byte
+	codeBSON   []byte
+	codeStruct codeResponse
+)
 
 func codeInit() {
 	f, err := os.Open("testdata/code.json.gz")
