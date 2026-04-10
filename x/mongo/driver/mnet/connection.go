@@ -9,6 +9,7 @@ package mnet
 import (
 	"context"
 	"io"
+	"sync/atomic"
 
 	"go.mongodb.org/mongo-driver/v2/mongo/address"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
@@ -78,11 +79,27 @@ type Pinner interface {
 
 // Connection represents a connection to a MongoDB server.
 type Connection struct {
+	closed uint32
+
 	ReadWriteCloser
 	Describer
 	Streamer
 	Compressor
 	Pinner
+}
+
+// Close closes the connection.
+func (c *Connection) Close() error {
+	var err error
+	if atomic.CompareAndSwapUint32(&c.closed, 0, 1) {
+		err = c.ReadWriteCloser.Close()
+	}
+	return err
+}
+
+// Closed returns true if the connection has been closed.
+func (c *Connection) Closed() bool {
+	return atomic.LoadUint32(&c.closed) == 1
 }
 
 // NewConnection creates a new Connection with the provided component. This
