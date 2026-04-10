@@ -7,11 +7,11 @@ set -ex
 # Note: this needs to be updated if the listed Go version has vulnerabilities
 # discovered because they will show up in the scan results along with Go Driver
 # and dependency vulnerabilities.
-GO_VERSION=1.25.5
+GO_VERSION=1.26.2
 
 go install golang.org/dl/go$GO_VERSION@latest
 go${GO_VERSION} download
-go install golang.org/x/vuln/cmd/govulncheck@latest
+go${GO_VERSION} install golang.org/x/vuln/cmd/govulncheck@latest
 
 # govulncheck uses the Go binary it finds from the PATH, so modify PATH to point
 # to the Go version we just downloaded.
