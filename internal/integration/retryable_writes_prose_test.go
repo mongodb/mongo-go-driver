@@ -388,7 +388,7 @@ func TestRetryableWritesProse(t *testing.T) {
 }
 
 func TestErrorPropagationAfterEncounteringMultipleErrors(t *testing.T) {
-	mt := mtest.New(t, mtest.NewOptions().
+	mt := mtest.New(t, mtest.NewOptions().CreateClient(false).
 		MinServerVersion("6.0").
 		Topologies(mtest.ReplicaSet))
 
@@ -401,10 +401,8 @@ func TestErrorPropagationAfterEncounteringMultipleErrors(t *testing.T) {
 		return false
 	}
 
-	mt.Run("Case 1: Test that drivers return the correct error when receiving only errors without NoWritesPerformed", func(subt *mtest.T) {
-		defer subt.ClearFailPoints()
-
-		subt.SetFailPoint(failpoint.FailPoint{
+	mt.Run("Case 1: Test that drivers return the correct error when receiving only errors without NoWritesPerformed", func(mt *mtest.T) {
+		mt.SetFailPoint(failpoint.FailPoint{
 			ConfigureFailPoint: "failCommand",
 			Mode: failpoint.Mode{
 				Times: 1,
@@ -422,7 +420,7 @@ func TestErrorPropagationAfterEncounteringMultipleErrors(t *testing.T) {
 					return
 				}
 				if errorCodesContains(event.Failure, 91) {
-					subt.SetFailPoint(failpoint.FailPoint{
+					mt.SetFailPoint(failpoint.FailPoint{
 						ConfigureFailPoint: "failCommand",
 						Mode:               failpoint.ModeAlwaysOn,
 						Data: failpoint.Data{
@@ -436,13 +434,11 @@ func TestErrorPropagationAfterEncounteringMultipleErrors(t *testing.T) {
 		}
 		mt.ResetClient(options.Client().SetRetryWrites(true).SetMonitor(monitor))
 		_, err := mt.Coll.InsertOne(context.Background(), bson.D{})
-		require.True(subt, errorCodesContains(err, 10107), "Expect the error code of the server error to be 10107")
+		require.True(mt, errorCodesContains(err, 10107), "Expect the error code of the server error to be 10107")
 	})
 
-	mt.Run("Case 2: Test that drivers return the correct error when receiving only errors with NoWritesPerformed", func(subt *mtest.T) {
-		defer subt.ClearFailPoints()
-
-		subt.SetFailPoint(failpoint.FailPoint{
+	mt.Run("Case 2: Test that drivers return the correct error when receiving only errors with NoWritesPerformed", func(mt *mtest.T) {
+		mt.SetFailPoint(failpoint.FailPoint{
 			ConfigureFailPoint: "failCommand",
 			Mode: failpoint.Mode{
 				Times: 1,
@@ -460,7 +456,7 @@ func TestErrorPropagationAfterEncounteringMultipleErrors(t *testing.T) {
 					return
 				}
 				if errorCodesContains(event.Failure, 91) {
-					subt.SetFailPoint(failpoint.FailPoint{
+					mt.SetFailPoint(failpoint.FailPoint{
 						ConfigureFailPoint: "failCommand",
 						Mode:               failpoint.ModeAlwaysOn,
 						Data: failpoint.Data{
@@ -474,13 +470,11 @@ func TestErrorPropagationAfterEncounteringMultipleErrors(t *testing.T) {
 		}
 		mt.ResetClient(options.Client().SetRetryWrites(true).SetMonitor(monitor))
 		_, err := mt.Coll.InsertOne(context.Background(), bson.D{})
-		require.True(subt, errorCodesContains(err, 91), "Expect the error code of the server error to be 91")
+		require.True(mt, errorCodesContains(err, 91), "Expect the error code of the server error to be 91")
 	})
 
-	mt.Run("Case 3: Test that drivers return the correct error when receiving some errors with NoWritesPerformed and some without NoWritesPerformed", func(subt *mtest.T) {
-		defer subt.ClearFailPoints()
-
-		subt.SetFailPoint(failpoint.FailPoint{
+	mt.Run("Case 3: Test that drivers return the correct error when receiving some errors with NoWritesPerformed and some without NoWritesPerformed", func(mt *mtest.T) {
+		mt.SetFailPoint(failpoint.FailPoint{
 			ConfigureFailPoint: "failCommand",
 			Mode:               failpoint.ModeAlwaysOn,
 			Data: failpoint.Data{
@@ -496,7 +490,7 @@ func TestErrorPropagationAfterEncounteringMultipleErrors(t *testing.T) {
 					return
 				}
 				if errorCodesContains(event.Failure, 91) {
-					subt.SetFailPoint(failpoint.FailPoint{
+					mt.SetFailPoint(failpoint.FailPoint{
 						ConfigureFailPoint: "failCommand",
 						Mode: failpoint.Mode{
 							Times: 1,
@@ -512,10 +506,10 @@ func TestErrorPropagationAfterEncounteringMultipleErrors(t *testing.T) {
 		}
 		mt.ResetClient(options.Client().SetRetryWrites(true).SetMonitor(monitor))
 		_, err := mt.Coll.InsertOne(context.Background(), bson.D{})
-		require.True(subt, errorCodesContains(err, 91), "Expect the error code of the server error to be 91")
+		require.True(mt, errorCodesContains(err, 91), "Expect the error code of the server error to be 91")
 		var labeledError driver.Error
-		require.True(subt, errors.As(err, &labeledError), "expected error to be a labeled error")
-		require.NotContains(subt, labeledError.Labels, "NoWritesPerformed", "expected error labels to not contain NoWritesPerformed")
+		require.True(mt, errors.As(err, &labeledError), "expected error to be a labeled error")
+		require.NotContains(mt, labeledError.Labels, "NoWritesPerformed", "expected error labels to not contain NoWritesPerformed")
 	})
 }
 
