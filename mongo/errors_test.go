@@ -711,7 +711,7 @@ func TestTimeoutError(t *testing.T) {
 					Raw:     nil,
 				},
 			},
-			errMsg: "(blah): context deadline exceeded",
+			errMsg: "operation timed out: (blah): context deadline exceeded",
 			labels: []string{"ExceededTimeLimitError", "other"},
 		},
 		{
@@ -719,7 +719,7 @@ func TestTimeoutError(t *testing.T) {
 			err: TimeoutError{
 				Wrapped: context.DeadlineExceeded,
 			},
-			errMsg: "context deadline exceeded",
+			errMsg: "operation timed out: context deadline exceeded",
 			labels: []string{"ExceededTimeLimitError"},
 		},
 	}

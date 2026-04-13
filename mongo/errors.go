@@ -834,10 +834,11 @@ type TimeoutError struct {
 
 // Error implements the error interface.
 func (e TimeoutError) Error() string {
+	const timeoutMsg = "operation timed out"
 	if e.Wrapped == nil {
-		return "operation timed out"
+		return timeoutMsg
 	}
-	return e.Wrapped.Error()
+	return fmt.Sprintf("%s: %v", timeoutMsg, e.Wrapped.Error())
 }
 
 // Unwrap returns the underlying error.

@@ -109,6 +109,7 @@ func executeWithTransaction(ctx context.Context, op *operation, loopDone <-chan 
 		for idx, oper := range operations {
 			res, execErr := oper.execute(ctx, loopDone)
 			if execErr != nil {
+				// Capture the error but continue executing the remaining operations in the callback.
 				err = fmt.Errorf("error executing operation %q at index %d: %v", oper.Name, idx, execErr)
 				return nil, nil
 			}

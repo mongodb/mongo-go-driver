@@ -217,15 +217,14 @@ func (s *Session) WithTransaction(
 				return res, nil
 			}
 
-			select {
-			case <-timeout.C:
-				return res, TimeoutError{Wrapped: err}
-			default:
-			}
-
 			var cerr CommandError
 			if errors.As(err, &cerr) {
 				if cerr.HasErrorLabel(driver.UnknownTransactionCommitResult) && !cerr.IsMaxTimeMSExpiredError() {
+					select {
+					case <-timeout.C:
+						return res, TimeoutError{Wrapped: err}
+					default:
+					}
 					continue
 				}
 				if cerr.HasErrorLabel(driver.TransientTransactionError) {
