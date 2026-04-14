@@ -6,22 +6,20 @@
 
 package randutil
 
-import (
-	"sync/atomic"
-)
-
-var presetRatio atomic.Pointer[float64]
+var presetRatio *float64
 
 var globalRand = NewLockedRand()
 
-// JitterInt63n returns a random int64 in [0, n) by default. If a preset jitter ratio is set
-// for testing, it returns a value based on the ratio instead of a random value.
+// JitterInt63n returns, as an int64, a non-negative pseudo-random number in
+// the half-open interval [0,n). It panics if n <= 0.
+//
+// If a static jitter ratio is set by calling SetJitterForTesting, JitterInt63n
+// returns int64(n*ratio) in [0,n].
 func JitterInt63n(n int64) int64 {
-	ratioPtr := presetRatio.Load()
-	if ratioPtr == nil {
+	if presetRatio == nil {
 		return globalRand.Int63n(n)
 	}
-	val := int64(*ratioPtr * float64(n))
+	val := int64(*presetRatio * float64(n))
 	if val < 0 {
 		return 0
 	}
@@ -33,6 +31,6 @@ func JitterInt63n(n int64) int64 {
 
 // SetJitterForTesting sets a preset jitter ratio for testing and returns a restore function.
 func SetJitterForTesting(ratio float64) func() {
-	presetRatio.Store(&ratio)
-	return func() { presetRatio.Store(nil) }
+	presetRatio = &ratio
+	return func() { presetRatio = nil }
 }

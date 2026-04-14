@@ -571,9 +571,9 @@ func (op Operation) Execute(ctx context.Context) error {
 		if lerr, ok := err.(labeledError); ok {
 			if !lerr.HasErrorLabel(NoWritesPerformed) {
 				var serverErr Error
-				isDriverException := !errors.As(err, &serverErr) || serverErr.Code == 0
+				isDriverException := errors.As(err, &serverErr) && serverErr.Code != 0
 				isCSOTTimeout := errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled)
-				if !isDriverException && !isCSOTTimeout {
+				if isDriverException && !isCSOTTimeout {
 					prevIndefiniteErr = err
 				}
 			}
@@ -649,6 +649,10 @@ func (op Operation) Execute(ctx context.Context) error {
 
 		requestID := wiremessage.NextRequestID()
 
+		if op.Client != nil {
+			transactionState = op.Client.TransactionState
+		}
+
 		// If the server or connection are nil, try to select a new server and get a new connection.
 		if srvr == nil || conn == nil {
 			srvr, conn, err = op.getServerAndConnection(ctx, requestID, deprioritizedServers)
@@ -683,9 +687,6 @@ func (op Operation) Execute(ctx context.Context) error {
 					return err
 				}
 			}
-		}
-		if op.Client != nil {
-			transactionState = op.Client.TransactionState
 		}
 
 		// Run steps that must only be run on the first attempt, but not again for retries.

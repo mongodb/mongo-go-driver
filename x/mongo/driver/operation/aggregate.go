@@ -352,12 +352,12 @@ func (a *Aggregate) Retry(retry driver.RetryMode) *Aggregate {
 
 // RetryOverload indicates that the driver should retry operations that fail with a server
 // side overload error.
-func (a *Aggregate) RetryOverload(retry bool) *Aggregate {
+func (a *Aggregate) RetryOverload(retryOverload bool) *Aggregate {
 	if a == nil {
 		a = new(Aggregate)
 	}
 
-	a.retryOverload = retry
+	a.retryOverload = retryOverload
 	return a
 }
 
