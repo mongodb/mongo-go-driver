@@ -36,9 +36,10 @@ func TestAppendBatchSequence(t *testing.T) {
 	batches := newTestBatches(t)
 
 	got := []byte{42}
+	totalMsgSize := len(batches.Documents[0]) + len(batches.Documents[1])
 	var n int
 	var err error
-	n, got, err = batches.AppendBatchSequence(got, 2, len(batches.Documents[0]))
+	n, got, err = batches.AppendBatchSequence(got, 2, totalMsgSize)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, n)
 
@@ -57,9 +58,10 @@ func TestAppendBatchArray(t *testing.T) {
 	batches := newTestBatches(t)
 
 	got := []byte{42}
+	totalMsgSize := len(batches.Documents[0]) + len(batches.Documents[1])
 	var n int
 	var err error
-	n, got, err = batches.AppendBatchArray(got, 2, len(batches.Documents[0]))
+	n, got, err = batches.AppendBatchArray(got, 2, totalMsgSize)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, n)
 
