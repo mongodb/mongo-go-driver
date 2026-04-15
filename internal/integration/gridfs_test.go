@@ -11,7 +11,9 @@ import (
 	"context"
 	"io"
 	"math/rand"
+	"os"
 	"runtime"
+	"sync"
 	"testing"
 	"time"
 
@@ -19,6 +21,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/v2/internal/integtest"
 	"go.mongodb.org/mongo-driver/v2/internal/israce"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -527,6 +530,41 @@ func TestGridFS(x *testing.T) {
 
 		assert.NoError(mt, err, "Find error: %v", err)
 	})
+}
+
+func TestOpenUploadStreamConcurrently(t *testing.T) {
+	t.Parallel()
+
+	uri, err := integtest.MongoDBURI()
+	require.NoError(t, err, "error getting URI: %v", err)
+	opts := options.Client().ApplyURI(uri)
+	if os.Getenv("REQUIRE_API_VERSION") == "true" {
+		opts.SetServerAPIOptions(options.ServerAPI(options.ServerAPIVersion1))
+	}
+	client, err := mongo.Connect(opts)
+	require.NoError(t, err, "Connect error: %v", err)
+	defer func() {
+		_ = client.Disconnect(context.Background())
+	}()
+
+	db := client.Database(mtest.TestDB)
+	bucket := db.GridFSBucket()
+	defer func() {
+		_ = bucket.Drop(context.Background())
+	}()
+
+	const size = 10_000
+
+	wg := sync.WaitGroup{}
+	wg.Add(size)
+	for i := 0; i < size; i++ {
+		go func() {
+			defer wg.Done()
+			_, err := bucket.OpenUploadStream(context.Background(), "foo")
+			assert.NoError(t, err, "OpenUploadStream error: %v", err)
+		}()
+	}
+	wg.Wait()
 }
 
 func assertGridFSCollectionState(mt *mtest.T, coll *mongo.Collection, expectedName string, expectedNumDocuments int64) {
