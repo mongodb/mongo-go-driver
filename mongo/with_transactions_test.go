@@ -213,7 +213,16 @@ func TestConvenientTransactions(t *testing.T) {
 		}
 
 		transWithJitter := func(t *testing.T, ratio float64) time.Duration {
-			defer randutil.SetJitterForTesting(ratio)()
+			defer randutil.SetJitterForTesting(func(n int64) int64 {
+				val := int64(ratio * float64(n))
+				if val < 0 {
+					return 0
+				}
+				if val > n {
+					return n
+				}
+				return val
+			})()
 
 			err := dbAdmin.RunCommand(bgCtx, fp).Err()
 			require.NoError(t, err, "error setting failpoint: %v", err)

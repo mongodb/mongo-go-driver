@@ -44,6 +44,10 @@ type serverConfig struct {
 	logger               *logger.Logger
 	poolMaxIdleTime      time.Duration
 	poolMaintainInterval time.Duration
+
+	// Adaptive retry options.
+	maxAdaptiveRetries        *uint
+	enableOverloadRetargeting bool
 }
 
 func newServerConfig(connectTimeout time.Duration, opts ...ServerOption) *serverConfig {
@@ -198,6 +202,21 @@ func WithServerAPI(fn func(serverAPI *driver.ServerAPIOptions) *driver.ServerAPI
 func WithServerLoadBalanced(fn func(bool) bool) ServerOption {
 	return func(cfg *serverConfig) {
 		cfg.loadBalanced = fn(cfg.loadBalanced)
+	}
+}
+
+// WithMaxAdaptiveRetries specifies the maximum number of adaptive retries for the server.
+func WithMaxAdaptiveRetries(fn func(*uint) *uint) ServerOption {
+	return func(cfg *serverConfig) {
+		cfg.maxAdaptiveRetries = fn(cfg.maxAdaptiveRetries)
+	}
+}
+
+// WithEnableOverloadRetargeting specifies whether or not the server should add overloaded
+// servers to the list of deprioritized servers.
+func WithEnableOverloadRetargeting(fn func(bool) bool) ServerOption {
+	return func(cfg *serverConfig) {
+		cfg.enableOverloadRetargeting = fn(cfg.enableOverloadRetargeting)
 	}
 }
 

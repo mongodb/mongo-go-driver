@@ -19,6 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/codecutil"
 	"go.mongodb.org/mongo-driver/v2/internal/csot"
 	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/internal/ptrutil"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
@@ -469,9 +470,15 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 		Clock:          bc.clock,
 		Legacy:         LegacyGetMore,
 		CommandMonitor: bc.cmdMonitor,
-		RetryOverload:  bc.clientSession != nil && bc.clientSession.RetryOverload,
-		Crypt:          bc.crypt,
-		ServerAPI:      bc.serverAPI,
+		MaxAdaptiveRetries: func() *uint {
+			if bc.clientSession == nil {
+				return nil
+			}
+			return ptrutil.Ptr(bc.clientSession.MaxAdaptiveRetries)
+		}(),
+		EnableOverloadRetargeting: bc.clientSession != nil && bc.clientSession.EnableOverloadRetargeting,
+		Crypt:                     bc.crypt,
+		ServerAPI:                 bc.serverAPI,
 
 		// Omit the automatically-calculated maxTimeMS because setting maxTimeMS
 		// on a non-awaitData cursor causes a server error. For awaitData

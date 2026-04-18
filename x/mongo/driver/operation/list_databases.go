@@ -24,22 +24,23 @@ import (
 
 // ListDatabases performs a listDatabases operation.
 type ListDatabases struct {
-	authenticator       driver.Authenticator
-	filter              bsoncore.Document
-	authorizedDatabases *bool
-	nameOnly            *bool
-	session             *session.Client
-	clock               *session.ClusterClock
-	monitor             *event.CommandMonitor
-	database            string
-	deployment          driver.Deployment
-	readPreference      *readpref.ReadPref
-	retry               *driver.RetryMode
-	retryOverload       bool
-	selector            description.ServerSelector
-	crypt               driver.Crypt
-	serverAPI           *driver.ServerAPIOptions
-	timeout             *time.Duration
+	authenticator             driver.Authenticator
+	filter                    bsoncore.Document
+	authorizedDatabases       *bool
+	nameOnly                  *bool
+	session                   *session.Client
+	clock                     *session.ClusterClock
+	monitor                   *event.CommandMonitor
+	database                  string
+	deployment                driver.Deployment
+	readPreference            *readpref.ReadPref
+	retry                     *driver.RetryMode
+	maxAdaptiveRetries        *uint
+	enableOverloadRetargeting bool
+	selector                  description.ServerSelector
+	crypt                     driver.Crypt
+	serverAPI                 *driver.ServerAPIOptions
+	timeout                   *time.Duration
 
 	result ListDatabasesResult
 }
@@ -153,21 +154,22 @@ func (ld *ListDatabases) Execute(ctx context.Context) error {
 		CommandFn:         ld.command,
 		ProcessResponseFn: ld.processResponse,
 
-		Client:         ld.session,
-		Clock:          ld.clock,
-		CommandMonitor: ld.monitor,
-		Database:       ld.database,
-		Deployment:     ld.deployment,
-		ReadPreference: ld.readPreference,
-		RetryMode:      ld.retry,
-		RetryOverload:  ld.retryOverload,
-		Type:           driver.Read,
-		Selector:       ld.selector,
-		Crypt:          ld.crypt,
-		ServerAPI:      ld.serverAPI,
-		Timeout:        ld.timeout,
-		Name:           driverutil.ListDatabasesOp,
-		Authenticator:  ld.authenticator,
+		Client:                    ld.session,
+		Clock:                     ld.clock,
+		CommandMonitor:            ld.monitor,
+		Database:                  ld.database,
+		Deployment:                ld.deployment,
+		ReadPreference:            ld.readPreference,
+		RetryMode:                 ld.retry,
+		MaxAdaptiveRetries:        ld.maxAdaptiveRetries,
+		EnableOverloadRetargeting: ld.enableOverloadRetargeting,
+		Type:                      driver.Read,
+		Selector:                  ld.selector,
+		Crypt:                     ld.crypt,
+		ServerAPI:                 ld.serverAPI,
+		Timeout:                   ld.timeout,
+		Name:                      driverutil.ListDatabasesOp,
+		Authenticator:             ld.authenticator,
 	}.Execute(ctx)
 }
 
@@ -297,14 +299,25 @@ func (ld *ListDatabases) Retry(retry driver.RetryMode) *ListDatabases {
 	return ld
 }
 
-// RetryOverload indicates that the driver should retry operations that fail with a server
-// side overload error.
-func (ld *ListDatabases) RetryOverload(retryOverload bool) *ListDatabases {
+// MaxAdaptiveRetries specifies the maximum number of times the driver should retry operations
+// that fail with a server side overload error.
+func (ld *ListDatabases) MaxAdaptiveRetries(maxAdaptiveRetries *uint) *ListDatabases {
 	if ld == nil {
 		ld = new(ListDatabases)
 	}
 
-	ld.retryOverload = retryOverload
+	ld.maxAdaptiveRetries = maxAdaptiveRetries
+	return ld
+}
+
+// EnableOverloadRetargeting specifies whether the driver adds the previously failed server's address
+// to the list of deprioritized server addresses
+func (ld *ListDatabases) EnableOverloadRetargeting(enabled bool) *ListDatabases {
+	if ld == nil {
+		ld = new(ListDatabases)
+	}
+
+	ld.enableOverloadRetargeting = enabled
 	return ld
 }
 

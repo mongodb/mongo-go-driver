@@ -815,7 +815,8 @@ func (s *Server) createConnection() *connection {
 	opts = append(opts,
 		WithHandshaker(func(Handshaker) Handshaker {
 			handshaker := operation.NewHello().AppName(s.cfg.appname).Compressors(s.cfg.compressionOpts).
-				ServerAPI(s.cfg.serverAPI)
+				ServerAPI(s.cfg.serverAPI).EnableOverloadRetargeting(s.cfg.enableOverloadRetargeting).
+				MaxAdaptiveRetries(s.cfg.maxAdaptiveRetries)
 
 			if s.cfg.driverInfo != nil {
 				driverInfo := s.cfg.driverInfo.Load()
@@ -859,7 +860,9 @@ func (s *Server) createBaseOperation(conn *mnet.Connection) *operation.Hello {
 	return operation.
 		NewHello().
 		Deployment(driver.SingleConnectionDeployment{C: conn}).
-		ServerAPI(s.cfg.serverAPI)
+		ServerAPI(s.cfg.serverAPI).
+		EnableOverloadRetargeting(s.cfg.enableOverloadRetargeting).
+		MaxAdaptiveRetries(s.cfg.maxAdaptiveRetries)
 }
 
 func isStreamingEnabled(srv *Server) bool {

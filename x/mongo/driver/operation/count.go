@@ -24,25 +24,26 @@ import (
 
 // Count represents a count operation.
 type Count struct {
-	authenticator  driver.Authenticator
-	query          bsoncore.Document
-	session        *session.Client
-	clock          *session.ClusterClock
-	collection     string
-	comment        bsoncore.Value
-	monitor        *event.CommandMonitor
-	crypt          driver.Crypt
-	database       string
-	deployment     driver.Deployment
-	readConcern    *readconcern.ReadConcern
-	readPreference *readpref.ReadPref
-	selector       description.ServerSelector
-	retry          *driver.RetryMode
-	retryOverload  bool
-	result         CountResult
-	serverAPI      *driver.ServerAPIOptions
-	timeout        *time.Duration
-	rawData        *bool
+	authenticator             driver.Authenticator
+	query                     bsoncore.Document
+	session                   *session.Client
+	clock                     *session.ClusterClock
+	collection                string
+	comment                   bsoncore.Value
+	monitor                   *event.CommandMonitor
+	crypt                     driver.Crypt
+	database                  string
+	deployment                driver.Deployment
+	readConcern               *readconcern.ReadConcern
+	readPreference            *readpref.ReadPref
+	selector                  description.ServerSelector
+	retry                     *driver.RetryMode
+	maxAdaptiveRetries        *uint
+	enableOverloadRetargeting bool
+	result                    CountResult
+	serverAPI                 *driver.ServerAPIOptions
+	timeout                   *time.Duration
+	rawData                   *bool
 }
 
 // CountResult represents a count result returned by the server.
@@ -112,24 +113,25 @@ func (c *Count) Execute(ctx context.Context) error {
 	}
 
 	err := driver.Operation{
-		CommandFn:         c.command,
-		ProcessResponseFn: c.processResponse,
-		RetryMode:         c.retry,
-		RetryOverload:     c.retryOverload,
-		Type:              driver.Read,
-		Client:            c.session,
-		Clock:             c.clock,
-		CommandMonitor:    c.monitor,
-		Crypt:             c.crypt,
-		Database:          c.database,
-		Deployment:        c.deployment,
-		ReadConcern:       c.readConcern,
-		ReadPreference:    c.readPreference,
-		Selector:          c.selector,
-		ServerAPI:         c.serverAPI,
-		Timeout:           c.timeout,
-		Name:              driverutil.CountOp,
-		Authenticator:     c.authenticator,
+		CommandFn:                 c.command,
+		ProcessResponseFn:         c.processResponse,
+		RetryMode:                 c.retry,
+		MaxAdaptiveRetries:        c.maxAdaptiveRetries,
+		EnableOverloadRetargeting: c.enableOverloadRetargeting,
+		Type:                      driver.Read,
+		Client:                    c.session,
+		Clock:                     c.clock,
+		CommandMonitor:            c.monitor,
+		Crypt:                     c.crypt,
+		Database:                  c.database,
+		Deployment:                c.deployment,
+		ReadConcern:               c.readConcern,
+		ReadPreference:            c.readPreference,
+		Selector:                  c.selector,
+		ServerAPI:                 c.serverAPI,
+		Timeout:                   c.timeout,
+		Name:                      driverutil.CountOp,
+		Authenticator:             c.authenticator,
 	}.Execute(ctx)
 	// Swallow error if NamespaceNotFound(26) is returned from aggregate on non-existent namespace
 	if err != nil {
@@ -287,14 +289,25 @@ func (c *Count) Retry(retry driver.RetryMode) *Count {
 	return c
 }
 
-// RetryOverload indicates that the driver should retry operations that fail with a server
-// side overload error.
-func (c *Count) RetryOverload(retryOverload bool) *Count {
+// MaxAdaptiveRetries specifies the maximum number of times the driver should retry operations
+// that fail with a server side overload error.
+func (c *Count) MaxAdaptiveRetries(maxAdaptiveRetries *uint) *Count {
 	if c == nil {
 		c = new(Count)
 	}
 
-	c.retryOverload = retryOverload
+	c.maxAdaptiveRetries = maxAdaptiveRetries
+	return c
+}
+
+// EnableOverloadRetargeting specifies whether the driver adds the previously failed server's address
+// to the list of deprioritized server addresses
+func (c *Count) EnableOverloadRetargeting(enabled bool) *Count {
+	if c == nil {
+		c = new(Count)
+	}
+
+	c.enableOverloadRetargeting = enabled
 	return c
 }
 

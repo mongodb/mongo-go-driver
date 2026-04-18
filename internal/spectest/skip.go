@@ -852,16 +852,17 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/client-side-encryption/tests/unified/accessToken-gcp.json/Explicit_encrypt_using_access_token_GCP_credentials",
 	},
 
-	// TODO(GODRIVER-3637): Implement client backpressure.
-	"Implement client backpressure": {
-		"TestURIOptionsSpec/client-backpressure-options.json/adaptiveRetries_with_invalid_value_causes_a_warning",
-	},
-
 	// TODO(GODRIVER-3484): Rename WriteConcernFailed code name to WriteConcernTimeout.
 	"Rename WriteConcernFailed code name to WriteConcernTimeout": {
 		"TestUnifiedSpec/transactions/tests/unified/error-labels.json/add_UnknownTransactionCommitResult_label_to_MaxTimeMSExpired",
 		"TestUnifiedSpec/transactions/tests/unified/error-labels.json/do_not_add_UnknownTransactionCommitResult_label_to_MaxTimeMSExpired_inside_transactions",
 		"TestUnifiedSpec/transactions/tests/unified/error-labels.json/add_UnknownTransactionCommitResult_label_to_writeConcernError_MaxTimeMSExpired",
+	},
+
+	// TODO(GODRIVER-3813): Allow keyAltName in encryptedFieldsMap
+	"Allow keyAltName in encryptedFieldsMap": {
+		"TestUnifiedSpec/client-side-encryption/tests/unified/fle2v2-InsertFind-keyAltName.json/Insert_and_find_FLE2_indexed_field",
+		"TestUnifiedSpec/client-side-encryption/tests/unified/fle2v2-InsertFind-keyAltName.json/Create_translates_keyAltName",
 	},
 
 	// GODRIVER-2348

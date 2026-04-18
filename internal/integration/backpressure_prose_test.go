@@ -40,7 +40,16 @@ func TestBackpressureProse(t *testing.T) {
 		mt.ResetClient(options.Client())
 
 		transWithJitter := func(t *mtest.T, ratio float64) time.Duration {
-			defer randutil.SetJitterForTesting(ratio)()
+			defer randutil.SetJitterForTesting(func(n int64) int64 {
+				val := int64(ratio * float64(n))
+				if val < 0 {
+					return 0
+				}
+				if val > n {
+					return n
+				}
+				return val
+			})()
 
 			startTime := time.Now()
 			_, err := t.Coll.InsertOne(context.Background(), bson.D{{"a", 1}})
@@ -49,9 +58,9 @@ func TestBackpressureProse(t *testing.T) {
 		}
 		noBackoffTime := transWithJitter(mt, 0)
 		withBackoffTime := transWithJitter(mt, 1)
-		assert.GreaterOrEqualf(
+		assert.InDelta(
 			mt,
-			withBackoffTime, noBackoffTime+2_100*time.Millisecond,
+			withBackoffTime, noBackoffTime+300*time.Millisecond, float64(300*time.Millisecond),
 			"with backoff time: %v, no backoff time: %v", withBackoffTime, noBackoffTime,
 		)
 	})
@@ -81,6 +90,34 @@ func TestBackpressureProse(t *testing.T) {
 		require.Truef(mt, errors.As(err, &cmdErr), "expected a CommandError, got %T: %v", err, err)
 		assert.True(mt, cmdErr.HasErrorLabel("RetryableError"), `expected error has "RetryableError" label`)
 		assert.True(mt, cmdErr.HasErrorLabel("SystemOverloadedError"), `expected error has "SystemOverloadedError" label`)
-		assert.Equalf(mt, 6, opsCnt, "expected 6 attempts (1 original + 5 retries), got %d", opsCnt)
+		assert.Equalf(mt, 3, opsCnt, "expected 3 attempts (1 original + 2 retries), got %d", opsCnt)
+	})
+	mt.Run("4. Overload Errors are Retried a Maximum of maxAdaptiveRetries times when configured", func(mt *mtest.T) {
+		mt.SetFailPoint(failpoint.FailPoint{
+			ConfigureFailPoint: "failCommand",
+			Mode:               failpoint.ModeAlwaysOn,
+			Data: failpoint.Data{
+				FailCommands: []string{"find"},
+				ErrorCode:    462,
+				ErrorLabels:  &[]string{"SystemOverloadedError", "RetryableError"},
+			},
+		})
+
+		var opsCnt int
+		monitor := &event.CommandMonitor{
+			Started: func(_ context.Context, e *event.CommandStartedEvent) {
+				if e.CommandName == "find" {
+					opsCnt++
+				}
+			},
+		}
+		mt.ResetClient(options.Client().SetMonitor(monitor).SetMaxAdaptiveRetries(1))
+
+		_, err := mt.Coll.Find(context.Background(), bson.D{})
+		var cmdErr mongo.CommandError
+		require.Truef(mt, errors.As(err, &cmdErr), "expected a CommandError, got %T: %v", err, err)
+		assert.True(mt, cmdErr.HasErrorLabel("RetryableError"), `expected error has "RetryableError" label`)
+		assert.True(mt, cmdErr.HasErrorLabel("SystemOverloadedError"), `expected error has "SystemOverloadedError" label`)
+		assert.Equalf(mt, 2, opsCnt, "expected 2 attempts (1 original + 1 retry), got %d", opsCnt)
 	})
 }

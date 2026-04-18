@@ -17,6 +17,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/csot"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/v2/internal/optionsutil"
+	"go.mongodb.org/mongo-driver/v2/internal/ptrutil"
 	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
@@ -195,6 +196,11 @@ func (db *Database) processRunCommand(
 		readSelect = makePinnedSelector(sess, readSelect)
 	}
 
+	maxAdaptiveRetries := db.client.maxAdaptiveRetries
+	if !db.client.retryReads || !db.client.retryWrites {
+		maxAdaptiveRetries = ptrutil.Ptr(uint(0))
+	}
+
 	var op *operation.Command
 	switch cursorCommand {
 	case true:
@@ -210,7 +216,8 @@ func (db *Database) processRunCommand(
 	return op.Session(sess).CommandMonitor(db.client.monitor).
 		ServerSelector(readSelect).ClusterClock(db.client.clock).
 		Database(db.name).Deployment(db.client.deployment).
-		RetryOverload(db.client.retryReads && db.client.retryWrites).
+		MaxAdaptiveRetries(maxAdaptiveRetries).
+		EnableOverloadRetargeting(db.client.enableOverloadRetargeting).
 		Crypt(db.client.cryptFLE).ReadPreference(args.ReadPreference).ServerAPI(db.client.serverAPI).
 		Timeout(db.client.timeout).Logger(db.client.logger).Authenticator(db.client.authenticator), sess, nil
 }
@@ -461,6 +468,11 @@ func (db *Database) ListCollections(
 		retry = driver.RetryOncePerCommand
 	}
 
+	maxAdaptiveRetries := db.client.maxAdaptiveRetries
+	if !db.client.retryReads {
+		maxAdaptiveRetries = ptrutil.Ptr(uint(0))
+	}
+
 	var selector description.ServerSelector
 
 	selector = &serverselector.Composite{
@@ -474,7 +486,8 @@ func (db *Database) ListCollections(
 
 	op := operation.NewListCollections(filterDoc).
 		Session(sess).ReadPreference(db.readPreference).CommandMonitor(db.client.monitor).
-		Retry(retry).RetryOverload(db.client.retryReads).
+		Retry(retry).MaxAdaptiveRetries(maxAdaptiveRetries).
+		EnableOverloadRetargeting(db.client.enableOverloadRetargeting).
 		ServerSelector(selector).ClusterClock(db.client.clock).
 		Database(db.name).Deployment(db.client.deployment).Crypt(db.client.cryptFLE).
 		ServerAPI(db.client.serverAPI).Timeout(db.client.timeout).Authenticator(db.client.authenticator)

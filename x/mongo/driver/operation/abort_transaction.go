@@ -13,6 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
 	"go.mongodb.org/mongo-driver/v2/internal/logger"
+	"go.mongodb.org/mongo-driver/v2/internal/ptrutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
@@ -61,16 +62,22 @@ func (at *AbortTransaction) Execute(ctx context.Context) error {
 		Client:            at.session,
 		Clock:             at.clock,
 		CommandMonitor:    at.monitor,
-		RetryOverload:     at.session != nil && at.session.RetryOverload,
-		Crypt:             at.crypt,
-		Database:          at.database,
-		Deployment:        at.deployment,
-		Selector:          at.selector,
-		WriteConcern:      at.writeConcern,
-		ServerAPI:         at.serverAPI,
-		Name:              driverutil.AbortTransactionOp,
-		Authenticator:     at.authenticator,
-		Logger:            at.logger,
+		MaxAdaptiveRetries: func() *uint {
+			if at.session == nil {
+				return nil
+			}
+			return ptrutil.Ptr(at.session.MaxAdaptiveRetries)
+		}(),
+		EnableOverloadRetargeting: at.session != nil && at.session.EnableOverloadRetargeting,
+		Crypt:                     at.crypt,
+		Database:                  at.database,
+		Deployment:                at.deployment,
+		Selector:                  at.selector,
+		WriteConcern:              at.writeConcern,
+		ServerAPI:                 at.serverAPI,
+		Name:                      driverutil.AbortTransactionOp,
+		Authenticator:             at.authenticator,
+		Logger:                    at.logger,
 	}.Execute(ctx)
 }
 

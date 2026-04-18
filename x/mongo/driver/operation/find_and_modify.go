@@ -24,35 +24,36 @@ import (
 
 // FindAndModify performs a findAndModify operation.
 type FindAndModify struct {
-	authenticator            driver.Authenticator
-	arrayFilters             bsoncore.Array
-	bypassDocumentValidation *bool
-	collation                bsoncore.Document
-	comment                  bsoncore.Value
-	fields                   bsoncore.Document
-	newDocument              *bool
-	query                    bsoncore.Document
-	remove                   *bool
-	sort                     bsoncore.Document
-	update                   bsoncore.Value
-	upsert                   *bool
-	session                  *session.Client
-	clock                    *session.ClusterClock
-	collection               string
-	monitor                  *event.CommandMonitor
-	database                 string
-	deployment               driver.Deployment
-	selector                 description.ServerSelector
-	writeConcern             *writeconcern.WriteConcern
-	retry                    *driver.RetryMode
-	retryOverload            bool
-	crypt                    driver.Crypt
-	hint                     bsoncore.Value
-	serverAPI                *driver.ServerAPIOptions
-	let                      bsoncore.Document
-	timeout                  *time.Duration
-	rawData                  *bool
-	additionalCmd            bson.D
+	authenticator             driver.Authenticator
+	arrayFilters              bsoncore.Array
+	bypassDocumentValidation  *bool
+	collation                 bsoncore.Document
+	comment                   bsoncore.Value
+	fields                    bsoncore.Document
+	newDocument               *bool
+	query                     bsoncore.Document
+	remove                    *bool
+	sort                      bsoncore.Document
+	update                    bsoncore.Value
+	upsert                    *bool
+	session                   *session.Client
+	clock                     *session.ClusterClock
+	collection                string
+	monitor                   *event.CommandMonitor
+	database                  string
+	deployment                driver.Deployment
+	selector                  description.ServerSelector
+	writeConcern              *writeconcern.WriteConcern
+	retry                     *driver.RetryMode
+	maxAdaptiveRetries        *uint
+	enableOverloadRetargeting bool
+	crypt                     driver.Crypt
+	hint                      bsoncore.Value
+	serverAPI                 *driver.ServerAPIOptions
+	let                       bsoncore.Document
+	timeout                   *time.Duration
+	rawData                   *bool
+	additionalCmd             bson.D
 
 	result FindAndModifyResult
 }
@@ -132,21 +133,22 @@ func (fam *FindAndModify) Execute(ctx context.Context) error {
 		CommandFn:         fam.command,
 		ProcessResponseFn: fam.processResponse,
 
-		RetryMode:      fam.retry,
-		RetryOverload:  fam.retryOverload,
-		Type:           driver.Write,
-		Client:         fam.session,
-		Clock:          fam.clock,
-		CommandMonitor: fam.monitor,
-		Database:       fam.database,
-		Deployment:     fam.deployment,
-		Selector:       fam.selector,
-		WriteConcern:   fam.writeConcern,
-		Crypt:          fam.crypt,
-		ServerAPI:      fam.serverAPI,
-		Timeout:        fam.timeout,
-		Name:           driverutil.FindAndModifyOp,
-		Authenticator:  fam.authenticator,
+		RetryMode:                 fam.retry,
+		MaxAdaptiveRetries:        fam.maxAdaptiveRetries,
+		EnableOverloadRetargeting: fam.enableOverloadRetargeting,
+		Type:                      driver.Write,
+		Client:                    fam.session,
+		Clock:                     fam.clock,
+		CommandMonitor:            fam.monitor,
+		Database:                  fam.database,
+		Deployment:                fam.deployment,
+		Selector:                  fam.selector,
+		WriteConcern:              fam.writeConcern,
+		Crypt:                     fam.crypt,
+		ServerAPI:                 fam.serverAPI,
+		Timeout:                   fam.timeout,
+		Name:                      driverutil.FindAndModifyOp,
+		Authenticator:             fam.authenticator,
 	}.Execute(ctx)
 }
 
@@ -423,14 +425,25 @@ func (fam *FindAndModify) Retry(retry driver.RetryMode) *FindAndModify {
 	return fam
 }
 
-// RetryOverload indicates that the driver should retry operations that fail with a server
-// side overload error.
-func (fam *FindAndModify) RetryOverload(retryOverload bool) *FindAndModify {
+// MaxAdaptiveRetries specifies the maximum number of times the driver should retry operations
+// that fail with a server side overload error.
+func (fam *FindAndModify) MaxAdaptiveRetries(maxAdaptiveRetries *uint) *FindAndModify {
 	if fam == nil {
 		fam = new(FindAndModify)
 	}
 
-	fam.retryOverload = retryOverload
+	fam.maxAdaptiveRetries = maxAdaptiveRetries
+	return fam
+}
+
+// EnableOverloadRetargeting specifies whether the driver adds the previously failed server's address
+// to the list of deprioritized server addresses
+func (fam *FindAndModify) EnableOverloadRetargeting(enabled bool) *FindAndModify {
+	if fam == nil {
+		fam = new(FindAndModify)
+	}
+
+	fam.enableOverloadRetargeting = enabled
 	return fam
 }
 

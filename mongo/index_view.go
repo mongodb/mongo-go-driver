@@ -15,6 +15,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/v2/internal/optionsutil"
+	"go.mongodb.org/mongo-driver/v2/internal/ptrutil"
 	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
@@ -79,6 +80,11 @@ func (iv IndexView) List(ctx context.Context, opts ...options.Lister[options.Lis
 		retry = driver.RetryOncePerCommand
 	}
 
+	maxAdaptiveRetries := iv.coll.client.maxAdaptiveRetries
+	if !iv.coll.client.retryReads {
+		maxAdaptiveRetries = ptrutil.Ptr(uint(0))
+	}
+
 	selector = &serverselector.Composite{
 		Selectors: []description.ServerSelector{
 			&serverselector.ReadPref{ReadPref: readpref.Primary()},
@@ -90,7 +96,8 @@ func (iv IndexView) List(ctx context.Context, opts ...options.Lister[options.Lis
 	op := operation.NewListIndexes().
 		Session(sess).CommandMonitor(iv.coll.client.monitor).
 		ServerSelector(selector).ClusterClock(iv.coll.client.clock).
-		Retry(retry).RetryOverload(iv.coll.client.retryReads).
+		Retry(retry).MaxAdaptiveRetries(maxAdaptiveRetries).
+		EnableOverloadRetargeting(iv.coll.client.enableOverloadRetargeting).
 		Database(iv.coll.db.name).Collection(iv.coll.name).
 		Deployment(iv.coll.client.deployment).ServerAPI(iv.coll.client.serverAPI).
 		Timeout(iv.coll.client.timeout).Crypt(iv.coll.client.cryptFLE).Authenticator(iv.coll.client.authenticator)
@@ -268,6 +275,11 @@ func (iv IndexView) CreateMany(
 		sess = nil
 	}
 
+	maxAdaptiveRetries := iv.coll.client.maxAdaptiveRetries
+	if !iv.coll.client.retryWrites {
+		maxAdaptiveRetries = ptrutil.Ptr(uint(0))
+	}
+
 	selector := makePinnedSelector(sess, iv.coll.writeSelector)
 
 	args, err := mongoutil.NewOptions[options.CreateIndexesOptions](opts...)
@@ -276,7 +288,8 @@ func (iv IndexView) CreateMany(
 	}
 
 	op := operation.NewCreateIndexes(indexes).
-		Session(sess).WriteConcern(wc).ClusterClock(iv.coll.client.clock).RetryOverload(iv.coll.client.retryWrites).
+		Session(sess).WriteConcern(wc).ClusterClock(iv.coll.client.clock).
+		MaxAdaptiveRetries(maxAdaptiveRetries).EnableOverloadRetargeting(iv.coll.client.enableOverloadRetargeting).
 		Database(iv.coll.db.name).Collection(iv.coll.name).CommandMonitor(iv.coll.client.monitor).
 		Deployment(iv.coll.client.deployment).ServerSelector(selector).ServerAPI(iv.coll.client.serverAPI).
 		Timeout(iv.coll.client.timeout).Crypt(iv.coll.client.cryptFLE).Authenticator(iv.coll.client.authenticator)
@@ -417,10 +430,16 @@ func (iv IndexView) drop(ctx context.Context, index any, opts ...options.Lister[
 		sess = nil
 	}
 
+	maxAdaptiveRetries := iv.coll.client.maxAdaptiveRetries
+	if !iv.coll.client.retryWrites {
+		maxAdaptiveRetries = ptrutil.Ptr(uint(0))
+	}
+
 	selector := makePinnedSelector(sess, iv.coll.writeSelector)
 
 	op := operation.NewDropIndexes(index).Session(sess).WriteConcern(wc).CommandMonitor(iv.coll.client.monitor).
-		RetryOverload(iv.coll.client.retryWrites).ServerSelector(selector).ClusterClock(iv.coll.client.clock).
+		MaxAdaptiveRetries(maxAdaptiveRetries).EnableOverloadRetargeting(iv.coll.client.enableOverloadRetargeting).
+		ServerSelector(selector).ClusterClock(iv.coll.client.clock).
 		Database(iv.coll.db.name).Collection(iv.coll.name).
 		Deployment(iv.coll.client.deployment).ServerAPI(iv.coll.client.serverAPI).
 		Timeout(iv.coll.client.timeout).Crypt(iv.coll.client.cryptFLE).Authenticator(iv.coll.client.authenticator)

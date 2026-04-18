@@ -13,6 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
 	"go.mongodb.org/mongo-driver/v2/internal/logger"
+	"go.mongodb.org/mongo-driver/v2/internal/ptrutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
@@ -60,16 +61,22 @@ func (ct *CommitTransaction) Execute(ctx context.Context) error {
 		Client:            ct.session,
 		Clock:             ct.clock,
 		CommandMonitor:    ct.monitor,
-		RetryOverload:     ct.session != nil && ct.session.RetryOverload,
-		Crypt:             ct.crypt,
-		Database:          ct.database,
-		Deployment:        ct.deployment,
-		Selector:          ct.selector,
-		WriteConcern:      ct.writeConcern,
-		ServerAPI:         ct.serverAPI,
-		Name:              driverutil.CommitTransactionOp,
-		Authenticator:     ct.authenticator,
-		Logger:            ct.logger,
+		MaxAdaptiveRetries: func() *uint {
+			if ct.session == nil {
+				return nil
+			}
+			return ptrutil.Ptr(ct.session.MaxAdaptiveRetries)
+		}(),
+		EnableOverloadRetargeting: ct.session != nil && ct.session.EnableOverloadRetargeting,
+		Crypt:                     ct.crypt,
+		Database:                  ct.database,
+		Deployment:                ct.deployment,
+		Selector:                  ct.selector,
+		WriteConcern:              ct.writeConcern,
+		ServerAPI:                 ct.serverAPI,
+		Name:                      driverutil.CommitTransactionOp,
+		Authenticator:             ct.authenticator,
+		Logger:                    ct.logger,
 	}.Execute(ctx)
 }
 
