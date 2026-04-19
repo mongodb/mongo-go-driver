@@ -955,6 +955,8 @@ func TestClient_BSONOptions(t *testing.T) {
 		A string
 		B string `json:"x"`
 		C string `json:"y" bson:"3"`
+		D string `json:"oe,omitempty"`
+		E string `json:"oz,omitzero"`
 	}
 
 	type omitemptyTest struct {
@@ -999,6 +1001,7 @@ func TestClient_BSONOptions(t *testing.T) {
 				AppendString("a", "apple").
 				AppendString("x", "banana").
 				AppendString("3", "carrot").
+				AppendString("oz", ""). // driver does not yet respect json omitzero tags
 				Build()),
 		},
 		{
@@ -1176,7 +1179,9 @@ func TestClient_BSONOptions(t *testing.T) {
 		opts := mtest.NewOptions().ClientOptions(
 			options.Client().SetBSONOptions(tc.bsonOpts))
 		mt.RunOpts(tc.name, opts, func(mt *mtest.T) {
-			res, err := mt.Coll.InsertOne(context.Background(), tc.doc)
+			// Cloned Collection should inherent BSONOptions
+			clonedCol := mt.Coll.Clone()
+			res, err := clonedCol.InsertOne(context.Background(), tc.doc)
 			require.NoError(mt, err, "InsertOne error")
 
 			sr := mt.Coll.FindOne(
