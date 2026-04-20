@@ -205,6 +205,9 @@ func IsTimeout(err error) bool {
 	if errors.As(err, &topology.WaitQueueTimeoutError{}) {
 		return true
 	}
+	if errors.As(err, &timeoutError{}) {
+		return true
+	}
 	if ce := (CommandError{}); errors.As(err, &ce) && ce.IsMaxTimeMSExpiredError() {
 		return true
 	}
@@ -827,13 +830,15 @@ func (bwe ClientBulkWriteException) Error() string {
 	return "bulk write exception: " + strings.Join(causes, ", ")
 }
 
-// TimeoutError represents an error that occurred due to a timeout.
-type TimeoutError struct {
+var _ LabeledError = timeoutError{}
+
+// timeoutError represents an error that occurred due to a timeout.
+type timeoutError struct {
 	Wrapped error
 }
 
 // Error implements the error interface.
-func (e TimeoutError) Error() string {
+func (e timeoutError) Error() string {
 	const timeoutMsg = "operation timed out"
 	if e.Wrapped == nil {
 		return timeoutMsg
@@ -842,15 +847,13 @@ func (e TimeoutError) Error() string {
 }
 
 // Unwrap returns the underlying error.
-func (e TimeoutError) Unwrap() error {
+func (e timeoutError) Unwrap() error {
 	return e.Wrapped
 }
 
 // HasErrorLabel returns true if the error contains the specified label.
-func (e TimeoutError) HasErrorLabel(label string) bool {
-	if label == "ExceededTimeLimitError" {
-		return true
-	} else if le := LabeledError(nil); errors.As(e.Wrapped, &le) {
+func (e timeoutError) HasErrorLabel(label string) bool {
+	if le := LabeledError(nil); errors.As(e.Wrapped, &le) {
 		return le.HasErrorLabel(label)
 	}
 	return false
