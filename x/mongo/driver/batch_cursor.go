@@ -469,6 +469,7 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 		Clock:          bc.clock,
 		Legacy:         LegacyGetMore,
 		CommandMonitor: bc.cmdMonitor,
+		RetryOverload:  bc.clientSession != nil && bc.clientSession.RetryOverload,
 		Crypt:          bc.crypt,
 		ServerAPI:      bc.serverAPI,
 

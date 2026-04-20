@@ -24,6 +24,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
 )
@@ -817,6 +818,21 @@ func setClientOptionsFromURIOptions(clientOpts *options.ClientOptions, uriOpts b
 			clientOpts.SetServerSelectionTimeout(time.Duration(value.(int32)) * time.Millisecond)
 		case "servermonitoringmode":
 			clientOpts.SetServerMonitoringMode(value.(string))
+		case "readpreference":
+			switch rPref := value.(string); strings.ToLower(rPref) {
+			case "primary":
+				clientOpts.SetReadPreference(readpref.Primary())
+			case "primarypreferred":
+				clientOpts.SetReadPreference(readpref.PrimaryPreferred())
+			case "secondary":
+				clientOpts.SetReadPreference(readpref.Secondary())
+			case "secondarypreferred":
+				clientOpts.SetReadPreference(readpref.SecondaryPreferred())
+			case "nearest":
+				clientOpts.SetReadPreference(readpref.Nearest())
+			default:
+				return fmt.Errorf("unrecognized read preference %s", rPref)
+			}
 		default:
 			return fmt.Errorf("unrecognized URI option %s", key)
 		}

@@ -38,6 +38,7 @@ type Delete struct {
 	selector      description.ServerSelector
 	writeConcern  *writeconcern.WriteConcern
 	retry         *driver.RetryMode
+	retryOverload bool
 	hint          *bool
 	result        DeleteResult
 	serverAPI     *driver.ServerAPIOptions
@@ -103,6 +104,7 @@ func (d *Delete) Execute(ctx context.Context) error {
 		ProcessResponseFn: d.processResponse,
 		Batches:           batches,
 		RetryMode:         d.retry,
+		RetryOverload:     d.retryOverload,
 		Type:              driver.Write,
 		Client:            d.session,
 		Clock:             d.clock,
@@ -277,6 +279,17 @@ func (d *Delete) Retry(retry driver.RetryMode) *Delete {
 	}
 
 	d.retry = &retry
+	return d
+}
+
+// RetryOverload indicates that the driver should retry operations that fail with a server
+// side overload error.
+func (d *Delete) RetryOverload(retryOverload bool) *Delete {
+	if d == nil {
+		d = new(Delete)
+	}
+
+	d.retryOverload = retryOverload
 	return d
 }
 

@@ -33,6 +33,7 @@ type Command struct {
 	monitor        *event.CommandMonitor
 	resultResponse bsoncore.Document
 	resultCursor   *driver.BatchCursor
+	retryOverload  bool
 	crypt          driver.Crypt
 	serverAPI      *driver.ServerAPIOptions
 	createCursor   bool
@@ -108,6 +109,7 @@ func (c *Command) Execute(ctx context.Context) error {
 		Deployment:     c.deployment,
 		ReadPreference: c.readPreference,
 		Selector:       c.selector,
+		RetryOverload:  c.retryOverload,
 		Crypt:          c.crypt,
 		ServerAPI:      c.serverAPI,
 		Timeout:        c.timeout,
@@ -183,6 +185,17 @@ func (c *Command) ServerSelector(selector description.ServerSelector) *Command {
 	}
 
 	c.selector = selector
+	return c
+}
+
+// RetryOverload indicates that the driver should retry operations that fail with a server
+// side overload error.
+func (c *Command) RetryOverload(retryOverload bool) *Command {
+	if c == nil {
+		c = new(Command)
+	}
+
+	c.retryOverload = retryOverload
 	return c
 }
 

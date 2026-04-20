@@ -55,6 +55,7 @@ func (es *EndSessions) Execute(ctx context.Context) error {
 		Client:            es.session,
 		Clock:             es.clock,
 		CommandMonitor:    es.monitor,
+		RetryOverload:     es.session != nil && es.session.RetryOverload,
 		Crypt:             es.crypt,
 		Database:          es.database,
 		Deployment:        es.deployment,

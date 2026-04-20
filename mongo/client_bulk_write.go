@@ -46,6 +46,7 @@ type clientBulkWrite struct {
 	writeConcern             *writeconcern.WriteConcern
 	rawData                  *bool
 	additionalCmd            bson.D
+	retryOverload            bool
 
 	result ClientBulkWriteResult
 }
@@ -73,6 +74,7 @@ func (bw *clientBulkWrite) execute(ctx context.Context) error {
 		Client:            bw.session,
 		Clock:             bw.client.clock,
 		RetryMode:         &batches.retryMode,
+		RetryOverload:     bw.retryOverload,
 		Type:              driver.Write,
 		Batches:           batches,
 		CommandMonitor:    bw.client.monitor,

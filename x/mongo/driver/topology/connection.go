@@ -887,6 +887,9 @@ func (c *Connection) unpin(reason string) error {
 
 // DriverConnectionID returns the driver connection ID.
 func (c *Connection) DriverConnectionID() int64 {
+	if c.connection == nil {
+		return 0
+	}
 	return c.connection.DriverConnectionID()
 }
 

@@ -31,6 +31,7 @@ type ListIndexes struct {
 	deployment    driver.Deployment
 	selector      description.ServerSelector
 	retry         *driver.RetryMode
+	retryOverload bool
 	crypt         driver.Crypt
 	serverAPI     *driver.ServerAPIOptions
 	timeout       *time.Duration
@@ -81,6 +82,7 @@ func (li *ListIndexes) Execute(ctx context.Context) error {
 		Crypt:          li.crypt,
 		Legacy:         driver.LegacyListIndexes,
 		RetryMode:      li.retry,
+		RetryOverload:  li.retryOverload,
 		Type:           driver.Read,
 		ServerAPI:      li.serverAPI,
 		Timeout:        li.timeout,
@@ -194,6 +196,17 @@ func (li *ListIndexes) Retry(retry driver.RetryMode) *ListIndexes {
 	}
 
 	li.retry = &retry
+	return li
+}
+
+// RetryOverload indicates that the driver should retry operations that fail with a server
+// side overload error.
+func (li *ListIndexes) RetryOverload(retryOverload bool) *ListIndexes {
+	if li == nil {
+		li = new(ListIndexes)
+	}
+
+	li.retryOverload = retryOverload
 	return li
 }
 

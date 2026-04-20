@@ -599,6 +599,7 @@ func (h *Hello) command(dst []byte, desc description.SelectedServer) ([]byte, er
 		// loadBalanced=false per the load balancing spec.
 		dst = bsoncore.AppendBooleanElement(dst, "loadBalanced", true)
 	}
+	dst = bsoncore.AppendBooleanElement(dst, "backpressure", true)
 
 	return dst, nil
 }
@@ -635,6 +636,7 @@ func (h *Hello) createOperation() driver.Operation {
 			h.res = resp
 			return nil
 		},
+		RetryOverload: true,
 		ServerAPI:     h.serverAPI,
 		OmitMaxTimeMS: h.omitMaxTimeMS,
 	}

@@ -41,6 +41,7 @@ type Update struct {
 	selector                 description.ServerSelector
 	writeConcern             *writeconcern.WriteConcern
 	retry                    *driver.RetryMode
+	retryOverload            bool
 	result                   UpdateResult
 	crypt                    driver.Crypt
 	serverAPI                *driver.ServerAPIOptions
@@ -155,6 +156,7 @@ func (u *Update) Execute(ctx context.Context) error {
 		ProcessResponseFn: u.processResponse,
 		Batches:           batches,
 		RetryMode:         u.retry,
+		RetryOverload:     u.retryOverload,
 		Type:              driver.Write,
 		Client:            u.session,
 		Clock:             u.clock,
@@ -370,6 +372,17 @@ func (u *Update) Retry(retry driver.RetryMode) *Update {
 	}
 
 	u.retry = &retry
+	return u
+}
+
+// RetryOverload indicates that the driver should retry operations that fail with a server
+// side overload error.
+func (u *Update) RetryOverload(retryOverload bool) *Update {
+	if u == nil {
+		u = new(Update)
+	}
+
+	u.retryOverload = retryOverload
 	return u
 }
 

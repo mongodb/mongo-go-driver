@@ -60,6 +60,7 @@ func (ct *CommitTransaction) Execute(ctx context.Context) error {
 		Client:            ct.session,
 		Clock:             ct.clock,
 		CommandMonitor:    ct.monitor,
+		RetryOverload:     ct.session != nil && ct.session.RetryOverload,
 		Crypt:             ct.crypt,
 		Database:          ct.database,
 		Deployment:        ct.deployment,
