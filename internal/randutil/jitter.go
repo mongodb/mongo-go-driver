@@ -6,26 +6,23 @@
 
 package randutil
 
-import "sync"
-
 var globalRand = NewLockedRand()
+
+var jitterInt63n func(int64) int64 = globalRand.Int63n
 
 // JitterInt63n returns, as an int64, a non-negative pseudo-random number in
 // the half-open interval [0,n). It panics if n <= 0.
 //
 // If a test jitter function is set by calling SetJitterForTesting, JitterInt63n
 // returns the value from the custom function.
-var JitterInt63n func(int64) int64 = globalRand.Int63n
-
-var testLock sync.Mutex
+func JitterInt63n(n int64) int64 {
+	return jitterInt63n(n)
+}
 
 // SetJitterForTesting sets a custom jitter function for testing and returns a restore function.
 func SetJitterForTesting(f func(int64) int64) func() {
-	testLock.Lock()
-
-	JitterInt63n = f
+	jitterInt63n = f
 	return func() {
-		JitterInt63n = globalRand.Int63n
-		testLock.Unlock()
+		jitterInt63n = globalRand.Int63n
 	}
 }

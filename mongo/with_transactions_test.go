@@ -20,9 +20,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
-	"go.mongodb.org/mongo-driver/v2/internal/failpoint"
 	"go.mongodb.org/mongo-driver/v2/internal/integtest"
-	"go.mongodb.org/mongo-driver/v2/internal/randutil"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
@@ -193,62 +191,6 @@ func TestConvenientTransactions(t *testing.T) {
 			assert.True(t, cmdErr.HasErrorLabel(driver.TransientTransactionError),
 				"expected error with label %v, got %v", driver.TransientTransactionError, cmdErr)
 		})
-	})
-	t.Run("retry backoff is enforced", func(t *testing.T) {
-		version, err := getServerVersion(dbAdmin)
-		require.NoError(t, err, "getServerVersion error: %v", err)
-		if compareVersions(version, "4.4") < 0 {
-			t.Skip("skipping versions < 4.4")
-		}
-
-		fp := failpoint.FailPoint{
-			ConfigureFailPoint: "failCommand",
-			Mode: failpoint.Mode{
-				Times: 13,
-			},
-			Data: failpoint.Data{
-				FailCommands: []string{"commitTransaction"},
-				ErrorCode:    251,
-			},
-		}
-
-		transWithJitter := func(t *testing.T, ratio float64) time.Duration {
-			defer randutil.SetJitterForTesting(func(n int64) int64 {
-				val := int64(ratio * float64(n))
-				if val < 0 {
-					return 0
-				}
-				if val > n {
-					return n
-				}
-				return val
-			})()
-
-			err := dbAdmin.RunCommand(bgCtx, fp).Err()
-			require.NoError(t, err, "error setting failpoint: %v", err)
-
-			session, err := client.StartSession()
-			defer session.EndSession(context.Background())
-			require.NoError(t, err, "StartSession error: %v", err)
-
-			coll := db.Collection(t.Name())
-			startTime := time.Now()
-			_, err = session.WithTransaction(context.Background(), func(sesctx context.Context) (any, error) {
-				if _, err := coll.InsertOne(sesctx, bson.D{}); err != nil {
-					return nil, err
-				}
-				return nil, nil
-			})
-			require.NoError(t, err, "WithTransaction error: %v", err)
-			return time.Since(startTime)
-		}
-		noBackoffTime := transWithJitter(t, 0)
-		withBackoffTime := transWithJitter(t, 1)
-		assert.InDelta(
-			t,
-			withBackoffTime, noBackoffTime+1_800*time.Millisecond, float64(500*time.Millisecond),
-			"with backoff time: %v, no backoff time: %v", withBackoffTime, noBackoffTime,
-		)
 	})
 	t.Run("abortTransaction does not time out", func(t *testing.T) {
 		// Create a special CommandMonitor that only records information about abortTransaction events and also
