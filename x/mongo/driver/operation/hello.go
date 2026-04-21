@@ -50,9 +50,6 @@ type Hello struct {
 	loadBalanced       bool
 	omitMaxTimeMS      bool
 
-	maxAdaptiveRetries        *uint
-	enableOverloadRetargeting bool
-
 	// Fields provided by a library that wraps the Go Driver.
 	outerLibraryName     string
 	outerLibraryVersion  string
@@ -150,22 +147,6 @@ func (h *Hello) OuterLibraryVersion(version string) *Hello {
 // Driver.
 func (h *Hello) OuterLibraryPlatform(platform string) *Hello {
 	h.outerLibraryPlatform = platform
-
-	return h
-}
-
-// MaxAdaptiveRetries specifies the maximum number of times the driver should retry operations
-// that fail with a server side overload error.
-func (h *Hello) MaxAdaptiveRetries(n *uint) *Hello {
-	h.maxAdaptiveRetries = n
-
-	return h
-}
-
-// EnableOverloadRetargeting specifies whether the driver adds the previously failed server's address
-// to the list of deprioritized server addresses.
-func (h *Hello) EnableOverloadRetargeting(enabled bool) *Hello {
-	h.enableOverloadRetargeting = enabled
 
 	return h
 }
@@ -655,10 +636,8 @@ func (h *Hello) createOperation() driver.Operation {
 			h.res = resp
 			return nil
 		},
-		MaxAdaptiveRetries:        h.maxAdaptiveRetries,
-		EnableOverloadRetargeting: h.enableOverloadRetargeting,
-		ServerAPI:                 h.serverAPI,
-		OmitMaxTimeMS:             h.omitMaxTimeMS,
+		ServerAPI:     h.serverAPI,
+		OmitMaxTimeMS: h.omitMaxTimeMS,
 	}
 
 	if isLegacyHandshake(h.serverAPI, h.loadBalanced) {

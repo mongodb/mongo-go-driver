@@ -294,9 +294,6 @@ func NewAuthenticatorConfig(authenticator driver.Authenticator, clientOpts ...Au
 				ServerAPI:     serverAPI,
 				LoadBalanced:  loadBalanced,
 				ClusterClock:  clock,
-
-				MaxAdaptiveRetries:        opts.MaxAdaptiveRetries,
-				EnableOverloadRetargeting: opts.EnableOverloadRetargeting != nil && *opts.EnableOverloadRetargeting,
 			}
 
 			if opts.Auth.AuthMechanism == "" {
@@ -328,9 +325,7 @@ func NewAuthenticatorConfig(authenticator driver.Authenticator, clientOpts ...Au
 				Compressors(comps).
 				ClusterClock(clock).
 				ServerAPI(serverAPI).
-				LoadBalanced(loadBalanced).
-				MaxAdaptiveRetries(opts.MaxAdaptiveRetries).
-				EnableOverloadRetargeting(opts.EnableOverloadRetargeting != nil && *opts.EnableOverloadRetargeting)
+				LoadBalanced(loadBalanced)
 
 			if driverInfo != nil {
 				if di := driverInfo.Load(); di != nil {
@@ -474,17 +469,6 @@ func NewAuthenticatorConfig(authenticator driver.Authenticator, clientOpts ...Au
 			connOpts,
 			WithConnectionLoadBalanced(func(bool) bool { return *opts.LoadBalanced }),
 		)
-	}
-
-	if opts.MaxAdaptiveRetries != nil {
-		serverOpts = append(serverOpts, WithMaxAdaptiveRetries(
-			func(*uint) *uint { return opts.MaxAdaptiveRetries },
-		))
-	}
-	if opts.EnableOverloadRetargeting != nil {
-		serverOpts = append(serverOpts, WithEnableOverloadRetargeting(
-			func(bool) bool { return *opts.EnableOverloadRetargeting },
-		))
 	}
 
 	lgr, err := newLogger(opts.LoggerOptions)

@@ -72,9 +72,6 @@ type HandshakeOptions struct {
 	ServerAPI             *driver.ServerAPIOptions
 	LoadBalanced          bool
 
-	MaxAdaptiveRetries        *uint
-	EnableOverloadRetargeting bool
-
 	// Fields provided by a library that wraps the Go Driver.
 	OuterLibraryName     string
 	OuterLibraryVersion  string
@@ -109,8 +106,6 @@ func (ah *authHandshaker) GetHandshakeInformation(
 		ClusterClock(ah.options.ClusterClock).
 		ServerAPI(ah.options.ServerAPI).
 		LoadBalanced(ah.options.LoadBalanced).
-		MaxAdaptiveRetries(ah.options.MaxAdaptiveRetries).
-		EnableOverloadRetargeting(ah.options.EnableOverloadRetargeting).
 		OuterLibraryName(ah.options.OuterLibraryName).
 		OuterLibraryVersion(ah.options.OuterLibraryVersion).
 		OuterLibraryPlatform(ah.options.OuterLibraryPlatform)
