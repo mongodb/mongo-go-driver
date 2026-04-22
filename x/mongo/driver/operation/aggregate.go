@@ -41,7 +41,7 @@ type Aggregate struct {
 	readConcern               *readconcern.ReadConcern
 	readPreference            *readpref.ReadPref
 	retry                     *driver.RetryMode
-	maxAdaptiveRetries        *uint
+	maxAdaptiveRetries        uint
 	enableOverloadRetargeting bool
 	selector                  description.ServerSelector
 	writeConcern              *writeconcern.WriteConcern
@@ -354,7 +354,7 @@ func (a *Aggregate) Retry(retry driver.RetryMode) *Aggregate {
 
 // MaxAdaptiveRetries specifies the maximum number of times the driver should retry operations
 // that fail with a server side overload error.
-func (a *Aggregate) MaxAdaptiveRetries(maxAdaptiveRetries *uint) *Aggregate {
+func (a *Aggregate) MaxAdaptiveRetries(maxAdaptiveRetries uint) *Aggregate {
 	if a == nil {
 		a = new(Aggregate)
 	}

@@ -38,7 +38,7 @@ type Count struct {
 	readPreference            *readpref.ReadPref
 	selector                  description.ServerSelector
 	retry                     *driver.RetryMode
-	maxAdaptiveRetries        *uint
+	maxAdaptiveRetries        uint
 	enableOverloadRetargeting bool
 	result                    CountResult
 	serverAPI                 *driver.ServerAPIOptions
@@ -291,7 +291,7 @@ func (c *Count) Retry(retry driver.RetryMode) *Count {
 
 // MaxAdaptiveRetries specifies the maximum number of times the driver should retry operations
 // that fail with a server side overload error.
-func (c *Count) MaxAdaptiveRetries(maxAdaptiveRetries *uint) *Count {
+func (c *Count) MaxAdaptiveRetries(maxAdaptiveRetries uint) *Count {
 	if c == nil {
 		c = new(Count)
 	}

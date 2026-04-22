@@ -17,7 +17,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/csot"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/v2/internal/optionsutil"
-	"go.mongodb.org/mongo-driver/v2/internal/ptrutil"
 	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
@@ -196,9 +195,11 @@ func (db *Database) processRunCommand(
 		readSelect = makePinnedSelector(sess, readSelect)
 	}
 
-	maxAdaptiveRetries := db.client.maxAdaptiveRetries
+	maxAdaptiveRetries := defaultAdaptiveRetries
 	if !db.client.retryReads || !db.client.retryWrites {
-		maxAdaptiveRetries = ptrutil.Ptr(uint(0))
+		maxAdaptiveRetries = 0
+	} else if db.client.maxAdaptiveRetries != nil {
+		maxAdaptiveRetries = *db.client.maxAdaptiveRetries
 	}
 
 	var op *operation.Command
@@ -468,9 +469,11 @@ func (db *Database) ListCollections(
 		retry = driver.RetryOncePerCommand
 	}
 
-	maxAdaptiveRetries := db.client.maxAdaptiveRetries
+	maxAdaptiveRetries := defaultAdaptiveRetries
 	if !db.client.retryReads {
-		maxAdaptiveRetries = ptrutil.Ptr(uint(0))
+		maxAdaptiveRetries = 0
+	} else if db.client.maxAdaptiveRetries != nil {
+		maxAdaptiveRetries = *db.client.maxAdaptiveRetries
 	}
 
 	var selector description.ServerSelector

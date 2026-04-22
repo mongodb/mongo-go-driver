@@ -770,9 +770,11 @@ func (c *Client) ListDatabases(ctx context.Context, filter any, opts ...options.
 		retry = driver.RetryOncePerCommand
 	}
 
-	maxAdaptiveRetries := c.maxAdaptiveRetries
+	maxAdaptiveRetries := defaultAdaptiveRetries
 	if !c.retryReads {
-		maxAdaptiveRetries = ptrutil.Ptr(uint(0))
+		maxAdaptiveRetries = 0
+	} else if c.maxAdaptiveRetries != nil {
+		maxAdaptiveRetries = *c.maxAdaptiveRetries
 	}
 
 	var selector description.ServerSelector
@@ -997,9 +999,11 @@ func (c *Client) BulkWrite(ctx context.Context, writes []ClientBulkWrite,
 		sess = nil
 	}
 
-	maxAdaptiveRetries := c.maxAdaptiveRetries
+	maxAdaptiveRetries := defaultAdaptiveRetries
 	if !c.retryWrites {
-		maxAdaptiveRetries = ptrutil.Ptr(uint(0))
+		maxAdaptiveRetries = 0
+	} else if c.maxAdaptiveRetries != nil {
+		maxAdaptiveRetries = *c.maxAdaptiveRetries
 	}
 
 	writeSelector := &serverselector.Composite{

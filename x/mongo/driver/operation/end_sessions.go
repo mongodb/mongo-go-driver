@@ -12,7 +12,6 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
-	"go.mongodb.org/mongo-driver/v2/internal/ptrutil"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
@@ -56,11 +55,11 @@ func (es *EndSessions) Execute(ctx context.Context) error {
 		Client:            es.session,
 		Clock:             es.clock,
 		CommandMonitor:    es.monitor,
-		MaxAdaptiveRetries: func() *uint {
+		MaxAdaptiveRetries: func() uint {
 			if es.session == nil {
-				return nil
+				return 0
 			}
-			return ptrutil.Ptr(es.session.MaxAdaptiveRetries)
+			return es.session.MaxAdaptiveRetries
 		}(),
 		EnableOverloadRetargeting: es.session != nil && es.session.EnableOverloadRetargeting,
 		Crypt:                     es.crypt,

@@ -12,7 +12,6 @@ import (
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
-	"go.mongodb.org/mongo-driver/v2/internal/ptrutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
@@ -185,9 +184,11 @@ func (bw *bulkWrite) runInsert(ctx context.Context, batch bulkWriteBatch) (inser
 		docs[i] = doc
 	}
 
-	maxAdaptiveRetries := bw.collection.client.maxAdaptiveRetries
+	maxAdaptiveRetries := defaultAdaptiveRetries
 	if !bw.collection.client.retryWrites {
-		maxAdaptiveRetries = ptrutil.Ptr(uint(0))
+		maxAdaptiveRetries = 0
+	} else if bw.collection.client.maxAdaptiveRetries != nil {
+		maxAdaptiveRetries = *bw.collection.client.maxAdaptiveRetries
 	}
 
 	op := insert{
@@ -285,9 +286,11 @@ func (bw *bulkWrite) runDelete(ctx context.Context, batch bulkWriteBatch) (opera
 		retry = driver.RetryOncePerCommand
 	}
 
-	maxAdaptiveRetries := bw.collection.client.maxAdaptiveRetries
+	maxAdaptiveRetries := defaultAdaptiveRetries
 	if !bw.collection.client.retryWrites {
-		maxAdaptiveRetries = ptrutil.Ptr(uint(0))
+		maxAdaptiveRetries = 0
+	} else if bw.collection.client.maxAdaptiveRetries != nil {
+		maxAdaptiveRetries = *bw.collection.client.maxAdaptiveRetries
 	}
 
 	op := operation.NewDelete(docs...).
@@ -425,9 +428,11 @@ func (bw *bulkWrite) runUpdate(ctx context.Context, batch bulkWriteBatch) (opera
 		retry = driver.RetryOncePerCommand
 	}
 
-	maxAdaptiveRetries := bw.collection.client.maxAdaptiveRetries
+	maxAdaptiveRetries := defaultAdaptiveRetries
 	if !bw.collection.client.retryWrites {
-		maxAdaptiveRetries = ptrutil.Ptr(uint(0))
+		maxAdaptiveRetries = 0
+	} else if bw.collection.client.maxAdaptiveRetries != nil {
+		maxAdaptiveRetries = *bw.collection.client.maxAdaptiveRetries
 	}
 
 	op := operation.NewUpdate(docs...).

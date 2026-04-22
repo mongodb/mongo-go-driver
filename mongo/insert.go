@@ -40,7 +40,7 @@ type insert struct {
 	selector                  description.ServerSelector
 	writeConcern              *writeconcern.WriteConcern
 	retry                     *driver.RetryMode
-	maxAdaptiveRetries        *uint
+	maxAdaptiveRetries        uint
 	enableOverloadRetargeting bool
 	result                    insertResult
 	serverAPI                 *driver.ServerAPIOptions

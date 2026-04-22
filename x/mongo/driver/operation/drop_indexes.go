@@ -29,7 +29,7 @@ type DropIndexes struct {
 	clock                     *session.ClusterClock
 	collection                string
 	monitor                   *event.CommandMonitor
-	maxAdaptiveRetries        *uint
+	maxAdaptiveRetries        uint
 	enableOverloadRetargeting bool
 	crypt                     driver.Crypt
 	database                  string
@@ -179,7 +179,7 @@ func (di *DropIndexes) CommandMonitor(monitor *event.CommandMonitor) *DropIndexe
 
 // MaxAdaptiveRetries specifies the maximum number of times the driver should retry operations
 // that fail with a server side overload error.
-func (di *DropIndexes) MaxAdaptiveRetries(maxAdaptiveRetries *uint) *DropIndexes {
+func (di *DropIndexes) MaxAdaptiveRetries(maxAdaptiveRetries uint) *DropIndexes {
 	if di == nil {
 		di = new(DropIndexes)
 	}

@@ -13,7 +13,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
 	"go.mongodb.org/mongo-driver/v2/internal/logger"
-	"go.mongodb.org/mongo-driver/v2/internal/ptrutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
@@ -61,11 +60,11 @@ func (ct *CommitTransaction) Execute(ctx context.Context) error {
 		Client:            ct.session,
 		Clock:             ct.clock,
 		CommandMonitor:    ct.monitor,
-		MaxAdaptiveRetries: func() *uint {
+		MaxAdaptiveRetries: func() uint {
 			if ct.session == nil {
-				return nil
+				return 0
 			}
-			return ptrutil.Ptr(ct.session.MaxAdaptiveRetries)
+			return ct.session.MaxAdaptiveRetries
 		}(),
 		EnableOverloadRetargeting: ct.session != nil && ct.session.EnableOverloadRetargeting,
 		Crypt:                     ct.crypt,

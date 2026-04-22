@@ -58,7 +58,7 @@ type Find struct {
 	readPreference            *readpref.ReadPref
 	selector                  description.ServerSelector
 	retry                     *driver.RetryMode
-	maxAdaptiveRetries        *uint
+	maxAdaptiveRetries        uint
 	enableOverloadRetargeting bool
 	result                    driver.CursorResponse
 	serverAPI                 *driver.ServerAPIOptions
@@ -536,7 +536,7 @@ func (f *Find) Retry(retry driver.RetryMode) *Find {
 
 // MaxAdaptiveRetries specifies the maximum number of times the driver should retry operations
 // that fail with a server side overload error.
-func (f *Find) MaxAdaptiveRetries(maxAdaptiveRetries *uint) *Find {
+func (f *Find) MaxAdaptiveRetries(maxAdaptiveRetries uint) *Find {
 	if f == nil {
 		f = new(Find)
 	}

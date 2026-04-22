@@ -70,8 +70,6 @@ const (
 	// minimum wire version necessary to use read snapshots
 	readSnapshotMinWireVersion int32 = 13
 
-	defaultAdaptiveRetries uint = 2
-
 	defaultLocalThreshold = 15 * time.Millisecond
 	backoffInitial        = 100 * time.Millisecond
 	backoffMax            = 10_000 * time.Millisecond
@@ -315,7 +313,7 @@ type Operation struct {
 
 	// MaxAdaptiveRetries indicates the maximum number of times the driver should retry operations
 	// that fail with a server side overload error.
-	MaxAdaptiveRetries *uint
+	MaxAdaptiveRetries uint
 
 	// EnableOverloadRetargeting specifies whether the driver adds the previously failed server's address
 	// to the list of deprioritized server addresses.
@@ -503,17 +501,11 @@ func (op Operation) Execute(ctx context.Context) error {
 	ctx, cancel := csot.WithTimeout(ctx, op.Timeout)
 	defer cancel()
 
-	// If MaxAdaptiveRetries is not set, default to 2 retries for overload errors.
-	maxAdaptiveRetries := defaultAdaptiveRetries
-	if op.MaxAdaptiveRetries != nil {
-		maxAdaptiveRetries = *op.MaxAdaptiveRetries
-	}
-
 	if op.Client != nil {
 		if err := op.Client.StartCommand(); err != nil {
 			return err
 		}
-		op.Client.MaxAdaptiveRetries = maxAdaptiveRetries
+		op.Client.MaxAdaptiveRetries = op.MaxAdaptiveRetries
 		op.Client.EnableOverloadRetargeting = op.EnableOverloadRetargeting
 	}
 
@@ -844,9 +836,9 @@ func (op Operation) Execute(ctx context.Context) error {
 			}
 
 			isOverloadedError = tt.HasErrorLabel(ErrSystemOverloadedError)
-			if isOverloadedError && maxAdaptiveRetries != 0 {
-				retries = ptrutil.Ptr(maxAdaptiveRetries)
-				allowedRetries = ptrutil.Ptr(maxAdaptiveRetries)
+			if isOverloadedError && op.MaxAdaptiveRetries != 0 {
+				retries = ptrutil.Ptr(op.MaxAdaptiveRetries)
+				allowedRetries = ptrutil.Ptr(op.MaxAdaptiveRetries)
 			}
 			connDesc := conn.Description()
 			retryableErr := tt.Retryable(connDesc.Kind, connDesc.WireVersion)
@@ -859,7 +851,7 @@ func (op Operation) Execute(ctx context.Context) error {
 				tt.Labels = append(tt.Labels, RetryableWriteError)
 			}
 			olRetryErr := tt.HasErrorLabel(ErrRetryableError) && isOverloadedError
-			needRetry := (retrySupported && retryEnabled && retryableErr) || (maxAdaptiveRetries != 0 && olRetryErr)
+			needRetry := (retrySupported && retryEnabled && retryableErr) || (op.MaxAdaptiveRetries != 0 && olRetryErr)
 
 			// If retries are supported for the current operation on the first server description,
 			// the error is considered retryable, and there are retries remaining (nil means retry
@@ -969,9 +961,9 @@ func (op Operation) Execute(ctx context.Context) error {
 			}
 
 			isOverloadedError = tt.HasErrorLabel(ErrSystemOverloadedError)
-			if isOverloadedError && maxAdaptiveRetries != 0 {
-				retries = ptrutil.Ptr(maxAdaptiveRetries)
-				allowedRetries = ptrutil.Ptr(maxAdaptiveRetries)
+			if isOverloadedError && op.MaxAdaptiveRetries != 0 {
+				retries = ptrutil.Ptr(op.MaxAdaptiveRetries)
+				allowedRetries = ptrutil.Ptr(op.MaxAdaptiveRetries)
 			}
 			connDesc := conn.Description()
 			var retryableErr bool
@@ -990,7 +982,7 @@ func (op Operation) Execute(ctx context.Context) error {
 				retryableErr = tt.RetryableRead()
 			}
 			olRetryErr := tt.HasErrorLabel(ErrRetryableError) && isOverloadedError
-			needRetry := (retrySupported && retryEnabled && retryableErr) || (maxAdaptiveRetries != 0 && olRetryErr)
+			needRetry := (retrySupported && retryEnabled && retryableErr) || (op.MaxAdaptiveRetries != 0 && olRetryErr)
 
 			// If retries are supported for the current operation on the first server description,
 			// the error is considered retryable, and there are retries remaining (nil means retry

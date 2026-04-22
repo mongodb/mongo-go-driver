@@ -33,7 +33,7 @@ type Command struct {
 	monitor                   *event.CommandMonitor
 	resultResponse            bsoncore.Document
 	resultCursor              *driver.BatchCursor
-	maxAdaptiveRetries        *uint
+	maxAdaptiveRetries        uint
 	enableOverloadRetargeting bool
 	crypt                     driver.Crypt
 	serverAPI                 *driver.ServerAPIOptions
@@ -192,7 +192,7 @@ func (c *Command) ServerSelector(selector description.ServerSelector) *Command {
 
 // MaxAdaptiveRetries specifies the maximum number of times the driver should retry operations
 // that fail with a server side overload error.
-func (c *Command) MaxAdaptiveRetries(maxAdaptiveRetries *uint) *Command {
+func (c *Command) MaxAdaptiveRetries(maxAdaptiveRetries uint) *Command {
 	if c == nil {
 		c = new(Command)
 	}

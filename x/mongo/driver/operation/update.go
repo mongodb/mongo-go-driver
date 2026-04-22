@@ -41,7 +41,7 @@ type Update struct {
 	selector                  description.ServerSelector
 	writeConcern              *writeconcern.WriteConcern
 	retry                     *driver.RetryMode
-	maxAdaptiveRetries        *uint
+	maxAdaptiveRetries        uint
 	enableOverloadRetargeting bool
 	result                    UpdateResult
 	crypt                     driver.Crypt
@@ -379,7 +379,7 @@ func (u *Update) Retry(retry driver.RetryMode) *Update {
 
 // MaxAdaptiveRetries specifies the maximum number of times the driver should retry operations
 // that fail with a server side overload error.
-func (u *Update) MaxAdaptiveRetries(maxAdaptiveRetries *uint) *Update {
+func (u *Update) MaxAdaptiveRetries(maxAdaptiveRetries uint) *Update {
 	if u == nil {
 		u = new(Update)
 	}

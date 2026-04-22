@@ -30,7 +30,7 @@ type CreateIndexes struct {
 	clock                     *session.ClusterClock
 	collection                string
 	monitor                   *event.CommandMonitor
-	maxAdaptiveRetries        *uint
+	maxAdaptiveRetries        uint
 	enableOverloadRetargeting bool
 	crypt                     driver.Crypt
 	database                  string
@@ -208,7 +208,7 @@ func (ci *CreateIndexes) CommandMonitor(monitor *event.CommandMonitor) *CreateIn
 
 // MaxAdaptiveRetries specifies the maximum number of times the driver should retry operations
 // that fail with a server side overload error.
-func (ci *CreateIndexes) MaxAdaptiveRetries(maxAdaptiveRetries *uint) *CreateIndexes {
+func (ci *CreateIndexes) MaxAdaptiveRetries(maxAdaptiveRetries uint) *CreateIndexes {
 	if ci == nil {
 		ci = new(CreateIndexes)
 	}

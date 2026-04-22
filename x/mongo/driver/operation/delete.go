@@ -38,7 +38,7 @@ type Delete struct {
 	selector                  description.ServerSelector
 	writeConcern              *writeconcern.WriteConcern
 	retry                     *driver.RetryMode
-	maxAdaptiveRetries        *uint
+	maxAdaptiveRetries        uint
 	enableOverloadRetargeting bool
 	hint                      *bool
 	result                    DeleteResult
@@ -286,7 +286,7 @@ func (d *Delete) Retry(retry driver.RetryMode) *Delete {
 
 // MaxAdaptiveRetries specifies the maximum number of times the driver should retry operations
 // that fail with a server side overload error.
-func (d *Delete) MaxAdaptiveRetries(maxAdaptiveRetries *uint) *Delete {
+func (d *Delete) MaxAdaptiveRetries(maxAdaptiveRetries uint) *Delete {
 	if d == nil {
 		d = new(Delete)
 	}

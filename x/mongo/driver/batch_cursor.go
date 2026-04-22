@@ -19,7 +19,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/codecutil"
 	"go.mongodb.org/mongo-driver/v2/internal/csot"
 	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
-	"go.mongodb.org/mongo-driver/v2/internal/ptrutil"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
@@ -470,11 +469,11 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 		Clock:          bc.clock,
 		Legacy:         LegacyGetMore,
 		CommandMonitor: bc.cmdMonitor,
-		MaxAdaptiveRetries: func() *uint {
+		MaxAdaptiveRetries: func() uint {
 			if bc.clientSession == nil {
-				return nil
+				return 0
 			}
-			return ptrutil.Ptr(bc.clientSession.MaxAdaptiveRetries)
+			return bc.clientSession.MaxAdaptiveRetries
 		}(),
 		EnableOverloadRetargeting: bc.clientSession != nil && bc.clientSession.EnableOverloadRetargeting,
 		Crypt:                     bc.crypt,

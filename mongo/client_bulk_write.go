@@ -47,7 +47,7 @@ type clientBulkWrite struct {
 	rawData                  *bool
 	additionalCmd            bson.D
 
-	maxAdaptiveRetries        *uint
+	maxAdaptiveRetries        uint
 	enableOverloadRetargeting bool
 
 	result ClientBulkWriteResult

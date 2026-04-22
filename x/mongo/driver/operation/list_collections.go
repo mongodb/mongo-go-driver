@@ -35,7 +35,7 @@ type ListCollections struct {
 	readPreference            *readpref.ReadPref
 	selector                  description.ServerSelector
 	retry                     *driver.RetryMode
-	maxAdaptiveRetries        *uint
+	maxAdaptiveRetries        uint
 	enableOverloadRetargeting bool
 	result                    driver.CursorResponse
 	batchSize                 *int32
@@ -246,7 +246,7 @@ func (lc *ListCollections) Retry(retry driver.RetryMode) *ListCollections {
 
 // MaxAdaptiveRetries specifies the maximum number of times the driver should retry operations
 // that fail with a server side overload error.
-func (lc *ListCollections) MaxAdaptiveRetries(maxAdaptiveRetries *uint) *ListCollections {
+func (lc *ListCollections) MaxAdaptiveRetries(maxAdaptiveRetries uint) *ListCollections {
 	if lc == nil {
 		lc = new(ListCollections)
 	}

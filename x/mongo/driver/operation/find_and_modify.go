@@ -45,7 +45,7 @@ type FindAndModify struct {
 	selector                  description.ServerSelector
 	writeConcern              *writeconcern.WriteConcern
 	retry                     *driver.RetryMode
-	maxAdaptiveRetries        *uint
+	maxAdaptiveRetries        uint
 	enableOverloadRetargeting bool
 	crypt                     driver.Crypt
 	hint                      bsoncore.Value
@@ -427,7 +427,7 @@ func (fam *FindAndModify) Retry(retry driver.RetryMode) *FindAndModify {
 
 // MaxAdaptiveRetries specifies the maximum number of times the driver should retry operations
 // that fail with a server side overload error.
-func (fam *FindAndModify) MaxAdaptiveRetries(maxAdaptiveRetries *uint) *FindAndModify {
+func (fam *FindAndModify) MaxAdaptiveRetries(maxAdaptiveRetries uint) *FindAndModify {
 	if fam == nil {
 		fam = new(FindAndModify)
 	}

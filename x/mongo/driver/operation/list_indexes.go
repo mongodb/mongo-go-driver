@@ -31,7 +31,7 @@ type ListIndexes struct {
 	deployment                driver.Deployment
 	selector                  description.ServerSelector
 	retry                     *driver.RetryMode
-	maxAdaptiveRetries        *uint
+	maxAdaptiveRetries        uint
 	enableOverloadRetargeting bool
 	crypt                     driver.Crypt
 	serverAPI                 *driver.ServerAPIOptions
@@ -203,7 +203,7 @@ func (li *ListIndexes) Retry(retry driver.RetryMode) *ListIndexes {
 
 // MaxAdaptiveRetries specifies the maximum number of times the driver should retry operations
 // that fail with a server side overload error.
-func (li *ListIndexes) MaxAdaptiveRetries(maxAdaptiveRetries *uint) *ListIndexes {
+func (li *ListIndexes) MaxAdaptiveRetries(maxAdaptiveRetries uint) *ListIndexes {
 	if li == nil {
 		li = new(ListIndexes)
 	}

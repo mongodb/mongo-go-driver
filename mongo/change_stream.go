@@ -17,7 +17,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/csot"
 	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
-	"go.mongodb.org/mongo-driver/v2/internal/ptrutil"
 	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
@@ -142,9 +141,11 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline an
 		return nil, cs.Err()
 	}
 
-	maxAdaptiveRetries := cs.client.maxAdaptiveRetries
+	maxAdaptiveRetries := defaultAdaptiveRetries
 	if !cs.client.retryReads {
-		maxAdaptiveRetries = ptrutil.Ptr(uint(0))
+		maxAdaptiveRetries = 0
+	} else if cs.client.maxAdaptiveRetries != nil {
+		maxAdaptiveRetries = *cs.client.maxAdaptiveRetries
 	}
 
 	cs.aggregate = operation.NewAggregate(nil).

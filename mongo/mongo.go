@@ -24,6 +24,8 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
+const defaultAdaptiveRetries uint = 2
+
 var defaultRegistry = bson.NewRegistry()
 
 // Dialer is used to make network connections.

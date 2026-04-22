@@ -40,7 +40,7 @@ type Distinct struct {
 	readPreference            *readpref.ReadPref
 	selector                  description.ServerSelector
 	retry                     *driver.RetryMode
-	maxAdaptiveRetries        *uint
+	maxAdaptiveRetries        uint
 	enableOverloadRetargeting bool
 	result                    DistinctResult
 	serverAPI                 *driver.ServerAPIOptions
@@ -304,7 +304,7 @@ func (d *Distinct) Retry(retry driver.RetryMode) *Distinct {
 
 // MaxAdaptiveRetries specifies the maximum number of times the driver should retry operations
 // that fail with a server side overload error.
-func (d *Distinct) MaxAdaptiveRetries(maxAdaptiveRetries *uint) *Distinct {
+func (d *Distinct) MaxAdaptiveRetries(maxAdaptiveRetries uint) *Distinct {
 	if d == nil {
 		d = new(Distinct)
 	}

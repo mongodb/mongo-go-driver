@@ -15,7 +15,6 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/v2/internal/optionsutil"
-	"go.mongodb.org/mongo-driver/v2/internal/ptrutil"
 	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
@@ -80,9 +79,11 @@ func (iv IndexView) List(ctx context.Context, opts ...options.Lister[options.Lis
 		retry = driver.RetryOncePerCommand
 	}
 
-	maxAdaptiveRetries := iv.coll.client.maxAdaptiveRetries
+	maxAdaptiveRetries := defaultAdaptiveRetries
 	if !iv.coll.client.retryReads {
-		maxAdaptiveRetries = ptrutil.Ptr(uint(0))
+		maxAdaptiveRetries = 0
+	} else if iv.coll.client.maxAdaptiveRetries != nil {
+		maxAdaptiveRetries = *iv.coll.client.maxAdaptiveRetries
 	}
 
 	selector = &serverselector.Composite{
@@ -275,9 +276,11 @@ func (iv IndexView) CreateMany(
 		sess = nil
 	}
 
-	maxAdaptiveRetries := iv.coll.client.maxAdaptiveRetries
+	maxAdaptiveRetries := defaultAdaptiveRetries
 	if !iv.coll.client.retryWrites {
-		maxAdaptiveRetries = ptrutil.Ptr(uint(0))
+		maxAdaptiveRetries = 0
+	} else if iv.coll.client.maxAdaptiveRetries != nil {
+		maxAdaptiveRetries = *iv.coll.client.maxAdaptiveRetries
 	}
 
 	selector := makePinnedSelector(sess, iv.coll.writeSelector)
@@ -430,9 +433,11 @@ func (iv IndexView) drop(ctx context.Context, index any, opts ...options.Lister[
 		sess = nil
 	}
 
-	maxAdaptiveRetries := iv.coll.client.maxAdaptiveRetries
+	maxAdaptiveRetries := defaultAdaptiveRetries
 	if !iv.coll.client.retryWrites {
-		maxAdaptiveRetries = ptrutil.Ptr(uint(0))
+		maxAdaptiveRetries = 0
+	} else if iv.coll.client.maxAdaptiveRetries != nil {
+		maxAdaptiveRetries = *iv.coll.client.maxAdaptiveRetries
 	}
 
 	selector := makePinnedSelector(sess, iv.coll.writeSelector)

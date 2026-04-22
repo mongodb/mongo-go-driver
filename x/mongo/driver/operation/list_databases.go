@@ -35,7 +35,7 @@ type ListDatabases struct {
 	deployment                driver.Deployment
 	readPreference            *readpref.ReadPref
 	retry                     *driver.RetryMode
-	maxAdaptiveRetries        *uint
+	maxAdaptiveRetries        uint
 	enableOverloadRetargeting bool
 	selector                  description.ServerSelector
 	crypt                     driver.Crypt
@@ -301,7 +301,7 @@ func (ld *ListDatabases) Retry(retry driver.RetryMode) *ListDatabases {
 
 // MaxAdaptiveRetries specifies the maximum number of times the driver should retry operations
 // that fail with a server side overload error.
-func (ld *ListDatabases) MaxAdaptiveRetries(maxAdaptiveRetries *uint) *ListDatabases {
+func (ld *ListDatabases) MaxAdaptiveRetries(maxAdaptiveRetries uint) *ListDatabases {
 	if ld == nil {
 		ld = new(ListDatabases)
 	}
