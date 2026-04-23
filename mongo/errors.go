@@ -205,6 +205,9 @@ func IsTimeout(err error) bool {
 	if errors.As(err, &topology.WaitQueueTimeoutError{}) {
 		return true
 	}
+	if errors.As(err, &timeoutError{}) {
+		return true
+	}
 	if ce := (CommandError{}); errors.As(err, &ce) && ce.IsMaxTimeMSExpiredError() {
 		return true
 	}
@@ -825,6 +828,35 @@ func (bwe ClientBulkWriteException) Error() string {
 		return message + "no causes"
 	}
 	return "bulk write exception: " + strings.Join(causes, ", ")
+}
+
+var _ LabeledError = timeoutError{}
+
+// timeoutError represents an error that occurred due to a timeout.
+type timeoutError struct {
+	Wrapped error
+}
+
+// Error implements the error interface.
+func (e timeoutError) Error() string {
+	const timeoutMsg = "operation timed out"
+	if e.Wrapped == nil {
+		return timeoutMsg
+	}
+	return fmt.Sprintf("%s: %v", timeoutMsg, e.Wrapped.Error())
+}
+
+// Unwrap returns the underlying error.
+func (e timeoutError) Unwrap() error {
+	return e.Wrapped
+}
+
+// HasErrorLabel returns true if the error contains the specified label.
+func (e timeoutError) HasErrorLabel(label string) bool {
+	if le := LabeledError(nil); errors.As(e.Wrapped, &le) {
+		return le.HasErrorLabel(label)
+	}
+	return false
 }
 
 // returnResult is used to determine if a function calling processWriteError should return

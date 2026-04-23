@@ -144,13 +144,13 @@ func (s *Session) WithTransaction(
 			}
 			backoff := expDur * time.Duration(randutil.JitterInt63n(512)) / 512
 			if time.Since(startTime)+backoff > transTimeout {
-				return nil, err
+				return nil, timeoutError{Wrapped: err}
 			}
 			sleep := time.NewTimer(backoff)
 			select {
 			case <-timeout.C:
 				sleep.Stop()
-				return nil, err
+				return nil, timeoutError{Wrapped: err}
 			case <-sleep.C:
 			}
 			if expDur < backoffMax {
@@ -174,7 +174,7 @@ func (s *Session) WithTransaction(
 
 			select {
 			case <-timeout.C:
-				return nil, err
+				return nil, timeoutError{Wrapped: err}
 			default:
 			}
 
@@ -213,15 +213,14 @@ func (s *Session) WithTransaction(
 				return res, nil
 			}
 
-			select {
-			case <-timeout.C:
-				return res, err
-			default:
-			}
-
 			var cerr CommandError
 			if errors.As(err, &cerr) {
 				if cerr.HasErrorLabel(driver.UnknownTransactionCommitResult) && !cerr.IsMaxTimeMSExpiredError() {
+					select {
+					case <-timeout.C:
+						return res, timeoutError{Wrapped: err}
+					default:
+					}
 					continue
 				}
 				if cerr.HasErrorLabel(driver.TransientTransactionError) {

@@ -666,6 +666,11 @@ func TestIsTimeout(t *testing.T) {
 			result: true,
 		},
 		{
+			name:   "timeout error",
+			err:    timeoutError{},
+			result: true,
+		},
+		{
 			name:   "other error",
 			err:    errors.New("foo"),
 			result: false,
@@ -675,6 +680,58 @@ func TestIsTimeout(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			res := IsTimeout(tc.err)
 			assert.Equal(t, res, tc.result, "expected IsTimeout %v, got %v", tc.result, res)
+		})
+	}
+}
+
+func TestTimeoutError(t *testing.T) {
+	tests := []struct {
+		name   string
+		err    timeoutError
+		errMsg string
+		labels []string
+	}{
+		{
+			name: "TimeoutError without wrapped error",
+			err: timeoutError{
+				Wrapped: nil,
+			},
+			errMsg: "operation timed out",
+			labels: []string{},
+		},
+		{
+			name: "TimeoutError with wrapped LabeledError",
+			err: timeoutError{
+				Wrapped: CommandError{
+					Code:    100,
+					Message: "",
+					Labels:  []string{"other"},
+					Name:    "blah",
+					Wrapped: context.DeadlineExceeded,
+					Raw:     nil,
+				},
+			},
+			errMsg: "operation timed out: (blah): context deadline exceeded",
+			labels: []string{"other"},
+		},
+		{
+			name: "TimeoutError with wrapped non-LabeledError",
+			err: timeoutError{
+				Wrapped: context.DeadlineExceeded,
+			},
+			errMsg: "operation timed out: context deadline exceeded",
+			labels: []string{},
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.True(t, IsTimeout(tc.err), "expected a timeout error")
+			assert.Equal(t, tc.err.Error(), tc.errMsg, "expected error message %q, got %q", tc.errMsg, tc.err.Error())
+			var lerr LabeledError
+			require.True(t, errors.As(tc.err, &lerr), "expected a LabeledError")
+			for _, label := range tc.labels {
+				assert.True(t, lerr.HasErrorLabel(label), "expected label %q", label)
+			}
 		})
 	}
 }
