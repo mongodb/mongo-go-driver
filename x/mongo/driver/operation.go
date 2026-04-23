@@ -505,8 +505,6 @@ func (op Operation) Execute(ctx context.Context) error {
 		if err := op.Client.StartCommand(); err != nil {
 			return err
 		}
-		op.Client.MaxAdaptiveRetries = op.MaxAdaptiveRetries
-		op.Client.EnableOverloadRetargeting = op.EnableOverloadRetargeting
 	}
 
 	defaultRetries := ptrutil.Ptr(uint(0))

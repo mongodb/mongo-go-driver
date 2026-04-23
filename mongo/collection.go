@@ -1017,18 +1017,12 @@ func aggregate(a aggregateParams, opts ...options.Lister[options.AggregateOption
 		sess = nil
 	}
 
-	retry := driver.RetryNone
-	if a.client.retryReads && !hasOutputStage {
-		retry = driver.RetryOncePerCommand
-	}
-
-	maxAdaptiveRetries := defaultAdaptiveRetries
 	retryReads := a.client.retryReads && !hasOutputStage
 	retryWrites := a.client.retryWrites && hasOutputStage
-	if !retryReads && !retryWrites {
-		maxAdaptiveRetries = 0
-	} else if a.client.maxAdaptiveRetries != nil {
-		maxAdaptiveRetries = *a.client.maxAdaptiveRetries
+
+	retry := driver.RetryNone
+	if retryReads {
+		retry = driver.RetryOncePerCommand
 	}
 
 	selector := makeReadPrefSelector(sess, a.readSelector, a.client.localThreshold)
@@ -1041,7 +1035,7 @@ func aggregate(a aggregateParams, opts ...options.Lister[options.AggregateOption
 		return nil, err
 	}
 
-	cursorOpts := a.client.createBaseCursorOptions()
+	cursorOpts := a.client.createBaseCursorOptions(retryReads || retryWrites)
 
 	cursorOpts.MarshalValueEncoderFn = newEncoderFn(a.bsonOpts, a.registry)
 
@@ -1052,8 +1046,8 @@ func aggregate(a aggregateParams, opts ...options.Lister[options.AggregateOption
 		ReadPreference(a.readPreference).
 		CommandMonitor(a.client.monitor).
 		Retry(retry).
-		MaxAdaptiveRetries(maxAdaptiveRetries).
-		EnableOverloadRetargeting(a.client.enableOverloadRetargeting).
+		MaxAdaptiveRetries(cursorOpts.MaxAdaptiveRetries).
+		EnableOverloadRetargeting(cursorOpts.EnableOverloadRetargeting).
 		ServerSelector(selector).
 		ClusterClock(a.client.clock).
 		Database(a.db).
@@ -1512,25 +1506,18 @@ func (coll *Collection) find(
 		retry = driver.RetryOncePerCommand
 	}
 
-	maxAdaptiveRetries := defaultAdaptiveRetries
-	if !coll.client.retryReads {
-		maxAdaptiveRetries = 0
-	} else if coll.client.maxAdaptiveRetries != nil {
-		maxAdaptiveRetries = *coll.client.maxAdaptiveRetries
-	}
+	cursorOpts := coll.client.createBaseCursorOptions(coll.client.retryReads)
 
 	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.localThreshold)
 	op := operation.NewFind(f).
 		Session(sess).ReadConcern(rc).ReadPreference(coll.readPreference).
 		CommandMonitor(coll.client.monitor).ServerSelector(selector).
-		Retry(retry).MaxAdaptiveRetries(maxAdaptiveRetries).
-		EnableOverloadRetargeting(coll.client.enableOverloadRetargeting).
+		Retry(retry).MaxAdaptiveRetries(cursorOpts.MaxAdaptiveRetries).
+		EnableOverloadRetargeting(cursorOpts.EnableOverloadRetargeting).
 		ClusterClock(coll.client.clock).Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI).
 		Timeout(coll.client.timeout).Logger(coll.client.logger).Authenticator(coll.client.authenticator).
 		OmitMaxTimeMS(omitMaxTimeMS)
-
-	cursorOpts := coll.client.createBaseCursorOptions()
 
 	cursorOpts.MarshalValueEncoderFn = newEncoderFn(coll.bsonOpts, coll.registry)
 

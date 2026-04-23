@@ -108,7 +108,7 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline an
 		ctx = context.Background()
 	}
 
-	cursorOpts := config.client.createBaseCursorOptions()
+	cursorOpts := config.client.createBaseCursorOptions(config.client.retryReads)
 
 	cursorOpts.MarshalValueEncoderFn = newEncoderFn(config.bsonOpts, config.registry)
 
@@ -141,19 +141,12 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline an
 		return nil, cs.Err()
 	}
 
-	maxAdaptiveRetries := defaultAdaptiveRetries
-	if !cs.client.retryReads {
-		maxAdaptiveRetries = 0
-	} else if cs.client.maxAdaptiveRetries != nil {
-		maxAdaptiveRetries = *cs.client.maxAdaptiveRetries
-	}
-
 	cs.aggregate = operation.NewAggregate(nil).
 		ReadPreference(config.readPreference).ReadConcern(config.readConcern).
 		Deployment(cs.client.deployment).ClusterClock(cs.client.clock).
 		CommandMonitor(cs.client.monitor).Session(cs.sess).ServerSelector(cs.selector).
-		Retry(driver.RetryNone).MaxAdaptiveRetries(maxAdaptiveRetries).
-		EnableOverloadRetargeting(cs.client.enableOverloadRetargeting).
+		Retry(driver.RetryNone).MaxAdaptiveRetries(cursorOpts.MaxAdaptiveRetries).
+		EnableOverloadRetargeting(cursorOpts.EnableOverloadRetargeting).
 		ServerAPI(cs.client.serverAPI).Crypt(config.crypt).Timeout(cs.client.timeout).
 		Authenticator(cs.client.authenticator)
 

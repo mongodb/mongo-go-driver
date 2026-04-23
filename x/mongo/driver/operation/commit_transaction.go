@@ -22,19 +22,21 @@ import (
 
 // CommitTransaction attempts to commit a transaction.
 type CommitTransaction struct {
-	authenticator driver.Authenticator
-	recoveryToken bsoncore.Document
-	session       *session.Client
-	clock         *session.ClusterClock
-	monitor       *event.CommandMonitor
-	crypt         driver.Crypt
-	database      string
-	deployment    driver.Deployment
-	selector      description.ServerSelector
-	writeConcern  *writeconcern.WriteConcern
-	retry         *driver.RetryMode
-	serverAPI     *driver.ServerAPIOptions
-	logger        *logger.Logger
+	authenticator             driver.Authenticator
+	recoveryToken             bsoncore.Document
+	session                   *session.Client
+	clock                     *session.ClusterClock
+	monitor                   *event.CommandMonitor
+	crypt                     driver.Crypt
+	database                  string
+	deployment                driver.Deployment
+	selector                  description.ServerSelector
+	writeConcern              *writeconcern.WriteConcern
+	retry                     *driver.RetryMode
+	maxAdaptiveRetries        uint
+	enableOverloadRetargeting bool
+	serverAPI                 *driver.ServerAPIOptions
+	logger                    *logger.Logger
 }
 
 // NewCommitTransaction constructs and returns a new CommitTransaction.
@@ -53,20 +55,15 @@ func (ct *CommitTransaction) Execute(ctx context.Context) error {
 	}
 
 	return driver.Operation{
-		CommandFn:         ct.command,
-		ProcessResponseFn: ct.processResponse,
-		RetryMode:         ct.retry,
-		Type:              driver.Write,
-		Client:            ct.session,
-		Clock:             ct.clock,
-		CommandMonitor:    ct.monitor,
-		MaxAdaptiveRetries: func() uint {
-			if ct.session == nil {
-				return 0
-			}
-			return ct.session.MaxAdaptiveRetries
-		}(),
-		EnableOverloadRetargeting: ct.session != nil && ct.session.EnableOverloadRetargeting,
+		CommandFn:                 ct.command,
+		ProcessResponseFn:         ct.processResponse,
+		RetryMode:                 ct.retry,
+		Type:                      driver.Write,
+		Client:                    ct.session,
+		Clock:                     ct.clock,
+		CommandMonitor:            ct.monitor,
+		MaxAdaptiveRetries:        ct.maxAdaptiveRetries,
+		EnableOverloadRetargeting: ct.enableOverloadRetargeting,
 		Crypt:                     ct.crypt,
 		Database:                  ct.database,
 		Deployment:                ct.deployment,
@@ -185,6 +182,28 @@ func (ct *CommitTransaction) Retry(retry driver.RetryMode) *CommitTransaction {
 	}
 
 	ct.retry = &retry
+	return ct
+}
+
+// MaxAdaptiveRetries specifies the maximum number of times the driver should retry operations
+// that fail with a server side overload error.
+func (ct *CommitTransaction) MaxAdaptiveRetries(maxAdaptiveRetries uint) *CommitTransaction {
+	if ct == nil {
+		ct = new(CommitTransaction)
+	}
+
+	ct.maxAdaptiveRetries = maxAdaptiveRetries
+	return ct
+}
+
+// EnableOverloadRetargeting specifies whether the driver adds the previously failed server's address
+// to the list of deprioritized server addresses
+func (ct *CommitTransaction) EnableOverloadRetargeting(enabled bool) *CommitTransaction {
+	if ct == nil {
+		ct = new(CommitTransaction)
+	}
+
+	ct.enableOverloadRetargeting = enabled
 	return ct
 }
 

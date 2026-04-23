@@ -504,9 +504,15 @@ func (c *Client) StartSession(opts ...options.Lister[options.SessionOptions]) (*
 
 func (c *Client) endSessions(ctx context.Context) {
 	sessionIDs := c.sessionPool.IDSlice()
+	maxAdaptiveRetries := defaultAdaptiveRetries
+	if c.maxAdaptiveRetries != nil {
+		maxAdaptiveRetries = *c.maxAdaptiveRetries
+	}
 	op := operation.NewEndSessions(nil).ClusterClock(c.clock).Deployment(c.deployment).
 		ServerSelector(&serverselector.ReadPref{ReadPref: readpref.PrimaryPreferred()}).
-		CommandMonitor(c.monitor).Database("admin").Crypt(c.cryptFLE).ServerAPI(c.serverAPI)
+		CommandMonitor(c.monitor).Database("admin").Crypt(c.cryptFLE).ServerAPI(c.serverAPI).
+		MaxAdaptiveRetries(maxAdaptiveRetries).
+		EnableOverloadRetargeting(c.enableOverloadRetargeting)
 
 	totalNumIDs := len(sessionIDs)
 	var currentBatch []bsoncore.Document
@@ -933,11 +939,19 @@ func (c *Client) NumberSessionsInProgress() int {
 	return int(c.sessionPool.CheckedOut())
 }
 
-func (c *Client) createBaseCursorOptions() driver.CursorOptions {
+func (c *Client) createBaseCursorOptions(retryOverload bool) driver.CursorOptions {
+	maxAdaptiveRetries := defaultAdaptiveRetries
+	if !retryOverload {
+		maxAdaptiveRetries = 0
+	} else if c.maxAdaptiveRetries != nil {
+		maxAdaptiveRetries = *c.maxAdaptiveRetries
+	}
 	return driver.CursorOptions{
-		CommandMonitor: c.monitor,
-		Crypt:          c.cryptFLE,
-		ServerAPI:      c.serverAPI,
+		CommandMonitor:            c.monitor,
+		Crypt:                     c.cryptFLE,
+		ServerAPI:                 c.serverAPI,
+		MaxAdaptiveRetries:        maxAdaptiveRetries,
+		EnableOverloadRetargeting: c.enableOverloadRetargeting,
 	}
 }
 

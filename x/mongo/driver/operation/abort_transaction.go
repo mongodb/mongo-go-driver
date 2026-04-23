@@ -22,20 +22,22 @@ import (
 
 // AbortTransaction performs an abortTransaction operation.
 type AbortTransaction struct {
-	authenticator driver.Authenticator
-	recoveryToken bsoncore.Document
-	session       *session.Client
-	clock         *session.ClusterClock
-	collection    string
-	monitor       *event.CommandMonitor
-	crypt         driver.Crypt
-	database      string
-	deployment    driver.Deployment
-	selector      description.ServerSelector
-	writeConcern  *writeconcern.WriteConcern
-	retry         *driver.RetryMode
-	serverAPI     *driver.ServerAPIOptions
-	logger        *logger.Logger
+	authenticator             driver.Authenticator
+	recoveryToken             bsoncore.Document
+	session                   *session.Client
+	clock                     *session.ClusterClock
+	collection                string
+	monitor                   *event.CommandMonitor
+	crypt                     driver.Crypt
+	database                  string
+	deployment                driver.Deployment
+	selector                  description.ServerSelector
+	writeConcern              *writeconcern.WriteConcern
+	retry                     *driver.RetryMode
+	maxAdaptiveRetries        uint
+	enableOverloadRetargeting bool
+	serverAPI                 *driver.ServerAPIOptions
+	logger                    *logger.Logger
 }
 
 // NewAbortTransaction constructs and returns a new AbortTransaction.
@@ -54,20 +56,15 @@ func (at *AbortTransaction) Execute(ctx context.Context) error {
 	}
 
 	return driver.Operation{
-		CommandFn:         at.command,
-		ProcessResponseFn: at.processResponse,
-		RetryMode:         at.retry,
-		Type:              driver.Write,
-		Client:            at.session,
-		Clock:             at.clock,
-		CommandMonitor:    at.monitor,
-		MaxAdaptiveRetries: func() uint {
-			if at.session == nil {
-				return 0
-			}
-			return at.session.MaxAdaptiveRetries
-		}(),
-		EnableOverloadRetargeting: at.session != nil && at.session.EnableOverloadRetargeting,
+		CommandFn:                 at.command,
+		ProcessResponseFn:         at.processResponse,
+		RetryMode:                 at.retry,
+		Type:                      driver.Write,
+		Client:                    at.session,
+		Clock:                     at.clock,
+		CommandMonitor:            at.monitor,
+		MaxAdaptiveRetries:        at.maxAdaptiveRetries,
+		EnableOverloadRetargeting: at.enableOverloadRetargeting,
 		Crypt:                     at.crypt,
 		Database:                  at.database,
 		Deployment:                at.deployment,
@@ -196,6 +193,28 @@ func (at *AbortTransaction) Retry(retry driver.RetryMode) *AbortTransaction {
 	}
 
 	at.retry = &retry
+	return at
+}
+
+// MaxAdaptiveRetries specifies the maximum number of times the driver should retry operations
+// that fail with a server side overload error.
+func (at *AbortTransaction) MaxAdaptiveRetries(maxAdaptiveRetries uint) *AbortTransaction {
+	if at == nil {
+		at = new(AbortTransaction)
+	}
+
+	at.maxAdaptiveRetries = maxAdaptiveRetries
+	return at
+}
+
+// EnableOverloadRetargeting specifies whether the driver adds the previously failed server's address
+// to the list of deprioritized server addresses
+func (at *AbortTransaction) EnableOverloadRetargeting(enabled bool) *AbortTransaction {
+	if at == nil {
+		at = new(AbortTransaction)
+	}
+
+	at.enableOverloadRetargeting = enabled
 	return at
 }
 

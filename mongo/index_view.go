@@ -79,12 +79,7 @@ func (iv IndexView) List(ctx context.Context, opts ...options.Lister[options.Lis
 		retry = driver.RetryOncePerCommand
 	}
 
-	maxAdaptiveRetries := defaultAdaptiveRetries
-	if !iv.coll.client.retryReads {
-		maxAdaptiveRetries = 0
-	} else if iv.coll.client.maxAdaptiveRetries != nil {
-		maxAdaptiveRetries = *iv.coll.client.maxAdaptiveRetries
-	}
+	cursorOpts := iv.coll.client.createBaseCursorOptions(iv.coll.client.retryReads)
 
 	selector = &serverselector.Composite{
 		Selectors: []description.ServerSelector{
@@ -97,13 +92,11 @@ func (iv IndexView) List(ctx context.Context, opts ...options.Lister[options.Lis
 	op := operation.NewListIndexes().
 		Session(sess).CommandMonitor(iv.coll.client.monitor).
 		ServerSelector(selector).ClusterClock(iv.coll.client.clock).
-		Retry(retry).MaxAdaptiveRetries(maxAdaptiveRetries).
-		EnableOverloadRetargeting(iv.coll.client.enableOverloadRetargeting).
+		Retry(retry).MaxAdaptiveRetries(cursorOpts.MaxAdaptiveRetries).
+		EnableOverloadRetargeting(cursorOpts.EnableOverloadRetargeting).
 		Database(iv.coll.db.name).Collection(iv.coll.name).
 		Deployment(iv.coll.client.deployment).ServerAPI(iv.coll.client.serverAPI).
 		Timeout(iv.coll.client.timeout).Crypt(iv.coll.client.cryptFLE).Authenticator(iv.coll.client.authenticator)
-
-	cursorOpts := iv.coll.client.createBaseCursorOptions()
 
 	cursorOpts.MarshalValueEncoderFn = newEncoderFn(iv.coll.bsonOpts, iv.coll.registry)
 

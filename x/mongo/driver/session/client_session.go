@@ -102,9 +102,6 @@ type Client struct {
 	Aborting       bool
 	Snapshot       bool
 
-	MaxAdaptiveRetries        uint
-	EnableOverloadRetargeting bool
-
 	// SnapshotTime is the atClusterTime value for snapshot reads. This field is
 	// left immutable once set for the lifetime of the session. This guards
 	// against users updating custom snapshot times during transactions which

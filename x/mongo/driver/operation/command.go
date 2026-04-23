@@ -58,6 +58,9 @@ func NewCursorCommand(command bsoncore.Document, cursorOpts driver.CursorOptions
 		command:      command,
 		cursorOpts:   cursorOpts,
 		createCursor: true,
+
+		maxAdaptiveRetries:        cursorOpts.MaxAdaptiveRetries,
+		enableOverloadRetargeting: cursorOpts.EnableOverloadRetargeting,
 	}
 }
 
