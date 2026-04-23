@@ -205,12 +205,7 @@ func (db *Database) processRunCommand(
 		op = operation.NewCursorCommand(runCmdDoc, cursorOpts)
 	default:
 		op = operation.NewCommand(runCmdDoc)
-		maxAdaptiveRetries := defaultAdaptiveRetries
-		if !retryOverload {
-			maxAdaptiveRetries = 0
-		} else if db.client.maxAdaptiveRetries != nil {
-			maxAdaptiveRetries = *db.client.maxAdaptiveRetries
-		}
+		maxAdaptiveRetries := db.client.effectiveAdaptiveRetries(retryOverload)
 		op = op.MaxAdaptiveRetries(maxAdaptiveRetries).
 			EnableOverloadRetargeting(db.client.enableOverloadRetargeting)
 	}

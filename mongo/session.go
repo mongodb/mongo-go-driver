@@ -271,17 +271,12 @@ func (s *Session) AbortTransaction(ctx context.Context) error {
 		return s.clientSession.AbortTransaction()
 	}
 
-	maxAdaptiveRetries := defaultAdaptiveRetries
-	if s.client.maxAdaptiveRetries != nil {
-		maxAdaptiveRetries = *s.client.maxAdaptiveRetries
-	}
-
 	selector := makePinnedSelector(s.clientSession, &serverselector.Write{})
 
 	s.clientSession.Aborting = true
 	_ = operation.NewAbortTransaction().Session(s.clientSession).ClusterClock(s.client.clock).Database("admin").
 		Deployment(s.deployment).WriteConcern(s.clientSession.CurrentWc).ServerSelector(selector).
-		Retry(driver.RetryOncePerCommand).MaxAdaptiveRetries(maxAdaptiveRetries).
+		Retry(driver.RetryOncePerCommand).MaxAdaptiveRetries(s.client.effectiveAdaptiveRetries(true)).
 		EnableOverloadRetargeting(s.client.enableOverloadRetargeting).
 		CommandMonitor(s.client.monitor).
 		RecoveryToken(bsoncore.Document(s.clientSession.RecoveryToken)).ServerAPI(s.client.serverAPI).
@@ -312,18 +307,14 @@ func (s *Session) CommitTransaction(ctx context.Context) error {
 		s.clientSession.RetryingCommit = true
 	}
 
-	maxAdaptiveRetries := defaultAdaptiveRetries
-	if s.client.maxAdaptiveRetries != nil {
-		maxAdaptiveRetries = *s.client.maxAdaptiveRetries
-	}
-
 	selector := makePinnedSelector(s.clientSession, &serverselector.Write{})
 
 	s.clientSession.Committing = true
 	op := operation.NewCommitTransaction().
 		Session(s.clientSession).ClusterClock(s.client.clock).Database("admin").Deployment(s.deployment).
 		WriteConcern(s.clientSession.CurrentWc).ServerSelector(selector).Retry(driver.RetryOncePerCommand).
-		MaxAdaptiveRetries(maxAdaptiveRetries).EnableOverloadRetargeting(s.client.enableOverloadRetargeting).
+		MaxAdaptiveRetries(s.client.effectiveAdaptiveRetries(true)).
+		EnableOverloadRetargeting(s.client.enableOverloadRetargeting).
 		CommandMonitor(s.client.monitor).RecoveryToken(bsoncore.Document(s.clientSession.RecoveryToken)).
 		ServerAPI(s.client.serverAPI).Authenticator(s.client.authenticator).Logger(s.client.logger)
 

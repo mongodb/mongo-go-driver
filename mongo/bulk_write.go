@@ -184,12 +184,7 @@ func (bw *bulkWrite) runInsert(ctx context.Context, batch bulkWriteBatch) (inser
 		docs[i] = doc
 	}
 
-	maxAdaptiveRetries := defaultAdaptiveRetries
-	if !bw.collection.client.retryWrites {
-		maxAdaptiveRetries = 0
-	} else if bw.collection.client.maxAdaptiveRetries != nil {
-		maxAdaptiveRetries = *bw.collection.client.maxAdaptiveRetries
-	}
+	maxAdaptiveRetries := bw.collection.client.effectiveAdaptiveRetries(bw.collection.client.retryWrites)
 
 	op := insert{
 		documents:     docs,
@@ -286,12 +281,7 @@ func (bw *bulkWrite) runDelete(ctx context.Context, batch bulkWriteBatch) (opera
 		retry = driver.RetryOncePerCommand
 	}
 
-	maxAdaptiveRetries := defaultAdaptiveRetries
-	if !bw.collection.client.retryWrites {
-		maxAdaptiveRetries = 0
-	} else if bw.collection.client.maxAdaptiveRetries != nil {
-		maxAdaptiveRetries = *bw.collection.client.maxAdaptiveRetries
-	}
+	maxAdaptiveRetries := bw.collection.client.effectiveAdaptiveRetries(bw.collection.client.retryWrites)
 
 	op := operation.NewDelete(docs...).
 		Session(bw.session).WriteConcern(bw.writeConcern).CommandMonitor(bw.collection.client.monitor).
@@ -428,12 +418,7 @@ func (bw *bulkWrite) runUpdate(ctx context.Context, batch bulkWriteBatch) (opera
 		retry = driver.RetryOncePerCommand
 	}
 
-	maxAdaptiveRetries := defaultAdaptiveRetries
-	if !bw.collection.client.retryWrites {
-		maxAdaptiveRetries = 0
-	} else if bw.collection.client.maxAdaptiveRetries != nil {
-		maxAdaptiveRetries = *bw.collection.client.maxAdaptiveRetries
-	}
+	maxAdaptiveRetries := bw.collection.client.effectiveAdaptiveRetries(bw.collection.client.retryWrites)
 
 	op := operation.NewUpdate(docs...).
 		Session(bw.session).WriteConcern(bw.writeConcern).CommandMonitor(bw.collection.client.monitor).

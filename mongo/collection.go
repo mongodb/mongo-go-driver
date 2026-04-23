@@ -303,12 +303,7 @@ func (coll *Collection) insert(
 		sess = nil
 	}
 
-	maxAdaptiveRetries := defaultAdaptiveRetries
-	if !coll.client.retryWrites {
-		maxAdaptiveRetries = 0
-	} else if coll.client.maxAdaptiveRetries != nil {
-		maxAdaptiveRetries = *coll.client.maxAdaptiveRetries
-	}
+	maxAdaptiveRetries := coll.client.effectiveAdaptiveRetries(coll.client.retryWrites)
 
 	selector := makePinnedSelector(sess, coll.writeSelector)
 
@@ -535,12 +530,7 @@ func (coll *Collection) delete(
 		retryMode = driver.RetryOncePerCommand
 	}
 
-	maxAdaptiveRetries := defaultAdaptiveRetries
-	if !coll.client.retryWrites {
-		maxAdaptiveRetries = 0
-	} else if coll.client.maxAdaptiveRetries != nil {
-		maxAdaptiveRetries = *coll.client.maxAdaptiveRetries
-	}
+	maxAdaptiveRetries := coll.client.effectiveAdaptiveRetries(coll.client.retryWrites)
 
 	selector := makePinnedSelector(sess, coll.writeSelector)
 
@@ -716,12 +706,7 @@ func (coll *Collection) updateOrReplace(
 		retry = driver.RetryOncePerCommand
 	}
 
-	maxAdaptiveRetries := defaultAdaptiveRetries
-	if !coll.client.retryWrites {
-		maxAdaptiveRetries = 0
-	} else if coll.client.maxAdaptiveRetries != nil {
-		maxAdaptiveRetries = *coll.client.maxAdaptiveRetries
-	}
+	maxAdaptiveRetries := coll.client.effectiveAdaptiveRetries(coll.client.retryWrites)
 
 	selector := makePinnedSelector(sess, coll.writeSelector)
 
@@ -1191,12 +1176,7 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter any,
 		retry = driver.RetryOncePerCommand
 	}
 
-	maxAdaptiveRetries := defaultAdaptiveRetries
-	if !coll.client.retryReads {
-		maxAdaptiveRetries = 0
-	} else if coll.client.maxAdaptiveRetries != nil {
-		maxAdaptiveRetries = *coll.client.maxAdaptiveRetries
-	}
+	maxAdaptiveRetries := coll.client.effectiveAdaptiveRetries(coll.client.retryReads)
 
 	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.localThreshold)
 	op := operation.NewAggregate(pipelineArr).Session(sess).ReadConcern(rc).ReadPreference(coll.readPreference).
@@ -1296,12 +1276,7 @@ func (coll *Collection) EstimatedDocumentCount(
 		retry = driver.RetryOncePerCommand
 	}
 
-	maxAdaptiveRetries := defaultAdaptiveRetries
-	if !coll.client.retryReads {
-		maxAdaptiveRetries = 0
-	} else if coll.client.maxAdaptiveRetries != nil {
-		maxAdaptiveRetries = *coll.client.maxAdaptiveRetries
-	}
+	maxAdaptiveRetries := coll.client.effectiveAdaptiveRetries(coll.client.retryReads)
 
 	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.localThreshold)
 	op := operation.NewCount().Session(sess).ClusterClock(coll.client.clock).
@@ -1374,12 +1349,7 @@ func (coll *Collection) Distinct(
 		retry = driver.RetryOncePerCommand
 	}
 
-	maxAdaptiveRetries := defaultAdaptiveRetries
-	if !coll.client.retryReads {
-		maxAdaptiveRetries = 0
-	} else if coll.client.maxAdaptiveRetries != nil {
-		maxAdaptiveRetries = *coll.client.maxAdaptiveRetries
-	}
+	maxAdaptiveRetries := coll.client.effectiveAdaptiveRetries(coll.client.retryReads)
 
 	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.localThreshold)
 
@@ -1727,12 +1697,7 @@ func (coll *Collection) findAndModify(ctx context.Context, op *operation.FindAnd
 		retry = driver.RetryOnce
 	}
 
-	maxAdaptiveRetries := defaultAdaptiveRetries
-	if !coll.client.retryWrites {
-		maxAdaptiveRetries = 0
-	} else if coll.client.maxAdaptiveRetries != nil {
-		maxAdaptiveRetries = *coll.client.maxAdaptiveRetries
-	}
+	maxAdaptiveRetries := coll.client.effectiveAdaptiveRetries(coll.client.retryWrites)
 
 	op = op.Session(sess).
 		WriteConcern(wc).

@@ -40,8 +40,9 @@ import (
 )
 
 const (
-	defaultLocalThreshold = 15 * time.Millisecond
-	defaultMaxPoolSize    = 100
+	defaultLocalThreshold       = 15 * time.Millisecond
+	defaultMaxPoolSize          = 100
+	defaultAdaptiveRetries uint = 2
 )
 
 var (
@@ -504,14 +505,10 @@ func (c *Client) StartSession(opts ...options.Lister[options.SessionOptions]) (*
 
 func (c *Client) endSessions(ctx context.Context) {
 	sessionIDs := c.sessionPool.IDSlice()
-	maxAdaptiveRetries := defaultAdaptiveRetries
-	if c.maxAdaptiveRetries != nil {
-		maxAdaptiveRetries = *c.maxAdaptiveRetries
-	}
 	op := operation.NewEndSessions(nil).ClusterClock(c.clock).Deployment(c.deployment).
 		ServerSelector(&serverselector.ReadPref{ReadPref: readpref.PrimaryPreferred()}).
 		CommandMonitor(c.monitor).Database("admin").Crypt(c.cryptFLE).ServerAPI(c.serverAPI).
-		MaxAdaptiveRetries(maxAdaptiveRetries).
+		MaxAdaptiveRetries(c.effectiveAdaptiveRetries(true)).
 		EnableOverloadRetargeting(c.enableOverloadRetargeting)
 
 	totalNumIDs := len(sessionIDs)
@@ -776,12 +773,7 @@ func (c *Client) ListDatabases(ctx context.Context, filter any, opts ...options.
 		retry = driver.RetryOncePerCommand
 	}
 
-	maxAdaptiveRetries := defaultAdaptiveRetries
-	if !c.retryReads {
-		maxAdaptiveRetries = 0
-	} else if c.maxAdaptiveRetries != nil {
-		maxAdaptiveRetries = *c.maxAdaptiveRetries
-	}
+	maxAdaptiveRetries := c.effectiveAdaptiveRetries(c.retryReads)
 
 	var selector description.ServerSelector
 
@@ -940,19 +932,23 @@ func (c *Client) NumberSessionsInProgress() int {
 }
 
 func (c *Client) createBaseCursorOptions(retryOverload bool) driver.CursorOptions {
-	maxAdaptiveRetries := defaultAdaptiveRetries
-	if !retryOverload {
-		maxAdaptiveRetries = 0
-	} else if c.maxAdaptiveRetries != nil {
-		maxAdaptiveRetries = *c.maxAdaptiveRetries
-	}
 	return driver.CursorOptions{
 		CommandMonitor:            c.monitor,
 		Crypt:                     c.cryptFLE,
 		ServerAPI:                 c.serverAPI,
-		MaxAdaptiveRetries:        maxAdaptiveRetries,
+		MaxAdaptiveRetries:        c.effectiveAdaptiveRetries(retryOverload),
 		EnableOverloadRetargeting: c.enableOverloadRetargeting,
 	}
+}
+
+func (c *Client) effectiveAdaptiveRetries(retryOverload bool) uint {
+	if !retryOverload {
+		return 0
+	}
+	if c.maxAdaptiveRetries != nil {
+		return *c.maxAdaptiveRetries
+	}
+	return defaultAdaptiveRetries
 }
 
 // ClientBulkWrite is a struct that can be used in a client-level BulkWrite operation.
@@ -1013,12 +1009,7 @@ func (c *Client) BulkWrite(ctx context.Context, writes []ClientBulkWrite,
 		sess = nil
 	}
 
-	maxAdaptiveRetries := defaultAdaptiveRetries
-	if !c.retryWrites {
-		maxAdaptiveRetries = 0
-	} else if c.maxAdaptiveRetries != nil {
-		maxAdaptiveRetries = *c.maxAdaptiveRetries
-	}
+	maxAdaptiveRetries := c.effectiveAdaptiveRetries(c.retryWrites)
 
 	writeSelector := &serverselector.Composite{
 		Selectors: []description.ServerSelector{

@@ -269,12 +269,7 @@ func (iv IndexView) CreateMany(
 		sess = nil
 	}
 
-	maxAdaptiveRetries := defaultAdaptiveRetries
-	if !iv.coll.client.retryWrites {
-		maxAdaptiveRetries = 0
-	} else if iv.coll.client.maxAdaptiveRetries != nil {
-		maxAdaptiveRetries = *iv.coll.client.maxAdaptiveRetries
-	}
+	maxAdaptiveRetries := iv.coll.client.effectiveAdaptiveRetries(iv.coll.client.retryWrites)
 
 	selector := makePinnedSelector(sess, iv.coll.writeSelector)
 
@@ -426,12 +421,7 @@ func (iv IndexView) drop(ctx context.Context, index any, opts ...options.Lister[
 		sess = nil
 	}
 
-	maxAdaptiveRetries := defaultAdaptiveRetries
-	if !iv.coll.client.retryWrites {
-		maxAdaptiveRetries = 0
-	} else if iv.coll.client.maxAdaptiveRetries != nil {
-		maxAdaptiveRetries = *iv.coll.client.maxAdaptiveRetries
-	}
+	maxAdaptiveRetries := iv.coll.client.effectiveAdaptiveRetries(iv.coll.client.retryWrites)
 
 	selector := makePinnedSelector(sess, iv.coll.writeSelector)
 
