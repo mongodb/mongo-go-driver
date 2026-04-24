@@ -6,31 +6,23 @@
 
 package randutil
 
-var presetRatio *float64
-
 var globalRand = NewLockedRand()
+
+var jitterInt63n func(int64) int64 = globalRand.Int63n
 
 // JitterInt63n returns, as an int64, a non-negative pseudo-random number in
 // the half-open interval [0,n). It panics if n <= 0.
 //
-// If a static jitter ratio is set by calling SetJitterForTesting, JitterInt63n
-// returns int64(n*ratio) in [0,n].
+// If a test jitter function is set by calling SetJitterForTesting, JitterInt63n
+// returns the value from the custom function.
 func JitterInt63n(n int64) int64 {
-	if presetRatio == nil {
-		return globalRand.Int63n(n)
-	}
-	val := int64(*presetRatio * float64(n))
-	if val < 0 {
-		return 0
-	}
-	if val > n {
-		return n
-	}
-	return int64(val)
+	return jitterInt63n(n)
 }
 
-// SetJitterForTesting sets a preset jitter ratio for testing and returns a restore function.
-func SetJitterForTesting(ratio float64) func() {
-	presetRatio = &ratio
-	return func() { presetRatio = nil }
+// SetJitterForTesting sets a custom jitter function for testing and returns a restore function.
+func SetJitterForTesting(f func(int64) int64) func() {
+	jitterInt63n = f
+	return func() {
+		jitterInt63n = globalRand.Int63n
+	}
 }

@@ -24,34 +24,35 @@ import (
 
 // Aggregate represents an aggregate operation.
 type Aggregate struct {
-	authenticator            driver.Authenticator
-	allowDiskUse             *bool
-	batchSize                *int32
-	bypassDocumentValidation *bool
-	collation                bsoncore.Document
-	comment                  bsoncore.Value
-	hint                     bsoncore.Value
-	pipeline                 bsoncore.Document
-	session                  *session.Client
-	clock                    *session.ClusterClock
-	collection               string
-	monitor                  *event.CommandMonitor
-	database                 string
-	deployment               driver.Deployment
-	readConcern              *readconcern.ReadConcern
-	readPreference           *readpref.ReadPref
-	retry                    *driver.RetryMode
-	retryOverload            bool
-	selector                 description.ServerSelector
-	writeConcern             *writeconcern.WriteConcern
-	crypt                    driver.Crypt
-	serverAPI                *driver.ServerAPIOptions
-	let                      bsoncore.Document
-	hasOutputStage           bool
-	customOptions            map[string]bsoncore.Value
-	timeout                  *time.Duration
-	omitMaxTimeMS            bool
-	rawData                  *bool
+	authenticator             driver.Authenticator
+	allowDiskUse              *bool
+	batchSize                 *int32
+	bypassDocumentValidation  *bool
+	collation                 bsoncore.Document
+	comment                   bsoncore.Value
+	hint                      bsoncore.Value
+	pipeline                  bsoncore.Document
+	session                   *session.Client
+	clock                     *session.ClusterClock
+	collection                string
+	monitor                   *event.CommandMonitor
+	database                  string
+	deployment                driver.Deployment
+	readConcern               *readconcern.ReadConcern
+	readPreference            *readpref.ReadPref
+	retry                     *driver.RetryMode
+	maxAdaptiveRetries        uint
+	enableOverloadRetargeting bool
+	selector                  description.ServerSelector
+	writeConcern              *writeconcern.WriteConcern
+	crypt                     driver.Crypt
+	serverAPI                 *driver.ServerAPIOptions
+	let                       bsoncore.Document
+	hasOutputStage            bool
+	customOptions             map[string]bsoncore.Value
+	timeout                   *time.Duration
+	omitMaxTimeMS             bool
+	rawData                   *bool
 
 	result driver.CursorResponse
 }
@@ -106,7 +107,8 @@ func (a *Aggregate) Execute(ctx context.Context) error {
 		ReadPreference:                 a.readPreference,
 		Type:                           driver.Read,
 		RetryMode:                      a.retry,
-		RetryOverload:                  a.retryOverload,
+		MaxAdaptiveRetries:             a.maxAdaptiveRetries,
+		EnableOverloadRetargeting:      a.enableOverloadRetargeting,
 		Selector:                       a.selector,
 		WriteConcern:                   a.writeConcern,
 		Crypt:                          a.crypt,
@@ -350,14 +352,25 @@ func (a *Aggregate) Retry(retry driver.RetryMode) *Aggregate {
 	return a
 }
 
-// RetryOverload indicates that the driver should retry operations that fail with a server
-// side overload error.
-func (a *Aggregate) RetryOverload(retryOverload bool) *Aggregate {
+// MaxAdaptiveRetries specifies the maximum number of times the driver should retry operations
+// that fail with a server side overload error.
+func (a *Aggregate) MaxAdaptiveRetries(maxAdaptiveRetries uint) *Aggregate {
 	if a == nil {
 		a = new(Aggregate)
 	}
 
-	a.retryOverload = retryOverload
+	a.maxAdaptiveRetries = maxAdaptiveRetries
+	return a
+}
+
+// EnableOverloadRetargeting specifies whether the driver adds the previously failed server's address
+// to the list of deprioritized server addresses
+func (a *Aggregate) EnableOverloadRetargeting(enabled bool) *Aggregate {
+	if a == nil {
+		a = new(Aggregate)
+	}
+
+	a.enableOverloadRetargeting = enabled
 	return a
 }
 

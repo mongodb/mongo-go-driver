@@ -196,21 +196,23 @@ func (db *Database) processRunCommand(
 	}
 
 	var op *operation.Command
-	switch cursorCommand {
+	switch retryOverload := db.client.retryReads && db.client.retryWrites; cursorCommand {
 	case true:
-		cursorOpts := db.client.createBaseCursorOptions()
+		cursorOpts := db.client.createBaseCursorOptions(retryOverload)
 
 		cursorOpts.MarshalValueEncoderFn = newEncoderFn(db.bsonOpts, db.registry)
 
 		op = operation.NewCursorCommand(runCmdDoc, cursorOpts)
 	default:
 		op = operation.NewCommand(runCmdDoc)
+		maxAdaptiveRetries := db.client.effectiveAdaptiveRetries(retryOverload)
+		op = op.MaxAdaptiveRetries(maxAdaptiveRetries).
+			EnableOverloadRetargeting(db.client.enableOverloadRetargeting)
 	}
 
 	return op.Session(sess).CommandMonitor(db.client.monitor).
 		ServerSelector(readSelect).ClusterClock(db.client.clock).
 		Database(db.name).Deployment(db.client.deployment).
-		RetryOverload(db.client.retryReads && db.client.retryWrites).
 		Crypt(db.client.cryptFLE).ReadPreference(args.ReadPreference).ServerAPI(db.client.serverAPI).
 		Timeout(db.client.timeout).Logger(db.client.logger).Authenticator(db.client.authenticator), sess, nil
 }
@@ -461,6 +463,8 @@ func (db *Database) ListCollections(
 		retry = driver.RetryOncePerCommand
 	}
 
+	cursorOpts := db.client.createBaseCursorOptions(db.client.retryReads)
+
 	var selector description.ServerSelector
 
 	selector = &serverselector.Composite{
@@ -474,12 +478,11 @@ func (db *Database) ListCollections(
 
 	op := operation.NewListCollections(filterDoc).
 		Session(sess).ReadPreference(db.readPreference).CommandMonitor(db.client.monitor).
-		Retry(retry).RetryOverload(db.client.retryReads).
+		Retry(retry).MaxAdaptiveRetries(cursorOpts.MaxAdaptiveRetries).
+		EnableOverloadRetargeting(cursorOpts.EnableOverloadRetargeting).
 		ServerSelector(selector).ClusterClock(db.client.clock).
 		Database(db.name).Deployment(db.client.deployment).Crypt(db.client.cryptFLE).
 		ServerAPI(db.client.serverAPI).Timeout(db.client.timeout).Authenticator(db.client.authenticator)
-
-	cursorOpts := db.client.createBaseCursorOptions()
 
 	cursorOpts.MarshalValueEncoderFn = newEncoderFn(db.bsonOpts, db.registry)
 

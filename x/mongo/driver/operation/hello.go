@@ -636,7 +636,6 @@ func (h *Hello) createOperation() driver.Operation {
 			h.res = resp
 			return nil
 		},
-		RetryOverload: true,
 		ServerAPI:     h.serverAPI,
 		OmitMaxTimeMS: h.omitMaxTimeMS,
 	}

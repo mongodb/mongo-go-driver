@@ -108,7 +108,7 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline an
 		ctx = context.Background()
 	}
 
-	cursorOpts := config.client.createBaseCursorOptions()
+	cursorOpts := config.client.createBaseCursorOptions(config.client.retryReads)
 
 	cursorOpts.MarshalValueEncoderFn = newEncoderFn(config.bsonOpts, config.registry)
 
@@ -145,7 +145,8 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline an
 		ReadPreference(config.readPreference).ReadConcern(config.readConcern).
 		Deployment(cs.client.deployment).ClusterClock(cs.client.clock).
 		CommandMonitor(cs.client.monitor).Session(cs.sess).ServerSelector(cs.selector).
-		Retry(driver.RetryNone).RetryOverload(cs.client.retryReads).
+		Retry(driver.RetryNone).MaxAdaptiveRetries(cursorOpts.MaxAdaptiveRetries).
+		EnableOverloadRetargeting(cursorOpts.EnableOverloadRetargeting).
 		ServerAPI(cs.client.serverAPI).Crypt(config.crypt).Timeout(cs.client.timeout).
 		Authenticator(cs.client.authenticator)
 

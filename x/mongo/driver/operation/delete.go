@@ -24,28 +24,29 @@ import (
 
 // Delete performs a delete operation
 type Delete struct {
-	authenticator driver.Authenticator
-	comment       bsoncore.Value
-	deletes       []bsoncore.Document
-	ordered       *bool
-	session       *session.Client
-	clock         *session.ClusterClock
-	collection    string
-	monitor       *event.CommandMonitor
-	crypt         driver.Crypt
-	database      string
-	deployment    driver.Deployment
-	selector      description.ServerSelector
-	writeConcern  *writeconcern.WriteConcern
-	retry         *driver.RetryMode
-	retryOverload bool
-	hint          *bool
-	result        DeleteResult
-	serverAPI     *driver.ServerAPIOptions
-	let           bsoncore.Document
-	timeout       *time.Duration
-	rawData       *bool
-	logger        *logger.Logger
+	authenticator             driver.Authenticator
+	comment                   bsoncore.Value
+	deletes                   []bsoncore.Document
+	ordered                   *bool
+	session                   *session.Client
+	clock                     *session.ClusterClock
+	collection                string
+	monitor                   *event.CommandMonitor
+	crypt                     driver.Crypt
+	database                  string
+	deployment                driver.Deployment
+	selector                  description.ServerSelector
+	writeConcern              *writeconcern.WriteConcern
+	retry                     *driver.RetryMode
+	maxAdaptiveRetries        uint
+	enableOverloadRetargeting bool
+	hint                      *bool
+	result                    DeleteResult
+	serverAPI                 *driver.ServerAPIOptions
+	let                       bsoncore.Document
+	timeout                   *time.Duration
+	rawData                   *bool
+	logger                    *logger.Logger
 }
 
 // DeleteResult represents a delete result returned by the server.
@@ -100,25 +101,26 @@ func (d *Delete) Execute(ctx context.Context) error {
 	}
 
 	return driver.Operation{
-		CommandFn:         d.command,
-		ProcessResponseFn: d.processResponse,
-		Batches:           batches,
-		RetryMode:         d.retry,
-		RetryOverload:     d.retryOverload,
-		Type:              driver.Write,
-		Client:            d.session,
-		Clock:             d.clock,
-		CommandMonitor:    d.monitor,
-		Crypt:             d.crypt,
-		Database:          d.database,
-		Deployment:        d.deployment,
-		Selector:          d.selector,
-		WriteConcern:      d.writeConcern,
-		ServerAPI:         d.serverAPI,
-		Timeout:           d.timeout,
-		Logger:            d.logger,
-		Name:              driverutil.DeleteOp,
-		Authenticator:     d.authenticator,
+		CommandFn:                 d.command,
+		ProcessResponseFn:         d.processResponse,
+		Batches:                   batches,
+		RetryMode:                 d.retry,
+		MaxAdaptiveRetries:        d.maxAdaptiveRetries,
+		EnableOverloadRetargeting: d.enableOverloadRetargeting,
+		Type:                      driver.Write,
+		Client:                    d.session,
+		Clock:                     d.clock,
+		CommandMonitor:            d.monitor,
+		Crypt:                     d.crypt,
+		Database:                  d.database,
+		Deployment:                d.deployment,
+		Selector:                  d.selector,
+		WriteConcern:              d.writeConcern,
+		ServerAPI:                 d.serverAPI,
+		Timeout:                   d.timeout,
+		Logger:                    d.logger,
+		Name:                      driverutil.DeleteOp,
+		Authenticator:             d.authenticator,
 	}.Execute(ctx)
 }
 
@@ -282,14 +284,25 @@ func (d *Delete) Retry(retry driver.RetryMode) *Delete {
 	return d
 }
 
-// RetryOverload indicates that the driver should retry operations that fail with a server
-// side overload error.
-func (d *Delete) RetryOverload(retryOverload bool) *Delete {
+// MaxAdaptiveRetries specifies the maximum number of times the driver should retry operations
+// that fail with a server side overload error.
+func (d *Delete) MaxAdaptiveRetries(maxAdaptiveRetries uint) *Delete {
 	if d == nil {
 		d = new(Delete)
 	}
 
-	d.retryOverload = retryOverload
+	d.maxAdaptiveRetries = maxAdaptiveRetries
+	return d
+}
+
+// EnableOverloadRetargeting specifies whether the driver adds the previously failed server's address
+// to the list of deprioritized server addresses
+func (d *Delete) EnableOverloadRetargeting(enabled bool) *Delete {
+	if d == nil {
+		d = new(Delete)
+	}
+
+	d.enableOverloadRetargeting = enabled
 	return d
 }
 

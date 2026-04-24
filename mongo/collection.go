@@ -303,25 +303,28 @@ func (coll *Collection) insert(
 		sess = nil
 	}
 
+	maxAdaptiveRetries := coll.client.effectiveAdaptiveRetries(coll.client.retryWrites)
+
 	selector := makePinnedSelector(sess, coll.writeSelector)
 
 	op := insert{
-		documents:     docs,
-		session:       sess,
-		writeConcern:  wc,
-		monitor:       coll.client.monitor,
-		retryOverload: coll.client.retryWrites,
-		selector:      selector,
-		clock:         coll.client.clock,
-		database:      coll.db.name,
-		collection:    coll.name,
-		deployment:    coll.client.deployment,
-		crypt:         coll.client.cryptFLE,
-		ordered:       ptrutil.Ptr(true),
-		serverAPI:     coll.client.serverAPI,
-		timeout:       coll.client.timeout,
-		logger:        coll.client.logger,
-		authenticator: coll.client.authenticator,
+		documents:                 docs,
+		session:                   sess,
+		writeConcern:              wc,
+		monitor:                   coll.client.monitor,
+		maxAdaptiveRetries:        maxAdaptiveRetries,
+		enableOverloadRetargeting: coll.client.enableOverloadRetargeting,
+		selector:                  selector,
+		clock:                     coll.client.clock,
+		database:                  coll.db.name,
+		collection:                coll.name,
+		deployment:                coll.client.deployment,
+		crypt:                     coll.client.cryptFLE,
+		ordered:                   ptrutil.Ptr(true),
+		serverAPI:                 coll.client.serverAPI,
+		timeout:                   coll.client.timeout,
+		logger:                    coll.client.logger,
+		authenticator:             coll.client.authenticator,
 	}
 
 	args, err := mongoutil.NewOptions[options.InsertManyOptions](opts...)
@@ -527,6 +530,8 @@ func (coll *Collection) delete(
 		retryMode = driver.RetryOncePerCommand
 	}
 
+	maxAdaptiveRetries := coll.client.effectiveAdaptiveRetries(coll.client.retryWrites)
+
 	selector := makePinnedSelector(sess, coll.writeSelector)
 
 	var limit int32
@@ -555,7 +560,8 @@ func (coll *Collection) delete(
 
 	op := operation.NewDelete(doc).
 		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.monitor).
-		Retry(retryMode).RetryOverload(coll.client.retryWrites).
+		Retry(retryMode).MaxAdaptiveRetries(maxAdaptiveRetries).
+		EnableOverloadRetargeting(coll.client.enableOverloadRetargeting).
 		ServerSelector(selector).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).Ordered(true).
@@ -700,11 +706,14 @@ func (coll *Collection) updateOrReplace(
 		retry = driver.RetryOncePerCommand
 	}
 
+	maxAdaptiveRetries := coll.client.effectiveAdaptiveRetries(coll.client.retryWrites)
+
 	selector := makePinnedSelector(sess, coll.writeSelector)
 
 	op := operation.NewUpdate(updateDoc).
 		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.monitor).
-		Retry(retry).RetryOverload(coll.client.retryWrites).
+		Retry(retry).MaxAdaptiveRetries(maxAdaptiveRetries).
+		EnableOverloadRetargeting(coll.client.enableOverloadRetargeting).
 		ServerSelector(selector).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).Hint(args.Hint != nil).
@@ -993,8 +1002,11 @@ func aggregate(a aggregateParams, opts ...options.Lister[options.AggregateOption
 		sess = nil
 	}
 
+	retryReads := a.client.retryReads && !hasOutputStage
+	retryWrites := a.client.retryWrites && hasOutputStage
+
 	retry := driver.RetryNone
-	if a.client.retryReads && !hasOutputStage {
+	if retryReads {
 		retry = driver.RetryOncePerCommand
 	}
 
@@ -1008,7 +1020,7 @@ func aggregate(a aggregateParams, opts ...options.Lister[options.AggregateOption
 		return nil, err
 	}
 
-	cursorOpts := a.client.createBaseCursorOptions()
+	cursorOpts := a.client.createBaseCursorOptions(retryReads || retryWrites)
 
 	cursorOpts.MarshalValueEncoderFn = newEncoderFn(a.bsonOpts, a.registry)
 
@@ -1019,7 +1031,8 @@ func aggregate(a aggregateParams, opts ...options.Lister[options.AggregateOption
 		ReadPreference(a.readPreference).
 		CommandMonitor(a.client.monitor).
 		Retry(retry).
-		RetryOverload((a.client.retryReads && !hasOutputStage) || (a.client.retryWrites && hasOutputStage)).
+		MaxAdaptiveRetries(cursorOpts.MaxAdaptiveRetries).
+		EnableOverloadRetargeting(cursorOpts.EnableOverloadRetargeting).
 		ServerSelector(selector).
 		ClusterClock(a.client.clock).
 		Database(a.db).
@@ -1163,9 +1176,12 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter any,
 		retry = driver.RetryOncePerCommand
 	}
 
+	maxAdaptiveRetries := coll.client.effectiveAdaptiveRetries(coll.client.retryReads)
+
 	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.localThreshold)
 	op := operation.NewAggregate(pipelineArr).Session(sess).ReadConcern(rc).ReadPreference(coll.readPreference).
-		Retry(retry).RetryOverload(coll.client.retryReads).
+		Retry(retry).MaxAdaptiveRetries(maxAdaptiveRetries).
+		EnableOverloadRetargeting(coll.client.enableOverloadRetargeting).
 		CommandMonitor(coll.client.monitor).ServerSelector(selector).ClusterClock(coll.client.clock).Database(coll.db.name).
 		Collection(coll.name).Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI).
 		Timeout(coll.client.timeout).Authenticator(coll.client.authenticator)
@@ -1260,11 +1276,14 @@ func (coll *Collection) EstimatedDocumentCount(
 		retry = driver.RetryOncePerCommand
 	}
 
+	maxAdaptiveRetries := coll.client.effectiveAdaptiveRetries(coll.client.retryReads)
+
 	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.localThreshold)
 	op := operation.NewCount().Session(sess).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).CommandMonitor(coll.client.monitor).
 		Deployment(coll.client.deployment).ReadConcern(rc).ReadPreference(coll.readPreference).
-		Retry(retry).RetryOverload(coll.client.retryReads).
+		Retry(retry).MaxAdaptiveRetries(maxAdaptiveRetries).
+		EnableOverloadRetargeting(coll.client.enableOverloadRetargeting).
 		ServerSelector(selector).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI).
 		Timeout(coll.client.timeout).Authenticator(coll.client.authenticator)
 
@@ -1330,6 +1349,8 @@ func (coll *Collection) Distinct(
 		retry = driver.RetryOncePerCommand
 	}
 
+	maxAdaptiveRetries := coll.client.effectiveAdaptiveRetries(coll.client.retryReads)
+
 	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.localThreshold)
 
 	args, err := mongoutil.NewOptions[options.DistinctOptions](opts...)
@@ -1343,7 +1364,8 @@ func (coll *Collection) Distinct(
 		Session(sess).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).CommandMonitor(coll.client.monitor).
 		Deployment(coll.client.deployment).ReadConcern(rc).ReadPreference(coll.readPreference).
-		Retry(retry).RetryOverload(coll.client.retryReads).
+		Retry(retry).MaxAdaptiveRetries(maxAdaptiveRetries).
+		EnableOverloadRetargeting(coll.client.enableOverloadRetargeting).
 		ServerSelector(selector).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI).
 		Timeout(coll.client.timeout).Authenticator(coll.client.authenticator)
 
@@ -1454,17 +1476,18 @@ func (coll *Collection) find(
 		retry = driver.RetryOncePerCommand
 	}
 
+	cursorOpts := coll.client.createBaseCursorOptions(coll.client.retryReads)
+
 	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.localThreshold)
 	op := operation.NewFind(f).
 		Session(sess).ReadConcern(rc).ReadPreference(coll.readPreference).
 		CommandMonitor(coll.client.monitor).ServerSelector(selector).
-		Retry(retry).RetryOverload(coll.client.retryReads).
+		Retry(retry).MaxAdaptiveRetries(cursorOpts.MaxAdaptiveRetries).
+		EnableOverloadRetargeting(cursorOpts.EnableOverloadRetargeting).
 		ClusterClock(coll.client.clock).Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI).
 		Timeout(coll.client.timeout).Logger(coll.client.logger).Authenticator(coll.client.authenticator).
 		OmitMaxTimeMS(omitMaxTimeMS)
-
-	cursorOpts := coll.client.createBaseCursorOptions()
 
 	cursorOpts.MarshalValueEncoderFn = newEncoderFn(coll.bsonOpts, coll.registry)
 
@@ -1674,6 +1697,8 @@ func (coll *Collection) findAndModify(ctx context.Context, op *operation.FindAnd
 		retry = driver.RetryOnce
 	}
 
+	maxAdaptiveRetries := coll.client.effectiveAdaptiveRetries(coll.client.retryWrites)
+
 	op = op.Session(sess).
 		WriteConcern(wc).
 		CommandMonitor(coll.client.monitor).
@@ -1683,7 +1708,8 @@ func (coll *Collection) findAndModify(ctx context.Context, op *operation.FindAnd
 		Collection(coll.name).
 		Deployment(coll.client.deployment).
 		Retry(retry).
-		RetryOverload(coll.client.retryWrites).
+		MaxAdaptiveRetries(maxAdaptiveRetries).
+		EnableOverloadRetargeting(coll.client.enableOverloadRetargeting).
 		Crypt(coll.client.cryptFLE)
 
 	rr, err := processWriteError(op.Execute(ctx))

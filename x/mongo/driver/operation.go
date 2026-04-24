@@ -24,6 +24,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
 	"go.mongodb.org/mongo-driver/v2/internal/handshake"
 	"go.mongodb.org/mongo-driver/v2/internal/logger"
+	"go.mongodb.org/mongo-driver/v2/internal/ptrutil"
 	"go.mongodb.org/mongo-driver/v2/internal/randutil"
 	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
 	"go.mongodb.org/mongo-driver/v2/mongo/address"
@@ -310,9 +311,13 @@ type Operation struct {
 	// possible unless RetryNone is used.
 	RetryMode *RetryMode
 
-	// RetryOverload indicates that the driver should retry operations that fail with a server side
-	// overload error.
-	RetryOverload bool
+	// MaxAdaptiveRetries indicates the maximum number of times the driver should retry operations
+	// that fail with a server side overload error.
+	MaxAdaptiveRetries uint
+
+	// EnableOverloadRetargeting specifies whether the driver adds the previously failed server's address
+	// to the list of deprioritized server addresses.
+	EnableOverloadRetargeting bool
 
 	// Type specifies the kind of operation this is. There is only one mode that enables retry: Write.
 	// For more information about what this mode does, please refer to it's definition. Both Type and
@@ -500,10 +505,9 @@ func (op Operation) Execute(ctx context.Context) error {
 		if err := op.Client.StartCommand(); err != nil {
 			return err
 		}
-		op.Client.RetryOverload = op.RetryOverload
 	}
 
-	var defaultRetries int
+	defaultRetries := ptrutil.Ptr(uint(0))
 	if op.RetryMode != nil {
 		switch op.Type {
 		case Write:
@@ -512,23 +516,23 @@ func (op Operation) Execute(ctx context.Context) error {
 			}
 			switch *op.RetryMode {
 			case RetryOnce, RetryOncePerCommand:
-				defaultRetries = 1
+				defaultRetries = ptrutil.Ptr(uint(1))
 			case RetryContext:
-				defaultRetries = -1
+				defaultRetries = nil
 			}
 		case Read:
 			switch *op.RetryMode {
 			case RetryOnce, RetryOncePerCommand:
-				defaultRetries = 1
+				defaultRetries = ptrutil.Ptr(uint(1))
 			case RetryContext:
-				defaultRetries = -1
+				defaultRetries = nil
 			}
 		}
 
-		// If context is a Timeout context, automatically set retries to -1 (infinite) if retrying is
+		// If context is a Timeout context, automatically set retries to infinite (nil) if retrying is
 		// enabled.
 		if csot.IsTimeoutContext(ctx) && op.RetryMode.Enabled() {
-			defaultRetries = -1
+			defaultRetries = nil
 		}
 	}
 
@@ -541,7 +545,7 @@ func (op Operation) Execute(ctx context.Context) error {
 	var expDur time.Duration
 	var transactionState session.TransactionState
 	var isOverloadedError bool
-	var attempt int
+	var attempt uint
 	retrySupported := false
 	first := true
 	currIndex := 0
@@ -582,7 +586,8 @@ func (op Operation) Execute(ctx context.Context) error {
 		// If we got a connection, close it immediately to release pool resources
 		// for subsequent retries.
 		if conn != nil {
-			if op.Deployment.Kind() == description.TopologyKindSharded || isOverloadedError {
+			if op.Deployment.Kind() == description.TopologyKindSharded ||
+				(isOverloadedError && op.EnableOverloadRetargeting) {
 				deprioritizedServers = append(deprioritizedServers, conn.Description())
 			}
 			conn.Close()
@@ -657,10 +662,10 @@ func (op Operation) Execute(ctx context.Context) error {
 		if srvr == nil || conn == nil {
 			srvr, conn, err = op.getServerAndConnection(ctx, requestID, deprioritizedServers)
 			if err != nil {
-				// If the returned error is retryable and there are retries remaining (negative
-				// retries means retry indefinitely), then retry the operation. Set the server
-				// and connection to nil to request a new server and connection.
-				if rerr, ok := err.(RetryablePoolError); ok && rerr.Retryable() && (allowedRetries < 0 || attempt < allowedRetries) {
+				// If the returned error is retryable and there are retries remaining (nil
+				// means retry indefinitely), then retry the operation. Set the server and
+				// connection to nil to request a new server and connection.
+				if rerr, ok := err.(RetryablePoolError); ok && rerr.Retryable() && (allowedRetries == nil || attempt < *allowedRetries) {
 					if err = resetForRetry(err); err != nil {
 						return err
 					}
@@ -829,9 +834,9 @@ func (op Operation) Execute(ctx context.Context) error {
 			}
 
 			isOverloadedError = tt.HasErrorLabel(ErrSystemOverloadedError)
-			if isOverloadedError && op.RetryOverload {
-				retries = 5
-				allowedRetries = retries
+			if isOverloadedError && op.MaxAdaptiveRetries != 0 {
+				retries = ptrutil.Ptr(op.MaxAdaptiveRetries)
+				allowedRetries = ptrutil.Ptr(op.MaxAdaptiveRetries)
 			}
 			connDesc := conn.Description()
 			retryableErr := tt.Retryable(connDesc.Kind, connDesc.WireVersion)
@@ -844,12 +849,12 @@ func (op Operation) Execute(ctx context.Context) error {
 				tt.Labels = append(tt.Labels, RetryableWriteError)
 			}
 			olRetryErr := tt.HasErrorLabel(ErrRetryableError) && isOverloadedError
-			needRetry := (retrySupported && retryEnabled && retryableErr) || (op.RetryOverload && olRetryErr)
+			needRetry := (retrySupported && retryEnabled && retryableErr) || (op.MaxAdaptiveRetries != 0 && olRetryErr)
 
 			// If retries are supported for the current operation on the first server description,
-			// the error is considered retryable, and there are retries remaining (negative retries
-			// means retry indefinitely), then retry the operation.
-			if needRetry && (allowedRetries < 0 || attempt < allowedRetries) {
+			// the error is considered retryable, and there are retries remaining (nil means retry
+			// indefinitely), then retry the operation.
+			if needRetry && (allowedRetries == nil || attempt < *allowedRetries) {
 				if op.Client != nil && op.Client.Committing && !olRetryErr {
 					// Apply majority write concern for retries
 					op.Client.UpdateCommitTransactionWriteConcern()
@@ -954,9 +959,9 @@ func (op Operation) Execute(ctx context.Context) error {
 			}
 
 			isOverloadedError = tt.HasErrorLabel(ErrSystemOverloadedError)
-			if isOverloadedError && op.RetryOverload {
-				retries = 5
-				allowedRetries = retries
+			if isOverloadedError && op.MaxAdaptiveRetries != 0 {
+				retries = ptrutil.Ptr(op.MaxAdaptiveRetries)
+				allowedRetries = ptrutil.Ptr(op.MaxAdaptiveRetries)
 			}
 			connDesc := conn.Description()
 			var retryableErr bool
@@ -975,12 +980,12 @@ func (op Operation) Execute(ctx context.Context) error {
 				retryableErr = tt.RetryableRead()
 			}
 			olRetryErr := tt.HasErrorLabel(ErrRetryableError) && isOverloadedError
-			needRetry := (retrySupported && retryEnabled && retryableErr) || (op.RetryOverload && olRetryErr)
+			needRetry := (retrySupported && retryEnabled && retryableErr) || (op.MaxAdaptiveRetries != 0 && olRetryErr)
 
 			// If retries are supported for the current operation on the first server description,
-			// the error is considered retryable, and there are retries remaining (negative retries
-			// means retry indefinitely), then retry the operation.
-			if needRetry && (allowedRetries < 0 || attempt < allowedRetries) {
+			// the error is considered retryable, and there are retries remaining (nil means retry
+			// indefinitely), then retry the operation.
+			if needRetry && (allowedRetries == nil || attempt < *allowedRetries) {
 				if op.Client != nil && op.Client.Committing && !olRetryErr {
 					// Apply majority write concern for retries
 					op.Client.UpdateCommitTransactionWriteConcern()
@@ -1062,9 +1067,9 @@ func (op Operation) Execute(ctx context.Context) error {
 				op.Client.IncrementTxnNumber()
 
 				// Reset the retries number for RetryOncePerCommand unless context is a Timeout context, in
-				// which case retries should remain as -1 (as many times as possible).
+				// which case retries should remain as nil (as many times as possible).
 				if *op.RetryMode == RetryOncePerCommand && !csot.IsTimeoutContext(ctx) {
-					retries = 1
+					retries = ptrutil.Ptr(uint(1))
 				}
 			}
 			isOverloadedError = false

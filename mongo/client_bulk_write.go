@@ -46,7 +46,9 @@ type clientBulkWrite struct {
 	writeConcern             *writeconcern.WriteConcern
 	rawData                  *bool
 	additionalCmd            bson.D
-	retryOverload            bool
+
+	maxAdaptiveRetries        uint
+	enableOverloadRetargeting bool
 
 	result ClientBulkWriteResult
 }
@@ -69,25 +71,26 @@ func (bw *clientBulkWrite) execute(ctx context.Context) error {
 		retryMode:  driver.RetryOnce,
 	}
 	err := driver.Operation{
-		CommandFn:         bw.newCommand(),
-		ProcessResponseFn: batches.processResponse,
-		Client:            bw.session,
-		Clock:             bw.client.clock,
-		RetryMode:         &batches.retryMode,
-		RetryOverload:     bw.retryOverload,
-		Type:              driver.Write,
-		Batches:           batches,
-		CommandMonitor:    bw.client.monitor,
-		Database:          database,
-		Deployment:        bw.client.deployment,
-		Selector:          bw.selector,
-		WriteConcern:      bw.writeConcern,
-		Crypt:             bw.client.cryptFLE,
-		ServerAPI:         bw.client.serverAPI,
-		Timeout:           bw.client.timeout,
-		Logger:            bw.client.logger,
-		Authenticator:     bw.client.authenticator,
-		Name:              driverutil.BulkWriteOp,
+		CommandFn:                 bw.newCommand(),
+		ProcessResponseFn:         batches.processResponse,
+		Client:                    bw.session,
+		Clock:                     bw.client.clock,
+		RetryMode:                 &batches.retryMode,
+		MaxAdaptiveRetries:        bw.maxAdaptiveRetries,
+		EnableOverloadRetargeting: bw.enableOverloadRetargeting,
+		Type:                      driver.Write,
+		Batches:                   batches,
+		CommandMonitor:            bw.client.monitor,
+		Database:                  database,
+		Deployment:                bw.client.deployment,
+		Selector:                  bw.selector,
+		WriteConcern:              bw.writeConcern,
+		Crypt:                     bw.client.cryptFLE,
+		ServerAPI:                 bw.client.serverAPI,
+		Timeout:                   bw.client.timeout,
+		Logger:                    bw.client.logger,
+		Authenticator:             bw.client.authenticator,
+		Name:                      driverutil.BulkWriteOp,
 	}.Execute(ctx)
 	var exception *ClientBulkWriteException
 
