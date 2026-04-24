@@ -36,11 +36,11 @@ func isSystemOverloadedError(err error) bool {
 
 // executeWithRetries executes the given function with retries if it returns a
 // SystemOverloadedError.
-func executeWithRetries(
+func executeWithRetries[T any](
 	ctx context.Context, maxAttempts int,
-	fn func(ctx context.Context) (any, error),
-) (any, error) {
-	var result any
+	fn func(ctx context.Context) (T, error),
+) (T, error) {
+	var result T
 	var err error
 	expDur := baseBackoff
 	for attempts := 0; attempts < maxAttempts; attempts++ {
@@ -87,7 +87,7 @@ func ExampleOverloadError_Find() {
 	var coll *mongo.Collection
 
 	ctx := context.Background()
-	result, err := executeWithRetries(ctx, defaultMaxAttempts, func(ctx context.Context) (any, error) {
+	result, err := executeWithRetries(ctx, defaultMaxAttempts, func(ctx context.Context) ([]bson.D, error) {
 		cursor, err := coll.Find(ctx, bson.D{})
 		if err != nil {
 			return nil, err
