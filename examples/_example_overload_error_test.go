@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
-	"sync"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -20,11 +19,7 @@ import (
 )
 
 const (
-	tokenBucketCap = 10_000
-	retryToken     = 10
-	refreshToken   = 1
-
-	maxAttempts = 5
+	defaultMaxAttempts = 2
 
 	baseBackoff = 100 * time.Millisecond
 	maxBackoff  = 10_000 * time.Millisecond
@@ -36,49 +31,13 @@ const (
 // isSystemOverloadedError detects overload errors
 func isSystemOverloadedError(err error) bool {
 	var lerr mongo.LabeledError
-	if errors.As(err, &lerr) && lerr.HasErrorLabel(errSystemOverloadedError) {
-		return true
-	}
-	return false
-}
-
-// tokenBucket is used to limit retries
-type tokenBucket struct {
-	capacity int
-	tokens   int
-	locker   sync.Mutex
-}
-
-func newTokenBucket(capacity int) *tokenBucket {
-	return &tokenBucket{
-		capacity: capacity,
-		tokens:   capacity,
-	}
-}
-
-func (tb *tokenBucket) Consume(amount int) bool {
-	tb.locker.Lock()
-	defer tb.locker.Unlock()
-	if amount > tb.tokens {
-		return false
-	}
-	tb.tokens -= amount
-	return true
-}
-
-func (tb *tokenBucket) Deposit(amount int) {
-	tb.locker.Lock()
-	defer tb.locker.Unlock()
-	tb.tokens += amount
-	if tb.tokens > tb.capacity {
-		tb.tokens = tb.capacity
-	}
+	return errors.As(err, &lerr) && lerr.HasErrorLabel(errSystemOverloadedError)
 }
 
 // executeWithRetries executes the given function with retries if it returns a
 // SystemOverloadedError.
 func executeWithRetries(
-	ctx context.Context, tb *tokenBucket,
+	ctx context.Context, maxAttempts int,
 	fn func(ctx context.Context) (any, error),
 ) (any, error) {
 	var result any
@@ -109,21 +68,13 @@ func executeWithRetries(
 
 		result, err = fn(ctx)
 		if err == nil {
-			tb.Deposit(refreshToken)
-			if isRetry {
-				tb.Deposit(retryToken)
-			}
 			break
 		}
 		if !isSystemOverloadedError(err) {
-			tb.Deposit(retryToken)
 			break
 		}
 		var lerr mongo.LabeledError
 		if !errors.As(err, &lerr) || !lerr.HasErrorLabel(errRetryableError) {
-			break
-		}
-		if !tb.Consume(retryToken) {
 			break
 		}
 	}
@@ -136,8 +87,7 @@ func ExampleOverloadError_Find() {
 	var coll *mongo.Collection
 
 	ctx := context.Background()
-	tb := newTokenBucket(tokenBucketCap)
-	result, err := executeWithRetries(ctx, tb, func(ctx context.Context) (any, error) {
+	result, err := executeWithRetries(ctx, defaultMaxAttempts, func(ctx context.Context) (any, error) {
 		cursor, err := coll.Find(ctx, bson.D{})
 		if err != nil {
 			return nil, err
@@ -147,12 +97,7 @@ func ExampleOverloadError_Find() {
 		return res, err
 	})
 	if err != nil {
-		// ErrNoDocuments means that the filter did not match any documents in
-		// the collection.
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return
-		}
-		log.Panic(err)
+		log.Fatalf("Unhandled error: %v", err)
 	}
 	fmt.Printf("found %v\n", result)
 }
