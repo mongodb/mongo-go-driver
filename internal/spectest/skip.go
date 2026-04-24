@@ -11,32 +11,6 @@ import "testing"
 // skipTests is a map of "fully-qualified test name" to "the reason for skipping
 // the test".
 var skipTests = map[string][]string{
-	// SPEC-1403: This test checks to see if the correct error is thrown when auto
-	// encrypting with a server < 4.2. Currently, the test will fail because a
-	// server < 4.2 wouldn't have mongocryptd, so Client construction would fail
-	// with a mongocryptd spawn error.
-	"Servers less than 4.2 do not have mongocryptd; see SPEC-1403": {
-		"TestClientSideEncryptionSpec/maxWireVersion.json/operation_fails_with_maxWireVersion_<_8",
-	},
-
-	// TODO(GODRIVER-1826): Tests for incompatible event ordering in load-balancer
-	// SDAM spec tests.
-	"Event ordering is incompatible with load-balancer SDAM spec test (DRIVERS-1785)": {
-		"TestCMAPSpec/pool-create-min-size-error.json/error_during_minPoolSize_population_clears_pool",
-	},
-
-	// TODO(GODRIVER-1826): Race condition prevents the "threads blocked by
-	// maxConnecting" test from passing.
-	"Test requires that connections established by minPoolSize are immediately used to satisfy check-out requests (DRIVERS-2225)": {
-		"TestCMAPSpec/pool-checkout-minPoolSize-connection-maxConnecting.json/threads_blocked_by_maxConnecting_check_out_minPoolSize_connections",
-	},
-
-	// TODO(GODRIVER-1826): The Go connection pool behavior for check-in requests
-	// is incompatible with expected test behavior.
-	"Test requires a checked-in connections cannot satisfy a check-out waiting on a new connection (DRIVERS-2223)": {
-		"TestCMAPSpec/pool-checkout-returned-connection-maxConnecting.json/threads_blocked_by_maxConnecting_check_out_returned_connections",
-	},
-
 	// TODO(GODRIVER-2129): Re-enable this test once the feature is implemented.
 	// TODO(GODRIVER-2129): Support for
 	// sspiHostnamecanonicalization=none/forward/forwardAndReverse for Kerberos
@@ -240,14 +214,6 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/interruptInUse-pool-clear.json/Error_returned_from_connection_pool_clear_with_interruptInUseConnections=true_is_retryable_for_write",
 	},
 
-	// TODO(GODRIVER-3043): Avoid Appending Write/Read Concern in Atlas Search
-	// Index Helper Commands.
-	"Sync tests but avoid write/read concern bug (GODRIVER-3043)": {
-		"TestUnifiedSpec/index-management/tests/searchIndexIgnoresReadWriteConcern.json/dropSearchIndex_ignores_read_and_write_concern",
-		"TestUnifiedSpec/index-management/tests/searchIndexIgnoresReadWriteConcern.json/listSearchIndexes_ignores_read_and_write_concern",
-		"TestUnifiedSpec/index-management/tests/searchIndexIgnoresReadWriteConcern.json/updateSearchIndex_ignores_the_read_and_write_concern",
-	},
-
 	// TODO(DRIVERS-2829): Create CSOT Legacy Timeout Analogues and Compatibility
 	// Field.
 	"Handles socketTimeoutMS instead of CSOT (DRIVERS-2829)": {
@@ -340,24 +306,6 @@ var skipTests = map[string][]string{
 	// TODO(GODRIVER-2466): Convert SDAM integration spec tests to unified test format.
 	"Convert SDAM integration tests to unified format (GODRIVER-2466)": {
 		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/rediscover-quickly-after-step-down.json/Rediscover_quickly_after_replSetStepDown",
-	},
-
-	// TODO(GODRIVER-2967): Implement TopologyChangedEvent on topology close.
-	"Implement TopologyChangedEvent on close (GODRIVER-2967)": {
-		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/logging-loadbalanced.json/Topology_lifecycle",
-		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/logging-sharded.json/Topology_lifecycle",
-		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/logging-replicaset.json/Topology_lifecycle",
-		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/logging-standalone.json/Topology_lifecycle",
-		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/loadbalanced-emit-topology-changed-before-close.json/Topology_lifecycle",
-		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/sharded-emit-topology-changed-before-close.json/Topology_lifecycle",
-		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/replicaset-emit-topology-changed-before-close.json/Topology_lifecycle",
-		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/standalone-emit-topology-changed-before-close.json/Topology_lifecycle",
-	},
-
-	// Unknown BSON format.
-	"Unsupported format": {
-		"TestBsonBinaryVectorSpec/Tests_of_Binary_subtype_9,_Vectors,_with_dtype_FLOAT32/Infinity_Vector_FLOAT32/Marshaling",
-		"TestBsonBinaryVectorSpec/Tests_of_Binary_subtype_9,_Vectors,_with_dtype_FLOAT32/Infinity_Vector_FLOAT32/Unmarshaling",
 	},
 
 	// Unsupported BSON binary vector tests.
@@ -724,7 +672,6 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/retryable-reads/tests/unified/handshakeError.json/collection.listIndexes_succeeds_after_retryable_handshake_server_error_(ShutdownInProgress)",
 		"TestUnifiedSpec/retryable-reads/tests/unified/handshakeError.json/collection.createChangeStream_succeeds_after_retryable_handshake_network_error",
 		"TestUnifiedSpec/retryable-reads/tests/unified/handshakeError.json/collection.createChangeStream_succeeds_after_retryable_handshake_server_error_(ShutdownInProgress)",
-		"TestUnifiedSpec/retryable-writes/tests/unified/handshakeError.json",
 		"TestUnifiedSpec/retryable-writes/tests/unified/handshakeError.json/client.clientBulkWrite_succeeds_after_retryable_handshake_network_error",
 		"TestUnifiedSpec/retryable-writes/tests/unified/handshakeError.json/client.clientBulkWrite_succeeds_after_retryable_handshake_server_error_(ShutdownInProgress)",
 		"TestUnifiedSpec/retryable-writes/tests/unified/handshakeError.json/collection.insertOne_succeeds_after_retryable_handshake_network_error",
@@ -747,14 +694,6 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/retryable-writes/tests/unified/handshakeError.json/collection.bulkWrite_succeeds_after_retryable_handshake_server_error_(ShutdownInProgress)",
 	},
 
-	// TODO(GODRIVER-3524): Change streams expanded events present by default in
-	// 8.2+.
-	"Change streams expanded events for MongoDB 8.2+ (GODRIVER-3524)": {
-		"TestUnifiedSpec/change-streams/tests/unified/change-streams-disambiguatedPaths.json/disambiguatedPaths_is_not_present_when_showExpandedEvents_is_false/unset",
-		"TestUnifiedSpec/change-streams/tests/unified/change-streams.json/Test_insert,_update,_replace,_and_delete_event_types",
-		"TestUnifiedSpec/change-streams/tests/unified/change-streams.json/Test_array_truncation",
-	},
-
 	// TODO(GODRIVER-3137): Gossip cluster time from internal MongoClient to
 	// session entities.
 	"Must advance cluster times in unified spec runner (GODRIVER-3137)": {
@@ -770,17 +709,9 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/unified-test-format/tests/valid-pass/poc-transactions-mongos-pin-auto.json/remain_pinned_after_non-transient_Interrupted_error_on_insertOne",
 		"TestUnifiedSpec/unified-test-format/tests/valid-pass/poc-transactions-mongos-pin-auto.json/unpin_after_transient_error_within_a_transaction",
 		"TestUnifiedSpec/transactions-convenient-api/tests/unified/callback-aborts.json/withTransaction_succeeds_if_callback_aborts",
+		"TestUnifiedSpec/transactions-convenient-api/tests/unified/callback-aborts.json/withTransaction_still_succeeds_if_callback_aborts_and_runs_extra_op",
 		"TestUnifiedSpec/transactions-convenient-api/tests/unified/callback-commits.json/withTransaction_succeeds_if_callback_commits",
 		"TestUnifiedSpec/transactions-convenient-api/tests/unified/callback-commits.json/withTransaction_still_succeeds_if_callback_commits_and_runs_extra_op",
-		"TestUnifiedSpec/transactions-convenient-api/tests/unified/callback-aborts.json/withTransaction_still_succeeds_if_callback_aborts_and_runs_extra_op",
-		"TestUnifiedSpec/transactions-convenient-api/tests/unified/commit.json/withTransaction_commits_after_callback_returns_(second_transaction)",
-		"TestUnifiedSpec/transactions-convenient-api/tests/unified/transaction-options.json/withTransaction_and_no_transaction_options_set",
-		"TestUnifiedSpec/transactions-convenient-api/tests/unified/transaction-options.json/withTransaction_inherits_transaction_options_from_client",
-		"TestUnifiedSpec/transactions-convenient-api/tests/unified/transaction-options.json/withTransaction_inherits_transaction_options_from_defaultTransactionOptions",
-		"TestUnifiedSpec/transactions-convenient-api/tests/unified/transaction-options.json/withTransaction_explicit_transaction_options",
-		"TestUnifiedSpec/transactions-convenient-api/tests/unified/transaction-options.json/withTransaction_explicit_transaction_options_override_defaultTransactionOptions",
-		"TestUnifiedSpec/transactions-convenient-api/tests/unified/transaction-options.json/withTransaction_explicit_transaction_options_override_client_options",
-		"TestUnifiedSpec/transactions-convenient-api/tests/unified/commit.json/withTransaction_commits_after_callback_returns",
 	},
 
 	"Address CSOT Compliance Issue in Timeout Handling for Cursor Constructors (GODRIVER-3480)": {
@@ -831,11 +762,6 @@ var skipTests = map[string][]string{
 		"TestSDAMSpec/errors/pre-42-NotWritablePrimary.json",
 		"TestSDAMSpec/errors/pre-42-PrimarySteppedDown.json",
 		"TestSDAMSpec/errors/pre-42-ShutdownInProgress.json",
-	},
-
-	// TODO(DRIVERS-3356): Unskip this test when the spec test bug is fixed.
-	"Handshake spec test 'metadata-not-propagated.yml' fails on sharded clusters (DRIVERS-3356)": {
-		"TestUnifiedSpec/mongodb-handshake/tests/unified/metadata-not-propagated.json/metadata_append_does_not_create_new_connections_or_close_existing_ones_and_no_hello_command_is_sent",
 	},
 
 	// TODO(GODRIVER-1826): Race condition between monitor and pool causes pool to be cleared.
