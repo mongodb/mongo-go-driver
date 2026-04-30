@@ -1179,31 +1179,39 @@ func TestClient_BSONOptions(t *testing.T) {
 		opts := mtest.NewOptions().ClientOptions(
 			options.Client().SetBSONOptions(tc.bsonOpts))
 		mt.RunOpts(tc.name, opts, func(mt *mtest.T) {
-			// Cloned Collection should inherent BSONOptions
-			clonedCol := mt.Coll.Clone()
-			res, err := clonedCol.InsertOne(context.Background(), tc.doc)
-			require.NoError(mt, err, "InsertOne error")
+			for _, collName := range []string{"default", "cloned"} {
+				collName := collName
+				mt.Run(collName, func(mt *mtest.T) {
+					coll := mt.Coll
+					if collName == "cloned" {
+						coll = mt.Coll.Clone()
+					}
 
-			sr := mt.Coll.FindOne(
-				context.Background(),
-				bson.D{{Key: "_id", Value: res.InsertedID}},
-				// Exclude the auto-generated "_id" field so we can make simple
-				// assertions on the return value.
-				options.FindOne().SetProjection(bson.D{{Key: "_id", Value: 0}}))
+					res, err := coll.InsertOne(context.Background(), tc.doc)
+					require.NoError(mt, err, "InsertOne error")
 
-			if tc.want != nil {
-				got := tc.decodeInto()
-				err := sr.Decode(got)
-				require.NoError(mt, err, "Decode error")
+					// Exclude the auto-generated "_id" field so we can make
+					// simple assertions on the return value.
+					sr := coll.FindOne(
+						context.Background(),
+						bson.D{{Key: "_id", Value: res.InsertedID}},
+						options.FindOne().SetProjection(bson.D{{Key: "_id", Value: 0}}))
 
-				assert.Equal(mt, tc.want, got, "expected and actual decoded result are different")
-			}
+					if tc.want != nil {
+						got := tc.decodeInto()
+						err := sr.Decode(got)
+						require.NoError(mt, err, "Decode error")
 
-			if tc.wantRaw != nil {
-				got, err := sr.Raw()
-				require.NoError(mt, err, "Raw error")
+						assert.Equal(mt, tc.want, got, "expected and actual decoded result are different")
+					}
 
-				assertbson.EqualDocument(mt, tc.wantRaw, got)
+					if tc.wantRaw != nil {
+						got, err := sr.Raw()
+						require.NoError(mt, err, "Raw error")
+
+						assertbson.EqualDocument(mt, tc.wantRaw, got)
+					}
+				})
 			}
 		})
 	}
@@ -1213,28 +1221,38 @@ func TestClient_BSONOptions(t *testing.T) {
 			ObjectIDAsHexString: true,
 		}))
 	mt.RunOpts("ObjectIDAsHexString", opts, func(mt *mtest.T) {
-		res, err := mt.Coll.InsertOne(context.Background(), bson.D{{"x", 42}})
-		require.NoError(mt, err, "InsertOne error")
+		for _, collName := range []string{"default", "cloned"} {
+			collName := collName
+			mt.Run(collName, func(mt *mtest.T) {
+				coll := mt.Coll
+				if collName == "cloned" {
+					coll = mt.Coll.Clone()
+				}
 
-		sr := mt.Coll.FindOne(
-			context.Background(),
-			bson.D{{Key: "_id", Value: res.InsertedID}},
-		)
+				res, err := coll.InsertOne(context.Background(), bson.D{{"x", 42}})
+				require.NoError(mt, err, "InsertOne error")
 
-		type data struct {
-			ID string `bson:"_id"`
-			X  int    `bson:"x"`
+				sr := coll.FindOne(
+					context.Background(),
+					bson.D{{Key: "_id", Value: res.InsertedID}},
+				)
+
+				type data struct {
+					ID string `bson:"_id"`
+					X  int    `bson:"x"`
+				}
+				var got data
+
+				err = sr.Decode(&got)
+				require.NoError(mt, err, "Decode error")
+
+				want := data{
+					ID: res.InsertedID.(bson.ObjectID).Hex(),
+					X:  42,
+				}
+				assert.Equal(mt, want, got, "expected and actual decoded result are different")
+			})
 		}
-		var got data
-
-		err = sr.Decode(&got)
-		require.NoError(mt, err, "Decode error")
-
-		want := data{
-			ID: res.InsertedID.(bson.ObjectID).Hex(),
-			X:  42,
-		}
-		assert.Equal(mt, want, got, "expected and actual decoded result are different")
 	})
 
 	opts = mtest.NewOptions().ClientOptions(
@@ -1251,13 +1269,23 @@ func TestClient_BSONOptions(t *testing.T) {
 			B *inlineDupInner `bson:"b,inline"`
 		}
 
-		_, err := mt.Coll.InsertOne(context.Background(), inlineDupOuter{
-			A: "outer",
-			B: &inlineDupInner{
-				A: "inner",
-			},
-		})
-		require.Error(mt, err, "expected InsertOne to return an error")
+		for _, collName := range []string{"default", "cloned"} {
+			collName := collName
+			mt.Run(collName, func(mt *mtest.T) {
+				coll := mt.Coll
+				if collName == "cloned" {
+					coll = mt.Coll.Clone()
+				}
+
+				_, err := coll.InsertOne(context.Background(), inlineDupOuter{
+					A: "outer",
+					B: &inlineDupInner{
+						A: "inner",
+					},
+				})
+				require.Error(mt, err, "expected InsertOne to return an error")
+			})
+		}
 	})
 }
 
