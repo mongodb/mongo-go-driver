@@ -154,7 +154,6 @@ func (f *FindOptionsBuilder) SetLet(let any) *FindOptionsBuilder {
 // SetLimit sets the value for the Limit field. Limit is the maximum number of documents to return.
 // The default value is 0, which means that all documents matching the filter will be returned.
 // A negative limit specifies that the resulting documents should be returned in a single batch.
-// The default value is 0.
 func (f *FindOptionsBuilder) SetLimit(i int64) *FindOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOptions) error {
 		opts.Limit = &i
