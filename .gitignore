@@ -43,3 +43,6 @@ perf-report.txt
 secrets-expansion.yml
 secrets-export.sh
 .test.env
+
+# Ignore Claude configs
+CLAUDE.local.md
