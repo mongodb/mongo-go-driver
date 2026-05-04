@@ -3126,16 +3126,36 @@ func TestClientSideEncryptionProse_27_text_explicit_encryption(t *testing.T) {
 	mt := newCSE_T(t, newQEOpts().MinServerVersion("8.2"))
 	mt.Setup()
 
-	encryptedFields := readJSONFile(mt, "encryptedFields-prefix-suffix.json")
 	key1Document := readJSONFile(mt, "key1-document.json")
 	subtype, data := key1Document.Lookup("_id").Binary()
 	key1ID := bson.Binary{Subtype: subtype, Data: data}
 
+	var encryptedColls []struct {
+		name   string
+		fields bson.Raw
+	}
+	if mtest.CompareServerVersions(mtest.ServerVersion(), "9.0.0") < 0 {
+		encryptedColls = append(encryptedColls, struct {
+			name   string
+			fields bson.Raw
+		}{
+			name:   "prefix-suffix",
+			fields: readJSONFile(mt, "encryptedFields-prefix-suffix.json"),
+		})
+	}
+	encryptedColls = append(encryptedColls, struct {
+		name   string
+		fields bson.Raw
+	}{
+		name:   "substring",
+		fields: readJSONFile(mt, "encryptedFields-substring.json"),
+	})
+
 	testSetup := func() (*mongo.Client, *mongo.ClientEncryption) {
-		for _, collName := range []string{"prefix-suffix", "substring"} {
-			mtest.DropEncryptedCollection(mt, mt.Client.Database("db").Collection(collName), encryptedFields)
-			cco := options.CreateCollection().SetEncryptedFields(encryptedFields)
-			err := mt.Client.Database("db").CreateCollection(context.Background(), collName, cco)
+		for _, coll := range encryptedColls {
+			mtest.DropEncryptedCollection(mt, mt.Client.Database("db").Collection(coll.name), coll.fields)
+			cco := options.CreateCollection().SetEncryptedFields(coll.fields)
+			err := mt.Client.Database("db").CreateCollection(context.Background(), coll.name, cco)
 			require.NoError(mt, err, "error on CreateCollection: %v", err)
 		}
 		err := mt.Client.Database("keyvault").Collection("datakeys").Drop(context.Background())
@@ -3217,7 +3237,7 @@ func TestClientSideEncryptionProse_27_text_explicit_encryption(t *testing.T) {
 	bar := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "bar")}
 	baz := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "baz")}
 
-	mt.Run("Case 1: can find a document by prefix", func(mt *mtest.T) {
+	mt.RunOpts("Case 1: can find a document by prefix", mtest.NewOptions().MaxServerVersion("8.99.99"), func(mt *mtest.T) {
 		encryptedClient, clientEncryption := testSetup()
 		defer clientEncryption.Close(context.Background())
 		defer encryptedClient.Disconnect(context.Background())
@@ -3254,7 +3274,7 @@ func TestClientSideEncryptionProse_27_text_explicit_encryption(t *testing.T) {
 		require.Equal(mt, 0, got.Id)
 		require.Equal(mt, "foobarbaz", got.EncryptedText)
 	})
-	mt.Run("Case 2: find a document by suffix", func(mt *mtest.T) {
+	mt.RunOpts("Case 2: find a document by suffix", mtest.NewOptions().MaxServerVersion("8.99.99"), func(mt *mtest.T) {
 		encryptedClient, clientEncryption := testSetup()
 		defer clientEncryption.Close(context.Background())
 		defer encryptedClient.Disconnect(context.Background())
@@ -3291,7 +3311,7 @@ func TestClientSideEncryptionProse_27_text_explicit_encryption(t *testing.T) {
 		require.Equal(mt, 0, got.Id)
 		require.Equal(mt, "foobarbaz", got.EncryptedText)
 	})
-	mt.Run("Case 3: assert no document found by prefix", func(mt *mtest.T) {
+	mt.RunOpts("Case 3: assert no document found by prefix", mtest.NewOptions().MaxServerVersion("8.99.99"), func(mt *mtest.T) {
 		encryptedClient, clientEncryption := testSetup()
 		defer clientEncryption.Close(context.Background())
 		defer encryptedClient.Disconnect(context.Background())
@@ -3321,7 +3341,7 @@ func TestClientSideEncryptionProse_27_text_explicit_encryption(t *testing.T) {
 		}).Raw()
 		require.Equal(mt, err, mongo.ErrNoDocuments)
 	})
-	mt.Run("Case 4: assert no document found by suffix", func(mt *mtest.T) {
+	mt.RunOpts("Case 4: assert no document found by suffix", mtest.NewOptions().MaxServerVersion("8.99.99"), func(mt *mtest.T) {
 		encryptedClient, clientEncryption := testSetup()
 		defer clientEncryption.Close(context.Background())
 		defer encryptedClient.Disconnect(context.Background())
@@ -3421,7 +3441,7 @@ func TestClientSideEncryptionProse_27_text_explicit_encryption(t *testing.T) {
 		}).Raw()
 		require.Equal(mt, err, mongo.ErrNoDocuments)
 	})
-	mt.Run("Case 7: assert contentionFactor is required", func(mt *mtest.T) {
+	mt.RunOpts("Case 7: assert contentionFactor is required", mtest.NewOptions().MaxServerVersion("8.99.99"), func(mt *mtest.T) {
 		encryptedClient, clientEncryption := testSetup()
 		defer clientEncryption.Close(context.Background())
 		defer encryptedClient.Disconnect(context.Background())
