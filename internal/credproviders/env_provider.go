@@ -29,7 +29,6 @@ type EnvProvider struct {
 	AwsAccessKeyIDEnv     EnvVar
 	AwsSecretAccessKeyEnv EnvVar
 	AwsSessionTokenEnv    EnvVar
-	AwsRegionEnv          EnvVar
 
 	retrieved bool
 }
@@ -43,8 +42,6 @@ func NewEnvProvider() *EnvProvider {
 		AwsSecretAccessKeyEnv: EnvVar("AWS_SECRET_ACCESS_KEY"),
 		// AwsSessionTokenEnv is the environment variable for AWS_SESSION_TOKEN
 		AwsSessionTokenEnv: EnvVar("AWS_SESSION_TOKEN"),
-		// AwsRegionEnv is the environment variable for AWS_REGION
-		AwsRegionEnv: EnvVar("AWS_REGION"),
 	}
 }
 
