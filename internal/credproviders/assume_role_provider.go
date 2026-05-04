@@ -23,7 +23,8 @@ const (
 	// assumeRoleProviderName provides a name of assume role provider
 	assumeRoleProviderName = "AssumeRoleProvider"
 
-	stsURI = `https://sts.amazonaws.com/?Action=AssumeRoleWithWebIdentity&RoleSessionName=%s&RoleArn=%s&WebIdentityToken=%s&Version=2011-06-15`
+	stsURI       = `https://sts.amazonaws.com/?Action=AssumeRoleWithWebIdentity&RoleSessionName=%s&RoleArn=%s&WebIdentityToken=%s&Version=2011-06-15`
+	stsRegionURI = `https://sts.%s.amazonaws.com/?Action=AssumeRoleWithWebIdentity&RoleSessionName=%s&RoleArn=%s&WebIdentityToken=%s&Version=2011-06-15`
 )
 
 // An AssumeRoleProvider retrieves credentials for assume role with web identity.
@@ -31,6 +32,7 @@ type AssumeRoleProvider struct {
 	AwsRoleArnEnv              EnvVar
 	AwsWebIdentityTokenFileEnv EnvVar
 	AwsRoleSessionNameEnv      EnvVar
+	AwsRegionEnv               EnvVar
 
 	httpClient *http.Client
 	expiration time.Time
@@ -52,8 +54,10 @@ func NewAssumeRoleProvider(httpClient *http.Client, expiryWindow time.Duration) 
 		AwsWebIdentityTokenFileEnv: EnvVar("AWS_WEB_IDENTITY_TOKEN_FILE"),
 		// AwsRoleSessionNameEnv is the environment variable for AWS_ROLE_SESSION_NAME
 		AwsRoleSessionNameEnv: EnvVar("AWS_ROLE_SESSION_NAME"),
-		httpClient:            httpClient,
-		expiryWindow:          expiryWindow,
+		// AwsRegionEnv is the environment variable for AWS_REGION
+		AwsRegionEnv: EnvVar("AWS_REGION"),
+		httpClient:   httpClient,
+		expiryWindow: expiryWindow,
 	}
 }
 
@@ -89,7 +93,14 @@ func (a *AssumeRoleProvider) RetrieveWithContext(ctx context.Context) (credentia
 		sessionName = id.String()
 	}
 
-	fullURI := fmt.Sprintf(stsURI, sessionName, roleArn, string(token))
+	// If the region is not set, use the default STS URI. Otherwise, use the region-specific STS URI.
+	region := a.AwsRegionEnv.Get()
+	fullURI := ""
+	if region == "" {
+		fullURI = fmt.Sprintf(stsURI, sessionName, roleArn, string(token))
+	} else {
+		fullURI = fmt.Sprintf(stsRegionURI, region, sessionName, roleArn, string(token))
+	}
 
 	req, err := http.NewRequest(http.MethodPost, fullURI, nil)
 	if err != nil {
