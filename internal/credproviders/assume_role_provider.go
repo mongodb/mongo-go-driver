@@ -33,6 +33,7 @@ type AssumeRoleProvider struct {
 	AwsWebIdentityTokenFileEnv EnvVar
 	AwsRoleSessionNameEnv      EnvVar
 	AwsRegionEnv               EnvVar
+	AwsStsRegionalEndpointsEnv EnvVar
 
 	httpClient *http.Client
 	expiration time.Time
@@ -56,8 +57,10 @@ func NewAssumeRoleProvider(httpClient *http.Client, expiryWindow time.Duration) 
 		AwsRoleSessionNameEnv: EnvVar("AWS_ROLE_SESSION_NAME"),
 		// AwsRegionEnv is the environment variable for AWS_REGION
 		AwsRegionEnv: EnvVar("AWS_REGION"),
-		httpClient:   httpClient,
-		expiryWindow: expiryWindow,
+		// AwsStsRegionalEndpointsEnv is the environment variable for AWS_STS_REGIONAL_ENDPOINTS
+		AwsStsRegionalEndpointsEnv: EnvVar("AWS_STS_REGIONAL_ENDPOINTS"),
+		httpClient:                 httpClient,
+		expiryWindow:               expiryWindow,
 	}
 }
 
@@ -93,13 +96,16 @@ func (a *AssumeRoleProvider) RetrieveWithContext(ctx context.Context) (credentia
 		sessionName = id.String()
 	}
 
-	// If the region is not set, use the default STS URI. Otherwise, use the region-specific STS URI.
+	// Use the regional STS endpoint only when AWS_STS_REGIONAL_ENDPOINTS is
+	// set to "regional" and AWS_REGION is non-empty. Otherwise, fall back to
+	// the global STS endpoint.
 	region := a.AwsRegionEnv.Get()
+	useRegional := a.AwsStsRegionalEndpointsEnv.Get() == "regional"
 	fullURI := ""
-	if region == "" {
-		fullURI = fmt.Sprintf(stsURI, sessionName, roleArn, string(token))
-	} else {
+	if useRegional && region != "" {
 		fullURI = fmt.Sprintf(stsRegionURI, region, sessionName, roleArn, string(token))
+	} else {
+		fullURI = fmt.Sprintf(stsURI, sessionName, roleArn, string(token))
 	}
 
 	req, err := http.NewRequest(http.MethodPost, fullURI, nil)
