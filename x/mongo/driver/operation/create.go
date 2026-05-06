@@ -80,6 +80,7 @@ func (c *Create) Execute(ctx context.Context) error {
 		WriteConcern:      c.writeConcern,
 		ServerAPI:         c.serverAPI,
 		Authenticator:     c.authenticator,
+		Name:              driverutil.CreateOp,
 	}.Execute(ctx)
 }
 

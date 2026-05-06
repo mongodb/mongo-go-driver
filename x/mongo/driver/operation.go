@@ -1583,6 +1583,21 @@ func (op Operation) addReadConcern(dst []byte, desc description.SelectedServer) 
 		rc = &readconcern.ReadConcern{}
 	}
 
+	// If this is a write operation (which in this case, includes database,
+	// collection, and index modification operations), then we add an empty read
+	// concern so the following code can set "afterClusterTime". That avoids a
+	// data correctness problem that can happen when there is a network
+	// partition in a sharded cluster. See DRIVERS-3274 for more details.
+	isWrite := op.Type == Write ||
+		op.Name == driverutil.CreateOp ||
+		op.Name == driverutil.CreateIndexesOp ||
+		op.Name == driverutil.DropOp ||
+		op.Name == driverutil.DropDatabaseOp ||
+		op.Name == driverutil.DropIndexesOp
+	if rc == nil && client != nil && !client.TransactionRunning() && client.Consistent && client.OperationTime != nil && isWrite {
+		rc = &readconcern.ReadConcern{}
+	}
+
 	if client != nil && client.Snapshot {
 		if desc.WireVersion.Max < readSnapshotMinWireVersion {
 			return dst, errors.New("snapshot reads require MongoDB 5.0 or later")
@@ -1590,17 +1605,9 @@ func (op Operation) addReadConcern(dst []byte, desc description.SelectedServer) 
 		rc = readconcern.Snapshot()
 	}
 
-	causalConsistency := client != nil && client.Consistent
-
 	_, data, err := MarshalBSONReadConcern(rc) // always returns a document
 	if errors.Is(err, ErrEmptyReadConcern) {
-		if !causalConsistency {
-			return dst, nil
-		}
-		err = nil
-		if data == nil {
-			data = bsoncore.NewDocumentBuilder().Build()
-		}
+		return dst, nil
 	}
 
 	if err != nil {
