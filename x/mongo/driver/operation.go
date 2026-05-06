@@ -1590,9 +1590,17 @@ func (op Operation) addReadConcern(dst []byte, desc description.SelectedServer) 
 		rc = readconcern.Snapshot()
 	}
 
+	causalConsistency := client != nil && client.Consistent
+
 	_, data, err := MarshalBSONReadConcern(rc) // always returns a document
 	if errors.Is(err, ErrEmptyReadConcern) {
-		return dst, nil
+		if !causalConsistency {
+			return dst, nil
+		}
+		err = nil
+		if data == nil {
+			data = bsoncore.NewDocumentBuilder().Build()
+		}
 	}
 
 	if err != nil {

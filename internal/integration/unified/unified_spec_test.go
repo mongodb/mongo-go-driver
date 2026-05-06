@@ -39,6 +39,7 @@ var (
 		"mongodb-handshake/tests/unified",
 		"client-backpressure/tests",
 		"transactions/tests/unified",
+		"../../causal-consistency/tests",
 	}
 	failDirectories = []string{
 		"unified-test-format/tests/valid-fail",
