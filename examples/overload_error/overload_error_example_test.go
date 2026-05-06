@@ -4,13 +4,12 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package examples
+package example
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"math/rand"
 	"time"
 
@@ -81,9 +80,9 @@ func executeWithRetries[T any](
 	return result, err
 }
 
-// ExampleOverloadError_Find demonstrates how to use executeWithRetries to retry a Find operation
+// Example_overloadErrorFind demonstrates how to use executeWithRetries to retry a Find operation
 // if it returns a SystemOverloadedError.
-func ExampleOverloadError_Find() {
+func Example_overloadErrorFind() {
 	var coll *mongo.Collection
 
 	ctx := context.Background()
@@ -97,7 +96,8 @@ func ExampleOverloadError_Find() {
 		return res, err
 	})
 	if err != nil {
-		log.Fatalf("Unhandled error: %v", err)
+		fmt.Println("Unhandled error:", err)
+		return
 	}
 	fmt.Printf("found %v\n", result)
 }

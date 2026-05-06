@@ -4,25 +4,26 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-//go:build zerolog
-
 package main
 
 import (
 	"context"
 	"log"
-	"os"
 
-	"github.com/go-logr/zerologr"
-	"github.com/rs/zerolog"
+	"github.com/bombsimon/logrusr/v4"
+	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 func main() {
-	logger := zerolog.New(os.Stderr).With().Caller().Timestamp().Logger()
-	sink := zerologr.New(&logger).GetSink()
+	// Create a new logrus logger instance.
+	logger := logrus.StandardLogger()
+	logger.SetLevel(logrus.DebugLevel)
+
+	// Create a new sink for logrus using "logrusr".
+	sink := logrusr.New(logger).GetSink()
 
 	// Create a client with our logger options.
 	loggerOptions := options.
@@ -43,7 +44,7 @@ func main() {
 
 	defer client.Disconnect(context.TODO())
 
-	// Make a database request to test our logging solution
+	// Make a database request to test our logging solution.
 	coll := client.Database("test").Collection("test")
 
 	_, err = coll.InsertOne(context.TODO(), bson.D{{"Alice", "123"}})

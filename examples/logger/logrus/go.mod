@@ -1,6 +1,6 @@
-module go.mongodb.go/mongo-driver/v2/examples/logger/logrus
+module go.mongodb.org/mongo-driver/v2/examples/logger/logrus
 
-go 1.25
+go 1.25.0
 
 replace go.mongodb.org/mongo-driver/v2 => ../../../
 
