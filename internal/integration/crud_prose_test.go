@@ -1017,3 +1017,27 @@ func TestClientBulkWriteProse(t *testing.T) {
 		assert.Equal(mt, num, int(n), "expected %d documents, got: %d", num, n)
 	})
 }
+
+func TestBatchSize(t *testing.T) {
+	mt := mtest.New(t, mtest.NewOptions().ClientType(mtest.Pinned))
+	mt.Setup()
+
+	var hello struct {
+		MaxBsonObjectSize   int
+		MaxMessageSizeBytes int
+	}
+	err := mt.DB.RunCommand(context.Background(), bson.D{{"hello", 1}}).Decode(&hello)
+	require.NoError(mt, err, "Hello error: %v", err)
+
+	var docs []any
+	limit := hello.MaxBsonObjectSize - 30
+	for need := hello.MaxMessageSizeBytes - 350; need > 0; need -= limit {
+		if need >= limit {
+			docs = append(docs, bson.D{{"x", string(make([]byte, limit))}})
+		} else {
+			docs = append(docs, bson.D{{"x", string(make([]byte, need))}})
+		}
+	}
+	_, err = mt.Coll.InsertMany(context.Background(), docs)
+	assert.NoError(mt, err, "InsertMany error: %v", err)
+}
