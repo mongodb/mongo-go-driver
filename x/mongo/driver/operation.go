@@ -1599,8 +1599,7 @@ func (op Operation) addReadConcern(dst []byte, desc description.SelectedServer) 
 		op.Name == driverutil.DropIndexesOp
 	isNotInTxn := client != nil && (client.TransactionState == session.None ||
 		client.TransactionState == session.Committed ||
-		client.TransactionState == session.Aborted ||
-		client.TransactionState == session.Starting)
+		client.TransactionState == session.Aborted)
 	if rc == nil && client != nil && client.Consistent && client.OperationTime != nil && isWrite && isNotInTxn {
 		rc = &readconcern.ReadConcern{}
 	}
