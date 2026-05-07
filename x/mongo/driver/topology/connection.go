@@ -810,6 +810,9 @@ func (c *Connection) ServerConnectionID() *int64 {
 func (c *Connection) Stale() bool {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
+	if c.connection == nil {
+		return true
+	}
 	return c.connection.pool.stale(c.connection)
 }
 
