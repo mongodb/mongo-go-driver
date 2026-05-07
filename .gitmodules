@@ -1,3 +1,3 @@
 [submodule "testdata/specifications"]
 	path = testdata/specifications
-	url = git@github.com:matthewdale/specifications.git
+	url = https://github.com/matthewdale/specifications.git
