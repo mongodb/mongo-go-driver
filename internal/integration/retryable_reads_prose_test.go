@@ -360,7 +360,7 @@ func TestRetryableReadsProse(t *testing.T) {
 			},
 		}
 
-		defer randutil.SetJitterForTesting(func(int64) int64 {
+		defer randutil.SetJitterForTesting(func() float64 {
 			ops[len(ops)-1] = true
 			return 0
 		})()

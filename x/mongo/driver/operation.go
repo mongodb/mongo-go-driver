@@ -612,7 +612,7 @@ func (op Operation) Execute(ctx context.Context) error {
 					expDur = backoffMax
 				}
 			}
-			backoff := expDur * time.Duration(randutil.JitterInt63n(512)) / 512
+			backoff := time.Duration(randutil.Jitter() * float64(expDur))
 			if deadline, ok := ctx.Deadline(); ok && time.Until(deadline) < backoff {
 				return err
 			}
