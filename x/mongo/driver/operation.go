@@ -1583,18 +1583,25 @@ func (op Operation) addReadConcern(dst []byte, desc description.SelectedServer) 
 		rc = &readconcern.ReadConcern{}
 	}
 
-	// If this is a write operation (which in this case, includes database,
-	// collection, and index modification operations), then we add an empty read
-	// concern so the following code can set "afterClusterTime". That avoids a
-	// data correctness problem that can happen when there is a network
-	// partition in a sharded cluster. See DRIVERS-3274 for more details.
-	isWrite := op.Type == Write ||
+	// If this is a write operation, then we add an empty read concern so the
+	// following code can set "afterClusterTime". That avoids a data correctness
+	// problem that can happen when there is a network partition in a sharded
+	// cluster. See DRIVERS-3274 for more details.
+	isWrite := op.Name == driverutil.InsertOp ||
+		op.Name == driverutil.UpdateOp ||
+		op.Name == driverutil.FindAndModifyOp ||
+		op.Name == driverutil.DeleteOp ||
+		op.Name == driverutil.BulkWriteOp ||
 		op.Name == driverutil.CreateOp ||
 		op.Name == driverutil.CreateIndexesOp ||
 		op.Name == driverutil.DropOp ||
 		op.Name == driverutil.DropDatabaseOp ||
 		op.Name == driverutil.DropIndexesOp
-	if rc == nil && client != nil && !client.TransactionRunning() && client.Consistent && client.OperationTime != nil && isWrite {
+	isNotInTxn := client != nil && (client.TransactionState == session.None ||
+		client.TransactionState == session.Committed ||
+		client.TransactionState == session.Aborted ||
+		client.TransactionState == session.Starting)
+	if rc == nil && client != nil && client.Consistent && client.OperationTime != nil && isWrite && isNotInTxn {
 		rc = &readconcern.ReadConcern{}
 	}
 

@@ -1,3 +1,3 @@
-[submodule "specifications"]
+[submodule "testdata/specifications"]
 	path = testdata/specifications
-	url = https://github.com/mongodb/specifications
+	url = git@github.com:matthewdale/specifications.git
