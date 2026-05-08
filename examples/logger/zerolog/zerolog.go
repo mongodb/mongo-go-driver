@@ -9,21 +9,18 @@ package main
 import (
 	"context"
 	"log"
+	"os"
 
-	"github.com/bombsimon/logrusr/v4"
-	"github.com/sirupsen/logrus"
+	"github.com/go-logr/zerologr"
+	"github.com/rs/zerolog"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 func main() {
-	// Create a new logrus logger instance.
-	logger := logrus.StandardLogger()
-	logger.SetLevel(logrus.DebugLevel)
-
-	// Create a new sink for logrus using "logrusr".
-	sink := logrusr.New(logger).GetSink()
+	logger := zerolog.New(os.Stderr).With().Caller().Timestamp().Logger()
+	sink := zerologr.New(&logger).GetSink()
 
 	// Create a client with our logger options.
 	loggerOptions := options.
@@ -32,9 +29,10 @@ func main() {
 		SetMaxDocumentLength(25).
 		SetComponentLevel(options.LogComponentCommand, options.LogLevelDebug)
 
+	uri := os.Getenv("MONGODB_URI")
 	clientOptions := options.
 		Client().
-		ApplyURI("mongodb://localhost:27017").
+		ApplyURI(uri).
 		SetLoggerOptions(loggerOptions)
 
 	client, err := mongo.Connect(clientOptions)
@@ -44,7 +42,7 @@ func main() {
 
 	defer client.Disconnect(context.TODO())
 
-	// Make a database request to test our logging solution.
+	// Make a database request to test our logging solution
 	coll := client.Database("test").Collection("test")
 
 	_, err = coll.InsertOne(context.TODO(), bson.D{{"Alice", "123"}})

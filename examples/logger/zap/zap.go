@@ -11,16 +11,20 @@ import (
 	"log"
 	"os"
 
-	"github.com/go-logr/zerologr"
-	"github.com/rs/zerolog"
+	"github.com/go-logr/zapr"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.uber.org/zap"
 )
 
 func main() {
-	logger := zerolog.New(os.Stderr).With().Caller().Timestamp().Logger()
-	sink := zerologr.New(&logger).GetSink()
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		log.Fatalf("error creating zap logger: %v", err)
+	}
+
+	sink := zapr.NewLogger(logger).GetSink()
 
 	// Create a client with our logger options.
 	loggerOptions := options.
@@ -29,9 +33,10 @@ func main() {
 		SetMaxDocumentLength(25).
 		SetComponentLevel(options.LogComponentCommand, options.LogLevelDebug)
 
+	uri := os.Getenv("MONGODB_URI")
 	clientOptions := options.
 		Client().
-		ApplyURI("mongodb://localhost:27017").
+		ApplyURI(uri).
 		SetLoggerOptions(loggerOptions)
 
 	client, err := mongo.Connect(clientOptions)
@@ -41,7 +46,7 @@ func main() {
 
 	defer client.Disconnect(context.TODO())
 
-	// Make a database request to test our logging solution
+	// Make a database request to test our logging solution.
 	coll := client.Database("test").Collection("test")
 
 	_, err = coll.InsertOne(context.TODO(), bson.D{{"Alice", "123"}})

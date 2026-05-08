@@ -2,11 +2,7 @@ go 1.25.0
 
 use (
 	.
-	./examples/logger/logrus
-	./examples/logger/zap
-	./examples/logger/zerolog
-	./examples/custom_dns
-	./examples/overload_error
+	./examples
 	./internal/cmd/benchmark
 	./internal/cmd/faas/awslambda/mongodb
 	./internal/test/compilecheck

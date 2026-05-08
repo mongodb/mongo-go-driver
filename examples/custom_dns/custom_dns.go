@@ -4,13 +4,14 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package example
+package main
 
 import (
 	"context"
 	"fmt"
 	"log"
 	"net"
+	"os"
 	"sync"
 	"time"
 
@@ -119,17 +120,16 @@ func NewDialer() dialer {
 	}
 }
 
-func Example_customDialer() {
-	client, err := mongo.Connect(options.Client().ApplyURI("mongodb://testurl:27017").SetDialer(NewDialer()))
+func main() {
+	uri := os.Getenv("MONGODB_URI")
+	client, err := mongo.Connect(options.Client().ApplyURI(uri).SetDialer(NewDialer()))
 	if err != nil {
-		fmt.Println("error creating client:", err)
-		return
+		log.Fatalf("error creating client: %v", err)
 	}
 	defer client.Disconnect(context.Background())
 	coll := client.Database("test").Collection("test")
 	_, err = coll.InsertOne(context.Background(), bson.D{{"text", "text"}})
 	if err != nil {
 		fmt.Println("error inserting:", err)
-		return
 	}
 }
