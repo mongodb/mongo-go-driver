@@ -104,8 +104,7 @@ func main() {
 		return res, err
 	})
 	if err != nil {
-		fmt.Println("Unhandled error:", err)
-		return
+		log.Fatalf("Unhandled error: %v", err)
 	}
 	fmt.Printf("found %v\n", result)
 }

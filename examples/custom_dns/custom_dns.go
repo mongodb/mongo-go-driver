@@ -8,7 +8,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net"
 	"os"
@@ -130,6 +129,6 @@ func main() {
 	coll := client.Database("test").Collection("test")
 	_, err = coll.InsertOne(context.Background(), bson.D{{"text", "text"}})
 	if err != nil {
-		fmt.Println("error inserting:", err)
+		log.Fatalf("error inserting: %v", err)
 	}
 }
