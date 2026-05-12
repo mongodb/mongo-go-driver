@@ -1286,3 +1286,88 @@ func TestApplyURI(t *testing.T) {
 		})
 	}
 }
+
+func TestBuildTLSReloader(t *testing.T) {
+	t.Run("nil when SetTLSConfig used directly", func(t *testing.T) {
+		opts := Client().SetTLSConfig(&tls.Config{MinVersion: tls.VersionTLS12})
+		assert.Nil(t, BuildTLSReloader(opts), "expected nil reloader when no URI sources")
+	})
+
+	t.Run("nil when URI has no TLS file paths", func(t *testing.T) {
+		opts := Client().ApplyURI("mongodb://localhost/?ssl=true&tlsInsecure=true")
+		assert.NoError(t, opts.Validate())
+		assert.Nil(t, BuildTLSReloader(opts), "expected nil reloader when no file sources tracked")
+	})
+
+	t.Run("reloads CA from disk on each call", func(t *testing.T) {
+		dir := t.TempDir()
+		caPath := dir + "/ca.pem"
+		writeFile(t, caPath, readFile(t, "testdata/ca.pem"))
+
+		opts := Client().ApplyURI("mongodb://localhost/?ssl=true&tlsCAFile=" + caPath)
+		assert.NoError(t, opts.Validate())
+
+		reload := BuildTLSReloader(opts)
+		assert.NotNil(t, reload, "expected reloader for tlsCAFile URI option")
+
+		cfg, err := reload()
+		assert.NoError(t, err)
+		assert.NotNil(t, cfg.RootCAs, "expected RootCAs populated")
+		firstSubjects := cfg.RootCAs.Subjects()
+		assert.True(t, len(firstSubjects) > 0, "expected at least one CA subject")
+
+		// Overwrite the CA file with a different valid CA bundle and reload.
+		writeFile(t, caPath, readFile(t, "testdata/ca-with-intermediates.pem"))
+		cfg2, err := reload()
+		assert.NoError(t, err)
+		secondSubjects := cfg2.RootCAs.Subjects()
+		assert.NotEqual(t, len(firstSubjects), len(secondSubjects),
+			"reloaded CA pool should differ in size after file change")
+	})
+
+	t.Run("reloads client cert from disk on each call", func(t *testing.T) {
+		dir := t.TempDir()
+		certPath := dir + "/cert.pem"
+		writeFile(t, certPath, readFile(t, "testdata/nopass/certificate.pem"))
+
+		opts := Client().ApplyURI("mongodb://localhost/?ssl=true&tlsCertificateKeyFile=" + certPath)
+		assert.NoError(t, opts.Validate())
+
+		reload := BuildTLSReloader(opts)
+		assert.NotNil(t, reload, "expected reloader for tlsCertificateKeyFile URI option")
+
+		cfg, err := reload()
+		assert.NoError(t, err)
+		assert.Equal(t, 1, len(cfg.Certificates), "expected exactly one client cert")
+
+		// Reload again — should still succeed (file unchanged).
+		cfg2, err := reload()
+		assert.NoError(t, err)
+		assert.Equal(t, 1, len(cfg2.Certificates))
+		assert.False(t, cfg == cfg2, "reloader should return a fresh *tls.Config each call")
+	})
+
+	t.Run("propagates error when file is removed", func(t *testing.T) {
+		dir := t.TempDir()
+		caPath := dir + "/ca.pem"
+		writeFile(t, caPath, readFile(t, "testdata/ca.pem"))
+
+		opts := Client().ApplyURI("mongodb://localhost/?ssl=true&tlsCAFile=" + caPath)
+		assert.NoError(t, opts.Validate())
+
+		reload := BuildTLSReloader(opts)
+		assert.NotNil(t, reload)
+
+		// Remove the underlying file.
+		assert.NoError(t, os.Remove(caPath))
+
+		_, err := reload()
+		assert.Error(t, err, "expected error when CA file is missing")
+	})
+}
+
+func writeFile(t *testing.T, path string, data []byte) {
+	t.Helper()
+	err := os.WriteFile(path, data, 0o600)
+	assert.NoError(t, err, "WriteFile error for %s: %v", path, err)
+}

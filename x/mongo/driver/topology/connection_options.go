@@ -11,6 +11,8 @@ import (
 	"crypto/tls"
 	"net"
 	"net/http"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -62,6 +64,16 @@ type connectionConfig struct {
 	tlsConnectionSource      tlsConnectionSource
 	loadBalanced             bool
 	getGenerationFn          generationNumberFn
+
+	// tlsReloader, when non-nil, is invoked once after a failed TLS handshake to
+	// produce a fresh *tls.Config (e.g., re-reading rotated cert files). The fresh
+	// config is published via tlsConfigPtr so subsequent connections from the same
+	// pool pick it up without re-reading from disk. tlsReloadMu serializes concurrent
+	// reload attempts so a thundering herd of failing connections only triggers one
+	// disk read.
+	tlsReloader  func() (*tls.Config, error)
+	tlsConfigPtr *atomic.Pointer[tls.Config]
+	tlsReloadMu  *sync.Mutex
 }
 
 func newConnectionConfig(opts ...ConnectionOption) *connectionConfig {
@@ -129,6 +141,22 @@ func WithIdleTimeout(fn func(time.Duration) time.Duration) ConnectionOption {
 func WithTLSConfig(fn func(*tls.Config) *tls.Config) ConnectionOption {
 	return func(c *connectionConfig) {
 		c.tlsConfig = fn(c.tlsConfig)
+	}
+}
+
+// WithTLSReloader registers a callback that the connection layer invokes to obtain a
+// fresh *tls.Config after a TLS handshake failure. It is intended to support recovery
+// from on-disk cert rotation: when a TLS handshake fails, the connection calls the
+// reloader once, atomically publishes the new *tls.Config to other connections in the
+// pool, and retries the handshake. The reloader is invoked at most once per failed
+// connect; pass nil to disable.
+func WithTLSReloader(fn func() (*tls.Config, error)) ConnectionOption {
+	return func(c *connectionConfig) {
+		c.tlsReloader = fn
+		if fn != nil && c.tlsConfigPtr == nil {
+			c.tlsConfigPtr = &atomic.Pointer[tls.Config]{}
+			c.tlsReloadMu = &sync.Mutex{}
+		}
 	}
 }
 

@@ -431,6 +431,9 @@ func NewAuthenticatorConfig(authenticator driver.Authenticator, clientOpts ...Au
 				return opts.TLSConfig
 			},
 		))
+		if reload := options.BuildTLSReloader(opts); reload != nil {
+			connOpts = append(connOpts, WithTLSReloader(reload))
+		}
 	}
 
 	// HTTP Client

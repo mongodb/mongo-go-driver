@@ -1305,6 +1305,50 @@ func addClientCertFromBytes(cfg *tls.Config, data []byte, keyPasswd string) (str
 	return crt.Subject.String(), nil
 }
 
+// BuildTLSReloader returns a callback that re-reads the TLS material specified by the
+// ClientOptions' connection string and returns a fresh *tls.Config. It is used by the
+// driver to recover from TLS handshake failures after on-disk cert rotation.
+//
+// Returns nil when the ClientOptions did not load TLS material from URI-supplied files
+// (e.g., when SetTLSConfig was called directly). In that case the caller should not
+// attempt automatic reload.
+func BuildTLSReloader(opts *ClientOptions) func() (*tls.Config, error) {
+	cs := opts.connString
+	if cs == nil || !cs.SSL {
+		return nil
+	}
+	if !cs.SSLCaFileSet && !cs.SSLClientCertificateKeyFileSet &&
+		!cs.SSLCertificateFileSet && !cs.SSLPrivateKeyFileSet {
+		return nil
+	}
+	return func() (*tls.Config, error) {
+		cfg := &tls.Config{MinVersion: tls.VersionTLS12}
+		if cs.SSLCaFileSet {
+			if err := addCACertFromFile(cfg, cs.SSLCaFile); err != nil {
+				return nil, err
+			}
+		}
+		if cs.SSLInsecure {
+			cfg.InsecureSkipVerify = true
+		}
+		var keyPasswd string
+		if cs.SSLClientCertificateKeyPasswordSet && cs.SSLClientCertificateKeyPassword != nil {
+			keyPasswd = cs.SSLClientCertificateKeyPassword()
+		}
+		var err error
+		if cs.SSLClientCertificateKeyFileSet {
+			_, err = addClientCertFromConcatenatedFile(cfg, cs.SSLClientCertificateKeyFile, keyPasswd)
+		} else if cs.SSLCertificateFileSet || cs.SSLPrivateKeyFileSet {
+			_, err = addClientCertFromSeparateFiles(cfg, cs.SSLCertificateFile,
+				cs.SSLPrivateKeyFile, keyPasswd)
+		}
+		if err != nil {
+			return nil, err
+		}
+		return cfg, nil
+	}
+}
+
 func stringSliceContains(source []string, target string) bool {
 	for _, str := range source {
 		if str == target {

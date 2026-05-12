@@ -191,6 +191,78 @@ func configureTLS(ctx context.Context,
 	return client, nil
 }
 
+// currentTLSConfig returns the *tls.Config the connection should use for its next TLS
+// handshake. It prefers a config previously published via the atomic pointer (set by
+// the reload-on-failure path) and falls back to the static tlsConfig captured when
+// the connection was created.
+func (c *connection) currentTLSConfig() *tls.Config {
+	if c.config.tlsConfigPtr != nil {
+		if cfg := c.config.tlsConfigPtr.Load(); cfg != nil {
+			return cfg
+		}
+	}
+	return c.config.tlsConfig
+}
+
+// errTLSReloadNoNewConfig is returned by reloadTLSOnce when the published TLS config
+// is already the one the caller just attempted with — meaning a sibling goroutine has
+// already reloaded from disk and the result is no help here. The caller should treat
+// this as "no second chance" and surface the original handshake error unchanged.
+var errTLSReloadNoNewConfig = errors.New("topology: tls cert reload yielded no new config")
+
+// reloadTLSOnce returns a *tls.Config newer than tried, calling the registered reloader
+// at most once across concurrent callers. If another goroutine already published a
+// newer config while this caller was blocked on the mutex, that one is reused without
+// re-reading from disk. If the published config is identical to what was just tried,
+// errTLSReloadNoNewConfig is returned so the caller does not perform a redundant retry.
+func (c *connection) reloadTLSOnce(tried *tls.Config) (*tls.Config, error) {
+	c.config.tlsReloadMu.Lock()
+	if latest := c.config.tlsConfigPtr.Load(); latest != nil {
+		c.config.tlsReloadMu.Unlock()
+		if latest == tried {
+			return nil, errTLSReloadNoNewConfig
+		}
+		return latest, nil
+	}
+	newCfg, err := c.config.tlsReloader()
+	if err != nil {
+		c.config.tlsReloadMu.Unlock()
+		return nil, err
+	}
+	c.config.tlsConfigPtr.Store(newCfg)
+	c.config.tlsReloadMu.Unlock()
+	return newCfg, nil
+}
+
+// handshakeTLS performs the TLS handshake on c.nc. If the initial handshake fails and
+// a reloader is configured, it invokes the reloader once (with single-flight semantics
+// across concurrent failing connections), publishes the fresh config to tlsConfigPtr,
+// and retries the handshake exactly once. The returned error wraps both the original
+// and retry failures so callers can see both root causes.
+func (c *connection) handshakeTLS(ctx context.Context, ocspOpts *ocsp.VerifyOptions) (net.Conn, error) {
+	cfg := c.currentTLSConfig()
+	tlsNc, origErr := configureTLS(ctx, c.config.tlsConnectionSource, c.nc, c.addr, cfg.Clone(), ocspOpts)
+	if origErr == nil {
+		return tlsNc, nil
+	}
+	if c.config.tlsReloader == nil {
+		return nil, origErr
+	}
+
+	latest, reloadErr := c.reloadTLSOnce(cfg)
+	if reloadErr != nil {
+		if errors.Is(reloadErr, errTLSReloadNoNewConfig) {
+			return nil, origErr
+		}
+		return nil, fmt.Errorf("%w (tls cert reload also failed: %v)", origErr, reloadErr)
+	}
+	tlsNc, retryErr := configureTLS(ctx, c.config.tlsConnectionSource, c.nc, c.addr, latest.Clone(), ocspOpts)
+	if retryErr != nil {
+		return nil, fmt.Errorf("%w (tls cert reload retry also failed: %v)", origErr, retryErr)
+	}
+	return tlsNc, nil
+}
+
 // connect handles the I/O for a connection. It will dial, configure TLS, and perform initialization
 // handshakes. All errors returned by connect are considered "before the handshake completes" and
 // must be handled by calling the appropriate SDAM handshake error handler.
@@ -241,17 +313,13 @@ func (c *connection) connect(ctx context.Context) (err error) {
 	}
 	c.nc = tempNc
 
-	if c.config.tlsConfig != nil {
-		tlsConfig := c.config.tlsConfig.Clone()
-
-		// store the result of configureTLS in a separate variable than c.nc to avoid overwriting c.nc with nil in
-		// error cases.
+	if c.config.tlsConfig != nil || (c.config.tlsConfigPtr != nil && c.config.tlsConfigPtr.Load() != nil) {
 		ocspOpts := &ocsp.VerifyOptions{
 			Cache:                   c.config.ocspCache,
 			DisableEndpointChecking: c.config.disableOCSPEndpointCheck,
 			HTTPClient:              c.config.httpClient,
 		}
-		tlsNc, err := configureTLS(ctx, c.config.tlsConnectionSource, c.nc, c.addr, tlsConfig, ocspOpts)
+		tlsNc, err := c.handshakeTLS(ctx, ocspOpts)
 		if err != nil {
 			connErr := ConnectionError{Wrapped: err, init: true, message: fmt.Sprintf("failed to configure TLS for %s", c.addr)}
 			return wrapConnectionError(connErr)
