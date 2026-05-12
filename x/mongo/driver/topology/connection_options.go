@@ -147,16 +147,27 @@ func WithTLSConfig(fn func(*tls.Config) *tls.Config) ConnectionOption {
 // WithTLSReloader registers a callback that the connection layer invokes to obtain a
 // fresh *tls.Config after a TLS handshake failure. It is intended to support recovery
 // from on-disk cert rotation: when a TLS handshake fails, the connection calls the
-// reloader once, atomically publishes the new *tls.Config to other connections in the
-// pool, and retries the handshake. The reloader is invoked at most once per failed
-// connect; pass nil to disable.
+// reloader once, atomically publishes the new *tls.Config to other connections built
+// from the same option, and retries the handshake. Pass nil to disable.
+//
+// The atomic.Pointer and sync.Mutex are allocated once here and captured by the
+// returned closure so that every connectionConfig produced from this option shares the
+// same single-flight state. This is what makes one successful reload visible to all
+// concurrently-failing connections in the pool.
 func WithTLSReloader(fn func() (*tls.Config, error)) ConnectionOption {
+	if fn == nil {
+		return func(c *connectionConfig) {
+			c.tlsReloader = nil
+			c.tlsConfigPtr = nil
+			c.tlsReloadMu = nil
+		}
+	}
+	ptr := &atomic.Pointer[tls.Config]{}
+	mu := &sync.Mutex{}
 	return func(c *connectionConfig) {
 		c.tlsReloader = fn
-		if fn != nil && c.tlsConfigPtr == nil {
-			c.tlsConfigPtr = &atomic.Pointer[tls.Config]{}
-			c.tlsReloadMu = &sync.Mutex{}
-		}
+		c.tlsConfigPtr = ptr
+		c.tlsReloadMu = mu
 	}
 }
 

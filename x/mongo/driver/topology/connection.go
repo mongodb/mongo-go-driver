@@ -215,6 +215,8 @@ var errTLSReloadNoNewConfig = errors.New("topology: tls cert reload yielded no n
 // newer config while this caller was blocked on the mutex, that one is reused without
 // re-reading from disk. If the published config is identical to what was just tried,
 // errTLSReloadNoNewConfig is returned so the caller does not perform a redundant retry.
+// A reloader that returns (nil, nil) is treated as an error so a nil config is never
+// published.
 func (c *connection) reloadTLSOnce(tried *tls.Config) (*tls.Config, error) {
 	c.config.tlsReloadMu.Lock()
 	if latest := c.config.tlsConfigPtr.Load(); latest != nil {
@@ -229,6 +231,10 @@ func (c *connection) reloadTLSOnce(tried *tls.Config) (*tls.Config, error) {
 		c.config.tlsReloadMu.Unlock()
 		return nil, err
 	}
+	if newCfg == nil {
+		c.config.tlsReloadMu.Unlock()
+		return nil, errors.New("topology: tls reloader returned a nil *tls.Config")
+	}
 	c.config.tlsConfigPtr.Store(newCfg)
 	c.config.tlsReloadMu.Unlock()
 	return newCfg, nil
@@ -236,9 +242,18 @@ func (c *connection) reloadTLSOnce(tried *tls.Config) (*tls.Config, error) {
 
 // handshakeTLS performs the TLS handshake on c.nc. If the initial handshake fails and
 // a reloader is configured, it invokes the reloader once (with single-flight semantics
-// across concurrent failing connections), publishes the fresh config to tlsConfigPtr,
-// and retries the handshake exactly once. The returned error wraps both the original
-// and retry failures so callers can see both root causes.
+// across connections sharing the same option), re-dials a fresh TCP socket (a failed
+// TLS handshake typically leaves the original socket in an unusable state), and retries
+// the handshake exactly once with the reloaded config.
+//
+// On any failure path the returned error wraps origErr via %w — so existing error
+// matching against the underlying TLS / x509 types via errors.Is / errors.As keeps
+// working. The reload, re-dial, or retry-handshake error is included in the message
+// for debuggability but is not unwrappable; AGENTS.md bars errors.Join from non-
+// internal/ packages.
+//
+// On success c.nc is replaced with the fresh socket; on error c.nc may be left pointing
+// at a closed socket which the connect() deferred cleanup tolerates (Close is idempotent).
 func (c *connection) handshakeTLS(ctx context.Context, ocspOpts *ocsp.VerifyOptions) (net.Conn, error) {
 	cfg := c.currentTLSConfig()
 	tlsNc, origErr := configureTLS(ctx, c.config.tlsConnectionSource, c.nc, c.addr, cfg.Clone(), ocspOpts)
@@ -256,6 +271,17 @@ func (c *connection) handshakeTLS(ctx context.Context, ocspOpts *ocsp.VerifyOpti
 		}
 		return nil, fmt.Errorf("%w (tls cert reload also failed: %v)", origErr, reloadErr)
 	}
+
+	// A failed TLS handshake usually leaves the TCP connection unusable — TLS alerts
+	// have been exchanged and the peer typically closes its end. Re-dial a fresh
+	// socket before retrying the handshake.
+	_ = c.nc.Close()
+	freshNc, dialErr := c.config.dialer.DialContext(ctx, c.addr.Network(), c.addr.String())
+	if dialErr != nil {
+		return nil, fmt.Errorf("%w (tls cert reload retry dial failed: %v)", origErr, dialErr)
+	}
+	c.nc = freshNc
+
 	tlsNc, retryErr := configureTLS(ctx, c.config.tlsConnectionSource, c.nc, c.addr, latest.Clone(), ocspOpts)
 	if retryErr != nil {
 		return nil, fmt.Errorf("%w (tls cert reload retry also failed: %v)", origErr, retryErr)

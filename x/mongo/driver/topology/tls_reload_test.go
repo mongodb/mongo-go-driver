@@ -163,8 +163,10 @@ func TestTLSReload_ConcurrentSingleFlight(t *testing.T) {
 		return freshCfg, nil
 	}
 
-	// All connections share the same connectionConfig (same WithTLSReloader) so the
-	// atomic pointer + mutex are shared across them.
+	// WithTLSReloader allocates the atomic pointer + mutex once and captures them in
+	// its returned closure, so every connection built from this same option slice
+	// naturally shares the single-flight state. No manual fixup needed — that
+	// sharing is precisely what this test verifies.
 	baseOpts := []ConnectionOption{
 		WithDialer(func(Dialer) Dialer {
 			return DialerFunc(func(context.Context, string, string) (net.Conn, error) {
@@ -175,17 +177,17 @@ func TestTLSReload_ConcurrentSingleFlight(t *testing.T) {
 		withTLSConnectionSource(func(tlsConnectionSource) tlsConnectionSource { return src }),
 		WithTLSReloader(reloader),
 	}
-	// Build N connections sharing the same set of options-derived state by reusing
-	// the SAME tlsConfigPtr across them — done by constructing one config first then
-	// copying its tlsConfigPtr/tlsReloadMu into the others.
-	first := newConnection(address.Address("localhost:27017"), baseOpts...)
 	conns := make([]*connection, N)
-	conns[0] = first
+	for i := 0; i < N; i++ {
+		conns[i] = newConnection(address.Address("localhost:27017"), baseOpts...)
+	}
+	// Sanity check: pointer and mutex must be the same instance across all
+	// connections, otherwise the single-flight property below is meaningless.
 	for i := 1; i < N; i++ {
-		c := newConnection(address.Address("localhost:27017"), baseOpts...)
-		c.config.tlsConfigPtr = first.config.tlsConfigPtr
-		c.config.tlsReloadMu = first.config.tlsReloadMu
-		conns[i] = c
+		assert.True(t, conns[i].config.tlsConfigPtr == conns[0].config.tlsConfigPtr,
+			"tlsConfigPtr must be shared across connections built from the same option")
+		assert.True(t, conns[i].config.tlsReloadMu == conns[0].config.tlsReloadMu,
+			"tlsReloadMu must be shared across connections built from the same option")
 	}
 
 	var wg sync.WaitGroup
@@ -203,6 +205,6 @@ func TestTLSReload_ConcurrentSingleFlight(t *testing.T) {
 	// fresh config, every later caller picks it up via the atomic pointer.
 	assert.Equal(t, int32(1), reloadCalls.Load(),
 		"expected single-flight reload, got %d invocations", reloadCalls.Load())
-	assert.Equal(t, freshCfg, first.config.tlsConfigPtr.Load(),
+	assert.Equal(t, freshCfg, conns[0].config.tlsConfigPtr.Load(),
 		"expected fresh config published to atomic pointer")
 }

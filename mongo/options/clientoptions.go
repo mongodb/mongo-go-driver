@@ -1322,7 +1322,7 @@ func BuildTLSReloader(opts *ClientOptions) func() (*tls.Config, error) {
 		return nil
 	}
 	return func() (*tls.Config, error) {
-		cfg := &tls.Config{MinVersion: tls.VersionTLS12}
+		cfg := new(tls.Config)
 		if cs.SSLCaFileSet {
 			if err := addCACertFromFile(cfg, cs.SSLCaFile); err != nil {
 				return nil, err
