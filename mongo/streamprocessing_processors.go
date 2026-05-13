@@ -60,7 +60,7 @@ func (sps *StreamProcessors) Create(
 	}
 	defer releaseSession()
 
-	op := operation.NewCreateStreamProcessor(name, bsoncore.Document(pipelineArr))
+	op := operation.NewCreateStreamProcessor(name, pipelineArr)
 	if args.DLQ != nil {
 		op = op.DLQ(bsoncore.Document(args.DLQ))
 	}
