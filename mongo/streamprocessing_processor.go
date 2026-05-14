@@ -195,35 +195,31 @@ func (sp *StreamProcessor) Stats(
 // getStreamProcessor.
 //
 // Server-internal fields (tenantID, projectId, processorId, …) are not
-// surfaced. Unknown fields are tolerated and ignored.
+// surfaced. Unknown fields on the wire are tolerated and ignored.
 type StreamProcessorInfo struct {
-	ID                     string     `bson:"id"`
-	Name                   string     `bson:"name"`
-	State                  string     `bson:"state"`
-	Pipeline               []bson.Raw `bson:"pipeline"`
-	PipelineVersion        int32      `bson:"pipelineVersion"`
-	Tier                   string     `bson:"tier,omitempty"`
-	DLQ                    bson.Raw   `bson:"dlq,omitempty"`
-	StreamMetaFieldName    string     `bson:"streamMetaFieldName,omitempty"`
-	EnableAutoScaling      bool       `bson:"enableAutoScaling"`
-	FailoverEnabled        bool       `bson:"failoverEnabled"`
-	ActiveRegion           string     `bson:"activeRegion"`
-	WorkspaceDefaultRegion string     `bson:"workspaceDefaultRegion"`
-	LastStateChange        *time.Time `bson:"lastStateChange,omitempty"`
-	LastModifiedAt         *time.Time `bson:"lastModifiedAt,omitempty"`
-	ModifiedBy             string     `bson:"modifiedBy"`
-	HasStarted             bool       `bson:"hasStarted"`
-	ErrorMsg               string     `bson:"errorMsg"`
-	ErrorRetryable         bool       `bson:"errorRetryable"`
-	ErrorCode              *int32     `bson:"errorCode,omitempty"`
+	Name            string     `bson:"name"`
+	State           string     `bson:"state"`
+	Pipeline        []bson.Raw `bson:"pipeline"`
+	LastStateChange *time.Time `bson:"lastStateChange,omitempty"`
+	ErrorMsg        string     `bson:"errorMsg"`
 }
 
 func parseStreamProcessorInfo(raw bson.Raw, bsonOpts *options.BSONOptions, reg *bson.Registry) (*StreamProcessorInfo, error) {
 	if len(raw) == 0 {
 		return nil, errors.New("empty getStreamProcessor response")
 	}
+	// The current server wraps the processor document inside a "result"
+	// sub-document; the spec describes the fields at the top level. Decode
+	// from "result" if present, else fall back to the top-level document so
+	// the driver works against either shape.
+	target := raw
+	if sub, err := raw.LookupErr("result"); err == nil {
+		if doc, ok := sub.DocumentOK(); ok {
+			target = bson.Raw(doc)
+		}
+	}
 	info := new(StreamProcessorInfo)
-	dec := getDecoder(raw, bsonOpts, reg)
+	dec := getDecoder(target, bsonOpts, reg)
 	if err := dec.Decode(info); err != nil {
 		return nil, err
 	}

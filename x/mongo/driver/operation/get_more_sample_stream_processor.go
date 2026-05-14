@@ -20,8 +20,13 @@ import (
 )
 
 // GetMoreSampleStreamProcessor performs a getMoreSampleStreamProcessor
-// operation. The response carries a cursorId (0 means exhausted) and a
-// nextBatch of documents.
+// operation. The response carries a cursorId (0 means exhausted) and a batch
+// of documents.
+//
+// The batch field name is forgiving: the parser reads "messages" (what the
+// server currently emits) and falls back to the spec's "nextBatch" name, so
+// the driver works against today's server and any future server that aligns
+// with the spec.
 type GetMoreSampleStreamProcessor struct {
 	authenticator driver.Authenticator
 	session       *session.Client
@@ -67,23 +72,27 @@ func (op *GetMoreSampleStreamProcessor) processResponse(_ context.Context, resp 
 	op.resultCursorID = id
 
 	op.resultBatch = op.resultBatch[:0]
-	batchVal, err := resp.LookupErr("nextBatch")
+	// Accept either "messages" (current server) or "nextBatch" (spec).
+	batchVal, err := resp.LookupErr("messages")
 	if err != nil {
-		// nextBatch may be absent for an exhausted cursor; treat as empty.
-		return nil
+		batchVal, err = resp.LookupErr("nextBatch")
+		if err != nil {
+			// Batch may be absent for an exhausted cursor; treat as empty.
+			return nil
+		}
 	}
 	arr, ok := batchVal.ArrayOK()
 	if !ok {
-		return errors.New("getMoreSampleStreamProcessor response nextBatch is not an array")
+		return errors.New("getMoreSampleStreamProcessor response batch field is not an array")
 	}
 	vals, err := bsoncore.Document(arr).Elements()
 	if err != nil {
-		return fmt.Errorf("getMoreSampleStreamProcessor response nextBatch is malformed: %w", err)
+		return fmt.Errorf("getMoreSampleStreamProcessor response batch field is malformed: %w", err)
 	}
 	for _, elem := range vals {
 		doc, ok := elem.Value().DocumentOK()
 		if !ok {
-			return errors.New("getMoreSampleStreamProcessor response nextBatch element is not a document")
+			return errors.New("getMoreSampleStreamProcessor response batch element is not a document")
 		}
 		op.resultBatch = append(op.resultBatch, doc)
 	}

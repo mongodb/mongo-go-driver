@@ -306,16 +306,23 @@ func TestStartSampleStreamProcessor_ParseResponse(t *testing.T) {
 func TestGetMoreSampleStreamProcessor_ParseResponse(t *testing.T) {
 	doc1 := mustBSON(t, bson.D{{Key: "x", Value: 1}})
 	doc2 := mustBSON(t, bson.D{{Key: "x", Value: 2}})
-	resp := mustBSON(t, bson.D{
-		{Key: "ok", Value: 1.0},
-		{Key: "cursorId", Value: int64(0)}, // exhausted
-		{Key: "nextBatch", Value: bson.A{
-			bson.Raw(doc1),
-			bson.Raw(doc2),
-		}},
-	})
-	op := NewGetMoreSampleStreamProcessor("proc1", 42)
-	require.NoError(t, op.processResponse(nil, resp, driver.ResponseInfo{}))
-	assert.Equal(t, int64(0), op.ResultCursorID())
-	require.Len(t, op.ResultBatch(), 2)
+
+	// The driver accepts either "messages" (current server) or "nextBatch"
+	// (spec) as the batch field name. Verify both shapes parse.
+	for _, field := range []string{"messages", "nextBatch"} {
+		t.Run(field, func(t *testing.T) {
+			resp := mustBSON(t, bson.D{
+				{Key: "ok", Value: 1.0},
+				{Key: "cursorId", Value: int64(0)}, // exhausted
+				{Key: field, Value: bson.A{
+					bson.Raw(doc1),
+					bson.Raw(doc2),
+				}},
+			})
+			op := NewGetMoreSampleStreamProcessor("proc1", 42)
+			require.NoError(t, op.processResponse(nil, resp, driver.ResponseInfo{}))
+			assert.Equal(t, int64(0), op.ResultCursorID())
+			require.Len(t, op.ResultBatch(), 2)
+		})
+	}
 }
