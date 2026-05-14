@@ -35,6 +35,13 @@ import (
 )
 
 func main() {
+	if err := run(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+}
+
+func run() error {
 	uri := flag.String("uri", "", "workspace endpoint (mongodb://atlas-stream-...)")
 	username := flag.String("username", "", "username for SCRAM auth")
 	password := flag.String("password", "", "password for SCRAM auth")
@@ -70,13 +77,13 @@ func main() {
 				if !isASPCommand(e.CommandName) {
 					return
 				}
-				log.Printf("APM > %s: %s", e.CommandName, oneline(bson.Raw(e.Command)))
+				log.Printf("APM > %s: %s", e.CommandName, oneline(e.Command))
 			},
 			Succeeded: func(_ context.Context, e *event.CommandSucceededEvent) {
 				if !isASPCommand(e.CommandName) {
 					return
 				}
-				log.Printf("APM < %s: %s", e.CommandName, oneline(bson.Raw(e.Reply)))
+				log.Printf("APM < %s: %s", e.CommandName, oneline(e.Reply))
 			},
 			Failed: func(_ context.Context, e *event.CommandFailedEvent) {
 				if !isASPCommand(e.CommandName) {
@@ -89,7 +96,7 @@ func main() {
 
 	client, err := streamprocessing.Connect(clientOpts)
 	if err != nil {
-		log.Fatalf("connect: %v", err)
+		return fmt.Errorf("connect: %w", err)
 	}
 	defer func() {
 		discCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -102,7 +109,7 @@ func main() {
 	sps := client.StreamProcessors()
 	id, err := uuid.New()
 	if err != nil {
-		log.Fatalf("uuid: %v", err)
+		return fmt.Errorf("uuid: %w", err)
 	}
 	name := fmt.Sprintf("testasp-%s", id)
 	log.Printf("processor name: %s", name)
@@ -134,7 +141,7 @@ func main() {
 	createCtx, cancel := context.WithTimeout(rootCtx, 30*time.Second)
 	defer cancel()
 	if err := sps.Create(createCtx, name, pipeline); err != nil {
-		log.Fatalf("create: %v", err)
+		return fmt.Errorf("create: %w", err)
 	}
 	log.Printf("created")
 
@@ -142,7 +149,7 @@ func main() {
 	startCtx, cancel := context.WithTimeout(rootCtx, 30*time.Second)
 	defer cancel()
 	if err := sp.Start(startCtx, nil); err != nil {
-		log.Fatalf("start: %v", err)
+		return fmt.Errorf("start: %w", err)
 	}
 	log.Printf("started; settling for %ds", *settleSeconds)
 	time.Sleep(time.Duration(*settleSeconds) * time.Second)
@@ -171,7 +178,7 @@ func main() {
 	res, err := sp.GetStreamProcessorSamples(sampleCtx,
 		options.GetStreamProcessorSamples().SetLimit(int32(*sampleLimit)))
 	if err != nil {
-		log.Fatalf("sample (initial): %v", err)
+		return fmt.Errorf("sample (initial): %w", err)
 	}
 	collected := append([]bson.Raw(nil), res.Documents...)
 	log.Printf("initial batch: %d document(s); cursor=%d", len(res.Documents), res.CursorID)
@@ -229,9 +236,10 @@ func main() {
 	stopCtx, cancel := context.WithTimeout(rootCtx, 30*time.Second)
 	defer cancel()
 	if err := sp.Stop(stopCtx); err != nil {
-		log.Fatalf("stop: %v", err)
+		return fmt.Errorf("stop: %w", err)
 	}
 	log.Printf("stopped")
+	return nil
 }
 
 // oneline renders a BSON document as compact extended JSON.

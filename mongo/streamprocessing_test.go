@@ -84,7 +84,7 @@ func TestParseStreamProcessorInfo(t *testing.T) {
 
 	t.Run("wrapped in result (current server)", func(t *testing.T) {
 		raw, err := bson.Marshal(bson.D{
-			{Key: "result", Value: bson.Raw(procDoc(t))},
+			{Key: "result", Value: procDoc(t)},
 			{Key: "ok", Value: 1.0},
 		})
 		require.NoError(t, err)

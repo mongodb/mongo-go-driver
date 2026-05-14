@@ -215,7 +215,7 @@ func parseStreamProcessorInfo(raw bson.Raw, bsonOpts *options.BSONOptions, reg *
 	target := raw
 	if sub, err := raw.LookupErr("result"); err == nil {
 		if doc, ok := sub.DocumentOK(); ok {
-			target = bson.Raw(doc)
+			target = doc
 		}
 	}
 	info := new(StreamProcessorInfo)
