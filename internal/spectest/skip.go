@@ -206,7 +206,7 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/unified-test-format/tests/valid-pass/poc-command-monitoring.json/A_successful_find_event_with_a_getmore_and_the_server_kills_the_cursor_(<=_4.4)",
 	},
 
-	// TODO(GODRIVER-2577): Tests require immediate operation canceling,
+	// TODO(GODRIVER-3919): Tests require immediate operation canceling,
 	// incompatible with current pool clearing logic.
 	"Require immediate operation canceling for pool clearing (GODRIVER-2577)": {
 		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/interruptInUse-pool-clear.json/Connection_pool_clear_uses_interruptInUseConnections=true_after_monitor_timeout",
@@ -764,7 +764,7 @@ var skipTests = map[string][]string{
 		"TestSDAMSpec/errors/pre-42-ShutdownInProgress.json",
 	},
 
-	// TODO(GODRIVER-3646): Race condition between monitor and pool causes pool to be cleared.
+	// TODO(GODRIVER-3920): Race condition between monitor and pool causes pool to be cleared.
 	"Backpressure SDAM test 'pool-clear-min-pool-size-error.yml' fails on standalone deployments": {
 		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/pool-clear-min-pool-size-error.json/Pool_is_not_cleared_on_handshake_error_during_minPoolSize_population",
 	},
