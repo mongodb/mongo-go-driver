@@ -608,19 +608,15 @@ func TestDatabase_ListCollections_Routing(t *testing.T) {
 				if e.CommandName != "listCollections" {
 					return
 				}
-
 				mu.Lock()
 				defer mu.Unlock()
-
 				connIDs = append(connIDs, e.ConnectionID)
 			},
 		}
 
 		// Step 2. Create a new client with the CommandMonitor and read preference
 		// set to secondary.
-		clientOpts := options.Client().
-			SetMonitor(monitor).
-			SetReadPreference(mtest.SecondaryRp)
+		clientOpts := options.Client().SetMonitor(monitor).SetReadPreference(mtest.SecondaryRp)
 
 		mt.ResetClient(clientOpts)
 
@@ -665,22 +661,22 @@ func TestDatabase_ListCollections_Routing(t *testing.T) {
 				break
 			}
 		}
+
 		if secondary == "" {
 			mt.Skip("no secondary node available in cluster")
 		}
 
-		directOpts := options.Client().
-			ApplyURI("mongodb://" + secondary).
-			SetDirect(true)
+		directOpts := options.Client().ApplyURI("mongodb://" + secondary).SetDirect(true)
+
 		directClient, err := mongo.Connect(directOpts)
 		require.NoError(mt, err, "direct Connect error: %v", err)
+
 		defer func() {
-			_ = directClient.Disconnect(context.Background())
+			require.NoError(t, directClient.Disconnect(context.Background()))
 		}()
 
 		// Step 2. Invoke listCollections and assert that it succeeds.
-		_, err = directClient.Database(mt.DB.Name()).
-			ListCollections(context.Background(), bson.D{})
+		_, err = directClient.Database(mt.DB.Name()).ListCollections(context.Background(), bson.D{})
 		require.NoError(mt, err,
 			"ListCollections against directly-connected secondary should succeed: %v",
 			err)
