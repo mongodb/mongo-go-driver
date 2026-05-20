@@ -23,21 +23,23 @@ import (
 
 // DropIndexes performs an dropIndexes operation.
 type DropIndexes struct {
-	authenticator driver.Authenticator
-	index         any
-	session       *session.Client
-	clock         *session.ClusterClock
-	collection    string
-	monitor       *event.CommandMonitor
-	crypt         driver.Crypt
-	database      string
-	deployment    driver.Deployment
-	selector      description.ServerSelector
-	writeConcern  *writeconcern.WriteConcern
-	result        DropIndexesResult
-	serverAPI     *driver.ServerAPIOptions
-	timeout       *time.Duration
-	rawData       *bool
+	authenticator             driver.Authenticator
+	index                     any
+	session                   *session.Client
+	clock                     *session.ClusterClock
+	collection                string
+	monitor                   *event.CommandMonitor
+	maxAdaptiveRetries        uint
+	enableOverloadRetargeting bool
+	crypt                     driver.Crypt
+	database                  string
+	deployment                driver.Deployment
+	selector                  description.ServerSelector
+	writeConcern              *writeconcern.WriteConcern
+	result                    DropIndexesResult
+	serverAPI                 *driver.ServerAPIOptions
+	timeout                   *time.Duration
+	rawData                   *bool
 }
 
 // DropIndexesResult represents a dropIndexes result returned by the server.
@@ -87,20 +89,22 @@ func (di *DropIndexes) Execute(ctx context.Context) error {
 	}
 
 	return driver.Operation{
-		CommandFn:         di.command,
-		ProcessResponseFn: di.processResponse,
-		Client:            di.session,
-		Clock:             di.clock,
-		CommandMonitor:    di.monitor,
-		Crypt:             di.crypt,
-		Database:          di.database,
-		Deployment:        di.deployment,
-		Selector:          di.selector,
-		WriteConcern:      di.writeConcern,
-		ServerAPI:         di.serverAPI,
-		Timeout:           di.timeout,
-		Name:              driverutil.DropIndexesOp,
-		Authenticator:     di.authenticator,
+		CommandFn:                 di.command,
+		ProcessResponseFn:         di.processResponse,
+		Client:                    di.session,
+		Clock:                     di.clock,
+		CommandMonitor:            di.monitor,
+		MaxAdaptiveRetries:        di.maxAdaptiveRetries,
+		EnableOverloadRetargeting: di.enableOverloadRetargeting,
+		Crypt:                     di.crypt,
+		Database:                  di.database,
+		Deployment:                di.deployment,
+		Selector:                  di.selector,
+		WriteConcern:              di.writeConcern,
+		ServerAPI:                 di.serverAPI,
+		Timeout:                   di.timeout,
+		Name:                      driverutil.DropIndexesOp,
+		Authenticator:             di.authenticator,
 	}.Execute(ctx)
 }
 
@@ -170,6 +174,28 @@ func (di *DropIndexes) CommandMonitor(monitor *event.CommandMonitor) *DropIndexe
 	}
 
 	di.monitor = monitor
+	return di
+}
+
+// MaxAdaptiveRetries specifies the maximum number of times the driver should retry operations
+// that fail with a server side overload error.
+func (di *DropIndexes) MaxAdaptiveRetries(maxAdaptiveRetries uint) *DropIndexes {
+	if di == nil {
+		di = new(DropIndexes)
+	}
+
+	di.maxAdaptiveRetries = maxAdaptiveRetries
+	return di
+}
+
+// EnableOverloadRetargeting specifies whether the driver adds the previously failed server's address
+// to the list of deprioritized server addresses
+func (di *DropIndexes) EnableOverloadRetargeting(enabled bool) *DropIndexes {
+	if di == nil {
+		di = new(DropIndexes)
+	}
+
+	di.enableOverloadRetargeting = enabled
 	return di
 }
 

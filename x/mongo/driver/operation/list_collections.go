@@ -22,24 +22,26 @@ import (
 
 // ListCollections performs a listCollections operation.
 type ListCollections struct {
-	authenticator         driver.Authenticator
-	filter                bsoncore.Document
-	nameOnly              *bool
-	authorizedCollections *bool
-	session               *session.Client
-	clock                 *session.ClusterClock
-	monitor               *event.CommandMonitor
-	crypt                 driver.Crypt
-	database              string
-	deployment            driver.Deployment
-	readPreference        *readpref.ReadPref
-	selector              description.ServerSelector
-	retry                 *driver.RetryMode
-	result                driver.CursorResponse
-	batchSize             *int32
-	serverAPI             *driver.ServerAPIOptions
-	timeout               *time.Duration
-	rawData               *bool
+	authenticator             driver.Authenticator
+	filter                    bsoncore.Document
+	nameOnly                  *bool
+	authorizedCollections     *bool
+	session                   *session.Client
+	clock                     *session.ClusterClock
+	monitor                   *event.CommandMonitor
+	crypt                     driver.Crypt
+	database                  string
+	deployment                driver.Deployment
+	readPreference            *readpref.ReadPref
+	selector                  description.ServerSelector
+	retry                     *driver.RetryMode
+	maxAdaptiveRetries        uint
+	enableOverloadRetargeting bool
+	result                    driver.CursorResponse
+	batchSize                 *int32
+	serverAPI                 *driver.ServerAPIOptions
+	timeout                   *time.Duration
+	rawData                   *bool
 }
 
 // NewListCollections constructs and returns a new ListCollections.
@@ -72,23 +74,25 @@ func (lc *ListCollections) Execute(ctx context.Context) error {
 	}
 
 	return driver.Operation{
-		CommandFn:         lc.command,
-		ProcessResponseFn: lc.processResponse,
-		RetryMode:         lc.retry,
-		Type:              driver.Read,
-		Client:            lc.session,
-		Clock:             lc.clock,
-		CommandMonitor:    lc.monitor,
-		Crypt:             lc.crypt,
-		Database:          lc.database,
-		Deployment:        lc.deployment,
-		ReadPreference:    lc.readPreference,
-		Selector:          lc.selector,
-		Legacy:            driver.LegacyListCollections,
-		ServerAPI:         lc.serverAPI,
-		Timeout:           lc.timeout,
-		Name:              driverutil.ListCollectionsOp,
-		Authenticator:     lc.authenticator,
+		CommandFn:                 lc.command,
+		ProcessResponseFn:         lc.processResponse,
+		RetryMode:                 lc.retry,
+		MaxAdaptiveRetries:        lc.maxAdaptiveRetries,
+		EnableOverloadRetargeting: lc.enableOverloadRetargeting,
+		Type:                      driver.Read,
+		Client:                    lc.session,
+		Clock:                     lc.clock,
+		CommandMonitor:            lc.monitor,
+		Crypt:                     lc.crypt,
+		Database:                  lc.database,
+		Deployment:                lc.deployment,
+		ReadPreference:            lc.readPreference,
+		Selector:                  lc.selector,
+		Legacy:                    driver.LegacyListCollections,
+		ServerAPI:                 lc.serverAPI,
+		Timeout:                   lc.timeout,
+		Name:                      driverutil.ListCollectionsOp,
+		Authenticator:             lc.authenticator,
 	}.Execute(ctx)
 }
 
@@ -237,6 +241,28 @@ func (lc *ListCollections) Retry(retry driver.RetryMode) *ListCollections {
 	}
 
 	lc.retry = &retry
+	return lc
+}
+
+// MaxAdaptiveRetries specifies the maximum number of times the driver should retry operations
+// that fail with a server side overload error.
+func (lc *ListCollections) MaxAdaptiveRetries(maxAdaptiveRetries uint) *ListCollections {
+	if lc == nil {
+		lc = new(ListCollections)
+	}
+
+	lc.maxAdaptiveRetries = maxAdaptiveRetries
+	return lc
+}
+
+// EnableOverloadRetargeting specifies whether the driver adds the previously failed server's address
+// to the list of deprioritized server addresses
+func (lc *ListCollections) EnableOverloadRetargeting(enabled bool) *ListCollections {
+	if lc == nil {
+		lc = new(ListCollections)
+	}
+
+	lc.enableOverloadRetargeting = enabled
 	return lc
 }
 

@@ -24,46 +24,48 @@ import (
 
 // Find performs a find operation.
 type Find struct {
-	authenticator       driver.Authenticator
-	allowDiskUse        *bool
-	allowPartialResults *bool
-	awaitData           *bool
-	batchSize           *int32
-	collation           bsoncore.Document
-	comment             bsoncore.Value
-	filter              bsoncore.Document
-	hint                bsoncore.Value
-	let                 bsoncore.Document
-	limit               *int64
-	max                 bsoncore.Document
-	min                 bsoncore.Document
-	noCursorTimeout     *bool
-	oplogReplay         *bool
-	projection          bsoncore.Document
-	returnKey           *bool
-	showRecordID        *bool
-	singleBatch         *bool
-	skip                *int64
-	snapshot            *bool
-	sort                bsoncore.Document
-	tailable            *bool
-	session             *session.Client
-	clock               *session.ClusterClock
-	collection          string
-	monitor             *event.CommandMonitor
-	crypt               driver.Crypt
-	database            string
-	deployment          driver.Deployment
-	readConcern         *readconcern.ReadConcern
-	readPreference      *readpref.ReadPref
-	selector            description.ServerSelector
-	retry               *driver.RetryMode
-	result              driver.CursorResponse
-	serverAPI           *driver.ServerAPIOptions
-	timeout             *time.Duration
-	rawData             *bool
-	logger              *logger.Logger
-	omitMaxTimeMS       bool
+	authenticator             driver.Authenticator
+	allowDiskUse              *bool
+	allowPartialResults       *bool
+	awaitData                 *bool
+	batchSize                 *int32
+	collation                 bsoncore.Document
+	comment                   bsoncore.Value
+	filter                    bsoncore.Document
+	hint                      bsoncore.Value
+	let                       bsoncore.Document
+	limit                     *int64
+	max                       bsoncore.Document
+	min                       bsoncore.Document
+	noCursorTimeout           *bool
+	oplogReplay               *bool
+	projection                bsoncore.Document
+	returnKey                 *bool
+	showRecordID              *bool
+	singleBatch               *bool
+	skip                      *int64
+	snapshot                  *bool
+	sort                      bsoncore.Document
+	tailable                  *bool
+	session                   *session.Client
+	clock                     *session.ClusterClock
+	collection                string
+	monitor                   *event.CommandMonitor
+	crypt                     driver.Crypt
+	database                  string
+	deployment                driver.Deployment
+	readConcern               *readconcern.ReadConcern
+	readPreference            *readpref.ReadPref
+	selector                  description.ServerSelector
+	retry                     *driver.RetryMode
+	maxAdaptiveRetries        uint
+	enableOverloadRetargeting bool
+	result                    driver.CursorResponse
+	serverAPI                 *driver.ServerAPIOptions
+	timeout                   *time.Duration
+	rawData                   *bool
+	logger                    *logger.Logger
+	omitMaxTimeMS             bool
 }
 
 // NewFind constructs and returns a new Find.
@@ -95,26 +97,28 @@ func (f *Find) Execute(ctx context.Context) error {
 	}
 
 	return driver.Operation{
-		CommandFn:         f.command,
-		ProcessResponseFn: f.processResponse,
-		RetryMode:         f.retry,
-		Type:              driver.Read,
-		Client:            f.session,
-		Clock:             f.clock,
-		CommandMonitor:    f.monitor,
-		Crypt:             f.crypt,
-		Database:          f.database,
-		Deployment:        f.deployment,
-		ReadConcern:       f.readConcern,
-		ReadPreference:    f.readPreference,
-		Selector:          f.selector,
-		Legacy:            driver.LegacyFind,
-		ServerAPI:         f.serverAPI,
-		Timeout:           f.timeout,
-		Logger:            f.logger,
-		Name:              driverutil.FindOp,
-		Authenticator:     f.authenticator,
-		OmitMaxTimeMS:     f.omitMaxTimeMS,
+		CommandFn:                 f.command,
+		ProcessResponseFn:         f.processResponse,
+		RetryMode:                 f.retry,
+		MaxAdaptiveRetries:        f.maxAdaptiveRetries,
+		EnableOverloadRetargeting: f.enableOverloadRetargeting,
+		Type:                      driver.Read,
+		Client:                    f.session,
+		Clock:                     f.clock,
+		CommandMonitor:            f.monitor,
+		Crypt:                     f.crypt,
+		Database:                  f.database,
+		Deployment:                f.deployment,
+		ReadConcern:               f.readConcern,
+		ReadPreference:            f.readPreference,
+		Selector:                  f.selector,
+		Legacy:                    driver.LegacyFind,
+		ServerAPI:                 f.serverAPI,
+		Timeout:                   f.timeout,
+		Logger:                    f.logger,
+		Name:                      driverutil.FindOp,
+		Authenticator:             f.authenticator,
+		OmitMaxTimeMS:             f.omitMaxTimeMS,
 	}.Execute(ctx)
 }
 
@@ -527,6 +531,28 @@ func (f *Find) Retry(retry driver.RetryMode) *Find {
 	}
 
 	f.retry = &retry
+	return f
+}
+
+// MaxAdaptiveRetries specifies the maximum number of times the driver should retry operations
+// that fail with a server side overload error.
+func (f *Find) MaxAdaptiveRetries(maxAdaptiveRetries uint) *Find {
+	if f == nil {
+		f = new(Find)
+	}
+
+	f.maxAdaptiveRetries = maxAdaptiveRetries
+	return f
+}
+
+// EnableOverloadRetargeting specifies whether the driver adds the previously failed server's address
+// to the list of deprioritized server addresses
+func (f *Find) EnableOverloadRetargeting(enabled bool) *Find {
+	if f == nil {
+		f = new(Find)
+	}
+
+	f.enableOverloadRetargeting = enabled
 	return f
 }
 

@@ -22,23 +22,25 @@ import (
 
 // Command is used to run a generic operation.
 type Command struct {
-	authenticator  driver.Authenticator
-	command        bsoncore.Document
-	database       string
-	deployment     driver.Deployment
-	selector       description.ServerSelector
-	readPreference *readpref.ReadPref
-	clock          *session.ClusterClock
-	session        *session.Client
-	monitor        *event.CommandMonitor
-	resultResponse bsoncore.Document
-	resultCursor   *driver.BatchCursor
-	crypt          driver.Crypt
-	serverAPI      *driver.ServerAPIOptions
-	createCursor   bool
-	cursorOpts     driver.CursorOptions
-	timeout        *time.Duration
-	logger         *logger.Logger
+	authenticator             driver.Authenticator
+	command                   bsoncore.Document
+	database                  string
+	deployment                driver.Deployment
+	selector                  description.ServerSelector
+	readPreference            *readpref.ReadPref
+	clock                     *session.ClusterClock
+	session                   *session.Client
+	monitor                   *event.CommandMonitor
+	resultResponse            bsoncore.Document
+	resultCursor              *driver.BatchCursor
+	maxAdaptiveRetries        uint
+	enableOverloadRetargeting bool
+	crypt                     driver.Crypt
+	serverAPI                 *driver.ServerAPIOptions
+	createCursor              bool
+	cursorOpts                driver.CursorOptions
+	timeout                   *time.Duration
+	logger                    *logger.Logger
 }
 
 // NewCommand constructs and returns a new Command. Once the operation is executed, the result may only be accessed via
@@ -56,6 +58,9 @@ func NewCursorCommand(command bsoncore.Document, cursorOpts driver.CursorOptions
 		command:      command,
 		cursorOpts:   cursorOpts,
 		createCursor: true,
+
+		maxAdaptiveRetries:        cursorOpts.MaxAdaptiveRetries,
+		enableOverloadRetargeting: cursorOpts.EnableOverloadRetargeting,
 	}
 }
 
@@ -101,18 +106,20 @@ func (c *Command) Execute(ctx context.Context) error {
 
 			return nil
 		},
-		Client:         c.session,
-		Clock:          c.clock,
-		CommandMonitor: c.monitor,
-		Database:       c.database,
-		Deployment:     c.deployment,
-		ReadPreference: c.readPreference,
-		Selector:       c.selector,
-		Crypt:          c.crypt,
-		ServerAPI:      c.serverAPI,
-		Timeout:        c.timeout,
-		Logger:         c.logger,
-		Authenticator:  c.authenticator,
+		Client:                    c.session,
+		Clock:                     c.clock,
+		CommandMonitor:            c.monitor,
+		Database:                  c.database,
+		Deployment:                c.deployment,
+		ReadPreference:            c.readPreference,
+		Selector:                  c.selector,
+		MaxAdaptiveRetries:        c.maxAdaptiveRetries,
+		EnableOverloadRetargeting: c.enableOverloadRetargeting,
+		Crypt:                     c.crypt,
+		ServerAPI:                 c.serverAPI,
+		Timeout:                   c.timeout,
+		Logger:                    c.logger,
+		Authenticator:             c.authenticator,
 	}.Execute(ctx)
 }
 
@@ -183,6 +190,28 @@ func (c *Command) ServerSelector(selector description.ServerSelector) *Command {
 	}
 
 	c.selector = selector
+	return c
+}
+
+// MaxAdaptiveRetries specifies the maximum number of times the driver should retry operations
+// that fail with a server side overload error.
+func (c *Command) MaxAdaptiveRetries(maxAdaptiveRetries uint) *Command {
+	if c == nil {
+		c = new(Command)
+	}
+
+	c.maxAdaptiveRetries = maxAdaptiveRetries
+	return c
+}
+
+// EnableOverloadRetargeting specifies whether the driver adds the previously failed server's address
+// to the list of deprioritized server addresses
+func (c *Command) EnableOverloadRetargeting(enabled bool) *Command {
+	if c == nil {
+		c = new(Command)
+	}
+
+	c.enableOverloadRetargeting = enabled
 	return c
 }
 

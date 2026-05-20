@@ -20,16 +20,18 @@ import (
 
 // EndSessions performs an endSessions operation.
 type EndSessions struct {
-	authenticator driver.Authenticator
-	sessionIDs    bsoncore.Document
-	session       *session.Client
-	clock         *session.ClusterClock
-	monitor       *event.CommandMonitor
-	crypt         driver.Crypt
-	database      string
-	deployment    driver.Deployment
-	selector      description.ServerSelector
-	serverAPI     *driver.ServerAPIOptions
+	authenticator             driver.Authenticator
+	sessionIDs                bsoncore.Document
+	session                   *session.Client
+	clock                     *session.ClusterClock
+	monitor                   *event.CommandMonitor
+	crypt                     driver.Crypt
+	database                  string
+	deployment                driver.Deployment
+	selector                  description.ServerSelector
+	serverAPI                 *driver.ServerAPIOptions
+	maxAdaptiveRetries        uint
+	enableOverloadRetargeting bool
 }
 
 // NewEndSessions constructs and returns a new EndSessions.
@@ -50,18 +52,20 @@ func (es *EndSessions) Execute(ctx context.Context) error {
 	}
 
 	return driver.Operation{
-		CommandFn:         es.command,
-		ProcessResponseFn: es.processResponse,
-		Client:            es.session,
-		Clock:             es.clock,
-		CommandMonitor:    es.monitor,
-		Crypt:             es.crypt,
-		Database:          es.database,
-		Deployment:        es.deployment,
-		Selector:          es.selector,
-		ServerAPI:         es.serverAPI,
-		Name:              driverutil.EndSessionsOp,
-		Authenticator:     es.authenticator,
+		CommandFn:                 es.command,
+		ProcessResponseFn:         es.processResponse,
+		Client:                    es.session,
+		Clock:                     es.clock,
+		CommandMonitor:            es.monitor,
+		MaxAdaptiveRetries:        es.maxAdaptiveRetries,
+		EnableOverloadRetargeting: es.enableOverloadRetargeting,
+		Crypt:                     es.crypt,
+		Database:                  es.database,
+		Deployment:                es.deployment,
+		Selector:                  es.selector,
+		ServerAPI:                 es.serverAPI,
+		Name:                      driverutil.EndSessionsOp,
+		Authenticator:             es.authenticator,
 	}.Execute(ctx)
 }
 
@@ -169,5 +173,27 @@ func (es *EndSessions) Authenticator(authenticator driver.Authenticator) *EndSes
 	}
 
 	es.authenticator = authenticator
+	return es
+}
+
+// MaxAdaptiveRetries specifies the maximum number of times the driver should retry operations
+// that fail with a server side overload error.
+func (es *EndSessions) MaxAdaptiveRetries(maxAdaptiveRetries uint) *EndSessions {
+	if es == nil {
+		es = new(EndSessions)
+	}
+
+	es.maxAdaptiveRetries = maxAdaptiveRetries
+	return es
+}
+
+// EnableOverloadRetargeting specifies whether the driver adds the previously failed server's address
+// to the list of deprioritized server addresses
+func (es *EndSessions) EnableOverloadRetargeting(enabled bool) *EndSessions {
+	if es == nil {
+		es = new(EndSessions)
+	}
+
+	es.enableOverloadRetargeting = enabled
 	return es
 }

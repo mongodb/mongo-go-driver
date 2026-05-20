@@ -40,8 +40,9 @@ import (
 )
 
 const (
-	defaultLocalThreshold = 15 * time.Millisecond
-	defaultMaxPoolSize    = 100
+	defaultLocalThreshold       = 15 * time.Millisecond
+	defaultMaxPoolSize          = 100
+	defaultAdaptiveRetries uint = 2
 )
 
 var (
@@ -58,26 +59,28 @@ var (
 // The Client type opens and closes connections automatically and maintains a pool of idle connections. For
 // connection pool configuration options, see documentation for the ClientOptions type in the mongo/options package.
 type Client struct {
-	id                uuid.UUID
-	deployment        driver.Deployment
-	localThreshold    time.Duration
-	retryWrites       bool
-	retryReads        bool
-	clock             *session.ClusterClock
-	readPreference    *readpref.ReadPref
-	readConcern       *readconcern.ReadConcern
-	writeConcern      *writeconcern.WriteConcern
-	bsonOpts          *options.BSONOptions
-	registry          *bson.Registry
-	monitor           *event.CommandMonitor
-	serverAPI         *driver.ServerAPIOptions
-	serverMonitor     *event.ServerMonitor
-	sessionPool       *session.Pool
-	timeout           *time.Duration
-	httpClient        *http.Client
-	logger            *logger.Logger
-	currentDriverInfo *atomic.Pointer[options.DriverInfo]
-	seenDriverInfo    sync.Map
+	id                        uuid.UUID
+	deployment                driver.Deployment
+	localThreshold            time.Duration
+	retryWrites               bool
+	retryReads                bool
+	maxAdaptiveRetries        *uint
+	enableOverloadRetargeting bool
+	clock                     *session.ClusterClock
+	readPreference            *readpref.ReadPref
+	readConcern               *readconcern.ReadConcern
+	writeConcern              *writeconcern.WriteConcern
+	bsonOpts                  *options.BSONOptions
+	registry                  *bson.Registry
+	monitor                   *event.CommandMonitor
+	serverAPI                 *driver.ServerAPIOptions
+	serverMonitor             *event.ServerMonitor
+	sessionPool               *session.Pool
+	timeout                   *time.Duration
+	httpClient                *http.Client
+	logger                    *logger.Logger
+	currentDriverInfo         *atomic.Pointer[options.DriverInfo]
+	seenDriverInfo            sync.Map
 
 	// in-use encryption fields
 	isAutoEncryptionSet bool
@@ -186,6 +189,9 @@ func newClient(opts ...*options.ClientOptions) (*Client, error) {
 	if clientOpts.RetryReads != nil {
 		client.retryReads = *clientOpts.RetryReads
 	}
+	client.maxAdaptiveRetries = clientOpts.MaxAdaptiveRetries
+	client.enableOverloadRetargeting = clientOpts.EnableOverloadRetargeting != nil &&
+		*clientOpts.EnableOverloadRetargeting
 	// Timeout
 	client.timeout = clientOpts.Timeout
 	client.httpClient = clientOpts.HTTPClient
@@ -501,7 +507,9 @@ func (c *Client) endSessions(ctx context.Context) {
 	sessionIDs := c.sessionPool.IDSlice()
 	op := operation.NewEndSessions(nil).ClusterClock(c.clock).Deployment(c.deployment).
 		ServerSelector(&serverselector.ReadPref{ReadPref: readpref.PrimaryPreferred()}).
-		CommandMonitor(c.monitor).Database("admin").Crypt(c.cryptFLE).ServerAPI(c.serverAPI)
+		CommandMonitor(c.monitor).Database("admin").Crypt(c.cryptFLE).ServerAPI(c.serverAPI).
+		MaxAdaptiveRetries(c.effectiveAdaptiveRetries(true)).
+		EnableOverloadRetargeting(c.enableOverloadRetargeting)
 
 	totalNumIDs := len(sessionIDs)
 	var currentBatch []bsoncore.Document
@@ -760,6 +768,13 @@ func (c *Client) ListDatabases(ctx context.Context, filter any, opts ...options.
 		return ListDatabasesResult{}, err
 	}
 
+	retry := driver.RetryNone
+	if c.retryReads {
+		retry = driver.RetryOncePerCommand
+	}
+
+	maxAdaptiveRetries := c.effectiveAdaptiveRetries(c.retryReads)
+
 	var selector description.ServerSelector
 
 	selector = &serverselector.Composite{
@@ -777,6 +792,8 @@ func (c *Client) ListDatabases(ctx context.Context, filter any, opts ...options.
 	}
 	op := operation.NewListDatabases(filterDoc).
 		Session(sess).ReadPreference(c.readPreference).CommandMonitor(c.monitor).
+		Retry(retry).MaxAdaptiveRetries(maxAdaptiveRetries).
+		EnableOverloadRetargeting(c.enableOverloadRetargeting).
 		ServerSelector(selector).ClusterClock(c.clock).Database("admin").Deployment(c.deployment).Crypt(c.cryptFLE).
 		ServerAPI(c.serverAPI).Timeout(c.timeout).Authenticator(c.authenticator)
 
@@ -786,12 +803,6 @@ func (c *Client) ListDatabases(ctx context.Context, filter any, opts ...options.
 	if lda.AuthorizedDatabases != nil {
 		op = op.AuthorizedDatabases(*lda.AuthorizedDatabases)
 	}
-
-	retry := driver.RetryNone
-	if c.retryReads {
-		retry = driver.RetryOncePerCommand
-	}
-	op.Retry(retry)
 
 	err = op.Execute(ctx)
 	if err != nil {
@@ -920,12 +931,24 @@ func (c *Client) NumberSessionsInProgress() int {
 	return int(c.sessionPool.CheckedOut())
 }
 
-func (c *Client) createBaseCursorOptions() driver.CursorOptions {
+func (c *Client) createBaseCursorOptions(retryOverload bool) driver.CursorOptions {
 	return driver.CursorOptions{
-		CommandMonitor: c.monitor,
-		Crypt:          c.cryptFLE,
-		ServerAPI:      c.serverAPI,
+		CommandMonitor:            c.monitor,
+		Crypt:                     c.cryptFLE,
+		ServerAPI:                 c.serverAPI,
+		MaxAdaptiveRetries:        c.effectiveAdaptiveRetries(retryOverload),
+		EnableOverloadRetargeting: c.enableOverloadRetargeting,
 	}
+}
+
+func (c *Client) effectiveAdaptiveRetries(retryOverload bool) uint {
+	if !retryOverload {
+		return 0
+	}
+	if c.maxAdaptiveRetries != nil {
+		return *c.maxAdaptiveRetries
+	}
+	return defaultAdaptiveRetries
 }
 
 // ClientBulkWrite is a struct that can be used in a client-level BulkWrite operation.
@@ -986,6 +1009,8 @@ func (c *Client) BulkWrite(ctx context.Context, writes []ClientBulkWrite,
 		sess = nil
 	}
 
+	maxAdaptiveRetries := c.effectiveAdaptiveRetries(c.retryWrites)
+
 	writeSelector := &serverselector.Composite{
 		Selectors: []description.ServerSelector{
 			&serverselector.Write{},
@@ -1012,6 +1037,9 @@ func (c *Client) BulkWrite(ctx context.Context, writes []ClientBulkWrite,
 		client:                   c,
 		selector:                 selector,
 		writeConcern:             wc,
+
+		maxAdaptiveRetries:        maxAdaptiveRetries,
+		enableOverloadRetargeting: c.enableOverloadRetargeting,
 	}
 	if rawData, ok := optionsutil.Value(bwo.Internal, "rawData").(bool); ok {
 		op.rawData = &rawData

@@ -23,22 +23,24 @@ import (
 
 // CreateIndexes performs a createIndexes operation.
 type CreateIndexes struct {
-	authenticator driver.Authenticator
-	commitQuorum  bsoncore.Value
-	indexes       bsoncore.Document
-	session       *session.Client
-	clock         *session.ClusterClock
-	collection    string
-	monitor       *event.CommandMonitor
-	crypt         driver.Crypt
-	database      string
-	deployment    driver.Deployment
-	selector      description.ServerSelector
-	writeConcern  *writeconcern.WriteConcern
-	result        CreateIndexesResult
-	serverAPI     *driver.ServerAPIOptions
-	timeout       *time.Duration
-	rawData       *bool
+	authenticator             driver.Authenticator
+	commitQuorum              bsoncore.Value
+	indexes                   bsoncore.Document
+	session                   *session.Client
+	clock                     *session.ClusterClock
+	collection                string
+	monitor                   *event.CommandMonitor
+	maxAdaptiveRetries        uint
+	enableOverloadRetargeting bool
+	crypt                     driver.Crypt
+	database                  string
+	deployment                driver.Deployment
+	selector                  description.ServerSelector
+	writeConcern              *writeconcern.WriteConcern
+	result                    CreateIndexesResult
+	serverAPI                 *driver.ServerAPIOptions
+	timeout                   *time.Duration
+	rawData                   *bool
 }
 
 // CreateIndexesResult represents a createIndexes result returned by the server.
@@ -105,20 +107,22 @@ func (ci *CreateIndexes) Execute(ctx context.Context) error {
 	}
 
 	return driver.Operation{
-		CommandFn:         ci.command,
-		ProcessResponseFn: ci.processResponse,
-		Client:            ci.session,
-		Clock:             ci.clock,
-		CommandMonitor:    ci.monitor,
-		Crypt:             ci.crypt,
-		Database:          ci.database,
-		Deployment:        ci.deployment,
-		Selector:          ci.selector,
-		WriteConcern:      ci.writeConcern,
-		ServerAPI:         ci.serverAPI,
-		Timeout:           ci.timeout,
-		Name:              driverutil.CreateIndexesOp,
-		Authenticator:     ci.authenticator,
+		CommandFn:                 ci.command,
+		ProcessResponseFn:         ci.processResponse,
+		Client:                    ci.session,
+		Clock:                     ci.clock,
+		CommandMonitor:            ci.monitor,
+		MaxAdaptiveRetries:        ci.maxAdaptiveRetries,
+		EnableOverloadRetargeting: ci.enableOverloadRetargeting,
+		Crypt:                     ci.crypt,
+		Database:                  ci.database,
+		Deployment:                ci.deployment,
+		Selector:                  ci.selector,
+		WriteConcern:              ci.writeConcern,
+		ServerAPI:                 ci.serverAPI,
+		Timeout:                   ci.timeout,
+		Name:                      driverutil.CreateIndexesOp,
+		Authenticator:             ci.authenticator,
 	}.Execute(ctx)
 }
 
@@ -199,6 +203,28 @@ func (ci *CreateIndexes) CommandMonitor(monitor *event.CommandMonitor) *CreateIn
 	}
 
 	ci.monitor = monitor
+	return ci
+}
+
+// MaxAdaptiveRetries specifies the maximum number of times the driver should retry operations
+// that fail with a server side overload error.
+func (ci *CreateIndexes) MaxAdaptiveRetries(maxAdaptiveRetries uint) *CreateIndexes {
+	if ci == nil {
+		ci = new(CreateIndexes)
+	}
+
+	ci.maxAdaptiveRetries = maxAdaptiveRetries
+	return ci
+}
+
+// EnableOverloadRetargeting specifies whether the driver adds the previously failed server's address
+// to the list of deprioritized server addresses
+func (ci *CreateIndexes) EnableOverloadRetargeting(enabled bool) *CreateIndexes {
+	if ci == nil {
+		ci = new(CreateIndexes)
+	}
+
+	ci.enableOverloadRetargeting = enabled
 	return ci
 }
 

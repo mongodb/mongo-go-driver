@@ -25,30 +25,32 @@ import (
 
 // Update performs an update operation.
 type Update struct {
-	authenticator            driver.Authenticator
-	bypassDocumentValidation *bool
-	comment                  bsoncore.Value
-	ordered                  *bool
-	updates                  []bsoncore.Document
-	session                  *session.Client
-	clock                    *session.ClusterClock
-	collection               string
-	monitor                  *event.CommandMonitor
-	database                 string
-	deployment               driver.Deployment
-	hint                     *bool
-	arrayFilters             *bool
-	selector                 description.ServerSelector
-	writeConcern             *writeconcern.WriteConcern
-	retry                    *driver.RetryMode
-	result                   UpdateResult
-	crypt                    driver.Crypt
-	serverAPI                *driver.ServerAPIOptions
-	let                      bsoncore.Document
-	timeout                  *time.Duration
-	rawData                  *bool
-	additionalCmd            bson.D
-	logger                   *logger.Logger
+	authenticator             driver.Authenticator
+	bypassDocumentValidation  *bool
+	comment                   bsoncore.Value
+	ordered                   *bool
+	updates                   []bsoncore.Document
+	session                   *session.Client
+	clock                     *session.ClusterClock
+	collection                string
+	monitor                   *event.CommandMonitor
+	database                  string
+	deployment                driver.Deployment
+	hint                      *bool
+	arrayFilters              *bool
+	selector                  description.ServerSelector
+	writeConcern              *writeconcern.WriteConcern
+	retry                     *driver.RetryMode
+	maxAdaptiveRetries        uint
+	enableOverloadRetargeting bool
+	result                    UpdateResult
+	crypt                     driver.Crypt
+	serverAPI                 *driver.ServerAPIOptions
+	let                       bsoncore.Document
+	timeout                   *time.Duration
+	rawData                   *bool
+	additionalCmd             bson.D
+	logger                    *logger.Logger
 }
 
 // Upsert contains the information for an upsert in an Update operation.
@@ -151,24 +153,26 @@ func (u *Update) Execute(ctx context.Context) error {
 	}
 
 	return driver.Operation{
-		CommandFn:         u.command,
-		ProcessResponseFn: u.processResponse,
-		Batches:           batches,
-		RetryMode:         u.retry,
-		Type:              driver.Write,
-		Client:            u.session,
-		Clock:             u.clock,
-		CommandMonitor:    u.monitor,
-		Database:          u.database,
-		Deployment:        u.deployment,
-		Selector:          u.selector,
-		WriteConcern:      u.writeConcern,
-		Crypt:             u.crypt,
-		ServerAPI:         u.serverAPI,
-		Timeout:           u.timeout,
-		Logger:            u.logger,
-		Name:              driverutil.UpdateOp,
-		Authenticator:     u.authenticator,
+		CommandFn:                 u.command,
+		ProcessResponseFn:         u.processResponse,
+		Batches:                   batches,
+		RetryMode:                 u.retry,
+		MaxAdaptiveRetries:        u.maxAdaptiveRetries,
+		EnableOverloadRetargeting: u.enableOverloadRetargeting,
+		Type:                      driver.Write,
+		Client:                    u.session,
+		Clock:                     u.clock,
+		CommandMonitor:            u.monitor,
+		Database:                  u.database,
+		Deployment:                u.deployment,
+		Selector:                  u.selector,
+		WriteConcern:              u.writeConcern,
+		Crypt:                     u.crypt,
+		ServerAPI:                 u.serverAPI,
+		Timeout:                   u.timeout,
+		Logger:                    u.logger,
+		Name:                      driverutil.UpdateOp,
+		Authenticator:             u.authenticator,
 	}.Execute(ctx)
 }
 
@@ -370,6 +374,28 @@ func (u *Update) Retry(retry driver.RetryMode) *Update {
 	}
 
 	u.retry = &retry
+	return u
+}
+
+// MaxAdaptiveRetries specifies the maximum number of times the driver should retry operations
+// that fail with a server side overload error.
+func (u *Update) MaxAdaptiveRetries(maxAdaptiveRetries uint) *Update {
+	if u == nil {
+		u = new(Update)
+	}
+
+	u.maxAdaptiveRetries = maxAdaptiveRetries
+	return u
+}
+
+// EnableOverloadRetargeting specifies whether the driver adds the previously failed server's address
+// to the list of deprioritized server addresses
+func (u *Update) EnableOverloadRetargeting(enabled bool) *Update {
+	if u == nil {
+		u = new(Update)
+	}
+
+	u.enableOverloadRetargeting = enabled
 	return u
 }
 

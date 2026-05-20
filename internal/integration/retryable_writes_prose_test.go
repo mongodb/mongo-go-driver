@@ -9,6 +9,7 @@ package integration
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -22,6 +23,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/failpoint"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
+	"go.mongodb.org/mongo-driver/v2/internal/randutil"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -383,6 +385,228 @@ func TestRetryableWritesProse(t *testing.T) {
 				assert.Equal(mt, tc.expectedSuccessCount, successCount)
 			})
 		}
+	})
+}
+
+func TestErrorPropagationAfterEncounteringMultipleErrors(t *testing.T) {
+	mt := mtest.New(t, mtest.NewOptions().CreateClient(false).
+		MinServerVersion("6.0").
+		Topologies(mtest.ReplicaSet))
+
+	errorCodesContains := func(err error, code int) bool {
+		for _, ec := range mongo.ErrorCodes(err) {
+			if ec == code {
+				return true
+			}
+		}
+		return false
+	}
+
+	mt.Run("Case 1: Test that drivers return the correct error when receiving only errors without NoWritesPerformed", func(mt *mtest.T) {
+		mt.SetFailPoint(failpoint.FailPoint{
+			ConfigureFailPoint: "failCommand",
+			Mode: failpoint.Mode{
+				Times: 1,
+			},
+			Data: failpoint.Data{
+				FailCommands: []string{"insert"},
+				ErrorLabels:  &[]string{"RetryableError", "SystemOverloadedError"},
+				ErrorCode:    91,
+			},
+		})
+
+		monitor := &event.CommandMonitor{
+			Failed: func(_ context.Context, event *event.CommandFailedEvent) {
+				if event.CommandName != "insert" {
+					return
+				}
+				if errorCodesContains(event.Failure, 91) {
+					mt.SetFailPoint(failpoint.FailPoint{
+						ConfigureFailPoint: "failCommand",
+						Mode:               failpoint.ModeAlwaysOn,
+						Data: failpoint.Data{
+							FailCommands: []string{"insert"},
+							ErrorLabels:  &[]string{"RetryableError", "SystemOverloadedError"},
+							ErrorCode:    10107,
+						},
+					})
+				}
+			},
+		}
+		mt.ResetClient(options.Client().SetRetryWrites(true).SetMonitor(monitor))
+		_, err := mt.Coll.InsertOne(context.Background(), bson.D{})
+		require.True(mt, errorCodesContains(err, 10107), "Expect the error code of the server error to be 10107")
+	})
+
+	mt.Run("Case 2: Test that drivers return the correct error when receiving only errors with NoWritesPerformed", func(mt *mtest.T) {
+		mt.SetFailPoint(failpoint.FailPoint{
+			ConfigureFailPoint: "failCommand",
+			Mode: failpoint.Mode{
+				Times: 1,
+			},
+			Data: failpoint.Data{
+				FailCommands: []string{"insert"},
+				ErrorLabels:  &[]string{"RetryableError", "SystemOverloadedError", "NoWritesPerformed"},
+				ErrorCode:    91,
+			},
+		})
+
+		monitor := &event.CommandMonitor{
+			Failed: func(_ context.Context, event *event.CommandFailedEvent) {
+				if event.CommandName != "insert" {
+					return
+				}
+				if errorCodesContains(event.Failure, 91) {
+					mt.SetFailPoint(failpoint.FailPoint{
+						ConfigureFailPoint: "failCommand",
+						Mode:               failpoint.ModeAlwaysOn,
+						Data: failpoint.Data{
+							FailCommands: []string{"insert"},
+							ErrorLabels:  &[]string{"RetryableError", "SystemOverloadedError", "NoWritesPerformed"},
+							ErrorCode:    10107,
+						},
+					})
+				}
+			},
+		}
+		mt.ResetClient(options.Client().SetRetryWrites(true).SetMonitor(monitor))
+		_, err := mt.Coll.InsertOne(context.Background(), bson.D{})
+		require.True(mt, errorCodesContains(err, 91), "Expect the error code of the server error to be 91")
+	})
+
+	mt.Run("Case 3: Test that drivers return the correct error when receiving some errors with NoWritesPerformed and some without NoWritesPerformed", func(mt *mtest.T) {
+		mt.SetFailPoint(failpoint.FailPoint{
+			ConfigureFailPoint: "failCommand",
+			Mode:               failpoint.ModeAlwaysOn,
+			Data: failpoint.Data{
+				FailCommands: []string{"insert"},
+				ErrorLabels:  &[]string{"RetryableError", "SystemOverloadedError", "NoWritesPerformed"},
+				ErrorCode:    91,
+			},
+		})
+
+		monitor := &event.CommandMonitor{
+			Failed: func(_ context.Context, event *event.CommandFailedEvent) {
+				if event.CommandName != "insert" {
+					return
+				}
+				if errorCodesContains(event.Failure, 91) {
+					mt.SetFailPoint(failpoint.FailPoint{
+						ConfigureFailPoint: "failCommand",
+						Mode: failpoint.Mode{
+							Times: 1,
+						},
+						Data: failpoint.Data{
+							FailCommands: []string{"insert"},
+							ErrorLabels:  &[]string{"RetryableError", "SystemOverloadedError"},
+							ErrorCode:    91,
+						},
+					})
+				}
+			},
+		}
+		mt.ResetClient(options.Client().SetRetryWrites(true).SetMonitor(monitor))
+		_, err := mt.Coll.InsertOne(context.Background(), bson.D{})
+		require.True(mt, errorCodesContains(err, 91), "Expect the error code of the server error to be 91")
+		var labeledError driver.Error
+		require.True(mt, errors.As(err, &labeledError), "expected error to be a labeled error")
+		require.NotContains(mt, labeledError.Labels, "NoWritesPerformed", "expected error labels to not contain NoWritesPerformed")
+	})
+
+	mt.Run("Case 4: Test that drivers set the maximum number of retries for all retryable write errors when an overload error is encountered", func(mt *mtest.T) {
+		mt.SetFailPoint(failpoint.FailPoint{
+			ConfigureFailPoint: "failCommand",
+			Mode: failpoint.Mode{
+				Times: 1,
+			},
+			Data: failpoint.Data{
+				FailCommands: []string{"insert"},
+				ErrorLabels:  &[]string{"RetryableError", "SystemOverloadedError"},
+				ErrorCode:    91,
+			},
+		})
+
+		var opsCnt int
+		monitor := &event.CommandMonitor{
+			Started: func(_ context.Context, e *event.CommandStartedEvent) {
+				if e.CommandName == "insert" {
+					opsCnt++
+				}
+			},
+			Failed: func(_ context.Context, event *event.CommandFailedEvent) {
+				if event.CommandName != "insert" {
+					return
+				}
+				if errorCodesContains(event.Failure, 91) {
+					mt.SetFailPoint(failpoint.FailPoint{
+						ConfigureFailPoint: "failCommand",
+						Mode:               failpoint.ModeAlwaysOn,
+						Data: failpoint.Data{
+							FailCommands: []string{"insert"},
+							ErrorLabels:  &[]string{"RetryableError", "RetryableWriteError"},
+							ErrorCode:    91,
+						},
+					})
+				}
+			},
+		}
+		mt.ResetClient(options.Client().SetRetryWrites(true).SetMonitor(monitor))
+		_, err := mt.Coll.InsertOne(context.Background(), bson.D{})
+		require.True(mt, errorCodesContains(err, 91), "Expect the error code of the server error to be 91")
+		var labeledError driver.Error
+		require.True(mt, errors.As(err, &labeledError), "expected error to be a labeled error")
+		assert.Equalf(mt, 3, opsCnt, "expected 3 attempts (1 original + 2 retries), got %d", opsCnt)
+	})
+
+	mt.Run("Case 5: Test that drivers do not apply backoff to non-overload errors", func(mt *mtest.T) {
+		mt.SetFailPoint(failpoint.FailPoint{
+			ConfigureFailPoint: "failCommand",
+			Mode: failpoint.Mode{
+				Times: 1,
+			},
+			Data: failpoint.Data{
+				FailCommands: []string{"insert"},
+				ErrorLabels:  &[]string{"RetryableError", "SystemOverloadedError"},
+				ErrorCode:    91,
+			},
+		})
+
+		var ops []bool
+		monitor := &event.CommandMonitor{
+			Started: func(_ context.Context, e *event.CommandStartedEvent) {
+				if e.CommandName == "insert" {
+					ops = append(ops, false)
+				}
+			},
+			Failed: func(_ context.Context, event *event.CommandFailedEvent) {
+				if event.CommandName != "insert" {
+					return
+				}
+				if errorCodesContains(event.Failure, 91) {
+					mt.SetFailPoint(failpoint.FailPoint{
+						ConfigureFailPoint: "failCommand",
+						Mode:               failpoint.ModeAlwaysOn,
+						Data: failpoint.Data{
+							FailCommands: []string{"insert"},
+							ErrorLabels:  &[]string{"RetryableError", "RetryableWriteError"},
+							ErrorCode:    91,
+						},
+					})
+				}
+			},
+		}
+
+		defer randutil.SetJitterForTesting(func(int64) int64 {
+			ops[len(ops)-1] = true
+			return 0
+		})()
+
+		mt.ResetClient(options.Client().SetRetryWrites(true).SetMonitor(monitor))
+		_, err := mt.Coll.InsertOne(context.Background(), bson.D{})
+		require.True(mt, errorCodesContains(err, 91), "Expect the error code of the server error to be 91")
+		var labeledError driver.Error
+		require.True(mt, errors.As(err, &labeledError), "expected error to be a labeled error")
+		assert.Equal(t, []bool{true, false, false}, ops, "expected backoff to be applied on the first attempt only, got %v", ops)
 	})
 }
 
