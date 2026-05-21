@@ -56,6 +56,9 @@ type BatchCursor struct {
 	// is set, it will be used as the "maxTimeMS" field on getMore commands.
 	maxAwaitTime *time.Duration
 
+	maxAdaptiveRetries        uint
+	enableOverloadRetargeting bool
+
 	// legacy server (< 3.2) fields
 	limit       int32
 	numReturned int32 // number of docs returned by server
@@ -174,6 +177,9 @@ type CursorOptions struct {
 	// MaxAwaitTime is only valid for tailable awaitData cursors. If this option
 	// is set, it will be used as the "maxTimeMS" field on getMore commands.
 	MaxAwaitTime *time.Duration
+
+	MaxAdaptiveRetries        uint
+	EnableOverloadRetargeting bool
 }
 
 // SetMaxAwaitTime will set the maxTimeMS value on getMore commands for
@@ -210,6 +216,9 @@ func NewBatchCursor(
 		serverAPI:            opts.ServerAPI,
 		serverDescription:    cr.Desc,
 		encoderFn:            opts.MarshalValueEncoderFn,
+
+		maxAdaptiveRetries:        opts.MaxAdaptiveRetries,
+		enableOverloadRetargeting: opts.EnableOverloadRetargeting,
 	}
 
 	if firstBatch != nil {
@@ -465,12 +474,14 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 
 			return nil
 		},
-		Client:         bc.clientSession,
-		Clock:          bc.clock,
-		Legacy:         LegacyGetMore,
-		CommandMonitor: bc.cmdMonitor,
-		Crypt:          bc.crypt,
-		ServerAPI:      bc.serverAPI,
+		Client:                    bc.clientSession,
+		Clock:                     bc.clock,
+		Legacy:                    LegacyGetMore,
+		CommandMonitor:            bc.cmdMonitor,
+		MaxAdaptiveRetries:        bc.maxAdaptiveRetries,
+		EnableOverloadRetargeting: bc.enableOverloadRetargeting,
+		Crypt:                     bc.crypt,
+		ServerAPI:                 bc.serverAPI,
 
 		// Omit the automatically-calculated maxTimeMS because setting maxTimeMS
 		// on a non-awaitData cursor causes a server error. For awaitData

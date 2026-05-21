@@ -37,6 +37,8 @@ var (
 		"run-command/tests/unified",
 		"index-management/tests",
 		"mongodb-handshake/tests/unified",
+		"client-backpressure/tests",
+		"transactions/tests/unified",
 	}
 	failDirectories = []string{
 		"unified-test-format/tests/valid-fail",

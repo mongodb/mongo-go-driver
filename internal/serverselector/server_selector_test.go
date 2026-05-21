@@ -8,7 +8,7 @@ package serverselector
 
 import (
 	"errors"
-	"io/ioutil"
+	"os"
 	"path"
 	"testing"
 	"time"
@@ -57,6 +57,7 @@ type testCase struct {
 	SuitableServers      []*serverDesc `bson:"suitable_servers"`
 	InLatencyWindow      []*serverDesc `bson:"in_latency_window"`
 	HeartbeatFrequencyMS *int          `bson:"heartbeatFrequencyMS"`
+	DeprioritizedServers []*serverDesc `bson:"deprioritized_servers"`
 	Error                *bool
 }
 
@@ -177,6 +178,46 @@ func TestMaxStalenessSpec(t *testing.T) {
 
 var selectorTestsDir = spectest.Path("server-selection/tests")
 
+func convertServerDesc(t *testing.T, serverDescription *serverDesc, baseTime time.Time, heartbeatFreqMS *int) description.Server {
+	t.Helper()
+
+	server := description.Server{
+		Addr: address.Address(serverDescription.Address),
+		Kind: serverKindFromString(t, serverDescription.Type),
+	}
+
+	if serverDescription.AverageRTTMS != nil {
+		server.AverageRTT = time.Duration(*serverDescription.AverageRTTMS) * time.Millisecond
+		server.AverageRTTSet = true
+	}
+
+	if heartbeatFreqMS != nil {
+		server.HeartbeatInterval = time.Duration(*heartbeatFreqMS) * time.Millisecond
+	}
+
+	if serverDescription.LastUpdateTime != nil {
+		ms := int64(*serverDescription.LastUpdateTime)
+		server.LastUpdateTime = time.Unix(ms/1e3, ms%1e3/1e6)
+	}
+
+	if serverDescription.LastWrite != nil {
+		i := serverDescription.LastWrite.LastWriteDate
+		timeWithOffset := baseTime.Add(time.Duration(i) * time.Millisecond)
+		server.LastWriteTime = timeWithOffset
+	}
+
+	if serverDescription.MaxWireVersion != nil {
+		versionRange := driverutil.NewVersionRange(0, *serverDescription.MaxWireVersion)
+		server.WireVersion = &versionRange
+	}
+
+	if serverDescription.Tags != nil {
+		server.Tags = tag.NewTagSetFromMap(serverDescription.Tags)
+	}
+
+	return server
+}
+
 func selectServers(t *testing.T, test *testCase) error {
 	servers := make([]description.Server, 0, len(test.TopologyDescription.Servers))
 
@@ -186,40 +227,7 @@ func selectServers(t *testing.T, test *testCase) error {
 	baseTime := time.Now()
 
 	for _, serverDescription := range test.TopologyDescription.Servers {
-		server := description.Server{
-			Addr: address.Address(serverDescription.Address),
-			Kind: serverKindFromString(t, serverDescription.Type),
-		}
-
-		if serverDescription.AverageRTTMS != nil {
-			server.AverageRTT = time.Duration(*serverDescription.AverageRTTMS) * time.Millisecond
-			server.AverageRTTSet = true
-		}
-
-		if test.HeartbeatFrequencyMS != nil {
-			server.HeartbeatInterval = time.Duration(*test.HeartbeatFrequencyMS) * time.Millisecond
-		}
-
-		if serverDescription.LastUpdateTime != nil {
-			ms := int64(*serverDescription.LastUpdateTime)
-			server.LastUpdateTime = time.Unix(ms/1e3, ms%1e3/1e6)
-		}
-
-		if serverDescription.LastWrite != nil {
-			i := serverDescription.LastWrite.LastWriteDate
-
-			timeWithOffset := baseTime.Add(time.Duration(i) * time.Millisecond)
-			server.LastWriteTime = timeWithOffset
-		}
-
-		if serverDescription.MaxWireVersion != nil {
-			versionRange := driverutil.NewVersionRange(0, *serverDescription.MaxWireVersion)
-			server.WireVersion = &versionRange
-		}
-
-		if serverDescription.Tags != nil {
-			server.Tags = tag.NewTagSetFromMap(serverDescription.Tags)
-		}
+		server := convertServerDesc(t, serverDescription, baseTime, test.HeartbeatFrequencyMS)
 
 		if test.ReadPreference.MaxStaleness != nil && server.WireVersion == nil {
 			server.WireVersion = &description.VersionRange{Max: 21}
@@ -231,6 +239,12 @@ func selectServers(t *testing.T, test *testCase) error {
 	c := description.Topology{
 		Kind:    topologyKindFromString(t, test.TopologyDescription.Type),
 		Servers: servers,
+	}
+
+	// Convert deprioritized servers from test JSON to description.Server
+	var deprioritizedServers []description.Server
+	for _, srvDesc := range test.DeprioritizedServers {
+		deprioritizedServers = append(deprioritizedServers, convertServerDesc(t, srvDesc, baseTime, test.HeartbeatFrequencyMS))
 	}
 
 	if len(test.ReadPreference.Mode) == 0 {
@@ -259,16 +273,19 @@ func selectServers(t *testing.T, test *testCase) error {
 		return err
 	}
 
-	var selector description.ServerSelector
+	var baseSelector description.ServerSelector
 
-	selector = &ReadPref{ReadPref: rp}
+	baseSelector = &ReadPref{ReadPref: rp}
 	if test.Operation == "write" {
-		selector = &Composite{
-			Selectors: []description.ServerSelector{&Write{}, selector},
+		baseSelector = &Composite{
+			Selectors: []description.ServerSelector{&Write{}, baseSelector},
 		}
 	}
 
-	result, err := selector.SelectServer(c, c.Servers)
+	// Deprioritized selector with read/write selector if there are deprioritized servers.
+	selector := NewDeprioritized(baseSelector, deprioritizedServers)
+
+	result, err := selector.SelectServer(c, servers)
 	if err != nil {
 		return err
 	}
@@ -276,11 +293,14 @@ func selectServers(t *testing.T, test *testCase) error {
 	compareServers(t, test.SuitableServers, result)
 
 	latencySelector := &Latency{Latency: time.Duration(15) * time.Millisecond}
-	selector = &Composite{
-		Selectors: []description.ServerSelector{selector, latencySelector},
-	}
 
-	result, err = selector.SelectServer(c, c.Servers)
+	// Build selector chain for latency window: Deprioritized -> baseSelector -> Latency
+	baseWithLatency := &Composite{
+		Selectors: []description.ServerSelector{baseSelector, latencySelector},
+	}
+	latencySelectorChain := NewDeprioritized(baseWithLatency, deprioritizedServers)
+
+	result, err = latencySelectorChain.SelectServer(c, servers)
 	if err != nil {
 		return err
 	}
@@ -292,8 +312,10 @@ func selectServers(t *testing.T, test *testCase) error {
 
 func runTest(t *testing.T, testsDir string, directory string, filename string) {
 	filepath := path.Join(testsDir, directory, filename)
-	content, err := ioutil.ReadFile(filepath)
-	require.NoError(t, err)
+	content, err := os.ReadFile(filepath)
+	if err != nil {
+		t.Fatalf("failed to read file %s: %v", filepath, err)
+	}
 
 	t.Run(directory+"/"+filename, func(t *testing.T) {
 		spectest.CheckSkip(t)
@@ -1273,5 +1295,189 @@ func TestVersionRangeIncludes(t *testing.T) {
 		if actual != test.expected {
 			t.Fatalf("expected %v to be %t", test.n, test.expected)
 		}
+	}
+}
+
+func TestDeprioritizedSelector(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name          string
+		deprioritized []description.Server
+		candidates    []description.Server
+		want          []description.Server
+	}{
+		{
+			name:       "empty",
+			candidates: []description.Server{},
+			want:       []description.Server{},
+		},
+		{
+			name:       "nil candidates",
+			candidates: nil,
+			want:       []description.Server{},
+		},
+		{
+			name: "nil deprioritized server list",
+			candidates: []description.Server{
+				{
+					Addr: address.Address("mongodb://localhost:27017"),
+				},
+			},
+			want: []description.Server{
+				{
+					Addr: address.Address("mongodb://localhost:27017"),
+				},
+			},
+		},
+		{
+			name: "deprioritize single server candidate list",
+			candidates: []description.Server{
+				{
+					Addr: address.Address("mongodb://localhost:27017"),
+				},
+			},
+			deprioritized: []description.Server{
+				{
+					Addr: address.Address("mongodb://localhost:27017"),
+				},
+			},
+			want: []description.Server{
+				// Since all available servers were deprioritized, then the selector
+				// should return all candidates.
+				{
+					Addr: address.Address("mongodb://localhost:27017"),
+				},
+			},
+		},
+		{
+			name: "deprioritize one server in multi-server candidate list",
+			candidates: []description.Server{
+				{
+					Addr: address.Address("mongodb://localhost:27017"),
+				},
+				{
+					Addr: address.Address("mongodb://localhost:27018"),
+				},
+				{
+					Addr: address.Address("mongodb://localhost:27019"),
+				},
+			},
+			deprioritized: []description.Server{
+				{
+					Addr: address.Address("mongodb://localhost:27017"),
+				},
+			},
+			want: []description.Server{
+				{
+					Addr: address.Address("mongodb://localhost:27018"),
+				},
+				{
+					Addr: address.Address("mongodb://localhost:27019"),
+				},
+			},
+		},
+		{
+			name: "deprioritize multiple servers in multi-server candidate list",
+			deprioritized: []description.Server{
+				{
+					Addr: address.Address("mongodb://localhost:27017"),
+				},
+				{
+					Addr: address.Address("mongodb://localhost:27018"),
+				},
+			},
+			candidates: []description.Server{
+				{
+					Addr: address.Address("mongodb://localhost:27017"),
+				},
+				{
+					Addr: address.Address("mongodb://localhost:27018"),
+				},
+				{
+					Addr: address.Address("mongodb://localhost:27019"),
+				},
+			},
+			want: []description.Server{
+				{
+					Addr: address.Address("mongodb://localhost:27019"),
+				},
+			},
+		},
+		{
+			name: "deprioritize server with state change",
+			// Server was RSPrimary when deprioritized, but has since stepped down to RSSecondary.
+			// It should still be filtered out based on address alone.
+			deprioritized: []description.Server{
+				{
+					Addr: address.Address("mongodb://localhost:27017"),
+					Kind: description.ServerKindRSPrimary,
+				},
+			},
+			candidates: []description.Server{
+				{
+					Addr: address.Address("mongodb://localhost:27017"),
+					Kind: description.ServerKindRSSecondary, // State changed
+				},
+				{
+					Addr: address.Address("mongodb://localhost:27018"),
+					Kind: description.ServerKindRSSecondary,
+				},
+			},
+			want: []description.Server{
+				{
+					Addr: address.Address("mongodb://localhost:27018"),
+					Kind: description.ServerKindRSSecondary,
+				},
+			},
+		},
+		{
+			name: "deprioritize server with multiple property changes",
+			// Server had different RTT and tags when deprioritized.
+			// It should still be filtered out based on address alone.
+			deprioritized: []description.Server{
+				{
+					Addr:       address.Address("mongodb://localhost:27017"),
+					Kind:       description.ServerKindRSPrimary,
+					AverageRTT: 50 * time.Millisecond,
+				},
+			},
+			candidates: []description.Server{
+				{
+					Addr:       address.Address("mongodb://localhost:27017"),
+					Kind:       description.ServerKindRSSecondary,
+					AverageRTT: 5 * time.Millisecond,
+				},
+				{
+					Addr:       address.Address("mongodb://localhost:27018"),
+					Kind:       description.ServerKindRSPrimary,
+					AverageRTT: 25 * time.Millisecond,
+				},
+			},
+			want: []description.Server{
+				{
+					Addr:       address.Address("mongodb://localhost:27018"),
+					Kind:       description.ServerKindRSPrimary,
+					AverageRTT: 25 * time.Millisecond,
+				},
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		tc := tc // Capture the range variable.
+
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			// Use a pass-through selector as InnerSelector to test deprioritization logic
+			passthrough := Func(func(_ description.Topology, s []description.Server) ([]description.Server, error) {
+				return s, nil
+			})
+			selector := NewDeprioritized(passthrough, tc.deprioritized)
+			got, err := selector.SelectServer(description.Topology{}, tc.candidates)
+			require.NoError(t, err)
+			assert.ElementsMatch(t, got, tc.want)
+		})
 	}
 }

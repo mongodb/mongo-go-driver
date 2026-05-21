@@ -14,6 +14,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
+	"go.mongodb.org/mongo-driver/v2/internal/randutil"
 	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
@@ -26,7 +27,11 @@ import (
 // the method call is using.
 var ErrWrongClient = errors.New("session was not created by this client")
 
-var withTransactionTimeout = 120 * time.Second
+var (
+	withTransactionTimeout = 120 * time.Second
+	backoffInitial         = 5 * time.Millisecond
+	backoffMax             = 500 * time.Millisecond
+)
 
 // Session is a MongoDB logical session. Sessions can be used to enable causal
 // consistency for a group of operations or to execute operations in an ACID
@@ -121,16 +126,45 @@ func (s *Session) WithTransaction(
 	fn func(ctx context.Context) (any, error),
 	opts ...options.Lister[options.TransactionOptions],
 ) (any, error) {
-	timeout := time.NewTimer(withTransactionTimeout)
+	transTimeout := withTransactionTimeout
+	if s.client.timeout != nil {
+		transTimeout = *s.client.timeout
+	}
+	startTime := time.Now()
+	timeout := time.NewTimer(transTimeout)
 	defer timeout.Stop()
+	var expDur time.Duration
 	var err error
 	for {
+		if expDur == 0 {
+			expDur = backoffInitial
+		} else {
+			if expDur > backoffMax {
+				expDur = backoffMax
+			}
+			backoff := expDur * time.Duration(randutil.JitterInt63n(512)) / 512
+			if time.Since(startTime)+backoff > transTimeout {
+				return nil, timeoutError{Wrapped: err}
+			}
+			sleep := time.NewTimer(backoff)
+			select {
+			case <-timeout.C:
+				sleep.Stop()
+				return nil, timeoutError{Wrapped: err}
+			case <-sleep.C:
+			}
+			if expDur < backoffMax {
+				expDur += expDur / 2
+			}
+		}
+
 		err = s.StartTransaction(opts...)
 		if err != nil {
 			return nil, err
 		}
 
-		res, err := fn(NewSessionContext(ctx, s))
+		var res any
+		res, err = fn(NewSessionContext(ctx, s))
 		if err != nil {
 			if s.clientSession.TransactionRunning() {
 				// Wrap the user-provided Context in a new one that behaves like context.Background() for deadlines and
@@ -140,7 +174,7 @@ func (s *Session) WithTransaction(
 
 			select {
 			case <-timeout.C:
-				return nil, err
+				return nil, timeoutError{Wrapped: err}
 			default:
 			}
 
@@ -179,15 +213,14 @@ func (s *Session) WithTransaction(
 				return res, nil
 			}
 
-			select {
-			case <-timeout.C:
-				return res, err
-			default:
-			}
-
 			var cerr CommandError
 			if errors.As(err, &cerr) {
 				if cerr.HasErrorLabel(driver.UnknownTransactionCommitResult) && !cerr.IsMaxTimeMSExpiredError() {
+					select {
+					case <-timeout.C:
+						return res, timeoutError{Wrapped: err}
+					default:
+					}
 					continue
 				}
 				if cerr.HasErrorLabel(driver.TransientTransactionError) {
@@ -242,7 +275,9 @@ func (s *Session) AbortTransaction(ctx context.Context) error {
 	s.clientSession.Aborting = true
 	_ = operation.NewAbortTransaction().Session(s.clientSession).ClusterClock(s.client.clock).Database("admin").
 		Deployment(s.deployment).WriteConcern(s.clientSession.CurrentWc).ServerSelector(selector).
-		Retry(driver.RetryOncePerCommand).CommandMonitor(s.client.monitor).
+		Retry(driver.RetryOncePerCommand).MaxAdaptiveRetries(s.client.effectiveAdaptiveRetries(true)).
+		EnableOverloadRetargeting(s.client.enableOverloadRetargeting).
+		CommandMonitor(s.client.monitor).
 		RecoveryToken(bsoncore.Document(s.clientSession.RecoveryToken)).ServerAPI(s.client.serverAPI).
 		Authenticator(s.client.authenticator).Logger(s.client.logger).Execute(ctx)
 
@@ -277,6 +312,8 @@ func (s *Session) CommitTransaction(ctx context.Context) error {
 	op := operation.NewCommitTransaction().
 		Session(s.clientSession).ClusterClock(s.client.clock).Database("admin").Deployment(s.deployment).
 		WriteConcern(s.clientSession.CurrentWc).ServerSelector(selector).Retry(driver.RetryOncePerCommand).
+		MaxAdaptiveRetries(s.client.effectiveAdaptiveRetries(true)).
+		EnableOverloadRetargeting(s.client.enableOverloadRetargeting).
 		CommandMonitor(s.client.monitor).RecoveryToken(bsoncore.Document(s.clientSession.RecoveryToken)).
 		ServerAPI(s.client.serverAPI).Authenticator(s.client.authenticator).Logger(s.client.logger)
 
@@ -330,6 +367,12 @@ func (s *Session) AdvanceOperationTime(ts *bson.Timestamp) error {
 // Client is the Client associated with the session.
 func (s *Session) Client() *Client {
 	return s.client
+}
+
+// TransactionRunning returns true if the session has started a transaction and
+// it hasn't been committed or aborted.
+func (s *Session) TransactionRunning() bool {
+	return s.clientSession != nil && s.clientSession.TransactionRunning()
 }
 
 // sessionFromContext checks for a sessionImpl in the argued context and returns the session if it

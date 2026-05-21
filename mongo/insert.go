@@ -25,27 +25,29 @@ import (
 
 // insert performs an insert operation.
 type insert struct {
-	authenticator            driver.Authenticator
-	bypassDocumentValidation *bool
-	comment                  bsoncore.Value
-	documents                []bsoncore.Document
-	ordered                  *bool
-	session                  *session.Client
-	clock                    *session.ClusterClock
-	collection               string
-	monitor                  *event.CommandMonitor
-	crypt                    driver.Crypt
-	database                 string
-	deployment               driver.Deployment
-	selector                 description.ServerSelector
-	writeConcern             *writeconcern.WriteConcern
-	retry                    *driver.RetryMode
-	result                   insertResult
-	serverAPI                *driver.ServerAPIOptions
-	timeout                  *time.Duration
-	rawData                  *bool
-	additionalCmd            bson.D
-	logger                   *logger.Logger
+	authenticator             driver.Authenticator
+	bypassDocumentValidation  *bool
+	comment                   bsoncore.Value
+	documents                 []bsoncore.Document
+	ordered                   *bool
+	session                   *session.Client
+	clock                     *session.ClusterClock
+	collection                string
+	monitor                   *event.CommandMonitor
+	crypt                     driver.Crypt
+	database                  string
+	deployment                driver.Deployment
+	selector                  description.ServerSelector
+	writeConcern              *writeconcern.WriteConcern
+	retry                     *driver.RetryMode
+	maxAdaptiveRetries        uint
+	enableOverloadRetargeting bool
+	result                    insertResult
+	serverAPI                 *driver.ServerAPIOptions
+	timeout                   *time.Duration
+	rawData                   *bool
+	additionalCmd             bson.D
+	logger                    *logger.Logger
 }
 
 // insertResult represents an insert result returned by the server.
@@ -93,24 +95,26 @@ func (i *insert) Execute(ctx context.Context) error {
 	}
 
 	return driver.Operation{
-		CommandFn:         i.command,
-		ProcessResponseFn: i.processResponse,
-		Batches:           batches,
-		RetryMode:         i.retry,
-		Type:              driver.Write,
-		Client:            i.session,
-		Clock:             i.clock,
-		CommandMonitor:    i.monitor,
-		Crypt:             i.crypt,
-		Database:          i.database,
-		Deployment:        i.deployment,
-		Selector:          i.selector,
-		WriteConcern:      i.writeConcern,
-		ServerAPI:         i.serverAPI,
-		Timeout:           i.timeout,
-		Logger:            i.logger,
-		Name:              driverutil.InsertOp,
-		Authenticator:     i.authenticator,
+		CommandFn:                 i.command,
+		ProcessResponseFn:         i.processResponse,
+		Batches:                   batches,
+		RetryMode:                 i.retry,
+		MaxAdaptiveRetries:        i.maxAdaptiveRetries,
+		EnableOverloadRetargeting: i.enableOverloadRetargeting,
+		Type:                      driver.Write,
+		Client:                    i.session,
+		Clock:                     i.clock,
+		CommandMonitor:            i.monitor,
+		Crypt:                     i.crypt,
+		Database:                  i.database,
+		Deployment:                i.deployment,
+		Selector:                  i.selector,
+		WriteConcern:              i.writeConcern,
+		ServerAPI:                 i.serverAPI,
+		Timeout:                   i.timeout,
+		Logger:                    i.logger,
+		Name:                      driverutil.InsertOp,
+		Authenticator:             i.authenticator,
 	}.Execute(ctx)
 }
 

@@ -19,6 +19,9 @@ type changeStreamDeployment struct {
 	topologyKind description.TopologyKind
 	server       driver.Server
 	conn         *mnet.Connection
+
+	reset func() error
+	close func() error
 }
 
 var (
@@ -36,7 +39,11 @@ func (c *changeStreamDeployment) Kind() description.TopologyKind {
 }
 
 func (c *changeStreamDeployment) Connection(context.Context) (*mnet.Connection, error) {
-	return c.conn, nil
+	var err error
+	if c.conn == nil || c.conn.Closed() {
+		err = c.reset()
+	}
+	return c.conn, err
 }
 
 func (c *changeStreamDeployment) RTTMonitor() driver.RTTMonitor {
