@@ -793,7 +793,7 @@ var skipTests = map[string][]string{
 	},
 
 	// GODRIVER-2348(Deprecated): The CSOT specification has deprecated wtimeout
-	// and maxcommitTimeMS.
+	// and maxCommitTimeMS.
 	"Deprecated transactions CSOT Options": {
 		// wtimeout is deprecated
 		"TestUnifiedSpec/transactions/tests/unified/retryable-commit.json/commitTransaction_applies_majority_write_concern_on_retries",
