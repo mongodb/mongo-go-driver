@@ -199,8 +199,10 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/transactions-convenient-api/tests/unified/commit-writeconcernerror.json/commitTransaction_is_not_retried_after_MaxTimeMSExpired_error",
 	},
 
-	// GODRIVER-1773(Won't Fix): Tests related to batch size expectation in "find" and
+	// TODO(DRIVERS-1448): Tests related to batch size expectation in "find" and
 	// "getMore" events.
+	// Note: These tests can be entirely removed when drivers no longer support
+	// 4.4. (GODRIVER-3922)
 	"Tests for batch size expectation in 'find' and 'getMore' events (GODRIVER-1773)": {
 		"TestUnifiedSpec/command-logging-and-monitoring/tests/monitoring/find.json/A_successful_find_event_with_a_getmore_and_the_server_kills_the_cursor_(<=_4.4)",
 		"TestUnifiedSpec/unified-test-format/tests/valid-pass/poc-command-monitoring.json/A_successful_find_event_with_a_getmore_and_the_server_kills_the_cursor_(<=_4.4)",
@@ -790,7 +792,8 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/client-side-encryption/tests/unified/fle2v2-InsertFind-keyAltName.json/Create_translates_keyAltName",
 	},
 
-	// GODRIVER-2348(Won't Fix)
+	// GODRIVER-2348(Deprecated): The CSOT specification has deprecated wtimeout
+	// and maxcommitTimeMS.
 	"Deprecated transactions CSOT Options": {
 		// wtimeout is deprecated
 		"TestUnifiedSpec/transactions/tests/unified/retryable-commit.json/commitTransaction_applies_majority_write_concern_on_retries",
