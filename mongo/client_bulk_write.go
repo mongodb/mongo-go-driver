@@ -28,13 +28,14 @@ const (
 	database = "admin"
 )
 
-type clientBulkWritePair struct {
-	namespace string
-	model     any
+type clientBulkWriteOp struct {
+	namespace      string
+	model          any
+	collectionUUID []byte
 }
 
 type clientBulkWrite struct {
-	writePairs               []clientBulkWritePair
+	writeOps               []clientBulkWriteOp
 	errorsOnly               bool
 	ordered                  *bool
 	bypassDocumentValidation *bool
@@ -54,10 +55,10 @@ type clientBulkWrite struct {
 }
 
 func (bw *clientBulkWrite) execute(ctx context.Context) error {
-	if len(bw.writePairs) == 0 {
+	if len(bw.writeOps) == 0 {
 		return fmt.Errorf("invalid writes: %w", ErrEmptySlice)
 	}
-	for i, m := range bw.writePairs {
+	for i, m := range bw.writeOps {
 		if m.model == nil {
 			return fmt.Errorf("error from model at index %d: %w", i, ErrNilDocument)
 		}
@@ -66,7 +67,7 @@ func (bw *clientBulkWrite) execute(ctx context.Context) error {
 		session:    bw.session,
 		client:     bw.client,
 		ordered:    bw.ordered == nil || *bw.ordered,
-		writePairs: bw.writePairs,
+		writeOps: bw.writeOps,
 		result:     &bw.result,
 		retryMode:  driver.RetryOnce,
 	}
@@ -117,7 +118,7 @@ func (bw *clientBulkWrite) execute(ctx context.Context) error {
 			_, ok := batches.writeErrors[0]
 			hasSuccess = !ok
 		} else {
-			hasSuccess = len(batches.writeErrors) < len(bw.writePairs)
+			hasSuccess = len(batches.writeErrors) < len(bw.writeOps)
 		}
 		if hasSuccess {
 			exception.PartialResult = batches.result
@@ -200,7 +201,7 @@ type modelBatches struct {
 	client  *Client
 
 	ordered    bool
-	writePairs []clientBulkWritePair
+	writeOps []clientBulkWriteOp
 
 	offset int
 
@@ -221,16 +222,16 @@ func (mb *modelBatches) IsOrdered() *bool {
 
 func (mb *modelBatches) AdvanceBatches(n int) {
 	mb.offset += n
-	if mb.offset > len(mb.writePairs) {
-		mb.offset = len(mb.writePairs)
+	if mb.offset > len(mb.writeOps) {
+		mb.offset = len(mb.writeOps)
 	}
 }
 
 func (mb *modelBatches) Size() int {
-	if mb.offset > len(mb.writePairs) {
+	if mb.offset > len(mb.writeOps) {
 		return 0
 	}
-	return len(mb.writePairs) - mb.offset
+	return len(mb.writeOps) - mb.offset
 }
 
 func (mb *modelBatches) AppendBatchSequence(dst []byte, maxCount, totalSize int) (int, []byte, error) {
@@ -281,15 +282,20 @@ func (mb *modelBatches) appendBatches(fn functionSet, dst []byte, maxCount, tota
 	mb.cursorHandlers = mb.cursorHandlers[:0]
 	mb.newIDMap = make(map[int]any)
 
-	nsMap := make(map[string]int)
-	getNsIndex := func(namespace string) (int, bool) {
-		v, ok := nsMap[namespace]
+	type nsInfoKey struct {
+		namespace string
+		uuidKey   string // string(uuid), or "" when no UUID
+	}
+	nsMap := make(map[nsInfoKey]int)
+	getNsIndex := func(namespace string, uuid []byte) (int, bool) {
+		key := nsInfoKey{namespace: namespace, uuidKey: string(uuid)}
+		v, ok := nsMap[key]
 		if ok {
 			return v, ok
 		}
-		nsIdx := len(nsMap)
-		nsMap[namespace] = nsIdx
-		return nsIdx, ok
+		idx := len(nsMap)
+		nsMap[key] = idx
+		return idx, ok
 	}
 
 	canRetry := true
@@ -301,17 +307,18 @@ func (mb *modelBatches) appendBatches(fn functionSet, dst []byte, maxCount, tota
 	totalSize -= 1000
 	size := len(dst) + len(nsDst)
 	var n int
-	for i := mb.offset; i < len(mb.writePairs); i++ {
+	for i := mb.offset; i < len(mb.writeOps); i++ {
 		if n == maxCount {
 			break
 		}
 
-		ns := mb.writePairs[i].namespace
-		nsIdx, exists := getNsIndex(ns)
+		ns := mb.writeOps[i].namespace
+		opUUID := mb.writeOps[i].collectionUUID
+		nsIdx, exists := getNsIndex(ns, opUUID)
 
 		var doc bsoncore.Document
 		var err error
-		switch model := mb.writePairs[i].model.(type) {
+		switch model := mb.writeOps[i].model.(type) {
 		case *ClientInsertOneModel:
 			mb.cursorHandlers = append(mb.cursorHandlers, mb.appendInsertResult)
 			var id any
@@ -393,6 +400,9 @@ func (mb *modelBatches) appendBatches(fn functionSet, dst []byte, maxCount, tota
 		length := len(doc)
 		if !exists {
 			length += len(ns)
+			if opUUID != nil {
+				length += len(opUUID)
+			}
 		}
 		size += length
 		if size >= totalSize {
@@ -403,6 +413,9 @@ func (mb *modelBatches) appendBatches(fn functionSet, dst []byte, maxCount, tota
 		if !exists {
 			idx, doc := bsoncore.AppendDocumentStart(nil)
 			doc = bsoncore.AppendStringElement(doc, "ns", ns)
+			if opUUID != nil {
+				doc = bsoncore.AppendBinaryElement(doc, "collectionUUID", bson.TypeBinaryUUID, opUUID)
+			}
 			doc, _ = bsoncore.AppendDocumentEnd(doc, idx)
 			nsDst = fn.appendDocument(nsDst, strconv.Itoa(n), doc)
 		}
