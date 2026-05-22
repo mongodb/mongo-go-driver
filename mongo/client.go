@@ -956,6 +956,10 @@ type ClientBulkWrite struct {
 	Database   string
 	Collection string
 	Model      ClientWriteModel
+
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	Internal optionsutil.Options
 }
 
 // BulkWrite performs a client-level bulk write operation.
@@ -1019,16 +1023,20 @@ func (c *Client) BulkWrite(ctx context.Context, writes []ClientBulkWrite,
 	}
 	selector := makePinnedSelector(sess, writeSelector)
 
-	writePairs := make([]clientBulkWritePair, len(writes))
+	writeOps := make([]clientBulkWriteOp, len(writes))
 	for i, w := range writes {
-		writePairs[i] = clientBulkWritePair{
+		p := clientBulkWriteOp{
 			namespace: fmt.Sprintf("%s.%s", w.Database, w.Collection),
 			model:     w.Model,
 		}
+		if uuid, ok := optionsutil.Value(w.Internal, "collectionUUID").([]byte); ok {
+			p.collectionUUID = uuid
+		}
+		writeOps[i] = p
 	}
 
 	op := clientBulkWrite{
-		writePairs:               writePairs,
+		writeOps:               writeOps,
 		ordered:                  bwo.Ordered,
 		bypassDocumentValidation: bwo.BypassDocumentValidation,
 		comment:                  bwo.Comment,
