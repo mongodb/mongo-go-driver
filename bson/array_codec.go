@@ -31,8 +31,16 @@ func (ac *arrayCodec) DecodeValue(_ DecodeContext, vr ValueReader, val reflect.V
 	if !val.CanSet() || val.Type() != tCoreArray {
 		return ValueDecoderError{Name: "CoreArrayDecodeValue", Types: []reflect.Type{tCoreArray}, Received: val}
 	}
-	if vrType := vr.Type(); vrType != TypeArray {
-		return fmt.Errorf("cannot decode %v into a %s", vrType, val.Type())
+	switch vr.Type() {
+	case TypeArray:
+	case TypeNull:
+		val.Set(reflect.Zero(val.Type()))
+		return vr.ReadNull()
+	case TypeUndefined:
+		val.Set(reflect.Zero(val.Type()))
+		return vr.ReadUndefined()
+	default:
+		return fmt.Errorf("cannot decode %v into a %s", vr.Type(), val.Type())
 	}
 
 	if val.IsNil() {
