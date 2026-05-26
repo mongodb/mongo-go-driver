@@ -700,7 +700,7 @@ func TestDatabase_ListCollections_Routing(t *testing.T) {
 		require.NoError(mt, err, "direct Connect error: %v", err)
 
 		defer func() {
-			require.NoError(t, directClient.Disconnect(context.Background()))
+			require.NoError(mt, directClient.Disconnect(context.Background()))
 		}()
 
 		// Step 2. Invoke listCollections and assert that it succeeds.
