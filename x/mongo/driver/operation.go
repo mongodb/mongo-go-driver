@@ -104,7 +104,7 @@ func (b retryBudget) allows(attempt uint) bool {
 func capped(n uint) retryBudget { return retryBudget{finite: true, max: n} }
 
 // unlimited is the zero-valued, uncapped retry budget.
-var unlimited retryBudget
+func unlimitedBudget() retryBudget { return retryBudget{} }
 
 // InvalidOperationError is returned from Validate and indicates that a required field is missing
 // from an instance of Operation.
