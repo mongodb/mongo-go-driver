@@ -199,14 +199,16 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/transactions-convenient-api/tests/unified/commit-writeconcernerror.json/commitTransaction_is_not_retried_after_MaxTimeMSExpired_error",
 	},
 
-	// TODO(GODRIVER-1773): Tests related to batch size expectation in "find" and
+	// TODO(DRIVERS-1448): Tests related to batch size expectation in "find" and
 	// "getMore" events.
+	// Note: These tests can be entirely removed when drivers no longer support
+	// 4.4. (GODRIVER-3922)
 	"Tests for batch size expectation in 'find' and 'getMore' events (GODRIVER-1773)": {
 		"TestUnifiedSpec/command-logging-and-monitoring/tests/monitoring/find.json/A_successful_find_event_with_a_getmore_and_the_server_kills_the_cursor_(<=_4.4)",
 		"TestUnifiedSpec/unified-test-format/tests/valid-pass/poc-command-monitoring.json/A_successful_find_event_with_a_getmore_and_the_server_kills_the_cursor_(<=_4.4)",
 	},
 
-	// TODO(GODRIVER-2577): Tests require immediate operation canceling,
+	// TODO(GODRIVER-3919): Tests require immediate operation canceling,
 	// incompatible with current pool clearing logic.
 	"Require immediate operation canceling for pool clearing (GODRIVER-2577)": {
 		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/interruptInUse-pool-clear.json/Connection_pool_clear_uses_interruptInUseConnections=true_after_monitor_timeout",
@@ -764,7 +766,7 @@ var skipTests = map[string][]string{
 		"TestSDAMSpec/errors/pre-42-ShutdownInProgress.json",
 	},
 
-	// TODO(GODRIVER-1826): Race condition between monitor and pool causes pool to be cleared.
+	// TODO(GODRIVER-3920): Race condition between monitor and pool causes pool to be cleared.
 	"Backpressure SDAM test 'pool-clear-min-pool-size-error.yml' fails on standalone deployments": {
 		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/pool-clear-min-pool-size-error.json/Pool_is_not_cleared_on_handshake_error_during_minPoolSize_population",
 	},
@@ -790,14 +792,17 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/client-side-encryption/tests/unified/fle2v2-InsertFind-keyAltName.json/Create_translates_keyAltName",
 	},
 
-	// GODRIVER-2348
-	"transactions CSOT Options": {
+	// GODRIVER-2348(Deprecated): The CSOT specification has deprecated wtimeout
+	// and maxCommitTimeMS.
+	"Deprecated transactions CSOT Options": {
+		// wtimeout is deprecated
 		"TestUnifiedSpec/transactions/tests/unified/retryable-commit.json/commitTransaction_applies_majority_write_concern_on_retries",
 		"TestUnifiedSpec/transactions/tests/unified/transaction-options.json/transaction_options_inherited_from_client",
+		"TestUnifiedSpec/transactions/tests/unified/transaction-options.json/readConcern_local_in_defaultTransactionOptions",
+		// maxCommitTimeMS is deprecated
 		"TestUnifiedSpec/transactions/tests/unified/transaction-options.json/transaction_options_inherited_from_defaultTransactionOptions",
 		"TestUnifiedSpec/transactions/tests/unified/transaction-options.json/startTransaction_options_override_defaults",
 		"TestUnifiedSpec/transactions/tests/unified/transaction-options.json/defaultTransactionOptions_override_client_options",
-		"TestUnifiedSpec/transactions/tests/unified/transaction-options.json/readConcern_local_in_defaultTransactionOptions",
 	},
 }
 
