@@ -6,21 +6,21 @@
 
 package randutil
 
+import "time"
+
 var globalRand = NewLockedRand()
 
 // jitter is the function used by Jitter. Production code uses
 // globalRand.Float64; tests may swap it via SetJitterForTesting.
 var jitter func() float64 = globalRand.Float64
 
-// Jitter returns a pseudo-random ratio in [0.0, 1.0) for use in backoff
-// calculations per the client-backpressure spec:
+// JitterDuration returns the input duration weighted by a pseudo-random ratio
+// in [0.0, 1.0).
 //
-//	backoff = Jitter() * min(MAX_BACKOFF, BASE_BACKOFF * 2.0^(attempt - 1.0))
-//
-// If a test jitter function is set by calling SetJitterForTesting, Jitter
-// returns the value from that custom function.
-func Jitter() float64 {
-	return jitter()
+// If a test jitter function is set by calling SetJitterForTesting,
+// JitterDuration returns the value from that custom function.
+func JitterDuration(d time.Duration) time.Duration {
+	return time.Duration(float64(d) * jitter())
 }
 
 // SetJitterForTesting sets a custom jitter function for testing and returns

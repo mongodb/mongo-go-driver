@@ -538,21 +538,21 @@ func (op Operation) Execute(ctx context.Context) error {
 			case RetryOnce, RetryOncePerCommand:
 				defaultBudget = capped(1)
 			case RetryContext:
-				defaultBudget = unlimited
+				defaultBudget = unlimitedBudget()
 			}
 		case Read:
 			switch *op.RetryMode {
 			case RetryOnce, RetryOncePerCommand:
 				defaultBudget = capped(1)
 			case RetryContext:
-				defaultBudget = unlimited
+				defaultBudget = unlimitedBudget()
 			}
 		}
 
 		// If context is a Timeout context, automatically set retries to
 		// unlimited if retrying is enabled.
 		if csot.IsTimeoutContext(ctx) && op.RetryMode.Enabled() {
-			defaultBudget = unlimited
+			defaultBudget = unlimitedBudget()
 		}
 	}
 
@@ -632,7 +632,7 @@ func (op Operation) Execute(ctx context.Context) error {
 					expDur = backoffMax
 				}
 			}
-			backoff := time.Duration(randutil.Jitter() * float64(expDur))
+			backoff := randutil.JitterDuration(expDur)
 			if deadline, ok := ctx.Deadline(); ok && time.Until(deadline) < backoff {
 				return err
 			}
