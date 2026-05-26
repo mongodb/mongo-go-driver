@@ -11,6 +11,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
+	"os"
 	"reflect"
 	"strings"
 	"sync"
@@ -640,7 +642,27 @@ func TestDatabase_ListCollections_Routing(t *testing.T) {
 		require.Equal(mt, primary.String(), actualHost)
 	})
 
+	// Skip testing auth since it requires building a secondary string with
+	// auth credentials, which is not the point of this test.
 	mt.Run("succeeds when directly connected to a secondary", func(mt *mtest.T) {
+		// This test can only run if the MONGODB_URI contains a username and
+		// password, since we need to authenticate to the secondary.
+		var mongodbURL *url.URL
+		if os.Getenv("MONGODB_URI") != "" {
+			var err error
+			mongodbURL, err = url.Parse(os.Getenv("MONGODB_URI"))
+			require.NoError(mt, err, "error parsing MONGODB_URI: %v", err)
+		} else {
+			mt.Skip("MONGODB_URI must not be set for this test to run")
+		}
+
+		username := mongodbURL.User.Username()
+		require.NotEmpty(mt, username, "MONGODB_URI must contain a username for this test to run")
+
+		password, isSet := mongodbURL.User.Password()
+		require.True(mt, isSet, "MONGODB_URI must contain a password for this test to run")
+		require.NotEmpty(mt, password, "MONGODB_URI must contain a password for this test to run")
+
 		// Step 1. Construct a client whose URI points at a known secondary and sets
 		// directConnection=true.
 		var hello struct {
@@ -666,7 +688,13 @@ func TestDatabase_ListCollections_Routing(t *testing.T) {
 			mt.Skip("no secondary node available in cluster")
 		}
 
-		directOpts := options.Client().ApplyURI("mongodb://" + secondary).SetDirect(true)
+		// Add auth to secondary.
+		creds := options.Credential{
+			Username: username,
+			Password: password,
+		}
+
+		directOpts := options.Client().ApplyURI("mongodb://" + secondary).SetDirect(true).SetAuth(creds)
 
 		directClient, err := mongo.Connect(directOpts)
 		require.NoError(mt, err, "direct Connect error: %v", err)
