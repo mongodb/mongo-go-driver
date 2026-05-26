@@ -100,11 +100,11 @@ func (b retryBudget) allows(attempt uint) bool {
 	return !b.finite || attempt < b.max
 }
 
-// capped returns a retry budget of n attempts.
-func capped(n uint) retryBudget { return retryBudget{finite: true, max: n} }
+// cappedRetryBudget returns a retry budget of n attempts.
+func cappedRetryBudget(n uint) retryBudget { return retryBudget{finite: true, max: n} }
 
-// unlimited is the zero-valued, uncapped retry budget.
-func unlimitedBudget() retryBudget { return retryBudget{} }
+// unlimitedRetryBudget is the zero-valued, uncapped retry budget.
+func unlimitedRetryBudget() retryBudget { return retryBudget{} }
 
 // InvalidOperationError is returned from Validate and indicates that a required field is missing
 // from an instance of Operation.
@@ -527,7 +527,7 @@ func (op Operation) Execute(ctx context.Context) error {
 		}
 	}
 
-	defaultBudget := capped(0)
+	defaultBudget := cappedRetryBudget(0)
 	if op.RetryMode != nil {
 		switch op.Type {
 		case Write:
@@ -536,23 +536,23 @@ func (op Operation) Execute(ctx context.Context) error {
 			}
 			switch *op.RetryMode {
 			case RetryOnce, RetryOncePerCommand:
-				defaultBudget = capped(1)
+				defaultBudget = cappedRetryBudget(1)
 			case RetryContext:
-				defaultBudget = unlimitedBudget()
+				defaultBudget = unlimitedRetryBudget()
 			}
 		case Read:
 			switch *op.RetryMode {
 			case RetryOnce, RetryOncePerCommand:
-				defaultBudget = capped(1)
+				defaultBudget = cappedRetryBudget(1)
 			case RetryContext:
-				defaultBudget = unlimitedBudget()
+				defaultBudget = unlimitedRetryBudget()
 			}
 		}
 
 		// If context is a Timeout context, automatically set retries to
 		// unlimited if retrying is enabled.
 		if csot.IsTimeoutContext(ctx) && op.RetryMode.Enabled() {
-			defaultBudget = unlimitedBudget()
+			defaultBudget = unlimitedRetryBudget()
 		}
 	}
 
@@ -857,7 +857,7 @@ func (op Operation) Execute(ctx context.Context) error {
 			if isOverloadedError && op.MaxAdaptiveRetries != 0 {
 				// If maxAdaptiveRetries is set, we want to retry overload errors until
 				// we hit that max.
-				nextBudget = capped(op.MaxAdaptiveRetries)
+				nextBudget = cappedRetryBudget(op.MaxAdaptiveRetries)
 				currentBudget = nextBudget
 			}
 			connDesc := conn.Description()
@@ -984,7 +984,7 @@ func (op Operation) Execute(ctx context.Context) error {
 			if isOverloadedError && op.MaxAdaptiveRetries != 0 {
 				// If maxAdaptiveRetries is set, we want to retry overload errors until
 				// we hit that max.
-				nextBudget = capped(op.MaxAdaptiveRetries)
+				nextBudget = cappedRetryBudget(op.MaxAdaptiveRetries)
 				currentBudget = nextBudget
 			}
 			connDesc := conn.Description()
@@ -1093,7 +1093,7 @@ func (op Operation) Execute(ctx context.Context) error {
 				// Reset the retries number for RetryOncePerCommand unless context is a Timeout context, in
 				// which case retries should remain as nil (as many times as possible).
 				if *op.RetryMode == RetryOncePerCommand && !csot.IsTimeoutContext(ctx) {
-					nextBudget = capped(1)
+					nextBudget = cappedRetryBudget(1)
 				}
 			}
 			isOverloadedError = false
