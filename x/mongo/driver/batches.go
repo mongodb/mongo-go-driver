@@ -39,7 +39,7 @@ func (b *Batches) AppendBatchSequence(dst []byte, maxCount, totalSize int) (int,
 	idx, dst = bsoncore.ReserveLength(dst)
 	dst = append(dst, b.Identifier...)
 	dst = append(dst, 0x00)
-	var size int
+	size := len(dst)
 	var n int
 	for i := b.offset; i < len(b.Documents); i++ {
 		if n == maxCount {
@@ -69,7 +69,7 @@ func (b *Batches) AppendBatchArray(dst []byte, maxCount, totalSize int) (int, []
 	}
 	l := len(dst)
 	aidx, dst := bsoncore.AppendArrayElementStart(dst, b.Identifier)
-	var size int
+	size := len(dst)
 	var n int
 	for i := b.offset; i < len(b.Documents); i++ {
 		if n == maxCount {

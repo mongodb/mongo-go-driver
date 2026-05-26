@@ -1017,3 +1017,45 @@ func TestClientBulkWriteProse(t *testing.T) {
 		assert.Equal(mt, num, int(n), "expected %d documents, got: %d", num, n)
 	})
 }
+
+func TestInsertManySplitsBatchesByWireMessageSize(t *testing.T) {
+	ctx := context.Background()
+
+	mt := mtest.New(t)
+	mt.Setup()
+
+	var hello struct {
+		MaxBsonObjectSize   int
+		MaxMessageSizeBytes int
+	}
+	err := mt.DB.RunCommand(ctx, bson.D{{"hello", 1}}).Decode(&hello)
+	require.NoError(mt, err, "Hello error: %v", err)
+
+	// Per-document overhead the driver adds when marshalling a
+	// bson.D{{"x", <string>}}: 13 bytes for the BSON envelope (length,
+	// type, key, terminators) plus 17 bytes for the _id ObjectID the
+	// driver auto-injects.
+	const perDocOverhead = 30
+
+	// Three documents whose BSON sizes sum to just under
+	// maxMessageSizeBytes: two near-max, one filling the rest. The 100-
+	// byte budget margin reserves room for the 30-byte-per-doc overhead
+	// across the three documents (90 bytes) plus a 10-byte slack, so
+	// sum_of_docs lands ~10 bytes under 48,000,000. The remaining ~200
+	// bytes of command body framing then push the actual OP_MSG over
+	// the limit.
+	const totalBudgetMargin = 100
+
+	bigStrLen := hello.MaxBsonObjectSize - perDocOverhead
+	smallStrLen := hello.MaxMessageSizeBytes - totalBudgetMargin - 2*bigStrLen
+
+	bigStr := strings.Repeat("a", bigStrLen)
+	smallStr := strings.Repeat("a", smallStrLen)
+	docs := []any{
+		bson.D{{Key: "x", Value: bigStr}},
+		bson.D{{Key: "x", Value: bigStr}},
+		bson.D{{Key: "x", Value: smallStr}},
+	}
+	_, err = mt.Coll.InsertMany(ctx, docs)
+	require.NoError(mt, err, "InsertMany error: %v", err)
+}
