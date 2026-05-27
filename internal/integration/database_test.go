@@ -622,7 +622,12 @@ func TestDatabase_ListCollections_Routing(t *testing.T) {
 
 		// Step 3. Invoke ListCollections against the new client and assert that the
 		// command was successful.
-		_, err := mt.DB.ListCollections(context.Background(), bson.D{})
+		cur, err := mt.DB.ListCollections(context.Background(), bson.D{})
+
+		defer func() {
+			require.NoError(t, cur.Close(context.Background()))
+		}()
+
 		require.NoError(mt, err, "ListCollections error: %v", err)
 
 		mu.Lock()
@@ -644,7 +649,7 @@ func TestDatabase_ListCollections_Routing(t *testing.T) {
 	// auth credentials, which is not the point of this test.
 	mt.Run("succeeds when directly connected to a secondary", func(mt *mtest.T) {
 		if mtest.ClusterConnString().UsernameSet || mtest.SSLEnabled() {
-			mt.Skip("skipping test when auth or SSL is enabled")
+			mt.Skip("direct URI lacks auth/TLS options; skip when cluster requires them")
 		}
 		// Step 1. Construct a client whose URI points at a known secondary and sets
 		// directConnection=true.
@@ -681,7 +686,12 @@ func TestDatabase_ListCollections_Routing(t *testing.T) {
 		}()
 
 		// Step 2. Invoke listCollections and assert that it succeeds.
-		_, err = directClient.Database(mt.DB.Name()).ListCollections(context.Background(), bson.D{})
+		cur, err := directClient.Database(mt.DB.Name()).ListCollections(context.Background(), bson.D{})
+
+		defer func() {
+			require.NoError(mt, cur.Close(context.Background()))
+		}()
+
 		require.NoError(mt, err,
 			"ListCollections against directly-connected secondary should succeed: %v",
 			err)
