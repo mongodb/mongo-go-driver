@@ -624,13 +624,8 @@ func TestDatabase_ListCollections_Routing(t *testing.T) {
 		// command was successful.
 		cur, err := mt.DB.ListCollections(context.Background(), bson.D{})
 
-		if cur != nil {
-			defer func() {
-				require.NoError(t, cur.Close(context.Background()))
-			}()
-		}
-
 		require.NoError(mt, err, "ListCollections error: %v", err)
+		require.NoError(mt, cur.Close(context.Background()))
 
 		mu.Lock()
 		defer mu.Unlock()
@@ -689,16 +684,10 @@ func TestDatabase_ListCollections_Routing(t *testing.T) {
 
 		// Step 2. Invoke listCollections and assert that it succeeds.
 		cur, err := directClient.Database(mt.DB.Name()).ListCollections(context.Background(), bson.D{})
-
-		if cur != nil {
-			defer func() {
-				require.NoError(mt, cur.Close(context.Background()))
-			}()
-		}
-
 		require.NoError(mt, err,
 			"ListCollections against directly-connected secondary should succeed: %v",
 			err)
+		require.NoError(mt, cur.Close(context.Background()))
 	})
 }
 
