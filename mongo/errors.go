@@ -378,6 +378,7 @@ var (
 	_ ServerError = WriteError{}
 	_ ServerError = WriteException{}
 	_ ServerError = BulkWriteException{}
+	_ ServerError = ClientBulkWriteException{}
 )
 
 var _ error = ClientBulkWriteException{}
@@ -797,6 +798,94 @@ type ClientBulkWriteException struct {
 	// The results of any successful operations that were performed before the error
 	// was encountered.
 	PartialResult *ClientBulkWriteResult
+
+	Labels []string
+}
+
+func (bwe ClientBulkWriteException) serverError() {}
+
+// ErrorCodes returns the list of server error codes contained in the error.
+func (bwe ClientBulkWriteException) ErrorCodes() []int {
+	errorCodes := []int{}
+
+	bwe.iterateErrors(func(code int, _ string) bool {
+		errorCodes = append(errorCodes, code)
+		return false
+	})
+
+	return errorCodes
+}
+
+// HasErrorCode returns true if the error has the specified code.
+func (bwe ClientBulkWriteException) HasErrorCode(code int) bool {
+	for _, errorCode := range bwe.ErrorCodes() {
+		if errorCode == code {
+			return true
+		}
+	}
+
+	return false
+}
+
+// HasErrorCodeWithMessage returns true if any of the contained errors have the specified code and message.
+func (bwe ClientBulkWriteException) HasErrorCodeWithMessage(code int, message string) bool {
+	has := false
+	bwe.iterateErrors(func(errCode int, errMsg string) bool {
+		if errCode == code && strings.Contains(errMsg, message) {
+			has = true
+			return true
+		}
+
+		return false
+	})
+
+	return has
+}
+
+// HasErrorMessage returns true if the error contains the specified message.
+func (bwe ClientBulkWriteException) HasErrorMessage(message string) bool {
+	has := false
+	bwe.iterateErrors(func(_ int, errMsg string) bool {
+		if strings.Contains(errMsg, message) {
+			has = true
+			return true
+		}
+
+		return false
+	})
+
+	return has
+}
+
+// HasErrorLabel returns true if the error contains the specified label.
+func (bwe ClientBulkWriteException) HasErrorLabel(label string) bool {
+	for _, l := range bwe.Labels {
+		if l == label {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (bwe ClientBulkWriteException) iterateErrors(f func(int, string) bool) {
+	if bwe.WriteError != nil {
+		if f(bwe.WriteError.Code, bwe.WriteError.Message) {
+			return
+		}
+	}
+
+	for _, err := range bwe.WriteConcernErrors {
+		if f(err.Code, err.Message) {
+			return
+		}
+	}
+
+	for _, writeError := range bwe.WriteErrors {
+		if f(writeError.Code, writeError.Message) {
+			return
+		}
+	}
 }
 
 // Error implements the error interface.
