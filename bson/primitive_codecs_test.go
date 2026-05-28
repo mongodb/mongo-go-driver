@@ -574,6 +574,22 @@ func TestPrimitiveValueDecoders(t *testing.T) {
 					readDocument,
 					errors.New("copy error"),
 				},
+				{
+					"decode null",
+					Raw(nil),
+					nil,
+					&valueReaderWriter{BSONType: TypeNull},
+					readNull,
+					nil,
+				},
+				{
+					"decode undefined",
+					Raw(nil),
+					nil,
+					&valueReaderWriter{BSONType: TypeUndefined},
+					readUndefined,
+					nil,
+				},
 			},
 		},
 	}
