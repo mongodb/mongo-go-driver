@@ -7,14 +7,14 @@
 package bson
 
 import (
+	"archive/tar"
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
-	"path"
 	"sync"
 	"testing"
 )
@@ -144,54 +144,74 @@ var nestedInstance = nestedtest1{
 	},
 }
 
-const extendedBSONDir = "../testdata/extended_bson"
+const extendedBSONTGZ = "../testdata/specifications/source/benchmarking/data/extended_bson.tgz"
 
 var (
 	extJSONFiles   map[string]map[string]any
 	extJSONFilesMu sync.Mutex
 )
 
-// readExtJSONFile reads the GZIP-compressed extended JSON document from the given filename in the
-// "extended BSON" test data directory (../testdata/extended_bson) and returns it as a
-// map[string]any. It panics on any errors.
-func readExtJSONFile(filename string) map[string]any {
+// readExtJSONFile reads the named JSON file from the extended_bson.tgz archive and returns it as a
+// map[string]any. The first call decompresses the archive and caches all entries; subsequent calls
+// only look up the cache. It calls b.Fatal on any errors.
+func readExtJSONFile(b *testing.B, filename string) map[string]any {
+	b.Helper()
 	extJSONFilesMu.Lock()
 	defer extJSONFilesMu.Unlock()
-	if v, ok := extJSONFiles[filename]; ok {
-		return v
-	}
-	filePath := path.Join(extendedBSONDir, filename)
-	file, err := os.Open(filePath)
-	if err != nil {
-		panic(fmt.Sprintf("error opening file %q: %s", filePath, err))
-	}
-	defer func() {
-		_ = file.Close()
-	}()
-
-	gz, err := gzip.NewReader(file)
-	if err != nil {
-		panic(fmt.Sprintf("error creating GZIP reader: %s", err))
-	}
-	defer func() {
-		_ = gz.Close()
-	}()
-
-	data, err := ioutil.ReadAll(gz)
-	if err != nil {
-		panic(fmt.Sprintf("error reading GZIP contents of file: %s", err))
-	}
-
-	var v map[string]any
-	err = UnmarshalExtJSON(data, false, &v)
-	if err != nil {
-		panic(fmt.Sprintf("error unmarshalling extended JSON: %s", err))
-	}
 
 	if extJSONFiles == nil {
+		file, err := os.Open(extendedBSONTGZ)
+		if err != nil {
+			b.Fatalf("error opening %q: %s", extendedBSONTGZ, err)
+			return nil
+		}
+		defer func() {
+			_ = file.Close()
+		}()
+
+		gz, err := gzip.NewReader(file)
+		if err != nil {
+			b.Fatalf("error creating gzip reader: %s", err)
+			return nil
+		}
+		defer func() {
+			_ = gz.Close()
+		}()
+
 		extJSONFiles = make(map[string]map[string]any)
+
+		tr := tar.NewReader(gz)
+		for {
+			hdr, err := tr.Next()
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			if err != nil {
+				b.Fatalf("error reading tar: %s", err)
+				return nil
+			}
+			if hdr.Typeflag != tar.TypeReg {
+				continue
+			}
+			data, err := io.ReadAll(tr)
+			if err != nil {
+				b.Fatalf("error reading tar entry %q: %s", hdr.Name, err)
+				return nil
+			}
+			var v map[string]any
+			if err = UnmarshalExtJSON(data, false, &v); err != nil {
+				b.Fatalf("error unmarshalling %q: %s", hdr.Name, err)
+				return nil
+			}
+			extJSONFiles[hdr.Name] = v
+		}
 	}
-	extJSONFiles[filename] = v
+
+	v, ok := extJSONFiles["extended_bson/"+filename]
+	if !ok {
+		b.Fatalf("file %q not found in %q", filename, extendedBSONTGZ)
+		return nil
+	}
 	return v
 }
 
@@ -213,16 +233,16 @@ func BenchmarkMarshal(b *testing.B) {
 			value: encodetestBsonD,
 		},
 		{
-			desc:  "deep_bson.json.gz",
-			value: readExtJSONFile("deep_bson.json.gz"),
+			desc:  "deep_bson.json",
+			value: readExtJSONFile(b, "deep_bson.json"),
 		},
 		{
-			desc:  "flat_bson.json.gz",
-			value: readExtJSONFile("flat_bson.json.gz"),
+			desc:  "flat_bson.json",
+			value: readExtJSONFile(b, "flat_bson.json"),
 		},
 		{
-			desc:  "full_bson.json.gz",
-			value: readExtJSONFile("full_bson.json.gz"),
+			desc:  "full_bson.json",
+			value: readExtJSONFile(b, "full_bson.json"),
 		},
 	}
 
@@ -314,16 +334,16 @@ func BenchmarkUnmarshal(b *testing.B) {
 			value: nestedInstance,
 		},
 		{
-			name:  "deep_bson.json.gz",
-			value: readExtJSONFile("deep_bson.json.gz"),
+			name:  "deep_bson.json",
+			value: readExtJSONFile(b, "deep_bson.json"),
 		},
 		{
-			name:  "flat_bson.json.gz",
-			value: readExtJSONFile("flat_bson.json.gz"),
+			name:  "flat_bson.json",
+			value: readExtJSONFile(b, "flat_bson.json"),
 		},
 		{
-			name:  "full_bson.json.gz",
-			value: readExtJSONFile("full_bson.json.gz"),
+			name:  "full_bson.json",
+			value: readExtJSONFile(b, "full_bson.json"),
 		},
 	}
 
