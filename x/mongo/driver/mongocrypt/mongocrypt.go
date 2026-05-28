@@ -24,6 +24,7 @@ import (
 	"unsafe"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/aws/credentials"
 	"go.mongodb.org/mongo-driver/v2/internal/httputil"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/auth/creds"
@@ -63,8 +64,16 @@ func NewMongoCrypt(opts *options.MongoCryptOptions) (*MongoCrypt, error) {
 	if needsKmsProvider(opts.KmsProviders, "gcp") {
 		kmsProviders["gcp"] = creds.NewGCPCredentialProvider(httpClient)
 	}
+	awsCredentialsProvider := opts.AWSCredentialsProvider
 	if needsKmsProvider(opts.KmsProviders, "aws") {
-		kmsProviders["aws"] = creds.NewAWSCredentialProvider(httpClient)
+		var providers []credentials.Provider
+		if awsCredentialsProvider != nil {
+			providers = append(providers, awsCredentialsProvider)
+		}
+		kmsProviders["aws"] = creds.NewAWSCredentialProvider(httpClient, providers...)
+	} else if awsCredentialsProvider != nil {
+		return nil, fmt.Errorf("can only provide a custom AWS credential provider " +
+			"when the state machine is configured for automatic AWS credential fetching")
 	}
 	if needsKmsProvider(opts.KmsProviders, "azure") {
 		kmsProviders["azure"] = creds.NewAzureCredentialProvider(httpClient)

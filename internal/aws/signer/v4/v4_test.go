@@ -382,7 +382,7 @@ func BenchmarkSignRequest(b *testing.B) {
 	signer := buildSigner()
 	req, body := buildRequestReaderSeeker("dynamodb", "us-east-1", "{}")
 	for i := 0; i < b.N; i++ {
-		_, err := signer.Sign(req, body, "dynamodb", "us-east-1", time.Now())
+		_, err := signer.signWithBody(req, body, "dynamodb", "us-east-1", time.Now())
 		if err != nil {
 			b.Errorf("Expected no err, got %v", err)
 		}
