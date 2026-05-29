@@ -185,6 +185,33 @@ func executeDropCollection(ctx context.Context, operation *operation) (*operatio
 	return newErrorResult(err), nil
 }
 
+func executeDropDatabase(ctx context.Context, operation *operation) (*operationResult, error) {
+	client, err := entities(ctx).client(operation.Object)
+	if err != nil {
+		return nil, err
+	}
+
+	var dbName string
+	elems, _ := operation.Arguments.Elements()
+	for _, elem := range elems {
+		key := elem.Key()
+		val := elem.Value()
+
+		switch key {
+		case "database":
+			dbName = val.StringValue()
+		default:
+			return nil, fmt.Errorf("unrecognized dropDatabase option %q", key)
+		}
+	}
+	if dbName == "" {
+		return nil, newMissingArgumentError("database")
+	}
+
+	err = client.Database(dbName).Drop(ctx)
+	return newErrorResult(err), nil
+}
+
 func executeListCollections(ctx context.Context, operation *operation) (*operationResult, error) {
 	db, err := entities(ctx).database(operation.Object)
 	if err != nil {

@@ -150,6 +150,8 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 		return executeCreateCollection(ctx, op)
 	case "dropCollection":
 		return executeDropCollection(ctx, op)
+	case "dropDatabase":
+		return executeDropDatabase(ctx, op)
 	case "listCollections":
 		return executeListCollections(ctx, op)
 	case "listCollectionNames":
