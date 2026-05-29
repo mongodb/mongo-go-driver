@@ -3,31 +3,46 @@
 # This script installs libmongocrypt into an "install" directory.
 set -eux
 
-LIBMONGOCRYPT_TAG="1.15.1"
+LIBMONGOCRYPT_TAG="1.18.2"
 
 # Install libmongocrypt based on OS.
 if [ "Windows_NT" = "${OS:-}" ]; then
-    mkdir -p c:/libmongocrypt/include
-    mkdir -p c:/libmongocrypt/bin
-    echo "fetching build for Windows ... begin"
-    mkdir libmongocrypt-all
-    cd libmongocrypt-all
-    # The following URL is published from the upload-all task in the libmongocrypt Evergreen project.
-    curl -L https://github.com/mongodb/libmongocrypt/releases/download/$LIBMONGOCRYPT_TAG/libmongocrypt-windows-x86_64-$LIBMONGOCRYPT_TAG.tar.gz -o libmongocrypt-all.tar.gz
-    tar -xf libmongocrypt-all.tar.gz
-    cd ..
-    cp libmongocrypt-all/bin/mongocrypt.dll c:/libmongocrypt/bin
-    cp libmongocrypt-all/include/mongocrypt/*.h c:/libmongocrypt/include
+  mkdir -p c:/libmongocrypt/include
+  mkdir -p c:/libmongocrypt/bin
+  echo "fetching build for Windows ... begin"
+  mkdir libmongocrypt-all
+  cd libmongocrypt-all
 
-    rm -rf libmongocrypt-all
-    echo "fetching build for Windows ... end"
+  # Download the prebuilt Windows tarball and its detached PGP signature.
+  base=https://github.com/mongodb/libmongocrypt/releases/download/$LIBMONGOCRYPT_TAG
+  curl -LO $base/libmongocrypt-windows-x86_64-$LIBMONGOCRYPT_TAG.tar.gz
+  curl -LO $base/libmongocrypt-windows-x86_64-$LIBMONGOCRYPT_TAG.asc
+
+  # Download the MongoDB libmongocrypt public key, import it into an
+  # isolated GNUPGHOME, and verify the tarball signature.
+  curl -LO https://pgp.mongodb.com/libmongocrypt.pub
+  GNUPGHOME=$(mktemp -d)
+  export GNUPGHOME
+  trap 'rm -rf "$GNUPGHOME"' EXIT
+  gpg --batch --import libmongocrypt.pub
+  gpg --batch --verify \
+    libmongocrypt-windows-x86_64-$LIBMONGOCRYPT_TAG.asc \
+    libmongocrypt-windows-x86_64-$LIBMONGOCRYPT_TAG.tar.gz
+
+  tar -xf libmongocrypt-windows-x86_64-$LIBMONGOCRYPT_TAG.tar.gz
+  cd ..
+  cp libmongocrypt-all/bin/mongocrypt.dll c:/libmongocrypt/bin
+  cp libmongocrypt-all/include/mongocrypt/*.h c:/libmongocrypt/include
+
+  rm -rf libmongocrypt-all
+  echo "fetching build for Windows ... end"
 else
-    rm -rf libmongocrypt
-    git clone https://github.com/mongodb/libmongocrypt --depth=1 --branch $LIBMONGOCRYPT_TAG 2> /dev/null
-    if ! ( ./libmongocrypt/.evergreen/compile.sh >| output.txt 2>&1 ); then
-        cat output.txt 1>&2
-        exit 1
-    fi
-    mv output.txt install
-    rm -rf libmongocrypt
+  rm -rf libmongocrypt
+  git clone https://github.com/mongodb/libmongocrypt --depth=1 --branch $LIBMONGOCRYPT_TAG 2>/dev/null
+  if ! (./libmongocrypt/.evergreen/compile.sh >|output.txt 2>&1); then
+    cat output.txt 1>&2
+    exit 1
+  fi
+  mv output.txt install
+  rm -rf libmongocrypt
 fi
