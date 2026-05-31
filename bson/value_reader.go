@@ -69,8 +69,14 @@ var errMaxDocumentNestingDepth = errors.New("maximum BSON nesting depth exceeded
 
 var vrPool = sync.Pool{
 	New: func() any {
+		stack := make([]vrState, 1, 5)
+		stack[0] = vrState{
+			mode:  mTopLevel,
+			depth: 1,
+		}
+
 		return &valueReader{
-			stack: make([]vrState, 1, 5),
+			stack: stack,
 		}
 	},
 }
@@ -108,7 +114,8 @@ func putBufferedDocumentReader(vr *valueReader) {
 func NewDocumentReader(r io.Reader) ValueReader {
 	stack := make([]vrState, 1, 5)
 	stack[0] = vrState{
-		mode: mTopLevel,
+		mode:  mTopLevel,
+		depth: 1,
 	}
 
 	return &valueReader{
@@ -146,8 +153,8 @@ func newBufferedDocumentReader(b []byte) *valueReader {
 	}
 
 	vr.stack[0] = vrState{
-		mode: mTopLevel,
-		end:  int64(len(b)),
+		mode:  mTopLevel,
+		end:   int64(len(b)),
 		depth: 1,
 	}
 

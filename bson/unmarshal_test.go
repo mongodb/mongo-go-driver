@@ -41,8 +41,6 @@ func TestUnmarshal(t *testing.T) {
 }
 
 func TestUnmarshalRejectsTooDeepDocumentNesting(t *testing.T) {
-	t.Helper()
-
 	inner := bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "a", 1))
 	for depth := 1; depth < maxDocumentNestingDepth+1; depth++ {
 		inner = bsoncore.BuildDocument(nil, bsoncore.AppendDocumentElement(nil, "a", inner))
@@ -56,11 +54,9 @@ func TestUnmarshalRejectsTooDeepDocumentNesting(t *testing.T) {
 }
 
 func TestUnmarshalRejectsTooDeepArrayNesting(t *testing.T) {
-	t.Helper()
-
-	inner := bsoncore.BuildDocumentFromElements(nil, bsoncore.AppendInt32Element(nil, "0", 1))
+	inner := bsoncore.BuildArray(nil, bsoncore.Value{Type: bsoncore.TypeInt32, Data: bsoncore.AppendInt32(nil, 1)})
 	for depth := 1; depth < maxDocumentNestingDepth+1; depth++ {
-		inner = bsoncore.BuildDocumentFromElements(nil, bsoncore.AppendArrayElement(nil, "0", inner))
+		inner = bsoncore.BuildArray(nil, bsoncore.Value{Type: bsoncore.TypeArray, Data: inner})
 	}
 
 	data := bsoncore.BuildDocument(nil, bsoncore.AppendArrayElement(nil, "a", inner))
