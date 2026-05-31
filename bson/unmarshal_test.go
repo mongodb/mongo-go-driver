@@ -8,6 +8,7 @@ package bson
 
 import (
 	"bytes"
+	"errors"
 	"math/rand"
 	"reflect"
 	"sync"
@@ -36,6 +37,38 @@ func TestUnmarshal(t *testing.T) {
 			noerr(t, err)
 			assert.Equal(t, tc.want, got, "unmarshaled value does not match expected after modifying the input bytes")
 		})
+	}
+}
+
+func TestUnmarshalRejectsTooDeepDocumentNesting(t *testing.T) {
+	t.Helper()
+
+	inner := bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "a", 1))
+	for depth := 1; depth < maxDocumentNestingDepth+1; depth++ {
+		inner = bsoncore.BuildDocument(nil, bsoncore.AppendDocumentElement(nil, "a", inner))
+	}
+
+	var got M
+	err := Unmarshal(inner, &got)
+	if !errors.Is(err, errMaxDocumentNestingDepth) {
+		t.Fatalf("expected errMaxDocumentNestingDepth, got %v", err)
+	}
+}
+
+func TestUnmarshalRejectsTooDeepArrayNesting(t *testing.T) {
+	t.Helper()
+
+	inner := bsoncore.BuildDocumentFromElements(nil, bsoncore.AppendInt32Element(nil, "0", 1))
+	for depth := 1; depth < maxDocumentNestingDepth+1; depth++ {
+		inner = bsoncore.BuildDocumentFromElements(nil, bsoncore.AppendArrayElement(nil, "0", inner))
+	}
+
+	data := bsoncore.BuildDocument(nil, bsoncore.AppendArrayElement(nil, "a", inner))
+
+	var got M
+	err := Unmarshal(data, &got)
+	if !errors.Is(err, errMaxDocumentNestingDepth) {
+		t.Fatalf("expected errMaxDocumentNestingDepth, got %v", err)
 	}
 }
 
