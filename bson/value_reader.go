@@ -60,12 +60,23 @@ type vrState struct {
 	mode  mode
 	vType Type
 	end   int64
+	depth int
 }
+
+const maxDocumentNestingDepth = 100
+
+var errMaxDocumentNestingDepth = errors.New("maximum BSON nesting depth exceeded")
 
 var vrPool = sync.Pool{
 	New: func() any {
+		stack := make([]vrState, 1, 5)
+		stack[0] = vrState{
+			mode:  mTopLevel,
+			depth: 1,
+		}
+
 		return &valueReader{
-			stack: make([]vrState, 1, 5),
+			stack: stack,
 		}
 	},
 }
@@ -103,7 +114,8 @@ func putBufferedDocumentReader(vr *valueReader) {
 func NewDocumentReader(r io.Reader) ValueReader {
 	stack := make([]vrState, 1, 5)
 	stack[0] = vrState{
-		mode: mTopLevel,
+		mode:  mTopLevel,
+		depth: 1,
 	}
 
 	return &valueReader{
@@ -141,11 +153,20 @@ func newBufferedDocumentReader(b []byte) *valueReader {
 	}
 
 	vr.stack[0] = vrState{
-		mode: mTopLevel,
-		end:  int64(len(b)),
+		mode:  mTopLevel,
+		end:   int64(len(b)),
+		depth: 1,
 	}
 
 	return vr
+}
+
+func (vr *valueReader) nextContainerDepth() (int, error) {
+	depth := vr.stack[vr.frame].depth + 1
+	if depth > maxDocumentNestingDepth {
+		return 0, errMaxDocumentNestingDepth
+	}
+	return depth, nil
 }
 
 func (vr *valueReader) advanceFrame() {
@@ -366,6 +387,11 @@ func (vr *valueReader) ReadArray() (ArrayReader, error) {
 		return nil, err
 	}
 
+	depth, err := vr.nextContainerDepth()
+	if err != nil {
+		return nil, err
+	}
+
 	// Push a new frame for the array.
 	vr.advanceFrame()
 
@@ -378,6 +404,7 @@ func (vr *valueReader) ReadArray() (ArrayReader, error) {
 	// Compute the end position: current position + total size - length.
 	vr.stack[vr.frame].mode = mArray
 	vr.stack[vr.frame].end = vr.src.pos() + int64(size) - 4
+	vr.stack[vr.frame].depth = depth
 
 	return vr, nil
 }
@@ -469,6 +496,11 @@ func (vr *valueReader) ReadDocument() (DocumentReader, error) {
 		return nil, vr.invalidTransitionErr(mDocument, "ReadDocument", []mode{mTopLevel, mElement, mValue})
 	}
 
+	depth, err := vr.nextContainerDepth()
+	if err != nil {
+		return nil, err
+	}
+
 	vr.advanceFrame()
 
 	size, err := vr.readLength()
@@ -478,6 +510,7 @@ func (vr *valueReader) ReadDocument() (DocumentReader, error) {
 
 	vr.stack[vr.frame].mode = mDocument
 	vr.stack[vr.frame].end = int64(size) + vr.src.pos() - 4
+	vr.stack[vr.frame].depth = depth
 
 	return vr, nil
 }
@@ -506,6 +539,10 @@ func (vr *valueReader) ReadCodeWithScope() (string, DocumentReader, error) {
 	}
 
 	code := string(buf[:len(buf)-1])
+	depth, err := vr.nextContainerDepth()
+	if err != nil {
+		return "", nil, err
+	}
 	vr.advanceFrame()
 
 	// Use readLength to ensure that we are not out of bounds.
@@ -516,6 +553,7 @@ func (vr *valueReader) ReadCodeWithScope() (string, DocumentReader, error) {
 
 	vr.stack[vr.frame].mode = mCodeWithScope
 	vr.stack[vr.frame].end = vr.src.pos() + int64(size) - 4
+	vr.stack[vr.frame].depth = depth
 
 	// The total length should equal:
 	// 4 (total length) + strLength + 4 (the length of str itself) + (document length)
@@ -833,6 +871,7 @@ func (vr *valueReader) ReadElement() (string, ValueReader, error) {
 
 	vr.stack[vr.frame].mode = mElement
 	vr.stack[vr.frame].vType = Type(t)
+	vr.stack[vr.frame].depth = vr.stack[vr.frame-1].depth
 	return name, vr, nil
 }
 
@@ -868,6 +907,7 @@ func (vr *valueReader) ReadValue() (ValueReader, error) {
 
 	vr.stack[vr.frame].mode = mValue
 	vr.stack[vr.frame].vType = Type(t)
+	vr.stack[vr.frame].depth = vr.stack[vr.frame-1].depth
 	return vr, nil
 }
 
