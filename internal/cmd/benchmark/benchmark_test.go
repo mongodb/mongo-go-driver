@@ -209,56 +209,8 @@ func loadSourceDocument(b *testing.B, canonicalOnly bool, pathParts ...string) b
 	return doc
 }
 
-func loadBSONExtJSONFile(b *testing.B, canonicalOnly bool, source string) bson.D {
-	b.Helper()
-
-	tgzPath := filepath.Join(testdataDir(b), "specifications", "source", "benchmarking", "data", "extended_bson.tgz")
-
-	file, err := os.Open(tgzPath)
-	require.NoError(b, err, "failed to open %q", tgzPath)
-	defer file.Close()
-
-	gz, err := gzip.NewReader(file)
-	require.NoError(b, err, "failed to create gzip reader")
-	defer gz.Close()
-
-	tr := tar.NewReader(gz)
-	for {
-		hdr, err := tr.Next()
-		if errors.Is(err, io.EOF) {
-			break
-		}
-
-		require.NoError(b, err, "failed to read tar")
-
-		if hdr.Typeflag != tar.TypeReg {
-			continue
-		}
-
-		if hdr.Name != bsonDataDir+"/"+source {
-			continue
-		}
-
-		data, err := io.ReadAll(tr)
-		require.NoError(b, err, "failed to read tar entry %q", hdr.Name)
-
-		var doc bson.D
-
-		err = bson.UnmarshalExtJSON(data, canonicalOnly, &doc)
-		require.NoError(b, err, "failed to unmarshal extended JSON from %q", hdr.Name)
-
-		require.NotEmpty(b, doc)
-
-		return doc
-	}
-
-	b.Fatalf("file %q not found in %q", bsonDataDir+"/"+source, tgzPath)
-
-	return nil
-}
-
 func benchmarkBSONEncoding(b *testing.B, canonicalOnly bool, source string) {
-	doc := loadBSONExtJSONFile(b, canonicalOnly, source)
+	doc := loadSourceDocument(b, canonicalOnly, testdataPerfDir(b), bsonDataDir, source)
 
 	b.ResetTimer()
 
@@ -277,7 +229,7 @@ func benchmarkBSONEncoding(b *testing.B, canonicalOnly bool, source string) {
 }
 
 func benchmarkBSONDecoding(b *testing.B, canonicalOnly bool, source string) {
-	doc := loadBSONExtJSONFile(b, canonicalOnly, source)
+	doc := loadSourceDocument(b, canonicalOnly, testdataPerfDir(b), bsonDataDir, source)
 
 	raw, err := bson.Marshal(doc)
 	require.NoError(b, err, "failed to encode bson data")
