@@ -146,83 +146,86 @@ var nestedInstance = nestedtest1{
 	},
 }
 
+var (
+	loadExtendedBSONOnce      sync.Once
+	loadExtendedBSONErr       error
+	loadExtendedBSONEntries   map[string]map[string]any
+	loadExtendedBSONEntryErrs map[string]error
+)
+
 // loadExtendedBSON is a function that returns the extended BSON data for a given filename in the
 // extended_bson.tgz archive. The first call to loadExtendedBSON will decompress all the JSON files
 // in the archive and cache all entries; subsequent calls will only return the cache. Caller must
 // not mutate the returned value.
-var loadExtendedBSON = func() func(tb testing.TB, filename string) map[string]any {
+func loadExtendedBSON(tb testing.TB, filename string) map[string]any {
+	tb.Helper()
+
 	const extendedBSONTGZ = "../testdata/specifications/source/benchmarking/data/extended_bson.tgz"
 
-	var once sync.Once
-	var onceErr error
-	entryErr := make(map[string]error)
-	results := make(map[string]map[string]any)
+	loadExtendedBSONOnce.Do(func() {
+		file, err := os.Open(extendedBSONTGZ)
+		if err != nil {
+			loadExtendedBSONErr = fmt.Errorf("error opening %q: %v", extendedBSONTGZ, err)
+			return
+		}
+		defer func() {
+			_ = file.Close()
+		}()
 
-	return func(tb testing.TB, filename string) map[string]any {
-		tb.Helper()
+		gz, err := gzip.NewReader(file)
+		if err != nil {
+			loadExtendedBSONErr = fmt.Errorf("error creating gzip reader: %v", err)
+			return
+		}
+		defer func() {
+			_ = gz.Close()
+		}()
 
-		once.Do(func() {
-			file, err := os.Open(extendedBSONTGZ)
+		loadExtendedBSONEntries = make(map[string]map[string]any)
+		loadExtendedBSONEntryErrs = make(map[string]error)
+
+		tr := tar.NewReader(gz)
+		for {
+			hdr, err := tr.Next()
+			if errors.Is(err, io.EOF) {
+				break
+			}
 			if err != nil {
-				onceErr = fmt.Errorf("error opening %q: %v", extendedBSONTGZ, err)
+				loadExtendedBSONErr = fmt.Errorf("error reading tar header: %v", err)
 				return
 			}
-			defer func() {
-				_ = file.Close()
-			}()
-
-			gz, err := gzip.NewReader(file)
+			if hdr.Typeflag != tar.TypeReg {
+				continue
+			}
+			data, err := io.ReadAll(tr)
 			if err != nil {
-				onceErr = fmt.Errorf("error creating gzip reader: %v", err)
-				return
+				loadExtendedBSONEntryErrs[hdr.Name] = fmt.Errorf("error reading tar entry: %v", err)
+				continue
 			}
-			defer func() {
-				_ = gz.Close()
-			}()
 
-			tr := tar.NewReader(gz)
-			for {
-				hdr, err := tr.Next()
-				if errors.Is(err, io.EOF) {
-					break
-				}
-				if err != nil {
-					onceErr = fmt.Errorf("error reading tar header: %v", err)
-					return
-				}
-				if hdr.Typeflag != tar.TypeReg {
-					continue
-				}
-				data, err := io.ReadAll(tr)
-				if err != nil {
-					entryErr[hdr.Name] = fmt.Errorf("error reading tar entry: %v", err)
-					continue
-				}
-
-				var v map[string]any
-				err = UnmarshalExtJSON(data, false, &v)
-				if err != nil {
-					entryErr[hdr.Name] = fmt.Errorf("error unmarshalling: %v", err)
-					continue
-				}
-				results[hdr.Name] = v
+			var v map[string]any
+			err = UnmarshalExtJSON(data, false, &v)
+			if err != nil {
+				loadExtendedBSONEntryErrs[hdr.Name] = fmt.Errorf("error unmarshalling: %v", err)
+				continue
 			}
-		})
-		entry := "extended_bson/" + filename
-		if err, ok := entryErr[entry]; ok {
-			require.FailNowf(tb, "failed to load benchmark data", "error loading file %q from %q: %v", filename, extendedBSONTGZ, err)
+			loadExtendedBSONEntries[hdr.Name] = v
 		}
-		v, ok := results[entry]
-		if !ok {
-			if onceErr != nil {
-				require.FailNowf(tb, "failed to load benchmark data", "error loading file %q from %q: %v", filename, extendedBSONTGZ, onceErr)
-			} else {
-				require.FailNowf(tb, "failed to load benchmark data", "error loading file %q from %q: not found", filename, extendedBSONTGZ)
-			}
-		}
-		return v
+	})
+	entry := "extended_bson/" + filename
+	if err, ok := loadExtendedBSONEntryErrs[entry]; ok {
+		require.FailNowf(tb, "failed to load benchmark data", "error loading file %q from %q: %v", filename, extendedBSONTGZ, err)
 	}
-}()
+	v, ok := loadExtendedBSONEntries[entry]
+	if !ok {
+		if loadExtendedBSONErr != nil {
+			require.FailNowf(tb, "failed to load benchmark data", "error loading file %q from %q: %v", filename, extendedBSONTGZ, loadExtendedBSONErr)
+		} else {
+			require.FailNowf(tb, "failed to load benchmark data", "error loading file %q from %q: not found", filename, extendedBSONTGZ)
+		}
+	}
+	return v
+}
 
 func BenchmarkMarshal(b *testing.B) {
 	cases := []struct {
