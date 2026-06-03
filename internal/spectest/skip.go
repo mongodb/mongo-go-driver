@@ -804,6 +804,14 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/transactions/tests/unified/transaction-options.json/startTransaction_options_override_defaults",
 		"TestUnifiedSpec/transactions/tests/unified/transaction-options.json/defaultTransactionOptions_override_client_options",
 	},
+
+	// TODO(GODRIVER-3874): Send afterClusterTime on writes in
+	// causally-consistent sessions.
+	"Send afterClusterTime on writes in causally-consistent sessions (GODRIVER-3874)": {
+		"TestUnifiedSpec/transactions/tests/unified/commit.json/reset_session_state_commit",
+		"TestUnifiedSpec/transactions/tests/unified/commit.json/reset_session_state_abort",
+		"TestUnifiedSpec/transactions/tests/unified/retryable-writes.json/increment_txnNumber",
+	},
 }
 
 // CheckSkip checks if the fully-qualified test name matches a list of skipped test names for a given reason.

@@ -931,5 +931,55 @@ func TestUnmarshalTypeCompatibility(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Equal(t, want, []byte(val.Foo))
 		})
+		t.Run("bson.D into bson.Raw", func(t *testing.T) {
+			t.Parallel()
+
+			data := docToBytes(D{{"foo", D{{"bar", int32(42)}}}})
+			want := []byte(bsoncore.NewDocumentBuilder().AppendInt32("bar", 42).Build())
+
+			var val struct {
+				Foo Raw
+			}
+
+			err := Unmarshal(data, &val)
+			assert.NoError(t, err)
+			assert.Equal(t, want, []byte(val.Foo))
+		})
+		t.Run("nil into bson.Raw", func(t *testing.T) {
+			t.Parallel()
+
+			data := docToBytes(D{{"foo", nil}})
+
+			var val struct {
+				Foo Raw
+			}
+			err := Unmarshal(data, &val)
+			assert.NoError(t, err)
+			assert.Nil(t, val.Foo)
+		})
+		t.Run("nil into bsoncore.Document", func(t *testing.T) {
+			t.Parallel()
+
+			data := docToBytes(D{{"foo", nil}})
+
+			var val struct {
+				Foo bsoncore.Document
+			}
+			err := Unmarshal(data, &val)
+			assert.NoError(t, err)
+			assert.Nil(t, val.Foo)
+		})
+		t.Run("nil into bsoncore.Array", func(t *testing.T) {
+			t.Parallel()
+
+			data := docToBytes(D{{"foo", nil}})
+
+			var val struct {
+				Foo bsoncore.Array
+			}
+			err := Unmarshal(data, &val)
+			assert.NoError(t, err)
+			assert.Nil(t, val.Foo)
+		})
 	})
 }
