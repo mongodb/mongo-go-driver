@@ -35,16 +35,7 @@ func TestTransactionConvenientApiProse(t *testing.T) {
 		}
 
 		transWithJitter := func(t *mtest.T, ratio float64) time.Duration {
-			defer randutil.SetJitterForTesting(func(n int64) int64 {
-				val := int64(ratio * float64(n))
-				if val < 0 {
-					return 0
-				}
-				if val > n {
-					return n
-				}
-				return val
-			})()
+			defer randutil.SetJitterForTesting(func() float64 { return ratio })()
 
 			mt.SetFailPoint(fp)
 

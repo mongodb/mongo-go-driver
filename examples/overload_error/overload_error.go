@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package examples
+package main
 
 import (
 	"context"
@@ -12,10 +12,12 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"os"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 const (
@@ -81,10 +83,15 @@ func executeWithRetries[T any](
 	return result, err
 }
 
-// ExampleOverloadError_Find demonstrates how to use executeWithRetries to retry a Find operation
-// if it returns a SystemOverloadedError.
-func ExampleOverloadError_Find() {
-	var coll *mongo.Collection
+func main() {
+	uri := os.Getenv("MONGODB_URI")
+	client, err := mongo.Connect(options.Client().ApplyURI(uri))
+	if err != nil {
+		log.Fatalf("error creating client: %v", err)
+	}
+
+	coll := client.Database("test").Collection("test")
+	defer client.Disconnect(context.Background())
 
 	ctx := context.Background()
 	result, err := executeWithRetries(ctx, defaultMaxAttempts, func(ctx context.Context) ([]bson.D, error) {

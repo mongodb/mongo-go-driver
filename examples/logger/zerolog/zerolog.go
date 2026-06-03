@@ -4,8 +4,6 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-//go:build zerolog
-
 package main
 
 import (
@@ -31,9 +29,10 @@ func main() {
 		SetMaxDocumentLength(25).
 		SetComponentLevel(options.LogComponentCommand, options.LogLevelDebug)
 
+	uri := os.Getenv("MONGODB_URI")
 	clientOptions := options.
 		Client().
-		ApplyURI("mongodb://localhost:27017").
+		ApplyURI(uri).
 		SetLoggerOptions(loggerOptions)
 
 	client, err := mongo.Connect(clientOptions)
