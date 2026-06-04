@@ -16,10 +16,12 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/eventtest"
 	"go.mongodb.org/mongo-driver/v2/internal/failpoint"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
@@ -311,6 +313,72 @@ func TestSDAMErrorHandling(t *testing.T) {
 			}
 		})
 	})
+	mt.RunOpts("pool is not cleared on handshake error during minPoolSize population",
+		mtest.NewOptions().MinServerVersion("4.4").Topologies(mtest.Single), func(mt *mtest.T) {
+			// This is a prose test to replace TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/
+			// pool-clear-min-pool-size-error.json/Pool_is_not_cleared_on_handshake_error_during_minPoolSize_population
+			// The failpoint is set after the monitor's first heartbeat succeeds,
+			// so the monitor is unaffected. Pool connections' hello failures carry
+			// ErrSystemOverloadedError and must not trigger pool.clear().
+			appName := "authErrorTest"
+
+			heartbeatDone := make(chan struct{}, 1)
+			serverMonitor := &event.ServerMonitor{
+				ServerHeartbeatSucceeded: func(_ *event.ServerHeartbeatSucceededEvent) {
+					select {
+					case heartbeatDone <- struct{}{}:
+					default:
+					}
+				},
+			}
+
+			tpm := eventtest.NewTestPoolMonitor()
+			mt.ResetClient(options.Client().
+				ApplyURI(mtest.ClusterURI()).
+				SetAppName(appName).
+				SetPoolMonitor(tpm.PoolMonitor).
+				SetServerMonitor(serverMonitor).
+				SetMinPoolSize(5).
+				SetMaxConnecting(1).
+				SetServerMonitoringMode(options.ServerMonitoringModePoll).
+				SetHeartbeatInterval(1_000_000 * time.Millisecond))
+
+			timer := time.NewTimer(10 * time.Second)
+			defer timer.Stop()
+			select {
+			case <-heartbeatDone:
+			case <-timer.C:
+				mt.Fatal("timed out waiting for first server heartbeat")
+			}
+
+			// The failpoint uses skip:1 so the first pool connection's hello succeeds;
+			// subsequent pool hellos will be closed by the server, triggering
+			// ProcessHandshakeError. Setting the failpoint after heartbeatDone
+			// ensures the monitor's hello is already past and is unaffected.
+			mt.SetFailPoint(failpoint.FailPoint{
+				ConfigureFailPoint: "failCommand",
+				Mode:               failpoint.Mode{Skip: 1},
+				Data: failpoint.Data{
+					FailCommands:    []string{"hello", "isMaster"},
+					CloseConnection: true,
+					AppName:         appName,
+				},
+			})
+
+			require.Eventually(mt, func() bool {
+				return len(tpm.Events(func(e *event.PoolEvent) bool {
+					return e.Type == event.ConnectionClosed
+				})) > 0
+			}, 10*time.Second, 100*time.Millisecond,
+				"expected ConnectionClosed event within 10s")
+
+			require.False(mt, tpm.IsPoolCleared(),
+				"pool should not be cleared on handshake error during minPoolSize population")
+
+			require.Len(mt, tpm.Events(func(e *event.PoolEvent) bool {
+				return e.Type == event.ConnectionPoolReady
+			}), 1, "expected exactly 1 ConnectionPoolReady event (pool was not cleared and re-readied)")
+		})
 }
 
 func runServerErrorsTest(mt *mtest.T, isShutdownError bool, tpm *eventtest.TestPoolMonitor) {

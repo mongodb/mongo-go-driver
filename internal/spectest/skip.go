@@ -764,7 +764,8 @@ var skipTests = map[string][]string{
 		"TestSDAMSpec/errors/pre-42-ShutdownInProgress.json",
 	},
 
-	// TODO(GODRIVER-1826): Race condition between monitor and pool causes pool to be cleared.
+	// TODO(GODRIVER-3828): Race condition between monitor and pool causes pool to be cleared in the current implementation.
+	// The current implementation is covered by TestSDAMErrorHandling/pool_is_not_cleared_on_handshake_error_during_minPoolSize_population
 	"Backpressure SDAM test 'pool-clear-min-pool-size-error.yml' fails on standalone deployments": {
 		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/pool-clear-min-pool-size-error.json/Pool_is_not_cleared_on_handshake_error_during_minPoolSize_population",
 	},
