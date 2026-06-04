@@ -163,8 +163,7 @@ func (ao *AggregateOptionsBuilder) SetLet(let any) *AggregateOptionsBuilder {
 // with non-custom options, and custom options bypass client-side validation. Prefer using non-custom
 // options where possible.
 //
-// Deprecated: SetCustom is for internal use only and should not be set. It may be changed or removed
-// in any release.
+// Deprecated: SetCustom is for internal use only. It may be changed or removed in any release.
 func (ao *AggregateOptionsBuilder) SetCustom(c bson.M) *AggregateOptionsBuilder {
 	ao.Opts = append(ao.Opts, func(opts *AggregateOptions) error {
 		opts.Custom = c
