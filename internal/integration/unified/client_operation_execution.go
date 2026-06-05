@@ -175,7 +175,10 @@ func executeDropDatabase(ctx context.Context, operation *operation) (*operationR
 	}
 
 	var dbName string
-	elems, _ := operation.Arguments.Elements()
+	elems, err := operation.Arguments.Elements()
+	if err != nil {
+		return nil, err
+	}
 	for _, elem := range elems {
 		key := elem.Key()
 		val := elem.Value()
