@@ -337,14 +337,20 @@ func TestSDAMErrorHandling(t *testing.T) {
 			var poolReadyCnt atomic.Uint32
 			var poolClearedCnt atomic.Uint32
 			var connClosedCnt atomic.Uint32
+			timer := time.NewTimer(10 * time.Second)
+			defer timer.Stop()
 			poolMonitor := &event.PoolMonitor{
 				Event: func(e *event.PoolEvent) {
 					switch e.Type {
 					case event.ConnectionClosed:
 						connClosedCnt.Add(1)
 					case event.ConnectionPoolReady:
-						<-heartbeatDone
-						poolReadyCnt.Add(1)
+						select {
+						case <-heartbeatDone:
+							poolReadyCnt.Add(1)
+						case <-timer.C:
+							mt.Fatalf("timeout waiting for first server heartbeat")
+						}
 					case event.ConnectionPoolCleared:
 						poolClearedCnt.Add(1)
 					}
