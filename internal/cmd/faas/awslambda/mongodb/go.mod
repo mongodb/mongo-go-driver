@@ -4,7 +4,7 @@ go 1.25.0
 
 replace go.mongodb.org/mongo-driver/v2 => ../../../../../
 
-require github.com/aws/aws-lambda-go v1.41.0
+require github.com/aws/aws-lambda-go v1.54.0
 
 require go.mongodb.org/mongo-driver/v2 v2.0.0-00010101000000-000000000000
 
