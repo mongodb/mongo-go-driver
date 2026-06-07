@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -42,6 +43,16 @@ var (
 
 const defaultLocalKeyBase64 = "Mng0NCt4ZHVUYUJCa1kxNkVyNUR1QURhZ2h2UzR2d2RrZzh0cFBwM3R6NmdWMDFBMUN3YkQ5aXRRMkhGRGdQV09wOGVNYUMxT2k3NjZKelhaQmRCZGJkTXVyZG9uSjFk"
 
+type AutoEncryptOpts struct {
+	KmsProviders         map[string]bson.Raw
+	SchemaMap            map[string]any
+	KeyVaultNameSpace    string
+	BypassAutoEncryption bool
+	EncryptedFieldsMap   map[string]any
+	BypassQueryAnalysis  bool
+	Extra                map[string]json.RawMessage
+}
+
 type storeEventsAsEntitiesConfig struct {
 	EventListID string   `bson:"id"`
 	Events      []string `bson:"events"`
@@ -61,7 +72,7 @@ type entityOptions struct {
 	ID string `bson:"id"`
 
 	// Options for client entities.
-	AutoEncryptOpts          bson.Raw                      `bson:"autoEncryptOpts"`
+	AutoEncryptOpts          *AutoEncryptOpts              `bson:"autoEncryptOpts"`
 	URIOptions               bson.M                        `bson:"uriOptions"`
 	UseMultipleMongoses      *bool                         `bson:"useMultipleMongoses"`
 	ObserveEvents            []string                      `bson:"observeEvents"`

@@ -201,7 +201,7 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 		integtest.AddTestServerAPIVersion(clientOpts)
 	}
 	if entityOptions.AutoEncryptOpts != nil {
-		aeo, err := createAutoEncryptionOptions(entityOptions.AutoEncryptOpts)
+		aeo, err := createAutoEncryptionOptions(*entityOptions.AutoEncryptOpts)
 		if err != nil {
 			return nil, fmt.Errorf("error parsing auto encryption options: %w", err)
 		}
@@ -250,79 +250,45 @@ func getURIForClient(opts *entityOptions) string {
 	}
 }
 
-// TODO(GODRIVER-3726): Need to update the logic to an Unmarshal method.
-func createAutoEncryptionOptions(opts bson.Raw) (*options.AutoEncryptionOptions, error) {
-	aeo := options.AutoEncryption()
-	var kvnsFound bool
-	elems, err := opts.Elements()
-	if err != nil {
-		return nil, err
+func createAutoEncryptionOptions(opts AutoEncryptOpts) (*options.AutoEncryptionOptions, error) {
+	if len(opts.Extra) > 0 {
+		return nil, fmt.Errorf("unsupported fields in AutoEncryptOpts: %v", opts.Extra)
 	}
+	aeo := options.AutoEncryption()
 
-	for _, elem := range elems {
-		name := elem.Key()
-		opt := elem.Value()
+	aeo.SetSchemaMap(opts.SchemaMap)
+	aeo.SetBypassAutoEncryption(opts.BypassAutoEncryption)
+	aeo.SetEncryptedFieldsMap(opts.EncryptedFieldsMap)
+	aeo.SetBypassQueryAnalysis(opts.BypassQueryAnalysis)
 
-		switch name {
-		case "kmsProviders":
-			providers := make(map[string]map[string]any)
-			elems, err := opt.Document().Elements()
+	providers := make(map[string]map[string]any)
+	for key, opt := range opts.KmsProviders {
+		provider, err := getKmsProvider(key, opt)
+		if err != nil {
+			return nil, err
+		}
+		if len(provider) == 0 {
+			continue
+		}
+		providers[key] = provider
+		if key == "kmip" && tlsClientCertificateKeyFile != "" && tlsCAFile != "" {
+			cfg, err := options.BuildTLSConfig(map[string]any{
+				"tlsCertificateKeyFile": tlsClientCertificateKeyFile,
+				"tlsCAFile":             tlsCAFile,
+			})
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("error constructing tls config: %w", err)
 			}
-			for _, elem := range elems {
-				key := elem.Key()
-				opt := elem.Value().Document()
-				provider, err := getKmsProvider(key, opt)
-				if err != nil {
-					return nil, err
-				}
-				if provider == nil {
-					continue
-				}
-				providers[key] = provider
-				if key == "kmip" && tlsClientCertificateKeyFile != "" && tlsCAFile != "" {
-					cfg, err := options.BuildTLSConfig(map[string]any{
-						"tlsCertificateKeyFile": tlsClientCertificateKeyFile,
-						"tlsCAFile":             tlsCAFile,
-					})
-					if err != nil {
-						return nil, fmt.Errorf("error constructing tls config: %w", err)
-					}
-					aeo.SetTLSConfig(map[string]*tls.Config{
-						"kmip": cfg,
-					})
-				}
-			}
-			aeo.SetKmsProviders(providers)
-		case "schemaMap":
-			var schemaMap map[string]any
-			err := bson.Unmarshal(opt.Document(), &schemaMap)
-			if err != nil {
-				return nil, fmt.Errorf("error creating schema map: %v", err)
-			}
-			aeo.SetSchemaMap(schemaMap)
-		case "keyVaultNamespace":
-			kvnsFound = true
-			aeo.SetKeyVaultNamespace(opt.StringValue())
-		case "bypassAutoEncryption":
-			aeo.SetBypassAutoEncryption(opt.Boolean())
-		case "encryptedFieldsMap":
-			var encryptedFieldsMap map[string]any
-			err := bson.Unmarshal(opt.Document(), &encryptedFieldsMap)
-			if err != nil {
-				return nil, fmt.Errorf("error creating encryptedFieldsMap: %v", err)
-			}
-			aeo.SetEncryptedFieldsMap(encryptedFieldsMap)
-		case "bypassQueryAnalysis":
-			aeo.SetBypassQueryAnalysis(opt.Boolean())
-		default:
-			return nil, fmt.Errorf("unrecognized option: %v", name)
+			aeo.SetTLSConfig(map[string]*tls.Config{"kmip": cfg})
 		}
 	}
-	if !kvnsFound {
-		aeo.SetKeyVaultNamespace("keyvault.datakeys")
+	aeo.SetKmsProviders(providers)
+
+	kvns := opts.KeyVaultNameSpace
+	if kvns == "" {
+		kvns = "keyvault.datakeys"
 	}
+	aeo.SetKeyVaultNamespace(kvns)
 
 	return aeo, nil
 }
