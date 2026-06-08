@@ -306,6 +306,36 @@ task setup-test
 task evg-test-versioned-api
 ```
 
+### Local CSE Testing with the `cse` Build Tag
+
+The `cse` build tag enables Client-Side Field Level Encryption (CSFLE) and
+Queryable Encryption (QE) tests. These tests require `libmongocrypt`, which is
+normally installed system-wide (e.g. via Homebrew). The workflow below avoids
+that dependency by building `libmongocrypt` from source into a local `install/`
+directory.
+
+**Setup** (source the script so exports reach your shell). Re-run periodically,
+as the key-vault credentials it loads expire:
+
+```bash
+source etc/setup-cse-dev.sh
+```
+
+This runs `task --force install-libmongocrypt`, downloads a host-platform
+`crypt_shared` library, and exports the environment needed to build and run CSE
+tests against the locally built `libmongocrypt`.
+
+Once sourced, run any CSE test freely. E.g.:
+
+```bash
+go test -tags cse ./internal/integration -run TestClientSideEncryptionProse_1_custom_key_material_test
+```
+
+Running CSE tests also requires exporting various credentials from the drivers
+key vault. These expire, so they must be refreshed periodically, see
+[Local Credential Access](https://github.com/mongodb-labs/drivers-evergreen-tools/tree/master/.evergreen/secrets_handling#local-credential-access)
+in the drivers-evergreen-tools repository.
+
 ### Load Balancer
 
 To launch the load balancer on MacOS, run the following.
