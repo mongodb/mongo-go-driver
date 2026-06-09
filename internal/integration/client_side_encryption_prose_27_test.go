@@ -52,6 +52,9 @@ func TestClientSideEncryptionProse_27(t *testing.T) {
 	mt.Run("case 9: can find an auto-encrypted diacritic-insensitively indexed document by prefix and suffix", func(mt *mtest.T) {
 		runCSEProse27Case9(mt, test)
 	})
+	mt.Run("case 10: can find an auto-encrypted case-insensitively indexed document by substring", func(mt *mtest.T) {
+		runCSEProse27Case10(mt, test)
+	})
 }
 
 // =============================================================================
@@ -244,6 +247,63 @@ func runCSEProse27Case9(mt *mtest.T, test *cseProse27Test) {
 
 	require.Len(mt, results, 1, "expected 1 result, got %d", len(results))
 	require.Equal(mt, "cafébarbäz", results[0]["encryptedText"])
+}
+
+// runCSEProse27Case10 ensures that we can find an auto-encrypted
+// case-insensitively indexed document by substring.
+//
+// Requires libmongocrypt 1.19.0+.
+//
+// TODO(GODRIVER-3943): Add 1.19.0 min guards.
+func runCSEProse27Case10(mt *mtest.T, test *cseProse27Test) {
+	mt.Helper()
+
+	const collName = "substring-ci-di"
+	const dbName = "db"
+
+	// Step 1. Use autoEncryptedClient to insert { "encryptedText": "FooBarBaz" }
+	// into db.substring-ci-di with majority write concern.
+	insertEncryptedText(mt, test.autoEncryptClient, dbName, collName, "FooBarBaz")
+
+	// Step 2. Use clientEncryption.encrypt() to encrypt "bar" with substring
+	// query type. Substring search is still a preview feature, so the query type
+	// remains "substringPreview" even on libmongocrypt 1.19.0+.
+	encryptOpts := options.Encrypt().
+		SetKeyID(test.key1ID).
+		SetAlgorithm("String").
+		SetQueryType("substringPreview").
+		SetContentionFactor(0).
+		SetTextOptions(options.Text().
+			SetCaseSensitive(false).
+			SetDiacriticSensitive(false).
+			SetSubstring(options.SubstringOptions{StrMaxLength: 10, StrMinQueryLength: 2, StrMaxQueryLength: 10}))
+
+	barPlaintextSearchToken := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "bar")}
+
+	barEncSearchToken, err := test.clientEncryption.Encrypt(context.Background(), barPlaintextSearchToken, encryptOpts)
+	require.Nil(mt, err, "error encrypting 'bar': %v", err)
+
+	// Step 3. Use explicitEncryptedClient to run a "find" operation on the
+	// db.substring-ci-di collection with the following filter:
+	//
+	// { $expr: { $encStrContains: {input: '$encryptedText', substring: <encrypted 'bar'>} } }
+	barFilter := bson.D{{Key: "$expr", Value: bson.D{{Key: "$encStrContains", Value: bson.D{
+		{Key: "input", Value: "$encryptedText"},
+		{Key: "substring", Value: barEncSearchToken},
+	}}}}}
+
+	encColl := test.explicitEncryptClient.Database(dbName).Collection(collName)
+
+	barCur, err := encColl.Find(context.Background(), barFilter)
+	require.Nil(mt, err, "error running find on %s.%s: %v", dbName, collName, err)
+
+	var results []bson.M
+
+	err = barCur.All(context.Background(), &results)
+	require.Nil(mt, err, "error decoding find results: %v", err)
+
+	require.Len(mt, results, 1, "expected 1 result, got %d", len(results))
+	require.Equal(mt, "FooBarBaz", results[0]["encryptedText"])
 }
 
 // =============================================================================
