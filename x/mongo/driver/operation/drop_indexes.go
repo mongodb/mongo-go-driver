@@ -105,6 +105,7 @@ func (di *DropIndexes) Execute(ctx context.Context) error {
 		Timeout:                   di.timeout,
 		Name:                      driverutil.DropIndexesOp,
 		Authenticator:             di.authenticator,
+		SendAfterClusterTime:      true,
 	}.Execute(ctx)
 }
 

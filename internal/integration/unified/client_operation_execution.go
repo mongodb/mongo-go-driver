@@ -168,6 +168,36 @@ func executeListDatabases(ctx context.Context, operation *operation, nameOnly bo
 	return newDocumentResult(raw, nil), nil
 }
 
+func executeDropDatabase(ctx context.Context, operation *operation) (*operationResult, error) {
+	client, err := entities(ctx).client(operation.Object)
+	if err != nil {
+		return nil, err
+	}
+
+	var dbName string
+	elems, err := operation.Arguments.Elements()
+	if err != nil {
+		return nil, err
+	}
+	for _, elem := range elems {
+		key := elem.Key()
+		val := elem.Value()
+
+		switch key {
+		case "database":
+			dbName = val.StringValue()
+		default:
+			return nil, fmt.Errorf("unrecognized dropDatabase option %q", key)
+		}
+	}
+	if dbName == "" {
+		return nil, newMissingArgumentError("database")
+	}
+
+	err = client.Database(dbName).Drop(ctx)
+	return newErrorResult(err), nil
+}
+
 func executeClientBulkWrite(ctx context.Context, operation *operation) (*operationResult, error) {
 	client, err := entities(ctx).client(operation.Object)
 	if err != nil {

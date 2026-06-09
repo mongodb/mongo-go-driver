@@ -91,6 +91,7 @@ func (bw *clientBulkWrite) execute(ctx context.Context) error {
 		Logger:                    bw.client.logger,
 		Authenticator:             bw.client.authenticator,
 		Name:                      driverutil.BulkWriteOp,
+		SendAfterClusterTime:      true,
 	}.Execute(ctx)
 	var exception *ClientBulkWriteException
 
