@@ -31,7 +31,7 @@ func (tag Tag) String() string {
 // For more information about read preference tags, see
 // https://www.mongodb.com/docs/manual/core/read-preference-tags/
 func NewTagSetFromMap(m map[string]string) Set {
-	var set Set
+	set := make(Set, 0, len(m))
 	for k, v := range m {
 		set = append(set, Tag{Name: k, Value: v})
 	}

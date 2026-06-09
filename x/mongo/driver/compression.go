@@ -13,7 +13,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/golang/snappy"
+	"github.com/klauspost/compress/snappy"
 	"github.com/klauspost/compress/zstd"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage"
 )

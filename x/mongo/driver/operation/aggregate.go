@@ -24,33 +24,35 @@ import (
 
 // Aggregate represents an aggregate operation.
 type Aggregate struct {
-	authenticator            driver.Authenticator
-	allowDiskUse             *bool
-	batchSize                *int32
-	bypassDocumentValidation *bool
-	collation                bsoncore.Document
-	comment                  bsoncore.Value
-	hint                     bsoncore.Value
-	pipeline                 bsoncore.Document
-	session                  *session.Client
-	clock                    *session.ClusterClock
-	collection               string
-	monitor                  *event.CommandMonitor
-	database                 string
-	deployment               driver.Deployment
-	readConcern              *readconcern.ReadConcern
-	readPreference           *readpref.ReadPref
-	retry                    *driver.RetryMode
-	selector                 description.ServerSelector
-	writeConcern             *writeconcern.WriteConcern
-	crypt                    driver.Crypt
-	serverAPI                *driver.ServerAPIOptions
-	let                      bsoncore.Document
-	hasOutputStage           bool
-	customOptions            map[string]bsoncore.Value
-	timeout                  *time.Duration
-	omitMaxTimeMS            bool
-	rawData                  *bool
+	authenticator             driver.Authenticator
+	allowDiskUse              *bool
+	batchSize                 *int32
+	bypassDocumentValidation  *bool
+	collation                 bsoncore.Document
+	comment                   bsoncore.Value
+	hint                      bsoncore.Value
+	pipeline                  bsoncore.Document
+	session                   *session.Client
+	clock                     *session.ClusterClock
+	collection                string
+	monitor                   *event.CommandMonitor
+	database                  string
+	deployment                driver.Deployment
+	readConcern               *readconcern.ReadConcern
+	readPreference            *readpref.ReadPref
+	retry                     *driver.RetryMode
+	maxAdaptiveRetries        uint
+	enableOverloadRetargeting bool
+	selector                  description.ServerSelector
+	writeConcern              *writeconcern.WriteConcern
+	crypt                     driver.Crypt
+	serverAPI                 *driver.ServerAPIOptions
+	let                       bsoncore.Document
+	hasOutputStage            bool
+	customOptions             map[string]bsoncore.Value
+	timeout                   *time.Duration
+	omitMaxTimeMS             bool
+	rawData                   *bool
 
 	result driver.CursorResponse
 }
@@ -64,7 +66,6 @@ func NewAggregate(pipeline bsoncore.Document) *Aggregate {
 
 // Result returns the result of executing this operation.
 func (a *Aggregate) Result(opts driver.CursorOptions) (*driver.BatchCursor, error) {
-
 	clientSession := a.session
 
 	clock := a.clock
@@ -85,7 +86,6 @@ func (a *Aggregate) processResponse(_ context.Context, resp bsoncore.Document, i
 	}
 	a.result, err = driver.NewCursorResponse(curDoc, info)
 	return err
-
 }
 
 // Execute runs this operations and returns an error if the operation did not execute successfully.
@@ -107,6 +107,8 @@ func (a *Aggregate) Execute(ctx context.Context) error {
 		ReadPreference:                 a.readPreference,
 		Type:                           driver.Read,
 		RetryMode:                      a.retry,
+		MaxAdaptiveRetries:             a.maxAdaptiveRetries,
+		EnableOverloadRetargeting:      a.enableOverloadRetargeting,
 		Selector:                       a.selector,
 		WriteConcern:                   a.writeConcern,
 		Crypt:                          a.crypt,
@@ -118,7 +120,6 @@ func (a *Aggregate) Execute(ctx context.Context) error {
 		Authenticator:                  a.authenticator,
 		OmitMaxTimeMS:                  a.omitMaxTimeMS,
 	}.Execute(ctx)
-
 }
 
 func (a *Aggregate) command(dst []byte, desc description.SelectedServer) ([]byte, error) {
@@ -130,14 +131,12 @@ func (a *Aggregate) command(dst []byte, desc description.SelectedServer) ([]byte
 
 	cursorIdx, cursorDoc := bsoncore.AppendDocumentStart(nil)
 	if a.allowDiskUse != nil {
-
 		dst = bsoncore.AppendBooleanElement(dst, "allowDiskUse", *a.allowDiskUse)
 	}
 	if a.batchSize != nil {
 		cursorDoc = bsoncore.AppendInt32Element(cursorDoc, "batchSize", *a.batchSize)
 	}
 	if a.bypassDocumentValidation != nil {
-
 		dst = bsoncore.AppendBooleanElement(dst, "bypassDocumentValidation", *a.bypassDocumentValidation)
 	}
 	if a.collation != nil {
@@ -150,11 +149,9 @@ func (a *Aggregate) command(dst []byte, desc description.SelectedServer) ([]byte
 		dst = bsoncore.AppendValueElement(dst, "comment", a.comment)
 	}
 	if a.hint.Type != bsoncore.Type(0) {
-
 		dst = bsoncore.AppendValueElement(dst, "hint", a.hint)
 	}
 	if a.pipeline != nil {
-
 		dst = bsoncore.AppendArrayElement(dst, "pipeline", a.pipeline)
 	}
 	if a.let != nil {
@@ -352,6 +349,28 @@ func (a *Aggregate) Retry(retry driver.RetryMode) *Aggregate {
 	}
 
 	a.retry = &retry
+	return a
+}
+
+// MaxAdaptiveRetries specifies the maximum number of times the driver should retry operations
+// that fail with a server side overload error.
+func (a *Aggregate) MaxAdaptiveRetries(maxAdaptiveRetries uint) *Aggregate {
+	if a == nil {
+		a = new(Aggregate)
+	}
+
+	a.maxAdaptiveRetries = maxAdaptiveRetries
+	return a
+}
+
+// EnableOverloadRetargeting specifies whether the driver adds the previously failed server's address
+// to the list of deprioritized server addresses
+func (a *Aggregate) EnableOverloadRetargeting(enabled bool) *Aggregate {
+	if a == nil {
+		a = new(Aggregate)
+	}
+
+	a.enableOverloadRetargeting = enabled
 	return a
 }
 

@@ -19,7 +19,7 @@ import (
 // cryptographically-secure random number.
 // It is safe to use from multiple goroutines.
 func NewLockedRand() *xrand.Rand {
-	var randSrc = new(xrand.LockedSource)
+	randSrc := new(xrand.LockedSource)
 	randSrc.Seed(cryptoSeed())
 	return xrand.New(randSrc)
 }

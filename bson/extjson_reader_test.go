@@ -34,7 +34,6 @@ func TestExtJSONReader(t *testing.T) {
 			if err == nil || err.Error() != wanterr.Error() {
 				t.Errorf("Incorrect returned error. got %v; want %v", err, wanterr)
 			}
-
 		})
 	})
 

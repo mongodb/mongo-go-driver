@@ -36,7 +36,6 @@ func BenchmarkRawValidate(b *testing.B) {
 		rdr[250], rdr[251], rdr[252], rdr[253], rdr[254] = '\x05', '\x00', '\x00', '\x00', '\x00'
 		_ = rdr[250:].Validate()
 	}
-
 }
 
 func TestRaw(t *testing.T) {
@@ -93,7 +92,8 @@ func TestRaw(t *testing.T) {
 			err  error
 		}{
 			{"null", Raw{'\x08', '\x00', '\x00', '\x00', '\x0A', 'x', '\x00', '\x00'}, nil},
-			{"subdocument",
+			{
+				"subdocument",
 				Raw{
 					'\x15', '\x00', '\x00', '\x00',
 					'\x03',
@@ -103,7 +103,8 @@ func TestRaw(t *testing.T) {
 				},
 				nil,
 			},
-			{"array",
+			{
+				"array",
 				Raw{
 					'\x15', '\x00', '\x00', '\x00',
 					'\x04',
@@ -177,14 +178,17 @@ func TestRaw(t *testing.T) {
 			want RawValue
 			err  error
 		}{
-			{"first",
+			{
+				"first",
 				Raw{
 					'\x08', '\x00', '\x00', '\x00', '\x0A', 'x', '\x00', '\x00',
 				},
 				[]string{"x"},
-				RawValue{Type: TypeNull}, nil,
+				RawValue{Type: TypeNull},
+				nil,
 			},
-			{"first-second",
+			{
+				"first-second",
 				Raw{
 					'\x15', '\x00', '\x00', '\x00',
 					'\x03',
@@ -193,9 +197,11 @@ func TestRaw(t *testing.T) {
 					'\x0A', 'b', '\x00', '\x00', '\x00',
 				},
 				[]string{"foo", "b"},
-				RawValue{Type: TypeNull}, nil,
+				RawValue{Type: TypeNull},
+				nil,
 			},
-			{"first-second-array",
+			{
+				"first-second-array",
 				Raw{
 					'\x15', '\x00', '\x00', '\x00',
 					'\x04',
@@ -204,7 +210,8 @@ func TestRaw(t *testing.T) {
 					'\x0A', '2', '\x00', '\x00', '\x00',
 				},
 				[]string{"foo", "2"},
-				RawValue{Type: TypeNull}, nil,
+				RawValue{Type: TypeNull},
+				nil,
 			},
 		}
 
@@ -242,15 +249,21 @@ func TestRaw(t *testing.T) {
 			index uint
 			want  RawElement
 		}{
-			{"first",
+			{
+				"first",
 				Raw{0xe, 0x0, 0x0, 0x0, 0xa, 0x78, 0x0, 0xa, 0x79, 0x0, 0xa, 0x7a, 0x0, 0x0},
-				0, bsoncore.AppendNullElement(nil, "x")},
-			{"second",
+				0, bsoncore.AppendNullElement(nil, "x"),
+			},
+			{
+				"second",
 				Raw{0xe, 0x0, 0x0, 0x0, 0xa, 0x78, 0x0, 0xa, 0x79, 0x0, 0xa, 0x7a, 0x0, 0x0},
-				1, bsoncore.AppendNullElement(nil, "y")},
-			{"third",
+				1, bsoncore.AppendNullElement(nil, "y"),
+			},
+			{
+				"third",
 				Raw{0xe, 0x0, 0x0, 0x0, 0xa, 0x78, 0x0, 0xa, 0x79, 0x0, 0xa, 0x7a, 0x0, 0x0},
-				2, bsoncore.AppendNullElement(nil, "z")},
+				2, bsoncore.AppendNullElement(nil, "z"),
+			},
 		}
 
 		for _, tc := range testCases {

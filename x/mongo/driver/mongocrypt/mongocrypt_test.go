@@ -61,7 +61,9 @@ func createMongoCrypt(t *testing.T) *MongoCrypt {
 		AppendDocument("local", localProvider).
 		Build()
 
-	cryptOpts := options.MongoCrypt().SetKmsProviders(kmsProviders)
+	cryptOpts := &options.MongoCryptOptions{
+		KmsProviders: kmsProviders,
+	}
 	crypt, err := NewMongoCrypt(cryptOpts)
 	noerr(t, err)
 	if crypt == nil {
@@ -216,7 +218,10 @@ func TestMongoCrypt(t *testing.T) {
 				AppendString("secretAccessKey", "example").
 				FinishDocument().
 				Build()
-			cryptOpts := options.MongoCrypt().SetKmsProviders(kmsProviders).SetLocalSchemaMap(schemaMap)
+			cryptOpts := &options.MongoCryptOptions{
+				KmsProviders:   kmsProviders,
+				LocalSchemaMap: schemaMap,
+			}
 			crypt, err := NewMongoCrypt(cryptOpts)
 			noerr(t, err)
 			defer crypt.Close()
@@ -289,7 +294,7 @@ func TestMongoCrypt(t *testing.T) {
 		masterKey, _ = bsoncore.AppendDocumentEnd(masterKey, midx)
 
 		// create data key context and check initial state
-		dataKeyOpts := options.DataKey().SetMasterKey(masterKey)
+		dataKeyOpts := &options.DataKeyOptions{MasterKey: masterKey}
 		dataKeyCtx, err := crypt.CreateDataKeyContext("local", dataKeyOpts)
 		noerr(t, err)
 		defer dataKeyCtx.Close()
@@ -320,7 +325,7 @@ func TestMongoCrypt(t *testing.T) {
 				Subtype: 0x04, // 0x04 is UUID subtype
 				Data:    []byte("aaaaaaaaaaaaaaaa"),
 			}
-			opts := options.ExplicitEncryption().SetKeyID(keyID).SetAlgorithm(algorithm)
+			opts := &options.ExplicitEncryptionOptions{KeyID: &keyID, Algorithm: algorithm}
 			encryptCtx, err := crypt.CreateExplicitEncryptionContext(originalDoc, opts)
 			noerr(t, err)
 			defer encryptCtx.Close()
@@ -353,7 +358,8 @@ func TestMongoCrypt(t *testing.T) {
 			defer crypt.Close()
 
 			// create explicit encryption context and check initial state
-			opts := options.ExplicitEncryption().SetKeyAltName("altKeyName").SetAlgorithm(algorithm)
+			keyAltName := "altKeyName"
+			opts := &options.ExplicitEncryptionOptions{KeyAltName: &keyAltName, Algorithm: algorithm}
 			encryptCtx, err := crypt.CreateExplicitEncryptionContext(originalDoc, opts)
 			noerr(t, err)
 			defer encryptCtx.Close()

@@ -4,7 +4,6 @@ go 1.19
 
 require (
 	github.com/davecgh/go-spew v1.1.1
-	github.com/golang/snappy v1.0.0
 	github.com/google/go-cmp v0.6.0
 	github.com/klauspost/compress v1.17.6
 	github.com/xdg-go/scram v1.2.0

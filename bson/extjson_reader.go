@@ -41,7 +41,6 @@ func newExtJSONValueReader(r io.Reader, canonicalOnly bool) (*extJSONValueReader
 func (ejvr *extJSONValueReader) reset(r io.Reader, canonicalOnly bool) (*extJSONValueReader, error) {
 	p := newExtJSONParser(r, canonicalOnly)
 	typ, err := p.peekType()
-
 	if err != nil {
 		return nil, ErrInvalidJSON
 	}
@@ -565,7 +564,6 @@ func (ejvr *extJSONValueReader) ReadElement() (string, ValueReader, error) {
 	}
 
 	name, t, err := ejvr.p.readKey()
-
 	if err != nil {
 		if errors.Is(err, ErrEOD) {
 			if ejvr.stack[ejvr.frame].mode == mCodeWithScope {

@@ -14,6 +14,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/v2/internal/testutil"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
@@ -113,7 +114,7 @@ func executeTestRunnerOperation(ctx context.Context, op *operation, loopDone <-c
 			return err
 		}
 
-		clientSession := extractClientSession(sess)
+		clientSession := testutil.GetUnexportedFieldAs[*session.Client](sess, "clientSession")
 		if clientSession.PinnedServerAddr == nil {
 			return fmt.Errorf("session is not pinned to a server")
 		}
@@ -151,7 +152,7 @@ func executeTestRunnerOperation(ctx context.Context, op *operation, loopDone <-c
 			return fmt.Errorf("unrecognized session state type %q", stateStr)
 		}
 
-		if actualState := extractClientSession(sess).TransactionState; actualState != expectedState {
+		if actualState := testutil.GetUnexportedFieldAs[*session.Client](sess, "clientSession").TransactionState; actualState != expectedState {
 			return fmt.Errorf("expected session state %q does not match actual state %q", expectedState, actualState)
 		}
 		return nil
@@ -258,7 +259,8 @@ func executeTestRunnerOperation(ctx context.Context, op *operation, loopDone <-c
 			return fmt.Errorf("run on unknown thread: %s", thread)
 		}
 		routine.(*backgroundRoutine).addTask(threadOp.Name, func() error {
-			return threadOp.execute(ctx, loopDone)
+			_, execErr := threadOp.execute(ctx, loopDone)
+			return execErr
 		})
 		return nil
 	case "waitForThread":
@@ -322,7 +324,7 @@ func executeLoop(ctx context.Context, args *loopArgs, loopDone <-chan struct{}) 
 				if operation.Name == "loop" {
 					return fmt.Errorf("loop sub-operations should not include loop")
 				}
-				loopErr = operation.execute(ctx, loopDone)
+				_, loopErr = operation.execute(ctx, loopDone)
 
 				// if the operation errors, stop this loop
 				if loopErr != nil {
@@ -443,17 +445,13 @@ func waitForEvent(ctx context.Context, args waitForEventArguments) error {
 	}
 }
 
-func extractClientSession(sess *mongo.Session) *session.Client {
-	return sess.ClientSession()
-}
-
 func verifySessionPinnedState(ctx context.Context, sessionID string, expectedPinned bool) error {
 	sess, err := entities(ctx).session(sessionID)
 	if err != nil {
 		return err
 	}
 
-	if isPinned := extractClientSession(sess).PinnedServerAddr != nil; expectedPinned != isPinned {
+	if isPinned := testutil.GetUnexportedFieldAs[*session.Client](sess, "clientSession").PinnedServerAddr != nil; expectedPinned != isPinned {
 		return fmt.Errorf("session pinned state mismatch; expected to be pinned: %v, is pinned: %v", expectedPinned, isPinned)
 	}
 	return nil
@@ -496,7 +494,7 @@ func verifySessionDirtyState(ctx context.Context, sessionID string, expectedDirt
 		return err
 	}
 
-	if isDirty := extractClientSession(sess).Dirty; expectedDirty != isDirty {
+	if isDirty := testutil.GetUnexportedFieldAs[*session.Client](sess, "clientSession").Dirty; expectedDirty != isDirty {
 		return fmt.Errorf("session dirty state mismatch; expected to be dirty: %v, is dirty: %v", expectedDirty, isDirty)
 	}
 	return nil

@@ -101,6 +101,8 @@ func TestConvenientTransactions(t *testing.T) {
 		assert.False(t, resBool, "expected result false, got %v", resBool)
 	})
 	t.Run("retry timeout enforced", func(t *testing.T) {
+		timeout := withTransactionTimeout
+		defer func() { withTransactionTimeout = timeout }()
 		withTransactionTimeout = time.Second
 
 		coll := db.Collection(t.Name())
@@ -123,7 +125,8 @@ func TestConvenientTransactions(t *testing.T) {
 		})
 		t.Run("unknown transaction commit result", func(t *testing.T) {
 			// set failpoint
-			failpoint := bson.D{{"configureFailPoint", "failCommand"},
+			failpoint := bson.D{
+				{"configureFailPoint", "failCommand"},
 				{"mode", "alwaysOn"},
 				{"data", bson.D{
 					{"failCommands", bson.A{"commitTransaction"}},
@@ -156,7 +159,8 @@ func TestConvenientTransactions(t *testing.T) {
 		})
 		t.Run("commit transient transaction error", func(t *testing.T) {
 			// set failpoint
-			failpoint := bson.D{{"configureFailPoint", "failCommand"},
+			failpoint := bson.D{
+				{"configureFailPoint", "failCommand"},
 				{"mode", "alwaysOn"},
 				{"data", bson.D{
 					{"failCommands", bson.A{"commitTransaction"}},
@@ -327,7 +331,7 @@ func TestConvenientTransactions(t *testing.T) {
 				"expected timeout error error; got %v", commitErr)
 
 			// Assert session state is not Committed.
-			clientSession := session.ClientSession()
+			clientSession := session.clientSession
 			assert.False(t, clientSession.TransactionCommitted(), "expected session state to not be Committed")
 
 			// AbortTransaction without error.
@@ -344,6 +348,8 @@ func TestConvenientTransactions(t *testing.T) {
 		})
 	})
 	t.Run("context error before commitTransaction does not retry and aborts", func(t *testing.T) {
+		timeout := withTransactionTimeout
+		defer func() { withTransactionTimeout = timeout }()
 		withTransactionTimeout = 2 * time.Second
 
 		// Create a special CommandMonitor that only records information about abortTransaction events.
@@ -451,6 +457,8 @@ func TestConvenientTransactions(t *testing.T) {
 		assert.False(t, resBool, "expected result false, got %v", resBool)
 	})
 	t.Run("expired context before callback does not retry", func(t *testing.T) {
+		timeout := withTransactionTimeout
+		defer func() { withTransactionTimeout = timeout }()
 		withTransactionTimeout = 2 * time.Second
 
 		coll := db.Collection("test")
@@ -486,6 +494,8 @@ func TestConvenientTransactions(t *testing.T) {
 			"expected transaction to fail within 500ms")
 	})
 	t.Run("canceled context before callback does not retry", func(t *testing.T) {
+		timeout := withTransactionTimeout
+		defer func() { withTransactionTimeout = timeout }()
 		withTransactionTimeout = 2 * time.Second
 
 		coll := db.Collection("test")
@@ -521,6 +531,11 @@ func TestConvenientTransactions(t *testing.T) {
 			"expected transaction to fail within 500ms")
 	})
 	t.Run("slow operation in callback retries", func(t *testing.T) {
+		if os.Getenv("TOPOLOGY") == "sharded_cluster" {
+			t.Skip("skipping on sharded clusters due to SERVER-96344; see GODRIVER-3801")
+		}
+		timeout := withTransactionTimeout
+		defer func() { withTransactionTimeout = timeout }()
 		withTransactionTimeout = 2 * time.Second
 
 		coll := db.Collection("test")
@@ -533,7 +548,8 @@ func TestConvenientTransactions(t *testing.T) {
 		}()
 
 		// Set failpoint to block insertOne once for 500ms.
-		failpoint := bson.D{{"configureFailPoint", "failCommand"},
+		failpoint := bson.D{
+			{"configureFailPoint", "failCommand"},
 			{"mode", bson.D{
 				{"times", 1},
 			}},
@@ -577,9 +593,10 @@ func TestConvenientTransactions(t *testing.T) {
 			withTransactionTimeout,
 			time.Millisecond,
 			"expected transaction to be passed within 2s")
-
 	})
 	t.Run("retries correctly for joined errors", func(t *testing.T) {
+		timeout := withTransactionTimeout
+		defer func() { withTransactionTimeout = timeout }()
 		withTransactionTimeout = 500 * time.Millisecond
 
 		sess, err := client.StartSession()

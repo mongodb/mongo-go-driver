@@ -9,6 +9,7 @@ package topology
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -45,6 +46,30 @@ var (
 )
 
 func nextConnectionID() uint64 { return atomic.AddUint64(&globalConnectionID, 1) }
+
+func wrapConnectionError(connErr ConnectionError) error {
+	var dnsErr *net.DNSError
+	if errors.As(connErr.Wrapped, &dnsErr) {
+		return connErr
+	}
+	// x509 errors are returned as values by the crypto/tls package
+	var hostErr x509.HostnameError
+	if errors.As(connErr.Wrapped, &hostErr) {
+		return connErr
+	}
+	var certErr x509.CertificateInvalidError
+	if errors.As(connErr.Wrapped, &certErr) {
+		return connErr
+	}
+	var unknownCAErr x509.UnknownAuthorityError
+	if errors.As(connErr.Wrapped, &unknownCAErr) {
+		return connErr
+	}
+	return driver.Error{
+		Labels:  []string{driver.ErrSystemOverloadedError, driver.ErrRetryableError, driver.NetworkError},
+		Wrapped: connErr,
+	}
+}
 
 type connection struct {
 	// state must be accessed using the atomic package and should be at the beginning of the struct.
@@ -211,7 +236,8 @@ func (c *connection) connect(ctx context.Context) (err error) {
 	// Assign the result of DialContext to a temporary net.Conn to ensure that c.nc is not set in an error case.
 	tempNc, err := c.config.dialer.DialContext(ctx, c.addr.Network(), c.addr.String())
 	if err != nil {
-		return ConnectionError{Wrapped: err, init: true, message: fmt.Sprintf("failed to connect to %s", c.addr)}
+		connErr := ConnectionError{Wrapped: err, init: true, message: fmt.Sprintf("failed to connect to %s", c.addr)}
+		return wrapConnectionError(connErr)
 	}
 	c.nc = tempNc
 
@@ -227,7 +253,8 @@ func (c *connection) connect(ctx context.Context) (err error) {
 		}
 		tlsNc, err := configureTLS(ctx, c.config.tlsConnectionSource, c.nc, c.addr, tlsConfig, ocspOpts)
 		if err != nil {
-			return ConnectionError{Wrapped: err, init: true, message: fmt.Sprintf("failed to configure TLS for %s", c.addr)}
+			connErr := ConnectionError{Wrapped: err, init: true, message: fmt.Sprintf("failed to configure TLS for %s", c.addr)}
+			return wrapConnectionError(connErr)
 		}
 		c.nc = tlsNc
 	}
@@ -245,34 +272,33 @@ func (c *connection) connect(ctx context.Context) (err error) {
 	handshakeConn := mnet.NewConnection(iconn)
 
 	handshakeInfo, err = handshaker.GetHandshakeInformation(ctx, c.addr, handshakeConn)
-	if err == nil {
-		// We only need to retain the Description field as the connection's description. The authentication-related
-		// fields in handshakeInfo are tracked by the handshaker if necessary.
-		c.desc = handshakeInfo.Description
-		c.serverConnectionID = handshakeInfo.ServerConnectionID
-		c.helloRTT = time.Since(handshakeStartTime)
-
-		// If the application has indicated that the cluster is load balanced, ensure the server has included serviceId
-		// in its handshake response to signal that it knows it's behind an LB as well.
-		if c.config.loadBalanced && c.desc.ServiceID == nil {
-			err = errLoadBalancedStateMismatch
-		}
-	}
-	if err == nil {
-		// For load-balanced connections, the generation number depends on the service ID, which isn't known until the
-		// initial MongoDB handshake is done. To account for this, we don't attempt to set the connection's generation
-		// number unless GetHandshakeInformation succeeds.
-		if c.config.loadBalanced {
-			c.setGenerationNumber()
-		}
-
-		// If we successfully finished the first part of the handshake and verified LB state, continue with the rest of
-		// the handshake.
-		err = handshaker.FinishHandshake(ctx, handshakeConn)
-	}
-
-	// We have a failed handshake here
 	if err != nil {
+		connErr := ConnectionError{Wrapped: err, init: true}
+		return wrapConnectionError(connErr)
+	}
+
+	// We only need to retain the Description field as the connection's description. The authentication-related
+	// fields in handshakeInfo are tracked by the handshaker if necessary.
+	c.desc = handshakeInfo.Description
+	c.serverConnectionID = handshakeInfo.ServerConnectionID
+	c.helloRTT = time.Since(handshakeStartTime)
+
+	// If the application has indicated that the cluster is load balanced, ensure the server has included serviceId
+	// in its handshake response to signal that it knows it's behind an LB as well.
+	if c.config.loadBalanced && c.desc.ServiceID == nil {
+		return ConnectionError{Wrapped: errLoadBalancedStateMismatch, init: true}
+	}
+
+	// For load-balanced connections, the generation number depends on the service ID, which isn't known until the
+	// initial MongoDB handshake is done. To account for this, we don't attempt to set the connection's generation
+	// number unless GetHandshakeInformation succeeds.
+	if c.config.loadBalanced {
+		c.setGenerationNumber()
+	}
+
+	// If we successfully finished the first part of the handshake and verified LB state, continue with the rest of
+	// the handshake. Authentication errors are not connection establishment errors and do not get backpressure labels.
+	if err = handshaker.FinishHandshake(ctx, handshakeConn); err != nil {
 		return ConnectionError{Wrapped: err, init: true}
 	}
 
@@ -414,6 +440,7 @@ func (c *connection) readWireMessage(ctx context.Context) ([]byte, error) {
 			// connection because we don't know what the connection state is.
 			_ = c.close()
 		}
+
 		message := errMsg
 		return nil, ConnectionError{
 			ConnectionID: c.id,
@@ -783,6 +810,9 @@ func (c *Connection) ServerConnectionID() *int64 {
 func (c *Connection) Stale() bool {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
+	if c.connection == nil {
+		return true
+	}
 	return c.connection.pool.stale(c.connection)
 }
 
@@ -808,19 +838,28 @@ func (c *Connection) LocalAddress() address.Address {
 
 // PinToCursor updates this connection to reflect that it is pinned to a cursor.
 func (c *Connection) PinToCursor() error {
-	return c.pin("cursor", c.connection.pool.pinConnectionToCursor, c.connection.pool.unpinConnectionFromCursor)
+	return c.pin("cursor",
+		func() { c.connection.pool.pinConnectionToCursor() },
+		func() { c.connection.pool.unpinConnectionFromCursor() })
 }
 
 // PinToTransaction updates this connection to reflect that it is pinned to a transaction.
 func (c *Connection) PinToTransaction() error {
-	return c.pin("transaction", c.connection.pool.pinConnectionToTransaction, c.connection.pool.unpinConnectionFromTransaction)
+	return c.pin("transaction",
+		func() { c.connection.pool.pinConnectionToTransaction() },
+		func() { c.connection.pool.unpinConnectionFromTransaction() })
 }
 
 func (c *Connection) pin(reason string, updatePoolFn, cleanupPoolFn func()) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+
 	if c.connection == nil {
 		return fmt.Errorf("attempted to pin a connection for a %s, but the connection has already been returned to the pool", reason)
+	}
+
+	if c.connection.pool == nil {
+		return fmt.Errorf("attempted to pin a connection for a %s, but the connection is not associated with a pool", reason)
 	}
 
 	// Only use the provided callbacks for the first reference to avoid double-counting pinned connection statistics
@@ -860,6 +899,9 @@ func (c *Connection) unpin(reason string) error {
 
 // DriverConnectionID returns the driver connection ID.
 func (c *Connection) DriverConnectionID() int64 {
+	if c.connection == nil {
+		return 0
+	}
 	return c.connection.DriverConnectionID()
 }
 

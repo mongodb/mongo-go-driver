@@ -28,8 +28,10 @@ const DefaultMaxDocumentLength = 1000
 // toward the max document length.
 const TruncationSuffix = "..."
 
-const logSinkPathEnvVar = "MONGODB_LOG_PATH"
-const maxDocumentLengthEnvVar = "MONGODB_LOG_MAX_DOCUMENT_LENGTH"
+const (
+	logSinkPathEnvVar       = "MONGODB_LOG_PATH"
+	maxDocumentLengthEnvVar = "MONGODB_LOG_MAX_DOCUMENT_LENGTH"
+)
 
 // LogSink represents a logging implementation, this interface should be 1-1
 // with the exported "LogSink" interface in the mongo/options package.
@@ -185,7 +187,7 @@ func selectLogSink(sink LogSink) (LogSink, *os.File, error) {
 	}
 
 	if path != "" {
-		logFile, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
+		logFile, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0o666)
 		if err != nil {
 			return nil, nil, fmt.Errorf("unable to open log file: %w", err)
 		}

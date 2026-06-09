@@ -384,8 +384,7 @@ func Test_compareTwoValuesDifferentValuesTypes(t *testing.T) {
 func Test_compareTwoValuesNotComparableValues(t *testing.T) {
 	mockT := new(testing.T)
 
-	type CompareStruct struct {
-	}
+	type CompareStruct struct{}
 
 	for _, currCase := range []struct {
 		v1 interface{}

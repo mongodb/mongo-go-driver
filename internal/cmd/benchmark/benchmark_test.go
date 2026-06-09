@@ -179,7 +179,7 @@ func extractTestDataTgz(t *testing.T) {
 
 		switch header.Typeflag {
 		case tar.TypeDir:
-			err := os.MkdirAll(targetPath, 0755)
+			err := os.MkdirAll(targetPath, 0o755)
 			require.NoError(t, err, "failed to extract dir from tgz")
 		case tar.TypeReg:
 			outFile, err := os.Create(targetPath)
@@ -606,7 +606,7 @@ func TestRunAllBenchmarks(t *testing.T) {
 	// Ignore gosec warning "Expect WriteFile permissions to be 0600 or less" for
 	// benchmark result file.
 	/* #nosec G306 */
-	err = os.WriteFile(filepath.Join(filepath.Dir(testdataDir(t)), defaultOutputFileName), evgOutput, 0644)
+	err = os.WriteFile(filepath.Join(filepath.Dir(testdataDir(t)), defaultOutputFileName), evgOutput, 0o644)
 	require.NoError(t, err, "failed to write results")
 }
 

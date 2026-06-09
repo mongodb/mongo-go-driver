@@ -46,7 +46,7 @@ func NewChainCredentials(providers []Provider) *Credentials {
 // If a provider is found it will be cached and any calls to IsExpired()
 // will return the expired state of the cached provider.
 func (c *ChainProvider) Retrieve() (Value, error) {
-	var errs = make([]error, 0, len(c.Providers))
+	errs := make([]error, 0, len(c.Providers))
 	for _, p := range c.Providers {
 		creds, err := p.Retrieve()
 		if err == nil {
@@ -57,7 +57,7 @@ func (c *ChainProvider) Retrieve() (Value, error) {
 	}
 	c.curr = nil
 
-	var err = awserr.NewBatchError("NoCredentialProviders", "no valid providers in chain", errs)
+	err := awserr.NewBatchError("NoCredentialProviders", "no valid providers in chain", errs)
 	return Value{}, err
 }
 

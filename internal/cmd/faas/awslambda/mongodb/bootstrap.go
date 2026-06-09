@@ -113,7 +113,6 @@ func gateway500() events.APIGatewayProxyResponse {
 		StatusCode: http.StatusInternalServerError,
 		Body:       http.StatusText(http.StatusInternalServerError),
 	}
-
 }
 
 // handler is the AWS Lambda handler, executing at runtime.

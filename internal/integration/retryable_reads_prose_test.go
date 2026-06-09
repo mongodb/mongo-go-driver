@@ -8,6 +8,7 @@ package integration
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"testing"
 	"time"
@@ -19,8 +20,11 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/failpoint"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
+	"go.mongodb.org/mongo-driver/v2/internal/randutil"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
 )
 
 func TestRetryableReadsProse(t *testing.T) {
@@ -200,5 +204,171 @@ func TestRetryableReadsProse(t *testing.T) {
 				assert.Equal(mt, tc.expectedSuccessCount, successCount)
 			})
 		}
+	})
+
+	mtOpts = mtest.NewOptions().Topologies(mtest.ReplicaSet).MinServerVersion("4.4").CreateClient(false)
+	mt.RunOpts("retrying reads in a replica set", mtOpts, func(mt *mtest.T) {
+		tests := []struct {
+			name                      string
+			errLabels                 []string
+			enableOverloadRetargeting bool
+			isServerIdentical         bool
+		}{
+			{
+				name:                      "overload errors retried on a different replicaset server",
+				errLabels:                 []string{"RetryableError", "SystemOverloadedError"},
+				enableOverloadRetargeting: true,
+				isServerIdentical:         false,
+			},
+			{
+				name:              "non-overload errors retried on the same replicaset server",
+				errLabels:         []string{"RetryableError"},
+				isServerIdentical: true,
+			},
+			{
+				name:              "overload errors retried on the same replicaset server",
+				errLabels:         []string{"RetryableError", "SystemOverloadedError"},
+				isServerIdentical: true,
+			},
+		}
+
+		for _, tc := range tests {
+			clientOpts := options.Client().SetRetryReads(true).SetReadPreference(readpref.PrimaryPreferred())
+			if tc.enableOverloadRetargeting {
+				clientOpts = clientOpts.SetEnableOverloadRetargeting(true)
+			}
+			mt.RunOpts(tc.name, mtest.NewOptions().ClientOptions(clientOpts), func(mt *mtest.T) {
+				failPoint := failpoint.FailPoint{
+					ConfigureFailPoint: "failCommand",
+					Mode: failpoint.Mode{
+						Times: 1,
+					},
+					Data: failpoint.Data{
+						FailCommands: []string{"find"},
+						ErrorLabels:  &tc.errLabels,
+						ErrorCode:    6,
+					},
+				}
+				mt.SetFailPoint(failPoint)
+				mt.ClearEvents()
+
+				_ = mt.Coll.FindOne(context.Background(), bson.D{})
+				succeeded := mt.GetAllSucceededEvents()
+				require.Len(mt, succeeded, 1, "expected exactly one succeeded attempt")
+				failed := mt.GetAllFailedEvents()
+				require.Len(mt, failed, 1, "expected exactly one failed attempt")
+				wanted := "different"
+				if tc.isServerIdentical {
+					wanted = "identical"
+				}
+				assert.Equal(mt, tc.isServerIdentical, failed[0].ConnectionID == succeeded[0].ConnectionID,
+					"expected failed and succeeded events to have %s connection IDs, got %v and %v", wanted,
+					failed[0].ConnectionID, succeeded[0].ConnectionID)
+			})
+		}
+	})
+
+	errorCodesContains := func(err error, code int) bool {
+		for _, ec := range mongo.ErrorCodes(err) {
+			if ec == code {
+				return true
+			}
+		}
+		return false
+	}
+
+	mtOpts = mtest.NewOptions().MinServerVersion("4.4").ClientType(mtest.Pinned).AllowFailPointsOnSharded()
+	mt.RunOpts("set the maximum number of retries for all retryable read errors", mtOpts, func(mt *mtest.T) {
+		mt.SetFailPoint(failpoint.FailPoint{
+			ConfigureFailPoint: "failCommand",
+			Mode: failpoint.Mode{
+				Times: 1,
+			},
+			Data: failpoint.Data{
+				FailCommands: []string{"find"},
+				ErrorLabels:  &[]string{"RetryableError", "SystemOverloadedError"},
+				ErrorCode:    91,
+			},
+		})
+
+		var opsCnt int
+		monitor := &event.CommandMonitor{
+			Started: func(_ context.Context, e *event.CommandStartedEvent) {
+				if e.CommandName == "find" {
+					opsCnt++
+				}
+			},
+			Failed: func(_ context.Context, event *event.CommandFailedEvent) {
+				if event.CommandName != "find" {
+					return
+				}
+				if errorCodesContains(event.Failure, 91) {
+					mt.SetFailPoint(failpoint.FailPoint{
+						ConfigureFailPoint: "failCommand",
+						Mode:               failpoint.ModeAlwaysOn,
+						Data: failpoint.Data{
+							FailCommands: []string{"find"},
+							ErrorLabels:  &[]string{"RetryableError"},
+							ErrorCode:    91,
+						},
+					})
+				}
+			},
+		}
+		mt.ResetClient(options.Client().SetRetryReads(true).SetMonitor(monitor))
+		_, err := mt.Coll.Find(context.Background(), bson.D{})
+		var cmdErr mongo.CommandError
+		require.Truef(mt, errors.As(err, &cmdErr), "expected a CommandError, got %T: %v", err, err)
+		assert.Equalf(mt, 3, opsCnt, "expected 3 attempts (1 original + 2 retries), got %d", opsCnt)
+	})
+
+	mt.RunOpts("do not apply backoff to non-overload errors", mtOpts, func(mt *mtest.T) {
+		mt.SetFailPoint(failpoint.FailPoint{
+			ConfigureFailPoint: "failCommand",
+			Mode: failpoint.Mode{
+				Times: 1,
+			},
+			Data: failpoint.Data{
+				FailCommands: []string{"find"},
+				ErrorLabels:  &[]string{"RetryableError", "SystemOverloadedError"},
+				ErrorCode:    91,
+			},
+		})
+
+		var ops []bool
+		monitor := &event.CommandMonitor{
+			Started: func(_ context.Context, e *event.CommandStartedEvent) {
+				if e.CommandName == "find" {
+					ops = append(ops, false)
+				}
+			},
+			Failed: func(_ context.Context, event *event.CommandFailedEvent) {
+				if event.CommandName != "find" {
+					return
+				}
+				if errorCodesContains(event.Failure, 91) {
+					mt.SetFailPoint(failpoint.FailPoint{
+						ConfigureFailPoint: "failCommand",
+						Mode:               failpoint.ModeAlwaysOn,
+						Data: failpoint.Data{
+							FailCommands: []string{"find"},
+							ErrorLabels:  &[]string{"RetryableError"},
+							ErrorCode:    91,
+						},
+					})
+				}
+			},
+		}
+
+		defer randutil.SetJitterForTesting(func() float64 {
+			ops[len(ops)-1] = true
+			return 0
+		})()
+
+		mt.ResetClient(options.Client().SetRetryReads(true).SetMonitor(monitor))
+		_, err := mt.Coll.Find(context.Background(), bson.D{})
+		var cmdErr mongo.CommandError
+		require.Truef(mt, errors.As(err, &cmdErr), "expected a CommandError, got %T: %v", err, err)
+		assert.Equal(t, []bool{true, false, false}, ops, "expected backoff to be applied on the first attempt only, got %v", ops)
 	})
 }

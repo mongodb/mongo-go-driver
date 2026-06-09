@@ -27,8 +27,10 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
 )
 
-const minHeartbeatInterval = 500 * time.Millisecond
-const wireVersion42 = 8 // Wire version for MongoDB 4.2
+const (
+	minHeartbeatInterval = 500 * time.Millisecond
+	wireVersion42        = 8 // Wire version for MongoDB 4.2
+)
 
 // Server state constants.
 const (
@@ -368,6 +370,12 @@ func (s *Server) ProcessHandshakeError(err error, startingGenerationNumber uint6
 		return
 	}
 
+	// Do not clear the pool when backpressure error label applied.
+	var de driver.Error
+	if errors.As(err, &de) && de.HasErrorLabel(driver.ErrSystemOverloadedError) {
+		return
+	}
+
 	// Must hold the processErrorLock while updating the server description and clearing the pool.
 	// Not holding the lock leads to possible out-of-order processing of pool.clear() and
 	// pool.ready() calls from concurrent server description updates.
@@ -611,7 +619,6 @@ func checkServerWithSignal(
 			conn.prevCanceled.Store(true)
 			_ = conn.close()
 		}
-
 	}(conn)
 
 	return checker.check(ctx)

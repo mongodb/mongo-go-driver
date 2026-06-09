@@ -35,7 +35,7 @@ func (ms myStruct) Foo() int {
 }
 
 func TestDefaultValueEncoders(t *testing.T) {
-	var wrong = func(string, string) string { return "wrong" }
+	wrong := func(string, string) string { return "wrong" }
 
 	type mybool bool
 	type myint8 int8
@@ -1126,7 +1126,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 	t.Run("success path", func(t *testing.T) {
 		oid := NewObjectID()
 		oids := []ObjectID{NewObjectID(), NewObjectID(), NewObjectID()}
-		var str = new(string)
+		str := new(string)
 		*str = "bar"
 		now := time.Now().Truncate(time.Millisecond)
 		murl, err := url.Parse("https://mongodb.com/random-url?hello=world")

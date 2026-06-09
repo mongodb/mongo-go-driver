@@ -4,7 +4,7 @@ linters:
   enable:
     - errcheck
     - gocritic
-    # TODO(GODRIVER-3712): Enable gosec in golangci-lint version 2.6.2
+    # TODO(GODRIVER-3712): Enable gosec in golangci-lint version 2.8.0
     #- gosec
     - govet
     - ineffassign
@@ -61,6 +61,10 @@ linters:
       - linters:
           - gosec
         path: _test\.go
+      # Ignore prealloc warnings for test files.
+      - linters:
+          - prealloc
+        path: _test\.go
       # Ignore missing comments for exported variable/function/type for code in
       # the "internal" and "benchmark" directories.
       - path: (internal\/|benchmark\/)
@@ -69,7 +73,6 @@ linters:
       # used by external users.
       - path: (internal\/|benchmark\/|x\/|cmd\/|mongo\/integration\/)
         text: should have a package comment
-
       # Add all default excluded issues except issues related to exported
       # types/functions not having comments; we want those warnings. The
       # defaults are copied from the "--exclude-use-default" documentation on
@@ -107,11 +110,9 @@ linters:
       - path: (.+)\.go$
         text: Potential file inclusion via variable
       ## End Defaults ##
-
       # Ignore capitalization warning for this weird field name.
       - path: (.+)\.go$
         text: "var-naming: struct field CqCssWxW should be CqCSSWxW"
-
       # Ignore warnings for common "wiremessage.Read..." usage because the
       # safest way to use that API is by assigning possibly unused returned byte
       # buffers.

@@ -168,54 +168,69 @@ func (bw *bulkWrite) runBatch(ctx context.Context, batch bulkWriteBatch) (BulkWr
 	return batchRes, batchErr, nil
 }
 
-func (bw *bulkWrite) runInsert(ctx context.Context, batch bulkWriteBatch) (operation.InsertResult, error) {
+func (bw *bulkWrite) runInsert(ctx context.Context, batch bulkWriteBatch) (insertResult, error) {
 	docs := make([]bsoncore.Document, len(batch.models))
 	for i, model := range batch.models {
 		converted := model.(*InsertOneModel)
 		doc, err := marshal(converted.Document, bw.collection.bsonOpts, bw.collection.registry)
 		if err != nil {
-			return operation.InsertResult{}, err
+			return insertResult{}, err
 		}
 		doc, _, err = ensureID(doc, bson.NilObjectID, bw.collection.bsonOpts, bw.collection.registry)
 		if err != nil {
-			return operation.InsertResult{}, err
+			return insertResult{}, err
 		}
 
 		docs[i] = doc
 	}
 
-	op := operation.NewInsert(docs...).
-		Session(bw.session).WriteConcern(bw.writeConcern).CommandMonitor(bw.collection.client.monitor).
-		ServerSelector(bw.selector).ClusterClock(bw.collection.client.clock).
-		Database(bw.collection.db.name).Collection(bw.collection.name).
-		Deployment(bw.collection.client.deployment).Crypt(bw.collection.client.cryptFLE).
-		ServerAPI(bw.collection.client.serverAPI).Timeout(bw.collection.client.timeout).
-		Logger(bw.collection.client.logger).Authenticator(bw.collection.client.authenticator)
+	maxAdaptiveRetries := bw.collection.client.effectiveAdaptiveRetries(bw.collection.client.retryWrites)
+
+	op := insert{
+		documents:     docs,
+		session:       bw.session,
+		writeConcern:  bw.writeConcern,
+		monitor:       bw.collection.client.monitor,
+		selector:      bw.selector,
+		clock:         bw.collection.client.clock,
+		database:      bw.collection.db.name,
+		collection:    bw.collection.name,
+		deployment:    bw.collection.client.deployment,
+		crypt:         bw.collection.client.cryptFLE,
+		serverAPI:     bw.collection.client.serverAPI,
+		timeout:       bw.collection.client.timeout,
+		logger:        bw.collection.client.logger,
+		authenticator: bw.collection.client.authenticator,
+
+		maxAdaptiveRetries:        maxAdaptiveRetries,
+		enableOverloadRetargeting: bw.collection.client.enableOverloadRetargeting,
+	}
+
 	if bw.comment != nil {
 		comment, err := marshalValue(bw.comment, bw.collection.bsonOpts, bw.collection.registry)
 		if err != nil {
 			return op.Result(), err
 		}
-		op.Comment(comment)
+		op.comment = comment
 	}
 	if bw.bypassDocumentValidation != nil && *bw.bypassDocumentValidation {
-		op = op.BypassDocumentValidation(*bw.bypassDocumentValidation)
+		op.bypassDocumentValidation = bw.bypassDocumentValidation
 	}
 	if bw.ordered != nil {
-		op = op.Ordered(*bw.ordered)
+		op.ordered = bw.ordered
 	}
 
 	retry := driver.RetryNone
 	if bw.collection.client.retryWrites && batch.canRetry {
 		retry = driver.RetryOncePerCommand
 	}
-	op = op.Retry(retry)
+	op.retry = &retry
 
 	if bw.rawData != nil {
-		op.RawData(*bw.rawData)
+		op.rawData = bw.rawData
 	}
 	if len(bw.additionalCmd) > 0 {
-		op.AdditionalCmd(bw.additionalCmd)
+		op.additionalCmd = bw.additionalCmd
 	}
 
 	err := op.Execute(ctx)
@@ -261,10 +276,19 @@ func (bw *bulkWrite) runDelete(ctx context.Context, batch bulkWriteBatch) (opera
 		i++
 	}
 
+	retry := driver.RetryNone
+	if bw.collection.client.retryWrites && batch.canRetry {
+		retry = driver.RetryOncePerCommand
+	}
+
+	maxAdaptiveRetries := bw.collection.client.effectiveAdaptiveRetries(bw.collection.client.retryWrites)
+
 	op := operation.NewDelete(docs...).
 		Session(bw.session).WriteConcern(bw.writeConcern).CommandMonitor(bw.collection.client.monitor).
 		ServerSelector(bw.selector).ClusterClock(bw.collection.client.clock).
 		Database(bw.collection.db.name).Collection(bw.collection.name).
+		Retry(retry).MaxAdaptiveRetries(maxAdaptiveRetries).
+		EnableOverloadRetargeting(bw.collection.client.enableOverloadRetargeting).
 		Deployment(bw.collection.client.deployment).Crypt(bw.collection.client.cryptFLE).Hint(hasHint).
 		ServerAPI(bw.collection.client.serverAPI).Timeout(bw.collection.client.timeout).
 		Logger(bw.collection.client.logger).Authenticator(bw.collection.client.authenticator)
@@ -285,11 +309,6 @@ func (bw *bulkWrite) runDelete(ctx context.Context, batch bulkWriteBatch) (opera
 	if bw.ordered != nil {
 		op = op.Ordered(*bw.ordered)
 	}
-	retry := driver.RetryNone
-	if bw.collection.client.retryWrites && batch.canRetry {
-		retry = driver.RetryOncePerCommand
-	}
-	op = op.Retry(retry)
 
 	if bw.rawData != nil {
 		op.RawData(*bw.rawData)
@@ -394,10 +413,19 @@ func (bw *bulkWrite) runUpdate(ctx context.Context, batch bulkWriteBatch) (opera
 		docs[i] = doc
 	}
 
+	retry := driver.RetryNone
+	if bw.collection.client.retryWrites && batch.canRetry {
+		retry = driver.RetryOncePerCommand
+	}
+
+	maxAdaptiveRetries := bw.collection.client.effectiveAdaptiveRetries(bw.collection.client.retryWrites)
+
 	op := operation.NewUpdate(docs...).
 		Session(bw.session).WriteConcern(bw.writeConcern).CommandMonitor(bw.collection.client.monitor).
 		ServerSelector(bw.selector).ClusterClock(bw.collection.client.clock).
 		Database(bw.collection.db.name).Collection(bw.collection.name).
+		Retry(retry).MaxAdaptiveRetries(maxAdaptiveRetries).
+		EnableOverloadRetargeting(bw.collection.client.enableOverloadRetargeting).
 		Deployment(bw.collection.client.deployment).Crypt(bw.collection.client.cryptFLE).Hint(hasHint).
 		ArrayFilters(hasArrayFilters).ServerAPI(bw.collection.client.serverAPI).
 		Timeout(bw.collection.client.timeout).Logger(bw.collection.client.logger).
@@ -422,11 +450,6 @@ func (bw *bulkWrite) runUpdate(ctx context.Context, batch bulkWriteBatch) (opera
 	if bw.bypassDocumentValidation != nil && *bw.bypassDocumentValidation {
 		op = op.BypassDocumentValidation(*bw.bypassDocumentValidation)
 	}
-	retry := driver.RetryNone
-	if bw.collection.client.retryWrites && batch.canRetry {
-		retry = driver.RetryOncePerCommand
-	}
-	op = op.Retry(retry)
 
 	if bw.rawData != nil {
 		op.RawData(*bw.rawData)

@@ -38,7 +38,6 @@ func verify(v credentials.Value) error {
 		return errors.New("AWS_SESSION_TOKEN is set, but ACCESS_KEY_ID and SECRET_ACCESS_KEY are missing")
 	}
 	return nil
-
 }
 
 // Retrieve returns the credentials or error if the credentials are invalid.

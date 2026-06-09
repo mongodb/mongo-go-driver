@@ -140,7 +140,6 @@ func (db *Database) Aggregate(
 		registry:       db.registry,
 		readConcern:    db.readConcern,
 		writeConcern:   db.writeConcern,
-		retryRead:      db.client.retryReads,
 		db:             db.name,
 		readSelector:   db.readSelector,
 		writeSelector:  db.writeSelector,
@@ -197,15 +196,18 @@ func (db *Database) processRunCommand(
 	}
 
 	var op *operation.Command
-	switch cursorCommand {
+	switch retryOverload := db.client.retryReads && db.client.retryWrites; cursorCommand {
 	case true:
-		cursorOpts := db.client.createBaseCursorOptions()
+		cursorOpts := db.client.createBaseCursorOptions(retryOverload)
 
 		cursorOpts.MarshalValueEncoderFn = newEncoderFn(db.bsonOpts, db.registry)
 
 		op = operation.NewCursorCommand(runCmdDoc, cursorOpts)
 	default:
 		op = operation.NewCommand(runCmdDoc)
+		maxAdaptiveRetries := db.client.effectiveAdaptiveRetries(retryOverload)
+		op = op.MaxAdaptiveRetries(maxAdaptiveRetries).
+			EnableOverloadRetargeting(db.client.enableOverloadRetargeting)
 	}
 
 	return op.Session(sess).CommandMonitor(db.client.monitor).
@@ -456,6 +458,13 @@ func (db *Database) ListCollections(
 		return nil, err
 	}
 
+	retry := driver.RetryNone
+	if db.client.retryReads {
+		retry = driver.RetryOncePerCommand
+	}
+
+	cursorOpts := db.client.createBaseCursorOptions(db.client.retryReads)
+
 	var selector description.ServerSelector
 
 	selector = &serverselector.Composite{
@@ -469,11 +478,11 @@ func (db *Database) ListCollections(
 
 	op := operation.NewListCollections(filterDoc).
 		Session(sess).ReadPreference(db.readPreference).CommandMonitor(db.client.monitor).
+		Retry(retry).MaxAdaptiveRetries(cursorOpts.MaxAdaptiveRetries).
+		EnableOverloadRetargeting(cursorOpts.EnableOverloadRetargeting).
 		ServerSelector(selector).ClusterClock(db.client.clock).
 		Database(db.name).Deployment(db.client.deployment).Crypt(db.client.cryptFLE).
 		ServerAPI(db.client.serverAPI).Timeout(db.client.timeout).Authenticator(db.client.authenticator)
-
-	cursorOpts := db.client.createBaseCursorOptions()
 
 	cursorOpts.MarshalValueEncoderFn = newEncoderFn(db.bsonOpts, db.registry)
 
@@ -490,12 +499,6 @@ func (db *Database) ListCollections(
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
 		op = op.RawData(rawData)
 	}
-
-	retry := driver.RetryNone
-	if db.client.retryReads {
-		retry = driver.RetryOncePerCommand
-	}
-	op = op.Retry(retry)
 
 	err = op.Execute(ctx)
 	if err != nil {

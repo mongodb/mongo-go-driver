@@ -1,14 +1,12 @@
 review-priority-normal:
-- changed-files:
-  - any-glob-to-any-file: '*'
-
+  - changed-files:
+      - any-glob-to-any-file: "*"
 documentation:
-- changed-files:
-  - any-glob-to-any-file:
-    - docs/**
-    - examples/**
-
+  - changed-files:
+      - any-glob-to-any-file:
+          - docs/**
+          - examples/**
 dependencies:
-- changed-files:
-  - any-glob-to-any-file:
-    - go.mod
+  - changed-files:
+      - any-glob-to-any-file:
+          - go.mod

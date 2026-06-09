@@ -16,9 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/tag"
 )
 
-var (
-	errInvalidReadPreference = errors.New("can not specify tags, max staleness, or hedge with mode primary")
-)
+var errInvalidReadPreference = errors.New("can not specify tags, max staleness, or hedge with mode primary")
 
 // Primary constructs a read preference with a PrimaryMode.
 func Primary() *ReadPref {

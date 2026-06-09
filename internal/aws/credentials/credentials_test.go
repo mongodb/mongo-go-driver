@@ -39,6 +39,7 @@ func (s *stubProvider) Retrieve() (Value, error) {
 	s.creds.ProviderName = "stubProvider"
 	return s.creds, s.err
 }
+
 func (s *stubProvider) IsExpired() bool {
 	return s.expired
 }

@@ -31,11 +31,15 @@ type ObjectID [12]byte
 // NilObjectID is the zero value for ObjectID.
 var NilObjectID ObjectID
 
-var objectIDCounter = readRandomUint32()
-var processUnique = processUniqueBytes()
+var (
+	objectIDCounter = readRandomUint32()
+	processUnique   = processUniqueBytes()
+)
 
-var _ encoding.TextMarshaler = ObjectID{}
-var _ encoding.TextUnmarshaler = &ObjectID{}
+var (
+	_ encoding.TextMarshaler   = ObjectID{}
+	_ encoding.TextUnmarshaler = &ObjectID{}
+)
 
 // NewObjectID generates a new ObjectID.
 func NewObjectID() ObjectID {

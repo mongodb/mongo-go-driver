@@ -637,7 +637,6 @@ func executeDistinct(mt *mtest.T, sess *mongo.Session, args bson.Raw) (bson.RawA
 
 			return res.Err()
 		})
-
 		if err != nil {
 			return nil, err
 		}

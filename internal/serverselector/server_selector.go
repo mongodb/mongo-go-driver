@@ -11,6 +11,7 @@ import (
 	"math"
 	"time"
 
+	"go.mongodb.org/mongo-driver/v2/mongo/address"
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
 	"go.mongodb.org/mongo-driver/v2/tag"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
@@ -175,6 +176,59 @@ func (selector *Write) SelectServer(
 			}
 		}
 		return result, nil
+	}
+}
+
+// Deprioritized filters out deprioritized servers from candidates.
+// If all candidates are deprioritized, returns all candidates as fallback.
+type Deprioritized struct {
+	deprioritizedServers []description.Server
+	innerSelector        description.ServerSelector
+}
+
+var _ description.ServerSelector = &Deprioritized{}
+
+// SelectServer filters out deprioritized servers from candidates.
+func (d *Deprioritized) SelectServer(
+	topo description.Topology,
+	candidates []description.Server,
+) ([]description.Server, error) {
+	if len(d.deprioritizedServers) == 0 {
+		return d.innerSelector.SelectServer(topo, candidates)
+	}
+
+	deprioritizedAddrs := make(map[address.Address]struct{})
+	for _, srv := range d.deprioritizedServers {
+		deprioritizedAddrs[srv.Addr] = struct{}{}
+	}
+
+	allowed := []description.Server{}
+
+	// Iterate over the candidates and append them to the allowed slice if
+	// they are not in the deprioritizedServers list.
+	for _, candidate := range candidates {
+		if _, ok := deprioritizedAddrs[candidate.Addr]; !ok {
+			allowed = append(allowed, candidate)
+		}
+	}
+
+	if len(allowed) > 0 {
+		result, err := d.innerSelector.SelectServer(topo, allowed)
+		if err != nil {
+			return nil, err
+		}
+		if len(result) > 0 {
+			return result, nil
+		}
+	}
+	return d.innerSelector.SelectServer(topo, candidates)
+}
+
+// NewDeprioritized wraps an inner selector to filter out deprioritized servers.
+func NewDeprioritized(inner description.ServerSelector, deprioritized []description.Server) description.ServerSelector {
+	return &Deprioritized{
+		deprioritizedServers: deprioritized,
+		innerSelector:        inner,
 	}
 }
 

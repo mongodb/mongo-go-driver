@@ -205,8 +205,10 @@ func serverClosed(e *event.ServerClosedEvent) {
 
 var testsDir = spectest.Path("server-discovery-and-monitoring/tests")
 
-var publishedEvents []any
-var lock sync.Mutex
+var (
+	publishedEvents []any
+	lock            sync.Mutex
+)
 
 func (r *response) UnmarshalBSON(buf []byte) error {
 	doc := bson.Raw(buf)
@@ -328,6 +330,15 @@ func applyErrors(t *testing.T, topo *Topology, errors []applicationError) {
 		}
 		conn := Connection{connection: &innerConn}
 
+		// Backpressure labels are applied to network/timeout errors during
+		// connection establishment.
+		if appErr.When == "beforeHandshakeCompletes" && (appErr.Type == "network" || appErr.Type == "timeout") {
+			if de, ok := currError.(driver.Error); ok {
+				de.Labels = append(de.Labels, driver.ErrSystemOverloadedError, driver.ErrRetryableError)
+				currError = de
+			}
+		}
+
 		switch appErr.When {
 		case "beforeHandshakeCompletes":
 			server.ProcessHandshakeError(currError, generation, nil)
@@ -340,7 +351,8 @@ func applyErrors(t *testing.T, topo *Topology, errors []applicationError) {
 }
 
 func compareServerDescriptions(t *testing.T,
-	expected serverDescription, actual event.ServerDescription, idx int) {
+	expected serverDescription, actual event.ServerDescription, idx int,
+) {
 	t.Helper()
 
 	assert.Equal(t, expected.Address, actual.Addr.String(),
@@ -374,7 +386,8 @@ func compareServerDescriptions(t *testing.T,
 }
 
 func compareTopologyDescriptions(t *testing.T,
-	expected topologyDescription, actual event.TopologyDescription, idx int) {
+	expected topologyDescription, actual event.TopologyDescription, idx int,
+) {
 	t.Helper()
 
 	assert.Equal(t, expected.TopologyType, actual.Kind,

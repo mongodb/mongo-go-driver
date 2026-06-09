@@ -137,7 +137,6 @@ func (v Value) AsInt64() int64 {
 		}
 		i64 = int64(f64)
 	case TypeInt32:
-		var ok bool
 		i32, _, ok := ReadInt32(v.Data)
 		if !ok {
 			panic(NewInsufficientBytesError(v.Data, v.Data))
@@ -170,7 +169,6 @@ func (v Value) AsInt64OK() (int64, bool) {
 		}
 		i64 = int64(f64)
 	case TypeInt32:
-		var ok bool
 		i32, _, ok := ReadInt32(v.Data)
 		if !ok {
 			return 0, false
@@ -190,17 +188,69 @@ func (v Value) AsInt64OK() (int64, bool) {
 
 // AsFloat64 returns a BSON number as an float64. If the BSON type is not a numeric one, this method
 // will panic.
-//
-// TODO(GODRIVER-2751): Implement AsFloat64.
-// func (v Value) AsFloat64() float64
+func (v Value) AsFloat64() float64 {
+	if !v.IsNumber() {
+		panic(ElementTypeError{"bsoncore.Value.AsFloat64", v.Type})
+	}
+	var f64 float64
+	switch v.Type {
+	case TypeDouble:
+		var ok bool
+		f64, _, ok = ReadDouble(v.Data)
+		if !ok {
+			panic(NewInsufficientBytesError(v.Data, v.Data))
+		}
+	case TypeInt32:
+		i32, _, ok := ReadInt32(v.Data)
+		if !ok {
+			panic(NewInsufficientBytesError(v.Data, v.Data))
+		}
+		f64 = float64(i32)
+	case TypeInt64:
+		i64, _, ok := ReadInt64(v.Data)
+		if !ok {
+			panic(NewInsufficientBytesError(v.Data, v.Data))
+		}
+		f64 = float64(i64)
+	case TypeDecimal128:
+		panic(ElementTypeError{"bsoncore.Value.AsFloat64", v.Type})
+	}
+	return f64
+}
 
 // AsFloat64OK functions the same as AsFloat64 but returns a boolean instead of panicking. False
 // indicates an error.
-//
-// TODO(GODRIVER-2751): Implement AsFloat64OK.
-// func (v Value) AsFloat64OK() (float64, bool)
+func (v Value) AsFloat64OK() (float64, bool) {
+	if !v.IsNumber() {
+		return 0, false
+	}
+	var f64 float64
+	switch v.Type {
+	case TypeDouble:
+		var ok bool
+		f64, _, ok = ReadDouble(v.Data)
+		if !ok {
+			return 0, false
+		}
+	case TypeInt32:
+		i32, _, ok := ReadInt32(v.Data)
+		if !ok {
+			return 0, false
+		}
+		f64 = float64(i32)
+	case TypeInt64:
+		i64, _, ok := ReadInt64(v.Data)
+		if !ok {
+			return 0, false
+		}
+		f64 = float64(i64)
+	case TypeDecimal128:
+		return 0, false
+	}
+	return f64, true
+}
 
-// Equal compaes v to v2 and returns true if they are equal.
+// Equal compares v to v2 and returns true if they are equal.
 func (v Value) Equal(v2 Value) bool {
 	if v.Type != v2.Type {
 		return false

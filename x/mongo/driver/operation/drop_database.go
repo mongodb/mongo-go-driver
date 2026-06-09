@@ -45,24 +45,23 @@ func (dd *DropDatabase) Execute(ctx context.Context) error {
 	}
 
 	return driver.Operation{
-		CommandFn:      dd.command,
-		Client:         dd.session,
-		Clock:          dd.clock,
-		CommandMonitor: dd.monitor,
-		Crypt:          dd.crypt,
-		Database:       dd.database,
-		Deployment:     dd.deployment,
-		Selector:       dd.selector,
-		WriteConcern:   dd.writeConcern,
-		ServerAPI:      dd.serverAPI,
-		Name:           driverutil.DropDatabaseOp,
-		Authenticator:  dd.authenticator,
+		CommandFn:            dd.command,
+		Client:               dd.session,
+		Clock:                dd.clock,
+		CommandMonitor:       dd.monitor,
+		Crypt:                dd.crypt,
+		Database:             dd.database,
+		Deployment:           dd.deployment,
+		Selector:             dd.selector,
+		WriteConcern:         dd.writeConcern,
+		ServerAPI:            dd.serverAPI,
+		Name:                 driverutil.DropDatabaseOp,
+		Authenticator:        dd.authenticator,
+		SendAfterClusterTime: true,
 	}.Execute(ctx)
-
 }
 
 func (dd *DropDatabase) command(dst []byte, _ description.SelectedServer) ([]byte, error) {
-
 	dst = bsoncore.AppendInt32Element(dst, "dropDatabase", 1)
 	return dst, nil
 }

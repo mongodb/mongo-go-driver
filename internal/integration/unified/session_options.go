@@ -61,16 +61,18 @@ func (to *transactionOptions) UnmarshalBSON(data []byte) error {
 // convert BSON documents to a sessionOptions instance.
 type sessionOptions struct {
 	*options.SessionOptionsBuilder
+	snapshotTimeID *string // Store the ID for later lookup in EntityMap
 }
 
 var _ bson.Unmarshaler = (*sessionOptions)(nil)
 
 func (so *sessionOptions) UnmarshalBSON(data []byte) error {
 	var temp struct {
-		Causal     *bool               `bson:"causalConsistency"`
-		TxnOptions *transactionOptions `bson:"defaultTransactionOptions"`
-		Snapshot   *bool               `bson:"snapshot"`
-		Extra      map[string]any      `bson:",inline"`
+		Causal       *bool               `bson:"causalConsistency"`
+		TxnOptions   *transactionOptions `bson:"defaultTransactionOptions"`
+		Snapshot     *bool               `bson:"snapshot"`
+		SnapshotTime *string             `bson:"snapshotTime"`
+		Extra        map[string]any      `bson:",inline"`
 	}
 	if err := bson.Unmarshal(data, &temp); err != nil {
 		return fmt.Errorf("error unmarshalling to temporary sessionOptions object: %v", err)
@@ -105,5 +107,9 @@ func (so *sessionOptions) UnmarshalBSON(data []byte) error {
 	if temp.Snapshot != nil {
 		so.SetSnapshot(*temp.Snapshot)
 	}
+
+	// Store the snapshot time ID for later lookup
+	so.snapshotTimeID = temp.SnapshotTime
+
 	return nil
 }

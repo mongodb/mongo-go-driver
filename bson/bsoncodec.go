@@ -12,9 +12,7 @@ import (
 	"strings"
 )
 
-var (
-	emptyValue = reflect.Value{}
-)
+var emptyValue = reflect.Value{}
 
 // ValueEncoderError is an error returned from a ValueEncoder when the provided value can't be
 // encoded by the ValueEncoder.
@@ -178,8 +176,10 @@ type decodeAdapter struct {
 	typeDecoderFunc
 }
 
-var _ ValueDecoder = decodeAdapter{}
-var _ typeDecoder = decodeAdapter{}
+var (
+	_ ValueDecoder = decodeAdapter{}
+	_ typeDecoder  = decodeAdapter{}
+)
 
 func decodeTypeOrValueWithInfo(vd ValueDecoder, dc DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
 	if td, _ := vd.(typeDecoder); td != nil {

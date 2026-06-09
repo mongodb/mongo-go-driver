@@ -30,11 +30,9 @@ const (
 	SCRAMSHA256 = "SCRAM-SHA-256"
 )
 
-var (
-	// Additional options for the saslStart command to enable a shorter SCRAM conversation
-	scramStartOptions bsoncore.Document = bsoncore.BuildDocumentFromElements(nil,
-		bsoncore.AppendBooleanElement(nil, "skipEmptyExchange", true),
-	)
+// Additional options for the saslStart command to enable a shorter SCRAM conversation
+var scramStartOptions bsoncore.Document = bsoncore.BuildDocumentFromElements(nil,
+	bsoncore.AppendBooleanElement(nil, "skipEmptyExchange", true),
 )
 
 func newScramSHA1Authenticator(cred *Cred, _ *http.Client) (Authenticator, error) {
@@ -116,8 +114,10 @@ type scramSaslAdapter struct {
 	conversation *scram.ClientConversation
 }
 
-var _ SaslClient = (*scramSaslAdapter)(nil)
-var _ ExtraOptionsSaslClient = (*scramSaslAdapter)(nil)
+var (
+	_ SaslClient             = (*scramSaslAdapter)(nil)
+	_ ExtraOptionsSaslClient = (*scramSaslAdapter)(nil)
+)
 
 func (a *scramSaslAdapter) Start() (string, []byte, error) {
 	step, err := a.conversation.Step("")

@@ -39,8 +39,8 @@ func TestSCRAM(t *testing.T) {
 	defer serverConnection.Close()
 
 	// Unicode constants for testing
-	var romanFour = "\u2163" // ROMAN NUMERAL FOUR -> SASL prepped is "IV"
-	var romanNine = "\u2168" // ROMAN NUMERAL NINE -> SASL prepped is "IX"
+	romanFour := "\u2163" // ROMAN NUMERAL FOUR -> SASL prepped is "IV"
+	romanNine := "\u2168" // ROMAN NUMERAL NINE -> SASL prepped is "IX"
 
 	testUsers := []scramTestCase{
 		// SCRAM spec test steps 1-3
@@ -107,7 +107,6 @@ func TestSCRAM(t *testing.T) {
 			},
 		)
 	}
-
 }
 
 func hasAuthMech(mechs []string, m string) bool {

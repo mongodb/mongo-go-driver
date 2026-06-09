@@ -18,9 +18,7 @@ import (
 	"golang.org/x/crypto/ocsp"
 )
 
-var (
-	ctx = context.Background()
-)
+var ctx = context.Background()
 
 func TestCache(t *testing.T) {
 	testRequest := &ocsp.Request{

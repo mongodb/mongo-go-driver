@@ -11,33 +11,6 @@ import "testing"
 // skipTests is a map of "fully-qualified test name" to "the reason for skipping
 // the test".
 var skipTests = map[string][]string{
-
-	// SPEC-1403: This test checks to see if the correct error is thrown when auto
-	// encrypting with a server < 4.2. Currently, the test will fail because a
-	// server < 4.2 wouldn't have mongocryptd, so Client construction would fail
-	// with a mongocryptd spawn error.
-	"Servers less than 4.2 do not have mongocryptd; see SPEC-1403": {
-		"TestClientSideEncryptionSpec/maxWireVersion.json/operation_fails_with_maxWireVersion_<_8",
-	},
-
-	// TODO(GODRIVER-1826): Tests for incompatible event ordering in load-balancer
-	// SDAM spec tests.
-	"Event ordering is incompatible with load-balancer SDAM spec test (DRIVERS-1785)": {
-		"TestCMAPSpec/pool-create-min-size-error.json/error_during_minPoolSize_population_clears_pool",
-	},
-
-	// TODO(GODRIVER-1826): Race condition prevents the "threads blocked by
-	// maxConnecting" test from passing.
-	"Test requires that connections established by minPoolSize are immediately used to satisfy check-out requests (DRIVERS-2225)": {
-		"TestCMAPSpec/pool-checkout-minPoolSize-connection-maxConnecting.json/threads_blocked_by_maxConnecting_check_out_minPoolSize_connections",
-	},
-
-	// TODO(GODRIVER-1826): The Go connection pool behavior for check-in requests
-	// is incompatible with expected test behavior.
-	"Test requires a checked-in connections cannot satisfy a check-out waiting on a new connection (DRIVERS-2223)": {
-		"TestCMAPSpec/pool-checkout-returned-connection-maxConnecting.json/threads_blocked_by_maxConnecting_check_out_returned_connections",
-	},
-
 	// TODO(GODRIVER-2129): Re-enable this test once the feature is implemented.
 	// TODO(GODRIVER-2129): Support for
 	// sspiHostnamecanonicalization=none/forward/forwardAndReverse for Kerberos
@@ -226,33 +199,21 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/transactions-convenient-api/tests/unified/commit-writeconcernerror.json/commitTransaction_is_not_retried_after_MaxTimeMSExpired_error",
 	},
 
-	// TODO(GODRIVER-1773): Tests related to batch size expectation in "find" and
+	// TODO(DRIVERS-1448): Tests related to batch size expectation in "find" and
 	// "getMore" events.
+	// Note: These tests can be entirely removed when drivers no longer support
+	// 4.4. (GODRIVER-3922)
 	"Tests for batch size expectation in 'find' and 'getMore' events (GODRIVER-1773)": {
 		"TestUnifiedSpec/command-logging-and-monitoring/tests/monitoring/find.json/A_successful_find_event_with_a_getmore_and_the_server_kills_the_cursor_(<=_4.4)",
 		"TestUnifiedSpec/unified-test-format/tests/valid-pass/poc-command-monitoring.json/A_successful_find_event_with_a_getmore_and_the_server_kills_the_cursor_(<=_4.4)",
 	},
 
-	// TODO(GODRIVER-2577): Tests require immediate operation canceling,
+	// TODO(GODRIVER-3919): Tests require immediate operation canceling,
 	// incompatible with current pool clearing logic.
 	"Require immediate operation canceling for pool clearing (GODRIVER-2577)": {
 		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/interruptInUse-pool-clear.json/Connection_pool_clear_uses_interruptInUseConnections=true_after_monitor_timeout",
 		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/interruptInUse-pool-clear.json/Error_returned_from_connection_pool_clear_with_interruptInUseConnections=true_is_retryable",
 		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/interruptInUse-pool-clear.json/Error_returned_from_connection_pool_clear_with_interruptInUseConnections=true_is_retryable_for_write",
-	},
-
-	// TODO(GODRIVER-2843): Fix and unskip these test cases.
-	"Test fails frequently, needs fixing (GODRIVER-2843)": {
-		"TestUnifiedSpec/sessions/snapshot-sessions.json/Find_operation_with_snapshot",
-		"TestUnifiedSpec/sessions/snapshot-sessions.json/Write_commands_with_snapshot_session_do_not_affect_snapshot_reads",
-	},
-
-	// TODO(GODRIVER-3043): Avoid Appending Write/Read Concern in Atlas Search
-	// Index Helper Commands.
-	"Sync tests but avoid write/read concern bug (GODRIVER-3043)": {
-		"TestUnifiedSpec/index-management/tests/searchIndexIgnoresReadWriteConcern.json/dropSearchIndex_ignores_read_and_write_concern",
-		"TestUnifiedSpec/index-management/tests/searchIndexIgnoresReadWriteConcern.json/listSearchIndexes_ignores_read_and_write_concern",
-		"TestUnifiedSpec/index-management/tests/searchIndexIgnoresReadWriteConcern.json/updateSearchIndex_ignores_the_read_and_write_concern",
 	},
 
 	// TODO(DRIVERS-2829): Create CSOT Legacy Timeout Analogues and Compatibility
@@ -268,12 +229,12 @@ var skipTests = map[string][]string{
 	// TODO(GODRIVER-3034): Drivers should unpin connections when ending a
 	// session.
 	"Unpin connections at session end (GODRIVER-3034)": {
-		"TestUnifiedSpec/transactions/unified/mongos-unpin.json/unpin_on_successful_abort",
-		"TestUnifiedSpec/transactions/unified/mongos-unpin.json/unpin_after_non-transient_error_on_abort",
-		"TestUnifiedSpec/transactions/unified/mongos-unpin.json/unpin_after_TransientTransactionError_error_on_abort",
-		"TestUnifiedSpec/transactions/unified/mongos-unpin.json/unpin_when_a_new_transaction_is_started",
-		"TestUnifiedSpec/transactions/unified/mongos-unpin.json/unpin_when_a_non-transaction_write_operation_uses_a_session",
-		"TestUnifiedSpec/transactions/unified/mongos-unpin.json/unpin_when_a_non-transaction_read_operation_uses_a_session",
+		"TestUnifiedSpec/transactions/tests/unified/mongos-unpin.json/unpin_on_successful_abort",
+		"TestUnifiedSpec/transactions/tests/unified/mongos-unpin.json/unpin_after_non-transient_error_on_abort",
+		"TestUnifiedSpec/transactions/tests/unified/mongos-unpin.json/unpin_after_TransientTransactionError_error_on_abort",
+		"TestUnifiedSpec/transactions/tests/unified/mongos-unpin.json/unpin_when_a_new_transaction_is_started",
+		"TestUnifiedSpec/transactions/tests/unified/mongos-unpin.json/unpin_when_a_non-transaction_write_operation_uses_a_session",
+		"TestUnifiedSpec/transactions/tests/unified/mongos-unpin.json/unpin_when_a_non-transaction_read_operation_uses_a_session",
 	},
 
 	// TODO(GODRIVER-3146): Convert retryable reads spec tests to unified test format.
@@ -349,24 +310,6 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/rediscover-quickly-after-step-down.json/Rediscover_quickly_after_replSetStepDown",
 	},
 
-	// TODO(GODRIVER-2967): Implement TopologyChangedEvent on topology close.
-	"Implement TopologyChangedEvent on close (GODRIVER-2967)": {
-		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/logging-loadbalanced.json/Topology_lifecycle",
-		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/logging-sharded.json/Topology_lifecycle",
-		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/logging-replicaset.json/Topology_lifecycle",
-		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/logging-standalone.json/Topology_lifecycle",
-		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/loadbalanced-emit-topology-changed-before-close.json/Topology_lifecycle",
-		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/sharded-emit-topology-changed-before-close.json/Topology_lifecycle",
-		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/replicaset-emit-topology-changed-before-close.json/Topology_lifecycle",
-		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/standalone-emit-topology-changed-before-close.json/Topology_lifecycle",
-	},
-
-	// Unknown BSON format.
-	"Unsupported format": {
-		"TestBsonBinaryVectorSpec/Tests_of_Binary_subtype_9,_Vectors,_with_dtype_FLOAT32/Infinity_Vector_FLOAT32/Marshaling",
-		"TestBsonBinaryVectorSpec/Tests_of_Binary_subtype_9,_Vectors,_with_dtype_FLOAT32/Infinity_Vector_FLOAT32/Unmarshaling",
-	},
-
 	// Unsupported BSON binary vector tests.
 	"compile-time restriction": {
 		"TestBsonBinaryVectorSpec/Tests_of_Binary_subtype_9,_Vectors,_with_dtype_PACKED_BIT/Overflow_Vector_PACKED_BIT/Marshaling",
@@ -395,19 +338,8 @@ var skipTests = map[string][]string{
 	"Extend Legacy Unified Spec Runner for client-side-encryption timeoutMS (GODRIVER-3521)": {
 		"TestClientSideEncryptionSpec/timeoutMS.json/remaining_timeoutMS_applied_to_find_to_get_keyvault_data",
 		"TestClientSideEncryptionSpec/timeoutMS.json/timeoutMS_applied_to_listCollections_to_get_collection_schema",
-	},
-
-	// TODO(GODRIVER-3486): Support auto encryption in unified tests.
-	"Support auto encryption in unified tests (GODRIVER-3486)": {
-		"TestUnifiedSpec/unified-test-format/tests/valid-pass/poc-queryable-encryption.json/insert,_replace,_and_find_with_queryable_encryption",
-	},
-
-	// TODO(DRIVERS-3106): Support auto encryption in unified tests.
-	"Support auto encryption in unified tests (DRIVERS-3106)": {
-		"TestUnifiedSpec/client-side-encryption/tests/unified/localSchema.json/A_local_schema_should_override",
-		"TestUnifiedSpec/client-side-encryption/tests/unified/localSchema.json/A_local_schema_with_no_encryption_is_an_error",
-		"TestUnifiedSpec/client-side-encryption/tests/unified/fle2v2-BypassQueryAnalysis.json/BypassQueryAnalysis_decrypts",
-		"TestUnifiedSpec/client-side-encryption/tests/unified/fle2v2-EncryptedFields-vs-EncryptedFieldsMap.json/encryptedFieldsMap_is_preferred_over_remote_encryptedFields",
+		"TestUnifiedSpec/client-side-encryption/tests/unified/timeoutMS.json/remaining_timeoutMS_applied_to_find_to_get_keyvault_data",
+		"TestUnifiedSpec/client-side-encryption/tests/unified/timeoutMS.json/timeoutMS_applied_to_listCollections_to_get_collection_schema",
 	},
 
 	// TODO(GODRIVER-3076): CSFLE/QE Support for more than 1 KMS provider per
@@ -742,7 +674,6 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/retryable-reads/tests/unified/handshakeError.json/collection.listIndexes_succeeds_after_retryable_handshake_server_error_(ShutdownInProgress)",
 		"TestUnifiedSpec/retryable-reads/tests/unified/handshakeError.json/collection.createChangeStream_succeeds_after_retryable_handshake_network_error",
 		"TestUnifiedSpec/retryable-reads/tests/unified/handshakeError.json/collection.createChangeStream_succeeds_after_retryable_handshake_server_error_(ShutdownInProgress)",
-		"TestUnifiedSpec/retryable-writes/tests/unified/handshakeError.json",
 		"TestUnifiedSpec/retryable-writes/tests/unified/handshakeError.json/client.clientBulkWrite_succeeds_after_retryable_handshake_network_error",
 		"TestUnifiedSpec/retryable-writes/tests/unified/handshakeError.json/client.clientBulkWrite_succeeds_after_retryable_handshake_server_error_(ShutdownInProgress)",
 		"TestUnifiedSpec/retryable-writes/tests/unified/handshakeError.json/collection.insertOne_succeeds_after_retryable_handshake_network_error",
@@ -765,18 +696,10 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/retryable-writes/tests/unified/handshakeError.json/collection.bulkWrite_succeeds_after_retryable_handshake_server_error_(ShutdownInProgress)",
 	},
 
-	// TODO(GODRIVER-3524): Change streams expanded events present by default in
-	// 8.2+.
-	"Change streams expanded events for MongoDB 8.2+ (GODRIVER-3524)": {
-		"TestUnifiedSpec/change-streams/tests/unified/change-streams-disambiguatedPaths.json/disambiguatedPaths_is_not_present_when_showExpandedEvents_is_false/unset",
-		"TestUnifiedSpec/change-streams/tests/unified/change-streams.json/Test_insert,_update,_replace,_and_delete_event_types",
-		"TestUnifiedSpec/change-streams/tests/unified/change-streams.json/Test_array_truncation",
-	},
-
 	// TODO(GODRIVER-3137): Gossip cluster time from internal MongoClient to
 	// session entities.
 	"Must advance cluster times in unified spec runner (GODRIVER-3137)": {
-		"TestUnifiedSpec/transactions/unified/mongos-unpin.json/unpin_after_TransientTransactionError_error_on_commit",
+		"TestUnifiedSpec/transactions/tests/unified/mongos-unpin.json/unpin_after_TransientTransactionError_error_on_commit",
 		// This test fails with the same error as GODRIVER-3137, but is not
 		// directly referenced as an impacted test case by DRIVERS-2816. It
 		// seems likely that the same change will resolve the failure, so I'm
@@ -788,17 +711,9 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/unified-test-format/tests/valid-pass/poc-transactions-mongos-pin-auto.json/remain_pinned_after_non-transient_Interrupted_error_on_insertOne",
 		"TestUnifiedSpec/unified-test-format/tests/valid-pass/poc-transactions-mongos-pin-auto.json/unpin_after_transient_error_within_a_transaction",
 		"TestUnifiedSpec/transactions-convenient-api/tests/unified/callback-aborts.json/withTransaction_succeeds_if_callback_aborts",
+		"TestUnifiedSpec/transactions-convenient-api/tests/unified/callback-aborts.json/withTransaction_still_succeeds_if_callback_aborts_and_runs_extra_op",
 		"TestUnifiedSpec/transactions-convenient-api/tests/unified/callback-commits.json/withTransaction_succeeds_if_callback_commits",
 		"TestUnifiedSpec/transactions-convenient-api/tests/unified/callback-commits.json/withTransaction_still_succeeds_if_callback_commits_and_runs_extra_op",
-		"TestUnifiedSpec/transactions-convenient-api/tests/unified/callback-aborts.json/withTransaction_still_succeeds_if_callback_aborts_and_runs_extra_op",
-		"TestUnifiedSpec/transactions-convenient-api/tests/unified/commit.json/withTransaction_commits_after_callback_returns_(second_transaction)",
-		"TestUnifiedSpec/transactions-convenient-api/tests/unified/transaction-options.json/withTransaction_and_no_transaction_options_set",
-		"TestUnifiedSpec/transactions-convenient-api/tests/unified/transaction-options.json/withTransaction_inherits_transaction_options_from_client",
-		"TestUnifiedSpec/transactions-convenient-api/tests/unified/transaction-options.json/withTransaction_inherits_transaction_options_from_defaultTransactionOptions",
-		"TestUnifiedSpec/transactions-convenient-api/tests/unified/transaction-options.json/withTransaction_explicit_transaction_options",
-		"TestUnifiedSpec/transactions-convenient-api/tests/unified/transaction-options.json/withTransaction_explicit_transaction_options_override_defaultTransactionOptions",
-		"TestUnifiedSpec/transactions-convenient-api/tests/unified/transaction-options.json/withTransaction_explicit_transaction_options_override_client_options",
-		"TestUnifiedSpec/transactions-convenient-api/tests/unified/commit.json/withTransaction_commits_after_callback_returns",
 	},
 
 	"Address CSOT Compliance Issue in Timeout Handling for Cursor Constructors (GODRIVER-3480)": {
@@ -833,18 +748,10 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/client-side-operations-timeout/tests/tailable-awaitData.json/error_on_watch_if_maxAwaitTimeMS_is_equal_to_timeoutMS",
 	},
 
-	// TODO(GODRIVER-3620): Support text indexes with auto encryption.
-	"Support text indexes with auto encryption (GODRIVER-3620)": {
-		"TestUnifiedSpec/client-side-encryption/tests/unified/QE-Text-cleanupStructuredEncryptionData.json",
-		"TestUnifiedSpec/client-side-encryption/tests/unified/QE-Text-compactStructuredEncryptionData.json",
-		"TestUnifiedSpec/client-side-encryption/tests/unified/QE-Text-prefixPreview.json",
-		"TestUnifiedSpec/client-side-encryption/tests/unified/QE-Text-substringPreview.json",
-		"TestUnifiedSpec/client-side-encryption/tests/unified/QE-Text-suffixPreview.json",
-	},
-
 	// TODO(GODRIVER-3403): Support queryable encryption in Client.BulkWrite.
 	"Support queryable encryption in Client.BulkWrite (GODRIVER-3403)": {
 		"TestUnifiedSpec/crud/tests/unified/client-bulkWrite-qe.json",
+		"TestUnifiedSpec/client-side-encryption/tests/unified/client-bulkWrite-qe.json",
 	},
 
 	// Pre-4.2 SDAM tests
@@ -857,6 +764,53 @@ var skipTests = map[string][]string{
 		"TestSDAMSpec/errors/pre-42-NotWritablePrimary.json",
 		"TestSDAMSpec/errors/pre-42-PrimarySteppedDown.json",
 		"TestSDAMSpec/errors/pre-42-ShutdownInProgress.json",
+	},
+
+	// TODO(GODRIVER-3920): Race condition between monitor and pool causes pool to be cleared.
+	"Backpressure SDAM test 'pool-clear-min-pool-size-error.yml' fails on standalone deployments": {
+		"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/pool-clear-min-pool-size-error.json/Pool_is_not_cleared_on_handshake_error_during_minPoolSize_population",
+	},
+
+	// TODO(GODRIVER-3839): Support accessToken form of KMS providers, unified spec schema 1.28.
+	"Support accessToken form of KMS providers, unified spec schema 1.28": {
+		"TestUnifiedSpec/client-side-encryption/tests/unified/accessToken-azure.json/Auto_encrypt_using_access_token_Azure_credentials",
+		"TestUnifiedSpec/client-side-encryption/tests/unified/accessToken-azure.json/Explicit_encrypt_using_access_token_Azure_credentials",
+		"TestUnifiedSpec/client-side-encryption/tests/unified/accessToken-gcp.json/Auto_encrypt_using_access_token_GCP_credentials",
+		"TestUnifiedSpec/client-side-encryption/tests/unified/accessToken-gcp.json/Explicit_encrypt_using_access_token_GCP_credentials",
+	},
+
+	// TODO(GODRIVER-3484): Rename WriteConcernFailed code name to WriteConcernTimeout.
+	"Rename WriteConcernFailed code name to WriteConcernTimeout": {
+		"TestUnifiedSpec/transactions/tests/unified/error-labels.json/add_UnknownTransactionCommitResult_label_to_MaxTimeMSExpired",
+		"TestUnifiedSpec/transactions/tests/unified/error-labels.json/do_not_add_UnknownTransactionCommitResult_label_to_MaxTimeMSExpired_inside_transactions",
+		"TestUnifiedSpec/transactions/tests/unified/error-labels.json/add_UnknownTransactionCommitResult_label_to_writeConcernError_MaxTimeMSExpired",
+	},
+
+	// TODO(GODRIVER-3813): Allow keyAltName in encryptedFieldsMap
+	"Allow keyAltName in encryptedFieldsMap": {
+		"TestUnifiedSpec/client-side-encryption/tests/unified/fle2v2-InsertFind-keyAltName.json/Insert_and_find_FLE2_indexed_field",
+		"TestUnifiedSpec/client-side-encryption/tests/unified/fle2v2-InsertFind-keyAltName.json/Create_translates_keyAltName",
+	},
+
+	// GODRIVER-2348(Deprecated): The CSOT specification has deprecated wtimeout
+	// and maxCommitTimeMS.
+	"Deprecated transactions CSOT Options": {
+		// wtimeout is deprecated
+		"TestUnifiedSpec/transactions/tests/unified/retryable-commit.json/commitTransaction_applies_majority_write_concern_on_retries",
+		"TestUnifiedSpec/transactions/tests/unified/transaction-options.json/transaction_options_inherited_from_client",
+		"TestUnifiedSpec/transactions/tests/unified/transaction-options.json/readConcern_local_in_defaultTransactionOptions",
+		// maxCommitTimeMS is deprecated
+		"TestUnifiedSpec/transactions/tests/unified/transaction-options.json/transaction_options_inherited_from_defaultTransactionOptions",
+		"TestUnifiedSpec/transactions/tests/unified/transaction-options.json/startTransaction_options_override_defaults",
+		"TestUnifiedSpec/transactions/tests/unified/transaction-options.json/defaultTransactionOptions_override_client_options",
+	},
+
+	// TODO(GODRIVER-3874): Send afterClusterTime on writes in
+	// causally-consistent sessions.
+	"Send afterClusterTime on writes in causally-consistent sessions (GODRIVER-3874)": {
+		"TestUnifiedSpec/transactions/tests/unified/commit.json/reset_session_state_commit",
+		"TestUnifiedSpec/transactions/tests/unified/commit.json/reset_session_state_abort",
+		"TestUnifiedSpec/transactions/tests/unified/retryable-writes.json/increment_txnNumber",
 	},
 }
 

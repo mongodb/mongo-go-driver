@@ -189,7 +189,7 @@ func createAtlasX509DevCertKeyFile(t *testing.T) string {
 
 	certFilePath := filepath.Join(t.TempDir(), "atlas_x509_dev_cert.pem")
 
-	err = os.WriteFile(certFilePath, certBytes, 0600)
+	err = os.WriteFile(certFilePath, certBytes, 0o600)
 	require.NoError(t, err, "failed to write ATLAS_X509_DEV_CERT_BASE64 to file")
 
 	return certFilePath
@@ -206,7 +206,7 @@ func createAtlasX509DevCertKeyFileNoUser(t *testing.T) string {
 
 	keyFilePath := filepath.Join(t.TempDir(), "atlas_x509_dev_cert_no_user.pem")
 
-	err = os.WriteFile(keyFilePath, keyBytes, 0600)
+	err = os.WriteFile(keyFilePath, keyBytes, 0o600)
 	require.NoError(t, err, "failed to write ATLAS_X509_DEV_CERT_NOUSER_BASE64 to file")
 
 	return keyFilePath

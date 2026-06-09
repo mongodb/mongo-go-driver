@@ -12,6 +12,8 @@ import (
 	"io"
 	"strconv"
 	"strings"
+
+	"go.mongodb.org/mongo-driver/v2/internal/binaryutil"
 )
 
 // ValidationError is an error type returned when attempting to validate a document or array.
@@ -112,7 +114,7 @@ func newBufferFromReader(r io.Reader) ([]byte, error) {
 		return nil, err
 	}
 
-	length, _, _ := readi32(lengthBytes[:]) // ignore ok since we always have enough bytes to read a length
+	length, _, _ := binaryutil.ReadI32(lengthBytes[:]) // ignore ok since we always have enough bytes to read a length
 	if length < 0 {
 		return nil, ErrInvalidLength
 	}

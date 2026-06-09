@@ -135,8 +135,8 @@ func (c *crypt) CreateDataKey(ctx context.Context, kmsProvider string, opts *opt
 // RewrapDataKey attempts to rewrap the document data keys matching the filter, preparing the re-wrapped documents to
 // be returned as a slice of bsoncore.Document.
 func (c *crypt) RewrapDataKey(ctx context.Context, filter []byte,
-	opts *options.RewrapManyDataKeyOptions) ([]bsoncore.Document, error) {
-
+	opts *options.RewrapManyDataKeyOptions,
+) ([]bsoncore.Document, error) {
 	cryptCtx, err := c.mongoCrypt.RewrapDataKeyContext(filter, opts)
 	if err != nil {
 		return nil, err

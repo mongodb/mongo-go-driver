@@ -56,11 +56,14 @@ func TestTimeCodec(t *testing.T) {
 		}{
 			{"string", &valueReaderWriter{BSONType: TypeString, Return: now.Format(timeFormatString)}},
 			{"int64", &valueReaderWriter{BSONType: TypeInt64, Return: now.Unix()*1000 + int64(now.Nanosecond()/1e6)}},
-			{"timestamp", &valueReaderWriter{BSONType: TypeTimestamp,
-				Return: bsoncore.Value{
-					Type: bsoncore.TypeTimestamp,
-					Data: bsoncore.AppendTimestamp(nil, uint32(now.Unix()), 0),
-				}},
+			{
+				"timestamp", &valueReaderWriter{
+					BSONType: TypeTimestamp,
+					Return: bsoncore.Value{
+						Type: bsoncore.TypeTimestamp,
+						Data: bsoncore.AppendTimestamp(nil, uint32(now.Unix()), 0),
+					},
+				},
 			},
 		}
 		for _, tc := range testCases {

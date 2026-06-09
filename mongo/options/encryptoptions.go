@@ -27,7 +27,7 @@ type RangeOptions struct {
 	Precision  *int32
 }
 
-// RangeOptionsBuilder contains options to configure Rangeopts for queryeable
+// RangeOptionsBuilder contains options to configure RangeOptions for queryable
 // encryption. Each option can be set through setter functions. See
 // documentation for each setter function for an explanation of the option.
 type RangeOptionsBuilder struct {
@@ -99,6 +99,141 @@ func (ro *RangeOptionsBuilder) SetPrecision(precision int32) *RangeOptionsBuilde
 	return ro
 }
 
+// TextOptions specifies index options for a Queryable Encryption field supporting "text" queries.
+//
+// See corresponding setter methods for documentation.
+//
+// Beta: This is a preview feature and should only be used for experimental workloads.
+// It is not intended for public use. It is subject to breaking changes.
+type TextOptions struct {
+	Substring          *SubstringOptions
+	Prefix             *PrefixOptions
+	Suffix             *SuffixOptions
+	CaseSensitive      bool
+	DiacriticSensitive bool
+}
+
+// SubstringOptions specifies options to support substring queries.
+//
+// Beta: This is a preview feature and should only be used for experimental workloads.
+// It is not intended for public use. It is subject to breaking changes.
+type SubstringOptions struct {
+	StrMaxLength      int32
+	StrMinQueryLength int32
+	StrMaxQueryLength int32
+}
+
+// PrefixOptions specifies options to support prefix queries.
+//
+// Beta: This is a preview feature and should only be used for experimental workloads.
+// It is not intended for public use. It is subject to breaking changes.
+type PrefixOptions struct {
+	StrMinQueryLength int32
+	StrMaxQueryLength int32
+}
+
+// SuffixOptions specifies options to support suffix queries.
+//
+// Beta: This is a preview feature and should only be used for experimental workloads.
+// It is not intended for public use. It is subject to breaking changes.
+type SuffixOptions struct {
+	StrMinQueryLength int32
+	StrMaxQueryLength int32
+}
+
+// TextOptionsBuilder contains options to configure TextOptions for queryable
+// encryption. Each option can be set through setter functions. See
+// documentation for each setter function for an explanation of the option.
+//
+// Beta: This is a preview feature and should only be used for experimental workloads.
+// It is not intended for public use. It is subject to breaking changes.
+type TextOptionsBuilder struct {
+	Opts []func(*TextOptions) error
+}
+
+// Text creates a new TextOptions instance.
+//
+// Beta: This is a preview feature and should only be used for experimental workloads.
+// It is not intended for public use. It is subject to breaking changes.
+func Text() *TextOptionsBuilder {
+	return &TextOptionsBuilder{}
+}
+
+// List returns a list of TextOptions setter functions.
+func (to *TextOptionsBuilder) List() []func(*TextOptions) error {
+	return to.Opts
+}
+
+// SetSubstring sets the text index substring value.
+//
+// Beta: This is a preview feature and should only be used for experimental workloads.
+// It is not intended for public use. It is subject to breaking changes.
+func (to *TextOptionsBuilder) SetSubstring(substring SubstringOptions) *TextOptionsBuilder {
+	to.Opts = append(to.Opts, func(opts *TextOptions) error {
+		opts.Substring = &substring
+
+		return nil
+	})
+
+	return to
+}
+
+// SetPrefix sets the text index prefix value.
+//
+// Beta: This is a preview feature and should only be used for experimental workloads.
+// It is not intended for public use. It is subject to breaking changes.
+func (to *TextOptionsBuilder) SetPrefix(prefix PrefixOptions) *TextOptionsBuilder {
+	to.Opts = append(to.Opts, func(opts *TextOptions) error {
+		opts.Prefix = &prefix
+
+		return nil
+	})
+
+	return to
+}
+
+// SetSuffix sets the text index suffix value.
+//
+// Beta: This is a preview feature and should only be used for experimental workloads.
+// It is not intended for public use. It is subject to breaking changes.
+func (to *TextOptionsBuilder) SetSuffix(suffix SuffixOptions) *TextOptionsBuilder {
+	to.Opts = append(to.Opts, func(opts *TextOptions) error {
+		opts.Suffix = &suffix
+
+		return nil
+	})
+
+	return to
+}
+
+// SetCaseSensitive sets the text index caseSensitive value.
+//
+// Beta: This is a preview feature and should only be used for experimental workloads.
+// It is not intended for public use. It is subject to breaking changes.
+func (to *TextOptionsBuilder) SetCaseSensitive(caseSensitive bool) *TextOptionsBuilder {
+	to.Opts = append(to.Opts, func(opts *TextOptions) error {
+		opts.CaseSensitive = caseSensitive
+
+		return nil
+	})
+
+	return to
+}
+
+// SetDiacriticSensitive sets the text index diacriticSensitive value.
+//
+// Beta: This is a preview feature and should only be used for experimental workloads.
+// It is not intended for public use. It is subject to breaking changes.
+func (to *TextOptionsBuilder) SetDiacriticSensitive(diacriticSensitive bool) *TextOptionsBuilder {
+	to.Opts = append(to.Opts, func(opts *TextOptions) error {
+		opts.DiacriticSensitive = diacriticSensitive
+
+		return nil
+	})
+
+	return to
+}
+
 // EncryptOptions represents arguments to explicitly encrypt a value.
 //
 // See corresponding setter methods for documentation.
@@ -109,6 +244,7 @@ type EncryptOptions struct {
 	QueryType        string
 	ContentionFactor *int64
 	RangeOptions     *RangeOptionsBuilder
+	TextOptions      *TextOptionsBuilder
 }
 
 // EncryptOptionsBuilder contains options to configure Encryptopts for
@@ -197,6 +333,20 @@ func (e *EncryptOptionsBuilder) SetContentionFactor(contentionFactor int64) *Enc
 func (e *EncryptOptionsBuilder) SetRangeOptions(ro *RangeOptionsBuilder) *EncryptOptionsBuilder {
 	e.Opts = append(e.Opts, func(opts *EncryptOptions) error {
 		opts.RangeOptions = ro
+
+		return nil
+	})
+
+	return e
+}
+
+// SetTextOptions specifies the options to use for text queries.
+//
+// Beta: This is a preview feature and should only be used for experimental workloads.
+// It is not intended for public use. It is subject to breaking changes.
+func (e *EncryptOptionsBuilder) SetTextOptions(to *TextOptionsBuilder) *EncryptOptionsBuilder {
+	e.Opts = append(e.Opts, func(opts *EncryptOptions) error {
+		opts.TextOptions = to
 
 		return nil
 	})

@@ -125,6 +125,10 @@ func executeCreateCollection(ctx context.Context, operation *operation) (*operat
 			cco.SetTimeSeriesOptions(tso)
 		case "clusteredIndex":
 			cco.SetClusteredIndex(val.Document())
+		case "validator":
+			cco.SetValidator(val.Document())
+		case "encryptedFields":
+			cco.SetEncryptedFields(val.Document())
 		default:
 			return nil, fmt.Errorf("unrecognized createCollection option %q", key)
 		}
@@ -156,6 +160,8 @@ func executeDropCollection(ctx context.Context, operation *operation) (*operatio
 		return nil, err
 	}
 
+	dco := options.DropCollection()
+
 	var collName string
 	elems, _ := operation.Arguments.Elements()
 	for _, elem := range elems {
@@ -163,6 +169,8 @@ func executeDropCollection(ctx context.Context, operation *operation) (*operatio
 		val := elem.Value()
 
 		switch key {
+		case "encryptedFields":
+			dco.SetEncryptedFields(val.Document())
 		case "collection":
 			collName = val.StringValue()
 		default:
@@ -173,7 +181,7 @@ func executeDropCollection(ctx context.Context, operation *operation) (*operatio
 		return nil, newMissingArgumentError("collection")
 	}
 
-	err = db.Collection(collName).Drop(ctx)
+	err = db.Collection(collName).Drop(ctx, dco)
 	return newErrorResult(err), nil
 }
 

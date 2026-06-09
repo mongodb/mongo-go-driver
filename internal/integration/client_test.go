@@ -26,6 +26,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/internal/integtest"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/internal/testutil"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
@@ -33,6 +34,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/version"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/xoptions"
 	"golang.org/x/sync/errgroup"
@@ -384,7 +386,9 @@ func TestClient(t *testing.T) {
 				sess, err := mt.Client.StartSession(tc.opts)
 				assert.Nil(mt, err, "StartSession error: %v", err)
 				defer sess.EndSession(context.Background())
-				consistent := sess.ClientSession().Consistent
+				clientSession := testutil.GetUnexportedFieldAs[*session.Client](sess, "clientSession")
+
+				consistent := clientSession.Consistent
 				assert.Equal(mt, tc.consistent, consistent, "expected consistent to be %v, got %v", tc.consistent, consistent)
 			})
 		}
@@ -951,6 +955,8 @@ func TestClient_BSONOptions(t *testing.T) {
 		A string
 		B string `json:"x"`
 		C string `json:"y" bson:"3"`
+		D string `json:"oe,omitempty"`
+		E string `json:"oz,omitzero"`
 	}
 
 	type omitemptyTest struct {
@@ -995,6 +1001,7 @@ func TestClient_BSONOptions(t *testing.T) {
 				AppendString("a", "apple").
 				AppendString("x", "banana").
 				AppendString("3", "carrot").
+				AppendString("oz", ""). // driver does not yet respect json omitzero tags
 				Build()),
 		},
 		{
@@ -1114,6 +1121,15 @@ func TestClient_BSONOptions(t *testing.T) {
 			want:       &bson.D{{Key: "doc", Value: bson.M{"a": int64(1)}}},
 		},
 		{
+			name: "DefaultDocumentMap",
+			bsonOpts: &options.BSONOptions{
+				DefaultDocumentMap: true,
+			},
+			doc:        bson.D{{Key: "doc", Value: bson.D{{Key: "a", Value: int64(1)}}}},
+			decodeInto: func() any { return &bson.D{} },
+			want:       &bson.D{{Key: "doc", Value: map[string]any{"a": int64(1)}}},
+		},
+		{
 			name: "UseLocalTimeZone",
 			bsonOpts: &options.BSONOptions{
 				UseLocalTimeZone: true,
@@ -1163,29 +1179,39 @@ func TestClient_BSONOptions(t *testing.T) {
 		opts := mtest.NewOptions().ClientOptions(
 			options.Client().SetBSONOptions(tc.bsonOpts))
 		mt.RunOpts(tc.name, opts, func(mt *mtest.T) {
-			res, err := mt.Coll.InsertOne(context.Background(), tc.doc)
-			require.NoError(mt, err, "InsertOne error")
+			for _, collName := range []string{"default", "cloned"} {
+				collName := collName
+				mt.Run(collName, func(mt *mtest.T) {
+					coll := mt.Coll
+					if collName == "cloned" {
+						coll = mt.Coll.Clone()
+					}
 
-			sr := mt.Coll.FindOne(
-				context.Background(),
-				bson.D{{Key: "_id", Value: res.InsertedID}},
-				// Exclude the auto-generated "_id" field so we can make simple
-				// assertions on the return value.
-				options.FindOne().SetProjection(bson.D{{Key: "_id", Value: 0}}))
+					res, err := coll.InsertOne(context.Background(), tc.doc)
+					require.NoError(mt, err, "InsertOne error")
 
-			if tc.want != nil {
-				got := tc.decodeInto()
-				err := sr.Decode(got)
-				require.NoError(mt, err, "Decode error")
+					// Exclude the auto-generated "_id" field so we can make
+					// simple assertions on the return value.
+					sr := coll.FindOne(
+						context.Background(),
+						bson.D{{Key: "_id", Value: res.InsertedID}},
+						options.FindOne().SetProjection(bson.D{{Key: "_id", Value: 0}}))
 
-				assert.Equal(mt, tc.want, got, "expected and actual decoded result are different")
-			}
+					if tc.want != nil {
+						got := tc.decodeInto()
+						err := sr.Decode(got)
+						require.NoError(mt, err, "Decode error")
 
-			if tc.wantRaw != nil {
-				got, err := sr.Raw()
-				require.NoError(mt, err, "Raw error")
+						assert.Equal(mt, tc.want, got, "expected and actual decoded result are different")
+					}
 
-				assertbson.EqualDocument(mt, tc.wantRaw, got)
+					if tc.wantRaw != nil {
+						got, err := sr.Raw()
+						require.NoError(mt, err, "Raw error")
+
+						assertbson.EqualDocument(mt, tc.wantRaw, got)
+					}
+				})
 			}
 		})
 	}
@@ -1195,28 +1221,38 @@ func TestClient_BSONOptions(t *testing.T) {
 			ObjectIDAsHexString: true,
 		}))
 	mt.RunOpts("ObjectIDAsHexString", opts, func(mt *mtest.T) {
-		res, err := mt.Coll.InsertOne(context.Background(), bson.D{{"x", 42}})
-		require.NoError(mt, err, "InsertOne error")
+		for _, collName := range []string{"default", "cloned"} {
+			collName := collName
+			mt.Run(collName, func(mt *mtest.T) {
+				coll := mt.Coll
+				if collName == "cloned" {
+					coll = mt.Coll.Clone()
+				}
 
-		sr := mt.Coll.FindOne(
-			context.Background(),
-			bson.D{{Key: "_id", Value: res.InsertedID}},
-		)
+				res, err := coll.InsertOne(context.Background(), bson.D{{"x", 42}})
+				require.NoError(mt, err, "InsertOne error")
 
-		type data struct {
-			ID string `bson:"_id"`
-			X  int    `bson:"x"`
+				sr := coll.FindOne(
+					context.Background(),
+					bson.D{{Key: "_id", Value: res.InsertedID}},
+				)
+
+				type data struct {
+					ID string `bson:"_id"`
+					X  int    `bson:"x"`
+				}
+				var got data
+
+				err = sr.Decode(&got)
+				require.NoError(mt, err, "Decode error")
+
+				want := data{
+					ID: res.InsertedID.(bson.ObjectID).Hex(),
+					X:  42,
+				}
+				assert.Equal(mt, want, got, "expected and actual decoded result are different")
+			})
 		}
-		var got data
-
-		err = sr.Decode(&got)
-		require.NoError(mt, err, "Decode error")
-
-		want := data{
-			ID: res.InsertedID.(bson.ObjectID).Hex(),
-			X:  42,
-		}
-		assert.Equal(mt, want, got, "expected and actual decoded result are different")
 	})
 
 	opts = mtest.NewOptions().ClientOptions(
@@ -1233,13 +1269,23 @@ func TestClient_BSONOptions(t *testing.T) {
 			B *inlineDupInner `bson:"b,inline"`
 		}
 
-		_, err := mt.Coll.InsertOne(context.Background(), inlineDupOuter{
-			A: "outer",
-			B: &inlineDupInner{
-				A: "inner",
-			},
-		})
-		require.Error(mt, err, "expected InsertOne to return an error")
+		for _, collName := range []string{"default", "cloned"} {
+			collName := collName
+			mt.Run(collName, func(mt *mtest.T) {
+				coll := mt.Coll
+				if collName == "cloned" {
+					coll = mt.Coll.Clone()
+				}
+
+				_, err := coll.InsertOne(context.Background(), inlineDupOuter{
+					A: "outer",
+					B: &inlineDupInner{
+						A: "inner",
+					},
+				})
+				require.Error(mt, err, "expected InsertOne to return an error")
+			})
+		}
 	})
 }
 

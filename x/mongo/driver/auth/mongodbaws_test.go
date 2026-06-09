@@ -44,5 +44,4 @@ func TestGetRegion(t *testing.T) {
 			assert.Equal(t, err, tc.err, "expected error: %v, got: %v", tc.err, err)
 		})
 	}
-
 }

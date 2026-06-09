@@ -210,6 +210,11 @@ type BSONOptions struct {
 	// "any" or "map[string]any".
 	DefaultDocumentM bool
 
+	// DefaultDocumentMap causes the driver to always unmarshal documents into the
+	// map[string]any type. This behavior is restricted to data typed as "any" or
+	// "map[string]any".
+	DefaultDocumentMap bool
+
 	// ObjectIDAsHexString causes the Decoder to decode object IDs to their hex
 	// representation.
 	ObjectIDAsHexString bool
@@ -282,6 +287,9 @@ type ClientOptions struct {
 	WriteConcern             *writeconcern.WriteConcern
 	ZlibLevel                *int
 	ZstdLevel                *int
+
+	MaxAdaptiveRetries        *uint
+	EnableOverloadRetargeting *bool
 
 	// Crypt specifies a custom driver.Crypt to be used to encrypt and decrypt documents. The default is no
 	// encryption.
@@ -429,6 +437,14 @@ func setURIOpts(uri string, opts *ClientOptions) error {
 
 	if connString.RetryReadsSet {
 		opts.RetryReads = &connString.RetryReads
+	}
+
+	if connString.MaxAdaptiveRetriesSet {
+		opts.MaxAdaptiveRetries = &connString.MaxAdaptiveRetries
+	}
+
+	if connString.EnableOverloadRetargetingSet {
+		opts.EnableOverloadRetargeting = &connString.EnableOverloadRetargeting
 	}
 
 	if connString.ReplicaSet != "" {
@@ -947,6 +963,24 @@ func (c *ClientOptions) SetRetryWrites(b bool) *ClientOptions {
 // The default is true.
 func (c *ClientOptions) SetRetryReads(b bool) *ClientOptions {
 	c.RetryReads = &b
+
+	return c
+}
+
+// SetMaxAdaptiveRetries specifies the maximum number of times the driver should retry operations that fail with a
+// server side overload error. MaxAdaptiveRetries can also be set through the "maxAdaptiveRetries" URI option
+// (e.g. "maxAdaptiveRetries=5").
+func (c *ClientOptions) SetMaxAdaptiveRetries(n uint) *ClientOptions {
+	c.MaxAdaptiveRetries = &n
+
+	return c
+}
+
+// SetEnableOverloadRetargeting specifies whether the driver should enable overload retargeting for operations that fail
+// with a server side overload error. EnableOverloadRetargeting can also be set through the "enableOverloadRetargeting"
+// URI option (e.g. "enableOverloadRetargeting=true").
+func (c *ClientOptions) SetEnableOverloadRetargeting(b bool) *ClientOptions {
+	c.EnableOverloadRetargeting = &b
 
 	return c
 }

@@ -219,8 +219,10 @@ func (SingleServerDeployment) GetServerSelectionTimeout() time.Duration {
 // ErrorProcessor, which is necessary for application operations.
 type SingleConnectionDeployment struct{ C *mnet.Connection }
 
-var _ Deployment = SingleConnectionDeployment{}
-var _ Server = SingleConnectionDeployment{}
+var (
+	_ Deployment = SingleConnectionDeployment{}
+	_ Server     = SingleConnectionDeployment{}
+)
 
 // SelectServer implements the Deployment interface. This method does not use the
 // description.SelectedServer provided and instead returns itself. The Connections returned from the

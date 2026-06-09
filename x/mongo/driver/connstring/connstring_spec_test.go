@@ -47,8 +47,10 @@ type testContainer struct {
 	Tests []testCase
 }
 
-var connstringTestsDir = spectest.Path("connection-string/tests")
-var urioptionsTestDir = spectest.Path("uri-options/tests")
+var (
+	connstringTestsDir = spectest.Path("connection-string/tests")
+	urioptionsTestDir  = spectest.Path("uri-options/tests")
+)
 
 func (h *host) toString() string {
 	switch h.Type {
@@ -275,6 +277,10 @@ func verifyConnStringOptions(t *testing.T, cs *connstring.ConnString, options ma
 			require.Equal(t, value, float64(cs.Timeout/time.Millisecond))
 		case "maxconnecting":
 			require.Equal(t, value, float64(cs.MaxConnecting))
+		case "maxadaptiveretries":
+			require.Equal(t, value, float64(cs.MaxAdaptiveRetries))
+		case "enableoverloadretargeting":
+			require.Equal(t, value, cs.EnableOverloadRetargeting)
 		default:
 			opt, ok := cs.UnknownOptions[key]
 			require.True(t, ok)

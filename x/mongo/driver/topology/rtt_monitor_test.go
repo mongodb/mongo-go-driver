@@ -385,7 +385,8 @@ func TestRTTMonitor_min(t *testing.T) {
 			samples: []time.Duration{
 				-1 * time.Millisecond,
 				1 * time.Millisecond,
-				2 * time.Millisecond},
+				2 * time.Millisecond,
+			},
 			want: 1 * time.Millisecond,
 		},
 		{

@@ -12,13 +12,17 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
+	"sync"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/failpoint"
 	"go.mongodb.org/mongo-driver/v2/internal/handshake"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
@@ -30,13 +34,11 @@ const (
 	listCollUncapped = "listcoll_uncapped"
 )
 
-var (
-	interfaceAsMapRegistry = func() *bson.Registry {
-		reg := bson.NewRegistry()
-		reg.RegisterTypeMapEntry(bson.TypeEmbeddedDocument, reflect.TypeOf(bson.M{}))
-		return reg
-	}()
-)
+var interfaceAsMapRegistry = func() *bson.Registry {
+	reg := bson.NewRegistry()
+	reg.RegisterTypeMapEntry(bson.TypeEmbeddedDocument, reflect.TypeOf(bson.M{}))
+	return reg
+}()
 
 func TestDatabase(t *testing.T) {
 	mt := mtest.New(t, mtest.NewOptions().CreateClient(false))
@@ -261,7 +263,6 @@ func TestDatabase(t *testing.T) {
 				"expected 'listCollections' command to be sent, got %q", evt.CommandName)
 			_, err = evt.Command.LookupErr("authorizedCollections")
 			assert.Nil(mt, err, "expected command to contain key 'authorizedCollections'")
-
 		})
 		mt.Run("getMore commands are monitored", func(mt *mtest.T) {
 			createCollections(mt, 2)
@@ -586,6 +587,107 @@ func TestDatabase(t *testing.T) {
 			collation := collationVal.(bson.M)
 			assert.Equal(mt, locale, collation["locale"], "expected locale %v, got %v", locale, collation["locale"])
 		})
+	})
+}
+
+func TestDatabase_ListCollections_Routing(t *testing.T) {
+	mtOpts := mtest.NewOptions().Topologies(mtest.ReplicaSet).CreateClient(false)
+
+	mt := mtest.New(t, mtOpts)
+
+	mt.Run("routes to primary in replica set", func(mt *mtest.T) {
+		var (
+			mu      sync.Mutex
+			connIDs []string
+		)
+
+		// Step 1. Create a CommandMonitor that captures the ConnectionID of any
+		// command with the name "listCollections".
+		monitor := &event.CommandMonitor{
+			Started: func(_ context.Context, e *event.CommandStartedEvent) {
+				if e.CommandName != "listCollections" {
+					return
+				}
+				mu.Lock()
+				defer mu.Unlock()
+				connIDs = append(connIDs, e.ConnectionID)
+			},
+		}
+
+		// Step 2. Create a new client with the CommandMonitor and read preference
+		// set to secondary.
+		clientOpts := options.Client().SetMonitor(monitor).SetReadPreference(mtest.SecondaryRp)
+
+		mt.ResetClient(clientOpts)
+
+		// Step 3. Invoke ListCollections against the new client and assert that the
+		// command was successful.
+		cur, err := mt.DB.ListCollections(context.Background(), bson.D{})
+
+		require.NoError(mt, err, "ListCollections error: %v", err)
+		require.NoError(mt, cur.Close(context.Background()))
+
+		mu.Lock()
+		defer mu.Unlock()
+		require.Lenf(mt, connIDs, 1,
+			"expected exactly one listCollections command, got %d", len(connIDs))
+
+		// Step 4. Verify, via the driver's command-monitoring API, that the
+		// operation was issued against the primary node
+		actualHost := strings.SplitN(connIDs[0], "[", 2)[0]
+
+		topo := getTopologyFromClient(mt.Client)
+		primary := getPrimaryAddress(mt, topo, false)
+
+		require.Equal(mt, primary.String(), actualHost)
+	})
+
+	// Skip testing auth since it requires building a secondary string with
+	// auth credentials, which is not the point of this test.
+	mt.Run("succeeds when directly connected to a secondary", func(mt *mtest.T) {
+		if mtest.ClusterConnString().UsernameSet || mtest.SSLEnabled() {
+			mt.Skip("direct URI lacks auth/TLS options; skip when cluster requires them")
+		}
+		// Step 1. Construct a client whose URI points at a known secondary and sets
+		// directConnection=true.
+		var hello struct {
+			Hosts   []string `bson:"hosts"`
+			Primary string   `bson:"primary"`
+		}
+
+		err := mt.Client.Database("admin").
+			RunCommand(context.Background(), bson.D{{Key: "hello", Value: 1}}).
+			Decode(&hello)
+
+		require.NoError(mt, err, "hello error: %v", err)
+
+		var secondary string
+		for _, h := range hello.Hosts {
+			if h != hello.Primary {
+				secondary = h
+				break
+			}
+		}
+
+		if secondary == "" {
+			mt.Skip("no secondary node available in cluster")
+		}
+
+		directOpts := options.Client().ApplyURI("mongodb://" + secondary).SetDirect(true)
+
+		directClient, err := mongo.Connect(directOpts)
+		require.NoError(mt, err, "direct Connect error: %v", err)
+
+		defer func() {
+			require.NoError(mt, directClient.Disconnect(context.Background()))
+		}()
+
+		// Step 2. Invoke listCollections and assert that it succeeds.
+		cur, err := directClient.Database(mt.DB.Name()).ListCollections(context.Background(), bson.D{})
+		require.NoError(mt, err,
+			"ListCollections against directly-connected secondary should succeed: %v",
+			err)
+		require.NoError(mt, cur.Close(context.Background()))
 	})
 }
 

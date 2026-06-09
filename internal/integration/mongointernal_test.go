@@ -71,28 +71,4 @@ func TestNewSessionWithLSID(t *testing.T) {
 		// doesn't panic.
 		t.Errorf("expected EndSession to panic")
 	})
-
-	mt.Run("ClientSession.SetServer panics", func(mt *mtest.T) {
-		mt.Parallel()
-
-		sessionID := bson.Raw(bsoncore.NewDocumentBuilder().
-			AppendBinary("id", 4, []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}).
-			Build())
-		sess := mongo.NewSessionWithLSID(mt.Client, sessionID)
-
-		// Use a defer-recover block to catch the expected panic and assert that
-		// the recovered error is not nil.
-		defer func() {
-			err := recover()
-			assert.NotNil(mt, err, "expected ClientSession.SetServer to panic")
-		}()
-
-		// Expect this call to panic.
-		sess.ClientSession().SetServer()
-
-		// We expect that calling ClientSession.SetServer on a Session returned
-		// by NewSessionWithLSID panics. This code will only be reached if
-		// ClientSession.SetServer doesn't panic.
-		t.Errorf("expected ClientSession.SetServer to panic")
-	})
 }

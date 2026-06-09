@@ -42,7 +42,7 @@ type clientBulkWriteException struct {
 // will perform any other assertions required by the expectedError object. An error is returned if any checks fail.
 func verifyOperationError(ctx context.Context, expected *expectedError, result *operationResult) error {
 	if expected == nil {
-		if result.Err != nil {
+		if result != nil && result.Err != nil {
 			return fmt.Errorf("expected no error, but got %w", result.Err)
 		}
 		return nil

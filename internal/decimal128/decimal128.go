@@ -70,9 +70,9 @@ func String(h, l uint64) string {
 	}
 
 	var repr [48]byte // Loop 5 times over 9 digits plus dot, negative sign, and leading zero.
-	var last = len(repr)
-	var i = len(repr)
-	var dot = len(repr) + exp
+	last := len(repr)
+	i := len(repr)
+	dot := len(repr) + exp
 	var rem uint32
 Loop:
 	for d9 := 0; d9 < 5; d9++ {

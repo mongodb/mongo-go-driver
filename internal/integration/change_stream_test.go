@@ -24,8 +24,10 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
-type resumeType int
-type streamType int
+type (
+	resumeType int
+	streamType int
+)
 
 const (
 	minChangeStreamVersion = "3.6.0"
