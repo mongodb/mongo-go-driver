@@ -15,6 +15,9 @@ import (
 )
 
 // Node represents a server session in a linked list
+//
+// Deprecated: For internal use only, do not use. May be changed or removed in
+// any release.
 type Node struct {
 	*Server
 	next *Node
@@ -29,6 +32,9 @@ type topologyDescription struct {
 }
 
 // Pool is a pool of server sessions that can be reused.
+//
+// Deprecated: For internal use only, do not use. May be changed or removed in
+// any release.
 type Pool struct {
 	// number of sessions checked out of pool (accessed atomically)
 	checkedOut int64

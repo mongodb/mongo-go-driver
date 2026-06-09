@@ -46,6 +46,9 @@ var ErrUnackWCUnsupported = errors.New("transactions do not support unacknowledg
 var ErrSnapshotTransaction = errors.New("transactions are not supported in snapshot sessions")
 
 // TransactionState indicates the state of the transactions FSM.
+//
+// Deprecated: For internal use only, do not use. May be changed or removed in
+// any release.
 type TransactionState uint8
 
 // Client Session states
@@ -82,6 +85,9 @@ var _ mnet.Pinner = (LoadBalancedTransactionConnection)(nil)
 // LoadBalancedTransactionConnection represents a connection that's pinned by a ClientSession because it's being used
 // to execute a transaction when running against a load balancer. This interface is a copy of driver.PinnedConnection
 // and exists to be able to pin transactions to a connection without causing an import cycle.
+//
+// Deprecated: For internal use only, do not use. May be changed or removed in
+// any release.
 type LoadBalancedTransactionConnection interface {
 	mnet.ReadWriteCloser
 	mnet.Describer
@@ -89,6 +95,9 @@ type LoadBalancedTransactionConnection interface {
 }
 
 // Client is a session for clients to run commands.
+//
+// Deprecated: For internal use only, do not use. May be changed or removed in
+// any release.
 type Client struct {
 	*Server
 	ClientID       uuid.UUID
@@ -147,6 +156,9 @@ func getClusterTime(clusterTime bson.Raw) (uint32, uint32) {
 }
 
 // MaxClusterTime compares 2 clusterTime documents and returns the document representing the highest cluster time.
+//
+// Deprecated: For internal use only, do not use. May be changed or removed in
+// any release.
 func MaxClusterTime(ct1, ct2 bson.Raw) bson.Raw {
 	epoch1, ord1 := getClusterTime(ct1)
 	epoch2, ord2 := getClusterTime(ct2)
