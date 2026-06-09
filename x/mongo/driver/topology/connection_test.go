@@ -123,6 +123,41 @@ func TestConnection(t *testing.T) {
 				assert.True(t, errors.As(connErr.Wrapped, &hostErr),
 					"expected x509.HostnameError, got %T: %v", connErr.Wrapped, connErr.Wrapped)
 			})
+			t.Run("TLS record header error does not get backpressure labels", func(t *testing.T) {
+				// Start a local server that sends non-TLS data. The TLS client will
+				// fail with tls.RecordHeaderError because the first bytes aren't a
+				// valid TLS record.
+				ln, err := net.Listen("tcp", "127.0.0.1:0")
+				require.NoError(t, err)
+				defer ln.Close()
+
+				go func() {
+					c, aErr := ln.Accept()
+					if aErr != nil {
+						return
+					}
+					defer c.Close()
+					_, _ = c.Write([]byte("not a TLS server"))
+				}()
+
+				conn := newConnection(address.Address(ln.Addr().String()),
+					WithTLSConfig(func(_ *tls.Config) *tls.Config {
+						return &tls.Config{InsecureSkipVerify: true}
+					}),
+				)
+				err = conn.connect(context.Background())
+
+				var de driver.Error
+				assert.False(t, errors.As(err, &de),
+					"tls.RecordHeaderError should not get backpressure labels, got: %v", err)
+				var connErr ConnectionError
+				require.True(t, errors.As(err, &connErr),
+					"expected ConnectionError, got %T: %v", err, err)
+				var recordHeaderErr tls.RecordHeaderError
+				assert.True(t, errors.As(connErr.Wrapped, &recordHeaderErr),
+					"expected tls.RecordHeaderError inside ConnectionError, got %T: %v",
+					connErr.Wrapped, connErr.Wrapped)
+			})
 			t.Run("handshaker error", func(t *testing.T) {
 				err := errors.New("handshaker error")
 				var want error = ConnectionError{Wrapped: err, init: true}
