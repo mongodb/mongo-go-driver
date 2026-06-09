@@ -49,6 +49,9 @@ func TestClientSideEncryptionProse_27(t *testing.T) {
 	mt.Run("case 8: can find an auto-encrypted case indexed document by prefix and suffix", func(mt *mtest.T) {
 		runCSEProse27Case8(mt, test)
 	})
+	mt.Run("case 9: can find an auto-encrypted diacritic-insensitively indexed document by prefix and suffix", func(mt *mtest.T) {
+		runCSEProse27Case9(mt, test)
+	})
 }
 
 // =============================================================================
@@ -146,6 +149,101 @@ func runCSEProse27Case8(mt *mtest.T, test *cseProse27Test) {
 
 	require.Len(mt, results, 1, "expected 1 result, got %d", len(results))
 	require.Equal(mt, "BingQiLin", results[0]["encryptedText"])
+}
+
+// runCSEProse27Case9 ensures that we can find an auto-encrypted
+// diacritic-insensitively indexed document by prefix and suffix.
+//
+// Requires server 9.0+ and libmongocrypt 1.19.0+.
+//
+// TODO(GODRIVER-3943): Add 1.19.0 min guards.
+func runCSEProse27Case9(mt *mtest.T, test *cseProse27Test) {
+	mt.Helper()
+
+	if mtest.CompareServerVersions(mtest.ServerVersion(), "9.0") < 0 {
+		mt.Skip("prefix and suffix query types require server 9.0+")
+	}
+
+	const collName = "prefix-suffix-ci-di"
+	const dbName = "db"
+
+	// Step 1. Use autoEncryptedClient to insert { "encryptedText": "cafébarbäz" }
+	// into db.prefix-suffix-ci-di with majority write concern.
+	insertEncryptedText(mt, test.autoEncryptClient, dbName, collName, "cafébarbäz")
+
+	// Step 2. Use clientEncryption.encrypt() to encrypt "cafe" with prefix query
+	// type.
+	encryptOpts := options.Encrypt().
+		SetKeyID(test.key1ID).
+		SetAlgorithm("String").
+		SetQueryType("prefix").
+		SetContentionFactor(0).
+		SetTextOptions(options.Text().
+			SetCaseSensitive(false).
+			SetDiacriticSensitive(false).
+			SetPrefix(options.PrefixOptions{StrMinQueryLength: 2, StrMaxQueryLength: 10}))
+
+	cafePlaintextSearchToken := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "cafe")}
+
+	cafeEncSearchToken, err := test.clientEncryption.Encrypt(context.Background(), cafePlaintextSearchToken, encryptOpts)
+	require.Nil(mt, err, "error encrypting 'cafe': %v", err)
+
+	// Step 3. Use explicitEncryptedClient to run a "find" operation on the
+	// db.prefix-suffix-ci-di collection with the following filter:
+	//
+	// { $expr: { $encStrStartsWith: {input: '$encryptedText', prefix: <encrypted 'cafe'>} } }
+	cafeFilter := bson.D{{Key: "$expr", Value: bson.D{{Key: "$encStrStartsWith", Value: bson.D{
+		{Key: "input", Value: "$encryptedText"},
+		{Key: "prefix", Value: cafeEncSearchToken},
+	}}}}}
+
+	encColl := test.explicitEncryptClient.Database(dbName).Collection(collName)
+
+	cafeCur, err := encColl.Find(context.Background(), cafeFilter)
+	require.Nil(mt, err, "error running find on %s.%s: %v", dbName, collName, err)
+
+	var results []bson.M
+
+	err = cafeCur.All(context.Background(), &results)
+	require.Nil(mt, err, "error decoding find results: %v", err)
+
+	require.Len(mt, results, 1, "expected 1 result, got %d", len(results))
+	require.Equal(mt, "cafébarbäz", results[0]["encryptedText"])
+
+	// Step 4. Use clientEncryption.encrypt() to encrypt "baz" with suffix query
+	// type.
+	encryptOpts = options.Encrypt().
+		SetKeyID(test.key1ID).
+		SetAlgorithm("String").
+		SetQueryType("suffix").
+		SetContentionFactor(0).
+		SetTextOptions(options.Text().
+			SetCaseSensitive(false).
+			SetDiacriticSensitive(false).
+			SetSuffix(options.SuffixOptions{StrMinQueryLength: 2, StrMaxQueryLength: 10}))
+
+	bazPlaintextSearchToken := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "baz")}
+
+	bazEncSearchToken, err := test.clientEncryption.Encrypt(context.Background(), bazPlaintextSearchToken, encryptOpts)
+	require.Nil(mt, err, "error encrypting 'baz': %v", err)
+
+	// Step 5. Use explicitEncryptedClient to run a "find" operation on the
+	// db.prefix-suffix-ci-di collection with the following filter:
+	//
+	// { $expr: { $encStrEndsWith: {input: '$encryptedText', suffix: <encrypted 'baz'>} } }
+	bazFilter := bson.D{{Key: "$expr", Value: bson.D{{Key: "$encStrEndsWith", Value: bson.D{
+		{Key: "input", Value: "$encryptedText"},
+		{Key: "suffix", Value: bazEncSearchToken},
+	}}}}}
+
+	bazCur, err := encColl.Find(context.Background(), bazFilter)
+	require.Nil(mt, err, "error running find on %s.%s: %v", dbName, collName, err)
+
+	err = bazCur.All(context.Background(), &results)
+	require.Nil(mt, err, "error decoding find results: %v", err)
+
+	require.Len(mt, results, 1, "expected 1 result, got %d", len(results))
+	require.Equal(mt, "cafébarbäz", results[0]["encryptedText"])
 }
 
 // =============================================================================
