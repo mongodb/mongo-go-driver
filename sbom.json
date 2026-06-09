@@ -2,35 +2,35 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
-  "serialNumber": "urn:uuid:e425de21-e2e7-462f-9e9e-8717ba68514e",
+  "serialNumber": "urn:uuid:6a83c52b-4231-49e8-9eee-ee711d247b2d",
   "version": 1,
   "metadata": {
-    "timestamp": "2025-12-04T18:42:32-08:00",
+    "timestamp": "2026-06-09T18:45:53-04:00",
     "tools": [
       {
         "vendor": "CycloneDX",
         "name": "cyclonedx-gomod",
-        "version": "v1.9.0",
+        "version": "v1.10.0",
         "hashes": [
           {
             "alg": "MD5",
-            "content": "a87d4648b958d7e04c61971d2df2b020"
+            "content": "1ddd6c22ff742805b4e9b3d4e5e278dd"
           },
           {
             "alg": "SHA-1",
-            "content": "b742b751dba5c90d13996a46302a7605142f5e54"
+            "content": "4aacbda15585b9e08ac96932e57713c313ae7eb9"
           },
           {
             "alg": "SHA-256",
-            "content": "2e1cba54adc4999b6e023f937d9e7d809a49d3f1fe928e44915d7930e26787e7"
+            "content": "e9f54943f02770bb1c5438b15e66912b11caf93cf77e029011a6639cd6d5d73d"
           },
           {
             "alg": "SHA-384",
-            "content": "75c49bc565c88d862b55d6c0bef098b1a7d4d9b12ed248157079385931652b7e8df0d8e93f8355f075c3cbadb9039f45"
+            "content": "598061ab44a6035242616e046b4a26bcf54ef34e914fd033381e89006ab54c05456cb3e16ff80735801af0257c609094"
           },
           {
             "alg": "SHA-512",
-            "content": "c543586507ca06db1d728cc1daaf09f6ce18e6ba0b6d77f80c05b87c5bb4a9c5065ddc51637efe69dea6c0f6f9e9a8fd3bb5cb873369b9d414d6eb97b4fe2023"
+            "content": "f805f6cf6d42214e856edafc307b618069390246e2d0e2808fb61ff3f39ae374c1240db6762478c3e12b094328cfd9a0356aa64a4f802afb6aa0ff0ff8d7ca97"
           }
         ],
         "externalReferences": [
@@ -46,10 +46,10 @@
       }
     ],
     "component": {
-      "bom-ref": "pkg:golang/go.mongodb.org/mongo-driver/v2@v2.4.1-0.20251028034235-9bd07db1ed8f?type=module",
+      "bom-ref": "pkg:golang/go.mongodb.org/mongo-driver/v2@v2.6.1-0.20260427225553-fd85a834c40e?type=module",
       "type": "library",
       "name": "go.mongodb.org/mongo-driver/v2",
-      "version": "v2.4.1-0.20251028034235-9bd07db1ed8f",
+      "version": "v2.6.1-0.20260427225553-fd85a834c40e",
       "licenses": [
         {
           "license": {
@@ -57,7 +57,7 @@
           }
         }
       ],
-      "purl": "pkg:golang/go.mongodb.org/mongo-driver/v2@v2.4.1-0.20251028034235-9bd07db1ed8f"
+      "purl": "pkg:golang/go.mongodb.org/mongo-driver/v2@v2.6.1-0.20260427225553-fd85a834c40e"
     }
   },
   "components": [
@@ -84,33 +84,6 @@
       "externalReferences": [
         {
           "url": "https://github.com/davecgh/go-spew",
-          "type": "vcs"
-        }
-      ]
-    },
-    {
-      "bom-ref": "pkg:golang/github.com/golang/snappy@v1.0.0?type=module",
-      "type": "library",
-      "name": "github.com/golang/snappy",
-      "version": "v1.0.0",
-      "scope": "required",
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "3b2eb4ec65571eced1b5b820b4f067af64660c0ac8b0079f0f0beb756bd1846b"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "id": "BSD-3-Clause"
-          }
-        }
-      ],
-      "purl": "pkg:golang/github.com/golang/snappy@v1.0.0",
-      "externalReferences": [
-        {
-          "url": "https://github.com/golang/snappy",
           "type": "vcs"
         }
       ]
@@ -312,27 +285,56 @@
         }
       ],
       "purl": "pkg:golang/golang.org/x/text@v0.22.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:github/mongodb/libmongocrypt@1.15.1",
+      "supplier": {
+        "name": "MongoDB, Inc.",
+        "url": [
+          "https://mongodb.com"
+        ]
+      },
+      "author": "MongoDB, Inc.",
+      "group": "mongodb",
+      "name": "libmongocrypt",
+      "version": "1.15.1",
+      "description": "Required C library for Client Side and Queryable Encryption in MongoDB",
+      "scope": "optional",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "copyright": "Copyright 2019-present MongoDB, Inc.",
+      "cpe": "cpe:2.3:a:mongodb:libmongocrypt:1.15.1:*:*:*:*:*:*:*",
+      "purl": "pkg:github/mongodb/libmongocrypt@1.15.1",
+      "externalReferences": [
+        {
+          "url": "https://github.com/mongodb/libmongocrypt.git",
+          "type": "distribution"
+        }
+      ]
     }
   ],
   "dependencies": [
     {
-      "ref": "pkg:golang/go.mongodb.org/mongo-driver/v2@v2.4.1-0.20251028034235-9bd07db1ed8f?type=module",
+      "ref": "pkg:golang/go.mongodb.org/mongo-driver/v2@v2.6.1-0.20260427225553-fd85a834c40e?type=module",
       "dependsOn": [
         "pkg:golang/github.com/davecgh/go-spew@v1.1.1?type=module",
-        "pkg:golang/github.com/golang/snappy@v1.0.0?type=module",
         "pkg:golang/github.com/klauspost/compress@v1.17.6?type=module",
         "pkg:golang/github.com/xdg-go/scram@v1.2.0?type=module",
         "pkg:golang/github.com/xdg-go/stringprep@v1.0.4?type=module",
         "pkg:golang/github.com/youmark/pkcs8@v0.0.0-20240726163527-a2c0da244d78?type=module",
         "pkg:golang/golang.org/x/crypto@v0.33.0?type=module",
-        "pkg:golang/golang.org/x/sync@v0.11.0?type=module"
+        "pkg:golang/golang.org/x/sync@v0.11.0?type=module",
+        "pkg:github/mongodb/libmongocrypt@1.15.1"
       ]
     },
     {
       "ref": "pkg:golang/github.com/davecgh/go-spew@v1.1.1?type=module"
-    },
-    {
-      "ref": "pkg:golang/github.com/golang/snappy@v1.0.0?type=module"
     },
     {
       "ref": "pkg:golang/github.com/klauspost/compress@v1.17.6?type=module"
@@ -374,6 +376,10 @@
       "dependsOn": [
         "pkg:golang/golang.org/x/sync@v0.11.0?type=module"
       ]
+    },
+    {
+      "ref": "pkg:github/mongodb/libmongocrypt@1.15.1",
+      "dependsOn": []
     }
   ]
 }
