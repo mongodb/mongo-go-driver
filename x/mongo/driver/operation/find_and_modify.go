@@ -149,6 +149,7 @@ func (fam *FindAndModify) Execute(ctx context.Context) error {
 		Timeout:                   fam.timeout,
 		Name:                      driverutil.FindAndModifyOp,
 		Authenticator:             fam.authenticator,
+		SendAfterClusterTime:      true,
 	}.Execute(ctx)
 }
 

@@ -123,6 +123,7 @@ func (ci *CreateIndexes) Execute(ctx context.Context) error {
 		Timeout:                   ci.timeout,
 		Name:                      driverutil.CreateIndexesOp,
 		Authenticator:             ci.authenticator,
+		SendAfterClusterTime:      true,
 	}.Execute(ctx)
 }
 

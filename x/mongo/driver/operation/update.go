@@ -173,6 +173,7 @@ func (u *Update) Execute(ctx context.Context) error {
 		Logger:                    u.logger,
 		Name:                      driverutil.UpdateOp,
 		Authenticator:             u.authenticator,
+		SendAfterClusterTime:      true,
 	}.Execute(ctx)
 }
 

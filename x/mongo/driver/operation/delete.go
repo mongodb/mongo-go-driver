@@ -121,6 +121,7 @@ func (d *Delete) Execute(ctx context.Context) error {
 		Logger:                    d.logger,
 		Name:                      driverutil.DeleteOp,
 		Authenticator:             d.authenticator,
+		SendAfterClusterTime:      true,
 	}.Execute(ctx)
 }
 

@@ -386,6 +386,10 @@ type Operation struct {
 	// required.
 	Authenticator Authenticator
 
+	// SendAfterClusterTime enables sending "readConcern.afterClusterTime" for
+	// operations if they're run in causally-consistent sessions.
+	SendAfterClusterTime bool
+
 	// omitReadPreference is a boolean that indicates whether to omit the
 	// read preference from the command. This omition includes the case
 	// where a default read preference is used when the operation
@@ -1604,6 +1608,15 @@ func (op Operation) addReadConcern(dst []byte, desc description.SelectedServer) 
 
 	// start transaction must append afterclustertime IF causally consistent and operation time exists
 	if rc == nil && client != nil && client.TransactionStarting() && client.Consistent && client.OperationTime != nil {
+		rc = &readconcern.ReadConcern{}
+	}
+
+	// If this is a write operation, then we add an empty read concern so the
+	// following code can set "afterClusterTime". That avoids a data correctness
+	// problem that can happen when there is a network partition in a sharded
+	// cluster. See DRIVERS-3274 for more details.
+	if rc == nil && op.SendAfterClusterTime && client != nil &&
+		client.Consistent && client.OperationTime != nil && !client.TransactionRunning() {
 		rc = &readconcern.ReadConcern{}
 	}
 
