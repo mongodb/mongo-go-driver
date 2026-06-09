@@ -1,9 +1,7 @@
 name: Generate SBOM
-
 # Generates sbom.json using cyclonedx-gomod and opens a PR if it has changed.
 # Triggered when go.mod changes on master, or manually.
 # Internal documentation: go/sbom-scope
-
 on:
   workflow_dispatch: {}
   push:
@@ -11,57 +9,46 @@ on:
       - master
     paths:
       - go.mod
-
 permissions:
   contents: write
   pull-requests: write
-
 jobs:
   sbom:
     name: Generate SBOM and Create PR
     runs-on: ubuntu-latest
-
     concurrency:
       group: sbom-${{ github.ref }}
       cancel-in-progress: false
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-
       - name: Stash existing SBOM
         run: |
           # Strip nondeterministic fields before diffing
           jq 'del(.metadata.timestamp, .version)' sbom.json > ${{ runner.temp }}/sbom.existing.json
-
       - name: Generate SBOM
         run: bash etc/generate-sbom.sh
-
       - name: Download CycloneDX CLI
         run: |
           curl -L -s -o ${{ runner.temp }}/cyclonedx \
             "https://github.com/CycloneDX/cyclonedx-cli/releases/download/v0.32.0/cyclonedx-linux-x64"
           echo "454879e6a4a405c8a13bff49b8982adcb0596f3019b26b0811c66e4d7f0783e1  ${{ runner.temp }}/cyclonedx" | sha256sum --check
           chmod +x ${{ runner.temp }}/cyclonedx
-
       - name: Validate SBOM
         run: ${{ runner.temp }}/cyclonedx validate --input-file sbom.json --fail-on-errors
-
       - name: Check for SBOM changes
         id: sbom_diff
         run: |
           jq 'del(.metadata.timestamp, .version)' sbom.json > ${{ runner.temp }}/sbom.generated.json
           RESULT=$(diff --brief ${{ runner.temp }}/sbom.existing.json ${{ runner.temp }}/sbom.generated.json || true)
           echo "result=$RESULT" | tee -a $GITHUB_OUTPUT
-
       - name: Open Pull Request if SBOM has changed
         if: steps.sbom_diff.outputs.result
-        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1  # v8.1.1
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
         with:
           add-paths: sbom.json
           branch: auto-update-sbom-${{ github.ref_name }}
