@@ -78,6 +78,17 @@ func rawDecodeValue(_ DecodeContext, vr ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tRaw {
 		return ValueDecoderError{Name: "RawDecodeValue", Types: []reflect.Type{tRaw}, Received: val}
 	}
+	switch vrType := vr.Type(); vrType {
+	case Type(0), TypeEmbeddedDocument, TypeArray:
+	case TypeNull:
+		val.Set(reflect.Zero(val.Type()))
+		return vr.ReadNull()
+	case TypeUndefined:
+		val.Set(reflect.Zero(val.Type()))
+		return vr.ReadUndefined()
+	default:
+		return fmt.Errorf("cannot decode %v into a %s", vrType, val.Type())
+	}
 
 	if val.IsNil() {
 		val.Set(reflect.MakeSlice(val.Type(), 0, 0))

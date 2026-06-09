@@ -74,6 +74,10 @@ var (
 	ErrDeadlineWouldBeExceeded = fmt.Errorf(
 		"operation not sent to server, as Timeout would be exceeded: %w",
 		context.DeadlineExceeded)
+	// ErrSystemOverloadedError is returned when the server reports that it is overloaded
+	ErrSystemOverloadedError = "SystemOverloadedError"
+	// ErrRetryableError is returned when the server reports that the operation is retryable
+	ErrRetryableError = "RetryableError"
 )
 
 // QueryFailureError is an error representing a command failure as a document.

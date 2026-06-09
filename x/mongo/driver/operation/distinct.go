@@ -23,27 +23,29 @@ import (
 
 // Distinct performs a distinct operation.
 type Distinct struct {
-	authenticator  driver.Authenticator
-	collation      bsoncore.Document
-	key            *string
-	query          bsoncore.Document
-	session        *session.Client
-	clock          *session.ClusterClock
-	collection     string
-	comment        bsoncore.Value
-	hint           bsoncore.Value
-	monitor        *event.CommandMonitor
-	crypt          driver.Crypt
-	database       string
-	deployment     driver.Deployment
-	readConcern    *readconcern.ReadConcern
-	readPreference *readpref.ReadPref
-	selector       description.ServerSelector
-	retry          *driver.RetryMode
-	result         DistinctResult
-	serverAPI      *driver.ServerAPIOptions
-	timeout        *time.Duration
-	rawData        *bool
+	authenticator             driver.Authenticator
+	collation                 bsoncore.Document
+	key                       *string
+	query                     bsoncore.Document
+	session                   *session.Client
+	clock                     *session.ClusterClock
+	collection                string
+	comment                   bsoncore.Value
+	hint                      bsoncore.Value
+	monitor                   *event.CommandMonitor
+	crypt                     driver.Crypt
+	database                  string
+	deployment                driver.Deployment
+	readConcern               *readconcern.ReadConcern
+	readPreference            *readpref.ReadPref
+	selector                  description.ServerSelector
+	retry                     *driver.RetryMode
+	maxAdaptiveRetries        uint
+	enableOverloadRetargeting bool
+	result                    DistinctResult
+	serverAPI                 *driver.ServerAPIOptions
+	timeout                   *time.Duration
+	rawData                   *bool
 }
 
 // DistinctResult represents a distinct result returned by the server.
@@ -90,23 +92,25 @@ func (d *Distinct) Execute(ctx context.Context) error {
 	}
 
 	return driver.Operation{
-		CommandFn:         d.command,
-		ProcessResponseFn: d.processResponse,
-		RetryMode:         d.retry,
-		Type:              driver.Read,
-		Client:            d.session,
-		Clock:             d.clock,
-		CommandMonitor:    d.monitor,
-		Crypt:             d.crypt,
-		Database:          d.database,
-		Deployment:        d.deployment,
-		ReadConcern:       d.readConcern,
-		ReadPreference:    d.readPreference,
-		Selector:          d.selector,
-		ServerAPI:         d.serverAPI,
-		Timeout:           d.timeout,
-		Name:              driverutil.DistinctOp,
-		Authenticator:     d.authenticator,
+		CommandFn:                 d.command,
+		ProcessResponseFn:         d.processResponse,
+		RetryMode:                 d.retry,
+		MaxAdaptiveRetries:        d.maxAdaptiveRetries,
+		EnableOverloadRetargeting: d.enableOverloadRetargeting,
+		Type:                      driver.Read,
+		Client:                    d.session,
+		Clock:                     d.clock,
+		CommandMonitor:            d.monitor,
+		Crypt:                     d.crypt,
+		Database:                  d.database,
+		Deployment:                d.deployment,
+		ReadConcern:               d.readConcern,
+		ReadPreference:            d.readPreference,
+		Selector:                  d.selector,
+		ServerAPI:                 d.serverAPI,
+		Timeout:                   d.timeout,
+		Name:                      driverutil.DistinctOp,
+		Authenticator:             d.authenticator,
 	}.Execute(ctx)
 }
 
@@ -295,6 +299,28 @@ func (d *Distinct) Retry(retry driver.RetryMode) *Distinct {
 	}
 
 	d.retry = &retry
+	return d
+}
+
+// MaxAdaptiveRetries specifies the maximum number of times the driver should retry operations
+// that fail with a server side overload error.
+func (d *Distinct) MaxAdaptiveRetries(maxAdaptiveRetries uint) *Distinct {
+	if d == nil {
+		d = new(Distinct)
+	}
+
+	d.maxAdaptiveRetries = maxAdaptiveRetries
+	return d
+}
+
+// EnableOverloadRetargeting specifies whether the driver adds the previously failed server's address
+// to the list of deprioritized server addresses
+func (d *Distinct) EnableOverloadRetargeting(enabled bool) *Distinct {
+	if d == nil {
+		d = new(Distinct)
+	}
+
+	d.enableOverloadRetargeting = enabled
 	return d
 }
 

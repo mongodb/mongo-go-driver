@@ -13,6 +13,8 @@ on:
       push_changes:
         description: Whether to push the changes
         default: "true"
+permissions:
+  contents: read
 concurrency:
   group: create-branch-${{ github.ref }}
   cancel-in-progress: true
@@ -29,17 +31,17 @@ jobs:
     outputs:
       version: ${{ steps.pre-publish.outputs.version }}
     steps:
-      - uses: mongodb-labs/drivers-github-tools/secure-checkout@v3
+      - uses: mongodb-labs/drivers-github-tools/secure-checkout@bf6b13e3657ed8871cd4758432d4a10e800dc204 #v3
         with:
           app_id: ${{ vars.APP_ID }}
           private_key: ${{ secrets.APP_PRIVATE_KEY }}
-      - uses: mongodb-labs/drivers-github-tools/setup@v3
+      - uses: mongodb-labs/drivers-github-tools/setup@bf6b13e3657ed8871cd4758432d4a10e800dc204 #v3
         with:
           aws_role_arn: ${{ secrets.AWS_ROLE_ARN }}
           aws_region_name: ${{ vars.AWS_REGION_NAME }}
           aws_secret_id: ${{ secrets.AWS_SECRET_ID }}
           artifactory_username: ${{ vars.ARTIFACTORY_USERNAME }}
-      - uses: mongodb-labs/drivers-github-tools/create-branch@v3
+      - uses: mongodb-labs/drivers-github-tools/create-branch@bf6b13e3657ed8871cd4758432d4a10e800dc204 #v3
         id: create-branch
         with:
           branch_name: ${{ inputs.branch_name }}

@@ -114,12 +114,12 @@ func (r *rttMonitor) start() {
 	defer ticker.Stop()
 
 	for {
-		conn := r.cfg.createConnectionFn()
+		conn = r.cfg.createConnectionFn()
 
 		ctx, cancel := context.WithTimeout(r.ctx, r.cfg.connectTimeout)
-		defer cancel()
 
 		err := conn.connect(ctx)
+		cancel()
 
 		// Add an RTT sample from the new connection handshake and start a runHellos() loop if we
 		// successfully established the new connection. Otherwise, close the connection and try to

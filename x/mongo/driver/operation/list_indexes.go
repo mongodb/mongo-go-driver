@@ -21,20 +21,22 @@ import (
 
 // ListIndexes performs a listIndexes operation.
 type ListIndexes struct {
-	authenticator driver.Authenticator
-	batchSize     *int32
-	session       *session.Client
-	clock         *session.ClusterClock
-	collection    string
-	monitor       *event.CommandMonitor
-	database      string
-	deployment    driver.Deployment
-	selector      description.ServerSelector
-	retry         *driver.RetryMode
-	crypt         driver.Crypt
-	serverAPI     *driver.ServerAPIOptions
-	timeout       *time.Duration
-	rawData       *bool
+	authenticator             driver.Authenticator
+	batchSize                 *int32
+	session                   *session.Client
+	clock                     *session.ClusterClock
+	collection                string
+	monitor                   *event.CommandMonitor
+	database                  string
+	deployment                driver.Deployment
+	selector                  description.ServerSelector
+	retry                     *driver.RetryMode
+	maxAdaptiveRetries        uint
+	enableOverloadRetargeting bool
+	crypt                     driver.Crypt
+	serverAPI                 *driver.ServerAPIOptions
+	timeout                   *time.Duration
+	rawData                   *bool
 
 	result driver.CursorResponse
 }
@@ -72,20 +74,22 @@ func (li *ListIndexes) Execute(ctx context.Context) error {
 		CommandFn:         li.command,
 		ProcessResponseFn: li.processResponse,
 
-		Client:         li.session,
-		Clock:          li.clock,
-		CommandMonitor: li.monitor,
-		Database:       li.database,
-		Deployment:     li.deployment,
-		Selector:       li.selector,
-		Crypt:          li.crypt,
-		Legacy:         driver.LegacyListIndexes,
-		RetryMode:      li.retry,
-		Type:           driver.Read,
-		ServerAPI:      li.serverAPI,
-		Timeout:        li.timeout,
-		Name:           driverutil.ListIndexesOp,
-		Authenticator:  li.authenticator,
+		Client:                    li.session,
+		Clock:                     li.clock,
+		CommandMonitor:            li.monitor,
+		Database:                  li.database,
+		Deployment:                li.deployment,
+		Selector:                  li.selector,
+		Crypt:                     li.crypt,
+		Legacy:                    driver.LegacyListIndexes,
+		RetryMode:                 li.retry,
+		MaxAdaptiveRetries:        li.maxAdaptiveRetries,
+		EnableOverloadRetargeting: li.enableOverloadRetargeting,
+		Type:                      driver.Read,
+		ServerAPI:                 li.serverAPI,
+		Timeout:                   li.timeout,
+		Name:                      driverutil.ListIndexesOp,
+		Authenticator:             li.authenticator,
 	}.Execute(ctx)
 }
 
@@ -194,6 +198,28 @@ func (li *ListIndexes) Retry(retry driver.RetryMode) *ListIndexes {
 	}
 
 	li.retry = &retry
+	return li
+}
+
+// MaxAdaptiveRetries specifies the maximum number of times the driver should retry operations
+// that fail with a server side overload error.
+func (li *ListIndexes) MaxAdaptiveRetries(maxAdaptiveRetries uint) *ListIndexes {
+	if li == nil {
+		li = new(ListIndexes)
+	}
+
+	li.maxAdaptiveRetries = maxAdaptiveRetries
+	return li
+}
+
+// EnableOverloadRetargeting specifies whether the driver adds the previously failed server's address
+// to the list of deprioritized server addresses
+func (li *ListIndexes) EnableOverloadRetargeting(enabled bool) *ListIndexes {
+	if li == nil {
+		li = new(ListIndexes)
+	}
+
+	li.enableOverloadRetargeting = enabled
 	return li
 }
 

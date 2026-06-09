@@ -19,6 +19,9 @@ type changeStreamDeployment struct {
 	topologyKind description.TopologyKind
 	server       driver.Server
 	conn         *mnet.Connection
+
+	reset func() error
+	close func() error
 }
 
 var (
@@ -36,7 +39,25 @@ func (c *changeStreamDeployment) Kind() description.TopologyKind {
 }
 
 func (c *changeStreamDeployment) Connection(context.Context) (*mnet.Connection, error) {
-	return c.conn, nil
+	var err error
+	// TODO(GODRIVER-3905): replace c.conn.Closed() with c.conn.IsAlive()
+	// once the bufio.Reader infrastructure from GODRIVER-3603 lands.
+	// The post-3603 form will be:
+	//
+	//     if c.conn == nil || !c.conn.IsAlive() {
+	//         err = c.reset()
+	//     }
+	//
+	// IsAlive performs a non-destructive Peek under a short read deadline,
+	// catching the silent-death cases this Closed() check currently misses
+	// (server-side close, peer RST, network drop already noticed by the
+	// kernel, TLS abort). The narrow "did we call Close?" semantics of the
+	// current flag aren't useful here — we want to know whether the cached
+	// connection is reusable, not who terminated it.
+	if c.conn == nil || c.conn.Closed() {
+		err = c.reset()
+	}
+	return c.conn, err
 }
 
 func (c *changeStreamDeployment) RTTMonitor() driver.RTTMonitor {

@@ -291,7 +291,7 @@ func (f *GridFSFindOptionsBuilder) SetBatchSize(i int32) *GridFSFindOptionsBuild
 // SetLimit sets the value for the Limit field. Specifies the maximum number of
 // documents to return. The default value is 0, which means that all documents
 // matching the filter will be returned. A negative limit specifies that the
-// resulting documents should be returned in a single batch. The default value is 0.
+// resulting documents should be returned in a single batch.
 func (f *GridFSFindOptionsBuilder) SetLimit(i int32) *GridFSFindOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *GridFSFindOptions) error {
 		opts.Limit = &i

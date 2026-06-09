@@ -9,6 +9,7 @@ package topology
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"math/rand"
 	"net"
@@ -61,18 +62,66 @@ func TestConnection(t *testing.T) {
 			})
 		})
 		t.Run("connect", func(t *testing.T) {
-			t.Run("dialer error", func(t *testing.T) {
-				err := errors.New("dialer error")
-				var want error = ConnectionError{Wrapped: err, init: true, message: "failed to connect to testaddr:27017"}
-				conn := newConnection(address.Address("testaddr"), WithDialer(func(Dialer) Dialer {
-					return DialerFunc(func(context.Context, string, string) (net.Conn, error) { return nil, err })
-				}))
-				got := conn.connect(context.Background())
-				if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
-					t.Errorf("errors do not match. got %v; want %v", got, want)
-				}
-				connState := atomic.LoadInt64(&conn.state)
-				assert.Equal(t, connDisconnected, connState, "expected connection state %v, got %v", connDisconnected, connState)
+			t.Run("connection refused gets backpressure labels", func(t *testing.T) {
+				conn := newConnection(address.Address("127.0.0.1:1"))
+				err := conn.connect(context.Background())
+				var de driver.Error
+				require.True(t, errors.As(err, &de), "expected driver.Error, got %T: %v", err, err)
+				assert.True(t, de.HasErrorLabel(driver.ErrSystemOverloadedError),
+					"expected SystemOverloadedError label on connection refused error")
+				assert.True(t, de.HasErrorLabel(driver.ErrRetryableError),
+					"expected RetryableError label on connection refused error")
+			})
+			t.Run("DNS lookup failure does not get backpressure labels", func(t *testing.T) {
+				conn := newConnection(address.Address("nonexistent.invalid:27017"))
+				err := conn.connect(context.Background())
+				var de driver.Error
+				assert.False(t, errors.As(err, &de),
+					"DNS errors should not be wrapped in driver.Error with backpressure labels, got: %v", err)
+				var connErr ConnectionError
+				require.True(t, errors.As(err, &connErr), "expected ConnectionError, got %T: %v", err, err)
+				var dnsErr *net.DNSError
+				assert.True(t, errors.As(connErr.Wrapped, &dnsErr),
+					"expected *net.DNSError inside ConnectionError, got %T: %v", connErr.Wrapped, connErr.Wrapped)
+			})
+			t.Run("TLS unknown authority error does not get backpressure labels", func(t *testing.T) {
+				conn := newConnection(address.Address("google.com:443"),
+					WithTLSConfig(func(_ *tls.Config) *tls.Config {
+						return &tls.Config{
+							ServerName: "google.com",
+							RootCAs:    x509.NewCertPool(),
+						}
+					}),
+				)
+				err := conn.connect(context.Background())
+				var de driver.Error
+				assert.False(t, errors.As(err, &de),
+					"x509.UnknownAuthorityError should not get backpressure labels, got: %v", err)
+				var connErr ConnectionError
+				require.True(t, errors.As(err, &connErr),
+					"expected ConnectionError, got %T: %v", err, err)
+				var unknownCAErr x509.UnknownAuthorityError
+				assert.True(t, errors.As(connErr.Wrapped, &unknownCAErr),
+					"expected x509.UnknownAuthorityError, got %T: %v", connErr.Wrapped, connErr.Wrapped)
+			})
+			t.Run("TLS hostname mismatch does not get backpressure labels", func(t *testing.T) {
+				conn := newConnection(address.Address("google.com:443"),
+					WithTLSConfig(func(_ *tls.Config) *tls.Config {
+						return &tls.Config{
+							ServerName: "wronghost.example.com",
+						}
+					}),
+				)
+				err := conn.connect(context.Background())
+				var de driver.Error
+				assert.False(t, errors.As(err, &de),
+					"x509.HostnameError should not get backpressure labels, got: %v", err)
+				var connErr ConnectionError
+				require.True(t, errors.As(err, &connErr),
+					"expected ConnectionError, got %T: %v", err, err)
+				var hostErr x509.HostnameError
+				assert.True(t, errors.As(connErr.Wrapped, &hostErr),
+					"expected x509.HostnameError, got %T: %v", connErr.Wrapped, connErr.Wrapped)
 			})
 			t.Run("handshaker error", func(t *testing.T) {
 				err := errors.New("handshaker error")

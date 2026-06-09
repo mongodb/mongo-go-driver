@@ -5,15 +5,17 @@ on:
       - release/*.*
       - v*
 permissions:
-  id-token: write
-  contents: write
-  pull-requests: write
+  contents: read
 jobs:
   merge-up:
     name: Create merge up pull request
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
     steps:
-      - uses: mongodb-labs/drivers-github-tools/secure-checkout@v3
+      - uses: mongodb-labs/drivers-github-tools/secure-checkout@bf6b13e3657ed8871cd4758432d4a10e800dc204 #v3
         with:
           app_id: ${{ vars.PR_APP_ID }}
           private_key: ${{ secrets.PR_APP_PRIVATE_KEY }}
@@ -22,7 +24,7 @@ jobs:
           fetch-depth: 0
       - name: Create pull request
         id: create-pull-request
-        uses: alcaeus/automatic-merge-up-action@1.0.1
+        uses: alcaeus/automatic-merge-up-action@e23e7c71d58f12531cbaba73473bbe78fd14baf0 #v1.0.1
         with:
           ref: ${{ github.ref_name }}
           branchNamePattern: "release/<major>.<minor>"

@@ -24,7 +24,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
@@ -109,7 +108,7 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline an
 		ctx = context.Background()
 	}
 
-	cursorOpts := config.client.createBaseCursorOptions()
+	cursorOpts := config.client.createBaseCursorOptions(config.client.retryReads)
 
 	cursorOpts.MarshalValueEncoderFn = newEncoderFn(config.bsonOpts, config.registry)
 
@@ -145,7 +144,9 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline an
 	cs.aggregate = operation.NewAggregate(nil).
 		ReadPreference(config.readPreference).ReadConcern(config.readConcern).
 		Deployment(cs.client.deployment).ClusterClock(cs.client.clock).
-		CommandMonitor(cs.client.monitor).Session(cs.sess).ServerSelector(cs.selector).Retry(driver.RetryNone).
+		CommandMonitor(cs.client.monitor).Session(cs.sess).ServerSelector(cs.selector).
+		Retry(driver.RetryNone).MaxAdaptiveRetries(cursorOpts.MaxAdaptiveRetries).
+		EnableOverloadRetargeting(cursorOpts.EnableOverloadRetargeting).
 		ServerAPI(cs.client.serverAPI).Crypt(config.crypt).Timeout(cs.client.timeout).
 		Authenticator(cs.client.authenticator)
 
@@ -241,36 +242,63 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline an
 	return cs, cs.Err()
 }
 
-func (cs *ChangeStream) createOperationDeployment(server driver.Server, connection *mnet.Connection) driver.Deployment {
-	return &changeStreamDeployment{
+func (cs *ChangeStream) createOperationDeployment(ctx context.Context) (*changeStreamDeployment, error) {
+	var cancel context.CancelFunc
+
+	deployment := &changeStreamDeployment{
 		topologyKind: cs.client.deployment.Kind(),
-		server:       server,
-		conn:         connection,
 	}
+	deployment.close = func() error {
+		var err error
+		if deployment.conn != nil {
+			err = deployment.conn.Close()
+		}
+		if cancel != nil {
+			cancel()
+		}
+		return err
+	}
+	deployment.reset = func() error {
+		_ = deployment.close()
+
+		var err error
+		var connCtx context.Context
+		connCtx, cancel = csot.WithServerSelectionTimeout(ctx, cs.client.deployment.GetServerSelectionTimeout())
+		deployment.server, err = cs.client.deployment.SelectServer(connCtx, cs.selector)
+		if err != nil {
+			cancel()
+			return err
+		}
+		deployment.conn, err = deployment.server.Connection(connCtx)
+		if err != nil {
+			cancel()
+			return err
+		}
+		cs.wireVersion = deployment.conn.Description().WireVersion
+		return nil
+	}
+	if err := deployment.reset(); err != nil {
+		return nil, err
+	}
+	return deployment, nil
 }
 
 func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) error {
-	var server driver.Server
-	var conn *mnet.Connection
+	var deployment *changeStreamDeployment
 
 	// Apply the client-level timeout if the operation-level timeout is not set.
 	ctx, cancel := csot.WithTimeout(ctx, cs.client.timeout)
 	defer cancel()
 
-	connCtx, cancel := csot.WithServerSelectionTimeout(ctx, cs.client.deployment.GetServerSelectionTimeout())
-	defer cancel()
-
-	if server, cs.err = cs.client.deployment.SelectServer(connCtx, cs.selector); cs.err != nil {
+	deployment, cs.err = cs.createOperationDeployment(ctx)
+	if cs.err != nil {
 		return cs.Err()
 	}
+	defer func() {
+		_ = deployment.close()
+	}()
 
-	if conn, cs.err = server.Connection(connCtx); cs.err != nil {
-		return cs.Err()
-	}
-	defer conn.Close()
-	cs.wireVersion = conn.Description().WireVersion
-
-	cs.aggregate.Deployment(cs.createOperationDeployment(server, conn))
+	cs.aggregate.Deployment(deployment)
 
 	if resuming {
 		cs.replaceOptions(cs.wireVersion)
@@ -319,30 +347,15 @@ AggregateExecuteLoop:
 				break AggregateExecuteLoop
 			}
 
-			connCtx, cancel := csot.WithServerSelectionTimeout(ctx, cs.client.deployment.GetServerSelectionTimeout())
-			defer cancel()
-
 			// If error is retryable: subtract 1 from retries, redo server selection, checkout
 			// a connection, and restart loop.
 			retries--
-			server, err = cs.client.deployment.SelectServer(connCtx, cs.selector)
-			if err != nil {
-				break AggregateExecuteLoop
-			}
-
-			conn.Close()
-
-			conn, err = server.Connection(connCtx)
-			if err != nil {
-				break AggregateExecuteLoop
-			}
-			defer conn.Close()
-
-			// Update the wire version with data from the new connection.
-			cs.wireVersion = conn.Description().WireVersion
 
 			// Reset deployment.
-			cs.aggregate.Deployment(cs.createOperationDeployment(server, conn))
+			err = deployment.reset()
+			if err != nil {
+				break AggregateExecuteLoop
+			}
 		} else {
 			// Do not retry if error is not a driver error.
 			break AggregateExecuteLoop
@@ -354,7 +367,7 @@ AggregateExecuteLoop:
 	}
 
 	cr := cs.aggregate.ResultCursorResponse()
-	cr.Server = server
+	cr.Server = deployment.server
 
 	cs.cursor, cs.err = driver.NewBatchCursor(cr, cs.sess, cs.client.clock, cs.cursorOptions)
 	if cs.err = wrapErrors(cs.err); cs.err != nil {

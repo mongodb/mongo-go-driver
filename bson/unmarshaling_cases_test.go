@@ -7,7 +7,9 @@
 package bson
 
 import (
+	"fmt"
 	"reflect"
+	"strings"
 )
 
 type unmarshalingTestCase struct {
@@ -57,6 +59,15 @@ func unmarshalingTestCases() []unmarshalingTestCase {
 	type fooBytes struct {
 		Foo []byte
 	}
+
+	longKey := strings.Repeat("k", 16_000_000)
+	tLongKey := reflect.StructOf([]reflect.StructField{
+		{
+			Name: "Foo",
+			Type: reflect.TypeOf(false),
+			Tag:  reflect.StructTag(fmt.Sprintf(`bson:"%s"`, longKey)),
+		},
+	})
 
 	return []unmarshalingTestCase{
 		{
@@ -234,6 +245,16 @@ func unmarshalingTestCases() []unmarshalingTestCase {
 				{Key: "b_tracker", Value: MaxKey{}},
 				{Key: "b_ptr_tracker", Value: MaxKey{}},
 			}),
+		},
+		{
+			name:  "long key",
+			sType: tLongKey,
+			want: func() any {
+				vLongKey := reflect.New(tLongKey)
+				vLongKey.Elem().Field(0).SetBool(true)
+				return vLongKey.Interface()
+			}(),
+			data: docToBytes(D{{longKey, true}}),
 		},
 	}
 }
