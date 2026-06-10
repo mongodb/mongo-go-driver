@@ -17,6 +17,16 @@
 #     (default "latest"). It must be >= the query types you exercise: prefix
 #     and suffix require 9.0+, substring requires 8.2+.
 
+if [ -z "${DRIVERS_TOOLS:-}" ]; then
+  echo "ERROR: DRIVERS_TOOLS is not set; point it at a clone of drivers-evergreen-tools." >&2
+  return 1
+fi
+
+if [ ! -d "${DRIVERS_TOOLS}" ]; then
+  echo "ERROR: DRIVERS_TOOLS does not exist: ${DRIVERS_TOOLS}" >&2
+  return 1
+fi
+
 task --force install-libmongocrypt
 
 if [ "$(uname -s)" = "Darwin" ]; then
@@ -72,8 +82,15 @@ if [ -n "${AWS_PROFILE:-}" ]; then
 else
   aws sso login
 fi
-bash "${DRIVERS_TOOLS}/.evergreen/csfle/setup-secrets.sh"
+
+if ! bash "${DRIVERS_TOOLS}/.evergreen/csfle/setup-secrets.sh"; then
+  echo "ERROR: setup-secrets.sh failed; KMS secrets not loaded." >&2
+  return 1
+fi
 
 # shellcheck source=/dev/null
-source secrets-export.sh
+if ! source secrets-export.sh; then
+  echo "ERROR: failed to source secrets-export.sh; KMS secrets not loaded." >&2
+  return 1
+fi
 echo "KMS secrets loaded."
