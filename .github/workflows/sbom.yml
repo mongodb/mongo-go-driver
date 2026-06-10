@@ -9,6 +9,7 @@ on:
       - master
     paths:
       - go.mod
+      - go.sum
 permissions:
   contents: write
   pull-requests: write
