@@ -34,7 +34,7 @@ jobs:
         run: bash etc/generate-sbom.sh
       - name: Download CycloneDX CLI
         run: |
-          curl -L -s -o ${{ runner.temp }}/cyclonedx \
+          curl -fsSL -o ${{ runner.temp }}/cyclonedx \
             "https://github.com/CycloneDX/cyclonedx-cli/releases/download/v0.32.0/cyclonedx-linux-x64"
           echo "454879e6a4a405c8a13bff49b8982adcb0596f3019b26b0811c66e4d7f0783e1  ${{ runner.temp }}/cyclonedx" | sha256sum --check
           chmod +x ${{ runner.temp }}/cyclonedx
