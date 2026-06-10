@@ -325,6 +325,9 @@ func TestSDAMErrorHandling(t *testing.T) {
 			appName := "authErrorTest"
 
 			var once sync.Once
+			// heartbeatDone is intended to block the "ConnectionPoolReady" event in pool.ready(),
+			// so a successful heartbeat is guaranteed before signaling maintain() to start creating
+			// connections.
 			heartbeatDone := make(chan struct{})
 			serverMonitor := &event.ServerMonitor{
 				ServerHeartbeatSucceeded: func(_ *event.ServerHeartbeatSucceededEvent) {
@@ -358,7 +361,6 @@ func TestSDAMErrorHandling(t *testing.T) {
 			}
 
 			mt.ResetClient(options.Client().
-				ApplyURI(mtest.ClusterURI()).
 				SetAppName(appName).
 				SetPoolMonitor(poolMonitor).
 				SetServerMonitor(serverMonitor).
