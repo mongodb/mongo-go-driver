@@ -12,14 +12,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/eventtest"
 	"go.mongodb.org/mongo-driver/v2/internal/failpoint"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
@@ -311,6 +315,86 @@ func TestSDAMErrorHandling(t *testing.T) {
 			}
 		})
 	})
+	mt.RunOpts("pool is not cleared on handshake error during minPoolSize population",
+		mtest.NewOptions().MinServerVersion("4.4").Topologies(mtest.Single), func(mt *mtest.T) {
+			// This is a prose test to replace TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/
+			// pool-clear-min-pool-size-error.json/Pool_is_not_cleared_on_handshake_error_during_minPoolSize_population
+			// The failpoint is set after the monitor's first heartbeat succeeds,
+			// so the monitor is unaffected. Pool connections' hello failures carry
+			// ErrSystemOverloadedError and must not trigger pool.clear().
+			appName := "authErrorTest"
+
+			var once sync.Once
+			// heartbeatDone is intended to block the "ConnectionPoolReady" event in pool.ready(),
+			// so a successful heartbeat is guaranteed before signaling maintain() to start creating
+			// connections.
+			heartbeatDone := make(chan struct{})
+			serverMonitor := &event.ServerMonitor{
+				ServerHeartbeatSucceeded: func(_ *event.ServerHeartbeatSucceededEvent) {
+					once.Do(func() {
+						close(heartbeatDone)
+					})
+				},
+			}
+
+			var poolReadyCnt atomic.Uint32
+			var poolClearedCnt atomic.Uint32
+			var connClosedCnt atomic.Uint32
+			timer := time.NewTimer(10 * time.Second)
+			defer timer.Stop()
+			poolMonitor := &event.PoolMonitor{
+				Event: func(e *event.PoolEvent) {
+					switch e.Type {
+					case event.ConnectionClosed:
+						connClosedCnt.Add(1)
+					case event.ConnectionPoolReady:
+						select {
+						case <-heartbeatDone:
+							poolReadyCnt.Add(1)
+						case <-timer.C:
+							mt.Fatalf("timeout waiting for first server heartbeat")
+						}
+					case event.ConnectionPoolCleared:
+						poolClearedCnt.Add(1)
+					}
+				},
+			}
+
+			mt.ResetClient(options.Client().
+				SetAppName(appName).
+				SetPoolMonitor(poolMonitor).
+				SetServerMonitor(serverMonitor).
+				SetMinPoolSize(5).
+				SetMaxConnecting(1).
+				SetServerMonitoringMode(options.ServerMonitoringModePoll).
+				SetHeartbeatInterval(1_000_000 * time.Millisecond))
+
+			// Close every pool connection's hello. mt.ResetClient() returns only after
+			// the first heartbeat fires (pool.ready() blocks on <-heartbeatDone), so
+			// the monitor's hello is already past and the failpoint only affects pool
+			// connections. Their hello failures carry ErrSystemOverloadedError and must
+			// not trigger pool.clear().
+			mt.SetFailPoint(failpoint.FailPoint{
+				ConfigureFailPoint: "failCommand",
+				Mode:               failpoint.ModeAlwaysOn,
+				Data: failpoint.Data{
+					FailCommands:    []string{"hello", "isMaster"},
+					CloseConnection: true,
+					AppName:         appName,
+				},
+			})
+
+			require.Eventually(mt, func() bool {
+				return connClosedCnt.Load() > 0
+			}, 10*time.Second, 100*time.Millisecond,
+				"expected ConnectionClosed event within 10s")
+
+			require.Equal(mt, uint32(1), poolReadyCnt.Load(),
+				"expected exactly 1 ConnectionPoolReady event (pool was not cleared and re-readied)")
+
+			require.Equal(mt, uint32(0), poolClearedCnt.Load(),
+				"pool should not be cleared on handshake error during minPoolSize population")
+		})
 }
 
 func runServerErrorsTest(mt *mtest.T, isShutdownError bool, tpm *eventtest.TestPoolMonitor) {
