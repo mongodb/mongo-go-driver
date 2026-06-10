@@ -53,6 +53,13 @@ func TestDocument(t *testing.T) {
 				t.Errorf("Did not get expected error. got %v; want %v", got, want)
 			}
 		})
+		t.Run("ZeroLength", func(t *testing.T) {
+			want := ErrInvalidLength
+			got := Document{0x00, 0x00, 0x00, 0x00}.Validate()
+			if !compareErrors(got, want) {
+				t.Errorf("Did not get expected error. got %v; want %v", got, want)
+			}
+		})
 		t.Run("Invalid Element", func(t *testing.T) {
 			want := NewInsufficientBytesError(nil, nil)
 			r := make(Document, 9)
