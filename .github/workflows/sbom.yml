@@ -29,7 +29,7 @@ jobs:
       - name: Stash existing SBOM
         run: |
           # Strip nondeterministic fields before diffing
-          jq 'del(.metadata.timestamp)' sbom.json > ${{ runner.temp }}/sbom.existing.json
+          jq 'del(.metadata.timestamp, .version)' sbom.json > ${{ runner.temp }}/sbom.existing.json
       - name: Generate SBOM
         run: bash etc/generate-sbom.sh
       - name: Download CycloneDX CLI
@@ -43,7 +43,7 @@ jobs:
       - name: Check for SBOM changes
         id: sbom_diff
         run: |
-          jq 'del(.metadata.timestamp)' sbom.json > ${{ runner.temp }}/sbom.generated.json
+          jq 'del(.metadata.timestamp, .version)' sbom.json > ${{ runner.temp }}/sbom.generated.json
           RESULT=$(diff --brief ${{ runner.temp }}/sbom.existing.json ${{ runner.temp }}/sbom.generated.json || true)
           echo "result=$RESULT" | tee -a $GITHUB_OUTPUT
       - name: Open Pull Request if SBOM has changed
