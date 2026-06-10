@@ -336,6 +336,17 @@ key vault. These expire, so they must be refreshed periodically, see
 [Local Credential Access](https://github.com/mongodb-labs/drivers-evergreen-tools/tree/master/.evergreen/secrets_handling#local-credential-access)
 in the drivers-evergreen-tools repository.
 
+If sourcing the script fails while loading KMS secrets with a missing Python
+module (e.g. `ModuleNotFoundError: No module named 'boto3'`), a
+drivers-evergreen-tools virtualenv is stale. DET installs a venv's requirements
+only when it first creates the venv, so a venv created before a dependency was
+added won't have it. Delete the stale venv and re-source the script; DET will
+rebuild it from its current requirements:
+
+```bash
+rm -rf "$DRIVERS_TOOLS/.evergreen/auth_aws/authawsvenv"
+```
+
 ### Load Balancer
 
 To launch the load balancer on MacOS, run the following.
