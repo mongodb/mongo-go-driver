@@ -3,9 +3,9 @@
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
   "serialNumber": "urn:uuid:b7adcdf8-bafc-43c5-a529-a73130697171",
-  "version": 2,
+  "version": 3,
   "metadata": {
-    "timestamp": "2026-06-09T23:07:32-04:00",
+    "timestamp": "2026-06-10T13:04:52-04:00",
     "tools": [
       {
         "vendor": "CycloneDX",
@@ -46,10 +46,10 @@
       }
     ],
     "component": {
-      "bom-ref": "pkg:golang/go.mongodb.org/mongo-driver/v2@v2.6.1-0.20260427225553-fd85a834c40e?type=module",
+      "bom-ref": "pkg:golang/go.mongodb.org/mongo-driver/v2@v2.6.0?type=module",
       "type": "library",
       "name": "go.mongodb.org/mongo-driver/v2",
-      "version": "v2.6.1-0.20260427225553-fd85a834c40e",
+      "version": "v2.6.0",
       "licenses": [
         {
           "license": {
@@ -57,7 +57,7 @@
           }
         }
       ],
-      "purl": "pkg:golang/go.mongodb.org/mongo-driver/v2@v2.6.1-0.20260427225553-fd85a834c40e"
+      "purl": "pkg:golang/go.mongodb.org/mongo-driver/v2@v2.6.0"
     }
   },
   "components": [
@@ -329,7 +329,7 @@
   ],
   "dependencies": [
     {
-      "ref": "pkg:golang/go.mongodb.org/mongo-driver/v2@v2.6.1-0.20260427225553-fd85a834c40e?type=module",
+      "ref": "pkg:golang/go.mongodb.org/mongo-driver/v2@v2.6.0?type=module",
       "dependsOn": [
         "pkg:golang/github.com/davecgh/go-spew@v1.1.1?type=module",
         "pkg:golang/github.com/klauspost/compress@v1.17.6?type=module",

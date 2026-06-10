@@ -10,6 +10,25 @@ GOWORK=off go run github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@v1.10
     mod -type library -licenses -assert-licenses -output-version 1.5 -json \
     -serial "$SERIAL_NUMBER" -std=true -short-purls=true . > sbom.tmp.json
 
+# Normalize main component version to the latest release tag so the SBOM does not
+# carry a pseudo-version derived from the current branch's commit hash.
+MODULE_VERSION=$(git describe --tags --abbrev=0)
+OLD_REF=$(jq -r '.metadata.component."bom-ref"' sbom.tmp.json)
+MODULE_PATH=$(jq -r '.metadata.component.purl' sbom.tmp.json | cut -d'@' -f1 | sed 's|^pkg:golang/||')
+NEW_PURL="pkg:golang/${MODULE_PATH}@${MODULE_VERSION}"
+NEW_REF="${NEW_PURL}?type=module"
+
+jq --arg old_ref "$OLD_REF" \
+   --arg new_ref "$NEW_REF" \
+   --arg new_purl "$NEW_PURL" \
+   --arg version "$MODULE_VERSION" \
+   '.metadata.component.version = $version |
+    .metadata.component."bom-ref" = $new_ref |
+    .metadata.component.purl = $new_purl |
+    .dependencies |= map(if .ref == $old_ref then .ref = $new_ref else . end)' \
+   sbom.tmp.json > sbom.tmp2.json
+mv sbom.tmp2.json sbom.tmp.json
+
 # Inject libmongocrypt as an optional component.
 LIBMONGOCRYPT_VERSION=$(grep 'LIBMONGOCRYPT_TAG=' "${SCRIPT_DIR}/install-libmongocrypt.sh" | head -1 | cut -d'"' -f2)
 LIBMONGOCRYPT_PURL="pkg:github/mongodb/libmongocrypt@${LIBMONGOCRYPT_VERSION}"
