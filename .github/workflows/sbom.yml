@@ -61,7 +61,15 @@ jobs:
           body: |
             ## Automated SBOM Update
 
-            This PR was automatically generated because `go.mod` changed.
+            This PR was automatically generated because a change to `go.mod`, `go.sum`, or
+            `etc/install-libmongocrypt.sh` was merged into `${{ github.ref_name }}`.
+
+            `sbom.json` has been regenerated to reflect the current module dependency graph
+            and `libmongocrypt` version. The SBOM serial number is stable; the `.version`
+            field has been incremented to reflect this update.
+
+            Once merged, an Evergreen CI task will upload the updated SBOM to the internal
+            tracking system.
 
             ### Triggered by
             - Commit: ${{ github.sha }}

@@ -361,6 +361,18 @@ using enterprise auth, run:
 TOPOLOGY=sharded_cluster task run-docker -- evg-test-enterprise-auth
 ```
 
+## Software Bill of Materials (SBOM)
+
+The repository maintains a CycloneDX SBOM at `sbom.json` in the repository root. It captures the full module dependency graph along with `libmongocrypt` as an optional component.
+
+**You do not need to update `sbom.json` manually.** When a pull request that changes `go.mod`, `go.sum`, or `etc/install-libmongocrypt.sh` is merged into `master`, the "Generate SBOM" GitHub Actions workflow will automatically regenerate `sbom.json` and open a follow-up pull request with the updated file. Simply review and merge that PR.
+
+To regenerate the SBOM locally (e.g. to preview changes), run:
+
+```bash
+task generate-sbom
+```
+
 ## Talk To Us
 
 If you want to work on the driver, write documentation, or have questions/complaints, please reach out to us either via [MongoDB Community Forums](https://www.mongodb.com/community/forums/tag/go-driver) or by creating a Question issue in [Jira](https://jira.mongodb.org/secure/CreateIssue!default.jspa).
