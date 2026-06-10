@@ -260,29 +260,18 @@ func createAutoEncryptionOptions(opts AutoEncryptOpts) (*options.AutoEncryptionO
 	aeo.SetBypassAutoEncryption(opts.BypassAutoEncryption)
 	aeo.SetEncryptedFieldsMap(opts.EncryptedFieldsMap)
 	aeo.SetBypassQueryAnalysis(opts.BypassQueryAnalysis)
+	aeo.SetKmsProviders(opts.KmsProviders)
 
-	providers := make(map[string]map[string]any)
-	for key, opt := range opts.KmsProviders {
-		provider, err := getKmsProvider(key, opt)
+	if _, ok := opts.KmsProviders["kmip"]; ok && tlsClientCertificateKeyFile != "" && tlsCAFile != "" {
+		cfg, err := options.BuildTLSConfig(map[string]any{
+			"tlsCertificateKeyFile": tlsClientCertificateKeyFile,
+			"tlsCAFile":             tlsCAFile,
+		})
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error constructing tls config: %w", err)
 		}
-		if len(provider) == 0 {
-			continue
-		}
-		providers[key] = provider
-		if key == "kmip" && tlsClientCertificateKeyFile != "" && tlsCAFile != "" {
-			cfg, err := options.BuildTLSConfig(map[string]any{
-				"tlsCertificateKeyFile": tlsClientCertificateKeyFile,
-				"tlsCAFile":             tlsCAFile,
-			})
-			if err != nil {
-				return nil, fmt.Errorf("error constructing tls config: %w", err)
-			}
-			aeo.SetTLSConfig(map[string]*tls.Config{"kmip": cfg})
-		}
+		aeo.SetTLSConfig(map[string]*tls.Config{"kmip": cfg})
 	}
-	aeo.SetKmsProviders(providers)
 
 	kvns := opts.KeyVaultNameSpace
 	if kvns == "" {
