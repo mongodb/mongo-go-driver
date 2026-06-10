@@ -26,7 +26,10 @@ type AggregateOptions struct {
 	Comment                  any
 	Hint                     any
 	Let                      any
-	Custom                   bson.M
+
+	// Deprecated: Custom is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	Custom bson.M
 
 	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
 	// release.
@@ -159,6 +162,8 @@ func (ao *AggregateOptionsBuilder) SetLet(let any) *AggregateOptionsBuilder {
 // with desired option names and values. Values must be Marshalable. Custom options may conflict
 // with non-custom options, and custom options bypass client-side validation. Prefer using non-custom
 // options where possible.
+//
+// Deprecated: SetCustom is for internal use only. It may be changed or removed in any release.
 func (ao *AggregateOptionsBuilder) SetCustom(c bson.M) *AggregateOptionsBuilder {
 	ao.Opts = append(ao.Opts, func(opts *AggregateOptions) error {
 		opts.Custom = c
