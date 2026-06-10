@@ -10,6 +10,7 @@ on:
     paths:
       - go.mod
       - go.sum
+      - etc/install-libmongocrypt.sh
 permissions:
   contents: write
   pull-requests: write
