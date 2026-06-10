@@ -46,10 +46,12 @@ func TestClientSideEncryptionProse_27(t *testing.T) {
 
 	test := setupCSEProse27(mt)
 
-	mt.Run("case 8: can find an auto-encrypted case indexed document by prefix and suffix", func(mt *mtest.T) {
+	optsFor9_0 := newQEOpts().MinServerVersion("9.0")
+
+	mt.RunOpts("case 8: can find an auto-encrypted case indexed document by prefix and suffix", optsFor9_0, func(mt *mtest.T) {
 		runCSEProse27Case8(mt, test)
 	})
-	mt.Run("case 9: can find an auto-encrypted diacritic-insensitively indexed document by prefix and suffix", func(mt *mtest.T) {
+	mt.RunOpts("case 9: can find an auto-encrypted diacritic-insensitively indexed document by prefix and suffix", optsFor9_0, func(mt *mtest.T) {
 		runCSEProse27Case9(mt, test)
 	})
 	mt.Run("case 10: can find an auto-encrypted case-insensitively indexed document by substring", func(mt *mtest.T) {
@@ -72,10 +74,6 @@ func TestClientSideEncryptionProse_27(t *testing.T) {
 // TODO(GODRIVER-3943): Add 1.19.0 min guards.
 func runCSEProse27Case8(mt *mtest.T, test *cseProse27Test) {
 	mt.Helper()
-
-	if mtest.CompareServerVersions(mtest.ServerVersion(), "9.0") < 0 {
-		mt.Skip("prefix and suffix query types require server 9.0+")
-	}
 
 	const collName = "prefix-suffix-ci-di"
 	const dbName = "db"
@@ -165,10 +163,6 @@ func runCSEProse27Case8(mt *mtest.T, test *cseProse27Test) {
 // TODO(GODRIVER-3943): Add 1.19.0 min guards.
 func runCSEProse27Case9(mt *mtest.T, test *cseProse27Test) {
 	mt.Helper()
-
-	if mtest.CompareServerVersions(mtest.ServerVersion(), "9.0") < 0 {
-		mt.Skip("prefix and suffix query types require server 9.0+")
-	}
 
 	const collName = "prefix-suffix-ci-di"
 	const dbName = "db"
