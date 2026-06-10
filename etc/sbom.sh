@@ -7,6 +7,7 @@ set -o pipefail
 : "${DOCKER_CONFIG:?}"
 : "${AWS_ACCESS_KEY_ID:?}"
 : "${AWS_SECRET_ACCESS_KEY:?}"
+: "${AWS_SESSION_TOKEN:?}"
 
 command -v podman >/dev/null || {
   echo "missing required program podman" 1>&2
@@ -33,7 +34,8 @@ silkbomb_augment_flags=(
   --no-update-sbom-version
 )
 
-podman run -it --rm -v "$(pwd):/pwd" --env 'AWS_ACCESS_KEY_ID' --env 'AWS_SECRET_ACCESS_KEY' \
+podman run --rm -v "$(pwd):/pwd" \
+  --env 'AWS_ACCESS_KEY_ID' --env 'AWS_SECRET_ACCESS_KEY' --env 'AWS_SESSION_TOKEN' \
   "${silkbomb:?}" augment "${silkbomb_augment_flags[@]:?}"
 
 [[ -f ./augmented.sbom.json.new ]] || {

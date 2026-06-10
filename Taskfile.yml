@@ -67,7 +67,7 @@ tasks:
       The SBOM includes the aggregate of modules required by packages in the mongo-go-driver library, excluding examples, tests and test packages.
       Task will run only when go.mod is newer than sbom.json.
     method: timestamp
-    sources: [go.mod]
+    sources: [go.mod, go.sum, etc/install-libmongocrypt.sh]
     generates: [sbom.json]
     cmd: bash etc/generate-sbom.sh
   update-notices: bash etc/generate_notices.pl > THIRD-PARTY-NOTICES
