@@ -314,8 +314,16 @@ normally installed system-wide (e.g. via Homebrew). The workflow below avoids
 that dependency by building `libmongocrypt` from source into a local `install/`
 directory.
 
-**Setup** (source the script so exports reach your shell). Re-run periodically,
-as the key-vault credentials it loads expire:
+#### Prerequisites
+
+- `pkg-config` must be installed (cgo uses it to locate the locally built
+  `libmongocrypt`). On macOS: `brew install pkg-config`.
+- `DRIVERS_TOOLS` must point at a clone of drivers-evergreen-tools.
+
+#### Setup
+
+Source the script so its exports reach your shell. Re-run periodically, as the
+key-vault credentials it loads expire:
 
 ```bash
 source etc/setup-cse-dev.sh
@@ -335,6 +343,8 @@ Running CSE tests also requires exporting various credentials from the drivers
 key vault. These expire, so they must be refreshed periodically, see
 [Local Credential Access](https://github.com/mongodb-labs/drivers-evergreen-tools/tree/master/.evergreen/secrets_handling#local-credential-access)
 in the drivers-evergreen-tools repository.
+
+#### Troubleshooting
 
 If sourcing the script fails while loading KMS secrets with a missing Python
 module (e.g. `ModuleNotFoundError: No module named 'boto3'`), a
