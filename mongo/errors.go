@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"net"
 	"reflect"
+	"sort"
 	"strings"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -801,16 +802,26 @@ type ClientBulkWriteException struct {
 
 // ErrorCodes returns a list of error codes returned by the server.
 func (bwe ClientBulkWriteException) ErrorCodes() []int {
-	var codes []int
+	codes := []int{}
+
 	if bwe.WriteError != nil {
 		codes = append(codes, bwe.WriteError.Code)
 	}
 	for _, wce := range bwe.WriteConcernErrors {
 		codes = append(codes, wce.Code)
 	}
-	for _, we := range bwe.WriteErrors {
-		codes = append(codes, we.Code)
+
+	// We iterate over the WriteErrors in index order to ensure deterministic
+	// error messages, so we sort the WriteErrors map's keys before iterating.
+	keys := make([]int, 0, len(bwe.WriteErrors))
+	for k := range bwe.WriteErrors {
+		keys = append(keys, k)
 	}
+	sort.Ints(keys)
+	for _, k := range keys {
+		codes = append(codes, bwe.WriteErrors[k].Code)
+	}
+
 	return codes
 }
 

@@ -956,32 +956,32 @@ func TestErrorCodes(t *testing.T) {
 func TestClientBulkWriteException_ErrorCodes(t *testing.T) {
 	tests := []struct {
 		name  string
-		error ClientBulkWriteException
+		input ClientBulkWriteException
 		want  []int
 	}{
 		{
 			name:  "empty",
-			error: ClientBulkWriteException{},
-			want:  nil,
+			input: ClientBulkWriteException{},
+			want:  []int{},
 		},
 		{
 			name:  "top-level write error",
-			error: ClientBulkWriteException{WriteError: &WriteError{Code: 1}},
+			input: ClientBulkWriteException{WriteError: &WriteError{Code: 1}},
 			want:  []int{1},
 		},
 		{
 			name:  "write concern errors",
-			error: ClientBulkWriteException{WriteConcernErrors: []WriteConcernError{{Code: 2}, {Code: 3}}},
+			input: ClientBulkWriteException{WriteConcernErrors: []WriteConcernError{{Code: 2}, {Code: 3}}},
 			want:  []int{2, 3},
 		},
 		{
 			name:  "write errors (map)",
-			error: ClientBulkWriteException{WriteErrors: map[int]WriteError{0: {Code: 4}, 1: {Code: 5}}},
+			input: ClientBulkWriteException{WriteErrors: map[int]WriteError{0: {Code: 4}, 1: {Code: 5}}},
 			want:  []int{4, 5},
 		},
 		{
 			name: "all sources combined",
-			error: ClientBulkWriteException{
+			input: ClientBulkWriteException{
 				WriteError:         &WriteError{Code: 10},
 				WriteConcernErrors: []WriteConcernError{{Code: 11}},
 				WriteErrors:        map[int]WriteError{0: {Code: 12}},
@@ -992,8 +992,8 @@ func TestClientBulkWriteException_ErrorCodes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.ElementsMatch(t, tt.want, tt.error.ErrorCodes())
-			assert.ElementsMatch(t, tt.want, ErrorCodes(tt.error))
+			assert.Equal(t, tt.want, tt.input.ErrorCodes())
+			assert.Equal(t, tt.want, ErrorCodes(tt.input))
 		})
 	}
 }
