@@ -22,33 +22,58 @@ import (
 )
 
 // ErrSessionEnded is returned when a client session is used after a call to endSession().
+//
+// Deprecated: For internal use only, do not use. May be changed or removed in
+// any release.
 var ErrSessionEnded = errors.New("ended session was used")
 
 // ErrNoTransactStarted is returned if a transaction operation is called when no transaction has started.
+//
+// Deprecated: For internal use only, do not use. May be changed or removed in
+// any release.
 var ErrNoTransactStarted = errors.New("no transaction started")
 
 // ErrTransactInProgress is returned if startTransaction() is called when a transaction is in progress.
+//
+// Deprecated: For internal use only, do not use. May be changed or removed in
+// any release.
 var ErrTransactInProgress = errors.New("transaction already in progress")
 
 // ErrAbortAfterCommit is returned when abort is called after a commit.
+//
+// Deprecated: For internal use only, do not use. May be changed or removed in
+// any release.
 var ErrAbortAfterCommit = errors.New("cannot call abortTransaction after calling commitTransaction")
 
 // ErrAbortTwice is returned if abort is called after transaction is already aborted.
+//
+// Deprecated: For internal use only, do not use. May be changed or removed in
+// any release.
 var ErrAbortTwice = errors.New("cannot call abortTransaction twice")
 
 // ErrCommitAfterAbort is returned if commit is called after an abort.
+//
+// Deprecated: For internal use only, do not use. May be changed or removed in
+// any release.
 var ErrCommitAfterAbort = errors.New("cannot call commitTransaction after calling abortTransaction")
 
 // ErrUnackWCUnsupported is returned if an unacknowledged write concern is supported for a transaction.
+//
+// Deprecated: For internal use only, do not use. May be changed or removed in
+// any release.
 var ErrUnackWCUnsupported = errors.New("transactions do not support unacknowledged write concerns")
 
 // ErrSnapshotTransaction is returned if an transaction is started on a snapshot session.
+//
+// Deprecated: For internal use only, do not use. May be changed or removed in
+// any release.
 var ErrSnapshotTransaction = errors.New("transactions are not supported in snapshot sessions")
 
 // TransactionState indicates the state of the transactions FSM.
 //
 // Deprecated: For internal use only, do not use. May be changed or removed in
-// any release.
+// any release. To check whether a transaction is active, call
+// [go.mongodb.org/mongo-driver/v2/mongo.Session.TransactionRunning].
 type TransactionState uint8
 
 // Client Session states
@@ -97,7 +122,8 @@ type LoadBalancedTransactionConnection interface {
 // Client is a session for clients to run commands.
 //
 // Deprecated: For internal use only, do not use. May be changed or removed in
-// any release.
+// any release. Use [go.mongodb.org/mongo-driver/v2/mongo.Client.StartSession]
+// to create a new session.
 type Client struct {
 	*Server
 	ClientID       uuid.UUID
@@ -178,6 +204,10 @@ func MaxClusterTime(ct1, ct2 bson.Raw) bson.Raw {
 }
 
 // NewImplicitClientSession creates a new implicit client-side session.
+//
+// Deprecated: For internal use only, do not use. May be changed or removed in
+// any release. Use [go.mongodb.org/mongo-driver/v2/mongo.Client.StartSession]
+// to create a new session.
 func NewImplicitClientSession(pool *Pool, clientID uuid.UUID) *Client {
 	// Server-side session checkout for implicit sessions is deferred until after checking out a
 	// connection, so don't check out a server-side session right now. This will limit the number of
@@ -191,6 +221,10 @@ func NewImplicitClientSession(pool *Pool, clientID uuid.UUID) *Client {
 }
 
 // NewClientSession creates a new explicit client-side session.
+//
+// Deprecated: For internal use only, do not use. May be changed or removed in
+// any release. Use [go.mongodb.org/mongo-driver/v2/mongo.Client.StartSession]
+// to create a new session.
 func NewClientSession(pool *Pool, clientID uuid.UUID, opts ...*ClientOptions) (*Client, error) {
 	c := &Client{
 		pool:     pool,
@@ -391,6 +425,10 @@ func (c *Client) TransactionStarting() bool {
 
 // TransactionRunning returns true if the client session has started the transaction
 // and it hasn't been committed or aborted
+//
+// Deprecated: For internal use only, do not use. May be changed or removed in
+// any release. To check whether a transaction is active, call
+// [go.mongodb.org/mongo-driver/v2/mongo.Session.TransactionRunning].
 func (c *Client) TransactionRunning() bool {
 	return c != nil && (c.TransactionState == Starting || c.TransactionState == InProgress)
 }
