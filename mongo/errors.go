@@ -380,8 +380,10 @@ var (
 	_ ServerError = BulkWriteException{}
 )
 
-var _ error = ClientBulkWriteException{}
-var _ errorCoder = ClientBulkWriteException{}
+var (
+	_ error      = ClientBulkWriteException{}
+	_ errorCoder = ClientBulkWriteException{}
+)
 
 // CommandError represents a server error during execution of a command. This can be returned by any operation.
 type CommandError struct {
