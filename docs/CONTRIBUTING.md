@@ -350,11 +350,11 @@ If sourcing the script fails while loading KMS secrets with a missing Python
 module (e.g. `ModuleNotFoundError: No module named 'boto3'`), a
 drivers-evergreen-tools virtualenv is stale. DET installs a venv's requirements
 only when it first creates the venv, so a venv created before a dependency was
-added won't have it. Delete the stale venv and re-source the script; DET will
-rebuild it from its current requirements:
+added won't have it. `setup-secrets.sh` uses two venvs, so delete both and
+re-source the script; DET will rebuild them from their current requirements:
 
 ```bash
-rm -rf "$DRIVERS_TOOLS/.evergreen/auth_aws/authawsvenv"
+rm -rf "$DRIVERS_TOOLS"/.evergreen/csfle/kmstlsvenv "$DRIVERS_TOOLS"/.evergreen/auth_aws/authawsvenv
 ```
 
 ### Load Balancer
