@@ -162,18 +162,22 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/crud/tests/unified/deleteMany-hint-unacknowledged.json/Unacknowledged_deleteMany_with_hint_document_on_4.4+_server",
 		"TestUnifiedSpec/crud/tests/unified/deleteOne-hint-unacknowledged.json/Unacknowledged_deleteOne_with_hint_string_on_4.4+_server",
 		"TestUnifiedSpec/crud/tests/unified/deleteOne-hint-unacknowledged.json/Unacknowledged_deleteOne_with_hint_document_on_4.4+_server",
-		"TestUnifiedSpec/crud/tests/unified/findOneAndDelete-hint-unacknowledged.json/Unacknowledged_findOneAndDelete_with_hint_string_on_4.4+_server",
-		"TestUnifiedSpec/crud/tests/unified/findOneAndDelete-hint-unacknowledged.json/Unacknowledged_findOneAndDelete_with_hint_document_on_4.4+_server",
-		"TestUnifiedSpec/crud/tests/unified/findOneAndReplace-hint-unacknowledged.json/Unacknowledged_findOneAndReplace_with_hint_string_on_4.4+_server",
-		"TestUnifiedSpec/crud/tests/unified/findOneAndReplace-hint-unacknowledged.json/Unacknowledged_findOneAndReplace_with_hint_document_on_4.4+_server",
-		"TestUnifiedSpec/crud/tests/unified/findOneAndUpdate-hint-unacknowledged.json/Unacknowledged_findOneAndUpdate_with_hint_string_on_4.4+_server",
-		"TestUnifiedSpec/crud/tests/unified/findOneAndUpdate-hint-unacknowledged.json/Unacknowledged_findOneAndUpdate_with_hint_document_on_4.4+_server",
 		"TestUnifiedSpec/crud/tests/unified/replaceOne-hint-unacknowledged.json/Unacknowledged_replaceOne_with_hint_string_on_4.2+_server",
 		"TestUnifiedSpec/crud/tests/unified/replaceOne-hint-unacknowledged.json/Unacknowledged_replaceOne_with_hint_document_on_4.2+_server",
 		"TestUnifiedSpec/crud/tests/unified/updateMany-hint-unacknowledged.json/Unacknowledged_updateMany_with_hint_string_on_4.2+_server",
 		"TestUnifiedSpec/crud/tests/unified/updateMany-hint-unacknowledged.json/Unacknowledged_updateMany_with_hint_document_on_4.2+_server",
 		"TestUnifiedSpec/crud/tests/unified/updateOne-hint-unacknowledged.json/Unacknowledged_updateOne_with_hint_string_on_4.2+_server",
 		"TestUnifiedSpec/crud/tests/unified/updateOne-hint-unacknowledged.json/Unacknowledged_updateOne_with_hint_document_on_4.2+_server",
+	},
+
+	// TODO(GODRIVER-2125): Allow hint for unacknowledged writes using OP_MSG when supported by the server
+	"Allow hint for unacknowledged writes using OP_MSG when supported by the server (GODRIVER-2125)": {
+		"TestUnifiedSpec/crud/tests/unified/findOneAndDelete-hint-unacknowledged.json/Unacknowledged_findOneAndDelete_with_hint_string_on_4.4+_server",
+		"TestUnifiedSpec/crud/tests/unified/findOneAndDelete-hint-unacknowledged.json/Unacknowledged_findOneAndDelete_with_hint_document_on_4.4+_server",
+		"TestUnifiedSpec/crud/tests/unified/findOneAndReplace-hint-unacknowledged.json/Unacknowledged_findOneAndReplace_with_hint_string_on_4.4+_server",
+		"TestUnifiedSpec/crud/tests/unified/findOneAndReplace-hint-unacknowledged.json/Unacknowledged_findOneAndReplace_with_hint_document_on_4.4+_server",
+		"TestUnifiedSpec/crud/tests/unified/findOneAndUpdate-hint-unacknowledged.json/Unacknowledged_findOneAndUpdate_with_hint_string_on_4.4+_server",
+		"TestUnifiedSpec/crud/tests/unified/findOneAndUpdate-hint-unacknowledged.json/Unacknowledged_findOneAndUpdate_with_hint_document_on_4.4+_server",
 	},
 
 	// TODO(GODRIVER-3392): Test that inserts and upserts respect null _id values.
