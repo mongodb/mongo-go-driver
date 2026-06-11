@@ -49,7 +49,13 @@ export PKG_CONFIG
 # the test binary. Baking an rpath into the binary via CGO_LDFLAGS resolves
 # @rpath deterministically with no env dependency, and because CGO_LDFLAGS is
 # part of the build cache key it also forces a relink after a version bump.
-CGO_LDFLAGS="-Wl,-rpath,${libdir}"
+# Append (don't clobber) so any caller-provided CGO_LDFLAGS is preserved, and
+# only add the rpath if it isn't already present so re-sourcing this script
+# doesn't accumulate duplicate flags (which would also churn the build cache key).
+rpath_flag="-Wl,-rpath,${libdir}"
+if [[ " ${CGO_LDFLAGS:-} " != *" ${rpath_flag} "* ]]; then
+  CGO_LDFLAGS="${CGO_LDFLAGS:+${CGO_LDFLAGS} }${rpath_flag}"
+fi
 export CGO_LDFLAGS
 
 # Download a crypt_shared library matching the host platform. This is the
