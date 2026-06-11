@@ -27,7 +27,7 @@ if [ ! -d "${DRIVERS_TOOLS}" ]; then
   return 1
 fi
 
-task --force install-libmongocrypt
+task --force install-libmongocrypt || { echo "ERROR: install-libmongocrypt failed." >&2; return 1; }
 
 if [ "$(uname -s)" = "Darwin" ]; then
   libdir="$(pwd)/install/libmongocrypt/lib"
