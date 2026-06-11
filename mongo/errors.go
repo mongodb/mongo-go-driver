@@ -799,6 +799,21 @@ type ClientBulkWriteException struct {
 	PartialResult *ClientBulkWriteResult
 }
 
+// ErrorCodes returns a list of error codes returned by the server.
+func (bwe ClientBulkWriteException) ErrorCodes() []int {
+	var codes []int
+	if bwe.WriteError != nil {
+		codes = append(codes, bwe.WriteError.Code)
+	}
+	for _, wce := range bwe.WriteConcernErrors {
+		codes = append(codes, wce.Code)
+	}
+	for _, we := range bwe.WriteErrors {
+		codes = append(codes, we.Code)
+	}
+	return codes
+}
+
 // Error implements the error interface.
 func (bwe ClientBulkWriteException) Error() string {
 	causes := make([]string, 0, 4)
