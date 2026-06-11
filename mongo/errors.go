@@ -380,7 +380,10 @@ var (
 	_ ServerError = BulkWriteException{}
 )
 
-var _ error = ClientBulkWriteException{}
+var (
+	_ error      = ClientBulkWriteException{}
+	_ errorCoder = ClientBulkWriteException{}
+)
 
 // CommandError represents a server error during execution of a command. This can be returned by any operation.
 type CommandError struct {
@@ -797,6 +800,23 @@ type ClientBulkWriteException struct {
 	// The results of any successful operations that were performed before the error
 	// was encountered.
 	PartialResult *ClientBulkWriteResult
+}
+
+// ErrorCodes returns a list of error codes returned by the server.
+func (bwe ClientBulkWriteException) ErrorCodes() []int {
+	codes := []int{}
+
+	if bwe.WriteError != nil {
+		codes = append(codes, bwe.WriteError.Code)
+	}
+	for _, wce := range bwe.WriteConcernErrors {
+		codes = append(codes, wce.Code)
+	}
+	for _, we := range bwe.WriteErrors {
+		codes = append(codes, we.Code)
+	}
+
+	return codes
 }
 
 // Error implements the error interface.

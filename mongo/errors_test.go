@@ -929,11 +929,84 @@ func TestErrorCodes(t *testing.T) {
 			input: topology.ErrTopologyClosed,
 			want:  []int{},
 		},
+		{
+			name:  "ClientBulkWriteException single write error",
+			input: ClientBulkWriteException{WriteErrors: map[int]WriteError{0: {Code: 7}}},
+			want:  []int{7},
+		},
+		{
+			name:  "ClientBulkWriteException single write concern error",
+			input: ClientBulkWriteException{WriteConcernErrors: []WriteConcernError{{Code: 8}}},
+			want:  []int{8},
+		},
+		{
+			name:  "ClientBulkWriteException top-level write error only",
+			input: ClientBulkWriteException{WriteError: &WriteError{Code: 9}},
+			want:  []int{9},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			require.Equal(t, tt.want, ErrorCodes(tt.input))
+		})
+	}
+}
+
+func TestClientBulkWriteException_ErrorCodes(t *testing.T) {
+	tests := []struct {
+		name  string
+		input ClientBulkWriteException
+		want  []int
+	}{
+		{
+			name:  "empty",
+			input: ClientBulkWriteException{},
+			want:  []int{},
+		},
+		{
+			name:  "top-level write error",
+			input: ClientBulkWriteException{WriteError: &WriteError{Code: 1}},
+			want:  []int{1},
+		},
+		{
+			name:  "write concern errors",
+			input: ClientBulkWriteException{WriteConcernErrors: []WriteConcernError{{Code: 2}, {Code: 3}}},
+			want:  []int{2, 3},
+		},
+		{
+			name:  "write errors (map)",
+			input: ClientBulkWriteException{WriteErrors: map[int]WriteError{0: {Code: 4}, 1: {Code: 5}}},
+			want:  []int{4, 5},
+		},
+		{
+			name: "all sources combined",
+			input: ClientBulkWriteException{
+				WriteError:         &WriteError{Code: 10},
+				WriteConcernErrors: []WriteConcernError{{Code: 11}},
+				WriteErrors:        map[int]WriteError{0: {Code: 12}},
+			},
+			want: []int{10, 11, 12},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			require.ElementsMatch(
+				t,
+				tt.want,
+				tt.input.ErrorCodes(),
+				"%T.ErrorCodes method",
+				tt.input,
+			)
+
+			require.ElementsMatch(
+				t,
+				tt.want,
+				ErrorCodes(tt.input),
+				"mongo.ErrorCodes(%T)",
+				tt.input,
+			)
 		})
 	}
 }
