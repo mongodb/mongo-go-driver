@@ -57,6 +57,9 @@ func (p *Pool) createServerSession() (*Server, error) {
 }
 
 // NewPool creates a new server session pool
+//
+// Deprecated: For internal use only, do not use. May be changed or removed in
+// any release.
 func NewPool(descChan <-chan description.Topology) *Pool {
 	p := &Pool{
 		descChan: descChan,
