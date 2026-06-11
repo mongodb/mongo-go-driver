@@ -103,6 +103,7 @@ func (bw *clientBulkWrite) execute(ctx context.Context) error {
 				Message: ce.Message,
 				Raw:     ce.Raw,
 			},
+			Labels: ce.Labels,
 		}
 	}
 	if len(batches.writeConcernErrors) > 0 || len(batches.writeErrors) > 0 {
@@ -436,16 +437,17 @@ func (mb *modelBatches) processResponse(ctx context.Context, resp bsoncore.Docum
 		return nil
 	}
 	var res struct {
-		Ok        bool
-		Cursor    bsoncore.Document
-		NDeleted  int32
-		NInserted int32
-		NMatched  int32
-		NModified int32
-		NUpserted int32
-		NErrors   int32
-		Code      int32
-		Errmsg    string
+		Ok          bool
+		Cursor      bsoncore.Document
+		NDeleted    int32
+		NInserted   int32
+		NMatched    int32
+		NModified   int32
+		NUpserted   int32
+		NErrors     int32
+		Code        int32
+		Errmsg      string
+		ErrorLabels []string
 	}
 	err := bson.Unmarshal(resp, &res)
 	if err != nil {
@@ -461,6 +463,7 @@ func (mb *modelBatches) processResponse(ctx context.Context, resp bsoncore.Docum
 			WriteConcernErrors: mb.writeConcernErrors,
 			WriteErrors:        mb.writeErrors,
 			PartialResult:      mb.result,
+			Labels:             res.ErrorLabels,
 		}
 	}
 
@@ -521,6 +524,7 @@ func (mb *modelBatches) processResponse(ctx context.Context, resp bsoncore.Docum
 			WriteConcernErrors: mb.writeConcernErrors,
 			WriteErrors:        mb.writeErrors,
 			PartialResult:      mb.result,
+			Labels:             writeCmdErr.Labels,
 		}
 	}
 	return nil
