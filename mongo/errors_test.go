@@ -992,7 +992,7 @@ func TestClientBulkWriteException_ErrorCodes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.ElementsMatch(
+			require.ElementsMatch(
 				t,
 				tt.want,
 				tt.input.ErrorCodes(),
@@ -1000,7 +1000,7 @@ func TestClientBulkWriteException_ErrorCodes(t *testing.T) {
 				tt.input,
 			)
 
-			assert.ElementsMatch(
+			require.ElementsMatch(
 				t,
 				tt.want,
 				ErrorCodes(tt.input),
