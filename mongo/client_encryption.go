@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/aws/credentials"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
@@ -28,6 +29,26 @@ type ClientEncryption struct {
 	keyVaultClient *Client
 	keyVaultColl   *Collection
 	closed         bool
+}
+
+type awsCredentialsProvider struct {
+	provider options.AWSCredentialsProvider
+}
+
+func (p awsCredentialsProvider) Retrieve(ctx context.Context) (credentials.Value, error) {
+	creds, err := p.provider.Retrieve(ctx)
+	if err != nil {
+		return credentials.Value{}, err
+	}
+	return credentials.Value{
+		AccessKeyID:     creds.AccessKeyID,
+		SecretAccessKey: creds.SecretAccessKey,
+		SessionToken:    creds.SessionToken,
+		Source:          creds.Source,
+		CanExpire:       creds.CanExpire,
+		Expires:         creds.Expires,
+		AccountID:       creds.AccountID,
+	}, nil
 }
 
 // NewClientEncryption creates a new ClientEncryption instance configured with the given options.
@@ -53,7 +74,7 @@ func NewClientEncryption(keyVaultClient *Client, opts ...options.Lister[options.
 		return nil, fmt.Errorf("error creating KMS providers map: %w", err)
 	}
 
-	mc, err := mongocrypt.NewMongoCrypt(&mcopts.MongoCryptOptions{
+	cryptOpts := &mcopts.MongoCryptOptions{
 		KmsProviders: kmsProviders,
 		// Explicitly disable loading the crypt_shared library for the Crypt used for
 		// ClientEncryption because it's only needed for AutoEncryption and we don't expect users to
@@ -61,7 +82,11 @@ func NewClientEncryption(keyVaultClient *Client, opts ...options.Lister[options.
 		CryptSharedLibDisabled: true,
 		HTTPClient:             cea.HTTPClient,
 		KeyExpiration:          cea.KeyExpiration,
-	})
+	}
+	if cea.AWSCredentialsProvider != nil {
+		cryptOpts.AWSCredentialsProvider = awsCredentialsProvider{cea.AWSCredentialsProvider}
+	}
+	mc, err := mongocrypt.NewMongoCrypt(cryptOpts)
 	if err != nil {
 		return nil, err
 	}
