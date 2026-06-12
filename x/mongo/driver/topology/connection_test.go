@@ -131,8 +131,11 @@ func TestConnection(t *testing.T) {
 				//   *net.OpError: read tcp 127.0.0.1:46242->127.0.0.1:46241: wsarecv: An established connection was aborted by the software in your host machine.
 				//
 				// Skip the test on Windows.
+				//
+				// TODO(GODRIVER-3956): Make the TLS record header error check
+				// and test work on Windows.
 				if runtime.GOOS == "windows" {
-					t.Skip("Skipping this test on Windows because it doesn't return tls.RecordHeaderError")
+					t.Skip("Skipping this test on Windows because tls.Conn.HandshakeContext doesn't return tls.RecordHeaderError on Windows")
 				}
 
 				// Create a conn that responds with non-TLS data. The TLS client
@@ -151,7 +154,7 @@ func TestConnection(t *testing.T) {
 				err := conn.connect(context.Background())
 
 				var de driver.Error
-				assert.False(t,
+				require.False(t,
 					errors.As(err, &de),
 					"tls.RecordHeaderError should not be wrapped by driver.Error, but it is: %v",
 					err)
@@ -163,7 +166,7 @@ func TestConnection(t *testing.T) {
 					err)
 
 				var recordHeaderErr tls.RecordHeaderError
-				assert.True(t,
+				require.True(t,
 					errors.As(connErr.Wrapped, &recordHeaderErr),
 					"expected a tls.RecordHeaderError wrapped by a ConnectionError, but got %[1]T: %[1]v",
 					connErr.Wrapped)
