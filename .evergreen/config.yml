@@ -550,6 +550,84 @@ tasks:
         params:
           binary: bash
           args: [*task-runner, govulncheck]
+  - name: upload-sbom
+    tags: ["ssdlc"]
+    allowed_requesters: ["commit"]
+    exec_timeout_secs: 600
+    commands:
+      - func: setup-system
+      - command: expansions.update
+        params:
+          updates:
+            - {key: DOCKER_CONFIG, value: "${workdir}/.docker"}
+      - command: ec2.assume_role
+        display_name: Assume ECR readonly IAM role
+        params:
+          role_arn: arn:aws:iam::901841024863:role/ecr-role-evergreen-ro
+      - command: subprocess.exec
+        type: setup
+        display_name: Log in to ECR
+        params:
+          binary: bash
+          include_expansions_in_env:
+            - AWS_ACCESS_KEY_ID
+            - AWS_SECRET_ACCESS_KEY
+            - AWS_SESSION_TOKEN
+            - DOCKER_CONFIG
+          args:
+            - -c
+            - aws ecr get-login-password --region us-east-1 | podman login --username AWS --password-stdin 901841024863.dkr.ecr.us-east-1.amazonaws.com
+      - command: ec2.assume_role
+        display_name: Assume Silkbomb IAM role
+        params:
+          role_arn: arn:aws:iam::901841024863:role/silkbomb
+      - command: subprocess.exec
+        type: test
+        display_name: Upload SBOM via Silkbomb
+        params:
+          binary: bash
+          working_dir: src/go.mongodb.org/mongo-driver
+          include_expansions_in_env:
+            - branch_name
+            - DOCKER_CONFIG
+            - AWS_ACCESS_KEY_ID
+            - AWS_SECRET_ACCESS_KEY
+            - AWS_SESSION_TOKEN
+          args:
+            - etc/sbom.sh
+      - command: s3.put
+        type: system
+        params:
+          display_name: Augmented SBOM (Old)
+          aws_key: ${aws_key}
+          aws_secret: ${aws_secret}
+          bucket: mciuploads
+          content_type: application/json
+          local_file: src/go.mongodb.org/mongo-driver/old.json
+          permissions: public-read
+          remote_file: mongo-go-driver/${build_variant}/${revision}/${version_id}/${build_id}/sbom/old.json
+      - command: s3.put
+        type: system
+        params:
+          display_name: Augmented SBOM (New)
+          aws_key: ${aws_key}
+          aws_secret: ${aws_secret}
+          bucket: mciuploads
+          content_type: application/json
+          local_file: src/go.mongodb.org/mongo-driver/new.json
+          permissions: public-read
+          remote_file: mongo-go-driver/${build_variant}/${revision}/${version_id}/${build_id}/sbom/new.json
+      - command: s3.put
+        type: system
+        params:
+          display_name: Augmented SBOM (Diff)
+          aws_key: ${aws_key}
+          aws_secret: ${aws_secret}
+          bucket: mciuploads
+          content_type: application/json
+          local_file: src/go.mongodb.org/mongo-driver/diff.txt
+          permissions: public-read
+          remote_file: mongo-go-driver/${build_variant}/${revision}/${version_id}/${build_id}/sbom/diff.txt
   - name: pull-request-helpers
     allowed_requesters: ["patch", "github_pr"]
     commands:
@@ -2100,3 +2178,13 @@ buildvariants:
       - name: testazureoidc_task_group
       - name: testgcpoidc_task_group
       - name: testk8soidc_task_group
+  - name: sbom
+    display_name: "SBOM"
+    allowed_requesters: ["commit"]
+    stepback: false
+    paths:
+      - sbom.json
+    run_on:
+      - rhel8.7-small
+    tasks:
+      - name: upload-sbom
