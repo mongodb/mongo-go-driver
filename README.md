@@ -18,7 +18,7 @@ See the following resources to learn more about upgrading from version 1.x to 2.
 - [v2.0 Migration Guide](docs/migration-2.0.md)
 - [v2.0 What's New](https://www.mongodb.com/docs/drivers/go/upcoming/whats-new/#what-s-new-in-2.0)
 
-The MongoDB Go driver follows [semantic versioning](https://semver.org/) for its releases.
+The MongoDB Go Driver follows [semantic versioning](https://semver.org/) for its releases.
 
 ## Requirements
 
@@ -28,7 +28,7 @@ The MongoDB Go driver follows [semantic versioning](https://semver.org/) for its
 
 ## Installation
 
-The recommended way to get started using the MongoDB Go driver is by using Go modules to install the dependency in
+The recommended way to get started using the MongoDB Go Driver is by using Go modules to install the dependency in
 your project. This can be done either by importing packages from `go.mongodb.org/mongo-driver` and having the build
 step install the dependency or by explicitly running
 
