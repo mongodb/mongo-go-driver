@@ -3126,6 +3126,16 @@ func TestClientSideEncryptionProse_27_text_explicit_encryption(t *testing.T) {
 	mt := newCSE_T(t, newQEOpts().MinServerVersion("8.2"))
 	mt.Setup()
 
+	// TODO(GODRIVER-3863): This test exercises the preview QE text query types
+	// ("TextPreview" algorithm, "prefixPreview"/"suffixPreview" query types),
+	// which libmongocrypt 1.19.0 removed in favor of the stable "String"
+	// algorithm and "prefix"/"suffix" query types (DRIVERS-3321). Now that the
+	// driver requires libmongocrypt 1.19.0+, these preview names no longer
+	// resolve on any server version, so the test cannot pass. Skip until it is
+	// migrated to the stable names and the prose-27 sub-test pattern in
+	// TestClientSideEncryptionProse_27.
+	mt.Skip("TODO(GODRIVER-3863): preview QE text query types removed in libmongocrypt 1.19.0; pending migration to stable names")
+
 	key1Document := readJSONFile(mt, "key1-document.json")
 	subtype, data := key1Document.Lookup("_id").Binary()
 	key1ID := bson.Binary{Subtype: subtype, Data: data}
