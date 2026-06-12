@@ -13,6 +13,7 @@ import (
 	"errors"
 	"math/rand"
 	"net"
+	"runtime"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -122,6 +123,53 @@ func TestConnection(t *testing.T) {
 				var hostErr x509.HostnameError
 				assert.True(t, errors.As(connErr.Wrapped, &hostErr),
 					"expected x509.HostnameError, got %T: %v", connErr.Wrapped, connErr.Wrapped)
+			})
+			t.Run("TLS record header error does not get backpressure labels", func(t *testing.T) {
+				// Windows doesn't return a wrapped tls.RecordHeaderError, but
+				// returns
+				//
+				//   *net.OpError: read tcp 127.0.0.1:46242->127.0.0.1:46241: wsarecv: An established connection was aborted by the software in your host machine.
+				//
+				// Skip the test on Windows.
+				//
+				// TODO(GODRIVER-3956): Make the TLS record header error check
+				// and test work on Windows.
+				if runtime.GOOS == "windows" {
+					t.Skip("Skipping this test on Windows because tls.Conn.HandshakeContext doesn't return tls.RecordHeaderError on Windows")
+				}
+
+				// Create a conn that responds with non-TLS data. The TLS client
+				// will fail with tls.RecordHeaderError because the first bytes
+				// aren't a valid TLS record.
+				addr := bootstrapConnections(t, 1, func(c net.Conn) {
+					defer c.Close()
+					_, _ = c.Write([]byte("not a TLS server"))
+				})
+
+				conn := newConnection(address.Address(addr.String()),
+					WithTLSConfig(func(*tls.Config) *tls.Config {
+						return &tls.Config{InsecureSkipVerify: true}
+					}),
+				)
+				err := conn.connect(context.Background())
+
+				var de driver.Error
+				require.False(t,
+					errors.As(err, &de),
+					"tls.RecordHeaderError should not be wrapped by driver.Error, but it is: %v",
+					err)
+
+				var connErr ConnectionError
+				require.True(t,
+					errors.As(err, &connErr),
+					"expected a ConnectionError, but got %[1]T: %[1]v",
+					err)
+
+				var recordHeaderErr tls.RecordHeaderError
+				require.True(t,
+					errors.As(connErr.Wrapped, &recordHeaderErr),
+					"expected a tls.RecordHeaderError wrapped by a ConnectionError, but got %[1]T: %[1]v",
+					connErr.Wrapped)
 			})
 			t.Run("handshaker error", func(t *testing.T) {
 				err := errors.New("handshaker error")
