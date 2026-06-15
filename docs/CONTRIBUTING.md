@@ -306,6 +306,57 @@ task setup-test
 task evg-test-versioned-api
 ```
 
+### Local CSE Testing with the `cse` Build Tag
+
+The `cse` build tag enables Client-Side Field Level Encryption (CSFLE) and
+Queryable Encryption (QE) tests. These tests require `libmongocrypt`, which is
+normally installed system-wide (e.g. via Homebrew). The workflow below avoids
+that dependency by building `libmongocrypt` from source into a local `install/`
+directory.
+
+#### Prerequisites
+
+- `pkg-config` must be installed (cgo uses it to locate the locally built
+  `libmongocrypt`). On macOS: `brew install pkg-config`.
+- `DRIVERS_TOOLS` must point at a clone of drivers-evergreen-tools.
+
+#### Setup
+
+Source the script so its exports reach your shell. Re-run periodically, as the
+key-vault credentials it loads expire:
+
+```bash
+source etc/setup-cse-dev.sh
+```
+
+This runs `task --force install-libmongocrypt`, downloads a host-platform
+`crypt_shared` library, and exports the environment needed to build and run CSE
+tests against the locally built `libmongocrypt`.
+
+Once sourced, run any CSE test freely. E.g.:
+
+```bash
+go test -tags cse ./internal/integration -run TestClientSideEncryptionProse_1_custom_key_material_test
+```
+
+Running CSE tests also requires exporting various credentials from the drivers
+key vault. These expire, so they must be refreshed periodically, see
+[Local Credential Access](https://github.com/mongodb-labs/drivers-evergreen-tools/tree/master/.evergreen/secrets_handling#local-credential-access)
+in the drivers-evergreen-tools repository.
+
+#### Troubleshooting
+
+If sourcing the script fails while loading KMS secrets with a missing Python
+module (e.g. `ModuleNotFoundError: No module named 'boto3'`), a
+drivers-evergreen-tools virtualenv is stale. DET installs a venv's requirements
+only when it first creates the venv, so a venv created before a dependency was
+added won't have it. `setup-secrets.sh` uses two venvs, so delete both and
+re-source the script; DET will rebuild them from their current requirements:
+
+```bash
+rm -rf "$DRIVERS_TOOLS"/.evergreen/csfle/kmstlsvenv "$DRIVERS_TOOLS"/.evergreen/auth_aws/authawsvenv
+```
+
 ### Load Balancer
 
 To launch the load balancer on MacOS, run the following.
