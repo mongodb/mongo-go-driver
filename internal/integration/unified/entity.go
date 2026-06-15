@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
@@ -657,6 +658,10 @@ func getKmsCredential(kmsDocument bson.Raw, credentialName string, envVar string
 }
 
 func (kp *kmsProviders) UnmarshalBSON(data []byte) error {
+	if !mtest.IsCSFLEEnabled() {
+		return nil
+	}
+
 	if *kp == nil {
 		*kp = make(kmsProviders)
 	}
