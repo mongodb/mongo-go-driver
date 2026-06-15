@@ -32,7 +32,7 @@ func checkGofumpt() {
 	outputPipe(pipe, "gofumpt check failed for:")
 }
 
-// checkLll runs the lll tool on all *_examples_test.go files and exits if any lines are too long.
+// checkLll runs the lll tool on all *_example.*_test.go files and exits if any lines are too long.
 // Use the "github.com/walle/lll" tool to check that all lines in *_examples_test.go files are
 // wrapped at 80 characters to keep them readable when rendered on https://pkg.go.dev.
 // Ignore long lines that are comments containing URI-like strings and testable example output
@@ -44,7 +44,7 @@ func checkGofumpt() {
 //	// Output: {"myint": {"$numberLong":"1"},"int32": {"$numberLong":"1"},"int64": {"$numberLong":"1"}}
 func checkLll() {
 	requireTool("lll", "go install github.com/walle/lll@latest")
-	pipe := script.Exec(`find . -type f -name "*_examples_test.go"`).
+	pipe := script.Exec(`find . -type f -regex ".*_example.*_test\.go"`).
 		Exec(`lll -w 4 -l 80 -e '^\s*\/\/(.+:\/\/| Output:)' --files`)
 	outputPipe(pipe, "lll check failed for:")
 }
