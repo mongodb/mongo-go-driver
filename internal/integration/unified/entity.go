@@ -44,8 +44,6 @@ var (
 
 const defaultLocalKeyBase64 = "Mng0NCt4ZHVUYUJCa1kxNkVyNUR1QURhZ2h2UzR2d2RrZzh0cFBwM3R6NmdWMDFBMUN3YkQ5aXRRMkhGRGdQV09wOGVNYUMxT2k3NjZKelhaQmRCZGJkTXVyZG9uSjFk"
 
-type kmsProviders map[string]map[string]any
-
 type AutoEncryptOpts struct {
 	KmsProviders         kmsProviders             `bson:"kmsProviders"`
 	SchemaMap            map[string]any           `bson:"schemaMap"`
@@ -656,6 +654,8 @@ func getKmsCredential(kmsDocument bson.Raw, credentialName string, envVar string
 	}
 	return nil, fmt.Errorf("unable to get environment value for %v. Please set the CSFLE environment variable: %v", credentialName, envVar)
 }
+
+type kmsProviders map[string]map[string]any
 
 func (kp *kmsProviders) UnmarshalBSON(data []byte) error {
 	if !mtest.IsCSFLEEnabled() {
