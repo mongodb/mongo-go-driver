@@ -8,9 +8,9 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
-	"strings"
 
 	"github.com/bitfield/script"
 )
@@ -27,14 +27,9 @@ func requireTool(toolName, installCmd string) {
 // checkGofumpt runs gofumpt on all packages in the repo and exits if any
 // files are not formatted.
 func checkGofumpt() {
-	output, err := script.Exec("gofumpt -l .").String()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "gofumpt execution failed:", err)
-		os.Exit(1)
-	}
-	if strings.TrimSpace(output) != "" {
-		failWithOutput("gofumpt check failed for:", output)
-	}
+	requireTool("gofumpt", "go install mvdan.cc/gofumpt@latest")
+	pipe := script.Exec("gofumpt -l .")
+	outputPipe(pipe, "gofumpt check failed for:")
 }
 
 // checkLll runs the lll tool on all *_examples_test.go files and exits if any lines are too long.
@@ -48,30 +43,44 @@ func checkGofumpt() {
 //	// (https://www.mongodb.com/docs/manual/core/authentication-mechanisms-enterprise/#security-auth-ldap).
 //	// Output: {"myint": {"$numberLong":"1"},"int32": {"$numberLong":"1"},"int64": {"$numberLong":"1"}}
 func checkLll() {
-	output, err := script.Exec(`find . -type f -name "*_examples_test.go"`).
-		Exec(`lll -w 4 -l 80 -e '^\s*\/\/(.+:\/\/| Output:)' --files`).
-		String()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "lll execution failed:", err)
-		os.Exit(1)
-	}
-	if strings.TrimSpace(output) != "" {
-		failWithOutput("lll check failed for:", output)
-	}
+	requireTool("lll", "go install github.com/walle/lll@latest")
+	pipe := script.Exec(`find . -type f -regex ".*_example.*_test\.go"`).
+		Exec(`lll -w 4 -l 80 -e '^\s*\/\/(.+:\/\/| Output:)' --files`)
+	outputPipe(pipe, "lll check failed for:")
 }
 
-func failWithOutput(header, output string) {
-	fmt.Println(header)
-	script.Echo(output).FilterLine(func(line string) string {
+type writerWithHeader struct {
+	header string
+	w      io.Writer
+}
+
+func (wh *writerWithHeader) Write(p []byte) (n int, err error) {
+	if len(wh.header) > 0 {
+		n, err := wh.w.Write([]byte(wh.header + "\n"))
+		if err != nil {
+			return n, err
+		}
+		wh.header = ""
+	}
+	return wh.w.Write(p)
+}
+
+func outputPipe(pipe *script.Pipe, header string) {
+	out := &writerWithHeader{header: header, w: os.Stdout}
+	pipe.WithStdout(out)
+	n, err := pipe.FilterLine(func(line string) string {
 		return " - " + line
-	}).Stdout()
-	os.Exit(1)
+	}).WithStdout(out).Stdout()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "execution failed:", err)
+		os.Exit(1)
+	}
+	if n > 0 {
+		os.Exit(1)
+	}
 }
 
 func main() {
-	requireTool("gofumpt", "go install mvdan.cc/gofumpt@latest")
-	requireTool("lll", "go install github.com/walle/lll@latest")
-
 	checkGofumpt()
 	checkLll()
 }
