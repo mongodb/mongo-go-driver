@@ -81,9 +81,7 @@ func (co *CountOptionsBuilder) SetHint(h any) *CountOptionsBuilder {
 	return co
 }
 
-// SetLimit sets the value for the Limit field. Specifies the maximum number of documents to count. The
-// default value is 0, which means that there is no limit and all documents matching the filter will be
-// counted.
+// SetLimit sets the value for the Limit field. Specifies the maximum number of documents to count.
 func (co *CountOptionsBuilder) SetLimit(i int64) *CountOptionsBuilder {
 	co.Opts = append(co.Opts, func(opts *CountOptions) error {
 		opts.Limit = &i

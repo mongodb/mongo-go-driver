@@ -14,6 +14,9 @@ import (
 )
 
 // ClientOptions represents all possible options for creating a client session.
+//
+// Deprecated: For internal use only, do not use. May be changed or removed in
+// any release.
 type ClientOptions struct {
 	CausalConsistency     *bool
 	DefaultReadConcern    *readconcern.ReadConcern
@@ -24,6 +27,9 @@ type ClientOptions struct {
 }
 
 // TransactionOptions represents all possible options for starting a transaction in a session.
+//
+// Deprecated: For internal use only, do not use. May be changed or removed in
+// any release.
 type TransactionOptions struct {
 	ReadConcern    *readconcern.ReadConcern
 	WriteConcern   *writeconcern.WriteConcern

@@ -135,6 +135,7 @@ func (coll *Collection) copy() *Collection {
 		readPreference: coll.readPreference,
 		readSelector:   coll.readSelector,
 		writeSelector:  coll.writeSelector,
+		bsonOpts:       coll.bsonOpts,
 		registry:       coll.registry,
 	}
 }
@@ -161,6 +162,10 @@ func (coll *Collection) Clone(opts ...options.Lister[options.CollectionOptions])
 
 	if args.Registry != nil {
 		copyColl.registry = args.Registry
+	}
+
+	if args.BSONOptions != nil {
+		copyColl.bsonOpts = args.BSONOptions
 	}
 
 	copyColl.readSelector = &serverselector.Composite{
