@@ -123,7 +123,7 @@ func (c *Credentials) GetWithContext(ctx context.Context) (Value, error) {
 	// Cannot pass context down to the actual retrieve, because the first
 	// context would cancel the whole group when there is not direct
 	// association of items in the group.
-	resCh := c.sf.DoChan("", func() (interface{}, error) {
+	resCh := c.sf.DoChan("", func() (any, error) {
 		return c.singleRetrieve(&suppressedContext{ctx})
 	})
 	select {
@@ -135,7 +135,7 @@ func (c *Credentials) GetWithContext(ctx context.Context) (Value, error) {
 	}
 }
 
-func (c *Credentials) singleRetrieve(ctx context.Context) (interface{}, error) {
+func (c *Credentials) singleRetrieve(ctx context.Context) (any, error) {
 	c.m.Lock()
 	defer c.m.Unlock()
 
@@ -176,7 +176,7 @@ func (c *Credentials) asyncIsExpired() <-chan Value {
 }
 
 // isExpiredLocked helper method wrapping the definition of expired credentials.
-func (c *Credentials) isExpiredLocked(creds interface{}) bool {
+func (c *Credentials) isExpiredLocked(creds any) bool {
 	return creds == nil || creds.(Value) == Value{} || c.provider.IsExpired()
 }
 

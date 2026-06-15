@@ -2032,7 +2032,7 @@ func TestCollection(t *testing.T) {
 func TestBypassEmptyTsReplacement(t *testing.T) {
 	mt := mtest.New(t, mtest.NewOptions().CreateClient(false).MinServerVersion("5.0"))
 
-	marshalValue := func(val interface{}) bson.RawValue {
+	marshalValue := func(val any) bson.RawValue {
 		t.Helper()
 
 		valType, data, err := bson.MarshalValue(val)
@@ -2085,7 +2085,7 @@ func TestBypassEmptyTsReplacement(t *testing.T) {
 		}
 	})
 	mt.Run("insert many", func(mt *mtest.T) {
-		docs := []interface{}{
+		docs := []any{
 			bson.D{{"x", 42}},
 			bson.D{{"y", "foo"}},
 		}

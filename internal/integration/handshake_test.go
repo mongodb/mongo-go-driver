@@ -1272,7 +1272,7 @@ func TestHandshakeProse_Handshake_Documents(t *testing.T) {
 }
 
 // mustMarshalBSON marshals a value to BSON. It panics if any error occurs.
-func mustMarshalBSON(val interface{}) []byte {
+func mustMarshalBSON(val any) []byte {
 	bytes, err := bson.Marshal(val)
 	if err != nil {
 		panic(err)

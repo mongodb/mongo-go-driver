@@ -80,7 +80,7 @@ func TestRegress(t *testing.T) {
 	n := rv.NumMethod()
 	p := 0
 	if *printgolden {
-		fmt.Printf("var regressGolden = []interface{}{\n")
+		fmt.Printf("var regressGolden = []any{\n")
 	}
 	for i := 0; i < n; i++ {
 		m := rv.Type().Method(i)
@@ -97,7 +97,7 @@ func TestRegress(t *testing.T) {
 			var args []reflect.Value
 			var argstr string
 			if mt.NumIn() == 1 {
-				var x interface{}
+				var x any
 				switch mt.In(0).Kind() {
 				default:
 					t.Fatalf("unexpected argument type for r.%s", m.Name)
@@ -137,7 +137,7 @@ func TestRegress(t *testing.T) {
 				args = append(args, reflect.ValueOf(x))
 			}
 
-			var out interface{}
+			var out any
 			out = mv.Call(args)[0].Interface()
 			if m.Name == "Int" || m.Name == "Intn" {
 				out = int64(out.(int))
@@ -174,7 +174,7 @@ func TestRegress(t *testing.T) {
 	}
 }
 
-var regressGolden = []interface{}{
+var regressGolden = []any{
 	float64(0.6279600685109523),   // ExpFloat64()
 	float64(0.16198826513357806),  // ExpFloat64()
 	float64(0.007880404652650552), // ExpFloat64()

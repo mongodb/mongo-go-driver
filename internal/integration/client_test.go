@@ -869,7 +869,7 @@ func TestClient_BulkWrite_AddCommandFields(t *testing.T) {
 		return opts
 	}
 
-	marshalValue := func(val interface{}) bson.RawValue {
+	marshalValue := func(val any) bson.RawValue {
 		t.Helper()
 
 		valType, data, err := bson.MarshalValue(val)

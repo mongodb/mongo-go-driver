@@ -12,7 +12,7 @@ import (
 )
 
 // getUnexportedField uses reflection and unsafe to read an unexported field
-// named fieldName from a struct pointer v, and returns it as interface{}.
+// named fieldName from a struct pointer v, and returns it as any.
 func getUnexportedField(v any, fieldName string) any {
 	rv := reflect.ValueOf(v)
 	if rv.Kind() != reflect.Ptr || rv.IsNil() {

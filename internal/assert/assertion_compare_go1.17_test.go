@@ -20,8 +20,8 @@ func TestCompare17(t *testing.T) {
 	type customTime time.Time
 	type customBytes []byte
 	for _, currCase := range []struct {
-		less    interface{}
-		greater interface{}
+		less    any
+		greater any
 		cType   string
 	}{
 		{less: time.Now(), greater: time.Now().Add(time.Hour), cType: "time.Time"},
@@ -76,8 +76,8 @@ func TestGreater17(t *testing.T) {
 
 	// Check error report
 	for _, currCase := range []struct {
-		less    interface{}
-		greater interface{}
+		less    any
+		greater any
 		msg     string
 	}{
 		{less: []byte{1, 1}, greater: []byte{1, 2}, msg: `"[1 1]" is not greater than "[1 2]"`},
@@ -107,8 +107,8 @@ func TestGreaterOrEqual17(t *testing.T) {
 
 	// Check error report
 	for _, currCase := range []struct {
-		less    interface{}
-		greater interface{}
+		less    any
+		greater any
 		msg     string
 	}{
 		{less: []byte{1, 1}, greater: []byte{1, 2}, msg: `"[1 1]" is not greater than or equal to "[1 2]"`},
@@ -138,8 +138,8 @@ func TestLess17(t *testing.T) {
 
 	// Check error report
 	for _, currCase := range []struct {
-		less    interface{}
-		greater interface{}
+		less    any
+		greater any
 		msg     string
 	}{
 		{less: []byte{1, 1}, greater: []byte{1, 2}, msg: `"[1 2]" is not less than "[1 1]"`},
@@ -169,8 +169,8 @@ func TestLessOrEqual17(t *testing.T) {
 
 	// Check error report
 	for _, currCase := range []struct {
-		less    interface{}
-		greater interface{}
+		less    any
+		greater any
 		msg     string
 	}{
 		{less: []byte{1, 1}, greater: []byte{1, 2}, msg: `"[1 2]" is not less than or equal to "[1 1]"`},
