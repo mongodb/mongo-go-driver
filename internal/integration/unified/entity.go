@@ -767,6 +767,24 @@ func (kp *kmsProviders) UnmarshalBSON(data []byte) error {
 	return nil
 }
 
+type tlsConfigSetter[T any] interface {
+	SetTLSConfig(map[string]*tls.Config) T
+}
+
+func setKmipTLSConfig[T tlsConfigSetter[T]](bldr T, kmsProviders kmsProviders) (T, error) {
+	if _, ok := kmsProviders["kmip"]; !ok || tlsClientCertificateKeyFile == "" || tlsCAFile == "" {
+		return bldr, nil
+	}
+	cfg, err := options.BuildTLSConfig(map[string]any{
+		"tlsCertificateKeyFile": tlsClientCertificateKeyFile,
+		"tlsCAFile":             tlsCAFile,
+	})
+	if err != nil {
+		return bldr, fmt.Errorf("error constructing tls config: %w", err)
+	}
+	return bldr.SetTLSConfig(map[string]*tls.Config{"kmip": cfg}), nil
+}
+
 func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) error {
 	ceo := entityOptions.ClientEncryptionOpts
 
@@ -780,15 +798,9 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 		SetKeyVaultNamespace(ceo.KeyVaultNamespace).
 		SetKmsProviders(ceo.KmsProviders)
 
-	if _, ok := ceo.KmsProviders["kmip"]; ok && tlsClientCertificateKeyFile != "" && tlsCAFile != "" {
-		cfg, err := options.BuildTLSConfig(map[string]any{
-			"tlsCertificateKeyFile": tlsClientCertificateKeyFile,
-			"tlsCAFile":             tlsCAFile,
-		})
-		if err != nil {
-			return fmt.Errorf("error constructing tls config: %w", err)
-		}
-		opts.SetTLSConfig(map[string]*tls.Config{"kmip": cfg})
+	opts, err := setKmipTLSConfig(opts, ceo.KmsProviders)
+	if err != nil {
+		return err
 	}
 
 	if ceo.KeyExpirationMS != nil {

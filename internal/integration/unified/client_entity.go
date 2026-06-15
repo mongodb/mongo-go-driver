@@ -8,7 +8,6 @@ package unified
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"strings"
 	"sync"
@@ -262,15 +261,9 @@ func createAutoEncryptionOptions(opts AutoEncryptOpts) (*options.AutoEncryptionO
 	aeo.SetBypassQueryAnalysis(opts.BypassQueryAnalysis)
 	aeo.SetKmsProviders(opts.KmsProviders)
 
-	if _, ok := opts.KmsProviders["kmip"]; ok && tlsClientCertificateKeyFile != "" && tlsCAFile != "" {
-		cfg, err := options.BuildTLSConfig(map[string]any{
-			"tlsCertificateKeyFile": tlsClientCertificateKeyFile,
-			"tlsCAFile":             tlsCAFile,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("error constructing tls config: %w", err)
-		}
-		aeo.SetTLSConfig(map[string]*tls.Config{"kmip": cfg})
+	aeo, err := setKmipTLSConfig(aeo, opts.KmsProviders)
+	if err != nil {
+		return nil, err
 	}
 
 	kvns := opts.KeyVaultNameSpace
