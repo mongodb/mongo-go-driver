@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"runtime/debug"
 	"strings"
 	"time"
 	"unicode"
@@ -927,6 +928,43 @@ func ErrorContains(t TestingT, theError error, contains string, msgAndArgs ...in
 	actual := theError.Error()
 	if !strings.Contains(actual, contains) {
 		return Fail(t, fmt.Sprintf("Error %#v does not contain %#v", actual, contains), msgAndArgs...)
+	}
+
+	return true
+}
+
+// PanicTestFunc defines a func that should be passed to the assert.Panics and assert.NotPanics
+// methods, and represents a simple func that takes no arguments, and returns nothing.
+type PanicTestFunc func()
+
+// didPanic returns true if the function passed to it panics. Otherwise, it returns false.
+func didPanic(f PanicTestFunc) (didPanic bool, message interface{}, stack string) {
+	didPanic = true
+
+	defer func() {
+		message = recover()
+		if didPanic {
+			stack = string(debug.Stack())
+		}
+	}()
+
+	// call the target function
+	f()
+	didPanic = false
+
+	return
+}
+
+// NotPanics asserts that the code inside the specified PanicTestFunc does NOT panic.
+//
+//	assert.NotPanics(t, func(){ RemainCalm() })
+func NotPanics(t TestingT, f PanicTestFunc, msgAndArgs ...interface{}) bool {
+	if h, ok := t.(tHelper); ok {
+		h.Helper()
+	}
+
+	if funcDidPanic, panicValue, panickedStack := didPanic(f); funcDidPanic {
+		return Fail(t, fmt.Sprintf("func %#v should not panic\n\tPanic value:\t%v\n\tPanic stack:\t%s", f, panicValue, panickedStack), msgAndArgs...)
 	}
 
 	return true
