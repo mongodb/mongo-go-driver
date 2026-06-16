@@ -65,8 +65,8 @@ func ExampleDecoder_DefaultDocumentM() {
 		panic(err)
 	}
 
-	// Create a Decoder that reads the marshaled BSON document and use it to unmarshal the document
-	// into a City struct.
+	// Create a Decoder that reads the marshaled BSON document and use it to
+	// unmarshal the document into a City struct.
 	decoder := bson.NewDecoder(bson.NewDocumentReader(bytes.NewReader(data)))
 
 	type City struct {
@@ -110,8 +110,8 @@ func ExampleDecoder_DefaultDocumentMap() {
 		panic(err)
 	}
 
-	// Create a Decoder that reads the marshaled BSON document and use it to unmarshal the document
-	// into a City struct.
+	// Create a Decoder that reads the marshaled BSON document and use it to
+	// unmarshal the document into a City struct.
 	decoder := bson.NewDecoder(bson.NewDocumentReader(bytes.NewReader(data)))
 
 	type City struct {
@@ -120,8 +120,8 @@ func ExampleDecoder_DefaultDocumentMap() {
 	}
 
 	// Configure the Decoder to default to decoding BSON documents as a
-	// map[string]any type if the decode destination has no type information. The
-	// Properties field in the City struct will be decoded as map[string]any
+	// map[string]any type if the decode destination has no type information.
+	// The Properties field in the City struct will be decoded as map[string]any
 	// instead of the default "D".
 	decoder.DefaultDocumentMap()
 
@@ -179,7 +179,11 @@ func ExampleDecoder_UseJSONStructTags() {
 func ExampleDecoder_extendedJSON() {
 	// Define an Extended JSON document that contains the name, SKU, and price
 	// (in cents) of a product.
-	data := []byte(`{"name":"Cereal Rounds","sku":"AB12345","price_cents":{"$numberLong":"399"}}`)
+	data := []byte(`{
+		"name": "Cereal Rounds",
+		"sku": "AB12345",
+		"price_cents": {"$numberLong": "399"}
+	}`)
 
 	// Create a Decoder that reads the Extended JSON document and use it to
 	// unmarshal the document into a Product struct.
