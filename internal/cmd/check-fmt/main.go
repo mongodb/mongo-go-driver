@@ -32,9 +32,9 @@ func checkGofumpt() {
 	outputPipe(pipe, "gofumpt check failed for:")
 }
 
-// checkLll runs the lll tool on all *_example.*_test.go files and exits if any lines are too long.
-// Use the "github.com/walle/lll" tool to check that all lines in *_examples_test.go files are
-// wrapped at 80 characters to keep them readable when rendered on https://pkg.go.dev.
+// checkLll uses the "github.com/walle/lll" tool to check that all lines in *_examples_test.go
+// and *_example_test.go files are wrapped at 80 characters to keep them readable when rendered
+// on https://pkg.go.dev.
 // Ignore long lines that are comments containing URI-like strings and testable example output
 // comments like "// Output: ...".
 // E.g ignored lines:
