@@ -657,6 +657,13 @@ func getKmsCredential(kmsDocument bson.Raw, credentialName string, envVar string
 
 type kmsProviders map[string]map[string]any
 
+// Unmarshaling kmsProviders is not necessary for non-CSFLE tests. On master,
+// KMS credentials resolve at entity-creation time, which runs after the
+// runOnRequirements skip gate, so the valid-pass/kmsProviders-* files skip in
+// non-CSFLE builds, which will cause spurious CI failures.
+//
+// At the time of writing this, there is not UTF support for mixed CSE/non-CSE
+// tests.
 func (kp *kmsProviders) UnmarshalBSON(data []byte) error {
 	if !mtest.IsCSFLEEnabled() {
 		return nil
