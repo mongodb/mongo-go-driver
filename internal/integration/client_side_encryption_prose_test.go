@@ -1709,7 +1709,7 @@ func TestClientSideEncryptionProse_12_explicit_encryption(t *testing.T) {
 		// contentionFactor 0 and 10, which is unsatisfiable under the new
 		// enforcement. Skip until the prose test and encrypted-fields contention
 		// config are synced with the DRIVERS-3547 spec update.
-		mt.Skip("skipping pending DRIVERS-3547: QE contention enforcement (SERVER-91887)")
+		mt.Skip("skipping pending GODRIVER-3961: QE contention enforcement (SERVER-91887)")
 
 		encryptedClient, clientEncryption := testSetup()
 		defer clientEncryption.Close(context.Background())
