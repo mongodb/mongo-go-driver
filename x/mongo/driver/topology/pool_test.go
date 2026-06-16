@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"net"
+	"os"
 	"regexp"
 	"sync"
 	"testing"
@@ -1223,6 +1224,17 @@ func TestBackgroundRead(t *testing.T) {
 		close(errsCh) // this line causes a double close if BGReadCallback is ever called.
 	})
 	t.Run("timeout reading message header, successful background read", func(t *testing.T) {
+		if os.Getenv("DOCKER_RUNNING") != "" {
+			// Won't fix (GODRIVER-3559): This test relies on the server goroutine's
+			// time.Sleep(timeout*2) firing strictly after the client's timeout deadline.
+			// The 2x margin assumes negligible delay between TCP connection establishment
+			// (when the server goroutine starts sleeping) and when SetReadDeadline is called.
+			// In Docker, goroutine scheduling jitter can push that gap past 10ms, causing the
+			// server to send data before the client's deadline fires. The test logic cannot
+			// be made robust without replacing time.Sleep with explicit synchronization,
+			// which would change what is being tested.
+			t.Skip("Skipping in Docker: goroutine scheduling jitter makes the 2x timeout margin unreliable.")
+		}
 		errsCh := make(chan []error)
 		var originalCallback func(string, time.Time, time.Time, []error, bool)
 		originalCallback, BGReadCallback = BGReadCallback, newBGReadCallback(errsCh)
@@ -1518,6 +1530,18 @@ func TestPool_PoolMonitor(t *testing.T) {
 
 	t.Run("records durations", func(t *testing.T) {
 		t.Parallel()
+		if os.Getenv("DOCKER_RUNNING") != "" {
+			// Won't fix (GODRIVER-3559): This test requires the TCP listener to be closed by
+			// bootstrapConnections before the second checkOut dials. bootstrapConnections
+			// closes the listener in a goroutine immediately after go run(c), but in Docker,
+			// the goroutine may not be rescheduled within the 10ms custom-dialer sleep,
+			// leaving the listener open when the dial fires. The Linux TCP stack then
+			// completes the 3-way handshake into the accept queue before l.Close() is called,
+			// so net.Dial returns a connected socket and checkOut succeeds instead of
+			// failing. bootstrapConnections is required to expose the listener's closed
+			// signal for a fix.
+			t.Skip("Skipping in Docker: Linux TCP accept-queue race causes second checkOut to succeed.")
+		}
 
 		cleanup := make(chan struct{})
 		defer close(cleanup)
