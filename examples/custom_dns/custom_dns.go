@@ -4,20 +4,20 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package examples
+package main
 
 import (
 	"context"
 	"log"
 	"net"
+	"os"
 	"sync"
-	"testing"
 	"time"
 
 	"github.com/miekg/dns"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 func resolve(ctx context.Context, cache *dnsCache, in *dns.Conn, out *dns.Conn) {
@@ -119,20 +119,16 @@ func NewDialer() dialer {
 	}
 }
 
-func TestCustomDialer(t *testing.T) {
-	client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://testurl:27017").SetDialer(NewDialer()))
+func main() {
+	uri := os.Getenv("MONGODB_URI")
+	client, err := mongo.Connect(options.Client().ApplyURI(uri).SetDialer(NewDialer()))
 	if err != nil {
-		t.Fatalf("error creating client: %v", err)
-	}
-	ctx := context.Background()
-	err = client.Connect(ctx)
-	if err != nil {
-		t.Fatalf("error connecting: %v", err)
+		log.Fatalf("error creating client: %v", err)
 	}
 	defer client.Disconnect(context.Background())
 	coll := client.Database("test").Collection("test")
 	_, err = coll.InsertOne(context.Background(), bson.D{{"text", "text"}})
 	if err != nil {
-		t.Fatalf("error inserting: %v", err)
+		log.Fatalf("error inserting: %v", err)
 	}
 }

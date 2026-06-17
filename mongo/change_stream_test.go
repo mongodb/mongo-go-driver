@@ -25,5 +25,6 @@ func TestChangeStream(t *testing.T) {
 		assert.Nil(t, err, "change stream error: %v", err)
 		err = cs.Close(bgCtx)
 		assert.Nil(t, err, "Close error: %v", err)
+		assert.NotPanics(t, func() { cs.SetBatchSize(2) }, "SetBatchSize should not panic with nil cursor")
 	})
 }

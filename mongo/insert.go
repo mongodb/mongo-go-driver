@@ -115,6 +115,7 @@ func (i *insert) Execute(ctx context.Context) error {
 		Logger:                    i.logger,
 		Name:                      driverutil.InsertOp,
 		Authenticator:             i.authenticator,
+		SendAfterClusterTime:      true,
 	}.Execute(ctx)
 }
 

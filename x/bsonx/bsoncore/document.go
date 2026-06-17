@@ -405,6 +405,9 @@ func (d Document) Validate() error {
 	if int(length) > len(d) {
 		return NewDocumentLengthError(int(length), len(d))
 	}
+	if length < 5 {
+		return ErrInvalidLength
+	}
 	if d[length-1] != 0x00 {
 		return ErrMissingNull
 	}
