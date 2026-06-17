@@ -45,18 +45,19 @@ func (dd *DropDatabase) Execute(ctx context.Context) error {
 	}
 
 	return driver.Operation{
-		CommandFn:      dd.command,
-		Client:         dd.session,
-		Clock:          dd.clock,
-		CommandMonitor: dd.monitor,
-		Crypt:          dd.crypt,
-		Database:       dd.database,
-		Deployment:     dd.deployment,
-		Selector:       dd.selector,
-		WriteConcern:   dd.writeConcern,
-		ServerAPI:      dd.serverAPI,
-		Name:           driverutil.DropDatabaseOp,
-		Authenticator:  dd.authenticator,
+		CommandFn:            dd.command,
+		Client:               dd.session,
+		Clock:                dd.clock,
+		CommandMonitor:       dd.monitor,
+		Crypt:                dd.crypt,
+		Database:             dd.database,
+		Deployment:           dd.deployment,
+		Selector:             dd.selector,
+		WriteConcern:         dd.writeConcern,
+		ServerAPI:            dd.serverAPI,
+		Name:                 driverutil.DropDatabaseOp,
+		Authenticator:        dd.authenticator,
+		SendAfterClusterTime: true,
 	}.Execute(ctx)
 }
 

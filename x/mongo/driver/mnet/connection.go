@@ -79,6 +79,13 @@ type Pinner interface {
 
 // Connection represents a connection to a MongoDB server.
 type Connection struct {
+	// closed is a shadow of the underlying ReadWriteCloser's state. It only
+	// reflects intentional closes performed via Connection.Close(); it does
+	// not catch silent underlying death (network drop, server-side close,
+	// pool eviction, etc.).
+	//
+	// TODO(GODRIVER-3905): remove this field along with Close()/Closed()
+	// once IsAlive() lands on the topology connection.
 	closed uint32
 
 	ReadWriteCloser
@@ -89,6 +96,14 @@ type Connection struct {
 }
 
 // Close closes the connection.
+//
+// TODO(GODRIVER-3905): remove this override. Once GODRIVER-3603 lands
+// the bufio.Reader on topology.connection, the "is this connection
+// still usable?" question (the only reason this override exists, via
+// the Closed flag) will be answered by a new IsAlive method that runs
+// a peek-based liveness probe. Callers then get Close from the embedded
+// ReadWriteCloser directly via interface promotion. See
+// change_stream_deployment.Connection for the consumer that drives this.
 func (c *Connection) Close() error {
 	// Logically mark the connection as closed.
 	atomic.StoreUint32(&c.closed, 1)
@@ -97,6 +112,13 @@ func (c *Connection) Close() error {
 }
 
 // Closed returns true if the connection has been logically closed.
+//
+// TODO(GODRIVER-3905): remove in favor of an IsAlive method on the
+// topology connection. Closed answers "did our code call
+// Connection.Close()?": a strict subset of "is this connection
+// usable?". A bufio.Reader-backed Peek probe with a short read deadline
+// catches the silent-death cases (peer FIN, RST, TLS abort, network
+// drop already noticed by the kernel) and returns the broader answer.
 func (c *Connection) Closed() bool {
 	return atomic.LoadUint32(&c.closed) == 1
 }

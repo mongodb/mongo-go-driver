@@ -142,7 +142,7 @@ func (s *Session) WithTransaction(
 			if expDur > backoffMax {
 				expDur = backoffMax
 			}
-			backoff := expDur * time.Duration(randutil.JitterInt63n(512)) / 512
+			backoff := randutil.JitterDuration(expDur)
 			if time.Since(startTime)+backoff > transTimeout {
 				return nil, timeoutError{Wrapped: err}
 			}

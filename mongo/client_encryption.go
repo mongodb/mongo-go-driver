@@ -457,7 +457,7 @@ func setRewrapManyDataKeyWriteModels(rewrappedDocuments []bsoncore.Document, wri
 
 		idSubtype, idData, ok := id.BinaryOK()
 		if !ok {
-			return fmt.Errorf("expected to assert %q as binary, got type %T", idKey, id)
+			return fmt.Errorf("expected to assert %q as binary, got type %s", idKey, id.Type)
 		}
 		binaryID := bson.Binary{Subtype: idSubtype, Data: idData}
 
