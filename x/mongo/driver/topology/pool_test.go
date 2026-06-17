@@ -1529,7 +1529,6 @@ func TestPool_PoolMonitor(t *testing.T) {
 	t.Parallel()
 
 	t.Run("records durations", func(t *testing.T) {
-		t.Parallel()
 		if os.Getenv("DOCKER_RUNNING") != "" {
 			// Won't fix (GODRIVER-3559): This test requires the TCP listener to be closed by
 			// bootstrapConnections before the second checkOut dials. bootstrapConnections
@@ -1542,6 +1541,7 @@ func TestPool_PoolMonitor(t *testing.T) {
 			// signal for a fix.
 			t.Skip("Skipping in Docker: Linux TCP accept-queue race causes second checkOut to succeed.")
 		}
+		t.Parallel()
 
 		cleanup := make(chan struct{})
 		defer close(cleanup)
