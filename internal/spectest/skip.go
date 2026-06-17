@@ -714,6 +714,8 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/transactions-convenient-api/tests/unified/callback-aborts.json/withTransaction_still_succeeds_if_callback_aborts_and_runs_extra_op",
 		"TestUnifiedSpec/transactions-convenient-api/tests/unified/callback-commits.json/withTransaction_succeeds_if_callback_commits",
 		"TestUnifiedSpec/transactions-convenient-api/tests/unified/callback-commits.json/withTransaction_still_succeeds_if_callback_commits_and_runs_extra_op",
+		"TestUnifiedSpec/transactions-convenient-api/tests/unified/commit.json/withTransaction_commits_after_callback_returns",
+		"TestUnifiedSpec/transactions-convenient-api/tests/unified/commit.json/withTransaction_commits_after_callback_returns_(second_transaction)",
 	},
 
 	"Address CSOT Compliance Issue in Timeout Handling for Cursor Constructors (GODRIVER-3480)": {
