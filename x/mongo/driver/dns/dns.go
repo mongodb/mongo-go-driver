@@ -114,7 +114,7 @@ func validateSRVResult(recordFromSRV, inputHostName string) error {
 	separatedInputDomain := strings.Split(strings.ToLower(inputHostName), ".")
 	separatedRecord := strings.Split(strings.ToLower(recordFromSRV), ".")
 	if l := len(separatedInputDomain); l < 3 && len(separatedRecord) <= l {
-		return fmt.Errorf("server record (%d levels) should have more domain levels than parent URI (%d levels)", l, len(separatedRecord))
+		return fmt.Errorf("server record (%d levels) should have more domain levels than parent URI (%d levels)", len(separatedRecord), l)
 	}
 	if len(separatedRecord) < len(separatedInputDomain) {
 		return errors.New("domain suffix from SRV record not matched input domain")

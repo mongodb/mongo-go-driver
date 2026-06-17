@@ -29,7 +29,7 @@ tasks:
   check-fmt:
     deps: [install-lll, install-gofumpt]
     cmds:
-      - bash etc/check_fmt.sh
+      - go run ./internal/cmd/check-fmt
   check-modules: bash etc/check_modules.sh
   doc: godoc -http=:6060 -index
   fmt:
