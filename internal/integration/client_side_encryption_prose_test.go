@@ -1702,6 +1702,15 @@ func TestClientSideEncryptionProse_12_explicit_encryption(t *testing.T) {
 		assert.Equal(mt, gotValue.StringValue(), valueToEncrypt, "expected %q, got %q", valueToEncrypt, gotValue.StringValue())
 	})
 	mt.Run("case 2: can insert encrypted indexed and find with non-zero contention", func(mt *mtest.T) {
+		// TODO(GODRIVER-3961): The latest server (SERVER-91887) enforces that the
+		// explicit-encryption contentionFactor must match the collection's
+		// configured contention. This test inserts with contentionFactor 10 but
+		// the collection is configured with contention 0, and finds with both
+		// contentionFactor 0 and 10, which is unsatisfiable under the new
+		// enforcement. Skip until the prose test and encrypted-fields contention
+		// config are synced with the DRIVERS-3547 spec update.
+		mt.Skip("skipping pending GODRIVER-3961: QE contention enforcement (SERVER-91887)")
+
 		encryptedClient, clientEncryption := testSetup()
 		defer clientEncryption.Close(context.Background())
 		defer encryptedClient.Disconnect(context.Background())
