@@ -17,6 +17,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/credutil"
 	"go.mongodb.org/mongo-driver/v2/internal/httputil"
 	"go.mongodb.org/mongo-driver/v2/internal/logger"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
@@ -674,7 +675,7 @@ func (c *Client) newMongoCrypt(opts *options.AutoEncryptionOptions) (*mongocrypt
 		KeyExpiration:              opts.KeyExpiration,
 	}
 	if opts.AWSCredentialsProvider != nil {
-		cryptOpts.AWSCredentialsProvider = awsCredentialsProvider{opts.AWSCredentialsProvider}
+		cryptOpts.AWSCredentialsProvider = credutil.AWSOptionsProvider{Provider: opts.AWSCredentialsProvider}
 	}
 	mc, err := mongocrypt.NewMongoCrypt(cryptOpts)
 	if err != nil {

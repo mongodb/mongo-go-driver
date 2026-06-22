@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/event"
-	"go.mongodb.org/mongo-driver/v2/internal/aws/credentials"
+	"go.mongodb.org/mongo-driver/v2/internal/credutil"
 	"go.mongodb.org/mongo-driver/v2/internal/logger"
 	"go.mongodb.org/mongo-driver/v2/internal/optionsutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -127,32 +127,12 @@ func ConvertCreds(credOpts *options.Credential) *driver.Cred {
 	}
 
 	if credOpts.AWSCredentialsProvider != nil {
-		cred.AWSCredentialsProvider = awsCredentialsProvider{
-			provider: credOpts.AWSCredentialsProvider,
+		cred.AWSCredentialsProvider = credutil.AWSOptionsProvider{
+			Provider: credOpts.AWSCredentialsProvider,
 		}
 	}
 
 	return cred
-}
-
-type awsCredentialsProvider struct {
-	provider options.AWSCredentialsProvider
-}
-
-func (p awsCredentialsProvider) Retrieve(ctx context.Context) (credentials.Value, error) {
-	creds, err := p.provider.Retrieve(ctx)
-	if err != nil {
-		return credentials.Value{}, err
-	}
-	return credentials.Value{
-		AccessKeyID:     creds.AccessKeyID,
-		SecretAccessKey: creds.SecretAccessKey,
-		SessionToken:    creds.SessionToken,
-		Source:          creds.Source,
-		CanExpire:       creds.CanExpire,
-		Expires:         creds.Expires,
-		AccountID:       creds.AccountID,
-	}, nil
 }
 
 // NewConfig will translate data from client options into a topology config for

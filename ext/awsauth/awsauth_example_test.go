@@ -20,10 +20,7 @@ func ExampleNewCredentialsProvider() {
 	if err != nil {
 		panic(err)
 	}
-	awsCredentialProvider, err := awsauth.NewCredentialsProvider(cfg.Credentials)
-	if err != nil {
-		panic(err)
-	}
+	awsCredentialProvider := awsauth.NewCredentialsProvider(cfg.Credentials)
 	credential := options.Credential{
 		AuthMechanism:          "MONGODB-AWS",
 		AWSCredentialsProvider: awsCredentialProvider,

@@ -14,7 +14,7 @@ import (
 	"strings"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
-	"go.mongodb.org/mongo-driver/v2/internal/aws/credentials"
+	"go.mongodb.org/mongo-driver/v2/internal/credutil"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
@@ -29,26 +29,6 @@ type ClientEncryption struct {
 	keyVaultClient *Client
 	keyVaultColl   *Collection
 	closed         bool
-}
-
-type awsCredentialsProvider struct {
-	provider options.AWSCredentialsProvider
-}
-
-func (p awsCredentialsProvider) Retrieve(ctx context.Context) (credentials.Value, error) {
-	creds, err := p.provider.Retrieve(ctx)
-	if err != nil {
-		return credentials.Value{}, err
-	}
-	return credentials.Value{
-		AccessKeyID:     creds.AccessKeyID,
-		SecretAccessKey: creds.SecretAccessKey,
-		SessionToken:    creds.SessionToken,
-		Source:          creds.Source,
-		CanExpire:       creds.CanExpire,
-		Expires:         creds.Expires,
-		AccountID:       creds.AccountID,
-	}, nil
 }
 
 // NewClientEncryption creates a new ClientEncryption instance configured with the given options.
@@ -84,7 +64,7 @@ func NewClientEncryption(keyVaultClient *Client, opts ...options.Lister[options.
 		KeyExpiration:          cea.KeyExpiration,
 	}
 	if cea.AWSCredentialsProvider != nil {
-		cryptOpts.AWSCredentialsProvider = awsCredentialsProvider{cea.AWSCredentialsProvider}
+		cryptOpts.AWSCredentialsProvider = credutil.AWSOptionsProvider{Provider: cea.AWSCredentialsProvider}
 	}
 	mc, err := mongocrypt.NewMongoCrypt(cryptOpts)
 	if err != nil {
