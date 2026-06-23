@@ -788,12 +788,6 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/transactions/tests/unified/error-labels.json/add_UnknownTransactionCommitResult_label_to_writeConcernError_MaxTimeMSExpired",
 	},
 
-	// TODO(GODRIVER-3813): Allow keyAltName in encryptedFieldsMap
-	"Allow keyAltName in encryptedFieldsMap": {
-		"TestUnifiedSpec/client-side-encryption/tests/unified/fle2v2-InsertFind-keyAltName.json/Insert_and_find_FLE2_indexed_field",
-		"TestUnifiedSpec/client-side-encryption/tests/unified/fle2v2-InsertFind-keyAltName.json/Create_translates_keyAltName",
-	},
-
 	// GODRIVER-2348(Deprecated): The CSOT specification has deprecated wtimeout
 	// and maxCommitTimeMS.
 	"Deprecated transactions CSOT Options": {
