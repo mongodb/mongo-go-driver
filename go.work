@@ -8,4 +8,5 @@ use (
 	./internal/test/compilecheck
 	./internal/test/goleak
 	./ext/awsauth
+	./ext/awsauth/examples
 )

@@ -15,7 +15,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
-func ExampleNewCredentialsProvider() {
+func Example_defaultConfig() {
 	cfg, err := config.LoadDefaultConfig(context.TODO())
 	if err != nil {
 		panic(err)
@@ -26,7 +26,8 @@ func ExampleNewCredentialsProvider() {
 		AWSCredentialsProvider: awsCredentialProvider,
 	}
 	client, err := mongo.Connect(
-		options.Client().SetAuth(credential))
+		options.Client().SetAuth(credential),
+	)
 	if err != nil {
 		panic(err)
 	}
