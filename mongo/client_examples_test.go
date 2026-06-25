@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -253,9 +254,25 @@ type awsCredentialsProvider struct {
 }
 
 func (a *awsCredentialsProvider) Retrieve(_ context.Context) (
-	options.AWSCredentials, error,
+	struct {
+		AccessKeyID     string
+		SecretAccessKey string
+		SessionToken    string
+		Source          string
+		CanExpire       bool
+		Expires         time.Time
+		AccountID       string
+	}, error,
 ) {
-	return options.AWSCredentials{
+	return struct {
+		AccessKeyID     string
+		SecretAccessKey string
+		SessionToken    string
+		Source          string
+		CanExpire       bool
+		Expires         time.Time
+		AccountID       string
+	}{
 		AccessKeyID:     a.accessKeyID,
 		SecretAccessKey: a.secretAccessKey,
 		SessionToken:    a.sessionToken,

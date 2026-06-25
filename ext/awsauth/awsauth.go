@@ -8,16 +8,18 @@ package awsauth
 
 import (
 	"context"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-
-	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
-
-var _ options.AWSCredentialsProvider = (*CredentialsProvider)(nil)
 
 // CredentialsProvider adapts an AWS SDK v2 CredentialsProvider to the
 // options.AWSCredentialsProvider interface used by the MongoDB Go Driver.
+//
+// CredentialsProvider is expected to implement the options.AWSCredentialsProvider interface:
+//
+// import "go.mongodb.org/mongo-driver/v2/mongo/options"
+// var _ options.AWSCredentialsProvider = (*CredentialsProvider)(nil)
 type CredentialsProvider struct {
 	provider aws.CredentialsProvider
 }
@@ -31,7 +33,32 @@ func NewCredentialsProvider(credentialsProvider aws.CredentialsProvider) *Creden
 }
 
 // Retrieve returns the credentials.
-func (p *CredentialsProvider) Retrieve(ctx context.Context) (options.AWSCredentials, error) {
+func (p *CredentialsProvider) Retrieve(ctx context.Context) (struct {
+	AccessKeyID     string
+	SecretAccessKey string
+	SessionToken    string
+	Source          string
+	CanExpire       bool
+	Expires         time.Time
+	AccountID       string
+}, error,
+) {
 	creds, err := p.provider.Retrieve(ctx)
-	return options.AWSCredentials(creds), err
+	return struct {
+		AccessKeyID     string
+		SecretAccessKey string
+		SessionToken    string
+		Source          string
+		CanExpire       bool
+		Expires         time.Time
+		AccountID       string
+	}{
+		AccessKeyID:     creds.AccessKeyID,
+		SecretAccessKey: creds.SecretAccessKey,
+		SessionToken:    creds.SessionToken,
+		Source:          creds.Source,
+		CanExpire:       creds.CanExpire,
+		Expires:         creds.Expires,
+		AccountID:       creds.AccountID,
+	}, err
 }

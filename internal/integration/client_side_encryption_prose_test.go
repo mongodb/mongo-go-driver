@@ -3126,9 +3126,26 @@ type awsCredentialsProvider struct {
 	cnt int
 }
 
-func (p *awsCredentialsProvider) Retrieve(ctx context.Context) (options.AWSCredentials, error) {
+func (p *awsCredentialsProvider) Retrieve(ctx context.Context) (struct {
+	AccessKeyID     string
+	SecretAccessKey string
+	SessionToken    string
+	Source          string
+	CanExpire       bool
+	Expires         time.Time
+	AccountID       string
+}, error,
+) {
 	p.cnt++
-	return options.AWSCredentials{
+	return struct {
+		AccessKeyID     string
+		SecretAccessKey string
+		SessionToken    string
+		Source          string
+		CanExpire       bool
+		Expires         time.Time
+		AccountID       string
+	}{
 		AccessKeyID:     awsAccessKeyID,
 		SecretAccessKey: awsSecretAccessKey,
 	}, nil
