@@ -143,7 +143,7 @@ type AWSCredentialsProvider interface {
 }
 
 // AWSCredentials represents AWS credentials.
-type AWSCredentials struct {
+type AWSCredentials = struct {
 	AccessKeyID     string
 	SecretAccessKey string
 	SessionToken    string
