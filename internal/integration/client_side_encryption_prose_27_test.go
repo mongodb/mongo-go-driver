@@ -53,21 +53,21 @@ func TestClientSideEncryptionProse_27(t *testing.T) {
 	// names under DRIVERS-3321. The MaxServerVersion guards from the original
 	// tests are preserved.
 	const prose27PreviewSkipReason = "TODO(GODRIVER-3863): preview QE text query types removed in libmongocrypt 1.19.0; pending migration to stable names (DRIVERS-3321)"
-	optsMaxServer8 := mtest.NewOptions().MaxServerVersion("8.99.99")
+	placeholderOpts := mtest.NewOptions()
 
-	mt.RunOpts("case 1: can find a document by prefix", optsMaxServer8, func(mt *mtest.T) {
+	mt.RunOpts("case 1: can find a document by prefix", placeholderOpts, func(mt *mtest.T) {
 		mt.Skip(prose27PreviewSkipReason)
 		runCSEProse27Case1(mt, test)
 	})
-	mt.RunOpts("case 2: find a document by suffix", optsMaxServer8, func(mt *mtest.T) {
+	mt.RunOpts("case 2: find a document by suffix", placeholderOpts, func(mt *mtest.T) {
 		mt.Skip(prose27PreviewSkipReason)
 		runCSEProse27Case2(mt, test)
 	})
-	mt.RunOpts("case 3: assert no document found by prefix", optsMaxServer8, func(mt *mtest.T) {
+	mt.RunOpts("case 3: assert no document found by prefix", placeholderOpts, func(mt *mtest.T) {
 		mt.Skip(prose27PreviewSkipReason)
 		runCSEProse27Case3(mt, test)
 	})
-	mt.RunOpts("case 4: assert no document found by suffix", optsMaxServer8, func(mt *mtest.T) {
+	mt.RunOpts("case 4: assert no document found by suffix", placeholderOpts, func(mt *mtest.T) {
 		mt.Skip(prose27PreviewSkipReason)
 		runCSEProse27Case4(mt, test)
 	})
@@ -79,12 +79,12 @@ func TestClientSideEncryptionProse_27(t *testing.T) {
 		mt.Skip(prose27PreviewSkipReason)
 		runCSEProse27Case6(mt, test)
 	})
-	mt.RunOpts("case 7: assert contentionFactor is required", optsMaxServer8, func(mt *mtest.T) {
+	mt.RunOpts("case 7: assert contentionFactor is required", placeholderOpts, func(mt *mtest.T) {
 		mt.Skip(prose27PreviewSkipReason)
 		runCSEProse27Case7(mt, test)
 	})
 
-	optsFor9_0 := newQEOpts().MinServerVersion("9.0")
+	optsFor9_0 := newQEOpts().MinServerVersion("9.0").MinLibmongocryptVersion("1.19.0")
 
 	mt.RunOpts("case 8: can find an auto-encrypted case indexed document by prefix and suffix", optsFor9_0, func(mt *mtest.T) {
 		runCSEProse27Case8(mt, test)
