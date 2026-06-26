@@ -47,12 +47,11 @@ func TestClientSideEncryptionProse_27(t *testing.T) {
 
 	test := setupCSEProse27(mt)
 
-	// Cases 1-7 exercise the preview QE text query types removed in
-	// libmongocrypt 1.19.0. They are migrated to this pattern but remain skipped
-	// (via prose27PreviewSkipReason) until updated to the stable names under
-	// DRIVERS-3321. The MaxServerVersion guards from the original tests are
-	// preserved. TODO(GODRIVER-3863).
-	//
+	// TODO(GODRIVER-3863): Cases 1-7 exercise the preview QE text query types
+	// removed in libmongocrypt 1.19.0. They are migrated to this pattern but
+	// remain skipped (via prose27PreviewSkipReason) until updated to the stable
+	// names under DRIVERS-3321. The MaxServerVersion guards from the original
+	// tests are preserved.
 	const prose27PreviewSkipReason = "TODO(GODRIVER-3863): preview QE text query types removed in libmongocrypt 1.19.0; pending migration to stable names (DRIVERS-3321)"
 	optsMaxServer8 := mtest.NewOptions().MaxServerVersion("8.99.99")
 
@@ -106,13 +105,15 @@ func TestClientSideEncryptionProse_27(t *testing.T) {
 // =============================================================================
 
 // runCSEProse27Case1 ensures that we can find a document by prefix.
-//
-// Preview query types; skipped pending DRIVERS-3321 (see prose27PreviewSkipReason).
 func runCSEProse27Case1(mt *mtest.T, test *cseProse27Test) {
 	mt.Helper()
 
+	// Create the preview prefix-suffix/substring collections and seed the
+	// encrypted "foobarbaz" document.
 	seedCSEProse27PreviewCollections(mt, test)
 
+	// Step 1. Use clientEncryption.encrypt() to encrypt "foo" with prefix query
+	// type.
 	foo := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "foo")}
 	eo := options.Encrypt().
 		SetKeyID(test.key1ID).
@@ -127,6 +128,10 @@ func runCSEProse27Case1(mt *mtest.T, test *cseProse27Test) {
 	payload, err := test.clientEncryption.Encrypt(context.Background(), foo, eo)
 	require.Nil(mt, err, "error in Encrypt: %v", err)
 
+	// Step 2. Use explicitEncryptedClient to run a "find" operation on the
+	// db.prefix-suffix collection with the following filter:
+	//
+	// { $expr: { $encStrStartsWith: {input: '$encryptedText', prefix: <encrypted 'foo'>} } }
 	coll := test.explicitEncryptClient.Database("db").Collection("prefix-suffix")
 	res := coll.FindOne(context.Background(), bson.D{{Key: "$expr", Value: bson.D{
 		{Key: "$encStrStartsWith", Value: bson.D{
@@ -145,13 +150,15 @@ func runCSEProse27Case1(mt *mtest.T, test *cseProse27Test) {
 }
 
 // runCSEProse27Case2 ensures that we can find a document by suffix.
-//
-// Preview query types; skipped pending DRIVERS-3321 (see prose27PreviewSkipReason).
 func runCSEProse27Case2(mt *mtest.T, test *cseProse27Test) {
 	mt.Helper()
 
+	// Create the preview prefix-suffix/substring collections and seed the
+	// encrypted "foobarbaz" document.
 	seedCSEProse27PreviewCollections(mt, test)
 
+	// Step 1. Use clientEncryption.encrypt() to encrypt "baz" with suffix query
+	// type.
 	baz := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "baz")}
 	eo := options.Encrypt().
 		SetKeyID(test.key1ID).
@@ -166,6 +173,10 @@ func runCSEProse27Case2(mt *mtest.T, test *cseProse27Test) {
 	payload, err := test.clientEncryption.Encrypt(context.Background(), baz, eo)
 	require.Nil(mt, err, "error in Encrypt: %v", err)
 
+	// Step 2. Use explicitEncryptedClient to run a "find" operation on the
+	// db.prefix-suffix collection with the following filter:
+	//
+	// { $expr: { $encStrEndsWith: {input: '$encryptedText', suffix: <encrypted 'baz'>} } }
 	coll := test.explicitEncryptClient.Database("db").Collection("prefix-suffix")
 	res := coll.FindOne(context.Background(), bson.D{{Key: "$expr", Value: bson.D{
 		{Key: "$encStrEndsWith", Value: bson.D{
@@ -184,13 +195,15 @@ func runCSEProse27Case2(mt *mtest.T, test *cseProse27Test) {
 }
 
 // runCSEProse27Case3 asserts that no document is found by prefix.
-//
-// Preview query types; skipped pending DRIVERS-3321 (see prose27PreviewSkipReason).
 func runCSEProse27Case3(mt *mtest.T, test *cseProse27Test) {
 	mt.Helper()
 
+	// Create the preview prefix-suffix/substring collections and seed the
+	// encrypted "foobarbaz" document.
 	seedCSEProse27PreviewCollections(mt, test)
 
+	// Step 1. Use clientEncryption.encrypt() to encrypt "baz" with prefix query
+	// type.
 	baz := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "baz")}
 	eo := options.Encrypt().
 		SetKeyID(test.key1ID).
@@ -205,6 +218,12 @@ func runCSEProse27Case3(mt *mtest.T, test *cseProse27Test) {
 	payload, err := test.clientEncryption.Encrypt(context.Background(), baz, eo)
 	require.Nil(mt, err, "error in Encrypt: %v", err)
 
+	// Step 2. Use explicitEncryptedClient to run a "find" operation on the
+	// db.prefix-suffix collection with the following filter:
+	//
+	// { $expr: { $encStrStartsWith: {input: '$encryptedText', prefix: <encrypted 'baz'>} } }
+	//
+	// Assert that no documents are returned.
 	coll := test.explicitEncryptClient.Database("db").Collection("prefix-suffix")
 	_, err = coll.FindOne(context.Background(), bson.D{{Key: "$expr", Value: bson.D{
 		{Key: "$encStrStartsWith", Value: bson.D{
@@ -216,13 +235,15 @@ func runCSEProse27Case3(mt *mtest.T, test *cseProse27Test) {
 }
 
 // runCSEProse27Case4 asserts that no document is found by suffix.
-//
-// Preview query types; skipped pending DRIVERS-3321 (see prose27PreviewSkipReason).
 func runCSEProse27Case4(mt *mtest.T, test *cseProse27Test) {
 	mt.Helper()
 
+	// Create the preview prefix-suffix/substring collections and seed the
+	// encrypted "foobarbaz" document.
 	seedCSEProse27PreviewCollections(mt, test)
 
+	// Step 1. Use clientEncryption.encrypt() to encrypt "foo" with suffix query
+	// type.
 	foo := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "foo")}
 	eo := options.Encrypt().
 		SetKeyID(test.key1ID).
@@ -237,6 +258,12 @@ func runCSEProse27Case4(mt *mtest.T, test *cseProse27Test) {
 	payload, err := test.clientEncryption.Encrypt(context.Background(), foo, eo)
 	require.Nil(mt, err, "error in Encrypt: %v", err)
 
+	// Step 2. Use explicitEncryptedClient to run a "find" operation on the
+	// db.prefix-suffix collection with the following filter:
+	//
+	// { $expr: { $encStrEndsWith: {input: '$encryptedText', suffix: <encrypted 'foo'>} } }
+	//
+	// Assert that no documents are returned.
 	coll := test.explicitEncryptClient.Database("db").Collection("prefix-suffix")
 	_, err = coll.FindOne(context.Background(), bson.D{{Key: "$expr", Value: bson.D{
 		{Key: "$encStrEndsWith", Value: bson.D{
@@ -248,13 +275,15 @@ func runCSEProse27Case4(mt *mtest.T, test *cseProse27Test) {
 }
 
 // runCSEProse27Case5 ensures that we can find a document by substring.
-//
-// Preview query types; skipped pending DRIVERS-3321 (see prose27PreviewSkipReason).
 func runCSEProse27Case5(mt *mtest.T, test *cseProse27Test) {
 	mt.Helper()
 
+	// Create the preview prefix-suffix/substring collections and seed the
+	// encrypted "foobarbaz" document.
 	seedCSEProse27PreviewCollections(mt, test)
 
+	// Step 1. Use clientEncryption.encrypt() to encrypt "bar" with substring
+	// query type.
 	bar := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "bar")}
 	eo := options.Encrypt().
 		SetKeyID(test.key1ID).
@@ -269,6 +298,10 @@ func runCSEProse27Case5(mt *mtest.T, test *cseProse27Test) {
 	payload, err := test.clientEncryption.Encrypt(context.Background(), bar, eo)
 	require.Nil(mt, err, "error in Encrypt: %v", err)
 
+	// Step 2. Use explicitEncryptedClient to run a "find" operation on the
+	// db.substring collection with the following filter:
+	//
+	// { $expr: { $encStrContains: {input: '$encryptedText', substring: <encrypted 'bar'>} } }
 	coll := test.explicitEncryptClient.Database("db").Collection("substring")
 	res := coll.FindOne(context.Background(), bson.D{{Key: "$expr", Value: bson.D{
 		{Key: "$encStrContains", Value: bson.D{
@@ -287,13 +320,15 @@ func runCSEProse27Case5(mt *mtest.T, test *cseProse27Test) {
 }
 
 // runCSEProse27Case6 asserts that no document is found by substring.
-//
-// Preview query types; skipped pending DRIVERS-3321 (see prose27PreviewSkipReason).
 func runCSEProse27Case6(mt *mtest.T, test *cseProse27Test) {
 	mt.Helper()
 
+	// Create the preview prefix-suffix/substring collections and seed the
+	// encrypted "foobarbaz" document.
 	seedCSEProse27PreviewCollections(mt, test)
 
+	// Step 1. Use clientEncryption.encrypt() to encrypt "qux" with substring
+	// query type.
 	qux := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "qux")}
 	eo := options.Encrypt().
 		SetKeyID(test.key1ID).
@@ -308,6 +343,12 @@ func runCSEProse27Case6(mt *mtest.T, test *cseProse27Test) {
 	payload, err := test.clientEncryption.Encrypt(context.Background(), qux, eo)
 	require.Nil(mt, err, "error in Encrypt: %v", err)
 
+	// Step 2. Use explicitEncryptedClient to run a "find" operation on the
+	// db.substring collection with the following filter:
+	//
+	// { $expr: { $encStrContains: {input: '$encryptedText', substring: <encrypted 'qux'>} } }
+	//
+	// Assert that no documents are returned.
 	coll := test.explicitEncryptClient.Database("db").Collection("substring")
 	_, err = coll.FindOne(context.Background(), bson.D{{Key: "$expr", Value: bson.D{
 		{Key: "$encStrContains", Value: bson.D{
@@ -319,13 +360,16 @@ func runCSEProse27Case6(mt *mtest.T, test *cseProse27Test) {
 }
 
 // runCSEProse27Case7 asserts that a contention factor is required.
-//
-// Preview query types; skipped pending DRIVERS-3321 (see prose27PreviewSkipReason).
 func runCSEProse27Case7(mt *mtest.T, test *cseProse27Test) {
 	mt.Helper()
 
+	// Create the preview prefix-suffix/substring collections and seed the
+	// encrypted "foobarbaz" document.
 	seedCSEProse27PreviewCollections(mt, test)
 
+	// Step 1. Use clientEncryption.encrypt() to encrypt "baz" with prefix query
+	// type but no contention factor, and expect an error that a contention
+	// factor is required.
 	baz := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "baz")}
 	eo := options.Encrypt().
 		SetKeyID(test.key1ID).
