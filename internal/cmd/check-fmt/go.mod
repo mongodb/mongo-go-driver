@@ -1,6 +1,6 @@
 module go.mongodb.org/mongo-driver/v2/internal/cmd/check-fmt
 
-go 1.25.0
+go 1.26.0
 
 require github.com/bitfield/script v0.24.3
 
