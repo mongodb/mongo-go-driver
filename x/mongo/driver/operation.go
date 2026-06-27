@@ -506,6 +506,14 @@ func (op Operation) Validate() error {
 	return nil
 }
 
+// attemptResult is the output of a single round-trip attempt.
+type attemptResult struct {
+	res              bsoncore.Document
+	moreToCome       bool
+	processedBatches int
+	desc             description.SelectedServer
+}
+
 var memoryPool = sync.Pool{
 	New: func() any {
 		// Start with 1kb buffers.
@@ -513,6 +521,111 @@ var memoryPool = sync.Pool{
 		// Return a pointer as the static analysis tool suggests.
 		return &b
 	},
+}
+
+// executeAttempt executes a single round-trip on the given server and connection.
+// It builds the wire message, publishes APM events, optionally compresses, checks the
+// CSOT deadline, and performs the network round trip. The returned *[]byte is the wire
+// message buffer to use in subsequent iterations; it may differ from wm when compression
+// swaps in a new pool buffer.
+func (op Operation) executeAttempt(
+	ctx context.Context,
+	srvr Server,
+	conn *mnet.Connection,
+	requestID int32,
+	wm *[]byte,
+) (attemptResult, *[]byte, error) {
+	maxTimeMS, err := op.calculateMaxTimeMS(ctx, srvr.RTTMonitor().Min(), srvr.RTTMonitor().Stats())
+	if err != nil {
+		return attemptResult{}, wm, err
+	}
+	if conn.Description().IsCryptd {
+		maxTimeMS = 0
+	}
+
+	desc := description.SelectedServer{
+		Server: conn.Description(),
+		Kind:   op.Deployment.Kind(),
+	}
+
+	var moreToCome bool
+	var startedInfo startedInformation
+	*wm, moreToCome, startedInfo, err = op.createWireMessage(ctx, maxTimeMS, (*wm)[:0], desc, conn, requestID)
+	if err != nil {
+		return attemptResult{}, wm, err
+	}
+
+	startedInfo.connID = conn.ID()
+	startedInfo.driverConnectionID = conn.DriverConnectionID()
+	startedInfo.cmdName = op.getCommandName(startedInfo.cmd)
+	// If the command name does not match the operation name, update
+	// the operation name as a sanity check. It's more correct to
+	// be aligned with the data passed to the server via the
+	// wire message.
+	if startedInfo.cmdName != op.Name {
+		op.Name = startedInfo.cmdName
+	}
+	startedInfo.redacted = op.redactCommand(startedInfo.cmdName, startedInfo.cmd)
+	startedInfo.serviceID = conn.Description().ServiceID
+	startedInfo.serverConnID = conn.ServerConnectionID()
+	startedInfo.serverAddress = conn.Description().Addr
+
+	op.publishStartedEvent(ctx, startedInfo)
+
+	if compressor := conn.Compressor; compressor != nil && op.canCompress(startedInfo.cmdName) {
+		b := memoryPool.Get().(*[]byte)
+		*b, err = compressor.CompressWireMessage(*wm, (*b)[:0])
+		memoryPool.Put(wm)
+		wm = b
+		if err != nil {
+			return attemptResult{}, wm, err
+		}
+	}
+
+	finishedInfo := finishedInformation{
+		cmdName:            startedInfo.cmdName,
+		driverConnectionID: startedInfo.driverConnectionID,
+		requestID:          startedInfo.requestID,
+		connID:             startedInfo.connID,
+		serverConnID:       startedInfo.serverConnID,
+		redacted:           startedInfo.redacted,
+		serviceID:          startedInfo.serviceID,
+		serverAddress:      desc.Addr,
+	}
+
+	startedTime := time.Now()
+
+	var res bsoncore.Document
+	if ctx.Err() != nil {
+		err = ctx.Err()
+	} else if deadline, ok := ctx.Deadline(); ok {
+		if time.Now().Add(srvr.RTTMonitor().Min()).After(deadline) {
+			err = fmt.Errorf("%w: %v", ErrDeadlineWouldBeExceeded, srvr.RTTMonitor().Stats())
+		}
+	}
+
+	if err == nil {
+		roundTrip := op.roundTrip
+		if moreToCome {
+			roundTrip = op.moreToComeRoundTrip
+		}
+		res, err = roundTrip(ctx, conn, *wm)
+		if ep, ok := srvr.(ErrorProcessor); ok {
+			_ = ep.ProcessError(err, conn)
+		}
+	}
+
+	finishedInfo.response = res
+	finishedInfo.cmdErr = err
+	finishedInfo.duration = time.Since(startedTime)
+	op.publishFinishedEvent(ctx, finishedInfo)
+
+	return attemptResult{
+		res:              res,
+		moreToCome:       moreToCome,
+		processedBatches: startedInfo.processedBatches,
+		desc:             desc,
+	}, wm, err
 }
 
 // Execute runs this operation.
@@ -563,6 +676,7 @@ func (op Operation) Execute(ctx context.Context) error {
 	var srvr Server
 	var conn *mnet.Connection
 	var res bsoncore.Document
+	var ar attemptResult
 	var operationErr WriteCommandError
 	var prevErr error
 	var prevIndefiniteErr error
@@ -744,105 +858,10 @@ func (op Operation) Execute(ctx context.Context) error {
 			first = false
 		}
 
-		// Calculate maxTimeMS value to potentially be appended to the wire message.
-		maxTimeMS, err := op.calculateMaxTimeMS(ctx, srvr.RTTMonitor().Min(), srvr.RTTMonitor().Stats())
-		if err != nil {
-			return err
-		}
-
-		// Set maxTimeMS to 0 if connected to mongocryptd to avoid appending the field. The final
-		// encrypted command may contain multiple maxTimeMS fields otherwise.
-		if conn.Description().IsCryptd {
-			maxTimeMS = 0
-		}
-
-		desc := description.SelectedServer{
-			Server: conn.Description(),
-			Kind:   op.Deployment.Kind(),
-		}
-
-		var moreToCome bool
-		var startedInfo startedInformation
-		*wm, moreToCome, startedInfo, err = op.createWireMessage(ctx, maxTimeMS, (*wm)[:0], desc, conn, requestID)
-		if err != nil {
-			return err
-		}
+		ar, wm, err = op.executeAttempt(ctx, srvr, conn, requestID, wm)
+		res = ar.res
 		retryEnabled := op.RetryMode != nil && op.RetryMode.Enabled()
-
-		// set extra data and send event if possible
-		startedInfo.connID = conn.ID()
-		startedInfo.driverConnectionID = conn.DriverConnectionID()
-		startedInfo.cmdName = op.getCommandName(startedInfo.cmd)
-
-		// If the command name does not match the operation name, update
-		// the operation name as a sanity check. It's more correct to
-		// be aligned with the data passed to the server via the
-		// wire message.
-		if startedInfo.cmdName != op.Name {
-			op.Name = startedInfo.cmdName
-		}
-
-		startedInfo.redacted = op.redactCommand(startedInfo.cmdName, startedInfo.cmd)
-		startedInfo.serviceID = conn.Description().ServiceID
-		startedInfo.serverConnID = conn.ServerConnectionID()
-		startedInfo.serverAddress = conn.Description().Addr
-
-		op.publishStartedEvent(ctx, startedInfo)
-
-		// compress wiremessage if allowed
-		if compressor := conn.Compressor; compressor != nil && op.canCompress(startedInfo.cmdName) {
-			b := memoryPool.Get().(*[]byte)
-			*b, err = compressor.CompressWireMessage(*wm, (*b)[:0])
-			memoryPool.Put(wm)
-			wm = b
-			if err != nil {
-				return err
-			}
-		}
-
-		finishedInfo := finishedInformation{
-			cmdName:            startedInfo.cmdName,
-			driverConnectionID: startedInfo.driverConnectionID,
-			requestID:          startedInfo.requestID,
-			connID:             startedInfo.connID,
-			serverConnID:       startedInfo.serverConnID,
-			redacted:           startedInfo.redacted,
-			serviceID:          startedInfo.serviceID,
-			serverAddress:      desc.Addr,
-		}
-
-		startedTime := time.Now()
-
-		// Check for possible context error. If no context error, check if there's enough time to perform a
-		// round trip before the Context deadline. If ctx is a Timeout Context, use the 90th percentile RTT
-		// as a threshold. Otherwise, use the minimum observed RTT.
-		if ctx.Err() != nil {
-			err = ctx.Err()
-		} else if deadline, ok := ctx.Deadline(); ok {
-			if time.Now().Add(srvr.RTTMonitor().Min()).After(deadline) {
-				err = fmt.Errorf("%w: %v", ErrDeadlineWouldBeExceeded, srvr.RTTMonitor().Stats())
-			}
-		}
-
-		if err == nil {
-			// roundtrip using either the full roundTripper or a special one for when the moreToCome
-			// flag is set
-			roundTrip := op.roundTrip
-			if moreToCome {
-				roundTrip = op.moreToComeRoundTrip
-			}
-			res, err = roundTrip(ctx, conn, *wm)
-
-			if ep, ok := srvr.(ErrorProcessor); ok {
-				_ = ep.ProcessError(err, conn)
-			}
-		}
-
-		finishedInfo.response = res
-		finishedInfo.cmdErr = err
-		finishedInfo.duration = time.Since(startedTime)
-
-		op.publishFinishedEvent(ctx, finishedInfo)
+		desc := ar.desc
 
 		// prevIndefiniteErrorIsSet is "true" if the "err" variable has been set to the "prevIndefiniteErr" in
 		// a case in the switch statement below.
@@ -1053,7 +1072,7 @@ func (op Operation) Execute(ctx context.Context) error {
 			}
 			return tt
 		case nil:
-			if moreToCome {
+			if ar.moreToCome {
 				return ErrUnacknowledgedWrite
 			}
 			if op.ProcessResponseFn != nil {
@@ -1086,7 +1105,7 @@ func (op Operation) Execute(ctx context.Context) error {
 		// If we're batching and there are batches remaining, advance to the next batch. This isn't
 		// a retry, so increment the transaction number, reset the retries number, and don't set
 		// server or connection to nil to continue using the same connection.
-		if op.Batches != nil && op.Batches.Size() > startedInfo.processedBatches {
+		if op.Batches != nil && op.Batches.Size() > ar.processedBatches {
 			// If retries are supported for the current operation on the current server description,
 			// the session isn't nil, and client retries are enabled, increment the txn number.
 			// Calling IncrementTxnNumber() for server descriptions or topologies that do not
@@ -1103,8 +1122,8 @@ func (op Operation) Execute(ctx context.Context) error {
 			isOverloadedError = false
 			expDur = 0
 			attempt = 0
-			currIndex += startedInfo.processedBatches
-			op.Batches.AdvanceBatches(startedInfo.processedBatches)
+			currIndex += ar.processedBatches
+			op.Batches.AdvanceBatches(ar.processedBatches)
 			continue
 		}
 		break
