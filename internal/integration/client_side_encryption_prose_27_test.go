@@ -120,7 +120,7 @@ func runCSEProse27Case1(mt *mtest.T, test *cseProse27Test) {
 		SetAlgorithm("TextPreview").
 		SetQueryType("prefixPreview").
 		SetContentionFactor(0).
-		SetTextOptions(options.Text().
+		SetStringOptions(options.String().
 			SetCaseSensitive(true).
 			SetDiacriticSensitive(true).
 			SetPrefix(options.PrefixOptions{StrMaxQueryLength: 10, StrMinQueryLength: 2}))
@@ -165,7 +165,7 @@ func runCSEProse27Case2(mt *mtest.T, test *cseProse27Test) {
 		SetAlgorithm("TextPreview").
 		SetQueryType("suffixPreview").
 		SetContentionFactor(0).
-		SetTextOptions(options.Text().
+		SetStringOptions(options.String().
 			SetCaseSensitive(true).
 			SetDiacriticSensitive(true).
 			SetSuffix(options.SuffixOptions{StrMaxQueryLength: 10, StrMinQueryLength: 2}))
@@ -210,7 +210,7 @@ func runCSEProse27Case3(mt *mtest.T, test *cseProse27Test) {
 		SetAlgorithm("TextPreview").
 		SetQueryType("prefixPreview").
 		SetContentionFactor(0).
-		SetTextOptions(options.Text().
+		SetStringOptions(options.String().
 			SetCaseSensitive(true).
 			SetDiacriticSensitive(true).
 			SetPrefix(options.PrefixOptions{StrMaxQueryLength: 10, StrMinQueryLength: 2}))
@@ -250,7 +250,7 @@ func runCSEProse27Case4(mt *mtest.T, test *cseProse27Test) {
 		SetAlgorithm("TextPreview").
 		SetQueryType("suffixPreview").
 		SetContentionFactor(0).
-		SetTextOptions(options.Text().
+		SetStringOptions(options.String().
 			SetCaseSensitive(true).
 			SetDiacriticSensitive(true).
 			SetSuffix(options.SuffixOptions{StrMaxQueryLength: 10, StrMinQueryLength: 2}))
@@ -290,7 +290,7 @@ func runCSEProse27Case5(mt *mtest.T, test *cseProse27Test) {
 		SetAlgorithm("TextPreview").
 		SetQueryType("substringPreview").
 		SetContentionFactor(0).
-		SetTextOptions(options.Text().
+		SetStringOptions(options.String().
 			SetCaseSensitive(true).
 			SetDiacriticSensitive(true).
 			SetSubstring(options.SubstringOptions{StrMaxLength: 10, StrMaxQueryLength: 10, StrMinQueryLength: 2}))
@@ -335,7 +335,7 @@ func runCSEProse27Case6(mt *mtest.T, test *cseProse27Test) {
 		SetAlgorithm("TextPreview").
 		SetQueryType("substringPreview").
 		SetContentionFactor(0).
-		SetTextOptions(options.Text().
+		SetStringOptions(options.String().
 			SetCaseSensitive(true).
 			SetDiacriticSensitive(true).
 			SetSubstring(options.SubstringOptions{StrMaxLength: 10, StrMaxQueryLength: 10, StrMinQueryLength: 2}))
@@ -375,7 +375,7 @@ func runCSEProse27Case7(mt *mtest.T, test *cseProse27Test) {
 		SetKeyID(test.key1ID).
 		SetAlgorithm("TextPreview").
 		SetQueryType("prefixPreview").
-		SetTextOptions(options.Text().
+		SetStringOptions(options.String().
 			SetCaseSensitive(true).
 			SetDiacriticSensitive(true).
 			SetPrefix(options.PrefixOptions{StrMaxQueryLength: 10, StrMinQueryLength: 2}))
@@ -407,7 +407,7 @@ func runCSEProse27Case8(mt *mtest.T, test *cseProse27Test) {
 		SetAlgorithm("String").
 		SetQueryType("prefix").
 		SetContentionFactor(0).
-		SetTextOptions(options.Text().
+		SetStringOptions(options.String().
 			SetCaseSensitive(false).
 			SetDiacriticSensitive(false).
 			SetPrefix(options.PrefixOptions{StrMinQueryLength: 2, StrMaxQueryLength: 10}))
@@ -444,7 +444,7 @@ func runCSEProse27Case8(mt *mtest.T, test *cseProse27Test) {
 		SetAlgorithm("String").
 		SetQueryType("suffix").
 		SetContentionFactor(0).
-		SetTextOptions(options.Text().
+		SetStringOptions(options.String().
 			SetCaseSensitive(false).
 			SetDiacriticSensitive(false).
 			SetSuffix(options.SuffixOptions{StrMinQueryLength: 2, StrMaxQueryLength: 10}))
@@ -496,7 +496,7 @@ func runCSEProse27Case9(mt *mtest.T, test *cseProse27Test) {
 		SetAlgorithm("String").
 		SetQueryType("prefix").
 		SetContentionFactor(0).
-		SetTextOptions(options.Text().
+		SetStringOptions(options.String().
 			SetCaseSensitive(false).
 			SetDiacriticSensitive(false).
 			SetPrefix(options.PrefixOptions{StrMinQueryLength: 2, StrMaxQueryLength: 10}))
@@ -535,7 +535,7 @@ func runCSEProse27Case9(mt *mtest.T, test *cseProse27Test) {
 		SetAlgorithm("String").
 		SetQueryType("suffix").
 		SetContentionFactor(0).
-		SetTextOptions(options.Text().
+		SetStringOptions(options.String().
 			SetCaseSensitive(false).
 			SetDiacriticSensitive(false).
 			SetSuffix(options.SuffixOptions{StrMinQueryLength: 2, StrMaxQueryLength: 10}))
@@ -588,7 +588,7 @@ func runCSEProse27Case10(mt *mtest.T, test *cseProse27Test) {
 		SetAlgorithm("String").
 		SetQueryType("substringPreview").
 		SetContentionFactor(0).
-		SetTextOptions(options.Text().
+		SetStringOptions(options.String().
 			SetCaseSensitive(false).
 			SetDiacriticSensitive(false).
 			SetSubstring(options.SubstringOptions{StrMaxLength: 10, StrMinQueryLength: 2, StrMaxQueryLength: 10}))
@@ -645,7 +645,7 @@ func runCSEProse27Case11(mt *mtest.T, test *cseProse27Test) {
 		SetAlgorithm("String").
 		SetQueryType("substringPreview").
 		SetContentionFactor(0).
-		SetTextOptions(options.Text().
+		SetStringOptions(options.String().
 			SetCaseSensitive(false).
 			SetDiacriticSensitive(false).
 			SetSubstring(options.SubstringOptions{StrMaxLength: 10, StrMinQueryLength: 2, StrMaxQueryLength: 10}))
@@ -695,14 +695,14 @@ func seedCSEProse27PreviewCollections(mt *mtest.T, test *cseProse27Test) {
 	mt.Helper()
 
 	cols := []struct {
-		name     string
-		fields   bson.Raw
-		textOpts *options.TextOptionsBuilder
+		name       string
+		fields     bson.Raw
+		stringOpts *options.StringOptionsBuilder
 	}{
 		{
 			name:   "prefix-suffix",
 			fields: readJSONFile(mt, "encryptedFields-prefix-suffix.json"),
-			textOpts: options.Text().
+			stringOpts: options.String().
 				SetCaseSensitive(true).
 				SetDiacriticSensitive(true).
 				SetPrefix(options.PrefixOptions{StrMaxQueryLength: 10, StrMinQueryLength: 2}).
@@ -711,7 +711,7 @@ func seedCSEProse27PreviewCollections(mt *mtest.T, test *cseProse27Test) {
 		{
 			name:   "substring",
 			fields: readJSONFile(mt, "encryptedFields-substring.json"),
-			textOpts: options.Text().
+			stringOpts: options.String().
 				SetCaseSensitive(true).
 				SetDiacriticSensitive(true).
 				SetSubstring(options.SubstringOptions{StrMaxLength: 10, StrMaxQueryLength: 10, StrMinQueryLength: 2}),
@@ -737,7 +737,7 @@ func seedCSEProse27PreviewCollections(mt *mtest.T, test *cseProse27Test) {
 			SetKeyID(test.key1ID).
 			SetAlgorithm("TextPreview").
 			SetContentionFactor(0).
-			SetTextOptions(c.textOpts)
+			SetStringOptions(c.stringOpts)
 
 		payload, err := test.clientEncryption.Encrypt(context.Background(), foobarbaz, eo)
 		require.Nil(mt, err, "error encrypting seed for db.%s: %v", c.name, err)
