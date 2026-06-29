@@ -66,7 +66,7 @@ func TestClientSideEncryptionProse_27(t *testing.T) {
 	mt.RunOpts("case 1: can find a document by prefix", prefixSuffixOpts, func(mt *mtest.T) {
 		runCSEProse27Case1(mt, test)
 	})
-	mt.RunOpts("case 2: find a document by suffix", prefixSuffixOpts, func(mt *mtest.T) {
+	mt.RunOpts("case 2: can find a document by suffix", prefixSuffixOpts, func(mt *mtest.T) {
 		runCSEProse27Case2(mt, test)
 	})
 	mt.RunOpts("case 3: assert no document found by prefix", prefixSuffixOpts, func(mt *mtest.T) {
@@ -76,34 +76,38 @@ func TestClientSideEncryptionProse_27(t *testing.T) {
 		runCSEProse27Case4(mt, test)
 	})
 
-	const prose27PreviewSkipReason = "TODO(GODRIVER-3863): preview QE text query types removed in libmongocrypt 1.19.0; pending migration to stable names (DRIVERS-3321)"
-	placeholderOpts := mtest.NewOptions()
+	// The substring cases (5, 6, 10, 11) require only the overall case 27
+	// minimums: server 8.2.0+ and libmongocrypt 1.18.1+. Subtests do not inherit
+	// the suite's version gates (mtest rebuilds baseOpts without them), so
+	// declare the requirement explicitly.
+	substringOpts := newQEOpts().MinServerVersion("8.2").MinLibmongocryptVersion("1.18.1")
 
-	mt.Run("case 5: can find a document by substring", func(mt *mtest.T) {
-		mt.Skip(prose27PreviewSkipReason)
+	mt.RunOpts("case 5: can find a document by substring", substringOpts, func(mt *mtest.T) {
 		runCSEProse27Case5(mt, test)
 	})
-	mt.Run("case 6: assert no document found by substring", func(mt *mtest.T) {
-		mt.Skip(prose27PreviewSkipReason)
+	mt.RunOpts("case 6: assert no document found by substring", substringOpts, func(mt *mtest.T) {
 		runCSEProse27Case6(mt, test)
 	})
-	mt.RunOpts("case 7: assert contentionFactor is required", placeholderOpts, func(mt *mtest.T) {
-		mt.Skip(prose27PreviewSkipReason)
+
+	// Cases 7, 8, and 9 exercise the GA "String" algorithm and stable
+	// prefix/suffix query types, which require server 9.0.0+ and libmongocrypt
+	// 1.19.0+.
+	stableStringOpts := newQEOpts().MinServerVersion("9.0").MinLibmongocryptVersion("1.19.0")
+
+	mt.RunOpts("case 7: assert contentionFactor is required", stableStringOpts, func(mt *mtest.T) {
 		runCSEProse27Case7(mt, test)
 	})
 
-	optsFor9_0 := newQEOpts().MinServerVersion("9.0").MinLibmongocryptVersion("1.19.0")
-
-	mt.RunOpts("case 8: can find an auto-encrypted case indexed document by prefix and suffix", optsFor9_0, func(mt *mtest.T) {
+	mt.RunOpts("case 8: can find an auto-encrypted case-insensitively indexed document by prefix and suffix", stableStringOpts, func(mt *mtest.T) {
 		runCSEProse27Case8(mt, test)
 	})
-	mt.RunOpts("case 9: can find an auto-encrypted diacritic-insensitively indexed document by prefix and suffix", optsFor9_0, func(mt *mtest.T) {
+	mt.RunOpts("case 9: can find an auto-encrypted diacritic-insensitively indexed document by prefix and suffix", stableStringOpts, func(mt *mtest.T) {
 		runCSEProse27Case9(mt, test)
 	})
-	mt.Run("case 10: can find an auto-encrypted case-insensitively indexed document by substring", func(mt *mtest.T) {
+	mt.RunOpts("case 10: can find an auto-encrypted case-insensitively indexed document by substring", substringOpts, func(mt *mtest.T) {
 		runCSEProse27Case10(mt, test)
 	})
-	mt.Run("case 11: can find an auto-encrypted diacritic-insensitively indexed document by substring", func(mt *mtest.T) {
+	mt.RunOpts("case 11: can find an auto-encrypted diacritic-insensitively indexed document by substring", substringOpts, func(mt *mtest.T) {
 		runCSEProse27Case11(mt, test)
 	})
 }
