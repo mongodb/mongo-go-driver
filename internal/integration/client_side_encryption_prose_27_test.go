@@ -26,7 +26,9 @@ import (
 )
 
 type cseProse27Config struct {
+	encryptedFieldsPrefixSuffix     bson.Raw
 	encryptedFieldsPrefixSuffixCIDI bson.Raw
+	encryptedFieldsSubstring        bson.Raw
 	encryptedFieldsSubstringCIDI    bson.Raw
 	key1Document                    bson.Raw
 }
@@ -108,10 +110,6 @@ func TestClientSideEncryptionProse_27(t *testing.T) {
 func runCSEProse27Case1(mt *mtest.T, test *cseProse27Test) {
 	mt.Helper()
 
-	// Create the preview prefix-suffix/substring collections and seed the
-	// encrypted "foobarbaz" document.
-	seedCSEProse27PreviewCollections(mt, test)
-
 	// Step 1. Use clientEncryption.encrypt() to encrypt "foo" with prefix query
 	// type.
 	foo := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "foo")}
@@ -141,21 +139,15 @@ func runCSEProse27Case1(mt *mtest.T, test *cseProse27Test) {
 	}}})
 
 	var got struct {
-		ID            int    `bson:"_id"`
 		EncryptedText string `bson:"encryptedText"`
 	}
 	require.Nil(mt, res.Decode(&got), "error decoding result")
-	require.Equal(mt, 0, got.ID)
 	require.Equal(mt, "foobarbaz", got.EncryptedText)
 }
 
 // runCSEProse27Case2 ensures that we can find a document by suffix.
 func runCSEProse27Case2(mt *mtest.T, test *cseProse27Test) {
 	mt.Helper()
-
-	// Create the preview prefix-suffix/substring collections and seed the
-	// encrypted "foobarbaz" document.
-	seedCSEProse27PreviewCollections(mt, test)
 
 	// Step 1. Use clientEncryption.encrypt() to encrypt "baz" with suffix query
 	// type.
@@ -186,21 +178,15 @@ func runCSEProse27Case2(mt *mtest.T, test *cseProse27Test) {
 	}}})
 
 	var got struct {
-		ID            int    `bson:"_id"`
 		EncryptedText string `bson:"encryptedText"`
 	}
 	require.Nil(mt, res.Decode(&got), "error decoding result")
-	require.Equal(mt, 0, got.ID)
 	require.Equal(mt, "foobarbaz", got.EncryptedText)
 }
 
 // runCSEProse27Case3 asserts that no document is found by prefix.
 func runCSEProse27Case3(mt *mtest.T, test *cseProse27Test) {
 	mt.Helper()
-
-	// Create the preview prefix-suffix/substring collections and seed the
-	// encrypted "foobarbaz" document.
-	seedCSEProse27PreviewCollections(mt, test)
 
 	// Step 1. Use clientEncryption.encrypt() to encrypt "baz" with prefix query
 	// type.
@@ -238,10 +224,6 @@ func runCSEProse27Case3(mt *mtest.T, test *cseProse27Test) {
 func runCSEProse27Case4(mt *mtest.T, test *cseProse27Test) {
 	mt.Helper()
 
-	// Create the preview prefix-suffix/substring collections and seed the
-	// encrypted "foobarbaz" document.
-	seedCSEProse27PreviewCollections(mt, test)
-
 	// Step 1. Use clientEncryption.encrypt() to encrypt "foo" with suffix query
 	// type.
 	foo := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "foo")}
@@ -278,10 +260,6 @@ func runCSEProse27Case4(mt *mtest.T, test *cseProse27Test) {
 func runCSEProse27Case5(mt *mtest.T, test *cseProse27Test) {
 	mt.Helper()
 
-	// Create the preview prefix-suffix/substring collections and seed the
-	// encrypted "foobarbaz" document.
-	seedCSEProse27PreviewCollections(mt, test)
-
 	// Step 1. Use clientEncryption.encrypt() to encrypt "bar" with substring
 	// query type.
 	bar := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "bar")}
@@ -311,21 +289,15 @@ func runCSEProse27Case5(mt *mtest.T, test *cseProse27Test) {
 	}}})
 
 	var got struct {
-		ID            int    `bson:"_id"`
 		EncryptedText string `bson:"encryptedText"`
 	}
 	require.Nil(mt, res.Decode(&got), "error decoding result")
-	require.Equal(mt, 0, got.ID)
 	require.Equal(mt, "foobarbaz", got.EncryptedText)
 }
 
 // runCSEProse27Case6 asserts that no document is found by substring.
 func runCSEProse27Case6(mt *mtest.T, test *cseProse27Test) {
 	mt.Helper()
-
-	// Create the preview prefix-suffix/substring collections and seed the
-	// encrypted "foobarbaz" document.
-	seedCSEProse27PreviewCollections(mt, test)
 
 	// Step 1. Use clientEncryption.encrypt() to encrypt "qux" with substring
 	// query type.
@@ -362,10 +334,6 @@ func runCSEProse27Case6(mt *mtest.T, test *cseProse27Test) {
 // runCSEProse27Case7 asserts that a contention factor is required.
 func runCSEProse27Case7(mt *mtest.T, test *cseProse27Test) {
 	mt.Helper()
-
-	// Create the preview prefix-suffix/substring collections and seed the
-	// encrypted "foobarbaz" document.
-	seedCSEProse27PreviewCollections(mt, test)
 
 	// Step 1. Use clientEncryption.encrypt() to encrypt "baz" with prefix query
 	// type but no contention factor, and expect an error that a contention
@@ -682,74 +650,6 @@ func runCSEProse27Case11(mt *mtest.T, test *cseProse27Test) {
 // Test Runner Helpers
 // =============================================================================
 
-// seedCSEProse27PreviewCollections drops and creates the case- and
-// diacritic-sensitive "prefix-suffix" and "substring" collections used by the
-// preview cases (1-7) and seeds each with an explicitly encrypted "foobarbaz"
-// document. It reuses the shared clientEncryption and explicitEncryptClient.
-//
-// The prefix-suffix collection is only created on servers < 9.0; on 9.0+ the
-// stable ci-di collections (cases 8-11) are used instead.
-//
-// Preview query types; only invoked by the skipped cases 1-7 pending DRIVERS-3321.
-func seedCSEProse27PreviewCollections(mt *mtest.T, test *cseProse27Test) {
-	mt.Helper()
-
-	cols := []struct {
-		name       string
-		fields     bson.Raw
-		stringOpts *options.StringOptionsBuilder
-	}{
-		{
-			name:   "prefix-suffix",
-			fields: readJSONFile(mt, "encryptedFields-prefix-suffix.json"),
-			stringOpts: options.String().
-				SetCaseSensitive(true).
-				SetDiacriticSensitive(true).
-				SetPrefix(options.PrefixOptions{StrMaxQueryLength: 10, StrMinQueryLength: 2}).
-				SetSuffix(options.SuffixOptions{StrMaxQueryLength: 10, StrMinQueryLength: 2}),
-		},
-		{
-			name:   "substring",
-			fields: readJSONFile(mt, "encryptedFields-substring.json"),
-			stringOpts: options.String().
-				SetCaseSensitive(true).
-				SetDiacriticSensitive(true).
-				SetSubstring(options.SubstringOptions{StrMaxLength: 10, StrMaxQueryLength: 10, StrMinQueryLength: 2}),
-		},
-	}
-
-	foobarbaz := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "foobarbaz")}
-	adminDB := mt.Client.Database("db")
-
-	for _, c := range cols {
-		// Always drop to ensure a clean state from any previous run.
-		mtest.DropEncryptedCollection(mt, adminDB.Collection(c.name), c.fields)
-
-		if c.name == "prefix-suffix" && mtest.CompareServerVersions(mtest.ServerVersion(), "9.0.0") >= 0 {
-			continue
-		}
-
-		cco := options.CreateCollection().SetEncryptedFields(c.fields)
-		err := adminDB.CreateCollection(context.Background(), c.name, cco)
-		require.Nil(mt, err, "error creating db.%s: %v", c.name, err)
-
-		eo := options.Encrypt().
-			SetKeyID(test.key1ID).
-			SetAlgorithm("TextPreview").
-			SetContentionFactor(0).
-			SetStringOptions(c.stringOpts)
-
-		payload, err := test.clientEncryption.Encrypt(context.Background(), foobarbaz, eo)
-		require.Nil(mt, err, "error encrypting seed for db.%s: %v", c.name, err)
-
-		collOpts := options.Collection().SetWriteConcern(mtest.MajorityWc)
-		coll := test.explicitEncryptClient.Database("db").Collection(c.name, collOpts)
-
-		_, err = coll.InsertOne(context.Background(), bson.D{{Key: "_id", Value: 0}, {Key: "encryptedText", Value: payload}})
-		require.Nil(mt, err, "error inserting seed into db.%s: %v", c.name, err)
-	}
-}
-
 // insertEncryptedText inserts { "encryptedText": <text> } into db.<coll> via
 // the given client with majority write concern.
 func insertEncryptedText(mt *mtest.T, client *mongo.Client, dbName, collName, text string) {
@@ -785,7 +685,9 @@ func loadCSEProse27Config() (cseProse27Config, error) {
 		path string
 		dest *bson.Raw
 	}{
+		{filepath.Join(cseSpecDataDir, "encryptedFields-prefix-suffix.json"), &cfg.encryptedFieldsPrefixSuffix},
 		{filepath.Join(cseSpecDataDir, "encryptedFields-prefix-suffix-ci-di.json"), &cfg.encryptedFieldsPrefixSuffixCIDI},
+		{filepath.Join(cseSpecDataDir, "encryptedFields-substring.json"), &cfg.encryptedFieldsSubstring},
 		{filepath.Join(cseSpecDataDir, "encryptedFields-substring-ci-di.json"), &cfg.encryptedFieldsSubstringCIDI},
 		{filepath.Join(cseSpecDataDir, "keys", "key1-document.json"), &cfg.key1Document},
 	}
@@ -810,8 +712,7 @@ func doSetupCSEProse27(mt *mtest.T) (*cseProse27Test, error) {
 	test := &cseProse27Test{}
 
 	// Using QE CreateCollection() and Collection.Drop(), drop and create the
-	// test collections with majority write concern. Only the case- and
-	// diacritic-insensitive (ci-di) collections are needed by cases 8-11.
+	// test collections with majority write concern.
 	db := mt.Client.Database("db")
 	encryptedColls := []struct {
 		name         string
@@ -819,7 +720,9 @@ func doSetupCSEProse27(mt *mtest.T) (*cseProse27Test, error) {
 		minServerVer string
 	}{
 		// prefix and suffix query types require server 9.0+.
+		{"prefix-suffix", cfg.encryptedFieldsPrefixSuffix, "9.0"},
 		{"prefix-suffix-ci-di", cfg.encryptedFieldsPrefixSuffixCIDI, "9.0"},
+		{"substring", cfg.encryptedFieldsSubstring, ""},
 		{"substring-ci-di", cfg.encryptedFieldsSubstringCIDI, ""},
 	}
 	for _, c := range encryptedColls {
@@ -932,6 +835,14 @@ func setupCSEProse27(mt *mtest.T) *cseProse27Test {
 	// partial failure still tears down whatever was already connected.
 	test, err := doSetupCSEProse27(mt)
 	require.Nil(mt, err, "failed to set up CSE prose 27: %v", err)
+
+	// Seed the encrypted "foobarbaz" document queried by cases 1-6, inserted
+	// once via the auto-encrypting client. The prefix-suffix collection only
+	// exists on server 9.0+.
+	insertEncryptedText(mt, test.autoEncryptClient, "db", "substring", "foobarbaz")
+	if mtest.CompareServerVersions(mtest.ServerVersion(), "9.0.0") >= 0 {
+		insertEncryptedText(mt, test.autoEncryptClient, "db", "prefix-suffix", "foobarbaz")
+	}
 
 	return test
 }
