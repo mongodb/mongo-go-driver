@@ -26,11 +26,12 @@ import (
 )
 
 type cseProse27Config struct {
-	encryptedFieldsPrefixSuffix     bson.Raw
-	encryptedFieldsPrefixSuffixCIDI bson.Raw
-	encryptedFieldsSubstring        bson.Raw
-	encryptedFieldsSubstringCIDI    bson.Raw
-	key1Document                    bson.Raw
+	encryptedFieldsPrefixSuffix        bson.Raw
+	encryptedFieldsPrefixSuffixCIDI    bson.Raw
+	encryptedFieldsPrefixSuffixPreview bson.Raw
+	encryptedFieldsSubstring           bson.Raw
+	encryptedFieldsSubstringCIDI       bson.Raw
+	key1Document                       bson.Raw
 }
 
 type cseProse27Test struct {
@@ -49,30 +50,35 @@ func TestClientSideEncryptionProse_27(t *testing.T) {
 
 	test := setupCSEProse27(mt)
 
-	// TODO(GODRIVER-3863): Cases 1-7 exercise the preview QE text query types
-	// removed in libmongocrypt 1.19.0. They are migrated to this pattern but
-	// remain skipped (via prose27PreviewSkipReason) until updated to the stable
-	// names under DRIVERS-3321. The MaxServerVersion guards from the original
-	// tests are preserved.
+	// Cases 1-4 exercise prefix/suffix string queries and run against either:
+	//
+	//   - a 9.0+ server using the stable "prefix"/"suffix" query types and the
+	//     db.prefix-suffix collection (requires libmongocrypt 1.19.0+), or
+	//   - a pre-9.0 server using the "prefixPreview"/"suffixPreview" query types
+	//     and the db.prefix-suffix-preview collection (requires libmongocrypt
+	//     1.19.1+).
+	//
+	// These tests are gated on libmongocrypt 1.19.1 so that the preview path is
+	// valid wherever it runs; on a 9.0+ server this is stricter than the spec's
+	// 1.19.0 minimum for the stable path.
+	prefixSuffixOpts := newQEOpts().MinLibmongocryptVersion("1.19.1")
+
+	mt.RunOpts("case 1: can find a document by prefix", prefixSuffixOpts, func(mt *mtest.T) {
+		runCSEProse27Case1(mt, test)
+	})
+	mt.RunOpts("case 2: find a document by suffix", prefixSuffixOpts, func(mt *mtest.T) {
+		runCSEProse27Case2(mt, test)
+	})
+	mt.RunOpts("case 3: assert no document found by prefix", prefixSuffixOpts, func(mt *mtest.T) {
+		runCSEProse27Case3(mt, test)
+	})
+	mt.RunOpts("case 4: assert no document found by suffix", prefixSuffixOpts, func(mt *mtest.T) {
+		runCSEProse27Case4(mt, test)
+	})
+
 	const prose27PreviewSkipReason = "TODO(GODRIVER-3863): preview QE text query types removed in libmongocrypt 1.19.0; pending migration to stable names (DRIVERS-3321)"
 	placeholderOpts := mtest.NewOptions()
 
-	mt.RunOpts("case 1: can find a document by prefix", placeholderOpts, func(mt *mtest.T) {
-		mt.Skip(prose27PreviewSkipReason)
-		runCSEProse27Case1(mt, test)
-	})
-	mt.RunOpts("case 2: find a document by suffix", placeholderOpts, func(mt *mtest.T) {
-		mt.Skip(prose27PreviewSkipReason)
-		runCSEProse27Case2(mt, test)
-	})
-	mt.RunOpts("case 3: assert no document found by prefix", placeholderOpts, func(mt *mtest.T) {
-		mt.Skip(prose27PreviewSkipReason)
-		runCSEProse27Case3(mt, test)
-	})
-	mt.RunOpts("case 4: assert no document found by suffix", placeholderOpts, func(mt *mtest.T) {
-		mt.Skip(prose27PreviewSkipReason)
-		runCSEProse27Case4(mt, test)
-	})
 	mt.Run("case 5: can find a document by substring", func(mt *mtest.T) {
 		mt.Skip(prose27PreviewSkipReason)
 		runCSEProse27Case5(mt, test)
@@ -116,12 +122,13 @@ func runCSEProse27Case1(mt *mtest.T, test *cseProse27Test) {
 	eo := options.Encrypt().
 		SetKeyID(test.key1ID).
 		SetAlgorithm("String").
-		SetQueryType("prefixPreview").
 		SetContentionFactor(0).
 		SetStringOptions(options.String().
 			SetCaseSensitive(true).
 			SetDiacriticSensitive(true).
 			SetPrefix(options.PrefixOptions{StrMaxQueryLength: 10, StrMinQueryLength: 2}))
+
+	eo = setPrefixQueryTypeForVersion(eo)
 
 	payload, err := test.clientEncryption.Encrypt(context.Background(), foo, eo)
 	require.Nil(mt, err, "error in Encrypt: %v", err)
@@ -130,7 +137,7 @@ func runCSEProse27Case1(mt *mtest.T, test *cseProse27Test) {
 	// db.prefix-suffix collection with the following filter:
 	//
 	// { $expr: { $encStrStartsWith: {input: '$encryptedText', prefix: <encrypted 'foo'>} } }
-	coll := test.explicitEncryptClient.Database("db").Collection("prefix-suffix")
+	coll := test.explicitEncryptClient.Database("db").Collection(prefixSuffixCollection())
 	res := coll.FindOne(context.Background(), bson.D{{Key: "$expr", Value: bson.D{
 		{Key: "$encStrStartsWith", Value: bson.D{
 			{Key: "input", Value: "$encryptedText"},
@@ -155,12 +162,13 @@ func runCSEProse27Case2(mt *mtest.T, test *cseProse27Test) {
 	eo := options.Encrypt().
 		SetKeyID(test.key1ID).
 		SetAlgorithm("String").
-		SetQueryType("suffixPreview").
 		SetContentionFactor(0).
 		SetStringOptions(options.String().
 			SetCaseSensitive(true).
 			SetDiacriticSensitive(true).
 			SetSuffix(options.SuffixOptions{StrMaxQueryLength: 10, StrMinQueryLength: 2}))
+
+	eo = setSuffixQueryTypeForVersion(eo)
 
 	payload, err := test.clientEncryption.Encrypt(context.Background(), baz, eo)
 	require.Nil(mt, err, "error in Encrypt: %v", err)
@@ -169,7 +177,7 @@ func runCSEProse27Case2(mt *mtest.T, test *cseProse27Test) {
 	// db.prefix-suffix collection with the following filter:
 	//
 	// { $expr: { $encStrEndsWith: {input: '$encryptedText', suffix: <encrypted 'baz'>} } }
-	coll := test.explicitEncryptClient.Database("db").Collection("prefix-suffix")
+	coll := test.explicitEncryptClient.Database("db").Collection(prefixSuffixCollection())
 	res := coll.FindOne(context.Background(), bson.D{{Key: "$expr", Value: bson.D{
 		{Key: "$encStrEndsWith", Value: bson.D{
 			{Key: "input", Value: "$encryptedText"},
@@ -194,12 +202,13 @@ func runCSEProse27Case3(mt *mtest.T, test *cseProse27Test) {
 	eo := options.Encrypt().
 		SetKeyID(test.key1ID).
 		SetAlgorithm("String").
-		SetQueryType("prefixPreview").
 		SetContentionFactor(0).
 		SetStringOptions(options.String().
 			SetCaseSensitive(true).
 			SetDiacriticSensitive(true).
 			SetPrefix(options.PrefixOptions{StrMaxQueryLength: 10, StrMinQueryLength: 2}))
+
+	eo = setPrefixQueryTypeForVersion(eo)
 
 	payload, err := test.clientEncryption.Encrypt(context.Background(), baz, eo)
 	require.Nil(mt, err, "error in Encrypt: %v", err)
@@ -210,7 +219,7 @@ func runCSEProse27Case3(mt *mtest.T, test *cseProse27Test) {
 	// { $expr: { $encStrStartsWith: {input: '$encryptedText', prefix: <encrypted 'baz'>} } }
 	//
 	// Assert that no documents are returned.
-	coll := test.explicitEncryptClient.Database("db").Collection("prefix-suffix")
+	coll := test.explicitEncryptClient.Database("db").Collection(prefixSuffixCollection())
 	_, err = coll.FindOne(context.Background(), bson.D{{Key: "$expr", Value: bson.D{
 		{Key: "$encStrStartsWith", Value: bson.D{
 			{Key: "input", Value: "$encryptedText"},
@@ -230,12 +239,13 @@ func runCSEProse27Case4(mt *mtest.T, test *cseProse27Test) {
 	eo := options.Encrypt().
 		SetKeyID(test.key1ID).
 		SetAlgorithm("String").
-		SetQueryType("suffixPreview").
 		SetContentionFactor(0).
 		SetStringOptions(options.String().
 			SetCaseSensitive(true).
 			SetDiacriticSensitive(true).
 			SetSuffix(options.SuffixOptions{StrMaxQueryLength: 10, StrMinQueryLength: 2}))
+
+	eo = setSuffixQueryTypeForVersion(eo)
 
 	payload, err := test.clientEncryption.Encrypt(context.Background(), foo, eo)
 	require.Nil(mt, err, "error in Encrypt: %v", err)
@@ -246,7 +256,7 @@ func runCSEProse27Case4(mt *mtest.T, test *cseProse27Test) {
 	// { $expr: { $encStrEndsWith: {input: '$encryptedText', suffix: <encrypted 'foo'>} } }
 	//
 	// Assert that no documents are returned.
-	coll := test.explicitEncryptClient.Database("db").Collection("prefix-suffix")
+	coll := test.explicitEncryptClient.Database("db").Collection(prefixSuffixCollection())
 	_, err = coll.FindOne(context.Background(), bson.D{{Key: "$expr", Value: bson.D{
 		{Key: "$encStrEndsWith", Value: bson.D{
 			{Key: "input", Value: "$encryptedText"},
@@ -662,6 +672,42 @@ func insertEncryptedText(mt *mtest.T, client *mongo.Client, dbName, collName, te
 	require.Nil(mt, err, "error inserting document into %s.%s: %v", dbName, collName, err)
 }
 
+// prefixSuffixCollection returns the collection name that cases 1-4 query for
+// the current server version:
+//
+//   - prefix-suffix-preview for server versions < 9.0 (preview query types)
+//   - prefix-suffix for server versions >= 9.0 (stable query types)
+func prefixSuffixCollection() string {
+	if mtest.CompareServerVersions(mtest.ServerVersion(), "9.0") < 0 {
+		return "prefix-suffix-preview"
+	}
+	return "prefix-suffix"
+}
+
+// setPrefixQueryTypeForVersion returns an EncryptOptionsBuilder with the query
+// type set to:
+//
+//   - prefixPreview for server versions < 9.0
+//   - prefix for server versions >= 9.0
+func setPrefixQueryTypeForVersion(opts *options.EncryptOptionsBuilder) *options.EncryptOptionsBuilder {
+	if mtest.CompareServerVersions(mtest.ServerVersion(), "9.0") < 0 {
+		return opts.SetQueryType("prefixPreview")
+	}
+	return opts.SetQueryType("prefix")
+}
+
+// setSuffixQueryTypeForVersion returns an EncryptOptionsBuilder with the query
+// type set to:
+//
+//   - suffixPreview for server versions < 9.0
+//   - suffix for server versions >= 9.0
+func setSuffixQueryTypeForVersion(opts *options.EncryptOptionsBuilder) *options.EncryptOptionsBuilder {
+	if mtest.CompareServerVersions(mtest.ServerVersion(), "9.0") < 0 {
+		return opts.SetQueryType("suffixPreview")
+	}
+	return opts.SetQueryType("suffix")
+}
+
 // =============================================================================
 // Setup
 // =============================================================================
@@ -687,6 +733,7 @@ func loadCSEProse27Config() (cseProse27Config, error) {
 	}{
 		{filepath.Join(cseSpecDataDir, "encryptedFields-prefix-suffix.json"), &cfg.encryptedFieldsPrefixSuffix},
 		{filepath.Join(cseSpecDataDir, "encryptedFields-prefix-suffix-ci-di.json"), &cfg.encryptedFieldsPrefixSuffixCIDI},
+		{filepath.Join(cseSpecDataDir, "encryptedFields-prefix-suffix-preview.json"), &cfg.encryptedFieldsPrefixSuffixPreview},
 		{filepath.Join(cseSpecDataDir, "encryptedFields-substring.json"), &cfg.encryptedFieldsSubstring},
 		{filepath.Join(cseSpecDataDir, "encryptedFields-substring-ci-di.json"), &cfg.encryptedFieldsSubstringCIDI},
 		{filepath.Join(cseSpecDataDir, "keys", "key1-document.json"), &cfg.key1Document},
@@ -715,15 +762,22 @@ func doSetupCSEProse27(mt *mtest.T) (*cseProse27Test, error) {
 	// test collections with majority write concern.
 	db := mt.Client.Database("db")
 	encryptedColls := []struct {
-		name         string
-		fields       bson.Raw
+		name   string
+		fields bson.Raw
+		// minServerVer, if set, only creates the collection when the server
+		// version is >= minServerVer.
 		minServerVer string
+		// maxServerVer, if set, only creates the collection when the server
+		// version is < maxServerVer.
+		maxServerVer string
 	}{
-		// prefix and suffix query types require server 9.0+.
-		{"prefix-suffix", cfg.encryptedFieldsPrefixSuffix, "9.0"},
-		{"prefix-suffix-ci-di", cfg.encryptedFieldsPrefixSuffixCIDI, "9.0"},
-		{"substring", cfg.encryptedFieldsSubstring, ""},
-		{"substring-ci-di", cfg.encryptedFieldsSubstringCIDI, ""},
+		// The stable prefix and suffix query types require server 9.0+.
+		{"prefix-suffix", cfg.encryptedFieldsPrefixSuffix, "9.0", ""},
+		{"prefix-suffix-ci-di", cfg.encryptedFieldsPrefixSuffixCIDI, "9.0", ""},
+		// The preview prefix/suffix query types are used on pre-9.0 servers.
+		{"prefix-suffix-preview", cfg.encryptedFieldsPrefixSuffixPreview, "", "9.0"},
+		{"substring", cfg.encryptedFieldsSubstring, "", ""},
+		{"substring-ci-di", cfg.encryptedFieldsSubstringCIDI, "", ""},
 	}
 	for _, c := range encryptedColls {
 		// Always drop to ensure a clean state from any previous run.
@@ -731,6 +785,11 @@ func doSetupCSEProse27(mt *mtest.T) (*cseProse27Test, error) {
 
 		// Skip creating collections that require a higher server version.
 		if c.minServerVer != "" && mtest.CompareServerVersions(mtest.ServerVersion(), c.minServerVer) < 0 {
+			continue
+		}
+
+		// Skip creating collections that require a lower (pre-release) server version.
+		if c.maxServerVer != "" && mtest.CompareServerVersions(mtest.ServerVersion(), c.maxServerVer) >= 0 {
 			continue
 		}
 
@@ -837,12 +896,12 @@ func setupCSEProse27(mt *mtest.T) *cseProse27Test {
 	require.Nil(mt, err, "failed to set up CSE prose 27: %v", err)
 
 	// Seed the encrypted "foobarbaz" document queried by cases 1-6, inserted
-	// once via the auto-encrypting client. The prefix-suffix collection only
-	// exists on server 9.0+.
+	// once via the auto-encrypting client. The prefix/suffix document goes into
+	// whichever collection exists for this server version: db.prefix-suffix on
+	// 9.0+ (stable query types) or db.prefix-suffix-preview on pre-9.0 (preview
+	// query types).
 	insertEncryptedText(mt, test.autoEncryptClient, "db", "substring", "foobarbaz")
-	if mtest.CompareServerVersions(mtest.ServerVersion(), "9.0.0") >= 0 {
-		insertEncryptedText(mt, test.autoEncryptClient, "db", "prefix-suffix", "foobarbaz")
-	}
+	insertEncryptedText(mt, test.autoEncryptClient, "db", prefixSuffixCollection(), "foobarbaz")
 
 	return test
 }
