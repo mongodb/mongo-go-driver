@@ -1632,6 +1632,7 @@ func TestClientSideEncryptionProse_12_explicit_encryption(t *testing.T) {
 
 	// Test Setup ... begin
 	encryptedFields := readJSONFile(mt, "encrypted-fields.json")
+	encryptedFieldsC10 := readJSONFile(mt, "encryptedFields-c10.json")
 	key1Document := readJSONFile(mt, "key1-document.json")
 	var key1ID bson.Binary
 	{
@@ -1641,9 +1642,19 @@ func TestClientSideEncryptionProse_12_explicit_encryption(t *testing.T) {
 
 	testSetup := func() (*mongo.Client, *mongo.ClientEncryption) {
 		mtest.DropEncryptedCollection(mt, mt.Client.Database("db").Collection("explicit_encryption"), encryptedFields)
-		cco := options.CreateCollection().SetEncryptedFields(encryptedFields)
-		err := mt.Client.Database("db").CreateCollection(context.Background(), "explicit_encryption", cco)
+		err := mt.Client.Database("db").CreateCollection(
+			context.Background(),
+			"explicit_encryption",
+			options.CreateCollection().SetEncryptedFields(encryptedFields))
 		assert.Nil(mt, err, "error on CreateCollection: %v", err)
+
+		mtest.DropEncryptedCollection(mt, mt.Client.Database("db").Collection("explicit_encryption_c10"), encryptedFieldsC10)
+		err = mt.Client.Database("db").CreateCollection(
+			context.Background(),
+			"explicit_encryption_c10",
+			options.CreateCollection().SetEncryptedFields(encryptedFieldsC10))
+		assert.Nil(mt, err, "error on CreateCollection: %v", err)
+
 		err = mt.Client.Database("keyvault").Collection("datakeys").Drop(context.Background())
 		assert.Nil(mt, err, "error on Drop: %v", err)
 		opts := options.Client().ApplyURI(mtest.ClusterURI())
@@ -1702,15 +1713,6 @@ func TestClientSideEncryptionProse_12_explicit_encryption(t *testing.T) {
 		assert.Equal(mt, gotValue.StringValue(), valueToEncrypt, "expected %q, got %q", valueToEncrypt, gotValue.StringValue())
 	})
 	mt.Run("case 2: can insert encrypted indexed and find with non-zero contention", func(mt *mtest.T) {
-		// TODO(GODRIVER-3961): The latest server (SERVER-91887) enforces that the
-		// explicit-encryption contentionFactor must match the collection's
-		// configured contention. This test inserts with contentionFactor 10 but
-		// the collection is configured with contention 0, and finds with both
-		// contentionFactor 0 and 10, which is unsatisfiable under the new
-		// enforcement. Skip until the prose test and encrypted-fields contention
-		// config are synced with the DRIVERS-3547 spec update.
-		mt.Skip("skipping pending GODRIVER-3961: QE contention enforcement (SERVER-91887)")
-
 		encryptedClient, clientEncryption := testSetup()
 		defer clientEncryption.Close(context.Background())
 		defer encryptedClient.Disconnect(context.Background())
