@@ -115,7 +115,7 @@ func runCSEProse27Case1(mt *mtest.T, test *cseProse27Test) {
 	foo := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "foo")}
 	eo := options.Encrypt().
 		SetKeyID(test.key1ID).
-		SetAlgorithm("TextPreview").
+		SetAlgorithm("String").
 		SetQueryType("prefixPreview").
 		SetContentionFactor(0).
 		SetStringOptions(options.String().
@@ -154,7 +154,7 @@ func runCSEProse27Case2(mt *mtest.T, test *cseProse27Test) {
 	baz := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "baz")}
 	eo := options.Encrypt().
 		SetKeyID(test.key1ID).
-		SetAlgorithm("TextPreview").
+		SetAlgorithm("String").
 		SetQueryType("suffixPreview").
 		SetContentionFactor(0).
 		SetStringOptions(options.String().
@@ -193,7 +193,7 @@ func runCSEProse27Case3(mt *mtest.T, test *cseProse27Test) {
 	baz := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "baz")}
 	eo := options.Encrypt().
 		SetKeyID(test.key1ID).
-		SetAlgorithm("TextPreview").
+		SetAlgorithm("String").
 		SetQueryType("prefixPreview").
 		SetContentionFactor(0).
 		SetStringOptions(options.String().
@@ -229,7 +229,7 @@ func runCSEProse27Case4(mt *mtest.T, test *cseProse27Test) {
 	foo := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "foo")}
 	eo := options.Encrypt().
 		SetKeyID(test.key1ID).
-		SetAlgorithm("TextPreview").
+		SetAlgorithm("String").
 		SetQueryType("suffixPreview").
 		SetContentionFactor(0).
 		SetStringOptions(options.String().
@@ -265,7 +265,7 @@ func runCSEProse27Case5(mt *mtest.T, test *cseProse27Test) {
 	bar := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "bar")}
 	eo := options.Encrypt().
 		SetKeyID(test.key1ID).
-		SetAlgorithm("TextPreview").
+		SetAlgorithm("String").
 		SetQueryType("substringPreview").
 		SetContentionFactor(0).
 		SetStringOptions(options.String().
@@ -304,7 +304,7 @@ func runCSEProse27Case6(mt *mtest.T, test *cseProse27Test) {
 	qux := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "qux")}
 	eo := options.Encrypt().
 		SetKeyID(test.key1ID).
-		SetAlgorithm("TextPreview").
+		SetAlgorithm("String").
 		SetQueryType("substringPreview").
 		SetContentionFactor(0).
 		SetStringOptions(options.String().
@@ -341,7 +341,7 @@ func runCSEProse27Case7(mt *mtest.T, test *cseProse27Test) {
 	baz := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "baz")}
 	eo := options.Encrypt().
 		SetKeyID(test.key1ID).
-		SetAlgorithm("TextPreview").
+		SetAlgorithm("String").
 		SetQueryType("prefixPreview").
 		SetStringOptions(options.String().
 			SetCaseSensitive(true).
@@ -349,7 +349,7 @@ func runCSEProse27Case7(mt *mtest.T, test *cseProse27Test) {
 			SetPrefix(options.PrefixOptions{StrMaxQueryLength: 10, StrMinQueryLength: 2}))
 
 	_, err := test.clientEncryption.Encrypt(context.Background(), baz, eo)
-	require.ErrorContains(mt, err, "contention factor is required for textPreview algorithm")
+	require.ErrorContains(mt, err, "contention factor is required for string algorithm")
 }
 
 // runCSEProse27Case8 ensures that we can find an auto-encrypted case indexed
