@@ -135,7 +135,7 @@ func runCSEProse27Case1(mt *mtest.T, test *cseProse27Test) {
 	eo = setPrefixQueryTypeForVersion(eo)
 
 	payload, err := test.clientEncryption.Encrypt(context.Background(), foo, eo)
-	require.Nil(mt, err, "error in Encrypt: %v", err)
+	require.NoError(mt, err, "error in Encrypt: %v", err)
 
 	// Step 2. Use explicitEncryptedClient to run a "find" operation on the
 	// db.prefix-suffix collection with the following filter:
@@ -149,11 +149,12 @@ func runCSEProse27Case1(mt *mtest.T, test *cseProse27Test) {
 		}},
 	}}})
 
-	var got struct {
-		EncryptedText string `bson:"encryptedText"`
-	}
-	require.Nil(mt, res.Decode(&got), "error decoding result")
+	var got encryptedTextDoc
+	err = res.Decode(&got)
+	require.NoError(mt, err, "error decoding result: %v", err)
+
 	require.Equal(mt, "foobarbaz", got.EncryptedText)
+	require.True(mt, got.ID.IsZero())
 }
 
 // runCSEProse27Case2 ensures that we can find a document by suffix.
@@ -175,7 +176,7 @@ func runCSEProse27Case2(mt *mtest.T, test *cseProse27Test) {
 	eo = setSuffixQueryTypeForVersion(eo)
 
 	payload, err := test.clientEncryption.Encrypt(context.Background(), baz, eo)
-	require.Nil(mt, err, "error in Encrypt: %v", err)
+	require.NoError(mt, err, "error in Encrypt: %v", err)
 
 	// Step 2. Use explicitEncryptedClient to run a "find" operation on the
 	// db.prefix-suffix collection with the following filter:
@@ -189,11 +190,12 @@ func runCSEProse27Case2(mt *mtest.T, test *cseProse27Test) {
 		}},
 	}}})
 
-	var got struct {
-		EncryptedText string `bson:"encryptedText"`
-	}
-	require.Nil(mt, res.Decode(&got), "error decoding result")
+	var got encryptedTextDoc
+	err = res.Decode(&got)
+	require.NoError(mt, err, "error decoding result: %v", err)
+
 	require.Equal(mt, "foobarbaz", got.EncryptedText)
+	require.True(mt, got.ID.IsZero())
 }
 
 // runCSEProse27Case3 asserts that no document is found by prefix.
@@ -215,7 +217,7 @@ func runCSEProse27Case3(mt *mtest.T, test *cseProse27Test) {
 	eo = setPrefixQueryTypeForVersion(eo)
 
 	payload, err := test.clientEncryption.Encrypt(context.Background(), baz, eo)
-	require.Nil(mt, err, "error in Encrypt: %v", err)
+	require.NoError(mt, err, "error in Encrypt: %v", err)
 
 	// Step 2. Use explicitEncryptedClient to run a "find" operation on the
 	// db.prefix-suffix collection with the following filter:
@@ -230,7 +232,7 @@ func runCSEProse27Case3(mt *mtest.T, test *cseProse27Test) {
 			{Key: "prefix", Value: payload},
 		}},
 	}}}).Raw()
-	assert.ErrorIs(mt, err, mongo.ErrNoDocuments)
+	require.ErrorIs(mt, err, mongo.ErrNoDocuments)
 }
 
 // runCSEProse27Case4 asserts that no document is found by suffix.
@@ -252,7 +254,7 @@ func runCSEProse27Case4(mt *mtest.T, test *cseProse27Test) {
 	eo = setSuffixQueryTypeForVersion(eo)
 
 	payload, err := test.clientEncryption.Encrypt(context.Background(), foo, eo)
-	require.Nil(mt, err, "error in Encrypt: %v", err)
+	require.NoError(mt, err, "error in Encrypt: %v", err)
 
 	// Step 2. Use explicitEncryptedClient to run a "find" operation on the
 	// db.prefix-suffix collection with the following filter:
@@ -267,7 +269,7 @@ func runCSEProse27Case4(mt *mtest.T, test *cseProse27Test) {
 			{Key: "suffix", Value: payload},
 		}},
 	}}}).Raw()
-	assert.ErrorIs(mt, err, mongo.ErrNoDocuments)
+	require.ErrorIs(mt, err, mongo.ErrNoDocuments)
 }
 
 // runCSEProse27Case5 ensures that we can find a document by substring.
@@ -288,7 +290,7 @@ func runCSEProse27Case5(mt *mtest.T, test *cseProse27Test) {
 			SetSubstring(options.SubstringOptions{StrMaxLength: 10, StrMaxQueryLength: 10, StrMinQueryLength: 2}))
 
 	payload, err := test.clientEncryption.Encrypt(context.Background(), bar, eo)
-	require.Nil(mt, err, "error in Encrypt: %v", err)
+	require.NoError(mt, err, "error in Encrypt: %v", err)
 
 	// Step 2. Use explicitEncryptedClient to run a "find" operation on the
 	// db.substring collection with the following filter:
@@ -302,11 +304,12 @@ func runCSEProse27Case5(mt *mtest.T, test *cseProse27Test) {
 		}},
 	}}})
 
-	var got struct {
-		EncryptedText string `bson:"encryptedText"`
-	}
-	require.Nil(mt, res.Decode(&got), "error decoding result")
+	var got encryptedTextDoc
+	err = res.Decode(&got)
+	require.NoError(mt, err, "error decoding result: %v", err)
+
 	require.Equal(mt, "foobarbaz", got.EncryptedText)
+	require.True(mt, got.ID.IsZero())
 }
 
 // runCSEProse27Case6 asserts that no document is found by substring.
@@ -327,7 +330,7 @@ func runCSEProse27Case6(mt *mtest.T, test *cseProse27Test) {
 			SetSubstring(options.SubstringOptions{StrMaxLength: 10, StrMaxQueryLength: 10, StrMinQueryLength: 2}))
 
 	payload, err := test.clientEncryption.Encrypt(context.Background(), qux, eo)
-	require.Nil(mt, err, "error in Encrypt: %v", err)
+	require.NoError(mt, err, "error in Encrypt: %v", err)
 
 	// Step 2. Use explicitEncryptedClient to run a "find" operation on the
 	// db.substring collection with the following filter:
@@ -397,7 +400,7 @@ func runCSEProse27Case8(mt *mtest.T, test *cseProse27Test) {
 	bingPlaintextSearchToken := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "bing")}
 
 	bingEncSearchToken, err := test.clientEncryption.Encrypt(context.Background(), bingPlaintextSearchToken, encryptOpts)
-	require.Nil(mt, err, "error encrypting 'bing': %v", err)
+	require.NoError(mt, err, "error encrypting 'bing': %v", err)
 
 	// Step 3. Use explicitEncryptedClient to run a "find" operation on the
 	// db.prefix-suffix-ci-di collection with the following filter:
@@ -411,11 +414,11 @@ func runCSEProse27Case8(mt *mtest.T, test *cseProse27Test) {
 	encColl := test.explicitEncryptClient.Database(dbName).Collection(collName)
 
 	bingCur, err := encColl.Find(context.Background(), bingFilter)
-	require.Nil(mt, err, "error running find on %s.%s: %v", dbName, collName, err)
+	require.NoError(mt, err, "error running find on %s.%s: %v", dbName, collName, err)
 
 	var results []bson.M
 	err = bingCur.All(context.Background(), &results)
-	require.Nil(mt, err, "error decoding find results: %v", err)
+	require.NoError(mt, err, "error decoding find results: %v", err)
 
 	require.Len(mt, results, 1, "expected 1 result, got %d", len(results))
 	require.Equal(mt, "BingQiLin", results[0]["encryptedText"])
@@ -434,7 +437,7 @@ func runCSEProse27Case8(mt *mtest.T, test *cseProse27Test) {
 	linPlaintextSearchToken := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "lin")}
 
 	linEncSearchToken, err := test.clientEncryption.Encrypt(context.Background(), linPlaintextSearchToken, encryptOpts)
-	require.Nil(mt, err, "error encrypting 'lin': %v", err)
+	require.NoError(mt, err, "error encrypting 'lin': %v", err)
 
 	// Step 5. Use explicitEncryptedClient to run a "find" operation on the
 	// db.prefix-suffix-ci-di collection with the following filter:
@@ -446,10 +449,10 @@ func runCSEProse27Case8(mt *mtest.T, test *cseProse27Test) {
 	}}}}}
 
 	linCur, err := encColl.Find(context.Background(), linFilter)
-	require.Nil(mt, err, "error running find on %s.%s: %v", dbName, collName, err)
+	require.NoError(mt, err, "error running find on %s.%s: %v", dbName, collName, err)
 
 	err = linCur.All(context.Background(), &results)
-	require.Nil(mt, err, "error decoding find results: %v", err)
+	require.NoError(mt, err, "error decoding find results: %v", err)
 
 	require.Len(mt, results, 1, "expected 1 result, got %d", len(results))
 	require.Equal(mt, "BingQiLin", results[0]["encryptedText"])
@@ -486,7 +489,7 @@ func runCSEProse27Case9(mt *mtest.T, test *cseProse27Test) {
 	cafePlaintextSearchToken := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "cafe")}
 
 	cafeEncSearchToken, err := test.clientEncryption.Encrypt(context.Background(), cafePlaintextSearchToken, encryptOpts)
-	require.Nil(mt, err, "error encrypting 'cafe': %v", err)
+	require.NoError(mt, err, "error encrypting 'cafe': %v", err)
 
 	// Step 3. Use explicitEncryptedClient to run a "find" operation on the
 	// db.prefix-suffix-ci-di collection with the following filter:
@@ -500,12 +503,12 @@ func runCSEProse27Case9(mt *mtest.T, test *cseProse27Test) {
 	encColl := test.explicitEncryptClient.Database(dbName).Collection(collName)
 
 	cafeCur, err := encColl.Find(context.Background(), cafeFilter)
-	require.Nil(mt, err, "error running find on %s.%s: %v", dbName, collName, err)
+	require.NoError(mt, err, "error running find on %s.%s: %v", dbName, collName, err)
 
 	var results []bson.M
 
 	err = cafeCur.All(context.Background(), &results)
-	require.Nil(mt, err, "error decoding find results: %v", err)
+	require.NoError(mt, err, "error decoding find results: %v", err)
 
 	require.Len(mt, results, 1, "expected 1 result, got %d", len(results))
 	require.Equal(mt, "cafébarbäz", results[0]["encryptedText"])
@@ -525,7 +528,7 @@ func runCSEProse27Case9(mt *mtest.T, test *cseProse27Test) {
 	bazPlaintextSearchToken := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "baz")}
 
 	bazEncSearchToken, err := test.clientEncryption.Encrypt(context.Background(), bazPlaintextSearchToken, encryptOpts)
-	require.Nil(mt, err, "error encrypting 'baz': %v", err)
+	require.NoError(mt, err, "error encrypting 'baz': %v", err)
 
 	// Step 5. Use explicitEncryptedClient to run a "find" operation on the
 	// db.prefix-suffix-ci-di collection with the following filter:
@@ -537,10 +540,10 @@ func runCSEProse27Case9(mt *mtest.T, test *cseProse27Test) {
 	}}}}}
 
 	bazCur, err := encColl.Find(context.Background(), bazFilter)
-	require.Nil(mt, err, "error running find on %s.%s: %v", dbName, collName, err)
+	require.NoError(mt, err, "error running find on %s.%s: %v", dbName, collName, err)
 
 	err = bazCur.All(context.Background(), &results)
-	require.Nil(mt, err, "error decoding find results: %v", err)
+	require.NoError(mt, err, "error decoding find results: %v", err)
 
 	require.Len(mt, results, 1, "expected 1 result, got %d", len(results))
 	require.Equal(mt, "cafébarbäz", results[0]["encryptedText"])
@@ -578,7 +581,7 @@ func runCSEProse27Case10(mt *mtest.T, test *cseProse27Test) {
 	barPlaintextSearchToken := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "bar")}
 
 	barEncSearchToken, err := test.clientEncryption.Encrypt(context.Background(), barPlaintextSearchToken, encryptOpts)
-	require.Nil(mt, err, "error encrypting 'bar': %v", err)
+	require.NoError(mt, err, "error encrypting 'bar': %v", err)
 
 	// Step 3. Use explicitEncryptedClient to run a "find" operation on the
 	// db.substring-ci-di collection with the following filter:
@@ -592,12 +595,12 @@ func runCSEProse27Case10(mt *mtest.T, test *cseProse27Test) {
 	encColl := test.explicitEncryptClient.Database(dbName).Collection(collName)
 
 	barCur, err := encColl.Find(context.Background(), barFilter)
-	require.Nil(mt, err, "error running find on %s.%s: %v", dbName, collName, err)
+	require.NoError(mt, err, "error running find on %s.%s: %v", dbName, collName, err)
 
 	var results []bson.M
 
 	err = barCur.All(context.Background(), &results)
-	require.Nil(mt, err, "error decoding find results: %v", err)
+	require.NoError(mt, err, "error decoding find results: %v", err)
 
 	require.Len(mt, results, 1, "expected 1 result, got %d", len(results))
 	require.Equal(mt, "FooBarBaz", results[0]["encryptedText"])
@@ -635,7 +638,7 @@ func runCSEProse27Case11(mt *mtest.T, test *cseProse27Test) {
 	cafePlaintextSearchToken := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "cafe")}
 
 	cafeEncSearchToken, err := test.clientEncryption.Encrypt(context.Background(), cafePlaintextSearchToken, encryptOpts)
-	require.Nil(mt, err, "error encrypting 'cafe': %v", err)
+	require.NoError(mt, err, "error encrypting 'cafe': %v", err)
 
 	// Step 3. Use explicitEncryptedClient to run a "find" operation on the
 	// db.substring-ci-di collection with the following filter:
@@ -649,12 +652,12 @@ func runCSEProse27Case11(mt *mtest.T, test *cseProse27Test) {
 	encColl := test.explicitEncryptClient.Database(dbName).Collection(collName)
 
 	cafeCur, err := encColl.Find(context.Background(), cafeFilter)
-	require.Nil(mt, err, "error running find on %s.%s: %v", dbName, collName, err)
+	require.NoError(mt, err, "error running find on %s.%s: %v", dbName, collName, err)
 
 	var results []bson.M
 
 	err = cafeCur.All(context.Background(), &results)
-	require.Nil(mt, err, "error decoding find results: %v", err)
+	require.NoError(mt, err, "error decoding find results: %v", err)
 
 	require.Len(mt, results, 1, "expected 1 result, got %d", len(results))
 	require.Equal(mt, "foocafébaz", results[0]["encryptedText"])
@@ -664,6 +667,11 @@ func runCSEProse27Case11(mt *mtest.T, test *cseProse27Test) {
 // Test Runner Helpers
 // =============================================================================
 
+type encryptedTextDoc struct {
+	ID            bson.ObjectID `bson:"_id"`
+	EncryptedText string        `bson:"encryptedText"`
+}
+
 // insertEncryptedText inserts { "encryptedText": <text> } into db.<coll> via
 // the given client with majority write concern.
 func insertEncryptedText(mt *mtest.T, client *mongo.Client, dbName, collName, text string) {
@@ -672,8 +680,20 @@ func insertEncryptedText(mt *mtest.T, client *mongo.Client, dbName, collName, te
 	collOpts := options.Collection().SetWriteConcern(mtest.MajorityWc)
 	coll := client.Database(dbName).Collection(collName, collOpts)
 
-	_, err := coll.InsertOne(context.Background(), bson.D{{Key: "encryptedText", Value: text}})
-	require.Nil(mt, err, "error inserting document into %s.%s: %v", dbName, collName, err)
+	_, err := coll.InsertOne(context.Background(), encryptedTextDoc{ID: bson.NewObjectID(), EncryptedText: text})
+	require.NoError(mt, err, "error inserting document into %s.%s: %v", dbName, collName, err)
+}
+
+// insertEncryptedTextWithNilID inserts { "_id": null, "encryptedText": <text> }
+// into db.<coll> via the given client with majority write concern.
+func insertEncryptedTextWithNilID(mt *mtest.T, client *mongo.Client, dbName, collName, text string) {
+	mt.Helper()
+
+	collOpts := options.Collection().SetWriteConcern(mtest.MajorityWc)
+	coll := client.Database(dbName).Collection(collName, collOpts)
+
+	_, err := coll.InsertOne(context.Background(), encryptedTextDoc{ID: bson.NilObjectID, EncryptedText: text})
+	require.NoError(mt, err, "error inserting document into %s.%s: %v", dbName, collName, err)
 }
 
 // prefixSuffixCollection returns the collection name that cases 1-4 query for
@@ -897,15 +917,15 @@ func setupCSEProse27(mt *mtest.T) *cseProse27Test {
 	// doSetupCSEProse27 registers cleanup for each client as it is created, so a
 	// partial failure still tears down whatever was already connected.
 	test, err := doSetupCSEProse27(mt)
-	require.Nil(mt, err, "failed to set up CSE prose 27: %v", err)
+	require.NoError(mt, err, "failed to set up CSE prose 27: %v", err)
 
 	// Seed the encrypted "foobarbaz" document queried by cases 1-6, inserted
 	// once via the auto-encrypting client. The prefix/suffix document goes into
 	// whichever collection exists for this server version: db.prefix-suffix on
 	// 9.0+ (stable query types) or db.prefix-suffix-preview on pre-9.0 (preview
 	// query types).
-	insertEncryptedText(mt, test.autoEncryptClient, "db", "substring", "foobarbaz")
-	insertEncryptedText(mt, test.autoEncryptClient, "db", prefixSuffixCollection(), "foobarbaz")
+	insertEncryptedTextWithNilID(mt, test.autoEncryptClient, "db", "substring", "foobarbaz")
+	insertEncryptedTextWithNilID(mt, test.autoEncryptClient, "db", prefixSuffixCollection(), "foobarbaz")
 
 	return test
 }

@@ -349,14 +349,14 @@ func (m *MongoCrypt) createExplicitEncryptionContext(opts *options.ExplicitEncry
 
 		mongocryptDoc, err := bsoncore.AppendDocumentEnd(mongocryptDoc, idx)
 		if err != nil {
-			return nil, fmt.Errorf("error building text options doc: %w", err)
+			return nil, fmt.Errorf("error building string options doc: %w", err)
 		}
 
 		mongocryptBinary := newBinaryFromBytes(mongocryptDoc)
 		defer mongocryptBinary.close()
 
 		if ok := C.mongocrypt_ctx_setopt_algorithm_text(ctx.wrapped, mongocryptBinary.wrapped); !ok {
-			return nil, fmt.Errorf("error setting text algorithm option: %w", ctx.createErrorFromStatus())
+			return nil, fmt.Errorf("error setting string algorithm option: %w", ctx.createErrorFromStatus())
 		}
 	}
 
