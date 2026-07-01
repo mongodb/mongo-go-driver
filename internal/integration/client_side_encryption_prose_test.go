@@ -1717,7 +1717,7 @@ func TestClientSideEncryptionProse_12_explicit_encryption(t *testing.T) {
 		defer clientEncryption.Close(context.Background())
 		defer encryptedClient.Disconnect(context.Background())
 
-		coll := encryptedClient.Database("db").Collection("explicit_encryption")
+		coll := encryptedClient.Database("db").Collection("explicit_encryption_c10")
 		valueToEncrypt := "encrypted indexed value"
 		rawVal := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, valueToEncrypt)}
 
