@@ -359,7 +359,7 @@ func runCSEProse27Case7(mt *mtest.T, test *cseProse27Test) {
 	eo := options.Encrypt().
 		SetKeyID(test.key1ID).
 		SetAlgorithm("String").
-		SetQueryType("prefixPreview").
+		SetQueryType("prefix").
 		SetStringOptions(options.String().
 			SetCaseSensitive(true).
 			SetDiacriticSensitive(true).
