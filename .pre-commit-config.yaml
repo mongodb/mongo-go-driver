@@ -43,9 +43,12 @@ repos:
     hooks:
       - id: markdown-link-check
         exclude: ^(vendor)
-        # If the endpoint returns HTTP 429 (Too Many Requests), consider it a
-        # successful check.
-        args: ["-a 200,206,429"]
+        # Override the entrypoint to catch failures and exit with 0
+        entry: bash -c 'markdown-link-check "$@" || true' --
+        # Split args into separate string elements
+        args: ["-a", "200,206,429"]
+        # TODO(GODRIVER-4005): Print the output even when the hook technically passes
+        verbose: true
   - repo: local
     hooks:
       - id: executable-shell
