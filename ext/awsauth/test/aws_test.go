@@ -40,14 +40,18 @@ func (p *trackingCredentialsProvider) Retrieve(ctx context.Context) (struct {
 	return p.inner.Retrieve(ctx)
 }
 
-// TestAWSCustomCredentialProviderAuthenticates is prose test 1:
+// TestAWSDefaultCustomCredentialProviderAuthenticates is prose test 1:
 // "Custom Credential Provider Authenticates" from the MongoDB AWS auth spec.
 // https://github.com/mongodb/specifications/blob/master/source/auth/tests/mongodb-aws.md
 //
 // Uses the AWS SDK default credential chain so all 6 scenarios (Regular, EC2, ECS,
 // AssumeRole, WebIdentity, Lambda) are covered in environments where the SDK can
 // resolve credentials automatically without needing inline credentials in the URI.
-func TestAWSCustomCredentialProviderAuthenticates(t *testing.T) {
+func TestAWSDefaultCustomCredentialProviderAuthenticates(t *testing.T) {
+	if test := os.Getenv("AWS_TEST"); test == "assume-role" || test == "regular" {
+		t.Skipf("Skipping test for %s", test)
+	}
+
 	rawURI := os.Getenv("MONGODB_URI")
 	if rawURI == "" {
 		t.Skip("MONGODB_URI not set")

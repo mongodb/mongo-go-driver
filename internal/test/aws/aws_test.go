@@ -103,6 +103,10 @@ func awsFindOne(t *testing.T, client *mongo.Client) {
 }
 
 func TestAWS(t *testing.T) {
+	if os.Getenv("AWS_TEST") == "" {
+		t.Skip("Skipping test: AWS_TEST environment variable is not set")
+	}
+
 	uri := os.Getenv("MONGODB_URI")
 	if uri == "" {
 		t.Skip("Skipping test: MONGODB_URI environment variable is not set")
@@ -115,12 +119,7 @@ func TestAWS(t *testing.T) {
 		require.NoError(t, err)
 	}()
 
-	coll := client.Database("aws").Collection("test")
-
-	err = coll.FindOne(context.Background(), bson.D{{Key: "x", Value: 1}}).Err()
-	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
-		t.Logf("FindOne error: %v", err)
-	}
+	awsFindOne(t, client)
 }
 
 // Custom Credential Provider Authenticates
@@ -129,6 +128,10 @@ func TestAWS(t *testing.T) {
 // are skipped because a valid custom provider for those environments requires the AWS
 // SDK, which is not available in this module.
 func TestAWSCustomCredentialProviderAuthenticates(t *testing.T) {
+	if os.Getenv("AWS_TEST") == "" {
+		t.Skip("Skipping test: AWS_TEST environment variable is not set")
+	}
+
 	rawURI := os.Getenv("MONGODB_URI")
 	if rawURI == "" {
 		t.Skip("MONGODB_URI not set")
@@ -180,6 +183,10 @@ func TestAWSCustomCredentialProviderAuthenticates(t *testing.T) {
 // Custom Credential Provider Authentication Precedence — Custom Provider Takes
 // Precedence Over Environment Variables
 func TestAWSCustomCredentialProviderPrecedence(t *testing.T) {
+	if os.Getenv("AWS_TEST") == "" {
+		t.Skip("Skipping test: AWS_TEST environment variable is not set")
+	}
+
 	accessKeyID := os.Getenv("AWS_ACCESS_KEY_ID")
 	secretAccessKey := os.Getenv("AWS_SECRET_ACCESS_KEY")
 	if accessKeyID == "" || secretAccessKey == "" {

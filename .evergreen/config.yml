@@ -453,6 +453,8 @@ functions:
       type: test
       params:
         binary: "bash"
+        env:
+          AWS_TEST: ecs
         include_expansions_in_env: [SKIP_ECS_AUTH_TEST]
         args: [*task-runner, evg-test-aws-ecs]
   run-aws-auth-test-with-aws-web-identity-credentials:
