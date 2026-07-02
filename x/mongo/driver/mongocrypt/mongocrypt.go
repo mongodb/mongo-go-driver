@@ -311,52 +311,52 @@ func (m *MongoCrypt) createExplicitEncryptionContext(opts *options.ExplicitEncry
 		}
 	}
 
-	if opts.TextOptions != nil {
+	if opts.StringOptions != nil {
 		idx, mongocryptDoc := bsoncore.AppendDocumentStart(nil)
-		if opts.TextOptions.Substring != nil {
+		if opts.StringOptions.Substring != nil {
 			substringIdx, substringDoc := bsoncore.AppendDocumentStart(nil)
-			substringDoc = bsoncore.AppendInt32Element(substringDoc, "strMaxLength", opts.TextOptions.Substring.StrMaxLength)
-			substringDoc = bsoncore.AppendInt32Element(substringDoc, "strMinQueryLength", opts.TextOptions.Substring.StrMinQueryLength)
-			substringDoc = bsoncore.AppendInt32Element(substringDoc, "strMaxQueryLength", opts.TextOptions.Substring.StrMaxQueryLength)
+			substringDoc = bsoncore.AppendInt32Element(substringDoc, "strMaxLength", opts.StringOptions.Substring.StrMaxLength)
+			substringDoc = bsoncore.AppendInt32Element(substringDoc, "strMinQueryLength", opts.StringOptions.Substring.StrMinQueryLength)
+			substringDoc = bsoncore.AppendInt32Element(substringDoc, "strMaxQueryLength", opts.StringOptions.Substring.StrMaxQueryLength)
 			substringDoc, err := bsoncore.AppendDocumentEnd(substringDoc, substringIdx)
 			if err != nil {
 				return nil, fmt.Errorf("error building substring doc: %w", err)
 			}
 			mongocryptDoc = bsoncore.AppendDocumentElement(mongocryptDoc, "substring", substringDoc)
 		}
-		if opts.TextOptions.Prefix != nil {
+		if opts.StringOptions.Prefix != nil {
 			prefixIdx, prefixDoc := bsoncore.AppendDocumentStart(nil)
-			prefixDoc = bsoncore.AppendInt32Element(prefixDoc, "strMinQueryLength", opts.TextOptions.Prefix.StrMinQueryLength)
-			prefixDoc = bsoncore.AppendInt32Element(prefixDoc, "strMaxQueryLength", opts.TextOptions.Prefix.StrMaxQueryLength)
+			prefixDoc = bsoncore.AppendInt32Element(prefixDoc, "strMinQueryLength", opts.StringOptions.Prefix.StrMinQueryLength)
+			prefixDoc = bsoncore.AppendInt32Element(prefixDoc, "strMaxQueryLength", opts.StringOptions.Prefix.StrMaxQueryLength)
 			prefixDoc, err := bsoncore.AppendDocumentEnd(prefixDoc, prefixIdx)
 			if err != nil {
 				return nil, fmt.Errorf("error building prefix doc: %w", err)
 			}
 			mongocryptDoc = bsoncore.AppendDocumentElement(mongocryptDoc, "prefix", prefixDoc)
 		}
-		if opts.TextOptions.Suffix != nil {
+		if opts.StringOptions.Suffix != nil {
 			suffixIdx, suffixDoc := bsoncore.AppendDocumentStart(nil)
-			suffixDoc = bsoncore.AppendInt32Element(suffixDoc, "strMinQueryLength", opts.TextOptions.Suffix.StrMinQueryLength)
-			suffixDoc = bsoncore.AppendInt32Element(suffixDoc, "strMaxQueryLength", opts.TextOptions.Suffix.StrMaxQueryLength)
+			suffixDoc = bsoncore.AppendInt32Element(suffixDoc, "strMinQueryLength", opts.StringOptions.Suffix.StrMinQueryLength)
+			suffixDoc = bsoncore.AppendInt32Element(suffixDoc, "strMaxQueryLength", opts.StringOptions.Suffix.StrMaxQueryLength)
 			suffixDoc, err := bsoncore.AppendDocumentEnd(suffixDoc, suffixIdx)
 			if err != nil {
 				return nil, fmt.Errorf("error building suffix doc: %w", err)
 			}
 			mongocryptDoc = bsoncore.AppendDocumentElement(mongocryptDoc, "suffix", suffixDoc)
 		}
-		mongocryptDoc = bsoncore.AppendBooleanElement(mongocryptDoc, "caseSensitive", opts.TextOptions.CaseSensitive)
-		mongocryptDoc = bsoncore.AppendBooleanElement(mongocryptDoc, "diacriticSensitive", opts.TextOptions.DiacriticSensitive)
+		mongocryptDoc = bsoncore.AppendBooleanElement(mongocryptDoc, "caseSensitive", opts.StringOptions.CaseSensitive)
+		mongocryptDoc = bsoncore.AppendBooleanElement(mongocryptDoc, "diacriticSensitive", opts.StringOptions.DiacriticSensitive)
 
 		mongocryptDoc, err := bsoncore.AppendDocumentEnd(mongocryptDoc, idx)
 		if err != nil {
-			return nil, fmt.Errorf("error building text options doc: %w", err)
+			return nil, fmt.Errorf("error building string options doc: %w", err)
 		}
 
 		mongocryptBinary := newBinaryFromBytes(mongocryptDoc)
 		defer mongocryptBinary.close()
 
 		if ok := C.mongocrypt_ctx_setopt_algorithm_text(ctx.wrapped, mongocryptBinary.wrapped); !ok {
-			return nil, fmt.Errorf("error setting text algorithm option: %w", ctx.createErrorFromStatus())
+			return nil, fmt.Errorf("error setting string algorithm option: %w", ctx.createErrorFromStatus())
 		}
 	}
 
