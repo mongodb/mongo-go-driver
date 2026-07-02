@@ -80,7 +80,7 @@ func TestClientSideEncryptionProse_27(t *testing.T) {
 	// minimums: server 8.2.0+ and libmongocrypt 1.18.1+. Subtests do not inherit
 	// the suite's version gates (mtest rebuilds baseOpts without them), so
 	// declare the requirement explicitly.
-	substringOpts := newQEOpts().MinServerVersion("8.2").MinLibmongocryptVersion("1.18.1")
+	substringOpts := newQEOpts().MinServerVersion("8.2").MinLibmongocryptVersion("1.18.1").MaxServerVersion("8.99.99")
 
 	mt.RunOpts("case 5: can find a document by substring", substringOpts, func(mt *mtest.T) {
 		runCSEProse27Case5(mt, test)
@@ -104,10 +104,12 @@ func TestClientSideEncryptionProse_27(t *testing.T) {
 	mt.RunOpts("case 9: can find an auto-encrypted diacritic-insensitively indexed document by prefix and suffix", stableStringOpts, func(mt *mtest.T) {
 		runCSEProse27Case9(mt, test)
 	})
-	mt.RunOpts("case 10: can find an auto-encrypted case-insensitively indexed document by substring", substringOpts, func(mt *mtest.T) {
+
+	stableSubstringOpts := newQEOpts().MaxServerVersion("8.99.99").MinLibmongocryptVersion("1.19.0")
+	mt.RunOpts("case 10: can find an auto-encrypted case-insensitively indexed document by substring", stableSubstringOpts, func(mt *mtest.T) {
 		runCSEProse27Case10(mt, test)
 	})
-	mt.RunOpts("case 11: can find an auto-encrypted diacritic-insensitively indexed document by substring", substringOpts, func(mt *mtest.T) {
+	mt.RunOpts("case 11: can find an auto-encrypted diacritic-insensitively indexed document by substring", stableSubstringOpts, func(mt *mtest.T) {
 		runCSEProse27Case11(mt, test)
 	})
 }
@@ -373,8 +375,6 @@ func runCSEProse27Case7(mt *mtest.T, test *cseProse27Test) {
 // document by prefix and suffix.
 //
 // Requires server 9.0+ and libmongocrypt 1.19.0+.
-//
-// TODO(GODRIVER-3943): Add 1.19.0 min guards.
 func runCSEProse27Case8(mt *mtest.T, test *cseProse27Test) {
 	mt.Helper()
 
@@ -462,8 +462,6 @@ func runCSEProse27Case8(mt *mtest.T, test *cseProse27Test) {
 // diacritic-insensitively indexed document by prefix and suffix.
 //
 // Requires server 9.0+ and libmongocrypt 1.19.0+.
-//
-// TODO(GODRIVER-3943): Add 1.19.0 min guards.
 func runCSEProse27Case9(mt *mtest.T, test *cseProse27Test) {
 	mt.Helper()
 
@@ -553,8 +551,6 @@ func runCSEProse27Case9(mt *mtest.T, test *cseProse27Test) {
 // case-insensitively indexed document by substring.
 //
 // Requires libmongocrypt 1.19.0+.
-//
-// TODO(GODRIVER-3943): Add 1.19.0 min guards.
 func runCSEProse27Case10(mt *mtest.T, test *cseProse27Test) {
 	mt.Helper()
 
@@ -610,8 +606,6 @@ func runCSEProse27Case10(mt *mtest.T, test *cseProse27Test) {
 // diacritic-insensitively indexed document by substring.
 //
 // Requires libmongocrypt 1.19.0+.
-//
-// TODO(GODRIVER-3943): Add 1.19.0 min guards.
 func runCSEProse27Case11(mt *mtest.T, test *cseProse27Test) {
 	mt.Helper()
 
@@ -800,8 +794,9 @@ func doSetupCSEProse27(mt *mtest.T) (*cseProse27Test, error) {
 		{"prefix-suffix-ci-di", cfg.encryptedFieldsPrefixSuffixCIDI, "9.0", ""},
 		// The preview prefix/suffix query types are used on pre-9.0 servers.
 		{"prefix-suffix-preview", cfg.encryptedFieldsPrefixSuffixPreview, "", "9.0"},
-		{"substring", cfg.encryptedFieldsSubstring, "", ""},
-		{"substring-ci-di", cfg.encryptedFieldsSubstringCIDI, "", ""},
+
+		{"substring", cfg.encryptedFieldsSubstring, "", "8.99.99"},
+		{"substring-ci-di", cfg.encryptedFieldsSubstringCIDI, "", "8.99.99"},
 	}
 	for _, c := range encryptedColls {
 		// Always drop to ensure a clean state from any previous run.
