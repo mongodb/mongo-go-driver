@@ -982,7 +982,7 @@ func (c *ClientOptions) SetMaxAdaptiveRetries(n uint) *ClientOptions {
 // with a server side overload error. EnableOverloadRetargeting can also be set through the "enableOverloadRetargeting"
 // URI option (e.g. "enableOverloadRetargeting=true").
 //
-// This option works with MongoDB Server Version 9.0 and above.
+// This option works with MongoDB Atlas Server Version 9.0 and above.
 func (c *ClientOptions) SetEnableOverloadRetargeting(b bool) *ClientOptions {
 	c.EnableOverloadRetargeting = &b
 
