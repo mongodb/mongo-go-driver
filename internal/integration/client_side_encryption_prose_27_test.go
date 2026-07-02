@@ -45,7 +45,7 @@ type cseProse27Test struct {
 const cseSpecDataDir = "../../testdata/specifications/source/client-side-encryption/etc/data"
 
 func TestClientSideEncryptionProse_27(t *testing.T) {
-	mt := newCSE_T(t, newQEOpts().MinServerVersion("8.2"))
+	mt := newCSE_T(t, newQEOpts().MinServerVersion("8.2").MinLibmongocryptVersion("1.18.1"))
 	mt.Setup()
 
 	test := setupCSEProse27(mt)
@@ -76,11 +76,9 @@ func TestClientSideEncryptionProse_27(t *testing.T) {
 		runCSEProse27Case4(mt, test)
 	})
 
-	// The substring cases (5, 6, 10, 11) require only the overall case 27
-	// minimums: server 8.2.0+ and libmongocrypt 1.18.1+. Subtests do not inherit
-	// the suite's version gates (mtest rebuilds baseOpts without them), so
-	// declare the requirement explicitly.
-	substringOpts := newQEOpts().MinServerVersion("8.2").MinLibmongocryptVersion("1.18.1").MaxServerVersion("8.99.99")
+	// The substring cases 5 and 6 require only the overall case 27
+	// minimums: server 8.2.0+ and libmongocrypt 1.18.1+.
+	substringOpts := newQEOpts().MaxServerVersion("8.99.99")
 
 	mt.RunOpts("case 5: can find a document by substring", substringOpts, func(mt *mtest.T) {
 		runCSEProse27Case5(mt, test)
