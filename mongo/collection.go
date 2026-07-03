@@ -1290,8 +1290,19 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter any,
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
 		op.rawData = &rawData
 	}
+	// CountDocuments runs an aggregate command, which exposes arbitrary
+	// top-level command fields through CustomOptions rather than a dedicated
+	// additionalCmd builder.
 	if additionalCmd, ok := optionsutil.Value(args.Internal, "addCommandFields").(bson.D); ok {
-		op.additionalCmd = additionalCmd
+		customOptions := make(map[string]bsoncore.Value)
+		for _, elem := range additionalCmd {
+			elemValueBSON, err := marshalValue(elem.Value, coll.bsonOpts, coll.registry)
+			if err != nil {
+				return 0, err
+			}
+			customOptions[elem.Key] = elemValueBSON
+		}
+		op.customOptions = customOptions
 	}
 
 	err = op.execute(ctx)
