@@ -9,8 +9,10 @@ package mongo
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
@@ -38,7 +40,8 @@ type listIndexesOp struct {
 	timeout                   *time.Duration
 	rawData                   *bool
 
-	res driver.CursorResponse
+	res           driver.CursorResponse
+	additionalCmd bson.D
 }
 
 // result returns the result of executing this operation.
@@ -102,5 +105,12 @@ func (li *listIndexesOp) command(dst []byte, desc description.SelectedServer) ([
 		dst = bsoncore.AppendBooleanElement(dst, "rawData", *li.rawData)
 	}
 
+	if len(li.additionalCmd) > 0 {
+		doc, err := bson.Marshal(li.additionalCmd)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling additional command fields: %w", err)
+		}
+		dst = append(dst, doc[4:len(doc)-1]...)
+	}
 	return dst, nil
 }
