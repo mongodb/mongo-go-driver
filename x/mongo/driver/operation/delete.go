@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"time"
 
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
 	"go.mongodb.org/mongo-driver/v2/internal/logger"
@@ -46,6 +47,7 @@ type Delete struct {
 	let                       bsoncore.Document
 	timeout                   *time.Duration
 	rawData                   *bool
+	additionalCmd             bson.D
 	logger                    *logger.Logger
 }
 
@@ -147,6 +149,13 @@ func (d *Delete) command(dst []byte, desc description.SelectedServer) ([]byte, e
 	// Set rawData for 8.2+ servers.
 	if d.rawData != nil && desc.WireVersion != nil && driverutil.VersionRangeIncludes(*desc.WireVersion, 27) {
 		dst = bsoncore.AppendBooleanElement(dst, "rawData", *d.rawData)
+	}
+	if len(d.additionalCmd) > 0 {
+		doc, err := bson.Marshal(d.additionalCmd)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling additional command fields: %w", err)
+		}
+		dst = append(dst, doc[4:len(doc)-1]...)
 	}
 	return dst, nil
 }
@@ -376,5 +385,15 @@ func (d *Delete) RawData(rawData bool) *Delete {
 	}
 
 	d.rawData = &rawData
+	return d
+}
+
+// AdditionalCmd sets additional command fields to be attached.
+func (d *Delete) AdditionalCmd(cmd bson.D) *Delete {
+	if d == nil {
+		d = new(Delete)
+	}
+
+	d.additionalCmd = cmd
 	return d
 }

@@ -9,8 +9,10 @@ package operation
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
@@ -37,6 +39,7 @@ type ListIndexes struct {
 	serverAPI                 *driver.ServerAPIOptions
 	timeout                   *time.Duration
 	rawData                   *bool
+	additionalCmd             bson.D
 
 	result driver.CursorResponse
 }
@@ -105,6 +108,13 @@ func (li *ListIndexes) command(dst []byte, desc description.SelectedServer) ([]b
 	// Set rawData for 8.2+ servers.
 	if li.rawData != nil && desc.WireVersion != nil && driverutil.VersionRangeIncludes(*desc.WireVersion, 27) {
 		dst = bsoncore.AppendBooleanElement(dst, "rawData", *li.rawData)
+	}
+	if len(li.additionalCmd) > 0 {
+		doc, err := bson.Marshal(li.additionalCmd)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling additional command fields: %w", err)
+		}
+		dst = append(dst, doc[4:len(doc)-1]...)
 	}
 
 	return dst, nil
@@ -270,5 +280,15 @@ func (li *ListIndexes) RawData(rawData bool) *ListIndexes {
 	}
 
 	li.rawData = &rawData
+	return li
+}
+
+// AdditionalCmd sets additional command fields to be attached.
+func (li *ListIndexes) AdditionalCmd(d bson.D) *ListIndexes {
+	if li == nil {
+		li = new(ListIndexes)
+	}
+
+	li.additionalCmd = d
 	return li
 }

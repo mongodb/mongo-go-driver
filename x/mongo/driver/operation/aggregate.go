@@ -9,8 +9,10 @@ package operation
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
@@ -53,6 +55,7 @@ type Aggregate struct {
 	timeout                   *time.Duration
 	omitMaxTimeMS             bool
 	rawData                   *bool
+	additionalCmd             bson.D
 
 	result driver.CursorResponse
 }
@@ -160,6 +163,13 @@ func (a *Aggregate) command(dst []byte, desc description.SelectedServer) ([]byte
 	// Set rawData for 8.2+ servers.
 	if a.rawData != nil && desc.WireVersion != nil && driverutil.VersionRangeIncludes(*desc.WireVersion, 27) {
 		dst = bsoncore.AppendBooleanElement(dst, "rawData", *a.rawData)
+	}
+	if len(a.additionalCmd) > 0 {
+		doc, err := bson.Marshal(a.additionalCmd)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling additional command fields: %w", err)
+		}
+		dst = append(dst, doc[4:len(doc)-1]...)
 	}
 	for optionName, optionValue := range a.customOptions {
 		dst = bsoncore.AppendValueElement(dst, optionName, optionValue)
@@ -463,5 +473,15 @@ func (a *Aggregate) RawData(rawData bool) *Aggregate {
 	}
 
 	a.rawData = &rawData
+	return a
+}
+
+// AdditionalCmd sets additional command fields to be attached.
+func (a *Aggregate) AdditionalCmd(d bson.D) *Aggregate {
+	if a == nil {
+		a = new(Aggregate)
+	}
+
+	a.additionalCmd = d
 	return a
 }

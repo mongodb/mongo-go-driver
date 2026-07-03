@@ -216,7 +216,7 @@ func (fam *FindAndModify) command(dst []byte, desc description.SelectedServer) (
 	if len(fam.additionalCmd) > 0 {
 		doc, err := bson.Marshal(fam.additionalCmd)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error marshaling additional command fields: %w", err)
 		}
 		dst = append(dst, doc[4:len(doc)-1]...)
 	}

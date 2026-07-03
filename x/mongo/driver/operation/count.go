@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"time"
 
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
@@ -44,6 +45,7 @@ type Count struct {
 	serverAPI                 *driver.ServerAPIOptions
 	timeout                   *time.Duration
 	rawData                   *bool
+	additionalCmd             bson.D
 }
 
 // CountResult represents a count result returned by the server.
@@ -154,6 +156,13 @@ func (c *Count) command(dst []byte, desc description.SelectedServer) ([]byte, er
 	// Set rawData for 8.2+ servers.
 	if c.rawData != nil && desc.WireVersion != nil && driverutil.VersionRangeIncludes(*desc.WireVersion, 27) {
 		dst = bsoncore.AppendBooleanElement(dst, "rawData", *c.rawData)
+	}
+	if len(c.additionalCmd) > 0 {
+		doc, err := bson.Marshal(c.additionalCmd)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling additional command fields: %w", err)
+		}
+		dst = append(dst, doc[4:len(doc)-1]...)
 	}
 	return dst, nil
 }
@@ -348,5 +357,15 @@ func (c *Count) RawData(rawData bool) *Count {
 	}
 
 	c.rawData = &rawData
+	return c
+}
+
+// AdditionalCmd sets additional command fields to be attached.
+func (c *Count) AdditionalCmd(d bson.D) *Count {
+	if c == nil {
+		c = new(Count)
+	}
+
+	c.additionalCmd = d
 	return c
 }
