@@ -2632,6 +2632,40 @@ func TestAddCommandFields(t *testing.T) {
 			})
 		}
 	})
+	mt.Run("drop", func(mt *mtest.T) {
+		newOpts := func() *options.DropCollectionOptionsBuilder {
+			opts := options.DropCollection()
+			err := xoptions.SetInternalDropCollectionOptions(opts, "addCommandFields", added)
+			require.NoError(mt, err, "unexpected error: %v", err)
+			return opts
+		}
+
+		testCases := []struct {
+			name     string
+			opts     *options.DropCollectionOptionsBuilder
+			expected bson.RawValue
+		}{
+			{"empty", nil, empty},
+			{"set", newOpts(), set},
+		}
+		for _, tc := range testCases {
+			mt.Run(tc.name, func(mt *mtest.T) {
+				initCollection(mt, mt.Coll)
+				mt.ClearEvents()
+
+				var err error
+				if tc.opts == nil {
+					err = mt.Coll.Drop(context.Background())
+				} else {
+					err = mt.Coll.Drop(context.Background(), tc.opts)
+				}
+				require.NoError(mt, err, "Drop error: %v", err)
+				evt := mt.GetStartedEvent()
+				val := evt.Command.Lookup("comment")
+				assert.Equal(mt, tc.expected, val, "expected comment to be %s", tc.expected.String())
+			})
+		}
+	})
 	mt.Run("list indexes", func(mt *mtest.T) {
 		newOpts := func() *options.ListIndexesOptionsBuilder {
 			opts := options.ListIndexes()
