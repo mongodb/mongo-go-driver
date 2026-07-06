@@ -631,6 +631,15 @@ func TestCursor_tailableAwaitData_ShortCircuitingGetMore(t *testing.T) {
 				// Create a find cursor
 				opts := options.ChangeStream().SetMaxAwaitTime(tt.maxAwaitTime)
 
+				// As of 9.0+ on sharded clusters, the config server's cluster time must
+				// be advanced to the mongos cluster time so that a change stream open
+				// doesn't block waiting for it.
+				//
+				// See DRIVERS-3556 / SERVER-129623 for more details.
+				if mtest.ClusterTopologyKind() == mtest.Sharded {
+					require.NoError(mt, mtest.AdvanceConfigClusterTime(context.Background()))
+				}
+
 				ctx, cancel := context.WithTimeout(context.Background(), tt.deadline)
 				defer cancel()
 
