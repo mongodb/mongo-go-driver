@@ -14,11 +14,13 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
@@ -42,6 +44,16 @@ var (
 
 const defaultLocalKeyBase64 = "Mng0NCt4ZHVUYUJCa1kxNkVyNUR1QURhZ2h2UzR2d2RrZzh0cFBwM3R6NmdWMDFBMUN3YkQ5aXRRMkhGRGdQV09wOGVNYUMxT2k3NjZKelhaQmRCZGJkTXVyZG9uSjFk"
 
+type AutoEncryptOpts struct {
+	KmsProviders         kmsProviders             `bson:"kmsProviders"`
+	SchemaMap            map[string]any           `bson:"schemaMap"`
+	KeyVaultNameSpace    string                   `bson:"keyVaultNamespace"`
+	BypassAutoEncryption bool                     `bson:"bypassAutoEncryption"`
+	EncryptedFieldsMap   map[string]any           `bson:"encryptedFieldsMap"`
+	BypassQueryAnalysis  bool                     `bson:"bypassQueryAnalysis"`
+	Extra                map[string]bson.RawValue `bson:",inline"`
+}
+
 type storeEventsAsEntitiesConfig struct {
 	EventListID string   `bson:"id"`
 	Events      []string `bson:"events"`
@@ -61,7 +73,7 @@ type entityOptions struct {
 	ID string `bson:"id"`
 
 	// Options for client entities.
-	AutoEncryptOpts          bson.Raw                      `bson:"autoEncryptOpts"`
+	AutoEncryptOpts          *AutoEncryptOpts              `bson:"autoEncryptOpts"`
 	URIOptions               bson.M                        `bson:"uriOptions"`
 	UseMultipleMongoses      *bool                         `bson:"useMultipleMongoses"`
 	ObserveEvents            []string                      `bson:"observeEvents"`
@@ -192,10 +204,10 @@ func newBackgroundRoutine() *backgroundRoutine {
 }
 
 type clientEncryptionOpts struct {
-	KeyVaultClient    string              `bson:"keyVaultClient"`
-	KeyVaultNamespace string              `bson:"keyVaultNamespace"`
-	KmsProviders      map[string]bson.Raw `bson:"kmsProviders"`
-	KeyExpirationMS   *int64              `bson:"keyExpirationMS"`
+	KeyVaultClient    string       `bson:"keyVaultClient"`
+	KeyVaultNamespace string       `bson:"keyVaultNamespace"`
+	KmsProviders      kmsProviders `bson:"kmsProviders"`
+	KeyExpirationMS   *int64       `bson:"keyExpirationMS"`
 }
 
 // EntityMap is used to store entities during tests. This type enforces uniqueness so no two entities can have the same
@@ -643,121 +655,145 @@ func getKmsCredential(kmsDocument bson.Raw, credentialName string, envVar string
 	return nil, fmt.Errorf("unable to get environment value for %v. Please set the CSFLE environment variable: %v", credentialName, envVar)
 }
 
-func getKmsProvider(key string, opt bson.Raw) (map[string]any, error) {
-	provider := make(map[string]any)
-	switch key {
-	case "aws":
-		accessKeyID := "FLE_AWS_KEY"
-		secretAccessKey := "FLE_AWS_SECRET"
+type kmsProviders map[string]map[string]any
 
-		// replace with temporary access, if sessionToken placeholder exists
-		v, err := getKmsCredential(opt, "sessionToken", "", "$$placeholder")
-		if err != nil {
-			return nil, err
-		}
-		if v == "$$placeholder" {
-			provider["sessionToken"] = os.Getenv("CSFLE_AWS_TEMP_SESSION_TOKEN")
-			accessKeyID = "CSFLE_AWS_TEMP_ACCESS_KEY_ID"
-			secretAccessKey = "CSFLE_AWS_TEMP_SECRET_ACCESS_KEY"
-		} else if v != nil {
-			provider["sessionToken"] = v
-		}
-
-		for _, e := range []struct {
-			key    string
-			envVar string
-		}{
-			{key: "accessKeyId", envVar: accessKeyID},
-			{key: "secretAccessKey", envVar: secretAccessKey},
-		} {
-			v, err = getKmsCredential(opt, e.key, e.envVar, "")
-			if err != nil {
-				return nil, err
-			}
-			if v != nil {
-				provider[e.key] = v
-			}
-		}
-	case "azure":
-		for _, e := range []struct {
-			key    string
-			envVar string
-		}{
-			{key: "tenantId", envVar: "FLE_AZURE_TENANTID"},
-			{key: "clientId", envVar: "FLE_AZURE_CLIENTID"},
-			{key: "clientSecret", envVar: "FLE_AZURE_CLIENTSECRET"},
-		} {
-			v, err := getKmsCredential(opt, e.key, e.envVar, "")
-			if err != nil {
-				return nil, err
-			}
-			if v != nil {
-				provider[e.key] = v
-			}
-		}
-	case "gcp":
-		for _, e := range []struct {
-			key    string
-			envVar string
-		}{
-			{key: "email", envVar: "FLE_GCP_EMAIL"},
-			{key: "privateKey", envVar: "FLE_GCP_PRIVATEKEY"},
-		} {
-			v, err := getKmsCredential(opt, e.key, e.envVar, "")
-			if err != nil {
-				return nil, err
-			}
-			if v != nil {
-				provider[e.key] = v
-			}
-		}
-	case "kmip":
-		v, err := getKmsCredential(opt, "endpoint", "", "localhost:5698")
-		if err != nil {
-			return nil, err
-		}
-		if v != nil {
-			provider["endpoint"] = v
-		}
-	case "local", "local:name2":
-		v, err := getKmsCredential(opt, "key", "", defaultLocalKeyBase64)
-		if err != nil {
-			return nil, err
-		}
-		if v != nil {
-			provider["key"] = v
-		}
-	default:
-		return nil, fmt.Errorf("unrecognized KMS provider: %s", key)
+// Unmarshaling kmsProviders is not necessary for non-CSFLE tests. On master,
+// KMS credentials resolve at entity-creation time, which runs after the
+// runOnRequirements skip gate, so the valid-pass/kmsProviders-* files skip in
+// non-CSFLE builds, which will cause spurious CI failures.
+//
+// At the time of writing this, there is not UTF support for mixed CSE/non-CSE
+// tests.
+func (kp *kmsProviders) UnmarshalBSON(data []byte) error {
+	if !mtest.IsCSFLEEnabled() {
+		return nil
 	}
-	return provider, nil
+
+	if *kp == nil {
+		*kp = make(kmsProviders)
+	}
+
+	els, err := bson.Raw(data).Elements()
+	if err != nil {
+		return err
+	}
+
+	for _, el := range els {
+		provider := make(map[string]any)
+		key := el.Key()
+		base, _, _ := strings.Cut(key, ":")
+		opt := el.Value().Document()
+
+		switch base {
+		case "aws":
+			accessKeyID := "FLE_AWS_KEY"
+			secretAccessKey := "FLE_AWS_SECRET"
+
+			// replace with temporary access, if sessionToken placeholder exists
+			v, err := getKmsCredential(opt, "sessionToken", "", "$$placeholder")
+			if err != nil {
+				return err
+			}
+			if v == "$$placeholder" {
+				provider["sessionToken"] = os.Getenv("CSFLE_AWS_TEMP_SESSION_TOKEN")
+				accessKeyID = "CSFLE_AWS_TEMP_ACCESS_KEY_ID"
+				secretAccessKey = "CSFLE_AWS_TEMP_SECRET_ACCESS_KEY"
+			} else if v != nil {
+				provider["sessionToken"] = v
+			}
+
+			for _, e := range []struct {
+				key    string
+				envVar string
+			}{
+				{key: "accessKeyId", envVar: accessKeyID},
+				{key: "secretAccessKey", envVar: secretAccessKey},
+			} {
+				v, err = getKmsCredential(opt, e.key, e.envVar, "")
+				if err != nil {
+					return err
+				}
+				if v != nil {
+					provider[e.key] = v
+				}
+			}
+		case "azure":
+			for _, e := range []struct {
+				key    string
+				envVar string
+			}{
+				{key: "tenantId", envVar: "FLE_AZURE_TENANTID"},
+				{key: "clientId", envVar: "FLE_AZURE_CLIENTID"},
+				{key: "clientSecret", envVar: "FLE_AZURE_CLIENTSECRET"},
+			} {
+				v, err := getKmsCredential(opt, e.key, e.envVar, "")
+				if err != nil {
+					return err
+				}
+				if v != nil {
+					provider[e.key] = v
+				}
+			}
+		case "gcp":
+			for _, e := range []struct {
+				key    string
+				envVar string
+			}{
+				{key: "email", envVar: "FLE_GCP_EMAIL"},
+				{key: "privateKey", envVar: "FLE_GCP_PRIVATEKEY"},
+			} {
+				v, err := getKmsCredential(opt, e.key, e.envVar, "")
+				if err != nil {
+					return err
+				}
+				if v != nil {
+					provider[e.key] = v
+				}
+			}
+		case "kmip":
+			v, err := getKmsCredential(opt, "endpoint", "", "localhost:5698")
+			if err != nil {
+				return err
+			}
+			if v != nil {
+				provider["endpoint"] = v
+			}
+		case "local":
+			v, err := getKmsCredential(opt, "key", "", defaultLocalKeyBase64)
+			if err != nil {
+				return err
+			}
+			if v != nil {
+				provider["key"] = v
+			}
+		default:
+			return fmt.Errorf("unrecognized KMS provider: %s", key)
+		}
+		(*kp)[key] = provider
+	}
+	return nil
+}
+
+type tlsConfigSetter[T any] interface {
+	SetTLSConfig(map[string]*tls.Config) T
+}
+
+func setKmipTLSConfig[T tlsConfigSetter[T]](bldr T, kmsProviders kmsProviders) (T, error) {
+	if _, ok := kmsProviders["kmip"]; !ok || tlsClientCertificateKeyFile == "" || tlsCAFile == "" {
+		return bldr, nil
+	}
+	cfg, err := options.BuildTLSConfig(map[string]any{
+		"tlsCertificateKeyFile": tlsClientCertificateKeyFile,
+		"tlsCAFile":             tlsCAFile,
+	})
+	if err != nil {
+		return bldr, fmt.Errorf("error constructing tls config: %w", err)
+	}
+	return bldr.SetTLSConfig(map[string]*tls.Config{"kmip": cfg}), nil
 }
 
 func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) error {
-	// Construct KMS providers.
-	kmsProviders := make(map[string]map[string]any)
 	ceo := entityOptions.ClientEncryptionOpts
-	tlsconf := make(map[string]*tls.Config)
-	for key, opt := range ceo.KmsProviders {
-		provider, err := getKmsProvider(key, opt)
-		if err != nil {
-			return err
-		}
-		if len(provider) == 0 {
-			continue
-		}
-		kmsProviders[key] = provider
-		if key == "kmip" && tlsClientCertificateKeyFile != "" && tlsCAFile != "" {
-			cfg, err := options.BuildTLSConfig(map[string]any{
-				"tlsCertificateKeyFile": tlsClientCertificateKeyFile,
-				"tlsCAFile":             tlsCAFile,
-			})
-			if err != nil {
-				return fmt.Errorf("error constructing tls config: %w", err)
-			}
-			tlsconf["kmip"] = cfg
-		}
-	}
 
 	em.keyVaultClientIDs[ceo.KeyVaultClient] = true
 	keyVaultClient, ok := em.clientEntities[ceo.KeyVaultClient]
@@ -767,8 +803,13 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 
 	opts := options.ClientEncryption().
 		SetKeyVaultNamespace(ceo.KeyVaultNamespace).
-		SetTLSConfig(tlsconf).
-		SetKmsProviders(kmsProviders)
+		SetKmsProviders(ceo.KmsProviders)
+
+	opts, err := setKmipTLSConfig(opts, ceo.KmsProviders)
+	if err != nil {
+		return err
+	}
+
 	if ceo.KeyExpirationMS != nil {
 		opts.SetKeyExpiration(time.Duration(*ceo.KeyExpirationMS) * time.Millisecond)
 	}
@@ -779,7 +820,6 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 	}
 
 	em.clientEncryptionEntities[entityOptions.ID] = ce
-
 	return nil
 }
 

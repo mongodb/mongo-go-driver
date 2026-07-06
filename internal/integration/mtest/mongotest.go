@@ -60,23 +60,25 @@ type T struct {
 	*testing.T
 
 	// members for only this T instance
-	createClient      *bool
-	createCollection  *bool
-	runOn             []RunOnBlock
-	mockDeployment    *drivertest.MockDeployment // nil if the test is not being run against a mock
-	mockResponses     []bson.D
-	createdColls      []*Collection // collections created in this test
-	proxyDialer       *proxyDialer
-	dbName, collName  string
-	failPointNames    []string
-	minServerVersion  string
-	maxServerVersion  string
-	validTopologies   []TopologyKind
-	auth              *bool
-	enterprise        *bool
-	ssl               *bool
-	collCreateOpts    *options.CreateCollectionOptionsBuilder
-	requireAPIVersion *bool
+	createClient            *bool
+	createCollection        *bool
+	runOn                   []RunOnBlock
+	mockDeployment          *drivertest.MockDeployment // nil if the test is not being run against a mock
+	mockResponses           []bson.D
+	createdColls            []*Collection // collections created in this test
+	proxyDialer             *proxyDialer
+	dbName, collName        string
+	failPointNames          []string
+	minServerVersion        string
+	maxServerVersion        string
+	minLibmongocryptVersion string
+	maxLibmongocryptVersion string
+	validTopologies         []TopologyKind
+	auth                    *bool
+	enterprise              *bool
+	ssl                     *bool
+	collCreateOpts          *options.CreateCollectionOptionsBuilder
+	requireAPIVersion       *bool
 
 	// options copied to sub-tests
 	clientType               ClientType
@@ -822,6 +824,11 @@ func verifyRunOnBlockConstraint(rob RunOnBlock) error {
 		if err := verifyVersionConstraints("4.2", ""); err != nil {
 			return err
 		}
+		if rob.CSFLE.Options != nil {
+			if err := verifyLibmongocryptVersionConstraints(rob.CSFLE.Options.MinVer, ""); err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil
@@ -831,6 +838,9 @@ func verifyRunOnBlockConstraint(rob RunOnBlock) error {
 func (t *T) verifyConstraints() error {
 	// Check constraints not specified as runOn blocks
 	if err := verifyVersionConstraints(t.minServerVersion, t.maxServerVersion); err != nil {
+		return err
+	}
+	if err := verifyLibmongocryptVersionConstraints(t.minLibmongocryptVersion, t.maxLibmongocryptVersion); err != nil {
 		return err
 	}
 	if err := verifyTopologyConstraints(t.validTopologies); err != nil {

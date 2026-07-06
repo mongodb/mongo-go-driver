@@ -566,6 +566,9 @@ func (cs *ChangeStream) SetBatchSize(size int32) {
 	// Set batch size on the cursor options also so any "resumed" change stream
 	// cursors will pick up the latest batch size setting.
 	cs.cursorOptions.BatchSize = size
+	if cs.cursor == nil {
+		return
+	}
 	cs.cursor.SetBatchSize(size)
 }
 

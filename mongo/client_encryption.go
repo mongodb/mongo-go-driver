@@ -250,29 +250,29 @@ func transformExplicitEncryptionOptions(opts ...options.Lister[options.EncryptOp
 		}
 		transformed.RangeOptions = &transformedRange
 	}
-	if args.TextOptions != nil {
-		textArgs, err := mongoutil.NewOptions[options.TextOptions](args.TextOptions)
+	if args.StringOptions != nil {
+		stringArgs, err := mongoutil.NewOptions[options.StringOptions](args.StringOptions)
 		if err != nil {
 			return nil, err
 		}
 
-		transformedText := mcopts.ExplicitTextOptions{
-			CaseSensitive:      textArgs.CaseSensitive,
-			DiacriticSensitive: textArgs.DiacriticSensitive,
+		transformedString := mcopts.ExplicitStringOptions{
+			CaseSensitive:      stringArgs.CaseSensitive,
+			DiacriticSensitive: stringArgs.DiacriticSensitive,
 		}
-		if textArgs.Substring != nil {
-			substringOpts := mcopts.SubstringOptions(*textArgs.Substring)
-			transformedText.Substring = &substringOpts
+		if stringArgs.Substring != nil {
+			substringOpts := mcopts.SubstringOptions(*stringArgs.Substring)
+			transformedString.Substring = &substringOpts
 		}
-		if textArgs.Prefix != nil {
-			prefixOpts := mcopts.PrefixOptions(*textArgs.Prefix)
-			transformedText.Prefix = &prefixOpts
+		if stringArgs.Prefix != nil {
+			prefixOpts := mcopts.PrefixOptions(*stringArgs.Prefix)
+			transformedString.Prefix = &prefixOpts
 		}
-		if textArgs.Suffix != nil {
-			suffixOpts := mcopts.SuffixOptions(*textArgs.Suffix)
-			transformedText.Suffix = &suffixOpts
+		if stringArgs.Suffix != nil {
+			suffixOpts := mcopts.SuffixOptions(*stringArgs.Suffix)
+			transformedString.Suffix = &suffixOpts
 		}
-		transformed.SetTextOptions(transformedText)
+		transformed.SetStringOptions(transformedString)
 	}
 	return transformed, nil
 }
@@ -462,7 +462,7 @@ func setRewrapManyDataKeyWriteModels(rewrappedDocuments []bsoncore.Document, wri
 
 		idSubtype, idData, ok := id.BinaryOK()
 		if !ok {
-			return fmt.Errorf("expected to assert %q as binary, got type %T", idKey, id)
+			return fmt.Errorf("expected to assert %q as binary, got type %s", idKey, id.Type)
 		}
 		binaryID := bson.Binary{Subtype: idSubtype, Data: idData}
 

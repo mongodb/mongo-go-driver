@@ -13,6 +13,9 @@ import (
 )
 
 // ClusterClock represents a logical clock for keeping track of cluster time.
+//
+// Deprecated: For internal use only, do not use. May be changed or removed in
+// any release.
 type ClusterClock struct {
 	clusterTime bson.Raw
 	lock        sync.Mutex

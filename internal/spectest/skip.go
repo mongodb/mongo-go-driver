@@ -143,6 +143,12 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/crud/tests/unified/bulkWrite-updateMany-hint-unacknowledged.json/Unacknowledged_updateMany_with_hint_document_on_4.2+_server",
 		"TestUnifiedSpec/crud/tests/unified/bulkWrite-updateOne-hint-unacknowledged.json/Unacknowledged_updateOne_with_hint_string_on_4.2+_server",
 		"TestUnifiedSpec/crud/tests/unified/bulkWrite-updateOne-hint-unacknowledged.json/Unacknowledged_updateOne_with_hint_document_on_4.2+_server",
+		"TestUnifiedSpec/crud/tests/unified/findOneAndDelete-hint-unacknowledged.json/Unacknowledged_findOneAndDelete_with_hint_string_on_4.4+_server",
+		"TestUnifiedSpec/crud/tests/unified/findOneAndDelete-hint-unacknowledged.json/Unacknowledged_findOneAndDelete_with_hint_document_on_4.4+_server",
+		"TestUnifiedSpec/crud/tests/unified/findOneAndReplace-hint-unacknowledged.json/Unacknowledged_findOneAndReplace_with_hint_string_on_4.4+_server",
+		"TestUnifiedSpec/crud/tests/unified/findOneAndReplace-hint-unacknowledged.json/Unacknowledged_findOneAndReplace_with_hint_document_on_4.4+_server",
+		"TestUnifiedSpec/crud/tests/unified/findOneAndUpdate-hint-unacknowledged.json/Unacknowledged_findOneAndUpdate_with_hint_string_on_4.4+_server",
+		"TestUnifiedSpec/crud/tests/unified/findOneAndUpdate-hint-unacknowledged.json/Unacknowledged_findOneAndUpdate_with_hint_document_on_4.4+_server",
 	},
 
 	// TODO(GODRIVER-3407): Allow drivers to set bypassDocumentValidation: false
@@ -162,12 +168,6 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/crud/tests/unified/deleteMany-hint-unacknowledged.json/Unacknowledged_deleteMany_with_hint_document_on_4.4+_server",
 		"TestUnifiedSpec/crud/tests/unified/deleteOne-hint-unacknowledged.json/Unacknowledged_deleteOne_with_hint_string_on_4.4+_server",
 		"TestUnifiedSpec/crud/tests/unified/deleteOne-hint-unacknowledged.json/Unacknowledged_deleteOne_with_hint_document_on_4.4+_server",
-		"TestUnifiedSpec/crud/tests/unified/findOneAndDelete-hint-unacknowledged.json/Unacknowledged_findOneAndDelete_with_hint_string_on_4.4+_server",
-		"TestUnifiedSpec/crud/tests/unified/findOneAndDelete-hint-unacknowledged.json/Unacknowledged_findOneAndDelete_with_hint_document_on_4.4+_server",
-		"TestUnifiedSpec/crud/tests/unified/findOneAndReplace-hint-unacknowledged.json/Unacknowledged_findOneAndReplace_with_hint_string_on_4.4+_server",
-		"TestUnifiedSpec/crud/tests/unified/findOneAndReplace-hint-unacknowledged.json/Unacknowledged_findOneAndReplace_with_hint_document_on_4.4+_server",
-		"TestUnifiedSpec/crud/tests/unified/findOneAndUpdate-hint-unacknowledged.json/Unacknowledged_findOneAndUpdate_with_hint_string_on_4.4+_server",
-		"TestUnifiedSpec/crud/tests/unified/findOneAndUpdate-hint-unacknowledged.json/Unacknowledged_findOneAndUpdate_with_hint_document_on_4.4+_server",
 		"TestUnifiedSpec/crud/tests/unified/replaceOne-hint-unacknowledged.json/Unacknowledged_replaceOne_with_hint_string_on_4.2+_server",
 		"TestUnifiedSpec/crud/tests/unified/replaceOne-hint-unacknowledged.json/Unacknowledged_replaceOne_with_hint_document_on_4.2+_server",
 		"TestUnifiedSpec/crud/tests/unified/updateMany-hint-unacknowledged.json/Unacknowledged_updateMany_with_hint_string_on_4.2+_server",
@@ -714,6 +714,8 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/transactions-convenient-api/tests/unified/callback-aborts.json/withTransaction_still_succeeds_if_callback_aborts_and_runs_extra_op",
 		"TestUnifiedSpec/transactions-convenient-api/tests/unified/callback-commits.json/withTransaction_succeeds_if_callback_commits",
 		"TestUnifiedSpec/transactions-convenient-api/tests/unified/callback-commits.json/withTransaction_still_succeeds_if_callback_commits_and_runs_extra_op",
+		"TestUnifiedSpec/transactions-convenient-api/tests/unified/commit.json/withTransaction_commits_after_callback_returns",
+		"TestUnifiedSpec/transactions-convenient-api/tests/unified/commit.json/withTransaction_commits_after_callback_returns_(second_transaction)",
 	},
 
 	"Address CSOT Compliance Issue in Timeout Handling for Cursor Constructors (GODRIVER-3480)": {
@@ -784,12 +786,6 @@ var skipTests = map[string][]string{
 		"TestUnifiedSpec/transactions/tests/unified/error-labels.json/add_UnknownTransactionCommitResult_label_to_MaxTimeMSExpired",
 		"TestUnifiedSpec/transactions/tests/unified/error-labels.json/do_not_add_UnknownTransactionCommitResult_label_to_MaxTimeMSExpired_inside_transactions",
 		"TestUnifiedSpec/transactions/tests/unified/error-labels.json/add_UnknownTransactionCommitResult_label_to_writeConcernError_MaxTimeMSExpired",
-	},
-
-	// TODO(GODRIVER-3813): Allow keyAltName in encryptedFieldsMap
-	"Allow keyAltName in encryptedFieldsMap": {
-		"TestUnifiedSpec/client-side-encryption/tests/unified/fle2v2-InsertFind-keyAltName.json/Insert_and_find_FLE2_indexed_field",
-		"TestUnifiedSpec/client-side-encryption/tests/unified/fle2v2-InsertFind-keyAltName.json/Create_translates_keyAltName",
 	},
 
 	// GODRIVER-2348(Deprecated): The CSOT specification has deprecated wtimeout
