@@ -1026,6 +1026,27 @@ var skipTests = map[string][]skipCase{
 			},
 		},
 	},
+	// TODO(GODRIVER-4011): Add unified test runner option to advance config
+	// server cluster time before opening change streams. These tests fail in 9.0+
+	// because the config server cluster time is not advanced before opening a
+	// change stream, which causes the change stream to fail with an error
+	// indicating that the cluster time is too old. This only applies to tests
+	// that start a change stream on a 9.0+ sharded cluster with a timeoutMS less
+	// than or equal to periodicNoopIntervalMS, which is 1 second on mongo
+	// orchestration.
+	//
+	// See DRIVERS-3556 / SERVER-129623  for more details.
+	"Add unified test runner option to advance config server cluster time before opening change streams (GODRIVER-4011)": {
+		{
+			tests: []string{
+				"TestUnifiedSpec/client-side-operations-timeout/tests/override-operation-timeoutMS.json/timeoutMS_can_be_configured_for_an_operation_-_createChangeStream_on_client",
+				"TestUnifiedSpec/client-side-operations-timeout/tests/override-operation-timeoutMS.json/timeoutMS_can_be_configured_for_an_operation_-_createChangeStream_on_database",
+				"TestUnifiedSpec/client-side-operations-timeout/tests/override-operation-timeoutMS.json/timeoutMS_can_be_configured_for_an_operation_-_createChangeStream_on_collection",
+			},
+			topologies:       []string{"sharded"},
+			minServerVersion: "9.0",
+		},
+	},
 }
 
 type options struct {
