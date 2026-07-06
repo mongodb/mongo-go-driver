@@ -591,6 +591,9 @@ func (coll *Collection) delete(
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
 		op = op.RawData(rawData)
 	}
+	if additionalCmd, ok := optionsutil.Value(args.Internal, "addCommandFields").(bson.D); ok {
+		op = op.AdditionalCmd(additionalCmd)
+	}
 
 	rr, err := processWriteError(op.Execute(ctx))
 	if rr&expectedRr == 0 {
@@ -1214,6 +1217,20 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter any,
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
 		op = op.RawData(rawData)
 	}
+	// CountDocuments runs an aggregate command, which exposes arbitrary
+	// top-level command fields through CustomOptions rather than a dedicated
+	// additionalCmd builder.
+	if additionalCmd, ok := optionsutil.Value(args.Internal, "addCommandFields").(bson.D); ok {
+		customOptions := make(map[string]bsoncore.Value)
+		for _, elem := range additionalCmd {
+			elemValueBSON, err := marshalValue(elem.Value, coll.bsonOpts, coll.registry)
+			if err != nil {
+				return 0, err
+			}
+			customOptions[elem.Key] = elemValueBSON
+		}
+		op.CustomOptions(customOptions)
+	}
 
 	err = op.Execute(ctx)
 	if err != nil {
@@ -1301,6 +1318,9 @@ func (coll *Collection) EstimatedDocumentCount(
 	}
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
 		op = op.RawData(rawData)
+	}
+	if additionalCmd, ok := optionsutil.Value(args.Internal, "addCommandFields").(bson.D); ok {
+		op = op.AdditionalCmd(additionalCmd)
 	}
 
 	err = op.Execute(ctx)
@@ -1396,6 +1416,9 @@ func (coll *Collection) Distinct(
 	}
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
 		op = op.RawData(rawData)
+	}
+	if additionalCmd, ok := optionsutil.Value(args.Internal, "addCommandFields").(bson.D); ok {
+		op = op.AdditionalCmd(additionalCmd)
 	}
 
 	err = op.Execute(ctx)
@@ -1605,6 +1628,9 @@ func (coll *Collection) find(
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
 		op = op.RawData(rawData)
 	}
+	if additionalCmd, ok := optionsutil.Value(args.Internal, "addCommandFields").(bson.D); ok {
+		op = op.AdditionalCmd(additionalCmd)
+	}
 
 	if err = op.Execute(ctx); err != nil {
 		return nil, wrapErrors(err)
@@ -1804,6 +1830,9 @@ func (coll *Collection) FindOneAndDelete(
 	}
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
 		op = op.RawData(rawData)
+	}
+	if additionalCmd, ok := optionsutil.Value(args.Internal, "addCommandFields").(bson.D); ok {
+		op = op.AdditionalCmd(additionalCmd)
 	}
 
 	return coll.findAndModify(ctx, op)
@@ -2081,6 +2110,11 @@ func (coll *Collection) Drop(ctx context.Context, opts ...options.Lister[options
 
 	ef := args.EncryptedFields
 
+	var additionalCmd bson.D
+	if cmd, ok := optionsutil.Value(args.Internal, "addCommandFields").(bson.D); ok {
+		additionalCmd = cmd
+	}
+
 	if ef == nil {
 		ef = coll.db.getEncryptedFieldsFromMap(coll.name)
 	}
@@ -2093,14 +2127,17 @@ func (coll *Collection) Drop(ctx context.Context, opts ...options.Lister[options
 	}
 
 	if ef != nil {
-		return coll.dropEncryptedCollection(ctx, ef)
+		return coll.dropEncryptedCollection(ctx, ef, additionalCmd)
 	}
 
-	return coll.drop(ctx)
+	return coll.drop(ctx, additionalCmd)
 }
 
 // dropEncryptedCollection drops a collection with EncryptedFields.
-func (coll *Collection) dropEncryptedCollection(ctx context.Context, ef any) error {
+//
+// additionalCmd is applied only to the drop of the data collection, not to the
+// associated encryption state collections.
+func (coll *Collection) dropEncryptedCollection(ctx context.Context, ef any, additionalCmd bson.D) error {
 	efBSON, err := marshal(ef, coll.bsonOpts, coll.registry)
 	if err != nil {
 		return fmt.Errorf("error transforming document: %w", err)
@@ -2112,7 +2149,7 @@ func (coll *Collection) dropEncryptedCollection(ctx context.Context, ef any) err
 	if err != nil {
 		return err
 	}
-	if err := coll.db.Collection(escCollection).drop(ctx); err != nil {
+	if err := coll.db.Collection(escCollection).drop(ctx, nil); err != nil {
 		return err
 	}
 
@@ -2121,16 +2158,16 @@ func (coll *Collection) dropEncryptedCollection(ctx context.Context, ef any) err
 	if err != nil {
 		return err
 	}
-	if err := coll.db.Collection(ecocCollection).drop(ctx); err != nil {
+	if err := coll.db.Collection(ecocCollection).drop(ctx, nil); err != nil {
 		return err
 	}
 
 	// Drop the data collection.
-	return coll.drop(ctx)
+	return coll.drop(ctx, additionalCmd)
 }
 
 // drop drops a collection without EncryptedFields.
-func (coll *Collection) drop(ctx context.Context) error {
+func (coll *Collection) drop(ctx context.Context, additionalCmd bson.D) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -2163,6 +2200,9 @@ func (coll *Collection) drop(ctx context.Context) error {
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).
 		ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).
 		Authenticator(coll.client.authenticator)
+	if len(additionalCmd) > 0 {
+		op = op.AdditionalCmd(additionalCmd)
+	}
 	err = op.Execute(ctx)
 
 	// ignore namespace not found errors

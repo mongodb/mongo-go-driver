@@ -9,8 +9,10 @@ package operation
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
@@ -46,6 +48,7 @@ type Distinct struct {
 	serverAPI                 *driver.ServerAPIOptions
 	timeout                   *time.Duration
 	rawData                   *bool
+	additionalCmd             bson.D
 }
 
 // DistinctResult represents a distinct result returned by the server.
@@ -137,6 +140,13 @@ func (d *Distinct) command(dst []byte, desc description.SelectedServer) ([]byte,
 	// Set rawData for 8.2+ servers.
 	if d.rawData != nil && desc.WireVersion != nil && driverutil.VersionRangeIncludes(*desc.WireVersion, 27) {
 		dst = bsoncore.AppendBooleanElement(dst, "rawData", *d.rawData)
+	}
+	if len(d.additionalCmd) > 0 {
+		doc, err := bson.Marshal(d.additionalCmd)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling additional command fields: %w", err)
+		}
+		dst = append(dst, doc[4:len(doc)-1]...)
 	}
 	return dst, nil
 }
@@ -361,5 +371,15 @@ func (d *Distinct) RawData(rawData bool) *Distinct {
 	}
 
 	d.rawData = &rawData
+	return d
+}
+
+// AdditionalCmd sets additional command fields to be attached.
+func (d *Distinct) AdditionalCmd(cmd bson.D) *Distinct {
+	if d == nil {
+		d = new(Distinct)
+	}
+
+	d.additionalCmd = cmd
 	return d
 }

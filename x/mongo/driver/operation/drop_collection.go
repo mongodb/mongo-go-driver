@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"time"
 
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
@@ -36,6 +37,7 @@ type DropCollection struct {
 	result        DropCollectionResult
 	serverAPI     *driver.ServerAPIOptions
 	timeout       *time.Duration
+	additionalCmd bson.D
 }
 
 // DropCollectionResult represents a dropCollection result returned by the server.
@@ -112,7 +114,26 @@ func (dc *DropCollection) Execute(ctx context.Context) error {
 
 func (dc *DropCollection) command(dst []byte, _ description.SelectedServer) ([]byte, error) {
 	dst = bsoncore.AppendStringElement(dst, "drop", dc.collection)
+
+	if len(dc.additionalCmd) > 0 {
+		doc, err := bson.Marshal(dc.additionalCmd)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling additional command fields: %w", err)
+		}
+		dst = append(dst, doc[4:len(doc)-1]...)
+	}
+
 	return dst, nil
+}
+
+// AdditionalCmd sets additional command fields to be attached.
+func (dc *DropCollection) AdditionalCmd(d bson.D) *DropCollection {
+	if dc == nil {
+		dc = new(DropCollection)
+	}
+
+	dc.additionalCmd = d
+	return dc
 }
 
 // Session sets the session for this operation.

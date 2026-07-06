@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"time"
 
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
@@ -40,6 +41,7 @@ type DropIndexes struct {
 	serverAPI                 *driver.ServerAPIOptions
 	timeout                   *time.Duration
 	rawData                   *bool
+	additionalCmd             bson.D
 }
 
 // DropIndexesResult represents a dropIndexes result returned by the server.
@@ -123,6 +125,13 @@ func (di *DropIndexes) command(dst []byte, desc description.SelectedServer) ([]b
 	// Set rawData for 8.2+ servers.
 	if di.rawData != nil && desc.WireVersion != nil && driverutil.VersionRangeIncludes(*desc.WireVersion, 27) {
 		dst = bsoncore.AppendBooleanElement(dst, "rawData", *di.rawData)
+	}
+	if len(di.additionalCmd) > 0 {
+		doc, err := bson.Marshal(di.additionalCmd)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling additional command fields: %w", err)
+		}
+		dst = append(dst, doc[4:len(doc)-1]...)
 	}
 
 	return dst, nil
@@ -287,5 +296,15 @@ func (di *DropIndexes) RawData(rawData bool) *DropIndexes {
 	}
 
 	di.rawData = &rawData
+	return di
+}
+
+// AdditionalCmd sets additional command fields to be attached.
+func (di *DropIndexes) AdditionalCmd(d bson.D) *DropIndexes {
+	if di == nil {
+		di = new(DropIndexes)
+	}
+
+	di.additionalCmd = d
 	return di
 }

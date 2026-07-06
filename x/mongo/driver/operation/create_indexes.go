@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"time"
 
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
@@ -41,6 +42,7 @@ type CreateIndexes struct {
 	serverAPI                 *driver.ServerAPIOptions
 	timeout                   *time.Duration
 	rawData                   *bool
+	additionalCmd             bson.D
 }
 
 // CreateIndexesResult represents a createIndexes result returned by the server.
@@ -141,6 +143,13 @@ func (ci *CreateIndexes) command(dst []byte, desc description.SelectedServer) ([
 	// Set rawData for 8.2+ servers.
 	if ci.rawData != nil && desc.WireVersion != nil && driverutil.VersionRangeIncludes(*desc.WireVersion, 27) {
 		dst = bsoncore.AppendBooleanElement(dst, "rawData", *ci.rawData)
+	}
+	if len(ci.additionalCmd) > 0 {
+		doc, err := bson.Marshal(ci.additionalCmd)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling additional command fields: %w", err)
+		}
+		dst = append(dst, doc[4:len(doc)-1]...)
 	}
 	return dst, nil
 }
@@ -316,5 +325,15 @@ func (ci *CreateIndexes) RawData(rawData bool) *CreateIndexes {
 	}
 
 	ci.rawData = &rawData
+	return ci
+}
+
+// AdditionalCmd sets additional command fields to be attached.
+func (ci *CreateIndexes) AdditionalCmd(d bson.D) *CreateIndexes {
+	if ci == nil {
+		ci = new(CreateIndexes)
+	}
+
+	ci.additionalCmd = d
 	return ci
 }
