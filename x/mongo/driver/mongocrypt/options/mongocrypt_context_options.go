@@ -34,7 +34,7 @@ type ExplicitEncryptionOptions struct {
 	QueryType        string
 	ContentionFactor *int64
 	RangeOptions     *ExplicitRangeOptions
-	StringOptions    *ExplicitStringOptions
+	TextOptions      *ExplicitTextOptions
 }
 
 // ExplicitRangeOptions specifies options for the range index.
@@ -46,8 +46,8 @@ type ExplicitRangeOptions struct {
 	Precision  *int32
 }
 
-// ExplicitStringOptions specifies options for the string query.
-type ExplicitStringOptions struct {
+// ExplicitTextOptions specifies options for the text query.
+type ExplicitTextOptions struct {
 	Substring          *SubstringOptions
 	Prefix             *PrefixOptions
 	Suffix             *SuffixOptions
@@ -115,9 +115,9 @@ func (eeo *ExplicitEncryptionOptions) SetRangeOptions(ro ExplicitRangeOptions) *
 	return eeo
 }
 
-// SetStringOptions specifies the string options.
-func (eeo *ExplicitEncryptionOptions) SetStringOptions(to ExplicitStringOptions) *ExplicitEncryptionOptions {
-	eeo.StringOptions = &to
+// SetTextOptions specifies the text options.
+func (eeo *ExplicitEncryptionOptions) SetTextOptions(to ExplicitTextOptions) *ExplicitEncryptionOptions {
+	eeo.TextOptions = &to
 	return eeo
 }
 

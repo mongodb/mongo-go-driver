@@ -3,7 +3,7 @@
 # This script installs libmongocrypt into an "install" directory.
 set -eux
 
-LIBMONGOCRYPT_TAG="1.19.1"
+LIBMONGOCRYPT_TAG="1.19.0"
 
 # Install libmongocrypt based on OS.
 if [ "Windows_NT" = "${OS:-}" ]; then

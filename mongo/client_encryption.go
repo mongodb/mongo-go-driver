@@ -245,29 +245,29 @@ func transformExplicitEncryptionOptions(opts ...options.Lister[options.EncryptOp
 		}
 		transformed.RangeOptions = &transformedRange
 	}
-	if args.StringOptions != nil {
-		stringArgs, err := mongoutil.NewOptions[options.StringOptions](args.StringOptions)
+	if args.TextOptions != nil {
+		textArgs, err := mongoutil.NewOptions[options.TextOptions](args.TextOptions)
 		if err != nil {
 			return nil, err
 		}
 
-		transformedString := mcopts.ExplicitStringOptions{
-			CaseSensitive:      stringArgs.CaseSensitive,
-			DiacriticSensitive: stringArgs.DiacriticSensitive,
+		transformedText := mcopts.ExplicitTextOptions{
+			CaseSensitive:      textArgs.CaseSensitive,
+			DiacriticSensitive: textArgs.DiacriticSensitive,
 		}
-		if stringArgs.Substring != nil {
-			substringOpts := mcopts.SubstringOptions(*stringArgs.Substring)
-			transformedString.Substring = &substringOpts
+		if textArgs.Substring != nil {
+			substringOpts := mcopts.SubstringOptions(*textArgs.Substring)
+			transformedText.Substring = &substringOpts
 		}
-		if stringArgs.Prefix != nil {
-			prefixOpts := mcopts.PrefixOptions(*stringArgs.Prefix)
-			transformedString.Prefix = &prefixOpts
+		if textArgs.Prefix != nil {
+			prefixOpts := mcopts.PrefixOptions(*textArgs.Prefix)
+			transformedText.Prefix = &prefixOpts
 		}
-		if stringArgs.Suffix != nil {
-			suffixOpts := mcopts.SuffixOptions(*stringArgs.Suffix)
-			transformedString.Suffix = &suffixOpts
+		if textArgs.Suffix != nil {
+			suffixOpts := mcopts.SuffixOptions(*textArgs.Suffix)
+			transformedText.Suffix = &suffixOpts
 		}
-		transformed.SetStringOptions(transformedString)
+		transformed.SetTextOptions(transformedText)
 	}
 	return transformed, nil
 }
