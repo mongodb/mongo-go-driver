@@ -125,7 +125,10 @@ func AdvanceConfigClusterTime(ctx context.Context) error {
 	}
 	configHost, _, _ := strings.Cut(hosts, ",")
 
-	clientOpts := options.Client().ApplyURI(fmt.Sprintf("mongodb://%s/?directConnection=true", configHost))
+	clientOpts := options.Client().
+		ApplyURI(ClusterURI()).
+		SetHosts([]string{configHost}).
+		SetDirect(true)
 	integtest.AddTestServerAPIVersion(clientOpts)
 
 	cfgClient, err := mongo.Connect(clientOpts)
