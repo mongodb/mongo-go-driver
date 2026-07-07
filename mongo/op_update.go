@@ -25,8 +25,8 @@ import (
 
 var errUnacknowledgedHint = errors.New("the 'hint' command parameter cannot be used with unacknowledged writes")
 
-// update performs an update operation.
-type update struct {
+// updateOp performs an update operation.
+type updateOp struct {
 	authenticator             driver.Authenticator
 	bypassDocumentValidation  *bool
 	comment                   bsoncore.Value
@@ -116,9 +116,9 @@ func buildUpdateResult(response bsoncore.Document) (updateResult, error) {
 }
 
 // Result returns the result of executing this operation.
-func (u *update) Result() updateResult { return u.result }
+func (u *updateOp) Result() updateResult { return u.result }
 
-func (u *update) processResponse(_ context.Context, resp bsoncore.Document, info driver.ResponseInfo) error {
+func (u *updateOp) processResponse(_ context.Context, resp bsoncore.Document, info driver.ResponseInfo) error {
 	ur, err := buildUpdateResult(resp)
 
 	u.result.N += ur.N
@@ -133,7 +133,7 @@ func (u *update) processResponse(_ context.Context, resp bsoncore.Document, info
 }
 
 // Execute runs this operation and returns an error if the operation did not execute successfully.
-func (u *update) Execute(ctx context.Context) error {
+func (u *updateOp) Execute(ctx context.Context) error {
 	if u.deployment == nil {
 		return errors.New("the update operation must have a Deployment set before Execute can be called")
 	}
@@ -168,7 +168,7 @@ func (u *update) Execute(ctx context.Context) error {
 	}.Execute(ctx)
 }
 
-func (u *update) command(dst []byte, desc description.SelectedServer) ([]byte, error) {
+func (u *updateOp) command(dst []byte, desc description.SelectedServer) ([]byte, error) {
 	dst = bsoncore.AppendStringElement(dst, "update", u.collection)
 	if u.bypassDocumentValidation != nil &&
 		(desc.WireVersion != nil && driverutil.VersionRangeIncludes(*desc.WireVersion, 4)) {

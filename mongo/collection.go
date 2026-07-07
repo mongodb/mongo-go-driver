@@ -658,7 +658,7 @@ func (coll *Collection) DeleteMany(
 func (coll *Collection) updateOrReplace(
 	ctx context.Context,
 	filter bsoncore.Document,
-	updateMod any,
+	update any,
 	multi bool,
 	expectedRr returnResult,
 	checkDollarKey bool,
@@ -673,7 +673,7 @@ func (coll *Collection) updateOrReplace(
 	// command
 	updateDoc, err := updateDoc{
 		filter:         filter,
-		update:         updateMod,
+		update:         update,
 		hint:           args.Hint,
 		sort:           sort,
 		arrayFilters:   args.ArrayFilters,
@@ -718,7 +718,7 @@ func (coll *Collection) updateOrReplace(
 	ordered := true
 	hint := args.Hint != nil
 	arrayFilters := args.ArrayFilters != nil
-	op := update{
+	op := updateOp{
 		updates:                   []bsoncore.Document{updateDoc},
 		session:                   sess,
 		writeConcern:              wc,

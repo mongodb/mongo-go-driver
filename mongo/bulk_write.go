@@ -420,7 +420,7 @@ func (bw *bulkWrite) runUpdate(ctx context.Context, batch bulkWriteBatch) (updat
 
 	maxAdaptiveRetries := bw.collection.client.effectiveAdaptiveRetries(bw.collection.client.retryWrites)
 
-	op := update{
+	op := updateOp{
 		updates:                   docs,
 		session:                   bw.session,
 		writeConcern:              bw.writeConcern,
