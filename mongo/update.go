@@ -94,10 +94,9 @@ func buildUpdateResult(response bsoncore.Document) (updateResult, error) {
 				return ur, fmt.Errorf("response field 'upserted' is type array, but received BSON type %s", element.Value().Type)
 			}
 
-			var values []bsoncore.Value
-			values, err = arr.Values()
+			values, err := arr.Values()
 			if err != nil {
-				break
+				return ur, err
 			}
 
 			for _, val := range values {
