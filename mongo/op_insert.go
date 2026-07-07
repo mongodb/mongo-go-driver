@@ -23,8 +23,8 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
-// insert performs an insert operation.
-type insert struct {
+// insertOp performs an insert operation.
+type insertOp struct {
 	authenticator             driver.Authenticator
 	bypassDocumentValidation  *bool
 	comment                   bsoncore.Value
@@ -75,16 +75,16 @@ func buildInsertResult(response bsoncore.Document) (insertResult, error) {
 }
 
 // Result returns the result of executing this operation.
-func (i *insert) Result() insertResult { return i.result }
+func (i *insertOp) Result() insertResult { return i.result }
 
-func (i *insert) processResponse(_ context.Context, resp bsoncore.Document, _ driver.ResponseInfo) error {
+func (i *insertOp) processResponse(_ context.Context, resp bsoncore.Document, _ driver.ResponseInfo) error {
 	ir, err := buildInsertResult(resp)
 	i.result.N += ir.N
 	return err
 }
 
 // Execute runs this operations and returns an error if the operation did not execute successfully.
-func (i *insert) Execute(ctx context.Context) error {
+func (i *insertOp) Execute(ctx context.Context) error {
 	if i.deployment == nil {
 		return errors.New("the Insert operation must have a Deployment set before Execute can be called")
 	}
@@ -119,7 +119,7 @@ func (i *insert) Execute(ctx context.Context) error {
 	}.Execute(ctx)
 }
 
-func (i *insert) command(dst []byte, desc description.SelectedServer) ([]byte, error) {
+func (i *insertOp) command(dst []byte, desc description.SelectedServer) ([]byte, error) {
 	dst = bsoncore.AppendStringElement(dst, "insert", i.collection)
 	if i.bypassDocumentValidation != nil && (desc.WireVersion != nil &&
 		driverutil.VersionRangeIncludes(*desc.WireVersion, 4)) {

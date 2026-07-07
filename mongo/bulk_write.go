@@ -186,7 +186,7 @@ func (bw *bulkWrite) runInsert(ctx context.Context, batch bulkWriteBatch) (inser
 
 	maxAdaptiveRetries := bw.collection.client.effectiveAdaptiveRetries(bw.collection.client.retryWrites)
 
-	op := insert{
+	op := insertOp{
 		documents:     docs,
 		session:       bw.session,
 		writeConcern:  bw.writeConcern,
