@@ -123,7 +123,7 @@ func TestClientSideEncryptionProse_27(t *testing.T) {
 		runCSEProse27Case9(mt, test)
 	})
 
-	stableSubstringOpts := newQEOpts().MinServerVersion("9.0").MinLibmongocryptVersion("1.18.1")
+	stableSubstringOpts := newQEOpts().MinServerVersion("9.0").MinLibmongocryptVersion("1.20.0")
 	mt.RunOpts("case 10: can find an auto-encrypted case-insensitively indexed document by substring", stableSubstringOpts, func(mt *mtest.T) {
 		runCSEProse27Case10(mt, test)
 	})
