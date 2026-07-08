@@ -1632,6 +1632,7 @@ func TestClientSideEncryptionProse_12_explicit_encryption(t *testing.T) {
 
 	// Test Setup ... begin
 	encryptedFields := readJSONFile(mt, "encrypted-fields.json")
+	encryptedFieldsC10 := readJSONFile(mt, "encryptedFields-c10.json")
 	key1Document := readJSONFile(mt, "key1-document.json")
 	var key1ID bson.Binary
 	{
@@ -1641,9 +1642,19 @@ func TestClientSideEncryptionProse_12_explicit_encryption(t *testing.T) {
 
 	testSetup := func() (*mongo.Client, *mongo.ClientEncryption) {
 		mtest.DropEncryptedCollection(mt, mt.Client.Database("db").Collection("explicit_encryption"), encryptedFields)
-		cco := options.CreateCollection().SetEncryptedFields(encryptedFields)
-		err := mt.Client.Database("db").CreateCollection(context.Background(), "explicit_encryption", cco)
+		err := mt.Client.Database("db").CreateCollection(
+			context.Background(),
+			"explicit_encryption",
+			options.CreateCollection().SetEncryptedFields(encryptedFields))
 		assert.Nil(mt, err, "error on CreateCollection: %v", err)
+
+		mtest.DropEncryptedCollection(mt, mt.Client.Database("db").Collection("explicit_encryption_c10"), encryptedFieldsC10)
+		err = mt.Client.Database("db").CreateCollection(
+			context.Background(),
+			"explicit_encryption_c10",
+			options.CreateCollection().SetEncryptedFields(encryptedFieldsC10))
+		assert.Nil(mt, err, "error on CreateCollection: %v", err)
+
 		err = mt.Client.Database("keyvault").Collection("datakeys").Drop(context.Background())
 		assert.Nil(mt, err, "error on Drop: %v", err)
 		opts := options.Client().ApplyURI(mtest.ClusterURI())
@@ -1702,20 +1713,11 @@ func TestClientSideEncryptionProse_12_explicit_encryption(t *testing.T) {
 		assert.Equal(mt, gotValue.StringValue(), valueToEncrypt, "expected %q, got %q", valueToEncrypt, gotValue.StringValue())
 	})
 	mt.Run("case 2: can insert encrypted indexed and find with non-zero contention", func(mt *mtest.T) {
-		// TODO(GODRIVER-3961): The latest server (SERVER-91887) enforces that the
-		// explicit-encryption contentionFactor must match the collection's
-		// configured contention. This test inserts with contentionFactor 10 but
-		// the collection is configured with contention 0, and finds with both
-		// contentionFactor 0 and 10, which is unsatisfiable under the new
-		// enforcement. Skip until the prose test and encrypted-fields contention
-		// config are synced with the DRIVERS-3547 spec update.
-		mt.Skip("skipping pending GODRIVER-3961: QE contention enforcement (SERVER-91887)")
-
 		encryptedClient, clientEncryption := testSetup()
 		defer clientEncryption.Close(context.Background())
 		defer encryptedClient.Disconnect(context.Background())
 
-		coll := encryptedClient.Database("db").Collection("explicit_encryption")
+		coll := encryptedClient.Database("db").Collection("explicit_encryption_c10")
 		valueToEncrypt := "encrypted indexed value"
 		rawVal := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, valueToEncrypt)}
 
@@ -3129,353 +3131,6 @@ func TestClientSideEncryptionProse_24_kmw_retry_tests(t *testing.T) {
 			require.ErrorContains(mt, err, "KMS request failed after 3 retries due to a network error")
 		})
 	}
-}
-
-func TestClientSideEncryptionProse_27_text_explicit_encryption(t *testing.T) {
-	mt := newCSE_T(t, newQEOpts().MinServerVersion("8.2"))
-	mt.Setup()
-
-	// TODO(GODRIVER-3863): This test exercises the preview QE text query types
-	// ("TextPreview" algorithm, "prefixPreview"/"suffixPreview" query types),
-	// which libmongocrypt 1.19.0 removed in favor of the stable "String"
-	// algorithm and "prefix"/"suffix" query types (DRIVERS-3321). Now that the
-	// driver requires libmongocrypt 1.19.0+, these preview names no longer
-	// resolve on any server version, so the test cannot pass. Skip until it is
-	// migrated to the stable names and the prose-27 sub-test pattern in
-	// TestClientSideEncryptionProse_27.
-	mt.Skip("TODO(GODRIVER-3863): preview QE text query types removed in libmongocrypt 1.19.0; pending migration to stable names")
-
-	key1Document := readJSONFile(mt, "key1-document.json")
-	subtype, data := key1Document.Lookup("_id").Binary()
-	key1ID := bson.Binary{Subtype: subtype, Data: data}
-
-	encryptedColls := []struct {
-		name     string
-		fields   bson.Raw
-		textOpts *options.TextOptionsBuilder
-	}{
-		{
-			name:   "prefix-suffix",
-			fields: readJSONFile(mt, "encryptedFields-prefix-suffix.json"),
-			textOpts: options.Text().
-				SetCaseSensitive(true).
-				SetDiacriticSensitive(true).
-				SetPrefix(options.PrefixOptions{
-					StrMaxQueryLength: 10,
-					StrMinQueryLength: 2,
-				}).
-				SetSuffix(options.SuffixOptions{
-					StrMaxQueryLength: 10,
-					StrMinQueryLength: 2,
-				}),
-		},
-		{
-			name:   "substring",
-			fields: readJSONFile(mt, "encryptedFields-substring.json"),
-			textOpts: options.Text().
-				SetCaseSensitive(true).
-				SetDiacriticSensitive(true).
-				SetSubstring(options.SubstringOptions{
-					StrMaxLength:      10,
-					StrMaxQueryLength: 10,
-					StrMinQueryLength: 2,
-				}),
-		},
-	}
-
-	testSetup := func() (*mongo.Client, *mongo.ClientEncryption) {
-		var setupColls []struct {
-			collection string
-			opts       *options.EncryptOptionsBuilder
-		}
-		for _, coll := range encryptedColls {
-			mtest.DropEncryptedCollection(mt, mt.Client.Database("db").Collection(coll.name), coll.fields)
-			if coll.name == "prefix-suffix" && mtest.CompareServerVersions(mtest.ServerVersion(), "9.0.0") >= 0 {
-				continue
-			}
-			cco := options.CreateCollection().SetEncryptedFields(coll.fields)
-			err := mt.Client.Database("db").CreateCollection(context.Background(), coll.name, cco)
-			require.NoError(mt, err, "error on CreateCollection: %v", err)
-			setupColls = append(setupColls, struct {
-				collection string
-				opts       *options.EncryptOptionsBuilder
-			}{
-				collection: coll.name,
-				opts: options.Encrypt().
-					SetKeyID(key1ID).
-					SetAlgorithm("TextPreview").
-					SetContentionFactor(0).
-					SetTextOptions(coll.textOpts),
-			})
-		}
-		err := mt.Client.Database("keyvault").Collection("datakeys").Drop(context.Background())
-		require.NoError(mt, err, "error on Drop: %v", err)
-		opts := options.Client().ApplyURI(mtest.ClusterURI())
-		integtest.AddTestServerAPIVersion(opts)
-		keyVaultClient, err := mongo.Connect(opts)
-		require.NoError(mt, err, "error on Connect: %v", err)
-		datakeysColl := keyVaultClient.Database("keyvault").Collection("datakeys", options.Collection().SetWriteConcern(mtest.MajorityWc))
-		_, err = datakeysColl.InsertOne(context.Background(), key1Document)
-		require.NoError(mt, err, "error on InsertOne: %v", err)
-		kmsProvidersMap := map[string]map[string]any{
-			"local": {"key": localMasterKey},
-		}
-		// Create a ClientEncryption.
-		ceo := options.ClientEncryption().
-			SetKeyVaultNamespace("keyvault.datakeys").
-			SetKmsProviders(kmsProvidersMap)
-		clientEncryption, err := mongo.NewClientEncryption(keyVaultClient, ceo)
-		require.NoError(mt, err, "error on NewClientEncryption: %v", err)
-
-		// Create a MongoClient with AutoEncryptionOpts and bypassQueryAnalysis=true.
-		aeo := options.AutoEncryption().
-			SetKeyVaultNamespace("keyvault.datakeys").
-			SetKmsProviders(kmsProvidersMap).
-			SetBypassQueryAnalysis(true)
-		co := options.Client().SetAutoEncryptionOptions(aeo).ApplyURI(mtest.ClusterURI())
-		integtest.AddTestServerAPIVersion(co)
-		encryptedClient, err := mongo.Connect(co)
-		require.NoError(mt, err, "error on Connect: %v", err)
-
-		foobarbaz := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "foobarbaz")}
-		for _, c := range setupColls {
-			coll := encryptedClient.Database("db").Collection(c.collection, options.Collection().SetWriteConcern(mtest.MajorityWc))
-			insertPayload, err := clientEncryption.Encrypt(context.Background(), foobarbaz, c.opts)
-			require.NoError(mt, err, "error in Encrypt: %v", err)
-			_, err = coll.InsertOne(context.Background(), bson.D{{"_id", 0}, {"encryptedText", insertPayload}})
-			require.NoError(mt, err, "error in InsertOne: %v", err)
-		}
-
-		return encryptedClient, clientEncryption
-	}
-
-	foo := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "foo")}
-	bar := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "bar")}
-	baz := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "baz")}
-
-	mt.RunOpts("Case 1: can find a document by prefix", mtest.NewOptions().MaxServerVersion("8.99.99"), func(mt *mtest.T) {
-		encryptedClient, clientEncryption := testSetup()
-		defer clientEncryption.Close(context.Background())
-		defer encryptedClient.Disconnect(context.Background())
-
-		eo := options.Encrypt().
-			SetKeyID(key1ID).
-			SetAlgorithm("TextPreview").
-			SetQueryType("prefixPreview").
-			SetContentionFactor(0).
-			SetTextOptions(options.Text().
-				SetCaseSensitive(true).
-				SetDiacriticSensitive(true).
-				SetPrefix(options.PrefixOptions{
-					StrMaxQueryLength: 10,
-					StrMinQueryLength: 2,
-				}))
-		payload, err := clientEncryption.Encrypt(context.Background(), foo, eo)
-		require.NoError(mt, err, "error in Encrypt: %v", err)
-		coll := encryptedClient.Database("db").Collection("prefix-suffix")
-		res := coll.FindOne(context.Background(), bson.D{
-			{"$expr", bson.D{
-				{"$encStrStartsWith", bson.D{
-					{"input", "$encryptedText"},
-					{"prefix", payload},
-				}},
-			}},
-		})
-		var got struct {
-			Id            int    `bson:"_id"`
-			EncryptedText string `bson:"encryptedText"`
-		}
-		err = res.Decode(&got)
-		require.NoError(mt, err, "error decoding result: %v", err)
-		require.Equal(mt, 0, got.Id)
-		require.Equal(mt, "foobarbaz", got.EncryptedText)
-	})
-	mt.RunOpts("Case 2: find a document by suffix", mtest.NewOptions().MaxServerVersion("8.99.99"), func(mt *mtest.T) {
-		encryptedClient, clientEncryption := testSetup()
-		defer clientEncryption.Close(context.Background())
-		defer encryptedClient.Disconnect(context.Background())
-
-		eo := options.Encrypt().
-			SetKeyID(key1ID).
-			SetAlgorithm("TextPreview").
-			SetQueryType("suffixPreview").
-			SetContentionFactor(0).
-			SetTextOptions(options.Text().
-				SetCaseSensitive(true).
-				SetDiacriticSensitive(true).
-				SetSuffix(options.SuffixOptions{
-					StrMaxQueryLength: 10,
-					StrMinQueryLength: 2,
-				}))
-		payload, err := clientEncryption.Encrypt(context.Background(), baz, eo)
-		require.NoError(mt, err, "error in Encrypt: %v", err)
-		coll := encryptedClient.Database("db").Collection("prefix-suffix")
-		res := coll.FindOne(context.Background(), bson.D{
-			{"$expr", bson.D{
-				{"$encStrEndsWith", bson.D{
-					{"input", "$encryptedText"},
-					{"suffix", payload},
-				}},
-			}},
-		})
-		var got struct {
-			Id            int    `bson:"_id"`
-			EncryptedText string `bson:"encryptedText"`
-		}
-		err = res.Decode(&got)
-		require.NoError(mt, err, "error decoding result: %v", err)
-		require.Equal(mt, 0, got.Id)
-		require.Equal(mt, "foobarbaz", got.EncryptedText)
-	})
-	mt.RunOpts("Case 3: assert no document found by prefix", mtest.NewOptions().MaxServerVersion("8.99.99"), func(mt *mtest.T) {
-		encryptedClient, clientEncryption := testSetup()
-		defer clientEncryption.Close(context.Background())
-		defer encryptedClient.Disconnect(context.Background())
-
-		eo := options.Encrypt().
-			SetKeyID(key1ID).
-			SetAlgorithm("TextPreview").
-			SetQueryType("prefixPreview").
-			SetContentionFactor(0).
-			SetTextOptions(options.Text().
-				SetCaseSensitive(true).
-				SetDiacriticSensitive(true).
-				SetPrefix(options.PrefixOptions{
-					StrMaxQueryLength: 10,
-					StrMinQueryLength: 2,
-				}))
-		payload, err := clientEncryption.Encrypt(context.Background(), baz, eo)
-		require.NoError(mt, err, "error in Encrypt: %v", err)
-		coll := encryptedClient.Database("db").Collection("prefix-suffix")
-		_, err = coll.FindOne(context.Background(), bson.D{
-			{"$expr", bson.D{
-				{"$encStrStartsWith", bson.D{
-					{"input", "$encryptedText"},
-					{"prefix", payload},
-				}},
-			}},
-		}).Raw()
-		assert.ErrorIs(mt, err, mongo.ErrNoDocuments)
-	})
-	mt.RunOpts("Case 4: assert no document found by suffix", mtest.NewOptions().MaxServerVersion("8.99.99"), func(mt *mtest.T) {
-		encryptedClient, clientEncryption := testSetup()
-		defer clientEncryption.Close(context.Background())
-		defer encryptedClient.Disconnect(context.Background())
-
-		eo := options.Encrypt().
-			SetKeyID(key1ID).
-			SetAlgorithm("TextPreview").
-			SetQueryType("suffixPreview").
-			SetContentionFactor(0).
-			SetTextOptions(options.Text().
-				SetCaseSensitive(true).
-				SetDiacriticSensitive(true).
-				SetSuffix(options.SuffixOptions{
-					StrMaxQueryLength: 10,
-					StrMinQueryLength: 2,
-				}))
-		payload, err := clientEncryption.Encrypt(context.Background(), foo, eo)
-		require.NoError(mt, err, "error in Encrypt: %v", err)
-		coll := encryptedClient.Database("db").Collection("prefix-suffix")
-		_, err = coll.FindOne(context.Background(), bson.D{
-			{"$expr", bson.D{
-				{"$encStrEndsWith", bson.D{
-					{"input", "$encryptedText"},
-					{"suffix", payload},
-				}},
-			}},
-		}).Raw()
-		assert.ErrorIs(mt, err, mongo.ErrNoDocuments)
-	})
-	mt.Run("Case 5: can find a document by substring", func(mt *mtest.T) {
-		encryptedClient, clientEncryption := testSetup()
-		defer clientEncryption.Close(context.Background())
-		defer encryptedClient.Disconnect(context.Background())
-
-		eo := options.Encrypt().
-			SetKeyID(key1ID).
-			SetAlgorithm("TextPreview").
-			SetQueryType("substringPreview").
-			SetContentionFactor(0).
-			SetTextOptions(options.Text().
-				SetCaseSensitive(true).
-				SetDiacriticSensitive(true).
-				SetSubstring(options.SubstringOptions{
-					StrMaxLength:      10,
-					StrMaxQueryLength: 10,
-					StrMinQueryLength: 2,
-				}))
-		payload, err := clientEncryption.Encrypt(context.Background(), bar, eo)
-		require.NoError(mt, err, "error in Encrypt: %v", err)
-		coll := encryptedClient.Database("db").Collection("substring")
-		res := coll.FindOne(context.Background(), bson.D{
-			{"$expr", bson.D{
-				{"$encStrContains", bson.D{
-					{"input", "$encryptedText"},
-					{"substring", payload},
-				}},
-			}},
-		})
-		var got struct {
-			Id            int    `bson:"_id"`
-			EncryptedText string `bson:"encryptedText"`
-		}
-		err = res.Decode(&got)
-		require.NoError(mt, err, "error decoding result: %v", err)
-		require.Equal(mt, 0, got.Id)
-		require.Equal(mt, "foobarbaz", got.EncryptedText)
-	})
-	mt.Run("Case 6: assert no document found by substring", func(mt *mtest.T) {
-		encryptedClient, clientEncryption := testSetup()
-		defer clientEncryption.Close(context.Background())
-		defer encryptedClient.Disconnect(context.Background())
-
-		qux := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "qux")}
-		eo := options.Encrypt().
-			SetKeyID(key1ID).
-			SetAlgorithm("TextPreview").
-			SetQueryType("substringPreview").
-			SetContentionFactor(0).
-			SetTextOptions(options.Text().
-				SetCaseSensitive(true).
-				SetDiacriticSensitive(true).
-				SetSubstring(options.SubstringOptions{
-					StrMaxLength:      10,
-					StrMaxQueryLength: 10,
-					StrMinQueryLength: 2,
-				}))
-		payload, err := clientEncryption.Encrypt(context.Background(), qux, eo)
-		require.NoError(mt, err, "error in Encrypt: %v", err)
-		coll := encryptedClient.Database("db").Collection("substring")
-		_, err = coll.FindOne(context.Background(), bson.D{
-			{"$expr", bson.D{
-				{"$encStrContains", bson.D{
-					{"input", "$encryptedText"},
-					{"substring", payload},
-				}},
-			}},
-		}).Raw()
-		assert.ErrorIs(mt, err, mongo.ErrNoDocuments)
-	})
-	mt.RunOpts("Case 7: assert contentionFactor is required", mtest.NewOptions().MaxServerVersion("8.99.99"), func(mt *mtest.T) {
-		encryptedClient, clientEncryption := testSetup()
-		defer clientEncryption.Close(context.Background())
-		defer encryptedClient.Disconnect(context.Background())
-
-		eo := options.Encrypt().
-			SetKeyID(key1ID).
-			SetAlgorithm("TextPreview").
-			SetQueryType("prefixPreview").
-			SetTextOptions(options.Text().
-				SetCaseSensitive(true).
-				SetDiacriticSensitive(true).
-				SetPrefix(options.PrefixOptions{
-					StrMaxQueryLength: 10,
-					StrMinQueryLength: 2,
-				}))
-		_, err := clientEncryption.Encrypt(context.Background(), baz, eo)
-		require.ErrorContains(mt, err, "contention factor is required for textPreview algorithm")
-	})
 }
 
 func TestChangeStreams(t *testing.T) {

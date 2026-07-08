@@ -331,3 +331,19 @@ func (op *Options) AllowFailPointsOnSharded() *Options {
 	})
 	return op
 }
+
+// MinLibmongocryptVersion specifies the minimum libmongocrypt version required for the test to run.
+func (op *Options) MinLibmongocryptVersion(version string) *Options {
+	op.optFuncs = append(op.optFuncs, func(t *T) {
+		t.minLibmongocryptVersion = version
+	})
+	return op
+}
+
+// MaxLibmongocryptVersion specifies the maximum libmongocrypt version allowed for the test to run.
+func (op *Options) MaxLibmongocryptVersion(version string) *Options {
+	op.optFuncs = append(op.optFuncs, func(t *T) {
+		t.maxLibmongocryptVersion = version
+	})
+	return op
+}

@@ -855,3 +855,15 @@ func Empty(t TestingT, object interface{}, msgAndArgs ...interface{}) {
 	}
 	t.FailNow()
 }
+
+// ErrorIs asserts that at least one of the errors in err's chain matches target.
+// This is a wrapper for errors.Is.
+func ErrorIs(t TestingT, err error, target error, msgAndArgs ...interface{}) {
+	if h, ok := t.(tHelper); ok {
+		h.Helper()
+	}
+	if assert.ErrorIs(t, err, target, msgAndArgs...) {
+		return
+	}
+	t.FailNow()
+}
