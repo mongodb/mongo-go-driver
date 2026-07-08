@@ -109,7 +109,7 @@ func TestClientSideEncryptionProse_27(t *testing.T) {
 		runCSEProse27Case9(mt, test)
 	})
 
-	stableSubstringOpts := newQEOpts().MaxServerVersion("8.99.99").MinLibmongocryptVersion("1.19.0")
+	stableSubstringOpts := newQEOpts().MinServerVersion("9.0").MinLibmongocryptVersion("1.18.1")
 	mt.RunOpts("case 10: can find an auto-encrypted case-insensitively indexed document by substring", stableSubstringOpts, func(mt *mtest.T) {
 		runCSEProse27Case10(mt, test)
 	})
@@ -553,8 +553,6 @@ func runCSEProse27Case9(mt *mtest.T, test *cseProse27Test) {
 
 // runCSEProse27Case10 ensures that we can find an auto-encrypted
 // case-insensitively indexed document by substring.
-//
-// Requires libmongocrypt 1.19.0+.
 func runCSEProse27Case10(mt *mtest.T, test *cseProse27Test) {
 	mt.Helper()
 
@@ -571,12 +569,12 @@ func runCSEProse27Case10(mt *mtest.T, test *cseProse27Test) {
 	encryptOpts := options.Encrypt().
 		SetKeyID(test.key1ID).
 		SetAlgorithm("String").
-		SetQueryType("substringPreview").
+		SetQueryType("substring").
 		SetContentionFactor(0).
 		SetStringOptions(options.String().
 			SetCaseSensitive(false).
 			SetDiacriticSensitive(false).
-			SetSubstring(options.SubstringOptions{StrMaxLength: 10, StrMinQueryLength: 2, StrMaxQueryLength: 10}))
+			SetSubstring(options.SubstringOptions{StrMaxLength: 10, StrMinQueryLength: 2, StrMaxQueryLength: 6}))
 
 	barPlaintextSearchToken := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "bar")}
 
@@ -626,12 +624,12 @@ func runCSEProse27Case11(mt *mtest.T, test *cseProse27Test) {
 	encryptOpts := options.Encrypt().
 		SetKeyID(test.key1ID).
 		SetAlgorithm("String").
-		SetQueryType("substringPreview").
+		SetQueryType("substring").
 		SetContentionFactor(0).
 		SetStringOptions(options.String().
 			SetCaseSensitive(false).
 			SetDiacriticSensitive(false).
-			SetSubstring(options.SubstringOptions{StrMaxLength: 10, StrMinQueryLength: 2, StrMaxQueryLength: 10}))
+			SetSubstring(options.SubstringOptions{StrMaxLength: 10, StrMinQueryLength: 2, StrMaxQueryLength: 6}))
 
 	cafePlaintextSearchToken := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "cafe")}
 
