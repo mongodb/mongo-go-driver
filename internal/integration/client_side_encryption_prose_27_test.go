@@ -62,19 +62,33 @@ func TestClientSideEncryptionProse_27(t *testing.T) {
 	// These tests are gated on libmongocrypt 1.19.1 so that the preview path is
 	// valid wherever it runs; on a 9.0+ server this is stricter than the spec's
 	// 1.19.0 minimum for the stable path.
-	prefixSuffixOpts := newQEOpts().MinLibmongocryptVersion("1.19.1")
+	prefixSuffixPreviewOpts := newQEOpts().MinServerVersion("8.2").MaxServerVersion("8.99.99").MinLibmongocryptVersion("1.19.1")
 
-	mt.RunOpts("case 1: can find a document by prefix", prefixSuffixOpts, func(mt *mtest.T) {
-		runCSEProse27Case1(mt, test)
+	mt.RunOpts("case 1 (prefixPreview): can find a document by prefix", prefixSuffixPreviewOpts, func(mt *mtest.T) {
+		runCSEProse27Case1(mt, test, "prefixPreview")
 	})
-	mt.RunOpts("case 2: can find a document by suffix", prefixSuffixOpts, func(mt *mtest.T) {
-		runCSEProse27Case2(mt, test)
+	mt.RunOpts("case 2 (suffixPreview): can find a document by suffix", prefixSuffixPreviewOpts, func(mt *mtest.T) {
+		runCSEProse27Case2(mt, test, "suffixPreview")
 	})
-	mt.RunOpts("case 3: assert no document found by prefix", prefixSuffixOpts, func(mt *mtest.T) {
-		runCSEProse27Case3(mt, test)
+	mt.RunOpts("case 3 (prefixPreview): assert no document found by prefix", prefixSuffixPreviewOpts, func(mt *mtest.T) {
+		runCSEProse27Case3(mt, test, "prefixPreview")
 	})
-	mt.RunOpts("case 4: assert no document found by suffix", prefixSuffixOpts, func(mt *mtest.T) {
-		runCSEProse27Case4(mt, test)
+	mt.RunOpts("case 4 (suffixPreview): assert no document found by suffix", prefixSuffixPreviewOpts, func(mt *mtest.T) {
+		runCSEProse27Case4(mt, test, "suffixPreview")
+	})
+
+	prefixSuffixOpts := newQEOpts().MinServerVersion("9.0").MinLibmongocryptVersion("1.19.0")
+	mt.RunOpts("case 1 (prefix): can find a document by prefix", prefixSuffixOpts, func(mt *mtest.T) {
+		runCSEProse27Case1(mt, test, "prefix")
+	})
+	mt.RunOpts("case 2 (suffix): can find a document by suffix", prefixSuffixOpts, func(mt *mtest.T) {
+		runCSEProse27Case2(mt, test, "suffix")
+	})
+	mt.RunOpts("case 3 (prefix): assert no document found by prefix", prefixSuffixOpts, func(mt *mtest.T) {
+		runCSEProse27Case3(mt, test, "prefix")
+	})
+	mt.RunOpts("case 4 (suffix): assert no document found by suffix", prefixSuffixOpts, func(mt *mtest.T) {
+		runCSEProse27Case4(mt, test, "suffix")
 	})
 
 	substringPreviewOpts := newQEOpts().MinServerVersion("8.2").MaxServerVersion("8.99.99").MinLibmongocryptVersion("1.18.1")
@@ -123,7 +137,7 @@ func TestClientSideEncryptionProse_27(t *testing.T) {
 // =============================================================================
 
 // runCSEProse27Case1 ensures that we can find a document by prefix.
-func runCSEProse27Case1(mt *mtest.T, test *cseProse27Test) {
+func runCSEProse27Case1(mt *mtest.T, test *cseProse27Test, queryType string) {
 	mt.Helper()
 
 	// Step 1. Use clientEncryption.encrypt() to encrypt "foo" with prefix query
@@ -131,14 +145,13 @@ func runCSEProse27Case1(mt *mtest.T, test *cseProse27Test) {
 	foo := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "foo")}
 	eo := options.Encrypt().
 		SetKeyID(test.key1ID).
+		SetQueryType(queryType).
 		SetAlgorithm("String").
 		SetContentionFactor(0).
 		SetStringOptions(options.String().
 			SetCaseSensitive(true).
 			SetDiacriticSensitive(true).
 			SetPrefix(options.PrefixOptions{StrMaxQueryLength: 10, StrMinQueryLength: 2}))
-
-	eo = setPrefixQueryTypeForVersion(eo)
 
 	payload, err := test.clientEncryption.Encrypt(context.Background(), foo, eo)
 	require.NoError(mt, err, "error in Encrypt: %v", err)
@@ -164,7 +177,7 @@ func runCSEProse27Case1(mt *mtest.T, test *cseProse27Test) {
 }
 
 // runCSEProse27Case2 ensures that we can find a document by suffix.
-func runCSEProse27Case2(mt *mtest.T, test *cseProse27Test) {
+func runCSEProse27Case2(mt *mtest.T, test *cseProse27Test, queryType string) {
 	mt.Helper()
 
 	// Step 1. Use clientEncryption.encrypt() to encrypt "baz" with suffix query
@@ -172,14 +185,13 @@ func runCSEProse27Case2(mt *mtest.T, test *cseProse27Test) {
 	baz := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "baz")}
 	eo := options.Encrypt().
 		SetKeyID(test.key1ID).
+		SetQueryType(queryType).
 		SetAlgorithm("String").
 		SetContentionFactor(0).
 		SetStringOptions(options.String().
 			SetCaseSensitive(true).
 			SetDiacriticSensitive(true).
 			SetSuffix(options.SuffixOptions{StrMaxQueryLength: 10, StrMinQueryLength: 2}))
-
-	eo = setSuffixQueryTypeForVersion(eo)
 
 	payload, err := test.clientEncryption.Encrypt(context.Background(), baz, eo)
 	require.NoError(mt, err, "error in Encrypt: %v", err)
@@ -205,7 +217,7 @@ func runCSEProse27Case2(mt *mtest.T, test *cseProse27Test) {
 }
 
 // runCSEProse27Case3 asserts that no document is found by prefix.
-func runCSEProse27Case3(mt *mtest.T, test *cseProse27Test) {
+func runCSEProse27Case3(mt *mtest.T, test *cseProse27Test, queryType string) {
 	mt.Helper()
 
 	// Step 1. Use clientEncryption.encrypt() to encrypt "baz" with prefix query
@@ -213,14 +225,13 @@ func runCSEProse27Case3(mt *mtest.T, test *cseProse27Test) {
 	baz := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "baz")}
 	eo := options.Encrypt().
 		SetKeyID(test.key1ID).
+		SetQueryType(queryType).
 		SetAlgorithm("String").
 		SetContentionFactor(0).
 		SetStringOptions(options.String().
 			SetCaseSensitive(true).
 			SetDiacriticSensitive(true).
 			SetPrefix(options.PrefixOptions{StrMaxQueryLength: 10, StrMinQueryLength: 2}))
-
-	eo = setPrefixQueryTypeForVersion(eo)
 
 	payload, err := test.clientEncryption.Encrypt(context.Background(), baz, eo)
 	require.NoError(mt, err, "error in Encrypt: %v", err)
@@ -242,7 +253,7 @@ func runCSEProse27Case3(mt *mtest.T, test *cseProse27Test) {
 }
 
 // runCSEProse27Case4 asserts that no document is found by suffix.
-func runCSEProse27Case4(mt *mtest.T, test *cseProse27Test) {
+func runCSEProse27Case4(mt *mtest.T, test *cseProse27Test, queryType string) {
 	mt.Helper()
 
 	// Step 1. Use clientEncryption.encrypt() to encrypt "foo" with suffix query
@@ -250,14 +261,13 @@ func runCSEProse27Case4(mt *mtest.T, test *cseProse27Test) {
 	foo := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "foo")}
 	eo := options.Encrypt().
 		SetKeyID(test.key1ID).
+		SetQueryType(queryType).
 		SetAlgorithm("String").
 		SetContentionFactor(0).
 		SetStringOptions(options.String().
 			SetCaseSensitive(true).
 			SetDiacriticSensitive(true).
 			SetSuffix(options.SuffixOptions{StrMaxQueryLength: 10, StrMinQueryLength: 2}))
-
-	eo = setSuffixQueryTypeForVersion(eo)
 
 	payload, err := test.clientEncryption.Encrypt(context.Background(), foo, eo)
 	require.NoError(mt, err, "error in Encrypt: %v", err)
@@ -714,30 +724,6 @@ func substringCollection() string {
 		return "substring-preview"
 	}
 	return "substring"
-}
-
-// setPrefixQueryTypeForVersion returns an EncryptOptionsBuilder with the query
-// type set to:
-//
-//   - prefixPreview for server versions < 9.0
-//   - prefix for server versions >= 9.0
-func setPrefixQueryTypeForVersion(opts *options.EncryptOptionsBuilder) *options.EncryptOptionsBuilder {
-	if mtest.CompareServerVersions(mtest.ServerVersion(), "9.0") < 0 {
-		return opts.SetQueryType("prefixPreview")
-	}
-	return opts.SetQueryType("prefix")
-}
-
-// setSuffixQueryTypeForVersion returns an EncryptOptionsBuilder with the query
-// type set to:
-//
-//   - suffixPreview for server versions < 9.0
-//   - suffix for server versions >= 9.0
-func setSuffixQueryTypeForVersion(opts *options.EncryptOptionsBuilder) *options.EncryptOptionsBuilder {
-	if mtest.CompareServerVersions(mtest.ServerVersion(), "9.0") < 0 {
-		return opts.SetQueryType("suffixPreview")
-	}
-	return opts.SetQueryType("suffix")
 }
 
 // =============================================================================
