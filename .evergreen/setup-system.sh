@@ -8,7 +8,7 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 PROJECT_DIRECTORY=$(dirname $SCRIPT_DIR)
 pushd $PROJECT_DIRECTORY
 ROOT_DIR=$(dirname $PROJECT_DIRECTORY)
-DRIVERS_TOOLS=${DRIVERS_TOOLS:-${ROOT_DIR}/drivers-evergreen-tools}
+DRIVERS_TOOLS=${DRIVERS_TOOLS:-${PROJECT_DIRECTORY}/.evergreen/drivers-evergreen-tools}
 MONGO_ORCHESTRATION_HOME="${DRIVERS_TOOLS}/.evergreen/orchestration"
 MONGODB_BINARIES="${DRIVERS_TOOLS}/mongodb/bin"
 OS="${OS:-""}"
@@ -45,9 +45,10 @@ else
     CURRENT_VERSION=latest
 fi
 
-# Ensure a checkout of drivers-tools.
+# Ensure the $DRIVERS_TOOLS directory exists.
 if [ ! -d "$DRIVERS_TOOLS" ]; then
-  git clone https://github.com/mongodb-labs/drivers-evergreen-tools $DRIVERS_TOOLS
+  echo "drivers-evergreen-tools not found at \"$DRIVERS_TOOLS\""
+  exit 1
 fi
 
 # Write the .env file for drivers-tools.
