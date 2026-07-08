@@ -312,7 +312,7 @@ func (coll *Collection) insert(
 
 	selector := makePinnedSelector(sess, coll.writeSelector)
 
-	op := insert{
+	op := insertOp{
 		documents:                 docs,
 		session:                   sess,
 		writeConcern:              wc,
