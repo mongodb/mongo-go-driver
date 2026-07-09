@@ -142,11 +142,6 @@ func dropCollection(t *testing.T, dbname, colname string) {
 	}
 }
 
-// autoInsertDocs inserts the docs into the test cluster.
-func autoInsertDocs(t *testing.T, writeConcern *writeconcern.WriteConcern, docs ...bsoncore.Document) {
-	insertDocs(t, integtest.DBName(t), integtest.ColName(t), writeConcern, docs...)
-}
-
 // insertDocs inserts the docs into the test cluster.
 func insertDocs(t *testing.T, dbname, colname string, writeConcern *writeconcern.WriteConcern, docs ...bsoncore.Document) {
 	t.Helper()
