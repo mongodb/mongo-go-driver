@@ -50,7 +50,8 @@ fi
 # the submodule directory directly doesn't work on Windows for some reason.
 if [ ! -d "$DRIVERS_TOOLS" ]; then
   detrev=$(git submodule status .evergreen/drivers-evergreen-tools | awk '{print $1}')
-  git clone --revision=$detrev https://github.com/mongodb-labs/drivers-evergreen-tools $DRIVERS_TOOLS
+  git clone https://github.com/mongodb-labs/drivers-evergreen-tools $DRIVERS_TOOLS
+  git -C $DRIVERS_TOOLS checkout $detrev
 fi
 
 # Write the .env file for drivers-tools.
