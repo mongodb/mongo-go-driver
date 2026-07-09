@@ -575,7 +575,7 @@ func runCSEProse27Case10(mt *mtest.T, test *cseProse27Test) {
 
 	// Step 2. Use clientEncryption.encrypt() to encrypt "bar" with substring
 	// query type. Substring search is still a preview feature, so the query type
-	// remains "substringPreview" even on libmongocrypt 1.19.0+.
+	// remains "substring" even on libmongocrypt 1.19.0+.
 	encryptOpts := options.Encrypt().
 		SetKeyID(test.key1ID).
 		SetAlgorithm("String").
@@ -616,8 +616,6 @@ func runCSEProse27Case10(mt *mtest.T, test *cseProse27Test) {
 
 // runCSEProse27Case11 ensures that we can find an auto-encrypted
 // diacritic-insensitively indexed document by substring.
-//
-// Requires libmongocrypt 1.19.0+.
 func runCSEProse27Case11(mt *mtest.T, test *cseProse27Test) {
 	mt.Helper()
 
@@ -630,7 +628,7 @@ func runCSEProse27Case11(mt *mtest.T, test *cseProse27Test) {
 
 	// Step 2. Use clientEncryption.encrypt() to encrypt "cafe" with substring query
 	// type. Substring search is still a preview feature, so the query type remains
-	// "substringPreview" even on libmongocrypt 1.19.0+.
+	// "substring" even on libmongocrypt 1.19.0+.
 	encryptOpts := options.Encrypt().
 		SetKeyID(test.key1ID).
 		SetAlgorithm("String").
