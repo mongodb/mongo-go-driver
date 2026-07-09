@@ -105,10 +105,6 @@ func (ro *RangeOptionsBuilder) SetPrecision(precision int32) *RangeOptionsBuilde
 // See corresponding setter methods for documentation.
 type StringOptions struct {
 	// Substring specifies options to support substring queries.
-	//
-	// Beta: This is a preview feature and should only be used for experimental
-	// workloads. It is not intended for public use. It is subject to breaking
-	// changes.
 	Substring *SubstringOptions
 
 	Prefix             *PrefixOptions
@@ -118,10 +114,6 @@ type StringOptions struct {
 }
 
 // SubstringOptions specifies options to support substring queries.
-//
-// Beta: This is a preview feature and should only be used for experimental
-// workloads. It is not intended for public use. It is subject to breaking
-// changes.
 type SubstringOptions struct {
 	StrMaxLength      int32
 	StrMinQueryLength int32
@@ -158,10 +150,6 @@ func (so *StringOptionsBuilder) List() []func(*StringOptions) error {
 }
 
 // SetSubstring sets the string index substring value.
-//
-// Beta: This is a preview feature and should only be used for experimental
-// workloads. It is not intended for public use. It is subject to breaking
-// changes.
 func (so *StringOptionsBuilder) SetSubstring(substring SubstringOptions) *StringOptionsBuilder {
 	so.Opts = append(so.Opts, func(opts *StringOptions) error {
 		opts.Substring = &substring
@@ -298,7 +286,7 @@ func (e *EncryptOptionsBuilder) SetAlgorithm(algorithm string) *EncryptOptionsBu
 //   - range
 //   - prefix / prefixPreview (used for the $encStrStartsWith operator)
 //   - suffix / suffixPreview (used for the $encStrEndsWith operator)
-//   - substringPreview (used for the $encStrContains operator)
+//   - substring / substringPreview (used for the $encStrContains operator)
 //
 // QueryType is used for Queryable Encryption.
 //
