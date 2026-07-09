@@ -61,8 +61,10 @@ FILES=$1
 
 # If no filenames were passed, find all .go files and try to write a license
 # notice.
+#
+# Ignore "hidden" directories that start with a "."
 if [ -z "$FILES" ]; then
-    FILES=$(find . -type f -name "*.go" -print)
+    FILES=$(find . -not -path '*/.*' -type f -name "*.go" -print)
 fi
 
 for file in $FILES
