@@ -886,6 +886,15 @@ var skipTests = map[string][]skipCase{
 				"TestUnifiedSpec/transactions-convenient-api/tests/unified/commit.json/withTransaction_commits_after_callback_returns_(second_transaction)",
 			},
 		},
+		{
+			tests: []string{
+				"TestUnifiedSpec/transactions-convenient-api/tests/unified/transaction-options.json/withTransaction_and_no_transaction_options_set",
+				"TestUnifiedSpec/transactions-convenient-api/tests/unified/transaction-options.json/withTransaction_inherits_transaction_options_from_client",
+				"TestUnifiedSpec/transactions-convenient-api/tests/unified/transaction-options.json/withTransaction_inherits_transaction_options_from_defaultTransactionOptions",
+				"TestUnifiedSpec/transactions/tests/unified/client-bulkWrite.json/client_bulkWrite_in_a_transaction",
+			},
+			topologies: []string{"load-balanced"},
+		},
 	},
 
 	"Address CSOT Compliance Issue in Timeout Handling for Cursor Constructors (GODRIVER-3480)": {
