@@ -27,7 +27,6 @@ type commitTransactionOp struct {
 	session                   *session.Client
 	clock                     *session.ClusterClock
 	monitor                   *event.CommandMonitor
-	crypt                     driver.Crypt
 	database                  string
 	deployment                driver.Deployment
 	selector                  description.ServerSelector
@@ -59,7 +58,6 @@ func (ct *commitTransactionOp) Execute(ctx context.Context) error {
 		CommandMonitor:            ct.monitor,
 		MaxAdaptiveRetries:        ct.maxAdaptiveRetries,
 		EnableOverloadRetargeting: ct.enableOverloadRetargeting,
-		Crypt:                     ct.crypt,
 		Database:                  ct.database,
 		Deployment:                ct.deployment,
 		Selector:                  ct.selector,

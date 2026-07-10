@@ -27,7 +27,6 @@ type abortTransactionOp struct {
 	session                   *session.Client
 	clock                     *session.ClusterClock
 	monitor                   *event.CommandMonitor
-	crypt                     driver.Crypt
 	database                  string
 	deployment                driver.Deployment
 	selector                  description.ServerSelector
@@ -59,7 +58,6 @@ func (at *abortTransactionOp) Execute(ctx context.Context) error {
 		CommandMonitor:            at.monitor,
 		MaxAdaptiveRetries:        at.maxAdaptiveRetries,
 		EnableOverloadRetargeting: at.enableOverloadRetargeting,
-		Crypt:                     at.crypt,
 		Database:                  at.database,
 		Deployment:                at.deployment,
 		Selector:                  at.selector,
