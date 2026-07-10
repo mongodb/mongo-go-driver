@@ -153,8 +153,23 @@ var zstdReaderPool = sync.Pool{
 	},
 }
 
+// maxDecompressedSize is the largest UncompressedSize that DecompressPayload
+// will honor. It matches the MongoDB wire protocol maximum message size
+// (defaultMaxMessageSize in x/mongo/driver/topology/connection.go, 48000000
+// bytes / ~48MB): a legitimate uncompressed message can never exceed it.
+const maxDecompressedSize = 48000000
+
 // DecompressPayload takes a byte slice that has been compressed and undoes it according to the options passed
 func DecompressPayload(in []byte, opts CompressionOpts) ([]byte, error) {
+	// UncompressedSize is read directly off the wire (see
+	// wiremessage.ReadCompressedUncompressedSize) and is used below as an
+	// allocation size. Validate it before allocating so a malformed or
+	// malicious OP_COMPRESSED frame cannot drive an unbounded allocation
+	// (out of memory) or a make([]byte, negative) panic.
+	if opts.UncompressedSize < 0 || opts.UncompressedSize > maxDecompressedSize {
+		return nil, fmt.Errorf("invalid uncompressed size: %d", opts.UncompressedSize)
+	}
+
 	switch opts.Compressor {
 	case wiremessage.CompressorNoOp:
 		return in, nil

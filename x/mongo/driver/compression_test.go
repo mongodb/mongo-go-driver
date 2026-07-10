@@ -102,6 +102,40 @@ func TestDecompressFailures(t *testing.T) {
 		_, err = DecompressPayload(compressedData, opts)
 		assert.Error(t, err)
 	})
+
+	// UncompressedSize is attacker-controlled (read straight off the wire in
+	// Operation.decompressWireMessage). An out-of-range value must be rejected
+	// with an error before it is used as an allocation size, otherwise a
+	// malicious server can drive an unbounded allocation (OOM) or a
+	// make([]byte, negative) panic.
+	validZlibEmptyBody := []byte{0x78, 0x9c, 0x03, 0x00, 0x00, 0x00, 0x00, 0x01}
+
+	oversized := []struct {
+		name       string
+		compressor wiremessage.CompressorID
+		in         []byte
+		size       int32
+	}{
+		{"zlib oversized size", wiremessage.CompressorZLib, validZlibEmptyBody, 2147483647},
+		{"zlib negative size", wiremessage.CompressorZLib, validZlibEmptyBody, -1},
+		{"zstd oversized size", wiremessage.CompressorZstd, []byte{}, 2147483647},
+		{"zstd negative size", wiremessage.CompressorZstd, []byte{}, -1},
+		{"snappy negative size", wiremessage.CompressorSnappy, []byte{}, -1},
+	}
+	for _, tc := range oversized {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			opts := CompressionOpts{
+				Compressor:       tc.compressor,
+				UncompressedSize: tc.size,
+			}
+			// Must return an error rather than allocating tc.size bytes or panicking.
+			_, err := DecompressPayload(tc.in, opts)
+			assert.Error(t, err)
+		})
+	}
 }
 
 var (
