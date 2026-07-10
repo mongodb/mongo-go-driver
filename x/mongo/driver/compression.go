@@ -167,7 +167,7 @@ func DecompressPayload(in []byte, opts CompressionOpts) ([]byte, error) {
 	// malicious OP_COMPRESSED frame cannot drive an unbounded allocation
 	// (out of memory) or a make([]byte, negative) panic.
 	if opts.UncompressedSize < 0 || opts.UncompressedSize > maxDecompressedSize {
-		return nil, fmt.Errorf("invalid uncompressed size: %d", opts.UncompressedSize)
+		return nil, fmt.Errorf("invalid uncompressed size %d: must be between 0 and %d", opts.UncompressedSize, maxDecompressedSize)
 	}
 
 	switch opts.Compressor {

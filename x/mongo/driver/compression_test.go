@@ -120,6 +120,7 @@ func TestDecompressFailures(t *testing.T) {
 		{"zlib negative size", wiremessage.CompressorZLib, validZlibEmptyBody, -1},
 		{"zstd oversized size", wiremessage.CompressorZstd, []byte{}, 2147483647},
 		{"zstd negative size", wiremessage.CompressorZstd, []byte{}, -1},
+		{"snappy oversized size", wiremessage.CompressorSnappy, []byte{}, 2147483647},
 		{"snappy negative size", wiremessage.CompressorSnappy, []byte{}, -1},
 	}
 	for _, tc := range oversized {
