@@ -81,7 +81,7 @@ func (a *aggregateOp) processResponse(_ context.Context, resp bsoncore.Document,
 	return err
 }
 
-// Execute runs this operations and returns an error if the operation did not execute successfully.
+// Execute runs this operation and returns an error if the operation did not execute successfully.
 func (a *aggregateOp) Execute(ctx context.Context) error {
 	if a.deployment == nil {
 		return errors.New("the Aggregate operation must have a Deployment set before Execute can be called")
