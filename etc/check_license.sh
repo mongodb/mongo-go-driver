@@ -64,7 +64,7 @@ FILES=$1
 #
 # Ignore "hidden" directories that start with a "."
 if [ -z "$FILES" ]; then
-    FILES=$(find . -not -path '*/.*' -type f -name "*.go" -print)
+    FILES=$(find . -path '*/.*' -prune -o -type f -name "*.go" -print)
 fi
 
 for file in $FILES
