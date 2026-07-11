@@ -49,7 +49,7 @@ fi
 # the drivers-evergreen-tools submodule. We clone a copy here because modifying
 # the submodule directory directly doesn't work on Windows for some reason.
 if [ ! -d "$DRIVERS_TOOLS" ]; then
-  detrev=$(git submodule status .evergreen/drivers-evergreen-tools | awk '{print $1}')
+  detrev=$(git ls-tree --object-only HEAD .evergreen/drivers-evergreen-tools)
   git clone https://github.com/mongodb-labs/drivers-evergreen-tools $DRIVERS_TOOLS
   git -C $DRIVERS_TOOLS checkout $detrev
 fi
