@@ -9,10 +9,13 @@ package mtest
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/failpoint"
+	"go.mongodb.org/mongo-driver/v2/internal/integtest"
 	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/topology"
 )
@@ -93,4 +96,48 @@ func SetRawFailPoint(fp bson.Raw, client *mongo.Client) error {
 		return fmt.Errorf("error creating fail point: %w", err)
 	}
 	return nil
+}
+
+// AdvanceConfigClusterTime advances the config server's cluster time to the
+// mongos cluster time so a change stream open doesn't block waiting for it.
+func AdvanceConfigClusterTime(ctx context.Context) error {
+	admin := GlobalClient().Database("admin")
+
+	pingRes, err := admin.RunCommand(ctx, bson.D{{Key: "ping", Value: 1}}).Raw()
+	if err != nil {
+		return fmt.Errorf("error running ping command: %w", err)
+	}
+	if _, err := pingRes.LookupErr("$clusterTime"); err != nil {
+		return fmt.Errorf("error looking up $clusterTime in ping response: %w", err)
+	}
+
+	var shardMap struct {
+		Map struct {
+			Config string `bson:"config"`
+		} `bson:"map"`
+	}
+	if err := admin.RunCommand(ctx, bson.D{{Key: "getShardMap", Value: 1}}).Decode(&shardMap); err != nil {
+		return fmt.Errorf("error running getShardMap command: %w", err)
+	}
+	_, hosts, ok := strings.Cut(shardMap.Map.Config, "/")
+	if !ok {
+		return fmt.Errorf("error parsing config shard map: %v", shardMap)
+	}
+	configHost, _, _ := strings.Cut(hosts, ",")
+
+	clientOpts := options.Client().
+		ApplyURI(ClusterURI()).
+		SetHosts([]string{configHost}).
+		SetDirect(true)
+	integtest.AddTestServerAPIVersion(clientOpts)
+
+	cfgClient, err := mongo.Connect(clientOpts)
+	if err != nil {
+		return fmt.Errorf("error connecting to config server: %w", err)
+	}
+	defer func() { _ = cfgClient.Disconnect(ctx) }()
+
+	note := bson.D{{Key: "cursor-test", Value: "advance config server cluster time"}}
+	return cfgClient.Database("admin").RunCommand(ctx,
+		bson.D{{Key: "appendOplogNote", Value: 1}, {Key: "data", Value: note}}).Err()
 }
