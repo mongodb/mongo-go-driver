@@ -100,10 +100,10 @@ func (c *countOp) processResponse(_ context.Context, resp bsoncore.Document, _ d
 	return err
 }
 
-// Execute runs this operations and returns an error if the operation did not execute successfully.
+// Execute runs this operation and returns an error if the operation did not execute successfully.
 func (c *countOp) Execute(ctx context.Context) error {
 	if c.deployment == nil {
-		return errors.New("the Count operation must have a Deployment set before Execute can be called")
+		return errors.New("the count operation must have a Deployment set before Execute can be called")
 	}
 
 	err := driver.Operation{
