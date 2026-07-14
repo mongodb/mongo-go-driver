@@ -1,3 +1,6 @@
 [submodule "specifications"]
 	path = testdata/specifications
 	url = https://github.com/mongodb/specifications
+[submodule ".evergreen/drivers-evergreen-tools"]
+	path = .evergreen/drivers-evergreen-tools
+	url = https://github.com/mongodb-labs/drivers-evergreen-tools.git
