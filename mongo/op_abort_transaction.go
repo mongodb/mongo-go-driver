@@ -42,7 +42,7 @@ func (at *abortTransactionOp) processResponse(context.Context, bsoncore.Document
 	return nil
 }
 
-// Execute runs this operations and returns an error if the operation did not execute successfully.
+// Execute runs this operation and returns an error if the operation did not execute successfully.
 func (at *abortTransactionOp) Execute(ctx context.Context) error {
 	if at.deployment == nil {
 		return errors.New("the abortTransaction operation must have a Deployment set before Execute can be called")
