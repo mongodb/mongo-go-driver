@@ -74,8 +74,11 @@ func fetchSecrets(driversTools string) ([]string, error) {
 	// Source the script, then print the wanted vars NULL-terminated so values
 	// with spaces or newlines aren't mutated.
 	const script = `set -eu
-cd "$(mktemp -d)"
+tmpdir="$(mktemp -d)"
+trap 'rm -rf "$tmpdir"' EXIT
+cd "$tmpdir"
 source "$SFP_SETUP" drivers/sfp >/dev/null
+rm -f secrets-export.sh
 for v in "$@"; do printf '%s=%s\0' "$v" "${!v-}"; done`
 
 	args := append([]string{"-c", script, "testsfp"}, spfSecretVarNames...)
