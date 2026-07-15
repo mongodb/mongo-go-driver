@@ -278,22 +278,33 @@ func (iv IndexView) CreateMany(
 		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 
-	op := operation.NewCreateIndexes(indexes).
-		Session(sess).WriteConcern(wc).ClusterClock(iv.coll.client.clock).
-		MaxAdaptiveRetries(maxAdaptiveRetries).EnableOverloadRetargeting(iv.coll.client.enableOverloadRetargeting).
-		Database(iv.coll.db.name).Collection(iv.coll.name).CommandMonitor(iv.coll.client.monitor).
-		Deployment(iv.coll.client.deployment).ServerSelector(selector).ServerAPI(iv.coll.client.serverAPI).
-		Timeout(iv.coll.client.timeout).Crypt(iv.coll.client.cryptFLE).Authenticator(iv.coll.client.authenticator)
+	op := &createIndexesOp{
+		indexes:                   indexes,
+		session:                   sess,
+		writeConcern:              wc,
+		clock:                     iv.coll.client.clock,
+		maxAdaptiveRetries:        maxAdaptiveRetries,
+		enableOverloadRetargeting: iv.coll.client.enableOverloadRetargeting,
+		database:                  iv.coll.db.name,
+		collection:                iv.coll.name,
+		monitor:                   iv.coll.client.monitor,
+		deployment:                iv.coll.client.deployment,
+		selector:                  selector,
+		serverAPI:                 iv.coll.client.serverAPI,
+		timeout:                   iv.coll.client.timeout,
+		crypt:                     iv.coll.client.cryptFLE,
+		authenticator:             iv.coll.client.authenticator,
+	}
 	if args.CommitQuorum != nil {
 		commitQuorum, err := marshalValue(args.CommitQuorum, iv.coll.bsonOpts, iv.coll.registry)
 		if err != nil {
 			return nil, err
 		}
 
-		op.CommitQuorum(commitQuorum)
+		op.commitQuorum = commitQuorum
 	}
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
-		op = op.RawData(rawData)
+		op.rawData = &rawData
 	}
 
 	_, err = processWriteError(op.Execute(ctx))

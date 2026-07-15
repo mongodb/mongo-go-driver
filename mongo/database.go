@@ -756,7 +756,7 @@ func (db *Database) createCollectionWithEncryptedFields(
 		return err
 	}
 
-	op.EncryptedFields(efBSON)
+	op.encryptedFields = efBSON
 	if err := db.executeCreateOperation(ctx, op); err != nil {
 		return err
 	}
@@ -785,26 +785,30 @@ func (db *Database) createCollection(
 func (db *Database) createCollectionOperation(
 	name string,
 	opts ...options.Lister[options.CreateCollectionOptions],
-) (*operation.Create, error) {
+) (*createOp, error) {
 	args, err := mongoutil.NewOptions[options.CreateCollectionOptions](opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 
-	op := operation.NewCreate(name).ServerAPI(db.client.serverAPI).Authenticator(db.client.authenticator)
+	op := &createOp{
+		collectionName: &name,
+		serverAPI:      db.client.serverAPI,
+		authenticator:  db.client.authenticator,
+	}
 
 	if args.Capped != nil {
-		op.Capped(*args.Capped)
+		op.capped = args.Capped
 	}
 	if args.Collation != nil {
-		op.Collation(bsoncore.Document(toDocument(args.Collation)))
+		op.collation = bsoncore.Document(toDocument(args.Collation))
 	}
 	if args.ChangeStreamPreAndPostImages != nil {
 		csppi, err := marshal(args.ChangeStreamPreAndPostImages, db.bsonOpts, db.registry)
 		if err != nil {
 			return nil, err
 		}
-		op.ChangeStreamPreAndPostImages(csppi)
+		op.changeStreamPreAndPostImages = csppi
 	}
 	if args.DefaultIndexOptions != nil {
 		defaultIndexArgs, err := mongoutil.NewOptions[options.DefaultIndexOptions](args.DefaultIndexOptions)
@@ -827,36 +831,36 @@ func (db *Database) createCollectionOperation(
 			return nil, err
 		}
 
-		op.IndexOptionDefaults(doc)
+		op.indexOptionDefaults = doc
 	}
 	if args.MaxDocuments != nil {
-		op.Max(*args.MaxDocuments)
+		op.max = args.MaxDocuments
 	}
 	if args.SizeInBytes != nil {
-		op.Size(*args.SizeInBytes)
+		op.size = args.SizeInBytes
 	}
 	if args.StorageEngine != nil {
 		storageEngine, err := marshal(args.StorageEngine, db.bsonOpts, db.registry)
 		if err != nil {
 			return nil, err
 		}
-		op.StorageEngine(storageEngine)
+		op.storageEngine = storageEngine
 	}
 	if args.ValidationAction != nil {
-		op.ValidationAction(*args.ValidationAction)
+		op.validationAction = args.ValidationAction
 	}
 	if args.ValidationLevel != nil {
-		op.ValidationLevel(*args.ValidationLevel)
+		op.validationLevel = args.ValidationLevel
 	}
 	if args.Validator != nil {
 		validator, err := marshal(args.Validator, db.bsonOpts, db.registry)
 		if err != nil {
 			return nil, err
 		}
-		op.Validator(validator)
+		op.validator = validator
 	}
 	if args.ExpireAfterSeconds != nil {
-		op.ExpireAfterSeconds(*args.ExpireAfterSeconds)
+		op.expireAfterSeconds = args.ExpireAfterSeconds
 	}
 	if args.TimeSeriesOptions != nil {
 		timeSeriesArgs, err := mongoutil.NewOptions[options.TimeSeriesOptions](args.TimeSeriesOptions)
@@ -891,14 +895,14 @@ func (db *Database) createCollectionOperation(
 			return nil, err
 		}
 
-		op.TimeSeries(doc)
+		op.timeSeries = doc
 	}
 	if args.ClusteredIndex != nil {
 		clusteredIndex, err := marshal(args.ClusteredIndex, db.bsonOpts, db.registry)
 		if err != nil {
 			return nil, err
 		}
-		op.ClusteredIndex(clusteredIndex)
+		op.clusteredIndex = clusteredIndex
 	}
 
 	return op, nil
@@ -926,23 +930,26 @@ func (db *Database) CreateView(ctx context.Context, viewName, viewOn string, pip
 		return err
 	}
 
-	op := operation.NewCreate(viewName).
-		ViewOn(viewOn).
-		Pipeline(pipelineArray).
-		ServerAPI(db.client.serverAPI).Authenticator(db.client.authenticator)
+	op := &createOp{
+		collectionName: &viewName,
+		viewOn:         &viewOn,
+		pipeline:       pipelineArray,
+		serverAPI:      db.client.serverAPI,
+		authenticator:  db.client.authenticator,
+	}
 	args, err := mongoutil.NewOptions(opts...)
 	if err != nil {
 		return fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 
 	if args.Collation != nil {
-		op.Collation(bsoncore.Document(toDocument(args.Collation)))
+		op.collation = bsoncore.Document(toDocument(args.Collation))
 	}
 
 	return db.executeCreateOperation(ctx, op)
 }
 
-func (db *Database) executeCreateOperation(ctx context.Context, op *operation.Create) error {
+func (db *Database) executeCreateOperation(ctx context.Context, op *createOp) error {
 	sess := sessionFromContext(ctx)
 	if sess == nil && db.client.sessionPool != nil {
 		sess = session.NewImplicitClientSession(db.client.sessionPool, db.client.id)
@@ -963,14 +970,14 @@ func (db *Database) executeCreateOperation(ctx context.Context, op *operation.Cr
 	}
 
 	selector := makePinnedSelector(sess, db.writeSelector)
-	op = op.Session(sess).
-		WriteConcern(wc).
-		CommandMonitor(db.client.monitor).
-		ServerSelector(selector).
-		ClusterClock(db.client.clock).
-		Database(db.name).
-		Deployment(db.client.deployment).
-		Crypt(db.client.cryptFLE)
+	op.session = sess
+	op.writeConcern = wc
+	op.monitor = db.client.monitor
+	op.selector = selector
+	op.clock = db.client.clock
+	op.database = db.name
+	op.deployment = db.client.deployment
+	op.crypt = db.client.cryptFLE
 
 	return wrapErrors(op.Execute(ctx))
 }
