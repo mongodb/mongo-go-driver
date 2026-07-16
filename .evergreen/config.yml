@@ -294,6 +294,21 @@ functions:
       params:
         binary: bash
         args: [*task-runner, test-atlas-connect]
+  run-sfp-test:
+    - command: ec2.assume_role
+      params:
+        role_arn: "${aws_test_secrets_role}"
+    - command: subprocess.exec
+      type: test
+      retry_on_failure: true
+      params:
+        binary: bash
+        include_expansions_in_env:
+          - DRIVERS_TOOLS
+          - AWS_ACCESS_KEY_ID
+          - AWS_SECRET_ACCESS_KEY
+          - AWS_SESSION_TOKEN
+        args: [*task-runner, test-sfp]
   run-ocsp-test:
     - command: subprocess.exec
       params:
@@ -1315,6 +1330,9 @@ tasks:
   - name: "atlas-test"
     commands:
       - func: "run-atlas-test"
+  - name: "sfp-test"
+    commands:
+      - func: "run-sfp-test"
   - name: "aws-auth-test"
     commands:
       - func: bootstrap-mongo-orchestration
@@ -1443,7 +1461,7 @@ tasks:
           binary: "bash"
           add_expansions_to_env: true
           env:
-            EXPECT_ERROR: 'status=400'
+            EXPECT_ERROR: "status=400"
           args: [*task-runner, test-awskms]
   - name: "testazurekms-task"
     commands:
@@ -1936,6 +1954,15 @@ buildvariants:
       GO_DIST: "/opt/golang/go1.25"
     tasks:
       - name: "atlas-test"
+  - name: sfp-test
+    tags: ["pullrequest"]
+    display_name: "SFP (monguard) test"
+    run_on:
+      - rhel8.7-large
+    expansions:
+      GO_DIST: "/opt/golang/go1.25"
+    tasks:
+      - name: "sfp-test"
   - name: docker-runner-test
     tags: ["pullrequest"]
     display_name: "Docker Runner Test"
