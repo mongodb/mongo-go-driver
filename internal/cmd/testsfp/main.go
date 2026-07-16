@@ -41,7 +41,7 @@ func main() {
 }
 
 func fetchSecrets(driversTools string) ([]string, error) {
-	spfSecretVarNames := []string{
+	sfpSecretVarNAmes := []string{
 		"SFP_ATLAS_URI",
 		"SFP_ATLAS_USER",
 		"SFP_ATLAS_PASSWORD",
@@ -51,7 +51,7 @@ func fetchSecrets(driversTools string) ([]string, error) {
 
 	// If the secrets are already set, do nothing.
 	var secrets []string
-	for _, secretName := range spfSecretVarNames {
+	for _, secretName := range sfpSecretVarNAmes {
 		secret := os.Getenv(secretName)
 		if secret == "" {
 			break
@@ -59,7 +59,7 @@ func fetchSecrets(driversTools string) ([]string, error) {
 		secrets = append(secrets, secretName+"="+secret)
 	}
 
-	if len(secrets) == len(spfSecretVarNames) {
+	if len(secrets) == len(sfpSecretVarNAmes) {
 		log.Println("WARNING: All SFP secrets are already set in the environment. Skipping secret fetch. " +
 			"This may cause the tests to fail if the secrets are stale or invalid.")
 		return secrets, nil
@@ -71,17 +71,12 @@ func fetchSecrets(driversTools string) ([]string, error) {
 		return nil, err
 	}
 
-	// Source the script, then print the wanted vars NULL-terminated so values
-	// with spaces or newlines aren't mutated.
-	const script = `set -eu
-tmpdir="$(mktemp -d)"
-trap 'rm -rf "$tmpdir"' EXIT
-cd "$tmpdir"
+	const script = `
 source "$SFP_SETUP" drivers/sfp >/dev/null
-rm -f secrets-export.sh
-for v in "$@"; do printf '%s=%s\0' "$v" "${!v-}"; done`
+env -0
+`
 
-	args := append([]string{"-c", script, "testsfp"}, spfSecretVarNames...)
+	args := append([]string{"-c", script, "testsfp"}, sfpSecretVarNAmes...)
 	cmd := exec.Command("bash", args...)
 	cmd.Env = append(os.Environ(), "SFP_SETUP="+setup)
 	cmd.Stderr = os.Stderr
