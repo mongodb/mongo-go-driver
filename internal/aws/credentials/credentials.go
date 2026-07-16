@@ -4,8 +4,8 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 //
-// Based on github.com/aws/aws-sdk-go by Amazon.com, Inc. with code from:
-// - github.com/aws/aws-sdk-go/blob/v1.44.225/aws/credentials/credentials.go
+// Loosely based on github.com/aws/aws-sdk-go-v2 by Amazon.com, Inc. with code from:
+// - github.com/aws/aws-sdk-go-v2/blob/v1.28.0/aws/credential_cache.go
 // See THIRD-PARTY-NOTICES for original license terms
 
 package credentials
@@ -130,7 +130,7 @@ func (c *Credentials) Get(ctx context.Context) (Value, error) {
 }
 
 func (c *Credentials) singleRetrieve(ctx context.Context) (any, error) {
-	if currCreds, ok := c.getCreds(); ok && !currCreds.Expired() {
+	if currCreds, ok := c.getCreds(); ok && currCreds != (Value{}) && !currCreds.Expired() {
 		return currCreds, nil
 	}
 
@@ -151,7 +151,7 @@ func (c *Credentials) getCreds() (Value, bool) {
 	}
 
 	val := v.(*Value)
-	if val == nil || !val.HasKeys() {
+	if val == nil {
 		return Value{}, false
 	}
 

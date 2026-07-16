@@ -43,7 +43,7 @@ func newMongoDBAWSAuthenticator(cred *Cred, httpClient *http.Client) (Authentica
 	}
 
 	return &MongoDBAWSAuthenticator{
-		credentials: creds.NewAWSCredentialProvider(httpClient, providers...).Cred,
+		credentials: creds.NewAWSCredentials(httpClient, providers...),
 	}, nil
 }
 

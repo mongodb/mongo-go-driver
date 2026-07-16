@@ -9,6 +9,7 @@ package credproviders
 import (
 	"context"
 	"os"
+	"time"
 
 	"go.mongodb.org/mongo-driver/v2/internal/aws/credentials"
 )
@@ -53,6 +54,7 @@ func (e *EnvProvider) Retrieve(_ context.Context) (credentials.Value, error) {
 	if err != nil {
 		// Expire the credentials if invalid.
 		v.CanExpire = true
+		v.Expires = time.Time{}
 	}
 
 	return v, err

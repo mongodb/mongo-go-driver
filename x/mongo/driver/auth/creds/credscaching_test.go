@@ -115,7 +115,7 @@ func TestAWSCredentialProviderCaching(t *testing.T) {
 			ecs := credproviders.NewECSProvider(client, expiryWindow)
 			ecs.AwsContainerCredentialsRelativeURIEnv = credproviders.EnvVar(urienv)
 
-			p := AWSCredentialProvider{credentials.NewChainCredentials([]credentials.Provider{env, ecs})}
+			p := AWSCredentialDocSource{Creds: credentials.NewChainCredentials([]credentials.Provider{env, ecs})}
 			var err error
 			_, err = p.GetCredentialsDoc(context.Background())
 			tc.assertError(t, err)
