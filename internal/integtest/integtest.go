@@ -25,9 +25,22 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
-	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/topology"
 )
+
+// dropDatabase drops the given database on the provided deployment.
+func dropDatabase(db string, deployment driver.Deployment) error {
+	cmd := bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "dropDatabase", 1))
+	return driver.Operation{
+		CommandFn: func(dst []byte, _ description.SelectedServer) ([]byte, error) {
+			return append(dst, cmd[4:len(cmd)-1]...), nil
+		},
+		Database:   db,
+		Selector:   &serverselector.Write{},
+		Deployment: deployment,
+	}.Execute(context.Background())
+}
 
 var (
 	connectionString     *connstring.ConnString
@@ -106,8 +119,7 @@ func MonitoredTopology(t *testing.T, dbName string, monitor *event.CommandMonito
 	} else {
 		_ = monitoredTopology.Connect()
 
-		err = operation.NewCommand(bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "dropDatabase", 1))).
-			Database(dbName).ServerSelector(&serverselector.Write{}).Deployment(monitoredTopology).Execute(context.Background())
+		err = dropDatabase(dbName, monitoredTopology)
 
 		require.NoError(t, err)
 	}
@@ -133,9 +145,7 @@ func Topology(t *testing.T) *topology.Topology {
 		} else {
 			_ = liveTopology.Connect()
 
-			err = operation.NewCommand(bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "dropDatabase", 1))).
-				Database(DBName(t)).ServerSelector(&serverselector.Write{}).
-				Deployment(liveTopology).Execute(context.Background())
+			err = dropDatabase(DBName(t), liveTopology)
 			require.NoError(t, err)
 		}
 	})

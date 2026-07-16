@@ -152,9 +152,8 @@ func (db *Database) Aggregate(
 func (db *Database) processRunCommand(
 	ctx context.Context,
 	cmd any,
-	cursorCommand bool,
 	opts ...options.Lister[options.RunCmdOptions],
-) (*operation.Command, *session.Client, error) {
+) (*driver.Operation, *session.Client, error) {
 	args, err := mongoutil.NewOptions[options.RunCmdOptions](append(defaultRunCmdOpts, opts...)...)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to construct options from builder: %w", err)
@@ -195,26 +194,29 @@ func (db *Database) processRunCommand(
 		readSelect = makePinnedSelector(sess, readSelect)
 	}
 
-	var op *operation.Command
-	switch retryOverload := db.client.retryReads && db.client.retryWrites; cursorCommand {
-	case true:
-		cursorOpts := db.client.createBaseCursorOptions(retryOverload)
+	retryOverload := db.client.retryReads && db.client.retryWrites
 
-		cursorOpts.MarshalValueEncoderFn = newEncoderFn(db.bsonOpts, db.registry)
-
-		op = operation.NewCursorCommand(runCmdDoc, cursorOpts)
-	default:
-		op = operation.NewCommand(runCmdDoc)
-		maxAdaptiveRetries := db.client.effectiveAdaptiveRetries(retryOverload)
-		op = op.MaxAdaptiveRetries(maxAdaptiveRetries).
-			EnableOverloadRetargeting(db.client.enableOverloadRetargeting)
+	op := driver.Operation{
+		CommandFn: func(dst []byte, _ description.SelectedServer) ([]byte, error) {
+			return append(dst, runCmdDoc[4:len(runCmdDoc)-1]...), nil
+		},
+		Client:                    sess,
+		Clock:                     db.client.clock,
+		CommandMonitor:            db.client.monitor,
+		Database:                  db.name,
+		Deployment:                db.client.deployment,
+		ReadPreference:            args.ReadPreference,
+		Selector:                  readSelect,
+		MaxAdaptiveRetries:        db.client.effectiveAdaptiveRetries(retryOverload),
+		EnableOverloadRetargeting: db.client.enableOverloadRetargeting,
+		Crypt:                     db.client.cryptFLE,
+		ServerAPI:                 db.client.serverAPI,
+		Timeout:                   db.client.timeout,
+		Logger:                    db.client.logger,
+		Authenticator:             db.client.authenticator,
 	}
 
-	return op.Session(sess).CommandMonitor(db.client.monitor).
-		ServerSelector(readSelect).ClusterClock(db.client.clock).
-		Database(db.name).Deployment(db.client.deployment).
-		Crypt(db.client.cryptFLE).ReadPreference(args.ReadPreference).ServerAPI(db.client.serverAPI).
-		Timeout(db.client.timeout).Logger(db.client.logger).Authenticator(db.client.authenticator), sess, nil
+	return &op, sess, nil
 }
 
 // RunCommand executes the given command against the database.
@@ -244,10 +246,16 @@ func (db *Database) RunCommand(
 		ctx = context.Background()
 	}
 
-	op, sess, err := db.processRunCommand(ctx, runCommand, false, opts...)
+	op, sess, err := db.processRunCommand(ctx, runCommand, opts...)
 	defer closeImplicitSession(sess)
 	if err != nil {
 		return &SingleResult{err: err}
+	}
+
+	var response bsoncore.Document
+	op.ProcessResponseFn = func(_ context.Context, resp bsoncore.Document, _ driver.ResponseInfo) error {
+		response = resp
+		return nil
 	}
 
 	err = op.Execute(ctx)
@@ -256,7 +264,7 @@ func (db *Database) RunCommand(
 	return &SingleResult{
 		ctx:          ctx,
 		err:          convErr,
-		rdr:          bson.Raw(op.Result()),
+		rdr:          bson.Raw(response),
 		bsonOpts:     db.bsonOpts,
 		reg:          db.registry,
 		Acknowledged: rr.isAcknowledged(),
@@ -286,10 +294,28 @@ func (db *Database) RunCommandCursor(
 		ctx = context.Background()
 	}
 
-	op, sess, err := db.processRunCommand(ctx, runCommand, true, opts...)
+	op, sess, err := db.processRunCommand(ctx, runCommand, opts...)
 	if err != nil {
 		closeImplicitSession(sess)
 		return nil, wrapErrors(err)
+	}
+
+	retryOverload := db.client.retryReads && db.client.retryWrites
+	cursorOpts := db.client.createBaseCursorOptions(retryOverload)
+	cursorOpts.MarshalValueEncoderFn = newEncoderFn(db.bsonOpts, db.registry)
+
+	var bc *driver.BatchCursor
+	op.ProcessResponseFn = func(_ context.Context, resp bsoncore.Document, info driver.ResponseInfo) error {
+		curDoc, err := driver.ExtractCursorDocument(resp)
+		if err != nil {
+			return err
+		}
+		cursorRes, err := driver.NewCursorResponse(curDoc, info)
+		if err != nil {
+			return err
+		}
+		bc, err = driver.NewBatchCursor(cursorRes, sess, db.client.clock, cursorOpts)
+		return err
 	}
 
 	if err = op.Execute(ctx); err != nil {
@@ -301,11 +327,6 @@ func (db *Database) RunCommandCursor(
 		return nil, wrapErrors(err)
 	}
 
-	bc, err := op.ResultCursor()
-	if err != nil {
-		closeImplicitSession(sess)
-		return nil, wrapErrors(err)
-	}
 	cursor, err := newCursorWithSession(bc, db.bsonOpts, db.registry, sess,
 		withCursorOptionClientTimeout(db.client.timeout))
 	return cursor, wrapErrors(err)

@@ -3,6 +3,8 @@
 # This script installs libmongocrypt into an "install" directory.
 set -eux
 
+# TODO(GODRIVER-4028): Remove UV_CONSTRAINT=<(echo "cmake<4.4") from the
+# compile.sh call (see below) when we upgrade to libmongocrypt 1.21.0
 LIBMONGOCRYPT_TAG="1.20.0"
 
 # Install libmongocrypt based on OS.
