@@ -42,8 +42,8 @@ func (ct *commitTransactionOp) processResponse(context.Context, bsoncore.Documen
 	return nil
 }
 
-// Execute runs this operation and returns an error if the operation did not execute successfully.
-func (ct *commitTransactionOp) Execute(ctx context.Context) error {
+// execute runs this operation and returns an error if the operation did not execute successfully.
+func (ct *commitTransactionOp) execute(ctx context.Context) error {
 	if ct.deployment == nil {
 		return errors.New("the commitTransaction operation must have a Deployment set before Execute can be called")
 	}

@@ -289,7 +289,7 @@ func (s *Session) AbortTransaction(ctx context.Context) error {
 		authenticator:             s.client.authenticator,
 		logger:                    s.client.logger,
 	}
-	_ = op.Execute(ctx)
+	_ = op.execute(ctx)
 
 	s.clientSession.Aborting = false
 	_ = s.clientSession.AbortTransaction()
@@ -337,7 +337,7 @@ func (s *Session) CommitTransaction(ctx context.Context) error {
 		logger:                    s.client.logger,
 	}
 
-	err = op.Execute(ctx)
+	err = op.execute(ctx)
 	// Return error without updating transaction state if it is a timeout, as the transaction has not
 	// actually been committed.
 	if IsTimeout(err) {
