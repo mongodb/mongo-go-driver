@@ -12,7 +12,6 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
 )
 
 // MongoDBX509 is the mechanism name for MongoDBX509.
@@ -67,13 +66,7 @@ func (a *MongoDBX509Authenticator) CreateSpeculativeConversation() (SpeculativeC
 // Auth authenticates the provided connection by conducting an X509 authentication conversation.
 func (a *MongoDBX509Authenticator) Auth(ctx context.Context, cfg *driver.AuthConfig) error {
 	requestDoc := createFirstX509Message()
-	authCmd := operation.
-		NewCommand(requestDoc).
-		Database(sourceExternal).
-		Deployment(driver.SingleConnectionDeployment{cfg.Connection}).
-		ClusterClock(cfg.ClusterClock).
-		ServerAPI(cfg.ServerAPI)
-	err := authCmd.Execute(ctx)
+	_, err := runCommand(ctx, cfg, sourceExternal, requestDoc)
 	if err != nil {
 		return newAuthError("round trip error", err)
 	}
