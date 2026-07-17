@@ -343,7 +343,7 @@ func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) err
 	var err error
 AggregateExecuteLoop:
 	for {
-		err = cs.aggregate.Execute(ctx)
+		err = cs.aggregate.execute(ctx)
 		// If no error or no retries remain, do not retry.
 		if err == nil || retries == 0 {
 			break AggregateExecuteLoop
@@ -375,7 +375,7 @@ AggregateExecuteLoop:
 		return cs.err
 	}
 
-	cr := cs.aggregate.ResultCursorResponse()
+	cr := cs.aggregate.resultCursorResponse()
 	cr.Server = deployment.server
 
 	cs.cursor, cs.err = driver.NewBatchCursor(cr, cs.sess, cs.client.clock, cs.cursorOptions)

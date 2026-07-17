@@ -54,22 +54,22 @@ type aggregateOp struct {
 	omitMaxTimeMS             bool
 	rawData                   *bool
 
-	result driver.CursorResponse
+	cursorRes driver.CursorResponse
 }
 
-// Result returns the result of executing this operation.
-func (a *aggregateOp) Result(opts driver.CursorOptions) (*driver.BatchCursor, error) {
+// result returns the result of executing this operation.
+func (a *aggregateOp) result(opts driver.CursorOptions) (*driver.BatchCursor, error) {
 	clientSession := a.session
 
 	clock := a.clock
 	opts.ServerAPI = a.serverAPI
-	return driver.NewBatchCursor(a.result, clientSession, clock, opts)
+	return driver.NewBatchCursor(a.cursorRes, clientSession, clock, opts)
 }
 
-// ResultCursorResponse returns the underlying CursorResponse result of executing this
+// resultCursorResponse returns the underlying CursorResponse result of executing this
 // operation.
-func (a *aggregateOp) ResultCursorResponse() driver.CursorResponse {
-	return a.result
+func (a *aggregateOp) resultCursorResponse() driver.CursorResponse {
+	return a.cursorRes
 }
 
 func (a *aggregateOp) processResponse(_ context.Context, resp bsoncore.Document, info driver.ResponseInfo) error {
@@ -77,12 +77,12 @@ func (a *aggregateOp) processResponse(_ context.Context, resp bsoncore.Document,
 	if err != nil {
 		return err
 	}
-	a.result, err = driver.NewCursorResponse(curDoc, info)
+	a.cursorRes, err = driver.NewCursorResponse(curDoc, info)
 	return err
 }
 
-// Execute runs this operation and returns an error if the operation did not execute successfully.
-func (a *aggregateOp) Execute(ctx context.Context) error {
+// execute runs this operation and returns an error if the operation did not execute successfully.
+func (a *aggregateOp) execute(ctx context.Context) error {
 	if a.deployment == nil {
 		return errors.New("the Aggregate operation must have a Deployment set before Execute can be called")
 	}

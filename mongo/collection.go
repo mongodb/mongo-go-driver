@@ -1131,7 +1131,7 @@ func aggregate(a aggregateParams, opts ...options.Lister[options.AggregateOption
 		op.rawData = &rawData
 	}
 
-	err = op.Execute(a.ctx)
+	err = op.execute(a.ctx)
 	if err != nil {
 		var wce driver.WriteCommandError
 		if errors.As(err, &wce) && wce.WriteConcernError != nil {
@@ -1140,7 +1140,7 @@ func aggregate(a aggregateParams, opts ...options.Lister[options.AggregateOption
 		return nil, wrapErrors(err)
 	}
 
-	bc, err := op.Result(cursorOpts)
+	bc, err := op.result(cursorOpts)
 	if err != nil {
 		return nil, wrapErrors(err)
 	}
@@ -1245,12 +1245,12 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter any,
 		op.rawData = &rawData
 	}
 
-	err = op.Execute(ctx)
+	err = op.execute(ctx)
 	if err != nil {
 		return 0, wrapErrors(err)
 	}
 
-	batch := op.ResultCursorResponse().FirstBatch
+	batch := op.resultCursorResponse().FirstBatch
 	if batch == nil {
 		return 0, errors.New("invalid response from server, no 'firstBatch' field")
 	}
