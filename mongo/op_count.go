@@ -39,7 +39,7 @@ type countOp struct {
 	retry                     *driver.RetryMode
 	maxAdaptiveRetries        uint
 	enableOverloadRetargeting bool
-	result                    countResult
+	res                       countResult
 	serverAPI                 *driver.ServerAPIOptions
 	timeout                   *time.Duration
 	rawData                   *bool
@@ -67,43 +67,66 @@ func buildCountResult(response bsoncore.Document) (countResult, error) {
 					element.Value().Type)
 			}
 		case "cursor": // for count using aggregate with $collStats
-			firstBatch, err := element.Value().Document().LookupErr("firstBatch")
+			cursorDoc, ok := element.Value().DocumentOK()
+			if !ok {
+				return cr, fmt.Errorf("response field 'cursor' must be a document, but got BSON type %v", element.Value().Type)
+			}
+			firstBatch, err := cursorDoc.LookupErr("firstBatch")
 			if err != nil {
 				return cr, err
 			}
 
 			// get count value from first batch
-			val := firstBatch.Array().Index(0)
-			count, err := val.Document().LookupErr("n")
+			arr, ok := firstBatch.ArrayOK()
+			if !ok {
+				return cr, fmt.Errorf(
+					"response field 'cursor.firstBatch' must be an array, but got BSON type %v",
+					firstBatch.Type,
+				)
+			}
+			val, err := arr.IndexErr(0)
+			if err != nil {
+				return cr, err
+			}
+
+			valDoc, ok := val.DocumentOK()
+			if !ok {
+				return cr, fmt.Errorf(
+					"response field 'cursor.firstBatch[0]' must be a document, but got BSON type %v",
+					val.Type,
+				)
+			}
+			count, err := valDoc.LookupErr("n")
 			if err != nil {
 				return cr, err
 			}
 
 			// use count as Int64 for result
-			var ok bool
 			cr.N, ok = count.AsInt64OK()
 			if !ok {
-				return cr, fmt.Errorf("response field 'n' is type int64, but received BSON type %s",
-					element.Value().Type)
+				return cr, fmt.Errorf(
+					"response field 'cursor.firstBatch[0].n' must be convertible to int64, but received BSON type %s",
+					count.Type,
+				)
 			}
 		}
 	}
 	return cr, nil
 }
 
-// Result returns the result of executing this operation.
-func (c *countOp) Result() countResult { return c.result }
+// result returns the result of executing this operation.
+func (c *countOp) result() countResult { return c.res }
 
 func (c *countOp) processResponse(_ context.Context, resp bsoncore.Document, _ driver.ResponseInfo) error {
 	var err error
-	c.result, err = buildCountResult(resp)
+	c.res, err = buildCountResult(resp)
 	return err
 }
 
-// Execute runs this operation and returns an error if the operation did not execute successfully.
-func (c *countOp) Execute(ctx context.Context) error {
+// execute runs this operation and returns an error if the operation did not execute successfully.
+func (c *countOp) execute(ctx context.Context) error {
 	if c.deployment == nil {
-		return errors.New("the count operation must have a Deployment set before Execute can be called")
+		return errors.New("the count operation must have a Deployment set before execute can be called")
 	}
 
 	err := driver.Operation{

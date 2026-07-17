@@ -1329,8 +1329,8 @@ func (coll *Collection) EstimatedDocumentCount(
 		op.rawData = &rawData
 	}
 
-	err = op.Execute(ctx)
-	return op.Result().N, wrapErrors(err)
+	err = op.execute(ctx)
+	return op.result().N, wrapErrors(err)
 }
 
 // Distinct executes a distinct command to find the unique values for a specified field in the collection.
