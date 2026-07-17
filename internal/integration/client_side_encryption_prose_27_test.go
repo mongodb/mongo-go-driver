@@ -31,6 +31,7 @@ type cseProse27Config struct {
 	encryptedFieldsPrefixSuffixPreview bson.Raw
 	encryptedFieldsSubstring           bson.Raw
 	encryptedFieldsSubstringCIDI       bson.Raw
+	encryptedFieldsSubstringPreview    bson.Raw
 	key1Document                       bson.Raw
 }
 
@@ -61,30 +62,49 @@ func TestClientSideEncryptionProse_27(t *testing.T) {
 	// These tests are gated on libmongocrypt 1.19.1 so that the preview path is
 	// valid wherever it runs; on a 9.0+ server this is stricter than the spec's
 	// 1.19.0 minimum for the stable path.
-	prefixSuffixOpts := newQEOpts().MinLibmongocryptVersion("1.19.1")
+	prefixSuffixPreviewOpts := newQEOpts().MinServerVersion("8.2").MaxServerVersion("8.99.99").MinLibmongocryptVersion("1.19.1")
 
-	mt.RunOpts("case 1: can find a document by prefix", prefixSuffixOpts, func(mt *mtest.T) {
-		runCSEProse27Case1(mt, test)
+	mt.RunOpts("case 1 (prefixPreview): can find a document by prefix", prefixSuffixPreviewOpts, func(mt *mtest.T) {
+		runCSEProse27Case1(mt, test, "prefixPreview")
 	})
-	mt.RunOpts("case 2: can find a document by suffix", prefixSuffixOpts, func(mt *mtest.T) {
-		runCSEProse27Case2(mt, test)
+	mt.RunOpts("case 2 (suffixPreview): can find a document by suffix", prefixSuffixPreviewOpts, func(mt *mtest.T) {
+		runCSEProse27Case2(mt, test, "suffixPreview")
 	})
-	mt.RunOpts("case 3: assert no document found by prefix", prefixSuffixOpts, func(mt *mtest.T) {
-		runCSEProse27Case3(mt, test)
+	mt.RunOpts("case 3 (prefixPreview): assert no document found by prefix", prefixSuffixPreviewOpts, func(mt *mtest.T) {
+		runCSEProse27Case3(mt, test, "prefixPreview")
 	})
-	mt.RunOpts("case 4: assert no document found by suffix", prefixSuffixOpts, func(mt *mtest.T) {
-		runCSEProse27Case4(mt, test)
+	mt.RunOpts("case 4 (suffixPreview): assert no document found by suffix", prefixSuffixPreviewOpts, func(mt *mtest.T) {
+		runCSEProse27Case4(mt, test, "suffixPreview")
 	})
 
-	// The substring cases 5 and 6 require only the overall case 27
-	// minimums: server 8.2.0+ and libmongocrypt 1.18.1+.
-	substringOpts := newQEOpts().MaxServerVersion("8.99.99")
-
-	mt.RunOpts("case 5: can find a document by substring", substringOpts, func(mt *mtest.T) {
-		runCSEProse27Case5(mt, test)
+	prefixSuffixOpts := newQEOpts().MinServerVersion("9.0").MinLibmongocryptVersion("1.19.0")
+	mt.RunOpts("case 1 (prefix): can find a document by prefix", prefixSuffixOpts, func(mt *mtest.T) {
+		runCSEProse27Case1(mt, test, "prefix")
 	})
-	mt.RunOpts("case 6: assert no document found by substring", substringOpts, func(mt *mtest.T) {
-		runCSEProse27Case6(mt, test)
+	mt.RunOpts("case 2 (suffix): can find a document by suffix", prefixSuffixOpts, func(mt *mtest.T) {
+		runCSEProse27Case2(mt, test, "suffix")
+	})
+	mt.RunOpts("case 3 (prefix): assert no document found by prefix", prefixSuffixOpts, func(mt *mtest.T) {
+		runCSEProse27Case3(mt, test, "prefix")
+	})
+	mt.RunOpts("case 4 (suffix): assert no document found by suffix", prefixSuffixOpts, func(mt *mtest.T) {
+		runCSEProse27Case4(mt, test, "suffix")
+	})
+
+	substringPreviewOpts := newQEOpts().MinServerVersion("8.2").MaxServerVersion("8.99.99").MinLibmongocryptVersion("1.18.1")
+	mt.RunOpts("case 5 (substringPreview): can find a document by substring", substringPreviewOpts, func(mt *mtest.T) {
+		runCSEProse27Case5(mt, test, "substringPreview")
+	})
+	mt.RunOpts("case 6 (substringPreview): assert no document found by substring", substringPreviewOpts, func(mt *mtest.T) {
+		runCSEProse27Case6(mt, test, "substringPreview")
+	})
+
+	substringOpts := newQEOpts().MinServerVersion("9.0").MinLibmongocryptVersion("1.20.0")
+	mt.RunOpts("case 5 (substring): can find a document by substring", substringOpts, func(mt *mtest.T) {
+		runCSEProse27Case5(mt, test, "substring")
+	})
+	mt.RunOpts("case 6 (substring): assert no document found by substring", substringOpts, func(mt *mtest.T) {
+		runCSEProse27Case6(mt, test, "substring")
 	})
 
 	// Cases 7, 8, and 9 exercise the GA "String" algorithm and stable
@@ -103,7 +123,7 @@ func TestClientSideEncryptionProse_27(t *testing.T) {
 		runCSEProse27Case9(mt, test)
 	})
 
-	stableSubstringOpts := newQEOpts().MaxServerVersion("8.99.99").MinLibmongocryptVersion("1.19.0")
+	stableSubstringOpts := newQEOpts().MinServerVersion("9.0").MinLibmongocryptVersion("1.20.0")
 	mt.RunOpts("case 10: can find an auto-encrypted case-insensitively indexed document by substring", stableSubstringOpts, func(mt *mtest.T) {
 		runCSEProse27Case10(mt, test)
 	})
@@ -117,7 +137,7 @@ func TestClientSideEncryptionProse_27(t *testing.T) {
 // =============================================================================
 
 // runCSEProse27Case1 ensures that we can find a document by prefix.
-func runCSEProse27Case1(mt *mtest.T, test *cseProse27Test) {
+func runCSEProse27Case1(mt *mtest.T, test *cseProse27Test, queryType string) {
 	mt.Helper()
 
 	// Step 1. Use clientEncryption.encrypt() to encrypt "foo" with prefix query
@@ -125,14 +145,13 @@ func runCSEProse27Case1(mt *mtest.T, test *cseProse27Test) {
 	foo := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "foo")}
 	eo := options.Encrypt().
 		SetKeyID(test.key1ID).
+		SetQueryType(queryType).
 		SetAlgorithm("String").
 		SetContentionFactor(0).
 		SetStringOptions(options.String().
 			SetCaseSensitive(true).
 			SetDiacriticSensitive(true).
 			SetPrefix(options.PrefixOptions{StrMaxQueryLength: 10, StrMinQueryLength: 2}))
-
-	eo = setPrefixQueryTypeForVersion(eo)
 
 	payload, err := test.clientEncryption.Encrypt(context.Background(), foo, eo)
 	require.NoError(mt, err, "error in Encrypt: %v", err)
@@ -158,7 +177,7 @@ func runCSEProse27Case1(mt *mtest.T, test *cseProse27Test) {
 }
 
 // runCSEProse27Case2 ensures that we can find a document by suffix.
-func runCSEProse27Case2(mt *mtest.T, test *cseProse27Test) {
+func runCSEProse27Case2(mt *mtest.T, test *cseProse27Test, queryType string) {
 	mt.Helper()
 
 	// Step 1. Use clientEncryption.encrypt() to encrypt "baz" with suffix query
@@ -166,14 +185,13 @@ func runCSEProse27Case2(mt *mtest.T, test *cseProse27Test) {
 	baz := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "baz")}
 	eo := options.Encrypt().
 		SetKeyID(test.key1ID).
+		SetQueryType(queryType).
 		SetAlgorithm("String").
 		SetContentionFactor(0).
 		SetStringOptions(options.String().
 			SetCaseSensitive(true).
 			SetDiacriticSensitive(true).
 			SetSuffix(options.SuffixOptions{StrMaxQueryLength: 10, StrMinQueryLength: 2}))
-
-	eo = setSuffixQueryTypeForVersion(eo)
 
 	payload, err := test.clientEncryption.Encrypt(context.Background(), baz, eo)
 	require.NoError(mt, err, "error in Encrypt: %v", err)
@@ -199,7 +217,7 @@ func runCSEProse27Case2(mt *mtest.T, test *cseProse27Test) {
 }
 
 // runCSEProse27Case3 asserts that no document is found by prefix.
-func runCSEProse27Case3(mt *mtest.T, test *cseProse27Test) {
+func runCSEProse27Case3(mt *mtest.T, test *cseProse27Test, queryType string) {
 	mt.Helper()
 
 	// Step 1. Use clientEncryption.encrypt() to encrypt "baz" with prefix query
@@ -207,14 +225,13 @@ func runCSEProse27Case3(mt *mtest.T, test *cseProse27Test) {
 	baz := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "baz")}
 	eo := options.Encrypt().
 		SetKeyID(test.key1ID).
+		SetQueryType(queryType).
 		SetAlgorithm("String").
 		SetContentionFactor(0).
 		SetStringOptions(options.String().
 			SetCaseSensitive(true).
 			SetDiacriticSensitive(true).
 			SetPrefix(options.PrefixOptions{StrMaxQueryLength: 10, StrMinQueryLength: 2}))
-
-	eo = setPrefixQueryTypeForVersion(eo)
 
 	payload, err := test.clientEncryption.Encrypt(context.Background(), baz, eo)
 	require.NoError(mt, err, "error in Encrypt: %v", err)
@@ -236,7 +253,7 @@ func runCSEProse27Case3(mt *mtest.T, test *cseProse27Test) {
 }
 
 // runCSEProse27Case4 asserts that no document is found by suffix.
-func runCSEProse27Case4(mt *mtest.T, test *cseProse27Test) {
+func runCSEProse27Case4(mt *mtest.T, test *cseProse27Test, queryType string) {
 	mt.Helper()
 
 	// Step 1. Use clientEncryption.encrypt() to encrypt "foo" with suffix query
@@ -244,14 +261,13 @@ func runCSEProse27Case4(mt *mtest.T, test *cseProse27Test) {
 	foo := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "foo")}
 	eo := options.Encrypt().
 		SetKeyID(test.key1ID).
+		SetQueryType(queryType).
 		SetAlgorithm("String").
 		SetContentionFactor(0).
 		SetStringOptions(options.String().
 			SetCaseSensitive(true).
 			SetDiacriticSensitive(true).
 			SetSuffix(options.SuffixOptions{StrMaxQueryLength: 10, StrMinQueryLength: 2}))
-
-	eo = setSuffixQueryTypeForVersion(eo)
 
 	payload, err := test.clientEncryption.Encrypt(context.Background(), foo, eo)
 	require.NoError(mt, err, "error in Encrypt: %v", err)
@@ -273,7 +289,7 @@ func runCSEProse27Case4(mt *mtest.T, test *cseProse27Test) {
 }
 
 // runCSEProse27Case5 ensures that we can find a document by substring.
-func runCSEProse27Case5(mt *mtest.T, test *cseProse27Test) {
+func runCSEProse27Case5(mt *mtest.T, test *cseProse27Test, queryType string) {
 	mt.Helper()
 
 	// Step 1. Use clientEncryption.encrypt() to encrypt "bar" with substring
@@ -281,13 +297,13 @@ func runCSEProse27Case5(mt *mtest.T, test *cseProse27Test) {
 	bar := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "bar")}
 	eo := options.Encrypt().
 		SetKeyID(test.key1ID).
+		SetQueryType(queryType).
 		SetAlgorithm("String").
-		SetQueryType("substringPreview").
 		SetContentionFactor(0).
 		SetStringOptions(options.String().
 			SetCaseSensitive(true).
 			SetDiacriticSensitive(true).
-			SetSubstring(options.SubstringOptions{StrMaxLength: 10, StrMaxQueryLength: 10, StrMinQueryLength: 2}))
+			SetSubstring(options.SubstringOptions{StrMaxLength: 10, StrMaxQueryLength: 6, StrMinQueryLength: 2}))
 
 	payload, err := test.clientEncryption.Encrypt(context.Background(), bar, eo)
 	require.NoError(mt, err, "error in Encrypt: %v", err)
@@ -296,7 +312,7 @@ func runCSEProse27Case5(mt *mtest.T, test *cseProse27Test) {
 	// db.substring collection with the following filter:
 	//
 	// { $expr: { $encStrContains: {input: '$encryptedText', substring: <encrypted 'bar'>} } }
-	coll := test.explicitEncryptClient.Database("db").Collection("substring")
+	coll := test.explicitEncryptClient.Database("db").Collection(substringCollection())
 	res := coll.FindOne(context.Background(), bson.D{{Key: "$expr", Value: bson.D{
 		{Key: "$encStrContains", Value: bson.D{
 			{Key: "input", Value: "$encryptedText"},
@@ -313,7 +329,7 @@ func runCSEProse27Case5(mt *mtest.T, test *cseProse27Test) {
 }
 
 // runCSEProse27Case6 asserts that no document is found by substring.
-func runCSEProse27Case6(mt *mtest.T, test *cseProse27Test) {
+func runCSEProse27Case6(mt *mtest.T, test *cseProse27Test, queryType string) {
 	mt.Helper()
 
 	// Step 1. Use clientEncryption.encrypt() to encrypt "qux" with substring
@@ -322,12 +338,12 @@ func runCSEProse27Case6(mt *mtest.T, test *cseProse27Test) {
 	eo := options.Encrypt().
 		SetKeyID(test.key1ID).
 		SetAlgorithm("String").
-		SetQueryType("substringPreview").
+		SetQueryType(queryType).
 		SetContentionFactor(0).
 		SetStringOptions(options.String().
 			SetCaseSensitive(true).
 			SetDiacriticSensitive(true).
-			SetSubstring(options.SubstringOptions{StrMaxLength: 10, StrMaxQueryLength: 10, StrMinQueryLength: 2}))
+			SetSubstring(options.SubstringOptions{StrMaxLength: 10, StrMaxQueryLength: 6, StrMinQueryLength: 2}))
 
 	payload, err := test.clientEncryption.Encrypt(context.Background(), qux, eo)
 	require.NoError(mt, err, "error in Encrypt: %v", err)
@@ -338,7 +354,7 @@ func runCSEProse27Case6(mt *mtest.T, test *cseProse27Test) {
 	// { $expr: { $encStrContains: {input: '$encryptedText', substring: <encrypted 'qux'>} } }
 	//
 	// Assert that no documents are returned.
-	coll := test.explicitEncryptClient.Database("db").Collection("substring")
+	coll := test.explicitEncryptClient.Database("db").Collection(substringCollection())
 	_, err = coll.FindOne(context.Background(), bson.D{{Key: "$expr", Value: bson.D{
 		{Key: "$encStrContains", Value: bson.D{
 			{Key: "input", Value: "$encryptedText"},
@@ -547,8 +563,6 @@ func runCSEProse27Case9(mt *mtest.T, test *cseProse27Test) {
 
 // runCSEProse27Case10 ensures that we can find an auto-encrypted
 // case-insensitively indexed document by substring.
-//
-// Requires libmongocrypt 1.19.0+.
 func runCSEProse27Case10(mt *mtest.T, test *cseProse27Test) {
 	mt.Helper()
 
@@ -561,16 +575,16 @@ func runCSEProse27Case10(mt *mtest.T, test *cseProse27Test) {
 
 	// Step 2. Use clientEncryption.encrypt() to encrypt "bar" with substring
 	// query type. Substring search is still a preview feature, so the query type
-	// remains "substringPreview" even on libmongocrypt 1.19.0+.
+	// remains "substring" even on libmongocrypt 1.19.0+.
 	encryptOpts := options.Encrypt().
 		SetKeyID(test.key1ID).
 		SetAlgorithm("String").
-		SetQueryType("substringPreview").
+		SetQueryType("substring").
 		SetContentionFactor(0).
 		SetStringOptions(options.String().
 			SetCaseSensitive(false).
 			SetDiacriticSensitive(false).
-			SetSubstring(options.SubstringOptions{StrMaxLength: 10, StrMinQueryLength: 2, StrMaxQueryLength: 10}))
+			SetSubstring(options.SubstringOptions{StrMaxLength: 10, StrMinQueryLength: 2, StrMaxQueryLength: 6}))
 
 	barPlaintextSearchToken := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "bar")}
 
@@ -602,8 +616,6 @@ func runCSEProse27Case10(mt *mtest.T, test *cseProse27Test) {
 
 // runCSEProse27Case11 ensures that we can find an auto-encrypted
 // diacritic-insensitively indexed document by substring.
-//
-// Requires libmongocrypt 1.19.0+.
 func runCSEProse27Case11(mt *mtest.T, test *cseProse27Test) {
 	mt.Helper()
 
@@ -616,16 +628,16 @@ func runCSEProse27Case11(mt *mtest.T, test *cseProse27Test) {
 
 	// Step 2. Use clientEncryption.encrypt() to encrypt "cafe" with substring query
 	// type. Substring search is still a preview feature, so the query type remains
-	// "substringPreview" even on libmongocrypt 1.19.0+.
+	// "substring" even on libmongocrypt 1.19.0+.
 	encryptOpts := options.Encrypt().
 		SetKeyID(test.key1ID).
 		SetAlgorithm("String").
-		SetQueryType("substringPreview").
+		SetQueryType("substring").
 		SetContentionFactor(0).
 		SetStringOptions(options.String().
 			SetCaseSensitive(false).
 			SetDiacriticSensitive(false).
-			SetSubstring(options.SubstringOptions{StrMaxLength: 10, StrMinQueryLength: 2, StrMaxQueryLength: 10}))
+			SetSubstring(options.SubstringOptions{StrMaxLength: 10, StrMinQueryLength: 2, StrMaxQueryLength: 6}))
 
 	cafePlaintextSearchToken := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "cafe")}
 
@@ -700,28 +712,16 @@ func prefixSuffixCollection() string {
 	return "prefix-suffix"
 }
 
-// setPrefixQueryTypeForVersion returns an EncryptOptionsBuilder with the query
-// type set to:
+// substringCollection returns the collection name that cases 5-6 query for
+// the current server version:
 //
-//   - prefixPreview for server versions < 9.0
-//   - prefix for server versions >= 9.0
-func setPrefixQueryTypeForVersion(opts *options.EncryptOptionsBuilder) *options.EncryptOptionsBuilder {
+//   - substring-preview for server versions < 9.0 (preview query types)
+//   - substring for server versions >= 9.0 (stable query types)
+func substringCollection() string {
 	if mtest.CompareServerVersions(mtest.ServerVersion(), "9.0") < 0 {
-		return opts.SetQueryType("prefixPreview")
+		return "substring-preview"
 	}
-	return opts.SetQueryType("prefix")
-}
-
-// setSuffixQueryTypeForVersion returns an EncryptOptionsBuilder with the query
-// type set to:
-//
-//   - suffixPreview for server versions < 9.0
-//   - suffix for server versions >= 9.0
-func setSuffixQueryTypeForVersion(opts *options.EncryptOptionsBuilder) *options.EncryptOptionsBuilder {
-	if mtest.CompareServerVersions(mtest.ServerVersion(), "9.0") < 0 {
-		return opts.SetQueryType("suffixPreview")
-	}
-	return opts.SetQueryType("suffix")
+	return "substring"
 }
 
 // =============================================================================
@@ -752,6 +752,7 @@ func loadCSEProse27Config() (cseProse27Config, error) {
 		{filepath.Join(cseSpecDataDir, "encryptedFields-prefix-suffix-preview.json"), &cfg.encryptedFieldsPrefixSuffixPreview},
 		{filepath.Join(cseSpecDataDir, "encryptedFields-substring.json"), &cfg.encryptedFieldsSubstring},
 		{filepath.Join(cseSpecDataDir, "encryptedFields-substring-ci-di.json"), &cfg.encryptedFieldsSubstringCIDI},
+		{filepath.Join(cseSpecDataDir, "encryptedFields-substring-preview.json"), &cfg.encryptedFieldsSubstringPreview},
 		{filepath.Join(cseSpecDataDir, "keys", "key1-document.json"), &cfg.key1Document},
 	}
 
@@ -793,8 +794,9 @@ func doSetupCSEProse27(mt *mtest.T) (*cseProse27Test, error) {
 		// The preview prefix/suffix query types are used on pre-9.0 servers.
 		{"prefix-suffix-preview", cfg.encryptedFieldsPrefixSuffixPreview, "", "9.0"},
 
-		{"substring", cfg.encryptedFieldsSubstring, "", "8.99.99"},
-		{"substring-ci-di", cfg.encryptedFieldsSubstringCIDI, "", "8.99.99"},
+		{"substring", cfg.encryptedFieldsSubstring, "9.0", ""},
+		{"substring-ci-di", cfg.encryptedFieldsSubstringCIDI, "9.0", ""},
+		{"substring-preview", cfg.encryptedFieldsSubstringPreview, "", "8.99.99"},
 	}
 	for _, c := range encryptedColls {
 		// Always drop to ensure a clean state from any previous run.
@@ -917,7 +919,7 @@ func setupCSEProse27(mt *mtest.T) *cseProse27Test {
 	// whichever collection exists for this server version: db.prefix-suffix on
 	// 9.0+ (stable query types) or db.prefix-suffix-preview on pre-9.0 (preview
 	// query types).
-	insertEncryptedTextWithNilID(mt, test.autoEncryptClient, "db", "substring", "foobarbaz")
+	insertEncryptedTextWithNilID(mt, test.autoEncryptClient, "db", substringCollection(), "foobarbaz")
 	insertEncryptedTextWithNilID(mt, test.autoEncryptClient, "db", prefixSuffixCollection(), "foobarbaz")
 
 	return test

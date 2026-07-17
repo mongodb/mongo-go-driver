@@ -24,7 +24,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/auth"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
-	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/topology"
 )
 
@@ -123,20 +123,41 @@ func addCompressorToURI(uri string) string {
 	return uri + "compressors=" + comp
 }
 
+// executeCommand runs an arbitrary command against the given deployment and
+// returns the raw server response.
+func executeCommand(
+	deployment driver.Deployment,
+	selector description.ServerSelector,
+	db string,
+	cmd bsoncore.Document,
+) (bsoncore.Document, error) {
+	var res bsoncore.Document
+	err := driver.Operation{
+		CommandFn: func(dst []byte, _ description.SelectedServer) ([]byte, error) {
+			return append(dst, cmd[4:len(cmd)-1]...), nil
+		},
+		ProcessResponseFn: func(_ context.Context, resp bsoncore.Document, _ driver.ResponseInfo) error {
+			res = resp
+			return nil
+		},
+		Database:   db,
+		Deployment: deployment,
+		Selector:   selector,
+	}.Execute(context.Background())
+	return res, err
+}
+
 // runCommand runs an arbitrary command on a given database of the target
 // server.
 func runCommand(s driver.Server, db string, cmd bsoncore.Document) error {
-	op := operation.NewCommand(cmd).
-		Database(db).
-		Deployment(driver.SingleServerDeployment{Server: s})
-	return op.Execute(context.Background())
+	_, err := executeCommand(driver.SingleServerDeployment{Server: s}, nil, db, cmd)
+	return err
 }
 
 // dropCollection drops the collection in the test cluster.
 func dropCollection(t *testing.T, dbname, colname string) {
-	err := operation.NewCommand(bsoncore.BuildDocument(nil, bsoncore.AppendStringElement(nil, "drop", colname))).
-		Database(dbname).ServerSelector(&serverselector.Write{}).Deployment(integtest.Topology(t)).
-		Execute(context.Background())
+	dropCmd := bsoncore.BuildDocument(nil, bsoncore.AppendStringElement(nil, "drop", colname))
+	_, err := executeCommand(integtest.Topology(t), &serverselector.Write{}, dbname, dropCmd)
 	if de, ok := err.(driver.Error); err != nil && (!ok || !de.NamespaceNotFound()) {
 		require.NoError(t, err)
 	}

@@ -3,7 +3,9 @@
 # This script installs libmongocrypt into an "install" directory.
 set -eux
 
-LIBMONGOCRYPT_TAG="1.19.1"
+# TODO(GODRIVER-4028): Remove UV_CONSTRAINT=<(echo "cmake<4.4") from the
+# compile.sh call (see below) when we upgrade to libmongocrypt 1.21.0
+LIBMONGOCRYPT_TAG="1.20.0"
 
 # Install libmongocrypt based on OS.
 if [ "Windows_NT" = "${OS:-}" ]; then
@@ -39,7 +41,7 @@ if [ "Windows_NT" = "${OS:-}" ]; then
 else
   rm -rf libmongocrypt
   git clone https://github.com/mongodb/libmongocrypt --depth=1 --branch $LIBMONGOCRYPT_TAG 2>/dev/null
-  if ! (./libmongocrypt/.evergreen/compile.sh >|output.txt 2>&1); then
+  if ! (UV_CONSTRAINT=<(echo "cmake<4.4") ./libmongocrypt/.evergreen/compile.sh >|output.txt 2>&1); then
     cat output.txt 1>&2
     exit 1
   fi
