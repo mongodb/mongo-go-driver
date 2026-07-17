@@ -362,7 +362,7 @@ func (coll *Collection) insert(
 	}
 	op.retry = &retry
 
-	err = op.Execute(ctx)
+	err = op.execute(ctx)
 	var wce driver.WriteCommandError
 	if !errors.As(err, &wce) {
 		return result, err
@@ -763,14 +763,14 @@ func (coll *Collection) updateOrReplace(
 	if additionalCmd, ok := optionsutil.Value(args.Internal, "addCommandFields").(bson.D); ok {
 		op.additionalCmd = additionalCmd
 	}
-	err = op.Execute(ctx)
+	err = op.execute(ctx)
 
 	rr, err := processWriteError(err)
 	if rr&expectedRr == 0 {
 		return nil, err
 	}
 
-	opRes := op.Result()
+	opRes := op.result()
 	res := &UpdateResult{
 		MatchedCount:  opRes.N,
 		ModifiedCount: opRes.NModified,

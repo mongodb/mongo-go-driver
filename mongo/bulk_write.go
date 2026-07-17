@@ -209,7 +209,7 @@ func (bw *bulkWrite) runInsert(ctx context.Context, batch bulkWriteBatch) (inser
 	if bw.comment != nil {
 		comment, err := marshalValue(bw.comment, bw.collection.bsonOpts, bw.collection.registry)
 		if err != nil {
-			return op.Result(), err
+			return op.result(), err
 		}
 		op.comment = comment
 	}
@@ -233,9 +233,9 @@ func (bw *bulkWrite) runInsert(ctx context.Context, batch bulkWriteBatch) (inser
 		op.additionalCmd = bw.additionalCmd
 	}
 
-	err := op.Execute(ctx)
+	err := op.execute(ctx)
 
-	return op.Result(), err
+	return op.result(), err
 }
 
 func (bw *bulkWrite) runDelete(ctx context.Context, batch bulkWriteBatch) (operation.DeleteResult, error) {
@@ -255,7 +255,8 @@ func (bw *bulkWrite) runDelete(ctx context.Context, batch bulkWriteBatch) (opera
 				converted.Hint,
 				true,
 				bw.collection.bsonOpts,
-				bw.collection.registry)
+				bw.collection.registry,
+			)
 			hasHint = hasHint || (converted.Hint != nil)
 		case *DeleteManyModel:
 			doc, err = createDeleteDoc(
@@ -264,7 +265,8 @@ func (bw *bulkWrite) runDelete(ctx context.Context, batch bulkWriteBatch) (opera
 				converted.Hint,
 				false,
 				bw.collection.bsonOpts,
-				bw.collection.registry)
+				bw.collection.registry,
+			)
 			hasHint = hasHint || (converted.Hint != nil)
 		}
 
@@ -444,7 +446,7 @@ func (bw *bulkWrite) runUpdate(ctx context.Context, batch bulkWriteBatch) (updat
 	if bw.comment != nil {
 		comment, err := marshalValue(bw.comment, bw.collection.bsonOpts, bw.collection.registry)
 		if err != nil {
-			return op.Result(), err
+			return op.result(), err
 		}
 		op.comment = comment
 	}
@@ -468,9 +470,9 @@ func (bw *bulkWrite) runUpdate(ctx context.Context, batch bulkWriteBatch) (updat
 		op.additionalCmd = bw.additionalCmd
 	}
 
-	err := op.Execute(ctx)
+	err := op.execute(ctx)
 
-	return op.Result(), err
+	return op.result(), err
 }
 
 type updateDoc struct {
