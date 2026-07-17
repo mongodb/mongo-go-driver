@@ -9,7 +9,6 @@ package mongo
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/event"
@@ -37,66 +36,19 @@ type createIndexesOp struct {
 	deployment                driver.Deployment
 	selector                  description.ServerSelector
 	writeConcern              *writeconcern.WriteConcern
-	result                    createIndexesResult
 	serverAPI                 *driver.ServerAPIOptions
 	timeout                   *time.Duration
 	rawData                   *bool
 }
 
-// createIndexesResult represents a createIndexes result returned by the server.
-type createIndexesResult struct {
-	// If the collection was created automatically.
-	CreatedCollectionAutomatically bool
-	// The number of indexes existing after this command.
-	IndexesAfter int32
-	// The number of indexes existing before this command.
-	IndexesBefore int32
+func (ci *createIndexesOp) processResponse(context.Context, bsoncore.Document, driver.ResponseInfo) error {
+	return nil
 }
 
-func buildCreateIndexesResult(response bsoncore.Document) (createIndexesResult, error) {
-	elements, err := response.Elements()
-	if err != nil {
-		return createIndexesResult{}, err
-	}
-	cir := createIndexesResult{}
-	for _, element := range elements {
-		switch element.Key() {
-		case "createdCollectionAutomatically":
-			var ok bool
-			cir.CreatedCollectionAutomatically, ok = element.Value().BooleanOK()
-			if !ok {
-				return cir, fmt.Errorf("response field 'createdCollectionAutomatically' is type bool, but received BSON type %s", element.Value().Type)
-			}
-		case "indexesAfter":
-			var ok bool
-			cir.IndexesAfter, ok = element.Value().AsInt32OK()
-			if !ok {
-				return cir, fmt.Errorf("response field 'indexesAfter' is type int32, but received BSON type %s", element.Value().Type)
-			}
-		case "indexesBefore":
-			var ok bool
-			cir.IndexesBefore, ok = element.Value().AsInt32OK()
-			if !ok {
-				return cir, fmt.Errorf("response field 'indexesBefore' is type int32, but received BSON type %s", element.Value().Type)
-			}
-		}
-	}
-	return cir, nil
-}
-
-// Result returns the result of executing this operation.
-func (ci *createIndexesOp) Result() createIndexesResult { return ci.result }
-
-func (ci *createIndexesOp) processResponse(_ context.Context, resp bsoncore.Document, _ driver.ResponseInfo) error {
-	var err error
-	ci.result, err = buildCreateIndexesResult(resp)
-	return err
-}
-
-// Execute runs this operations and returns an error if the operation did not execute successfully.
-func (ci *createIndexesOp) Execute(ctx context.Context) error {
+// execute runs this operations and returns an error if the operation did not execute successfully.
+func (ci *createIndexesOp) execute(ctx context.Context) error {
 	if ci.deployment == nil {
-		return errors.New("the CreateIndexes operation must have a Deployment set before Execute can be called")
+		return errors.New("the createIndexes operation must have a Deployment set before execute can be called")
 	}
 
 	return driver.Operation{

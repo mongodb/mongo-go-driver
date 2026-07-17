@@ -179,13 +179,13 @@ func (siv SearchIndexView) CreateMany(
 		authenticator: siv.coll.client.authenticator,
 	}
 
-	err = op.Execute(ctx)
+	err = op.execute(ctx)
 	if err != nil {
 		_, err = processWriteError(err)
 		return nil, err
 	}
 
-	indexesCreated := op.Result().IndexesCreated
+	indexesCreated := op.result().IndexesCreated
 	names := make([]string, 0, len(indexesCreated))
 	for _, index := range indexesCreated {
 		names = append(names, index.Name)

@@ -54,10 +54,10 @@ func (c *createOp) processResponse(context.Context, bsoncore.Document, driver.Re
 	return nil
 }
 
-// Execute runs this operations and returns an error if the operation did not execute successfully.
-func (c *createOp) Execute(ctx context.Context) error {
+// execute runs this operations and returns an error if the operation did not execute successfully.
+func (c *createOp) execute(ctx context.Context) error {
 	if c.deployment == nil {
-		return errors.New("the Create operation must have a Deployment set before Execute can be called")
+		return errors.New("the create operation must have a Deployment set before execute can be called")
 	}
 
 	return driver.Operation{

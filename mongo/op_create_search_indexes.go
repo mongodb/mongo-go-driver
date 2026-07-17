@@ -32,7 +32,7 @@ type createSearchIndexesOp struct {
 	database      string
 	deployment    driver.Deployment
 	selector      description.ServerSelector
-	result        createSearchIndexesResult
+	res           createSearchIndexesResult
 	serverAPI     *driver.ServerAPIOptions
 	timeout       *time.Duration
 }
@@ -83,19 +83,19 @@ func buildCreateSearchIndexesResult(response bsoncore.Document) (createSearchInd
 	return csir, nil
 }
 
-// Result returns the result of executing this operation.
-func (csi *createSearchIndexesOp) Result() createSearchIndexesResult { return csi.result }
+// result returns the result of executing this operation.
+func (csi *createSearchIndexesOp) result() createSearchIndexesResult { return csi.res }
 
 func (csi *createSearchIndexesOp) processResponse(_ context.Context, resp bsoncore.Document, _ driver.ResponseInfo) error {
 	var err error
-	csi.result, err = buildCreateSearchIndexesResult(resp)
+	csi.res, err = buildCreateSearchIndexesResult(resp)
 	return err
 }
 
-// Execute runs this operations and returns an error if the operation did not execute successfully.
-func (csi *createSearchIndexesOp) Execute(ctx context.Context) error {
+// execute runs this operations and returns an error if the operation did not execute successfully.
+func (csi *createSearchIndexesOp) execute(ctx context.Context) error {
 	if csi.deployment == nil {
-		return errors.New("the CreateSearchIndexes operation must have a Deployment set before Execute can be called")
+		return errors.New("the createSearchIndexes operation must have a Deployment set before execute can be called")
 	}
 
 	return driver.Operation{

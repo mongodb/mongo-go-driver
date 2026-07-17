@@ -307,7 +307,7 @@ func (iv IndexView) CreateMany(
 		op.rawData = &rawData
 	}
 
-	_, err = processWriteError(op.Execute(ctx))
+	_, err = processWriteError(op.execute(ctx))
 	if err != nil {
 		return nil, err
 	}

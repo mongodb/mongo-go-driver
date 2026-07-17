@@ -322,7 +322,8 @@ func (db *Database) RunCommandCursor(
 		closeImplicitSession(sess)
 		if errors.Is(err, driver.ErrNoCursor) {
 			return nil, errors.New(
-				"database response does not contain a cursor; try using RunCommand instead")
+				"database response does not contain a cursor; try using RunCommand instead",
+			)
 		}
 		return nil, wrapErrors(err)
 	}
@@ -979,7 +980,7 @@ func (db *Database) executeCreateOperation(ctx context.Context, op *createOp) er
 	op.deployment = db.client.deployment
 	op.crypt = db.client.cryptFLE
 
-	return wrapErrors(op.Execute(ctx))
+	return wrapErrors(op.execute(ctx))
 }
 
 // GridFSBucket is used to construct a GridFS bucket which can be used as a
