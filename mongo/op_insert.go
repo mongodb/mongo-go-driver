@@ -42,7 +42,7 @@ type insertOp struct {
 	retry                     *driver.RetryMode
 	maxAdaptiveRetries        uint
 	enableOverloadRetargeting bool
-	result                    insertResult
+	res                       insertResult
 	serverAPI                 *driver.ServerAPIOptions
 	timeout                   *time.Duration
 	rawData                   *bool
@@ -74,19 +74,19 @@ func buildInsertResult(response bsoncore.Document) (insertResult, error) {
 	return ir, nil
 }
 
-// Result returns the result of executing this operation.
-func (i *insertOp) Result() insertResult { return i.result }
+// result returns the result of executing this operation.
+func (i *insertOp) result() insertResult { return i.res }
 
 func (i *insertOp) processResponse(_ context.Context, resp bsoncore.Document, _ driver.ResponseInfo) error {
 	ir, err := buildInsertResult(resp)
-	i.result.N += ir.N
+	i.res.N += ir.N
 	return err
 }
 
-// Execute runs this operations and returns an error if the operation did not execute successfully.
-func (i *insertOp) Execute(ctx context.Context) error {
+// execute runs this operations and returns an error if the operation did not execute successfully.
+func (i *insertOp) execute(ctx context.Context) error {
 	if i.deployment == nil {
-		return errors.New("the Insert operation must have a Deployment set before Execute can be called")
+		return errors.New("the insert operation must have a Deployment set before execute can be called")
 	}
 	batches := &driver.Batches{
 		Identifier: "documents",
