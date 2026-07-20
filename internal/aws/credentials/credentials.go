@@ -66,14 +66,13 @@ func (v Value) HasKeys() bool {
 }
 
 // A Provider is the interface for any component which will provide credentials
-// Value. A provider is required to manage its own Expired state, and what to
-// be expired means.
+// Value.
 //
-// The Provider should not need to implement its own mutexes, because
-// that will be managed by Credentials.
+// The Provider does not need to implement its own synchronization. Concurrent
+// access is managed by Credentials.
 type Provider interface {
-	// Retrieve returns nil if it successfully retrieved the value.
-	// Error is returned if the value were not obtainable, or empty.
+	// Retrieve returns the credentials Value, or an error if the credentials
+	// could not be obtained or are empty.
 	Retrieve(context.Context) (Value, error)
 }
 

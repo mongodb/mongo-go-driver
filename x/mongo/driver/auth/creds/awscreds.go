@@ -24,7 +24,9 @@ const (
 	expiryWindow = 5 * time.Minute
 )
 
-// NewAWSCredentials generates new AWSCredentialDocSource
+// NewAWSCredentials returns a Credentials that resolves AWS credentials by
+// chaining the given providers with the default environment, assume-role, ECS,
+// and EC2 providers in order.
 func NewAWSCredentials(httpClient *http.Client, providers ...credentials.Provider) *credentials.Credentials {
 	providers = append(
 		providers,
