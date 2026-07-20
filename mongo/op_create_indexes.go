@@ -45,7 +45,7 @@ func (ci *createIndexesOp) processResponse(context.Context, bsoncore.Document, d
 	return nil
 }
 
-// execute runs this operations and returns an error if the operation did not execute successfully.
+// execute runs this operation and returns an error if the operation did not execute successfully.
 func (ci *createIndexesOp) execute(ctx context.Context) error {
 	if ci.deployment == nil {
 		return errors.New("the createIndexes operation must have a Deployment set before execute can be called")
