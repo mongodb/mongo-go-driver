@@ -362,7 +362,7 @@ func (coll *Collection) insert(
 	}
 	op.retry = &retry
 
-	err = op.Execute(ctx)
+	err = op.execute(ctx)
 	var wce driver.WriteCommandError
 	if !errors.As(err, &wce) {
 		return result, err
@@ -763,14 +763,14 @@ func (coll *Collection) updateOrReplace(
 	if additionalCmd, ok := optionsutil.Value(args.Internal, "addCommandFields").(bson.D); ok {
 		op.additionalCmd = additionalCmd
 	}
-	err = op.Execute(ctx)
+	err = op.execute(ctx)
 
 	rr, err := processWriteError(err)
 	if rr&expectedRr == 0 {
 		return nil, err
 	}
 
-	opRes := op.Result()
+	opRes := op.result()
 	res := &UpdateResult{
 		MatchedCount:  opRes.N,
 		ModifiedCount: opRes.NModified,
@@ -1044,44 +1044,46 @@ func aggregate(a aggregateParams, opts ...options.Lister[options.AggregateOption
 
 	cursorOpts.MarshalValueEncoderFn = newEncoderFn(a.bsonOpts, a.registry)
 
-	op := operation.NewAggregate(pipelineArr).
-		Session(sess).
-		WriteConcern(wc).
-		ReadConcern(rc).
-		ReadPreference(a.readPreference).
-		CommandMonitor(a.client.monitor).
-		Retry(retry).
-		MaxAdaptiveRetries(cursorOpts.MaxAdaptiveRetries).
-		EnableOverloadRetargeting(cursorOpts.EnableOverloadRetargeting).
-		ServerSelector(selector).
-		ClusterClock(a.client.clock).
-		Database(a.db).
-		Collection(a.col).
-		Deployment(a.client.deployment).
-		Crypt(a.client.cryptFLE).
-		ServerAPI(a.client.serverAPI).
-		HasOutputStage(hasOutputStage).
-		Timeout(a.client.timeout).
-		Authenticator(a.client.authenticator).
+	op := aggregateOp{
+		pipeline:                  pipelineArr,
+		session:                   sess,
+		writeConcern:              wc,
+		readConcern:               rc,
+		readPreference:            a.readPreference,
+		monitor:                   a.client.monitor,
+		retry:                     &retry,
+		maxAdaptiveRetries:        cursorOpts.MaxAdaptiveRetries,
+		enableOverloadRetargeting: cursorOpts.EnableOverloadRetargeting,
+		selector:                  selector,
+		clock:                     a.client.clock,
+		database:                  a.db,
+		collection:                a.col,
+		deployment:                a.client.deployment,
+		crypt:                     a.client.cryptFLE,
+		serverAPI:                 a.client.serverAPI,
+		hasOutputStage:            hasOutputStage,
+		timeout:                   a.client.timeout,
+		authenticator:             a.client.authenticator,
 		// Omit "maxTimeMS" from operations that return a user-managed cursor to
 		// prevent confusing "cursor not found" errors.
 		//
 		// See DRIVERS-2722 for more detail.
-		OmitMaxTimeMS(true)
+		omitMaxTimeMS: true,
+	}
 
 	if args.AllowDiskUse != nil {
-		op.AllowDiskUse(*args.AllowDiskUse)
+		op.allowDiskUse = args.AllowDiskUse
 	}
 	// ignore batchSize of 0 with $out
 	if args.BatchSize != nil && (*args.BatchSize != 0 || !hasOutputStage) {
-		op.BatchSize(*args.BatchSize)
+		op.batchSize = args.BatchSize
 		cursorOpts.BatchSize = *args.BatchSize
 	}
 	if args.BypassDocumentValidation != nil && *args.BypassDocumentValidation {
-		op.BypassDocumentValidation(*args.BypassDocumentValidation)
+		op.bypassDocumentValidation = args.BypassDocumentValidation
 	}
 	if args.Collation != nil {
-		op.Collation(bsoncore.Document(toDocument(args.Collation)))
+		op.collation = bsoncore.Document(toDocument(args.Collation))
 	}
 	if args.MaxAwaitTime != nil {
 		cursorOpts.SetMaxAwaitTime(*args.MaxAwaitTime)
@@ -1092,7 +1094,7 @@ func aggregate(a aggregateParams, opts ...options.Lister[options.AggregateOption
 			return nil, err
 		}
 
-		op.Comment(comment)
+		op.comment = comment
 		cursorOpts.Comment = comment
 	}
 	if args.Hint != nil {
@@ -1103,14 +1105,14 @@ func aggregate(a aggregateParams, opts ...options.Lister[options.AggregateOption
 		if err != nil {
 			return nil, err
 		}
-		op.Hint(hintVal)
+		op.hint = hintVal
 	}
 	if args.Let != nil {
 		let, err := marshal(args.Let, a.bsonOpts, a.registry)
 		if err != nil {
 			return nil, err
 		}
-		op.Let(let)
+		op.let = let
 	}
 	if args.Custom != nil {
 		// Marshal all custom options before passing to the aggregate operation. Return
@@ -1123,13 +1125,13 @@ func aggregate(a aggregateParams, opts ...options.Lister[options.AggregateOption
 			}
 			customOptions[optionName] = optionValueBSON
 		}
-		op.CustomOptions(customOptions)
+		op.customOptions = customOptions
 	}
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
-		op = op.RawData(rawData)
+		op.rawData = &rawData
 	}
 
-	err = op.Execute(a.ctx)
+	err = op.execute(a.ctx)
 	if err != nil {
 		var wce driver.WriteCommandError
 		if errors.As(err, &wce) && wce.WriteConcernError != nil {
@@ -1138,7 +1140,7 @@ func aggregate(a aggregateParams, opts ...options.Lister[options.AggregateOption
 		return nil, wrapErrors(err)
 	}
 
-	bc, err := op.Result(cursorOpts)
+	bc, err := op.result(cursorOpts)
 	if err != nil {
 		return nil, wrapErrors(err)
 	}
@@ -1199,14 +1201,27 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter any,
 	maxAdaptiveRetries := coll.client.effectiveAdaptiveRetries(coll.client.retryReads)
 
 	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.localThreshold)
-	op := operation.NewAggregate(pipelineArr).Session(sess).ReadConcern(rc).ReadPreference(coll.readPreference).
-		Retry(retry).MaxAdaptiveRetries(maxAdaptiveRetries).
-		EnableOverloadRetargeting(coll.client.enableOverloadRetargeting).
-		CommandMonitor(coll.client.monitor).ServerSelector(selector).ClusterClock(coll.client.clock).Database(coll.db.name).
-		Collection(coll.name).Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI).
-		Timeout(coll.client.timeout).Authenticator(coll.client.authenticator)
+	op := aggregateOp{
+		pipeline:                  pipelineArr,
+		session:                   sess,
+		readConcern:               rc,
+		readPreference:            coll.readPreference,
+		retry:                     &retry,
+		maxAdaptiveRetries:        maxAdaptiveRetries,
+		enableOverloadRetargeting: coll.client.enableOverloadRetargeting,
+		monitor:                   coll.client.monitor,
+		selector:                  selector,
+		clock:                     coll.client.clock,
+		database:                  coll.db.name,
+		collection:                coll.name,
+		deployment:                coll.client.deployment,
+		crypt:                     coll.client.cryptFLE,
+		serverAPI:                 coll.client.serverAPI,
+		timeout:                   coll.client.timeout,
+		authenticator:             coll.client.authenticator,
+	}
 	if args.Collation != nil {
-		op.Collation(bsoncore.Document(toDocument(args.Collation)))
+		op.collation = bsoncore.Document(toDocument(args.Collation))
 	}
 	if args.Comment != nil {
 		comment, err := marshalValue(args.Comment, coll.bsonOpts, coll.registry)
@@ -1214,7 +1229,7 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter any,
 			return 0, err
 		}
 
-		op.Comment(comment)
+		op.comment = comment
 	}
 	if args.Hint != nil {
 		if isUnorderedMap(args.Hint) {
@@ -1224,18 +1239,18 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter any,
 		if err != nil {
 			return 0, err
 		}
-		op.Hint(hintVal)
+		op.hint = hintVal
 	}
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
-		op = op.RawData(rawData)
+		op.rawData = &rawData
 	}
 
-	err = op.Execute(ctx)
+	err = op.execute(ctx)
 	if err != nil {
 		return 0, wrapErrors(err)
 	}
 
-	batch := op.ResultCursorResponse().FirstBatch
+	batch := op.resultCursorResponse().FirstBatch
 	if batch == nil {
 		return 0, errors.New("invalid response from server, no 'firstBatch' field")
 	}
@@ -1299,27 +1314,38 @@ func (coll *Collection) EstimatedDocumentCount(
 	maxAdaptiveRetries := coll.client.effectiveAdaptiveRetries(coll.client.retryReads)
 
 	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.localThreshold)
-	op := operation.NewCount().Session(sess).ClusterClock(coll.client.clock).
-		Database(coll.db.name).Collection(coll.name).CommandMonitor(coll.client.monitor).
-		Deployment(coll.client.deployment).ReadConcern(rc).ReadPreference(coll.readPreference).
-		Retry(retry).MaxAdaptiveRetries(maxAdaptiveRetries).
-		EnableOverloadRetargeting(coll.client.enableOverloadRetargeting).
-		ServerSelector(selector).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI).
-		Timeout(coll.client.timeout).Authenticator(coll.client.authenticator)
+	op := countOp{
+		session:                   sess,
+		clock:                     coll.client.clock,
+		database:                  coll.db.name,
+		collection:                coll.name,
+		monitor:                   coll.client.monitor,
+		deployment:                coll.client.deployment,
+		readConcern:               rc,
+		readPreference:            coll.readPreference,
+		retry:                     &retry,
+		maxAdaptiveRetries:        maxAdaptiveRetries,
+		enableOverloadRetargeting: coll.client.enableOverloadRetargeting,
+		selector:                  selector,
+		crypt:                     coll.client.cryptFLE,
+		serverAPI:                 coll.client.serverAPI,
+		timeout:                   coll.client.timeout,
+		authenticator:             coll.client.authenticator,
+	}
 
 	if args.Comment != nil {
 		comment, err := marshalValue(args.Comment, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return 0, err
 		}
-		op = op.Comment(comment)
+		op.comment = comment
 	}
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
-		op = op.RawData(rawData)
+		op.rawData = &rawData
 	}
 
-	err = op.Execute(ctx)
-	return op.Result().N, wrapErrors(err)
+	err = op.execute(ctx)
+	return op.result().N, wrapErrors(err)
 }
 
 // Distinct executes a distinct command to find the unique values for a specified field in the collection.

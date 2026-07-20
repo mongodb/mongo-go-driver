@@ -45,7 +45,7 @@ type updateOp struct {
 	retry                     *driver.RetryMode
 	maxAdaptiveRetries        uint
 	enableOverloadRetargeting bool
-	result                    updateResult
+	res                       updateResult
 	crypt                     driver.Crypt
 	serverAPI                 *driver.ServerAPIOptions
 	let                       bsoncore.Document
@@ -115,27 +115,27 @@ func buildUpdateResult(response bsoncore.Document) (updateResult, error) {
 	return ur, nil
 }
 
-// Result returns the result of executing this operation.
-func (u *updateOp) Result() updateResult { return u.result }
+// result returns the result of executing this operation.
+func (u *updateOp) result() updateResult { return u.res }
 
 func (u *updateOp) processResponse(_ context.Context, resp bsoncore.Document, info driver.ResponseInfo) error {
 	ur, err := buildUpdateResult(resp)
 
-	u.result.N += ur.N
-	u.result.NModified += ur.NModified
+	u.res.N += ur.N
+	u.res.NModified += ur.NModified
 	if info.CurrentIndex > 0 {
 		for ind := range ur.Upserted {
 			ur.Upserted[ind].Index += int64(info.CurrentIndex)
 		}
 	}
-	u.result.Upserted = append(u.result.Upserted, ur.Upserted...)
+	u.res.Upserted = append(u.res.Upserted, ur.Upserted...)
 	return err
 }
 
-// Execute runs this operation and returns an error if the operation did not execute successfully.
-func (u *updateOp) Execute(ctx context.Context) error {
+// execute runs this operation and returns an error if the operation did not execute successfully.
+func (u *updateOp) execute(ctx context.Context) error {
 	if u.deployment == nil {
-		return errors.New("the update operation must have a Deployment set before Execute can be called")
+		return errors.New("the update operation must have a Deployment set before execute can be called")
 	}
 	batches := &driver.Batches{
 		Identifier: "updates",
