@@ -94,7 +94,7 @@ type Provider interface {
 type Credentials struct {
 	provider Provider
 
-	creds atomic.Value
+	creds atomic.Pointer[Value]
 	sf    singleflight.Group
 }
 
@@ -114,6 +114,10 @@ func NewCredentials(provider Provider) *Credentials {
 // credentials Value has expired the Provider's Retrieve() will be called
 // to refresh the credentials.
 func (c *Credentials) Get(ctx context.Context) (Value, error) {
+	if v := c.creds.Load(); v != nil && *v != (Value{}) && !v.Expired() {
+		return *v, nil
+	}
+
 	// Cannot pass context down to the actual retrieve, because the first
 	// context would cancel the whole group when there is not direct
 	// association of items in the group.
@@ -130,8 +134,8 @@ func (c *Credentials) Get(ctx context.Context) (Value, error) {
 }
 
 func (c *Credentials) singleRetrieve(ctx context.Context) (any, error) {
-	if currCreds, ok := c.getCreds(); ok && currCreds != (Value{}) && !currCreds.Expired() {
-		return currCreds, nil
+	if v := c.creds.Load(); v != nil && *v != (Value{}) && !v.Expired() {
+		return *v, nil
 	}
 
 	newCreds, err := c.provider.Retrieve(ctx)
@@ -140,22 +144,6 @@ func (c *Credentials) singleRetrieve(ctx context.Context) (any, error) {
 	}
 
 	return newCreds, err
-}
-
-// getCreds returns the currently stored credentials and true. Returning false
-// if no credentials were stored.
-func (c *Credentials) getCreds() (Value, bool) {
-	v := c.creds.Load()
-	if v == nil {
-		return Value{}, false
-	}
-
-	val := v.(*Value)
-	if val == nil {
-		return Value{}, false
-	}
-
-	return *val, true
 }
 
 type suppressedContext struct {
