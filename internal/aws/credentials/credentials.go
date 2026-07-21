@@ -24,6 +24,10 @@ import (
 // A Value is also used to represent Azure credentials.
 // Azure credentials only consist of an access token, which is stored in the `SessionToken` field.
 type Value struct {
+	// The time the credentials will expire at. Should be ignored if CanExpire
+	// is false.
+	Expires time.Time
+
 	// AWS Access key ID
 	AccessKeyID string
 
@@ -36,15 +40,11 @@ type Value struct {
 	// Source of the credentials
 	Source string
 
-	// States if the credentials can expire or not.
-	CanExpire bool
-
-	// The time the credentials will expire at. Should be ignored if CanExpire
-	// is false.
-	Expires time.Time
-
 	// The ID of the account for the credentials.
 	AccountID string
+
+	// States if the credentials can expire or not.
+	CanExpire bool
 }
 
 // Expired returns if the credentials have expired.
@@ -113,7 +113,7 @@ func NewCredentials(provider Provider) *Credentials {
 // credentials Value has expired the Provider's Retrieve() will be called
 // to refresh the credentials.
 func (c *Credentials) Get(ctx context.Context) (Value, error) {
-	if v := c.creds.Load(); v != nil && *v != (Value{}) && !v.Expired() {
+	if v := c.creds.Load(); v != nil && *v != (Value{}) && v.HasKeys() && !v.Expired() {
 		return *v, nil
 	}
 
@@ -133,7 +133,7 @@ func (c *Credentials) Get(ctx context.Context) (Value, error) {
 }
 
 func (c *Credentials) singleRetrieve(ctx context.Context) (any, error) {
-	if v := c.creds.Load(); v != nil && *v != (Value{}) && !v.Expired() {
+	if v := c.creds.Load(); v != nil && *v != (Value{}) && v.HasKeys() && !v.Expired() {
 		return *v, nil
 	}
 
