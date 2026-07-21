@@ -1406,24 +1406,36 @@ func (coll *Collection) Distinct(
 		return &DistinctResult{err: err}
 	}
 
-	op := operation.NewDistinct(fieldName, f).
-		Session(sess).ClusterClock(coll.client.clock).
-		Database(coll.db.name).Collection(coll.name).CommandMonitor(coll.client.monitor).
-		Deployment(coll.client.deployment).ReadConcern(rc).ReadPreference(coll.readPreference).
-		Retry(retry).MaxAdaptiveRetries(maxAdaptiveRetries).
-		EnableOverloadRetargeting(coll.client.enableOverloadRetargeting).
-		ServerSelector(selector).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI).
-		Timeout(coll.client.timeout).Authenticator(coll.client.authenticator)
+	op := distinctOp{
+		key:                       &fieldName,
+		query:                     f,
+		session:                   sess,
+		clock:                     coll.client.clock,
+		database:                  coll.db.name,
+		collection:                coll.name,
+		monitor:                   coll.client.monitor,
+		deployment:                coll.client.deployment,
+		readConcern:               rc,
+		readPreference:            coll.readPreference,
+		retry:                     &retry,
+		maxAdaptiveRetries:        maxAdaptiveRetries,
+		enableOverloadRetargeting: coll.client.enableOverloadRetargeting,
+		selector:                  selector,
+		crypt:                     coll.client.cryptFLE,
+		serverAPI:                 coll.client.serverAPI,
+		timeout:                   coll.client.timeout,
+		authenticator:             coll.client.authenticator,
+	}
 
 	if args.Collation != nil {
-		op.Collation(bsoncore.Document(toDocument(args.Collation)))
+		op.collation = bsoncore.Document(toDocument(args.Collation))
 	}
 	if args.Comment != nil {
 		comment, err := marshalValue(args.Comment, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return &DistinctResult{err: err}
 		}
-		op.Comment(comment)
+		op.comment = comment
 	}
 	if args.Hint != nil {
 		if isUnorderedMap(args.Hint) {
@@ -1433,20 +1445,20 @@ func (coll *Collection) Distinct(
 		if err != nil {
 			return &DistinctResult{err: err}
 		}
-		op.Hint(hint)
+		op.hint = hint
 	}
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
-		op = op.RawData(rawData)
+		op.rawData = &rawData
 	}
 
-	err = op.Execute(ctx)
+	err = op.execute(ctx)
 	if err != nil {
 		return &DistinctResult{err: wrapErrors(err)}
 	}
 
-	arr, ok := op.Result().Values.ArrayOK()
+	arr, ok := op.result().Values.ArrayOK()
 	if !ok {
-		err := fmt.Errorf("response field 'values' is type array, but received BSON type %s", op.Result().Values.Type)
+		err := fmt.Errorf("response field 'values' is type array, but received BSON type %s", op.result().Values.Type)
 
 		return &DistinctResult{err: err}
 	}
