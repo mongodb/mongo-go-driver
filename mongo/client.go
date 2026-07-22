@@ -790,26 +790,37 @@ func (c *Client) ListDatabases(ctx context.Context, filter any, opts ...options.
 	if err != nil {
 		return ListDatabasesResult{}, err
 	}
-	op := operation.NewListDatabases(filterDoc).
-		Session(sess).ReadPreference(c.readPreference).CommandMonitor(c.monitor).
-		Retry(retry).MaxAdaptiveRetries(maxAdaptiveRetries).
-		EnableOverloadRetargeting(c.enableOverloadRetargeting).
-		ServerSelector(selector).ClusterClock(c.clock).Database("admin").Deployment(c.deployment).Crypt(c.cryptFLE).
-		ServerAPI(c.serverAPI).Timeout(c.timeout).Authenticator(c.authenticator)
+	op := listDatabasesOp{
+		filter:                    filterDoc,
+		session:                   sess,
+		readPreference:            c.readPreference,
+		monitor:                   c.monitor,
+		retry:                     &retry,
+		maxAdaptiveRetries:        maxAdaptiveRetries,
+		enableOverloadRetargeting: c.enableOverloadRetargeting,
+		selector:                  selector,
+		clock:                     c.clock,
+		database:                  "admin",
+		deployment:                c.deployment,
+		crypt:                     c.cryptFLE,
+		serverAPI:                 c.serverAPI,
+		timeout:                   c.timeout,
+		authenticator:             c.authenticator,
+	}
 
 	if lda.NameOnly != nil {
-		op = op.NameOnly(*lda.NameOnly)
+		op.nameOnly = lda.NameOnly
 	}
 	if lda.AuthorizedDatabases != nil {
-		op = op.AuthorizedDatabases(*lda.AuthorizedDatabases)
+		op.authorizedDatabases = lda.AuthorizedDatabases
 	}
 
-	err = op.Execute(ctx)
+	err = op.execute(ctx)
 	if err != nil {
 		return ListDatabasesResult{}, wrapErrors(err)
 	}
 
-	return newListDatabasesResultFromOperation(op.Result()), nil
+	return newListDatabasesResultFromOperation(op.result()), nil
 }
 
 // ListDatabaseNames executes a listDatabases command and returns a slice containing the names of all of the databases
