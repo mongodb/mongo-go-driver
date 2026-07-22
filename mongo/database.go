@@ -361,13 +361,20 @@ func (db *Database) Drop(ctx context.Context) error {
 
 	selector := makePinnedSelector(sess, db.writeSelector)
 
-	op := operation.NewDropDatabase().
-		Session(sess).WriteConcern(wc).CommandMonitor(db.client.monitor).
-		ServerSelector(selector).ClusterClock(db.client.clock).
-		Database(db.name).Deployment(db.client.deployment).Crypt(db.client.cryptFLE).
-		ServerAPI(db.client.serverAPI).Authenticator(db.client.authenticator)
+	op := dropDatabaseOp{
+		session:       sess,
+		writeConcern:  wc,
+		monitor:       db.client.monitor,
+		selector:      selector,
+		clock:         db.client.clock,
+		database:      db.name,
+		deployment:    db.client.deployment,
+		crypt:         db.client.cryptFLE,
+		serverAPI:     db.client.serverAPI,
+		authenticator: db.client.authenticator,
+	}
 
-	err = op.Execute(ctx)
+	err = op.execute(ctx)
 
 	var driverErr driver.Error
 	if err != nil && (!errors.As(err, &driverErr) || !driverErr.NamespaceNotFound()) {
