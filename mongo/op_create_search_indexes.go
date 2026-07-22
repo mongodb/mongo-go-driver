@@ -54,8 +54,7 @@ func buildCreateSearchIndexesResult(response bsoncore.Document) (createSearchInd
 	}
 	csir := createSearchIndexesResult{}
 	for _, element := range elements {
-		switch element.Key() {
-		case "indexesCreated":
+		if element.Key() == "indexesCreated" {
 			arr, ok := element.Value().ArrayOK()
 			if !ok {
 				return csir, fmt.Errorf("response field 'indexesCreated' is type array, but received BSON type %s", element.Value().Type)
