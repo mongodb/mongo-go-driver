@@ -280,6 +280,8 @@ func executeTestRunnerOperation(ctx context.Context, op *operation, loopDone <-c
 		defer cancel()
 
 		return waitForEvent(wfeCtx, wfeArgs)
+	case "advanceConfigClusterTime":
+		return mtest.AdvanceConfigClusterTime(context.Background())
 	default:
 		return fmt.Errorf("unrecognized testRunner operation %q", op.Name)
 	}

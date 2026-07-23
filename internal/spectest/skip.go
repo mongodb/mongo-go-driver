@@ -1035,6 +1035,7 @@ var skipTests = map[string][]skipCase{
 	// orchestration.
 	//
 	// See DRIVERS-3556 / SERVER-129623  for more details.
+	// TODO: REMOVE!
 	"Add unified test runner option to advance config server cluster time before opening change streams (GODRIVER-4011)": {
 		{
 			tests: []string{
