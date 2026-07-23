@@ -1,0 +1,127 @@
+{
+  "description": "timeoutMS can be overridden for a MongoCollection",
+  "schemaVersion": "1.9",
+  "runOnRequirements": [
+    {
+      "minServerVersion": "9.0",
+      "topologies": [
+        "sharded"
+      ]
+    }
+  ],
+  "createEntities": [
+    {
+      "client": {
+        "id": "failPointClient",
+        "useMultipleMongoses": false
+      }
+    },
+    {
+      "client": {
+        "id": "client",
+        "uriOptions": {
+          "timeoutMS": 10
+        },
+        "useMultipleMongoses": false,
+        "observeEvents": [
+          "commandStartedEvent"
+        ],
+        "ignoreCommandMonitoringEvents": [
+          "killCursors"
+        ]
+      }
+    },
+    {
+      "database": {
+        "id": "database",
+        "client": "client",
+        "databaseName": "test"
+      }
+    }
+  ],
+  "initialData": [
+    {
+      "collectionName": "coll",
+      "databaseName": "test",
+      "documents": []
+    }
+  ],
+  "tests": [
+    {
+      "description": "timeoutMS can be configured on a MongoCollection - createChangeStream on collection",
+      "operations": [
+        {
+          "name": "createEntities",
+          "object": "testRunner",
+          "arguments": {
+            "entities": [
+              {
+                "collection": {
+                  "id": "collection",
+                  "database": "database",
+                  "collectionName": "coll",
+                  "collectionOptions": {
+                    "timeoutMS": 1000
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "failPoint",
+          "object": "testRunner",
+          "arguments": {
+            "client": "failPointClient",
+            "failPoint": {
+              "configureFailPoint": "failCommand",
+              "mode": {
+                "times": 1
+              },
+              "data": {
+                "failCommands": [
+                  "aggregate"
+                ],
+                "blockConnection": true,
+                "blockTimeMS": 15
+              }
+            }
+          }
+        },
+        {
+          "name": "advanceConfigClusterTime",
+          "object": "testRunner"
+        },
+        {
+          "name": "createChangeStream",
+          "object": "collection",
+          "arguments": {
+            "pipeline": []
+          }
+        }
+      ],
+      "expectEvents": [
+        {
+          "client": "client",
+          "events": [
+            {
+              "commandStartedEvent": {
+                "commandName": "aggregate",
+                "databaseName": "test",
+                "command": {
+                  "aggregate": "coll",
+                  "maxTimeMS": {
+                    "$$type": [
+                      "int",
+                      "long"
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

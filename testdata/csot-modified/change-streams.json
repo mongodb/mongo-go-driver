@@ -1,0 +1,172 @@
+{
+  "description": "timeoutMS behaves correctly for change streams",
+  "schemaVersion": "1.9",
+  "runOnRequirements": [
+    {
+      "minServerVersion": "9.0",
+      "topologies": [
+        "sharded"
+      ]
+    }
+  ],
+  "createEntities": [
+    {
+      "client": {
+        "id": "failPointClient",
+        "useMultipleMongoses": false
+      }
+    },
+    {
+      "client": {
+        "id": "client",
+        "useMultipleMongoses": false,
+        "observeEvents": [
+          "commandStartedEvent"
+        ],
+        "ignoreCommandMonitoringEvents": [
+          "killCursors"
+        ]
+      }
+    },
+    {
+      "database": {
+        "id": "database",
+        "client": "client",
+        "databaseName": "test"
+      }
+    },
+    {
+      "collection": {
+        "id": "collection",
+        "database": "database",
+        "collectionName": "coll"
+      }
+    }
+  ],
+  "initialData": [
+    {
+      "collectionName": "coll",
+      "databaseName": "test",
+      "documents": []
+    }
+  ],
+  "tests": [
+    {
+      "description": "change stream can be iterated again if previous iteration times out",
+      "operations": [
+        {
+          "name": "advanceConfigClusterTime",
+          "object": "testRunner"
+        },
+        {
+          "name": "createChangeStream",
+          "object": "collection",
+          "arguments": {
+            "pipeline": [],
+            "maxAwaitTimeMS": 1,
+            "timeoutMS": 200
+          },
+          "saveResultAsEntity": "changeStream"
+        },
+        {
+          "name": "failPoint",
+          "object": "testRunner",
+          "arguments": {
+            "client": "failPointClient",
+            "failPoint": {
+              "configureFailPoint": "failCommand",
+              "mode": {
+                "times": 1
+              },
+              "data": {
+                "failCommands": [
+                  "getMore"
+                ],
+                "blockConnection": true,
+                "blockTimeMS": 250
+              }
+            }
+          }
+        },
+        {
+          "name": "iterateUntilDocumentOrError",
+          "object": "changeStream",
+          "expectError": {
+            "isTimeoutError": true
+          }
+        },
+        {
+          "name": "iterateOnce",
+          "object": "changeStream"
+        }
+      ],
+      "expectEvents": [
+        {
+          "client": "client",
+          "events": [
+            {
+              "commandStartedEvent": {
+                "commandName": "aggregate",
+                "databaseName": "test",
+                "command": {
+                  "aggregate": "coll",
+                  "maxTimeMS": {
+                    "$$type": [
+                      "int",
+                      "long"
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "commandStartedEvent": {
+                "commandName": "getMore",
+                "databaseName": "test",
+                "command": {
+                  "getMore": {
+                    "$$type": [
+                      "int",
+                      "long"
+                    ]
+                  },
+                  "collection": "coll"
+                }
+              }
+            },
+            {
+              "commandStartedEvent": {
+                "commandName": "aggregate",
+                "databaseName": "test",
+                "command": {
+                  "aggregate": "coll",
+                  "maxTimeMS": {
+                    "$$type": [
+                      "int",
+                      "long"
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "commandStartedEvent": {
+                "commandName": "getMore",
+                "databaseName": "test",
+                "command": {
+                  "getMore": {
+                    "$$type": [
+                      "int",
+                      "long"
+                    ]
+                  },
+                  "collection": "coll"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
