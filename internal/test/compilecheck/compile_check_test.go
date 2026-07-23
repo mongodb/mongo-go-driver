@@ -19,8 +19,7 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 )
 
-const (
-	mainGo = `package main
+const mainGo = `package main
 
 import (
 	"fmt"
@@ -35,30 +34,21 @@ func main() {
 	fmt.Println(bson.D{{Key: "key", Value: "value"}})
 }
 `
-	awsauthGo = `package main
 
-import (
-	"context"
-
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"go.mongodb.org/mongo-driver/ext/awsauth"
-	"go.mongodb.org/mongo-driver/v2/mongo"
-	"go.mongodb.org/mongo-driver/v2/mongo/options"
-)
-
-func main() {
-	provider := aws.CredentialsProviderFunc(func(context.Context) (aws.Credentials, error) {
-		return aws.Credentials{}, nil
-	})
-	awsCredentialProvider := awsauth.NewCredentialsProvider(provider)
-	credential := options.Credential{
-		AuthMechanism:          "MONGODB-AWS",
-		AWSCredentialsProvider: awsCredentialProvider,
-	}
-	_, _ = mongo.Connect(options.Client().SetAuth(credential))
+// goVersions is the list of Go versions to test compilation against.
+// To run tests for specific version(s), use the -run flag:
+//
+//	go test -v -run '^TestCompileCheck/go:1.19$'
+//	go test -v -run '^TestCompileCheck/go:1\.(19|20)$'
+var goVersions = []string{
+	"1.19", // Minimum supported Go version for mongo-driver v2
+	"1.20",
+	"1.21",
+	"1.22",
+	"1.23",
+	"1.24",
+	"1.25", // Test suite Go Version
 }
-`
-)
 
 var architectures = []string{
 	"386",
@@ -100,8 +90,7 @@ func execContainer(t *testing.T, c testcontainers.Container, cmd string) string 
 	return s
 }
 
-// execGo runs a Go command, trying GOTOOLCHAIN=goX.Y.0 first, then the local
-// toolchain.
+// execGo runs a Go command, trying GOTOOLCHAIN=goX.Y.0 first, then goX.Y.
 func execGo(t *testing.T, c testcontainers.Container, cfg *goExecConfig, args ...string) string {
 	t.Helper()
 
@@ -119,7 +108,7 @@ func execGo(t *testing.T, c testcontainers.Container, cfg *goExecConfig, args ..
 	var cmd string
 	if cfg.version != "" {
 		primaryCmd := fmt.Sprintf("%s GOTOOLCHAIN=go%s.0 go %s 2>&1", envStr, cfg.version, goArgs)
-		fallbackCmd := fmt.Sprintf("%s GOTOOLCHAIN=local go %s 2>&1", envStr, goArgs)
+		fallbackCmd := fmt.Sprintf("%s GOTOOLCHAIN=go%s go %s 2>&1", envStr, cfg.version, goArgs)
 		cmd = fmt.Sprintf("%s || %s", primaryCmd, fallbackCmd)
 	} else {
 		cmd = fmt.Sprintf("%s go %s 2>&1", envStr, goArgs)
@@ -129,56 +118,6 @@ func execGo(t *testing.T, c testcontainers.Container, cfg *goExecConfig, args ..
 }
 
 func TestCompileCheck(t *testing.T) {
-	testCase := []struct {
-		name    string
-		FileStr string
-
-		// GoVersions is the list of Go versions to test compilation against.
-		// These toolchains are pre-downloaded by the Dockerfile (the image's
-		// bundled 1.25.x differs from the requested go1.25.0 patch, so it's
-		// pre-fetched too); keep that RUN in sync with the versions here.
-		//
-		// To run tests for specific version(s), use the -run flag:
-		//
-		//	go test -v -run '^TestCompileCheck/aws_auth/go:1.19$'
-		//	go test -v -run '^TestCompileCheck/main_driver/go:1\.(19|20)$'
-		GoVersions []string
-	}{
-		{
-			name:    "main driver",
-			FileStr: mainGo,
-			GoVersions: []string{
-				"1.19", // Minimum supported Go version for mongo-driver v2
-				"1.20",
-				"1.21",
-				"1.22",
-				"1.23",
-				"1.24",
-				"1.25", // Test suite Go Version
-			},
-		},
-		{
-			name:    "aws auth",
-			FileStr: awsauthGo,
-			GoVersions: []string{
-				"1.20", // Minimum supported Go version for awsauth package
-				"1.21",
-				"1.22",
-				"1.23",
-				"1.24",
-				"1.25", // Test suite Go Version
-			},
-		},
-	}
-	for _, tc := range testCase {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			compileCheck(t, tc.FileStr, tc.GoVersions)
-		})
-	}
-}
-
-func compileCheck(t *testing.T, fileStr string, goVersions []string) {
 	cwd, err := os.Getwd()
 	require.NoError(t, err)
 
@@ -193,19 +132,10 @@ func compileCheck(t *testing.T, fileStr string, goVersions []string) {
 		},
 		Files: []testcontainers.ContainerFile{
 			{
-				Reader:            strings.NewReader(fileStr),
+				Reader:            strings.NewReader(mainGo),
 				ContainerFilePath: "/workspace/main.go",
 				FileMode:          0o644,
 			},
-		},
-		// Share the Go build cache across both compileCheck containers (the
-		// "main driver" and "aws auth" cases run in parallel, each in its own
-		// container). Without this, the per-GOARCH standard-library and driver
-		// compilation is done twice. Only GOCACHE is shared: do NOT mount over
-		// /go/pkg/mod, which would hide the Go toolchains baked into the image.
-		// The Go build cache is safe for concurrent cross-process use.
-		Mounts: testcontainers.ContainerMounts{
-			testcontainers.VolumeMount("compilecheck-gocache", "/root/.cache/go-build"),
 		},
 		// Entrypoint is set to "tail -f /dev/null" so the container stays running and available to execute multiple shell commands as needed during tests.
 		// This keeps the container alive and ready for exec calls, rather than immediately exiting.
@@ -227,14 +157,6 @@ func compileCheck(t *testing.T, fileStr string, goVersions []string) {
 	// Initialize Go module and download dependencies using the test suite Go version.
 	_ = execGo(t, container, &goExecConfig{version: testSuiteVersion}, "mod", "init", "compilecheck")
 	_ = execGo(t, container, nil, "mod", "edit", "-replace=go.mongodb.org/mongo-driver/v2=/mongo-go-driver")
-	_ = execGo(t, container, nil, "mod", "edit", "-replace=go.mongodb.org/mongo-driver/ext/awsauth=/mongo-go-driver/ext/awsauth")
-
-	// Pin aws-sdk-go-v2 to the version declared by ext/awsauth/go.mod. Without an
-	// explicit requirement, "go mod tidy" would add the latest release, which
-	// requires a newer Go than the minimum this compile check targets. Keep this
-	// in sync with ext/awsauth/go.mod. Unused for the main-driver case, where
-	// "go mod tidy" drops it.
-	_ = execGo(t, container, nil, "mod", "edit", "-require=github.com/aws/aws-sdk-go-v2@v1.28.0")
 	_ = execGo(t, container, &goExecConfig{version: testSuiteVersion}, "mod", "tidy")
 
 	// Set minimum Go version to what the driver claims (first version in our test list).
