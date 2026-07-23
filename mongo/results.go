@@ -142,7 +142,7 @@ func newListDatabasesResultFromOperation(res listDatabasesResult) ListDatabasesR
 	for _, spec := range res.Databases {
 		ldr.Databases = append(
 			ldr.Databases,
-			DatabaseSpecification{Name: spec.Name, SizeOnDisk: spec.SizeOnDisk, Empty: spec.Empty},
+			DatabaseSpecification(spec),
 		)
 	}
 	ldr.TotalSize = res.TotalSize
