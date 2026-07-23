@@ -955,7 +955,7 @@ func TestUnmarshalTypeCompatibility(t *testing.T) {
 			}
 			err := Unmarshal(data, &val)
 			assert.NoError(t, err)
-			assert.Nil(t, val.Foo)
+			assert.Equal(t, Raw{}, val.Foo)
 		})
 		t.Run("nil into bsoncore.Document", func(t *testing.T) {
 			t.Parallel()

@@ -576,7 +576,7 @@ func TestPrimitiveValueDecoders(t *testing.T) {
 				},
 				{
 					"decode null",
-					Raw(nil),
+					Raw{},
 					nil,
 					&valueReaderWriter{BSONType: TypeNull},
 					readNull,
@@ -584,7 +584,7 @@ func TestPrimitiveValueDecoders(t *testing.T) {
 				},
 				{
 					"decode undefined",
-					Raw(nil),
+					Raw{},
 					nil,
 					&valueReaderWriter{BSONType: TypeUndefined},
 					readUndefined,
