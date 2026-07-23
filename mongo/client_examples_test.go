@@ -246,6 +246,22 @@ func ExampleConnect_kerberos() {
 	_ = client
 }
 
+type awsCredentialsProvider struct {
+	accessKeyID     string
+	secretAccessKey string
+	sessionToken    string
+}
+
+func (a *awsCredentialsProvider) Retrieve(_ context.Context) (
+	options.AWSCredentials, error,
+) {
+	return options.AWSCredentials{
+		AccessKeyID:     a.accessKeyID,
+		SecretAccessKey: a.secretAccessKey,
+		SessionToken:    a.sessionToken,
+	}, nil
+}
+
 func ExampleConnect_aWS() {
 	// Configure a Client with authentication using the MONGODB-AWS
 	// authentication mechanism. Credentials for this mechanism can come from
@@ -267,10 +283,11 @@ func ExampleConnect_aWS() {
 	// The order in which the driver searches for credentials is:
 	//
 	// 1. Credentials passed through the URI
-	// 2. Environment variables
-	// 3. ECS endpoint if and only if AWS_CONTAINER_CREDENTIALS_RELATIVE_URI is
+	// 2. Custom AWS credential provider
+	// 3. Environment variables
+	// 4. ECS endpoint if and only if AWS_CONTAINER_CREDENTIALS_RELATIVE_URI is
 	//    set
-	// 4. EC2 endpoint
+	// 5. EC2 endpoint
 	//
 	// The following examples set the appropriate credentials via the
 	// ClientOptions.SetAuth method. All of these credentials can be specified
@@ -352,6 +369,27 @@ func ExampleConnect_aWS() {
 		panic(err)
 	}
 	_ = ecClient
+
+	// Custom AWS credential provider
+
+	// Applications can authenticate using a custom AWS credential provider as
+	// well.
+	awsCredentialProvider := &awsCredentialsProvider{
+		accessKeyID:     accessKeyID,
+		secretAccessKey: secretAccessKey,
+		sessionToken:    sessionToken,
+	}
+
+	credential := options.Credential{
+		AuthMechanism:          "MONGODB-AWS",
+		AWSCredentialsProvider: awsCredentialProvider,
+	}
+	awsClient, err := mongo.Connect(
+		options.Client().SetAuth(credential))
+	if err != nil {
+		panic(err)
+	}
+	_ = awsClient
 }
 
 func ExampleConnect_stableAPI() {

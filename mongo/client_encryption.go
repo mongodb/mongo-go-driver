@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/credutil"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
@@ -53,7 +54,7 @@ func NewClientEncryption(keyVaultClient *Client, opts ...options.Lister[options.
 		return nil, fmt.Errorf("error creating KMS providers map: %w", err)
 	}
 
-	mc, err := mongocrypt.NewMongoCrypt(&mcopts.MongoCryptOptions{
+	cryptOpts := &mcopts.MongoCryptOptions{
 		KmsProviders: kmsProviders,
 		// Explicitly disable loading the crypt_shared library for the Crypt used for
 		// ClientEncryption because it's only needed for AutoEncryption and we don't expect users to
@@ -61,7 +62,11 @@ func NewClientEncryption(keyVaultClient *Client, opts ...options.Lister[options.
 		CryptSharedLibDisabled: true,
 		HTTPClient:             cea.HTTPClient,
 		KeyExpiration:          cea.KeyExpiration,
-	})
+	}
+	if cea.AWSCredentialsProvider != nil {
+		cryptOpts.AWSCredentialsProvider = credutil.AWSOptionsProvider{Provider: cea.AWSCredentialsProvider}
+	}
+	mc, err := mongocrypt.NewMongoCrypt(cryptOpts)
 	if err != nil {
 		return nil, err
 	}

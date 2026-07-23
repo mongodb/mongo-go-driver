@@ -17,6 +17,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/credutil"
 	"go.mongodb.org/mongo-driver/v2/internal/httputil"
 	"go.mongodb.org/mongo-driver/v2/internal/logger"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
@@ -663,7 +664,7 @@ func (c *Client) newMongoCrypt(opts *options.AutoEncryptionOptions) (*mongocrypt
 	bypassAutoEncryption := opts.BypassAutoEncryption != nil && *opts.BypassAutoEncryption
 	bypassQueryAnalysis := opts.BypassQueryAnalysis != nil && *opts.BypassQueryAnalysis
 
-	mc, err := mongocrypt.NewMongoCrypt(&mcopts.MongoCryptOptions{
+	cryptOpts := &mcopts.MongoCryptOptions{
 		KmsProviders:               kmsProviders,
 		LocalSchemaMap:             cryptSchemaMap,
 		BypassQueryAnalysis:        bypassQueryAnalysis,
@@ -672,7 +673,11 @@ func (c *Client) newMongoCrypt(opts *options.AutoEncryptionOptions) (*mongocrypt
 		CryptSharedLibOverridePath: cryptSharedLibPath,
 		HTTPClient:                 opts.HTTPClient,
 		KeyExpiration:              opts.KeyExpiration,
-	})
+	}
+	if opts.AWSCredentialsProvider != nil {
+		cryptOpts.AWSCredentialsProvider = credutil.AWSOptionsProvider{Provider: opts.AWSCredentialsProvider}
+	}
+	mc, err := mongocrypt.NewMongoCrypt(cryptOpts)
 	if err != nil {
 		return nil, err
 	}
