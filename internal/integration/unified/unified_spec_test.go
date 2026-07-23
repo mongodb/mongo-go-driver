@@ -40,6 +40,8 @@ var (
 		"client-backpressure/tests",
 		"transactions/tests/unified",
 		"causal-consistency/tests",
+		// TODO: Comment.
+		"../../csot-modified",
 	}
 	failDirectories = []string{
 		"unified-test-format/tests/valid-fail",
