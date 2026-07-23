@@ -13,8 +13,28 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
 )
+
+// runCommand runs a generic command against the connection in cfg and returns
+// the raw server response.
+func runCommand(ctx context.Context, cfg *driver.AuthConfig, db string, cmd bsoncore.Document) (bsoncore.Document, error) {
+	var res bsoncore.Document
+	err := driver.Operation{
+		CommandFn: func(dst []byte, _ description.SelectedServer) ([]byte, error) {
+			return append(dst, cmd[4:len(cmd)-1]...), nil
+		},
+		ProcessResponseFn: func(_ context.Context, resp bsoncore.Document, _ driver.ResponseInfo) error {
+			res = resp
+			return nil
+		},
+		Database:   db,
+		Deployment: driver.SingleConnectionDeployment{C: cfg.Connection},
+		Clock:      cfg.ClusterClock,
+		ServerAPI:  cfg.ServerAPI,
+	}.Execute(ctx)
+	return res, err
+}
 
 // SaslClient is the client piece of a sasl conversation.
 type SaslClient interface {
@@ -132,17 +152,10 @@ func (sc *saslConversation) Finish(ctx context.Context, cfg *driver.AuthConfig, 
 			bsoncore.AppendInt32Element(nil, "conversationId", int32(cid)),
 			bsoncore.AppendBinaryElement(nil, "payload", 0x00, payload),
 		)
-		saslContinueCmd := operation.NewCommand(doc).
-			Database(sc.source).
-			Deployment(driver.SingleConnectionDeployment{cfg.Connection}).
-			ClusterClock(cfg.ClusterClock).
-			ServerAPI(cfg.ServerAPI)
-
-		err = saslContinueCmd.Execute(ctx)
+		rdr, err = runCommand(ctx, cfg, sc.source, doc)
 		if err != nil {
 			return newError(err, sc.mechanism)
 		}
-		rdr = saslContinueCmd.Result()
 
 		err = bson.Unmarshal(rdr, &saslResp)
 		if err != nil {
@@ -160,14 +173,10 @@ func ConductSaslConversation(ctx context.Context, cfg *driver.AuthConfig, authSo
 	if err != nil {
 		return newError(err, conversation.mechanism)
 	}
-	saslStartCmd := operation.NewCommand(saslStartDoc).
-		Database(authSource).
-		Deployment(driver.SingleConnectionDeployment{cfg.Connection}).
-		ClusterClock(cfg.ClusterClock).
-		ServerAPI(cfg.ServerAPI)
-	if err := saslStartCmd.Execute(ctx); err != nil {
+	saslStartRes, err := runCommand(ctx, cfg, authSource, saslStartDoc)
+	if err != nil {
 		return newError(err, conversation.mechanism)
 	}
 
-	return conversation.Finish(ctx, cfg, saslStartCmd.Result())
+	return conversation.Finish(ctx, cfg, saslStartRes)
 }

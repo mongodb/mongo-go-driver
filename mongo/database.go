@@ -152,9 +152,8 @@ func (db *Database) Aggregate(
 func (db *Database) processRunCommand(
 	ctx context.Context,
 	cmd any,
-	cursorCommand bool,
 	opts ...options.Lister[options.RunCmdOptions],
-) (*operation.Command, *session.Client, error) {
+) (*driver.Operation, *session.Client, error) {
 	args, err := mongoutil.NewOptions[options.RunCmdOptions](append(defaultRunCmdOpts, opts...)...)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to construct options from builder: %w", err)
@@ -195,26 +194,29 @@ func (db *Database) processRunCommand(
 		readSelect = makePinnedSelector(sess, readSelect)
 	}
 
-	var op *operation.Command
-	switch retryOverload := db.client.retryReads && db.client.retryWrites; cursorCommand {
-	case true:
-		cursorOpts := db.client.createBaseCursorOptions(retryOverload)
+	retryOverload := db.client.retryReads && db.client.retryWrites
 
-		cursorOpts.MarshalValueEncoderFn = newEncoderFn(db.bsonOpts, db.registry)
-
-		op = operation.NewCursorCommand(runCmdDoc, cursorOpts)
-	default:
-		op = operation.NewCommand(runCmdDoc)
-		maxAdaptiveRetries := db.client.effectiveAdaptiveRetries(retryOverload)
-		op = op.MaxAdaptiveRetries(maxAdaptiveRetries).
-			EnableOverloadRetargeting(db.client.enableOverloadRetargeting)
+	op := driver.Operation{
+		CommandFn: func(dst []byte, _ description.SelectedServer) ([]byte, error) {
+			return append(dst, runCmdDoc[4:len(runCmdDoc)-1]...), nil
+		},
+		Client:                    sess,
+		Clock:                     db.client.clock,
+		CommandMonitor:            db.client.monitor,
+		Database:                  db.name,
+		Deployment:                db.client.deployment,
+		ReadPreference:            args.ReadPreference,
+		Selector:                  readSelect,
+		MaxAdaptiveRetries:        db.client.effectiveAdaptiveRetries(retryOverload),
+		EnableOverloadRetargeting: db.client.enableOverloadRetargeting,
+		Crypt:                     db.client.cryptFLE,
+		ServerAPI:                 db.client.serverAPI,
+		Timeout:                   db.client.timeout,
+		Logger:                    db.client.logger,
+		Authenticator:             db.client.authenticator,
 	}
 
-	return op.Session(sess).CommandMonitor(db.client.monitor).
-		ServerSelector(readSelect).ClusterClock(db.client.clock).
-		Database(db.name).Deployment(db.client.deployment).
-		Crypt(db.client.cryptFLE).ReadPreference(args.ReadPreference).ServerAPI(db.client.serverAPI).
-		Timeout(db.client.timeout).Logger(db.client.logger).Authenticator(db.client.authenticator), sess, nil
+	return &op, sess, nil
 }
 
 // RunCommand executes the given command against the database.
@@ -244,10 +246,16 @@ func (db *Database) RunCommand(
 		ctx = context.Background()
 	}
 
-	op, sess, err := db.processRunCommand(ctx, runCommand, false, opts...)
+	op, sess, err := db.processRunCommand(ctx, runCommand, opts...)
 	defer closeImplicitSession(sess)
 	if err != nil {
 		return &SingleResult{err: err}
+	}
+
+	var response bsoncore.Document
+	op.ProcessResponseFn = func(_ context.Context, resp bsoncore.Document, _ driver.ResponseInfo) error {
+		response = resp
+		return nil
 	}
 
 	err = op.Execute(ctx)
@@ -256,7 +264,7 @@ func (db *Database) RunCommand(
 	return &SingleResult{
 		ctx:          ctx,
 		err:          convErr,
-		rdr:          bson.Raw(op.Result()),
+		rdr:          bson.Raw(response),
 		bsonOpts:     db.bsonOpts,
 		reg:          db.registry,
 		Acknowledged: rr.isAcknowledged(),
@@ -286,26 +294,40 @@ func (db *Database) RunCommandCursor(
 		ctx = context.Background()
 	}
 
-	op, sess, err := db.processRunCommand(ctx, runCommand, true, opts...)
+	op, sess, err := db.processRunCommand(ctx, runCommand, opts...)
 	if err != nil {
 		closeImplicitSession(sess)
 		return nil, wrapErrors(err)
+	}
+
+	retryOverload := db.client.retryReads && db.client.retryWrites
+	cursorOpts := db.client.createBaseCursorOptions(retryOverload)
+	cursorOpts.MarshalValueEncoderFn = newEncoderFn(db.bsonOpts, db.registry)
+
+	var bc *driver.BatchCursor
+	op.ProcessResponseFn = func(_ context.Context, resp bsoncore.Document, info driver.ResponseInfo) error {
+		curDoc, err := driver.ExtractCursorDocument(resp)
+		if err != nil {
+			return err
+		}
+		cursorRes, err := driver.NewCursorResponse(curDoc, info)
+		if err != nil {
+			return err
+		}
+		bc, err = driver.NewBatchCursor(cursorRes, sess, db.client.clock, cursorOpts)
+		return err
 	}
 
 	if err = op.Execute(ctx); err != nil {
 		closeImplicitSession(sess)
 		if errors.Is(err, driver.ErrNoCursor) {
 			return nil, errors.New(
-				"database response does not contain a cursor; try using RunCommand instead")
+				"database response does not contain a cursor; try using RunCommand instead",
+			)
 		}
 		return nil, wrapErrors(err)
 	}
 
-	bc, err := op.ResultCursor()
-	if err != nil {
-		closeImplicitSession(sess)
-		return nil, wrapErrors(err)
-	}
 	cursor, err := newCursorWithSession(bc, db.bsonOpts, db.registry, sess,
 		withCursorOptionClientTimeout(db.client.timeout))
 	return cursor, wrapErrors(err)
@@ -735,7 +757,7 @@ func (db *Database) createCollectionWithEncryptedFields(
 		return err
 	}
 
-	op.EncryptedFields(efBSON)
+	op.encryptedFields = efBSON
 	if err := db.executeCreateOperation(ctx, op); err != nil {
 		return err
 	}
@@ -764,26 +786,30 @@ func (db *Database) createCollection(
 func (db *Database) createCollectionOperation(
 	name string,
 	opts ...options.Lister[options.CreateCollectionOptions],
-) (*operation.Create, error) {
+) (*createOp, error) {
 	args, err := mongoutil.NewOptions[options.CreateCollectionOptions](opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 
-	op := operation.NewCreate(name).ServerAPI(db.client.serverAPI).Authenticator(db.client.authenticator)
+	op := &createOp{
+		collectionName: &name,
+		serverAPI:      db.client.serverAPI,
+		authenticator:  db.client.authenticator,
+	}
 
 	if args.Capped != nil {
-		op.Capped(*args.Capped)
+		op.capped = args.Capped
 	}
 	if args.Collation != nil {
-		op.Collation(bsoncore.Document(toDocument(args.Collation)))
+		op.collation = bsoncore.Document(toDocument(args.Collation))
 	}
 	if args.ChangeStreamPreAndPostImages != nil {
 		csppi, err := marshal(args.ChangeStreamPreAndPostImages, db.bsonOpts, db.registry)
 		if err != nil {
 			return nil, err
 		}
-		op.ChangeStreamPreAndPostImages(csppi)
+		op.changeStreamPreAndPostImages = csppi
 	}
 	if args.DefaultIndexOptions != nil {
 		defaultIndexArgs, err := mongoutil.NewOptions[options.DefaultIndexOptions](args.DefaultIndexOptions)
@@ -806,36 +832,36 @@ func (db *Database) createCollectionOperation(
 			return nil, err
 		}
 
-		op.IndexOptionDefaults(doc)
+		op.indexOptionDefaults = doc
 	}
 	if args.MaxDocuments != nil {
-		op.Max(*args.MaxDocuments)
+		op.max = args.MaxDocuments
 	}
 	if args.SizeInBytes != nil {
-		op.Size(*args.SizeInBytes)
+		op.size = args.SizeInBytes
 	}
 	if args.StorageEngine != nil {
 		storageEngine, err := marshal(args.StorageEngine, db.bsonOpts, db.registry)
 		if err != nil {
 			return nil, err
 		}
-		op.StorageEngine(storageEngine)
+		op.storageEngine = storageEngine
 	}
 	if args.ValidationAction != nil {
-		op.ValidationAction(*args.ValidationAction)
+		op.validationAction = args.ValidationAction
 	}
 	if args.ValidationLevel != nil {
-		op.ValidationLevel(*args.ValidationLevel)
+		op.validationLevel = args.ValidationLevel
 	}
 	if args.Validator != nil {
 		validator, err := marshal(args.Validator, db.bsonOpts, db.registry)
 		if err != nil {
 			return nil, err
 		}
-		op.Validator(validator)
+		op.validator = validator
 	}
 	if args.ExpireAfterSeconds != nil {
-		op.ExpireAfterSeconds(*args.ExpireAfterSeconds)
+		op.expireAfterSeconds = args.ExpireAfterSeconds
 	}
 	if args.TimeSeriesOptions != nil {
 		timeSeriesArgs, err := mongoutil.NewOptions[options.TimeSeriesOptions](args.TimeSeriesOptions)
@@ -870,14 +896,14 @@ func (db *Database) createCollectionOperation(
 			return nil, err
 		}
 
-		op.TimeSeries(doc)
+		op.timeSeries = doc
 	}
 	if args.ClusteredIndex != nil {
 		clusteredIndex, err := marshal(args.ClusteredIndex, db.bsonOpts, db.registry)
 		if err != nil {
 			return nil, err
 		}
-		op.ClusteredIndex(clusteredIndex)
+		op.clusteredIndex = clusteredIndex
 	}
 
 	return op, nil
@@ -905,23 +931,26 @@ func (db *Database) CreateView(ctx context.Context, viewName, viewOn string, pip
 		return err
 	}
 
-	op := operation.NewCreate(viewName).
-		ViewOn(viewOn).
-		Pipeline(pipelineArray).
-		ServerAPI(db.client.serverAPI).Authenticator(db.client.authenticator)
+	op := &createOp{
+		collectionName: &viewName,
+		viewOn:         &viewOn,
+		pipeline:       pipelineArray,
+		serverAPI:      db.client.serverAPI,
+		authenticator:  db.client.authenticator,
+	}
 	args, err := mongoutil.NewOptions(opts...)
 	if err != nil {
 		return fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 
 	if args.Collation != nil {
-		op.Collation(bsoncore.Document(toDocument(args.Collation)))
+		op.collation = bsoncore.Document(toDocument(args.Collation))
 	}
 
 	return db.executeCreateOperation(ctx, op)
 }
 
-func (db *Database) executeCreateOperation(ctx context.Context, op *operation.Create) error {
+func (db *Database) executeCreateOperation(ctx context.Context, op *createOp) error {
 	sess := sessionFromContext(ctx)
 	if sess == nil && db.client.sessionPool != nil {
 		sess = session.NewImplicitClientSession(db.client.sessionPool, db.client.id)
@@ -942,16 +971,16 @@ func (db *Database) executeCreateOperation(ctx context.Context, op *operation.Cr
 	}
 
 	selector := makePinnedSelector(sess, db.writeSelector)
-	op = op.Session(sess).
-		WriteConcern(wc).
-		CommandMonitor(db.client.monitor).
-		ServerSelector(selector).
-		ClusterClock(db.client.clock).
-		Database(db.name).
-		Deployment(db.client.deployment).
-		Crypt(db.client.cryptFLE)
+	op.session = sess
+	op.writeConcern = wc
+	op.monitor = db.client.monitor
+	op.selector = selector
+	op.clock = db.client.clock
+	op.database = db.name
+	op.deployment = db.client.deployment
+	op.crypt = db.client.cryptFLE
 
-	return wrapErrors(op.Execute(ctx))
+	return wrapErrors(op.execute(ctx))
 }
 
 // GridFSBucket is used to construct a GridFS bucket which can be used as a
