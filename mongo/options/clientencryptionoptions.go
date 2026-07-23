@@ -19,12 +19,11 @@ import (
 //
 // See corresponding setter methods for documentation.
 type ClientEncryptionOptions struct {
-	KeyVaultNamespace      string
-	KmsProviders           map[string]map[string]any
-	TLSConfig              map[string]*tls.Config
-	HTTPClient             *http.Client
-	KeyExpiration          *time.Duration
-	AWSCredentialsProvider AWSCredentialsProvider
+	KeyVaultNamespace string
+	KmsProviders      map[string]map[string]any
+	TLSConfig         map[string]*tls.Config
+	HTTPClient        *http.Client
+	KeyExpiration     *time.Duration
 }
 
 // ClientEncryptionOptionsBuilder contains options to configure client
@@ -88,17 +87,6 @@ func (c *ClientEncryptionOptionsBuilder) SetTLSConfig(cfg map[string]*tls.Config
 func (c *ClientEncryptionOptionsBuilder) SetKeyExpiration(expiration time.Duration) *ClientEncryptionOptionsBuilder {
 	c.Opts = append(c.Opts, func(opts *ClientEncryptionOptions) error {
 		opts.KeyExpiration = &expiration
-
-		return nil
-	})
-
-	return c
-}
-
-// SetAWSCredentialsProvider specifies options for custom AWS credential provider.
-func (c *ClientEncryptionOptionsBuilder) SetAWSCredentialsProvider(provider AWSCredentialsProvider) *ClientEncryptionOptionsBuilder {
-	c.Opts = append(c.Opts, func(opts *ClientEncryptionOptions) error {
-		opts.AWSCredentialsProvider = provider
 
 		return nil
 	})
