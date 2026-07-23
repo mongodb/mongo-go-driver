@@ -24,8 +24,8 @@ type CredentialsProvider struct {
 	provider aws.CredentialsProvider
 }
 
-// NewCredentialsProvider returns a CredentialsProvider that wraps AWS
-// CredentialsProvider. CredentialsProvider is expected to not be nil.
+// NewCredentialsProvider returns a CredentialsProvider that wraps the provided
+// AWS SDK v2 CredentialsProvider. credentialsProvider must not be nil.
 func NewCredentialsProvider(credentialsProvider aws.CredentialsProvider) *CredentialsProvider {
 	return &CredentialsProvider{
 		provider: credentialsProvider,

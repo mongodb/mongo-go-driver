@@ -111,8 +111,8 @@ func ConvertCreds(credOpts *options.Credential) *driver.Cred {
 	var oidcHumanCallback auth.OIDCCallback
 	if credOpts.OIDCHumanCallback != nil {
 		oidcHumanCallback = func(ctx context.Context, args *driver.OIDCArgs) (*driver.OIDCCredential, error) {
-			credOpts, err := credOpts.OIDCHumanCallback(ctx, convertOIDCArgs(args))
-			return (*driver.OIDCCredential)(credOpts), err
+			cred, err := credOpts.OIDCHumanCallback(ctx, convertOIDCArgs(args))
+			return (*driver.OIDCCredential)(cred), err
 		}
 	}
 
