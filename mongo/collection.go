@@ -2209,14 +2209,21 @@ func (coll *Collection) drop(ctx context.Context) error {
 
 	selector := makePinnedSelector(sess, coll.writeSelector)
 
-	op := operation.NewDropCollection().
-		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.monitor).
-		ServerSelector(selector).ClusterClock(coll.client.clock).
-		Database(coll.db.name).Collection(coll.name).
-		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).
-		ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).
-		Authenticator(coll.client.authenticator)
-	err = op.Execute(ctx)
+	op := dropCollectionOp{
+		session:       sess,
+		writeConcern:  wc,
+		monitor:       coll.client.monitor,
+		selector:      selector,
+		clock:         coll.client.clock,
+		database:      coll.db.name,
+		collection:    coll.name,
+		deployment:    coll.client.deployment,
+		crypt:         coll.client.cryptFLE,
+		serverAPI:     coll.client.serverAPI,
+		timeout:       coll.client.timeout,
+		authenticator: coll.client.authenticator,
+	}
+	err = op.execute(ctx)
 
 	// ignore namespace not found errors
 	var driverErr driver.Error
