@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/ext/awsauth"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -56,9 +57,7 @@ func TestAWSDefaultCustomCredentialProviderAuthenticates(t *testing.T) {
 	}
 
 	cfg, err := config.LoadDefaultConfig(context.Background())
-	if err != nil {
-		t.Fatalf("failed to load AWS config: %v", err)
-	}
+	require.NoError(t, err, "failed to load AWS config")
 
 	tracking := &trackingCredentialsProvider{
 		inner: awsauth.NewCredentialsProvider(cfg.Credentials),
@@ -74,22 +73,16 @@ func TestAWSDefaultCustomCredentialProviderAuthenticates(t *testing.T) {
 				AWSCredentialsProvider: tracking,
 			}),
 	)
-	if err != nil {
-		t.Fatalf("failed to connect: %v", err)
-	}
+	require.NoError(t, err, "failed to connect")
 	defer func() {
-		if err := client.Disconnect(context.Background()); err != nil {
-			t.Errorf("Disconnect: %v", err)
-		}
+		require.NoError(t, client.Disconnect(context.Background()), "Disconnect")
 	}()
 
 	err = client.Database("aws").Collection("test").
 		FindOne(context.Background(), bson.D{{Key: "x", Value: 1}}).Err()
 	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
-		t.Fatalf("unexpected FindOne error: %v", err)
+		require.NoError(t, err, "unexpected FindOne error")
 	}
 
-	if tracking.called == 0 {
-		t.Fatal("expected custom credential provider to be called at least once")
-	}
+	require.NotZero(t, tracking.called, "expected custom credential provider to be called at least once")
 }
