@@ -68,7 +68,10 @@ func (bw *bulkWrite) execute(ctx context.Context) error {
 
 		bw.mergeResults(batchRes)
 
-		bwErr.WriteConcernError = batchErr.WriteConcernError
+		if batchErr.WriteConcernError != nil {
+			bwErr.WriteConcernError = batchErr.WriteConcernError
+		}
+
 		bwErr.Labels = append(bwErr.Labels, batchErr.Labels...)
 
 		bwErr.WriteErrors = append(bwErr.WriteErrors, batchErr.WriteErrors...)

@@ -1924,6 +1924,71 @@ func TestCollection(t *testing.T) {
 			deletes := len(mt.GetAllStartedEvents())
 			assert.True(mt, deletes > 1, "expected multiple batches, got %v", deletes)
 		})
+		mt.RunOpts("preserve last write concern error across batches", mtest.NewOptions().ClientType(mtest.Mock), func(mt *mtest.T) {
+			// BulkWrite must report the write concern error from the last batch that
+			// had one: a later nil must not replace an earlier error, and an earlier
+			// error must not shadow a later one.
+
+			// wce is a write concern error response, or nil for a success response.
+			wce := func(code int) *mtest.WriteConcernError {
+				return &mtest.WriteConcernError{
+					Code:    code,
+					Name:    "UnsatisfiableWriteConcern",
+					Message: "Not enough data-bearing nodes",
+				}
+			}
+
+			// Each case pins the batch-execution order insert -> update -> delete.
+			// wantCode is 0 when BulkWrite is expected to succeed with no WCE.
+			testCases := []struct {
+				name     string
+				insert   *mtest.WriteConcernError // insert batch (runs first)
+				update   *mtest.WriteConcernError // update batch (runs second)
+				delete   *mtest.WriteConcernError // delete batch (runs last)
+				wantCode int
+			}{
+				{"only the first batch errors", wce(100), nil, nil, 100},
+				{"only the second batch errors", nil, wce(200), nil, 200},
+				{"only the last batch errors", nil, nil, wce(300), 300},
+				{"skip the last nil", wce(100), wce(200), nil, 200},
+				{"skips a middle nil", wce(100), nil, wce(300), 300},
+			}
+
+			for _, tc := range testCases {
+				mt.Run(tc.name, func(mt *mtest.T) {
+					for _, e := range []*mtest.WriteConcernError{tc.insert, tc.update, tc.delete} {
+						if e != nil {
+							mt.AddMockResponses(mtest.CreateWriteConcernErrorResponse(*e))
+						} else {
+							mt.AddMockResponses(mtest.CreateSuccessResponse(bson.E{"n", 1}))
+						}
+					}
+
+					models := []mongo.WriteModel{
+						mongo.NewInsertOneModel().SetDocument(bson.D{{"a", int32(1)}}),
+						mongo.NewUpdateOneModel().
+							SetFilter(bson.D{{"a", int32(1)}}).
+							SetUpdate(bson.D{{"$set", bson.D{{"a", int32(2)}}}}),
+						mongo.NewDeleteOneModel().SetFilter(bson.D{{"a", int32(2)}}),
+					}
+
+					_, err := mt.Coll.BulkWrite(context.Background(), models, options.BulkWrite().SetOrdered(false))
+
+					if tc.wantCode == 0 {
+						assert.NoError(mt, err, "expected no error, got %v", err)
+						return
+					}
+
+					bwe, ok := err.(mongo.BulkWriteException)
+					assert.True(mt, ok, "expected error type %v, got %v", mongo.BulkWriteException{}, err)
+					assert.Equal(mt, 0, len(bwe.WriteErrors), "expected 0 write errors, got %v", bwe.WriteErrors)
+					require.NotNil(mt, bwe.WriteConcernError, "expected write concern error to be preserved, got nil")
+					assert.Equal(mt, tc.wantCode, bwe.WriteConcernError.Code,
+						"expected the last non-nil batch's write concern error code %v, got %v",
+						tc.wantCode, bwe.WriteConcernError.Code)
+				})
+			}
+		})
 		mt.RunOpts("update with batches", mtest.NewOptions().ClientType(mtest.Mock), func(mt *mtest.T) {
 			maxBatchCount := int(drivertest.MockDescription.MaxBatchCount)
 			numModels := maxBatchCount + 50
