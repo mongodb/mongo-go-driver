@@ -1046,6 +1046,24 @@ var skipTests = map[string][]skipCase{
 			minServerVersion: "9.0",
 		},
 	},
+
+	// TODO(GODRIVER-3944): Migrate Azure KMS credentials to corporate account.
+	"Migrate Azure KMS credentials to corporate account": {
+		{
+			tests: []string{
+				"TestClientSideEncryptionSpec/azureKMS.json/Insert_a_document_with_auto_encryption_using_Azure_KMS_provider",
+				"TestUnifiedSpec/client-side-encryption/tests/unified/azureKMS.json/Insert_a_document_with_auto_encryption_using_Azure_KMS_provider",
+				"TestUnifiedSpec/client-side-encryption/tests/unified/createDataKey.json/create_datakey_with_Azure_KMS_provider",
+				"TestUnifiedSpec/client-side-encryption/tests/unified/rewrapManyDataKey.json/rewrap_with_new_AWS_KMS_provider",
+				"TestUnifiedSpec/client-side-encryption/tests/unified/rewrapManyDataKey.json/rewrap_with_new_Azure_KMS_provider",
+				"TestUnifiedSpec/client-side-encryption/tests/unified/rewrapManyDataKey.json/rewrap_with_new_GCP_KMS_provider",
+				"TestUnifiedSpec/client-side-encryption/tests/unified/rewrapManyDataKey.json/rewrap_with_new_KMIP_KMS_provider",
+				"TestUnifiedSpec/client-side-encryption/tests/unified/rewrapManyDataKey.json/rewrap_with_new_KMIP_delegated_KMS_provider",
+				"TestUnifiedSpec/client-side-encryption/tests/unified/rewrapManyDataKey.json/rewrap_with_new_local_KMS_provider",
+				"TestUnifiedSpec/client-side-encryption/tests/unified/rewrapManyDataKey.json/rewrap_with_current_KMS_provider",
+			},
+		},
+	},
 }
 
 type options struct {
