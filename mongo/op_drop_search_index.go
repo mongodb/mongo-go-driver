@@ -18,7 +18,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
-// dropSearchIndexOp performs an dropSearchIndex operation.
+// dropSearchIndexOp performs a dropSearchIndex operation.
 type dropSearchIndexOp struct {
 	authenticator driver.Authenticator
 	index         string

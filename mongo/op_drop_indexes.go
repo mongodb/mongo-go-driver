@@ -20,7 +20,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
-// dropIndexesOp performs an dropIndexes operation.
+// dropIndexesOp performs a dropIndexes operation.
 type dropIndexesOp struct {
 	authenticator             driver.Authenticator
 	index                     any
