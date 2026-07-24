@@ -1645,14 +1645,16 @@ func TestClientSideEncryptionProse_12_explicit_encryption(t *testing.T) {
 		err := mt.Client.Database("db").CreateCollection(
 			context.Background(),
 			"explicit_encryption",
-			options.CreateCollection().SetEncryptedFields(encryptedFields))
+			options.CreateCollection().SetEncryptedFields(encryptedFields),
+		)
 		assert.Nil(mt, err, "error on CreateCollection: %v", err)
 
 		mtest.DropEncryptedCollection(mt, mt.Client.Database("db").Collection("explicit_encryption_c10"), encryptedFieldsC10)
 		err = mt.Client.Database("db").CreateCollection(
 			context.Background(),
 			"explicit_encryption_c10",
-			options.CreateCollection().SetEncryptedFields(encryptedFieldsC10))
+			options.CreateCollection().SetEncryptedFields(encryptedFieldsC10),
+		)
 		assert.Nil(mt, err, "error on CreateCollection: %v", err)
 
 		err = mt.Client.Database("keyvault").Collection("datakeys").Drop(context.Background())
@@ -1733,7 +1735,7 @@ func TestClientSideEncryptionProse_12_explicit_encryption(t *testing.T) {
 
 		// Explicit encrypt an indexed value to find with default contentionFactor 0.
 		{
-			eo := options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID).SetQueryType(options.QueryTypeEquality).SetContentionFactor(0)
+			eo := options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID).SetQueryType(options.QueryTypeEquality).SetContentionFactor(10)
 			findPayload, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
 			assert.Nil(mt, err, "error in Encrypt: %v", err)
 			// Find with contentionFactor=0.
@@ -2439,7 +2441,8 @@ func TestClientSideEncryptionProse_21_automatic_data_encryption_keys(t *testing.
 				encryptedField, err := clientEnc.Encrypt(
 					context.Background(),
 					rawValue,
-					encryptionOpts)
+					encryptionOpts,
+				)
 				assert.Nil(mt, err, "Encrypt error: %v", err)
 
 				_, err = coll.InsertOne(context.Background(), bson.D{{"ssn", encryptedField}})
