@@ -10,7 +10,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
 )
 
 // ClientBulkWriteResult is the result type returned by a client-level BulkWrite operation.
@@ -137,13 +136,13 @@ type ListDatabasesResult struct {
 	TotalSize int64
 }
 
-func newListDatabasesResultFromOperation(res operation.ListDatabasesResult) ListDatabasesResult {
+func newListDatabasesResultFromOperation(res listDatabasesResult) ListDatabasesResult {
 	var ldr ListDatabasesResult
 	ldr.Databases = make([]DatabaseSpecification, 0, len(res.Databases))
 	for _, spec := range res.Databases {
 		ldr.Databases = append(
 			ldr.Databases,
-			DatabaseSpecification{Name: spec.Name, SizeOnDisk: spec.SizeOnDisk, Empty: spec.Empty},
+			DatabaseSpecification(spec),
 		)
 	}
 	ldr.TotalSize = res.TotalSize
