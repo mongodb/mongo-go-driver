@@ -15,7 +15,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -63,14 +62,15 @@ var (
 )
 
 const (
-	clientEncryptionProseDir      = "../../testdata/client-side-encryption-prose"
-	deterministicAlgorithm        = "AEAD_AES_256_CBC_HMAC_SHA_512-Deterministic"
-	randomAlgorithm               = "AEAD_AES_256_CBC_HMAC_SHA_512-Random"
-	kvNamespace                   = "keyvault.datakeys" // default namespace for the key vault collection
-	keySubtype               byte = 4                   // expected subtype for data keys
-	encryptedValueSubtype    byte = 6                   // expected subtypes for encrypted values
-	cryptMaxBatchSizeBytes        = 2097152             // max bytes in write batch when auto encryption is enabled
-	maxBsonObjSize                = 16777216            // max bytes in BSON object
+	cseSpecDir                  = "../../testdata/specifications/source/client-side-encryption"
+	cseProseDir                 = "../../testdata/client-side-encryption-prose"
+	deterministicAlgorithm      = "AEAD_AES_256_CBC_HMAC_SHA_512-Deterministic"
+	randomAlgorithm             = "AEAD_AES_256_CBC_HMAC_SHA_512-Random"
+	kvNamespace                 = "keyvault.datakeys" // default namespace for the key vault collection
+	keySubtype             byte = 4                   // expected subtype for data keys
+	encryptedValueSubtype  byte = 6                   // expected subtypes for encrypted values
+	cryptMaxBatchSizeBytes      = 2097152             // max bytes in write batch when auto encryption is enabled
+	maxBsonObjSize              = 16777216            // max bytes in BSON object
 )
 
 func newCSE_T(t *testing.T, opts *mtest.Options) *mtest.T {
@@ -345,7 +345,7 @@ func TestClientSideEncryptionProse_3_external_key_vault_test(t *testing.T) {
 					"key": localMasterKey,
 				},
 			}
-			schemaMap := map[string]any{"db.coll": readJSONFile(mt, "external-schema.json")}
+			schemaMap := map[string]any{"db.coll": readCSESpecJSONFile(mt, "external/external-schema.json")}
 			aeo := options.AutoEncryption().
 				SetKmsProviders(kmsProviders).
 				SetKeyVaultNamespace(kvNamespace).
@@ -369,7 +369,7 @@ func TestClientSideEncryptionProse_3_external_key_vault_test(t *testing.T) {
 			defer cpt.teardown(mt)
 
 			// manually insert data key
-			key := readJSONFile(mt, "external-key.json")
+			key := readCSESpecJSONFile(mt, "external/external-key.json")
 			_, err := cpt.keyVaultColl.InsertOne(context.Background(), key)
 			assert.Nil(mt, err, "InsertOne error for data key: %v", err)
 			subtype, data := key.Lookup("_id").Binary()
@@ -416,13 +416,13 @@ func TestClientSideEncryptionProse_4_bson_size_limits_and_batch_splitting(t *tes
 	err := mt.Client.Database("db").RunCommand(context.Background(), bson.D{
 		{"create", "coll"},
 		{"validator", bson.D{
-			{"$jsonSchema", readJSONFile(mt, "limits-schema.json")},
+			{"$jsonSchema", readCSESpecJSONFile(mt, "limits/limits-schema.json")},
 		}},
 	}).Err()
 	assert.Nil(mt, err, "create error with validator: %v", err)
 
 	// insert key
-	key := readJSONFile(mt, "limits-key.json")
+	key := readCSESpecJSONFile(mt, "limits/limits-key.json")
 	_, err = cpt.keyVaultColl.InsertOne(context.Background(), key)
 	assert.Nil(mt, err, "InsertOne error for key: %v", err)
 
@@ -442,7 +442,7 @@ func TestClientSideEncryptionProse_4_bson_size_limits_and_batch_splitting(t *tes
 	assert.Nil(mt, err, "InsertOne error for 2MiB document: %v", err)
 
 	str := complete2mbStr[:cryptMaxBatchSizeBytes-2000] // remove last 2000 bytes
-	limitsDoc := readJSONFile(mt, "limits-doc.json")
+	limitsDoc := readCSESpecJSONFile(mt, "limits/limits-doc.json")
 
 	// insert a doc smaller than 2MiB that is bigger than 2MiB after encryption
 	var extendedLimitsDoc []byte
@@ -543,7 +543,7 @@ func TestClientSideEncryptionProse_6_corpus_test(t *testing.T) {
 	if "" == os.Getenv("KMS_MOCK_SERVERS_RUNNING") {
 		mt.Skipf("Skipping test as KMS_MOCK_SERVERS_RUNNING is not set")
 	}
-	corpusSchema := readJSONFile(mt, "corpus-schema.json")
+	corpusSchema := readCSESpecJSONFile(mt, "corpus/corpus-schema.json")
 	localSchemaMap := map[string]any{
 		"db.coll": corpusSchema,
 	}
@@ -594,7 +594,7 @@ func TestClientSideEncryptionProse_6_corpus_test(t *testing.T) {
 				err := db.RunCommand(context.Background(), bson.D{
 					{"create", "coll"},
 					{"validator", bson.D{
-						{"$jsonSchema", readJSONFile(mt, "corpus-schema.json")},
+						{"$jsonSchema", readCSESpecJSONFile(mt, "corpus/corpus-schema.json")},
 					}},
 				}).Err()
 				assert.Nil(mt, err, "create error with validator: %v", err)
@@ -602,17 +602,17 @@ func TestClientSideEncryptionProse_6_corpus_test(t *testing.T) {
 
 			// Manually insert keys for each KMS provider into the key vault.
 			_, err := cpt.keyVaultColl.InsertMany(context.Background(), []any{
-				readJSONFile(mt, "corpus-key-local.json"),
-				readJSONFile(mt, "corpus-key-aws.json"),
-				readJSONFile(mt, "corpus-key-azure.json"),
-				readJSONFile(mt, "corpus-key-gcp.json"),
-				readJSONFile(mt, "corpus-key-kmip.json"),
+				readCSESpecJSONFile(mt, "corpus/corpus-key-local.json"),
+				readCSESpecJSONFile(mt, "corpus/corpus-key-aws.json"),
+				readCSESpecJSONFile(mt, "corpus/corpus-key-azure.json"),
+				readCSESpecJSONFile(mt, "corpus/corpus-key-gcp.json"),
+				readCSESpecJSONFile(mt, "corpus/corpus-key-kmip.json"),
 			})
 			assert.Nil(mt, err, "InsertMany error for key vault: %v", err)
 
 			// read original corpus and recursively copy over each value to new corpus, encrypting certain values
 			// when needed
-			corpus := readJSONFile(mt, "corpus.json")
+			corpus := readCSESpecJSONFile(mt, "corpus/corpus.json")
 			cidx, copied := bsoncore.AppendDocumentStart(nil)
 			elems, _ := corpus.Elements()
 
@@ -725,7 +725,7 @@ func TestClientSideEncryptionProse_6_corpus_test(t *testing.T) {
 			assert.Equal(mt, corpus, decryptedDoc, "expected document %v, got %v", corpus, decryptedDoc)
 
 			// find document using a client without encryption enabled and assert fields remain encrypted
-			corpusEncrypted := readJSONFile(mt, "corpus-encrypted.json")
+			corpusEncrypted := readCSESpecJSONFile(mt, "corpus/corpus-encrypted.json")
 			foundDoc, err := cpt.coll.FindOne(context.Background(), bson.D{}).Raw()
 			assert.Nil(mt, err, "Find error with unencrypted client: %v", err)
 
@@ -1078,7 +1078,7 @@ func TestClientSideEncryptionProse_8_bypass_spawning_mongocryptd(t *testing.T) {
 		},
 	}
 	schemaMap := map[string]any{
-		"db.coll": readJSONFile(mt, "external-schema.json"),
+		"db.coll": readCSESpecJSONFile(mt, "external/external-schema.json"),
 	}
 
 	// All mongocryptd options use port 27021 instead of the default 27020 to avoid interference
@@ -1631,9 +1631,9 @@ func TestClientSideEncryptionProse_12_explicit_encryption(t *testing.T) {
 	mt.Setup()
 
 	// Test Setup ... begin
-	encryptedFields := readJSONFile(mt, "encrypted-fields.json")
-	encryptedFieldsC10 := readJSONFile(mt, "encryptedFields-c10.json")
-	key1Document := readJSONFile(mt, "key1-document.json")
+	encryptedFields := readCSESpecJSONFile(mt, "etc/data/encryptedFields.json")
+	encryptedFieldsC10 := readCSESpecJSONFile(mt, "etc/data/encryptedFields-c10.json")
+	key1Document := readCSESpecJSONFile(mt, "etc/data/keys/key1-document.json")
 	var key1ID bson.Binary
 	{
 		subtype, data := key1Document.Lookup("_id").Binary()
@@ -1645,14 +1645,16 @@ func TestClientSideEncryptionProse_12_explicit_encryption(t *testing.T) {
 		err := mt.Client.Database("db").CreateCollection(
 			context.Background(),
 			"explicit_encryption",
-			options.CreateCollection().SetEncryptedFields(encryptedFields))
+			options.CreateCollection().SetEncryptedFields(encryptedFields),
+		)
 		assert.Nil(mt, err, "error on CreateCollection: %v", err)
 
 		mtest.DropEncryptedCollection(mt, mt.Client.Database("db").Collection("explicit_encryption_c10"), encryptedFieldsC10)
 		err = mt.Client.Database("db").CreateCollection(
 			context.Background(),
 			"explicit_encryption_c10",
-			options.CreateCollection().SetEncryptedFields(encryptedFieldsC10))
+			options.CreateCollection().SetEncryptedFields(encryptedFieldsC10),
+		)
 		assert.Nil(mt, err, "error on CreateCollection: %v", err)
 
 		err = mt.Client.Database("keyvault").Collection("datakeys").Drop(context.Background())
@@ -2439,7 +2441,8 @@ func TestClientSideEncryptionProse_21_automatic_data_encryption_keys(t *testing.
 				encryptedField, err := clientEnc.Encrypt(
 					context.Background(),
 					rawValue,
-					encryptionOpts)
+					encryptionOpts,
+				)
 				assert.Nil(mt, err, "Encrypt error: %v", err)
 
 				_, err = coll.InsertOne(context.Background(), bson.D{{"ssn", encryptedField}})
@@ -2598,8 +2601,8 @@ func TestClientSideEncryptionProse_22_range_explicit_encryption(t *testing.T) {
 			}
 
 			// Test Setup ... begin
-			encryptedFields := readJSONFile(mt, fmt.Sprintf("range-encryptedFields-%v.json", test.typeStr))
-			key1Document := readJSONFile(mt, "key1-document.json")
+			encryptedFields := readCSESpecJSONFile(mt, fmt.Sprintf("etc/data/range-encryptedFields-%v.json", test.typeStr))
+			key1Document := readCSESpecJSONFile(mt, "etc/data/keys/key1-document.json")
 			var key1ID bson.Binary
 			{
 				subtype, data := key1Document.Lookup("_id").Binary()
@@ -3153,7 +3156,12 @@ func TestChangeStreams(t *testing.T) {
 		EncryptedDocument bson.Raw   `bson:"encrypted_document"`
 		DecryptedDocument bson.Raw   `bson:"decrytped_document"`
 	}
-	decodeJSONFile(mt, "change-streams-test.json", &testConfig)
+	path := filepath.Join(cseProseDir, "change-streams-test.json")
+	content, err := os.ReadFile(path)
+	require.NoError(mt, err, "ReadFile error for %q: %v", path, err)
+
+	err = bson.UnmarshalExtJSON(content, true, &testConfig)
+	require.NoError(mt, err, "UnmarshalExtJSON error for file %q: %v", path, err)
 
 	schemaMap := map[string]any{
 		"db.coll": testConfig.JSONSchema,
@@ -3299,27 +3307,18 @@ func (cpt *cseProseTest) teardown(mt *mtest.T) {
 	}
 }
 
-func readJSONFile(mt *mtest.T, file string) bson.Raw {
+// readCSESpecJSONFile reads the specified file from the Client Side Encryption
+// spec directory. The file argument may be a filename or a relative path.
+func readCSESpecJSONFile(mt *mtest.T, file string) bson.Raw {
 	mt.Helper()
 
-	content, err := ioutil.ReadFile(filepath.Join(clientEncryptionProseDir, file))
-	assert.Nil(mt, err, "ReadFile error for %v: %v", file, err)
+	path := filepath.Join(cseSpecDir, file)
+	content, err := os.ReadFile(path)
+	require.NoError(mt, err, "ReadFile error for %v: %v", path, err)
 
 	var doc bson.Raw
 	err = bson.UnmarshalExtJSON(content, true, &doc)
-	assert.Nil(mt, err, "UnmarshalExtJSON error for file %v: %v", file, err)
-	return doc
-}
-
-func decodeJSONFile(mt *mtest.T, file string, val any) bson.Raw {
-	mt.Helper()
-
-	content, err := ioutil.ReadFile(filepath.Join(clientEncryptionProseDir, file))
-	assert.Nil(mt, err, "ReadFile error for %v: %v", file, err)
-
-	var doc bson.Raw
-	err = bson.UnmarshalExtJSON(content, true, val)
-	assert.Nil(mt, err, "UnmarshalExtJSON error for file %v: %v", file, err)
+	require.NoError(mt, err, "UnmarshalExtJSON error for file %v: %v", path, err)
 	return doc
 }
 
@@ -3370,11 +3369,11 @@ func newDeadlockTest(mt *mtest.T) *deadlockTest {
 	err = keyvaultColl.Drop(context.Background())
 	assert.Nil(mt, err, "Drop error for key vault collection: %v", err)
 
-	keyDoc := readJSONFile(mt, "external-key.json")
+	keyDoc := readCSESpecJSONFile(mt, "external/external-key.json")
 	_, err = keyvaultColl.InsertOne(context.Background(), keyDoc)
 	assert.Nil(mt, err, "InsertOne error into key vault collection: %v", err)
 
-	schemaDoc := readJSONFile(mt, "external-schema.json")
+	schemaDoc := readCSESpecJSONFile(mt, "external/external-schema.json")
 	createOpts := options.CreateCollection().SetValidator(bson.M{"$jsonSchema": schemaDoc})
 	err = d.clientTest.Database("db").CreateCollection(context.Background(), "coll", createOpts)
 	assert.Nil(mt, err, "CreateCollection error: %v", err)
