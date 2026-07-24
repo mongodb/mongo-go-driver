@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/credutil"
 	"go.mongodb.org/mongo-driver/v2/internal/logger"
 	"go.mongodb.org/mongo-driver/v2/internal/optionsutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -94,36 +95,44 @@ func convertOIDCArgs(args *driver.OIDCArgs) *options.OIDCArgs {
 
 // ConvertCreds takes an [options.Credential] and returns the equivalent
 // [driver.Cred].
-func ConvertCreds(cred *options.Credential) *driver.Cred {
-	if cred == nil {
+func ConvertCreds(credOpts *options.Credential) *driver.Cred {
+	if credOpts == nil {
 		return nil
 	}
 
 	var oidcMachineCallback auth.OIDCCallback
-	if cred.OIDCMachineCallback != nil {
+	if credOpts.OIDCMachineCallback != nil {
 		oidcMachineCallback = func(ctx context.Context, args *driver.OIDCArgs) (*driver.OIDCCredential, error) {
-			cred, err := cred.OIDCMachineCallback(ctx, convertOIDCArgs(args))
-			return (*driver.OIDCCredential)(cred), err
+			credOpts, err := credOpts.OIDCMachineCallback(ctx, convertOIDCArgs(args))
+			return (*driver.OIDCCredential)(credOpts), err
 		}
 	}
 
 	var oidcHumanCallback auth.OIDCCallback
-	if cred.OIDCHumanCallback != nil {
+	if credOpts.OIDCHumanCallback != nil {
 		oidcHumanCallback = func(ctx context.Context, args *driver.OIDCArgs) (*driver.OIDCCredential, error) {
-			cred, err := cred.OIDCHumanCallback(ctx, convertOIDCArgs(args))
+			cred, err := credOpts.OIDCHumanCallback(ctx, convertOIDCArgs(args))
 			return (*driver.OIDCCredential)(cred), err
 		}
 	}
 
-	return &auth.Cred{
-		Source:              cred.AuthSource,
-		Username:            cred.Username,
-		Password:            cred.Password,
-		PasswordSet:         cred.PasswordSet,
-		Props:               cred.AuthMechanismProperties,
+	cred := &auth.Cred{
+		Source:              credOpts.AuthSource,
+		Username:            credOpts.Username,
+		Password:            credOpts.Password,
+		PasswordSet:         credOpts.PasswordSet,
+		Props:               credOpts.AuthMechanismProperties,
 		OIDCMachineCallback: oidcMachineCallback,
 		OIDCHumanCallback:   oidcHumanCallback,
 	}
+
+	if credOpts.AWSCredentialsProvider != nil {
+		cred.AWSCredentialsProvider = credutil.AWSOptionsProvider{
+			Provider: credOpts.AWSCredentialsProvider,
+		}
+	}
+
+	return cred
 }
 
 // NewConfig will translate data from client options into a topology config for

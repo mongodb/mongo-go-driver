@@ -8,4 +8,7 @@ use (
 	./internal/cmd/faas/awslambda/mongodb
 	./internal/test/compilecheck
 	./internal/test/goleak
+	./ext/awsauth
+	./ext/awsauth/examples
+	./ext/awsauth/test
 )
