@@ -36,10 +36,6 @@ type dropCollectionOp struct {
 	timeout       *time.Duration
 }
 
-func (dc *dropCollectionOp) processResponse(context.Context, bsoncore.Document, driver.ResponseInfo) error {
-	return nil
-}
-
 // execute runs this operation and returns an error if the operation did not execute successfully.
 func (dc *dropCollectionOp) execute(ctx context.Context) error {
 	if dc.deployment == nil {
@@ -48,7 +44,6 @@ func (dc *dropCollectionOp) execute(ctx context.Context) error {
 
 	return driver.Operation{
 		CommandFn:            dc.command,
-		ProcessResponseFn:    dc.processResponse,
 		Client:               dc.session,
 		Clock:                dc.clock,
 		CommandMonitor:       dc.monitor,

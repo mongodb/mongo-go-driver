@@ -40,10 +40,6 @@ type dropIndexesOp struct {
 	rawData                   *bool
 }
 
-func (di *dropIndexesOp) processResponse(context.Context, bsoncore.Document, driver.ResponseInfo) error {
-	return nil
-}
-
 // execute runs this operation and returns an error if the operation did not execute successfully.
 func (di *dropIndexesOp) execute(ctx context.Context) error {
 	if di.deployment == nil {
@@ -52,7 +48,6 @@ func (di *dropIndexesOp) execute(ctx context.Context) error {
 
 	return driver.Operation{
 		CommandFn:                 di.command,
-		ProcessResponseFn:         di.processResponse,
 		Client:                    di.session,
 		Clock:                     di.clock,
 		CommandMonitor:            di.monitor,

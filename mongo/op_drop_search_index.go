@@ -34,10 +34,6 @@ type dropSearchIndexOp struct {
 	timeout       *time.Duration
 }
 
-func (dsi *dropSearchIndexOp) processResponse(context.Context, bsoncore.Document, driver.ResponseInfo) error {
-	return nil
-}
-
 // execute runs this operation and returns an error if the operation did not execute successfully.
 func (dsi *dropSearchIndexOp) execute(ctx context.Context) error {
 	if dsi.deployment == nil {
@@ -45,18 +41,17 @@ func (dsi *dropSearchIndexOp) execute(ctx context.Context) error {
 	}
 
 	return driver.Operation{
-		CommandFn:         dsi.command,
-		ProcessResponseFn: dsi.processResponse,
-		Client:            dsi.session,
-		Clock:             dsi.clock,
-		CommandMonitor:    dsi.monitor,
-		Crypt:             dsi.crypt,
-		Database:          dsi.database,
-		Deployment:        dsi.deployment,
-		Selector:          dsi.selector,
-		ServerAPI:         dsi.serverAPI,
-		Timeout:           dsi.timeout,
-		Authenticator:     dsi.authenticator,
+		CommandFn:      dsi.command,
+		Client:         dsi.session,
+		Clock:          dsi.clock,
+		CommandMonitor: dsi.monitor,
+		Crypt:          dsi.crypt,
+		Database:       dsi.database,
+		Deployment:     dsi.deployment,
+		Selector:       dsi.selector,
+		ServerAPI:      dsi.serverAPI,
+		Timeout:        dsi.timeout,
+		Authenticator:  dsi.authenticator,
 	}.Execute(ctx)
 }
 
