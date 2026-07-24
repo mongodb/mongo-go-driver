@@ -38,6 +38,14 @@ func (p *trackingCredentialsProvider) Retrieve(ctx context.Context) (awsauth.AWS
 // AssumeRole, WebIdentity, Lambda) are covered in environments where the SDK can
 // resolve credentials automatically without needing inline credentials in the URI.
 func TestAWSDefaultCustomCredentialProviderAuthenticates(t *testing.T) {
+	// The "assume-role" and "regular" scenarios are intentionally skipped. This
+	// test exercises the AWS SDK default credential chain and calls SetAuth,
+	// which overrides any inline credentials ApplyURI extracted from the URI.
+	// Those two scenarios provide credentials inline in MONGODB_URI, which the
+	// default chain cannot resolve on its own, so this default-chain approach
+	// does not apply to them. They are instead covered in
+	// internal/test/aws/aws_test.go, which runs alongside this test via
+	// etc/run-mongodb-aws-test.sh.
 	if test := os.Getenv("AWS_TEST"); test == "assume-role" || test == "regular" {
 		t.Skipf("Skipping test for %s", test)
 	}

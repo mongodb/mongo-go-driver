@@ -33,6 +33,14 @@ func NewCredentialsProvider(credentialsProvider aws.CredentialsProvider) *Creden
 }
 
 // AWSCredentials is a struct that contains AWS credentials information.
+//
+// This is a copy of the AWS SDK v2 aws.Credentials struct:
+// https://pkg.go.dev/github.com/aws/aws-sdk-go-v2@v1.28.0/aws#Credentials
+//
+// It is declared as a type alias to an anonymous struct so that its field layout
+// matches aws.Credentials exactly. That lets us convert an aws.Credentials value
+// with a plain type conversion in Retrieve, while keeping this package's public
+// API free of any dependency on the AWS SDK's named type.
 type AWSCredentials = struct {
 	AccessKeyID     string
 	SecretAccessKey string
