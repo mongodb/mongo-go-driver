@@ -18,13 +18,13 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/internal/handshake/operation"
 	"go.mongodb.org/mongo-driver/v2/internal/logger"
 	"go.mongodb.org/mongo-driver/v2/mongo/address"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
-	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
 )
 
 const (
