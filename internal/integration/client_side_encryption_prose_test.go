@@ -1738,7 +1738,7 @@ func TestClientSideEncryptionProse_12_explicit_encryption(t *testing.T) {
 			eo := options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID).SetQueryType(options.QueryTypeEquality).SetContentionFactor(10)
 			findPayload, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
 			assert.Nil(mt, err, "error in Encrypt: %v", err)
-			// Find with contentionFactor=0.
+			// Find with contentionFactor=10.
 			cursor, err := coll.Find(context.Background(), bson.D{{"encryptedIndexed", findPayload}})
 			assert.Nil(mt, err, "error in Find: %v", err)
 			var got []bson.Raw
