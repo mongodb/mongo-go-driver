@@ -563,41 +563,55 @@ func (coll *Collection) delete(
 	}
 	doc, _ = bsoncore.AppendDocumentEnd(doc, didx)
 
-	op := operation.NewDelete(doc).
-		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.monitor).
-		Retry(retryMode).MaxAdaptiveRetries(maxAdaptiveRetries).
-		EnableOverloadRetargeting(coll.client.enableOverloadRetargeting).
-		ServerSelector(selector).ClusterClock(coll.client.clock).
-		Database(coll.db.name).Collection(coll.name).
-		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).Ordered(true).
-		ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).Logger(coll.client.logger).Authenticator(coll.client.authenticator)
+	ordered := true
+	op := &deleteOp{
+		deletes:                   []bsoncore.Document{doc},
+		session:                   sess,
+		writeConcern:              wc,
+		monitor:                   coll.client.monitor,
+		retry:                     &retryMode,
+		maxAdaptiveRetries:        maxAdaptiveRetries,
+		enableOverloadRetargeting: coll.client.enableOverloadRetargeting,
+		selector:                  selector,
+		clock:                     coll.client.clock,
+		database:                  coll.db.name,
+		collection:                coll.name,
+		deployment:                coll.client.deployment,
+		crypt:                     coll.client.cryptFLE,
+		ordered:                   &ordered,
+		serverAPI:                 coll.client.serverAPI,
+		timeout:                   coll.client.timeout,
+		logger:                    coll.client.logger,
+		authenticator:             coll.client.authenticator,
+	}
 	if args.Comment != nil {
 		comment, err := marshalValue(args.Comment, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return nil, err
 		}
-		op = op.Comment(comment)
+		op.comment = comment
 	}
 	if args.Hint != nil {
-		op = op.Hint(true)
+		hint := true
+		op.hint = &hint
 	}
 	if args.Let != nil {
 		let, err := marshal(args.Let, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return nil, err
 		}
-		op = op.Let(let)
+		op.let = let
 	}
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
-		op = op.RawData(rawData)
+		op.rawData = &rawData
 	}
 
-	rr, err := processWriteError(op.Execute(ctx))
+	rr, err := processWriteError(op.execute(ctx))
 	if rr&expectedRr == 0 {
 		return nil, err
 	}
 	return &DeleteResult{
-		DeletedCount: op.Result().N,
+		DeletedCount: op.result().N,
 		Acknowledged: rr.isAcknowledged(),
 	}, err
 }
