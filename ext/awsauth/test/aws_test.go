@@ -12,12 +12,18 @@ import (
 	"os"
 	"testing"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/ext/awsauth"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
+)
+
+var (
+	_ options.AWSCredentialsProvider = (*awsauth.CredentialsProvider)(nil)
+	_ options.AWSCredentials         = (awsauth.AWSCredentials)(aws.Credentials{})
 )
 
 // trackingCredentialsProvider wraps an options.AWSCredentialsProvider and counts calls.

@@ -47,17 +47,6 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
 # Install taskfile
 RUN go install github.com/go-task/task/v3/cmd/task@v3.39.2
 
-# Pre-download the Go toolchains used by internal/test/compilecheck so the
-# compile check does not download them at runtime (the largest cost of that
-# test). The parent Go can fetch and run older toolchain modules, and a single
-# linux-amd64 toolchain per version cross-compiles for every GOARCH. Placed
-# before "COPY . /mongo-go-driver" so repo changes don't invalidate this layer.
-# Keep this list in sync with the GoVersions in
-# internal/test/compilecheck/compile_check_test.go.
-RUN for v in 1.19.0 1.20.0 1.21.0 1.22.0 1.23.0 1.24.0 1.25.0; do \
-      GOTOOLCHAIN=go$v go version; \
-    done
-
 COPY etc/docker_entry.sh /root/docker_entry.sh
 COPY --from=libmongocrypt /root/install /root/install
 
