@@ -48,9 +48,9 @@ type listDatabasesOp struct {
 // listDatabasesResult represents a listDatabases result returned by the server.
 type listDatabasesResult struct {
 	// An array of documents, one document for each database
-	Databases []databaseRecord
+	databases []databaseRecord
 	// The sum of the size of all the database files on disk in bytes.
-	TotalSize int64
+	totalSize int64
 }
 
 type databaseRecord struct {
@@ -69,7 +69,7 @@ func buildListDatabasesResult(response bsoncore.Document) (listDatabasesResult, 
 		switch element.Key() {
 		case "totalSize":
 			var ok bool
-			ir.TotalSize, ok = element.Value().AsInt64OK()
+			ir.totalSize, ok = element.Value().AsInt64OK()
 			if !ok {
 				return ir, fmt.Errorf("response field 'totalSize' is type int64, but received BSON type %s: %s", element.Value().Type, element.Value())
 			}
@@ -90,7 +90,7 @@ func buildListDatabasesResult(response bsoncore.Document) (listDatabasesResult, 
 				return ir, err
 			}
 
-			ir.Databases = make([]databaseRecord, len(records))
+			ir.databases = make([]databaseRecord, len(records))
 			for i, val := range records {
 				valueDoc, ok := val.Value().DocumentOK()
 				if !ok {
@@ -105,17 +105,17 @@ func buildListDatabasesResult(response bsoncore.Document) (listDatabasesResult, 
 				for _, elem := range elems {
 					switch elem.Key() {
 					case "name":
-						ir.Databases[i].Name, ok = elem.Value().StringValueOK()
+						ir.databases[i].Name, ok = elem.Value().StringValueOK()
 						if !ok {
 							return ir, fmt.Errorf("response field 'name' is type string, but received BSON type %s", elem.Value().Type)
 						}
 					case "sizeOnDisk":
-						ir.Databases[i].SizeOnDisk, ok = elem.Value().AsInt64OK()
+						ir.databases[i].SizeOnDisk, ok = elem.Value().AsInt64OK()
 						if !ok {
 							return ir, fmt.Errorf("response field 'sizeOnDisk' is type int64, but received BSON type %s", elem.Value().Type)
 						}
 					case "empty":
-						ir.Databases[i].Empty, ok = elem.Value().BooleanOK()
+						ir.databases[i].Empty, ok = elem.Value().BooleanOK()
 						if !ok {
 							return ir, fmt.Errorf("response field 'empty' is type bool, but received BSON type %s", elem.Value().Type)
 						}

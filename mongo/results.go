@@ -138,14 +138,14 @@ type ListDatabasesResult struct {
 
 func newListDatabasesResultFromOperation(res listDatabasesResult) ListDatabasesResult {
 	var ldr ListDatabasesResult
-	ldr.Databases = make([]DatabaseSpecification, 0, len(res.Databases))
-	for _, spec := range res.Databases {
+	ldr.Databases = make([]DatabaseSpecification, 0, len(res.databases))
+	for _, spec := range res.databases {
 		ldr.Databases = append(
 			ldr.Databases,
 			DatabaseSpecification(spec),
 		)
 	}
-	ldr.TotalSize = res.TotalSize
+	ldr.TotalSize = res.totalSize
 	return ldr
 }
 
