@@ -35,9 +35,10 @@ func (p *trackingCredentialsProvider) Retrieve(ctx context.Context) (awsauth.AWS
 // "Custom Credential Provider Authenticates" from the MongoDB AWS auth spec.
 // https://github.com/mongodb/specifications/blob/master/source/auth/tests/mongodb-aws.md
 //
-// Uses the AWS SDK default credential chain so all 6 scenarios (Regular, EC2, ECS,
-// AssumeRole, WebIdentity, Lambda) are covered in environments where the SDK can
-// resolve credentials automatically without needing inline credentials in the URI.
+// Uses the AWS SDK default credential chain so EC2, ECS, WebIdentity, Lambda are
+// covered in environments where the SDK can resolve credentials automatically
+// without needing inline credentials in the URI. Regular/AssumeRole are covered
+// separately.
 func TestAWSDefaultCustomCredentialProviderAuthenticates(t *testing.T) {
 	// The "assume-role" and "regular" scenarios are intentionally skipped. This
 	// test exercises the AWS SDK default credential chain and calls SetAuth,
