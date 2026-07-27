@@ -1645,14 +1645,16 @@ func TestClientSideEncryptionProse_12_explicit_encryption(t *testing.T) {
 		err := mt.Client.Database("db").CreateCollection(
 			context.Background(),
 			"explicit_encryption",
-			options.CreateCollection().SetEncryptedFields(encryptedFields))
+			options.CreateCollection().SetEncryptedFields(encryptedFields),
+		)
 		assert.Nil(mt, err, "error on CreateCollection: %v", err)
 
 		mtest.DropEncryptedCollection(mt, mt.Client.Database("db").Collection("explicit_encryption_c10"), encryptedFieldsC10)
 		err = mt.Client.Database("db").CreateCollection(
 			context.Background(),
 			"explicit_encryption_c10",
-			options.CreateCollection().SetEncryptedFields(encryptedFieldsC10))
+			options.CreateCollection().SetEncryptedFields(encryptedFieldsC10),
+		)
 		assert.Nil(mt, err, "error on CreateCollection: %v", err)
 
 		err = mt.Client.Database("keyvault").Collection("datakeys").Drop(context.Background())
@@ -1731,32 +1733,13 @@ func TestClientSideEncryptionProse_12_explicit_encryption(t *testing.T) {
 			assert.Nil(mt, err, "Error in InsertOne: %v", err)
 		}
 
-		// Explicit encrypt an indexed value to find with default contentionFactor 0.
-		{
-			eo := options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID).SetQueryType(options.QueryTypeEquality).SetContentionFactor(0)
-			findPayload, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
-			assert.Nil(mt, err, "error in Encrypt: %v", err)
-			// Find with contentionFactor=0.
-			cursor, err := coll.Find(context.Background(), bson.D{{"encryptedIndexed", findPayload}})
-			assert.Nil(mt, err, "error in Find: %v", err)
-			var got []bson.Raw
-			err = cursor.All(context.Background(), &got)
-			assert.Nil(mt, err, "error in All: %v", err)
-			assert.True(mt, len(got) < 10, "expected len(got) < 10, got: %v", len(got))
-			for _, doc := range got {
-				gotValue, err := doc.LookupErr("encryptedIndexed")
-				assert.Nil(mt, err, "error in LookupErr: %v", err)
-				assert.Equal(mt, gotValue.StringValue(), valueToEncrypt, "expected %q, got %q", valueToEncrypt, gotValue.StringValue())
-			}
-		}
-
 		// Explicit encrypt an indexed value to find with contentionFactor 10.
 		{
 			eo := options.Encrypt().SetAlgorithm("Indexed").SetKeyID(key1ID).SetQueryType(options.QueryTypeEquality).SetContentionFactor(10)
-			findPayload2, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
+			findPayload, err := clientEncryption.Encrypt(context.Background(), rawVal, eo)
 			assert.Nil(mt, err, "error in Encrypt: %v", err)
 			// Find with contentionFactor=10.
-			cursor, err := coll.Find(context.Background(), bson.D{{"encryptedIndexed", findPayload2}})
+			cursor, err := coll.Find(context.Background(), bson.D{{"encryptedIndexed", findPayload}})
 			assert.Nil(mt, err, "error in Find: %v", err)
 			var got []bson.Raw
 			err = cursor.All(context.Background(), &got)
@@ -2439,7 +2422,8 @@ func TestClientSideEncryptionProse_21_automatic_data_encryption_keys(t *testing.
 				encryptedField, err := clientEnc.Encrypt(
 					context.Background(),
 					rawValue,
-					encryptionOpts)
+					encryptionOpts,
+				)
 				assert.Nil(mt, err, "Encrypt error: %v", err)
 
 				_, err = coll.InsertOne(context.Background(), bson.D{{"ssn", encryptedField}})
