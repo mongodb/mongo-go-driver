@@ -19,7 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
-// updateSearchIndexOp performs a updateSearchIndex operation.
+// updateSearchIndexOp performs an updateSearchIndex operation.
 type updateSearchIndexOp struct {
 	authenticator driver.Authenticator
 	index         string
