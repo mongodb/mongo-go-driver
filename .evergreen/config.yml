@@ -1960,7 +1960,7 @@ buildvariants:
     run_on:
       - rhel8.7-large
     expansions:
-      GO_DIST: "/opt/golang/go1.25"
+      GO_DIST: "/opt/golang/go1.26"
     tasks:
       - name: "sfp-test"
   - name: docker-runner-test
