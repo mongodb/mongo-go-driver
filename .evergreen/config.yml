@@ -2051,6 +2051,7 @@ buildvariants:
     tasks:
       - name: ".versioned-api"
   - matrix_name: "client-side-encryption-test"
+    tags: ["pullrequest"]
     matrix_spec: {version: ["latest", "rapid"], os-ssl-40: ["rhel87-64"]}
     display_name: "Client Side Encryption Tests ${version} ${os-ssl-40}"
     tasks:
