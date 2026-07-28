@@ -44,7 +44,6 @@ type findOp struct {
 	showRecordID              *bool
 	singleBatch               *bool
 	skip                      *int64
-	snapshot                  *bool
 	sort                      bsoncore.Document
 	tailable                  *bool
 	session                   *session.Client
@@ -179,9 +178,6 @@ func (f *findOp) command(dst []byte, desc description.SelectedServer) ([]byte, e
 	}
 	if f.skip != nil {
 		dst = bsoncore.AppendInt64Element(dst, "skip", *f.skip)
-	}
-	if f.snapshot != nil {
-		dst = bsoncore.AppendBooleanElement(dst, "snapshot", *f.snapshot)
 	}
 	if f.sort != nil {
 		dst = bsoncore.AppendDocumentElement(dst, "sort", f.sort)
