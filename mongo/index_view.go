@@ -89,14 +89,22 @@ func (iv IndexView) List(ctx context.Context, opts ...options.Lister[options.Lis
 	}
 
 	selector = makeReadPrefSelector(sess, selector, iv.coll.client.localThreshold)
-	op := operation.NewListIndexes().
-		Session(sess).CommandMonitor(iv.coll.client.monitor).
-		ServerSelector(selector).ClusterClock(iv.coll.client.clock).
-		Retry(retry).MaxAdaptiveRetries(cursorOpts.MaxAdaptiveRetries).
-		EnableOverloadRetargeting(cursorOpts.EnableOverloadRetargeting).
-		Database(iv.coll.db.name).Collection(iv.coll.name).
-		Deployment(iv.coll.client.deployment).ServerAPI(iv.coll.client.serverAPI).
-		Timeout(iv.coll.client.timeout).Crypt(iv.coll.client.cryptFLE).Authenticator(iv.coll.client.authenticator)
+	op := listIndexesOp{
+		session:                   sess,
+		monitor:                   iv.coll.client.monitor,
+		selector:                  selector,
+		clock:                     iv.coll.client.clock,
+		retry:                     &retry,
+		maxAdaptiveRetries:        cursorOpts.MaxAdaptiveRetries,
+		enableOverloadRetargeting: cursorOpts.EnableOverloadRetargeting,
+		database:                  iv.coll.db.name,
+		collection:                iv.coll.name,
+		deployment:                iv.coll.client.deployment,
+		serverAPI:                 iv.coll.client.serverAPI,
+		timeout:                   iv.coll.client.timeout,
+		crypt:                     iv.coll.client.cryptFLE,
+		authenticator:             iv.coll.client.authenticator,
+	}
 
 	cursorOpts.MarshalValueEncoderFn = newEncoderFn(iv.coll.bsonOpts, iv.coll.registry)
 
@@ -106,14 +114,14 @@ func (iv IndexView) List(ctx context.Context, opts ...options.Lister[options.Lis
 	}
 
 	if args.BatchSize != nil {
-		op = op.BatchSize(*args.BatchSize)
+		op.batchSize = args.BatchSize
 		cursorOpts.BatchSize = *args.BatchSize
 	}
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
-		op = op.RawData(rawData)
+		op.rawData = &rawData
 	}
 
-	err = op.Execute(ctx)
+	err = op.execute(ctx)
 	if err != nil {
 		// for namespaceNotFound errors, return an empty cursor and do not throw an error
 		closeImplicitSession(sess)
@@ -125,7 +133,7 @@ func (iv IndexView) List(ctx context.Context, opts ...options.Lister[options.Lis
 		return nil, wrapErrors(err)
 	}
 
-	bc, err := op.Result(cursorOpts)
+	bc, err := op.result(cursorOpts)
 	if err != nil {
 		closeImplicitSession(sess)
 		return nil, wrapErrors(err)
