@@ -505,11 +505,17 @@ func (c *Client) StartSession(opts ...options.Lister[options.SessionOptions]) (*
 
 func (c *Client) endSessions(ctx context.Context) {
 	sessionIDs := c.sessionPool.IDSlice()
-	op := operation.NewEndSessions(nil).ClusterClock(c.clock).Deployment(c.deployment).
-		ServerSelector(&serverselector.ReadPref{ReadPref: readpref.PrimaryPreferred()}).
-		CommandMonitor(c.monitor).Database("admin").Crypt(c.cryptFLE).ServerAPI(c.serverAPI).
-		MaxAdaptiveRetries(c.effectiveAdaptiveRetries(true)).
-		EnableOverloadRetargeting(c.enableOverloadRetargeting)
+	op := endSessionsOp{
+		clock:                     c.clock,
+		deployment:                c.deployment,
+		selector:                  &serverselector.ReadPref{ReadPref: readpref.PrimaryPreferred()},
+		monitor:                   c.monitor,
+		database:                  "admin",
+		crypt:                     c.cryptFLE,
+		serverAPI:                 c.serverAPI,
+		maxAdaptiveRetries:        c.effectiveAdaptiveRetries(true),
+		enableOverloadRetargeting: c.enableOverloadRetargeting,
+	}
 
 	totalNumIDs := len(sessionIDs)
 	var currentBatch []bsoncore.Document
@@ -521,7 +527,8 @@ func (c *Client) endSessions(ctx context.Context) {
 			// Ignore all errors when ending sessions.
 			_, marshalVal, err := bson.MarshalValue(currentBatch)
 			if err == nil {
-				_ = op.SessionIDs(marshalVal).Execute(ctx)
+				op.sessionIDs = marshalVal
+				_ = op.execute(ctx)
 			}
 
 			currentBatch = currentBatch[:0]
