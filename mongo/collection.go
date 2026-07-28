@@ -1737,7 +1737,7 @@ func (coll *Collection) FindOne(ctx context.Context, filter any,
 	}
 }
 
-func (coll *Collection) findAndModify(ctx context.Context, op *operation.FindAndModify) *SingleResult {
+func (coll *Collection) findAndModify(ctx context.Context, op *findAndModifyOp) *SingleResult {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -1771,27 +1771,27 @@ func (coll *Collection) findAndModify(ctx context.Context, op *operation.FindAnd
 
 	maxAdaptiveRetries := coll.client.effectiveAdaptiveRetries(coll.client.retryWrites)
 
-	op = op.Session(sess).
-		WriteConcern(wc).
-		CommandMonitor(coll.client.monitor).
-		ServerSelector(selector).
-		ClusterClock(coll.client.clock).
-		Database(coll.db.name).
-		Collection(coll.name).
-		Deployment(coll.client.deployment).
-		Retry(retry).
-		MaxAdaptiveRetries(maxAdaptiveRetries).
-		EnableOverloadRetargeting(coll.client.enableOverloadRetargeting).
-		Crypt(coll.client.cryptFLE)
+	op.session = sess
+	op.writeConcern = wc
+	op.monitor = coll.client.monitor
+	op.selector = selector
+	op.clock = coll.client.clock
+	op.database = coll.db.name
+	op.collection = coll.name
+	op.deployment = coll.client.deployment
+	op.retry = &retry
+	op.maxAdaptiveRetries = maxAdaptiveRetries
+	op.enableOverloadRetargeting = coll.client.enableOverloadRetargeting
+	op.crypt = coll.client.cryptFLE
 
-	rr, err := processWriteError(op.Execute(ctx))
+	rr, err := processWriteError(op.execute(ctx))
 	if err != nil {
 		return &SingleResult{err: err}
 	}
 
 	return &SingleResult{
 		ctx:          ctx,
-		rdr:          bson.Raw(op.Result().Value),
+		rdr:          bson.Raw(op.result().Value),
 		bsonOpts:     coll.bsonOpts,
 		reg:          coll.registry,
 		Acknowledged: rr.isAcknowledged(),
@@ -1824,23 +1824,30 @@ func (coll *Collection) FindOneAndDelete(
 		return &SingleResult{err: fmt.Errorf("failed to construct options from builder: %w", err)}
 	}
 
-	op := operation.NewFindAndModify(f).Remove(true).ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).Authenticator(coll.client.authenticator)
+	remove := true
+	op := &findAndModifyOp{
+		query:         f,
+		remove:        &remove,
+		serverAPI:     coll.client.serverAPI,
+		timeout:       coll.client.timeout,
+		authenticator: coll.client.authenticator,
+	}
 	if args.Collation != nil {
-		op = op.Collation(bsoncore.Document(toDocument(args.Collation)))
+		op.collation = bsoncore.Document(toDocument(args.Collation))
 	}
 	if args.Comment != nil {
 		comment, err := marshalValue(args.Comment, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return &SingleResult{err: err}
 		}
-		op = op.Comment(comment)
+		op.comment = comment
 	}
 	if args.Projection != nil {
 		proj, err := marshal(args.Projection, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return &SingleResult{err: err}
 		}
-		op = op.Fields(proj)
+		op.fields = proj
 	}
 	if args.Sort != nil {
 		if isUnorderedMap(args.Sort) {
@@ -1850,7 +1857,7 @@ func (coll *Collection) FindOneAndDelete(
 		if err != nil {
 			return &SingleResult{err: err}
 		}
-		op = op.Sort(sort)
+		op.sort = sort
 	}
 	if args.Hint != nil {
 		if isUnorderedMap(args.Hint) {
@@ -1860,17 +1867,17 @@ func (coll *Collection) FindOneAndDelete(
 		if err != nil {
 			return &SingleResult{err: err}
 		}
-		op = op.Hint(hint)
+		op.hint = hint
 	}
 	if args.Let != nil {
 		let, err := marshal(args.Let, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return &SingleResult{err: err}
 		}
-		op = op.Let(let)
+		op.let = let
 	}
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
-		op = op.RawData(rawData)
+		op.rawData = &rawData
 	}
 
 	return coll.findAndModify(ctx, op)
@@ -1913,30 +1920,36 @@ func (coll *Collection) FindOneAndReplace(
 		return &SingleResult{err: fmt.Errorf("failed to construct options from builder: %w", err)}
 	}
 
-	op := operation.NewFindAndModify(f).Update(bsoncore.Value{Type: bsoncore.TypeEmbeddedDocument, Data: r}).
-		ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).Authenticator(coll.client.authenticator)
+	op := &findAndModifyOp{
+		query:         f,
+		update:        bsoncore.Value{Type: bsoncore.TypeEmbeddedDocument, Data: r},
+		serverAPI:     coll.client.serverAPI,
+		timeout:       coll.client.timeout,
+		authenticator: coll.client.authenticator,
+	}
 	if args.BypassDocumentValidation != nil && *args.BypassDocumentValidation {
-		op = op.BypassDocumentValidation(*args.BypassDocumentValidation)
+		op.bypassDocumentValidation = args.BypassDocumentValidation
 	}
 	if args.Collation != nil {
-		op = op.Collation(bsoncore.Document(toDocument(args.Collation)))
+		op.collation = bsoncore.Document(toDocument(args.Collation))
 	}
 	if args.Comment != nil {
 		comment, err := marshalValue(args.Comment, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return &SingleResult{err: err}
 		}
-		op = op.Comment(comment)
+		op.comment = comment
 	}
 	if args.Projection != nil {
 		proj, err := marshal(args.Projection, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return &SingleResult{err: err}
 		}
-		op = op.Fields(proj)
+		op.fields = proj
 	}
 	if args.ReturnDocument != nil {
-		op = op.NewDocument(*args.ReturnDocument == options.After)
+		newDocument := *args.ReturnDocument == options.After
+		op.newDocument = &newDocument
 	}
 	if args.Sort != nil {
 		if isUnorderedMap(args.Sort) {
@@ -1946,10 +1959,10 @@ func (coll *Collection) FindOneAndReplace(
 		if err != nil {
 			return &SingleResult{err: err}
 		}
-		op = op.Sort(sort)
+		op.sort = sort
 	}
 	if args.Upsert != nil {
-		op = op.Upsert(*args.Upsert)
+		op.upsert = args.Upsert
 	}
 	if args.Hint != nil {
 		if isUnorderedMap(args.Hint) {
@@ -1959,20 +1972,20 @@ func (coll *Collection) FindOneAndReplace(
 		if err != nil {
 			return &SingleResult{err: err}
 		}
-		op = op.Hint(hint)
+		op.hint = hint
 	}
 	if args.Let != nil {
 		let, err := marshal(args.Let, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return &SingleResult{err: err}
 		}
-		op = op.Let(let)
+		op.let = let
 	}
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
-		op = op.RawData(rawData)
+		op.rawData = &rawData
 	}
 	if additionalCmd, ok := optionsutil.Value(args.Internal, "addCommandFields").(bson.D); ok {
-		op = op.AdditionalCmd(additionalCmd)
+		op.additionalCmd = additionalCmd
 	}
 
 	return coll.findAndModify(ctx, op)
@@ -2013,13 +2026,18 @@ func (coll *Collection) FindOneAndUpdate(
 		return &SingleResult{err: fmt.Errorf("failed to construct options from builder: %w", err)}
 	}
 
-	op := operation.NewFindAndModify(f).ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).Authenticator(coll.client.authenticator)
+	op := &findAndModifyOp{
+		query:         f,
+		serverAPI:     coll.client.serverAPI,
+		timeout:       coll.client.timeout,
+		authenticator: coll.client.authenticator,
+	}
 
 	u, err := marshalUpdateValue(update, coll.bsonOpts, coll.registry, true)
 	if err != nil {
 		return &SingleResult{err: err}
 	}
-	op = op.Update(u)
+	op.update = u
 
 	if args.ArrayFilters != nil {
 		af := args.ArrayFilters
@@ -2028,30 +2046,31 @@ func (coll *Collection) FindOneAndUpdate(
 		if err != nil {
 			return &SingleResult{err: err}
 		}
-		op = op.ArrayFilters(filtersDoc.Data)
+		op.arrayFilters = filtersDoc.Data
 	}
 	if args.BypassDocumentValidation != nil && *args.BypassDocumentValidation {
-		op = op.BypassDocumentValidation(*args.BypassDocumentValidation)
+		op.bypassDocumentValidation = args.BypassDocumentValidation
 	}
 	if args.Collation != nil {
-		op = op.Collation(bsoncore.Document(toDocument(args.Collation)))
+		op.collation = bsoncore.Document(toDocument(args.Collation))
 	}
 	if args.Comment != nil {
 		comment, err := marshalValue(args.Comment, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return &SingleResult{err: err}
 		}
-		op = op.Comment(comment)
+		op.comment = comment
 	}
 	if args.Projection != nil {
 		proj, err := marshal(args.Projection, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return &SingleResult{err: err}
 		}
-		op = op.Fields(proj)
+		op.fields = proj
 	}
 	if args.ReturnDocument != nil {
-		op = op.NewDocument(*args.ReturnDocument == options.After)
+		newDocument := *args.ReturnDocument == options.After
+		op.newDocument = &newDocument
 	}
 	if args.Sort != nil {
 		if isUnorderedMap(args.Sort) {
@@ -2061,10 +2080,10 @@ func (coll *Collection) FindOneAndUpdate(
 		if err != nil {
 			return &SingleResult{err: err}
 		}
-		op = op.Sort(sort)
+		op.sort = sort
 	}
 	if args.Upsert != nil {
-		op = op.Upsert(*args.Upsert)
+		op.upsert = args.Upsert
 	}
 	if args.Hint != nil {
 		if isUnorderedMap(args.Hint) {
@@ -2074,20 +2093,20 @@ func (coll *Collection) FindOneAndUpdate(
 		if err != nil {
 			return &SingleResult{err: err}
 		}
-		op = op.Hint(hint)
+		op.hint = hint
 	}
 	if args.Let != nil {
 		let, err := marshal(args.Let, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return &SingleResult{err: err}
 		}
-		op = op.Let(let)
+		op.let = let
 	}
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
-		op = op.RawData(rawData)
+		op.rawData = &rawData
 	}
 	if additionalCmd, ok := optionsutil.Value(args.Internal, "addCommandFields").(bson.D); ok {
-		op = op.AdditionalCmd(additionalCmd)
+		op.additionalCmd = additionalCmd
 	}
 
 	return coll.findAndModify(ctx, op)
