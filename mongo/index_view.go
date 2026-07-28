@@ -436,18 +436,29 @@ func (iv IndexView) drop(ctx context.Context, index any, opts ...options.Lister[
 
 	selector := makePinnedSelector(sess, iv.coll.writeSelector)
 
-	op := operation.NewDropIndexes(index).Session(sess).WriteConcern(wc).CommandMonitor(iv.coll.client.monitor).
-		MaxAdaptiveRetries(maxAdaptiveRetries).EnableOverloadRetargeting(iv.coll.client.enableOverloadRetargeting).
-		ServerSelector(selector).ClusterClock(iv.coll.client.clock).
-		Database(iv.coll.db.name).Collection(iv.coll.name).
-		Deployment(iv.coll.client.deployment).ServerAPI(iv.coll.client.serverAPI).
-		Timeout(iv.coll.client.timeout).Crypt(iv.coll.client.cryptFLE).Authenticator(iv.coll.client.authenticator)
-
-	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
-		op = op.RawData(rawData)
+	op := dropIndexesOp{
+		index:                     index,
+		session:                   sess,
+		writeConcern:              wc,
+		monitor:                   iv.coll.client.monitor,
+		maxAdaptiveRetries:        maxAdaptiveRetries,
+		enableOverloadRetargeting: iv.coll.client.enableOverloadRetargeting,
+		selector:                  selector,
+		clock:                     iv.coll.client.clock,
+		database:                  iv.coll.db.name,
+		collection:                iv.coll.name,
+		deployment:                iv.coll.client.deployment,
+		serverAPI:                 iv.coll.client.serverAPI,
+		timeout:                   iv.coll.client.timeout,
+		crypt:                     iv.coll.client.cryptFLE,
+		authenticator:             iv.coll.client.authenticator,
 	}
 
-	err = op.Execute(ctx)
+	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
+		op.rawData = &rawData
+	}
+
+	err = op.execute(ctx)
 	if err != nil {
 		return wrapErrors(err)
 	}

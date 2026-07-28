@@ -229,14 +229,21 @@ func (siv SearchIndexView) DropOne(
 
 	selector := makePinnedSelector(sess, siv.coll.writeSelector)
 
-	op := operation.NewDropSearchIndex(name).
-		Session(sess).CommandMonitor(siv.coll.client.monitor).
-		ServerSelector(selector).ClusterClock(siv.coll.client.clock).
-		Collection(siv.coll.name).Database(siv.coll.db.name).
-		Deployment(siv.coll.client.deployment).ServerAPI(siv.coll.client.serverAPI).
-		Timeout(siv.coll.client.timeout).Authenticator(siv.coll.client.authenticator)
+	op := dropSearchIndexOp{
+		index:         name,
+		session:       sess,
+		monitor:       siv.coll.client.monitor,
+		selector:      selector,
+		clock:         siv.coll.client.clock,
+		collection:    siv.coll.name,
+		database:      siv.coll.db.name,
+		deployment:    siv.coll.client.deployment,
+		serverAPI:     siv.coll.client.serverAPI,
+		timeout:       siv.coll.client.timeout,
+		authenticator: siv.coll.client.authenticator,
+	}
 
-	err = op.Execute(ctx)
+	err = op.execute(ctx)
 	var de driver.Error
 	if errors.As(err, &de) && de.NamespaceNotFound() {
 		return nil
