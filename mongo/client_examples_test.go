@@ -283,7 +283,8 @@ func ExampleConnect_aWS() {
 	// The order in which the driver searches for credentials is:
 	//
 	// 1. Credentials passed through the URI
-	// 2. Custom AWS credential provider
+	// 2. Custom AWS credential provider (set by the AWSCredentialsProvider
+	//    field in options.Credential)
 	// 3. Environment variables
 	// 4. ECS endpoint if and only if AWS_CONTAINER_CREDENTIALS_RELATIVE_URI is
 	//    set

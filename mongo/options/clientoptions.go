@@ -138,6 +138,10 @@ type OIDCCredential struct {
 }
 
 // AWSCredentialsProvider is the interface used to retrieve AWS credentials.
+//
+// To adapt an AWS SDK v2 credentials provider, use awsauth.NewCredentialsProvider
+// from the go.mongodb.org/mongo-driver/ext/awsauth module, which returns a value
+// satisfying this interface.
 type AWSCredentialsProvider interface {
 	Retrieve(context.Context) (AWSCredentials, error)
 }

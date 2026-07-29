@@ -96,6 +96,10 @@ func (c *ClientEncryptionOptionsBuilder) SetKeyExpiration(expiration time.Durati
 }
 
 // SetAWSCredentialsProvider specifies options for custom AWS credential provider.
+//
+// To adapt an AWS SDK v2 credentials provider, use awsauth.NewCredentialsProvider
+// from the go.mongodb.org/mongo-driver/ext/awsauth module, which returns a value
+// satisfying the AWSCredentialsProvider interface.
 func (c *ClientEncryptionOptionsBuilder) SetAWSCredentialsProvider(provider AWSCredentialsProvider) *ClientEncryptionOptionsBuilder {
 	c.Opts = append(c.Opts, func(opts *ClientEncryptionOptions) error {
 		opts.AWSCredentialsProvider = provider
