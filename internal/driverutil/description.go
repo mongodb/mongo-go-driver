@@ -22,7 +22,7 @@ import (
 
 const (
 	MinWireVersion = 8
-	MaxWireVersion = 25
+	MaxWireVersion = 29
 )
 
 func equalWireVersion(wv1, wv2 *description.VersionRange) bool {
