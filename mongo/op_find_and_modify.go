@@ -86,7 +86,7 @@ func buildFindAndModifyResult(response bsoncore.Document) (findAndModifyResult, 
 			var ok bool
 			famr.Value, ok = element.Value().DocumentOK()
 
-			// The 'value' field returned by a FindAndModify can be null in the case that no document was found.
+			// The 'value' field returned by a findAndModify operation can be null in the case that no document was found.
 			if element.Value().Type != bsoncore.TypeNull && !ok {
 				return famr, fmt.Errorf("response field 'value' is type document or null, but received BSON type %s", element.Value().Type)
 			}
@@ -116,10 +116,10 @@ func (fam *findAndModifyOp) processResponse(_ context.Context, resp bsoncore.Doc
 	return err
 }
 
-// execute runs this operations and returns an error if the operation did not execute successfully.
+// execute runs this operation and returns an error if the operation did not execute successfully.
 func (fam *findAndModifyOp) execute(ctx context.Context) error {
 	if fam.deployment == nil {
-		return errors.New("the FindAndModify operation must have a Deployment set before Execute can be called")
+		return errors.New("the findAndModify operation must have a Deployment set before it can be executed")
 	}
 
 	return driver.Operation{
