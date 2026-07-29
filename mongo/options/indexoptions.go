@@ -398,9 +398,9 @@ func (i *IndexOptionsBuilder) SetBits(bits int32) *IndexOptionsBuilder {
 // SetMax sets the value for the Max field. Specifies the upper inclusive boundary for
 // longitude and latitude values. This option is only applicable to 2D indexes and
 // is ignored for other index types. The default value is 180.0.
-func (i *IndexOptionsBuilder) SetMax(max float64) *IndexOptionsBuilder {
+func (i *IndexOptionsBuilder) SetMax(maxVal float64) *IndexOptionsBuilder {
 	i.Opts = append(i.Opts, func(opts *IndexOptions) error {
-		opts.Max = &max
+		opts.Max = &maxVal
 
 		return nil
 	})
@@ -411,9 +411,9 @@ func (i *IndexOptionsBuilder) SetMax(max float64) *IndexOptionsBuilder {
 // SetMin sets the value for the Min field. Specifies the lower inclusive boundary for
 // longitude and latitude values. This option is only applicable to 2D indexes and
 // is ignored for other index types. The default value is -180.0.
-func (i *IndexOptionsBuilder) SetMin(min float64) *IndexOptionsBuilder {
+func (i *IndexOptionsBuilder) SetMin(minVal float64) *IndexOptionsBuilder {
 	i.Opts = append(i.Opts, func(opts *IndexOptions) error {
-		opts.Min = &min
+		opts.Min = &minVal
 
 		return nil
 	})
