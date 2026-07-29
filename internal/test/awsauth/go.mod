@@ -3,8 +3,8 @@ module go.mongodb.org/mongo-driver/ext/awsauth/test
 go 1.25.0
 
 replace (
-	go.mongodb.org/mongo-driver/ext/awsauth => ..
-	go.mongodb.org/mongo-driver/v2 => ../../..
+	go.mongodb.org/mongo-driver/ext/awsauth => ../../../ext/awsauth
+	go.mongodb.org/mongo-driver/v2 => ../../../
 )
 
 require (
