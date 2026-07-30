@@ -64,8 +64,6 @@ var (
 const (
 	// maximum BSON object size when in-use encryption is enabled
 	cryptMaxBsonObjectSize int = 2097152
-	// minimum wire version necessary to use automatic encryption
-	cryptMinWireVersion int32 = 8
 	// minimum wire version necessary to use read snapshots
 	readSnapshotMinWireVersion int32 = 13
 
@@ -1437,9 +1435,6 @@ func (op Operation) createWireMessage(
 		wmindex, dst = wiremessage.AppendHeaderStart(dst, requestID, 0, wiremessage.OpQuery)
 		info.processedBatches, dst, info.cmd, err = op.createLegacyHandshakeWireMessage(ctx, maxTimeMS, dst, desc)
 	case op.shouldEncrypt():
-		if desc.WireVersion.Max < cryptMinWireVersion {
-			return dst, false, info, errors.New("auto-encryption requires a MongoDB version of 4.2")
-		}
 		cmdFn := func(dst []byte, desc description.SelectedServer) ([]byte, error) {
 			info.processedBatches, dst, err = op.addEncryptCommandFields(ctx, dst, desc)
 			return dst, err

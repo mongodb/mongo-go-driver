@@ -27,10 +27,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
 )
 
-const (
-	minHeartbeatInterval = 500 * time.Millisecond
-	wireVersion42        = 8 // Wire version for MongoDB 4.2
-)
+const minHeartbeatInterval = 500 * time.Millisecond
 
 // Server state constants.
 const (
@@ -521,8 +518,8 @@ func (s *Server) ProcessError(err error, describer mnet.Describer) driver.Proces
 		s.RequestImmediateCheck()
 
 		res := driver.ServerMarkedUnknown
-		// If the node is shutting down or is older than 4.2, we synchronously clear the pool
-		if cerr.NodeIsShuttingDown() || wireVersion == nil || wireVersion.Max < wireVersion42 {
+		// If the node is shutting down or unknown, we synchronously clear the pool.
+		if cerr.NodeIsShuttingDown() || wireVersion == nil {
 			res = driver.ConnectionPoolCleared
 			s.pool.clear(err, serviceID)
 		}
@@ -540,8 +537,8 @@ func (s *Server) ProcessError(err error, describer mnet.Describer) driver.Proces
 		s.RequestImmediateCheck()
 
 		res := driver.ServerMarkedUnknown
-		// If the node is shutting down or is older than 4.2, we synchronously clear the pool
-		if wcerr.NodeIsShuttingDown() || wireVersion == nil || wireVersion.Max < wireVersion42 {
+		// If the node is shutting down or unknown, we synchronously clear the pool.
+		if wcerr.NodeIsShuttingDown() || wireVersion == nil {
 			res = driver.ConnectionPoolCleared
 			s.pool.clear(err, serviceID)
 		}
