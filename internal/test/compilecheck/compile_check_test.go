@@ -84,7 +84,9 @@ func execContainer(t *testing.T, c testcontainers.Container, cmd string) string 
 	return s
 }
 
-// execGo runs a Go command, trying GOTOOLCHAIN=goX.Y.0 first, then goX.Y.
+// execGo runs a Go command. When cfg.version is set, it pins the toolchain
+// with GOTOOLCHAIN=goX.Y.0 (the canonical first release, valid for Go >= 1.21).
+// When empty, it uses the container's installed Go toolchain.
 func execGo(t *testing.T, c testcontainers.Container, cfg *goExecConfig, args ...string) string {
 	t.Helper()
 
@@ -96,17 +98,13 @@ func execGo(t *testing.T, c testcontainers.Container, cfg *goExecConfig, args ..
 	for k, v := range cfg.env {
 		envParts = append(envParts, fmt.Sprintf("%s=%s", k, v))
 	}
+	if cfg.version != "" {
+		envParts = append(envParts, fmt.Sprintf("GOTOOLCHAIN=go%s.0", cfg.version))
+	}
 	envStr := strings.Join(envParts, " ")
 	goArgs := strings.Join(args, " ")
 
-	var cmd string
-	if cfg.version != "" {
-		primaryCmd := fmt.Sprintf("%s GOTOOLCHAIN=go%s.0 go %s 2>&1", envStr, cfg.version, goArgs)
-		fallbackCmd := fmt.Sprintf("%s GOTOOLCHAIN=go%s go %s 2>&1", envStr, cfg.version, goArgs)
-		cmd = fmt.Sprintf("%s || %s", primaryCmd, fallbackCmd)
-	} else {
-		cmd = fmt.Sprintf("%s go %s 2>&1", envStr, goArgs)
-	}
+	cmd := fmt.Sprintf("%s go %s 2>&1", envStr, goArgs)
 
 	return execContainer(t, c, cmd)
 }
@@ -148,20 +146,31 @@ func TestCompileCheck(t *testing.T) {
 
 	testSuiteVersion := goVersions[len(goVersions)-1]
 
-	// Initialize Go module and download dependencies using the test suite Go version.
-	_ = execGo(t, container, &goExecConfig{version: testSuiteVersion}, "mod", "init", "compilecheck")
+	// Initialize the Go module using the container's installed Go toolchain (the
+	// test-suite version). Set the minimum Go version to what the driver claims
+	// (the first version in our test list) BEFORE running "go mod tidy", so the
+	// generated go.mod/go.sum are consistent with that go directive. Lowering the
+	// go directive after tidy leaves the module needing another tidy and breaks
+	// "go build" with "updates to go.mod needed".
+	_ = execGo(t, container, nil, "mod", "init", "compilecheck")
 	_ = execGo(t, container, nil, "mod", "edit", "-replace=go.mongodb.org/mongo-driver/v2=/mongo-go-driver")
-	_ = execGo(t, container, &goExecConfig{version: testSuiteVersion}, "mod", "tidy")
-
-	// Set minimum Go version to what the driver claims (first version in our test list).
 	_ = execGo(t, container, nil, "mod", "edit", "-go="+goVersions[0])
+	_ = execGo(t, container, nil, "mod", "tidy")
 
 	for _, ver := range goVersions {
 		ver := ver // capture
 		t.Run("go:"+ver, func(t *testing.T) {
 			t.Parallel()
 
-			versionCfg := &goExecConfig{version: ver}
+			// The container already ships the test-suite Go version, so use the
+			// installed toolchain for it instead of forcing a redundant download.
+			// Other versions are pinned via GOTOOLCHAIN=goX.Y.0.
+			toolchainVer := ver
+			if ver == testSuiteVersion {
+				toolchainVer = ""
+			}
+
+			versionCfg := &goExecConfig{version: toolchainVer}
 
 			// Verify the Go version is available.
 			versionOutput := execGo(t, container, versionCfg, "version")
@@ -174,7 +183,7 @@ func TestCompileCheck(t *testing.T) {
 
 			// Build with build tags.
 			_ = execGo(t, container, &goExecConfig{
-				version: ver,
+				version: toolchainVer,
 				env: map[string]string{
 					"PKG_CONFIG_PATH": "/root/install/libmongocrypt/lib/pkgconfig",
 					"CGO_CFLAGS":      "'-I/root/install/libmongocrypt/include'",
@@ -190,7 +199,7 @@ func TestCompileCheck(t *testing.T) {
 
 					// Standard build.
 					_ = execGo(t, container, &goExecConfig{
-						version: ver,
+						version: toolchainVer,
 						env: map[string]string{
 							"GOOS":   "linux",
 							"GOARCH": architecture,
