@@ -4,7 +4,6 @@ use (
 	.
 	./examples
 	./ext/awsauth
-	./ext/awsauth/examples
 	./internal/cmd/benchmark
 	./internal/cmd/check-fmt
 	./internal/cmd/faas/awslambda/mongodb
