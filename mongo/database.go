@@ -25,7 +25,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
@@ -361,13 +360,20 @@ func (db *Database) Drop(ctx context.Context) error {
 
 	selector := makePinnedSelector(sess, db.writeSelector)
 
-	op := operation.NewDropDatabase().
-		Session(sess).WriteConcern(wc).CommandMonitor(db.client.monitor).
-		ServerSelector(selector).ClusterClock(db.client.clock).
-		Database(db.name).Deployment(db.client.deployment).Crypt(db.client.cryptFLE).
-		ServerAPI(db.client.serverAPI).Authenticator(db.client.authenticator)
+	op := dropDatabaseOp{
+		session:       sess,
+		writeConcern:  wc,
+		monitor:       db.client.monitor,
+		selector:      selector,
+		clock:         db.client.clock,
+		database:      db.name,
+		deployment:    db.client.deployment,
+		crypt:         db.client.cryptFLE,
+		serverAPI:     db.client.serverAPI,
+		authenticator: db.client.authenticator,
+	}
 
-	err = op.Execute(ctx)
+	err = op.execute(ctx)
 
 	var driverErr driver.Error
 	if err != nil && (!errors.As(err, &driverErr) || !driverErr.NamespaceNotFound()) {
@@ -498,37 +504,47 @@ func (db *Database) ListCollections(
 
 	selector = makeReadPrefSelector(sess, selector, db.client.localThreshold)
 
-	op := operation.NewListCollections(filterDoc).
-		Session(sess).ReadPreference(db.readPreference).CommandMonitor(db.client.monitor).
-		Retry(retry).MaxAdaptiveRetries(cursorOpts.MaxAdaptiveRetries).
-		EnableOverloadRetargeting(cursorOpts.EnableOverloadRetargeting).
-		ServerSelector(selector).ClusterClock(db.client.clock).
-		Database(db.name).Deployment(db.client.deployment).Crypt(db.client.cryptFLE).
-		ServerAPI(db.client.serverAPI).Timeout(db.client.timeout).Authenticator(db.client.authenticator)
+	op := listCollectionsOp{
+		filter:                    filterDoc,
+		session:                   sess,
+		readPreference:            db.readPreference,
+		monitor:                   db.client.monitor,
+		retry:                     &retry,
+		maxAdaptiveRetries:        cursorOpts.MaxAdaptiveRetries,
+		enableOverloadRetargeting: cursorOpts.EnableOverloadRetargeting,
+		selector:                  selector,
+		clock:                     db.client.clock,
+		database:                  db.name,
+		deployment:                db.client.deployment,
+		crypt:                     db.client.cryptFLE,
+		serverAPI:                 db.client.serverAPI,
+		timeout:                   db.client.timeout,
+		authenticator:             db.client.authenticator,
+	}
 
 	cursorOpts.MarshalValueEncoderFn = newEncoderFn(db.bsonOpts, db.registry)
 
 	if args.NameOnly != nil {
-		op = op.NameOnly(*args.NameOnly)
+		op.nameOnly = args.NameOnly
 	}
 	if args.BatchSize != nil {
 		cursorOpts.BatchSize = *args.BatchSize
-		op = op.BatchSize(*args.BatchSize)
+		op.batchSize = args.BatchSize
 	}
 	if args.AuthorizedCollections != nil {
-		op = op.AuthorizedCollections(*args.AuthorizedCollections)
+		op.authorizedCollections = args.AuthorizedCollections
 	}
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
-		op = op.RawData(rawData)
+		op.rawData = &rawData
 	}
 
-	err = op.Execute(ctx)
+	err = op.execute(ctx)
 	if err != nil {
 		closeImplicitSession(sess)
 		return nil, wrapErrors(err)
 	}
 
-	bc, err := op.Result(cursorOpts)
+	bc, err := op.result(cursorOpts)
 	if err != nil {
 		closeImplicitSession(sess)
 		return nil, wrapErrors(err)
