@@ -1551,30 +1551,42 @@ func (coll *Collection) find(
 	cursorOpts := coll.client.createBaseCursorOptions(coll.client.retryReads)
 
 	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.localThreshold)
-	op := operation.NewFind(f).
-		Session(sess).ReadConcern(rc).ReadPreference(coll.readPreference).
-		CommandMonitor(coll.client.monitor).ServerSelector(selector).
-		Retry(retry).MaxAdaptiveRetries(cursorOpts.MaxAdaptiveRetries).
-		EnableOverloadRetargeting(cursorOpts.EnableOverloadRetargeting).
-		ClusterClock(coll.client.clock).Database(coll.db.name).Collection(coll.name).
-		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI).
-		Timeout(coll.client.timeout).Logger(coll.client.logger).Authenticator(coll.client.authenticator).
-		OmitMaxTimeMS(omitMaxTimeMS)
+	op := findOp{
+		filter:                    f,
+		session:                   sess,
+		readConcern:               rc,
+		readPreference:            coll.readPreference,
+		monitor:                   coll.client.monitor,
+		selector:                  selector,
+		retry:                     &retry,
+		maxAdaptiveRetries:        cursorOpts.MaxAdaptiveRetries,
+		enableOverloadRetargeting: cursorOpts.EnableOverloadRetargeting,
+		clock:                     coll.client.clock,
+		database:                  coll.db.name,
+		collection:                coll.name,
+		deployment:                coll.client.deployment,
+		crypt:                     coll.client.cryptFLE,
+		serverAPI:                 coll.client.serverAPI,
+		timeout:                   coll.client.timeout,
+		logger:                    coll.client.logger,
+		authenticator:             coll.client.authenticator,
+		omitMaxTimeMS:             omitMaxTimeMS,
+	}
 
 	cursorOpts.MarshalValueEncoderFn = newEncoderFn(coll.bsonOpts, coll.registry)
 
 	if args.AllowDiskUse != nil {
-		op.AllowDiskUse(*args.AllowDiskUse)
+		op.allowDiskUse = args.AllowDiskUse
 	}
 	if args.AllowPartialResults != nil {
-		op.AllowPartialResults(*args.AllowPartialResults)
+		op.allowPartialResults = args.AllowPartialResults
 	}
 	if args.BatchSize != nil {
 		cursorOpts.BatchSize = *args.BatchSize
-		op.BatchSize(*args.BatchSize)
+		op.batchSize = args.BatchSize
 	}
 	if args.Collation != nil {
-		op.Collation(bsoncore.Document(toDocument(args.Collation)))
+		op.collation = bsoncore.Document(toDocument(args.Collation))
 	}
 	if args.Comment != nil {
 		comment, err := marshalValue(args.Comment, coll.bsonOpts, coll.registry)
@@ -1582,16 +1594,18 @@ func (coll *Collection) find(
 			return nil, err
 		}
 
-		op.Comment(comment)
+		op.comment = comment
 		cursorOpts.Comment = comment
 	}
 	if args.CursorType != nil {
+		tailable := true
 		switch *args.CursorType {
 		case options.Tailable:
-			op.Tailable(true)
+			op.tailable = &tailable
 		case options.TailableAwait:
-			op.Tailable(true)
-			op.AwaitData(true)
+			awaitData := true
+			op.tailable = &tailable
+			op.awaitData = &awaitData
 		}
 	}
 	if args.Hint != nil {
@@ -1602,30 +1616,31 @@ func (coll *Collection) find(
 		if err != nil {
 			return nil, err
 		}
-		op.Hint(hint)
+		op.hint = hint
 	}
 	if args.Let != nil {
 		let, err := marshal(args.Let, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return nil, err
 		}
-		op.Let(let)
+		op.let = let
 	}
 	if args.Limit != nil {
 		limit := *args.Limit
 		if limit < 0 {
 			limit = -1 * limit
-			op.SingleBatch(true)
+			singleBatch := true
+			op.singleBatch = &singleBatch
 		}
 		cursorOpts.Limit = int32(limit)
-		op.Limit(limit)
+		op.limit = &limit
 	}
 	if args.Max != nil {
 		max, err := marshal(args.Max, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return nil, err
 		}
-		op.Max(max)
+		op.max = max
 	}
 	if args.MaxAwaitTime != nil {
 		cursorOpts.SetMaxAwaitTime(*args.MaxAwaitTime)
@@ -1635,29 +1650,29 @@ func (coll *Collection) find(
 		if err != nil {
 			return nil, err
 		}
-		op.Min(min)
+		op.min = min
 	}
 	if args.NoCursorTimeout != nil {
-		op.NoCursorTimeout(*args.NoCursorTimeout)
+		op.noCursorTimeout = args.NoCursorTimeout
 	}
 	if args.OplogReplay != nil {
-		op.OplogReplay(*args.OplogReplay)
+		op.oplogReplay = args.OplogReplay
 	}
 	if args.Projection != nil {
 		proj, err := marshal(args.Projection, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return nil, err
 		}
-		op.Projection(proj)
+		op.projection = proj
 	}
 	if args.ReturnKey != nil {
-		op.ReturnKey(*args.ReturnKey)
+		op.returnKey = args.ReturnKey
 	}
 	if args.ShowRecordID != nil {
-		op.ShowRecordID(*args.ShowRecordID)
+		op.showRecordID = args.ShowRecordID
 	}
 	if args.Skip != nil {
-		op.Skip(*args.Skip)
+		op.skip = args.Skip
 	}
 	if args.Sort != nil {
 		if isUnorderedMap(args.Sort) {
@@ -1667,17 +1682,17 @@ func (coll *Collection) find(
 		if err != nil {
 			return nil, err
 		}
-		op.Sort(sort)
+		op.sort = sort
 	}
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
-		op = op.RawData(rawData)
+		op.rawData = &rawData
 	}
 
-	if err = op.Execute(ctx); err != nil {
+	if err = op.execute(ctx); err != nil {
 		return nil, wrapErrors(err)
 	}
 
-	bc, err := op.Result(cursorOpts)
+	bc, err := op.result(cursorOpts)
 	if err != nil {
 		return nil, wrapErrors(err)
 	}
