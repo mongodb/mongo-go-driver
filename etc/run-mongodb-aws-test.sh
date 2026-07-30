@@ -33,7 +33,7 @@ set -x
 # directory. Spawn a new subshell, "cd" to the project directory, then run "go run".
 (cd ${PROJECT_DIRECTORY} && go test -timeout 30m -v ./internal/test/aws/... | tee -a test.suite)
 
-# Also run the ext/awsauth integration test, which uses the AWS SDK default credential
+# Also run the awsauth integration test, which uses the AWS SDK default credential
 # chain to cover scenarios where credentials are not embedded in the URI (EC2, ECS,
 # WebIdentity) in addition to the inline-credential scenarios.
-(cd ${PROJECT_DIRECTORY}/ext/awsauth/test && go test -timeout 30m -v ./... | tee -a test.suite)
+(cd ${PROJECT_DIRECTORY}/internal/test/awsauth && go test -timeout 30m -v ./... | tee -a test.suite)
