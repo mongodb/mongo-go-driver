@@ -194,12 +194,12 @@ func (c *Create) IndexOptionDefaults(indexOptionDefaults bsoncore.Document) *Cre
 }
 
 // Max specifies the maximum number of documents allowed in a capped collection.
-func (c *Create) Max(max int64) *Create {
+func (c *Create) Max(maxVal int64) *Create {
 	if c == nil {
 		c = new(Create)
 	}
 
-	c.max = &max
+	c.max = &maxVal
 	return c
 }
 
