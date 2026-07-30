@@ -38,16 +38,10 @@ func main() {
 // goVersions is the list of Go versions to test compilation against.
 // To run tests for specific version(s), use the -run flag:
 //
-//	go test -v -run '^TestCompileCheck/go:1.19$'
-//	go test -v -run '^TestCompileCheck/go:1\.(19|20)$'
+//	go test -v -run '^TestCompileCheck/go:1.25$'
+//	go test -v -run '^TestCompileCheck/go:1\.(25|26)$'
 var goVersions = []string{
-	"1.19", // Minimum supported Go version for mongo-driver v2
-	"1.20",
-	"1.21",
-	"1.22",
-	"1.23",
-	"1.24",
-	"1.25",
+	"1.25", // Minimum supported Go version for mongo-driver v2
 	"1.26", // Test suite Go Version
 }
 
