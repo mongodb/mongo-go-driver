@@ -304,22 +304,22 @@ func (f *Find) Limit(limit int64) *Find {
 }
 
 // Max sets an exclusive upper bound for a specific index.
-func (f *Find) Max(max bsoncore.Document) *Find {
+func (f *Find) Max(maxDoc bsoncore.Document) *Find {
 	if f == nil {
 		f = new(Find)
 	}
 
-	f.max = max
+	f.max = maxDoc
 	return f
 }
 
 // Min sets an inclusive lower bound for a specific index.
-func (f *Find) Min(min bsoncore.Document) *Find {
+func (f *Find) Min(minDoc bsoncore.Document) *Find {
 	if f == nil {
 		f = new(Find)
 	}
 
-	f.min = min
+	f.min = minDoc
 	return f
 }
 

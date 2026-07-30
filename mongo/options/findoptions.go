@@ -164,9 +164,9 @@ func (f *FindOptionsBuilder) SetLimit(i int64) *FindOptionsBuilder {
 
 // SetMax sets the value for the Max field. Max is a document specifying the exclusive upper bound
 // for a specific index. The default value is nil, which means that there is no maximum value.
-func (f *FindOptionsBuilder) SetMax(max any) *FindOptionsBuilder {
+func (f *FindOptionsBuilder) SetMax(maxVal any) *FindOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOptions) error {
-		opts.Max = max
+		opts.Max = maxVal
 		return nil
 	})
 	return f
@@ -187,9 +187,9 @@ func (f *FindOptionsBuilder) SetMaxAwaitTime(d time.Duration) *FindOptionsBuilde
 
 // SetMin sets the value for the Min field. Min is a document specifying the inclusive lower bound
 // for a specific index. The default value is 0, which means that there is no minimum value.
-func (f *FindOptionsBuilder) SetMin(min any) *FindOptionsBuilder {
+func (f *FindOptionsBuilder) SetMin(minVal any) *FindOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOptions) error {
-		opts.Min = min
+		opts.Min = minVal
 		return nil
 	})
 	return f
@@ -359,9 +359,9 @@ func (f *FindOneOptionsBuilder) SetHint(hint any) *FindOneOptionsBuilder {
 
 // SetMax sets the value for the Max field. Sets a document specifying the exclusive upper bound
 // for a specific index. The default value is nil, which means that there is no maximum value.
-func (f *FindOneOptionsBuilder) SetMax(max any) *FindOneOptionsBuilder {
+func (f *FindOneOptionsBuilder) SetMax(maxVal any) *FindOneOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneOptions) error {
-		opts.Max = max
+		opts.Max = maxVal
 		return nil
 	})
 	return f
@@ -369,9 +369,9 @@ func (f *FindOneOptionsBuilder) SetMax(max any) *FindOneOptionsBuilder {
 
 // SetMin sets the value for the Min field. Sets a document specifying the inclusive lower bound
 // for a specific index. The default value is 0, which means that there is no minimum value.
-func (f *FindOneOptionsBuilder) SetMin(min any) *FindOneOptionsBuilder {
+func (f *FindOneOptionsBuilder) SetMin(minVal any) *FindOneOptionsBuilder {
 	f.Opts = append(f.Opts, func(opts *FindOneOptions) error {
-		opts.Min = min
+		opts.Min = minVal
 		return nil
 	})
 	return f
