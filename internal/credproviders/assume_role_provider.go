@@ -20,9 +20,6 @@ import (
 )
 
 const (
-	// assumeRoleProviderName provides a name of assume role provider
-	assumeRoleProviderName = "AssumeRoleProvider"
-
 	stsURI = `https://sts.amazonaws.com/?Action=AssumeRoleWithWebIdentity&RoleSessionName=%s&RoleArn=%s&WebIdentityToken=%s&Version=2011-06-15`
 )
 
@@ -33,12 +30,11 @@ type AssumeRoleProvider struct {
 	AwsRoleSessionNameEnv      EnvVar
 
 	httpClient *http.Client
-	expiration time.Time
 
 	// expiryWindow will allow the credentials to trigger refreshing prior to the credentials actually expiring.
 	// This is beneficial so expiring credentials do not cause request to fail unexpectedly due to exceptions.
 	//
-	// So a ExpiryWindow of 10s would cause calls to IsExpired() to return true
+	// E.g., an ExpiryWindow of 10s would cause calls to Expired() to return true
 	// 10 seconds before the credentials are actually expired.
 	expiryWindow time.Duration
 }
@@ -57,11 +53,11 @@ func NewAssumeRoleProvider(httpClient *http.Client, expiryWindow time.Duration) 
 	}
 }
 
-// RetrieveWithContext retrieves the keys from the AWS service.
-func (a *AssumeRoleProvider) RetrieveWithContext(ctx context.Context) (credentials.Value, error) {
+// Retrieve retrieves the keys from the AWS service.
+func (a *AssumeRoleProvider) Retrieve(ctx context.Context) (credentials.Value, error) {
 	const defaultHTTPTimeout = 10 * time.Second
 
-	v := credentials.Value{ProviderName: assumeRoleProviderName}
+	var v credentials.Value
 
 	roleArn := a.AwsRoleArnEnv.Get()
 	tokenFile := a.AwsWebIdentityTokenFileEnv.Get()
@@ -131,18 +127,9 @@ func (a *AssumeRoleProvider) RetrieveWithContext(ctx context.Context) (credentia
 	if !v.HasKeys() {
 		return v, errors.New("failed to retrieve web identity keys")
 	}
+	v.CanExpire = true
 	sec := int64(stsResp.Response.Result.Credentials.Expiration)
-	a.expiration = time.Unix(sec, 0).Add(-a.expiryWindow)
+	v.Expires = time.Unix(sec, 0).Add(-a.expiryWindow)
 
 	return v, nil
-}
-
-// Retrieve retrieves the keys from the AWS service.
-func (a *AssumeRoleProvider) Retrieve() (credentials.Value, error) {
-	return a.RetrieveWithContext(context.Background())
-}
-
-// IsExpired returns true if the credentials are expired.
-func (a *AssumeRoleProvider) IsExpired() bool {
-	return a.expiration.Before(time.Now())
 }

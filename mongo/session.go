@@ -19,7 +19,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
@@ -273,13 +272,24 @@ func (s *Session) AbortTransaction(ctx context.Context) error {
 	selector := makePinnedSelector(s.clientSession, &serverselector.Write{})
 
 	s.clientSession.Aborting = true
-	_ = operation.NewAbortTransaction().Session(s.clientSession).ClusterClock(s.client.clock).Database("admin").
-		Deployment(s.deployment).WriteConcern(s.clientSession.CurrentWc).ServerSelector(selector).
-		Retry(driver.RetryOncePerCommand).MaxAdaptiveRetries(s.client.effectiveAdaptiveRetries(true)).
-		EnableOverloadRetargeting(s.client.enableOverloadRetargeting).
-		CommandMonitor(s.client.monitor).
-		RecoveryToken(bsoncore.Document(s.clientSession.RecoveryToken)).ServerAPI(s.client.serverAPI).
-		Authenticator(s.client.authenticator).Logger(s.client.logger).Execute(ctx)
+	retry := driver.RetryOncePerCommand
+	op := abortTransactionOp{
+		session:                   s.clientSession,
+		clock:                     s.client.clock,
+		database:                  "admin",
+		deployment:                s.deployment,
+		writeConcern:              s.clientSession.CurrentWc,
+		selector:                  selector,
+		retry:                     &retry,
+		maxAdaptiveRetries:        s.client.effectiveAdaptiveRetries(true),
+		enableOverloadRetargeting: s.client.enableOverloadRetargeting,
+		monitor:                   s.client.monitor,
+		recoveryToken:             bsoncore.Document(s.clientSession.RecoveryToken),
+		serverAPI:                 s.client.serverAPI,
+		authenticator:             s.client.authenticator,
+		logger:                    s.client.logger,
+	}
+	_ = op.execute(ctx)
 
 	s.clientSession.Aborting = false
 	_ = s.clientSession.AbortTransaction()
@@ -309,15 +319,25 @@ func (s *Session) CommitTransaction(ctx context.Context) error {
 	selector := makePinnedSelector(s.clientSession, &serverselector.Write{})
 
 	s.clientSession.Committing = true
-	op := operation.NewCommitTransaction().
-		Session(s.clientSession).ClusterClock(s.client.clock).Database("admin").Deployment(s.deployment).
-		WriteConcern(s.clientSession.CurrentWc).ServerSelector(selector).Retry(driver.RetryOncePerCommand).
-		MaxAdaptiveRetries(s.client.effectiveAdaptiveRetries(true)).
-		EnableOverloadRetargeting(s.client.enableOverloadRetargeting).
-		CommandMonitor(s.client.monitor).RecoveryToken(bsoncore.Document(s.clientSession.RecoveryToken)).
-		ServerAPI(s.client.serverAPI).Authenticator(s.client.authenticator).Logger(s.client.logger)
+	retry := driver.RetryOncePerCommand
+	op := commitTransactionOp{
+		session:                   s.clientSession,
+		clock:                     s.client.clock,
+		database:                  "admin",
+		deployment:                s.deployment,
+		writeConcern:              s.clientSession.CurrentWc,
+		selector:                  selector,
+		retry:                     &retry,
+		maxAdaptiveRetries:        s.client.effectiveAdaptiveRetries(true),
+		enableOverloadRetargeting: s.client.enableOverloadRetargeting,
+		monitor:                   s.client.monitor,
+		recoveryToken:             bsoncore.Document(s.clientSession.RecoveryToken),
+		serverAPI:                 s.client.serverAPI,
+		authenticator:             s.client.authenticator,
+		logger:                    s.client.logger,
+	}
 
-	err = op.Execute(ctx)
+	err = op.execute(ctx)
 	// Return error without updating transaction state if it is a timeout, as the transaction has not
 	// actually been committed.
 	if IsTimeout(err) {

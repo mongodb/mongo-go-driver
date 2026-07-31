@@ -1,6 +1,6 @@
 module go.mongodb.go/mongo-driver/v2/internal/test/goleak
 
-go 1.25.0
+go 1.26.0
 
 replace go.mongodb.org/mongo-driver/v2 => ../../../
 
@@ -12,7 +12,7 @@ require (
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/klauspost/compress v1.17.6 // indirect
+	github.com/klauspost/compress v1.19.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rogpeppe/go-internal v1.14.1 // indirect

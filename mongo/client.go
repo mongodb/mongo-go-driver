@@ -34,7 +34,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mongocrypt"
 	mcopts "go.mongodb.org/mongo-driver/v2/x/mongo/driver/mongocrypt/options"
-	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/topology"
 )
@@ -505,11 +504,17 @@ func (c *Client) StartSession(opts ...options.Lister[options.SessionOptions]) (*
 
 func (c *Client) endSessions(ctx context.Context) {
 	sessionIDs := c.sessionPool.IDSlice()
-	op := operation.NewEndSessions(nil).ClusterClock(c.clock).Deployment(c.deployment).
-		ServerSelector(&serverselector.ReadPref{ReadPref: readpref.PrimaryPreferred()}).
-		CommandMonitor(c.monitor).Database("admin").Crypt(c.cryptFLE).ServerAPI(c.serverAPI).
-		MaxAdaptiveRetries(c.effectiveAdaptiveRetries(true)).
-		EnableOverloadRetargeting(c.enableOverloadRetargeting)
+	op := endSessionsOp{
+		clock:                     c.clock,
+		deployment:                c.deployment,
+		selector:                  &serverselector.ReadPref{ReadPref: readpref.PrimaryPreferred()},
+		monitor:                   c.monitor,
+		database:                  "admin",
+		crypt:                     c.cryptFLE,
+		serverAPI:                 c.serverAPI,
+		maxAdaptiveRetries:        c.effectiveAdaptiveRetries(true),
+		enableOverloadRetargeting: c.enableOverloadRetargeting,
+	}
 
 	totalNumIDs := len(sessionIDs)
 	var currentBatch []bsoncore.Document
@@ -521,7 +526,8 @@ func (c *Client) endSessions(ctx context.Context) {
 			// Ignore all errors when ending sessions.
 			_, marshalVal, err := bson.MarshalValue(currentBatch)
 			if err == nil {
-				_ = op.SessionIDs(marshalVal).Execute(ctx)
+				op.sessionIDs = marshalVal
+				_ = op.execute(ctx)
 			}
 
 			currentBatch = currentBatch[:0]
@@ -790,26 +796,37 @@ func (c *Client) ListDatabases(ctx context.Context, filter any, opts ...options.
 	if err != nil {
 		return ListDatabasesResult{}, err
 	}
-	op := operation.NewListDatabases(filterDoc).
-		Session(sess).ReadPreference(c.readPreference).CommandMonitor(c.monitor).
-		Retry(retry).MaxAdaptiveRetries(maxAdaptiveRetries).
-		EnableOverloadRetargeting(c.enableOverloadRetargeting).
-		ServerSelector(selector).ClusterClock(c.clock).Database("admin").Deployment(c.deployment).Crypt(c.cryptFLE).
-		ServerAPI(c.serverAPI).Timeout(c.timeout).Authenticator(c.authenticator)
+	op := listDatabasesOp{
+		filter:                    filterDoc,
+		session:                   sess,
+		readPreference:            c.readPreference,
+		monitor:                   c.monitor,
+		retry:                     &retry,
+		maxAdaptiveRetries:        maxAdaptiveRetries,
+		enableOverloadRetargeting: c.enableOverloadRetargeting,
+		selector:                  selector,
+		clock:                     c.clock,
+		database:                  "admin",
+		deployment:                c.deployment,
+		crypt:                     c.cryptFLE,
+		serverAPI:                 c.serverAPI,
+		timeout:                   c.timeout,
+		authenticator:             c.authenticator,
+	}
 
 	if lda.NameOnly != nil {
-		op = op.NameOnly(*lda.NameOnly)
+		op.nameOnly = lda.NameOnly
 	}
 	if lda.AuthorizedDatabases != nil {
-		op = op.AuthorizedDatabases(*lda.AuthorizedDatabases)
+		op.authorizedDatabases = lda.AuthorizedDatabases
 	}
 
-	err = op.Execute(ctx)
+	err = op.execute(ctx)
 	if err != nil {
 		return ListDatabasesResult{}, wrapErrors(err)
 	}
 
-	return newListDatabasesResultFromOperation(op.Result()), nil
+	return newListDatabasesResultFromOperation(op.result()), nil
 }
 
 // ListDatabaseNames executes a listDatabases command and returns a slice containing the names of all of the databases

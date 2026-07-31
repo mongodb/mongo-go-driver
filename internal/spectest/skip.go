@@ -886,6 +886,15 @@ var skipTests = map[string][]skipCase{
 				"TestUnifiedSpec/transactions-convenient-api/tests/unified/commit.json/withTransaction_commits_after_callback_returns_(second_transaction)",
 			},
 		},
+		{
+			tests: []string{
+				"TestUnifiedSpec/transactions-convenient-api/tests/unified/transaction-options.json/withTransaction_and_no_transaction_options_set",
+				"TestUnifiedSpec/transactions-convenient-api/tests/unified/transaction-options.json/withTransaction_inherits_transaction_options_from_client",
+				"TestUnifiedSpec/transactions-convenient-api/tests/unified/transaction-options.json/withTransaction_inherits_transaction_options_from_defaultTransactionOptions",
+				"TestUnifiedSpec/transactions/tests/unified/client-bulkWrite.json/client_bulkWrite_in_a_transaction",
+			},
+			topologies: []string{"load-balanced"},
+		},
 	},
 
 	"Address CSOT Compliance Issue in Timeout Handling for Cursor Constructors (GODRIVER-3480)": {
@@ -1045,6 +1054,24 @@ var skipTests = map[string][]skipCase{
 			tests: []string{
 				"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/hello-timeout.json/Network_timeout_on_Monitor_check",
 				"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/hello-timeout.json/Driver_extends_timeout_while_streaming",
+			},
+		},
+	},
+
+	// TODO(GODRIVER-3944): Migrate Azure KMS credentials to corporate account.
+	"Migrate Azure KMS credentials to corporate account": {
+		{
+			tests: []string{
+				"TestClientSideEncryptionSpec/azureKMS.json/Insert_a_document_with_auto_encryption_using_Azure_KMS_provider",
+				"TestUnifiedSpec/client-side-encryption/tests/unified/azureKMS.json/Insert_a_document_with_auto_encryption_using_Azure_KMS_provider",
+				"TestUnifiedSpec/client-side-encryption/tests/unified/createDataKey.json/create_datakey_with_Azure_KMS_provider",
+				"TestUnifiedSpec/client-side-encryption/tests/unified/rewrapManyDataKey.json/rewrap_with_new_AWS_KMS_provider",
+				"TestUnifiedSpec/client-side-encryption/tests/unified/rewrapManyDataKey.json/rewrap_with_new_Azure_KMS_provider",
+				"TestUnifiedSpec/client-side-encryption/tests/unified/rewrapManyDataKey.json/rewrap_with_new_GCP_KMS_provider",
+				"TestUnifiedSpec/client-side-encryption/tests/unified/rewrapManyDataKey.json/rewrap_with_new_KMIP_KMS_provider",
+				"TestUnifiedSpec/client-side-encryption/tests/unified/rewrapManyDataKey.json/rewrap_with_new_KMIP_delegated_KMS_provider",
+				"TestUnifiedSpec/client-side-encryption/tests/unified/rewrapManyDataKey.json/rewrap_with_new_local_KMS_provider",
+				"TestUnifiedSpec/client-side-encryption/tests/unified/rewrapManyDataKey.json/rewrap_with_current_KMS_provider",
 			},
 		},
 	},

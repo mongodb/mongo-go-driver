@@ -2,6 +2,7 @@
 #
 # Set up environment and write env.sh and expansion.yml files.
 set -eu
+set -o pipefail
 
 # Set up default environment variables.
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
@@ -45,9 +46,13 @@ else
     CURRENT_VERSION=latest
 fi
 
-# Ensure a checkout of drivers-tools.
+# If $DRIVERS_TOOLS doesn't already exist, clone it using the pinned revision of
+# the drivers-evergreen-tools submodule. We clone a copy here because modifying
+# the submodule directory directly doesn't work on Windows for some reason.
 if [ ! -d "$DRIVERS_TOOLS" ]; then
+  detrev=$(git ls-tree HEAD .evergreen/drivers-evergreen-tools | awk '{print $3}')
   git clone https://github.com/mongodb-labs/drivers-evergreen-tools $DRIVERS_TOOLS
+  git -C $DRIVERS_TOOLS checkout $detrev
 fi
 
 # Write the .env file for drivers-tools.

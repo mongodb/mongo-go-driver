@@ -29,7 +29,7 @@ task api-report      # required when public API changes — include output in PR
 ## Go version requirements
 
 - **Go 1.19**: minimum to compile/use the driver. Public packages (`mongo/`, `bson/`, `event/`, `tag/`) must build on 1.19. `compilecheck-119` enforces this at build time.
-- **Go 1.25+**: required to run the test suite and develop the driver.
+- **Go 1.26+**: required to run the test suite and develop the driver.
 - Avoid `slices`, `maps`, `cmp`, `errors.Join`, `min`/`max` builtins, and other post-1.19 stdlib in non-`internal/` code.
 
 ## Gotchas

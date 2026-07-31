@@ -19,3 +19,8 @@ require (
 )
 
 replace golang.org/x/net/http2 => golang.org/x/net/http2 v0.23.0 // GODRIVER-3225
+
+// Ignore the .evergreen directory so that Go modules contained in the
+// .evergreen/drivers-evergreen-tools submodule are not included in Go commands
+// and not formatted with gofumpt.
+ignore ./.evergreen
