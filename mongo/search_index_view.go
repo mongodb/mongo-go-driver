@@ -17,7 +17,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
@@ -293,12 +292,20 @@ func (siv SearchIndexView) UpdateOne(
 
 	selector := makePinnedSelector(sess, siv.coll.writeSelector)
 
-	op := operation.NewUpdateSearchIndex(name, indexDefinition).
-		Session(sess).CommandMonitor(siv.coll.client.monitor).
-		ServerSelector(selector).ClusterClock(siv.coll.client.clock).
-		Collection(siv.coll.name).Database(siv.coll.db.name).
-		Deployment(siv.coll.client.deployment).ServerAPI(siv.coll.client.serverAPI).
-		Timeout(siv.coll.client.timeout).Authenticator(siv.coll.client.authenticator)
+	op := updateSearchIndexOp{
+		index:         name,
+		definition:    indexDefinition,
+		session:       sess,
+		monitor:       siv.coll.client.monitor,
+		selector:      selector,
+		clock:         siv.coll.client.clock,
+		collection:    siv.coll.name,
+		database:      siv.coll.db.name,
+		deployment:    siv.coll.client.deployment,
+		serverAPI:     siv.coll.client.serverAPI,
+		timeout:       siv.coll.client.timeout,
+		authenticator: siv.coll.client.authenticator,
+	}
 
-	return op.Execute(ctx)
+	return op.execute(ctx)
 }
