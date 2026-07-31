@@ -7,10 +7,14 @@
 package auth
 
 import (
+	"context"
 	"errors"
+	"net/http"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/aws/credentials"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
 )
 
 func TestGetRegion(t *testing.T) {
@@ -42,6 +46,58 @@ func TestGetRegion(t *testing.T) {
 			}
 			assert.NotNil(t, err, "expected error, got nil")
 			assert.Equal(t, err, tc.err, "expected error: %v, got: %v", tc.err, err)
+		})
+	}
+}
+
+type testAWSCredentialsProvider struct {
+	cnt int
+}
+
+func (a *testAWSCredentialsProvider) Retrieve(_ context.Context) (credentials.Value, error) {
+	a.cnt++
+	return credentials.Value{}, nil
+}
+
+func TestAWSCustomCredentialsProvider(t *testing.T) {
+	t.Setenv("AWS_ACCESS_KEY_ID", "AWS_ACCESS_KEY_ID")
+	t.Setenv("AWS_SECRET_ACCESS_KEY", "AWS_SECRET_ACCESS_KEY")
+
+	provider := &testAWSCredentialsProvider{}
+	for _, tc := range []struct {
+		name string
+		cred *Cred
+		cnt  int
+	}{
+		{
+			name: "provider with cred",
+			cred: &Cred{
+				Username:               "user",
+				Password:               "pass",
+				Props:                  map[string]string{"AWS_SESSION_TOKEN": "token"},
+				AWSCredentialsProvider: provider,
+			},
+			cnt: 0,
+		},
+		{
+			name: "provider with empty cred",
+			cred: &Cred{
+				AWSCredentialsProvider: provider,
+			},
+			cnt: 1,
+		},
+	} {
+		provider.cnt = 0
+		t.Run(tc.name, func(t *testing.T) {
+			authenticator, err := newMongoDBAWSAuthenticator(
+				tc.cred,
+				&http.Client{},
+			)
+			require.NoErrorf(t, err, "unexpected error %v", err)
+
+			_, err = authenticator.(*MongoDBAWSAuthenticator).credentials.Get(context.Background())
+			require.NoError(t, err, "unexpected error getting credentials: %v", err)
+			require.Equalf(t, tc.cnt, provider.cnt, "expected provider to be called %v times but got %v", tc.cnt, provider.cnt)
 		})
 	}
 }

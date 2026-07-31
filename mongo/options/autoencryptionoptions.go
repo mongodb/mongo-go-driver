@@ -31,17 +31,18 @@ import (
 //
 // See corresponding setter methods for documentation.
 type AutoEncryptionOptions struct {
-	KeyVaultClientOptions *ClientOptions
-	KeyVaultNamespace     string
-	KmsProviders          map[string]map[string]any
-	SchemaMap             map[string]any
-	BypassAutoEncryption  *bool
-	ExtraOptions          map[string]any
-	TLSConfig             map[string]*tls.Config
-	HTTPClient            *http.Client
-	EncryptedFieldsMap    map[string]any
-	BypassQueryAnalysis   *bool
-	KeyExpiration         *time.Duration
+	KeyVaultClientOptions  *ClientOptions
+	KeyVaultNamespace      string
+	KmsProviders           map[string]map[string]any
+	SchemaMap              map[string]any
+	BypassAutoEncryption   *bool
+	ExtraOptions           map[string]any
+	TLSConfig              map[string]*tls.Config
+	HTTPClient             *http.Client
+	EncryptedFieldsMap     map[string]any
+	BypassQueryAnalysis    *bool
+	KeyExpiration          *time.Duration
+	AWSCredentialsProvider AWSCredentialsProvider
 }
 
 // AutoEncryption creates a new AutoEncryptionOptions configured with default values.
@@ -171,6 +172,17 @@ func (a *AutoEncryptionOptions) SetBypassQueryAnalysis(bypass bool) *AutoEncrypt
 // The granularity is in milliseconds. Any sub-millisecond fraction will be rounded up.
 func (a *AutoEncryptionOptions) SetKeyExpiration(expiration time.Duration) *AutoEncryptionOptions {
 	a.KeyExpiration = &expiration
+
+	return a
+}
+
+// SetAWSCredentialsProvider specifies options for custom AWS credential provider.
+//
+// To adapt an AWS SDK v2 credentials provider, use awsauth.NewCredentialsProvider
+// from the go.mongodb.org/mongo-driver/ext/awsauth module, which returns a value
+// satisfying the AWSCredentialsProvider interface.
+func (a *AutoEncryptionOptions) SetAWSCredentialsProvider(provider AWSCredentialsProvider) *AutoEncryptionOptions {
+	a.AWSCredentialsProvider = provider
 
 	return a
 }
