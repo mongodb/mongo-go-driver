@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"time"
 
+	"go.mongodb.org/mongo-driver/v2/internal/aws/credentials"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
@@ -23,4 +24,5 @@ type MongoCryptOptions struct {
 	CryptSharedLibOverridePath string
 	HTTPClient                 *http.Client
 	KeyExpiration              *time.Duration
+	AWSCredentialsProvider     credentials.Provider
 }
