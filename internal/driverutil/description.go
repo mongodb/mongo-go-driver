@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	MinWireVersion = 8
+	MinWireVersion = 9
 	MaxWireVersion = 29
 )
 
