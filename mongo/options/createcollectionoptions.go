@@ -239,9 +239,9 @@ func (c *CreateCollectionOptionsBuilder) SetDefaultIndexOptions(iopts *DefaultIn
 // this option. If a capped collection reaches its size limit, old documents will be removed, regardless
 // of the number of documents in the collection. The default value is 0, meaning the maximum number of
 // documents is unbounded.
-func (c *CreateCollectionOptionsBuilder) SetMaxDocuments(max int64) *CreateCollectionOptionsBuilder {
+func (c *CreateCollectionOptionsBuilder) SetMaxDocuments(maxVal int64) *CreateCollectionOptionsBuilder {
 	c.Opts = append(c.Opts, func(opts *CreateCollectionOptions) error {
-		opts.MaxDocuments = &max
+		opts.MaxDocuments = &maxVal
 
 		return nil
 	})
