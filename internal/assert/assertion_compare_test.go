@@ -71,7 +71,7 @@ func TestCompare(t *testing.T) {
 
 		resGreater, isComparable := compare(currCase.greater, currCase.less, reflect.ValueOf(currCase.less).Kind())
 		if !isComparable {
-			t.Errorf("object are comparable for type %s", currCase.cType)
+			t.Errorf("object should be comparable for type %s", currCase.cType)
 		}
 
 		if resGreater != compareGreater {
@@ -80,7 +80,7 @@ func TestCompare(t *testing.T) {
 
 		resEqual, isComparable := compare(currCase.less, currCase.less, reflect.ValueOf(currCase.less).Kind())
 		if !isComparable {
-			t.Errorf("object are comparable for type %s", currCase.cType)
+			t.Errorf("object should be comparable for type %s", currCase.cType)
 		}
 
 		if resEqual != 0 {
