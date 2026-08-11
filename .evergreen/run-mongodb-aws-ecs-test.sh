@@ -19,4 +19,9 @@ if echo "$MONGODB_URI" | grep -q "@"; then
   exit 1
 fi
 
+# The tests select their scenario from AWS_TEST. It is set on the Evergreen host
+# but is not propagated into the ECS container, so set it here; without it every
+# scenario skips and the task passes without testing anything.
+export AWS_TEST=ecs
+
 ./src/main
