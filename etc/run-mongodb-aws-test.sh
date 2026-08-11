@@ -31,4 +31,10 @@ set -x
 
 # Run the MONGODB-AWS prose tests. Exactly one AWS_TEST scenario is live per
 # invocation; the rest skip.
-(cd ${PROJECT_DIRECTORY}/internal/test/awsauth && go test -timeout 30m -v ./... | tee -a test.suite)
+#
+# Run from PROJECT_DIRECTORY with "go test -C" so test.suite is written at the
+# repository root. The gotest.parse_files glob in .evergreen/config.yml only
+# matches "src/go.mongodb.org/mongo-driver/*.suite", so a suite file written
+# inside the module directory is never parsed and the Evergreen Tests tab is
+# empty.
+(cd ${PROJECT_DIRECTORY} && go test -C ./internal/test/awsauth -timeout 30m -v ./... | tee -a test.suite)
