@@ -145,33 +145,22 @@ func TestCompileCheck(t *testing.T) {
 		require.NoError(t, container.Terminate(context.Background()))
 	})
 
-	testSuiteVersion := goVersions[len(goVersions)-1]
-
-	// Initialize the Go module using the container's installed Go toolchain (the
-	// test-suite version). Set the minimum Go version to what the driver claims
-	// (the first version in our test list) BEFORE running "go mod tidy", so the
-	// generated go.mod/go.sum are consistent with that go directive. Lowering the
-	// go directive after tidy leaves the module needing another tidy and breaks
-	// "go build" with "updates to go.mod needed".
+	// Initialize the Go module and resolve dependencies using the container's
+	// installed Go toolchain, then pin the go directive to the driver's minimum
+	// supported version (the first entry in goVersions). The directive is set to a
+	// full X.Y.0 version to match what "go mod tidy" writes: a bare "X.Y" leaves
+	// the module inconsistent.
 	_ = execGo(t, container, nil, "mod", "init", "compilecheck")
 	_ = execGo(t, container, nil, "mod", "edit", "-replace=go.mongodb.org/mongo-driver/v2=/mongo-go-driver")
-	_ = execGo(t, container, nil, "mod", "edit", "-go="+goVersions[0])
 	_ = execGo(t, container, nil, "mod", "tidy")
+	_ = execGo(t, container, nil, "mod", "edit", "-go="+goVersions[0]+".0")
 
 	for _, ver := range goVersions {
 		ver := ver // capture
 		t.Run("go:"+ver, func(t *testing.T) {
 			t.Parallel()
 
-			// The container already ships the test-suite Go version, so use the
-			// installed toolchain for it instead of forcing a redundant download.
-			// Other versions are pinned via GOTOOLCHAIN=goX.Y.0.
-			toolchainVer := ver
-			if ver == testSuiteVersion {
-				toolchainVer = ""
-			}
-
-			versionCfg := &goExecConfig{version: toolchainVer}
+			versionCfg := &goExecConfig{version: ver}
 
 			// Verify the Go version is available.
 			versionOutput := execGo(t, container, versionCfg, "version")
@@ -184,7 +173,7 @@ func TestCompileCheck(t *testing.T) {
 
 			// Build with build tags.
 			_ = execGo(t, container, &goExecConfig{
-				version: toolchainVer,
+				version: ver,
 				env: map[string]string{
 					"PKG_CONFIG_PATH": "/root/install/libmongocrypt/lib/pkgconfig",
 					"CGO_CFLAGS":      "'-I/root/install/libmongocrypt/include'",
@@ -200,7 +189,7 @@ func TestCompileCheck(t *testing.T) {
 
 					// Standard build.
 					_ = execGo(t, container, &goExecConfig{
-						version: toolchainVer,
+						version: ver,
 						env: map[string]string{
 							"GOOS":   "linux",
 							"GOARCH": architecture,

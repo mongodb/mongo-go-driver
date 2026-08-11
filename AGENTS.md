@@ -17,7 +17,7 @@ Uses **[Task](https://taskfile.dev/)**, not make.
 ```
 task                 # default: build + check-license + check-fmt + check-modules + lint + test-short
 task fmt             # gofumpt -w . — use this, not plain gofmt
-task build           # includes compilecheck-125 (Go 1.25 min-version compat)
+task build           # includes compilecheck-min (Go min-version compat)
 task lint            # golangci-lint across linux/{386,arm,arm64,amd64,ppc64le,s390x}
 task test-short      # race detector, ~60s timeout — fast feedback
 task test            # full suite, serial (-p 1), 1800s timeout, requires mongod
@@ -28,7 +28,7 @@ task api-report      # required when public API changes — include output in PR
 
 ## Go version requirements
 
-- **Go 1.25**: minimum to compile/use the driver. The Go Driver supports the last two Go minor versions. Public packages (`mongo/`, `bson/`, `event/`, `tag/`) must build on 1.25. `compilecheck-125` enforces this at build time.
+- **Go 1.25**: minimum to compile/use the driver. The Go Driver supports the last two Go minor versions. Public packages (`mongo/`, `bson/`, `event/`, `tag/`) must build on 1.25. `compilecheck-min` enforces this at build time.
 - **Go 1.26+**: required to run the test suite and develop the driver.
 
 ## Gotchas

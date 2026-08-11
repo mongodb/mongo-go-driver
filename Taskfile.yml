@@ -17,10 +17,10 @@ tasks:
       - go build ./...
       - go build ${BUILD_TAGS} ./...
       - task: build-tests
-      - task: compilecheck-125
+      - task: compilecheck-min
       - task: build-awsauth-compilecheck
   build-tests: go test -short ${BUILD_TAGS} -run ^$$ ./...
-  compilecheck-125:
+  compilecheck-min:
     dir: internal/test/compilecheck
     cmds:
       - go mod download
