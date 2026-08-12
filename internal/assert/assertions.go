@@ -345,9 +345,9 @@ func formatUnequalValues(expected, actual interface{}) (e string, a string) {
 // bufio.MaxScanTokenSize max line length that the go testing framework imposes.
 func truncatingFormat(data interface{}) string {
 	value := fmt.Sprintf("%#v", data)
-	max := bufio.MaxScanTokenSize - 100 // Give us some space the type info too if needed.
-	if len(value) > max {
-		value = value[0:max] + "<... truncated>"
+	maxLen := bufio.MaxScanTokenSize - 100 // Give us some space the type info too if needed.
+	if len(value) > maxLen {
+		value = value[0:maxLen] + "<... truncated>"
 	}
 	return value
 }
@@ -410,7 +410,8 @@ func isNil(object interface{}) bool {
 			reflect.Interface, reflect.Map,
 			reflect.Ptr, reflect.Slice,
 		},
-		kind)
+		kind,
+	)
 
 	if isNilableKind && value.IsNil() {
 		return true
@@ -906,9 +907,10 @@ func ErrorIs(t TestingT, err, target error, msgAndArgs ...interface{}) bool {
 
 	chain := buildErrorChainString(err)
 
-	return Fail(t, fmt.Sprintf("Target error should be in err chain:\n"+
-		"expected: %q\n"+
-		"in chain: %s", expectedText, chain,
+	return Fail(t, fmt.Sprintf(
+		"Target error should be in err chain:\n"+
+			"expected: %q\n"+
+			"in chain: %s", expectedText, chain,
 	), msgAndArgs...)
 }
 

@@ -17,16 +17,16 @@ import (
 // verifyLibmongocryptVersionConstraints returns an error if the loaded
 // libmongocrypt version is not in the range [min, max]. Bounds are only
 // checked when non-empty.
-func verifyLibmongocryptVersionConstraints(min, max string) error {
-	if min == "" && max == "" {
+func verifyLibmongocryptVersionConstraints(minVersion, maxVersion string) error {
+	if minVersion == "" && maxVersion == "" {
 		return nil
 	}
 	version := mongocrypt.Version()
-	if min != "" && CompareServerVersions(version, min) < 0 {
-		return fmt.Errorf("libmongocrypt version %q is lower than min required version %q", version, min)
+	if minVersion != "" && CompareServerVersions(version, minVersion) < 0 {
+		return fmt.Errorf("libmongocrypt version %q is lower than min required version %q", version, minVersion)
 	}
-	if max != "" && CompareServerVersions(version, max) > 0 {
-		return fmt.Errorf("libmongocrypt version %q is higher than max version %q", version, max)
+	if maxVersion != "" && CompareServerVersions(version, maxVersion) > 0 {
+		return fmt.Errorf("libmongocrypt version %q is higher than max version %q", version, maxVersion)
 	}
 	return nil
 }

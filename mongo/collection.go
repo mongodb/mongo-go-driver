@@ -1635,21 +1635,21 @@ func (coll *Collection) find(
 		op.limit = &limit
 	}
 	if args.Max != nil {
-		max, err := marshal(args.Max, coll.bsonOpts, coll.registry)
+		maxVal, err := marshal(args.Max, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return nil, err
 		}
-		op.max = max
+		op.max = maxVal
 	}
 	if args.MaxAwaitTime != nil {
 		cursorOpts.SetMaxAwaitTime(*args.MaxAwaitTime)
 	}
 	if args.Min != nil {
-		min, err := marshal(args.Min, coll.bsonOpts, coll.registry)
+		minVal, err := marshal(args.Min, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return nil, err
 		}
-		op.min = min
+		op.min = minVal
 	}
 	if args.NoCursorTimeout != nil {
 		op.noCursorTimeout = args.NoCursorTimeout
