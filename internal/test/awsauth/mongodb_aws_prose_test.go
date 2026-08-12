@@ -42,27 +42,9 @@ import (
 //	scenario. Since some require the AWS SDK and some don't, this file imports
 //	it unconditionally.
 
-// requireScenario skips unless AWS_TEST names one of the given scenarios and
-// MONGODB_URI is set. It returns the raw URI.
-//
-// A scenario that the spec requires be tested more than one way takes multiple
-// values, one per drivers-evergreen-tools setup that satisfies it.
-func requireScenario(t *testing.T, scenarios ...string) string {
+// requireScenario skips unless MONGODB_URI is set. It returns the raw URI.
+func requireScenario(t *testing.T) string {
 	t.Helper()
-
-	got := os.Getenv("AWS_TEST")
-
-	var match bool
-	for _, scenario := range scenarios {
-		if got == scenario {
-			match = true
-
-			break
-		}
-	}
-	if !match {
-		t.Skipf("Skipping test: AWS_TEST is %q, not one of %q", got, scenarios)
-	}
 
 	rawURI := os.Getenv("MONGODB_URI")
 	if rawURI == "" {
@@ -224,7 +206,7 @@ func runScenarioTests(t *testing.T, rawURI string, provider options.AWSCredentia
 // Drivers MUST be able to authenticate when a valid access key id and secret
 // access key pair are present in the environment.
 func TestAWSProse_1_RegularCredentials(t *testing.T) {
-	rawURI := requireScenario(t, "regular")
+	rawURI := requireScenario(t)
 	runScenarioTests(t, rawURI, credsFromURI(t, rawURI))
 }
 
@@ -234,7 +216,7 @@ func TestAWSProse_1_RegularCredentials(t *testing.T) {
 // Drivers MUST be able to authenticate from an EC2 instance via temporary
 // credentials assigned to the machine.
 func TestAWSProse_2_EC2Credentials(t *testing.T) {
-	rawURI := requireScenario(t, "ec2")
+	rawURI := requireScenario(t)
 	runScenarioTests(t, rawURI, credsFromSDK(t))
 }
 
@@ -244,7 +226,7 @@ func TestAWSProse_2_EC2Credentials(t *testing.T) {
 // Drivers MUST be able to authenticate from an ECS container via temporary
 // credentials.
 func TestAWSProse_3_ECSCredentials(t *testing.T) {
-	rawURI := requireScenario(t, "ecs")
+	rawURI := requireScenario(t)
 	runScenarioTests(t, rawURI, credsFromSDK(t))
 }
 
@@ -255,7 +237,7 @@ func TestAWSProse_3_ECSCredentials(t *testing.T) {
 // from an assume role request. These temporary credentials consist of an access
 // key ID, a secret access key, and a security token present in the environment.
 func TestAWSProse_4_AssumeRole(t *testing.T) {
-	rawURI := requireScenario(t, "assume-role")
+	rawURI := requireScenario(t)
 	runScenarioTests(t, rawURI, credsFromURI(t, rawURI))
 }
 
@@ -269,7 +251,7 @@ func TestAWSProse_4_AssumeRole(t *testing.T) {
 // run-aws-auth-test-with-aws-web-identity-credentials commands in
 // .evergreen/config.yml.
 func TestAWSProse_5_AssumeRoleWithWebIdentity(t *testing.T) {
-	rawURI := requireScenario(t, "web-identity")
+	rawURI := requireScenario(t)
 	runScenarioTests(t, rawURI, credsFromSDK(t))
 }
 
@@ -282,7 +264,7 @@ func TestAWSProse_5_AssumeRoleWithWebIdentity(t *testing.T) {
 // The two cases are separate drivers-evergreen-tools scenarios: "env-creds"
 // exports the pair alone, "session-creds" adds AWS_SESSION_TOKEN.
 func TestAWSProse_6_AWSLambda(t *testing.T) {
-	rawURI := requireScenario(t, "env-creds", "session-creds")
+	rawURI := requireScenario(t)
 	provider := credsFromEnv(t)
 
 	runScenarioTests(t, rawURI, provider)
