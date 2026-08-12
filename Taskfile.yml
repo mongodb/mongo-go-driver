@@ -17,14 +17,14 @@ tasks:
       - go build ./...
       - go build ${BUILD_TAGS} ./...
       - task: build-tests
-      - task: compilecheck-119
+      - task: compilecheck-min
       - task: build-awsauth-compilecheck
   build-tests: go test -short ${BUILD_TAGS} -run ^$$ ./...
-  compilecheck-119:
+  compilecheck-min:
     dir: internal/test/compilecheck
     cmds:
       - go mod download
-      - GOTOOLCHAIN=auto go test -v -run '^TestCompileCheck/go:1\.19$'
+      - GOTOOLCHAIN=auto go test -v -run '^TestCompileCheck/go:1\.25$'
   build-compile-check-all: bash etc/run-compile-check-test.sh
   build-awsauth-compilecheck:
     dir: internal/test/awsauth

@@ -45,9 +45,9 @@ func (ro *RangeOptionsBuilder) List() []func(*RangeOptions) error {
 }
 
 // SetMin sets the range index minimum value.
-func (ro *RangeOptionsBuilder) SetMin(min bson.RawValue) *RangeOptionsBuilder {
+func (ro *RangeOptionsBuilder) SetMin(minVal bson.RawValue) *RangeOptionsBuilder {
 	ro.Opts = append(ro.Opts, func(opts *RangeOptions) error {
-		opts.Min = &min
+		opts.Min = &minVal
 
 		return nil
 	})
@@ -56,9 +56,9 @@ func (ro *RangeOptionsBuilder) SetMin(min bson.RawValue) *RangeOptionsBuilder {
 }
 
 // SetMax sets the range index maximum value.
-func (ro *RangeOptionsBuilder) SetMax(max bson.RawValue) *RangeOptionsBuilder {
+func (ro *RangeOptionsBuilder) SetMax(maxVal bson.RawValue) *RangeOptionsBuilder {
 	ro.Opts = append(ro.Opts, func(opts *RangeOptions) error {
-		opts.Max = &max
+		opts.Max = &maxVal
 
 		return nil
 	})

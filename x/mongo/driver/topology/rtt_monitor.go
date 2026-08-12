@@ -223,16 +223,16 @@ func (r *rttMonitor) min() time.Duration {
 		return 0
 	}
 
-	var min time.Duration
+	var minRTT time.Duration
 	for e := r.movingMin.Front(); e != nil; e = e.Next() {
 		val := e.Value.(time.Duration)
 
-		if min == 0 || val < min {
-			min = val
+		if minRTT == 0 || val < minRTT {
+			minRTT = val
 		}
 	}
 
-	return min
+	return minRTT
 }
 
 // stddev will return the current moving stddev.
@@ -294,5 +294,6 @@ func (r *rttMonitor) Stats() string {
 		"network round-trip time stats: moving avg: %v, min: %v, moving stddev: %v",
 		r.averageRTT,
 		r.minRTT,
-		r.stddevRTT)
+		r.stddevRTT,
+	)
 }
