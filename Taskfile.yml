@@ -18,6 +18,7 @@ tasks:
       - go build ${BUILD_TAGS} ./...
       - task: build-tests
       - task: compilecheck-119
+      - task: build-awsauth-compilecheck
   build-tests: go test -short ${BUILD_TAGS} -run ^$$ ./...
   compilecheck-119:
     dir: internal/test/compilecheck
@@ -25,6 +26,10 @@ tasks:
       - go mod download
       - GOTOOLCHAIN=auto go test -v -run '^TestCompileCheck/go:1\.19$'
   build-compile-check-all: bash etc/run-compile-check-test.sh
+  build-awsauth-compilecheck:
+    dir: internal/test/awsauth
+    cmds:
+      - go build ./...
   build-aws-ecs-test: go test -c ./internal/test/aws -o aws.testbin
   check-fmt:
     deps: [install-lll, install-gofumpt]
