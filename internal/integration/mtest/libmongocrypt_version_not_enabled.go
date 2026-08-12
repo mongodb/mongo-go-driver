@@ -14,8 +14,8 @@ import "fmt"
 // version constraint is requested but the driver was not built with the cse
 // tag (and therefore has no access to libmongocrypt). When both bounds are
 // empty there is nothing to check and nil is returned.
-func verifyLibmongocryptVersionConstraints(min, max string) error {
-	if min == "" && max == "" {
+func verifyLibmongocryptVersionConstraints(minVersion, maxVersion string) error {
+	if minVersion == "" && maxVersion == "" {
 		return nil
 	}
 	return fmt.Errorf("libmongocrypt version constraints require the cse build tag")
