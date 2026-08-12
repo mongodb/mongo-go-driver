@@ -19,9 +19,8 @@ if echo "$MONGODB_URI" | grep -q "@"; then
   exit 1
 fi
 
-# The tests select their scenario from AWS_TEST. It is set on the Evergreen host
-# but is not propagated into the ECS container, so set it here; without it every
-# scenario skips and the task passes without testing anything.
-export AWS_TEST=ecs
-
-./src/main
+# Run only the ECS scenario. This container runs the test binary directly rather
+# than through etc/run-mongodb-aws-test.sh, so it has to apply the same filter
+# that script does; without it every other scenario runs here and fails for want
+# of credentials this environment does not provide.
+./src/main -test.run TestAWSProse_3_ECSCredentials -test.v
