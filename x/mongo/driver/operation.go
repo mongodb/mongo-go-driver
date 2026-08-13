@@ -566,7 +566,7 @@ func (op Operation) Execute(ctx context.Context) error {
 	var operationErr WriteCommandError
 	var prevErr error
 	var prevIndefiniteErr error
-	var expDur time.Duration
+	var overloadAttempt uint
 	var transactionState session.TransactionState
 	var isOverloadedError bool
 	var attempt uint
@@ -628,15 +628,16 @@ func (op Operation) Execute(ctx context.Context) error {
 
 		if isOverloadedError {
 			isOverloadedError = false
-			if expDur == 0 {
-				expDur = backoffInitial
-			} else {
-				expDur *= 2
-				if expDur > backoffMax {
-					expDur = backoffMax
-				}
+			overloadAttempt++
+
+			// A positive "baseBackoffMS" on the error is a server-supplied base
+			// backoff that replaces the driver's default.
+			base := backoffInitial
+			if serverBase := serverBaseBackoff(err); serverBase > 0 {
+				base = serverBase
 			}
-			backoff := randutil.JitterDuration(expDur)
+
+			backoff := randutil.JitterDuration(overloadBackoff(base, overloadAttempt))
 			if deadline, ok := ctx.Deadline(); ok && time.Until(deadline) < backoff {
 				return err
 			}
@@ -1101,7 +1102,7 @@ func (op Operation) Execute(ctx context.Context) error {
 				}
 			}
 			isOverloadedError = false
-			expDur = 0
+			overloadAttempt = 0
 			attempt = 0
 			currIndex += startedInfo.processedBatches
 			op.Batches.AdvanceBatches(startedInfo.processedBatches)
@@ -2284,6 +2285,30 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 		CommandFinishedEvent: finished,
 	}
 	op.CommandMonitor.Failed(ctx, failedEvent)
+}
+
+// overloadBackoff returns the exponential backoff duration for the given overload retry attempt.
+func overloadBackoff(base time.Duration, attempt uint) time.Duration {
+	d := base
+	for i := uint(0); i < attempt && d < backoffMax; i++ {
+		d *= 2
+	}
+	if d > backoffMax {
+		d = backoffMax
+	}
+	return d
+}
+
+// serverBaseBackoff returns the server-supplied base backoff attached to err.
+func serverBaseBackoff(err error) time.Duration {
+	switch e := err.(type) {
+	case Error:
+		return time.Duration(e.BaseBackoffMS) * time.Millisecond
+	case WriteCommandError:
+		return time.Duration(e.BaseBackoffMS) * time.Millisecond
+	default:
+		return 0
+	}
 }
 
 // sessionsSupported returns true of the given server version indicates that it supports sessions.

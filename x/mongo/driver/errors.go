@@ -122,6 +122,7 @@ type WriteCommandError struct {
 	WriteErrors       WriteErrors
 	Labels            []string
 	Raw               bsoncore.Document
+	BaseBackoffMS     int64
 }
 
 // UnsupportedStorageEngine returns whether or not the WriteCommandError comes from a retryable write being attempted
@@ -278,6 +279,7 @@ type Error struct {
 	Wrapped         error
 	TopologyVersion *description.TopologyVersion
 	Raw             bsoncore.Document
+	BaseBackoffMS   int64
 }
 
 // UnsupportedStorageEngine returns whether e came as a result of an unsupported storage engine
@@ -402,6 +404,7 @@ func ExtractErrorFromServerResponse(doc bsoncore.Document) error {
 	var errmsg, codeName string
 	var code int32
 	var labels []string
+	var baseBackoffMS int64
 	var ok bool
 	var tv *description.TopologyVersion
 	var wcError WriteCommandError
@@ -442,6 +445,10 @@ func ExtractErrorFromServerResponse(doc bsoncore.Document) error {
 		case "code":
 			if c, okay := elem.Value().Int32OK(); okay {
 				code = c
+			}
+		case "baseBackoffMS":
+			if ms, okay := elem.Value().AsInt64OK(); okay {
+				baseBackoffMS = ms
 			}
 		case "errorLabels":
 			if arr, okay := elem.Value().ArrayOK(); okay {
@@ -507,6 +514,9 @@ func ExtractErrorFromServerResponse(doc bsoncore.Document) error {
 				wcError.WriteConcernError.Details = make([]byte, len(info))
 				copy(wcError.WriteConcernError.Details, info)
 			}
+			if ms, exists := doc.Lookup("baseBackoffMS").AsInt64OK(); exists && baseBackoffMS == 0 {
+				baseBackoffMS = ms
+			}
 			if errLabels, exists := doc.Lookup("errorLabels").ArrayOK(); exists {
 				vals, err := errLabels.Values()
 				if err != nil {
@@ -542,6 +552,7 @@ func ExtractErrorFromServerResponse(doc bsoncore.Document) error {
 			Labels:          labels,
 			TopologyVersion: tv,
 			Raw:             doc,
+			BaseBackoffMS:   baseBackoffMS,
 		}
 
 		// If we get a MaxTimeMSExpired error, assume that the error was caused
@@ -565,6 +576,7 @@ func ExtractErrorFromServerResponse(doc bsoncore.Document) error {
 			wcError.WriteConcernError.TopologyVersion = tv
 		}
 		wcError.Raw = doc
+		wcError.BaseBackoffMS = baseBackoffMS
 		return wcError
 	}
 
