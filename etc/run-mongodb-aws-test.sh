@@ -23,17 +23,32 @@ if [ "$AWS_TEST" == "web-identity" ] && [ "${SKIP_WEB_IDENTITY_AUTH_TEST:-}" == 
   exit 0
 fi
 
+# The prose test for this scenario. The aws-auth-test task invokes this script
+# once per scenario, so without a filter every invocation would report the five
+# tests it skipped alongside the one it ran. The tests still check AWS_TEST
+# themselves; this only keeps the skips out of the Evergreen Tests tab.
+case "$AWS_TEST" in
+  regular)                 RUN_TEST=TestAWSProse_1_RegularCredentials ;;
+  ec2)                     RUN_TEST=TestAWSProse_2_EC2Credentials ;;
+  ecs)                     RUN_TEST=TestAWSProse_3_ECSCredentials ;;
+  assume-role)             RUN_TEST=TestAWSProse_4_AssumeRole ;;
+  web-identity)            RUN_TEST=TestAWSProse_5_AssumeRoleWithWebIdentity ;;
+  env-creds|session-creds) RUN_TEST=TestAWSProse_6_AWSLambda ;;
+  *)
+    echo "unknown AWS_TEST scenario: $AWS_TEST"
+    exit 1
+    ;;
+esac
+
 # Handle credentials and environment setup.
 . $DRIVERS_TOOLS/.evergreen/auth_aws/aws_setup.sh $AWS_TEST
 
 # show test output
 set -x
 
-# For Go 1.16+, Go builds requires a go.mod file in the current working directory or a parent
-# directory. Spawn a new subshell, "cd" to the project directory, then run "go run".
-(cd ${PROJECT_DIRECTORY} && go test -timeout 30m -v ./internal/test/aws/... | tee -a test.suite)
-
-# Also run the awsauth integration test, which uses the AWS SDK default credential
-# chain to cover scenarios where credentials are not embedded in the URI (EC2, ECS,
-# WebIdentity) in addition to the inline-credential scenarios.
-(cd ${PROJECT_DIRECTORY}/internal/test/awsauth && go test -timeout 30m -v ./... | tee -a test.suite)
+# Run from PROJECT_DIRECTORY with "go test -C" so test.suite is written at the
+# repository root. The gotest.parse_files glob in .evergreen/config.yml only
+# matches "src/go.mongodb.org/mongo-driver/*.suite", so a suite file written
+# inside the module directory is never parsed and the Evergreen Tests tab is
+# empty.
+(cd ${PROJECT_DIRECTORY} && go test -C ./internal/test/awsauth -timeout 30m -v -run "$RUN_TEST" ./... | tee -a test.suite)
