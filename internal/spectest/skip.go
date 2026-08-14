@@ -1047,17 +1047,6 @@ var skipTests = map[string][]skipCase{
 		},
 	},
 
-	// TODO(GODRIVER-4049) Figure out how to set a 500ms maxAwaitTimeMS on
-	// hello.
-	"SERVER-128517 forces a min maxAwaitTimeMS of 10s, which conflicts with the test timeouts": {
-		{
-			tests: []string{
-				"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/hello-timeout.json/Network_timeout_on_Monitor_check",
-				"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/hello-timeout.json/Driver_extends_timeout_while_streaming",
-			},
-		},
-	},
-
 	// TODO(GODRIVER-3944): Migrate Azure KMS credentials to corporate account.
 	"Migrate Azure KMS credentials to corporate account": {
 		{
