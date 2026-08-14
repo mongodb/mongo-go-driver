@@ -1076,9 +1076,9 @@ var skipTests = map[string][]skipCase{
 		},
 	},
 
-	// TODO(GODRIVER-3872): Mark Server version 4.2 as EOL from driver's PoV
-	// (Min server version as 4.4, minWireVersion as 9)
-	"Mark Server version 4.2 as EOL from driver's PoV (Min server version as 4.4, minWireVersion as 9)": {
+	// TODO(DRIVERS-3582):Remove MongoDB 4.2 references from all specifications
+	// and tests
+	"Remove MongoDB 4.2 references from all specifications and tests": {
 		{
 			tests: []string{
 				"TestSDAMSpec/errors/post-42-InterruptedAtShutdown.json",

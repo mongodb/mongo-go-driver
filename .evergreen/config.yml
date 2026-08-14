@@ -1546,6 +1546,10 @@ axes:
   - id: version
     display_name: MongoDB Version
     values:
+      - id: "9.0"
+        display_name: "9.0"
+        variables:
+          VERSION: "9.0"
       - id: "8.0"
         display_name: "8.0"
         variables:
@@ -1981,18 +1985,18 @@ buildvariants:
       - name: ".goleak"
   - matrix_name: "tests-rhel-44-plus-zlib-zstd-support"
     tags: ["pullrequest"]
-    matrix_spec: {version: ["4.4", "5.0", "6.0", "7.0", "8.0"], os-ssl-40: ["rhel87-64"]}
+    matrix_spec: {version: ["4.4", "5.0", "6.0", "7.0", "8.0", "9.0"], os-ssl-40: ["rhel87-64"]}
     display_name: "${version} ${os-ssl-40}"
     tasks:
       - name: ".test !.enterprise-auth !.snappy"
-  - matrix_name: "tests-windows-42-plus-zlib-zstd-support"
-    matrix_spec: {version: ["4.4", "5.0", "6.0", "7.0"], os-ssl-40: ["windows-64"]}
+  - matrix_name: "tests-windows-44-plus-zlib-zstd-support"
+    matrix_spec: {version: ["4.4", "5.0", "6.0", "7.0", "8.0", "9.0"], os-ssl-40: ["windows-64"]}
     display_name: "${version} ${os-ssl-40}"
     tasks:
       - name: ".test !.enterprise-auth !.snappy"
-  - matrix_name: "tests-windows-80-zlib-zstd-support"
+  - matrix_name: "tests-windows-90-zlib-zstd-support"
     tags: ["pullrequest"]
-    matrix_spec: {version: ["8.0"], os-ssl-40: ["windows-64"]}
+    matrix_spec: {version: ["9.0"], os-ssl-40: ["windows-64"]}
     display_name: "${version} ${os-ssl-40}"
     tasks:
       - name: ".test !.enterprise-auth !.snappy"
@@ -2007,25 +2011,25 @@ buildvariants:
     tasks:
       - name: ".test .enterprise-auth"
   - matrix_name: "aws-auth-test"
-    matrix_spec: {version: ["4.4", "5.0", "6.0", "7.0", "8.0", "latest", "rapid"], os-aws-auth: "*"}
+    matrix_spec: {version: ["4.4", "5.0", "6.0", "7.0", "8.0", "9.0", "latest", "rapid"], os-aws-auth: "*"}
     display_name: "MONGODB-AWS Auth ${version} ${os-aws-auth}"
     tasks:
       - name: "aws-auth-test"
   - matrix_name: "ocsp-test"
-    matrix_spec: {version: ["4.4", "5.0", "6.0", "7.0", "8.0", "latest", "rapid"], ocsp-rhel-87: ["rhel87"]}
+    matrix_spec: {version: ["4.4", "5.0", "6.0", "7.0", "8.0", "9.0", "latest", "rapid"], ocsp-rhel-87: ["rhel87"]}
     display_name: "OCSP ${version} ${ocsp-rhel-87}"
     batchtime: 20160 # Use a batchtime of 14 days as suggested by the OCSP test README
     tasks:
       - name: ".ocsp"
   - matrix_name: "ocsp-test-windows"
-    matrix_spec: {version: ["4.4", "5.0", "6.0", "7.0", "8.0", "latest", "rapid"], os-ssl-40: ["windows-64"]}
+    matrix_spec: {version: ["4.4", "5.0", "6.0", "7.0", "8.0", "9.0", "latest", "rapid"], os-ssl-40: ["windows-64"]}
     display_name: "OCSP ${version} ${os-ssl-40}"
     batchtime: 20160 # Use a batchtime of 14 days as suggested by the OCSP test README
     tasks:
       # Windows MongoDB servers do not staple OCSP responses and only support RSA.
       - name: ".ocsp-rsa !.ocsp-staple"
   - matrix_name: "ocsp-test-macos"
-    matrix_spec: {version: ["4.4", "5.0", "6.0", "7.0", "8.0", "latest", "rapid"], os-ssl-40: ["macos"]}
+    matrix_spec: {version: ["4.4", "5.0", "6.0", "7.0", "8.0", "9.0", "latest", "rapid"], os-ssl-40: ["macos"]}
     display_name: "OCSP ${version} ${os-ssl-40}"
     batchtime: 20160 # Use a batchtime of 14 days as suggested by the OCSP test README
     tasks:
@@ -2039,7 +2043,7 @@ buildvariants:
       - name: ".race"
   - matrix_name: "versioned-api-test"
     tags: ["pullrequest"]
-    matrix_spec: {version: ["5.0", "6.0", "7.0", "8.0"], os-ssl-40: ["windows-64", "rhel87-64"]}
+    matrix_spec: {version: ["5.0", "6.0", "7.0", "8.0", "9.0"], os-ssl-40: ["windows-64", "rhel87-64"]}
     display_name: "API Version ${version} ${os-ssl-40}"
     tasks:
       - name: ".versioned-api"
@@ -2056,7 +2060,7 @@ buildvariants:
       - name: ".client-side-encryption-test"
   - matrix_name: "load-balancer-test"
     tags: ["pullrequest"]
-    matrix_spec: {version: ["5.0", "6.0", "7.0", "8.0"], os-ssl-40: ["rhel87-64"]}
+    matrix_spec: {version: ["5.0", "6.0", "7.0", "8.0", "9.0"], os-ssl-40: ["rhel87-64"]}
     display_name: "Load Balancer Support ${version} ${os-ssl-40}"
     tasks:
       - name: ".load-balancer"
