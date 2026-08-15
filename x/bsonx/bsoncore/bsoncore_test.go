@@ -972,3 +972,31 @@ func TestInvalidBytes(t *testing.T) {
 		assert.Equal(t, 4, len(src), "expected src to contain the size parameter still")
 	})
 }
+
+func TestValueLengthOverflow(t *testing.T) {
+	t.Parallel()
+
+	// A length field that, combined with a type's fixed overhead, overflows
+	// int32 must be rejected instead of wrapping negative and slipping past the
+	// len(src) bounds checks in readValue and ReadElement. See valueLength.
+	t.Run("binary element in a document", func(t *testing.T) {
+		t.Parallel()
+
+		doc := Document{
+			0x0d, 0x00, 0x00, 0x00, // document length = 13
+			0x05,       // type = binary
+			0x61, 0x00, // key "a"
+			0xff, 0xff, 0xff, 0x7f, // payload length = math.MaxInt32
+			0x00, // subtype
+			0x00, // document terminator
+		}
+		assert.Error(t, doc.Validate(), "expected an error validating an overflowing element length")
+	})
+
+	t.Run("string value", func(t *testing.T) {
+		t.Parallel()
+
+		v := Value{Type: TypeString, Data: []byte{0xff, 0xff, 0xff, 0x7f}}
+		assert.Error(t, v.Validate(), "expected an error validating an overflowing string length")
+	})
+}
