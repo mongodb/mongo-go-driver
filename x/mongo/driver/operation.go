@@ -506,6 +506,14 @@ func (op Operation) Validate() error {
 	return nil
 }
 
+// attemptResult is the output of a single round-trip attempt.
+type attemptResult struct {
+	res              bsoncore.Document
+	moreToCome       bool
+	processedBatches int
+	desc             description.SelectedServer
+}
+
 var memoryPool = sync.Pool{
 	New: func() any {
 		// Start with 1kb buffers.
@@ -513,6 +521,111 @@ var memoryPool = sync.Pool{
 		// Return a pointer as the static analysis tool suggests.
 		return &b
 	},
+}
+
+// executeAttempt executes a single round-trip on the given server and connection.
+// It builds the wire message, publishes APM events, optionally compresses, checks the
+// CSOT deadline, and performs the network round trip. The returned *[]byte is the wire
+// message buffer to use in subsequent iterations; it may differ from wm when compression
+// swaps in a new pool buffer.
+func (op Operation) executeAttempt(
+	ctx context.Context,
+	srvr Server,
+	conn *mnet.Connection,
+	requestID int32,
+	wm *[]byte,
+) (attemptResult, *[]byte, error) {
+	maxTimeMS, err := op.calculateMaxTimeMS(ctx, srvr.RTTMonitor().Min(), srvr.RTTMonitor().Stats())
+	if err != nil {
+		return attemptResult{}, wm, err
+	}
+	if conn.Description().IsCryptd {
+		maxTimeMS = 0
+	}
+
+	desc := description.SelectedServer{
+		Server: conn.Description(),
+		Kind:   op.Deployment.Kind(),
+	}
+
+	var moreToCome bool
+	var startedInfo startedInformation
+	*wm, moreToCome, startedInfo, err = op.createWireMessage(ctx, maxTimeMS, (*wm)[:0], desc, conn, requestID)
+	if err != nil {
+		return attemptResult{}, wm, err
+	}
+
+	startedInfo.connID = conn.ID()
+	startedInfo.driverConnectionID = conn.DriverConnectionID()
+	startedInfo.cmdName = op.getCommandName(startedInfo.cmd)
+	// If the command name does not match the operation name, update
+	// the operation name as a sanity check. It's more correct to
+	// be aligned with the data passed to the server via the
+	// wire message.
+	if startedInfo.cmdName != op.Name {
+		op.Name = startedInfo.cmdName
+	}
+	startedInfo.redacted = op.redactCommand(startedInfo.cmdName, startedInfo.cmd)
+	startedInfo.serviceID = conn.Description().ServiceID
+	startedInfo.serverConnID = conn.ServerConnectionID()
+	startedInfo.serverAddress = conn.Description().Addr
+
+	op.publishStartedEvent(ctx, startedInfo)
+
+	if compressor := conn.Compressor; compressor != nil && op.canCompress(startedInfo.cmdName) {
+		b := memoryPool.Get().(*[]byte)
+		*b, err = compressor.CompressWireMessage(*wm, (*b)[:0])
+		memoryPool.Put(wm)
+		wm = b
+		if err != nil {
+			return attemptResult{}, wm, err
+		}
+	}
+
+	finishedInfo := finishedInformation{
+		cmdName:            startedInfo.cmdName,
+		driverConnectionID: startedInfo.driverConnectionID,
+		requestID:          startedInfo.requestID,
+		connID:             startedInfo.connID,
+		serverConnID:       startedInfo.serverConnID,
+		redacted:           startedInfo.redacted,
+		serviceID:          startedInfo.serviceID,
+		serverAddress:      desc.Addr,
+	}
+
+	startedTime := time.Now()
+
+	var res bsoncore.Document
+	if ctx.Err() != nil {
+		err = ctx.Err()
+	} else if deadline, ok := ctx.Deadline(); ok {
+		if time.Now().Add(srvr.RTTMonitor().Min()).After(deadline) {
+			err = fmt.Errorf("%w: %v", ErrDeadlineWouldBeExceeded, srvr.RTTMonitor().Stats())
+		}
+	}
+
+	if err == nil {
+		roundTrip := op.roundTrip
+		if moreToCome {
+			roundTrip = op.moreToComeRoundTrip
+		}
+		res, err = roundTrip(ctx, conn, *wm)
+		if ep, ok := srvr.(ErrorProcessor); ok {
+			_ = ep.ProcessError(err, conn)
+		}
+	}
+
+	finishedInfo.response = res
+	finishedInfo.cmdErr = err
+	finishedInfo.duration = time.Since(startedTime)
+	op.publishFinishedEvent(ctx, finishedInfo)
+
+	return attemptResult{
+		res:              res,
+		moreToCome:       moreToCome,
+		processedBatches: startedInfo.processedBatches,
+		desc:             desc,
+	}, wm, err
 }
 
 // Execute runs this operation.
@@ -563,6 +676,7 @@ func (op Operation) Execute(ctx context.Context) error {
 	var srvr Server
 	var conn *mnet.Connection
 	var res bsoncore.Document
+	var ar attemptResult
 	var operationErr WriteCommandError
 	var prevErr error
 	var prevIndefiniteErr error
@@ -570,10 +684,12 @@ func (op Operation) Execute(ctx context.Context) error {
 	var transactionState session.TransactionState
 	var isOverloadedError bool
 	var attempt uint
+	var retryEnabled bool
 	retrySupported := false
 	first := true
 	currIndex := 0
 	nextBudget := defaultBudget
+	currentBudget := defaultBudget
 
 	// deprioritizedServers are a running list of servers that should be
 	// deprioritized during server selection. Servers are accumulated across
@@ -665,6 +781,199 @@ func (op Operation) Execute(ctx context.Context) error {
 			memoryPool.Put(wm)
 		}
 	}()
+
+	// handleErr processes the error from one round-trip attempt. allowSub controls
+	// whether a NoWritesPerformed error may be substituted with prevIndefiniteErr
+	// (passed as false on the recursive call to prevent re-entry).
+	// Returns (true, nil) to signal the outer loop should retry; (false, err) to stop.
+	var handleErr func(error, bool) (bool, error)
+	handleErr = func(err error, allowSub bool) (doRetry bool, returnErr error) {
+		switch tt := err.(type) {
+		case WriteCommandError:
+			if retrySupported && op.Type == Write && tt.UnsupportedStorageEngine() {
+				return false, ErrUnsupportedStorageEngine
+			}
+			isOverloadedError = tt.HasErrorLabel(ErrSystemOverloadedError)
+			if isOverloadedError && op.MaxAdaptiveRetries != 0 {
+				nextBudget = cappedRetryBudget(op.MaxAdaptiveRetries)
+				currentBudget = nextBudget
+			}
+			connDesc := conn.Description()
+			retryableErr := tt.Retryable(connDesc.Kind, connDesc.WireVersion)
+			preRetryWriteLabelVersion := connDesc.WireVersion != nil && connDesc.WireVersion.Max < 9
+			inTransaction := op.Client != nil &&
+				(!op.Client.Committing && !op.Client.Aborting) && op.Client.TransactionRunning()
+			if retryableErr && preRetryWriteLabelVersion && retryEnabled && !inTransaction {
+				tt.Labels = append(tt.Labels, RetryableWriteError)
+			}
+			olRetryErr := tt.HasErrorLabel(ErrRetryableError) && isOverloadedError
+			needRetry := (retrySupported && retryEnabled && retryableErr) || (op.MaxAdaptiveRetries != 0 && olRetryErr)
+			if needRetry && currentBudget.allows(attempt) {
+				if op.Client != nil && op.Client.Committing && !olRetryErr {
+					op.Client.UpdateCommitTransactionWriteConcern()
+					op.WriteConcern = op.Client.CurrentWc
+				}
+				if retryErr := resetForRetry(tt); retryErr != nil {
+					return false, retryErr
+				}
+				return true, nil
+			}
+			if tt.HasErrorLabel(NoWritesPerformed) && allowSub {
+				return handleErr(prevIndefiniteErr, false)
+			}
+			if op.ProcessResponseFn != nil {
+				info := ResponseInfo{
+					Server:                srvr,
+					Connection:            conn,
+					ConnectionDescription: ar.desc.Server,
+					CurrentIndex:          currIndex,
+					Error:                 tt,
+				}
+				_ = op.ProcessResponseFn(ctx, res, info)
+			}
+			if op.Batches != nil && len(tt.WriteErrors) > 0 {
+				if currIndex > 0 {
+					for i := range tt.WriteErrors {
+						tt.WriteErrors[i].Index += int64(currIndex)
+					}
+				}
+				if isOrdered := op.Batches.IsOrdered(); isOrdered == nil || *isOrdered {
+					return false, tt
+				}
+			}
+			if op.Client != nil && op.Client.Committing && tt.WriteConcernError != nil {
+				convErr := Error{
+					Name:    tt.WriteConcernError.Name,
+					Code:    int32(tt.WriteConcernError.Code),
+					Message: tt.WriteConcernError.Message,
+					Labels:  tt.Labels,
+					Raw:     tt.Raw,
+				}
+				if convErr.Code != unknownReplWriteConcernCode && convErr.Code != unsatisfiableWriteConcernCode {
+					convErr.Labels = append(convErr.Labels, UnknownTransactionCommitResult)
+				}
+				if retryableErr && retryEnabled {
+					convErr.Labels = append(convErr.Labels, RetryableWriteError)
+				}
+				return false, convErr
+			}
+			operationErr.WriteConcernError = tt.WriteConcernError
+			operationErr.WriteErrors = append(operationErr.WriteErrors, tt.WriteErrors...)
+			operationErr.Labels = tt.Labels
+			operationErr.Raw = tt.Raw
+			return false, nil
+
+		case Error:
+			if tt.Code == 391 {
+				if op.Authenticator != nil {
+					cfg := AuthConfig{
+						Description:  conn.Description(),
+						Connection:   conn,
+						ClusterClock: op.Clock,
+						ServerAPI:    op.ServerAPI,
+					}
+					if authErr := op.Authenticator.Reauth(ctx, &cfg); authErr != nil {
+						return false, fmt.Errorf("error reauthenticating: %w", authErr)
+					}
+					if op.Client != nil && op.Client.Committing {
+						op.Client.UpdateCommitTransactionWriteConcern()
+						op.WriteConcern = op.Client.CurrentWc
+					}
+					if retryErr := resetForRetry(tt); retryErr != nil {
+						return false, retryErr
+					}
+					return true, nil
+				}
+			}
+			if tt.HasErrorLabel(TransientTransactionError) || tt.HasErrorLabel(UnknownTransactionCommitResult) {
+				if cleanErr := op.Client.ClearPinnedResources(); cleanErr != nil {
+					return false, cleanErr
+				}
+			}
+			if retrySupported && op.Type == Write && tt.UnsupportedStorageEngine() {
+				return false, ErrUnsupportedStorageEngine
+			}
+			isOverloadedError = tt.HasErrorLabel(ErrSystemOverloadedError)
+			if isOverloadedError && op.MaxAdaptiveRetries != 0 {
+				nextBudget = cappedRetryBudget(op.MaxAdaptiveRetries)
+				currentBudget = nextBudget
+			}
+			connDesc := conn.Description()
+			var retryableErr bool
+			if op.Type == Write {
+				retryableErr = tt.RetryableWrite(connDesc.WireVersion)
+				preRetryWriteLabelVersion := connDesc.WireVersion != nil && connDesc.WireVersion.Max < 9
+				inTransaction := op.Client != nil &&
+					(!op.Client.Committing && !op.Client.Aborting) && op.Client.TransactionRunning()
+				if retryEnabled && !inTransaction &&
+					(tt.HasErrorLabel(NetworkError) || (retryableErr && preRetryWriteLabelVersion)) {
+					tt.Labels = append(tt.Labels, RetryableWriteError)
+				}
+			} else {
+				retryableErr = tt.RetryableRead()
+			}
+			olRetryErr := tt.HasErrorLabel(ErrRetryableError) && isOverloadedError
+			needRetry := (retrySupported && retryEnabled && retryableErr) || (op.MaxAdaptiveRetries != 0 && olRetryErr)
+			if needRetry && currentBudget.allows(attempt) {
+				if op.Client != nil && op.Client.Committing && !olRetryErr {
+					op.Client.UpdateCommitTransactionWriteConcern()
+					op.WriteConcern = op.Client.CurrentWc
+				}
+				if retryErr := resetForRetry(tt); retryErr != nil {
+					return false, retryErr
+				}
+				return true, nil
+			}
+			if tt.HasErrorLabel(NoWritesPerformed) && allowSub {
+				return handleErr(prevIndefiniteErr, false)
+			}
+			if op.ProcessResponseFn != nil {
+				info := ResponseInfo{
+					Server:                srvr,
+					Connection:            conn,
+					ConnectionDescription: ar.desc.Server,
+					CurrentIndex:          currIndex,
+					Error:                 tt,
+				}
+				_ = op.ProcessResponseFn(ctx, res, info)
+			}
+			if op.Client != nil && op.Client.Committing && (retryableErr || tt.Code == 50) {
+				tt.Labels = append(tt.Labels, UnknownTransactionCommitResult)
+			}
+			return false, tt
+
+		case nil:
+			if ar.moreToCome {
+				return false, ErrUnacknowledgedWrite
+			}
+			if op.ProcessResponseFn != nil {
+				info := ResponseInfo{
+					Server:                srvr,
+					Connection:            conn,
+					ConnectionDescription: ar.desc.Server,
+					CurrentIndex:          currIndex,
+				}
+				if perr := op.ProcessResponseFn(ctx, res, info); perr != nil {
+					return false, perr
+				}
+			}
+			return false, nil
+
+		default:
+			if op.ProcessResponseFn != nil {
+				info := ResponseInfo{
+					Server:                srvr,
+					Connection:            conn,
+					ConnectionDescription: ar.desc.Server,
+					CurrentIndex:          currIndex,
+					Error:                 tt,
+				}
+				_ = op.ProcessResponseFn(ctx, res, info)
+			}
+			return false, err
+		}
+	}
+
 	for {
 		// If we're starting a retry and the error from the previous try was
 		// a context canceled or deadline exceeded error, stop retrying and
@@ -673,7 +982,7 @@ func (op Operation) Execute(ctx context.Context) error {
 			return prevErr
 		}
 
-		currentBudget := nextBudget
+		currentBudget = nextBudget
 		nextBudget = defaultBudget
 
 		requestID := wiremessage.NextRequestID()
@@ -735,7 +1044,7 @@ func (op Operation) Execute(ctx context.Context) error {
 			// Calling IncrementTxnNumber() for server descriptions or topologies that do not
 			// support retries (e.g. standalone topologies) will cause server errors. Only do this
 			// check for the first attempt to keep retried writes in the same transaction.
-			retryEnabled := op.RetryMode != nil && op.RetryMode.Enabled()
+			retryEnabled = op.RetryMode != nil && op.RetryMode.Enabled()
 			needToIncrease := op.Client != nil && !op.Client.Committing && !op.Client.Aborting
 			if retrySupported && op.Type == Write && retryEnabled && needToIncrease {
 				op.Client.IncrementTxnNumber()
@@ -744,349 +1053,21 @@ func (op Operation) Execute(ctx context.Context) error {
 			first = false
 		}
 
-		// Calculate maxTimeMS value to potentially be appended to the wire message.
-		maxTimeMS, err := op.calculateMaxTimeMS(ctx, srvr.RTTMonitor().Min(), srvr.RTTMonitor().Stats())
-		if err != nil {
-			return err
+		ar, wm, err = op.executeAttempt(ctx, srvr, conn, requestID, wm)
+		res = ar.res
+		retryEnabled = op.RetryMode != nil && op.RetryMode.Enabled()
+		doRetry, returnErr := handleErr(err, true)
+		if doRetry {
+			continue
 		}
-
-		// Set maxTimeMS to 0 if connected to mongocryptd to avoid appending the field. The final
-		// encrypted command may contain multiple maxTimeMS fields otherwise.
-		if conn.Description().IsCryptd {
-			maxTimeMS = 0
-		}
-
-		desc := description.SelectedServer{
-			Server: conn.Description(),
-			Kind:   op.Deployment.Kind(),
-		}
-
-		var moreToCome bool
-		var startedInfo startedInformation
-		*wm, moreToCome, startedInfo, err = op.createWireMessage(ctx, maxTimeMS, (*wm)[:0], desc, conn, requestID)
-		if err != nil {
-			return err
-		}
-		retryEnabled := op.RetryMode != nil && op.RetryMode.Enabled()
-
-		// set extra data and send event if possible
-		startedInfo.connID = conn.ID()
-		startedInfo.driverConnectionID = conn.DriverConnectionID()
-		startedInfo.cmdName = op.getCommandName(startedInfo.cmd)
-
-		// If the command name does not match the operation name, update
-		// the operation name as a sanity check. It's more correct to
-		// be aligned with the data passed to the server via the
-		// wire message.
-		if startedInfo.cmdName != op.Name {
-			op.Name = startedInfo.cmdName
-		}
-
-		startedInfo.redacted = op.redactCommand(startedInfo.cmdName, startedInfo.cmd)
-		startedInfo.serviceID = conn.Description().ServiceID
-		startedInfo.serverConnID = conn.ServerConnectionID()
-		startedInfo.serverAddress = conn.Description().Addr
-
-		op.publishStartedEvent(ctx, startedInfo)
-
-		// compress wiremessage if allowed
-		if compressor := conn.Compressor; compressor != nil && op.canCompress(startedInfo.cmdName) {
-			b := memoryPool.Get().(*[]byte)
-			*b, err = compressor.CompressWireMessage(*wm, (*b)[:0])
-			memoryPool.Put(wm)
-			wm = b
-			if err != nil {
-				return err
-			}
-		}
-
-		finishedInfo := finishedInformation{
-			cmdName:            startedInfo.cmdName,
-			driverConnectionID: startedInfo.driverConnectionID,
-			requestID:          startedInfo.requestID,
-			connID:             startedInfo.connID,
-			serverConnID:       startedInfo.serverConnID,
-			redacted:           startedInfo.redacted,
-			serviceID:          startedInfo.serviceID,
-			serverAddress:      desc.Addr,
-		}
-
-		startedTime := time.Now()
-
-		// Check for possible context error. If no context error, check if there's enough time to perform a
-		// round trip before the Context deadline. If ctx is a Timeout Context, use the 90th percentile RTT
-		// as a threshold. Otherwise, use the minimum observed RTT.
-		if ctx.Err() != nil {
-			err = ctx.Err()
-		} else if deadline, ok := ctx.Deadline(); ok {
-			if time.Now().Add(srvr.RTTMonitor().Min()).After(deadline) {
-				err = fmt.Errorf("%w: %v", ErrDeadlineWouldBeExceeded, srvr.RTTMonitor().Stats())
-			}
-		}
-
-		if err == nil {
-			// roundtrip using either the full roundTripper or a special one for when the moreToCome
-			// flag is set
-			roundTrip := op.roundTrip
-			if moreToCome {
-				roundTrip = op.moreToComeRoundTrip
-			}
-			res, err = roundTrip(ctx, conn, *wm)
-
-			if ep, ok := srvr.(ErrorProcessor); ok {
-				_ = ep.ProcessError(err, conn)
-			}
-		}
-
-		finishedInfo.response = res
-		finishedInfo.cmdErr = err
-		finishedInfo.duration = time.Since(startedTime)
-
-		op.publishFinishedEvent(ctx, finishedInfo)
-
-		// prevIndefiniteErrorIsSet is "true" if the "err" variable has been set to the "prevIndefiniteErr" in
-		// a case in the switch statement below.
-		var prevIndefiniteErrIsSet bool
-
-		// TODO(GODRIVER-2579): When refactoring the "Execute" method, consider creating a separate method for the
-		// error handling logic below. This will remove the necessity of the "checkError" goto label.
-	checkError:
-		switch tt := err.(type) {
-		case WriteCommandError:
-			if e := err.(WriteCommandError); retrySupported && op.Type == Write && e.UnsupportedStorageEngine() {
-				return ErrUnsupportedStorageEngine
-			}
-
-			isOverloadedError = tt.HasErrorLabel(ErrSystemOverloadedError)
-			if isOverloadedError && op.MaxAdaptiveRetries != 0 {
-				// If maxAdaptiveRetries is set, we want to retry overload errors until
-				// we hit that max.
-				nextBudget = cappedRetryBudget(op.MaxAdaptiveRetries)
-				currentBudget = nextBudget
-			}
-			connDesc := conn.Description()
-			retryableErr := tt.Retryable(connDesc.Kind, connDesc.WireVersion)
-			preRetryWriteLabelVersion := connDesc.WireVersion != nil && connDesc.WireVersion.Max < 9
-			inTransaction := op.Client != nil &&
-				(!op.Client.Committing && !op.Client.Aborting) && op.Client.TransactionRunning()
-			// If retry is enabled and the operation isn't in a transaction, add a RetryableWriteError label for
-			// retryable errors from pre-4.4 servers
-			if retryableErr && preRetryWriteLabelVersion && retryEnabled && !inTransaction {
-				tt.Labels = append(tt.Labels, RetryableWriteError)
-			}
-			olRetryErr := tt.HasErrorLabel(ErrRetryableError) && isOverloadedError
-			needRetry := (retrySupported && retryEnabled && retryableErr) || (op.MaxAdaptiveRetries != 0 && olRetryErr)
-
-			// If retries are supported for the current operation on the first server description,
-			// the error is considered retryable, and the budget allows another
-			// attempt, retry the operation.
-			if needRetry && currentBudget.allows(attempt) {
-				if op.Client != nil && op.Client.Committing && !olRetryErr {
-					// Apply majority write concern for retries
-					op.Client.UpdateCommitTransactionWriteConcern()
-					op.WriteConcern = op.Client.CurrentWc
-				}
-				if err = resetForRetry(tt); err != nil {
-					return err
-				}
-				continue
-			}
-
-			// If the error is no longer retryable and has the NoWritesPerformed label, then we should
-			// set the error to the "previous indefinite error" unless the current error is already the
-			// "previous indefinite error". After resetting, repeat the error check.
-			if tt.HasErrorLabel(NoWritesPerformed) && !prevIndefiniteErrIsSet {
-				err = prevIndefiniteErr
-				prevIndefiniteErrIsSet = true
-
-				goto checkError
-			}
-
-			// If the operation isn't being retried, process the response
-			if op.ProcessResponseFn != nil {
-				info := ResponseInfo{
-					Server:                srvr,
-					Connection:            conn,
-					ConnectionDescription: desc.Server,
-					CurrentIndex:          currIndex,
-					Error:                 tt,
-				}
-				_ = op.ProcessResponseFn(ctx, res, info)
-			}
-
-			// If batching is enabled and either ordered is the default (which is true) or
-			// explicitly set to true and we have write errors, return the errors.
-			if op.Batches != nil && len(tt.WriteErrors) > 0 {
-				if currIndex > 0 {
-					for i := range tt.WriteErrors {
-						tt.WriteErrors[i].Index += int64(currIndex)
-					}
-				}
-				if isOrdered := op.Batches.IsOrdered(); isOrdered == nil || *isOrdered {
-					return tt
-				}
-			}
-			if op.Client != nil && op.Client.Committing && tt.WriteConcernError != nil {
-				// When running commitTransaction we return WriteConcernErrors as an Error.
-				err := Error{
-					Name:    tt.WriteConcernError.Name,
-					Code:    int32(tt.WriteConcernError.Code),
-					Message: tt.WriteConcernError.Message,
-					Labels:  tt.Labels,
-					Raw:     tt.Raw,
-				}
-				// The UnknownTransactionCommitResult label is added to all writeConcernErrors besides unknownReplWriteConcernCode
-				// and unsatisfiableWriteConcernCode
-				if err.Code != unknownReplWriteConcernCode && err.Code != unsatisfiableWriteConcernCode {
-					err.Labels = append(err.Labels, UnknownTransactionCommitResult)
-				}
-				if retryableErr && retryEnabled {
-					err.Labels = append(err.Labels, RetryableWriteError)
-				}
-				return err
-			}
-			operationErr.WriteConcernError = tt.WriteConcernError
-			operationErr.WriteErrors = append(operationErr.WriteErrors, tt.WriteErrors...)
-			operationErr.Labels = tt.Labels
-			operationErr.Raw = tt.Raw
-		case Error:
-			// 391 is the reauthentication required error code, so we will attempt a reauth and
-			// retry the operation, if it is successful.
-			if tt.Code == 391 {
-				if op.Authenticator != nil {
-					cfg := AuthConfig{
-						Description:  conn.Description(),
-						Connection:   conn,
-						ClusterClock: op.Clock,
-						ServerAPI:    op.ServerAPI,
-					}
-					if err := op.Authenticator.Reauth(ctx, &cfg); err != nil {
-						return fmt.Errorf("error reauthenticating: %w", err)
-					}
-					if op.Client != nil && op.Client.Committing {
-						// Apply majority write concern for retries
-						op.Client.UpdateCommitTransactionWriteConcern()
-						op.WriteConcern = op.Client.CurrentWc
-					}
-					if err = resetForRetry(tt); err != nil {
-						return err
-					}
-					continue
-				}
-			}
-			if tt.HasErrorLabel(TransientTransactionError) || tt.HasErrorLabel(UnknownTransactionCommitResult) {
-				if err := op.Client.ClearPinnedResources(); err != nil {
-					return err
-				}
-			}
-
-			if e := err.(Error); retrySupported && op.Type == Write && e.UnsupportedStorageEngine() {
-				return ErrUnsupportedStorageEngine
-			}
-
-			isOverloadedError = tt.HasErrorLabel(ErrSystemOverloadedError)
-			if isOverloadedError && op.MaxAdaptiveRetries != 0 {
-				// If maxAdaptiveRetries is set, we want to retry overload errors until
-				// we hit that max.
-				nextBudget = cappedRetryBudget(op.MaxAdaptiveRetries)
-				currentBudget = nextBudget
-			}
-			connDesc := conn.Description()
-			var retryableErr bool
-			if op.Type == Write {
-				retryableErr = tt.RetryableWrite(connDesc.WireVersion)
-				preRetryWriteLabelVersion := connDesc.WireVersion != nil && connDesc.WireVersion.Max < 9
-				inTransaction := op.Client != nil &&
-					(!op.Client.Committing && !op.Client.Aborting) && op.Client.TransactionRunning()
-				// If retryWrites is enabled and the operation isn't in a transaction, add a RetryableWriteError label
-				// for network errors and retryable errors from pre-4.4 servers
-				if retryEnabled && !inTransaction &&
-					(tt.HasErrorLabel(NetworkError) || (retryableErr && preRetryWriteLabelVersion)) {
-					tt.Labels = append(tt.Labels, RetryableWriteError)
-				}
-			} else {
-				retryableErr = tt.RetryableRead()
-			}
-			olRetryErr := tt.HasErrorLabel(ErrRetryableError) && isOverloadedError
-			needRetry := (retrySupported && retryEnabled && retryableErr) || (op.MaxAdaptiveRetries != 0 && olRetryErr)
-
-			// If retries are supported for the current operation on the first server description,
-			// the error is considered retryable, and the budget allows another
-			// attempt, retry the operation.
-			if needRetry && currentBudget.allows(attempt) {
-				if op.Client != nil && op.Client.Committing && !olRetryErr {
-					// Apply majority write concern for retries
-					op.Client.UpdateCommitTransactionWriteConcern()
-					op.WriteConcern = op.Client.CurrentWc
-				}
-				if err = resetForRetry(tt); err != nil {
-					return err
-				}
-				continue
-			}
-
-			// If the error is no longer retryable and has the NoWritesPerformed label, then we should
-			// set the error to the "previous indefinite error" unless the current error is already the
-			// "previous indefinite error". After resetting, repeat the error check.
-			if tt.HasErrorLabel(NoWritesPerformed) && !prevIndefiniteErrIsSet {
-				err = prevIndefiniteErr
-				prevIndefiniteErrIsSet = true
-
-				goto checkError
-			}
-
-			// If the operation isn't being retried, process the response
-			if op.ProcessResponseFn != nil {
-				info := ResponseInfo{
-					Server:                srvr,
-					Connection:            conn,
-					ConnectionDescription: desc.Server,
-					CurrentIndex:          currIndex,
-					Error:                 tt,
-				}
-				_ = op.ProcessResponseFn(ctx, res, info)
-			}
-
-			if op.Client != nil && op.Client.Committing && (retryableErr || tt.Code == 50) {
-				// If we got a retryable error or MaxTimeMSExpired error, we add UnknownTransactionCommitResult.
-				tt.Labels = append(tt.Labels, UnknownTransactionCommitResult)
-			}
-			return tt
-		case nil:
-			if moreToCome {
-				return ErrUnacknowledgedWrite
-			}
-			if op.ProcessResponseFn != nil {
-				info := ResponseInfo{
-					Server:                srvr,
-					Connection:            conn,
-					ConnectionDescription: desc.Server,
-					CurrentIndex:          currIndex,
-					Error:                 tt,
-				}
-				perr := op.ProcessResponseFn(ctx, res, info)
-				if perr != nil {
-					return perr
-				}
-			}
-		default:
-			if op.ProcessResponseFn != nil {
-				info := ResponseInfo{
-					Server:                srvr,
-					Connection:            conn,
-					ConnectionDescription: desc.Server,
-					CurrentIndex:          currIndex,
-					Error:                 tt,
-				}
-				_ = op.ProcessResponseFn(ctx, res, info)
-			}
-			return err
+		if returnErr != nil {
+			return returnErr
 		}
 
 		// If we're batching and there are batches remaining, advance to the next batch. This isn't
 		// a retry, so increment the transaction number, reset the retries number, and don't set
 		// server or connection to nil to continue using the same connection.
-		if op.Batches != nil && op.Batches.Size() > startedInfo.processedBatches {
+		if op.Batches != nil && op.Batches.Size() > ar.processedBatches {
 			// If retries are supported for the current operation on the current server description,
 			// the session isn't nil, and client retries are enabled, increment the txn number.
 			// Calling IncrementTxnNumber() for server descriptions or topologies that do not
@@ -1103,8 +1084,8 @@ func (op Operation) Execute(ctx context.Context) error {
 			isOverloadedError = false
 			expDur = 0
 			attempt = 0
-			currIndex += startedInfo.processedBatches
-			op.Batches.AdvanceBatches(startedInfo.processedBatches)
+			currIndex += ar.processedBatches
+			op.Batches.AdvanceBatches(ar.processedBatches)
 			continue
 		}
 		break

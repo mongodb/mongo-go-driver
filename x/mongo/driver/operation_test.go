@@ -16,6 +16,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/csot"
 	"go.mongodb.org/mongo-driver/v2/internal/handshake"
@@ -969,4 +970,130 @@ func BenchmarkRedactStartedInformationCmd(b *testing.B) {
 			}
 		})
 	}
+}
+
+func TestExecuteAttempt(t *testing.T) {
+	// Build a valid OP_MSG response with ok:1 used by multiple sub-tests.
+	okDoc := bsoncore.BuildDocumentFromElements(nil, bsoncore.AppendInt32Element(nil, "ok", 1))
+	okResponse := createExhaustServerResponse(okDoc, false)
+
+	// validDesc returns a Server description with WireVersion Min:6 Max:21.
+	validDesc := func() description.Server {
+		return description.Server{
+			WireVersion: &description.VersionRange{Min: 6, Max: 21},
+		}
+	}
+
+	t.Run("returns response on success", func(t *testing.T) {
+		mc := &mockConnection{
+			rDesc:   validDesc(),
+			rReadWM: okResponse,
+		}
+		conn := mnet.NewConnection(mc)
+		dep := SingleConnectionDeployment{C: conn}
+
+		op := Operation{
+			Database:   "test",
+			Deployment: dep,
+			CommandFn: func(dst []byte, _ description.SelectedServer) ([]byte, error) {
+				dst = bsoncore.AppendInt32Element(dst, "ping", 1)
+				return dst, nil
+			},
+		}
+
+		wm := make([]byte, 0, 256)
+		ar, _, err := op.executeAttempt(context.Background(), dep, conn, 1, &wm)
+		assert.Nil(t, err, "expected no error, got %v", err)
+		assert.NotNil(t, ar.res, "expected non-nil response document")
+	})
+
+	t.Run("returns error on write failure", func(t *testing.T) {
+		mc := &mockConnection{
+			rDesc:     validDesc(),
+			rReadWM:   okResponse,
+			rWriteErr: errors.New("write failed"),
+		}
+		conn := mnet.NewConnection(mc)
+		dep := SingleConnectionDeployment{C: conn}
+
+		op := Operation{
+			Database:   "test",
+			Deployment: dep,
+			CommandFn: func(dst []byte, _ description.SelectedServer) ([]byte, error) {
+				dst = bsoncore.AppendInt32Element(dst, "ping", 1)
+				return dst, nil
+			},
+		}
+
+		wm := make([]byte, 0, 256)
+		_, _, err := op.executeAttempt(context.Background(), dep, conn, 1, &wm)
+		assert.NotNil(t, err, "expected an error, got nil")
+	})
+
+	t.Run("returns ErrDeadlineWouldBeExceeded when RTT exceeds deadline", func(t *testing.T) {
+		mc := &mockConnection{
+			rDesc:   validDesc(),
+			rReadWM: okResponse,
+		}
+		conn := mnet.NewConnection(mc)
+		dep := SingleConnectionDeployment{C: conn}
+		srvr := mockServer{
+			conn:       conn,
+			rttMonitor: mockRTTMonitor{min: 1 * time.Minute},
+		}
+
+		dur := time.Duration(0)
+		op := Operation{
+			Database:   "test",
+			Deployment: dep,
+			Timeout:    &dur,
+			CommandFn: func(dst []byte, _ description.SelectedServer) ([]byte, error) {
+				dst = bsoncore.AppendInt32Element(dst, "ping", 1)
+				return dst, nil
+			},
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		defer cancel()
+
+		wm := make([]byte, 0, 256)
+		_, _, err := op.executeAttempt(ctx, srvr, conn, 1, &wm)
+		assert.ErrorIs(t, err, ErrDeadlineWouldBeExceeded)
+	})
+
+	t.Run("publishes APM started and finished events", func(t *testing.T) {
+		mc := &mockConnection{
+			rDesc:   validDesc(),
+			rReadWM: okResponse,
+		}
+		conn := mnet.NewConnection(mc)
+		dep := SingleConnectionDeployment{C: conn}
+
+		var startedEvents []*event.CommandStartedEvent
+		var succeededEvents []*event.CommandSucceededEvent
+
+		op := Operation{
+			Name:       "ping",
+			Database:   "test",
+			Deployment: dep,
+			CommandFn: func(dst []byte, _ description.SelectedServer) ([]byte, error) {
+				dst = bsoncore.AppendInt32Element(dst, "ping", 1)
+				return dst, nil
+			},
+			CommandMonitor: &event.CommandMonitor{
+				Started: func(_ context.Context, e *event.CommandStartedEvent) {
+					startedEvents = append(startedEvents, e)
+				},
+				Succeeded: func(_ context.Context, e *event.CommandSucceededEvent) {
+					succeededEvents = append(succeededEvents, e)
+				},
+			},
+		}
+
+		wm := make([]byte, 0, 256)
+		_, _, err := op.executeAttempt(context.Background(), dep, conn, 1, &wm)
+		assert.Nil(t, err, "expected no error, got %v", err)
+		assert.Equal(t, 1, len(startedEvents), "expected 1 started event, got %d", len(startedEvents))
+		assert.Equal(t, 1, len(succeededEvents), "expected 1 succeeded event, got %d", len(succeededEvents))
+	})
 }
