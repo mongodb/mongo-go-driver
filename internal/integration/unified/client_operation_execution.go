@@ -16,6 +16,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/bsonutil"
+	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
@@ -101,6 +102,14 @@ func executeCreateChangeStream(ctx context.Context, operation *operation) (*oper
 	}
 	if pipeline == nil {
 		return nil, newMissingArgumentError("pipeline")
+	}
+
+	// TODO: Comment.
+	if mtest.ClusterTopologyKind() == mtest.Sharded {
+		err := mtest.AdvanceConfigClusterTime(context.Background())
+		if err != nil {
+			return nil, fmt.Errorf("error advancing cluster time: %w", err)
+		}
 	}
 
 	stream, err := watcher.Watch(ctx, pipeline, opts)
@@ -296,7 +305,8 @@ func executeClientBulkWrite(ctx context.Context, operation *operation) (*operati
 
 	resBuilder = bsoncore.NewDocumentBuilder()
 	for k, v := range res.DeleteResults {
-		resBuilder.AppendDocument(strconv.Itoa(k),
+		resBuilder.AppendDocument(
+			strconv.Itoa(k),
 			bsoncore.NewDocumentBuilder().
 				AppendInt64("deletedCount", v.DeletedCount).
 				Build(),
@@ -310,7 +320,8 @@ func executeClientBulkWrite(ctx context.Context, operation *operation) (*operati
 		if err != nil {
 			return nil, err
 		}
-		resBuilder.AppendDocument(strconv.Itoa(k),
+		resBuilder.AppendDocument(
+			strconv.Itoa(k),
 			bsoncore.NewDocumentBuilder().
 				AppendValue("insertedId", bsoncore.Value{Type: bsoncore.Type(t), Data: d}).
 				Build(),
