@@ -29,38 +29,77 @@ func TestNoWritesPerformedLabel(t *testing.T) {
 	// Sharded topologies are excluded because a failpoint is applied to only a single mongoS.
 	mtOpts := mtest.NewOptions().MinServerVersion("4.4").Topologies(mtest.ReplicaSet)
 
-	mt.RunOpts("RunCommand returns the server error on the first attempt", mtOpts, func(mt *mtest.T) {
-		const errorCode int32 = 262 // ExceededTimeLimit
+	const errorCode int32 = 262 // ExceededTimeLimit
 
-		mt.SetFailPoint(failpoint.FailPoint{
-			ConfigureFailPoint: "failCommand",
-			Mode: failpoint.Mode{
-				Times: 1,
+	testCases := []struct {
+		name        string
+		failCommand string
+		setup       func(mt *mtest.T) // nil when the test needs no seed data
+		execute     func(mt *mtest.T) *mongo.SingleResult
+	}{
+		{
+			name:        "RunCommand returns the server error on the first attempt",
+			failCommand: "insert",
+			execute: func(mt *mtest.T) *mongo.SingleResult {
+				return mt.DB.RunCommand(context.Background(), bson.D{
+					{Key: "insert", Value: mt.Coll.Name()},
+					{Key: "documents", Value: bson.A{bson.D{{Key: "x", Value: 1}}}},
+				})
 			},
-			Data: failpoint.Data{
-				FailCommands: []string{"insert"},
-				ErrorCode:    errorCode,
-				ErrorLabels:  &[]string{"SystemOverloadedError", "NoWritesPerformed"},
+		},
+		{
+			// GODRIVER-4098: findAndModify reports its result in the "value" field. A discarded
+			// error leaves the SingleResult reading that field from the server's error response,
+			// where it does not exist, so a matching document is reported as no document at all.
+			name:        "FindOneAndUpdate returns the server error on the first attempt",
+			failCommand: "findAndModify",
+			setup: func(mt *mtest.T) {
+				_, err := mt.Coll.InsertOne(context.Background(), bson.D{{Key: "x", Value: 1}})
+				require.NoError(mt, err, "InsertOne error: %v", err)
 			},
+			execute: func(mt *mtest.T) *mongo.SingleResult {
+				return mt.Coll.FindOneAndUpdate(context.Background(),
+					bson.D{{Key: "x", Value: 1}},
+					bson.D{{Key: "$set", Value: bson.D{{Key: "y", Value: 2}}}})
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		mt.RunOpts(tc.name, mtOpts, func(mt *mtest.T) {
+			if tc.setup != nil {
+				tc.setup(mt)
+			}
+
+			mt.SetFailPoint(failpoint.FailPoint{
+				ConfigureFailPoint: "failCommand",
+				Mode: failpoint.Mode{
+					Times: 1,
+				},
+				Data: failpoint.Data{
+					FailCommands: []string{tc.failCommand},
+					ErrorCode:    errorCode,
+					ErrorLabels:  &[]string{"SystemOverloadedError", "NoWritesPerformed"},
+				},
+			})
+
+			res := tc.execute(mt)
+
+			err := res.Err()
+			require.Error(mt, err, "expected an error from %s, got nil", tc.failCommand)
+			require.False(mt, errors.Is(err, mongo.ErrNoDocuments),
+				"expected the server error, got ErrNoDocuments")
+
+			var cerr mongo.CommandError
+			require.True(mt, errors.As(err, &cerr), "expected a mongo.CommandError, got %v", err)
+			require.Equal(mt, errorCode, cerr.Code, "expected error code 262")
+			require.True(mt, cerr.HasErrorLabel("NoWritesPerformed"),
+				"expected the error to have the NoWritesPerformed label")
+
+			// Decode must report the error rather than handing back the server's
+			// error-response document as a result.
+			var raw bson.Raw
+			require.Error(mt, res.Decode(&raw), "expected an error from Decode, got nil and document %v", raw)
 		})
-
-		res := mt.DB.RunCommand(context.Background(), bson.D{
-			{Key: "insert", Value: mt.Coll.Name()},
-			{Key: "documents", Value: bson.A{bson.D{{Key: "x", Value: 1}}}},
-		})
-
-		err := res.Err()
-		require.Error(mt, err, "expected an error from RunCommand, got nil")
-
-		var cerr mongo.CommandError
-		require.True(mt, errors.As(err, &cerr), "expected a mongo.CommandError, got %v", err)
-		require.Equal(mt, errorCode, cerr.Code, "expected error code 262")
-		require.True(mt, cerr.HasErrorLabel("NoWritesPerformed"),
-			"expected the error to have the NoWritesPerformed label")
-
-		// Decode must report the error rather than handing back the server's
-		// error-response document as a result.
-		var raw bson.Raw
-		require.Error(mt, res.Decode(&raw), "expected an error from Decode, got nil and document %v", raw)
-	})
+	}
 }
