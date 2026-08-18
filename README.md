@@ -24,7 +24,7 @@ The MongoDB Go Driver follows [semantic versioning](https://semver.org/) for its
 
 - Go 1.25 or higher. The Go Driver supports the last two Go minor versions.
 - Go 1.26 or higher is required to run the driver test suite.
-- MongoDB 4.2 and higher.
+- MongoDB 4.4 and higher.
 
 ## Installation
 

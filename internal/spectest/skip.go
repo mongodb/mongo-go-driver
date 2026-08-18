@@ -1075,6 +1075,23 @@ var skipTests = map[string][]skipCase{
 			},
 		},
 	},
+
+	// TODO(DRIVERS-3582):Remove MongoDB 4.2 references from all specifications
+	// and tests
+	"Remove MongoDB 4.2 references from all specifications and tests": {
+		{
+			tests: []string{
+				"TestSDAMSpec/errors/post-42-InterruptedAtShutdown.json",
+				"TestSDAMSpec/errors/post-42-InterruptedDueToReplStateChange.json",
+				"TestSDAMSpec/errors/post-42-LegacyNotPrimary.json",
+				"TestSDAMSpec/errors/post-42-NotPrimaryNoSecondaryOk.json",
+				"TestSDAMSpec/errors/post-42-NotPrimaryOrSecondary.json",
+				"TestSDAMSpec/errors/post-42-NotWritablePrimary.json",
+				"TestSDAMSpec/errors/post-42-PrimarySteppedDown.json",
+				"TestSDAMSpec/errors/post-42-ShutdownInProgress.json",
+			},
+		},
+	},
 }
 
 type options struct {
