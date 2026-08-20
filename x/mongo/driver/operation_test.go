@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"testing"
 	"time"
@@ -19,6 +20,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/csot"
 	"go.mongodb.org/mongo-driver/v2/internal/handshake"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
 	"go.mongodb.org/mongo-driver/v2/internal/uuid"
 	"go.mongodb.org/mongo-driver/v2/mongo/address"
@@ -967,6 +969,114 @@ func BenchmarkRedactStartedInformationCmd(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				redactStartedInformationCmd(info)
 			}
+		})
+	}
+}
+
+func TestOverloadBackoff(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		base    time.Duration
+		attempt uint
+		want    time.Duration
+	}{
+		{
+			name:    "first retry",
+			base:    100 * time.Millisecond,
+			attempt: 1,
+			want:    200 * time.Millisecond,
+		},
+		{
+			name:    "second retry",
+			base:    100 * time.Millisecond,
+			attempt: 2,
+			want:    400 * time.Millisecond,
+		},
+		{
+			name:    "third retry",
+			base:    100 * time.Millisecond,
+			attempt: 3,
+			want:    800 * time.Millisecond,
+		},
+		{
+			name:    "capped at backoffMax",
+			base:    100 * time.Millisecond,
+			attempt: 7,
+			want:    backoffMax,
+		},
+		{
+			name:    "no overflow for large attempts",
+			base:    100 * time.Millisecond,
+			attempt: 1000,
+			want:    backoffMax,
+		},
+	}
+
+	for _, test := range tests {
+		test := test
+
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			require.Equal(t, test.want, overloadBackoff(test.base, test.attempt))
+		})
+	}
+}
+
+func TestServerBaseBackoff(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		err  error
+		want time.Duration
+	}{
+		{
+			name: "nil error",
+			err:  nil,
+			want: 0,
+		},
+		{
+			name: "unrelated error",
+			err:  errors.New("foo"),
+			want: 0,
+		},
+		{
+			name: "command error without baseBackoffMS",
+			err:  Error{},
+			want: 0,
+		},
+		{
+			name: "command error with baseBackoffMS",
+			err:  Error{BaseBackoff: 50 * time.Millisecond},
+			want: 50 * time.Millisecond,
+		},
+		{
+			name: "wrapped command error with baseBackoffMS",
+			err:  fmt.Errorf("wrapped: %w", Error{BaseBackoff: 50 * time.Millisecond}),
+			want: 50 * time.Millisecond,
+		},
+		{
+			name: "write command error without baseBackoffMS",
+			err:  WriteCommandError{},
+			want: 0,
+		},
+		{
+			name: "write command error with baseBackoffMS",
+			err:  WriteCommandError{BaseBackoff: 50 * time.Millisecond},
+			want: 50 * time.Millisecond,
+		},
+	}
+
+	for _, test := range tests {
+		test := test
+
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			require.Equal(t, test.want, serverBaseBackoff(test.err))
 		})
 	}
 }
