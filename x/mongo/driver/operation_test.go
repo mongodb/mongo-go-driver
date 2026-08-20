@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"testing"
 	"time"
@@ -1049,7 +1050,12 @@ func TestServerBaseBackoff(t *testing.T) {
 		},
 		{
 			name: "command error with baseBackoffMS",
-			err:  Error{BaseBackoffMS: 50},
+			err:  Error{BaseBackoff: 50 * time.Millisecond},
+			want: 50 * time.Millisecond,
+		},
+		{
+			name: "wrapped command error with baseBackoffMS",
+			err:  fmt.Errorf("wrapped: %w", Error{BaseBackoff: 50 * time.Millisecond}),
 			want: 50 * time.Millisecond,
 		},
 		{
@@ -1059,7 +1065,7 @@ func TestServerBaseBackoff(t *testing.T) {
 		},
 		{
 			name: "write command error with baseBackoffMS",
-			err:  WriteCommandError{BaseBackoffMS: 50},
+			err:  WriteCommandError{BaseBackoff: 50 * time.Millisecond},
 			want: 50 * time.Millisecond,
 		},
 	}

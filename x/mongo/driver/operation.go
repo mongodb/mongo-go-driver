@@ -2301,14 +2301,17 @@ func overloadBackoff(base time.Duration, attempt uint) time.Duration {
 
 // serverBaseBackoff returns the server-supplied base backoff attached to err.
 func serverBaseBackoff(err error) time.Duration {
-	switch e := err.(type) {
-	case Error:
-		return time.Duration(e.BaseBackoffMS) * time.Millisecond
-	case WriteCommandError:
-		return time.Duration(e.BaseBackoffMS) * time.Millisecond
-	default:
-		return 0
+	var cerr Error
+	if errors.As(err, &cerr) {
+		return cerr.BaseBackoff
 	}
+
+	var wce WriteCommandError
+	if errors.As(err, &wce) {
+		return wce.BaseBackoff
+	}
+
+	return 0
 }
 
 // sessionsSupported returns true of the given server version indicates that it supports sessions.

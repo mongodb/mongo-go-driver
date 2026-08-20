@@ -8,6 +8,7 @@ package driver
 
 import (
 	"testing"
+	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
@@ -32,7 +33,7 @@ func TestExtractErrorFromServerResponse_BaseBackoffMS(t *testing.T) {
 		tests := []struct {
 			name string
 			doc  bson.D
-			want int64
+			want time.Duration
 		}{
 			{
 				name: "absent",
@@ -42,17 +43,17 @@ func TestExtractErrorFromServerResponse_BaseBackoffMS(t *testing.T) {
 			{
 				name: "int32",
 				doc:  bson.D{{"ok", 0}, {"code", 462}, {"errmsg", "overloaded"}, {"baseBackoffMS", int32(50)}},
-				want: 50,
+				want: 50 * time.Millisecond,
 			},
 			{
 				name: "int64",
 				doc:  bson.D{{"ok", 0}, {"code", 462}, {"errmsg", "overloaded"}, {"baseBackoffMS", int64(50)}},
-				want: 50,
+				want: 50 * time.Millisecond,
 			},
 			{
 				name: "double",
 				doc:  bson.D{{"ok", 0}, {"code", 462}, {"errmsg", "overloaded"}, {"baseBackoffMS", 50.0}},
-				want: 50,
+				want: 50 * time.Millisecond,
 			},
 		}
 
@@ -66,7 +67,7 @@ func TestExtractErrorFromServerResponse_BaseBackoffMS(t *testing.T) {
 
 				cerr, ok := err.(Error)
 				require.Truef(t, ok, "expected an Error, got %T: %v", err, err)
-				require.Equal(t, test.want, cerr.BaseBackoffMS)
+				require.Equal(t, test.want, cerr.BaseBackoff)
 			})
 		}
 	})
@@ -84,7 +85,7 @@ func TestExtractErrorFromServerResponse_BaseBackoffMS(t *testing.T) {
 
 		wce, ok := err.(WriteCommandError)
 		require.Truef(t, ok, "expected a WriteCommandError, got %T: %v", err, err)
-		require.Equal(t, int64(50), wce.BaseBackoffMS)
+		require.Equal(t, 50*time.Millisecond, wce.BaseBackoff)
 	})
 
 	t.Run("write concern error", func(t *testing.T) {
@@ -103,6 +104,6 @@ func TestExtractErrorFromServerResponse_BaseBackoffMS(t *testing.T) {
 
 		wce, ok := err.(WriteCommandError)
 		require.Truef(t, ok, "expected a WriteCommandError, got %T: %v", err, err)
-		require.Equal(t, int64(50), wce.BaseBackoffMS)
+		require.Equal(t, 50*time.Millisecond, wce.BaseBackoff)
 	})
 }
