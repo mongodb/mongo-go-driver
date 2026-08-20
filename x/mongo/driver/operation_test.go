@@ -19,6 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/csot"
 	"go.mongodb.org/mongo-driver/v2/internal/handshake"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
 	"go.mongodb.org/mongo-driver/v2/internal/uuid"
 	"go.mongodb.org/mongo-driver/v2/mongo/address"
@@ -672,6 +673,67 @@ func TestOperation(t *testing.T) {
 
 		assert.ErrorIs(t, err, ErrDeadlineWouldBeExceeded)
 		assert.ErrorIs(t, err, context.DeadlineExceeded)
+	})
+	t.Run("NoWritesPerformed on the first attempt returns the current error", func(t *testing.T) {
+		labels := bson.A{"SystemOverloadedError", "NoWritesPerformed"}
+		const errorCode int32 = 262 // ExceededTimeLimit
+
+		executeInsert := func(t *testing.T, response bson.D) error {
+			t.Helper()
+
+			doc, err := bson.Marshal(response)
+			require.NoError(t, err, "Marshal error: %v", err)
+
+			conn := &mockConnection{rReadWM: createExhaustServerResponse(doc, false)}
+			op := Operation{
+				CommandFn: func(dst []byte, _ description.SelectedServer) ([]byte, error) {
+					return bsoncore.AppendInt32Element(dst, "insert", 1), nil
+				},
+				Database:   "foobar",
+				Deployment: SingleConnectionDeployment{C: mnet.NewConnection(conn)},
+				Type:       Write,
+			}
+
+			return op.Execute(context.Background())
+		}
+
+		t.Run("command error", func(t *testing.T) {
+			err := executeInsert(t, bson.D{
+				{Key: "ok", Value: 0},
+				{Key: "code", Value: errorCode},
+				{Key: "codeName", Value: "ExceededTimeLimit"},
+				{Key: "errmsg", Value: "operation was interrupted"},
+				{Key: "errorLabels", Value: labels},
+			})
+
+			require.Error(t, err, "expected an error from Execute(), got nil")
+
+			var cerr Error
+			require.True(t, errors.As(err, &cerr), "expected an Error, got %v", err)
+			require.Equal(t, errorCode, cerr.Code, "expected error code 262")
+			require.True(t, cerr.HasErrorLabel(NoWritesPerformed),
+				"expected the error to have the NoWritesPerformed label")
+		})
+		t.Run("write concern error", func(t *testing.T) {
+			err := executeInsert(t, bson.D{
+				{Key: "ok", Value: 1},
+				{Key: "n", Value: 0},
+				{Key: "writeConcernError", Value: bson.D{
+					{Key: "code", Value: errorCode},
+					{Key: "codeName", Value: "ExceededTimeLimit"},
+					{Key: "errmsg", Value: "operation was interrupted"},
+					{Key: "errorLabels", Value: labels},
+				}},
+			})
+
+			require.Error(t, err, "expected an error from Execute(), got nil")
+
+			var wce WriteCommandError
+			require.True(t, errors.As(err, &wce), "expected a WriteCommandError, got %v", err)
+			require.NotNil(t, wce.WriteConcernError, "expected a write concern error")
+			require.True(t, wce.HasErrorLabel(NoWritesPerformed),
+				"expected the error to have the NoWritesPerformed label")
+		})
 	})
 }
 
