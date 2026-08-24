@@ -51,7 +51,7 @@ func TestBackpressureProse(t *testing.T) {
 		withBackoffTime := transWithJitter(mt, 1)
 		assert.InDelta(
 			mt,
-			withBackoffTime, noBackoffTime+300*time.Millisecond, float64(300*time.Millisecond),
+			withBackoffTime, noBackoffTime+600*time.Millisecond, float64(600*time.Millisecond),
 			"with backoff time: %v, no backoff time: %v", withBackoffTime, noBackoffTime,
 		)
 	})
@@ -110,5 +110,59 @@ func TestBackpressureProse(t *testing.T) {
 		assert.True(mt, cmdErr.HasErrorLabel("RetryableError"), `expected error has "RetryableError" label`)
 		assert.True(mt, cmdErr.HasErrorLabel("SystemOverloadedError"), `expected error has "SystemOverloadedError" label`)
 		assert.Equalf(mt, 2, opsCnt, "expected 2 attempts (1 original + 1 retry), got %d", opsCnt)
+	})
+	mt.RunOpts("5. Overload Errors with baseBackoffMS override base backoff", mtest.NewOptions().MinServerVersion("9.0"), func(mt *mtest.T) {
+		mt.SetFailPoint(failpoint.FailPoint{
+			ConfigureFailPoint: "failCommand",
+			Mode:               failpoint.ModeAlwaysOn,
+			Data: failpoint.Data{
+				FailCommands: []string{"insert"},
+				ErrorCode:    462,
+				ErrorLabels:  &[]string{"SystemOverloadedError", "RetryableError"},
+			},
+		})
+
+		mt.ResetClient(options.Client())
+
+		setExternalClientBaseBackoffMS := func(ms int) {
+			err := mt.Client.Database("admin").RunCommand(context.Background(), bson.D{
+				{"setParameter", 1},
+				{"externalClientBaseBackoffMS", ms},
+			}).Err()
+			require.NoError(mt, err, "setParameter externalClientBaseBackoffMS=%d error: %v", ms, err)
+		}
+
+		insertWithJitter := func() (time.Duration, mongo.CommandError) {
+			defer randutil.SetJitterForTesting(func() float64 { return 1 })()
+
+			startTime := time.Now()
+			_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"a", 1}})
+			duration := time.Since(startTime)
+
+			var cmdErr mongo.CommandError
+			require.Truef(mt, errors.As(err, &cmdErr), "expected a CommandError, got %T: %v", err, err)
+			return duration, cmdErr
+		}
+
+		exponentialTime, exponentialErr := insertWithJitter()
+		_, err := exponentialErr.Raw.LookupErr("baseBackoffMS")
+		require.Error(mt, err, "expected no baseBackoffMS on the error before setting externalClientBaseBackoffMS")
+
+		setExternalClientBaseBackoffMS(50)
+		defer setExternalClientBaseBackoffMS(0)
+
+		baseBackoffTime, baseBackoffErr := insertWithJitter()
+		baseBackoffMS, err := baseBackoffErr.Raw.LookupErr("baseBackoffMS")
+		require.NoError(mt, err, "expected the server to attach baseBackoffMS to the error")
+		baseBackoffMSVal, ok := baseBackoffMS.AsInt64OK()
+		require.True(mt, ok, "expected baseBackoffMS to be numeric, got %v", baseBackoffMS.Type)
+		require.Equal(mt, int64(50), baseBackoffMSVal, "expected baseBackoffMS to be 50")
+
+		assert.GreaterOrEqual(mt, exponentialTime, 600*time.Millisecond,
+			"expected the default backoff run to take at least 600ms, took %v", exponentialTime)
+		assert.GreaterOrEqual(mt, baseBackoffTime, 300*time.Millisecond,
+			"expected the baseBackoffMS run to take at least 300ms, took %v", baseBackoffTime)
+		assert.Less(mt, baseBackoffTime, 600*time.Millisecond,
+			"expected the baseBackoffMS run to take less than 600ms, took %v", baseBackoffTime)
 	})
 }

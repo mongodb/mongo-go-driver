@@ -1252,7 +1252,7 @@ func TestHandshakeProse_AppendMetadata_EmptyStrings_InitializedClient(t *testing
 	}
 }
 
-// Test 9: Handshake documents include backpressure: true
+// Test 9: Handshake documents include backpressure: "2"
 func TestHandshakeProse_Handshake_Documents(t *testing.T) {
 	mt := mtest.New(t,
 		mtest.NewOptions().CreateCollection(false).ClientType(mtest.Proxy),
@@ -1268,7 +1268,9 @@ func TestHandshakeProse_Handshake_Documents(t *testing.T) {
 
 	v, err := firstMessage.Sent.Command.LookupErr("backpressure")
 	require.NoError(mt, err, "expected backpressure field in handshake command document")
-	require.True(mt, v.Boolean(), "expected backpressure field to be true")
+	str, ok := v.StringValueOK()
+	require.True(mt, ok, "expected backpressure field to be a string, got %v", v.Type)
+	require.Equal(mt, "2", str, `expected backpressure field to be "2"`)
 }
 
 // mustMarshalBSON marshals a value to BSON. It panics if any error occurs.
