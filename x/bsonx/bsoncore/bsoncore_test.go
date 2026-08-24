@@ -16,6 +16,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
 )
 
 func compareErrors(err1, err2 error) bool {
@@ -974,14 +975,77 @@ func TestInvalidBytes(t *testing.T) {
 }
 
 func TestValueLengthOverflow(t *testing.T) {
-	t.Parallel()
+	// maxInt32 is a length field holding math.MaxInt32. Adding any type's fixed
+	// overhead to it wraps int32 negative.
+	maxInt32 := []byte{0xff, 0xff, 0xff, 0x7f}
 
-	// A length field that, combined with a type's fixed overhead, overflows
-	// int32 must be rejected instead of wrapping negative and slipping past the
-	// len(src) bounds checks in readValue and ReadElement. See valueLength.
+	tests := []struct {
+		name       string
+		t          Type
+		src        []byte
+		wantOK     bool
+		wantLength int32
+	}{
+		{
+			name:   "binary overflows",
+			t:      TypeBinary,
+			src:    maxInt32,
+			wantOK: false,
+		},
+		{
+			name:   "string overflows",
+			t:      TypeString,
+			src:    maxInt32,
+			wantOK: false,
+		},
+		{
+			name:   "javascript overflows",
+			t:      TypeJavaScript,
+			src:    maxInt32,
+			wantOK: false,
+		},
+		{
+			name:   "symbol overflows",
+			t:      TypeSymbol,
+			src:    maxInt32,
+			wantOK: false,
+		},
+		{
+			name:   "dbpointer overflows",
+			t:      TypeDBPointer,
+			src:    maxInt32,
+			wantOK: false,
+		},
+		{
+			// math.MaxInt32-5 plus binary's five bytes of overhead is exactly
+			// math.MaxInt32, so it must not be rejected as an overflow. Lengths
+			// that fit are still caught downstream by the len(src) checks in
+			// readValue and ReadElement.
+			name:       "binary at the largest length that does not overflow",
+			t:          TypeBinary,
+			src:        []byte{0xfa, 0xff, 0xff, 0x7f},
+			wantOK:     true,
+			wantLength: math.MaxInt32,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			length, ok := valueLength(test.src, test.t)
+			require.Equal(t, test.wantOK, ok, "expected valueLength to report ok=%v", test.wantOK)
+			if test.wantOK {
+				require.Equal(t, test.wantLength, length, "expected length %d", test.wantLength)
+			}
+		})
+	}
+}
+
+// TestValueLengthOverflowNoPanic asserts that an overflowing length is reported
+// as an error at the exported boundaries rather than panicking. A negative
+// length slips past the len(src) checks in readValue and ReadElement, so before
+// valueLength rejected it these calls panicked on a negative slice bound.
+func TestValueLengthOverflowNoPanic(t *testing.T) {
 	t.Run("binary element in a document", func(t *testing.T) {
-		t.Parallel()
-
 		doc := Document{
 			0x0d, 0x00, 0x00, 0x00, // document length = 13
 			0x05,       // type = binary
@@ -990,13 +1054,14 @@ func TestValueLengthOverflow(t *testing.T) {
 			0x00, // subtype
 			0x00, // document terminator
 		}
-		assert.Error(t, doc.Validate(), "expected an error validating an overflowing element length")
+		require.Error(t, doc.Validate(), "expected an error validating an overflowing element length")
+
+		_, err := doc.Elements()
+		require.Error(t, err, "expected an error reading elements with an overflowing element length")
 	})
 
 	t.Run("string value", func(t *testing.T) {
-		t.Parallel()
-
 		v := Value{Type: TypeString, Data: []byte{0xff, 0xff, 0xff, 0x7f}}
-		assert.Error(t, v.Validate(), "expected an error validating an overflowing string length")
+		require.Error(t, v.Validate(), "expected an error validating an overflowing string length")
 	})
 }
