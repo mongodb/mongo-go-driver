@@ -27,6 +27,10 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
+// metadataDelimiter separates the entries contributed by the driver and each
+// wrapping library within a client metadata field.
+const metadataDelimiter = "|"
+
 // maxClientMetadataSize is the maximum size of the client metadata document
 // that can be sent to the server. Note that the maximum document size on
 // standalone and replica servers is 1024, but the maximum document size on
@@ -50,10 +54,15 @@ type Hello struct {
 	loadBalanced       bool
 	omitMaxTimeMS      bool
 
-	// Fields provided by a library that wraps the Go Driver.
+	// Fields provided by a library that wraps the Go Driver. Each is a
+	// delimited list with one entry per wrapping library, positionally
+	// corresponding across the three fields. outerLibrarySet distinguishes "no
+	// wrapping library" from a wrapping library that reported an empty value,
+	// which is a meaningful entry and must still be delimited.
 	outerLibraryName     string
 	outerLibraryVersion  string
 	outerLibraryPlatform string
+	outerLibrarySet      bool
 
 	res bsoncore.Document
 }
@@ -147,6 +156,15 @@ func (h *Hello) OuterLibraryVersion(version string) *Hello {
 // Driver.
 func (h *Hello) OuterLibraryPlatform(platform string) *Hello {
 	h.outerLibraryPlatform = platform
+
+	return h
+}
+
+// OuterLibrarySet specifies whether any library wraps the Go Driver. It must be
+// set for the outer library values to be appended, because an empty value is a
+// meaningful entry and cannot be distinguished from an absent one.
+func (h *Hello) OuterLibrarySet(set bool) *Hello {
+	h.outerLibrarySet = set
 
 	return h
 }
@@ -275,18 +293,19 @@ func appendClientAppName(dst []byte, name string) ([]byte, error) {
 // appendClientDriver appends the driver metadata to dst. It is the
 // responsibility of the caller to check that this appending does not cause dst
 // to exceed any size limitations.
-func appendClientDriver(dst []byte, outerLibraryName, outerLibraryVersion string) ([]byte, error) {
+func appendClientDriver(dst []byte, outerLibraryName, outerLibraryVersion string, outerLibrarySet bool) ([]byte, error) {
 	var idx int32
 	idx, dst = bsoncore.AppendDocumentElementStart(dst, "driver")
 
+	// The driver occupies the first entry, so the delimiter is appended
+	// unconditionally when a wrapping library is present. An empty outer value
+	// yields an empty entry, which keeps name and version aligned by index.
 	name := driverName
-	if outerLibraryName != "" {
-		name = name + "|" + outerLibraryName
-	}
-
 	version := version.Driver
-	if outerLibraryVersion != "" {
-		version = version + "|" + outerLibraryVersion
+
+	if outerLibrarySet {
+		name = name + metadataDelimiter + outerLibraryName
+		version = version + metadataDelimiter + outerLibraryVersion
 	}
 
 	dst = bsoncore.AppendStringElement(dst, "name", name)
@@ -412,10 +431,10 @@ func appendClientOS(dst []byte, omitNonType bool) ([]byte, error) {
 // appendClientPlatform appends the platform metadata to dst. It is the
 // responsibility of the caller to check that this appending does not cause dst
 // to exceed any size limitations.
-func appendClientPlatform(dst []byte, outerLibraryPlatform string) []byte {
+func appendClientPlatform(dst []byte, outerLibraryPlatform string, outerLibrarySet bool) []byte {
 	platform := runtime.Version()
-	if outerLibraryPlatform != "" {
-		platform = platform + "|" + outerLibraryPlatform
+	if outerLibrarySet {
+		platform = platform + metadataDelimiter + outerLibraryPlatform
 	}
 
 	return bsoncore.AppendStringElement(dst, "platform", platform)
@@ -474,7 +493,7 @@ retry:
 		return nil, err
 	}
 
-	dst, err = appendClientDriver(dst, h.outerLibraryName, h.outerLibraryVersion)
+	dst, err = appendClientDriver(dst, h.outerLibraryName, h.outerLibraryVersion, h.outerLibrarySet)
 	if err != nil {
 		return nil, err
 	}
@@ -485,7 +504,7 @@ retry:
 	}
 
 	if !truncatePlatform {
-		dst = appendClientPlatform(dst, h.outerLibraryPlatform)
+		dst = appendClientPlatform(dst, h.outerLibraryPlatform, h.outerLibrarySet)
 	}
 
 	if !omitEnvDocument {

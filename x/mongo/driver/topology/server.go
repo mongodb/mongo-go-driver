@@ -821,7 +821,7 @@ func (s *Server) createConnection() *connection {
 				driverInfo := s.cfg.driverInfo.Load()
 				if driverInfo != nil {
 					handshaker = handshaker.OuterLibraryName(driverInfo.Name).OuterLibraryVersion(driverInfo.Version).
-						OuterLibraryPlatform(driverInfo.Platform)
+						OuterLibraryPlatform(driverInfo.Platform).OuterLibrarySet(true)
 				}
 			}
 

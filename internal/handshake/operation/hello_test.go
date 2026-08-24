@@ -115,6 +115,7 @@ func TestAppendClientDriver(t *testing.T) {
 		name                string
 		outerLibraryName    string
 		outerLibraryVersion string
+		outerLibrarySet     bool
 		want                []byte // Extend JSON
 	}{
 		{
@@ -127,7 +128,33 @@ func TestAppendClientDriver(t *testing.T) {
 			name:                "with outer library data",
 			outerLibraryName:    "outer-library-name",
 			outerLibraryVersion: "outer-library-version",
+			outerLibrarySet:     true,
 			want:                []byte(fmt.Sprintf(`{"driver":{"name": "%s|outer-library-name", "version": "%s|outer-library-version"}}`, driverName, version.Driver)),
+		},
+		{
+			// An outer library that reports no version contributes an empty
+			// entry, so the trailing delimiter is significant.
+			name:                "outer library without a version",
+			outerLibraryName:    "outer-library-name",
+			outerLibraryVersion: "",
+			outerLibrarySet:     true,
+			want:                []byte(fmt.Sprintf(`{"driver":{"name": "%s|outer-library-name", "version": "%s|"}}`, driverName, version.Driver)),
+		},
+		{
+			// An entry is emitted for every wrapping library even when it
+			// reports nothing, so the fields stay aligned by index.
+			name:                "outer library without a name or version",
+			outerLibraryName:    "",
+			outerLibraryVersion: "",
+			outerLibrarySet:     true,
+			want:                []byte(fmt.Sprintf(`{"driver":{"name": "%s|", "version": "%s|"}}`, driverName, version.Driver)),
+		},
+		{
+			name:                "multiple outer libraries with a gap in the middle",
+			outerLibraryName:    "F1|F2|F3",
+			outerLibraryVersion: "1.0||2.0",
+			outerLibrarySet:     true,
+			want:                []byte(fmt.Sprintf(`{"driver":{"name": "%s|F1|F2|F3", "version": "%s|1.0||2.0"}}`, driverName, version.Driver)),
 		},
 	}
 
@@ -139,7 +166,7 @@ func TestAppendClientDriver(t *testing.T) {
 
 			cb := func(_ int, dst []byte) ([]byte, error) {
 				var err error
-				dst, err = appendClientDriver(dst, test.outerLibraryName, test.outerLibraryVersion)
+				dst, err = appendClientDriver(dst, test.outerLibraryName, test.outerLibraryVersion, test.outerLibrarySet)
 
 				return dst, err
 			}
@@ -385,7 +412,7 @@ func TestAppendClientPlatform(t *testing.T) {
 
 			cb := func(_ int, dst []byte) ([]byte, error) {
 				var err error
-				dst = appendClientPlatform(dst, test.outerLibraryPlatform)
+				dst = appendClientPlatform(dst, test.outerLibraryPlatform, test.outerLibraryPlatform != "")
 
 				return dst, err
 			}
@@ -576,7 +603,7 @@ func TestEncodeClientMetadata(t *testing.T) {
 		odst := bsoncore.AppendStringElement(nil, "type", runtime.GOOS)
 
 		// Calculate what the platform costs
-		pdst := appendClientPlatform(nil, "")
+		pdst := appendClientPlatform(nil, "", false)
 
 		// Calculate what the environment plus the os.type costs.
 		envAndOSTypeAndPlatform := len(edst) + len(odst) + len(pdst)
@@ -721,7 +748,7 @@ func FuzzEncodeClientMetadata(f *testing.F) {
 			t.Fatalf("error appending client app name: %v", err)
 		}
 
-		_, err = appendClientDriver(b, "", "")
+		_, err = appendClientDriver(b, "", "", false)
 		if err != nil {
 			t.Fatalf("error appending client driver: %v", err)
 		}
@@ -756,6 +783,6 @@ func FuzzEncodeClientMetadata(f *testing.F) {
 			t.Fatalf("error appending client os t: %v", err)
 		}
 
-		appendClientPlatform(b, "")
+		appendClientPlatform(b, "", false)
 	})
 }

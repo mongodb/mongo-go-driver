@@ -9,8 +9,12 @@ package mongo
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math"
 	"os"
+	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -514,4 +518,131 @@ func TestClient(t *testing.T) {
 		errmsg := `invalid value "-1s" for "Timeout": value must be positive`
 		assert.Equal(t, errmsg, err.Error(), "expected error %v, got %v", errmsg, err.Error())
 	})
+}
+
+func TestClientAppendDriverInfo(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		appended     []options.DriverInfo
+		wantName     string
+		wantVersion  string
+		wantPlatform string
+	}{
+		{
+			name:         "gap in the middle",
+			appended:     []options.DriverInfo{{Name: "F1", Version: "1.0"}, {Name: "F2"}, {Name: "F3", Version: "2.0"}},
+			wantName:     "F1|F2|F3",
+			wantVersion:  "1.0||2.0",
+			wantPlatform: "||",
+		},
+		{
+			name:         "leading gap",
+			appended:     []options.DriverInfo{{Name: "F1"}, {Name: "F2", Version: "2.0"}},
+			wantName:     "F1|F2",
+			wantVersion:  "|2.0",
+			wantPlatform: "|",
+		},
+		{
+			name:         "trailing delimiter retained",
+			appended:     []options.DriverInfo{{Name: "F1", Version: "1.0"}, {Name: "F2"}},
+			wantName:     "F1|F2",
+			wantVersion:  "1.0|",
+			wantPlatform: "|",
+		},
+		{
+			name:         "equal versions do not collapse",
+			appended:     []options.DriverInfo{{Name: "F1", Version: "1.0"}, {Name: "F2", Version: "1.0"}},
+			wantName:     "F1|F2",
+			wantVersion:  "1.0|1.0",
+			wantPlatform: "|",
+		},
+		{
+			name:         "equal names do not collapse",
+			appended:     []options.DriverInfo{{Name: "F1", Version: "1.0"}, {Name: "F1", Version: "2.0"}},
+			wantName:     "F1|F1",
+			wantVersion:  "1.0|2.0",
+			wantPlatform: "|",
+		},
+		{
+			name:        "duplicates still deduplicate",
+			appended:    []options.DriverInfo{{Name: "F1", Version: "1.0"}, {Name: "F1", Version: "1.0"}},
+			wantName:    "F1",
+			wantVersion: "1.0",
+		},
+		{
+			name:         "all versions absent",
+			appended:     []options.DriverInfo{{Name: "F1"}, {Name: "F2"}},
+			wantName:     "F1|F2",
+			wantVersion:  "|",
+			wantPlatform: "|",
+		},
+		{
+			name:         "all names absent",
+			appended:     []options.DriverInfo{{Version: "1.0"}, {Version: "2.0"}},
+			wantName:     "|",
+			wantVersion:  "1.0|2.0",
+			wantPlatform: "|",
+		},
+		{
+			name:         "platform tracks the same entries",
+			appended:     []options.DriverInfo{{Name: "F1", Platform: "p1"}, {Name: "F2"}},
+			wantName:     "F1|F2",
+			wantVersion:  "|",
+			wantPlatform: "p1|",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			client := &Client{currentDriverInfo: &atomic.Pointer[options.DriverInfo]{}}
+			for _, info := range test.appended {
+				client.AppendDriverInfo(info)
+			}
+
+			got := client.currentDriverInfo.Load()
+			require.NotNil(t, got)
+			assert.Equal(t, test.wantName, got.Name, "name")
+			assert.Equal(t, test.wantVersion, got.Version, "version")
+			assert.Equal(t, test.wantPlatform, got.Platform, "platform")
+		})
+	}
+}
+
+// TestClientAppendDriverInfoConcurrent asserts that concurrent appends neither
+// race nor lose an entry. Comment out the driverInfoMu lock in
+// AppendDriverInfo and run with -race to see this fail.
+func TestClientAppendDriverInfoConcurrent(t *testing.T) {
+	t.Parallel()
+
+	const goroutines = 8
+
+	client := &Client{currentDriverInfo: &atomic.Pointer[options.DriverInfo]{}}
+
+	var wg sync.WaitGroup
+	for i := 0; i < goroutines; i++ {
+		wg.Add(1)
+
+		go func(i int) {
+			defer wg.Done()
+
+			client.AppendDriverInfo(options.DriverInfo{
+				Name:    fmt.Sprintf("F%d", i),
+				Version: fmt.Sprintf("%d.0", i),
+			})
+		}(i)
+	}
+
+	wg.Wait()
+
+	got := client.currentDriverInfo.Load()
+	require.NotNil(t, got)
+
+	// Every append must be represented, so each field has one entry per
+	// goroutine. Order is not deterministic, but the count is.
+	assert.Len(t, strings.Split(got.Name, "|"), goroutines, "name entries")
+	assert.Len(t, strings.Split(got.Version, "|"), goroutines, "version entries")
 }

@@ -322,6 +322,7 @@ func NewAuthenticatorConfig(authenticator driver.Authenticator, clientOpts ...Au
 					handshakeOpts.OuterLibraryName = di.Name
 					handshakeOpts.OuterLibraryVersion = di.Version
 					handshakeOpts.OuterLibraryPlatform = di.Platform
+					handshakeOpts.OuterLibrarySet = true
 				}
 			}
 
@@ -340,7 +341,8 @@ func NewAuthenticatorConfig(authenticator driver.Authenticator, clientOpts ...Au
 				if di := driverInfo.Load(); di != nil {
 					op = op.OuterLibraryName(di.Name).
 						OuterLibraryVersion(di.Version).
-						OuterLibraryPlatform(di.Platform)
+						OuterLibraryPlatform(di.Platform).
+						OuterLibrarySet(true)
 				}
 			}
 

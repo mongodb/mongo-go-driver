@@ -11,6 +11,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -43,6 +45,10 @@ const (
 	defaultLocalThreshold       = 15 * time.Millisecond
 	defaultMaxPoolSize          = 100
 	defaultAdaptiveRetries uint = 2
+
+	// driverInfoDelimiter separates the entries contributed by each wrapping
+	// library within a client metadata field.
+	driverInfoDelimiter = "|"
 )
 
 var (
@@ -80,7 +86,12 @@ type Client struct {
 	httpClient                *http.Client
 	logger                    *logger.Logger
 	currentDriverInfo         *atomic.Pointer[options.DriverInfo]
-	seenDriverInfo            sync.Map
+
+	// driverInfoEntries holds one entry per wrapping library, in the order they
+	// were appended. Entries are joined positionally when building the
+	// handshake, so the list is kept rather than a running concatenation.
+	driverInfoMu      sync.Mutex
+	driverInfoEntries []options.DriverInfo
 
 	// in-use encryption fields
 	isAutoEncryptionSet bool
@@ -320,39 +331,45 @@ func (c *Client) connect() error {
 // (e.g. name, version, platform) that will be sent to the server in handshake
 // requests when establishing new connections.
 //
-// Repeated calls to AppendDriverInfo with equivalent DriverInfo is a no-op.
+// Each field is a delimited list with one entry per wrapping library, and the
+// entries correspond by index across name, version, and platform. A library
+// that does not report a value contributes an empty entry, so a missing value
+// never shifts the values that follow it.
+//
+// Repeated calls to AppendDriverInfo with an equivalent DriverInfo are a no-op.
+// Equivalence is over the whole DriverInfo: two libraries that report the same
+// version are distinct entries and both are appended.
 //
 // Metadata is limited to 512 bytes; any excess will be truncated.
 func (c *Client) AppendDriverInfo(info options.DriverInfo) {
-	if _, loaded := c.seenDriverInfo.LoadOrStore(info, struct{}{}); loaded {
+	c.driverInfoMu.Lock()
+	defer c.driverInfoMu.Unlock()
+
+	// Deduplicate on the whole DriverInfo. Comparing fields in isolation would
+	// collapse distinct libraries that happen to share a value, which breaks
+	// the index correspondence between the fields.
+	if slices.Contains(c.driverInfoEntries, info) {
 		return
 	}
 
-	if old := c.currentDriverInfo.Load(); old != nil {
-		if old.Name != "" && info.Name != "" && old.Name != info.Name {
-			info.Name = old.Name + "|" + info.Name
-		} else if old.Name != "" {
-			info.Name = old.Name
-		}
+	c.driverInfoEntries = append(c.driverInfoEntries, info)
 
-		if old.Version != "" && info.Version != "" && old.Version != info.Version {
-			info.Version = old.Version + "|" + info.Version
-		} else if old.Version != "" {
-			info.Version = old.Version
-		}
+	names := make([]string, 0, len(c.driverInfoEntries))
+	versions := make([]string, 0, len(c.driverInfoEntries))
+	platforms := make([]string, 0, len(c.driverInfoEntries))
 
-		if old.Platform != "" && info.Platform != "" && old.Platform != info.Platform {
-			info.Platform = old.Platform + "|" + info.Platform
-		} else if old.Platform != "" {
-			info.Platform = old.Platform
-		}
+	for _, entry := range c.driverInfoEntries {
+		names = append(names, entry.Name)
+		versions = append(versions, entry.Version)
+		platforms = append(platforms, entry.Platform)
 	}
 
 	// Copy-on-write so that the info stored in the client is immutable.
-	infoCopy := new(options.DriverInfo)
-	*infoCopy = info
-
-	c.currentDriverInfo.Store(infoCopy)
+	c.currentDriverInfo.Store(&options.DriverInfo{
+		Name:     strings.Join(names, driverInfoDelimiter),
+		Version:  strings.Join(versions, driverInfoDelimiter),
+		Platform: strings.Join(platforms, driverInfoDelimiter),
+	})
 }
 
 // Disconnect closes sockets to the topology referenced by this Client. It will
