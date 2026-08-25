@@ -21,6 +21,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/topology"
 )
 
@@ -304,6 +305,86 @@ func TestNewFindArgsFromFindOneArgs(t *testing.T) {
 			t.Parallel()
 
 			assert.Equal(t, test.want, newFindArgsFromFindOneArgs(test.args))
+		})
+	}
+}
+
+func TestRemoveFailedInserts(t *testing.T) {
+	t.Parallel()
+
+	newResult := func(n int) []any {
+		result := make([]any, n)
+		for i := range result {
+			result[i] = i
+		}
+		return result
+	}
+
+	tests := []struct {
+		name        string
+		result      []any
+		writeErrors driver.WriteErrors
+		ordered     bool
+		want        []any
+	}{
+		{
+			name:    "no write errors",
+			result:  newResult(3),
+			ordered: false,
+			want:    newResult(3),
+		},
+		{
+			name:        "unordered, ascending write errors",
+			result:      newResult(5),
+			writeErrors: driver.WriteErrors{{Index: 1}, {Index: 3}},
+			ordered:     false,
+			want:        []any{0, 2, 4},
+		},
+		{
+			// The server does not guarantee ascending Index order for an
+			// unordered bulk write. Before the fix, this silently removed
+			// the wrong document.
+			name:        "unordered, out-of-order write errors",
+			result:      newResult(5),
+			writeErrors: driver.WriteErrors{{Index: 3}, {Index: 1}},
+			ordered:     false,
+			want:        []any{0, 2, 4},
+		},
+		{
+			// Regression test for GODRIVER-4096: before the fix, this
+			// input caused "slice bounds out of range [:-1]".
+			name:        "unordered, all documents fail, out of order",
+			result:      newResult(2),
+			writeErrors: driver.WriteErrors{{Index: 1}, {Index: 0}},
+			ordered:     false,
+			want:        []any{},
+		},
+		{
+			name:        "ordered, single write error",
+			result:      newResult(5),
+			writeErrors: driver.WriteErrors{{Index: 2}},
+			ordered:     true,
+			want:        []any{0, 1},
+		},
+		{
+			// Sanity check for the ordered path: use the minimum failed
+			// index across all write errors, not just the first element.
+			name:        "ordered, out-of-order write errors",
+			result:      newResult(2),
+			writeErrors: driver.WriteErrors{{Index: 1}, {Index: 0}},
+			ordered:     true,
+			want:        []any{},
+		},
+	}
+
+	for _, test := range tests {
+		test := test // Capture the range variable
+
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := removeFailedInserts(test.result, test.writeErrors, test.ordered)
+			assert.Equal(t, test.want, got)
 		})
 	}
 }

@@ -367,19 +367,59 @@ func (coll *Collection) insert(
 		return result, err
 	}
 
-	// remove the ids that had writeErrors from result
-	for i, we := range wce.WriteErrors {
-		// i indexes have been removed before the current error, so the index is we.Index-i
-		idIndex := int(we.Index) - i
-		// if the insert is ordered, nothing after the error was inserted
-		if args.Ordered == nil || *args.Ordered {
-			result = result[:idIndex]
-			break
-		}
-		result = append(result[:idIndex], result[idIndex+1:]...)
-	}
+	ordered := args.Ordered == nil || *args.Ordered
+	result = removeFailedInserts(result, wce.WriteErrors, ordered)
 
 	return result, err
+}
+
+// removeFailedInserts returns the subset of result whose corresponding
+// documents were not rejected by any of writeErrors. Each WriteError.Index
+// refers to the positional index of the document in the original insert
+// request, which is also the index space of result.
+//
+// writeErrors is not required to be sorted by Index: the server does not
+// guarantee that write errors for an unordered bulk write are returned in
+// ascending Index order, and assuming otherwise previously caused
+// out-of-range slice panics (GODRIVER-4096). Neither result nor writeErrors
+// is modified.
+func removeFailedInserts(result []any, writeErrors driver.WriteErrors, ordered bool) []any {
+	if len(writeErrors) == 0 {
+		return result
+	}
+
+	if ordered {
+		// The server stops an ordered insert at the first document that
+		// fails, so nothing at or after the lowest failed index was
+		// actually inserted. Scan every error instead of assuming
+		// writeErrors[0] is the earliest failure.
+		firstFailedIndex := len(result)
+		for _, we := range writeErrors {
+			idx := int(we.Index)
+			if idx < 0 {
+				idx = 0
+			}
+			if idx < firstFailedIndex {
+				firstFailedIndex = idx
+			}
+		}
+		return result[:firstFailedIndex]
+	}
+
+	failed := make([]bool, len(result))
+	for _, we := range writeErrors {
+		if idx := int(we.Index); idx >= 0 && idx < len(failed) {
+			failed[idx] = true
+		}
+	}
+
+	filtered := make([]any, 0, len(result))
+	for i, id := range result {
+		if !failed[i] {
+			filtered = append(filtered, id)
+		}
+	}
+	return filtered
 }
 
 // InsertOne executes an insert command to insert a single document into the collection.
