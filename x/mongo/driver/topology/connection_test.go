@@ -11,6 +11,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
+	"io"
 	"math/rand"
 	"net"
 	"sync"
@@ -129,7 +130,10 @@ func TestConnection(t *testing.T) {
 				// aren't a valid TLS record.
 				addr := bootstrapConnections(t, 1, func(c net.Conn) {
 					defer c.Close()
-					_, _ = c.Write([]byte("not a TLS server"))
+					if _, err := c.Write([]byte("not a TLS server")); err != nil {
+						return
+					}
+					_, _ = io.Copy(io.Discard, c)
 				})
 
 				conn := newConnection(address.Address(addr.String()),
