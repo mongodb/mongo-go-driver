@@ -331,17 +331,53 @@ func (c *Client) connect() error {
 // (e.g. name, version, platform) that will be sent to the server in handshake
 // requests when establishing new connections.
 //
-// Each field is a delimited list with one entry per wrapping library, and the
-// entries correspond by index across name, version, and platform. A library
-// that does not report a value contributes an empty entry, so a missing value
-// never shifts the values that follow it.
+// Entries in name and version correspond by index: a library that reports no
+// value contributes an empty entry, so a missing value never shifts the values
+// that follow it.
 //
 // Repeated calls to AppendDriverInfo with an equivalent DriverInfo are a no-op.
 // Equivalence is over the whole DriverInfo: two libraries that report the same
 // version are distinct entries and both are appended.
 //
+// No field may contain the "|" metadata delimiter. A DriverInfo that contains
+// one is ignored in its entirety, because appending it would corrupt the
+// index correspondence of every entry in the list. Use
+// [Client.AppendDriverInfoErr] to be told when that happens.
+//
 // Metadata is limited to 512 bytes; any excess will be truncated.
 func (c *Client) AppendDriverInfo(info options.DriverInfo) {
+	_ = c.AppendDriverInfoErr(info)
+}
+
+// AppendDriverInfoErr appends the provided [options.DriverInfo] to the client
+// metadata, reporting an error if the DriverInfo cannot be appended. It behaves
+// exactly like [Client.AppendDriverInfo] otherwise.
+//
+// An error is returned if any field contains the "|" metadata delimiter, in
+// which case no part of the DriverInfo is appended.
+func (c *Client) AppendDriverInfoErr(info options.DriverInfo) error {
+	for _, field := range []struct {
+		name  string
+		value string
+	}{
+		{"name", info.Name},
+		{"version", info.Version},
+		{"platform", info.Platform},
+	} {
+		if strings.Contains(field.value, driverInfoDelimiter) {
+			return fmt.Errorf("driver info %s %q must not contain %q",
+				field.name, field.value, driverInfoDelimiter)
+		}
+	}
+
+	c.appendDriverInfo(info)
+
+	return nil
+}
+
+// appendDriverInfo appends info to the accumulated client metadata. The caller
+// is responsible for validating info.
+func (c *Client) appendDriverInfo(info options.DriverInfo) {
 	c.driverInfoMu.Lock()
 	defer c.driverInfoMu.Unlock()
 
@@ -354,27 +390,42 @@ func (c *Client) AppendDriverInfo(info options.DriverInfo) {
 
 	c.driverInfoEntries = append(c.driverInfoEntries, info)
 
+	// Name and version are positional: every entry contributes a slot, so a
+	// library that reports no value contributes an empty one and the two fields
+	// stay aligned by index.
 	names := make([]string, 0, len(c.driverInfoEntries))
 	versions := make([]string, 0, len(c.driverInfoEntries))
-	platforms := make([]string, 0, len(c.driverInfoEntries))
 
 	for _, entry := range c.driverInfoEntries {
 		names = append(names, entry.Name)
 		versions = append(versions, entry.Version)
-		platforms = append(platforms, entry.Platform)
+	}
+
+	// DRIVERS-3251 requires positional alignment for driver.name and
+	// driver.version only, so platform keeps its existing behavior: a value is
+	// appended only when it is non-empty and differs from what has accumulated
+	// so far. It therefore does not correspond to name and version by index.
+	var platform string
+	if old := c.currentDriverInfo.Load(); old != nil {
+		platform = old.Platform
+	}
+
+	switch {
+	case info.Platform == "":
+		// Platform is not positional, so a library that reports no platform
+		// contributes nothing rather than an empty entry.
+	case platform == "":
+		platform = info.Platform
+	default:
+		platform = platform + driverInfoDelimiter + info.Platform
 	}
 
 	// Copy-on-write so that the info stored in the client is immutable.
 	c.currentDriverInfo.Store(&options.DriverInfo{
 		Name:     strings.Join(names, driverInfoDelimiter),
 		Version:  strings.Join(versions, driverInfoDelimiter),
-		Platform: strings.Join(platforms, driverInfoDelimiter),
+		Platform: platform,
 	})
-}
-
-func (c *Client) AppendDriverInfoErr(info options.DriverInfo) error {
-	c.AppendDriverInfo(info)
-	return nil // TODO
 }
 
 // Disconnect closes sockets to the topology referenced by this Client. It will

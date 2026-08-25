@@ -531,39 +531,34 @@ func TestClientAppendDriverInfo(t *testing.T) {
 		wantPlatform string
 	}{
 		{
-			name:         "gap in the middle",
-			appended:     []options.DriverInfo{{Name: "F1", Version: "1.0"}, {Name: "F2"}, {Name: "F3", Version: "2.0"}},
-			wantName:     "F1|F2|F3",
-			wantVersion:  "1.0||2.0",
-			wantPlatform: "||",
+			name:        "gap in the middle",
+			appended:    []options.DriverInfo{{Name: "F1", Version: "1.0"}, {Name: "F2"}, {Name: "F3", Version: "2.0"}},
+			wantName:    "F1|F2|F3",
+			wantVersion: "1.0||2.0",
 		},
 		{
-			name:         "leading gap",
-			appended:     []options.DriverInfo{{Name: "F1"}, {Name: "F2", Version: "2.0"}},
-			wantName:     "F1|F2",
-			wantVersion:  "|2.0",
-			wantPlatform: "|",
+			name:        "leading gap",
+			appended:    []options.DriverInfo{{Name: "F1"}, {Name: "F2", Version: "2.0"}},
+			wantName:    "F1|F2",
+			wantVersion: "|2.0",
 		},
 		{
-			name:         "trailing delimiter retained",
-			appended:     []options.DriverInfo{{Name: "F1", Version: "1.0"}, {Name: "F2"}},
-			wantName:     "F1|F2",
-			wantVersion:  "1.0|",
-			wantPlatform: "|",
+			name:        "trailing delimiter retained",
+			appended:    []options.DriverInfo{{Name: "F1", Version: "1.0"}, {Name: "F2"}},
+			wantName:    "F1|F2",
+			wantVersion: "1.0|",
 		},
 		{
-			name:         "equal versions do not collapse",
-			appended:     []options.DriverInfo{{Name: "F1", Version: "1.0"}, {Name: "F2", Version: "1.0"}},
-			wantName:     "F1|F2",
-			wantVersion:  "1.0|1.0",
-			wantPlatform: "|",
+			name:        "equal versions do not collapse",
+			appended:    []options.DriverInfo{{Name: "F1", Version: "1.0"}, {Name: "F2", Version: "1.0"}},
+			wantName:    "F1|F2",
+			wantVersion: "1.0|1.0",
 		},
 		{
-			name:         "equal names do not collapse",
-			appended:     []options.DriverInfo{{Name: "F1", Version: "1.0"}, {Name: "F1", Version: "2.0"}},
-			wantName:     "F1|F1",
-			wantVersion:  "1.0|2.0",
-			wantPlatform: "|",
+			name:        "equal names do not collapse",
+			appended:    []options.DriverInfo{{Name: "F1", Version: "1.0"}, {Name: "F1", Version: "2.0"}},
+			wantName:    "F1|F1",
+			wantVersion: "1.0|2.0",
 		},
 		{
 			name:        "duplicates still deduplicate",
@@ -572,25 +567,32 @@ func TestClientAppendDriverInfo(t *testing.T) {
 			wantVersion: "1.0",
 		},
 		{
-			name:         "all versions absent",
-			appended:     []options.DriverInfo{{Name: "F1"}, {Name: "F2"}},
+			name:        "all versions absent",
+			appended:    []options.DriverInfo{{Name: "F1"}, {Name: "F2"}},
+			wantName:    "F1|F2",
+			wantVersion: "|",
+		},
+		{
+			name:        "all names absent",
+			appended:    []options.DriverInfo{{Version: "1.0"}, {Version: "2.0"}},
+			wantName:    "|",
+			wantVersion: "1.0|2.0",
+		},
+		{
+			name:         "platform does not deduplicate",
+			appended:     []options.DriverInfo{{Name: "F1", Platform: "p1"}, {Name: "F2", Platform: "p1"}},
 			wantName:     "F1|F2",
 			wantVersion:  "|",
-			wantPlatform: "|",
+			wantPlatform: "p1|p1",
 		},
 		{
-			name:         "all names absent",
-			appended:     []options.DriverInfo{{Version: "1.0"}, {Version: "2.0"}},
-			wantName:     "|",
-			wantVersion:  "1.0|2.0",
-			wantPlatform: "|",
-		},
-		{
-			name:         "platform tracks the same entries",
+			// Platform is not positional: only non-empty values contribute an
+			// entry, so an absent platform adds nothing.
+			name:         "platform skips absent values",
 			appended:     []options.DriverInfo{{Name: "F1", Platform: "p1"}, {Name: "F2"}},
 			wantName:     "F1|F2",
 			wantVersion:  "|",
-			wantPlatform: "p1|",
+			wantPlatform: "p1",
 		},
 	}
 
@@ -645,4 +647,73 @@ func TestClientAppendDriverInfoConcurrent(t *testing.T) {
 	// goroutine. Order is not deterministic, but the count is.
 	assert.Len(t, strings.Split(got.Name, "|"), goroutines, "name entries")
 	assert.Len(t, strings.Split(got.Version, "|"), goroutines, "version entries")
+}
+
+func TestClientAppendDriverInfoErr(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		info    options.DriverInfo
+		wantErr bool
+	}{
+		{
+			name: "no delimiter",
+			info: options.DriverInfo{Name: "F1", Version: "1.0", Platform: "p1"},
+		},
+		{
+			name:    "delimiter in name",
+			info:    options.DriverInfo{Name: "F|1", Version: "1.0", Platform: "p1"},
+			wantErr: true,
+		},
+		{
+			name:    "delimiter in version",
+			info:    options.DriverInfo{Name: "F1", Version: "1|0", Platform: "p1"},
+			wantErr: true,
+		},
+		{
+			name:    "delimiter in platform",
+			info:    options.DriverInfo{Name: "F1", Version: "1.0", Platform: "p|1"},
+			wantErr: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			client := &Client{currentDriverInfo: &atomic.Pointer[options.DriverInfo]{}}
+
+			err := client.AppendDriverInfoErr(test.info)
+			if !test.wantErr {
+				require.NoError(t, err)
+				require.NotNil(t, client.currentDriverInfo.Load())
+
+				return
+			}
+
+			require.Error(t, err)
+
+			// Nothing is appended when the DriverInfo is rejected, so no
+			// partial entry can shift the index of a later one.
+			assert.Nil(t, client.currentDriverInfo.Load(), "expected no metadata to be stored")
+			assert.Empty(t, client.driverInfoEntries, "expected no entry to be recorded")
+		})
+	}
+}
+
+// TestClientAppendDriverInfoDropsInvalid asserts that the error-free variant
+// ignores a DriverInfo containing the delimiter rather than appending it.
+func TestClientAppendDriverInfoDropsInvalid(t *testing.T) {
+	t.Parallel()
+
+	client := &Client{currentDriverInfo: &atomic.Pointer[options.DriverInfo]{}}
+
+	client.AppendDriverInfo(options.DriverInfo{Name: "F1", Version: "1.0"})
+	client.AppendDriverInfo(options.DriverInfo{Name: "F|2", Version: "2.0"})
+
+	got := client.currentDriverInfo.Load()
+	require.NotNil(t, got)
+	assert.Equal(t, "F1", got.Name, "name")
+	assert.Equal(t, "1.0", got.Version, "version")
 }

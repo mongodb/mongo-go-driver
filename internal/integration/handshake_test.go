@@ -395,7 +395,7 @@ func TestHandshakeProse_AppendMetadata_Test1_Test2_Test3(t *testing.T) {
 			},
 			want: clientMetadataExtJSON(
 				"mongo-go-driver|library|framework",
-				version.Driver+"|1.2",
+				version.Driver+"|1.2|",
 				runtime.Version()+"|Library Platform|Framework Platform"),
 			append: false,
 		},
@@ -408,7 +408,7 @@ func TestHandshakeProse_AppendMetadata_Test1_Test2_Test3(t *testing.T) {
 			},
 			want: clientMetadataExtJSON(
 				"mongo-go-driver|library|framework",
-				version.Driver+"|1.2",
+				version.Driver+"|1.2|",
 				runtime.Version()+"|Library Platform"),
 			append: false,
 		},
@@ -447,7 +447,7 @@ func TestHandshakeProse_AppendMetadata_Test1_Test2_Test3(t *testing.T) {
 			},
 			want: clientMetadataExtJSON(
 				"mongo-go-driver|library|framework",
-				version.Driver+"|1.2",
+				version.Driver+"|1.2|",
 				runtime.Version()+"|Library Platform|Framework Platform"),
 			append: true,
 		},
@@ -460,7 +460,7 @@ func TestHandshakeProse_AppendMetadata_Test1_Test2_Test3(t *testing.T) {
 			},
 			want: clientMetadataExtJSON(
 				"mongo-go-driver|library|framework",
-				version.Driver+"|1.2",
+				version.Driver+"|1.2|",
 				runtime.Version()+"|Library Platform"),
 			append: true,
 		},
@@ -486,8 +486,8 @@ func TestHandshakeProse_AppendMetadata_Test1_Test2_Test3(t *testing.T) {
 			},
 			want: clientMetadataExtJSON(
 				"mongo-go-driver|library|framework",
-				version.Driver+"|1.2",
-				runtime.Version()+"|Library Platform"),
+				version.Driver+"|1.2|1.2",
+				runtime.Version()+"|Library Platform|Library Platform"),
 			append: true,
 		},
 		{
@@ -498,9 +498,9 @@ func TestHandshakeProse_AppendMetadata_Test1_Test2_Test3(t *testing.T) {
 				Platform: "Library Platform",
 			},
 			want: clientMetadataExtJSON(
-				"mongo-go-driver|library",
+				"mongo-go-driver|library|library",
 				version.Driver+"|1.2|2.0",
-				runtime.Version()+"|Library Platform"),
+				runtime.Version()+"|Library Platform|Library Platform"),
 			append: true,
 		},
 		{
@@ -511,8 +511,8 @@ func TestHandshakeProse_AppendMetadata_Test1_Test2_Test3(t *testing.T) {
 				Platform: "Framework Platform",
 			},
 			want: clientMetadataExtJSON(
-				"mongo-go-driver|library",
-				version.Driver+"|1.2",
+				"mongo-go-driver|library|library",
+				version.Driver+"|1.2|1.2",
 				runtime.Version()+"|Library Platform|Framework Platform"),
 			append: true,
 		},
@@ -526,7 +526,7 @@ func TestHandshakeProse_AppendMetadata_Test1_Test2_Test3(t *testing.T) {
 			want: clientMetadataExtJSON(
 				"mongo-go-driver|library|framework",
 				version.Driver+"|1.2|2.0",
-				runtime.Version()+"|Library Platform"),
+				runtime.Version()+"|Library Platform|Library Platform"),
 			append: true,
 		},
 		{
@@ -538,7 +538,7 @@ func TestHandshakeProse_AppendMetadata_Test1_Test2_Test3(t *testing.T) {
 			},
 			want: clientMetadataExtJSON(
 				"mongo-go-driver|library|framework",
-				version.Driver+"|1.2",
+				version.Driver+"|1.2|1.2",
 				runtime.Version()+"|Library Platform|Framework Platform"),
 			append: true,
 		},
@@ -550,7 +550,7 @@ func TestHandshakeProse_AppendMetadata_Test1_Test2_Test3(t *testing.T) {
 				Platform: "Framework Platform",
 			},
 			want: clientMetadataExtJSON(
-				"mongo-go-driver|library",
+				"mongo-go-driver|library|library",
 				version.Driver+"|1.2|2.0",
 				runtime.Version()+"|Library Platform|Framework Platform"),
 			append: true,
@@ -790,7 +790,7 @@ func TestHandshakeProse_AppendMetadata_NotAppendedIfIdentical_NonSequential(t *t
 	mt.Client.AppendDriverInfo(options.DriverInfo{
 		Name:     "framework",
 		Version:  "1.2",
-		Platform: "Framework Platform",
+		Platform: "Library Platform",
 	})
 
 	// Drain the proxy to ensure we only capture messages after appending.
@@ -808,8 +808,8 @@ func TestHandshakeProse_AppendMetadata_NotAppendedIfIdentical_NonSequential(t *t
 	// test.
 	want := clientMetadataExtJSON(
 		"mongo-go-driver|library|framework",
-		version.Driver+"|1.2",
-		runtime.Version()+"|Library Platform|Framework Platform")
+		version.Driver+"|1.2|1.2",
+		runtime.Version()+"|Library Platform|Library Platform")
 
 	// 7. Wait 5ms for the connection to become idle.
 	time.Sleep(5 * time.Millisecond)
@@ -861,7 +861,7 @@ func TestHandshakeProse_AppendMetadata_EmptyStrings(t *testing.T) {
 				Platform: "Library Platform",
 			},
 			want: clientMetadataExtJSON(
-				"mongo-go-driver",
+				"mongo-go-driver|",
 				version.Driver+"|1.2",
 				runtime.Version()+"|Library Platform"),
 		},
@@ -879,7 +879,7 @@ func TestHandshakeProse_AppendMetadata_EmptyStrings(t *testing.T) {
 			},
 			want: clientMetadataExtJSON(
 				"mongo-go-driver|library",
-				version.Driver,
+				version.Driver+"|",
 				runtime.Version()+"|Library Platform"),
 		},
 		{
@@ -987,7 +987,7 @@ func TestHandshakeProse_AppendMetadata_EmptyStrings_InitializedClient(t *testing
 				Platform: "Library Platform",
 			},
 			want: clientMetadataExtJSON(
-				"mongo-go-driver",
+				"mongo-go-driver|",
 				version.Driver+"|1.2",
 				runtime.Version()+"|Library Platform"),
 		},
@@ -1005,7 +1005,7 @@ func TestHandshakeProse_AppendMetadata_EmptyStrings_InitializedClient(t *testing
 			},
 			want: clientMetadataExtJSON(
 				"mongo-go-driver|library",
-				version.Driver,
+				version.Driver+"|",
 				runtime.Version()+"|Library Platform"),
 		},
 		{
@@ -1102,6 +1102,70 @@ func TestHandshakeProse_Handshake_Documents(t *testing.T) {
 	v, err := firstMessage.Sent.Command.LookupErr("backpressure")
 	require.NoError(mt, err, "expected backpressure field in handshake command document")
 	require.True(mt, v.Boolean(), "expected backpressure field to be true")
+}
+
+// Test 10: Appending metadata containing the delimiter raises an error
+func TestHandshakeProse_AppendMetadata_DelimiterRejected(t *testing.T) {
+	mt := mtest.New(t)
+
+	initialDriverInfo := options.DriverInfo{
+		Name:     "library",
+		Version:  "1.2",
+		Platform: "Library Platform",
+	}
+
+	testCases := []struct {
+		name       string
+		driverInfo options.DriverInfo
+	}{
+		{
+			name:       "name contains the delimiter",
+			driverInfo: options.DriverInfo{Name: "frame|work", Version: "2.0", Platform: "Framework Platform"},
+		},
+		{
+			name:       "version contains the delimiter",
+			driverInfo: options.DriverInfo{Name: "framework", Version: "2|0", Platform: "Framework Platform"},
+		},
+		{
+			name:       "platform contains the delimiter",
+			driverInfo: options.DriverInfo{Name: "framework", Version: "2.0", Platform: "Framework|Platform"},
+		},
+	}
+
+	for _, tc := range testCases {
+		opts := mtest.NewOptions().CreateCollection(false).ClientType(mtest.Proxy)
+
+		mt.RunOpts(tc.name, opts, func(mt *mtest.T) {
+			clientOpts := options.Client().
+				// Set idle timeout to 1ms to force new connections to be
+				// created throughout the lifetime of the test.
+				SetMaxConnIdleTime(1 * time.Millisecond).
+				SetDriverInfo(&initialDriverInfo)
+
+			mt.ResetClient(clientOpts)
+
+			err := mt.Client.Ping(context.Background(), nil)
+			require.NoError(mt, err, "Ping error: %v", err)
+
+			// Appending driver info containing the delimiter must raise an
+			// error and leave the accumulated metadata untouched.
+			err = mt.Client.AppendDriverInfoErr(tc.driverInfo)
+			require.Error(mt, err, "expected an error appending driver info containing the delimiter")
+
+			// Wait 5ms for the connection to become idle so that the next
+			// operation establishes a new connection and handshakes again.
+			time.Sleep(5 * time.Millisecond)
+
+			mt.GetProxyCapture().Drain()
+
+			want := clientMetadataExtJSON(
+				"mongo-go-driver|library",
+				version.Driver+"|1.2",
+				runtime.Version()+"|Library Platform")
+
+			requireHandshake(mt, want)
+		})
+	}
 }
 
 // mustMarshalBSON marshals a value to BSON. It panics if any error occurs.

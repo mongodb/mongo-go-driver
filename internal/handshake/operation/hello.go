@@ -431,9 +431,11 @@ func appendClientOS(dst []byte, omitNonType bool) ([]byte, error) {
 // appendClientPlatform appends the platform metadata to dst. It is the
 // responsibility of the caller to check that this appending does not cause dst
 // to exceed any size limitations.
-func appendClientPlatform(dst []byte, outerLibraryPlatform string, outerLibrarySet bool) []byte {
+func appendClientPlatform(dst []byte, outerLibraryPlatform string) []byte {
+	// Unlike name and version, platform is not positional: a wrapping library
+	// that reports no platform contributes nothing rather than an empty entry.
 	platform := runtime.Version()
-	if outerLibrarySet {
+	if outerLibraryPlatform != "" {
 		platform = platform + metadataDelimiter + outerLibraryPlatform
 	}
 
@@ -504,7 +506,7 @@ retry:
 	}
 
 	if !truncatePlatform {
-		dst = appendClientPlatform(dst, h.outerLibraryPlatform, h.outerLibrarySet)
+		dst = appendClientPlatform(dst, h.outerLibraryPlatform)
 	}
 
 	if !omitEnvDocument {

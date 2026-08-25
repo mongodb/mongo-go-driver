@@ -412,7 +412,7 @@ func TestAppendClientPlatform(t *testing.T) {
 
 			cb := func(_ int, dst []byte) ([]byte, error) {
 				var err error
-				dst = appendClientPlatform(dst, test.outerLibraryPlatform, test.outerLibraryPlatform != "")
+				dst = appendClientPlatform(dst, test.outerLibraryPlatform)
 
 				return dst, err
 			}
@@ -603,7 +603,7 @@ func TestEncodeClientMetadata(t *testing.T) {
 		odst := bsoncore.AppendStringElement(nil, "type", runtime.GOOS)
 
 		// Calculate what the platform costs
-		pdst := appendClientPlatform(nil, "", false)
+		pdst := appendClientPlatform(nil, "")
 
 		// Calculate what the environment plus the os.type costs.
 		envAndOSTypeAndPlatform := len(edst) + len(odst) + len(pdst)
@@ -783,6 +783,6 @@ func FuzzEncodeClientMetadata(f *testing.F) {
 			t.Fatalf("error appending client os t: %v", err)
 		}
 
-		appendClientPlatform(b, "", false)
+		appendClientPlatform(b, "")
 	})
 }
