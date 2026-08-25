@@ -372,6 +372,11 @@ func (c *Client) AppendDriverInfo(info options.DriverInfo) {
 	})
 }
 
+func (c *Client) AppendDriverInfoErr(info options.DriverInfo) error {
+	c.AppendDriverInfo(info)
+	return nil // TODO
+}
+
 // Disconnect closes sockets to the topology referenced by this Client. It will
 // shut down any monitoring goroutines, close the idle connection pool, and will
 // wait until all the in use connections have been returned to the connection
