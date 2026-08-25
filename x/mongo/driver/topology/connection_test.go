@@ -13,7 +13,6 @@ import (
 	"errors"
 	"math/rand"
 	"net"
-	"runtime"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -125,19 +124,6 @@ func TestConnection(t *testing.T) {
 					"expected x509.HostnameError, got %T: %v", connErr.Wrapped, connErr.Wrapped)
 			})
 			t.Run("TLS record header error does not get backpressure labels", func(t *testing.T) {
-				// Windows doesn't return a wrapped tls.RecordHeaderError, but
-				// returns
-				//
-				//   *net.OpError: read tcp 127.0.0.1:46242->127.0.0.1:46241: wsarecv: An established connection was aborted by the software in your host machine.
-				//
-				// Skip the test on Windows.
-				//
-				// TODO(GODRIVER-3956): Make the TLS record header error check
-				// and test work on Windows.
-				if runtime.GOOS == "windows" {
-					t.Skip("Skipping this test on Windows because tls.Conn.HandshakeContext doesn't return tls.RecordHeaderError on Windows")
-				}
-
 				// Create a conn that responds with non-TLS data. The TLS client
 				// will fail with tls.RecordHeaderError because the first bytes
 				// aren't a valid TLS record.
