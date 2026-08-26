@@ -62,8 +62,14 @@ func run() error {
 		return err
 	}
 
+	goVersion, err := goDirectiveVersion(filepath.Join(moduleDir, "go.mod"))
+	if err != nil {
+		return err
+	}
+
 	bom.SerialNumber = serialNumber
 	setToolsMetadata(bom)
+	pinStdlibVersion(bom, "go"+goVersion)
 	injectLibmongocrypt(bom, version)
 
 	sbomPath := filepath.Join(moduleDir, "sbom.json")
@@ -120,6 +126,66 @@ func setToolsMetadata(bom *cdx.BOM) {
 				},
 			},
 		},
+	}
+}
+
+var goDirectiveRE = regexp.MustCompile(`(?m)^go (\S+)`)
+
+// goDirectiveVersion extracts the "go" directive from the module's go.mod.
+func goDirectiveVersion(path string) (string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", fmt.Errorf("reading %s: %w", path, err)
+	}
+	m := goDirectiveRE.FindSubmatch(data)
+	if m == nil || len(m[1]) == 0 {
+		return "", fmt.Errorf("could not find go directive in %s", path)
+	}
+	return string(m[1]), nil
+}
+
+// pinStdlibVersion overrides the stdlib pseudo-component's version (and the
+// bom-ref/purl derived from it) with goVersion. cyclonedx-gomod otherwise
+// records the exact patch version of whichever Go toolchain happened to run
+// it (e.g. "go1.26.3"), which makes the SBOM depend on the generating
+// machine's installed toolchain rather than the driver's own go.mod — so a
+// developer and CI running different Go patch versions would each consider
+// the other's sbom.json out of date. The go.mod "go" directive is the
+// project's actual, committed minimum version and is stable across machines.
+func pinStdlibVersion(bom *cdx.BOM, goVersion string) {
+	if bom.Components == nil {
+		return
+	}
+	components := *bom.Components
+	for i := range components {
+		c := &components[i]
+		if c.Name != "std" || c.Group != "" {
+			continue
+		}
+		oldRef := c.BOMRef
+		newRef := "pkg:golang/std@" + goVersion + "?type=module"
+
+		c.Version = goVersion
+		c.BOMRef = newRef
+		c.PackageURL = "pkg:golang/std@" + goVersion
+
+		if bom.Dependencies != nil {
+			deps := *bom.Dependencies
+			for j := range deps {
+				if deps[j].Ref == oldRef {
+					deps[j].Ref = newRef
+				}
+				if deps[j].Dependencies == nil {
+					continue
+				}
+				dependsOn := *deps[j].Dependencies
+				for k, ref := range dependsOn {
+					if ref == oldRef {
+						dependsOn[k] = newRef
+					}
+				}
+			}
+		}
 	}
 }
 
