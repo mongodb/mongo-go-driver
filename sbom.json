@@ -3,7 +3,7 @@
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
   "serialNumber": "urn:uuid:b7adcdf8-bafc-43c5-a529-a73130697171",
-  "version": 6,
+  "version": 7,
   "metadata": {
     "tools": [
       {
@@ -284,12 +284,12 @@
       }
     },
     {
-      "bom-ref": "pkg:golang/std@go1.26.3?type=module",
+      "bom-ref": "pkg:golang/std@go1.25.0?type=module",
       "type": "library",
       "name": "std",
-      "version": "go1.26.3",
+      "version": "go1.25.0",
       "scope": "required",
-      "purl": "pkg:golang/std@go1.26.3"
+      "purl": "pkg:golang/std@go1.25.0"
     },
     {
       "bom-ref": "pkg:github/mongodb/libmongocrypt@1.20.0",
@@ -335,7 +335,7 @@
         "pkg:golang/github.com/youmark/pkcs8@v0.0.0-20240726163527-a2c0da244d78?type=module",
         "pkg:golang/golang.org/x/crypto@v0.53.0?type=module",
         "pkg:golang/golang.org/x/sync@v0.21.0?type=module",
-        "pkg:golang/std@go1.26.3?type=module",
+        "pkg:golang/std@go1.25.0?type=module",
         "pkg:github/mongodb/libmongocrypt@1.20.0"
       ]
     },
@@ -384,7 +384,7 @@
       ]
     },
     {
-      "ref": "pkg:golang/std@go1.26.3?type=module"
+      "ref": "pkg:golang/std@go1.25.0?type=module"
     },
     {
       "ref": "pkg:github/mongodb/libmongocrypt@1.20.0"
