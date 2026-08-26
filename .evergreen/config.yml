@@ -567,16 +567,6 @@ tasks:
         params:
           binary: bash
           args: [*task-runner, govulncheck]
-  - name: generate-sbom
-    tags: ["ssdlc", "static-analysis"]
-    commands:
-      - command: subprocess.exec
-        type: test
-        params:
-          binary: bash
-          env:
-            EXPECT_ERROR: "1"
-          args: [*task-runner, --force, generate-sbom]
   - name: upload-sbom
     tags: ["ssdlc"]
     allowed_requesters: ["commit"]
@@ -623,39 +613,6 @@ tasks:
           args:
             - run
             - ./internal/cmd/upload-sbom
-      - command: s3.put
-        type: system
-        params:
-          display_name: Augmented SBOM (Old)
-          aws_key: ${aws_key}
-          aws_secret: ${aws_secret}
-          bucket: mciuploads
-          content_type: application/json
-          local_file: src/go.mongodb.org/mongo-driver/old.json
-          permissions: public-read
-          remote_file: mongo-go-driver/${build_variant}/${revision}/${version_id}/${build_id}/sbom/old.json
-      - command: s3.put
-        type: system
-        params:
-          display_name: Augmented SBOM (New)
-          aws_key: ${aws_key}
-          aws_secret: ${aws_secret}
-          bucket: mciuploads
-          content_type: application/json
-          local_file: src/go.mongodb.org/mongo-driver/new.json
-          permissions: public-read
-          remote_file: mongo-go-driver/${build_variant}/${revision}/${version_id}/${build_id}/sbom/new.json
-      - command: s3.put
-        type: system
-        params:
-          display_name: Augmented SBOM (Diff)
-          aws_key: ${aws_key}
-          aws_secret: ${aws_secret}
-          bucket: mciuploads
-          content_type: application/json
-          local_file: src/go.mongodb.org/mongo-driver/diff.txt
-          permissions: public-read
-          remote_file: mongo-go-driver/${build_variant}/${revision}/${version_id}/${build_id}/sbom/diff.txt
   - name: pull-request-helpers
     allowed_requesters: ["patch", "github_pr"]
     commands:

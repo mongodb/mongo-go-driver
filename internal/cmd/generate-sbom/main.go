@@ -68,6 +68,7 @@ func run() error {
 	}
 
 	bom.SerialNumber = serialNumber
+	assertLicenses(bom)
 	setToolsMetadata(bom)
 	pinStdlibVersion(bom, "go"+goVersion)
 	injectLibmongocrypt(bom, version)
@@ -96,15 +97,47 @@ func generateBOM(moduleDir string) (*cdx.BOM, error) {
 }
 
 // cyclonedxGomodVersion is the pinned cyclonedx-gomod release this tool's
-// metadata handling is modeled after (see setToolsMetadata). Bump it
-// alongside the dependency in go.mod.
-//
-// Detected licenses are deliberately left as evidence rather than asserted
-// into the declared licenses field (which cyclonedx-gomod's CLI would do
-// behind its -assert-licenses flag): silkbomb's `update --select-licenses`
-// step categorizes license evidence against MongoDB's Inbound Open Source
-// Policy downstream, and needs the evidence field intact to do so.
+// license and metadata handling is modeled after (see assertLicenses and
+// setToolsMetadata). Bump it alongside the dependency in go.mod.
 const cyclonedxGomodVersion = "v1.12.0"
+
+// assertLicenses promotes each component's detected license evidence into
+// its declared licenses field. cyclonedx-gomod's CLI does this behind the
+// -assert-licenses flag (internal/sbom.AssertLicenses, unexported so it can't
+// be imported directly); by default it leaves detected licenses as evidence
+// only, since detection can't be guaranteed correct.
+func assertLicenses(bom *cdx.BOM) {
+	if bom == nil {
+		return
+	}
+	if bom.Metadata != nil {
+		assertComponentLicenses(bom.Metadata.Component)
+	}
+	if bom.Components != nil {
+		for i := range *bom.Components {
+			assertComponentLicenses(&(*bom.Components)[i])
+		}
+	}
+}
+
+func assertComponentLicenses(c *cdx.Component) {
+	if c == nil {
+		return
+	}
+	if c.Evidence != nil && c.Evidence.Licenses != nil {
+		c.Licenses = c.Evidence.Licenses
+		if c.Evidence.Copyright != nil {
+			c.Evidence.Licenses = nil
+		} else {
+			c.Evidence = nil
+		}
+	}
+	if c.Components != nil {
+		for i := range *c.Components {
+			assertComponentLicenses(&(*c.Components)[i])
+		}
+	}
+}
 
 // setToolsMetadata records cyclonedx-gomod as the tool that generated the
 // BOM's components, mirroring what its CLI records for itself. We omit the

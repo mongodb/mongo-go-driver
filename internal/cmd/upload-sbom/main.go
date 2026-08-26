@@ -4,14 +4,8 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-// Command upload-sbom runs Silkbomb, via the Docker Engine API, in two
-// steps: "update --select-licenses" categorizes sbom.json's license evidence
-// per MongoDB's Inbound Open Source Policy, then "augment" enriches the
-// result with Kondukto scan results, producing augmented.sbom.json.new. The
-// augmented output is diffed against the previously committed
-// augmented.sbom.json; if the two differ, a non-fatal failed status is
-// reported to the running Evergreen task so the change is surfaced for
-// review without blocking the build.
+// Command upload-sbom runs Silkbomb's "upload" subcommand, via the Docker
+// Engine API, to publish sbom.json to Dependency-Track and Kondukto.
 //
 // Required environment: branch_name, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY,
 // AWS_SESSION_TOKEN (credentials for the Silkbomb IAM role, passed through to
@@ -22,16 +16,12 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -47,11 +37,7 @@ const (
 	ecrRegistry   = "901841024863.dkr.ecr.us-east-1.amazonaws.com"
 	repo          = "mongodb/mongo-go-driver"
 
-	inputSBOM    = "sbom.json"
-	selectedSBOM = "sbom.selected.json" // sbom.json with license categorization applied
-
-	augmentedOld = "augmented.sbom.json"
-	augmentedNew = "augmented.sbom.json.new"
+	inputSBOM = "sbom.json"
 )
 
 func main() {
@@ -88,18 +74,7 @@ func run() error {
 		return err
 	}
 
-	if err := runSilkbombUpdate(ctx, cli); err != nil {
-		return err
-	}
-	if _, err := diffAndPrint(inputSBOM, selectedSBOM, "license-old.json", "license-new.json", "license-diff.txt"); err != nil {
-		return fmt.Errorf("diffing license selection: %w", err)
-	}
-
-	if err := runSilkbombAugment(ctx, cli, branch); err != nil {
-		return err
-	}
-
-	return diffAndReport()
+	return runSilkbombUpload(ctx, cli, branch)
 }
 
 func requireEnv(k string) (string, error) {
@@ -175,56 +150,9 @@ func pullImage(ctx context.Context, cli *client.Client, authStr string) error {
 	return err
 }
 
-// runSilkbombUpdate runs Silkbomb's "update" subcommand with -select-licenses,
-// which categorizes each component's license per MongoDB's Inbound Open
-// Source Policy (go/inbound-oss) without merging in a purl list. Unlike
-// augment/upload, update doesn't publish anywhere, so it needs no AWS
-// credentials.
-func runSilkbombUpdate(ctx context.Context, cli *client.Client) error {
-	if err := runSilkbombContainer(ctx, cli, []string{
-		"update",
-		"--sbom-in", "/pwd/" + inputSBOM,
-		"--sbom-out", "/pwd/" + selectedSBOM,
-		"--select-licenses",
-	}, nil); err != nil {
-		return err
-	}
-	if _, err := os.Stat(selectedSBOM); err != nil {
-		return fmt.Errorf("failed to produce license-selected SBOM: %w", err)
-	}
-	return nil
-}
-
-// runSilkbombAugment runs Silkbomb's "augment" subcommand against the
-// license-selected SBOM, enriching it with Kondukto scan results.
-func runSilkbombAugment(ctx context.Context, cli *client.Client, branch string) error {
-	if err := runSilkbombContainer(ctx, cli, []string{
-		"augment",
-		"--repo", repo,
-		"--branch", branch,
-		"--sbom-in", "/pwd/" + selectedSBOM,
-		"--sbom-out", "/pwd/" + augmentedNew,
-		// Any notable updates to the Augmented SBOM version should be
-		// done manually after careful inspection. Otherwise, it
-		// should be equal to the existing SBOM version.
-		"--no-update-sbom-version",
-	}, []string{
-		"AWS_ACCESS_KEY_ID=" + os.Getenv("AWS_ACCESS_KEY_ID"),
-		"AWS_SECRET_ACCESS_KEY=" + os.Getenv("AWS_SECRET_ACCESS_KEY"),
-		"AWS_SESSION_TOKEN=" + os.Getenv("AWS_SESSION_TOKEN"),
-	}); err != nil {
-		return err
-	}
-	if _, err := os.Stat(augmentedNew); err != nil {
-		return fmt.Errorf("failed to produce augmented SBOM: %w", err)
-	}
-	return nil
-}
-
-// runSilkbombContainer runs the silkbomb image with the given command and
-// environment, mounting the working directory at /pwd, and streams its logs
-// to stdout/stderr. It returns an error if the container exits non-zero.
-func runSilkbombContainer(ctx context.Context, cli *client.Client, cmd, env []string) error {
+// runSilkbombUpload runs Silkbomb's "upload" subcommand, which publishes
+// sbom.json directly to Dependency-Track and Kondukto in one call.
+func runSilkbombUpload(ctx context.Context, cli *client.Client, branch string) error {
 	pwd, err := os.Getwd()
 	if err != nil {
 		return err
@@ -233,8 +161,17 @@ func runSilkbombContainer(ctx context.Context, cli *client.Client, cmd, env []st
 	resp, err := cli.ContainerCreate(ctx,
 		&container.Config{
 			Image: silkbombImage,
-			Cmd:   cmd,
-			Env:   env,
+			Cmd: []string{
+				"upload",
+				"--repo", repo,
+				"--branch", branch,
+				"--sbom-in", "/pwd/" + inputSBOM,
+			},
+			Env: []string{
+				"AWS_ACCESS_KEY_ID=" + os.Getenv("AWS_ACCESS_KEY_ID"),
+				"AWS_SECRET_ACCESS_KEY=" + os.Getenv("AWS_SECRET_ACCESS_KEY"),
+				"AWS_SESSION_TOKEN=" + os.Getenv("AWS_SESSION_TOKEN"),
+			},
 		},
 		&container.HostConfig{Binds: []string{pwd + ":/pwd"}},
 		nil, nil, "")
@@ -267,118 +204,5 @@ func runSilkbombContainer(ctx context.Context, cli *client.Client, cmd, env []st
 	if exitCode != 0 {
 		return fmt.Errorf("silkbomb exited with code %d", exitCode)
 	}
-	return nil
-}
-
-// diffAndReport diffs the previous and newly generated Augmented SBOMs into
-// old.json, new.json, and diff.txt — the exact names the calling Evergreen
-// task uploads to S3 regardless of outcome. If the content differs, a
-// non-fatal failed status is reported to the task so the change surfaces for
-// review without blocking the build.
-func diffAndReport() error {
-	fmt.Println("Comparing Augmented SBOM...")
-
-	changed, err := diffAndPrint(augmentedOld, augmentedNew, "old.json", "new.json", "diff.txt")
-	if err != nil {
-		return err
-	}
-
-	if changed {
-		if err := postEvergreenStatus("detected significant changes in Augmented SBOM"); err != nil {
-			fmt.Fprintln(os.Stderr, "upload-sbom: reporting task status:", err)
-		}
-	}
-
-	fmt.Println("Comparing Augmented SBOM... done.")
-	return nil
-}
-
-// diffAndPrint normalizes the SBOMs at oldPath and newPath (dropping the
-// timestamp, which always changes), writes them to oldOut and newOut, diffs
-// them side by side into diffOut, prints the diff, and reports whether the
-// two differed.
-func diffAndPrint(oldPath, newPath, oldOut, newOut, diffOut string) (changed bool, err error) {
-	if err := normalizeToFile(oldPath, oldOut); err != nil {
-		return false, fmt.Errorf("reading %s: %w", oldPath, err)
-	}
-	if err := normalizeToFile(newPath, newOut); err != nil {
-		return false, fmt.Errorf("reading %s: %w", newPath, err)
-	}
-
-	changed, err = diffFiles(oldOut, newOut, diffOut)
-	if err != nil {
-		return false, err
-	}
-
-	diffContent, err := os.ReadFile(diffOut)
-	if err != nil {
-		return false, err
-	}
-	os.Stdout.Write(diffContent)
-
-	return changed, nil
-}
-
-// normalizeToFile reads the SBOM at inPath, strips metadata.timestamp, and
-// writes it pretty-printed (matching `jq -S`) to outPath for a stable,
-// line-oriented diff.
-func normalizeToFile(inPath, outPath string) error {
-	data, err := os.ReadFile(inPath)
-	if err != nil {
-		return err
-	}
-	var m map[string]any
-	if err := json.Unmarshal(data, &m); err != nil {
-		return fmt.Errorf("parsing %s: %w", inPath, err)
-	}
-	if md, ok := m["metadata"].(map[string]any); ok {
-		delete(md, "timestamp")
-	}
-	out, err := json.MarshalIndent(m, "", "  ")
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(outPath, out, 0o644)
-}
-
-// diffFiles runs `diff -sty --left-column -W 200` between a and b, writing
-// its output to outPath, and reports whether the files differ.
-func diffFiles(a, b, outPath string) (changed bool, err error) {
-	out, err := os.Create(outPath)
-	if err != nil {
-		return false, err
-	}
-	defer out.Close()
-
-	cmd := exec.Command("diff", "-sty", "--left-column", "-W", "200", a, b)
-	cmd.Stdout = out
-	cmd.Stderr = os.Stderr
-	err = cmd.Run()
-	if err == nil {
-		return false, nil
-	}
-	var exitErr *exec.ExitError
-	if errors.As(err, &exitErr) && exitErr.ExitCode() == 1 {
-		return true, nil
-	}
-	return false, fmt.Errorf("diff: %w", err)
-}
-
-func postEvergreenStatus(desc string) error {
-	body, err := json.Marshal(map[string]any{
-		"status":          "failed",
-		"type":            "test",
-		"should_continue": true,
-		"desc":            desc,
-	})
-	if err != nil {
-		return err
-	}
-
-	resp, err := http.Post("http://localhost:2285/task_status", "application/json", bytes.NewReader(body))
-	if err != nil {
-		return nil // non-fatal, mirror the shell script's `|| true`
-	}
-	defer resp.Body.Close()
 	return nil
 }
