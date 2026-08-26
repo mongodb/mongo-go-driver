@@ -14,7 +14,7 @@ require (
 	github.com/go-logr/zerologr v1.2.3
 	github.com/miekg/dns v1.1.72
 	github.com/rs/zerolog v1.35.1
-	github.com/sirupsen/logrus v1.9.4
+	github.com/sirupsen/logrus v1.10.0
 	go.mongodb.org/mongo-driver/ext/awsauth v0.0.0
 	go.mongodb.org/mongo-driver/v2 v2.0.0-alpha2
 	go.uber.org/zap v1.28.0
