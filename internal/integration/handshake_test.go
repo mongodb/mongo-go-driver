@@ -8,6 +8,7 @@ package integration
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"runtime"
 	"testing"
@@ -59,7 +60,7 @@ func TestHandshakeProse(t *testing.T) {
 		name string
 		env  map[string]string
 		opts *options.ClientOptions
-		want []byte
+		want string
 	}{
 		{
 			name: "1. valid AWS",
@@ -69,22 +70,11 @@ func TestHandshakeProse(t *testing.T) {
 				"AWS_LAMBDA_FUNCTION_MEMORY_SIZE": "1024",
 			},
 			opts: nil,
-			want: mustMarshalBSON(bson.D{
-				{Key: "driver", Value: bson.D{
-					{Key: "name", Value: "mongo-go-driver"},
-					{Key: "version", Value: version.Driver},
-				}},
-				{Key: "os", Value: bson.D{
-					{Key: "type", Value: runtime.GOOS},
-					{Key: "architecture", Value: runtime.GOARCH},
-				}},
-				{Key: "platform", Value: runtime.Version()},
-				{Key: "env", Value: bson.D{
-					bson.E{Key: "name", Value: "aws.lambda"},
-					bson.E{Key: "memory_mb", Value: 1024},
-					bson.E{Key: "region", Value: "us-east-2"},
-				}},
-			}),
+			want: clientMetadataExtJSON(
+				"mongo-go-driver",
+				version.Driver,
+				runtime.Version(),
+				`{"name": "aws.lambda", "memory_mb": 1024, "region": "us-east-2"}`),
 		},
 		{
 			name: "2. valid Azure",
@@ -92,20 +82,11 @@ func TestHandshakeProse(t *testing.T) {
 				"FUNCTIONS_WORKER_RUNTIME": "node",
 			},
 			opts: nil,
-			want: mustMarshalBSON(bson.D{
-				{Key: "driver", Value: bson.D{
-					{Key: "name", Value: "mongo-go-driver"},
-					{Key: "version", Value: version.Driver},
-				}},
-				{Key: "os", Value: bson.D{
-					{Key: "type", Value: runtime.GOOS},
-					{Key: "architecture", Value: runtime.GOARCH},
-				}},
-				{Key: "platform", Value: runtime.Version()},
-				{Key: "env", Value: bson.D{
-					bson.E{Key: "name", Value: "azure.func"},
-				}},
-			}),
+			want: clientMetadataExtJSON(
+				"mongo-go-driver",
+				version.Driver,
+				runtime.Version(),
+				`{"name": "azure.func"}`),
 		},
 		{
 			name: "3. valid GCP",
@@ -116,23 +97,11 @@ func TestHandshakeProse(t *testing.T) {
 				"FUNCTION_REGION":      "us-central1",
 			},
 			opts: nil,
-			want: mustMarshalBSON(bson.D{
-				{Key: "driver", Value: bson.D{
-					{Key: "name", Value: "mongo-go-driver"},
-					{Key: "version", Value: version.Driver},
-				}},
-				{Key: "os", Value: bson.D{
-					{Key: "type", Value: runtime.GOOS},
-					{Key: "architecture", Value: runtime.GOARCH},
-				}},
-				{Key: "platform", Value: runtime.Version()},
-				{Key: "env", Value: bson.D{
-					bson.E{Key: "name", Value: "gcp.func"},
-					bson.E{Key: "memory_mb", Value: 1024},
-					bson.E{Key: "region", Value: "us-central1"},
-					bson.E{Key: "timeout_sec", Value: int32(60)},
-				}},
-			}),
+			want: clientMetadataExtJSON(
+				"mongo-go-driver",
+				version.Driver,
+				runtime.Version(),
+				`{"name": "gcp.func", "memory_mb": 1024, "region": "us-central1", "timeout_sec": 60}`),
 		},
 		{
 			name: "4. valid Vercel",
@@ -141,21 +110,11 @@ func TestHandshakeProse(t *testing.T) {
 				"VERCEL_REGION": "cdg1",
 			},
 			opts: nil,
-			want: mustMarshalBSON(bson.D{
-				{Key: "driver", Value: bson.D{
-					{Key: "name", Value: "mongo-go-driver"},
-					{Key: "version", Value: version.Driver},
-				}},
-				{Key: "os", Value: bson.D{
-					{Key: "type", Value: runtime.GOOS},
-					{Key: "architecture", Value: runtime.GOARCH},
-				}},
-				{Key: "platform", Value: runtime.Version()},
-				{Key: "env", Value: bson.D{
-					bson.E{Key: "name", Value: "vercel"},
-					bson.E{Key: "region", Value: "cdg1"},
-				}},
-			}),
+			want: clientMetadataExtJSON(
+				"mongo-go-driver",
+				version.Driver,
+				runtime.Version(),
+				`{"name": "vercel", "region": "cdg1"}`),
 		},
 		{
 			name: "5. invalid multiple providers",
@@ -164,17 +123,10 @@ func TestHandshakeProse(t *testing.T) {
 				"FUNCTIONS_WORKER_RUNTIME": "node",
 			},
 			opts: nil,
-			want: mustMarshalBSON(bson.D{
-				{Key: "driver", Value: bson.D{
-					{Key: "name", Value: "mongo-go-driver"},
-					{Key: "version", Value: version.Driver},
-				}},
-				{Key: "os", Value: bson.D{
-					{Key: "type", Value: runtime.GOOS},
-					{Key: "architecture", Value: runtime.GOARCH},
-				}},
-				{Key: "platform", Value: runtime.Version()},
-			}),
+			want: clientMetadataExtJSON(
+				"mongo-go-driver",
+				version.Driver,
+				runtime.Version()),
 		},
 		{
 			name: "6. invalid long string",
@@ -189,20 +141,11 @@ func TestHandshakeProse(t *testing.T) {
 				}(),
 			},
 			opts: nil,
-			want: mustMarshalBSON(bson.D{
-				{Key: "driver", Value: bson.D{
-					{Key: "name", Value: "mongo-go-driver"},
-					{Key: "version", Value: version.Driver},
-				}},
-				{Key: "os", Value: bson.D{
-					{Key: "type", Value: runtime.GOOS},
-					{Key: "architecture", Value: runtime.GOARCH},
-				}},
-				{Key: "platform", Value: runtime.Version()},
-				{Key: "env", Value: bson.D{
-					{Key: "name", Value: "aws.lambda"},
-				}},
-			}),
+			want: clientMetadataExtJSON(
+				"mongo-go-driver",
+				version.Driver,
+				runtime.Version(),
+				`{"name": "aws.lambda"}`),
 		},
 		{
 			name: "7. invalid wrong types",
@@ -211,20 +154,11 @@ func TestHandshakeProse(t *testing.T) {
 				"AWS_LAMBDA_FUNCTION_MEMORY_SIZE": "big",
 			},
 			opts: nil,
-			want: mustMarshalBSON(bson.D{
-				{Key: "driver", Value: bson.D{
-					{Key: "name", Value: "mongo-go-driver"},
-					{Key: "version", Value: version.Driver},
-				}},
-				{Key: "os", Value: bson.D{
-					{Key: "type", Value: runtime.GOOS},
-					{Key: "architecture", Value: runtime.GOARCH},
-				}},
-				{Key: "platform", Value: runtime.Version()},
-				{Key: "env", Value: bson.D{
-					{Key: "name", Value: "aws.lambda"},
-				}},
-			}),
+			want: clientMetadataExtJSON(
+				"mongo-go-driver",
+				version.Driver,
+				runtime.Version(),
+				`{"name": "aws.lambda"}`),
 		},
 		{
 			name: "8. Invalid - AWS_EXECUTION_ENV does not start with \"AWS_Lambda_\"",
@@ -232,32 +166,18 @@ func TestHandshakeProse(t *testing.T) {
 				"AWS_EXECUTION_ENV": "EC2",
 			},
 			opts: nil,
-			want: mustMarshalBSON(bson.D{
-				{Key: "driver", Value: bson.D{
-					{Key: "name", Value: "mongo-go-driver"},
-					{Key: "version", Value: version.Driver},
-				}},
-				{Key: "os", Value: bson.D{
-					{Key: "type", Value: runtime.GOOS},
-					{Key: "architecture", Value: runtime.GOARCH},
-				}},
-				{Key: "platform", Value: runtime.Version()},
-			}),
+			want: clientMetadataExtJSON(
+				"mongo-go-driver",
+				version.Driver,
+				runtime.Version()),
 		},
 		{
 			name: "driver info included",
 			opts: options.Client().SetDriverInfo(driverInfo),
-			want: mustMarshalBSON(bson.D{
-				{Key: "driver", Value: bson.D{
-					{Key: "name", Value: "mongo-go-driver|outer-library-name"},
-					{Key: "version", Value: version.Driver + "|outer-library-version"},
-				}},
-				{Key: "os", Value: bson.D{
-					{Key: "type", Value: runtime.GOOS},
-					{Key: "architecture", Value: runtime.GOARCH},
-				}},
-				{Key: "platform", Value: runtime.Version() + "|outer-library-platform"},
-			}),
+			want: clientMetadataExtJSON(
+				"mongo-go-driver|outer-library-name",
+				version.Driver+"|outer-library-version",
+				runtime.Version()+"|outer-library-platform"),
 		},
 	}
 
@@ -283,7 +203,7 @@ func TestHandshakeProse(t *testing.T) {
 			assert.True(mt, firstMessage.IsHandshake(), "expected first message to be a handshake")
 
 			clientMetadata := clientMetadataFromHandshake(mt, firstMessage.Sent.Command)
-			assertbson.EqualDocument(mt, tc.want, clientMetadata)
+			assertbson.EqualDocument(mt, extJSONToBSON(mt, tc.want), clientMetadata)
 		})
 	}
 }
@@ -353,7 +273,7 @@ func TestHandshakeProse_AppendMetadata_Test1_Test2_Test3(t *testing.T) {
 	testCases := []struct {
 		name       string
 		driverInfo options.DriverInfo
-		want       []byte
+		want       string
 
 		// append initialDriverInfo using client.AppendDriverInfo instead of as a
 		// client-level constructor.
@@ -366,17 +286,10 @@ func TestHandshakeProse_AppendMetadata_Test1_Test2_Test3(t *testing.T) {
 				Version:  "2.0",
 				Platform: "Framework Platform",
 			},
-			want: mustMarshalBSON(bson.D{
-				{Key: "driver", Value: bson.D{
-					{Key: "name", Value: "mongo-go-driver|library|framework"},
-					{Key: "version", Value: version.Driver + "|1.2|2.0"},
-				}},
-				{Key: "os", Value: bson.D{
-					{Key: "type", Value: runtime.GOOS},
-					{Key: "architecture", Value: runtime.GOARCH},
-				}},
-				{Key: "platform", Value: runtime.Version() + "|Library Platform|Framework Platform"},
-			}),
+			want: clientMetadataExtJSON(
+				"mongo-go-driver|library|framework",
+				version.Driver+"|1.2|2.0",
+				runtime.Version()+"|Library Platform|Framework Platform"),
 			append: false,
 		},
 		{
@@ -386,17 +299,10 @@ func TestHandshakeProse_AppendMetadata_Test1_Test2_Test3(t *testing.T) {
 				Version:  "2.0",
 				Platform: "",
 			},
-			want: mustMarshalBSON(bson.D{
-				{Key: "driver", Value: bson.D{
-					{Key: "name", Value: "mongo-go-driver|library|framework"},
-					{Key: "version", Value: version.Driver + "|1.2|2.0"},
-				}},
-				{Key: "os", Value: bson.D{
-					{Key: "type", Value: runtime.GOOS},
-					{Key: "architecture", Value: runtime.GOARCH},
-				}},
-				{Key: "platform", Value: runtime.Version() + "|Library Platform"},
-			}),
+			want: clientMetadataExtJSON(
+				"mongo-go-driver|library|framework",
+				version.Driver+"|1.2|2.0",
+				runtime.Version()+"|Library Platform"),
 			append: false,
 		},
 		{
@@ -406,17 +312,10 @@ func TestHandshakeProse_AppendMetadata_Test1_Test2_Test3(t *testing.T) {
 				Version:  "",
 				Platform: "Framework Platform",
 			},
-			want: mustMarshalBSON(bson.D{
-				{Key: "driver", Value: bson.D{
-					{Key: "name", Value: "mongo-go-driver|library|framework"},
-					{Key: "version", Value: version.Driver + "|1.2"},
-				}},
-				{Key: "os", Value: bson.D{
-					{Key: "type", Value: runtime.GOOS},
-					{Key: "architecture", Value: runtime.GOARCH},
-				}},
-				{Key: "platform", Value: runtime.Version() + "|Library Platform|Framework Platform"},
-			}),
+			want: clientMetadataExtJSON(
+				"mongo-go-driver|library|framework",
+				version.Driver+"|1.2|",
+				runtime.Version()+"|Library Platform|Framework Platform"),
 			append: false,
 		},
 		{
@@ -426,17 +325,10 @@ func TestHandshakeProse_AppendMetadata_Test1_Test2_Test3(t *testing.T) {
 				Version:  "",
 				Platform: "",
 			},
-			want: mustMarshalBSON(bson.D{
-				{Key: "driver", Value: bson.D{
-					{Key: "name", Value: "mongo-go-driver|library|framework"},
-					{Key: "version", Value: version.Driver + "|1.2"},
-				}},
-				{Key: "os", Value: bson.D{
-					{Key: "type", Value: runtime.GOOS},
-					{Key: "architecture", Value: runtime.GOARCH},
-				}},
-				{Key: "platform", Value: runtime.Version() + "|Library Platform"},
-			}),
+			want: clientMetadataExtJSON(
+				"mongo-go-driver|library|framework",
+				version.Driver+"|1.2|",
+				runtime.Version()+"|Library Platform"),
 			append: false,
 		},
 		{
@@ -446,17 +338,10 @@ func TestHandshakeProse_AppendMetadata_Test1_Test2_Test3(t *testing.T) {
 				Version:  "2.0",
 				Platform: "Framework Platform",
 			},
-			want: mustMarshalBSON(bson.D{
-				{Key: "driver", Value: bson.D{
-					{Key: "name", Value: "mongo-go-driver|library|framework"},
-					{Key: "version", Value: version.Driver + "|1.2|2.0"},
-				}},
-				{Key: "os", Value: bson.D{
-					{Key: "type", Value: runtime.GOOS},
-					{Key: "architecture", Value: runtime.GOARCH},
-				}},
-				{Key: "platform", Value: runtime.Version() + "|Library Platform|Framework Platform"},
-			}),
+			want: clientMetadataExtJSON(
+				"mongo-go-driver|library|framework",
+				version.Driver+"|1.2|2.0",
+				runtime.Version()+"|Library Platform|Framework Platform"),
 			append: true,
 		},
 		{
@@ -466,17 +351,10 @@ func TestHandshakeProse_AppendMetadata_Test1_Test2_Test3(t *testing.T) {
 				Version:  "2.0",
 				Platform: "",
 			},
-			want: mustMarshalBSON(bson.D{
-				{Key: "driver", Value: bson.D{
-					{Key: "name", Value: "mongo-go-driver|library|framework"},
-					{Key: "version", Value: version.Driver + "|1.2|2.0"},
-				}},
-				{Key: "os", Value: bson.D{
-					{Key: "type", Value: runtime.GOOS},
-					{Key: "architecture", Value: runtime.GOARCH},
-				}},
-				{Key: "platform", Value: runtime.Version() + "|Library Platform"},
-			}),
+			want: clientMetadataExtJSON(
+				"mongo-go-driver|library|framework",
+				version.Driver+"|1.2|2.0",
+				runtime.Version()+"|Library Platform"),
 			append: true,
 		},
 		{
@@ -486,17 +364,10 @@ func TestHandshakeProse_AppendMetadata_Test1_Test2_Test3(t *testing.T) {
 				Version:  "",
 				Platform: "Framework Platform",
 			},
-			want: mustMarshalBSON(bson.D{
-				{Key: "driver", Value: bson.D{
-					{Key: "name", Value: "mongo-go-driver|library|framework"},
-					{Key: "version", Value: version.Driver + "|1.2"},
-				}},
-				{Key: "os", Value: bson.D{
-					{Key: "type", Value: runtime.GOOS},
-					{Key: "architecture", Value: runtime.GOARCH},
-				}},
-				{Key: "platform", Value: runtime.Version() + "|Library Platform|Framework Platform"},
-			}),
+			want: clientMetadataExtJSON(
+				"mongo-go-driver|library|framework",
+				version.Driver+"|1.2|",
+				runtime.Version()+"|Library Platform|Framework Platform"),
 			append: true,
 		},
 		{
@@ -506,17 +377,10 @@ func TestHandshakeProse_AppendMetadata_Test1_Test2_Test3(t *testing.T) {
 				Version:  "",
 				Platform: "",
 			},
-			want: mustMarshalBSON(bson.D{
-				{Key: "driver", Value: bson.D{
-					{Key: "name", Value: "mongo-go-driver|library|framework"},
-					{Key: "version", Value: version.Driver + "|1.2"},
-				}},
-				{Key: "os", Value: bson.D{
-					{Key: "type", Value: runtime.GOOS},
-					{Key: "architecture", Value: runtime.GOARCH},
-				}},
-				{Key: "platform", Value: runtime.Version() + "|Library Platform"},
-			}),
+			want: clientMetadataExtJSON(
+				"mongo-go-driver|library|framework",
+				version.Driver+"|1.2|",
+				runtime.Version()+"|Library Platform"),
 			append: true,
 		},
 		{
@@ -526,17 +390,10 @@ func TestHandshakeProse_AppendMetadata_Test1_Test2_Test3(t *testing.T) {
 				Version:  "1.2",
 				Platform: "Library Platform",
 			},
-			want: mustMarshalBSON(bson.D{
-				{Key: "driver", Value: bson.D{
-					{Key: "name", Value: "mongo-go-driver|library"},
-					{Key: "version", Value: version.Driver + "|1.2"},
-				}},
-				{Key: "os", Value: bson.D{
-					{Key: "type", Value: runtime.GOOS},
-					{Key: "architecture", Value: runtime.GOARCH},
-				}},
-				{Key: "platform", Value: runtime.Version() + "|Library Platform"},
-			}),
+			want: clientMetadataExtJSON(
+				"mongo-go-driver|library",
+				version.Driver+"|1.2",
+				runtime.Version()+"|Library Platform"),
 			append: true,
 		},
 		{
@@ -546,17 +403,10 @@ func TestHandshakeProse_AppendMetadata_Test1_Test2_Test3(t *testing.T) {
 				Version:  "1.2",
 				Platform: "Library Platform",
 			},
-			want: mustMarshalBSON(bson.D{
-				{Key: "driver", Value: bson.D{
-					{Key: "name", Value: "mongo-go-driver|library|framework"},
-					{Key: "version", Value: version.Driver + "|1.2"},
-				}},
-				{Key: "os", Value: bson.D{
-					{Key: "type", Value: runtime.GOOS},
-					{Key: "architecture", Value: runtime.GOARCH},
-				}},
-				{Key: "platform", Value: runtime.Version() + "|Library Platform"},
-			}),
+			want: clientMetadataExtJSON(
+				"mongo-go-driver|library|framework",
+				version.Driver+"|1.2|1.2",
+				runtime.Version()+"|Library Platform|Library Platform"),
 			append: true,
 		},
 		{
@@ -566,17 +416,10 @@ func TestHandshakeProse_AppendMetadata_Test1_Test2_Test3(t *testing.T) {
 				Version:  "2.0",
 				Platform: "Library Platform",
 			},
-			want: mustMarshalBSON(bson.D{
-				{Key: "driver", Value: bson.D{
-					{Key: "name", Value: "mongo-go-driver|library"},
-					{Key: "version", Value: version.Driver + "|1.2|2.0"},
-				}},
-				{Key: "os", Value: bson.D{
-					{Key: "type", Value: runtime.GOOS},
-					{Key: "architecture", Value: runtime.GOARCH},
-				}},
-				{Key: "platform", Value: runtime.Version() + "|Library Platform"},
-			}),
+			want: clientMetadataExtJSON(
+				"mongo-go-driver|library|library",
+				version.Driver+"|1.2|2.0",
+				runtime.Version()+"|Library Platform|Library Platform"),
 			append: true,
 		},
 		{
@@ -586,17 +429,10 @@ func TestHandshakeProse_AppendMetadata_Test1_Test2_Test3(t *testing.T) {
 				Version:  "1.2",
 				Platform: "Framework Platform",
 			},
-			want: mustMarshalBSON(bson.D{
-				{Key: "driver", Value: bson.D{
-					{Key: "name", Value: "mongo-go-driver|library"},
-					{Key: "version", Value: version.Driver + "|1.2"},
-				}},
-				{Key: "os", Value: bson.D{
-					{Key: "type", Value: runtime.GOOS},
-					{Key: "architecture", Value: runtime.GOARCH},
-				}},
-				{Key: "platform", Value: runtime.Version() + "|Library Platform|Framework Platform"},
-			}),
+			want: clientMetadataExtJSON(
+				"mongo-go-driver|library|library",
+				version.Driver+"|1.2|1.2",
+				runtime.Version()+"|Library Platform|Framework Platform"),
 			append: true,
 		},
 		{
@@ -606,17 +442,10 @@ func TestHandshakeProse_AppendMetadata_Test1_Test2_Test3(t *testing.T) {
 				Version:  "2.0",
 				Platform: "Library Platform",
 			},
-			want: mustMarshalBSON(bson.D{
-				{Key: "driver", Value: bson.D{
-					{Key: "name", Value: "mongo-go-driver|library|framework"},
-					{Key: "version", Value: version.Driver + "|1.2|2.0"},
-				}},
-				{Key: "os", Value: bson.D{
-					{Key: "type", Value: runtime.GOOS},
-					{Key: "architecture", Value: runtime.GOARCH},
-				}},
-				{Key: "platform", Value: runtime.Version() + "|Library Platform"},
-			}),
+			want: clientMetadataExtJSON(
+				"mongo-go-driver|library|framework",
+				version.Driver+"|1.2|2.0",
+				runtime.Version()+"|Library Platform|Library Platform"),
 			append: true,
 		},
 		{
@@ -626,17 +455,10 @@ func TestHandshakeProse_AppendMetadata_Test1_Test2_Test3(t *testing.T) {
 				Version:  "1.2",
 				Platform: "Framework Platform",
 			},
-			want: mustMarshalBSON(bson.D{
-				{Key: "driver", Value: bson.D{
-					{Key: "name", Value: "mongo-go-driver|library|framework"},
-					{Key: "version", Value: version.Driver + "|1.2"},
-				}},
-				{Key: "os", Value: bson.D{
-					{Key: "type", Value: runtime.GOOS},
-					{Key: "architecture", Value: runtime.GOARCH},
-				}},
-				{Key: "platform", Value: runtime.Version() + "|Library Platform|Framework Platform"},
-			}),
+			want: clientMetadataExtJSON(
+				"mongo-go-driver|library|framework",
+				version.Driver+"|1.2|1.2",
+				runtime.Version()+"|Library Platform|Framework Platform"),
 			append: true,
 		},
 		{
@@ -646,17 +468,10 @@ func TestHandshakeProse_AppendMetadata_Test1_Test2_Test3(t *testing.T) {
 				Version:  "2.0",
 				Platform: "Framework Platform",
 			},
-			want: mustMarshalBSON(bson.D{
-				{Key: "driver", Value: bson.D{
-					{Key: "name", Value: "mongo-go-driver|library"},
-					{Key: "version", Value: version.Driver + "|1.2|2.0"},
-				}},
-				{Key: "os", Value: bson.D{
-					{Key: "type", Value: runtime.GOOS},
-					{Key: "architecture", Value: runtime.GOARCH},
-				}},
-				{Key: "platform", Value: runtime.Version() + "|Library Platform|Framework Platform"},
-			}),
+			want: clientMetadataExtJSON(
+				"mongo-go-driver|library|library",
+				version.Driver+"|1.2|2.0",
+				runtime.Version()+"|Library Platform|Framework Platform"),
 			append: true,
 		},
 	}
@@ -712,7 +527,7 @@ func TestHandshakeProse_AppendMetadata_Test1_Test2_Test3(t *testing.T) {
 			assert.True(mt, gotMessage.IsHandshake(), "expected first message to be a handshake")
 
 			clientMetadata := clientMetadataFromHandshake(mt, gotMessage.Sent.Command)
-			assertbson.EqualDocument(mt, tc.want, clientMetadata)
+			assertbson.EqualDocument(mt, extJSONToBSON(mt, tc.want), clientMetadata)
 		})
 	}
 }
@@ -767,17 +582,10 @@ func TestHandshakeProse_AppendMetadata_MultipleUpdatesWithDuplicateFields(t *tes
 	// metadata value to make the tests more reliable and prevent
 	// false-positive assertion results. That deviates from the prose
 	// test.
-	want := mustMarshalBSON(bson.D{
-		{Key: "driver", Value: bson.D{
-			{Key: "name", Value: "mongo-go-driver|library|framework"},
-			{Key: "version", Value: version.Driver + "|1.2|2.0"},
-		}},
-		{Key: "os", Value: bson.D{
-			{Key: "type", Value: runtime.GOOS},
-			{Key: "architecture", Value: runtime.GOARCH},
-		}},
-		{Key: "platform", Value: runtime.Version() + "|Library Platform|Framework Platform"},
-	})
+	want := clientMetadataExtJSON(
+		"mongo-go-driver|library|framework",
+		version.Driver+"|1.2|2.0",
+		runtime.Version()+"|Library Platform|Framework Platform")
 
 	// 8. Wait 5ms for the connection to become idle.
 	time.Sleep(5 * time.Millisecond)
@@ -799,7 +607,7 @@ func TestHandshakeProse_AppendMetadata_MultipleUpdatesWithDuplicateFields(t *tes
 	assert.True(mt, updatedClientMetadata.IsHandshake(), "expected first message to be a handshake")
 
 	clientMetadata := clientMetadataFromHandshake(mt, updatedClientMetadata.Sent.Command)
-	assertbson.EqualDocument(mt, want, clientMetadata)
+	assertbson.EqualDocument(mt, extJSONToBSON(mt, want), clientMetadata)
 }
 
 // Test 5: Metadata is not appended if identical to initial metadata
@@ -834,17 +642,10 @@ func TestHandshakeProse_AppendMetadata_NotAppendedIfIdentical(t *testing.T) {
 	// metadata value to make the tests more reliable and prevent
 	// false-positive assertion results. That deviates from the prose
 	// test.
-	want := mustMarshalBSON(bson.D{
-		{Key: "driver", Value: bson.D{
-			{Key: "name", Value: "mongo-go-driver|library"},
-			{Key: "version", Value: version.Driver + "|1.2"},
-		}},
-		{Key: "os", Value: bson.D{
-			{Key: "type", Value: runtime.GOOS},
-			{Key: "architecture", Value: runtime.GOARCH},
-		}},
-		{Key: "platform", Value: runtime.Version() + "|Library Platform"},
-	})
+	want := clientMetadataExtJSON(
+		"mongo-go-driver|library",
+		version.Driver+"|1.2",
+		runtime.Version()+"|Library Platform")
 
 	// 3. Wait 5ms for the connection to become idle.
 	time.Sleep(5 * time.Millisecond)
@@ -869,7 +670,7 @@ func TestHandshakeProse_AppendMetadata_NotAppendedIfIdentical(t *testing.T) {
 	assert.True(mt, updatedClientMetadata.IsHandshake(), "expected first message to be a handshake")
 
 	clientMetadata := clientMetadataFromHandshake(mt, updatedClientMetadata.Sent.Command)
-	assertbson.EqualDocument(mt, want, clientMetadata)
+	assertbson.EqualDocument(mt, extJSONToBSON(mt, want), clientMetadata)
 }
 
 // Test 6: Metadata is not appended if identical to initial metadata (separated
@@ -908,7 +709,7 @@ func TestHandshakeProse_AppendMetadata_NotAppendedIfIdentical_NonSequential(t *t
 	mt.Client.AppendDriverInfo(options.DriverInfo{
 		Name:     "framework",
 		Version:  "1.2",
-		Platform: "Framework Platform",
+		Platform: "Library Platform",
 	})
 
 	// Drain the proxy to ensure we only capture messages after appending.
@@ -924,17 +725,10 @@ func TestHandshakeProse_AppendMetadata_NotAppendedIfIdentical_NonSequential(t *t
 	// metadata value to make the tests more reliable and prevent
 	// false-positive assertion results. That deviates from the prose
 	// test.
-	want := mustMarshalBSON(bson.D{
-		{Key: "driver", Value: bson.D{
-			{Key: "name", Value: "mongo-go-driver|library|framework"},
-			{Key: "version", Value: version.Driver + "|1.2"},
-		}},
-		{Key: "os", Value: bson.D{
-			{Key: "type", Value: runtime.GOOS},
-			{Key: "architecture", Value: runtime.GOARCH},
-		}},
-		{Key: "platform", Value: runtime.Version() + "|Library Platform|Framework Platform"},
-	})
+	want := clientMetadataExtJSON(
+		"mongo-go-driver|library|framework",
+		version.Driver+"|1.2|1.2",
+		runtime.Version()+"|Library Platform|Library Platform")
 
 	// 7. Wait 5ms for the connection to become idle.
 	time.Sleep(5 * time.Millisecond)
@@ -960,7 +754,7 @@ func TestHandshakeProse_AppendMetadata_NotAppendedIfIdentical_NonSequential(t *t
 	assert.True(mt, updatedClientMetadata.IsHandshake(), "expected first message to be a handshake")
 
 	clientMetadata := clientMetadataFromHandshake(mt, updatedClientMetadata.Sent.Command)
-	assertbson.EqualDocument(mt, want, clientMetadata)
+	assertbson.EqualDocument(mt, extJSONToBSON(mt, want), clientMetadata)
 }
 
 // Test 7: Empty strings are considered unset when appending duplicate metadata.
@@ -971,7 +765,7 @@ func TestHandshakeProse_AppendMetadata_EmptyStrings(t *testing.T) {
 		name               string
 		initialDriverInfo  options.DriverInfo
 		toAppendDriverInfo options.DriverInfo
-		want               []byte
+		want               string
 	}{
 		{
 			name: "name empty",
@@ -985,17 +779,10 @@ func TestHandshakeProse_AppendMetadata_EmptyStrings(t *testing.T) {
 				Version:  "1.2",
 				Platform: "Library Platform",
 			},
-			want: mustMarshalBSON(bson.D{
-				{Key: "driver", Value: bson.D{
-					{Key: "name", Value: "mongo-go-driver"},
-					{Key: "version", Value: version.Driver + "|1.2"},
-				}},
-				{Key: "os", Value: bson.D{
-					{Key: "type", Value: runtime.GOOS},
-					{Key: "architecture", Value: runtime.GOARCH},
-				}},
-				{Key: "platform", Value: runtime.Version() + "|Library Platform"},
-			}),
+			want: clientMetadataExtJSON(
+				"mongo-go-driver|",
+				version.Driver+"|1.2",
+				runtime.Version()+"|Library Platform"),
 		},
 		{
 			name: "version empty",
@@ -1009,17 +796,10 @@ func TestHandshakeProse_AppendMetadata_EmptyStrings(t *testing.T) {
 				Version:  "",
 				Platform: "Library Platform",
 			},
-			want: mustMarshalBSON(bson.D{
-				{Key: "driver", Value: bson.D{
-					{Key: "name", Value: "mongo-go-driver|library"},
-					{Key: "version", Value: version.Driver},
-				}},
-				{Key: "os", Value: bson.D{
-					{Key: "type", Value: runtime.GOOS},
-					{Key: "architecture", Value: runtime.GOARCH},
-				}},
-				{Key: "platform", Value: runtime.Version() + "|Library Platform"},
-			}),
+			want: clientMetadataExtJSON(
+				"mongo-go-driver|library",
+				version.Driver+"|",
+				runtime.Version()+"|Library Platform"),
 		},
 		{
 			name: "platform empty",
@@ -1033,17 +813,10 @@ func TestHandshakeProse_AppendMetadata_EmptyStrings(t *testing.T) {
 				Version:  "1.2",
 				Platform: "",
 			},
-			want: mustMarshalBSON(bson.D{
-				{Key: "driver", Value: bson.D{
-					{Key: "name", Value: "mongo-go-driver|library"},
-					{Key: "version", Value: version.Driver + "|1.2"},
-				}},
-				{Key: "os", Value: bson.D{
-					{Key: "type", Value: runtime.GOOS},
-					{Key: "architecture", Value: runtime.GOARCH},
-				}},
-				{Key: "platform", Value: runtime.Version()},
-			}),
+			want: clientMetadataExtJSON(
+				"mongo-go-driver|library",
+				version.Driver+"|1.2",
+				runtime.Version()),
 		},
 	}
 
@@ -1104,7 +877,7 @@ func TestHandshakeProse_AppendMetadata_EmptyStrings(t *testing.T) {
 			assert.True(mt, updatedClientMetadata.IsHandshake(), "expected first message to be a handshake")
 
 			clientMetadata := clientMetadataFromHandshake(mt, updatedClientMetadata.Sent.Command)
-			assertbson.EqualDocument(mt, tc.want, clientMetadata)
+			assertbson.EqualDocument(mt, extJSONToBSON(mt, tc.want), clientMetadata)
 		})
 	}
 }
@@ -1118,7 +891,7 @@ func TestHandshakeProse_AppendMetadata_EmptyStrings_InitializedClient(t *testing
 		name               string
 		initialDriverInfo  options.DriverInfo
 		toAppendDriverInfo options.DriverInfo
-		want               []byte
+		want               string
 	}{
 		{
 			name: "name empty",
@@ -1132,17 +905,10 @@ func TestHandshakeProse_AppendMetadata_EmptyStrings_InitializedClient(t *testing
 				Version:  "1.2",
 				Platform: "Library Platform",
 			},
-			want: mustMarshalBSON(bson.D{
-				{Key: "driver", Value: bson.D{
-					{Key: "name", Value: "mongo-go-driver"},
-					{Key: "version", Value: version.Driver + "|1.2"},
-				}},
-				{Key: "os", Value: bson.D{
-					{Key: "type", Value: runtime.GOOS},
-					{Key: "architecture", Value: runtime.GOARCH},
-				}},
-				{Key: "platform", Value: runtime.Version() + "|Library Platform"},
-			}),
+			want: clientMetadataExtJSON(
+				"mongo-go-driver|",
+				version.Driver+"|1.2",
+				runtime.Version()+"|Library Platform"),
 		},
 		{
 			name: "version empty",
@@ -1156,17 +922,10 @@ func TestHandshakeProse_AppendMetadata_EmptyStrings_InitializedClient(t *testing
 				Version:  "",
 				Platform: "Library Platform",
 			},
-			want: mustMarshalBSON(bson.D{
-				{Key: "driver", Value: bson.D{
-					{Key: "name", Value: "mongo-go-driver|library"},
-					{Key: "version", Value: version.Driver},
-				}},
-				{Key: "os", Value: bson.D{
-					{Key: "type", Value: runtime.GOOS},
-					{Key: "architecture", Value: runtime.GOARCH},
-				}},
-				{Key: "platform", Value: runtime.Version() + "|Library Platform"},
-			}),
+			want: clientMetadataExtJSON(
+				"mongo-go-driver|library",
+				version.Driver+"|",
+				runtime.Version()+"|Library Platform"),
 		},
 		{
 			name: "platform empty",
@@ -1180,17 +939,10 @@ func TestHandshakeProse_AppendMetadata_EmptyStrings_InitializedClient(t *testing
 				Version:  "1.2",
 				Platform: "",
 			},
-			want: mustMarshalBSON(bson.D{
-				{Key: "driver", Value: bson.D{
-					{Key: "name", Value: "mongo-go-driver|library"},
-					{Key: "version", Value: version.Driver + "|1.2"},
-				}},
-				{Key: "os", Value: bson.D{
-					{Key: "type", Value: runtime.GOOS},
-					{Key: "architecture", Value: runtime.GOARCH},
-				}},
-				{Key: "platform", Value: runtime.Version()},
-			}),
+			want: clientMetadataExtJSON(
+				"mongo-go-driver|library",
+				version.Driver+"|1.2",
+				runtime.Version()),
 		},
 	}
 
@@ -1247,7 +999,7 @@ func TestHandshakeProse_AppendMetadata_EmptyStrings_InitializedClient(t *testing
 
 			// 8. Assert that `initialClientMetadata` is identical to `updatedClientMetadata`.
 			clientMetadata := clientMetadataFromHandshake(mt, updatedClientMetadata.Sent.Command)
-			assertbson.EqualDocument(mt, tc.want, clientMetadata)
+			assertbson.EqualDocument(mt, extJSONToBSON(mt, tc.want), clientMetadata)
 		})
 	}
 }
@@ -1273,12 +1025,238 @@ func TestHandshakeProse_Handshake_Documents(t *testing.T) {
 	require.Equal(mt, "2", str, `expected backpressure field to be "2"`)
 }
 
+// Test 10: Appending metadata containing the delimiter raises an error
+func TestHandshakeProse_AppendMetadata_DelimiterRejected(t *testing.T) {
+	mt := mtest.New(t)
+
+	initialDriverInfo := options.DriverInfo{
+		Name:     "library",
+		Version:  "1.2",
+		Platform: "Library Platform",
+	}
+
+	testCases := []struct {
+		name       string
+		driverInfo options.DriverInfo
+	}{
+		{
+			name:       "name contains the delimiter",
+			driverInfo: options.DriverInfo{Name: "frame|work", Version: "2.0", Platform: "Framework Platform"},
+		},
+		{
+			name:       "version contains the delimiter",
+			driverInfo: options.DriverInfo{Name: "framework", Version: "2|0", Platform: "Framework Platform"},
+		},
+		{
+			name:       "platform contains the delimiter",
+			driverInfo: options.DriverInfo{Name: "framework", Version: "2.0", Platform: "Framework|Platform"},
+		},
+	}
+
+	for _, tc := range testCases {
+		opts := mtest.NewOptions().CreateCollection(false).ClientType(mtest.Proxy)
+
+		mt.RunOpts(tc.name, opts, func(mt *mtest.T) {
+			clientOpts := options.Client().
+				// Set idle timeout to 1ms to force new connections to be
+				// created throughout the lifetime of the test.
+				SetMaxConnIdleTime(1 * time.Millisecond).
+				SetDriverInfo(&initialDriverInfo)
+
+			mt.ResetClient(clientOpts)
+
+			err := mt.Client.Ping(context.Background(), nil)
+			require.NoError(mt, err, "Ping error: %v", err)
+
+			// Appending driver info containing the delimiter must raise an
+			// error and leave the accumulated metadata untouched.
+			err = mt.Client.AppendDriverInfoErr(tc.driverInfo)
+			require.Error(mt, err, "expected an error appending driver info containing the delimiter")
+
+			// Wait 5ms for the connection to become idle so that the next
+			// operation establishes a new connection and handshakes again.
+			time.Sleep(5 * time.Millisecond)
+
+			mt.GetProxyCapture().Drain()
+
+			want := clientMetadataExtJSON(
+				"mongo-go-driver|library",
+				version.Driver+"|1.2",
+				runtime.Version()+"|Library Platform")
+
+			requireHandshake(mt, want)
+		})
+	}
+}
+
+func TestHandshakeProse_AppendMetadata_GapInTheMiddle_Name(t *testing.T) {
+	mt := newHandshakeT(t)
+
+	require.NoError(mt, mt.Client.AppendDriverInfoErr(options.DriverInfo{Name: ""}))
+	require.NoError(mt, mt.Client.AppendDriverInfoErr(options.DriverInfo{Name: "F2"}))
+
+	mt.GetProxyCapture().Drain()
+
+	want := clientMetadataExtJSON(
+		"mongo-go-driver||F2",
+		version.Driver+"||",
+		runtime.Version())
+
+	requireHandshake(mt, want)
+}
+
+func TestHandshakeProse_AppendMetadata_GapInTheMiddle_Version(t *testing.T) {
+	mt := newHandshakeT(t)
+
+	require.NoError(mt, mt.Client.AppendDriverInfoErr(options.DriverInfo{Name: "F1"}))
+	require.NoError(mt, mt.Client.AppendDriverInfoErr(options.DriverInfo{Name: "F2", Version: "2.0"}))
+
+	mt.GetProxyCapture().Drain()
+
+	want := clientMetadataExtJSON(
+		"mongo-go-driver|F1|F2",
+		version.Driver+"||2.0",
+		runtime.Version())
+
+	requireHandshake(mt, want)
+}
+
+func TestHandshakeProse_AppendMetadata_TrailingDelimiterRetained(t *testing.T) {
+	mt := newHandshakeT(t)
+	require.NoError(mt, mt.Client.AppendDriverInfoErr(options.DriverInfo{Name: "F1"}))
+
+	mt.GetProxyCapture().Drain()
+
+	want := clientMetadataExtJSON(
+		"mongo-go-driver|F1",
+		version.Driver+"|",
+		runtime.Version())
+
+	requireHandshake(mt, want)
+}
+
+func TestHandshakeProse_AppendMetadata_EqualVersionsDoNotCollapse(t *testing.T) {
+	mt := newHandshakeT(t)
+
+	require.NoError(mt, mt.Client.AppendDriverInfoErr(options.DriverInfo{Name: "F1", Version: version.Driver}))
+
+	mt.GetProxyCapture().Drain()
+
+	want := clientMetadataExtJSON(
+		"mongo-go-driver|F1",
+		version.Driver+"|"+version.Driver,
+		runtime.Version())
+
+	requireHandshake(mt, want)
+}
+
+func TestHandshakeProse_AppendMetadata_EqualNamesDoNotCollapse(t *testing.T) {
+	mt := newHandshakeT(t)
+
+	require.NoError(mt, mt.Client.AppendDriverInfoErr(options.DriverInfo{Name: "mongo-go-driver", Version: "1.0"}))
+
+	mt.GetProxyCapture().Drain()
+
+	want := clientMetadataExtJSON(
+		"mongo-go-driver|mongo-go-driver",
+		version.Driver+"|1.0",
+		runtime.Version())
+
+	requireHandshake(mt, want)
+}
+
+func TestHandshakeProse_AppendMetadata_DuplicatesStillDeduplicate(t *testing.T) {
+	mt := newHandshakeT(t)
+
+	require.NoError(mt, mt.Client.AppendDriverInfoErr(options.DriverInfo{Name: "F1", Version: "1.0"}))
+	require.NoError(mt, mt.Client.AppendDriverInfoErr(options.DriverInfo{Name: "F1", Version: "1.0"}))
+
+	mt.GetProxyCapture().Drain()
+
+	want := clientMetadataExtJSON(
+		"mongo-go-driver|F1",
+		version.Driver+"|1.0",
+		runtime.Version())
+
+	requireHandshake(mt, want)
+}
+
+func TestHandshakeProse_AppendMetadata_AllVersionsAbsent(t *testing.T) {
+	mt := newHandshakeT(t)
+
+	require.NoError(mt, mt.Client.AppendDriverInfoErr(options.DriverInfo{Name: "F1"}))
+	require.NoError(mt, mt.Client.AppendDriverInfoErr(options.DriverInfo{Name: "F2"}))
+
+	mt.GetProxyCapture().Drain()
+
+	want := clientMetadataExtJSON(
+		"mongo-go-driver|F1|F2",
+		version.Driver+"||",
+		runtime.Version())
+
+	requireHandshake(mt, want)
+}
+
+func TestHandshakeProse_AppendMetadata_AllNamesAbsent(t *testing.T) {
+	mt := newHandshakeT(t)
+
+	require.NoError(mt, mt.Client.AppendDriverInfoErr(options.DriverInfo{Version: "1.0"}))
+	require.NoError(mt, mt.Client.AppendDriverInfoErr(options.DriverInfo{Version: "2.0"}))
+
+	mt.GetProxyCapture().Drain()
+
+	want := clientMetadataExtJSON(
+		"mongo-go-driver||",
+		version.Driver+"|1.0|2.0",
+		runtime.Version())
+
+	requireHandshake(mt, want)
+}
+
+// =============================================================================
+// Test Runner Helpers
+// =============================================================================
+
 // mustMarshalBSON marshals a value to BSON. It panics if any error occurs.
 func mustMarshalBSON(val interface{}) []byte {
 	bytes, err := bson.Marshal(val)
 	if err != nil {
 		panic(err)
 	}
+
+	return bytes
+}
+
+// clientMetadataExtJSON returns the expected client metadata document as
+// extended JSON. The name, version, and platform arguments are the full
+// delimited value for that field, including the driver's own leading entry. The
+// optional env argument is the extended JSON for the "env" subdocument, which
+// is omitted entirely when not supplied.
+func clientMetadataExtJSON(name, version, platform string, env ...string) string {
+	doc := fmt.Sprintf(`{
+	"driver": {"name": %q, "version": %q},
+	"os": {"type": %q, "architecture": %q},
+	"platform": %q`, name, version, runtime.GOOS, runtime.GOARCH, platform)
+
+	if len(env) > 0 {
+		doc += fmt.Sprintf(",\n\t\"env\": %s", env[0])
+	}
+
+	return doc + "\n}"
+}
+
+func extJSONToBSON(mt *mtest.T, extJSON string) []byte {
+	mt.Helper()
+
+	var doc bson.D
+	require.NoError(mt, bson.UnmarshalExtJSON(
+		[]byte(extJSON),
+		false,
+		&doc,
+	))
+
+	bytes, err := bson.Marshal(doc)
+	require.NoError(mt, err)
 
 	return bytes
 }
@@ -1295,4 +1273,41 @@ func clientMetadataFromHandshake(mt *mtest.T, cmd bsoncore.Document) []byte {
 	require.True(mt, ok, "the client field is not a BSON document")
 
 	return clientDoc
+}
+
+func requireHandshake(mt *mtest.T, wantStr string) {
+	// Send a ping command to the server and verify that the command succeeded.
+	err := mt.Client.Ping(context.Background(), nil)
+	require.NoError(mt, err, "Ping error: %v", err)
+
+	// Capture the first message sent after appending driver info.
+	gotMessage := mt.GetProxyCapture().TryNext()
+	require.NotNil(mt, gotMessage, "expected to capture a proxied message")
+	assert.True(mt, gotMessage.IsHandshake(), "expected first message to be a handshake")
+
+	got := clientMetadataFromHandshake(mt, gotMessage.Sent.Command)
+	want := extJSONToBSON(mt, wantStr)
+	assertbson.EqualDocument(mt, want, got)
+}
+
+func newHandshakeT(t *testing.T) *mtest.T {
+	t.Helper()
+
+	clientOpts := options.Client().
+		// Set idle timeout to 1ms so that the operation after the appends
+		// establishes a new connection and handshakes again.
+		SetMaxConnIdleTime(1 * time.Millisecond)
+
+	opts := mtest.NewOptions().ClientType(mtest.Proxy).ClientOptions(clientOpts)
+
+	mt := mtest.New(t, opts)
+	mt.Setup()
+
+	err := mt.Client.Ping(context.Background(), nil)
+	require.NoError(mt, err, "Ping error: %v", err)
+
+	// Wait 5ms for the connection to become idle.
+	time.Sleep(5 * time.Millisecond)
+
+	return mt
 }
