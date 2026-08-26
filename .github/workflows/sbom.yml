@@ -33,7 +33,7 @@ jobs:
           # Strip nondeterministic fields before diffing
           jq 'del(.metadata.timestamp, .version)' sbom.json > ${{ runner.temp }}/sbom.existing.json
       - name: Generate SBOM
-        run: bash etc/generate-sbom.sh
+        run: go run ./internal/cmd/generate-sbom
       - name: Download CycloneDX CLI
         run: |
           curl -fsSL -o ${{ runner.temp }}/cyclonedx \

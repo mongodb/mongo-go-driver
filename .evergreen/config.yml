@@ -567,6 +567,16 @@ tasks:
         params:
           binary: bash
           args: [*task-runner, govulncheck]
+  - name: generate-sbom
+    tags: ["ssdlc", "static-analysis"]
+    commands:
+      - command: subprocess.exec
+        type: test
+        params:
+          binary: bash
+          env:
+            EXPECT_ERROR: "1"
+          args: [*task-runner, --force, generate-sbom]
   - name: upload-sbom
     tags: ["ssdlc"]
     allowed_requesters: ["commit"]
@@ -593,7 +603,7 @@ tasks:
             - DOCKER_CONFIG
           args:
             - -c
-            - aws ecr get-login-password --region us-east-1 | podman login --username AWS --password-stdin 901841024863.dkr.ecr.us-east-1.amazonaws.com
+            - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 901841024863.dkr.ecr.us-east-1.amazonaws.com
       - command: ec2.assume_role
         display_name: Assume Silkbomb IAM role
         params:
@@ -602,7 +612,7 @@ tasks:
         type: test
         display_name: Upload SBOM via Silkbomb
         params:
-          binary: bash
+          binary: go
           working_dir: src/go.mongodb.org/mongo-driver
           include_expansions_in_env:
             - branch_name
@@ -611,7 +621,8 @@ tasks:
             - AWS_SECRET_ACCESS_KEY
             - AWS_SESSION_TOKEN
           args:
-            - etc/sbom.sh
+            - run
+            - ./internal/cmd/upload-sbom
       - command: s3.put
         type: system
         params:
