@@ -4,6 +4,12 @@ name: Generate SBOM
 # Internal documentation: go/sbom-scope
 on:
   workflow_dispatch: {}
+  workflow_call:
+    inputs:
+      ref:
+        description: The ref to generate the SBOM from
+        required: false
+        type: string
   push:
     branches:
       - master
@@ -19,11 +25,13 @@ jobs:
     name: Generate SBOM and Create PR
     runs-on: ubuntu-latest
     concurrency:
-      group: sbom-${{ github.ref }}
+      group: sbom-${{ inputs.ref || github.ref }}
       cancel-in-progress: false
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
       - name: Set up Go
         uses: actions/setup-go@v5
         with:

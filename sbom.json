@@ -3,7 +3,7 @@
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
   "serialNumber": "urn:uuid:b7adcdf8-bafc-43c5-a529-a73130697171",
-  "version": 7,
+  "version": 8,
   "metadata": {
     "tools": [
       {
@@ -27,16 +27,14 @@
       "type": "library",
       "name": "go.mongodb.org/mongo-driver/v2",
       "version": "v2.6.1-0.20260427225553-fd85a834c40e",
-      "purl": "pkg:golang/go.mongodb.org/mongo-driver/v2@v2.6.1-0.20260427225553-fd85a834c40e",
-      "evidence": {
-        "licenses": [
-          {
-            "license": {
-              "id": "Apache-2.0"
-            }
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
           }
-        ]
-      }
+        }
+      ],
+      "purl": "pkg:golang/go.mongodb.org/mongo-driver/v2@v2.6.1-0.20260427225553-fd85a834c40e"
     }
   },
   "components": [
@@ -52,22 +50,20 @@
           "content": "be3f63feed5baa7bc211f24ec1486d94e011aacdfeae41d8635de36164d4f7b7"
         }
       ],
+      "licenses": [
+        {
+          "license": {
+            "id": "0BSD"
+          }
+        }
+      ],
       "purl": "pkg:golang/github.com/davecgh/go-spew@v1.1.1",
       "externalReferences": [
         {
           "url": "https://github.com/davecgh/go-spew",
           "type": "vcs"
         }
-      ],
-      "evidence": {
-        "licenses": [
-          {
-            "license": {
-              "id": "0BSD"
-            }
-          }
-        ]
-      }
+      ]
     },
     {
       "bom-ref": "pkg:golang/github.com/klauspost/compress@v1.19.2?type=module",
@@ -81,22 +77,20 @@
           "content": "84c4444e8becfe9bbf75558def3213d4f186f2de74f4cc13e9b3bb5d28b6e91f"
         }
       ],
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
       "purl": "pkg:golang/github.com/klauspost/compress@v1.19.2",
       "externalReferences": [
         {
           "url": "https://github.com/klauspost/compress",
           "type": "vcs"
         }
-      ],
-      "evidence": {
-        "licenses": [
-          {
-            "license": {
-              "id": "Apache-2.0"
-            }
-          }
-        ]
-      }
+      ]
     },
     {
       "bom-ref": "pkg:golang/github.com/xdg-go/pbkdf2@v1.0.0?type=module",
@@ -110,22 +104,20 @@
           "content": "4aeec33eee3cc173300b76ececc08d1becf816173212ecf9765bdc85bab40747"
         }
       ],
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
       "purl": "pkg:golang/github.com/xdg-go/pbkdf2@v1.0.0",
       "externalReferences": [
         {
           "url": "https://github.com/xdg-go/pbkdf2",
           "type": "vcs"
         }
-      ],
-      "evidence": {
-        "licenses": [
-          {
-            "license": {
-              "id": "Apache-2.0"
-            }
-          }
-        ]
-      }
+      ]
     },
     {
       "bom-ref": "pkg:golang/github.com/xdg-go/scram@v1.2.0?type=module",
@@ -139,22 +131,20 @@
           "content": "6d8285d801301b9aea77506e993e20027bf053f33d9c1a76a534b1799c3b5afb"
         }
       ],
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
       "purl": "pkg:golang/github.com/xdg-go/scram@v1.2.0",
       "externalReferences": [
         {
           "url": "https://github.com/xdg-go/scram",
           "type": "vcs"
         }
-      ],
-      "evidence": {
-        "licenses": [
-          {
-            "license": {
-              "id": "Apache-2.0"
-            }
-          }
-        ]
-      }
+      ]
     },
     {
       "bom-ref": "pkg:golang/github.com/xdg-go/stringprep@v1.0.4?type=module",
@@ -168,22 +158,20 @@
           "content": "5cb23f360dced40b73ab4a01b374d69bee5956092ad9aa9d96f3fd26da19e9cf"
         }
       ],
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
       "purl": "pkg:golang/github.com/xdg-go/stringprep@v1.0.4",
       "externalReferences": [
         {
           "url": "https://github.com/xdg-go/stringprep",
           "type": "vcs"
         }
-      ],
-      "evidence": {
-        "licenses": [
-          {
-            "license": {
-              "id": "Apache-2.0"
-            }
-          }
-        ]
-      }
+      ]
     },
     {
       "bom-ref": "pkg:golang/github.com/youmark/pkcs8@v0.0.0-20240726163527-a2c0da244d78?type=module",
@@ -197,22 +185,20 @@
           "content": "8a5415d61cf38aef8b2ccdf3513274b6b473b5fc208ea2a705636d49191b9b03"
         }
       ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
       "purl": "pkg:golang/github.com/youmark/pkcs8@v0.0.0-20240726163527-a2c0da244d78",
       "externalReferences": [
         {
           "url": "https://github.com/youmark/pkcs8",
           "type": "vcs"
         }
-      ],
-      "evidence": {
-        "licenses": [
-          {
-            "license": {
-              "id": "MIT"
-            }
-          }
-        ]
-      }
+      ]
     },
     {
       "bom-ref": "pkg:golang/golang.org/x/crypto@v0.53.0?type=module",
@@ -226,16 +212,14 @@
           "content": "419e0cba8f131d7e828b3376bcf3dde5f0461f2a20add2bd7c6e302cf154b2da"
         }
       ],
-      "purl": "pkg:golang/golang.org/x/crypto@v0.53.0",
-      "evidence": {
-        "licenses": [
-          {
-            "license": {
-              "id": "BSD-3-Clause"
-            }
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
           }
-        ]
-      }
+        }
+      ],
+      "purl": "pkg:golang/golang.org/x/crypto@v0.53.0"
     },
     {
       "bom-ref": "pkg:golang/golang.org/x/sync@v0.21.0?type=module",
@@ -249,16 +233,14 @@
           "content": "1cb208e314514ed091931629e0734517426cfce83aab68bef8a5db8348070b03"
         }
       ],
-      "purl": "pkg:golang/golang.org/x/sync@v0.21.0",
-      "evidence": {
-        "licenses": [
-          {
-            "license": {
-              "id": "BSD-3-Clause"
-            }
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
           }
-        ]
-      }
+        }
+      ],
+      "purl": "pkg:golang/golang.org/x/sync@v0.21.0"
     },
     {
       "bom-ref": "pkg:golang/golang.org/x/text@v0.39.0?type=module",
@@ -272,16 +254,14 @@
           "content": "51b673e292cebe7eb4d03e8e87a186108e950269ddac404bbfcffa0445f3caeb"
         }
       ],
-      "purl": "pkg:golang/golang.org/x/text@v0.39.0",
-      "evidence": {
-        "licenses": [
-          {
-            "license": {
-              "id": "BSD-3-Clause"
-            }
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
           }
-        ]
-      }
+        }
+      ],
+      "purl": "pkg:golang/golang.org/x/text@v0.39.0"
     },
     {
       "bom-ref": "pkg:golang/std@go1.25.0?type=module",

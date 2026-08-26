@@ -22,7 +22,28 @@ defaults:
   run:
     shell: bash -eux {0}
 jobs:
+  check-sbom:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.base_ref }}
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Verify sbom.json is up to date
+        run: EXPECT_ERROR=1 go run ./internal/cmd/generate-sbom
+  regenerate-sbom:
+    needs: check-sbom
+    if: failure()
+    uses: ./.github/workflows/sbom.yml
+    with:
+      ref: ${{ inputs.base_ref || github.ref }}
+    permissions:
+      contents: write
+      pull-requests: write
   create-branch:
+    needs: check-sbom
     environment: release
     runs-on: ubuntu-latest
     permissions:
