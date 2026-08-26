@@ -36,7 +36,7 @@ repos:
     hooks:
       - id: codespell
         args: ["-L", "te,fo,fle,alo,nin,compres,wil,collone,asess,sav,ot,wll,dne,nulll,hellow,aks"]
-        exclude: ^(vendor/|internal/cmd/benchmark/operation_test.go|bson/testdata/)
+        exclude: ^(vendor/|internal/cmd/benchmark/operation_test.go|bson/testdata/|(.*/)?go\.sum$)
         exclude_types: [json, yaml, pem]
   - repo: https://github.com/tcort/markdown-link-check
     rev: v3.11.2
