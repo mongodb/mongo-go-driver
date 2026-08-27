@@ -11,9 +11,9 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
+	"io"
 	"math/rand"
 	"net"
-	"runtime"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -125,25 +125,15 @@ func TestConnection(t *testing.T) {
 					"expected x509.HostnameError, got %T: %v", connErr.Wrapped, connErr.Wrapped)
 			})
 			t.Run("TLS record header error does not get backpressure labels", func(t *testing.T) {
-				// Windows doesn't return a wrapped tls.RecordHeaderError, but
-				// returns
-				//
-				//   *net.OpError: read tcp 127.0.0.1:46242->127.0.0.1:46241: wsarecv: An established connection was aborted by the software in your host machine.
-				//
-				// Skip the test on Windows.
-				//
-				// TODO(GODRIVER-3956): Make the TLS record header error check
-				// and test work on Windows.
-				if runtime.GOOS == "windows" {
-					t.Skip("Skipping this test on Windows because tls.Conn.HandshakeContext doesn't return tls.RecordHeaderError on Windows")
-				}
-
 				// Create a conn that responds with non-TLS data. The TLS client
 				// will fail with tls.RecordHeaderError because the first bytes
 				// aren't a valid TLS record.
 				addr := bootstrapConnections(t, 1, func(c net.Conn) {
 					defer c.Close()
-					_, _ = c.Write([]byte("not a TLS server"))
+					if _, err := c.Write([]byte("not a TLS server")); err != nil {
+						return
+					}
+					_, _ = io.Copy(io.Discard, c)
 				})
 
 				conn := newConnection(address.Address(addr.String()),
@@ -170,6 +160,42 @@ func TestConnection(t *testing.T) {
 					errors.As(connErr.Wrapped, &recordHeaderErr),
 					"expected a tls.RecordHeaderError wrapped by a ConnectionError, but got %[1]T: %[1]v",
 					connErr.Wrapped)
+			})
+			t.Run("connection reset during TLS handshake gets backpressure labels", func(t *testing.T) {
+				// Accept and immediately reset the connection. SetLinger(0)
+				// makes Close send a TCP RST instead of a FIN, so the TLS
+				// handshake fails with an I/O error, that is a network error
+				// rather than a non-I/O TLS error, so it must keep the
+				// backpressure labels.
+				addr := bootstrapConnections(t, 1, func(c net.Conn) {
+					if tcpConn, ok := c.(*net.TCPConn); ok {
+						_ = tcpConn.SetLinger(0)
+					}
+					_ = c.Close()
+				})
+
+				conn := newConnection(address.Address(addr.String()),
+					WithTLSConfig(func(*tls.Config) *tls.Config {
+						return &tls.Config{InsecureSkipVerify: true}
+					}),
+				)
+				err := conn.connect(context.Background())
+
+				var de driver.Error
+				require.True(t,
+					errors.As(err, &de),
+					"expected a driver.Error, but got %[1]T: %[1]v",
+					err)
+				require.True(t, de.HasErrorLabel(driver.ErrSystemOverloadedError),
+					"expected SystemOverloadedError label on a connection reset error, got: %v", err)
+				require.True(t, de.HasErrorLabel(driver.ErrRetryableError),
+					"expected RetryableError label on a connection reset error, got: %v", err)
+
+				var recordHeaderErr tls.RecordHeaderError
+				require.False(t,
+					errors.As(err, &recordHeaderErr),
+					"a connection reset must not be reported as a tls.RecordHeaderError, got: %v",
+					err)
 			})
 			t.Run("handshaker error", func(t *testing.T) {
 				err := errors.New("handshaker error")
