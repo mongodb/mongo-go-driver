@@ -269,45 +269,46 @@ type DriverInfo struct {
 // can be set through the ClientOptions setter functions. See each function for
 // documentation.
 type ClientOptions struct {
-	AppName                  *string
-	Auth                     *Credential
-	AutoEncryptionOptions    *AutoEncryptionOptions
-	ConnectTimeout           *time.Duration
-	Compressors              []string
-	Dialer                   ContextDialer
-	Direct                   *bool
-	DisableOCSPEndpointCheck *bool
-	DriverInfo               *DriverInfo
-	HeartbeatInterval        *time.Duration
-	Hosts                    []string
-	HTTPClient               *http.Client
-	LoadBalanced             *bool
-	LocalThreshold           *time.Duration
-	LoggerOptions            *LoggerOptions
-	MaxConnIdleTime          *time.Duration
-	MaxPoolSize              *uint64
-	MinPoolSize              *uint64
-	MaxConnecting            *uint64
-	PoolMonitor              *event.PoolMonitor
-	Monitor                  *event.CommandMonitor
-	ServerMonitor            *event.ServerMonitor
-	ReadConcern              *readconcern.ReadConcern
-	ReadPreference           *readpref.ReadPref
-	BSONOptions              *BSONOptions
-	Registry                 *bson.Registry
-	ReplicaSet               *string
-	RetryReads               *bool
-	RetryWrites              *bool
-	ServerAPIOptions         *ServerAPIOptions
-	ServerMonitoringMode     *string
-	ServerSelectionTimeout   *time.Duration
-	SRVMaxHosts              *int
-	SRVServiceName           *string
-	Timeout                  *time.Duration
-	TLSConfig                *tls.Config
-	WriteConcern             *writeconcern.WriteConcern
-	ZlibLevel                *int
-	ZstdLevel                *int
+	AppName                           *string
+	Auth                              *Credential
+	AutoEncryptionOptions             *AutoEncryptionOptions
+	ConnectTimeout                    *time.Duration
+	Compressors                       []string
+	Dialer                            ContextDialer
+	Direct                            *bool
+	DisableCertificateRevocationCheck *bool
+	DisableOCSPEndpointCheck          *bool
+	DriverInfo                        *DriverInfo
+	HeartbeatInterval                 *time.Duration
+	Hosts                             []string
+	HTTPClient                        *http.Client
+	LoadBalanced                      *bool
+	LocalThreshold                    *time.Duration
+	LoggerOptions                     *LoggerOptions
+	MaxConnIdleTime                   *time.Duration
+	MaxPoolSize                       *uint64
+	MinPoolSize                       *uint64
+	MaxConnecting                     *uint64
+	PoolMonitor                       *event.PoolMonitor
+	Monitor                           *event.CommandMonitor
+	ServerMonitor                     *event.ServerMonitor
+	ReadConcern                       *readconcern.ReadConcern
+	ReadPreference                    *readpref.ReadPref
+	BSONOptions                       *BSONOptions
+	Registry                          *bson.Registry
+	ReplicaSet                        *string
+	RetryReads                        *bool
+	RetryWrites                       *bool
+	ServerAPIOptions                  *ServerAPIOptions
+	ServerMonitoringMode              *string
+	ServerSelectionTimeout            *time.Duration
+	SRVMaxHosts                       *int
+	SRVServiceName                    *string
+	Timeout                           *time.Duration
+	TLSConfig                         *tls.Config
+	WriteConcern                      *writeconcern.WriteConcern
+	ZlibLevel                         *int
+	ZstdLevel                         *int
 
 	MaxAdaptiveRetries        *uint
 	EnableOverloadRetargeting *bool
@@ -543,6 +544,10 @@ func setURIOpts(uri string, opts *ClientOptions) error {
 	}
 	if connString.ZstdLevelSet {
 		opts.ZstdLevel = &connString.ZstdLevel
+	}
+
+	if connString.SSLDisableCertificateRevocationCheckSet {
+		opts.DisableCertificateRevocationCheck = &connString.SSLDisableCertificateRevocationCheck
 	}
 
 	if connString.SSLDisableOCSPEndpointCheckSet {
@@ -1119,6 +1124,21 @@ func (c *ClientOptions) SetZstdLevel(level int) *ClientOptions {
 // options.
 func (c *ClientOptions) SetAutoEncryptionOptions(aeopts *AutoEncryptionOptions) *ClientOptions {
 	c.AutoEncryptionOptions = aeopts
+
+	return c
+}
+
+// SetDisableCertificateRevocationCheck specifies whether or not the driver should check the revocation status of
+// certificates presented by the server.
+//
+// If set to true, the driver will not check certificate revocation status by any mechanism. Certificate chain
+// and hostname verification are unaffected, so this is a narrower relaxation than tlsInsecure, which disables
+// certificate verification entirely.
+//
+// This can also be set through the tlsDisableCertificateRevocationCheck URI option. That URI option must not be
+// provided alongside tlsInsecure or tlsDisableOCSPEndpointCheck and will error if it is. The default value is false.
+func (c *ClientOptions) SetDisableCertificateRevocationCheck(disableCheck bool) *ClientOptions {
+	c.DisableCertificateRevocationCheck = &disableCheck
 
 	return c
 }

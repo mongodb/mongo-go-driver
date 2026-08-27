@@ -81,6 +81,7 @@ func TestClientOptions(t *testing.T) {
 			{"TLSConfig", (*ClientOptions).SetTLSConfig, &tls.Config{}, "TLSConfig", false},
 			{"WriteConcern", (*ClientOptions).SetWriteConcern, writeconcern.Majority(), "WriteConcern", false},
 			{"ZlibLevel", (*ClientOptions).SetZlibLevel, 6, "ZlibLevel", true},
+			{"DisableCertificateRevocationCheck", (*ClientOptions).SetDisableCertificateRevocationCheck, true, "DisableCertificateRevocationCheck", true},
 			{"DisableOCSPEndpointCheck", (*ClientOptions).SetDisableOCSPEndpointCheck, true, "DisableOCSPEndpointCheck", true},
 			{"LoadBalanced", (*ClientOptions).SetLoadBalanced, true, "LoadBalanced", true},
 		}
@@ -1084,6 +1085,24 @@ func TestApplyURI(t *testing.T) {
 					"error validating uri: %w",
 					errors.New("the sslClientCertificateKeyFile/tlsCertificateKeyFile URI option cannot be provided "+
 						"along with tlsCertificateFile or tlsPrivateKeyFile")),
+			},
+		},
+		{
+			name: "disable certificate revocation check",
+			uri:  "mongodb://localhost/?tlsDisableCertificateRevocationCheck=true",
+			wantopts: &ClientOptions{
+				Hosts:                             []string{"localhost"},
+				DisableCertificateRevocationCheck: ptrutil.Ptr[bool](true),
+				err:                               nil,
+			},
+		},
+		{
+			name: "disable certificate revocation check conflicts with tlsInsecure",
+			uri:  "mongodb://localhost/?tlsInsecure=false&tlsDisableCertificateRevocationCheck=false",
+			wantopts: &ClientOptions{
+				err: fmt.Errorf("error validating uri: %w",
+					errors.New("the sslInsecure/tlsInsecure URI option cannot be provided along with "+
+						"tlsDisableCertificateRevocationCheck")),
 			},
 		},
 		{

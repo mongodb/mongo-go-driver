@@ -622,3 +622,62 @@ func TestCompressionOptions(t *testing.T) {
 		})
 	}
 }
+
+func TestDisableCertificateRevocationCheck(t *testing.T) {
+	t.Run("parsing", func(t *testing.T) {
+		tests := []struct {
+			s        string
+			expected bool
+			set      bool
+			err      bool
+		}{
+			{s: "tlsDisableCertificateRevocationCheck=true", expected: true, set: true},
+			{s: "tlsDisableCertificateRevocationCheck=false", expected: false, set: true},
+			{s: "tls=true", set: false},
+			{s: "tlsDisableCertificateRevocationCheck=yes", err: true},
+			{s: "tlsDisableCertificateRevocationCheck=", err: true},
+		}
+
+		for _, test := range tests {
+			s := fmt.Sprintf("mongodb://localhost/?%s", test.s)
+			t.Run(s, func(t *testing.T) {
+				cs, err := connstring.ParseAndValidate(s)
+				if test.err {
+					require.Error(t, err)
+					return
+				}
+				require.NoError(t, err)
+				assert.Equal(t, test.set, cs.SSLDisableCertificateRevocationCheckSet,
+					"expected SSLDisableCertificateRevocationCheckSet to be %v", test.set)
+				assert.Equal(t, test.expected, cs.SSLDisableCertificateRevocationCheck,
+					"expected SSLDisableCertificateRevocationCheck to be %v", test.expected)
+			})
+		}
+	})
+
+	// The OCSP support specification requires an error whenever tlsDisableCertificateRevocationCheck is present
+	// alongside tlsInsecure or tlsDisableOCSPEndpointCheck, regardless of the values they are set to.
+	t.Run("mutually exclusive options", func(t *testing.T) {
+		conflicts := []string{"tlsInsecure", "sslInsecure", "tlsDisableOCSPEndpointCheck"}
+		values := []string{"true", "false"}
+
+		for _, conflict := range conflicts {
+			for _, v1 := range values {
+				for _, v2 := range values {
+					// Assert both key orderings produce an error.
+					for _, s := range []string{
+						fmt.Sprintf("%s=%s&tlsDisableCertificateRevocationCheck=%s", conflict, v1, v2),
+						fmt.Sprintf("tlsDisableCertificateRevocationCheck=%s&%s=%s", v2, conflict, v1),
+					} {
+						uri := fmt.Sprintf("mongodb://localhost/?%s", s)
+						t.Run(uri, func(t *testing.T) {
+							_, err := connstring.ParseAndValidate(uri)
+							require.Error(t, err)
+							assert.ErrorContains(t, err, "tlsDisableCertificateRevocationCheck")
+						})
+					}
+				}
+			}
+		}
+	})
+}

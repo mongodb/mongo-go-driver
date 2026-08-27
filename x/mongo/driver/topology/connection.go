@@ -174,6 +174,7 @@ func configureTLS(ctx context.Context,
 	addr address.Address,
 	config *tls.Config,
 	ocspOpts *ocsp.VerifyOptions,
+	disableCertificateRevocationCheck bool,
 ) (net.Conn, error) {
 	// Ensure config.ServerName is always set for SNI.
 	if config.ServerName == "" {
@@ -192,8 +193,9 @@ func configureTLS(ctx context.Context,
 		return nil, err
 	}
 
-	// Only do OCSP verification if TLS verification is requested.
-	if !config.InsecureSkipVerify {
+	// Only do OCSP verification if TLS verification is requested and certificate revocation
+	// checking has not been disabled.
+	if !config.InsecureSkipVerify && !disableCertificateRevocationCheck {
 		if ocspErr := ocsp.Verify(ctx, client.ConnectionState(), ocspOpts); ocspErr != nil {
 			return nil, ocspErr
 		}
@@ -261,7 +263,8 @@ func (c *connection) connect(ctx context.Context) (err error) {
 			DisableEndpointChecking: c.config.disableOCSPEndpointCheck,
 			HTTPClient:              c.config.httpClient,
 		}
-		tlsNc, err := configureTLS(ctx, c.config.tlsConnectionSource, c.nc, c.addr, tlsConfig, ocspOpts)
+		tlsNc, err := configureTLS(ctx, c.config.tlsConnectionSource, c.nc, c.addr, tlsConfig, ocspOpts,
+			c.config.disableCertificateRevocationCheck)
 		if err != nil {
 			connErr := ConnectionError{Wrapped: err, init: true, message: fmt.Sprintf("failed to configure TLS for %s", c.addr)}
 			return wrapConnectionError(connErr)

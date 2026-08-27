@@ -79,8 +79,9 @@ var skipTests = map[string][]skipCase{
 		},
 	},
 
-	// Unsupported TLS behavior in connection strings.
-	"unsupported connstring behavior": {
+	// The Go driver does not support the tlsAllowInvalidCertificates or
+	// tlsAllowInvalidHostnames URI options.
+	"tlsAllowInvalidCertificates/tlsAllowInvalidHostnames are not supported": {
 		{
 			tests: []string{
 				"TestURIOptionsSpec/tls-options.json/tlsAllowInvalidCertificates_and_tlsDisableCertificateRevocationCheck_both_present_(and_true)_raises_an_error",
@@ -91,22 +92,6 @@ var skipTests = map[string][]skipCase{
 				"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck=true_and_tlsAllowInvalidCertificates=false_raises_an_error",
 				"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck=false_and_tlsAllowInvalidCertificates=true_raises_an_error",
 				"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck_and_tlsAllowInvalidCertificates_both_present_(and_false)_raises_an_error",
-				"TestURIOptionsSpec/tls-options.json/tlsInsecure_and_tlsDisableCertificateRevocationCheck_both_present_(and_true)_raises_an_error",
-				"TestURIOptionsSpec/tls-options.json/tlsInsecure=true_and_tlsDisableCertificateRevocationCheck=false_raises_an_error",
-				"TestURIOptionsSpec/tls-options.json/tlsInsecure=false_and_tlsDisableCertificateRevocationCheck=true_raises_an_error",
-				"TestURIOptionsSpec/tls-options.json/tlsInsecure_and_tlsDisableCertificateRevocationCheck_both_present_(and_false)_raises_an_error",
-				"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck_and_tlsInsecure_both_present_(and_true)_raises_an_error",
-				"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck=true_and_tlsInsecure=false_raises_an_error",
-				"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck=false_and_tlsInsecure=true_raises_an_error",
-				"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck_and_tlsInsecure_both_present_(and_false)_raises_an_error",
-				"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck_and_tlsDisableOCSPEndpointCheck_both_present_(and_true)_raises_an_error",
-				"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck=true_and_tlsDisableOCSPEndpointCheck=false_raises_an_error",
-				"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck=false_and_tlsDisableOCSPEndpointCheck=true_raises_an_error",
-				"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck_and_tlsDisableOCSPEndpointCheck_both_present_(and_false)_raises_an_error",
-				"TestURIOptionsSpec/tls-options.json/tlsDisableOCSPEndpointCheck_and_tlsDisableCertificateRevocationCheck_both_present_(and_true)_raises_an_error",
-				"TestURIOptionsSpec/tls-options.json/tlsDisableOCSPEndpointCheck=true_and_tlsDisableCertificateRevocationCheck=false_raises_an_error",
-				"TestURIOptionsSpec/tls-options.json/tlsDisableOCSPEndpointCheck=false_and_tlsDisableCertificateRevocationCheck=true_raises_an_error",
-				"TestURIOptionsSpec/tls-options.json/tlsDisableOCSPEndpointCheck_and_tlsDisableCertificateRevocationCheck_both_present_(and_false)_raises_an_error",
 				"TestURIOptionsSpec/tls-options.json/tlsAllowInvalidCertificates_and_tlsDisableOCSPEndpointCheck_both_present_(and_true)_raises_an_error",
 				"TestURIOptionsSpec/tls-options.json/tlsAllowInvalidCertificates=true_and_tlsDisableOCSPEndpointCheck=false_raises_an_error",
 				"TestURIOptionsSpec/tls-options.json/tlsAllowInvalidCertificates=false_and_tlsDisableOCSPEndpointCheck=true_raises_an_error",
