@@ -68,9 +68,6 @@ func wrapConnectionError(connErr ConnectionError) error {
 	// tls.RecordHeaderError is a non-I/O TLS error per the CMAP spec: the peer
 	// sent bytes that don't form a valid TLS record. This cannot indicate
 	// server overload.
-	//
-	// TODO(GODRIVER-3956): Make the TLS record header error check and test work
-	// on Windows.
 	var tlsRecordHeaderErr tls.RecordHeaderError
 	if errors.As(connErr.Wrapped, &tlsRecordHeaderErr) {
 		return connErr
