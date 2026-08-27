@@ -45,6 +45,18 @@ func TestTruncate(t *testing.T) {
 			width:    4,
 			expected: "你",
 		},
+		{
+			name:     "multi-byte exact boundary",
+			arg:      "a©bc",
+			width:    3,
+			expected: "a©",
+		},
+		{
+			name:     "multi-byte exact boundary before trailing ascii",
+			arg:      "你好!",
+			width:    6,
+			expected: "你好",
+		},
 	} {
 		tcase := tcase
 
