@@ -14,7 +14,7 @@ require (
 	github.com/go-logr/zerologr v1.2.3
 	github.com/miekg/dns v1.1.72
 	github.com/rs/zerolog v1.35.1
-	github.com/sirupsen/logrus v1.10.0
+	github.com/sirupsen/logrus v1.10.1
 	go.mongodb.org/mongo-driver/ext/awsauth v0.0.0
 	go.mongodb.org/mongo-driver/v2 v2.0.0-alpha2
 	go.uber.org/zap v1.28.0
@@ -38,6 +38,7 @@ require (
 	github.com/klauspost/compress v1.19.2 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
+	github.com/stretchr/testify v1.12.1 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.2.0 // indirect
 	github.com/xdg-go/stringprep v1.0.4 // indirect
