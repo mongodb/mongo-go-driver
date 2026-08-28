@@ -867,3 +867,27 @@ func ErrorIs(t TestingT, err error, target error, msgAndArgs ...interface{}) {
 	}
 	t.FailNow()
 }
+
+// ErrorAs asserts that at least one of the errors in err's chain matches target, and if so, sets target to that error value.
+// This is a wrapper for errors.As.
+func ErrorAs(t TestingT, err error, target interface{}, msgAndArgs ...interface{}) {
+	if h, ok := t.(tHelper); ok {
+		h.Helper()
+	}
+	if assert.ErrorAs(t, err, target, msgAndArgs...) {
+		return
+	}
+	t.FailNow()
+}
+
+// NotErrorAs asserts that none of the errors in err's chain matches target,
+// but if so, sets target to that error value.
+func NotErrorAs(t TestingT, err error, target interface{}, msgAndArgs ...interface{}) {
+	if h, ok := t.(tHelper); ok {
+		h.Helper()
+	}
+	if assert.NotErrorAs(t, err, target, msgAndArgs...) {
+		return
+	}
+	t.FailNow()
+}
