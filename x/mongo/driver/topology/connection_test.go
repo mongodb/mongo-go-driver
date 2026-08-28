@@ -14,6 +14,8 @@ import (
 	"io"
 	"math/rand"
 	"net"
+	"net/http"
+	"net/http/httptest"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -1283,4 +1285,41 @@ func TestConnectionError(t *testing.T) {
 		_, err = conn.readWireMessage(ctx)
 		assert.ErrorContains(t, err, "client timed out waiting for server response")
 	})
+}
+
+func TestConnection_RemoteTLSAlert(t *testing.T) {
+	emtpyHandler := http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})
+	srv := httptest.NewUnstartedServer(emtpyHandler)
+
+	// USE TLS 1.3 to ensure that the server sends a TLS alert when the client
+	// attempts to connect with TLS 1.2.
+	srv.TLS = &tls.Config{MinVersion: tls.VersionTLS13}
+	srv.StartTLS()
+	t.Cleanup(srv.Close)
+
+	addr := address.Address(srv.Listener.Addr().String())
+	connTLSConfig := &tls.Config{
+		InsecureSkipVerify: true,
+		MinVersion:         tls.VersionTLS12,
+		MaxVersion:         tls.VersionTLS12,
+	}
+
+	conn := newConnection(addr, WithTLSConfig(func(*tls.Config) *tls.Config {
+		return connTLSConfig
+	}))
+
+	err := conn.connect(context.Background())
+	require.Error(t, err)
+
+	// Confirm that the peer sent an alert rather than the handshake failing
+	// some other way.
+	var connErr ConnectionError
+	require.ErrorAs(t, err, &connErr)
+
+	var opErr *net.OpError
+	require.ErrorAs(t, connErr.Wrapped, &opErr)
+	require.Equal(t, "remote error", opErr.Op)
+
+	var de driver.Error
+	require.NotErrorAs(t, err, &de)
 }
