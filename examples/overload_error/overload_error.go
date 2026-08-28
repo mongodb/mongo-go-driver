@@ -36,6 +36,50 @@ func isSystemOverloadedError(err error) bool {
 	return errors.As(err, &lerr) && lerr.HasErrorLabel(errSystemOverloadedError)
 }
 
+// serverBaseBackoff returns the base backoff that the server attached to the
+// error as "baseBackoffMS", or 0 if the server did not supply one. A positive
+// value replaces the client's default base backoff.
+func serverBaseBackoff(err error) time.Duration {
+	// For command errors, "baseBackoffMS" is a top-level field of the server
+	// response.
+	var cerr mongo.CommandError
+	if errors.As(err, &cerr) {
+		if ms, ok := cerr.Raw.Lookup("baseBackoffMS").AsInt64OK(); ok {
+			return time.Duration(ms) * time.Millisecond
+		}
+	}
+
+	// For write errors, "baseBackoffMS" is a field of the "writeConcernError"
+	// subdocument, not of the top-level response.
+	var wex mongo.WriteException
+	if errors.As(err, &wex) && wex.WriteConcernError != nil {
+		if ms, ok := wex.WriteConcernError.Raw.Lookup("baseBackoffMS").AsInt64OK(); ok {
+			return time.Duration(ms) * time.Millisecond
+		}
+	}
+
+	return 0
+}
+
+// overloadBackoff returns the backoff duration for the given retry attempt by
+// doubling the base backoff once per attempt, capped at maxBackoff.
+func overloadBackoff(base time.Duration, attempt int) time.Duration {
+	d := base
+	for i := 0; i < attempt && d < maxBackoff; i++ {
+		d *= 2
+	}
+	if d > maxBackoff {
+		d = maxBackoff
+	}
+	return d
+}
+
+// jitterDuration returns the input duration weighted by a pseudo-random ratio
+// in [0.0, 1.0).
+func jitterDuration(d time.Duration) time.Duration {
+	return time.Duration(float64(d) * rand.Float64())
+}
+
 // executeWithRetries executes the given function with retries if it returns a
 // SystemOverloadedError.
 func executeWithRetries[T any](
@@ -44,16 +88,21 @@ func executeWithRetries[T any](
 ) (T, error) {
 	var result T
 	var err error
-	expDur := baseBackoff
 	for attempts := 0; attempts < maxAttempts; attempts++ {
 		isRetry := attempts > 0
 
+		// The first attempt runs immediately. Every subsequent attempt waits
+		// for an exponentially increasing backoff based on the error returned
+		// by the previous attempt, with jitter.
 		if isRetry {
-			if expDur > maxBackoff {
-				expDur = maxBackoff
+			// Prefer the base backoff supplied by the server over the client's
+			// default, if there is one.
+			base := baseBackoff
+			if serverBase := serverBaseBackoff(err); serverBase > 0 {
+				base = serverBase
 			}
-			delay := expDur * time.Duration(rand.Int63n(512)) / 512
-			sleep := time.NewTimer(delay)
+
+			sleep := time.NewTimer(jitterDuration(overloadBackoff(base, attempts)))
 			select {
 			case <-ctx.Done():
 				sleep.Stop()
@@ -62,9 +111,6 @@ func executeWithRetries[T any](
 				}
 				return result, err
 			case <-sleep.C:
-			}
-			if expDur < maxBackoff {
-				expDur = expDur * 2
 			}
 		}
 
