@@ -368,58 +368,48 @@ func (coll *Collection) insert(
 	}
 
 	ordered := args.Ordered == nil || *args.Ordered
-	result = removeFailedInserts(result, wce.WriteErrors, ordered)
+	result = keepInsertedIDs(result, wce.WriteErrors, ordered)
 
 	return result, err
 }
 
-// removeFailedInserts returns the subset of result whose corresponding
-// documents were not rejected by any of writeErrors. Each WriteError.Index
-// refers to the positional index of the document in the original insert
-// request, which is also the index space of result.
+// keepInsertedIDs returns the subset of result whose corresponding documents
+// were not rejected by the server. Each WriteError.Index refers to the
+// positional index of the document in the original insert request, which is
+// also the index space of result.
 //
 // writeErrors is not required to be sorted by Index: the server does not
 // guarantee that write errors for an unordered bulk write are returned in
 // ascending Index order, and assuming otherwise previously caused
 // out-of-range slice panics (GODRIVER-4096). Neither result nor writeErrors
 // is modified.
-func removeFailedInserts(result []any, writeErrors driver.WriteErrors, ordered bool) []any {
+func keepInsertedIDs(result []any, writeErrors driver.WriteErrors, ordered bool) []any {
+	// If there are no write errors, then every document was inserted.
 	if len(writeErrors) == 0 {
 		return result
 	}
 
-	if ordered {
-		// The server stops an ordered insert at the first document that
-		// fails, so nothing at or after the lowest failed index was
-		// actually inserted. Scan every error instead of assuming
-		// writeErrors[0] is the earliest failure.
-		firstFailedIndex := len(result)
-		for _, we := range writeErrors {
-			idx := int(we.Index)
-			if idx < 0 {
-				idx = 0
-			}
-			if idx < firstFailedIndex {
-				firstFailedIndex = idx
-			}
-		}
-		return result[:firstFailedIndex]
+	failed := make(map[int]bool, len(writeErrors))
+	for _, writeError := range writeErrors {
+		failed[int(writeError.Index)] = true
 	}
 
-	failed := make([]bool, len(result))
-	for _, we := range writeErrors {
-		if idx := int(we.Index); idx >= 0 && idx < len(failed) {
-			failed[idx] = true
+	kept := result[:0:0]
+	for idx, id := range result {
+		if failed[idx] {
+			// The server stops an ordered insert at the first document that
+			// fails, so nothing at or after that index was inserted.
+			if ordered {
+				break
+			}
+
+			continue
 		}
+
+		kept = append(kept, id)
 	}
 
-	filtered := make([]any, 0, len(result))
-	for i, id := range result {
-		if !failed[i] {
-			filtered = append(filtered, id)
-		}
-	}
-	return filtered
+	return kept
 }
 
 // InsertOne executes an insert command to insert a single document into the collection.

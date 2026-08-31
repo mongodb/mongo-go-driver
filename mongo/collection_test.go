@@ -309,7 +309,7 @@ func TestNewFindArgsFromFindOneArgs(t *testing.T) {
 	}
 }
 
-func TestRemoveFailedInserts(t *testing.T) {
+func TestKeepInsertedIDs(t *testing.T) {
 	t.Parallel()
 
 	newResult := func(n int) []any {
@@ -367,8 +367,8 @@ func TestRemoveFailedInserts(t *testing.T) {
 			want:        []any{0, 1},
 		},
 		{
-			// Sanity check for the ordered path: use the minimum failed
-			// index across all write errors, not just the first element.
+			// Sanity check for the ordered path: stop at the earliest
+			// failed index, not at whichever error is listed first.
 			name:        "ordered, out-of-order write errors",
 			result:      newResult(2),
 			writeErrors: driver.WriteErrors{{Index: 1}, {Index: 0}},
@@ -383,7 +383,7 @@ func TestRemoveFailedInserts(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := removeFailedInserts(test.result, test.writeErrors, test.ordered)
+			got := keepInsertedIDs(test.result, test.writeErrors, test.ordered)
 			assert.Equal(t, test.want, got)
 		})
 	}
