@@ -325,29 +325,30 @@ func validateEqualArgs(expected, actual interface{}) error {
 // representations appropriate to be presented to the user.
 //
 // If the values are not of like type, the returned strings will be prefixed
-// with the type name, and the value will be enclosed in parenthesis similar
+// with the type name, and the value will be enclosed in parentheses similar
 // to a type conversion in the Go grammar.
 func formatUnequalValues(expected, actual interface{}) (e string, a string) {
 	if reflect.TypeOf(expected) != reflect.TypeOf(actual) {
-		return fmt.Sprintf("%T(%s)", expected, truncatingFormat(expected)),
-			fmt.Sprintf("%T(%s)", actual, truncatingFormat(actual))
+		return fmt.Sprintf("%T(%s)", expected, truncatingFormat("%#v", expected)),
+			fmt.Sprintf("%T(%s)", actual, truncatingFormat("%#v", actual))
 	}
 	switch expected.(type) {
 	case time.Duration:
 		return fmt.Sprintf("%v", expected), fmt.Sprintf("%v", actual)
 	}
-	return truncatingFormat(expected), truncatingFormat(actual)
+	return truncatingFormat("%#v", expected), truncatingFormat("%#v", actual)
 }
 
 // truncatingFormat formats the data and truncates it if it's too long.
 //
 // This helps keep formatted error messages lines from exceeding the
 // bufio.MaxScanTokenSize max line length that the go testing framework imposes.
-func truncatingFormat(data interface{}) string {
-	value := fmt.Sprintf("%#v", data)
-	maxLen := bufio.MaxScanTokenSize - 100 // Give us some space the type info too if needed.
-	if len(value) > maxLen {
-		value = value[0:maxLen] + "<... truncated>"
+func truncatingFormat(format string, data interface{}) string {
+	value := fmt.Sprintf(format, data)
+	// Give us space for two truncated objects and the surrounding sentence.
+	maxMessageSize := bufio.MaxScanTokenSize/2 - 100
+	if len(value) > maxMessageSize {
+		value = value[0:maxMessageSize] + "<... truncated>"
 	}
 	return value
 }
@@ -905,7 +906,7 @@ func ErrorIs(t TestingT, err, target error, msgAndArgs ...interface{}) bool {
 		expectedText = target.Error()
 	}
 
-	chain := buildErrorChainString(err)
+	chain := buildErrorChainString(err, false)
 
 	return Fail(t, fmt.Sprintf(
 		"Target error should be in err chain:\n"+
@@ -1089,16 +1090,38 @@ func Eventually(t TestingT, condition func() bool, waitFor time.Duration, tick t
 	}
 }
 
-func buildErrorChainString(err error) string {
+func unwrapAll(err error) (errs []error) {
+	errs = append(errs, err)
+	switch x := err.(type) {
+	case interface{ Unwrap() error }:
+		err = x.Unwrap()
+		if err == nil {
+			return
+		}
+		errs = append(errs, unwrapAll(err)...)
+	case interface{ Unwrap() []error }:
+		for _, err := range x.Unwrap() {
+			errs = append(errs, unwrapAll(err)...)
+		}
+	}
+	return
+}
+
+func buildErrorChainString(err error, withType bool) string {
 	if err == nil {
 		return ""
 	}
 
-	e := errors.Unwrap(err)
-	chain := fmt.Sprintf("%q", err.Error())
-	for e != nil {
-		chain += fmt.Sprintf("\n\t%q", e.Error())
-		e = errors.Unwrap(e)
+	var chain string
+	errs := unwrapAll(err)
+	for i := range errs {
+		if i != 0 {
+			chain += "\n\t"
+		}
+		chain += fmt.Sprintf("%q", errs[i].Error())
+		if withType {
+			chain += fmt.Sprintf(" (%T)", errs[i])
+		}
 	}
 	return chain
 }
@@ -1143,4 +1166,46 @@ func Empty(t TestingT, object interface{}, msgAndArgs ...interface{}) bool {
 	}
 
 	return pass
+}
+
+// ErrorAs asserts that at least one of the errors in err's chain matches target, and if so, sets target to that error value.
+// This is a wrapper for errors.As.
+func ErrorAs(t TestingT, err error, target interface{}, msgAndArgs ...interface{}) bool {
+	if h, ok := t.(tHelper); ok {
+		h.Helper()
+	}
+	if errors.As(err, target) {
+		return true
+	}
+
+	expectedType := reflect.TypeOf(target).Elem().String()
+	if err == nil {
+		return Fail(t, fmt.Sprintf("An error is expected but got nil.\n"+
+			"expected: %s", expectedType), msgAndArgs...)
+	}
+
+	chain := buildErrorChainString(err, true)
+
+	return Fail(t, fmt.Sprintf("Should be in error chain:\n"+
+		"expected: %s\n"+
+		"in chain: %s", expectedType, truncatingFormat("%s", chain),
+	), msgAndArgs...)
+}
+
+// NotErrorAs asserts that none of the errors in err's chain matches target,
+// but if so, sets target to that error value.
+func NotErrorAs(t TestingT, err error, target interface{}, msgAndArgs ...interface{}) bool {
+	if h, ok := t.(tHelper); ok {
+		h.Helper()
+	}
+	if !errors.As(err, target) {
+		return true
+	}
+
+	chain := buildErrorChainString(err, true)
+
+	return Fail(t, fmt.Sprintf("Target error should not be in err chain:\n"+
+		"found: %s\n"+
+		"in chain: %s", reflect.TypeOf(target).Elem().String(), truncatingFormat("%s", chain),
+	), msgAndArgs...)
 }
