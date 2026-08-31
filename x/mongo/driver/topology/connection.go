@@ -72,6 +72,15 @@ func wrapConnectionError(connErr ConnectionError) error {
 	if errors.As(connErr.Wrapped, &tlsRecordHeaderErr) {
 		return connErr
 	}
+	// An alert sent by the peer during the TLS handshake does not get a
+	// backpressure labels. Per the CMAP spec, drivers MUST NOT label non-I/O TLS
+	// errors as server overload conditions. A remote alert is non-I/O as the
+	// handshake was answered and refused by the peer, nothing failed to send or
+	// receive.
+	var opErr *net.OpError
+	if errors.As(connErr.Wrapped, &opErr) && opErr.Op == "remote error" {
+		return connErr
+	}
 	return driver.Error{
 		Labels:  []string{driver.ErrSystemOverloadedError, driver.ErrRetryableError, driver.NetworkError},
 		Wrapped: connErr,
