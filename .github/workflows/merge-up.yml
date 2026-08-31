@@ -15,7 +15,7 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - uses: mongodb-labs/drivers-github-tools/secure-checkout@2515c763d88282c570b47c895aa50e9e6f7ed32c #v3
+      - uses: mongodb-labs/drivers-github-tools/secure-checkout@89904229eb55a063655af02f5838bd7fe76505e5 #v3
         with:
           app_id: ${{ vars.PR_APP_ID }}
           private_key: ${{ secrets.PR_APP_PRIVATE_KEY }}
@@ -24,7 +24,7 @@ jobs:
           fetch-depth: 0
       - name: Create pull request
         id: create-pull-request
-        uses: alcaeus/automatic-merge-up-action@df198087f6eb3117dc0a9fc759c60e64ffed09bf #v1.1.0
+        uses: alcaeus/automatic-merge-up-action@874dd723d79cb95bb2360bfeb46b6964060aa515 #v1.1.0
         with:
           ref: ${{ github.ref_name }}
           branchNamePattern: "release/<major>.<minor>"
