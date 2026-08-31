@@ -47,6 +47,13 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
 # Install taskfile
 RUN go install github.com/go-task/task/v3/cmd/task@v3.39.2
 
+# Pre-download the Go toolchains used by internal/test/compilecheck so the test
+# doesn't fetch each one from the module proxy at run time. Keep in sync with
+# goVersions in internal/test/compilecheck/compile_check_test.go, which passes
+# this as a build arg.
+ARG COMPILECHECK_GO_VERSIONS="1.25.0 1.26.0"
+RUN for v in ${COMPILECHECK_GO_VERSIONS}; do GOTOOLCHAIN=go$v go version; done
+
 COPY etc/docker_entry.sh /root/docker_entry.sh
 COPY --from=libmongocrypt /root/install /root/install
 

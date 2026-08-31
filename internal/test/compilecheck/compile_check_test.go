@@ -116,12 +116,23 @@ func TestCompileCheck(t *testing.T) {
 
 	rootDir := filepath.Dir(filepath.Dir(filepath.Dir(cwd)))
 
+	// Have the image pre-download exactly the toolchains this test pins with
+	// GOTOOLCHAIN, so goVersions stays the single source of truth.
+	toolchains := make([]string, 0, len(goVersions))
+	for _, ver := range goVersions {
+		toolchains = append(toolchains, ver+".0")
+	}
+	toolchainVersions := strings.Join(toolchains, " ")
+
 	// Build the image and start one container we can reuse for all subtests.
 	req := testcontainers.ContainerRequest{
 		FromDockerfile: testcontainers.FromDockerfile{
 			Context:       rootDir,
 			Dockerfile:    "Dockerfile",
 			PrintBuildLog: true,
+			BuildArgs: map[string]*string{
+				"COMPILECHECK_GO_VERSIONS": &toolchainVersions,
+			},
 		},
 		Files: []testcontainers.ContainerFile{
 			{
