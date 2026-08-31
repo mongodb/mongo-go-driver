@@ -347,8 +347,22 @@ func normalizedBOM(bom *cdx.BOM) (string, error) {
 	return normalized(buf.Bytes())
 }
 
-// normalized returns a stable JSON encoding of data with its version and
-// timestamp removed, for content comparison.
+// pseudoVersionRE matches the volatile timestamp+commit suffix of a Go
+// pseudo-version, e.g. "20260427225553-fd85a834c40e" in either
+// "v2.6.1-0.20260427225553-fd85a834c40e" (based on the nearest reachable
+// tag) or "v0.0.0-20260427225553-fd85a834c40e" (no reachable tag at all —
+// e.g. in a --no-tags clone). The main module component isn't tagged, so
+// cyclonedx-gomod versions it with a pseudo-version derived from the current
+// commit — which changes on every commit regardless of whether the
+// dependency graph did, and appears in that component's bom-ref and purl
+// too, as well as in any dependencies[] entries that reference it by string.
+// Left unhandled, two generations at different commits would always compare
+// as different.
+var pseudoVersionRE = regexp.MustCompile(`\d{14}-[0-9a-f]{12}`)
+
+// normalized returns a stable JSON encoding of data with its version,
+// timestamp, and commit-derived pseudo-version removed, for content
+// comparison.
 func normalized(data []byte) (string, error) {
 	var m map[string]any
 	if err := json.Unmarshal(data, &m); err != nil {
@@ -362,7 +376,7 @@ func normalized(data []byte) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return string(out), nil
+	return pseudoVersionRE.ReplaceAllString(string(out), "PSEUDO-VERSION"), nil
 }
 
 func derefComponents(c *[]cdx.Component) []cdx.Component {
