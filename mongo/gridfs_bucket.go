@@ -58,6 +58,13 @@ type upload struct {
 	metadata  bson.D
 }
 
+// idFilter returns a filter matching field exactly equal to id. The $eq
+// operator is required so that a user-provided file ID containing query
+// operators cannot match more than the file it addresses.
+func idFilter(field string, id any) bson.D {
+	return bson.D{{field, bson.D{{"$eq", id}}}}
+}
+
 // OpenUploadStream creates a file ID new upload stream for a file given the
 // filename.
 //
@@ -171,7 +178,7 @@ func (b *GridFSBucket) UploadFromStreamWithID(
 // upload stream io.Writer. If the context does set a deadline, then the
 // client-level timeout will be used to cap the lifetime of the stream.
 func (b *GridFSBucket) OpenDownloadStream(ctx context.Context, fileID any) (*GridFSDownloadStream, error) {
-	return b.openDownloadStream(ctx, bson.D{{"_id", fileID}})
+	return b.openDownloadStream(ctx, idFilter("_id", fileID))
 }
 
 // DownloadToStream downloads the file with the specified fileID and writes it
@@ -258,7 +265,7 @@ func (b *GridFSBucket) Delete(ctx context.Context, fileID any) error {
 	ctx, cancel := csot.WithTimeout(ctx, b.db.client.timeout)
 	defer cancel()
 
-	res, err := b.filesColl.DeleteOne(ctx, bson.D{{"_id", fileID}})
+	res, err := b.filesColl.DeleteOne(ctx, idFilter("_id", fileID))
 	if err == nil && res.DeletedCount == 0 {
 		err = ErrFileNotFound
 	}
@@ -308,7 +315,7 @@ func (b *GridFSBucket) Find(
 // Rename renames the stored file with the specified file ID.
 func (b *GridFSBucket) Rename(ctx context.Context, fileID any, newFilename string) error {
 	res, err := b.filesColl.UpdateOne(ctx,
-		bson.D{{"_id", fileID}},
+		idFilter("_id", fileID),
 		bson.D{{"$set", bson.D{{"filename", newFilename}}}},
 	)
 	if err != nil {
@@ -399,13 +406,13 @@ func (b *GridFSBucket) downloadToStream(ds *GridFSDownloadStream, stream io.Writ
 }
 
 func (b *GridFSBucket) deleteChunks(ctx context.Context, fileID any) error {
-	_, err := b.chunksColl.DeleteMany(ctx, bson.D{{"files_id", fileID}})
+	_, err := b.chunksColl.DeleteMany(ctx, idFilter("files_id", fileID))
 	return err
 }
 
 func (b *GridFSBucket) findChunks(ctx context.Context, fileID any) (*Cursor, error) {
 	chunksCursor, err := b.chunksColl.Find(ctx,
-		bson.D{{"files_id", fileID}},
+		idFilter("files_id", fileID),
 		options.Find().SetSort(bson.D{{"n", 1}})) // sort by chunk index
 	if err != nil {
 		return nil, err
