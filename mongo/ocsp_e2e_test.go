@@ -28,6 +28,64 @@ import (
 	"golang.org/x/crypto/ocsp"
 )
 
+// TestOCSPStapleSigners pins the behavior of the driver's built-in OCSP verification for each RFC 6960 4.2.2.2 signer
+// shape, connecting a default client over a real TLS handshake to a server stapling each one.
+//
+// It is the baseline that TestOCSPDisableCertificateRevocationCheck below is measured against: the same four fixtures
+// have the opposite expectation once revocation checking is switched off.
+func TestOCSPStapleSigners(t *testing.T) {
+	t.Parallel()
+
+	pki, err := getOCSPPKI()
+	require.NoError(t, err, "getOCSPPKI error: %v", err)
+
+	// Expected outcome per fixture against a default client, where the empty string means the connection is expected
+	// to succeed. embed_ca is rejected even though RFC 6960 4.2.2.2 permits it: x/crypto/ocsp assumes any certificate
+	// embedded in the response is a delegated responder signed by the issuer, so it rejects a response the issuing CA
+	// signed with its own certificate embedded. See golang/go#59641 and GODRIVER-4101. forged must stay rejected --
+	// it is signed by a key unrelated to the issuer.
+	wantErr := map[ocspFixture]string{
+		fixtureEmbedCA:   "bad OCSP signature",
+		fixtureNoCerts:   "",
+		fixtureDelegated: "",
+		fixtureForged:    "bad OCSP signature",
+	}
+
+	for _, fixture := range ocspFixtures {
+		t.Run(string(fixture), func(t *testing.T) {
+			t.Parallel()
+
+			srv, err := pki.StartServer(fixture)
+			require.NoError(t, err, "StartServer error: %v", err)
+			defer srv.Close()
+
+			clientOpts := options.Client().
+				ApplyURI(srv.URI()).
+				SetTLSConfig(&tls.Config{RootCAs: pki.RootPool(), MinVersion: tls.VersionTLS12}).
+				// Only the rejected fixtures wait out this timeout; the others select a server in a few milliseconds.
+				SetServerSelectionTimeout(time.Second)
+
+			client, err := Connect(clientOpts)
+			require.NoError(t, err, "Connect error: %v", err)
+			defer func() { _ = client.Disconnect(bgCtx) }()
+
+			err = client.Ping(bgCtx, readpref.Primary())
+
+			if want := wantErr[fixture]; want != "" {
+				// Log the error so the failure mode is visible when this runs in CI.
+				t.Logf("got expected Ping error for %s: %v", fixture, err)
+				require.Error(t, err, "expected Ping to fail for %s (%s)", string(fixture), fixture)
+				require.ErrorContains(t, err, want,
+					"expected the %s rejection to name the OCSP failure", string(fixture))
+
+				return
+			}
+
+			require.NoError(t, err, "expected Ping to succeed for %s (%s), got: %v", string(fixture), fixture, err)
+		})
+	}
+}
+
 // TestOCSPDisableCertificateRevocationCheck verifies that tlsDisableCertificateRevocationCheck suppresses OCSP
 // verification.
 func TestOCSPDisableCertificateRevocationCheck(t *testing.T) {
