@@ -138,6 +138,7 @@ func (s *Session) WithTransaction(
 		if expDur == 0 {
 			expDur = backoffInitial
 		} else {
+			expDur += expDur / 2
 			if expDur > backoffMax {
 				expDur = backoffMax
 			}
@@ -151,9 +152,6 @@ func (s *Session) WithTransaction(
 				sleep.Stop()
 				return nil, timeoutError{Wrapped: err}
 			case <-sleep.C:
-			}
-			if expDur < backoffMax {
-				expDur += expDur / 2
 			}
 		}
 

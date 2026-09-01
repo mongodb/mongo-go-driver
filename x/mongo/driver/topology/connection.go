@@ -68,11 +68,17 @@ func wrapConnectionError(connErr ConnectionError) error {
 	// tls.RecordHeaderError is a non-I/O TLS error per the CMAP spec: the peer
 	// sent bytes that don't form a valid TLS record. This cannot indicate
 	// server overload.
-	//
-	// TODO(GODRIVER-3956): Make the TLS record header error check and test work
-	// on Windows.
 	var tlsRecordHeaderErr tls.RecordHeaderError
 	if errors.As(connErr.Wrapped, &tlsRecordHeaderErr) {
+		return connErr
+	}
+	// An alert sent by the peer during the TLS handshake does not get a
+	// backpressure labels. Per the CMAP spec, drivers MUST NOT label non-I/O TLS
+	// errors as server overload conditions. A remote alert is non-I/O as the
+	// handshake was answered and refused by the peer, nothing failed to send or
+	// receive.
+	var opErr *net.OpError
+	if errors.As(connErr.Wrapped, &opErr) && opErr.Op == "remote error" {
 		return connErr
 	}
 	return driver.Error{
