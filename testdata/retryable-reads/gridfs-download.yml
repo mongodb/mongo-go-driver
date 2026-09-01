@@ -34,13 +34,13 @@ tests:
                 command_started_event:
                     command:
                         find: fs.files
-                        filter: { _id: {$oid : "000000000000000000000001" }}
+                        filter: { _id: { $eq: { $oid : "000000000000000000000001" } } }
                     database_name: *database_name
             -  &find_chunks_command_started_event
                 command_started_event:
                     command:
                         find: fs.chunks
-                        filter: { files_id: {$oid : "000000000000000000000001" }}
+                        filter: { files_id: { $eq: { $oid : "000000000000000000000001" } } }
                         sort: { n: 1 }
                     database_name: *database_name
     -
