@@ -50,6 +50,22 @@ type Session struct {
 	client              *Client
 	deployment          driver.Deployment
 	didCommitAfterStart bool // true if commit was called after start with no other operations
+
+	// defaultTimeout is the session-level "defaultTimeoutMS" value. If nil, the
+	// session inherits the timeout of the client that created it.
+	defaultTimeout *time.Duration
+}
+
+// timeout returns the timeout to apply to the commitTransaction,
+// abortTransaction, withTransaction, and endSession operations run on this
+// session. Per the CSOT specification, the session-level "defaultTimeoutMS"
+// takes precedence over the client-level "timeoutMS".
+func (s *Session) timeout() *time.Duration {
+	if s.defaultTimeout != nil {
+		return s.defaultTimeout
+	}
+
+	return s.client.timeout
 }
 
 type sessionKey struct{}
@@ -129,7 +145,7 @@ func (s *Session) WithTransaction(
 	// Apply client timeout to context if set, so that ctx.Err() reflects the
 	// CSOT deadline and WithTransaction exits via the ctx.Err() check instead
 	// of retrying on TransientTransactionError.
-	ctx, cancel := csot.WithTimeout(ctx, s.client.timeout)
+	ctx, cancel := csot.WithTimeout(ctx, s.timeout())
 	defer cancel()
 
 	// Per the CSOT spec, WithTransaction must refresh the timeout for abort/commit
@@ -137,12 +153,12 @@ func (s *Session) WithTransaction(
 	// first (for operation-level timeouts), then fall back to client timeout.
 	timeoutDur := csot.GetTimeoutDuration(ctx)
 	if timeoutDur == nil {
-		timeoutDur = s.client.timeout
+		timeoutDur = s.timeout()
 	}
 
 	transTimeout := withTransactionTimeout
-	if s.client.timeout != nil {
-		transTimeout = *s.client.timeout
+	if t := s.timeout(); t != nil && *t > 0 {
+		transTimeout = *t
 	}
 	startTime := time.Now()
 	timeout := time.NewTimer(transTimeout)
@@ -310,7 +326,7 @@ func (s *Session) AbortTransaction(ctx context.Context) error {
 		serverAPI:                 s.client.serverAPI,
 		authenticator:             s.client.authenticator,
 		logger:                    s.client.logger,
-		timeout:                   s.client.timeout,
+		timeout:                   s.timeout(),
 	}
 	_ = op.execute(ctx)
 
@@ -358,7 +374,7 @@ func (s *Session) CommitTransaction(ctx context.Context) error {
 		serverAPI:                 s.client.serverAPI,
 		authenticator:             s.client.authenticator,
 		logger:                    s.client.logger,
-		timeout:                   s.client.timeout,
+		timeout:                   s.timeout(),
 	}
 
 	err = op.execute(ctx)
