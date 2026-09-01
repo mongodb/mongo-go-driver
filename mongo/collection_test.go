@@ -310,8 +310,6 @@ func TestNewFindArgsFromFindOneArgs(t *testing.T) {
 }
 
 func TestKeepInsertedIDs(t *testing.T) {
-	t.Parallel()
-
 	newResult := func(n int) []any {
 		result := make([]any, n)
 		for i := range result {
@@ -378,13 +376,9 @@ func TestKeepInsertedIDs(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		test := test // Capture the range variable
-
 		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
-
 			got := keepInsertedIDs(test.result, test.writeErrors, test.ordered)
-			assert.Equal(t, test.want, got)
+			require.Equal(t, test.want, got)
 		})
 	}
 }
