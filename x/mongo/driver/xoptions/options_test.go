@@ -87,3 +87,36 @@ func TestSetInternalClientOptions(t *testing.T) {
 		require.EqualError(t, err, "unsupported option: \"unsupported\"")
 	})
 }
+
+func TestSetInternalClientBulkWriteEntry(t *testing.T) {
+	t.Parallel()
+
+	t.Run("set collectionUUID", func(t *testing.T) {
+		t.Parallel()
+
+		uuid := []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}
+
+		var internal optionsutil.Options
+		err := SetInternalClientBulkWriteEntry(&internal, "collectionUUID", uuid)
+		require.NoError(t, err, "SetInternalClientBulkWriteEntry error: %v", err)
+
+		v := optionsutil.Value(internal, "collectionUUID")
+		require.Equal(t, uuid, v)
+	})
+
+	t.Run("set collectionUUID - wrong type", func(t *testing.T) {
+		t.Parallel()
+
+		var internal optionsutil.Options
+		err := SetInternalClientBulkWriteEntry(&internal, "collectionUUID", "not-a-slice")
+		require.EqualError(t, err, "unexpected type for \"collectionUUID\": string is not []byte")
+	})
+
+	t.Run("set unsupported option", func(t *testing.T) {
+		t.Parallel()
+
+		var internal optionsutil.Options
+		err := SetInternalClientBulkWriteEntry(&internal, "unsupported", "value")
+		require.EqualError(t, err, "unsupported option: \"unsupported\"")
+	})
+}
