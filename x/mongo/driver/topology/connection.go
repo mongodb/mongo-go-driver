@@ -81,6 +81,16 @@ func wrapConnectionError(connErr ConnectionError) error {
 	if errors.As(connErr.Wrapped, &opErr) && opErr.Op == "remote error" {
 		return connErr
 	}
+	// An OCSP failure is a non-I/O TLS error per the CMAP spec: revocation
+	// checking is certificate validation, so a retry against the same server
+	// would fail the same way. ocsp.Verify soft-fails when no sreaponse can be
+	// obtained, an unreachable responder leaves the status unknown rather than
+	// erroring so every error that reaches here is a validation result, which
+	// cannot indicate server overload.
+	var ocspErr *ocsp.Error
+	if errors.As(connErr.Wrapped, &ocspErr) {
+		return connErr
+	}
 	return driver.Error{
 		Labels:  []string{driver.ErrSystemOverloadedError, driver.ErrRetryableError, driver.NetworkError},
 		Wrapped: connErr,
