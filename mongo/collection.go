@@ -367,19 +367,49 @@ func (coll *Collection) insert(
 		return result, err
 	}
 
-	// remove the ids that had writeErrors from result
-	for i, we := range wce.WriteErrors {
-		// i indexes have been removed before the current error, so the index is we.Index-i
-		idIndex := int(we.Index) - i
-		// if the insert is ordered, nothing after the error was inserted
-		if args.Ordered == nil || *args.Ordered {
-			result = result[:idIndex]
-			break
-		}
-		result = append(result[:idIndex], result[idIndex+1:]...)
-	}
+	ordered := args.Ordered == nil || *args.Ordered
+	result = keepInsertedIDs(result, wce.WriteErrors, ordered)
 
 	return result, err
+}
+
+// keepInsertedIDs returns the subset of result whose corresponding documents
+// were not rejected by the server. Each WriteError.Index refers to the
+// positional index of the document in the original insert request, which is
+// also the index space of result.
+//
+// writeErrors is not required to be sorted by Index: the server does not
+// guarantee that write errors for an unordered bulk write are returned in
+// ascending Index order, and assuming otherwise previously caused
+// out-of-range slice panics (GODRIVER-4096). Neither result nor writeErrors
+// is modified.
+func keepInsertedIDs(result []any, writeErrors driver.WriteErrors, ordered bool) []any {
+	// If there are no write errors, then every document was inserted.
+	if len(writeErrors) == 0 {
+		return result
+	}
+
+	failed := make(map[int]bool, len(writeErrors))
+	for _, writeError := range writeErrors {
+		failed[int(writeError.Index)] = true
+	}
+
+	kept := result[:0:0]
+	for idx, id := range result {
+		if failed[idx] {
+			// The server stops an ordered insert at the first document that
+			// fails, so nothing at or after that index was inserted.
+			if ordered {
+				break
+			}
+
+			continue
+		}
+
+		kept = append(kept, id)
+	}
+
+	return kept
 }
 
 // InsertOne executes an insert command to insert a single document into the collection.
