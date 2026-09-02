@@ -73,6 +73,18 @@ var (
 	// specified in a URI with loadBalanced=true.
 	ErrSRVMaxHostsWithLoadBalanced = errors.New(
 		"srvMaxHosts cannot be a positive value if loadBalanced is set to true")
+
+	// ErrTLSInsecureWithDisableCertificateRevocationCheck is returned when
+	// tlsInsecure is specified alongside tlsDisableCertificateRevocationCheck
+	// whatever values they are set to.
+	ErrTLSInsecureWithDisableCertificateRevocationCheck = errors.New(
+		"sslInsecure/tlsInsecure cannot be used with tlsDisableCertificateRevocationCheck")
+
+	// ErrDisableOCSPEndpointCheckWithDisableCertificateRevocationCheck is
+	// returned when tlsDisableOCSPEndpointCheck is specified alongside
+	// tlsDisableCertificateRevocationCheck whatever values they are set to.
+	ErrDisableOCSPEndpointCheckWithDisableCertificateRevocationCheck = errors.New(
+		"tlsDisableOCSPEndpointCheck cannot be used with tlsDisableCertificateRevocationCheck")
 )
 
 // random is a package-global pseudo-random number generator.
@@ -827,8 +839,7 @@ func (u *ConnString) validateSSL() error {
 	}
 
 	if u.SSLDisableOCSPEndpointCheckSet && u.SSLDisableCertificateRevocationCheckSet {
-		return errors.New("the tlsDisableOCSPEndpointCheck URI option cannot be provided along with " +
-			"tlsDisableCertificateRevocationCheck")
+		return ErrDisableOCSPEndpointCheckWithDisableCertificateRevocationCheck
 	}
 
 	if u.SSLInsecureSet && u.SSLDisableOCSPEndpointCheckSet {
@@ -837,8 +848,7 @@ func (u *ConnString) validateSSL() error {
 	}
 
 	if u.SSLInsecureSet && u.SSLDisableCertificateRevocationCheckSet {
-		return errors.New("the sslInsecure/tlsInsecure URI option cannot be provided along with " +
-			"tlsDisableCertificateRevocationCheck")
+		return ErrTLSInsecureWithDisableCertificateRevocationCheck
 	}
 	return nil
 }

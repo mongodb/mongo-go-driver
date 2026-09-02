@@ -630,6 +630,24 @@ func (c *ClientOptions) Validate() error {
 		}
 	}
 
+	// tlsDisableCertificateRevocationCheck conflicts with tlsInsecure and with
+	// tlsDisableOCSPEndpointCheck whenever both are present, whatever values they hold.
+	if c.DisableCertificateRevocationCheck != nil {
+		if c.DisableOCSPEndpointCheck != nil {
+			return connstring.ErrDisableOCSPEndpointCheckWithDisableCertificateRevocationCheck
+		}
+
+		// A tls.Config cannot distinguish InsecureSkipVerify being set to false from it never
+		// having been set, so fall back to the connection string when there is one.
+		insecureSet := c.TLSConfig != nil && c.TLSConfig.InsecureSkipVerify
+		if c.connString != nil && c.connString.SSLInsecureSet {
+			insecureSet = true
+		}
+		if insecureSet {
+			return connstring.ErrTLSInsecureWithDisableCertificateRevocationCheck
+		}
+	}
+
 	if mode := c.ServerMonitoringMode; mode != nil && !connstring.IsValidServerMonitoringMode(*mode) {
 		return fmt.Errorf("invalid server monitoring mode: %q", *mode)
 	}
@@ -694,8 +712,28 @@ func (c *ClientOptions) Validate() error {
 }
 
 // ApplyURI parses the given URI and sets options accordingly. The URI can contain host names, IPv4/IPv6 literals, or
-// an SRV record that will be resolved when the Client is created. When using an SRV record, TLS support is
-// implicitly enabled. Specify the "tls=false" URI option to override this.
+// an SRV record that will be resolved when the Client is created.
+//
+// # Implicit TLS
+//
+// TLS is enabled implicitly in two cases. The first is when an SRV record is used, that is, when the URI uses the
+// "mongodb+srv" scheme. The second is when any of the following URI options is present, whatever value it is set to:
+//
+//	tlsCAFile (sslCertificateAuthorityFile)
+//	tlsCertificateKeyFile (sslClientCertificateKeyFile)
+//	tlsCertificateFile
+//	tlsPrivateKeyFile
+//	tlsDisableOCSPEndpointCheck
+//	tlsDisableCertificateRevocationCheck
+//
+// Note that the value is not consulted, so "tlsDisableOCSPEndpointCheck=false" enables TLS just as "=true" does.
+//
+// The remaining TLS options do not enable TLS on their own: tlsInsecure (sslInsecure) and tlsCertificateKeyFilePassword
+// (sslClientCertificateKeyPassword).
+//
+// Specify the "tls=false" URI option to override implicit enablement. With the "mongodb+srv" scheme this always works.
+// When TLS was enabled by one of the options listed above, URI options are applied in the order they appear, so
+// "tls=false" takes effect only if it appears later in the connection string than the option that enabled TLS.
 //
 // If the connection string contains any options that have previously been set, it will overwrite them. Options that
 // correspond to multiple URI parameters, such as WriteConcern, will be completely overwritten if any of the query
@@ -1131,12 +1169,17 @@ func (c *ClientOptions) SetAutoEncryptionOptions(aeopts *AutoEncryptionOptions) 
 // SetDisableCertificateRevocationCheck specifies whether or not the driver should check the revocation status of
 // certificates presented by the server.
 //
-// If set to true, the driver will not check certificate revocation status by any mechanism. Certificate chain
-// and hostname verification are unaffected, so this is a narrower relaxation than tlsInsecure, which disables
-// certificate verification entirely.
+// If set to true, the driver will not check certificate revocation status via CRLs or OCSP. If set to false, the
+// driver checks revocation status and reaches out to OCSP responders when needed.
 //
-// This can also be set through the tlsDisableCertificateRevocationCheck URI option. That URI option must not be
-// provided alongside tlsInsecure or tlsDisableOCSPEndpointCheck and will error if it is. The default value is false.
+// Certificate chain and hostname verification are unaffected, so this is a narrower relaxation than tlsInsecure,
+// which disables certificate verification entirely.
+//
+// This can also be set through the tlsDisableCertificateRevocationCheck URI option. The default value is false.
+//
+// This option must not be combined with tlsInsecure or tlsDisableOCSPEndpointCheck, however either of those was
+// supplied, and doing so is an error. What conflicts is that both options are present, not the values they hold, so
+// setting either of them to false still conflicts.
 func (c *ClientOptions) SetDisableCertificateRevocationCheck(disableCheck bool) *ClientOptions {
 	c.DisableCertificateRevocationCheck = &disableCheck
 

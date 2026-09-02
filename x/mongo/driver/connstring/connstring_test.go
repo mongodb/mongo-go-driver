@@ -658,10 +658,14 @@ func TestDisableCertificateRevocationCheck(t *testing.T) {
 	// The OCSP support specification requires an error whenever tlsDisableCertificateRevocationCheck is present
 	// alongside tlsInsecure or tlsDisableOCSPEndpointCheck, regardless of the values they are set to.
 	t.Run("mutually exclusive options", func(t *testing.T) {
-		conflicts := []string{"tlsInsecure", "sslInsecure", "tlsDisableOCSPEndpointCheck"}
+		conflicts := map[string]error{
+			"tlsInsecure":                 connstring.ErrTLSInsecureWithDisableCertificateRevocationCheck,
+			"sslInsecure":                 connstring.ErrTLSInsecureWithDisableCertificateRevocationCheck,
+			"tlsDisableOCSPEndpointCheck": connstring.ErrDisableOCSPEndpointCheckWithDisableCertificateRevocationCheck,
+		}
 		values := []string{"true", "false"}
 
-		for _, conflict := range conflicts {
+		for conflict, wantErr := range conflicts {
 			for _, v1 := range values {
 				for _, v2 := range values {
 					// Assert both key orderings produce an error.
@@ -672,12 +676,57 @@ func TestDisableCertificateRevocationCheck(t *testing.T) {
 						uri := fmt.Sprintf("mongodb://localhost/?%s", s)
 						t.Run(uri, func(t *testing.T) {
 							_, err := connstring.ParseAndValidate(uri)
-							require.Error(t, err)
-							assert.ErrorContains(t, err, "tlsDisableCertificateRevocationCheck")
+							require.ErrorIs(t, err, wantErr)
 						})
 					}
 				}
 			}
 		}
 	})
+}
+
+// TestImplicitTLS pins which URI options enable TLS by their presence alone. The set is
+// documented on options.ClientOptions.ApplyURI. Keep the two in sync, and this is a
+// test about parsing, not validation.
+func TestImplicitTLS(t *testing.T) {
+	tests := []struct {
+		opts    string
+		wantSSL bool
+	}{
+		// Options that supply TLS material.
+		{opts: "tlsCAFile=/certs/ca.pem", wantSSL: true},
+		{opts: "sslCertificateAuthorityFile=/certs/ca.pem", wantSSL: true},
+		{opts: "tlsCertificateKeyFile=/certs/client.pem", wantSSL: true},
+		{opts: "sslClientCertificateKeyFile=/certs/client.pem", wantSSL: true},
+		{opts: "tlsCertificateFile=/certs/cert.pem", wantSSL: true},
+		{opts: "tlsPrivateKeyFile=/certs/key.pem", wantSSL: true},
+
+		// Options that only modify TLS behavior but still enable it.
+		{opts: "tlsDisableOCSPEndpointCheck=true", wantSSL: true},
+		{opts: "tlsDisableCertificateRevocationCheck=true", wantSSL: true},
+
+		// Enabling TLS does not depend on the value: false enables it just the same.
+		{opts: "tlsDisableOCSPEndpointCheck=false", wantSSL: true},
+		{opts: "tlsDisableCertificateRevocationCheck=false", wantSSL: true},
+
+		// Options that do not enable TLS on their own.
+		{opts: "tlsInsecure=true", wantSSL: false},
+		{opts: "sslInsecure=true", wantSSL: false},
+		{opts: "tlsCertificateKeyFilePassword=hunter2", wantSSL: false},
+		{opts: "sslClientCertificateKeyPassword=hunter2", wantSSL: false},
+
+		// Options are applied in the order they appear, so an explicit tls=false only sticks
+		// when it comes after the option that would enable TLS.
+		{opts: "tls=false&tlsCAFile=/certs/ca.pem", wantSSL: true},
+		{opts: "tlsCAFile=/certs/ca.pem&tls=false", wantSSL: false},
+	}
+
+	for _, test := range tests {
+		uri := fmt.Sprintf("mongodb://localhost/?%s", test.opts)
+		t.Run(uri, func(t *testing.T) {
+			cs, err := connstring.Parse(uri)
+			require.NoError(t, err, "Parse error: %v", err)
+			require.Equal(t, test.wantSSL, cs.SSL, "expected SSL to be %v", test.wantSSL)
+		})
+	}
 }

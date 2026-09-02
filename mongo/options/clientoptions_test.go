@@ -29,6 +29,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/httputil"
 	"go.mongodb.org/mongo-driver/v2/internal/optionsutil"
 	"go.mongodb.org/mongo-driver/v2/internal/ptrutil"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
@@ -1101,8 +1102,7 @@ func TestApplyURI(t *testing.T) {
 			uri:  "mongodb://localhost/?tlsInsecure=false&tlsDisableCertificateRevocationCheck=false",
 			wantopts: &ClientOptions{
 				err: fmt.Errorf("error validating uri: %w",
-					errors.New("the sslInsecure/tlsInsecure URI option cannot be provided along with "+
-						"tlsDisableCertificateRevocationCheck")),
+					connstring.ErrTLSInsecureWithDisableCertificateRevocationCheck),
 			},
 		},
 		{
@@ -1302,6 +1302,95 @@ func TestApplyURI(t *testing.T) {
 			); diff != "" {
 				t.Errorf("URI did not apply correctly: (-want +got)\n%s", diff)
 			}
+		})
+	}
+}
+
+func TestValidateDisableCertificateRevocationCheck(t *testing.T) {
+	const (
+		insecureURI      = "mongodb://localhost/?tlsInsecure=%t"
+		endpointCheckURI = "mongodb://localhost/?tlsDisableOCSPEndpointCheck=%t"
+	)
+
+	// Paths that connstring cannot cover, because the conflicting options are not both supplied
+	// through a URI. Validate inspects the final state, so both orderings are included.
+	conflicts := []struct {
+		name string
+		opts *ClientOptions
+		want error
+	}{
+		{
+			name: "setters, both true",
+			opts: Client().SetDisableOCSPEndpointCheck(true).SetDisableCertificateRevocationCheck(true),
+			want: connstring.ErrDisableOCSPEndpointCheckWithDisableCertificateRevocationCheck,
+		},
+		{
+			// Presence is what conflicts, not the values.
+			name: "setters, both false",
+			opts: Client().SetDisableOCSPEndpointCheck(false).SetDisableCertificateRevocationCheck(false),
+			want: connstring.ErrDisableOCSPEndpointCheckWithDisableCertificateRevocationCheck,
+		},
+		{
+			name: "setters, reversed order",
+			opts: Client().SetDisableCertificateRevocationCheck(true).SetDisableOCSPEndpointCheck(false),
+			want: connstring.ErrDisableOCSPEndpointCheckWithDisableCertificateRevocationCheck,
+		},
+		{
+			name: "InsecureSkipVerify via TLSConfig",
+			opts: Client().
+				SetTLSConfig(&tls.Config{InsecureSkipVerify: true}).
+				SetDisableCertificateRevocationCheck(true),
+			want: connstring.ErrTLSInsecureWithDisableCertificateRevocationCheck,
+		},
+		{
+			name: "URI tlsInsecure=true then setter",
+			opts: Client().ApplyURI(fmt.Sprintf(insecureURI, true)).SetDisableCertificateRevocationCheck(true),
+			want: connstring.ErrTLSInsecureWithDisableCertificateRevocationCheck,
+		},
+		{
+			// tlsInsecure=false leaves InsecureSkipVerify false, so this is only detectable
+			// through the connection string.
+			name: "URI tlsInsecure=false then setter",
+			opts: Client().ApplyURI(fmt.Sprintf(insecureURI, false)).SetDisableCertificateRevocationCheck(true),
+			want: connstring.ErrTLSInsecureWithDisableCertificateRevocationCheck,
+		},
+		{
+			name: "setter then URI tlsInsecure=true",
+			opts: Client().SetDisableCertificateRevocationCheck(true).ApplyURI(fmt.Sprintf(insecureURI, true)),
+			want: connstring.ErrTLSInsecureWithDisableCertificateRevocationCheck,
+		},
+		{
+			name: "URI tlsDisableOCSPEndpointCheck then setter",
+			opts: Client().ApplyURI(fmt.Sprintf(endpointCheckURI, true)).SetDisableCertificateRevocationCheck(true),
+			want: connstring.ErrDisableOCSPEndpointCheckWithDisableCertificateRevocationCheck,
+		},
+	}
+
+	for _, tc := range conflicts {
+		t.Run(tc.name, func(t *testing.T) {
+			err := tc.opts.Validate()
+			require.ErrorIs(t, err, tc.want, "expected %v, got %v", tc.want, err)
+		})
+	}
+
+	allowed := []struct {
+		name string
+		opts *ClientOptions
+	}{
+		{"option alone", Client().SetDisableCertificateRevocationCheck(true)},
+		{"option alone, set to false", Client().SetDisableCertificateRevocationCheck(false)},
+		{
+			"option with a TLSConfig that does not skip verification",
+			Client().SetTLSConfig(&tls.Config{}).SetDisableCertificateRevocationCheck(true),
+		},
+		{"option via URI alone", Client().ApplyURI("mongodb://localhost/?tlsDisableCertificateRevocationCheck=true")},
+		{"tlsInsecure alone", Client().ApplyURI(fmt.Sprintf(insecureURI, true))},
+		{"tlsDisableOCSPEndpointCheck alone", Client().ApplyURI(fmt.Sprintf(endpointCheckURI, true))},
+	}
+
+	for _, tc := range allowed {
+		t.Run(tc.name, func(t *testing.T) {
+			require.NoError(t, tc.opts.Validate(), "expected no error")
 		})
 	}
 }
