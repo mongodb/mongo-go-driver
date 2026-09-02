@@ -1169,16 +1169,16 @@ func (c *ClientOptions) SetAutoEncryptionOptions(aeopts *AutoEncryptionOptions) 
 // SetDisableCertificateRevocationCheck specifies whether or not the driver should check the revocation status of
 // certificates presented by the server.
 //
-// If set to true, the driver will not check certificate revocation status via CRLs or OCSP. If set to false, the
-// driver checks revocation status and reaches out to OCSP responders when needed.
+// If set to true, the driver will not check certificate revocation status via OCSP. If set to false, the driver
+// checks revocation status and reaches out to OCSP responders when needed.
 //
 // Certificate chain and hostname verification are unaffected, so this is a narrower relaxation than tlsInsecure,
 // which disables certificate verification entirely.
 //
 // This can also be set through the tlsDisableCertificateRevocationCheck URI option. The default value is false.
 //
-// This option must not be combined with tlsInsecure or tlsDisableOCSPEndpointCheck, however either of those was
-// supplied, and doing so is an error. What conflicts is that both options are present, not the values they hold, so
+// This option must not be combined with tlsInsecure or tlsDisableOCSPEndpointCheck. If either of those was
+// supplied, doing so is an error. What conflicts is that both options are present, not the values they hold, so
 // setting either of them to false still conflicts.
 func (c *ClientOptions) SetDisableCertificateRevocationCheck(disableCheck bool) *ClientOptions {
 	c.DisableCertificateRevocationCheck = &disableCheck
