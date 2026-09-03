@@ -714,27 +714,6 @@ func (c *ClientOptions) Validate() error {
 // ApplyURI parses the given URI and sets options accordingly. The URI can contain host names, IPv4/IPv6 literals, or
 // an SRV record that will be resolved when the Client is created.
 //
-// # Implicit TLS
-//
-// TLS is enabled implicitly in two cases. The first is when an SRV record is used, that is, when the URI uses the
-// "mongodb+srv" scheme. The second is when any of the following URI options is present, whatever value it is set to:
-//
-//	tlsCAFile (sslCertificateAuthorityFile)
-//	tlsCertificateKeyFile (sslClientCertificateKeyFile)
-//	tlsCertificateFile
-//	tlsPrivateKeyFile
-//	tlsDisableOCSPEndpointCheck
-//	tlsDisableCertificateRevocationCheck
-//
-// Note that the value is not consulted, so "tlsDisableOCSPEndpointCheck=false" enables TLS just as "=true" does.
-//
-// The remaining TLS options do not enable TLS on their own: tlsInsecure (sslInsecure) and tlsCertificateKeyFilePassword
-// (sslClientCertificateKeyPassword).
-//
-// Specify the "tls=false" URI option to override implicit enablement. With the "mongodb+srv" scheme this always works.
-// When TLS was enabled by one of the options listed above, URI options are applied in the order they appear, so
-// "tls=false" takes effect only if it appears later in the connection string than the option that enabled TLS.
-//
 // If the connection string contains any options that have previously been set, it will overwrite them. Options that
 // correspond to multiple URI parameters, such as WriteConcern, will be completely overwritten if any of the query
 // parameters are specified. If an option is set on ClientOptions after this method is called, that option will override
@@ -745,6 +724,24 @@ func (c *ClientOptions) Validate() error {
 //
 // For more information about the URI format, see https://www.mongodb.com/docs/manual/reference/connection-string/. See
 // mongo.Connect documentation for examples of using URIs for different Client configurations.
+//
+// # Implicit TLS
+//
+// TLS is enabled implicitly when the URI uses the "mongodb+srv" scheme, or when any of the following URI options is
+// present, whatever value it is set to:
+//
+//	tlsCAFile (sslCertificateAuthorityFile)
+//	tlsCertificateKeyFile (sslClientCertificateKeyFile)
+//	tlsCertificateFile
+//	tlsPrivateKeyFile
+//	tlsDisableOCSPEndpointCheck
+//	tlsDisableCertificateRevocationCheck
+//
+// The value is not consulted: "tlsDisableOCSPEndpointCheck=false" enables TLS just as "=true" does.
+//
+// The "tls=false" URI option overrides implicit enablement. With the "mongodb+srv" scheme it always does. When TLS
+// was enabled by one of the options listed above, it does so only if it appears later in the connection string than
+// that option.
 func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 	if c.err != nil {
 		return c
