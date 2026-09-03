@@ -28,6 +28,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/ocsp"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage"
 )
 
@@ -1287,9 +1288,9 @@ func TestConnectionError(t *testing.T) {
 	})
 }
 
-func TestConnection_RemoteTLSAlert(t *testing.T) {
-	emtpyHandler := http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})
-	srv := httptest.NewUnstartedServer(emtpyHandler)
+func TestConnection_RemoteTLSAlert_NoBackpressure(t *testing.T) {
+	emptyHandler := http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})
+	srv := httptest.NewUnstartedServer(emptyHandler)
 
 	// USE TLS 1.3 to ensure that the server sends a TLS alert when the client
 	// attempts to connect with TLS 1.2.
@@ -1319,6 +1320,34 @@ func TestConnection_RemoteTLSAlert(t *testing.T) {
 	var opErr *net.OpError
 	require.ErrorAs(t, connErr.Wrapped, &opErr)
 	require.Equal(t, "remote error", opErr.Op)
+
+	var de driver.Error
+	require.NotErrorAs(t, err, &de)
+}
+
+func TestConnection_OCSPError_NoBackpressure(t *testing.T) {
+	emptyHandler := http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})
+	srv := httptest.NewTLSServer(emptyHandler)
+	t.Cleanup(srv.Close)
+
+	pool := x509.NewCertPool()
+	pool.AddCert(srv.Certificate())
+
+	addr := address.Address(srv.Listener.Addr().String())
+	connTLSConfig := &tls.Config{
+		RootCAs:    pool,
+		MinVersion: tls.VersionTLS12,
+	}
+
+	conn := newConnection(addr, WithTLSConfig(func(*tls.Config) *tls.Config {
+		return connTLSConfig
+	}))
+
+	err := conn.connect(context.Background())
+	require.Error(t, err)
+
+	var ocspErr *ocsp.Error
+	require.ErrorAs(t, err, &ocspErr)
 
 	var de driver.Error
 	require.NotErrorAs(t, err, &de)
