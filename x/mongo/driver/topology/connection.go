@@ -83,7 +83,7 @@ func wrapConnectionError(connErr ConnectionError) error {
 	}
 	// An OCSP failure is a non-I/O TLS error per the CMAP spec: revocation
 	// checking is certificate validation, so a retry against the same server
-	// would fail the same way. ocsp.Verify soft-fails when no sreaponse can be
+	// would fail the same way. ocsp.Verify soft-fails when no response can be
 	// obtained, an unreachable responder leaves the status unknown rather than
 	// erroring so every error that reaches here is a validation result, which
 	// cannot indicate server overload.
