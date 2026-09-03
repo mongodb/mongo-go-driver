@@ -1289,8 +1289,8 @@ func TestConnectionError(t *testing.T) {
 }
 
 func TestConnection_RemoteTLSAlert_NoBackpressure(t *testing.T) {
-	emtpyHandler := http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})
-	srv := httptest.NewUnstartedServer(emtpyHandler)
+	emptyHandler := http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})
+	srv := httptest.NewUnstartedServer(emptyHandler)
 
 	// USE TLS 1.3 to ensure that the server sends a TLS alert when the client
 	// attempts to connect with TLS 1.2.
