@@ -1092,6 +1092,18 @@ var skipTests = map[string][]skipCase{
 			},
 		},
 	},
+
+	// TODO(GODRIVER-3953): Support configurable DNS domain validation for SRV
+	// records.
+	"Support configurable DNS domain validation for SRV records (GODRIVER-3953)": {
+		{
+			tests: []string{
+				"TestInitialDNSSeedlistDiscoverySpec/replica_set/srvAllowedHostsSuffix-psl-not-public-suffix.json",
+				"TestInitialDNSSeedlistDiscoverySpec/replica_set/srvAllowedHostsSuffix-psl-public-suffix-capitalized.json",
+				"TestInitialDNSSeedlistDiscoverySpec/replica_set/srvAllowedHostsSuffix-psl-public-suffix.json",
+			},
+		},
+	},
 }
 
 type options struct {
