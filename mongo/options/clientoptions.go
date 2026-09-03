@@ -634,7 +634,7 @@ func (c *ClientOptions) Validate() error {
 	// tlsDisableOCSPEndpointCheck whenever both are present, whatever values they hold.
 	if c.DisableCertificateRevocationCheck != nil {
 		if c.DisableOCSPEndpointCheck != nil {
-			return connstring.ErrDisableOCSPEndpointCheckWithDisableCertificateRevocationCheck
+			return errors.New("tlsDisableOCSPEndpointCheck cannot be used with tlsDisableCertificateRevocationCheck")
 		}
 
 		// A tls.Config cannot distinguish InsecureSkipVerify being set to false from it never
@@ -644,7 +644,7 @@ func (c *ClientOptions) Validate() error {
 			insecureSet = true
 		}
 		if insecureSet {
-			return connstring.ErrTLSInsecureWithDisableCertificateRevocationCheck
+			return errors.New("sslInsecure/tlsInsecure cannot be used with tlsDisableCertificateRevocationCheck")
 		}
 	}
 
@@ -1178,8 +1178,7 @@ func (c *ClientOptions) SetAutoEncryptionOptions(aeopts *AutoEncryptionOptions) 
 // This can also be set through the tlsDisableCertificateRevocationCheck URI option. The default value is false.
 //
 // This option must not be combined with tlsInsecure or tlsDisableOCSPEndpointCheck. If either of those was
-// supplied, doing so is an error. What conflicts is that both options are present, not the values they hold, so
-// setting either of them to false still conflicts.
+// supplied, doing so is an error.
 func (c *ClientOptions) SetDisableCertificateRevocationCheck(disableCheck bool) *ClientOptions {
 	c.DisableCertificateRevocationCheck = &disableCheck
 

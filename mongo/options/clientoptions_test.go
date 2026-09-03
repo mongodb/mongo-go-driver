@@ -1101,8 +1101,8 @@ func TestApplyURI(t *testing.T) {
 			name: "disable certificate revocation check conflicts with tlsInsecure",
 			uri:  "mongodb://localhost/?tlsInsecure=false&tlsDisableCertificateRevocationCheck=false",
 			wantopts: &ClientOptions{
-				err: fmt.Errorf("error validating uri: %w",
-					connstring.ErrTLSInsecureWithDisableCertificateRevocationCheck),
+				err: errors.New("error validating uri: " +
+					"sslInsecure/tlsInsecure cannot be used with tlsDisableCertificateRevocationCheck"),
 			},
 		},
 		{
@@ -1310,66 +1310,69 @@ func TestValidateDisableCertificateRevocationCheck(t *testing.T) {
 	const (
 		insecureURI      = "mongodb://localhost/?tlsInsecure=%t"
 		endpointCheckURI = "mongodb://localhost/?tlsDisableOCSPEndpointCheck=%t"
+
+		insecureMsg = "sslInsecure/tlsInsecure cannot be used with tlsDisableCertificateRevocationCheck"
+		endpointMsg = "tlsDisableOCSPEndpointCheck cannot be used with tlsDisableCertificateRevocationCheck"
 	)
 
 	// Paths that connstring cannot cover, because the conflicting options are not both supplied
 	// through a URI. Validate inspects the final state, so both orderings are included.
 	conflicts := []struct {
-		name string
-		opts *ClientOptions
-		want error
+		name    string
+		opts    *ClientOptions
+		wantErr string
 	}{
 		{
-			name: "setters, both true",
-			opts: Client().SetDisableOCSPEndpointCheck(true).SetDisableCertificateRevocationCheck(true),
-			want: connstring.ErrDisableOCSPEndpointCheckWithDisableCertificateRevocationCheck,
+			name:    "setters, both true",
+			opts:    Client().SetDisableOCSPEndpointCheck(true).SetDisableCertificateRevocationCheck(true),
+			wantErr: endpointMsg,
 		},
 		{
 			// Presence is what conflicts, not the values.
-			name: "setters, both false",
-			opts: Client().SetDisableOCSPEndpointCheck(false).SetDisableCertificateRevocationCheck(false),
-			want: connstring.ErrDisableOCSPEndpointCheckWithDisableCertificateRevocationCheck,
+			name:    "setters, both false",
+			opts:    Client().SetDisableOCSPEndpointCheck(false).SetDisableCertificateRevocationCheck(false),
+			wantErr: endpointMsg,
 		},
 		{
-			name: "setters, reversed order",
-			opts: Client().SetDisableCertificateRevocationCheck(true).SetDisableOCSPEndpointCheck(false),
-			want: connstring.ErrDisableOCSPEndpointCheckWithDisableCertificateRevocationCheck,
+			name:    "setters, reversed order",
+			opts:    Client().SetDisableCertificateRevocationCheck(true).SetDisableOCSPEndpointCheck(false),
+			wantErr: endpointMsg,
 		},
 		{
 			name: "InsecureSkipVerify via TLSConfig",
 			opts: Client().
 				SetTLSConfig(&tls.Config{InsecureSkipVerify: true}).
 				SetDisableCertificateRevocationCheck(true),
-			want: connstring.ErrTLSInsecureWithDisableCertificateRevocationCheck,
+			wantErr: insecureMsg,
 		},
 		{
-			name: "URI tlsInsecure=true then setter",
-			opts: Client().ApplyURI(fmt.Sprintf(insecureURI, true)).SetDisableCertificateRevocationCheck(true),
-			want: connstring.ErrTLSInsecureWithDisableCertificateRevocationCheck,
+			name:    "URI tlsInsecure=true then setter",
+			opts:    Client().ApplyURI(fmt.Sprintf(insecureURI, true)).SetDisableCertificateRevocationCheck(true),
+			wantErr: insecureMsg,
 		},
 		{
 			// tlsInsecure=false leaves InsecureSkipVerify false, so this is only detectable
 			// through the connection string.
-			name: "URI tlsInsecure=false then setter",
-			opts: Client().ApplyURI(fmt.Sprintf(insecureURI, false)).SetDisableCertificateRevocationCheck(true),
-			want: connstring.ErrTLSInsecureWithDisableCertificateRevocationCheck,
+			name:    "URI tlsInsecure=false then setter",
+			opts:    Client().ApplyURI(fmt.Sprintf(insecureURI, false)).SetDisableCertificateRevocationCheck(true),
+			wantErr: insecureMsg,
 		},
 		{
-			name: "setter then URI tlsInsecure=true",
-			opts: Client().SetDisableCertificateRevocationCheck(true).ApplyURI(fmt.Sprintf(insecureURI, true)),
-			want: connstring.ErrTLSInsecureWithDisableCertificateRevocationCheck,
+			name:    "setter then URI tlsInsecure=true",
+			opts:    Client().SetDisableCertificateRevocationCheck(true).ApplyURI(fmt.Sprintf(insecureURI, true)),
+			wantErr: insecureMsg,
 		},
 		{
-			name: "URI tlsDisableOCSPEndpointCheck then setter",
-			opts: Client().ApplyURI(fmt.Sprintf(endpointCheckURI, true)).SetDisableCertificateRevocationCheck(true),
-			want: connstring.ErrDisableOCSPEndpointCheckWithDisableCertificateRevocationCheck,
+			name:    "URI tlsDisableOCSPEndpointCheck then setter",
+			opts:    Client().ApplyURI(fmt.Sprintf(endpointCheckURI, true)).SetDisableCertificateRevocationCheck(true),
+			wantErr: endpointMsg,
 		},
 	}
 
 	for _, tc := range conflicts {
 		t.Run(tc.name, func(t *testing.T) {
 			err := tc.opts.Validate()
-			require.ErrorIs(t, err, tc.want, "expected %v, got %v", tc.want, err)
+			require.EqualError(t, err, tc.wantErr)
 		})
 	}
 

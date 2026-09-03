@@ -658,10 +658,15 @@ func TestDisableCertificateRevocationCheck(t *testing.T) {
 	// The OCSP support specification requires an error whenever tlsDisableCertificateRevocationCheck is present
 	// alongside tlsInsecure or tlsDisableOCSPEndpointCheck, regardless of the values they are set to.
 	t.Run("mutually exclusive options", func(t *testing.T) {
-		conflicts := map[string]error{
-			"tlsInsecure":                 connstring.ErrTLSInsecureWithDisableCertificateRevocationCheck,
-			"sslInsecure":                 connstring.ErrTLSInsecureWithDisableCertificateRevocationCheck,
-			"tlsDisableOCSPEndpointCheck": connstring.ErrDisableOCSPEndpointCheckWithDisableCertificateRevocationCheck,
+		const (
+			insecureMsg = "sslInsecure/tlsInsecure cannot be used with tlsDisableCertificateRevocationCheck"
+			endpointMsg = "tlsDisableOCSPEndpointCheck cannot be used with tlsDisableCertificateRevocationCheck"
+		)
+
+		conflicts := map[string]string{
+			"tlsInsecure":                 insecureMsg,
+			"sslInsecure":                 insecureMsg,
+			"tlsDisableOCSPEndpointCheck": endpointMsg,
 		}
 		values := []string{"true", "false"}
 
@@ -676,7 +681,7 @@ func TestDisableCertificateRevocationCheck(t *testing.T) {
 						uri := fmt.Sprintf("mongodb://localhost/?%s", s)
 						t.Run(uri, func(t *testing.T) {
 							_, err := connstring.ParseAndValidate(uri)
-							require.ErrorIs(t, err, wantErr)
+							require.EqualError(t, err, "error validating uri: "+wantErr)
 						})
 					}
 				}
