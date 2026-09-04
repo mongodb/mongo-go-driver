@@ -6,7 +6,11 @@
 
 package bsoncoreutil
 
-// Truncate truncates a given string for a certain width
+import "unicode/utf8"
+
+// Truncate truncates a given string to at most width bytes without splitting
+// a multi-byte UTF-8 character, even when width falls exactly on a character
+// boundary.
 func Truncate(str string, width int) string {
 	if width <= 0 {
 		return ""
@@ -16,25 +20,24 @@ func Truncate(str string, width int) string {
 		return str
 	}
 
-	// Truncate the byte slice of the string to the given width.
-	newStr := str[:width]
+	// Step back over any trailing continuation bytes (10xxxxxx) to find the
+	// start of the last rune within the width-byte prefix.
+	start := width
+	for start > 0 && str[start-1]&0xC0 == 0x80 {
+		start--
+	}
+	if start == 0 {
+		return ""
+	}
+	start--
 
-	// Check if the last byte is at the beginning of a multi-byte character.
-	// If it is, then remove the last byte.
-	if newStr[len(newStr)-1]&0xC0 == 0xC0 {
-		return newStr[:len(newStr)-1]
+	// Decode the rune starting at start from the original (untruncated)
+	// string to determine its true byte length. If that rune extends past
+	// width, it was cut off and must be dropped entirely.
+	_, size := utf8.DecodeRuneInString(str[start:])
+	if start+size > width {
+		return str[:start]
 	}
 
-	// Check if the last byte is a multi-byte character
-	if newStr[len(newStr)-1]&0xC0 == 0x80 {
-		// If it is, step back until you we are at the start of a character
-		for i := len(newStr) - 1; i >= 0; i-- {
-			if newStr[i]&0xC0 == 0xC0 {
-				// Truncate at the end of the character before the character we stepped back to
-				return newStr[:i]
-			}
-		}
-	}
-
-	return newStr
+	return str[:width]
 }
