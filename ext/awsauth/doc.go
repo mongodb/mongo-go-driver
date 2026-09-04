@@ -19,8 +19,8 @@
 // This module is a separate Go module that intentionally does not take a
 // dependency on the MongoDB Go Driver. Rather than importing the driver, it
 // adapts to the driver's options.AWSCredentialsProvider interface structurally:
-// the exported types in this package are defined to match that interface, so the
-// adapter satisfies it without an import.
+// the exported types in this package are defined to match that interface, so
+// the adapter satisfies it without an import.
 //
 // This decoupling exists for two reasons:
 //
@@ -28,6 +28,22 @@
 //     don't need AWS authentication never pull in the AWS SDK transitively.
 //   - It lets the two modules version independently and avoids a circular
 //     dependency between the driver and this adapter.
+//
+// # AWS SDK minimum version
+//
+// This module requires github.com/aws/aws-sdk-go-v2 v1.28.0. That is the
+// release in which aws.Credentials gained its AccountID field, making its
+// layout match this package's AWSCredentials type, which is what allows
+// Retrieve to convert between them with a plain type conversion instead of
+// copying field by field.
+//
+// The requirement is a minimum, not a pin. Go's Minimal Version Selection
+// (https://go.dev/ref/mod#minimal-version-selection) means an application
+// already depending on a newer aws-sdk-go-v2 keeps that newer version, while
+// one with no other constraint is not pulled above v1.28.0.
+//
+// If a future SDK release changes aws.Credentials' layout, the type conversion
+// stops compiling. internal/test/awsauth/compilecheck guards against that.
 //
 // NewCredentialsProvider() adapts an AWS CredentialsProvider to be used in:
 //
