@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
@@ -70,7 +71,9 @@ type goExecConfig struct {
 func execContainer(t *testing.T, c testcontainers.Container, cmd string) string {
 	t.Helper()
 
+	start := time.Now()
 	exit, out, err := c.Exec(context.Background(), []string{"bash", "-lc", cmd})
+	t.Logf("exec %v: %s", time.Since(start), cmd)
 	require.NoError(t, err)
 
 	b, err := io.ReadAll(out)
@@ -123,6 +126,13 @@ func TestCompileCheck(t *testing.T) {
 		toolchains = append(toolchains, ver+".0")
 	}
 	toolchainVersions := strings.Join(toolchains, " ")
+
+	// Profiling escape hatch: COMPILECHECK_PREWARM=0 builds the image without the
+	// pre-downloaded toolchains, so the A/B arms differ only in the build arg.
+	if os.Getenv("COMPILECHECK_PREWARM") == "0" {
+		toolchainVersions = ""
+	}
+	t.Logf("COMPILECHECK_GO_VERSIONS=%q", toolchainVersions)
 
 	// Build the image and start one container we can reuse for all subtests.
 	req := testcontainers.ContainerRequest{

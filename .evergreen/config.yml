@@ -1317,6 +1317,18 @@ tasks:
         params:
           binary: bash
           args: [*task-runner, build-compile-check-all]
+  # TEMPORARY (profiling only, do not merge): same as go-build, but builds the
+  # image without the pre-downloaded Go toolchains so the two tasks form an A/B
+  # pair on the same variant.
+  - name: go-build-nowarm
+    tags: ["compile-check"]
+    commands:
+      - command: subprocess.exec
+        params:
+          binary: bash
+          env:
+            COMPILECHECK_PREWARM: "0"
+          args: [*task-runner, build-compile-check-all]
   # Build with the same Go version that we're using for tests.
   - name: build
     tags: ["compile-check"]
