@@ -181,6 +181,32 @@ func TestTopologyNewConfig(t *testing.T) {
 		assert.Nil(t, err, "error constructing topology config: %v", err)
 		assert.Equal(t, []string{"localhost:27018"}, cfg.SeedList)
 	})
+
+	// Assert that tlsDisableCertificateRevocationCheck reaches the connection config. The behavior it controls is
+	// covered by TestConfigureTLSOCSPVerification. This covers the wiring between the two.
+	t.Run("DisableCertificateRevocationCheck", func(t *testing.T) {
+		tests := []struct {
+			name string
+			uri  string
+			want bool
+		}{
+			{name: "unset", uri: "mongodb://localhost/?tls=true", want: false},
+			{name: "false", uri: "mongodb://localhost/?tlsDisableCertificateRevocationCheck=false", want: false},
+			{name: "true", uri: "mongodb://localhost/?tlsDisableCertificateRevocationCheck=true", want: true},
+		}
+
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				cfg, err := NewConfig(options.Client().ApplyURI(test.uri), nil)
+				require.NoError(t, err, "error constructing topology config: %v", err)
+
+				srvrCfg := newServerConfig(defaultConnectionTimeout, cfg.ServerOpts...)
+				connCfg := newConnectionConfig(srvrCfg.connectionOpts...)
+				require.Equal(t, test.want, connCfg.disableCertificateRevocationCheck,
+					"expected disableCertificateRevocationCheck to be %v", test.want)
+			})
+		}
+	})
 }
 
 // Test that convertOIDCArgs exhaustively copies all fields of a driver.OIDCArgs
