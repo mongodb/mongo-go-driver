@@ -45,6 +45,10 @@
 // If a future SDK release changes aws.Credentials' layout, the type conversion
 // stops compiling. internal/test/awsauth/compilecheck guards against that.
 //
+// "go work sync" rewrites each workspace member's go.mod with the
+// workspace-resolved maximum, which silently raises this floor.
+// etc/check_modules.sh asserts it so an accidental bump fails loudly.
+//
 // NewCredentialsProvider() adapts an AWS CredentialsProvider to be used in:
 //
 //	ClientOptions
