@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/csot"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/v2/internal/randutil"
 	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
@@ -49,6 +50,11 @@ type Session struct {
 	client              *Client
 	deployment          driver.Deployment
 	didCommitAfterStart bool // true if commit was called after start with no other operations
+
+	// defaultTimeout is the timeout for commitTransaction, abortTransaction,
+	// withTransaction, and endSession. If nil, the session inherits the timeout
+	// of the Client that created it.
+	defaultTimeout *time.Duration
 }
 
 type sessionKey struct{}
@@ -80,6 +86,17 @@ func SessionFromContext(ctx context.Context) *Session {
 	return sess
 }
 
+// timeout returns the timeout that applies to operations executed on this
+// session, which is the session's own default timeout if set, and otherwise the
+// timeout inherited from the parent Client.
+func (s *Session) timeout() *time.Duration {
+	if s.defaultTimeout != nil {
+		return s.defaultTimeout
+	}
+
+	return s.client.timeout
+}
+
 // ID returns the current ID document associated with the session. The ID
 // document is in the form {"id": <BSON binary value>}.
 func (s *Session) ID() bson.Raw {
@@ -88,6 +105,9 @@ func (s *Session) ID() bson.Raw {
 
 // EndSession aborts any existing transactions and close the session.
 func (s *Session) EndSession(ctx context.Context) {
+	ctx, cancel := csot.WithTimeout(ctx, s.timeout())
+	defer cancel()
+
 	if s.clientSession.TransactionInProgress() {
 		// ignore all errors aborting during an end session
 		_ = s.AbortTransaction(ctx)
@@ -125,10 +145,18 @@ func (s *Session) WithTransaction(
 	fn func(ctx context.Context) (any, error),
 	opts ...options.Lister[options.TransactionOptions],
 ) (any, error) {
+	// we defer to session timeout first
+	ctx, cancel := csot.WithTimeout(ctx, s.timeout())
+	defer cancel()
+
+	// If no timeout is configured, retry transient errors for the legacy
+	// 120 second window. A configured timeout of 0 means "no timeout", so it
+	// deliberately replaces the default here as well.
 	transTimeout := withTransactionTimeout
-	if s.client.timeout != nil {
-		transTimeout = *s.client.timeout
+	if t := s.timeout(); t != nil {
+		transTimeout = *t
 	}
+
 	startTime := time.Now()
 	timeout := time.NewTimer(transTimeout)
 	defer timeout.Stop()
@@ -138,6 +166,7 @@ func (s *Session) WithTransaction(
 		if expDur == 0 {
 			expDur = backoffInitial
 		} else {
+			// this block is only for the retries
 			expDur += expDur / 2
 			if expDur > backoffMax {
 				expDur = backoffMax
@@ -165,8 +194,9 @@ func (s *Session) WithTransaction(
 		if err != nil {
 			if s.clientSession.TransactionRunning() {
 				// Wrap the user-provided Context in a new one that behaves like context.Background() for deadlines and
-				// cancellations, but forwards Value requests to the original one.
-				_ = s.AbortTransaction(newBackgroundContext(ctx))
+				// cancellations, but forwards Value requests to the original one. Clearing the client-level marker lets
+				// AbortTransaction apply a refreshed timeout, as the spec requires for transaction cleanup.
+				_ = s.AbortTransaction(csot.WithoutClientLevel(newBackgroundContext(ctx)))
 			}
 
 			select {
@@ -198,13 +228,13 @@ func (s *Session) WithTransaction(
 		if ctx.Err() != nil {
 			// Wrap the user-provided Context in a new one that behaves like context.Background() for deadlines and
 			// cancellations, but forwards Value requests to the original one.
-			_ = s.AbortTransaction(newBackgroundContext(ctx))
+			_ = s.AbortTransaction(csot.WithoutClientLevel(newBackgroundContext(ctx)))
 			return nil, ctx.Err()
 		}
 
 	CommitLoop:
 		for {
-			err = s.CommitTransaction(newBackgroundContext(ctx))
+			err = s.CommitTransaction(csot.WithoutClientLevel(newBackgroundContext(ctx)))
 			// End when error is nil, as transaction has been committed.
 			if err == nil {
 				return res, nil
@@ -257,6 +287,9 @@ func (s *Session) StartTransaction(opts ...options.Lister[options.TransactionOpt
 // returns an error if there is no active transaction for this session or if the
 // transaction has been committed or aborted.
 func (s *Session) AbortTransaction(ctx context.Context) error {
+	ctx, cancel := csot.WithTimeout(ctx, s.timeout())
+	defer cancel()
+
 	err := s.clientSession.CheckAbortTransaction()
 	if err != nil {
 		return err
@@ -299,6 +332,9 @@ func (s *Session) AbortTransaction(ctx context.Context) error {
 // method returns an error if there is no active transaction for this session or
 // if the transaction has been aborted.
 func (s *Session) CommitTransaction(ctx context.Context) error {
+	ctx, cancel := csot.WithTimeout(ctx, s.timeout())
+	defer cancel()
+
 	err := s.clientSession.CheckCommitTransaction()
 	if err != nil {
 		return err
