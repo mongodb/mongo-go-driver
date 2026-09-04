@@ -52,7 +52,7 @@ jobs:
           go build ./...
           go test -short -run ^$$ ./...
 
-          go test -v ./internal/test/compilecheck -run '^TestCompileCheck/go:1\.25$'
+          COMPILE_CHECK_MIN_ONLY=true go test -v ./internal/test/compilecheck
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4.37.9 #immutable
         with:

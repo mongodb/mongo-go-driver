@@ -22,9 +22,11 @@ tasks:
   build-tests: go test -short ${BUILD_TAGS} -run ^$$ ./...
   compilecheck-min:
     dir: internal/test/compilecheck
+    env:
+      COMPILE_CHECK_MIN_ONLY: "true"
     cmds:
       - go mod download
-      - GOTOOLCHAIN=auto go test -v -run '^TestCompileCheck/go:1\.25$'
+      - GOTOOLCHAIN=auto go test -v ./...
   build-compile-check-all: bash etc/run-compile-check-test.sh
   build-awsauth-compilecheck:
     dir: internal/test/awsauth
