@@ -108,11 +108,7 @@ func (zrm *ZeroRTTMonitor) Stats() string {
 // WithoutClientLevel returns a context that is not marked as having a
 // client-level timeout applied, which allows a subsequent WithTimeout call to
 // apply a fresh timeout to it. The returned context retains the values of its
-// parent.
-//
-// This is needed to refresh timeoutMS for operations that must run to
-// completion even after the original timeout has expired, such as aborting a
-// transaction during cleanup.
+// parent (this is needed to refresh timeoutMS for operations).
 func WithoutClientLevel(parent context.Context) context.Context {
 	return context.WithValue(parent, clientLevel{}, false)
 }

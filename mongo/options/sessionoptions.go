@@ -91,9 +91,7 @@ func (s *SessionOptionsBuilder) SetSnapshotTime(t bson.Timestamp) *SessionOption
 	return s
 }
 
-// SetDefaultTimeout sets the value for the DefaultTimeout field. This specifies
-// the timeout used by the commitTransaction, abortTransaction, withTransaction,
-// and endSession operations executed on the session. A zero-value duration means
+// SetDefaultTimeout sets the value for the DefaultTimeout field. A zero-value duration means
 // those operations will not time out. If this option is not set, the session
 // inherits the timeout of the Client that created it.
 func (s *SessionOptionsBuilder) SetDefaultTimeout(d time.Duration) *SessionOptionsBuilder {
