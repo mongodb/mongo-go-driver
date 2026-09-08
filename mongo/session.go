@@ -50,11 +50,6 @@ type Session struct {
 	client              *Client
 	deployment          driver.Deployment
 	didCommitAfterStart bool // true if commit was called after start with no other operations
-
-	// defaultTimeout is the timeout for commitTransaction, abortTransaction,
-	// withTransaction, and endSession. If nil, the session inherits the timeout
-	// of the Client that created it.
-	defaultTimeout *time.Duration
 }
 
 type sessionKey struct{}
@@ -87,13 +82,8 @@ func SessionFromContext(ctx context.Context) *Session {
 }
 
 // timeout returns the timeout that applies to operations executed on this
-// session, which is the session's own default timeout if set, and otherwise the
-// timeout inherited from the parent Client.
+// session, which is inherited from the Client that created it.
 func (s *Session) timeout() *time.Duration {
-	if s.defaultTimeout != nil {
-		return s.defaultTimeout
-	}
-
 	return s.client.timeout
 }
 
@@ -145,7 +135,7 @@ func (s *Session) WithTransaction(
 	fn func(ctx context.Context) (any, error),
 	opts ...options.Lister[options.TransactionOptions],
 ) (any, error) {
-	// we defer to session timeout first
+	// Sessions inherit timeoutMS from their parent Client.
 	ctx, cancel := csot.WithTimeout(ctx, s.timeout())
 	defer cancel()
 
@@ -234,7 +224,7 @@ func (s *Session) WithTransaction(
 
 	CommitLoop:
 		for {
-			err = s.CommitTransaction(csot.WithoutClientLevel(newBackgroundContext(ctx)))
+			err = s.CommitTransaction(newBackgroundContext(ctx))
 			// End when error is nil, as transaction has been committed.
 			if err == nil {
 				return res, nil

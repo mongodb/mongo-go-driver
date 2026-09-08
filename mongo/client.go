@@ -497,10 +497,9 @@ func (c *Client) StartSession(opts ...options.Lister[options.SessionOptions]) (*
 	}
 
 	return &Session{
-		clientSession:  sess,
-		client:         c,
-		deployment:     c.deployment,
-		defaultTimeout: sessArgs.DefaultTimeout,
+		clientSession: sess,
+		client:        c,
+		deployment:    c.deployment,
 	}, nil
 }
 

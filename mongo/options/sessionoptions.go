@@ -6,11 +6,7 @@
 
 package options
 
-import (
-	"time"
-
-	"go.mongodb.org/mongo-driver/v2/bson"
-)
+import "go.mongodb.org/mongo-driver/v2/bson"
 
 // DefaultCausalConsistency is the default value for the CausalConsistency option.
 var DefaultCausalConsistency = true
@@ -23,7 +19,6 @@ type SessionOptions struct {
 	DefaultTransactionOptions *TransactionOptionsBuilder
 	Snapshot                  *bool
 	SnapshotTime              *bson.Timestamp
-	DefaultTimeout            *time.Duration
 }
 
 // SessionOptionsBuilder represents functional options that configure a Sessionopts.
@@ -88,17 +83,5 @@ func (s *SessionOptionsBuilder) SetSnapshotTime(t bson.Timestamp) *SessionOption
 		opts.SnapshotTime = &t
 		return nil
 	})
-	return s
-}
-
-// SetDefaultTimeout sets the value for the DefaultTimeout field. A zero-value duration means
-// those operations will not time out. If this option is not set, the session
-// inherits the timeout of the Client that created it.
-func (s *SessionOptionsBuilder) SetDefaultTimeout(d time.Duration) *SessionOptionsBuilder {
-	s.Opts = append(s.Opts, func(opts *SessionOptions) error {
-		opts.DefaultTimeout = &d
-		return nil
-	})
-
 	return s
 }
