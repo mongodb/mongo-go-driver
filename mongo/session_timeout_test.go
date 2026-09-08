@@ -55,68 +55,85 @@ func TestSessionTimeoutContext(t *testing.T) {
 			"expected a deadline within %v, got %v", *sessionTimeout, time.Until(deadline))
 	})
 
-	// WithTransaction hands cleanup operations a newBackgroundContext so that
-	// caller deadlines and cancellations are not respected during commit and
-	// abort, as WithTransaction's documentation states. These cases pin the
-	// resulting context shape.
+	// WithTransaction hands cleanup operations a newCleanupContext so that caller
+	// deadlines and cancellations are not respected during commit and abort, as
+	// WithTransaction's documentation states. Both CommitTransaction and
+	// AbortTransaction then apply their own csot.WithTimeout on top. These cases
+	// pin the resulting context shape.
+	//
+	// Regression coverage: a context with no deadline that is nonetheless marked
+	// client-level means "no timeout" to CSOT, which makes driver.Operation retry
+	// indefinitely. newBackgroundContext drops the deadline but forwards Value
+	// lookups, so the marker survives the wrap unless it is cleared explicitly.
+	// That shape caused commitTransaction to retry forever against a failpoint
+	// that closed every connection.
 	t.Run("cleanup contexts", func(t *testing.T) {
 		t.Parallel()
 
-		newCallerContext := func(t *testing.T) context.Context {
-			t.Helper()
+		tests := []struct {
+			name string
+			// caller builds the Context WithTransaction holds after applying
+			// csot.WithTimeout to the user-supplied one.
+			caller func(t *testing.T) context.Context
+		}{
+			{
+				// csot.WithTimeout returns a context that already has a deadline
+				// untouched, so it never picks up the client-level marker.
+				name: "caller supplies a deadline",
+				caller: func(t *testing.T) context.Context {
+					t.Helper()
 
-			parent, cancel := context.WithTimeout(context.Background(), callerTimeout)
-			t.Cleanup(cancel)
+					parent, cancel := context.WithTimeout(context.Background(), callerTimeout)
+					t.Cleanup(cancel)
 
-			ctx, cancel := csot.WithTimeout(parent, sessionTimeout)
-			t.Cleanup(cancel)
+					ctx, cancel := csot.WithTimeout(parent, sessionTimeout)
+					t.Cleanup(cancel)
 
-			return ctx
+					return ctx
+				},
+			},
+			{
+				// The shape WithTransaction produces for a plain
+				// context.Background() caller when timeoutMS is configured:
+				// csot.WithTimeout applies both the deadline and the marker.
+				name: "caller supplies no deadline",
+				caller: func(t *testing.T) context.Context {
+					t.Helper()
+
+					ctx, cancel := csot.WithTimeout(context.Background(), sessionTimeout)
+					t.Cleanup(cancel)
+
+					return ctx
+				},
+			},
 		}
 
-		// test for a context with no deadline that is nonetheless
-		// marked client-level means "no timeout" to CSOT, which makes
-		// driver.Operation retry indefinitely.
-		t.Run("commit cleanup is not an unlimited-retry context", func(t *testing.T) {
-			t.Parallel()
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				t.Parallel()
 
-			cleanupCtx := newBackgroundContext(newCallerContext(t))
+				cleanupCtx := newCleanupContext(test.caller(t))
 
-			_, hasDeadline := cleanupCtx.Deadline()
-			assert.False(t, hasDeadline, "expected newBackgroundContext to drop the caller deadline")
-			assert.False(t, csot.IsTimeoutContext(cleanupCtx),
-				"expected the cleanup context to not be a timeout context; a deadline-less "+
-					"timeout context means unlimited retries")
+				_, hasDeadline := cleanupCtx.Deadline()
+				assert.False(t, hasDeadline, "expected the caller deadline to be dropped")
+				assert.False(t, csot.IsTimeoutContext(cleanupCtx),
+					"expected the cleanup context to not be a timeout context; a deadline-less "+
+						"timeout context means unlimited retries")
 
-			// With no deadline and no marker, CommitTransaction's own
-			// csot.WithTimeout applies the session timeout rather than
-			// retrying without bound.
-			ctx, cancel := csot.WithTimeout(cleanupCtx, sessionTimeout)
-			defer cancel()
+				// With no deadline and no marker, the cleanup operation's own
+				// csot.WithTimeout applies a refreshed session timeout rather
+				// than running without bound. The CSOT spec requires this
+				// refresh; see the client-side-operations-timeout spec,
+				// "withTransaction refreshes the timeout for abortTransaction".
+				ctx, cancel := csot.WithTimeout(cleanupCtx, sessionTimeout)
+				defer cancel()
 
-			deadline, ok := ctx.Deadline()
-			assert.True(t, ok, "expected the session timeout to bound the commit cleanup")
-			assert.True(t, time.Until(deadline) <= *sessionTimeout,
-				"expected a deadline within %v, got %v", *sessionTimeout, time.Until(deadline))
-		})
-
-		// The CSOT spec requires timeoutMS to be refreshed for the
-		// abortTransaction issued during cleanup. See the
-		// client-side-operations-timeout spec, "withTransaction refreshes the
-		// timeout for abortTransaction".
-		t.Run("abort cleanup refreshes the session timeout", func(t *testing.T) {
-			t.Parallel()
-
-			cleanupCtx := csot.WithoutClientLevel(newBackgroundContext(newCallerContext(t)))
-
-			ctx, cancel := csot.WithTimeout(cleanupCtx, sessionTimeout)
-			defer cancel()
-
-			deadline, ok := ctx.Deadline()
-			assert.True(t, ok, "expected a refreshed deadline on the abort cleanup path")
-			assert.True(t, time.Until(deadline) <= *sessionTimeout,
-				"expected the refreshed deadline to be within %v, got %v",
-				*sessionTimeout, time.Until(deadline))
-		})
+				deadline, ok := ctx.Deadline()
+				assert.True(t, ok, "expected the session timeout to bound the cleanup operation")
+				assert.True(t, time.Until(deadline) <= *sessionTimeout,
+					"expected a refreshed deadline within %v, got %v",
+					*sessionTimeout, time.Until(deadline))
+			})
+		}
 	})
 }

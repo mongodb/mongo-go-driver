@@ -183,10 +183,7 @@ func (s *Session) WithTransaction(
 		res, err = fn(NewSessionContext(ctx, s))
 		if err != nil {
 			if s.clientSession.TransactionRunning() {
-				// Wrap the user-provided Context in a new one that behaves like context.Background() for deadlines and
-				// cancellations, but forwards Value requests to the original one. Clearing the client-level marker lets
-				// AbortTransaction apply a refreshed timeout, as the spec requires for transaction cleanup.
-				_ = s.AbortTransaction(csot.WithoutClientLevel(newBackgroundContext(ctx)))
+				_ = s.AbortTransaction(newCleanupContext(ctx))
 			}
 
 			select {
@@ -216,15 +213,13 @@ func (s *Session) WithTransaction(
 		// may run on a new mongos which could end up with commit and abort being executed
 		// simultaneously.
 		if ctx.Err() != nil {
-			// Wrap the user-provided Context in a new one that behaves like context.Background() for deadlines and
-			// cancellations, but forwards Value requests to the original one.
-			_ = s.AbortTransaction(csot.WithoutClientLevel(newBackgroundContext(ctx)))
+			_ = s.AbortTransaction(newCleanupContext(ctx))
 			return nil, ctx.Err()
 		}
 
 	CommitLoop:
 		for {
-			err = s.CommitTransaction(newBackgroundContext(ctx))
+			err = s.CommitTransaction(newCleanupContext(ctx))
 			// End when error is nil, as transaction has been committed.
 			if err == nil {
 				return res, nil
