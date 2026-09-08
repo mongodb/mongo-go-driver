@@ -156,7 +156,6 @@ func (s *Session) WithTransaction(
 		if expDur == 0 {
 			expDur = backoffInitial
 		} else {
-			// this block is only for the retries
 			expDur += expDur / 2
 			if expDur > backoffMax {
 				expDur = backoffMax
