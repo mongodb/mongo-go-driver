@@ -220,11 +220,7 @@ func (s *Session) WithTransaction(
 
 	CommitLoop:
 		for {
-			// Wrap the user-provided Context in a new one that behaves like
-			// context.Background() for deadlines and cancellations, but forwards Value
-			// requests to the original one. Clearing the client-level marker is required,
-			// not incidental: newBackgroundContext drops the deadline while forwarding
-			// Value lookups, so a context marked client-level by csot.WithTimeout would
+			// a context marked client-level by csot.WithTimeout would
 			// arrive here as a timeout context with no deadline, which CSOT reads as
 			// "no timeout" and retries without bound.
 			err = s.CommitTransaction(csot.WithoutClientLevel(newBackgroundContext(ctx)))
