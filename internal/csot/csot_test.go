@@ -168,6 +168,14 @@ func TestWithTimeout(t *testing.T) {
 			wantValues:   []any{},
 		},
 		{
+			name:         "deadline set with shorter non-zero timeout",
+			parent:       newTestContext(t, time.Hour),
+			timeout:      ptrutil.Ptr(time.Second),
+			wantTimeout:  time.Hour,
+			wantDeadline: true,
+			wantValues:   []any{},
+		},
+		{
 			name:         "deadline set with zero timeout",
 			parent:       newTestContext(t, 1),
 			timeout:      ptrutil.Ptr(time.Duration(0)),
@@ -245,4 +253,36 @@ func TestWithTimeout(t *testing.T) {
 			}
 		})
 	}
+}
+
+// asserts that WithoutClientLevel clears the client-level marker so that a fresh timeout 
+// can be applied, without resurrecting a deadline that a parent context does not have.
+func TestWithoutClientLevel(t *testing.T) {
+	t.Parallel()
+
+	t.Run("clears the marker so a new timeout applies", func(t *testing.T) {
+		t.Parallel()
+
+		parent, cancel := WithTimeout(context.Background(), ptrutil.Ptr(time.Duration(0)))
+		t.Cleanup(cancel)
+		assert.True(t, IsTimeoutContext(parent), "expected parent to be a timeout context")
+
+		ctx, cancel := WithTimeout(WithoutClientLevel(parent), ptrutil.Ptr(time.Hour))
+		t.Cleanup(cancel)
+
+		deadline, ok := ctx.Deadline()
+		assert.True(t, ok, "expected a deadline to be applied after clearing the marker")
+		assert.True(t, time.Until(deadline) > time.Minute,
+			"expected the refreshed deadline to be ~1h, got %v", time.Until(deadline))
+	})
+
+	t.Run("does not add a deadline on its own", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := WithoutClientLevel(context.Background())
+
+		deadline, ok := ctx.Deadline()
+		assert.False(t, ok, "expected no deadline, got %v", deadline)
+		assert.False(t, IsTimeoutContext(ctx), "expected ctx to not be a timeout context")
+	})
 }
