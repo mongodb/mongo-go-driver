@@ -23,8 +23,7 @@ import (
 func TestSessionTimeoutContext(t *testing.T) {
 	t.Parallel()
 
-	// A caller deadline far longer than the session timeout. If the session
-	// timeout ever displaces it, the resulting deadline is ~sessionTimeout.
+	// A caller deadline far longer than the session timeout.
 	const callerTimeout = time.Hour
 
 	sessionTimeout := ptrutil.Ptr(500 * time.Millisecond)
@@ -75,11 +74,9 @@ func TestSessionTimeoutContext(t *testing.T) {
 			return ctx
 		}
 
-		// Regression test: a context with no deadline that is nonetheless
+		// test for a context with no deadline that is nonetheless
 		// marked client-level means "no timeout" to CSOT, which makes
-		// driver.Operation retry indefinitely. Marking a cleanup context that
-		// way caused commitTransaction to retry forever against a failpoint
-		// that closed every connection.
+		// driver.Operation retry indefinitely.
 		t.Run("commit cleanup is not an unlimited-retry context", func(t *testing.T) {
 			t.Parallel()
 
