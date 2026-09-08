@@ -7,7 +7,6 @@
 package integration
 
 import (
-	"context"
 	"os"
 	"testing"
 
@@ -15,7 +14,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
 )
 
 func TestCompression(t *testing.T) {
@@ -32,14 +30,9 @@ func TestCompression(t *testing.T) {
 		bsoncore.BuildDocument(nil, bsoncore.AppendStringElement(nil, "name", "compression_test")),
 	)
 
-	cmd := operation.NewCommand(bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "serverStatus", 1))).
-		Deployment(integtest.Topology(t)).
-		Database(integtest.DBName(t))
-
-	ctx := context.Background()
-	err := cmd.Execute(ctx)
+	serverStatusCmd := bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "serverStatus", 1))
+	result, err := executeCommand(integtest.Topology(t), nil, integtest.DBName(t), serverStatusCmd)
 	noerr(t, err)
-	result := cmd.Result()
 
 	serverVersion, err := result.LookupErr("version")
 	noerr(t, err)

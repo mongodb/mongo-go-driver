@@ -68,11 +68,27 @@ func wrapConnectionError(connErr ConnectionError) error {
 	// tls.RecordHeaderError is a non-I/O TLS error per the CMAP spec: the peer
 	// sent bytes that don't form a valid TLS record. This cannot indicate
 	// server overload.
-	//
-	// TODO(GODRIVER-3956): Make the TLS record header error check and test work
-	// on Windows.
 	var tlsRecordHeaderErr tls.RecordHeaderError
 	if errors.As(connErr.Wrapped, &tlsRecordHeaderErr) {
+		return connErr
+	}
+	// An alert sent by the peer during the TLS handshake does not get a
+	// backpressure labels. Per the CMAP spec, drivers MUST NOT label non-I/O TLS
+	// errors as server overload conditions. A remote alert is non-I/O as the
+	// handshake was answered and refused by the peer, nothing failed to send or
+	// receive.
+	var opErr *net.OpError
+	if errors.As(connErr.Wrapped, &opErr) && opErr.Op == "remote error" {
+		return connErr
+	}
+	// An OCSP failure is a non-I/O TLS error per the CMAP spec: revocation
+	// checking is certificate validation, so a retry against the same server
+	// would fail the same way. ocsp.Verify soft-fails when no response can be
+	// obtained, an unreachable responder leaves the status unknown rather than
+	// erroring so every error that reaches here is a validation result, which
+	// cannot indicate server overload.
+	var ocspErr *ocsp.Error
+	if errors.As(connErr.Wrapped, &ocspErr) {
 		return connErr
 	}
 	return driver.Error{
@@ -174,6 +190,7 @@ func configureTLS(ctx context.Context,
 	addr address.Address,
 	config *tls.Config,
 	ocspOpts *ocsp.VerifyOptions,
+	disableCertificateRevocationCheck bool,
 ) (net.Conn, error) {
 	// Ensure config.ServerName is always set for SNI.
 	if config.ServerName == "" {
@@ -192,8 +209,9 @@ func configureTLS(ctx context.Context,
 		return nil, err
 	}
 
-	// Only do OCSP verification if TLS verification is requested.
-	if !config.InsecureSkipVerify {
+	// Only do OCSP verification if TLS verification is requested and certificate revocation
+	// checking has not been disabled.
+	if !config.InsecureSkipVerify && !disableCertificateRevocationCheck {
 		if ocspErr := ocsp.Verify(ctx, client.ConnectionState(), ocspOpts); ocspErr != nil {
 			return nil, ocspErr
 		}
@@ -261,7 +279,8 @@ func (c *connection) connect(ctx context.Context) (err error) {
 			DisableEndpointChecking: c.config.disableOCSPEndpointCheck,
 			HTTPClient:              c.config.httpClient,
 		}
-		tlsNc, err := configureTLS(ctx, c.config.tlsConnectionSource, c.nc, c.addr, tlsConfig, ocspOpts)
+		tlsNc, err := configureTLS(ctx, c.config.tlsConnectionSource, c.nc, c.addr, tlsConfig, ocspOpts,
+			c.config.disableCertificateRevocationCheck)
 		if err != nil {
 			connErr := ConnectionError{Wrapped: err, init: true, message: fmt.Sprintf("failed to configure TLS for %s", c.addr)}
 			return wrapConnectionError(connErr)

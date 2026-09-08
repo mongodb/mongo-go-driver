@@ -688,6 +688,13 @@ func valueLength(src []byte, t Type) (int32, bool) {
 		ok = false
 	}
 
+	// Adding a type's fixed overhead to a length read from src can overflow
+	// int32 and wrap negative, which would slip past the len(src) checks in
+	// readValue and ReadElement. Reject any negative result as malformed.
+	if length < 0 {
+		ok = false
+	}
+
 	return length, ok
 }
 

@@ -79,8 +79,9 @@ var skipTests = map[string][]skipCase{
 		},
 	},
 
-	// Unsupported TLS behavior in connection strings.
-	"unsupported connstring behavior": {
+	// The Go driver does not support the tlsAllowInvalidCertificates or
+	// tlsAllowInvalidHostnames URI options.
+	"tlsAllowInvalidCertificates/tlsAllowInvalidHostnames are not supported": {
 		{
 			tests: []string{
 				"TestURIOptionsSpec/tls-options.json/tlsAllowInvalidCertificates_and_tlsDisableCertificateRevocationCheck_both_present_(and_true)_raises_an_error",
@@ -91,22 +92,6 @@ var skipTests = map[string][]skipCase{
 				"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck=true_and_tlsAllowInvalidCertificates=false_raises_an_error",
 				"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck=false_and_tlsAllowInvalidCertificates=true_raises_an_error",
 				"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck_and_tlsAllowInvalidCertificates_both_present_(and_false)_raises_an_error",
-				"TestURIOptionsSpec/tls-options.json/tlsInsecure_and_tlsDisableCertificateRevocationCheck_both_present_(and_true)_raises_an_error",
-				"TestURIOptionsSpec/tls-options.json/tlsInsecure=true_and_tlsDisableCertificateRevocationCheck=false_raises_an_error",
-				"TestURIOptionsSpec/tls-options.json/tlsInsecure=false_and_tlsDisableCertificateRevocationCheck=true_raises_an_error",
-				"TestURIOptionsSpec/tls-options.json/tlsInsecure_and_tlsDisableCertificateRevocationCheck_both_present_(and_false)_raises_an_error",
-				"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck_and_tlsInsecure_both_present_(and_true)_raises_an_error",
-				"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck=true_and_tlsInsecure=false_raises_an_error",
-				"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck=false_and_tlsInsecure=true_raises_an_error",
-				"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck_and_tlsInsecure_both_present_(and_false)_raises_an_error",
-				"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck_and_tlsDisableOCSPEndpointCheck_both_present_(and_true)_raises_an_error",
-				"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck=true_and_tlsDisableOCSPEndpointCheck=false_raises_an_error",
-				"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck=false_and_tlsDisableOCSPEndpointCheck=true_raises_an_error",
-				"TestURIOptionsSpec/tls-options.json/tlsDisableCertificateRevocationCheck_and_tlsDisableOCSPEndpointCheck_both_present_(and_false)_raises_an_error",
-				"TestURIOptionsSpec/tls-options.json/tlsDisableOCSPEndpointCheck_and_tlsDisableCertificateRevocationCheck_both_present_(and_true)_raises_an_error",
-				"TestURIOptionsSpec/tls-options.json/tlsDisableOCSPEndpointCheck=true_and_tlsDisableCertificateRevocationCheck=false_raises_an_error",
-				"TestURIOptionsSpec/tls-options.json/tlsDisableOCSPEndpointCheck=false_and_tlsDisableCertificateRevocationCheck=true_raises_an_error",
-				"TestURIOptionsSpec/tls-options.json/tlsDisableOCSPEndpointCheck_and_tlsDisableCertificateRevocationCheck_both_present_(and_false)_raises_an_error",
 				"TestURIOptionsSpec/tls-options.json/tlsAllowInvalidCertificates_and_tlsDisableOCSPEndpointCheck_both_present_(and_true)_raises_an_error",
 				"TestURIOptionsSpec/tls-options.json/tlsAllowInvalidCertificates=true_and_tlsDisableOCSPEndpointCheck=false_raises_an_error",
 				"TestURIOptionsSpec/tls-options.json/tlsAllowInvalidCertificates=false_and_tlsDisableOCSPEndpointCheck=true_raises_an_error",
@@ -886,6 +871,15 @@ var skipTests = map[string][]skipCase{
 				"TestUnifiedSpec/transactions-convenient-api/tests/unified/commit.json/withTransaction_commits_after_callback_returns_(second_transaction)",
 			},
 		},
+		{
+			tests: []string{
+				"TestUnifiedSpec/transactions-convenient-api/tests/unified/transaction-options.json/withTransaction_and_no_transaction_options_set",
+				"TestUnifiedSpec/transactions-convenient-api/tests/unified/transaction-options.json/withTransaction_inherits_transaction_options_from_client",
+				"TestUnifiedSpec/transactions-convenient-api/tests/unified/transaction-options.json/withTransaction_inherits_transaction_options_from_defaultTransactionOptions",
+				"TestUnifiedSpec/transactions/tests/unified/client-bulkWrite.json/client_bulkWrite_in_a_transaction",
+			},
+			topologies: []string{"load-balanced"},
+		},
 	},
 
 	"Address CSOT Compliance Issue in Timeout Handling for Cursor Constructors (GODRIVER-3480)": {
@@ -1045,6 +1039,53 @@ var skipTests = map[string][]skipCase{
 			tests: []string{
 				"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/hello-timeout.json/Network_timeout_on_Monitor_check",
 				"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/hello-timeout.json/Driver_extends_timeout_while_streaming",
+			},
+		},
+	},
+
+	// TODO(GODRIVER-3944): Migrate Azure KMS credentials to corporate account.
+	"Migrate Azure KMS credentials to corporate account": {
+		{
+			tests: []string{
+				"TestClientSideEncryptionSpec/azureKMS.json/Insert_a_document_with_auto_encryption_using_Azure_KMS_provider",
+				"TestUnifiedSpec/client-side-encryption/tests/unified/azureKMS.json/Insert_a_document_with_auto_encryption_using_Azure_KMS_provider",
+				"TestUnifiedSpec/client-side-encryption/tests/unified/createDataKey.json/create_datakey_with_Azure_KMS_provider",
+				"TestUnifiedSpec/client-side-encryption/tests/unified/rewrapManyDataKey.json/rewrap_with_new_AWS_KMS_provider",
+				"TestUnifiedSpec/client-side-encryption/tests/unified/rewrapManyDataKey.json/rewrap_with_new_Azure_KMS_provider",
+				"TestUnifiedSpec/client-side-encryption/tests/unified/rewrapManyDataKey.json/rewrap_with_new_GCP_KMS_provider",
+				"TestUnifiedSpec/client-side-encryption/tests/unified/rewrapManyDataKey.json/rewrap_with_new_KMIP_KMS_provider",
+				"TestUnifiedSpec/client-side-encryption/tests/unified/rewrapManyDataKey.json/rewrap_with_new_KMIP_delegated_KMS_provider",
+				"TestUnifiedSpec/client-side-encryption/tests/unified/rewrapManyDataKey.json/rewrap_with_new_local_KMS_provider",
+				"TestUnifiedSpec/client-side-encryption/tests/unified/rewrapManyDataKey.json/rewrap_with_current_KMS_provider",
+			},
+		},
+	},
+
+	// TODO(DRIVERS-3582):Remove MongoDB 4.2 references from all specifications
+	// and tests
+	"Remove MongoDB 4.2 references from all specifications and tests": {
+		{
+			tests: []string{
+				"TestSDAMSpec/errors/post-42-InterruptedAtShutdown.json",
+				"TestSDAMSpec/errors/post-42-InterruptedDueToReplStateChange.json",
+				"TestSDAMSpec/errors/post-42-LegacyNotPrimary.json",
+				"TestSDAMSpec/errors/post-42-NotPrimaryNoSecondaryOk.json",
+				"TestSDAMSpec/errors/post-42-NotPrimaryOrSecondary.json",
+				"TestSDAMSpec/errors/post-42-NotWritablePrimary.json",
+				"TestSDAMSpec/errors/post-42-PrimarySteppedDown.json",
+				"TestSDAMSpec/errors/post-42-ShutdownInProgress.json",
+			},
+		},
+	},
+
+	// TODO(GODRIVER-3953): Support configurable DNS domain validation for SRV
+	// records.
+	"Support configurable DNS domain validation for SRV records (GODRIVER-3953)": {
+		{
+			tests: []string{
+				"TestInitialDNSSeedlistDiscoverySpec/replica_set/srvAllowedHostsSuffix-psl-not-public-suffix.json",
+				"TestInitialDNSSeedlistDiscoverySpec/replica_set/srvAllowedHostsSuffix-psl-public-suffix-capitalized.json",
+				"TestInitialDNSSeedlistDiscoverySpec/replica_set/srvAllowedHostsSuffix-psl-public-suffix.json",
 			},
 		},
 	},

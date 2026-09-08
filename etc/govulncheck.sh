@@ -7,7 +7,7 @@ set -ex
 # Note: this needs to be updated if the listed Go version has vulnerabilities
 # discovered because they will show up in the scan results along with Go Driver
 # and dependency vulnerabilities.
-VERSION_REGEX='1\\.25\\.[0-9]+'
+VERSION_REGEX='1\\.26\\.[0-9]+'
 JQ_FILTER="first(.[] \
 | select(.stable == true and (.version | test(\"^go${VERSION_REGEX}$\"))) \
 | .version)"

@@ -294,6 +294,21 @@ functions:
       params:
         binary: bash
         args: [*task-runner, test-atlas-connect]
+  run-sfp-test:
+    - command: ec2.assume_role
+      params:
+        role_arn: "${aws_test_secrets_role}"
+    - command: subprocess.exec
+      type: test
+      retry_on_failure: true
+      params:
+        binary: bash
+        include_expansions_in_env:
+          - DRIVERS_TOOLS
+          - AWS_ACCESS_KEY_ID
+          - AWS_SECRET_ACCESS_KEY
+          - AWS_SESSION_TOKEN
+        args: [*task-runner, test-sfp]
   run-ocsp-test:
     - command: subprocess.exec
       params:
@@ -453,6 +468,8 @@ functions:
       type: test
       params:
         binary: "bash"
+        env:
+          AWS_TEST: ecs
         include_expansions_in_env: [SKIP_ECS_AUTH_TEST]
         args: [*task-runner, evg-test-aws-ecs]
   run-aws-auth-test-with-aws-web-identity-credentials:
@@ -1315,6 +1332,9 @@ tasks:
   - name: "atlas-test"
     commands:
       - func: "run-atlas-test"
+  - name: "sfp-test"
+    commands:
+      - func: "run-sfp-test"
   - name: "aws-auth-test"
     commands:
       - func: bootstrap-mongo-orchestration
@@ -1443,7 +1463,7 @@ tasks:
           binary: "bash"
           add_expansions_to_env: true
           env:
-            EXPECT_ERROR: 'status=400'
+            EXPECT_ERROR: "status=400"
           args: [*task-runner, test-awskms]
   - name: "testazurekms-task"
     commands:
@@ -1526,6 +1546,10 @@ axes:
   - id: version
     display_name: MongoDB Version
     values:
+      - id: "9.0"
+        display_name: "9.0"
+        variables:
+          VERSION: "9.0"
       - id: "8.0"
         display_name: "8.0"
         variables:
@@ -1546,10 +1570,6 @@ axes:
         display_name: "4.4"
         variables:
           VERSION: "4.4"
-      - id: "4.2"
-        display_name: "4.2"
-        variables:
-          VERSION: "4.2"
       - id: "rapid"
         display_name: "rapid"
         variables:
@@ -1568,7 +1588,7 @@ axes:
           - windows-2022-latest-small
         variables:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
-          GO_DIST: "C:\\golang\\go1.25"
+          GO_DIST: "C:\\golang\\go1.26"
           VENV_BIN_DIR: "Scripts"
           DEFAULT_TASK: evg-test
           # CSOT tests are unreliable on our slow Windows hosts.
@@ -1577,14 +1597,14 @@ axes:
         display_name: "RHEL 8.7"
         run_on: rhel8.7-large
         variables:
-          GO_DIST: "/opt/golang/go1.25"
+          GO_DIST: "/opt/golang/go1.26"
           DEFAULT_TASK: evg-test
       - id: "macos"
         display_name: "MacOS 14.0"
         run_on: macos-14
         batchtime: 1440 # Run at most once per 24 hours.
         variables:
-          GO_DIST: "/opt/golang/go1.25"
+          GO_DIST: "/opt/golang/go1.26"
           DEFAULT_TASK: evg-test-load-balancers
           # CSOT tests are unreliable on our slow macOS hosts.
           SKIP_CSOT_TESTS: true
@@ -1598,7 +1618,7 @@ axes:
           - windows-2022-latest-small
         variables:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
-          GO_DIST: "C:\\golang\\go1.25"
+          GO_DIST: "C:\\golang\\go1.26"
           VENV_BIN_DIR: "Scripts"
           DEFAULT_TASK: evg-test
           # CSOT tests are unreliable on our slow Windows hosts.
@@ -1607,14 +1627,14 @@ axes:
         display_name: "RHEL 8.7"
         run_on: rhel8.7-large
         variables:
-          GO_DIST: "/opt/golang/go1.25"
+          GO_DIST: "/opt/golang/go1.26"
           DEFAULT_TASK: evg-test
       - id: "macos"
         display_name: "MacOS 14.0"
         run_on: macos-14
         batchtime: 1440 # Run at most once per 24 hours.
         variables:
-          GO_DIST: "/opt/golang/go1.25"
+          GO_DIST: "/opt/golang/go1.26"
           DEFAULT_TASK: evg-test-load-balancers
           # CSOT tests are unreliable on our slow macOS hosts.
           SKIP_CSOT_TESTS: true
@@ -1625,7 +1645,7 @@ axes:
         display_name: "RHEL 8.7"
         run_on: rhel8.7-large
         variables:
-          GO_DIST: "/opt/golang/go1.25"
+          GO_DIST: "/opt/golang/go1.26"
           DEFAULT_TASK: evg-test
   - id: os-aws-auth
     display_name: OS
@@ -1636,7 +1656,7 @@ axes:
           - windows-2022-latest-small
         variables:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
-          GO_DIST: "C:\\golang\\go1.25"
+          GO_DIST: "C:\\golang\\go1.26"
           SKIP_ECS_AUTH_TEST: true
           DEFAULT_TASK: evg-test
           # CSOT tests are unreliable on our slow Windows hosts.
@@ -1645,14 +1665,14 @@ axes:
         display_name: "Ubuntu 20.04"
         run_on: ubuntu2004-test
         variables:
-          GO_DIST: "/opt/golang/go1.25"
+          GO_DIST: "/opt/golang/go1.26"
           DEFAULT_TASK: evg-test
       - id: "macos"
         display_name: "MacOS 14.0"
         run_on: macos-14
         batchtime: 1440 # Run at most once per 24 hours.
         variables:
-          GO_DIST: "/opt/golang/go1.25"
+          GO_DIST: "/opt/golang/go1.26"
           SKIP_ECS_AUTH_TEST: true
           SKIP_EC2_AUTH_TEST: true
           SKIP_WEB_IDENTITY_AUTH_TEST: true
@@ -1666,7 +1686,7 @@ axes:
         display_name: "RHEL 8.7"
         run_on: rhel8.7-large
         variables:
-          GO_DIST: "/opt/golang/go1.25"
+          GO_DIST: "/opt/golang/go1.26"
 task_groups:
   - name: testgcpkms_task_group
     setup_group_can_fail_task: true
@@ -1898,7 +1918,7 @@ buildvariants:
       - rhel8.7-small
     expansions:
       # Keep this in sync with go version used in etc/golangci-lint.sh
-      GO_DIST: "/opt/golang/go1.25"
+      GO_DIST: "/opt/golang/go1.26"
     tasks:
       - name: ".static-analysis"
   - name: pull-request-helpers
@@ -1907,7 +1927,7 @@ buildvariants:
     run_on:
       - rhel8.7-small
     expansions:
-      GO_DIST: "/opt/golang/go1.25"
+      GO_DIST: "/opt/golang/go1.26"
     tasks:
       - name: "pull-request-helpers"
   - name: perf
@@ -1915,7 +1935,7 @@ buildvariants:
     display_name: "Performance"
     run_on: rhel90-dbx-perf-large
     expansions:
-      GO_DIST: "/opt/golang/go1.25"
+      GO_DIST: "/opt/golang/go1.26"
     tasks:
       - name: ".performance"
   - name: build-check
@@ -1924,7 +1944,7 @@ buildvariants:
     run_on:
       - ubuntu2204-small
     expansions:
-      GO_DIST: "/opt/golang/go1.25"
+      GO_DIST: "/opt/golang/go1.26"
     tasks:
       - name: ".compile-check"
   - name: atlas-test
@@ -1933,16 +1953,25 @@ buildvariants:
     run_on:
       - rhel8.7-large
     expansions:
-      GO_DIST: "/opt/golang/go1.25"
+      GO_DIST: "/opt/golang/go1.26"
     tasks:
       - name: "atlas-test"
+  - name: sfp-test
+    tags: ["pullrequest"]
+    display_name: "SFP (monguard) test"
+    run_on:
+      - rhel8.7-large
+    expansions:
+      GO_DIST: "/opt/golang/go1.26"
+    tasks:
+      - name: "sfp-test"
   - name: docker-runner-test
     tags: ["pullrequest"]
     display_name: "Docker Runner Test"
     run_on:
       - ubuntu2204-large
     expansions:
-      GO_DIST: "/opt/golang/go1.25"
+      GO_DIST: "/opt/golang/go1.26"
     tasks:
       - name: "test-docker-runner"
   - name: goroutine-leaks-test
@@ -1951,23 +1980,23 @@ buildvariants:
     run_on:
       - ubuntu2204-large
     expansions:
-      GO_DIST: "/opt/golang/go1.25"
+      GO_DIST: "/opt/golang/go1.26"
     tasks:
       - name: ".goleak"
   - matrix_name: "tests-rhel-44-plus-zlib-zstd-support"
     tags: ["pullrequest"]
-    matrix_spec: {version: ["4.2", "4.4", "5.0", "6.0", "7.0", "8.0"], os-ssl-40: ["rhel87-64"]}
+    matrix_spec: {version: ["4.4", "5.0", "6.0", "7.0", "8.0", "9.0"], os-ssl-40: ["rhel87-64"]}
     display_name: "${version} ${os-ssl-40}"
     tasks:
       - name: ".test !.enterprise-auth !.snappy"
-  - matrix_name: "tests-windows-42-plus-zlib-zstd-support"
-    matrix_spec: {version: ["4.2", "4.4", "5.0", "6.0", "7.0"], os-ssl-40: ["windows-64"]}
+  - matrix_name: "tests-windows-44-plus-zlib-zstd-support"
+    matrix_spec: {version: ["4.4", "5.0", "6.0", "7.0", "8.0", "9.0"], os-ssl-40: ["windows-64"]}
     display_name: "${version} ${os-ssl-40}"
     tasks:
       - name: ".test !.enterprise-auth !.snappy"
-  - matrix_name: "tests-windows-80-zlib-zstd-support"
+  - matrix_name: "tests-windows-90-zlib-zstd-support"
     tags: ["pullrequest"]
-    matrix_spec: {version: ["8.0"], os-ssl-40: ["windows-64"]}
+    matrix_spec: {version: ["9.0"], os-ssl-40: ["windows-64"]}
     display_name: "${version} ${os-ssl-40}"
     tasks:
       - name: ".test !.enterprise-auth !.snappy"
@@ -1982,25 +2011,25 @@ buildvariants:
     tasks:
       - name: ".test .enterprise-auth"
   - matrix_name: "aws-auth-test"
-    matrix_spec: {version: ["4.4", "5.0", "6.0", "7.0", "8.0", "latest", "rapid"], os-aws-auth: "*"}
+    matrix_spec: {version: ["4.4", "5.0", "6.0", "7.0", "8.0", "9.0", "latest", "rapid"], os-aws-auth: "*"}
     display_name: "MONGODB-AWS Auth ${version} ${os-aws-auth}"
     tasks:
       - name: "aws-auth-test"
   - matrix_name: "ocsp-test"
-    matrix_spec: {version: ["4.4", "5.0", "6.0", "7.0", "8.0", "latest", "rapid"], ocsp-rhel-87: ["rhel87"]}
+    matrix_spec: {version: ["4.4", "5.0", "6.0", "7.0", "8.0", "9.0", "latest", "rapid"], ocsp-rhel-87: ["rhel87"]}
     display_name: "OCSP ${version} ${ocsp-rhel-87}"
     batchtime: 20160 # Use a batchtime of 14 days as suggested by the OCSP test README
     tasks:
       - name: ".ocsp"
   - matrix_name: "ocsp-test-windows"
-    matrix_spec: {version: ["4.4", "5.0", "6.0", "7.0", "8.0", "latest", "rapid"], os-ssl-40: ["windows-64"]}
+    matrix_spec: {version: ["4.4", "5.0", "6.0", "7.0", "8.0", "9.0", "latest", "rapid"], os-ssl-40: ["windows-64"]}
     display_name: "OCSP ${version} ${os-ssl-40}"
     batchtime: 20160 # Use a batchtime of 14 days as suggested by the OCSP test README
     tasks:
       # Windows MongoDB servers do not staple OCSP responses and only support RSA.
       - name: ".ocsp-rsa !.ocsp-staple"
   - matrix_name: "ocsp-test-macos"
-    matrix_spec: {version: ["4.4", "5.0", "6.0", "7.0", "8.0", "latest", "rapid"], os-ssl-40: ["macos"]}
+    matrix_spec: {version: ["4.4", "5.0", "6.0", "7.0", "8.0", "9.0", "latest", "rapid"], os-ssl-40: ["macos"]}
     display_name: "OCSP ${version} ${os-ssl-40}"
     batchtime: 20160 # Use a batchtime of 14 days as suggested by the OCSP test README
     tasks:
@@ -2014,7 +2043,7 @@ buildvariants:
       - name: ".race"
   - matrix_name: "versioned-api-test"
     tags: ["pullrequest"]
-    matrix_spec: {version: ["5.0", "6.0", "7.0", "8.0"], os-ssl-40: ["windows-64", "rhel87-64"]}
+    matrix_spec: {version: ["5.0", "6.0", "7.0", "8.0", "9.0"], os-ssl-40: ["windows-64", "rhel87-64"]}
     display_name: "API Version ${version} ${os-ssl-40}"
     tasks:
       - name: ".versioned-api"
@@ -2024,13 +2053,14 @@ buildvariants:
     tasks:
       - name: ".versioned-api"
   - matrix_name: "client-side-encryption-test"
+    tags: ["pullrequest"]
     matrix_spec: {version: ["latest", "rapid"], os-ssl-40: ["rhel87-64"]}
     display_name: "Client Side Encryption Tests ${version} ${os-ssl-40}"
     tasks:
       - name: ".client-side-encryption-test"
   - matrix_name: "load-balancer-test"
     tags: ["pullrequest"]
-    matrix_spec: {version: ["5.0", "6.0", "7.0", "8.0"], os-ssl-40: ["rhel87-64"]}
+    matrix_spec: {version: ["5.0", "6.0", "7.0", "8.0", "9.0"], os-ssl-40: ["rhel87-64"]}
     display_name: "Load Balancer Support ${version} ${os-ssl-40}"
     tasks:
       - name: ".load-balancer"
@@ -2065,7 +2095,7 @@ buildvariants:
     run_on:
       - rhel8.7-small
     expansions:
-      GO_DIST: "/opt/golang/go1.25"
+      GO_DIST: "/opt/golang/go1.26"
     tasks:
       - name: testgcpkms_task_group
         batchtime: 20160 # Use a batchtime of 14 days as suggested by the CSFLE test README
@@ -2075,7 +2105,7 @@ buildvariants:
     run_on:
       - rhel8.7-small
     expansions:
-      GO_DIST: "/opt/golang/go1.25"
+      GO_DIST: "/opt/golang/go1.26"
     tasks:
       - testawskms-task
       - testawskms-fail-task
@@ -2084,7 +2114,7 @@ buildvariants:
     run_on:
       - rhel8.7-small
     expansions:
-      GO_DIST: "/opt/golang/go1.25"
+      GO_DIST: "/opt/golang/go1.26"
     tasks:
       - name: testazurekms_task_group
         batchtime: 20160 # Use a batchtime of 14 days as suggested by the CSFLE test README
@@ -2094,7 +2124,7 @@ buildvariants:
     run_on:
       - ubuntu2204-small
     expansions:
-      GO_DIST: "/opt/golang/go1.25"
+      GO_DIST: "/opt/golang/go1.26"
     tasks:
       - name: testoidc_task_group
       - name: testazureoidc_task_group

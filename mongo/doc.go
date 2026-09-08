@@ -8,6 +8,8 @@
 
 // Package mongo provides a MongoDB Driver API for Go.
 //
+// The Go Driver supports the last two Go minor versions.
+//
 // Basic usage of the driver starts with creating a Client from a connection
 // string. To do so, call Connect:
 //

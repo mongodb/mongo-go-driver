@@ -17,15 +17,20 @@ tasks:
       - go build ./...
       - go build ${BUILD_TAGS} ./...
       - task: build-tests
-      - task: compilecheck-119
+      - task: compilecheck-min
+      - task: build-awsauth-compilecheck
   build-tests: go test -short ${BUILD_TAGS} -run ^$$ ./...
-  compilecheck-119:
+  compilecheck-min:
     dir: internal/test/compilecheck
     cmds:
       - go mod download
-      - GOTOOLCHAIN=auto go test -v -run '^TestCompileCheck/go:1\.19$'
+      - GOTOOLCHAIN=auto go test -v -run '^TestCompileCheck/go:1\.25$'
   build-compile-check-all: bash etc/run-compile-check-test.sh
-  build-aws-ecs-test: go test -c ./internal/test/aws -o aws.testbin
+  build-awsauth-compilecheck:
+    dir: internal/test/awsauth
+    cmds:
+      - go build ./...
+  build-aws-ecs-test: go test -C ./internal/test/awsauth -c -o ../../../aws.testbin
   check-fmt:
     deps: [install-lll, install-gofumpt]
     cmds:
@@ -72,6 +77,8 @@ tasks:
   test-oidc-remote: bash etc/run-oidc-remote-test.sh
   test-atlas-connect:
     - go test -v -run ^TestAtlas$ go.mongodb.org/mongo-driver/v2/internal/cmd/testatlas -tags atlastest >> test.suite
+  test-sfp:
+    - go run ./internal/cmd/testsfp >> test.suite
   test-awskms: bash etc/run-awskms-test.sh
   test-azurekms: bash etc/run-azurekms-test.sh
   test-gcpkms: bash etc/run-gcpkms-test.sh

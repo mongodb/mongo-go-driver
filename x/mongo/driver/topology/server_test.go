@@ -1057,34 +1057,6 @@ func TestServer_ProcessError(t *testing.T) {
 				},
 			}),
 		},
-		// Test that "node is recovering" or "not writable primary" errors that have a newer
-		// topology version than the local Server topology version and appear to be from MongoDB
-		// servers before 4.2 mark the Server as "unknown" and clear the connection pool.
-		{
-			name:             "older than 4.2 write concern error",
-			startDescription: newServerDescription(description.ServerKindRSPrimary, processID, 0, nil),
-			inputErr: driver.WriteCommandError{
-				WriteConcernError: &driver.WriteConcernError{
-					Code: 10107, // NotWritablePrimary
-					TopologyVersion: &description.TopologyVersion{
-						ProcessID: processID,
-						Counter:   1,
-					},
-				},
-			},
-			inputConn:      newProcessErrorTestConn(&description.VersionRange{Max: 7}, false),
-			want:           driver.ConnectionPoolCleared,
-			wantGeneration: 1,
-			wantDescription: newServerDescription(description.Unknown, processID, 1, driver.WriteCommandError{
-				WriteConcernError: &driver.WriteConcernError{
-					Code: 10107, // NotWritablePrimary
-					TopologyVersion: &description.TopologyVersion{
-						ProcessID: processID,
-						Counter:   1,
-					},
-				},
-			}),
-		},
 		// Test that a network timeout error, such as a DNS lookup timeout error, is ignored.
 		{
 			name:             "network timeout error",

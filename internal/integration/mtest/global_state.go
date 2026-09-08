@@ -107,9 +107,13 @@ func AdvanceConfigClusterTime(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("error running ping command: %w", err)
 	}
-	if _, err := pingRes.LookupErr("$clusterTime"); err != nil {
+
+	targetClusterTimeVal, err := pingRes.LookupErr("$clusterTime", "clusterTime")
+	if err != nil {
 		return fmt.Errorf("error looking up $clusterTime in ping response: %w", err)
 	}
+
+	targetT, targetI := targetClusterTimeVal.Timestamp()
 
 	var shardMap struct {
 		Map struct {
@@ -137,7 +141,60 @@ func AdvanceConfigClusterTime(ctx context.Context) error {
 	}
 	defer func() { _ = cfgClient.Disconnect(ctx) }()
 
+	const maxNotes = 100 // bound the number of oplog notes to append to avoid filling the oplog
+
+	t, i, err := appendNote(ctx, cfgClient)
+	if err != nil {
+		return fmt.Errorf("error appending oplog note: %w", err)
+	}
+
+	for n := 0; clusterTimeBehind(t, i, targetT, targetI) && n < maxNotes; n++ {
+		if t, i, err = appendNote(ctx, cfgClient); err != nil {
+			return fmt.Errorf("error appending oplog note: %w", err)
+		}
+	}
+
+	// If we are still behind, then throw an error.
+	if clusterTimeBehind(t, i, targetT, targetI) {
+		return fmt.Errorf("config server cluster time is still behind mongos cluster time after %d oplog notes", maxNotes)
+	}
+
+	// Fire a few more appendOplogNote calls after config has caught up, pushing
+	// the clock past the  mongos time rather than just level with it.
+	const marginNotes = 5
+	for range marginNotes {
+		if _, _, err = appendNote(ctx, cfgClient); err != nil {
+			return fmt.Errorf("error appending oplog note: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// appendNote appends an oplog note to the cluster and returns the cluster time
+// of the note.
+func appendNote(ctx context.Context, client *mongo.Client) (uint32, uint32, error) {
 	note := bson.D{{Key: "cursor-test", Value: "advance config server cluster time"}}
-	return cfgClient.Database("admin").RunCommand(ctx,
-		bson.D{{Key: "appendOplogNote", Value: 1}, {Key: "data", Value: note}}).Err()
+
+	res, err := client.Database("admin").RunCommand(ctx,
+		bson.D{{Key: "appendOplogNote", Value: 1}, {Key: "data", Value: note}}).Raw()
+	if err != nil {
+		return 0, 0, err
+	}
+
+	clusterTimeVal, err := res.LookupErr("$clusterTime", "clusterTime")
+	if err != nil {
+		return 0, 0, fmt.Errorf("error looking up $clusterTime in appendOplogNote response: %w", err)
+	}
+
+	t, i := clusterTimeVal.Timestamp()
+	return t, i, nil
+}
+
+func clusterTimeBehind(curT, curI, targetT, targetI uint32) bool {
+	if curT != targetT {
+		return curT < targetT
+	}
+
+	return curI < targetI
 }

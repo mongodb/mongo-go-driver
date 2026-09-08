@@ -15,8 +15,8 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/handshake/operation"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
-	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
 )
 
 func TestCMAPProse(t *testing.T) {

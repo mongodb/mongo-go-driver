@@ -21,8 +21,8 @@ import (
 )
 
 const (
-	MinWireVersion = 8
-	MaxWireVersion = 25
+	MinWireVersion = 9
+	MaxWireVersion = 29
 )
 
 func equalWireVersion(wv1, wv2 *description.VersionRange) bool {
@@ -168,8 +168,8 @@ func NewTopologyVersion(doc bson.Raw) (*description.TopologyVersion, error) {
 }
 
 // NewVersionRange creates a new VersionRange given a min and a max.
-func NewVersionRange(min, max int32) description.VersionRange {
-	return description.VersionRange{Min: min, Max: max}
+func NewVersionRange(minVersion, maxVersion int32) description.VersionRange {
+	return description.VersionRange{Min: minVersion, Max: maxVersion}
 }
 
 // VersionRangeIncludes returns a bool indicating whether the supplied integer

@@ -61,30 +61,30 @@ func TestCompare(t *testing.T) {
 	} {
 		resLess, isComparable := compare(currCase.less, currCase.greater, reflect.ValueOf(currCase.less).Kind())
 		if !isComparable {
-			t.Error("object should be comparable for type " + currCase.cType)
+			t.Errorf("object should be comparable for type %s", currCase.cType)
 		}
 
 		if resLess != compareLess {
-			t.Errorf("object less (%v) should be less than greater (%v) for type "+currCase.cType,
-				currCase.less, currCase.greater)
+			t.Errorf("object less (%v) should be less than greater (%v) for type %s",
+				currCase.less, currCase.greater, currCase.cType)
 		}
 
 		resGreater, isComparable := compare(currCase.greater, currCase.less, reflect.ValueOf(currCase.less).Kind())
 		if !isComparable {
-			t.Error("object are comparable for type " + currCase.cType)
+			t.Errorf("object should be comparable for type %s", currCase.cType)
 		}
 
 		if resGreater != compareGreater {
-			t.Errorf("object greater should be greater than less for type " + currCase.cType)
+			t.Errorf("object greater should be greater than less for type %s", currCase.cType)
 		}
 
 		resEqual, isComparable := compare(currCase.less, currCase.less, reflect.ValueOf(currCase.less).Kind())
 		if !isComparable {
-			t.Error("object are comparable for type " + currCase.cType)
+			t.Errorf("object should be comparable for type %s", currCase.cType)
 		}
 
 		if resEqual != 0 {
-			t.Errorf("objects should be equal for type " + currCase.cType)
+			t.Errorf("objects should be equal for type %s", currCase.cType)
 		}
 	}
 }

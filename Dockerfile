@@ -1,6 +1,6 @@
 # Dockerfile for Go Driver local development.
-# sha found via this command: docker inspect --format='{{index .RepoDigests 0}}' golang:1.25.6-trixie
-FROM golang:1.25.6-trixie@sha256:fb4b74a39c7318d53539ebda43ccd3ecba6e447a78591889c0efc0a7235ea8b3 AS base
+# sha found via this command: docker inspect --format='{{index .RepoDigests 0}}' golang:1.26.4-trixie
+FROM golang:1.26.4-trixie@sha256:76a29248dedcd75870e95cbd90cc8cb356db082404ac7d3a5803f276c3ba79c9 AS base
 
 # Build libmongocrypt in a separate build stage.
 FROM base AS libmongocrypt
@@ -22,7 +22,7 @@ COPY etc/install-libmongocrypt.sh /root/install-libmongocrypt.sh
 RUN cd /root && bash ./install-libmongocrypt.sh
 
 
-# Final dev image (already has Go 1.25.x).
+# Final dev image (already has Go 1.26.x).
 FROM base
 
 RUN export DEBIAN_FRONTEND=noninteractive && \

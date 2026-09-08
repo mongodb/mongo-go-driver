@@ -19,4 +19,8 @@ if echo "$MONGODB_URI" | grep -q "@"; then
   exit 1
 fi
 
-./src/main
+# Run only the ECS scenario. This container runs the test binary directly rather
+# than through etc/run-mongodb-aws-test.sh, so it has to apply the same filter
+# that script does; without it every other scenario runs here and fails for want
+# of credentials this environment does not provide.
+./src/main -test.run TestAWSProse_3_ECSCredentials -test.v

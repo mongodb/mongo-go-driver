@@ -17,7 +17,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
@@ -69,7 +68,10 @@ func (bw *bulkWrite) execute(ctx context.Context) error {
 
 		bw.mergeResults(batchRes)
 
-		bwErr.WriteConcernError = batchErr.WriteConcernError
+		if batchErr.WriteConcernError != nil {
+			bwErr.WriteConcernError = batchErr.WriteConcernError
+		}
+
 		bwErr.Labels = append(bwErr.Labels, batchErr.Labels...)
 
 		bwErr.WriteErrors = append(bwErr.WriteErrors, batchErr.WriteErrors...)
@@ -209,7 +211,7 @@ func (bw *bulkWrite) runInsert(ctx context.Context, batch bulkWriteBatch) (inser
 	if bw.comment != nil {
 		comment, err := marshalValue(bw.comment, bw.collection.bsonOpts, bw.collection.registry)
 		if err != nil {
-			return op.Result(), err
+			return op.result(), err
 		}
 		op.comment = comment
 	}
@@ -233,12 +235,12 @@ func (bw *bulkWrite) runInsert(ctx context.Context, batch bulkWriteBatch) (inser
 		op.additionalCmd = bw.additionalCmd
 	}
 
-	err := op.Execute(ctx)
+	err := op.execute(ctx)
 
-	return op.Result(), err
+	return op.result(), err
 }
 
-func (bw *bulkWrite) runDelete(ctx context.Context, batch bulkWriteBatch) (operation.DeleteResult, error) {
+func (bw *bulkWrite) runDelete(ctx context.Context, batch bulkWriteBatch) (deleteResult, error) {
 	docs := make([]bsoncore.Document, len(batch.models))
 	var i int
 	var hasHint bool
@@ -255,7 +257,8 @@ func (bw *bulkWrite) runDelete(ctx context.Context, batch bulkWriteBatch) (opera
 				converted.Hint,
 				true,
 				bw.collection.bsonOpts,
-				bw.collection.registry)
+				bw.collection.registry,
+			)
 			hasHint = hasHint || (converted.Hint != nil)
 		case *DeleteManyModel:
 			doc, err = createDeleteDoc(
@@ -264,12 +267,13 @@ func (bw *bulkWrite) runDelete(ctx context.Context, batch bulkWriteBatch) (opera
 				converted.Hint,
 				false,
 				bw.collection.bsonOpts,
-				bw.collection.registry)
+				bw.collection.registry,
+			)
 			hasHint = hasHint || (converted.Hint != nil)
 		}
 
 		if err != nil {
-			return operation.DeleteResult{}, err
+			return deleteResult{}, err
 		}
 
 		docs[i] = doc
@@ -283,40 +287,51 @@ func (bw *bulkWrite) runDelete(ctx context.Context, batch bulkWriteBatch) (opera
 
 	maxAdaptiveRetries := bw.collection.client.effectiveAdaptiveRetries(bw.collection.client.retryWrites)
 
-	op := operation.NewDelete(docs...).
-		Session(bw.session).WriteConcern(bw.writeConcern).CommandMonitor(bw.collection.client.monitor).
-		ServerSelector(bw.selector).ClusterClock(bw.collection.client.clock).
-		Database(bw.collection.db.name).Collection(bw.collection.name).
-		Retry(retry).MaxAdaptiveRetries(maxAdaptiveRetries).
-		EnableOverloadRetargeting(bw.collection.client.enableOverloadRetargeting).
-		Deployment(bw.collection.client.deployment).Crypt(bw.collection.client.cryptFLE).Hint(hasHint).
-		ServerAPI(bw.collection.client.serverAPI).Timeout(bw.collection.client.timeout).
-		Logger(bw.collection.client.logger).Authenticator(bw.collection.client.authenticator)
+	op := &deleteOp{
+		deletes:                   docs,
+		session:                   bw.session,
+		writeConcern:              bw.writeConcern,
+		monitor:                   bw.collection.client.monitor,
+		selector:                  bw.selector,
+		clock:                     bw.collection.client.clock,
+		database:                  bw.collection.db.name,
+		collection:                bw.collection.name,
+		retry:                     &retry,
+		maxAdaptiveRetries:        maxAdaptiveRetries,
+		enableOverloadRetargeting: bw.collection.client.enableOverloadRetargeting,
+		deployment:                bw.collection.client.deployment,
+		crypt:                     bw.collection.client.cryptFLE,
+		hint:                      &hasHint,
+		serverAPI:                 bw.collection.client.serverAPI,
+		timeout:                   bw.collection.client.timeout,
+		logger:                    bw.collection.client.logger,
+		authenticator:             bw.collection.client.authenticator,
+	}
 	if bw.comment != nil {
 		comment, err := marshalValue(bw.comment, bw.collection.bsonOpts, bw.collection.registry)
 		if err != nil {
-			return op.Result(), err
+			return op.result(), err
 		}
-		op.Comment(comment)
+		op.comment = comment
 	}
 	if bw.let != nil {
 		let, err := marshal(bw.let, bw.collection.bsonOpts, bw.collection.registry)
 		if err != nil {
-			return operation.DeleteResult{}, err
+			return deleteResult{}, err
 		}
-		op = op.Let(let)
+		op.let = let
 	}
 	if bw.ordered != nil {
-		op = op.Ordered(*bw.ordered)
+		op.ordered = bw.ordered
 	}
 
 	if bw.rawData != nil {
-		op.RawData(*bw.rawData)
+		op.rawData = bw.rawData
 	}
 
-	err := op.Execute(ctx)
+	err := op.execute(ctx)
 
-	return op.Result(), err
+	return op.result(), err
 }
 
 func createDeleteDoc(
@@ -444,7 +459,7 @@ func (bw *bulkWrite) runUpdate(ctx context.Context, batch bulkWriteBatch) (updat
 	if bw.comment != nil {
 		comment, err := marshalValue(bw.comment, bw.collection.bsonOpts, bw.collection.registry)
 		if err != nil {
-			return op.Result(), err
+			return op.result(), err
 		}
 		op.comment = comment
 	}
@@ -468,9 +483,9 @@ func (bw *bulkWrite) runUpdate(ctx context.Context, batch bulkWriteBatch) (updat
 		op.additionalCmd = bw.additionalCmd
 	}
 
-	err := op.Execute(ctx)
+	err := op.execute(ctx)
 
-	return op.Result(), err
+	return op.result(), err
 }
 
 type updateDoc struct {

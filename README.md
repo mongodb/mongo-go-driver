@@ -1,6 +1,5 @@
 <p align="center"><img src="etc/assets/mongo-gopher.png" width="250"></p>
 <p align="center">
-  <a href="https://goreportcard.com/report/go.mongodb.org/mongo-driver/v2"><img src="https://goreportcard.com/badge/go.mongodb.org/mongo-driver/v2"></a>
   <a href="https://pkg.go.dev/go.mongodb.org/mongo-driver/v2/mongo"><img src="etc/assets/godev-mongo-blue.svg" alt="docs"></a>
   <a href="https://pkg.go.dev/go.mongodb.org/mongo-driver/v2/bson"><img src="etc/assets/godev-bson-blue.svg" alt="docs"></a>
   <a href="https://www.mongodb.com/docs/drivers/go/current/"><img src="etc/assets/docs-mongodb-green.svg"></a>
@@ -22,9 +21,9 @@ The MongoDB Go Driver follows [semantic versioning](https://semver.org/) for its
 
 ## Requirements
 
-- Go 1.19 or higher. We aim to support the latest versions of Go.
-- Go 1.25 or higher is required to run the driver test suite.
-- MongoDB 4.2 and higher.
+- Go 1.25 or higher. The Go Driver supports the last two Go minor versions.
+- Go 1.26 or higher is required to run the driver test suite.
+- MongoDB 4.4 and higher.
 
 ## Installation
 
@@ -34,12 +33,6 @@ step install the dependency or by explicitly running
 
 ```bash
 go get go.mongodb.org/mongo-driver/v2/mongo
-```
-
-When using a version of Go that does not support modules, the driver can be installed using `dep` by running
-
-```bash
-dep ensure -add "go.mongodb.org/mongo-driver/v2/mongo"
 ```
 
 ## Usage

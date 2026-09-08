@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
@@ -122,6 +123,7 @@ type WriteCommandError struct {
 	WriteErrors       WriteErrors
 	Labels            []string
 	Raw               bsoncore.Document
+	BaseBackoff       time.Duration
 }
 
 // UnsupportedStorageEngine returns whether or not the WriteCommandError comes from a retryable write being attempted
@@ -278,6 +280,7 @@ type Error struct {
 	Wrapped         error
 	TopologyVersion *description.TopologyVersion
 	Raw             bsoncore.Document
+	BaseBackoff     time.Duration
 }
 
 // UnsupportedStorageEngine returns whether e came as a result of an unsupported storage engine
@@ -402,6 +405,7 @@ func ExtractErrorFromServerResponse(doc bsoncore.Document) error {
 	var errmsg, codeName string
 	var code int32
 	var labels []string
+	var baseBackoff time.Duration
 	var ok bool
 	var tv *description.TopologyVersion
 	var wcError WriteCommandError
@@ -442,6 +446,10 @@ func ExtractErrorFromServerResponse(doc bsoncore.Document) error {
 		case "code":
 			if c, okay := elem.Value().Int32OK(); okay {
 				code = c
+			}
+		case "baseBackoffMS":
+			if ms, okay := elem.Value().AsInt64OK(); okay {
+				baseBackoff = time.Duration(ms) * time.Millisecond
 			}
 		case "errorLabels":
 			if arr, okay := elem.Value().ArrayOK(); okay {
@@ -507,6 +515,9 @@ func ExtractErrorFromServerResponse(doc bsoncore.Document) error {
 				wcError.WriteConcernError.Details = make([]byte, len(info))
 				copy(wcError.WriteConcernError.Details, info)
 			}
+			if ms, exists := doc.Lookup("baseBackoffMS").AsInt64OK(); exists && baseBackoff == 0 {
+				baseBackoff = time.Duration(ms) * time.Millisecond
+			}
 			if errLabels, exists := doc.Lookup("errorLabels").ArrayOK(); exists {
 				vals, err := errLabels.Values()
 				if err != nil {
@@ -542,6 +553,7 @@ func ExtractErrorFromServerResponse(doc bsoncore.Document) error {
 			Labels:          labels,
 			TopologyVersion: tv,
 			Raw:             doc,
+			BaseBackoff:     baseBackoff,
 		}
 
 		// If we get a MaxTimeMSExpired error, assume that the error was caused
@@ -565,6 +577,7 @@ func ExtractErrorFromServerResponse(doc bsoncore.Document) error {
 			wcError.WriteConcernError.TopologyVersion = tv
 		}
 		wcError.Raw = doc
+		wcError.BaseBackoff = baseBackoff
 		return wcError
 	}
 

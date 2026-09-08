@@ -8,8 +8,11 @@ package mongo
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
+	"io"
 	"math"
+	"net"
 	"os"
 	"testing"
 	"time"
@@ -514,4 +517,83 @@ func TestClient(t *testing.T) {
 		errmsg := `invalid value "-1s" for "Timeout": value must be positive`
 		assert.Equal(t, errmsg, err.Error(), "expected error %v, got %v", errmsg, err.Error())
 	})
+	t.Run("TLS handshake with a non-TLS server reports a TLS record header error", func(t *testing.T) {
+		t.Parallel()
+
+		// End-to-end check that a TLS-enabled Client pointed at a server that
+		// doesn't speak TLS reports the failure as a tls.RecordHeaderError
+		// rather than as a socket error.
+		addr := bootstrapNonTLSServer(t)
+
+		failures := make(chan error, 10)
+		client := setupClient(options.Client().
+			ApplyURI("mongodb://" + addr).
+			SetDirect(true).
+			SetTLSConfig(&tls.Config{InsecureSkipVerify: true}).
+			SetServerSelectionTimeout(3 * time.Second).
+			SetServerMonitor(&event.ServerMonitor{
+				ServerHeartbeatFailed: func(evt *event.ServerHeartbeatFailedEvent) {
+					select {
+					case failures <- evt.Failure:
+					default:
+					}
+				},
+			}))
+		defer func() { _ = client.Disconnect(bgCtx) }()
+
+		pingErr := client.Ping(bgCtx, nil)
+		require.Error(t, pingErr, "expected Ping to fail against a non-TLS server")
+
+		var recordHeaderErr tls.RecordHeaderError
+
+		select {
+		case failure := <-failures:
+			assert.True(t,
+				errors.As(failure, &recordHeaderErr),
+				"expected the heartbeat failure to be a tls.RecordHeaderError, but got %[1]T: %[1]v",
+				failure)
+		case <-time.After(10 * time.Second):
+			t.Fatal("timed out waiting for a ServerHeartbeatFailedEvent")
+		}
+
+		var sse topology.ServerSelectionError
+		require.True(t,
+			errors.As(pingErr, &sse),
+			"expected a topology.ServerSelectionError, but got %[1]T: %[1]v",
+			pingErr)
+		require.Len(t, sse.Desc.Servers, 1, "expected exactly 1 server in the topology description")
+		assert.True(t,
+			errors.As(sse.Desc.Servers[0].LastError, &recordHeaderErr),
+			"expected the server's last error to be a tls.RecordHeaderError, but got %[1]T: %[1]v",
+			sse.Desc.Servers[0].LastError)
+	})
+}
+
+// bootstrapNonTLSServer starts a listener that responds to every connection with
+// bytes that aren't a valid TLS record, so a TLS client handshaking with it fails
+// with a tls.RecordHeaderError. It returns the listener's address.
+func bootstrapNonTLSServer(t *testing.T) string {
+	t.Helper()
+
+	l, err := net.Listen("tcp", "localhost:0")
+	require.NoError(t, err, "could not set up a listener")
+	t.Cleanup(func() { _ = l.Close() })
+
+	go func() {
+		for {
+			c, err := l.Accept()
+			if err != nil {
+				return
+			}
+			go func() {
+				defer c.Close()
+				if _, err := c.Write([]byte("not a TLS server")); err != nil {
+					return
+				}
+				_, _ = io.Copy(io.Discard, c)
+			}()
+		}
+	}()
+
+	return l.Addr().String()
 }

@@ -77,25 +77,25 @@ func (selector *Latency) SelectServer(
 	case 0, 1:
 		return candidates, nil
 	default:
-		min := time.Duration(math.MaxInt64)
+		minRTT := time.Duration(math.MaxInt64)
 		for _, candidate := range candidates {
 			if candidate.AverageRTTSet {
-				if candidate.AverageRTT < min {
-					min = candidate.AverageRTT
+				if candidate.AverageRTT < minRTT {
+					minRTT = candidate.AverageRTT
 				}
 			}
 		}
 
-		if min == math.MaxInt64 {
+		if minRTT == math.MaxInt64 {
 			return candidates, nil
 		}
 
-		max := min + selector.Latency
+		maxRTT := minRTT + selector.Latency
 
 		viableIndexes := make([]int, 0, len(candidates))
 		for i, candidate := range candidates {
 			if candidate.AverageRTTSet {
-				if candidate.AverageRTT <= max {
+				if candidate.AverageRTT <= maxRTT {
 					viableIndexes = append(viableIndexes, i)
 				}
 			}

@@ -257,6 +257,96 @@ func TestCollection(t *testing.T) {
 				})
 			}
 		})
+		// The server typically returns write errors for an unordered insert in
+		// ascending "index" order. However, in rare cases, the server may
+		// return write errors indexes not in ascending order. Use a mock
+		// deployment to create server responses where the write error indexes
+		// are not in ascending order.
+		//
+		// See GODRIVER-4096 for more background.
+		mt.RunOpts("out-of-order write errors", mtest.NewOptions().ClientType(mtest.Mock), func(mt *mtest.T) {
+			testCases := []struct {
+				name        string
+				docs        []any
+				response    bson.D
+				wantErrs    int
+				wantInserts []any
+			}{
+				{
+					// Before the fix, this response caused a panic. Note the
+					// "writeErrors.index" values are not in ascending order.
+					name: "all documents fail",
+					docs: []any{
+						bson.D{{"_id", int32(0)}},
+						bson.D{{"_id", int32(1)}},
+					},
+					response: bson.D{
+						{"ok", 1},
+						{"n", 0},
+						{"writeErrors", bson.A{
+							bson.D{{"index", 1}, {"code", errorDuplicateKey}, {"errmsg", "duplicate key error"}},
+							bson.D{{"index", 0}, {"code", errorDuplicateKey}, {"errmsg", "duplicate key error"}},
+						}},
+					},
+					wantErrs:    2,
+					wantInserts: []any{},
+				},
+				{
+					// Before the fix, this removed the wrong IDs from the
+					// result without panicking. Note the "writeErrors.index"
+					// values are not in ascending order.
+					name: "some documents fail",
+					docs: []any{
+						bson.D{{"_id", int32(0)}},
+						bson.D{{"_id", int32(1)}},
+						bson.D{{"_id", int32(2)}},
+						bson.D{{"_id", int32(3)}},
+						bson.D{{"_id", int32(4)}},
+					},
+					response: bson.D{
+						{"ok", 1},
+						{"n", 3},
+						{"writeErrors", bson.A{
+							bson.D{{"index", 3}, {"code", errorDuplicateKey}, {"errmsg", "duplicate key error"}},
+							bson.D{{"index", 1}, {"code", errorDuplicateKey}, {"errmsg", "duplicate key error"}},
+						}},
+					},
+					wantErrs:    2,
+					wantInserts: []any{int32(0), int32(2), int32(4)},
+				},
+			}
+
+			for _, tc := range testCases {
+				mt.Run(tc.name, func(mt *mtest.T) {
+					mt.AddMockResponses(tc.response)
+
+					res, err := mt.Coll.InsertMany(
+						context.Background(),
+						tc.docs,
+						options.InsertMany().SetOrdered(false),
+					)
+
+					var bwe mongo.BulkWriteException
+					require.True(
+						mt,
+						errors.As(err, &bwe),
+						"expected error to be a mongo.BulkWriteException, got %#v",
+						err,
+					)
+					assert.Len(
+						mt,
+						bwe.WriteErrors,
+						tc.wantErrs,
+						"expected %v write errors, got %v",
+						tc.wantErrs,
+						len(bwe.WriteErrors),
+					)
+
+					require.NotNil(mt, res, "expected a non-nil result")
+					assert.Equal(mt, tc.wantInserts, res.InsertedIDs, "expected inserted IDs to match")
+				})
+			}
+		})
 		mt.Run("writeError index", func(mt *mtest.T) {
 			mt.Parallel()
 
@@ -1923,6 +2013,71 @@ func TestCollection(t *testing.T) {
 			// MaxWriteBatchSize changed between 3.4 and 3.6, so there isn't a given number of batches that this will be split into
 			deletes := len(mt.GetAllStartedEvents())
 			assert.True(mt, deletes > 1, "expected multiple batches, got %v", deletes)
+		})
+		mt.RunOpts("preserve last write concern error across batches", mtest.NewOptions().ClientType(mtest.Mock), func(mt *mtest.T) {
+			// BulkWrite must report the write concern error from the last batch that
+			// had one: a later nil must not replace an earlier error, and an earlier
+			// error must not shadow a later one.
+
+			// wce is a write concern error response, or nil for a success response.
+			wce := func(code int) *mtest.WriteConcernError {
+				return &mtest.WriteConcernError{
+					Code:    code,
+					Name:    "UnsatisfiableWriteConcern",
+					Message: "Not enough data-bearing nodes",
+				}
+			}
+
+			// Each case pins the batch-execution order insert -> update -> delete.
+			// wantCode is 0 when BulkWrite is expected to succeed with no WCE.
+			testCases := []struct {
+				name     string
+				insert   *mtest.WriteConcernError // insert batch (runs first)
+				update   *mtest.WriteConcernError // update batch (runs second)
+				delete   *mtest.WriteConcernError // delete batch (runs last)
+				wantCode int
+			}{
+				{"only the first batch errors", wce(100), nil, nil, 100},
+				{"only the second batch errors", nil, wce(200), nil, 200},
+				{"only the last batch errors", nil, nil, wce(300), 300},
+				{"skip the last nil", wce(100), wce(200), nil, 200},
+				{"skips a middle nil", wce(100), nil, wce(300), 300},
+			}
+
+			for _, tc := range testCases {
+				mt.Run(tc.name, func(mt *mtest.T) {
+					for _, e := range []*mtest.WriteConcernError{tc.insert, tc.update, tc.delete} {
+						if e != nil {
+							mt.AddMockResponses(mtest.CreateWriteConcernErrorResponse(*e))
+						} else {
+							mt.AddMockResponses(mtest.CreateSuccessResponse(bson.E{"n", 1}))
+						}
+					}
+
+					models := []mongo.WriteModel{
+						mongo.NewInsertOneModel().SetDocument(bson.D{{"a", int32(1)}}),
+						mongo.NewUpdateOneModel().
+							SetFilter(bson.D{{"a", int32(1)}}).
+							SetUpdate(bson.D{{"$set", bson.D{{"a", int32(2)}}}}),
+						mongo.NewDeleteOneModel().SetFilter(bson.D{{"a", int32(2)}}),
+					}
+
+					_, err := mt.Coll.BulkWrite(context.Background(), models, options.BulkWrite().SetOrdered(false))
+
+					if tc.wantCode == 0 {
+						assert.NoError(mt, err, "expected no error, got %v", err)
+						return
+					}
+
+					bwe, ok := err.(mongo.BulkWriteException)
+					assert.True(mt, ok, "expected error type %v, got %v", mongo.BulkWriteException{}, err)
+					assert.Equal(mt, 0, len(bwe.WriteErrors), "expected 0 write errors, got %v", bwe.WriteErrors)
+					require.NotNil(mt, bwe.WriteConcernError, "expected write concern error to be preserved, got nil")
+					assert.Equal(mt, tc.wantCode, bwe.WriteConcernError.Code,
+						"expected the last non-nil batch's write concern error code %v, got %v",
+						tc.wantCode, bwe.WriteConcernError.Code)
+				})
+			}
 		})
 		mt.RunOpts("update with batches", mtest.NewOptions().ClientType(mtest.Mock), func(mt *mtest.T) {
 			maxBatchCount := int(drivertest.MockDescription.MaxBatchCount)

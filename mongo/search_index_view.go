@@ -17,7 +17,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
@@ -165,20 +164,27 @@ func (siv SearchIndexView) CreateMany(
 
 	selector := makePinnedSelector(sess, siv.coll.writeSelector)
 
-	op := operation.NewCreateSearchIndexes(indexes).
-		Session(sess).CommandMonitor(siv.coll.client.monitor).
-		ServerSelector(selector).ClusterClock(siv.coll.client.clock).
-		Collection(siv.coll.name).Database(siv.coll.db.name).
-		Deployment(siv.coll.client.deployment).ServerAPI(siv.coll.client.serverAPI).
-		Timeout(siv.coll.client.timeout).Authenticator(siv.coll.client.authenticator)
+	op := &createSearchIndexesOp{
+		indexes:       indexes,
+		session:       sess,
+		monitor:       siv.coll.client.monitor,
+		selector:      selector,
+		clock:         siv.coll.client.clock,
+		collection:    siv.coll.name,
+		database:      siv.coll.db.name,
+		deployment:    siv.coll.client.deployment,
+		serverAPI:     siv.coll.client.serverAPI,
+		timeout:       siv.coll.client.timeout,
+		authenticator: siv.coll.client.authenticator,
+	}
 
-	err = op.Execute(ctx)
+	err = op.execute(ctx)
 	if err != nil {
 		_, err = processWriteError(err)
 		return nil, err
 	}
 
-	indexesCreated := op.Result().IndexesCreated
+	indexesCreated := op.result().IndexesCreated
 	names := make([]string, 0, len(indexesCreated))
 	for _, index := range indexesCreated {
 		names = append(names, index.Name)
@@ -222,14 +228,21 @@ func (siv SearchIndexView) DropOne(
 
 	selector := makePinnedSelector(sess, siv.coll.writeSelector)
 
-	op := operation.NewDropSearchIndex(name).
-		Session(sess).CommandMonitor(siv.coll.client.monitor).
-		ServerSelector(selector).ClusterClock(siv.coll.client.clock).
-		Collection(siv.coll.name).Database(siv.coll.db.name).
-		Deployment(siv.coll.client.deployment).ServerAPI(siv.coll.client.serverAPI).
-		Timeout(siv.coll.client.timeout).Authenticator(siv.coll.client.authenticator)
+	op := dropSearchIndexOp{
+		index:         name,
+		session:       sess,
+		monitor:       siv.coll.client.monitor,
+		selector:      selector,
+		clock:         siv.coll.client.clock,
+		collection:    siv.coll.name,
+		database:      siv.coll.db.name,
+		deployment:    siv.coll.client.deployment,
+		serverAPI:     siv.coll.client.serverAPI,
+		timeout:       siv.coll.client.timeout,
+		authenticator: siv.coll.client.authenticator,
+	}
 
-	err = op.Execute(ctx)
+	err = op.execute(ctx)
 	var de driver.Error
 	if errors.As(err, &de) && de.NamespaceNotFound() {
 		return nil
@@ -279,12 +292,20 @@ func (siv SearchIndexView) UpdateOne(
 
 	selector := makePinnedSelector(sess, siv.coll.writeSelector)
 
-	op := operation.NewUpdateSearchIndex(name, indexDefinition).
-		Session(sess).CommandMonitor(siv.coll.client.monitor).
-		ServerSelector(selector).ClusterClock(siv.coll.client.clock).
-		Collection(siv.coll.name).Database(siv.coll.db.name).
-		Deployment(siv.coll.client.deployment).ServerAPI(siv.coll.client.serverAPI).
-		Timeout(siv.coll.client.timeout).Authenticator(siv.coll.client.authenticator)
+	op := updateSearchIndexOp{
+		index:         name,
+		definition:    indexDefinition,
+		session:       sess,
+		monitor:       siv.coll.client.monitor,
+		selector:      selector,
+		clock:         siv.coll.client.clock,
+		collection:    siv.coll.name,
+		database:      siv.coll.db.name,
+		deployment:    siv.coll.client.deployment,
+		serverAPI:     siv.coll.client.serverAPI,
+		timeout:       siv.coll.client.timeout,
+		authenticator: siv.coll.client.authenticator,
+	}
 
-	return op.Execute(ctx)
+	return op.execute(ctx)
 }

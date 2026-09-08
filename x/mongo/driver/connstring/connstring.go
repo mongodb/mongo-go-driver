@@ -106,90 +106,92 @@ func Parse(s string) (*ConnString, error) {
 
 // ConnString represents a connection string to mongodb.
 type ConnString struct {
-	Original                           string
-	AppName                            string
-	AuthMechanism                      string
-	AuthMechanismProperties            map[string]string
-	AuthMechanismPropertiesSet         bool
-	AuthSource                         string
-	AuthSourceSet                      bool
-	Compressors                        []string
-	Connect                            ConnectMode
-	ConnectSet                         bool
-	DirectConnection                   bool
-	DirectConnectionSet                bool
-	ConnectTimeout                     time.Duration
-	ConnectTimeoutSet                  bool
-	Database                           string
-	HeartbeatInterval                  time.Duration
-	HeartbeatIntervalSet               bool
-	Hosts                              []string
-	J                                  bool
-	JSet                               bool
-	LoadBalanced                       bool
-	LoadBalancedSet                    bool
-	LocalThreshold                     time.Duration
-	LocalThresholdSet                  bool
-	MaxConnIdleTime                    time.Duration
-	MaxConnIdleTimeSet                 bool
-	MaxPoolSize                        uint64
-	MaxPoolSizeSet                     bool
-	MinPoolSize                        uint64
-	MinPoolSizeSet                     bool
-	MaxConnecting                      uint64
-	MaxConnectingSet                   bool
-	Password                           string
-	PasswordSet                        bool
-	RawHosts                           []string
-	ReadConcernLevel                   string
-	ReadPreference                     string
-	ReadPreferenceTagSets              []map[string]string
-	RetryWrites                        bool
-	RetryWritesSet                     bool
-	RetryReads                         bool
-	RetryReadsSet                      bool
-	MaxAdaptiveRetries                 uint
-	MaxAdaptiveRetriesSet              bool
-	EnableOverloadRetargeting          bool
-	EnableOverloadRetargetingSet       bool
-	MaxStaleness                       time.Duration
-	MaxStalenessSet                    bool
-	ReplicaSet                         string
-	Scheme                             string
-	ServerMonitoringMode               string
-	ServerSelectionTimeout             time.Duration
-	ServerSelectionTimeoutSet          bool
-	SocketTimeout                      time.Duration
-	SocketTimeoutSet                   bool
-	SRVMaxHosts                        int
-	SRVServiceName                     string
-	SSL                                bool
-	SSLSet                             bool
-	SSLClientCertificateKeyFile        string
-	SSLClientCertificateKeyFileSet     bool
-	SSLClientCertificateKeyPassword    func() string
-	SSLClientCertificateKeyPasswordSet bool
-	SSLCertificateFile                 string
-	SSLCertificateFileSet              bool
-	SSLPrivateKeyFile                  string
-	SSLPrivateKeyFileSet               bool
-	SSLInsecure                        bool
-	SSLInsecureSet                     bool
-	SSLCaFile                          string
-	SSLCaFileSet                       bool
-	SSLDisableOCSPEndpointCheck        bool
-	SSLDisableOCSPEndpointCheckSet     bool
-	Timeout                            time.Duration
-	TimeoutSet                         bool
-	WString                            string
-	WNumber                            int
-	WNumberSet                         bool
-	Username                           string
-	UsernameSet                        bool
-	ZlibLevel                          int
-	ZlibLevelSet                       bool
-	ZstdLevel                          int
-	ZstdLevelSet                       bool
+	Original                                string
+	AppName                                 string
+	AuthMechanism                           string
+	AuthMechanismProperties                 map[string]string
+	AuthMechanismPropertiesSet              bool
+	AuthSource                              string
+	AuthSourceSet                           bool
+	Compressors                             []string
+	Connect                                 ConnectMode
+	ConnectSet                              bool
+	DirectConnection                        bool
+	DirectConnectionSet                     bool
+	ConnectTimeout                          time.Duration
+	ConnectTimeoutSet                       bool
+	Database                                string
+	HeartbeatInterval                       time.Duration
+	HeartbeatIntervalSet                    bool
+	Hosts                                   []string
+	J                                       bool
+	JSet                                    bool
+	LoadBalanced                            bool
+	LoadBalancedSet                         bool
+	LocalThreshold                          time.Duration
+	LocalThresholdSet                       bool
+	MaxConnIdleTime                         time.Duration
+	MaxConnIdleTimeSet                      bool
+	MaxPoolSize                             uint64
+	MaxPoolSizeSet                          bool
+	MinPoolSize                             uint64
+	MinPoolSizeSet                          bool
+	MaxConnecting                           uint64
+	MaxConnectingSet                        bool
+	Password                                string
+	PasswordSet                             bool
+	RawHosts                                []string
+	ReadConcernLevel                        string
+	ReadPreference                          string
+	ReadPreferenceTagSets                   []map[string]string
+	RetryWrites                             bool
+	RetryWritesSet                          bool
+	RetryReads                              bool
+	RetryReadsSet                           bool
+	MaxAdaptiveRetries                      uint
+	MaxAdaptiveRetriesSet                   bool
+	EnableOverloadRetargeting               bool
+	EnableOverloadRetargetingSet            bool
+	MaxStaleness                            time.Duration
+	MaxStalenessSet                         bool
+	ReplicaSet                              string
+	Scheme                                  string
+	ServerMonitoringMode                    string
+	ServerSelectionTimeout                  time.Duration
+	ServerSelectionTimeoutSet               bool
+	SocketTimeout                           time.Duration
+	SocketTimeoutSet                        bool
+	SRVMaxHosts                             int
+	SRVServiceName                          string
+	SSL                                     bool
+	SSLSet                                  bool
+	SSLClientCertificateKeyFile             string
+	SSLClientCertificateKeyFileSet          bool
+	SSLClientCertificateKeyPassword         func() string
+	SSLClientCertificateKeyPasswordSet      bool
+	SSLCertificateFile                      string
+	SSLCertificateFileSet                   bool
+	SSLPrivateKeyFile                       string
+	SSLPrivateKeyFileSet                    bool
+	SSLInsecure                             bool
+	SSLInsecureSet                          bool
+	SSLCaFile                               string
+	SSLCaFileSet                            bool
+	SSLDisableCertificateRevocationCheck    bool
+	SSLDisableCertificateRevocationCheckSet bool
+	SSLDisableOCSPEndpointCheck             bool
+	SSLDisableOCSPEndpointCheckSet          bool
+	Timeout                                 time.Duration
+	TimeoutSet                              bool
+	WString                                 string
+	WNumber                                 int
+	WNumberSet                              bool
+	Username                                string
+	UsernameSet                             bool
+	ZlibLevel                               int
+	ZlibLevelSet                            bool
+	ZstdLevel                               int
+	ZstdLevelSet                            bool
 
 	Options        map[string][]string
 	UnknownOptions map[string][]string
@@ -648,6 +650,19 @@ func (u *ConnString) addOptions(connectionArgPairs []string) error {
 			}
 			u.Timeout = time.Duration(n) * time.Millisecond
 			u.TimeoutSet = true
+		case "tlsdisablecertificaterevocationcheck":
+			u.SSL = true
+			u.SSLSet = true
+
+			switch value {
+			case "true":
+				u.SSLDisableCertificateRevocationCheck = true
+			case "false":
+				u.SSLDisableCertificateRevocationCheck = false
+			default:
+				return fmt.Errorf("invalid value for %q: %q", key, value)
+			}
+			u.SSLDisableCertificateRevocationCheckSet = true
 		case "tlsdisableocspendpointcheck":
 			u.SSL = true
 			u.SSLSet = true
@@ -811,9 +826,17 @@ func (u *ConnString) validateSSL() error {
 		return errors.New("the tlsCertificateFile URI option must be provided if the tlsPrivateKeyFile option is specified")
 	}
 
+	if u.SSLDisableOCSPEndpointCheckSet && u.SSLDisableCertificateRevocationCheckSet {
+		return errors.New("tlsDisableOCSPEndpointCheck cannot be used with tlsDisableCertificateRevocationCheck")
+	}
+
 	if u.SSLInsecureSet && u.SSLDisableOCSPEndpointCheckSet {
 		return errors.New("the sslInsecure/tlsInsecure URI option cannot be provided along with " +
-			"tlsDisableOCSPEndpointCheck ")
+			"tlsDisableOCSPEndpointCheck")
+	}
+
+	if u.SSLInsecureSet && u.SSLDisableCertificateRevocationCheckSet {
+		return errors.New("sslInsecure/tlsInsecure cannot be used with tlsDisableCertificateRevocationCheck")
 	}
 	return nil
 }

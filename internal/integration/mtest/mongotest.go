@@ -719,12 +719,12 @@ func (t *T) createTestCollection() {
 
 // verifyVersionConstraints returns an error if the cluster's server version is not in the range [min, max]. Server
 // versions will only be checked if they are non-empty.
-func verifyVersionConstraints(min, max string) error {
-	if min != "" && CompareServerVersions(testContext.serverVersion, min) < 0 {
-		return fmt.Errorf("server version %q is lower than min required version %q", testContext.serverVersion, min)
+func verifyVersionConstraints(minVersion, maxVersion string) error {
+	if minVersion != "" && CompareServerVersions(testContext.serverVersion, minVersion) < 0 {
+		return fmt.Errorf("server version %q is lower than min required version %q", testContext.serverVersion, minVersion)
 	}
-	if max != "" && CompareServerVersions(testContext.serverVersion, max) > 0 {
-		return fmt.Errorf("server version %q is higher than max version %q", testContext.serverVersion, max)
+	if maxVersion != "" && CompareServerVersions(testContext.serverVersion, maxVersion) > 0 {
+		return fmt.Errorf("server version %q is higher than max version %q", testContext.serverVersion, maxVersion)
 	}
 	return nil
 }

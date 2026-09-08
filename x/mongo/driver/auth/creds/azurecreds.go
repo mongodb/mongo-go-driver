@@ -30,7 +30,7 @@ func NewAzureCredentialProvider(httpClient *http.Client) AzureCredentialProvider
 
 // GetCredentialsDoc generates Azure credentials.
 func (p AzureCredentialProvider) GetCredentialsDoc(ctx context.Context) (bsoncore.Document, error) {
-	creds, err := p.cred.GetWithContext(ctx)
+	creds, err := p.cred.Get(ctx)
 	if err != nil {
 		return nil, err
 	}

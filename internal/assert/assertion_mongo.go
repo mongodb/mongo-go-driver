@@ -44,18 +44,6 @@ func DifferentAddressRanges(t TestingT, a, b []byte) (ok bool) {
 
 	// Otherwise, calculate the overlap start and end and print the memory
 	// overlap error message.
-	min := func(a, b uintptr) uintptr {
-		if a < b {
-			return a
-		}
-		return b
-	}
-	max := func(a, b uintptr) uintptr {
-		if a > b {
-			return a
-		}
-		return b
-	}
 	overlapLow := max(aStart, bStart)
 	overlapHigh := min(aEnd, bEnd)
 

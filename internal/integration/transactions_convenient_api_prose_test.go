@@ -57,7 +57,7 @@ func TestTransactionConvenientApiProse(t *testing.T) {
 		withBackoffTime := transWithJitter(mt, 1)
 		assert.InDelta(
 			t,
-			withBackoffTime, noBackoffTime+1_800*time.Millisecond, float64(500*time.Millisecond),
+			withBackoffTime, noBackoffTime+2_300*time.Millisecond, float64(500*time.Millisecond),
 			"with backoff time: %v, no backoff time: %v", withBackoffTime, noBackoffTime,
 		)
 	})

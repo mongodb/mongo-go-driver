@@ -27,7 +27,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
@@ -362,25 +361,55 @@ func (coll *Collection) insert(
 	}
 	op.retry = &retry
 
-	err = op.Execute(ctx)
+	err = op.execute(ctx)
 	var wce driver.WriteCommandError
 	if !errors.As(err, &wce) {
 		return result, err
 	}
 
-	// remove the ids that had writeErrors from result
-	for i, we := range wce.WriteErrors {
-		// i indexes have been removed before the current error, so the index is we.Index-i
-		idIndex := int(we.Index) - i
-		// if the insert is ordered, nothing after the error was inserted
-		if args.Ordered == nil || *args.Ordered {
-			result = result[:idIndex]
-			break
-		}
-		result = append(result[:idIndex], result[idIndex+1:]...)
-	}
+	ordered := args.Ordered == nil || *args.Ordered
+	result = keepInsertedIDs(result, wce.WriteErrors, ordered)
 
 	return result, err
+}
+
+// keepInsertedIDs returns the subset of result whose corresponding documents
+// were not rejected by the server. Each WriteError.Index refers to the
+// positional index of the document in the original insert request, which is
+// also the index space of result.
+//
+// writeErrors is not required to be sorted by Index: the server does not
+// guarantee that write errors for an unordered bulk write are returned in
+// ascending Index order, and assuming otherwise previously caused
+// out-of-range slice panics (GODRIVER-4096). Neither result nor writeErrors
+// is modified.
+func keepInsertedIDs(result []any, writeErrors driver.WriteErrors, ordered bool) []any {
+	// If there are no write errors, then every document was inserted.
+	if len(writeErrors) == 0 {
+		return result
+	}
+
+	failed := make(map[int]bool, len(writeErrors))
+	for _, writeError := range writeErrors {
+		failed[int(writeError.Index)] = true
+	}
+
+	kept := result[:0:0]
+	for idx, id := range result {
+		if failed[idx] {
+			// The server stops an ordered insert at the first document that
+			// fails, so nothing at or after that index was inserted.
+			if ordered {
+				break
+			}
+
+			continue
+		}
+
+		kept = append(kept, id)
+	}
+
+	return kept
 }
 
 // InsertOne executes an insert command to insert a single document into the collection.
@@ -563,41 +592,55 @@ func (coll *Collection) delete(
 	}
 	doc, _ = bsoncore.AppendDocumentEnd(doc, didx)
 
-	op := operation.NewDelete(doc).
-		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.monitor).
-		Retry(retryMode).MaxAdaptiveRetries(maxAdaptiveRetries).
-		EnableOverloadRetargeting(coll.client.enableOverloadRetargeting).
-		ServerSelector(selector).ClusterClock(coll.client.clock).
-		Database(coll.db.name).Collection(coll.name).
-		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).Ordered(true).
-		ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).Logger(coll.client.logger).Authenticator(coll.client.authenticator)
+	ordered := true
+	op := &deleteOp{
+		deletes:                   []bsoncore.Document{doc},
+		session:                   sess,
+		writeConcern:              wc,
+		monitor:                   coll.client.monitor,
+		retry:                     &retryMode,
+		maxAdaptiveRetries:        maxAdaptiveRetries,
+		enableOverloadRetargeting: coll.client.enableOverloadRetargeting,
+		selector:                  selector,
+		clock:                     coll.client.clock,
+		database:                  coll.db.name,
+		collection:                coll.name,
+		deployment:                coll.client.deployment,
+		crypt:                     coll.client.cryptFLE,
+		ordered:                   &ordered,
+		serverAPI:                 coll.client.serverAPI,
+		timeout:                   coll.client.timeout,
+		logger:                    coll.client.logger,
+		authenticator:             coll.client.authenticator,
+	}
 	if args.Comment != nil {
 		comment, err := marshalValue(args.Comment, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return nil, err
 		}
-		op = op.Comment(comment)
+		op.comment = comment
 	}
 	if args.Hint != nil {
-		op = op.Hint(true)
+		hint := true
+		op.hint = &hint
 	}
 	if args.Let != nil {
 		let, err := marshal(args.Let, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return nil, err
 		}
-		op = op.Let(let)
+		op.let = let
 	}
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
-		op = op.RawData(rawData)
+		op.rawData = &rawData
 	}
 
-	rr, err := processWriteError(op.Execute(ctx))
+	rr, err := processWriteError(op.execute(ctx))
 	if rr&expectedRr == 0 {
 		return nil, err
 	}
 	return &DeleteResult{
-		DeletedCount: op.Result().N,
+		DeletedCount: op.result().N,
 		Acknowledged: rr.isAcknowledged(),
 	}, err
 }
@@ -763,14 +806,14 @@ func (coll *Collection) updateOrReplace(
 	if additionalCmd, ok := optionsutil.Value(args.Internal, "addCommandFields").(bson.D); ok {
 		op.additionalCmd = additionalCmd
 	}
-	err = op.Execute(ctx)
+	err = op.execute(ctx)
 
 	rr, err := processWriteError(err)
 	if rr&expectedRr == 0 {
 		return nil, err
 	}
 
-	opRes := op.Result()
+	opRes := op.result()
 	res := &UpdateResult{
 		MatchedCount:  opRes.N,
 		ModifiedCount: opRes.NModified,
@@ -1044,44 +1087,46 @@ func aggregate(a aggregateParams, opts ...options.Lister[options.AggregateOption
 
 	cursorOpts.MarshalValueEncoderFn = newEncoderFn(a.bsonOpts, a.registry)
 
-	op := operation.NewAggregate(pipelineArr).
-		Session(sess).
-		WriteConcern(wc).
-		ReadConcern(rc).
-		ReadPreference(a.readPreference).
-		CommandMonitor(a.client.monitor).
-		Retry(retry).
-		MaxAdaptiveRetries(cursorOpts.MaxAdaptiveRetries).
-		EnableOverloadRetargeting(cursorOpts.EnableOverloadRetargeting).
-		ServerSelector(selector).
-		ClusterClock(a.client.clock).
-		Database(a.db).
-		Collection(a.col).
-		Deployment(a.client.deployment).
-		Crypt(a.client.cryptFLE).
-		ServerAPI(a.client.serverAPI).
-		HasOutputStage(hasOutputStage).
-		Timeout(a.client.timeout).
-		Authenticator(a.client.authenticator).
+	op := aggregateOp{
+		pipeline:                  pipelineArr,
+		session:                   sess,
+		writeConcern:              wc,
+		readConcern:               rc,
+		readPreference:            a.readPreference,
+		monitor:                   a.client.monitor,
+		retry:                     &retry,
+		maxAdaptiveRetries:        cursorOpts.MaxAdaptiveRetries,
+		enableOverloadRetargeting: cursorOpts.EnableOverloadRetargeting,
+		selector:                  selector,
+		clock:                     a.client.clock,
+		database:                  a.db,
+		collection:                a.col,
+		deployment:                a.client.deployment,
+		crypt:                     a.client.cryptFLE,
+		serverAPI:                 a.client.serverAPI,
+		hasOutputStage:            hasOutputStage,
+		timeout:                   a.client.timeout,
+		authenticator:             a.client.authenticator,
 		// Omit "maxTimeMS" from operations that return a user-managed cursor to
 		// prevent confusing "cursor not found" errors.
 		//
 		// See DRIVERS-2722 for more detail.
-		OmitMaxTimeMS(true)
+		omitMaxTimeMS: true,
+	}
 
 	if args.AllowDiskUse != nil {
-		op.AllowDiskUse(*args.AllowDiskUse)
+		op.allowDiskUse = args.AllowDiskUse
 	}
 	// ignore batchSize of 0 with $out
 	if args.BatchSize != nil && (*args.BatchSize != 0 || !hasOutputStage) {
-		op.BatchSize(*args.BatchSize)
+		op.batchSize = args.BatchSize
 		cursorOpts.BatchSize = *args.BatchSize
 	}
 	if args.BypassDocumentValidation != nil && *args.BypassDocumentValidation {
-		op.BypassDocumentValidation(*args.BypassDocumentValidation)
+		op.bypassDocumentValidation = args.BypassDocumentValidation
 	}
 	if args.Collation != nil {
-		op.Collation(bsoncore.Document(toDocument(args.Collation)))
+		op.collation = bsoncore.Document(toDocument(args.Collation))
 	}
 	if args.MaxAwaitTime != nil {
 		cursorOpts.SetMaxAwaitTime(*args.MaxAwaitTime)
@@ -1092,7 +1137,7 @@ func aggregate(a aggregateParams, opts ...options.Lister[options.AggregateOption
 			return nil, err
 		}
 
-		op.Comment(comment)
+		op.comment = comment
 		cursorOpts.Comment = comment
 	}
 	if args.Hint != nil {
@@ -1103,14 +1148,14 @@ func aggregate(a aggregateParams, opts ...options.Lister[options.AggregateOption
 		if err != nil {
 			return nil, err
 		}
-		op.Hint(hintVal)
+		op.hint = hintVal
 	}
 	if args.Let != nil {
 		let, err := marshal(args.Let, a.bsonOpts, a.registry)
 		if err != nil {
 			return nil, err
 		}
-		op.Let(let)
+		op.let = let
 	}
 	if args.Custom != nil {
 		// Marshal all custom options before passing to the aggregate operation. Return
@@ -1123,13 +1168,13 @@ func aggregate(a aggregateParams, opts ...options.Lister[options.AggregateOption
 			}
 			customOptions[optionName] = optionValueBSON
 		}
-		op.CustomOptions(customOptions)
+		op.customOptions = customOptions
 	}
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
-		op = op.RawData(rawData)
+		op.rawData = &rawData
 	}
 
-	err = op.Execute(a.ctx)
+	err = op.execute(a.ctx)
 	if err != nil {
 		var wce driver.WriteCommandError
 		if errors.As(err, &wce) && wce.WriteConcernError != nil {
@@ -1138,7 +1183,7 @@ func aggregate(a aggregateParams, opts ...options.Lister[options.AggregateOption
 		return nil, wrapErrors(err)
 	}
 
-	bc, err := op.Result(cursorOpts)
+	bc, err := op.result(cursorOpts)
 	if err != nil {
 		return nil, wrapErrors(err)
 	}
@@ -1199,14 +1244,27 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter any,
 	maxAdaptiveRetries := coll.client.effectiveAdaptiveRetries(coll.client.retryReads)
 
 	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.localThreshold)
-	op := operation.NewAggregate(pipelineArr).Session(sess).ReadConcern(rc).ReadPreference(coll.readPreference).
-		Retry(retry).MaxAdaptiveRetries(maxAdaptiveRetries).
-		EnableOverloadRetargeting(coll.client.enableOverloadRetargeting).
-		CommandMonitor(coll.client.monitor).ServerSelector(selector).ClusterClock(coll.client.clock).Database(coll.db.name).
-		Collection(coll.name).Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI).
-		Timeout(coll.client.timeout).Authenticator(coll.client.authenticator)
+	op := aggregateOp{
+		pipeline:                  pipelineArr,
+		session:                   sess,
+		readConcern:               rc,
+		readPreference:            coll.readPreference,
+		retry:                     &retry,
+		maxAdaptiveRetries:        maxAdaptiveRetries,
+		enableOverloadRetargeting: coll.client.enableOverloadRetargeting,
+		monitor:                   coll.client.monitor,
+		selector:                  selector,
+		clock:                     coll.client.clock,
+		database:                  coll.db.name,
+		collection:                coll.name,
+		deployment:                coll.client.deployment,
+		crypt:                     coll.client.cryptFLE,
+		serverAPI:                 coll.client.serverAPI,
+		timeout:                   coll.client.timeout,
+		authenticator:             coll.client.authenticator,
+	}
 	if args.Collation != nil {
-		op.Collation(bsoncore.Document(toDocument(args.Collation)))
+		op.collation = bsoncore.Document(toDocument(args.Collation))
 	}
 	if args.Comment != nil {
 		comment, err := marshalValue(args.Comment, coll.bsonOpts, coll.registry)
@@ -1214,7 +1272,7 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter any,
 			return 0, err
 		}
 
-		op.Comment(comment)
+		op.comment = comment
 	}
 	if args.Hint != nil {
 		if isUnorderedMap(args.Hint) {
@@ -1224,18 +1282,18 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter any,
 		if err != nil {
 			return 0, err
 		}
-		op.Hint(hintVal)
+		op.hint = hintVal
 	}
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
-		op = op.RawData(rawData)
+		op.rawData = &rawData
 	}
 
-	err = op.Execute(ctx)
+	err = op.execute(ctx)
 	if err != nil {
 		return 0, wrapErrors(err)
 	}
 
-	batch := op.ResultCursorResponse().FirstBatch
+	batch := op.resultCursorResponse().FirstBatch
 	if batch == nil {
 		return 0, errors.New("invalid response from server, no 'firstBatch' field")
 	}
@@ -1299,27 +1357,38 @@ func (coll *Collection) EstimatedDocumentCount(
 	maxAdaptiveRetries := coll.client.effectiveAdaptiveRetries(coll.client.retryReads)
 
 	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.localThreshold)
-	op := operation.NewCount().Session(sess).ClusterClock(coll.client.clock).
-		Database(coll.db.name).Collection(coll.name).CommandMonitor(coll.client.monitor).
-		Deployment(coll.client.deployment).ReadConcern(rc).ReadPreference(coll.readPreference).
-		Retry(retry).MaxAdaptiveRetries(maxAdaptiveRetries).
-		EnableOverloadRetargeting(coll.client.enableOverloadRetargeting).
-		ServerSelector(selector).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI).
-		Timeout(coll.client.timeout).Authenticator(coll.client.authenticator)
+	op := countOp{
+		session:                   sess,
+		clock:                     coll.client.clock,
+		database:                  coll.db.name,
+		collection:                coll.name,
+		monitor:                   coll.client.monitor,
+		deployment:                coll.client.deployment,
+		readConcern:               rc,
+		readPreference:            coll.readPreference,
+		retry:                     &retry,
+		maxAdaptiveRetries:        maxAdaptiveRetries,
+		enableOverloadRetargeting: coll.client.enableOverloadRetargeting,
+		selector:                  selector,
+		crypt:                     coll.client.cryptFLE,
+		serverAPI:                 coll.client.serverAPI,
+		timeout:                   coll.client.timeout,
+		authenticator:             coll.client.authenticator,
+	}
 
 	if args.Comment != nil {
 		comment, err := marshalValue(args.Comment, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return 0, err
 		}
-		op = op.Comment(comment)
+		op.comment = comment
 	}
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
-		op = op.RawData(rawData)
+		op.rawData = &rawData
 	}
 
-	err = op.Execute(ctx)
-	return op.Result().N, wrapErrors(err)
+	err = op.execute(ctx)
+	return op.result().N, wrapErrors(err)
 }
 
 // Distinct executes a distinct command to find the unique values for a specified field in the collection.
@@ -1380,24 +1449,36 @@ func (coll *Collection) Distinct(
 		return &DistinctResult{err: err}
 	}
 
-	op := operation.NewDistinct(fieldName, f).
-		Session(sess).ClusterClock(coll.client.clock).
-		Database(coll.db.name).Collection(coll.name).CommandMonitor(coll.client.monitor).
-		Deployment(coll.client.deployment).ReadConcern(rc).ReadPreference(coll.readPreference).
-		Retry(retry).MaxAdaptiveRetries(maxAdaptiveRetries).
-		EnableOverloadRetargeting(coll.client.enableOverloadRetargeting).
-		ServerSelector(selector).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI).
-		Timeout(coll.client.timeout).Authenticator(coll.client.authenticator)
+	op := distinctOp{
+		key:                       &fieldName,
+		query:                     f,
+		session:                   sess,
+		clock:                     coll.client.clock,
+		database:                  coll.db.name,
+		collection:                coll.name,
+		monitor:                   coll.client.monitor,
+		deployment:                coll.client.deployment,
+		readConcern:               rc,
+		readPreference:            coll.readPreference,
+		retry:                     &retry,
+		maxAdaptiveRetries:        maxAdaptiveRetries,
+		enableOverloadRetargeting: coll.client.enableOverloadRetargeting,
+		selector:                  selector,
+		crypt:                     coll.client.cryptFLE,
+		serverAPI:                 coll.client.serverAPI,
+		timeout:                   coll.client.timeout,
+		authenticator:             coll.client.authenticator,
+	}
 
 	if args.Collation != nil {
-		op.Collation(bsoncore.Document(toDocument(args.Collation)))
+		op.collation = bsoncore.Document(toDocument(args.Collation))
 	}
 	if args.Comment != nil {
 		comment, err := marshalValue(args.Comment, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return &DistinctResult{err: err}
 		}
-		op.Comment(comment)
+		op.comment = comment
 	}
 	if args.Hint != nil {
 		if isUnorderedMap(args.Hint) {
@@ -1407,20 +1488,20 @@ func (coll *Collection) Distinct(
 		if err != nil {
 			return &DistinctResult{err: err}
 		}
-		op.Hint(hint)
+		op.hint = hint
 	}
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
-		op = op.RawData(rawData)
+		op.rawData = &rawData
 	}
 
-	err = op.Execute(ctx)
+	err = op.execute(ctx)
 	if err != nil {
 		return &DistinctResult{err: wrapErrors(err)}
 	}
 
-	arr, ok := op.Result().Values.ArrayOK()
+	arr, ok := op.result().Values.ArrayOK()
 	if !ok {
-		err := fmt.Errorf("response field 'values' is type array, but received BSON type %s", op.Result().Values.Type)
+		err := fmt.Errorf("response field 'values' is type array, but received BSON type %s", op.result().Values.Type)
 
 		return &DistinctResult{err: err}
 	}
@@ -1499,30 +1580,42 @@ func (coll *Collection) find(
 	cursorOpts := coll.client.createBaseCursorOptions(coll.client.retryReads)
 
 	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.localThreshold)
-	op := operation.NewFind(f).
-		Session(sess).ReadConcern(rc).ReadPreference(coll.readPreference).
-		CommandMonitor(coll.client.monitor).ServerSelector(selector).
-		Retry(retry).MaxAdaptiveRetries(cursorOpts.MaxAdaptiveRetries).
-		EnableOverloadRetargeting(cursorOpts.EnableOverloadRetargeting).
-		ClusterClock(coll.client.clock).Database(coll.db.name).Collection(coll.name).
-		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI).
-		Timeout(coll.client.timeout).Logger(coll.client.logger).Authenticator(coll.client.authenticator).
-		OmitMaxTimeMS(omitMaxTimeMS)
+	op := findOp{
+		filter:                    f,
+		session:                   sess,
+		readConcern:               rc,
+		readPreference:            coll.readPreference,
+		monitor:                   coll.client.monitor,
+		selector:                  selector,
+		retry:                     &retry,
+		maxAdaptiveRetries:        cursorOpts.MaxAdaptiveRetries,
+		enableOverloadRetargeting: cursorOpts.EnableOverloadRetargeting,
+		clock:                     coll.client.clock,
+		database:                  coll.db.name,
+		collection:                coll.name,
+		deployment:                coll.client.deployment,
+		crypt:                     coll.client.cryptFLE,
+		serverAPI:                 coll.client.serverAPI,
+		timeout:                   coll.client.timeout,
+		logger:                    coll.client.logger,
+		authenticator:             coll.client.authenticator,
+		omitMaxTimeMS:             omitMaxTimeMS,
+	}
 
 	cursorOpts.MarshalValueEncoderFn = newEncoderFn(coll.bsonOpts, coll.registry)
 
 	if args.AllowDiskUse != nil {
-		op.AllowDiskUse(*args.AllowDiskUse)
+		op.allowDiskUse = args.AllowDiskUse
 	}
 	if args.AllowPartialResults != nil {
-		op.AllowPartialResults(*args.AllowPartialResults)
+		op.allowPartialResults = args.AllowPartialResults
 	}
 	if args.BatchSize != nil {
 		cursorOpts.BatchSize = *args.BatchSize
-		op.BatchSize(*args.BatchSize)
+		op.batchSize = args.BatchSize
 	}
 	if args.Collation != nil {
-		op.Collation(bsoncore.Document(toDocument(args.Collation)))
+		op.collation = bsoncore.Document(toDocument(args.Collation))
 	}
 	if args.Comment != nil {
 		comment, err := marshalValue(args.Comment, coll.bsonOpts, coll.registry)
@@ -1530,16 +1623,18 @@ func (coll *Collection) find(
 			return nil, err
 		}
 
-		op.Comment(comment)
+		op.comment = comment
 		cursorOpts.Comment = comment
 	}
 	if args.CursorType != nil {
+		tailable := true
 		switch *args.CursorType {
 		case options.Tailable:
-			op.Tailable(true)
+			op.tailable = &tailable
 		case options.TailableAwait:
-			op.Tailable(true)
-			op.AwaitData(true)
+			awaitData := true
+			op.tailable = &tailable
+			op.awaitData = &awaitData
 		}
 	}
 	if args.Hint != nil {
@@ -1550,62 +1645,63 @@ func (coll *Collection) find(
 		if err != nil {
 			return nil, err
 		}
-		op.Hint(hint)
+		op.hint = hint
 	}
 	if args.Let != nil {
 		let, err := marshal(args.Let, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return nil, err
 		}
-		op.Let(let)
+		op.let = let
 	}
 	if args.Limit != nil {
 		limit := *args.Limit
 		if limit < 0 {
 			limit = -1 * limit
-			op.SingleBatch(true)
+			singleBatch := true
+			op.singleBatch = &singleBatch
 		}
 		cursorOpts.Limit = int32(limit)
-		op.Limit(limit)
+		op.limit = &limit
 	}
 	if args.Max != nil {
-		max, err := marshal(args.Max, coll.bsonOpts, coll.registry)
+		maxVal, err := marshal(args.Max, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return nil, err
 		}
-		op.Max(max)
+		op.max = maxVal
 	}
 	if args.MaxAwaitTime != nil {
 		cursorOpts.SetMaxAwaitTime(*args.MaxAwaitTime)
 	}
 	if args.Min != nil {
-		min, err := marshal(args.Min, coll.bsonOpts, coll.registry)
+		minVal, err := marshal(args.Min, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return nil, err
 		}
-		op.Min(min)
+		op.min = minVal
 	}
 	if args.NoCursorTimeout != nil {
-		op.NoCursorTimeout(*args.NoCursorTimeout)
+		op.noCursorTimeout = args.NoCursorTimeout
 	}
 	if args.OplogReplay != nil {
-		op.OplogReplay(*args.OplogReplay)
+		op.oplogReplay = args.OplogReplay
 	}
 	if args.Projection != nil {
 		proj, err := marshal(args.Projection, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return nil, err
 		}
-		op.Projection(proj)
+		op.projection = proj
 	}
 	if args.ReturnKey != nil {
-		op.ReturnKey(*args.ReturnKey)
+		op.returnKey = args.ReturnKey
 	}
 	if args.ShowRecordID != nil {
-		op.ShowRecordID(*args.ShowRecordID)
+		op.showRecordID = args.ShowRecordID
 	}
 	if args.Skip != nil {
-		op.Skip(*args.Skip)
+		op.skip = args.Skip
 	}
 	if args.Sort != nil {
 		if isUnorderedMap(args.Sort) {
@@ -1615,17 +1711,17 @@ func (coll *Collection) find(
 		if err != nil {
 			return nil, err
 		}
-		op.Sort(sort)
+		op.sort = sort
 	}
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
-		op = op.RawData(rawData)
+		op.rawData = &rawData
 	}
 
-	if err = op.Execute(ctx); err != nil {
+	if err = op.execute(ctx); err != nil {
 		return nil, wrapErrors(err)
 	}
 
-	bc, err := op.Result(cursorOpts)
+	bc, err := op.result(cursorOpts)
 	if err != nil {
 		return nil, wrapErrors(err)
 	}
@@ -1685,7 +1781,7 @@ func (coll *Collection) FindOne(ctx context.Context, filter any,
 	}
 }
 
-func (coll *Collection) findAndModify(ctx context.Context, op *operation.FindAndModify) *SingleResult {
+func (coll *Collection) findAndModify(ctx context.Context, op *findAndModifyOp) *SingleResult {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -1719,27 +1815,27 @@ func (coll *Collection) findAndModify(ctx context.Context, op *operation.FindAnd
 
 	maxAdaptiveRetries := coll.client.effectiveAdaptiveRetries(coll.client.retryWrites)
 
-	op = op.Session(sess).
-		WriteConcern(wc).
-		CommandMonitor(coll.client.monitor).
-		ServerSelector(selector).
-		ClusterClock(coll.client.clock).
-		Database(coll.db.name).
-		Collection(coll.name).
-		Deployment(coll.client.deployment).
-		Retry(retry).
-		MaxAdaptiveRetries(maxAdaptiveRetries).
-		EnableOverloadRetargeting(coll.client.enableOverloadRetargeting).
-		Crypt(coll.client.cryptFLE)
+	op.session = sess
+	op.writeConcern = wc
+	op.monitor = coll.client.monitor
+	op.selector = selector
+	op.clock = coll.client.clock
+	op.database = coll.db.name
+	op.collection = coll.name
+	op.deployment = coll.client.deployment
+	op.retry = &retry
+	op.maxAdaptiveRetries = maxAdaptiveRetries
+	op.enableOverloadRetargeting = coll.client.enableOverloadRetargeting
+	op.crypt = coll.client.cryptFLE
 
-	rr, err := processWriteError(op.Execute(ctx))
+	rr, err := processWriteError(op.execute(ctx))
 	if err != nil {
 		return &SingleResult{err: err}
 	}
 
 	return &SingleResult{
 		ctx:          ctx,
-		rdr:          bson.Raw(op.Result().Value),
+		rdr:          bson.Raw(op.result().Value),
 		bsonOpts:     coll.bsonOpts,
 		reg:          coll.registry,
 		Acknowledged: rr.isAcknowledged(),
@@ -1772,23 +1868,30 @@ func (coll *Collection) FindOneAndDelete(
 		return &SingleResult{err: fmt.Errorf("failed to construct options from builder: %w", err)}
 	}
 
-	op := operation.NewFindAndModify(f).Remove(true).ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).Authenticator(coll.client.authenticator)
+	remove := true
+	op := &findAndModifyOp{
+		query:         f,
+		remove:        &remove,
+		serverAPI:     coll.client.serverAPI,
+		timeout:       coll.client.timeout,
+		authenticator: coll.client.authenticator,
+	}
 	if args.Collation != nil {
-		op = op.Collation(bsoncore.Document(toDocument(args.Collation)))
+		op.collation = bsoncore.Document(toDocument(args.Collation))
 	}
 	if args.Comment != nil {
 		comment, err := marshalValue(args.Comment, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return &SingleResult{err: err}
 		}
-		op = op.Comment(comment)
+		op.comment = comment
 	}
 	if args.Projection != nil {
 		proj, err := marshal(args.Projection, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return &SingleResult{err: err}
 		}
-		op = op.Fields(proj)
+		op.fields = proj
 	}
 	if args.Sort != nil {
 		if isUnorderedMap(args.Sort) {
@@ -1798,7 +1901,7 @@ func (coll *Collection) FindOneAndDelete(
 		if err != nil {
 			return &SingleResult{err: err}
 		}
-		op = op.Sort(sort)
+		op.sort = sort
 	}
 	if args.Hint != nil {
 		if isUnorderedMap(args.Hint) {
@@ -1808,17 +1911,17 @@ func (coll *Collection) FindOneAndDelete(
 		if err != nil {
 			return &SingleResult{err: err}
 		}
-		op = op.Hint(hint)
+		op.hint = hint
 	}
 	if args.Let != nil {
 		let, err := marshal(args.Let, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return &SingleResult{err: err}
 		}
-		op = op.Let(let)
+		op.let = let
 	}
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
-		op = op.RawData(rawData)
+		op.rawData = &rawData
 	}
 
 	return coll.findAndModify(ctx, op)
@@ -1861,30 +1964,36 @@ func (coll *Collection) FindOneAndReplace(
 		return &SingleResult{err: fmt.Errorf("failed to construct options from builder: %w", err)}
 	}
 
-	op := operation.NewFindAndModify(f).Update(bsoncore.Value{Type: bsoncore.TypeEmbeddedDocument, Data: r}).
-		ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).Authenticator(coll.client.authenticator)
+	op := &findAndModifyOp{
+		query:         f,
+		update:        bsoncore.Value{Type: bsoncore.TypeEmbeddedDocument, Data: r},
+		serverAPI:     coll.client.serverAPI,
+		timeout:       coll.client.timeout,
+		authenticator: coll.client.authenticator,
+	}
 	if args.BypassDocumentValidation != nil && *args.BypassDocumentValidation {
-		op = op.BypassDocumentValidation(*args.BypassDocumentValidation)
+		op.bypassDocumentValidation = args.BypassDocumentValidation
 	}
 	if args.Collation != nil {
-		op = op.Collation(bsoncore.Document(toDocument(args.Collation)))
+		op.collation = bsoncore.Document(toDocument(args.Collation))
 	}
 	if args.Comment != nil {
 		comment, err := marshalValue(args.Comment, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return &SingleResult{err: err}
 		}
-		op = op.Comment(comment)
+		op.comment = comment
 	}
 	if args.Projection != nil {
 		proj, err := marshal(args.Projection, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return &SingleResult{err: err}
 		}
-		op = op.Fields(proj)
+		op.fields = proj
 	}
 	if args.ReturnDocument != nil {
-		op = op.NewDocument(*args.ReturnDocument == options.After)
+		newDocument := *args.ReturnDocument == options.After
+		op.newDocument = &newDocument
 	}
 	if args.Sort != nil {
 		if isUnorderedMap(args.Sort) {
@@ -1894,10 +2003,10 @@ func (coll *Collection) FindOneAndReplace(
 		if err != nil {
 			return &SingleResult{err: err}
 		}
-		op = op.Sort(sort)
+		op.sort = sort
 	}
 	if args.Upsert != nil {
-		op = op.Upsert(*args.Upsert)
+		op.upsert = args.Upsert
 	}
 	if args.Hint != nil {
 		if isUnorderedMap(args.Hint) {
@@ -1907,20 +2016,20 @@ func (coll *Collection) FindOneAndReplace(
 		if err != nil {
 			return &SingleResult{err: err}
 		}
-		op = op.Hint(hint)
+		op.hint = hint
 	}
 	if args.Let != nil {
 		let, err := marshal(args.Let, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return &SingleResult{err: err}
 		}
-		op = op.Let(let)
+		op.let = let
 	}
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
-		op = op.RawData(rawData)
+		op.rawData = &rawData
 	}
 	if additionalCmd, ok := optionsutil.Value(args.Internal, "addCommandFields").(bson.D); ok {
-		op = op.AdditionalCmd(additionalCmd)
+		op.additionalCmd = additionalCmd
 	}
 
 	return coll.findAndModify(ctx, op)
@@ -1961,13 +2070,18 @@ func (coll *Collection) FindOneAndUpdate(
 		return &SingleResult{err: fmt.Errorf("failed to construct options from builder: %w", err)}
 	}
 
-	op := operation.NewFindAndModify(f).ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).Authenticator(coll.client.authenticator)
+	op := &findAndModifyOp{
+		query:         f,
+		serverAPI:     coll.client.serverAPI,
+		timeout:       coll.client.timeout,
+		authenticator: coll.client.authenticator,
+	}
 
 	u, err := marshalUpdateValue(update, coll.bsonOpts, coll.registry, true)
 	if err != nil {
 		return &SingleResult{err: err}
 	}
-	op = op.Update(u)
+	op.update = u
 
 	if args.ArrayFilters != nil {
 		af := args.ArrayFilters
@@ -1976,30 +2090,31 @@ func (coll *Collection) FindOneAndUpdate(
 		if err != nil {
 			return &SingleResult{err: err}
 		}
-		op = op.ArrayFilters(filtersDoc.Data)
+		op.arrayFilters = filtersDoc.Data
 	}
 	if args.BypassDocumentValidation != nil && *args.BypassDocumentValidation {
-		op = op.BypassDocumentValidation(*args.BypassDocumentValidation)
+		op.bypassDocumentValidation = args.BypassDocumentValidation
 	}
 	if args.Collation != nil {
-		op = op.Collation(bsoncore.Document(toDocument(args.Collation)))
+		op.collation = bsoncore.Document(toDocument(args.Collation))
 	}
 	if args.Comment != nil {
 		comment, err := marshalValue(args.Comment, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return &SingleResult{err: err}
 		}
-		op = op.Comment(comment)
+		op.comment = comment
 	}
 	if args.Projection != nil {
 		proj, err := marshal(args.Projection, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return &SingleResult{err: err}
 		}
-		op = op.Fields(proj)
+		op.fields = proj
 	}
 	if args.ReturnDocument != nil {
-		op = op.NewDocument(*args.ReturnDocument == options.After)
+		newDocument := *args.ReturnDocument == options.After
+		op.newDocument = &newDocument
 	}
 	if args.Sort != nil {
 		if isUnorderedMap(args.Sort) {
@@ -2009,10 +2124,10 @@ func (coll *Collection) FindOneAndUpdate(
 		if err != nil {
 			return &SingleResult{err: err}
 		}
-		op = op.Sort(sort)
+		op.sort = sort
 	}
 	if args.Upsert != nil {
-		op = op.Upsert(*args.Upsert)
+		op.upsert = args.Upsert
 	}
 	if args.Hint != nil {
 		if isUnorderedMap(args.Hint) {
@@ -2022,20 +2137,20 @@ func (coll *Collection) FindOneAndUpdate(
 		if err != nil {
 			return &SingleResult{err: err}
 		}
-		op = op.Hint(hint)
+		op.hint = hint
 	}
 	if args.Let != nil {
 		let, err := marshal(args.Let, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return &SingleResult{err: err}
 		}
-		op = op.Let(let)
+		op.let = let
 	}
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
-		op = op.RawData(rawData)
+		op.rawData = &rawData
 	}
 	if additionalCmd, ok := optionsutil.Value(args.Internal, "addCommandFields").(bson.D); ok {
-		op = op.AdditionalCmd(additionalCmd)
+		op.additionalCmd = additionalCmd
 	}
 
 	return coll.findAndModify(ctx, op)
@@ -2171,14 +2286,21 @@ func (coll *Collection) drop(ctx context.Context) error {
 
 	selector := makePinnedSelector(sess, coll.writeSelector)
 
-	op := operation.NewDropCollection().
-		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.monitor).
-		ServerSelector(selector).ClusterClock(coll.client.clock).
-		Database(coll.db.name).Collection(coll.name).
-		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).
-		ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).
-		Authenticator(coll.client.authenticator)
-	err = op.Execute(ctx)
+	op := dropCollectionOp{
+		session:       sess,
+		writeConcern:  wc,
+		monitor:       coll.client.monitor,
+		selector:      selector,
+		clock:         coll.client.clock,
+		database:      coll.db.name,
+		collection:    coll.name,
+		deployment:    coll.client.deployment,
+		crypt:         coll.client.cryptFLE,
+		serverAPI:     coll.client.serverAPI,
+		timeout:       coll.client.timeout,
+		authenticator: coll.client.authenticator,
+	}
+	err = op.execute(ctx)
 
 	// ignore namespace not found errors
 	var driverErr driver.Error

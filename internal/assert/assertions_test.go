@@ -1193,12 +1193,14 @@ func Test_validateEqualArgs(t *testing.T) {
 }
 
 func Test_truncatingFormat(t *testing.T) {
-	original := strings.Repeat("a", bufio.MaxScanTokenSize-102)
-	result := truncatingFormat(original)
+	// The limit leaves room for two formatted values plus the surrounding
+	// message, so a single value may occupy at most half of it.
+	original := strings.Repeat("a", bufio.MaxScanTokenSize/2-102)
+	result := truncatingFormat("%#v", original)
 	Equal(t, fmt.Sprintf("%#v", original), result, "string should not be truncated")
 
 	original = original + "x"
-	result = truncatingFormat(original)
+	result = truncatingFormat("%#v", original)
 	NotEqual(t, fmt.Sprintf("%#v", original), result, "string should have been truncated.")
 
 	if !strings.HasSuffix(result, "<... truncated>") {

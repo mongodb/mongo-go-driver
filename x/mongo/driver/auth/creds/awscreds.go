@@ -24,13 +24,10 @@ const (
 	expiryWindow = 5 * time.Minute
 )
 
-// AWSCredentialProvider wraps AWS credentials.
-type AWSCredentialProvider struct {
-	Cred *credentials.Credentials
-}
-
-// NewAWSCredentialProvider generates new AWSCredentialProvider
-func NewAWSCredentialProvider(httpClient *http.Client, providers ...credentials.Provider) AWSCredentialProvider {
+// NewAWSCredentials returns a Credentials that resolves AWS credentials by
+// chaining the given providers with the default environment, assume-role, ECS,
+// and EC2 providers in order.
+func NewAWSCredentials(httpClient *http.Client, providers ...credentials.Provider) *credentials.Credentials {
 	providers = append(
 		providers,
 		credproviders.NewEnvProvider(),
@@ -39,12 +36,17 @@ func NewAWSCredentialProvider(httpClient *http.Client, providers ...credentials.
 		credproviders.NewEC2Provider(httpClient, expiryWindow),
 	)
 
-	return AWSCredentialProvider{credentials.NewChainCredentials(providers)}
+	return credentials.NewChainCredentials(providers)
+}
+
+// AWSCredentialDocSource wraps AWS credentials.
+type AWSCredentialDocSource struct {
+	Creds *credentials.Credentials
 }
 
 // GetCredentialsDoc generates AWS credentials.
-func (p AWSCredentialProvider) GetCredentialsDoc(ctx context.Context) (bsoncore.Document, error) {
-	creds, err := p.Cred.GetWithContext(ctx)
+func (p AWSCredentialDocSource) GetCredentialsDoc(ctx context.Context) (bsoncore.Document, error) {
+	creds, err := p.Creds.Get(ctx)
 	if err != nil {
 		return nil, err
 	}

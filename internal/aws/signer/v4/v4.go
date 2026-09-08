@@ -97,11 +97,10 @@ type signingCtx struct {
 // is not needed as the full request context will be captured by the http.Request
 // value. It is included for reference though.
 //
-// Sign will set the request's Body to be the `body` parameter passed in. If
-// the body is not already an io.ReadCloser, it will be wrapped within one. If
-// a `nil` body parameter passed to Sign, the request's Body field will be
-// also set to nil. Its important to note that this functionality will not
-// change the request's ContentLength of the request.
+// Sign will set the request's Body to be the `body` parameter passed in. If an
+// empty body parameter passed to Sign, the request's Body field will be set to
+// nil. Its important to note that this functionality will not change the
+// request's ContentLength of the request.
 //
 // Sign differs from Presign in that it will sign the request using HTTP
 // header values. This type of signing is intended for http.Request values that
@@ -135,7 +134,7 @@ func (v4 Signer) signWithBody(r *http.Request, body io.ReadSeeker, service, regi
 	}
 
 	var err error
-	ctx.credValues, err = v4.Credentials.GetWithContext(r.Context())
+	ctx.credValues, err = v4.Credentials.Get(r.Context())
 	if err != nil {
 		return http.Header{}, err
 	}
