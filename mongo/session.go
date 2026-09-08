@@ -183,7 +183,7 @@ func (s *Session) WithTransaction(
 		res, err = fn(NewSessionContext(ctx, s))
 		if err != nil {
 			if s.clientSession.TransactionRunning() {
-				_ = s.AbortTransaction(newCleanupContext(ctx))
+				_ = s.AbortTransaction(csot.WithoutClientLevel(newBackgroundContext(ctx)))
 			}
 
 			select {
@@ -213,13 +213,21 @@ func (s *Session) WithTransaction(
 		// may run on a new mongos which could end up with commit and abort being executed
 		// simultaneously.
 		if ctx.Err() != nil {
-			_ = s.AbortTransaction(newCleanupContext(ctx))
+			// See the AbortTransaction call above for why the Context is wrapped this way.
+			_ = s.AbortTransaction(csot.WithoutClientLevel(newBackgroundContext(ctx)))
 			return nil, ctx.Err()
 		}
 
 	CommitLoop:
 		for {
-			err = s.CommitTransaction(newCleanupContext(ctx))
+			// Wrap the user-provided Context in a new one that behaves like
+			// context.Background() for deadlines and cancellations, but forwards Value
+			// requests to the original one. Clearing the client-level marker is required,
+			// not incidental: newBackgroundContext drops the deadline while forwarding
+			// Value lookups, so a context marked client-level by csot.WithTimeout would
+			// arrive here as a timeout context with no deadline, which CSOT reads as
+			// "no timeout" and retries without bound.
+			err = s.CommitTransaction(csot.WithoutClientLevel(newBackgroundContext(ctx)))
 			// End when error is nil, as transaction has been committed.
 			if err == nil {
 				return res, nil

@@ -55,8 +55,9 @@ func TestSessionTimeoutContext(t *testing.T) {
 			"expected a deadline within %v, got %v", *sessionTimeout, time.Until(deadline))
 	})
 
-	// WithTransaction hands cleanup operations a newCleanupContext so that caller
-	// deadlines and cancellations are not respected during commit and abort, as
+	// WithTransaction wraps cleanup operations in
+	// csot.WithoutClientLevel(newBackgroundContext(ctx)) so that caller deadlines
+	// and cancellations are not respected during commit and abort, as
 	// WithTransaction's documentation states. Both CommitTransaction and
 	// AbortTransaction then apply their own csot.WithTimeout on top. These cases
 	// pin the resulting context shape.
@@ -112,7 +113,7 @@ func TestSessionTimeoutContext(t *testing.T) {
 			t.Run(test.name, func(t *testing.T) {
 				t.Parallel()
 
-				cleanupCtx := newCleanupContext(test.caller(t))
+				cleanupCtx := csot.WithoutClientLevel(newBackgroundContext(test.caller(t)))
 
 				_, hasDeadline := cleanupCtx.Deadline()
 				assert.False(t, hasDeadline, "expected the caller deadline to be dropped")
