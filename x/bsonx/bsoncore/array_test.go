@@ -36,6 +36,13 @@ func TestArray(t *testing.T) {
 				t.Errorf("Did not get expected error. got %v; want %v", got, want)
 			}
 		})
+		t.Run("ZeroLength", func(t *testing.T) {
+			want := ErrInvalidLength
+			got := Array{0x00, 0x00, 0x00, 0x00}.Validate()
+			if !compareErrors(got, want) {
+				t.Errorf("Did not get expected error. got %v; want %v", got, want)
+			}
+		})
 		t.Run("Invalid Element", func(t *testing.T) {
 			want := NewInsufficientBytesError(nil, nil)
 			r := make(Array, 7)
@@ -222,6 +229,12 @@ func TestArray(t *testing.T) {
 				bytes.NewBuffer([]byte{}),
 				nil,
 				io.EOF,
+			},
+			{
+				"length below minimum",
+				bytes.NewBuffer([]byte{4, 0, 0, 0, 0}),
+				nil,
+				ErrInvalidLength,
 			},
 			{
 				"empty Array",

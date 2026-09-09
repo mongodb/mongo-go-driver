@@ -525,4 +525,15 @@ func TestCopier(t *testing.T) {
 			}
 		})
 	})
+	t.Run("copyBytesToValueWriter", func(t *testing.T) {
+		// A length below the 5 byte minimum must be rejected before it is used
+		// to reslice the remaining bytes.
+		for _, length := range []byte{0x00, 0x01, 0x02, 0x03, 0x04} {
+			src := []byte{length, 0x00, 0x00, 0x00, 0x00}
+			err := copyBytesToValueWriter(src, func(string) (ValueWriter, error) {
+				return nil, nil
+			})
+			assert.ErrorContains(t, err, "invalid document length")
+		}
+	})
 }
