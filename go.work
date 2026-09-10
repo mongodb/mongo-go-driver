@@ -7,6 +7,8 @@ use (
 	./internal/cmd/benchmark
 	./internal/cmd/check-fmt
 	./internal/cmd/faas/awslambda/mongodb
+	./internal/cmd/generate-sbom
+	./internal/cmd/upload-sbom
 	./internal/test/awsauth
 	./internal/test/compilecheck
 	./internal/test/goleak
