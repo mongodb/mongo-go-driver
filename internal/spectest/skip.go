@@ -21,6 +21,10 @@ type skipCase struct {
 	// applies. If empty, the skipCase applies to all server versions.
 	minServerVersion string
 
+	// maxServerVersion is the maximum server version for which the skipCase
+	// applies. If empty, the skipCase applies to all server versions.
+	maxServerVersion string
+
 	// topologies is a list of topologies for which the skipCase applies. If
 	// empty, the skipCase applies to all topologies.
 	topologies []string
@@ -1033,13 +1037,16 @@ var skipTests = map[string][]skipCase{
 	},
 
 	// TODO(GODRIVER-4049) Figure out how to set a 500ms maxAwaitTimeMS on
-	// hello.
+	// hello. Only 7.0 servers are affected: SERVER-128517's 10s minimum
+	// maxAwaitTimeMS conflicts with the 500ms test timeouts there.
 	"SERVER-128517 forces a min maxAwaitTimeMS of 10s, which conflicts with the test timeouts": {
 		{
 			tests: []string{
 				"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/hello-timeout.json/Network_timeout_on_Monitor_check",
 				"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/hello-timeout.json/Driver_extends_timeout_while_streaming",
 			},
+			minServerVersion: "7.0",
+			maxServerVersion: "7.0",
 		},
 	},
 
@@ -1153,6 +1160,7 @@ func CheckSkip(t TB, opts ...Option) {
 		for _, sc := range cases {
 			var topoMsg string
 			var minVersionMsg string
+			var maxVersionMsg string
 
 			// Don't skip if the topology is specified and the current topology is not
 			// in the list of topologies for the test case.
@@ -1172,9 +1180,18 @@ func CheckSkip(t TB, opts ...Option) {
 				minVersionMsg = fmt.Sprintf(" (skip on min server version: %s, current: %s)", sc.minServerVersion, minVersion)
 			}
 
+			// Don't skip if the server version is specified and the current server
+			// version is greater than the maximum server version for the test case.
+			if maxVersion := skipOpts.serverVersion; maxVersion != "" && sc.maxServerVersion != "" {
+				if compareServerVersions(maxVersion, sc.maxServerVersion) > 0 {
+					continue
+				}
+				maxVersionMsg = fmt.Sprintf(" (skip on max server version: %s, current: %s)", sc.maxServerVersion, maxVersion)
+			}
+
 			for _, testName := range sc.tests {
 				if t.Name() == testName {
-					t.Skipf("Skipping due to known failure%s%s: %q", topoMsg, minVersionMsg, reason)
+					t.Skipf("Skipping due to known failure%s%s%s: %q", topoMsg, minVersionMsg, maxVersionMsg, reason)
 				}
 			}
 		}

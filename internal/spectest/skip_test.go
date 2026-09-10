@@ -26,6 +26,7 @@ func TestCheckSkip(t *testing.T) {
 		unconditionalTest = "TestFoo/unconditional"
 		topoTest          = "TestFoo/topo_gated"
 		versionTest       = "TestFoo/version_gated"
+		versionRangeTest  = "TestFoo/version_range_gated"
 		unknownTest       = "TestFoo/unknown"
 	)
 
@@ -49,6 +50,13 @@ func TestCheckSkip(t *testing.T) {
 			{
 				tests:            []string{versionTest},
 				minServerVersion: "8.0",
+			},
+		},
+		"version-range-gated skip": {
+			{
+				tests:            []string{versionRangeTest},
+				minServerVersion: "5.0",
+				maxServerVersion: "7.0",
 			},
 		},
 	}
@@ -98,6 +106,47 @@ func TestCheckSkip(t *testing.T) {
 			testName:    versionTest,
 			opts:        []Option{WithServerVersion("7.0")},
 			wantSkipped: false,
+		},
+		{
+			name:        "server version below range does not skip",
+			testName:    versionRangeTest,
+			opts:        []Option{WithServerVersion("4.0")},
+			wantSkipped: false,
+		},
+		{
+			name:        "server version in lower range skips",
+			testName:    versionRangeTest,
+			opts:        []Option{WithServerVersion("5.0")},
+			wantSkipped: true,
+		},
+		{
+			name:        "server version in range skips",
+			testName:    versionRangeTest,
+			opts:        []Option{WithServerVersion("6.0")},
+			wantSkipped: true,
+		},
+		{
+			name:        "server version in upperrange skips",
+			testName:    versionRangeTest,
+			opts:        []Option{WithServerVersion("7.0")},
+			wantSkipped: true,
+		},
+		{
+			name:        "server patch version in range skips",
+			testName:    versionRangeTest,
+			opts:        []Option{WithServerVersion("7.0.14")},
+			wantSkipped: true,
+		},
+		{
+			name:        "server version above range does not skip",
+			testName:    versionRangeTest,
+			opts:        []Option{WithServerVersion("8.0")},
+			wantSkipped: false,
+		},
+		{
+			name:        "unspecified server version skips version-gated test",
+			testName:    versionRangeTest,
+			wantSkipped: true,
 		},
 	}
 
