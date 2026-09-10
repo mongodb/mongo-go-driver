@@ -125,7 +125,7 @@ func (us *GridFSUploadStream) Abort() error {
 		return ErrStreamClosed
 	}
 
-	_, err := us.chunksColl.DeleteMany(us.ctx, bson.D{{"files_id", us.FileID}})
+	_, err := us.chunksColl.DeleteMany(us.ctx, idFilter("files_id", us.FileID))
 	if err != nil {
 		return err
 	}
