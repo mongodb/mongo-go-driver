@@ -102,6 +102,28 @@ func TestDecompressFailures(t *testing.T) {
 		_, err = DecompressPayload(compressedData, opts)
 		assert.Error(t, err)
 	})
+
+	t.Run("negative uncompressed size", func(t *testing.T) {
+		t.Parallel()
+
+		// A server-supplied uncompressedSize is an int32 read straight off the
+		// wire. A negative value reaches make() and panics with
+		// "makeslice: cap out of range" for the zlib and zstd branches.
+		for _, compressor := range []wiremessage.CompressorID{
+			wiremessage.CompressorSnappy,
+			wiremessage.CompressorZLib,
+			wiremessage.CompressorZstd,
+		} {
+			t.Run(compressor.String(), func(t *testing.T) {
+				opts := CompressionOpts{
+					Compressor:       compressor,
+					UncompressedSize: -1,
+				}
+				_, err := DecompressPayload([]byte{0x00, 0x01, 0x02, 0x03}, opts)
+				assert.Error(t, err)
+			})
+		}
+	})
 }
 
 var (
