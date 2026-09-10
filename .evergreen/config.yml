@@ -153,7 +153,7 @@ functions:
           # For example:
           #   git -C $DRIVERS_TOOLS checkout 98f6b0e
           #   git -C $DRIVERS_TOOLS cherry-pick <sha> # needed for <reason>
-          git -C $DRIVERS_TOOLS checkout 98f6b0e
+          git -C $DRIVERS_TOOLS checkout 890a93bdb
 
           echo "{ \"releases\": { \"default\": \"$MONGODB_BINARIES\" }}" > $MONGO_ORCHESTRATION_HOME/orchestration.config
     - command: shell.exec
