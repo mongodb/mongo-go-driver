@@ -12,6 +12,11 @@ updates:
     directory: /
     schedule:
       interval: "weekly"
+    ignore:
+      # ext/awsauth declares the minimum aws-sdk-go-v2 version that is
+      # layout-compatible with its AWSCredentials type. See ext/awsauth/doc.go
+      # for more information.
+      - dependency-name: "github.com/aws/aws-sdk-go-v2"
   - package-ecosystem: "gitsubmodule"
     directory: "/"
     schedule:
