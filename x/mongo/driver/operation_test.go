@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -861,6 +862,21 @@ func TestRetry(t *testing.T) {
 			time.Now().After(deadline),
 			"expected operation to complete only after the context deadline is exceeded")
 	})
+}
+
+func TestOperation_networkError(t *testing.T) {
+	t.Parallel()
+
+	inner := errors.New("connection(host:27017[-1]) incomplete read of message header")
+
+	err := Operation{}.networkError(inner)
+	require.NotNil(t, err)
+
+	msg := err.Error()
+	require.Equal(t, 1, strings.Count(msg, inner.Error()),
+		"expected the wrapped error message to appear exactly once in %q", msg)
+	require.False(t, strings.HasPrefix(msg, " "),
+		"expected no leading space in %q", msg)
 }
 
 func TestDecodeOpReply(t *testing.T) {
