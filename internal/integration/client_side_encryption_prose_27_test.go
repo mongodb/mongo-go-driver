@@ -43,8 +43,6 @@ type cseProse27Test struct {
 	key1ID                bson.Binary
 }
 
-const cseSpecDataDir = "../../testdata/specifications/source/client-side-encryption/etc/data"
-
 func TestClientSideEncryptionProse_27(t *testing.T) {
 	mt := newCSE_T(t, newQEOpts().MinServerVersion("8.2").MinLibmongocryptVersion("1.18.1"))
 	mt.Setup()
@@ -747,13 +745,13 @@ func loadCSEProse27Config() (cseProse27Config, error) {
 		path string
 		dest *bson.Raw
 	}{
-		{filepath.Join(cseSpecDataDir, "encryptedFields-prefix-suffix.json"), &cfg.encryptedFieldsPrefixSuffix},
-		{filepath.Join(cseSpecDataDir, "encryptedFields-prefix-suffix-ci-di.json"), &cfg.encryptedFieldsPrefixSuffixCIDI},
-		{filepath.Join(cseSpecDataDir, "encryptedFields-prefix-suffix-preview.json"), &cfg.encryptedFieldsPrefixSuffixPreview},
-		{filepath.Join(cseSpecDataDir, "encryptedFields-substring.json"), &cfg.encryptedFieldsSubstring},
-		{filepath.Join(cseSpecDataDir, "encryptedFields-substring-ci-di.json"), &cfg.encryptedFieldsSubstringCIDI},
-		{filepath.Join(cseSpecDataDir, "encryptedFields-substring-preview.json"), &cfg.encryptedFieldsSubstringPreview},
-		{filepath.Join(cseSpecDataDir, "keys", "key1-document.json"), &cfg.key1Document},
+		{filepath.Join(cseSpecDir, "etc/data/encryptedFields-prefix-suffix.json"), &cfg.encryptedFieldsPrefixSuffix},
+		{filepath.Join(cseSpecDir, "etc/data/encryptedFields-prefix-suffix-ci-di.json"), &cfg.encryptedFieldsPrefixSuffixCIDI},
+		{filepath.Join(cseSpecDir, "etc/data/encryptedFields-prefix-suffix-preview.json"), &cfg.encryptedFieldsPrefixSuffixPreview},
+		{filepath.Join(cseSpecDir, "etc/data/encryptedFields-substring.json"), &cfg.encryptedFieldsSubstring},
+		{filepath.Join(cseSpecDir, "etc/data/encryptedFields-substring-ci-di.json"), &cfg.encryptedFieldsSubstringCIDI},
+		{filepath.Join(cseSpecDir, "etc/data/encryptedFields-substring-preview.json"), &cfg.encryptedFieldsSubstringPreview},
+		{filepath.Join(cseSpecDir, "etc/data/keys/key1-document.json"), &cfg.key1Document},
 	}
 
 	for _, f := range files {
