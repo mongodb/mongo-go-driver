@@ -62,6 +62,13 @@ type Upload struct {
 	metadata  bson.D
 }
 
+// idFilter returns a filter matching field exactly equal to id. The $eq
+// operator is required so that a user-provided file ID containing query
+// operators cannot match more than the file it addresses.
+func idFilter(field string, id interface{}) bson.D {
+	return bson.D{{field, bson.D{{"$eq", id}}}}
+}
+
 // NewBucket creates a GridFS bucket.
 func NewBucket(db *mongo.Database, opts ...*options.BucketOptions) (*Bucket, error) {
 	b := &Bucket{
@@ -186,9 +193,7 @@ func (b *Bucket) UploadFromStreamWithID(fileID interface{}, filename string, sou
 
 // OpenDownloadStream creates a stream from which the contents of the file can be read.
 func (b *Bucket) OpenDownloadStream(fileID interface{}) (*DownloadStream, error) {
-	return b.openDownloadStream(bson.D{
-		{"_id", fileID},
-	})
+	return b.openDownloadStream(idFilter("_id", fileID))
 }
 
 // DownloadToStream downloads the file with the specified fileID and writes it to the provided io.Writer.
@@ -269,7 +274,7 @@ func (b *Bucket) DeleteContext(ctx context.Context, fileID interface{}) error {
 	}
 
 	// Delete document in files collection and then chunks to minimize race conditions.
-	res, err := b.filesColl.DeleteOne(ctx, bson.D{{"_id", fileID}})
+	res, err := b.filesColl.DeleteOne(ctx, idFilter("_id", fileID))
 	if err == nil && res.DeletedCount == 0 {
 		err = ErrFileNotFound
 	}
@@ -350,7 +355,7 @@ func (b *Bucket) Rename(fileID interface{}, newFilename string) error {
 // Use the context parameter to time-out or cancel the rename operation. The deadline set by SetWriteDeadline is ignored.
 func (b *Bucket) RenameContext(ctx context.Context, fileID interface{}, newFilename string) error {
 	res, err := b.filesColl.UpdateOne(ctx,
-		bson.D{{"_id", fileID}},
+		idFilter("_id", fileID),
 		bson.D{{"$set", bson.D{{"filename", newFilename}}}},
 	)
 	if err != nil {
@@ -475,7 +480,7 @@ func (b *Bucket) downloadToStream(ds *DownloadStream, stream io.Writer) (int64, 
 }
 
 func (b *Bucket) deleteChunks(ctx context.Context, fileID interface{}) error {
-	_, err := b.chunksColl.DeleteMany(ctx, bson.D{{"files_id", fileID}})
+	_, err := b.chunksColl.DeleteMany(ctx, idFilter("files_id", fileID))
 	return err
 }
 
@@ -495,7 +500,7 @@ func (b *Bucket) findFile(ctx context.Context, filter interface{}, opts ...*opti
 
 func (b *Bucket) findChunks(ctx context.Context, fileID interface{}) (*mongo.Cursor, error) {
 	chunksCursor, err := b.chunksColl.Find(ctx,
-		bson.D{{"files_id", fileID}},
+		idFilter("files_id", fileID),
 		options.Find().SetSort(bson.D{{"n", 1}})) // sort by chunk index
 	if err != nil {
 		return nil, err

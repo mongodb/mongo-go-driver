@@ -137,7 +137,7 @@ func (us *UploadStream) Abort() error {
 		defer cancel()
 	}
 
-	_, err := us.chunksColl.DeleteMany(ctx, bson.D{{"files_id", us.FileID}})
+	_, err := us.chunksColl.DeleteMany(ctx, idFilter("files_id", us.FileID))
 	if err != nil {
 		return err
 	}

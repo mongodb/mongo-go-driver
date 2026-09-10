@@ -46,7 +46,7 @@ tests:
                 command_started_event:
                     command:
                         find: fs.chunks
-                        filter: { files_id: { $oid : "000000000000000000000001" }}
+                        filter: { files_id: { $eq: { $oid : "000000000000000000000001" } } }
                         sort: { n: 1 }
                     database_name: *database_name
     -

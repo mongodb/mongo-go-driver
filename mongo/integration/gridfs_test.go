@@ -20,6 +20,7 @@ import (
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/israce"
+	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/gridfs"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
@@ -537,6 +538,41 @@ func TestGridFS(x *testing.T) {
 
 		assert.Nil(mt, err, "Find error: %v", err)
 	})
+}
+
+func TestGridFSProse(t *testing.T) {
+	mt := mtest.New(t, noClientOpts)
+
+	mt.RunOpts("1. Aborting an upload with an injected file ID does not delete other files' chunks",
+		mtest.NewOptions().MinServerVersion("5.0"), func(mt *mtest.T) {
+			bucket, err := gridfs.NewBucket(mt.DB)
+			require.NoError(mt, err, "NewBucket error: %v", err)
+			err = bucket.Drop()
+			require.NoError(mt, err, "Drop error: %v", err)
+
+			file1Bytes := []byte("file1")
+			_, err = bucket.UploadFromStream("file1", bytes.NewReader(file1Bytes))
+			require.NoError(mt, err, "UploadFromStream error: %v", err)
+
+			injectedID := bson.D{{"$gt", primitive.MinKey{}}}
+			uploadOpts := options.GridFSUpload().SetChunkSizeBytes(2)
+			uploadStream, err := bucket.OpenUploadStreamWithID(injectedID, "file2", uploadOpts)
+			require.NoError(mt, err, "OpenUploadStreamWithID error: %v", err)
+
+			_, err = uploadStream.Write([]byte{1, 2, 3, 4})
+			require.NoError(mt, err, "Write error: %v", err)
+			err = uploadStream.Abort()
+			require.NoError(mt, err, "Abort error: %v", err)
+
+			var downloadBuffer bytes.Buffer
+			_, err = bucket.DownloadToStreamByName("file1", &downloadBuffer)
+			require.NoError(mt, err, "DownloadToStreamByName error: %v", err)
+			assert.Equal(mt, file1Bytes, downloadBuffer.Bytes(),
+				"expected bytes %s, got %s", file1Bytes, downloadBuffer.Bytes())
+
+			_, err = bucket.DownloadToStreamByName("file2", &bytes.Buffer{})
+			assert.ErrorIs(mt, err, gridfs.ErrFileNotFound)
+		})
 }
 
 func assertGridFSCollectionState(mt *mtest.T, coll *mongo.Collection, expectedName string, expectedNumDocuments int64) {
