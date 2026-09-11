@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
-	"go.mongodb.org/mongo-driver/v2/internal/csot"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/v2/internal/randutil"
 	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
@@ -142,23 +141,9 @@ func (s *Session) WithTransaction(
 	fn func(ctx context.Context) (any, error),
 	opts ...options.Lister[options.TransactionOptions],
 ) (any, error) {
-	// Apply client timeout to context if set, so that ctx.Err() reflects the
-	// CSOT deadline and WithTransaction exits via the ctx.Err() check instead
-	// of retrying on TransientTransactionError.
-	ctx, cancel := csot.WithTimeout(ctx, s.timeout())
-	defer cancel()
-
-	// Per the CSOT spec, WithTransaction must refresh the timeout for abort/commit
-	// operations. Get the timeout duration to use for refreshing. Try the context
-	// first (for operation-level timeouts), then fall back to client timeout.
-	timeoutDur := csot.GetTimeoutDuration(ctx)
-	if timeoutDur == nil {
-		timeoutDur = s.timeout()
-	}
-
 	transTimeout := withTransactionTimeout
-	if t := s.timeout(); t != nil && *t > 0 {
-		transTimeout = *t
+	if s.client.timeout != nil {
+		transTimeout = *s.client.timeout
 	}
 	startTime := time.Now()
 	timeout := time.NewTimer(transTimeout)
@@ -196,11 +181,8 @@ func (s *Session) WithTransaction(
 		if err != nil {
 			if s.clientSession.TransactionRunning() {
 				// Wrap the user-provided Context in a new one that behaves like context.Background() for deadlines and
-				// cancellations, but forwards Value requests to the original one. Then apply a fresh timeout per the
-				// CSOT spec requirement to refresh the timeout for abortTransaction.
-				abortCtx, abortCancel := csot.WithTimeout(newBackgroundContext(ctx), timeoutDur)
-				_ = s.AbortTransaction(abortCtx)
-				abortCancel()
+				// cancellations, but forwards Value requests to the original one.
+				_ = s.AbortTransaction(newBackgroundContext(ctx))
 			}
 
 			select {
@@ -231,20 +213,14 @@ func (s *Session) WithTransaction(
 		// simultaneously.
 		if ctx.Err() != nil {
 			// Wrap the user-provided Context in a new one that behaves like context.Background() for deadlines and
-			// cancellations, but forwards Value requests to the original one. Then apply a fresh timeout per the
-			// CSOT spec requirement to refresh the timeout for abortTransaction.
-			abortCtx, abortCancel := csot.WithTimeout(newBackgroundContext(ctx), timeoutDur)
-			_ = s.AbortTransaction(abortCtx)
-			abortCancel()
+			// cancellations, but forwards Value requests to the original one.
+			_ = s.AbortTransaction(newBackgroundContext(ctx))
 			return nil, ctx.Err()
 		}
 
 	CommitLoop:
 		for {
-			// Apply a fresh timeout for commit per the CSOT spec.
-			commitCtx, commitCancel := csot.WithTimeout(newBackgroundContext(ctx), timeoutDur)
-			err = s.CommitTransaction(commitCtx)
-			commitCancel()
+			err = s.CommitTransaction(newBackgroundContext(ctx))
 			// End when error is nil, as transaction has been committed.
 			if err == nil {
 				return res, nil
