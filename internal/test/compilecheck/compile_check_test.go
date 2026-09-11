@@ -43,10 +43,6 @@ func main() {
 // To run tests for specific version(s), use the -run flag:
 //
 //	go test -v -run '^TestCompileCheck/go:1\.(25|26)$'
-//
-// To test only the minimum supported version, set COMPILE_CHECK_MIN_ONLY=true:
-//
-//	COMPILE_CHECK_MIN_ONLY=true go test -v
 var goVersions = []string{
 	"1.25", // Minimum supported Go version for mongo-driver v2
 	"1.26", // Test suite Go Version
@@ -89,24 +85,6 @@ func sortVersions(t *testing.T, versions []string) []string {
 	})
 
 	return v
-}
-
-// testGoVersions returns the Go versions to compile-check, in ascending order.
-// When COMPILE_CHECK_MIN_ONLY is set to a truthy value, only the minimum
-// supported version is returned.
-func testGoVersions(t *testing.T) []string {
-	t.Helper()
-
-	versions := sortVersions(t, goVersions)
-
-	v := os.Getenv("COMPILE_CHECK_MIN_ONLY")
-	if minOnly, err := strconv.ParseBool(v); err != nil && v != "" {
-		require.NoError(t, err, "invalid COMPILE_CHECK_MIN_ONLY value: %q", v)
-	} else if minOnly {
-		return versions[:1]
-	}
-
-	return versions
 }
 
 var architectures = []string{
@@ -180,9 +158,8 @@ func TestCompileCheck(t *testing.T) {
 
 	rootDir := filepath.Dir(filepath.Dir(filepath.Dir(cwd)))
 
-	// Resolve the versions under test before any container work, so invalid input
-	// fails immediately rather than after the image build.
-	testVersions := testGoVersions(t)
+	// Sort the versions before any container work, so testVersions is in ascending order.
+	testVersions := sortVersions(t, goVersions)
 
 	// Build the image and start one container we can reuse for all subtests.
 	req := testcontainers.ContainerRequest{
