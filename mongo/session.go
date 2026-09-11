@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/csot"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/v2/internal/randutil"
 	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
@@ -80,6 +81,12 @@ func SessionFromContext(ctx context.Context) *Session {
 	return sess
 }
 
+// timeout returns the timeout that applies to operations executed on this
+// session, which is inherited from the Client that created it.
+func (s *Session) timeout() *time.Duration {
+	return s.client.timeout
+}
+
 // ID returns the current ID document associated with the session. The ID
 // document is in the form {"id": <BSON binary value>}.
 func (s *Session) ID() bson.Raw {
@@ -88,6 +95,9 @@ func (s *Session) ID() bson.Raw {
 
 // EndSession aborts any existing transactions and close the session.
 func (s *Session) EndSession(ctx context.Context) {
+	ctx, cancel := csot.WithTimeout(ctx, s.timeout())
+	defer cancel()
+
 	if s.clientSession.TransactionInProgress() {
 		// ignore all errors aborting during an end session
 		_ = s.AbortTransaction(ctx)
@@ -257,6 +267,9 @@ func (s *Session) StartTransaction(opts ...options.Lister[options.TransactionOpt
 // returns an error if there is no active transaction for this session or if the
 // transaction has been committed or aborted.
 func (s *Session) AbortTransaction(ctx context.Context) error {
+	ctx, cancel := csot.WithTimeout(ctx, s.timeout())
+	defer cancel()
+
 	err := s.clientSession.CheckAbortTransaction()
 	if err != nil {
 		return err
@@ -299,6 +312,9 @@ func (s *Session) AbortTransaction(ctx context.Context) error {
 // method returns an error if there is no active transaction for this session or
 // if the transaction has been aborted.
 func (s *Session) CommitTransaction(ctx context.Context) error {
+	ctx, cancel := csot.WithTimeout(ctx, s.timeout())
+	defer cancel()
+
 	err := s.clientSession.CheckCommitTransaction()
 	if err != nil {
 		return err

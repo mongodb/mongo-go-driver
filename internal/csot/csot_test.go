@@ -168,6 +168,14 @@ func TestWithTimeout(t *testing.T) {
 			wantValues:   []any{},
 		},
 		{
+			name:         "deadline set with shorter non-zero timeout",
+			parent:       newTestContext(t, time.Hour),
+			timeout:      ptrutil.Ptr(time.Second),
+			wantTimeout:  time.Hour,
+			wantDeadline: true,
+			wantValues:   []any{},
+		},
+		{
 			name:         "deadline set with zero timeout",
 			parent:       newTestContext(t, 1),
 			timeout:      ptrutil.Ptr(time.Duration(0)),
