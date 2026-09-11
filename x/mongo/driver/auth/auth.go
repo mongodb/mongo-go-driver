@@ -72,10 +72,14 @@ type HandshakeOptions struct {
 	ServerAPI             *driver.ServerAPIOptions
 	LoadBalanced          bool
 
-	// Fields provided by a library that wraps the Go Driver.
+	// Fields provided by a library that wraps the Go Driver. Each is a
+	// delimited list with one entry per wrapping library. OuterLibrarySet
+	// reports whether any wrapping library is present, which cannot be inferred
+	// from the values because an empty entry is meaningful.
 	OuterLibraryName     string
 	OuterLibraryVersion  string
 	OuterLibraryPlatform string
+	OuterLibrarySet      bool
 }
 
 type authHandshaker struct {
@@ -108,7 +112,8 @@ func (ah *authHandshaker) GetHandshakeInformation(
 		LoadBalanced(ah.options.LoadBalanced).
 		OuterLibraryName(ah.options.OuterLibraryName).
 		OuterLibraryVersion(ah.options.OuterLibraryVersion).
-		OuterLibraryPlatform(ah.options.OuterLibraryPlatform)
+		OuterLibraryPlatform(ah.options.OuterLibraryPlatform).
+		OuterLibrarySet(ah.options.OuterLibrarySet)
 
 	if ah.options.Authenticator != nil {
 		if speculativeAuth, ok := ah.options.Authenticator.(SpeculativeAuthenticator); ok {
