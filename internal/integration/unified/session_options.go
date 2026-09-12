@@ -8,6 +8,7 @@ package unified
 
 import (
 	"fmt"
+	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
@@ -72,6 +73,7 @@ func (so *sessionOptions) UnmarshalBSON(data []byte) error {
 		TxnOptions   *transactionOptions `bson:"defaultTransactionOptions"`
 		Snapshot     *bool               `bson:"snapshot"`
 		SnapshotTime *string             `bson:"snapshotTime"`
+		TimeoutMS    *int64              `bson:"defaultTimeoutMS"`
 		Extra        map[string]any      `bson:",inline"`
 	}
 	if err := bson.Unmarshal(data, &temp); err != nil {
@@ -84,6 +86,9 @@ func (so *sessionOptions) UnmarshalBSON(data []byte) error {
 	so.SessionOptionsBuilder = options.Session()
 	if temp.Causal != nil {
 		so.SetCausalConsistency(*temp.Causal)
+	}
+	if temp.TimeoutMS != nil {
+		so.SetDefaultTimeout(time.Duration(*temp.TimeoutMS) * time.Millisecond)
 	}
 	if temp.TxnOptions != nil {
 		txnArgs, err := mongoutil.NewOptions[options.TransactionOptions](temp.TxnOptions)
