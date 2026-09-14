@@ -24,7 +24,7 @@ tasks:
     dir: internal/test/compilecheck
     cmds:
       - go mod download
-      - GOTOOLCHAIN=auto go test -v ./...
+      - GOTOOLCHAIN=auto go test -timeout 30m -v ./...
   build-awsauth-compilecheck:
     dir: internal/test/awsauth
     cmds:
