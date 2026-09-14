@@ -126,7 +126,7 @@ func TestCheckSkip(t *testing.T) {
 			wantSkipped: true,
 		},
 		{
-			name:        "server version in upperrange skips",
+			name:        "server version in upper range skips",
 			testName:    versionRangeTest,
 			opts:        []Option{WithServerVersion("7.0")},
 			wantSkipped: true,
