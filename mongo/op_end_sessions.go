@@ -20,7 +20,6 @@ import (
 
 // endSessionsOp performs an endSessions operation.
 type endSessionsOp struct {
-	authenticator             driver.Authenticator
 	sessionIDs                bsoncore.Document
 	session                   *session.Client
 	clock                     *session.ClusterClock
@@ -58,7 +57,6 @@ func (es *endSessionsOp) execute(ctx context.Context) error {
 		Selector:                  es.selector,
 		ServerAPI:                 es.serverAPI,
 		Name:                      driverutil.EndSessionsOp,
-		Authenticator:             es.authenticator,
 	}.Execute(ctx)
 }
 

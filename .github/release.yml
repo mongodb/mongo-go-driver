@@ -4,6 +4,7 @@ changelog:
       - ignore-for-release
       - github_actions
       - submodules
+      - ci/cd
     authors:
       - mongodb-drivers-pr-bot
   categories:

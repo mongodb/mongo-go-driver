@@ -269,6 +269,8 @@ func verifyConnStringOptions(t *testing.T, cs *connstring.ConnString, options ma
 			require.Equal(t, value, float64(cs.ZlibLevel))
 		case "zstdcompressionlevel":
 			require.Equal(t, value, float64(cs.ZstdLevel))
+		case "tlsdisablecertificaterevocationcheck":
+			require.Equal(t, value, cs.SSLDisableCertificateRevocationCheck)
 		case "tlsdisableocspendpointcheck":
 			require.Equal(t, value, cs.SSLDisableOCSPEndpointCheck)
 		case "servermonitoringmode":
