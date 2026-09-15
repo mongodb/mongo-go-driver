@@ -20,24 +20,19 @@ func Truncate(str string, width int) string {
 		return str
 	}
 
-	// Step back over any trailing continuation bytes (10xxxxxx) to find the
-	// start of the last rune within the width-byte prefix.
-	start := width
-	for start > 0 && str[start-1]&0xC0 == 0x80 {
-		start--
-	}
-	if start == 0 {
-		return ""
-	}
-	start--
-
-	// Decode the rune starting at start from the original (untruncated)
-	// string to determine its true byte length. If that rune extends past
-	// width, it was cut off and must be dropped entirely.
-	_, size := utf8.DecodeRuneInString(str[start:])
-	if start+size > width {
-		return str[:start]
+	// If the byte immediately after the cut point starts a new rune (or is
+	// ASCII), the cut point does not split a multi-byte character.
+	if utf8.RuneStart(str[width]) {
+		return str[:width]
 	}
 
-	return str[:width]
+	// Otherwise, the rune that the cut point falls inside of was split. Back
+	// up over its continuation bytes (10xxxxxx) to find where it starts and
+	// drop it entirely, since only part of it fits within width.
+	i := width
+	for i > 0 && !utf8.RuneStart(str[i]) {
+		i--
+	}
+
+	return str[:i]
 }
