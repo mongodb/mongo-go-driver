@@ -58,6 +58,42 @@ func TestTruncate(t *testing.T) {
 			width:    6,
 			expected: "你好",
 		},
+		{
+			name:     "negative width",
+			arg:      "foo",
+			width:    -1,
+			expected: "",
+		},
+		{
+			name:     "four-byte rune exact boundary",
+			arg:      "ab𤭢cd",
+			width:    6,
+			expected: "ab𤭢",
+		},
+		{
+			name:     "four-byte rune split",
+			arg:      "ab𤭢cd",
+			width:    4,
+			expected: "ab",
+		},
+		{
+			name:     "invalid utf-8 clean cut",
+			arg:      "a\xffbc",
+			width:    2,
+			expected: "a\xff",
+		},
+		{
+			name:     "invalid utf-8 with continuation-like bytes",
+			arg:      "a\xff\x80\x80bc",
+			width:    3,
+			expected: "a",
+		},
+		{
+			name:     "invalid utf-8 all continuation-like bytes",
+			arg:      "\x80\x80\x80\x80",
+			width:    2,
+			expected: "",
+		},
 	} {
 		tcase := tcase
 
