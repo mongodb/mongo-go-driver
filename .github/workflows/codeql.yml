@@ -52,7 +52,7 @@ jobs:
           go build ./...
           go test -short -run ^$$ ./...
 
-          go test -v ./internal/test/compilecheck -run '^TestCompileCheck/go:1\.25$'
+          go test -timeout 30m -v ./internal/test/compilecheck
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4.38.0
         with:
