@@ -9,6 +9,7 @@ package mongo
 import (
 	"context"
 	"errors"
+	"time"
 
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
@@ -36,6 +37,7 @@ type abortTransactionOp struct {
 	enableOverloadRetargeting bool
 	serverAPI                 *driver.ServerAPIOptions
 	logger                    *logger.Logger
+	timeout                   *time.Duration
 }
 
 func (at *abortTransactionOp) processResponse(context.Context, bsoncore.Document, driver.ResponseInfo) error {
@@ -66,6 +68,7 @@ func (at *abortTransactionOp) execute(ctx context.Context) error {
 		Name:                      driverutil.AbortTransactionOp,
 		Authenticator:             at.authenticator,
 		Logger:                    at.logger,
+		Timeout:                   at.timeout,
 	}.Execute(ctx)
 }
 
