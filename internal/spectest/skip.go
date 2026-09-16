@@ -619,8 +619,6 @@ var skipTests = map[string][]skipCase{
 				"TestUnifiedSpec/client-side-operations-timeout/tests/override-database-timeoutMS.json/timeoutMS_can_be_set_to_0_on_a_MongoDatabase_-_dropIndex_on_collection",
 				"TestUnifiedSpec/client-side-operations-timeout/tests/override-database-timeoutMS.json/timeoutMS_can_be_configured_on_a_MongoDatabase_-_dropIndexes_on_collection",
 				"TestUnifiedSpec/client-side-operations-timeout/tests/override-database-timeoutMS.json/timeoutMS_can_be_set_to_0_on_a_MongoDatabase_-_dropIndexes_on_collection",
-				"TestUnifiedSpec/client-side-operations-timeout/tests/sessions-inherit-timeoutMS.json/timeoutMS_applied_to_commitTransaction",
-				"TestUnifiedSpec/client-side-operations-timeout/tests/sessions-inherit-timeoutMS.json/timeoutMS_applied_to_abortTransaction",
 				"TestUnifiedSpec/client-side-operations-timeout/tests/sessions-inherit-timeoutMS.json/timeoutMS_applied_to_withTransaction",
 				"TestUnifiedSpec/client-side-operations-timeout/tests/sessions-override-operation-timeoutMS.json/timeoutMS_applied_to_withTransaction",
 				"TestUnifiedSpec/client-side-operations-timeout/tests/sessions-override-timeoutMS.json",
@@ -1086,6 +1084,24 @@ var skipTests = map[string][]skipCase{
 				"TestInitialDNSSeedlistDiscoverySpec/replica_set/srvAllowedHostsSuffix-psl-not-public-suffix.json",
 				"TestInitialDNSSeedlistDiscoverySpec/replica_set/srvAllowedHostsSuffix-psl-public-suffix-capitalized.json",
 				"TestInitialDNSSeedlistDiscoverySpec/replica_set/srvAllowedHostsSuffix-psl-public-suffix.json",
+				"TestInitialDNSSeedlistDiscoverySpec/replica_set/srvAllowedHostsSuffix-case-insensitive.json",
+				"TestInitialDNSSeedlistDiscoverySpec/replica_set/srvAllowedHostsSuffix-mismatch.json",
+				"TestInitialDNSSeedlistDiscoverySpec/replica_set/srvAllowedHostsSuffix-period-only.json",
+				"TestInitialDNSSeedlistDiscoverySpec/replica_set/srvAllowedHostsSuffix-tld-only.json",
+				"TestInitialDNSSeedlistDiscoverySpec/replica_set/srvAllowedHostsSuffix-trailing-dot.json",
+				"TestInitialDNSSeedlistDiscoverySpec/replica_set/srvAllowedHostsSuffix-with_dot.json",
+				"TestInitialDNSSeedlistDiscoverySpec/replica_set/srvAllowedHostsSuffix-without_dot_fail.json",
+				"TestInitialDNSSeedlistDiscoverySpec/replica_set/srvAllowedHostsSuffix-without_dot_pass.json",
+				"TestURIOptionsSpec/srv-options.json/Non-SRV_URI_with_srvAllowedHostsSuffix",
+			},
+		},
+	},
+
+	// TODO(GODRIVER-4079): Support the $$gte operator.
+	"Support the $$gte operator (GODRIVER-4079)": {
+		{
+			tests: []string{
+				"TestUnifiedSpec/unified-test-format/tests/valid-pass/operator-gte.json/special_gte_matching_operator",
 			},
 		},
 	},
