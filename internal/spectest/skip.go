@@ -21,6 +21,10 @@ type skipCase struct {
 	// applies. If empty, the skipCase applies to all server versions.
 	minServerVersion string
 
+	// maxServerVersion is the maximum server version for which the skipCase
+	// applies. If empty, the skipCase applies to all server versions.
+	maxServerVersion string
+
 	// topologies is a list of topologies for which the skipCase applies. If
 	// empty, the skipCase applies to all topologies.
 	topologies []string
@@ -619,8 +623,6 @@ var skipTests = map[string][]skipCase{
 				"TestUnifiedSpec/client-side-operations-timeout/tests/override-database-timeoutMS.json/timeoutMS_can_be_set_to_0_on_a_MongoDatabase_-_dropIndex_on_collection",
 				"TestUnifiedSpec/client-side-operations-timeout/tests/override-database-timeoutMS.json/timeoutMS_can_be_configured_on_a_MongoDatabase_-_dropIndexes_on_collection",
 				"TestUnifiedSpec/client-side-operations-timeout/tests/override-database-timeoutMS.json/timeoutMS_can_be_set_to_0_on_a_MongoDatabase_-_dropIndexes_on_collection",
-				"TestUnifiedSpec/client-side-operations-timeout/tests/sessions-inherit-timeoutMS.json/timeoutMS_applied_to_commitTransaction",
-				"TestUnifiedSpec/client-side-operations-timeout/tests/sessions-inherit-timeoutMS.json/timeoutMS_applied_to_abortTransaction",
 				"TestUnifiedSpec/client-side-operations-timeout/tests/sessions-inherit-timeoutMS.json/timeoutMS_applied_to_withTransaction",
 				"TestUnifiedSpec/client-side-operations-timeout/tests/sessions-override-operation-timeoutMS.json/timeoutMS_applied_to_withTransaction",
 				"TestUnifiedSpec/client-side-operations-timeout/tests/sessions-override-timeoutMS.json",
@@ -1033,13 +1035,16 @@ var skipTests = map[string][]skipCase{
 	},
 
 	// TODO(GODRIVER-4049) Figure out how to set a 500ms maxAwaitTimeMS on
-	// hello.
+	// hello. Only 7.0 servers are affected: SERVER-128517's 10s minimum
+	// maxAwaitTimeMS conflicts with the 500ms test timeouts there.
 	"SERVER-128517 forces a min maxAwaitTimeMS of 10s, which conflicts with the test timeouts": {
 		{
 			tests: []string{
 				"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/hello-timeout.json/Network_timeout_on_Monitor_check",
 				"TestUnifiedSpec/server-discovery-and-monitoring/tests/unified/hello-timeout.json/Driver_extends_timeout_while_streaming",
 			},
+			minServerVersion: "7.0",
+			maxServerVersion: "7.0",
 		},
 	},
 
@@ -1086,6 +1091,24 @@ var skipTests = map[string][]skipCase{
 				"TestInitialDNSSeedlistDiscoverySpec/replica_set/srvAllowedHostsSuffix-psl-not-public-suffix.json",
 				"TestInitialDNSSeedlistDiscoverySpec/replica_set/srvAllowedHostsSuffix-psl-public-suffix-capitalized.json",
 				"TestInitialDNSSeedlistDiscoverySpec/replica_set/srvAllowedHostsSuffix-psl-public-suffix.json",
+				"TestInitialDNSSeedlistDiscoverySpec/replica_set/srvAllowedHostsSuffix-case-insensitive.json",
+				"TestInitialDNSSeedlistDiscoverySpec/replica_set/srvAllowedHostsSuffix-mismatch.json",
+				"TestInitialDNSSeedlistDiscoverySpec/replica_set/srvAllowedHostsSuffix-period-only.json",
+				"TestInitialDNSSeedlistDiscoverySpec/replica_set/srvAllowedHostsSuffix-tld-only.json",
+				"TestInitialDNSSeedlistDiscoverySpec/replica_set/srvAllowedHostsSuffix-trailing-dot.json",
+				"TestInitialDNSSeedlistDiscoverySpec/replica_set/srvAllowedHostsSuffix-with_dot.json",
+				"TestInitialDNSSeedlistDiscoverySpec/replica_set/srvAllowedHostsSuffix-without_dot_fail.json",
+				"TestInitialDNSSeedlistDiscoverySpec/replica_set/srvAllowedHostsSuffix-without_dot_pass.json",
+				"TestURIOptionsSpec/srv-options.json/Non-SRV_URI_with_srvAllowedHostsSuffix",
+			},
+		},
+	},
+
+	// TODO(GODRIVER-4079): Support the $$gte operator.
+	"Support the $$gte operator (GODRIVER-4079)": {
+		{
+			tests: []string{
+				"TestUnifiedSpec/unified-test-format/tests/valid-pass/operator-gte.json/special_gte_matching_operator",
 			},
 		},
 	},
@@ -1153,6 +1176,7 @@ func CheckSkip(t TB, opts ...Option) {
 		for _, sc := range cases {
 			var topoMsg string
 			var minVersionMsg string
+			var maxVersionMsg string
 
 			// Don't skip if the topology is specified and the current topology is not
 			// in the list of topologies for the test case.
@@ -1172,9 +1196,18 @@ func CheckSkip(t TB, opts ...Option) {
 				minVersionMsg = fmt.Sprintf(" (skip on min server version: %s, current: %s)", sc.minServerVersion, minVersion)
 			}
 
+			// Don't skip if the server version is specified and the current server
+			// version is greater than the maximum server version for the test case.
+			if maxVersion := skipOpts.serverVersion; maxVersion != "" && sc.maxServerVersion != "" {
+				if compareServerVersions(maxVersion, sc.maxServerVersion) > 0 {
+					continue
+				}
+				maxVersionMsg = fmt.Sprintf(" (skip on max server version: %s, current: %s)", sc.maxServerVersion, maxVersion)
+			}
+
 			for _, testName := range sc.tests {
 				if t.Name() == testName {
-					t.Skipf("Skipping due to known failure%s%s: %q", topoMsg, minVersionMsg, reason)
+					t.Skipf("Skipping due to known failure%s%s%s: %q", topoMsg, minVersionMsg, maxVersionMsg, reason)
 				}
 			}
 		}
