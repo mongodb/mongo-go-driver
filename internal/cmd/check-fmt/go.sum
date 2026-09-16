@@ -1,5 +1,5 @@
-github.com/bitfield/script v0.24.3 h1:RT/jiMY4SGUKJrqVK1xg4yuFOcZAc8W3kvfSM+z3Xmw=
-github.com/bitfield/script v0.24.3/go.mod h1:Zi9lceeCvnGWNDffYXU7ibqelo87yD+AWocbODaT1ts=
+github.com/bitfield/script v0.25.0 h1:Ml/7GM82vzYWKrK2oPIl5/lkZEGhEMCQZm235usJuwc=
+github.com/bitfield/script v0.25.0/go.mod h1:d/ZBty4KX3QZnd4Ee7+rdGdTDrkqPjeMuhc5e0p1jzs=
 github.com/frankban/quicktest v1.14.5 h1:dfYrrRyLtiqT9GyKXgdh+k4inNeTvmGbuSgZ3lx3GhA=
 github.com/frankban/quicktest v1.14.5/go.mod h1:4ptaffx2x8+WTWXmUCuVU6aPUX1/Mz7zb5vbUoiM6w0=
 github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=

@@ -2,7 +2,7 @@ module go.mongodb.org/mongo-driver/v2/internal/cmd/check-fmt
 
 go 1.26.0
 
-require github.com/bitfield/script v0.24.3
+require github.com/bitfield/script v0.25.0
 
 require (
 	github.com/google/go-cmp v0.7.0 // indirect

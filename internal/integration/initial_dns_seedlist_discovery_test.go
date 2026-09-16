@@ -91,6 +91,10 @@ func runSeedlistDiscoveryPingTest(mt *mtest.T, clientOpts *options.ClientOptions
 }
 
 func runSeedlistDiscoveryTest(mt *mtest.T, file string) {
+	spectest.CheckSkip(mt.T,
+		spectest.WithTopology(string(mtest.ClusterTopologyKind())),
+		spectest.WithServerVersion(mtest.ServerVersion()))
+
 	content, err := os.ReadFile(file)
 	assert.Nil(mt, err, "ReadFile error for %v: %v", file, err)
 
@@ -261,7 +265,8 @@ func getServerByAddress(address string, topo *topology.Topology) (description.Se
 			}
 
 			return []description.Server{}, nil
-		})
+		},
+	)
 
 	selectedServer, err := topo.SelectServer(context.Background(), selectByName)
 	if err != nil {

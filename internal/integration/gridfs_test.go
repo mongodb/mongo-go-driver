@@ -529,6 +529,41 @@ func TestGridFS(x *testing.T) {
 	})
 }
 
+// 1. Aborting an upload with an injected file ID does not delete other files' chunks
+func TestGridFSProse_Case1_AbortUploadWithInjectedFileID(t *testing.T) {
+	mt := mtest.New(t, mtest.NewOptions().MinServerVersion("5.0"))
+	mt.Setup()
+
+	bucket := mt.DB.GridFSBucket()
+	err := bucket.Drop(context.Background())
+	require.NoError(mt, err, "Drop error: %v", err)
+
+	file1Bytes := []byte("file1")
+	_, err = bucket.UploadFromStream(context.Background(), "file1", bytes.NewReader(file1Bytes))
+	require.NoError(mt, err, "UploadFromStream error: %v", err)
+
+	injectedID := bson.D{{"$gt", bson.MinKey{}}}
+	uploadOpts := options.GridFSUpload().SetChunkSizeBytes(2)
+	uploadStream, err := bucket.OpenUploadStreamWithID(
+		context.Background(), injectedID, "file2", uploadOpts,
+	)
+	require.NoError(mt, err, "OpenUploadStreamWithID error: %v", err)
+
+	_, err = uploadStream.Write([]byte{1, 2, 3, 4})
+	require.NoError(mt, err, "Write error: %v", err)
+	err = uploadStream.Abort()
+	require.NoError(mt, err, "Abort error: %v", err)
+
+	var downloadBuffer bytes.Buffer
+	_, err = bucket.DownloadToStreamByName(context.Background(), "file1", &downloadBuffer)
+	require.NoError(mt, err, "DownloadToStreamByName error: %v", err)
+	require.Equal(mt, file1Bytes, downloadBuffer.Bytes(),
+		"expected bytes %s, got %s", file1Bytes, downloadBuffer.Bytes())
+
+	_, err = bucket.DownloadToStreamByName(context.Background(), "file2", &bytes.Buffer{})
+	require.ErrorIs(mt, err, mongo.ErrFileNotFound)
+}
+
 func assertGridFSCollectionState(mt *mtest.T, coll *mongo.Collection, expectedName string, expectedNumDocuments int64) {
 	mt.Helper()
 
