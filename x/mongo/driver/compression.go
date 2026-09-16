@@ -155,12 +155,13 @@ var zstdReaderPool = sync.Pool{
 
 // DecompressPayload takes a byte slice that has been compressed and undoes it according to the options passed
 func DecompressPayload(in []byte, opts CompressionOpts) ([]byte, error) {
+	if opts.Compressor == wiremessage.CompressorNoOp {
+		return in, nil
+	}
 	if opts.UncompressedSize < 0 {
 		return nil, fmt.Errorf("invalid uncompressed size: %d", opts.UncompressedSize)
 	}
 	switch opts.Compressor {
-	case wiremessage.CompressorNoOp:
-		return in, nil
 	case wiremessage.CompressorSnappy:
 		l, err := snappy.DecodedLen(in)
 		if err != nil {

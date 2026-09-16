@@ -16,6 +16,7 @@ import (
 	"github.com/klauspost/compress/zstd"
 
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage"
 )
 
@@ -104,8 +105,6 @@ func TestDecompressFailures(t *testing.T) {
 	})
 
 	t.Run("negative uncompressed size", func(t *testing.T) {
-		t.Parallel()
-
 		// A server-supplied uncompressedSize is an int32 read straight off the
 		// wire. A negative value reaches make() and panics with
 		// "makeslice: cap out of range" for the zlib and zstd branches.
@@ -115,12 +114,19 @@ func TestDecompressFailures(t *testing.T) {
 			wiremessage.CompressorZstd,
 		} {
 			t.Run(compressor.String(), func(t *testing.T) {
+				payload := []byte("Lorem ipsum dolor sit amet, consectetur adipiscing elit")
 				opts := CompressionOpts{
 					Compressor:       compressor,
-					UncompressedSize: -1,
+					ZlibLevel:        wiremessage.DefaultZlibLevel,
+					ZstdLevel:        wiremessage.DefaultZstdLevel,
+					UncompressedSize: int32(len(payload)),
 				}
-				_, err := DecompressPayload([]byte{0x00, 0x01, 0x02, 0x03}, opts)
-				assert.Error(t, err)
+				compressed, err := CompressPayload(payload, opts)
+				require.NoError(t, err, "unexpected error from CompressPayload")
+
+				opts.UncompressedSize = -1
+				_, err = DecompressPayload(compressed, opts)
+				require.ErrorContains(t, err, "invalid uncompressed size: -1")
 			})
 		}
 	})
