@@ -103,6 +103,7 @@ func (bw *clientBulkWrite) execute(ctx context.Context) error {
 				Message: ce.Message,
 				Raw:     ce.Raw,
 			},
+			Labels: ce.Labels,
 		}
 	}
 	if len(batches.writeConcernErrors) > 0 || len(batches.writeErrors) > 0 {
