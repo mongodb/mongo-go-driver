@@ -290,16 +290,20 @@ func (e Error) UnsupportedStorageEngine() bool {
 
 // Error implements the error interface.
 func (e Error) Error() string {
-	var msg string
-	if e.Name != "" {
-		msg = fmt.Sprintf("(%v) ", e.Name)
-	}
-	msg += e.Message
+	msg := e.Message
+	// Omit the wrapped error if it is identical to the message to avoid
+	// duplicating it, e.g. for network errors wrapped by Operation.networkError.
 	if e.Wrapped != nil && e.Wrapped.Error() != e.Message {
 		if msg != "" {
 			msg += ": "
 		}
 		msg += e.Wrapped.Error()
+	}
+	if e.Name != "" {
+		if msg == "" {
+			return fmt.Sprintf("(%v)", e.Name)
+		}
+		msg = fmt.Sprintf("(%v) %s", e.Name, msg)
 	}
 	return msg
 }
