@@ -103,31 +103,46 @@ func reportMetrics(b *testing.B, metrics *metrics) {
 	reportThroughputStats(b, metrics.opsPerSecond)
 }
 
-// find the testdata directory. We do this instead of hardcoding a relative path
-// (i.e. ../../../testdata) so that these benchmarks can be run from both the
-// root as a taskfile as well as from the benchmark directory.
-func testdataDir(tb testing.TB) string {
-	tb.Helper()
-
+// findTestdataDir walks up from the working directory looking for a "testdata"
+// directory. We do this instead of hardcoding a relative path (i.e.
+// ../../../testdata) so that these benchmarks can be run from both the root as a
+// taskfile as well as from the benchmark directory.
+//
+// The walk stops at the filesystem root rather than at a particular repository
+// directory name, which makes it independent of what the checkout is named.
+func findTestdataDir() (string, error) {
 	wd, err := os.Getwd()
-	require.NoError(tb, err, "failed to source working directory")
+	if err != nil {
+		return "", fmt.Errorf("failed to source working directory: %w", err)
+	}
 
 	for {
 		tdPath := filepath.Join(wd, "testdata")
 		if _, err := os.Stat(tdPath); !os.IsNotExist(err) {
-			return tdPath
+			return tdPath, nil
 		}
 
-		wd = filepath.Dir(wd)
-		if filepath.Base(wd) == "mongodb-go-driver" {
-			tb.Fatal("'testdata' directory not found")
+		parent := filepath.Dir(wd)
+		if parent == wd {
+			return "", errors.New("'testdata' directory not found")
 		}
+
+		wd = parent
 	}
 }
 
+func testdataDir(tb testing.TB) string {
+	tb.Helper()
+
+	dir, err := findTestdataDir()
+	require.NoError(tb, err)
+
+	return dir
+}
+
 // where to download the tarball
-func testdataTarFileName(tb testing.TB) string {
-	return filepath.Join(testdataDir(tb), tarFile)
+func testdataTarFileName(dir string) string {
+	return filepath.Join(dir, tarFile)
 }
 
 // where to extract the tarball
@@ -136,33 +151,48 @@ func testdataPerfDir(tb testing.TB) string {
 }
 
 // download the tarball of test data to testdata/perf
-func downloadTestDataTgz(t *testing.T) {
+func downloadTestDataTgz(dir string) error {
 	resp, err := http.Get(testdataURL)
-	require.NoError(t, err, "failed to get response from %q", testdataURL)
+	if err != nil {
+		return fmt.Errorf("failed to get response from %q: %w", testdataURL, err)
+	}
 
 	defer resp.Body.Close()
 
-	out, err := os.Create(testdataTarFileName(t))
-	require.NoError(t, err, "failed to open testdata perf dir")
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("unexpected status %q from %q", resp.Status, testdataURL)
+	}
+
+	out, err := os.Create(testdataTarFileName(dir))
+	if err != nil {
+		return fmt.Errorf("failed to create tar file: %w", err)
+	}
 
 	defer out.Close()
 
-	_, err = io.Copy(out, resp.Body)
-	require.NoError(t, err, "failed to copy response body to testdata perf dir")
+	if _, err := io.Copy(out, resp.Body); err != nil {
+		return fmt.Errorf("failed to copy response body to tar file: %w", err)
+	}
+
+	return nil
 }
 
 // extract the tarball to the perf dir.
-func extractTestDataTgz(t *testing.T) {
-	tarPath := testdataTarFileName(t)
+func extractTestDataTgz(dir string) error {
+	tarPath := testdataTarFileName(dir)
 	defer func() { _ = os.Remove(tarPath) }()
 
 	file, err := os.Open(tarPath)
-	require.NoError(t, err, "failed to open tar file")
+	if err != nil {
+		return fmt.Errorf("failed to open tar file: %w", err)
+	}
 
 	defer file.Close()
 
 	gzipReader, err := gzip.NewReader(file)
-	require.NoError(t, err, "failed to create a gzip reader")
+	if err != nil {
+		return fmt.Errorf("failed to create a gzip reader: %w", err)
+	}
 
 	defer gzipReader.Close()
 
@@ -173,24 +203,66 @@ func extractTestDataTgz(t *testing.T) {
 			break
 		}
 
-		require.NoError(t, err, "failed to advance tar entry")
+		if err != nil {
+			return fmt.Errorf("failed to advance tar entry: %w", err)
+		}
 
-		targetPath := filepath.Join(testdataPerfDir(t), strings.TrimPrefix(header.Name, "data/"))
+		targetPath := filepath.Join(dir, perfDir, strings.TrimPrefix(header.Name, "data/"))
 
 		switch header.Typeflag {
 		case tar.TypeDir:
-			err := os.MkdirAll(targetPath, 0o755)
-			require.NoError(t, err, "failed to extract dir from tgz")
+			if err := os.MkdirAll(targetPath, 0o755); err != nil {
+				return fmt.Errorf("failed to extract dir from tgz: %w", err)
+			}
 		case tar.TypeReg:
 			outFile, err := os.Create(targetPath)
-			require.NoError(t, err, "failed to create path to extract file from tgz")
+			if err != nil {
+				return fmt.Errorf("failed to create path to extract file from tgz: %w", err)
+			}
 
-			_, err = io.Copy(outFile, tarReader)
-			require.NoError(t, err, "failed to extract file from tgz")
+			if _, err := io.Copy(outFile, tarReader); err != nil {
+				outFile.Close()
+
+				return fmt.Errorf("failed to extract file from tgz: %w", err)
+			}
 
 			outFile.Close()
 		}
 	}
+
+	return nil
+}
+
+// ensureTestData downloads and extracts the benchmark fixtures if they are not
+// already present. It is called from TestMain so that individual benchmarks run
+// via -bench self-provision, rather than depending on TestRunAllBenchmarks
+// having been run first.
+func ensureTestData() error {
+	dir, err := findTestdataDir()
+	if err != nil {
+		return err
+	}
+
+	if _, err := os.Stat(filepath.Join(dir, perfDir)); !os.IsNotExist(err) {
+		return nil
+	}
+
+	if err := downloadTestDataTgz(dir); err != nil {
+		return err
+	}
+
+	return extractTestDataTgz(dir)
+}
+
+func TestMain(m *testing.M) {
+	flag.Parse()
+
+	if err := ensureTestData(); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to prepare benchmark test data: %v\n", err)
+		os.Exit(1)
+	}
+
+	os.Exit(m.Run())
 }
 
 func loadSourceDocument(b *testing.B, canonicalOnly bool, pathParts ...string) bson.D {
@@ -323,12 +395,13 @@ func setupBench(b *testing.B) (*mongo.Collection, func(b *testing.B)) {
 	client, err := mongo.Connect()
 	require.NoError(b, err, "failed to connect to server")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	pingCtx, pingCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer pingCancel()
 
-	err = client.Ping(ctx, nil)
+	err = client.Ping(pingCtx, nil)
 	require.NoError(b, err, "failed to ping the server")
 
-	ctx, cancel = context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	db := client.Database(perftestDB)
@@ -391,15 +464,17 @@ func benchmarkSingleInsert(b *testing.B, source string) {
 	coll, teardown := setupBench(b)
 	defer teardown(b)
 
-	doc := loadSourceDocument(b, true, testdataPerfDir(b), singleAndMultiDataDir, smallData)
+	doc := loadSourceDocument(b, true, testdataPerfDir(b), singleAndMultiDataDir, source)
 
 	metrics := new(metrics)
+
+	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
 		recordMetrics(b, metrics, func(b *testing.B) {
 			b.Helper()
 			_, err := coll.InsertOne(context.Background(), doc)
-			require.NoError(b, err, "failed to insert small doc")
+			require.NoError(b, err, "failed to insert %q", source)
 		})
 	}
 
@@ -519,14 +594,6 @@ func runBenchmark(name string, fn func(*testing.B)) (poplarTest, error) {
 		{Name: "ns_per_op", Type: "MEAN", Value: result.NsPerOp()},
 	}
 
-	// Only tests that set bytes in the benchmark will have this metric.
-	if result.Bytes != 0 {
-		megaBytesPerOp := (float64(result.Bytes) / 1024 / 1024) / float64(result.NsPerOp()) * 1e9
-
-		test.Metrics = append(test.Metrics,
-			poplarTestMetrics{Name: "megabytes_per_second", Type: "THROUGHPUT", Value: megaBytesPerOp})
-	}
-
 	if opsPerSecondMin := result.Extra[opsPerSecondMinName]; opsPerSecondMin != 0 {
 		test.Metrics = append(test.Metrics,
 			poplarTestMetrics{Name: opsPerSecondMinName, Type: "THROUGHPUT", Value: opsPerSecondMin})
@@ -550,14 +617,8 @@ func runBenchmark(name string, fn func(*testing.B)) (poplarTest, error) {
 }
 
 func TestRunAllBenchmarks(t *testing.T) {
-	flag.Parse()
-
-	// Download and extract the data if it doesn't exist.
-	if _, err := os.Stat(testdataPerfDir(t)); os.IsNotExist(err) {
-		downloadTestDataTgz(t)
-		extractTestDataTgz(t)
-	}
-
+	// Test data is downloaded by TestMain.
+	//
 	// The test will be run any time a benchmark is run. To avoid running all
 	// benchmarks in this case, we require a flag that defaults to false. The
 	// intention is that this test will only ever need to fully run in CI.

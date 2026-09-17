@@ -125,13 +125,18 @@ tasks:
   evg-gather-test-suites: find . -name \*.suite | xargs --no-run-if-empty tar czf test_suite.tgz
   build-kms-test: go build ${BUILD_TAGS} ./internal/cmd/testkms
   ### Benchmark specific tasks and support. ###
+  # Run the benchmarks as ordinary Go microbenchmarks. Test data is downloaded
+  # on demand by TestMain.
   benchmark:
-    deps: [perf-files]
+    dir: internal/cmd/benchmark
     cmds:
-      - go test ${BUILD_TAGS} -benchmem -bench=. ./benchmark | test benchmark.suite
+      - go test -run='^$' -bench=. -benchmem . | tee benchmark.suite
+  # Run the full benchmark suite and emit perf.json for the Evergreen/SPS
+  # performance monitoring upload. Used by the mainline "perf" task.
   driver-benchmark:
+    dir: internal/cmd/benchmark
     cmds:
-      - go test ./internal/cmd/benchmark -v --fullRun | tee perf.suite
+      - go test -v --fullRun . | tee perf.suite
   ### Internal tasks. ###
   install-gofumpt:
     internal: true
