@@ -161,6 +161,7 @@ type ConnString struct {
 	ServerSelectionTimeoutSet               bool
 	SocketTimeout                           time.Duration
 	SocketTimeoutSet                        bool
+	SRVAllowedHostsSuffix                   string
 	SRVMaxHosts                             int
 	SRVServiceName                          string
 	SSL                                     bool
@@ -567,6 +568,16 @@ func (u *ConnString) addOptions(connectionArgPairs []string) error {
 			}
 			u.SocketTimeout = time.Duration(n) * time.Millisecond
 			u.SocketTimeoutSet = true
+		case "srvallowedhostssuffix":
+			if u.Scheme != SchemeMongoDBSRV {
+				return fmt.Errorf("cannot specify srvAllowedHostsSuffix on non-SRV URI")
+			}
+
+			normalized, err := dns.NormalizeAllowedHostsSuffix(value)
+			if err != nil {
+				return err
+			}
+			u.SRVAllowedHostsSuffix = normalized
 		case "srvmaxhosts":
 			// srvMaxHosts can only be set on URIs with the "mongodb+srv" scheme
 			if u.Scheme != SchemeMongoDBSRV {
@@ -1022,7 +1033,11 @@ func (p *parser) parse(original string) (*ConnString, error) {
 
 	// do SRV lookup if "mongodb+srv://"
 	if connStr.Scheme == SchemeMongoDBSRV && p.dnsResolver != nil {
-		parsedHosts, err := p.dnsResolver.ParseHosts(hosts, connStr.SRVServiceName, true)
+		parsedHosts, err := p.dnsResolver.ParseHostsWithOptions(hosts, dns.ParseHostsOptions{
+			SRVServiceName:     connStr.SRVServiceName,
+			AllowedHostsSuffix: connStr.SRVAllowedHostsSuffix,
+			StopOnErr:          true,
+		})
 		if err != nil {
 			return connStr, err
 		}

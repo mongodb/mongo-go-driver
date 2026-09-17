@@ -258,6 +258,32 @@ func TestPollSRVRecords(t *testing.T) {
 		compareHosts(t, desc.Servers, expectedHosts)
 		_ = topo.Disconnect(context.Background())
 	})
+	t.Run("srvAllowedHostsSuffix overrides derived domain", func(t *testing.T) {
+		uri := "mongodb+srv://test1.test.build.10gen.cc/?heartbeatFrequencyMS=500&srvAllowedHostsSuffix=10gen.cc"
+		cfg, err := NewConfig(options.Client().ApplyURI(uri), nil)
+		require.NoError(t, err, "error constructing topology config: %v", err)
+
+		topo, err := New(cfg)
+		require.NoError(t, err, "Could not create the topology: %v", err)
+		mockRes := newMockResolver([]*net.SRV{{"blah.bleh", 27019, 0, 0}, {"other.10gen.cc.", 27020, 0, 0}}, nil, false, false)
+		topo.dnsResolver = &dns.Resolver{mockRes.LookupSRV, mockRes.LookupTXT}
+		topo.rescanSRVInterval = time.Millisecond * 5
+		err = topo.Connect()
+		require.NoError(t, err, "Could not Connect to the topology: %v", err)
+
+		// wait for description to update
+		sub, err := topo.Subscribe()
+		require.NoError(t, err, "Couldn't subscribe: %v", err)
+		var desc description.Topology
+		for atomic.LoadInt32(&mockRes.ranLookup) < 2 {
+			desc = <-sub.Updates
+		}
+
+		require.False(t, topo.pollHeartbeatTime.Load().(bool))
+		expectedHosts := []string{"localhost.test.build.10gen.cc:27017", "localhost.test.build.10gen.cc:27018", "other.10gen.cc:27020"}
+		compareHosts(t, desc.Servers, expectedHosts)
+		_ = topo.Disconnect(context.Background())
+	})
 }
 
 func TestPollingSRVRecordsLoadBalanced(t *testing.T) {
