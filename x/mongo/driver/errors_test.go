@@ -29,6 +29,7 @@ func TestExtractErrorFromServerResponse_BaseBackoffMS(t *testing.T) {
 	}
 
 	t.Run("command error", func(t *testing.T) {
+		t.Parallel()
 
 		tests := []struct {
 			name string

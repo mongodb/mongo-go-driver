@@ -865,8 +865,6 @@ func TestRetry(t *testing.T) {
 }
 
 func TestOperation_networkError(t *testing.T) {
-	t.Parallel()
-
 	inner := errors.New("connection(host:27017[-1]) incomplete read of message header")
 
 	err := Operation{}.networkError(inner)

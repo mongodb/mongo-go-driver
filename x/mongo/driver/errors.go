@@ -291,8 +291,6 @@ func (e Error) UnsupportedStorageEngine() bool {
 // Error implements the error interface.
 func (e Error) Error() string {
 	msg := e.Message
-	// Omit the wrapped error if it is identical to the message to avoid
-	// duplicating it, e.g. for network errors wrapped by Operation.networkError.
 	if e.Wrapped != nil && e.Wrapped.Error() != e.Message {
 		if msg != "" {
 			msg += ": "
