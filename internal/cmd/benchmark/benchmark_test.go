@@ -15,6 +15,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -32,7 +33,8 @@ const (
 	defaultOutputFileName = "perf.json"
 	legacyHelloLowercase  = "ismaster"
 	tarFile               = "perf.tar.gz"
-	perfDir               = "perf"
+	testdataDir           = "../../../testdata"
+	perfDir               = testdataDir + "/perf"
 	testdataURL           = "https://s3.amazonaws.com/boxes.10gen.com/build/driver-test-data.tar.gz"
 	perftestDB            = "perftest"
 	corpusColl            = "corpus"
@@ -103,66 +105,49 @@ func reportMetrics(b *testing.B, metrics *metrics) {
 	reportThroughputStats(b, metrics.opsPerSecond)
 }
 
-// find the testdata directory. We do this instead of hardcoding a relative path
-// (i.e. ../../../testdata) so that these benchmarks can be run from both the
-// root as a taskfile as well as from the benchmark directory.
-func testdataDir(tb testing.TB) string {
-	tb.Helper()
-
-	wd, err := os.Getwd()
-	require.NoError(tb, err, "failed to source working directory")
-
-	for {
-		tdPath := filepath.Join(wd, "testdata")
-		if _, err := os.Stat(tdPath); !os.IsNotExist(err) {
-			return tdPath
-		}
-
-		wd = filepath.Dir(wd)
-		if filepath.Base(wd) == "mongodb-go-driver" {
-			tb.Fatal("'testdata' directory not found")
-		}
-	}
-}
-
-// where to download the tarball
-func testdataTarFileName(tb testing.TB) string {
-	return filepath.Join(testdataDir(tb), tarFile)
-}
-
-// where to extract the tarball
-func testdataPerfDir(tb testing.TB) string {
-	return filepath.Join(testdataDir(tb), perfDir)
-}
-
-// download the tarball of test data to testdata/perf
-func downloadTestDataTgz(t *testing.T) {
+// downloadTestDataTgz downloads the tarball of test data to a temp directory,
+// returning the path to the downloaded file.
+func downloadTestDataTgz() (string, error) {
 	resp, err := http.Get(testdataURL)
-	require.NoError(t, err, "failed to get response from %q", testdataURL)
+	if err != nil {
+		return "", fmt.Errorf("failed to get response from %q: %w", testdataURL, err)
+	}
 
 	defer resp.Body.Close()
 
-	out, err := os.Create(testdataTarFileName(t))
-	require.NoError(t, err, "failed to open testdata perf dir")
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("unexpected status %q from %q", resp.Status, testdataURL)
+	}
+
+	out, err := os.CreateTemp("", tarFile)
+	if err != nil {
+		return "", fmt.Errorf("failed to create tmp tar file: %w", err)
+	}
 
 	defer out.Close()
 
-	_, err = io.Copy(out, resp.Body)
-	require.NoError(t, err, "failed to copy response body to testdata perf dir")
+	if _, err := io.Copy(out, resp.Body); err != nil {
+		return "", fmt.Errorf("failed to copy response body to tar file: %w", err)
+	}
+
+	return out.Name(), nil
 }
 
-// extract the tarball to the perf dir.
-func extractTestDataTgz(t *testing.T) {
-	tarPath := testdataTarFileName(t)
+// extractTestDataTgz extracts the tarball files to the "perf" dir.
+func extractTestDataTgz(tarPath, targetDir string) error {
 	defer func() { _ = os.Remove(tarPath) }()
 
 	file, err := os.Open(tarPath)
-	require.NoError(t, err, "failed to open tar file")
+	if err != nil {
+		return fmt.Errorf("failed to open tar file: %w", err)
+	}
 
 	defer file.Close()
 
 	gzipReader, err := gzip.NewReader(file)
-	require.NoError(t, err, "failed to create a gzip reader")
+	if err != nil {
+		return fmt.Errorf("failed to create a gzip reader: %w", err)
+	}
 
 	defer gzipReader.Close()
 
@@ -173,24 +158,61 @@ func extractTestDataTgz(t *testing.T) {
 			break
 		}
 
-		require.NoError(t, err, "failed to advance tar entry")
+		if err != nil {
+			return fmt.Errorf("failed to advance tar entry: %w", err)
+		}
 
-		targetPath := filepath.Join(testdataPerfDir(t), strings.TrimPrefix(header.Name, "data/"))
+		targetPath := filepath.Join(targetDir, strings.TrimPrefix(header.Name, "data/"))
 
 		switch header.Typeflag {
 		case tar.TypeDir:
-			err := os.MkdirAll(targetPath, 0o755)
-			require.NoError(t, err, "failed to extract dir from tgz")
+			if err := os.MkdirAll(targetPath, 0o755); err != nil {
+				return fmt.Errorf("failed to extract dir from tgz: %w", err)
+			}
 		case tar.TypeReg:
 			outFile, err := os.Create(targetPath)
-			require.NoError(t, err, "failed to create path to extract file from tgz")
+			if err != nil {
+				return fmt.Errorf("failed to create path to extract file from tgz: %w", err)
+			}
 
-			_, err = io.Copy(outFile, tarReader)
-			require.NoError(t, err, "failed to extract file from tgz")
+			if _, err := io.Copy(outFile, tarReader); err != nil {
+				outFile.Close()
+
+				return fmt.Errorf("failed to extract file from tgz: %w", err)
+			}
 
 			outFile.Close()
 		}
 	}
+
+	return nil
+}
+
+// ensureTestData downloads and extracts the benchmark fixtures if they are not
+// already present. It is called from TestMain so that individual benchmarks run
+// via -bench self-provision, rather than depending on TestRunAllBenchmarks
+// having been run first.
+func ensureTestData() error {
+	if _, err := os.Stat(perfDir); !os.IsNotExist(err) {
+		return nil
+	}
+
+	tarPath, err := downloadTestDataTgz()
+	if err != nil {
+		return err
+	}
+
+	return extractTestDataTgz(tarPath, perfDir)
+}
+
+func TestMain(m *testing.M) {
+	flag.Parse()
+
+	if err := ensureTestData(); err != nil {
+		log.Panic(err)
+	}
+
+	os.Exit(m.Run())
 }
 
 func loadSourceDocument(b *testing.B, canonicalOnly bool, pathParts ...string) bson.D {
@@ -210,7 +232,7 @@ func loadSourceDocument(b *testing.B, canonicalOnly bool, pathParts ...string) b
 }
 
 func benchmarkBSONEncoding(b *testing.B, canonicalOnly bool, source string) {
-	doc := loadSourceDocument(b, canonicalOnly, testdataPerfDir(b), bsonDataDir, source)
+	doc := loadSourceDocument(b, canonicalOnly, perfDir, bsonDataDir, source)
 
 	b.ResetTimer()
 
@@ -229,7 +251,7 @@ func benchmarkBSONEncoding(b *testing.B, canonicalOnly bool, source string) {
 }
 
 func benchmarkBSONDecoding(b *testing.B, canonicalOnly bool, source string) {
-	doc := loadSourceDocument(b, canonicalOnly, testdataPerfDir(b), bsonDataDir, source)
+	doc := loadSourceDocument(b, canonicalOnly, perfDir, bsonDataDir, source)
 
 	raw, err := bson.Marshal(doc)
 	require.NoError(b, err, "failed to encode bson data")
@@ -323,12 +345,15 @@ func setupBench(b *testing.B) (*mongo.Collection, func(b *testing.B)) {
 	client, err := mongo.Connect()
 	require.NoError(b, err, "failed to connect to server")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	{
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
 
-	err = client.Ping(ctx, nil)
-	require.NoError(b, err, "failed to ping the server")
+		err = client.Ping(ctx, nil)
+		require.NoError(b, err, "failed to ping the server")
+	}
 
-	ctx, cancel = context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	db := client.Database(perftestDB)
@@ -356,7 +381,7 @@ func BenchmarkSingleFindOneByID(b *testing.B) {
 	coll, teardown := setupBench(b)
 	defer teardown(b)
 
-	doc := loadSourceDocument(b, true, testdataPerfDir(b), singleAndMultiDataDir, tweetData)
+	doc := loadSourceDocument(b, true, perfDir, singleAndMultiDataDir, tweetData)
 
 	// Insert 10_000 documents into the corpus.
 	const docCount = 10_000
@@ -391,15 +416,17 @@ func benchmarkSingleInsert(b *testing.B, source string) {
 	coll, teardown := setupBench(b)
 	defer teardown(b)
 
-	doc := loadSourceDocument(b, true, testdataPerfDir(b), singleAndMultiDataDir, smallData)
+	doc := loadSourceDocument(b, true, perfDir, singleAndMultiDataDir, source)
 
 	metrics := new(metrics)
+
+	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
 		recordMetrics(b, metrics, func(b *testing.B) {
 			b.Helper()
 			_, err := coll.InsertOne(context.Background(), doc)
-			require.NoError(b, err, "failed to insert small doc")
+			require.NoError(b, err, "failed to insert %q", source)
 		})
 	}
 
@@ -421,7 +448,7 @@ func BenchmarkMultiFindMany(b *testing.B) {
 	coll, teardown := setupBench(b)
 	defer teardown(b)
 
-	doc := loadSourceDocument(b, true, testdataPerfDir(b), singleAndMultiDataDir, tweetData)
+	doc := loadSourceDocument(b, true, perfDir, singleAndMultiDataDir, tweetData)
 
 	docsToInsert := make([]bson.D, b.N)
 	for i := range docsToInsert {
@@ -470,7 +497,7 @@ func benchmarkMultiInsert(b *testing.B, source string) {
 	coll, teardown := setupBench(b)
 	defer teardown(b)
 
-	doc := loadSourceDocument(b, true, testdataPerfDir(b), singleAndMultiDataDir, source)
+	doc := loadSourceDocument(b, true, perfDir, singleAndMultiDataDir, source)
 
 	docsToInsert := make([]bson.D, b.N)
 	for i := range docsToInsert {
@@ -549,15 +576,11 @@ func runBenchmark(name string, fn func(*testing.B)) (poplarTest, error) {
 	return test, nil
 }
 
+// TestRunAllBenchmarks runs all benchmarks and writes the results to
+// "perf.json" in Evergreen's Poplar data format.
 func TestRunAllBenchmarks(t *testing.T) {
-	flag.Parse()
-
-	// Download and extract the data if it doesn't exist.
-	if _, err := os.Stat(testdataPerfDir(t)); os.IsNotExist(err) {
-		downloadTestDataTgz(t)
-		extractTestDataTgz(t)
-	}
-
+	// Test data is downloaded by TestMain.
+	//
 	// The test will be run any time a benchmark is run. To avoid running all
 	// benchmarks in this case, we require a flag that defaults to false. The
 	// intention is that this test will only ever need to fully run in CI.
@@ -606,7 +629,7 @@ func TestRunAllBenchmarks(t *testing.T) {
 	// Ignore gosec warning "Expect WriteFile permissions to be 0600 or less" for
 	// benchmark result file.
 	/* #nosec G306 */
-	err = os.WriteFile(filepath.Join(filepath.Dir(testdataDir(t)), defaultOutputFileName), evgOutput, 0o644)
+	err = os.WriteFile(filepath.Join(filepath.Dir(testdataDir), defaultOutputFileName), evgOutput, 0o644)
 	require.NoError(t, err, "failed to write results")
 }
 
