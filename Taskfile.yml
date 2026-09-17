@@ -50,7 +50,6 @@ tasks:
   run-fuzz: bash etc/run-fuzz.sh
   cherry-picker: bash etc/cherry-picker.sh
   pr-task: bash etc/pr-task.sh
-  perf-pr-comment: bash etc/perf-pr-comment.sh
   # Lint with various GOOS and GOARCH tasks to catch static analysis failures that may only affect
   # specific operating systems or architectures. For example, staticcheck will only check for 64-bit
   # alignment of atomically accessed variables on 32-bit architectures (see
@@ -137,6 +136,9 @@ tasks:
     dir: internal/cmd/benchmark
     cmds:
       - go test -v --fullRun . | tee perf.suite
+  # Compare benchmark results between BASE_SHA and HEAD_SHA on this machine and
+  # post the diff as a PR comment. Used by the "perf-pr" task.
+  perf-pr-report: bash etc/perf-pr-report.sh
   ### Internal tasks. ###
   install-gofumpt:
     internal: true

@@ -231,18 +231,16 @@ functions:
 
           echo "Response Body: $response_body"
           echo "HTTP Status: $http_status"
-  send-perf-pr-comment:
+  send-perf-pr-report:
     - command: subprocess.exec
       type: test
       params:
         binary: bash
         add_expansions_to_env: true
         env:
-          VERSION_ID: ${version_id}
           BASE_SHA: "${revision}"
           HEAD_SHA: "${github_commit}"
-        include_expansions_in_env: [PERF_URI_PRIVATE_ENDPOINT]
-        args: [*task-runner, perf-pr-comment]
+        args: [*task-runner, perf-pr-report]
   run-enterprise-auth-tests:
     - command: ec2.assume_role
       params:
@@ -572,8 +570,11 @@ tasks:
     commands:
       - func: assume-test-secrets-ec2-role
       - func: "create-api-report"
+  # Mainline only. Runs the benchmarks once and uploads perf.json to the SPS
+  # performance monitoring service for long-term trend tracking.
   - name: perf
     tags: ["performance"]
+    allowed_requesters: ["commit"]
     exec_timeout_secs: 7200
     commands:
       - func: bootstrap-mongo-orchestration
@@ -589,7 +590,25 @@ tasks:
           args: [*task-runner, driver-benchmark]
       - func: assume-test-secrets-ec2-role
       - func: send-perf-data
-      - func: send-perf-pr-comment
+  # Pull requests only. Benchmarks the base and head revisions on this host,
+  # interleaved, and posts a benchstat comparison as a PR comment. This is
+  # self-contained: unlike the SPS upload above it does not depend on the
+  # performance monitoring cluster.
+  - name: perf-pr
+    tags: ["performance"]
+    allowed_requesters: ["patch", "github_pr"]
+    exec_timeout_secs: 5400
+    commands:
+      - func: bootstrap-mongo-orchestration
+        vars:
+          VERSION: "v6.0-perf"
+          TOPOLOGY: "server"
+          AUTH: "noauth"
+          SSL: "nossl"
+          SKIP_LEGACY_SHELL: "true"
+      # Needed for the GitHub App credentials used to post the PR comment.
+      - func: assume-test-secrets-ec2-role
+      - func: send-perf-pr-report
   - name: test-standalone-noauth-nossl
     tags: ["test", "standalone"]
     commands:
