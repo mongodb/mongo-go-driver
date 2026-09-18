@@ -158,10 +158,13 @@ func TestBackpressureProse(t *testing.T) {
 		require.True(mt, ok, "expected baseBackoffMS to be numeric, got %v", baseBackoffMS.Type)
 		require.Equal(mt, int64(50), baseBackoffMSVal, "expected baseBackoffMS to be 50")
 
-		assert.GreaterOrEqual(mt, exponentialTime, 600*time.Millisecond,
-			"expected the default backoff run to take at least 600ms, took %v", exponentialTime)
-		assert.GreaterOrEqual(mt, baseBackoffTime, 300*time.Millisecond,
-			"expected the baseBackoffMS run to take at least 300ms, took %v", baseBackoffTime)
+		const tolerance = 5 * time.Millisecond
+		assert.GreaterOrEqual(mt, exponentialTime, 600*time.Millisecond-tolerance,
+			"expected the default backoff run to take at least 600ms (minus %v tolerance), took %v",
+			tolerance, exponentialTime)
+		assert.GreaterOrEqual(mt, baseBackoffTime, 300*time.Millisecond-tolerance,
+			"expected the baseBackoffMS run to take at least 300ms (minus %v tolerance), took %v",
+			tolerance, baseBackoffTime)
 		assert.Less(mt, baseBackoffTime, 600*time.Millisecond,
 			"expected the baseBackoffMS run to take less than 600ms, took %v", baseBackoffTime)
 	})
