@@ -9,7 +9,7 @@ require github.com/aws/aws-lambda-go v1.54.0
 require go.mongodb.org/mongo-driver/v2 v2.0.0-00010101000000-000000000000
 
 require (
-	github.com/klauspost/compress v1.19.2 // indirect
+	github.com/klauspost/compress v1.20.0 // indirect
 	github.com/stretchr/testify v1.12.1 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.2.0 // indirect
