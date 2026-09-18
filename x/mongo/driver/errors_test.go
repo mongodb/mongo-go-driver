@@ -110,8 +110,6 @@ func TestExtractErrorFromServerResponse_BaseBackoffMS(t *testing.T) {
 }
 
 func TestError_Error(t *testing.T) {
-	t.Parallel()
-
 	tests := []struct {
 		name string
 		err  Error
