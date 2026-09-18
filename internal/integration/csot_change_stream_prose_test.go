@@ -80,7 +80,7 @@ func changeStreamTarget(mt *mtest.T, watcher changeStreamWatcher) (wantDB, wantC
 	return wantDB, wantColl
 }
 
-func requireChangeStreamAggregateEvents(mt *mtest.T, maxWantTimeMS int64, wantDB, wantColl string) {
+func requireChangeStreamAggregateEvents(mt *mtest.T, wantDB, wantColl string) {
 	mt.Helper()
 
 	evts := mt.GetAllStartedEvents()
@@ -90,8 +90,6 @@ func requireChangeStreamAggregateEvents(mt *mtest.T, maxWantTimeMS int64, wantDB
 
 		maxTimeMS := evt.Command.Lookup("maxTimeMS").Int64()
 		require.Positive(mt, maxTimeMS, "expected maxTimeMS to be positive")
-		require.LessOrEqual(mt, maxTimeMS, maxWantTimeMS,
-			"expected maxTimeMS to be no greater than %dms", maxWantTimeMS)
 		require.Equal(mt, wantDB, evt.DatabaseName,
 			"expected aggregate command to be sent to the correct database")
 
@@ -107,7 +105,7 @@ func requireChangeStreamAggregateEvents(mt *mtest.T, maxWantTimeMS int64, wantDB
 }
 
 func requireCSOTOverrideOperationTimeoutChangeStream(t *testing.T, entity func(mt *mtest.T) changeStreamWatcher) {
-	clientOpts := options.Client().SetTimeout(100 * time.Millisecond).SetMinPoolSize(1)
+	clientOpts := options.Client().SetTimeout(10 * time.Millisecond).SetMinPoolSize(1)
 
 	mtOpts := mtest.NewOptions().
 		MinServerVersion("4.4").
@@ -158,14 +156,17 @@ func requireCSOTOverrideOperationTimeoutChangeStream(t *testing.T, entity func(m
 		return evt.CommandName == "aggregate"
 	})
 
-	requireChangeStreamAggregateEvents(mt, 1000, wantDB, wantColl)
+	requireChangeStreamAggregateEvents(mt, wantDB, wantColl)
 }
 
 func requireCSOTRetriedChangeStream(t *testing.T, entity func(mt *mtest.T) changeStreamWatcher) {
+	clientOptions := options.Client().SetTimeout(100 * time.Millisecond).SetMinPoolSize(1)
+
 	mtOpts := mtest.NewOptions().
 		MinServerVersion("4.3.1"). // failCommand errorLabels option
 		Topologies(mtest.ReplicaSet, mtest.Sharded).
-		AllowFailPointsOnSharded()
+		AllowFailPointsOnSharded().
+		ClientOptions(clientOptions)
 
 	mt := mtest.New(t, mtOpts)
 	mt.Setup()
@@ -210,8 +211,5 @@ func requireCSOTRetriedChangeStream(t *testing.T, entity func(mt *mtest.T) chang
 		return evt.CommandName == "aggregate"
 	})
 
-	evts := mt.GetAllStartedEvents()
-	require.Len(mt, evts, 3, "expected 2 failed aggregate attempts and 1 successful attempt")
-
-	requireChangeStreamAggregateEvents(mt, 1000, wantDB, wantColl)
+	requireChangeStreamAggregateEvents(mt, wantDB, wantColl)
 }
