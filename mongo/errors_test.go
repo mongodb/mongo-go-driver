@@ -319,6 +319,130 @@ func TestServerError(t *testing.T) {
 			hasCodeWithMessage: false,
 			isResult:           false,
 		},
+		{
+			name: "ClientBulkWriteException all in top-level writeError",
+			err: ClientBulkWriteException{
+				WriteError: &WriteError{
+					Code:    matchCode,
+					Message: "foo",
+				},
+				Labels: []string{label},
+			},
+			hasCode:            true,
+			hasLabel:           true,
+			hasMessage:         true,
+			hasCodeWithMessage: true,
+			isResult:           false,
+		},
+		{
+			name: "ClientBulkWriteException all in writeConcernErrors",
+			err: ClientBulkWriteException{
+				WriteConcernErrors: []WriteConcernError{
+					{
+						Name:    "name",
+						Code:    otherCode,
+						Message: "bar",
+					},
+					{
+						Name:    "name",
+						Code:    matchCode,
+						Message: "foo",
+					},
+				},
+				Labels: []string{"otherError"},
+			},
+			hasCode:            true,
+			hasLabel:           false,
+			hasMessage:         true,
+			hasCodeWithMessage: true,
+			isResult:           false,
+		},
+		{
+			name: "ClientBulkWriteException all in writeErrors",
+			err: ClientBulkWriteException{
+				WriteErrors: map[int]WriteError{
+					0: {
+						Index:   0,
+						Code:    otherCode,
+						Message: "bar",
+					},
+					1: {
+						Index:   1,
+						Code:    matchCode,
+						Message: "foo",
+					},
+				},
+				Labels: []string{"otherError"},
+			},
+			hasCode:            true,
+			hasLabel:           false,
+			hasMessage:         true,
+			hasCodeWithMessage: true,
+			isResult:           false,
+		},
+		{
+			name: "ClientBulkWriteException all false",
+			err: ClientBulkWriteException{
+				WriteError: &WriteError{
+					Code:    otherCode,
+					Message: "bar",
+				},
+				WriteConcernErrors: []WriteConcernError{
+					{
+						Name:    "name",
+						Code:    otherCode,
+						Message: "baz",
+					},
+				},
+				WriteErrors: map[int]WriteError{
+					0: {
+						Index:   0,
+						Code:    otherCode,
+						Message: "qux",
+					},
+				},
+				Labels: []string{"otherError"},
+			},
+			hasCode:            false,
+			hasLabel:           false,
+			hasMessage:         false,
+			hasCodeWithMessage: false,
+			isResult:           false,
+		},
+		{
+			name: "ClientBulkWriteException HasErrorCodeWithMessage false",
+			err: ClientBulkWriteException{
+				WriteConcernErrors: []WriteConcernError{
+					{
+						Name:    "name",
+						Code:    matchCode,
+						Message: "bar",
+					},
+				},
+				WriteErrors: map[int]WriteError{
+					0: {
+						Index:   0,
+						Code:    otherCode,
+						Message: "foo",
+					},
+				},
+				Labels: []string{"otherError"},
+			},
+			hasCode:            true,
+			hasLabel:           false,
+			hasMessage:         true,
+			hasCodeWithMessage: false,
+			isResult:           false,
+		},
+		{
+			name:               "ClientBulkWriteException empty",
+			err:                ClientBulkWriteException{},
+			hasCode:            false,
+			hasLabel:           false,
+			hasMessage:         false,
+			hasCodeWithMessage: false,
+			isResult:           false,
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {

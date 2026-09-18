@@ -378,11 +378,7 @@ var (
 	_ ServerError = WriteError{}
 	_ ServerError = WriteException{}
 	_ ServerError = BulkWriteException{}
-)
-
-var (
-	_ error      = ClientBulkWriteException{}
-	_ errorCoder = ClientBulkWriteException{}
+	_ ServerError = ClientBulkWriteException{}
 )
 
 // CommandError represents a server error during execution of a command. This can be returned by any operation.
@@ -800,6 +796,14 @@ type ClientBulkWriteException struct {
 	// The results of any successful operations that were performed before the error
 	// was encountered.
 	PartialResult *ClientBulkWriteResult
+
+	// The categories to which the exception belongs.
+	Labels []string // is this needed
+}
+
+// HasErrorCode returns true if any of the errors have the specified code.
+func (bwe ClientBulkWriteException) HasErrorCode(code int) bool {
+	return hasErrorCode(bwe, code)
 }
 
 // ErrorCodes returns a list of error codes returned by the server.
@@ -849,6 +853,56 @@ func (bwe ClientBulkWriteException) Error() string {
 	}
 	return "bulk write exception: " + strings.Join(causes, ", ")
 }
+
+// HasErrorLabel returns true if the error contains the specified label.
+func (bwe ClientBulkWriteException) HasErrorLabel(label string) bool {
+	for _, l := range bwe.Labels {
+		if l == label {
+			return true
+		}
+	}
+	return false
+}
+
+// HasErrorMessage returns true if any of the contained errors contain the specified message.
+func (bwe ClientBulkWriteException) HasErrorMessage(message string) bool {
+	if bwe.WriteError != nil && strings.Contains(bwe.WriteError.Message, message) {
+		return true
+	}
+	for _, wce := range bwe.WriteConcernErrors {
+		if strings.Contains(wce.Message, message) {
+			return true
+		}
+	}
+	for _, we := range bwe.WriteErrors {
+		if strings.Contains(we.Message, message) {
+			return true
+		}
+	}
+	return false
+}
+
+// HasErrorCodeWithMessage returns true if any of the contained errors have the specified code and message.
+func (bwe ClientBulkWriteException) HasErrorCodeWithMessage(code int, message string) bool {
+	if bwe.WriteError != nil &&
+		bwe.WriteError.Code == code && strings.Contains(bwe.WriteError.Message, message) {
+		return true
+	}
+	for _, wce := range bwe.WriteConcernErrors {
+		if wce.Code == code && strings.Contains(wce.Message, message) {
+			return true
+		}
+	}
+	for _, we := range bwe.WriteErrors {
+		if we.Code == code && strings.Contains(we.Message, message) {
+			return true
+		}
+	}
+	return false
+}
+
+// serverError implements the ServerError interface.
+func (bwe ClientBulkWriteException) serverError() {}
 
 var _ LabeledError = timeoutError{}
 
