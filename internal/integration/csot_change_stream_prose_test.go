@@ -211,5 +211,7 @@ func requireCSOTRetriedChangeStream(t *testing.T, entity func(mt *mtest.T) chang
 		return evt.CommandName == "aggregate"
 	})
 
+	require.Len(mt, mt.GetAllStartedEvents(), 3, "expected 3 aggregate commands to be sent (2 retries)")
+
 	requireChangeStreamAggregateEvents(mt, wantDB, wantColl)
 }
