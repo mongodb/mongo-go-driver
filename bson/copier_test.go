@@ -533,7 +533,7 @@ func TestCopier(t *testing.T) {
 			err := copyBytesToValueWriter(src, func(string) (ValueWriter, error) {
 				return nil, nil
 			})
-			assert.ErrorContains(t, err, "invalid document length")
+			assert.ErrorIs(t, err, bsoncore.ErrInvalidLength)
 		}
 	})
 }
