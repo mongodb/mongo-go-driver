@@ -50,7 +50,6 @@ tasks:
   run-fuzz: bash etc/run-fuzz.sh
   cherry-picker: bash etc/cherry-picker.sh
   pr-task: bash etc/pr-task.sh
-  perf-pr-comment: bash etc/perf-pr-comment.sh
   # Lint with various GOOS and GOARCH tasks to catch static analysis failures that may only affect
   # specific operating systems or architectures. For example, staticcheck will only check for 64-bit
   # alignment of atomically accessed variables on 32-bit architectures (see
@@ -125,13 +124,21 @@ tasks:
   evg-gather-test-suites: find . -name \*.suite | xargs --no-run-if-empty tar czf test_suite.tgz
   build-kms-test: go build ${BUILD_TAGS} ./internal/cmd/testkms
   ### Benchmark specific tasks and support. ###
+  # Run the benchmarks as ordinary Go microbenchmarks. Test data is downloaded
+  # on demand by TestMain.
   benchmark:
-    deps: [perf-files]
+    dir: internal/cmd/benchmark
     cmds:
-      - go test ${BUILD_TAGS} -benchmem -bench=. ./benchmark | test benchmark.suite
+      - go test -run='^$' -bench=. -benchmem . | tee benchmark.suite
+  # Run the full benchmark suite and emit perf.json for the Evergreen/SPS
+  # performance monitoring upload. Used by the mainline "perf" task.
   driver-benchmark:
+    dir: internal/cmd/benchmark
     cmds:
-      - go test ./internal/cmd/benchmark -v --fullRun | tee perf.suite
+      - go test -v --fullRun . | tee perf.suite
+  # Compare benchmark results between BASE_SHA and HEAD_SHA on this machine and
+  # post the diff as a PR comment. Used by the "perf-pr" task.
+  perf-pr-report: bash etc/perf-pr-report.sh
   ### Internal tasks. ###
   install-gofumpt:
     internal: true
