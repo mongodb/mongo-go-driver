@@ -166,7 +166,8 @@ func requireCSOTRetriedChangeStream(t *testing.T, entity func(mt *mtest.T) chang
 		MinServerVersion("4.3.1"). // failCommand errorLabels option
 		Topologies(mtest.ReplicaSet, mtest.Sharded).
 		AllowFailPointsOnSharded().
-		ClientOptions(clientOptions)
+		ClientOptions(clientOptions).
+		ClientType(mtest.Pinned)
 
 	mt := mtest.New(t, mtOpts)
 	mt.Setup()
