@@ -216,10 +216,6 @@ type modelBatches struct {
 	writeConcernErrors []WriteConcernError
 	writeErrors        map[int]WriteError
 
-	// labels accumulates the error labels reported by each batch. A bulk
-	// write can span several batches, and a label such as
-	// "RetryableWriteError" returned by any of them applies to the operation
-	// as a whole.
 	labels []string
 }
 
