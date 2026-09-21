@@ -798,7 +798,7 @@ type ClientBulkWriteException struct {
 	PartialResult *ClientBulkWriteResult
 
 	// The categories to which the exception belongs.
-	Labels []string // is this needed
+	Labels []string
 }
 
 // HasErrorCode returns true if any of the errors have the specified code.
