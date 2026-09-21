@@ -112,6 +112,8 @@ func (bw *clientBulkWrite) execute(ctx context.Context) error {
 		}
 		exception.WriteConcernErrors = batches.writeConcernErrors
 		exception.WriteErrors = batches.writeErrors
+
+		exception.Labels = appendMissingLabels(exception.Labels, batches.labels)
 	}
 	if exception != nil {
 		var hasSuccess bool
@@ -213,6 +215,12 @@ type modelBatches struct {
 	result             *ClientBulkWriteResult
 	writeConcernErrors []WriteConcernError
 	writeErrors        map[int]WriteError
+
+	// labels accumulates the error labels reported by each batch. A bulk
+	// write can span several batches, and a label such as
+	// "RetryableWriteError" returned by any of them applies to the operation
+	// as a whole.
+	labels []string
 }
 
 var _ driver.OperationBatches = &modelBatches{}
@@ -427,10 +435,17 @@ func (mb *modelBatches) appendBatches(fn functionSet, dst []byte, maxCount, tota
 
 func (mb *modelBatches) processResponse(ctx context.Context, resp bsoncore.Document, info driver.ResponseInfo) error {
 	var writeCmdErr driver.WriteCommandError
-	if errors.As(info.Error, &writeCmdErr) && writeCmdErr.WriteConcernError != nil {
-		wce := convertDriverWriteConcernError(writeCmdErr.WriteConcernError)
-		if wce != nil {
-			mb.writeConcernErrors = append(mb.writeConcernErrors, *wce)
+	if errors.As(info.Error, &writeCmdErr) {
+		// Collect labels whenever the batch reports a write command error,
+		// not just when it carries a write concern error: labels are attached
+		// to the command error itself.
+		mb.labels = appendMissingLabels(mb.labels, writeCmdErr.Labels)
+
+		if writeCmdErr.WriteConcernError != nil {
+			wce := convertDriverWriteConcernError(writeCmdErr.WriteConcernError)
+			if wce != nil {
+				mb.writeConcernErrors = append(mb.writeConcernErrors, *wce)
+			}
 		}
 	}
 	if len(resp) == 0 {
@@ -462,6 +477,7 @@ func (mb *modelBatches) processResponse(ctx context.Context, resp bsoncore.Docum
 			WriteConcernErrors: mb.writeConcernErrors,
 			WriteErrors:        mb.writeErrors,
 			PartialResult:      mb.result,
+			Labels:             mb.labels,
 		}
 	}
 
@@ -522,6 +538,7 @@ func (mb *modelBatches) processResponse(ctx context.Context, resp bsoncore.Docum
 			WriteConcernErrors: mb.writeConcernErrors,
 			WriteErrors:        mb.writeErrors,
 			PartialResult:      mb.result,
+			Labels:             mb.labels,
 		}
 	}
 	return nil

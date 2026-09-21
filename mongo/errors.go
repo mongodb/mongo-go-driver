@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"net"
 	"reflect"
+	"slices"
 	"strings"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -361,6 +362,16 @@ type ServerError interface {
 	ErrorCodes() []int
 
 	serverError()
+}
+
+func appendMissingLabels(dst, src []string) []string {
+	for _, label := range src {
+		if !slices.Contains(dst, label) {
+			dst = append(dst, label)
+		}
+	}
+
+	return dst
 }
 
 func hasErrorCode(srvErr ServerError, code int) bool {
@@ -798,7 +809,7 @@ type ClientBulkWriteException struct {
 	PartialResult *ClientBulkWriteResult
 
 	// The categories to which the exception belongs.
-	Labels []string // is this needed
+	Labels []string
 }
 
 // HasErrorCode returns true if any of the errors have the specified code.
@@ -856,12 +867,7 @@ func (bwe ClientBulkWriteException) Error() string {
 
 // HasErrorLabel returns true if the error contains the specified label.
 func (bwe ClientBulkWriteException) HasErrorLabel(label string) bool {
-	for _, l := range bwe.Labels {
-		if l == label {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(bwe.Labels, label)
 }
 
 // HasErrorMessage returns true if any of the contained errors contain the specified message.
