@@ -441,11 +441,11 @@ func appendMissingLabels(dst, src []string) []string {
 }
 
 func (mb *modelBatches) processResponse(ctx context.Context, resp bsoncore.Document, info driver.ResponseInfo) error {
+	// A batch can fail either with a write command error or with a plain
+	// command error, and both carry their own labels. Check for each independently.
 	var writeCmdErr driver.WriteCommandError
+	var driverErr driver.Error
 	if errors.As(info.Error, &writeCmdErr) {
-		// Collect labels whenever the batch reports a write command error,
-		// not just when it carries a write concern error: labels are attached
-		// to the command error itself.
 		mb.labels = appendMissingLabels(mb.labels, writeCmdErr.Labels)
 
 		if writeCmdErr.WriteConcernError != nil {
@@ -454,6 +454,9 @@ func (mb *modelBatches) processResponse(ctx context.Context, resp bsoncore.Docum
 				mb.writeConcernErrors = append(mb.writeConcernErrors, *wce)
 			}
 		}
+	}
+	if errors.As(info.Error, &driverErr) {
+		mb.labels = appendMissingLabels(mb.labels, driverErr.Labels)
 	}
 	if len(resp) == 0 {
 		return nil

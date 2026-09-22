@@ -170,6 +170,19 @@ func TestModelBatches_processResponseLabels(t *testing.T) {
 			want: []string{"RetryableWriteError", "UnknownTransactionCommitResult"},
 		},
 		{
+			name: "labels from a driver error",
+			errs: []error{driver.Error{Code: 11602, Labels: []string{"RetryableWriteError"}}},
+			want: []string{"RetryableWriteError"},
+		},
+		{
+			name: "labels from a driver error and a write command error",
+			errs: []error{
+				driver.Error{Code: 11602, Labels: []string{"RetryableWriteError"}},
+				driver.WriteCommandError{Labels: []string{"UnknownTransactionCommitResult"}},
+			},
+			want: []string{"RetryableWriteError", "UnknownTransactionCommitResult"},
+		},
+		{
 			name: "no error yields no labels",
 			errs: []error{nil},
 			want: nil,
