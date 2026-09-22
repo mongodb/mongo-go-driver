@@ -219,10 +219,6 @@ func ExportSecrets(t *testing.T, opts ...Option) Secrets {
 		}
 	})
 
-	// The entrypoint runs under "set -e", so a failed login or a failed
-	// credential verification shows up as a non-zero exit. Check it before
-	// reading the file: a stale or partial secrets-export.sh would otherwise
-	// parse cleanly and hide the failure.
 	state, err := ctr.State(ctx)
 	if err != nil {
 		t.Fatalf("failed to get AWS SSO login container state: %v", err)
