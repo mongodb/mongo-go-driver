@@ -16,14 +16,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// fixtureDockerfile builds the real entrypoint against a stub AWS CLI, so the
-// test needs neither real credentials nor an interactive SSO prompt.
 const fixtureDockerfile = "aws-sso-login-fixture.Dockerfile"
 
 func TestExportSecrets(t *testing.T) {
-	// Point the SSO cache at an empty temp dir: the stub CLI never reads it,
-	// and this keeps the test from mounting the developer's real token cache
-	// into a container.
 	secrets := ExportSecrets(t,
 		WithProfile("fixture-profile"),
 		WithDockerfile(fixtureDockerfile),
@@ -38,8 +33,6 @@ func TestExportSecrets(t *testing.T) {
 }
 
 func TestExportSecrets_vaults(t *testing.T) {
-	// The stub returns lower-cased keys, so this also covers the upper-casing
-	// entrypoint.sh applies before appending them to secrets-export.sh.
 	secrets := ExportSecrets(t,
 		WithProfile("fixture-profile"),
 		WithDockerfile(fixtureDockerfile),
