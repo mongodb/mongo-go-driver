@@ -125,8 +125,6 @@ func TestAppendBatchSequence(t *testing.T) {
 }
 
 func TestModelBatches_processResponseLabels(t *testing.T) {
-	t.Parallel()
-
 	// A failed response ("ok": 0) makes processResponse return the exception
 	// directly, which is where the labels have to surface.
 	newFailedResp := func(t *testing.T) bsoncore.Document {
