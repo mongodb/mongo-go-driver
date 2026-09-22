@@ -253,13 +253,8 @@ func (c *testLogConsumer) Accept(log testcontainers.Log) {
 	c.t.Logf("aws-sso-login: %s", strings.TrimRight(string(log.Content), "\n"))
 }
 
-// parseSecretsFile reads a drivers-evergreen-tools style secrets-export.sh,
-// whose lines look like:
-//
-//	export AWS_ACCESS_KEY_ID=value
-//
-// Blank lines and comments are ignored. Values may be single- or
-// double-quoted.
+// parseSecretsFile reads a drivers-evergreen-tools style secrets-export.sh, such as
+// export AWS_ACCESS_KEY_ID=value
 func parseSecretsFile(path string) (Secrets, error) {
 	f, err := os.Open(path)
 	if err != nil {
