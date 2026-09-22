@@ -10,9 +10,14 @@
 #
 #   source etc/setup-cse-dev.sh
 #
+# It also logs into AWS SSO and loads the KMS secrets, both inside a container,
+# so no host AWS CLI, AWS profile or Python environment is needed. The login is
+# interactive the first time: approve the printed URL and code.
+#
 # Requirements:
+#   - Docker, for the AWS SSO login and the KMS secrets fetch.
 #   - DRIVERS_TOOLS must point at a clone of drivers-evergreen-tools (used to
-#     download crypt_shared and to load KMS secrets).
+#     download crypt_shared).
 #   - CRYPT_SHARED_VERSION selects the crypt_shared version to download
 #     (default "latest"). It must be >= the query types you exercise: prefix
 #     and suffix require 9.0+, substring requires 8.2+.
@@ -83,20 +88,50 @@ echo ""
 echo "Run CSE tests with:"
 echo "  go test -tags cse ./internal/integration -run <TestName>"
 
-if [ -n "${AWS_PROFILE:-}" ]; then
-  aws sso login --profile "${AWS_PROFILE}"
-else
-  aws sso login
+# This replaces a host "aws sso login" plus drivers-evergreen-tools'
+# setup-secrets.sh. Both needed host setup that this does not: a configured
+# AWS profile, a host AWS CLI, and a Python 3.10+ venv for boto3. The image
+# hardcodes the SSO settings and fetches drivers/csfle with the AWS CLI it
+# already ships, so a clean machine needs only Docker.
+#
+# The login is interactive the first time: it prints a verification URL and a
+# code to approve. The SSO token cache is shared with the host, so later runs
+# reuse a live session.
+proseDir="$(pwd)/internal/test/prose"
+
+if ! docker build -q -t aws-sso-login -f "${proseDir}/docker/aws-sso-login.Dockerfile" "${proseDir}/docker"; then
+  echo "ERROR: failed to build the aws-sso-login image; KMS secrets not loaded." >&2
+  return 1
 fi
 
-if ! bash "${DRIVERS_TOOLS}/.evergreen/csfle/setup-secrets.sh"; then
-  echo "ERROR: setup-secrets.sh failed; KMS secrets not loaded." >&2
+# Write the credentials to a temporary directory rather than the repo, so they
+# are not left lying around after the shell exits.
+secretsDir="$(mktemp -d)"
+
+ssoCacheDir="${HOME}/.aws/sso/cache"
+mkdir -p "${ssoCacheDir}"
+
+if ! docker run --rm -i \
+  -v "${ssoCacheDir}:/root/.aws/sso/cache" \
+  -v "${secretsDir}:/secrets" \
+  -e "SECRET_VAULTS=drivers/csfle" \
+  ${AWS_PROFILE:+-e "AWS_PROFILE=${AWS_PROFILE}"} \
+  aws-sso-login; then
+  rm -rf "${secretsDir}"
+  echo "ERROR: the AWS SSO login container failed; KMS secrets not loaded." >&2
   return 1
 fi
 
 # shellcheck source=/dev/null
-if ! source secrets-export.sh; then
+set -a
+if ! source "${secretsDir}/secrets-export.sh"; then
+  set +a
+  rm -rf "${secretsDir}"
   echo "ERROR: failed to source secrets-export.sh; KMS secrets not loaded." >&2
   return 1
 fi
+set +a
+
+rm -rf "${secretsDir}"
+
 echo "KMS secrets loaded."
