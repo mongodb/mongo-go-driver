@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 	"strconv"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -427,6 +428,16 @@ func (mb *modelBatches) appendBatches(fn functionSet, dst []byte, maxCount, tota
 		mb.retryMode = driver.RetryOnce
 	}
 	return n, dst, nil
+}
+
+func appendMissingLabels(dst, src []string) []string {
+	for _, label := range src {
+		if !slices.Contains(dst, label) {
+			dst = append(dst, label)
+		}
+	}
+
+	return dst
 }
 
 func (mb *modelBatches) processResponse(ctx context.Context, resp bsoncore.Document, info driver.ResponseInfo) error {

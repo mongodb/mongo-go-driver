@@ -364,16 +364,6 @@ type ServerError interface {
 	serverError()
 }
 
-func appendMissingLabels(dst, src []string) []string {
-	for _, label := range src {
-		if !slices.Contains(dst, label) {
-			dst = append(dst, label)
-		}
-	}
-
-	return dst
-}
-
 func hasErrorCode(srvErr ServerError, code int) bool {
 	for _, srvErrCode := range srvErr.ErrorCodes() {
 		if code == srvErrCode {
@@ -525,7 +515,6 @@ func (we WriteError) HasErrorCodeWithMessage(code int, message string) bool {
 	return we.Code == code && strings.Contains(we.Message, message)
 }
 
-// serverError implements the ServerError interface.
 func (we WriteError) serverError() {}
 
 // WriteErrors is a group of write errors that occurred during execution of a write operation.
