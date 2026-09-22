@@ -152,8 +152,8 @@ func (c *countOp) execute(ctx context.Context) error {
 	}.Execute(ctx)
 	// Swallow error if NamespaceNotFound(26) is returned from aggregate on non-existent namespace
 	if err != nil {
-		dErr, ok := err.(driver.Error)
-		if ok && dErr.Code == 26 {
+		var dErr driver.Error
+		if errors.As(err, &dErr) && dErr.Code == 26 {
 			err = nil
 		}
 	}
