@@ -11,23 +11,19 @@ case "$1 $2" in
     echo "Then enter the code: FIXTURE-CODE"
     echo "Successfully logged into Start URL: https://example.awsapps.com/start"
     ;;
-"configure get")
-    # entrypoint.sh probes sso_start_url to decide whether the profile needs
-    # configuring. Report "unconfigured" for a dedicated profile name so both
-    # branches can be exercised.
-    if [ "${AWS_PROFILE:-}" = "fixture-unconfigured" ]; then
-        exit 1
-    fi
-
-    echo "https://example.awsapps.com/start"
-    ;;
-"configure sso")
-    echo "aws-stub: would prompt for SSO start URL, account and role"
+"configure set")
+    # entrypoint.sh writes the hardcoded profile with a series of these. The
+    # stub ignores them: nothing downstream of here reads the config.
     ;;
 "configure export-credentials")
     echo "export AWS_ACCESS_KEY_ID=fixture-access-key-id"
     echo "export AWS_SECRET_ACCESS_KEY=fixture-secret-access-key"
     echo "export AWS_SESSION_TOKEN=fixture-session-token"
+    ;;
+"secretsmanager get-secret-value")
+    # entrypoint.sh pipes this through jq, so it has to be a flat JSON object.
+    # Lower-case keys prove the upper-casing in entrypoint.sh happens.
+    echo '{"fle_aws_access_key_id": "fixture-fle-access-key-id", "fle_aws_secret_access_key": "fixture-fle-secret"}'
     ;;
 "sts get-caller-identity")
     # Only succeeds if entrypoint.sh actually loaded the exported credentials

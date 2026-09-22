@@ -12,7 +12,6 @@ package prose
 import (
 	"bufio"
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -33,48 +32,21 @@ const secretsFileName = "secrets-export.sh"
 // the timeout has to accommodate a human completing the device flow.
 const defaultLoginTimeout = 5 * time.Minute
 
-// defaultAWSDir returns the host AWS config directory, or "" if the user's
-// home directory cannot be determined.
-func defaultAWSDir() string {
+// defaultProfile is the AWS profile the container logs in with. It, and the
+// SSO settings baked into docker/entrypoint.sh that go with it, are what make
+// a login zero-setup: the profile is written inside the container, so nothing
+// has to be configured on the host first.
+const defaultProfile = "drivers-test-secrets-role-857654397073"
+
+// defaultSSOCacheDir returns the host directory the AWS CLI caches SSO tokens
+// in, or "" if the user's home directory cannot be determined.
+func defaultSSOCacheDir() string {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return ""
 	}
 
-	return filepath.Join(home, ".aws")
-}
-
-// configuredProfiles returns the profile names defined in an AWS config file,
-// which are section headers of the form "[profile name]" or "[default]". Only
-// section names are read; the file's contents are otherwise ignored. An
-// unreadable file yields no profiles, leaving the caller to skip.
-func configuredProfiles(configPath string) []string {
-	f, err := os.Open(configPath)
-	if err != nil {
-		return nil
-	}
-	defer f.Close()
-
-	var profiles []string
-
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if !strings.HasPrefix(line, "[") || !strings.HasSuffix(line, "]") {
-			continue
-		}
-
-		name := strings.TrimSpace(line[1 : len(line)-1])
-		switch {
-		case name == "default":
-			profiles = append(profiles, name)
-		case strings.HasPrefix(name, "profile "):
-			profiles = append(profiles, strings.TrimSpace(strings.TrimPrefix(name, "profile ")))
-		}
-		// "[sso-session name]" sections are not profiles and are skipped.
-	}
-
-	return profiles
+	return filepath.Join(home, ".aws", "sso", "cache")
 }
 
 // Secrets holds the environment variables exported by an AWS SSO login, keyed
@@ -90,23 +62,25 @@ func (s Secrets) Env() []string {
 	return env
 }
 
-// containerAWSDir is where the AWS CLI looks for config and its SSO token
-// cache. The aws-cli image runs as root, so HOME is /root.
-const containerAWSDir = "/root/.aws"
+// containerSSOCacheDir is where the AWS CLI caches SSO tokens. The aws-cli
+// image runs as root, so HOME is /root. The CLI always reads the cache from
+// there, even though entrypoint.sh points AWS_CONFIG_FILE elsewhere.
+const containerSSOCacheDir = "/root/.aws/sso/cache"
 
 // exportConfig is the resolved configuration for ExportSecrets.
 type exportConfig struct {
-	profile    string
-	dockerfile string
-	awsDir     string
-	timeout    time.Duration
+	profile     string
+	dockerfile  string
+	ssoCacheDir string
+	vaults      []string
+	timeout     time.Duration
 }
 
 // Option configures ExportSecrets.
 type Option func(*exportConfig)
 
 // WithProfile sets the AWS profile to log in with. It defaults to the
-// AWS_PROFILE environment variable.
+// AWS_PROFILE environment variable, or to defaultProfile when that is unset.
 func WithProfile(profile string) Option {
 	return func(cfg *exportConfig) { cfg.profile = profile }
 }
@@ -118,13 +92,21 @@ func WithDockerfile(name string) Option {
 	return func(cfg *exportConfig) { cfg.dockerfile = name }
 }
 
-// WithAWSDir sets the host directory mounted at /root/.aws in the container.
-// It defaults to $HOME/.aws, which is where the profile named by AWS_PROFILE
-// is defined. The mount is read-write so the SSO token cache the CLI writes
-// persists on the host, letting later runs reuse a live session instead of
-// prompting again.
-func WithAWSDir(dir string) Option {
-	return func(cfg *exportConfig) { cfg.awsDir = dir }
+// WithSSOCacheDir sets the host directory mounted at the container's SSO token
+// cache. It defaults to $HOME/.aws/sso/cache, the same cache the host's AWS
+// CLI uses, so a login done either place is reused by the other until the
+// token expires. The container never reads or writes the host's AWS config.
+func WithSSOCacheDir(dir string) Option {
+	return func(cfg *exportConfig) { cfg.ssoCacheDir = dir }
+}
+
+// WithVaults names AWS Secrets Manager vaults to fetch once the login
+// succeeds, e.g. "drivers/csfle". Each vault is a flat JSON object; its keys
+// are upper-cased and merged into the returned Secrets, matching what
+// drivers-evergreen-tools' setup_secrets.py produces. Fetching them here means
+// the caller needs neither a Python environment nor a host AWS profile.
+func WithVaults(vaults ...string) Option {
+	return func(cfg *exportConfig) { cfg.vaults = vaults }
 }
 
 // WithTimeout bounds how long the login may take.
@@ -139,39 +121,25 @@ func WithTimeout(d time.Duration) Option {
 // The login is interactive: container output is streamed to the test log so
 // the verification URL and code are visible to whoever is running the test.
 //
-// The profile comes from AWS_PROFILE, or from WithProfile. If neither is set
-// and the host config defines exactly one profile, that one is used. Otherwise
-// the test is skipped, since there is nothing to log in as.
+// No host setup is required. The profile and its SSO settings are written
+// inside the container, so a machine that has never run "aws configure sso"
+// only has to approve the login. Set AWS_PROFILE, or pass WithProfile, to log
+// in as something other than defaultProfile.
 func ExportSecrets(t *testing.T, opts ...Option) Secrets {
 	t.Helper()
 
 	cfg := &exportConfig{
-		profile:    os.Getenv("AWS_PROFILE"),
-		dockerfile: "aws-sso-login.Dockerfile",
-		awsDir:     defaultAWSDir(),
-		timeout:    defaultLoginTimeout,
+		profile:     os.Getenv("AWS_PROFILE"),
+		dockerfile:  "aws-sso-login.Dockerfile",
+		ssoCacheDir: defaultSSOCacheDir(),
+		timeout:     defaultLoginTimeout,
 	}
 	for _, opt := range opts {
 		opt(cfg)
 	}
 
-	// Engineers commonly have exactly one profile configured, so fall back to
-	// it rather than making AWS_PROFILE mandatory. Anything ambiguous is left
-	// to the caller: guessing between profiles would log in as the wrong
-	// account.
 	if cfg.profile == "" {
-		profiles := configuredProfiles(filepath.Join(cfg.awsDir, "config"))
-		switch len(profiles) {
-		case 1:
-			cfg.profile = profiles[0]
-
-			t.Logf("AWS_PROFILE is not set; using the only configured profile %q", cfg.profile)
-		case 0:
-			t.Skip("skipping because AWS_PROFILE is not set and no profile is configured")
-		default:
-			t.Skipf("skipping because AWS_PROFILE is not set and several profiles are configured: %s",
-				strings.Join(profiles, ", "))
-		}
+		cfg.profile = defaultProfile
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), cfg.timeout)
@@ -189,23 +157,18 @@ func ExportSecrets(t *testing.T, opts ...Option) Secrets {
 		t.Fatalf("failed to resolve secrets directory: %v", err)
 	}
 
-	// A missing AWS directory is only fatal for a real login: the fixture
-	// image stubs out the CLI and never reads config, so leave the mount off
-	// rather than requiring tests to fabricate one.
-	var absAWSDir string
-	if cfg.awsDir != "" {
-		absAWSDir, err = filepath.Abs(cfg.awsDir)
+	// Create the cache directory if it is missing: on a machine that has never
+	// used the AWS CLI there is nothing to mount yet, and Docker would
+	// otherwise create it root-owned.
+	var absCacheDir string
+	if cfg.ssoCacheDir != "" {
+		absCacheDir, err = filepath.Abs(cfg.ssoCacheDir)
 		if err != nil {
-			t.Fatalf("failed to resolve AWS directory: %v", err)
+			t.Fatalf("failed to resolve SSO cache directory: %v", err)
 		}
 
-		if _, err := os.Stat(absAWSDir); err != nil {
-			if !errors.Is(err, os.ErrNotExist) {
-				t.Fatalf("failed to stat AWS directory %s: %v", absAWSDir, err)
-			}
-
-			t.Logf("AWS directory %s does not exist; not mounting it", absAWSDir)
-			absAWSDir = ""
+		if err := os.MkdirAll(absCacheDir, 0o700); err != nil {
+			t.Fatalf("failed to create SSO cache directory %s: %v", absCacheDir, err)
 		}
 	}
 
@@ -221,22 +184,18 @@ func ExportSecrets(t *testing.T, opts ...Option) Secrets {
 			PrintBuildLog: true,
 		},
 		Env: map[string]string{
-			"AWS_PROFILE": cfg.profile,
-			"SECRETS_DIR": "/secrets",
-			// "aws configure sso" is prompt-driven and this container has no
-			// stdin attached, so bootstrapping a profile from a test would
-			// hang. The entrypoint exits with a pointer to the interactive
-			// "docker run -it" command instead.
-			"ALLOW_CONFIGURE_SSO": "0",
+			"AWS_PROFILE":   cfg.profile,
+			"SECRETS_DIR":   "/secrets",
+			"SECRET_VAULTS": strings.Join(cfg.vaults, " "),
 		},
 		HostConfigModifier: func(hc *container.HostConfig) {
 			hc.Binds = append(hc.Binds, absSecretsDir+":/secrets")
 
-			// The container needs the host's AWS config to resolve the
-			// profile, and writes its SSO token cache back so a live session
-			// is reused on the next run.
-			if absAWSDir != "" {
-				hc.Binds = append(hc.Binds, absAWSDir+":"+containerAWSDir)
+			// Share the host's SSO token cache so a live session is reused
+			// instead of prompting again. The host's AWS config is not
+			// mounted: entrypoint.sh writes the profile itself.
+			if absCacheDir != "" {
+				hc.Binds = append(hc.Binds, absCacheDir+":"+containerSSOCacheDir)
 			}
 		},
 		LogConsumerCfg: &testcontainers.LogConsumerConfig{

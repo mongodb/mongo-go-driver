@@ -21,13 +21,13 @@ import (
 const fixtureDockerfile = "aws-sso-login-fixture.Dockerfile"
 
 func TestExportSecrets(t *testing.T) {
-	// Point the AWS directory at an empty temp dir: the stub CLI never reads
-	// it, and this keeps the test from mounting the developer's real
-	// credentials into a container.
+	// Point the SSO cache at an empty temp dir: the stub CLI never reads it,
+	// and this keeps the test from mounting the developer's real token cache
+	// into a container.
 	secrets := ExportSecrets(t,
 		WithProfile("fixture-profile"),
 		WithDockerfile(fixtureDockerfile),
-		WithAWSDir(t.TempDir()),
+		WithSSOCacheDir(t.TempDir()),
 		WithTimeout(2*time.Minute))
 
 	assert.Equal(t, Secrets{
@@ -37,71 +37,23 @@ func TestExportSecrets(t *testing.T) {
 	}, secrets)
 }
 
-func TestExportSecrets_skipsWithoutProfile(t *testing.T) {
-	t.Setenv("AWS_PROFILE", "")
+func TestExportSecrets_vaults(t *testing.T) {
+	// The stub returns lower-cased keys, so this also covers the upper-casing
+	// entrypoint.sh applies before appending them to secrets-export.sh.
+	secrets := ExportSecrets(t,
+		WithProfile("fixture-profile"),
+		WithDockerfile(fixtureDockerfile),
+		WithSSOCacheDir(t.TempDir()),
+		WithVaults("drivers/csfle"),
+		WithTimeout(2*time.Minute))
 
-	// ExportSecrets calls t.Skip, which only takes effect on the goroutine's
-	// own *testing.T, so run it in a subtest and assert that it skipped.
-	res := t.Run("no profile", func(t *testing.T) {
-		// Pin the AWS directory to an empty one: with no profile configured
-		// there is nothing to fall back to, and the developer's real profile
-		// is never consulted.
-		ExportSecrets(t,
-			WithDockerfile(fixtureDockerfile),
-			WithAWSDir(t.TempDir()))
-
-		t.Error("expected ExportSecrets to skip when AWS_PROFILE is unset")
-	})
-
-	assert.True(t, res, "expected the subtest to skip rather than fail")
-}
-
-func TestConfiguredProfiles(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name    string
-		content string
-		want    []string
-	}{
-		{
-			name:    "named profiles",
-			content: "[profile one]\nregion = us-east-1\n\n[profile two]\nregion = us-west-2\n",
-			want:    []string{"one", "two"},
-		},
-		{
-			name:    "default profile",
-			content: "[default]\nregion = us-east-1\n",
-			want:    []string{"default"},
-		},
-		{
-			name:    "sso-session is not a profile",
-			content: "[sso-session corp]\nsso_region = us-east-1\n\n[profile one]\n",
-			want:    []string{"one"},
-		},
-		{
-			name:    "no profiles",
-			content: "# nothing here\n",
-			want:    nil,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
-
-			path := filepath.Join(t.TempDir(), "config")
-			require.NoError(t, os.WriteFile(path, []byte(test.content), 0o600))
-
-			assert.Equal(t, test.want, configuredProfiles(path))
-		})
-	}
-}
-
-func TestConfiguredProfiles_missing(t *testing.T) {
-	t.Parallel()
-
-	assert.Nil(t, configuredProfiles(filepath.Join(t.TempDir(), "config")))
+	assert.Equal(t, Secrets{
+		"AWS_ACCESS_KEY_ID":         "fixture-access-key-id",
+		"AWS_SECRET_ACCESS_KEY":     "fixture-secret-access-key",
+		"AWS_SESSION_TOKEN":         "fixture-session-token",
+		"FLE_AWS_ACCESS_KEY_ID":     "fixture-fle-access-key-id",
+		"FLE_AWS_SECRET_ACCESS_KEY": "fixture-fle-secret",
+	}, secrets)
 }
 
 func TestSecrets_Env(t *testing.T) {

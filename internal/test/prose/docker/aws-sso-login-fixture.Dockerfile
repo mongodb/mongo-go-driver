@@ -6,7 +6,7 @@
 # aws-sso-login.Dockerfile so the two exercise the same code path.
 FROM alpine:3.21
 
-RUN apk add --no-cache bash
+RUN apk add --no-cache bash jq
 
 COPY testdata/aws-stub.sh /usr/local/bin/aws
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
