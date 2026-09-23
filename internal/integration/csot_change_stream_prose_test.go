@@ -19,7 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
-// Tests in this package replace the following unified spec tests, which are no
+// Tests in this file replace the following unified spec tests, which are no
 // longer applicable to server versions > 8.99:
 //
 // TestUnifiedSpec/client-side-operations-timeout/tests/override-operation-timeoutMS.json/timeoutMS_can_be_configured_for_an_operation_-_createChangeStream_on_client
@@ -176,7 +176,7 @@ func requireCSOTRetriedChangeStream(t *testing.T, entity func(mt *mtest.T) chang
 	mt.Setup()
 
 	// Establish a connection before the failpoint so that connection setup
-	// doesn't consume the operatio's timeout budget.
+	// doesn't consume the operation's timeout budget.
 	require.NoError(mt, mt.Client.Ping(context.Background(), nil))
 
 	watcher := entity(mt)
