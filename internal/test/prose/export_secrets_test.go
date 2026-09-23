@@ -19,11 +19,14 @@ import (
 const fixtureDockerfile = "aws-sso-login-fixture.Dockerfile"
 
 func TestExportSecrets(t *testing.T) {
-	secrets := ExportSecrets(t,
+	dir := ExportSecrets(t,
 		WithProfile("fixture-profile"),
 		WithDockerfile(fixtureDockerfile),
 		WithSSOCacheDir(t.TempDir()),
 		WithTimeout(2*time.Minute))
+
+	secrets, err := parseSecretsFile(filepath.Join(dir, secretsFileName))
+	require.NoError(t, err)
 
 	assert.Equal(t, Secrets{
 		"AWS_ACCESS_KEY_ID":     "fixture-access-key-id",
@@ -33,12 +36,15 @@ func TestExportSecrets(t *testing.T) {
 }
 
 func TestExportSecrets_vaults(t *testing.T) {
-	secrets := ExportSecrets(t,
+	dir := ExportSecrets(t,
 		WithProfile("fixture-profile"),
 		WithDockerfile(fixtureDockerfile),
 		WithSSOCacheDir(t.TempDir()),
 		WithVaults("drivers/csfle"),
 		WithTimeout(2*time.Minute))
+
+	secrets, err := parseSecretsFile(filepath.Join(dir, secretsFileName))
+	require.NoError(t, err)
 
 	assert.Equal(t, Secrets{
 		"AWS_ACCESS_KEY_ID":         "fixture-access-key-id",

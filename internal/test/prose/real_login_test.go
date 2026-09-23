@@ -6,10 +6,18 @@
 
 package prose
 
-import "testing"
+import (
+	"path/filepath"
+	"testing"
+)
 
 func TestRealLogin(t *testing.T) {
-	secrets := ExportSecrets(t)
+	dir := ExportSecrets(t)
+
+	secrets, err := parseSecretsFile(filepath.Join(dir, secretsFileName))
+	if err != nil {
+		t.Fatalf("failed to read exported secrets: %v", err)
+	}
 
 	for _, key := range []string{"AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"} {
 		if secrets[key] == "" {
@@ -17,5 +25,5 @@ func TestRealLogin(t *testing.T) {
 		}
 	}
 
-	t.Logf("exported %d credentials", len(secrets))
+	t.Logf("exported %d credentials to %s", len(secrets), dir)
 }

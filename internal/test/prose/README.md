@@ -49,16 +49,18 @@ set -a && . ./out/secrets-export.sh && set +a
 ## ExportSecrets
 
 `ExportSecrets` builds `docker/aws-sso-login.Dockerfile`, runs it, and returns
-the credentials it exports:
+the directory holding the credentials it exported:
 
 ```go
-secrets := prose.ExportSecrets(t)
-accessKeyID := secrets["AWS_ACCESS_KEY_ID"]
+dir := prose.ExportSecrets(t)
+// dir/secrets-export.sh holds "export KEY=VALUE" lines, e.g. to pass to a
+// subprocess:
+cmd.Env = append(os.Environ(), "BASH_ENV="+filepath.Join(dir, "secrets-export.sh"))
 ```
 
-The container writes the credentials to `secrets-export.sh` in a directory
-bind-mounted from the host. That directory is `t.TempDir()`, so the credentials
-do not outlive the test.
+The directory is bind-mounted into the container, which writes
+`secrets-export.sh` into it. It is a `t.TempDir()`, so the credentials do not
+outlive the test.
 
 The host's `~/.aws/sso/cache` is mounted read-write so the SSO token persists
 between runs; override it with `WithSSOCacheDir`. Override the profile with

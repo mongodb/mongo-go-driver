@@ -115,8 +115,9 @@ func WithTimeout(d time.Duration) Option {
 }
 
 // ExportSecrets builds and runs the AWS SSO login image and returns the
-// credentials it exports. The container writes them to a directory
-// bind-mounted from the host, which ExportSecrets then parses.
+// directory holding the credentials it exported. The directory contains
+// secrets-export.sh, the "export KEY=VALUE" file drivers-evergreen-tools
+// uses, and is a t.TempDir() so the credentials do not outlive the test.
 //
 // The login is interactive: container output is streamed to the test log so
 // the verification URL and code are visible to whoever is running the test.
@@ -125,7 +126,7 @@ func WithTimeout(d time.Duration) Option {
 // inside the container, so a machine that has never run "aws configure sso"
 // only has to approve the login. Set AWS_PROFILE, or pass WithProfile, to log
 // in as something other than defaultProfile.
-func ExportSecrets(t *testing.T, opts ...Option) Secrets {
+func ExportSecrets(t *testing.T, opts ...Option) string {
 	t.Helper()
 
 	cfg := &exportConfig{
@@ -228,6 +229,9 @@ func ExportSecrets(t *testing.T, opts ...Option) Secrets {
 			state.ExitCode)
 	}
 
+	// Parse the file only to fail fast: a container that exits cleanly without
+	// writing usable credentials would otherwise surface as a confusing
+	// failure in whatever test consumes the directory.
 	secrets, err := parseSecretsFile(filepath.Join(secretsDir, secretsFileName))
 	if err != nil {
 		t.Fatalf("failed to read exported secrets: %v", err)
@@ -236,7 +240,7 @@ func ExportSecrets(t *testing.T, opts ...Option) Secrets {
 		t.Fatal("AWS SSO login exported no secrets")
 	}
 
-	return secrets
+	return secretsDir
 }
 
 // testLogConsumer forwards container output to the test log so the
