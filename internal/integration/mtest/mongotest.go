@@ -207,8 +207,6 @@ func (t *T) teardown() {
 	// they're equal to 0 after cleaning up test resources to make sure resources
 	// are always cleared.
 	sessions := t.Client.NumberSessionsInProgress()
-	t.ResetClient(options.Client())
-
 	conns := t.NumberConnectionsCheckedOut()
 
 	if t.clientType != Mock {
