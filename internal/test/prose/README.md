@@ -29,8 +29,9 @@ go test -v ./...
 The login is interactive: the container prints a verification URL and code
 to stderr, which a human has to approve in a browser.
 
-Later runs reuse the existing `secrets-export.sh` without logging in again.
-The credentials in it expire, so delete the file to force a fresh login:
+Runs within 50 minutes of a login reuse the existing `secrets-export.sh`.
+After that the temporary tokens in it are close to expiring, so the next run
+logs in again. To force a fresh login sooner, delete the file:
 
 ```
 rm "${TMPDIR:-/tmp}/mongo-go-driver-prose/secrets-export.sh"

@@ -33,6 +33,7 @@ const (
 	secretsFileName  = "secrets-export.sh"
 	containerOutDir  = "/out"
 	loginTimeout     = 10 * time.Minute
+	secretsMaxAge    = 50 * time.Minute
 	secretsDirPrefix = "mongo-go-driver-prose"
 )
 
@@ -91,14 +92,17 @@ func readSecrets(path string) (map[string]string, error) {
 }
 
 // exportSecrets returns the path to secrets-export.sh, running the AWS SSO
-// login container to create it if it does not already exist. The file lives
-// in a fixed directory under os.TempDir so later runs reuse it; delete it to
-// force a fresh login.
+// login container to create it if it is missing or stale. The file lives in a
+// fixed directory under os.TempDir so later runs reuse it; delete it to force
+// a fresh login.
 func exportSecrets() (string, error) {
 	secretsDir := filepath.Join(os.TempDir(), secretsDirPrefix)
 	secretsPath := filepath.Join(secretsDir, secretsFileName)
 
-	if _, err := os.Stat(secretsPath); err == nil {
+	// The file holds temporary AWS, Azure and GCP tokens that expire about an
+	// hour after the login, but it does not record when. Reuse it only while
+	// it is younger than secretsMaxAge; after that, log in again.
+	if info, err := os.Stat(secretsPath); err == nil && time.Since(info.ModTime()) < secretsMaxAge {
 		return secretsPath, nil
 	}
 
