@@ -1,4 +1,4 @@
-go 1.26.0
+go 1.27.0
 
 use (
 	.
@@ -10,4 +10,5 @@ use (
 	./internal/test/awsauth
 	./internal/test/compilecheck
 	./internal/test/goleak
+	./internal/test/prose
 )
