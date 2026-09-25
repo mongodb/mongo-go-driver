@@ -19,4 +19,8 @@ go install golang.org/x/vuln/cmd/govulncheck@latest
 
 # govulncheck uses the Go binary it finds from the PATH, so modify PATH to point
 # to the Go version we just downloaded.
-PATH="$(${GO_VERSION} env GOROOT)/bin:$PATH" govulncheck -show verbose ./...
+GOROOT_BIN="$(${GO_VERSION} env GOROOT)/bin"
+
+PATH="${GOROOT_BIN}:$PATH" govulncheck -show verbose ./...
+
+(cd ext/awsauth && PATH="${GOROOT_BIN}:$PATH" govulncheck -show verbose -scan module)

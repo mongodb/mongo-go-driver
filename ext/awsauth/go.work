@@ -1,0 +1,8 @@
+// This module is intentionally not a member of the repository's root go.work.
+// Membership there would let "go work sync" rewrite go.mod with the
+// workspace-resolved maximum aws-sdk-go-v2 version, silently raising the
+// minimum this module declares. This single-module workspace keeps "go build"
+// and "go test" working from inside this directory.
+go 1.26
+
+use .

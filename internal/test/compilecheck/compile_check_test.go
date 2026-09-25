@@ -7,11 +7,14 @@
 package main
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -36,13 +39,52 @@ func main() {
 `
 
 // goVersions is the list of Go versions to test compilation against.
+//
 // To run tests for specific version(s), use the -run flag:
 //
-//	go test -v -run '^TestCompileCheck/go:1.25$'
 //	go test -v -run '^TestCompileCheck/go:1\.(25|26)$'
 var goVersions = []string{
 	"1.25", // Minimum supported Go version for mongo-driver v2
 	"1.26", // Test suite Go Version
+}
+
+// parseVersion splits an "X.Y" version into its numeric components so
+// versions compare numerically rather than lexically ("1.9" < "1.25").
+//
+// Versions must have exactly two numeric components: a patch-level entry such
+// as "1.27.0" is rejected.
+func parseVersion(t *testing.T, ver string) (int, int) {
+	t.Helper()
+
+	major, minor, ok := strings.Cut(ver, ".")
+	require.True(t, ok, "malformed Go version in goVersions: %q", ver)
+
+	majorNum, err := strconv.Atoi(major)
+	require.NoError(t, err, "malformed Go version in goVersions: %q", ver)
+
+	minorNum, err := strconv.Atoi(minor)
+	require.NoError(t, err, "malformed Go version in goVersions: %q", ver)
+
+	return majorNum, minorNum
+}
+
+// sortVersions returns versions sorted in ascending order.
+func sortVersions(t *testing.T, versions []string) []string {
+	t.Helper()
+
+	v := slices.Clone(versions)
+	slices.SortFunc(v, func(a, b string) int {
+		aMajor, aMinor := parseVersion(t, a)
+		bMajor, bMinor := parseVersion(t, b)
+
+		if c := cmp.Compare(aMajor, bMajor); c != 0 {
+			return c
+		}
+
+		return cmp.Compare(aMinor, bMinor)
+	})
+
+	return v
 }
 
 var architectures = []string{
@@ -116,6 +158,9 @@ func TestCompileCheck(t *testing.T) {
 
 	rootDir := filepath.Dir(filepath.Dir(filepath.Dir(cwd)))
 
+	// Sort the versions before any container work, so testVersions is in ascending order.
+	testVersions := sortVersions(t, goVersions)
+
 	// Build the image and start one container we can reuse for all subtests.
 	req := testcontainers.ContainerRequest{
 		FromDockerfile: testcontainers.FromDockerfile{
@@ -147,15 +192,15 @@ func TestCompileCheck(t *testing.T) {
 
 	// Initialize the Go module and resolve dependencies using the container's
 	// installed Go toolchain, then pin the go directive to the driver's minimum
-	// supported version (the first entry in goVersions). The directive is set to a
+	// supported version (the lowest entry in goVersions). The directive is set to a
 	// full X.Y.0 version to match what "go mod tidy" writes: a bare "X.Y" leaves
 	// the module inconsistent.
 	_ = execGo(t, container, nil, "mod", "init", "compilecheck")
 	_ = execGo(t, container, nil, "mod", "edit", "-replace=go.mongodb.org/mongo-driver/v2=/mongo-go-driver")
 	_ = execGo(t, container, nil, "mod", "tidy")
-	_ = execGo(t, container, nil, "mod", "edit", "-go="+goVersions[0]+".0")
+	_ = execGo(t, container, nil, "mod", "edit", "-go="+testVersions[0]+".0")
 
-	for _, ver := range goVersions {
+	for _, ver := range testVersions {
 		ver := ver // capture
 		t.Run("go:"+ver, func(t *testing.T) {
 			t.Parallel()
