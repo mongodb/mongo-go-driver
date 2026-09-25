@@ -18,7 +18,7 @@ Prose tests that need drivers test secrets (e.g. the `drivers/csfle` vault).
 - The [GitHub CLI](https://cli.github.com/), logged in with `gh auth login`
   as a user with read access to `10gen/go-driver-tools`.
 - A running Docker daemon.
-- Access to the drivers test-secrets SSO role.
+- Access to the drivers-test-secrets SSO role.
 
 ## Running
 
