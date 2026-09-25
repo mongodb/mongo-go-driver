@@ -39,19 +39,14 @@ jobs:
       # not api.anthropic.com
       ANTHROPIC_BASE_URL: ${{ secrets.GROVE_API_URL }}
     steps:
-      # Base ref at the workspace root. Never check the PR head out here:
-      # under pull_request_target that would execute fork-controlled code with
-      # access to this repository's secrets.
+      # Base ref only. The review command reads the diff through `gh pr diff`,
+      # so the pull request's code never lands on this runner -- which is what
+      # keeps a pull_request_target job holding the Grove key away from
+      # fork-controlled content. actions/checkout blocks such a checkout
+      # outright unless allow-unsafe-pr-checkout is set.
       - name: Checkout base
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
-          fetch-depth: 1
-      # PR head goes in a subdirectory, passed to Claude as read-only context.
-      - name: Checkout PR head
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          path: pr-head
           fetch-depth: 1
       # Pin the plugin source. Plugin commands can grant tools and define
       # hooks, so a mutable marketplace URL would run unreviewed upstream code
@@ -76,5 +71,4 @@ jobs:
           claude_args: |
             --model claude-opus-5-5
             --max-turns 20
-            --add-dir pr-head
             --allowedTools "mcp__github_inline_comment__create_inline_comment"
