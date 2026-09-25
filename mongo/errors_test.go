@@ -15,6 +15,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/errutil"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/topology"
@@ -1032,4 +1033,46 @@ func TestErrorCodesNoDoubleWrapping(t *testing.T) {
 	// Verify that calling ErrorCodes again gives same result
 	codes2 := ErrorCodes(wrapped)
 	require.Equal(t, codes, codes2)
+}
+
+// TestWrapErrorsRetryError asserts that wrapErrors resolves a RetryError to the
+// error from the final attempt, so that the Code, Name, and Labels reported to
+// users still come from the error the operation actually failed with. See
+// GODRIVER-3600.
+func TestWrapErrorsRetryError(t *testing.T) {
+	t.Parallel()
+
+	first := driver.Error{
+		Code:    10107,
+		Name:    "NotWritablePrimary",
+		Message: "not primary",
+		Labels:  []string{"RetryableWriteError"},
+	}
+	final := driver.Error{
+		Code:    11602,
+		Name:    "InterruptedDueToReplStateChange",
+		Message: "interrupted",
+	}
+
+	retryErr := errutil.NewRetryError([]error{first}, final)
+
+	wrapped := wrapErrors(retryErr)
+
+	var cmdErr CommandError
+	require.True(t, errors.As(wrapped, &cmdErr), "expected a CommandError")
+	assert.Equal(t, int32(11602), cmdErr.Code, "expected the final attempt's code")
+	assert.Equal(t, "InterruptedDueToReplStateChange", cmdErr.Name,
+		"expected the final attempt's name")
+
+	// Both attempts must remain reachable through the error chain. Note that
+	// errors.Is cannot be used here: driver.Error contains slices, so it is not
+	// comparable and does not implement an Is method.
+	var retryError *errutil.RetryError
+	require.True(t, errors.As(wrapped, &retryError), "expected a *errutil.RetryError")
+	assert.Equal(t, []error{error(first), error(final)}, retryError.Attempts(),
+		"expected both attempts in chronological order")
+
+	// The error message must report every attempt.
+	assert.Contains(t, wrapped.Error(), "not primary", "expected the first attempt's message")
+	assert.Contains(t, wrapped.Error(), "interrupted", "expected the final attempt's message")
 }

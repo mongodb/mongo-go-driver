@@ -14,6 +14,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/csot"
+	"go.mongodb.org/mongo-driver/v2/internal/errutil"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/v2/internal/randutil"
 	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
@@ -134,7 +135,7 @@ func (s *Session) WithTransaction(
 	ctx context.Context,
 	fn func(ctx context.Context) (any, error),
 	opts ...options.Lister[options.TransactionOptions],
-) (any, error) {
+) (_ any, err error) {
 	transTimeout := withTransactionTimeout
 	if s.client.timeout != nil {
 		transTimeout = *s.client.timeout
@@ -143,7 +144,15 @@ func (s *Session) WithTransaction(
 	timeout := time.NewTimer(transTimeout)
 	defer timeout.Stop()
 	var expDur time.Duration
-	var err error
+
+	// prevErrs accumulates the error from every attempt that was retried, in
+	// chronological order. They are joined with the error returned by the final
+	// attempt so that no error information is lost. See GODRIVER-3600.
+	var prevErrs []error
+	defer func() {
+		err = errutil.NewRetryError(prevErrs, err)
+	}()
+
 	for {
 		if expDur == 0 {
 			expDur = backoffInitial
@@ -186,6 +195,8 @@ func (s *Session) WithTransaction(
 			}
 
 			if errorHasLabel(err, driver.TransientTransactionError) {
+				prevErrs = append(prevErrs, err)
+
 				continue
 			}
 			return res, err
@@ -228,9 +239,13 @@ func (s *Session) WithTransaction(
 						return res, timeoutError{Wrapped: err}
 					default:
 					}
+					prevErrs = append(prevErrs, err)
+
 					continue
 				}
 				if cerr.HasErrorLabel(driver.TransientTransactionError) {
+					prevErrs = append(prevErrs, err)
+
 					break CommitLoop
 				}
 			}

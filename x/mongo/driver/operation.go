@@ -22,6 +22,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/csot"
 	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/internal/errutil"
 	"go.mongodb.org/mongo-driver/v2/internal/handshake"
 	"go.mongodb.org/mongo-driver/v2/internal/logger"
 	"go.mongodb.org/mongo-driver/v2/internal/randutil"
@@ -514,8 +515,8 @@ var memoryPool = sync.Pool{
 }
 
 // Execute runs this operation.
-func (op Operation) Execute(ctx context.Context) error {
-	err := op.Validate()
+func (op Operation) Execute(ctx context.Context) (err error) {
+	err = op.Validate()
 	if err != nil {
 		return err
 	}
@@ -564,6 +565,15 @@ func (op Operation) Execute(ctx context.Context) error {
 	var operationErr WriteCommandError
 	var prevErr error
 	var prevIndefiniteErr error
+
+	// retryErrs accumulates the error from every attempt that was retried, in
+	// chronological order. They are joined with the error returned by the final
+	// attempt so that no error information is lost. See GODRIVER-3600.
+	var retryErrs []error
+	defer func() {
+		err = errutil.NewRetryError(retryErrs, err)
+	}()
+
 	var overloadAttempt uint
 	var transactionState session.TransactionState
 	var isOverloadedError bool
@@ -583,6 +593,7 @@ func (op Operation) Execute(ctx context.Context) error {
 	resetForRetry := func(err error) error {
 		attempt++
 		prevErr = err
+		retryErrs = append(retryErrs, err)
 
 		// If the "prevIndefiniteErr" is nil, then the current error is the first error encountered
 		// during the retry attempt cycle.
