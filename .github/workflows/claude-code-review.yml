@@ -7,6 +7,11 @@ name: Claude Code Review
 # The action independently refuses to run for actors without write access to
 # this repository, which is what keeps outside contributors from triggering it.
 #
+# Only `opened` is safe to trigger on. The action checks the event sender,
+# not the pull request author, so `ready_for_review` would let a maintainer
+# marking an outside contributor's draft ready run this job -- holding the
+# Grove key -- over that contributor's content.
+#
 # This is a one-shot review. The code-review command stops when Claude has
 # already commented on the pull request, and that check is not scoped to a
 # commit, so re-running on `synchronize` would skip rather than review the new
@@ -14,7 +19,7 @@ name: Claude Code Review
 # keyed to the head SHA.
 on:
   pull_request_target:
-    types: [opened, ready_for_review]
+    types: [opened]
 concurrency:
   group: claude-review-${{ github.event.pull_request.number }}
   cancel-in-progress: true
