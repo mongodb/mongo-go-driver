@@ -257,6 +257,96 @@ func TestCollection(t *testing.T) {
 				})
 			}
 		})
+		// The server typically returns write errors for an unordered insert in
+		// ascending "index" order. However, in rare cases, the server may
+		// return write errors indexes not in ascending order. Use a mock
+		// deployment to create server responses where the write error indexes
+		// are not in ascending order.
+		//
+		// See GODRIVER-4096 for more background.
+		mt.RunOpts("out-of-order write errors", mtest.NewOptions().ClientType(mtest.Mock), func(mt *mtest.T) {
+			testCases := []struct {
+				name        string
+				docs        []any
+				response    bson.D
+				wantErrs    int
+				wantInserts []any
+			}{
+				{
+					// Before the fix, this response caused a panic. Note the
+					// "writeErrors.index" values are not in ascending order.
+					name: "all documents fail",
+					docs: []any{
+						bson.D{{"_id", int32(0)}},
+						bson.D{{"_id", int32(1)}},
+					},
+					response: bson.D{
+						{"ok", 1},
+						{"n", 0},
+						{"writeErrors", bson.A{
+							bson.D{{"index", 1}, {"code", errorDuplicateKey}, {"errmsg", "duplicate key error"}},
+							bson.D{{"index", 0}, {"code", errorDuplicateKey}, {"errmsg", "duplicate key error"}},
+						}},
+					},
+					wantErrs:    2,
+					wantInserts: []any{},
+				},
+				{
+					// Before the fix, this removed the wrong IDs from the
+					// result without panicking. Note the "writeErrors.index"
+					// values are not in ascending order.
+					name: "some documents fail",
+					docs: []any{
+						bson.D{{"_id", int32(0)}},
+						bson.D{{"_id", int32(1)}},
+						bson.D{{"_id", int32(2)}},
+						bson.D{{"_id", int32(3)}},
+						bson.D{{"_id", int32(4)}},
+					},
+					response: bson.D{
+						{"ok", 1},
+						{"n", 3},
+						{"writeErrors", bson.A{
+							bson.D{{"index", 3}, {"code", errorDuplicateKey}, {"errmsg", "duplicate key error"}},
+							bson.D{{"index", 1}, {"code", errorDuplicateKey}, {"errmsg", "duplicate key error"}},
+						}},
+					},
+					wantErrs:    2,
+					wantInserts: []any{int32(0), int32(2), int32(4)},
+				},
+			}
+
+			for _, tc := range testCases {
+				mt.Run(tc.name, func(mt *mtest.T) {
+					mt.AddMockResponses(tc.response)
+
+					res, err := mt.Coll.InsertMany(
+						context.Background(),
+						tc.docs,
+						options.InsertMany().SetOrdered(false),
+					)
+
+					var bwe mongo.BulkWriteException
+					require.True(
+						mt,
+						errors.As(err, &bwe),
+						"expected error to be a mongo.BulkWriteException, got %#v",
+						err,
+					)
+					assert.Len(
+						mt,
+						bwe.WriteErrors,
+						tc.wantErrs,
+						"expected %v write errors, got %v",
+						tc.wantErrs,
+						len(bwe.WriteErrors),
+					)
+
+					require.NotNil(mt, res, "expected a non-nil result")
+					assert.Equal(mt, tc.wantInserts, res.InsertedIDs, "expected inserted IDs to match")
+				})
+			}
+		})
 		mt.Run("writeError index", func(mt *mtest.T) {
 			mt.Parallel()
 

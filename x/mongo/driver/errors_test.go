@@ -7,6 +7,7 @@
 package driver
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -106,4 +107,59 @@ func TestExtractErrorFromServerResponse_BaseBackoffMS(t *testing.T) {
 		require.Truef(t, ok, "expected a WriteCommandError, got %T: %v", err, err)
 		require.Equal(t, 50*time.Millisecond, wce.BaseBackoff)
 	})
+}
+
+func TestError_Error(t *testing.T) {
+	tests := []struct {
+		name string
+		err  Error
+		want string
+	}{
+		{
+			name: "message only",
+			err:  Error{Message: "msg"},
+			want: "msg",
+		},
+		{
+			name: "name and message",
+			err:  Error{Name: "n", Message: "msg"},
+			want: "(n) msg",
+		},
+		{
+			name: "message and wrapped",
+			err:  Error{Message: "msg", Wrapped: errors.New("w")},
+			want: "msg: w",
+		},
+		{
+			name: "name, message and wrapped",
+			err:  Error{Name: "n", Message: "msg", Wrapped: errors.New("w")},
+			want: "(n) msg: w",
+		},
+		{
+			name: "name and wrapped without message",
+			err:  Error{Name: "n", Wrapped: errors.New("w")},
+			want: "(n) w",
+		},
+		{
+			name: "wrapped only",
+			err:  Error{Wrapped: errors.New("w")},
+			want: "w",
+		},
+		{
+			name: "name only",
+			err:  Error{Name: "n"},
+			want: "(n)",
+		},
+		{
+			name: "wrapped identical to message",
+			err:  Error{Message: "msg", Wrapped: errors.New("msg")},
+			want: "msg",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			require.Equal(t, test.want, test.err.Error())
+		})
+	}
 }

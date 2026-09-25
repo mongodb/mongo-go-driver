@@ -173,6 +173,9 @@ func (a Array) Validate() error {
 	if int(length) > len(a) {
 		return NewArrayLengthError(int(length), len(a))
 	}
+	if length < 5 {
+		return ErrInvalidLength
+	}
 	if a[length-1] != 0x00 {
 		return ErrMissingNull
 	}
