@@ -1,0 +1,75 @@
+name: Claude Code Review
+# `pull_request_target` runs in the base repository's context, so the Grove
+# secrets are available for pull requests opened from forks. `pull_request`
+# would not work here: GitHub withholds repository secrets from fork-triggered
+# runs regardless of the author's access level.
+#
+# The action independently refuses to run for actors without write access to
+# this repository, which is what keeps outside contributors from triggering it.
+#
+# This is a one-shot review. The code-review command stops when Claude has
+# already commented on the pull request, and that check is not scoped to a
+# commit, so re-running on `synchronize` would skip rather than review the new
+# commits. Push-triggered re-review needs a command whose duplicate check is
+# keyed to the head SHA.
+on:
+  pull_request_target:
+    types: [opened, ready_for_review]
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  review:
+    # The command also stops on drafts, but that costs a runner to discover.
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      pull-requests: write # required: --comment posts inline review comments
+      issues: read
+      id-token: write # required: OIDC token for Claude GitHub App auth
+    env:
+      # Route all Claude API traffic through MongoDB's Grove gateway,
+      # not api.anthropic.com
+      ANTHROPIC_BASE_URL: ${{ secrets.GROVE_API_URL }}
+    steps:
+      # Base ref at the workspace root. Never check the PR head out here:
+      # under pull_request_target that would execute fork-controlled code with
+      # access to this repository's secrets.
+      - name: Checkout base
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          fetch-depth: 1
+      # PR head goes in a subdirectory, passed to Claude as read-only context.
+      - name: Checkout PR head
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: pr-head
+          fetch-depth: 1
+      # Pin the plugin source. Plugin commands can grant tools and define
+      # hooks, so a mutable marketplace URL would run unreviewed upstream code
+      # in a job holding the Grove key and a write-capable token.
+      - name: Checkout plugin marketplace
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          repository: anthropics/claude-code
+          ref: 684ffc4da0eaaddcafa61842dc719c6a8febc5c2
+          path: claude-code-plugins
+          fetch-depth: 1
+      - name: Run code review
+        uses: anthropics/claude-code-action@9171db3e57d6a3140a37ddc2ba92788584e0ead6 # v1
+        with:
+          # Parameter name is fixed by the action; the VALUE is our Grove key
+          anthropic_api_key: ${{ secrets.GROVE_API_KEY }}
+          plugin_marketplaces: ${{ github.workspace }}/claude-code-plugins
+          plugins: "code-review@claude-code-plugins"
+          # --comment posts the review on the PR itself (inline per finding,
+          # or one summary comment if nothing found)
+          prompt: "/code-review:code-review --comment ${{ github.repository }}/pull/${{ github.event.pull_request.number }}"
+          claude_args: |
+            --model claude-opus-5-5
+            --max-turns 20
+            --add-dir pr-head
+            --allowedTools "mcp__github_inline_comment__create_inline_comment"
