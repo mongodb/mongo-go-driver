@@ -7,21 +7,28 @@ name: Claude Code Review
 # The action independently refuses to run for actors without write access to
 # this repository, which is what keeps outside contributors from triggering it.
 #
+# Reviews run on request only: a maintainer applies the `claude-review` label.
+# The action checks the event sender, not the pull request author, so the
+# labeler is vouching for running this job -- holding the Grove key -- over
+# the pull request's content. Only apply it to an outside contributor's pull
+# request after reading the diff.
+#
 # This is a one-shot review. The code-review command stops when Claude has
 # already commented on the pull request, and that check is not scoped to a
-# commit, so re-running on `synchronize` would skip rather than review the new
-# commits. Push-triggered re-review needs a command whose duplicate check is
-# keyed to the head SHA.
+# commit, so removing and re-applying the label skips rather than reviewing
+# new commits. Re-review needs a command whose duplicate check is keyed to the
+# head SHA.
 on:
   pull_request_target:
-    types: [opened, ready_for_review]
+    types: [labeled]
 concurrency:
   group: claude-review-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 jobs:
   review:
     # The command also stops on drafts, but that costs a runner to discover.
-    if: github.event.pull_request.draft == false
+    if: >-
+      github.event.label.name == 'claude-review' && github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -32,21 +39,16 @@ jobs:
     env:
       # Route all Claude API traffic through MongoDB's Grove gateway,
       # not api.anthropic.com
-      ANTHROPIC_BASE_URL: ${{ secrets.GROVE_API_URL }}
+      ANTHROPIC_BASE_URL: ${{ vars.GROVE_API_URL }}
     steps:
-      # Base ref at the workspace root. Never check the PR head out here:
-      # under pull_request_target that would execute fork-controlled code with
-      # access to this repository's secrets.
+      # Base ref only. The review command reads the diff through `gh pr diff`,
+      # so the pull request's code never lands on this runner -- which is what
+      # keeps a pull_request_target job holding the Grove key away from
+      # fork-controlled content. actions/checkout blocks such a checkout
+      # outright unless allow-unsafe-pr-checkout is set.
       - name: Checkout base
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
-          fetch-depth: 1
-      # PR head goes in a subdirectory, passed to Claude as read-only context.
-      - name: Checkout PR head
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          path: pr-head
           fetch-depth: 1
       # Pin the plugin source. Plugin commands can grant tools and define
       # hooks, so a mutable marketplace URL would run unreviewed upstream code
@@ -71,5 +73,4 @@ jobs:
           claude_args: |
             --model claude-opus-5-5
             --max-turns 20
-            --add-dir pr-head
             --allowedTools "mcp__github_inline_comment__create_inline_comment"
