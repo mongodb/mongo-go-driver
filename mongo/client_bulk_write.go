@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 	"strconv"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -103,6 +104,7 @@ func (bw *clientBulkWrite) execute(ctx context.Context) error {
 				Message: ce.Message,
 				Raw:     ce.Raw,
 			},
+			Labels: ce.Labels,
 		}
 	}
 	if len(batches.writeConcernErrors) > 0 || len(batches.writeErrors) > 0 {
@@ -111,6 +113,8 @@ func (bw *clientBulkWrite) execute(ctx context.Context) error {
 		}
 		exception.WriteConcernErrors = batches.writeConcernErrors
 		exception.WriteErrors = batches.writeErrors
+
+		exception.Labels = appendMissingLabels(exception.Labels, batches.labels)
 	}
 	if exception != nil {
 		var hasSuccess bool
@@ -212,6 +216,8 @@ type modelBatches struct {
 	result             *ClientBulkWriteResult
 	writeConcernErrors []WriteConcernError
 	writeErrors        map[int]WriteError
+
+	labels []string
 }
 
 var _ driver.OperationBatches = &modelBatches{}
@@ -424,13 +430,33 @@ func (mb *modelBatches) appendBatches(fn functionSet, dst []byte, maxCount, tota
 	return n, dst, nil
 }
 
-func (mb *modelBatches) processResponse(ctx context.Context, resp bsoncore.Document, info driver.ResponseInfo) error {
-	var writeCmdErr driver.WriteCommandError
-	if errors.As(info.Error, &writeCmdErr) && writeCmdErr.WriteConcernError != nil {
-		wce := convertDriverWriteConcernError(writeCmdErr.WriteConcernError)
-		if wce != nil {
-			mb.writeConcernErrors = append(mb.writeConcernErrors, *wce)
+func appendMissingLabels(dst, src []string) []string {
+	for _, label := range src {
+		if !slices.Contains(dst, label) {
+			dst = append(dst, label)
 		}
+	}
+
+	return dst
+}
+
+func (mb *modelBatches) processResponse(ctx context.Context, resp bsoncore.Document, info driver.ResponseInfo) error {
+	// A batch can fail either with a write command error or with a plain
+	// command error, and both carry their own labels. Check for each independently.
+	var writeCmdErr driver.WriteCommandError
+	var driverErr driver.Error
+	if errors.As(info.Error, &writeCmdErr) {
+		mb.labels = appendMissingLabels(mb.labels, writeCmdErr.Labels)
+
+		if writeCmdErr.WriteConcernError != nil {
+			wce := convertDriverWriteConcernError(writeCmdErr.WriteConcernError)
+			if wce != nil {
+				mb.writeConcernErrors = append(mb.writeConcernErrors, *wce)
+			}
+		}
+	}
+	if errors.As(info.Error, &driverErr) {
+		mb.labels = appendMissingLabels(mb.labels, driverErr.Labels)
 	}
 	if len(resp) == 0 {
 		return nil
@@ -461,6 +487,7 @@ func (mb *modelBatches) processResponse(ctx context.Context, resp bsoncore.Docum
 			WriteConcernErrors: mb.writeConcernErrors,
 			WriteErrors:        mb.writeErrors,
 			PartialResult:      mb.result,
+			Labels:             mb.labels,
 		}
 	}
 
@@ -521,6 +548,7 @@ func (mb *modelBatches) processResponse(ctx context.Context, resp bsoncore.Docum
 			WriteConcernErrors: mb.writeConcernErrors,
 			WriteErrors:        mb.writeErrors,
 			PartialResult:      mb.result,
+			Labels:             mb.labels,
 		}
 	}
 	return nil
