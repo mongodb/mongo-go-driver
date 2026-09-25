@@ -49,46 +49,25 @@ func loadSecrets() error {
 		if loadErr != nil {
 			return
 		}
-		var secrets map[string]string
-		secrets, loadErr = readSecrets(path)
-		if loadErr != nil {
-			return
-		}
-		for key, value := range secrets {
-			// Match godotenv.Load: variables already set in the environment win.
-			if _, ok := os.LookupEnv(key); !ok {
-				if loadErr = os.Setenv(key, value); loadErr != nil {
-					return
-				}
-			}
-		}
+		loadErr = godotenv.Load(path)
 	})
 	return loadErr
 }
 
-// readSecrets parses secrets-export.sh. The file is a shell script, not a
-// strict dotenv file: drivers-evergreen-tools prefixes it with "set +x", which
-// godotenv rejects, so only the variable assignments are passed through.
-func readSecrets(path string) (map[string]string, error) {
+func keepExports(path string) error {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read %s: %w", secretsFileName, err)
+		return fmt.Errorf("failed to read %s: %w", secretsFileName, err)
 	}
 
-	var assignments strings.Builder
+	var exports strings.Builder
 	for _, line := range strings.Split(string(data), "\n") {
-		name, _, ok := strings.Cut(strings.TrimPrefix(strings.TrimSpace(line), "export "), "=")
-		if ok && name != "" && !strings.ContainsAny(name, " \t") {
-			assignments.WriteString(line + "\n")
+		if strings.HasPrefix(line, "export ") {
+			exports.WriteString(line + "\n")
 		}
 	}
 
-	secrets, err := godotenv.Unmarshal(assignments.String())
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse %s: %w", secretsFileName, err)
-	}
-
-	return secrets, nil
+	return os.WriteFile(path, []byte(exports.String()), 0o600)
 }
 
 // exportSecrets returns the path to secrets-export.sh, running the AWS SSO
@@ -126,6 +105,10 @@ func exportSecrets() (string, error) {
 
 	if _, err := os.Stat(secretsPath); err != nil {
 		return "", fmt.Errorf("AWS SSO login container did not write %s: %w", secretsFileName, err)
+	}
+
+	if err := keepExports(secretsPath); err != nil {
+		return "", err
 	}
 
 	return secretsPath, nil

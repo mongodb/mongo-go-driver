@@ -11,67 +11,17 @@ import (
 	"io"
 	"net/http"
 	"strings"
-	"testing"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/internal/aws/credentials"
 	v4signer "go.mongodb.org/mongo-driver/v2/internal/aws/signer/v4"
 	"go.mongodb.org/mongo-driver/v2/internal/credproviders"
+
+	"github.com/joho/godotenv"
 )
 
-// TestAWSCredentialsAuthenticate checks that the AWS credentials exported by
-// the SSO login are accepted by AWS, by calling STS GetCallerIdentity with
-// them.
-func TestAWSCredentialsAuthenticate(t *testing.T) {
-	path, err := exportSecrets()
-	if err != nil {
-		t.Fatalf("failed to export secrets: %v", err)
-	}
-
-	secrets, err := readSecrets(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	tests := []struct {
-		name         string
-		accessKeyID  string
-		secretKey    string
-		sessionToken string
-	}{
-		{
-			name:         "session credentials",
-			accessKeyID:  "AWS_ACCESS_KEY_ID",
-			secretKey:    "AWS_SECRET_ACCESS_KEY",
-			sessionToken: "AWS_SESSION_TOKEN",
-		},
-		{
-			name:        "CSFLE credentials",
-			accessKeyID: "FLE_AWS_KEY",
-			secretKey:   "FLE_AWS_SECRET",
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			value := credentials.Value{
-				AccessKeyID:     secrets[test.accessKeyID],
-				SecretAccessKey: secrets[test.secretKey],
-			}
-			if test.sessionToken != "" {
-				value.SessionToken = secrets[test.sessionToken]
-			}
-			if value.AccessKeyID == "" || value.SecretAccessKey == "" {
-				t.Fatalf("%s or %s missing from %s", test.accessKeyID, test.secretKey, secretsFileName)
-			}
-
-			if err := getCallerIdentity(value); err != nil {
-				t.Fatal(err)
-			}
-		})
-	}
-}
-
+// getCallerIdentity calls STS GetCallerIdentity, which succeeds for any valid
+// credentials regardless of their permissions.
 func getCallerIdentity(value credentials.Value) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()

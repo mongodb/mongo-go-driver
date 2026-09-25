@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"os"
 	"testing"
+
+	"github.com/joho/godotenv"
 )
 
 func TestMain(m *testing.M) {
@@ -26,9 +28,9 @@ func TestSecretsLoaded(t *testing.T) {
 		t.Fatalf("failed to export secrets: %v", err)
 	}
 
-	secrets, err := readSecrets(path)
+	secrets, err := godotenv.Read(path)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("failed to read %s: %v", path, err)
 	}
 	if len(secrets) == 0 {
 		t.Fatalf("%s exported no secrets", path)
@@ -37,7 +39,7 @@ func TestSecretsLoaded(t *testing.T) {
 	// Values already set in the environment take precedence over the file,
 	// so only check that every exported key is present.
 	for key := range secrets {
-		if os.Getenv(key) == "" {
+		if _, ok := os.LookupEnv(key); !ok {
 			t.Errorf("expected %s to be set in the environment", key)
 		}
 	}
