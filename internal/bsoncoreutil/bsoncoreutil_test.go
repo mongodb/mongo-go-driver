@@ -115,8 +115,9 @@ var truncateSink string
 // avoid an import cycle.
 const benchWidth = 1000
 
-// BenchmarkTruncate covers the four distinct paths through Truncate. Widths are
-// chosen so that each case provably lands on the intended path; see the byte
+// BenchmarkTruncate covers the three distinct paths through Truncate (not
+// counting the negative-width path), plus an ASCII-only case. Widths are chosen
+// so that each case provably lands on the intended path; see the byte
 // arithmetic on each case below. "界" (U+754C) encodes to 3 bytes and "𤭢"
 // (U+24B62) to 4 bytes.
 func BenchmarkTruncate(b *testing.B) {
@@ -138,12 +139,12 @@ func BenchmarkTruncate(b *testing.B) {
 		{"ascii_mid_string", ascii, benchWidth},
 
 		// 999 == 333*3, so width lands exactly on the end of a 3-byte rune and
-		// the full prefix is kept. This is the path PR #2564 corrected. Scans
-		// back over 2 continuation bytes.
+		// the full prefix is kept without scanning back. This is the path PR
+		// #2564 corrected.
 		{"exact_rune_boundary", threeByte, 999},
 
 		// 999 == 249*4+3, so width lands 3 bytes into a 4-byte rune, which is
-		// dropped entirely. Scans back over 2 continuation bytes.
+		// dropped entirely. Scans back 3 bytes to the end of the previous rune.
 		{"inside_rune", fourByte, 999},
 
 		// len(str) <= width, so Truncate returns before doing any UTF-8 work.
