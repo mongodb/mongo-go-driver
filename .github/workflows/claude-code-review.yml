@@ -37,7 +37,7 @@ jobs:
     env:
       # Route all Claude API traffic through MongoDB's Grove gateway,
       # not api.anthropic.com
-      ANTHROPIC_BASE_URL: ${{ secrets.GROVE_API_URL }}
+      ANTHROPIC_BASE_URL: ${{ vars.GROVE_API_URL }}
     steps:
       # Base ref only. The review command reads the diff through `gh pr diff`,
       # so the pull request's code never lands on this runner -- which is what
