@@ -7,26 +7,28 @@ name: Claude Code Review
 # The action independently refuses to run for actors without write access to
 # this repository, which is what keeps outside contributors from triggering it.
 #
-# Only `opened` is safe to trigger on. The action checks the event sender,
-# not the pull request author, so `ready_for_review` would let a maintainer
-# marking an outside contributor's draft ready run this job -- holding the
-# Grove key -- over that contributor's content.
+# Reviews run on request only: a maintainer applies the `claude-review` label.
+# The action checks the event sender, not the pull request author, so the
+# labeler is vouching for running this job -- holding the Grove key -- over
+# the pull request's content. Only apply it to an outside contributor's pull
+# request after reading the diff.
 #
 # This is a one-shot review. The code-review command stops when Claude has
 # already commented on the pull request, and that check is not scoped to a
-# commit, so re-running on `synchronize` would skip rather than review the new
-# commits. Push-triggered re-review needs a command whose duplicate check is
-# keyed to the head SHA.
+# commit, so removing and re-applying the label skips rather than reviewing
+# new commits. Re-review needs a command whose duplicate check is keyed to the
+# head SHA.
 on:
   pull_request_target:
-    types: [opened]
+    types: [labeled]
 concurrency:
   group: claude-review-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 jobs:
   review:
     # The command also stops on drafts, but that costs a runner to discover.
-    if: github.event.pull_request.draft == false
+    if: >-
+      github.event.label.name == 'claude-review' && github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
