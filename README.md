@@ -210,3 +210,5 @@ See our [common issues](docs/common-issues.md) documentation for troubleshooting
 ## License
 
 The MongoDB Go Driver is licensed under the [Apache License](LICENSE).
+
+<!-- Canary: exercises the claude-review label trigger. Do not merge. -->
