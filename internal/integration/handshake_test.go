@@ -1200,6 +1200,22 @@ func TestHandshakeProse_Test10_Case11_WrapperMatchingDriverIdentity(t *testing.T
 	requireHandshake(mt, want)
 }
 
+func TestHandshakeProse_Test10_Case12_DuplicatesWithUnsetField(t *testing.T) {
+	mt := newHandshakeT(t)
+
+	require.NoError(mt, mt.Client.AppendDriverInfoErr(options.DriverInfo{Name: "F1"}))
+	require.NoError(mt, mt.Client.AppendDriverInfoErr(options.DriverInfo{Name: "F1"}))
+
+	mt.GetProxyCapture().Drain()
+
+	want := clientMetadataExtJSON(
+		"mongo-go-driver|F1",
+		version.Driver+"|",
+		runtime.Version())
+
+	requireHandshake(mt, want)
+}
+
 func TestHandshakeProse_Test11_Case1_NameContainsDelimiter(t *testing.T) {
 	mt := newHandshakeTWithDriverInfo(t, &options.DriverInfo{
 		Name:     "library",
