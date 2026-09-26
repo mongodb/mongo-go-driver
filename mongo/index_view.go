@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/v2/internal/optionsutil"
 	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
@@ -118,6 +119,9 @@ func (iv IndexView) List(ctx context.Context, opts ...options.Lister[options.Lis
 	}
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
 		op.rawData = &rawData
+	}
+	if additionalCmd, ok := optionsutil.Value(args.Internal, "addCommandFields").(bson.D); ok {
+		op.additionalCmd = additionalCmd
 	}
 
 	err = op.execute(ctx)
@@ -313,6 +317,9 @@ func (iv IndexView) CreateMany(
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
 		op.rawData = &rawData
 	}
+	if additionalCmd, ok := optionsutil.Value(args.Internal, "addCommandFields").(bson.D); ok {
+		op.additionalCmd = additionalCmd
+	}
 
 	_, err = processWriteError(op.execute(ctx))
 	if err != nil {
@@ -459,6 +466,9 @@ func (iv IndexView) drop(ctx context.Context, index any, opts ...options.Lister[
 		timeout:                   iv.coll.client.timeout,
 		crypt:                     iv.coll.client.cryptFLE,
 		authenticator:             iv.coll.client.authenticator,
+	}
+	if additionalCmd, ok := optionsutil.Value(args.Internal, "addCommandFields").(bson.D); ok {
+		op.additionalCmd = additionalCmd
 	}
 
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {

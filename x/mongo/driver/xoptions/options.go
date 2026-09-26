@@ -141,6 +141,15 @@ func SetInternalCountOptions(a *options.CountOptionsBuilder, key string, option 
 			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
 			return nil
 		})
+	case "addCommandFields":
+		d, ok := option.(bson.D)
+		if !ok {
+			return typeErrFunc("bson.D")
+		}
+		a.Opts = append(a.Opts, func(opts *options.CountOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, d)
+			return nil
+		})
 	default:
 		return fmt.Errorf("unsupported option: %q", key)
 	}
@@ -160,6 +169,15 @@ func SetInternalCreateIndexesOptions(a *options.CreateIndexesOptionsBuilder, key
 		}
 		a.Opts = append(a.Opts, func(opts *options.CreateIndexesOptions) error {
 			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
+			return nil
+		})
+	case "addCommandFields":
+		d, ok := option.(bson.D)
+		if !ok {
+			return typeErrFunc("bson.D")
+		}
+		a.Opts = append(a.Opts, func(opts *options.CreateIndexesOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, d)
 			return nil
 		})
 	default:
@@ -183,6 +201,15 @@ func SetInternalDeleteOneOptions(a *options.DeleteOneOptionsBuilder, key string,
 			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
 			return nil
 		})
+	case "addCommandFields":
+		d, ok := option.(bson.D)
+		if !ok {
+			return typeErrFunc("bson.D")
+		}
+		a.Opts = append(a.Opts, func(opts *options.DeleteOneOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, d)
+			return nil
+		})
 	default:
 		return fmt.Errorf("unsupported option: %q", key)
 	}
@@ -202,6 +229,15 @@ func SetInternalDeleteManyOptions(a *options.DeleteManyOptionsBuilder, key strin
 		}
 		a.Opts = append(a.Opts, func(opts *options.DeleteManyOptions) error {
 			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
+			return nil
+		})
+	case "addCommandFields":
+		d, ok := option.(bson.D)
+		if !ok {
+			return typeErrFunc("bson.D")
+		}
+		a.Opts = append(a.Opts, func(opts *options.DeleteManyOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, d)
 			return nil
 		})
 	default:
@@ -225,6 +261,36 @@ func SetInternalDistinctOptions(a *options.DistinctOptionsBuilder, key string, o
 			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
 			return nil
 		})
+	case "addCommandFields":
+		d, ok := option.(bson.D)
+		if !ok {
+			return typeErrFunc("bson.D")
+		}
+		a.Opts = append(a.Opts, func(opts *options.DistinctOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, d)
+			return nil
+		})
+	default:
+		return fmt.Errorf("unsupported option: %q", key)
+	}
+	return nil
+}
+
+// SetInternalDropCollectionOptions sets internal options for DropCollectionOptions.
+func SetInternalDropCollectionOptions(a *options.DropCollectionOptionsBuilder, key string, option any) error {
+	typeErrFunc := func(t string) error {
+		return fmt.Errorf("unexpected type for %q: %T is not %s", key, option, t)
+	}
+	switch key {
+	case "addCommandFields":
+		d, ok := option.(bson.D)
+		if !ok {
+			return typeErrFunc("bson.D")
+		}
+		a.Opts = append(a.Opts, func(opts *options.DropCollectionOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, d)
+			return nil
+		})
 	default:
 		return fmt.Errorf("unsupported option: %q", key)
 	}
@@ -244,6 +310,15 @@ func SetInternalDropIndexesOptions(a *options.DropIndexesOptionsBuilder, key str
 		}
 		a.Opts = append(a.Opts, func(opts *options.DropIndexesOptions) error {
 			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
+			return nil
+		})
+	case "addCommandFields":
+		d, ok := option.(bson.D)
+		if !ok {
+			return typeErrFunc("bson.D")
+		}
+		a.Opts = append(a.Opts, func(opts *options.DropIndexesOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, d)
 			return nil
 		})
 	default:
@@ -267,6 +342,15 @@ func SetInternalEstimatedDocumentCountOptions(a *options.EstimatedDocumentCountO
 			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
 			return nil
 		})
+	case "addCommandFields":
+		d, ok := option.(bson.D)
+		if !ok {
+			return typeErrFunc("bson.D")
+		}
+		a.Opts = append(a.Opts, func(opts *options.EstimatedDocumentCountOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, d)
+			return nil
+		})
 	default:
 		return fmt.Errorf("unsupported option: %q", key)
 	}
@@ -288,6 +372,15 @@ func SetInternalFindOptions(a *options.FindOptionsBuilder, key string, option an
 			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
 			return nil
 		})
+	case "addCommandFields":
+		d, ok := option.(bson.D)
+		if !ok {
+			return typeErrFunc("bson.D")
+		}
+		a.Opts = append(a.Opts, func(opts *options.FindOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, d)
+			return nil
+		})
 	default:
 		return fmt.Errorf("unsupported option: %q", key)
 	}
@@ -307,6 +400,15 @@ func SetInternalFindOneOptions(a *options.FindOneOptionsBuilder, key string, opt
 		}
 		a.Opts = append(a.Opts, func(opts *options.FindOneOptions) error {
 			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
+			return nil
+		})
+	case "addCommandFields":
+		d, ok := option.(bson.D)
+		if !ok {
+			return typeErrFunc("bson.D")
+		}
+		a.Opts = append(a.Opts, func(opts *options.FindOneOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, d)
 			return nil
 		})
 	default:
@@ -490,6 +592,15 @@ func SetInternalListIndexesOptions(a *options.ListIndexesOptionsBuilder, key str
 		}
 		a.Opts = append(a.Opts, func(opts *options.ListIndexesOptions) error {
 			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
+			return nil
+		})
+	case "addCommandFields":
+		d, ok := option.(bson.D)
+		if !ok {
+			return typeErrFunc("bson.D")
+		}
+		a.Opts = append(a.Opts, func(opts *options.ListIndexesOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, d)
 			return nil
 		})
 	default:
