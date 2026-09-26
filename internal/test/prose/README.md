@@ -22,8 +22,12 @@ Prose tests that need drivers test secrets (e.g. the `drivers/csfle` vault).
 
 ## Running
 
+Secrets are only loaded when a flag asks for them; without one, tests that
+need them are skipped:
+
 ```
-go test -v ./...
+go test -v . -load-secrets
+go test -v . -cse
 ```
 
 The login is interactive: the container prints a verification URL and code

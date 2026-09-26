@@ -49,7 +49,7 @@ func loadSecrets() error {
 		if loadErr != nil {
 			return
 		}
-		loadErr = godotenv.Load(path)
+		loadErr = godotenv.Overload(path)
 	})
 	return loadErr
 }
@@ -95,7 +95,7 @@ func exportSecrets() (string, error) {
 	}
 	defer os.RemoveAll(buildDir)
 
-	if err := fetchBuildContext(buildDir); err != nil {
+	if err := downloadDockerfile(buildDir); err != nil {
 		return "", err
 	}
 
@@ -115,7 +115,7 @@ func exportSecrets() (string, error) {
 }
 
 // downloads the Dockerfile and entrypoint from the private repo.
-func fetchBuildContext(dir string) error {
+func downloadDockerfile(dir string) error {
 	client, err := api.DefaultRESTClient()
 	if err != nil {
 		return fmt.Errorf("failed to create GitHub client (is `gh auth login` set up?): %w", err)

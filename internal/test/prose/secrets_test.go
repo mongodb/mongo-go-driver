@@ -7,6 +7,7 @@
 package prose
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"testing"
@@ -14,15 +15,33 @@ import (
 	"github.com/joho/godotenv"
 )
 
+var (
+	loadSecretsFlag = flag.Bool("load-secrets", false, "Use AWS SSO login to load secrets into os.TempDir()")
+	cseFlag         = flag.Bool("cse", false, "Setup required for running CSE tests")
+)
+
+func secretsRequested() bool {
+	return *loadSecretsFlag || *cseFlag
+}
+
 func TestMain(m *testing.M) {
-	if err := loadSecrets(); err != nil {
-		fmt.Fprintln(os.Stderr, "loading secrets:", err)
-		os.Exit(1)
+	flag.Parse()
+
+	if secretsRequested() {
+		if err := loadSecrets(); err != nil {
+			fmt.Fprintln(os.Stderr, "loading secrets:", err)
+			os.Exit(1)
+		}
 	}
+
 	os.Exit(m.Run())
 }
 
 func TestSecretsLoaded(t *testing.T) {
+	if !secretsRequested() {
+		t.Skip("pass -load-secrets or -cse to load secrets")
+	}
+
 	path, err := exportSecrets()
 	if err != nil {
 		t.Fatalf("failed to export secrets: %v", err)
@@ -36,11 +55,9 @@ func TestSecretsLoaded(t *testing.T) {
 		t.Fatalf("%s exported no secrets", path)
 	}
 
-	// Values already set in the environment take precedence over the file,
-	// so only check that every exported key is present.
-	for key := range secrets {
-		if _, ok := os.LookupEnv(key); !ok {
-			t.Errorf("expected %s to be set in the environment", key)
+	for key, want := range secrets {
+		if os.Getenv(key) != want {
+			t.Errorf("expected %s to be loaded from %s", key, secretsFileName)
 		}
 	}
 }
