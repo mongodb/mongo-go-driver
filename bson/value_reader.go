@@ -77,6 +77,10 @@ type valueReader struct {
 
 	stack []vrState
 	frame int64
+
+	// nested counts how many documents, arrays and code-with-scope scopes the
+	// reader is currently inside, bounded by maxBSONNestingDepth.
+	nested int
 }
 
 func getBufferedDocumentReader(b []byte) *valueReader {
@@ -93,6 +97,7 @@ func putBufferedDocumentReader(vr *valueReader) {
 	// Reset src and stack to avoid holding onto memory.
 	vr.src = nil
 	vr.frame = 0
+	vr.nested = 0
 	vr.stack = vr.stack[:0]
 
 	vrPool.Put(vr)
@@ -134,6 +139,7 @@ func newBufferedDocumentReader(b []byte) *valueReader {
 
 	// Reset parse state.
 	vr.frame = 0
+	vr.nested = 0
 	if cap(vr.stack) < 1 {
 		vr.stack = make([]vrState, 1, 5)
 	} else {
@@ -146,6 +152,32 @@ func newBufferedDocumentReader(b []byte) *valueReader {
 	}
 
 	return vr
+}
+
+// maxBSONNestingDepth is the maximum number of BSON documents, arrays and
+// code-with-scope scopes the reader will descend into below the top-level
+// document. Decoding is
+// recursive, so without a bound a deeply nested document exhausts the
+// goroutine stack; in Go that is a fatal error, not a panic, so it cannot be
+// recovered and it terminates the process.
+//
+// 500 matches the limit the C driver adopted for the same reason and leaves
+// headroom above the server's own default maximum BSON depth.
+const maxBSONNestingDepth = 500
+
+// ErrNestingDepthExceeded is returned when a BSON document nests more deeply
+// than maxBSONNestingDepth.
+var ErrNestingDepthExceeded = fmt.Errorf("bson: document nesting depth exceeds maximum of %d", maxBSONNestingDepth)
+
+// enterNested accounts for descending into a nested document, array or
+// code-with-scope scope, and reports an error if that would exceed the
+// nesting limit.
+func (vr *valueReader) enterNested() error {
+	if vr.nested >= maxBSONNestingDepth {
+		return ErrNestingDepthExceeded
+	}
+	vr.nested++
+	return nil
 }
 
 func (vr *valueReader) advanceFrame() {
@@ -174,6 +206,9 @@ func (vr *valueReader) pop() error {
 		cnt = 1
 	case mDocument, mArray, mCodeWithScope:
 		cnt = 2 // we pop twice to jump over the vrElement: vrDocument -> vrElement -> vrDocument/TopLevel/etc...
+		if vr.nested > 0 {
+			vr.nested--
+		}
 	}
 	for i := 0; i < cnt && vr.frame > 0; i++ {
 		if vr.src.pos() < vr.stack[vr.frame].end {
@@ -366,6 +401,10 @@ func (vr *valueReader) ReadArray() (ArrayReader, error) {
 		return nil, err
 	}
 
+	if err := vr.enterNested(); err != nil {
+		return nil, err
+	}
+
 	// Push a new frame for the array.
 	vr.advanceFrame()
 
@@ -469,6 +508,14 @@ func (vr *valueReader) ReadDocument() (DocumentReader, error) {
 		return nil, vr.invalidTransitionErr(mDocument, "ReadDocument", []mode{mTopLevel, mElement, mValue})
 	}
 
+	// The top-level document is depth zero; only documents below it count
+	// toward the nesting limit.
+	if vr.stack[vr.frame].mode != mTopLevel {
+		if err := vr.enterNested(); err != nil {
+			return nil, err
+		}
+	}
+
 	vr.advanceFrame()
 
 	size, err := vr.readLength()
@@ -506,6 +553,11 @@ func (vr *valueReader) ReadCodeWithScope() (string, DocumentReader, error) {
 	}
 
 	code := string(buf[:len(buf)-1])
+
+	if err := vr.enterNested(); err != nil {
+		return "", nil, err
+	}
+
 	vr.advanceFrame()
 
 	// Use readLength to ensure that we are not out of bounds.

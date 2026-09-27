@@ -9,6 +9,7 @@ package bson
 import (
 	"bufio"
 	"bytes"
+	"encoding/binary"
 	_ "embed"
 	"errors"
 	"fmt"
@@ -2536,4 +2537,102 @@ func errequal(t *testing.T, err1, err2 error) bool {
 	}
 
 	return false
+}
+
+// nestedDocument builds a document of the form {"a":{"a":{ ... }}} nested
+// depth levels deep, with an empty document innermost. Built iteratively so the
+// generator itself cannot recurse.
+func nestedDocument(depth int) []byte {
+	out := make([]byte, 0, 5+8*depth)
+	var length [4]byte
+	for i := depth; i >= 1; i-- {
+		// A document at level i is 5+8*i bytes long.
+		binary.LittleEndian.PutUint32(length[:], uint32(5+8*i))
+		out = append(out, length[:]...)
+		out = append(out, byte(TypeEmbeddedDocument), 'a', 0x00)
+	}
+	out = append(out, 5, 0, 0, 0, 0)
+	for i := 0; i < depth; i++ {
+		out = append(out, 0x00)
+	}
+	return out
+}
+
+// nestedArray is nestedDocument, but every level is an array rather than a
+// document, so the ReadArray path is covered too.
+func nestedArray(depth int) []byte {
+	out := make([]byte, 0, 5+8*depth)
+	var length [4]byte
+	for i := depth; i >= 1; i-- {
+		binary.LittleEndian.PutUint32(length[:], uint32(5+8*i))
+		out = append(out, length[:]...)
+		out = append(out, byte(TypeArray), '0', 0x00)
+	}
+	out = append(out, 5, 0, 0, 0, 0)
+	for i := 0; i < depth; i++ {
+		out = append(out, 0x00)
+	}
+	return out
+}
+
+// Decoding is recursive, so a document that nests more deeply than the
+// goroutine stack can hold terminates the process with "fatal error: stack
+// overflow". That is not a panic and cannot be recovered, so the depth must be
+// bounded before the recursion happens rather than caught afterwards.
+func TestDecodeNestingDepthIsBounded(t *testing.T) {
+	t.Parallel()
+
+	for _, build := range []struct {
+		name string
+		fn   func(int) []byte
+	}{
+		{"document", nestedDocument},
+		{"array", nestedArray},
+	} {
+		build := build
+		t.Run(build.name, func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("at the limit is accepted", func(t *testing.T) {
+				var got D
+				err := Unmarshal(build.fn(maxBSONNestingDepth), &got)
+				assert.NoError(t, err, "expected a document nested %d levels to decode",
+					maxBSONNestingDepth)
+			})
+
+			t.Run("one past the limit is rejected", func(t *testing.T) {
+				var got D
+				err := Unmarshal(build.fn(maxBSONNestingDepth+1), &got)
+				assert.ErrorIs(t, err, ErrNestingDepthExceeded)
+			})
+
+			// The point of the bound: this must return an error rather than
+			// exhaust the stack. If the bound is removed this does not fail, it
+			// kills the test binary.
+			t.Run("far past the limit returns an error and does not crash", func(t *testing.T) {
+				for _, depth := range []int{10_000, 600_000} {
+					var got D
+					err := Unmarshal(build.fn(depth), &got)
+					assert.ErrorIs(t, err, ErrNestingDepthExceeded)
+				}
+			})
+		})
+	}
+}
+
+// Raw.Validate is structural only: it does not bound nesting depth, so it
+// reports a deeply nested document as valid. Callers must not treat a
+// successful Validate as clearance to decode; the decoder's own limit is what
+// protects them. Recorded as a test so the distinction is not lost.
+func TestValidateDoesNotBoundNestingDepth(t *testing.T) {
+	t.Parallel()
+
+	b := nestedDocument(600_000)
+
+	assert.NoError(t, Raw(b).Validate(),
+		"Validate is structural and is expected to accept this document")
+
+	var got D
+	assert.ErrorIs(t, Unmarshal(b, &got), ErrNestingDepthExceeded,
+		"the decoder is what must reject it")
 }
