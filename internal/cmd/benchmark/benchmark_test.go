@@ -151,6 +151,19 @@ func extractTestDataTgz(tarPath, targetDir string) error {
 
 	defer gzipReader.Close()
 
+	if err := os.MkdirAll(targetDir, 0o755); err != nil {
+		return fmt.Errorf("failed to create target dir: %w", err)
+	}
+
+	// Use an os.Root so that no entry in the tarball can be written outside of
+	// targetDir (e.g. via "../" components, absolute paths, or symlinks).
+	root, err := os.OpenRoot(targetDir)
+	if err != nil {
+		return fmt.Errorf("failed to open target dir: %w", err)
+	}
+
+	defer root.Close()
+
 	tarReader := tar.NewReader(gzipReader)
 	for {
 		header, err := tarReader.Next()
@@ -162,15 +175,15 @@ func extractTestDataTgz(tarPath, targetDir string) error {
 			return fmt.Errorf("failed to advance tar entry: %w", err)
 		}
 
-		targetPath := filepath.Join(targetDir, strings.TrimPrefix(header.Name, "data/"))
+		targetPath := filepath.Clean(filepath.FromSlash(strings.TrimPrefix(header.Name, "data/")))
 
 		switch header.Typeflag {
 		case tar.TypeDir:
-			if err := os.MkdirAll(targetPath, 0o755); err != nil {
+			if err := root.MkdirAll(targetPath, 0o755); err != nil {
 				return fmt.Errorf("failed to extract dir from tgz: %w", err)
 			}
 		case tar.TypeReg:
-			outFile, err := os.Create(targetPath)
+			outFile, err := root.Create(targetPath)
 			if err != nil {
 				return fmt.Errorf("failed to create path to extract file from tgz: %w", err)
 			}
