@@ -89,6 +89,9 @@ func copyBytesToValueWriter(src []byte, wef writeElementFn) error {
 	if !ok {
 		return fmt.Errorf("couldn't read length from src, not enough bytes. length=%d", len(src))
 	}
+	if length < 5 {
+		return fmt.Errorf("length must be at least 5 bytes. length=%d: %w", length, bsoncore.ErrInvalidLength)
+	}
 	if len(src) < int(length) {
 		return fmt.Errorf("length read exceeds number of bytes available. length=%d bytes=%d", len(src), length)
 	}
