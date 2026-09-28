@@ -74,7 +74,9 @@ jobs:
             Please review this pull request.
 
             Note: The PR branch is NOT checked out. Read the changes with
-            `gh pr diff` and `gh pr view`.
+            exactly `gh pr diff ${{ github.event.pull_request.number }}` and
+            `gh pr view ${{ github.event.pull_request.number }} --json title --json body`.
+            No other commands or arguments are permitted.
 
             Provide feedback on:
             - Code quality and adherence to best practices
@@ -85,14 +87,17 @@ jobs:
 
             Provide feedback only as inline comments. If there is nothing to
             flag, do not comment.
-          # No `Bash(gh pr comment:*)`, unlike the example: this job holds
-          # secrets, and `gh pr comment --body-file /proc/self/environ` would
-          # let a prompt injection in the diff post them. Comments go through
-          # the inline comment tool, which only accepts comment text. `--tools
-          # Bash` removes the other built-in tools, such as Read, so Claude
-          # cannot read the environment from a file either.
+          # Unlike the example, this job holds secrets, and Claude can publish
+          # anything it reads through the inline comment tool. So nothing it
+          # can run may read the environment:
+          # - No `Bash(gh pr comment:*)`: `--body-file /proc/self/environ`.
+          # - Exact `gh pr diff/view` command lines, no `:*` wildcard:
+          #   `gh pr view --jq '$ENV'` prints the environment.
+          # - `--tools Bash` removes the other built-in tools, such as Read.
+          # The action splits --allowedTools on commas, so no rule may
+          # contain one; hence `--json title --json body`.
           claude_args: |
             --model claude-opus-5-5
             --max-turns 20
             --tools Bash
-            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff:*),Bash(gh pr view:*)"
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff ${{ github.event.pull_request.number }}),Bash(gh pr view ${{ github.event.pull_request.number }} --json title --json body)"
