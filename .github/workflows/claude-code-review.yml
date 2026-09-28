@@ -31,11 +31,10 @@ jobs:
       github.event.label.name == 'claude-review' && github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # GitHub access goes through the drivers PR bot token minted below, so
+    # the workflow token only needs to check out the base ref.
     permissions:
       contents: read
-      pull-requests: write # required: --comment posts inline review comments
-      issues: read
-      id-token: write # required: OIDC token for Claude GitHub App auth
     env:
       # Route all Claude API traffic through MongoDB's Grove gateway,
       # not api.anthropic.com
@@ -60,11 +59,27 @@ jobs:
           ref: 684ffc4da0eaaddcafa61842dc719c6a8febc5c2
           path: claude-code-plugins
           fetch-depth: 1
+      # Without github_token the action exchanges an OIDC token for a Claude
+      # GitHub App token, which fails here (401). Use the drivers PR bot app,
+      # same one merge-up and the Evergreen perf comment use. The token is
+      # scoped to this repository and to what --comment needs, and expires
+      # when the job ends.
+      - name: Create PR bot token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ vars.PR_APP_ID }}
+          private-key: ${{ secrets.PR_APP_PRIVATE_KEY }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: read
+          permission-issues: read
+          permission-pull-requests: write
       - name: Run code review
         uses: anthropics/claude-code-action@9171db3e57d6a3140a37ddc2ba92788584e0ead6 # v1
         with:
           # Parameter name is fixed by the action; the VALUE is our Grove key
           anthropic_api_key: ${{ secrets.GROVE_API_KEY }}
+          github_token: ${{ steps.app-token.outputs.token }}
           plugin_marketplaces: ${{ github.workspace }}/claude-code-plugins
           plugins: "code-review@claude-code-plugins"
           # --comment posts the review on the PR itself (inline per finding,
