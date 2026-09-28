@@ -56,8 +56,11 @@ func TestSecretsLoaded(t *testing.T) {
 	}
 
 	for key, want := range secrets {
-		if os.Getenv(key) != want {
+		got, ok := os.LookupEnv(key)
+		if !ok {
 			t.Errorf("expected %s to be loaded from %s", key, secretsFileName)
+		} else if got != want {
+			t.Errorf("%s does not match the value in %s", key, secretsFileName)
 		}
 	}
 }

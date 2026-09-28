@@ -26,6 +26,7 @@ Secrets are only loaded when a flag asks for them; without one, tests that
 need them are skipped:
 
 ```
+cd internal/test/prose
 go test -v . -load-secrets
 go test -v . -cse
 ```
