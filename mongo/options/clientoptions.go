@@ -269,45 +269,46 @@ type DriverInfo struct {
 // can be set through the ClientOptions setter functions. See each function for
 // documentation.
 type ClientOptions struct {
-	AppName                  *string
-	Auth                     *Credential
-	AutoEncryptionOptions    *AutoEncryptionOptions
-	ConnectTimeout           *time.Duration
-	Compressors              []string
-	Dialer                   ContextDialer
-	Direct                   *bool
-	DisableOCSPEndpointCheck *bool
-	DriverInfo               *DriverInfo
-	HeartbeatInterval        *time.Duration
-	Hosts                    []string
-	HTTPClient               *http.Client
-	LoadBalanced             *bool
-	LocalThreshold           *time.Duration
-	LoggerOptions            *LoggerOptions
-	MaxConnIdleTime          *time.Duration
-	MaxPoolSize              *uint64
-	MinPoolSize              *uint64
-	MaxConnecting            *uint64
-	PoolMonitor              *event.PoolMonitor
-	Monitor                  *event.CommandMonitor
-	ServerMonitor            *event.ServerMonitor
-	ReadConcern              *readconcern.ReadConcern
-	ReadPreference           *readpref.ReadPref
-	BSONOptions              *BSONOptions
-	Registry                 *bson.Registry
-	ReplicaSet               *string
-	RetryReads               *bool
-	RetryWrites              *bool
-	ServerAPIOptions         *ServerAPIOptions
-	ServerMonitoringMode     *string
-	ServerSelectionTimeout   *time.Duration
-	SRVMaxHosts              *int
-	SRVServiceName           *string
-	Timeout                  *time.Duration
-	TLSConfig                *tls.Config
-	WriteConcern             *writeconcern.WriteConcern
-	ZlibLevel                *int
-	ZstdLevel                *int
+	AppName                           *string
+	Auth                              *Credential
+	AutoEncryptionOptions             *AutoEncryptionOptions
+	ConnectTimeout                    *time.Duration
+	Compressors                       []string
+	Dialer                            ContextDialer
+	Direct                            *bool
+	DisableCertificateRevocationCheck *bool
+	DisableOCSPEndpointCheck          *bool
+	DriverInfo                        *DriverInfo
+	HeartbeatInterval                 *time.Duration
+	Hosts                             []string
+	HTTPClient                        *http.Client
+	LoadBalanced                      *bool
+	LocalThreshold                    *time.Duration
+	LoggerOptions                     *LoggerOptions
+	MaxConnIdleTime                   *time.Duration
+	MaxPoolSize                       *uint64
+	MinPoolSize                       *uint64
+	MaxConnecting                     *uint64
+	PoolMonitor                       *event.PoolMonitor
+	Monitor                           *event.CommandMonitor
+	ServerMonitor                     *event.ServerMonitor
+	ReadConcern                       *readconcern.ReadConcern
+	ReadPreference                    *readpref.ReadPref
+	BSONOptions                       *BSONOptions
+	Registry                          *bson.Registry
+	ReplicaSet                        *string
+	RetryReads                        *bool
+	RetryWrites                       *bool
+	ServerAPIOptions                  *ServerAPIOptions
+	ServerMonitoringMode              *string
+	ServerSelectionTimeout            *time.Duration
+	SRVMaxHosts                       *int
+	SRVServiceName                    *string
+	Timeout                           *time.Duration
+	TLSConfig                         *tls.Config
+	WriteConcern                      *writeconcern.WriteConcern
+	ZlibLevel                         *int
+	ZstdLevel                         *int
 
 	MaxAdaptiveRetries        *uint
 	EnableOverloadRetargeting *bool
@@ -545,6 +546,10 @@ func setURIOpts(uri string, opts *ClientOptions) error {
 		opts.ZstdLevel = &connString.ZstdLevel
 	}
 
+	if connString.SSLDisableCertificateRevocationCheckSet {
+		opts.DisableCertificateRevocationCheck = &connString.SSLDisableCertificateRevocationCheck
+	}
+
 	if connString.SSLDisableOCSPEndpointCheckSet {
 		opts.DisableOCSPEndpointCheck = &connString.SSLDisableOCSPEndpointCheck
 	}
@@ -625,6 +630,24 @@ func (c *ClientOptions) Validate() error {
 		}
 	}
 
+	// tlsDisableCertificateRevocationCheck conflicts with tlsInsecure and with
+	// tlsDisableOCSPEndpointCheck whenever both are present, whatever values they hold.
+	if c.DisableCertificateRevocationCheck != nil {
+		if c.DisableOCSPEndpointCheck != nil {
+			return errors.New("tlsDisableOCSPEndpointCheck cannot be used with tlsDisableCertificateRevocationCheck")
+		}
+
+		// A tls.Config cannot distinguish InsecureSkipVerify being set to false from it never
+		// having been set, so fall back to the connection string when there is one.
+		insecureSet := c.TLSConfig != nil && c.TLSConfig.InsecureSkipVerify
+		if c.connString != nil && c.connString.SSLInsecureSet {
+			insecureSet = true
+		}
+		if insecureSet {
+			return errors.New("sslInsecure/tlsInsecure cannot be used with tlsDisableCertificateRevocationCheck")
+		}
+	}
+
 	if mode := c.ServerMonitoringMode; mode != nil && !connstring.IsValidServerMonitoringMode(*mode) {
 		return fmt.Errorf("invalid server monitoring mode: %q", *mode)
 	}
@@ -689,8 +712,7 @@ func (c *ClientOptions) Validate() error {
 }
 
 // ApplyURI parses the given URI and sets options accordingly. The URI can contain host names, IPv4/IPv6 literals, or
-// an SRV record that will be resolved when the Client is created. When using an SRV record, TLS support is
-// implicitly enabled. Specify the "tls=false" URI option to override this.
+// an SRV record that will be resolved when the Client is created.
 //
 // If the connection string contains any options that have previously been set, it will overwrite them. Options that
 // correspond to multiple URI parameters, such as WriteConcern, will be completely overwritten if any of the query
@@ -702,6 +724,24 @@ func (c *ClientOptions) Validate() error {
 //
 // For more information about the URI format, see https://www.mongodb.com/docs/manual/reference/connection-string/. See
 // mongo.Connect documentation for examples of using URIs for different Client configurations.
+//
+// # Implicit TLS
+//
+// TLS is enabled implicitly when the URI uses the "mongodb+srv" scheme, or when any of the following URI options is
+// present, whatever value it is set to:
+//
+//	tlsCAFile (sslCertificateAuthorityFile)
+//	tlsCertificateKeyFile (sslClientCertificateKeyFile)
+//	tlsCertificateFile
+//	tlsPrivateKeyFile
+//	tlsDisableOCSPEndpointCheck
+//	tlsDisableCertificateRevocationCheck
+//
+// The value is not consulted: "tlsDisableOCSPEndpointCheck=false" enables TLS just as "=true" does.
+//
+// The "tls=false" URI option overrides implicit enablement. With the "mongodb+srv" scheme it always does. When TLS
+// was enabled by one of the options listed above, it does so only if it appears later in the connection string than
+// that option.
 func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 	if c.err != nil {
 		return c
@@ -1119,6 +1159,25 @@ func (c *ClientOptions) SetZstdLevel(level int) *ClientOptions {
 // options.
 func (c *ClientOptions) SetAutoEncryptionOptions(aeopts *AutoEncryptionOptions) *ClientOptions {
 	c.AutoEncryptionOptions = aeopts
+
+	return c
+}
+
+// SetDisableCertificateRevocationCheck specifies whether or not the driver should check the revocation status of
+// certificates presented by the server.
+//
+// If set to true, the driver will not check certificate revocation status via OCSP. If set to false, the driver
+// checks revocation status and reaches out to OCSP responders when needed.
+//
+// Certificate chain and hostname verification are unaffected, so this is a narrower relaxation than tlsInsecure,
+// which disables certificate verification entirely.
+//
+// This can also be set through the tlsDisableCertificateRevocationCheck URI option. The default value is false.
+//
+// This option must not be combined with tlsInsecure or tlsDisableOCSPEndpointCheck. If either of those was
+// supplied, doing so is an error.
+func (c *ClientOptions) SetDisableCertificateRevocationCheck(disableCheck bool) *ClientOptions {
+	c.DisableCertificateRevocationCheck = &disableCheck
 
 	return c
 }

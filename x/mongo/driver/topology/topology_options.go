@@ -151,7 +151,8 @@ func NewConfig(opts *options.ClientOptions, clock *session.ClusterClock) (*Confi
 			return nil, fmt.Errorf("error creating authenticator: %w", err)
 		}
 	}
-	return NewAuthenticatorConfig(authenticator,
+	return NewAuthenticatorConfig(
+		authenticator,
 		WithAuthConfigClock(clock),
 		WithAuthConfigClientOptions(opts),
 	)
@@ -466,6 +467,14 @@ func NewAuthenticatorConfig(authenticator driver.Authenticator, clientOpts ...Au
 		)
 	}
 
+	// Disable certificate revocation checking entirely.
+	if opts.DisableCertificateRevocationCheck != nil {
+		connOpts = append(
+			connOpts,
+			WithDisableCertificateRevocationCheck(func(bool) bool { return *opts.DisableCertificateRevocationCheck }),
+		)
+	}
+
 	// LoadBalanced
 	if opts.LoadBalanced != nil {
 		cfgp.LoadBalanced = *opts.LoadBalanced
@@ -496,7 +505,8 @@ func NewAuthenticatorConfig(authenticator driver.Authenticator, clientOpts ...Au
 	serverOpts = append(
 		serverOpts,
 		WithClock(func(*session.ClusterClock) *session.ClusterClock { return clock }),
-		WithConnectionOptions(func(...ConnectionOption) []ConnectionOption { return connOpts }))
+		WithConnectionOptions(func(...ConnectionOption) []ConnectionOption { return connOpts }),
+	)
 
 	cfgp.ServerOpts = serverOpts
 

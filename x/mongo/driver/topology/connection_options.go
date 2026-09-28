@@ -48,20 +48,21 @@ type Handshaker = driver.Handshaker
 type generationNumberFn func(serviceID *bson.ObjectID) uint64
 
 type connectionConfig struct {
-	dialer                   Dialer
-	handshaker               Handshaker
-	idleTimeout              time.Duration
-	cmdMonitor               *event.CommandMonitor
-	tlsConfig                *tls.Config
-	httpClient               *http.Client
-	compressors              []string
-	zlibLevel                *int
-	zstdLevel                *int
-	ocspCache                ocsp.Cache
-	disableOCSPEndpointCheck bool
-	tlsConnectionSource      tlsConnectionSource
-	loadBalanced             bool
-	getGenerationFn          generationNumberFn
+	dialer                            Dialer
+	handshaker                        Handshaker
+	idleTimeout                       time.Duration
+	cmdMonitor                        *event.CommandMonitor
+	tlsConfig                         *tls.Config
+	httpClient                        *http.Client
+	compressors                       []string
+	zlibLevel                         *int
+	zstdLevel                         *int
+	ocspCache                         ocsp.Cache
+	disableCertificateRevocationCheck bool
+	disableOCSPEndpointCheck          bool
+	tlsConnectionSource               tlsConnectionSource
+	loadBalanced                      bool
+	getGenerationFn                   generationNumberFn
 }
 
 func newConnectionConfig(opts ...ConnectionOption) *connectionConfig {
@@ -164,6 +165,15 @@ func WithZstdLevel(fn func(*int) *int) ConnectionOption {
 func WithOCSPCache(fn func(ocsp.Cache) ocsp.Cache) ConnectionOption {
 	return func(c *connectionConfig) {
 		c.ocspCache = fn(c.ocspCache)
+	}
+}
+
+// WithDisableCertificateRevocationCheck specifies whether or not the driver should check the revocation status of
+// certificates presented by the server. If set to true, the driver will not check revocation status by any
+// mechanism: it will neither validate stapled OCSP responses nor contact OCSP responders.
+func WithDisableCertificateRevocationCheck(fn func(bool) bool) ConnectionOption {
+	return func(c *connectionConfig) {
+		c.disableCertificateRevocationCheck = fn(c.disableCertificateRevocationCheck)
 	}
 }
 

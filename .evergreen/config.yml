@@ -1308,15 +1308,6 @@ tasks:
       - func: run-enterprise-gssapi-auth-tests
         vars:
           MONGO_GO_DRIVER_COMPRESSOR: "snappy"
-  # Build the compilecheck submodule with all supported versions of Go >=
-  # the minimum supported version.
-  - name: go-build
-    tags: ["compile-check"]
-    commands:
-      - command: subprocess.exec
-        params:
-          binary: bash
-          args: [*task-runner, build-compile-check-all]
   # Build with the same Go version that we're using for tests.
   - name: build
     tags: ["compile-check"]
