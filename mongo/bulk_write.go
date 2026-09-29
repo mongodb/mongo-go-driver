@@ -328,6 +328,9 @@ func (bw *bulkWrite) runDelete(ctx context.Context, batch bulkWriteBatch) (delet
 	if bw.rawData != nil {
 		op.rawData = bw.rawData
 	}
+	if len(bw.additionalCmd) > 0 {
+		op.additionalCmd = bw.additionalCmd
+	}
 
 	err := op.execute(ctx)
 

@@ -2998,6 +2998,53 @@ func TestAddCommandFields(t *testing.T) {
 			})
 		}
 	})
+	mt.Run("bulk write", func(mt *mtest.T) {
+		newOpts := func() *options.BulkWriteOptionsBuilder {
+			opts := options.BulkWrite()
+			err := xoptions.SetInternalBulkWriteOptions(opts, "addCommandFields", added)
+			require.NoError(mt, err, "unexpected error: %v", err)
+			return opts
+		}
+
+		models := []struct {
+			name  string
+			model mongo.WriteModel
+		}{
+			{"insert one", mongo.NewInsertOneModel().SetDocument(bson.D{{"x", int32(6)}})},
+			{"delete one", mongo.NewDeleteOneModel().SetFilter(bson.D{{"x", int32(1)}})},
+			{"delete many", mongo.NewDeleteManyModel().SetFilter(bson.D{{"x", int32(1)}})},
+			{"update one", mongo.NewUpdateOneModel().SetFilter(bson.D{{"x", int32(1)}}).
+				SetUpdate(bson.D{{"$set", bson.D{{"x", int32(6)}}}})},
+			{"update many", mongo.NewUpdateManyModel().SetFilter(bson.D{{"x", int32(1)}}).
+				SetUpdate(bson.D{{"$set", bson.D{{"x", int32(6)}}}})},
+			{"replace one", mongo.NewReplaceOneModel().SetFilter(bson.D{{"x", int32(1)}}).
+				SetReplacement(bson.D{{"x", int32(6)}})},
+		}
+
+		testCases := []struct {
+			name     string
+			opts     *options.BulkWriteOptionsBuilder
+			expected bson.RawValue
+		}{
+			{"empty", nil, empty},
+			{"set", newOpts(), set},
+		}
+		for _, model := range models {
+			for _, tc := range testCases {
+				mt.Run(model.name+" "+tc.name, func(mt *mtest.T) {
+					initCollection(mt, mt.Coll)
+					mt.ClearEvents()
+
+					_, err := mt.Coll.BulkWrite(context.Background(),
+						[]mongo.WriteModel{model.model}, tc.opts)
+					require.NoError(mt, err, "BulkWrite error: %v", err)
+					evt := mt.GetStartedEvent()
+					val := evt.Command.Lookup("comment")
+					assert.Equal(mt, tc.expected, val, "expected comment to be %s", tc.expected.String())
+				})
+			}
+		}
+	})
 }
 
 func initCollection(tb testing.TB, coll *mongo.Collection) {
