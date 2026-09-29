@@ -7,38 +7,11 @@
 package prose
 
 import (
-	"flag"
-	"log"
 	"os"
 	"testing"
 
 	"github.com/joho/godotenv"
 )
-
-var (
-	loadSecretsFlag = flag.Bool("load-secrets", false, "Use AWS SSO login to load secrets into os.TempDir()")
-	cseFlag         = flag.Bool("cse", false, "Setup required for running CSE tests")
-)
-
-func secretsRequested() bool {
-	return *loadSecretsFlag || *cseFlag
-}
-
-func TestMain(m *testing.M) {
-	flag.Parse()
-
-	if secretsRequested() {
-		path, err := exportSecrets()
-		if err != nil {
-			log.Panicf("error loading secrets: %v", err)
-		}
-		if err := godotenv.Overload(path); err != nil {
-			log.Panicf("error loading secrets: %v", err)
-		}
-	}
-
-	os.Exit(m.Run())
-}
 
 func TestSecretsLoaded(t *testing.T) {
 	if !secretsRequested() {

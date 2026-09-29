@@ -4,25 +4,55 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-// Package prose runs prose tests that need drivers test secrets. The secrets
-// are exported by an AWS SSO login that runs in a container built from a
-// Dockerfile kept in the private 10gen/go-driver-tools repo.
 package prose
 
 import (
 	"context"
 	"encoding/base64"
+	"flag"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
+	"testing"
 	"time"
 
 	"github.com/cli/go-gh/v2/pkg/api"
+	"github.com/joho/godotenv"
 	"github.com/moby/moby/api/types/container"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
+
+var (
+	loadSecretsFlag = flag.Bool("load-secrets", false, "Use AWS SSO login to load secrets into os.TempDir()")
+	cseFlag         = flag.Bool("cse", false, "Setup required for running CSE tests")
+)
+
+func secretsRequested() bool {
+	return *loadSecretsFlag || *cseFlag
+}
+
+func TestMain(m *testing.M) {
+	flag.Parse()
+
+	if secretsRequested() {
+		path, err := exportSecrets()
+		if err != nil {
+			log.Panicf("error loading secrets: %v", err)
+		}
+		if err := godotenv.Overload(path); err != nil {
+			log.Panicf("error loading secrets: %v", err)
+		}
+	}
+
+	os.Exit(m.Run())
+}
+
+// =============================================================================
+// Test Runner Helpers
+// =============================================================================
 
 const (
 	dockerRepo       = "10gen/go-driver-tools"
