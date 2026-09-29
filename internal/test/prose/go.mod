@@ -1,4 +1,4 @@
-module go.mongodb.org/mongo-driver/v2/internal/test/prose
+module internal/test/prose
 
 go 1.26.0
 
