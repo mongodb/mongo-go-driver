@@ -2998,6 +2998,59 @@ func TestAddCommandFields(t *testing.T) {
 			})
 		}
 	})
+	mt.Run("insert one", func(mt *mtest.T) {
+		newOpts := func() *options.InsertOneOptionsBuilder {
+			opts := options.InsertOne()
+			err := xoptions.SetInternalInsertOneOptions(opts, "addCommandFields", added)
+			require.NoError(mt, err, "unexpected error: %v", err)
+			return opts
+		}
+
+		testCases := []struct {
+			name     string
+			opts     *options.InsertOneOptionsBuilder
+			expected bson.RawValue
+		}{
+			{"empty", nil, empty},
+			{"set", newOpts(), set},
+		}
+		for _, tc := range testCases {
+			mt.Run(tc.name, func(mt *mtest.T) {
+				_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"x", int32(1)}}, tc.opts)
+				require.NoError(mt, err, "InsertOne error: %v", err)
+				evt := mt.GetStartedEvent()
+				val := evt.Command.Lookup("comment")
+				assert.Equal(mt, tc.expected, val, "expected comment to be %s", tc.expected.String())
+			})
+		}
+	})
+	mt.Run("insert many", func(mt *mtest.T) {
+		newOpts := func() *options.InsertManyOptionsBuilder {
+			opts := options.InsertMany()
+			err := xoptions.SetInternalInsertManyOptions(opts, "addCommandFields", added)
+			require.NoError(mt, err, "unexpected error: %v", err)
+			return opts
+		}
+
+		testCases := []struct {
+			name     string
+			opts     *options.InsertManyOptionsBuilder
+			expected bson.RawValue
+		}{
+			{"empty", nil, empty},
+			{"set", newOpts(), set},
+		}
+		for _, tc := range testCases {
+			mt.Run(tc.name, func(mt *mtest.T) {
+				docs := []any{bson.D{{"x", int32(1)}}, bson.D{{"x", int32(2)}}}
+				_, err := mt.Coll.InsertMany(context.Background(), docs, tc.opts)
+				require.NoError(mt, err, "InsertMany error: %v", err)
+				evt := mt.GetStartedEvent()
+				val := evt.Command.Lookup("comment")
+				assert.Equal(mt, tc.expected, val, "expected comment to be %s", tc.expected.String())
+			})
+		}
+	})
 	mt.Run("bulk write", func(mt *mtest.T) {
 		newOpts := func() *options.BulkWriteOptionsBuilder {
 			opts := options.BulkWrite()
