@@ -8,7 +8,7 @@ package prose
 
 import (
 	"flag"
-	"fmt"
+	"log"
 	"os"
 	"testing"
 
@@ -28,9 +28,12 @@ func TestMain(m *testing.M) {
 	flag.Parse()
 
 	if secretsRequested() {
-		if err := loadSecrets(); err != nil {
-			fmt.Fprintln(os.Stderr, "loading secrets:", err)
-			os.Exit(1)
+		path, err := exportSecrets()
+		if err != nil {
+			log.Panicf("error loading secrets: %v", err)
+		}
+		if err := godotenv.Overload(path); err != nil {
+			log.Panicf("error loading secrets: %v", err)
 		}
 	}
 

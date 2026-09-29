@@ -16,11 +16,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/cli/go-gh/v2/pkg/api"
-	"github.com/joho/godotenv"
 	"github.com/moby/moby/api/types/container"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -36,23 +34,6 @@ const (
 	secretsMaxAge    = 50 * time.Minute
 	secretsDirPrefix = "mongo-go-driver-prose"
 )
-
-var (
-	loadOnce sync.Once
-	loadErr  error
-)
-
-func loadSecrets() error {
-	loadOnce.Do(func() {
-		var path string
-		path, loadErr = exportSecrets()
-		if loadErr != nil {
-			return
-		}
-		loadErr = godotenv.Overload(path)
-	})
-	return loadErr
-}
 
 func keepExports(path string) error {
 	data, err := os.ReadFile(path)
