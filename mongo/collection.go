@@ -1290,6 +1290,9 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter any,
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
 		op.rawData = &rawData
 	}
+	if additionalCmd, ok := optionsutil.Value(args.Internal, "addCommandFields").(bson.D); ok {
+		op.additionalCmd = additionalCmd
+	}
 
 	err = op.execute(ctx)
 	if err != nil {

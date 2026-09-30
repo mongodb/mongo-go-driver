@@ -111,6 +111,13 @@ func TestSetInternalAddCommandFields(t *testing.T) {
 			require.NoError(t, err)
 			return args.Internal
 		}},
+		{"CountOptions", func(t *testing.T) optionsutil.Options {
+			o := options.Count()
+			require.NoError(t, SetInternalCountOptions(o, "addCommandFields", want))
+			args, err := mongoutil.NewOptions[options.CountOptions](o)
+			require.NoError(t, err)
+			return args.Internal
+		}},
 		{"DeleteOneOptions", func(t *testing.T) optionsutil.Options {
 			o := options.DeleteOne()
 			require.NoError(t, SetInternalDeleteOneOptions(o, "addCommandFields", want))

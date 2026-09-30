@@ -2729,6 +2729,35 @@ func TestAddCommandFields(t *testing.T) {
 			})
 		}
 	})
+	mt.Run("count documents", func(mt *mtest.T) {
+		newOpts := func() *options.CountOptionsBuilder {
+			opts := options.Count()
+			err := xoptions.SetInternalCountOptions(opts, "addCommandFields", added)
+			require.NoError(mt, err, "unexpected error: %v", err)
+			return opts
+		}
+
+		testCases := []struct {
+			name     string
+			opts     *options.CountOptionsBuilder
+			expected bson.RawValue
+		}{
+			{"empty", nil, empty},
+			{"set", newOpts(), set},
+		}
+		for _, tc := range testCases {
+			mt.Run(tc.name, func(mt *mtest.T) {
+				initCollection(mt, mt.Coll)
+				mt.ClearEvents()
+
+				_, err := mt.Coll.CountDocuments(context.Background(), bson.D{}, tc.opts)
+				require.NoError(mt, err, "CountDocuments error: %v", err)
+				evt := mt.GetStartedEvent()
+				val := evt.Command.Lookup("comment")
+				assert.Equal(mt, tc.expected, val, "expected comment to be %s", tc.expected.String())
+			})
+		}
+	})
 	mt.Run("estimated document count", func(mt *mtest.T) {
 		newOpts := func() *options.EstimatedDocumentCountOptionsBuilder {
 			opts := options.EstimatedDocumentCount()
