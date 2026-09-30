@@ -267,6 +267,30 @@ func SetInternalDistinctOptions(a *options.DistinctOptionsBuilder, key string, o
 	return nil
 }
 
+// SetInternalDropCollectionOptions sets internal options for DropCollectionOptions.
+//
+// See the xoptions package documentation for supported keys and for the risks
+// of "addCommandFields".
+func SetInternalDropCollectionOptions(a *options.DropCollectionOptionsBuilder, key string, option any) error {
+	typeErrFunc := func(t string) error {
+		return fmt.Errorf("unexpected type for %q: %T is not %s", key, option, t)
+	}
+	switch key {
+	case "addCommandFields":
+		d, ok := option.(bson.D)
+		if !ok {
+			return typeErrFunc("bson.D")
+		}
+		a.Opts = append(a.Opts, func(opts *options.DropCollectionOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, d)
+			return nil
+		})
+	default:
+		return fmt.Errorf("unsupported option: %q", key)
+	}
+	return nil
+}
+
 // SetInternalDropIndexesOptions sets internal options for DropIndexesOptions.
 func SetInternalDropIndexesOptions(a *options.DropIndexesOptionsBuilder, key string, option any) error {
 	typeErrFunc := func(t string) error {

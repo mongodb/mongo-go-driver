@@ -6,12 +6,18 @@
 
 package options
 
+import "go.mongodb.org/mongo-driver/v2/internal/optionsutil"
+
 // DropCollectionOptions represents arguments that can be used to configure a
 // Drop operation.
 //
 // See corresponding setter methods for documentation.
 type DropCollectionOptions struct {
 	EncryptedFields any
+
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	Internal optionsutil.Options
 }
 
 // DropCollectionOptionsBuilder contains options to configure collection drop

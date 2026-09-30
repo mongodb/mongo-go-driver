@@ -2226,6 +2226,11 @@ func (coll *Collection) Drop(ctx context.Context, opts ...options.Lister[options
 
 	ef := args.EncryptedFields
 
+	var additionalCmd bson.D
+	if cmd, ok := optionsutil.Value(args.Internal, "addCommandFields").(bson.D); ok {
+		additionalCmd = cmd
+	}
+
 	if ef == nil {
 		ef = coll.db.getEncryptedFieldsFromMap(coll.name)
 	}
@@ -2238,14 +2243,17 @@ func (coll *Collection) Drop(ctx context.Context, opts ...options.Lister[options
 	}
 
 	if ef != nil {
-		return coll.dropEncryptedCollection(ctx, ef)
+		return coll.dropEncryptedCollection(ctx, ef, additionalCmd)
 	}
 
-	return coll.drop(ctx)
+	return coll.drop(ctx, additionalCmd)
 }
 
 // dropEncryptedCollection drops a collection with EncryptedFields.
-func (coll *Collection) dropEncryptedCollection(ctx context.Context, ef any) error {
+//
+// additionalCmd is applied only to the drop of the data collection, not to the
+// associated encryption state collections.
+func (coll *Collection) dropEncryptedCollection(ctx context.Context, ef any, additionalCmd bson.D) error {
 	efBSON, err := marshal(ef, coll.bsonOpts, coll.registry)
 	if err != nil {
 		return fmt.Errorf("error transforming document: %w", err)
@@ -2257,7 +2265,7 @@ func (coll *Collection) dropEncryptedCollection(ctx context.Context, ef any) err
 	if err != nil {
 		return err
 	}
-	if err := coll.db.Collection(escCollection).drop(ctx); err != nil {
+	if err := coll.db.Collection(escCollection).drop(ctx, nil); err != nil {
 		return err
 	}
 
@@ -2266,16 +2274,16 @@ func (coll *Collection) dropEncryptedCollection(ctx context.Context, ef any) err
 	if err != nil {
 		return err
 	}
-	if err := coll.db.Collection(ecocCollection).drop(ctx); err != nil {
+	if err := coll.db.Collection(ecocCollection).drop(ctx, nil); err != nil {
 		return err
 	}
 
 	// Drop the data collection.
-	return coll.drop(ctx)
+	return coll.drop(ctx, additionalCmd)
 }
 
 // drop drops a collection without EncryptedFields.
-func (coll *Collection) drop(ctx context.Context) error {
+func (coll *Collection) drop(ctx context.Context, additionalCmd bson.D) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -2314,6 +2322,7 @@ func (coll *Collection) drop(ctx context.Context) error {
 		serverAPI:     coll.client.serverAPI,
 		timeout:       coll.client.timeout,
 		authenticator: coll.client.authenticator,
+		additionalCmd: additionalCmd,
 	}
 	err = op.execute(ctx)
 
