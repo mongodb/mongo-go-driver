@@ -2821,6 +2821,33 @@ func TestAddCommandFields(t *testing.T) {
 			})
 		}
 	})
+	mt.Run("create indexes", func(mt *mtest.T) {
+		newOpts := func() *options.CreateIndexesOptionsBuilder {
+			opts := options.CreateIndexes()
+			err := xoptions.SetInternalCreateIndexesOptions(opts, "addCommandFields", added)
+			require.NoError(mt, err, "unexpected error: %v", err)
+			return opts
+		}
+
+		testCases := []struct {
+			name     string
+			opts     *options.CreateIndexesOptionsBuilder
+			expected bson.RawValue
+		}{
+			{"empty", nil, empty},
+			{"set", newOpts(), set},
+		}
+		for _, tc := range testCases {
+			mt.Run(tc.name, func(mt *mtest.T) {
+				model := mongo.IndexModel{Keys: bson.D{{"x", 1}}}
+				_, err := mt.Coll.Indexes().CreateOne(context.Background(), model, tc.opts)
+				require.NoError(mt, err, "CreateOne error: %v", err)
+				evt := mt.GetStartedEvent()
+				val := evt.Command.Lookup("comment")
+				assert.Equal(mt, tc.expected, val, "expected comment to be %s", tc.expected.String())
+			})
+		}
+	})
 	mt.Run("bulk write", func(mt *mtest.T) {
 		newOpts := func() *options.BulkWriteOptionsBuilder {
 			opts := options.BulkWrite()
