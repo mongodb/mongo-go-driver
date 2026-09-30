@@ -436,20 +436,10 @@ func (coll *Collection) InsertOne(ctx context.Context, document any,
 	if args.Comment != nil {
 		imOpts.SetComment(args.Comment)
 	}
-	if rawDataOpt := optionsutil.Value(args.Internal, "rawData"); rawDataOpt != nil {
-		imOpts.Opts = append(imOpts.Opts, func(opts *options.InsertManyOptions) error {
-			opts.Internal = optionsutil.WithValue(opts.Internal, "rawData", rawDataOpt)
-
-			return nil
-		})
-	}
-	if additionalCmd := optionsutil.Value(args.Internal, "addCommandFields"); additionalCmd != nil {
-		imOpts.Opts = append(imOpts.Opts, func(opts *options.InsertManyOptions) error {
-			opts.Internal = optionsutil.WithValue(opts.Internal, "addCommandFields", additionalCmd)
-
-			return nil
-		})
-	}
+	imOpts.Opts = append(imOpts.Opts, func(opts *options.InsertManyOptions) error {
+		opts.Internal = args.Internal
+		return nil
+	})
 	res, err := coll.insert(ctx, []any{document}, imOpts)
 
 	rr, err := processWriteError(err)
