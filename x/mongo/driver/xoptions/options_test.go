@@ -209,6 +209,27 @@ func TestSetInternalAddCommandFields(t *testing.T) {
 			require.NoError(t, err)
 			return args.Internal
 		}},
+		{"ReplaceOptions", func(t *testing.T) optionsutil.Options {
+			o := options.Replace()
+			require.NoError(t, SetInternalReplaceOptions(o, "addCommandFields", want))
+			args, err := mongoutil.NewOptions[options.ReplaceOptions](o)
+			require.NoError(t, err)
+			return args.Internal
+		}},
+		{"UpdateOneOptions", func(t *testing.T) optionsutil.Options {
+			o := options.UpdateOne()
+			require.NoError(t, SetInternalUpdateOneOptions(o, "addCommandFields", want))
+			args, err := mongoutil.NewOptions[options.UpdateOneOptions](o)
+			require.NoError(t, err)
+			return args.Internal
+		}},
+		{"UpdateManyOptions", func(t *testing.T) optionsutil.Options {
+			o := options.UpdateMany()
+			require.NoError(t, SetInternalUpdateManyOptions(o, "addCommandFields", want))
+			args, err := mongoutil.NewOptions[options.UpdateManyOptions](o)
+			require.NoError(t, err)
+			return args.Internal
+		}},
 	}
 
 	for _, tc := range cases {
