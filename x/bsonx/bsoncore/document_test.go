@@ -316,6 +316,12 @@ func TestDocument(t *testing.T) {
 				io.EOF,
 			},
 			{
+				"length below minimum",
+				bytes.NewBuffer([]byte{2, 0, 0, 0, 0}),
+				nil,
+				ErrInvalidLength,
+			},
+			{
 				"empty document",
 				bytes.NewBuffer([]byte{5, 0, 0, 0, 0}),
 				[]byte{5, 0, 0, 0, 0},
