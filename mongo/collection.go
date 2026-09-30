@@ -1719,6 +1719,9 @@ func (coll *Collection) find(
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
 		op.rawData = &rawData
 	}
+	if additionalCmd, ok := optionsutil.Value(args.Internal, "addCommandFields").(bson.D); ok {
+		op.additionalCmd = additionalCmd
+	}
 
 	if err = op.execute(ctx); err != nil {
 		return nil, wrapErrors(err)

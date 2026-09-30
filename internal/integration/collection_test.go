@@ -2641,6 +2641,65 @@ func TestAddCommandFields(t *testing.T) {
 			})
 		}
 	})
+	mt.Run("find", func(mt *mtest.T) {
+		newOpts := func() *options.FindOptionsBuilder {
+			opts := options.Find()
+			err := xoptions.SetInternalFindOptions(opts, "addCommandFields", added)
+			require.NoError(mt, err, "unexpected error: %v", err)
+			return opts
+		}
+
+		testCases := []struct {
+			name     string
+			opts     *options.FindOptionsBuilder
+			expected bson.RawValue
+		}{
+			{"empty", nil, empty},
+			{"set", newOpts(), set},
+		}
+		for _, tc := range testCases {
+			mt.Run(tc.name, func(mt *mtest.T) {
+				initCollection(mt, mt.Coll)
+				mt.ClearEvents()
+
+				cursor, err := mt.Coll.Find(context.Background(), bson.D{}, tc.opts)
+				require.NoError(mt, err, "Find error: %v", err)
+				_ = cursor.Close(context.Background())
+				evt := mt.GetStartedEvent()
+				val := evt.Command.Lookup("comment")
+				assert.Equal(mt, tc.expected, val, "expected comment to be %s", tc.expected.String())
+			})
+		}
+	})
+	mt.Run("find one", func(mt *mtest.T) {
+		newOpts := func() *options.FindOneOptionsBuilder {
+			opts := options.FindOne()
+			err := xoptions.SetInternalFindOneOptions(opts, "addCommandFields", added)
+			require.NoError(mt, err, "unexpected error: %v", err)
+			return opts
+		}
+
+		testCases := []struct {
+			name     string
+			opts     *options.FindOneOptionsBuilder
+			expected bson.RawValue
+		}{
+			{"empty", nil, empty},
+			{"set", newOpts(), set},
+		}
+		for _, tc := range testCases {
+			mt.Run(tc.name, func(mt *mtest.T) {
+				initCollection(mt, mt.Coll)
+				mt.ClearEvents()
+
+				err := mt.Coll.FindOne(context.Background(), bson.D{}, tc.opts).Err()
+				require.NoError(mt, err, "FindOne error: %v", err)
+				evt := mt.GetStartedEvent()
+				val := evt.Command.Lookup("comment")
+				assert.Equal(mt, tc.expected, val, "expected comment to be %s", tc.expected.String())
+			})
+		}
+	})
 	mt.Run("bulk write", func(mt *mtest.T) {
 		newOpts := func() *options.BulkWriteOptionsBuilder {
 			opts := options.BulkWrite()

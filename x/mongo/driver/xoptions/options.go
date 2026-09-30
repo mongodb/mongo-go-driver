@@ -306,6 +306,15 @@ func SetInternalFindOptions(a *options.FindOptionsBuilder, key string, option an
 			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
 			return nil
 		})
+	case "addCommandFields":
+		d, ok := option.(bson.D)
+		if !ok {
+			return typeErrFunc("bson.D")
+		}
+		a.Opts = append(a.Opts, func(opts *options.FindOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, d)
+			return nil
+		})
 	default:
 		return fmt.Errorf("unsupported option: %q", key)
 	}
@@ -325,6 +334,15 @@ func SetInternalFindOneOptions(a *options.FindOneOptionsBuilder, key string, opt
 		}
 		a.Opts = append(a.Opts, func(opts *options.FindOneOptions) error {
 			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
+			return nil
+		})
+	case "addCommandFields":
+		d, ok := option.(bson.D)
+		if !ok {
+			return typeErrFunc("bson.D")
+		}
+		a.Opts = append(a.Opts, func(opts *options.FindOneOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, d)
 			return nil
 		})
 	default:
