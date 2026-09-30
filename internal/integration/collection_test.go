@@ -3051,6 +3051,96 @@ func TestAddCommandFields(t *testing.T) {
 			})
 		}
 	})
+	mt.Run("update one", func(mt *mtest.T) {
+		newOpts := func() *options.UpdateOneOptionsBuilder {
+			opts := options.UpdateOne()
+			err := xoptions.SetInternalUpdateOneOptions(opts, "addCommandFields", added)
+			require.NoError(mt, err, "unexpected error: %v", err)
+			return opts
+		}
+
+		testCases := []struct {
+			name     string
+			opts     *options.UpdateOneOptionsBuilder
+			expected bson.RawValue
+		}{
+			{"empty", nil, empty},
+			{"set", newOpts(), set},
+		}
+		for _, tc := range testCases {
+			mt.Run(tc.name, func(mt *mtest.T) {
+				initCollection(mt, mt.Coll)
+				mt.ClearEvents()
+
+				update := bson.D{{"$set", bson.D{{"x", int32(6)}}}}
+				_, err := mt.Coll.UpdateOne(context.Background(), bson.D{}, update, tc.opts)
+				require.NoError(mt, err, "UpdateOne error: %v", err)
+				evt := mt.GetStartedEvent()
+				val := evt.Command.Lookup("comment")
+				assert.Equal(mt, tc.expected, val, "expected comment to be %s", tc.expected.String())
+			})
+		}
+	})
+	mt.Run("update many", func(mt *mtest.T) {
+		newOpts := func() *options.UpdateManyOptionsBuilder {
+			opts := options.UpdateMany()
+			err := xoptions.SetInternalUpdateManyOptions(opts, "addCommandFields", added)
+			require.NoError(mt, err, "unexpected error: %v", err)
+			return opts
+		}
+
+		testCases := []struct {
+			name     string
+			opts     *options.UpdateManyOptionsBuilder
+			expected bson.RawValue
+		}{
+			{"empty", nil, empty},
+			{"set", newOpts(), set},
+		}
+		for _, tc := range testCases {
+			mt.Run(tc.name, func(mt *mtest.T) {
+				initCollection(mt, mt.Coll)
+				mt.ClearEvents()
+
+				update := bson.D{{"$set", bson.D{{"x", int32(6)}}}}
+				_, err := mt.Coll.UpdateMany(context.Background(), bson.D{}, update, tc.opts)
+				require.NoError(mt, err, "UpdateMany error: %v", err)
+				evt := mt.GetStartedEvent()
+				val := evt.Command.Lookup("comment")
+				assert.Equal(mt, tc.expected, val, "expected comment to be %s", tc.expected.String())
+			})
+		}
+	})
+	mt.Run("replace one", func(mt *mtest.T) {
+		newOpts := func() *options.ReplaceOptionsBuilder {
+			opts := options.Replace()
+			err := xoptions.SetInternalReplaceOptions(opts, "addCommandFields", added)
+			require.NoError(mt, err, "unexpected error: %v", err)
+			return opts
+		}
+
+		testCases := []struct {
+			name     string
+			opts     *options.ReplaceOptionsBuilder
+			expected bson.RawValue
+		}{
+			{"empty", nil, empty},
+			{"set", newOpts(), set},
+		}
+		for _, tc := range testCases {
+			mt.Run(tc.name, func(mt *mtest.T) {
+				initCollection(mt, mt.Coll)
+				mt.ClearEvents()
+
+				replacement := bson.D{{"x", int32(6)}}
+				_, err := mt.Coll.ReplaceOne(context.Background(), bson.D{}, replacement, tc.opts)
+				require.NoError(mt, err, "ReplaceOne error: %v", err)
+				evt := mt.GetStartedEvent()
+				val := evt.Command.Lookup("comment")
+				assert.Equal(mt, tc.expected, val, "expected comment to be %s", tc.expected.String())
+			})
+		}
+	})
 	mt.Run("bulk write", func(mt *mtest.T) {
 		newOpts := func() *options.BulkWriteOptionsBuilder {
 			opts := options.BulkWrite()
