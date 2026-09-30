@@ -1938,6 +1938,9 @@ func (coll *Collection) FindOneAndDelete(
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
 		op.rawData = &rawData
 	}
+	if additionalCmd, ok := optionsutil.Value(args.Internal, "addCommandFields").(bson.D); ok {
+		op.additionalCmd = additionalCmd
+	}
 
 	return coll.findAndModify(ctx, op)
 }

@@ -2909,6 +2909,95 @@ func TestAddCommandFields(t *testing.T) {
 			})
 		}
 	})
+	mt.Run("find one and delete", func(mt *mtest.T) {
+		newOpts := func() *options.FindOneAndDeleteOptionsBuilder {
+			opts := options.FindOneAndDelete()
+			err := xoptions.SetInternalFindOneAndDeleteOptions(opts, "addCommandFields", added)
+			require.NoError(mt, err, "unexpected error: %v", err)
+			return opts
+		}
+
+		testCases := []struct {
+			name     string
+			opts     *options.FindOneAndDeleteOptionsBuilder
+			expected bson.RawValue
+		}{
+			{"empty", nil, empty},
+			{"set", newOpts(), set},
+		}
+		for _, tc := range testCases {
+			mt.Run(tc.name, func(mt *mtest.T) {
+				initCollection(mt, mt.Coll)
+				mt.ClearEvents()
+
+				err := mt.Coll.FindOneAndDelete(context.Background(), bson.D{}, tc.opts).Err()
+				require.NoError(mt, err, "FindOneAndDelete error: %v", err)
+				evt := mt.GetStartedEvent()
+				val := evt.Command.Lookup("comment")
+				assert.Equal(mt, tc.expected, val, "expected comment to be %s", tc.expected.String())
+			})
+		}
+	})
+	mt.Run("find one and update", func(mt *mtest.T) {
+		newOpts := func() *options.FindOneAndUpdateOptionsBuilder {
+			opts := options.FindOneAndUpdate()
+			err := xoptions.SetInternalFindOneAndUpdateOptions(opts, "addCommandFields", added)
+			require.NoError(mt, err, "unexpected error: %v", err)
+			return opts
+		}
+
+		testCases := []struct {
+			name     string
+			opts     *options.FindOneAndUpdateOptionsBuilder
+			expected bson.RawValue
+		}{
+			{"empty", nil, empty},
+			{"set", newOpts(), set},
+		}
+		for _, tc := range testCases {
+			mt.Run(tc.name, func(mt *mtest.T) {
+				initCollection(mt, mt.Coll)
+				mt.ClearEvents()
+
+				update := bson.D{{"$set", bson.D{{"x", int32(6)}}}}
+				err := mt.Coll.FindOneAndUpdate(context.Background(), bson.D{}, update, tc.opts).Err()
+				require.NoError(mt, err, "FindOneAndUpdate error: %v", err)
+				evt := mt.GetStartedEvent()
+				val := evt.Command.Lookup("comment")
+				assert.Equal(mt, tc.expected, val, "expected comment to be %s", tc.expected.String())
+			})
+		}
+	})
+	mt.Run("find one and replace", func(mt *mtest.T) {
+		newOpts := func() *options.FindOneAndReplaceOptionsBuilder {
+			opts := options.FindOneAndReplace()
+			err := xoptions.SetInternalFindOneAndReplaceOptions(opts, "addCommandFields", added)
+			require.NoError(mt, err, "unexpected error: %v", err)
+			return opts
+		}
+
+		testCases := []struct {
+			name     string
+			opts     *options.FindOneAndReplaceOptionsBuilder
+			expected bson.RawValue
+		}{
+			{"empty", nil, empty},
+			{"set", newOpts(), set},
+		}
+		for _, tc := range testCases {
+			mt.Run(tc.name, func(mt *mtest.T) {
+				initCollection(mt, mt.Coll)
+				mt.ClearEvents()
+
+				replacement := bson.D{{"x", int32(6)}}
+				err := mt.Coll.FindOneAndReplace(context.Background(), bson.D{}, replacement, tc.opts).Err()
+				require.NoError(mt, err, "FindOneAndReplace error: %v", err)
+				evt := mt.GetStartedEvent()
+				val := evt.Command.Lookup("comment")
+				assert.Equal(mt, tc.expected, val, "expected comment to be %s", tc.expected.String())
+			})
+		}
+	})
 	mt.Run("bulk write", func(mt *mtest.T) {
 		newOpts := func() *options.BulkWriteOptionsBuilder {
 			opts := options.BulkWrite()

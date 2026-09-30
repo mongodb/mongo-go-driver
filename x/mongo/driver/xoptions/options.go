@@ -435,6 +435,15 @@ func SetInternalFindOneAndDeleteOptions(a *options.FindOneAndDeleteOptionsBuilde
 			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
 			return nil
 		})
+	case "addCommandFields":
+		d, ok := option.(bson.D)
+		if !ok {
+			return typeErrFunc("bson.D")
+		}
+		a.Opts = append(a.Opts, func(opts *options.FindOneAndDeleteOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, d)
+			return nil
+		})
 	default:
 		return fmt.Errorf("unsupported option: %q", key)
 	}
