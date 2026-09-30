@@ -104,6 +104,13 @@ func TestSetInternalAddCommandFields(t *testing.T) {
 		name string
 		set  func(t *testing.T) optionsutil.Options
 	}{
+		{"BulkWriteOptions", func(t *testing.T) optionsutil.Options {
+			o := options.BulkWrite()
+			require.NoError(t, SetInternalBulkWriteOptions(o, "addCommandFields", want))
+			args, err := mongoutil.NewOptions[options.BulkWriteOptions](o)
+			require.NoError(t, err)
+			return args.Internal
+		}},
 		{"DeleteOneOptions", func(t *testing.T) optionsutil.Options {
 			o := options.DeleteOne()
 			require.NoError(t, SetInternalDeleteOneOptions(o, "addCommandFields", want))
