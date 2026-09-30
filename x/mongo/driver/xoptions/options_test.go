@@ -125,6 +125,13 @@ func TestSetInternalAddCommandFields(t *testing.T) {
 			require.NoError(t, err)
 			return args.Internal
 		}},
+		{"DistinctOptions", func(t *testing.T) optionsutil.Options {
+			o := options.Distinct()
+			require.NoError(t, SetInternalDistinctOptions(o, "addCommandFields", want))
+			args, err := mongoutil.NewOptions[options.DistinctOptions](o)
+			require.NoError(t, err)
+			return args.Internal
+		}},
 		{"FindOptions", func(t *testing.T) optionsutil.Options {
 			o := options.Find()
 			require.NoError(t, SetInternalFindOptions(o, "addCommandFields", want))

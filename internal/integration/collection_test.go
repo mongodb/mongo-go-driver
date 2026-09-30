@@ -2700,6 +2700,35 @@ func TestAddCommandFields(t *testing.T) {
 			})
 		}
 	})
+	mt.Run("distinct", func(mt *mtest.T) {
+		newOpts := func() *options.DistinctOptionsBuilder {
+			opts := options.Distinct()
+			err := xoptions.SetInternalDistinctOptions(opts, "addCommandFields", added)
+			require.NoError(mt, err, "unexpected error: %v", err)
+			return opts
+		}
+
+		testCases := []struct {
+			name     string
+			opts     *options.DistinctOptionsBuilder
+			expected bson.RawValue
+		}{
+			{"empty", nil, empty},
+			{"set", newOpts(), set},
+		}
+		for _, tc := range testCases {
+			mt.Run(tc.name, func(mt *mtest.T) {
+				initCollection(mt, mt.Coll)
+				mt.ClearEvents()
+
+				err := mt.Coll.Distinct(context.Background(), "x", bson.D{}, tc.opts).Err()
+				require.NoError(mt, err, "Distinct error: %v", err)
+				evt := mt.GetStartedEvent()
+				val := evt.Command.Lookup("comment")
+				assert.Equal(mt, tc.expected, val, "expected comment to be %s", tc.expected.String())
+			})
+		}
+	})
 	mt.Run("bulk write", func(mt *mtest.T) {
 		newOpts := func() *options.BulkWriteOptionsBuilder {
 			opts := options.BulkWrite()
