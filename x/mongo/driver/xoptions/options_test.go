@@ -153,6 +153,13 @@ func TestSetInternalAddCommandFields(t *testing.T) {
 			require.NoError(t, err)
 			return args.Internal
 		}},
+		{"DropIndexesOptions", func(t *testing.T) optionsutil.Options {
+			o := options.DropIndexes()
+			require.NoError(t, SetInternalDropIndexesOptions(o, "addCommandFields", want))
+			args, err := mongoutil.NewOptions[options.DropIndexesOptions](o)
+			require.NoError(t, err)
+			return args.Internal
+		}},
 		{"EstimatedDocumentCountOptions", func(t *testing.T) optionsutil.Options {
 			o := options.EstimatedDocumentCount()
 			require.NoError(t, SetInternalEstimatedDocumentCountOptions(o, "addCommandFields", want))
