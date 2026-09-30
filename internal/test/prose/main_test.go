@@ -26,7 +26,7 @@ import (
 )
 
 var (
-	loadSecretsFlag = flag.Bool("load-secrets", false, "Use AWS SSO login to load secrets into os.TempDir()")
+	loadSecretsFlag = flag.Bool("load-secrets", false, "Use AWS SSO login to load secrets into the repository root")
 	cseFlag         = flag.Bool("cse", false, "Setup required for running CSE tests")
 )
 
@@ -82,22 +82,20 @@ func keepExports(path string) error {
 }
 
 // exportSecrets returns the path to secrets-export.sh, running the AWS SSO
-// login container to create it if it is missing or stale. The file lives in a
-// fixed directory under os.TempDir so later runs reuse it; delete it to force
-// a fresh login.
+// login container to create it if it is missing or stale. The secrets-export.sh
+// file lives in the Go Driver repository root.
 func exportSecrets() (string, error) {
-	secretsDir := filepath.Join(os.TempDir(), secretsDirPrefix)
-	secretsPath := filepath.Join(secretsDir, secretsFileName)
+	repoRoot, err := filepath.Abs("../../../")
+	if err != nil {
+		return "", fmt.Errorf("failed to resolve relative path: %w", err)
+	}
+	secretsPath := filepath.Join(repoRoot, secretsFileName)
 
 	// The file holds temporary AWS, Azure and GCP tokens that expire about an
 	// hour after the login, but it does not record when. Reuse it only while
 	// it is younger than secretsMaxAge; after that, log in again.
 	if info, err := os.Stat(secretsPath); err == nil && time.Since(info.ModTime()) < secretsMaxAge {
 		return secretsPath, nil
-	}
-
-	if err := os.MkdirAll(secretsDir, 0o700); err != nil {
-		return "", fmt.Errorf("failed to create secrets directory: %w", err)
 	}
 
 	buildDir, err := os.MkdirTemp("", secretsDirPrefix+"-build")
@@ -110,7 +108,7 @@ func exportSecrets() (string, error) {
 		return "", err
 	}
 
-	if err := runLogin(buildDir, secretsDir); err != nil {
+	if err := runLogin(buildDir, repoRoot); err != nil {
 		return "", err
 	}
 

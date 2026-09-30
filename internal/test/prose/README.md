@@ -10,7 +10,7 @@ Prose tests that need drivers test secrets (e.g. the `drivers/csfle` vault).
 1. The image is built and run with testcontainers-go. The container logs in
    with `aws sso login --no-browser` and runs drivers-evergreen-tools'
    `csfle/setup-secrets.sh`, which writes `secrets-export.sh`.
-1. The file is written to `$TMPDIR/mongo-go-driver-prose/secrets-export.sh`
+1. The file is written to `secrets-export.sh` in the repository root
    and loaded into the environment with godotenv.
 
 ## Requirements
@@ -44,5 +44,5 @@ After that the temporary tokens in it are close to expiring, so the next run
 logs in again. To force a fresh login sooner, delete the file:
 
 ```
-rm "${TMPDIR:-/tmp}/mongo-go-driver-prose/secrets-export.sh"
+rm secrets-export.sh  # from the repository root
 ```
