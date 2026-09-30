@@ -181,6 +181,13 @@ func TestSetInternalAddCommandFields(t *testing.T) {
 			require.NoError(t, err)
 			return args.Internal
 		}},
+		{"ListIndexesOptions", func(t *testing.T) optionsutil.Options {
+			o := options.ListIndexes()
+			require.NoError(t, SetInternalListIndexesOptions(o, "addCommandFields", want))
+			args, err := mongoutil.NewOptions[options.ListIndexesOptions](o)
+			require.NoError(t, err)
+			return args.Internal
+		}},
 	}
 
 	for _, tc := range cases {

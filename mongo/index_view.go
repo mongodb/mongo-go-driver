@@ -120,6 +120,9 @@ func (iv IndexView) List(ctx context.Context, opts ...options.Lister[options.Lis
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
 		op.rawData = &rawData
 	}
+	if additionalCmd, ok := optionsutil.Value(args.Internal, "addCommandFields").(bson.D); ok {
+		op.additionalCmd = additionalCmd
+	}
 
 	err = op.execute(ctx)
 	if err != nil {

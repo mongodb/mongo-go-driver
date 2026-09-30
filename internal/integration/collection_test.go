@@ -2821,6 +2821,36 @@ func TestAddCommandFields(t *testing.T) {
 			})
 		}
 	})
+	mt.Run("list indexes", func(mt *mtest.T) {
+		newOpts := func() *options.ListIndexesOptionsBuilder {
+			opts := options.ListIndexes()
+			err := xoptions.SetInternalListIndexesOptions(opts, "addCommandFields", added)
+			require.NoError(mt, err, "unexpected error: %v", err)
+			return opts
+		}
+
+		testCases := []struct {
+			name     string
+			opts     *options.ListIndexesOptionsBuilder
+			expected bson.RawValue
+		}{
+			{"empty", nil, empty},
+			{"set", newOpts(), set},
+		}
+		for _, tc := range testCases {
+			mt.Run(tc.name, func(mt *mtest.T) {
+				initCollection(mt, mt.Coll)
+				mt.ClearEvents()
+
+				cursor, err := mt.Coll.Indexes().List(context.Background(), tc.opts)
+				require.NoError(mt, err, "List error: %v", err)
+				_ = cursor.Close(context.Background())
+				evt := mt.GetStartedEvent()
+				val := evt.Command.Lookup("comment")
+				assert.Equal(mt, tc.expected, val, "expected comment to be %s", tc.expected.String())
+			})
+		}
+	})
 	mt.Run("create indexes", func(mt *mtest.T) {
 		newOpts := func() *options.CreateIndexesOptionsBuilder {
 			opts := options.CreateIndexes()
