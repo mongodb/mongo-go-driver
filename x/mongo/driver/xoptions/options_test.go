@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"testing"
 
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/v2/internal/optionsutil"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -86,4 +88,47 @@ func TestSetInternalClientOptions(t *testing.T) {
 		err := SetInternalClientOptions(opts, "unsupported", "unsupported")
 		require.EqualError(t, err, "unsupported option: \"unsupported\"")
 	})
+}
+
+// TestSetInternalAddCommandFields verifies that each collection- and
+// index-level options setter that supports the "addCommandFields" key stores
+// the provided bson.D in the resulting Internal options.
+func TestSetInternalAddCommandFields(t *testing.T) {
+	t.Parallel()
+
+	want := bson.D{{Key: "collectionUUID", Value: "00000000-0000-0000-0000-000000000000"}}
+
+	// Each case sets "addCommandFields" via a specific setter and returns the
+	// Internal options that the setter populated.
+	cases := []struct {
+		name string
+		set  func(t *testing.T) optionsutil.Options
+	}{
+		{"DeleteOneOptions", func(t *testing.T) optionsutil.Options {
+			o := options.DeleteOne()
+			require.NoError(t, SetInternalDeleteOneOptions(o, "addCommandFields", want))
+			args, err := mongoutil.NewOptions[options.DeleteOneOptions](o)
+			require.NoError(t, err)
+			return args.Internal
+		}},
+		{"DeleteManyOptions", func(t *testing.T) optionsutil.Options {
+			o := options.DeleteMany()
+			require.NoError(t, SetInternalDeleteManyOptions(o, "addCommandFields", want))
+			args, err := mongoutil.NewOptions[options.DeleteManyOptions](o)
+			require.NoError(t, err)
+			return args.Internal
+		}},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			internal := tc.set(t)
+			got, ok := optionsutil.Value(internal, "addCommandFields").(bson.D)
+			require.True(t, ok, "expected addCommandFields to be a bson.D")
+			require.Equal(t, want, got)
+		})
+	}
 }

@@ -634,6 +634,9 @@ func (coll *Collection) delete(
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
 		op.rawData = &rawData
 	}
+	if additionalCmd, ok := optionsutil.Value(args.Internal, "addCommandFields").(bson.D); ok {
+		op.additionalCmd = additionalCmd
+	}
 
 	rr, err := processWriteError(op.execute(ctx))
 	if rr&expectedRr == 0 {

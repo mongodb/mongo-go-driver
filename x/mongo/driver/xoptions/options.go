@@ -183,6 +183,15 @@ func SetInternalDeleteOneOptions(a *options.DeleteOneOptionsBuilder, key string,
 			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
 			return nil
 		})
+	case "addCommandFields":
+		d, ok := option.(bson.D)
+		if !ok {
+			return typeErrFunc("bson.D")
+		}
+		a.Opts = append(a.Opts, func(opts *options.DeleteOneOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, d)
+			return nil
+		})
 	default:
 		return fmt.Errorf("unsupported option: %q", key)
 	}
@@ -202,6 +211,15 @@ func SetInternalDeleteManyOptions(a *options.DeleteManyOptionsBuilder, key strin
 		}
 		a.Opts = append(a.Opts, func(opts *options.DeleteManyOptions) error {
 			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
+			return nil
+		})
+	case "addCommandFields":
+		d, ok := option.(bson.D)
+		if !ok {
+			return typeErrFunc("bson.D")
+		}
+		a.Opts = append(a.Opts, func(opts *options.DeleteManyOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, d)
 			return nil
 		})
 	default:

@@ -2564,6 +2564,85 @@ func TestBypassEmptyTsReplacement(t *testing.T) {
 	})
 }
 
+// TestAddCommandFields verifies that the "addCommandFields" internal option
+// injects arbitrary top-level fields into the command sent to the server for
+// each collection- and index-level method that supports it. Each subtest
+// injects a "comment" field (accepted by these commands on 4.4+) and asserts
+// that it appears in the started command event.
+func TestAddCommandFields(t *testing.T) {
+	mt := mtest.New(t, mtest.NewOptions().MinServerVersion("4.4"))
+
+	const wantComment = "addCommandFieldsTest"
+
+	marshalValue := func(val interface{}) bson.RawValue {
+		t.Helper()
+
+		valType, data, err := bson.MarshalValue(val)
+		require.NoError(t, err, "MarshalValue error: %v", err)
+		return bson.RawValue{
+			Type:  valType,
+			Value: data,
+		}
+	}
+
+	added := bson.D{{"comment", wantComment}}
+	empty := bson.RawValue{}
+	set := marshalValue(wantComment)
+
+	mt.Run("delete one", func(mt *mtest.T) {
+		newOpts := func() *options.DeleteOneOptionsBuilder {
+			opts := options.DeleteOne()
+			err := xoptions.SetInternalDeleteOneOptions(opts, "addCommandFields", added)
+			require.NoError(mt, err, "unexpected error: %v", err)
+			return opts
+		}
+
+		testCases := []struct {
+			name     string
+			opts     *options.DeleteOneOptionsBuilder
+			expected bson.RawValue
+		}{
+			{"empty", nil, empty},
+			{"set", newOpts(), set},
+		}
+		for _, tc := range testCases {
+			mt.Run(tc.name, func(mt *mtest.T) {
+				_, err := mt.Coll.DeleteOne(context.Background(), bson.D{{"x", 1}}, tc.opts)
+				require.NoError(mt, err, "DeleteOne error: %v", err)
+				evt := mt.GetStartedEvent()
+				val := evt.Command.Lookup("comment")
+				assert.Equal(mt, tc.expected, val, "expected comment to be %s", tc.expected.String())
+			})
+		}
+	})
+	mt.Run("delete many", func(mt *mtest.T) {
+		newOpts := func() *options.DeleteManyOptionsBuilder {
+			opts := options.DeleteMany()
+			err := xoptions.SetInternalDeleteManyOptions(opts, "addCommandFields", added)
+			require.NoError(mt, err, "unexpected error: %v", err)
+			return opts
+		}
+
+		testCases := []struct {
+			name     string
+			opts     *options.DeleteManyOptionsBuilder
+			expected bson.RawValue
+		}{
+			{"empty", nil, empty},
+			{"set", newOpts(), set},
+		}
+		for _, tc := range testCases {
+			mt.Run(tc.name, func(mt *mtest.T) {
+				_, err := mt.Coll.DeleteMany(context.Background(), bson.D{{"x", 1}}, tc.opts)
+				require.NoError(mt, err, "DeleteMany error: %v", err)
+				evt := mt.GetStartedEvent()
+				val := evt.Command.Lookup("comment")
+				assert.Equal(mt, tc.expected, val, "expected comment to be %s", tc.expected.String())
+			})
+		}
+	})
+}
+
 func initCollection(tb testing.TB, coll *mongo.Collection) {
 	tb.Helper()
 
