@@ -27,14 +27,9 @@ need them are skipped:
 
 ```
 cd internal/test/prose
-GOWORK=off go test -v . -load-secrets
-GOWORK=off go test -v . -cse
+go test -v . -load-secrets
+go test -v . -cse
 ```
-
-This module is intentionally not listed in the repository's root `go.work`,
-so `go` commands run from this directory need `GOWORK=off`. Without it, Go
-finds the root workspace and fails with "current directory is contained in a
-module that is not one of the workspace modules listed in go.work".
 
 The login is interactive: the container prints a verification URL and code
 to stderr, which a human has to approve in a browser.
