@@ -44,7 +44,7 @@ jobs:
       ANTHROPIC_BASE_URL: ${{ vars.GROVE_API_URL }}
     steps:
       - name: Checkout base
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 1
       # Without github_token the action exchanges an OIDC token for a Claude
@@ -62,7 +62,7 @@ jobs:
           permission-issues: read
           permission-pull-requests: write
       - name: Claude Code Review
-        uses: anthropics/claude-code-action@9171db3e57d6a3140a37ddc2ba92788584e0ead6 # v1
+        uses: anthropics/claude-code-action@756cc22e19660d20e8cc9496b4f242475a7f7790 # v1
         with:
           # Parameter name is fixed by the action; the VALUE is our Grove key
           anthropic_api_key: ${{ secrets.GROVE_API_KEY }}
