@@ -43,8 +43,6 @@ var cseContainer testcontainers.Container
 func TestMain(m *testing.M) {
 	flag.Parse()
 
-	// Ryuk reaps containers when the test process exits, which would defeat
-	// reusing the CSE container across runs.
 	os.Setenv("TESTCONTAINERS_RYUK_DISABLED", "true")
 
 	if secretsRequested() {
