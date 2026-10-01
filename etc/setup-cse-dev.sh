@@ -14,8 +14,8 @@
 #   - DRIVERS_TOOLS must point at a clone of drivers-evergreen-tools (used to
 #     download crypt_shared and to load KMS secrets).
 #   - CRYPT_SHARED_VERSION selects the crypt_shared version to download
-#     (default "latest"). It must be >= the query types you exercise: prefix
-#     and suffix require 9.0+, substring requires 8.2+.
+#     (default "latest-stable"). It must be >= the query types you exercise:
+#     prefix and suffix require 9.0+, substring requires 8.2+.
 
 if [ -z "${DRIVERS_TOOLS:-}" ]; then
   echo "ERROR: DRIVERS_TOOLS is not set; point it at a clone of drivers-evergreen-tools." >&2
