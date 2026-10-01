@@ -42,6 +42,9 @@ jobs:
       # Route all Claude API traffic through MongoDB's Grove gateway,
       # not api.anthropic.com
       ANTHROPIC_BASE_URL: ${{ vars.GROVE_API_URL }}
+      # The gateway rejects Claude Code's experimental anthropic-beta values
+      # with a 400.
+      CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS: "1"
     steps:
       - name: Checkout base
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
