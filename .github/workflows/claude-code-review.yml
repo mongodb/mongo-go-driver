@@ -42,6 +42,8 @@ jobs:
       # Route all Claude API traffic through MongoDB's Grove gateway,
       # not api.anthropic.com
       ANTHROPIC_BASE_URL: ${{ vars.GROVE_API_URL }}
+      # The gateway reads the key from its own header, not x-api-key.
+      ANTHROPIC_CUSTOM_HEADERS: "api-key: ${{ secrets.GROVE_API_KEY }}"
       # The gateway rejects Claude Code's experimental anthropic-beta values
       # with a 400.
       CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS: "1"
