@@ -64,7 +64,7 @@ export CGO_LDFLAGS
 # not recognize newer query types (e.g. prefix/suffix). crypt_shared and
 # mongocryptd ship with the enterprise server, NOT with libmongocrypt, so it is
 # downloaded separately here. mongodl auto-detects the host OS and architecture.
-CRYPT_SHARED_VERSION="${CRYPT_SHARED_VERSION:-latest}"
+CRYPT_SHARED_VERSION="${CRYPT_SHARED_VERSION:-latest-stable}"
 cryptSharedOut="$(pwd)/install/crypt_shared"
 rm -rf "${cryptSharedOut}"
 python3 "${DRIVERS_TOOLS}/.evergreen/mongodl.py" \
