@@ -31,8 +31,6 @@ RUN printf '#!/bin/sh\nexec pkg-config --define-variable=prefix=/root/install/li
   > /usr/local/bin/libmongocrypt-pkg-config && \
   chmod +x /usr/local/bin/libmongocrypt-pkg-config
 
-# libmongocrypt installs into lib64 or lib depending on the platform, so
-# include both.
 ENV PKG_CONFIG=/usr/local/bin/libmongocrypt-pkg-config
 ENV PKG_CONFIG_PATH=/root/install/libmongocrypt/lib64/pkgconfig:/root/install/libmongocrypt/lib/pkgconfig
 ENV LD_LIBRARY_PATH=/root/install/libmongocrypt/lib64:/root/install/libmongocrypt/lib
