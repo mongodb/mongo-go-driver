@@ -117,23 +117,31 @@ functions:
         args:
           - ${DRIVERS_TOOLS}/.evergreen/atlas_data_lake/run-mongohouse-image.sh
   bootstrap-mongo-orchestration:
+    - command: ec2.assume_role
+      params:
+        role_arn: ${aws_test_secrets_role}
+        duration_seconds: 1800
     - command: subprocess.exec
       params:
         binary: bash
         env:
           MONGODB_VERSION: ${VERSION}
-        include_expansions_in_env: [TOPOLOGY, AUTH, SSL, ORCHESTRATION_FILE, REQUIRE_API_VERSION, LOAD_BALANCER]
+        include_expansions_in_env: [TOPOLOGY, AUTH, SSL, ORCHESTRATION_FILE, REQUIRE_API_VERSION, LOAD_BALANCER, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN]
         args: ["${DRIVERS_TOOLS}/.evergreen/run-orchestration.sh"]
     - command: expansions.update
       params:
         file: mo-expansion.yml
   ocsp-bootstrap-mongo-orchestration:
+    - command: ec2.assume_role
+      params:
+        role_arn: ${aws_test_secrets_role}
+        duration_seconds: 1800
     - command: subprocess.exec
       params:
         binary: bash
         env:
           MONGODB_VERSION: ${VERSION}
-        include_expansions_in_env: [TOPOLOGY, AUTH, SSL, ORCHESTRATION_FILE]
+        include_expansions_in_env: [TOPOLOGY, AUTH, SSL, ORCHESTRATION_FILE, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN]
         args: ["${DRIVERS_TOOLS}/.evergreen/run-orchestration.sh"]
     - command: expansions.update
       params:
