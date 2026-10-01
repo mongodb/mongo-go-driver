@@ -11,6 +11,7 @@ import (
 	"encoding/base64"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -22,6 +23,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/moby/moby/api/types/container"
 	"github.com/testcontainers/testcontainers-go"
+	tcexec "github.com/testcontainers/testcontainers-go/exec"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
@@ -34,8 +36,16 @@ func secretsRequested() bool {
 	return *loadSecretsFlag || *cseFlag
 }
 
+// cseContainer is the long-lived CSE container, set by TestMain when -cse is
+// passed.
+var cseContainer testcontainers.Container
+
 func TestMain(m *testing.M) {
 	flag.Parse()
+
+	// Ryuk reaps containers when the test process exits, which would defeat
+	// reusing the CSE container across runs.
+	os.Setenv("TESTCONTAINERS_RYUK_DISABLED", "true")
 
 	if secretsRequested() {
 		path, err := exportSecrets()
@@ -45,6 +55,14 @@ func TestMain(m *testing.M) {
 		if err := godotenv.Overload(path); err != nil {
 			log.Panicf("error loading secrets: %v", err)
 		}
+	}
+
+	if *cseFlag {
+		ctr, err := startCSE()
+		if err != nil {
+			log.Panicf("error starting CSE container: %v", err)
+		}
+		cseContainer = ctr
 	}
 
 	os.Exit(m.Run())
@@ -63,7 +81,21 @@ const (
 	loginTimeout     = 10 * time.Minute
 	secretsMaxAge    = 50 * time.Minute
 	secretsDirPrefix = "mongo-go-driver-prose"
+
+	cseDockerfileName   = "cse.Dockerfile"
+	cseInstallScript    = "install-libmongocrypt.sh"
+	cseContainerName    = "mongo-go-driver-cse"
+	cseContainerRepoDir = "/mongo-go-driver"
 )
+
+// repoRoot returns the absolute path of the Go Driver repository root.
+func repoRoot() (string, error) {
+	root, err := filepath.Abs("../../../")
+	if err != nil {
+		return "", fmt.Errorf("failed to resolve relative path: %w", err)
+	}
+	return root, nil
+}
 
 func keepExports(path string) error {
 	data, err := os.ReadFile(path)
@@ -85,11 +117,11 @@ func keepExports(path string) error {
 // login container to create it if it is missing or stale. The secrets-export.sh
 // file lives in the Go Driver repository root.
 func exportSecrets() (string, error) {
-	repoRoot, err := filepath.Abs("../../../")
+	root, err := repoRoot()
 	if err != nil {
-		return "", fmt.Errorf("failed to resolve relative path: %w", err)
+		return "", err
 	}
-	secretsPath := filepath.Join(repoRoot, secretsFileName)
+	secretsPath := filepath.Join(root, secretsFileName)
 
 	// The file holds temporary AWS, Azure and GCP tokens that expire about an
 	// hour after the login, but it does not record when. Reuse it only while
@@ -108,7 +140,7 @@ func exportSecrets() (string, error) {
 		return "", err
 	}
 
-	if err := runLogin(buildDir, repoRoot); err != nil {
+	if err := runLogin(buildDir, root); err != nil {
 		return "", err
 	}
 
@@ -202,4 +234,91 @@ type stderrLogConsumer struct{}
 
 func (stderrLogConsumer) Accept(log testcontainers.Log) {
 	fmt.Fprintln(os.Stderr, "aws-sso-login:", strings.TrimRight(string(log.Content), "\n"))
+}
+
+// startCSE builds the CSE image and starts a container named cseContainerName,
+// or reuses it if it already exists. The container is not terminated when the
+// tests finish so later runs skip the libmongocrypt build. The repository root
+// is bind-mounted at cseContainerRepoDir so driver changes are picked up
+// without a rebuild. To force a rebuild, remove the container:
+//
+//	docker rm -f mongo-go-driver-cse
+func startCSE() (testcontainers.Container, error) {
+	root, err := repoRoot()
+	if err != nil {
+		return nil, err
+	}
+
+	buildDir, err := os.MkdirTemp("", secretsDirPrefix+"-cse-build")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create build context: %w", err)
+	}
+	defer os.RemoveAll(buildDir)
+
+	for src, dst := range map[string]string{
+		cseDockerfileName: cseDockerfileName,
+		filepath.Join(root, "etc", cseInstallScript): cseInstallScript,
+	} {
+		if err := copyFile(src, filepath.Join(buildDir, dst)); err != nil {
+			return nil, err
+		}
+	}
+
+	req := testcontainers.ContainerRequest{
+		Name: cseContainerName,
+		FromDockerfile: testcontainers.FromDockerfile{
+			Context:       buildDir,
+			Dockerfile:    cseDockerfileName,
+			PrintBuildLog: true,
+		},
+		HostConfigModifier: func(hc *container.HostConfig) {
+			hc.Binds = append(hc.Binds, root+":"+cseContainerRepoDir)
+		},
+		// Block on "tail -f /dev/null" so the container stays alive and ready
+		// for exec calls, rather than immediately exiting.
+		Entrypoint: []string{"tail", "-f", "/dev/null"},
+		WorkingDir: cseContainerRepoDir,
+	}
+
+	ctr, err := testcontainers.GenericContainer(context.Background(), testcontainers.GenericContainerRequest{
+		ContainerRequest: req,
+		Started:          true,
+		Reuse:            true,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to start CSE container: %w", err)
+	}
+
+	return ctr, nil
+}
+
+// execCSE runs cmd with bash in the CSE container and returns its exit code
+// and combined output.
+func execCSE(ctx context.Context, cmd string) (int, string, error) {
+	if cseContainer == nil {
+		return 0, "", fmt.Errorf("CSE container is not running; pass -cse")
+	}
+
+	exit, out, err := cseContainer.Exec(ctx, []string{"bash", "-c", cmd + " 2>&1"}, tcexec.Multiplexed())
+	if err != nil {
+		return 0, "", fmt.Errorf("failed to exec %q: %w", cmd, err)
+	}
+
+	b, err := io.ReadAll(out)
+	if err != nil {
+		return 0, "", fmt.Errorf("failed to read output of %q: %w", cmd, err)
+	}
+
+	return exit, string(b), nil
+}
+
+func copyFile(src, dst string) error {
+	data, err := os.ReadFile(src)
+	if err != nil {
+		return fmt.Errorf("failed to read %s: %w", src, err)
+	}
+	if err := os.WriteFile(dst, data, 0o755); err != nil {
+		return fmt.Errorf("failed to write %s: %w", dst, err)
+	}
+	return nil
 }
