@@ -41,3 +41,23 @@ logs in again. To force a fresh login sooner, delete the file:
 ```
 rm secrets-export.sh  # from the repository root
 ```
+
+## CSE
+
+`-cse` also starts a container built from `cse.Dockerfile`, which has
+libmongocrypt installed, and `TestCSE` runs the `cse`-tagged tests inside it:
+
+```
+cd internal/test/prose
+go test -v . -cse -run TestCSE
+```
+
+The container is named `mongo-go-driver-cse` and is reused across runs (Ryuk
+is disabled so it outlives the test process). The repository root is
+bind-mounted at `/mongo-go-driver`, so driver changes do not need a rebuild.
+To rebuild the image, for example after changing `cse.Dockerfile`, remove the
+container:
+
+```
+docker rm -f mongo-go-driver-cse
+```
