@@ -61,3 +61,16 @@ container:
 ```
 docker rm -f mongo-go-driver-cse
 ```
+
+Commands run in the container get every secret from `secrets-export.sh` and
+`MONGODB_URI` as environment variables. These are set on each exec, not when
+the container is created, so a reused container always gets fresh secrets.
+`MONGODB_URI` defaults to `mongodb://localhost:27017`, and loopback hosts are
+rewritten to `host.docker.internal` so the container reaches the host's
+`mongod`. On Linux, `mongod` must listen on an address the Docker bridge can
+reach (for example `--bind_ip_all`), not only `127.0.0.1`.
+
+A single loopback host also gets `directConnection=true`: replica set members
+advertise themselves as `localhost`, which the container cannot reach, so the
+driver must not follow the member list. `directConnection` is invalid with
+multiple hosts, so point it at a single member, such as the primary.

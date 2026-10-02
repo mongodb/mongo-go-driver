@@ -9,10 +9,13 @@ package prose
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"log"
+	"net"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -36,15 +39,22 @@ func secretsRequested() bool {
 	return *loadSecretsFlag || *cseFlag
 }
 
-// cseContainer is the long-lived CSE container, set by TestMain when -cse is
-// passed.
-var cseContainer testcontainers.Container
+var (
+	// cseContainer is the long-lived CSE container, set by TestMain when -cse
+	// is passed.
+	cseContainer testcontainers.Container
+
+	// cseEnv is the mongodb environment passed to every command run in cseContainer,
+	// set by TestMain when -cse is passed.
+	cseEnv []string
+)
 
 func TestMain(m *testing.M) {
 	flag.Parse()
 
 	os.Setenv("TESTCONTAINERS_RYUK_DISABLED", "true")
 
+	var secretsPath string
 	if secretsRequested() {
 		path, err := exportSecrets()
 		if err != nil {
@@ -53,9 +63,16 @@ func TestMain(m *testing.M) {
 		if err := godotenv.Overload(path); err != nil {
 			log.Panicf("error loading secrets: %v", err)
 		}
+		secretsPath = path
 	}
 
 	if *cseFlag {
+		env, err := buildCSEEnv(secretsPath)
+		if err != nil {
+			log.Panicf("error building CSE environment: %v", err)
+		}
+		cseEnv = env
+
 		ctr, err := startCSE()
 		if err != nil {
 			log.Panicf("error starting CSE container: %v", err)
@@ -84,6 +101,10 @@ const (
 	cseInstallScript    = "install-libmongocrypt.sh"
 	cseContainerName    = "mongo-go-driver-cse"
 	cseContainerRepoDir = "/mongo-go-driver"
+
+	// cseHostGateway is the hostname the CSE container uses to reach the host.
+	cseHostGateway  = "host.docker.internal"
+	defaultMongoURI = "mongodb://localhost:27017"
 )
 
 // repoRoot returns the absolute path of the Go Driver repository root.
@@ -271,6 +292,7 @@ func startCSE() (testcontainers.Container, error) {
 		},
 		HostConfigModifier: func(hc *container.HostConfig) {
 			hc.Binds = append(hc.Binds, root+":"+cseContainerRepoDir)
+			hc.ExtraHosts = append(hc.ExtraHosts, cseHostGateway+":host-gateway")
 		},
 		// Block on "tail -f /dev/null" so the container stays alive and ready
 		// for exec calls, rather than immediately exiting.
@@ -290,6 +312,76 @@ func startCSE() (testcontainers.Container, error) {
 	return ctr, nil
 }
 
+// The environment is passed on each exec rather than when the container is
+// created, because the container is reused across runs and the secrets expire.
+func buildCSEEnv(secretsPath string) ([]string, error) {
+	secrets, err := godotenv.Read(secretsPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read %s: %w", secretsFileName, err)
+	}
+
+	uri := os.Getenv("MONGODB_URI")
+	if uri == "" {
+		uri = defaultMongoURI
+	}
+	uri, err = cseContainerURI(uri)
+	if err != nil {
+		return nil, err
+	}
+
+	env := make([]string, 0, len(secrets)+1)
+	for key, val := range secrets {
+		env = append(env, key+"="+val)
+	}
+	return append(env, "MONGODB_URI="+uri), nil
+}
+
+func cseContainerURI(uri string) (string, error) {
+	u, err := url.Parse(uri)
+	if err != nil {
+		var urlErr *url.Error
+		if errors.As(err, &urlErr) {
+			err = urlErr.Err
+		}
+		return "", fmt.Errorf("failed to parse MONGODB_URI: %w", err)
+	}
+
+	rewritten := false
+	hosts := strings.Split(u.Host, ",")
+	for i, host := range hosts {
+		name, port, err := net.SplitHostPort(host)
+		if err != nil {
+			// strip the brackets of an IPv6 literal such as "[::1]"
+			// so it parses as an IP.
+			name, port = strings.TrimSuffix(strings.TrimPrefix(host, "["), "]"), ""
+		}
+		if name != "localhost" && !net.ParseIP(name).IsLoopback() {
+			continue
+		}
+		rewritten = true
+		if port != "" {
+			hosts[i] = net.JoinHostPort(cseHostGateway, port)
+		} else {
+			hosts[i] = cseHostGateway
+		}
+	}
+	u.Host = strings.Join(hosts, ",")
+
+	if rewritten && len(hosts) > 1 {
+		return "", errors.New("MongoDB URI with multiple loopback hosts is not supported from the CSE container; use a single host")
+	}
+	q := u.Query()
+	if rewritten && !q.Has("directConnection") {
+		q.Set("directConnection", "true")
+		u.RawQuery = q.Encode()
+		if u.Path == "" {
+			u.Path = "/"
+		}
+	}
+
+	return u.String(), nil
+}
+
 // execCSE runs cmd with bash in the CSE container and returns its exit code
 // and combined output.
 func execCSE(ctx context.Context, cmd string) (int, string, error) {
@@ -297,7 +389,7 @@ func execCSE(ctx context.Context, cmd string) (int, string, error) {
 		return 0, "", fmt.Errorf("CSE container is not running; pass -cse")
 	}
 
-	exit, out, err := cseContainer.Exec(ctx, []string{"bash", "-c", cmd + " 2>&1"}, tcexec.Multiplexed())
+	exit, out, err := cseContainer.Exec(ctx, []string{"bash", "-c", cmd + " 2>&1"}, tcexec.Multiplexed(), tcexec.WithEnv(cseEnv))
 	if err != nil {
 		return 0, "", fmt.Errorf("failed to exec %q: %w", cmd, err)
 	}
