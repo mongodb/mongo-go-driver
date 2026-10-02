@@ -8,7 +8,10 @@ package prose
 
 import (
 	"context"
+	"strings"
 	"testing"
+
+	"github.com/joho/godotenv"
 )
 
 func TestCSE(t *testing.T) {
@@ -16,11 +19,48 @@ func TestCSE(t *testing.T) {
 		t.Skip("pass -cse to run CSE tests")
 	}
 
-	exit, out, err := execCSE(context.Background(), "go test -tags cse ./x/mongo/driver/mongocrypt")
-	if err != nil {
-		t.Fatalf("failed to run CSE tests: %v", err)
-	}
-	if exit != 0 {
-		t.Fatalf("go test failed with exit code %d:\n%s", exit, out)
-	}
+	t.Run("mongocrypt", func(t *testing.T) {
+		exit, out, err := execCSE(context.Background(), "go test -tags cse ./x/mongo/driver/mongocrypt")
+		if err != nil {
+			t.Fatalf("failed to run CSE tests: %v", err)
+		}
+		if exit != 0 {
+			t.Fatalf("go test failed with exit code %d:\n%s", exit, out)
+		}
+	})
+
+	t.Run("secrets", func(t *testing.T) {
+		secrets, err := godotenv.Read(loadedSecretsPath)
+		if err != nil {
+			t.Fatalf("failed to read %s: %v", loadedSecretsPath, err)
+		}
+
+		exit, out, err := execCSE(context.Background(), "env | cut -d= -f1")
+		if err != nil {
+			t.Fatalf("failed to list container environment: %v", err)
+		}
+		if exit != 0 {
+			t.Fatalf("env failed with exit code %d:\n%s", exit, out)
+		}
+
+		set := make(map[string]bool)
+		for _, name := range strings.Fields(out) {
+			set[name] = true
+		}
+		for key := range secrets {
+			if !set[key] {
+				t.Errorf("expected %s from %s to be set in the CSE container", key, secretsFileName)
+			}
+		}
+	})
+
+	t.Run("ping", func(t *testing.T) {
+		exit, out, err := execCSE(context.Background(), "go run ./internal/cmd/testping")
+		if err != nil {
+			t.Fatalf("failed to run ping: %v", err)
+		}
+		if exit != 0 {
+			t.Fatalf("ping failed with exit code %d:\n%s", exit, out)
+		}
+	})
 }
