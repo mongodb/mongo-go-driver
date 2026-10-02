@@ -360,7 +360,9 @@ func executeAppendMetadata(ctx context.Context, op *operation) (*operationResult
 		}
 	}
 
-	client.AppendDriverInfo(driverInfo)
+	if err := client.AppendDriverInfoErr(driverInfo); err != nil {
+		return newErrorResult(err), nil
+	}
 
 	return newEmptyResult(), nil
 }
