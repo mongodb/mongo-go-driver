@@ -30,13 +30,9 @@ func TestCSE(t *testing.T) {
 	})
 
 	t.Run("secrets", func(t *testing.T) {
-		path, err := exportSecrets()
+		secrets, err := godotenv.Read(loadedSecretsPath)
 		if err != nil {
-			t.Fatalf("failed to export secrets: %v", err)
-		}
-		secrets, err := godotenv.Read(path)
-		if err != nil {
-			t.Fatalf("failed to read %s: %v", path, err)
+			t.Fatalf("failed to read %s: %v", loadedSecretsPath, err)
 		}
 
 		exit, out, err := execCSE(context.Background(), "env | cut -d= -f1")

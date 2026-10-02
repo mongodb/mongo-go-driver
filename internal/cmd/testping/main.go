@@ -42,7 +42,7 @@ func run() error {
 	}
 	defer func() { _ = client.Disconnect(context.Background()) }()
 
-	if err := client.Database("admin").RunCommand(ctx, bson.D{{"ping", 1}}).Err(); err != nil {
+	if err := client.Database("admin").RunCommand(ctx, bson.D{{Key: "ping", Value: 1}}).Err(); err != nil {
 		return fmt.Errorf("error pinging deployment: %w", err)
 	}
 	return nil

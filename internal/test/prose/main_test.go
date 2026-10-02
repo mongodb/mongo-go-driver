@@ -47,6 +47,9 @@ var (
 	// cseEnv is the mongodb environment passed to every command run in cseContainer,
 	// set by TestMain when -cse is passed.
 	cseEnv []string
+
+	// loadedSecretsPath is the secrets-export.sh file loaded by TestMain.
+	loadedSecretsPath string
 )
 
 func TestMain(m *testing.M) {
@@ -54,7 +57,6 @@ func TestMain(m *testing.M) {
 
 	os.Setenv("TESTCONTAINERS_RYUK_DISABLED", "true")
 
-	var secretsPath string
 	if secretsRequested() {
 		path, err := exportSecrets()
 		if err != nil {
@@ -63,11 +65,11 @@ func TestMain(m *testing.M) {
 		if err := godotenv.Overload(path); err != nil {
 			log.Panicf("error loading secrets: %v", err)
 		}
-		secretsPath = path
+		loadedSecretsPath = path
 	}
 
 	if *cseFlag {
-		env, err := buildCSEEnv(secretsPath)
+		env, err := buildCSEEnv(loadedSecretsPath)
 		if err != nil {
 			log.Panicf("error building CSE environment: %v", err)
 		}
