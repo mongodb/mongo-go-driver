@@ -9,8 +9,10 @@ package mongo
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
@@ -34,6 +36,7 @@ type dropCollectionOp struct {
 	writeConcern  *writeconcern.WriteConcern
 	serverAPI     *driver.ServerAPIOptions
 	timeout       *time.Duration
+	additionalCmd bson.D
 }
 
 // execute runs this operation and returns an error if the operation did not execute successfully.
@@ -62,5 +65,12 @@ func (dc *dropCollectionOp) execute(ctx context.Context) error {
 
 func (dc *dropCollectionOp) command(dst []byte, _ description.SelectedServer) ([]byte, error) {
 	dst = bsoncore.AppendStringElement(dst, "drop", dc.collection)
+	if len(dc.additionalCmd) > 0 {
+		doc, err := bson.Marshal(dc.additionalCmd)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling additional command fields: %w", err)
+		}
+		dst = append(dst, doc[4:len(doc)-1]...)
+	}
 	return dst, nil
 }

@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"testing"
 
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/v2/internal/optionsutil"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -86,4 +88,233 @@ func TestSetInternalClientOptions(t *testing.T) {
 		err := SetInternalClientOptions(opts, "unsupported", "unsupported")
 		require.EqualError(t, err, "unsupported option: \"unsupported\"")
 	})
+}
+
+// TestSetInternalAddCommandFields verifies that each collection- and
+// index-level options setter that supports the "addCommandFields" key stores
+// the provided bson.D in the resulting Internal options.
+func TestSetInternalAddCommandFields(t *testing.T) {
+	t.Parallel()
+
+	want := bson.D{{Key: "collectionUUID", Value: "00000000-0000-0000-0000-000000000000"}}
+
+	// Each case sets "addCommandFields" via a specific setter and returns the
+	// Internal options that the setter populated.
+	cases := []struct {
+		name string
+		set  func(t *testing.T) optionsutil.Options
+	}{
+		{
+			name: "BulkWriteOptions",
+			set: func(t *testing.T) optionsutil.Options {
+				o := options.BulkWrite()
+				require.NoError(t, SetInternalBulkWriteOptions(o, "addCommandFields", want))
+				args, err := mongoutil.NewOptions[options.BulkWriteOptions](o)
+				require.NoError(t, err)
+				return args.Internal
+			},
+		},
+		{
+			name: "CountOptions",
+			set: func(t *testing.T) optionsutil.Options {
+				o := options.Count()
+				require.NoError(t, SetInternalCountOptions(o, "addCommandFields", want))
+				args, err := mongoutil.NewOptions[options.CountOptions](o)
+				require.NoError(t, err)
+				return args.Internal
+			},
+		},
+		{
+			name: "CreateIndexesOptions",
+			set: func(t *testing.T) optionsutil.Options {
+				o := options.CreateIndexes()
+				require.NoError(t, SetInternalCreateIndexesOptions(o, "addCommandFields", want))
+				args, err := mongoutil.NewOptions[options.CreateIndexesOptions](o)
+				require.NoError(t, err)
+				return args.Internal
+			},
+		},
+		{
+			name: "DeleteOneOptions",
+			set: func(t *testing.T) optionsutil.Options {
+				o := options.DeleteOne()
+				require.NoError(t, SetInternalDeleteOneOptions(o, "addCommandFields", want))
+				args, err := mongoutil.NewOptions[options.DeleteOneOptions](o)
+				require.NoError(t, err)
+				return args.Internal
+			},
+		},
+		{
+			name: "DeleteManyOptions",
+			set: func(t *testing.T) optionsutil.Options {
+				o := options.DeleteMany()
+				require.NoError(t, SetInternalDeleteManyOptions(o, "addCommandFields", want))
+				args, err := mongoutil.NewOptions[options.DeleteManyOptions](o)
+				require.NoError(t, err)
+				return args.Internal
+			},
+		},
+		{
+			name: "DistinctOptions",
+			set: func(t *testing.T) optionsutil.Options {
+				o := options.Distinct()
+				require.NoError(t, SetInternalDistinctOptions(o, "addCommandFields", want))
+				args, err := mongoutil.NewOptions[options.DistinctOptions](o)
+				require.NoError(t, err)
+				return args.Internal
+			},
+		},
+		{
+			name: "DropCollectionOptions",
+			set: func(t *testing.T) optionsutil.Options {
+				o := options.DropCollection()
+				require.NoError(t, SetInternalDropCollectionOptions(o, "addCommandFields", want))
+				args, err := mongoutil.NewOptions[options.DropCollectionOptions](o)
+				require.NoError(t, err)
+				return args.Internal
+			},
+		},
+		{
+			name: "DropIndexesOptions",
+			set: func(t *testing.T) optionsutil.Options {
+				o := options.DropIndexes()
+				require.NoError(t, SetInternalDropIndexesOptions(o, "addCommandFields", want))
+				args, err := mongoutil.NewOptions[options.DropIndexesOptions](o)
+				require.NoError(t, err)
+				return args.Internal
+			},
+		},
+		{
+			name: "EstimatedDocumentCountOptions",
+			set: func(t *testing.T) optionsutil.Options {
+				o := options.EstimatedDocumentCount()
+				require.NoError(t, SetInternalEstimatedDocumentCountOptions(o, "addCommandFields", want))
+				args, err := mongoutil.NewOptions[options.EstimatedDocumentCountOptions](o)
+				require.NoError(t, err)
+				return args.Internal
+			},
+		},
+		{
+			name: "FindOptions",
+			set: func(t *testing.T) optionsutil.Options {
+				o := options.Find()
+				require.NoError(t, SetInternalFindOptions(o, "addCommandFields", want))
+				args, err := mongoutil.NewOptions[options.FindOptions](o)
+				require.NoError(t, err)
+				return args.Internal
+			},
+		},
+		{
+			name: "FindOneOptions",
+			set: func(t *testing.T) optionsutil.Options {
+				o := options.FindOne()
+				require.NoError(t, SetInternalFindOneOptions(o, "addCommandFields", want))
+				args, err := mongoutil.NewOptions[options.FindOneOptions](o)
+				require.NoError(t, err)
+				return args.Internal
+			},
+		},
+		{
+			name: "FindOneAndDeleteOptions",
+			set: func(t *testing.T) optionsutil.Options {
+				o := options.FindOneAndDelete()
+				require.NoError(t, SetInternalFindOneAndDeleteOptions(o, "addCommandFields", want))
+				args, err := mongoutil.NewOptions[options.FindOneAndDeleteOptions](o)
+				require.NoError(t, err)
+				return args.Internal
+			},
+		},
+		{
+			name: "FindOneAndReplaceOptions",
+			set: func(t *testing.T) optionsutil.Options {
+				o := options.FindOneAndReplace()
+				require.NoError(t, SetInternalFindOneAndReplaceOptions(o, "addCommandFields", want))
+				args, err := mongoutil.NewOptions[options.FindOneAndReplaceOptions](o)
+				require.NoError(t, err)
+				return args.Internal
+			},
+		},
+		{
+			name: "FindOneAndUpdateOptions",
+			set: func(t *testing.T) optionsutil.Options {
+				o := options.FindOneAndUpdate()
+				require.NoError(t, SetInternalFindOneAndUpdateOptions(o, "addCommandFields", want))
+				args, err := mongoutil.NewOptions[options.FindOneAndUpdateOptions](o)
+				require.NoError(t, err)
+				return args.Internal
+			},
+		},
+		{
+			name: "InsertOneOptions",
+			set: func(t *testing.T) optionsutil.Options {
+				o := options.InsertOne()
+				require.NoError(t, SetInternalInsertOneOptions(o, "addCommandFields", want))
+				args, err := mongoutil.NewOptions[options.InsertOneOptions](o)
+				require.NoError(t, err)
+				return args.Internal
+			},
+		},
+		{
+			name: "InsertManyOptions",
+			set: func(t *testing.T) optionsutil.Options {
+				o := options.InsertMany()
+				require.NoError(t, SetInternalInsertManyOptions(o, "addCommandFields", want))
+				args, err := mongoutil.NewOptions[options.InsertManyOptions](o)
+				require.NoError(t, err)
+				return args.Internal
+			},
+		},
+		{
+			name: "ListIndexesOptions",
+			set: func(t *testing.T) optionsutil.Options {
+				o := options.ListIndexes()
+				require.NoError(t, SetInternalListIndexesOptions(o, "addCommandFields", want))
+				args, err := mongoutil.NewOptions[options.ListIndexesOptions](o)
+				require.NoError(t, err)
+				return args.Internal
+			},
+		},
+		{
+			name: "ReplaceOptions",
+			set: func(t *testing.T) optionsutil.Options {
+				o := options.Replace()
+				require.NoError(t, SetInternalReplaceOptions(o, "addCommandFields", want))
+				args, err := mongoutil.NewOptions[options.ReplaceOptions](o)
+				require.NoError(t, err)
+				return args.Internal
+			},
+		},
+		{
+			name: "UpdateOneOptions",
+			set: func(t *testing.T) optionsutil.Options {
+				o := options.UpdateOne()
+				require.NoError(t, SetInternalUpdateOneOptions(o, "addCommandFields", want))
+				args, err := mongoutil.NewOptions[options.UpdateOneOptions](o)
+				require.NoError(t, err)
+				return args.Internal
+			},
+		},
+		{
+			name: "UpdateManyOptions",
+			set: func(t *testing.T) optionsutil.Options {
+				o := options.UpdateMany()
+				require.NoError(t, SetInternalUpdateManyOptions(o, "addCommandFields", want))
+				args, err := mongoutil.NewOptions[options.UpdateManyOptions](o)
+				require.NoError(t, err)
+				return args.Internal
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			internal := tc.set(t)
+			got, ok := optionsutil.Value(internal, "addCommandFields").(bson.D)
+			require.True(t, ok, "expected addCommandFields to be a bson.D")
+			require.Equal(t, want, got)
+		})
+	}
 }
