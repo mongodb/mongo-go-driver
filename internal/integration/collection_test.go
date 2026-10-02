@@ -2602,8 +2602,16 @@ func TestAddCommandFields(t *testing.T) {
 			opts     *options.DeleteOneOptionsBuilder
 			expected bson.RawValue
 		}{
-			{"empty", nil, empty},
-			{"set", newOpts(), set},
+			{
+				name:     "empty",
+				opts:     nil,
+				expected: empty,
+			},
+			{
+				name:     "set",
+				opts:     newOpts(),
+				expected: set,
+			},
 		}
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
@@ -2628,8 +2636,16 @@ func TestAddCommandFields(t *testing.T) {
 			opts     *options.DeleteManyOptionsBuilder
 			expected bson.RawValue
 		}{
-			{"empty", nil, empty},
-			{"set", newOpts(), set},
+			{
+				name:     "empty",
+				opts:     nil,
+				expected: empty,
+			},
+			{
+				name:     "set",
+				opts:     newOpts(),
+				expected: set,
+			},
 		}
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
@@ -2654,8 +2670,16 @@ func TestAddCommandFields(t *testing.T) {
 			opts     *options.FindOptionsBuilder
 			expected bson.RawValue
 		}{
-			{"empty", nil, empty},
-			{"set", newOpts(), set},
+			{
+				name:     "empty",
+				opts:     nil,
+				expected: empty,
+			},
+			{
+				name:     "set",
+				opts:     newOpts(),
+				expected: set,
+			},
 		}
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
@@ -2684,8 +2708,16 @@ func TestAddCommandFields(t *testing.T) {
 			opts     *options.FindOneOptionsBuilder
 			expected bson.RawValue
 		}{
-			{"empty", nil, empty},
-			{"set", newOpts(), set},
+			{
+				name:     "empty",
+				opts:     nil,
+				expected: empty,
+			},
+			{
+				name:     "set",
+				opts:     newOpts(),
+				expected: set,
+			},
 		}
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
@@ -2713,8 +2745,16 @@ func TestAddCommandFields(t *testing.T) {
 			opts     *options.DistinctOptionsBuilder
 			expected bson.RawValue
 		}{
-			{"empty", nil, empty},
-			{"set", newOpts(), set},
+			{
+				name:     "empty",
+				opts:     nil,
+				expected: empty,
+			},
+			{
+				name:     "set",
+				opts:     newOpts(),
+				expected: set,
+			},
 		}
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
@@ -2742,8 +2782,16 @@ func TestAddCommandFields(t *testing.T) {
 			opts     *options.CountOptionsBuilder
 			expected bson.RawValue
 		}{
-			{"empty", nil, empty},
-			{"set", newOpts(), set},
+			{
+				name:     "empty",
+				opts:     nil,
+				expected: empty,
+			},
+			{
+				name:     "set",
+				opts:     newOpts(),
+				expected: set,
+			},
 		}
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
@@ -2771,8 +2819,16 @@ func TestAddCommandFields(t *testing.T) {
 			opts     *options.EstimatedDocumentCountOptionsBuilder
 			expected bson.RawValue
 		}{
-			{"empty", nil, empty},
-			{"set", newOpts(), set},
+			{
+				name:     "empty",
+				opts:     nil,
+				expected: empty,
+			},
+			{
+				name:     "set",
+				opts:     newOpts(),
+				expected: set,
+			},
 		}
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
@@ -2800,8 +2856,16 @@ func TestAddCommandFields(t *testing.T) {
 			opts     *options.DropCollectionOptionsBuilder
 			expected bson.RawValue
 		}{
-			{"empty", nil, empty},
-			{"set", newOpts(), set},
+			{
+				name:     "empty",
+				opts:     nil,
+				expected: empty,
+			},
+			{
+				name:     "set",
+				opts:     newOpts(),
+				expected: set,
+			},
 		}
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
@@ -2834,8 +2898,16 @@ func TestAddCommandFields(t *testing.T) {
 			opts     *options.ListIndexesOptionsBuilder
 			expected bson.RawValue
 		}{
-			{"empty", nil, empty},
-			{"set", newOpts(), set},
+			{
+				name:     "empty",
+				opts:     nil,
+				expected: empty,
+			},
+			{
+				name:     "set",
+				opts:     newOpts(),
+				expected: set,
+			},
 		}
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
@@ -2864,8 +2936,16 @@ func TestAddCommandFields(t *testing.T) {
 			opts     *options.CreateIndexesOptionsBuilder
 			expected bson.RawValue
 		}{
-			{"empty", nil, empty},
-			{"set", newOpts(), set},
+			{
+				name:     "empty",
+				opts:     nil,
+				expected: empty,
+			},
+			{
+				name:     "set",
+				opts:     newOpts(),
+				expected: set,
+			},
 		}
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
@@ -2891,8 +2971,16 @@ func TestAddCommandFields(t *testing.T) {
 			opts     *options.DropIndexesOptionsBuilder
 			expected bson.RawValue
 		}{
-			{"empty", nil, empty},
-			{"set", newOpts(), set},
+			{
+				name:     "empty",
+				opts:     nil,
+				expected: empty,
+			},
+			{
+				name:     "set",
+				opts:     newOpts(),
+				expected: set,
+			},
 		}
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
@@ -2922,8 +3010,16 @@ func TestAddCommandFields(t *testing.T) {
 			opts     *options.FindOneAndDeleteOptionsBuilder
 			expected bson.RawValue
 		}{
-			{"empty", nil, empty},
-			{"set", newOpts(), set},
+			{
+				name:     "empty",
+				opts:     nil,
+				expected: empty,
+			},
+			{
+				name:     "set",
+				opts:     newOpts(),
+				expected: set,
+			},
 		}
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
@@ -2951,8 +3047,16 @@ func TestAddCommandFields(t *testing.T) {
 			opts     *options.FindOneAndUpdateOptionsBuilder
 			expected bson.RawValue
 		}{
-			{"empty", nil, empty},
-			{"set", newOpts(), set},
+			{
+				name:     "empty",
+				opts:     nil,
+				expected: empty,
+			},
+			{
+				name:     "set",
+				opts:     newOpts(),
+				expected: set,
+			},
 		}
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
@@ -2981,8 +3085,16 @@ func TestAddCommandFields(t *testing.T) {
 			opts     *options.FindOneAndReplaceOptionsBuilder
 			expected bson.RawValue
 		}{
-			{"empty", nil, empty},
-			{"set", newOpts(), set},
+			{
+				name:     "empty",
+				opts:     nil,
+				expected: empty,
+			},
+			{
+				name:     "set",
+				opts:     newOpts(),
+				expected: set,
+			},
 		}
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
@@ -3011,8 +3123,16 @@ func TestAddCommandFields(t *testing.T) {
 			opts     *options.InsertOneOptionsBuilder
 			expected bson.RawValue
 		}{
-			{"empty", nil, empty},
-			{"set", newOpts(), set},
+			{
+				name:     "empty",
+				opts:     nil,
+				expected: empty,
+			},
+			{
+				name:     "set",
+				opts:     newOpts(),
+				expected: set,
+			},
 		}
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
@@ -3037,8 +3157,16 @@ func TestAddCommandFields(t *testing.T) {
 			opts     *options.InsertManyOptionsBuilder
 			expected bson.RawValue
 		}{
-			{"empty", nil, empty},
-			{"set", newOpts(), set},
+			{
+				name:     "empty",
+				opts:     nil,
+				expected: empty,
+			},
+			{
+				name:     "set",
+				opts:     newOpts(),
+				expected: set,
+			},
 		}
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
@@ -3064,8 +3192,16 @@ func TestAddCommandFields(t *testing.T) {
 			opts     *options.UpdateOneOptionsBuilder
 			expected bson.RawValue
 		}{
-			{"empty", nil, empty},
-			{"set", newOpts(), set},
+			{
+				name:     "empty",
+				opts:     nil,
+				expected: empty,
+			},
+			{
+				name:     "set",
+				opts:     newOpts(),
+				expected: set,
+			},
 		}
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
@@ -3094,8 +3230,16 @@ func TestAddCommandFields(t *testing.T) {
 			opts     *options.UpdateManyOptionsBuilder
 			expected bson.RawValue
 		}{
-			{"empty", nil, empty},
-			{"set", newOpts(), set},
+			{
+				name:     "empty",
+				opts:     nil,
+				expected: empty,
+			},
+			{
+				name:     "set",
+				opts:     newOpts(),
+				expected: set,
+			},
 		}
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
@@ -3124,8 +3268,16 @@ func TestAddCommandFields(t *testing.T) {
 			opts     *options.ReplaceOptionsBuilder
 			expected bson.RawValue
 		}{
-			{"empty", nil, empty},
-			{"set", newOpts(), set},
+			{
+				name:     "empty",
+				opts:     nil,
+				expected: empty,
+			},
+			{
+				name:     "set",
+				opts:     newOpts(),
+				expected: set,
+			},
 		}
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
@@ -3153,15 +3305,33 @@ func TestAddCommandFields(t *testing.T) {
 			name  string
 			model mongo.WriteModel
 		}{
-			{"insert one", mongo.NewInsertOneModel().SetDocument(bson.D{{"x", int32(6)}})},
-			{"delete one", mongo.NewDeleteOneModel().SetFilter(bson.D{{"x", int32(1)}})},
-			{"delete many", mongo.NewDeleteManyModel().SetFilter(bson.D{{"x", int32(1)}})},
-			{"update one", mongo.NewUpdateOneModel().SetFilter(bson.D{{"x", int32(1)}}).
-				SetUpdate(bson.D{{"$set", bson.D{{"x", int32(6)}}}})},
-			{"update many", mongo.NewUpdateManyModel().SetFilter(bson.D{{"x", int32(1)}}).
-				SetUpdate(bson.D{{"$set", bson.D{{"x", int32(6)}}}})},
-			{"replace one", mongo.NewReplaceOneModel().SetFilter(bson.D{{"x", int32(1)}}).
-				SetReplacement(bson.D{{"x", int32(6)}})},
+			{
+				name:  "insert one",
+				model: mongo.NewInsertOneModel().SetDocument(bson.D{{"x", int32(6)}}),
+			},
+			{
+				name:  "delete one",
+				model: mongo.NewDeleteOneModel().SetFilter(bson.D{{"x", int32(1)}}),
+			},
+			{
+				name:  "delete many",
+				model: mongo.NewDeleteManyModel().SetFilter(bson.D{{"x", int32(1)}}),
+			},
+			{
+				name: "update one",
+				model: mongo.NewUpdateOneModel().SetFilter(bson.D{{"x", int32(1)}}).
+					SetUpdate(bson.D{{"$set", bson.D{{"x", int32(6)}}}}),
+			},
+			{
+				name: "update many",
+				model: mongo.NewUpdateManyModel().SetFilter(bson.D{{"x", int32(1)}}).
+					SetUpdate(bson.D{{"$set", bson.D{{"x", int32(6)}}}}),
+			},
+			{
+				name: "replace one",
+				model: mongo.NewReplaceOneModel().SetFilter(bson.D{{"x", int32(1)}}).
+					SetReplacement(bson.D{{"x", int32(6)}}),
+			},
 		}
 
 		testCases := []struct {
@@ -3169,8 +3339,16 @@ func TestAddCommandFields(t *testing.T) {
 			opts     *options.BulkWriteOptionsBuilder
 			expected bson.RawValue
 		}{
-			{"empty", nil, empty},
-			{"set", newOpts(), set},
+			{
+				name:     "empty",
+				opts:     nil,
+				expected: empty,
+			},
+			{
+				name:     "set",
+				opts:     newOpts(),
+				expected: set,
+			},
 		}
 		for _, model := range models {
 			for _, tc := range testCases {
