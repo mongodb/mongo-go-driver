@@ -436,20 +436,10 @@ func (coll *Collection) InsertOne(ctx context.Context, document any,
 	if args.Comment != nil {
 		imOpts.SetComment(args.Comment)
 	}
-	if rawDataOpt := optionsutil.Value(args.Internal, "rawData"); rawDataOpt != nil {
-		imOpts.Opts = append(imOpts.Opts, func(opts *options.InsertManyOptions) error {
-			opts.Internal = optionsutil.WithValue(opts.Internal, "rawData", rawDataOpt)
-
-			return nil
-		})
-	}
-	if additionalCmd := optionsutil.Value(args.Internal, "addCommandFields"); additionalCmd != nil {
-		imOpts.Opts = append(imOpts.Opts, func(opts *options.InsertManyOptions) error {
-			opts.Internal = optionsutil.WithValue(opts.Internal, "addCommandFields", additionalCmd)
-
-			return nil
-		})
-	}
+	imOpts.Opts = append(imOpts.Opts, func(opts *options.InsertManyOptions) error {
+		opts.Internal = args.Internal
+		return nil
+	})
 	res, err := coll.insert(ctx, []any{document}, imOpts)
 
 	rr, err := processWriteError(err)
@@ -633,6 +623,9 @@ func (coll *Collection) delete(
 	}
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
 		op.rawData = &rawData
+	}
+	if additionalCmd, ok := optionsutil.Value(args.Internal, "addCommandFields").(bson.D); ok {
+		op.additionalCmd = additionalCmd
 	}
 
 	rr, err := processWriteError(op.execute(ctx))
@@ -1287,6 +1280,9 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter any,
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
 		op.rawData = &rawData
 	}
+	if additionalCmd, ok := optionsutil.Value(args.Internal, "addCommandFields").(bson.D); ok {
+		op.additionalCmd = additionalCmd
+	}
 
 	err = op.execute(ctx)
 	if err != nil {
@@ -1385,6 +1381,9 @@ func (coll *Collection) EstimatedDocumentCount(
 	}
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
 		op.rawData = &rawData
+	}
+	if additionalCmd, ok := optionsutil.Value(args.Internal, "addCommandFields").(bson.D); ok {
+		op.additionalCmd = additionalCmd
 	}
 
 	err = op.execute(ctx)
@@ -1492,6 +1491,9 @@ func (coll *Collection) Distinct(
 	}
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
 		op.rawData = &rawData
+	}
+	if additionalCmd, ok := optionsutil.Value(args.Internal, "addCommandFields").(bson.D); ok {
+		op.additionalCmd = additionalCmd
 	}
 
 	err = op.execute(ctx)
@@ -1716,6 +1718,9 @@ func (coll *Collection) find(
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
 		op.rawData = &rawData
 	}
+	if additionalCmd, ok := optionsutil.Value(args.Internal, "addCommandFields").(bson.D); ok {
+		op.additionalCmd = additionalCmd
+	}
 
 	if err = op.execute(ctx); err != nil {
 		return nil, wrapErrors(err)
@@ -1922,6 +1927,9 @@ func (coll *Collection) FindOneAndDelete(
 	}
 	if rawData, ok := optionsutil.Value(args.Internal, "rawData").(bool); ok {
 		op.rawData = &rawData
+	}
+	if additionalCmd, ok := optionsutil.Value(args.Internal, "addCommandFields").(bson.D); ok {
+		op.additionalCmd = additionalCmd
 	}
 
 	return coll.findAndModify(ctx, op)
@@ -2211,6 +2219,11 @@ func (coll *Collection) Drop(ctx context.Context, opts ...options.Lister[options
 
 	ef := args.EncryptedFields
 
+	var additionalCmd bson.D
+	if cmd, ok := optionsutil.Value(args.Internal, "addCommandFields").(bson.D); ok {
+		additionalCmd = cmd
+	}
+
 	if ef == nil {
 		ef = coll.db.getEncryptedFieldsFromMap(coll.name)
 	}
@@ -2223,14 +2236,17 @@ func (coll *Collection) Drop(ctx context.Context, opts ...options.Lister[options
 	}
 
 	if ef != nil {
-		return coll.dropEncryptedCollection(ctx, ef)
+		return coll.dropEncryptedCollection(ctx, ef, additionalCmd)
 	}
 
-	return coll.drop(ctx)
+	return coll.drop(ctx, additionalCmd)
 }
 
 // dropEncryptedCollection drops a collection with EncryptedFields.
-func (coll *Collection) dropEncryptedCollection(ctx context.Context, ef any) error {
+//
+// additionalCmd is applied only to the drop of the data collection, not to the
+// associated encryption state collections.
+func (coll *Collection) dropEncryptedCollection(ctx context.Context, ef any, additionalCmd bson.D) error {
 	efBSON, err := marshal(ef, coll.bsonOpts, coll.registry)
 	if err != nil {
 		return fmt.Errorf("error transforming document: %w", err)
@@ -2242,7 +2258,7 @@ func (coll *Collection) dropEncryptedCollection(ctx context.Context, ef any) err
 	if err != nil {
 		return err
 	}
-	if err := coll.db.Collection(escCollection).drop(ctx); err != nil {
+	if err := coll.db.Collection(escCollection).drop(ctx, nil); err != nil {
 		return err
 	}
 
@@ -2251,16 +2267,16 @@ func (coll *Collection) dropEncryptedCollection(ctx context.Context, ef any) err
 	if err != nil {
 		return err
 	}
-	if err := coll.db.Collection(ecocCollection).drop(ctx); err != nil {
+	if err := coll.db.Collection(ecocCollection).drop(ctx, nil); err != nil {
 		return err
 	}
 
 	// Drop the data collection.
-	return coll.drop(ctx)
+	return coll.drop(ctx, additionalCmd)
 }
 
 // drop drops a collection without EncryptedFields.
-func (coll *Collection) drop(ctx context.Context) error {
+func (coll *Collection) drop(ctx context.Context, additionalCmd bson.D) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -2299,6 +2315,7 @@ func (coll *Collection) drop(ctx context.Context) error {
 		serverAPI:     coll.client.serverAPI,
 		timeout:       coll.client.timeout,
 		authenticator: coll.client.authenticator,
+		additionalCmd: additionalCmd,
 	}
 	err = op.execute(ctx)
 
