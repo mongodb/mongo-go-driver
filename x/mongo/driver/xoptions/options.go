@@ -126,6 +126,35 @@ func SetInternalClientBulkWriteOptions(a *options.ClientBulkWriteOptionsBuilder,
 	return nil
 }
 
+// SetInternalClientBulkWriteEntry sets internal options on the Internal field of a
+// mongo.ClientBulkWrite entry. Pass a pointer to the Internal field directly:
+//
+//	xoptions.SetInternalClientBulkWriteEntry(&write.Internal, "collectionUUID", uuid)
+//
+// Supported keys:
+//
+//   - "collectionUUID" ([]byte): attaches a collection UUID to the
+//     nsInfo entry for this write in the bulkWrite command. Two writes that share a
+//     namespace string but carry different UUIDs produce separate nsInfo entries,
+//     allowing the server to distinguish a collection from a same-named replacement
+//     created after a drop.
+func SetInternalClientBulkWriteEntry(internal *optionsutil.Options, key string, option any) error {
+	typeErrFunc := func(t string) error {
+		return fmt.Errorf("unexpected type for %q: %T is not %s", key, option, t)
+	}
+	switch key {
+	case "collectionUUID":
+		b, ok := option.([]byte)
+		if !ok {
+			return typeErrFunc("[]byte")
+		}
+		*internal = optionsutil.WithValue(*internal, key, b)
+	default:
+		return fmt.Errorf("unsupported option: %q", key)
+	}
+	return nil
+}
+
 // SetInternalCountOptions sets internal options for CountOptions.
 func SetInternalCountOptions(a *options.CountOptionsBuilder, key string, option any) error {
 	typeErrFunc := func(t string) error {
