@@ -894,6 +894,20 @@ func TestDecodeOpReply(t *testing.T) {
 		reply := Operation{}.decodeOpReply(wm)
 		assert.Equal(t, []bsoncore.Document(nil), reply.documents)
 	})
+
+	// A malicious or malformed OP_REPLY that sets the QueryFailure flag but
+	// returns no documents must not index into an empty slice.
+	t.Run("QueryFailure flag set with no documents", func(t *testing.T) {
+		t.Parallel()
+
+		var wm []byte
+		wm = wiremessage.AppendReplyFlags(wm, wiremessage.QueryFailure)
+		wm = wiremessage.AppendReplyCursorID(wm, int64(0))
+		wm = wiremessage.AppendReplyStartingFrom(wm, 0)
+		wm = wiremessage.AppendReplyNumberReturned(wm, 0)
+		reply := Operation{}.decodeOpReply(wm)
+		assert.Error(t, reply.err)
+	})
 }
 
 func TestMarshalBSONWriteConcern(t *testing.T) {
