@@ -9,13 +9,10 @@ package prose
 import (
 	"context"
 	"encoding/base64"
-	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"log"
-	"net"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -80,6 +77,10 @@ func TestMain(m *testing.M) {
 			log.Panicf("error starting CSE container: %v", err)
 		}
 		cseContainer = ctr
+
+		if err := checkHosts(context.Background()); err != nil {
+			log.Panicf("error checking hosts: %v", err)
+		}
 	}
 
 	os.Exit(m.Run())
@@ -105,7 +106,6 @@ const (
 	cseContainerRepoDir = "/mongo-go-driver"
 
 	// cseHostGateway is the hostname the CSE container uses to reach the host.
-	cseHostGateway  = "host.docker.internal"
 	defaultMongoURI = "mongodb://localhost:27017"
 )
 
@@ -294,7 +294,7 @@ func startCSE() (testcontainers.Container, error) {
 		},
 		HostConfigModifier: func(hc *container.HostConfig) {
 			hc.Binds = append(hc.Binds, root+":"+cseContainerRepoDir)
-			hc.ExtraHosts = append(hc.ExtraHosts, cseHostGateway+":host-gateway")
+			hc.ExtraHosts = append(hc.ExtraHosts, "localhost:host-gateway")
 		},
 		// Block on "tail -f /dev/null" so the container stays alive and ready
 		// for exec calls, rather than immediately exiting.
@@ -326,10 +326,7 @@ func buildCSEEnv(secretsPath string) ([]string, error) {
 	if uri == "" {
 		uri = defaultMongoURI
 	}
-	uri, err = cseContainerURI(uri)
-	if err != nil {
-		return nil, err
-	}
+	delete(secrets, "MONGODB_URI")
 
 	env := make([]string, 0, len(secrets)+1)
 	for key, val := range secrets {
@@ -338,50 +335,44 @@ func buildCSEEnv(secretsPath string) ([]string, error) {
 	return append(env, "MONGODB_URI="+uri), nil
 }
 
-func cseContainerURI(uri string) (string, error) {
-	u, err := url.Parse(uri)
+func checkHosts(ctx context.Context) error {
+	// If the container is already good to go, do nothing
+	if ping(ctx) == nil {
+		return nil
+	}
+
+	// If there is an error reaching the container through localhost, then
+	// terminate and try to restart.
+	if err := cseContainer.Terminate(ctx); err != nil {
+		return fmt.Errorf("failed to terminate CSE container: %w", err)
+	}
+
+	ctr, err := startCSE()
 	if err != nil {
-		var urlErr *url.Error
-		if errors.As(err, &urlErr) {
-			err = urlErr.Err
-		}
-		return "", fmt.Errorf("failed to parse MONGODB_URI: %w", err)
+		return err
 	}
 
-	rewritten := false
-	hosts := strings.Split(u.Host, ",")
-	for i, host := range hosts {
-		name, port, err := net.SplitHostPort(host)
-		if err != nil {
-			// strip the brackets of an IPv6 literal such as "[::1]"
-			// so it parses as an IP.
-			name, port = strings.TrimSuffix(strings.TrimPrefix(host, "["), "]"), ""
-		}
-		if name != "localhost" && !net.ParseIP(name).IsLoopback() {
-			continue
-		}
-		rewritten = true
-		if port != "" {
-			hosts[i] = net.JoinHostPort(cseHostGateway, port)
-		} else {
-			hosts[i] = cseHostGateway
-		}
-	}
-	u.Host = strings.Join(hosts, ",")
+	cseContainer = ctr
 
-	if rewritten && len(hosts) > 1 {
-		return "", errors.New("MongoDB URI with multiple loopback hosts is not supported from the CSE container; use a single host")
-	}
-	q := u.Query()
-	if rewritten && !q.Has("directConnection") {
-		q.Set("directConnection", "true")
-		u.RawQuery = q.Encode()
-		if u.Path == "" {
-			u.Path = "/"
-		}
+	// Try to ping again, if this one fails return error to user.
+	if err := ping(ctx); err != nil {
+		return fmt.Errorf("CSE container is not reachable after restart: %w", err)
 	}
 
-	return u.String(), nil
+	return nil
+}
+
+func ping(ctx context.Context) error {
+	exit, _, err := execCSE(ctx, "go run ./internal/cmd/testping")
+	if err != nil {
+		return err
+	}
+
+	if exit != 0 {
+		return fmt.Errorf("exit code: %v", exit)
+	}
+
+	return nil
 }
 
 // execCSE runs cmd with bash in the CSE container and returns its exit code
