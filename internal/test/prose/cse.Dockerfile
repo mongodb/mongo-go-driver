@@ -40,10 +40,10 @@ COPY mongodl.py /root/mongodl.py
 RUN python3 /root/mongodl.py \
   --component crypt_shared \
   --version "${CRYPT_SHARED_VERSION}" \
-  --target debian12 \
+  --target ubuntu2404 \
   --out /root/install/crypt_shared \
   --strip-path-components 1
 
-ENV CRYPT_SHARED_LIB_PATH=/root/install/crypt_shared/lib/mongo_crypt_v1.so
+ENV CRYPT_SHARED_LIB_PATH=/root/install/crypt_shared/mongo_crypt_v1.so
 
 WORKDIR /mongo-go-driver
