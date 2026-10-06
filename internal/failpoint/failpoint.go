@@ -34,8 +34,8 @@ type FailPoint struct {
 // Mode configures when a fail point will be enabled. It is used to set the
 // FailPoint.Mode field.
 type Mode struct {
-	Times int32 `bson:"times"`
-	Skip  int32 `bson:"skip"`
+	Times int32 `bson:"times,omitempty"`
+	Skip  int32 `bson:"skip,omitempty"`
 }
 
 // Data configures how a fail point will behave. It is used to set the
