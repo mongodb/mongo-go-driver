@@ -358,7 +358,7 @@ func checkHosts(ctx context.Context) error {
 
 	// Try to ping again, if this one fails return error to user.
 	if err := ping(ctx); err != nil {
-		return fmt.Errorf("CSE container is not reachable after restart: %w", err)
+		return fmt.Errorf("CSE container is not reachable after restart (is a local mongod or mongos running?): %w", err)
 	}
 
 	return nil
