@@ -74,8 +74,6 @@ func TestClientSideEncryptionProse_27(t *testing.T) {
 	goTest(t, "./internal/integration", "TestClientSideEncryptionProse_27")
 }
 
-// goTest runs the cse-tagged test named name in pkg inside the CSE container
-// and fails t if it fails.
 func goTest(t *testing.T, pkg, name string) {
 	t.Helper()
 
