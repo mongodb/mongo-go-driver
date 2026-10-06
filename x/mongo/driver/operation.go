@@ -893,8 +893,9 @@ func (op Operation) Execute(ctx context.Context) error {
 
 			// If the error is no longer retryable and has the NoWritesPerformed label, then we should
 			// set the error to the "previous indefinite error" unless the current error is already the
-			// "previous indefinite error". After resetting, repeat the error check.
-			if tt.HasErrorLabel(NoWritesPerformed) && !prevIndefiniteErrIsSet {
+			// "previous indefinite error" or no previous attempt was made. After resetting, repeat the
+			// error check.
+			if tt.HasErrorLabel(NoWritesPerformed) && !prevIndefiniteErrIsSet && prevIndefiniteErr != nil {
 				err = prevIndefiniteErr
 				prevIndefiniteErrIsSet = true
 
@@ -1026,8 +1027,9 @@ func (op Operation) Execute(ctx context.Context) error {
 
 			// If the error is no longer retryable and has the NoWritesPerformed label, then we should
 			// set the error to the "previous indefinite error" unless the current error is already the
-			// "previous indefinite error". After resetting, repeat the error check.
-			if tt.HasErrorLabel(NoWritesPerformed) && !prevIndefiniteErrIsSet {
+			// "previous indefinite error" or no previous attempt was made. After resetting, repeat the
+			// error check.
+			if tt.HasErrorLabel(NoWritesPerformed) && !prevIndefiniteErrIsSet && prevIndefiniteErr != nil {
 				err = prevIndefiniteErr
 				prevIndefiniteErrIsSet = true
 
