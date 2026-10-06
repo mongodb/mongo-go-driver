@@ -2038,6 +2038,10 @@ func (Operation) decodeOpReply(wm []byte) opReply {
 	}
 
 	if reply.responseFlags&wiremessage.QueryFailure == wiremessage.QueryFailure {
+		if len(reply.documents) == 0 {
+			reply.err = errors.New("malformed OP_REPLY: QueryFailure flag set but no documents returned")
+			return reply
+		}
 		reply.err = QueryFailureError{
 			Message:  "command failure",
 			Response: reply.documents[0],
