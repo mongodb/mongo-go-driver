@@ -594,11 +594,16 @@ func TestExtJSONEscapeKey(t *testing.T) {
 			Key:   "regex",
 			Value: Regex{Pattern: "ab\\\\\\\"ab", Options: "\""},
 		},
+		{
+			Key:   "dbPointer",
+			Value: DBPointer{DB: "a\"b", Pointer: ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C}},
+		},
 	}
 	b, err := MarshalExtJSON(&doc, false, false)
 	noerr(t, err)
 
-	want := `{"\\usb#":1,"regex":{"$regularExpression":{"pattern":"ab\\\\\\\"ab","options":"\""}}}`
+	want := `{"\\usb#":1,"regex":{"$regularExpression":{"pattern":"ab\\\\\\\"ab","options":"\""}},` +
+		`"dbPointer":{"$dbPointer":{"$ref":"a\"b","$id":{"$oid":"0102030405060708090a0b0c"}}}}`
 	if diff := cmp.Diff(want, string(b)); diff != "" {
 		t.Errorf("Marshaled documents do not match. got %v, want %v", string(b), want)
 	}
