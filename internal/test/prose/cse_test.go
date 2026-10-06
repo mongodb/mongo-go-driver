@@ -8,6 +8,7 @@ package prose
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -63,4 +64,27 @@ func TestCSE(t *testing.T) {
 			t.Fatalf("ping failed with exit code %d:\n%s", exit, out)
 		}
 	})
+}
+
+func TestClientSideEncryptionProse_27(t *testing.T) {
+	if !*cseFlag {
+		t.Skip("pass -cse to run CSE tests")
+	}
+
+	goTest(t, "./internal/integration", "TestClientSideEncryptionProse_27")
+}
+
+// goTest runs the cse-tagged test named name in pkg inside the CSE container
+// and fails t if it fails.
+func goTest(t *testing.T, pkg, name string) {
+	t.Helper()
+
+	exit, out, err := execCSE(context.Background(), fmt.Sprintf("go test -tags cse -v -run '^%s$' %s", name, pkg))
+	if err != nil {
+		t.Fatalf("failed to run %s: %v", name, err)
+	}
+	t.Log(out)
+	if exit != 0 {
+		t.Fatalf("%s failed with exit code %d", name, exit)
+	}
 }

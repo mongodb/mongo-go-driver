@@ -102,6 +102,7 @@ const (
 
 	cseDockerfileName   = "cse.Dockerfile"
 	cseInstallScript    = "install-libmongocrypt.sh"
+	cseMongoDL          = "mongodl.py"
 	cseContainerName    = "mongo-go-driver-cse"
 	cseContainerRepoDir = "/mongo-go-driver"
 
@@ -278,7 +279,8 @@ func startCSE() (testcontainers.Container, error) {
 
 	for src, dst := range map[string]string{
 		cseDockerfileName: cseDockerfileName,
-		filepath.Join(root, "etc", cseInstallScript): cseInstallScript,
+		filepath.Join(root, "etc", cseInstallScript):                                           cseInstallScript,
+		filepath.Join(root, ".evergreen", "drivers-evergreen-tools", ".evergreen", cseMongoDL): cseMongoDL,
 	} {
 		if err := copyFile(src, filepath.Join(buildDir, dst)); err != nil {
 			return nil, err

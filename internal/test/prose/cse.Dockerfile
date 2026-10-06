@@ -35,4 +35,15 @@ ENV PKG_CONFIG=/usr/local/bin/libmongocrypt-pkg-config
 ENV PKG_CONFIG_PATH=/root/install/libmongocrypt/lib64/pkgconfig:/root/install/libmongocrypt/lib/pkgconfig
 ENV LD_LIBRARY_PATH=/root/install/libmongocrypt/lib64:/root/install/libmongocrypt/lib
 
+ARG CRYPT_SHARED_VERSION=latest-stable
+COPY mongodl.py /root/mongodl.py
+RUN python3 /root/mongodl.py \
+  --component crypt_shared \
+  --version "${CRYPT_SHARED_VERSION}" \
+  --target debian12 \
+  --out /root/install/crypt_shared \
+  --strip-path-components 1
+
+ENV CRYPT_SHARED_LIB_PATH=/root/install/crypt_shared/lib/mongo_crypt_v1.so
+
 WORKDIR /mongo-go-driver
