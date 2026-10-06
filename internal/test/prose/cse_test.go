@@ -67,15 +67,15 @@ func TestCSE(t *testing.T) {
 }
 
 func TestClientSideEncryptionProse_27(t *testing.T) {
+	goTestCSE(t, "./internal/integration", "TestClientSideEncryptionProse_27")
+}
+
+func goTestCSE(t *testing.T, pkg, name string) {
+	t.Helper()
+
 	if !*cseFlag {
 		t.Skip("pass -cse to run CSE tests")
 	}
-
-	goTest(t, "./internal/integration", "TestClientSideEncryptionProse_27")
-}
-
-func goTest(t *testing.T, pkg, name string) {
-	t.Helper()
 
 	exit, out, err := execCSE(context.Background(), fmt.Sprintf("go test -tags cse -v -run '^%s$' %s", name, pkg))
 	if err != nil {
