@@ -338,17 +338,13 @@ func buildCSEEnv(secretsPath string) ([]string, error) {
 	delete(secrets, "MONGODB_URI")
 
 	// Match etc/setup-encryption.sh: the KMS mock servers use the EC certs in
-	// testdata/kmip-certs. The RSA certs in the secrets file have no cipher
-	// suite in common with the KMIP mock and Go's default TLS settings.
+	// testdata/kmip-certs.
 	certDir := cseContainerRepoDir + "/testdata/kmip-certs/"
 	secrets["CSFLE_TLS_CA_FILE"] = certDir + "ca-ec.pem"
 	secrets["CSFLE_TLS_CLIENT_CERT_FILE"] = certDir + "client-ec.pem"
 
 	env := make([]string, 0, len(secrets)+1)
 	for key, val := range secrets {
-		if rest, ok := strings.CutPrefix(val, "/drivers-evergreen-tools/"); ok {
-			val = cseContainerRepoDir + "/.evergreen/drivers-evergreen-tools/" + rest
-		}
 		env = append(env, key+"="+val)
 	}
 	env = append(env, "MONGODB_URI="+uri)
