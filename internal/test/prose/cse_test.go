@@ -77,7 +77,14 @@ func goTestCSE(t *testing.T, pkg, name string) {
 		t.Skip("pass -cse to run CSE tests")
 	}
 
-	exit, out, err := execCSE(context.Background(), fmt.Sprintf("go test -tags cse -v -run '^%s$' %s", name, pkg))
+	run := "^" + name + "$"
+	if f := flag.Lookup("test.run"); f != nil && f.Value.String() != "" {
+		if _, sub, ok := strings.Cut(f.Value.String(), "/"); ok {
+			run += "/" + sub
+		}
+	}
+
+	exit, out, err := execCSE(context.Background(), fmt.Sprintf("go test -tags cse -v -run '%s' %s", run, pkg))
 	if err != nil {
 		t.Fatalf("failed to run %s: %v", name, err)
 	}
