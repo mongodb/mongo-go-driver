@@ -8,6 +8,7 @@ package prose
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"strings"
 	"testing"
