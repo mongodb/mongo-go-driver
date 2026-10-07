@@ -71,6 +71,10 @@ func TestClientSideEncryptionProse_27(t *testing.T) {
 	goTestCSE(t, "./internal/integration", "TestClientSideEncryptionProse_27")
 }
 
+func TestClientSideEncryptionProse_11_kms_tls_options_tests(t *testing.T) {
+	goTestCSE(t, "./internal/integration", "TestClientSideEncryptionProse_11_kms_tls_options_tests")
+}
+
 func goTestCSE(t *testing.T, pkg, name string) {
 	t.Helper()
 
