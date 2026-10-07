@@ -1857,7 +1857,12 @@ func (op Operation) updateOperationTime(response bsoncore.Document) {
 		return
 	}
 
-	t, i := opTimeElem.Timestamp()
+	t, i, ok := opTimeElem.TimestampOK()
+	if !ok {
+		// operationTime was not sent as a BSON timestamp.
+		return
+	}
+
 	_ = sess.AdvanceOperationTime(&bson.Timestamp{
 		T: t,
 		I: i,
