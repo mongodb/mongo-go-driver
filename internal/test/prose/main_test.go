@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"maps"
 	"net"
 	"os"
 	"path/filepath"
@@ -342,16 +341,11 @@ func buildCSEEnv(secretsPath string) ([]string, error) {
 	// testdata/kmip-certs. The RSA certs in the secrets file have no cipher
 	// suite in common with the KMIP mock and Go's default TLS settings.
 	certDir := cseContainerRepoDir + "/testdata/kmip-certs/"
-	kmipCerts := map[string]string{
-		"CSFLE_TLS_CA_FILE":          certDir + "ca-ec.pem",
-		"CSFLE_TLS_CERT_FILE":        certDir + "server-ec.pem",
-		"CSFLE_TLS_CLIENT_CERT_FILE": certDir + "client-ec.pem",
-	}
-	maps.Copy(secrets, kmipCerts)
+	secrets["CSFLE_TLS_CA_FILE"] = certDir + "ca-ec.pem"
+	secrets["CSFLE_TLS_CLIENT_CERT_FILE"] = certDir + "client-ec.pem"
 
 	env := make([]string, 0, len(secrets)+1)
 	for key, val := range secrets {
-		// im not actually sure if this is necessary for non mock servers, maybe ask preston ab this
 		if rest, ok := strings.CutPrefix(val, "/drivers-evergreen-tools/"); ok {
 			val = cseContainerRepoDir + "/.evergreen/drivers-evergreen-tools/" + rest
 		}
