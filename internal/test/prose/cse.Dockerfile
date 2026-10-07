@@ -15,6 +15,7 @@ RUN apt-get -qq update && \
   build-essential \
   libssl-dev \
   pkg-config \
+  socat \
   python3 \
   python3-packaging \
   python-is-python3 && \

@@ -13,6 +13,8 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"maps"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -80,6 +82,12 @@ func TestMain(m *testing.M) {
 
 		if err := checkHosts(context.Background()); err != nil {
 			log.Panicf("error checking hosts: %v", err)
+		}
+
+		if kmsMocksRunning() {
+			if err := forwardKMSMocks(context.Background()); err != nil {
+				log.Panicf("error forwarding KMS mock servers: %v", err)
+			}
 		}
 	}
 
@@ -330,11 +338,58 @@ func buildCSEEnv(secretsPath string) ([]string, error) {
 	}
 	delete(secrets, "MONGODB_URI")
 
+	// Match etc/setup-encryption.sh: the KMS mock servers use the EC certs in
+	// testdata/kmip-certs. The RSA certs in the secrets file have no cipher
+	// suite in common with the KMIP mock and Go's default TLS settings.
+	certDir := cseContainerRepoDir + "/testdata/kmip-certs/"
+	kmipCerts := map[string]string{
+		"CSFLE_TLS_CA_FILE":          certDir + "ca-ec.pem",
+		"CSFLE_TLS_CERT_FILE":        certDir + "server-ec.pem",
+		"CSFLE_TLS_CLIENT_CERT_FILE": certDir + "client-ec.pem",
+	}
+	maps.Copy(secrets, kmipCerts)
+
 	env := make([]string, 0, len(secrets)+1)
 	for key, val := range secrets {
+		// im not actually sure if this is necessary for non mock servers, maybe ask preston ab this
+		if rest, ok := strings.CutPrefix(val, "/drivers-evergreen-tools/"); ok {
+			val = cseContainerRepoDir + "/.evergreen/drivers-evergreen-tools/" + rest
+		}
 		env = append(env, key+"="+val)
 	}
-	return append(env, "MONGODB_URI="+uri), nil
+	env = append(env, "MONGODB_URI="+uri)
+	if kmsMocksRunning() {
+		env = append(env, "KMS_MOCK_SERVERS_RUNNING=true")
+	}
+	return env, nil
+}
+
+var kmsMockPorts = []string{"9000", "9001", "9002", "9003", "5698"}
+
+func kmsMocksRunning() bool {
+	for _, port := range kmsMockPorts {
+		conn, err := net.DialTimeout("tcp", net.JoinHostPort("localhost", port), time.Second)
+		if err != nil {
+			return false
+		}
+		_ = conn.Close()
+	}
+	return true
+}
+
+func forwardKMSMocks(ctx context.Context) error {
+	for _, port := range kmsMockPorts {
+		cmd := fmt.Sprintf("(echo > /dev/tcp/127.0.0.1/%[1]s) 2>/dev/null || "+
+			"(nohup socat TCP-LISTEN:%[1]s,bind=127.0.0.1,fork,reuseaddr TCP:host.docker.internal:%[1]s </dev/null >/dev/null 2>&1 &)", port)
+		exit, out, err := execCSE(ctx, cmd)
+		if err != nil {
+			return err
+		}
+		if exit != 0 {
+			return fmt.Errorf("failed to forward port %s (exit code %d): %s", port, exit, out)
+		}
+	}
+	return nil
 }
 
 func checkHosts(ctx context.Context) error {
