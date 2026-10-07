@@ -74,3 +74,12 @@ A single loopback host also gets `directConnection=true`: replica set members
 advertise themselves as `localhost`, which the container cannot reach, so the
 driver must not follow the member list. `directConnection` is invalid with
 multiple hosts, so point it at a single member, such as the primary.
+
+### Wrapped prose tests
+
+Some CSE prose tests still live in `internal/integration` and run there in CI.
+Wrappers in this package run them in the CSE container instead, for example:
+
+```
+go test -v . -cse -run TestClientSideEncryptionProse_27
+```

@@ -102,6 +102,7 @@ const (
 
 	cseDockerfileName   = "cse.Dockerfile"
 	cseInstallScript    = "install-libmongocrypt.sh"
+	cseMongoDL          = "mongodl.py"
 	cseContainerName    = "mongo-go-driver-cse"
 	cseContainerRepoDir = "/mongo-go-driver"
 
@@ -278,7 +279,8 @@ func startCSE() (testcontainers.Container, error) {
 
 	for src, dst := range map[string]string{
 		cseDockerfileName: cseDockerfileName,
-		filepath.Join(root, "etc", cseInstallScript): cseInstallScript,
+		filepath.Join(root, "etc", cseInstallScript):                                           cseInstallScript,
+		filepath.Join(root, ".evergreen", "drivers-evergreen-tools", ".evergreen", cseMongoDL): cseMongoDL,
 	} {
 		if err := copyFile(src, filepath.Join(buildDir, dst)); err != nil {
 			return nil, err
@@ -356,7 +358,7 @@ func checkHosts(ctx context.Context) error {
 
 	// Try to ping again, if this one fails return error to user.
 	if err := ping(ctx); err != nil {
-		return fmt.Errorf("CSE container is not reachable after restart: %w", err)
+		return fmt.Errorf("CSE container is not reachable after restart (is a local mongod or mongos running?): %w", err)
 	}
 
 	return nil
