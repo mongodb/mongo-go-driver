@@ -109,6 +109,45 @@ func TestGridFS(t *testing.T) {
 	})
 }
 
+func TestGridFSDownloadStreamMalformedChunk(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		description string
+		chunk       bson.D
+		err         string
+	}{
+		{
+			// "n" is only read as int32 or int64, so a chunk written with a
+			// double index (as the legacy shell did) must report an error.
+			description: "n with the wrong type",
+			chunk:       bson.D{{"n", 0.0}, {"data", bson.Binary{Data: []byte{1, 2, 3, 4}}}},
+			err:         "incorrect type for 'n'",
+		},
+		{
+			description: "data with the wrong type",
+			chunk:       bson.D{{"n", int32(0)}, {"data", "1234"}},
+			err:         "incorrect type for 'data'",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.description, func(t *testing.T) {
+			t.Parallel()
+
+			cursor, err := NewCursorFromDocuments([]any{tc.chunk}, nil, nil)
+			require.NoError(t, err)
+
+			const chunkSize int32 = 4
+			ds := newGridFSDownloadStream(context.Background(), nil, cursor, chunkSize,
+				&GridFSFile{Length: int64(chunkSize), ChunkSize: chunkSize})
+
+			_, err = ds.Read(make([]byte, chunkSize))
+			assert.ErrorContains(t, err, tc.err)
+		})
+	}
+}
+
 func TestGridFSFile_UnmarshalBSON(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")

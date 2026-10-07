@@ -178,7 +178,12 @@ func getClusterTime(clusterTime bson.Raw) (uint32, uint32) {
 		return 0, 0
 	}
 
-	return timestampVal.Timestamp()
+	t, i, ok := timestampVal.TimestampOK()
+	if !ok {
+		return 0, 0
+	}
+
+	return t, i
 }
 
 // MaxClusterTime compares 2 clusterTime documents and returns the document representing the highest cluster time.
@@ -330,7 +335,12 @@ func (c *Client) UpdateRecoveryToken(response bson.Raw) {
 		return
 	}
 
-	c.RecoveryToken = token.Document()
+	tokenDoc, ok := token.DocumentOK()
+	if !ok {
+		return
+	}
+
+	c.RecoveryToken = tokenDoc
 }
 
 // UpdateSnapshotTime updates the session's value for the atClusterTime field of
@@ -354,7 +364,12 @@ func (c *Client) UpdateSnapshotTime(response bsoncore.Document) {
 		return
 	}
 
-	t, i := ssTimeElem.Timestamp()
+	t, i, ok := ssTimeElem.TimestampOK()
+	if !ok {
+		// atClusterTime was not sent as a BSON timestamp.
+		return
+	}
+
 	c.SnapshotTime = bson.Timestamp{
 		T: t,
 		I: i,
