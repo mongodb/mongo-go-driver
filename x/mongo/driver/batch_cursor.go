@@ -51,6 +51,7 @@ type BatchCursor struct {
 	postBatchResumeToken bsoncore.Document
 	crypt                Crypt
 	serverAPI            *ServerAPIOptions
+	authenticator        Authenticator
 
 	// maxAwaitTime is only valid for tailable awaitData cursors. If this option
 	// is set, it will be used as the "maxTimeMS" field on getMore commands.
@@ -174,6 +175,10 @@ type CursorOptions struct {
 	ServerAPI             *ServerAPIOptions
 	MarshalValueEncoderFn func(io.Writer) *bson.Encoder
 
+	// Authenticator is used to reauthenticate getMore and killCursors commands
+	// when the server returns a ReauthenticationRequired (391) error.
+	Authenticator Authenticator
+
 	// MaxAwaitTime is only valid for tailable awaitData cursors. If this option
 	// is set, it will be used as the "maxTimeMS" field on getMore commands.
 	MaxAwaitTime *time.Duration
@@ -214,6 +219,7 @@ func NewBatchCursor(
 		postBatchResumeToken: cr.postBatchResumeToken,
 		crypt:                opts.Crypt,
 		serverAPI:            opts.ServerAPI,
+		authenticator:        opts.Authenticator,
 		serverDescription:    cr.Desc,
 		encoderFn:            opts.MarshalValueEncoderFn,
 
@@ -346,6 +352,7 @@ func (bc *BatchCursor) KillCursor(ctx context.Context) error {
 		Legacy:         LegacyKillCursors,
 		CommandMonitor: bc.cmdMonitor,
 		ServerAPI:      bc.serverAPI,
+		Authenticator:  bc.authenticator,
 
 		// No read preference is passed to the killCursor command,
 		// resulting in the default read preference: "primaryPreferred".
@@ -482,6 +489,7 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 		EnableOverloadRetargeting: bc.enableOverloadRetargeting,
 		Crypt:                     bc.crypt,
 		ServerAPI:                 bc.serverAPI,
+		Authenticator:             bc.authenticator,
 
 		// Omit the automatically-calculated maxTimeMS because setting maxTimeMS
 		// on a non-awaitData cursor causes a server error. For awaitData

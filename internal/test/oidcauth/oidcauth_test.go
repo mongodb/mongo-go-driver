@@ -668,6 +668,67 @@ func TestMachine_4_3_WriteCommandsFailIfReauthenticationFails(t *testing.T) {
 	require.NoError(t, callbackFailed, "callback failed")
 }
 
+func TestMachine_ReauthenticationSucceedsOnGetMore(t *testing.T) {
+	callbackCount := 0
+	var callbackFailed error
+	countMutex := sync.Mutex{}
+
+	adminClient, err := connectAdminClient()
+	require.NoError(t, err, "failed connecting admin client")
+	t.Cleanup(func() { _ = adminClient.Disconnect(context.Background()) })
+
+	client, err := connectWithOIDC(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
+		countMutex.Lock()
+		defer countMutex.Unlock()
+		callbackCount++
+		expiry := time.Now().Add(time.Hour)
+		tokenFile := tokenFile("test_user1")
+		accessToken, err := os.ReadFile(tokenFile)
+		if err != nil {
+			callbackFailed = fmt.Errorf("failed reading token file: %v", err)
+		}
+		return &options.OIDCCredential{
+			AccessToken:  string(accessToken),
+			ExpiresAt:    &expiry,
+			RefreshToken: nil,
+		}, nil
+	})
+	require.NoError(t, err, "failed connecting client")
+	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
+
+	coll := client.Database("test").Collection("getmore_reauth")
+	require.NoError(t, coll.Drop(context.Background()), "failed dropping collection")
+	_, err = coll.InsertMany(context.Background(), []any{bson.D{}, bson.D{}, bson.D{}})
+	require.NoError(t, err, "failed executing InsertMany")
+
+	res := adminClient.Database("admin").RunCommand(context.Background(), bson.D{
+		{Key: "configureFailPoint", Value: "failCommand"},
+		{Key: "mode", Value: bson.D{
+			{Key: "times", Value: 1},
+		}},
+		{Key: "data", Value: bson.D{
+			{Key: "failCommands", Value: bson.A{
+				"getMore",
+			}},
+			{Key: "errorCode", Value: 391},
+		}},
+	})
+	require.NoError(t, res.Err(), "failed setting failpoint")
+
+	cursor, err := coll.Find(context.Background(), bson.D{}, options.Find().SetBatchSize(1))
+	require.NoError(t, err, "failed executing Find")
+	var docs []bson.D
+	require.NoError(t, cursor.All(context.Background(), &docs), "failed iterating the cursor")
+	require.Len(t, docs, 3, "expected all documents after reauthenticating getMore")
+
+	countMutex.Lock()
+	defer countMutex.Unlock()
+	if isCallbackTest() {
+		require.Equal(t, 2, callbackCount, "expected callback count to be 2")
+		require.NoError(t, callbackFailed, "callback failed")
+	}
+}
+
 func TestHuman_1_1_SinglePrincipalImplicitUsername(t *testing.T) {
 	if os.Getenv("OIDC_ENV") != "" {
 		t.Skip("Skipping: test only runs when OIDC_ENV is empty")
