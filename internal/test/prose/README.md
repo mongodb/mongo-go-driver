@@ -84,11 +84,16 @@ to spawn `mongocryptd`, which is not installed.
 
 ### Wrapped prose tests
 
-Some CSE prose tests still live in `internal/integration` and run there in CI.
-Wrappers in this package run them in the CSE container instead, for example:
+The CSE tests in `internal/integration` (the files with the `cse` build tag)
+still run there in CI. `TestCSEIntegration` runs them in the CSE container instead.
+It finds them with `go test -list`, run in the container because the `cse` tag
+needs libmongocrypt to compile: the tests listed with `-tags cse`, minus the
+ones listed without it. Each one runs as a subtest, so there is no list of test
+names to maintain:
 
 ```
-go test -v . -cse -run TestClientSideEncryptionProse_27
+go test -v . -cse -run TestCSEIntegration
+go test -v . -cse -run 'TestCSEIntegration/TestClientSideEncryptionProse_27$'
 ```
 
 ### KMS mock servers
