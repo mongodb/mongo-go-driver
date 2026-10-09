@@ -2578,19 +2578,19 @@ func TestAddCommandFields_DeleteOne(t *testing.T) {
 	var val bson.RawValue
 	// no options: comment must be absent
 	_, err = mt.Coll.DeleteOne(context.Background(), bson.D{{"x", 1}})
-	require.NoError(t, err, "DeleteOne error: %v", err)
+	require.NoError(mt, err, "DeleteOne error: %v", err)
 	val = mt.GetStartedEvent().Command.Lookup("comment")
 	assertbson.EqualValue(mt, bson.RawValue{}, val)
 
 	// with addCommandFields: comment must be present
 	_, err = mt.Coll.DeleteOne(context.Background(), bson.D{{"x", 1}}, opts)
-	require.NoError(t, err, "DeleteOne error: %v", err)
+	require.NoError(mt, err, "DeleteOne error: %v", err)
 
 	val = mt.GetStartedEvent().Command.Lookup("comment")
 	got, ok := val.StringValueOK()
-	require.True(t, ok, "expected comment to be a string, got %v", val.Type)
+	require.True(mt, ok, "expected comment to be a string, got %v", val.Type)
 
-	require.Equal(t, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
+	require.Equal(mt, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
 }
 
 func TestAddCommandFields_DeleteMany(t *testing.T) {
@@ -2606,18 +2606,18 @@ func TestAddCommandFields_DeleteMany(t *testing.T) {
 	var val bson.RawValue
 	// no options: comment must be absent
 	_, err = mt.Coll.DeleteMany(context.Background(), bson.D{{"x", 1}})
-	require.NoError(t, err, "DeleteMany error: %v", err)
+	require.NoError(mt, err, "DeleteMany error: %v", err)
 	val = mt.GetStartedEvent().Command.Lookup("comment")
 	assertbson.EqualValue(mt, bson.RawValue{}, val)
 
 	// with addCommandFields: comment must be present
 	_, err = mt.Coll.DeleteMany(context.Background(), bson.D{{"x", 1}}, opts)
-	require.NoError(t, err, "DeleteMany error: %v", err)
+	require.NoError(mt, err, "DeleteMany error: %v", err)
 	val = mt.GetStartedEvent().Command.Lookup("comment")
 	got, ok := val.StringValueOK()
-	require.True(t, ok, "expected comment to be a string, got %v", val.Type)
+	require.True(mt, ok, "expected comment to be a string, got %v", val.Type)
 
-	require.Equal(t, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
+	require.Equal(mt, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
 }
 
 func TestAddCommandFields_Find(t *testing.T) {
@@ -2633,21 +2633,21 @@ func TestAddCommandFields_Find(t *testing.T) {
 	var val bson.RawValue
 	// no options: comment must be absent
 	cursor, err := mt.Coll.Find(context.Background(), bson.D{})
-	require.NoError(t, err, "Find error: %v", err)
+	require.NoError(mt, err, "Find error: %v", err)
 	_ = cursor.Close(context.Background())
 	val = mt.GetStartedEvent().Command.Lookup("comment")
 	assertbson.EqualValue(mt, bson.RawValue{}, val)
 
 	// with addCommandFields: comment must be present
 	cursor, err = mt.Coll.Find(context.Background(), bson.D{}, opts)
-	require.NoError(t, err, "Find error: %v", err)
+	require.NoError(mt, err, "Find error: %v", err)
 	_ = cursor.Close(context.Background())
 
 	val = mt.GetStartedEvent().Command.Lookup("comment")
 	got, ok := val.StringValueOK()
-	require.True(t, ok, "expected comment to be a string, got %v", val.Type)
+	require.True(mt, ok, "expected comment to be a string, got %v", val.Type)
 
-	require.Equal(t, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
+	require.Equal(mt, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
 }
 
 func TestAddCommandFields_FindOne(t *testing.T) {
@@ -2666,18 +2666,18 @@ func TestAddCommandFields_FindOne(t *testing.T) {
 	var val bson.RawValue
 	// no options: comment must be absent
 	err = mt.Coll.FindOne(context.Background(), bson.D{}).Err()
-	require.NoError(t, err, "FindOne error: %v", err)
+	require.NoError(mt, err, "FindOne error: %v", err)
 	val = mt.GetStartedEvent().Command.Lookup("comment")
 	assertbson.EqualValue(mt, bson.RawValue{}, val)
 
 	// with addCommandFields: comment must be present
 	err = mt.Coll.FindOne(context.Background(), bson.D{}, opts).Err()
-	require.NoError(t, err, "FindOne error: %v", err)
+	require.NoError(mt, err, "FindOne error: %v", err)
 	val = mt.GetStartedEvent().Command.Lookup("comment")
 	got, ok := val.StringValueOK()
-	require.True(t, ok, "expected comment to be a string, got %v", val.Type)
+	require.True(mt, ok, "expected comment to be a string, got %v", val.Type)
 
-	require.Equal(t, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
+	require.Equal(mt, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
 }
 
 func TestAddCommandFields_Distinct(t *testing.T) {
@@ -2693,18 +2693,18 @@ func TestAddCommandFields_Distinct(t *testing.T) {
 	var val bson.RawValue
 	// no options: comment must be absent
 	err = mt.Coll.Distinct(context.Background(), "x", bson.D{}).Err()
-	require.NoError(t, err, "Distinct error: %v", err)
+	require.NoError(mt, err, "Distinct error: %v", err)
 	val = mt.GetStartedEvent().Command.Lookup("comment")
 	assertbson.EqualValue(mt, bson.RawValue{}, val)
 
 	// with addCommandFields: comment must be present
 	err = mt.Coll.Distinct(context.Background(), "x", bson.D{}, opts).Err()
-	require.NoError(t, err, "Distinct error: %v", err)
+	require.NoError(mt, err, "Distinct error: %v", err)
 	val = mt.GetStartedEvent().Command.Lookup("comment")
 	got, ok := val.StringValueOK()
-	require.True(t, ok, "expected comment to be a string, got %v", val.Type)
+	require.True(mt, ok, "expected comment to be a string, got %v", val.Type)
 
-	require.Equal(t, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
+	require.Equal(mt, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
 }
 
 func TestAddCommandFields_CountDocuments(t *testing.T) {
@@ -2720,18 +2720,18 @@ func TestAddCommandFields_CountDocuments(t *testing.T) {
 	var val bson.RawValue
 	// no options: comment must be absent
 	_, err = mt.Coll.CountDocuments(context.Background(), bson.D{})
-	require.NoError(t, err, "CountDocuments error: %v", err)
+	require.NoError(mt, err, "CountDocuments error: %v", err)
 	val = mt.GetStartedEvent().Command.Lookup("comment")
 	assertbson.EqualValue(mt, bson.RawValue{}, val)
 
 	// with addCommandFields: comment must be present
 	_, err = mt.Coll.CountDocuments(context.Background(), bson.D{}, opts)
-	require.NoError(t, err, "CountDocuments error: %v", err)
+	require.NoError(mt, err, "CountDocuments error: %v", err)
 	val = mt.GetStartedEvent().Command.Lookup("comment")
 	got, ok := val.StringValueOK()
-	require.True(t, ok, "expected comment to be a string, got %v", val.Type)
+	require.True(mt, ok, "expected comment to be a string, got %v", val.Type)
 
-	require.Equal(t, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
+	require.Equal(mt, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
 }
 
 func TestAddCommandFields_EstimatedDocumentCount(t *testing.T) {
@@ -2747,18 +2747,18 @@ func TestAddCommandFields_EstimatedDocumentCount(t *testing.T) {
 	var val bson.RawValue
 	// no options: comment must be absent
 	_, err = mt.Coll.EstimatedDocumentCount(context.Background())
-	require.NoError(t, err, "EstimatedDocumentCount error: %v", err)
+	require.NoError(mt, err, "EstimatedDocumentCount error: %v", err)
 	val = mt.GetStartedEvent().Command.Lookup("comment")
 	assertbson.EqualValue(mt, bson.RawValue{}, val)
 
 	// with addCommandFields: comment must be present
 	_, err = mt.Coll.EstimatedDocumentCount(context.Background(), opts)
-	require.NoError(t, err, "EstimatedDocumentCount error: %v", err)
+	require.NoError(mt, err, "EstimatedDocumentCount error: %v", err)
 	val = mt.GetStartedEvent().Command.Lookup("comment")
 	got, ok := val.StringValueOK()
-	require.True(t, ok, "expected comment to be a string, got %v", val.Type)
+	require.True(mt, ok, "expected comment to be a string, got %v", val.Type)
 
-	require.Equal(t, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
+	require.Equal(mt, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
 }
 
 func TestAddCommandFields_Drop(t *testing.T) {
@@ -2774,18 +2774,18 @@ func TestAddCommandFields_Drop(t *testing.T) {
 	var val bson.RawValue
 	// no options: comment must be absent
 	err = mt.Coll.Drop(context.Background())
-	require.NoError(t, err, "Drop error: %v", err)
+	require.NoError(mt, err, "Drop error: %v", err)
 	val = mt.GetStartedEvent().Command.Lookup("comment")
 	assertbson.EqualValue(mt, bson.RawValue{}, val)
 
 	// with addCommandFields: comment must be present
 	err = mt.Coll.Drop(context.Background(), opts)
-	require.NoError(t, err, "Drop error: %v", err)
+	require.NoError(mt, err, "Drop error: %v", err)
 	val = mt.GetStartedEvent().Command.Lookup("comment")
 	got, ok := val.StringValueOK()
-	require.True(t, ok, "expected comment to be a string, got %v", val.Type)
+	require.True(mt, ok, "expected comment to be a string, got %v", val.Type)
 
-	require.Equal(t, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
+	require.Equal(mt, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
 }
 
 func TestAddCommandFields_ListIndexes(t *testing.T) {
@@ -2801,21 +2801,21 @@ func TestAddCommandFields_ListIndexes(t *testing.T) {
 	var val bson.RawValue
 	// no options: comment must be absent
 	cursor, err := mt.Coll.Indexes().List(context.Background())
-	require.NoError(t, err, "List error: %v", err)
+	require.NoError(mt, err, "List error: %v", err)
 	_ = cursor.Close(context.Background())
 	val = mt.GetStartedEvent().Command.Lookup("comment")
 	assertbson.EqualValue(mt, bson.RawValue{}, val)
 
 	// with addCommandFields: comment must be present
 	cursor, err = mt.Coll.Indexes().List(context.Background(), opts)
-	require.NoError(t, err, "List error: %v", err)
+	require.NoError(mt, err, "List error: %v", err)
 	_ = cursor.Close(context.Background())
 
 	val = mt.GetStartedEvent().Command.Lookup("comment")
 	got, ok := val.StringValueOK()
-	require.True(t, ok, "expected comment to be a string, got %v", val.Type)
+	require.True(mt, ok, "expected comment to be a string, got %v", val.Type)
 
-	require.Equal(t, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
+	require.Equal(mt, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
 }
 
 func TestAddCommandFields_CreateIndexes(t *testing.T) {
@@ -2833,18 +2833,18 @@ func TestAddCommandFields_CreateIndexes(t *testing.T) {
 	var val bson.RawValue
 	// no options: comment must be absent
 	_, err = mt.Coll.Indexes().CreateOne(context.Background(), model)
-	require.NoError(t, err, "CreateOne error: %v", err)
+	require.NoError(mt, err, "CreateOne error: %v", err)
 	val = mt.GetStartedEvent().Command.Lookup("comment")
 	assertbson.EqualValue(mt, bson.RawValue{}, val)
 
 	// with addCommandFields: comment must be present
 	_, err = mt.Coll.Indexes().CreateOne(context.Background(), model, opts)
-	require.NoError(t, err, "CreateOne error: %v", err)
+	require.NoError(mt, err, "CreateOne error: %v", err)
 	val = mt.GetStartedEvent().Command.Lookup("comment")
 	got, ok := val.StringValueOK()
-	require.True(t, ok, "expected comment to be a string, got %v", val.Type)
+	require.True(mt, ok, "expected comment to be a string, got %v", val.Type)
 
-	require.Equal(t, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
+	require.Equal(mt, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
 }
 
 func TestAddCommandFields_DropIndexes(t *testing.T) {
@@ -2862,27 +2862,27 @@ func TestAddCommandFields_DropIndexes(t *testing.T) {
 	var val bson.RawValue
 	// no options: comment must be absent
 	name, err := mt.Coll.Indexes().CreateOne(context.Background(), model)
-	require.NoError(t, err, "CreateOne error: %v", err)
+	require.NoError(mt, err, "CreateOne error: %v", err)
 	mt.ClearEvents()
 
 	err = mt.Coll.Indexes().DropOne(context.Background(), name)
-	require.NoError(t, err, "DropOne error: %v", err)
+	require.NoError(mt, err, "DropOne error: %v", err)
 	val = mt.GetStartedEvent().Command.Lookup("comment")
 	assertbson.EqualValue(mt, bson.RawValue{}, val)
 
 	// with addCommandFields: comment must be present
 	name, err = mt.Coll.Indexes().CreateOne(context.Background(), model)
-	require.NoError(t, err, "CreateOne error: %v", err)
+	require.NoError(mt, err, "CreateOne error: %v", err)
 	mt.ClearEvents()
 
 	err = mt.Coll.Indexes().DropOne(context.Background(), name, opts)
-	require.NoError(t, err, "DropOne error: %v", err)
+	require.NoError(mt, err, "DropOne error: %v", err)
 
 	val = mt.GetStartedEvent().Command.Lookup("comment")
 	got, ok := val.StringValueOK()
-	require.True(t, ok, "expected comment to be a string, got %v", val.Type)
+	require.True(mt, ok, "expected comment to be a string, got %v", val.Type)
 
-	require.Equal(t, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
+	require.Equal(mt, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
 }
 
 func TestAddCommandFields_FindOneAndDelete(t *testing.T) {
@@ -2901,18 +2901,18 @@ func TestAddCommandFields_FindOneAndDelete(t *testing.T) {
 	var val bson.RawValue
 	// no options: comment must be absent
 	err = mt.Coll.FindOneAndDelete(context.Background(), bson.D{}).Err()
-	require.NoError(t, err, "FindOneAndDelete error: %v", err)
+	require.NoError(mt, err, "FindOneAndDelete error: %v", err)
 	val = mt.GetStartedEvent().Command.Lookup("comment")
 	assertbson.EqualValue(mt, bson.RawValue{}, val)
 
 	// with addCommandFields: comment must be present
 	err = mt.Coll.FindOneAndDelete(context.Background(), bson.D{}, opts).Err()
-	require.NoError(t, err, "FindOneAndDelete error: %v", err)
+	require.NoError(mt, err, "FindOneAndDelete error: %v", err)
 	val = mt.GetStartedEvent().Command.Lookup("comment")
 	got, ok := val.StringValueOK()
-	require.True(t, ok, "expected comment to be a string, got %v", val.Type)
+	require.True(mt, ok, "expected comment to be a string, got %v", val.Type)
 
-	require.Equal(t, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
+	require.Equal(mt, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
 }
 
 func TestAddCommandFields_FindOneAndUpdate(t *testing.T) {
@@ -2933,18 +2933,18 @@ func TestAddCommandFields_FindOneAndUpdate(t *testing.T) {
 	var val bson.RawValue
 	// no options: comment must be absent
 	err = mt.Coll.FindOneAndUpdate(context.Background(), bson.D{}, update).Err()
-	require.NoError(t, err, "FindOneAndUpdate error: %v", err)
+	require.NoError(mt, err, "FindOneAndUpdate error: %v", err)
 	val = mt.GetStartedEvent().Command.Lookup("comment")
 	assertbson.EqualValue(mt, bson.RawValue{}, val)
 
 	// with addCommandFields: comment must be present
 	err = mt.Coll.FindOneAndUpdate(context.Background(), bson.D{}, update, opts).Err()
-	require.NoError(t, err, "FindOneAndUpdate error: %v", err)
+	require.NoError(mt, err, "FindOneAndUpdate error: %v", err)
 	val = mt.GetStartedEvent().Command.Lookup("comment")
 	got, ok := val.StringValueOK()
-	require.True(t, ok, "expected comment to be a string, got %v", val.Type)
+	require.True(mt, ok, "expected comment to be a string, got %v", val.Type)
 
-	require.Equal(t, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
+	require.Equal(mt, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
 }
 
 func TestAddCommandFields_FindOneAndReplace(t *testing.T) {
@@ -2965,18 +2965,18 @@ func TestAddCommandFields_FindOneAndReplace(t *testing.T) {
 	var val bson.RawValue
 	// no options: comment must be absent
 	err = mt.Coll.FindOneAndReplace(context.Background(), bson.D{}, replacement).Err()
-	require.NoError(t, err, "FindOneAndReplace error: %v", err)
+	require.NoError(mt, err, "FindOneAndReplace error: %v", err)
 	val = mt.GetStartedEvent().Command.Lookup("comment")
 	assertbson.EqualValue(mt, bson.RawValue{}, val)
 
 	// with addCommandFields: comment must be present
 	err = mt.Coll.FindOneAndReplace(context.Background(), bson.D{}, replacement, opts).Err()
-	require.NoError(t, err, "FindOneAndReplace error: %v", err)
+	require.NoError(mt, err, "FindOneAndReplace error: %v", err)
 	val = mt.GetStartedEvent().Command.Lookup("comment")
 	got, ok := val.StringValueOK()
-	require.True(t, ok, "expected comment to be a string, got %v", val.Type)
+	require.True(mt, ok, "expected comment to be a string, got %v", val.Type)
 
-	require.Equal(t, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
+	require.Equal(mt, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
 }
 
 func TestAddCommandFields_InsertOne(t *testing.T) {
@@ -2992,18 +2992,18 @@ func TestAddCommandFields_InsertOne(t *testing.T) {
 	var val bson.RawValue
 	// no options: comment must be absent
 	_, err = mt.Coll.InsertOne(context.Background(), bson.D{{"x", int32(1)}})
-	require.NoError(t, err, "InsertOne error: %v", err)
+	require.NoError(mt, err, "InsertOne error: %v", err)
 	val = mt.GetStartedEvent().Command.Lookup("comment")
 	assertbson.EqualValue(mt, bson.RawValue{}, val)
 
 	// with addCommandFields: comment must be present
 	_, err = mt.Coll.InsertOne(context.Background(), bson.D{{"x", int32(1)}}, opts)
-	require.NoError(t, err, "InsertOne error: %v", err)
+	require.NoError(mt, err, "InsertOne error: %v", err)
 	val = mt.GetStartedEvent().Command.Lookup("comment")
 	got, ok := val.StringValueOK()
-	require.True(t, ok, "expected comment to be a string, got %v", val.Type)
+	require.True(mt, ok, "expected comment to be a string, got %v", val.Type)
 
-	require.Equal(t, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
+	require.Equal(mt, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
 }
 
 func TestAddCommandFields_InsertMany(t *testing.T) {
@@ -3021,18 +3021,18 @@ func TestAddCommandFields_InsertMany(t *testing.T) {
 	var val bson.RawValue
 	// no options: comment must be absent
 	_, err = mt.Coll.InsertMany(context.Background(), docs)
-	require.NoError(t, err, "InsertMany error: %v", err)
+	require.NoError(mt, err, "InsertMany error: %v", err)
 	val = mt.GetStartedEvent().Command.Lookup("comment")
 	assertbson.EqualValue(mt, bson.RawValue{}, val)
 
 	// with addCommandFields: comment must be present
 	_, err = mt.Coll.InsertMany(context.Background(), docs, opts)
-	require.NoError(t, err, "InsertMany error: %v", err)
+	require.NoError(mt, err, "InsertMany error: %v", err)
 	val = mt.GetStartedEvent().Command.Lookup("comment")
 	got, ok := val.StringValueOK()
-	require.True(t, ok, "expected comment to be a string, got %v", val.Type)
+	require.True(mt, ok, "expected comment to be a string, got %v", val.Type)
 
-	require.Equal(t, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
+	require.Equal(mt, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
 }
 
 func TestAddCommandFields_UpdateOne(t *testing.T) {
@@ -3050,18 +3050,18 @@ func TestAddCommandFields_UpdateOne(t *testing.T) {
 	var val bson.RawValue
 	// no options: comment must be absent
 	_, err = mt.Coll.UpdateOne(context.Background(), bson.D{}, update)
-	require.NoError(t, err, "UpdateOne error: %v", err)
+	require.NoError(mt, err, "UpdateOne error: %v", err)
 	val = mt.GetStartedEvent().Command.Lookup("comment")
 	assertbson.EqualValue(mt, bson.RawValue{}, val)
 
 	// with addCommandFields: comment must be present
 	_, err = mt.Coll.UpdateOne(context.Background(), bson.D{}, update, opts)
-	require.NoError(t, err, "UpdateOne error: %v", err)
+	require.NoError(mt, err, "UpdateOne error: %v", err)
 	val = mt.GetStartedEvent().Command.Lookup("comment")
 	got, ok := val.StringValueOK()
-	require.True(t, ok, "expected comment to be a string, got %v", val.Type)
+	require.True(mt, ok, "expected comment to be a string, got %v", val.Type)
 
-	require.Equal(t, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
+	require.Equal(mt, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
 }
 
 func TestAddCommandFields_UpdateMany(t *testing.T) {
@@ -3079,18 +3079,18 @@ func TestAddCommandFields_UpdateMany(t *testing.T) {
 	var val bson.RawValue
 	// no options: comment must be absent
 	_, err = mt.Coll.UpdateMany(context.Background(), bson.D{}, update)
-	require.NoError(t, err, "UpdateMany error: %v", err)
+	require.NoError(mt, err, "UpdateMany error: %v", err)
 	val = mt.GetStartedEvent().Command.Lookup("comment")
 	assertbson.EqualValue(mt, bson.RawValue{}, val)
 
 	// with addCommandFields: comment must be present
 	_, err = mt.Coll.UpdateMany(context.Background(), bson.D{}, update, opts)
-	require.NoError(t, err, "UpdateMany error: %v", err)
+	require.NoError(mt, err, "UpdateMany error: %v", err)
 	val = mt.GetStartedEvent().Command.Lookup("comment")
 	got, ok := val.StringValueOK()
-	require.True(t, ok, "expected comment to be a string, got %v", val.Type)
+	require.True(mt, ok, "expected comment to be a string, got %v", val.Type)
 
-	require.Equal(t, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
+	require.Equal(mt, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
 }
 
 func TestAddCommandFields_ReplaceOne(t *testing.T) {
@@ -3108,18 +3108,18 @@ func TestAddCommandFields_ReplaceOne(t *testing.T) {
 	var val bson.RawValue
 	// no options: comment must be absent
 	_, err = mt.Coll.ReplaceOne(context.Background(), bson.D{}, replacement)
-	require.NoError(t, err, "ReplaceOne error: %v", err)
+	require.NoError(mt, err, "ReplaceOne error: %v", err)
 	val = mt.GetStartedEvent().Command.Lookup("comment")
 	assertbson.EqualValue(mt, bson.RawValue{}, val)
 
 	// with addCommandFields: comment must be present
 	_, err = mt.Coll.ReplaceOne(context.Background(), bson.D{}, replacement, opts)
-	require.NoError(t, err, "ReplaceOne error: %v", err)
+	require.NoError(mt, err, "ReplaceOne error: %v", err)
 	val = mt.GetStartedEvent().Command.Lookup("comment")
 	got, ok := val.StringValueOK()
-	require.True(t, ok, "expected comment to be a string, got %v", val.Type)
+	require.True(mt, ok, "expected comment to be a string, got %v", val.Type)
 
-	require.Equal(t, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
+	require.Equal(mt, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
 }
 
 func TestAddCommandFields_BulkWrite(t *testing.T) {
@@ -3171,19 +3171,19 @@ func TestAddCommandFields_BulkWrite(t *testing.T) {
 	for _, m := range models {
 		// no options: comment must be absent
 		_, err = mt.Coll.BulkWrite(context.Background(), []mongo.WriteModel{m.model})
-		require.NoError(t, err, "%s: BulkWrite error: %v", m.name, err)
+		require.NoError(mt, err, "%s: BulkWrite error: %v", m.name, err)
 		val := mt.GetStartedEvent().Command.Lookup("comment")
 		assertbson.EqualValue(mt, bson.RawValue{}, val)
 
 		// with addCommandFields: comment must be present
 		_, err = mt.Coll.BulkWrite(context.Background(), []mongo.WriteModel{m.model}, opts)
-		require.NoError(t, err, "%s: BulkWrite error: %v", m.name, err)
+		require.NoError(mt, err, "%s: BulkWrite error: %v", m.name, err)
 
 		val = mt.GetStartedEvent().Command.Lookup("comment")
 		got, ok := val.StringValueOK()
-		require.True(t, ok, "%s: expected comment to be a string, got %v", m.name, val.Type)
+		require.True(mt, ok, "%s: expected comment to be a string, got %v", m.name, val.Type)
 
-		require.Equal(t, wantComment, got, "%s: expected comment to be %q, got %v", m.name, wantComment, got)
+		require.Equal(mt, wantComment, got, "%s: expected comment to be %q, got %v", m.name, wantComment, got)
 	}
 }
 
