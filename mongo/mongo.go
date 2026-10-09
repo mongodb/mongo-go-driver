@@ -204,6 +204,20 @@ func ensureNoDollarKey(doc bsoncore.Document) error {
 	return nil
 }
 
+// appendAdditionalCmd splices the elements of additionalCmd onto the end of dst.
+func appendAdditionalCmd(dst []byte, additionalCmd bson.D) ([]byte, error) {
+	if len(additionalCmd) == 0 {
+		return dst, nil
+	}
+
+	doc, err := bson.Marshal(additionalCmd)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling additional command fields: %w", err)
+	}
+
+	return append(dst, doc[4:len(doc)-1]...), nil
+}
+
 func marshalAggregatePipeline(
 	pipeline any,
 	bsonOpts *options.BSONOptions,

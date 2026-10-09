@@ -136,12 +136,5 @@ func (i *insertOp) command(dst []byte, desc description.SelectedServer) ([]byte,
 	if i.rawData != nil && desc.WireVersion != nil && driverutil.VersionRangeIncludes(*desc.WireVersion, 27) {
 		dst = bsoncore.AppendBooleanElement(dst, "rawData", *i.rawData)
 	}
-	if len(i.additionalCmd) > 0 {
-		doc, err := bson.Marshal(i.additionalCmd)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling additional command fields: %w", err)
-		}
-		dst = append(dst, doc[4:len(doc)-1]...)
-	}
-	return dst, nil
+	return appendAdditionalCmd(dst, i.additionalCmd)
 }

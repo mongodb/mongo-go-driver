@@ -155,14 +155,7 @@ func (bw *clientBulkWrite) newCommand() func([]byte, description.SelectedServer)
 		if bw.rawData != nil && desc.WireVersion != nil && driverutil.VersionRangeIncludes(*desc.WireVersion, 27) {
 			dst = bsoncore.AppendBooleanElement(dst, "rawData", *bw.rawData)
 		}
-		if len(bw.additionalCmd) > 0 {
-			doc, err := bson.Marshal(bw.additionalCmd)
-			if err != nil {
-				return nil, fmt.Errorf("error marshaling additional command fields: %w", err)
-			}
-			dst = append(dst, doc[4:len(doc)-1]...)
-		}
-		return dst, nil
+		return appendAdditionalCmd(dst, bw.additionalCmd)
 	}
 }
 

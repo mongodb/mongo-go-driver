@@ -9,7 +9,6 @@ package mongo
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -157,12 +156,9 @@ func (a *aggregateOp) command(dst []byte, desc description.SelectedServer) ([]by
 	if a.rawData != nil && desc.WireVersion != nil && driverutil.VersionRangeIncludes(*desc.WireVersion, 27) {
 		dst = bsoncore.AppendBooleanElement(dst, "rawData", *a.rawData)
 	}
-	if len(a.additionalCmd) > 0 {
-		doc, err := bson.Marshal(a.additionalCmd)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling additional command fields: %w", err)
-		}
-		dst = append(dst, doc[4:len(doc)-1]...)
+	dst, err := appendAdditionalCmd(dst, a.additionalCmd)
+	if err != nil {
+		return nil, err
 	}
 	for optionName, optionValue := range a.customOptions {
 		dst = bsoncore.AppendValueElement(dst, optionName, optionValue)

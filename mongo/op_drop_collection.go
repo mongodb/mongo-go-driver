@@ -9,7 +9,6 @@ package mongo
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -65,12 +64,5 @@ func (dc *dropCollectionOp) execute(ctx context.Context) error {
 
 func (dc *dropCollectionOp) command(dst []byte, _ description.SelectedServer) ([]byte, error) {
 	dst = bsoncore.AppendStringElement(dst, "drop", dc.collection)
-	if len(dc.additionalCmd) > 0 {
-		doc, err := bson.Marshal(dc.additionalCmd)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling additional command fields: %w", err)
-		}
-		dst = append(dst, doc[4:len(doc)-1]...)
-	}
-	return dst, nil
+	return appendAdditionalCmd(dst, dc.additionalCmd)
 }
