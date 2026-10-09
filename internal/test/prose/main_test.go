@@ -31,6 +31,7 @@ import (
 var (
 	loadSecretsFlag = flag.Bool("load-secrets", false, "Use AWS SSO login to load secrets into the repository root")
 	cseFlag         = flag.Bool("cse", false, "Setup required for running CSE tests")
+	ciFlag          = flag.Bool("ci", false, "Run in CI: use the existing secrets-export.sh and the host network")
 )
 
 func secretsRequested() bool {
@@ -83,7 +84,7 @@ func TestMain(m *testing.M) {
 			log.Panicf("error checking hosts: %v", err)
 		}
 
-		if kmsMocksRunning() {
+		if kmsMocksRunning() && !*ciFlag {
 			if err := forwardKMSMocks(context.Background()); err != nil {
 				log.Panicf("error forwarding KMS mock servers: %v", err)
 			}
@@ -151,6 +152,15 @@ func exportSecrets() (string, error) {
 		return "", err
 	}
 	secretsPath := filepath.Join(root, secretsFileName)
+
+	// In CI, etc/setup-encryption.sh writes secrets-export.sh using the
+	// task's assumed AWS role, so there is no interactive login.
+	if *ciFlag {
+		if _, err := os.Stat(secretsPath); err != nil {
+			return "", fmt.Errorf("%s not found; run etc/setup-encryption.sh first: %w", secretsFileName, err)
+		}
+		return secretsPath, keepExports(secretsPath)
+	}
 
 	// The file holds temporary AWS, Azure and GCP tokens that expire about an
 	// hour after the login, but it does not record when. Reuse it only while
@@ -303,6 +313,13 @@ func startCSE() (testcontainers.Container, error) {
 		},
 		HostConfigModifier: func(hc *container.HostConfig) {
 			hc.Binds = append(hc.Binds, root+":"+cseContainerRepoDir)
+
+			// On Linux CI hosts, mongod and the KMS mock servers listen on the
+			// host's 127.0.0.1, which the bridge network cannot reach.
+			if *ciFlag {
+				hc.NetworkMode = "host"
+				return
+			}
 			hc.ExtraHosts = append(hc.ExtraHosts, "localhost:host-gateway")
 		},
 		// Block on "tail -f /dev/null" so the container stays alive and ready
@@ -354,7 +371,12 @@ func buildCSEEnv(secretsPath string) ([]string, error) {
 	return env, nil
 }
 
-var kmsMockPorts = []string{"9000", "9001", "9002", "9003", "5698"}
+// kmsMockPorts are the KMS mock servers the CSE tests require.
+var kmsMockPorts = []string{"9000", "9001", "9002", "9003", "5698", "8080"}
+
+// optionalKMSMockPorts are forwarded when they are running, but are not
+// required: drivers-evergreen-tools' HTTP proxies.
+var optionalKMSMockPorts = []string{"9004", "9005"}
 
 func kmsMocksRunning() bool {
 	for _, port := range kmsMockPorts {
@@ -368,7 +390,13 @@ func kmsMocksRunning() bool {
 }
 
 func forwardKMSMocks(ctx context.Context) error {
-	for _, port := range kmsMockPorts {
+	for _, port := range append(kmsMockPorts, optionalKMSMockPorts...) {
+		conn, err := net.DialTimeout("tcp", net.JoinHostPort("localhost", port), time.Second)
+		if err != nil {
+			continue
+		}
+		_ = conn.Close()
+
 		cmd := fmt.Sprintf("(echo > /dev/tcp/127.0.0.1/%[1]s) 2>/dev/null || "+
 			"(nohup socat TCP-LISTEN:%[1]s,bind=127.0.0.1,fork,reuseaddr TCP:host.docker.internal:%[1]s </dev/null >/dev/null 2>&1 &)", port)
 		exit, out, err := execCSE(ctx, cmd)

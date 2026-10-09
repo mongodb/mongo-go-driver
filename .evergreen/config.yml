@@ -530,6 +530,13 @@ functions:
         env:
           KMS_MOCK_SERVERS_RUNNING: "true"
         args: [*task-runner, evg-test-kmip]
+  run-cse-container-test:
+    - command: subprocess.exec
+      type: test
+      params:
+        binary: bash
+        include_expansions_in_env: [MONGODB_URI]
+        args: [*task-runner, evg-test-cse-container]
   run-client-side-encryption-test:
     - command: subprocess.exec
       params:
@@ -1410,6 +1417,15 @@ tasks:
           TOPOLOGY: "server"
           AUTH: "noauth"
           SSL: "nossl"
+  - name: "test-cse-container"
+    commands:
+      - func: bootstrap-mongo-orchestration
+        vars:
+          TOPOLOGY: "replica_set"
+          AUTH: "noauth"
+          SSL: "nossl"
+      - func: start-cse-servers
+      - func: run-cse-container-test
   - name: "test-client-side-encryption"
     tags: ["client-side-encryption-test"]
     commands:
@@ -1973,6 +1989,15 @@ buildvariants:
       GO_DIST: "/opt/golang/go1.26"
     tasks:
       - name: "test-docker-runner"
+  - name: cse-container-test
+    tags: ["pullrequest"]
+    display_name: "CSE Container Test"
+    run_on:
+      - ubuntu2204-large
+    expansions:
+      GO_DIST: "/opt/golang/go1.26"
+    tasks:
+      - name: "test-cse-container"
   - name: goroutine-leaks-test
     tags: ["pullrequest"]
     display_name: "Goroutine Leaks Test"

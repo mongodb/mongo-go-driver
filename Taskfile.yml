@@ -104,6 +104,10 @@ tasks:
     - go test -v -race ./internal/test/oidcauth/... >> test.suite
   evg-test-kmip:
     - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./internal/integration -run TestClientSideEncryptionSpec/kmipKMS >> test.suite
+  evg-test-cse-container:
+    dir: internal/test/prose
+    cmds:
+      - go test -timeout {{.TEST_TIMEOUT}}s -v . -cse -ci -run TestCSE >> ../../../test.suite
   evg-test-client-side-encryption:
     - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./internal/integration -run TestClientSideEncryptionProse >> test.suite
   evg-test-load-balancers:
