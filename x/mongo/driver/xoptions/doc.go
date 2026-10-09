@@ -26,6 +26,13 @@
 // exception to the above; it configures the client itself and accepts a
 // different set of keys.
 //
+// Setting any key changes how == behaves for the options struct it is set on:
+// the internal options are then compared by pointer identity rather than by
+// value. Two structs holding the same internal values are not equal, and two
+// structs sharing one internal options map stay equal after one of them is
+// changed. Do not compare options structs with == after setting an internal
+// option.
+//
 // # Risks of addCommandFields
 //
 // The elements of the supplied bson.D are spliced verbatim into the top level

@@ -10,6 +10,12 @@ package optionsutil
 //
 // values is held behind a pointer so that Options, and the options structs that
 // embed it, stay comparable.
+//
+// Equality is therefore by pointer identity rather than by contents: two
+// Options holding the same values are not equal, and two Options sharing a map
+// through a copy stay equal after WithValue mutates one of them. Setting an
+// internal option on an options struct changes == on that struct to compare
+// pointer identity. Use Equal for value comparison.
 type Options struct {
 	values *map[string]any
 }
