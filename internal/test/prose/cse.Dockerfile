@@ -47,4 +47,14 @@ RUN python3 /root/mongodl.py \
 
 ENV CRYPT_SHARED_LIB_PATH=/root/install/crypt_shared/mongo_crypt_v1.so
 
+# Some tests disable crypt_shared so that the driver spawns mongocryptd.
+RUN python3 /root/mongodl.py \
+  --component cryptd \
+  --version "${CRYPT_SHARED_VERSION}" \
+  --target ubuntu2404 \
+  --out /root/install/mongocryptd \
+  --strip-path-components 1
+
+ENV PATH=/root/install/mongocryptd/bin:${PATH}
+
 WORKDIR /mongo-go-driver
