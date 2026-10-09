@@ -93,24 +93,43 @@ func (bw *clientBulkWrite) execute(ctx context.Context) error {
 		Name:                      driverutil.BulkWriteOp,
 		SendAfterClusterTime:      true,
 	}.Execute(ctx)
-	var exception *ClientBulkWriteException
+	var de driver.Error
+	isDriverErr := errors.As(err, &de)
 
-	var ce CommandError
-	if errors.As(err, &ce) {
+	// A driver.WriteCommandError carries the write errors and write concern
+	// errors that processResponse already recorded in the accumulators, and a
+	// ClientBulkWriteException means processResponse returned them directly.
+	// Neither is a top-level error, and an unacknowledged write is not a
+	// failure.
+	var writeCmdErr driver.WriteCommandError
+	var orderedErr ClientBulkWriteException
+	hasTopLevelErr := err != nil &&
+		!errors.Is(err, driver.ErrUnacknowledgedWrite) &&
+		!errors.As(err, &writeCmdErr) &&
+		!errors.As(err, &orderedErr)
+
+	var exception *ClientBulkWriteException
+	if len(batches.writeConcernErrors) > 0 || len(batches.writeErrors) > 0 ||
+		(hasTopLevelErr && batches.resultsObserved) {
 		exception = &ClientBulkWriteException{
-			WriteError: &WriteError{
-				Code:    int(ce.Code),
-				Message: ce.Message,
-				Raw:     ce.Raw,
-			},
+			WriteConcernErrors: batches.writeConcernErrors,
+			WriteErrors:        batches.writeErrors,
 		}
-	}
-	if len(batches.writeConcernErrors) > 0 || len(batches.writeErrors) > 0 {
-		if exception == nil {
-			exception = new(ClientBulkWriteException)
+		if hasTopLevelErr {
+			// Retain the error so that errors.Is and errors.As still see it.
+			exception.wrapped = err
+
+			if isDriverErr {
+				exception.WriteError = &WriteError{
+					Code:    int(de.Code),
+					Message: de.Message,
+					Raw:     bson.Raw(de.Raw),
+				}
+			} else {
+				// A client-side error has neither a code nor a server reply.
+				exception.WriteError = &WriteError{Message: err.Error()}
+			}
 		}
-		exception.WriteConcernErrors = batches.writeConcernErrors
-		exception.WriteErrors = batches.writeErrors
 	}
 	if exception != nil {
 		var hasSuccess bool
@@ -212,6 +231,8 @@ type modelBatches struct {
 	result             *ClientBulkWriteResult
 	writeConcernErrors []WriteConcernError
 	writeErrors        map[int]WriteError
+
+	resultsObserved bool
 }
 
 var _ driver.OperationBatches = &modelBatches{}
@@ -463,6 +484,8 @@ func (mb *modelBatches) processResponse(ctx context.Context, resp bsoncore.Docum
 			PartialResult:      mb.result,
 		}
 	}
+
+	mb.resultsObserved = true
 
 	if mb.result.Acknowledged {
 		mb.result.DeletedCount += int64(res.NDeleted)
