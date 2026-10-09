@@ -11,6 +11,7 @@ import (
 	"errors"
 	"time"
 
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
@@ -39,6 +40,7 @@ type createIndexesOp struct {
 	serverAPI                 *driver.ServerAPIOptions
 	timeout                   *time.Duration
 	rawData                   *bool
+	additionalCmd             bson.D
 }
 
 func (ci *createIndexesOp) processResponse(context.Context, bsoncore.Document, driver.ResponseInfo) error {
@@ -87,5 +89,5 @@ func (ci *createIndexesOp) command(dst []byte, desc description.SelectedServer) 
 	if ci.rawData != nil && desc.WireVersion != nil && driverutil.VersionRangeIncludes(*desc.WireVersion, 27) {
 		dst = bsoncore.AppendBooleanElement(dst, "rawData", *ci.rawData)
 	}
-	return dst, nil
+	return appendAdditionalCmd(dst, ci.additionalCmd)
 }
