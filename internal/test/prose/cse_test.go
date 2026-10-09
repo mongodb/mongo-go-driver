@@ -10,11 +10,16 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 
 	"github.com/joho/godotenv"
 )
+
+// suiteFlag is a file to append the raw "go test -v" output of each test run
+// in the container to, so CI can report the container's tests individually.
+var suiteFlag = flag.String("suite", "", "Append the container's go test -v output to this file")
 
 func TestCSE(t *testing.T) {
 	if !*cseFlag {
@@ -147,8 +152,26 @@ func goTestCSE(t *testing.T, pkg, name string) {
 	if err != nil {
 		t.Fatalf("failed to run %s: %v", name, err)
 	}
-	t.Log(out)
+	if *suiteFlag != "" {
+		if err := appendFile(*suiteFlag, out); err != nil {
+			t.Fatalf("failed to write %s output to %s: %v", name, *suiteFlag, err)
+		}
+	} else {
+		t.Log(out)
+	}
 	if exit != 0 {
 		t.Fatalf("%s failed with exit code %d", name, exit)
 	}
+}
+
+func appendFile(path, data string) error {
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	if err != nil {
+		return err
+	}
+	if _, err := f.WriteString(data); err != nil {
+		_ = f.Close()
+		return err
+	}
+	return f.Close()
 }

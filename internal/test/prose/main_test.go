@@ -360,13 +360,17 @@ func buildCSEEnv(secretsPath string) ([]string, error) {
 	secrets["CSFLE_TLS_CA_FILE"] = certDir + "ca-ec.pem"
 	secrets["CSFLE_TLS_CLIENT_CERT_FILE"] = certDir + "client-ec.pem"
 
+	// The failpoint server uses drivers-evergreen-tools' x509gen certs, which
+	// the bind-mounted submodule provides.
+	secrets["KMS_FAILPOINT_CA_FILE"] = cseContainerRepoDir + "/.evergreen/drivers-evergreen-tools/.evergreen/x509gen/ca.pem"
+
 	env := make([]string, 0, len(secrets)+1)
 	for key, val := range secrets {
 		env = append(env, key+"="+val)
 	}
 	env = append(env, "MONGODB_URI="+uri)
 	if kmsMocksRunning() {
-		env = append(env, "KMS_MOCK_SERVERS_RUNNING=true")
+		env = append(env, "KMS_MOCK_SERVERS_RUNNING=true", "KMS_FAILPOINT_SERVER_RUNNING=true")
 	}
 	return env, nil
 }
