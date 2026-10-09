@@ -84,7 +84,7 @@ func TestMain(m *testing.M) {
 			log.Panicf("error checking hosts: %v", err)
 		}
 
-		if kmsMocksRunning() && !*ciFlag {
+		if kmsMocksRunning() {
 			if err := forwardKMSMocks(context.Background()); err != nil {
 				log.Panicf("error forwarding KMS mock servers: %v", err)
 			}
@@ -375,12 +375,7 @@ func buildCSEEnv(secretsPath string) ([]string, error) {
 	return env, nil
 }
 
-// kmsMockPorts are the KMS mock servers the CSE tests require.
 var kmsMockPorts = []string{"9000", "9001", "9002", "9003", "5698", "8080"}
-
-// optionalKMSMockPorts are forwarded when they are running, but are not
-// required: drivers-evergreen-tools' HTTP proxies.
-var optionalKMSMockPorts = []string{"9004", "9005"}
 
 func kmsMocksRunning() bool {
 	for _, port := range kmsMockPorts {
@@ -394,12 +389,7 @@ func kmsMocksRunning() bool {
 }
 
 func forwardKMSMocks(ctx context.Context) error {
-	for _, port := range append(kmsMockPorts, optionalKMSMockPorts...) {
-		conn, err := net.DialTimeout("tcp", net.JoinHostPort("localhost", port), time.Second)
-		if err != nil {
-			continue
-		}
-		_ = conn.Close()
+	for _, port := range kmsMockPorts {
 
 		cmd := fmt.Sprintf("(echo > /dev/tcp/127.0.0.1/%[1]s) 2>/dev/null || "+
 			"(nohup socat TCP-LISTEN:%[1]s,bind=127.0.0.1,fork,reuseaddr TCP:host.docker.internal:%[1]s </dev/null >/dev/null 2>&1 &)", port)
