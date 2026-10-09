@@ -310,10 +310,13 @@ func verifyExtendedKeyUsage(cfg config, res *ocsp.Response) error {
 		return nil
 	}
 
-	namesMatch := res.RawResponderName != nil && bytes.Equal(res.RawResponderName, cfg.issuer.RawSubject)
-	keyHashesMatch := res.ResponderKeyHash != nil && bytes.Equal(res.ResponderKeyHash, cfg.ocspRequest.IssuerKeyHash)
-	if namesMatch || keyHashesMatch {
-		// The responder certificate is the same as the issuer certificate.
+	// A certificate included in the response is the certificate that signed the
+	// response (ocsp.ParseResponseForCert verifies that signature). The responder
+	// ID fields are part of the signed response data, so the signer chooses them
+	// and they cannot prove that the signer is the issuer. Only treat the
+	// responder as the issuer if the signing certificate is the issuer
+	// certificate itself.
+	if res.Certificate.Equal(cfg.issuer) {
 		return nil
 	}
 
