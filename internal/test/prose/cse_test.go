@@ -67,12 +67,64 @@ func TestCSE(t *testing.T) {
 	})
 }
 
-func TestClientSideEncryptionProse_27(t *testing.T) {
-	goTestCSE(t, "./internal/integration", "TestClientSideEncryptionProse_27")
+func TestCSEIntegration(t *testing.T) {
+	if !*cseFlag {
+		t.Skip("pass -cse to run CSE tests")
+	}
+
+	names := listTestsCSE(t, "./internal/integration")
+	if len(names) == 0 {
+		t.Fatal("found no cse-tagged tests in ./internal/integration")
+	}
+
+	for _, name := range names {
+		t.Run(name, func(t *testing.T) {
+			goTestCSE(t, "./internal/integration", name)
+		})
+	}
 }
 
-func TestClientSideEncryptionProse_11_kms_tls_options_tests(t *testing.T) {
-	goTestCSE(t, "./internal/integration", "TestClientSideEncryptionProse_11_kms_tls_options_tests")
+// listTestsCSE returns the tests in pkg that only exist with the cse build tag.
+func listTestsCSE(t *testing.T, pkg string) []string {
+	t.Helper()
+
+	with := listTests(t, pkg, "-tags", "cse")
+	without := make(map[string]bool)
+	for _, name := range listTests(t, pkg) {
+		without[name] = true
+	}
+
+	var names []string
+	for _, name := range with {
+		if !without[name] {
+			names = append(names, name)
+		}
+	}
+	return names
+}
+
+func listTests(t *testing.T, pkg string, flags ...string) []string {
+	t.Helper()
+
+	cmd := fmt.Sprintf("go test -list . %s %s", strings.Join(flags, " "), pkg)
+	exit, out, err := execCSE(context.Background(), cmd)
+	if err != nil {
+		t.Fatalf("failed to list tests: %v", err)
+	}
+	if exit != 0 {
+		t.Fatalf("%q failed with exit code %d:\n%s", cmd, exit, out)
+	}
+
+	// The output is one test name per line, followed by a line like
+	// "ok  <pkg>  <time>".
+	var names []string
+	for _, line := range strings.Split(out, "\n") {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "Test") && !strings.ContainsAny(line, " \t") {
+			names = append(names, line)
+		}
+	}
+	return names
 }
 
 func goTestCSE(t *testing.T, pkg, name string) {
@@ -84,8 +136,10 @@ func goTestCSE(t *testing.T, pkg, name string) {
 
 	run := "^" + name + "$"
 	if f := flag.Lookup("test.run"); f != nil && f.Value.String() != "" {
-		if _, sub, ok := strings.Cut(f.Value.String(), "/"); ok {
-			run += "/" + sub
+		// The pattern is TestCSEIntegration/<test>/<subtest>...; only the part
+		// after <test> belongs to the test running in the container.
+		if parts := strings.SplitN(f.Value.String(), "/", 3); len(parts) == 3 {
+			run += "/" + parts[2]
 		}
 	}
 
