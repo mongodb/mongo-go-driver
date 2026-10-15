@@ -209,6 +209,15 @@ func (oa *OIDCAuthenticator) validateConnectionAddressWithAllowedHosts(conn *mne
 	return newAuthError(fmt.Sprintf("address %q not allowed by %q: %v", conn.Address(), AllowedHostsProp, allowedHosts), nil)
 }
 
+// speculativeAuthAddressAllowed returns true if a speculative authentication
+// attempt may be sent to the connection's address. Only the MONGODB-OIDC human
+// flow restricts this: ALLOWED_HOSTS applies to the whole conversation, and a
+// speculative attempt carries the cached access token in the hello itself.
+func speculativeAuthAddressAllowed(authenticator Authenticator, conn *mnet.Connection) bool {
+	oa, ok := authenticator.(*OIDCAuthenticator)
+	return !ok || oa.OIDCHumanCallback == nil || oa.validateConnectionAddressWithAllowedHosts(conn) == nil
+}
+
 type oidcOneStep struct {
 	userName    string
 	accessToken string
@@ -480,6 +489,16 @@ func (oa *OIDCAuthenticator) Auth(ctx context.Context, cfg *driver.AuthConfig) e
 	}
 	conn := cfg.Connection
 
+	// For the human flow, ensure the connection address is allowed by
+	// ALLOWED_HOSTS before any attempt, not only before invoking the callback:
+	// a cached access token must not be sent to a host that is not allowed,
+	// such as one discovered from a hello response.
+	if oa.OIDCHumanCallback != nil {
+		if err = oa.validateConnectionAddressWithAllowedHosts(conn); err != nil {
+			return err
+		}
+	}
+
 	oa.mu.Lock()
 	cachedAccessToken := oa.accessToken
 	cachedRefreshToken := oa.refreshToken
@@ -523,11 +542,8 @@ func (oa *OIDCAuthenticator) Auth(ctx context.Context, cfg *driver.AuthConfig) e
 }
 
 func (oa *OIDCAuthenticator) doAuthHuman(ctx context.Context, cfg *driver.AuthConfig, humanCallback OIDCCallback, idpInfo *IDPInfo, refreshToken *string) error {
-	// Ensure that the connection address is allowed by the allowed hosts.
-	err := oa.validateConnectionAddressWithAllowedHosts(cfg.Connection)
-	if err != nil {
-		return err
-	}
+	// The connection address has already been checked against ALLOWED_HOSTS in
+	// Auth before any part of the conversation was sent.
 	subCtx, cancel := context.WithTimeout(ctx, humanCallbackTimeout)
 	defer cancel()
 	// If the idpInfo exists, we can just do one step
