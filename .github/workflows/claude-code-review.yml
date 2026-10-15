@@ -1,23 +1,27 @@
 name: Claude Code Review
-# `pull_request_target` runs in the base repository's context, so the Grove
-# secrets are available for pull requests opened from forks. `pull_request`
-# would not work here: GitHub withholds repository secrets from fork-triggered
-# runs regardless of the author's access level.
+# Based on the action's example workflow, pinned to the action version below:
+# https://github.com/anthropics/claude-code-action/blob/9171db3e57d6a3140a37ddc2ba92788584e0ead6/examples/pr-review-filtered-paths.yml
 #
-# The action independently refuses to run for actors without write access to
-# this repository, which is what keeps outside contributors from triggering it.
+# Differences from the example, each required by this repository:
 #
-# Reviews run on request only: a maintainer applies the `claude-review` label.
-# The action checks the event sender, not the pull request author, so the
-# labeler is vouching for running this job -- holding the Grove key -- over
-# the pull request's content. Only apply it to an outside contributor's pull
-# request after reading the diff.
+# - `pull_request_target` instead of `pull_request`, so the Grove secrets are
+#   available for pull requests opened from forks. GitHub withholds repository
+#   secrets from fork-triggered `pull_request` runs. `pull_request_target`
+#   runs the workflow file from the default branch.
+# - Reviews run on request only: a maintainer applies the `claude-review`
+#   label. The action checks the event sender, not the pull request author,
+#   so the labeler is vouching for running this job -- holding the Grove key
+#   -- over the pull request's content. Only apply it to an outside
+#   contributor's pull request after reading the diff.
+# - Only the base ref is checked out. Claude reads the pull request through
+#   `gh pr diff` and `gh pr view`, so fork-controlled code never lands on a
+#   runner holding the Grove key.
+# - Claude API traffic goes through MongoDB's Grove gateway.
+# - GitHub access uses the drivers PR bot app instead of the Claude GitHub
+#   App.
+# - No `gh pr comment` grant and a turn cap; see claude_args below.
 #
-# This is a one-shot review. The code-review command stops when Claude has
-# already commented on the pull request, and that check is not scoped to a
-# commit, so removing and re-applying the label skips rather than reviewing
-# new commits. Re-review needs a command whose duplicate check is keyed to the
-# head SHA.
+# Re-applying the label runs a fresh review.
 on:
   pull_request_target:
     types: [labeled]
@@ -25,8 +29,7 @@ concurrency:
   group: claude-review-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 jobs:
-  review:
-    # The command also stops on drafts, but that costs a runner to discover.
+  claude-review:
     if: >-
       github.event.label.name == 'claude-review' && github.event.pull_request.draft == false
     runs-on: ubuntu-latest
@@ -39,31 +42,20 @@ jobs:
       # Route all Claude API traffic through MongoDB's Grove gateway,
       # not api.anthropic.com
       ANTHROPIC_BASE_URL: ${{ vars.GROVE_API_URL }}
+      # The gateway reads the key from its own header, not x-api-key.
+      ANTHROPIC_CUSTOM_HEADERS: "api-key: ${{ secrets.GROVE_API_KEY }}"
+      # The gateway rejects Claude Code's experimental anthropic-beta values
+      # with a 400.
+      CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS: "1"
     steps:
-      # Base ref only. The review command reads the diff through `gh pr diff`,
-      # so the pull request's code never lands on this runner -- which is what
-      # keeps a pull_request_target job holding the Grove key away from
-      # fork-controlled content. actions/checkout blocks such a checkout
-      # outright unless allow-unsafe-pr-checkout is set.
       - name: Checkout base
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 1
-      # Pin the plugin source. Plugin commands can grant tools and define
-      # hooks, so a mutable marketplace URL would run unreviewed upstream code
-      # in a job holding the Grove key and a write-capable token.
-      - name: Checkout plugin marketplace
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
-        with:
-          repository: anthropics/claude-code
-          ref: 684ffc4da0eaaddcafa61842dc719c6a8febc5c2
-          path: claude-code-plugins
           fetch-depth: 1
       # Without github_token the action exchanges an OIDC token for a Claude
       # GitHub App token, which fails here (401). Use the drivers PR bot app,
-      # same one merge-up and the Evergreen perf comment use. The token is
-      # scoped to this repository and to what --comment needs, and expires
-      # when the job ends.
+      # the same one merge-up and the Evergreen perf comment use. The token is
+      # scoped to this repository and expires when the job ends.
       - name: Create PR bot token
         id: app-token
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
@@ -74,18 +66,43 @@ jobs:
           permission-contents: read
           permission-issues: read
           permission-pull-requests: write
-      - name: Run code review
-        uses: anthropics/claude-code-action@9171db3e57d6a3140a37ddc2ba92788584e0ead6 # v1
+      - name: Claude Code Review
+        uses: anthropics/claude-code-action@756cc22e19660d20e8cc9496b4f242475a7f7790 # v1
         with:
           # Parameter name is fixed by the action; the VALUE is our Grove key
           anthropic_api_key: ${{ secrets.GROVE_API_KEY }}
           github_token: ${{ steps.app-token.outputs.token }}
-          plugin_marketplaces: ${{ github.workspace }}/claude-code-plugins
-          plugins: "code-review@claude-code-plugins"
-          # --comment posts the review on the PR itself (inline per finding,
-          # or one summary comment if nothing found)
-          prompt: "/code-review:code-review --comment ${{ github.repository }}/pull/${{ github.event.pull_request.number }}"
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            Please review this pull request.
+
+            Note: The PR branch is NOT checked out. Read the changes with
+            exactly `gh pr diff ${{ github.event.pull_request.number }}` and
+            `gh pr view ${{ github.event.pull_request.number }} --json title --json body`.
+            No other commands or arguments are permitted.
+
+            Provide feedback on:
+            - Code quality and adherence to best practices
+            - Potential bugs or edge cases
+            - Performance considerations
+            - Security implications
+            - Suggestions for improvement
+
+            Provide feedback only as inline comments. If there is nothing to
+            flag, do not comment.
+          # Unlike the example, this job holds secrets, and Claude can publish
+          # anything it reads through the inline comment tool. So nothing it
+          # can run may read the environment:
+          # - No `Bash(gh pr comment:*)`: `--body-file /proc/self/environ`.
+          # - Exact `gh pr diff/view` command lines, no `:*` wildcard:
+          #   `gh pr view --jq '$ENV'` prints the environment.
+          # - `--tools Bash` removes the other built-in tools, such as Read.
+          # The action splits --allowedTools on commas, so no rule may
+          # contain one; hence `--json title --json body`.
           claude_args: |
             --model claude-opus-5-5
             --max-turns 20
-            --allowedTools "mcp__github_inline_comment__create_inline_comment"
+            --tools Bash
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff ${{ github.event.pull_request.number }}),Bash(gh pr view ${{ github.event.pull_request.number }} --json title --json body)"
