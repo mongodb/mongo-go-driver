@@ -67,7 +67,7 @@ jobs:
           permission-issues: read
           permission-pull-requests: write
       - name: Claude Code Review
-        uses: anthropics/claude-code-action@756cc22e19660d20e8cc9496b4f242475a7f7790 # v1
+        uses: anthropics/claude-code-action@1d6de8cb0c237e7c15e9e1bdf973826ebae490cc # v1
         with:
           # Parameter name is fixed by the action; the VALUE is our Grove key
           anthropic_api_key: ${{ secrets.GROVE_API_KEY }}
