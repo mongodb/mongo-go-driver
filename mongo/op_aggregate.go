@@ -156,15 +156,11 @@ func (a *aggregateOp) command(dst []byte, desc description.SelectedServer) ([]by
 	if a.rawData != nil && desc.WireVersion != nil && driverutil.VersionRangeIncludes(*desc.WireVersion, 27) {
 		dst = bsoncore.AppendBooleanElement(dst, "rawData", *a.rawData)
 	}
-	dst, err := appendAdditionalCmd(dst, a.additionalCmd)
-	if err != nil {
-		return nil, err
-	}
 	for optionName, optionValue := range a.customOptions {
 		dst = bsoncore.AppendValueElement(dst, optionName, optionValue)
 	}
 	cursorDoc, _ = bsoncore.AppendDocumentEnd(cursorDoc, cursorIdx)
 	dst = bsoncore.AppendDocumentElement(dst, "cursor", cursorDoc)
 
-	return dst, nil
+	return appendAdditionalCmd(dst, a.additionalCmd)
 }

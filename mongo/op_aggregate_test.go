@@ -50,7 +50,7 @@ func TestAggregateOpAdditionalCmd(t *testing.T) {
 			},
 		})
 
-		want := []string{"aggregate", "b", "a", "d", "c", "cursor"}
+		want := []string{"aggregate", "cursor", "b", "a", "d", "c"}
 		require.Equal(t, want, keys, "expected command fields %v, got %v", want, keys)
 	})
 
@@ -63,7 +63,7 @@ func TestAggregateOpAdditionalCmd(t *testing.T) {
 			},
 		})
 
-		want := []string{"aggregate", "a", "a", "cursor"}
+		want := []string{"aggregate", "cursor", "a", "a"}
 		require.Equal(t, want, keys, "expected command fields %v, got %v", want, keys)
 	})
 }
