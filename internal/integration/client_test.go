@@ -900,6 +900,14 @@ func TestClient_BulkWrite_AddCommandFields(t *testing.T) {
 			name:  "replace one",
 			model: mongo.NewClientReplaceOneModel().SetFilter(bson.D{{"x", 1}}).SetReplacement(bson.D{{"x", 3.14159}}),
 		},
+		{
+			name:  "delete one",
+			model: mongo.NewClientDeleteOneModel().SetFilter(bson.D{{"x", 1}}),
+		},
+		{
+			name:  "delete many",
+			model: mongo.NewClientDeleteManyModel().SetFilter(bson.D{{"x", 1}}),
+		},
 	}
 
 	testCases := []struct {
