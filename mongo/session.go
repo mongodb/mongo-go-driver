@@ -14,6 +14,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/csot"
+	"go.mongodb.org/mongo-driver/v2/internal/errutil"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/v2/internal/randutil"
 	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
@@ -134,7 +135,7 @@ func (s *Session) WithTransaction(
 	ctx context.Context,
 	fn func(ctx context.Context) (any, error),
 	opts ...options.Lister[options.TransactionOptions],
-) (any, error) {
+) (_ any, err error) {
 	transTimeout := withTransactionTimeout
 	if s.client.timeout != nil {
 		transTimeout = *s.client.timeout
@@ -143,8 +144,23 @@ func (s *Session) WithTransaction(
 	timeout := time.NewTimer(transTimeout)
 	defer timeout.Stop()
 	var expDur time.Duration
-	var err error
+
+	// prevErrs accumulates the errors from each retry attempt in chronological
+	// order. If the final attempt also causes an error, prevErrs and the final
+	// error are combined and returned together. See GODRIVER-3600.
+	var prevErrs []error
+	defer func() {
+		err = errutil.NewRetryError(prevErrs, err)
+	}()
+
 	for {
+		// Whenever we're back at the top of the loop, collect the error that
+		// happened on the last attempt. The error will be nil on the first
+		// entry into the loop, so ignore nil errors.
+		if err != nil {
+			prevErrs = append(prevErrs, err)
+		}
+
 		if expDur == 0 {
 			expDur = backoffInitial
 		} else {
@@ -214,6 +230,13 @@ func (s *Session) WithTransaction(
 
 	CommitLoop:
 		for {
+			// Whenever we're back at the top of the loop, collect the error
+			// that happened on the last attempt. The error will be nil on the
+			// first entry into the loop, so ignore nil errors.
+			if err != nil {
+				prevErrs = append(prevErrs, err)
+			}
+
 			err = s.CommitTransaction(newBackgroundContext(ctx))
 			// End when error is nil, as transaction has been committed.
 			if err == nil {

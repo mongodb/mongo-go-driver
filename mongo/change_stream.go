@@ -16,6 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/csot"
 	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/internal/errutil"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -340,6 +341,11 @@ func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) err
 		retries = -1
 	}
 
+	// prevErrs accumulates the errors from each retry attempt in chronological
+	// order. If the final attempt also causes an error, prevErrs and the final
+	// error are combined and returned together. See GODRIVER-3600.
+	var prevErrs []error
+
 	var err error
 AggregateExecuteLoop:
 	for {
@@ -360,7 +366,12 @@ AggregateExecuteLoop:
 			// a connection, and restart loop.
 			retries--
 
-			// Reset deployment.
+			// Reset deployment. Record the retryable error first so that it is
+			// not lost if resetting the deployment fails.
+			//
+			// This is the only retry path, so we don't need to append prevErrs
+			// anywhere else.
+			prevErrs = append(prevErrs, err)
 			err = deployment.reset()
 			if err != nil {
 				break AggregateExecuteLoop
@@ -371,7 +382,8 @@ AggregateExecuteLoop:
 		}
 	}
 	if err != nil {
-		cs.err = wrapErrors(err)
+		cs.err = wrapErrors(errutil.NewRetryError(prevErrs, err))
+
 		return cs.err
 	}
 
@@ -763,7 +775,13 @@ func (cs *ChangeStream) loopNext(ctx context.Context, nonBlocking bool) {
 
 		// ignore error from cursor close because if the cursor is deleted or errors we tried to close it and will remake and try to get next batch
 		_ = cs.cursor.Close(ctx)
+
+		// Retain the resumable error that triggered this resume so that it is
+		// not lost if the resume itself fails. See GODRIVER-3600.
+		resumeErr := cs.err
 		if cs.err = cs.executeOperation(ctx, true); cs.err != nil {
+			cs.err = errutil.NewRetryError([]error{resumeErr}, cs.err)
+
 			return
 		}
 	}
