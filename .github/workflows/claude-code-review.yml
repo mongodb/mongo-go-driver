@@ -58,7 +58,7 @@ jobs:
       # scoped to this repository and expires when the job ends.
       - name: Create PR bot token
         id: app-token
-        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
           app-id: ${{ vars.PR_APP_ID }}
           private-key: ${{ secrets.PR_APP_PRIVATE_KEY }}
@@ -67,7 +67,7 @@ jobs:
           permission-issues: read
           permission-pull-requests: write
       - name: Claude Code Review
-        uses: anthropics/claude-code-action@1d6de8cb0c237e7c15e9e1bdf973826ebae490cc # v1
+        uses: anthropics/claude-code-action@5eb090f3c3afd701a0672cd32981197ca27688f6 # v1
         with:
           # Parameter name is fixed by the action; the VALUE is our Grove key
           anthropic_api_key: ${{ secrets.GROVE_API_KEY }}
