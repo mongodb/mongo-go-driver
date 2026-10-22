@@ -1052,7 +1052,7 @@ func TestWrapErrorsRetryError(t *testing.T) {
 		Message: "interrupted",
 	}
 
-	retryErr := errutil.NewRetryError([]error{first}, final)
+	retryErr := errutil.NewRetryError([]error{first, final}, final)
 
 	wrapped := wrapErrors(retryErr)
 

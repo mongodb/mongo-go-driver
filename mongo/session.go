@@ -150,6 +150,10 @@ func (s *Session) WithTransaction(
 	// error are combined and returned together. See GODRIVER-3600.
 	var prevErrs []error
 	defer func() {
+		if err != nil {
+			prevErrs = append(prevErrs, err)
+		}
+
 		err = errutil.NewRetryError(prevErrs, err)
 	}()
 

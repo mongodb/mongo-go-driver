@@ -29,25 +29,26 @@ func TestNewRetryError(t *testing.T) {
 	errFirst := errors.New("first")
 	errFinal := errors.New("final")
 
-	t.Run("nil final returns nil", func(t *testing.T) {
-		err := NewRetryError([]error{errFirst}, nil)
+	t.Run("nil main returns nil", func(t *testing.T) {
+		err := NewRetryError([]error{errFirst, errFinal}, nil)
 		assert.Nil(t, err, "expected nil error")
 	})
 
-	t.Run("no previous errors returns final unchanged", func(t *testing.T) {
-		assert.Equal(t, errFinal, NewRetryError(nil, errFinal), "expected final error")
-		assert.Equal(t, errFinal, NewRetryError([]error{}, errFinal), "expected final error")
+	t.Run("no retry attempts returns main unchanged", func(t *testing.T) {
+		assert.Equal(t, errFinal, NewRetryError(nil, errFinal), "expected main error")
+		assert.Equal(t, errFinal, NewRetryError([]error{}, errFinal), "expected main error")
+		assert.Equal(t, errFinal, NewRetryError([]error{errFinal}, errFinal), "expected main error")
 	})
 
-	t.Run("nil previous errors are omitted", func(t *testing.T) {
-		err := NewRetryError([]error{nil, nil}, errFinal)
-		assert.Equal(t, errFinal, err, "expected final error")
+	t.Run("nil attempts are omitted", func(t *testing.T) {
+		err := NewRetryError([]error{nil, errFinal, nil}, errFinal)
+		assert.Equal(t, errFinal, err, "expected main error")
 	})
 
-	t.Run("attempts are listed chronologically", func(t *testing.T) {
-		err := NewRetryError([]error{errFirst, errors.New("second")}, errFinal)
+	t.Run("main error is printed before the attempts", func(t *testing.T) {
+		err := NewRetryError([]error{errFirst, errors.New("second"), errFinal}, errFinal)
 
-		want := "attempt 1: first\nattempt 2: second\nattempt 3 (final): final"
+		want := "final\nattempt 1: first\nattempt 2: second\nattempt 3: final"
 		assert.Equal(t, want, err.Error(), "unexpected error message")
 
 		var retryErr *RetryError
@@ -57,36 +58,49 @@ func TestNewRetryError(t *testing.T) {
 		assert.Equal(t, errFinal, retryErr.Attempts()[2], "expected final attempt last")
 	})
 
-	t.Run("errors.Is matches any attempt", func(t *testing.T) {
-		err := NewRetryError([]error{errFirst}, errFinal)
+	t.Run("main error is not always the last attempt", func(t *testing.T) {
+		// Operation.Execute returns the previous attempt's error rather than a
+		// connection error encountered while retrying.
+		errConn := errors.New("connection pool cleared")
+		err := NewRetryError([]error{errFirst, errConn}, errFirst)
 
-		assert.ErrorIs(t, err, errFirst, "expected to match the first attempt")
-		assert.ErrorIs(t, err, errFinal, "expected to match the final attempt")
+		want := "first\nattempt 1: first\nattempt 2: connection pool cleared"
+		assert.Equal(t, want, err.Error(), "unexpected error message")
+		assert.ErrorIs(t, err, errFirst, "expected to match the main error")
+		assert.False(t, errors.Is(err, errConn), "expected not to match a non-main attempt")
 	})
 
-	t.Run("errors.As resolves to the final attempt", func(t *testing.T) {
+	t.Run("errors.Is matches only the main error", func(t *testing.T) {
+		err := NewRetryError([]error{errFirst, errFinal}, errFinal)
+
+		assert.ErrorIs(t, err, errFinal, "expected to match the main error")
+		assert.False(t, errors.Is(err, errFirst), "expected not to match an earlier attempt")
+	})
+
+	t.Run("errors.As resolves to the main error", func(t *testing.T) {
 		first := codedError{code: 10107} // NotWritablePrimary
 		final := codedError{
 			code:   11602, // InterruptedDueToReplStateChange
 			labels: []string{"RetryableWriteError"},
 		}
-		err := NewRetryError([]error{first}, final)
+		err := NewRetryError([]error{first, final}, final)
 
 		var ce codedError
 		assert.True(t, errors.As(err, &ce), "expected a codedError")
 		assert.Equal(t, final.code, ce.code,
-			"expected errors.As to resolve to the final attempt")
+			"expected errors.As to resolve to the main error")
 		assert.Equal(t, final.labels, ce.labels,
-			"expected errors.As to recover the final attempt's labels")
+			"expected errors.As to recover the main error's labels")
 	})
 
 	t.Run("errors.As resolves through a wrapping error", func(t *testing.T) {
+		first := codedError{code: 10107}
 		final := codedError{code: 11602}
-		err := fmt.Errorf("wrapped: %w", NewRetryError([]error{codedError{code: 10107}}, final))
+		err := fmt.Errorf("wrapped: %w", NewRetryError([]error{first, final}, final))
 
 		var ce codedError
 		assert.True(t, errors.As(err, &ce), "expected a codedError")
 		assert.Equal(t, final.code, ce.code,
-			"expected errors.As to resolve to the final attempt")
+			"expected errors.As to resolve to the main error")
 	})
 }

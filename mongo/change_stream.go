@@ -382,6 +382,7 @@ AggregateExecuteLoop:
 		}
 	}
 	if err != nil {
+		prevErrs = append(prevErrs, err)
 		cs.err = wrapErrors(errutil.NewRetryError(prevErrs, err))
 
 		return cs.err
@@ -780,7 +781,7 @@ func (cs *ChangeStream) loopNext(ctx context.Context, nonBlocking bool) {
 		// not lost if the resume itself fails. See GODRIVER-3600.
 		resumeErr := cs.err
 		if cs.err = cs.executeOperation(ctx, true); cs.err != nil {
-			cs.err = errutil.NewRetryError([]error{resumeErr}, cs.err)
+			cs.err = errutil.NewRetryError([]error{resumeErr, cs.err}, cs.err)
 
 			return
 		}

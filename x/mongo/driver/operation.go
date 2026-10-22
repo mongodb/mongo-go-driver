@@ -566,11 +566,25 @@ func (op Operation) Execute(ctx context.Context) (err error) {
 	var prevIndefiniteErr error
 
 	// prevErrs accumulates the errors from each retry attempt in chronological
-	// order. If the final attempt also causes an error, prevErrs and the final
-	// error are combined and returned together. See GODRIVER-3600.
+	// order. The deferred function records the error the loop ends with as the
+	// final attempt and joins the whole history into one error. See
+	// GODRIVER-3600.
+	//
+	// mainErr, when set, is returned in place of the error the loop ends with.
+	// The connection error path below uses it to return an earlier attempt's
+	// error while still recording the connection error as an attempt.
 	var prevErrs []error
+	var mainErr error
+
 	defer func() {
-		err = errutil.NewRetryError(prevErrs, err)
+		if err != nil {
+			prevErrs = append(prevErrs, err)
+		}
+		if mainErr == nil {
+			mainErr = err
+		}
+
+		err = errutil.NewRetryError(prevErrs, mainErr)
 	}()
 
 	var overloadAttempt uint
@@ -598,7 +612,6 @@ func (op Operation) Execute(ctx context.Context) (err error) {
 		}
 
 		attempt++
-		prevErrs = append(prevErrs, err)
 
 		// If the "prevIndefiniteErr" is nil, then the current error is the first error encountered
 		// during the retry attempt cycle.
@@ -663,6 +676,12 @@ func (op Operation) Execute(ctx context.Context) (err error) {
 			case <-sleep.C:
 			}
 		}
+
+		// Record the error as a retry attempt. This is done last so that an
+		// error returned by resetForRetry above is recorded by the deferred
+		// join instead, rather than being recorded twice.
+		prevErrs = append(prevErrs, err)
+
 		return nil
 	}
 
@@ -702,6 +721,12 @@ func (op Operation) Execute(ctx context.Context) (err error) {
 						return err
 					}
 					continue
+				}
+
+				// If this is a retry and there's an error from a previous attempt, return the previous
+				// error instead of the current connection error.
+				if len(prevErrs) > 0 {
+					mainErr = prevErrs[len(prevErrs)-1]
 				}
 
 				return err

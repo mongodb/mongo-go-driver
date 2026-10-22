@@ -11,77 +11,65 @@ import (
 	"strings"
 )
 
-// RetryError aggregates the errors from every attempt of a retried operation.
+// RetryError collects all errors encountered while retrying an operation.
 //
-// The error message lists the attempts in chronological order, so it reads as a
-// timeline of the failure. Unwrap, on the other hand, returns the attempts with
-// the final attempt first, so that errors.Is and errors.As resolve against the
-// error the operation actually failed with. That preserves the inspection
-// behavior of the single error that was returned before retry errors were
-// joined, while still making the earlier errors reachable.
+// The main error is the primary error to surface as described by the Retryable
+// Writes specification. It is the only error Unwrap returns, so errors.Is and
+// errors.As resolve against it exactly, ignoring all other attempt errors. The
+// error message prints the main error first, followed by every attempt error in
+// chronological order, so the full retry history is in the error message.
 type RetryError struct {
-	// attempts holds the attempt errors in chronological order. The last
-	// element is the error from the final attempt.
-	attempts []error
+	// mainErr is the error the operation returned. Unwrap returns it.
+	mainErr error
 
-	// unwrapped holds the same errors with the final attempt first. It is
-	// precomputed because errors.Is and errors.As call Unwrap repeatedly and
-	// must not mutate the returned slice.
-	unwrapped []error
+	// attemptErrs holds every attempt error in chronological order. The main
+	// error is usually, but not always, the last element: some retry paths
+	// return an error from an earlier attempt.
+	attemptErrs []error
 }
 
-// NewRetryError returns an error that aggregates the errors from the previous
-// attempts of a retried operation with the error from its final attempt.
+// NewRetryError returns an error that aggregates the errors from every attempt
+// of a retried operation. The attempts are listed in chronological order.
+// mainErr is the primary error to surface as described by the Retryable Writes
+// specification.
 //
-// It returns nil if final is nil, and returns final unchanged if there are no
-// non-nil previous errors. Previous errors that are nil are omitted.
-func NewRetryError(prev []error, final error) error {
-	if final == nil {
+// NewRetryError returns nil if mainErr is nil, and returns mainErr unchanged if
+// there was only a single attempt. Nil errors are omitted.
+func NewRetryError(attemptErrs []error, mainErr error) error {
+	if mainErr == nil {
 		return nil
 	}
 
-	attempts := make([]error, 0, len(prev)+1)
-	for _, err := range prev {
+	errs := make([]error, 0, len(attemptErrs))
+	for _, err := range attemptErrs {
 		if err == nil {
 			continue
 		}
-		attempts = append(attempts, err)
+		errs = append(errs, err)
 	}
-	if len(attempts) == 0 {
-		return final
-	}
-	attempts = append(attempts, final)
-
-	unwrapped := make([]error, 0, len(attempts))
-	for i := len(attempts) - 1; i >= 0; i-- {
-		unwrapped = append(unwrapped, attempts[i])
+	if len(errs) <= 1 {
+		return mainErr
 	}
 
-	return &RetryError{attempts: attempts, unwrapped: unwrapped}
+	return &RetryError{mainErr: mainErr, attemptErrs: errs}
 }
 
-// Attempts returns the attempt errors in chronological order. The last element
-// is the error from the final attempt.
+// Attempts returns the attempt errors in chronological order.
 func (e *RetryError) Attempts() []error {
-	attempts := make([]error, len(e.attempts))
-	copy(attempts, e.attempts)
+	attempts := make([]error, len(e.attemptErrs))
+	copy(attempts, e.attemptErrs)
 
 	return attempts
 }
 
-// Error implements the error interface. It lists the attempt errors in
-// chronological order, one per line.
+// Error implements the error interface. It returns the main error's message
+// followed by the message from each attempt, one per line.
 func (e *RetryError) Error() string {
 	var sb strings.Builder
-	for i, err := range e.attempts {
-		if i > 0 {
-			sb.WriteByte('\n')
-		}
-		sb.WriteString("attempt ")
+	sb.WriteString(e.mainErr.Error())
+	for i, err := range e.attemptErrs {
+		sb.WriteString("\nattempt ")
 		sb.WriteString(strconv.Itoa(i + 1))
-		if i == len(e.attempts)-1 {
-			sb.WriteString(" (final)")
-		}
 		sb.WriteString(": ")
 		sb.WriteString(err.Error())
 	}
@@ -89,8 +77,7 @@ func (e *RetryError) Error() string {
 	return sb.String()
 }
 
-// Unwrap returns the attempt errors with the final attempt first, so that
-// errors.Is and errors.As match the final attempt before any earlier one.
-func (e *RetryError) Unwrap() []error {
-	return e.unwrapped
+// Unwrap returns the main error.
+func (e *RetryError) Unwrap() error {
+	return e.mainErr
 }
