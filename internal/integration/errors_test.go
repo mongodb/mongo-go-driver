@@ -140,8 +140,8 @@ func TestErrors(t *testing.T) {
 
 				_, err = mt.Coll.InsertOne(context.Background(), bson.D{{"_id", 1}})
 				assert.NotNil(mt, err, "expected InsertOne error, got nil")
-				we, ok := err.(mongo.WriteException)
-				assert.True(mt, ok, "expected InsertOne error to be WriteException, got %T", err)
+				var we mongo.WriteException
+				assert.ErrorAs(mt, err, &we, "expected InsertOne error to be WriteException, got %T", err)
 
 				assert.NotNil(mt, we.WriteErrors, "expected we.WriteErrors, got nil")
 				assert.NotNil(mt, we.WriteErrors[0], "expected at least one WriteError")
@@ -172,8 +172,8 @@ func TestErrors(t *testing.T) {
 
 				_, err := mt.Coll.DeleteMany(context.Background(), bson.D{})
 				assert.NotNil(mt, err, "expected DeleteMany error, got nil")
-				we, ok := err.(mongo.WriteException)
-				assert.True(mt, ok, "expected DeleteMany error to be WriteException, got %T", err)
+				var we mongo.WriteException
+				assert.ErrorAs(mt, err, &we, "expected DeleteMany error to be WriteException, got %T", err)
 
 				// Assert that raw response exists and contains error code 123.
 				assert.NotNil(mt, we.Raw, "expected RawResponse, got nil")

@@ -11,11 +11,13 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"strings"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/topology"
 )
@@ -675,6 +677,45 @@ func TestIsTimeout(t *testing.T) {
 			err:    errors.New("foo"),
 			result: false,
 		},
+		// A WriteException keeps the error chain it was built from, so a timeout
+		// from an earlier attempt of a retried write is reachable through it. See
+		// GODRIVER-4172.
+		{
+			name:   "WriteException wrapping context.DeadlineExceeded",
+			err:    writeExceptionWrapping(context.DeadlineExceeded),
+			result: true,
+		},
+		{
+			name:   "WriteException wrapping ErrDeadlineWouldBeExceeded",
+			err:    writeExceptionWrapping(driver.ErrDeadlineWouldBeExceeded),
+			result: true,
+		},
+		{
+			name:   "WriteException wrapping WaitQueueTimeoutError",
+			err:    writeExceptionWrapping(topology.WaitQueueTimeoutError{}),
+			result: true,
+		},
+		{
+			name:   "WriteException wrapping a timeout net error",
+			err:    writeExceptionWrapping(netErr{true}),
+			result: true,
+		},
+		{
+			name:   "WriteException without a timeout in the chain",
+			err:    writeExceptionWrapping(errors.New("foo")),
+			result: false,
+		},
+		{
+			// A non-timeout net.Error in the chain must not suppress the error
+			// label check.
+			name: "ExceededTimeLimitError label with a non-timeout net error",
+			err: writeExceptionWrapping(netErr{false},
+				driver.WriteCommandError{
+					WriteErrors: driver.WriteErrors{{Code: 11000, Message: "duplicate key"}},
+					Labels:      []string{"ExceededTimeLimitError"},
+				}),
+			result: true,
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -1032,4 +1073,257 @@ func TestErrorCodesNoDoubleWrapping(t *testing.T) {
 	// Verify that calling ErrorCodes again gives same result
 	codes2 := ErrorCodes(wrapped)
 	require.Equal(t, codes, codes2)
+}
+
+// TestProcessWriteErrorChain asserts that processWriteError wraps the error
+// chain it is passed instead of replacing it, so that errors wrapped or joined
+// beneath the driver.WriteCommandError (e.g. the errors from the previous
+// attempts of a retried operation) stay reachable with errors.Is and
+// errors.As. See GODRIVER-4172.
+func TestProcessWriteErrorChain(t *testing.T) {
+	t.Parallel()
+
+	sentinel := errors.New("sentinel")
+	wce := driver.WriteCommandError{
+		WriteErrors: driver.WriteErrors{{Index: 0, Code: 11000, Message: "duplicate key"}},
+		Labels:      []string{"RetryableWriteError"},
+	}
+
+	tests := []struct {
+		name string
+		err  error
+	}{
+		{
+			name: "wrapped",
+			err:  fmt.Errorf("outer: %w", fmt.Errorf("%w: %w", sentinel, wce)),
+		},
+		{
+			name: "joined",
+			err:  errors.Join(sentinel, wce),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			rr, got := processWriteError(test.err)
+			require.Equal(t, rrMany, rr, "expected a *Many return result")
+
+			var we WriteException
+			require.True(t, errors.As(got, &we), "expected a WriteException, got %T", got)
+			assert.Equal(t, 11000, we.WriteErrors[0].Code, "expected the write error code")
+			assert.Equal(t, []string{"RetryableWriteError"}, we.Labels, "expected the labels")
+
+			// The entire error chain must stay reachable.
+			assert.ErrorIs(t, got, sentinel, "expected the sentinel error in the chain")
+			assert.True(t, errors.As(got, &driver.WriteCommandError{}),
+				"expected the driver.WriteCommandError in the chain")
+			assert.Equal(t, test.err, errors.Unwrap(got),
+				"expected Unwrap to return the original error chain")
+		})
+	}
+}
+
+// writeExceptionWrapping returns the WriteException that processWriteError
+// builds from a driver.WriteCommandError joined with the given error. It is
+// used to build the error chains that a retried write operation returns. The
+// driver.WriteCommandError defaults to a duplicate key error.
+func writeExceptionWrapping(err error, wce ...driver.WriteCommandError) error {
+	cmdErr := driver.WriteCommandError{
+		WriteErrors: driver.WriteErrors{{Code: 11000, Message: "duplicate key"}},
+	}
+	if len(wce) > 0 {
+		cmdErr = wce[0]
+	}
+
+	_, writeErr := processWriteError(errors.Join(err, cmdErr))
+
+	return writeErr
+}
+
+// TestProcessWriteError asserts the full returnResult and error contract of
+// processWriteError.
+func TestProcessWriteError(t *testing.T) {
+	t.Parallel()
+
+	wce := driver.WriteCommandError{
+		WriteConcernError: &driver.WriteConcernError{Code: 100, Name: "wce", Message: "write concern error"},
+		WriteErrors:       driver.WriteErrors{{Index: 1, Code: 11000, Message: "duplicate key"}},
+		Labels:            []string{"RetryableWriteError"},
+		Raw:               bsoncore.Document{5, 0, 0, 0, 0},
+	}
+
+	t.Run("nil", func(t *testing.T) {
+		t.Parallel()
+
+		rr, err := processWriteError(nil)
+		assert.Equal(t, rrAll, rr, "expected rrAll")
+		assert.NoError(t, err, "expected no error")
+	})
+
+	t.Run("unacknowledged write", func(t *testing.T) {
+		t.Parallel()
+
+		for _, err := range []error{
+			driver.ErrUnacknowledgedWrite,
+			fmt.Errorf("outer: %w", driver.ErrUnacknowledgedWrite),
+		} {
+			rr, got := processWriteError(err)
+			assert.Equal(t, rrAllUnacknowledged, rr, "expected rrAllUnacknowledged")
+			assert.NoError(t, got, "expected the acknowledgement sentinel error to not be propagated")
+		}
+	})
+
+	t.Run("command error", func(t *testing.T) {
+		t.Parallel()
+
+		rr, got := processWriteError(driver.Error{Code: 1, Message: "command error"})
+		assert.Equal(t, rrNone, rr, "expected rrNone")
+
+		var cmdErr CommandError
+		require.True(t, errors.As(got, &cmdErr), "expected a CommandError, got %T", got)
+		assert.Equal(t, int32(1), cmdErr.Code, "expected the driver error code")
+	})
+
+	t.Run("other error", func(t *testing.T) {
+		t.Parallel()
+
+		err := errors.New("foo")
+		rr, got := processWriteError(err)
+		assert.Equal(t, rrNone, rr, "expected rrNone")
+		assert.Equal(t, err, got, "expected the error to be returned unchanged")
+	})
+
+	t.Run("write command error", func(t *testing.T) {
+		t.Parallel()
+
+		rr, got := processWriteError(wce)
+		assert.Equal(t, rrMany, rr, "expected rrMany")
+
+		var we WriteException
+		require.True(t, errors.As(got, &we), "expected a WriteException, got %T", got)
+		require.NotNil(t, we.WriteConcernError, "expected a write concern error")
+		assert.Equal(t, 100, we.WriteConcernError.Code, "expected the write concern error code")
+		assert.Equal(t, "wce", we.WriteConcernError.Name, "expected the write concern error name")
+		require.Len(t, we.WriteErrors, 1, "expected 1 write error")
+		assert.Equal(t, 1, we.WriteErrors[0].Index, "expected the write error index")
+		assert.Equal(t, 11000, we.WriteErrors[0].Code, "expected the write error code")
+		assert.Equal(t, []string{"RetryableWriteError"}, we.Labels, "expected the labels")
+		assert.Equal(t, bson.Raw(wce.Raw), we.Raw, "expected the raw response")
+	})
+}
+
+// TestProcessWriteErrorNoCommandErrorInChain asserts that processWriteError
+// wraps the error it is passed rather than wrapErrors(err). Converting the
+// chain would turn a driver.Error from an earlier attempt into a CommandError,
+// which would make errors.As report an error from an attempt other than the one
+// the operation actually failed with.
+func TestProcessWriteErrorNoCommandErrorInChain(t *testing.T) {
+	t.Parallel()
+
+	driverErr := driver.Error{Code: 10107, Name: "NotWritablePrimary", Message: "not primary"}
+	wce := driver.WriteCommandError{
+		WriteErrors: driver.WriteErrors{{Code: 11000, Message: "duplicate key"}},
+	}
+
+	_, got := processWriteError(errors.Join(driverErr, wce))
+
+	var cmdErr CommandError
+	assert.False(t, errors.As(got, &cmdErr), "expected no mongo.CommandError in the chain")
+
+	var de driver.Error
+	require.True(t, errors.As(got, &de), "expected the driver.Error to stay reachable")
+	assert.Equal(t, int32(10107), de.Code, "expected the driver error code")
+}
+
+// TestWriteExceptionRootMatchesFirst asserts that the helpers that walk the
+// error chain still resolve against the WriteException at the root of the
+// chain, not against an error from an earlier attempt.
+func TestWriteExceptionRootMatchesFirst(t *testing.T) {
+	t.Parallel()
+
+	err := writeExceptionWrapping(driver.Error{Code: 1, Name: "other", Message: "other"})
+
+	assert.Equal(t, []int{11000}, ErrorCodes(err), "expected only the write error code")
+	assert.True(t, IsDuplicateKeyError(err), "expected a duplicate key error")
+	assert.False(t, IsNetworkError(err), "expected no network error")
+}
+
+// TestWriteExceptionUnwrapNil asserts that a WriteException that was not
+// returned by a write operation has no underlying error and that inspecting it
+// does not panic.
+func TestWriteExceptionUnwrapNil(t *testing.T) {
+	t.Parallel()
+
+	we := WriteException{WriteErrors: WriteErrors{{Code: 11000, Message: "duplicate key"}}}
+
+	assert.NoError(t, errors.Unwrap(we), "expected no underlying error")
+	assert.False(t, errors.Is(we, context.DeadlineExceeded), "expected no match in the chain")
+	assert.False(t, errors.As(error(we), &driver.WriteCommandError{}), "expected no match in the chain")
+	assert.Equal(t, "write exception: write errors: [duplicate key]", we.Error(),
+		"expected the write exception error message")
+}
+
+// TestWriteExceptionErrorMessage asserts that the error message of a
+// WriteException returned by a write operation defers to the wrapped error
+// instead of duplicating it, and that it still reports everything the
+// WriteException used to report on its own.
+func TestWriteExceptionErrorMessage(t *testing.T) {
+	t.Parallel()
+
+	t.Run("no duplication", func(t *testing.T) {
+		t.Parallel()
+
+		wce := driver.WriteCommandError{
+			WriteErrors: driver.WriteErrors{{Code: 11000, Message: "duplicate key"}},
+		}
+		in := fmt.Errorf("attempt 1: %w", wce)
+
+		_, got := processWriteError(in)
+
+		assert.Equal(t, in.Error(), got.Error(), "expected the wrapped error message")
+		assert.Equal(t, 1, strings.Count(got.Error(), "duplicate key"),
+			"expected the write error message to appear exactly once")
+	})
+
+	t.Run("includes write error details", func(t *testing.T) {
+		t.Parallel()
+
+		details, err := bson.Marshal(bson.D{{"details", bson.D{{"operatorName", "$jsonSchema"}}}})
+		require.NoError(t, err, "unexpected error marshaling BSON")
+
+		wce := driver.WriteCommandError{
+			WriteErrors: driver.WriteErrors{{
+				Code:    121,
+				Message: "Document failed validation",
+				Details: bsoncore.Document(details),
+			}},
+		}
+
+		_, got := processWriteError(wce)
+
+		assert.Equal(t,
+			`write command error: write errors: [Document failed validation: {"details": {"operatorName": "$jsonSchema"}}]`,
+			got.Error(),
+			"expected the write error details in the error message")
+	})
+
+	t.Run("truncates large batches", func(t *testing.T) {
+		t.Parallel()
+
+		writeErrors := make(driver.WriteErrors, 0, 500)
+		for i := 0; i < 500; i++ {
+			writeErrors = append(writeErrors, driver.WriteError{
+				Index:   int64(i),
+				Code:    11000,
+				Message: "duplicate key error collection: db.coll index: _id_",
+			})
+		}
+
+		_, got := processWriteError(driver.WriteCommandError{WriteErrors: writeErrors})
+
+		assert.True(t, len(got.Error()) < 3000, "expected a truncated error message, got %d bytes", len(got.Error()))
+		assert.Contains(t, got.Error(), "more errors...", "expected the truncation message")
+	})
 }

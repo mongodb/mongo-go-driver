@@ -163,3 +163,86 @@ func TestError_Error(t *testing.T) {
 		})
 	}
 }
+
+// TestWriteCommandErrorMessages asserts that the WriteCommandError error
+// message reports every cause it has, including the write error details, and
+// omits the causes it does not have. mongo.WriteException defers its error
+// message to this one, so anything missing here is missing from the error
+// message returned to users. See GODRIVER-4172.
+func TestWriteCommandErrorMessages(t *testing.T) {
+	t.Parallel()
+
+	details, err := bson.Marshal(bson.D{{"details", bson.D{{"operatorName", "$jsonSchema"}}}})
+	require.NoError(t, err, "unexpected error marshaling BSON")
+
+	manyWriteErrors := make(WriteErrors, 0, 500)
+	for i := 0; i < 500; i++ {
+		manyWriteErrors = append(manyWriteErrors, WriteError{
+			Index:   int64(i),
+			Code:    11000,
+			Message: "duplicate key error collection: db.coll index: _id_",
+		})
+	}
+
+	tests := []struct {
+		name string
+		err  WriteCommandError
+		want string
+	}{
+		{
+			name: "no causes",
+			err:  WriteCommandError{},
+			want: "write command error: no causes",
+		},
+		{
+			name: "write errors only",
+			err: WriteCommandError{
+				WriteErrors: WriteErrors{{Code: 11000, Message: "duplicate key"}},
+			},
+			want: "write command error: write errors: [duplicate key]",
+		},
+		{
+			name: "write concern error only",
+			err: WriteCommandError{
+				WriteConcernError: &WriteConcernError{Name: "wce", Message: "write concern failed"},
+			},
+			want: "write command error: write concern error: (wce) write concern failed",
+		},
+		{
+			name: "write errors and write concern error",
+			err: WriteCommandError{
+				WriteConcernError: &WriteConcernError{Message: "write concern failed"},
+				WriteErrors:       WriteErrors{{Code: 11000, Message: "duplicate key"}},
+			},
+			want: "write command error: write concern error: write concern failed, write errors: [duplicate key]",
+		},
+		{
+			name: "write error details",
+			err: WriteCommandError{
+				WriteErrors: WriteErrors{{
+					Code:    121,
+					Message: "Document failed validation",
+					Details: bsoncore.Document(details),
+				}},
+			},
+			want: `write command error: write errors: [Document failed validation: {"details": {"operatorName": "$jsonSchema"}}]`,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			require.Equal(t, test.want, test.err.Error())
+		})
+	}
+
+	t.Run("truncates large batches", func(t *testing.T) {
+		t.Parallel()
+
+		got := WriteCommandError{WriteErrors: manyWriteErrors}.Error()
+
+		require.Less(t, len(got), 3000, "expected a truncated error message")
+		require.Contains(t, got, "more errors...", "expected the truncation message")
+	})
+}

@@ -7,7 +7,6 @@
 package driver
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -16,6 +15,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/internal/errutil"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
 )
@@ -138,11 +138,21 @@ func (wce WriteCommandError) UnsupportedStorageEngine() bool {
 }
 
 func (wce WriteCommandError) Error() string {
-	var buf bytes.Buffer
-	fmt.Fprint(&buf, "write command error: [")
-	fmt.Fprintf(&buf, "{%s}, ", wce.WriteErrors)
-	fmt.Fprintf(&buf, "{%s}]", wce.WriteConcernError)
-	return buf.String()
+	causes := make([]string, 0, 2)
+	if wce.WriteConcernError != nil {
+		causes = append(causes, "write concern error: "+wce.WriteConcernError.Error())
+	}
+	if len(wce.WriteErrors) > 0 {
+		// The WriteErrors error message already starts with "write errors:", so don't add it to
+		// the error message again.
+		causes = append(causes, wce.WriteErrors.Error())
+	}
+
+	message := "write command error: "
+	if len(causes) == 0 {
+		return message + "no causes"
+	}
+	return message + strings.Join(causes, ", ")
 }
 
 // Retryable returns true if the error is retryable
@@ -252,23 +262,24 @@ type WriteError struct {
 	Raw     bsoncore.Document
 }
 
-func (we WriteError) Error() string { return we.Message }
+func (we WriteError) Error() string {
+	msg := we.Message
+	if len(we.Details) > 0 {
+		msg = fmt.Sprintf("%s: %s", msg, we.Details.String())
+	}
+	return msg
+}
 
 // WriteErrors is a group of non-write concern failures that occurred as a result
 // of a write operation.
 type WriteErrors []WriteError
 
 func (we WriteErrors) Error() string {
-	var buf bytes.Buffer
-	fmt.Fprint(&buf, "write errors: [")
-	for idx, err := range we {
-		if idx != 0 {
-			fmt.Fprintf(&buf, ", ")
-		}
-		fmt.Fprintf(&buf, "{%s}", err)
+	errs := make([]error, len(we))
+	for i := 0; i < len(we); i++ {
+		errs[i] = we[i]
 	}
-	fmt.Fprint(&buf, "]")
-	return buf.String()
+	return "write errors: " + errutil.JoinBatchErrors(errs)
 }
 
 // Error is a command execution error from the database.

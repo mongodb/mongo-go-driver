@@ -7,7 +7,6 @@
 package mongo
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -17,6 +16,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/codecutil"
+	"go.mongodb.org/mongo-driver/v2/internal/errutil"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mongocrypt"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/topology"
@@ -214,8 +214,11 @@ func IsTimeout(err error) bool {
 	if we := (WriteException{}); errors.As(err, &we) && we.WriteConcernError != nil && we.WriteConcernError.IsMaxTimeMSExpiredError() {
 		return true
 	}
-	if ne := net.Error(nil); errors.As(err, &ne) {
-		return ne.Timeout()
+	// Check "ne.Timeout()" as part of the condition instead of returning it. A
+	// non-timeout net.Error anywhere in the chain must not suppress the error
+	// label check below.
+	if ne := net.Error(nil); errors.As(err, &ne) && ne.Timeout() {
+		return true
 	}
 	// Check timeout error labels.
 	if le := LabeledError(nil); errors.As(err, &le) {
@@ -531,7 +534,7 @@ func (we WriteErrors) Error() string {
 		errs[i] = we[i]
 	}
 	// WriteErrors isn't returned from batch operations, but we can still use the same formatter.
-	return "write errors: " + joinBatchErrors(errs)
+	return "write errors: " + errutil.JoinBatchErrors(errs)
 }
 
 func writeErrorsFromDriverWriteErrors(errs driver.WriteErrors) WriteErrors {
@@ -585,10 +588,37 @@ type WriteException struct {
 
 	// The original server response containing the error.
 	Raw bson.Raw
+
+	// wrapped is the error that processWriteError was called with. Wrapping that
+	// error instead of replacing it keeps every error in the chain -- including
+	// the error from each attempt of a retried operation -- reachable with
+	// errors.Is and errors.As.
+	//
+	// Unlike CommandError.Wrapped, this field is unexported because Error() is
+	// the only thing that reads it and because it makes it impossible to
+	// construct a cycle in the error chain, which would hang errors.Is and
+	// errors.As. Use errors.As to inspect the errors in the chain.
+	wrapped error
+
+	// If wrappedMsgOnly is true, Error() only returns the error message from the
+	// "wrapped" error.
+	//
+	// This is typically only set by the processWriteError function, which uses
+	// WriteException to wrap driver.WriteCommandError, allowing users to access
+	// the "WriteConcernError", "WriteErrors", "Labels", and "Raw" from the
+	// underlying error but preventing duplication in the error string.
+	wrappedMsgOnly bool
 }
 
 // Error implements the error interface.
 func (mwe WriteException) Error() string {
+	// If the WriteException was created with wrappedMsgOnly=true, only return the
+	// error from the wrapped error. See the WriteException.wrappedMsgOnly docs
+	// for more info.
+	if mwe.wrappedMsgOnly && mwe.wrapped != nil {
+		return mwe.wrapped.Error()
+	}
+
 	causes := make([]string, 0, 2)
 	if mwe.WriteConcernError != nil {
 		causes = append(causes, "write concern error: "+mwe.WriteConcernError.Error())
@@ -604,6 +634,12 @@ func (mwe WriteException) Error() string {
 		return message + "no causes"
 	}
 	return message + strings.Join(causes, ", ")
+}
+
+// Unwrap returns the underlying error. It returns nil for a WriteException that
+// was not returned by a write operation.
+func (mwe WriteException) Unwrap() error {
+	return mwe.wrapped
 }
 
 // HasErrorCode returns true if the error has the specified code.
@@ -714,7 +750,7 @@ func (bwe BulkWriteException) Error() string {
 		for i := 0; i < len(bwe.WriteErrors); i++ {
 			errs[i] = &bwe.WriteErrors[i]
 		}
-		causes = append(causes, "write errors: "+joinBatchErrors(errs))
+		causes = append(causes, "write errors: "+errutil.JoinBatchErrors(errs))
 	}
 
 	message := "bulk write exception: "
@@ -830,14 +866,14 @@ func (bwe ClientBulkWriteException) Error() string {
 		for i := 0; i < len(bwe.WriteConcernErrors); i++ {
 			errs[i] = bwe.WriteConcernErrors[i]
 		}
-		causes = append(causes, "write concern errors: "+joinBatchErrors(errs))
+		causes = append(causes, "write concern errors: "+errutil.JoinBatchErrors(errs))
 	}
 	if len(bwe.WriteErrors) > 0 {
 		errs := make([]error, 0, len(bwe.WriteErrors))
 		for _, v := range bwe.WriteErrors {
 			errs = append(errs, v)
 		}
-		causes = append(causes, "write errors: "+joinBatchErrors(errs))
+		causes = append(causes, "write errors: "+errutil.JoinBatchErrors(errs))
 	}
 	if bwe.PartialResult != nil {
 		causes = append(causes, fmt.Sprintf("result: %v", *bwe.PartialResult))
@@ -927,39 +963,23 @@ func processWriteError(err error) (returnResult, error) {
 		WriteErrors:       writeErrorsFromDriverWriteErrors(wce.WriteErrors),
 		Labels:            wce.Labels,
 		Raw:               bson.Raw(wce.Raw),
+
+		// Wrap "err" instead of replacing it so that every error in the chain,
+		// including the error from each attempt of a retried operation, stays
+		// reachable with errors.Is and errors.As.
+		//
+		// Wrap "err" itself rather than wrapErrors(err): wrapErrors would convert
+		// a driver.Error from an earlier attempt into a mongo.CommandError, which
+		// would make errors.As(err, &CommandError{}) report an error from an
+		// attempt other than the one the operation actually failed with.
+		wrapped: err,
+
+		// Set wrappedMsgOnly=true here so that the write errors and the write
+		// concern error are not repeated multiple times in the error string. We
+		// expect that the wrapped driver.WriteCommandError already contains that
+		// info in the error string.
+		wrappedMsgOnly: true,
 	}
-}
-
-// batchErrorsTargetLength is the target length of error messages returned by batch operation
-// error types. Try to limit batch error messages to 2kb to prevent problems when printing error
-// messages from large batch operations.
-const batchErrorsTargetLength = 2000
-
-// joinBatchErrors appends messages from the given errors to a comma-separated string. If the
-// string exceeds 2kb, it stops appending error messages and appends the message "+N more errors..."
-// to the end.
-//
-// Example format:
-//
-//	"[message 1, message 2, +8 more errors...]"
-func joinBatchErrors(errs []error) string {
-	var buf bytes.Buffer
-	fmt.Fprint(&buf, "[")
-	for idx, err := range errs {
-		if idx != 0 {
-			fmt.Fprint(&buf, ", ")
-		}
-		// If the error message has exceeded the target error message length, stop appending errors
-		// to the message and append the number of remaining errors instead.
-		if buf.Len() > batchErrorsTargetLength {
-			fmt.Fprintf(&buf, "+%d more errors...", len(errs)-idx)
-			break
-		}
-		fmt.Fprint(&buf, err.Error())
-	}
-	fmt.Fprint(&buf, "]")
-
-	return buf.String()
 }
 
 // ErrorCodes returns the list of server error codes contained in err.
