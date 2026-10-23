@@ -8,6 +8,7 @@ package unified
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -36,7 +37,8 @@ func terminateOpenSessions(ctx context.Context) error {
 		}
 
 		err := client.Database("admin").RunCommand(ctx, cmd).Err()
-		if se, ok := err.(mongo.ServerError); ok {
+		var se mongo.ServerError
+		if errors.As(err, &se) {
 			for _, code := range ignoredKillAllSessionsErrors {
 				if se.HasErrorCode(code) {
 					err = nil

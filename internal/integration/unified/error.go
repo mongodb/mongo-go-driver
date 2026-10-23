@@ -191,36 +191,44 @@ type errorDetails struct {
 func extractErrorDetails(err error) (errorDetails, bool) {
 	var details errorDetails
 
-	switch converted := err.(type) {
-	case mongo.CommandError:
-		details.codes = []int32{converted.Code}
-		details.codeNames = []string{converted.Name}
-		details.labels = converted.Labels
-		details.raw = converted.Raw
-	case mongo.WriteException:
-		if converted.WriteConcernError != nil {
-			details.codes = append(details.codes, int32(converted.WriteConcernError.Code))
-			details.codeNames = append(details.codeNames, converted.WriteConcernError.Name)
+	// Use errors.As rather than a type assertion so that details can still be
+	// extracted when the error is wrapped, e.g. by errutil.RetryError when an
+	// operation fails after retrying. See GODRIVER-3600.
+	var cmdErr mongo.CommandError
+	var writeException mongo.WriteException
+	var bulkWriteException mongo.BulkWriteException
+	var clientBulkWriteException mongo.ClientBulkWriteException
+
+	switch {
+	case errors.As(err, &cmdErr):
+		details.codes = []int32{cmdErr.Code}
+		details.codeNames = []string{cmdErr.Name}
+		details.labels = cmdErr.Labels
+		details.raw = cmdErr.Raw
+	case errors.As(err, &writeException):
+		if writeException.WriteConcernError != nil {
+			details.codes = append(details.codes, int32(writeException.WriteConcernError.Code))
+			details.codeNames = append(details.codeNames, writeException.WriteConcernError.Name)
 		}
-		for _, we := range converted.WriteErrors {
+		for _, we := range writeException.WriteErrors {
 			details.codes = append(details.codes, int32(we.Code))
 		}
-		details.labels = converted.Labels
-		details.raw = converted.Raw
-	case mongo.BulkWriteException:
-		if converted.WriteConcernError != nil {
-			details.codes = append(details.codes, int32(converted.WriteConcernError.Code))
-			details.codeNames = append(details.codeNames, converted.WriteConcernError.Name)
+		details.labels = writeException.Labels
+		details.raw = writeException.Raw
+	case errors.As(err, &bulkWriteException):
+		if bulkWriteException.WriteConcernError != nil {
+			details.codes = append(details.codes, int32(bulkWriteException.WriteConcernError.Code))
+			details.codeNames = append(details.codeNames, bulkWriteException.WriteConcernError.Name)
 		}
-		for _, we := range converted.WriteErrors {
+		for _, we := range bulkWriteException.WriteErrors {
 			details.codes = append(details.codes, int32(we.Code))
 			details.raw = we.Raw
 		}
-		details.labels = converted.Labels
-	case mongo.ClientBulkWriteException:
-		if converted.WriteError != nil {
-			details.raw = converted.WriteError.Raw
-			details.codes = append(details.codes, int32(converted.WriteError.Code))
+		details.labels = bulkWriteException.Labels
+	case errors.As(err, &clientBulkWriteException):
+		if clientBulkWriteException.WriteError != nil {
+			details.raw = clientBulkWriteException.WriteError.Raw
+			details.codes = append(details.codes, int32(clientBulkWriteException.WriteError.Code))
 		}
 	default:
 		return errorDetails{}, false

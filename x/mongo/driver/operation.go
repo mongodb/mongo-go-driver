@@ -22,6 +22,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/csot"
 	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/internal/errutil"
 	"go.mongodb.org/mongo-driver/v2/internal/handshake"
 	"go.mongodb.org/mongo-driver/v2/internal/logger"
 	"go.mongodb.org/mongo-driver/v2/internal/randutil"
@@ -514,8 +515,8 @@ var memoryPool = sync.Pool{
 }
 
 // Execute runs this operation.
-func (op Operation) Execute(ctx context.Context) error {
-	err := op.Validate()
+func (op Operation) Execute(ctx context.Context) (err error) {
+	err = op.Validate()
 	if err != nil {
 		return err
 	}
@@ -562,8 +563,30 @@ func (op Operation) Execute(ctx context.Context) error {
 	var conn *mnet.Connection
 	var res bsoncore.Document
 	var operationErr WriteCommandError
-	var prevErr error
 	var prevIndefiniteErr error
+
+	// prevErrs accumulates the errors from each retry attempt in chronological
+	// order. The deferred function records the error the loop ends with as the
+	// final attempt and joins the whole history into one error. See
+	// GODRIVER-3600.
+	//
+	// mainErr, when set, is returned in place of the error the loop ends with.
+	// The connection error path below uses it to return an earlier attempt's
+	// error while still recording the connection error as an attempt.
+	var prevErrs []error
+	var mainErr error
+
+	defer func() {
+		if err != nil {
+			prevErrs = append(prevErrs, err)
+		}
+		if mainErr == nil {
+			mainErr = err
+		}
+
+		err = errutil.NewRetryError(prevErrs, mainErr)
+	}()
+
 	var overloadAttempt uint
 	var transactionState session.TransactionState
 	var isOverloadedError bool
@@ -581,8 +604,14 @@ func (op Operation) Execute(ctx context.Context) error {
 	// resetForRetry records the error that caused the retry, decrements retries, and resets the
 	// retry loop variables to request a new server and a new connection for the next attempt.
 	resetForRetry := func(err error) error {
+		// If we're starting a retry and the error from the previous try was
+		// a context canceled or deadline exceeded error, stop retrying and
+		// return that error.
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return err
+		}
+
 		attempt++
-		prevErr = err
 
 		// If the "prevIndefiniteErr" is nil, then the current error is the first error encountered
 		// during the retry attempt cycle.
@@ -647,6 +676,12 @@ func (op Operation) Execute(ctx context.Context) error {
 			case <-sleep.C:
 			}
 		}
+
+		// Record the error as a retry attempt. This is done last so that an
+		// error returned by resetForRetry above is recorded by the deferred
+		// join instead, rather than being recorded twice.
+		prevErrs = append(prevErrs, err)
+
 		return nil
 	}
 
@@ -665,13 +700,6 @@ func (op Operation) Execute(ctx context.Context) error {
 		}
 	}()
 	for {
-		// If we're starting a retry and the error from the previous try was
-		// a context canceled or deadline exceeded error, stop retrying and
-		// return that error.
-		if errors.Is(prevErr, context.Canceled) || errors.Is(prevErr, context.DeadlineExceeded) {
-			return prevErr
-		}
-
 		currentBudget := nextBudget
 		nextBudget = defaultBudget
 
@@ -697,9 +725,10 @@ func (op Operation) Execute(ctx context.Context) error {
 
 				// If this is a retry and there's an error from a previous attempt, return the previous
 				// error instead of the current connection error.
-				if prevErr != nil {
-					return prevErr
+				if len(prevErrs) > 0 {
+					mainErr = prevErrs[len(prevErrs)-1]
 				}
+
 				return err
 			}
 			defer conn.Close()
@@ -1455,8 +1484,10 @@ func (op Operation) createWireMessage(
 			dst, info.cmd, err = op.createMsgWireMessage(ctx, maxTimeMS, dst, desc, conn, op.CommandFn)
 			if err == nil && op.Batches != nil {
 				batchOffset = len(dst)
-				info.processedBatches, dst, err = op.Batches.AppendBatchSequence(dst,
-					int(desc.MaxBatchCount), int(desc.MaxMessageSize),
+				info.processedBatches, dst, err = op.Batches.AppendBatchSequence(
+					dst,
+					int(desc.MaxBatchCount),
+					int(desc.MaxMessageSize),
 				)
 				if err != nil {
 					break
@@ -1468,8 +1499,10 @@ func (op Operation) createWireMessage(
 		default:
 			var batches []byte
 			if op.Batches != nil {
-				info.processedBatches, batches, err = op.Batches.AppendBatchSequence(batches,
-					int(desc.MaxBatchCount), int(desc.MaxMessageSize),
+				info.processedBatches, batches, err = op.Batches.AppendBatchSequence(
+					batches,
+					int(desc.MaxBatchCount),
+					int(desc.MaxMessageSize),
 				)
 				if err != nil {
 					break
@@ -1813,7 +1846,8 @@ func (op Operation) calculateMaxTimeMS(ctx context.Context, rttMin time.Duration
 			"calculated server-side timeout (%v ms) is less than or equal to 0 (%v): %w",
 			maxTimeMS,
 			rttStats,
-			ErrDeadlineWouldBeExceeded)
+			ErrDeadlineWouldBeExceeded,
+		)
 	}
 
 	return maxTimeMS, nil
