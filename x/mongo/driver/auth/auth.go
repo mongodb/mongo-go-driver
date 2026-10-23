@@ -111,7 +111,12 @@ func (ah *authHandshaker) GetHandshakeInformation(
 		OuterLibraryPlatform(ah.options.OuterLibraryPlatform)
 
 	if ah.options.Authenticator != nil {
-		if speculativeAuth, ok := ah.options.Authenticator.(SpeculativeAuthenticator); ok {
+		// Skip speculative authentication for an address the authenticator does
+		// not allow (MONGODB-OIDC human flow with a host outside ALLOWED_HOSTS);
+		// FinishHandshake then fails the connection with a client-side error
+		// before any credential is sent.
+		if speculativeAuth, ok := ah.options.Authenticator.(SpeculativeAuthenticator); ok &&
+			speculativeAuthAddressAllowed(ah.options.Authenticator, conn) {
 			var err error
 			ah.conversation, err = speculativeAuth.CreateSpeculativeConversation()
 			if err != nil {
