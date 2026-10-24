@@ -51,8 +51,8 @@ func TestNewRetryError(t *testing.T) {
 		want := "final\nattempt 1: first\nattempt 2: second\nattempt 3: final"
 		assert.Equal(t, want, err.Error(), "unexpected error message")
 
-		var retryErr *RetryError
-		assert.True(t, errors.As(err, &retryErr), "expected a *RetryError")
+		var retryErr RetryError
+		assert.True(t, errors.As(err, &retryErr), "expected a RetryError")
 		assert.Equal(t, 3, len(retryErr.Attempts()), "expected 3 attempts")
 		assert.Equal(t, errFirst, retryErr.Attempts()[0], "expected first attempt first")
 		assert.Equal(t, errFinal, retryErr.Attempts()[2], "expected final attempt last")

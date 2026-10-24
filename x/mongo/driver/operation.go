@@ -565,26 +565,36 @@ func (op Operation) Execute(ctx context.Context) (err error) {
 	var operationErr WriteCommandError
 	var prevIndefiniteErr error
 
-	// prevErrs accumulates the errors from each retry attempt in chronological
-	// order. The deferred function records the error the loop ends with as the
-	// final attempt and joins the whole history into one error. See
-	// GODRIVER-3600.
-	//
-	// mainErr, when set, is returned in place of the error the loop ends with.
-	// The connection error path below uses it to return an earlier attempt's
-	// error while still recording the connection error as an attempt.
+	// prevErrs accumulates the errors from each attempt in chronological order.
+	// recordAttempt adds to it, and the deferred function joins the history into
+	// a single error. See GODRIVER-3600.
 	var prevErrs []error
-	var mainErr error
 
-	defer func() {
+	// attemptErr is the error produced by the attempt in flight, set only when
+	// that error is not the one the attempt goes on to return. Three paths below
+	// return a different error than the attempt produced: the connection error
+	// path and the two "NoWritesPerformed" paths, which substitute
+	// prevIndefiniteErr. Each records the attempt's own error here so that
+	// substituting the returned error does not rewrite the history.
+	var attemptErr error
+
+	// recordAttempt appends the error from the attempt that just finished to
+	// prevErrs. It records attemptErr in preference to err, so that a
+	// substituted error is never recorded in place of the error the attempt
+	// actually produced.
+	recordAttempt := func(err error) {
+		if attemptErr != nil {
+			err, attemptErr = attemptErr, nil
+		}
 		if err != nil {
 			prevErrs = append(prevErrs, err)
 		}
-		if mainErr == nil {
-			mainErr = err
-		}
+	}
 
-		err = errutil.NewRetryError(prevErrs, mainErr)
+	defer func() {
+		recordAttempt(err)
+
+		err = errutil.NewRetryError(prevErrs, err)
 	}()
 
 	var overloadAttempt uint
@@ -680,7 +690,7 @@ func (op Operation) Execute(ctx context.Context) (err error) {
 		// Record the error as a retry attempt. This is done last so that an
 		// error returned by resetForRetry above is recorded by the deferred
 		// join instead, rather than being recorded twice.
-		prevErrs = append(prevErrs, err)
+		recordAttempt(err)
 
 		return nil
 	}
@@ -724,9 +734,11 @@ func (op Operation) Execute(ctx context.Context) (err error) {
 				}
 
 				// If this is a retry and there's an error from a previous attempt, return the previous
-				// error instead of the current connection error.
+				// error instead of the current connection error. Record the connection error as this
+				// attempt's error so that it stays in the history.
 				if len(prevErrs) > 0 {
-					mainErr = prevErrs[len(prevErrs)-1]
+					attemptErr = err
+					err = prevErrs[len(prevErrs)-1]
 				}
 
 				return err
@@ -924,6 +936,9 @@ func (op Operation) Execute(ctx context.Context) (err error) {
 			// set the error to the "previous indefinite error" unless the current error is already the
 			// "previous indefinite error". After resetting, repeat the error check.
 			if tt.HasErrorLabel(NoWritesPerformed) && !prevIndefiniteErrIsSet {
+				// Record this attempt's own error before substituting, so that the
+				// retry history keeps it even though it is not the error returned.
+				attemptErr = tt
 				err = prevIndefiniteErr
 				prevIndefiniteErrIsSet = true
 
@@ -1057,6 +1072,9 @@ func (op Operation) Execute(ctx context.Context) (err error) {
 			// set the error to the "previous indefinite error" unless the current error is already the
 			// "previous indefinite error". After resetting, repeat the error check.
 			if tt.HasErrorLabel(NoWritesPerformed) && !prevIndefiniteErrIsSet {
+				// Record this attempt's own error before substituting, so that the
+				// retry history keeps it even though it is not the error returned.
+				attemptErr = tt
 				err = prevIndefiniteErr
 				prevIndefiniteErrIsSet = true
 

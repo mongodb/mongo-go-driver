@@ -51,23 +51,23 @@ func NewRetryError(attemptErrs []error, mainErr error) error {
 		return mainErr
 	}
 
-	return &RetryError{mainErr: mainErr, attemptErrs: errs}
+	return RetryError{mainErr: mainErr, attemptErrs: errs}
 }
 
 // Attempts returns the attempt errors in chronological order.
-func (e *RetryError) Attempts() []error {
-	attempts := make([]error, len(e.attemptErrs))
-	copy(attempts, e.attemptErrs)
+func (re RetryError) Attempts() []error {
+	attempts := make([]error, len(re.attemptErrs))
+	copy(attempts, re.attemptErrs)
 
 	return attempts
 }
 
 // Error implements the error interface. It returns the main error's message
 // followed by the message from each attempt, one per line.
-func (e *RetryError) Error() string {
+func (re RetryError) Error() string {
 	var sb strings.Builder
-	sb.WriteString(e.mainErr.Error())
-	for i, err := range e.attemptErrs {
+	sb.WriteString(re.mainErr.Error())
+	for i, err := range re.attemptErrs {
 		sb.WriteString("\nattempt ")
 		sb.WriteString(strconv.Itoa(i + 1))
 		sb.WriteString(": ")
@@ -78,6 +78,6 @@ func (e *RetryError) Error() string {
 }
 
 // Unwrap returns the main error.
-func (e *RetryError) Unwrap() error {
-	return e.mainErr
+func (re RetryError) Unwrap() error {
+	return re.mainErr
 }

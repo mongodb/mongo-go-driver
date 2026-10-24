@@ -1065,8 +1065,8 @@ func TestWrapErrorsRetryError(t *testing.T) {
 	// Both attempts must remain reachable through the error chain. Note that
 	// errors.Is cannot be used here: driver.Error contains slices, so it is not
 	// comparable and does not implement an Is method.
-	var retryError *errutil.RetryError
-	require.True(t, errors.As(wrapped, &retryError), "expected a *errutil.RetryError")
+	var retryError errutil.RetryError
+	require.True(t, errors.As(wrapped, &retryError), "expected an errutil.RetryError")
 	assert.Equal(t, []error{error(first), error(final)}, retryError.Attempts(),
 		"expected both attempts in chronological order")
 
