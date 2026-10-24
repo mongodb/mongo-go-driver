@@ -290,7 +290,9 @@ func TestRetryableWritesProse(t *testing.T) {
 			require.True(mt, secondFailPointConfigured)
 
 			// Assert that the "ShutdownInProgress" error is returned.
-			require.True(mt, err.(mongo.WriteException).HasErrorCode(int(shutdownInProgressErrorCode)))
+			var we mongo.WriteException
+			require.ErrorAs(mt, err, &we, "expected error type %T, got %T", mongo.WriteException{}, err)
+			require.True(mt, we.HasErrorCode(int(shutdownInProgressErrorCode)))
 		})
 
 	mtOpts = mtest.NewOptions().Topologies(mtest.Sharded).MinServerVersion("4.2").AllowFailPointsOnSharded()

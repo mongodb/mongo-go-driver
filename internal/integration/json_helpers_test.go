@@ -474,20 +474,27 @@ type errorDetails struct {
 func extractErrorDetails(err error) (errorDetails, bool) {
 	var details errorDetails
 
-	switch converted := err.(type) {
-	case mongo.CommandError:
-		details.name = converted.Name
-		details.labels = converted.Labels
-	case mongo.WriteException:
-		if converted.WriteConcernError != nil {
-			details.name = converted.WriteConcernError.Name
+	// Use errors.As rather than a type assertion so that details can still be
+	// extracted when the error is wrapped, e.g. by mongo.WriteException, which
+	// wraps the error chain from the write operation. See GODRIVER-4172.
+	var cmdErr mongo.CommandError
+	var writeException mongo.WriteException
+	var bulkWriteException mongo.BulkWriteException
+
+	switch {
+	case errors.As(err, &cmdErr):
+		details.name = cmdErr.Name
+		details.labels = cmdErr.Labels
+	case errors.As(err, &writeException):
+		if writeException.WriteConcernError != nil {
+			details.name = writeException.WriteConcernError.Name
 		}
-		details.labels = converted.Labels
-	case mongo.BulkWriteException:
-		if converted.WriteConcernError != nil {
-			details.name = converted.WriteConcernError.Name
+		details.labels = writeException.Labels
+	case errors.As(err, &bulkWriteException):
+		if bulkWriteException.WriteConcernError != nil {
+			details.name = bulkWriteException.WriteConcernError.Name
 		}
-		details.labels = converted.Labels
+		details.labels = bulkWriteException.Labels
 	default:
 		return errorDetails{}, false
 	}

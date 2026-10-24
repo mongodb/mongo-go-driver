@@ -59,8 +59,8 @@ func TestCollection(t *testing.T) {
 			require.NoError(mt, err, "InsertOne error: %v", err)
 
 			_, err = mt.Coll.InsertOne(context.Background(), doc)
-			we, ok := err.(mongo.WriteException)
-			assert.True(mt, ok, "expected error type %T, got %T", mongo.WriteException{}, err)
+			var we mongo.WriteException
+			assert.ErrorAs(mt, err, &we, "expected error type %T, got %T", mongo.WriteException{}, err)
 			assert.Equal(mt, 1, len(we.WriteErrors), "expected 1 write error, got %v", len(we.WriteErrors))
 			writeErr := we.WriteErrors[0]
 			assert.Equal(mt, errorDuplicateKey, writeErr.Code, "expected code %v, got %v", errorDuplicateKey, writeErr.Code)
@@ -71,8 +71,8 @@ func TestCollection(t *testing.T) {
 		mt.RunOpts("write concern error", wcTestOpts, func(mt *mtest.T) {
 			doc := bson.D{{"_id", 1}}
 			_, err := mt.Coll.InsertOne(context.Background(), doc)
-			we, ok := err.(mongo.WriteException)
-			assert.True(mt, ok, "expected error type %v, got %v", mongo.WriteException{}, err)
+			var we mongo.WriteException
+			assert.ErrorAs(mt, err, &we, "expected error type %v, got %v", mongo.WriteException{}, err)
 			assert.NotNil(mt, we.WriteConcernError, "expected write concern error, got %+v", we)
 		})
 
@@ -414,8 +414,8 @@ func TestCollection(t *testing.T) {
 			}, true)
 			_, err := capped.DeleteOne(context.Background(), bson.D{{"x", 1}})
 
-			we, ok := err.(mongo.WriteException)
-			assert.True(mt, ok, "expected error type %T, got %T", mongo.WriteException{}, err)
+			var we mongo.WriteException
+			assert.ErrorAs(mt, err, &we, "expected error type %T, got %T", mongo.WriteException{}, err)
 			numWriteErrors := len(we.WriteErrors)
 			assert.Equal(mt, 1, numWriteErrors, "expected 1 write error, got %v", numWriteErrors)
 			gotCode := we.WriteErrors[0].Code
@@ -430,8 +430,8 @@ func TestCollection(t *testing.T) {
 
 			mt.CloneCollection(options.Collection().SetWriteConcern(impossibleWc))
 			_, err = mt.Coll.DeleteOne(context.Background(), filter)
-			we, ok := err.(mongo.WriteException)
-			assert.True(mt, ok, "expected error type %T, got %T", mongo.WriteException{}, err)
+			var we mongo.WriteException
+			assert.ErrorAs(mt, err, &we, "expected error type %T, got %T", mongo.WriteException{}, err)
 			assert.NotNil(mt, we.WriteConcernError, "expected write concern error, got nil")
 		})
 		mt.RunOpts("single key map index", mtest.NewOptions().MinServerVersion("4.4"), func(mt *mtest.T) {
@@ -483,8 +483,8 @@ func TestCollection(t *testing.T) {
 			}, true)
 			_, err := capped.DeleteMany(context.Background(), bson.D{{"x", 1}})
 
-			we, ok := err.(mongo.WriteException)
-			assert.True(mt, ok, "expected error type %v, got %v", mongo.WriteException{}, err)
+			var we mongo.WriteException
+			assert.ErrorAs(mt, err, &we, "expected error type %v, got %v", mongo.WriteException{}, err)
 			numWriteErrors := len(we.WriteErrors)
 			assert.Equal(mt, 1, len(we.WriteErrors), "expected 1 write error, got %v", numWriteErrors)
 			gotCode := we.WriteErrors[0].Code
@@ -499,8 +499,8 @@ func TestCollection(t *testing.T) {
 
 			mt.CloneCollection(options.Collection().SetWriteConcern(impossibleWc))
 			_, err = mt.Coll.DeleteMany(context.Background(), filter)
-			we, ok := err.(mongo.WriteException)
-			assert.True(mt, ok, "expected error type %v, got %v", mongo.WriteException{}, err)
+			var we mongo.WriteException
+			assert.ErrorAs(mt, err, &we, "expected error type %v, got %v", mongo.WriteException{}, err)
 			assert.NotNil(mt, we.WriteConcernError, "expected write concern error, got %+v", err)
 		})
 		mt.RunOpts("single key map index", mtest.NewOptions().MinServerVersion("4.4"), func(mt *mtest.T) {
@@ -567,8 +567,8 @@ func TestCollection(t *testing.T) {
 			require.NoError(mt, err, "InsertOne error: %v", err)
 
 			_, err = mt.Coll.UpdateOne(context.Background(), filter, update)
-			we, ok := err.(mongo.WriteException)
-			assert.True(mt, ok, "expected error type %v, got %v", mongo.WriteException{}, err)
+			var we mongo.WriteException
+			assert.ErrorAs(mt, err, &we, "expected error type %v, got %v", mongo.WriteException{}, err)
 			numWriteErrors := len(we.WriteErrors)
 			assert.Equal(mt, 1, numWriteErrors, "expected 1 write error, got %v", numWriteErrors)
 			gotCode := we.WriteErrors[0].Code
@@ -583,8 +583,8 @@ func TestCollection(t *testing.T) {
 
 			mt.CloneCollection(options.Collection().SetWriteConcern(impossibleWc))
 			_, err = mt.Coll.UpdateOne(context.Background(), filter, update)
-			we, ok := err.(mongo.WriteException)
-			assert.True(mt, ok, "expected error type %v, got %v", mongo.WriteException{}, err)
+			var we mongo.WriteException
+			assert.ErrorAs(mt, err, &we, "expected error type %v, got %v", mongo.WriteException{}, err)
 			assert.NotNil(mt, we.WriteConcernError, "expected write concern error, got %+v", err)
 		})
 		mt.RunOpts("special slice types", noClientOpts, func(mt *mtest.T) {
@@ -699,8 +699,8 @@ func TestCollection(t *testing.T) {
 
 			mt.CloneCollection(options.Collection().SetWriteConcern(impossibleWc))
 			_, err = mt.Coll.UpdateByID(context.Background(), id, update)
-			we, ok := err.(mongo.WriteException)
-			assert.True(mt, ok, "expected error type %v, got %v", mongo.WriteException{}, err)
+			var we mongo.WriteException
+			assert.ErrorAs(mt, err, &we, "expected error type %v, got %v", mongo.WriteException{}, err)
 			assert.NotNil(mt, we.WriteConcernError, "expected write concern error, got %+v", we)
 		})
 	})
@@ -749,8 +749,8 @@ func TestCollection(t *testing.T) {
 			require.NoError(mt, err, "InsertOne error: %v", err)
 
 			_, err = mt.Coll.UpdateMany(context.Background(), filter, update)
-			we, ok := err.(mongo.WriteException)
-			assert.True(mt, ok, "expected error type %v, got %v", mongo.WriteException{}, err)
+			var we mongo.WriteException
+			assert.ErrorAs(mt, err, &we, "expected error type %v, got %v", mongo.WriteException{}, err)
 			numWriteErrors := len(we.WriteErrors)
 			assert.Equal(mt, 1, numWriteErrors, "expected 1 write error, got %v", numWriteErrors)
 			gotCode := we.WriteErrors[0].Code
@@ -765,8 +765,8 @@ func TestCollection(t *testing.T) {
 
 			mt.CloneCollection(options.Collection().SetWriteConcern(impossibleWc))
 			_, err = mt.Coll.UpdateMany(context.Background(), filter, update)
-			we, ok := err.(mongo.WriteException)
-			assert.True(mt, ok, "expected error type %v, got %v", mongo.WriteException{}, err)
+			var we mongo.WriteException
+			assert.ErrorAs(mt, err, &we, "expected error type %v, got %v", mongo.WriteException{}, err)
 			assert.NotNil(mt, we.WriteConcernError, "expected write concern error, got %+v", we)
 		})
 	})
@@ -811,8 +811,8 @@ func TestCollection(t *testing.T) {
 			require.NoError(mt, err, "InsertOne error: %v", err)
 
 			_, err = mt.Coll.ReplaceOne(context.Background(), filter, replacement)
-			we, ok := err.(mongo.WriteException)
-			assert.True(mt, ok, "expected error type %v, got %v", mongo.WriteException{}, err)
+			var we mongo.WriteException
+			assert.ErrorAs(mt, err, &we, "expected error type %v, got %v", mongo.WriteException{}, err)
 			numWriteErrors := len(we.WriteErrors)
 			assert.Equal(mt, 1, numWriteErrors, "expected 1 write error, got %v", numWriteErrors)
 			gotCode := we.WriteErrors[0].Code
@@ -828,8 +828,8 @@ func TestCollection(t *testing.T) {
 
 			mt.CloneCollection(options.Collection().SetWriteConcern(impossibleWc))
 			_, err = mt.Coll.ReplaceOne(context.Background(), filter, replacement)
-			we, ok := err.(mongo.WriteException)
-			assert.True(mt, ok, "expected error type %v, got %v", mongo.WriteException{}, err)
+			var we mongo.WriteException
+			assert.ErrorAs(mt, err, &we, "expected error type %v, got %v", mongo.WriteException{}, err)
 			assert.NotNil(mt, we.WriteConcernError, "expected write concern error, got nil")
 		})
 	})
@@ -1414,8 +1414,8 @@ func TestCollection(t *testing.T) {
 		wcTestOpts := mtest.NewOptions().CollectionOptions(wcCollOpts).Topologies(mtest.ReplicaSet).MinServerVersion("3.2")
 		mt.RunOpts("write concern error", wcTestOpts, func(mt *mtest.T) {
 			err := mt.Coll.FindOneAndDelete(context.Background(), bson.D{{"x", 3}}).Err()
-			we, ok := err.(mongo.WriteException)
-			assert.True(mt, ok, "expected error type %v, got %v", mongo.WriteException{}, err)
+			var we mongo.WriteException
+			assert.ErrorAs(mt, err, &we, "expected error type %v, got %v", mongo.WriteException{}, err)
 			assert.NotNil(mt, we.WriteConcernError, "expected write concern error, got %v", err)
 		})
 	})
@@ -1492,8 +1492,8 @@ func TestCollection(t *testing.T) {
 			filter := bson.D{{"x", 3}}
 			replacement := bson.D{{"y", 3}}
 			err := mt.Coll.FindOneAndReplace(context.Background(), filter, replacement).Err()
-			we, ok := err.(mongo.WriteException)
-			assert.True(mt, ok, "expected error type %v, got %v", mongo.WriteException{}, err)
+			var we mongo.WriteException
+			assert.ErrorAs(mt, err, &we, "expected error type %v, got %v", mongo.WriteException{}, err)
 			assert.NotNil(mt, we.WriteConcernError, "expected write concern error, got %v", err)
 		})
 	})
@@ -1574,8 +1574,8 @@ func TestCollection(t *testing.T) {
 			filter := bson.D{{"x", 3}}
 			update := bson.D{{"$set", bson.D{{"x", 6}}}}
 			err := mt.Coll.FindOneAndUpdate(context.Background(), filter, update).Err()
-			we, ok := err.(mongo.WriteException)
-			assert.True(mt, ok, "expected error type %v, got %v", mongo.WriteException{}, err)
+			var we mongo.WriteException
+			assert.ErrorAs(mt, err, &we, "expected error type %v, got %v", mongo.WriteException{}, err)
 			assert.NotNil(mt, we.WriteConcernError, "expected write concern error, got %v", err)
 		})
 	})
