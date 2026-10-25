@@ -8,12 +8,12 @@ package driver
 
 import (
 	"bytes"
-	"compress/zlib"
 	"fmt"
 	"io"
 	"sync"
 
 	"github.com/klauspost/compress/snappy"
+	"github.com/klauspost/compress/zlib"
 	"github.com/klauspost/compress/zstd"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage"
 )
@@ -146,6 +146,20 @@ func CompressPayload(in []byte, opts CompressionOpts) ([]byte, error) {
 	}
 }
 
+var zlibReaderPool sync.Pool
+
+// getZlibReader returns a zlib reader for src, reusing one from zlibReaderPool when it can. A reader goes back to the pool
+// only after a message was read from it without error.
+func getZlibReader(src io.Reader) (io.ReadCloser, error) {
+	if r, ok := zlibReaderPool.Get().(io.ReadCloser); ok {
+		if err := r.(zlib.Resetter).Reset(src, nil); err != nil {
+			return nil, err
+		}
+		return r, nil
+	}
+	return zlib.NewReader(src)
+}
+
 var zstdReaderPool = sync.Pool{
 	New: func() any {
 		r, _ := zstd.NewReader(nil)
@@ -172,7 +186,7 @@ func DecompressPayload(in []byte, opts CompressionOpts) ([]byte, error) {
 		out := make([]byte, opts.UncompressedSize)
 		return snappy.Decode(out, in)
 	case wiremessage.CompressorZLib:
-		r, err := zlib.NewReader(bytes.NewReader(in))
+		r, err := getZlibReader(bytes.NewReader(in))
 		if err != nil {
 			return nil, err
 		}
@@ -183,6 +197,7 @@ func DecompressPayload(in []byte, opts CompressionOpts) ([]byte, error) {
 		if err := r.Close(); err != nil {
 			return nil, err
 		}
+		zlibReaderPool.Put(r)
 		return out, nil
 	case wiremessage.CompressorZstd:
 		buf := make([]byte, 0, opts.UncompressedSize)
