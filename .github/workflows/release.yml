@@ -35,12 +35,22 @@ jobs:
         with:
           app_id: ${{ vars.APP_ID }}
           private_key: ${{ secrets.APP_PRIVATE_KEY }}
+          # Pre Publish merges into master, which needs master and full history.
+          fetch-depth: 0
       - uses: mongodb-labs/drivers-github-tools/setup@89904229eb55a063655af02f5838bd7fe76505e5 #v3
         with:
           aws_role_arn: ${{ secrets.AWS_ROLE_ARN }}
           aws_region_name: ${{ vars.AWS_REGION_NAME }}
           aws_secret_id: ${{ secrets.AWS_SECRET_ID }}
           artifactory_username: ${{ vars.ARTIFACTORY_USERNAME }}
+      # Fail before tagging if Pre Publish's merge into master would break or
+      # drop commits. Dry runs skip that merge, so they can't catch this.
+      - name: Check merge-up
+        if: ${{ inputs.push_changes && !contains(fromJSON(vars.IGNORED_MERGE_UP_BRANCHES), github.ref_name) }}
+        run: |
+          git rev-parse --verify --quiet origin/master
+          test "$(git rev-parse --is-shallow-repository)" = false
+          test -z "$(git log --oneline --no-merges origin/master..HEAD)"
       - name: Pre Publish
         id: pre-publish
         uses: mongodb-labs/drivers-github-tools/golang/pre-publish@89904229eb55a063655af02f5838bd7fe76505e5 #v3
