@@ -20,6 +20,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/credutil"
+	internalHandshakeOp "go.mongodb.org/mongo-driver/v2/internal/handshake/operation"
 	"go.mongodb.org/mongo-driver/v2/internal/httputil"
 	"go.mongodb.org/mongo-driver/v2/internal/logger"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
@@ -48,7 +49,7 @@ const (
 
 	// driverInfoDelimiter separates the entries contributed by each wrapping
 	// library within a client metadata field.
-	driverInfoDelimiter = "|"
+	driverInfoDelimiter = internalHandshakeOp.MetadataDelimiter
 )
 
 var (
@@ -402,9 +403,9 @@ func (c *Client) appendDriverInfo(info options.DriverInfo) {
 	}
 
 	// DRIVERS-3251 requires positional alignment for driver.name and
-	// driver.version only, so platform keeps its existing behavior: a value is
-	// appended only when it is non-empty and differs from what has accumulated
-	// so far. It therefore does not correspond to name and version by index.
+	// driver.version only. Platform is not positional: a value is appended only
+	// when it is non-empty, so it does not correspond to name and version by
+	// index.
 	var platform string
 	if old := c.currentDriverInfo.Load(); old != nil {
 		platform = old.Platform

@@ -27,9 +27,9 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
-// metadataDelimiter separates the entries contributed by the driver and each
+// MetadataDelimiter separates the entries contributed by the driver and each
 // wrapping library within a client metadata field.
-const metadataDelimiter = "|"
+const MetadataDelimiter = "|"
 
 // maxClientMetadataSize is the maximum size of the client metadata document
 // that can be sent to the server. Note that the maximum document size on
@@ -304,8 +304,8 @@ func appendClientDriver(dst []byte, outerLibraryName, outerLibraryVersion string
 	version := version.Driver
 
 	if outerLibrarySet {
-		name = name + metadataDelimiter + outerLibraryName
-		version = version + metadataDelimiter + outerLibraryVersion
+		name = name + MetadataDelimiter + outerLibraryName
+		version = version + MetadataDelimiter + outerLibraryVersion
 	}
 
 	dst = bsoncore.AppendStringElement(dst, "name", name)
@@ -436,7 +436,7 @@ func appendClientPlatform(dst []byte, outerLibraryPlatform string) []byte {
 	// that reports no platform contributes nothing rather than an empty entry.
 	platform := runtime.Version()
 	if outerLibraryPlatform != "" {
-		platform = platform + metadataDelimiter + outerLibraryPlatform
+		platform = platform + MetadataDelimiter + outerLibraryPlatform
 	}
 
 	return bsoncore.AppendStringElement(dst, "platform", platform)
