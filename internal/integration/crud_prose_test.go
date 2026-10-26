@@ -1059,3 +1059,55 @@ func TestInsertManySplitsBatchesByWireMessageSize(t *testing.T) {
 	_, err = mt.Coll.InsertMany(ctx, docs)
 	require.NoError(mt, err, "InsertMany error: %v", err)
 }
+
+// TestCRUDProse_17_database_collection_name_validation implements CRUD spec
+// prose test 17, "Ensure database and collection names are validated".
+//
+// A period (".") in a database name would silently retarget the operation to
+// another database. A NUL byte ("\x00") in a database or collection name could
+// truncate or invalidate the name, and drivers MUST NOT silently truncate the
+// name. Each operation must raise an error, either client-side or server-side.
+func TestCRUDProse_17_database_collection_name_validation(t *testing.T) {
+	mt := mtest.New(t)
+
+	testCases := []struct {
+		desc string
+		db   string
+		coll string
+	}{
+		{
+			desc: "period in database name",
+			db:   "foo.bar",
+			coll: "coll",
+		},
+		{
+			desc: "NUL byte in database name",
+			db:   "foo\x00bar",
+			coll: "coll",
+		},
+		{
+			desc: "NUL byte in collection name",
+			db:   "db",
+			coll: "foo\x00bar",
+		},
+	}
+
+	for _, tc := range testCases {
+		mt.Run(tc.desc, func(mt *mtest.T) {
+			coll := mt.Client.Database(tc.db).Collection(tc.coll)
+			_, err := coll.InsertOne(context.Background(), bson.D{})
+			assert.Error(mt, err, "expected InsertOne error for db=%q, coll=%q", tc.db, tc.coll)
+		})
+
+		bulkWriteOpts := mtest.NewOptions().MinServerVersion("8.0")
+		mt.RunOpts(tc.desc+" (bulkWrite)", bulkWriteOpts, func(mt *mtest.T) {
+			writes := []mongo.ClientBulkWrite{{
+				Database:   tc.db,
+				Collection: tc.coll,
+				Model:      &mongo.ClientInsertOneModel{Document: bson.D{}},
+			}}
+			_, err := mt.Client.BulkWrite(context.Background(), writes)
+			assert.Error(mt, err, "expected BulkWrite error for db=%q, coll=%q", tc.db, tc.coll)
+		})
+	}
+}

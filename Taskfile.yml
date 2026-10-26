@@ -25,6 +25,10 @@ tasks:
     cmds:
       - go mod download
       - GOTOOLCHAIN=auto go test -timeout 30m -v ./...
+  test-cse-container:
+    dir: internal/test/prose
+    cmds:
+      - go test -timeout 30m -v . -cse -run TestCSE
   build-awsauth-compilecheck:
     dir: internal/test/awsauth
     cmds:
@@ -98,10 +102,10 @@ tasks:
   evg-test-oidc-auth:
     - go test -v ./internal/test/oidcauth/... >> test.suite
     - go test -v -race ./internal/test/oidcauth/... >> test.suite
-  evg-test-kmip:
-    - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./internal/integration -run TestClientSideEncryptionSpec/kmipKMS >> test.suite
-  evg-test-client-side-encryption:
-    - go test -exec "env PKG_CONFIG_PATH=${PKG_CONFIG_PATH} LD_LIBRARY_PATH=${LD_LIBRARY_PATH} DYLD_LIBRARY_PATH=${MACOS_LIBRARY_PATH}" ${BUILD_TAGS} -v -timeout {{.TEST_TIMEOUT}}s ./internal/integration -run TestClientSideEncryptionProse >> test.suite
+  evg-test-cse-container:
+    dir: internal/test/prose
+    cmds:
+      - go test -timeout {{.TEST_TIMEOUT}}s -v . -cse -ci -suite {{.ROOT_DIR}}/test.suite -run TestCSE
   evg-test-load-balancers:
     # Load balancer should be tested with all unified tests as well as tests in the following
     # components: retryable reads, retryable writes, change streams, initial DNS seedlist discovery.
@@ -125,10 +129,13 @@ tasks:
   evg-gather-test-suites: find . -name \*.suite | xargs --no-run-if-empty tar czf test_suite.tgz
   build-kms-test: go build ${BUILD_TAGS} ./internal/cmd/testkms
   ### Benchmark specific tasks and support. ###
+  # Run the benchmarks as ordinary Go microbenchmarks. Test data is downloaded
+  # on demand by TestMain.
   benchmark:
-    deps: [perf-files]
     cmds:
-      - go test ${BUILD_TAGS} -benchmem -bench=. ./benchmark | test benchmark.suite
+      - go test -run='^$' -bench=. -benchmem ./internal/cmd/benchmark
+  # Run the full benchmark suite and emit perf.json for the Evergreen/SPS
+  # performance monitoring upload. Used by the Evergreen "perf" task.
   driver-benchmark:
     cmds:
       - go test ./internal/cmd/benchmark -v --fullRun | tee perf.suite

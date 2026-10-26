@@ -9,7 +9,7 @@ require github.com/aws/aws-lambda-go v1.54.0
 require go.mongodb.org/mongo-driver/v2 v2.0.0-00010101000000-000000000000
 
 require (
-	github.com/klauspost/compress v1.20.0 // indirect
+	github.com/klauspost/compress v1.20.3 // indirect
 	github.com/stretchr/testify v1.12.1 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.2.0 // indirect
@@ -17,7 +17,7 @@ require (
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 // indirect
 	golang.org/x/crypto v0.54.0 // indirect
 	golang.org/x/sync v0.22.0 // indirect
-	golang.org/x/text v0.40.0 // indirect
+	golang.org/x/text v0.41.0 // indirect
 )
 
 replace gopkg.in/yaml.v2 => gopkg.in/yaml.v2 v2.2.8
