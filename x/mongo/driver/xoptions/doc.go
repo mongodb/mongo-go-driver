@@ -14,14 +14,17 @@
 //
 // The SetInternal*Options functions attach internal options to an options
 // builder by key. An unsupported key, or a value whose type does not match the
-// key, returns an error. Two keys are defined for the operation setters:
+// key, returns an error. The following keys are defined for the operation
+// setters:
 //
-//	"rawData"          bool    Sets the rawData command field on servers that
-//	                           support it. Ignored on older servers.
-//	"addCommandFields" bson.D  Appends the given elements to the top level of
-//	                           the command document sent to the server.
+//	"rawData"          bool      Sets the rawData command field on servers that
+//	                             support it. Ignored on older servers.
+//	"addCommandFields" bson.D    Appends the given elements to the top level of
+//	                             the command document sent to the server.
+//	"collectionUUIDs"  [][]byte  Attaches a collection UUID to each write of a
+//	                             client-level bulk write.
 //
-// Not every setter supports both keys. Call the setter and check the returned
+// Not every setter supports every key. Call the setter and check the returned
 // error rather than assuming a key is available. SetInternalClientOptions is an
 // exception to the above; it configures the client itself and accepts a
 // different set of keys.

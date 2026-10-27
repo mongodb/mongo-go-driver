@@ -115,6 +115,16 @@ func TestSetInternalAddCommandFields(t *testing.T) {
 			},
 		},
 		{
+			name: "ClientBulkWriteOptions",
+			set: func(t *testing.T) optionsutil.Options {
+				o := options.ClientBulkWrite()
+				require.NoError(t, SetInternalClientBulkWriteOptions(o, "addCommandFields", want))
+				args, err := mongoutil.NewOptions[options.ClientBulkWriteOptions](o)
+				require.NoError(t, err)
+				return args.Internal
+			},
+		},
+		{
 			name: "CountOptions",
 			set: func(t *testing.T) optionsutil.Options {
 				o := options.Count()
@@ -317,4 +327,40 @@ func TestSetInternalAddCommandFields(t *testing.T) {
 			require.Equal(t, want, got)
 		})
 	}
+}
+
+func TestSetInternalClientBulkWriteOptions(t *testing.T) {
+	t.Parallel()
+
+	t.Run("set collectionUUIDs", func(t *testing.T) {
+		t.Parallel()
+
+		want := [][]byte{[]byte("0123456789abcdef"), nil, []byte("fedcba9876543210")}
+
+		o := options.ClientBulkWrite()
+		require.NoError(t, SetInternalClientBulkWriteOptions(o, "collectionUUIDs", want))
+
+		args, err := mongoutil.NewOptions[options.ClientBulkWriteOptions](o)
+		require.NoError(t, err)
+
+		got, ok := optionsutil.Value(args.Internal, "collectionUUIDs").([][]byte)
+		require.True(t, ok, "expected collectionUUIDs to be a [][]byte")
+		require.Equal(t, want, got)
+	})
+
+	t.Run("set collectionUUIDs - wrong type", func(t *testing.T) {
+		t.Parallel()
+
+		o := options.ClientBulkWrite()
+		err := SetInternalClientBulkWriteOptions(o, "collectionUUIDs", []byte("0123456789abcdef"))
+		require.EqualError(t, err, "unexpected type for \"collectionUUIDs\": []uint8 is not [][]byte")
+	})
+
+	t.Run("set unsupported option", func(t *testing.T) {
+		t.Parallel()
+
+		o := options.ClientBulkWrite()
+		err := SetInternalClientBulkWriteOptions(o, "unsupported", "unsupported")
+		require.EqualError(t, err, "unsupported option: \"unsupported\"")
+	})
 }
