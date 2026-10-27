@@ -50,7 +50,7 @@ jobs:
         run: |
           git rev-parse --verify --quiet origin/master
           test "$(git rev-parse --is-shallow-repository)" = false
-          test -z "$(git log --oneline --no-merges origin/master..HEAD)"
+          test -z "$(git log --oneline origin/master..HEAD)"
       - name: Pre Publish
         id: pre-publish
         uses: mongodb-labs/drivers-github-tools/golang/pre-publish@89904229eb55a063655af02f5838bd7fe76505e5 #v3
