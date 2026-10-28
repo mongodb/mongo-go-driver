@@ -11,6 +11,7 @@ import (
 	"errors"
 	"time"
 
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
@@ -46,6 +47,7 @@ type distinctOp struct {
 	serverAPI                 *driver.ServerAPIOptions
 	timeout                   *time.Duration
 	rawData                   *bool
+	additionalCmd             bson.D
 }
 
 // distinctResult represents a distinct result returned by the server.
@@ -130,5 +132,5 @@ func (d *distinctOp) command(dst []byte, desc description.SelectedServer) ([]byt
 	if d.rawData != nil && desc.WireVersion != nil && driverutil.VersionRangeIncludes(*desc.WireVersion, 27) {
 		dst = bsoncore.AppendBooleanElement(dst, "rawData", *d.rawData)
 	}
-	return dst, nil
+	return appendAdditionalCmd(dst, d.additionalCmd)
 }
