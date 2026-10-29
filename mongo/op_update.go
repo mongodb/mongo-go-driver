@@ -201,13 +201,5 @@ func (u *updateOp) command(dst []byte, desc description.SelectedServer) ([]byte,
 	if u.rawData != nil && desc.WireVersion != nil && driverutil.VersionRangeIncludes(*desc.WireVersion, 27) {
 		dst = bsoncore.AppendBooleanElement(dst, "rawData", *u.rawData)
 	}
-	if len(u.additionalCmd) > 0 {
-		doc, err := bson.Marshal(u.additionalCmd)
-		if err != nil {
-			return nil, err
-		}
-		dst = append(dst, doc[4:len(doc)-1]...)
-	}
-
-	return dst, nil
+	return appendAdditionalCmd(dst, u.additionalCmd)
 }
