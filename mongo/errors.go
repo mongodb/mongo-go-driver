@@ -87,6 +87,13 @@ func wrapErrors(err error) error {
 		return ErrClientDisconnected
 	}
 
+	// ClientBulkWriteException is already a public error type. It unwraps to
+	// the top-level error it reports, so it must not be converted again.
+	var cbwe ClientBulkWriteException
+	if errors.As(err, &cbwe) {
+		return err
+	}
+
 	var de driver.Error
 	if errors.As(err, &de) {
 		return CommandError{
@@ -800,6 +807,15 @@ type ClientBulkWriteException struct {
 	// The results of any successful operations that were performed before the error
 	// was encountered.
 	PartialResult *ClientBulkWriteResult
+
+	// wrapped is the top-level error the exception reports, retained so that
+	// errors.Is and errors.As still see it.
+	wrapped error
+}
+
+// Unwrap returns the top-level error the exception reports.
+func (bwe ClientBulkWriteException) Unwrap() error {
+	return bwe.wrapped
 }
 
 // ErrorCodes returns a list of error codes returned by the server.

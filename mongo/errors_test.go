@@ -1033,3 +1033,23 @@ func TestErrorCodesNoDoubleWrapping(t *testing.T) {
 	codes2 := ErrorCodes(wrapped)
 	require.Equal(t, codes, codes2)
 }
+
+// TestClientBulkWriteExceptionUnwrap asserts that the exception exposes the
+// top-level error it reports, so that errors.Is and errors.As still see it.
+func TestClientBulkWriteExceptionUnwrap(t *testing.T) {
+	t.Run("exposes the wrapped error", func(t *testing.T) {
+		bwe := ClientBulkWriteException{
+			WriteError: &WriteError{Message: context.DeadlineExceeded.Error()},
+			wrapped:    context.DeadlineExceeded,
+		}
+		require.ErrorIs(t, bwe, context.DeadlineExceeded,
+			"expected the exception to unwrap to the wrapped error")
+	})
+
+	t.Run("no wrapped error", func(t *testing.T) {
+		var bwe ClientBulkWriteException
+		require.Nil(t, bwe.Unwrap(), "expected a nil wrapped error")
+		require.False(t, errors.Is(bwe, context.DeadlineExceeded),
+			"expected the exception not to unwrap to a timeout")
+	})
+}
