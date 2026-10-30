@@ -971,6 +971,25 @@ func TestDecodeOpReply(t *testing.T) {
 	})
 }
 
+func TestUpdateOperationTime(t *testing.T) {
+	t.Parallel()
+
+	sess := &session.Client{}
+	op := Operation{Client: sess}
+
+	// A reply that reports operationTime as something other than a BSON
+	// timestamp must leave the session's operation time alone.
+	op.updateOperationTime(bsoncore.BuildDocument(nil,
+		bsoncore.AppendInt64Element(nil, "operationTime", 10)))
+	assert.Nil(t, sess.OperationTime, "expected OperationTime to be unset")
+
+	op.updateOperationTime(bsoncore.BuildDocument(nil,
+		bsoncore.AppendTimestampElement(nil, "operationTime", 1, 2)))
+	require.NotNil(t, sess.OperationTime, "expected OperationTime to be set")
+	assert.Equal(t, bson.Timestamp{T: 1, I: 2}, *sess.OperationTime,
+		"expected the reported operation time")
+}
+
 func TestMarshalBSONWriteConcern(t *testing.T) {
 	t.Parallel()
 

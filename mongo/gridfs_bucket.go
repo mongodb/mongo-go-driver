@@ -376,6 +376,11 @@ func (b *GridFSBucket) openDownloadStream(
 
 	foundFile := newFileFromResponse(resp)
 
+	if foundFile.ChunkSize < 0 {
+		return nil, fmt.Errorf("files collection document contains a negative 'chunkSize' field: %d",
+			foundFile.ChunkSize)
+	}
+
 	if foundFile.Length == 0 {
 		return newGridFSDownloadStream(ctx, cancel, nil, foundFile.ChunkSize, foundFile), nil
 	}
@@ -485,7 +490,11 @@ func createNumericalIndexIfNotExists(ctx context.Context, iv IndexView, model In
 			return err
 		}
 
-		keyElemDoc := keyElem.Document()
+		keyElemDoc, ok := keyElem.DocumentOK()
+		if !ok {
+			return fmt.Errorf("incorrect type for 'key'. got %v. want %v",
+				keyElem.Type, bson.TypeEmbeddedDocument)
+		}
 
 		found, err := numericalIndexDocsEqual(modelKeysDoc, bsoncore.Document(keyElemDoc))
 		if err != nil {

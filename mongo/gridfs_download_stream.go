@@ -9,6 +9,7 @@ package mongo
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"math"
 	"time"
@@ -261,8 +262,11 @@ func (ds *GridFSDownloadStream) fillBuffer(ctx context.Context) error {
 	var chunkIndexInt32 int32
 	if chunkIndexInt64, ok := chunkIndex.Int64OK(); ok {
 		chunkIndexInt32 = int32(chunkIndexInt64)
+	} else if chunkIndexInt32Val, ok := chunkIndex.Int32OK(); ok {
+		chunkIndexInt32 = chunkIndexInt32Val
 	} else {
-		chunkIndexInt32 = chunkIndex.Int32()
+		return fmt.Errorf("incorrect type for 'n'. got %v. want %v or %v",
+			chunkIndex.Type, bson.TypeInt32, bson.TypeInt64)
 	}
 
 	if chunkIndexInt32 != ds.expectedChunk {
@@ -275,7 +279,10 @@ func (ds *GridFSDownloadStream) fillBuffer(ctx context.Context) error {
 		return err
 	}
 
-	_, dataBytes := data.Binary()
+	_, dataBytes, ok := data.BinaryOK()
+	if !ok {
+		return fmt.Errorf("incorrect type for 'data'. got %v. want %v", data.Type, bson.TypeBinary)
+	}
 	copied := copy(ds.buffer, dataBytes)
 
 	bytesLen := int32(len(dataBytes))

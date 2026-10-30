@@ -288,6 +288,63 @@ func TestClientSession(t *testing.T) {
 	})
 }
 
+func TestClientSessionMalformedServerFields(t *testing.T) {
+	t.Parallel()
+
+	t.Run("clusterTime with the wrong type is ignored", func(t *testing.T) {
+		t.Parallel()
+
+		// The server gossips $clusterTime on nearly every reply, so a reply that
+		// carries it as something other than a BSON timestamp must not take down
+		// the operation.
+		malformed := bsoncore.BuildDocument(nil, bsoncore.AppendDocumentElement(nil, "$clusterTime",
+			bsoncore.BuildDocument(nil, bsoncore.AppendInt64Element(nil, "clusterTime", 10))))
+		valid := bsoncore.BuildDocument(nil, bsoncore.AppendDocumentElement(nil, "$clusterTime",
+			bsoncore.BuildDocument(nil, bsoncore.AppendTimestampElement(nil, "clusterTime", 1, 0))))
+
+		assert.Equal(t, bson.Raw(valid), MaxClusterTime(malformed, valid),
+			"expected the valid cluster time to win")
+	})
+
+	t.Run("recoveryToken with the wrong type is ignored", func(t *testing.T) {
+		t.Parallel()
+
+		c := &Client{}
+		c.UpdateRecoveryToken(bsoncore.BuildDocument(nil,
+			bsoncore.AppendStringElement(nil, "recoveryToken", "not a document")))
+
+		assert.Nil(t, c.RecoveryToken, "expected RecoveryToken to be unset")
+	})
+
+	t.Run("atClusterTime with the wrong type is ignored", func(t *testing.T) {
+		t.Parallel()
+
+		testCases := []struct {
+			description string
+			response    bsoncore.Document
+		}{
+			{
+				"top level",
+				bsoncore.BuildDocument(nil, bsoncore.AppendInt64Element(nil, "atClusterTime", 10)),
+			},
+			{
+				"in cursor",
+				bsoncore.BuildDocument(nil, bsoncore.AppendDocumentElement(nil, "cursor",
+					bsoncore.BuildDocument(nil, bsoncore.AppendStringElement(nil, "atClusterTime", "nope")))),
+			},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.description, func(t *testing.T) {
+				c := &Client{}
+				c.UpdateSnapshotTime(tc.response)
+
+				assert.False(t, c.SnapshotTimeSet, "expected SnapshotTimeSet to be false")
+			})
+		}
+	})
+}
+
 func TestImplicitClientSession(t *testing.T) {
 	t.Parallel()
 
