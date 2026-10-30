@@ -215,9 +215,9 @@ func (ejvw *extJSONValueWriter) WriteDBPointer(ns string, oid ObjectID) error {
 	}
 
 	var buf bytes.Buffer
-	buf.WriteString(`{"$dbPointer":{"$ref":"`)
-	buf.WriteString(ns)
-	buf.WriteString(`","$id":{"$oid":"`)
+	buf.WriteString(`{"$dbPointer":{"$ref":`)
+	writeStringWithEscapes(ns, &buf, ejvw.escapeHTML)
+	buf.WriteString(`,"$id":{"$oid":"`)
 	buf.WriteString(oid.Hex())
 	buf.WriteString(`"}}},`)
 

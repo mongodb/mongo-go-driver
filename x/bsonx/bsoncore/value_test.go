@@ -1202,6 +1202,15 @@ var valueStringTestCases = []struct {
 	},
 
 	{
+		description: "TypeRegex with options that need escaping",
+		val: Value{
+			Type: TypeRegex,
+			Data: AppendRegex(nil, "pattern", `"i`),
+		},
+		want: `{"$regularExpression":{"pattern":"pattern","options":"\"i"}}`,
+	},
+
+	{
 		description: "TypeDBPointer",
 		val: Value{
 			Type: TypeDBPointer,
@@ -1236,7 +1245,7 @@ var valueStringTestCases = []struct {
 				BuildDocument(nil, AppendStringElement(nil, "key", "value")),
 			),
 		},
-		want: `{"$code":code,"$scope":{"key": "value"}}`,
+		want: `{"$code":"code","$scope":{"key": "value"}}`,
 	},
 
 	{

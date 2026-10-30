@@ -337,8 +337,8 @@ func (v Value) StringN(n int) (string, bool) {
 			return "", false
 		}
 		str = fmt.Sprintf(
-			`{"$regularExpression":{"pattern":%s,"options":"%s"}}`,
-			escapeString(pattern), sortStringAlphebeticAscending(options),
+			`{"$regularExpression":{"pattern":%s,"options":%s}}`,
+			escapeString(pattern), escapeString(sortStringAlphebeticAscending(options)),
 		)
 	case TypeDBPointer:
 		ns, pointer, ok := v.DBPointerOK()
@@ -363,7 +363,7 @@ func (v Value) StringN(n int) (string, bool) {
 		if !ok {
 			return "", false
 		}
-		str = fmt.Sprintf(`{"$code":%s,"$scope":%s}`, code, scope)
+		str = fmt.Sprintf(`{"$code":%s,"$scope":%s}`, escapeString(code), scope)
 	case TypeInt32:
 		i32, ok := v.Int32OK()
 		if !ok {
@@ -428,7 +428,7 @@ func (v Value) DebugString() string {
 		if !ok {
 			return ""
 		}
-		return fmt.Sprintf(`{"$code":%s,"$scope":%s}`, code, scope.DebugString())
+		return fmt.Sprintf(`{"$code":%s,"$scope":%s}`, escapeString(code), scope.DebugString())
 	default:
 		str := v.String()
 		if str == "" {
