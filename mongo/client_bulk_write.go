@@ -483,6 +483,7 @@ func (mb *modelBatches) processResponse(ctx context.Context, resp bsoncore.Docum
 			CommandMonitor:        mb.client.monitor,
 			Crypt:                 mb.client.cryptFLE,
 			ServerAPI:             mb.client.serverAPI,
+			Authenticator:         mb.client.authenticator,
 			MarshalValueEncoderFn: newEncoderFn(mb.client.bsonOpts, mb.client.registry),
 		},
 	)

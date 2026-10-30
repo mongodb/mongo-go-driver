@@ -959,6 +959,7 @@ func (c *Client) createBaseCursorOptions(retryOverload bool) driver.CursorOption
 		CommandMonitor:            c.monitor,
 		Crypt:                     c.cryptFLE,
 		ServerAPI:                 c.serverAPI,
+		Authenticator:             c.authenticator,
 		MaxAdaptiveRetries:        c.effectiveAdaptiveRetries(retryOverload),
 		EnableOverloadRetargeting: c.enableOverloadRetargeting,
 	}
