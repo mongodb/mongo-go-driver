@@ -35,10 +35,14 @@ func TestBatchCursorReauthenticatesGetMore(t *testing.T) {
 		Code int32 `bson:"code"`
 	}
 
+	type doc struct {
+		X int32 `bson:"x"`
+	}
+
 	type cursor struct {
-		ID        int64    `bson:"id"`
-		NS        string   `bson:"ns"`
-		NextBatch []bson.M `bson:"nextBatch"`
+		ID        int64  `bson:"id"`
+		NS        string `bson:"ns"`
+		NextBatch []doc  `bson:"nextBatch"`
 	}
 
 	type cursorReply struct {
@@ -50,7 +54,7 @@ func TestBatchCursorReauthenticatesGetMore(t *testing.T) {
 	// returns one document and closes the cursor (ID 0).
 	replies := []any{
 		errorReply{OK: 0, Code: 391},
-		cursorReply{OK: 1, Cursor: cursor{ID: 0, NS: "db.coll", NextBatch: []bson.M{{"x": 2}}}},
+		cursorReply{OK: 1, Cursor: cursor{ID: 0, NS: "db.coll", NextBatch: []doc{{X: 2}}}},
 	}
 
 	// newCursor returns an open cursor whose first batch has been read.

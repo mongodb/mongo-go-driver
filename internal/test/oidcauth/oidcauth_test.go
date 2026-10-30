@@ -21,6 +21,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/failpoint"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -670,7 +671,7 @@ func TestMachine_4_3_WriteCommandsFailIfReauthenticationFails(t *testing.T) {
 	require.NoError(t, callbackFailed, "callback failed")
 }
 
-func TestMachine_ReAuth_GetMore(t *testing.T) {
+func TestMachine_ReauthenticationSucceedsOnGetMore(t *testing.T) {
 	var callbackCount atomic.Int32
 	started, failed, monitor := commandEventsFor("getMore")
 
@@ -685,16 +686,19 @@ func TestMachine_ReAuth_GetMore(t *testing.T) {
 	coll := client.Database("test").Collection("reauth_getmore")
 	require.NoError(t, coll.Drop(context.Background()), "failed dropping collection")
 
+	type doc struct {
+		I int `bson:"i"`
+	}
 	docs := make([]any, 10)
 	for i := range docs {
-		docs[i] = bson.D{{Key: "i", Value: i}}
+		docs[i] = doc{I: i}
 	}
 	_, err = coll.InsertMany(context.Background(), docs)
 	require.NoError(t, err, "failed executing InsertMany")
 
 	failNextWithReauthenticationRequired(t, adminClient, "getMore")
 
-	cursor, err := coll.Find(context.Background(), bson.D{}, options.Find().SetBatchSize(2))
+	cursor, err := coll.Find(context.Background(), bson.M{}, options.Find().SetBatchSize(2))
 	require.NoError(t, err, "failed executing Find")
 
 	n := 0
@@ -711,7 +715,7 @@ func TestMachine_ReAuth_GetMore(t *testing.T) {
 	}
 }
 
-func TestMachine_ReAuth_KillCursors(t *testing.T) {
+func TestMachine_ReauthenticationSucceedsOnKillCursors(t *testing.T) {
 	var callbackCount atomic.Int32
 	started, failed, monitor := commandEventsFor("killCursors")
 
@@ -726,16 +730,19 @@ func TestMachine_ReAuth_KillCursors(t *testing.T) {
 	coll := client.Database("test").Collection("reauth_killcursors")
 	require.NoError(t, coll.Drop(context.Background()), "failed dropping collection")
 
+	type doc struct {
+		I int `bson:"i"`
+	}
 	docs := make([]any, 10)
 	for i := range docs {
-		docs[i] = bson.D{{Key: "i", Value: i}}
+		docs[i] = doc{I: i}
 	}
 	_, err = coll.InsertMany(context.Background(), docs)
 	require.NoError(t, err, "failed executing InsertMany")
 
 	// A batch size smaller than the collection leaves the cursor open on the
 	// server, so Close must send killCursors.
-	cursor, err := coll.Find(context.Background(), bson.D{}, options.Find().SetBatchSize(2))
+	cursor, err := coll.Find(context.Background(), bson.M{}, options.Find().SetBatchSize(2))
 	require.NoError(t, err, "failed executing Find")
 	require.True(t, cursor.Next(context.Background()), "expected a document from the first batch")
 	require.NotEqual(t, int64(0), cursor.ID(), "expected an open server cursor")
@@ -808,17 +815,13 @@ func commandEventsFor(name string) (chan *event.CommandStartedEvent, chan *event
 func failNextWithReauthenticationRequired(t *testing.T, adminClient *mongo.Client, name string) {
 	t.Helper()
 
-	res := adminClient.Database("admin").RunCommand(context.Background(), bson.D{
-		{Key: "configureFailPoint", Value: "failCommand"},
-		{Key: "mode", Value: bson.D{
-			{Key: "times", Value: 1},
-		}},
-		{Key: "data", Value: bson.D{
-			{Key: "failCommands", Value: bson.A{
-				name,
-			}},
-			{Key: "errorCode", Value: 391},
-		}},
+	res := adminClient.Database("admin").RunCommand(context.Background(), failpoint.FailPoint{
+		ConfigureFailPoint: "failCommand",
+		Mode:               failpoint.Mode{Times: 1},
+		Data: failpoint.Data{
+			FailCommands: []string{name},
+			ErrorCode:    391,
+		},
 	})
 	require.NoError(t, res.Err(), "failed setting failpoint")
 }
