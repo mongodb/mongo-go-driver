@@ -84,8 +84,8 @@ func TestWriteErrorsWithLabels(t *testing.T) {
 		_, err := mt.Coll.DeleteMany(context.Background(), bson.D{{"a", 1}})
 		assert.NotNil(mt, err, "expected non-nil error, got nil")
 
-		we, ok := err.(mongo.WriteException)
-		assert.True(mt, ok, "expected mongo.WriteException, got %T", err)
+		var we mongo.WriteException
+		assert.ErrorAs(mt, err, &we, "expected mongo.WriteException, got %T", err)
 		assert.True(mt, we.HasErrorLabel(label), "expected error to have label: %v", label)
 	})
 
@@ -243,10 +243,11 @@ func TestWriteErrorsDetails(t *testing.T) {
 						err)
 					details = bwe.WriteErrors[0].Details
 				} else {
-					we, ok := err.(mongo.WriteException)
-					assert.True(
+					var we mongo.WriteException
+					assert.ErrorAs(
 						mt,
-						ok,
+						err,
+						&we,
 						"expected error to be type mongo.WriteException, got type %T (error %q)",
 						err,
 						err)
@@ -356,8 +357,8 @@ func TestWriteConcernError(t *testing.T) {
 
 		_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"x", 1}})
 		assert.NotNil(mt, err, "expected InsertOne error, got nil")
-		writeException, ok := err.(mongo.WriteException)
-		assert.True(mt, ok, "expected WriteException, got error %v of type %T", err, err)
+		var writeException mongo.WriteException
+		assert.ErrorAs(mt, err, &writeException, "expected WriteException, got error %v of type %T", err, err)
 		wcError := writeException.WriteConcernError
 		assert.NotNil(mt, wcError, "expected write-concern error, got %v", err)
 		assert.True(mt, bytes.Equal(wcError.Details, errInfoDoc), "expected errInfo document %v, got %v",
@@ -399,8 +400,8 @@ func TestErrorsCodeNamePropagated(t *testing.T) {
 		_, err := mt.Coll.InsertOne(context.Background(), bson.D{})
 		assert.NotNil(mt, err, "expected InsertOne error, got nil")
 
-		we, ok := err.(mongo.WriteException)
-		assert.True(mt, ok, "expected error of type %T, got %v of type %T", mongo.WriteException{}, err, err)
+		var we mongo.WriteException
+		assert.ErrorAs(mt, err, &we, "expected error of type %T, got %v of type %T", mongo.WriteException{}, err, err)
 		wce := we.WriteConcernError
 		assert.NotNil(mt, wce, "expected write concern error, got %v", we)
 
