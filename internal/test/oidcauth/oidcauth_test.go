@@ -14,6 +14,7 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 	"unsafe"
@@ -23,6 +24,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/auth"
 )
 
@@ -668,38 +670,143 @@ func TestMachine_4_3_WriteCommandsFailIfReauthenticationFails(t *testing.T) {
 	require.NoError(t, callbackFailed, "callback failed")
 }
 
-func TestMachine_ReauthenticationSucceedsOnGetMore(t *testing.T) {
-	callbackCount := 0
-	var callbackFailed error
-	countMutex := sync.Mutex{}
+func TestMachine_ReAuth_GetMore(t *testing.T) {
+	var callbackCount atomic.Int32
+	started, failed, monitor := commandEventsFor("getMore")
 
 	adminClient, err := connectAdminClient()
 	require.NoError(t, err, "failed connecting admin client")
 	t.Cleanup(func() { _ = adminClient.Disconnect(context.Background()) })
 
-	client, err := connectWithOIDC(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
-		countMutex.Lock()
-		defer countMutex.Unlock()
-		callbackCount++
-		expiry := time.Now().Add(time.Hour)
-		tokenFile := tokenFile("test_user1")
-		accessToken, err := os.ReadFile(tokenFile)
-		if err != nil {
-			callbackFailed = fmt.Errorf("failed reading token file: %v", err)
-		}
-		return &options.OIDCCredential{
-			AccessToken:  string(accessToken),
-			ExpiresAt:    &expiry,
-			RefreshToken: nil,
-		}, nil
-	})
+	client, err := connectWithOIDCAndMonitor(uriSingle, countingMachineCallback(&callbackCount), monitor)
 	require.NoError(t, err, "failed connecting client")
 	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
-	coll := client.Database("test").Collection("getmore_reauth")
+	coll := client.Database("test").Collection("reauth_getmore")
 	require.NoError(t, coll.Drop(context.Background()), "failed dropping collection")
-	_, err = coll.InsertMany(context.Background(), []any{bson.D{}, bson.D{}, bson.D{}})
+
+	docs := make([]any, 10)
+	for i := range docs {
+		docs[i] = bson.D{{Key: "i", Value: i}}
+	}
+	_, err = coll.InsertMany(context.Background(), docs)
 	require.NoError(t, err, "failed executing InsertMany")
+
+	failNextWithReauthenticationRequired(t, adminClient, "getMore")
+
+	cursor, err := coll.Find(context.Background(), bson.D{}, options.Find().SetBatchSize(2))
+	require.NoError(t, err, "failed executing Find")
+
+	n := 0
+	for cursor.Next(context.Background()) {
+		n++
+	}
+	require.NoError(t, cursor.Err(), "expected the cursor to succeed after reauthenticating getMore")
+	require.Equal(t, len(docs), n, "expected every document after reauthenticating getMore")
+
+	requireReauthRetried(t, started, failed)
+
+	if isCallbackTest() {
+		require.Equal(t, int32(2), callbackCount.Load(), "expected callback count to be 2")
+	}
+}
+
+func TestMachine_ReAuth_KillCursors(t *testing.T) {
+	var callbackCount atomic.Int32
+	started, failed, monitor := commandEventsFor("killCursors")
+
+	adminClient, err := connectAdminClient()
+	require.NoError(t, err, "failed connecting admin client")
+	t.Cleanup(func() { _ = adminClient.Disconnect(context.Background()) })
+
+	client, err := connectWithOIDCAndMonitor(uriSingle, countingMachineCallback(&callbackCount), monitor)
+	require.NoError(t, err, "failed connecting client")
+	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
+
+	coll := client.Database("test").Collection("reauth_killcursors")
+	require.NoError(t, coll.Drop(context.Background()), "failed dropping collection")
+
+	docs := make([]any, 10)
+	for i := range docs {
+		docs[i] = bson.D{{Key: "i", Value: i}}
+	}
+	_, err = coll.InsertMany(context.Background(), docs)
+	require.NoError(t, err, "failed executing InsertMany")
+
+	// A batch size smaller than the collection leaves the cursor open on the
+	// server, so Close must send killCursors.
+	cursor, err := coll.Find(context.Background(), bson.D{}, options.Find().SetBatchSize(2))
+	require.NoError(t, err, "failed executing Find")
+	require.True(t, cursor.Next(context.Background()), "expected a document from the first batch")
+	require.NotEqual(t, int64(0), cursor.ID(), "expected an open server cursor")
+
+	failNextWithReauthenticationRequired(t, adminClient, "killCursors")
+
+	require.NoError(t, cursor.Close(context.Background()), "expected Close to succeed after reauthenticating killCursors")
+
+	attempts := requireReauthRetried(t, started, failed)
+	require.Equal(t, 2, attempts, "expected exactly the failed killCursors and its retry")
+
+	if isCallbackTest() {
+		require.Equal(t, int32(2), callbackCount.Load(), "expected callback count to be 2")
+	}
+}
+
+// countingMachineCallback returns a machine callback that reads the test_user1
+// token and counts its calls in count. The driver serializes callback calls,
+// so the count only needs to be safe to read from the test goroutine. Token
+// read errors are returned, so the operation that authenticated fails with
+// them.
+func countingMachineCallback(count *atomic.Int32) options.OIDCCallback {
+	return func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
+		count.Add(1)
+		accessToken, err := os.ReadFile(tokenFile("test_user1"))
+		if err != nil {
+			return nil, fmt.Errorf("failed reading token file: %w", err)
+		}
+		expiry := time.Now().Add(time.Hour)
+		return &options.OIDCCredential{AccessToken: string(accessToken), ExpiresAt: &expiry}, nil
+	}
+}
+
+// connectWithOIDCAndMonitor is connectWithOIDC with a command monitor.
+func connectWithOIDCAndMonitor(uri string, cb options.OIDCCallback, m *event.CommandMonitor) (*mongo.Client, error) {
+	opts := options.Client().ApplyURI(uri).SetMonitor(m)
+	if isCallbackTest() {
+		opts.SetAuth(options.Credential{
+			AuthMechanism:       "MONGODB-OIDC",
+			OIDCMachineCallback: cb,
+		})
+	}
+	return mongo.Connect(opts)
+}
+
+// commandEventsFor returns a command monitor that sends the started and failed
+// events for the command name to the returned channels.
+func commandEventsFor(name string) (chan *event.CommandStartedEvent, chan *event.CommandFailedEvent, *event.CommandMonitor) {
+	started := make(chan *event.CommandStartedEvent, 100)
+	failed := make(chan *event.CommandFailedEvent, 100)
+
+	monitor := &event.CommandMonitor{
+		Started: func(_ context.Context, e *event.CommandStartedEvent) {
+			if e.CommandName == name {
+				started <- e
+			}
+		},
+		Failed: func(_ context.Context, e *event.CommandFailedEvent) {
+			if e.CommandName == name {
+				failed <- e
+			}
+		},
+	}
+
+	return started, failed, monitor
+}
+
+// failNextWithReauthenticationRequired fails the next command named name with
+// ReauthenticationRequired (391).
+func failNextWithReauthenticationRequired(t *testing.T, adminClient *mongo.Client, name string) {
+	t.Helper()
 
 	res := adminClient.Database("admin").RunCommand(context.Background(), bson.D{
 		{Key: "configureFailPoint", Value: "failCommand"},
@@ -708,25 +815,34 @@ func TestMachine_ReauthenticationSucceedsOnGetMore(t *testing.T) {
 		}},
 		{Key: "data", Value: bson.D{
 			{Key: "failCommands", Value: bson.A{
-				"getMore",
+				name,
 			}},
 			{Key: "errorCode", Value: 391},
 		}},
 	})
 	require.NoError(t, res.Err(), "failed setting failpoint")
+}
 
-	cursor, err := coll.Find(context.Background(), bson.D{}, options.Find().SetBatchSize(1))
-	require.NoError(t, err, "failed executing Find")
-	var docs []bson.D
-	require.NoError(t, cursor.All(context.Background(), &docs), "failed iterating the cursor")
-	require.Len(t, docs, 3, "expected all documents after reauthenticating getMore")
+// requireReauthRetried asserts that the first attempt of the monitored command
+// failed with ReauthenticationRequired (391), that it was the only failure, and
+// that another attempt followed it. It returns the number of attempts. The
+// caller checks that the operation succeeded, which means the attempts after
+// the failure did.
+func requireReauthRetried(t *testing.T, started chan *event.CommandStartedEvent, failed chan *event.CommandFailedEvent) int {
+	t.Helper()
 
-	countMutex.Lock()
-	defer countMutex.Unlock()
-	if isCallbackTest() {
-		require.Equal(t, 2, callbackCount, "expected callback count to be 2")
-		require.NoError(t, callbackFailed, "callback failed")
-	}
+	require.Equal(t, 1, len(failed), "expected only one attempt to fail")
+	require.GreaterOrEqual(t, len(started), 2, "expected the command to be retried")
+
+	fe := <-failed
+	first := <-started
+	require.Equal(t, first.RequestID, fe.RequestID, "expected the first attempt to be the one that failed")
+
+	var driverErr driver.Error
+	require.ErrorAs(t, fe.Failure, &driverErr)
+	require.Equal(t, int32(391), driverErr.Code, "expected the first attempt to fail with ReauthenticationRequired")
+
+	return 1 + len(started)
 }
 
 func TestHuman_1_1_SinglePrincipalImplicitUsername(t *testing.T) {

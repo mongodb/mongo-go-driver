@@ -30,33 +30,50 @@ func (a *countingAuthenticator) Reauth(context.Context, *driver.AuthConfig) erro
 }
 
 func TestBatchCursorReauthenticatesGetMore(t *testing.T) {
-	t.Parallel()
+	type errorReply struct {
+		OK   int32 `bson:"ok"`
+		Code int32 `bson:"code"`
+	}
 
+	type cursor struct {
+		ID        int64    `bson:"id"`
+		NS        string   `bson:"ns"`
+		NextBatch []bson.M `bson:"nextBatch"`
+	}
+
+	type cursorReply struct {
+		OK     int32  `bson:"ok"`
+		Cursor cursor `bson:"cursor"`
+	}
+
+	// The getMore fails with ReauthenticationRequired (391), then the retry
+	// returns one document and closes the cursor (ID 0).
+	replies := []any{
+		errorReply{OK: 0, Code: 391},
+		cursorReply{OK: 1, Cursor: cursor{ID: 0, NS: "db.coll", NextBatch: []bson.M{{"x": 2}}}},
+	}
+
+	// newCursor returns an open cursor whose first batch has been read.
 	newCursor := func(t *testing.T, auth driver.Authenticator) *driver.BatchCursor {
 		t.Helper()
 
-		deployment := drivertest.NewMockDeployment(
-			bson.D{
-				{Key: "ok", Value: 0},
-				{Key: "code", Value: 391},
-				{Key: "codeName", Value: "ReauthenticationRequired"},
-				{Key: "errmsg", Value: "reauthentication required"},
-			},
-			bson.D{
-				{Key: "ok", Value: 1},
-				{Key: "cursor", Value: bson.D{
-					{Key: "id", Value: int64(0)},
-					{Key: "ns", Value: "db.coll"},
-					{Key: "nextBatch", Value: bson.A{bson.D{{Key: "x", Value: 2}}}},
-				}},
-			},
-		)
+		// The mock deployment takes bson.D, so round-trip each reply through
+		// BSON.
+		docs := make([]bson.D, len(replies))
+		for i, reply := range replies {
+			b, err := bson.Marshal(reply)
+			require.NoError(t, err, "failed marshaling reply")
+			require.NoError(t, bson.Unmarshal(b, &docs[i]), "failed unmarshaling reply")
+		}
+
 		firstDoc := bsoncore.NewDocumentBuilder().AppendInt32("x", 1).Build()
+		firstBatch := bsoncore.BuildArray(nil, bsoncore.Value{Type: bsoncore.TypeEmbeddedDocument, Data: firstDoc})
+
 		bc, err := driver.NewBatchCursor(
 			driver.CursorResponse{
-				Server:     deployment,
+				Server:     drivertest.NewMockDeployment(docs...),
 				Desc:       drivertest.MockDescription,
-				FirstBatch: &bsoncore.Iterator{List: bsoncore.BuildArray(nil, bsoncore.Value{Type: bsoncore.TypeEmbeddedDocument, Data: firstDoc})},
+				FirstBatch: &bsoncore.Iterator{List: firstBatch},
 				Database:   "db",
 				Collection: "coll",
 				ID:         1,
@@ -67,12 +84,11 @@ func TestBatchCursorReauthenticatesGetMore(t *testing.T) {
 		)
 		require.NoError(t, err, "NewBatchCursor error")
 		require.True(t, bc.Next(context.Background()), "expected the first batch")
+
 		return bc
 	}
 
 	t.Run("reauthenticates and retries getMore", func(t *testing.T) {
-		t.Parallel()
-
 		auth := &countingAuthenticator{}
 		bc := newCursor(t, auth)
 
@@ -82,8 +98,6 @@ func TestBatchCursorReauthenticatesGetMore(t *testing.T) {
 	})
 
 	t.Run("returns the error without an authenticator", func(t *testing.T) {
-		t.Parallel()
-
 		bc := newCursor(t, nil)
 
 		assert.False(t, bc.Next(context.Background()), "expected getMore to fail")
