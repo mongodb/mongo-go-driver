@@ -31,6 +31,28 @@ const (
 type clientBulkWritePair struct {
 	namespace string
 	model     any
+
+	// collectionUUID pins this write to a specific collection instance. It is
+	// set only through the "collectionUUIDs" internal option and is nil for
+	// writes that do not use it. The bytes are not validated here; the server
+	// rejects a value that is not a 16-byte UUID.
+	collectionUUID []byte
+}
+
+// nsKey identifies an nsInfo entry. Two writes share an entry only when they
+// agree on both the namespace and the collection UUID, so the same namespace
+// can appear more than once in nsInfo with different UUIDs.
+type nsKey struct {
+	ns string
+
+	// hasUUID distinguishes an unset UUID from an empty one, which string(uuid)
+	// does not.
+	hasUUID bool
+
+	// uuid is the UTF-8 string representation of the UUID bytes (i.e.
+	// string(uuid)). A string is used here because []byte is not comparable so
+	// cannot be used as a map key. The value is never used except as a map key.
+	uuid string
 }
 
 type clientBulkWrite struct {
@@ -275,14 +297,19 @@ func (mb *modelBatches) appendBatches(fn functionSet, dst []byte, maxCount, tota
 	mb.cursorHandlers = mb.cursorHandlers[:0]
 	mb.newIDMap = make(map[int]any)
 
-	nsMap := make(map[string]int)
-	getNsIndex := func(namespace string) (int, bool) {
-		v, ok := nsMap[namespace]
+	nsMap := make(map[nsKey]int)
+	getNsIndex := func(namespace string, uuid []byte) (int, bool) {
+		key := nsKey{
+			ns:      namespace,
+			hasUUID: uuid != nil,
+			uuid:    string(uuid),
+		}
+		v, ok := nsMap[key]
 		if ok {
 			return v, ok
 		}
 		nsIdx := len(nsMap)
-		nsMap[namespace] = nsIdx
+		nsMap[key] = nsIdx
 		return nsIdx, ok
 	}
 
@@ -301,7 +328,8 @@ func (mb *modelBatches) appendBatches(fn functionSet, dst []byte, maxCount, tota
 		}
 
 		ns := mb.writePairs[i].namespace
-		nsIdx, exists := getNsIndex(ns)
+		uuid := mb.writePairs[i].collectionUUID
+		nsIdx, exists := getNsIndex(ns, uuid)
 
 		var doc bsoncore.Document
 		var err error
@@ -386,7 +414,7 @@ func (mb *modelBatches) appendBatches(fn functionSet, dst []byte, maxCount, tota
 		}
 		length := len(doc)
 		if !exists {
-			length += len(ns)
+			length += len(ns) + len(uuid)
 		}
 		size += length
 		if size >= totalSize {
@@ -397,6 +425,9 @@ func (mb *modelBatches) appendBatches(fn functionSet, dst []byte, maxCount, tota
 		if !exists {
 			idx, doc := bsoncore.AppendDocumentStart(nil)
 			doc = bsoncore.AppendStringElement(doc, "ns", ns)
+			if uuid != nil {
+				doc = bsoncore.AppendBinaryElement(doc, "collectionUUID", bson.TypeBinaryUUID, uuid)
+			}
 			doc, _ = bsoncore.AppendDocumentEnd(doc, idx)
 			nsDst = fn.appendDocument(nsDst, strconv.Itoa(n), doc)
 		}
@@ -471,7 +502,8 @@ func (mb *modelBatches) processResponse(ctx context.Context, resp bsoncore.Docum
 		return err
 	}
 	var bCursor *driver.BatchCursor
-	bCursor, err = driver.NewBatchCursor(cursorRes, mb.session, mb.client.clock,
+	bCursor, err = driver.NewBatchCursor(
+		cursorRes, mb.session, mb.client.clock,
 		driver.CursorOptions{
 			CommandMonitor:        mb.client.monitor,
 			Crypt:                 mb.client.cryptFLE,

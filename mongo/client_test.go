@@ -29,6 +29,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/tag"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mongocrypt"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/topology"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/xoptions"
 )
 
 var bgCtx = context.Background()
@@ -596,4 +597,48 @@ func bootstrapNonTLSServer(t *testing.T) string {
 	}()
 
 	return l.Addr().String()
+}
+
+func TestClientBulkWriteCollectionUUIDs(t *testing.T) {
+	writes := []ClientBulkWrite{
+		{Database: "db", Collection: "c0", Model: NewClientInsertOneModel().SetDocument(bson.D{{"foo", 42}})},
+		{Database: "db", Collection: "c1", Model: NewClientInsertOneModel().SetDocument(bson.D{{"foo", 42}})},
+	}
+
+	testCases := []struct {
+		name  string
+		uuids [][]byte
+		want  string
+	}{
+		{
+			name:  "too few",
+			uuids: [][]byte{[]byte("0123456789abcdef")},
+			want:  "invalid collectionUUIDs: got 1 UUIDs for 2 writes",
+		},
+		{
+			name:  "too many",
+			uuids: make([][]byte, 3),
+			want:  "invalid collectionUUIDs: got 3 UUIDs for 2 writes",
+		},
+		{
+			name:  "empty",
+			uuids: [][]byte{},
+			want:  "invalid collectionUUIDs: got 0 UUIDs for 2 writes",
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			opts := options.ClientBulkWrite()
+			err := xoptions.SetInternalClientBulkWriteOptions(opts, "collectionUUIDs", tc.uuids)
+			require.NoError(t, err, "SetInternalClientBulkWriteOptions error: %v", err)
+
+			// The length check runs before any session or server selection
+			// work, so an unconnected client is enough to reach it.
+			client, err := newClient()
+			require.NoError(t, err, "newClient error: %v", err)
+
+			_, err = client.BulkWrite(context.Background(), writes, opts)
+			assert.EqualError(t, err, tc.want)
+		})
+	}
 }

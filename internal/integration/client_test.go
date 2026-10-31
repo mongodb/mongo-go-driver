@@ -8,6 +8,7 @@ package integration
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -1412,5 +1413,131 @@ func TestClientStress(t *testing.T) {
 				assert.True(mt, len(errs) == 0, "expected no errors, but got %d (%v)", len(errs), errs)
 			})
 		}
+	})
+}
+
+func TestClient_BulkWrite_CollectionUUIDs(t *testing.T) {
+	type nsInfoEntry struct {
+		Ns   string       `bson:"ns"`
+		UUID *bson.Binary `bson:"collectionUUID"`
+	}
+
+	// createCollection creates the named collection and returns it with its
+	// UUID.
+	createCollection := func(mt *mtest.T, name string) (*mongo.Collection, *bson.Binary) {
+		mt.Helper()
+
+		coll := mt.CreateCollection(mtest.Collection{Name: name}, true)
+		specs, err := mt.DB.ListCollectionSpecifications(context.Background(), bson.D{{"name", name}})
+		require.NoError(mt, err, "ListCollectionSpecifications error: %v", err)
+		require.Len(mt, specs, 1, "expected exactly one collection named %q", name)
+		require.NotNil(mt, specs[0].UUID, "expected collection %q to have a UUID", name)
+		return coll, specs[0].UUID
+	}
+
+	insert := func(coll *mongo.Collection, id string) mongo.ClientBulkWrite {
+		return mongo.ClientBulkWrite{
+			Database:   coll.Database().Name(),
+			Collection: coll.Name(),
+			Model:      mongo.NewClientInsertOneModel().SetDocument(bson.D{{"_id", id}}),
+		}
+	}
+
+	newOpts := func(mt *mtest.T, uuids ...[]byte) *options.ClientBulkWriteOptionsBuilder {
+		mt.Helper()
+
+		opts := options.ClientBulkWrite()
+		err := xoptions.SetInternalClientBulkWriteOptions(opts, "collectionUUIDs", uuids)
+		require.NoError(mt, err, "SetInternalClientBulkWriteOptions error: %v", err)
+		return opts
+	}
+
+	// opTargets returns the nsInfo entry that each op of the test's single
+	// bulkWrite command points at, in op order. Resolving through the op's
+	// index, rather than reading nsInfo in order, makes the check about which
+	// entry each write was paired with.
+	opTargets := func(mt *mtest.T) []nsInfoEntry {
+		mt.Helper()
+
+		mt.FilterStartedEvents(func(evt *event.CommandStartedEvent) bool {
+			return evt.CommandName == "bulkWrite"
+		})
+		evts := mt.GetAllStartedEvents()
+		require.Len(mt, evts, 1, "expected %d bulkWrite events, got %d", 1, len(evts))
+
+		var cmd struct {
+			Ops    []struct{ Insert int32 } `bson:"ops"`
+			NsInfo []nsInfoEntry            `bson:"nsInfo"`
+		}
+		err := bson.Unmarshal(evts[0].Command, &cmd)
+		require.NoError(mt, err, "Unmarshal error: %v", err)
+
+		targets := make([]nsInfoEntry, 0, len(cmd.Ops))
+		for i, op := range cmd.Ops {
+			require.Less(mt, int(op.Insert), len(cmd.NsInfo), "op %d points past nsInfo: %d", i, op.Insert)
+			targets = append(targets, cmd.NsInfo[op.Insert])
+		}
+		return targets
+	}
+
+	mtOpts := mtest.NewOptions().MinServerVersion("8.0").ClientType(mtest.Pinned)
+	mt := mtest.New(t, noClientOpts)
+
+	mt.RunOpts("aligns each UUID with the write at the same index", mtOpts, func(mt *mtest.T) {
+		collA, uuidA := createCollection(mt, mt.Coll.Name())
+		collB, uuidB := createCollection(mt, mt.Coll.Name()+"_b")
+
+		// The nil in the middle catches an off-by-one shift, and the distinct
+		// UUIDs catch one UUID being applied to every write.
+		writes := []mongo.ClientBulkWrite{
+			insert(collA, "a-uuid"),
+			insert(collB, "b-none"),
+			insert(collB, "b-uuid"),
+		}
+		opts := newOpts(mt, uuidA.Data, nil, uuidB.Data)
+
+		// The server checks each UUID against the collection its write
+		// targets, so a misaligned UUID would surface as a write error.
+		res, err := mt.Client.BulkWrite(context.Background(), writes, opts)
+		require.NoError(mt, err, "BulkWrite error: %v", err)
+		assert.Equal(mt, int64(3), res.InsertedCount, "expected %d inserted, got %d", 3, res.InsertedCount)
+
+		nsA := mt.DB.Name() + "." + collA.Name()
+		nsB := mt.DB.Name() + "." + collB.Name()
+		want := []nsInfoEntry{{Ns: nsA, UUID: uuidA}, {Ns: nsB}, {Ns: nsB, UUID: uuidB}}
+		assert.Equal(mt, want, opTargets(mt), "unexpected nsInfo entry for each op")
+	})
+
+	mt.RunOpts("same namespace with different UUIDs in one call", mtOpts, func(mt *mtest.T) {
+		ctx := context.Background()
+
+		// Drop and recreate the collection so the same name has had two UUIDs.
+		coll, stale := createCollection(mt, mt.Coll.Name())
+		require.NoError(mt, coll.Drop(ctx), "Drop error")
+		coll, current := createCollection(mt, mt.Coll.Name())
+
+		// The stale write comes first and the bulk write is unordered, so the
+		// current write succeeding shows the server judged each nsInfo entry
+		// on its own rather than stopping at the first failure.
+		writes := []mongo.ClientBulkWrite{insert(coll, "stale"), insert(coll, "current")}
+		opts := newOpts(mt, stale.Data, current.Data).SetOrdered(false)
+		_, err := mt.Client.BulkWrite(ctx, writes, opts)
+
+		// The driver keeps the two UUIDs apart even though the namespace is
+		// the same.
+		ns := mt.DB.Name() + "." + coll.Name()
+		want := []nsInfoEntry{{Ns: ns, UUID: stale}, {Ns: ns, UUID: current}}
+		assert.Equal(mt, want, opTargets(mt), "unexpected nsInfo entry for each op")
+
+		// The server rejects only the stale write and reports the other as a
+		// partial success.
+		var exc mongo.ClientBulkWriteException
+		require.True(mt, errors.As(err, &exc), "expected a ClientBulkWriteException, got %T: %v", err, err)
+		require.Len(mt, exc.WriteErrors, 1, "expected %d write errors, got %v", 1, exc.WriteErrors)
+		assert.Equal(mt, 361, exc.WriteErrors[0].Code, "expected CollectionUUIDMismatch (361) at index 0, got %v",
+			exc.WriteErrors)
+		require.NotNil(mt, exc.PartialResult, "expected a partial result")
+		assert.Equal(mt, int64(1), exc.PartialResult.InsertedCount,
+			"expected %d inserted, got %d", 1, exc.PartialResult.InsertedCount)
 	})
 }
