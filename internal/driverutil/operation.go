@@ -35,6 +35,16 @@ const (
 	ListDatabasesOp     = "listDatabases"     // ListDatabasesOp is the name for listing databases
 	UpdateOp            = "update"            // UpdateOp is the name for updating
 	BulkWriteOp         = "bulkWrite"         // BulkWriteOp is the name for client-level bulk write
+
+	// Atlas Stream Processing commands.
+	CreateStreamProcessorOp        = "createStreamProcessor"        // CreateStreamProcessorOp is the name for creating a stream processor
+	StartStreamProcessorOp         = "startStreamProcessor"         // StartStreamProcessorOp is the name for starting a stream processor
+	StopStreamProcessorOp          = "stopStreamProcessor"          // StopStreamProcessorOp is the name for stopping a stream processor
+	DropStreamProcessorOp          = "dropStreamProcessor"          // DropStreamProcessorOp is the name for dropping a stream processor
+	GetStreamProcessorOp           = "getStreamProcessor"           // GetStreamProcessorOp is the name for fetching a stream processor's info
+	GetStreamProcessorStatsOp      = "getStreamProcessorStats"      // GetStreamProcessorStatsOp is the name for fetching a stream processor's runtime stats
+	StartSampleStreamProcessorOp   = "startSampleStreamProcessor"   // StartSampleStreamProcessorOp is the name for opening a sample cursor on a stream processor
+	GetMoreSampleStreamProcessorOp = "getMoreSampleStreamProcessor" // GetMoreSampleStreamProcessorOp is the name for fetching the next batch from a sample cursor
 )
 
 // CalculateMaxTimeMS calculates the maxTimeMS value to send to the server
