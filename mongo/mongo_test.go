@@ -653,3 +653,92 @@ type bvMarsh struct {
 func (b bvMarsh) MarshalBSONValue() (byte, []byte, error) {
 	return byte(b.t), b.data, b.err
 }
+
+func TestAppendAdditionalCmd(t *testing.T) {
+	t.Run("append to an empty dst", func(t *testing.T) {
+		additionalCmd := bson.D{{Key: "a", Value: int32(1)}}
+
+		got, err := appendAdditionalCmd(nil, additionalCmd)
+		require.NoError(t, err, "appendAdditionalCmd error")
+
+		raw, err := bson.Marshal(additionalCmd)
+		require.NoError(t, err, "Marshal error")
+		want := raw[4 : len(raw)-1]
+		require.Equal(t, want, got, "expected the element bytes for %v", additionalCmd)
+	})
+
+	t.Run("append empty", func(t *testing.T) {
+		dst := bsoncore.AppendStringElement(nil, "find", "coll")
+
+		var got []byte
+		var err error
+
+		got, err = appendAdditionalCmd(dst, nil)
+		require.NoError(t, err, "appendAdditionalCmd error")
+		require.Equal(t, dst, got, "expected dst to be returned unchanged")
+
+		got, err = appendAdditionalCmd(dst, bson.D{})
+		require.NoError(t, err, "appendAdditionalCmd error")
+		require.Equal(t, dst, got, "expected dst to be returned unchanged")
+	})
+
+	splice := func(t *testing.T, prefix, additionalCmd bson.D) (bson.Raw, error) {
+		t.Helper()
+
+		idx, dst := bsoncore.AppendDocumentStart(nil)
+		raw, err := bson.Marshal(prefix)
+		require.NoError(t, err, "Marshal error")
+		dst = append(dst, raw[4:len(raw)-1]...)
+
+		dst, err = appendAdditionalCmd(dst, additionalCmd)
+		if err != nil {
+			return nil, err
+		}
+
+		dst, err = bsoncore.AppendDocumentEnd(dst, idx)
+		require.NoError(t, err, "AppendDocumentEnd error")
+
+		return bson.Raw(dst), nil
+	}
+
+	keys := func(t *testing.T, doc bson.Raw) []string {
+		t.Helper()
+
+		elems, err := doc.Elements()
+		require.NoError(t, err, "Elements error")
+
+		out := make([]string, 0, len(elems))
+		for _, elem := range elems {
+			out = append(out, elem.Key())
+		}
+
+		return out
+	}
+
+	t.Run("splices onto existing elements", func(t *testing.T) {
+		got, err := splice(t, bson.D{{Key: "find", Value: "coll"}}, bson.D{
+			{Key: "b", Value: int32(1)},
+			{Key: "a", Value: int32(2)},
+			{Key: "a", Value: int32(3)}, // duplicate key, should be preserved
+			{Key: "d", Value: int32(4)},
+			{Key: "c", Value: int32(5)},
+		})
+		require.NoError(t, err, "appendAdditionalCmd error")
+
+		// appendAdditionalCmd should preserve order and duplicates.
+		want := []string{"find", "b", "a", "a", "d", "c"}
+		gotKeys := keys(t, got)
+		require.Equal(t, want, gotKeys, "expected command fields %v, got %v", want, gotKeys)
+
+		for key, want := range map[string]int32{
+			"b": 1,
+			"a": 2, // appendAdditionalCmd should not overwrite existing keys
+			"d": 4,
+			"c": 5,
+		} {
+			val, ok := got.Lookup(key).Int32OK()
+			require.True(t, ok, "expected %v to be an int32", key)
+			require.Equal(t, want, val, "expected %v %v, got %v", key, want, val)
+		}
+	})
+}

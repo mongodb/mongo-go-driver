@@ -16,6 +16,8 @@ import (
 )
 
 // SetInternalClientOptions sets internal options for ClientOptions.
+//
+// See the xoptions package documentation for supported keys.
 func SetInternalClientOptions(opts *options.ClientOptions, key string, option any) error {
 	typeErrFunc := func(t string) error {
 		return fmt.Errorf("unexpected type for %q: %T is not %s", key, option, t)
@@ -46,6 +48,8 @@ func SetInternalClientOptions(opts *options.ClientOptions, key string, option an
 }
 
 // SetInternalAggregateOptions sets internal options for AggregateOptions.
+//
+// See the xoptions package documentation for supported keys.
 func SetInternalAggregateOptions(a *options.AggregateOptionsBuilder, key string, option any) error {
 	typeErrFunc := func(t string) error {
 		return fmt.Errorf("unexpected type for %q: %T is not %s", key, option, t)
@@ -67,6 +71,9 @@ func SetInternalAggregateOptions(a *options.AggregateOptionsBuilder, key string,
 }
 
 // SetInternalBulkWriteOptions sets internal options for BulkWriteOptions.
+//
+// See the xoptions package documentation for supported keys and for the risks
+// of "addCommandFields".
 func SetInternalBulkWriteOptions(a *options.BulkWriteOptionsBuilder, key string, option any) error {
 	typeErrFunc := func(t string) error {
 		return fmt.Errorf("unexpected type for %q: %T is not %s", key, option, t)
@@ -97,6 +104,9 @@ func SetInternalBulkWriteOptions(a *options.BulkWriteOptionsBuilder, key string,
 }
 
 // SetInternalClientBulkWriteOptions sets internal options for ClientBulkWriteOptions.
+//
+// See the xoptions package documentation for supported keys and for the risks
+// of "addCommandFields".
 func SetInternalClientBulkWriteOptions(a *options.ClientBulkWriteOptionsBuilder, key string, option any) error {
 	typeErrFunc := func(t string) error {
 		return fmt.Errorf("unexpected type for %q: %T is not %s", key, option, t)
@@ -127,6 +137,9 @@ func SetInternalClientBulkWriteOptions(a *options.ClientBulkWriteOptionsBuilder,
 }
 
 // SetInternalCountOptions sets internal options for CountOptions.
+//
+// See the xoptions package documentation for supported keys and for the risks
+// of "addCommandFields".
 func SetInternalCountOptions(a *options.CountOptionsBuilder, key string, option any) error {
 	typeErrFunc := func(t string) error {
 		return fmt.Errorf("unexpected type for %q: %T is not %s", key, option, t)
@@ -141,6 +154,15 @@ func SetInternalCountOptions(a *options.CountOptionsBuilder, key string, option 
 			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
 			return nil
 		})
+	case "addCommandFields":
+		d, ok := option.(bson.D)
+		if !ok {
+			return typeErrFunc("bson.D")
+		}
+		a.Opts = append(a.Opts, func(opts *options.CountOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, d)
+			return nil
+		})
 	default:
 		return fmt.Errorf("unsupported option: %q", key)
 	}
@@ -148,6 +170,9 @@ func SetInternalCountOptions(a *options.CountOptionsBuilder, key string, option 
 }
 
 // SetInternalCreateIndexesOptions sets internal options for CreateIndexesOptions.
+//
+// See the xoptions package documentation for supported keys and for the risks
+// of "addCommandFields".
 func SetInternalCreateIndexesOptions(a *options.CreateIndexesOptionsBuilder, key string, option any) error {
 	typeErrFunc := func(t string) error {
 		return fmt.Errorf("unexpected type for %q: %T is not %s", key, option, t)
@@ -162,6 +187,15 @@ func SetInternalCreateIndexesOptions(a *options.CreateIndexesOptionsBuilder, key
 			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
 			return nil
 		})
+	case "addCommandFields":
+		d, ok := option.(bson.D)
+		if !ok {
+			return typeErrFunc("bson.D")
+		}
+		a.Opts = append(a.Opts, func(opts *options.CreateIndexesOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, d)
+			return nil
+		})
 	default:
 		return fmt.Errorf("unsupported option: %q", key)
 	}
@@ -169,6 +203,9 @@ func SetInternalCreateIndexesOptions(a *options.CreateIndexesOptionsBuilder, key
 }
 
 // SetInternalDeleteOneOptions sets internal options for DeleteOneOptions.
+//
+// See the xoptions package documentation for supported keys and for the risks
+// of "addCommandFields".
 func SetInternalDeleteOneOptions(a *options.DeleteOneOptionsBuilder, key string, option any) error {
 	typeErrFunc := func(t string) error {
 		return fmt.Errorf("unexpected type for %q: %T is not %s", key, option, t)
@@ -183,6 +220,15 @@ func SetInternalDeleteOneOptions(a *options.DeleteOneOptionsBuilder, key string,
 			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
 			return nil
 		})
+	case "addCommandFields":
+		d, ok := option.(bson.D)
+		if !ok {
+			return typeErrFunc("bson.D")
+		}
+		a.Opts = append(a.Opts, func(opts *options.DeleteOneOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, d)
+			return nil
+		})
 	default:
 		return fmt.Errorf("unsupported option: %q", key)
 	}
@@ -190,6 +236,9 @@ func SetInternalDeleteOneOptions(a *options.DeleteOneOptionsBuilder, key string,
 }
 
 // SetInternalDeleteManyOptions sets internal options for DeleteManyOptions.
+//
+// See the xoptions package documentation for supported keys and for the risks
+// of "addCommandFields".
 func SetInternalDeleteManyOptions(a *options.DeleteManyOptionsBuilder, key string, option any) error {
 	typeErrFunc := func(t string) error {
 		return fmt.Errorf("unexpected type for %q: %T is not %s", key, option, t)
@@ -204,6 +253,15 @@ func SetInternalDeleteManyOptions(a *options.DeleteManyOptionsBuilder, key strin
 			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
 			return nil
 		})
+	case "addCommandFields":
+		d, ok := option.(bson.D)
+		if !ok {
+			return typeErrFunc("bson.D")
+		}
+		a.Opts = append(a.Opts, func(opts *options.DeleteManyOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, d)
+			return nil
+		})
 	default:
 		return fmt.Errorf("unsupported option: %q", key)
 	}
@@ -211,6 +269,9 @@ func SetInternalDeleteManyOptions(a *options.DeleteManyOptionsBuilder, key strin
 }
 
 // SetInternalDistinctOptions sets internal options for DistinctOptions.
+//
+// See the xoptions package documentation for supported keys and for the risks
+// of "addCommandFields".
 func SetInternalDistinctOptions(a *options.DistinctOptionsBuilder, key string, option any) error {
 	typeErrFunc := func(t string) error {
 		return fmt.Errorf("unexpected type for %q: %T is not %s", key, option, t)
@@ -225,6 +286,39 @@ func SetInternalDistinctOptions(a *options.DistinctOptionsBuilder, key string, o
 			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
 			return nil
 		})
+	case "addCommandFields":
+		d, ok := option.(bson.D)
+		if !ok {
+			return typeErrFunc("bson.D")
+		}
+		a.Opts = append(a.Opts, func(opts *options.DistinctOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, d)
+			return nil
+		})
+	default:
+		return fmt.Errorf("unsupported option: %q", key)
+	}
+	return nil
+}
+
+// SetInternalDropCollectionOptions sets internal options for DropCollectionOptions.
+//
+// See the xoptions package documentation for supported keys and for the risks
+// of "addCommandFields".
+func SetInternalDropCollectionOptions(a *options.DropCollectionOptionsBuilder, key string, option any) error {
+	typeErrFunc := func(t string) error {
+		return fmt.Errorf("unexpected type for %q: %T is not %s", key, option, t)
+	}
+	switch key {
+	case "addCommandFields":
+		d, ok := option.(bson.D)
+		if !ok {
+			return typeErrFunc("bson.D")
+		}
+		a.Opts = append(a.Opts, func(opts *options.DropCollectionOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, d)
+			return nil
+		})
 	default:
 		return fmt.Errorf("unsupported option: %q", key)
 	}
@@ -232,6 +326,9 @@ func SetInternalDistinctOptions(a *options.DistinctOptionsBuilder, key string, o
 }
 
 // SetInternalDropIndexesOptions sets internal options for DropIndexesOptions.
+//
+// See the xoptions package documentation for supported keys and for the risks
+// of "addCommandFields".
 func SetInternalDropIndexesOptions(a *options.DropIndexesOptionsBuilder, key string, option any) error {
 	typeErrFunc := func(t string) error {
 		return fmt.Errorf("unexpected type for %q: %T is not %s", key, option, t)
@@ -246,6 +343,15 @@ func SetInternalDropIndexesOptions(a *options.DropIndexesOptionsBuilder, key str
 			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
 			return nil
 		})
+	case "addCommandFields":
+		d, ok := option.(bson.D)
+		if !ok {
+			return typeErrFunc("bson.D")
+		}
+		a.Opts = append(a.Opts, func(opts *options.DropIndexesOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, d)
+			return nil
+		})
 	default:
 		return fmt.Errorf("unsupported option: %q", key)
 	}
@@ -253,6 +359,9 @@ func SetInternalDropIndexesOptions(a *options.DropIndexesOptionsBuilder, key str
 }
 
 // SetInternalEstimatedDocumentCountOptions sets internal options for EstimatedDocumentCountOptions.
+//
+// See the xoptions package documentation for supported keys and for the risks
+// of "addCommandFields".
 func SetInternalEstimatedDocumentCountOptions(a *options.EstimatedDocumentCountOptionsBuilder, key string, option any) error {
 	typeErrFunc := func(t string) error {
 		return fmt.Errorf("unexpected type for %q: %T is not %s", key, option, t)
@@ -267,6 +376,15 @@ func SetInternalEstimatedDocumentCountOptions(a *options.EstimatedDocumentCountO
 			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
 			return nil
 		})
+	case "addCommandFields":
+		d, ok := option.(bson.D)
+		if !ok {
+			return typeErrFunc("bson.D")
+		}
+		a.Opts = append(a.Opts, func(opts *options.EstimatedDocumentCountOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, d)
+			return nil
+		})
 	default:
 		return fmt.Errorf("unsupported option: %q", key)
 	}
@@ -274,6 +392,9 @@ func SetInternalEstimatedDocumentCountOptions(a *options.EstimatedDocumentCountO
 }
 
 // SetInternalFindOptions sets internal options for FindOptions.
+//
+// See the xoptions package documentation for supported keys and for the risks
+// of "addCommandFields".
 func SetInternalFindOptions(a *options.FindOptionsBuilder, key string, option any) error {
 	typeErrFunc := func(t string) error {
 		return fmt.Errorf("unexpected type for %q: %T is not %s", key, option, t)
@@ -288,6 +409,15 @@ func SetInternalFindOptions(a *options.FindOptionsBuilder, key string, option an
 			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
 			return nil
 		})
+	case "addCommandFields":
+		d, ok := option.(bson.D)
+		if !ok {
+			return typeErrFunc("bson.D")
+		}
+		a.Opts = append(a.Opts, func(opts *options.FindOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, d)
+			return nil
+		})
 	default:
 		return fmt.Errorf("unsupported option: %q", key)
 	}
@@ -295,6 +425,9 @@ func SetInternalFindOptions(a *options.FindOptionsBuilder, key string, option an
 }
 
 // SetInternalFindOneOptions sets internal options for FindOneOptions.
+//
+// See the xoptions package documentation for supported keys and for the risks
+// of "addCommandFields".
 func SetInternalFindOneOptions(a *options.FindOneOptionsBuilder, key string, option any) error {
 	typeErrFunc := func(t string) error {
 		return fmt.Errorf("unexpected type for %q: %T is not %s", key, option, t)
@@ -309,6 +442,15 @@ func SetInternalFindOneOptions(a *options.FindOneOptionsBuilder, key string, opt
 			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
 			return nil
 		})
+	case "addCommandFields":
+		d, ok := option.(bson.D)
+		if !ok {
+			return typeErrFunc("bson.D")
+		}
+		a.Opts = append(a.Opts, func(opts *options.FindOneOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, d)
+			return nil
+		})
 	default:
 		return fmt.Errorf("unsupported option: %q", key)
 	}
@@ -316,6 +458,9 @@ func SetInternalFindOneOptions(a *options.FindOneOptionsBuilder, key string, opt
 }
 
 // SetInternalFindOneAndDeleteOptions sets internal options for FindOneAndDeleteOptions.
+//
+// See the xoptions package documentation for supported keys and for the risks
+// of "addCommandFields".
 func SetInternalFindOneAndDeleteOptions(a *options.FindOneAndDeleteOptionsBuilder, key string, option any) error {
 	typeErrFunc := func(t string) error {
 		return fmt.Errorf("unexpected type for %q: %T is not %s", key, option, t)
@@ -330,6 +475,15 @@ func SetInternalFindOneAndDeleteOptions(a *options.FindOneAndDeleteOptionsBuilde
 			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
 			return nil
 		})
+	case "addCommandFields":
+		d, ok := option.(bson.D)
+		if !ok {
+			return typeErrFunc("bson.D")
+		}
+		a.Opts = append(a.Opts, func(opts *options.FindOneAndDeleteOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, d)
+			return nil
+		})
 	default:
 		return fmt.Errorf("unsupported option: %q", key)
 	}
@@ -337,6 +491,9 @@ func SetInternalFindOneAndDeleteOptions(a *options.FindOneAndDeleteOptionsBuilde
 }
 
 // SetInternalFindOneAndReplaceOptions sets internal options for FindOneAndReplaceOptions.
+//
+// See the xoptions package documentation for supported keys and for the risks
+// of "addCommandFields".
 func SetInternalFindOneAndReplaceOptions(a *options.FindOneAndReplaceOptionsBuilder, key string, option any) error {
 	typeErrFunc := func(t string) error {
 		return fmt.Errorf("unexpected type for %q: %T is not %s", key, option, t)
@@ -367,6 +524,9 @@ func SetInternalFindOneAndReplaceOptions(a *options.FindOneAndReplaceOptionsBuil
 }
 
 // SetInternalFindOneAndUpdateOptions sets internal options for FindOneAndUpdateOptions.
+//
+// See the xoptions package documentation for supported keys and for the risks
+// of "addCommandFields".
 func SetInternalFindOneAndUpdateOptions(a *options.FindOneAndUpdateOptionsBuilder, key string, option any) error {
 	typeErrFunc := func(t string) error {
 		return fmt.Errorf("unexpected type for %q: %T is not %s", key, option, t)
@@ -397,6 +557,9 @@ func SetInternalFindOneAndUpdateOptions(a *options.FindOneAndUpdateOptionsBuilde
 }
 
 // SetInternalInsertManyOptions sets internal options for InsertManyOptions.
+//
+// See the xoptions package documentation for supported keys and for the risks
+// of "addCommandFields".
 func SetInternalInsertManyOptions(a *options.InsertManyOptionsBuilder, key string, option any) error {
 	typeErrFunc := func(t string) error {
 		return fmt.Errorf("unexpected type for %q: %T is not %s", key, option, t)
@@ -427,6 +590,9 @@ func SetInternalInsertManyOptions(a *options.InsertManyOptionsBuilder, key strin
 }
 
 // SetInternalInsertOneOptions sets internal options for InsertOneOptions.
+//
+// See the xoptions package documentation for supported keys and for the risks
+// of "addCommandFields".
 func SetInternalInsertOneOptions(a *options.InsertOneOptionsBuilder, key string, option any) error {
 	typeErrFunc := func(t string) error {
 		return fmt.Errorf("unexpected type for %q: %T is not %s", key, option, t)
@@ -457,6 +623,8 @@ func SetInternalInsertOneOptions(a *options.InsertOneOptionsBuilder, key string,
 }
 
 // SetInternalListCollectionsOptions sets internal options for ListCollectionsOptions.
+//
+// See the xoptions package documentation for supported keys.
 func SetInternalListCollectionsOptions(a *options.ListCollectionsOptionsBuilder, key string, option any) error {
 	typeErrFunc := func(t string) error {
 		return fmt.Errorf("unexpected type for %q: %T is not %s", key, option, t)
@@ -478,6 +646,9 @@ func SetInternalListCollectionsOptions(a *options.ListCollectionsOptionsBuilder,
 }
 
 // SetInternalListIndexesOptions sets internal options for ListIndexesOptions.
+//
+// See the xoptions package documentation for supported keys and for the risks
+// of "addCommandFields".
 func SetInternalListIndexesOptions(a *options.ListIndexesOptionsBuilder, key string, option any) error {
 	typeErrFunc := func(t string) error {
 		return fmt.Errorf("unexpected type for %q: %T is not %s", key, option, t)
@@ -492,6 +663,15 @@ func SetInternalListIndexesOptions(a *options.ListIndexesOptionsBuilder, key str
 			opts.Internal = optionsutil.WithValue(opts.Internal, key, b)
 			return nil
 		})
+	case "addCommandFields":
+		d, ok := option.(bson.D)
+		if !ok {
+			return typeErrFunc("bson.D")
+		}
+		a.Opts = append(a.Opts, func(opts *options.ListIndexesOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, d)
+			return nil
+		})
 	default:
 		return fmt.Errorf("unsupported option: %q", key)
 	}
@@ -499,6 +679,9 @@ func SetInternalListIndexesOptions(a *options.ListIndexesOptionsBuilder, key str
 }
 
 // SetInternalReplaceOptions sets internal options for ReplaceOptions.
+//
+// See the xoptions package documentation for supported keys and for the risks
+// of "addCommandFields".
 func SetInternalReplaceOptions(a *options.ReplaceOptionsBuilder, key string, option any) error {
 	typeErrFunc := func(t string) error {
 		return fmt.Errorf("unexpected type for %q: %T is not %s", key, option, t)
@@ -529,6 +712,9 @@ func SetInternalReplaceOptions(a *options.ReplaceOptionsBuilder, key string, opt
 }
 
 // SetInternalUpdateManyOptions sets internal options for UpdateManyOptions.
+//
+// See the xoptions package documentation for supported keys and for the risks
+// of "addCommandFields".
 func SetInternalUpdateManyOptions(a *options.UpdateManyOptionsBuilder, key string, option any) error {
 	typeErrFunc := func(t string) error {
 		return fmt.Errorf("unexpected type for %q: %T is not %s", key, option, t)
@@ -559,6 +745,9 @@ func SetInternalUpdateManyOptions(a *options.UpdateManyOptionsBuilder, key strin
 }
 
 // SetInternalUpdateOneOptions sets internal options for UpdateOneOptions.
+//
+// See the xoptions package documentation for supported keys and for the risks
+// of "addCommandFields".
 func SetInternalUpdateOneOptions(a *options.UpdateOneOptionsBuilder, key string, option any) error {
 	typeErrFunc := func(t string) error {
 		return fmt.Errorf("unexpected type for %q: %T is not %s", key, option, t)
