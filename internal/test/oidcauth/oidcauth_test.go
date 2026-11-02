@@ -859,6 +859,15 @@ func failnextErr391(t *testing.T, name string) {
 	})
 
 	require.NoError(t, res.Err(), "failed setting failpoint")
+
+	// Turn the failpoint off in case the test fails before the command consumes
+	// it. Cleanups run in reverse order, so this runs before the disconnect.
+	t.Cleanup(func() {
+		_ = adminClient.Database("admin").RunCommand(context.Background(), failpoint.FailPoint{
+			ConfigureFailPoint: "failCommand",
+			Mode:               failpoint.ModeOff,
+		}).Err()
+	})
 }
 
 // requireReauthRetried asserts that the first attempt of the monitored command
@@ -869,8 +878,9 @@ func failnextErr391(t *testing.T, name string) {
 func requireReauthRetried(t *testing.T, started chan *event.CommandStartedEvent, failed chan *event.CommandFailedEvent) int {
 	t.Helper()
 
+	attempts := len(started)
 	require.Equal(t, 1, len(failed), "expected only one attempt to fail")
-	require.GreaterOrEqual(t, len(started), 2, "expected the command to be retried")
+	require.GreaterOrEqual(t, attempts, 2, "expected the command to be retried")
 
 	fe := <-failed
 	first := <-started
@@ -880,7 +890,7 @@ func requireReauthRetried(t *testing.T, started chan *event.CommandStartedEvent,
 	require.ErrorAs(t, fe.Failure, &driverErr)
 	require.Equal(t, int32(391), driverErr.Code, "expected the first attempt to fail with ReauthenticationRequired")
 
-	return 1 + len(started)
+	return attempts
 }
 
 func TestHuman_1_1_SinglePrincipalImplicitUsername(t *testing.T) {
