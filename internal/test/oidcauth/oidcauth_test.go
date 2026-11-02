@@ -50,13 +50,16 @@ func connectAdminClient() (*mongo.Client, error) {
 	return mongo.Connect(options.Client().ApplyURI(uriAdmin))
 }
 
-func connectWithMachineCB(uri string, cb options.OIDCCallback) (*mongo.Client, error) {
+func connectWithMachineCB(uri string, cb options.OIDCCallback, opts ...*options.ClientOptions) (*mongo.Client, error) {
 	cred := options.Credential{
 		AuthMechanism:       "MONGODB-OIDC",
 		OIDCMachineCallback: cb,
 	}
-	optsBuilder := options.Client().ApplyURI(uri).SetAuth(cred)
-	return mongo.Connect(optsBuilder)
+
+	all := append([]*options.ClientOptions{options.Client().ApplyURI(uri)}, opts...)
+	all = append(all, options.Client().SetAuth(cred))
+
+	return mongo.Connect(all...)
 }
 
 func connectWithHumanCB(uri string, cb options.OIDCCallback) (*mongo.Client, error) {
@@ -112,11 +115,13 @@ func isCallbackTest() bool {
 // connectWithOIDC creates an OIDC client appropriate for the current environment
 // When using built-in integrations (azure, gcp, k8s), no callback is used
 // When using test environment, uses the provided callback
-func connectWithOIDC(uri string, cb options.OIDCCallback) (*mongo.Client, error) {
+func connectWithOIDC(uri string, cb options.OIDCCallback, opts ...*options.ClientOptions) (*mongo.Client, error) {
 	if isCallbackTest() {
-		return connectWithMachineCB(uri, cb)
+		return connectWithMachineCB(uri, cb, opts...)
 	}
-	return mongo.Connect(options.Client().ApplyURI(uri))
+
+	all := append([]*options.ClientOptions{options.Client().ApplyURI(uri)}, opts...)
+	return mongo.Connect(all...)
 }
 
 func TestMain(m *testing.M) {
@@ -305,14 +310,15 @@ func TestMachine_2_4_InvalidClientConfigurationWithCallback(t *testing.T) {
 		t.Skip("Skipping: [callback-only] test")
 	}
 
-	_, err := connectWithMachineCBAndProperties(uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
-		expiry := time.Now().Add(time.Hour)
-		return &options.OIDCCredential{
-			AccessToken:  "",
-			ExpiresAt:    &expiry,
-			RefreshToken: nil,
-		}, nil
-	},
+	_, err := connectWithMachineCBAndProperties(
+		uriSingle, func(context.Context, *options.OIDCArgs) (*options.OIDCCredential, error) {
+			expiry := time.Now().Add(time.Hour)
+			return &options.OIDCCredential{
+				AccessToken:  "",
+				ExpiresAt:    &expiry,
+				RefreshToken: nil,
+			}, nil
+		},
 		map[string]string{"ENVIRONMENT": "test"},
 	)
 	require.Error(t, err, "should have failed to build client when it should fail")
@@ -323,14 +329,15 @@ func TestMachine_2_5_InvalidUseOfAllowedHosts(t *testing.T) {
 		t.Skip("Skipping: test only runs when OIDC_ENV=azure")
 	}
 
-	_, err := connectWithMachineCBAndProperties(uriSingle, func(_ context.Context, _ *options.OIDCArgs) (*options.OIDCCredential, error) {
-		expiry := time.Now().Add(time.Hour)
-		return &options.OIDCCredential{
-			AccessToken:  "",
-			ExpiresAt:    &expiry,
-			RefreshToken: nil,
-		}, nil
-	},
+	_, err := connectWithMachineCBAndProperties(
+		uriSingle, func(_ context.Context, _ *options.OIDCArgs) (*options.OIDCCredential, error) {
+			expiry := time.Now().Add(time.Hour)
+			return &options.OIDCCredential{
+				AccessToken:  "",
+				ExpiresAt:    &expiry,
+				RefreshToken: nil,
+			}, nil
+		},
 		map[string]string{
 			"ENVIRONMENT":   "azure",
 			"ALLOWED_HOSTS": "",
@@ -368,7 +375,8 @@ func TestMachine_3_1_FailureWithCachedTokens(t *testing.T) {
 	authenticatorField := clientElem.FieldByName("authenticator")
 	authenticatorField = reflect.NewAt(
 		authenticatorField.Type(),
-		unsafe.Pointer(authenticatorField.UnsafeAddr())).Elem()
+		unsafe.Pointer(authenticatorField.UnsafeAddr()),
+	).Elem()
 	// this is the only usage of the x packages in the test, showing the public interface is
 	// correct.
 	authenticatorField.Interface().(*auth.OIDCAuthenticator).SetAccessToken("some random happy sunshine string")
@@ -672,20 +680,25 @@ func TestMachine_4_3_WriteCommandsFailIfReauthenticationFails(t *testing.T) {
 }
 
 func TestMachine_ReauthenticationSucceedsOnGetMore(t *testing.T) {
-	var callbackCount atomic.Int32
+	// Setup 1: Create a command monitor that records `getMore` started and failed
+	// events.
 	started, failed, monitor := commandEventsFor("getMore")
+	additionalClientOpts := options.Client().SetMonitor(monitor)
 
-	adminClient, err := connectAdminClient()
-	require.NoError(t, err, "failed connecting admin client")
-	t.Cleanup(func() { _ = adminClient.Disconnect(context.Background()) })
+	// Setup 2: Create an OIDC configured client with the command monitor. In
+	// callback environments, the callback counts how many times it is called.
+	var callbackCount atomic.Int32
 
-	client, err := connectWithOIDCAndMonitor(uriSingle, countingMachineCallback(&callbackCount), monitor)
+	client, err := connectWithOIDC(uriSingle, countingMachineCallback(&callbackCount), additionalClientOpts)
 	require.NoError(t, err, "failed connecting client")
+
 	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
+	// Setup 3: Drop the `test.reauth_getmore` collection.
 	coll := client.Database("test").Collection("reauth_getmore")
 	require.NoError(t, coll.Drop(context.Background()), "failed dropping collection")
 
+	// Step 1: Insert 10 documents into `test.reauth_getmore`.
 	type doc struct {
 		I int `bson:"i"`
 	}
@@ -696,40 +709,58 @@ func TestMachine_ReauthenticationSucceedsOnGetMore(t *testing.T) {
 	_, err = coll.InsertMany(context.Background(), docs)
 	require.NoError(t, err, "failed executing InsertMany")
 
-	failNextWithReauthenticationRequired(t, adminClient, "getMore")
+	// Step 2: Set a fail point for `getMore` commands with errorCode 391
+	// (ReauthenticationRequired) and mode times 1.
+	failnextErr391(t, "getMore")
 
-	cursor, err := coll.Find(context.Background(), bson.M{}, options.Find().SetBatchSize(2))
+	// Step 3: Perform a `find` operation with an empty filter and a batch size of
+	// 2, so that iterating the cursor requires `getMore` commands.
+	cursor, err := coll.Find(context.Background(), bson.D{}, options.Find().SetBatchSize(2))
 	require.NoError(t, err, "failed executing Find")
 
-	n := 0
+	// Step 4: Iterate the cursor to exhaustion, counting the documents returned.
+	curIter := 0
 	for cursor.Next(context.Background()) {
-		n++
+		curIter++
 	}
-	require.NoError(t, cursor.Err(), "expected the cursor to succeed after reauthenticating getMore")
-	require.Equal(t, len(docs), n, "expected every document after reauthenticating getMore")
 
+	// Step 5: Assert that iterating the cursor did not error and returned all 10
+	// documents.
+	require.NoError(t, cursor.Err(), "expected the cursor to succeed after reauthenticating getMore")
+	require.Equal(t, len(docs), curIter, "expected every document after reauthenticating getMore")
+
+	// Step 6: Assert that the first `getMore` failed with
+	// ReauthenticationRequired (391), that it was the only failure, and that it
+	// was retried.
 	requireReauthRetried(t, started, failed)
 
+	// Step 7: [callback-only] Assert that the callback was called 2 times (once
+	// during the connection handshake, and again during reauthentication).
 	if isCallbackTest() {
 		require.Equal(t, int32(2), callbackCount.Load(), "expected callback count to be 2")
 	}
 }
 
 func TestMachine_ReauthenticationSucceedsOnKillCursors(t *testing.T) {
-	var callbackCount atomic.Int32
+	// Setup 1: Create a command monitor that records `killCursors` started and
+	// failed events.
 	started, failed, monitor := commandEventsFor("killCursors")
+	additionalClientOpts := options.Client().SetMonitor(monitor)
 
-	adminClient, err := connectAdminClient()
-	require.NoError(t, err, "failed connecting admin client")
-	t.Cleanup(func() { _ = adminClient.Disconnect(context.Background()) })
+	// Setup 2: Create an OIDC configured client with the command monitor. In
+	// callback environments, the callback counts how many times it is called.
+	var callbackCount atomic.Int32
 
-	client, err := connectWithOIDCAndMonitor(uriSingle, countingMachineCallback(&callbackCount), monitor)
+	client, err := connectWithOIDC(uriSingle, countingMachineCallback(&callbackCount), additionalClientOpts)
 	require.NoError(t, err, "failed connecting client")
+
 	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
+	// Setup 3: Drop the `test.reauth_killcursors` collection.
 	coll := client.Database("test").Collection("reauth_killcursors")
 	require.NoError(t, coll.Drop(context.Background()), "failed dropping collection")
 
+	// Step 1: Insert 10 documents into `test.reauth_killcursors`.
 	type doc struct {
 		I int `bson:"i"`
 	}
@@ -740,20 +771,31 @@ func TestMachine_ReauthenticationSucceedsOnKillCursors(t *testing.T) {
 	_, err = coll.InsertMany(context.Background(), docs)
 	require.NoError(t, err, "failed executing InsertMany")
 
-	// A batch size smaller than the collection leaves the cursor open on the
-	// server, so Close must send killCursors.
-	cursor, err := coll.Find(context.Background(), bson.M{}, options.Find().SetBatchSize(2))
+	// Step 2: Perform a `find` operation with an empty filter and a batch size of
+	// 2, so that the cursor stays open on the server.
+	cursor, err := coll.Find(context.Background(), bson.D{}, options.Find().SetBatchSize(2))
 	require.NoError(t, err, "failed executing Find")
+
+	// Step 3: Advance the cursor once and assert that the server cursor is still
+	// open, so that closing it requires a `killCursors` command.
 	require.True(t, cursor.Next(context.Background()), "expected a document from the first batch")
 	require.NotEqual(t, int64(0), cursor.ID(), "expected an open server cursor")
 
-	failNextWithReauthenticationRequired(t, adminClient, "killCursors")
+	// Step 4: Set a fail point for `killCursors` commands with errorCode 391
+	// (ReauthenticationRequired) and mode times 1.
+	failnextErr391(t, "killCursors")
 
+	// Step 5: Close the cursor and assert that it did not error.
 	require.NoError(t, cursor.Close(context.Background()), "expected Close to succeed after reauthenticating killCursors")
 
+	// Step 6: Assert that the first `killCursors` failed with
+	// ReauthenticationRequired (391), that it was the only failure, and that it
+	// was retried exactly once.
 	attempts := requireReauthRetried(t, started, failed)
 	require.Equal(t, 2, attempts, "expected exactly the failed killCursors and its retry")
 
+	// Step 7: `[callback-only]` Assert that the callback was called 2 times (once
+	// during the connection handshake, and again during reauthentication).
 	if isCallbackTest() {
 		require.Equal(t, int32(2), callbackCount.Load(), "expected callback count to be 2")
 	}
@@ -774,18 +816,6 @@ func countingMachineCallback(count *atomic.Int32) options.OIDCCallback {
 		expiry := time.Now().Add(time.Hour)
 		return &options.OIDCCredential{AccessToken: string(accessToken), ExpiresAt: &expiry}, nil
 	}
-}
-
-// connectWithOIDCAndMonitor is connectWithOIDC with a command monitor.
-func connectWithOIDCAndMonitor(uri string, cb options.OIDCCallback, m *event.CommandMonitor) (*mongo.Client, error) {
-	opts := options.Client().ApplyURI(uri).SetMonitor(m)
-	if isCallbackTest() {
-		opts.SetAuth(options.Credential{
-			AuthMechanism:       "MONGODB-OIDC",
-			OIDCMachineCallback: cb,
-		})
-	}
-	return mongo.Connect(opts)
 }
 
 // commandEventsFor returns a command monitor that sends the started and failed
@@ -810,10 +840,14 @@ func commandEventsFor(name string) (chan *event.CommandStartedEvent, chan *event
 	return started, failed, monitor
 }
 
-// failNextWithReauthenticationRequired fails the next command named name with
+// failnextErr391 fails the next command named name with
 // ReauthenticationRequired (391).
-func failNextWithReauthenticationRequired(t *testing.T, adminClient *mongo.Client, name string) {
+func failnextErr391(t *testing.T, name string) {
 	t.Helper()
+
+	adminClient, err := connectAdminClient()
+	require.NoError(t, err, "failed connecting admin client")
+	t.Cleanup(func() { _ = adminClient.Disconnect(context.Background()) })
 
 	res := adminClient.Database("admin").RunCommand(context.Background(), failpoint.FailPoint{
 		ConfigureFailPoint: "failCommand",
@@ -823,6 +857,7 @@ func failNextWithReauthenticationRequired(t *testing.T, adminClient *mongo.Clien
 			ErrorCode:    391,
 		},
 	})
+
 	require.NoError(t, res.Err(), "failed setting failpoint")
 }
 
@@ -1333,7 +1368,8 @@ func TestHuman_3_1_UsesSpeculativeAuth(t *testing.T) {
 	authenticatorField := clientElem.FieldByName("authenticator")
 	authenticatorField = reflect.NewAt(
 		authenticatorField.Type(),
-		unsafe.Pointer(authenticatorField.UnsafeAddr())).Elem()
+		unsafe.Pointer(authenticatorField.UnsafeAddr()),
+	).Elem()
 	// This is the only usage of the x packages in the test, showing the public interface is
 	// correct.
 	authenticatorField.Interface().(*auth.OIDCAuthenticator).SetAccessToken(string(accessToken))
