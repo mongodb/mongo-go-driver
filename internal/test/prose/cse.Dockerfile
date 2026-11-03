@@ -4,8 +4,8 @@
 # is not copied in: the repository root is bind-mounted at /mongo-go-driver
 # when the container starts, so driver changes do not require a rebuild.
 #
-# sha found via this command: docker inspect --format='{{index .RepoDigests 0}}' golang:1.26.4-trixie
-FROM golang:1.26.4-trixie@sha256:76a29248dedcd75870e95cbd90cc8cb356db082404ac7d3a5803f276c3ba79c9
+# sha found via this command: docker inspect --format='{{index .RepoDigests 0}}' golang:1.26.9-trixie
+FROM golang:1.26.9-trixie@sha256:f06b7122f888680048afb247c4e5f49c0069eb6c4c1ccae0f3f4834527a8d22c
 
 RUN apt-get -qq update && \
   apt-get -qqy install --no-install-recommends \
