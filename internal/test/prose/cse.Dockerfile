@@ -37,7 +37,7 @@ ENV PKG_CONFIG_PATH=/root/install/libmongocrypt/lib64/pkgconfig:/root/install/li
 ENV LD_LIBRARY_PATH=/root/install/libmongocrypt/lib64:/root/install/libmongocrypt/lib
 
 ARG CRYPT_SHARED_VERSION=latest-stable
-COPY mongodl.py /root/mongodl.py
+COPY mongodl.py server_artifacts.py /root/
 RUN python3 /root/mongodl.py \
   --component crypt_shared \
   --version "${CRYPT_SHARED_VERSION}" \
