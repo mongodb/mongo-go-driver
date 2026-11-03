@@ -75,6 +75,13 @@ func wrapErrors(err error) error {
 		return nil
 	}
 
+	// ClientBulkWriteException is already a public error type. It unwraps to
+	// the top-level error it reports, so it must not be converted again.
+	var cbwe ClientBulkWriteException
+	if errors.As(err, &cbwe) {
+		return err
+	}
+
 	// Do not propagate the acknowledgement sentinel error. For DDL commands,
 	// (creating indexes, dropping collections, etc) acknowledgement should be
 	// ignored. For non-DDL write commands (insert, update, etc), acknowledgement
@@ -85,13 +92,6 @@ func wrapErrors(err error) error {
 	}
 	if errors.Is(err, topology.ErrTopologyClosed) {
 		return ErrClientDisconnected
-	}
-
-	// ClientBulkWriteException is already a public error type. It unwraps to
-	// the top-level error it reports, so it must not be converted again.
-	var cbwe ClientBulkWriteException
-	if errors.As(err, &cbwe) {
-		return err
 	}
 
 	var de driver.Error

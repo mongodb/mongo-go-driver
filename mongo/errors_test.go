@@ -1052,4 +1052,24 @@ func TestClientBulkWriteExceptionUnwrap(t *testing.T) {
 		require.False(t, errors.Is(bwe, context.DeadlineExceeded),
 			"expected the exception not to unwrap to a timeout")
 	})
+
+	// wrapErrors must return the exception as-is rather than remapping it via a
+	// sentinel it unwraps to, which would discard the exception and its partial
+	// result.
+	t.Run("is not remapped by wrapErrors", func(t *testing.T) {
+		bwe := ClientBulkWriteException{
+			WriteError: &WriteError{Message: topology.ErrTopologyClosed.Error()},
+			wrapped:    topology.ErrTopologyClosed,
+		}
+
+		got := wrapErrors(bwe)
+
+		require.ErrorIs(t, got, topology.ErrTopologyClosed,
+			"expected the exception to be returned unchanged")
+		require.False(t, errors.Is(got, ErrClientDisconnected),
+			"expected the exception not to be remapped to ErrClientDisconnected")
+		var gotException ClientBulkWriteException
+		require.True(t, errors.As(got, &gotException),
+			"expected a ClientBulkWriteException, got %T: %v", got, got)
+	})
 }

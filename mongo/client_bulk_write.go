@@ -28,6 +28,12 @@ const (
 	database = "admin"
 )
 
+// errWriteFailed signals that a single write operation failed. processResponse
+// returns it so execute can distinguish a write failure (which is not a
+// top-level error) from a top-level error. It is internal and must never be
+// returned to users.
+var errWriteFailed = errors.New("write operation failed")
+
 type clientBulkWritePair struct {
 	namespace string
 	model     any
@@ -96,26 +102,16 @@ func (bw *clientBulkWrite) execute(ctx context.Context) error {
 	var de driver.Error
 	isDriverErr := errors.As(err, &de)
 
-	// A driver.WriteCommandError carries the write errors and write concern
-	// errors that processResponse already recorded in the accumulators, and a
-	// ClientBulkWriteException means processResponse returned them directly.
-	// Neither is a top-level error, and an unacknowledged write is not a
-	// failure.
-	var writeCmdErr driver.WriteCommandError
-	var orderedErr ClientBulkWriteException
-	hasTopLevelErr := err != nil &&
-		!errors.Is(err, driver.ErrUnacknowledgedWrite) &&
-		!errors.As(err, &writeCmdErr) &&
-		!errors.As(err, &orderedErr)
+	topLevelErr := hasTopLevelErr(err)
 
 	var exception *ClientBulkWriteException
 	if len(batches.writeConcernErrors) > 0 || len(batches.writeErrors) > 0 ||
-		(hasTopLevelErr && batches.resultsObserved) {
+		(topLevelErr && batches.resultsObserved) {
 		exception = &ClientBulkWriteException{
 			WriteConcernErrors: batches.writeConcernErrors,
 			WriteErrors:        batches.writeErrors,
 		}
-		if hasTopLevelErr {
+		if topLevelErr {
 			// Retain the error so that errors.Is and errors.As still see it.
 			exception.wrapped = err
 
@@ -144,7 +140,27 @@ func (bw *clientBulkWrite) execute(ctx context.Context) error {
 		}
 		return *exception
 	}
+	if errors.Is(err, errWriteFailed) {
+		return nil
+	}
 	return err
+}
+
+// hasTopLevelErr reports whether err is a top-level error: any error that occurs
+// that is not the result of a single write operation failing or a write concern
+// error. An unacknowledged write is not a failure.
+func hasTopLevelErr(err error) bool {
+	return err != nil &&
+		!errors.Is(err, errWriteFailed) &&
+		!isWriteCommandErr(err) &&
+		!errors.Is(err, driver.ErrUnacknowledgedWrite)
+}
+
+// isWriteCommandErr reports whether err carries write errors and/or a write
+// concern error, neither of which the spec defines as a top-level error.
+func isWriteCommandErr(err error) bool {
+	var writeCmdErr driver.WriteCommandError
+	return errors.As(err, &writeCmdErr)
 }
 
 func (bw *clientBulkWrite) newCommand() func([]byte, description.SelectedServer) ([]byte, error) {
@@ -473,16 +489,9 @@ func (mb *modelBatches) processResponse(ctx context.Context, resp bsoncore.Docum
 		return err
 	}
 	if !res.Ok {
-		return ClientBulkWriteException{
-			WriteError: &WriteError{
-				Code:    int(res.Code),
-				Message: res.Errmsg,
-				Raw:     bson.Raw(resp),
-			},
-			WriteConcernErrors: mb.writeConcernErrors,
-			WriteErrors:        mb.writeErrors,
-			PartialResult:      mb.result,
-		}
+		// Return a plain error so it can never be mistaken for a top-level error
+		// by hasTopLevelErr.
+		return fmt.Errorf("bulkWrite command failed: %s", res.Errmsg)
 	}
 
 	mb.resultsObserved = true
@@ -539,12 +548,9 @@ func (mb *modelBatches) processResponse(ctx context.Context, resp bsoncore.Docum
 	if err != nil {
 		return err
 	}
-	if mb.ordered && (writeCmdErr.WriteConcernError != nil || !ok || !res.Ok || res.NErrors > 0) {
-		return ClientBulkWriteException{
-			WriteConcernErrors: mb.writeConcernErrors,
-			WriteErrors:        mb.writeErrors,
-			PartialResult:      mb.result,
-		}
+	if mb.ordered && (!ok || res.NErrors > 0) {
+		// A single write operation failed. This is not a top-level error.
+		return errWriteFailed
 	}
 	return nil
 }

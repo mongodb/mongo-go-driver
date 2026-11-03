@@ -9,12 +9,15 @@ package mongo
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/drivertest"
 )
 
@@ -319,4 +322,73 @@ func TestClientBulkWrite_executeTopLevelError(t *testing.T) {
 		require.Equal(t, []int{91}, bwe.ErrorCodes(),
 			"expected only the write concern error code")
 	})
+
+	// A response that reports a failed write but records no matching cursor
+	// entry leaves nothing to report. The internal errWriteFailed signal must
+	// not leak to the caller.
+	t.Run("a write failure with no recorded error is not surfaced", func(t *testing.T) {
+		emptyBatch := bson.D{
+			{Key: "ok", Value: 1},
+			{Key: "nErrors", Value: 1},
+			{Key: "cursor", Value: cursorReply()},
+		}
+
+		err := runOrdered(t, emptyBatch)
+
+		require.NoError(t, err, "expected no error to be surfaced")
+	})
+
+	// An unacknowledged write is not a failure. Intermediate batches of a
+	// multi-batch unacknowledged write are still read, so resultsObserved is
+	// already true by the time the final batch returns ErrUnacknowledgedWrite.
+	t.Run("an unacknowledged multi-batch write is not a failure", func(t *testing.T) {
+		client, err := newClient()
+		require.NoError(t, err, "newClient error: %v", err)
+		client.deployment = drivertest.NewMockDeployment(okBatch, okBatch)
+
+		ordered := false
+		bw := &clientBulkWrite{
+			client:       client,
+			ordered:      &ordered,
+			writeConcern: writeconcern.Unacknowledged(),
+		}
+		bw.result.Acknowledged = false
+		// Four writes span two batches: the first is read, the last is sent
+		// with moreToCome and produces no response.
+		for i := 0; i < 4; i++ {
+			bw.writePairs = append(bw.writePairs, clientBulkWritePair{
+				"db.coll", &ClientInsertOneModel{Document: bigDoc},
+			})
+		}
+
+		err = wrapErrors(bw.execute(context.Background()))
+
+		require.NoError(t, err, "expected no error for an unacknowledged write")
+	})
+}
+
+func TestHasTopLevelErr(t *testing.T) {
+	testCases := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{"nil", nil, false},
+		{"write failure sentinel", errWriteFailed, false},
+		{"wrapped write failure sentinel", fmt.Errorf("wrapped: %w", errWriteFailed), false},
+		{"driver error", driver.Error{Code: 189, Message: "PrimarySteppedDown"}, true},
+		{"unacknowledged write", driver.ErrUnacknowledgedWrite, false},
+		{"write command error with a write concern error", driver.WriteCommandError{
+			WriteConcernError: &driver.WriteConcernError{Code: 91},
+		}, false},
+		{"write command error with write errors", driver.WriteCommandError{
+			WriteErrors: driver.WriteErrors{{Code: 11000}},
+		}, false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			require.Equal(t, tc.want, hasTopLevelErr(tc.err))
+		})
+	}
 }
