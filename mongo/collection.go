@@ -822,7 +822,10 @@ func (coll *Collection) updateOrReplace(
 }
 
 // UpdateByID executes an update command to update the document whose _id value matches the provided ID in the collection.
-// This is equivalent to running UpdateOne(ctx, bson.D{{"_id", id}}, update, opts...).
+// This is equivalent to running UpdateOne(ctx, bson.D{{"_id", id}}, update, opts...), where id is used as-is in the
+// filter. If id is a document containing query operators (e.g. {$gt: ...}), it is evaluated as a query rather than
+// matched as a literal _id. When id is derived from untrusted input, applications should validate it or use a
+// non-document type (e.g. bson.ObjectID or string).
 //
 // The id parameter is the _id of the document to be updated. It cannot be nil. If the ID does not match any documents,
 // the operation will succeed and an UpdateResult with a MatchedCount of 0 will be returned.
