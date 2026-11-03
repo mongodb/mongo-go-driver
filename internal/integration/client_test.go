@@ -271,7 +271,8 @@ func TestClient(t *testing.T) {
 			evt := mt.GetStartedEvent()
 			assert.Equal(mt, "listDatabases", evt.CommandName, "expected ")
 
-			expectedDoc := bsoncore.BuildDocumentFromElements(nil,
+			expectedDoc := bsoncore.BuildDocumentFromElements(
+				nil,
 				bsoncore.AppendBooleanElement(nil, "nameOnly", true),
 				bsoncore.AppendBooleanElement(nil, "authorizedDatabases", true),
 			)
@@ -322,7 +323,8 @@ func TestClient(t *testing.T) {
 			evt := mt.GetStartedEvent()
 			assert.Equal(mt, "listDatabases", evt.CommandName, "expected ")
 
-			expectedDoc := bsoncore.BuildDocumentFromElements(nil,
+			expectedDoc := bsoncore.BuildDocumentFromElements(
+				nil,
 				bsoncore.AppendBooleanElement(nil, "nameOnly", true),
 				bsoncore.AppendBooleanElement(nil, "authorizedDatabases", true),
 			)
@@ -1186,7 +1188,8 @@ func TestClient_BSONOptions(t *testing.T) {
 
 	for _, tc := range testCases {
 		opts := mtest.NewOptions().ClientOptions(
-			options.Client().SetBSONOptions(tc.bsonOpts))
+			options.Client().SetBSONOptions(tc.bsonOpts),
+		)
 		mt.RunOpts(tc.name, opts, func(mt *mtest.T) {
 			for _, collName := range []string{"default", "cloned"} {
 				collName := collName
@@ -1204,7 +1207,8 @@ func TestClient_BSONOptions(t *testing.T) {
 					sr := coll.FindOne(
 						context.Background(),
 						bson.D{{Key: "_id", Value: res.InsertedID}},
-						options.FindOne().SetProjection(bson.D{{Key: "_id", Value: 0}}))
+						options.FindOne().SetProjection(bson.D{{Key: "_id", Value: 0}}),
+					)
 
 					if tc.want != nil {
 						got := tc.decodeInto()
@@ -1228,7 +1232,8 @@ func TestClient_BSONOptions(t *testing.T) {
 	opts := mtest.NewOptions().ClientOptions(
 		options.Client().SetBSONOptions(&options.BSONOptions{
 			ObjectIDAsHexString: true,
-		}))
+		}),
+	)
 	mt.RunOpts("ObjectIDAsHexString", opts, func(mt *mtest.T) {
 		for _, collName := range []string{"default", "cloned"} {
 			collName := collName
@@ -1267,7 +1272,8 @@ func TestClient_BSONOptions(t *testing.T) {
 	opts = mtest.NewOptions().ClientOptions(
 		options.Client().SetBSONOptions(&options.BSONOptions{
 			ErrorOnInlineDuplicates: true,
-		}))
+		}),
+	)
 	mt.RunOpts("ErrorOnInlineDuplicates", opts, func(mt *mtest.T) {
 		type inlineDupInner struct {
 			A string
@@ -1356,7 +1362,8 @@ func TestClientStress(t *testing.T) {
 			maxPoolSizeOpt := mtest.NewOptions().ClientOptions(
 				options.Client().
 					SetPoolMonitor(tpm.PoolMonitor).
-					SetMaxPoolSize(maxPoolSize))
+					SetMaxPoolSize(maxPoolSize),
+			)
 			mt.RunOpts(fmt.Sprintf("maxPoolSize %d", maxPoolSize), maxPoolSizeOpt, func(mt *mtest.T) {
 				// Print the count of connection created, connection closed, and pool clear events
 				// collected during the test to help with debugging.
@@ -1480,7 +1487,23 @@ func TestClient_BulkWrite_CollectionUUIDs(t *testing.T) {
 		return targets
 	}
 
-	mtOpts := mtest.NewOptions().MinServerVersion("8.0").ClientType(mtest.Pinned)
+	// TODO(GODRIVER-4231): Run the collectionUUID tests on all 8.0+ topologies
+	// once SERVER-138544 is resolved.
+	//
+	// A 9.0 mongos keeps only the first nsInfo entry's collectionUUID for each
+	// namespace and applies it to every op on that namespace, so the server
+	// never checks the later UUIDs.
+	mtOpts := mtest.NewOptions().ClientType(mtest.Pinned).RunOn(
+		mtest.RunOnBlock{
+			MinServerVersion: "8.0",
+			Topology:         []mtest.TopologyKind{mtest.Single, mtest.ReplicaSet},
+		},
+		mtest.RunOnBlock{
+			MinServerVersion: "8.0",
+			MaxServerVersion: "8.99.99",
+			Topology:         []mtest.TopologyKind{mtest.Sharded, mtest.LoadBalanced},
+		},
+	)
 	mt := mtest.New(t, noClientOpts)
 
 	mt.RunOpts("aligns each UUID with the write at the same index", mtOpts, func(mt *mtest.T) {
