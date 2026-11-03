@@ -7,6 +7,7 @@
 package mongo
 
 import (
+	"fmt"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -280,5 +281,22 @@ func TestAppendBatchSequenceCollectionUUIDs(t *testing.T) {
 		assert.Equal(t, []nsInfoEntry{{Namespace: "db.c0", UUID: uuid2}}, nsInfo,
 			"unexpected nsInfo in the second batch")
 		assert.Equal(t, []int32{0}, nsIdxs, "unexpected indexes in the second batch")
+	})
+
+	t.Run("size limit counts whole nsInfo documents", func(t *testing.T) {
+		// Give every write its own UUID so that each one adds an nsInfo entry.
+		pairs := make([]clientBulkWritePair, 100)
+		for i := range pairs {
+			uuid := &bson.Binary{Subtype: bson.TypeBinaryUUID, Data: fmt.Appendf(nil, "%016d", i)}
+			pairs[i] = pair("db.c0", uuid)
+		}
+		batches := newBatches(t, pairs...)
+
+		const limit = 3000
+		n, dst, err := batches.AppendBatchSequence(nil, len(pairs), limit)
+		require.NoError(t, err, "AppendBatchSequence error: %v", err)
+		require.Less(t, n, len(pairs), "expected the size limit to split the writes")
+		assert.LessOrEqual(t, len(dst), limit-1000,
+			"expected the batch to fit within the limit minus the 1000-byte reserve")
 	})
 }

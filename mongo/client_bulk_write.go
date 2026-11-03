@@ -412,24 +412,31 @@ func (mb *modelBatches) appendBatches(fn functionSet, dst []byte, maxCount, tota
 		if err != nil {
 			return 0, nil, err
 		}
-		length := len(doc)
+		var nsDoc bsoncore.Document
 		if !exists {
-			length += len(ns) + len(uuid)
+			// Document framing (5 bytes) plus the "ns" string element (9 bytes
+			// plus the namespace).
+			nsDocLen := 14 + len(ns)
+			if uuid != nil {
+				// The "collectionUUID" binary element (21 bytes plus the UUID).
+				nsDocLen += 21 + len(uuid)
+			}
+			var idx int32
+			idx, nsDoc = bsoncore.AppendDocumentStart(make([]byte, 0, nsDocLen))
+			nsDoc = bsoncore.AppendStringElement(nsDoc, "ns", ns)
+			if uuid != nil {
+				nsDoc = bsoncore.AppendBinaryElement(nsDoc, "collectionUUID", bson.TypeBinaryUUID, uuid)
+			}
+			nsDoc, _ = bsoncore.AppendDocumentEnd(nsDoc, idx)
 		}
-		size += length
+		size += len(doc) + len(nsDoc)
 		if size >= totalSize {
 			break
 		}
 
 		dst = fn.appendDocument(dst, strconv.Itoa(n), doc)
-		if !exists {
-			idx, doc := bsoncore.AppendDocumentStart(nil)
-			doc = bsoncore.AppendStringElement(doc, "ns", ns)
-			if uuid != nil {
-				doc = bsoncore.AppendBinaryElement(doc, "collectionUUID", bson.TypeBinaryUUID, uuid)
-			}
-			doc, _ = bsoncore.AppendDocumentEnd(doc, idx)
-			nsDst = fn.appendDocument(nsDst, strconv.Itoa(n), doc)
+		if nsDoc != nil {
+			nsDst = fn.appendDocument(nsDst, strconv.Itoa(n), nsDoc)
 		}
 		n++
 	}
