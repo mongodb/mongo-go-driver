@@ -355,7 +355,9 @@ func (c *Client) AppendDriverInfo(info options.DriverInfo) {
 // index correspondence of every entry in the list. AppendDriverInfoErr returns
 // an error in that case.
 //
-// Metadata is limited to 512 bytes; any excess will be truncated.
+// Client metadata is limited to 512 bytes. If it exceeds the limit,
+// lower-priority fields such as platform are omitted, and if it still does not
+// fit, the metadata is not sent.
 func (c *Client) AppendDriverInfoErr(info options.DriverInfo) error {
 	for _, field := range []struct {
 		name  string
