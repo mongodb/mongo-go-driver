@@ -471,6 +471,13 @@ var documentStringTestCases = []struct {
 		),
 		want: `{"key": "abc","number": {"$numberInt":"123"},"flag": true}`,
 	},
+	{
+		description: "key that needs escaping",
+		doc: BuildDocument(nil,
+			AppendInt32Element(nil, "a\"\\\n", 123),
+		),
+		want: `{"a\"\\\n": {"$numberInt":"123"}}`,
+	},
 }
 
 func TestDocument_String(t *testing.T) {

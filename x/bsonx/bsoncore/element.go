@@ -141,21 +141,25 @@ func (e Element) StringN(n int) (string, bool) {
 	if idx <= 0 {
 		return "", false
 	}
-	key := e[1 : idx+1]
+	// escapeString wraps its result in double quotes. Drop them so the length
+	// checks below keep counting only the key bytes.
+	key := escapeString(string(e[1 : idx+1]))
+	key = key[1 : len(key)-1]
+	keyLen := len(key)
 
 	var buf strings.Builder
 	buf.WriteByte('"')
 	const suffix = `": `
 	switch {
-	case n < 0 || idx <= n-buf.Len()-len(suffix):
-		buf.Write(key)
+	case n < 0 || keyLen <= n-buf.Len()-len(suffix):
+		buf.WriteString(key)
 		buf.WriteString(suffix)
-	case idx < n:
-		buf.Write(key)
-		buf.WriteString(suffix[:n-idx-1])
+	case keyLen < n:
+		buf.WriteString(key)
+		buf.WriteString(suffix[:n-keyLen-1])
 		return buf.String(), true
 	default:
-		buf.WriteString(bsoncoreutil.Truncate(string(key), n-1))
+		buf.WriteString(bsoncoreutil.Truncate(key, n-1))
 		return buf.String(), true
 	}
 
@@ -204,10 +208,10 @@ func (e Element) DebugString() string {
 	if idx == -1 {
 		return fmt.Sprintf(`bson.Element{[%s]<malformed>}`, t)
 	}
-	key, valBytes := []byte(e[1:idx+1]), []byte(e[idx+2:])
+	key, valBytes := escapeString(string(e[1:idx+1])), []byte(e[idx+2:])
 	val, _, valid := ReadValue(valBytes, t)
 	if !valid {
-		return fmt.Sprintf(`bson.Element{[%s]"%s": <malformed>}`, t, key)
+		return fmt.Sprintf(`bson.Element{[%s]%s: <malformed>}`, t, key)
 	}
-	return fmt.Sprintf(`bson.Element{[%s]"%s": %v}`, t, key, val)
+	return fmt.Sprintf(`bson.Element{[%s]%s: %v}`, t, key, val)
 }
