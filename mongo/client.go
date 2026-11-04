@@ -247,7 +247,8 @@ func newClient(opts ...*options.ClientOptions) (*Client, error) {
 		client.AppendDriverInfo(*clientOpts.DriverInfo)
 	}
 
-	cfg, err := topology.NewAuthenticatorConfig(client.authenticator,
+	cfg, err := topology.NewAuthenticatorConfig(
+		client.authenticator,
 		topology.WithAuthConfigClock(client.clock),
 		topology.WithAuthConfigClientOptions(clientOpts),
 		topology.WithAuthConfigDriverInfo(client.currentDriverInfo),
@@ -328,7 +329,16 @@ func (c *Client) connect() error {
 	return nil
 }
 
-// AppendDriverInfo appends the provided [options.DriverInfo] to the metadata
+// AppendDriverInfo behaves exactly like [Client.AppendDriverInfoErr], but
+// discards invalid input without returning an error.
+//
+// Deprecated: Use [Client.AppendDriverInfoErr] instead, which reports when the
+// input is discarded.
+func (c *Client) AppendDriverInfo(info options.DriverInfo) {
+	_ = c.AppendDriverInfoErr(info)
+}
+
+// AppendDriverInfoErr appends the provided [options.DriverInfo] to the metadata
 // (e.g. name, version, platform) that will be sent to the server in handshake
 // requests when establishing new connections.
 //
@@ -336,26 +346,16 @@ func (c *Client) connect() error {
 // value contributes an empty entry, so a missing value never shifts the values
 // that follow it.
 //
-// Repeated calls to AppendDriverInfo with an equivalent DriverInfo are a no-op.
-// Equivalence is over the whole DriverInfo: two libraries that report the same
-// version are distinct entries and both are appended.
+// Repeated calls to AppendDriverInfoErr with an equivalent DriverInfo are a
+// no-op. Equivalence is over the whole DriverInfo: two libraries that report
+// the same version are distinct entries and both are appended.
 //
 // No field may contain the "|" metadata delimiter. A DriverInfo that contains
 // one is ignored in its entirety, because appending it would corrupt the
-// index correspondence of every entry in the list. Use
-// [Client.AppendDriverInfoErr] to be told when that happens.
+// index correspondence of every entry in the list. AppendDriverInfoErr returns
+// an error in that case.
 //
 // Metadata is limited to 512 bytes; any excess will be truncated.
-func (c *Client) AppendDriverInfo(info options.DriverInfo) {
-	_ = c.AppendDriverInfoErr(info)
-}
-
-// AppendDriverInfoErr appends the provided [options.DriverInfo] to the client
-// metadata, reporting an error if the DriverInfo cannot be appended. It behaves
-// exactly like [Client.AppendDriverInfo] otherwise.
-//
-// An error is returned if any field contains the "|" metadata delimiter, in
-// which case no part of the DriverInfo is appended.
 func (c *Client) AppendDriverInfoErr(info options.DriverInfo) error {
 	for _, field := range []struct {
 		name  string
@@ -728,7 +728,8 @@ func (c *Client) newMongoCrypt(opts *options.AutoEncryptionOptions) (*mongocrypt
 		str, ok := val.(string)
 		if !ok {
 			return nil, fmt.Errorf(
-				`expected AutoEncryption extra option "cryptSharedLibPath" to be a string, but is a %T`, val)
+				`expected AutoEncryption extra option "cryptSharedLibPath" to be a string, but is a %T`, val,
+			)
 		}
 		cryptSharedLibPath = str
 	}
@@ -767,7 +768,8 @@ func (c *Client) newMongoCrypt(opts *options.AutoEncryptionOptions) (*mongocrypt
 		b, ok := val.(bool)
 		if !ok {
 			return nil, fmt.Errorf(
-				`expected AutoEncryption extra option "cryptSharedLibRequired" to be a bool, but is a %T`, val)
+				`expected AutoEncryption extra option "cryptSharedLibRequired" to be a bool, but is a %T`, val,
+			)
 		}
 		cryptSharedLibRequired = b
 	}
@@ -777,7 +779,8 @@ func (c *Client) newMongoCrypt(opts *options.AutoEncryptionOptions) (*mongocrypt
 	// return an error indicating that we couldn't load the crypt_shared library.
 	if cryptSharedLibRequired && mc.CryptSharedLibVersionString() == "" {
 		return nil, errors.New(
-			`AutoEncryption extra option "cryptSharedLibRequired" is true, but we failed to load the crypt_shared library`)
+			`AutoEncryption extra option "cryptSharedLibRequired" is true, but we failed to load the crypt_shared library`,
+		)
 	}
 
 	return mc, nil
