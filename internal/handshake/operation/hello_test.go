@@ -112,49 +112,43 @@ func TestAppendClientDriver(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name                string
-		outerLibraryName    string
-		outerLibraryVersion string
-		outerLibrarySet     bool
-		want                []byte // Extend JSON
+		name         string
+		outerLibrary *OuterLibraryInfo
+		want         []byte // Extend JSON
 	}{
 		{
-			name:                "full",
-			outerLibraryName:    "",
-			outerLibraryVersion: "",
-			want:                []byte(fmt.Sprintf(`{"driver":{"name": %q, "version": %q}}`, driverName, version.Driver)),
+			name: "full",
+			want: []byte(fmt.Sprintf(`{"driver":{"name": %q, "version": %q}}`, driverName, version.Driver)),
 		},
 		{
-			name:                "with outer library data",
-			outerLibraryName:    "outer-library-name",
-			outerLibraryVersion: "outer-library-version",
-			outerLibrarySet:     true,
-			want:                []byte(fmt.Sprintf(`{"driver":{"name": "%s|outer-library-name", "version": "%s|outer-library-version"}}`, driverName, version.Driver)),
+			name: "with outer library data",
+			outerLibrary: &OuterLibraryInfo{
+				Name:    "outer-library-name",
+				Version: "outer-library-version",
+			},
+			want: []byte(fmt.Sprintf(`{"driver":{"name": "%s|outer-library-name", "version": "%s|outer-library-version"}}`, driverName, version.Driver)),
 		},
 		{
 			// An outer library that reports no version contributes an empty
 			// entry, so the trailing delimiter is significant.
-			name:                "outer library without a version",
-			outerLibraryName:    "outer-library-name",
-			outerLibraryVersion: "",
-			outerLibrarySet:     true,
-			want:                []byte(fmt.Sprintf(`{"driver":{"name": "%s|outer-library-name", "version": "%s|"}}`, driverName, version.Driver)),
+			name:         "outer library without a version",
+			outerLibrary: &OuterLibraryInfo{Name: "outer-library-name"},
+			want:         []byte(fmt.Sprintf(`{"driver":{"name": "%s|outer-library-name", "version": "%s|"}}`, driverName, version.Driver)),
 		},
 		{
 			// An entry is emitted for every wrapping library even when it
 			// reports nothing, so the fields stay aligned by index.
-			name:                "outer library without a name or version",
-			outerLibraryName:    "",
-			outerLibraryVersion: "",
-			outerLibrarySet:     true,
-			want:                []byte(fmt.Sprintf(`{"driver":{"name": "%s|", "version": "%s|"}}`, driverName, version.Driver)),
+			name:         "outer library without a name or version",
+			outerLibrary: &OuterLibraryInfo{},
+			want:         []byte(fmt.Sprintf(`{"driver":{"name": "%s|", "version": "%s|"}}`, driverName, version.Driver)),
 		},
 		{
-			name:                "multiple outer libraries with a gap in the middle",
-			outerLibraryName:    "F1|F2|F3",
-			outerLibraryVersion: "1.0||2.0",
-			outerLibrarySet:     true,
-			want:                []byte(fmt.Sprintf(`{"driver":{"name": "%s|F1|F2|F3", "version": "%s|1.0||2.0"}}`, driverName, version.Driver)),
+			name: "multiple outer libraries with a gap in the middle",
+			outerLibrary: &OuterLibraryInfo{
+				Name:    "F1|F2|F3",
+				Version: "1.0||2.0",
+			},
+			want: []byte(fmt.Sprintf(`{"driver":{"name": "%s|F1|F2|F3", "version": "%s|1.0||2.0"}}`, driverName, version.Driver)),
 		},
 	}
 
@@ -166,7 +160,7 @@ func TestAppendClientDriver(t *testing.T) {
 
 			cb := func(_ int, dst []byte) ([]byte, error) {
 				var err error
-				dst, err = appendClientDriver(dst, test.outerLibraryName, test.outerLibraryVersion, test.outerLibrarySet)
+				dst, err = appendClientDriver(dst, test.outerLibrary)
 
 				return dst, err
 			}
@@ -748,7 +742,7 @@ func FuzzEncodeClientMetadata(f *testing.F) {
 			t.Fatalf("error appending client app name: %v", err)
 		}
 
-		_, err = appendClientDriver(b, "", "", false)
+		_, err = appendClientDriver(b, nil)
 		if err != nil {
 			t.Fatalf("error appending client driver: %v", err)
 		}
