@@ -934,11 +934,9 @@ func (op Operation) Execute(ctx context.Context) (err error) {
 
 			// If the error is no longer retryable and has the NoWritesPerformed label, then we should
 			// set the error to the "previous indefinite error" unless the current error is already the
-			// "previous indefinite error". After resetting, repeat the error check.
-			if tt.HasErrorLabel(NoWritesPerformed) && !prevIndefiniteErrIsSet {
-				// Record this attempt's own error before substituting, so that the
-				// retry history keeps it even though it is not the error returned.
-				attemptErr = tt
+			// "previous indefinite error" or no previous attempt was made. After resetting, repeat the
+			// error check.
+			if tt.HasErrorLabel(NoWritesPerformed) && !prevIndefiniteErrIsSet && prevIndefiniteErr != nil {
 				err = prevIndefiniteErr
 				prevIndefiniteErrIsSet = true
 
@@ -1070,11 +1068,9 @@ func (op Operation) Execute(ctx context.Context) (err error) {
 
 			// If the error is no longer retryable and has the NoWritesPerformed label, then we should
 			// set the error to the "previous indefinite error" unless the current error is already the
-			// "previous indefinite error". After resetting, repeat the error check.
-			if tt.HasErrorLabel(NoWritesPerformed) && !prevIndefiniteErrIsSet {
-				// Record this attempt's own error before substituting, so that the
-				// retry history keeps it even though it is not the error returned.
-				attemptErr = tt
+			// "previous indefinite error" or no previous attempt was made. After resetting, repeat the
+			// error check.
+			if tt.HasErrorLabel(NoWritesPerformed) && !prevIndefiniteErrIsSet && prevIndefiniteErr != nil {
 				err = prevIndefiniteErr
 				prevIndefiniteErrIsSet = true
 
@@ -2088,6 +2084,10 @@ func (Operation) decodeOpReply(wm []byte) opReply {
 	}
 
 	if reply.responseFlags&wiremessage.QueryFailure == wiremessage.QueryFailure {
+		if len(reply.documents) == 0 {
+			reply.err = errors.New("malformed OP_REPLY: QueryFailure flag set but no documents returned")
+			return reply
+		}
 		reply.err = QueryFailureError{
 			Message:  "command failure",
 			Response: reply.documents[0],

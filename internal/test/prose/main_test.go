@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -30,15 +31,25 @@ import (
 var (
 	loadSecretsFlag = flag.Bool("load-secrets", false, "Use AWS SSO login to load secrets into the repository root")
 	cseFlag         = flag.Bool("cse", false, "Setup required for running CSE tests")
+	ciFlag          = flag.Bool("ci", false, "Run in CI: use the existing secrets-export.sh and the host network")
 )
 
 func secretsRequested() bool {
 	return *loadSecretsFlag || *cseFlag
 }
 
-// cseContainer is the long-lived CSE container, set by TestMain when -cse is
-// passed.
-var cseContainer testcontainers.Container
+var (
+	// cseContainer is the long-lived CSE container, set by TestMain when -cse
+	// is passed.
+	cseContainer testcontainers.Container
+
+	// cseEnv is the mongodb environment passed to every command run in cseContainer,
+	// set by TestMain when -cse is passed.
+	cseEnv []string
+
+	// loadedSecretsPath is the secrets-export.sh file loaded by TestMain.
+	loadedSecretsPath string
+)
 
 func TestMain(m *testing.M) {
 	flag.Parse()
@@ -53,14 +64,31 @@ func TestMain(m *testing.M) {
 		if err := godotenv.Overload(path); err != nil {
 			log.Panicf("error loading secrets: %v", err)
 		}
+		loadedSecretsPath = path
 	}
 
 	if *cseFlag {
+		env, err := buildCSEEnv(loadedSecretsPath)
+		if err != nil {
+			log.Panicf("error building CSE environment: %v", err)
+		}
+		cseEnv = env
+
 		ctr, err := startCSE()
 		if err != nil {
 			log.Panicf("error starting CSE container: %v", err)
 		}
 		cseContainer = ctr
+
+		if err := checkHosts(context.Background()); err != nil {
+			log.Panicf("error checking hosts: %v", err)
+		}
+
+		if kmsMocksRunning() {
+			if err := forwardKMSMocks(context.Background()); err != nil {
+				log.Panicf("error forwarding KMS mock servers: %v", err)
+			}
+		}
 	}
 
 	os.Exit(m.Run())
@@ -82,8 +110,13 @@ const (
 
 	cseDockerfileName   = "cse.Dockerfile"
 	cseInstallScript    = "install-libmongocrypt.sh"
+	cseMongoDL          = "mongodl.py"
+	cseServerArtifacts  = "server_artifacts.py" // imported by mongodl.py
 	cseContainerName    = "mongo-go-driver-cse"
 	cseContainerRepoDir = "/mongo-go-driver"
+
+	// cseHostGateway is the hostname the CSE container uses to reach the host.
+	defaultMongoURI = "mongodb://localhost:27017"
 )
 
 // repoRoot returns the absolute path of the Go Driver repository root.
@@ -120,6 +153,15 @@ func exportSecrets() (string, error) {
 		return "", err
 	}
 	secretsPath := filepath.Join(root, secretsFileName)
+
+	// In CI, etc/setup-encryption.sh writes secrets-export.sh using the
+	// task's assumed AWS role, so there is no interactive login.
+	if *ciFlag {
+		if _, err := os.Stat(secretsPath); err != nil {
+			return "", fmt.Errorf("%s not found; run etc/setup-encryption.sh first: %w", secretsFileName, err)
+		}
+		return secretsPath, keepExports(secretsPath)
+	}
 
 	// The file holds temporary AWS, Azure and GCP tokens that expire about an
 	// hour after the login, but it does not record when. Reuse it only while
@@ -255,7 +297,9 @@ func startCSE() (testcontainers.Container, error) {
 
 	for src, dst := range map[string]string{
 		cseDockerfileName: cseDockerfileName,
-		filepath.Join(root, "etc", cseInstallScript): cseInstallScript,
+		filepath.Join(root, "etc", cseInstallScript):                                                   cseInstallScript,
+		filepath.Join(root, ".evergreen", "drivers-evergreen-tools", ".evergreen", cseMongoDL):         cseMongoDL,
+		filepath.Join(root, ".evergreen", "drivers-evergreen-tools", ".evergreen", cseServerArtifacts): cseServerArtifacts,
 	} {
 		if err := copyFile(src, filepath.Join(buildDir, dst)); err != nil {
 			return nil, err
@@ -271,6 +315,14 @@ func startCSE() (testcontainers.Container, error) {
 		},
 		HostConfigModifier: func(hc *container.HostConfig) {
 			hc.Binds = append(hc.Binds, root+":"+cseContainerRepoDir)
+
+			// On Linux CI hosts, mongod and the KMS mock servers listen on the
+			// host's 127.0.0.1, which the bridge network cannot reach.
+			if *ciFlag {
+				hc.NetworkMode = "host"
+				return
+			}
+			hc.ExtraHosts = append(hc.ExtraHosts, "localhost:host-gateway")
 		},
 		// Block on "tail -f /dev/null" so the container stays alive and ready
 		// for exec calls, rather than immediately exiting.
@@ -290,6 +342,110 @@ func startCSE() (testcontainers.Container, error) {
 	return ctr, nil
 }
 
+// The environment is passed on each exec rather than when the container is
+// created, because the container is reused across runs and the secrets expire.
+func buildCSEEnv(secretsPath string) ([]string, error) {
+	secrets, err := godotenv.Read(secretsPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read %s: %w", secretsFileName, err)
+	}
+
+	uri := os.Getenv("MONGODB_URI")
+	if uri == "" {
+		uri = defaultMongoURI
+	}
+	delete(secrets, "MONGODB_URI")
+
+	// Match etc/setup-encryption.sh: the KMS mock servers use the EC certs in
+	// testdata/kmip-certs.
+	certDir := cseContainerRepoDir + "/testdata/kmip-certs/"
+	secrets["CSFLE_TLS_CA_FILE"] = certDir + "ca-ec.pem"
+	secrets["CSFLE_TLS_CLIENT_CERT_FILE"] = certDir + "client-ec.pem"
+
+	// The failpoint server uses drivers-evergreen-tools' x509gen certs, which
+	// the bind-mounted submodule provides.
+	secrets["KMS_FAILPOINT_CA_FILE"] = cseContainerRepoDir + "/.evergreen/drivers-evergreen-tools/.evergreen/x509gen/ca.pem"
+
+	env := make([]string, 0, len(secrets)+1)
+	for key, val := range secrets {
+		env = append(env, key+"="+val)
+	}
+	env = append(env, "MONGODB_URI="+uri)
+	if kmsMocksRunning() {
+		env = append(env, "KMS_MOCK_SERVERS_RUNNING=true", "KMS_FAILPOINT_SERVER_RUNNING=true")
+	}
+	return env, nil
+}
+
+var kmsMockPorts = []string{"9000", "9001", "9002", "9003", "5698", "8080"}
+
+func kmsMocksRunning() bool {
+	for _, port := range kmsMockPorts {
+		conn, err := net.DialTimeout("tcp", net.JoinHostPort("localhost", port), time.Second)
+		if err != nil {
+			return false
+		}
+		_ = conn.Close()
+	}
+	return true
+}
+
+func forwardKMSMocks(ctx context.Context) error {
+	for _, port := range kmsMockPorts {
+
+		cmd := fmt.Sprintf("(echo > /dev/tcp/127.0.0.1/%[1]s) 2>/dev/null || "+
+			"(nohup socat TCP-LISTEN:%[1]s,bind=127.0.0.1,fork,reuseaddr TCP:host.docker.internal:%[1]s </dev/null >/dev/null 2>&1 &)", port)
+		exit, out, err := execCSE(ctx, cmd)
+		if err != nil {
+			return err
+		}
+		if exit != 0 {
+			return fmt.Errorf("failed to forward port %s (exit code %d): %s", port, exit, out)
+		}
+	}
+	return nil
+}
+
+func checkHosts(ctx context.Context) error {
+	// If the container is already good to go, do nothing
+	if ping(ctx) == nil {
+		return nil
+	}
+
+	// If there is an error reaching the container through localhost, then
+	// terminate and try to restart.
+	if err := cseContainer.Terminate(ctx); err != nil {
+		return fmt.Errorf("failed to terminate CSE container: %w", err)
+	}
+
+	ctr, err := startCSE()
+	if err != nil {
+		return err
+	}
+
+	cseContainer = ctr
+
+	// Try to ping again, if this one fails return error to user.
+	if err := ping(ctx); err != nil {
+		return fmt.Errorf("CSE container is not reachable after restart (is a local mongod or mongos running?): %w", err)
+	}
+
+	return nil
+}
+
+func ping(ctx context.Context) error {
+	exit, _, err := execCSE(ctx, "go run ./internal/cmd/testping")
+	if err != nil {
+		return err
+	}
+
+	if exit != 0 {
+		return fmt.Errorf("exit code: %v", exit)
+	}
+
+	return nil
+}
+
 // execCSE runs cmd with bash in the CSE container and returns its exit code
 // and combined output.
 func execCSE(ctx context.Context, cmd string) (int, string, error) {
@@ -297,7 +453,7 @@ func execCSE(ctx context.Context, cmd string) (int, string, error) {
 		return 0, "", fmt.Errorf("CSE container is not running; pass -cse")
 	}
 
-	exit, out, err := cseContainer.Exec(ctx, []string{"bash", "-c", cmd + " 2>&1"}, tcexec.Multiplexed())
+	exit, out, err := cseContainer.Exec(ctx, []string{"bash", "-c", cmd + " 2>&1"}, tcexec.Multiplexed(), tcexec.WithEnv(cseEnv))
 	if err != nil {
 		return 0, "", fmt.Errorf("failed to exec %q: %w", cmd, err)
 	}

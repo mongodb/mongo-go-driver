@@ -4,8 +4,8 @@
 # is not copied in: the repository root is bind-mounted at /mongo-go-driver
 # when the container starts, so driver changes do not require a rebuild.
 #
-# sha found via this command: docker inspect --format='{{index .RepoDigests 0}}' golang:1.26.4-trixie
-FROM golang:1.26.4-trixie@sha256:76a29248dedcd75870e95cbd90cc8cb356db082404ac7d3a5803f276c3ba79c9
+# sha found via this command: docker inspect --format='{{index .RepoDigests 0}}' golang:1.26.9-trixie
+FROM golang:1.26.9-trixie@sha256:f06b7122f888680048afb247c4e5f49c0069eb6c4c1ccae0f3f4834527a8d22c
 
 RUN apt-get -qq update && \
   apt-get -qqy install --no-install-recommends \
@@ -15,6 +15,7 @@ RUN apt-get -qq update && \
   build-essential \
   libssl-dev \
   pkg-config \
+  socat \
   python3 \
   python3-packaging \
   python-is-python3 && \
@@ -34,5 +35,26 @@ RUN printf '#!/bin/sh\nexec pkg-config --define-variable=prefix=/root/install/li
 ENV PKG_CONFIG=/usr/local/bin/libmongocrypt-pkg-config
 ENV PKG_CONFIG_PATH=/root/install/libmongocrypt/lib64/pkgconfig:/root/install/libmongocrypt/lib/pkgconfig
 ENV LD_LIBRARY_PATH=/root/install/libmongocrypt/lib64:/root/install/libmongocrypt/lib
+
+ARG CRYPT_SHARED_VERSION=latest-stable
+COPY mongodl.py server_artifacts.py /root/
+RUN python3 /root/mongodl.py \
+  --component crypt_shared \
+  --version "${CRYPT_SHARED_VERSION}" \
+  --target ubuntu2404 \
+  --out /root/install/crypt_shared \
+  --strip-path-components 1
+
+ENV CRYPT_SHARED_LIB_PATH=/root/install/crypt_shared/mongo_crypt_v1.so
+
+# Some tests disable crypt_shared so that the driver spawns mongocryptd.
+RUN python3 /root/mongodl.py \
+  --component cryptd \
+  --version "${CRYPT_SHARED_VERSION}" \
+  --target ubuntu2404 \
+  --out /root/install/mongocryptd \
+  --strip-path-components 1
+
+ENV PATH=/root/install/mongocryptd/bin:${PATH}
 
 WORKDIR /mongo-go-driver

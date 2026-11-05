@@ -16,6 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/assert/assertbson"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -2562,6 +2563,628 @@ func TestBypassEmptyTsReplacement(t *testing.T) {
 			}
 		}
 	})
+}
+
+func TestAddCommandFields_DeleteOne(t *testing.T) {
+	mt := mtest.New(t)
+	mt.Setup()
+
+	const wantComment = "addCommandFieldsTest"
+
+	opts := options.DeleteOne()
+	err := xoptions.SetInternalDeleteOneOptions(opts, "addCommandFields", bson.D{{"comment", wantComment}})
+	require.NoError(mt, err, "unexpected error: %v", err)
+
+	var val bson.RawValue
+	// no options: comment must be absent
+	_, err = mt.Coll.DeleteOne(context.Background(), bson.D{{"x", 1}})
+	require.NoError(mt, err, "DeleteOne error: %v", err)
+	val = mt.GetStartedEvent().Command.Lookup("comment")
+	assertbson.EqualValue(mt, bson.RawValue{}, val)
+
+	// with addCommandFields: comment must be present
+	_, err = mt.Coll.DeleteOne(context.Background(), bson.D{{"x", 1}}, opts)
+	require.NoError(mt, err, "DeleteOne error: %v", err)
+
+	val = mt.GetStartedEvent().Command.Lookup("comment")
+	got, ok := val.StringValueOK()
+	require.True(mt, ok, "expected comment to be a string, got %v", val.Type)
+
+	require.Equal(mt, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
+}
+
+func TestAddCommandFields_DeleteMany(t *testing.T) {
+	mt := mtest.New(t)
+	mt.Setup()
+
+	const wantComment = "addCommandFieldsTest"
+
+	opts := options.DeleteMany()
+	err := xoptions.SetInternalDeleteManyOptions(opts, "addCommandFields", bson.D{{"comment", wantComment}})
+	require.NoError(mt, err, "unexpected error: %v", err)
+
+	var val bson.RawValue
+	// no options: comment must be absent
+	_, err = mt.Coll.DeleteMany(context.Background(), bson.D{{"x", 1}})
+	require.NoError(mt, err, "DeleteMany error: %v", err)
+	val = mt.GetStartedEvent().Command.Lookup("comment")
+	assertbson.EqualValue(mt, bson.RawValue{}, val)
+
+	// with addCommandFields: comment must be present
+	_, err = mt.Coll.DeleteMany(context.Background(), bson.D{{"x", 1}}, opts)
+	require.NoError(mt, err, "DeleteMany error: %v", err)
+	val = mt.GetStartedEvent().Command.Lookup("comment")
+	got, ok := val.StringValueOK()
+	require.True(mt, ok, "expected comment to be a string, got %v", val.Type)
+
+	require.Equal(mt, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
+}
+
+func TestAddCommandFields_Find(t *testing.T) {
+	mt := mtest.New(t)
+	mt.Setup()
+
+	const wantComment = "addCommandFieldsTest"
+
+	opts := options.Find()
+	err := xoptions.SetInternalFindOptions(opts, "addCommandFields", bson.D{{"comment", wantComment}})
+	require.NoError(mt, err, "unexpected error: %v", err)
+
+	var val bson.RawValue
+	// no options: comment must be absent
+	cursor, err := mt.Coll.Find(context.Background(), bson.D{})
+	require.NoError(mt, err, "Find error: %v", err)
+	_ = cursor.Close(context.Background())
+	val = mt.GetStartedEvent().Command.Lookup("comment")
+	assertbson.EqualValue(mt, bson.RawValue{}, val)
+
+	// with addCommandFields: comment must be present
+	cursor, err = mt.Coll.Find(context.Background(), bson.D{}, opts)
+	require.NoError(mt, err, "Find error: %v", err)
+	_ = cursor.Close(context.Background())
+
+	val = mt.GetStartedEvent().Command.Lookup("comment")
+	got, ok := val.StringValueOK()
+	require.True(mt, ok, "expected comment to be a string, got %v", val.Type)
+
+	require.Equal(mt, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
+}
+
+func TestAddCommandFields_FindOne(t *testing.T) {
+	mt := mtest.New(t)
+	mt.Setup()
+
+	const wantComment = "addCommandFieldsTest"
+
+	opts := options.FindOne()
+	err := xoptions.SetInternalFindOneOptions(opts, "addCommandFields", bson.D{{"comment", wantComment}})
+	require.NoError(mt, err, "unexpected error: %v", err)
+
+	initCollection(mt, mt.Coll)
+	mt.ClearEvents()
+
+	var val bson.RawValue
+	// no options: comment must be absent
+	err = mt.Coll.FindOne(context.Background(), bson.D{}).Err()
+	require.NoError(mt, err, "FindOne error: %v", err)
+	val = mt.GetStartedEvent().Command.Lookup("comment")
+	assertbson.EqualValue(mt, bson.RawValue{}, val)
+
+	// with addCommandFields: comment must be present
+	err = mt.Coll.FindOne(context.Background(), bson.D{}, opts).Err()
+	require.NoError(mt, err, "FindOne error: %v", err)
+	val = mt.GetStartedEvent().Command.Lookup("comment")
+	got, ok := val.StringValueOK()
+	require.True(mt, ok, "expected comment to be a string, got %v", val.Type)
+
+	require.Equal(mt, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
+}
+
+func TestAddCommandFields_Distinct(t *testing.T) {
+	mt := mtest.New(t)
+	mt.Setup()
+
+	const wantComment = "addCommandFieldsTest"
+
+	opts := options.Distinct()
+	err := xoptions.SetInternalDistinctOptions(opts, "addCommandFields", bson.D{{"comment", wantComment}})
+	require.NoError(mt, err, "unexpected error: %v", err)
+
+	var val bson.RawValue
+	// no options: comment must be absent
+	err = mt.Coll.Distinct(context.Background(), "x", bson.D{}).Err()
+	require.NoError(mt, err, "Distinct error: %v", err)
+	val = mt.GetStartedEvent().Command.Lookup("comment")
+	assertbson.EqualValue(mt, bson.RawValue{}, val)
+
+	// with addCommandFields: comment must be present
+	err = mt.Coll.Distinct(context.Background(), "x", bson.D{}, opts).Err()
+	require.NoError(mt, err, "Distinct error: %v", err)
+	val = mt.GetStartedEvent().Command.Lookup("comment")
+	got, ok := val.StringValueOK()
+	require.True(mt, ok, "expected comment to be a string, got %v", val.Type)
+
+	require.Equal(mt, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
+}
+
+func TestAddCommandFields_CountDocuments(t *testing.T) {
+	mt := mtest.New(t)
+	mt.Setup()
+
+	const wantComment = "addCommandFieldsTest"
+
+	opts := options.Count()
+	err := xoptions.SetInternalCountOptions(opts, "addCommandFields", bson.D{{"comment", wantComment}})
+	require.NoError(mt, err, "unexpected error: %v", err)
+
+	var val bson.RawValue
+	// no options: comment must be absent
+	_, err = mt.Coll.CountDocuments(context.Background(), bson.D{})
+	require.NoError(mt, err, "CountDocuments error: %v", err)
+	val = mt.GetStartedEvent().Command.Lookup("comment")
+	assertbson.EqualValue(mt, bson.RawValue{}, val)
+
+	// with addCommandFields: comment must be present
+	_, err = mt.Coll.CountDocuments(context.Background(), bson.D{}, opts)
+	require.NoError(mt, err, "CountDocuments error: %v", err)
+	val = mt.GetStartedEvent().Command.Lookup("comment")
+	got, ok := val.StringValueOK()
+	require.True(mt, ok, "expected comment to be a string, got %v", val.Type)
+
+	require.Equal(mt, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
+}
+
+func TestAddCommandFields_EstimatedDocumentCount(t *testing.T) {
+	mt := mtest.New(t)
+	mt.Setup()
+
+	const wantComment = "addCommandFieldsTest"
+
+	opts := options.EstimatedDocumentCount()
+	err := xoptions.SetInternalEstimatedDocumentCountOptions(opts, "addCommandFields", bson.D{{"comment", wantComment}})
+	require.NoError(mt, err, "unexpected error: %v", err)
+
+	var val bson.RawValue
+	// no options: comment must be absent
+	_, err = mt.Coll.EstimatedDocumentCount(context.Background())
+	require.NoError(mt, err, "EstimatedDocumentCount error: %v", err)
+	val = mt.GetStartedEvent().Command.Lookup("comment")
+	assertbson.EqualValue(mt, bson.RawValue{}, val)
+
+	// with addCommandFields: comment must be present
+	_, err = mt.Coll.EstimatedDocumentCount(context.Background(), opts)
+	require.NoError(mt, err, "EstimatedDocumentCount error: %v", err)
+	val = mt.GetStartedEvent().Command.Lookup("comment")
+	got, ok := val.StringValueOK()
+	require.True(mt, ok, "expected comment to be a string, got %v", val.Type)
+
+	require.Equal(mt, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
+}
+
+func TestAddCommandFields_Drop(t *testing.T) {
+	mt := mtest.New(t)
+	mt.Setup()
+
+	const wantComment = "addCommandFieldsTest"
+
+	opts := options.DropCollection()
+	err := xoptions.SetInternalDropCollectionOptions(opts, "addCommandFields", bson.D{{"comment", wantComment}})
+	require.NoError(mt, err, "unexpected error: %v", err)
+
+	var val bson.RawValue
+	// no options: comment must be absent
+	err = mt.Coll.Drop(context.Background())
+	require.NoError(mt, err, "Drop error: %v", err)
+	val = mt.GetStartedEvent().Command.Lookup("comment")
+	assertbson.EqualValue(mt, bson.RawValue{}, val)
+
+	// with addCommandFields: comment must be present
+	err = mt.Coll.Drop(context.Background(), opts)
+	require.NoError(mt, err, "Drop error: %v", err)
+	val = mt.GetStartedEvent().Command.Lookup("comment")
+	got, ok := val.StringValueOK()
+	require.True(mt, ok, "expected comment to be a string, got %v", val.Type)
+
+	require.Equal(mt, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
+}
+
+func TestAddCommandFields_ListIndexes(t *testing.T) {
+	mt := mtest.New(t)
+	mt.Setup()
+
+	const wantComment = "addCommandFieldsTest"
+
+	opts := options.ListIndexes()
+	err := xoptions.SetInternalListIndexesOptions(opts, "addCommandFields", bson.D{{"comment", wantComment}})
+	require.NoError(mt, err, "unexpected error: %v", err)
+
+	var val bson.RawValue
+	// no options: comment must be absent
+	cursor, err := mt.Coll.Indexes().List(context.Background())
+	require.NoError(mt, err, "List error: %v", err)
+	_ = cursor.Close(context.Background())
+	val = mt.GetStartedEvent().Command.Lookup("comment")
+	assertbson.EqualValue(mt, bson.RawValue{}, val)
+
+	// with addCommandFields: comment must be present
+	cursor, err = mt.Coll.Indexes().List(context.Background(), opts)
+	require.NoError(mt, err, "List error: %v", err)
+	_ = cursor.Close(context.Background())
+
+	val = mt.GetStartedEvent().Command.Lookup("comment")
+	got, ok := val.StringValueOK()
+	require.True(mt, ok, "expected comment to be a string, got %v", val.Type)
+
+	require.Equal(mt, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
+}
+
+func TestAddCommandFields_CreateIndexes(t *testing.T) {
+	mt := mtest.New(t)
+	mt.Setup()
+
+	const wantComment = "addCommandFieldsTest"
+
+	opts := options.CreateIndexes()
+	err := xoptions.SetInternalCreateIndexesOptions(opts, "addCommandFields", bson.D{{"comment", wantComment}})
+	require.NoError(mt, err, "unexpected error: %v", err)
+
+	model := mongo.IndexModel{Keys: bson.D{{"x", 1}}}
+
+	var val bson.RawValue
+	// no options: comment must be absent
+	_, err = mt.Coll.Indexes().CreateOne(context.Background(), model)
+	require.NoError(mt, err, "CreateOne error: %v", err)
+	val = mt.GetStartedEvent().Command.Lookup("comment")
+	assertbson.EqualValue(mt, bson.RawValue{}, val)
+
+	// with addCommandFields: comment must be present
+	_, err = mt.Coll.Indexes().CreateOne(context.Background(), model, opts)
+	require.NoError(mt, err, "CreateOne error: %v", err)
+	val = mt.GetStartedEvent().Command.Lookup("comment")
+	got, ok := val.StringValueOK()
+	require.True(mt, ok, "expected comment to be a string, got %v", val.Type)
+
+	require.Equal(mt, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
+}
+
+func TestAddCommandFields_DropIndexes(t *testing.T) {
+	mt := mtest.New(t)
+	mt.Setup()
+
+	const wantComment = "addCommandFieldsTest"
+
+	opts := options.DropIndexes()
+	err := xoptions.SetInternalDropIndexesOptions(opts, "addCommandFields", bson.D{{"comment", wantComment}})
+	require.NoError(mt, err, "unexpected error: %v", err)
+
+	model := mongo.IndexModel{Keys: bson.D{{"x", 1}}}
+
+	var val bson.RawValue
+	// no options: comment must be absent
+	name, err := mt.Coll.Indexes().CreateOne(context.Background(), model)
+	require.NoError(mt, err, "CreateOne error: %v", err)
+	mt.ClearEvents()
+
+	err = mt.Coll.Indexes().DropOne(context.Background(), name)
+	require.NoError(mt, err, "DropOne error: %v", err)
+	val = mt.GetStartedEvent().Command.Lookup("comment")
+	assertbson.EqualValue(mt, bson.RawValue{}, val)
+
+	// with addCommandFields: comment must be present
+	name, err = mt.Coll.Indexes().CreateOne(context.Background(), model)
+	require.NoError(mt, err, "CreateOne error: %v", err)
+	mt.ClearEvents()
+
+	err = mt.Coll.Indexes().DropOne(context.Background(), name, opts)
+	require.NoError(mt, err, "DropOne error: %v", err)
+
+	val = mt.GetStartedEvent().Command.Lookup("comment")
+	got, ok := val.StringValueOK()
+	require.True(mt, ok, "expected comment to be a string, got %v", val.Type)
+
+	require.Equal(mt, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
+}
+
+func TestAddCommandFields_FindOneAndDelete(t *testing.T) {
+	mt := mtest.New(t)
+	mt.Setup()
+
+	const wantComment = "addCommandFieldsTest"
+
+	opts := options.FindOneAndDelete()
+	err := xoptions.SetInternalFindOneAndDeleteOptions(opts, "addCommandFields", bson.D{{"comment", wantComment}})
+	require.NoError(mt, err, "unexpected error: %v", err)
+
+	initCollection(mt, mt.Coll)
+	mt.ClearEvents()
+
+	var val bson.RawValue
+	// no options: comment must be absent
+	err = mt.Coll.FindOneAndDelete(context.Background(), bson.D{}).Err()
+	require.NoError(mt, err, "FindOneAndDelete error: %v", err)
+	val = mt.GetStartedEvent().Command.Lookup("comment")
+	assertbson.EqualValue(mt, bson.RawValue{}, val)
+
+	// with addCommandFields: comment must be present
+	err = mt.Coll.FindOneAndDelete(context.Background(), bson.D{}, opts).Err()
+	require.NoError(mt, err, "FindOneAndDelete error: %v", err)
+	val = mt.GetStartedEvent().Command.Lookup("comment")
+	got, ok := val.StringValueOK()
+	require.True(mt, ok, "expected comment to be a string, got %v", val.Type)
+
+	require.Equal(mt, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
+}
+
+func TestAddCommandFields_FindOneAndUpdate(t *testing.T) {
+	mt := mtest.New(t)
+	mt.Setup()
+
+	const wantComment = "addCommandFieldsTest"
+
+	opts := options.FindOneAndUpdate()
+	err := xoptions.SetInternalFindOneAndUpdateOptions(opts, "addCommandFields", bson.D{{"comment", wantComment}})
+	require.NoError(mt, err, "unexpected error: %v", err)
+
+	initCollection(mt, mt.Coll)
+	mt.ClearEvents()
+
+	update := bson.D{{"$set", bson.D{{"x", int32(6)}}}}
+
+	var val bson.RawValue
+	// no options: comment must be absent
+	err = mt.Coll.FindOneAndUpdate(context.Background(), bson.D{}, update).Err()
+	require.NoError(mt, err, "FindOneAndUpdate error: %v", err)
+	val = mt.GetStartedEvent().Command.Lookup("comment")
+	assertbson.EqualValue(mt, bson.RawValue{}, val)
+
+	// with addCommandFields: comment must be present
+	err = mt.Coll.FindOneAndUpdate(context.Background(), bson.D{}, update, opts).Err()
+	require.NoError(mt, err, "FindOneAndUpdate error: %v", err)
+	val = mt.GetStartedEvent().Command.Lookup("comment")
+	got, ok := val.StringValueOK()
+	require.True(mt, ok, "expected comment to be a string, got %v", val.Type)
+
+	require.Equal(mt, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
+}
+
+func TestAddCommandFields_FindOneAndReplace(t *testing.T) {
+	mt := mtest.New(t)
+	mt.Setup()
+
+	const wantComment = "addCommandFieldsTest"
+
+	opts := options.FindOneAndReplace()
+	err := xoptions.SetInternalFindOneAndReplaceOptions(opts, "addCommandFields", bson.D{{"comment", wantComment}})
+	require.NoError(mt, err, "unexpected error: %v", err)
+
+	initCollection(mt, mt.Coll)
+	mt.ClearEvents()
+
+	replacement := bson.D{{"x", int32(6)}}
+
+	var val bson.RawValue
+	// no options: comment must be absent
+	err = mt.Coll.FindOneAndReplace(context.Background(), bson.D{}, replacement).Err()
+	require.NoError(mt, err, "FindOneAndReplace error: %v", err)
+	val = mt.GetStartedEvent().Command.Lookup("comment")
+	assertbson.EqualValue(mt, bson.RawValue{}, val)
+
+	// with addCommandFields: comment must be present
+	err = mt.Coll.FindOneAndReplace(context.Background(), bson.D{}, replacement, opts).Err()
+	require.NoError(mt, err, "FindOneAndReplace error: %v", err)
+	val = mt.GetStartedEvent().Command.Lookup("comment")
+	got, ok := val.StringValueOK()
+	require.True(mt, ok, "expected comment to be a string, got %v", val.Type)
+
+	require.Equal(mt, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
+}
+
+func TestAddCommandFields_InsertOne(t *testing.T) {
+	mt := mtest.New(t)
+	mt.Setup()
+
+	const wantComment = "addCommandFieldsTest"
+
+	opts := options.InsertOne()
+	err := xoptions.SetInternalInsertOneOptions(opts, "addCommandFields", bson.D{{"comment", wantComment}})
+	require.NoError(mt, err, "unexpected error: %v", err)
+
+	var val bson.RawValue
+	// no options: comment must be absent
+	_, err = mt.Coll.InsertOne(context.Background(), bson.D{{"x", int32(1)}})
+	require.NoError(mt, err, "InsertOne error: %v", err)
+	val = mt.GetStartedEvent().Command.Lookup("comment")
+	assertbson.EqualValue(mt, bson.RawValue{}, val)
+
+	// with addCommandFields: comment must be present
+	_, err = mt.Coll.InsertOne(context.Background(), bson.D{{"x", int32(1)}}, opts)
+	require.NoError(mt, err, "InsertOne error: %v", err)
+	val = mt.GetStartedEvent().Command.Lookup("comment")
+	got, ok := val.StringValueOK()
+	require.True(mt, ok, "expected comment to be a string, got %v", val.Type)
+
+	require.Equal(mt, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
+}
+
+func TestAddCommandFields_InsertMany(t *testing.T) {
+	mt := mtest.New(t)
+	mt.Setup()
+
+	const wantComment = "addCommandFieldsTest"
+
+	opts := options.InsertMany()
+	err := xoptions.SetInternalInsertManyOptions(opts, "addCommandFields", bson.D{{"comment", wantComment}})
+	require.NoError(mt, err, "unexpected error: %v", err)
+
+	docs := []any{bson.D{{"x", int32(1)}}, bson.D{{"x", int32(2)}}}
+
+	var val bson.RawValue
+	// no options: comment must be absent
+	_, err = mt.Coll.InsertMany(context.Background(), docs)
+	require.NoError(mt, err, "InsertMany error: %v", err)
+	val = mt.GetStartedEvent().Command.Lookup("comment")
+	assertbson.EqualValue(mt, bson.RawValue{}, val)
+
+	// with addCommandFields: comment must be present
+	_, err = mt.Coll.InsertMany(context.Background(), docs, opts)
+	require.NoError(mt, err, "InsertMany error: %v", err)
+	val = mt.GetStartedEvent().Command.Lookup("comment")
+	got, ok := val.StringValueOK()
+	require.True(mt, ok, "expected comment to be a string, got %v", val.Type)
+
+	require.Equal(mt, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
+}
+
+func TestAddCommandFields_UpdateOne(t *testing.T) {
+	mt := mtest.New(t)
+	mt.Setup()
+
+	const wantComment = "addCommandFieldsTest"
+
+	opts := options.UpdateOne()
+	err := xoptions.SetInternalUpdateOneOptions(opts, "addCommandFields", bson.D{{"comment", wantComment}})
+	require.NoError(mt, err, "unexpected error: %v", err)
+
+	update := bson.D{{"$set", bson.D{{"x", int32(6)}}}}
+
+	var val bson.RawValue
+	// no options: comment must be absent
+	_, err = mt.Coll.UpdateOne(context.Background(), bson.D{}, update)
+	require.NoError(mt, err, "UpdateOne error: %v", err)
+	val = mt.GetStartedEvent().Command.Lookup("comment")
+	assertbson.EqualValue(mt, bson.RawValue{}, val)
+
+	// with addCommandFields: comment must be present
+	_, err = mt.Coll.UpdateOne(context.Background(), bson.D{}, update, opts)
+	require.NoError(mt, err, "UpdateOne error: %v", err)
+	val = mt.GetStartedEvent().Command.Lookup("comment")
+	got, ok := val.StringValueOK()
+	require.True(mt, ok, "expected comment to be a string, got %v", val.Type)
+
+	require.Equal(mt, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
+}
+
+func TestAddCommandFields_UpdateMany(t *testing.T) {
+	mt := mtest.New(t)
+	mt.Setup()
+
+	const wantComment = "addCommandFieldsTest"
+
+	opts := options.UpdateMany()
+	err := xoptions.SetInternalUpdateManyOptions(opts, "addCommandFields", bson.D{{"comment", wantComment}})
+	require.NoError(mt, err, "unexpected error: %v", err)
+
+	update := bson.D{{"$set", bson.D{{"x", int32(6)}}}}
+
+	var val bson.RawValue
+	// no options: comment must be absent
+	_, err = mt.Coll.UpdateMany(context.Background(), bson.D{}, update)
+	require.NoError(mt, err, "UpdateMany error: %v", err)
+	val = mt.GetStartedEvent().Command.Lookup("comment")
+	assertbson.EqualValue(mt, bson.RawValue{}, val)
+
+	// with addCommandFields: comment must be present
+	_, err = mt.Coll.UpdateMany(context.Background(), bson.D{}, update, opts)
+	require.NoError(mt, err, "UpdateMany error: %v", err)
+	val = mt.GetStartedEvent().Command.Lookup("comment")
+	got, ok := val.StringValueOK()
+	require.True(mt, ok, "expected comment to be a string, got %v", val.Type)
+
+	require.Equal(mt, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
+}
+
+func TestAddCommandFields_ReplaceOne(t *testing.T) {
+	mt := mtest.New(t)
+	mt.Setup()
+
+	const wantComment = "addCommandFieldsTest"
+
+	opts := options.Replace()
+	err := xoptions.SetInternalReplaceOptions(opts, "addCommandFields", bson.D{{"comment", wantComment}})
+	require.NoError(mt, err, "unexpected error: %v", err)
+
+	replacement := bson.D{{"x", int32(6)}}
+
+	var val bson.RawValue
+	// no options: comment must be absent
+	_, err = mt.Coll.ReplaceOne(context.Background(), bson.D{}, replacement)
+	require.NoError(mt, err, "ReplaceOne error: %v", err)
+	val = mt.GetStartedEvent().Command.Lookup("comment")
+	assertbson.EqualValue(mt, bson.RawValue{}, val)
+
+	// with addCommandFields: comment must be present
+	_, err = mt.Coll.ReplaceOne(context.Background(), bson.D{}, replacement, opts)
+	require.NoError(mt, err, "ReplaceOne error: %v", err)
+	val = mt.GetStartedEvent().Command.Lookup("comment")
+	got, ok := val.StringValueOK()
+	require.True(mt, ok, "expected comment to be a string, got %v", val.Type)
+
+	require.Equal(mt, wantComment, got, "expected comment to be %q, got %v", wantComment, got)
+}
+
+func TestAddCommandFields_BulkWrite(t *testing.T) {
+	mt := mtest.New(t)
+	mt.Setup()
+
+	const wantComment = "addCommandFieldsTest"
+
+	opts := options.BulkWrite()
+	err := xoptions.SetInternalBulkWriteOptions(opts, "addCommandFields", bson.D{{"comment", wantComment}})
+	require.NoError(mt, err, "unexpected error: %v", err)
+
+	// BulkWrite dispatches to a separate operation per model type, so every
+	// model kind has to be covered: a missing assignment in one of runInsert,
+	// runDelete or runUpdate silently drops the added fields for that kind.
+	models := []struct {
+		name  string
+		model mongo.WriteModel
+	}{
+		{
+			name:  "insert one",
+			model: mongo.NewInsertOneModel().SetDocument(bson.D{{"x", int32(6)}}),
+		},
+		{
+			name:  "delete one",
+			model: mongo.NewDeleteOneModel().SetFilter(bson.D{{"x", int32(1)}}),
+		},
+		{
+			name:  "delete many",
+			model: mongo.NewDeleteManyModel().SetFilter(bson.D{{"x", int32(1)}}),
+		},
+		{
+			name: "update one",
+			model: mongo.NewUpdateOneModel().SetFilter(bson.D{{"x", int32(1)}}).
+				SetUpdate(bson.D{{"$set", bson.D{{"x", int32(6)}}}}),
+		},
+		{
+			name: "update many",
+			model: mongo.NewUpdateManyModel().SetFilter(bson.D{{"x", int32(1)}}).
+				SetUpdate(bson.D{{"$set", bson.D{{"x", int32(6)}}}}),
+		},
+		{
+			name: "replace one",
+			model: mongo.NewReplaceOneModel().SetFilter(bson.D{{"x", int32(1)}}).
+				SetReplacement(bson.D{{"x", int32(6)}}),
+		},
+	}
+
+	for _, m := range models {
+		// no options: comment must be absent
+		_, err = mt.Coll.BulkWrite(context.Background(), []mongo.WriteModel{m.model})
+		require.NoError(mt, err, "%s: BulkWrite error: %v", m.name, err)
+		val := mt.GetStartedEvent().Command.Lookup("comment")
+		assertbson.EqualValue(mt, bson.RawValue{}, val)
+
+		// with addCommandFields: comment must be present
+		_, err = mt.Coll.BulkWrite(context.Background(), []mongo.WriteModel{m.model}, opts)
+		require.NoError(mt, err, "%s: BulkWrite error: %v", m.name, err)
+
+		val = mt.GetStartedEvent().Command.Lookup("comment")
+		got, ok := val.StringValueOK()
+		require.True(mt, ok, "%s: expected comment to be a string, got %v", m.name, val.Type)
+
+		require.Equal(mt, wantComment, got, "%s: expected comment to be %q, got %v", m.name, wantComment, got)
+	}
 }
 
 func initCollection(tb testing.TB, coll *mongo.Collection) {
