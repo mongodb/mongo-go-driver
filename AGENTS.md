@@ -17,7 +17,7 @@ Uses **[Task](https://taskfile.dev/)**, not make.
 ```
 task                 # default: build + check-license + check-fmt + check-modules + lint + test-short
 task fmt             # gofumpt -w . — use this, not plain gofmt
-task build           # includes compilecheck-min (Go min-version compat)
+task build           # includes compilecheck (all supported Go versions, needs Docker)
 task lint            # golangci-lint across linux/{386,arm,arm64,amd64,ppc64le,s390x}
 task test-short      # race detector, ~60s timeout — fast feedback
 task test            # full suite, serial (-p 1), 1800s timeout, requires mongod
@@ -28,8 +28,33 @@ task api-report      # required when public API changes — include output in PR
 
 ## Go version requirements
 
-- **Go 1.25**: minimum to compile/use the driver. The Go Driver supports the last two Go minor versions. Public packages (`mongo/`, `bson/`, `event/`, `tag/`) must build on 1.25. `compilecheck-min` enforces this at build time.
+- **Go 1.25**: minimum to compile/use the driver. The Go Driver supports the last two Go minor versions. Public packages (`mongo/`, `bson/`, `event/`, `tag/`) must build on 1.25. The `compilecheck` task enforces this at build time, compiling against every version in `goVersions` (`internal/test/compilecheck/compile_check_test.go`).
 - **Go 1.26+**: required to run the test suite and develop the driver.
+
+## CI (Evergreen)
+
+Evergreen's project configuration lives in `.evergreen/config.yml`, where every task, variant, and expansion is declared; supporting CI scripts live alongside it. Validate any change with
+`evergreen validate -p mongo-go-driver -f .evergreen/config.yml` (authenticate with `evergreen login`, not an API key). Warnings about unused tasks and merge-queue aliases are pre-existing.
+
+**Two submodules, both pinned by commit.** `.evergreen/drivers-evergreen-tools` (DET) provides every server-provisioning script; `testdata/specifications` provides spec-test fixtures. CI checks out the pinned commits (`git submodule update --init` in the `setup-system` function) — it does **not** track DET `master`. So a fix that has landed upstream in DET is not live here until the pin moves. Run `task init-submodule` locally before inspecting DET; it is often left uninitialized.
+
+**Adding a new server version:**
+
+1. Add a value at the top of the `version` axis (`id`/`display_name`/`variables: VERSION:`).
+1. Append it to each relevant `matrix_spec` version list. Matrices tagged `pullrequest` run on every PR; untagged ones are waterfall-only. Convention is that the newest version gets the PR-tagged matrix and the previous newest falls back to the waterfall matrix.
+1. Variants not expanded across the `version` axis need editing by hand — notably `testoidc_task_group`, which hardcodes `MONGODB_VERSION`. Task groups cannot take a matrix axis, and a task may appear only once per buildvariant.
+
+**When a version won't download, the fix usually belongs in DET, not here.** `VERSION` flows to `mongodl` unchanged (`bootstrap-mongo-orchestration` → `run-orchestration.sh` → `drivers_orchestration.py`), and `mongodl` resolves a bare `X.Y` to the newest `X.Y.*` in `full.json`, release candidates included. Pre-GA versions are often absent from `full.json`, and DET carries the workaround (e.g. `UNPUBLISHED_VERSIONS` maps such a version to its branch nightly). Prefer bumping the DET pin over adding driver-side overrides such as `MONGODB_DOWNLOAD_SOURCE`:
+
+```
+cd .evergreen/drivers-evergreen-tools
+git fetch origin
+git checkout <upstream-commit>      # or origin/master
+cd -
+git add .evergreen/drivers-evergreen-tools
+```
+
+Dependabot bumps this pin routinely, so prefer waiting for its PR when the fix is not urgent. Bumping by hand pulls in every intervening upstream commit — review `git log <old>..<new>` for unrelated CI changes and validate in a patch build (`evergreen patch -p mongo-go-driver -u`), not just `evergreen validate`.
 
 ## Gotchas
 

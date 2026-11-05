@@ -15,7 +15,7 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - uses: mongodb-labs/drivers-github-tools/secure-checkout@89904229eb55a063655af02f5838bd7fe76505e5 #v3
+      - uses: mongodb-labs/drivers-github-tools/secure-checkout@99b1cbd729bc83bf7fc74e1b2a97fffad3d65d7b #v3
         with:
           app_id: ${{ vars.PR_APP_ID }}
           private_key: ${{ secrets.PR_APP_PRIVATE_KEY }}

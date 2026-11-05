@@ -11,6 +11,7 @@ import (
 	"errors"
 	"time"
 
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
@@ -53,6 +54,7 @@ type aggregateOp struct {
 	timeout                   *time.Duration
 	omitMaxTimeMS             bool
 	rawData                   *bool
+	additionalCmd             bson.D
 
 	cursorRes driver.CursorResponse
 }
@@ -160,5 +162,5 @@ func (a *aggregateOp) command(dst []byte, desc description.SelectedServer) ([]by
 	cursorDoc, _ = bsoncore.AppendDocumentEnd(cursorDoc, cursorIdx)
 	dst = bsoncore.AppendDocumentElement(dst, "cursor", cursorDoc)
 
-	return dst, nil
+	return appendAdditionalCmd(dst, a.additionalCmd)
 }
