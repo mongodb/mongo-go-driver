@@ -763,7 +763,7 @@ func (cs *ChangeStream) loopNext(ctx context.Context, nonBlocking bool) {
 
 		// Don't resume with a dead context: killCursors would never reach the
 		// server and the cursor would leak. A later Close can still kill it.
-		if ctx.Err() != nil || errors.Is(cs.err, context.DeadlineExceeded) {
+		if ctx.Err() != nil || errors.Is(cs.err, driver.ErrDeadlineWouldBeExceeded) {
 			return
 		}
 
