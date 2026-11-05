@@ -20,6 +20,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/csot"
+	"go.mongodb.org/mongo-driver/v2/internal/errutil"
 	"go.mongodb.org/mongo-driver/v2/internal/handshake"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
@@ -922,6 +923,18 @@ func TestRetry(t *testing.T) {
 		assert.True(t,
 			time.Now().After(deadline),
 			"expected operation to complete only after the context deadline is exceeded")
+
+		// Every connection checkout failure is recorded as an attempt, and the
+		// error returned is still the retryable error from the last retry.
+		var retryErr errutil.RetryError
+		require.True(t, errors.As(err, &retryErr), "expected err to wrap an errutil.RetryError")
+		assert.True(t,
+			len(retryErr.Attempts()) >= ms.numCallsToConnection,
+			"expected every Connection() call to be recorded as an attempt, got %d attempts for %d calls",
+			len(retryErr.Attempts()), ms.numCallsToConnection)
+
+		var rerr retryableError
+		assert.True(t, errors.As(err, &rerr), "expected the main error to be the retryable connection error")
 	})
 }
 

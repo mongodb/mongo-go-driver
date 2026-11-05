@@ -563,40 +563,8 @@ func (op Operation) Execute(ctx context.Context) (err error) {
 	var conn *mnet.Connection
 	var res bsoncore.Document
 	var operationErr WriteCommandError
+	var prevErr error
 	var prevIndefiniteErr error
-
-	// prevErrs accumulates the errors from each attempt in chronological order.
-	// recordAttempt adds to it, and the deferred function joins the history into
-	// a single error. See GODRIVER-3600.
-	var prevErrs []error
-
-	// attemptErr is the error produced by the attempt in flight, set only when
-	// that error is not the one the attempt goes on to return. Three paths below
-	// return a different error than the attempt produced: the connection error
-	// path and the two "NoWritesPerformed" paths, which substitute
-	// prevIndefiniteErr. Each records the attempt's own error here so that
-	// substituting the returned error does not rewrite the history.
-	var attemptErr error
-
-	// recordAttempt appends the error from the attempt that just finished to
-	// prevErrs. It records attemptErr in preference to err, so that a
-	// substituted error is never recorded in place of the error the attempt
-	// actually produced.
-	recordAttempt := func(err error) {
-		if attemptErr != nil {
-			err, attemptErr = attemptErr, nil
-		}
-		if err != nil {
-			prevErrs = append(prevErrs, err)
-		}
-	}
-
-	defer func() {
-		recordAttempt(err)
-
-		err = errutil.NewRetryError(prevErrs, err)
-	}()
-
 	var overloadAttempt uint
 	var transactionState session.TransactionState
 	var isOverloadedError bool
@@ -606,6 +574,24 @@ func (op Operation) Execute(ctx context.Context) (err error) {
 	currIndex := 0
 	nextBudget := defaultBudget
 
+	// prevErrs accumulates the errors from each attempt in chronological order.
+	// recordAttempt adds to it, and the deferred function joins the history into
+	// a single error. See GODRIVER-3600.
+	var prevErrs []error
+
+	// recordAttempt appends the error from an attempt to prevErrs. Call it where
+	// the attempt's error is produced, before the error handling below
+	// substitutes a different error to return.
+	recordAttempt := func(err error) {
+		if err != nil {
+			prevErrs = append(prevErrs, err)
+		}
+	}
+
+	defer func() {
+		err = errutil.NewRetryError(prevErrs, err)
+	}()
+
 	// deprioritizedServers are a running list of servers that should be
 	// deprioritized during server selection. Servers are accumulated across
 	// retry attempts to avoid repeatedly selecting servers that have failed.
@@ -614,14 +600,8 @@ func (op Operation) Execute(ctx context.Context) (err error) {
 	// resetForRetry records the error that caused the retry, decrements retries, and resets the
 	// retry loop variables to request a new server and a new connection for the next attempt.
 	resetForRetry := func(err error) error {
-		// If we're starting a retry and the error from the previous try was
-		// a context canceled or deadline exceeded error, stop retrying and
-		// return that error.
-		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-			return err
-		}
-
 		attempt++
+		prevErr = err
 
 		// If the "prevIndefiniteErr" is nil, then the current error is the first error encountered
 		// during the retry attempt cycle.
@@ -687,11 +667,6 @@ func (op Operation) Execute(ctx context.Context) (err error) {
 			}
 		}
 
-		// Record the error as a retry attempt. This is done last so that an
-		// error returned by resetForRetry above is recorded by the deferred
-		// join instead, rather than being recorded twice.
-		recordAttempt(err)
-
 		return nil
 	}
 
@@ -710,6 +685,13 @@ func (op Operation) Execute(ctx context.Context) (err error) {
 		}
 	}()
 	for {
+		// If we're starting a retry and the error from the previous try was
+		// a context canceled or deadline exceeded error, stop retrying and
+		// return that error.
+		if errors.Is(prevErr, context.Canceled) || errors.Is(prevErr, context.DeadlineExceeded) {
+			return prevErr
+		}
+
 		currentBudget := nextBudget
 		nextBudget = defaultBudget
 
@@ -723,6 +705,8 @@ func (op Operation) Execute(ctx context.Context) (err error) {
 		if srvr == nil || conn == nil {
 			srvr, conn, err = op.getServerAndConnection(ctx, requestID, deprioritizedServers)
 			if err != nil {
+				recordAttempt(err)
+
 				// If the returned error is retryable and the budget allows another
 				// attempt, retry the operation. Set the server and connection to
 				// nil to request a new server and connection.
@@ -734,13 +718,10 @@ func (op Operation) Execute(ctx context.Context) (err error) {
 				}
 
 				// If this is a retry and there's an error from a previous attempt, return the previous
-				// error instead of the current connection error. Record the connection error as this
-				// attempt's error so that it stays in the history.
-				if len(prevErrs) > 0 {
-					attemptErr = err
-					err = prevErrs[len(prevErrs)-1]
+				// error instead of the current connection error.
+				if prevErr != nil {
+					return prevErr
 				}
-
 				return err
 			}
 			defer conn.Close()
@@ -787,6 +768,8 @@ func (op Operation) Execute(ctx context.Context) (err error) {
 		// Calculate maxTimeMS value to potentially be appended to the wire message.
 		maxTimeMS, err := op.calculateMaxTimeMS(ctx, srvr.RTTMonitor().Min(), srvr.RTTMonitor().Stats())
 		if err != nil {
+			recordAttempt(err)
+
 			return err
 		}
 
@@ -883,6 +866,11 @@ func (op Operation) Execute(ctx context.Context) (err error) {
 		finishedInfo.duration = time.Since(startedTime)
 
 		op.publishFinishedEvent(ctx, finishedInfo)
+
+		// Record the attempt's own error before the error handling below, which may
+		// substitute a different error to return. This must stay above the
+		// "checkError" label so that the substituted error is never recorded.
+		recordAttempt(err)
 
 		// prevIndefiniteErrorIsSet is "true" if the "err" variable has been set to the "prevIndefiniteErr" in
 		// a case in the switch statement below.
@@ -1145,6 +1133,7 @@ func (op Operation) Execute(ctx context.Context) (err error) {
 			isOverloadedError = false
 			overloadAttempt = 0
 			attempt = 0
+			prevErrs = nil
 			currIndex += startedInfo.processedBatches
 			op.Batches.AdvanceBatches(startedInfo.processedBatches)
 			continue
@@ -1498,8 +1487,7 @@ func (op Operation) createWireMessage(
 				batchOffset = len(dst)
 				info.processedBatches, dst, err = op.Batches.AppendBatchSequence(
 					dst,
-					int(desc.MaxBatchCount),
-					int(desc.MaxMessageSize),
+					int(desc.MaxBatchCount), int(desc.MaxMessageSize),
 				)
 				if err != nil {
 					break
@@ -1513,8 +1501,7 @@ func (op Operation) createWireMessage(
 			if op.Batches != nil {
 				info.processedBatches, batches, err = op.Batches.AppendBatchSequence(
 					batches,
-					int(desc.MaxBatchCount),
-					int(desc.MaxMessageSize),
+					int(desc.MaxBatchCount), int(desc.MaxMessageSize),
 				)
 				if err != nil {
 					break
