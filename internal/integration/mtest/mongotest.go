@@ -57,12 +57,11 @@ type T struct {
 	// - suggested layout: https://go101.org/article/memory-layout.html
 	connsCheckedOut int64
 
-	// sampledSessions is the number of sessions still checked out on a client at the moment
-	// ResetClient discarded it.
-	// It must be accessed using the atomic package and should be at the beginning of the struct.
-	sampledSessions int64
-
 	*testing.T
+
+	// sampledSessions is the number of sessions still checked out on a client at the moment
+	// ResetClient discarded it. It is only accessed from the test goroutine.
+	sampledSessions int
 
 	// members for only this T instance
 	createClient            *bool
@@ -358,7 +357,7 @@ func (t *T) NumberConnectionsCheckedOut() int {
 // checkedOutSessions returns the number of sessions that were never returned, including
 // sessions that were still checked out on a client discarded by ResetClient.
 func (t *T) checkedOutSessions() int {
-	return t.Client.NumberSessionsInProgress() + int(atomic.LoadInt64(&t.sampledSessions))
+	return t.Client.NumberSessionsInProgress() + t.sampledSessions
 }
 
 // ClearEvents clears the existing command monitoring events.
@@ -378,7 +377,7 @@ func (t *T) ResetClient(opts *options.ClientOptions) {
 	}
 
 	if t.Client != nil {
-		atomic.AddInt64(&t.sampledSessions, int64(t.Client.NumberSessionsInProgress()))
+		t.sampledSessions += t.Client.NumberSessionsInProgress()
 		_ = t.Client.Disconnect(context.Background())
 	}
 	t.createTestClient()
