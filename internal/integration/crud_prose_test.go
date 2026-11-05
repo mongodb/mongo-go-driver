@@ -181,7 +181,8 @@ func TestWriteErrorsDetails(t *testing.T) {
 					_, err := coll.UpdateOne(
 						context.Background(),
 						bson.D{},
-						bson.D{{"$set", bson.D{{"a", 1}}}})
+						bson.D{{"$set", bson.D{{"a", 1}}}},
+					)
 					return err
 				},
 				expectBulkError:     false,
@@ -195,7 +196,8 @@ func TestWriteErrorsDetails(t *testing.T) {
 					_, err := coll.UpdateMany(
 						context.Background(),
 						bson.D{},
-						bson.D{{"$set", bson.D{{"a", 1}}}})
+						bson.D{{"$set", bson.D{{"a", 1}}}},
+					)
 					return err
 				},
 				expectBulkError:     false,
@@ -212,7 +214,8 @@ func TestWriteErrorsDetails(t *testing.T) {
 						[]any{
 							bson.D{{"a", "str1"}, {"b", 1}},
 							bson.D{{"a", "str2"}, {"b", 2}},
-						})
+						},
+					)
 					assert.Nil(mt, err, "unexpected error inserting valid documents: %s", err)
 				}
 
@@ -222,7 +225,8 @@ func TestWriteErrorsDetails(t *testing.T) {
 				assert.True(
 					mt,
 					sErr.HasErrorCode(121),
-					"expected mongo.ServerError to have error code 121 (DocumentValidationFailure)")
+					"expected mongo.ServerError to have error code 121 (DocumentValidationFailure)",
+				)
 
 				var details bson.Raw
 				if tc.expectBulkError {
@@ -232,7 +236,8 @@ func TestWriteErrorsDetails(t *testing.T) {
 						ok,
 						"expected error to be type mongo.BulkWriteException, got type %T (error %q)",
 						err,
-						err)
+						err,
+					)
 					// Assert that there is one WriteError and that the Details field is populated.
 					assert.Equal(
 						mt,
@@ -240,7 +245,8 @@ func TestWriteErrorsDetails(t *testing.T) {
 						len(bwe.WriteErrors),
 						"expected exactly 1 write error, but got %d write errors (error %q)",
 						len(bwe.WriteErrors),
-						err)
+						err,
+					)
 					details = bwe.WriteErrors[0].Details
 				} else {
 					we, ok := err.(mongo.WriteException)
@@ -249,7 +255,8 @@ func TestWriteErrorsDetails(t *testing.T) {
 						ok,
 						"expected error to be type mongo.WriteException, got type %T (error %q)",
 						err,
-						err)
+						err,
+					)
 					// Assert that there is one WriteError and that the Details field is populated.
 					assert.Equal(
 						mt,
@@ -257,14 +264,16 @@ func TestWriteErrorsDetails(t *testing.T) {
 						len(we.WriteErrors),
 						"expected exactly 1 write error, but got %d write errors (error %q)",
 						len(we.WriteErrors),
-						err)
+						err,
+					)
 					details = we.WriteErrors[0].Details
 				}
 
 				assert.True(
 					mt,
 					len(details) > 0,
-					"expected WriteError.Details to be populated, but is empty")
+					"expected WriteError.Details to be populated, but is empty",
+				)
 
 				// Assert that the most recent CommandSucceededEvent was triggered by the expected
 				// operation and contains the resulting write errors and that
@@ -273,7 +282,8 @@ func TestWriteErrorsDetails(t *testing.T) {
 				assert.True(
 					mt,
 					len(evts) >= 2,
-					"expected there to be at least 2 CommandSucceededEvent recorded")
+					"expected there to be at least 2 CommandSucceededEvent recorded",
+				)
 				evt := evts[len(evts)-1]
 				assert.Equal(
 					mt,
@@ -281,13 +291,15 @@ func TestWriteErrorsDetails(t *testing.T) {
 					evt.CommandName,
 					"expected the last CommandSucceededEvent to be for %q, was %q",
 					tc.expectedCommandName,
-					evt.CommandName)
+					evt.CommandName,
+				)
 				errInfo, ok := evt.Reply.Lookup("writeErrors", "0", "errInfo").DocumentOK()
 				assert.True(
 					mt,
 					ok,
 					"expected evt.Reply to contain writeErrors[0].errInfo but doesn't (evt.Reply = %v)",
-					evt.Reply)
+					evt.Reply,
+				)
 				assert.Equal(mt, details, errInfo, "want %v, got %v", details, errInfo)
 			})
 		}
@@ -329,12 +341,14 @@ func TestWriteConcernError(t *testing.T) {
 
 	errInfoOpts := mtest.NewOptions().MinServerVersion("4.0").Topologies(mtest.ReplicaSet)
 	mt.RunOpts("errInfo is propagated", errInfoOpts, func(mt *mtest.T) {
-		wcDoc := bsoncore.BuildDocumentFromElements(nil,
+		wcDoc := bsoncore.BuildDocumentFromElements(
+			nil,
 			bsoncore.AppendInt32Element(nil, "w", 2),
 			bsoncore.AppendInt32Element(nil, "wtimeout", 0),
 			bsoncore.AppendStringElement(nil, "provenance", "clientSupplied"),
 		)
-		errInfoDoc := bsoncore.BuildDocumentFromElements(nil,
+		errInfoDoc := bsoncore.BuildDocumentFromElements(
+			nil,
 			bsoncore.AppendDocumentElement(nil, "writeConcern", wcDoc),
 		)
 		fp := failpoint.FailPoint{
@@ -432,22 +446,9 @@ func TestClientBulkWriteProse(t *testing.T) {
 			},
 		}
 		mt.ResetClient(options.Client().SetMonitor(monitor))
-		var hello struct {
-			MaxWriteBatchSize int
-		}
-		err := mt.DB.RunCommand(context.Background(), bson.D{{"hello", 1}}).Decode(&hello)
-		require.NoError(mt, err, "Hello error: %v", err)
-		var writes []mongo.ClientBulkWrite
+		hello := runHello(mt)
 		num := hello.MaxWriteBatchSize + 1
-		for i := 0; i < num; i++ {
-			writes = append(writes, mongo.ClientBulkWrite{
-				Database:   "db",
-				Collection: "coll",
-				Model: &mongo.ClientInsertOneModel{
-					Document: bson.D{{"a", "b"}},
-				},
-			})
-		}
+		writes := newClientBulkWrites(mt, num)
 		result, err := mt.Client.BulkWrite(context.Background(), writes)
 		require.NoError(mt, err, "BulkWrite error: %v", err)
 		assert.Equal(mt, num, int(result.InsertedCount), "expected InsertedCount: %d, got %d", num, result.InsertedCount)
@@ -509,11 +510,7 @@ func TestClientBulkWriteProse(t *testing.T) {
 			},
 		}
 		mt.ResetClient(options.Client().SetRetryWrites(false).SetMonitor(monitor))
-		var hello struct {
-			MaxWriteBatchSize int
-		}
-		err := mt.DB.RunCommand(context.Background(), bson.D{{"hello", 1}}).Decode(&hello)
-		require.NoError(mt, err, "Hello error: %v", err)
+		hello := runHello(mt)
 
 		mt.SetFailPoint(failpoint.FailPoint{
 			ConfigureFailPoint: "failCommand",
@@ -529,18 +526,9 @@ func TestClientBulkWriteProse(t *testing.T) {
 			},
 		})
 
-		var writes []mongo.ClientBulkWrite
 		num := hello.MaxWriteBatchSize + 1
-		for i := 0; i < num; i++ {
-			writes = append(writes, mongo.ClientBulkWrite{
-				Database:   "db",
-				Collection: "coll",
-				Model: &mongo.ClientInsertOneModel{
-					Document: bson.D{{"a", "b"}},
-				},
-			})
-		}
-		_, err = mt.Client.BulkWrite(context.Background(), writes)
+		writes := newClientBulkWrites(mt, num)
+		_, err := mt.Client.BulkWrite(context.Background(), writes)
 		require.Error(mt, err, "expected a BulkWrite error")
 		bwe, ok := err.(mongo.ClientBulkWriteException)
 		require.True(mt, ok, "expected a BulkWriteException, got %T: %v", err, err)
@@ -1110,4 +1098,213 @@ func TestCRUDProse_17_database_collection_name_validation(t *testing.T) {
 			assert.Error(mt, err, "expected BulkWrite error for db=%q, coll=%q", tc.db, tc.coll)
 		})
 	}
+}
+
+// Test that MongoClient.bulkWrite stops sending batches after a batch returns a
+// top-level error.
+func TestClientBulkWriteProse_Case22_TopLevelErrorHaltsBatches(t *testing.T) {
+	// This test must only be run on 8.0+ servers.
+	mtOpts := mtest.NewOptions().MinServerVersion("8.0").ClientType(mtest.Pinned)
+
+	// 1. Construct a MongoClient (referred to as client) with command monitoring
+	//    enabled to observe CommandStartedEvents.
+	mt := mtest.New(t, mtOpts)
+	mt.Setup()
+
+	// A top-level error must halt execution for both ordered and unordered bulk
+	// writes.
+	mt.Run("ordered", func(mt *mtest.T) {
+		requireTopLevelErrorHaltsBatches(mt, true)
+	})
+
+	mt.Run("unordered", func(mt *mtest.T) {
+		requireTopLevelErrorHaltsBatches(mt, false)
+	})
+}
+
+func requireTopLevelErrorHaltsBatches(mt *mtest.T, ordered bool) {
+	mt.Helper()
+
+	// 2. Configure a fail point with client that causes the first bulkWrite
+	//    command to fail with a top-level error with error code 2.
+	mt.SetFailPoint(failpoint.FailPoint{
+		ConfigureFailPoint: "failCommand",
+		Mode:               failpoint.Mode{Times: 1},
+		Data: failpoint.Data{
+			FailCommands: []string{"bulkWrite"},
+			ErrorCode:    2,
+		},
+	})
+
+	// 3. Perform a hello command using client and record the maxWriteBatchSize
+	//    value from the response. Create a list of maxWriteBatchSize + 1
+	//    InsertOne write models (referred to as models), so that the writes must
+	//    be split across two bulkWrite commands.
+	maxWriteBatchSize := runHello(mt).MaxWriteBatchSize
+
+	models := newClientBulkWrites(mt, maxWriteBatchSize+1)
+
+	// 4. Execute bulkWrite on client with models and the given ordered value.
+	//    Assert that the bulk write fails.
+	opts := options.ClientBulkWrite().SetOrdered(ordered)
+
+	_, err := mt.Client.BulkWrite(context.Background(), models, opts)
+	require.Error(mt, err)
+
+	// 5. Assert that the error is a top-level command error (referred to as
+	//    topLevelError). No results were observed before the error, so the
+	//    top-level error may be returned without a BulkWriteException.
+	var ce mongo.CommandError
+	require.ErrorAs(mt, err, &ce, "expected CommandError, got %T", err)
+
+	// 6. Assert that topLevelError.errorCode is equal to 2.
+	require.Equal(mt, int32(2), ce.Code)
+
+	// 7. Assert that exactly one CommandStartedEvent was observed for the
+	//    bulkWrite command.
+	wantStartedEvents := map[string]bool{"bulkWrite": true}
+	mt.FilterStartedEvents(func(evt *event.CommandStartedEvent) bool {
+		return wantStartedEvents[evt.CommandName]
+	})
+
+	require.Equal(mt, 1, len(mt.GetAllStartedEvents()))
+}
+
+// Test that MongoClient.bulkWrite stops sending getMores after a getMore returns
+// a top-level error.
+func TestClientBulkWriteProse_Case23_TopLevelErrorHaltsGetMores(t *testing.T) {
+	// This test must only be run on 8.0+ servers.
+	mtOpts := mtest.NewOptions().MinServerVersion("8.0").ClientType(mtest.Pinned)
+
+	// 1. Construct a MongoClient (referred to as client) with command monitoring
+	//    enabled to observe CommandStartedEvents.
+	mt := mtest.New(t, mtOpts)
+	mt.Setup()
+
+	// A top-level error must halt execution for both ordered and unordered bulk
+	// writes.
+	mt.Run("ordered", func(mt *mtest.T) {
+		requireTopLevelErrorHaltsGetMores(mt, true)
+	})
+
+	mt.Run("unordered", func(mt *mtest.T) {
+		requireTopLevelErrorHaltsGetMores(mt, false)
+	})
+}
+
+func requireTopLevelErrorHaltsGetMores(mt *mtest.T, ordered bool) {
+	mt.Helper()
+
+	// 2. Configure a fail point with client that causes the first getMore
+	//    command to fail with a top-level error with error code 2.
+	mt.SetFailPoint(failpoint.FailPoint{
+		ConfigureFailPoint: "failCommand",
+		Mode:               failpoint.Mode{Times: 1},
+		Data: failpoint.Data{
+			FailCommands: []string{"getMore"},
+			ErrorCode:    2,
+		},
+	})
+
+	// 3. Perform a hello command using client and record the maxBsonObjectSize
+	//    value from the response. Create a list of three UpdateOne write models
+	//    (referred to as models) that each upsert a document whose _id is
+	//    maxBsonObjectSize / 2 bytes, so that each results cursor batch holds one
+	//    result and the results require two getMore commands.
+	maxBsonObjectSize := runHello(mt).MaxBsonObjectSize
+
+	models := make([]mongo.ClientBulkWrite, 0, 3)
+	for _, c := range []string{"a", "b", "c"} {
+		models = append(models, mongo.ClientBulkWrite{
+			Database:   mt.Coll.Database().Name(),
+			Collection: mt.Coll.Name(),
+			Model: mongo.NewClientUpdateOneModel().
+				SetFilter(bson.D{{"_id", strings.Repeat(c, maxBsonObjectSize/2)}}).
+				SetUpdate(bson.D{{"$set", bson.D{{"x", 1}}}}).
+				SetUpsert(true),
+		})
+	}
+
+	// 4. Execute bulkWrite on client with models, the given ordered value, and
+	//    verboseResults set to true. Assert that the bulk write fails.
+	opts := options.ClientBulkWrite().SetOrdered(ordered).SetVerboseResults(true)
+
+	_, err := mt.Client.BulkWrite(context.Background(), models, opts)
+	require.Error(mt, err)
+
+	// 5. Assert that the error is a BulkWriteException (referred to as
+	//    bulkWriteError) whose error field is populated with a top-level error
+	//    (referred to as topLevelError). Results were observed before the
+	//    error, so the top-level error must be embedded in a BulkWriteException.
+	var bwe mongo.ClientBulkWriteException
+	require.ErrorAs(mt, err, &bwe, "expected ClientBulkWriteException, got %T", err)
+	require.NotNil(mt, bwe.WriteError, "expected a top-level error")
+
+	// 6. Assert that topLevelError.errorCode is equal to 2.
+	require.Equal(mt, 2, bwe.WriteError.Code)
+
+	// 7. Assert that exactly one CommandStartedEvent was observed for the
+	//    getMore command, and that a CommandStartedEvent was observed for the
+	//    killCursors command.
+	wantStartedEvents := map[string]bool{"getMore": true, "killCursors": true}
+	mt.FilterStartedEvents(func(evt *event.CommandStartedEvent) bool {
+		return wantStartedEvents[evt.CommandName]
+	})
+
+	var getMores, killCursors int
+	for _, evt := range mt.GetAllStartedEvents() {
+		switch evt.CommandName {
+		case "getMore":
+			getMores++
+		case "killCursors":
+			killCursors++
+		}
+	}
+
+	require.Equal(mt, 1, getMores, "expected no getMore after the failed one")
+	require.Equal(mt, 1, killCursors, "expected killCursors for the open results cursor")
+}
+
+// =============================================================================
+// Test Helpers
+// =============================================================================
+
+// helloResponse holds the batch-size limits reported by a hello command.
+type helloResponse struct {
+	MaxBsonObjectSize   int
+	MaxMessageSizeBytes int
+	MaxWriteBatchSize   int
+}
+
+// runHello runs a hello command on mt.DB and returns the server's batch-size
+// limits.
+func runHello(mt *mtest.T) helloResponse {
+	mt.Helper()
+
+	var hello helloResponse
+	err := mt.DB.RunCommand(context.Background(), bson.D{{Key: "hello", Value: 1}}).Decode(&hello)
+	require.NoError(mt, err, "hello error: %v", err)
+
+	require.Positive(mt, hello.MaxBsonObjectSize, "expected positive maxBsonObjectSize")
+	require.Positive(mt, hello.MaxMessageSizeBytes, "expected positive maxMessageSizeBytes")
+	require.Positive(mt, hello.MaxWriteBatchSize, "expected positive maxWriteBatchSize")
+
+	return hello
+}
+
+// newClientBulkWrites returns a slice of ClientBulkWrite models with the
+// specified number of documents, each inserting {a: "b"} into mt.Coll.
+func newClientBulkWrites(mt *mtest.T, numDocs int) []mongo.ClientBulkWrite {
+	mt.Helper()
+
+	writes := make([]mongo.ClientBulkWrite, 0, numDocs)
+	for range numDocs {
+		writes = append(writes, mongo.ClientBulkWrite{
+			Database:   mt.Coll.Database().Name(),
+			Collection: mt.Coll.Name(),
+			Model:      mongo.NewClientInsertOneModel().SetDocument(bson.D{{"a", "b"}}),
+		})
+	}
+
+	return writes
 }
