@@ -37,6 +37,28 @@ var errWriteFailed = errors.New("write operation failed")
 type clientBulkWritePair struct {
 	namespace string
 	model     any
+
+	// collectionUUID pins this write to a specific collection instance. It is
+	// set only through the "collectionUUIDs" internal option and is nil for
+	// writes that do not use it. The bytes are not validated here; the server
+	// rejects a value that is not a 16-byte UUID.
+	collectionUUID []byte
+}
+
+// nsKey identifies an nsInfo entry. Two writes share an entry only when they
+// agree on both the namespace and the collection UUID, so the same namespace
+// can appear more than once in nsInfo with different UUIDs.
+type nsKey struct {
+	ns string
+
+	// hasUUID distinguishes an unset UUID from an empty one, which string(uuid)
+	// does not.
+	hasUUID bool
+
+	// uuid is the UTF-8 string representation of the UUID bytes (i.e.
+	// string(uuid)). A string is used here because []byte is not comparable so
+	// cannot be used as a map key. The value is never used except as a map key.
+	uuid string
 }
 
 type clientBulkWrite struct {
@@ -190,14 +212,7 @@ func (bw *clientBulkWrite) newCommand() func([]byte, description.SelectedServer)
 		if bw.rawData != nil && desc.WireVersion != nil && driverutil.VersionRangeIncludes(*desc.WireVersion, 27) {
 			dst = bsoncore.AppendBooleanElement(dst, "rawData", *bw.rawData)
 		}
-		if len(bw.additionalCmd) > 0 {
-			doc, err := bson.Marshal(bw.additionalCmd)
-			if err != nil {
-				return nil, err
-			}
-			dst = append(dst, doc[4:len(doc)-1]...)
-		}
-		return dst, nil
+		return appendAdditionalCmd(dst, bw.additionalCmd)
 	}
 }
 
@@ -319,14 +334,19 @@ func (mb *modelBatches) appendBatches(fn functionSet, dst []byte, maxCount, tota
 	mb.cursorHandlers = mb.cursorHandlers[:0]
 	mb.newIDMap = make(map[int]any)
 
-	nsMap := make(map[string]int)
-	getNsIndex := func(namespace string) (int, bool) {
-		v, ok := nsMap[namespace]
+	nsMap := make(map[nsKey]int)
+	getNsIndex := func(namespace string, uuid []byte) (int, bool) {
+		key := nsKey{
+			ns:      namespace,
+			hasUUID: uuid != nil,
+			uuid:    string(uuid),
+		}
+		v, ok := nsMap[key]
 		if ok {
 			return v, ok
 		}
 		nsIdx := len(nsMap)
-		nsMap[namespace] = nsIdx
+		nsMap[key] = nsIdx
 		return nsIdx, ok
 	}
 
@@ -345,7 +365,8 @@ func (mb *modelBatches) appendBatches(fn functionSet, dst []byte, maxCount, tota
 		}
 
 		ns := mb.writePairs[i].namespace
-		nsIdx, exists := getNsIndex(ns)
+		uuid := mb.writePairs[i].collectionUUID
+		nsIdx, exists := getNsIndex(ns, uuid)
 
 		var doc bsoncore.Document
 		var err error
@@ -428,21 +449,31 @@ func (mb *modelBatches) appendBatches(fn functionSet, dst []byte, maxCount, tota
 		if err != nil {
 			return 0, nil, err
 		}
-		length := len(doc)
+		var nsDoc bsoncore.Document
 		if !exists {
-			length += len(ns)
+			// Document framing (5 bytes) plus the "ns" string element (9 bytes
+			// plus the namespace).
+			nsDocLen := 14 + len(ns)
+			if uuid != nil {
+				// The "collectionUUID" binary element (21 bytes plus the UUID).
+				nsDocLen += 21 + len(uuid)
+			}
+			var idx int32
+			idx, nsDoc = bsoncore.AppendDocumentStart(make([]byte, 0, nsDocLen))
+			nsDoc = bsoncore.AppendStringElement(nsDoc, "ns", ns)
+			if uuid != nil {
+				nsDoc = bsoncore.AppendBinaryElement(nsDoc, "collectionUUID", bson.TypeBinaryUUID, uuid)
+			}
+			nsDoc, _ = bsoncore.AppendDocumentEnd(nsDoc, idx)
 		}
-		size += length
+		size += len(doc) + len(nsDoc)
 		if size >= totalSize {
 			break
 		}
 
 		dst = fn.appendDocument(dst, strconv.Itoa(n), doc)
-		if !exists {
-			idx, doc := bsoncore.AppendDocumentStart(nil)
-			doc = bsoncore.AppendStringElement(doc, "ns", ns)
-			doc, _ = bsoncore.AppendDocumentEnd(doc, idx)
-			nsDst = fn.appendDocument(nsDst, strconv.Itoa(n), doc)
+		if nsDoc != nil {
+			nsDst = fn.appendDocument(nsDst, strconv.Itoa(n), nsDoc)
 		}
 		n++
 	}
@@ -510,11 +541,13 @@ func (mb *modelBatches) processResponse(ctx context.Context, resp bsoncore.Docum
 		return err
 	}
 	var bCursor *driver.BatchCursor
-	bCursor, err = driver.NewBatchCursor(cursorRes, mb.session, mb.client.clock,
+	bCursor, err = driver.NewBatchCursor(
+		cursorRes, mb.session, mb.client.clock,
 		driver.CursorOptions{
 			CommandMonitor:        mb.client.monitor,
 			Crypt:                 mb.client.cryptFLE,
 			ServerAPI:             mb.client.serverAPI,
+			Authenticator:         mb.client.authenticator,
 			MarshalValueEncoderFn: newEncoderFn(mb.client.bsonOpts, mb.client.registry),
 		},
 	)

@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"time"
 
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
 	"go.mongodb.org/mongo-driver/v2/internal/logger"
@@ -47,6 +48,7 @@ type deleteOp struct {
 	timeout                   *time.Duration
 	rawData                   *bool
 	logger                    *logger.Logger
+	additionalCmd             bson.D
 }
 
 // deleteResult represents a delete result returned by the server.
@@ -141,5 +143,5 @@ func (d *deleteOp) command(dst []byte, desc description.SelectedServer) ([]byte,
 	if d.rawData != nil && desc.WireVersion != nil && driverutil.VersionRangeIncludes(*desc.WireVersion, 27) {
 		dst = bsoncore.AppendBooleanElement(dst, "rawData", *d.rawData)
 	}
-	return dst, nil
+	return appendAdditionalCmd(dst, d.additionalCmd)
 }

@@ -514,40 +514,13 @@ functions:
       params:
         binary: bash
         args: ["${DRIVERS_TOOLS}/.evergreen/csfle/await-servers.sh"]
-  run-kmip-tests:
-    - command: subprocess.exec
-      params:
-        binary: "bash"
-        env:
-          GO_BUILD_TAGS: cse
-        include_expansions_in_env: [AUTH, SSL, MONGODB_URI, TOPOLOGY, MONGO_GO_DRIVER_COMPRESSOR]
-        args: [*task-runner, setup-test]
+  run-cse-container-test:
     - command: subprocess.exec
       type: test
-      retry_on_failure: true
       params:
-        binary: "bash"
-        env:
-          KMS_MOCK_SERVERS_RUNNING: "true"
-        args: [*task-runner, evg-test-kmip]
-  run-client-side-encryption-test:
-    - command: subprocess.exec
-      params:
-        binary: "bash"
-        env:
-          GO_BUILD_TAGS: cse
-        include_expansions_in_env: [AUTH, SSL, MONGODB_URI, TOPOLOGY, MONGO_GO_DRIVER_COMPRESSOR, CRYPT_SHARED_LIB_PATH]
-        args: [*task-runner, setup-test]
-    - command: subprocess.exec
-      type: test
-      retry_on_failure: true
-      params:
-        binary: "bash"
-        env:
-          KMS_MOCK_SERVERS_RUNNING: "true"
-          KMS_FAILPOINT_CA_FILE: "${DRIVERS_TOOLS}/.evergreen/x509gen/ca.pem"
-          KMS_FAILPOINT_SERVER_RUNNING: "true"
-        args: [*task-runner, evg-test-client-side-encryption]
+        binary: bash
+        include_expansions_in_env: [MONGODB_URI]
+        args: [*task-runner, evg-test-cse-container]
   run-fuzz-tests:
     - command: subprocess.exec
       type: test
@@ -1396,22 +1369,7 @@ tasks:
           TOPOLOGY: "server"
           AUTH: "noauth"
           SSL: "nossl"
-  - name: "test-kms-kmip"
-    tags: ["kms-kmip"]
-    commands:
-      - func: bootstrap-mongo-orchestration
-        vars:
-          TOPOLOGY: "server"
-          AUTH: "noauth"
-          SSL: "nossl"
-      - func: start-cse-servers
-      - func: run-kmip-tests
-        vars:
-          TOPOLOGY: "server"
-          AUTH: "noauth"
-          SSL: "nossl"
-  - name: "test-client-side-encryption"
-    tags: ["client-side-encryption-test"]
+  - name: "test-cse-container"
     commands:
       - func: bootstrap-mongo-orchestration
         vars:
@@ -1419,11 +1377,7 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
       - func: start-cse-servers
-      - func: run-client-side-encryption-test
-        vars:
-          TOPOLOGY: "replica_set"
-          AUTH: "noauth"
-          SSL: "nossl"
+      - func: run-cse-container-test
   - name: "testgcpkms-task"
     commands:
       - command: subprocess.exec
@@ -1973,6 +1927,26 @@ buildvariants:
       GO_DIST: "/opt/golang/go1.26"
     tasks:
       - name: "test-docker-runner"
+  - name: cse-container-test-latest
+    tags: ["pullrequest"]
+    display_name: "Client Side Encryption Tests latest (container)"
+    run_on:
+      - ubuntu2204-large
+    expansions:
+      GO_DIST: "/opt/golang/go1.26"
+      VERSION: "latest"
+    tasks:
+      - name: "test-cse-container"
+  - name: cse-container-test-rapid
+    tags: ["pullrequest"]
+    display_name: "Client Side Encryption Tests rapid (container)"
+    run_on:
+      - ubuntu2204-large
+    expansions:
+      GO_DIST: "/opt/golang/go1.26"
+      VERSION: "rapid"
+    tasks:
+      - name: "test-cse-container"
   - name: goroutine-leaks-test
     tags: ["pullrequest"]
     display_name: "Goroutine Leaks Test"
@@ -2051,12 +2025,6 @@ buildvariants:
     display_name: "API Version ${version} ${os-ssl-40}"
     tasks:
       - name: ".versioned-api"
-  - matrix_name: "client-side-encryption-test"
-    tags: ["pullrequest"]
-    matrix_spec: {version: ["latest", "rapid"], os-ssl-40: ["rhel87-64"]}
-    display_name: "Client Side Encryption Tests ${version} ${os-ssl-40}"
-    tasks:
-      - name: ".client-side-encryption-test"
   - matrix_name: "load-balancer-test"
     tags: ["pullrequest"]
     matrix_spec: {version: ["5.0", "6.0", "7.0", "8.0", "9.0"], os-ssl-40: ["rhel87-64"]}
@@ -2068,11 +2036,6 @@ buildvariants:
     display_name: "Load Balancer Support ${version} ${os-ssl-40}"
     tasks:
       - name: ".load-balancer"
-  - matrix_name: "kms-kmip-test"
-    matrix_spec: {version: ["7.0"], os-ssl-40: ["rhel87-64"]}
-    display_name: "KMS KMIP ${os-ssl-40}"
-    tasks:
-      - name: ".kms-kmip"
   - matrix_name: "fuzz-test"
     matrix_spec: {version: ["5.0"], os-ssl-40: ["rhel87-64"]}
     display_name: "Fuzz ${version} ${os-ssl-40}"
