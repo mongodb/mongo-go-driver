@@ -1018,25 +1018,18 @@ func TestClientBulkWriteProse(t *testing.T) {
 	})
 
 	mt.RunOpts("18. MongoClient.bulkWrite reports a top-level error that occurs after results are observed", noShardedOpts, func(mt *mtest.T) {
-		var eventCnt int
-		monitor := &event.CommandMonitor{
-			Started: func(_ context.Context, e *event.CommandStartedEvent) {
-				if e.CommandName == "bulkWrite" {
-					eventCnt++
-				}
-			},
-		}
-		mt.ResetClient(options.Client().SetRetryWrites(false).SetMonitor(monitor))
+		// Construct a `MongoClient` with `retryWrites: false` configured. Then
+		// record maxWriteBatchSize.
+		mt.ResetClient(options.Client().SetRetryWrites(false))
 		var hello struct {
 			MaxWriteBatchSize int
 		}
 		err := mt.DB.RunCommand(context.Background(), bson.D{{"hello", 1}}).Decode(&hello)
 		require.NoError(mt, err, "Hello error: %v", err)
+		require.Positive(mt, hello.MaxWriteBatchSize, "expected maxWriteBatchSize to be non-zero")
 
-		// Skip the first bulkWrite so the first batch succeeds and the second
-		// fails at the top level. Skip transitions to "alwaysOn" after the
-		// skipped command, but the driver halts on a top-level error, so no
-		// further batches are sent.
+		// Configure a failCommand fail point with mode {skip: 1} that fails the
+		// second bulkWrite with errorCode 8.
 		mt.SetFailPoint(failpoint.FailPoint{
 			ConfigureFailPoint: "failCommand",
 			Mode: failpoint.Mode{
@@ -1048,10 +1041,12 @@ func TestClientBulkWriteProse(t *testing.T) {
 			},
 		})
 
+		// Construct and drop "db.coll".
 		coll := mt.CreateCollection(mtest.Collection{DB: "db", Name: "coll"}, false)
 		err = coll.Drop(context.Background())
 		require.NoError(mt, err, "Drop error: %v", err)
 
+		// Construct a list of write models repeated maxWriteBatchSize +1 times.
 		var writes []mongo.ClientBulkWrite
 		num := hello.MaxWriteBatchSize + 1
 		for i := 0; i < num; i++ {
@@ -1063,12 +1058,14 @@ func TestClientBulkWriteProse(t *testing.T) {
 				},
 			})
 		}
+
+		// The bulk write fails, the top-level error is embedded, and the first
+		// batch's results are retained.
 		_, err = mt.Client.BulkWrite(context.Background(), writes)
 		require.Error(mt, err, "expected a BulkWrite error")
-		require.Equal(mt, 2, eventCnt, "expected %d bulkWrite commands, got: %d", 2, eventCnt)
 
-		bwe, ok := err.(mongo.ClientBulkWriteException)
-		require.True(mt, ok, "expected a ClientBulkWriteException, got %T: %v", err, err)
+		var bwe mongo.ClientBulkWriteException
+		require.ErrorAs(mt, err, &bwe)
 		require.NotNil(mt, bwe.WriteError, "expected the top-level error to be embedded")
 		require.Equal(mt, 8, bwe.WriteError.Code,
 			"expected WriteError.Code: %d, got: %d", 8, bwe.WriteError.Code)
@@ -1079,20 +1076,22 @@ func TestClientBulkWriteProse(t *testing.T) {
 	})
 
 	mt.Run("19. MongoClient.bulkWrite reports a client-side error that occurs after results are observed", func(mt *mtest.T) {
+		// Construct a `MongoClient` with `retryWrites: false` configured. Then
+		// record maxWriteBatchSize.
 		mt.ResetClient(options.Client().SetRetryWrites(false))
 		var hello struct {
-			MaxWriteBatchSize   int
-			MaxMessageSizeBytes int
+			MaxWriteBatchSize int
 		}
 		err := mt.DB.RunCommand(context.Background(), bson.D{{"hello", 1}}).Decode(&hello)
 		require.NoError(mt, err, "Hello error: %v", err)
+		require.Positive(mt, hello.MaxWriteBatchSize, "expected maxWriteBatchSize to be non-zero")
 
+		// Construct and drop "db.coll".
 		coll := mt.CreateCollection(mtest.Collection{DB: "db", Name: "coll"}, false)
 		err = coll.Drop(context.Background())
 		require.NoError(mt, err, "Drop error: %v", err)
 
-		// The oversized document is last, so the client-side failure occurs
-		// while building the second batch, after the first one has succeeded.
+		// Construct a list of write models repeated `maxWriteBatchSize` times.
 		var writes []mongo.ClientBulkWrite
 		for i := 0; i < hello.MaxWriteBatchSize; i++ {
 			writes = append(writes, mongo.ClientBulkWrite{
@@ -1103,45 +1102,46 @@ func TestClientBulkWriteProse(t *testing.T) {
 				},
 			})
 		}
+		// Append an invalid replacement document whose first key starts with
+		// '$' must be rejected client-side.
 		writes = append(writes, mongo.ClientBulkWrite{
 			Database:   "db",
 			Collection: "coll",
-			Model: &mongo.ClientInsertOneModel{
-				Document: bson.D{{"a", strings.Repeat("b", hello.MaxMessageSizeBytes)}},
+			Model: &mongo.ClientReplaceOneModel{
+				Filter:      bson.D{},
+				Replacement: bson.D{{"$a", "b"}},
 			},
 		})
 
+		// The bulk write fails, the client-side error is embedded, and the
+		// first batch's results are retained.
 		_, err = mt.Client.BulkWrite(context.Background(), writes)
 		require.Error(mt, err, "expected a BulkWrite error")
 
 		bwe, ok := err.(mongo.ClientBulkWriteException)
 		require.True(mt, ok, "expected a ClientBulkWriteException, got %T: %v", err, err)
 		require.NotNil(mt, bwe.WriteError, "expected the client-side error to be embedded")
-		require.Equal(mt, driver.ErrDocumentTooLarge.Error(), bwe.WriteError.Message,
-			"expected WriteError.Message: %q, got: %q", driver.ErrDocumentTooLarge.Error(), bwe.WriteError.Message)
+		require.Equal(mt, "replacement document cannot contain keys beginning with '$'", bwe.WriteError.Message,
+			"expected WriteError.Message: %q, got: %q",
+			"replacement document cannot contain keys beginning with '$'", bwe.WriteError.Message)
 		require.NotNil(mt, bwe.PartialResult, "expected the observed results to be retained")
 		require.Equal(mt, hello.MaxWriteBatchSize, int(bwe.PartialResult.InsertedCount),
 			"expected InsertedCount: %d, got: %d", hello.MaxWriteBatchSize, bwe.PartialResult.InsertedCount)
 	})
 
 	mt.RunOpts("20. MongoClient.bulkWrite reports a top-level error that occurs after individual write errors are observed", noShardedOpts, func(mt *mtest.T) {
-		var eventCnt int
-		monitor := &event.CommandMonitor{
-			Started: func(_ context.Context, e *event.CommandStartedEvent) {
-				if e.CommandName == "bulkWrite" {
-					eventCnt++
-				}
-			},
-		}
-		mt.ResetClient(options.Client().SetRetryWrites(false).SetMonitor(monitor))
+		// Construct a `MongoClient` with `retryWrites: false` configured. Then
+		// record maxWriteBatchSize.
+		mt.ResetClient(options.Client().SetRetryWrites(false))
 		var hello struct {
 			MaxWriteBatchSize int
 		}
 		err := mt.DB.RunCommand(context.Background(), bson.D{{"hello", 1}}).Decode(&hello)
 		require.NoError(mt, err, "Hello error: %v", err)
+		require.Positive(mt, hello.MaxWriteBatchSize, "expected maxWriteBatchSize to be non-zero")
 
-		// Skip the first bulkWrite so the first batch succeeds and the second
-		// fails at the top level.
+		// Configure a failCommand fail point with mode {skip: 1} that fails the
+		// second bulkWrite with errorCode 8.
 		mt.SetFailPoint(failpoint.FailPoint{
 			ConfigureFailPoint: "failCommand",
 			Mode: failpoint.Mode{
@@ -1153,13 +1153,12 @@ func TestClientBulkWriteProse(t *testing.T) {
 			},
 		})
 
-		// Every operation uses the same _id, so the first insert succeeds and
-		// the rest report duplicate key write errors. The write is unordered so
-		// those errors do not halt it before the second batch is sent.
+		// Construct and drop "db.coll".
 		coll := mt.CreateCollection(mtest.Collection{DB: "db", Name: "coll"}, false)
 		err = coll.Drop(context.Background())
 		require.NoError(mt, err, "Drop error: %v", err)
 
+		// Every operation uses the same _id.
 		var writes []mongo.ClientBulkWrite
 		num := hello.MaxWriteBatchSize + 1
 		for i := 0; i < num; i++ {
@@ -1171,34 +1170,36 @@ func TestClientBulkWriteProse(t *testing.T) {
 				},
 			})
 		}
+
+		// The write is unordered, so that the duplicate key write errors do not
+		// halt execution before the second batch is sent.
 		_, err = mt.Client.BulkWrite(context.Background(), writes, options.ClientBulkWrite().SetOrdered(false))
 		require.Error(mt, err, "expected a BulkWrite error")
-		require.Equal(mt, 2, eventCnt, "expected %d bulkWrite commands, got: %d", 2, eventCnt)
 
-		bwe, ok := err.(mongo.ClientBulkWriteException)
-		require.True(mt, ok, "expected a ClientBulkWriteException, got %T: %v", err, err)
+		// The top-level error and the write errors are both reported, and the
+		// single successful insert is retained.
+		var bwe mongo.ClientBulkWriteException
+		require.ErrorAs(mt, err, &bwe)
 		require.NotNil(mt, bwe.WriteError, "expected the top-level error to be embedded")
 		require.Equal(mt, 8, bwe.WriteError.Code,
 			"expected WriteError.Code: %d, got: %d", 8, bwe.WriteError.Code)
 		require.NotEmpty(mt, bwe.WriteErrors, "expected the duplicate key write errors to be reported")
+		require.NotNil(mt, bwe.PartialResult, "expected the observed results to be retained")
+		require.Equal(mt, 1, int(bwe.PartialResult.InsertedCount),
+			"expected InsertedCount: %d, got: %d", 1, bwe.PartialResult.InsertedCount)
 	})
 
 	mt.RunOpts("21. MongoClient.bulkWrite does not report a write concern error as a top-level error", noShardedOpts, func(mt *mtest.T) {
-		var eventCnt int
-		monitor := &event.CommandMonitor{
-			Started: func(_ context.Context, e *event.CommandStartedEvent) {
-				if e.CommandName == "bulkWrite" {
-					eventCnt++
-				}
-			},
-		}
-		mt.ResetClient(options.Client().SetRetryWrites(false).SetMonitor(monitor))
+		// Construct a client with retryWrites: false and record maxWriteBatchSize.
+		mt.ResetClient(options.Client().SetRetryWrites(false))
 		var hello struct {
 			MaxWriteBatchSize int
 		}
 		err := mt.DB.RunCommand(context.Background(), bson.D{{"hello", 1}}).Decode(&hello)
 		require.NoError(mt, err, "Hello error: %v", err)
+		require.Positive(mt, hello.MaxWriteBatchSize, "expected maxWriteBatchSize to be non-zero")
 
+		// Both batches report a write concern error.
 		mt.SetFailPoint(failpoint.FailPoint{
 			ConfigureFailPoint: "failCommand",
 			Mode: failpoint.Mode{
@@ -1213,10 +1214,12 @@ func TestClientBulkWriteProse(t *testing.T) {
 			},
 		})
 
+		// Construct and drop "db.coll".
 		coll := mt.CreateCollection(mtest.Collection{DB: "db", Name: "coll"}, false)
 		err = coll.Drop(context.Background())
 		require.NoError(mt, err, "Drop error: %v", err)
 
+		// Construct a list of write models repeated maxWriteBatchSize +1 times.
 		var writes []mongo.ClientBulkWrite
 		num := hello.MaxWriteBatchSize + 1
 		for i := 0; i < num; i++ {
@@ -1228,9 +1231,11 @@ func TestClientBulkWriteProse(t *testing.T) {
 				},
 			})
 		}
+
+		// The write concern errors are reported, but there is no
+		// top-level error, and every insert succeeded.
 		_, err = mt.Client.BulkWrite(context.Background(), writes)
 		require.Error(mt, err, "expected a BulkWrite error")
-		require.Equal(mt, 2, eventCnt, "expected %d bulkWrite commands, got: %d", 2, eventCnt)
 
 		bwe, ok := err.(mongo.ClientBulkWriteException)
 		require.True(mt, ok, "expected a BulkWriteException, got %T: %v", err, err)

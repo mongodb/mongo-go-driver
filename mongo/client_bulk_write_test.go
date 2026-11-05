@@ -289,6 +289,41 @@ func TestClientBulkWrite_executeTopLevelError(t *testing.T) {
 		require.NotNil(t, bwe.PartialResult, "expected the observed results to be retained")
 	})
 
+	// A replacement document whose first key starts with '$' is rejected
+	// client-side while building a later batch.
+	t.Run("invalid replacement after results are observed", func(t *testing.T) {
+		client, err := newClient()
+		require.NoError(t, err, "newClient error: %v", err)
+		client.deployment = drivertest.NewMockDeployment(okBatch)
+
+		ordered := false
+		bw := &clientBulkWrite{client: client, ordered: &ordered}
+		bw.result.Acknowledged = true
+		// Six documents span at least two batches, so the invalid model is
+		// marshalled only after the first batch has been processed.
+		for i := 0; i < 6; i++ {
+			var model any = &ClientInsertOneModel{Document: bigDoc}
+			if i == 5 {
+				model = &ClientReplaceOneModel{
+					Filter:      bson.D{},
+					Replacement: bson.D{{"$a", "b"}},
+				}
+			}
+			bw.writePairs = append(bw.writePairs, clientBulkWritePair{
+				"db.coll", model,
+			})
+		}
+
+		err = wrapErrors(bw.execute(context.Background()))
+
+		var bwe ClientBulkWriteException
+		require.True(t, errors.As(err, &bwe),
+			"expected a ClientBulkWriteException, got %T: %v", err, err)
+		require.NotNil(t, bwe.WriteError, "expected the client-side error to be embedded")
+		require.Equal(t, "replacement document cannot contain keys beginning with '$'", bwe.WriteError.Message)
+		require.NotNil(t, bwe.PartialResult, "expected the observed results to be retained")
+	})
+
 	t.Run("ordered write errors are not a top-level error", func(t *testing.T) {
 		err := runOrdered(t, writeErrBatch)
 
