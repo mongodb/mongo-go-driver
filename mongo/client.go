@@ -393,42 +393,39 @@ func (c *Client) appendDriverInfo(info options.DriverInfo) {
 
 	c.driverInfoEntries = append(c.driverInfoEntries, info)
 
+	// Copy-on-write so that the info stored in the client is immutable.
+	c.currentDriverInfo.Store(combineDriverInfo(c.driverInfoEntries))
+}
+
+// combineDriverInfo combines infos, in order, into the single DriverInfo sent
+// in handshake metadata.
+func combineDriverInfo(infos []options.DriverInfo) *options.DriverInfo {
 	// Name and version are positional: every entry contributes a slot, so a
 	// library that reports no value contributes an empty one and the two fields
 	// stay aligned by index.
-	names := make([]string, 0, len(c.driverInfoEntries))
-	versions := make([]string, 0, len(c.driverInfoEntries))
-
-	for _, entry := range c.driverInfoEntries {
-		names = append(names, entry.Name)
-		versions = append(versions, entry.Version)
-	}
+	names := make([]string, 0, len(infos))
+	versions := make([]string, 0, len(infos))
 
 	// DRIVERS-3251 requires positional alignment for driver.name and
 	// driver.version only. Platform is not positional: a value is appended only
 	// when it is non-empty, so it does not correspond to name and version by
 	// index.
-	var platform string
-	if old := c.currentDriverInfo.Load(); old != nil {
-		platform = old.Platform
+	var platforms []string
+
+	for _, info := range infos {
+		names = append(names, info.Name)
+		versions = append(versions, info.Version)
+
+		if info.Platform != "" {
+			platforms = append(platforms, info.Platform)
+		}
 	}
 
-	switch {
-	case info.Platform == "":
-		// Platform is not positional, so a library that reports no platform
-		// contributes nothing rather than an empty entry.
-	case platform == "":
-		platform = info.Platform
-	default:
-		platform = platform + driverInfoDelimiter + info.Platform
-	}
-
-	// Copy-on-write so that the info stored in the client is immutable.
-	c.currentDriverInfo.Store(&options.DriverInfo{
+	return &options.DriverInfo{
 		Name:     strings.Join(names, driverInfoDelimiter),
 		Version:  strings.Join(versions, driverInfoDelimiter),
-		Platform: platform,
-	})
+		Platform: strings.Join(platforms, driverInfoDelimiter),
+	}
 }
 
 // Disconnect closes sockets to the topology referenced by this Client. It will
