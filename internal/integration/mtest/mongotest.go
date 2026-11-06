@@ -59,6 +59,10 @@ type T struct {
 
 	*testing.T
 
+	// sampledSessions is the number of sessions still checked out on a client at the moment
+	// ResetClient discarded it. It is only accessed from the test goroutine.
+	sampledSessions int
+
 	// members for only this T instance
 	createClient            *bool
 	createCollection        *bool
@@ -206,7 +210,7 @@ func (t *T) teardown() {
 	// store number of sessions and connections checked out here but assert that
 	// they're equal to 0 after cleaning up test resources to make sure resources
 	// are always cleared.
-	sessions := t.Client.NumberSessionsInProgress()
+	sessions := t.checkedOutSessions()
 	conns := t.NumberConnectionsCheckedOut()
 
 	if t.clientType != Mock {
@@ -350,6 +354,12 @@ func (t *T) NumberConnectionsCheckedOut() int {
 	return int(atomic.LoadInt64(&t.connsCheckedOut))
 }
 
+// checkedOutSessions returns the number of sessions that were never returned, including
+// sessions that were still checked out on a client discarded by ResetClient.
+func (t *T) checkedOutSessions() int {
+	return t.Client.NumberSessionsInProgress() + t.sampledSessions
+}
+
 // ClearEvents clears the existing command monitoring events.
 func (t *T) ClearEvents() {
 	t.started = t.started[:0]
@@ -367,6 +377,7 @@ func (t *T) ResetClient(opts *options.ClientOptions) {
 	}
 
 	if t.Client != nil {
+		t.sampledSessions += t.Client.NumberSessionsInProgress()
 		_ = t.Client.Disconnect(context.Background())
 	}
 	t.createTestClient()

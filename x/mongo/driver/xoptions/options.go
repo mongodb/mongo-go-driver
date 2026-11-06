@@ -130,6 +130,15 @@ func SetInternalClientBulkWriteOptions(a *options.ClientBulkWriteOptionsBuilder,
 			opts.Internal = optionsutil.WithValue(opts.Internal, key, d)
 			return nil
 		})
+	case "collectionUUIDs":
+		u, ok := option.([][]byte)
+		if !ok {
+			return typeErrFunc("[][]byte")
+		}
+		a.Opts = append(a.Opts, func(opts *options.ClientBulkWriteOptions) error {
+			opts.Internal = optionsutil.WithValue(opts.Internal, key, u)
+			return nil
+		})
 	default:
 		return fmt.Errorf("unsupported option: %q", key)
 	}

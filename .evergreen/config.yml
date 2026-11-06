@@ -398,7 +398,6 @@ functions:
     - command: subprocess.exec
       params:
         binary: bash
-        background: true
         include_expansions_in_env: [SERVER_TYPE, OCSP_ALGORITHM]
         args:
           - ${DRIVERS_TOOLS}/.evergreen/ocsp/setup.sh
@@ -2055,7 +2054,10 @@ buildvariants:
   - name: testgcpkms-variant
     display_name: "GCP KMS"
     run_on:
-      - rhel8.7-small
+      # Needs to be RHEL 9+ so the built "testkms" binary links against OpenSSL
+      # 3 instead of OpenSSL 1.1. The target GCE VM uses Debian 13, which
+      # doesn't have OpenSSL 1.1.
+      - rhel93-small
     expansions:
       GO_DIST: "/opt/golang/go1.26"
     tasks:
@@ -2074,7 +2076,10 @@ buildvariants:
   - name: testazurekms-variant
     display_name: "AZURE KMS"
     run_on:
-      - rhel8.7-small
+      # Needs to be RHEL 9+ so the built "testkms" binary links against OpenSSL
+      # 3 instead of OpenSSL 1.1. The target Azure VM uses Debian 13, which
+      # doesn't have OpenSSL 1.1.
+      - rhel93-small
     expansions:
       GO_DIST: "/opt/golang/go1.26"
     tasks:
