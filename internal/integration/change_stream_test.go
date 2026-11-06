@@ -568,6 +568,29 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		evt := mt.GetStartedEvent()
 		assert.Equal(mt, "killCursors", evt.CommandName, "expected command 'killCursors', got %q", evt.CommandName)
 	})
+	mt.Run("killCursors sent on Close after Next times out", func(mt *mtest.T) {
+		opts := options.ChangeStream().SetMaxAwaitTime(50 * time.Millisecond)
+		cs, err := mt.Coll.Watch(context.Background(), mongo.Pipeline{}, opts)
+		require.NoError(mt, err, "Watch error")
+		defer closeStream(cs)
+
+		cursorID := cs.ID()
+		require.NotEqual(mt, int64(0), cursorID, "expected non-zero cursor ID")
+
+		ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+		defer cancel()
+		assert.False(mt, cs.Next(ctx), "expected Next to return false")
+		assert.ErrorIs(mt, cs.Err(), context.DeadlineExceeded)
+
+		mt.ClearEvents()
+		require.NoError(mt, cs.Close(context.Background()), "Close error")
+
+		evt := mt.GetStartedEvent()
+		require.NotNil(mt, evt, "expected killCursors event, got nil")
+		assert.Equal(mt, "killCursors", evt.CommandName, "expected command 'killCursors', got %q", evt.CommandName)
+		killedID := evt.Command.Lookup("cursors", "0").Int64()
+		assert.Equal(mt, cursorID, killedID, "expected killCursors for cursor %d, got %d", cursorID, killedID)
+	})
 	mt.Run("Custom", func(mt *mtest.T) {
 		// Custom options should be a BSON map of option names to Marshalable option values.
 		// We use "allowDiskUse" as an example.

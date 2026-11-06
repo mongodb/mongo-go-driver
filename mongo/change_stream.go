@@ -761,6 +761,12 @@ func (cs *ChangeStream) loopNext(ctx context.Context, nonBlocking bool) {
 			return
 		}
 
+		// Don't resume with a dead context: killCursors would never reach the
+		// server and the cursor would leak. A later Close can still kill it.
+		if ctx.Err() != nil || errors.Is(cs.err, driver.ErrDeadlineWouldBeExceeded) {
+			return
+		}
+
 		// ignore error from cursor close because if the cursor is deleted or errors we tried to close it and will remake and try to get next batch
 		_ = cs.cursor.Close(ctx)
 		if cs.err = cs.executeOperation(ctx, true); cs.err != nil {
