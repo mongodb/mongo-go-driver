@@ -34,6 +34,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/auth"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/dns"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage"
 )
 
@@ -302,6 +303,7 @@ type ClientOptions struct {
 	ServerAPIOptions                  *ServerAPIOptions
 	ServerMonitoringMode              *string
 	ServerSelectionTimeout            *time.Duration
+	SRVAllowedHostsSuffix             *string
 	SRVMaxHosts                       *int
 	SRVServiceName                    *string
 	Timeout                           *time.Duration
@@ -477,6 +479,10 @@ func setURIOpts(uri string, opts *ClientOptions) error {
 		opts.ServerSelectionTimeout = &connString.ServerSelectionTimeout
 	}
 
+	if connString.SRVAllowedHostsSuffix != "" {
+		opts.SRVAllowedHostsSuffix = &connString.SRVAllowedHostsSuffix
+	}
+
 	if connString.SRVMaxHosts != 0 {
 		opts.SRVMaxHosts = &connString.SRVMaxHosts
 	}
@@ -618,6 +624,15 @@ func (c *ClientOptions) Validate() error {
 		if c.Direct != nil && *c.Direct {
 			return connstring.ErrLoadBalancedWithDirectConnection
 		}
+	}
+
+	// Normalize and validate srvAllowedHostsSuffix.
+	if c.SRVAllowedHostsSuffix != nil {
+		normalized, err := dns.NormalizeAllowedHostsSuffix(*c.SRVAllowedHostsSuffix)
+		if err != nil {
+			return err
+		}
+		c.SRVAllowedHostsSuffix = &normalized
 	}
 
 	// Validation for srvMaxHosts.
@@ -1212,6 +1227,16 @@ func (c *ClientOptions) SetServerAPIOptions(sopts *ServerAPIOptions) *ClientOpti
 // monitoring modes.
 func (c *ClientOptions) SetServerMonitoringMode(mode string) *ClientOptions {
 	c.ServerMonitoringMode = &mode
+
+	return c
+}
+
+// SetSRVAllowedHostsSuffix specifies a domain suffix that returned SRV hostnames must match,
+// replacing the domain derived from the "mongodb+srv" hostname for both initial seedlist
+// discovery and SRV polling. This function must be called before ApplyURI to take effect. This
+// can also be set through the "srvAllowedHostsSuffix" URI option.
+func (c *ClientOptions) SetSRVAllowedHostsSuffix(suffix string) *ClientOptions {
+	c.SRVAllowedHostsSuffix = &suffix
 
 	return c
 }

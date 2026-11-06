@@ -212,6 +212,9 @@ func verifyConnstringOptions(mt *mtest.T, expected bson.Raw, cs *connstring.Conn
 		case "srvServiceName":
 			srvName := opt.StringValue()
 			assert.Equal(mt, srvName, cs.SRVServiceName, "expected cs.SRVServiceName to be %q, got %q", srvName, cs.SRVServiceName)
+		case "srvAllowedHostsSuffix":
+			suffix := opt.StringValue()
+			assert.Equal(mt, suffix, cs.SRVAllowedHostsSuffix, "expected cs.SRVAllowedHostsSuffix to be %q, got %q", suffix, cs.SRVAllowedHostsSuffix)
 		default:
 			mt.Fatalf("unrecognized connstring option %v", key)
 		}
