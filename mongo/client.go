@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -19,6 +20,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/credutil"
+	internalHandshakeOp "go.mongodb.org/mongo-driver/v2/internal/handshake/operation"
 	"go.mongodb.org/mongo-driver/v2/internal/httputil"
 	"go.mongodb.org/mongo-driver/v2/internal/logger"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
@@ -44,6 +46,10 @@ const (
 	defaultLocalThreshold       = 15 * time.Millisecond
 	defaultMaxPoolSize          = 100
 	defaultAdaptiveRetries uint = 2
+
+	// driverInfoDelimiter separates the entries contributed by each wrapping
+	// library within a client metadata field.
+	driverInfoDelimiter = internalHandshakeOp.MetadataDelimiter
 )
 
 var (
@@ -81,7 +87,12 @@ type Client struct {
 	httpClient                *http.Client
 	logger                    *logger.Logger
 	currentDriverInfo         *atomic.Pointer[options.DriverInfo]
-	seenDriverInfo            sync.Map
+
+	// driverInfoEntries holds one entry per wrapping library, in the order they
+	// were appended. Entries are joined positionally when building the
+	// handshake, so the list is kept rather than a running concatenation.
+	driverInfoMu      sync.Mutex
+	driverInfoEntries []options.DriverInfo
 
 	// in-use encryption fields
 	isAutoEncryptionSet bool
@@ -236,7 +247,8 @@ func newClient(opts ...*options.ClientOptions) (*Client, error) {
 		client.AppendDriverInfo(*clientOpts.DriverInfo)
 	}
 
-	cfg, err := topology.NewAuthenticatorConfig(client.authenticator,
+	cfg, err := topology.NewAuthenticatorConfig(
+		client.authenticator,
 		topology.WithAuthConfigClock(client.clock),
 		topology.WithAuthConfigClientOptions(clientOpts),
 		topology.WithAuthConfigDriverInfo(client.currentDriverInfo),
@@ -317,43 +329,103 @@ func (c *Client) connect() error {
 	return nil
 }
 
-// AppendDriverInfo appends the provided [options.DriverInfo] to the metadata
+// AppendDriverInfo behaves exactly like [Client.AppendDriverInfoErr], but
+// discards invalid input without returning an error.
+//
+// Deprecated: Use [Client.AppendDriverInfoErr] instead, which reports when the
+// input is discarded.
+func (c *Client) AppendDriverInfo(info options.DriverInfo) {
+	_ = c.AppendDriverInfoErr(info)
+}
+
+// AppendDriverInfoErr appends the provided [options.DriverInfo] to the metadata
 // (e.g. name, version, platform) that will be sent to the server in handshake
 // requests when establishing new connections.
 //
-// Repeated calls to AppendDriverInfo with equivalent DriverInfo is a no-op.
+// Entries in name and version correspond by index: a library that reports no
+// value contributes an empty entry, so a missing value never shifts the values
+// that follow it.
 //
-// Metadata is limited to 512 bytes; any excess will be truncated.
-func (c *Client) AppendDriverInfo(info options.DriverInfo) {
-	if _, loaded := c.seenDriverInfo.LoadOrStore(info, struct{}{}); loaded {
+// Repeated calls to AppendDriverInfoErr with an equivalent DriverInfo are a
+// no-op. Equivalence is over the whole DriverInfo: two libraries that report
+// the same version are distinct entries and both are appended.
+//
+// No field may contain the "|" metadata delimiter. A DriverInfo that contains
+// one is ignored in its entirety, because appending it would corrupt the
+// index correspondence of every entry in the list. AppendDriverInfoErr returns
+// an error in that case.
+//
+// Client metadata is limited to 512 bytes. If it exceeds the limit,
+// lower-priority fields such as platform are omitted, and if it still does not
+// fit, the metadata is not sent.
+func (c *Client) AppendDriverInfoErr(info options.DriverInfo) error {
+	for _, field := range []struct {
+		name  string
+		value string
+	}{
+		{"name", info.Name},
+		{"version", info.Version},
+		{"platform", info.Platform},
+	} {
+		if strings.Contains(field.value, driverInfoDelimiter) {
+			return fmt.Errorf("driver info %s %q must not contain %q",
+				field.name, field.value, driverInfoDelimiter)
+		}
+	}
+
+	c.appendDriverInfo(info)
+
+	return nil
+}
+
+// appendDriverInfo appends info to the accumulated client metadata. The caller
+// is responsible for validating info.
+func (c *Client) appendDriverInfo(info options.DriverInfo) {
+	c.driverInfoMu.Lock()
+	defer c.driverInfoMu.Unlock()
+
+	// Deduplicate on the whole DriverInfo. Comparing fields in isolation would
+	// collapse distinct libraries that happen to share a value, which breaks
+	// the index correspondence between the fields.
+	if slices.Contains(c.driverInfoEntries, info) {
 		return
 	}
 
-	if old := c.currentDriverInfo.Load(); old != nil {
-		if old.Name != "" && info.Name != "" && old.Name != info.Name {
-			info.Name = old.Name + "|" + info.Name
-		} else if old.Name != "" {
-			info.Name = old.Name
-		}
+	c.driverInfoEntries = append(c.driverInfoEntries, info)
 
-		if old.Version != "" && info.Version != "" && old.Version != info.Version {
-			info.Version = old.Version + "|" + info.Version
-		} else if old.Version != "" {
-			info.Version = old.Version
-		}
+	// Copy-on-write so that the info stored in the client is immutable.
+	c.currentDriverInfo.Store(combineDriverInfo(c.driverInfoEntries))
+}
 
-		if old.Platform != "" && info.Platform != "" && old.Platform != info.Platform {
-			info.Platform = old.Platform + "|" + info.Platform
-		} else if old.Platform != "" {
-			info.Platform = old.Platform
+// combineDriverInfo combines infos, in order, into the single DriverInfo sent
+// in handshake metadata.
+func combineDriverInfo(infos []options.DriverInfo) *options.DriverInfo {
+	// Name and version are positional: every entry contributes a slot, so a
+	// library that reports no value contributes an empty one and the two fields
+	// stay aligned by index.
+	names := make([]string, 0, len(infos))
+	versions := make([]string, 0, len(infos))
+
+	// DRIVERS-3251 requires positional alignment for driver.name and
+	// driver.version only. Platform is not positional: a value is appended only
+	// when it is non-empty, so it does not correspond to name and version by
+	// index.
+	var platforms []string
+
+	for _, info := range infos {
+		names = append(names, info.Name)
+		versions = append(versions, info.Version)
+
+		if info.Platform != "" {
+			platforms = append(platforms, info.Platform)
 		}
 	}
 
-	// Copy-on-write so that the info stored in the client is immutable.
-	infoCopy := new(options.DriverInfo)
-	*infoCopy = info
-
-	c.currentDriverInfo.Store(infoCopy)
+	return &options.DriverInfo{
+		Name:     strings.Join(names, driverInfoDelimiter),
+		Version:  strings.Join(versions, driverInfoDelimiter),
+		Platform: strings.Join(platforms, driverInfoDelimiter),
+	}
 }
 
 // Disconnect closes sockets to the topology referenced by this Client. It will
@@ -655,7 +727,8 @@ func (c *Client) newMongoCrypt(opts *options.AutoEncryptionOptions) (*mongocrypt
 		str, ok := val.(string)
 		if !ok {
 			return nil, fmt.Errorf(
-				`expected AutoEncryption extra option "cryptSharedLibPath" to be a string, but is a %T`, val)
+				`expected AutoEncryption extra option "cryptSharedLibPath" to be a string, but is a %T`, val,
+			)
 		}
 		cryptSharedLibPath = str
 	}
@@ -694,7 +767,8 @@ func (c *Client) newMongoCrypt(opts *options.AutoEncryptionOptions) (*mongocrypt
 		b, ok := val.(bool)
 		if !ok {
 			return nil, fmt.Errorf(
-				`expected AutoEncryption extra option "cryptSharedLibRequired" to be a bool, but is a %T`, val)
+				`expected AutoEncryption extra option "cryptSharedLibRequired" to be a bool, but is a %T`, val,
+			)
 		}
 		cryptSharedLibRequired = b
 	}
@@ -704,7 +778,8 @@ func (c *Client) newMongoCrypt(opts *options.AutoEncryptionOptions) (*mongocrypt
 	// return an error indicating that we couldn't load the crypt_shared library.
 	if cryptSharedLibRequired && mc.CryptSharedLibVersionString() == "" {
 		return nil, errors.New(
-			`AutoEncryption extra option "cryptSharedLibRequired" is true, but we failed to load the crypt_shared library`)
+			`AutoEncryption extra option "cryptSharedLibRequired" is true, but we failed to load the crypt_shared library`,
+		)
 	}
 
 	return mc, nil
