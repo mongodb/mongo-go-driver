@@ -1490,9 +1490,9 @@ func TestClient_BulkWrite_CollectionUUIDs(t *testing.T) {
 	// TODO(GODRIVER-4231): Run the collectionUUID tests on all 8.0+ topologies
 	// once SERVER-138544 is resolved.
 	//
-	// A 9.0 mongos keeps only the first nsInfo entry's collectionUUID for each
-	// namespace and applies it to every op on that namespace, so the server
-	// never checks the later UUIDs.
+	// An 8.1+ mongos keeps only the first nsInfo entry's collectionUUID for
+	// each namespace and applies it to every op on that namespace, so the
+	// server never checks the later UUIDs.
 	mtOpts := mtest.NewOptions().ClientType(mtest.Pinned).RunOn(
 		mtest.RunOnBlock{
 			MinServerVersion: "8.0",
@@ -1500,7 +1500,7 @@ func TestClient_BulkWrite_CollectionUUIDs(t *testing.T) {
 		},
 		mtest.RunOnBlock{
 			MinServerVersion: "8.0",
-			MaxServerVersion: "8.99.99",
+			MaxServerVersion: "8.0.99",
 			Topology:         []mtest.TopologyKind{mtest.Sharded, mtest.LoadBalanced},
 		},
 	)
