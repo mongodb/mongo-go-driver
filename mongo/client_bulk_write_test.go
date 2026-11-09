@@ -19,7 +19,10 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/drivertest"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/topology"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage"
 )
 
@@ -128,6 +131,53 @@ func TestAppendBatchSequence(t *testing.T) {
 		_, ok = batches.result.DeleteResults[3]
 		assert.False(t, ok, "expected an delete results")
 	})
+}
+
+// failAfterReadCloser wraps a mock connection and fails every read after the
+// first failAfter with err.
+type failAfterReadCloser struct {
+	mnet.ReadWriteCloser
+	mnet.Describer
+
+	reads     int
+	failAfter int
+	err       error
+}
+
+func (c *failAfterReadCloser) Read(ctx context.Context) ([]byte, error) {
+	c.reads++
+	if c.reads > c.failAfter {
+		return nil, c.err
+	}
+	return c.ReadWriteCloser.Read(ctx)
+}
+
+// failAfterReadDeployment serves the mock responses and then fails reads with
+// err.
+type failAfterReadDeployment struct {
+	*drivertest.MockDeployment
+
+	failAfter int
+	err       error
+}
+
+func (d *failAfterReadDeployment) SelectServer(
+	context.Context, description.ServerSelector,
+) (driver.Server, error) {
+	return d, nil
+}
+
+func (d *failAfterReadDeployment) Connection(ctx context.Context) (*mnet.Connection, error) {
+	conn, err := d.MockDeployment.Connection(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return mnet.NewConnection(&failAfterReadCloser{
+		ReadWriteCloser: conn.ReadWriteCloser,
+		Describer:       conn.Describer,
+		failAfter:       d.failAfter,
+		err:             d.err,
+	}), nil
 }
 
 func TestClientBulkWrite_executeTopLevelError(t *testing.T) {
@@ -245,6 +295,40 @@ func TestClientBulkWrite_executeTopLevelError(t *testing.T) {
 		require.NotEmpty(t, bwe.WriteError.Raw, "expected the raw server reply")
 		require.NotNil(t, bwe.PartialResult, "expected the observed results to be retained")
 		require.Equal(t, int64(3), bwe.PartialResult.InsertedCount)
+	})
+
+	t.Run("a top-level error stays discoverable through the error chain", func(t *testing.T) {
+		// A duplicate key error reported at the top level is a command error,
+		// so it must stay reachable through the exception's chain. Otherwise
+		// the public error types and predicates stop applying to it.
+		dupKeyTopLevelErr := bson.D{
+			{Key: "ok", Value: 0},
+			{Key: "code", Value: 11000},
+			{Key: "errmsg", Value: "E11000 duplicate key error"},
+		}
+
+		err := run(t, 4, okBatch, dupKeyTopLevelErr, dupKeyTopLevelErr, dupKeyTopLevelErr)
+
+		var bwe ClientBulkWriteException
+		require.ErrorAs(t, err, &bwe,
+			"expected a ClientBulkWriteException, got %T: %v", err, err)
+		require.NotNil(t, bwe.WriteError, "expected the top-level error to be embedded")
+		require.Equal(t, 11000, bwe.WriteError.Code)
+
+		// The exception unwraps to the top-level error converted exactly as it
+		// would be without an exception, so the public command error is still
+		// discoverable and its predicates still hold.
+		var ce CommandError
+		require.ErrorAs(t, err, &ce,
+			"expected the chain to expose a CommandError, got %T: %v", err, err)
+		require.Equal(t, int32(11000), ce.Code)
+		require.True(t, IsDuplicateKeyError(err),
+			"expected IsDuplicateKeyError to report the top-level duplicate key error")
+
+		// The internal driver.Error remains reachable beneath the CommandError.
+		var de driver.Error
+		require.ErrorAs(t, err, &de, "expected the chain to expose a driver.Error")
+		require.Equal(t, int32(11000), de.Code)
 	})
 
 	t.Run("top-level error after write errors are observed", func(t *testing.T) {
@@ -401,6 +485,43 @@ func TestClientBulkWrite_executeTopLevelError(t *testing.T) {
 		err = wrapErrors(bw.execute(context.Background()))
 
 		require.NoError(t, err, "expected no error for an unacknowledged write")
+	})
+
+	// The retained error is converted the same way it would be without an
+	// exception, so sentinel remapping applies to it too. A closed topology is
+	// reported as ErrClientDisconnected either way.
+	t.Run("a top-level disconnected error is remapped to ErrClientDisconnected", func(t *testing.T) {
+		client, err := newClient()
+		require.NoError(t, err, "newClient error: %v", err)
+		// The first batch is served normally and the second fails, so the
+		// error arrives after results have been observed.
+		client.deployment = &failAfterReadDeployment{
+			MockDeployment: drivertest.NewMockDeployment(okBatch),
+			failAfter:      1,
+			err:            topology.ErrTopologyClosed,
+		}
+
+		ordered := false
+		bw := &clientBulkWrite{client: client, ordered: &ordered}
+		bw.result.Acknowledged = true
+		for i := 0; i < 4; i++ {
+			bw.writePairs = append(bw.writePairs, clientBulkWritePair{
+				namespace: "db.coll", model: &ClientInsertOneModel{Document: bigDoc},
+			})
+		}
+
+		err = wrapErrors(bw.execute(context.Background()))
+
+		var bwe ClientBulkWriteException
+		require.ErrorAs(t, err, &bwe,
+			"expected a ClientBulkWriteException, got %T: %v", err, err)
+		require.Equal(t, topology.ErrTopologyClosed.Error(), bwe.WriteError.Message)
+		require.NotNil(t, bwe.PartialResult, "expected the observed results to be retained")
+
+		require.ErrorIs(t, err, ErrClientDisconnected,
+			"expected the top-level error to be remapped to ErrClientDisconnected, got %T: %v", err, err)
+		require.False(t, errors.Is(err, topology.ErrTopologyClosed),
+			"expected the internal topology error not to leak through the chain")
 	})
 }
 

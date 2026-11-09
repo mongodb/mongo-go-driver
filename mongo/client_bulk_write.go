@@ -135,7 +135,13 @@ func (bw *clientBulkWrite) execute(ctx context.Context) error {
 		}
 		if topLevelErr {
 			// Retain the error so that errors.Is and errors.As still see it.
-			exception.wrapped = err
+			// Convert it first: the raw error from Operation.Execute is a
+			// driver.Error, and wrapErrors is what turns that into the public
+			// mongo.CommandError. Storing it unconverted would leave the chain
+			// terminating at an internal type, so errors.As for CommandError,
+			// ServerError predicates such as IsDuplicateKeyError, and IsTimeout
+			// for a maxTimeMS-expired error would all fail.
+			exception.wrapped = wrapErrors(err)
 
 			if isDriverErr {
 				exception.WriteError = &WriteError{
