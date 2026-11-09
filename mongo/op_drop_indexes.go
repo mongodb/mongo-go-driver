@@ -11,6 +11,7 @@ import (
 	"errors"
 	"time"
 
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
@@ -38,6 +39,7 @@ type dropIndexesOp struct {
 	serverAPI                 *driver.ServerAPIOptions
 	timeout                   *time.Duration
 	rawData                   *bool
+	additionalCmd             bson.D
 }
 
 // execute runs this operation and returns an error if the operation did not execute successfully.
@@ -82,5 +84,5 @@ func (di *dropIndexesOp) command(dst []byte, desc description.SelectedServer) ([
 		dst = bsoncore.AppendBooleanElement(dst, "rawData", *di.rawData)
 	}
 
-	return dst, nil
+	return appendAdditionalCmd(dst, di.additionalCmd)
 }

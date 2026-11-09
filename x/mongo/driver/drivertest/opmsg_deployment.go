@@ -9,6 +9,7 @@ package drivertest
 import (
 	"context"
 	"errors"
+	"sync"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -132,6 +133,8 @@ func (*connection) Stale() bool {
 type MockDeployment struct {
 	conn    *connection
 	updates chan description.Topology
+
+	disconnectOnce sync.Once
 }
 
 var (
@@ -175,9 +178,14 @@ func (md *MockDeployment) Connect() error {
 	return nil
 }
 
-// Disconnect is a no-op method which implements the driver.Disconnector interface {
+// Disconnect closes the subscription channel and implements the driver.Disconnector interface.
 func (md *MockDeployment) Disconnect(context.Context) error {
-	close(md.updates)
+	md.disconnectOnce.Do(func() {
+		if md.updates != nil {
+			close(md.updates)
+		}
+	})
+
 	return nil
 }
 

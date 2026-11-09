@@ -1331,7 +1331,7 @@ func TestArray_StringN_Multibyte(t *testing.T) {
 		truncated bool
 	}{
 		{6, `"𨉟`, true},
-		{8, `"𨉟`, true},
+		{8, `"𨉟呐`, true},
 		{10, `"𨉟呐`, true},
 		{15, `"𨉟呐㗂越"`, false},
 		{21, `"𨉟呐㗂越"`, false},

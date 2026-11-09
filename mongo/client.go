@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -958,6 +959,7 @@ func (c *Client) createBaseCursorOptions(retryOverload bool) driver.CursorOption
 		CommandMonitor:            c.monitor,
 		Crypt:                     c.cryptFLE,
 		ServerAPI:                 c.serverAPI,
+		Authenticator:             c.authenticator,
 		MaxAdaptiveRetries:        c.effectiveAdaptiveRetries(retryOverload),
 		EnableOverloadRetargeting: c.enableOverloadRetargeting,
 	}
@@ -973,14 +975,40 @@ func (c *Client) effectiveAdaptiveRetries(retryOverload bool) uint {
 	return defaultAdaptiveRetries
 }
 
-// ClientBulkWrite is a struct that can be used in a client-level BulkWrite operation.
+// ClientBulkWrite is a single write operation for [Client.BulkWrite]. It pairs a
+// single write operation with the database and collection it targets.
 type ClientBulkWrite struct {
-	Database   string
+	// Database is the name of the database to write to. It cannot contain any
+	// periods ('.').
+	Database string
+
+	// Collection is the name of the collection to write to.
 	Collection string
-	Model      ClientWriteModel
+
+	// Model is the write operation to perform. It cannot be nil. See the
+	// ClientWriteModel documentation for a list of valid model types.
+	Model ClientWriteModel
 }
 
-// BulkWrite performs a client-level bulk write operation.
+// BulkWrite performs a client-level bulk write operation, which can write to
+// multiple collections and databases in a single operation. It requires MongoDB
+// 8.0 or greater.
+//
+// The writes parameter is the slice of operations to be executed in this bulk
+// write. It cannot be nil or empty and all of the models must be non-nil. Each
+// element specifies its own target database and collection, so a single call
+// can write to any combination of databases and collections. See the
+// [ClientWriteModel] documentation for a list of valid model types and examples
+// of how to build them.
+//
+// BulkWrite returns an error if any write specifies a database name containing
+// a period ('.').
+//
+// This method does not currently support automatic encryption. Calling it on a
+// Client configured with automatic encryption returns an error.
+//
+// For more details, see
+// https://www.mongodb.com/docs/manual/core/bulk-write-operations/
 func (c *Client) BulkWrite(ctx context.Context, writes []ClientBulkWrite,
 	opts ...options.Lister[options.ClientBulkWriteOptions],
 ) (*ClientBulkWriteResult, error) {
@@ -992,9 +1020,39 @@ func (c *Client) BulkWrite(ctx context.Context, writes []ClientBulkWrite,
 	if len(writes) == 0 {
 		return nil, fmt.Errorf("invalid writes: %w", ErrEmptySlice)
 	}
+
+	// Validate the namespace components before they are joined into a single
+	// namespace string below. A period in the database name would silently
+	// retarget the write to another database because the server splits the
+	// namespace on its first period.
+	for i, w := range writes {
+		if strings.ContainsRune(w.Database, '.') {
+			return nil, fmt.Errorf(
+				"invalid database name %q in write %d: database names cannot contain '.'",
+				w.Database,
+				i,
+			)
+		}
+	}
+
 	bwo, err := mongoutil.NewOptions(opts...)
 	if err != nil {
 		return nil, err
+	}
+
+	// collectionUUIDs is positionally aligned with writes, so a slice of any
+	// other length cannot be zipped onto them. Return an error if the UUID and
+	// writes slice lengths are different.
+	var collectionUUIDs [][]byte
+	if uuids, ok := optionsutil.Value(bwo.Internal, "collectionUUIDs").([][]byte); ok {
+		if len(uuids) != len(writes) {
+			return nil, fmt.Errorf(
+				"invalid collectionUUIDs: got %d UUIDs for %d writes",
+				len(uuids),
+				len(writes),
+			)
+		}
+		collectionUUIDs = uuids
 	}
 
 	if ctx == nil {
@@ -1046,6 +1104,9 @@ func (c *Client) BulkWrite(ctx context.Context, writes []ClientBulkWrite,
 		writePairs[i] = clientBulkWritePair{
 			namespace: fmt.Sprintf("%s.%s", w.Database, w.Collection),
 			model:     w.Model,
+		}
+		if len(collectionUUIDs) > 0 {
+			writePairs[i].collectionUUID = collectionUUIDs[i]
 		}
 	}
 

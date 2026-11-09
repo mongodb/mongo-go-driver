@@ -11,6 +11,7 @@ import (
 	"errors"
 	"time"
 
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
@@ -38,7 +39,8 @@ type listIndexesOp struct {
 	timeout                   *time.Duration
 	rawData                   *bool
 
-	res driver.CursorResponse
+	res           driver.CursorResponse
+	additionalCmd bson.D
 }
 
 // result returns the result of executing this operation.
@@ -102,5 +104,5 @@ func (li *listIndexesOp) command(dst []byte, desc description.SelectedServer) ([
 		dst = bsoncore.AppendBooleanElement(dst, "rawData", *li.rawData)
 	}
 
-	return dst, nil
+	return appendAdditionalCmd(dst, li.additionalCmd)
 }
