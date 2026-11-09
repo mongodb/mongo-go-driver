@@ -1855,7 +1855,7 @@ func (coll *Collection) findAndModify(ctx context.Context, op *findAndModifyOp) 
 //
 // The filter parameter must be a document containing query operators and can be used to select the document to be
 // deleted. It cannot be nil. If the filter does not match any documents, a SingleResult with an error set to
-// ErrNoDocuments wil be returned. If the filter matches multiple documents, one will be selected from the matched set.
+// ErrNoDocuments will be returned. If the filter matches multiple documents, one will be selected from the matched set.
 //
 // The opts parameter can be used to specify options for the operation (see the options.FindOneAndDeleteOptions
 // documentation).
