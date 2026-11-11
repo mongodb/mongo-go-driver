@@ -17,6 +17,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/v2/internal/integtest"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
@@ -441,17 +442,19 @@ func TestFLE2CreateCollection(t *testing.T) {
 			assert.Nil(mt, err, "error in Drop: %v", err)
 			err = mt.DB.Collection("enxcol_.encryptedCollection.ecoc").Drop(context.Background())
 			assert.Nil(mt, err, "error in Drop: %v", err)
-			err := mt.DB.Collection("coll").Drop(context.Background())
+			err := mt.DB.Collection("encryptedCollection").Drop(context.Background())
 			assert.Nil(mt, err, "error in Drop: %v", err)
 		}
 
-		mt.DB.CreateCollection(context.Background(), "coll", options.CreateCollection().SetEncryptedFields(efBSON))
+		err = mt.DB.CreateCollection(context.Background(), "encryptedCollection",
+			options.CreateCollection().SetEncryptedFields(efBSON))
+		require.Nil(mt, err, "error in CreateCollection: %v", err)
 
 		// Check expected collections and index exist.
 		{
-			got, err := mt.DB.ListCollectionNames(context.Background(), bson.D{{"name", "coll"}})
+			got, err := mt.DB.ListCollectionNames(context.Background(), bson.D{{"name", "encryptedCollection"}})
 			assert.Nil(mt, err, "error in ListCollectionNames")
-			assert.Equal(mt, got, []string{"coll"}, "expected ['coll'], got: %v", got)
+			assert.Equal(mt, got, []string{"encryptedCollection"}, "expected ['encryptedCollection'], got: %v", got)
 
 			got, err = mt.DB.ListCollectionNames(context.Background(), bson.D{{"name", "enxcol_.encryptedCollection.esc"}})
 			assert.Nil(mt, err, "error in ListCollectionNames")
@@ -461,9 +464,9 @@ func TestFLE2CreateCollection(t *testing.T) {
 			assert.Nil(mt, err, "error in ListCollectionNames")
 			assert.Equal(mt, got, []string{"enxcol_.encryptedCollection.ecoc"}, "expected ['encryptedCollection.ecoc'], got: %v", got)
 
-			indexSpecs, err := mt.DB.Collection("coll").Indexes().ListSpecifications(context.Background())
+			indexSpecs, err := mt.DB.Collection("encryptedCollection").Indexes().ListSpecifications(context.Background())
 			assert.Nil(mt, err, "error in Indexes().ListSpecifications: %v", err)
-			assert.Equal(mt, len(indexSpecs), 2, "expected two indexes on 'coll', got: %v", indexSpecs)
+			assert.Equal(mt, len(indexSpecs), 2, "expected two indexes on 'encryptedCollection', got: %v", indexSpecs)
 			assert.Equal(mt, indexSpecs[1].Name, "__safeContent___1", "expected second index to be '__safeContent___1', got %v", indexSpecs[1].Name)
 		}
 	})
