@@ -9,6 +9,7 @@ package mongo
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"math"
 	"time"
@@ -261,8 +262,8 @@ func (ds *GridFSDownloadStream) fillBuffer(ctx context.Context) error {
 	var chunkIndexInt32 int32
 	if chunkIndexInt64, ok := chunkIndex.Int64OK(); ok {
 		chunkIndexInt32 = int32(chunkIndexInt64)
-	} else {
-		chunkIndexInt32 = chunkIndex.Int32()
+	} else if chunkIndexInt32, ok = chunkIndex.Int32OK(); !ok {
+		return fmt.Errorf("chunk 'n' field has unexpected BSON type %s", chunkIndex.Type)
 	}
 
 	if chunkIndexInt32 != ds.expectedChunk {
@@ -275,7 +276,10 @@ func (ds *GridFSDownloadStream) fillBuffer(ctx context.Context) error {
 		return err
 	}
 
-	_, dataBytes := data.Binary()
+	_, dataBytes, ok := data.BinaryOK()
+	if !ok {
+		return fmt.Errorf("chunk 'data' field has unexpected BSON type %s", data.Type)
+	}
 	copied := copy(ds.buffer, dataBytes)
 
 	bytesLen := int32(len(dataBytes))

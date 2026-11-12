@@ -364,6 +364,24 @@ func TestGridFS(x *testing.T) {
 			assert.Equal(mt, mongo.ErrMissingGridFSChunkSize, err,
 				"expected error %v, got %v", mongo.ErrMissingGridFSChunkSize, err)
 		})
+		mt.Run("error if files collection document has a negative chunkSize", func(mt *mtest.T) {
+			for _, length := range []int64{0, 10} {
+				oid := bson.NewObjectID()
+				filesDoc := bson.D{
+					{"_id", oid},
+					{"length", length},
+					{"chunkSize", int32(-1)},
+					{"filename", "filename"},
+				}
+				_, err := mt.DB.Collection("fs.files").InsertOne(context.Background(), filesDoc)
+				require.NoError(mt, err, "InsertOne error for files collection: %v", err)
+
+				bucket := mt.DB.GridFSBucket()
+				_, err = bucket.OpenDownloadStream(context.Background(), oid)
+				assert.ErrorContains(mt, err, "negative 'chunkSize'", "length %d", length)
+				_ = bucket.Drop(context.Background())
+			}
+		})
 		mt.Run("cursor error during read after downloading", func(mt *mtest.T) {
 			// To simulate a cursor error we upload a file larger than the 16MB default batch size,
 			// so the underlying cursor remains open on the server. Since the ReadDeadline is

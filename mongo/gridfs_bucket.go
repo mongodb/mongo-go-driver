@@ -376,6 +376,10 @@ func (b *GridFSBucket) openDownloadStream(
 
 	foundFile := newFileFromResponse(resp)
 
+	if foundFile.ChunkSize < 0 {
+		return nil, fmt.Errorf("files collection document has a negative 'chunkSize' value: %d", foundFile.ChunkSize)
+	}
+
 	if foundFile.Length == 0 {
 		return newGridFSDownloadStream(ctx, cancel, nil, foundFile.ChunkSize, foundFile), nil
 	}
