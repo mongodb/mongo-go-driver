@@ -43,6 +43,7 @@ type Config struct {
 	Timeout                *time.Duration
 	ServerSelectionTimeout time.Duration
 	ServerMonitor          *event.ServerMonitor
+	SRVAllowedHostsSuffix  string
 	SRVMaxHosts            int
 	SRVServiceName         string
 	LoadBalanced           bool
@@ -239,6 +240,10 @@ func NewAuthenticatorConfig(authenticator driver.Authenticator, clientOpts ...Au
 
 	if opts.SRVServiceName != nil {
 		cfgp.SRVServiceName = *opts.SRVServiceName
+	}
+
+	if opts.SRVAllowedHostsSuffix != nil {
+		cfgp.SRVAllowedHostsSuffix = *opts.SRVAllowedHostsSuffix
 	}
 
 	if opts.SRVMaxHosts != nil {
