@@ -232,8 +232,23 @@ func ParseDecimal128(s string) (Decimal128, error) {
 		return dErr(s)
 	}
 
+	// A Decimal128 holds at most 34 significant digits, so any digits past that have to be
+	// trailing zeros that only move the exponent. Drop them before building the big.Int: both
+	// SetString and the digit-at-a-time loop in ParseDecimal128FromBigInt are quadratic in the
+	// length of the significand, and the trimmed length check above lets any number of trailing
+	// zeros through.
+	sig := intPart + decPart
+	if excess := len(strings.TrimLeft(sig, "+-0")) - 34; excess > 0 {
+		n := min(excess, len(sig)-len(strings.TrimRight(sig, "0")))
+		if exp > MaxDecimal128Exp-n {
+			return dErr(s)
+		}
+		sig = sig[:len(sig)-n]
+		exp += n
+	}
+
 	// Parse the significand (i.e. the non-exponent part) as a big.Int.
-	bi, ok := new(big.Int).SetString(intPart+decPart, 10)
+	bi, ok := new(big.Int).SetString(sig, 10)
 	if !ok {
 		return dErr(s)
 	}

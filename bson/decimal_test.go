@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"strings"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
@@ -172,6 +173,35 @@ func TestParseDecimal128(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestParseDecimal128_ManyTrailingZeros(t *testing.T) {
+	// Each of these takes minutes to parse if the trailing zeros are removed one digit at a time.
+	zeros := strings.Repeat("0", 1_000_000)
+
+	cases := []struct {
+		s    string
+		want string
+	}{
+		{s: "1" + zeros + "E-1000000", want: "1.000000000000000000000000000000000"},
+		{s: "-1" + zeros + "E-999995", want: "-100000.0000000000000000000000000000"},
+		{s: "0.1" + zeros + "E-6000", want: "1.000000000000000000000000000000000E-6001"},
+	}
+	for _, c := range cases {
+		t.Run(c.want, func(t *testing.T) {
+			got, err := ParseDecimal128(c.s)
+			require.NoError(t, err, "ParseDecimal128 error")
+
+			want, err := ParseDecimal128(c.want)
+			require.NoError(t, err, "ParseDecimal128(%q) error", c.want)
+			assert.Equal(t, want, got, "got %s, want %s", got, want)
+		})
+	}
+
+	t.Run("exponent overflow", func(t *testing.T) {
+		_, err := ParseDecimal128("1" + zeros)
+		assert.Error(t, err, "expected an error for an exponent past the maximum")
+	})
 }
 
 func TestDecimal128_JSON(t *testing.T) {
