@@ -56,6 +56,23 @@ var ErrEOA = errors.New("end of array")
 // ErrEOD is the error returned when the end of a BSON document has been reached.
 var ErrEOD = errors.New("end of document")
 
+// maxValueReaderDepth is the maximum number of nested documents, arrays, and
+// code-with-scope values the valueReader will descend into. Decoding recurses
+// once per level, so without a limit a deeply nested document that still fits
+// within the maximum BSON size can exhaust the goroutine stack, which is a
+// fatal error. The limit matches the one encoding/json uses.
+const maxValueReaderDepth = 10000
+
+// checkDepth returns an error if descending into another nested value would
+// exceed maxValueReaderDepth. Each nesting level occupies two frames, one for
+// the element and one for the nested value.
+func (vr *valueReader) checkDepth() error {
+	if vr.frame/2 >= maxValueReaderDepth {
+		return fmt.Errorf("BSON nesting too deep: exceeds %d levels", maxValueReaderDepth)
+	}
+	return nil
+}
+
 type vrState struct {
 	mode  mode
 	vType Type
@@ -366,6 +383,10 @@ func (vr *valueReader) ReadArray() (ArrayReader, error) {
 		return nil, err
 	}
 
+	if err := vr.checkDepth(); err != nil {
+		return nil, err
+	}
+
 	// Push a new frame for the array.
 	vr.advanceFrame()
 
@@ -469,6 +490,10 @@ func (vr *valueReader) ReadDocument() (DocumentReader, error) {
 		return nil, vr.invalidTransitionErr(mDocument, "ReadDocument", []mode{mTopLevel, mElement, mValue})
 	}
 
+	if err := vr.checkDepth(); err != nil {
+		return nil, err
+	}
+
 	vr.advanceFrame()
 
 	size, err := vr.readLength()
@@ -506,6 +531,9 @@ func (vr *valueReader) ReadCodeWithScope() (string, DocumentReader, error) {
 	}
 
 	code := string(buf[:len(buf)-1])
+	if err := vr.checkDepth(); err != nil {
+		return "", nil, err
+	}
 	vr.advanceFrame()
 
 	// Use readLength to ensure that we are not out of bounds.
