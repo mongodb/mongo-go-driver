@@ -41,9 +41,7 @@ var tClientOptions = reflect.TypeOf(&ClientOptions{})
 func TestClientOptions(t *testing.T) {
 	t.Run("ApplyURI/doesn't overwrite previous errors", func(t *testing.T) {
 		uri := "not-mongo-db-uri://"
-		want := fmt.Errorf(
-			"error parsing uri: %w",
-			errors.New(`scheme must be "mongodb" or "mongodb+srv"`))
+		want := errors.New("error parsing uri: invalid connection string")
 		co := Client().ApplyURI(uri).ApplyURI("mongodb://localhost/")
 		got := co.Validate()
 		if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
@@ -709,9 +707,7 @@ func TestApplyURI(t *testing.T) {
 			name: "ParseError",
 			uri:  "not-mongo-db-uri://",
 			wantopts: &ClientOptions{
-				err: fmt.Errorf(
-					"error parsing uri: %w",
-					errors.New(`scheme must be "mongodb" or "mongodb+srv"`)),
+				err: errors.New("error parsing uri: invalid connection string"),
 			},
 		},
 		{
@@ -719,7 +715,7 @@ func TestApplyURI(t *testing.T) {
 			uri:  "mongodb://localhost/?maxStaleness=200",
 			wantopts: &ClientOptions{
 				Hosts: []string{"localhost"},
-				err:   fmt.Errorf("unknown read preference %v", ""),
+				err:   errors.New("invalid read preference"),
 			},
 		},
 		{
@@ -735,7 +731,7 @@ func TestApplyURI(t *testing.T) {
 			uri:  "mongodb://localhost/?ssl=true&sslCertificateAuthorityFile=testdata/doesntexist",
 			wantopts: &ClientOptions{
 				Hosts: []string{"localhost"},
-				err:   &os.PathError{Op: "open", Path: "testdata/doesntexist"},
+				err:   errors.New("failed to read the TLS CA file"),
 			},
 		},
 		{
@@ -743,7 +739,7 @@ func TestApplyURI(t *testing.T) {
 			uri:  "mongodb://localhost/?ssl=true&sslClientCertificateKeyFile=testdata/doesntexist",
 			wantopts: &ClientOptions{
 				Hosts: []string{"localhost"},
-				err:   &os.PathError{Op: "open", Path: "testdata/doesntexist"},
+				err:   errors.New("failed to read the TLS client certificate key file"),
 			},
 		},
 		{
@@ -800,7 +796,7 @@ func TestApplyURI(t *testing.T) {
 			name: "Unescaped slash in username",
 			uri:  "mongodb:///:pwd@localhost",
 			wantopts: &ClientOptions{
-				err: fmt.Errorf("error parsing uri: %w", errors.New("unescaped slash in username")),
+				err: errors.New("error parsing uri: invalid connection string"),
 			},
 		},
 		{
@@ -1323,7 +1319,7 @@ func TestApplyURI(t *testing.T) {
 			uri:  "mongodb://example.com/?authMechanismProperties=TOKEN_RESOURCE:mongodb://host1%2Chost2",
 			wantopts: &ClientOptions{
 				HTTPClient: httputil.DefaultHTTPClient,
-				err:        errors.New(`error parsing uri: invalid authMechanism property`),
+				err:        errors.New("error parsing uri: invalid option"),
 			},
 		},
 	}
