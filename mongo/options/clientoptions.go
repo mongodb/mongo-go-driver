@@ -112,11 +112,15 @@ type Credential struct {
 	AuthMechanismProperties map[string]string
 	AuthSource              string
 	Username                string
-	Password                string
-	PasswordSet             bool
-	OIDCMachineCallback     OIDCCallback
-	OIDCHumanCallback       OIDCCallback
-	AWSCredentialsProvider  AWSCredentialsProvider
+
+	// Password is the password to authenticate with. It is stored in plaintext
+	// and is not redacted by any representation of this struct, so it must not
+	// be logged or included in any other I/O.
+	Password               string
+	PasswordSet            bool
+	OIDCMachineCallback    OIDCCallback
+	OIDCHumanCallback      OIDCCallback
+	AWSCredentialsProvider AWSCredentialsProvider
 }
 
 // OIDCCallback is the type for both Human and Machine Callback flows.
@@ -444,7 +448,8 @@ func setURIOpts(uri string, opts *ClientOptions) error {
 
 		mode, err := readpref.ModeFromString(connString.ReadPreference)
 		if err != nil {
-			return err
+			// ModeFromString quotes its argument, which came from the URI.
+			return errors.New("invalid read preference")
 		}
 
 		opts.ReadPreference, err = readpref.New(mode, readPrefOpts...)
@@ -563,6 +568,9 @@ func setURIOpts(uri string, opts *ClientOptions) error {
 
 // GetURI returns the original URI used to configure the ClientOptions instance.
 // If ApplyURI was not called during construction, this returns "".
+//
+// The returned URI is not redacted: a connection string routinely carries a
+// password in plaintext. Do not log it or include it in any other I/O.
 func (c *ClientOptions) GetURI() string {
 	if c != nil && c.connString != nil {
 		return c.connString.Original
@@ -691,7 +699,7 @@ func (c *ClientOptions) Validate() error {
 			switch prop {
 			case auth.AllowedHostsProp, auth.EnvironmentProp, auth.ResourceProp:
 			default:
-				return fmt.Errorf("auth mechanism property %q is not valid for MONGODB-OIDC", prop)
+				return errors.New("auth mechanism property is not valid for MONGODB-OIDC")
 			}
 		}
 
@@ -717,7 +725,7 @@ func (c *ClientOptions) Validate() error {
 					return fmt.Errorf("must not specify username for %s %q", env, auth.EnvironmentProp)
 				}
 			default:
-				return fmt.Errorf("the %s %q is not supported for MONGODB-OIDC", env, auth.EnvironmentProp)
+				return fmt.Errorf("the %q value is not supported for MONGODB-OIDC", auth.EnvironmentProp)
 			}
 		}
 	}
@@ -1262,7 +1270,7 @@ func (c *ClientOptions) SetDriverInfo(info *DriverInfo) *ClientOptions {
 func addCACertFromFile(cfg *tls.Config, file string) error {
 	data, err := ioutil.ReadFile(file)
 	if err != nil {
-		return err
+		return errors.New("failed to read the TLS CA file")
 	}
 
 	if cfg.RootCAs == nil {
@@ -1278,11 +1286,11 @@ func addCACertFromFile(cfg *tls.Config, file string) error {
 func addClientCertFromSeparateFiles(cfg *tls.Config, keyFile, certFile, keyPassword string) (string, error) {
 	keyData, err := ioutil.ReadFile(keyFile)
 	if err != nil {
-		return "", err
+		return "", errors.New("failed to read the TLS client certificate key file")
 	}
 	certData, err := ioutil.ReadFile(certFile)
 	if err != nil {
-		return "", err
+		return "", errors.New("failed to read the TLS client certificate file")
 	}
 
 	keySize := len(keyData)
@@ -1307,7 +1315,7 @@ func addClientCertFromSeparateFiles(cfg *tls.Config, keyFile, certFile, keyPassw
 func addClientCertFromConcatenatedFile(cfg *tls.Config, certKeyFile, keyPassword string) (string, error) {
 	data, err := ioutil.ReadFile(certKeyFile)
 	if err != nil {
-		return "", err
+		return "", errors.New("failed to read the TLS client certificate key file")
 	}
 
 	return addClientCertFromBytes(cfg, data, keyPassword)

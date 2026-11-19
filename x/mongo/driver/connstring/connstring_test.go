@@ -7,12 +7,16 @@
 package connstring_test
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
+	"strings"
 	"testing"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/internal/assert"
 	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
 )
 
@@ -733,5 +737,107 @@ func TestImplicitTLS(t *testing.T) {
 			require.NoError(t, err, "Parse error: %v", err)
 			require.Equal(t, test.wantSSL, cs.SSL, "expected SSL to be %v", test.wantSSL)
 		})
+	}
+}
+
+// TestParseErrorsDoNotDiscloseURIContents verifies that a parse error reports
+// only a static class of failure and never quotes the connection string, which
+// may carry credentials.
+func TestParseErrorsDoNotDiscloseURIContents(t *testing.T) {
+	const secret = "SENTINELpassword1234"
+
+	tests := []struct {
+		name string
+		uri  string
+		want error
+	}{
+		{
+			name: "invalid percent-encoding in the password",
+			uri:  "mongodb://user:" + secret + "%zz@localhost:27017/",
+			want: connstring.ErrInvalidPercentEncoding,
+		},
+		{
+			name: "invalid option value",
+			uri:  "mongodb://localhost:27017/?maxPoolSize=" + secret,
+			want: connstring.ErrInvalidOption,
+		},
+		{
+			name: "invalid percent-encoding in an option value",
+			uri:  "mongodb://localhost:27017/?maxPoolSize=%zz",
+			want: connstring.ErrInvalidOption,
+		},
+		{
+			name: "invalid port",
+			uri:  "mongodb://localhost:" + secret + "/",
+			want: connstring.ErrInvalidConnString,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			_, err := connstring.Parse(test.uri)
+			require.ErrorIs(t, err, test.want)
+			require.EqualError(t, err, test.want.Error())
+		})
+	}
+}
+
+// TestCredentialDisclosureCorpus runs the DRIVERS-3623 credential disclosure
+// corpus against Parse and Validate.
+//
+// The corpus belongs to the connection string specification, but the change
+// that introduces it is not merged, so the pinned testdata/specifications
+// submodule does not carry it. Replace this test once the specification change
+// merges and the submodule pin moves, and delete the local copy so the two
+// cannot diverge.
+func TestCredentialDisclosureCorpus(t *testing.T) {
+	var (
+		sentinelPassword    = strings.ToLower("SENTINELpassword1234")
+		sentinelPasswordEnc = strings.ToLower("%53%45%4E%54%49%4E%45%4C%70%61%73%73%77%6F%72%64%31%32%33%34")
+	)
+	const corpusPath = "testdata/credential-disclosure.json"
+
+	content, err := os.ReadFile(corpusPath)
+	require.NoError(t, err)
+
+	var container struct {
+		Tests []struct {
+			Description string
+			URI         string
+		}
+	}
+	require.NoError(t, json.Unmarshal(content, &container))
+	require.NotEmpty(t, container.Tests, "the corpus must not be empty")
+
+	for _, testCase := range container.Tests {
+		for _, result := range []struct {
+			api string
+			err error
+		}{
+			{
+				api: "connstring.Parse",
+				err: func() error {
+					_, parseErr := connstring.Parse(testCase.URI)
+					return parseErr
+				}(),
+			},
+			{
+				api: "ClientOptions.Validate",
+				err: options.Client().ApplyURI(testCase.URI).Validate(),
+			},
+		} {
+			t.Run(fmt.Sprintf("%s %s", testCase.Description, result.api), func(t *testing.T) {
+				// Accepted URIs assert nothing further.
+				if result.err == nil {
+					return
+				}
+
+				message := strings.ToLower(result.err.Error())
+				require.NotContains(t, message, sentinelPassword,
+					"%s error for %q disclosed a credential", result.api, testCase.URI)
+				require.NotContains(t, message, sentinelPasswordEnc,
+					"%s error for %q disclosed a percent-encoded credential", result.api, testCase.URI)
+			})
+		}
 	}
 }
