@@ -5,7 +5,7 @@ go 1.26.7
 require (
 	github.com/cli/go-gh/v2 v2.17.0
 	github.com/joho/godotenv v1.5.1
-	github.com/moby/moby/api v1.56.1
+	github.com/moby/moby/api v1.57.0
 	github.com/testcontainers/testcontainers-go v0.44.0
 )
 
