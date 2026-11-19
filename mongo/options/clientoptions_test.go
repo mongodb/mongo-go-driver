@@ -532,6 +532,62 @@ func TestClientOptions(t *testing.T) {
 	})
 }
 
+func TestValidate_PLAINAuth(t *testing.T) {
+	testCases := []struct {
+		name    string
+		opts    *ClientOptions
+		wantErr string // Empty means no error is expected.
+	}{
+		{
+			name:    "valid credential",
+			opts:    Client().SetAuth(Credential{AuthMechanism: "PLAIN", Username: "username", Password: "password"}),
+			wantErr: "",
+		},
+		{
+			name:    "NUL character in username",
+			opts:    Client().SetAuth(Credential{AuthMechanism: "PLAIN", Username: "user\x00name", Password: "password"}),
+			wantErr: "cannot contain NUL characters",
+		},
+		{
+			name:    "NUL character in password",
+			opts:    Client().SetAuth(Credential{AuthMechanism: "PLAIN", Username: "username", Password: "pass\x00word"}),
+			wantErr: "cannot contain NUL characters",
+		},
+		{
+			name:    "NUL character in username with lowercase mechanism",
+			opts:    Client().SetAuth(Credential{AuthMechanism: "plain", Username: "user\x00name", Password: "password"}),
+			wantErr: "cannot contain NUL characters",
+		},
+		{
+			name:    "NUL character in username from URI",
+			opts:    Client().ApplyURI("mongodb://user%00name:password@localhost/?authMechanism=PLAIN"),
+			wantErr: "cannot contain NUL characters",
+		},
+		{
+			name:    "NUL character in password from URI",
+			opts:    Client().ApplyURI("mongodb://username:pass%00word@localhost/?authMechanism=PLAIN"),
+			wantErr: "cannot contain NUL characters",
+		},
+		{
+			name:    "NUL character with other mechanism is not checked",
+			opts:    Client().SetAuth(Credential{AuthMechanism: "SCRAM-SHA-256", Username: "user\x00name", Password: "pass\x00word"}),
+			wantErr: "",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := tc.opts.Validate()
+			if tc.wantErr == "" {
+				assert.NoError(t, err, "unexpected Validate error")
+				return
+			}
+			assert.ErrorContains(t, err, tc.wantErr, "expected Validate error")
+			assert.NotContains(t, err.Error(), "\x00", "error message must not contain the credential")
+		})
+	}
+}
+
 type nonDefaultTransport struct{}
 
 func (*nonDefaultTransport) RoundTrip(*http.Request) (*http.Response, error) { return nil, nil }

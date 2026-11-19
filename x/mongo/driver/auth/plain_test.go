@@ -9,6 +9,7 @@ package auth_test
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"strings"
 	"testing"
 
@@ -196,6 +197,44 @@ func TestPlainAuthenticator_SucceedsBoolean(t *testing.T) {
 		bsoncore.AppendBinaryElement(nil, "payload", 0x00, payload),
 	)
 	compareResponses(t, <-c.Written, expectedCmd, "$external")
+}
+
+func TestPlainAuthenticator_NULCharacters(t *testing.T) {
+	testCases := []struct {
+		name     string
+		username string
+		password string
+	}{
+		{name: "NUL character in username", username: "user\x00name", password: "password"},
+		{name: "NUL character in password", username: "username", password: "pass\x00word"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			authenticator := auth.PlainAuthenticator{
+				Username: tc.username,
+				Password: tc.password,
+			}
+
+			// Send a read error, so that an unexpected attempt to read from the
+			// connection returns an error.
+			readErr := make(chan error, 1)
+			readErr <- errors.New("unexpected read: no message should have been sent")
+
+			c := &drivertest.ChannelConn{
+				Written:  make(chan []byte, 1),
+				ReadResp: make(chan []byte, 1),
+				ReadErr:  readErr,
+				Desc: description.Server{
+					WireVersion: &description.VersionRange{Max: 6},
+				},
+			}
+
+			err := authenticator.Auth(context.Background(), &driver.AuthConfig{Connection: mnet.NewConnection(c)})
+			require.ErrorContains(t, err, "cannot contain NUL characters")
+			require.Len(t, c.Written, 0, "expected no messages to be sent to the server")
+		})
+	}
 }
 
 func writeReplies(c chan []byte, docs ...bsoncore.Document) {

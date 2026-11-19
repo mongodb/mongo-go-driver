@@ -656,6 +656,20 @@ func (c *ClientOptions) Validate() error {
 		return fmt.Errorf(`invalid value %q for "Timeout": value must be positive`, *to)
 	}
 
+	// PLAIN Validation
+	//
+	// The SASL PLAIN payload uses NUL characters as field separators, so a NUL
+	// in the username or password could change how the server parses the
+	// credential. Reject it before any authentication command is sent.
+	if c.Auth != nil && strings.EqualFold(c.Auth.AuthMechanism, auth.PLAIN) {
+		if strings.ContainsRune(c.Auth.Username, 0) {
+			return fmt.Errorf("username for the %s auth mechanism cannot contain NUL characters", auth.PLAIN)
+		}
+		if strings.ContainsRune(c.Auth.Password, 0) {
+			return fmt.Errorf("password for the %s auth mechanism cannot contain NUL characters", auth.PLAIN)
+		}
+	}
+
 	// OIDC Validation
 	if c.Auth != nil && c.Auth.AuthMechanism == auth.MongoDBOIDC {
 		if c.Auth.Password != "" {

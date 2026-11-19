@@ -9,6 +9,7 @@ package auth
 import (
 	"context"
 	"net/http"
+	"strings"
 
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 )
@@ -46,6 +47,16 @@ type PlainAuthenticator struct {
 
 // Auth authenticates the connection.
 func (a *PlainAuthenticator) Auth(ctx context.Context, cfg *driver.AuthConfig) error {
+	// The SASL PLAIN payload uses NUL characters as field separators, so a NUL
+	// in the username or password could change how the server parses the
+	// credential. Reject it before sending any authentication command.
+	if strings.ContainsRune(a.Username, 0) {
+		return newAuthError("PLAIN username cannot contain NUL characters", nil)
+	}
+	if strings.ContainsRune(a.Password, 0) {
+		return newAuthError("PLAIN password cannot contain NUL characters", nil)
+	}
+
 	return ConductSaslConversation(ctx, cfg, sourceExternal, &plainSaslClient{
 		username: a.Username,
 		password: a.Password,
