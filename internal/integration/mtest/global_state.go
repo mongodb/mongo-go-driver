@@ -100,7 +100,14 @@ func SetRawFailPoint(fp bson.Raw, client *mongo.Client) error {
 
 // AdvanceConfigClusterTime advances the config server's cluster time to the
 // mongos cluster time so a change stream open doesn't block waiting for it.
+//
+// This is only needed on 9.0+ sharded clusters (see DRIVERS-3556 /
+// SERVER-129623), so it is a no-op for any other topology or server version.
 func AdvanceConfigClusterTime(ctx context.Context) error {
+	if ClusterTopologyKind() != Sharded || CompareServerVersions(ServerVersion(), "9.0") < 0 {
+		return nil
+	}
+
 	admin := GlobalClient().Database("admin")
 
 	pingRes, err := admin.RunCommand(ctx, bson.D{{Key: "ping", Value: 1}}).Raw()
@@ -141,29 +148,47 @@ func AdvanceConfigClusterTime(ctx context.Context) error {
 	}
 	defer func() { _ = cfgClient.Disconnect(ctx) }()
 
-	const maxNotes = 100 // bound the number of oplog notes to append to avoid filling the oplog
+	// Gossip the mongos cluster time to the config server so its clock jumps
+	// straight to the target. Appending oplog notes alone only advances it one
+	// increment per note, which can't catch up after a burst of shard writes.
+	// The server requires the signature mongos sent, so forward the whole
+	// $clusterTime document rather than just the timestamp.
+	clusterTimeVal, err := pingRes.LookupErr("$clusterTime")
+	if err != nil {
+		return fmt.Errorf("error looking up $clusterTime in ping response: %w", err)
+	}
 
-	t, i, err := appendNote(ctx, cfgClient)
+	clusterTime, err := bson.Marshal(bson.D{{Key: "$clusterTime", Value: clusterTimeVal}})
+	if err != nil {
+		return fmt.Errorf("error marshaling $clusterTime: %w", err)
+	}
+
+	sess, err := cfgClient.StartSession()
+	if err != nil {
+		return fmt.Errorf("error starting config server session: %w", err)
+	}
+	defer sess.EndSession(ctx)
+
+	if err := sess.AdvanceClusterTime(clusterTime); err != nil {
+		return fmt.Errorf("error advancing session cluster time: %w", err)
+	}
+
+	sessCtx := mongo.NewSessionContext(ctx, sess)
+
+	t, i, err := appendNote(sessCtx, cfgClient)
 	if err != nil {
 		return fmt.Errorf("error appending oplog note: %w", err)
 	}
 
-	for n := 0; clusterTimeBehind(t, i, targetT, targetI) && n < maxNotes; n++ {
-		if t, i, err = appendNote(ctx, cfgClient); err != nil {
-			return fmt.Errorf("error appending oplog note: %w", err)
-		}
-	}
-
-	// If we are still behind, then throw an error.
 	if clusterTimeBehind(t, i, targetT, targetI) {
-		return fmt.Errorf("config server cluster time is still behind mongos cluster time after %d oplog notes", maxNotes)
+		return fmt.Errorf("config server cluster time is still behind mongos cluster time after gossiping it")
 	}
 
 	// Fire a few more appendOplogNote calls after config has caught up, pushing
 	// the clock past the  mongos time rather than just level with it.
 	const marginNotes = 5
 	for range marginNotes {
-		if _, _, err = appendNote(ctx, cfgClient); err != nil {
+		if _, _, err = appendNote(sessCtx, cfgClient); err != nil {
 			return fmt.Errorf("error appending oplog note: %w", err)
 		}
 	}

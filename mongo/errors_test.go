@@ -1033,3 +1033,43 @@ func TestErrorCodesNoDoubleWrapping(t *testing.T) {
 	codes2 := ErrorCodes(wrapped)
 	require.Equal(t, codes, codes2)
 }
+
+// TestClientBulkWriteExceptionUnwrap asserts that the exception exposes the
+// top-level error it reports, so that errors.Is and errors.As still see it.
+func TestClientBulkWriteExceptionUnwrap(t *testing.T) {
+	t.Run("exposes the wrapped error", func(t *testing.T) {
+		bwe := ClientBulkWriteException{
+			WriteError: &WriteError{Message: context.DeadlineExceeded.Error()},
+			wrapped:    context.DeadlineExceeded,
+		}
+		require.ErrorIs(t, bwe, context.DeadlineExceeded,
+			"expected the exception to unwrap to the wrapped error")
+	})
+
+	t.Run("no wrapped error", func(t *testing.T) {
+		var bwe ClientBulkWriteException
+		require.Nil(t, bwe.Unwrap(), "expected a nil wrapped error")
+		require.False(t, errors.Is(bwe, context.DeadlineExceeded),
+			"expected the exception not to unwrap to a timeout")
+	})
+
+	// wrapErrors must return the exception as-is rather than remapping it via a
+	// sentinel it unwraps to, which would discard the exception and its partial
+	// result.
+	t.Run("is not remapped by wrapErrors", func(t *testing.T) {
+		bwe := ClientBulkWriteException{
+			WriteError: &WriteError{Message: topology.ErrTopologyClosed.Error()},
+			wrapped:    topology.ErrTopologyClosed,
+		}
+
+		got := wrapErrors(bwe)
+
+		require.ErrorIs(t, got, topology.ErrTopologyClosed,
+			"expected the exception to be returned unchanged")
+		require.False(t, errors.Is(got, ErrClientDisconnected),
+			"expected the exception not to be remapped to ErrClientDisconnected")
+		var gotException ClientBulkWriteException
+		require.True(t, errors.As(got, &gotException),
+			"expected a ClientBulkWriteException, got %T: %v", got, got)
+	})
+}

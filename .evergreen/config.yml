@@ -1619,6 +1619,12 @@ axes:
         variables:
           GO_DIST: "/opt/golang/go1.26"
           DEFAULT_TASK: evg-test
+      - id: "ubuntu2404-64"
+        display_name: "Ubuntu 24.04"
+        run_on: ubuntu2404-small
+        variables:
+          GO_DIST: "/opt/golang/go1.26"
+          DEFAULT_TASK: evg-test
       - id: "macos"
         display_name: "MacOS 14.0"
         run_on: macos-14
@@ -1982,8 +1988,18 @@ buildvariants:
     display_name: "Enterprise Auth - ${os-ssl-32}"
     tasks:
       - name: ".test .enterprise-auth"
-  - matrix_name: "aws-auth-test"
-    matrix_spec: {version: ["4.4", "5.0", "6.0", "7.0", "8.0", "9.0", "latest", "rapid"], os-aws-auth: "*"}
+  - matrix_name: "aws-auth-test-ubuntu-focal"
+    matrix_spec: {version: ["4.4", "5.0", "6.0", "7.0", "8.0"], os-aws-auth: ["ubuntu2004-64"]}
+    display_name: "MONGODB-AWS Auth ${version} ${os-aws-auth}"
+    tasks:
+      - name: "aws-auth-test"
+  - matrix_name: "aws-auth-test-ubuntu-noble"
+    matrix_spec: {version: ["9.0", "latest", "rapid"], os-aws-auth: ["ubuntu2404-64"]}
+    display_name: "MONGODB-AWS Auth ${version} ${os-aws-auth}"
+    tasks:
+      - name: "aws-auth-test"
+  - matrix_name: "aws-auth-test-windows-macos"
+    matrix_spec: {version: ["4.4", "5.0", "6.0", "7.0", "8.0", "9.0", "latest", "rapid"], os-aws-auth: ["windows-64-2022-latest-small", "macos"]}
     display_name: "MONGODB-AWS Auth ${version} ${os-aws-auth}"
     tasks:
       - name: "aws-auth-test"
