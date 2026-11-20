@@ -133,14 +133,9 @@ func requireCSOTOverrideOperationTimeoutChangeStream(t *testing.T, entity func(m
 		},
 	})
 
-	// As of 9.0+ on sharded clusters, the config server's cluster time must
-	// be advanced to the mongos cluster time so that a change stream open
-	// doesn't block waiting for it.
-	//
-	// See DRIVERS-3556 / SERVER-129623 for more details.
-	if mtest.ClusterTopologyKind() == mtest.Sharded {
-		require.NoError(mt, mtest.AdvanceConfigClusterTime(context.Background()))
-	}
+	// On 9.0+ sharded clusters, advance the config server's cluster time so
+	// opening the change stream doesn't block. See DRIVERS-3556.
+	require.NoError(mt, mtest.AdvanceConfigClusterTime(context.Background()))
 
 	// Create a change stream with an operation timeout of 1000ms.
 	ctx, cancel := context.WithTimeout(context.Background(), 1000*time.Millisecond)
@@ -196,14 +191,9 @@ func requireCSOTRetriedChangeStream(t *testing.T, entity func(mt *mtest.T) chang
 		},
 	})
 
-	// As of 9.0+ on sharded clusters, the config server's cluster time must
-	// be advanced to the mongos cluster time so that a change stream open
-	// doesn't block waiting for it.
-	//
-	// See DRIVERS-3556 / SERVER-129623 for more details.
-	if mtest.ClusterTopologyKind() == mtest.Sharded {
-		require.NoError(mt, mtest.AdvanceConfigClusterTime(context.Background()))
-	}
+	// On 9.0+ sharded clusters, advance the config server's cluster time so
+	// opening the change stream doesn't block. See DRIVERS-3556.
+	require.NoError(mt, mtest.AdvanceConfigClusterTime(context.Background()))
 
 	// Create a change stream with an operation timeout of 1000ms. The first
 	// two aggregate attempts fail with a retryable error; the third succeeds.

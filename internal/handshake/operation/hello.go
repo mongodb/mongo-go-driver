@@ -27,6 +27,10 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
+// MetadataDelimiter separates the entries contributed by the driver and each
+// wrapping library within a client metadata field.
+const MetadataDelimiter = "|"
+
 // maxClientMetadataSize is the maximum size of the client metadata document
 // that can be sent to the server. Note that the maximum document size on
 // standalone and replica servers is 1024, but the maximum document size on
@@ -50,10 +54,9 @@ type Hello struct {
 	loadBalanced       bool
 	omitMaxTimeMS      bool
 
-	// Fields provided by a library that wraps the Go Driver.
-	outerLibraryName     string
-	outerLibraryVersion  string
-	outerLibraryPlatform string
+	// outerLibrary describes the libraries wrapping the Go Driver, or is nil
+	// if there are none.
+	outerLibrary *OuterLibraryInfo
 
 	res bsoncore.Document
 }
@@ -128,25 +131,19 @@ func (h *Hello) LoadBalanced(lb bool) *Hello {
 	return h
 }
 
-// OuterLibraryName specifies the name of the library wrapping the Go Driver.
-func (h *Hello) OuterLibraryName(name string) *Hello {
-	h.outerLibraryName = name
-
-	return h
+// OuterLibraryInfo describes the libraries wrapping the Go Driver. Each field
+// is a MetadataDelimiter-separated list with one entry per wrapping library.
+// Name and Version correspond by index, so an empty entry is meaningful.
+type OuterLibraryInfo struct {
+	Name     string
+	Version  string
+	Platform string
 }
 
-// OuterLibraryVersion specifies the version of the library wrapping the Go
-// Driver.
-func (h *Hello) OuterLibraryVersion(version string) *Hello {
-	h.outerLibraryVersion = version
-
-	return h
-}
-
-// OuterLibraryPlatform specifies the platform of the library wrapping the Go
-// Driver.
-func (h *Hello) OuterLibraryPlatform(platform string) *Hello {
-	h.outerLibraryPlatform = platform
+// OuterLibrary specifies the libraries wrapping the Go Driver. A nil info means
+// no library wraps the Go Driver.
+func (h *Hello) OuterLibrary(info *OuterLibraryInfo) *Hello {
+	h.outerLibrary = info
 
 	return h
 }
@@ -275,18 +272,19 @@ func appendClientAppName(dst []byte, name string) ([]byte, error) {
 // appendClientDriver appends the driver metadata to dst. It is the
 // responsibility of the caller to check that this appending does not cause dst
 // to exceed any size limitations.
-func appendClientDriver(dst []byte, outerLibraryName, outerLibraryVersion string) ([]byte, error) {
+func appendClientDriver(dst []byte, outerLibrary *OuterLibraryInfo) ([]byte, error) {
 	var idx int32
 	idx, dst = bsoncore.AppendDocumentElementStart(dst, "driver")
 
+	// The driver occupies the first entry, so the delimiter is appended
+	// unconditionally when a wrapping library is present. An empty outer value
+	// yields an empty entry, which keeps name and version aligned by index.
 	name := driverName
-	if outerLibraryName != "" {
-		name = name + "|" + outerLibraryName
-	}
-
 	version := version.Driver
-	if outerLibraryVersion != "" {
-		version = version + "|" + outerLibraryVersion
+
+	if outerLibrary != nil {
+		name = name + MetadataDelimiter + outerLibrary.Name
+		version = version + MetadataDelimiter + outerLibrary.Version
 	}
 
 	dst = bsoncore.AppendStringElement(dst, "name", name)
@@ -413,9 +411,11 @@ func appendClientOS(dst []byte, omitNonType bool) ([]byte, error) {
 // responsibility of the caller to check that this appending does not cause dst
 // to exceed any size limitations.
 func appendClientPlatform(dst []byte, outerLibraryPlatform string) []byte {
+	// Unlike name and version, platform is not positional: a wrapping library
+	// that reports no platform contributes nothing rather than an empty entry.
 	platform := runtime.Version()
 	if outerLibraryPlatform != "" {
-		platform = platform + "|" + outerLibraryPlatform
+		platform = platform + MetadataDelimiter + outerLibraryPlatform
 	}
 
 	return bsoncore.AppendStringElement(dst, "platform", platform)
@@ -474,7 +474,7 @@ retry:
 		return nil, err
 	}
 
-	dst, err = appendClientDriver(dst, h.outerLibraryName, h.outerLibraryVersion)
+	dst, err = appendClientDriver(dst, h.outerLibrary)
 	if err != nil {
 		return nil, err
 	}
@@ -485,7 +485,12 @@ retry:
 	}
 
 	if !truncatePlatform {
-		dst = appendClientPlatform(dst, h.outerLibraryPlatform)
+		var outerLibraryPlatform string
+		if h.outerLibrary != nil {
+			outerLibraryPlatform = h.outerLibrary.Platform
+		}
+
+		dst = appendClientPlatform(dst, outerLibraryPlatform)
 	}
 
 	if !omitEnvDocument {
