@@ -119,6 +119,9 @@ func (sc *SaslClient) Next(_ context.Context, challenge []byte) ([]byte, error) 
 		buf = unsafe.Pointer(&bytes[0])
 		bufLen = C.size_t(len(bytes))
 		status := C.gssapi_client_wrap_msg(&sc.state, buf, bufLen, &outBuf, &outBufLen)
+		if outBuf != nil {
+			defer C.free(outBuf)
+		}
 		if status != C.GSSAPI_OK {
 			return nil, sc.getError("unable to wrap authz")
 		}
@@ -131,6 +134,9 @@ func (sc *SaslClient) Next(_ context.Context, challenge []byte) ([]byte, error) 
 		}
 
 		status := C.gssapi_client_negotiate(&sc.state, buf, bufLen, &outBuf, &outBufLen)
+		if outBuf != nil {
+			defer C.free(outBuf)
+		}
 		switch status {
 		case C.GSSAPI_OK:
 			sc.contextComplete = true
@@ -138,10 +144,6 @@ func (sc *SaslClient) Next(_ context.Context, challenge []byte) ([]byte, error) 
 		default:
 			return nil, sc.getError("unable to negotiate with server")
 		}
-	}
-
-	if outBuf != nil {
-		defer C.free(outBuf)
 	}
 
 	return C.GoBytes(outBuf, C.int(outBufLen)), nil

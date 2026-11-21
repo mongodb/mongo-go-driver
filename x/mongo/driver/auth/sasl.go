@@ -175,6 +175,10 @@ func ConductSaslConversation(ctx context.Context, cfg *driver.AuthConfig, authSo
 	}
 	saslStartRes, err := runCommand(ctx, cfg, authSource, saslStartDoc)
 	if err != nil {
+		// Finish is never reached, so release the client here.
+		if closer, ok := client.(SaslClientCloser); ok {
+			closer.Close()
+		}
 		return newError(err, conversation.mechanism)
 	}
 

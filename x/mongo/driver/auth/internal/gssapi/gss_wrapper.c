@@ -98,9 +98,11 @@ int gssapi_client_init(
     }
 
     if (username) {
+        OM_uint32 ignored;
         gss_name_t name;
         client->maj_stat = gssapi_canonicalize_name(&client->min_stat, username, GSS_C_NT_USER_NAME, &name);
         if (GSS_ERROR(client->maj_stat)) {
+            gss_release_name(&ignored, &client->spn);
             return GSSAPI_ERROR;
         }
 
@@ -113,12 +115,11 @@ int gssapi_client_init(
             client->maj_stat = gss_acquire_cred(&client->min_stat, name, GSS_C_INDEFINITE, GSS_C_NO_OID_SET, GSS_C_INITIATE, &client->cred, NULL, NULL);
         }
 
+        gss_release_name(&ignored, &name);
         if (GSS_ERROR(client->maj_stat)) {
+            gss_release_name(&ignored, &client->spn);
             return GSSAPI_ERROR;
         }
-
-        OM_uint32 ignored;
-        gss_release_name(&ignored, &name);
     }
 
     return GSSAPI_OK;
