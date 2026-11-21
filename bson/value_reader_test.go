@@ -10,6 +10,7 @@ import (
 	"bufio"
 	"bytes"
 	_ "embed"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -2536,4 +2537,52 @@ func errequal(t *testing.T, err1, err2 error) bool {
 	}
 
 	return false
+}
+
+// nestedBSON returns a document that nests n levels of the given container
+// type, e.g. {"0": {"0": {...}}} for TypeEmbeddedDocument.
+func nestedBSON(n int, t Type) []byte {
+	total := 5 + 8*n
+	b := make([]byte, total)
+	for i := 0; i < n; i++ {
+		s := 7 * i
+		binary.LittleEndian.PutUint32(b[s:], uint32(total-8*i))
+		b[s+4], b[s+5], b[s+6] = byte(t), '0', 0x00
+	}
+	binary.LittleEndian.PutUint32(b[7*n:], 5)
+	return b
+}
+
+func TestValueReader_NestingDepth(t *testing.T) {
+	for _, typ := range []Type{TypeEmbeddedDocument, TypeArray} {
+		t.Run(typ.String(), func(t *testing.T) {
+			var d D
+			err := Unmarshal(nestedBSON(maxValueReaderDepth, typ), &d)
+			assert.NoError(t, err, "expected document at the depth limit to decode")
+
+			err = Unmarshal(nestedBSON(maxValueReaderDepth+1, typ), &d)
+			assert.Error(t, err, "expected error for document past the depth limit")
+
+			err = NewDecoder(NewDocumentReader(bytes.NewReader(nestedBSON(maxValueReaderDepth+1, typ)))).Decode(&d)
+			assert.Error(t, err, "expected error for streamed document past the depth limit")
+		})
+	}
+
+	t.Run("code with scope", func(t *testing.T) {
+		scope := nestedBSON(maxValueReaderDepth, TypeEmbeddedDocument)
+		cws := bsoncore.AppendCodeWithScope(nil, "x", scope)
+		doc := bsoncore.BuildDocument(nil, bsoncore.AppendHeader(nil, bsoncore.TypeCodeWithScope, "c"), cws)
+
+		var m M
+		err := Unmarshal(doc, &m)
+		assert.Error(t, err, "expected error for code with scope past the depth limit")
+	})
+
+	// Deep enough to overflow the goroutine stack without a depth limit while
+	// staying under the 16MiB maximum BSON document size.
+	t.Run("stack exhaustion", func(t *testing.T) {
+		var m M
+		err := Unmarshal(nestedBSON(1_000_000, TypeEmbeddedDocument), &m)
+		assert.Error(t, err, "expected error instead of stack overflow")
+	})
 }
