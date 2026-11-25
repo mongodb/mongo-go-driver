@@ -40,6 +40,11 @@ type testContainer struct {
 // Note a test supporting the deprecated gssapiServiceName property was removed from data/auth/auth_tests.json
 var authTestsDir = spectest.Path("auth/tests/legacy")
 
+// TODO(GODRIVER-4273): Once the DRIVERS-3599 spec PR is merged and the spec
+// submodule is updated, remove the "auth-tests-legacy" directory and remove
+// this variable.
+var drivers3599AuthTestsDir = spectest.Path("../../auth-tests-legacy")
+
 func runTestsInFile(t *testing.T, dirname string, filename string) {
 	filepath := path.Join(dirname, filename)
 	content, err := ioutil.ReadFile(filepath)
@@ -112,5 +117,11 @@ func mapInterfaceToString(m map[string]any) map[string]string {
 func TestAuthSpec(t *testing.T) {
 	for _, file := range spectest.FindJSONFilesInDir(t, authTestsDir) {
 		runTestsInFile(t, authTestsDir, file)
+	}
+
+	// TODO(GODRIVER-4273): Once the DRIVERS-3599 spec PR is merged and the spec
+	// submodule is updated, remove this block.
+	for _, file := range spectest.FindJSONFilesInDir(t, drivers3599AuthTestsDir) {
+		runTestsInFile(t, drivers3599AuthTestsDir, file)
 	}
 }

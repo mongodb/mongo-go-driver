@@ -158,6 +158,11 @@ func runTest(t *testing.T, test testCase, warningsError bool) {
 // Test case for all connection string spec tests.
 func TestConnStringSpec(t *testing.T) {
 	for _, file := range spectest.FindJSONFilesInDir(t, connstringTestsDir) {
+		// The credential disclosure corpus does not use the connection string
+		// test schema. TestCredentialDisclosureCorpus runs it instead.
+		if file == "credential-disclosure.json" {
+			continue
+		}
 		runTestsInFile(t, connstringTestsDir, file, false)
 	}
 }

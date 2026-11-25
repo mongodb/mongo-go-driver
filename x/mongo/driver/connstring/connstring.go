@@ -92,6 +92,19 @@ func ParseAndValidate(s string) (*ConnString, error) {
 	return connStr, nil
 }
 
+var (
+	// ErrInvalidOption reports that a URI option failed to parse.
+	ErrInvalidOption = errors.New("error parsing uri: invalid option")
+
+	// ErrInvalidPercentEncoding reports that the URI contains an invalid
+	// percent-encoding sequence.
+	ErrInvalidPercentEncoding = errors.New("error parsing uri: invalid percent-encoding")
+
+	// ErrInvalidConnString reports that the URI failed to parse for any other
+	// reason.
+	ErrInvalidConnString = errors.New("error parsing uri: invalid connection string")
+)
+
 // Parse parses the provided URI into a ConnString object
 // but does not check that all values are valid. Use `ConnString.Validate()`
 // to run the validation checks separately.
@@ -99,10 +112,26 @@ func Parse(s string) (*ConnString, error) {
 	p := parser{dnsResolver: dns.DefaultResolver}
 	connStr, err := p.parse(s)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing uri: %w", err)
+		// err may quote a component of s, which may carry credentials.
+		var optErr optionError
+		var escapeErr url.EscapeError
+		switch {
+		case errors.As(err, &optErr):
+			return nil, ErrInvalidOption
+		case errors.As(err, &escapeErr):
+			return nil, ErrInvalidPercentEncoding
+		default:
+			return nil, ErrInvalidConnString
+		}
 	}
 	return connStr, err
 }
+
+// optionError marks a failure to parse a URI option. Parse replaces it with a
+// static message so that the option key or argument is never reported.
+type optionError struct{}
+
+func (optionError) Error() string { return "invalid option" }
 
 // ConnString represents a connection string to mongodb.
 type ConnString struct {
@@ -1017,7 +1046,7 @@ func (p *parser) parse(original string) (*ConnString, error) {
 
 	err = connStr.addOptions(connectionArgPairs)
 	if err != nil {
-		return nil, err
+		return nil, optionError{}
 	}
 
 	// do SRV lookup if "mongodb+srv://"
