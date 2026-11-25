@@ -9,7 +9,9 @@ package driver
 import (
 	"bytes"
 	"compress/zlib"
+	"io"
 	"os"
+	"sync"
 	"testing"
 
 	"github.com/klauspost/compress/snappy"
@@ -82,6 +84,81 @@ func TestCompressionLevels(t *testing.T) {
 			}
 		}
 	})
+}
+
+func TestZLibInteroperability(t *testing.T) {
+	t.Parallel()
+
+	for _, size := range []int{1, 200, 4096, 100_000} {
+		payload := bytes.Repeat([]byte("{_id: 42, status: \"SETTLED\", stake: 1000, odds: 1.95} "), size/50+1)[:size]
+		for lvl := zlib.HuffmanOnly; lvl <= zlib.BestCompression; lvl++ {
+			opts := CompressionOpts{
+				Compressor:       wiremessage.CompressorZLib,
+				ZlibLevel:        lvl,
+				UncompressedSize: int32(size),
+			}
+
+			compressed, err := CompressPayload(payload, opts)
+			require.NoError(t, err, "size %d, level %d", size, lvl)
+			r, err := zlib.NewReader(bytes.NewReader(compressed))
+			require.NoError(t, err, "size %d, level %d", size, lvl)
+			decompressed, err := io.ReadAll(r)
+			require.NoError(t, err, "size %d, level %d", size, lvl)
+			assert.Equal(t, payload, decompressed, "size %d, level %d", size, lvl)
+
+			var buf bytes.Buffer
+			w, err := zlib.NewWriterLevel(&buf, lvl)
+			require.NoError(t, err)
+			_, err = w.Write(payload)
+			require.NoError(t, err)
+			require.NoError(t, w.Close())
+			decompressed, err = DecompressPayload(buf.Bytes(), opts)
+			require.NoError(t, err, "size %d, level %d", size, lvl)
+			assert.Equal(t, payload, decompressed, "size %d, level %d", size, lvl)
+		}
+	}
+}
+
+func TestZLibDecompressReusesReaders(t *testing.T) {
+	t.Parallel()
+
+	opts := CompressionOpts{
+		Compressor: wiremessage.CompressorZLib,
+		ZlibLevel:  wiremessage.DefaultZlibLevel,
+	}
+	payloads := make([][]byte, 16)
+	compressed := make([][]byte, len(payloads))
+	for i := range payloads {
+		payloads[i] = bytes.Repeat([]byte{byte('a' + i)}, 100*(i+1))
+		var err error
+		compressed[i], err = CompressPayload(payloads[i], opts)
+		require.NoError(t, err)
+	}
+	corrupted := append([]byte(nil), compressed[0]...)
+	corrupted[len(corrupted)-1] ^= 0xff
+
+	var wg sync.WaitGroup
+	for g := 0; g < 8; g++ {
+		wg.Add(1)
+		go func(g int) {
+			defer wg.Done()
+			for i := 0; i < 200; i++ {
+				k := (g + i) % len(payloads)
+				o := opts
+				o.UncompressedSize = int32(len(payloads[k]))
+				if i%10 == 0 {
+					o.UncompressedSize = int32(len(payloads[0]))
+					_, err := DecompressPayload(corrupted, o)
+					assert.Error(t, err)
+					continue
+				}
+				decompressed, err := DecompressPayload(compressed[k], o)
+				assert.NoError(t, err)
+				assert.Equal(t, payloads[k], decompressed)
+			}
+		}(g)
+	}
+	wg.Wait()
 }
 
 func TestDecompressFailures(t *testing.T) {
