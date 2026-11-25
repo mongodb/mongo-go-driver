@@ -60,8 +60,21 @@ var ErrEOD = errors.New("end of document")
 // code-with-scope values the valueReader will descend into. Decoding recurses
 // once per level, so without a limit a deeply nested document that still fits
 // within the maximum BSON size can exhaust the goroutine stack, which is a
-// fatal error. The limit matches the one encoding/json uses.
-const maxValueReaderDepth = 10000
+// fatal error that recover cannot catch.
+//
+// The value is derived the way encoding/json derives its own limit, as a value
+// well under 1% of the experimentally measured depth the decoder reaches with
+// the default stack size. Decoding one nesting level into a bson.D or bson.M
+// costs about 1KiB of goroutine stack, so:
+//   - on 64-bit systems, the default stack limit is 1GiB, which allows ~1,000,000
+//     frames of recursive decoding;
+//   - on 32-bit systems, the default stack limit is 250MB, and because goroutine
+//     stacks grow by doubling, the usable ceiling is 128MiB, which allows at
+//     least ~130,000 frames (32-bit frames are smaller, so this is a floor).
+//
+// 1000 is under 1% of that 32-bit floor, so the limit is reached long before
+// the stack is, on every supported architecture.
+const maxValueReaderDepth = 1000
 
 // checkDepth returns an error if descending into another nested value would
 // exceed maxValueReaderDepth. Each nesting level occupies two frames, one for
