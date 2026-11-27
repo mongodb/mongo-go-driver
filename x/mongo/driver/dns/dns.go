@@ -19,6 +19,9 @@ import (
 	"net"
 	"runtime"
 	"strings"
+
+	"golang.org/x/net/idna"
+	"golang.org/x/net/publicsuffix"
 )
 
 // Resolver resolves DNS records.
@@ -31,14 +34,37 @@ type Resolver struct {
 // DefaultResolver is a Resolver that uses the default Resolver from the net package.
 var DefaultResolver = &Resolver{net.LookupSRV, net.LookupTXT}
 
+// ParseHostsOptions holds the options for ParseHostsWithOptions.
+type ParseHostsOptions struct {
+	// SRVServiceName is the SRV service name to look up. Defaults to "mongodb" if empty.
+	SRVServiceName string
+
+	// AllowedHostsSuffix, if non-empty, is the normalized (leading ".", lowercase, A-label)
+	// domain suffix that returned SRV hostnames are validated against, in place of the domain
+	// derived from host. Use NormalizeAllowedHostsSuffix to produce this value.
+	AllowedHostsSuffix string
+
+	// StopOnErr causes ParseHostsWithOptions to return an error as soon as one is encountered
+	// validating a returned hostname, rather than dropping the offending hostname and continuing.
+	StopOnErr bool
+}
+
 // ParseHosts uses the srv string and service name to get the hosts.
 func (r *Resolver) ParseHosts(host string, srvName string, stopOnErr bool) ([]string, error) {
+	return r.ParseHostsWithOptions(host, ParseHostsOptions{
+		SRVServiceName: srvName,
+		StopOnErr:      stopOnErr,
+	})
+}
+
+// ParseHostsWithOptions uses the srv string and the provided options to get the hosts.
+func (r *Resolver) ParseHostsWithOptions(host string, opts ParseHostsOptions) ([]string, error) {
 	parsedHosts := strings.Split(host, ",")
 
 	if len(parsedHosts) != 1 {
 		return nil, fmt.Errorf("URI with SRV must include one and only one hostname")
 	}
-	return r.fetchSeedlistFromSRV(parsedHosts[0], srvName, stopOnErr)
+	return r.fetchSeedlistFromSRV(parsedHosts[0], opts)
 }
 
 // GetConnectionArgsFromTXT gets the TXT record associated with the host and returns the connection arguments.
@@ -71,7 +97,7 @@ func (r *Resolver) GetConnectionArgsFromTXT(host string) ([]string, error) {
 	return connectionArgsFromTXT, nil
 }
 
-func (r *Resolver) fetchSeedlistFromSRV(host string, srvName string, stopOnErr bool) ([]string, error) {
+func (r *Resolver) fetchSeedlistFromSRV(host string, opts ParseHostsOptions) ([]string, error) {
 	var err error
 
 	_, _, err = net.SplitHostPort(host)
@@ -83,6 +109,7 @@ func (r *Resolver) fetchSeedlistFromSRV(host string, srvName string, stopOnErr b
 	}
 
 	// default to "mongodb" as service name if not supplied
+	srvName := opts.SRVServiceName
 	if srvName == "" {
 		srvName = "mongodb"
 	}
@@ -93,26 +120,51 @@ func (r *Resolver) fetchSeedlistFromSRV(host string, srvName string, stopOnErr b
 		return nil, err
 	}
 
-	trimmedHost := strings.TrimSuffix(host, ".")
-
 	parsedHosts := make([]string, 0, len(addresses))
 	for _, address := range addresses {
-		trimmedAddressTarget := strings.TrimSuffix(address.Target, ".")
-		err := validateSRVResult(trimmedAddressTarget, trimmedHost)
-		if err != nil {
-			if stopOnErr {
+		normalizedTarget, normErr := normalizeHostname(address.Target)
+		if normErr != nil {
+			if opts.StopOnErr {
+				return nil, fmt.Errorf("invalid SRV record target %q: %w", address.Target, normErr)
+			}
+			continue
+		}
+		if err = validateSRVResult(normalizedTarget, host, opts.AllowedHostsSuffix); err != nil {
+			if opts.StopOnErr {
 				return nil, err
 			}
 			continue
 		}
-		parsedHosts = append(parsedHosts, fmt.Sprintf("%s:%d", trimmedAddressTarget, address.Port))
+		parsedHosts = append(parsedHosts, fmt.Sprintf("%s:%d", normalizedTarget, address.Port))
 	}
 	return parsedHosts, nil
 }
 
-func validateSRVResult(recordFromSRV, inputHostName string) error {
-	separatedInputDomain := strings.Split(strings.ToLower(inputHostName), ".")
-	separatedRecord := strings.Split(strings.ToLower(recordFromSRV), ".")
+func validateSRVResult(recordFromSRV, inputHostName, allowedHostsSuffix string) error {
+	normalizedRecord, err := normalizeHostname(recordFromSRV)
+	if err != nil {
+		return err
+	}
+
+	// The {domainname} that returned hostnames are validated against must have the same
+	// normalizations applied, so that neither trailing dots, case, nor Unicode/Punycode encoding
+	// can affect the comparison.
+	normalizedHost, err := normalizeHostname(inputHostName)
+	if err != nil {
+		return err
+	}
+
+	// When srvAllowedHostsSuffix is configured, it replaces the domain derived from the
+	// connection string hostname.
+	if allowedHostsSuffix != "" {
+		if !strings.HasSuffix(normalizedRecord, allowedHostsSuffix) {
+			return errors.New("domain suffix from SRV record not matched input domain")
+		}
+		return nil
+	}
+
+	separatedInputDomain := strings.Split(normalizedHost, ".")
+	separatedRecord := strings.Split(normalizedRecord, ".")
 	if l := len(separatedInputDomain); l < 3 && len(separatedRecord) <= l {
 		return fmt.Errorf("server record (%d levels) should have more domain levels than parent URI (%d levels)", len(separatedRecord), l)
 	}
@@ -133,6 +185,66 @@ func validateSRVResult(recordFromSRV, inputHostName string) error {
 		}
 	}
 	return nil
+}
+
+func normalizeHostname(hostname string) (string, error) {
+	aLabel, err := idna.ToASCII(strings.TrimSuffix(hostname, "."))
+	if err != nil {
+		return "", fmt.Errorf("invalid hostname %q: %w", hostname, err)
+	}
+	return strings.ToLower(aLabel), nil
+}
+
+// NormalizeAllowedHostsSuffix normalizes and validates a srvAllowedHostsSuffix URI option value.
+// The returned value has a leading ".".
+func NormalizeAllowedHostsSuffix(value string) (string, error) {
+	// 1. Any leading or trailing "." MUST be stripped.
+	trimmed := strings.Trim(value, ".")
+	if trimmed == "" {
+		return "", errors.New("srvAllowedHostsSuffix must not be empty")
+	}
+
+	// 2. Convert to A-label (Punycode) form. 3. Normalize to lowercase using ASCII case folding.
+	normalized, err := normalizeHostname(trimmed)
+	if err != nil {
+		return "", fmt.Errorf("invalid srvAllowedHostsSuffix: %w", err)
+	}
+
+	_, isReserved := map[string]struct{}{
+		// RFC 6761 special use names.
+		"test":      {},
+		"localhost": {},
+		"invalid":   {},
+		"example":   {},
+		// RFC 6762 multicast DNS.
+		"local": {},
+		// Reserved by ICANN for private use.
+		"internal": {},
+		// Not officially reserved by ICANN but commonly used privately.
+		"corp": {},
+		"home": {},
+		"mail": {},
+	}[normalized]
+
+	// 4. The resulting value MUST contain at least two "." separated labels, unless it is a
+	// single label that appears in the list of names reserved for private or special use.
+	if !strings.Contains(normalized, ".") && !isReserved {
+		return "", fmt.Errorf("srvAllowedHostsSuffix %q must contain at least two domain labels", value)
+	}
+
+	// 5. Drivers SHOULD raise an error if the resulting value is a public suffix, unless it is
+	// one of the reserved names above.
+	if !isReserved && isPublicSuffix(normalized) {
+		return "", fmt.Errorf("srvAllowedHostsSuffix %q must not be a public suffix", value)
+	}
+
+	// 6. A "." MUST be prepended.
+	return "." + normalized, nil
+}
+
+func isPublicSuffix(domain string) bool {
+	suffix, _ := publicsuffix.PublicSuffix(domain)
+	return suffix == domain
 }
 
 var allowedTXTOptions = map[string]struct{}{
